@@ -19,7 +19,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 
 ## Reference
 - *Keyboard shortcuts* — added once shortcuts exist
-- [What's new](../CHANGELOG.md)
+- [What's new](../../CHANGELOG.md)
 
 ---
 

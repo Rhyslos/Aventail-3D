@@ -1,18 +1,18 @@
 # Aventail 3D
 
-A free, open-source 3D modelling and UV unwrapping tool for **hard-surface game assets**, written in Rust.
+**A calm, tool-rich 3D modeller for game assets.**
 
-Model it, unwrap it, export it to Godot and Substance Painter, all in one calm, tool-rich app.
+Aventail 3D is a free, open-source modelling and UV unwrapping tool for **hard-surface game assets**, written in Rust. Model it, unwrap it, and export it to Substance Painter and Godot, all in one app.
 
-> **Status: early development.** There's nothing to download yet. The plan, design and roadmap are in place, and the first builds are on their way.
+> **Status: pre-alpha.** There is nothing to model with yet: the repository, quality checks and crate structure are in place, and the first window is next. Follow the progress tracker below.
+
+Created by **Rhyslos**, built with AI assistance (Claude by Anthropic). Part of the **Rhylib** family of tools, alongside [Halberd](https://github.com/Rhyslos/halberd).
 
 ## Why
 
-Aventail 3D is built for people who loved the modelling workflows of classic 3D packages like Cinema 4D and 3ds Max, but don't have access to them anymore and never got along with the alternatives. It takes inspiration from how those tools *felt* to use: a clean, calm viewport, deep modelling tools and a powerful UV unwrapper, and builds its own thing from there.
+Aventail 3D is built for people who loved the modelling workflows of classic 3D packages like Cinema 4D and 3ds Max, but no longer have access to them and never got along with the alternatives. It takes inspiration from how those tools *felt* to use: a clean, calm viewport, deep modelling tools and a powerful UV unwrapper. It starts close to that feel and grows into its own thing.
 
-It's not affiliated with, endorsed by or based on code from Maxon or Autodesk.
-
-## What it's for
+What it's for:
 
 - **Hard-surface modelling** for game assets: props, weapons, vehicles, environment pieces
 - **UV unwrapping**: seams, unwrapping, packing, texel density
@@ -21,30 +21,200 @@ It's not affiliated with, endorsed by or based on code from Maxon or Autodesk.
 
 Rendering, sculpting and texturing are left to the tools that already do them well. Rigging and animation are planned for much later.
 
-## Roadmap
+## Progress tracker
 
-See [DESIGN.md](DESIGN.md) for the full design and the phase-by-phase roadmap. In short:
+Aventail 3D is built in phases. Each ends with a gate the project lead checks before the next phase starts. This tracker is updated by the pull request that finishes each milestone. The full plan is in [DESIGN.md](DESIGN.md).
 
-0. App skeleton and layout
-1. Viewport and navigation
-2. Objects, primitives, undo, saving (`.rhy` project files)
-3. Editable meshes and selection
-4. Core modelling tools
-5. Export pipeline
-6. UV tools
-7. Edit Layers stack and other workflow tools
-8. Advanced hard-surface tools
+### Phase 0 · Foundations (v0.0, internal) — 5 of 7
+
+`█████████░░░░` 71%
+
+- [x] Repository set up: license, README, security policy, contribution rules
+- [x] Automatic builds for Windows, Linux and macOS on every change
+- [x] Quality checks in CI: formatting, lint, tests, license and vulnerability scans
+- [x] Documentation setup: architecture, contributing guide, changelog, decision records, pull request template, API reference, user manual
+- [x] Workspace split into crates
+- [ ] Window with the C4D-style layout: viewport, Attribute Manager, Object Manager, palettes, status bar, all dockable
+- [ ] Theme: calm dark colours, font and spacing
+
+**Gate:** the app launches into the C4D-style layout with movable, dockable panels.
+
+### Phase 1 · Viewport and navigation — 0 of 5
+
+`░░░░░░░░░░░░░` 0%
+
+<details>
+<summary>Milestones</summary>
+
+- [ ] 3D viewport: soft gradient background, fading grid, a test cube
+- [ ] Cinema 4D-style navigation: Alt + mouse to orbit, pan and zoom
+- [ ] Orbit and zoom around the point under the mouse cursor
+- [ ] Frame selected and frame all
+- [ ] Perspective, top, front and right views, and the 4-view layout
+
+</details>
+
+**Gate:** navigating feels smooth and calm to the project lead.
+
+### Phase 2 · Objects, history and saving — 0 of 6
+
+`░░░░░░░░░░░░░` 0%
+
+<details>
+<summary>Milestones</summary>
+
+- [ ] Object Manager: create, rename, reparent, hide and delete objects
+- [ ] Primitives: cube, plane, cylinder, sphere, disc, tube, cone
+- [ ] Primitive settings in the Attribute Manager
+- [ ] Object stack foundation: base plus recorded operations
+- [ ] Undo and redo limited by memory, not steps
+- [ ] Save and open `.rhy` projects
+
+</details>
+
+**Gate:** a scene of primitives can be built, edited, undone freely, saved and reopened.
+
+### Phase 3 · Editable meshes and selection — 0 of 5
+
+`░░░░░░░░░░░░░` 0%
+
+<details>
+<summary>Milestones</summary>
+
+- [ ] Mesh data structure, fully tested
+- [ ] Point, edge and polygon modes
+- [ ] Selection: click, rectangle, lasso, live selection, loop, ring, grow and shrink
+- [ ] Move, rotate and scale gizmos with axis constraints, snapping and typed values
+- [ ] Edits recorded on top of the base, so base settings stay editable
+
+</details>
+
+**Gate:** points, edges and polygons can be selected and moved precisely, and a cube's segments can still be changed afterwards.
+
+### Phase 4 · Core modelling tools — 0 of 7
+
+`░░░░░░░░░░░░░` 0%
+
+<details>
+<summary>Milestones</summary>
+
+- [ ] Extrude and inset
+- [ ] Bevel and chamfer
+- [ ] Loop cut and knife
+- [ ] Connect, bridge and weld
+- [ ] Dissolve, delete, fill hole and flip normals
+- [ ] Hard and soft edges, with normals display
+- [ ] Symmetry
+
+</details>
+
+**Gate:** a simple hard-surface prop (a crate, a sci-fi panel) can be modelled from start to finish.
+
+### Phase 5 · Export pipeline — 0 of 4
+
+`░░░░░░░░░░░░░` 0%
+
+<details>
+<summary>Milestones</summary>
+
+- [ ] OBJ export and import
+- [ ] glTF export
+- [ ] Consistent triangulation and MikkTSpace tangents
+- [ ] Export presets for Godot and Substance Painter
+
+</details>
+
+**Gate:** a prop goes through Substance Painter into Godot with no fixes in other software.
+
+### Phase 6 · UVs — 0 of 6
+
+`░░░░░░░░░░░░░` 0%
+
+<details>
+<summary>Milestones</summary>
+
+- [ ] UV mode and the UV Editor panel
+- [ ] Seams, including seams from hard edges
+- [ ] Unwrap, relax and straighten
+- [ ] Packing with padding
+- [ ] Texel density display and normalising
+- [ ] Checker texture and stretch view
+
+</details>
+
+**Gate:** that prop is unwrapped and packed in Aventail 3D, with clean bakes in Substance Painter.
+
+### Phase 7 · Workflow tools — 0 of 3
+
+`░░░░░░░░░░░░░` 0%
+
+<details>
+<summary>Milestones</summary>
+
+- [ ] Edit Layers: a stack of edit layers per object, inspired by 3ds Max's Edit Poly stack
+- [ ] Quick align and align tools
+- [ ] Optional quad menu
+
+</details>
+
+**Gate:** stacking, toggling and editing earlier layers feels right to the project lead.
+
+### Phase 8 · Advanced hard-surface — 0 of 4
+
+`░░░░░░░░░░░░░` 0%
+
+<details>
+<summary>Milestones</summary>
+
+- [ ] Booleans: union, subtract, intersect
+- [ ] Weighted normals
+- [ ] Improved bevel
+- [ ] Array and mirror generators
+
+</details>
+
+Further ahead: rigging, skinning and animation (Phase 9), once modelling and UVs are mature.
+
+### History
+
+Newest first. One line per finished milestone or passed gate.
+
+| Date | Event |
+| --- | --- |
+| 2026-10-10 | Repository, documentation, quality checks and crate structure in place |
+| 2026-10-10 | Project started: design document, roadmap, UI mockups and name |
+
+### Snapshots
+
+Pictures of Aventail 3D at memorable moments, newest first. Kept in `docs/screenshots` once there is something to show.
+
+## Building from source
+
+You need [Rust](https://rustup.rs) installed. Then, in this folder:
+
+```
+cargo run -p app              # build and start the app
+cargo test --workspace        # run every test
+```
+
+The first build downloads dependencies and takes a few minutes. Ready-made builds for Windows, Linux and macOS are attached to every pull request and change on GitHub, under the Actions tab.
 
 ## Documentation
 
-The user manual lives in [docs/manual](docs/manual/SUMMARY.md) and grows with every feature. New to 3D, or rusty? Start with [Concepts](docs/manual/concepts.md). What's changed recently is in the [changelog](docs/CHANGELOG.md).
+- [User manual](docs/manual/SUMMARY.md): how to use the app. New to 3D, or rusty? Start with [Concepts](docs/manual/concepts.md).
+- [DESIGN.md](DESIGN.md): what the app is, the interface plan and the full roadmap
+- [ARCHITECTURE.md](ARCHITECTURE.md): how the app is put together
+- [CONTRIBUTING.md](CONTRIBUTING.md): how it is built and tested, and the ground rules
+- [CHANGELOG.md](CHANGELOG.md): what changed
+- [docs/decisions](docs/decisions): why major choices were made
+- [SECURITY.md](SECURITY.md): how to report a vulnerability
 
 ## Contributing
 
-Ideas, bug reports and feedback are very welcome through Issues. Code contributions aren't being accepted at the moment.
+Ideas, bug reports and feedback are very welcome through Issues. Code contributions aren't accepted at the moment; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-Aventail 3D is free software, licensed under the [GNU General Public License v3.0 or later](LICENSE). Anything you make with it is yours.
+GNU General Public License v3.0 or later; see [LICENSE](LICENSE) and [NOTICE](NOTICE). You may use, change, share and sell the app, as long as versions you distribute stay open under the same license. Anything you make with it is yours.
 
-Part of the **Rhylib** family of tools.
+Aventail 3D is not affiliated with, endorsed by, or based on code from Maxon or Autodesk. Cinema 4D is a trademark of Maxon; 3ds Max is a trademark of Autodesk.

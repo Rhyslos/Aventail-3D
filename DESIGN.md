@@ -81,21 +81,23 @@ Notes:
 
 ### Workspace layout
 ```
-aventail/
+Aventail-3D/
 ├─ crates/
-│  ├─ mesh/        # mesh data structure, topology ops, geometry algorithms (no GPU/UI)
-│  ├─ scene/       # scene graph, objects, operation stacks, evaluation, undo/history
-│  ├─ uv/          # seams, unwrapping, relax, packing (wraps xatlas/faer)
-│  ├─ fileio/      # project format, OBJ, glTF (FBX later)
-│  ├─ render/      # wgpu viewport renderer
-│  └─ app/         # egui UI, tools, input, the application binary, branding.rs
-├─ assets/         # fonts, icons, theme
-├─ docs/
-├─ DESIGN.md
-├─ CLAUDE.md
-└─ RENAMING.md
+│  ├─ mesh/        # layer 0: mesh data structure, topology ops, geometry algorithms
+│  ├─ uv/          # layer 1: seams, unwrapping, relax, packing (wraps xatlas/faer)
+│  ├─ scene/       # layer 1: objects, operation stacks, evaluation, commands, undo
+│  ├─ config/      # layer 1: settings, hotkeys, defaults
+│  ├─ fileio/      # layer 2: .rhy projects, OBJ, glTF (FBX later), settings file
+│  ├─ render/      # layer 3: wgpu viewport renderer, picking
+│  ├─ tools/       # layer 3: camera, selection, gizmos, modelling and UV tools
+│  ├─ ui/          # layer 3: egui panels, menus, palettes, theme
+│  └─ app/         # layer 4: wires it together, frame loop, branding.rs
+├─ tools/layer-check/  # enforces the layer rules in tests
+├─ docs/           # manual/, decisions/
+├─ licenses/       # license texts for embedded fonts, icons
+└─ DESIGN.md, ARCHITECTURE.md, CONTRIBUTING.md, CLAUDE.md, RENAMING.md, CHANGELOG.md
 ```
-`mesh` and `scene` must not depend on rendering or UI, so they can be tested headlessly.
+Layers and their rules are in ARCHITECTURE.md and [decision 0003](docs/decisions/0003-layered-crates.md); a crate may only depend on its own layer or below, so `mesh` and `scene` never depend on rendering or UI and can be tested headlessly.
 Crate names are deliberately generic (no product name in them), so renaming the app never touches code structure.
 
 ---
@@ -294,8 +296,9 @@ Export options: triangulation (deterministic, so the bake matches the game), Mik
 Each phase ends with something runnable. The user tests the *feel* at the end of each phase before the next starts.
 
 ### Phase 0 — Skeleton
-- Cargo workspace with the crates above; CI (build, test, clippy, fmt, cargo-deny)
-- Window with egui + egui_dock: empty viewport, Object Manager, Attribute Manager, palettes, status bar
+- Repository set up in Halberd's style: license, README with progress tracker, security policy, contribution rules, decision records, templates
+- Cargo workspace with the crates above and `layer-check`; CI (fmt, clippy, tests and builds on three platforms, docs, cargo-deny, changelog check)
+- Window with egui + egui_dock: empty viewport, Attribute Manager (top right), Object Manager (below it), palettes, status bar
 - Theme: colours, Inter font, spacing
 - **Done when:** the app launches into the C4D-style layout with movable/dockable panels.
 
@@ -364,7 +367,7 @@ The user is relearning 3D modelling while building this, so the manual is a firs
 - **Page shape** (one page per tool, panel or workflow): *What it does* → *When to use it* → *How to use it* (steps) → *Settings* (each one explained) → *Shortcuts* → *Tips and common problems*.
 - **Concepts page** (`docs/manual/concepts.md`): plain-language explanations of 3D and game-asset ideas (normals, hard edges, seams, texel density, n-gons…). Every page links to it rather than re-explaining.
 - **Kept current:** any PR that adds or changes user-facing behaviour updates the manual in the same PR. A PR without the docs update is not finished.
-- **Changelog:** `docs/CHANGELOG.md` gets one plain-language line per user-facing change, so the user can see what's new since they last opened the app.
+- **Changelog:** `CHANGELOG.md` (repository root, Keep a Changelog format) gets one plain-language line per user-facing change, so the user can see what's new since they last opened the app. CI fails a pull request that changes code without a changelog entry.
 - **Later:** in-app help (F1 on a tool opens its manual page, tooltips link to it).
 
 ## 12. Ideas backlog
@@ -384,7 +387,7 @@ Possible features noted along the way. Not scheduled; nothing here blocks other 
 | Measure tool | Checking real-world sizes (door frames, crates) while modelling | Snapping |
 
 ## 13. Decision log
-Record significant decisions here with a date and one line of reasoning.
+Decisions from the planning phase, one line each. **From 2026-10-10 on, major decisions get a full record in [docs/decisions](docs/decisions)**; add a one-line pointer here too, so this log stays a quick overview.
 
 - 2026-10-09 — Rust + wgpu + egui chosen; C4D look and feel as starting target; hard-surface + UV for game assets as scope.
 - 2026-10-09 — Object = base + operation stack from day one, to make W4/W5 possible without a rewrite.
@@ -397,3 +400,4 @@ Record significant decisions here with a date and one line of reasoning.
 - 2026-10-10 — Name chosen: **Aventail 3D** (replaces working title "Facet"). Crates renamed to generic names; product name kept in `branding.rs` + `RENAMING.md` so a future rename is quick.
 - 2026-10-10 — Project license: GPL-3.0-or-later, so it stays free. No outside code contributions for now (or a CLA if that changes), keeping commercial options open. Repo: github.com/Rhyslos/Aventail-3D (public).
 - 2026-10-10 — Rule to flag dependencies and companion features before building was tried and dropped, as it would slow work down. §12 kept as an unscheduled ideas list.
+- 2026-10-10 — Same workflow as Halberd: one milestone per branch and pull request, never push to `main`, two sign-offs, CI on three platforms, decision records ([0001](docs/decisions/0001-record-decisions.md)). Crates split into 9 layered crates ([0003](docs/decisions/0003-layered-crates.md)).
