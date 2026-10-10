@@ -8,9 +8,13 @@ all-features = true
 version = 2
 # Known security vulnerabilities in any dependency fail the build.
 yanked = "deny"
-# "Unmaintained" notices (not vulnerabilities) are accepted one by one, with
-# a reason, in an `ignore = [...]` list here. Remove an entry as soon as the
-# library using it moves on.
+# "Unmaintained" notices (not vulnerabilities) accepted one by one, with a
+# reason. Remove an entry as soon as the library using it moves on.
+# See docs/decisions/0008-window-and-panels.md.
+ignore = [
+    { id = "RUSTSEC-2024-0436", reason = "paste: macro helper used only at compile time by egui_dock; no replacement upstream yet" },
+    { id = "RUSTSEC-2026-0192", reason = "ttf-parser: font reading inside winit's Linux window decorations; no replacement upstream yet" },
+]
 
 [licenses]
 version = 2

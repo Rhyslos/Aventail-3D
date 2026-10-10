@@ -4,7 +4,7 @@
 
 Aventail 3D is a free, open-source modelling and UV unwrapping tool for **hard-surface game assets**, written in Rust. Model it, unwrap it, and export it to Substance Painter and Godot, all in one app.
 
-> **Status: pre-alpha.** There is nothing to model with yet: the repository, quality checks and crate structure are in place, and the first window is next. Follow the progress tracker below.
+> **Status: pre-alpha.** The window opens with its Cinema 4D-style layout, but there is nothing to model with yet. The calm theme is next, then the 3D viewport. Follow the progress tracker below.
 
 Created by **Rhyslos**, built with AI assistance (Claude by Anthropic). Part of the **Rhylib** family of tools, alongside [Halberd](https://github.com/Rhyslos/halberd).
 
@@ -25,16 +25,16 @@ Rendering, sculpting and texturing are left to the tools that already do them we
 
 Aventail 3D is built in phases. Each ends with a gate the project lead checks before the next phase starts. This tracker is updated by the pull request that finishes each milestone. The full plan is in [DESIGN.md](DESIGN.md).
 
-### Phase 0 · Foundations (v0.0, internal) — 5 of 7
+### Phase 0 · Foundations (v0.0, internal) — 6 of 7
 
-`█████████░░░░` 71%
+`███████████░░` 86%
 
 - [x] Repository set up: license, README, security policy, contribution rules
 - [x] Automatic builds for Windows, Linux and macOS on every change
 - [x] Quality checks in CI: formatting, lint, tests, license and vulnerability scans
 - [x] Documentation setup: architecture, contributing guide, changelog, decision records, pull request template, API reference, user manual
 - [x] Workspace split into crates
-- [ ] Window with the C4D-style layout: viewport, Attribute Manager, Object Manager, palettes, status bar, all dockable
+- [x] Window with the C4D-style layout: viewport, Attribute Manager, Object Manager, palettes, status bar, all dockable
 - [ ] Theme: calm dark colours, font and spacing
 
 **Gate:** the app launches into the C4D-style layout with movable, dockable panels.
@@ -181,12 +181,17 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-10 | First window: the Cinema 4D-style layout with dockable panels, both palettes and a remembered layout |
 | 2026-10-10 | Repository, documentation, quality checks and crate structure in place |
 | 2026-10-10 | Project started: design document, roadmap, UI mockups and name |
 
 ### Snapshots
 
-Pictures of Aventail 3D at memorable moments, newest first. Kept in `docs/screenshots` once there is something to show.
+Pictures of Aventail 3D at memorable moments, newest first. Kept in [docs/screenshots](docs/screenshots).
+
+**2026-10-10: the first window.** The menu bar and command palette along the top, the mode palette down the left, the viewport's calm grey, Attributes and Objects on the right, Coordinates underneath. Taken by the automatic window test on a virtual screen.
+
+![Aventail 3D's first window](docs/screenshots/2026-10-10-first-window.png)
 
 ## Building from source
 

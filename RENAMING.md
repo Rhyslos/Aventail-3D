@@ -11,7 +11,7 @@ The app is currently called **Aventail 3D** (short: **Aventail**). The name is k
 1. **`crates/app/src/branding.rs`**: update `APP_NAME` and `APP_SHORT_NAME`. Everything in the app (window title, About box, menus, dialogs) reads from here.
 2. **`APP_ID`** in the same file: leave it alone unless you really want to. It decides where settings are stored, so changing it makes the app start with fresh settings. If you do change it, add a one-time migration that copies the old settings folder.
 3. **`crates/app/Cargo.toml`**: the `[[bin]] name` (the executable's file name).
-4. **`.github/workflows/ci.yml`**: the `binary:` names in the Build job, which must match the executable's file name.
+4. **`.github/workflows/ci.yml`**: the `binary:` names in the Build job and the executable path in the Window test job, which must match the executable's file name; and the window title passed to `window-smoke.sh` in the Window test job, which must match `APP_NAME`.
 5. **`Cargo.toml`** (root): the `repository` URL, if the GitHub repository is renamed.
 6. **`NOTICE`**: the name and copyright line.
 7. **Installer and file association config** (when it exists): the display name shown by the OS for the app and for `.rhy` files.

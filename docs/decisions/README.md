@@ -15,3 +15,4 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0005](0005-safety-lints.md) | No unsafe, no panics in library code | Accepted |
 | [0006](0006-base-plus-operation-stack.md) | Objects are a base plus an operation stack | Accepted |
 | [0007](0007-rhy-project-format.md) | The `.rhy` project format | Accepted |
+| [0008](0008-window-and-panels.md) | App window: eframe, egui_dock, drawn icons | Accepted |

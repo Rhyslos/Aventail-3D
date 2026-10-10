@@ -15,6 +15,13 @@ publish.workspace = true
 layer = 3
 
 [dependencies]
+egui.workspace = true
+egui_dock.workspace = true
+serde.workspace = true
+
+[dev-dependencies]
+egui_kittest.workspace = true
+ron.workspace = true
 
 [lints]
 workspace = true

@@ -25,6 +25,14 @@ cargo doc --workspace --no-deps --open                  # read the API docs
 
 Optional, matching CI: `cargo install cargo-deny` and run `cargo deny check`.
 
+The window smoke test (Linux only) opens the real window on a virtual screen, as CI does: it checks the viewport's colour, picks a mode with a click, quits with Ctrl+Q and checks the panel layout was saved. Pass the app's name (`APP_NAME` in `crates/app/src/branding.rs`) as the window title:
+
+```
+sudo apt-get install xvfb xdotool imagemagick mesa-vulkan-drivers libxkbcommon-x11-0
+cargo build -p app
+xvfb-run -s "-screen 0 1440x900x24" tools/smoke/window-smoke.sh target/debug/aventail "Aventail 3D" smoke-output
+```
+
 ## Third-party material
 
 Anything embedded in the program itself (fonts, icons, images) needs its license text in `licenses/`, listed in `licenses/README.md`; that folder ships with every build. Code libraries are covered by `cargo deny`, and must use a permissive license even though the app itself is GPL.

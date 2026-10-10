@@ -31,6 +31,34 @@ The interface thread draws 60+ frames a second and must never wait on slow work.
 
 Slow work (large unwraps, booleans, exports) runs on background threads. **Background jobs never touch the scene.** They send results as messages, and the interface thread applies them at the start of the next frame.
 
+## Startup
+
+1. **Command line** (`app`): `--version` and `--help` print and exit; anything unknown is explained, with exit code 2.
+2. **Window** (`app` with eframe): open the window, named and identified through `branding.rs`, and restore the panel layout saved last time. See [decision 0008](docs/decisions/0008-window-and-panels.md).
+3. **Each frame** (`ui`): the workbench draws the menu bar, the command palette, the mode palette, the status bar and the docked panels, and returns any actions (such as Quit) for the app to carry out.
+4. **Closing**: eframe saves the window size and the panel layout (`app.ron`, in a per-user folder named after `APP_ID`).
+
+## Window and panels
+
+The `ui` crate's workbench owns everything inside the window:
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│ Menu bar                                                     │
+│ Command palette (tools, primitives)                          │
+├──┬─────────────────────────────────────┬─────────────────────┤
+│M │ Viewport                            │ Attributes          │
+│o │                                     ├─────────────────────┤
+│d │                                     │ Objects             │
+│e ├─────────────────────────────────────┤                     │
+│s │ Coordinates                         │                     │
+├──┴─────────────────────────────────────┴─────────────────────┤
+│ Status bar                                                   │
+└──────────────────────────────────────────────────────────────┘
+```
+
+The four middle panels are dockable (egui_dock); the bars and palettes around them are fixed. Palette icons are drawn in code (`ui/src/icons.rs`). The workbench never touches the window or files itself: it returns actions for `app` to carry out.
+
 ## The scene
 
 - The single source of truth for an open project: the object hierarchy, each object's base and its operation stack. See [decision 0006](docs/decisions/0006-base-plus-operation-stack.md).
@@ -48,6 +76,7 @@ Slow work (large unwraps, booleans, exports) runs on background threads. **Backg
 | glTF / GLB | Later | Planned |
 | FBX | No | Late, optional |
 | Settings file | Planned | Planned |
+| `app.ron` (window size and panel layout; written by eframe) | Yes | Yes |
 
 ## Extension points
 

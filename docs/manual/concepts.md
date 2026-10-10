@@ -21,7 +21,9 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 ## Objects and scenes
 
-**Object** — Anything listed in the Object Manager: a mesh, a primitive, a group.
+**Object** — Anything listed in the Objects panel (Cinema 4D calls it the Object Manager): a mesh, a primitive, a group.
+
+**Mode** — What kind of thing your tools work on: whole objects, or a mesh's points, edges or polygons, or its UVs. The same Move tool moves a whole object in Model mode and a single edge in Edges mode. See [Interface tour](interface-tour.md#modes).
 
 **Primitive** — A parametric shape (cube, cylinder…) whose settings, like size and segments, stay editable.
 

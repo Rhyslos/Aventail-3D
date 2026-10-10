@@ -20,6 +20,8 @@ name = "aventail"
 path = "src/main.rs"
 
 [dependencies]
+ui.workspace = true
+eframe.workspace = true
 
 [lints]
 workspace = true

@@ -5,7 +5,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 
 ## Basics
 - [Concepts: the ideas behind 3D modelling for games](concepts.md)
-- *Interface tour* — added when the main window lands (Phase 0)
+- [Interface tour: the window, the modes, and rearranging panels](interface-tour.md)
 - *Navigating the viewport* — added in Phase 1
 
 ## Modelling
@@ -18,7 +18,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - *Pages are added here when export lands (Phase 5).*
 
 ## Reference
-- *Keyboard shortcuts* — added once shortcuts exist
+- *Keyboard shortcuts* — a full list arrives once there are more than a few; for now see each page's Shortcuts section
 - [What's new](../../CHANGELOG.md)
 
 ---

@@ -15,8 +15,10 @@ Starts the program: loads settings, opens the window, hands each frame to `ui`, 
 
 ## Depends on
 
-Every other app crate (planned).
+`ui` (every other app crate planned). Outside library: `eframe` (window and frame loop).
 
 ## Status
 
-A program skeleton that reports its name and version. The window arrives later in Phase 0.
+- **`branding`**: the app's name, short name, settings ID, family and project file extension.
+- **`cli`**: `--version` and `--help`; unknown options are explained (exit code 2).
+- **`window`**: opens the window with eframe and wgpu, hands each frame to the `ui` workbench, carries out Quit, and saves the panel layout between sessions under the stable `APP_ID`. A panic from a missing system library is caught and explained with an install hint.
