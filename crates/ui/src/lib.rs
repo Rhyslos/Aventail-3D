@@ -12,6 +12,7 @@ pub mod layout;
 pub mod palette;
 mod panel;
 mod panels;
+pub mod theme;
 mod workbench;
 
 pub use egui_dock::DockState;

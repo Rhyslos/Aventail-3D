@@ -2,7 +2,7 @@
 
 > The app's window: what each area is for, and how to rearrange it.
 
-![The app window with the standard layout](../screenshots/2026-10-10-first-window.png)
+![The app window with the standard layout](../screenshots/2026-10-10-theme.png)
 
 ## When to use this page
 
@@ -54,6 +54,7 @@ Panels can't be closed or pulled out into separate windows, so you can't lose on
 
 ## Tips and common problems
 
+- **Colours:** the app is always dark, whatever your system prefers. Orange marks what's active (the current mode, and later the current tool); blue-grey marks what's selected.
 - **Problem:** the panels are in a strange arrangement after an update. **Why:** a saved layout from an older version didn't fit. **Fix:** the app replaces it with the standard layout automatically and says so in the status bar; if it still looks wrong, use **View → Reset panel layout**.
 - **Problem:** on Linux, the app says a library "could not be loaded". **Fix:** install the library it names with your package manager (on Ubuntu, for example, `libxkbcommon-x11-0` and `mesa-vulkan-drivers`).
 

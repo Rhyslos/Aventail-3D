@@ -90,7 +90,7 @@ pub enum ButtonState {
 }
 
 /// The accent colour for the active mode, as in Cinema 4D.
-pub const ACCENT: Color32 = Color32::from_rgb(242, 163, 58);
+pub const ACCENT: Color32 = crate::theme::ACCENT;
 
 /// A square palette button with an icon. `label` names it for tooltips
 /// and screen readers; `note` is added to the tooltip (for example when

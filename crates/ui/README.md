@@ -26,6 +26,7 @@ The window's layout is in place:
 - **Panels** (`Panel`): Viewport, Attributes, Objects, Coordinates, docked with egui_dock. Not closeable, not floating. The standard layout (`layout::default_layout`) puts Attributes top right, Objects below, Coordinates under the viewport; a damaged saved layout is replaced with a status-bar note.
 - **Menu bar** in the design's order (File, Edit, Create, Modes, Select, Tools, Mesh, UV, View, Window, Help). Working: File → Quit (Ctrl+Q), Modes, View → Reset panel layout, Help → About. Everything else is listed greyed out with the phase that brings it.
 - **Palettes** (`palette`): the command palette (top, all commands greyed out for now) and the mode palette (left; Model, Object, Points, Edges, Polygons and UV can be picked, and the status bar says which is active).
+- **Theme** (`theme`): the calm dark look from the mockups, applied once at startup by the app: colours, the Inter font (Regular and SemiBold), text sizes, spacing, the bars' and palettes' frames and the docked tabs' style. Tests check every text colour is readable (WCAG 4.5:1) and neighbouring areas stay gently close.
 - **Icons** (`icons`): 22 original icons drawn with egui shapes on a 24 × 24 grid.
 - **Placeholders**: the viewport shows its calm grey gradient; the other panels say what will appear in them and when.
 

@@ -60,6 +60,7 @@ pub fn run(info: AppInfo) -> Result<(), String> {
             branding::APP_ID,
             options,
             Box::new(move |cc| {
+                ui::theme::apply(&cc.egui_ctx);
                 let saved: Option<DockState<Panel>> =
                     cc.storage.and_then(|s| eframe::get_value(s, LAYOUT_KEY));
                 Ok(Box::new(App {

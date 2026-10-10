@@ -200,3 +200,16 @@ fn panels_explain_what_is_coming() {
     assert!(harness.query_by_label("Nothing selected").is_some());
     assert!(harness.query_by_label("No objects yet").is_some());
 }
+
+#[test]
+fn the_themed_interface_still_shows_everything() {
+    let mut harness = harness_for(Workbench::new(info(), None));
+    crate::theme::apply(&harness.ctx);
+    harness.run();
+    for panel in Panel::ALL {
+        assert!(harness.query_by_label(panel.title()).is_some());
+    }
+    harness.get_by_label("Points mode").click();
+    harness.run();
+    assert_eq!(harness.state().workbench.mode(), Mode::Points);
+}
