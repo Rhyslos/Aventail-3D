@@ -7,6 +7,7 @@
 
 use crate::frame::{FrameParams, FrameUniforms, GRID_HALF_EXTENT};
 use crate::geometry::{Shape, ground_axes};
+use crate::pick::{PickRequest, PickResult, Picker};
 use crate::pipelines::{PipelineKind, create_pipeline};
 use wgpu::util::DeviceExt;
 
@@ -109,6 +110,8 @@ pub struct ViewportRenderer {
     face_pipeline: wgpu::RenderPipeline,
     grid_pipeline: wgpu::RenderPipeline,
     line_pipeline: wgpu::RenderPipeline,
+    pick_pipeline: wgpu::RenderPipeline,
+    picker: Picker,
     axes: Option<GpuBuffer>,
     faces: Option<GpuBuffer>,
     edges: Option<GpuBuffer>,
@@ -164,6 +167,8 @@ impl ViewportRenderer {
             face_pipeline: pipeline(PipelineKind::Faces),
             grid_pipeline: pipeline(PipelineKind::Grid),
             line_pipeline: pipeline(PipelineKind::Lines),
+            pick_pipeline: pipeline(PipelineKind::PickDepth),
+            picker: Picker::new(device, &bind_group_layout),
             axes: GpuBuffer::new(device, "ground axes", &ground_axes(GRID_HALF_EXTENT)),
             faces: None,
             edges: None,
@@ -177,6 +182,48 @@ impl ViewportRenderer {
     pub fn set_shape(&mut self, device: &wgpu::Device, shape: &Shape) {
         self.faces = GpuBuffer::new(device, "shape faces", &shape.faces);
         self.edges = GpuBuffer::new(device, "shape edges", &shape.edges);
+    }
+
+    /// Asks what is under a pixel, without waiting: the answer arrives
+    /// through [`Self::poll_pick`] on a later frame. Returns `false` (and
+    /// does nothing) while an earlier question is still waiting, or for a
+    /// request that makes no sense.
+    pub fn request_pick(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        request: PickRequest,
+    ) -> bool {
+        let faces = self.faces.as_ref().map(|f| (&f.buffer, f.count));
+        self.picker
+            .request(device, queue, &self.pick_pipeline, faces, request)
+    }
+
+    /// The answer to the last [`Self::request_pick`], if the GPU has
+    /// finished. Never waits.
+    pub fn poll_pick(&mut self, device: &wgpu::Device) -> Option<PickResult> {
+        self.picker.poll(device, false)
+    }
+
+    /// Whether a pick question is still waiting for its answer.
+    pub fn is_picking(&self) -> bool {
+        self.picker.is_busy()
+    }
+
+    /// Asks what is under a pixel and waits for the answer. For tests and
+    /// tools; the interface uses [`Self::request_pick`] so it never waits.
+    pub fn pick_now(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        request: PickRequest,
+    ) -> Option<PickResult> {
+        // Finish any question already in flight first.
+        let _ = self.picker.poll(device, true);
+        if !self.request_pick(device, queue, request) {
+            return None;
+        }
+        self.picker.poll(device, true)
     }
 
     /// The multisample count in use.

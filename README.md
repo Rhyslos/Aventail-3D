@@ -4,7 +4,7 @@
 
 Aventail 3D is a free, open-source modelling and UV unwrapping tool for **hard-surface game assets**, written in Rust. Model it, unwrap it, and export it to Substance Painter and Godot, all in one app.
 
-> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout and a real 3D view you can orbit, pan and zoom around a test cube, but there is nothing to model with yet. Orbiting around the point under the mouse is next. Follow the progress tracker below.
+> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout and a real 3D view you can orbit, pan and zoom around a test cube, but there is nothing to model with yet. Framing the selection and the top, front and side views are next. Follow the progress tracker below.
 
 Created by **Rhyslos**, built with AI assistance (Claude by Anthropic). Part of the **Rhylib** family of tools, alongside [Halberd](https://github.com/Rhyslos/halberd).
 
@@ -39,16 +39,16 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** the app launches into the C4D-style layout with movable, dockable panels. *Passed 2026-10-10.*
 
-### Phase 1 · Viewport and navigation — 2 of 5
+### Phase 1 · Viewport and navigation — 3 of 5
 
-`█████░░░░░░░░` 40%
+`████████░░░░░` 60%
 
 <details>
 <summary>Milestones</summary>
 
 - [x] 3D viewport: soft gradient background, fading grid, a test cube
 - [x] Navigation: orbit, pan and zoom with the mouse alone (or another choice of mouse controls)
-- [ ] Orbit and zoom around the point under the mouse cursor
+- [x] Orbit and zoom around the point under the mouse cursor
 - [ ] Frame selected and frame all
 - [ ] Perspective, top, front and right views, and the 4-view layout
 
@@ -181,6 +181,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-10 | Orbit and zoom around the point under the mouse, with a marker while orbiting |
 | 2026-10-10 | A darker studio look from the approved mockup: horizon, finite grid, menu lines inside panels, a red accent with five others to choose from, and a choice of navigation controls |
 | 2026-10-10 | Cinema 4D-style navigation (Alt + drag to orbit, pan and zoom, wheel to zoom) and a grid detail switch, with a calmer 1 m grid by default |
 | 2026-10-10 | First 3D viewport: gradient, fading grid on the ground, X and Y axes, and a softly lit test cube |
@@ -193,6 +194,10 @@ Newest first. One line per finished milestone or passed gate.
 ### Snapshots
 
 Pictures of Aventail 3D at memorable moments, newest first. Kept in [docs/screenshots](docs/screenshots).
+
+**2026-10-10: orbiting around the mouse.** The view turning around the spot grabbed on the cube's side, marked with a small ring.
+
+![Orbiting around the point under the mouse](docs/screenshots/2026-10-10-orbit-around-the-mouse.png)
 
 **2026-10-10: the studio look.** Darker panels, the viewport's own menu line, a grey sky over the ground with a horizon, a grid fading out around the cube, the green Z axis, the red accent on the active mode, and the navigation controls button in the bottom-right corner.
 

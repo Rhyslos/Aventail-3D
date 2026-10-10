@@ -11,6 +11,7 @@
 
 mod frame;
 mod geometry;
+mod pick;
 mod pipelines;
 mod readback;
 mod renderer;
@@ -23,6 +24,7 @@ pub use geometry::{
     AXIS_SEGMENT, CUBE_COLOR, EDGE_COLOR, FaceVertex, LineVertex, Shape, TEST_CUBE_SIZE,
     X_AXIS_COLOR, Y_AXIS_COLOR, Z_AXIS_COLOR, Z_AXIS_HEIGHT, ground_axes,
 };
+pub use pick::{PickRequest, PickResult};
 pub use readback::read_pixels;
 pub use renderer::{
     COLOR_FORMAT, DEPTH_FORMAT, DISPLAY_FORMAT, SHADER_SOURCE, ViewportRenderer, ViewportTarget,

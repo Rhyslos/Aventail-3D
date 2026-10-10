@@ -122,6 +122,10 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
             ui.close();
         }
         let navigation = &mut panel.options.navigation;
+        ui.checkbox(
+            &mut navigation.around_cursor,
+            super::picker::AROUND_CURSOR_LABEL,
+        );
         ui.checkbox(&mut navigation.invert_orbit, "Invert orbit direction");
         ui.checkbox(
             &mut navigation.alt_everywhere,
@@ -210,6 +214,27 @@ pub(super) fn overlays(ui: &Ui, rect: Rect, panel: &ViewportPanel) {
         theme::TEXT_WEAK,
     );
     axis_marker(&painter, rect.right_top() + vec2(-36.0, 36.0), panel);
+    if matches!(panel.drag, Some(DragKind::Orbit | DragKind::Dolly)) {
+        pivot_marker(ui, &painter, rect, panel);
+    }
+}
+
+/// A small ring and dot on the point the view turns around or zooms
+/// towards, shown while orbiting or zooming with a drag.
+fn pivot_marker(ui: &Ui, painter: &egui::Painter, rect: Rect, panel: &ViewportPanel) {
+    let size = Vec2::new(rect.width(), rect.height());
+    let Some(at) = panel.camera().project(panel.navigator().pivot(), size) else {
+        return;
+    };
+    let centre = rect.min + vec2(at.x, at.y);
+    if !rect.contains(centre) {
+        return;
+    }
+    let accent = theme::accent(ui.ctx()).colors();
+    let shadow = Stroke::new(3.5, egui::Color32::from_black_alpha(110));
+    painter.circle_stroke(centre, 7.0, shadow);
+    painter.circle_stroke(centre, 7.0, Stroke::new(1.5, accent.light));
+    painter.circle_filled(centre, 2.0, accent.light);
 }
 
 /// Screen directions of the world axes as the camera sees them, `length`

@@ -3,9 +3,12 @@
 //! Which buttons and keys start each movement is decided in
 //! [`crate::controls`]; this module does the movements themselves.
 //!
-//! The camera always looks at a **pivot**: the point it orbits around and
-//! moves towards when zooming. Panning carries the pivot along. (Picking
-//! the pivot from the point under the cursor is the next milestone.)
+//! Every movement is around a **pivot**: the point the camera orbits
+//! around and zooms towards. It starts as the point the camera looks at,
+//! and the viewport moves it to whatever is under the mouse when an orbit
+//! or a zoom starts ([`Navigator::set_pivot`], [`Navigator::dolly_towards`]),
+//! so you turn around and move towards what you point at. Panning carries
+//! the pivot along.
 //!
 //! Everything here is plain maths on plain input, so it is tested without
 //! a window. Distances on screen are in any one unit (the interface uses
@@ -52,7 +55,7 @@ pub enum DragKind {
     Dolly,
 }
 
-/// The viewport camera together with the pivot it looks at.
+/// The viewport camera together with the pivot it turns around.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Navigator {
     camera: Camera,
@@ -93,7 +96,7 @@ impl Navigator {
         &self.camera
     }
 
-    /// The point the camera looks at, orbits and zooms towards.
+    /// The point the camera orbits around and zooms towards.
     pub fn pivot(&self) -> Vec3 {
         self.pivot
     }
@@ -101,6 +104,45 @@ impl Navigator {
     /// How far the camera is from the pivot, in centimetres.
     pub fn distance(&self) -> f32 {
         self.camera.position.distance(self.pivot)
+    }
+
+    /// Makes `point` the pivot, without moving the camera: the next orbit
+    /// turns around it. Refused (returning `false`) for a point behind the
+    /// camera, closer than [`MIN_DISTANCE`], farther than [`MAX_DISTANCE`],
+    /// or not a real number.
+    pub fn set_pivot(&mut self, point: Vec3) -> bool {
+        if !self.usable_target(point) {
+            return false;
+        }
+        self.pivot = point;
+        true
+    }
+
+    /// Moves the pivot to the middle of the view, at the same depth,
+    /// without moving the camera: orbiting then turns around the middle of
+    /// the view again, and zooming heads straight ahead.
+    pub fn centre_pivot(&mut self) {
+        let depth = self.pivot_depth();
+        self.pivot = self.camera.position + self.camera.forward() * depth;
+    }
+
+    /// Whether the camera could orbit around or zoom towards `point`.
+    fn usable_target(&self, point: Vec3) -> bool {
+        let to = point - self.camera.position;
+        point.is_finite()
+            && to.dot(self.camera.forward()) >= MIN_DISTANCE
+            && to.length() <= MAX_DISTANCE
+    }
+
+    /// How far in front of the camera the pivot is, along the view
+    /// direction (its depth); at least [`MIN_DISTANCE`].
+    fn pivot_depth(&self) -> f32 {
+        let depth = (self.pivot - self.camera.position).dot(self.camera.forward());
+        if depth.is_finite() {
+            depth.max(MIN_DISTANCE)
+        } else {
+            MIN_DISTANCE
+        }
     }
 
     /// Goes back to the opening view.
@@ -123,23 +165,42 @@ impl Navigator {
     }
 
     /// Zooms for a turn of the mouse wheel: positive `scroll` (wheel turned
-    /// away from you) moves closer.
+    /// away from you) moves closer to the pivot.
     pub fn wheel(&mut self, scroll: f32) {
         self.dolly(scroll * WHEEL_DOLLY_SPEED);
     }
 
-    /// Turns the camera around the pivot. The scene follows the mouse:
-    /// dragging right turns its front to the right, dragging down tips its
-    /// top towards you.
+    /// Zooms for a turn of the mouse wheel, towards `target` (the point
+    /// under the mouse), which becomes the pivot. See [`Self::dolly_towards`].
+    pub fn wheel_towards(&mut self, scroll: f32, target: Vec3) {
+        self.dolly_towards(target, scroll * WHEEL_DOLLY_SPEED);
+    }
+
+    /// Turns the camera around the pivot, wherever it is on screen: the
+    /// pivot stays exactly where it is in the view while everything turns
+    /// around it. The scene follows the mouse: dragging right turns its
+    /// front to the right, dragging down tips its top towards you.
     pub fn orbit(&mut self, delta: Vec2) {
         if !delta.is_finite() {
             return;
         }
-        let distance = self.distance();
+        // Where the pivot sits as seen from the camera (right, up and
+        // forward of it) stays the same; only the view direction turns.
+        // Rebuilding the position from that each time, rather than turning
+        // it bit by bit, keeps rounding errors from adding up.
+        let to_pivot = self.pivot - self.camera.position;
+        let seen = Vec3::new(
+            to_pivot.dot(self.camera.right()),
+            to_pivot.dot(self.camera.up()),
+            to_pivot.dot(self.camera.forward()),
+        );
+        // Turn left or right, then tip up or down, stopping just short of
+        // looking straight up or down.
         self.camera.yaw = wrap_angle(self.camera.yaw - delta.x * ORBIT_SPEED);
         self.camera.pitch =
             (self.camera.pitch - delta.y * ORBIT_SPEED).clamp(-MAX_PITCH, MAX_PITCH);
-        self.place_camera(distance);
+        let (right, up, forward) = (self.camera.right(), self.camera.up(), self.camera.forward());
+        self.camera.position = self.pivot - (right * seen.x + up * seen.y + forward * seen.z);
     }
 
     /// Slides the camera and the pivot together so that points at the
@@ -150,7 +211,7 @@ impl Navigator {
             return;
         }
         // Height of the visible world at the pivot's depth, per unit.
-        let per_unit = 2.0 * self.distance() * (self.camera.fov_y * 0.5).tan() / view_height;
+        let per_unit = 2.0 * self.pivot_depth() * (self.camera.fov_y * 0.5).tan() / view_height;
         let shift = (-self.camera.right() * delta.x + self.camera.up() * delta.y) * per_unit;
         self.camera.position += shift;
         self.pivot += shift;
@@ -158,13 +219,34 @@ impl Navigator {
 
     /// Moves towards (positive `amount`) or away from the pivot. The
     /// distance changes by a factor of e^amount, so each step feels the
-    /// same whether near or far.
+    /// same whether near or far. The camera keeps its direction.
     pub fn dolly(&mut self, amount: f32) {
-        if !amount.is_finite() {
+        self.move_towards(self.pivot, amount);
+    }
+
+    /// Moves towards (positive `amount`) or away from `target`, which
+    /// becomes the pivot. The target stays at the same place on screen, so
+    /// the view zooms in on whatever is under the mouse. A target behind
+    /// the camera, too close or too far is ignored, and the view zooms
+    /// towards the pivot instead.
+    pub fn dolly_towards(&mut self, target: Vec3, amount: f32) {
+        if self.usable_target(target) {
+            self.pivot = target;
+        }
+        self.dolly(amount);
+    }
+
+    /// Moves the camera straight towards (or away from) `target`, keeping
+    /// its direction: the distance changes by a factor of e^-amount, within
+    /// [`MIN_DISTANCE`] and [`MAX_DISTANCE`].
+    fn move_towards(&mut self, target: Vec3, amount: f32) {
+        let to = target - self.camera.position;
+        let distance = to.length();
+        if !(amount.is_finite() && distance.is_finite() && distance > 1e-6) {
             return;
         }
-        let distance = (self.distance() * (-amount).exp()).clamp(MIN_DISTANCE, MAX_DISTANCE);
-        self.place_camera(distance);
+        let wanted = (distance * (-amount).exp()).clamp(MIN_DISTANCE, MAX_DISTANCE);
+        self.camera.position = target - to / distance * wanted;
     }
 
     /// Puts the camera `distance` from the pivot, looking at it.
@@ -379,5 +461,135 @@ mod tests {
         navigator.dolly(1.0);
         navigator.reset();
         assert_eq!(navigator, Navigator::default());
+    }
+
+    /// A point on the cube's front-right corner area, off the middle of
+    /// the opening view.
+    const OFF_CENTRE: Vec3 = Vec3::new(100.0, -60.0, 150.0);
+
+    #[test]
+    fn orbiting_around_a_point_keeps_it_still_on_screen() {
+        let mut navigator = Navigator::default();
+        assert!(navigator.set_pivot(OFF_CENTRE));
+        let start = on_screen(&navigator, OFF_CENTRE);
+        let distance = navigator.distance();
+        for delta in [
+            Vec2::new(80.0, 0.0),
+            Vec2::new(-30.0, 45.0),
+            Vec2::new(10.0, -90.0),
+        ] {
+            navigator.orbit(delta);
+            let now = on_screen(&navigator, OFF_CENTRE);
+            assert!((now - start).length() < 0.05, "{now} vs {start}");
+            assert!((navigator.distance() - distance).abs() < 0.01);
+            assert!(navigator.camera().up().z > 0.0);
+        }
+    }
+
+    #[test]
+    fn orbiting_around_a_point_still_never_flips() {
+        let mut navigator = Navigator::default();
+        assert!(navigator.set_pivot(OFF_CENTRE));
+        let start = on_screen(&navigator, OFF_CENTRE);
+        for _ in 0..40 {
+            navigator.orbit(Vec2::new(23.0, 300.0));
+        }
+        assert!(navigator.camera().pitch >= -MAX_PITCH);
+        let now = on_screen(&navigator, OFF_CENTRE);
+        assert!((now - start).length() < 0.05, "{now} vs {start}");
+    }
+
+    #[test]
+    fn setting_the_pivot_does_not_move_the_camera() {
+        let mut navigator = Navigator::default();
+        let camera = *navigator.camera();
+        assert!(navigator.set_pivot(OFF_CENTRE));
+        assert_eq!(*navigator.camera(), camera);
+        assert_eq!(navigator.pivot(), OFF_CENTRE);
+    }
+
+    #[test]
+    fn unusable_pivots_are_refused() {
+        let mut navigator = Navigator::default();
+        let behind = navigator.camera().position - navigator.camera().forward() * 100.0;
+        let too_close = navigator.camera().position + navigator.camera().forward() * 0.5;
+        let too_far = navigator.camera().position + navigator.camera().forward() * 1e7;
+        for point in [behind, too_close, too_far, Vec3::NAN, Vec3::INFINITY] {
+            assert!(!navigator.set_pivot(point), "{point}");
+        }
+        assert_eq!(navigator.pivot(), DEFAULT_TARGET);
+    }
+
+    #[test]
+    fn zooming_towards_a_point_keeps_it_under_the_mouse() {
+        let mut navigator = Navigator::default();
+        let start = on_screen(&navigator, OFF_CENTRE);
+        let before = navigator.camera().position.distance(OFF_CENTRE);
+        let (yaw, pitch) = (navigator.camera().yaw, navigator.camera().pitch);
+        navigator.dolly_towards(OFF_CENTRE, 0.4);
+        let now = on_screen(&navigator, OFF_CENTRE);
+        assert!((now - start).length() < 0.05, "{now} vs {start}");
+        assert!(navigator.distance() < before);
+        assert_eq!(navigator.pivot(), OFF_CENTRE, "the point becomes the pivot");
+        assert_eq!(
+            (navigator.camera().yaw, navigator.camera().pitch),
+            (yaw, pitch),
+            "zooming never turns the view"
+        );
+    }
+
+    #[test]
+    fn zooming_towards_a_point_behind_falls_back_to_the_pivot() {
+        let mut navigator = Navigator::default();
+        let behind = navigator.camera().position - navigator.camera().forward() * 300.0;
+        let before = navigator.distance();
+        navigator.dolly_towards(behind, 0.4);
+        assert_eq!(navigator.pivot(), DEFAULT_TARGET);
+        assert!(navigator.distance() < before);
+        assert!(centred(&navigator));
+    }
+
+    #[test]
+    fn the_wheel_zooms_towards_a_point() {
+        let mut navigator = Navigator::default();
+        let before = navigator.camera().position.distance(OFF_CENTRE);
+        navigator.wheel_towards(50.0, OFF_CENTRE);
+        assert!(navigator.distance() < before);
+        navigator.wheel_towards(-1.0e6, OFF_CENTRE);
+        assert!(
+            (navigator.distance() - MAX_DISTANCE).abs() < 1.0,
+            "zooming out stops too"
+        );
+    }
+
+    #[test]
+    fn panning_with_an_off_centre_pivot_keeps_it_under_the_mouse() {
+        let mut navigator = Navigator::default();
+        assert!(navigator.set_pivot(OFF_CENTRE));
+        let start = on_screen(&navigator, OFF_CENTRE);
+        let delta = Vec2::new(-60.0, 25.0);
+        navigator.pan(delta, SIZE.y);
+        // The pivot moves along; a fixed point at its old place in the
+        // world appears to follow the mouse.
+        let moved = navigator.pivot();
+        assert!((on_screen(&navigator, moved) - start).length() < 0.05);
+        let world_point_now = on_screen(&navigator, OFF_CENTRE);
+        assert!((world_point_now - (start + delta)).length() < 0.05);
+    }
+
+    #[test]
+    fn centring_the_pivot_puts_it_in_the_middle_at_the_same_depth() {
+        let mut navigator = Navigator::default();
+        assert!(navigator.set_pivot(OFF_CENTRE));
+        let camera = *navigator.camera();
+        let depth = (OFF_CENTRE - camera.position).dot(camera.forward());
+        navigator.centre_pivot();
+        assert!(centred(&navigator));
+        assert_eq!(*navigator.camera(), camera, "the camera stays put");
+        let new_depth = (navigator.pivot() - camera.position).dot(camera.forward());
+        assert!((new_depth - depth).abs() < 0.01);
+        // Orbiting now turns around the middle of the view.
+        navigator.orbit(Vec2::new(60.0, 20.0));
+        assert!(centred(&navigator));
     }
 }

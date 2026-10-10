@@ -14,6 +14,9 @@ pub(crate) enum PipelineKind {
     Grid,
     /// See-through lines hidden behind solids: axes and edges.
     Lines,
+    /// Faces drawn for depth only, into the one-pixel image used to find
+    /// the point under the mouse (see `pick`).
+    PickDepth,
 }
 
 /// Builds the pipeline for one kind of geometry.
@@ -34,8 +37,12 @@ pub(crate) fn create_pipeline(
             wgpu::PrimitiveTopology::TriangleList,
             &[][..],
         ),
-        PipelineKind::Faces => (
-            "face pipeline",
+        PipelineKind::Faces | PipelineKind::PickDepth => (
+            if kind == PipelineKind::Faces {
+                "face pipeline"
+            } else {
+                "pick depth pipeline"
+            },
             "face_vs",
             "face_fs",
             wgpu::PrimitiveTopology::TriangleList,
@@ -58,7 +65,8 @@ pub(crate) fn create_pipeline(
     };
     let blend = matches!(kind, PipelineKind::Grid | PipelineKind::Lines)
         .then_some(wgpu::BlendState::ALPHA_BLENDING);
-    let depth_write = kind == PipelineKind::Faces;
+    let faces = matches!(kind, PipelineKind::Faces | PipelineKind::PickDepth);
+    let depth_write = faces;
     let depth_compare = if kind == PipelineKind::Sky {
         wgpu::CompareFunction::Always
     } else {
@@ -88,7 +96,7 @@ pub(crate) fn create_pipeline(
             topology,
             // Closed shapes are wound outwards, so their back faces never
             // show; skipping them halves the work.
-            cull_mode: (kind == PipelineKind::Faces).then_some(wgpu::Face::Back),
+            cull_mode: faces.then_some(wgpu::Face::Back),
             ..Default::default()
         },
         depth_stencil: Some(wgpu::DepthStencilState {
@@ -99,10 +107,15 @@ pub(crate) fn create_pipeline(
             bias,
         }),
         multisample: wgpu::MultisampleState {
-            count: sample_count,
+            count: if kind == PipelineKind::PickDepth {
+                1
+            } else {
+                sample_count
+            },
             ..Default::default()
         },
-        fragment: Some(wgpu::FragmentState {
+        // Picking only needs depth: no colour, no fragment shader.
+        fragment: (kind != PipelineKind::PickDepth).then_some(wgpu::FragmentState {
             module: shader,
             entry_point: Some(fs),
             compilation_options: wgpu::PipelineCompilationOptions::default(),

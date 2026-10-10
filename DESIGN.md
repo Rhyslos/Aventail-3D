@@ -244,9 +244,9 @@ Let people code their own functionality: custom tools, batch jobs, generators, e
 
 **Navigation schemes** ([decision 0015](docs/decisions/0015-navigation-schemes.md)): picked from a button in the viewport's bottom-right corner. *Mouse only* (the standard: right orbits, middle pans), *Alt + mouse*, *Mouse only, middle zooms* (Shift + middle pans), *Middle pans, Alt orbits*, and *Middle orbits* (Shift + middle pans). Every scheme zooms with the wheel and leaves a plain left drag to the tools. Switches: *Alt + mouse works in every scheme* (on) and *Invert orbit direction* (off). The project lead chose *Mouse only* as the standard after trying them, because it is the easiest to start with; the choice of schemes stays, as easy customisation is part of making the app welcoming.
 
-**Cursor-point pivot (W6)** — Max-style, on by default and toggleable:
+**Cursor-point pivot (W6)** — Max-style, on by default and toggleable (built: a one-pixel depth render under the mouse, read back without waiting; [decision 0017](docs/decisions/0017-picking-the-point-under-the-mouse.md)):
 - On orbit start, read the depth under the cursor; if it hits geometry, orbit around that 3D point. If it hits nothing, fall back to the selection centre or the last pivot.
-- Wheel zoom dollies towards the 3D point under the cursor.
+- Wheel zoom (and drag zoom) dollies towards the 3D point under the cursor, which stays under the cursor; over empty background, towards the ground under it, or along the line of sight.
 - Show a small pivot marker while orbiting.
 
 ### 5.4 Commands and hotkeys
@@ -462,3 +462,4 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-10 — Navigation schemes to try before choosing a standard, picked from the viewport's bottom-right corner, named by what they do ([0015](docs/decisions/0015-navigation-schemes.md)).
 - 2026-10-10 — Keyboard and mouse controls copy Halberd's, so both Rhylib tools work the same; only viewport navigation keeps its own schemes while they're being tried ([0016](docs/decisions/0016-controls-follow-halberd.md)).
 - 2026-10-10 — *Mouse only* becomes the standard navigation scheme (easiest to start with); the others stay as choices. The grid reaches three times farther when zoomed in (at least 18 m around the focus), as the closer fade felt claustrophobic.
+- 2026-10-10 — Orbit and zoom around the point under the mouse (W6) built: the surface under the mouse is found with a one-pixel depth render read back a frame later, never stalling the interface ([0017](docs/decisions/0017-picking-the-point-under-the-mouse.md)). On by default, with a switch in the navigation controls.

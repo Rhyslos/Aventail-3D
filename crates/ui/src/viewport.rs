@@ -1,7 +1,10 @@
 //! The 3D viewport panel: its own menu line along the top, the rendered
 //! image with quiet labels over it, and the navigation controls picker in
 //! the bottom-right corner. Mouse input over the image moves the camera,
-//! with the controls the user picked (see `tools::controls`).
+//! with the controls the user picked (see `tools::controls`). Orbiting
+//! turns around, and zooming moves towards, the point under the mouse:
+//! the renderer is asked what is under the mouse while it hovers, so the
+//! answer is ready when a drag or a wheel turn starts.
 //!
 //! Rendering itself happens elsewhere, behind the [`ViewportRenderer`]
 //! trait, so this panel (and its tests) need no GPU. When no image can be
@@ -15,6 +18,8 @@ use glam::{Mat4, Vec2, Vec3};
 use serde::{Deserialize, Serialize};
 use tools::{Camera, DragKind, Modifiers, MouseButton, NavigationSettings, Navigator};
 
+#[cfg(test)]
+pub(crate) use picker::AROUND_CURSOR_LABEL;
 pub use picker::PICKER_LABEL;
 
 /// How the viewport is shown and steered: choices the user can switch,
@@ -50,12 +55,66 @@ pub struct ViewportView {
     pub fine_grid: bool,
 }
 
+/// A question for the renderer: what is under this pixel of the image?
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PickAsk {
+    /// The camera's world-to-screen transform for the image.
+    pub view_projection: Mat4,
+    /// The pixel, in physical pixels from the image's top-left corner.
+    pub pixel: [f32; 2],
+    /// The image's size in physical pixels.
+    pub size_px: [u32; 2],
+}
+
+/// What the renderer found under a pixel it was asked about.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Picked {
+    /// The pixel that was asked about, in physical pixels.
+    pub pixel: [f32; 2],
+    /// The surface point there, or `None` for the background.
+    pub point: Option<Vec3>,
+}
+
+/// The renderer's reply about picking, each frame.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct PickReply {
+    /// An answer that has arrived since the last frame, if any.
+    pub answer: Option<Picked>,
+    /// Whether a question is still waiting for its answer (so the
+    /// interface should draw another frame soon to collect it).
+    pub waiting: bool,
+}
+
 /// Draws viewport images. The app implements this with the GPU; tests and
 /// machines without a usable GPU use [`NoRenderer`].
 pub trait ViewportRenderer {
     /// Draws a frame and returns the egui texture showing it, or a
     /// plain-language reason why it could not.
     fn render(&mut self, view: &ViewportView) -> Result<egui::TextureId, String>;
+
+    /// Hands over any answer that has arrived about the point under the
+    /// mouse, and asks about `ask`'s pixel if given. Never waits. A renderer
+    /// that cannot pick answers nothing (the standard).
+    fn pick(&mut self, ask: Option<PickAsk>) -> PickReply {
+        let _ = ask;
+        PickReply::default()
+    }
+}
+
+/// How close (in logical pixels) a picked answer must be to where the
+/// mouse is now to be used: the answer is usually a frame old.
+const PICK_TOLERANCE: f32 = 6.0;
+
+/// The latest answer about what is under the mouse.
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct UnderMouse {
+    /// Where the mouse was, in logical screen coordinates.
+    at: egui::Pos2,
+    /// The surface point there, if any.
+    point: Option<Vec3>,
+    /// The camera the question was asked with: once the camera moves, the
+    /// answer no longer describes what is under the mouse.
+    camera: Camera,
 }
 
 /// A renderer that never draws, with a reason to show instead.
@@ -100,6 +159,12 @@ pub struct ViewportPanel {
     /// Set by Options → Navigation controls, to open the picker once its
     /// button has been drawn this frame.
     open_picker: bool,
+    /// What the renderer last found under the mouse.
+    under_mouse: Option<UnderMouse>,
+    /// Whether a question about the point under the mouse is in flight.
+    asking: bool,
+    /// The camera the question in flight was asked with.
+    asked_with: Option<Camera>,
 }
 
 impl ViewportPanel {
@@ -151,7 +216,8 @@ impl ViewportPanel {
         });
         self.navigate(ui, &response, body);
 
-        let view = self.view(body, ui.ctx().pixels_per_point());
+        let ppp = pixels_per_point(ui);
+        let view = self.view(body, ppp);
         let painter = ui.painter_at(body);
         match renderer.render(&view) {
             Ok(texture) => {
@@ -160,8 +226,94 @@ impl ViewportPanel {
             }
             Err(reason) => chrome::no_image(ui, body, &reason),
         }
+        self.ask_what_is_under_the_mouse(ui, &response, body, &view, renderer);
         chrome::overlays(ui, body, self);
         picker::show(ui, body, self);
+    }
+
+    /// Collects the renderer's latest answer about the point under the
+    /// mouse, and asks again while the mouse is over the image, so an
+    /// answer is ready when an orbit or zoom starts.
+    fn ask_what_is_under_the_mouse(
+        &mut self,
+        ui: &Ui,
+        response: &Response,
+        body: Rect,
+        view: &ViewportView,
+        renderer: &mut dyn ViewportRenderer,
+    ) {
+        let ppp = pixels_per_point(ui);
+        let ask = self
+            .options
+            .navigation
+            .around_cursor
+            .then(|| response.hover_pos())
+            .flatten()
+            // One question at a time, and only when the mouse has moved
+            // since the last answer, so a resting mouse costs nothing.
+            .filter(|at| {
+                self.drag.is_none()
+                    && !self.asking
+                    && self
+                        .under_mouse
+                        .is_none_or(|u| u.at.distance(*at) > 0.5 || u.camera != *self.camera())
+            })
+            .map(|at| PickAsk {
+                view_projection: view.view_projection,
+                pixel: [(at.x - body.min.x) * ppp, (at.y - body.min.y) * ppp],
+                size_px: view.size_px,
+            });
+        if ask.is_some() {
+            self.asked_with = Some(*self.camera());
+        }
+        let reply = renderer.pick(ask);
+        if let Some(answer) = reply.answer {
+            self.under_mouse = Some(UnderMouse {
+                at: body.min + egui::vec2(answer.pixel[0], answer.pixel[1]) / ppp,
+                point: answer.point,
+                camera: self.asked_with.unwrap_or(*self.camera()),
+            });
+        }
+        self.asking = reply.waiting;
+        if reply.waiting {
+            ui.ctx().request_repaint();
+        }
+    }
+
+    /// The renderer's answer about `at` (logical screen coordinates):
+    /// `Some(Some(point))` for a surface, `Some(None)` for background, or
+    /// `None` when there is no up-to-date answer for that spot (the mouse
+    /// or the camera has moved since).
+    fn answer_at(&self, at: egui::Pos2) -> Option<Option<Vec3>> {
+        self.under_mouse
+            .filter(|u| u.at.distance(at) <= PICK_TOLERANCE && u.camera == *self.camera())
+            .map(|u| u.point)
+    }
+
+    /// The surface point under `at`, if an up-to-date answer says so.
+    fn surface_at(&self, at: egui::Pos2) -> Option<Vec3> {
+        self.answer_at(at).flatten()
+    }
+
+    /// The point to zoom towards for the mouse at `at`: the surface there;
+    /// over background, the ground under it (if not much farther than the
+    /// pivot); otherwise, or without an up-to-date answer, a point along
+    /// the mouse's line of sight as far away as the pivot is now, so the
+    /// zoom never leaps.
+    fn zoom_target(&self, at: egui::Pos2, rect: Rect) -> Vec3 {
+        let size = Vec2::new(rect.width(), rect.height());
+        let ray = self
+            .camera()
+            .ray_through(Vec2::new(at.x - rect.min.x, at.y - rect.min.y), size);
+        let reach = self.navigator.distance();
+        match self.answer_at(at) {
+            Some(Some(point)) => point,
+            Some(None) => match ray.hit_ground(0.0) {
+                Some(distance) if distance <= reach * 4.0 => ray.at(distance),
+                _ => ray.at(reach),
+            },
+            None => ray.at(reach),
+        }
     }
 
     /// Moves the camera for this frame's mouse input over the image.
@@ -177,6 +329,29 @@ impl ViewportPanel {
                 .iter()
                 .find(|(egui_button, _)| response.drag_started_by(*egui_button))
                 .and_then(|(_, button)| settings.drag(*button, keys));
+            let pressed_at = ui.input(|i| i.pointer.press_origin());
+            if !settings.around_cursor
+                && matches!(self.drag, Some(DragKind::Orbit | DragKind::Dolly))
+            {
+                // Around the middle of the view, whatever was picked before.
+                self.navigator.centre_pivot();
+            }
+            if let (Some(kind), Some(at), true) = (self.drag, pressed_at, settings.around_cursor) {
+                match kind {
+                    // Turn around what was clicked; over the background,
+                    // keep turning around the last pivot.
+                    DragKind::Orbit => {
+                        if let Some(point) = self.surface_at(at) {
+                            self.navigator.set_pivot(point);
+                        }
+                    }
+                    DragKind::Dolly => {
+                        let target = self.zoom_target(at, rect);
+                        self.navigator.set_pivot(target);
+                    }
+                    DragKind::Pan => {}
+                }
+            }
         }
         if let Some(kind) = self.drag {
             if response.dragged() {
@@ -192,13 +367,35 @@ impl ViewportPanel {
         if response.hovered() {
             let scroll = wheel_scroll(ui, rect.height());
             if scroll != 0.0 {
-                self.navigator.wheel(scroll);
+                // While a button is held (mid-orbit or mid-pan), the point
+                // under the mouse is not being looked up, so keep zooming
+                // towards the pivot already in use instead of jumping to a
+                // stale or guessed spot.
+                let busy = self.drag.is_some() || ui.input(|i| i.pointer.any_down());
+                match response
+                    .hover_pos()
+                    .filter(|_| settings.around_cursor && !busy)
+                {
+                    Some(at) => {
+                        let target = self.zoom_target(at, rect);
+                        self.navigator.wheel_towards(scroll, target);
+                    }
+                    None => {
+                        if !settings.around_cursor {
+                            self.navigator.centre_pivot();
+                        }
+                        self.navigator.wheel(scroll);
+                    }
+                }
             }
         }
     }
 
     /// Applies a drag on one of the menu line's navigation buttons.
     fn button_drag(&mut self, kind: DragKind, delta: egui::Vec2, size: Vec2) {
+        if !self.options.navigation.around_cursor {
+            self.navigator.centre_pivot();
+        }
         let delta = self
             .options
             .navigation
@@ -208,11 +405,7 @@ impl ViewportPanel {
 
     /// What to ask the renderer for, for an image at `rect`.
     fn view(&self, rect: Rect, pixels_per_point: f32) -> ViewportView {
-        let ppp = if pixels_per_point.is_finite() && pixels_per_point > 0.0 {
-            pixels_per_point
-        } else {
-            1.0
-        };
+        let ppp = sane_scale(pixels_per_point);
         let px = |v: f32| (v * ppp).round().clamp(1.0, 16_384.0) as u32;
         let size_px = [px(rect.width()), px(rect.height())];
         let size = Vec2::new(size_px[0] as f32, size_px[1] as f32);
@@ -227,6 +420,20 @@ impl ViewportPanel {
             ground: rgb(backdrop::GROUND),
             fine_grid: self.options.fine_grid,
         }
+    }
+}
+
+/// Physical pixels per logical pixel, never zero or broken.
+fn pixels_per_point(ui: &Ui) -> f32 {
+    sane_scale(ui.ctx().pixels_per_point())
+}
+
+/// `scale` if it is a usable size factor, otherwise 1.
+fn sane_scale(scale: f32) -> f32 {
+    if scale.is_finite() && scale > 0.0 {
+        scale
+    } else {
+        1.0
     }
 }
 
@@ -353,5 +560,29 @@ mod tests {
         let old: ViewOptions = ron::from_str("(fine_grid: true)").unwrap();
         assert!(old.fine_grid);
         assert_eq!(old.navigation, NavigationSettings::default());
+    }
+
+    #[test]
+    fn answers_go_stale_when_the_camera_moves() {
+        let mut panel = ViewportPanel::default();
+        let at = pos2(100.0, 100.0);
+        panel.under_mouse = Some(UnderMouse {
+            at,
+            point: Some(Vec3::new(1.0, 2.0, 3.0)),
+            camera: *panel.camera(),
+        });
+        assert_eq!(panel.surface_at(at), Some(Vec3::new(1.0, 2.0, 3.0)));
+        assert_eq!(panel.answer_at(pos2(140.0, 100.0)), None, "another spot");
+        panel.navigator.orbit(Vec2::new(10.0, 0.0));
+        assert_eq!(panel.answer_at(at), None, "the camera has moved");
+    }
+
+    #[test]
+    fn without_an_answer_zooming_keeps_the_current_distance() {
+        let panel = ViewportPanel::default();
+        let rect = Rect::from_min_size(pos2(0.0, 0.0), egui::vec2(640.0, 400.0));
+        let target = panel.zoom_target(pos2(500.0, 350.0), rect);
+        let distance = panel.camera().position.distance(target);
+        assert!((distance - panel.navigator().distance()).abs() < 0.01);
     }
 }

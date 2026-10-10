@@ -21,6 +21,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Orbit and zoom around the point under the mouse: grab the model where you want to turn around it, or point at a spot and roll the wheel to close in on it. A small ring marks the point while you orbit, and zooming while holding a button keeps to that point. On by default; switched off in the navigation controls or Options, orbiting and zooming work around the middle of the view.
 - Navigation controls to choose from, with the button in the bottom-right corner of the viewport (or Options → Navigation controls…): **Mouse only** is now the standard (right drag orbits, middle drag pans, the wheel zooms), and Alt + mouse (as before), Mouse only with middle zooming, Middle pans with Alt orbiting, and Middle orbits can be picked instead. Alt + mouse can keep working in every scheme, and orbiting can be inverted. The status bar shows the controls in use, and the choice is remembered.
 - Accent colour: red as standard, or Blue, Marine green, Plum, Olive or Petrol blue, from Window → Accent colour. Remembered between sessions. Each colour has a small swatch next to its name.
 - Layout tabs on the right of the menu bar: Standard, with Modelling and UV Edit to come.
