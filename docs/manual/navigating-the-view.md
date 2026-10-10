@@ -10,13 +10,13 @@ All the time: looking at a model from different sides is how you judge its shape
 
 The camera always looks at one point, the **pivot** (see [Orbit, pan and zoom](concepts.md#viewing-the-scene)). Orbiting turns around it, zooming moves towards it, and panning carries it along with the view. The grid on the ground is drawn around it too, so it follows you as you pan.
 
-As standard, the view moves with **Alt and the mouse**:
+As standard, the view moves with **the mouse alone**, no keys needed:
 
-1. **Orbit (turn around the model):** hold **Alt**, press the **left** mouse button in the viewport and drag. The model follows your hand: drag right and its front turns to the right; drag down and its top tips towards you. The view never flips upside down: it stops just short of looking straight down or straight up.
-2. **Pan (slide the view):** hold **Alt** and drag with the **middle** mouse button (press the wheel down). The grid stays under the mouse as you drag, as if you were pushing a sheet of paper.
-3. **Zoom (move closer or farther):** turn the **mouse wheel** (away from you to move closer), or hold **Alt** and drag with the **right** button (right or up to move closer, left or down to move away). Each step moves the same share of the distance, so zooming feels the same whether you are close or far.
+1. **Orbit (turn around the model):** press the **right** mouse button in the viewport and drag. The model follows your hand: drag right and its front turns to the right; drag down and its top tips towards you. The view never flips upside down: it stops just short of looking straight down or straight up.
+2. **Pan (slide the view):** drag with the **middle** mouse button (press the wheel down). The grid stays under the mouse as you drag, as if you were pushing a sheet of paper.
+3. **Zoom (move closer or farther):** turn the **mouse wheel** (away from you to move closer). Each step moves the same share of the distance, so zooming feels the same whether you are close or far.
 
-You only need the keys when the drag starts; letting go of them during the drag doesn't stop the movement. The mouse pointer changes shape while you navigate.
+The Alt + mouse moves work too, unless you switch them off (see [Settings](#settings)): **Alt** + left drag orbits, **Alt** + middle drag pans, and **Alt** + right drag zooms (right or up to move closer). You only need a key when the drag starts; letting go of it during the drag doesn't stop the movement. The mouse pointer changes shape while you navigate. A right *click* without dragging is left free for menus.
 
 **Without the mouse buttons:** the three buttons on the right of the viewport's menu line (four arrows, an up-and-down arrow, a circular arrow) pan, zoom and orbit when you drag them. Handy on a laptop touchpad.
 
@@ -28,8 +28,8 @@ Different people come with different habits, so you can choose how the mouse mov
 
 | Controls | Orbit | Pan | Zoom |
 |---|---|---|---|
-| **Alt + mouse** (standard) | `Alt` + left drag | `Alt` + middle drag | `Alt` + right drag, or wheel |
-| **Mouse only** | right drag | middle drag | wheel |
+| **Mouse only** (standard) | right drag | middle drag | wheel |
+| **Alt + mouse** | `Alt` + left drag | `Alt` + middle drag | `Alt` + right drag, or wheel |
 | **Mouse only, middle zooms** | right drag | `Shift` + middle drag | middle drag, or wheel |
 | **Middle pans, Alt orbits** | `Alt` + middle drag | middle drag | wheel |
 | **Middle orbits** | middle drag | `Shift` + middle drag | wheel |
@@ -49,12 +49,12 @@ Whatever you pick, **a plain left drag never moves the view**: it's kept free fo
 
 ## Shortcuts
 
-As standard (Alt + mouse controls):
+As standard (Mouse only controls, with Alt + mouse switched on):
 
 | Action | Shortcut |
 |---|---|
-| Orbit | `Alt` + left drag |
-| Pan | `Alt` + middle drag |
+| Orbit | Right drag, or `Alt` + left drag |
+| Pan | Middle drag, or `Alt` + middle drag |
 | Zoom | Mouse wheel, or `Alt` + right drag |
 
 On macOS, Alt is the `Option` key. The other controls are in the table above.
@@ -62,9 +62,9 @@ On macOS, Alt is the `Option` key. The other controls are in the table above.
 ## Tips and common problems
 
 - **Problem:** nothing happens when you drag in the viewport. **Why:** a plain left drag is kept free for the selection tools, and some controls need a key. **Fix:** check the controls in use in the bottom-right corner (or the status bar), and hold the key it lists as you start the drag.
-- **Problem:** on Linux, Alt + drag moves the whole window instead of the view. **Why:** some Linux desktops use Alt + drag for moving windows. **Fix:** pick **Mouse only** controls, or in your desktop's window settings change that key (often called the "window action key" or "modifier key") to Super, the Windows-logo key.
+- **Problem:** on Linux, Alt + drag moves the whole window instead of the view. **Why:** some Linux desktops use Alt + drag for moving windows. **Fix:** use the standard **Mouse only** controls (right drag orbits, middle drag pans), or in your desktop's window settings change that key (often called the "window action key" or "modifier key") to Super, the Windows-logo key.
 - **Problem:** zooming has stopped getting closer. **Why:** the camera stops 2 cm from the pivot, so it can't pass through it. **Fix:** zoom out a little and pan, or orbit, to come at it from another side. Zooming towards the point under the mouse arrives in the next update.
-- **Problem:** the grid has disappeared. **Why:** the grid is drawn around the point you're looking at and fades out at its edges; if you've panned far away or are looking at the sky, there may be none in view. **Fix:** **View → Reset view**, or zoom out: the grid reaches farther the farther away you are.
+- **Problem:** the grid has disappeared. **Why:** the grid is drawn around the point you're looking at (at least 18 m around it) and fades out at its edges; if you've panned far away or are looking at the sky, there may be none in view. **Fix:** **View → Reset view**, or zoom out: the grid reaches farther the farther away you are.
 
 ## Related
 

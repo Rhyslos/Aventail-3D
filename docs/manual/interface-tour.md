@@ -55,7 +55,7 @@ One colour marks what's active: the current mode (and later the current tool), t
 | Action | Shortcut |
 |---|---|
 | Quit | `Ctrl + Q` (`Cmd + Q` on macOS) |
-| Orbit, pan, zoom the view | Depends on your navigation controls; as standard `Alt` + left, middle or right drag, and the mouse wheel to zoom. See [Navigating the view](navigating-the-view.md) |
+| Orbit, pan, zoom the view | Depends on your navigation controls; as standard right drag to orbit, middle drag to pan and the mouse wheel to zoom (`Alt` + left, middle or right drag work too). See [Navigating the view](navigating-the-view.md) |
 
 ## Tips and common problems
 

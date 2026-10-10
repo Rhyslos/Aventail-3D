@@ -8,7 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
-- A darker, calmer look, closer to the approved mockup: darker panels with plain text tabs, small menu lines inside the panels, and a viewport with a grey sky over a slightly darker ground, a horizon, and a grid that fades out around the point you're looking at. A green line rises from the origin to show Z, and the test cube is a mid grey.
+- A darker, calmer look, closer to the approved mockup: darker panels with plain text tabs, small menu lines inside the panels, and a viewport with a grey sky over a slightly darker ground, a horizon, and a grid that fades out around the point you're looking at (at least 18 m around it, reaching farther as you zoom out). A green line rises from the origin to show Z, and the test cube is a mid grey.
 - The viewport has its own menu line (View, Cameras, Display, Options, Panel) in place of its tab, with buttons you can drag to pan, zoom and orbit, and labels showing the view, the camera, which way the axes point, and the grid spacing.
 - The active mode is now marked by a filled red square (the new accent colour) instead of orange; the opening view is a little lower, so the horizon shows.
 - Axis colours are now X red, Y blue, Z green (most programs use Y green and Z blue), in the viewport, the Coordinates panel and the palette's axis locks.
@@ -21,7 +21,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
-- Navigation controls to choose from, with the button in the bottom-right corner of the viewport (or Options → Navigation controls…): Alt + mouse (as before), Mouse only, Mouse only with middle zooming, Middle pans with Alt orbiting, and Middle orbits. Alt + mouse can keep working in every scheme, and orbiting can be inverted. The status bar shows the controls in use, and the choice is remembered.
+- Navigation controls to choose from, with the button in the bottom-right corner of the viewport (or Options → Navigation controls…): **Mouse only** is now the standard (right drag orbits, middle drag pans, the wheel zooms), and Alt + mouse (as before), Mouse only with middle zooming, Middle pans with Alt orbiting, and Middle orbits can be picked instead. Alt + mouse can keep working in every scheme, and orbiting can be inverted. The status bar shows the controls in use, and the choice is remembered.
 - Accent colour: red as standard, or Blue, Marine green, Plum, Olive or Petrol blue, from Window → Accent colour. Remembered between sessions. Each colour has a small swatch next to its name.
 - Layout tabs on the right of the menu bar: Standard, with Modelling and UV Edit to come.
 - Move around the 3D view as in Cinema 4D: hold Alt and drag with the left mouse button to orbit, the middle button to pan, the right button to zoom; the mouse wheel zooms too. The status bar shows the controls, and **View → Reset view** brings back the opening view. New manual page: Navigating the view.

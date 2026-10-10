@@ -488,9 +488,9 @@ fn view_reset_view_returns_to_the_opening_camera() {
 #[test]
 fn the_status_bar_explains_navigation() {
     let harness = fresh();
-    let hint = crate::navigation_hint(tools::Scheme::AltMouse);
+    let hint = crate::navigation_hint(tools::Scheme::MouseOnly);
     assert!(harness.query_by_label(&hint).is_some());
-    assert!(hint.contains("Alt"));
+    assert!(hint.contains("Right drag"));
 }
 
 // --------------------------------------------------------- grid detail ---
@@ -574,11 +574,16 @@ fn the_picker_lists_every_scheme_and_switches_between_them() {
             "{scheme:?}"
         );
     }
-    harness.get_by_label("Mouse only").click();
+    assert_eq!(
+        harness.state().workbench.view_options().navigation.scheme,
+        tools::Scheme::MouseOnly,
+        "the standard"
+    );
+    harness.get_by_label("Middle orbits").click();
     harness.run();
     let settings = harness.state().workbench.view_options().navigation;
-    assert_eq!(settings.scheme, tools::Scheme::MouseOnly);
-    let hint = crate::navigation_hint(tools::Scheme::MouseOnly);
+    assert_eq!(settings.scheme, tools::Scheme::MiddleOrbits);
+    let hint = crate::navigation_hint(tools::Scheme::MiddleOrbits);
     assert!(
         harness.query_by_label(&hint).is_some(),
         "status bar follows"
@@ -623,11 +628,9 @@ fn options_menu_opens_the_picker() {
 }
 
 #[test]
-fn mouse_only_orbits_with_a_plain_right_drag() {
-    let mut options = crate::ViewOptions::default();
-    options.navigation.scheme = tools::Scheme::MouseOnly;
-    let mut harness = harness_for(Workbench::new(info(), None).with_view_options(options));
-    harness.run();
+fn a_plain_right_drag_orbits_as_standard() {
+    // Mouse only is the standard scheme: no keys needed.
+    let mut harness = fresh();
     let before = camera(&harness);
     drag_viewport(
         &mut harness,
@@ -808,4 +811,24 @@ fn accent_swatches_stay_inside_their_menu() {
             left - parent_right
         );
     }
+}
+
+#[test]
+fn the_alt_mouse_scheme_can_still_be_picked() {
+    let mut harness = fresh();
+    open_picker(&mut harness);
+    harness.get_by_label("Alt + mouse").click();
+    harness.run();
+    let before = camera(&harness);
+    drag_viewport(
+        &mut harness,
+        egui::PointerButton::Secondary,
+        Modifiers::NONE,
+        egui::vec2(120.0, 0.0),
+    );
+    assert_eq!(
+        camera(&harness),
+        before,
+        "a plain right drag no longer orbits"
+    );
 }

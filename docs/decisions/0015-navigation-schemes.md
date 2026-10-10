@@ -18,8 +18,8 @@ Option 2, kept in `tools::controls`, separate from the movements themselves (`to
 
 | Scheme | Orbit | Pan | Zoom |
 |---|---|---|---|
-| Alt + mouse (standard for now) | Alt + left | Alt + middle | Alt + right, wheel |
-| Mouse only | right | middle | wheel |
+| Mouse only (**standard**) | right | middle | wheel |
+| Alt + mouse | Alt + left | Alt + middle | Alt + right, wheel |
 | Mouse only, middle zooms | right | Shift + middle | middle, wheel |
 | Middle pans, Alt orbits | Alt + middle | middle | wheel |
 | Middle orbits | middle | Shift + middle | wheel |
@@ -32,6 +32,7 @@ Option 2, kept in `tools::controls`, separate from the movements themselves (`to
 
 ## Consequences
 
-- Trying a scheme is one click, and choosing the standard later is a one-line change.
+- **Mouse only is the standard**, chosen by the project lead after trying them: no keys to learn makes the app easiest to enter. The others stay, because being able to set it up your own way is part of what makes the app welcoming.
+- Trying a scheme is one click, and changing the standard is a one-line change.
 - Picking the pivot from the point under the mouse (the next milestone) applies to every scheme at once.
 - If people later want their own bindings, a "Custom" scheme can be added without changing the others.

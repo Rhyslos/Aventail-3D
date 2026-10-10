@@ -8,8 +8,8 @@
 //!
 //! | Scheme | Orbit | Pan | Zoom |
 //! |---|---|---|---|
+//! | Mouse only (standard) | right | middle | wheel |
 //! | Alt + mouse | Alt + left | Alt + middle | Alt + right |
-//! | Mouse only | right | middle | wheel |
 //! | Mouse only, middle zooms | right | Shift + middle | middle |
 //! | Middle pans, Alt orbits | Alt + middle | middle | wheel |
 //! | Middle orbits | middle | Shift + middle | wheel |
@@ -53,9 +53,10 @@ impl Modifiers {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum Scheme {
     /// Alt + left orbits, Alt + middle pans, Alt + right zooms.
-    #[default]
     AltMouse,
-    /// Right drag orbits, middle drag pans; no keys needed.
+    /// Right drag orbits, middle drag pans; no keys needed. The standard,
+    /// because it is the easiest to start with.
+    #[default]
     MouseOnly,
     /// Right drag orbits, middle drag zooms, Shift + middle pans.
     MouseOnlyMiddleZooms,
@@ -68,8 +69,8 @@ pub enum Scheme {
 impl Scheme {
     /// Every scheme, in the order the picker lists them.
     pub const ALL: [Scheme; 5] = [
-        Self::AltMouse,
         Self::MouseOnly,
+        Self::AltMouse,
         Self::MouseOnlyMiddleZooms,
         Self::MiddlePansAltOrbits,
         Self::MiddleOrbits,
@@ -324,9 +325,10 @@ mod tests {
     }
 
     #[test]
-    fn the_standard_settings_are_alt_mouse_with_alt_everywhere() {
+    fn the_standard_settings_are_mouse_only_with_alt_everywhere() {
         let s = NavigationSettings::default();
-        assert_eq!(s.scheme, Scheme::AltMouse);
+        assert_eq!(s.scheme, Scheme::MouseOnly);
+        assert_eq!(Scheme::ALL[0], Scheme::MouseOnly, "listed first");
         assert!(s.alt_everywhere);
         assert!(!s.invert_orbit);
     }

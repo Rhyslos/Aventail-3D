@@ -15,11 +15,12 @@ pub const GRID_SPACINGS: [f32; 3] = [10.0, 100.0, 1000.0];
 pub const GRID_STRENGTHS: [f32; 3] = [0.035, 0.075, 0.12];
 
 /// Smallest distance around the focus point that the grid reaches, in
-/// centimetres (6 m: room for a typical prop and its surroundings).
-pub const GRID_MIN_REACH: f32 = 600.0;
+/// centimetres (18 m: even zoomed right in, the ground stretches well
+/// beyond the object, so the view never feels closed in).
+pub const GRID_MIN_REACH: f32 = 1800.0;
 /// How far the grid reaches compared with the camera's distance from the
 /// focus point: zooming out shows more of it.
-pub const GRID_REACH_PER_DISTANCE: f32 = 0.9;
+pub const GRID_REACH_PER_DISTANCE: f32 = 2.0;
 
 /// Everything that changes from frame to frame.
 #[derive(Debug, Clone, Copy, PartialEq)]

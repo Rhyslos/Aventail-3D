@@ -47,7 +47,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 <summary>Milestones</summary>
 
 - [x] 3D viewport: soft gradient background, fading grid, a test cube
-- [x] Navigation: orbit, pan and zoom with Alt + mouse or another choice of mouse controls
+- [x] Navigation: orbit, pan and zoom with the mouse alone (or another choice of mouse controls)
 - [ ] Orbit and zoom around the point under the mouse cursor
 - [ ] Frame selected and frame all
 - [ ] Perspective, top, front and right views, and the 4-view layout
