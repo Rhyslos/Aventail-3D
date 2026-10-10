@@ -16,3 +16,4 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0006](0006-base-plus-operation-stack.md) | Objects are a base plus an operation stack | Accepted |
 | [0007](0007-rhy-project-format.md) | The `.rhy` project format | Accepted |
 | [0008](0008-window-and-panels.md) | App window: eframe, egui_dock, drawn icons | Accepted |
+| [0009](0009-theme.md) | The calm dark theme and the Inter font | Accepted |

@@ -4,7 +4,7 @@
 
 Aventail 3D is a free, open-source modelling and UV unwrapping tool for **hard-surface game assets**, written in Rust. Model it, unwrap it, and export it to Substance Painter and Godot, all in one app.
 
-> **Status: pre-alpha.** The window opens with its Cinema 4D-style layout, but there is nothing to model with yet. The calm theme is next, then the 3D viewport. Follow the progress tracker below.
+> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout, but there is nothing to model with yet. The 3D viewport is next. Follow the progress tracker below.
 
 Created by **Rhyslos**, built with AI assistance (Claude by Anthropic). Part of the **Rhylib** family of tools, alongside [Halberd](https://github.com/Rhyslos/halberd).
 
@@ -25,9 +25,9 @@ Rendering, sculpting and texturing are left to the tools that already do them we
 
 Aventail 3D is built in phases. Each ends with a gate the project lead checks before the next phase starts. This tracker is updated by the pull request that finishes each milestone. The full plan is in [DESIGN.md](DESIGN.md).
 
-### Phase 0 · Foundations (v0.0, internal) — 6 of 7
+### Phase 0 · Foundations (v0.0, internal) — 7 of 7
 
-`███████████░░` 86%
+`█████████████` 100%
 
 - [x] Repository set up: license, README, security policy, contribution rules
 - [x] Automatic builds for Windows, Linux and macOS on every change
@@ -35,9 +35,9 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Documentation setup: architecture, contributing guide, changelog, decision records, pull request template, API reference, user manual
 - [x] Workspace split into crates
 - [x] Window with the C4D-style layout: viewport, Attribute Manager, Object Manager, palettes, status bar, all dockable
-- [ ] Theme: calm dark colours, font and spacing
+- [x] Theme: calm dark colours, font and spacing
 
-**Gate:** the app launches into the C4D-style layout with movable, dockable panels.
+**Gate:** the app launches into the C4D-style layout with movable, dockable panels. *Every milestone is done; the gate waits for the project lead's check.*
 
 ### Phase 1 · Viewport and navigation — 0 of 5
 
@@ -181,6 +181,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-10 | Calm dark theme and the Inter font. Phase 0 milestones complete |
 | 2026-10-10 | First window: the Cinema 4D-style layout with dockable panels, both palettes and a remembered layout |
 | 2026-10-10 | Repository, documentation, quality checks and crate structure in place |
 | 2026-10-10 | Project started: design document, roadmap, UI mockups and name |
@@ -188,6 +189,10 @@ Newest first. One line per finished milestone or passed gate.
 ### Snapshots
 
 Pictures of Aventail 3D at memorable moments, newest first. Kept in [docs/screenshots](docs/screenshots).
+
+**2026-10-10: the calm theme.** The mockups' gentle greys, the orange accent on the active mode, Inter for text, and the viewport filling its panel edge to edge.
+
+![Aventail 3D with its calm dark theme](docs/screenshots/2026-10-10-theme.png)
 
 **2026-10-10: the first window.** The menu bar and command palette along the top, the mode palette down the left, the viewport's calm grey, Attributes and Objects on the right, Coordinates underneath. Taken by the automatic window test on a virtual screen.
 

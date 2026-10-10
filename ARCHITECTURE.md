@@ -34,7 +34,7 @@ Slow work (large unwraps, booleans, exports) runs on background threads. **Backg
 ## Startup
 
 1. **Command line** (`app`): `--version` and `--help` print and exit; anything unknown is explained, with exit code 2.
-2. **Window** (`app` with eframe): open the window, named and identified through `branding.rs`, and restore the panel layout saved last time. See [decision 0008](docs/decisions/0008-window-and-panels.md).
+2. **Window** (`app` with eframe): open the window, named and identified through `branding.rs`, apply the theme (`ui::theme`; see [decision 0009](docs/decisions/0009-theme.md)), and restore the panel layout saved last time. See [decision 0008](docs/decisions/0008-window-and-panels.md).
 3. **Each frame** (`ui`): the workbench draws the menu bar, the command palette, the mode palette, the status bar and the docked panels, and returns any actions (such as Quit) for the app to carry out.
 4. **Closing**: eframe saves the window size and the panel layout (`app.ron`, in a per-user folder named after `APP_ID`).
 

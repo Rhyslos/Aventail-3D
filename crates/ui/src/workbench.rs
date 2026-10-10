@@ -7,8 +7,9 @@ use crate::panel::Panel;
 use crate::panels::{
     about_contents, attributes_contents, coordinates_contents, objects_contents, viewport_contents,
 };
+use crate::theme;
 use egui::{Align2, Id, Key, KeyboardShortcut, Modifiers, Ui, WidgetText};
-use egui_dock::{DockArea, DockState, Style, TabViewer};
+use egui_dock::{DockArea, DockState, TabViewer};
 
 /// Facts about the program, shown in the window and the About box.
 /// The app passes these in from its branding, so this crate never names it.
@@ -136,16 +137,21 @@ impl Workbench {
             actions.push(WorkbenchAction::Quit);
         }
 
-        egui::Panel::top("menu_bar").show(ui, |ui| {
-            egui::MenuBar::new().ui(ui, |ui| self.menu_bar(ui, &mut actions));
-        });
+        egui::Panel::top("menu_bar")
+            .frame(theme::menu_bar_frame())
+            .show(ui, |ui| {
+                egui::MenuBar::new().ui(ui, |ui| self.menu_bar(ui, &mut actions));
+            });
         egui::Panel::top("command_palette")
+            .frame(theme::palette_frame())
             .exact_size(40.0)
             .show(ui, command_palette);
         egui::Panel::bottom("status_bar")
+            .frame(theme::status_bar_frame())
             .exact_size(24.0)
             .show(ui, |ui| self.status_bar(ui));
         egui::Panel::left("mode_palette")
+            .frame(theme::palette_frame())
             .exact_size(44.0)
             .resizable(false)
             .show(ui, |ui| {
@@ -155,12 +161,16 @@ impl Workbench {
                 }
             });
 
-        DockArea::new(&mut self.dock)
-            .style(Style::from_egui(ui.style().as_ref()))
-            .show_close_buttons(false)
-            .show_add_buttons(false)
-            .show_leaf_close_all_buttons(false)
-            .show_inside(ui, &mut PanelViewer);
+        let style = theme::dock_style(ui.style().as_ref());
+        theme::dock_frame().show(ui, |ui| {
+            DockArea::new(&mut self.dock)
+                .style(style)
+                .show_close_buttons(false)
+                .show_add_buttons(false)
+                .show_leaf_close_all_buttons(false)
+                .show_leaf_collapse_buttons(false)
+                .show_inside(ui, &mut PanelViewer);
+        });
 
         let mut about_open = self.about_open;
         egui::Window::new(format!("About {}", self.info.name))
@@ -274,12 +284,19 @@ impl TabViewer for PanelViewer {
     }
 
     fn ui(&mut self, ui: &mut Ui, tab: &mut Panel) {
-        match tab {
-            Panel::Viewport => viewport_contents(ui),
-            Panel::Attributes => attributes_contents(ui),
-            Panel::Objects => objects_contents(ui),
-            Panel::Coordinates => coordinates_contents(ui),
+        if *tab == Panel::Viewport {
+            // Edge to edge, with no padding.
+            viewport_contents(ui);
+            return;
         }
+        egui::Frame::new()
+            .inner_margin(theme::panel_margin())
+            .show(ui, |ui| match tab {
+                Panel::Viewport => {}
+                Panel::Attributes => attributes_contents(ui),
+                Panel::Objects => objects_contents(ui),
+                Panel::Coordinates => coordinates_contents(ui),
+            });
     }
 
     fn is_closeable(&self, _tab: &Panel) -> bool {

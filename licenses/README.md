@@ -4,16 +4,15 @@ License texts for third-party material embedded in the program itself (fonts, ic
 
 ## Fonts
 
-The interface uses the default fonts bundled with egui (through the `epaint_default_fonts` library):
+The interface uses Inter, embedded from `crates/ui/assets/fonts/`, with the default fonts bundled with egui (through the `epaint_default_fonts` library) behind it as fallbacks:
 
 | Font | Used for | License | File |
 | --- | --- | --- | --- |
-| Ubuntu Light | Interface text | Ubuntu Font Licence 1.0 | [Ubuntu-Font-Licence-1.0.txt](fonts/Ubuntu-Font-Licence-1.0.txt) |
+| Inter (Regular, SemiBold) | Interface text and headings | SIL Open Font License 1.1 | [Inter-OFL-1.1.txt](fonts/Inter-OFL-1.1.txt) |
+| Ubuntu Light | Fallback text | Ubuntu Font Licence 1.0 | [Ubuntu-Font-Licence-1.0.txt](fonts/Ubuntu-Font-Licence-1.0.txt) |
 | Hack | Monospace text | MIT, plus Bitstream Vera License | [Hack-MIT-and-Bitstream-Vera.txt](fonts/Hack-MIT-and-Bitstream-Vera.txt) |
 | Noto Emoji | Emoji | SIL Open Font License 1.1 | [NotoEmoji-OFL-1.1.txt](fonts/NotoEmoji-OFL-1.1.txt) |
 | emoji-icon-font | Symbols | MIT | [emoji-icon-font-MIT.txt](fonts/emoji-icon-font-MIT.txt) |
-
-The theme milestone will add Inter (SIL Open Font License 1.1) for interface text.
 
 ## Icons
 
