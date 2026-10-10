@@ -4,7 +4,7 @@
 
 Aventail 3D is a free, open-source modelling and UV unwrapping tool for **hard-surface game assets**, written in Rust. Model it, unwrap it, and export it to Substance Painter and Godot, all in one app.
 
-> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout and a real 3D view you can orbit, pan and zoom around, from four views at once if you like. You can create primitives (cube, plane, cylinder, sphere, disc, tube, cone) and groups, organise them in the Object Manager, and undo every change. Editing a primitive's settings is next; modelling tools come later. Follow the progress tracker below.
+> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout and a real 3D view you can orbit, pan and zoom around, from four views at once if you like. You can create primitives (cube, plane, cylinder, sphere, disc, tube, cone) and groups, organise them in the Object Manager, and undo every change. Select a shape to change its size and segments in the Attribute Manager. Saving projects is next in Phase 2; modelling tools come in Phase 3 and 4. Follow the progress tracker below.
 
 Created by **Rhyslos**, built with AI assistance (Claude by Anthropic). Part of the **Rhylib** family of tools, alongside [Halberd](https://github.com/Rhyslos/halberd).
 
@@ -56,16 +56,16 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** navigating feels smooth and calm to the project lead. *Passed 2026-10-10.*
 
-### Phase 2 · Objects, history and saving — 2 of 6
+### Phase 2 · Objects, history and saving — 3 of 6
 
-`████░░░░░░░░░` 33%
+`███████░░░░░░` 50%
 
 <details>
 <summary>Milestones</summary>
 
 - [x] Object Manager: create, rename, reparent, hide and delete objects (with undo and redo)
 - [x] Primitives: cube, plane, cylinder, sphere, disc, tube, cone
-- [ ] Primitive settings in the Attribute Manager
+- [x] Primitive settings in the Attribute Manager
 - [ ] Object stack foundation: base plus recorded operations
 - [ ] Undo and redo limited by memory, not steps
 - [ ] Save and open `.avtl` projects
@@ -181,6 +181,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-10 | Attribute Manager: a shape's settings change as you drag or type, one undo step per drag; copy and paste settings |
 | 2026-10-10 | Primitives: cube, plane, cylinder, sphere, disc, tube and cone, standing on the ground, with hard and soft edges |
 | 2026-10-10 | Object Manager: select, rename, group, nest, hide and delete objects, with undo and redo |
 | 2026-10-10 | Phase 1 gate passed: tested by the project lead, "worked flawlessly and felt good" |

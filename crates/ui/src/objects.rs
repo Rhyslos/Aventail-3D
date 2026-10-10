@@ -48,6 +48,9 @@ pub const UNGROUP_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::
 pub(crate) enum DocRequest {
     /// Carry out a command.
     Run(Command),
+    /// Carry out a command, merged into the previous step if that had the
+    /// same key (one drag of a value is one undo step).
+    RunMerging(Command, u64),
     /// Take back the last step.
     Undo,
     /// Do the last undone step again.

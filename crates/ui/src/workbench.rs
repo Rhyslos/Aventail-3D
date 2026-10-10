@@ -1,15 +1,13 @@
 //! The app window's contents: menu bar, palettes, docked panels, status
 //! bar and the About box.
 
+use crate::attributes::AttributesPanel;
 use crate::drawing::{DrawingCache, SceneSummary};
 use crate::layout::{default_layout, fit_coordinates, hide_viewport_tab, restore_or_default};
 use crate::objects::{self, DocRequest, ObjectManager};
 use crate::palette::{Mode, PaletteCommand, PaletteState, command_palette, mode_palette};
 use crate::panel::Panel;
-use crate::panels::{
-    ATTRIBUTES_MENUS, about_contents, attributes_contents, coordinates_contents, menu_line,
-    menu_line_with,
-};
+use crate::panels::{about_contents, coordinates_contents, menu_line_with};
 use crate::theme::{self, Accent};
 use crate::viewport::{ViewOptions, ViewportPanel, ViewportRenderer};
 use egui::{Align2, Id, Key, KeyboardShortcut, Modifiers, Ui, WidgetText};
@@ -91,6 +89,7 @@ pub struct Workbench {
     /// The scene being worked on, with its undo history and selection.
     document: Document,
     objects: ObjectManager,
+    attributes: AttributesPanel,
     /// What the viewport draws, kept up to date with the document.
     drawing: DrawingCache,
     viewport: ViewportPanel,
@@ -116,6 +115,7 @@ impl Workbench {
             mode: Mode::default(),
             document: Document::new(),
             objects: ObjectManager::default(),
+            attributes: AttributesPanel::default(),
             drawing: DrawingCache::default(),
             viewport: ViewportPanel::default(),
             accent: Accent::default(),
@@ -291,6 +291,7 @@ impl Workbench {
                         summary: &summary,
                         document: &mut self.document,
                         objects: &mut self.objects,
+                        attributes: &mut self.attributes,
                         requests: &mut requests,
                     },
                 );
@@ -371,6 +372,13 @@ impl Workbench {
                 DocRequest::Run(command) => {
                     let what = command.describe(self.document.scene());
                     match self.document.execute(command) {
+                        Ok(()) => None,
+                        Err(why) => Some(format!("Couldn't {}: {why}.", what.to_lowercase())),
+                    }
+                }
+                DocRequest::RunMerging(command, key) => {
+                    let what = command.describe(self.document.scene());
+                    match self.document.execute_merging(command, key) {
                         Ok(()) => None,
                         Err(why) => Some(format!("Couldn't {}: {why}.", what.to_lowercase())),
                     }
@@ -585,6 +593,7 @@ struct PanelViewer<'a> {
     summary: &'a SceneSummary,
     document: &'a mut Document,
     objects: &'a mut ObjectManager,
+    attributes: &'a mut AttributesPanel,
     requests: &'a mut Vec<DocRequest>,
 }
 
@@ -606,7 +615,9 @@ impl TabViewer for PanelViewer<'_> {
             return;
         }
         match tab {
-            Panel::Attributes => menu_line(ui, &ATTRIBUTES_MENUS),
+            Panel::Attributes => menu_line_with(ui, |ui| {
+                self.attributes.menus(ui, self.document, self.requests);
+            }),
             Panel::Objects => menu_line_with(ui, |ui| {
                 objects::menus(ui, self.document, self.objects, self.requests);
             }),
@@ -616,7 +627,7 @@ impl TabViewer for PanelViewer<'_> {
             .inner_margin(theme::panel_margin())
             .show(ui, |ui| match tab {
                 Panel::Viewport => {}
-                Panel::Attributes => attributes_contents(ui, self.document),
+                Panel::Attributes => self.attributes.show(ui, self.document, self.requests),
                 Panel::Objects => self.objects.show(ui, self.document, self.requests),
                 Panel::Coordinates => coordinates_contents(ui),
             });
@@ -654,6 +665,8 @@ impl TabViewer for PanelViewer<'_> {
     }
 }
 
+#[cfg(test)]
+mod attribute_tests;
 #[cfg(test)]
 mod object_tests;
 #[cfg(test)]

@@ -730,8 +730,13 @@ fn random_commands_keep_the_tree_whole_and_undo_exactly() {
                     .filter_map(|_| ids.get(rng.next(ids.len())).copied())
                     .collect()
             };
-            let command = match rng.next(7) {
+            let command = match rng.next(9) {
                 0 | 1 => Command::Create(ObjectKind::Group),
+                7 => Command::Create(ObjectKind::Primitive(cube_of(10.0 + rng.next(50) as f32))),
+                8 => Command::SetPrimitive {
+                    ids: pick(&mut rng),
+                    primitive: cube_of(rng.next(400) as f32),
+                },
                 2 => {
                     let picked = pick(&mut rng);
                     let parent = if rng.next(3) == 0 {
@@ -781,4 +786,206 @@ fn random_commands_keep_the_tree_whole_and_undo_exactly() {
         }
         assert_eq!(*doc.scene(), end, "seed {seed}");
     }
+}
+
+// ------------------------------------------------------------- settings ---
+
+fn cube_size(doc: &Document, id: ObjectId) -> glam::Vec3 {
+    match doc.scene().object(id).unwrap().kind {
+        ObjectKind::Primitive(Primitive::Cube(p)) => p.size,
+        other => panic!("not a cube: {other:?}"),
+    }
+}
+
+fn cube_of(size: f32) -> Primitive {
+    Primitive::Cube(mesh::CubeParams {
+        size: glam::Vec3::splat(size),
+        ..Default::default()
+    })
+}
+
+#[test]
+fn primitive_settings_change_undoably() {
+    let (mut doc, cube) = with_a_cube();
+    let revision = doc.revision();
+    doc.execute(Command::SetPrimitive {
+        ids: vec![cube],
+        primitive: cube_of(50.0),
+    })
+    .unwrap();
+    assert_eq!(cube_size(&doc, cube), glam::Vec3::splat(50.0));
+    assert!(doc.revision() > revision, "redraw");
+    assert_eq!(doc.undo_label(), Some("Change cube settings"));
+    doc.undo();
+    assert_eq!(cube_size(&doc, cube), glam::Vec3::splat(200.0));
+}
+
+#[test]
+fn settings_are_brought_within_limits_when_set() {
+    let (mut doc, cube) = with_a_cube();
+    doc.execute(Command::SetPrimitive {
+        ids: vec![cube],
+        primitive: cube_of(-5.0),
+    })
+    .unwrap();
+    assert_eq!(
+        cube_size(&doc, cube),
+        glam::Vec3::splat(mesh::primitives::MIN_SIZE)
+    );
+}
+
+#[test]
+fn settings_of_one_kind_cant_go_to_another() {
+    let (mut doc, cube) = with_a_cube();
+    let group = {
+        doc.execute(Command::Create(ObjectKind::Group)).unwrap();
+        doc.selection()[0]
+    };
+    let before = doc.clone();
+    let sphere = Primitive::Sphere(Default::default());
+    assert_eq!(
+        doc.execute(Command::SetPrimitive {
+            ids: vec![cube],
+            primitive: sphere
+        }),
+        Err(SceneError::WrongKind("Sphere"))
+    );
+    assert!(
+        doc.execute(Command::SetPrimitive {
+            ids: vec![group],
+            primitive: cube_of(10.0)
+        })
+        .is_err()
+    );
+    assert_eq!(doc, before);
+    assert_eq!(
+        SceneError::WrongKind("Sphere").to_string(),
+        "Sphere settings can only be given to a sphere"
+    );
+}
+
+#[test]
+fn one_drag_of_a_value_is_one_undo_step() {
+    let (mut doc, cube) = with_a_cube();
+    let steps = doc.undo_steps();
+    for size in [210.0, 220.0, 230.0, 240.0] {
+        doc.execute_merging(
+            Command::SetPrimitive {
+                ids: vec![cube],
+                primitive: cube_of(size),
+            },
+            7,
+        )
+        .unwrap();
+    }
+    assert_eq!(doc.undo_steps(), steps + 1, "four changes, one step");
+    // A new drag (a new key) is a new step.
+    doc.execute_merging(
+        Command::SetPrimitive {
+            ids: vec![cube],
+            primitive: cube_of(300.0),
+        },
+        8,
+    )
+    .unwrap();
+    assert_eq!(doc.undo_steps(), steps + 2);
+    doc.undo();
+    assert_eq!(cube_size(&doc, cube), glam::Vec3::splat(240.0));
+    doc.undo();
+    assert_eq!(
+        cube_size(&doc, cube),
+        glam::Vec3::splat(200.0),
+        "back to the start"
+    );
+    // Redo replays the whole drag at once.
+    doc.redo();
+    assert_eq!(cube_size(&doc, cube), glam::Vec3::splat(240.0));
+}
+
+#[test]
+fn something_in_between_starts_a_new_step() {
+    let (mut doc, cube) = with_a_cube();
+    doc.execute_merging(
+        Command::SetPrimitive {
+            ids: vec![cube],
+            primitive: cube_of(10.0),
+        },
+        1,
+    )
+    .unwrap();
+    doc.execute(Command::Rename {
+        id: cube,
+        name: "Box".into(),
+    })
+    .unwrap();
+    doc.execute_merging(
+        Command::SetPrimitive {
+            ids: vec![cube],
+            primitive: cube_of(20.0),
+        },
+        1,
+    )
+    .unwrap();
+    doc.undo();
+    assert_eq!(cube_size(&doc, cube), glam::Vec3::splat(10.0));
+    // An undone step never merges again.
+    doc.undo();
+    doc.execute_merging(
+        Command::SetPrimitive {
+            ids: vec![cube],
+            primitive: cube_of(30.0),
+        },
+        1,
+    )
+    .unwrap();
+    doc.undo();
+    assert_eq!(cube_size(&doc, cube), glam::Vec3::splat(10.0));
+}
+
+#[test]
+fn dragging_back_to_the_start_leaves_nothing_to_undo() {
+    let (mut doc, cube) = with_a_cube();
+    let steps = doc.undo_steps();
+    doc.execute_merging(
+        Command::SetPrimitive {
+            ids: vec![cube],
+            primitive: cube_of(250.0),
+        },
+        3,
+    )
+    .unwrap();
+    doc.execute_merging(
+        Command::SetPrimitive {
+            ids: vec![cube],
+            primitive: cube_of(200.0),
+        },
+        3,
+    )
+    .unwrap();
+    assert_eq!(doc.undo_steps(), steps);
+}
+
+#[test]
+fn pasting_settings_to_several_primitives_is_one_step() {
+    let (mut doc, a) = with_a_cube();
+    doc.execute(Command::Insert {
+        object: cube(),
+        place: Place {
+            parent: None,
+            index: 0,
+        },
+    })
+    .unwrap();
+    let b = doc.selection()[0];
+    let steps = doc.undo_steps();
+    doc.execute(Command::SetPrimitive {
+        ids: vec![a, b],
+        primitive: cube_of(80.0),
+    })
+    .unwrap();
+    assert_eq!(doc.undo_steps(), steps + 1);
+    assert_eq!(cube_size(&doc, a), cube_size(&doc, b));
+    doc.undo();
+    assert_eq!(cube_size(&doc, a), glam::Vec3::splat(200.0));
+    assert_eq!(cube_size(&doc, b), glam::Vec3::splat(200.0));
 }

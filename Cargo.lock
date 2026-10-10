@@ -3348,6 +3348,7 @@ dependencies = [
  "egui_dock",
  "egui_kittest",
  "glam",
+ "mesh",
  "ron",
  "scene",
  "serde",

@@ -7,6 +7,7 @@
 //! The app's name is never written here: it arrives in [`AppInfo`] from
 //! the app's branding.
 
+mod attributes;
 mod drawing;
 pub mod icons;
 pub mod layout;

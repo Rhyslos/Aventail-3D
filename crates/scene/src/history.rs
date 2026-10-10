@@ -12,6 +12,9 @@ pub(crate) struct Step {
     /// What the step did, for the Edit menu ("Delete 2 objects").
     pub(crate) label: String,
     pub(crate) edits: Vec<Edit>,
+    /// Steps made one after another with the same key become one step:
+    /// a whole drag of a value is one undo, not one per frame.
+    pub(crate) merge_key: Option<u64>,
 }
 
 /// Steps that can be undone, and undone steps that can be redone.
@@ -26,11 +29,30 @@ impl History {
     /// forgotten, as in every editor.
     pub(crate) fn record(&mut self, step: Step) {
         self.redo.clear();
+        if let (Some(key), Some(last)) = (step.merge_key, self.undo.last_mut())
+            && last.merge_key == Some(key)
+        {
+            for edit in step.edits {
+                merge_edit(&mut last.edits, edit);
+            }
+            if last.edits.iter().all(Edit::changes_nothing) {
+                // Dragged back to where it started: nothing to undo.
+                self.undo.pop();
+            }
+            return;
+        }
         self.undo.push(step);
     }
 
+    /// Takes the last step to undo it. The step before it is closed: a
+    /// later change never merges into a step that undo has gone back to.
     pub(crate) fn take_undo(&mut self) -> Option<Step> {
-        self.undo.pop()
+        let mut step = self.undo.pop()?;
+        step.merge_key = None;
+        if let Some(previous) = self.undo.last_mut() {
+            previous.merge_key = None;
+        }
+        Some(step)
     }
 
     pub(crate) fn take_redo(&mut self) -> Option<Step> {
@@ -59,4 +81,19 @@ impl History {
     pub(crate) fn undo_len(&self) -> usize {
         self.undo.len()
     }
+}
+
+/// Adds `edit` to a step's edits, folding a settings change into an
+/// earlier one for the same object (keeping where it started and where it
+/// ended), so a long drag stays one small step.
+fn merge_edit(edits: &mut Vec<Edit>, edit: Edit) {
+    if let Edit::SetKind { id, after, .. } = &edit
+        && let Some(Edit::SetKind { after: earlier, .. }) = edits
+            .iter_mut()
+            .find(|e| matches!(e, Edit::SetKind { id: other, .. } if other == id))
+    {
+        *earlier = *after;
+        return;
+    }
+    edits.push(edit);
 }

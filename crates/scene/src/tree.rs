@@ -1,7 +1,7 @@
 //! The object tree, and the small reversible edits every change to it is
 //! made of.
 
-use crate::object::{Object, ObjectId};
+use crate::object::{Object, ObjectId, ObjectKind};
 use glam::Mat4;
 use mesh::Bounds;
 use std::collections::BTreeMap;
@@ -17,6 +17,8 @@ pub enum SceneError {
     EmptyName,
     /// Nothing to undo or redo, or the history no longer matches the scene.
     History(&'static str),
+    /// Settings for one kind of primitive were given to something else.
+    WrongKind(&'static str),
 }
 
 impl std::fmt::Display for SceneError {
@@ -28,6 +30,12 @@ impl std::fmt::Display for SceneError {
             }
             Self::EmptyName => f.write_str("a name can't be empty"),
             Self::History(why) => f.write_str(why),
+            Self::WrongKind(kind) => write!(
+                f,
+                "{} settings can only be given to a {}",
+                kind,
+                kind.to_lowercase()
+            ),
         }
     }
 }
@@ -80,9 +88,26 @@ pub(crate) enum Edit {
         before: bool,
         after: bool,
     },
+    /// Changes what an object is: a primitive's settings, for example.
+    SetKind {
+        id: ObjectId,
+        before: ObjectKind,
+        after: ObjectKind,
+    },
 }
 
 impl Edit {
+    /// Whether the edit leaves everything as it was.
+    pub(crate) fn changes_nothing(&self) -> bool {
+        match self {
+            Self::Insert { .. } | Self::Remove { .. } => false,
+            Self::Relocate { from, to, .. } => from == to,
+            Self::Rename { before, after, .. } => before == after,
+            Self::SetVisible { before, after, .. } => before == after,
+            Self::SetKind { before, after, .. } => before == after,
+        }
+    }
+
     /// The edit that undoes this one.
     pub(crate) fn inverse(&self) -> Self {
         match self.clone() {
@@ -99,6 +124,11 @@ impl Edit {
                 after: before,
             },
             Self::SetVisible { id, before, after } => Self::SetVisible {
+                id,
+                before: after,
+                after: before,
+            },
+            Self::SetKind { id, before, after } => Self::SetKind {
                 id,
                 before: after,
                 after: before,
@@ -385,6 +415,17 @@ impl Scene {
                     return Err(SceneError::History("an object's visibility has changed"));
                 }
                 node.object.visible = *after;
+                Ok(())
+            }
+            Edit::SetKind { id, before, after } => {
+                let node = self
+                    .nodes
+                    .get_mut(id)
+                    .ok_or(SceneError::UnknownObject(*id))?;
+                if node.object.kind != *before {
+                    return Err(SceneError::History("an object's settings have changed"));
+                }
+                node.object.kind = *after;
                 Ok(())
             }
         }

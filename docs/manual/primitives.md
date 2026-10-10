@@ -6,7 +6,7 @@
 
 ## When to use it
 
-Almost every hard-surface model starts as a simple shape: a crate starts as a cube, a barrel as a cylinder, a lamp shade as a cone or a tube. These starting shapes are called [primitives](concepts.md#objects-and-scenes). Each one is made from a few settings, such as its size and how many pieces it's cut into. Those settings stay editable, so you can change a cube's size or segments long after you've started modelling it. (Changing them in the Attributes panel arrives with the next update.)
+Almost every hard-surface model starts as a simple shape: a crate starts as a cube, a barrel as a cylinder, a lamp shade as a cone or a tube. These starting shapes are called [primitives](concepts.md#objects-and-scenes). Each one is made from a few settings, such as its size and how many pieces it's cut into. Those settings stay editable in the [Attributes panel](attributes.md), so you can change a cube's size or segments long after you've started modelling it.
 
 ## How to use it
 
@@ -48,7 +48,7 @@ Each shape has its own settings, set to the standard values above when it's crea
 | Tube | Outer and inner radius, height, sides, height segments |
 | Cone | Bottom and top radius (a top above zero cuts the point off), height, sides, height segments, closed ends |
 
-Editing them in the Attributes panel arrives with the next update. Sizes are kept between 1 mm and 10 km, and segments and sides between sensible limits, so a typing slip can never make a shape vanish or freeze the app.
+Change them in the [Attributes panel](attributes.md): select the shape, then drag or type a value. Sizes are kept between 1 mm and 10 km, and segments and sides between sensible limits, so a typing slip can never make a shape vanish or freeze the app.
 
 ## Shortcuts
 

@@ -631,7 +631,7 @@ fn selecting_a_row_marks_the_object_in_the_viewport_and_attributes() {
     assert_eq!(drawn_items(&mut harness), [("Cube".to_string(), false)]);
     click_row(&mut harness, "Cube", Modifiers::NONE);
     assert_eq!(drawn_items(&mut harness), [("Cube".to_string(), true)]);
-    assert!(harness.query_by_label("Selected: Cube").is_some());
+    assert!(harness.query_by_label("Cube (cube)").is_some());
 }
 
 #[test]
