@@ -918,7 +918,7 @@ fn orbiting_over_the_background_keeps_the_pivot() {
 }
 
 #[test]
-fn switching_off_around_the_mouse_keeps_the_old_pivot() {
+fn switching_off_around_the_mouse_orbits_around_the_middle() {
     let mut harness = with_surface(Some(SURFACE));
     harness
         .state_mut()
@@ -933,7 +933,15 @@ fn switching_off_around_the_mouse_keeps_the_old_pivot() {
         Modifiers::NONE,
         egui::vec2(100.0, 30.0),
     );
-    assert_eq!(pivot(&harness), tools::camera::DEFAULT_TARGET);
+    let (seen, middle) = centre_of_view_on_screen(&harness);
+    assert!(
+        (seen - middle).length() < 1.0,
+        "around the middle: {seen} vs {middle}"
+    );
+    assert!(
+        pivot(&harness).distance(SURFACE) > 10.0,
+        "not the spot under the mouse"
+    );
 }
 
 #[test]
@@ -1027,4 +1035,84 @@ fn the_around_the_mouse_switch_is_in_the_picker_and_options() {
             .navigation
             .around_cursor
     );
+}
+
+fn centre_of_view_on_screen(harness: &Harness<'static, State>) -> (glam::Vec2, glam::Vec2) {
+    let body = harness.get_by_label(crate::VIEWPORT_LABEL).rect();
+    let size = glam::Vec2::new(body.width(), body.height());
+    let seen = harness
+        .state()
+        .workbench
+        .viewport()
+        .camera()
+        .project(pivot(harness), size)
+        .unwrap();
+    (seen, size / 2.0)
+}
+
+#[test]
+fn switched_off_orbits_turn_around_the_middle_again() {
+    let mut harness = with_surface(Some(SURFACE));
+    drag_viewport(
+        &mut harness,
+        egui::PointerButton::Secondary,
+        Modifiers::NONE,
+        egui::vec2(80.0, 20.0),
+    );
+    assert_eq!(pivot(&harness), SURFACE, "first, around the grabbed spot");
+    harness
+        .state_mut()
+        .workbench
+        .viewport_mut()
+        .options_mut()
+        .navigation
+        .around_cursor = false;
+    drag_viewport(
+        &mut harness,
+        egui::PointerButton::Secondary,
+        Modifiers::NONE,
+        egui::vec2(80.0, 20.0),
+    );
+    let (seen, middle) = centre_of_view_on_screen(&harness);
+    assert!((seen - middle).length() < 1.0, "{seen} vs {middle}");
+}
+
+#[test]
+fn zooming_while_a_button_is_held_keeps_the_pivot() {
+    let mut harness = with_surface(Some(SURFACE));
+    let start = viewport_spot(&harness);
+    harness.event(egui::Event::PointerMoved(start));
+    harness.step();
+    harness.event(egui::Event::PointerButton {
+        pos: start,
+        button: egui::PointerButton::Secondary,
+        pressed: true,
+        modifiers: Modifiers::NONE,
+    });
+    harness.step();
+    for i in 1..=4 {
+        harness.event(egui::Event::PointerMoved(
+            start + egui::vec2(15.0 * i as f32, 0.0),
+        ));
+        harness.step();
+    }
+    assert_eq!(pivot(&harness), SURFACE);
+    // The stand-in renderer would now answer "background" anywhere else:
+    // a wheel turn mid-drag must not chase it.
+    harness.state_mut().renderer.surface = None;
+    harness.event(egui::Event::MouseWheel {
+        unit: egui::MouseWheelUnit::Line,
+        delta: egui::vec2(0.0, 1.0),
+        phase: egui::TouchPhase::Move,
+        modifiers: Modifiers::NONE,
+    });
+    harness.step();
+    harness.event(egui::Event::PointerButton {
+        pos: start + egui::vec2(60.0, 0.0),
+        button: egui::PointerButton::Secondary,
+        pressed: false,
+        modifiers: Modifiers::NONE,
+    });
+    harness.run();
+    assert_eq!(pivot(&harness), SURFACE, "the pivot stayed put");
 }

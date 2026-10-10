@@ -118,6 +118,14 @@ impl Navigator {
         true
     }
 
+    /// Moves the pivot to the middle of the view, at the same depth,
+    /// without moving the camera: orbiting then turns around the middle of
+    /// the view again, and zooming heads straight ahead.
+    pub fn centre_pivot(&mut self) {
+        let depth = self.pivot_depth();
+        self.pivot = self.camera.position + self.camera.forward() * depth;
+    }
+
     /// Whether the camera could orbit around or zoom towards `point`.
     fn usable_target(&self, point: Vec3) -> bool {
         let to = point - self.camera.position;
@@ -567,5 +575,21 @@ mod tests {
         assert!((on_screen(&navigator, moved) - start).length() < 0.05);
         let world_point_now = on_screen(&navigator, OFF_CENTRE);
         assert!((world_point_now - (start + delta)).length() < 0.05);
+    }
+
+    #[test]
+    fn centring_the_pivot_puts_it_in_the_middle_at_the_same_depth() {
+        let mut navigator = Navigator::default();
+        assert!(navigator.set_pivot(OFF_CENTRE));
+        let camera = *navigator.camera();
+        let depth = (OFF_CENTRE - camera.position).dot(camera.forward());
+        navigator.centre_pivot();
+        assert!(centred(&navigator));
+        assert_eq!(*navigator.camera(), camera, "the camera stays put");
+        let new_depth = (navigator.pivot() - camera.position).dot(camera.forward());
+        assert!((new_depth - depth).abs() < 0.01);
+        // Orbiting now turns around the middle of the view.
+        navigator.orbit(Vec2::new(60.0, 20.0));
+        assert!(centred(&navigator));
     }
 }

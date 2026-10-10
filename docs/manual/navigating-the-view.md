@@ -10,7 +10,7 @@ All the time: looking at a model from different sides is how you judge its shape
 
 Every movement happens around one point, the **pivot** (see [Orbit, pan and zoom](concepts.md#viewing-the-scene)): orbiting turns around it, zooming moves towards it, and panning carries it along with the view. The grid on the ground is drawn around it too, so it follows you.
 
-**The pivot is whatever you point at.** When you start to orbit, the view turns around the exact spot on the model under the mouse, and that spot stays still on screen while everything turns around it; a small ring marks it while you drag. When you zoom, the view moves towards whatever is under the mouse, which stays under the mouse as you get closer: point at a corner and roll the wheel to get a close look at that corner. Over empty background, orbiting keeps turning around the last pivot, and zooming heads for the ground under the mouse (or, at the sky, straight into the view). Prefer turning around the middle of the view? Switch off **Orbit and zoom around the point under the mouse** (see [Settings](#settings)).
+**The pivot is whatever you point at.** When you start to orbit, the view turns around the exact spot on the model under the mouse, and that spot stays still on screen while everything turns around it; a small ring marks it while you drag. When you zoom, the view moves towards whatever is under the mouse, which stays under the mouse as you get closer: point at a corner and roll the wheel to get a close look at that corner. Over empty background, orbiting keeps turning around the last pivot, and zooming heads for the ground under the mouse (or, at the sky, straight into the view). Rolling the wheel while you hold a button to orbit or pan zooms towards the point you're already turning around, so nothing jumps. Prefer turning around the middle of the view? Switch off **Orbit and zoom around the point under the mouse** (see [Settings](#settings)).
 
 As standard, the view moves with **the mouse alone**, no keys needed:
 
@@ -44,7 +44,7 @@ Whatever you pick, **a plain left drag never moves the view**: it's kept free fo
 
 | Setting | What it does |
 |---|---|
-| **Orbit and zoom around the point under the mouse** (in the controls list, or **Options**; on by standard) | Orbiting turns around, and zooming moves towards, whatever is under the mouse. Off: they work around the pivot in the middle of the view instead, as in the first versions of the app. |
+| **Orbit and zoom around the point under the mouse** (in the controls list, or **Options**; on by standard) | Orbiting turns around, and zooming moves towards, whatever is under the mouse. Off: they always work around the middle of the view instead. |
 | **Alt + mouse works in every scheme** (in the controls list, on by standard) | Keeps the Alt + mouse moves working whichever controls you pick, unless those controls use the same keys for something else. Useful while you get used to new controls. |
 | **Invert orbit direction** (in the controls list, or **Options**) | Orbiting turns the other way: the model moves against your hand instead of with it. |
 | **Fine grid lines** (the grid button at the bottom of the left palette, **Display → Fine grid lines**, or **View → Fine grid lines** on the main menu bar) | Off (standard): a line every metre, plus stronger 10 m lines further out, for a calm ground. On: adds thin lines every 10 cm, useful when placing things precisely up close. The bottom-left corner of the view shows the spacing. Remembered next time. |

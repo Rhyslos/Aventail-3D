@@ -112,6 +112,9 @@ struct UnderMouse {
     at: egui::Pos2,
     /// The surface point there, if any.
     point: Option<Vec3>,
+    /// The camera the question was asked with: once the camera moves, the
+    /// answer no longer describes what is under the mouse.
+    camera: Camera,
 }
 
 /// A renderer that never draws, with a reason to show instead.
@@ -160,6 +163,8 @@ pub struct ViewportPanel {
     under_mouse: Option<UnderMouse>,
     /// Whether a question about the point under the mouse is in flight.
     asking: bool,
+    /// The camera the question in flight was asked with.
+    asked_with: Option<Camera>,
 }
 
 impl ViewportPanel {
@@ -249,18 +254,24 @@ impl ViewportPanel {
             .filter(|at| {
                 self.drag.is_none()
                     && !self.asking
-                    && self.under_mouse.is_none_or(|u| u.at.distance(*at) > 0.5)
+                    && self
+                        .under_mouse
+                        .is_none_or(|u| u.at.distance(*at) > 0.5 || u.camera != *self.camera())
             })
             .map(|at| PickAsk {
                 view_projection: view.view_projection,
                 pixel: [(at.x - body.min.x) * ppp, (at.y - body.min.y) * ppp],
                 size_px: view.size_px,
             });
+        if ask.is_some() {
+            self.asked_with = Some(*self.camera());
+        }
         let reply = renderer.pick(ask);
         if let Some(answer) = reply.answer {
             self.under_mouse = Some(UnderMouse {
                 at: body.min + egui::vec2(answer.pixel[0], answer.pixel[1]) / ppp,
                 point: answer.point,
+                camera: self.asked_with.unwrap_or(*self.camera()),
             });
         }
         self.asking = reply.waiting;
@@ -269,31 +280,39 @@ impl ViewportPanel {
         }
     }
 
-    /// The surface point under `at` (logical screen coordinates), if the
-    /// renderer's latest answer is about that spot.
-    fn surface_at(&self, at: egui::Pos2) -> Option<Vec3> {
+    /// The renderer's answer about `at` (logical screen coordinates):
+    /// `Some(Some(point))` for a surface, `Some(None)` for background, or
+    /// `None` when there is no up-to-date answer for that spot (the mouse
+    /// or the camera has moved since).
+    fn answer_at(&self, at: egui::Pos2) -> Option<Option<Vec3>> {
         self.under_mouse
-            .filter(|u| u.at.distance(at) <= PICK_TOLERANCE)
-            .and_then(|u| u.point)
+            .filter(|u| u.at.distance(at) <= PICK_TOLERANCE && u.camera == *self.camera())
+            .map(|u| u.point)
     }
 
-    /// The point to zoom towards for the mouse at `at`: the surface there,
-    /// or else the ground under it, or else a point along the mouse's line
-    /// of sight as far away as the pivot is now.
+    /// The surface point under `at`, if an up-to-date answer says so.
+    fn surface_at(&self, at: egui::Pos2) -> Option<Vec3> {
+        self.answer_at(at).flatten()
+    }
+
+    /// The point to zoom towards for the mouse at `at`: the surface there;
+    /// over background, the ground under it (if not much farther than the
+    /// pivot); otherwise, or without an up-to-date answer, a point along
+    /// the mouse's line of sight as far away as the pivot is now, so the
+    /// zoom never leaps.
     fn zoom_target(&self, at: egui::Pos2, rect: Rect) -> Vec3 {
-        if let Some(point) = self.surface_at(at) {
-            return point;
-        }
         let size = Vec2::new(rect.width(), rect.height());
         let ray = self
             .camera()
             .ray_through(Vec2::new(at.x - rect.min.x, at.y - rect.min.y), size);
         let reach = self.navigator.distance();
-        match ray.hit_ground(0.0) {
-            // Only ground in front and not much farther than the pivot, so
-            // zooming at the horizon doesn't leap towards it.
-            Some(distance) if distance <= reach * 4.0 => ray.at(distance),
-            _ => ray.at(reach),
+        match self.answer_at(at) {
+            Some(Some(point)) => point,
+            Some(None) => match ray.hit_ground(0.0) {
+                Some(distance) if distance <= reach * 4.0 => ray.at(distance),
+                _ => ray.at(reach),
+            },
+            None => ray.at(reach),
         }
     }
 
@@ -311,6 +330,12 @@ impl ViewportPanel {
                 .find(|(egui_button, _)| response.drag_started_by(*egui_button))
                 .and_then(|(_, button)| settings.drag(*button, keys));
             let pressed_at = ui.input(|i| i.pointer.press_origin());
+            if !settings.around_cursor
+                && matches!(self.drag, Some(DragKind::Orbit | DragKind::Dolly))
+            {
+                // Around the middle of the view, whatever was picked before.
+                self.navigator.centre_pivot();
+            }
             if let (Some(kind), Some(at), true) = (self.drag, pressed_at, settings.around_cursor) {
                 match kind {
                     // Turn around what was clicked; over the background,
@@ -342,12 +367,25 @@ impl ViewportPanel {
         if response.hovered() {
             let scroll = wheel_scroll(ui, rect.height());
             if scroll != 0.0 {
-                match response.hover_pos().filter(|_| settings.around_cursor) {
+                // While a button is held (mid-orbit or mid-pan), the point
+                // under the mouse is not being looked up, so keep zooming
+                // towards the pivot already in use instead of jumping to a
+                // stale or guessed spot.
+                let busy = self.drag.is_some() || ui.input(|i| i.pointer.any_down());
+                match response
+                    .hover_pos()
+                    .filter(|_| settings.around_cursor && !busy)
+                {
                     Some(at) => {
                         let target = self.zoom_target(at, rect);
                         self.navigator.wheel_towards(scroll, target);
                     }
-                    None => self.navigator.wheel(scroll),
+                    None => {
+                        if !settings.around_cursor {
+                            self.navigator.centre_pivot();
+                        }
+                        self.navigator.wheel(scroll);
+                    }
                 }
             }
         }
@@ -355,6 +393,9 @@ impl ViewportPanel {
 
     /// Applies a drag on one of the menu line's navigation buttons.
     fn button_drag(&mut self, kind: DragKind, delta: egui::Vec2, size: Vec2) {
+        if !self.options.navigation.around_cursor {
+            self.navigator.centre_pivot();
+        }
         let delta = self
             .options
             .navigation
@@ -519,5 +560,29 @@ mod tests {
         let old: ViewOptions = ron::from_str("(fine_grid: true)").unwrap();
         assert!(old.fine_grid);
         assert_eq!(old.navigation, NavigationSettings::default());
+    }
+
+    #[test]
+    fn answers_go_stale_when_the_camera_moves() {
+        let mut panel = ViewportPanel::default();
+        let at = pos2(100.0, 100.0);
+        panel.under_mouse = Some(UnderMouse {
+            at,
+            point: Some(Vec3::new(1.0, 2.0, 3.0)),
+            camera: *panel.camera(),
+        });
+        assert_eq!(panel.surface_at(at), Some(Vec3::new(1.0, 2.0, 3.0)));
+        assert_eq!(panel.answer_at(pos2(140.0, 100.0)), None, "another spot");
+        panel.navigator.orbit(Vec2::new(10.0, 0.0));
+        assert_eq!(panel.answer_at(at), None, "the camera has moved");
+    }
+
+    #[test]
+    fn without_an_answer_zooming_keeps_the_current_distance() {
+        let panel = ViewportPanel::default();
+        let rect = Rect::from_min_size(pos2(0.0, 0.0), egui::vec2(640.0, 400.0));
+        let target = panel.zoom_target(pos2(500.0, 350.0), rect);
+        let distance = panel.camera().position.distance(target);
+        assert!((distance - panel.navigator().distance()).abs() < 0.01);
     }
 }
