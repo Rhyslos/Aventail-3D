@@ -16,8 +16,10 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0006](0006-base-plus-operation-stack.md) | Objects are a base plus an operation stack | Accepted |
 | [0007](0007-rhy-project-format.md) | The project format (extension replaced by 0010) | Accepted, extension replaced |
 | [0008](0008-window-and-panels.md) | App window: eframe, egui_dock, drawn icons | Accepted |
-| [0009](0009-theme.md) | The calm dark theme and the Inter font | Accepted |
+| [0009](0009-theme.md) | The calm dark theme and the Inter font | Accepted, colours replaced by 0014 |
 | [0010](0010-avtl-file-extension.md) | Project files use `.avtl` | Accepted |
 | [0011](0011-lua-scripting.md) | Scripting in Lua (Luau, through mlua) | Accepted |
 | [0012](0012-z-up-axes.md) | Z is up | Accepted |
 | [0013](0013-viewport-rendering.md) | Viewport rendering | Accepted |
+| [0014](0014-studio-look-and-accent.md) | A darker studio look, with a choice of accent colour | Accepted |
+| [0015](0015-navigation-schemes.md) | A choice of navigation controls | Accepted |

@@ -49,12 +49,17 @@ impl FaceVertex {
 pub const X_AXIS_COLOR: [f32; 4] = [0.80, 0.12, 0.10, 0.55];
 /// The Y axis on the ground, in blue.
 pub const Y_AXIS_COLOR: [f32; 4] = [0.10, 0.32, 0.85, 0.55];
-/// Surface colour of the test cube, linear space (a light, neutral grey).
-pub const CUBE_COLOR: [f32; 4] = [0.56, 0.57, 0.585, 1.0];
+/// The Z axis, straight up from the origin, in green.
+pub const Z_AXIS_COLOR: [f32; 4] = [0.18, 0.62, 0.10, 0.6];
+/// How high the Z axis line reaches, in centimetres (100 m: it reads as
+/// endless from any normal view).
+pub const Z_AXIS_HEIGHT: f32 = 10_000.0;
+/// Surface colour of the test cube, linear space (a neutral mid grey, so
+/// light and shade both read clearly).
+pub const CUBE_COLOR: [f32; 4] = [0.5, 0.5, 0.51, 1.0];
 /// Colour of shape edges, linear space: a faint white line.
 pub const EDGE_COLOR: [f32; 4] = [1.0, 1.0, 1.0, 0.10];
-/// Edge length of the test cube, in centimetres (2 m, as Cinema 4D's
-/// default cube).
+/// Edge length of the test cube, in centimetres (2 m).
 pub const TEST_CUBE_SIZE: f32 = 200.0;
 
 fn line(from: Vec3, to: Vec3, color: [f32; 4]) -> [LineVertex; 2] {
@@ -77,8 +82,9 @@ fn line(from: Vec3, to: Vec3, color: [f32; 4]) -> [LineVertex; 2] {
 /// short pieces are always drawn, and fade smoothly with distance.
 pub const AXIS_SEGMENT: f32 = 100.0;
 
-/// The X and Y axes through the origin on the ground, as a line list of
-/// short pieces, reaching `half_extent` each way.
+/// The X and Y axes through the origin on the ground, reaching
+/// `half_extent` each way, and the Z axis straight up from the origin to
+/// [`Z_AXIS_HEIGHT`], as a line list of short pieces.
 pub fn ground_axes(half_extent: f32) -> Vec<LineVertex> {
     let pieces = (half_extent / AXIS_SEGMENT).ceil().max(1.0) as i32;
     let mut lines = Vec::with_capacity(pieces as usize * 8);
@@ -94,6 +100,16 @@ pub fn ground_axes(half_extent: f32) -> Vec<LineVertex> {
             Vec3::new(0.0, a, 0.0),
             Vec3::new(0.0, b, 0.0),
             Y_AXIS_COLOR,
+        ));
+    }
+    let up = (Z_AXIS_HEIGHT / AXIS_SEGMENT).ceil() as i32;
+    for i in 0..up {
+        let a = i as f32 * AXIS_SEGMENT;
+        let b = ((i + 1) as f32 * AXIS_SEGMENT).min(Z_AXIS_HEIGHT);
+        lines.extend(line(
+            Vec3::new(0.0, 0.0, a),
+            Vec3::new(0.0, 0.0, b),
+            Z_AXIS_COLOR,
         ));
     }
     lines
@@ -186,7 +202,11 @@ mod tests {
     #[test]
     fn the_axes_lie_on_the_ground_in_short_pieces() {
         let axes = ground_axes(500.0);
-        assert!(axes.iter().all(|v| v.position[2] == 0.0));
+        assert!(
+            axes.iter()
+                .filter(|v| v.color != Z_AXIS_COLOR)
+                .all(|v| v.position[2] == 0.0)
+        );
         for pair in axes.chunks(2) {
             let a = Vec3::from_array(pair[0].position);
             let b = Vec3::from_array(pair[1].position);
@@ -204,6 +224,24 @@ mod tests {
         };
         assert_eq!(reach(X_AXIS_COLOR, 0), (-500.0, 500.0));
         assert_eq!(reach(Y_AXIS_COLOR, 1), (-500.0, 500.0));
+        assert_eq!(reach(Z_AXIS_COLOR, 2), (0.0, Z_AXIS_HEIGHT));
+    }
+
+    #[test]
+    fn the_z_axis_stands_straight_up_from_the_origin() {
+        let z: Vec<_> = ground_axes(500.0)
+            .into_iter()
+            .filter(|v| v.color == Z_AXIS_COLOR)
+            .collect();
+        assert!(!z.is_empty());
+        assert!(
+            z.iter()
+                .all(|v| v.position[0] == 0.0 && v.position[1] == 0.0)
+        );
+        assert!(
+            z.iter().all(|v| v.position[2] >= 0.0),
+            "nothing below ground"
+        );
     }
 
     #[test]

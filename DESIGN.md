@@ -219,10 +219,14 @@ Let people code their own functionality: custom tools, batch jobs, generators, e
 - **Object Manager:** tree with drag-to-reparent, rename, visibility toggles, and later the Edit Poly stack shown as a sub-list.
 - **Attribute Manager:** tabbed properties for the selection or active tool.
 - A **Coordinates panel** (C4D's position/scale/rotation fields) can be docked under the viewport.
+- **Menu lines inside panels** ([decision 0014](docs/decisions/0014-studio-look-and-accent.md)): the viewport has its own (View, Cameras, Display, Options, Panel, and buttons to drag for pan, zoom and orbit) in place of a tab; Attributes and Objects have small ones too.
+- **Overlays on the viewport:** view name top left, camera name top centre, axis marker top right, grid spacing bottom left, navigation controls picker bottom right.
+- **Layout tabs** on the right of the menu bar: Standard now; Modelling and UV Edit arrive with their phases.
+- The app never shows another program's name: commands, schemes and settings are named by what they do.
 
 ### 5.2 Visual style ("clean, pleasant, calm")
-- Dark neutral greys with low contrast between panels; one accent colour for selection/active state (warm orange, as C4D uses for selected items).
-- Viewport: soft vertical gradient background, subtle grid fading with distance, thin anti-aliased wireframe, gentle highlight on hover.
+- Dark neutral greys with low contrast between panels; one accent colour for the active mode or tool and chosen options. **Red** is the standard; Blue, Marine green, Plum, Olive and Petrol blue can be chosen (Window → Accent colour). Selected object names stay orange. See [decision 0014](docs/decisions/0014-studio-look-and-accent.md).
+- Viewport: a studio backdrop with a horizon (sky over a slightly darker ground), a finite grid that fades out around the point the camera looks at, the green Z axis rising from the origin, mid-grey shapes, thin anti-aliased wireframe, gentle highlight on hover.
 - Typography: Inter, small but legible sizes; generous padding.
 - Smooth motion: camera moves are immediate (no laggy smoothing by default), but UI transitions are short and soft.
 - **We copy layout and behaviour, not assets.** No Maxon or Autodesk icons, names, logos or screenshots go into the repo.
@@ -230,13 +234,15 @@ Let people code their own functionality: custom tools, batch jobs, generators, e
 ### 5.3 Axes and navigation
 **Z is up** ([decision 0012](docs/decisions/0012-z-up-axes.md)), as in 3ds Max and Blender, unlike Cinema 4D: X and Y lie flat on the ground grid, Z is height. Right-handed; X red, Y blue, Z green (the project lead's choice; most programs swap the last two). Rotation in the Coordinates panel keeps C4D's H, P and B, with heading turning around Z. Export converts to Y-up for glTF and Godot automatically.
 
-| Action | Default (C4D-style) |
+| Action | Default ("Alt + mouse" scheme) |
 |---|---|
 | Orbit | Alt + LMB |
 | Pan | Alt + MMB |
 | Zoom/dolly | Alt + RMB, mouse wheel |
 | Frame selected / all | configurable (e.g. S / H) |
 | Views | F1–F5: perspective, top, right, front, 4-up |
+
+**Navigation schemes** ([decision 0015](docs/decisions/0015-navigation-schemes.md)): picked from a button in the viewport's bottom-right corner. *Alt + mouse* (above), *Mouse only* (right orbits, middle pans), *Mouse only, middle zooms* (Shift + middle pans), *Middle pans, Alt orbits*, and *Middle orbits* (Shift + middle pans). Every scheme zooms with the wheel and leaves a plain left drag to the tools. Switches: *Alt + mouse works in every scheme* (on) and *Invert orbit direction* (off). The project lead chooses the final standard after trying them.
 
 **Cursor-point pivot (W6)** — Max-style, on by default and toggleable:
 - On orbit start, read the depth under the cursor; if it hits geometry, orbit around that 3D point. If it hits nothing, fall back to the selection centre or the last pivot.
@@ -334,7 +340,7 @@ Each phase ends with something runnable. The user tests the *feel* at the end of
 
 ### Phase 1 — Viewport and navigation
 - wgpu renderer inside the egui viewport panel; gradient background, grid, a test cube
-- C4D navigation; cursor-point orbit/zoom (W6); frame selected/all; perspective/ortho views; 4-up layout
+- C4D navigation, with a choice of navigation schemes; cursor-point orbit/zoom (W6); frame selected/all; perspective/ortho views; 4-up layout
 - **Done when:** navigating feels smooth and calm to the user.
 
 ### Phase 2 — Document, objects, history
@@ -364,6 +370,7 @@ Each phase ends with something runnable. The user tests the *feel* at the end of
 
 ### Phase 6 — UVs
 - Everything in §7
+- The UV Edit layout (and a Modelling layout alongside it), switched from the layout tabs on the menu bar
 - **Done when:** that prop can be unwrapped and packed in Aventail 3D with clean bakes in Substance Painter.
 
 ### Phase 7 — 3ds Max sprinkles
@@ -450,3 +457,5 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-10 — Feedback on the first viewport: axis colours changed to X red, Y blue, Z green ([0012](docs/decisions/0012-z-up-axes.md)); the viewport made softer so it feels less like Blender: wrapped, gentler lighting with a slight gradient across faces, a little darkening near the ground, a quieter grid and fainter edges ([0013](docs/decisions/0013-viewport-rendering.md)).
 - 2026-10-10 — C4D navigation built: Alt + left/middle/right drag orbits, pans and zooms around a camera pivot, the wheel zooms; the scene follows the mouse when orbiting, and the drag kind is fixed when the drag starts. Zoom is exponential (each step the same share of the distance), 2 cm to 1 km from the pivot. Cursor-point orbit and zoom (W6) stay the next milestone.
 - 2026-10-10 — The project lead found the grid busy: a grid detail switch added to the left palette (and View menu), with the fine 10 cm lines **off by default** and the choice remembered between sessions.
+- 2026-10-10 — The project lead found the app still felt like Blender. A mockup with their screenshots as reference was approved, then an accent colour picked from twelve versions: darker studio look, viewport with a horizon and a finite grid, menu lines inside panels, viewport overlays, layout tabs; **red** accent as standard with five others to choose from ([0014](docs/decisions/0014-studio-look-and-accent.md)). No other program's name appears in the app, its code or the manual.
+- 2026-10-10 — Navigation schemes to try before choosing a standard, picked from the viewport's bottom-right corner, named by what they do ([0015](docs/decisions/0015-navigation-schemes.md)).

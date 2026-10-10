@@ -1,11 +1,14 @@
 //! The app window's contents: menu bar, palettes, docked panels, status
 //! bar and the About box.
 
-use crate::layout::{default_layout, fit_coordinates, restore_or_default};
+use crate::layout::{default_layout, fit_coordinates, hide_viewport_tab, restore_or_default};
 use crate::palette::{Mode, command_palette, mode_palette};
 use crate::panel::Panel;
-use crate::panels::{about_contents, attributes_contents, coordinates_contents, objects_contents};
-use crate::theme;
+use crate::panels::{
+    ATTRIBUTES_MENUS, OBJECTS_MENUS, about_contents, attributes_contents, coordinates_contents,
+    menu_line, objects_contents,
+};
+use crate::theme::{self, Accent};
 use crate::viewport::{ViewOptions, ViewportPanel, ViewportRenderer};
 use egui::{Align2, Id, Key, KeyboardShortcut, Modifiers, Ui, WidgetText};
 use egui_dock::{DockArea, DockState, TabViewer};
@@ -25,9 +28,13 @@ pub struct AppInfo {
 /// Keyboard shortcut for File → Quit (Ctrl+Q, or Cmd+Q on macOS).
 pub const QUIT_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::Q);
 
-/// The status bar's standing hint: how to move around the 3D view.
-pub const NAVIGATION_HINT: &str =
-    "Alt + left drag: orbit · Alt + middle drag: pan · Alt + right drag or wheel: zoom";
+/// Layouts shown on the right of the menu bar: the standard one, and
+/// arrangements for particular kinds of work that arrive later.
+const LAYOUTS: [(&str, Option<&str>); 3] = [
+    ("Standard", None),
+    ("Modelling", Some("A layout for modelling arrives later")),
+    ("UV Edit", Some("A layout for UV work arrives in Phase 6")),
+];
 
 /// Something the user asked for that the program around the workbench
 /// must carry out (the workbench never touches files or the window itself).
@@ -39,7 +46,7 @@ pub enum WorkbenchAction {
 
 /// Menu entries that exist in the design but not yet in the app, with the
 /// phase that brings them.
-const COMING: [(&str, &[(&str, &str)]); 6] = [
+const COMING: [(&str, &[(&str, &str)]); 5] = [
     (
         "Create",
         &[
@@ -75,7 +82,6 @@ const COMING: [(&str, &[(&str, &str)]); 6] = [
             ("Pack and texel density", "Phase 6"),
         ],
     ),
-    ("Window", &[("UV Editor panel", "Phase 6")]),
 ];
 
 /// The whole interface around the scene.
@@ -87,6 +93,7 @@ pub struct Workbench {
     fit_pending: bool,
     mode: Mode,
     viewport: ViewportPanel,
+    accent: Accent,
     about_open: bool,
     /// A message for the status bar, such as "Panel layout reset".
     note: Option<String>,
@@ -107,6 +114,7 @@ impl Workbench {
             fit_pending,
             mode: Mode::default(),
             viewport: ViewportPanel::default(),
+            accent: Accent::default(),
             about_open: false,
             note,
         }
@@ -154,6 +162,23 @@ impl Workbench {
         self.viewport.options()
     }
 
+    /// The accent colour, for saving between sessions.
+    pub fn accent(&self) -> Accent {
+        self.accent
+    }
+
+    /// The workbench with a remembered accent colour restored.
+    #[must_use]
+    pub fn with_accent(mut self, accent: Accent) -> Self {
+        self.accent = accent;
+        self
+    }
+
+    /// Changes the accent colour (Window → Accent colour).
+    pub fn set_accent(&mut self, accent: Accent) {
+        self.accent = accent;
+    }
+
     /// The workbench with remembered display choices restored.
     #[must_use]
     pub fn with_view_options(mut self, options: ViewOptions) -> Self {
@@ -169,6 +194,9 @@ impl Workbench {
         renderer: &mut dyn ViewportRenderer,
     ) -> Vec<WorkbenchAction> {
         let mut actions = Vec::new();
+        if theme::accent(ui.ctx()) != self.accent {
+            theme::set_accent(ui.ctx(), self.accent);
+        }
         if ui.input_mut(|i| i.consume_shortcut(&QUIT_SHORTCUT)) {
             actions.push(WorkbenchAction::Quit);
         }
@@ -197,10 +225,13 @@ impl Workbench {
                 }
             });
 
-        let style = theme::dock_style(ui.style().as_ref());
+        hide_viewport_tab(&mut self.dock);
+        let style = theme::dock_style(ui.style().as_ref(), self.accent);
         theme::dock_frame().show(ui, |ui| {
             DockArea::new(&mut self.dock)
                 .style(style)
+                .hidable_tab_bars(true)
+                .tab_context_menus(false)
                 .show_close_buttons(false)
                 .show_add_buttons(false)
                 .show_leaf_close_all_buttons(false)
@@ -238,7 +269,10 @@ impl Workbench {
                 self.mode.description().to_lowercase()
             ));
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                let note = self.note.as_deref().unwrap_or(NAVIGATION_HINT);
+                let note = match self.note.as_deref() {
+                    Some(note) => note.to_string(),
+                    None => navigation_hint(self.viewport.options().navigation.scheme),
+                };
                 ui.label(egui::RichText::new(note).weak());
             });
         });
@@ -301,14 +335,74 @@ impl Workbench {
                 ui.close();
             }
         });
-        coming_menus(ui, &COMING[5..]);
+        ui.menu_button("Window", |ui| {
+            ui.menu_button("Accent colour", |ui| {
+                for accent in Accent::ALL {
+                    if accent_choice(ui, accent, self.accent).clicked() {
+                        self.accent = accent;
+                        ui.close();
+                    }
+                }
+            });
+            ui.add_enabled(false, egui::Button::new("UV Editor panel"))
+                .on_disabled_hover_text("Arrives in Phase 6");
+        });
         ui.menu_button("Help", |ui| {
             if ui.button(format!("About {}", self.info.name)).clicked() {
                 self.about_open = true;
                 ui.close();
             }
         });
+        layout_tabs(ui);
     }
+}
+
+/// The status bar's standing hint: the navigation controls in use.
+pub fn navigation_hint(scheme: tools::Scheme) -> String {
+    format!("{}: {}", scheme.name(), scheme.summary())
+}
+
+/// One accent colour in the Window menu: a swatch, its name, and a tick
+/// on the one in use.
+fn accent_choice(ui: &mut Ui, accent: Accent, current: Accent) -> egui::Response {
+    let response = ui.add(egui::RadioButton::new(accent == current, accent.name()));
+    let swatch = egui::Rect::from_center_size(
+        egui::pos2(response.rect.right() + 14.0, response.rect.center().y),
+        egui::vec2(16.0, 10.0),
+    );
+    ui.painter().rect_filled(swatch, 3.0, accent.colors().fill);
+    response
+}
+
+/// The layout tabs on the right of the menu bar. Only the standard layout
+/// exists so far; the others are shown greyed out with when they arrive.
+fn layout_tabs(ui: &mut Ui) {
+    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+        ui.spacing_mut().item_spacing.x = 16.0;
+        ui.add_space(6.0);
+        for (name, coming) in LAYOUTS.iter().rev() {
+            match coming {
+                None => {
+                    let accent = theme::accent(ui.ctx()).colors();
+                    let response = ui.add(
+                        egui::Label::new(egui::RichText::new(*name).color(theme::TEXT_STRONG))
+                            .selectable(false),
+                    );
+                    let rect = response.rect;
+                    ui.painter().hline(
+                        rect.x_range(),
+                        rect.bottom() + 3.0,
+                        egui::Stroke::new(2.0, accent.light),
+                    );
+                    response.on_hover_text("The layout in use");
+                }
+                Some(when) => {
+                    ui.add_enabled(false, egui::Label::new(*name).selectable(false))
+                        .on_disabled_hover_text(*when);
+                }
+            }
+        }
+    });
 }
 
 /// Menus whose commands are not built yet: each lists what is coming and
@@ -346,6 +440,11 @@ impl TabViewer for PanelViewer<'_> {
             // Edge to edge, with no padding.
             self.viewport.show(ui, self.renderer);
             return;
+        }
+        match tab {
+            Panel::Attributes => menu_line(ui, &ATTRIBUTES_MENUS),
+            Panel::Objects => menu_line(ui, &OBJECTS_MENUS),
+            Panel::Viewport | Panel::Coordinates => {}
         }
         egui::Frame::new()
             .inner_margin(theme::panel_margin())

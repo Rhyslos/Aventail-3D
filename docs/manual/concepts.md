@@ -21,7 +21,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 ## Objects and scenes
 
-**Object** — Anything listed in the Objects panel (Cinema 4D calls it the Object Manager): a mesh, a primitive, a group.
+**Object** — Anything listed in the Objects panel: a mesh, a primitive, a group.
 
 **Mode** — What kind of thing your tools work on: whole objects, or a mesh's points, edges or polygons, or its UVs. The same Move tool moves a whole object in Model mode and a single edge in Edges mode. See [Interface tour](interface-tour.md#modes).
 
@@ -31,9 +31,9 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Pivot (axis / origin)** — The point an object rotates and scales around. In Godot, it's also the point the asset is placed and snapped by, so where you put it matters.
 
-**Axes (X, Y, Z)** — The three directions of 3D space, always coloured X red, Y blue, Z green. (Most 3D programs colour Y green and Z blue; this app swaps them, so blue is the second ground direction. The letters are always shown too.) In this app **Z points up**, and X and Y lie flat on the ground, as in 3ds Max and Blender. Cinema 4D, Godot and the glTF file format use Y for up instead; the app converts when it exports, so models arrive standing upright.
+**Axes (X, Y, Z)** — The three directions of 3D space, always coloured X red, Y blue, Z green. (Most 3D programs colour Y green and Z blue; this app swaps them, so blue is the second ground direction. The letters are always shown too.) In this app **Z points up**, and X and Y lie flat on the ground; a green line rising from the origin marks Z. Some 3D programs, Godot and the glTF file format use Y for up instead; the app converts when it exports, so models arrive standing upright.
 
-**Origin and grid** — The origin is the point where X, Y and Z are all zero: the centre of the world, where the red and blue axis lines cross. The grid on the ground helps you judge sizes: in this app its fine lines are 10 cm apart and its stronger lines 1 m apart.
+**Origin and grid** — The origin is the point where X, Y and Z are all zero: the centre of the world, where the red and blue axis lines cross. The grid on the ground helps you judge sizes: in this app its lines are 1 m apart, with thin 10 cm lines in between when you switch them on. It's drawn around the point you're looking at and fades out at its edges, so it reads as a work surface rather than an endless floor.
 
 **Local vs. world space** — *World* directions are the same for the whole scene. *Local* directions follow the object's own rotation.
 
@@ -49,7 +49,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Flipped normals** — Normals pointing inward. The surface looks inside-out or disappears in a game engine.
 
-**Hard and soft edges (smoothing)** — A *soft* edge blends the shading of the two faces next to it, so they look like one smooth surface. A *hard* edge keeps a sharp light/dark break. Hard-surface models need the right edges marked hard, or curved and flat areas shade wrongly. (3ds Max calls this *smoothing groups*; C4D calls it *Phong* breaks.)
+**Hard and soft edges (smoothing)** — A *soft* edge blends the shading of the two faces next to it, so they look like one smooth surface. A *hard* edge keeps a sharp light/dark break. Hard-surface models need the right edges marked hard, or curved and flat areas shade wrongly. Other programs may call this *smoothing groups* or *Phong* breaks.
 
 **Weighted normals** — A trick that makes large flat faces shade perfectly flat on low-poly bevelled models, without baking a normal map.
 

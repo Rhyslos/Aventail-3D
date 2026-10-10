@@ -63,9 +63,9 @@ The four middle panels are dockable (egui_dock); the bars and palettes around th
 
 Each frame, for the viewport:
 
-1. **Navigate** (`ui` → `tools`): the panel turns this frame's Alt + drags and wheel turns into plain moves on a `tools::Navigator` (the camera and its pivot); `tools` knows nothing about egui.
-2. **Ask** (`ui`): the panel works out its size in physical pixels and the camera's matrices (`tools::Camera`), and asks a `ViewportRenderer` for an image, with display options such as fine grid lines.
-3. **Draw** (`render`, through `app`'s `GpuViewport`): background gradient, faces, grid and lines are drawn into the viewport's own offscreen image on the window's GPU device.
+1. **Navigate** (`ui` → `tools`): the panel turns this frame's drags (with the keys held) and wheel turns into plain moves on a `tools::Navigator` (the camera and its pivot); `tools::controls` decides which movement a button and keys start, for the scheme the user picked. `tools` knows nothing about egui.
+2. **Ask** (`ui`): the panel works out its size in physical pixels and the camera's matrices (`tools::Camera`), and asks a `ViewportRenderer` for an image, with the point the camera looks at (the grid is drawn around it) and display options such as fine grid lines.
+3. **Draw** (`render`, through `app`'s `GpuViewport`): the backdrop with its horizon, faces, grid and lines are drawn into the viewport's own offscreen image on the window's GPU device.
 4. **Show** (`ui`): the image is drawn into the panel as an egui texture, with the view's label on top.
 
 Rendering sits behind the `ViewportRenderer` trait, so the panel runs in tests with no GPU. See [decision 0013](docs/decisions/0013-viewport-rendering.md).

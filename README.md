@@ -47,7 +47,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 <summary>Milestones</summary>
 
 - [x] 3D viewport: soft gradient background, fading grid, a test cube
-- [x] Cinema 4D-style navigation: Alt + mouse to orbit, pan and zoom
+- [x] Navigation: orbit, pan and zoom with Alt + mouse or another choice of mouse controls
 - [ ] Orbit and zoom around the point under the mouse cursor
 - [ ] Frame selected and frame all
 - [ ] Perspective, top, front and right views, and the 4-view layout
@@ -181,6 +181,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-10 | A darker studio look from the approved mockup: horizon, finite grid, menu lines inside panels, a red accent with five others to choose from, and a choice of navigation controls |
 | 2026-10-10 | Cinema 4D-style navigation (Alt + drag to orbit, pan and zoom, wheel to zoom) and a grid detail switch, with a calmer 1 m grid by default |
 | 2026-10-10 | First 3D viewport: gradient, fading grid on the ground, X and Y axes, and a softly lit test cube |
 | 2026-10-10 | Phase 0 gate passed: tested by the project lead. Coordinates fitted to its rows and styled as in the mockup, shape icons in blue, Z set as up |
@@ -192,6 +193,10 @@ Newest first. One line per finished milestone or passed gate.
 ### Snapshots
 
 Pictures of Aventail 3D at memorable moments, newest first. Kept in [docs/screenshots](docs/screenshots).
+
+**2026-10-10: the studio look.** Darker panels, the viewport's own menu line, a grey sky over the ground with a horizon, a grid fading out around the cube, the green Z axis, the red accent on the active mode, and the navigation controls button in the bottom-right corner.
+
+![The darker studio look](docs/screenshots/2026-10-10-studio-look.png)
 
 **2026-10-10: moving around.** The view orbited with Alt + drag, over the calmer 1 m grid. The grid detail switch sits at the bottom of the left palette.
 

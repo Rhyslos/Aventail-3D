@@ -15,7 +15,7 @@ const VIEWPORT_HEIGHT: f32 = 0.85;
 /// The height Coordinates needs to show all its rows, tab bar included, in
 /// logical pixels. The standard layout gives it exactly this, so no empty
 /// space is left under the last row.
-pub const COORDINATES_HEIGHT: f32 = 138.0;
+pub const COORDINATES_HEIGHT: f32 = 140.0;
 
 /// The smallest a panel can be dragged to, in logical pixels: a tab bar
 /// and a little room.
@@ -41,6 +41,16 @@ pub fn default_layout() -> DockState<Panel> {
     tree.split_below(right_column, ATTRIBUTES_HEIGHT, vec![Panel::Objects]);
     tree.split_below(main_area, VIEWPORT_HEIGHT, vec![Panel::Coordinates]);
     dock
+}
+
+/// Hides the viewport's tab, because the viewport's own menu line takes
+/// its place, as in the approved mockup. Run every frame, so it also
+/// applies to saved layouts. If the user has stacked another panel with
+/// the viewport, that group keeps its tabs, so no panel is ever hidden.
+pub fn hide_viewport_tab(dock: &mut DockState<Panel>) {
+    for (_, leaf) in dock.iter_leaves_mut() {
+        leaf.tab_bar_hidden = leaf.tabs == [Panel::Viewport];
+    }
 }
 
 /// Gives Coordinates exactly [`COORDINATES_HEIGHT`] when it sits directly
@@ -167,6 +177,27 @@ mod tests {
         // The user stacked every panel as tabs in one group.
         let mut dock = DockState::new(Panel::ALL.to_vec());
         assert!(!fit_coordinates(&mut dock));
+    }
+
+    fn hidden_tabs(dock: &DockState<Panel>) -> Vec<Vec<Panel>> {
+        dock.iter_leaves()
+            .filter(|(_, leaf)| leaf.tab_bar_hidden)
+            .map(|(_, leaf)| leaf.tabs.clone())
+            .collect()
+    }
+
+    #[test]
+    fn only_the_viewport_loses_its_tab() {
+        let mut dock = default_layout();
+        hide_viewport_tab(&mut dock);
+        assert_eq!(hidden_tabs(&dock), vec![vec![Panel::Viewport]]);
+    }
+
+    #[test]
+    fn a_viewport_sharing_its_group_keeps_its_tabs() {
+        let mut dock = DockState::new(vec![Panel::Viewport, Panel::Objects]);
+        hide_viewport_tab(&mut dock);
+        assert!(hidden_tabs(&dock).is_empty());
     }
 
     #[test]

@@ -1,6 +1,6 @@
 # 0013. Viewport rendering
 
-- **Status:** Accepted
+- **Status:** Accepted; the backdrop, grid and shape colours were updated by [0014](0014-studio-look-and-accent.md)
 - **Date:** 2026-10-10
 
 ## Problem

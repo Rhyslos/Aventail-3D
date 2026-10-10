@@ -10,10 +10,9 @@ use serde::{Deserialize, Serialize};
 pub enum Panel {
     /// The 3D view of the scene.
     Viewport,
-    /// Settings of the selected object or the active tool (Cinema 4D's
-    /// Attribute Manager).
+    /// Settings of the selected object or the active tool.
     Attributes,
-    /// The tree of every object in the scene (Cinema 4D's Object Manager).
+    /// The tree of every object in the scene.
     Objects,
     /// Typed position, size and rotation of the selection.
     Coordinates,

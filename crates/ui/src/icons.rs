@@ -58,10 +58,18 @@ pub enum Icon {
     Solo,
     /// Grid detail: the ground grid's fine lines.
     GridDetail,
+    /// Zoom (dolly) the view: an up-and-down double arrow.
+    Dolly,
+    /// Make a view fill the whole viewport area.
+    Maximise,
+    /// A menu: three short lines.
+    Menu,
+    /// The mouse, for the navigation controls.
+    Mouse,
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 23] = [
+pub const ALL: [Icon; 27] = [
     Icon::Undo,
     Icon::Redo,
     Icon::LiveSelection,
@@ -85,6 +93,10 @@ pub const ALL: [Icon; 23] = [
     Icon::Workplane,
     Icon::Solo,
     Icon::GridDetail,
+    Icon::Dolly,
+    Icon::Maximise,
+    Icon::Menu,
+    Icon::Mouse,
 ];
 
 /// Draws `icon` into `rect` in `color`.
@@ -343,6 +355,25 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
                 pen.segment((at, 4.0), (at, 20.0), 0.6, 0.5);
                 pen.segment((4.0, at), (20.0, at), 0.6, 0.5);
             }
+        }
+        Icon::Dolly => {
+            pen.polyline(&[(12.0, 3.5), (12.0, 20.5)]);
+            pen.polyline(&[(8.0, 7.5), (12.0, 3.5), (16.0, 7.5)]);
+            pen.polyline(&[(8.0, 16.5), (12.0, 20.5), (16.0, 16.5)]);
+        }
+        Icon::Maximise => {
+            pen.square((4.5, 4.5), (19.5, 19.5), false);
+        }
+        Icon::Menu => {
+            for y in [7.0, 12.0, 17.0] {
+                pen.polyline(&[(4.0, y), (20.0, y)]);
+            }
+        }
+        Icon::Mouse => {
+            let mut body = pen.arc((12.0, 9.0), (6.0, 6.0), PI, TAU);
+            body.extend(pen.arc((12.0, 15.0), (6.0, 6.0), 0.0, PI));
+            pen.closed(body);
+            pen.polyline(&[(12.0, 3.0), (12.0, 9.0)]);
         }
     }
     pen.shapes

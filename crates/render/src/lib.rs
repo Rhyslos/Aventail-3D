@@ -1,8 +1,8 @@
 //! The viewport renderer.
 //!
-//! Draws each viewport with wgpu into its own offscreen image: the calm
-//! background gradient, the ground grid on the X–Y plane (Z is up) with
-//! the X and Y axes, and shapes with soft studio shading and faint edges.
+//! Draws each viewport with wgpu into its own offscreen image: a calm
+//! backdrop with a horizon, a finite ground grid on the X–Y plane (Z is
+//! up) with the X, Y and Z axes, and shapes with soft studio shading and faint edges.
 //! For now the only shape is a test cube; objects arrive in Phase 2.
 //!
 //! This crate knows nothing about egui or windows: it receives a
@@ -15,10 +15,13 @@ mod pipelines;
 mod readback;
 mod renderer;
 
-pub use frame::{FrameParams, GRID_HALF_EXTENT, GRID_SPACINGS, GRID_STRENGTHS, srgb_to_linear};
+pub use frame::{
+    FrameParams, GRID_HALF_EXTENT, GRID_MIN_REACH, GRID_REACH_PER_DISTANCE, GRID_SPACINGS,
+    GRID_STRENGTHS, srgb_to_linear,
+};
 pub use geometry::{
     AXIS_SEGMENT, CUBE_COLOR, EDGE_COLOR, FaceVertex, LineVertex, Shape, TEST_CUBE_SIZE,
-    X_AXIS_COLOR, Y_AXIS_COLOR, ground_axes,
+    X_AXIS_COLOR, Y_AXIS_COLOR, Z_AXIS_COLOR, Z_AXIS_HEIGHT, ground_axes,
 };
 pub use readback::read_pixels;
 pub use renderer::{

@@ -1,14 +1,86 @@
 //! What each panel shows. For now, most panels are placeholders that say
 //! what will appear in them and when.
 
+use crate::icons::{self, Icon};
 use crate::theme::{self, tint};
 use crate::workbench::AppInfo;
 use egui::{Align2, Color32, FontId, Mesh, Rect, RichText, Sense, Ui};
 
-/// Top colour of the viewport's background gradient.
-pub(crate) const VIEWPORT_TOP: Color32 = Color32::from_rgb(92, 95, 100);
-/// Bottom colour of the viewport's background gradient.
-pub(crate) const VIEWPORT_BOTTOM: Color32 = Color32::from_rgb(57, 59, 63);
+/// Height of a panel's own menu line, in logical pixels.
+pub(crate) const MENU_LINE_HEIGHT: f32 = 26.0;
+
+/// One menu on a panel's menu line: its title and the entries that are
+/// coming, each with when it arrives.
+pub(crate) type PanelMenu = (&'static str, &'static [(&'static str, &'static str)]);
+
+/// The Attributes panel's menus.
+pub(crate) const ATTRIBUTES_MENUS: [PanelMenu; 2] = [
+    (
+        "Mode",
+        &[
+            ("Show object settings", "Phase 2"),
+            ("Show tool settings", "Phase 3"),
+        ],
+    ),
+    ("Edit", &[("Copy and paste settings", "Phase 2")]),
+];
+
+/// The Objects panel's menus.
+pub(crate) const OBJECTS_MENUS: [PanelMenu; 3] = [
+    ("Edit", &[("Rename, duplicate and delete", "Phase 2")]),
+    ("View", &[("Collapse and expand all", "Phase 2")]),
+    ("Object", &[("Group and ungroup", "Phase 2")]),
+];
+
+/// A panel's own menu line, along its top: a menu icon, its menus (whose
+/// entries are greyed out until they arrive) and a search icon on the
+/// right, as in the approved mockup.
+pub(crate) fn menu_line(ui: &mut Ui, menus: &[PanelMenu]) {
+    let (rect, _) = ui.allocate_exact_size(
+        egui::vec2(ui.available_width(), MENU_LINE_HEIGHT),
+        Sense::hover(),
+    );
+    ui.painter().hline(
+        rect.x_range(),
+        rect.bottom() - 0.5,
+        egui::Stroke::new(1.0, Color32::from_rgb(0x1e, 0x1e, 0x1e)),
+    );
+    let mut line = ui.new_child(
+        egui::UiBuilder::new()
+            .max_rect(rect.shrink2(egui::vec2(6.0, 0.0)))
+            .layout(egui::Layout::left_to_right(egui::Align::Center)),
+    );
+    line.spacing_mut().item_spacing.x = 0.0;
+    line.spacing_mut().button_padding = egui::vec2(7.0, 2.0);
+    let (icon, _) = line.allocate_exact_size(egui::vec2(20.0, 20.0), Sense::hover());
+    icons::paint(
+        line.painter(),
+        Rect::from_center_size(icon.center(), egui::vec2(14.0, 14.0)),
+        Icon::Menu,
+        theme::TEXT_WEAK,
+    );
+    egui::MenuBar::new().ui(&mut line, |ui| {
+        ui.spacing_mut().item_spacing.x = 4.0;
+        for (title, items) in menus {
+            ui.menu_button(*title, |ui| {
+                for (item, phase) in *items {
+                    ui.add_enabled(false, egui::Button::new(*item))
+                        .on_disabled_hover_text(format!("Arrives in {phase}"));
+                }
+            });
+        }
+    });
+    line.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+        let (search, response) = ui.allocate_exact_size(egui::vec2(20.0, 20.0), Sense::hover());
+        icons::paint(
+            ui.painter(),
+            Rect::from_center_size(search.center(), egui::vec2(13.0, 13.0)),
+            Icon::Search,
+            theme::TEXT_WEAK,
+        );
+        response.on_hover_text("Search arrives in Phase 2");
+    });
+}
 
 /// A heading and an explanation, centred, for panels with nothing in them.
 pub(crate) fn placeholder(ui: &mut Ui, heading: &str, text: &str) {
@@ -162,12 +234,6 @@ pub(crate) fn about_contents(ui: &mut Ui, info: &AppInfo) {
     });
 }
 
-/// The viewport gradient's colour halfway down, for tests that look at
-/// what was drawn.
-pub fn viewport_middle_colour() -> Color32 {
-    VIEWPORT_TOP.lerp_to_gamma(VIEWPORT_BOTTOM, 0.5)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -175,27 +241,24 @@ mod tests {
 
     #[test]
     fn gradient_runs_from_top_colour_to_bottom_colour() {
+        let (top, bottom) = (Color32::from_gray(80), Color32::from_gray(40));
         let rect = Rect::from_min_max(pos2(0.0, 0.0), pos2(100.0, 50.0));
-        let mesh = vertical_gradient(rect, VIEWPORT_TOP, VIEWPORT_BOTTOM);
+        let mesh = vertical_gradient(rect, top, bottom);
         assert_eq!(mesh.vertices.len(), 4);
         assert_eq!(mesh.indices.len(), 6);
         for v in &mesh.vertices {
-            let expected = if v.pos.y == 0.0 {
-                VIEWPORT_TOP
-            } else {
-                VIEWPORT_BOTTOM
-            };
+            let expected = if v.pos.y == 0.0 { top } else { bottom };
             assert_eq!(v.color, expected);
         }
     }
 
     #[test]
-    fn viewport_is_a_calm_mid_grey() {
-        // Not black, not white, and nearly neutral: the calm look from the
-        // design (DESIGN.md §5.2).
-        let c = viewport_middle_colour();
-        let (r, g, b) = (c.r() as i32, c.g() as i32, c.b() as i32);
-        assert!((50..=110).contains(&r));
-        assert!((r - b).abs() < 12 && (g - b).abs() < 12);
+    fn every_panel_menu_entry_says_when_it_arrives() {
+        for (_, items) in ATTRIBUTES_MENUS.iter().chain(OBJECTS_MENUS.iter()) {
+            assert!(!items.is_empty());
+            for (_, phase) in *items {
+                assert!(phase.starts_with("Phase"));
+            }
+        }
     }
 }

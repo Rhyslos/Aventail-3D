@@ -7,16 +7,23 @@
 struct Frame {
     // World to clip space.
     view_proj: mat4x4<f32>,
+    // Clip space back to world space, to find each pixel's view direction.
+    inv_view_proj: mat4x4<f32>,
     // Camera position (xyz); w unused.
     camera: vec4<f32>,
+    // The point the camera looks at (xyz); w = how far around it the grid
+    // reaches before it has faded out.
+    focus: vec4<f32>,
     // Grid spacings: minor, major, super; w = half the grid's width.
     grid: vec4<f32>,
     // Opacity of each grid level (minor, major, super; w unused). The
     // minor level is 0 when fine grid lines are switched off.
     grid_strength: vec4<f32>,
-    // Background gradient, linear colour: top of the view, then bottom.
+    // Background, linear colour: the sky straight up, the sky at the
+    // horizon, and the ground just below the horizon.
     sky_top: vec4<f32>,
-    sky_bottom: vec4<f32>,
+    sky_horizon: vec4<f32>,
+    ground: vec4<f32>,
 };
 
 @group(0) @binding(0) var<uniform> frame: Frame;
@@ -25,8 +32,8 @@ struct Frame {
 
 struct SkyOut {
     @builtin(position) clip: vec4<f32>,
-    // 0 at the top of the view, 1 at the bottom.
-    @location(0) down: f32,
+    // Position on screen, -1 to 1 both ways.
+    @location(0) ndc: vec2<f32>,
 };
 
 // One triangle that covers the whole view.
@@ -38,14 +45,25 @@ fn sky_vs(@builtin(vertex_index) index: u32) -> SkyOut {
     let xy = corners[index];
     var out: SkyOut;
     out.clip = vec4<f32>(xy, 1.0, 1.0);
-    out.down = (1.0 - xy.y) * 0.5;
+    out.ndc = xy;
     return out;
 }
 
+// A calm studio backdrop with a horizon: the sky lightens gently towards
+// the top, and below the horizon lies a slightly darker ground that
+// darkens a little more towards your feet. The horizon follows the camera
+// as it tilts, so you always know which way is up.
 @fragment
 fn sky_fs(in: SkyOut) -> @location(0) vec4<f32> {
-    let t = clamp(in.down, 0.0, 1.0);
-    return vec4<f32>(mix(frame.sky_top.rgb, frame.sky_bottom.rgb, t), 1.0);
+    let far = frame.inv_view_proj * vec4<f32>(in.ndc, 1.0, 1.0);
+    let direction = normalize(far.xyz / far.w - frame.camera.xyz);
+    let elevation = direction.z;
+    let sky = mix(frame.sky_horizon.rgb, frame.sky_top.rgb, smoothstep(0.0, 0.7, elevation));
+    let ground = frame.ground.rgb * mix(1.0, 0.8, smoothstep(0.0, 0.7, -elevation));
+    // Soften the horizon over about one pixel, so it never looks jagged.
+    let edge = max(fwidth(elevation), 1e-5);
+    let above = smoothstep(-edge, edge, elevation);
+    return vec4<f32>(mix(ground, sky, above), 1.0);
 }
 
 // ---------------------------------------------------------------- grid ---
@@ -90,12 +108,12 @@ fn grid_fs(in: GridOut) -> @location(0) vec4<f32> {
     let major = grid_line(in.world, frame.grid.y);
     let super_ = grid_line(in.world, frame.grid.z);
 
-    // Fade softly with distance, farther when the camera is higher, so the
-    // grid never ends in a hard edge.
-    let height = abs(frame.camera.z);
-    let reach = max(2000.0, height * 6.0);
-    let distance = length(in.world - frame.camera.xy);
-    let distance_fade = 1.0 - smoothstep(reach * 0.35, reach, distance);
+    // A finite grid around the point the camera looks at, fading softly
+    // to nothing, so it reads as a work surface rather than an endless
+    // floor. Zooming out widens it.
+    let reach = frame.focus.w;
+    let distance = length(in.world - frame.focus.xy);
+    let distance_fade = 1.0 - smoothstep(reach * 0.25, reach, distance);
 
     let strength = frame.grid_strength;
     let alpha = max(max(minor * strength.x, major * strength.y), super_ * strength.z) * distance_fade;

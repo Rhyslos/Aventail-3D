@@ -87,8 +87,10 @@ impl ViewportRenderer for GpuViewport {
         let params = FrameParams {
             view_projection: view.view_projection,
             camera_position: view.camera_position,
+            focus: view.focus,
             sky_top: view.sky_top,
-            sky_bottom: view.sky_bottom,
+            sky_horizon: view.sky_horizon,
+            ground: view.ground,
             fine_grid: view.fine_grid,
         };
         self.renderer

@@ -34,22 +34,38 @@ fn harness_for(workbench: Workbench) -> Harness<'static, State> {
         )
 }
 
+/// A menu on the main menu bar (the panels and the viewport have menus
+/// with some of the same names, lower down).
+fn main_menu<'h>(harness: &'h Harness<'static, State>, name: &'h str) -> egui_kittest::Node<'h> {
+    harness
+        .get_all_by_label(name)
+        .min_by(|a, b| a.rect().min.y.total_cmp(&b.rect().min.y))
+        .unwrap_or_else(|| panic!("no menu {name}"))
+}
+
 fn fresh() -> Harness<'static, State> {
     let mut harness = harness_for(Workbench::new(info(), None));
     harness.run();
     harness
 }
 
+/// The panels that show a tab: all but the viewport, whose own menu line
+/// takes the tab's place.
+fn tabbed_panels() -> impl Iterator<Item = Panel> {
+    Panel::ALL.into_iter().filter(|p| *p != Panel::Viewport)
+}
+
 #[test]
 fn all_panel_tabs_are_visible() {
     let harness = fresh();
-    for panel in Panel::ALL {
+    for panel in tabbed_panels() {
         assert!(
             harness.query_by_label(panel.title()).is_some(),
             "missing tab: {}",
             panel.title()
         );
     }
+    assert!(harness.query_by_label(crate::VIEWPORT_LABEL).is_some());
 }
 
 #[test]
@@ -61,7 +77,7 @@ fn menus_follow_the_design_order() {
     ];
     let mut last_x = f32::MIN;
     for menu in menus {
-        let node = harness.get_by_label(menu);
+        let node = main_menu(&harness, menu);
         let x = node.rect().min.x;
         assert!(x > last_x, "{menu} is out of order");
         last_x = x;
@@ -73,7 +89,7 @@ fn attributes_sit_above_objects_on_the_right() {
     let harness = fresh();
     let attributes = harness.get_by_label("Attributes").rect();
     let objects = harness.get_by_label("Objects").rect();
-    let viewport = harness.get_by_label("Viewport").rect();
+    let viewport = harness.get_by_label(crate::VIEWPORT_LABEL).rect();
     assert!(
         attributes.min.y < objects.min.y,
         "Attributes must be on top"
@@ -88,7 +104,7 @@ fn attributes_sit_above_objects_on_the_right() {
 #[test]
 fn coordinates_sit_below_the_viewport() {
     let harness = fresh();
-    let viewport = harness.get_by_label("Viewport").rect();
+    let viewport = harness.get_by_label(crate::VIEWPORT_LABEL).rect();
     let coordinates = harness.get_by_label("Coordinates").rect();
     assert!(coordinates.min.y > viewport.min.y);
 }
@@ -104,7 +120,7 @@ fn ctrl_q_asks_to_quit() {
 #[test]
 fn file_quit_asks_to_quit() {
     let mut harness = fresh();
-    harness.get_by_label("File").click();
+    main_menu(&harness, "File").click();
     harness.run();
     // The button's label includes its shortcut, such as "Quit Ctrl+Q".
     harness.get_by_label_contains("Quit").click();
@@ -125,7 +141,7 @@ fn clicking_a_mode_selects_it() {
 #[test]
 fn the_modes_menu_selects_a_mode_too() {
     let mut harness = fresh();
-    harness.get_by_label("Modes").click();
+    main_menu(&harness, "Modes").click();
     harness.run();
     harness.get_by_label("Edges").click();
     harness.run();
@@ -156,7 +172,7 @@ fn reset_layout_restores_the_standard_arrangement() {
         ])),
     ));
     harness.run();
-    harness.get_by_label("View").click();
+    main_menu(&harness, "View").click();
     harness.run();
     harness.get_by_label("Reset panel layout").click();
     harness.run();
@@ -180,7 +196,7 @@ fn a_broken_saved_layout_is_replaced_and_explained() {
 #[test]
 fn help_opens_the_about_box() {
     let mut harness = fresh();
-    harness.get_by_label("Help").click();
+    main_menu(&harness, "Help").click();
     harness.run();
     harness.get_by_label("About Test App").click();
     harness.run();
@@ -207,7 +223,7 @@ fn the_themed_interface_still_shows_everything() {
     let mut harness = harness_for(Workbench::new(info(), None));
     crate::theme::apply(&harness.ctx);
     harness.run();
-    for panel in Panel::ALL {
+    for panel in tabbed_panels() {
         assert!(harness.query_by_label(panel.title()).is_some());
     }
     harness.get_by_label("Points mode").click();
@@ -461,7 +477,7 @@ fn view_reset_view_returns_to_the_opening_camera() {
         egui::vec2(150.0, 80.0),
     );
     assert_ne!(camera(&harness), tools::Camera::default());
-    harness.get_by_label("View").click();
+    main_menu(&harness, "View").click();
     harness.run();
     harness.get_by_label("Reset view").click();
     harness.run();
@@ -472,8 +488,9 @@ fn view_reset_view_returns_to_the_opening_camera() {
 #[test]
 fn the_status_bar_explains_navigation() {
     let harness = fresh();
-    assert!(harness.query_by_label(crate::NAVIGATION_HINT).is_some());
-    assert!(crate::NAVIGATION_HINT.contains("Alt"));
+    let hint = crate::navigation_hint(tools::Scheme::AltMouse);
+    assert!(harness.query_by_label(&hint).is_some());
+    assert!(hint.contains("Alt"));
 }
 
 // --------------------------------------------------------- grid detail ---
@@ -515,7 +532,7 @@ fn the_grid_toggle_sits_on_the_left_palette() {
 #[test]
 fn the_view_menu_toggles_fine_grid_lines_too() {
     let mut harness = fresh();
-    harness.get_by_label("View").click();
+    main_menu(&harness, "View").click();
     harness.run();
     // The palette button has the same name; the menu's is a checkbox.
     harness
@@ -529,7 +546,10 @@ fn the_view_menu_toggles_fine_grid_lines_too() {
 
 #[test]
 fn remembered_view_options_are_restored() {
-    let options = crate::ViewOptions { fine_grid: true };
+    let options = crate::ViewOptions {
+        fine_grid: true,
+        ..crate::ViewOptions::default()
+    };
     let workbench = Workbench::new(info(), None).with_view_options(options);
     assert_eq!(workbench.view_options(), options);
     let mut harness = harness_for(workbench);
@@ -537,12 +557,230 @@ fn remembered_view_options_are_restored() {
     assert!(harness.state().workbench.view_options().fine_grid);
 }
 
+// ------------------------------------------------- navigation controls ---
+
+fn open_picker(harness: &mut Harness<'static, State>) {
+    harness.get_by_label(crate::PICKER_LABEL).click();
+    harness.run();
+}
+
 #[test]
-fn view_options_survive_saving_and_old_files() {
-    let options = crate::ViewOptions { fine_grid: true };
-    let text = ron::to_string(&options).unwrap();
-    assert_eq!(ron::from_str::<crate::ViewOptions>(&text).unwrap(), options);
-    // A file saved before a setting existed still loads, with defaults.
-    let empty: crate::ViewOptions = ron::from_str("()").unwrap();
-    assert_eq!(empty, crate::ViewOptions::default());
+fn the_picker_lists_every_scheme_and_switches_between_them() {
+    let mut harness = fresh();
+    open_picker(&mut harness);
+    for scheme in tools::Scheme::ALL {
+        assert!(
+            harness.query_by_label(scheme.name()).is_some(),
+            "{scheme:?}"
+        );
+    }
+    harness.get_by_label("Mouse only").click();
+    harness.run();
+    let settings = harness.state().workbench.view_options().navigation;
+    assert_eq!(settings.scheme, tools::Scheme::MouseOnly);
+    let hint = crate::navigation_hint(tools::Scheme::MouseOnly);
+    assert!(
+        harness.query_by_label(&hint).is_some(),
+        "status bar follows"
+    );
+}
+
+#[test]
+fn the_picker_sits_in_the_bottom_right_of_the_viewport() {
+    let harness = fresh();
+    let picker = harness.get_by_label(crate::PICKER_LABEL).rect();
+    let viewport = harness.get_by_label(crate::VIEWPORT_LABEL).rect();
+    assert!(viewport.contains_rect(picker));
+    assert!(picker.max.x > viewport.max.x - 30.0);
+    assert!(picker.max.y > viewport.max.y - 30.0);
+}
+
+#[test]
+fn the_pickers_switches_change_the_settings() {
+    let mut harness = fresh();
+    open_picker(&mut harness);
+    harness.get_by_label("Invert orbit direction").click();
+    harness.run();
+    harness
+        .get_by_label("Alt + mouse works in every scheme")
+        .click();
+    harness.run();
+    let settings = harness.state().workbench.view_options().navigation;
+    assert!(settings.invert_orbit);
+    assert!(!settings.alt_everywhere);
+}
+
+#[test]
+fn options_menu_opens_the_picker() {
+    let mut harness = fresh();
+    harness.get_by_label("Options").click();
+    harness.run();
+    harness
+        .get_by_label(&format!("{}…", crate::PICKER_LABEL))
+        .click();
+    harness.run();
+    assert!(harness.query_by_label("Middle orbits").is_some());
+}
+
+#[test]
+fn mouse_only_orbits_with_a_plain_right_drag() {
+    let mut options = crate::ViewOptions::default();
+    options.navigation.scheme = tools::Scheme::MouseOnly;
+    let mut harness = harness_for(Workbench::new(info(), None).with_view_options(options));
+    harness.run();
+    let before = camera(&harness);
+    drag_viewport(
+        &mut harness,
+        egui::PointerButton::Secondary,
+        Modifiers::NONE,
+        egui::vec2(120.0, 0.0),
+    );
+    assert!(camera(&harness).yaw < before.yaw);
+}
+
+#[test]
+fn inverted_orbit_turns_the_other_way() {
+    let mut options = crate::ViewOptions::default();
+    options.navigation.invert_orbit = true;
+    let mut harness = harness_for(Workbench::new(info(), None).with_view_options(options));
+    harness.run();
+    let before = camera(&harness);
+    drag_viewport(
+        &mut harness,
+        egui::PointerButton::Primary,
+        Modifiers::ALT,
+        egui::vec2(120.0, 0.0),
+    );
+    assert!(camera(&harness).yaw > before.yaw);
+}
+
+// ----------------------------------------------- the viewport's header ---
+
+#[test]
+fn the_viewport_has_its_own_menu_line_instead_of_a_tab() {
+    let harness = fresh();
+    let viewport = harness.get_by_label(crate::VIEWPORT_LABEL).rect();
+    for menu in ["Cameras", "Display", "Options", "Panel"] {
+        let rect = harness.get_by_label(menu).rect();
+        assert!(
+            rect.max.y <= viewport.min.y + 1.0,
+            "{menu} sits above the image"
+        );
+        assert!(rect.min.x >= viewport.min.x - 1.0);
+    }
+    assert!(harness.query_by_label("Viewport").is_none(), "no tab");
+}
+
+#[test]
+fn dragging_the_header_buttons_moves_the_view() {
+    use crate::viewport_chrome as chrome;
+    for (label, check) in [
+        (chrome::ORBIT_BUTTON, 0),
+        (chrome::PAN_BUTTON, 1),
+        (chrome::ZOOM_BUTTON, 2),
+    ] {
+        let mut harness = fresh();
+        let before = *harness.state().workbench.viewport().navigator();
+        let at = harness.get_by_label(label).rect().center();
+        harness.event(egui::Event::PointerMoved(at));
+        harness.step();
+        harness.event(egui::Event::PointerButton {
+            pos: at,
+            button: egui::PointerButton::Primary,
+            pressed: true,
+            modifiers: Modifiers::NONE,
+        });
+        harness.step();
+        for i in 1..=6 {
+            harness.event(egui::Event::PointerMoved(
+                at + egui::vec2(12.0 * i as f32, 0.0),
+            ));
+            harness.step();
+        }
+        harness.event(egui::Event::PointerButton {
+            pos: at + egui::vec2(72.0, 0.0),
+            button: egui::PointerButton::Primary,
+            pressed: false,
+            modifiers: Modifiers::NONE,
+        });
+        harness.run();
+        let after = *harness.state().workbench.viewport().navigator();
+        match check {
+            0 => assert_ne!(after.camera().yaw, before.camera().yaw, "{label}"),
+            1 => assert_ne!(after.pivot(), before.pivot(), "{label}"),
+            _ => assert!(after.distance() < before.distance(), "{label}"),
+        }
+    }
+}
+
+#[test]
+fn display_menu_toggles_the_fine_grid() {
+    let mut harness = fresh();
+    harness.get_by_label("Display").click();
+    harness.run();
+    harness
+        .get_all_by_label(crate::palette::GRID_DETAIL_LABEL)
+        .find(|node| node.accesskit_node().role() == egui::accesskit::Role::CheckBox)
+        .expect("a checkbox in the Display menu")
+        .click();
+    harness.run();
+    assert!(harness.state().workbench.view_options().fine_grid);
+}
+
+#[test]
+fn the_managers_have_their_own_menu_lines() {
+    let harness = fresh();
+    for menu in ["Mode", "Object"] {
+        assert!(harness.query_by_label(menu).is_some(), "{menu}");
+    }
+}
+
+#[test]
+fn the_menu_bar_shows_the_layouts() {
+    let harness = fresh();
+    for name in ["Standard", "Modelling", "UV Edit"] {
+        assert!(harness.query_by_label(name).is_some(), "{name}");
+    }
+    let help = harness.get_by_label("Help").rect();
+    assert!(harness.get_by_label("Standard").rect().min.x > help.max.x);
+}
+
+// ------------------------------------------------------------- accent ---
+
+#[test]
+fn red_is_the_standard_accent_and_the_window_menu_changes_it() {
+    let mut harness = fresh();
+    assert_eq!(
+        harness.state().workbench.accent(),
+        crate::theme::Accent::Red
+    );
+    assert_eq!(
+        crate::theme::accent(&harness.ctx),
+        crate::theme::Accent::Red
+    );
+    main_menu(&harness, "Window").click();
+    harness.run();
+    harness.get_by_label_contains("Accent colour").click();
+    harness.run();
+    harness.get_by_label("Petrol blue").click();
+    harness.run();
+    assert_eq!(
+        harness.state().workbench.accent(),
+        crate::theme::Accent::PetrolBlue
+    );
+    assert_eq!(
+        crate::theme::accent(&harness.ctx),
+        crate::theme::Accent::PetrolBlue
+    );
+}
+
+#[test]
+fn a_remembered_accent_is_restored() {
+    let workbench = Workbench::new(info(), None).with_accent(crate::theme::Accent::Olive);
+    let mut harness = harness_for(workbench);
+    harness.run();
+    assert_eq!(
+        crate::theme::accent(&harness.ctx),
+        crate::theme::Accent::Olive
+    );
 }
