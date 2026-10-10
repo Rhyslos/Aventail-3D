@@ -2,21 +2,21 @@
 
 > List, select, rename, nest, show, hide and delete the objects in your scene, and undo any change.
 
-![The Object Manager with two groups and the test cube](../screenshots/2026-10-10-object-manager.png)
+![The Object Manager with two groups and a cube](../screenshots/2026-10-10-object-manager.png)
 
 ## When to use it
 
 Every model is built from [objects](concepts.md#objects-and-scenes), and the **Objects** panel (the Object Manager, bottom right) lists them all as a tree. Use it to keep a scene tidy as it grows: give parts clear names ("Barrel", "Handle"), gather the parts of one asset into a [group](concepts.md#objects-and-scenes) so they move and hide together, and hide what's in the way while you work on something else.
 
-For now the scene holds the 2 m test cube, and you can add **groups**: empty objects whose job is to hold others. Shapes you can model (cubes, cylinders and the rest) arrive in the next updates and will appear here the same way.
+A new scene is empty. Add [primitives](primitives.md) (cubes, cylinders and the rest) from the **Create** menu or the shape buttons on the command palette, and **groups**: empty objects whose job is to hold others.
 
 ## How to use it
 
-**Select.** Click a name to select that object; its name turns orange. **Ctrl + click** adds an object to the selection, or takes it out again. **Shift + click** selects every row from the last one you clicked to this one. Click the empty space below the list, or press **Esc**, to select nothing. The status bar says how many objects are selected.
+**Select.** Click a name to select that object; its name and its outline in the viewport take on the [accent colour](interface-tour.md#accent-colour) (red, unless you've picked another). **Ctrl + click** adds an object to the selection, or takes it out again. **Shift + click** selects every row from the last one you clicked to this one. Click the empty space below the list, or press **Esc**, to select nothing. The status bar says how many objects are selected.
 
 **Create a group.** Use **Create → Group**, the group button on the command palette (the cross with a circle, after the shapes), or **Object → New group** in the panel's own menu. New objects appear at the top of the list, already selected, and are named *Group*, *Group 2* and so on.
 
-**Put objects in a group.** Select them and press **Alt + G** (or **Object → Group objects**): they go into a new group, which takes the place of the first of them. To take them out again, select the group and press **Shift + G** (**Object → Ungroup**): its contents go back where the group was, and the empty group is removed. Ungroup only ever works on groups: anything else in the selection, like the test cube, is left exactly as it is.
+**Put objects in a group.** Select them and press **Alt + G** (or **Object → Group objects**): they go into a new group, which takes the place of the first of them. To take them out again, select the group and press **Shift + G** (**Object → Ungroup**): its contents go back where the group was, and the empty group is removed. Ungroup only ever works on groups: anything else in the selection, like a cube, is left exactly as it is.
 
 **Drag to rearrange.** Drag a row (press on its name and move the mouse):
 - onto the **middle** of another row to put it **inside** that object (an outline shows where it will go);

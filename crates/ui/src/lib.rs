@@ -7,6 +7,7 @@
 //! The app's name is never written here: it arrives in [`AppInfo`] from
 //! the app's branding.
 
+mod drawing;
 pub mod icons;
 pub mod layout;
 mod objects;
@@ -19,6 +20,7 @@ mod viewport;
 pub(crate) use viewport::chrome as viewport_chrome;
 mod workbench;
 
+pub use drawing::{DrawItem, SceneDrawing, SceneSummary};
 pub use egui_dock::DockState;
 pub use objects::{
     DELETE_SHORTCUT, DESELECT_SHORTCUT, GROUP_SHORTCUT, REDO_SHORTCUT, REDO_SHORTCUT_2,
@@ -27,8 +29,8 @@ pub use objects::{
 pub use palette::Mode;
 pub use panel::Panel;
 pub use viewport::{
-    FOUR_VIEWS_KEY, Frame, GLIDE_SECONDS, NoRenderer, PICKER_LABEL, PickAsk, PickReply, Picked,
-    SceneSummary, TEST_SCENE, VIEW_COUNT, VIEW_KEYS, VIEWPORT_LABEL, ViewOptions, ViewportPanel,
+    DEFAULT_FRAME, FOUR_VIEWS_KEY, Frame, GLIDE_SECONDS, NoRenderer, PICKER_LABEL, PickAsk,
+    PickReply, Picked, VIEW_COUNT, VIEW_KEYS, VIEWPORT_LABEL, ViewOptions, ViewportPanel,
     ViewportRenderer, ViewportView,
 };
 pub use workbench::{AppInfo, QUIT_SHORTCUT, Workbench, WorkbenchAction, navigation_hint};

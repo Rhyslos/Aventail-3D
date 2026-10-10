@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Window smoke test: opens the real app window on a virtual screen, takes a
-# screenshot, checks the 3D viewport (background and the test cube), switches to
+# screenshot, checks the 3D viewport background, creates a cube with the
+# command palette's cube button and checks it is drawn, switches to
 # Polygons mode with a click, orbits the view with Alt + drag, zooms with the
 # wheel, frames everything with H, switches on the fine grid lines, quits with Ctrl+Q (or File > Quit
 # as a fallback), and checks that the panel layout and view options were
@@ -59,24 +60,34 @@ WINDOW_ID="$(xdotool search --name "$TITLE" 2>/dev/null | head -1)" || true
 # Let the first frames draw (software rendering can be slow), then take
 # the screenshot.
 sleep 6
-import -window root "$OUT/window.png"
+import -window root "$OUT/empty.png"
 
 # Colour of one screen pixel, as "R G B".
 pixel() {
-    convert "$OUT/window.png" -format "%[fx:int(255*p{$1,$2}.r)] %[fx:int(255*p{$1,$2}.g)] %[fx:int(255*p{$1,$2}.b)]" info:
+    convert "$OUT/${3:-window}.png" -format "%[fx:int(255*p{$1,$2}.r)] %[fx:int(255*p{$1,$2}.g)] %[fx:int(255*p{$1,$2}.b)]" info:
 }
 
 # 1. The 3D view is drawn. With the default layout on a 1440x900 screen,
-#    (300, 130) is background near the top of the viewport and the middle
-#    of the viewport (566, 416) is the test cube. A wrong colour-space
-#    setting shows up as near-black or washed-out background.
-read -r R G B <<<"$(pixel 300 130)"
+#    (300, 130) is background near the top of the viewport. A wrong
+#    colour-space setting shows up as near-black or washed-out background.
+#    The scene starts empty; the cube button on the command palette
+#    (CUBE_BUTTON_X, 50) creates a 2 m cube, which then fills the middle
+#    of the viewport (566, 416).
+read -r R G B <<<"$(pixel 300 130 empty)"
 echo "Viewport background at (300, 130): $R $G $B (expected a neutral mid grey)"
 [ "$R" -ge 50 ] && [ "$R" -le 120 ] || fail "viewport background is not a mid grey: ($R, $G, $B)"
 diff_rb=$(( R > B ? R - B : B - R ))
 [ "$diff_rb" -le 15 ] || fail "viewport background is tinted: ($R, $G, $B)"
+xdotool windowfocus --sync "$WINDOW_ID" 2>/dev/null || true
+CUBE_BUTTON_X="${CUBE_BUTTON_X:-396}"
+xdotool mousemove "$CUBE_BUTTON_X" 50 click 1
+sleep 2
+# Move the mouse away so the button's tooltip doesn't cover the view.
+xdotool mousemove 1300 860
+sleep 1.5
+import -window root "$OUT/window.png"
 read -r CR CG CB <<<"$(pixel 566 416)"
-echo "Viewport middle (the test cube) at (566, 416): $CR $CG $CB"
+echo "Viewport middle (the new cube) at (566, 416): $CR $CG $CB"
 [ $(( CR + CG + CB )) -gt $(( R + G + B + 90 )) ] || fail "no lit cube in the middle of the viewport: ($CR, $CG, $CB)"
 grep -q "can't be shown" "$OUT/app.log" && fail "the 3D view could not be shown"
 
@@ -163,7 +174,7 @@ ONE_CHANGE="$(changed_pixels "$OUT/four-views.png" "$OUT/back-to-one.png")"
 echo "Pixels changed by going back to one view (F1): $ONE_CHANGE"
 [ "$ONE_CHANGE" -gt 20000 ] || fail "F1 did not go back to one view"
 
-# 5c. Deleting the test cube in the Object Manager takes it out of the
+# 5c. Deleting the cube in the Object Manager takes it out of the
 #     view; Ctrl+Z brings it back. CUBE_ROW_Y is the middle of its row
 #     with the standard layout.
 CUBE_ROW_Y="${CUBE_ROW_Y:-631}"

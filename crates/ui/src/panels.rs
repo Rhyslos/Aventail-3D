@@ -106,12 +106,33 @@ pub(crate) fn vertical_gradient(rect: Rect, top: Color32, bottom: Color32) -> Me
 }
 
 /// The Attribute Manager: settings of the selected object or active tool.
-pub(crate) fn attributes_contents(ui: &mut Ui) {
-    placeholder(
-        ui,
-        "Nothing selected",
-        "Select an object or pick a tool, and its settings show up here.",
-    );
+/// For now it names the selection; editing settings arrives with the next
+/// Phase 2 milestone.
+pub(crate) fn attributes_contents(ui: &mut Ui, document: &scene::Document) {
+    let selection = document.selection();
+    let name = |id| {
+        document
+            .scene()
+            .object(id)
+            .map_or_else(String::new, |o| o.name.clone())
+    };
+    match selection.as_slice() {
+        [] => placeholder(
+            ui,
+            "Nothing selected",
+            "Select an object or pick a tool, and its settings show up here.",
+        ),
+        [one] => placeholder(
+            ui,
+            &format!("Selected: {}", name(*one)),
+            "Changing its settings here (size, segments and so on) arrives with the next update.",
+        ),
+        many => placeholder(
+            ui,
+            &format!("{} objects selected", many.len()),
+            "Select one object to see its settings.",
+        ),
+    }
 }
 
 /// The Coordinates panel: typed position, size and rotation of the

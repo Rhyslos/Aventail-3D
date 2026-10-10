@@ -4,7 +4,7 @@
 
 Aventail 3D is a free, open-source modelling and UV unwrapping tool for **hard-surface game assets**, written in Rust. Model it, unwrap it, and export it to Substance Painter and Godot, all in one app.
 
-> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout and a real 3D view you can orbit, pan and zoom around, from four views at once if you like. The Object Manager lists the scene's objects (a test cube and any groups you make), and every change can be undone. There is nothing to model with yet: shapes such as cubes and cylinders are next. Follow the progress tracker below.
+> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout and a real 3D view you can orbit, pan and zoom around, from four views at once if you like. You can create primitives (cube, plane, cylinder, sphere, disc, tube, cone) and groups, organise them in the Object Manager, and undo every change. Editing a primitive's settings is next; modelling tools come later. Follow the progress tracker below.
 
 Created by **Rhyslos**, built with AI assistance (Claude by Anthropic). Part of the **Rhylib** family of tools, alongside [Halberd](https://github.com/Rhyslos/halberd).
 
@@ -56,15 +56,15 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** navigating feels smooth and calm to the project lead. *Passed 2026-10-10.*
 
-### Phase 2 · Objects, history and saving — 1 of 6
+### Phase 2 · Objects, history and saving — 2 of 6
 
-`██░░░░░░░░░░░` 17%
+`████░░░░░░░░░` 33%
 
 <details>
 <summary>Milestones</summary>
 
 - [x] Object Manager: create, rename, reparent, hide and delete objects (with undo and redo)
-- [ ] Primitives: cube, plane, cylinder, sphere, disc, tube, cone
+- [x] Primitives: cube, plane, cylinder, sphere, disc, tube, cone
 - [ ] Primitive settings in the Attribute Manager
 - [ ] Object stack foundation: base plus recorded operations
 - [ ] Undo and redo limited by memory, not steps
@@ -181,6 +181,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-10 | Primitives: cube, plane, cylinder, sphere, disc, tube and cone, standing on the ground, with hard and soft edges |
 | 2026-10-10 | Object Manager: select, rename, group, nest, hide and delete objects, with undo and redo |
 | 2026-10-10 | Phase 1 gate passed: tested by the project lead, "worked flawlessly and felt good" |
 | 2026-10-10 | Perspective, top, front and right views and the four-view layout (F1 to F5, middle click). Phase 1 milestones complete |
@@ -198,6 +199,10 @@ Newest first. One line per finished milestone or passed gate.
 ### Snapshots
 
 Pictures of Aventail 3D at memorable moments, newest first. Kept in [docs/screenshots](docs/screenshots).
+
+**2026-10-10: the first primitives.** All seven shapes side by side (the selected cube outlined in the red accent): smooth round sides, crisp rims, and ends made of single faces.
+
+![The seven primitives](docs/screenshots/2026-10-10-primitive-gallery.png)
 
 **2026-10-10: the Object Manager.** The test cube dragged into a group (its name orange while selected), and a second group hidden with its eye.
 

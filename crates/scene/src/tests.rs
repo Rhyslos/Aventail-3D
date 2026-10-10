@@ -2,6 +2,32 @@
 
 use crate::*;
 
+/// The standard 2 m cube.
+fn cube() -> Object {
+    Object::new(ObjectKind::Primitive(Primitive::Cube(Default::default())))
+}
+
+/// A document holding just a cube (created, so it can be undone), and its id.
+fn with_a_cube() -> (Document, ObjectId) {
+    let mut doc = Document::new();
+    doc.execute(Command::Insert {
+        object: cube(),
+        place: Place {
+            parent: None,
+            index: 0,
+        },
+    })
+    .unwrap();
+    let id = doc.scene().children(None)[0];
+    doc.clear_selection();
+    (doc, id)
+}
+
+/// The cube's box.
+fn cube_bounds() -> Bounds {
+    Primitive::Cube(Default::default()).bounds()
+}
+
 /// A document with objects named `names`, top to bottom at the top level,
 /// and their ids.
 fn with_groups(names: &[&str]) -> (Document, Vec<ObjectId>) {
@@ -89,12 +115,19 @@ fn ids_are_never_reused_and_come_back_the_same() {
 }
 
 #[test]
-fn the_starting_scene_has_the_test_cube_and_nothing_to_undo() {
-    let doc = Document::starting_scene();
-    assert_eq!(outline(&doc), "Test cube");
-    assert_eq!(doc.undo_label(), None);
-    assert!(doc.selection().is_empty());
-    assert_eq!(doc.scene().bounds(), Some(TEST_CUBE));
+fn primitives_are_named_after_their_kind() {
+    let mut doc = Document::new();
+    for shape in Primitive::all() {
+        doc.execute(Command::Create(ObjectKind::Primitive(shape)))
+            .unwrap();
+    }
+    doc.execute(Command::Create(ObjectKind::Primitive(Primitive::all()[0])))
+        .unwrap();
+    assert_eq!(
+        outline(&doc),
+        "Cube 2 Cone Tube Disc Sphere Cylinder Plane Cube"
+    );
+    assert_eq!(doc.undo_label(), Some("Create cube"));
 }
 
 #[test]
@@ -204,8 +237,8 @@ fn showing_what_is_shown_is_not_a_step() {
 
 #[test]
 fn hidden_objects_are_left_out_of_the_bounds() {
-    let mut doc = Document::starting_scene();
-    let cube = doc.scene().children(None)[0];
+    let (mut doc, cube) = with_a_cube();
+    assert_eq!(doc.scene().bounds(), Some(cube_bounds()));
     doc.execute(Command::SetVisible {
         ids: vec![cube],
         visible: false,
@@ -443,8 +476,7 @@ fn ungrouping_an_empty_group_just_removes_it() {
 #[test]
 fn ungrouping_never_touches_objects_that_are_not_groups() {
     // Regression: Shift+G with the test cube selected deleted the cube.
-    let mut doc = Document::starting_scene();
-    let cube = doc.scene().children(None)[0];
+    let (mut doc, cube) = with_a_cube();
     doc.set_selection([cube]);
     let before = doc.clone();
     doc.execute(Command::Ungroup(vec![cube])).unwrap();
@@ -466,20 +498,15 @@ fn ungrouping_never_touches_objects_that_are_not_groups() {
 
 #[test]
 fn ungrouping_a_mixed_selection_only_ungroups_the_groups() {
-    let mut doc = Document::starting_scene();
-    let cube = doc.scene().children(None)[0];
+    let (mut doc, cube) = with_a_cube();
     doc.execute(Command::Create(ObjectKind::Group)).unwrap();
     let empty = doc.selection()[0];
     doc.execute(Command::Group(vec![cube])).unwrap();
     let holder = doc.selection()[0];
-    assert_eq!(outline(&doc), "Group Group 2[Test cube]");
+    assert_eq!(outline(&doc), "Group Group 2[Cube]");
     doc.execute(Command::Ungroup(vec![holder, cube, empty]))
         .unwrap();
-    assert_eq!(
-        outline(&doc),
-        "Test cube",
-        "both groups gone, the cube kept"
-    );
+    assert_eq!(outline(&doc), "Cube", "both groups gone, the cube kept");
     assert_eq!(doc.selection(), [cube]);
     assert_eq!(doc.undo_label(), Some("Ungroup 2 groups"));
 }
@@ -504,6 +531,20 @@ fn undo_and_redo_report_what_they_did() {
     assert_eq!(doc.redo_label(), Some("Create group"));
     assert_eq!(doc.redo().as_deref(), Some("Create group"));
     assert_eq!(outline(&doc), "Group");
+}
+
+#[test]
+fn the_revision_goes_up_with_every_change_and_only_then() {
+    let mut doc = Document::new();
+    assert_eq!(doc.revision(), 0);
+    doc.execute(Command::Create(ObjectKind::Group)).unwrap();
+    assert_eq!(doc.revision(), 1);
+    doc.clear_selection();
+    doc.execute(Command::Delete(Vec::new())).unwrap();
+    assert_eq!(doc.revision(), 1, "selection and no-ops don't count");
+    doc.undo();
+    doc.redo();
+    assert_eq!(doc.revision(), 3);
 }
 
 #[test]
@@ -608,7 +649,7 @@ fn world_bounds_follow_the_parents_transforms() {
     .unwrap();
     let group = doc.selection()[0];
     doc.execute(Command::Insert {
-        object: Object::new(ObjectKind::TestCube),
+        object: cube(),
         place: Place {
             parent: Some(group),
             index: 0,
@@ -618,7 +659,7 @@ fn world_bounds_follow_the_parents_transforms() {
     let bounds = doc.scene().bounds_of([group]).unwrap();
     assert_eq!(
         bounds.centre(),
-        TEST_CUBE.centre() + glam::Vec3::new(500.0, 0.0, 0.0)
+        cube_bounds().centre() + glam::Vec3::new(500.0, 0.0, 0.0)
     );
     // A group alone has no shape.
     let mut empty = Document::new();

@@ -17,8 +17,8 @@ pub mod tree;
 
 pub use command::Command;
 pub use document::Document;
-pub use mesh::Bounds;
-pub use object::{Object, ObjectId, ObjectKind, TEST_CUBE, Transform};
+pub use mesh::{Bounds, Mesh, Primitive, PrimitiveKind};
+pub use object::{Object, ObjectId, ObjectKind, Transform};
 pub use tree::{Place, Scene, SceneError};
 
 #[cfg(test)]

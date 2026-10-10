@@ -31,4 +31,4 @@ Option 3, in the `scene` crate:
 - Every later feature adds commands (and, for modelling, operations, [0006](0006-base-plus-operation-stack.md)) instead of changing data directly, and gets undo for free.
 - Undo can't drift from the scene: an edit that no longer fits (which would be a bug) is refused, and the step is put back as it was rather than half undone.
 - Saving (later in Phase 2) saves the tree and the next id, so ids stay unique across sessions.
-- Until real primitives exist, the scene starts with one object, the test cube, which the renderer draws when it is in the scene and shown.
+- Until real primitives existed, the scene started with one object, the test cube. Since [0020](0020-primitives.md) a new scene starts empty.

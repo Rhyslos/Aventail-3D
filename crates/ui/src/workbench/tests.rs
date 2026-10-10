@@ -72,7 +72,7 @@ pub(super) fn harness_with(
 pub(super) fn quick_harness() -> Harness<'static, State> {
     let mut harness = harness_built(
         Harness::builder().with_step_dt(1.0 / 60.0),
-        Workbench::new(info(), None),
+        with_a_cube(Workbench::new(info(), None)),
         TestRenderer::default(),
     );
     harness.run();
@@ -110,6 +110,25 @@ pub(super) fn main_menu<'h>(
 }
 
 pub(super) fn fresh() -> Harness<'static, State> {
+    let mut harness = harness_for(with_a_cube(Workbench::new(info(), None)));
+    harness.run();
+    harness
+}
+
+/// The workbench with a standard cube in its scene (as an undoable step),
+/// nothing selected.
+pub(super) fn with_a_cube(mut workbench: Workbench) -> Workbench {
+    let cube = scene::PrimitiveKind::Cube.standard();
+    workbench
+        .document_mut()
+        .execute(scene::Command::Create(scene::ObjectKind::Primitive(cube)))
+        .unwrap();
+    workbench.document_mut().clear_selection();
+    workbench
+}
+
+/// A new window with an empty scene.
+pub(super) fn empty() -> Harness<'static, State> {
     let mut harness = harness_for(Workbench::new(info(), None));
     harness.run();
     harness
@@ -217,7 +236,7 @@ fn the_modes_menu_selects_a_mode_too() {
 #[test]
 fn commands_that_are_not_built_yet_cannot_be_clicked() {
     let harness = fresh();
-    for label in ["Cube", "Move", "Undo", "Snapping", "Lock the X axis"] {
+    for label in ["Move", "Snapping", "Lock the X axis"] {
         assert!(
             harness.get_by_label(label).accesskit_node().is_disabled(),
             "{label} should be disabled until it is built"
@@ -1149,7 +1168,7 @@ fn all_of_the_scene_in_view(harness: &Harness<'static, State>) -> bool {
     let body = harness.get_by_label(crate::VIEWPORT_LABEL).rect();
     let size = glam::Vec2::new(body.width(), body.height());
     let camera = *harness.state().workbench.viewport().camera();
-    let b = crate::TEST_SCENE;
+    let b = crate::DEFAULT_FRAME;
     (0..8).all(|i| {
         let corner = glam::Vec3::new(
             if i & 1 == 0 { b.min.x } else { b.max.x },
@@ -1191,7 +1210,7 @@ fn h_frames_everything() {
     );
     let after = harness.state().workbench.viewport().camera().forward();
     assert!((after - direction).length() < 1e-5, "same direction");
-    assert_eq!(pivot(&harness), crate::TEST_SCENE.centre());
+    assert_eq!(pivot(&harness), crate::DEFAULT_FRAME.centre());
 }
 
 #[test]
@@ -1467,7 +1486,7 @@ fn h_frames_the_active_view_only() {
     harness.key_press(Key::H);
     harness.run();
     let viewport = harness.state().workbench.viewport();
-    assert_eq!(viewport.navigator().pivot(), crate::TEST_SCENE.centre());
+    assert_eq!(viewport.navigator().pivot(), crate::DEFAULT_FRAME.centre());
     assert_eq!(viewport.view_kinds(), perspective_before);
 }
 

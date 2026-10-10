@@ -1,6 +1,7 @@
 //! The app window's contents: menu bar, palettes, docked panels, status
 //! bar and the About box.
 
+use crate::drawing::{DrawingCache, SceneSummary};
 use crate::layout::{default_layout, fit_coordinates, hide_viewport_tab, restore_or_default};
 use crate::objects::{self, DocRequest, ObjectManager};
 use crate::palette::{Mode, PaletteCommand, PaletteState, command_palette, mode_palette};
@@ -10,10 +11,10 @@ use crate::panels::{
     menu_line_with,
 };
 use crate::theme::{self, Accent};
-use crate::viewport::{SceneSummary, ViewOptions, ViewportPanel, ViewportRenderer};
+use crate::viewport::{ViewOptions, ViewportPanel, ViewportRenderer};
 use egui::{Align2, Id, Key, KeyboardShortcut, Modifiers, Ui, WidgetText};
 use egui_dock::{DockArea, DockState, TabViewer};
-use scene::{Command, Document, ObjectKind};
+use scene::{Command, Document, ObjectKind, PrimitiveKind};
 
 /// Facts about the program, shown in the window and the About box.
 /// The app passes these in from its branding, so this crate never names it.
@@ -45,9 +46,6 @@ pub enum WorkbenchAction {
     /// Close the window.
     Quit,
 }
-
-/// Create menu entries still to come, with the phase that brings them.
-const COMING_SHAPES: &[(&str, &str)] = &[("Cube, cylinder, plane, sphere and more", "Phase 2")];
 
 /// Menu entries that exist in the design but not yet in the app, with the
 /// phase that brings them.
@@ -93,6 +91,8 @@ pub struct Workbench {
     /// The scene being worked on, with its undo history and selection.
     document: Document,
     objects: ObjectManager,
+    /// What the viewport draws, kept up to date with the document.
+    drawing: DrawingCache,
     viewport: ViewportPanel,
     accent: Accent,
     about_open: bool,
@@ -114,8 +114,9 @@ impl Workbench {
             dock,
             fit_pending,
             mode: Mode::default(),
-            document: Document::starting_scene(),
+            document: Document::new(),
             objects: ObjectManager::default(),
+            drawing: DrawingCache::default(),
             viewport: ViewportPanel::default(),
             accent: Accent::default(),
             about_open: false,
@@ -249,6 +250,9 @@ impl Workbench {
                         PaletteCommand::CreateGroup => {
                             DocRequest::Run(Command::Create(ObjectKind::Group))
                         }
+                        PaletteCommand::CreateShape(kind) => {
+                            DocRequest::Run(Command::Create(ObjectKind::Primitive(kind.standard())))
+                        }
                     });
                 }
             });
@@ -267,7 +271,7 @@ impl Workbench {
                 }
             });
 
-        let summary = SceneSummary::of(&self.document);
+        let summary: SceneSummary = self.drawing.update(&self.document).clone();
         hide_viewport_tab(&mut self.dock);
         let style = theme::dock_style(ui.style().as_ref(), self.accent);
         theme::dock_frame().show(ui, |ui| {
@@ -435,6 +439,19 @@ impl Workbench {
         // Menu order as in DESIGN.md: File, Edit, Create, Modes, Select,
         // Tools, Mesh, UV, View, Window, Help.
         ui.menu_button("Create", |ui| {
+            for kind in PrimitiveKind::ALL {
+                if ui
+                    .button(kind.name())
+                    .on_hover_text(kind.description())
+                    .clicked()
+                {
+                    requests.push(DocRequest::Run(Command::Create(ObjectKind::Primitive(
+                        kind.standard(),
+                    ))));
+                    ui.close();
+                }
+            }
+            ui.separator();
             if ui
                 .button("Group")
                 .on_hover_text("An empty object to hold and organise other objects")
@@ -442,11 +459,6 @@ impl Workbench {
             {
                 requests.push(DocRequest::Run(Command::Create(ObjectKind::Group)));
                 ui.close();
-            }
-            ui.separator();
-            for (item, phase) in COMING_SHAPES {
-                ui.add_enabled(false, egui::Button::new(*item))
-                    .on_disabled_hover_text(format!("Arrives in {phase}"));
             }
         });
         ui.menu_button("Modes", |ui| {
@@ -604,7 +616,7 @@ impl TabViewer for PanelViewer<'_> {
             .inner_margin(theme::panel_margin())
             .show(ui, |ui| match tab {
                 Panel::Viewport => {}
-                Panel::Attributes => attributes_contents(ui),
+                Panel::Attributes => attributes_contents(ui, self.document),
                 Panel::Objects => self.objects.show(ui, self.document, self.requests),
                 Panel::Coordinates => coordinates_contents(ui),
             });

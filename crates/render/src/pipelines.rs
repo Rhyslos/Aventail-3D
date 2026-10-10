@@ -73,15 +73,21 @@ pub(crate) fn create_pipeline(
         wgpu::CompareFunction::LessEqual
     };
     // Faces are pushed very slightly back so their own edges, at exactly
-    // the same depth, are drawn cleanly on top instead of flickering.
-    let bias = if kind == PipelineKind::Faces {
-        wgpu::DepthBiasState {
+    // the same depth, are drawn cleanly on top instead of flickering. The
+    // grid is pushed back further still, so a shape lying on the ground
+    // (a plane, a disc) hides the grid under it.
+    let bias = match kind {
+        PipelineKind::Faces => wgpu::DepthBiasState {
             constant: 4,
             slope_scale: 2.0,
             clamp: 0.0,
-        }
-    } else {
-        wgpu::DepthBiasState::default()
+        },
+        PipelineKind::Grid => wgpu::DepthBiasState {
+            constant: 16,
+            slope_scale: 6.0,
+            clamp: 0.0,
+        },
+        _ => wgpu::DepthBiasState::default(),
     };
     device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: Some(label),
@@ -94,9 +100,9 @@ pub(crate) fn create_pipeline(
         },
         primitive: wgpu::PrimitiveState {
             topology,
-            // Closed shapes are wound outwards, so their back faces never
-            // show; skipping them halves the work.
-            cull_mode: faces.then_some(wgpu::Face::Back),
+            // Both sides of every face are drawn: flat and open shapes (a
+            // plane, a cylinder without ends) must show from behind too.
+            cull_mode: None,
             ..Default::default()
         },
         depth_stencil: Some(wgpu::DepthStencilState {

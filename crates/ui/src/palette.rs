@@ -9,6 +9,7 @@ use crate::icons::{self, Icon};
 use crate::theme::{self, tint};
 use crate::viewport::ViewOptions;
 use egui::{Color32, Response, Sense, Ui, Vec2, WidgetInfo, WidgetType};
+use scene::PrimitiveKind;
 
 /// Size of a palette button, in logical pixels.
 pub const BUTTON_SIZE: f32 = 32.0;
@@ -154,7 +155,13 @@ pub fn tinted_button(
 /// (see `theme::tint`).
 pub fn icon_tint(icon: Icon) -> Color32 {
     match icon {
-        Icon::Cube | Icon::Cylinder | Icon::Plane | Icon::Sphere => tint::SHAPE,
+        Icon::Cube
+        | Icon::Cylinder
+        | Icon::Plane
+        | Icon::Sphere
+        | Icon::Disc
+        | Icon::Tube
+        | Icon::Cone => tint::SHAPE,
         _ => tint::ICON,
     }
 }
@@ -190,6 +197,8 @@ pub enum PaletteCommand {
     Redo,
     /// Create an empty group.
     CreateGroup,
+    /// Create a primitive with standard settings.
+    CreateShape(PrimitiveKind),
 }
 
 /// One command on the top palette: one that works, or one that is not
@@ -225,6 +234,16 @@ const fn working(
     }
 }
 
+/// A palette button that creates a primitive, explained by its kind.
+const fn shape(icon: Icon, label: &'static str, kind: PrimitiveKind) -> Planned {
+    working(
+        icon,
+        label,
+        kind.description(),
+        PaletteCommand::CreateShape(kind),
+    )
+}
+
 /// What the palette needs to know to draw its working commands.
 #[derive(Debug, Clone, Default)]
 pub struct PaletteState {
@@ -257,10 +276,10 @@ const COMMAND_GROUPS: [&[Planned]; 4] = [
         planned(Icon::Rotate, "Rotate", "Arrives in Phase 3"),
     ],
     &[
-        planned(Icon::Cube, "Cube", "Arrives in Phase 2"),
-        planned(Icon::Cylinder, "Cylinder", "Arrives in Phase 2"),
-        planned(Icon::Plane, "Plane", "Arrives in Phase 2"),
-        planned(Icon::Sphere, "Sphere", "Arrives in Phase 2"),
+        shape(Icon::Cube, "Create cube", PrimitiveKind::Cube),
+        shape(Icon::Cylinder, "Create cylinder", PrimitiveKind::Cylinder),
+        shape(Icon::Plane, "Create plane", PrimitiveKind::Plane),
+        shape(Icon::Sphere, "Create sphere", PrimitiveKind::Sphere),
         working(
             Icon::Null,
             "Create group",
@@ -304,7 +323,9 @@ pub fn command_palette(ui: &mut Ui, state: &PaletteState) -> Option<PaletteComma
                         Some(what) => (true, format!("Redo: {what}")),
                         None => (false, "Nothing to redo".to_string()),
                     },
-                    PaletteCommand::CreateGroup => (true, command.arrives.to_string()),
+                    PaletteCommand::CreateGroup | PaletteCommand::CreateShape(_) => {
+                        (true, command.arrives.to_string())
+                    }
                 };
                 let button_state = if available {
                     ButtonState::Normal

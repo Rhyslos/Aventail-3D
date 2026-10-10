@@ -292,9 +292,16 @@ pub(super) fn overlays(ui: &Ui, rect: Rect, view: &View, options: &ViewOptions) 
         rect.right_top() + vec2(-36.0, 36.0),
         view.camera(),
     );
-    if matches!(view.drag, Some(DragKind::Orbit | DragKind::Dolly)) {
+    if shows_pivot_marker(view.drag, options) {
         pivot_marker(ui, &painter, rect, view);
     }
+}
+
+/// Whether the pivot marker shows: while orbiting or drag-zooming around
+/// the point under the mouse. Around the middle of the view it would just
+/// sit there, distracting, so it stays hidden.
+pub(super) fn shows_pivot_marker(drag: Option<DragKind>, options: &ViewOptions) -> bool {
+    options.navigation.around_cursor && matches!(drag, Some(DragKind::Orbit | DragKind::Dolly))
 }
 
 /// A small ring and dot on the point the view turns around or zooms
@@ -364,6 +371,20 @@ fn axis_marker(painter: &egui::Painter, centre: egui::Pos2, camera: &tools::Came
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_pivot_marker_shows_only_around_the_mouse() {
+        let mut options = ViewOptions::default();
+        assert!(shows_pivot_marker(Some(DragKind::Orbit), &options));
+        assert!(shows_pivot_marker(Some(DragKind::Dolly), &options));
+        assert!(!shows_pivot_marker(Some(DragKind::Pan), &options));
+        assert!(!shows_pivot_marker(None, &options));
+        options.navigation.around_cursor = false;
+        assert!(
+            !shows_pivot_marker(Some(DragKind::Orbit), &options),
+            "hidden when turning around the middle of the view"
+        );
+    }
 
     #[test]
     fn the_axis_marker_matches_the_opening_view() {

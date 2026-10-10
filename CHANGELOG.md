@@ -8,6 +8,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Selected objects' names in the Objects panel are now in the accent colour instead of orange, matching their outline in the viewport.
+- The small ring that marks the point you orbit around is only shown when orbiting around the point under the mouse; turning around the middle of the view no longer shows it.
+- A new scene starts empty: the test cube is gone, now that real shapes can be created.
+- Faces show from both sides (the underside of a plane is a little darker), and the grid no longer shows through shapes lying on the ground.
 - A darker, calmer look, closer to the approved mockup: darker panels with plain text tabs, small menu lines inside the panels, and a viewport with a grey sky over a slightly darker ground, a horizon, and a grid that fades out around the point you're looking at (at least 18 m around it, reaching farther as you zoom out). A green line rises from the origin to show Z, and the test cube is a mid grey.
 - The viewport has its own menu line (View, Cameras, Display, Options, Panel) in place of its tab, with buttons you can drag to pan, zoom and orbit, and labels showing the view, the camera, which way the axes point, and the grid spacing.
 - The active mode is now marked by a filled red square (the new accent colour) instead of orange; the opening view is a little lower, so the horizon shows.
@@ -21,6 +25,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Primitives: Create → Cube, Plane, Cylinder, Sphere, Disc, Tube or Cone (or the blue shape buttons on the command palette). Each stands on the ground at the centre of the scene, with crisp edges where it should have them and smooth curves elsewhere, and is listed in the Objects panel. Selected objects are outlined in the accent colour in the viewport, and the Attributes panel names the selection. New manual page: Primitives.
 - The Object Manager works: the scene's objects are listed as a tree (for now the test cube, plus any groups you make). Click to select (Ctrl adds, Shift selects a run), double-click to rename, drag to put objects inside each other or reorder them, click the eye to show or hide, and press Delete to delete. Create → Group (or the palette's group button) makes an empty group; Alt + G puts the selection in a new group and Shift + G takes it out again. Right-click a row for these commands. F now frames the selected objects. New manual page: Objects and the Object Manager.
 - Undo and redo for every change to the scene: Ctrl + Z, Ctrl + Y (or Ctrl + Shift + Z), the arrows on the command palette, or the Edit menu, which names what would be undone.
 - Top, front and right views beside the perspective one, and a four-view layout: **F1** to **F4** show one view (perspective, top, right, front), **F5** shows all four, and a middle click switches between one and four (also the square button on the viewport's menu line, **Panel → Four views** and **Cameras**). The top, front and right views are flat: no perspective, so sizes read true; they pan and zoom but don't orbit, and their grid faces you. The last view clicked is the active one, marked with a thin accent line. Each view keeps its own camera, and the layout is remembered.

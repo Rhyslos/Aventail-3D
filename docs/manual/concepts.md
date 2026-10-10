@@ -27,7 +27,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Mode** — What kind of thing your tools work on: whole objects, or a mesh's points, edges or polygons, or its UVs. The same Move tool moves a whole object in Model mode and a single edge in Edges mode. See [Interface tour](interface-tour.md#modes).
 
-**Primitive** — A parametric shape (cube, cylinder…) whose settings, like size and segments, stay editable.
+**Primitive** — A ready-made shape (cube, cylinder, sphere…) built from a few settings, like size and segments, which stay editable. In this app every primitive stands on the ground with its pivot at the middle of its base. See [Primitives](primitives.md).
 
 **Hierarchy** — Objects can be children of other objects (sit *inside* them, in the Object Manager's tree). Moving a parent moves its children with it, and hiding it hides them too.
 
