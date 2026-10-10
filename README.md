@@ -37,7 +37,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Window with the C4D-style layout: viewport, Attribute Manager, Object Manager, palettes, status bar, all dockable
 - [x] Theme: calm dark colours, font and spacing
 
-**Gate:** the app launches into the C4D-style layout with movable, dockable panels. *Every milestone is done; the gate waits for the project lead's check.*
+**Gate:** the app launches into the C4D-style layout with movable, dockable panels. *Passed 2026-10-10.*
 
 ### Phase 1 · Viewport and navigation — 0 of 5
 
@@ -181,6 +181,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-10 | Phase 0 gate passed: tested by the project lead. Coordinates fitted to its rows, icons coloured, Z set as up |
 | 2026-10-10 | Calm dark theme and the Inter font. Phase 0 milestones complete |
 | 2026-10-10 | First window: the Cinema 4D-style layout with dockable panels, both palettes and a remembered layout |
 | 2026-10-10 | Repository, documentation, quality checks and crate structure in place |

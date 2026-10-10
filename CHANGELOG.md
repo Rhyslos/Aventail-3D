@@ -8,6 +8,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- The Coordinates panel is now just tall enough for its rows, and every panel can be dragged much smaller than before.
+- Palette icons are coloured by group (objects, tools, modelling aids, modes), and commands that aren't built yet are dimmed rather than grey.
+- Z is up: X and Y lie on the ground and Z is height, as in 3ds Max and Blender. Shown in the manual; the viewport is built this way from Phase 1.
 - Project files will be saved as `.avtl` (short for Aventail) instead of `.rhy`. Nothing has been saved yet, so no files are affected.
 
 ### Added

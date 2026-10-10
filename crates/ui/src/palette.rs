@@ -6,6 +6,7 @@
 //! which phase brings them, so the layout is complete from the start.
 
 use crate::icons::{self, Icon};
+use crate::theme::{self, tint};
 use egui::{Color32, Response, Sense, Ui, Vec2, WidgetInfo, WidgetType};
 
 /// Size of a palette button, in logical pixels.
@@ -123,8 +124,8 @@ pub fn icon_button(
         }
         let color = match state {
             ButtonState::Active => ACCENT,
-            ButtonState::Normal => visuals.widgets.inactive.fg_stroke.color,
-            ButtonState::Unavailable => visuals.weak_text_color().gamma_multiply(0.7),
+            ButtonState::Normal => icon_tint(icon),
+            ButtonState::Unavailable => dimmed(icon_tint(icon)),
         };
         let icon_rect = egui::Rect::from_center_size(rect.center(), Vec2::splat(ICON_SIZE));
         icons::paint(painter, icon_rect, icon, color);
@@ -135,6 +136,25 @@ pub fn icon_button(
         format!("{label}\n{note}")
     };
     response.on_hover_text(tip)
+}
+
+/// The colour an icon is drawn in, by the group of commands it belongs to
+/// (see `theme::tint`).
+pub fn icon_tint(icon: Icon) -> Color32 {
+    match icon {
+        Icon::Undo | Icon::Redo | Icon::Search | Icon::Workplane | Icon::Solo => tint::GENERAL,
+        Icon::LiveSelection | Icon::Move | Icon::Scale | Icon::Rotate | Icon::World => tint::TOOL,
+        Icon::Cube | Icon::Cylinder | Icon::Plane | Icon::Sphere | Icon::ObjectMode => tint::OBJECT,
+        Icon::Null => tint::GROUP,
+        Icon::Snap | Icon::Symmetry => tint::AID,
+        Icon::Points | Icon::Edges | Icon::Polygons => tint::ELEMENT,
+        Icon::Uv => tint::UV,
+    }
+}
+
+/// A colour as drawn for a command that is not available yet.
+fn dimmed(color: Color32) -> Color32 {
+    theme::PALETTE.lerp_to_gamma(color, theme::UNAVAILABLE_STRENGTH)
 }
 
 /// A thin divider between groups of palette buttons.
@@ -215,9 +235,9 @@ pub fn command_palette(ui: &mut Ui) {
                 // The axis locks sit with the transform tools, as in Cinema 4D.
                 divider(ui, true);
                 for (axis, color) in [
-                    ("X", Color32::from_rgb(239, 107, 99)),
-                    ("Y", Color32::from_rgb(127, 208, 90)),
-                    ("Z", Color32::from_rgb(106, 162, 255)),
+                    ("X", tint::AXIS_X),
+                    ("Y", tint::AXIS_Y),
+                    ("Z", tint::AXIS_Z),
                 ] {
                     axis_lock(ui, axis, color);
                 }
@@ -252,7 +272,7 @@ fn axis_lock(ui: &mut Ui, axis: &str, color: Color32) {
         egui::Align2::CENTER_CENTER,
         axis,
         egui::FontId::proportional(14.0),
-        color.gamma_multiply(0.5),
+        dimmed(color),
     );
     response.on_hover_text(format!("{label}\nArrives in Phase 3"));
 }
@@ -312,6 +332,16 @@ mod tests {
                 assert_ne!(a.icon(), b.icon());
             }
         }
+    }
+
+    #[test]
+    fn every_icon_has_a_colour_and_groups_share_one() {
+        for icon in crate::icons::ALL {
+            assert!(tint::ALL.contains(&icon_tint(icon)), "{icon:?}");
+        }
+        assert_eq!(icon_tint(Icon::Move), icon_tint(Icon::Rotate));
+        assert_eq!(icon_tint(Icon::Cube), icon_tint(Icon::Sphere));
+        assert_ne!(icon_tint(Icon::Cube), icon_tint(Icon::Move));
     }
 
     #[test]

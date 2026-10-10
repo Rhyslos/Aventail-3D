@@ -213,3 +213,29 @@ fn the_themed_interface_still_shows_everything() {
     harness.run();
     assert_eq!(harness.state().workbench.mode(), Mode::Points);
 }
+
+#[test]
+fn coordinates_fit_their_rows_with_no_empty_space_below() {
+    // With the real theme, whose rows are taller than egui's defaults.
+    let mut harness = harness_for(Workbench::new(info(), None));
+    crate::theme::apply(&harness.ctx);
+    harness.run();
+    harness.run();
+    let tab = harness.get_by_label("Coordinates").rect();
+    let last_row = harness.get_by_label("B").rect();
+    // The window is 900 high and the status bar 24: the Coordinates panel
+    // ends at about 876, a few pixels below its last row.
+    assert!(
+        876.0 - last_row.max.y < 24.0,
+        "{} px of empty space under the last row",
+        876.0 - last_row.max.y
+    );
+    assert!(tab.min.y > 700.0, "Coordinates start at {}", tab.min.y);
+}
+
+#[test]
+fn a_saved_layout_keeps_the_users_sizes() {
+    let saved = crate::layout::default_layout();
+    let workbench = Workbench::new(info(), Some(saved));
+    assert!(!workbench.fit_pending);
+}

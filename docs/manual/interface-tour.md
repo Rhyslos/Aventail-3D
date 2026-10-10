@@ -13,12 +13,12 @@ Start here if you're opening the app for the first time, or if you've moved pane
 From top to bottom, left to right:
 
 1. **Menu bar.** Every command lives in a menu, in this order: File, Edit, Create, Modes, Select, Tools, Mesh, UV, View, Window, Help. Commands that aren't built yet are greyed out; hover over one to see which phase brings it.
-2. **Command palette** (the row of icons under the menus). One-click access to the tools you use most: undo and redo, the selection and transform tools, axis locks, primitives, snapping and symmetry. For now all of them are greyed out; hover to see when each arrives.
+2. **Command palette** (the row of icons under the menus). One-click access to the tools you use most: undo and redo, the selection and transform tools, axis locks, primitives, snapping and symmetry. For now all of them are dimmed; hover to see when each arrives.
 3. **Mode palette** (the column of icons down the left side). Decides *what kind of thing* your tools work on. See [Modes](#modes) below.
 4. **Viewport** (the large grey area). Where you'll see and shape your models. The 3D view arrives in Phase 1; for now it shows its calm background.
 5. **Attributes** (top right). Shows the settings of whatever is selected, or of the tool you're using. Change a value here and the model updates.
 6. **Objects** (below Attributes). A tree of every object in your scene. Objects can be grouped by putting them inside each other (see [Hierarchy](concepts.md#objects-and-scenes)).
-7. **Coordinates** (under the viewport). Type exact positions, sizes and rotations for the selection, then press Apply. Rotation uses H, P and B (heading, pitch and bank) instead of X, Y and Z.
+7. **Coordinates** (under the viewport). Type exact positions, sizes and rotations for the selection, then press Apply. In this app **Z is up**: X and Y are the ground directions and Z is height (see [Axes](concepts.md#objects-and-scenes)). Rotation uses H, P and B: **heading** turns left and right around Z, **pitch** tilts up and down, **bank** rolls sideways. The panel is just tall enough for its rows; drag the gap above it to make it bigger or smaller.
 8. **Status bar** (the bottom line). Says which mode you're in, and shows short messages, for example after you reset the layout.
 
 ## Modes
@@ -41,7 +41,7 @@ You can also switch modes from the **Modes** menu. Until meshes exist (Phase 3),
 The four middle areas (Viewport, Attributes, Objects, Coordinates) are **panels** you can rearrange:
 
 - **Move a panel:** drag it by its tab (the label at its top-left) and drop it where the highlight shows. Dropping it onto another panel's tab area stacks them as tabs.
-- **Resize:** drag the gap between two panels.
+- **Resize:** drag the gap between two panels. A panel can be made as small as its tab bar and a little room.
 - **Get the standard layout back:** **View → Reset panel layout**.
 
 Panels can't be closed or pulled out into separate windows, so you can't lose one by accident. Your arrangement and the window size are remembered the next time you open the app.
@@ -54,7 +54,7 @@ Panels can't be closed or pulled out into separate windows, so you can't lose on
 
 ## Tips and common problems
 
-- **Colours:** the app is always dark, whatever your system prefers. Orange marks what's active (the current mode, and later the current tool); blue-grey marks what's selected.
+- **Colours:** the app is always dark, whatever your system prefers. Orange marks what's active (the current mode, and later the current tool); blue-grey marks what's selected. Palette icons are coloured by group: blue for objects you create, violet for selection and transform tools, teal for snapping and symmetry, pink for point, edge and polygon modes, green for UV. Dimmed icons are commands that aren't built yet.
 - **Problem:** the panels are in a strange arrangement after an update. **Why:** a saved layout from an older version didn't fit. **Fix:** the app replaces it with the standard layout automatically and says so in the status bar; if it still looks wrong, use **View → Reset panel layout**.
 - **Problem:** on Linux, the app says a library "could not be loaded". **Fix:** install the library it names with your package manager (on Ubuntu, for example, `libxkbcommon-x11-0` and `mesa-vulkan-drivers`).
 
