@@ -24,9 +24,5 @@ ui.workspace = true
 render.workspace = true
 eframe.workspace = true
 
-[dev-dependencies]
-# Tests check the scene's test cube matches the renderer's.
-scene.workspace = true
-
 [lints]
 workspace = true

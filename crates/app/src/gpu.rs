@@ -4,7 +4,9 @@
 use eframe::egui;
 use eframe::egui_wgpu::RenderState;
 use eframe::wgpu;
-use render::{FrameParams, PickRequest, Shape, ViewportRenderer as GpuRenderer, ViewportTarget};
+use render::{
+    FrameParams, MeshInstance, PickRequest, Shape, ViewportRenderer as GpuRenderer, ViewportTarget,
+};
 use ui::{PickAsk, PickReply, Picked, VIEW_COUNT, ViewportRenderer, ViewportView};
 
 /// The image one view is drawn into, and the egui texture showing it.
@@ -21,9 +23,8 @@ pub struct GpuViewport {
     state: RenderState,
     renderer: GpuRenderer,
     images: [Option<SlotImage>; VIEW_COUNT],
-    /// Whether the renderer holds the test cube (it starts with it), or
-    /// nothing because the cube is hidden or deleted.
-    holds_test_cube: bool,
+    /// The version of the scene drawing the renderer holds, if any.
+    uploaded: Option<u64>,
 }
 
 impl GpuViewport {
@@ -34,7 +35,7 @@ impl GpuViewport {
             renderer: GpuRenderer::new(&state.device, samples),
             state: state.clone(),
             images: std::array::from_fn(|_| None),
-            holds_test_cube: true,
+            uploaded: None,
         }
     }
 
@@ -102,14 +103,20 @@ impl ViewportRenderer for GpuViewport {
             flat_height: view.flat_height,
             grid_plane: view.grid_plane,
         };
-        if view.test_cube != self.holds_test_cube {
-            let shape = if view.test_cube {
-                Shape::test_cube()
-            } else {
-                Shape::default()
-            };
+        if self.uploaded != Some(view.scene.version) {
+            let instances: Vec<MeshInstance<'_>> = view
+                .scene
+                .items
+                .iter()
+                .map(|item| MeshInstance {
+                    mesh: &item.mesh,
+                    transform: item.transform,
+                    selected: item.selected,
+                })
+                .collect();
+            let shape = Shape::from_meshes(&instances);
             self.renderer.set_shape(&self.state.device, &shape);
-            self.holds_test_cube = view.test_cube;
+            self.uploaded = Some(view.scene.version);
         }
         const FAILED: &str = "the viewport image could not be created";
         self.prepare_image(view.slot, view.size_px).ok_or(FAILED)?;
@@ -152,20 +159,5 @@ impl ViewportRenderer for GpuViewport {
             answer,
             waiting: self.renderer.is_picking(),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn framing_knows_the_cube_the_renderer_draws() {
-        // The scene's test cube object and the cube the renderer draws
-        // must be the same box.
-        let scene = scene::TEST_CUBE;
-        let side = render::TEST_CUBE_SIZE;
-        assert_eq!(scene.size().to_array(), [side; 3]);
-        assert_eq!(scene.min.z, 0.0, "standing on the grid");
-        assert_eq!(scene.centre().x, 0.0);
-        assert_eq!(scene.centre().y, 0.0);
     }
 }

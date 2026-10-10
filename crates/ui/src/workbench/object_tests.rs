@@ -1,7 +1,7 @@
 //! Tests for the Object Manager, undo and redo, run through the real
 //! interface without a window.
 
-use super::tests::{State, TestRenderer, fresh, harness_with, info, main_menu, quick_harness};
+use super::tests::{State, empty, fresh, main_menu, quick_harness};
 use super::*;
 use egui::{Event, PointerButton, Pos2};
 use egui_kittest::Harness;
@@ -123,15 +123,16 @@ fn with_a_group() -> Harness<'static, State> {
     harness.run();
     harness.get_by_label("Group").click();
     harness.run();
-    assert_eq!(top_level_names(&harness), ["Group", "Test cube"]);
+    assert_eq!(top_level_names(&harness), ["Group", "Cube"]);
     harness
 }
 
-/// Whether the last frame drew the test cube.
+/// Whether the last frame drew the cube (and so something).
 fn cube_drawn(harness: &mut Harness<'static, State>) -> bool {
     harness.state_mut().renderer.drawn.clear();
     harness.step();
-    harness.state().renderer.drawn.iter().all(|v| v.test_cube)
+    let drawn = &harness.state().renderer.drawn;
+    !drawn.is_empty() && drawn.iter().all(|v| !v.scene.items.is_empty())
 }
 
 const SHIFT: Modifiers = Modifiers::SHIFT;
@@ -139,11 +140,11 @@ const SHIFT: Modifiers = Modifiers::SHIFT;
 // ------------------------------------------------------------- the tree ---
 
 #[test]
-fn the_scene_starts_with_the_test_cube_listed() {
+fn a_cube_is_listed_with_its_eye() {
     let mut harness = fresh();
-    assert!(harness.query_by_label("Test cube").is_some());
+    assert!(harness.query_by_label("Cube").is_some());
     assert!(
-        harness.query_by_label("Hide Test cube").is_some(),
+        harness.query_by_label("Hide Cube").is_some(),
         "with its eye"
     );
     assert!(selected_names(&harness).is_empty());
@@ -153,8 +154,8 @@ fn the_scene_starts_with_the_test_cube_listed() {
 #[test]
 fn clicking_a_row_selects_it_and_the_status_bar_counts() {
     let mut harness = fresh();
-    click_row(&mut harness, "Test cube", Modifiers::NONE);
-    assert_eq!(selected_names(&harness), ["Test cube"]);
+    click_row(&mut harness, "Cube", Modifiers::NONE);
+    assert_eq!(selected_names(&harness), ["Cube"]);
     assert!(
         harness
             .query_by_label_contains("1 object selected")
@@ -168,12 +169,12 @@ fn ctrl_click_adds_and_shift_click_selects_a_run() {
     // Three objects: Group 2, Group, Test cube.
     harness.get_by_label("Create group").click();
     harness.run();
-    assert_eq!(top_level_names(&harness), ["Group 2", "Group", "Test cube"]);
+    assert_eq!(top_level_names(&harness), ["Group 2", "Group", "Cube"]);
 
     click_row(&mut harness, "Group 2", Modifiers::NONE);
-    click_row(&mut harness, "Test cube", Modifiers::COMMAND);
-    assert_eq!(selected_names(&harness), ["Group 2", "Test cube"]);
-    click_row(&mut harness, "Test cube", Modifiers::COMMAND);
+    click_row(&mut harness, "Cube", Modifiers::COMMAND);
+    assert_eq!(selected_names(&harness), ["Group 2", "Cube"]);
+    click_row(&mut harness, "Cube", Modifiers::COMMAND);
     assert_eq!(
         selected_names(&harness),
         ["Group 2"],
@@ -182,14 +183,14 @@ fn ctrl_click_adds_and_shift_click_selects_a_run() {
 
     // Shift+click selects from the last row clicked.
     click_row(&mut harness, "Group 2", Modifiers::NONE);
-    click_row(&mut harness, "Test cube", SHIFT);
-    assert_eq!(selected_names(&harness), ["Group 2", "Group", "Test cube"]);
+    click_row(&mut harness, "Cube", SHIFT);
+    assert_eq!(selected_names(&harness), ["Group 2", "Group", "Cube"]);
 }
 
 #[test]
 fn clicking_empty_space_or_esc_selects_nothing() {
     let mut harness = fresh();
-    click_row(&mut harness, "Test cube", Modifiers::NONE);
+    click_row(&mut harness, "Cube", Modifiers::NONE);
     let below = harness.get_by_label("Empty space below the objects").rect();
     click_at(
         &mut harness,
@@ -198,7 +199,7 @@ fn clicking_empty_space_or_esc_selects_nothing() {
         Modifiers::NONE,
     );
     assert!(selected_names(&harness).is_empty());
-    click_row(&mut harness, "Test cube", Modifiers::NONE);
+    click_row(&mut harness, "Cube", Modifiers::NONE);
     key(&mut harness, Modifiers::NONE, Key::Escape);
     assert!(selected_names(&harness).is_empty());
 }
@@ -206,7 +207,7 @@ fn clicking_empty_space_or_esc_selects_nothing() {
 #[test]
 fn the_fold_arrow_hides_and_shows_whats_inside() {
     let mut harness = with_a_group();
-    let cube = id_of(&harness, "Test cube");
+    let cube = id_of(&harness, "Cube");
     let group = id_of(&harness, "Group");
     harness
         .state_mut()
@@ -219,13 +220,13 @@ fn the_fold_arrow_hides_and_shows_whats_inside() {
         })
         .unwrap();
     harness.run();
-    assert!(row(&harness, "Test cube").min.y > row(&harness, "Group").min.y);
+    assert!(row(&harness, "Cube").min.y > row(&harness, "Group").min.y);
     harness.get_by_label("Fold Group").click();
     harness.run();
-    assert!(harness.query_by_label("Test cube").is_none(), "folded away");
+    assert!(harness.query_by_label("Cube").is_none(), "folded away");
     harness.get_by_label("Unfold Group").click();
     harness.run();
-    assert!(harness.query_by_label("Test cube").is_some());
+    assert!(harness.query_by_label("Cube").is_some());
 }
 
 // ---------------------------------------------------- create and delete ---
@@ -241,19 +242,19 @@ fn the_palette_and_object_menu_create_groups_too() {
     let mut harness = fresh();
     harness.get_by_label("Create group").click();
     harness.run();
-    assert_eq!(top_level_names(&harness), ["Group", "Test cube"]);
+    assert_eq!(top_level_names(&harness), ["Group", "Cube"]);
     harness.get_by_label("Object").click();
     harness.run();
     harness.get_by_label("New group").click();
     harness.run();
-    assert_eq!(top_level_names(&harness), ["Group 2", "Group", "Test cube"]);
+    assert_eq!(top_level_names(&harness), ["Group 2", "Group", "Cube"]);
 }
 
 #[test]
 fn delete_and_backspace_delete_the_selection() {
     for delete in [Key::Delete, Key::Backspace] {
         let mut harness = fresh();
-        click_row(&mut harness, "Test cube", Modifiers::NONE);
+        click_row(&mut harness, "Cube", Modifiers::NONE);
         key(&mut harness, Modifiers::NONE, delete);
         assert!(top_level_names(&harness).is_empty(), "{delete:?}");
         assert!(harness.query_by_label("No objects yet").is_some());
@@ -264,21 +265,18 @@ fn delete_and_backspace_delete_the_selection() {
 #[test]
 fn delete_with_nothing_selected_does_nothing() {
     let mut harness = fresh();
+    let steps = harness.state().workbench.document().undo_steps();
     key(&mut harness, Modifiers::NONE, Key::Delete);
-    assert_eq!(top_level_names(&harness), ["Test cube"]);
-    assert_eq!(harness.state().workbench.document().undo_label(), None);
+    assert_eq!(top_level_names(&harness), ["Cube"]);
+    assert_eq!(harness.state().workbench.document().undo_steps(), steps);
 }
 
 #[test]
 fn the_right_click_menu_deletes_the_row_clicked() {
     let mut harness = with_a_group();
-    let at = row(&harness, "Test cube").center();
+    let at = row(&harness, "Cube").center();
     click_at(&mut harness, at, PointerButton::Secondary, Modifiers::NONE);
-    assert_eq!(
-        selected_names(&harness),
-        ["Test cube"],
-        "right-click selects it"
-    );
+    assert_eq!(selected_names(&harness), ["Cube"], "right-click selects it");
     // The entry's name includes its key.
     harness.get_by_label_contains("Delete").click();
     harness.run();
@@ -291,26 +289,26 @@ fn the_right_click_menu_deletes_the_row_clicked() {
 fn ctrl_z_undoes_and_ctrl_y_or_ctrl_shift_z_redo() {
     let mut harness = with_a_group();
     key(&mut harness, Modifiers::COMMAND, Key::Z);
-    assert_eq!(top_level_names(&harness), ["Test cube"]);
+    assert_eq!(top_level_names(&harness), ["Cube"]);
     assert!(
         harness
             .query_by_label_contains("Undone: Create group")
             .is_some()
     );
     key(&mut harness, Modifiers::COMMAND, Key::Y);
-    assert_eq!(top_level_names(&harness), ["Group", "Test cube"]);
+    assert_eq!(top_level_names(&harness), ["Group", "Cube"]);
     key(&mut harness, Modifiers::COMMAND, Key::Z);
     key(&mut harness, Modifiers::COMMAND | Modifiers::SHIFT, Key::Z);
-    assert_eq!(top_level_names(&harness), ["Group", "Test cube"]);
+    assert_eq!(top_level_names(&harness), ["Group", "Cube"]);
 }
 
 #[test]
 fn undo_brings_back_a_deleted_cube() {
     let mut harness = fresh();
-    click_row(&mut harness, "Test cube", Modifiers::NONE);
+    click_row(&mut harness, "Cube", Modifiers::NONE);
     key(&mut harness, Modifiers::NONE, Key::Delete);
     key(&mut harness, Modifiers::COMMAND, Key::Z);
-    assert_eq!(top_level_names(&harness), ["Test cube"]);
+    assert_eq!(top_level_names(&harness), ["Cube"]);
     assert!(cube_drawn(&mut harness));
 }
 
@@ -323,12 +321,12 @@ fn the_edit_menu_names_what_undo_would_do() {
     assert!(!undo.accesskit_node().is_disabled());
     undo.click();
     harness.run();
-    assert_eq!(top_level_names(&harness), ["Test cube"]);
+    assert_eq!(top_level_names(&harness), ["Cube"]);
 }
 
 #[test]
 fn undo_and_redo_buttons_wait_for_something_to_do() {
-    let mut harness = fresh();
+    let mut harness = empty();
     assert!(
         harness.get_by_label("Undo").accesskit_node().is_disabled(),
         "nothing to undo yet"
@@ -337,10 +335,10 @@ fn undo_and_redo_buttons_wait_for_something_to_do() {
     harness.run();
     harness.get_by_label("Undo").click();
     harness.run();
-    assert_eq!(top_level_names(&harness), ["Test cube"]);
+    assert!(top_level_names(&harness).is_empty());
     harness.get_by_label("Redo").click();
     harness.run();
-    assert_eq!(top_level_names(&harness), ["Group", "Test cube"]);
+    assert_eq!(top_level_names(&harness), ["Group"]);
 }
 
 // ----------------------------------------------------------- show/hide ---
@@ -348,11 +346,11 @@ fn undo_and_redo_buttons_wait_for_something_to_do() {
 #[test]
 fn the_eye_hides_and_shows_in_the_viewport() {
     let mut harness = fresh();
-    harness.get_by_label("Hide Test cube").click();
+    harness.get_by_label("Hide Cube").click();
     harness.run();
     assert!(!cube_drawn(&mut harness));
-    assert!(harness.query_by_label("Show Test cube").is_some());
-    harness.get_by_label("Show Test cube").click();
+    assert!(harness.query_by_label("Show Cube").is_some());
+    harness.get_by_label("Show Cube").click();
     harness.run();
     assert!(cube_drawn(&mut harness));
     key(&mut harness, Modifiers::COMMAND, Key::Z);
@@ -362,14 +360,14 @@ fn the_eye_hides_and_shows_in_the_viewport() {
 #[test]
 fn hiding_a_group_hides_whats_inside() {
     let mut harness = fresh();
-    click_row(&mut harness, "Test cube", Modifiers::NONE);
+    click_row(&mut harness, "Cube", Modifiers::NONE);
     key(&mut harness, Modifiers::ALT, Key::G);
     assert_eq!(top_level_names(&harness), ["Group"]);
     harness.get_by_label("Hide Group").click();
     harness.run();
     assert!(!cube_drawn(&mut harness));
     assert!(
-        harness.query_by_label("Hide Test cube").is_some(),
+        harness.query_by_label("Hide Cube").is_some(),
         "the cube's own switch is still on"
     );
 }
@@ -379,24 +377,28 @@ fn hiding_a_group_hides_whats_inside() {
 #[test]
 fn alt_g_groups_and_shift_g_ungroups() {
     let mut harness = fresh();
-    click_row(&mut harness, "Test cube", Modifiers::NONE);
+    click_row(&mut harness, "Cube", Modifiers::NONE);
     key(&mut harness, Modifiers::ALT, Key::G);
     assert_eq!(top_level_names(&harness), ["Group"]);
     assert_eq!(selected_names(&harness), ["Group"]);
     key(&mut harness, SHIFT, Key::G);
-    assert_eq!(top_level_names(&harness), ["Test cube"]);
-    assert_eq!(selected_names(&harness), ["Test cube"]);
+    assert_eq!(top_level_names(&harness), ["Cube"]);
+    assert_eq!(selected_names(&harness), ["Cube"]);
 }
 
 #[test]
 fn shift_g_leaves_objects_that_are_not_groups_alone() {
     // Regression: Shift+G with the cube selected deleted the cube.
     let mut harness = fresh();
-    click_row(&mut harness, "Test cube", Modifiers::NONE);
+    click_row(&mut harness, "Cube", Modifiers::NONE);
     key(&mut harness, SHIFT, Key::G);
-    assert_eq!(top_level_names(&harness), ["Test cube"]);
+    assert_eq!(top_level_names(&harness), ["Cube"]);
     assert!(cube_drawn(&mut harness));
-    assert_eq!(harness.state().workbench.document().undo_label(), None);
+    assert_eq!(
+        harness.state().workbench.document().undo_label(),
+        Some("Create cube"),
+        "nothing new to undo"
+    );
     assert!(
         harness
             .query_by_label_contains("only groups can be ungrouped")
@@ -418,7 +420,7 @@ fn shift_g_leaves_objects_that_are_not_groups_alone() {
 #[test]
 fn double_clicking_a_name_renames_it() {
     let mut harness = quick_harness();
-    double_click_row(&mut harness, "Test cube");
+    double_click_row(&mut harness, "Cube");
     assert!(harness.state().workbench.object_manager().is_renaming());
     // The old name is selected, so typing replaces it.
     harness.event(Event::Text("Crate".into()));
@@ -427,33 +429,29 @@ fn double_clicking_a_name_renames_it() {
     assert_eq!(top_level_names(&harness), ["Crate"]);
     assert!(!harness.state().workbench.object_manager().is_renaming());
     key(&mut harness, Modifiers::COMMAND, Key::Z);
-    assert_eq!(
-        top_level_names(&harness),
-        ["Test cube"],
-        "renaming is undoable"
-    );
+    assert_eq!(top_level_names(&harness), ["Cube"], "renaming is undoable");
 }
 
 #[test]
 fn esc_while_renaming_keeps_the_old_name() {
     let mut harness = quick_harness();
-    double_click_row(&mut harness, "Test cube");
+    double_click_row(&mut harness, "Cube");
     harness.event(Event::Text("Crate".into()));
     harness.run();
     key(&mut harness, Modifiers::NONE, Key::Escape);
-    assert_eq!(top_level_names(&harness), ["Test cube"]);
+    assert_eq!(top_level_names(&harness), ["Cube"]);
     assert!(!harness.state().workbench.object_manager().is_renaming());
 }
 
 #[test]
 fn keys_type_into_the_name_instead_of_deleting() {
     let mut harness = quick_harness();
-    double_click_row(&mut harness, "Test cube");
+    double_click_row(&mut harness, "Cube");
     key(&mut harness, Modifiers::NONE, Key::Backspace);
     key(&mut harness, Modifiers::NONE, Key::Delete);
     assert_eq!(
         top_level_names(&harness),
-        ["Test cube"],
+        ["Cube"],
         "the object is still there"
     );
 }
@@ -461,10 +459,10 @@ fn keys_type_into_the_name_instead_of_deleting() {
 #[test]
 fn an_empty_name_is_refused_and_explained() {
     let mut harness = quick_harness();
-    double_click_row(&mut harness, "Test cube");
+    double_click_row(&mut harness, "Cube");
     key(&mut harness, Modifiers::NONE, Key::Backspace);
     key(&mut harness, Modifiers::NONE, Key::Enter);
-    assert_eq!(top_level_names(&harness), ["Test cube"]);
+    assert_eq!(top_level_names(&harness), ["Cube"]);
     assert!(
         harness
             .query_by_label_contains("a name can't be empty")
@@ -475,7 +473,7 @@ fn an_empty_name_is_refused_and_explained() {
 #[test]
 fn the_edit_menu_starts_renaming_the_selected_object() {
     let mut harness = fresh();
-    click_row(&mut harness, "Test cube", Modifiers::NONE);
+    click_row(&mut harness, "Cube", Modifiers::NONE);
     main_menu(&harness, "Edit").click();
     harness.run();
     harness.get_by_label("Rename").click();
@@ -488,17 +486,17 @@ fn the_edit_menu_starts_renaming_the_selected_object() {
 #[test]
 fn dragging_a_row_onto_another_puts_it_inside() {
     let mut harness = with_a_group();
-    let from = row(&harness, "Test cube").center();
+    let from = row(&harness, "Cube").center();
     let to = row(&harness, "Group").center();
     drag(&mut harness, from, to);
     assert_eq!(top_level_names(&harness), ["Group"]);
     let scene = harness.state().workbench.document().scene();
     assert_eq!(
-        scene.parent(id_of(&harness, "Test cube")),
+        scene.parent(id_of(&harness, "Cube")),
         Some(id_of(&harness, "Group"))
     );
     assert!(
-        harness.query_by_label("Test cube").is_some(),
+        harness.query_by_label("Cube").is_some(),
         "the group opens to show it"
     );
 }
@@ -506,37 +504,37 @@ fn dragging_a_row_onto_another_puts_it_inside() {
 #[test]
 fn dragging_to_the_top_edge_of_a_row_puts_it_above() {
     let mut harness = with_a_group();
-    let from = row(&harness, "Test cube").center();
+    let from = row(&harness, "Cube").center();
     let group = row(&harness, "Group");
     drag(
         &mut harness,
         from,
         group.center_top() + egui::vec2(0.0, 2.0),
     );
-    assert_eq!(top_level_names(&harness), ["Test cube", "Group"]);
+    assert_eq!(top_level_names(&harness), ["Cube", "Group"]);
 }
 
 #[test]
 fn dragging_into_empty_space_moves_it_out_to_the_top_level() {
     let mut harness = with_a_group();
-    let from = row(&harness, "Test cube").center();
+    let from = row(&harness, "Cube").center();
     let to = row(&harness, "Group").center();
     drag(&mut harness, from, to);
     let below = harness.get_by_label("Empty space below the objects").rect();
-    let from = row(&harness, "Test cube").center();
+    let from = row(&harness, "Cube").center();
     drag(&mut harness, from, below.center());
-    assert_eq!(top_level_names(&harness), ["Group", "Test cube"]);
+    assert_eq!(top_level_names(&harness), ["Group", "Cube"]);
 }
 
 #[test]
 fn a_group_cannot_be_dropped_inside_itself() {
     let mut harness = with_a_group();
-    let from = row(&harness, "Test cube").center();
+    let from = row(&harness, "Cube").center();
     let to = row(&harness, "Group").center();
     drag(&mut harness, from, to);
     let before = harness.state().workbench.document().scene().clone();
     let from = row(&harness, "Group").center();
-    let to = row(&harness, "Test cube").center();
+    let to = row(&harness, "Cube").center();
     drag(&mut harness, from, to);
     assert_eq!(*harness.state().workbench.document().scene(), before);
 }
@@ -554,18 +552,118 @@ fn f_frames_the_selected_objects() {
         .navigator_mut()
         .pan(glam::Vec2::new(4000.0, 0.0), 400.0);
     harness.run();
-    click_row(&mut harness, "Test cube", Modifiers::NONE);
+    click_row(&mut harness, "Cube", Modifiers::NONE);
     harness.key_press(Key::F);
     harness.run();
     let pivot = harness.state().workbench.viewport().navigator().pivot();
-    assert_eq!(pivot, scene::TEST_CUBE.centre());
+    assert_eq!(pivot, crate::DEFAULT_FRAME.centre());
+}
+
+// ----------------------------------------------------------- primitives ---
+
+/// The scene items the last frame drew, by name, and whether each was
+/// selected.
+fn drawn_items(harness: &mut Harness<'static, State>) -> Vec<(String, bool)> {
+    harness.state_mut().renderer.drawn.clear();
+    harness.step();
+    let doc = harness.state().workbench.document();
+    let last = harness.state().renderer.drawn.last().cloned().unwrap();
+    last.scene
+        .items
+        .iter()
+        .map(|i| (doc.scene().object(i.id).unwrap().name.clone(), i.selected))
+        .collect()
 }
 
 #[test]
-fn a_new_window_shows_the_cube_through_the_real_renderer_interface() {
-    // Sanity check that the stand-in renderer sees the cube setting.
-    let renderer = TestRenderer::default();
-    let mut harness = harness_with(Workbench::new(info(), None), renderer);
+fn a_new_window_starts_with_an_empty_scene() {
+    let mut harness = empty();
+    assert!(top_level_names(&harness).is_empty());
+    assert!(drawn_items(&mut harness).is_empty());
+    assert!(harness.query_by_label("No objects yet").is_some());
+}
+
+#[test]
+fn the_create_menu_makes_every_primitive() {
+    let mut harness = empty();
+    for kind in scene::PrimitiveKind::ALL {
+        main_menu(&harness, "Create").click();
+        harness.run();
+        harness.get_by_label(kind.name()).click();
+        harness.run();
+        assert_eq!(top_level_names(&harness)[0], kind.name());
+        assert_eq!(selected_names(&harness), [kind.name()], "new and selected");
+    }
+    let drawn = drawn_items(&mut harness);
+    assert_eq!(drawn.len(), 7, "every one is drawn");
+    assert_eq!(drawn[0], ("Cone".to_string(), true), "the newest, selected");
+    assert!(drawn[1..].iter().all(|(_, selected)| !selected));
+}
+
+#[test]
+fn the_palette_shape_buttons_create_primitives() {
+    let mut harness = empty();
+    for (button, name) in [
+        ("Create cube", "Cube"),
+        ("Create cylinder", "Cylinder"),
+        ("Create plane", "Plane"),
+        ("Create sphere", "Sphere"),
+    ] {
+        harness.get_by_label(button).click();
+        harness.run();
+        assert_eq!(top_level_names(&harness)[0], name);
+    }
+    key(&mut harness, Modifiers::COMMAND, Key::Z);
+    assert_eq!(top_level_names(&harness), ["Plane", "Cylinder", "Cube"]);
+}
+
+#[test]
+fn new_shapes_of_the_same_kind_get_numbers() {
+    let mut harness = fresh();
+    harness.get_by_label("Create cube").click();
     harness.run();
-    assert!(cube_drawn(&mut harness));
+    assert_eq!(top_level_names(&harness), ["Cube 2", "Cube"]);
+}
+
+#[test]
+fn selecting_a_row_marks_the_object_in_the_viewport_and_attributes() {
+    let mut harness = fresh();
+    assert_eq!(drawn_items(&mut harness), [("Cube".to_string(), false)]);
+    click_row(&mut harness, "Cube", Modifiers::NONE);
+    assert_eq!(drawn_items(&mut harness), [("Cube".to_string(), true)]);
+    assert!(harness.query_by_label("Selected: Cube").is_some());
+}
+
+#[test]
+fn shapes_inside_a_group_move_with_it() {
+    // The drawing places each object by its parents' transforms too.
+    let mut harness = fresh();
+    let cube = id_of(&harness, "Cube");
+    let mut group = scene::Object::new(scene::ObjectKind::Group);
+    group.transform.position = glam::Vec3::new(300.0, 0.0, 0.0);
+    let document = harness.state_mut().workbench.document_mut();
+    document
+        .execute(scene::Command::Insert {
+            object: group,
+            place: scene::Place {
+                parent: None,
+                index: 0,
+            },
+        })
+        .unwrap();
+    let group = document.selection()[0];
+    document
+        .execute(scene::Command::Move {
+            ids: vec![cube],
+            parent: Some(group),
+            index: 0,
+        })
+        .unwrap();
+    harness.state_mut().renderer.drawn.clear();
+    harness.step();
+    let last = harness.state().renderer.drawn.last().cloned().unwrap();
+    let moved = last.scene.items[0]
+        .transform
+        .transform_point3(glam::Vec3::ZERO);
+    assert_eq!(moved, glam::Vec3::new(300.0, 0.0, 0.0));
 }

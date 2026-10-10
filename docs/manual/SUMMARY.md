@@ -10,7 +10,8 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Objects and the Object Manager: select, rename, group, hide, delete, and undo](objects.md)
 
 ## Modelling
-- *Pages are added here as tools are built.*
+- [Primitives: cube, plane, cylinder, sphere, disc, tube and cone](primitives.md)
+- *More pages are added here as tools are built.*
 
 ## UVs
 - *Pages are added here as UV tools are built.*

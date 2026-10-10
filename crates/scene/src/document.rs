@@ -2,8 +2,8 @@
 
 use crate::command::{self, Command};
 use crate::history::{History, Step};
-use crate::object::{Object, ObjectId, ObjectKind};
-use crate::tree::{Place, Scene, SceneError};
+use crate::object::ObjectId;
+use crate::tree::{Scene, SceneError};
 use std::collections::BTreeSet;
 
 /// Everything about the scene being worked on. The scene only changes
@@ -14,30 +14,15 @@ pub struct Document {
     scene: Scene,
     history: History,
     selection: BTreeSet<ObjectId>,
+    /// Goes up whenever the scene changes, so whoever draws it knows when
+    /// to rebuild what it shows.
+    revision: u64,
 }
 
 impl Document {
     /// An empty document.
     pub fn new() -> Self {
         Self::default()
-    }
-
-    /// The scene the app opens with until projects can be opened: the
-    /// test cube, with nothing to undo.
-    pub fn starting_scene() -> Self {
-        let mut document = Self::new();
-        let cube = Command::Insert {
-            object: Object::new(ObjectKind::TestCube),
-            place: Place {
-                parent: None,
-                index: 0,
-            },
-        };
-        // Inserting into an empty scene cannot fail.
-        let _ = document.execute(cube);
-        document.history = History::default();
-        document.selection.clear();
-        document
     }
 
     /// The scene, for reading.
@@ -56,6 +41,7 @@ impl Document {
         }
         self.drop_missing_from_selection();
         if !applied.edits.is_empty() {
+            self.revision += 1;
             self.history.record(Step {
                 label,
                 edits: applied.edits,
@@ -81,6 +67,7 @@ impl Document {
             }
         }
         self.drop_missing_from_selection();
+        self.revision += 1;
         let label = step.label.clone();
         self.history.push_redo(step);
         Some(label)
@@ -100,6 +87,7 @@ impl Document {
             }
         }
         self.drop_missing_from_selection();
+        self.revision += 1;
         let label = step.label.clone();
         self.history.push_undo(step);
         Some(label)
@@ -118,6 +106,12 @@ impl Document {
     /// How many steps can be undone.
     pub fn undo_steps(&self) -> usize {
         self.history.undo_len()
+    }
+
+    /// A number that goes up every time the scene changes (not the
+    /// selection): a cheap way to tell whether anything needs redrawing.
+    pub fn revision(&self) -> u64 {
+        self.revision
     }
 
     /// The selected objects, top to bottom as the Object Manager lists

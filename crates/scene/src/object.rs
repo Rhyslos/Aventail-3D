@@ -1,7 +1,7 @@
 //! Objects: what the scene is made of.
 
 use glam::{Mat4, Vec3};
-use mesh::Bounds;
+use mesh::{Bounds, Mesh, Primitive};
 
 /// An object's identity. Stable for the object's whole life, never reused
 /// for another object (even after it is deleted), and handed out in order,
@@ -22,40 +22,44 @@ impl std::fmt::Display for ObjectId {
     }
 }
 
-/// The 2 m test cube's box: standing on the ground, centred on the origin.
-/// The renderer draws the same cube (the app's tests check they match).
-pub const TEST_CUBE: Bounds = Bounds {
-    min: Vec3::new(-100.0, -100.0, 0.0),
-    max: Vec3::new(100.0, 100.0, 200.0),
-};
-
-/// What kind of object something is. More kinds (primitives, meshes, and
-/// much later joints) join this list; nothing assumes it is complete.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+/// What kind of object something is. More kinds (imported and editable
+/// meshes, and much later joints) join this list; nothing assumes it is
+/// complete.
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[non_exhaustive]
 pub enum ObjectKind {
     /// An empty object that holds others: a way to organise the scene and
     /// move things together. Has no shape of its own.
     Group,
-    /// The 2 m test cube shown until real primitives exist.
-    TestCube,
+    /// A ready-made shape built from settings (its *base*): a cube,
+    /// cylinder and so on. The settings stay editable.
+    Primitive(Primitive),
 }
 
 impl ObjectKind {
-    /// The kind's name, used for new objects ("Group", "Test cube").
-    pub fn name(self) -> &'static str {
+    /// The kind's name, used for new objects ("Group", "Cube").
+    pub fn name(&self) -> &'static str {
         match self {
             Self::Group => "Group",
-            Self::TestCube => "Test cube",
+            Self::Primitive(p) => p.name(),
         }
     }
 
     /// The object's own shape's box, in its own space, or `None` for a
     /// kind with no shape.
-    pub fn local_bounds(self) -> Option<Bounds> {
+    pub fn local_bounds(&self) -> Option<Bounds> {
         match self {
             Self::Group => None,
-            Self::TestCube => Some(TEST_CUBE),
+            Self::Primitive(p) => Some(p.bounds()),
+        }
+    }
+
+    /// The object's own shape, in its own space, or `None` for a kind with
+    /// no shape.
+    pub fn mesh(&self) -> Option<Mesh> {
+        match self {
+            Self::Group => None,
+            Self::Primitive(p) => Some(p.mesh()),
         }
     }
 }
@@ -134,7 +138,12 @@ mod tests {
         assert!(group.visible);
         assert_eq!(group.transform, Transform::default());
         assert_eq!(group.kind.local_bounds(), None);
-        assert_eq!(ObjectKind::TestCube.local_bounds(), Some(TEST_CUBE));
+        assert_eq!(group.kind.mesh(), None);
+        let cube = Object::new(ObjectKind::Primitive(Primitive::Cube(Default::default())));
+        assert_eq!(cube.name, "Cube");
+        let bounds = cube.kind.local_bounds().unwrap();
+        assert_eq!(bounds.size(), glam::Vec3::splat(200.0));
+        assert_eq!(cube.kind.mesh().unwrap().face_count(), 6);
     }
 
     #[test]

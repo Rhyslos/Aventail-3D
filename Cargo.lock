@@ -199,7 +199,6 @@ version = "0.0.1"
 dependencies = [
  "eframe",
  "render",
- "scene",
  "ui",
 ]
 
@@ -2703,6 +2702,7 @@ version = "0.0.1"
 dependencies = [
  "bytemuck",
  "glam",
+ "mesh",
  "pollster",
  "tools",
  "wgpu",

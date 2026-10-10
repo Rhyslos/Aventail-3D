@@ -205,9 +205,14 @@ fn face_vs(in: FaceIn) -> FaceOut {
 //   rounds off silhouettes;
 // - slightly darker shading close to the ground, as if the floor blocks a
 //   little light, so shapes sit on the grid instead of floating.
+//
+// Faces are drawn from both sides; seen from behind (the underside of a
+// plane, the inside of an open cylinder) the light treats the back as the
+// front, a little darker, so the inside of a shape still reads as inside.
 @fragment
-fn face_fs(in: FaceOut) -> @location(0) vec4<f32> {
-    let n = normalize(in.normal);
+fn face_fs(in: FaceOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
+    let n = select(-normalize(in.normal), normalize(in.normal), front);
+    let back = select(0.8, 1.0, front);
     let to_camera = normalize(frame.camera.xyz - in.world);
 
     let key = normalize(vec3<f32>(-0.3, -0.35, 0.9));
@@ -219,6 +224,6 @@ fn face_fs(in: FaceOut) -> @location(0) vec4<f32> {
     let rim = 0.06 * pow(1.0 - facing, 3.0);
     let contact = mix(0.80, 1.0, smoothstep(0.0, 80.0, in.world.z));
 
-    let shade = (fill + 0.5 * diffuse + headlight) * contact + rim;
+    let shade = ((fill + 0.5 * diffuse + headlight) * contact + rim) * back;
     return vec4<f32>(in.color.rgb * shade, in.color.a);
 }

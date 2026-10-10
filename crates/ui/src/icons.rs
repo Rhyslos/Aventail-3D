@@ -70,10 +70,16 @@ pub enum Icon {
     Shown,
     /// Hidden from the viewport: a closed eye.
     Hidden,
+    /// The disc primitive: a flat circle seen at an angle.
+    Disc,
+    /// The tube primitive: a cylinder with a hole.
+    Tube,
+    /// The cone primitive.
+    Cone,
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 29] = [
+pub const ALL: [Icon; 32] = [
     Icon::Undo,
     Icon::Redo,
     Icon::LiveSelection,
@@ -103,6 +109,9 @@ pub const ALL: [Icon; 29] = [
     Icon::Mouse,
     Icon::Shown,
     Icon::Hidden,
+    Icon::Disc,
+    Icon::Tube,
+    Icon::Cone,
 ];
 
 /// Draws `icon` into `rect` in `color`.
@@ -291,6 +300,25 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         Icon::Sphere => {
             pen.ellipse((12.0, 12.0), (9.0, 9.0));
             pen.ellipse((12.0, 12.0), (9.0, 3.5));
+        }
+        Icon::Disc => {
+            pen.ellipse((12.0, 12.0), (9.0, 4.5));
+            pen.dot(12.0, 12.0, 1.2);
+        }
+        Icon::Tube => {
+            pen.ellipse((12.0, 5.5), (8.0, 3.0));
+            pen.ellipse((12.0, 5.5), (4.0, 1.5));
+            pen.polyline(&[(4.0, 5.5), (4.0, 18.5)]);
+            pen.polyline(&[(20.0, 5.5), (20.0, 18.5)]);
+            let bottom = pen.arc((12.0, 18.5), (8.0, 3.0), 0.0, PI);
+            pen.line(bottom);
+        }
+        Icon::Cone => {
+            pen.polyline(&[(4.0, 18.5), (12.0, 3.0), (20.0, 18.5)]);
+            let bottom = pen.arc((12.0, 18.5), (8.0, 3.0), 0.0, PI);
+            pen.line(bottom);
+            let back = pen.arc((12.0, 18.5), (8.0, 3.0), PI, TAU);
+            pen.line(back);
         }
         Icon::Null => {
             pen.polyline(&[(12.0, 3.0), (12.0, 21.0)]);

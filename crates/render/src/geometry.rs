@@ -2,7 +2,8 @@
 //! fixed pieces every viewport shows (the ground axes, the test cube).
 
 use bytemuck::{Pod, Zeroable};
-use glam::Vec3;
+use glam::{Mat3, Mat4, Vec3};
+use mesh::Mesh;
 
 /// One end of a line, as the line shader reads it.
 #[repr(C)]
@@ -59,6 +60,20 @@ pub const Z_AXIS_HEIGHT: f32 = 10_000.0;
 pub const CUBE_COLOR: [f32; 4] = [0.5, 0.5, 0.51, 1.0];
 /// Colour of shape edges, linear space: a faint white line.
 pub const EDGE_COLOR: [f32; 4] = [1.0, 1.0, 1.0, 0.10];
+/// Colour of a selected object's edges, linear space: the orange that
+/// marks selected names in the Object Manager.
+pub const SELECTED_EDGE_COLOR: [f32; 4] = [0.89, 0.37, 0.04, 0.85];
+
+/// One object's mesh, placed in the world, for [`Shape::from_meshes`].
+#[derive(Debug, Clone, Copy)]
+pub struct MeshInstance<'a> {
+    /// The shape, in its own space.
+    pub mesh: &'a Mesh,
+    /// Where it is in the world.
+    pub transform: Mat4,
+    /// Whether it is selected (its edges are drawn in orange).
+    pub selected: bool,
+}
 /// Edge length of the test cube, in centimetres (2 m).
 pub const TEST_CUBE_SIZE: f32 = 200.0;
 
@@ -175,8 +190,56 @@ impl Shape {
         Self { faces, edges }
     }
 
-    /// The test cube shown until real objects exist (Phase 2): 2 m on each
-    /// side, standing on the grid at the origin.
+    /// Every object's faces and edges, placed in the world, ready to draw.
+    /// Shading follows each mesh's hard and soft edges.
+    pub fn from_meshes(instances: &[MeshInstance<'_>]) -> Self {
+        let mut shape = Self::default();
+        for instance in instances {
+            let matrix = instance.transform;
+            if !matrix.is_finite() {
+                continue;
+            }
+            let normal_matrix = Mat3::from_mat4(matrix).inverse().transpose();
+            // A mirrored placement turns faces inside out; swap two corners
+            // so they still face outward.
+            let mirrored = matrix.determinant() < 0.0;
+            for triangle in mesh::shaded_triangles(instance.mesh) {
+                let mut order = [0, 1, 2];
+                if mirrored {
+                    order.swap(1, 2);
+                }
+                for i in order {
+                    let normal = (normal_matrix * triangle.normals[i])
+                        .try_normalize()
+                        .unwrap_or(Vec3::Z);
+                    shape.faces.push(FaceVertex {
+                        position: matrix.transform_point3(triangle.positions[i]).to_array(),
+                        normal: normal.to_array(),
+                        color: CUBE_COLOR,
+                    });
+                }
+            }
+            let color = if instance.selected {
+                SELECTED_EDGE_COLOR
+            } else {
+                EDGE_COLOR
+            };
+            for edge in instance.mesh.edges() {
+                let (a, b) = edge.ends();
+                if let (Some(a), Some(b)) = (instance.mesh.position(a), instance.mesh.position(b)) {
+                    shape.edges.extend(line(
+                        matrix.transform_point3(a),
+                        matrix.transform_point3(b),
+                        color,
+                    ));
+                }
+            }
+        }
+        shape
+    }
+
+    /// The 2 m test cube the renderer starts with (and its tests use): 2 m
+    /// on each side, standing on the grid at the origin.
     pub fn test_cube() -> Self {
         let half = TEST_CUBE_SIZE / 2.0;
         Self::cuboid(
@@ -272,6 +335,82 @@ mod tests {
         let max = zs.iter().cloned().fold(f32::MIN, f32::max);
         assert_eq!(min, 0.0);
         assert_eq!(max, TEST_CUBE_SIZE);
+    }
+
+    #[test]
+    fn meshes_become_faces_and_edges_in_the_world() {
+        let cube = mesh::Primitive::Cube(Default::default()).mesh();
+        let moved = Mat4::from_translation(Vec3::new(500.0, 0.0, 0.0));
+        let shape = Shape::from_meshes(&[MeshInstance {
+            mesh: &cube,
+            transform: moved,
+            selected: false,
+        }]);
+        assert_eq!(
+            shape.faces.len(),
+            6 * 2 * 3,
+            "six quads, two triangles each"
+        );
+        assert_eq!(shape.edges.len(), 12 * 2);
+        let xs: Vec<f32> = shape.faces.iter().map(|v| v.position[0]).collect();
+        assert!(
+            xs.iter().all(|x| (400.0..=600.0).contains(x)),
+            "moved along X"
+        );
+        // The same as the old test cube, apart from the move.
+        let test = Shape::test_cube();
+        assert_eq!(test.faces.len(), shape.faces.len());
+        assert!(shape.edges.iter().all(|e| e.color == EDGE_COLOR));
+    }
+
+    #[test]
+    fn selected_meshes_have_orange_edges_and_several_meshes_add_up() {
+        let cube = mesh::Primitive::Cube(Default::default()).mesh();
+        let sphere = mesh::Primitive::Sphere(Default::default()).mesh();
+        let shape = Shape::from_meshes(&[
+            MeshInstance {
+                mesh: &cube,
+                transform: Mat4::IDENTITY,
+                selected: true,
+            },
+            MeshInstance {
+                mesh: &sphere,
+                transform: Mat4::IDENTITY,
+                selected: false,
+            },
+        ]);
+        let orange = shape
+            .edges
+            .iter()
+            .filter(|e| e.color == SELECTED_EDGE_COLOR)
+            .count();
+        assert_eq!(orange, 24, "the cube's twelve edges");
+        assert!(shape.faces.len() > 36);
+        assert_eq!(Shape::from_meshes(&[]), Shape::default());
+    }
+
+    #[test]
+    fn mirrored_and_broken_placements_are_handled() {
+        let cube = mesh::Primitive::Cube(Default::default()).mesh();
+        let mirrored = Shape::from_meshes(&[MeshInstance {
+            mesh: &cube,
+            transform: Mat4::from_scale(Vec3::new(-1.0, 1.0, 1.0)),
+            selected: false,
+        }]);
+        for t in mirrored.faces.chunks(3) {
+            let p = |i: usize| Vec3::from(t[i].position);
+            let winding = (p(1) - p(0)).cross(p(2) - p(0));
+            assert!(
+                winding.dot(Vec3::from(t[0].normal)) > 0.0,
+                "still facing out"
+            );
+        }
+        let broken = Shape::from_meshes(&[MeshInstance {
+            mesh: &cube,
+            transform: Mat4::from_scale(Vec3::splat(f32::NAN)),
+            selected: false,
+        }]);
+        assert_eq!(broken, Shape::default(), "skipped");
     }
 
     #[test]

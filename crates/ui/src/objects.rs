@@ -13,7 +13,7 @@ use egui::{
     Align2, Color32, CursorIcon, FontId, Key, KeyboardShortcut, Modifiers, Rect, Sense, Stroke, Ui,
     WidgetInfo, WidgetType, pos2, vec2,
 };
-use scene::{Command, Document, ObjectId, ObjectKind};
+use scene::{Command, Document, ObjectId, ObjectKind, PrimitiveKind};
 use std::collections::BTreeSet;
 
 /// Height of one row of the tree, in logical pixels.
@@ -156,7 +156,7 @@ impl ObjectManager {
             crate::panels::placeholder(
                 ui,
                 "No objects yet",
-                "Create a group with Create → Group. Primitives such as cubes arrive later in Phase 2.",
+                "Create a shape (a cube, sphere and so on) or a group from the Create menu or the shape buttons at the top.",
             );
             return;
         }
@@ -247,7 +247,7 @@ impl ObjectManager {
 
         // The kind's icon.
         let (icon, icon_tint) = match object.kind {
-            ObjectKind::TestCube => (Icon::Cube, tint::SHAPE),
+            ObjectKind::Primitive(p) => (shape_icon(p.kind()), tint::SHAPE),
             _ => (Icon::Null, tint::ICON),
         };
         let icon_rect = Rect::from_min_size(pos2(x, rect.center().y - 7.5), vec2(15.0, 15.0));
@@ -523,6 +523,19 @@ fn move_command(doc: &Document, ids: Vec<ObjectId>, target: DropAt) -> Option<Co
         DropAt::End => (None, scene.children(None).len()),
     };
     Some(Command::Move { ids, parent, index })
+}
+
+/// The icon for a kind of primitive, as on the command palette.
+pub(crate) fn shape_icon(kind: PrimitiveKind) -> Icon {
+    match kind {
+        PrimitiveKind::Cube => Icon::Cube,
+        PrimitiveKind::Plane => Icon::Plane,
+        PrimitiveKind::Cylinder => Icon::Cylinder,
+        PrimitiveKind::Sphere => Icon::Sphere,
+        PrimitiveKind::Disc => Icon::Disc,
+        PrimitiveKind::Tube => Icon::Tube,
+        PrimitiveKind::Cone => Icon::Cone,
+    }
 }
 
 /// A small triangle: pointing right when folded, down when open.
