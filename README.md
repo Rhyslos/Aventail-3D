@@ -192,7 +192,7 @@ Newest first. One line per finished milestone or passed gate.
 
 Pictures of Aventail 3D at memorable moments, newest first. Kept in [docs/screenshots](docs/screenshots).
 
-**2026-10-10: the first 3D viewport.** The grid on the ground fading into the distance, the red X and green Y axes, and a 2 m test cube in soft studio light, drawn on the GPU.
+**2026-10-10: the first 3D viewport.** The grid on the ground fading into the distance, the red X and blue Y axes, and a 2 m test cube in soft studio light, drawn on the GPU.
 
 ![Aventail 3D's first 3D viewport](docs/screenshots/2026-10-10-first-3d-viewport.png)
 

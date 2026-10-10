@@ -160,7 +160,7 @@ fn the_cube_is_shaded_like_a_studio_light() {
 }
 
 #[test]
-fn the_x_axis_is_red_and_the_y_axis_green() {
+fn the_x_axis_is_red_and_the_y_axis_blue() {
     let Some(gpu) = gpu() else { return };
     let (renderer, target) = setup(&gpu, [640, 400]);
     // From above, so the axes are easy to hit and the cube is out of the way.
@@ -171,7 +171,7 @@ fn the_x_axis_is_red_and_the_y_axis_green() {
     let shot = render(&gpu, &renderer, &target, camera);
     let size = Vec2::new(640.0, 400.0);
     let redness = |p: [u8; 4]| i32::from(p[0]) - i32::from(p[1]);
-    let greenness = |p: [u8; 4]| i32::from(p[1]) - i32::from(p[0]);
+    let blueness = |p: [u8; 4]| i32::from(p[2]) - i32::from(p[0]).max(i32::from(p[1]));
     // The best match within a couple of pixels of where each axis passes.
     let best = |point: Vec3, score: &dyn Fn([u8; 4]) -> i32| {
         let c = camera.project(point, size).unwrap();
@@ -189,8 +189,8 @@ fn the_x_axis_is_red_and_the_y_axis_green() {
         "X axis not red"
     );
     assert!(
-        best(Vec3::new(0.0, -400.0, 0.0), &greenness) > 15,
-        "Y axis not green"
+        best(Vec3::new(0.0, -400.0, 0.0), &blueness) > 15,
+        "Y axis not blue"
     );
 }
 

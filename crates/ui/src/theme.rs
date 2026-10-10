@@ -45,7 +45,8 @@ pub const ACCENT: Color32 = Color32::from_rgb(0xf2, 0xa3, 0x3a);
 
 /// Icon and axis colours, following the approved mockups: icons are a
 /// soft white, except the shapes you can create, which are blue; the axes
-/// are red, green and blue as in every 3D program.
+/// are X red, Y blue and Z green, the project lead's choice (most 3D
+/// programs give Y green and Z blue; see decision 0012).
 pub mod tint {
     use egui::Color32;
 
@@ -56,9 +57,9 @@ pub mod tint {
     /// The X axis.
     pub const AXIS_X: Color32 = Color32::from_rgb(0xef, 0x6b, 0x63);
     /// The Y axis.
-    pub const AXIS_Y: Color32 = Color32::from_rgb(0x7f, 0xd0, 0x5a);
+    pub const AXIS_Y: Color32 = Color32::from_rgb(0x6a, 0xa2, 0xff);
     /// The Z axis (up).
-    pub const AXIS_Z: Color32 = Color32::from_rgb(0x6a, 0xa2, 0xff);
+    pub const AXIS_Z: Color32 = Color32::from_rgb(0x7f, 0xd0, 0x5a);
 
     /// Every icon and axis colour, for tests.
     pub const ALL: [Color32; 5] = [ICON, SHAPE, AXIS_X, AXIS_Y, AXIS_Z];
@@ -361,9 +362,11 @@ mod tests {
 
     #[test]
     fn axis_colours_differ_in_brightness_too() {
-        // Red and green alone are hard to tell apart for many people, so
-        // the letters next to them carry the meaning as well.
-        assert!(contrast(tint::AXIS_X, tint::AXIS_Y) > 1.2);
+        // Red and green (X and Z) are hard to tell apart by hue alone for
+        // many people, so they must differ in brightness as well; the
+        // letters next to them carry the meaning too. Red and blue (X and
+        // Y) are told apart by hue even with common colour blindness.
+        assert!(contrast(tint::AXIS_X, tint::AXIS_Z) > 1.2);
     }
 
     #[test]

@@ -47,12 +47,12 @@ impl FaceVertex {
 /// The X axis on the ground, in red (linear space, partly see-through so it
 /// stays calm, as in the mockups).
 pub const X_AXIS_COLOR: [f32; 4] = [0.80, 0.12, 0.10, 0.55];
-/// The Y axis on the ground, in green.
-pub const Y_AXIS_COLOR: [f32; 4] = [0.20, 0.62, 0.10, 0.55];
+/// The Y axis on the ground, in blue.
+pub const Y_AXIS_COLOR: [f32; 4] = [0.10, 0.32, 0.85, 0.55];
 /// Surface colour of the test cube, linear space (a light, neutral grey).
-pub const CUBE_COLOR: [f32; 4] = [0.62, 0.63, 0.65, 1.0];
+pub const CUBE_COLOR: [f32; 4] = [0.56, 0.57, 0.585, 1.0];
 /// Colour of shape edges, linear space: a faint white line.
-pub const EDGE_COLOR: [f32; 4] = [1.0, 1.0, 1.0, 0.22];
+pub const EDGE_COLOR: [f32; 4] = [1.0, 1.0, 1.0, 0.10];
 /// Edge length of the test cube, in centimetres (2 m, as Cinema 4D's
 /// default cube).
 pub const TEST_CUBE_SIZE: f32 = 200.0;

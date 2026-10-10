@@ -8,15 +8,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Axis colours are now X red, Y blue, Z green (most programs use Y green and Z blue), in the viewport, the Coordinates panel and the palette's axis locks.
+- The viewport looks softer: gentler light with a slight gradient across each side, a little shade where shapes meet the ground, a quieter grid and fainter edges.
 - The Coordinates panel is now just tall enough for its rows, and every panel can be dragged much smaller than before.
 - Palette icons follow the mockups: soft white, with the shapes you can create in blue. Commands that aren't built yet are only slightly dimmed.
-- The Coordinates panel follows the mockup: X, Y and Z letters in red, green and blue, wide dark value fields, and Object (Rel) and Apply on the right.
+- The Coordinates panel follows the mockup: coloured X, Y and Z letters, wide dark value fields, and Object (Rel) and Apply on the right.
 - Z is up: X and Y lie on the ground and Z is height, as in 3ds Max and Blender. Shown in the manual; the viewport is built this way from Phase 1.
 - Project files will be saved as `.avtl` (short for Aventail) instead of `.rhy`. Nothing has been saved yet, so no files are affected.
 
 ### Added
 
-- The 3D viewport: a calm grey background, a grid on the ground (10 cm and 1 m lines, fading softly into the distance), the red X and green Y axes, and a softly lit 2 m test cube. Without a usable graphics card, the viewport says why instead.
+- The 3D viewport: a calm grey background, a grid on the ground (10 cm and 1 m lines, fading softly into the distance), the red X and blue Y axes, and a softly lit 2 m test cube. Without a usable graphics card, the viewport says why instead.
 - The calm dark look from the mockups: gentle greys, a warm orange for the active mode, the Inter font, and a viewport that fills its panel edge to edge. The app stays dark whatever your system prefers.
 - The app window, laid out like Cinema 4D: menu bar, command palette, mode palette, viewport, Attributes (top right), Objects (below it), Coordinates (under the viewport) and a status bar.
 - Panels can be dragged by their tabs, stacked and resized; **View → Reset panel layout** brings the standard layout back. The layout and window size are remembered between sessions.

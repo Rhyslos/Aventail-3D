@@ -25,8 +25,8 @@ The first 3D view, see [decision 0013](../../docs/decisions/0013-viewport-render
 - **`ViewportRenderer`** draws into a **`ViewportTarget`** (sRGB colour, 4× multisampling where supported, depth). `display_view` is the plain-RGBA view egui must be given.
 - **Background:** the theme's grey gradient, top to bottom.
 - **Grid** on the ground (X–Y plane, Z up), drawn per pixel: 10 cm, 1 m and 10 m lines that fade with distance and density, out to 100 m.
-- **Ground axes:** X red, Y green, drawn in 1 m pieces (long lines that pass behind the camera are dropped by some drivers).
-- **Shapes** (`Shape`): shaded faces with soft studio light and faint white edges. `Shape::test_cube` (2 m, on the grid at the origin) is shown until objects exist.
+- **Ground axes:** X red, Y blue (Z, when shown, is green; decision 0012), drawn in 1 m pieces (long lines that pass behind the camera are dropped by some drivers).
+- **Shapes** (`Shape`): shaded faces with soft, wrapped studio light (gentle gradient across faces, slightly darker near the ground) and very faint white edges. `Shape::test_cube` (2 m, on the grid at the origin) is shown until objects exist.
 - **`read_pixels`** copies a finished image back, for tests.
 
 Tests: the shader is validated without a GPU; `tests/gpu.rs` renders real frames (skipped without a GPU unless `REQUIRE_GPU` is set) and checks the gradient, the cube's shading order, the axes' colours, grid lines, and resizing.

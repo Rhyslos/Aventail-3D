@@ -52,7 +52,7 @@ pub(crate) fn objects_contents(ui: &mut Ui) {
 
 /// The Coordinates panel: typed position, size and rotation of the
 /// selection, laid out as in the approved mockup. The axis letters are
-/// coloured (X red, Y green, Z blue; rotation's H, P and B in grey).
+/// coloured (X red, Y blue, Z green; rotation's H, P and B in grey).
 ///
 /// Until something can be selected (Phase 3), the fields show zeros and
 /// can't be edited; hovering one says why.

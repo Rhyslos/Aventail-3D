@@ -94,7 +94,7 @@ fn grid_fs(in: GridOut) -> @location(0) vec4<f32> {
     let distance = length(in.world - frame.camera.xy);
     let distance_fade = 1.0 - smoothstep(reach * 0.35, reach, distance);
 
-    let alpha = max(max(minor * 0.07, major * 0.16), super_ * 0.24) * distance_fade;
+    let alpha = max(max(minor * 0.045, major * 0.11), super_ * 0.18) * distance_fade;
     if alpha <= 0.002 {
         discard;
     }
@@ -146,6 +146,7 @@ struct FaceOut {
     @builtin(position) clip: vec4<f32>,
     @location(0) normal: vec3<f32>,
     @location(1) color: vec4<f32>,
+    @location(2) world: vec3<f32>,
 };
 
 @vertex
@@ -154,18 +155,34 @@ fn face_vs(in: FaceIn) -> FaceOut {
     out.clip = frame.view_proj * vec4<f32>(in.position, 1.0);
     out.normal = in.normal;
     out.color = in.color;
+    out.world = in.position;
     return out;
 }
 
-// Soft studio lighting: a sky-and-ground fill light, plus one key light
-// from the front, above and to the left, so every side of a shape has its
-// own calm shade.
+// Soft studio lighting, tuned to feel calm rather than crisp:
+// - a sky-and-ground fill light, so no side is ever dark;
+// - one key light from the front, above and to the left, "wrapped" so its
+//   light bends gently past the edges and neighbouring sides differ softly;
+// - a faint light from the camera, so the shade drifts gently across each
+//   face instead of every face being one flat colour;
+// - a faint brightening where a surface turns away from view, which
+//   rounds off silhouettes;
+// - slightly darker shading close to the ground, as if the floor blocks a
+//   little light, so shapes sit on the grid instead of floating.
 @fragment
 fn face_fs(in: FaceOut) -> @location(0) vec4<f32> {
     let n = normalize(in.normal);
+    let to_camera = normalize(frame.camera.xyz - in.world);
+
     let key = normalize(vec3<f32>(-0.3, -0.35, 0.9));
-    let diffuse = max(dot(n, key), 0.0);
-    let fill = mix(0.35, 0.55, n.z * 0.5 + 0.5);
-    let shade = fill + 0.5 * diffuse;
+    let wrap = 0.5;
+    let diffuse = max((dot(n, key) + wrap) / (1.0 + wrap), 0.0);
+    let fill = mix(0.36, 0.50, n.z * 0.5 + 0.5);
+    let facing = max(dot(n, to_camera), 0.0);
+    let headlight = 0.12 * facing;
+    let rim = 0.06 * pow(1.0 - facing, 3.0);
+    let contact = mix(0.80, 1.0, smoothstep(0.0, 80.0, in.world.z));
+
+    let shade = (fill + 0.5 * diffuse + headlight) * contact + rim;
     return vec4<f32>(in.color.rgb * shade, in.color.a);
 }
