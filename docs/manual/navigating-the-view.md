@@ -1,6 +1,6 @@
 # Navigating the view
 
-> Turn around, slide across and move closer to your model in the 3D viewport, with the mouse controls that suit you.
+> Turn around, slide across and move closer to your model in the 3D viewport, with the mouse controls that suit you, and look at it from the top, front and side.
 
 ## When to use it
 
@@ -24,7 +24,19 @@ The Alt + mouse moves work too, unless you switch them off (see [Settings](#sett
 
 **Framing: fit things in the view.** Press **H** (*frame all*) to fit the whole scene in the view, or **F** (*frame selected*) to fit what you've selected. The view keeps looking the same way and glides forwards or back until everything fits, with a little room around it, so you never lose your bearings. Both are also in the **View** menus. Until objects can be selected (Phase 3), F frames everything too. The keys work anywhere in the app, except while you're typing in a field.
 
-**Coming next:** top, front and side views, and the four-view layout.
+## Views and the four-view layout
+
+The viewport can show four views: **Perspective** (the ordinary 3D view), **Top**, **Front** and **Right**. Top, front and right are [flat views](concepts.md#viewing-the-scene): no perspective, so sizes and lines read true, which makes them handy for lining things up.
+
+![The four views side by side](../screenshots/2026-10-10-four-views.png)
+
+- **See all four at once:** press **F5**, click the square button at the right end of the viewport's menu line, or use **Panel → Four views**. Perspective sits top left, Top top right, Front bottom left and Right bottom right.
+- **Show one view large:** press **F1** (perspective), **F2** (top), **F3** (right) or **F4** (front), or click the square button again (it shows the active view on its own).
+- **Middle click to switch:** a middle click (press the wheel without moving the mouse) on a view shows just that view; another middle click goes back to all four. Dragging with the middle button still pans as usual.
+- **The active view:** the last view you clicked is the active one, marked with a thin line in the accent colour. The viewport's menus (View, Cameras) and keys such as **H** act on it.
+- **Change what a view shows:** **Cameras** lists the four kinds; picking one turns the active view into that kind, starting from its opening camera.
+
+Each view keeps its own camera, so moving around in one never disturbs the others. In a flat view you can **pan and zoom, but not orbit**: a front view always stays a front view. Zooming a flat view shows more or less of the scene (the spot under the mouse stays put), and **H** fits everything in it. Each flat view's grid stands facing you: the top view shows the ground grid from above, the front view an upright grid along X and Z, and the right view one along Y and Z. The view's name is in its top-left corner. Whether you last used one view or four is remembered.
 
 ## Navigation controls
 
@@ -51,7 +63,9 @@ Whatever you pick, **a plain left drag never moves the view**: it's kept free fo
 | **Invert orbit direction** (in the controls list, or **Options**) | Orbiting turns the other way: the model moves against your hand instead of with it. |
 | **Fine grid lines** (the grid button at the bottom of the left palette, **Display → Fine grid lines**, or **View → Fine grid lines** on the main menu bar) | Off (standard): a line every metre, plus stronger 10 m lines further out, for a calm ground. On: adds thin lines every 10 cm, useful when placing things precisely up close. The bottom-left corner of the view shows the spacing. Remembered next time. |
 | **View → Frame all** (`H`), **Frame selected** (`F`) | Fit everything, or the selection, in the view, keeping the direction you're looking in. |
-| **View → Reset view** | Puts the camera back where it starts when the app opens. |
+| **View → Reset view** | Puts the active view's camera back where it starts when the app opens. |
+| **Cameras → Perspective, Top, Front, Right** | Turns the active view into that kind of view. |
+| **Panel → Four views** (`F5`) | Shows all four views at once; again for just the active one. Remembered next time. |
 
 ## Shortcuts
 
@@ -64,6 +78,9 @@ As standard (Mouse only controls, with Alt + mouse switched on):
 | Zoom | Mouse wheel, or `Alt` + right drag |
 | Frame all | `H` |
 | Frame selected | `F` |
+| Perspective, top, right, front view on its own | `F1`, `F2`, `F3`, `F4` |
+| All four views | `F5` |
+| Switch between one view and four | Middle click on a view |
 
 On macOS, Alt is the `Option` key. The other controls are in the table above.
 
@@ -72,6 +89,8 @@ On macOS, Alt is the `Option` key. The other controls are in the table above.
 - **Problem:** nothing happens when you drag in the viewport. **Why:** a plain left drag is kept free for the selection tools, and some controls need a key. **Fix:** check the controls in use in the bottom-right corner (or the status bar), and hold the key it lists as you start the drag.
 - **Problem:** on Linux, Alt + drag moves the whole window instead of the view. **Why:** some Linux desktops use Alt + drag for moving windows. **Fix:** use the standard **Mouse only** controls (right drag orbits, middle drag pans), or in your desktop's window settings change that key (often called the "window action key" or "modifier key") to Super, the Windows-logo key.
 - **Problem:** zooming has stopped getting closer. **Why:** the camera stops 2 cm from the pivot, so it can't pass through it. **Fix:** point the mouse at something a little further away and zoom again: the new point becomes the pivot. Or zoom out and come at it from another side.
+- **Problem:** orbiting does nothing. **Why:** you're in a flat view (top, front or right), which keeps its direction. **Fix:** orbit in the perspective view (**F1**), or turn this view into a perspective one with **Cameras → Perspective**.
+- **Problem:** a function key does something else, like changing the screen brightness. **Why:** on many laptops the F keys control the hardware unless you hold **Fn**. **Fix:** hold **Fn** with the key, or use the square button on the viewport's menu line, a middle click, or the **Panel** and **Cameras** menus.
 - **Problem:** the grid has disappeared. **Why:** the grid is drawn around the point you're looking at (at least 18 m around it) and fades out at its edges; if you've panned far away or are looking at the sky, there may be none in view. **Fix:** press **H** to frame everything, or zoom out: the grid reaches farther the farther away you are.
 
 ## Related

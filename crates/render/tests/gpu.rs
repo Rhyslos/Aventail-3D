@@ -116,6 +116,8 @@ fn render_with(
         sky_horizon: srgb(SKY_HORIZON),
         ground: srgb(GROUND),
         fine_grid,
+        flat_height: camera.ortho_height,
+        grid_plane: render::GROUND_PLANE,
     };
     renderer.render(&gpu.device, &gpu.queue, target, &params);
     let pixels = read_pixels(&gpu.device, &gpu.queue, target).unwrap();
@@ -457,4 +459,74 @@ fn a_broken_pick_request_is_refused() {
             .pick_now(&gpu.device, &gpu.queue, request)
             .is_none()
     );
+}
+
+/// Renders a flat front view (looking along +Y) of the test cube, with
+/// the grid standing upright in the X–Z plane.
+fn render_front(gpu: &Gpu, renderer: &ViewportRenderer, target: &ViewportTarget) -> Shot {
+    let view = tools::Navigator::for_view(tools::ViewKind::Front);
+    let camera = *view.camera();
+    let size = target.size();
+    let params = FrameParams {
+        view_projection: camera.view_projection(Vec2::new(size[0] as f32, size[1] as f32)),
+        camera_position: camera.position,
+        focus: view.pivot(),
+        sky_top: srgb(SKY_TOP),
+        sky_horizon: srgb(SKY_HORIZON),
+        ground: srgb(GROUND),
+        fine_grid: false,
+        flat_height: camera.ortho_height,
+        grid_plane: [Vec3::X, Vec3::Z],
+    };
+    renderer.render(&gpu.device, &gpu.queue, target, &params);
+    let pixels = read_pixels(&gpu.device, &gpu.queue, target).unwrap();
+    Shot {
+        pixels,
+        size,
+        camera,
+    }
+}
+
+#[test]
+fn a_flat_view_has_a_plain_backdrop_and_an_upright_grid() {
+    let Some(gpu) = gpu() else { return };
+    let (renderer, target) = setup(&gpu, [640, 400]);
+    let shot = render_front(&gpu, &renderer, &target);
+    // x = 300 is a 1 m line standing up beside the cube; x = 350 is between.
+    let on_line = shot.at(Vec3::new(300.0, 0.0, 250.0));
+    let between = shot.at(Vec3::new(350.0, 0.0, 250.0));
+    assert!(
+        brightness(on_line) > brightness(between) + 6,
+        "{on_line:?} vs {between:?}"
+    );
+    // The same backdrop top and bottom: no horizon in a flat view.
+    let (top, bottom) = (shot.pixel(5, 3), shot.pixel(5, 396));
+    assert!(
+        (brightness(top) - brightness(bottom)).abs() <= 3,
+        "{top:?} vs {bottom:?}"
+    );
+    // The cube's front face is there, flat on, lit and neutral.
+    let face = shot.at(Vec3::new(0.0, -100.0, 100.0));
+    assert!(brightness(face) > brightness(between) + 150, "{face:?}");
+}
+
+#[test]
+fn picking_works_in_a_flat_view() {
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, _) = setup(&gpu, [8, 8]);
+    let view = tools::Navigator::for_view(tools::ViewKind::Top);
+    let camera = *view.camera();
+    let top_of_cube = Vec3::new(30.0, -20.0, TEST_CUBE_SIZE);
+    let pixel = camera
+        .project(top_of_cube, Vec2::new(640.0, 400.0))
+        .unwrap();
+    let result = renderer
+        .pick_now(
+            &gpu.device,
+            &gpu.queue,
+            pick_request(&camera, pixel, [640, 400]),
+        )
+        .unwrap();
+    let point = result.point.expect("the cube's top");
+    assert!((point - top_of_cube).length() < 2.0, "{point}");
 }

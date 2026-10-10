@@ -41,6 +41,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Orbit, pan and zoom** — The three ways to move the view. *Orbiting* turns the camera around a point, like walking around a statue. *Panning* slides the camera sideways or up and down without turning it. *Zooming* (strictly, *dollying*) moves the camera closer or farther. None of them change the model. See [Navigating the view](navigating-the-view.md).
 
+**Perspective and flat (orthographic) views** — A *perspective* view shows the scene as your eye or a camera would: far things look smaller, and parallel lines meet in the distance. A *flat* view (the proper term is *orthographic*) drops that: things look the same size however far away they are, and parallel lines stay parallel, like a technical drawing or a floor plan. That makes flat views good for checking that edges line up, that two parts are the same height, or that a shape is symmetrical, because nothing is distorted. The **top**, **front** and **right** views are flat views looking straight down, from the front (along Y), and from the right (along X, back towards the origin). See [Navigating the view](navigating-the-view.md#views-and-the-four-view-layout).
+
 **Camera pivot** — The point the view turns around and moves towards. In this app it's normally the spot under the mouse when you start to orbit or zoom, so you turn around and close in on whatever you point at; panning carries it along. (Not the same as an object's pivot, which belongs to the object.)
 
 ## Shading and normals

@@ -182,6 +182,8 @@ impl Picker {
             sky_horizon: [0.0; 3],
             ground: [0.0; 3],
             fine_grid: false,
+            flat_height: None,
+            grid_plane: crate::frame::GROUND_PLANE,
         };
         queue.write_buffer(
             &self.uniforms,

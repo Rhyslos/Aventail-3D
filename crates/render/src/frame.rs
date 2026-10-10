@@ -40,7 +40,17 @@ pub struct FrameParams {
     pub ground: [f32; 3],
     /// Whether to draw the grid's finest level (10 cm lines).
     pub fine_grid: bool,
+    /// For a flat (orthographic) view, the height it shows in centimetres;
+    /// `None` for perspective. Flat views get a plain backdrop, axes drawn
+    /// in full, and a grid sized to the view.
+    pub flat_height: Option<f32>,
+    /// The two directions the grid's plane spans: X and Y for the ground
+    /// ([`GROUND_PLANE`]), or an upright plane facing a flat side view.
+    pub grid_plane: [Vec3; 2],
 }
+
+/// The ground's grid plane: X and Y.
+pub const GROUND_PLANE: [Vec3; 2] = [Vec3::X, Vec3::Y];
 
 /// Converts one sRGB channel (0 to 1) to linear light, as the shaders work.
 pub fn srgb_to_linear(c: f32) -> f32 {
@@ -78,6 +88,9 @@ pub(crate) struct FrameUniforms {
     focus: [f32; 4],
     grid: [f32; 4],
     grid_strength: [f32; 4],
+    grid_u: [f32; 4],
+    grid_v: [f32; 4],
+    view: [f32; 4],
     sky_top: [f32; 4],
     sky_horizon: [f32; 4],
     ground: [f32; 4],
@@ -88,6 +101,11 @@ impl FrameUniforms {
         let [minor, major, super_level] = GRID_SPACINGS;
         let p = params.camera_position;
         let f = params.focus;
+        let reach = match params.flat_height {
+            Some(height) => flat_grid_reach(height),
+            None => grid_reach(p.distance(f)),
+        };
+        let [u, v] = usable_plane(params.grid_plane);
         let inverse = params.view_projection.inverse();
         let inverse = if inverse.is_finite() {
             inverse
@@ -98,13 +116,48 @@ impl FrameUniforms {
             view_projection: params.view_projection.to_cols_array_2d(),
             inverse_view_projection: inverse.to_cols_array_2d(),
             camera: [p.x, p.y, p.z, 1.0],
-            focus: [f.x, f.y, f.z, grid_reach(p.distance(f))],
+            focus: [f.x, f.y, f.z, reach],
             grid: [minor, major, super_level, GRID_HALF_EXTENT],
             grid_strength: grid_strengths(params.fine_grid),
+            grid_u: [u.x, u.y, u.z, 0.0],
+            grid_v: [v.x, v.y, v.z, 0.0],
+            view: [
+                if params.flat_height.is_some() {
+                    1.0
+                } else {
+                    0.0
+                },
+                0.0,
+                0.0,
+                0.0,
+            ],
             sky_top: linear(params.sky_top),
             sky_horizon: linear(params.sky_horizon),
             ground: linear(params.ground),
         }
+    }
+}
+
+/// How far around the focus point a flat view's grid reaches, for a view
+/// showing `height` centimetres: past the view's edges, so a flat view's
+/// grid looks endless.
+pub(crate) fn flat_grid_reach(height: f32) -> f32 {
+    let reach = height * 2.0;
+    if reach.is_finite() {
+        reach.clamp(GRID_MIN_REACH, GRID_HALF_EXTENT)
+    } else {
+        GRID_MIN_REACH
+    }
+}
+
+/// The grid plane's two directions, made unit length; the ground's if
+/// they are broken or point the same way.
+fn usable_plane([u, v]: [Vec3; 2]) -> [Vec3; 2] {
+    let (u, v) = (u.normalize_or_zero(), v.normalize_or_zero());
+    if u == Vec3::ZERO || v == Vec3::ZERO || u.cross(v).length() < 1e-3 {
+        GROUND_PLANE
+    } else {
+        [u, v]
     }
 }
 
@@ -125,8 +178,8 @@ mod tests {
 
     #[test]
     fn uniforms_match_the_shader_layout() {
-        // Two mat4x4<f32> and seven vec4<f32>, no padding.
-        assert_eq!(std::mem::size_of::<FrameUniforms>(), 240);
+        // Two mat4x4<f32> and ten vec4<f32>, no padding.
+        assert_eq!(std::mem::size_of::<FrameUniforms>(), 288);
         assert_eq!(std::mem::size_of::<FrameUniforms>() % 16, 0);
     }
 
@@ -158,6 +211,8 @@ mod tests {
             sky_horizon: [0.0, 0.0, 0.0],
             ground: [0.5, 0.5, 0.5],
             fine_grid: true,
+            flat_height: None,
+            grid_plane: GROUND_PLANE,
         });
         assert_eq!(u.camera, [1.0, 2.0, 3.0, 1.0]);
         assert_eq!(u.focus[..3], [1.0, 2.0, 1003.0]);
@@ -201,6 +256,8 @@ mod tests {
             sky_horizon: [0.0; 3],
             ground: [0.0; 3],
             fine_grid: false,
+            flat_height: None,
+            grid_plane: GROUND_PLANE,
         });
         assert!(
             u.inverse_view_projection
@@ -208,6 +265,36 @@ mod tests {
                 .flatten()
                 .all(|v| v.is_finite())
         );
+    }
+
+    #[test]
+    fn flat_views_get_their_own_grid_plane_and_reach() {
+        let u = FrameUniforms::new(&FrameParams {
+            view_projection: Mat4::IDENTITY,
+            camera_position: Vec3::new(0.0, -50_000.0, 0.0),
+            focus: Vec3::ZERO,
+            sky_top: [0.0; 3],
+            sky_horizon: [0.0; 3],
+            ground: [0.0; 3],
+            fine_grid: false,
+            flat_height: Some(1500.0),
+            grid_plane: [Vec3::X, Vec3::Z * 3.0],
+        });
+        assert_eq!(u.view[0], 1.0, "flat");
+        assert_eq!(u.grid_v[..3], [0.0, 0.0, 1.0], "made unit length");
+        assert_eq!(
+            u.focus[3],
+            flat_grid_reach(1500.0),
+            "sized to the view, not the standoff"
+        );
+    }
+
+    #[test]
+    fn a_broken_grid_plane_falls_back_to_the_ground() {
+        assert_eq!(usable_plane([Vec3::ZERO, Vec3::Z]), GROUND_PLANE);
+        assert_eq!(usable_plane([Vec3::X, Vec3::X * 2.0]), GROUND_PLANE);
+        assert_eq!(usable_plane([Vec3::NAN, Vec3::Y]), GROUND_PLANE);
+        assert_eq!(usable_plane([Vec3::Y, Vec3::Z]), [Vec3::Y, Vec3::Z]);
     }
 
     #[test]

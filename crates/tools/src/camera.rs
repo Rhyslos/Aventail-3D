@@ -63,8 +63,14 @@ pub struct Camera {
     pub yaw: f32,
     /// Look up or down, in radians; positive looks up.
     pub pitch: f32,
-    /// Vertical field of view, in radians.
+    /// Vertical field of view, in radians (perspective views).
     pub fov_y: f32,
+    /// For a flat (orthographic) view: how much of the world the view
+    /// shows from bottom to top, in centimetres. Nothing shrinks with
+    /// distance in such a view, which makes lining things up exact. `None`
+    /// for an ordinary perspective view.
+    #[serde(default)]
+    pub ortho_height: Option<f32>,
 }
 
 impl Default for Camera {
@@ -97,7 +103,13 @@ impl Camera {
             yaw,
             pitch,
             fov_y: DEFAULT_FOV_Y,
+            ortho_height: None,
         }
+    }
+
+    /// Whether this is a flat (orthographic) view.
+    pub fn is_flat(&self) -> bool {
+        self.ortho_height.is_some()
     }
 
     /// The direction the camera looks.
@@ -139,6 +151,18 @@ impl Camera {
         } else {
             1.0
         };
+        if let Some(height) = self.flat_height() {
+            // Flat view: straight lines of sight, depth spread evenly.
+            let y_scale = 2.0 / height;
+            let x_scale = y_scale / aspect;
+            let range = FAR_PLANE - NEAR_PLANE;
+            return Mat4::from_cols(
+                Vec4::new(x_scale, 0.0, 0.0, 0.0),
+                Vec4::new(0.0, y_scale, 0.0, 0.0),
+                Vec4::new(0.0, 0.0, -1.0 / range, 0.0),
+                Vec4::new(0.0, 0.0, -NEAR_PLANE / range, 1.0),
+            );
+        }
         let y_scale = 1.0 / (self.fov_y * 0.5).tan();
         let x_scale = y_scale / aspect;
         let depth = FAR_PLANE / (NEAR_PLANE - FAR_PLANE);
@@ -155,12 +179,30 @@ impl Camera {
         self.projection_matrix(aspect_of(size)) * self.view_matrix()
     }
 
+    /// The usable height of a flat view, or `None` for perspective.
+    fn flat_height(&self) -> Option<f32> {
+        self.ortho_height
+            .map(|h| if h.is_finite() && h > 1e-3 { h } else { 1.0 })
+    }
+
     /// The ray from the camera through a point in the viewport, given in the
-    /// same units as `size`, measured from the top-left corner.
+    /// same units as `size`, measured from the top-left corner. In a flat
+    /// view every ray points straight ahead, starting from where the point
+    /// is on the camera's plane.
     pub fn ray_through(&self, point: Vec2, size: Vec2) -> Ray {
         let size = size.max(Vec2::ONE);
         let ndc_x = 2.0 * point.x / size.x - 1.0;
         let ndc_y = 1.0 - 2.0 * point.y / size.y;
+        if let Some(height) = self.flat_height() {
+            let half_height = height * 0.5;
+            let half_width = half_height * aspect_of(size);
+            return Ray {
+                origin: self.position
+                    + self.right() * (ndc_x * half_width)
+                    + self.up() * (ndc_y * half_height),
+                direction: self.forward(),
+            };
+        }
         let half_height = (self.fov_y * 0.5).tan();
         let half_width = half_height * aspect_of(size);
         let direction = (self.forward()
@@ -176,6 +218,9 @@ impl Camera {
     /// Where a world point appears in a viewport of `size`, measured from the
     /// top-left corner. `None` when the point is behind the camera.
     pub fn project(&self, point: Vec3, size: Vec2) -> Option<Vec2> {
+        if self.is_flat() && (point - self.position).dot(self.forward()) <= 0.0 {
+            return None;
+        }
         let clip = self.view_projection(size) * point.extend(1.0);
         if clip.w <= 1e-4 {
             return None;
@@ -326,5 +371,78 @@ mod tests {
         let camera = Camera::default();
         let text = ron::to_string(&camera).unwrap();
         assert_eq!(ron::from_str::<Camera>(&text).unwrap(), camera);
+    }
+
+    fn flat_front() -> Camera {
+        Camera {
+            ortho_height: Some(400.0),
+            ..Camera::looking_at(Vec3::new(0.0, -5000.0, 100.0), Vec3::new(0.0, 0.0, 100.0))
+        }
+    }
+
+    #[test]
+    fn a_flat_view_shows_its_height_exactly() {
+        let camera = flat_front();
+        let top = camera.project(Vec3::new(0.0, 0.0, 300.0), SIZE).unwrap();
+        let bottom = camera.project(Vec3::new(0.0, 0.0, -100.0), SIZE).unwrap();
+        assert!(top.y.abs() < 0.01, "300 cm is the top edge: {top}");
+        assert!((bottom.y - SIZE.y).abs() < 0.01, "-100 cm the bottom edge");
+    }
+
+    #[test]
+    fn distance_does_not_shrink_things_in_a_flat_view() {
+        let camera = flat_front();
+        let near = camera
+            .project(Vec3::new(50.0, -1000.0, 100.0), SIZE)
+            .unwrap();
+        let far = camera
+            .project(Vec3::new(50.0, 3000.0, 100.0), SIZE)
+            .unwrap();
+        assert!((near - far).length() < 0.01);
+    }
+
+    #[test]
+    fn flat_rays_point_straight_ahead_from_the_pixel() {
+        let camera = flat_front();
+        let point = Vec3::new(-120.0, 0.0, 40.0);
+        let at = camera.project(point, SIZE).unwrap();
+        let ray = camera.ray_through(at, SIZE);
+        assert!((ray.direction - camera.forward()).length() < 1e-6);
+        let along = (point - ray.origin).dot(ray.direction);
+        assert!((ray.at(along) - point).length() < 0.05);
+    }
+
+    #[test]
+    fn a_flat_view_still_has_depth_from_zero_to_one() {
+        let camera = flat_front();
+        let vp = camera.view_projection(SIZE);
+        let depth = |d: f32| {
+            let p = camera.position + camera.forward() * d;
+            let clip = vp * p.extend(1.0);
+            clip.z / clip.w
+        };
+        assert!(depth(NEAR_PLANE).abs() < 1e-4);
+        assert!((depth(FAR_PLANE) - 1.0).abs() < 1e-3);
+        assert!(depth(100.0) < depth(200.0), "nearer is smaller");
+        let behind = camera.position - camera.forward() * 10.0;
+        assert!(camera.project(behind, SIZE).is_none());
+    }
+
+    #[test]
+    fn broken_flat_heights_stay_usable() {
+        for h in [0.0, -5.0, f32::NAN] {
+            let camera = Camera {
+                ortho_height: Some(h),
+                ..flat_front()
+            };
+            assert!(camera.view_projection(SIZE).is_finite());
+        }
+    }
+
+    #[test]
+    fn old_saved_cameras_load_as_perspective() {
+        let text = "(position: (1.0, 2.0, 3.0), yaw: 0.5, pitch: 0.1, fov_y: 0.8)";
+        let camera: Camera = ron::from_str(text).unwrap();
+        assert!(!camera.is_flat());
     }
 }

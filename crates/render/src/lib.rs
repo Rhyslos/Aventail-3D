@@ -18,7 +18,7 @@ mod renderer;
 
 pub use frame::{
     FrameParams, GRID_HALF_EXTENT, GRID_MIN_REACH, GRID_REACH_PER_DISTANCE, GRID_SPACINGS,
-    GRID_STRENGTHS, srgb_to_linear,
+    GRID_STRENGTHS, GROUND_PLANE, srgb_to_linear,
 };
 pub use geometry::{
     AXIS_SEGMENT, CUBE_COLOR, EDGE_COLOR, FaceVertex, LineVertex, Shape, TEST_CUBE_SIZE,

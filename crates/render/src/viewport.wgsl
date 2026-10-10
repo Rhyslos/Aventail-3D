@@ -19,6 +19,12 @@ struct Frame {
     // Opacity of each grid level (minor, major, super; w unused). The
     // minor level is 0 when fine grid lines are switched off.
     grid_strength: vec4<f32>,
+    // The two directions the grid's plane spans (xyz; w unused): X and Y
+    // for the ground, or an upright plane facing a flat side view.
+    grid_u: vec4<f32>,
+    grid_v: vec4<f32>,
+    // x = 1 for a flat (orthographic) view, 0 for perspective.
+    view: vec4<f32>,
     // Background, linear colour: the sky straight up, the sky at the
     // horizon, and the ground just below the horizon.
     sky_top: vec4<f32>,
@@ -55,6 +61,10 @@ fn sky_vs(@builtin(vertex_index) index: u32) -> SkyOut {
 // as it tilts, so you always know which way is up.
 @fragment
 fn sky_fs(in: SkyOut) -> @location(0) vec4<f32> {
+    // Flat views have no horizon: a plain, calm backdrop.
+    if frame.view.x > 0.5 {
+        return vec4<f32>(frame.sky_horizon.rgb, 1.0);
+    }
     let far = frame.inv_view_proj * vec4<f32>(in.ndc, 1.0, 1.0);
     let direction = normalize(far.xyz / far.w - frame.camera.xyz);
     let elevation = direction.z;
@@ -73,8 +83,9 @@ struct GridOut {
     @location(0) world: vec2<f32>,
 };
 
-// One large square on the ground (Z = 0), drawn as two triangles. The grid
-// lines themselves are computed per pixel in the fragment shader.
+// One large square on the grid's plane (the ground, or an upright plane
+// facing a flat side view), drawn as two triangles. The grid lines
+// themselves are computed per pixel in the fragment shader.
 @vertex
 fn grid_vs(@builtin(vertex_index) index: u32) -> GridOut {
     var corners = array<vec2<f32>, 6>(
@@ -82,8 +93,9 @@ fn grid_vs(@builtin(vertex_index) index: u32) -> GridOut {
         vec2<f32>(-1.0, -1.0), vec2<f32>(1.0, 1.0), vec2<f32>(-1.0, 1.0),
     );
     let xy = corners[index] * frame.grid.w;
+    let world = frame.grid_u.xyz * xy.x + frame.grid_v.xyz * xy.y;
     var out: GridOut;
-    out.clip = frame.view_proj * vec4<f32>(xy, 0.0, 1.0);
+    out.clip = frame.view_proj * vec4<f32>(world, 1.0);
     out.world = xy;
     return out;
 }
@@ -112,7 +124,8 @@ fn grid_fs(in: GridOut) -> @location(0) vec4<f32> {
     // to nothing, so it reads as a work surface rather than an endless
     // floor. Zooming out widens it.
     let reach = frame.focus.w;
-    let distance = length(in.world - frame.focus.xy);
+    let focus = vec2<f32>(dot(frame.focus.xyz, frame.grid_u.xyz), dot(frame.focus.xyz, frame.grid_v.xyz));
+    let distance = length(in.world - focus);
     let distance_fade = 1.0 - smoothstep(reach * 0.25, reach, distance);
 
     let strength = frame.grid_strength;
@@ -151,7 +164,8 @@ fn line_fs(in: LineOut) -> @location(0) vec4<f32> {
     let height = abs(frame.camera.z);
     let reach = max(2000.0, height * 6.0);
     let distance = length(in.world.xy - frame.camera.xy);
-    let on_ground = select(1.0, 0.0, abs(in.world.z) > 0.001);
+    // Flat views show the axes in full.
+    let on_ground = select(1.0, 0.0, abs(in.world.z) > 0.001 || frame.view.x > 0.5);
     let fade = 1.0 - on_ground * smoothstep(reach * 0.35, reach, distance);
     return vec4<f32>(in.color.rgb, in.color.a * fade);
 }
