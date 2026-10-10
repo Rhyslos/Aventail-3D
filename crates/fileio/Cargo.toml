@@ -1,6 +1,6 @@
 [package]
 name = "fileio"
-description = "Files: .rhy projects, OBJ and glTF, settings on disk"
+description = "Files: .avtl projects, OBJ and glTF, settings on disk"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

@@ -22,7 +22,8 @@ Aventail 3D (model + UV)  ──glTF/OBJ──►  Substance Painter (bake + tex
 - Clean export for Substance Painter and Godot
 
 ### Planned much later
-- Rigging, skinning and animation for game assets (Phase 9). Modelling and UV work always take precedence unless something urgent comes up.
+- Scripting in Lua, so people can add their own tools and automate work (Phase 9, §4.7).
+- Rigging, skinning and animation for game assets (Phase 10). Modelling and UV work always take precedence unless something urgent comes up.
 
 ### Out of scope (for now)
 - Rendering beyond a good-looking viewport
@@ -50,6 +51,7 @@ Aventail 3D (model + UV)  ──glTF/OBJ──►  Substance Painter (bake + tex
 | W7 | Quick Align | Max | Medium | 7 |
 | W8 | Clean, powerful UV unwrapping like C4D | C4D | Core | 6 |
 | W9 | Max-like breadth of modelling tools | Max | Core | 4, 8 |
+| W10 | Scripting, so people can code their own functionality | Blender, Max, C4D | Later | 9 |
 
 > **W4 and W5 are the same idea underneath:** an object is a *base* plus a *stack of operations* that can be re-evaluated. This is why the architecture is designed for it from day one (§4), even though the Edit Poly stack UI comes later. Retrofitting non-destructive editing into a destructive modeller is close to a rewrite, so it must not be postponed at the architecture level.
 
@@ -87,7 +89,8 @@ Aventail-3D/
 │  ├─ uv/          # layer 1: seams, unwrapping, relax, packing (wraps xatlas/faer)
 │  ├─ scene/       # layer 1: objects, operation stacks, evaluation, commands, undo
 │  ├─ config/      # layer 1: settings, hotkeys, defaults
-│  ├─ fileio/      # layer 2: .rhy projects, OBJ, glTF (FBX later), settings file
+│  ├─ fileio/      # layer 2: .avtl projects, OBJ, glTF (FBX later), settings file
+│  ├─ script/      # layer 2 (Phase 9): Lua scripting through commands
 │  ├─ render/      # layer 3: wgpu viewport renderer, picking
 │  ├─ tools/       # layer 3: camera, selection, gizmos, modelling and UV tools
 │  ├─ ui/          # layer 3: egui panels, menus, palettes, theme
@@ -153,7 +156,7 @@ A tool implements a common trait:
 Tools never mutate the mesh directly; they produce operations, which keeps undo and the stack consistent.
 
 ### 4.5 Keeping the door open for rigging and animation
-Nothing animation-related is built before Phase 9, but these rules avoid a rewrite later:
+Nothing animation-related is built before Phase 10, but these rules avoid a rewrite later:
 - **Generic attribute layers.** Mesh attributes are stored as named, typed layers, so per-vertex **skin weights** (bone index + weight) can be added later as just another layer.
 - **Extensible object types.** The scene graph's object kinds are an enum/trait that can gain `Joint`/`Bone` and other node types without restructuring.
 - **Clean transforms.** Each object has a local transform relative to its parent, and world transforms are always derived from it. No code may assume world-space transforms are stored.
@@ -165,6 +168,30 @@ Nothing animation-related is built before Phase 9, but these rules avoid a rewri
 - Draw passes: shaded (soft studio lighting, matcap optional) → wireframe overlay → selection highlight → gizmos/HUD.
 - **GPU picking** (ID buffer) for vertices/edges/faces, and **depth readback** for cursor-point navigation.
 - Only meshes that changed are re-uploaded.
+
+### 4.7 Scripting (Phase 9)
+Let people code their own functionality: custom tools, batch jobs, generators, export helpers. Blender, 3ds Max and Cinema 4D all have this, and a free tool gains a lot when its users can extend it.
+
+**Language: Lua** ([decision 0011](docs/decisions/0011-lua-scripting.md)), using the **Luau** dialect through the `mlua` crate (both MIT):
+- Small, fast and made to be embedded; adds about 1 MB, nothing to install.
+- Luau has a built-in sandbox and optional type hints, which help editors autocomplete.
+- The project lead already knows Lua from Garry's Mod, and Halberd plans Lua plugins too, so one language covers the whole Rhylib family.
+
+**What scripts can do:**
+- **Add commands:** a script registers a named command with parameters. It appears in menus, the command search and hotkeys, and its parameters show in the Attributes panel like any built-in tool's.
+- **Read the scene:** objects, hierarchy, meshes, selection, UVs.
+- **Change the scene only through operations and commands**, exactly like built-in tools (§4.2–4.4). So every script edit can be undone, and later shows up in the Edit Layers stack like any other edit.
+- **Batch work:** rename, clean up, export every object with a preset, check meshes before export.
+
+**What keeps it safe** (scripts get shared, so they are treated as untrusted):
+- **Sandbox:** no file, network or system access by default. A script declares what it needs ("read and write files in the project folder") and the user approves it once per script.
+- **Time and memory limits:** a runaway script is stopped with a plain-language message, never freezing the app or losing work.
+- **Errors never crash the app:** they show the script name, line and message.
+
+**Doors to keep open now** (cheap rules for the phases before 9):
+- **Every action is a named command** (already planned in §5.4). The command list becomes the scripting API, so nothing built-in needs a second, script-only version.
+- **Operations and commands take plain data** (numbers, IDs, settings), never UI objects, so a script can call them the same way a tool does.
+- **The scripting API gets a version number.** Scripts say which version they target, so future changes can keep old scripts working.
 
 ---
 
@@ -262,20 +289,21 @@ Nothing animation-related is built before Phase 9, but these rules avoid a rewri
 
 | Format | Direction | Phase | Purpose |
 |---|---|---|---|
-| Native project (`.rhy`) | in/out | 2 | Full scene, stacks, optional undo history |
+| Native project (`.avtl`) | in/out | 2 | Full scene, stacks, optional undo history |
 | OBJ | in/out | 5 | Simple exchange, Substance Painter |
 | glTF / GLB | out (in later) | 5 | Godot, Substance Painter |
 | FBX | out | late, optional | Only if needed; own writer (Autodesk's SDK is not redistributable) |
 
 Export options: triangulation (deterministic, so the bake matches the game), MikkTSpace tangents, scale and up-axis presets ("Godot", "Substance Painter"), export selected only.
 
-### The `.rhy` project format
-- **Header:** magic bytes `RHY\0`, a format version number, and a flags field. The app can tell a `.rhy` file apart from anything else instantly, and refuses or upgrades old versions cleanly instead of crashing.
+### The `.avtl` project format
+- **Header:** magic bytes `AVTL`, a format version number, and a flags field. The app can tell a `.avtl` file apart from anything else instantly, and refuses or upgrades old versions cleanly instead of crashing.
 - **Body:** the scene, objects, operation stacks and settings, serialized with `serde` and compressed with zstd (BSD).
 - **Optional sections:** undo history, and a small thumbnail image so file browsers and a future "recent files" screen can show previews.
 - **Versioning:** every format change bumps the version, and the loader keeps upgrade steps for older versions, so old projects always open.
-- **Safe saving:** write to a temporary file, then rename over the old one, so a crash mid-save never corrupts a project. Keep the previous save as a `.rhy.bak`.
-- **File association:** the installer registers `.rhy` so double-clicking a project opens the app.
+- **Safe saving:** write to a temporary file, then rename over the old one, so a crash mid-save never corrupts a project. Keep the previous save as a `.avtl.bak`.
+- **File association:** the installer registers `.avtl` so double-clicking a project opens the app.
+- **Extension:** `.avtl`, short for Aventail ([decision 0010](docs/decisions/0010-avtl-file-extension.md)). It was `.rhy` during planning; `.avt` was ruled out because CLO 3D and Marvelous Designer already use it for avatar files.
 
 ---
 
@@ -345,7 +373,16 @@ Each phase ends with something runnable. The user tests the *feel* at the end of
 ### Phase 8 — Advanced hard-surface
 - Booleans, weighted normals, better bevel, generators (array, mirror)
 
-### Phase 9 — Rigging, skinning and animation (far future)
+### Phase 9 — Scripting
+Lua scripting so people can add their own tools and automate work. Full design in §4.7.
+- Script runner with the sandbox, time limit and permissions
+- The scripting API: scene, selection, operations and commands (undoable like any edit)
+- Scripts as commands: in menus, the command search and hotkeys, with parameters in the Attributes panel
+- Script manager (install, enable, disable) and a reload button for script authors
+- API reference and a "your first script" page in the manual; example scripts
+- **Done when:** a user can write a short script (say, "bevel every hard edge of the selection by 2 mm") that shows up as a command, can be undone, and can't harm files outside what it was allowed.
+
+### Phase 10 — Rigging, skinning and animation (far future)
 Starts only once modelling and UVs are mature. Rough contents, to be designed properly when the time comes:
 - Joints/bones in the Object Manager hierarchy; bone display and editing
 - Skinning: bind mesh to skeleton, weight painting, weight tools (normalize, mirror, smooth)
@@ -396,10 +433,12 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-09 — Rigging, skinning and animation added as Phase 9. Modelling and UVs keep priority; architecture rules in §4.5 keep the door open.
 - 2026-10-10 — Mockups approved. Right column swapped: Attribute Manager on top, Object Manager below.
 - 2026-10-10 — User manual in `docs/manual/` is updated in the same PR as every user-facing change (§11).
-- 2026-10-10 — Native project files use the `.rhy` extension (§8).
+- 2026-10-10 — Native project files use the `.rhy` extension (§8). *Replaced the same day: see the `.avtl` line below.*
 - 2026-10-10 — Name chosen: **Aventail 3D** (replaces working title "Facet"). Crates renamed to generic names; product name kept in `branding.rs` + `RENAMING.md` so a future rename is quick.
 - 2026-10-10 — Project license: GPL-3.0-or-later, so it stays free. No outside code contributions for now (or a CLA if that changes), keeping commercial options open. Repo: github.com/Rhyslos/Aventail-3D (public).
 - 2026-10-10 — Rule to flag dependencies and companion features before building was tried and dropped, as it would slow work down. §12 kept as an unscheduled ideas list.
 - 2026-10-10 — Same workflow as Halberd: one milestone per branch and pull request, never push to `main`, two sign-offs, CI on three platforms, decision records ([0001](docs/decisions/0001-record-decisions.md)). Crates split into 9 layered crates ([0003](docs/decisions/0003-layered-crates.md)).
 - 2026-10-10 — Window built with eframe and egui_dock, palette icons drawn in code, unbuilt commands shown greyed out with their phase ([0008](docs/decisions/0008-window-and-panels.md)).
 - 2026-10-10 — Calm dark theme from the mockups, always dark, Inter font, readability tested ([0009](docs/decisions/0009-theme.md)). Phase 0 milestones complete.
+- 2026-10-10 — Project files use `.avtl` instead of `.rhy`, to match the app's name; `.avt` is taken by CLO 3D and Marvelous Designer ([0010](docs/decisions/0010-avtl-file-extension.md)).
+- 2026-10-10 — Scripting added as Phase 9 (rigging moves to Phase 10). Lua chosen as the language, through mlua with the Luau dialect and its sandbox ([0011](docs/decisions/0011-lua-scripting.md)); confirmed by the project lead.

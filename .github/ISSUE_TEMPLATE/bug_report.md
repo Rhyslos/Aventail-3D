@@ -14,6 +14,6 @@ labels: bug
 
 **App version and operating system**
 
-**Project or file involved** (attach the `.rhy`, OBJ or glTF file if you can and it is yours to share)
+**Project or file involved** (attach the `.avtl`, OBJ or glTF file if you can and it is yours to share)
 
 **Screenshot** (if it is something you can see)

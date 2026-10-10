@@ -16,7 +16,7 @@ Only the latest release and the `main` branch receive security fixes.
 
 ## What counts as a vulnerability
 
-The app opens files made by other people (`.rhy` projects, OBJ and glTF models), so these are in scope:
+The app opens files made by other people (`.avtl` projects, OBJ and glTF models), so these are in scope:
 
 - A file that crashes the app, hangs it, or makes it use unbounded memory
 - A file that makes the app read or write outside where it should

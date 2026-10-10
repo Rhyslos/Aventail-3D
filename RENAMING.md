@@ -4,7 +4,7 @@ The app is currently called **Aventail 3D** (short: **Aventail**). The name is k
 
 ## What does NOT change on a rename
 - **Crate and folder names** inside `crates/` are generic (`mesh`, `uv`, `scene`, `config`, `fileio`, `render`, `tools`, `ui`, `app`).
-- **The project file format, `.rhy`.** It's tied to Rhylib, not to the app's name, so existing project files keep working.
+- **The project file extension, `.avtl`.** It stays the same even if the app is renamed, so existing projects keep opening and double-clicking keeps working (many programs keep an old extension after a rename).
 - **Settings and saved layouts**, as long as `APP_ID` stays the same (see below).
 
 ## Checklist
@@ -14,7 +14,7 @@ The app is currently called **Aventail 3D** (short: **Aventail**). The name is k
 4. **`.github/workflows/ci.yml`**: the `binary:` names in the Build job and the executable path in the Window test job, which must match the executable's file name; and the window title passed to `window-smoke.sh` in the Window test job, which must match `APP_NAME`.
 5. **`Cargo.toml`** (root): the `repository` URL, if the GitHub repository is renamed.
 6. **`NOTICE`**: the name and copyright line.
-7. **Installer and file association config** (when it exists): the display name shown by the OS for the app and for `.rhy` files.
+7. **Installer and file association config** (when it exists): the display name shown by the OS for the app and for `.avtl` files.
 8. **Icons and splash screen** in `assets/` (when they exist), if they contain the name or its initials.
 9. **Docs**: search and replace the name in `README.md`, `DESIGN.md`, `CLAUDE.md`, `ARCHITECTURE.md`, `CONTRIBUTING.md`, `SECURITY.md`, `docs/manual/` and `.github/ISSUE_TEMPLATE/config.yml` (repository URL). Add a `CHANGELOG.md` entry about the rename.
 10. **GitHub**: rename the repository in its settings. GitHub redirects the old URL automatically, so existing links keep working.
