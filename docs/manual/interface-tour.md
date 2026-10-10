@@ -2,7 +2,7 @@
 
 > The app's window: what each area is for, and how to rearrange it.
 
-![The app window with the standard layout](../screenshots/2026-10-10-theme.png)
+![The app window with the standard layout](../screenshots/2026-10-10-first-3d-viewport.png)
 
 ## When to use this page
 
@@ -15,7 +15,7 @@ From top to bottom, left to right:
 1. **Menu bar.** Every command lives in a menu, in this order: File, Edit, Create, Modes, Select, Tools, Mesh, UV, View, Window, Help. Commands that aren't built yet are greyed out; hover over one to see which phase brings it.
 2. **Command palette** (the row of icons under the menus). One-click access to the tools you use most: undo and redo, the selection and transform tools, axis locks, primitives, snapping and symmetry. For now all of them are dimmed; hover to see when each arrives.
 3. **Mode palette** (the column of icons down the left side). Decides *what kind of thing* your tools work on. See [Modes](#modes) below.
-4. **Viewport** (the large grey area). Where you'll see and shape your models. The 3D view arrives in Phase 1; for now it shows its calm background.
+4. **Viewport** (the large area in the middle). The 3D view of your scene. The grid lies on the ground: thin lines every 10 cm, stronger ones every metre. The red line is the X axis and the green one the Y axis; Z points up. For now it shows a 2 m test cube standing at the origin, and the view can't be moved yet; navigating with the mouse is the next update.
 5. **Attributes** (top right). Shows the settings of whatever is selected, or of the tool you're using. Change a value here and the model updates.
 6. **Objects** (below Attributes). A tree of every object in your scene. Objects can be grouped by putting them inside each other (see [Hierarchy](concepts.md#objects-and-scenes)).
 7. **Coordinates** (under the viewport). Type exact positions, sizes and rotations for the selection, then press Apply; **Object (Rel)** above Apply will switch between values relative to the object and to the world. In this app **Z is up**: X and Y are the ground directions and Z is height (see [Axes](concepts.md#objects-and-scenes)). Rotation uses H, P and B: **heading** turns left and right around Z, **pitch** tilts up and down, **bank** rolls sideways. The panel is just tall enough for its rows; drag the gap above it to make it bigger or smaller.

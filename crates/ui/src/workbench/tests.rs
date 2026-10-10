@@ -1,6 +1,7 @@
 //! Tests for the workbench, run through the real interface without a window.
 
 use super::*;
+use crate::viewport::NoRenderer;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT, Queryable};
 
@@ -23,7 +24,7 @@ fn harness_for(workbench: Workbench) -> Harness<'static, State> {
         .with_size([1440.0, 900.0])
         .build_ui_state(
             |ui, state: &mut State| {
-                let actions = state.workbench.show(ui);
+                let actions = state.workbench.show(ui, &mut NoRenderer::default());
                 state.actions.extend(actions);
             },
             State {
@@ -259,4 +260,46 @@ fn coordinates_show_every_field_as_in_the_mockup() {
     assert!(harness.get_by_label("Position X").rect().width() > 150.0);
     assert!(harness.query_by_label_contains("Object (Rel)").is_some());
     assert!(harness.query_by_label("Apply").is_some());
+}
+
+/// A renderer that records what it was asked to draw.
+#[derive(Default)]
+struct Recorder {
+    views: Vec<crate::viewport::ViewportView>,
+}
+
+impl ViewportRenderer for Recorder {
+    fn render(&mut self, view: &crate::viewport::ViewportView) -> Result<egui::TextureId, String> {
+        self.views.push(view.clone());
+        Ok(egui::TextureId::User(7))
+    }
+}
+
+#[test]
+fn the_viewport_asks_for_an_image_the_size_of_its_panel() {
+    let mut recorder = Recorder::default();
+    let mut workbench = Workbench::new(info(), None);
+    let mut harness = Harness::builder()
+        .with_size([1440.0, 900.0])
+        .build_ui(|ui| {
+            workbench.show(ui, &mut recorder);
+        });
+    harness.run();
+    let panel = harness.get_by_label(crate::VIEWPORT_LABEL).rect();
+    drop(harness);
+    let view = recorder.views.last().expect("the viewport rendered");
+    assert_eq!(view.size_px[0], panel.width().round() as u32);
+    assert_eq!(view.size_px[1], panel.height().round() as u32);
+    assert_eq!(view.camera_position, workbench.viewport().camera().position);
+}
+
+#[test]
+fn without_a_gpu_the_viewport_explains_why() {
+    let harness = fresh();
+    assert!(
+        harness
+            .query_by_label_contains("can't be shown: no graphics device")
+            .is_some()
+    );
+    assert!(harness.query_by_label(crate::VIEWPORT_LABEL).is_some());
 }

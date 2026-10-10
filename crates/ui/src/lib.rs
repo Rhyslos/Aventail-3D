@@ -13,10 +13,12 @@ pub mod palette;
 mod panel;
 mod panels;
 pub mod theme;
+mod viewport;
 mod workbench;
 
 pub use egui_dock::DockState;
 pub use palette::Mode;
 pub use panel::Panel;
 pub use panels::viewport_middle_colour;
+pub use viewport::{NoRenderer, VIEWPORT_LABEL, ViewportPanel, ViewportRenderer, ViewportView};
 pub use workbench::{AppInfo, QUIT_SHORTCUT, Workbench, WorkbenchAction};

@@ -15,6 +15,14 @@ publish.workspace = true
 layer = 3
 
 [dependencies]
+wgpu.workspace = true
+glam.workspace = true
+bytemuck.workspace = true
+
+[dev-dependencies]
+pollster.workspace = true
+# Same layer; used to aim the camera in GPU tests.
+tools.workspace = true
 
 [lints]
 workspace = true

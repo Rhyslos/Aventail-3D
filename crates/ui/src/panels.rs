@@ -6,9 +6,9 @@ use crate::workbench::AppInfo;
 use egui::{Align2, Color32, FontId, Mesh, Rect, RichText, Sense, Ui};
 
 /// Top colour of the viewport's background gradient.
-const VIEWPORT_TOP: Color32 = Color32::from_rgb(92, 95, 100);
+pub(crate) const VIEWPORT_TOP: Color32 = Color32::from_rgb(92, 95, 100);
 /// Bottom colour of the viewport's background gradient.
-const VIEWPORT_BOTTOM: Color32 = Color32::from_rgb(57, 59, 63);
+pub(crate) const VIEWPORT_BOTTOM: Color32 = Color32::from_rgb(57, 59, 63);
 
 /// A heading and an explanation, centred, for panels with nothing in them.
 pub(crate) fn placeholder(ui: &mut Ui, heading: &str, text: &str) {
@@ -20,30 +20,8 @@ pub(crate) fn placeholder(ui: &mut Ui, heading: &str, text: &str) {
     });
 }
 
-/// The viewport: a calm gradient for now. The 3D view arrives in Phase 1.
-pub(crate) fn viewport_contents(ui: &mut Ui) {
-    let (rect, _) = ui.allocate_exact_size(ui.available_size(), Sense::hover());
-    let painter = ui.painter_at(rect);
-    painter.add(vertical_gradient(rect, VIEWPORT_TOP, VIEWPORT_BOTTOM));
-    let text = Color32::from_rgb(233, 233, 233);
-    painter.text(
-        rect.left_top() + egui::vec2(14.0, 10.0),
-        Align2::LEFT_TOP,
-        "Perspective",
-        FontId::proportional(13.0),
-        text,
-    );
-    painter.text(
-        rect.center(),
-        Align2::CENTER_CENTER,
-        "The 3D view arrives in Phase 1",
-        FontId::proportional(14.0),
-        text.gamma_multiply(0.6),
-    );
-}
-
 /// A rectangle filled with a top-to-bottom colour gradient.
-fn vertical_gradient(rect: Rect, top: Color32, bottom: Color32) -> Mesh {
+pub(crate) fn vertical_gradient(rect: Rect, top: Color32, bottom: Color32) -> Mesh {
     let mut mesh = Mesh::default();
     mesh.colored_vertex(rect.left_top(), top);
     mesh.colored_vertex(rect.right_top(), top);

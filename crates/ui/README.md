@@ -16,7 +16,7 @@ Draws everything around and on top of the viewports with egui and egui_dock: men
 
 ## Depends on
 
-None yet (`scene`, `tools`, `config` planned). Outside libraries: `egui` and `egui_dock` (interface and docking), `serde` (saving the layout).
+`tools` (the camera; `scene` and `config` planned). Outside libraries: `glam` (maths), `egui` and `egui_dock` (interface and docking), `serde` (saving the layout).
 
 ## Status
 
@@ -28,6 +28,7 @@ The window's layout is in place:
 - **Palettes** (`palette`): the command palette (top, all commands greyed out for now) and the mode palette (left; Model, Object, Points, Edges, Polygons and UV can be picked, and the status bar says which is active).
 - **Theme** (`theme`): the calm dark look from the mockups, applied once at startup by the app: colours, the Inter font (Regular and SemiBold), text sizes, spacing, the bars' and palettes' frames and the docked tabs' style. Tests check every text colour is readable (WCAG 4.5:1) and neighbouring areas stay gently close.
 - **Icons** (`icons`): 22 original icons drawn with egui shapes on a 24 × 24 grid.
-- **Placeholders**: the viewport shows its calm grey gradient; the other panels say what will appear in them and when.
+- **Viewport** (`viewport`): asks a `ViewportRenderer` for an image the size of the panel in physical pixels and shows it, with the "Perspective" label. Without a GPU (`NoRenderer`), it shows the background and says why.
+- **Placeholders**: the other panels say what will appear in them and when.
 
 Tests run the real interface without a window (egui_kittest): every tab and menu is present and in order, Attributes sit above Objects, Ctrl+Q and File → Quit quit, modes can be picked from the palette and the Modes menu, unbuilt commands cannot be clicked, View → Reset panel layout works, a broken saved layout is replaced and explained, and the About box opens.

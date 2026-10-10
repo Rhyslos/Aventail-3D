@@ -30,6 +30,11 @@ ui = { path = "crates/ui" }
 # and must have a permissive license (see docs/decisions/0004-gpl-license.md).
 toml = "1.1"
 serde = { version = "1.0", features = ["derive"] }
+# Vector maths. Must match the glam version used elsewhere in the workspace.
+glam = { version = "0.34", features = ["serde", "bytemuck"] }
+# Must match the wgpu version eframe uses (one GPU device is shared).
+wgpu = "30.0"
+bytemuck = { version = "1.25", features = ["derive"] }
 # The window and frame loop (winit + wgpu underneath); see
 # docs/decisions/0008-window-and-panels.md.
 eframe = { version = "0.36", features = ["persistence"] }
@@ -38,6 +43,7 @@ egui_dock = { version = "0.21", features = ["serde"] }
 # Development only.
 egui_kittest = "0.36"
 ron = "0.12"
+pollster = "1.0"
 
 [workspace.lints.rust]
 # Ground rule 6: no unsafe code. A crate that truly needs it must get a
