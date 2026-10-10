@@ -4,7 +4,7 @@
 
 Aventail 3D is a free, open-source modelling and UV unwrapping tool for **hard-surface game assets**, written in Rust. Model it, unwrap it, and export it to Substance Painter and Godot, all in one app.
 
-> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout and a real 3D view you can orbit, pan and zoom around a test cube, but there is nothing to model with yet. The top, front and side views and the four-view layout are next. Follow the progress tracker below.
+> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout and a real 3D view you can orbit, pan and zoom around a test cube, but there is nothing to model with yet. It shows top, front and right views too, one at a time or all four at once. Phase 1 is built and waiting for its gate; objects, undo and saving (Phase 2) are next. Follow the progress tracker below.
 
 Created by **Rhyslos**, built with AI assistance (Claude by Anthropic). Part of the **Rhylib** family of tools, alongside [Halberd](https://github.com/Rhyslos/halberd).
 
@@ -39,9 +39,9 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** the app launches into the C4D-style layout with movable, dockable panels. *Passed 2026-10-10.*
 
-### Phase 1 · Viewport and navigation — 4 of 5
+### Phase 1 · Viewport and navigation — 5 of 5
 
-`██████████░░░` 80%
+`█████████████` 100%
 
 <details>
 <summary>Milestones</summary>
@@ -50,7 +50,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Navigation: orbit, pan and zoom with the mouse alone (or another choice of mouse controls)
 - [x] Orbit and zoom around the point under the mouse cursor
 - [x] Frame selected and frame all
-- [ ] Perspective, top, front and right views, and the 4-view layout
+- [x] Perspective, top, front and right views, and the 4-view layout
 
 </details>
 
@@ -181,6 +181,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-10 | Perspective, top, front and right views and the four-view layout (F1 to F5, middle click). Phase 1 milestones complete |
 | 2026-10-10 | Frame all (H) and frame selected (F), gliding the view until everything fits |
 | 2026-10-10 | Orbit and zoom around the point under the mouse, with a marker while orbiting |
 | 2026-10-10 | A darker studio look from the approved mockup: horizon, finite grid, menu lines inside panels, a red accent with five others to choose from, and a choice of navigation controls |
@@ -195,6 +196,10 @@ Newest first. One line per finished milestone or passed gate.
 ### Snapshots
 
 Pictures of Aventail 3D at memorable moments, newest first. Kept in [docs/screenshots](docs/screenshots).
+
+**2026-10-10: four views.** Perspective, top, front and right side by side, the flat views each looking at their own grid face on; the active view is outlined in red.
+
+![The four-view layout](docs/screenshots/2026-10-10-four-views.png)
 
 **2026-10-10: orbiting around the mouse.** The view turning around the spot grabbed on the cube's side, marked with a small ring.
 

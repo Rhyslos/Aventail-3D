@@ -147,6 +147,22 @@ GRID_CHANGE="$(changed_pixels "$OUT/after-frame.png" "$OUT/after-grid.png")"
 echo "Pixels changed by the grid detail toggle: $GRID_CHANGE"
 [ "$GRID_CHANGE" -gt 5000 ] || fail "the grid detail toggle changed nothing"
 
+# 5b. F5 shows the four views (perspective, top, front, right); F1 goes
+#     back to the perspective view alone.
+xdotool mousemove 600 400
+xdotool key --window "$WINDOW_ID" F5 || true
+sleep 1.5
+import -window root "$OUT/four-views.png"
+FOUR_CHANGE="$(changed_pixels "$OUT/after-grid.png" "$OUT/four-views.png")"
+echo "Pixels changed by showing four views (F5): $FOUR_CHANGE"
+[ "$FOUR_CHANGE" -gt 20000 ] || fail "F5 did not show four views"
+xdotool key --window "$WINDOW_ID" F1 || true
+sleep 1.5
+import -window root "$OUT/back-to-one.png"
+ONE_CHANGE="$(changed_pixels "$OUT/four-views.png" "$OUT/back-to-one.png")"
+echo "Pixels changed by going back to one view (F1): $ONE_CHANGE"
+[ "$ONE_CHANGE" -gt 20000 ] || fail "F1 did not go back to one view"
+
 # 6. Quit with Ctrl+Q, or File > Quit if the key did not arrive.
 xdotool mousemove 500 400
 xdotool key --window "$WINDOW_ID" ctrl+q || true

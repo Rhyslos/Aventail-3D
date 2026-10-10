@@ -16,7 +16,11 @@ mod picker;
 use egui::{Color32, CursorIcon, PointerButton, Rect, Response, Sense, Ui, pos2};
 use glam::{Mat4, Vec2, Vec3};
 use serde::{Deserialize, Serialize};
-use tools::{Bounds, Camera, DragKind, Modifiers, MouseButton, NavigationSettings, Navigator};
+use tools::{
+    Bounds, Camera, DragKind, Modifiers, MouseButton, NavigationSettings, Navigator, ViewKind,
+};
+
+use crate::theme;
 
 #[cfg(test)]
 pub(crate) use picker::AROUND_CURSOR_LABEL;
@@ -32,11 +36,17 @@ pub struct ViewOptions {
     pub fine_grid: bool,
     /// Which mouse controls move the view.
     pub navigation: NavigationSettings,
+    /// Whether all four views (perspective, top, front, right) are shown
+    /// at once, rather than one filling the viewport.
+    pub four_views: bool,
 }
 
 /// What a renderer needs to draw one viewport frame.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ViewportView {
+    /// Which of the four views this is (0 to 3), so a renderer can keep a
+    /// separate image for each.
+    pub slot: usize,
     /// Size of the image to draw, in physical pixels.
     pub size_px: [u32; 2],
     /// World-to-screen transform.
@@ -45,6 +55,11 @@ pub struct ViewportView {
     pub camera_position: Vec3,
     /// The point the camera looks at; the grid is drawn around it.
     pub focus: Vec3,
+    /// For a flat (orthographic) view, the height it shows in centimetres;
+    /// `None` for perspective.
+    pub flat_height: Option<f32>,
+    /// The plane the grid lies in, as two directions across it.
+    pub grid_plane: [Vec3; 2],
     /// The sky straight up, sRGB 0 to 1.
     pub sky_top: [f32; 3],
     /// The sky at the horizon, sRGB 0 to 1.
@@ -217,62 +232,67 @@ const BUTTONS: [(PointerButton, MouseButton); 3] = [
     (PointerButton::Secondary, MouseButton::Secondary),
 ];
 
-/// The viewport panel's state.
-#[derive(Debug, Clone, Default)]
-pub struct ViewportPanel {
+/// How many views the viewport holds: perspective, top, front and right,
+/// shown one at a time or all four at once.
+pub const VIEW_COUNT: usize = 4;
+
+/// The keys that show one view on its own (`F1` to `F4`), and the views
+/// they show, as DESIGN.md §5.3 planned.
+pub const VIEW_KEYS: [(egui::Key, ViewKind); 4] = [
+    (egui::Key::F1, ViewKind::Perspective),
+    (egui::Key::F2, ViewKind::Top),
+    (egui::Key::F3, ViewKind::Right),
+    (egui::Key::F4, ViewKind::Front),
+];
+
+/// The key that shows all four views at once.
+pub const FOUR_VIEWS_KEY: egui::Key = egui::Key::F5;
+
+/// Gap between the four views, in logical pixels: a thin dark line.
+const VIEW_GAP: f32 = 2.0;
+
+/// One view: its camera and what the mouse is doing in it.
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct View {
     navigator: Navigator,
     /// The navigation drag in progress, if any. Chosen when the drag
     /// starts, so letting go of a key mid-drag does not stop it.
     drag: Option<DragKind>,
-    options: ViewOptions,
-    /// Set by Options → Navigation controls, to open the picker once its
-    /// button has been drawn this frame.
-    open_picker: bool,
-    /// What the renderer last found under the mouse.
+    /// What the renderer last found under the mouse in this view.
     under_mouse: Option<UnderMouse>,
-    /// Whether a question about the point under the mouse is in flight.
-    asking: bool,
-    /// The camera the question in flight was asked with.
-    asked_with: Option<Camera>,
     /// A framing move in progress.
     glide: Option<Glide>,
-    /// The 3D image's size last frame, in logical pixels (for framing from
-    /// a menu, before this frame's size is known).
+    /// The image's size last frame, in logical pixels (for framing from a
+    /// menu, before this frame's size is known).
     image_size: Vec2,
-    /// A framing asked for from a menu, done on the next frame.
-    frame_request: Option<Frame>,
 }
 
-impl ViewportPanel {
-    /// The camera the viewport looks through.
-    pub fn camera(&self) -> &Camera {
+impl View {
+    /// A view of the given kind, at its opening camera.
+    fn new(kind: ViewKind) -> Self {
+        Self {
+            navigator: Navigator::for_view(kind),
+            drag: None,
+            under_mouse: None,
+            glide: None,
+            image_size: Vec2::ZERO,
+        }
+    }
+
+    fn camera(&self) -> &Camera {
         self.navigator.camera()
     }
 
-    /// The camera and the pivot it orbits.
-    pub fn navigator(&self) -> &Navigator {
-        &self.navigator
+    fn kind(&self) -> ViewKind {
+        self.navigator.kind()
     }
 
-    /// The camera and pivot, for moving them in tests.
-    #[cfg(test)]
-    pub(crate) fn navigator_mut(&mut self) -> &mut Navigator {
-        &mut self.navigator
-    }
-
-    /// Goes back to the opening view (View → Reset view).
-    pub fn reset_view(&mut self) {
-        self.navigator.reset();
-        self.drag = None;
-        self.glide = None;
-    }
-
-    /// Fits everything, or the selection, in the view (View → Frame all,
-    /// Frame selected, or keys `H` and `F`): the camera keeps its direction
-    /// and glides forwards or back until it fits. Nothing can be selected
-    /// yet, so both frame the whole scene.
-    pub fn frame(&mut self, what: Frame) {
-        self.frame_request = Some(what);
+    /// Goes back to the opening camera for this kind of view.
+    fn reset(&mut self) {
+        *self = Self {
+            image_size: self.image_size,
+            ..Self::new(self.kind())
+        };
     }
 
     /// Starts gliding to frame `what`, at time `now`.
@@ -306,109 +326,6 @@ impl ViewportPanel {
             self.glide = None;
         }
         !done
-    }
-
-    /// Whether a framing glide is in progress.
-    pub fn is_gliding(&self) -> bool {
-        self.glide.is_some()
-    }
-
-    /// The navigation drag in progress, if any.
-    pub fn active_drag(&self) -> Option<DragKind> {
-        self.drag
-    }
-
-    /// The display and navigation choices.
-    pub fn options(&self) -> ViewOptions {
-        self.options
-    }
-
-    /// Changes the display and navigation choices.
-    pub fn options_mut(&mut self) -> &mut ViewOptions {
-        &mut self.options
-    }
-
-    /// Draws the viewport into all of `ui`'s space: the menu line along the
-    /// top, the 3D image below it.
-    pub fn show(&mut self, ui: &mut Ui, renderer: &mut dyn ViewportRenderer) {
-        let full = ui.available_rect_before_wrap();
-        let header = Rect::from_min_size(full.min, egui::vec2(full.width(), chrome::HEADER_HEIGHT));
-        let body = Rect::from_min_max(pos2(full.min.x, header.max.y), full.max);
-        ui.allocate_rect(full, Sense::hover());
-
-        let size = Vec2::new(body.width(), body.height());
-        self.image_size = size;
-        self.frame_from_keys_and_menus(ui);
-        chrome::header(ui, header, self, size);
-
-        let response = ui.interact(body, ui.id().with("viewport_body"), Sense::click_and_drag());
-        response.widget_info(|| {
-            egui::WidgetInfo::labeled(egui::WidgetType::Other, true, VIEWPORT_LABEL)
-        });
-        self.navigate(ui, &response, body);
-
-        let ppp = pixels_per_point(ui);
-        let view = self.view(body, ppp);
-        let painter = ui.painter_at(body);
-        match renderer.render(&view) {
-            Ok(texture) => {
-                let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0));
-                painter.image(texture, body, uv, Color32::WHITE);
-            }
-            Err(reason) => chrome::no_image(ui, body, &reason),
-        }
-        self.ask_what_is_under_the_mouse(ui, &response, body, &view, renderer);
-        chrome::overlays(ui, body, self);
-        picker::show(ui, body, self);
-    }
-
-    /// Collects the renderer's latest answer about the point under the
-    /// mouse, and asks again while the mouse is over the image, so an
-    /// answer is ready when an orbit or zoom starts.
-    fn ask_what_is_under_the_mouse(
-        &mut self,
-        ui: &Ui,
-        response: &Response,
-        body: Rect,
-        view: &ViewportView,
-        renderer: &mut dyn ViewportRenderer,
-    ) {
-        let ppp = pixels_per_point(ui);
-        let ask = self
-            .options
-            .navigation
-            .around_cursor
-            .then(|| response.hover_pos())
-            .flatten()
-            // One question at a time, and only when the mouse has moved
-            // since the last answer, so a resting mouse costs nothing.
-            .filter(|at| {
-                self.drag.is_none()
-                    && !self.asking
-                    && self
-                        .under_mouse
-                        .is_none_or(|u| u.at.distance(*at) > 0.5 || u.camera != *self.camera())
-            })
-            .map(|at| PickAsk {
-                view_projection: view.view_projection,
-                pixel: [(at.x - body.min.x) * ppp, (at.y - body.min.y) * ppp],
-                size_px: view.size_px,
-            });
-        if ask.is_some() {
-            self.asked_with = Some(*self.camera());
-        }
-        let reply = renderer.pick(ask);
-        if let Some(answer) = reply.answer {
-            self.under_mouse = Some(UnderMouse {
-                at: body.min + egui::vec2(answer.pixel[0], answer.pixel[1]) / ppp,
-                point: answer.point,
-                camera: self.asked_with.unwrap_or(*self.camera()),
-            });
-        }
-        self.asking = reply.waiting;
-        if reply.waiting {
-            ui.ctx().request_repaint();
-        }
     }
 
     /// The renderer's answer about `at` (logical screen coordinates):
@@ -447,31 +364,9 @@ impl ViewportPanel {
         }
     }
 
-    /// Starts framing for the `H` and `F` keys (unless typing in a field)
-    /// or a menu entry, and moves along a glide in progress.
-    fn frame_from_keys_and_menus(&mut self, ui: &Ui) {
-        let typing = ui.ctx().memory(|m| m.focused().is_some());
-        let now = ui.input(|i| i.time);
-        let mut wanted = self.frame_request.take();
-        if !typing {
-            for what in [Frame::All, Frame::Selected] {
-                if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, what.key())) {
-                    wanted = Some(what);
-                }
-            }
-        }
-        if let Some(what) = wanted {
-            self.start_frame(what, now);
-        }
-        if self.follow_glide(now) {
-            ui.ctx().request_repaint();
-        }
-    }
-
     /// Moves the camera for this frame's mouse input over the image.
-    fn navigate(&mut self, ui: &Ui, response: &Response, rect: Rect) {
+    fn navigate(&mut self, ui: &Ui, response: &Response, rect: Rect, settings: NavigationSettings) {
         let size = Vec2::new(rect.width(), rect.height());
-        let settings = self.options.navigation;
         if response.drag_started() {
             // Taking hold of the view stops a framing glide where it is.
             self.glide = None;
@@ -547,35 +442,390 @@ impl ViewportPanel {
     }
 
     /// Applies a drag on one of the menu line's navigation buttons.
-    fn button_drag(&mut self, kind: DragKind, delta: egui::Vec2, size: Vec2) {
+    fn button_drag(&mut self, kind: DragKind, delta: egui::Vec2, settings: NavigationSettings) {
         self.glide = None;
-        if !self.options.navigation.around_cursor {
+        if !settings.around_cursor {
             self.navigator.centre_pivot();
         }
-        let delta = self
-            .options
-            .navigation
-            .movement(kind, Vec2::new(delta.x, delta.y));
-        self.navigator.drag(kind, delta, size);
+        let delta = settings.movement(kind, Vec2::new(delta.x, delta.y));
+        self.navigator.drag(kind, delta, self.image_size);
     }
 
-    /// What to ask the renderer for, for an image at `rect`.
-    fn view(&self, rect: Rect, pixels_per_point: f32) -> ViewportView {
+    /// What to ask the renderer for, for this view's image at `rect`.
+    fn view(
+        &self,
+        slot: usize,
+        rect: Rect,
+        pixels_per_point: f32,
+        fine_grid: bool,
+    ) -> ViewportView {
         let ppp = sane_scale(pixels_per_point);
         let px = |v: f32| (v * ppp).round().clamp(1.0, 16_384.0) as u32;
         let size_px = [px(rect.width()), px(rect.height())];
         let size = Vec2::new(size_px[0] as f32, size_px[1] as f32);
         use crate::theme::backdrop;
         ViewportView {
+            slot,
             size_px,
             view_projection: self.camera().view_projection(size),
             camera_position: self.camera().position,
             focus: self.navigator.pivot(),
+            flat_height: self.camera().ortho_height,
+            grid_plane: self.kind().grid_plane(),
             sky_top: rgb(backdrop::SKY_TOP),
             sky_horizon: rgb(backdrop::HORIZON),
             ground: rgb(backdrop::GROUND),
-            fine_grid: self.options.fine_grid,
+            fine_grid,
         }
+    }
+}
+
+/// The question about the point under the mouse that is waiting for its
+/// answer.
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Asked {
+    /// Which view asked.
+    slot: usize,
+    /// The camera it asked with.
+    camera: Camera,
+    /// The view's top-left corner on screen, in logical pixels.
+    corner: egui::Pos2,
+}
+
+/// The viewport panel's state.
+#[derive(Debug, Clone)]
+pub struct ViewportPanel {
+    /// The four views, in layout order: perspective top left, top top
+    /// right, front bottom left, right bottom right (each can be switched
+    /// to another kind from the Cameras menu).
+    views: [View; VIEW_COUNT],
+    /// The view the menus and keys act on: the last one clicked. Shown on
+    /// its own when the four-view layout is off.
+    active: usize,
+    options: ViewOptions,
+    /// Set by Options → Navigation controls, to open the picker once its
+    /// button has been drawn this frame.
+    open_picker: bool,
+    /// The question about the point under the mouse in flight, if any.
+    asked: Option<Asked>,
+    /// Whether the renderer is still working on a question.
+    asking: bool,
+    /// A framing asked for from a menu, done on the next frame.
+    frame_request: Option<Frame>,
+}
+
+impl Default for ViewportPanel {
+    fn default() -> Self {
+        Self {
+            views: ViewKind::ALL.map(View::new),
+            active: 0,
+            options: ViewOptions::default(),
+            open_picker: false,
+            asked: None,
+            asking: false,
+            frame_request: None,
+        }
+    }
+}
+
+impl ViewportPanel {
+    fn active_view(&self) -> &View {
+        &self.views[self.active.min(VIEW_COUNT - 1)]
+    }
+
+    fn active_view_mut(&mut self) -> &mut View {
+        &mut self.views[self.active.min(VIEW_COUNT - 1)]
+    }
+
+    /// The camera of the active view (the one the menus act on).
+    pub fn camera(&self) -> &Camera {
+        self.active_view().camera()
+    }
+
+    /// The active view's camera and the pivot it orbits.
+    pub fn navigator(&self) -> &Navigator {
+        &self.active_view().navigator
+    }
+
+    /// The active view's camera and pivot, for moving them in tests.
+    #[cfg(test)]
+    pub(crate) fn navigator_mut(&mut self) -> &mut Navigator {
+        &mut self.active_view_mut().navigator
+    }
+
+    /// Which kind of view the active view is.
+    pub fn active_kind(&self) -> ViewKind {
+        self.active_view().kind()
+    }
+
+    /// The kind of each of the four views, in layout order.
+    pub fn view_kinds(&self) -> [ViewKind; VIEW_COUNT] {
+        self.views.map(|v| v.kind())
+    }
+
+    /// Which of the four views is active (0 top left, 1 top right, 2
+    /// bottom left, 3 bottom right).
+    pub fn active_slot(&self) -> usize {
+        self.active
+    }
+
+    /// Whether all four views are shown at once.
+    pub fn four_views(&self) -> bool {
+        self.options.four_views
+    }
+
+    /// Shows all four views, or only the active one.
+    pub fn set_four_views(&mut self, four: bool) {
+        self.options.four_views = four;
+    }
+
+    /// Turns the active view into a view of `kind`, at its opening camera
+    /// (Cameras menu). Nothing changes if it already is one.
+    pub fn set_kind(&mut self, kind: ViewKind) {
+        let view = self.active_view_mut();
+        if view.kind() != kind {
+            *view = View {
+                image_size: view.image_size,
+                ..View::new(kind)
+            };
+        }
+    }
+
+    /// Shows a view of `kind` on its own (keys `F1` to `F4`): the view of
+    /// that kind if there is one, otherwise the active view turned into one.
+    pub fn show_alone(&mut self, kind: ViewKind) {
+        match self.views.iter().position(|v| v.kind() == kind) {
+            Some(slot) => self.active = slot,
+            None => self.set_kind(kind),
+        }
+        self.options.four_views = false;
+    }
+
+    /// Goes back to the opening camera of the active view (View → Reset
+    /// view), keeping its kind.
+    pub fn reset_view(&mut self) {
+        self.active_view_mut().reset();
+    }
+
+    /// Fits everything, or the selection, in the active view (View → Frame
+    /// all, Frame selected, or keys `H` and `F`): the camera keeps its
+    /// direction and glides forwards or back until it fits. Nothing can be
+    /// selected yet, so both frame the whole scene.
+    pub fn frame(&mut self, what: Frame) {
+        self.frame_request = Some(what);
+    }
+
+    /// Whether a framing glide is in progress in the active view.
+    pub fn is_gliding(&self) -> bool {
+        self.active_view().glide.is_some()
+    }
+
+    /// The navigation drag in progress in the active view, if any.
+    pub fn active_drag(&self) -> Option<DragKind> {
+        self.active_view().drag
+    }
+
+    /// The display and navigation choices.
+    pub fn options(&self) -> ViewOptions {
+        self.options
+    }
+
+    /// Changes the display and navigation choices.
+    pub fn options_mut(&mut self) -> &mut ViewOptions {
+        &mut self.options
+    }
+
+    /// Where each view shown goes in `body`, with its slot: the active view
+    /// filling it, or all four in a 2 × 2 grid.
+    fn layout(&self, body: Rect) -> Vec<(usize, Rect)> {
+        if !self.options.four_views {
+            return vec![(self.active.min(VIEW_COUNT - 1), body)];
+        }
+        let half = VIEW_GAP / 2.0;
+        let mid = body.center();
+        let columns = [(body.left(), mid.x - half), (mid.x + half, body.right())];
+        let rows = [(body.top(), mid.y - half), (mid.y + half, body.bottom())];
+        (0..VIEW_COUNT)
+            .map(|slot| {
+                let (left, right) = columns[slot % 2];
+                let (top, bottom) = rows[slot / 2];
+                let rect =
+                    Rect::from_min_max(pos2(left, top), pos2(right.max(left), bottom.max(top)));
+                (slot, rect)
+            })
+            .collect()
+    }
+
+    /// Draws the viewport into all of `ui`'s space: the menu line along the
+    /// top, and below it one 3D image, or four.
+    pub fn show(&mut self, ui: &mut Ui, renderer: &mut dyn ViewportRenderer) {
+        let full = ui.available_rect_before_wrap();
+        let header = Rect::from_min_size(full.min, egui::vec2(full.width(), chrome::HEADER_HEIGHT));
+        let body = Rect::from_min_max(pos2(full.min.x, header.max.y), full.max);
+        ui.allocate_rect(full, Sense::hover());
+
+        self.views_from_keys(ui);
+        let shown = self.layout(body);
+        for (slot, rect) in &shown {
+            self.views[*slot].image_size = Vec2::new(rect.width(), rect.height());
+        }
+        self.frame_from_keys_and_menus(ui);
+        chrome::header(ui, header, self);
+
+        let four = self.options.four_views;
+        if four {
+            ui.painter().rect_filled(body, 0.0, theme::BORDER);
+        }
+        let ppp = pixels_per_point(ui);
+        let mut hovered = None;
+        let mut toggle_layout = false;
+        for (slot, rect) in shown.iter().copied() {
+            let response = ui.interact(
+                rect,
+                ui.id().with(("viewport_body", slot)),
+                Sense::click_and_drag(),
+            );
+            let label = if four {
+                format!("{VIEWPORT_LABEL} ({})", self.views[slot].kind().name())
+            } else {
+                VIEWPORT_LABEL.to_string()
+            };
+            response
+                .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Other, true, &label));
+            // Pressing any button in a view makes it the active one.
+            if response.contains_pointer() && ui.input(|i| i.pointer.any_pressed()) {
+                self.active = slot;
+            }
+            // A middle click (not a drag) switches between one view and four.
+            if response.clicked_by(PointerButton::Middle) {
+                self.active = slot;
+                toggle_layout = true;
+            }
+            let settings = self.options.navigation;
+            self.views[slot].navigate(ui, &response, rect, settings);
+
+            let view = self.views[slot].view(slot, rect, ppp, self.options.fine_grid);
+            match renderer.render(&view) {
+                Ok(texture) => {
+                    let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0));
+                    ui.painter_at(rect).image(texture, rect, uv, Color32::WHITE);
+                }
+                Err(reason) => chrome::no_image(ui, rect, &reason),
+            }
+            if response.hovered() {
+                hovered = Some((slot, rect, response.hover_pos(), view));
+            }
+            chrome::overlays(ui, rect, &self.views[slot], &self.options);
+            if four && slot == self.active {
+                chrome::active_border(ui, rect);
+            }
+        }
+        self.ask_what_is_under_the_mouse(ui, hovered, renderer);
+        if toggle_layout {
+            self.options.four_views = !four;
+        }
+        picker::show(ui, body, self);
+    }
+
+    /// Shows one view or four, for keys `F1` to `F5` (unless typing in a
+    /// field).
+    fn views_from_keys(&mut self, ui: &Ui) {
+        if ui.ctx().memory(|m| m.focused().is_some()) {
+            return;
+        }
+        for (key, kind) in VIEW_KEYS {
+            if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, key)) {
+                self.show_alone(kind);
+            }
+        }
+        if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, FOUR_VIEWS_KEY)) {
+            self.options.four_views = true;
+        }
+    }
+
+    /// Collects the renderer's latest answer about the point under the
+    /// mouse, and asks again while the mouse is over a view, so an answer
+    /// is ready when an orbit or zoom starts. `hovered` is the view under
+    /// the mouse, if any: its slot, place, the mouse position and what was
+    /// drawn.
+    fn ask_what_is_under_the_mouse(
+        &mut self,
+        ui: &Ui,
+        hovered: Option<(usize, Rect, Option<egui::Pos2>, ViewportView)>,
+        renderer: &mut dyn ViewportRenderer,
+    ) {
+        let ppp = pixels_per_point(ui);
+        let around_cursor = self.options.navigation.around_cursor;
+        let mut ask = None;
+        if let Some((slot, rect, Some(at), view)) = hovered
+            && around_cursor
+        {
+            let it = &self.views[slot];
+            // One question at a time, and only when the mouse has moved
+            // since the last answer, so a resting mouse costs nothing.
+            let fresh_needed = it
+                .under_mouse
+                .is_none_or(|u| u.at.distance(at) > 0.5 || u.camera != *it.camera());
+            if it.drag.is_none() && !self.asking && fresh_needed {
+                ask = Some(PickAsk {
+                    view_projection: view.view_projection,
+                    pixel: [(at.x - rect.min.x) * ppp, (at.y - rect.min.y) * ppp],
+                    size_px: view.size_px,
+                });
+                self.asked = Some(Asked {
+                    slot,
+                    camera: *it.camera(),
+                    corner: rect.min,
+                });
+            }
+        }
+        let reply = renderer.pick(ask);
+        if let (Some(answer), Some(asked)) = (reply.answer, self.asked)
+            && let Some(view) = self.views.get_mut(asked.slot)
+        {
+            view.under_mouse = Some(UnderMouse {
+                at: asked.corner + egui::vec2(answer.pixel[0], answer.pixel[1]) / ppp,
+                point: answer.point,
+                camera: asked.camera,
+            });
+        }
+        self.asking = reply.waiting;
+        if reply.waiting {
+            ui.ctx().request_repaint();
+        }
+    }
+
+    /// Starts framing the active view for the `H` and `F` keys (unless
+    /// typing in a field) or a menu entry, and moves every view along a
+    /// glide in progress.
+    fn frame_from_keys_and_menus(&mut self, ui: &Ui) {
+        let typing = ui.ctx().memory(|m| m.focused().is_some());
+        let now = ui.input(|i| i.time);
+        let mut wanted = self.frame_request.take();
+        if !typing {
+            for what in [Frame::All, Frame::Selected] {
+                if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, what.key())) {
+                    wanted = Some(what);
+                }
+            }
+        }
+        if let Some(what) = wanted {
+            self.active_view_mut().start_frame(what, now);
+        }
+        let mut gliding = false;
+        for view in &mut self.views {
+            gliding |= view.follow_glide(now);
+        }
+        if gliding {
+            ui.ctx().request_repaint();
+        }
+    }
+
+    /// Applies a drag on one of the menu line's navigation buttons to the
+    /// active view.
+    fn button_drag(&mut self, kind: DragKind, delta: egui::Vec2) {
+        let settings = self.options.navigation;
+        self.active_view_mut().button_drag(kind, delta, settings);
     }
 }
 
@@ -637,20 +887,24 @@ mod tests {
     use super::*;
     use crate::theme::backdrop;
 
+    fn rect(w: f32, h: f32) -> Rect {
+        Rect::from_min_size(pos2(0.0, 0.0), egui::vec2(w, h))
+    }
+
+    fn perspective() -> View {
+        View::new(ViewKind::Perspective)
+    }
+
     #[test]
     fn the_view_is_sized_in_physical_pixels() {
-        let panel = ViewportPanel::default();
-        let rect = Rect::from_min_size(pos2(0.0, 0.0), egui::vec2(800.0, 500.0));
-        let view = panel.view(rect, 1.5);
+        let view = perspective().view(0, rect(800.0, 500.0), 1.5, false);
         assert_eq!(view.size_px, [1200, 750]);
     }
 
     #[test]
     fn empty_or_broken_sizes_still_make_a_valid_view() {
-        let panel = ViewportPanel::default();
-        let rect = Rect::from_min_size(pos2(0.0, 0.0), egui::vec2(0.0, 0.0));
         for ppp in [0.0, f32::NAN, 2.0] {
-            let view = panel.view(rect, ppp);
+            let view = perspective().view(0, rect(0.0, 0.0), ppp, false);
             assert_eq!(view.size_px, [1, 1]);
             assert!(view.view_projection.is_finite());
         }
@@ -658,46 +912,148 @@ mod tests {
 
     #[test]
     fn the_view_uses_the_camera_pivot_and_backdrop() {
-        let panel = ViewportPanel::default();
-        let rect = Rect::from_min_size(pos2(0.0, 0.0), egui::vec2(640.0, 400.0));
-        let view = panel.view(rect, 1.0);
-        assert_eq!(view.camera_position, panel.camera().position);
-        assert_eq!(view.focus, panel.navigator().pivot());
+        let it = perspective();
+        let view = it.view(0, rect(640.0, 400.0), 1.0, false);
+        assert_eq!(view.camera_position, it.camera().position);
+        assert_eq!(view.focus, it.navigator.pivot());
         assert_eq!(
             view.view_projection,
-            panel.camera().view_projection(Vec2::new(640.0, 400.0))
+            it.camera().view_projection(Vec2::new(640.0, 400.0))
         );
         assert_eq!(view.sky_top, rgb(backdrop::SKY_TOP));
         assert_eq!(view.ground, rgb(backdrop::GROUND));
+        assert_eq!(view.flat_height, None);
+        assert_eq!(view.grid_plane, [Vec3::X, Vec3::Y]);
+    }
+
+    #[test]
+    fn flat_views_tell_the_renderer_their_height_and_grid() {
+        let it = View::new(ViewKind::Front);
+        let view = it.view(2, rect(640.0, 400.0), 1.0, true);
+        assert_eq!(view.slot, 2);
+        assert_eq!(view.flat_height, it.camera().ortho_height);
+        assert!(view.flat_height.is_some());
+        assert_eq!(view.grid_plane, [Vec3::X, Vec3::Z]);
+        assert!(view.fine_grid);
+    }
+
+    #[test]
+    fn the_four_views_open_as_perspective_top_front_and_right() {
+        let panel = ViewportPanel::default();
+        assert_eq!(panel.view_kinds(), ViewKind::ALL);
+        assert_eq!(panel.active_kind(), ViewKind::Perspective);
+        assert!(!panel.four_views(), "one view to start with");
+        assert_eq!(*panel.navigator(), Navigator::default());
+    }
+
+    #[test]
+    fn the_layout_shows_one_view_or_four() {
+        let mut panel = ViewportPanel::default();
+        let body = Rect::from_min_size(pos2(10.0, 20.0), egui::vec2(800.0, 600.0));
+        assert_eq!(panel.layout(body), vec![(0, body)]);
+        panel.active = 3;
+        assert_eq!(panel.layout(body), vec![(3, body)], "the active view");
+        panel.set_four_views(true);
+        let four = panel.layout(body);
+        assert_eq!(four.len(), 4);
+        let (_, top_left) = four[0];
+        let (_, bottom_right) = four[3];
+        assert_eq!(top_left.min, body.min);
+        assert_eq!(bottom_right.max, body.max);
+        assert!(four[1].1.min.x > top_left.max.x, "a gap between them");
+        assert!(four[2].1.min.y > top_left.max.y);
+        for (_, r) in &four {
+            assert!(body.contains_rect(*r));
+            assert!((r.width() - (800.0 - VIEW_GAP) / 2.0).abs() < 1e-3);
+        }
+        // A body too small for the gap still gives valid (empty) rects.
+        let tiny = panel.layout(rect(1.0, 1.0));
+        assert!(
+            tiny.iter()
+                .all(|(_, r)| r.width() >= 0.0 && r.height() >= 0.0)
+        );
+    }
+
+    #[test]
+    fn view_keys_show_that_view_alone() {
+        let mut panel = ViewportPanel::default();
+        panel.set_four_views(true);
+        panel.show_alone(ViewKind::Right);
+        assert_eq!(panel.active_slot(), 3);
+        assert_eq!(panel.active_kind(), ViewKind::Right);
+        assert!(!panel.four_views());
+        panel.show_alone(ViewKind::Top);
+        assert_eq!(panel.active_slot(), 1);
+    }
+
+    #[test]
+    fn a_missing_view_kind_takes_over_the_active_view() {
+        let mut panel = ViewportPanel {
+            active: 1,
+            ..ViewportPanel::default()
+        };
+        panel.set_kind(ViewKind::Front);
+        // Now two front views and no top view: F2 turns the active view
+        // back into a top view.
+        assert_eq!(panel.view_kinds()[1], ViewKind::Front);
+        panel.active = 2;
+        panel.show_alone(ViewKind::Top);
+        assert_eq!(panel.active_slot(), 2);
+        assert_eq!(panel.view_kinds()[2], ViewKind::Top);
+    }
+
+    #[test]
+    fn changing_a_views_kind_starts_it_fresh_and_keeps_others() {
+        let mut panel = ViewportPanel::default();
+        panel.views[1].navigator.pan(Vec2::new(40.0, 0.0), 400.0);
+        let top = panel.views[1];
+        panel.navigator_mut().orbit(Vec2::new(50.0, 0.0));
+        panel.set_kind(ViewKind::Right);
+        assert_eq!(*panel.navigator(), Navigator::for_view(ViewKind::Right));
+        assert_eq!(panel.views[1], top, "the other views are untouched");
+        let before = *panel.navigator();
+        panel.set_kind(ViewKind::Right);
+        assert_eq!(*panel.navigator(), before, "same kind: nothing changes");
     }
 
     #[test]
     fn the_view_carries_the_grid_detail_choice() {
         let mut panel = ViewportPanel::default();
-        let rect = Rect::from_min_size(pos2(0.0, 0.0), egui::vec2(640.0, 400.0));
-        assert!(!panel.view(rect, 1.0).fine_grid, "calm by default");
+        let r = rect(640.0, 400.0);
+        let fine = |p: &ViewportPanel| {
+            p.active_view()
+                .view(0, r, 1.0, p.options.fine_grid)
+                .fine_grid
+        };
+        assert!(!fine(&panel), "calm by default");
         panel.options_mut().fine_grid = true;
-        assert!(panel.view(rect, 1.0).fine_grid);
+        assert!(fine(&panel));
     }
 
     #[test]
-    fn resetting_the_view_restores_the_opening_camera() {
+    fn resetting_the_view_restores_its_opening_camera() {
         let mut panel = ViewportPanel::default();
-        panel.navigator.orbit(Vec2::new(200.0, 50.0));
-        panel.drag = Some(DragKind::Orbit);
+        panel.navigator_mut().orbit(Vec2::new(200.0, 50.0));
+        panel.active_view_mut().drag = Some(DragKind::Orbit);
         panel.reset_view();
         assert_eq!(*panel.navigator(), Navigator::default());
         assert_eq!(panel.active_drag(), None);
+        // A flat view resets to its own opening view, staying flat.
+        panel.active = 1;
+        panel.navigator_mut().pan(Vec2::new(30.0, 10.0), 400.0);
+        panel.reset_view();
+        assert_eq!(*panel.navigator(), Navigator::for_view(ViewKind::Top));
     }
 
     #[test]
     fn button_drags_respect_the_invert_setting() {
-        let size = Vec2::new(640.0, 400.0);
         let mut normal = ViewportPanel::default();
-        normal.button_drag(DragKind::Orbit, egui::vec2(30.0, 0.0), size);
+        normal.active_view_mut().image_size = Vec2::new(640.0, 400.0);
+        normal.button_drag(DragKind::Orbit, egui::vec2(30.0, 0.0));
         let mut inverted = ViewportPanel::default();
+        inverted.active_view_mut().image_size = Vec2::new(640.0, 400.0);
         inverted.options_mut().navigation.invert_orbit = true;
-        inverted.button_drag(DragKind::Orbit, egui::vec2(30.0, 0.0), size);
+        inverted.button_drag(DragKind::Orbit, egui::vec2(30.0, 0.0));
         let start = Navigator::default().camera().yaw;
         assert!(normal.camera().yaw < start);
         assert!(inverted.camera().yaw > start);
@@ -707,6 +1063,7 @@ mod tests {
     fn view_options_survive_saving_and_old_files() {
         let mut options = ViewOptions {
             fine_grid: true,
+            four_views: true,
             ..ViewOptions::default()
         };
         options.navigation.scheme = tools::Scheme::MouseOnly;
@@ -715,62 +1072,72 @@ mod tests {
         // Files saved before a setting existed still load, with defaults.
         let old: ViewOptions = ron::from_str("(fine_grid: true)").unwrap();
         assert!(old.fine_grid);
+        assert!(!old.four_views);
         assert_eq!(old.navigation, NavigationSettings::default());
     }
 
     #[test]
     fn answers_go_stale_when_the_camera_moves() {
-        let mut panel = ViewportPanel::default();
+        let mut it = perspective();
         let at = pos2(100.0, 100.0);
-        panel.under_mouse = Some(UnderMouse {
+        it.under_mouse = Some(UnderMouse {
             at,
             point: Some(Vec3::new(1.0, 2.0, 3.0)),
-            camera: *panel.camera(),
+            camera: *it.camera(),
         });
-        assert_eq!(panel.surface_at(at), Some(Vec3::new(1.0, 2.0, 3.0)));
-        assert_eq!(panel.answer_at(pos2(140.0, 100.0)), None, "another spot");
-        panel.navigator.orbit(Vec2::new(10.0, 0.0));
-        assert_eq!(panel.answer_at(at), None, "the camera has moved");
+        assert_eq!(it.surface_at(at), Some(Vec3::new(1.0, 2.0, 3.0)));
+        assert_eq!(it.answer_at(pos2(140.0, 100.0)), None, "another spot");
+        it.navigator.orbit(Vec2::new(10.0, 0.0));
+        assert_eq!(it.answer_at(at), None, "the camera has moved");
     }
 
     #[test]
     fn without_an_answer_zooming_keeps_the_current_distance() {
-        let panel = ViewportPanel::default();
-        let rect = Rect::from_min_size(pos2(0.0, 0.0), egui::vec2(640.0, 400.0));
-        let target = panel.zoom_target(pos2(500.0, 350.0), rect);
-        let distance = panel.camera().position.distance(target);
-        assert!((distance - panel.navigator().distance()).abs() < 0.01);
+        let it = perspective();
+        let target = it.zoom_target(pos2(500.0, 350.0), rect(640.0, 400.0));
+        let distance = it.camera().position.distance(target);
+        assert!((distance - it.navigator.distance()).abs() < 0.01);
     }
 
     #[test]
     fn framing_glides_into_place_and_stops() {
-        let mut panel = ViewportPanel {
+        let mut it = View {
             image_size: Vec2::new(640.0, 400.0),
-            ..ViewportPanel::default()
+            ..perspective()
         };
-        let start = *panel.navigator();
-        panel.start_frame(Frame::All, 10.0);
+        let start = it.navigator;
+        it.start_frame(Frame::All, 10.0);
         let end = start.framed(&TEST_SCENE, 1.6);
-        assert!(panel.follow_glide(10.05), "still going");
-        let partway = panel.navigator().camera().position;
+        assert!(it.follow_glide(10.05), "still going");
+        let partway = it.camera().position;
         assert_ne!(partway, start.camera().position);
         assert_ne!(partway, end.camera().position);
-        assert!(!panel.follow_glide(10.0 + GLIDE_SECONDS + 0.01), "finished");
-        assert_eq!(*panel.navigator(), end);
-        assert!(!panel.is_gliding());
+        assert!(!it.follow_glide(10.0 + GLIDE_SECONDS + 0.01), "finished");
+        assert_eq!(it.navigator, end);
+        assert!(it.glide.is_none());
+    }
+
+    #[test]
+    fn framing_a_flat_view_keeps_it_flat() {
+        let mut it = View {
+            image_size: Vec2::new(640.0, 400.0),
+            ..View::new(ViewKind::Front)
+        };
+        it.start_frame(Frame::All, 0.0);
+        it.follow_glide(1.0);
+        assert_eq!(it.kind(), ViewKind::Front);
+        assert_eq!(it.navigator.pivot(), TEST_SCENE.centre());
     }
 
     #[test]
     fn taking_hold_of_the_view_stops_a_glide() {
-        let mut panel = ViewportPanel {
-            image_size: Vec2::new(640.0, 400.0),
-            ..ViewportPanel::default()
-        };
-        panel.start_frame(Frame::Selected, 0.0);
-        panel.follow_glide(0.05);
-        panel.button_drag(DragKind::Pan, egui::vec2(5.0, 0.0), Vec2::new(640.0, 400.0));
+        let mut panel = ViewportPanel::default();
+        panel.active_view_mut().image_size = Vec2::new(640.0, 400.0);
+        panel.active_view_mut().start_frame(Frame::Selected, 0.0);
+        panel.active_view_mut().follow_glide(0.05);
+        panel.button_drag(DragKind::Pan, egui::vec2(5.0, 0.0));
         assert!(!panel.is_gliding());
-        panel.start_frame(Frame::All, 0.0);
+        panel.active_view_mut().start_frame(Frame::All, 0.0);
         panel.reset_view();
         assert!(!panel.is_gliding());
     }

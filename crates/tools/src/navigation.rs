@@ -17,6 +17,7 @@
 use crate::camera::{Camera, DEFAULT_TARGET, MAX_PITCH};
 use glam::{Vec2, Vec3};
 use mesh::Bounds;
+use serde::{Deserialize, Serialize};
 
 /// How far the view turns per unit of mouse movement while orbiting, in
 /// radians (0.3° per pixel: a drag across a typical viewport turns the
@@ -40,6 +41,74 @@ pub const FRAME_MARGIN: f32 = 1.15;
 /// The smallest size framing zooms to, as a radius in centimetres, so a
 /// single point or a tiny part doesn't fill the whole view.
 pub const MIN_FRAME_RADIUS: f32 = 25.0;
+
+/// How far behind what it looks at a flat (orthographic) view's camera
+/// stands, in centimetres (500 m): far enough that everything in front of
+/// it is drawn; distance makes no difference to a flat view's picture.
+pub const FLAT_STANDOFF: f32 = 50_000.0;
+/// The smallest height a flat view can show, in centimetres.
+pub const MIN_FLAT_HEIGHT: f32 = 5.0;
+/// The largest height a flat view can show, in centimetres (2 km).
+pub const MAX_FLAT_HEIGHT: f32 = 200_000.0;
+
+/// Which way a view looks, and whether it is flat.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum ViewKind {
+    /// An ordinary 3D view, things shrinking with distance.
+    #[default]
+    Perspective,
+    /// Flat, looking straight down: X to the right, Y up the screen.
+    Top,
+    /// Flat, looking along +Y: X to the right, Z up.
+    Front,
+    /// Flat, looking along -X from the right: Y to the right, Z up.
+    Right,
+}
+
+impl ViewKind {
+    /// Every kind, in the order the menus and the four-view layout use
+    /// (perspective top left, top top right, front bottom left, right
+    /// bottom right).
+    pub const ALL: [ViewKind; 4] = [Self::Perspective, Self::Top, Self::Front, Self::Right];
+
+    /// The view's name, as shown in its corner.
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Perspective => "Perspective",
+            Self::Top => "Top",
+            Self::Front => "Front",
+            Self::Right => "Right",
+        }
+    }
+
+    /// Whether the view is flat (orthographic).
+    pub fn is_flat(self) -> bool {
+        self != Self::Perspective
+    }
+
+    /// The plane the view's grid lies in, as two directions across it:
+    /// the ground for the perspective and top views, and the upright plane
+    /// facing the camera for the front and right views, so a flat view
+    /// always looks at its grid face on.
+    pub fn grid_plane(self) -> [Vec3; 2] {
+        match self {
+            Self::Perspective | Self::Top => [Vec3::X, Vec3::Y],
+            Self::Front => [Vec3::X, Vec3::Z],
+            Self::Right => [Vec3::Y, Vec3::Z],
+        }
+    }
+
+    /// The fixed direction of a flat view, as (yaw, pitch).
+    fn direction(self) -> Option<(f32, f32)> {
+        use std::f32::consts::{FRAC_PI_2, PI};
+        match self {
+            Self::Perspective => None,
+            Self::Top => Some((FRAC_PI_2, -FRAC_PI_2)),
+            Self::Front => Some((FRAC_PI_2, 0.0)),
+            Self::Right => Some((PI, 0.0)),
+        }
+    }
+}
 
 /// A mouse button, as far as navigation cares.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -99,6 +168,41 @@ impl Navigator {
         navigator
     }
 
+    /// The opening view of the given kind: the standard perspective view,
+    /// or a flat view looking at the middle of the scene, showing about
+    /// 6 m from bottom to top.
+    pub fn for_view(kind: ViewKind) -> Self {
+        let Some((yaw, pitch)) = kind.direction() else {
+            return Self::default();
+        };
+        let mut camera = Camera {
+            yaw,
+            pitch,
+            ortho_height: Some(600.0),
+            ..Camera::default()
+        };
+        camera.position = DEFAULT_TARGET - camera.forward() * FLAT_STANDOFF;
+        Self {
+            camera,
+            pivot: DEFAULT_TARGET,
+        }
+    }
+
+    /// Which kind of view this is.
+    pub fn kind(&self) -> ViewKind {
+        if !self.camera.is_flat() {
+            return ViewKind::Perspective;
+        }
+        let forward = self.camera.forward();
+        if forward.z < -0.99 {
+            ViewKind::Top
+        } else if forward.y > 0.99 {
+            ViewKind::Front
+        } else {
+            ViewKind::Right
+        }
+    }
+
     /// The camera, for drawing.
     pub fn camera(&self) -> &Camera {
         &self.camera
@@ -138,6 +242,17 @@ impl Navigator {
             1.0
         };
         let radius = bounds.radius().max(MIN_FRAME_RADIUS) * FRAME_MARGIN;
+        if self.camera.is_flat() {
+            // A flat view shows a fixed height: make it hold the box both
+            // ways, and stand well back.
+            let height =
+                (2.0 * radius * (1.0 / aspect).max(1.0)).clamp(MIN_FLAT_HEIGHT, MAX_FLAT_HEIGHT);
+            let mut framed = *self;
+            framed.pivot = bounds.centre();
+            framed.camera.ortho_height = Some(height);
+            framed.camera.position = framed.pivot - self.camera.forward() * FLAT_STANDOFF;
+            return framed;
+        }
         let half_tall = self.camera.fov_y * 0.5;
         let half_wide = (half_tall.tan() * aspect).atan();
         let half = half_tall.min(half_wide);
@@ -173,6 +288,10 @@ impl Navigator {
             yaw: wrap_angle(a.yaw + turn * t),
             pitch: a.pitch + (b.pitch - a.pitch) * t,
             fov_y: a.fov_y + (b.fov_y - a.fov_y) * t,
+            ortho_height: match (a.ortho_height, b.ortho_height) {
+                (Some(x), Some(y)) => Some(x + (y - x) * t),
+                (_, other) => other,
+            },
         };
         Self {
             camera,
@@ -243,7 +362,8 @@ impl Navigator {
     /// around it. The scene follows the mouse: dragging right turns its
     /// front to the right, dragging down tips its top towards you.
     pub fn orbit(&mut self, delta: Vec2) {
-        if !delta.is_finite() {
+        // Flat views keep their direction: a front view stays a front view.
+        if !delta.is_finite() || self.camera.is_flat() {
             return;
         }
         // Where the pivot sits as seen from the camera (right, up and
@@ -273,7 +393,11 @@ impl Navigator {
             return;
         }
         // Height of the visible world at the pivot's depth, per unit.
-        let per_unit = 2.0 * self.pivot_depth() * (self.camera.fov_y * 0.5).tan() / view_height;
+        let visible = match self.camera.ortho_height {
+            Some(height) => height,
+            None => 2.0 * self.pivot_depth() * (self.camera.fov_y * 0.5).tan(),
+        };
+        let per_unit = visible / view_height;
         let shift = (-self.camera.right() * delta.x + self.camera.up() * delta.y) * per_unit;
         self.camera.position += shift;
         self.pivot += shift;
@@ -302,6 +426,10 @@ impl Navigator {
     /// its direction: the distance changes by a factor of e^-amount, within
     /// [`MIN_DISTANCE`] and [`MAX_DISTANCE`].
     fn move_towards(&mut self, target: Vec3, amount: f32) {
+        if let Some(height) = self.camera.ortho_height {
+            self.zoom_flat(target, height, amount);
+            return;
+        }
         let to = target - self.camera.position;
         let distance = to.length();
         if !(amount.is_finite() && distance.is_finite() && distance > 1e-6) {
@@ -309,6 +437,23 @@ impl Navigator {
         }
         let wanted = (distance * (-amount).exp()).clamp(MIN_DISTANCE, MAX_DISTANCE);
         self.camera.position = target - to / distance * wanted;
+    }
+
+    /// Zooms a flat view by showing less (or more) height, keeping
+    /// `target` at the same place on screen.
+    fn zoom_flat(&mut self, target: Vec3, height: f32, amount: f32) {
+        if !(amount.is_finite() && target.is_finite()) {
+            return;
+        }
+        let wanted = (height * (-amount).exp()).clamp(MIN_FLAT_HEIGHT, MAX_FLAT_HEIGHT);
+        let scale = wanted / height;
+        // Slide sideways towards the target in step with the zoom, so it
+        // stays under the mouse.
+        let forward = self.camera.forward();
+        let to = target - self.camera.position;
+        let sideways = to - forward * to.dot(forward);
+        self.camera.position += sideways * (1.0 - scale);
+        self.camera.ortho_height = Some(wanted);
     }
 
     /// Puts the camera `distance` from the pivot, looking at it.
@@ -763,5 +908,98 @@ mod tests {
             half.camera().yaw.abs() > 3.0,
             "through 180°, not through 0°"
         );
+    }
+
+    #[test]
+    fn flat_views_look_the_right_way() {
+        let size = Vec2::new(800.0, 600.0);
+        for (kind, right, up) in [
+            (ViewKind::Top, Vec3::X, Vec3::Y),
+            (ViewKind::Front, Vec3::X, Vec3::Z),
+            (ViewKind::Right, Vec3::Y, Vec3::Z),
+        ] {
+            let view = Navigator::for_view(kind);
+            assert_eq!(view.kind(), kind);
+            let c = view.camera();
+            assert!(
+                (c.right() - right).length() < 1e-5,
+                "{kind:?} right {}",
+                c.right()
+            );
+            assert!((c.up() - up).length() < 1e-5, "{kind:?} up {}", c.up());
+            assert!(c.is_flat());
+            let middle = c.project(view.pivot(), size).unwrap();
+            assert!((middle - size / 2.0).length() < 0.05);
+        }
+        assert_eq!(
+            Navigator::for_view(ViewKind::Perspective),
+            Navigator::default()
+        );
+        assert_eq!(Navigator::default().kind(), ViewKind::Perspective);
+    }
+
+    #[test]
+    fn flat_views_do_not_orbit() {
+        let mut view = Navigator::for_view(ViewKind::Front);
+        let before = view;
+        view.orbit(Vec2::new(100.0, 50.0));
+        assert_eq!(view, before);
+    }
+
+    #[test]
+    fn panning_a_flat_view_keeps_the_point_under_the_mouse() {
+        let mut view = Navigator::for_view(ViewKind::Top);
+        let point = Vec3::new(30.0, 20.0, 0.0);
+        let start = on_screen(&view, point);
+        let delta = Vec2::new(45.0, -20.0);
+        view.pan(delta, SIZE.y);
+        assert!((on_screen(&view, point) - (start + delta)).length() < 0.05);
+    }
+
+    #[test]
+    fn zooming_a_flat_view_shows_less_and_keeps_the_target_still() {
+        let mut view = Navigator::for_view(ViewKind::Front);
+        let target = Vec3::new(80.0, 0.0, 150.0);
+        let start = on_screen(&view, target);
+        let height = view.camera().ortho_height.unwrap();
+        view.dolly_towards(target, 0.5);
+        assert!(view.camera().ortho_height.unwrap() < height);
+        assert!((on_screen(&view, target) - start).length() < 0.05);
+        view.dolly(-100.0);
+        assert_eq!(view.camera().ortho_height, Some(MAX_FLAT_HEIGHT));
+        view.dolly(100.0);
+        assert_eq!(view.camera().ortho_height, Some(MIN_FLAT_HEIGHT));
+    }
+
+    #[test]
+    fn framing_a_flat_view_fits_the_box() {
+        for kind in [ViewKind::Top, ViewKind::Front, ViewKind::Right] {
+            for size in [SIZE, Vec2::new(300.0, 900.0)] {
+                let framed = Navigator::for_view(kind).framed(&the_cube(), size.x / size.y);
+                assert!(fits(&framed, &the_cube(), size, 0.02), "{kind:?} {size}");
+                assert_eq!(framed.kind(), kind, "still the same view");
+            }
+        }
+    }
+
+    #[test]
+    fn view_kinds_have_names_and_survive_saving() {
+        let names: Vec<_> = ViewKind::ALL.iter().map(|k| k.name()).collect();
+        assert_eq!(names, ["Perspective", "Top", "Front", "Right"]);
+        let text = ron::to_string(&ViewKind::Right).unwrap();
+        assert_eq!(ron::from_str::<ViewKind>(&text).unwrap(), ViewKind::Right);
+        assert!(!ViewKind::Perspective.is_flat());
+        assert!(ViewKind::Top.is_flat());
+    }
+
+    #[test]
+    fn flat_views_look_at_their_grid_face_on() {
+        for kind in [ViewKind::Top, ViewKind::Front, ViewKind::Right] {
+            let [u, v] = kind.grid_plane();
+            let normal = u.cross(v).normalize();
+            let forward = Navigator::for_view(kind).camera().forward();
+            assert!(normal.dot(forward).abs() > 0.999, "{kind:?}");
+        }
+        assert_eq!(ViewKind::Perspective.grid_plane(), [Vec3::X, Vec3::Y]);
     }
 }

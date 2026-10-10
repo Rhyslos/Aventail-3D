@@ -24,10 +24,13 @@ struct TestRenderer {
     picks: bool,
     /// How many questions were asked.
     asks: usize,
+    /// Every view asked for, oldest first.
+    drawn: Vec<crate::ViewportView>,
 }
 
 impl ViewportRenderer for TestRenderer {
     fn render(&mut self, view: &crate::ViewportView) -> Result<egui::TextureId, String> {
+        self.drawn.push(view.clone());
         NoRenderer::default().render(view)
     }
 
@@ -882,7 +885,7 @@ fn with_surface(surface: Option<glam::Vec3>) -> Harness<'static, State> {
     let renderer = TestRenderer {
         surface,
         picks: true,
-        asks: 0,
+        ..TestRenderer::default()
     };
     let mut harness = harness_with(Workbench::new(info(), None), renderer);
     harness.run();
@@ -1212,4 +1215,258 @@ fn framing_keys_need_no_modifiers() {
         !all_of_the_scene_in_view(&harness),
         "Ctrl + H is not framing"
     );
+}
+
+// --------------------------------------------------------------- views ---
+
+/// The label of one view's image while four are showing.
+fn view_label(kind: tools::ViewKind) -> String {
+    format!("{} ({})", crate::VIEWPORT_LABEL, kind.name())
+}
+
+fn four_views() -> Harness<'static, State> {
+    let mut harness = fresh();
+    harness.key_press(Key::F5);
+    harness.run();
+    harness
+}
+
+/// The kinds of view drawn in the last frame, in the order drawn.
+fn drawn_last_frame(harness: &mut Harness<'static, State>) -> Vec<tools::ViewKind> {
+    harness.state_mut().renderer.drawn.clear();
+    harness.step();
+    harness
+        .state()
+        .renderer
+        .drawn
+        .iter()
+        .map(|v| match (v.flat_height, v.grid_plane) {
+            (None, _) => tools::ViewKind::Perspective,
+            (Some(_), [_, glam::Vec3::Y]) => tools::ViewKind::Top,
+            (Some(_), [glam::Vec3::X, _]) => tools::ViewKind::Front,
+            (Some(_), _) => tools::ViewKind::Right,
+        })
+        .collect()
+}
+
+fn click_view(harness: &mut Harness<'static, State>, label: &str, button: egui::PointerButton) {
+    let at = harness.get_by_label(label).rect().center() - egui::vec2(0.0, 60.0);
+    harness.event(egui::Event::PointerMoved(at));
+    harness.step();
+    for pressed in [true, false] {
+        harness.event(egui::Event::PointerButton {
+            pos: at,
+            button,
+            pressed,
+            modifiers: Modifiers::NONE,
+        });
+        harness.step();
+    }
+    harness.run();
+}
+
+#[test]
+fn one_perspective_view_shows_to_start_with() {
+    let mut harness = fresh();
+    assert!(!harness.state().workbench.viewport().four_views());
+    assert_eq!(
+        drawn_last_frame(&mut harness),
+        [tools::ViewKind::Perspective]
+    );
+}
+
+#[test]
+fn f5_shows_four_views_side_by_side() {
+    let mut harness = four_views();
+    use tools::ViewKind::*;
+    assert!(harness.query_by_label(crate::VIEWPORT_LABEL).is_none());
+    let rect = |kind| harness.get_by_label(&view_label(kind)).rect();
+    let (perspective, top, front, right) = (rect(Perspective), rect(Top), rect(Front), rect(Right));
+    assert!(top.min.x > perspective.max.x, "top is right of perspective");
+    assert!(
+        front.min.y > perspective.max.y,
+        "front is below perspective"
+    );
+    assert!(
+        right.min.x > front.max.x && right.min.y > top.max.y,
+        "right is bottom right"
+    );
+    assert_eq!(
+        drawn_last_frame(&mut harness),
+        [Perspective, Top, Front, Right]
+    );
+    // The choice is remembered with the other view options.
+    assert!(harness.state().workbench.view_options().four_views);
+}
+
+#[test]
+fn f1_to_f4_show_one_view_filling_the_viewport() {
+    use tools::ViewKind::*;
+    for (key, kind) in [
+        (Key::F2, Top),
+        (Key::F3, Right),
+        (Key::F4, Front),
+        (Key::F1, Perspective),
+    ] {
+        let mut harness = four_views();
+        harness.key_press(key);
+        harness.run();
+        assert!(!harness.state().workbench.viewport().four_views());
+        assert_eq!(harness.state().workbench.viewport().active_kind(), kind);
+        assert!(harness.query_by_label(crate::VIEWPORT_LABEL).is_some());
+        assert_eq!(drawn_last_frame(&mut harness), [kind], "{key:?}");
+    }
+}
+
+#[test]
+fn clicking_a_view_makes_it_the_one_the_menus_act_on() {
+    let mut harness = four_views();
+    click_view(
+        &mut harness,
+        &view_label(tools::ViewKind::Front),
+        egui::PointerButton::Primary,
+    );
+    let viewport = harness.state().workbench.viewport();
+    assert_eq!(viewport.active_kind(), tools::ViewKind::Front);
+    assert!(viewport.camera().is_flat());
+}
+
+#[test]
+fn a_middle_click_switches_between_one_view_and_four() {
+    let mut harness = four_views();
+    let label = view_label(tools::ViewKind::Right);
+    click_view(&mut harness, &label, egui::PointerButton::Middle);
+    let viewport = harness.state().workbench.viewport();
+    assert!(
+        !viewport.four_views(),
+        "the clicked view fills the viewport"
+    );
+    assert_eq!(viewport.active_kind(), tools::ViewKind::Right);
+    click_view(
+        &mut harness,
+        crate::VIEWPORT_LABEL,
+        egui::PointerButton::Middle,
+    );
+    assert!(
+        harness.state().workbench.viewport().four_views(),
+        "and back"
+    );
+}
+
+#[test]
+fn a_middle_drag_still_pans_without_switching_views() {
+    let mut harness = fresh();
+    let before = camera(&harness).position;
+    drag_viewport(
+        &mut harness,
+        egui::PointerButton::Middle,
+        Modifiers::NONE,
+        egui::vec2(60.0, 0.0),
+    );
+    assert_ne!(camera(&harness).position, before, "panned");
+    assert!(!harness.state().workbench.viewport().four_views());
+}
+
+/// Opens one of the viewport's own menus (Cameras and Panel appear
+/// nowhere else).
+fn viewport_menu(harness: &mut Harness<'static, State>, name: &str) {
+    harness.get_by_label(name).click();
+    harness.run();
+}
+
+#[test]
+fn the_cameras_menu_changes_the_active_view() {
+    let mut harness = fresh();
+    viewport_menu(&mut harness, "Cameras");
+    harness.get_by_label_contains("Front").click();
+    harness.run();
+    let viewport = harness.state().workbench.viewport();
+    assert_eq!(viewport.active_kind(), tools::ViewKind::Front);
+    assert_eq!(
+        *viewport.navigator(),
+        tools::Navigator::for_view(tools::ViewKind::Front)
+    );
+    assert_eq!(drawn_last_frame(&mut harness), [tools::ViewKind::Front]);
+}
+
+#[test]
+fn the_panel_menu_and_header_button_switch_the_layout() {
+    let mut harness = fresh();
+    viewport_menu(&mut harness, "Panel");
+    harness.get_by_label_contains("Four views").click();
+    harness.run();
+    assert!(harness.state().workbench.viewport().four_views());
+    harness.get_by_label("Maximise this view").click();
+    harness.run();
+    assert!(!harness.state().workbench.viewport().four_views());
+    harness.get_by_label("Show four views").click();
+    harness.run();
+    assert!(harness.state().workbench.viewport().four_views());
+}
+
+#[test]
+fn flat_views_pan_and_zoom_but_never_orbit() {
+    let mut harness = fresh();
+    harness.key_press(Key::F4);
+    harness.run();
+    let start = *harness.state().workbench.viewport().navigator();
+    drag_viewport(
+        &mut harness,
+        egui::PointerButton::Secondary,
+        Modifiers::NONE,
+        egui::vec2(80.0, 40.0),
+    );
+    let after = *harness.state().workbench.viewport().navigator();
+    assert_eq!(after.kind(), tools::ViewKind::Front, "still a front view");
+    assert_eq!(after.camera().yaw, start.camera().yaw);
+    let height = |h: &Harness<'static, State>| camera(h).ortho_height.unwrap();
+    let before = height(&harness);
+    harness.event(egui::Event::PointerMoved(viewport_spot(&harness)));
+    harness.event(egui::Event::MouseWheel {
+        unit: egui::MouseWheelUnit::Line,
+        delta: egui::vec2(0.0, 3.0),
+        phase: egui::TouchPhase::Move,
+        modifiers: Modifiers::NONE,
+    });
+    harness.run();
+    assert!(height(&harness) < before, "zoomed in: shows less");
+}
+
+#[test]
+fn h_frames_the_active_view_only() {
+    let mut harness = four_views();
+    click_view(
+        &mut harness,
+        &view_label(tools::ViewKind::Top),
+        egui::PointerButton::Primary,
+    );
+    let perspective_before = harness.state().workbench.viewport().view_kinds();
+    harness.key_press(Key::H);
+    harness.run();
+    let viewport = harness.state().workbench.viewport();
+    assert_eq!(viewport.navigator().pivot(), crate::TEST_SCENE.centre());
+    assert_eq!(viewport.view_kinds(), perspective_before);
+}
+
+#[test]
+fn only_the_view_under_the_mouse_asks_what_is_there() {
+    let renderer = TestRenderer {
+        surface: Some(SURFACE),
+        picks: true,
+        ..TestRenderer::default()
+    };
+    let mut harness = harness_with(Workbench::new(info(), None), renderer);
+    harness.key_press(Key::F5);
+    harness.run();
+    let top = harness
+        .get_by_label(&view_label(tools::ViewKind::Top))
+        .rect();
+    let spot = top.center() - egui::vec2(0.0, 60.0);
+    harness.event(egui::Event::PointerMoved(spot));
+    harness.run();
+    assert!(harness.state().renderer.asks >= 1);
+    // Orbiting in the perspective view is unaffected by the top view's
+    // answer: the answer belongs to the top view.
+    let perspective_pivot = harness.state().workbench.viewport().navigator().pivot();
+    assert_ne!(perspective_pivot, SURFACE);
 }

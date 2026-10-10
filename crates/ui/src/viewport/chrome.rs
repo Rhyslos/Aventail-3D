@@ -3,14 +3,14 @@
 //! quiet labels over the image (view name, camera, axis marker, grid
 //! spacing).
 
-use super::{ViewportPanel, cursor_for};
+use super::{FOUR_VIEWS_KEY, VIEW_KEYS, View, ViewOptions, ViewportPanel, cursor_for};
 use crate::icons::{self, Icon};
 use crate::theme::{self, backdrop, tint};
 use egui::{
     Align, Align2, CursorIcon, FontId, Layout, Rect, Sense, Stroke, Ui, UiBuilder, pos2, vec2,
 };
 use glam::{Vec2, Vec3};
-use tools::DragKind;
+use tools::{DragKind, ViewKind};
 
 /// Height of the viewport's menu line, in logical pixels.
 pub(super) const HEADER_HEIGHT: f32 = 26.0;
@@ -22,13 +22,18 @@ pub(crate) const ZOOM_BUTTON: &str = "Drag to zoom the view";
 /// See [`PAN_BUTTON`].
 pub(crate) const ORBIT_BUTTON: &str = "Drag to orbit the view";
 
-/// What arrives with the rest of Phase 1, for greyed-out menu entries.
-const LATER_IN_PHASE_1: &str = "Arrives later in Phase 1";
+/// Accessible name of the button that switches between one view and
+/// four, when one view is showing.
+pub(crate) const FOUR_VIEWS_BUTTON: &str = "Show four views";
+/// See [`FOUR_VIEWS_BUTTON`]; when four views are showing.
+pub(crate) const MAXIMISE_BUTTON: &str = "Maximise this view";
+
+/// The name of the Panel menu's entry for the four-view layout.
+pub(crate) const FOUR_VIEWS_ENTRY: &str = "Four views";
 
 /// The menu line along the top of the viewport: its menus on the left and
-/// the navigation buttons on the right. `size` is the 3D image's size, so
-/// dragging a button moves the view as much as dragging in the image.
-pub(super) fn header(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel, size: Vec2) {
+/// the navigation buttons on the right, which act on the active view.
+pub(super) fn header(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) {
     let painter = ui.painter();
     painter.rect_filled(rect, 0.0, theme::VIEWPORT_HEADER);
     painter.hline(
@@ -60,10 +65,20 @@ pub(super) fn header(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel, size: V
     });
     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
         ui.spacing_mut().item_spacing.x = 2.0;
-        let maximise = icon_button(ui, Icon::Maximise, "Maximise this view", Sense::hover());
-        maximise.on_hover_text(
-            "Maximise this view\nArrives with the four-view layout, later in Phase 1",
-        );
+        let four = panel.four_views();
+        let (label, explanation) = if four {
+            (MAXIMISE_BUTTON, "Show only the active view (middle click)")
+        } else {
+            (
+                FOUR_VIEWS_BUTTON,
+                "Show the perspective, top, front and right views at once (middle click)",
+            )
+        };
+        let layout = icon_button(ui, Icon::Maximise, label, Sense::click());
+        if layout.clicked() {
+            panel.set_four_views(!four);
+        }
+        layout.on_hover_text(format!("{label}\n{explanation}"));
         for (icon, label, kind) in [
             (Icon::Rotate, ORBIT_BUTTON, DragKind::Orbit),
             (Icon::Dolly, ZOOM_BUTTON, DragKind::Dolly),
@@ -71,7 +86,7 @@ pub(super) fn header(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel, size: V
         ] {
             let response = icon_button(ui, icon, label, Sense::drag());
             if response.dragged() {
-                panel.button_drag(kind, response.drag_delta(), size);
+                panel.button_drag(kind, response.drag_delta());
                 ui.ctx().set_cursor_icon(cursor_for(kind));
             } else if response.hovered() {
                 ui.ctx().set_cursor_icon(CursorIcon::Grab);
@@ -96,10 +111,21 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
         frame_entries(ui, panel);
     });
     ui.menu_button("Cameras", |ui| {
-        let _ = ui.radio(true, "Perspective");
-        for item in ["Top", "Front", "Right"] {
-            ui.add_enabled(false, egui::RadioButton::new(false, item))
-                .on_disabled_hover_text(LATER_IN_PHASE_1);
+        let active = panel.active_kind();
+        for kind in ViewKind::ALL {
+            let key = VIEW_KEYS
+                .iter()
+                .find(|(_, k)| *k == kind)
+                .map(|(key, _)| key.name())
+                .unwrap_or_default();
+            if ui
+                .add(egui::Button::selectable(kind == active, kind.name()).shortcut_text(key))
+                .on_hover_text(camera_explanation(kind))
+                .clicked()
+            {
+                panel.set_kind(kind);
+                ui.close();
+            }
         }
     });
     ui.menu_button("Display", |ui| {
@@ -130,9 +156,43 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
         );
     });
     ui.menu_button("Panel", |ui| {
-        ui.add_enabled(false, egui::Button::new("Four views"))
-            .on_disabled_hover_text(LATER_IN_PHASE_1);
+        let four = panel.four_views();
+        if ui
+            .add(
+                egui::Button::selectable(four, FOUR_VIEWS_ENTRY)
+                    .shortcut_text(FOUR_VIEWS_KEY.name()),
+            )
+            .on_hover_text(
+                "Show the perspective, top, front and right views at once; \
+                 click again (or middle click a view) to show only the active one",
+            )
+            .clicked()
+        {
+            panel.set_four_views(!four);
+            ui.close();
+        }
     });
+}
+
+/// What the Cameras menu's tooltip says about a kind of view.
+fn camera_explanation(kind: ViewKind) -> &'static str {
+    match kind {
+        ViewKind::Perspective => "An ordinary 3D view: far things look smaller",
+        ViewKind::Top => "A flat view looking straight down: no perspective, true sizes",
+        ViewKind::Front => "A flat view from the front: no perspective, true sizes",
+        ViewKind::Right => "A flat view from the right: no perspective, true sizes",
+    }
+}
+
+/// A thin accent line around the active view, when four are showing.
+pub(super) fn active_border(ui: &Ui, rect: Rect) {
+    let accent = theme::accent(ui.ctx()).colors();
+    ui.painter().rect_stroke(
+        rect,
+        0.0,
+        Stroke::new(1.5, accent.light),
+        egui::StrokeKind::Inside,
+    );
 }
 
 /// The Frame all and Frame selected menu entries, with their keys.
@@ -197,30 +257,29 @@ pub(super) fn no_image(ui: &mut Ui, rect: Rect, reason: &str) {
     );
 }
 
-/// Quiet labels over the image: the view's name, the camera, an axis
+/// Quiet labels over a view's image: its name, the camera, an axis
 /// marker, and the grid spacing.
-pub(super) fn overlays(ui: &Ui, rect: Rect, panel: &ViewportPanel) {
+pub(super) fn overlays(ui: &Ui, rect: Rect, view: &View, options: &ViewOptions) {
     let painter = ui.painter_at(rect);
     let small = FontId::proportional(12.0);
+    let kind = view.kind();
     painter.text(
         rect.left_top() + vec2(10.0, 8.0),
         Align2::LEFT_TOP,
-        "Perspective",
+        kind.name(),
         small.clone(),
         theme::TEXT_STRONG,
     );
-    painter.text(
-        pos2(rect.center().x, rect.top() + 8.0),
-        Align2::CENTER_TOP,
-        "Default camera",
-        small.clone(),
-        theme::TEXT_WEAK,
-    );
-    let spacing = if panel.options.fine_grid {
-        "10 cm"
-    } else {
-        "1 m"
-    };
+    if !kind.is_flat() {
+        painter.text(
+            pos2(rect.center().x, rect.top() + 8.0),
+            Align2::CENTER_TOP,
+            "Default camera",
+            small.clone(),
+            theme::TEXT_WEAK,
+        );
+    }
+    let spacing = if options.fine_grid { "10 cm" } else { "1 m" };
     painter.text(
         rect.left_bottom() + vec2(10.0, -10.0),
         Align2::LEFT_BOTTOM,
@@ -228,17 +287,21 @@ pub(super) fn overlays(ui: &Ui, rect: Rect, panel: &ViewportPanel) {
         small,
         theme::TEXT_WEAK,
     );
-    axis_marker(&painter, rect.right_top() + vec2(-36.0, 36.0), panel);
-    if matches!(panel.drag, Some(DragKind::Orbit | DragKind::Dolly)) {
-        pivot_marker(ui, &painter, rect, panel);
+    axis_marker(
+        &painter,
+        rect.right_top() + vec2(-36.0, 36.0),
+        view.camera(),
+    );
+    if matches!(view.drag, Some(DragKind::Orbit | DragKind::Dolly)) {
+        pivot_marker(ui, &painter, rect, view);
     }
 }
 
 /// A small ring and dot on the point the view turns around or zooms
 /// towards, shown while orbiting or zooming with a drag.
-fn pivot_marker(ui: &Ui, painter: &egui::Painter, rect: Rect, panel: &ViewportPanel) {
+fn pivot_marker(ui: &Ui, painter: &egui::Painter, rect: Rect, view: &View) {
     let size = Vec2::new(rect.width(), rect.height());
-    let Some(at) = panel.camera().project(panel.navigator().pivot(), size) else {
+    let Some(at) = view.camera().project(view.navigator.pivot(), size) else {
         return;
     };
     let centre = rect.min + vec2(at.x, at.y);
@@ -277,8 +340,8 @@ pub(super) fn axis_directions(
 }
 
 /// A small marker showing which way X, Y and Z point from this view.
-fn axis_marker(painter: &egui::Painter, centre: egui::Pos2, panel: &ViewportPanel) {
-    for (name, color, dir) in axis_directions(panel.camera(), 18.0) {
+fn axis_marker(painter: &egui::Painter, centre: egui::Pos2, camera: &tools::Camera) {
+    for (name, color, dir) in axis_directions(camera, 18.0) {
         painter.line_segment([centre, centre + dir], Stroke::new(1.6, color));
         // An axis pointing straight at or away from you is just a dot;
         // its letter then sits on the centre.
