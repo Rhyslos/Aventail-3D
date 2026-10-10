@@ -303,3 +303,246 @@ fn without_a_gpu_the_viewport_explains_why() {
     );
     assert!(harness.query_by_label(crate::VIEWPORT_LABEL).is_some());
 }
+
+// ---------------------------------------------------------- navigation ---
+
+/// Drags across the viewport's middle with `button`, holding `modifiers`,
+/// in a few small steps as a real mouse would.
+fn drag_viewport(
+    harness: &mut Harness<'static, State>,
+    button: egui::PointerButton,
+    modifiers: Modifiers,
+    by: egui::Vec2,
+) {
+    let start = viewport_spot(harness);
+    harness.event(egui::Event::ModifiersChanged(modifiers));
+    harness.event(egui::Event::PointerMoved(start));
+    harness.step();
+    harness.event(egui::Event::PointerButton {
+        pos: start,
+        button,
+        pressed: true,
+        modifiers,
+    });
+    harness.step();
+    let steps = 6;
+    for i in 1..=steps {
+        let at = start + by * (i as f32 / steps as f32);
+        harness.event(egui::Event::PointerMoved(at));
+        harness.step();
+    }
+    harness.event(egui::Event::PointerButton {
+        pos: start + by,
+        button,
+        pressed: false,
+        modifiers,
+    });
+    harness.step();
+    harness.event(egui::Event::ModifiersChanged(Modifiers::NONE));
+    harness.run();
+}
+
+/// A point in the viewport clear of the message shown in the middle when
+/// there is no GPU (as in these tests).
+fn viewport_spot(harness: &Harness<'static, State>) -> egui::Pos2 {
+    harness.get_by_label(crate::VIEWPORT_LABEL).rect().center() - egui::vec2(0.0, 120.0)
+}
+
+fn camera(harness: &Harness<'static, State>) -> tools::Camera {
+    *harness.state().workbench.viewport().camera()
+}
+
+#[test]
+fn alt_left_drag_orbits_the_view() {
+    let mut harness = fresh();
+    let before = camera(&harness);
+    drag_viewport(
+        &mut harness,
+        egui::PointerButton::Primary,
+        Modifiers::ALT,
+        egui::vec2(120.0, 0.0),
+    );
+    let after = camera(&harness);
+    assert!(
+        after.yaw < before.yaw,
+        "dragging right turns the scene right"
+    );
+    let navigator = harness.state().workbench.viewport().navigator();
+    assert_eq!(navigator.pivot(), tools::camera::DEFAULT_TARGET);
+    assert!(harness.state().workbench.viewport().active_drag().is_none());
+}
+
+#[test]
+fn a_plain_left_drag_leaves_the_camera_alone() {
+    let mut harness = fresh();
+    let before = camera(&harness);
+    drag_viewport(
+        &mut harness,
+        egui::PointerButton::Primary,
+        Modifiers::NONE,
+        egui::vec2(120.0, 60.0),
+    );
+    assert_eq!(camera(&harness), before);
+}
+
+#[test]
+fn alt_middle_drag_pans_the_view() {
+    let mut harness = fresh();
+    let before = camera(&harness);
+    drag_viewport(
+        &mut harness,
+        egui::PointerButton::Middle,
+        Modifiers::ALT,
+        egui::vec2(90.0, 40.0),
+    );
+    let after = camera(&harness);
+    assert_eq!((after.yaw, after.pitch), (before.yaw, before.pitch));
+    assert_ne!(after.position, before.position);
+    let pivot = harness.state().workbench.viewport().navigator().pivot();
+    assert_ne!(
+        pivot,
+        tools::camera::DEFAULT_TARGET,
+        "the pivot moves along"
+    );
+}
+
+#[test]
+fn alt_right_drag_zooms_the_view() {
+    let mut harness = fresh();
+    let before = harness.state().workbench.viewport().navigator().distance();
+    drag_viewport(
+        &mut harness,
+        egui::PointerButton::Secondary,
+        Modifiers::ALT,
+        egui::vec2(100.0, 0.0),
+    );
+    let after = harness.state().workbench.viewport().navigator().distance();
+    assert!(
+        after < before,
+        "dragging right zooms in: {after} vs {before}"
+    );
+}
+
+#[test]
+fn the_mouse_wheel_zooms_over_the_viewport_only() {
+    let mut harness = fresh();
+    let before = harness.state().workbench.viewport().navigator().distance();
+    let wheel = |harness: &mut Harness<'static, State>, at: egui::Pos2| {
+        harness.event(egui::Event::PointerMoved(at));
+        harness.step();
+        harness.event(egui::Event::MouseWheel {
+            unit: egui::MouseWheelUnit::Line,
+            delta: egui::vec2(0.0, 1.0),
+            phase: egui::TouchPhase::Move,
+            modifiers: Modifiers::NONE,
+        });
+        harness.run();
+    };
+    let objects = harness.get_by_label("Objects").rect().center() + egui::vec2(0.0, 60.0);
+    wheel(&mut harness, objects);
+    let unchanged = harness.state().workbench.viewport().navigator().distance();
+    assert_eq!(
+        unchanged, before,
+        "scrolling elsewhere leaves the view alone"
+    );
+    let spot = viewport_spot(&harness);
+    wheel(&mut harness, spot);
+    let after = harness.state().workbench.viewport().navigator().distance();
+    assert!(after < before * 0.95, "one notch away from you zooms in");
+}
+
+#[test]
+fn view_reset_view_returns_to_the_opening_camera() {
+    let mut harness = fresh();
+    drag_viewport(
+        &mut harness,
+        egui::PointerButton::Primary,
+        Modifiers::ALT,
+        egui::vec2(150.0, 80.0),
+    );
+    assert_ne!(camera(&harness), tools::Camera::default());
+    harness.get_by_label("View").click();
+    harness.run();
+    harness.get_by_label("Reset view").click();
+    harness.run();
+    let navigator = *harness.state().workbench.viewport().navigator();
+    assert_eq!(navigator, tools::Navigator::default());
+}
+
+#[test]
+fn the_status_bar_explains_navigation() {
+    let harness = fresh();
+    assert!(harness.query_by_label(crate::NAVIGATION_HINT).is_some());
+    assert!(crate::NAVIGATION_HINT.contains("Alt"));
+}
+
+// --------------------------------------------------------- grid detail ---
+
+#[test]
+fn the_grid_starts_calm_and_the_palette_toggles_fine_lines() {
+    let mut harness = fresh();
+    assert!(!harness.state().workbench.view_options().fine_grid);
+    harness
+        .get_by_label(crate::palette::GRID_DETAIL_LABEL)
+        .click();
+    harness.run();
+    assert!(harness.state().workbench.view_options().fine_grid);
+    harness
+        .get_by_label(crate::palette::GRID_DETAIL_LABEL)
+        .click();
+    harness.run();
+    assert!(!harness.state().workbench.view_options().fine_grid);
+}
+
+#[test]
+fn the_grid_toggle_sits_on_the_left_palette() {
+    let harness = fresh();
+    let toggle = harness
+        .get_by_label(crate::palette::GRID_DETAIL_LABEL)
+        .rect();
+    let viewport = harness.get_by_label(crate::VIEWPORT_LABEL).rect();
+    let polygons = harness.get_by_label("Polygons mode").rect();
+    assert!(toggle.max.x <= viewport.min.x, "left of the viewport");
+    assert!(toggle.min.y > polygons.min.y, "below the modes");
+    assert!(
+        !harness
+            .get_by_label(crate::palette::GRID_DETAIL_LABEL)
+            .accesskit_node()
+            .is_disabled()
+    );
+}
+
+#[test]
+fn the_view_menu_toggles_fine_grid_lines_too() {
+    let mut harness = fresh();
+    harness.get_by_label("View").click();
+    harness.run();
+    // The palette button has the same name; the menu's is a checkbox.
+    harness
+        .get_all_by_label(crate::palette::GRID_DETAIL_LABEL)
+        .find(|node| node.accesskit_node().role() == egui::accesskit::Role::CheckBox)
+        .expect("a checkbox in the View menu")
+        .click();
+    harness.run();
+    assert!(harness.state().workbench.view_options().fine_grid);
+}
+
+#[test]
+fn remembered_view_options_are_restored() {
+    let options = crate::ViewOptions { fine_grid: true };
+    let workbench = Workbench::new(info(), None).with_view_options(options);
+    assert_eq!(workbench.view_options(), options);
+    let mut harness = harness_for(workbench);
+    harness.run();
+    assert!(harness.state().workbench.view_options().fine_grid);
+}
+
+#[test]
+fn view_options_survive_saving_and_old_files() {
+    let options = crate::ViewOptions { fine_grid: true };
+    let text = ron::to_string(&options).unwrap();
+    assert_eq!(ron::from_str::<crate::ViewOptions>(&text).unwrap(), options);
+    // A file saved before a setting existed still loads, with defaults.
+    let empty: crate::ViewOptions = ron::from_str("()").unwrap();
+    assert_eq!(empty, crate::ViewOptions::default());
+}

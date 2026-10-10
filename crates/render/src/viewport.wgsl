@@ -11,6 +11,9 @@ struct Frame {
     camera: vec4<f32>,
     // Grid spacings: minor, major, super; w = half the grid's width.
     grid: vec4<f32>,
+    // Opacity of each grid level (minor, major, super; w unused). The
+    // minor level is 0 when fine grid lines are switched off.
+    grid_strength: vec4<f32>,
     // Background gradient, linear colour: top of the view, then bottom.
     sky_top: vec4<f32>,
     sky_bottom: vec4<f32>,
@@ -94,7 +97,8 @@ fn grid_fs(in: GridOut) -> @location(0) vec4<f32> {
     let distance = length(in.world - frame.camera.xy);
     let distance_fade = 1.0 - smoothstep(reach * 0.35, reach, distance);
 
-    let alpha = max(max(minor * 0.045, major * 0.11), super_ * 0.18) * distance_fade;
+    let strength = frame.grid_strength;
+    let alpha = max(max(minor * strength.x, major * strength.y), super_ * strength.z) * distance_fade;
     if alpha <= 0.002 {
         discard;
     }

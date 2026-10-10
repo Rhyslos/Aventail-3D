@@ -6,7 +6,7 @@ use crate::palette::{Mode, command_palette, mode_palette};
 use crate::panel::Panel;
 use crate::panels::{about_contents, attributes_contents, coordinates_contents, objects_contents};
 use crate::theme;
-use crate::viewport::{ViewportPanel, ViewportRenderer};
+use crate::viewport::{ViewOptions, ViewportPanel, ViewportRenderer};
 use egui::{Align2, Id, Key, KeyboardShortcut, Modifiers, Ui, WidgetText};
 use egui_dock::{DockArea, DockState, TabViewer};
 
@@ -24,6 +24,10 @@ pub struct AppInfo {
 
 /// Keyboard shortcut for File → Quit (Ctrl+Q, or Cmd+Q on macOS).
 pub const QUIT_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::Q);
+
+/// The status bar's standing hint: how to move around the 3D view.
+pub const NAVIGATION_HINT: &str =
+    "Alt + left drag: orbit · Alt + middle drag: pan · Alt + right drag or wheel: zoom";
 
 /// Something the user asked for that the program around the workbench
 /// must carry out (the workbench never touches files or the window itself).
@@ -145,6 +149,18 @@ impl Workbench {
         &self.viewport
     }
 
+    /// The viewport's display choices, for saving between sessions.
+    pub fn view_options(&self) -> ViewOptions {
+        self.viewport.options()
+    }
+
+    /// The workbench with remembered display choices restored.
+    #[must_use]
+    pub fn with_view_options(mut self, options: ViewOptions) -> Self {
+        *self.viewport.options_mut() = options;
+        self
+    }
+
     /// Draws the whole window and returns what the user asked for.
     /// `renderer` draws the 3D viewport.
     pub fn show(
@@ -176,7 +192,7 @@ impl Workbench {
             .resizable(false)
             .show(ui, |ui| {
                 ui.add_space(6.0);
-                if let Some(mode) = mode_palette(ui, self.mode) {
+                if let Some(mode) = mode_palette(ui, self.mode, self.viewport.options_mut()) {
                     self.mode = mode;
                 }
             });
@@ -222,10 +238,7 @@ impl Workbench {
                 self.mode.description().to_lowercase()
             ));
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                let note = self
-                    .note
-                    .as_deref()
-                    .unwrap_or("Panels can be dragged by their tabs and resized at their edges.");
+                let note = self.note.as_deref().unwrap_or(NAVIGATION_HINT);
                 ui.label(egui::RichText::new(note).weak());
             });
         });
@@ -271,6 +284,18 @@ impl Workbench {
         });
         coming_menus(ui, &COMING[1..5]);
         ui.menu_button("View", |ui| {
+            if ui
+                .button("Reset view")
+                .on_hover_text("Go back to the opening camera view")
+                .clicked()
+            {
+                self.viewport.reset_view();
+                ui.close();
+            }
+            let options = self.viewport.options_mut();
+            ui.checkbox(&mut options.fine_grid, crate::palette::GRID_DETAIL_LABEL)
+                .on_hover_text("Show the grid's 10 cm lines as well as the 1 m lines");
+            ui.separator();
             if ui.button("Reset panel layout").clicked() {
                 self.reset_layout();
                 ui.close();

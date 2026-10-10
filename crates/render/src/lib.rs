@@ -15,7 +15,7 @@ mod pipelines;
 mod readback;
 mod renderer;
 
-pub use frame::{FrameParams, GRID_HALF_EXTENT, GRID_SPACINGS, srgb_to_linear};
+pub use frame::{FrameParams, GRID_HALF_EXTENT, GRID_SPACINGS, GRID_STRENGTHS, srgb_to_linear};
 pub use geometry::{
     AXIS_SEGMENT, CUBE_COLOR, EDGE_COLOR, FaceVertex, LineVertex, Shape, TEST_CUBE_SIZE,
     X_AXIS_COLOR, Y_AXIS_COLOR, ground_axes,

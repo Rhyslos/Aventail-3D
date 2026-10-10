@@ -7,6 +7,7 @@
 
 use crate::icons::{self, Icon};
 use crate::theme::{self, tint};
+use crate::viewport::ViewOptions;
 use egui::{Color32, Response, Sense, Ui, Vec2, WidgetInfo, WidgetType};
 
 /// Size of a palette button, in logical pixels.
@@ -285,9 +286,13 @@ fn axis_lock(ui: &mut Ui, axis: &str, color: Color32) {
     response.on_hover_text(format!("{label}\nArrives in Phase 3"));
 }
 
-/// The mode palette down the left side. Returns the mode picked this
-/// frame, if any.
-pub fn mode_palette(ui: &mut Ui, current: Mode) -> Option<Mode> {
+/// Accessible name of the grid detail toggle on the mode palette.
+pub const GRID_DETAIL_LABEL: &str = "Fine grid lines";
+
+/// The mode palette down the left side, with the viewport's display
+/// toggles at the bottom. Returns the mode picked this frame, if any;
+/// toggles change `options` directly.
+pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Option<Mode> {
     let mut picked = None;
     ui.vertical_centered(|ui| {
         ui.spacing_mut().item_spacing.y = 2.0;
@@ -322,6 +327,20 @@ pub fn mode_palette(ui: &mut Ui, current: Mode) -> Option<Mode> {
             "Arrives later",
             ButtonState::Unavailable,
         );
+        let (state, note) = if options.fine_grid {
+            (
+                ButtonState::Active,
+                "On: the grid shows 10 cm lines as well as 1 m lines. Click for a calmer grid.",
+            )
+        } else {
+            (
+                ButtonState::Normal,
+                "Off: the grid shows 1 m lines only. Click to add the 10 cm lines.",
+            )
+        };
+        if icon_button(ui, Icon::GridDetail, GRID_DETAIL_LABEL, note, state).clicked() {
+            options.fine_grid = !options.fine_grid;
+        }
     });
     picked
 }

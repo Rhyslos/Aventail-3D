@@ -19,4 +19,5 @@ No other app crates yet (`scene`, `mesh`, `uv`, `config` planned). Outside libra
 
 ## Status
 
-- **`Camera`**: position, yaw, pitch and field of view; view and projection matrices (right-handed, Z up, depth 0 to 1); `project` (world to screen) and `ray_through` (screen to world). Opens looking at the origin from the front, right and above. Navigation is the next milestone.
+- **`Camera`**: position, yaw, pitch and field of view; view and projection matrices (right-handed, Z up, depth 0 to 1); `project` (world to screen) and `ray_through` (screen to world). Opens looking at the origin from the front, right and above. 
+- **`Navigator`** (`navigation`): the camera plus the pivot it looks at. Orbit (the scene follows the mouse; never flips over the top), pan (points at the pivot's depth stay under the mouse), dolly (exponential, 2 cm to 1 km from the pivot) and wheel zoom; `DragKind::for_drag` maps Alt + left, middle and right buttons to them, Cinema 4D style. Plain input in, no egui. Orbiting around the point under the cursor is the next milestone.

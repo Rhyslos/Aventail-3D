@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Window smoke test: opens the real app window on a virtual screen, takes a
 # screenshot, checks the 3D viewport (background and the test cube), switches to
-# Polygons mode with a click, quits with Ctrl+Q (or File > Quit as a
-# fallback), and checks that the panel layout was saved.
+# Polygons mode with a click, orbits the view with Alt + drag, zooms with the
+# wheel, switches on the fine grid lines, quits with Ctrl+Q (or File > Quit
+# as a fallback), and checks that the panel layout and view options were
+# saved.
 #
 # Usage (needs Xvfb, xdotool, ImageMagick and a Vulkan driver such as Mesa's
 # lavapipe):
@@ -95,7 +97,49 @@ MODE_CHANGE="$(changed_pixels "$OUT/window.png" "$OUT/after-mode.png")"
 echo "Pixels changed by picking a mode: $MODE_CHANGE"
 [ "$MODE_CHANGE" -gt 200 ] || fail "clicking the mode palette changed nothing"
 
-# 3. Quit with Ctrl+Q, or File > Quit if the key did not arrive.
+# 3. Alt + left drag across the viewport orbits the view, so most of the
+#    picture changes.
+xdotool windowfocus --sync "$WINDOW_ID" 2>/dev/null || true
+xdotool mousemove 600 300
+sleep 0.3
+xdotool keydown alt
+sleep 0.2
+xdotool mousedown 1
+sleep 0.2
+for i in $(seq 1 12); do
+    xdotool mousemove $((600 + i * 15)) $((300 + i * 4))
+    sleep 0.1
+done
+xdotool mouseup 1
+sleep 0.2
+xdotool keyup alt
+sleep 1.5
+import -window root "$OUT/after-orbit.png"
+ORBIT_CHANGE="$(changed_pixels "$OUT/after-mode.png" "$OUT/after-orbit.png")"
+echo "Pixels changed by orbiting: $ORBIT_CHANGE"
+[ "$ORBIT_CHANGE" -gt 20000 ] || fail "Alt + drag did not orbit the view"
+
+# 4. The mouse wheel zooms in.
+xdotool mousemove 600 400
+xdotool click 4
+sleep 1.5
+import -window root "$OUT/after-zoom.png"
+ZOOM_CHANGE="$(changed_pixels "$OUT/after-orbit.png" "$OUT/after-zoom.png")"
+echo "Pixels changed by zooming: $ZOOM_CHANGE"
+[ "$ZOOM_CHANGE" -gt 20000 ] || fail "the mouse wheel did not zoom the view"
+
+# 5. The grid detail toggle at the bottom of the left palette adds the fine
+#    grid lines. GRID_Y is the middle of that button with the standard
+#    layout.
+GRID_Y="${GRID_Y:-381}"
+xdotool mousemove 22 "$GRID_Y" click 1
+sleep 1.5
+import -window root "$OUT/after-grid.png"
+GRID_CHANGE="$(changed_pixels "$OUT/after-zoom.png" "$OUT/after-grid.png")"
+echo "Pixels changed by the grid detail toggle: $GRID_CHANGE"
+[ "$GRID_CHANGE" -gt 5000 ] || fail "the grid detail toggle changed nothing"
+
+# 6. Quit with Ctrl+Q, or File > Quit if the key did not arrive.
 xdotool mousemove 500 400
 xdotool key --window "$WINDOW_ID" ctrl+q || true
 for _ in $(seq 1 15); do
@@ -115,9 +159,11 @@ fi
 kill -0 "$PID" 2>/dev/null && fail "the app did not quit"
 wait "$PID" || fail "the app exited with an error"
 
-# 4. The panel layout was saved for next time.
+# 7. The panel layout and the grid choice were saved for next time.
 SAVED="$(grep -rl "panel_layout" "$TEST_HOME" 2>/dev/null | head -1 || true)"
 [ -n "$SAVED" ] || fail "the panel layout was not saved"
 echo "Layout saved in: ${SAVED#"$TEST_HOME"/}"
+grep -q "fine_grid:true" "$SAVED" || fail "the grid detail choice was not saved"
+echo "Grid detail choice saved."
 
 echo "Window smoke test passed."
