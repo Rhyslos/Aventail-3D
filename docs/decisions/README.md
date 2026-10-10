@@ -18,4 +18,4 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0008](0008-window-and-panels.md) | App window: eframe, egui_dock, drawn icons | Accepted |
 | [0009](0009-theme.md) | The calm dark theme and the Inter font | Accepted |
 | [0010](0010-avtl-file-extension.md) | Project files use `.avtl` | Accepted |
-| [0011](0011-lua-scripting.md) | Scripting in Lua (Luau, through mlua) | Proposed |
+| [0011](0011-lua-scripting.md) | Scripting in Lua (Luau, through mlua) | Accepted |

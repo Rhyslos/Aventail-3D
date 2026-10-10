@@ -1,6 +1,6 @@
 # 0011. Scripting in Lua (Luau, through mlua)
 
-- **Status:** Proposed (waiting for the project lead's choice)
+- **Status:** Accepted (confirmed by the project lead on 2026-10-10)
 - **Date:** 2026-10-10
 
 ## Problem
@@ -25,7 +25,7 @@ The project lead wants people to be able to code their own functionality in the 
 5. **Rhai** (a scripting language made for Rust)
    - Easiest to embed and safe by design, but almost nobody knows it.
 
-## Decision (proposed)
+## Decision
 
 **Lua, using the Luau dialect through `mlua`**, because it is the only option that is small, fast, safely sandboxable and already familiar to the project lead. Python's bigger audience doesn't outweigh that its scripts can't be made safe to share.
 

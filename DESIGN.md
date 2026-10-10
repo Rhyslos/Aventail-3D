@@ -172,7 +172,7 @@ Nothing animation-related is built before Phase 10, but these rules avoid a rewr
 ### 4.7 Scripting (Phase 9)
 Let people code their own functionality: custom tools, batch jobs, generators, export helpers. Blender, 3ds Max and Cinema 4D all have this, and a free tool gains a lot when its users can extend it.
 
-**Language: Lua** (proposed, [decision 0011](docs/decisions/0011-lua-scripting.md)), using the **Luau** dialect through the `mlua` crate (both MIT):
+**Language: Lua** ([decision 0011](docs/decisions/0011-lua-scripting.md)), using the **Luau** dialect through the `mlua` crate (both MIT):
 - Small, fast and made to be embedded; adds about 1 MB, nothing to install.
 - Luau has a built-in sandbox and optional type hints, which help editors autocomplete.
 - The project lead already knows Lua from Garry's Mod, and Halberd plans Lua plugins too, so one language covers the whole Rhylib family.
@@ -441,4 +441,4 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-10 — Window built with eframe and egui_dock, palette icons drawn in code, unbuilt commands shown greyed out with their phase ([0008](docs/decisions/0008-window-and-panels.md)).
 - 2026-10-10 — Calm dark theme from the mockups, always dark, Inter font, readability tested ([0009](docs/decisions/0009-theme.md)). Phase 0 milestones complete.
 - 2026-10-10 — Project files use `.avtl` instead of `.rhy`, to match the app's name; `.avt` is taken by CLO 3D and Marvelous Designer ([0010](docs/decisions/0010-avtl-file-extension.md)).
-- 2026-10-10 — Scripting added as Phase 9 (rigging moves to Phase 10). Lua proposed as the language, through mlua with the Luau dialect and its sandbox ([0011](docs/decisions/0011-lua-scripting.md), *proposed, waiting for the project lead*).
+- 2026-10-10 — Scripting added as Phase 9 (rigging moves to Phase 10). Lua chosen as the language, through mlua with the Luau dialect and its sandbox ([0011](docs/decisions/0011-lua-scripting.md)); confirmed by the project lead.
