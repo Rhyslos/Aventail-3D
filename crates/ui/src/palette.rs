@@ -384,7 +384,7 @@ fn axis_lock(ui: &mut Ui, axis: &str, color: Color32) {
 }
 
 /// Accessible name of the grid detail toggle on the mode palette.
-pub const GRID_DETAIL_LABEL: &str = "Fine grid lines";
+pub const GRID_DETAIL_LABEL: &str = "Grid lines";
 
 /// The mode palette down the left side, with the viewport's display
 /// toggles at the bottom. Returns the mode picked this frame, if any;
@@ -424,19 +424,19 @@ pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Op
             "Arrives later",
             ButtonState::Unavailable,
         );
-        let (state, note) = if options.fine_grid {
-            (
-                ButtonState::Active,
-                "On: the grid shows 10 cm lines as well as 1 m lines. Click for a calmer grid.",
-            )
+        let detail = options.grid_detail;
+        let state = if detail == crate::viewport::GridDetail::Metre {
+            ButtonState::Normal
         } else {
-            (
-                ButtonState::Normal,
-                "Off: the grid shows 1 m lines only. Click to add the 10 cm lines.",
-            )
+            ButtonState::Active
         };
-        if icon_button(ui, Icon::GridDetail, GRID_DETAIL_LABEL, note, state).clicked() {
-            options.fine_grid = !options.fine_grid;
+        let note = format!(
+            "Now: {}.\nClick for: {}.",
+            detail.explanation(),
+            detail.next().explanation().to_lowercase()
+        );
+        if icon_button(ui, Icon::GridDetail, GRID_DETAIL_LABEL, &note, state).clicked() {
+            options.grid_detail = detail.next();
         }
     });
     picked

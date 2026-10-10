@@ -9,37 +9,6 @@ use egui::{Align2, Color32, FontId, Mesh, Rect, RichText, Sense, Ui};
 /// Height of a panel's own menu line, in logical pixels.
 pub(crate) const MENU_LINE_HEIGHT: f32 = 26.0;
 
-/// One menu on a panel's menu line: its title and the entries that are
-/// coming, each with when it arrives.
-pub(crate) type PanelMenu = (&'static str, &'static [(&'static str, &'static str)]);
-
-/// The Attributes panel's menus.
-pub(crate) const ATTRIBUTES_MENUS: [PanelMenu; 2] = [
-    (
-        "Mode",
-        &[
-            ("Show object settings", "Phase 2"),
-            ("Show tool settings", "Phase 3"),
-        ],
-    ),
-    ("Edit", &[("Copy and paste settings", "Phase 2")]),
-];
-
-/// A panel's own menu line, along its top, with menus whose entries are
-/// all still to come (greyed out, saying when they arrive).
-pub(crate) fn menu_line(ui: &mut Ui, menus: &[PanelMenu]) {
-    menu_line_with(ui, |ui| {
-        for (title, items) in menus {
-            ui.menu_button(*title, |ui| {
-                for (item, phase) in *items {
-                    ui.add_enabled(false, egui::Button::new(*item))
-                        .on_disabled_hover_text(format!("Arrives in {phase}"));
-                }
-            });
-        }
-    });
-}
-
 /// A panel's own menu line, along its top: a menu icon, the menus that
 /// `add_menus` draws, and a search icon on the right, as in the approved
 /// mockup.
@@ -105,43 +74,13 @@ pub(crate) fn vertical_gradient(rect: Rect, top: Color32, bottom: Color32) -> Me
     mesh
 }
 
-/// The Attribute Manager: settings of the selected object or active tool.
-/// For now it names the selection; editing settings arrives with the next
-/// Phase 2 milestone.
-pub(crate) fn attributes_contents(ui: &mut Ui, document: &scene::Document) {
-    let selection = document.selection();
-    let name = |id| {
-        document
-            .scene()
-            .object(id)
-            .map_or_else(String::new, |o| o.name.clone())
-    };
-    match selection.as_slice() {
-        [] => placeholder(
-            ui,
-            "Nothing selected",
-            "Select an object or pick a tool, and its settings show up here.",
-        ),
-        [one] => placeholder(
-            ui,
-            &format!("Selected: {}", name(*one)),
-            "Changing its settings here (size, segments and so on) arrives with the next update.",
-        ),
-        many => placeholder(
-            ui,
-            &format!("{} objects selected", many.len()),
-            "Select one object to see its settings.",
-        ),
-    }
-}
-
 /// The Coordinates panel: typed position, size and rotation of the
 /// selection, laid out as in the approved mockup. The axis letters are
 /// coloured (X red, Y blue, Z green; rotation's H, P and B in grey).
 ///
 /// Until something can be selected (Phase 3), the fields show zeros and
 /// can't be edited; hovering one says why.
-pub(crate) fn coordinates_contents(ui: &mut Ui) {
+pub(crate) fn coordinates_contents(ui: &mut Ui, units: crate::units::Units) {
     let position = [
         ("X", tint::AXIS_X),
         ("Y", tint::AXIS_Y),
@@ -153,8 +92,8 @@ pub(crate) fn coordinates_contents(ui: &mut Ui) {
         ("B", theme::TEXT_WEAK),
     ];
     let groups = [
-        ("Position", position, "cm"),
-        ("Size", position, "cm"),
+        ("Position", position, units.symbol()),
+        ("Size", position, units.symbol()),
         ("Rotation", rotation, "°"),
     ];
     ui.horizontal_top(|ui| {
@@ -262,16 +201,6 @@ mod tests {
         for v in &mesh.vertices {
             let expected = if v.pos.y == 0.0 { top } else { bottom };
             assert_eq!(v.color, expected);
-        }
-    }
-
-    #[test]
-    fn every_panel_menu_entry_says_when_it_arrives() {
-        for (_, items) in ATTRIBUTES_MENUS.iter() {
-            assert!(!items.is_empty());
-            for (_, phase) in *items {
-                assert!(phase.starts_with("Phase"));
-            }
         }
     }
 }

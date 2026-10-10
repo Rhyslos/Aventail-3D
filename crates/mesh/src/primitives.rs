@@ -41,7 +41,7 @@ pub struct CubeParams {
 impl Default for CubeParams {
     fn default() -> Self {
         Self {
-            size: Vec3::splat(200.0),
+            size: Vec3::splat(100.0),
             segments: [1, 1, 1],
         }
     }
@@ -61,8 +61,8 @@ pub struct PlaneParams {
 impl Default for PlaneParams {
     fn default() -> Self {
         Self {
-            width: 400.0,
-            depth: 400.0,
+            width: 100.0,
+            depth: 100.0,
             segments: [1, 1],
         }
     }
@@ -81,16 +81,23 @@ pub struct CylinderParams {
     pub height_segments: u32,
     /// Whether the ends are closed.
     pub caps: bool,
+    /// How many rings each closed end is cut into, from the rim inwards.
+    pub cap_segments: u32,
+    /// Whether the ends meet in a point in the middle (triangles around a
+    /// centre point) rather than a flat many-cornered face (an n-gon).
+    pub cap_centre: bool,
 }
 
 impl Default for CylinderParams {
     fn default() -> Self {
         Self {
             radius: 50.0,
-            height: 200.0,
+            height: 100.0,
             sides: 16,
             height_segments: 1,
             caps: true,
+            cap_segments: 1,
+            cap_centre: false,
         }
     }
 }
@@ -111,17 +118,24 @@ pub struct ConeParams {
     pub height_segments: u32,
     /// Whether the ends are closed.
     pub caps: bool,
+    /// How many rings each closed end is cut into, from the rim inwards.
+    pub cap_segments: u32,
+    /// Whether the ends meet in a point in the middle (triangles around a
+    /// centre point) rather than a flat many-cornered face (an n-gon).
+    pub cap_centre: bool,
 }
 
 impl Default for ConeParams {
     fn default() -> Self {
         Self {
-            bottom_radius: 100.0,
+            bottom_radius: 50.0,
             top_radius: 0.0,
-            height: 200.0,
+            height: 100.0,
             sides: 16,
             height_segments: 1,
             caps: true,
+            cap_segments: 1,
+            cap_centre: false,
         }
     }
 }
@@ -140,7 +154,7 @@ pub struct SphereParams {
 impl Default for SphereParams {
     fn default() -> Self {
         Self {
-            radius: 100.0,
+            radius: 50.0,
             sides: 24,
             rings: 12,
         }
@@ -157,14 +171,21 @@ pub struct DiscParams {
     pub inner_radius: f32,
     /// How many straight pieces make up the circle.
     pub sides: u32,
+    /// How many rings it is cut into, from the rim inwards.
+    pub ring_segments: u32,
+    /// Whether the middle is a point with triangles around it rather than
+    /// a flat many-cornered face (an n-gon). Only matters without a hole.
+    pub centre_point: bool,
 }
 
 impl Default for DiscParams {
     fn default() -> Self {
         Self {
-            radius: 100.0,
+            radius: 50.0,
             inner_radius: 0.0,
             sides: 24,
+            ring_segments: 1,
+            centre_point: false,
         }
     }
 }
@@ -187,8 +208,8 @@ pub struct TubeParams {
 impl Default for TubeParams {
     fn default() -> Self {
         Self {
-            outer_radius: 100.0,
-            inner_radius: 70.0,
+            outer_radius: 50.0,
+            inner_radius: 35.0,
             height: 100.0,
             sides: 24,
             height_segments: 1,
@@ -243,13 +264,13 @@ impl PrimitiveKind {
     /// A plain-language description, for menus and tooltips.
     pub const fn description(self) -> &'static str {
         match self {
-            Self::Cube => "A 2 m box standing on the ground",
-            Self::Plane => "A flat 4 m square lying on the ground",
-            Self::Cylinder => "An upright cylinder, 1 m across and 2 m tall",
-            Self::Sphere => "A ball 2 m across, resting on the ground",
-            Self::Disc => "A flat circle 2 m across, lying on the ground",
-            Self::Tube => "A pipe 2 m across and 1 m tall",
-            Self::Cone => "A cone 2 m across and 2 m tall",
+            Self::Cube => "A 1 m box standing on the ground",
+            Self::Plane => "A flat 1 m square lying on the ground",
+            Self::Cylinder => "An upright cylinder, 1 m across and 1 m tall",
+            Self::Sphere => "A ball 1 m across, resting on the ground",
+            Self::Disc => "A flat circle 1 m across, lying on the ground",
+            Self::Tube => "A pipe 1 m across and 1 m tall",
+            Self::Cone => "A cone 1 m across and 1 m tall",
         }
     }
 
@@ -318,45 +339,59 @@ impl Primitive {
     #[must_use]
     pub fn clamped(&self) -> Self {
         match *self {
-            Self::Cube(p) => Self::Cube(CubeParams {
-                size: Vec3::new(
-                    size(p.size.x, 200.0),
-                    size(p.size.y, 200.0),
-                    size(p.size.z, 200.0),
-                ),
-                segments: p.segments.map(segments),
-            }),
-            Self::Plane(p) => Self::Plane(PlaneParams {
-                width: size(p.width, 400.0),
-                depth: size(p.depth, 400.0),
-                segments: p.segments.map(segments),
-            }),
-            Self::Cylinder(p) => Self::Cylinder(CylinderParams {
-                radius: size(p.radius, 50.0),
-                height: size(p.height, 200.0),
-                sides: sides(p.sides),
-                height_segments: segments(p.height_segments),
-                caps: p.caps,
-            }),
+            Self::Cube(p) => {
+                let d = CubeParams::default();
+                Self::Cube(CubeParams {
+                    size: Vec3::new(
+                        size(p.size.x, d.size.x),
+                        size(p.size.y, d.size.y),
+                        size(p.size.z, d.size.z),
+                    ),
+                    segments: p.segments.map(segments),
+                })
+            }
+            Self::Plane(p) => {
+                let d = PlaneParams::default();
+                Self::Plane(PlaneParams {
+                    width: size(p.width, d.width),
+                    depth: size(p.depth, d.depth),
+                    segments: p.segments.map(segments),
+                })
+            }
+            Self::Cylinder(p) => {
+                let d = CylinderParams::default();
+                Self::Cylinder(CylinderParams {
+                    radius: size(p.radius, d.radius),
+                    height: size(p.height, d.height),
+                    sides: sides(p.sides),
+                    height_segments: segments(p.height_segments),
+                    caps: p.caps,
+                    cap_segments: segments(p.cap_segments),
+                    cap_centre: p.cap_centre,
+                })
+            }
             Self::Sphere(p) => Self::Sphere(SphereParams {
-                radius: size(p.radius, 100.0),
+                radius: size(p.radius, SphereParams::default().radius),
                 sides: sides(p.sides),
                 rings: p.rings.clamp(2, MAX_SEGMENTS),
             }),
             Self::Disc(p) => {
-                let radius = size(p.radius, 100.0);
+                let radius = size(p.radius, DiscParams::default().radius);
                 Self::Disc(DiscParams {
                     radius,
                     inner_radius: hole(p.inner_radius, radius),
                     sides: sides(p.sides),
+                    ring_segments: segments(p.ring_segments),
+                    centre_point: p.centre_point,
                 })
             }
             Self::Tube(p) => {
-                let outer_radius = size(p.outer_radius, 100.0);
+                let d = TubeParams::default();
+                let outer_radius = size(p.outer_radius, d.outer_radius);
                 let inner = if p.inner_radius.is_finite() {
                     p.inner_radius
                 } else {
-                    70.0
+                    d.inner_radius
                 };
                 // A tube always has a hole, smaller than the outside.
                 let lowest = MIN_SIZE.min(outer_radius / 2.0);
@@ -364,27 +399,30 @@ impl Primitive {
                 Self::Tube(TubeParams {
                     outer_radius,
                     inner_radius: inner.clamp(lowest, highest),
-                    height: size(p.height, 100.0),
+                    height: size(p.height, d.height),
                     sides: sides(p.sides),
                     height_segments: segments(p.height_segments),
                 })
             }
             Self::Cone(p) => {
-                let bottom = radius_or_point(p.bottom_radius, 100.0);
-                let top = radius_or_point(p.top_radius, 0.0);
+                let d = ConeParams::default();
+                let bottom = radius_or_point(p.bottom_radius, d.bottom_radius);
+                let top = radius_or_point(p.top_radius, d.top_radius);
                 // Both ends can't be points: that would be a line.
                 let bottom = if bottom == 0.0 && top == 0.0 {
-                    100.0
+                    d.bottom_radius
                 } else {
                     bottom
                 };
                 Self::Cone(ConeParams {
                     bottom_radius: bottom,
                     top_radius: top,
-                    height: size(p.height, 200.0),
+                    height: size(p.height, d.height),
                     sides: sides(p.sides),
                     height_segments: segments(p.height_segments),
                     caps: p.caps,
+                    cap_segments: segments(p.cap_segments),
+                    cap_centre: p.cap_centre,
                 })
             }
         }
@@ -402,6 +440,8 @@ impl Primitive {
                 sides: p.sides,
                 height_segments: p.height_segments,
                 caps: p.caps,
+                cap_segments: p.cap_segments,
+                cap_centre: p.cap_centre,
             }),
             Self::Cone(p) => round::frustum(&round::Frustum {
                 bottom_radius: p.bottom_radius,
@@ -410,6 +450,8 @@ impl Primitive {
                 sides: p.sides,
                 height_segments: p.height_segments,
                 caps: p.caps,
+                cap_segments: p.cap_segments,
+                cap_centre: p.cap_centre,
             }),
             Self::Sphere(p) => round::sphere(&p),
             Self::Disc(p) => round::disc(&p),

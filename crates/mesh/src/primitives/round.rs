@@ -3,8 +3,10 @@
 //!
 //! Points around a circle start on the +X axis and go counter-clockwise
 //! seen from above. Round sides are soft (they shade as a smooth curve);
-//! the rims where a side meets a flat end are hard. Flat ends are single
-//! faces with many corners (n-gons), which keeps them clean for modelling.
+//! the rims where a side meets a flat end are hard. Flat ends are, as
+//! standard, single faces with many corners (n-gons), which keeps them
+//! clean for modelling; they can also be cut into rings, and meet in a
+//! centre point instead.
 
 use super::{DiscParams, SphereParams, TubeParams};
 use crate::Mesh;
@@ -66,13 +68,36 @@ fn harden(mesh: &mut Mesh, ring: &[VertexId]) {
     }
 }
 
-/// A flat face across a ring, facing up (or down).
-fn cap(mesh: &mut Mesh, ring: &[VertexId], down: bool) {
-    let mut face = ring.to_vec();
-    if down {
-        face.reverse();
+/// A flat round end across `rim` (a ring at `height` with `radius`),
+/// facing up (or down): cut into `segments` rings from the rim inwards,
+/// with either a point in the middle (triangles around it) or a flat
+/// n-gon as the innermost piece.
+fn round_end(
+    mesh: &mut Mesh,
+    rim: &[VertexId],
+    shape: (f32, f32, u32),
+    segments: u32,
+    centre_point: bool,
+    down: bool,
+) {
+    let (radius, height, sides) = shape;
+    let mut outer = rim.to_vec();
+    // Rings between the rim and the middle: none for one segment and an
+    // n-gon; with a centre point, the last "ring" is the point.
+    let inner_rings = if centre_point { segments } else { segments - 1 };
+    for k in 1..=inner_rings {
+        let r = radius * (segments - k) as f32 / segments as f32;
+        let inner = ring(mesh, r, height, sides);
+        flat_ring(mesh, &inner, &outer, sides, down);
+        outer = inner;
     }
-    mesh.push_face(&face);
+    if !centre_point {
+        let mut face = outer;
+        if down {
+            face.reverse();
+        }
+        mesh.push_face(&face);
+    }
 }
 
 /// Settings shared by the cylinder and the cone.
@@ -83,6 +108,8 @@ pub(super) struct Frustum {
     pub(super) sides: u32,
     pub(super) height_segments: u32,
     pub(super) caps: bool,
+    pub(super) cap_segments: u32,
+    pub(super) cap_centre: bool,
 }
 
 /// An upright, possibly tapering, round shape: a cylinder when both radii
@@ -100,9 +127,14 @@ pub(super) fn frustum(p: &Frustum) -> Mesh {
         band(&mut mesh, &pair[0], &pair[1], p.sides, false);
     }
     if p.caps {
-        for (ring, down) in [(rings.first(), true), (rings.last(), false)] {
+        let ends = [
+            (rings.first(), p.bottom_radius, 0.0, true),
+            (rings.last(), p.top_radius, p.height, false),
+        ];
+        for (ring, radius, height, down) in ends {
             if let Some(ring) = ring.filter(|r| r.len() > 1) {
-                cap(&mut mesh, ring, down);
+                let shape = (radius, height, p.sides);
+                round_end(&mut mesh, ring, shape, p.cap_segments, p.cap_centre, down);
                 harden(&mut mesh, ring);
             }
         }
@@ -142,16 +174,31 @@ pub(super) fn disc(p: &DiscParams) -> Mesh {
     let mut mesh = Mesh::new();
     let outer = ring(&mut mesh, p.radius, 0.0, p.sides);
     if p.inner_radius <= 0.0 {
-        cap(&mut mesh, &outer, false);
+        let shape = (p.radius, 0.0, p.sides);
+        round_end(
+            &mut mesh,
+            &outer,
+            shape,
+            p.ring_segments,
+            p.centre_point,
+            false,
+        );
         return mesh;
     }
-    let inner = ring(&mut mesh, p.inner_radius, 0.0, p.sides);
-    flat_ring(&mut mesh, &inner, &outer, p.sides, false);
+    // A ring-shaped disc: rings from the rim in to the hole.
+    let mut previous = outer;
+    for k in 1..=p.ring_segments {
+        let t = k as f32 / p.ring_segments as f32;
+        let r = p.radius + (p.inner_radius - p.radius) * t;
+        let inner = ring(&mut mesh, r, 0.0, p.sides);
+        flat_ring(&mut mesh, &inner, &previous, p.sides, false);
+        previous = inner;
+    }
     mesh
 }
 
 /// Faces between an inner and an outer ring at the same height, facing up
-/// (or down).
+/// (or down). An inner ring of one point gives triangles.
 fn flat_ring(mesh: &mut Mesh, inner: &[VertexId], outer: &[VertexId], sides: u32, down: bool) {
     for i in 0..sides as usize {
         let mut face = vec![
@@ -160,6 +207,10 @@ fn flat_ring(mesh: &mut Mesh, inner: &[VertexId], outer: &[VertexId], sides: u32
             at(outer, i + 1),
             at(inner, i + 1),
         ];
+        // A single-point inner ring (a centre point) makes triangles.
+        if face[0] == face[3] {
+            face.pop();
+        }
         if down {
             face.reverse();
         }

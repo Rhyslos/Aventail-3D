@@ -96,7 +96,7 @@ fn render(
     camera: Camera,
     focus: Vec3,
 ) -> Shot {
-    render_with(gpu, renderer, target, camera, focus, false)
+    render_with(gpu, renderer, target, camera, focus, None)
 }
 
 fn render_with(
@@ -105,7 +105,7 @@ fn render_with(
     target: &ViewportTarget,
     camera: Camera,
     focus: Vec3,
-    fine_grid: bool,
+    fine_spacing: Option<f32>,
 ) -> Shot {
     let size = target.size();
     let params = FrameParams {
@@ -115,7 +115,7 @@ fn render_with(
         sky_top: srgb(SKY_TOP),
         sky_horizon: srgb(SKY_HORIZON),
         ground: srgb(GROUND),
-        fine_grid,
+        fine_spacing,
         flat_height: camera.ortho_height,
         grid_plane: render::GROUND_PLANE,
     };
@@ -303,7 +303,7 @@ fn grid_lines_are_lighter_than_the_ground_between_them() {
 }
 
 #[test]
-fn fine_grid_lines_show_only_when_switched_on() {
+fn fine_and_half_metre_grid_lines_show_only_when_chosen() {
     let Some(gpu) = gpu() else { return };
     let (renderer, target) = setup(&gpu, [640, 400]);
     let camera = Camera::looking_at(
@@ -322,7 +322,7 @@ fn fine_grid_lines_show_only_when_switched_on() {
         &target,
         camera,
         Vec3::new(-300.0, -300.0, 0.0),
-        true,
+        Some(10.0),
     );
     assert!(
         brightness(on.at(fine_line)) > brightness(on.at(between)) + 3,
@@ -336,7 +336,7 @@ fn fine_grid_lines_show_only_when_switched_on() {
         &target,
         camera,
         Vec3::new(-300.0, -300.0, 0.0),
-        false,
+        None,
     );
     assert!(
         (brightness(off.at(fine_line)) - brightness(off.at(between))).abs() <= 2,
@@ -347,6 +347,27 @@ fn fine_grid_lines_show_only_when_switched_on() {
     // The 1 m lines are there either way.
     let metre_line = Vec3::new(-455.0, -200.0, 0.0);
     assert!(brightness(off.at(metre_line)) > brightness(off.at(between)) + 6);
+    // Half-metre lines: y = -250 is one, y = -210 and y = -225 are not.
+    let half = render_with(
+        &gpu,
+        &renderer,
+        &target,
+        camera,
+        Vec3::new(-300.0, -300.0, 0.0),
+        Some(50.0),
+    );
+    let half_line = Vec3::new(-455.0, -250.0, 0.0);
+    let off_line = Vec3::new(-455.0, -225.0, 0.0);
+    assert!(
+        brightness(half.at(half_line)) > brightness(half.at(off_line)) + 3,
+        "{:?} vs {:?}",
+        half.at(half_line),
+        half.at(off_line)
+    );
+    assert!(
+        (brightness(half.at(fine_line)) - brightness(half.at(off_line))).abs() <= 2,
+        "no 10 cm lines in the half-metre grid"
+    );
 }
 
 #[test]
@@ -474,7 +495,7 @@ fn render_front(gpu: &Gpu, renderer: &ViewportRenderer, target: &ViewportTarget)
         sky_top: srgb(SKY_TOP),
         sky_horizon: srgb(SKY_HORIZON),
         ground: srgb(GROUND),
-        fine_grid: false,
+        fine_spacing: None,
         flat_height: camera.ortho_height,
         grid_plane: [Vec3::X, Vec3::Z],
     };

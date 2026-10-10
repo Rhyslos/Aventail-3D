@@ -181,7 +181,7 @@ impl Picker {
             sky_top: [0.0; 3],
             sky_horizon: [0.0; 3],
             ground: [0.0; 3],
-            fine_grid: false,
+            fine_spacing: None,
             flat_height: None,
             grid_plane: crate::frame::GROUND_PLANE,
         };

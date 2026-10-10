@@ -1,16 +1,16 @@
 //! The app window's contents: menu bar, palettes, docked panels, status
 //! bar and the About box.
 
+use crate::attributes::{AttributesPanel, Shared};
 use crate::drawing::{DrawingCache, SceneSummary};
 use crate::layout::{default_layout, fit_coordinates, hide_viewport_tab, restore_or_default};
 use crate::objects::{self, DocRequest, ObjectManager};
 use crate::palette::{Mode, PaletteCommand, PaletteState, command_palette, mode_palette};
 use crate::panel::Panel;
-use crate::panels::{
-    ATTRIBUTES_MENUS, about_contents, attributes_contents, coordinates_contents, menu_line,
-    menu_line_with,
-};
+use crate::panels::{about_contents, coordinates_contents, menu_line_with};
+use crate::shape_picker::ShapePicker;
 use crate::theme::{self, Accent};
+use crate::units::Units;
 use crate::viewport::{ViewOptions, ViewportPanel, ViewportRenderer};
 use egui::{Align2, Id, Key, KeyboardShortcut, Modifiers, Ui, WidgetText};
 use egui_dock::{DockArea, DockState, TabViewer};
@@ -91,6 +91,11 @@ pub struct Workbench {
     /// The scene being worked on, with its undo history and selection.
     document: Document,
     objects: ObjectManager,
+    attributes: AttributesPanel,
+    /// Metres or centimetres, for every length shown or typed.
+    units: Units,
+    /// The `B` shape list.
+    shape_picker: ShapePicker,
     /// What the viewport draws, kept up to date with the document.
     drawing: DrawingCache,
     viewport: ViewportPanel,
@@ -116,6 +121,9 @@ impl Workbench {
             mode: Mode::default(),
             document: Document::new(),
             objects: ObjectManager::default(),
+            attributes: AttributesPanel::default(),
+            units: Units::default(),
+            shape_picker: ShapePicker::default(),
             drawing: DrawingCache::default(),
             viewport: ViewportPanel::default(),
             accent: Accent::default(),
@@ -167,6 +175,12 @@ impl Workbench {
         &mut self.document
     }
 
+    /// The shape list's state, for tests.
+    #[cfg(test)]
+    pub(crate) fn shape_picker(&self) -> &ShapePicker {
+        &self.shape_picker
+    }
+
     /// The Object Manager's state, for tests.
     #[cfg(test)]
     pub(crate) fn object_manager(&self) -> &ObjectManager {
@@ -189,6 +203,18 @@ impl Workbench {
         self.viewport.options()
     }
 
+    /// Metres or centimetres, for saving between sessions.
+    pub fn units(&self) -> Units {
+        self.units
+    }
+
+    /// The workbench with a remembered choice of units restored.
+    #[must_use]
+    pub fn with_units(mut self, units: Units) -> Self {
+        self.units = units;
+        self
+    }
+
     /// The accent colour, for saving between sessions.
     pub fn accent(&self) -> Accent {
         self.accent
@@ -209,7 +235,7 @@ impl Workbench {
     /// The workbench with remembered display choices restored.
     #[must_use]
     pub fn with_view_options(mut self, options: ViewOptions) -> Self {
-        *self.viewport.options_mut() = options;
+        *self.viewport.options_mut() = options.migrated();
         self
     }
 
@@ -228,6 +254,12 @@ impl Workbench {
             actions.push(WorkbenchAction::Quit);
         }
         let mut requests = Vec::new();
+        // The shape list goes first: while it is open, Esc closes it
+        // rather than deselecting.
+        let typing = ui.ctx().memory(|m| m.focused().is_some()) || self.objects.is_renaming();
+        if let Some(kind) = self.shape_picker.keys(ui, typing) {
+            requests.push(create(kind));
+        }
         self.document_keys(ui, &mut requests);
 
         egui::Panel::top("menu_bar")
@@ -291,6 +323,8 @@ impl Workbench {
                         summary: &summary,
                         document: &mut self.document,
                         objects: &mut self.objects,
+                        attributes: &mut self.attributes,
+                        units: &mut self.units,
                         requests: &mut requests,
                     },
                 );
@@ -300,6 +334,9 @@ impl Workbench {
             ui.ctx().request_repaint();
         }
 
+        if let Some(kind) = self.shape_picker.show(ui.ctx()) {
+            requests.push(create(kind));
+        }
         if !requests.is_empty() {
             self.carry_out(requests);
             ui.ctx().request_repaint();
@@ -375,6 +412,13 @@ impl Workbench {
                         Err(why) => Some(format!("Couldn't {}: {why}.", what.to_lowercase())),
                     }
                 }
+                DocRequest::RunMerging(command, key) => {
+                    let what = command.describe(self.document.scene());
+                    match self.document.execute_merging(command, key) {
+                        Ok(()) => None,
+                        Err(why) => Some(format!("Couldn't {}: {why}.", what.to_lowercase())),
+                    }
+                }
                 DocRequest::Undo => Some(match self.document.undo() {
                     Some(what) => format!("Undone: {what}."),
                     None => "Nothing to undo.".into(),
@@ -445,9 +489,7 @@ impl Workbench {
                     .on_hover_text(kind.description())
                     .clicked()
                 {
-                    requests.push(DocRequest::Run(Command::Create(ObjectKind::Primitive(
-                        kind.standard(),
-                    ))));
+                    requests.push(create(kind));
                     ui.close();
                 }
             }
@@ -460,6 +502,12 @@ impl Workbench {
                 requests.push(DocRequest::Run(Command::Create(ObjectKind::Group)));
                 ui.close();
             }
+            ui.separator();
+            ui.label(
+                egui::RichText::new("Tip: press B for the shape list")
+                    .small()
+                    .color(theme::TEXT_WEAK),
+            );
         });
         ui.menu_button("Modes", |ui| {
             for mode in Mode::ALL {
@@ -485,9 +533,7 @@ impl Workbench {
             }
             crate::viewport::chrome::frame_entries(ui, &mut self.viewport);
             ui.separator();
-            let options = self.viewport.options_mut();
-            ui.checkbox(&mut options.fine_grid, crate::palette::GRID_DETAIL_LABEL)
-                .on_hover_text("Show the grid's 10 cm lines as well as the 1 m lines");
+            crate::viewport::chrome::grid_entries(ui, &mut self.viewport.options_mut().grid_detail);
             ui.separator();
             if ui.button("Reset panel layout").clicked() {
                 self.reset_layout();
@@ -514,6 +560,11 @@ impl Workbench {
         });
         layout_tabs(ui);
     }
+}
+
+/// The request that creates a primitive of `kind` with standard settings.
+fn create(kind: PrimitiveKind) -> DocRequest {
+    DocRequest::Run(Command::Create(ObjectKind::Primitive(kind.standard())))
 }
 
 /// The status bar's standing hint: the navigation controls in use.
@@ -585,6 +636,8 @@ struct PanelViewer<'a> {
     summary: &'a SceneSummary,
     document: &'a mut Document,
     objects: &'a mut ObjectManager,
+    attributes: &'a mut AttributesPanel,
+    units: &'a mut Units,
     requests: &'a mut Vec<DocRequest>,
 }
 
@@ -606,7 +659,14 @@ impl TabViewer for PanelViewer<'_> {
             return;
         }
         match tab {
-            Panel::Attributes => menu_line(ui, &ATTRIBUTES_MENUS),
+            Panel::Attributes => menu_line_with(ui, |ui| {
+                let mut shared = Shared {
+                    clipboard: &mut self.objects.clipboard,
+                    units: self.units,
+                };
+                self.attributes
+                    .menus(ui, self.document, &mut shared, self.requests);
+            }),
             Panel::Objects => menu_line_with(ui, |ui| {
                 objects::menus(ui, self.document, self.objects, self.requests);
             }),
@@ -616,9 +676,12 @@ impl TabViewer for PanelViewer<'_> {
             .inner_margin(theme::panel_margin())
             .show(ui, |ui| match tab {
                 Panel::Viewport => {}
-                Panel::Attributes => attributes_contents(ui, self.document),
+                Panel::Attributes => {
+                    self.attributes
+                        .show(ui, self.document, self.units, self.requests);
+                }
                 Panel::Objects => self.objects.show(ui, self.document, self.requests),
-                Panel::Coordinates => coordinates_contents(ui),
+                Panel::Coordinates => coordinates_contents(ui, *self.units),
             });
     }
 
@@ -655,6 +718,10 @@ impl TabViewer for PanelViewer<'_> {
 }
 
 #[cfg(test)]
+mod attribute_tests;
+#[cfg(test)]
 mod object_tests;
+#[cfg(test)]
+mod shape_picker_tests;
 #[cfg(test)]
 mod tests;

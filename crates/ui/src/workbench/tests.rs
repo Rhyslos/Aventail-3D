@@ -580,19 +580,22 @@ fn the_status_bar_explains_navigation() {
 // --------------------------------------------------------- grid detail ---
 
 #[test]
-fn the_grid_starts_calm_and_the_palette_toggles_fine_lines() {
+fn the_grid_starts_calm_and_the_palette_steps_through_the_levels() {
+    use crate::GridDetail;
     let mut harness = fresh();
-    assert!(!harness.state().workbench.view_options().fine_grid);
-    harness
-        .get_by_label(crate::palette::GRID_DETAIL_LABEL)
-        .click();
-    harness.run();
-    assert!(harness.state().workbench.view_options().fine_grid);
-    harness
-        .get_by_label(crate::palette::GRID_DETAIL_LABEL)
-        .click();
-    harness.run();
-    assert!(!harness.state().workbench.view_options().fine_grid);
+    let detail = |h: &Harness<'_, State>| h.state().workbench.view_options().grid_detail;
+    assert_eq!(detail(&harness), GridDetail::Metre);
+    for expected in [
+        GridDetail::HalfMetre,
+        GridDetail::TenCentimetres,
+        GridDetail::Metre,
+    ] {
+        harness
+            .get_by_label(crate::palette::GRID_DETAIL_LABEL)
+            .click();
+        harness.run();
+        assert_eq!(detail(&harness), expected);
+    }
 }
 
 #[test]
@@ -614,31 +617,44 @@ fn the_grid_toggle_sits_on_the_left_palette() {
 }
 
 #[test]
-fn the_view_menu_toggles_fine_grid_lines_too() {
+fn the_view_menu_chooses_the_grid_level_too() {
     let mut harness = fresh();
     main_menu(&harness, "View").click();
     harness.run();
-    // The palette button has the same name; the menu's is a checkbox.
     harness
-        .get_all_by_label(crate::palette::GRID_DETAIL_LABEL)
-        .find(|node| node.accesskit_node().role() == egui::accesskit::Role::CheckBox)
-        .expect("a checkbox in the View menu")
+        .get_by_label(crate::GridDetail::HalfMetre.label())
         .click();
     harness.run();
-    assert!(harness.state().workbench.view_options().fine_grid);
+    assert_eq!(
+        harness.state().workbench.view_options().grid_detail,
+        crate::GridDetail::HalfMetre
+    );
 }
 
 #[test]
 fn remembered_view_options_are_restored() {
     let options = crate::ViewOptions {
-        fine_grid: true,
+        grid_detail: crate::GridDetail::TenCentimetres,
         ..crate::ViewOptions::default()
     };
     let workbench = Workbench::new(info(), None).with_view_options(options);
     assert_eq!(workbench.view_options(), options);
     let mut harness = harness_for(workbench);
     harness.run();
-    assert!(harness.state().workbench.view_options().fine_grid);
+    assert_eq!(
+        harness.state().workbench.view_options().grid_detail,
+        crate::GridDetail::TenCentimetres
+    );
+}
+
+#[test]
+fn an_old_fine_grid_setting_is_restored_as_the_finest_grid() {
+    let old: crate::ViewOptions = ron::from_str("(fine_grid: true)").unwrap();
+    let workbench = Workbench::new(info(), None).with_view_options(old);
+    assert_eq!(
+        workbench.view_options().grid_detail,
+        crate::GridDetail::TenCentimetres
+    );
 }
 
 // ------------------------------------------------- navigation controls ---
@@ -801,17 +817,18 @@ fn dragging_the_header_buttons_moves_the_view() {
 }
 
 #[test]
-fn display_menu_toggles_the_fine_grid() {
+fn display_menu_chooses_the_grid_level() {
     let mut harness = fresh();
     harness.get_by_label("Display").click();
     harness.run();
     harness
-        .get_all_by_label(crate::palette::GRID_DETAIL_LABEL)
-        .find(|node| node.accesskit_node().role() == egui::accesskit::Role::CheckBox)
-        .expect("a checkbox in the Display menu")
+        .get_by_label(crate::GridDetail::TenCentimetres.label())
         .click();
     harness.run();
-    assert!(harness.state().workbench.view_options().fine_grid);
+    assert_eq!(
+        harness.state().workbench.view_options().grid_detail,
+        crate::GridDetail::TenCentimetres
+    );
 }
 
 #[test]

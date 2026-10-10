@@ -37,7 +37,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Axes (X, Y, Z)** — The three directions of 3D space, always coloured X red, Y blue, Z green. (Most 3D programs colour Y green and Z blue; this app swaps them, so blue is the second ground direction. The letters are always shown too.) In this app **Z points up**, and X and Y lie flat on the ground; a green line rising from the origin marks Z. Some 3D programs, Godot and the glTF file format use Y for up instead; the app converts when it exports, so models arrive standing upright.
 
-**Origin and grid** — The origin is the point where X, Y and Z are all zero: the centre of the world, where the red and blue axis lines cross. The grid on the ground helps you judge sizes: in this app its lines are 1 m apart, with thin 10 cm lines in between when you switch them on. It's drawn around the point you're looking at and fades out at its edges, so it reads as a work surface rather than an endless floor.
+**Origin and grid** — The origin is the point where X, Y and Z are all zero: the centre of the world, where the red and blue axis lines cross. The grid on the ground helps you judge sizes: in this app its lines are 1 m apart, and you can add fainter lines every 50 cm (cutting each square into four) or every 10 cm when you need them. Lengths are shown in metres as standard, or centimetres if you prefer; 1 m is 100 cm. It's drawn around the point you're looking at and fades out at its edges, so it reads as a work surface rather than an endless floor.
 
 **Local vs. world space** — *World* directions are the same for the whole scene. *Local* directions follow the object's own rotation.
 

@@ -48,6 +48,9 @@ pub const UNGROUP_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::
 pub(crate) enum DocRequest {
     /// Carry out a command.
     Run(Command),
+    /// Carry out a command, merged into the previous step if that had the
+    /// same key (one drag of a value is one undo step).
+    RunMerging(Command, u64),
     /// Take back the last step.
     Undo,
     /// Do the last undone step again.
@@ -87,6 +90,9 @@ pub(crate) struct ObjectManager {
     anchor: Option<ObjectId>,
     /// The objects being dragged, if a drag is under way.
     dragging: Option<Vec<ObjectId>>,
+    /// Shape settings copied with Copy settings (here or in the
+    /// Attributes panel), ready to paste.
+    pub(crate) clipboard: Option<scene::Primitive>,
 }
 
 impl ObjectManager {
@@ -666,6 +672,8 @@ fn context_menu(
     selection_entries(ui, doc, manager, out);
     ui.separator();
     object_entries(ui, doc, out);
+    ui.separator();
+    crate::attributes::settings_entries(ui, doc, &mut manager.clipboard, out);
 }
 
 /// The Object Manager's menu line: Edit, View and Object.

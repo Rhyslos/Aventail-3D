@@ -34,6 +34,18 @@ impl Document {
     /// that changes nothing (renaming to the same name, say) records no
     /// step. On failure nothing changes and the reason is returned.
     pub fn execute(&mut self, command: Command) -> Result<(), SceneError> {
+        self.run(command, None)
+    }
+
+    /// Like [`Self::execute`], but merged into the previous step when that
+    /// was made with the same `key` and nothing came between: dragging a
+    /// value changes it every frame, yet undoes in one go. Use a new key for
+    /// each new drag or each new value typed.
+    pub fn execute_merging(&mut self, command: Command, key: u64) -> Result<(), SceneError> {
+        self.run(command, Some(key))
+    }
+
+    fn run(&mut self, command: Command, merge_key: Option<u64>) -> Result<(), SceneError> {
         let label = command.describe(&self.scene);
         let applied = command::apply(&mut self.scene, &command)?;
         if let Some(select) = applied.select {
@@ -45,6 +57,7 @@ impl Document {
             self.history.record(Step {
                 label,
                 edits: applied.edits,
+                merge_key,
             });
         }
         Ok(())

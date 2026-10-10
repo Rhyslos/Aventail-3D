@@ -2,6 +2,7 @@
 
 use crate::object::{Object, ObjectId, ObjectKind};
 use crate::tree::{Edit, Place, Scene, SceneError};
+use mesh::Primitive;
 
 /// A change to the scene. Every change goes through one, so it can be
 /// undone and redone.
@@ -56,6 +57,15 @@ pub enum Command {
     /// inside becomes the selection. Objects that aren't groups are left
     /// alone; with no group among them, nothing happens.
     Ungroup(Vec<ObjectId>),
+    /// Gives primitives new settings (brought within limits first). Every
+    /// object listed must be a primitive of the same kind as `primitive`:
+    /// a cube's settings can't turn a sphere into a cube.
+    SetPrimitive {
+        /// The objects.
+        ids: Vec<ObjectId>,
+        /// Their new settings.
+        primitive: Primitive,
+    },
 }
 
 impl Command {
@@ -80,6 +90,9 @@ impl Command {
             Self::Move { ids, .. } => format!("Move {}", objects(count(ids))),
             Self::Delete(ids) => format!("Delete {}", objects(count(ids))),
             Self::Group(ids) => format!("Group {}", objects(count(ids))),
+            Self::SetPrimitive { primitive, .. } => {
+                format!("Change {} settings", primitive.name().to_lowercase())
+            }
             Self::Ungroup(ids) => match groups_among(scene, ids).len() {
                 1 => "Ungroup".into(),
                 n => format!("Ungroup {n} groups"),
@@ -232,6 +245,24 @@ impl Run<'_> {
                 let group_id = self.insert(group, place)?;
                 self.move_into(&ids, Some(group_id), 0)?;
                 Ok(Some(vec![group_id]))
+            }
+            Command::SetPrimitive { ids, primitive } => {
+                let after = ObjectKind::Primitive(primitive.clamped());
+                for id in existing(self.scene, ids)? {
+                    let before = self
+                        .scene
+                        .object(id)
+                        .ok_or(SceneError::UnknownObject(id))?
+                        .kind;
+                    match before {
+                        ObjectKind::Primitive(p) if p.kind() == primitive.kind() => {}
+                        _ => return Err(SceneError::WrongKind(primitive.name())),
+                    }
+                    if before != after {
+                        self.edit(Edit::SetKind { id, before, after })?;
+                    }
+                }
+                Ok(None)
             }
             Command::Ungroup(ids) => {
                 existing(self.scene, ids)?;
