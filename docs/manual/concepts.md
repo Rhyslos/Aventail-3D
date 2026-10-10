@@ -31,6 +31,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Pivot (axis / origin)** — The point an object rotates and scales around. In Godot, it's also the point the asset is placed and snapped by, so where you put it matters.
 
+**Axes (X, Y, Z)** — The three directions of 3D space, always coloured X red, Y green, Z blue. In this app **Z points up**, and X and Y lie flat on the ground, as in 3ds Max and Blender. Cinema 4D, Godot and the glTF file format use Y for up instead; the app converts when it exports, so models arrive standing upright.
+
 **Local vs. world space** — *World* directions are the same for the whole scene. *Local* directions follow the object's own rotation.
 
 ## Shading and normals

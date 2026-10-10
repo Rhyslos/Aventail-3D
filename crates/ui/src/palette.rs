@@ -6,6 +6,7 @@
 //! which phase brings them, so the layout is complete from the start.
 
 use crate::icons::{self, Icon};
+use crate::theme::{self, tint};
 use egui::{Color32, Response, Sense, Ui, Vec2, WidgetInfo, WidgetType};
 
 /// Size of a palette button, in logical pixels.
@@ -102,6 +103,18 @@ pub fn icon_button(
     note: &str,
     state: ButtonState,
 ) -> Response {
+    tinted_button(ui, icon, icon_tint(icon), label, note, state)
+}
+
+/// Like [`icon_button`], in a given colour instead of the icon's own.
+pub fn tinted_button(
+    ui: &mut Ui,
+    icon: Icon,
+    tint: Color32,
+    label: &str,
+    note: &str,
+    state: ButtonState,
+) -> Response {
     let enabled = state != ButtonState::Unavailable;
     let sense = if enabled {
         Sense::click()
@@ -123,8 +136,9 @@ pub fn icon_button(
         }
         let color = match state {
             ButtonState::Active => ACCENT,
-            ButtonState::Normal => visuals.widgets.inactive.fg_stroke.color,
-            ButtonState::Unavailable => visuals.weak_text_color().gamma_multiply(0.7),
+            ButtonState::Normal if response.hovered() => crate::theme::TEXT_STRONG,
+            ButtonState::Normal => tint,
+            ButtonState::Unavailable => dimmed(tint),
         };
         let icon_rect = egui::Rect::from_center_size(rect.center(), Vec2::splat(ICON_SIZE));
         icons::paint(painter, icon_rect, icon, color);
@@ -135,6 +149,20 @@ pub fn icon_button(
         format!("{label}\n{note}")
     };
     response.on_hover_text(tip)
+}
+
+/// The colour an icon is drawn in, by the group of commands it belongs to
+/// (see `theme::tint`).
+pub fn icon_tint(icon: Icon) -> Color32 {
+    match icon {
+        Icon::Cube | Icon::Cylinder | Icon::Plane | Icon::Sphere => tint::SHAPE,
+        _ => tint::ICON,
+    }
+}
+
+/// A colour as drawn for a command that is not available yet.
+fn dimmed(color: Color32) -> Color32 {
+    theme::PALETTE.lerp_to_gamma(color, theme::UNAVAILABLE_STRENGTH)
 }
 
 /// A thin divider between groups of palette buttons.
@@ -215,9 +243,9 @@ pub fn command_palette(ui: &mut Ui) {
                 // The axis locks sit with the transform tools, as in Cinema 4D.
                 divider(ui, true);
                 for (axis, color) in [
-                    ("X", Color32::from_rgb(239, 107, 99)),
-                    ("Y", Color32::from_rgb(127, 208, 90)),
-                    ("Z", Color32::from_rgb(106, 162, 255)),
+                    ("X", tint::AXIS_X),
+                    ("Y", tint::AXIS_Y),
+                    ("Z", tint::AXIS_Z),
                 ] {
                     axis_lock(ui, axis, color);
                 }
@@ -252,7 +280,7 @@ fn axis_lock(ui: &mut Ui, axis: &str, color: Color32) {
         egui::Align2::CENTER_CENTER,
         axis,
         egui::FontId::proportional(14.0),
-        color.gamma_multiply(0.5),
+        dimmed(color),
     );
     response.on_hover_text(format!("{label}\nArrives in Phase 3"));
 }
@@ -273,7 +301,9 @@ pub fn mode_palette(ui: &mut Ui, current: Mode) -> Option<Mode> {
                 ButtonState::Normal
             };
             let label = format!("{} mode", mode.name());
-            if icon_button(ui, mode.icon(), &label, mode.description(), state).clicked() {
+            // Mode icons are always soft white, even Model's cube.
+            let tint = tint::ICON;
+            if tinted_button(ui, mode.icon(), tint, &label, mode.description(), state).clicked() {
                 picked = Some(mode);
             }
         }
@@ -312,6 +342,18 @@ mod tests {
                 assert_ne!(a.icon(), b.icon());
             }
         }
+    }
+
+    #[test]
+    fn shapes_are_blue_and_everything_else_soft_white() {
+        for icon in crate::icons::ALL {
+            assert!(tint::ALL.contains(&icon_tint(icon)), "{icon:?}");
+        }
+        // As in the mockups: shapes are blue, everything else soft white.
+        assert_eq!(icon_tint(Icon::Cube), tint::SHAPE);
+        assert_eq!(icon_tint(Icon::Sphere), tint::SHAPE);
+        assert_eq!(icon_tint(Icon::Move), tint::ICON);
+        assert_eq!(icon_tint(Icon::Null), tint::ICON);
     }
 
     #[test]

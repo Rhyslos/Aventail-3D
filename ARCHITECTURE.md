@@ -59,6 +59,10 @@ The `ui` crate's workbench owns everything inside the window:
 
 The four middle panels are dockable (egui_dock); the bars and palettes around them are fixed. Palette icons are drawn in code (`ui/src/icons.rs`). The workbench never touches the window or files itself: it returns actions for `app` to carry out.
 
+## Axes
+
+**Z is up**, right-handed: X and Y form the ground plane. Every crate that deals with positions (`mesh`, `scene`, `render`, `tools`) uses this; only `fileio` converts, to Y-up for glTF. See [decision 0012](docs/decisions/0012-z-up-axes.md).
+
 ## The scene
 
 - The single source of truth for an open project: the object hierarchy, each object's base and its operation stack. See [decision 0006](docs/decisions/0006-base-plus-operation-stack.md).

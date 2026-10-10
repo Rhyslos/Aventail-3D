@@ -24,6 +24,8 @@ pub const BAR: Color32 = Color32::from_rgb(0x23, 0x23, 0x23);
 pub const PALETTE: Color32 = Color32::from_rgb(0x2f, 0x2f, 0x2f);
 /// Text and number fields.
 pub const FIELD: Color32 = Color32::from_rgb(0x26, 0x26, 0x26);
+/// The edge of a text or number field.
+pub const FIELD_BORDER: Color32 = Color32::from_rgb(0x1c, 0x1c, 0x1c);
 /// Hairline borders between areas.
 pub const BORDER: Color32 = Color32::from_rgb(0x19, 0x19, 0x19);
 /// A hovered or pressed button.
@@ -40,6 +42,32 @@ pub const TEXT_WEAK: Color32 = Color32::from_rgb(0xa5, 0xa5, 0xa5);
 pub const SELECTION: Color32 = Color32::from_rgb(0x3d, 0x4a, 0x5c);
 /// The warm accent for the active mode or tool, and focused fields.
 pub const ACCENT: Color32 = Color32::from_rgb(0xf2, 0xa3, 0x3a);
+
+/// Icon and axis colours, following the approved mockups: icons are a
+/// soft white, except the shapes you can create, which are blue; the axes
+/// are red, green and blue as in every 3D program.
+pub mod tint {
+    use egui::Color32;
+
+    /// Palette icons.
+    pub const ICON: Color32 = Color32::from_rgb(0xd4, 0xd4, 0xd4);
+    /// Shapes you can create (cube, cylinder, plane, sphere).
+    pub const SHAPE: Color32 = Color32::from_rgb(0x62, 0xb8, 0xf2);
+    /// The X axis.
+    pub const AXIS_X: Color32 = Color32::from_rgb(0xef, 0x6b, 0x63);
+    /// The Y axis.
+    pub const AXIS_Y: Color32 = Color32::from_rgb(0x7f, 0xd0, 0x5a);
+    /// The Z axis (up).
+    pub const AXIS_Z: Color32 = Color32::from_rgb(0x6a, 0xa2, 0xff);
+
+    /// Every icon and axis colour, for tests.
+    pub const ALL: [Color32; 5] = [ICON, SHAPE, AXIS_X, AXIS_Y, AXIS_Z];
+}
+
+/// How strongly an unavailable command's icon is drawn: a little dimmer
+/// than an available one, so the palettes keep the mockups' look while
+/// still hinting that the command isn't there yet.
+pub const UNAVAILABLE_STRENGTH: f32 = 0.85;
 
 /// Name of the bolder font family, for headings.
 pub const SEMIBOLD: &str = "semibold";
@@ -214,6 +242,9 @@ pub fn dock_style(base: &Style) -> egui_dock::Style {
     s.dock_area_padding = None;
     s.main_surface_border_stroke = Stroke::NONE;
     s.separator.width = 2.0;
+    // How small a panel can be dragged (egui_dock's default is 175 px,
+    // which left empty space under the Coordinates rows).
+    s.separator.extra = crate::layout::MIN_PANEL_SIZE;
     s.separator.color_idle = BACKGROUND;
     s.separator.color_hovered = HOVER;
     s.separator.color_dragged = ACCENT;
@@ -304,6 +335,42 @@ mod tests {
     fn text_is_readable_on_selection_and_hover() {
         assert!(contrast(TEXT_STRONG, SELECTION) >= READABLE);
         assert!(contrast(TEXT_STRONG, HOVER) >= READABLE);
+    }
+
+    #[test]
+    fn icon_colours_stand_out_from_the_palettes() {
+        // Non-text graphics need 3:1.
+        for colour in tint::ALL {
+            assert!(
+                contrast(colour, PALETTE) >= 3.0,
+                "{colour:?}: {}",
+                contrast(colour, PALETTE)
+            );
+        }
+    }
+
+    #[test]
+    fn unavailable_icons_are_dimmed_but_still_visible() {
+        for colour in tint::ALL {
+            let shown = PALETTE.lerp_to_gamma(colour, UNAVAILABLE_STRENGTH);
+            let ratio = contrast(shown, PALETTE);
+            assert!(ratio > 1.6, "{colour:?} dimmed is invisible: {ratio}");
+            assert!(ratio < contrast(colour, PALETTE));
+        }
+    }
+
+    #[test]
+    fn axis_colours_differ_in_brightness_too() {
+        // Red and green alone are hard to tell apart for many people, so
+        // the letters next to them carry the meaning as well.
+        assert!(contrast(tint::AXIS_X, tint::AXIS_Y) > 1.2);
+    }
+
+    #[test]
+    fn icon_colours_are_not_the_accent() {
+        for colour in tint::ALL {
+            assert_ne!(colour, ACCENT);
+        }
     }
 
     #[test]

@@ -1,15 +1,25 @@
 //! The arrangement of panels: the default, and checks on saved arrangements.
 
 use crate::panel::Panel;
-use egui_dock::{DockState, NodeIndex};
+use egui_dock::{DockState, Node, NodeIndex, SurfaceIndex};
 
 /// Share of the window width given to the viewport column (the right
 /// column with Attributes and Objects gets the rest).
 const MAIN_AREA_WIDTH: f32 = 0.75;
 /// Share of the right column given to Attributes (Objects gets the rest).
 const ATTRIBUTES_HEIGHT: f32 = 0.6;
-/// Share of the viewport column given to the viewport (Coordinates gets the rest).
-const VIEWPORT_HEIGHT: f32 = 0.87;
+/// Share of the viewport column given to the viewport (Coordinates gets the
+/// rest) until the window's real size is known; see [`fit_coordinates`].
+const VIEWPORT_HEIGHT: f32 = 0.85;
+
+/// The height Coordinates needs to show all its rows, tab bar included, in
+/// logical pixels. The standard layout gives it exactly this, so no empty
+/// space is left under the last row.
+pub const COORDINATES_HEIGHT: f32 = 138.0;
+
+/// The smallest a panel can be dragged to, in logical pixels: a tab bar
+/// and a little room.
+pub const MIN_PANEL_SIZE: f32 = 60.0;
 
 /// The standard arrangement from DESIGN.md §5.1, with the right column
 /// swapped as the project lead prefers (Attributes on top):
@@ -31,6 +41,36 @@ pub fn default_layout() -> DockState<Panel> {
     tree.split_below(right_column, ATTRIBUTES_HEIGHT, vec![Panel::Objects]);
     tree.split_below(main_area, VIEWPORT_HEIGHT, vec![Panel::Coordinates]);
     dock
+}
+
+/// Gives Coordinates exactly [`COORDINATES_HEIGHT`] when it sits directly
+/// below another panel, as in the standard layout.
+///
+/// Splits are stored as shares of the space, so the right share depends on
+/// the window's height; it is set once the panels have been drawn and their
+/// sizes are known. Returns `true` if the split was adjusted, `false` if
+/// Coordinates is elsewhere (the user's own arrangement is left alone) or
+/// the sizes are not known yet.
+pub fn fit_coordinates(dock: &mut DockState<Panel>) -> bool {
+    let Some(path) = dock.find_tab(&Panel::Coordinates) else {
+        return false;
+    };
+    let node = path.node_path();
+    if node.surface != SurfaceIndex::main() || !node.node.is_right() {
+        return false;
+    }
+    let Some(parent) = node.node.parent() else {
+        return false;
+    };
+    let Node::Vertical(split) = &mut dock.main_surface_mut()[parent] else {
+        return false;
+    };
+    let height = split.rect.height();
+    if !height.is_finite() || height < COORDINATES_HEIGHT + MIN_PANEL_SIZE {
+        return false;
+    }
+    split.fraction = 1.0 - COORDINATES_HEIGHT / height;
+    true
 }
 
 /// True if every panel appears exactly once.
@@ -91,6 +131,42 @@ mod tests {
                 vec![Panel::Viewport],
             ]
         );
+    }
+
+    /// The split above Coordinates in the standard layout.
+    fn coordinates_split(dock: &mut DockState<Panel>) -> &mut egui_dock::SplitNode {
+        let node = dock.find_tab(&Panel::Coordinates).unwrap().node_path().node;
+        match &mut dock.main_surface_mut()[node.parent().unwrap()] {
+            Node::Vertical(split) => split,
+            _ => panic!("Coordinates should sit below the viewport"),
+        }
+    }
+
+    #[test]
+    fn coordinates_get_exactly_their_height_once_sizes_are_known() {
+        let mut dock = default_layout();
+        // Before the first frame, sizes are unknown: nothing changes.
+        assert!(!fit_coordinates(&mut dock));
+        coordinates_split(&mut dock).rect =
+            egui::Rect::from_min_size(egui::pos2(0.0, 0.0), egui::vec2(1000.0, 800.0));
+        assert!(fit_coordinates(&mut dock));
+        let fraction = coordinates_split(&mut dock).fraction;
+        assert!((800.0 * (1.0 - fraction) - COORDINATES_HEIGHT).abs() < 0.01);
+    }
+
+    #[test]
+    fn a_tiny_window_keeps_the_viewport_usable() {
+        let mut dock = default_layout();
+        coordinates_split(&mut dock).rect =
+            egui::Rect::from_min_size(egui::pos2(0.0, 0.0), egui::vec2(1000.0, 150.0));
+        assert!(!fit_coordinates(&mut dock));
+    }
+
+    #[test]
+    fn coordinates_moved_elsewhere_are_left_alone() {
+        // The user stacked every panel as tabs in one group.
+        let mut dock = DockState::new(Panel::ALL.to_vec());
+        assert!(!fit_coordinates(&mut dock));
     }
 
     #[test]

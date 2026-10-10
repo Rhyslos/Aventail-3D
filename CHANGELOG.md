@@ -8,6 +8,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- The Coordinates panel is now just tall enough for its rows, and every panel can be dragged much smaller than before.
+- Palette icons follow the mockups: soft white, with the shapes you can create in blue. Commands that aren't built yet are only slightly dimmed.
+- The Coordinates panel follows the mockup: X, Y and Z letters in red, green and blue, wide dark value fields, and Object (Rel) and Apply on the right.
+- Z is up: X and Y lie on the ground and Z is height, as in 3ds Max and Blender. Shown in the manual; the viewport is built this way from Phase 1.
 - Project files will be saved as `.avtl` (short for Aventail) instead of `.rhy`. Nothing has been saved yet, so no files are affected.
 
 ### Added

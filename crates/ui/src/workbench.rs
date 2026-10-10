@@ -1,7 +1,7 @@
 //! The app window's contents: menu bar, palettes, docked panels, status
 //! bar and the About box.
 
-use crate::layout::{default_layout, restore_or_default};
+use crate::layout::{default_layout, fit_coordinates, restore_or_default};
 use crate::palette::{Mode, command_palette, mode_palette};
 use crate::panel::Panel;
 use crate::panels::{
@@ -79,6 +79,9 @@ const COMING: [(&str, &[(&str, &str)]); 6] = [
 pub struct Workbench {
     info: AppInfo,
     dock: DockState<Panel>,
+    /// The standard layout still needs Coordinates fitted to its content,
+    /// which can only happen once the panels' sizes are known.
+    fit_pending: bool,
     mode: Mode,
     about_open: bool,
     /// A message for the status bar, such as "Panel layout reset".
@@ -89,10 +92,15 @@ impl Workbench {
     /// A workbench with the saved panel layout, if it is usable, or the
     /// standard one.
     pub fn new(info: AppInfo, saved_layout: Option<DockState<Panel>>) -> Self {
+        let had_saved = saved_layout.is_some();
         let (dock, note) = restore_or_default(saved_layout);
+        // A saved layout keeps the user's own sizes; a new or replaced one
+        // is fitted on its first frame.
+        let fit_pending = !had_saved || note.is_some();
         Self {
             info,
             dock,
+            fit_pending,
             mode: Mode::default(),
             about_open: false,
             note,
@@ -127,6 +135,7 @@ impl Workbench {
     /// Puts every panel back in its standard place (View → Reset panel layout).
     pub fn reset_layout(&mut self) {
         self.dock = default_layout();
+        self.fit_pending = true;
         self.note = Some("Panel layout reset to the standard arrangement.".into());
     }
 
@@ -171,6 +180,10 @@ impl Workbench {
                 .show_leaf_collapse_buttons(false)
                 .show_inside(ui, &mut PanelViewer);
         });
+        if self.fit_pending && fit_coordinates(&mut self.dock) {
+            self.fit_pending = false;
+            ui.ctx().request_repaint();
+        }
 
         let mut about_open = self.about_open;
         egui::Window::new(format!("About {}", self.info.name))
