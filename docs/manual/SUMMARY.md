@@ -6,7 +6,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 ## Basics
 - [Concepts: the ideas behind 3D modelling for games](concepts.md)
 - [Interface tour: the window, the modes, and rearranging panels](interface-tour.md)
-- *Navigating the viewport* — added in Phase 1
+- [Navigating the view: orbit, pan and zoom, and the grid](navigating-the-view.md)
 
 ## Modelling
 - *Pages are added here as tools are built.*

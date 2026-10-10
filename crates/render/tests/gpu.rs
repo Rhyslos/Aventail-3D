@@ -80,12 +80,23 @@ fn brightness(p: [u8; 4]) -> i32 {
 }
 
 fn render(gpu: &Gpu, renderer: &ViewportRenderer, target: &ViewportTarget, camera: Camera) -> Shot {
+    render_with(gpu, renderer, target, camera, false)
+}
+
+fn render_with(
+    gpu: &Gpu,
+    renderer: &ViewportRenderer,
+    target: &ViewportTarget,
+    camera: Camera,
+    fine_grid: bool,
+) -> Shot {
     let size = target.size();
     let params = FrameParams {
         view_projection: camera.view_projection(Vec2::new(size[0] as f32, size[1] as f32)),
         camera_position: camera.position,
         sky_top: SKY_TOP,
         sky_bottom: SKY_BOTTOM,
+        fine_grid,
     };
     renderer.render(&gpu.device, &gpu.queue, target, &params);
     let pixels = read_pixels(&gpu.device, &gpu.queue, target).unwrap();
@@ -210,6 +221,39 @@ fn grid_lines_are_lighter_than_the_ground_between_them() {
         brightness(on_line) > brightness(between) + 6,
         "{on_line:?} vs {between:?}"
     );
+}
+
+#[test]
+fn fine_grid_lines_show_only_when_switched_on() {
+    let Some(gpu) = gpu() else { return };
+    let (renderer, target) = setup(&gpu, [640, 400]);
+    let camera = Camera::looking_at(
+        Vec3::new(-300.0, -300.0, 600.0),
+        Vec3::new(-300.0, -300.0, 0.0),
+    );
+    // Looking almost straight down, world X runs up the screen and Y
+    // across it, so these points share a screen row (and so the same
+    // background shade): y = -210 is a 10 cm line only, y = -255 lies
+    // between all lines, y = -200 is a 1 m line.
+    let fine_line = Vec3::new(-455.0, -210.0, 0.0);
+    let between = Vec3::new(-455.0, -255.0, 0.0);
+    let on = render_with(&gpu, &renderer, &target, camera, true);
+    assert!(
+        brightness(on.at(fine_line)) > brightness(on.at(between)) + 3,
+        "{:?} vs {:?}",
+        on.at(fine_line),
+        on.at(between)
+    );
+    let off = render_with(&gpu, &renderer, &target, camera, false);
+    assert!(
+        (brightness(off.at(fine_line)) - brightness(off.at(between))).abs() <= 2,
+        "{:?} vs {:?}",
+        off.at(fine_line),
+        off.at(between)
+    );
+    // The 1 m lines are there either way.
+    let metre_line = Vec3::new(-455.0, -200.0, 0.0);
+    assert!(brightness(off.at(metre_line)) > brightness(off.at(between)) + 6);
 }
 
 #[test]

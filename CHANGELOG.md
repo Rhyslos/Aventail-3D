@@ -18,6 +18,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Move around the 3D view as in Cinema 4D: hold Alt and drag with the left mouse button to orbit, the middle button to pan, the right button to zoom; the mouse wheel zooms too. The status bar shows the controls, and **View → Reset view** brings back the opening view. New manual page: Navigating the view.
+- A grid detail switch at the bottom of the left palette (also **View → Fine grid lines**): the grid now shows only 1 m lines by default, for a calmer ground, and the 10 cm lines come back when you switch it on. The choice is remembered.
 - The 3D viewport: a calm grey background, a grid on the ground (10 cm and 1 m lines, fading softly into the distance), the red X and blue Y axes, and a softly lit 2 m test cube. Without a usable graphics card, the viewport says why instead.
 - The calm dark look from the mockups: gentle greys, a warm orange for the active mode, the Inter font, and a viewport that fills its panel edge to edge. The app stays dark whatever your system prefers.
 - The app window, laid out like Cinema 4D: menu bar, command palette, mode palette, viewport, Attributes (top right), Objects (below it), Coordinates (under the viewport) and a status bar.

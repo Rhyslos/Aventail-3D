@@ -89,6 +89,7 @@ impl ViewportRenderer for GpuViewport {
             camera_position: view.camera_position,
             sky_top: view.sky_top,
             sky_bottom: view.sky_bottom,
+            fine_grid: view.fine_grid,
         };
         self.renderer
             .render(&self.state.device, &self.state.queue, target, &params);

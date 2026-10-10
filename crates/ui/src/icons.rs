@@ -56,10 +56,12 @@ pub enum Icon {
     Workplane,
     /// Solo: show only the selection.
     Solo,
+    /// Grid detail: the ground grid's fine lines.
+    GridDetail,
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 22] = [
+pub const ALL: [Icon; 23] = [
     Icon::Undo,
     Icon::Redo,
     Icon::LiveSelection,
@@ -82,6 +84,7 @@ pub const ALL: [Icon; 22] = [
     Icon::Uv,
     Icon::Workplane,
     Icon::Solo,
+    Icon::GridDetail,
 ];
 
 /// Draws `icon` into `rect` in `color`.
@@ -330,6 +333,16 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         Icon::Solo => {
             pen.ellipse((12.0, 12.0), (10.0, 6.0));
             pen.ellipse((12.0, 12.0), (3.0, 3.0));
+        }
+        Icon::GridDetail => {
+            // A square of ground with strong 1 m lines and faint fine ones.
+            pen.square((4.0, 4.0), (20.0, 20.0), false);
+            pen.segment((12.0, 4.0), (12.0, 20.0), 1.0, 1.0);
+            pen.segment((4.0, 12.0), (20.0, 12.0), 1.0, 1.0);
+            for at in [8.0, 16.0] {
+                pen.segment((at, 4.0), (at, 20.0), 0.6, 0.5);
+                pen.segment((4.0, at), (20.0, at), 0.6, 0.5);
+            }
         }
     }
     pen.shapes

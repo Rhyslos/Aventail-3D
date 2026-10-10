@@ -21,6 +21,12 @@ pub const FAR_PLANE: f32 = 500_000.0;
 /// Default vertical field of view: a gentle 45°, like a 30 mm lens on a
 /// 36 mm frame, so shapes are not distorted.
 pub const DEFAULT_FOV_Y: f32 = 45.0 * PI / 180.0;
+/// Where the opening view looks: the middle of a 2 m object standing on
+/// the grid at the origin (a little low, so the ground shows around it).
+pub const DEFAULT_TARGET: Vec3 = Vec3::new(0.0, 0.0, 60.0);
+/// Where the opening view stands: in front of the origin, a little to the
+/// right and above.
+pub const DEFAULT_POSITION: Vec3 = Vec3::new(420.0, -760.0, 480.0);
 
 /// A straight line from `origin` in `direction` (unit length).
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -66,7 +72,7 @@ impl Default for Camera {
     /// above, looking at a 2 m object standing on the grid, as Cinema 4D
     /// opens a new scene.
     fn default() -> Self {
-        Self::looking_at(Vec3::new(420.0, -760.0, 480.0), Vec3::new(0.0, 0.0, 60.0))
+        Self::looking_at(DEFAULT_POSITION, DEFAULT_TARGET)
     }
 }
 
