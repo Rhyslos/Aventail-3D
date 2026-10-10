@@ -48,7 +48,8 @@ pub enum WorkbenchAction {
 }
 
 /// Menu entries that exist in the design but not yet in the app, with the
-/// phase that brings them.
+/// phase that brings them. (The Mesh menu's are listed below its working
+/// entries.)
 const COMING: [(&str, &[(&str, &str)]); 4] = [
     (
         "Select",
@@ -382,6 +383,16 @@ impl Workbench {
                     note = Some("Nothing to ungroup: only groups can be ungrouped.".to_string());
                 }
             }
+            if i.consume_shortcut(&objects::MAKE_EDITABLE_SHORTCUT) && !selection.is_empty() {
+                if objects::can_make_editable(&self.document, &selection) {
+                    out.push(DocRequest::Run(Command::MakeEditable(selection.clone())));
+                } else {
+                    note = Some(
+                        "Nothing to make editable: groups and meshes have no settings to bake."
+                            .to_string(),
+                    );
+                }
+            }
             if i.consume_shortcut(&objects::GROUP_SHORTCUT) && !selection.is_empty() {
                 out.push(DocRequest::Run(Command::Group(selection.clone())));
             }
@@ -521,7 +532,15 @@ impl Workbench {
                 }
             }
         });
-        coming_menus(ui, &COMING);
+        for (title, items) in COMING {
+            ui.menu_button(title, |ui| {
+                if title == "Mesh" {
+                    objects::make_editable_entry(ui, &self.document, requests);
+                    ui.separator();
+                }
+                coming_entries(ui, items);
+            });
+        }
         ui.menu_button("View", |ui| {
             if ui
                 .button("Reset view")
@@ -618,14 +637,10 @@ fn layout_tabs(ui: &mut Ui) {
 
 /// Menus whose commands are not built yet: each lists what is coming and
 /// when, greyed out.
-fn coming_menus(ui: &mut Ui, menus: &[(&str, &[(&str, &str)])]) {
-    for (title, items) in menus {
-        ui.menu_button(*title, |ui| {
-            for (item, phase) in *items {
-                ui.add_enabled(false, egui::Button::new(*item))
-                    .on_disabled_hover_text(format!("Arrives in {phase}"));
-            }
-        });
+fn coming_entries(ui: &mut Ui, items: &[(&str, &str)]) {
+    for (item, phase) in items {
+        ui.add_enabled(false, egui::Button::new(*item))
+            .on_disabled_hover_text(format!("Arrives in {phase}"));
     }
 }
 

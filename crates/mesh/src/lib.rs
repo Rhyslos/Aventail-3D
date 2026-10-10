@@ -5,6 +5,7 @@
 //! See this crate's README for its purpose and limits.
 
 pub mod bounds;
+pub mod edit;
 pub mod polygon;
 pub mod primitives;
 pub mod shading;

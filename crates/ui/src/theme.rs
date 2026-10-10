@@ -43,6 +43,9 @@ pub const TEXT: Color32 = Color32::from_rgb(0xc8, 0xc8, 0xc8);
 pub const TEXT_STRONG: Color32 = Color32::from_rgb(0xf0, 0xf0, 0xf0);
 /// Quieter text: labels, hints, the status bar.
 pub const TEXT_WEAK: Color32 = Color32::from_rgb(0xa5, 0xa5, 0xa5);
+/// Text that warns: something works, but not quite as asked (a soft
+/// amber, readable on the panels).
+pub const WARNING: Color32 = Color32::from_rgb(0xe8, 0xb3, 0x4a);
 
 /// The viewport's backdrop: a studio sky over a slightly darker ground.
 pub mod backdrop {

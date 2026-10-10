@@ -13,13 +13,17 @@ pub mod command;
 pub mod document;
 mod history;
 pub mod object;
+pub mod stack;
 pub mod tree;
 
 pub use command::Command;
 pub use document::Document;
-pub use mesh::{Bounds, Mesh, Primitive, PrimitiveKind};
+pub use mesh::{Bounds, FaceId, Mesh, Primitive, PrimitiveKind, VertexId};
 pub use object::{Object, ObjectId, ObjectKind, Transform};
+pub use stack::{EDITS_LAYER, EvalContext, Evaluated, Layer, Operation, Stack, StackWarning};
 pub use tree::{Place, Scene, SceneError};
 
+#[cfg(test)]
+mod stack_tests;
 #[cfg(test)]
 mod tests;

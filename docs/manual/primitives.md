@@ -72,6 +72,7 @@ The shape keys don't work while you're typing a name or a value, so a "b" you ty
 
 ## Tips and common problems
 
+- **Tip:** a shape keeps its settings until you choose otherwise. To turn it into a plain mesh with no settings, select it and press **C** (*Make editable*; see [Objects](objects.md#make-editable)).
 - **Tip:** start with the fewest segments you need. Low-poly game assets stay light, and you can always add segments later.
 - **Problem:** a new shape seems to be missing. **Why:** it's inside another shape at the centre of the scene (a cube hides a cylinder, for example). **Fix:** hide the other shape with its eye in the Objects panel, or press **F** with the new shape selected to frame it.
 - **Problem:** a plane or disc vanishes when you look at it edge on. **Why:** it's perfectly flat, with no thickness. **Fix:** orbit a little higher or lower.

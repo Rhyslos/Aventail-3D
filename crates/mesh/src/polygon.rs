@@ -27,12 +27,24 @@ impl VertexId {
     pub fn get(self) -> u32 {
         self.0
     }
+
+    /// The id with this number, as recorded earlier (by an operation, or
+    /// in a saved file). It may not be in a given mesh.
+    pub const fn from_raw(number: u32) -> Self {
+        Self(number)
+    }
 }
 
 impl FaceId {
     /// The id as a number.
     pub fn get(self) -> u32 {
         self.0
+    }
+
+    /// The id with this number, as recorded earlier. It may not be in a
+    /// given mesh.
+    pub const fn from_raw(number: u32) -> Self {
+        Self(number)
     }
 }
 
@@ -136,6 +148,18 @@ impl Mesh {
     /// is skipped rather than causing a crash.
     pub(crate) fn push_face(&mut self, corners: &[VertexId]) {
         let _ = self.add_face(corners);
+    }
+
+    /// Moves a point to `position`. Returns `false` (changing nothing) if
+    /// the point doesn't exist.
+    pub fn set_position(&mut self, id: VertexId, position: Vec3) -> bool {
+        match self.positions.get_mut(id.0 as usize) {
+            Some(Some(p)) => {
+                *p = position;
+                true
+            }
+            _ => false,
+        }
     }
 
     /// Where a point is, if it exists.
@@ -318,6 +342,17 @@ mod tests {
         let face = mesh.add_face(&v).unwrap();
         assert_eq!(mesh.face_normal(face), Vec3::Z);
         assert_eq!(mesh.face_normal(FaceId(42)), Vec3::Z, "unknown face");
+    }
+
+    #[test]
+    fn points_move_only_if_they_exist() {
+        let (mut mesh, v) = square();
+        assert!(mesh.set_position(v[0], Vec3::splat(5.0)));
+        assert_eq!(mesh.position(v[0]), Some(Vec3::splat(5.0)));
+        assert!(!mesh.set_position(VertexId::from_raw(40), Vec3::ONE));
+        assert_eq!(mesh.vertex_count(), 4);
+        assert_eq!(VertexId::from_raw(3), v[3]);
+        assert_eq!(FaceId::from_raw(0).get(), 0);
     }
 
     #[test]

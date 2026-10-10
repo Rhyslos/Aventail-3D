@@ -39,6 +39,14 @@ If several objects are selected and you drag one of them, they all move, keeping
 
 **Framing.** With objects selected, **F** (*frame selected*) fits them in the view; with nothing selected it fits everything shown, like **H**. See [Navigating the view](navigating-the-view.md).
 
+### Make editable
+
+![A cube made editable: the Attributes panel shows "Cube (mesh)" with its points and polygons](../screenshots/2026-10-11-make-editable.png)
+
+A primitive is built from its settings, so its shape can only change through them. **Make editable** turns it into a plain mesh: what you see becomes a fixed set of points and polygons, ready to be edited freely, and the settings are gone. (Editing points, edges and polygons arrives in Phase 3; see [Base and edits](concepts.md#objects-and-scenes) for why you usually won't need this before then.)
+
+Select one or more shapes and press **C**, or use **Object → Make editable** in the Objects panel (also in the right-click menu) or **Mesh → Make editable** on the main menu bar. The objects keep their names and places; their icon becomes the polygon icon, and the [Attributes panel](attributes.md) shows "(mesh)" with how many points and polygons they have instead of their settings. Groups are left alone. **Ctrl + Z** brings the settings back.
+
 ## Settings
 
 The Object Manager has no settings of its own yet. Its menus:
@@ -47,7 +55,7 @@ The Object Manager has no settings of its own yet. Its menus:
 |---|---|
 | **Edit** | Undo, Redo, Rename, Delete, Select all, Deselect |
 | **View** | Expand all, Collapse all |
-| **Object** | New group, Group objects, Ungroup, Show, Hide |
+| **Object** | New group, Group objects, Ungroup, Make editable, Show, Hide |
 
 The main menu bar's **Edit** menu has the same entries as the panel's Edit menu, and **Create → Group** makes a group.
 
@@ -61,6 +69,7 @@ The main menu bar's **Edit** menu has the same entries as the panel's Edit menu,
 | Select nothing | `Esc` |
 | Put the selection in a new group | `Alt + G` |
 | Take the contents out of the selected groups | `Shift + G` |
+| Make the selected shapes editable (plain meshes) | `C` |
 | Add to or take out of the selection | `Ctrl` + click |
 | Select a run of rows | `Shift` + click |
 | Rename | Double-click the name |
@@ -74,6 +83,8 @@ On macOS, use `Cmd` instead of `Ctrl` and `Option` instead of `Alt`. They don't 
 - **Problem:** a row won't drop where you want. **Why:** an object can't go inside itself or one of its own children. **Fix:** drag the child out first, or drop the parent somewhere else.
 - **Problem:** Delete or Backspace does nothing. **Why:** nothing is selected, or you're typing a name. **Fix:** click the object first, or press Enter to finish the name.
 - **Problem:** you deleted something by mistake. **Fix:** press **Ctrl + Z**. Undo keeps every step for as long as the app is open.
+- **Problem:** pressing **C** does nothing, and the status bar says "Nothing to make editable". **Why:** only shapes with settings (or with recorded edits) can be made editable; groups and meshes have nothing to bake. **Fix:** select the shapes themselves.
+- **Problem:** the Attributes panel no longer shows a shape's size and segments. **Why:** it was made editable, so it's a plain mesh now. **Fix:** press **Ctrl + Z** to get the settings back, if you need them.
 
 ## Related
 

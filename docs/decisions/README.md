@@ -28,3 +28,4 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0018](0018-scene-document-and-undo.md) | The scene document: an object tree changed by undoable commands | Accepted |
 | [0019](0019-only-the-tool-keys-come-from-halberd.md) | Only the tool keys come from Halberd | Accepted |
 | [0020](0020-primitives.md) | Primitives: how they are built, placed and drawn | Accepted |
+| [0021](0021-object-stack-foundation.md) | The object stack foundation: how edits are stored, evaluated and baked | Accepted |

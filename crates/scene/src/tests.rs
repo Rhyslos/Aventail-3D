@@ -730,8 +730,21 @@ fn random_commands_keep_the_tree_whole_and_undo_exactly() {
                     .filter_map(|_| ids.get(rng.next(ids.len())).copied())
                     .collect()
             };
-            let command = match rng.next(9) {
+            let command = match rng.next(12) {
                 0 | 1 => Command::Create(ObjectKind::Group),
+                9 | 10 => match ids.get(rng.next(ids.len())) {
+                    Some(id) => Command::Record {
+                        id: *id,
+                        operation: Operation::MovePoints {
+                            points: (0..rng.next(4) + 1)
+                                .map(|_| VertexId::from_raw(rng.next(12) as u32))
+                                .collect(),
+                            offset: glam::Vec3::new(rng.next(20) as f32, 0.0, 1.0),
+                        },
+                    },
+                    None => Command::Create(ObjectKind::Group),
+                },
+                11 => Command::MakeEditable(pick(&mut rng)),
                 7 => Command::Create(ObjectKind::Primitive(cube_of(10.0 + rng.next(50) as f32))),
                 8 => Command::SetPrimitive {
                     ids: pick(&mut rng),
@@ -766,7 +779,8 @@ fn random_commands_keep_the_tree_whole_and_undo_exactly() {
                         states.push(doc.scene().clone());
                     }
                 }
-                // Refused commands (moving into itself) change nothing.
+                // Refused commands (moving into itself, editing a group)
+                // change nothing.
                 Err(_) => assert_eq!(doc, before, "{command:?}"),
             }
             check_tree(doc.scene());
@@ -778,6 +792,14 @@ fn random_commands_keep_the_tree_whole_and_undo_exactly() {
             doc.undo().unwrap();
             check_tree(doc.scene());
             assert_eq!(doc.scene().walk(), expected.walk(), "seed {seed}");
+            for (id, _) in expected.walk() {
+                assert_eq!(doc.scene().object(id), expected.object(id), "seed {seed}");
+                assert_eq!(
+                    doc.scene().evaluated(id),
+                    expected.evaluated(id),
+                    "the same shape, seed {seed}"
+                );
+            }
         }
         assert!(doc.scene().is_empty());
         // And redo it all.
@@ -791,7 +813,7 @@ fn random_commands_keep_the_tree_whole_and_undo_exactly() {
 // ------------------------------------------------------------- settings ---
 
 fn cube_size(doc: &Document, id: ObjectId) -> glam::Vec3 {
-    match doc.scene().object(id).unwrap().kind {
+    match doc.scene().object(id).unwrap().kind.clone() {
         ObjectKind::Primitive(Primitive::Cube(p)) => p.size,
         other => panic!("not a cube: {other:?}"),
     }

@@ -775,3 +775,92 @@ fn settings_paste_only_onto_the_same_kind() {
             .is_disabled()
     );
 }
+
+// ------------------------------------------------------- make editable ---
+
+fn kind_of(harness: &Harness<'static, State>, name: &str) -> scene::ObjectKind {
+    let id = id_of(harness, name);
+    harness
+        .state()
+        .workbench
+        .document()
+        .scene()
+        .object(id)
+        .unwrap()
+        .kind
+        .clone()
+}
+
+fn is_mesh(harness: &Harness<'static, State>, name: &str) -> bool {
+    matches!(kind_of(harness, name), scene::ObjectKind::Mesh(_))
+}
+
+#[test]
+fn c_makes_the_selected_shape_editable_and_undo_brings_its_settings_back() {
+    let mut harness = fresh();
+    click_row(&mut harness, "Cube", Modifiers::NONE);
+    key(&mut harness, Modifiers::NONE, Key::C);
+    assert!(is_mesh(&harness, "Cube"));
+    assert!(
+        harness.query_by_label("Cube (mesh)").is_some(),
+        "the Attributes heading says so"
+    );
+    key(&mut harness, Modifiers::COMMAND, Key::Z);
+    assert!(matches!(
+        kind_of(&harness, "Cube"),
+        scene::ObjectKind::Primitive(_)
+    ));
+}
+
+#[test]
+fn c_on_a_group_explains_instead_of_doing_nothing_silently() {
+    let mut harness = with_a_group();
+    click_row(&mut harness, "Group", Modifiers::NONE);
+    let steps = harness.state().workbench.document().undo_steps();
+    key(&mut harness, Modifiers::NONE, Key::C);
+    assert_eq!(harness.state().workbench.document().undo_steps(), steps);
+    assert!(
+        harness
+            .query_by_label_contains("Nothing to make editable")
+            .is_some()
+    );
+}
+
+#[test]
+fn the_object_menu_and_right_click_make_shapes_editable() {
+    let mut harness = fresh();
+    let at = row(&harness, "Cube").center();
+    click_at(&mut harness, at, PointerButton::Secondary, Modifiers::NONE);
+    harness.get_by_label_contains("Make editable").click();
+    harness.run();
+    assert!(is_mesh(&harness, "Cube"));
+    // Now there is nothing left to bake: the entry is greyed out.
+    harness.get_all_by_label("Object").last().unwrap().click();
+    harness.run();
+    assert!(
+        harness
+            .get_by_label_contains("Make editable")
+            .accesskit_node()
+            .is_disabled()
+    );
+}
+
+#[test]
+fn the_mesh_menu_makes_shapes_editable() {
+    let mut harness = fresh();
+    click_row(&mut harness, "Cube", Modifiers::NONE);
+    main_menu(&harness, "Mesh").click();
+    harness.run();
+    harness.get_by_label_contains("Make editable").click();
+    harness.run();
+    assert!(is_mesh(&harness, "Cube"));
+}
+
+#[test]
+fn c_types_into_a_name_instead() {
+    let mut harness = quick_harness();
+    double_click_row(&mut harness, "Cube");
+    assert!(harness.state().workbench.object_manager().is_renaming());
+    key(&mut harness, Modifiers::NONE, Key::C);
+    assert!(!is_mesh(&harness, "Cube"));
+}

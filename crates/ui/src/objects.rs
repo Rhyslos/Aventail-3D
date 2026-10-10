@@ -41,6 +41,8 @@ pub const DESELECT_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers:
 pub const GROUP_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::ALT, Key::G);
 /// Take the contents out of the selected groups.
 pub const UNGROUP_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::SHIFT, Key::G);
+/// Turn the selected shapes into plain meshes (Make editable).
+pub const MAKE_EDITABLE_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::NONE, Key::C);
 
 /// Something the Object Manager (or a menu) asks the workbench to do to
 /// the document.
@@ -252,10 +254,7 @@ impl ObjectManager {
         x += 16.0;
 
         // The kind's icon.
-        let (icon, icon_tint) = match object.kind {
-            ObjectKind::Primitive(p) => (shape_icon(p.kind()), tint::SHAPE),
-            _ => (Icon::Null, tint::ICON),
-        };
+        let (icon, icon_tint) = kind_icon(&object.kind);
         let icon_rect = Rect::from_min_size(pos2(x, rect.center().y - 7.5), vec2(15.0, 15.0));
         let icon_color = if shown {
             icon_tint
@@ -642,6 +641,7 @@ pub(crate) fn object_entries(ui: &mut Ui, doc: &Document, out: &mut Vec<DocReque
     ) {
         out.push(DocRequest::Run(Command::Ungroup(selection.clone())));
     }
+    make_editable_entry(ui, doc, out);
     ui.separator();
     for (label, visible) in [("Show", true), ("Hide", false)] {
         if entry(ui, label, None, any) {
@@ -651,6 +651,41 @@ pub(crate) fn object_entries(ui: &mut Ui, doc: &Document, out: &mut Vec<DocReque
             }));
         }
     }
+}
+
+/// An object kind's icon and its colour, for the Object Manager and the
+/// Attributes panel's heading.
+pub(crate) fn kind_icon(kind: &ObjectKind) -> (Icon, egui::Color32) {
+    match kind {
+        ObjectKind::Primitive(p) => (shape_icon(p.kind()), tint::SHAPE),
+        ObjectKind::Mesh(_) => (Icon::Polygons, tint::SHAPE),
+        _ => (Icon::Null, tint::ICON),
+    }
+}
+
+/// Make editable: turns the selected shapes into plain meshes.
+pub(crate) fn make_editable_entry(ui: &mut Ui, doc: &Document, out: &mut Vec<DocRequest>) {
+    let selection = doc.selection();
+    let can = can_make_editable(doc, &selection);
+    let mut button = egui::Button::new("Make editable");
+    button = button.shortcut_text(ui.ctx().format_shortcut(&MAKE_EDITABLE_SHORTCUT));
+    let response = ui
+        .add_enabled(can, button)
+        .on_hover_text(
+            "Turn the selected shapes into plain meshes, ready for editing points, \
+             edges and polygons. Their settings and recorded edits are baked in. \
+             Undo brings the settings back.",
+        )
+        .on_disabled_hover_text("Select a shape (a group or a mesh has no settings to bake)");
+    if response.clicked() {
+        out.push(DocRequest::Run(Command::MakeEditable(selection)));
+        ui.close();
+    }
+}
+
+/// Whether Make editable would change anything among `ids`.
+pub(crate) fn can_make_editable(doc: &Document, ids: &[ObjectId]) -> bool {
+    ids.iter().any(|id| doc.scene().can_make_editable(*id))
 }
 
 /// Whether any of `ids` is a group (the only kind Ungroup works on).

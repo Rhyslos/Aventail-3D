@@ -21,6 +21,7 @@ fn primitive(harness: &Harness<'static, State>, id: ObjectId) -> Primitive {
         .object(id)
         .unwrap()
         .kind
+        .clone()
     {
         scene::ObjectKind::Primitive(p) => p,
         other => panic!("not a primitive: {other:?}"),
@@ -502,4 +503,85 @@ fn cones_and_discs_have_the_end_settings_too() {
             );
         }
     }
+}
+
+// ------------------------------------------- meshes and recorded edits ---
+
+#[test]
+fn a_mesh_shows_its_size_instead_of_settings() {
+    let mut harness = selected_cube();
+    let id = only_object(&harness);
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::MakeEditable(vec![id]))
+        .unwrap();
+    harness.run();
+    assert!(harness.query_by_label("Cube (mesh)").is_some());
+    assert!(harness.query_by_label("Points: 8").is_some());
+    assert!(harness.query_by_label("Polygons: 6").is_some());
+    assert!(
+        harness.query_all_by_label("Width").next().is_none(),
+        "no shape settings"
+    );
+    assert!(harness.query_by_label("Lengths in metres").is_none());
+}
+
+fn record_lift(harness: &mut Harness<'static, State>, id: ObjectId, points: &[u32]) {
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::Record {
+            id,
+            operation: scene::Operation::MovePoints {
+                points: points
+                    .iter()
+                    .map(|n| scene::VertexId::from_raw(*n))
+                    .collect(),
+                offset: glam::Vec3::Z * 10.0,
+            },
+        })
+        .unwrap();
+    harness.run();
+}
+
+#[test]
+fn recorded_edits_are_counted_and_settings_stay_editable() {
+    let mut harness = selected_cube();
+    let id = only_object(&harness);
+    assert!(harness.query_by_label_contains("recorded on top").is_none());
+    record_lift(&mut harness, id, &[0]);
+    record_lift(&mut harness, id, &[1]);
+    assert!(
+        harness
+            .query_by_label("2 edits recorded on top of the shape")
+            .is_some()
+    );
+    // The settings are still there, and changing them keeps the edits.
+    click_with(&mut harness, "Increase Width", Modifiers::NONE);
+    assert_eq!(cube_size(&harness, id).x, 101.0);
+    let object = harness
+        .state()
+        .workbench
+        .document()
+        .scene()
+        .object(id)
+        .unwrap()
+        .clone();
+    assert_eq!(object.stack.operation_count(), 2);
+    assert!(harness.query_by_label_contains("no longer").is_none());
+}
+
+#[test]
+fn edits_that_no_longer_fit_are_flagged() {
+    let mut harness = selected_cube();
+    let id = only_object(&harness);
+    record_lift(&mut harness, id, &[0, 900]);
+    assert!(
+        harness
+            .query_by_label("1 edit no longer fully fits the shape")
+            .is_some()
+    );
 }
