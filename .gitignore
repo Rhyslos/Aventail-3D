@@ -1,0 +1,14 @@
+# Rust build output
+/target/
+**/*.rs.bk
+
+# Editors and OS clutter
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Local test projects and backups
+*.rhy.bak
+/scratch/
