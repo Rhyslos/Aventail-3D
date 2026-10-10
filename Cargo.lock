@@ -198,6 +198,7 @@ name = "app"
 version = "0.0.1"
 dependencies = [
  "eframe",
+ "render",
  "ui",
 ]
 
@@ -1284,6 +1285,16 @@ dependencies = [
  "khronos_api",
  "log",
  "xml-rs",
+]
+
+[[package]]
+name = "glam"
+version = "0.34.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc148d4ddd3930c52f9e5ae79b89805c6f07e9ff417e7b083e0348cea60a5aba"
+dependencies = [
+ "bytemuck",
+ "serde_core",
 ]
 
 [[package]]
@@ -2685,6 +2696,13 @@ dependencies = [
 [[package]]
 name = "render"
 version = "0.0.1"
+dependencies = [
+ "bytemuck",
+ "glam",
+ "pollster",
+ "tools",
+ "wgpu",
+]
 
 [[package]]
 name = "renderdoc-sys"
@@ -3243,6 +3261,11 @@ checksum = "06bdbd8cfc056b8d2e2e85f29b56a3bdbecb527cef81eb39e3e7b98af4652770"
 [[package]]
 name = "tools"
 version = "0.0.1"
+dependencies = [
+ "glam",
+ "ron",
+ "serde",
+]
 
 [[package]]
 name = "tracing"
@@ -3315,8 +3338,10 @@ dependencies = [
  "egui",
  "egui_dock",
  "egui_kittest",
+ "glam",
  "ron",
  "serde",
+ "tools",
 ]
 
 [[package]]

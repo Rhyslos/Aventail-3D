@@ -1,0 +1,114 @@
+//! What the renderer needs to know each frame, and how it is laid out for
+//! the GPU.
+
+use bytemuck::{Pod, Zeroable};
+use glam::{Mat4, Vec3};
+
+/// Half the width of the drawn grid, in centimetres (100 m each way: far
+/// more room than any game asset needs).
+pub const GRID_HALF_EXTENT: f32 = 10_000.0;
+/// Spacing of the three grid levels, in centimetres: 10 cm, 1 m and 10 m.
+pub const GRID_SPACINGS: [f32; 3] = [10.0, 100.0, 1000.0];
+
+/// Everything that changes from frame to frame.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct FrameParams {
+    /// World-to-screen transform (depth 0 at near, 1 at far).
+    pub view_projection: Mat4,
+    /// Where the camera is.
+    pub camera_position: Vec3,
+    /// Background colour at the top of the view, sRGB 0 to 1 (as colour
+    /// pickers and the interface theme give them).
+    pub sky_top: [f32; 3],
+    /// Background colour at the bottom of the view, sRGB 0 to 1.
+    pub sky_bottom: [f32; 3],
+}
+
+/// Converts one sRGB channel (0 to 1) to linear light, as the shaders work.
+pub fn srgb_to_linear(c: f32) -> f32 {
+    let c = c.clamp(0.0, 1.0);
+    if c <= 0.040_45 {
+        c / 12.92
+    } else {
+        ((c + 0.055) / 1.055).powf(2.4)
+    }
+}
+
+fn linear(rgb: [f32; 3]) -> [f32; 4] {
+    [
+        srgb_to_linear(rgb[0]),
+        srgb_to_linear(rgb[1]),
+        srgb_to_linear(rgb[2]),
+        1.0,
+    ]
+}
+
+/// The frame data exactly as the shader's `Frame` struct expects it.
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable)]
+pub(crate) struct FrameUniforms {
+    view_projection: [[f32; 4]; 4],
+    camera: [f32; 4],
+    grid: [f32; 4],
+    sky_top: [f32; 4],
+    sky_bottom: [f32; 4],
+}
+
+impl FrameUniforms {
+    pub(crate) fn new(params: &FrameParams) -> Self {
+        let [minor, major, super_level] = GRID_SPACINGS;
+        let p = params.camera_position;
+        Self {
+            view_projection: params.view_projection.to_cols_array_2d(),
+            camera: [p.x, p.y, p.z, 1.0],
+            grid: [minor, major, super_level, GRID_HALF_EXTENT],
+            sky_top: linear(params.sky_top),
+            sky_bottom: linear(params.sky_bottom),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn uniforms_match_the_shader_layout() {
+        // mat4x4<f32> + four vec4<f32>, no padding.
+        assert_eq!(std::mem::size_of::<FrameUniforms>(), 128);
+        assert_eq!(std::mem::size_of::<FrameUniforms>() % 16, 0);
+    }
+
+    #[test]
+    fn grid_levels_grow_tenfold() {
+        let [a, b, c] = GRID_SPACINGS;
+        assert_eq!(b, a * 10.0);
+        assert_eq!(c, b * 10.0);
+        assert!(c < GRID_HALF_EXTENT);
+    }
+
+    #[test]
+    fn srgb_conversion_matches_known_values() {
+        assert_eq!(srgb_to_linear(0.0), 0.0);
+        assert!((srgb_to_linear(1.0) - 1.0).abs() < 1e-6);
+        // Mid grey in sRGB is about 21% light.
+        assert!((srgb_to_linear(0.5) - 0.214).abs() < 0.001);
+        assert_eq!(srgb_to_linear(-3.0), 0.0);
+        assert!((srgb_to_linear(9.0) - 1.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn uniforms_carry_the_camera_and_sky() {
+        let u = FrameUniforms::new(&FrameParams {
+            view_projection: Mat4::IDENTITY,
+            camera_position: Vec3::new(1.0, 2.0, 3.0),
+            sky_top: [1.0, 0.5, 0.0],
+            sky_bottom: [0.0, 0.0, 0.0],
+        });
+        assert_eq!(u.camera, [1.0, 2.0, 3.0, 1.0]);
+        assert_eq!(u.grid[3], GRID_HALF_EXTENT);
+        assert_eq!(u.sky_top[0], 1.0);
+        assert!((u.sky_top[1] - 0.214).abs() < 0.001);
+        assert_eq!(u.view_projection, Mat4::IDENTITY.to_cols_array_2d());
+    }
+}

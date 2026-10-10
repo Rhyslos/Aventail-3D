@@ -17,7 +17,7 @@ Every 3D program picks which axis points up. Cinema 4D, Maya, Godot and glTF use
 **Z up, right-handed**, as in 3ds Max and Blender:
 
 - **X** points right, **Y** points away from the viewer (into the screen in the front view), **Z** points up. The ground grid lies in the X–Y plane.
-- Axis colours stay the universal ones: X red, Y green, Z blue.
+- Axis colours: X red, **Y blue, Z green**. Most 3D programs use Y green and Z blue; the project lead tried that in the first viewport and preferred blue for the ground's second axis (as drawn in the original mockups). *Changed 2026-10-10; it was X red, Y green, Z blue.*
 - Positions are shown in centimetres by default (units become a setting later).
 - **Rotation keeps Cinema 4D's H, P and B** in the Coordinates panel, defined for Z up: **heading** turns around the vertical Z axis (looking left and right), **pitch** tilts up and down, **bank** rolls sideways.
 - **Export converts automatically.** glTF and Godot are Y up, so the glTF exporter turns Z-up into Y-up (the standard conversion: a −90° turn around X). Substance Painter receives the same converted files. The export presets (DESIGN.md §8) handle it, so the user never has to think about it.
@@ -26,4 +26,5 @@ Every 3D program picks which axis points up. Cinema 4D, Maya, Godot and glTF use
 
 - The viewport, grid, gizmos and primitives are built Z up from the start (Phase 1 and 2).
 - Models exported to Godot arrive standing upright with no manual rotation; a round-trip test in Phase 5 checks it.
+- Y and Z swap colours compared with most 3D programs; the manual says so, and every axis is also labelled with its letter, so colour is never the only clue.
 - Anyone used to Cinema 4D's Y-up will notice the difference in the Coordinates panel (height is Z, not Y); the manual says so.

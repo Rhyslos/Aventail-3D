@@ -20,3 +20,4 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0010](0010-avtl-file-extension.md) | Project files use `.avtl` | Accepted |
 | [0011](0011-lua-scripting.md) | Scripting in Lua (Luau, through mlua) | Accepted |
 | [0012](0012-z-up-axes.md) | Z is up | Accepted |
+| [0013](0013-viewport-rendering.md) | Viewport rendering | Accepted |

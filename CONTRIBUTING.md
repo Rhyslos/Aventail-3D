@@ -25,7 +25,9 @@ cargo doc --workspace --no-deps --open                  # read the API docs
 
 Optional, matching CI: `cargo install cargo-deny` and run `cargo deny check`.
 
-The window smoke test (Linux only) opens the real window on a virtual screen, as CI does: it checks the viewport's colour, picks a mode with a click, quits with Ctrl+Q and checks the panel layout was saved. Pass the app's name (`APP_NAME` in `crates/app/src/branding.rs`) as the window title:
+GPU rendering tests (`cargo test -p render --test gpu`) draw real frames and check their pixels. Without a GPU they skip with a note; set `REQUIRE_GPU=1` to make a missing GPU a failure instead, as CI does.
+
+The window smoke test (Linux only) opens the real window on a virtual screen, as CI does: it checks the 3D view (background and the test cube), picks a mode with a click, quits with Ctrl+Q and checks the panel layout was saved. Pass the app's name (`APP_NAME` in `crates/app/src/branding.rs`) as the window title:
 
 ```
 sudo apt-get install xvfb xdotool imagemagick mesa-vulkan-drivers libxkbcommon-x11-0

@@ -4,10 +4,9 @@
 use crate::layout::{default_layout, fit_coordinates, restore_or_default};
 use crate::palette::{Mode, command_palette, mode_palette};
 use crate::panel::Panel;
-use crate::panels::{
-    about_contents, attributes_contents, coordinates_contents, objects_contents, viewport_contents,
-};
+use crate::panels::{about_contents, attributes_contents, coordinates_contents, objects_contents};
 use crate::theme;
+use crate::viewport::{ViewportPanel, ViewportRenderer};
 use egui::{Align2, Id, Key, KeyboardShortcut, Modifiers, Ui, WidgetText};
 use egui_dock::{DockArea, DockState, TabViewer};
 
@@ -83,6 +82,7 @@ pub struct Workbench {
     /// which can only happen once the panels' sizes are known.
     fit_pending: bool,
     mode: Mode,
+    viewport: ViewportPanel,
     about_open: bool,
     /// A message for the status bar, such as "Panel layout reset".
     note: Option<String>,
@@ -102,6 +102,7 @@ impl Workbench {
             dock,
             fit_pending,
             mode: Mode::default(),
+            viewport: ViewportPanel::default(),
             about_open: false,
             note,
         }
@@ -139,8 +140,18 @@ impl Workbench {
         self.note = Some("Panel layout reset to the standard arrangement.".into());
     }
 
+    /// The 3D viewport panel.
+    pub fn viewport(&self) -> &ViewportPanel {
+        &self.viewport
+    }
+
     /// Draws the whole window and returns what the user asked for.
-    pub fn show(&mut self, ui: &mut Ui) -> Vec<WorkbenchAction> {
+    /// `renderer` draws the 3D viewport.
+    pub fn show(
+        &mut self,
+        ui: &mut Ui,
+        renderer: &mut dyn ViewportRenderer,
+    ) -> Vec<WorkbenchAction> {
         let mut actions = Vec::new();
         if ui.input_mut(|i| i.consume_shortcut(&QUIT_SHORTCUT)) {
             actions.push(WorkbenchAction::Quit);
@@ -178,7 +189,13 @@ impl Workbench {
                 .show_add_buttons(false)
                 .show_leaf_close_all_buttons(false)
                 .show_leaf_collapse_buttons(false)
-                .show_inside(ui, &mut PanelViewer);
+                .show_inside(
+                    ui,
+                    &mut PanelViewer {
+                        viewport: &mut self.viewport,
+                        renderer,
+                    },
+                );
         });
         if self.fit_pending && fit_coordinates(&mut self.dock) {
             self.fit_pending = false;
@@ -283,9 +300,12 @@ fn coming_menus(ui: &mut Ui, menus: &[(&str, &[(&str, &str)])]) {
 }
 
 /// Draws each panel's contents.
-struct PanelViewer;
+struct PanelViewer<'a> {
+    viewport: &'a mut ViewportPanel,
+    renderer: &'a mut dyn ViewportRenderer,
+}
 
-impl TabViewer for PanelViewer {
+impl TabViewer for PanelViewer<'_> {
     type Tab = Panel;
 
     fn id(&mut self, tab: &mut Panel) -> Id {
@@ -299,7 +319,7 @@ impl TabViewer for PanelViewer {
     fn ui(&mut self, ui: &mut Ui, tab: &mut Panel) {
         if *tab == Panel::Viewport {
             // Edge to edge, with no padding.
-            viewport_contents(ui);
+            self.viewport.show(ui, self.renderer);
             return;
         }
         egui::Frame::new()

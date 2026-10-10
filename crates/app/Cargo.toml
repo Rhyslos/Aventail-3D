@@ -21,6 +21,7 @@ path = "src/main.rs"
 
 [dependencies]
 ui.workspace = true
+render.workspace = true
 eframe.workspace = true
 
 [lints]

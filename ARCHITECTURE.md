@@ -59,6 +59,16 @@ The `ui` crate's workbench owns everything inside the window:
 
 The four middle panels are dockable (egui_dock); the bars and palettes around them are fixed. Palette icons are drawn in code (`ui/src/icons.rs`). The workbench never touches the window or files itself: it returns actions for `app` to carry out.
 
+## Viewport
+
+Each frame, for the viewport:
+
+1. **Ask** (`ui`): the panel works out its size in physical pixels and the camera's matrices (`tools::Camera`), and asks a `ViewportRenderer` for an image.
+2. **Draw** (`render`, through `app`'s `GpuViewport`): background gradient, faces, grid and lines are drawn into the viewport's own offscreen image on the window's GPU device.
+3. **Show** (`ui`): the image is drawn into the panel as an egui texture, with the view's label on top.
+
+Rendering sits behind the `ViewportRenderer` trait, so the panel runs in tests with no GPU. See [decision 0013](docs/decisions/0013-viewport-rendering.md).
+
 ## Axes
 
 **Z is up**, right-handed: X and Y form the ground plane. Every crate that deals with positions (`mesh`, `scene`, `render`, `tools`) uses this; only `fileio` converts, to Y-up for glTF. See [decision 0012](docs/decisions/0012-z-up-axes.md).

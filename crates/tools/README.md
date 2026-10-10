@@ -15,8 +15,8 @@ Turns plain input (mouse, keys, what is under the cursor) into intentions: the C
 
 ## Depends on
 
-`scene`, `mesh`, `uv`, `config` (planned).
+No other app crates yet (`scene`, `mesh`, `uv`, `config` planned). Outside libraries: `glam` (maths), `serde` (saving the camera).
 
 ## Status
 
-Empty. Navigation arrives in Phase 1; selection and gizmos in Phase 3.
+- **`Camera`**: position, yaw, pitch and field of view; view and projection matrices (right-handed, Z up, depth 0 to 1); `project` (world to screen) and `ray_through` (screen to world). Opens looking at the origin from the front, right and above. Navigation is the next milestone.

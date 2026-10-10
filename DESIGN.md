@@ -228,7 +228,7 @@ Let people code their own functionality: custom tools, batch jobs, generators, e
 - **We copy layout and behaviour, not assets.** No Maxon or Autodesk icons, names, logos or screenshots go into the repo.
 
 ### 5.3 Axes and navigation
-**Z is up** ([decision 0012](docs/decisions/0012-z-up-axes.md)), as in 3ds Max and Blender, unlike Cinema 4D: X and Y lie flat on the ground grid, Z is height. Right-handed; X red, Y green, Z blue. Rotation in the Coordinates panel keeps C4D's H, P and B, with heading turning around Z. Export converts to Y-up for glTF and Godot automatically.
+**Z is up** ([decision 0012](docs/decisions/0012-z-up-axes.md)), as in 3ds Max and Blender, unlike Cinema 4D: X and Y lie flat on the ground grid, Z is height. Right-handed; X red, Y blue, Z green (the project lead's choice; most programs swap the last two). Rotation in the Coordinates panel keeps C4D's H, P and B, with heading turning around Z. Export converts to Y-up for glTF and Godot automatically.
 
 | Action | Default (C4D-style) |
 |---|---|
@@ -446,3 +446,5 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-10 — Scripting added as Phase 9 (rigging moves to Phase 10). Lua chosen as the language, through mlua with the Luau dialect and its sandbox ([0011](docs/decisions/0011-lua-scripting.md)); confirmed by the project lead.
 - 2026-10-10 — Z is up, X and Y form the ground plane, as the project lead prefers (and as in 3ds Max and Blender); glTF export converts to Y-up ([0012](docs/decisions/0012-z-up-axes.md)).
 - 2026-10-10 — Phase 0 gate passed: the project lead tested the window, layout and theme. Feedback: Coordinates fits its rows and panels can be dragged smaller; icons and the Coordinates panel brought closer to the mockups (white-ish icons, blue shapes, coloured axis letters).
+- 2026-10-10 — Viewport drawn on the GPU into an offscreen image shown in egui, as in Halberd; grid on the X–Y ground, studio shading, test cube until Phase 2 ([0013](docs/decisions/0013-viewport-rendering.md)).
+- 2026-10-10 — Feedback on the first viewport: axis colours changed to X red, Y blue, Z green ([0012](docs/decisions/0012-z-up-axes.md)); the viewport made softer so it feels less like Blender: wrapped, gentler lighting with a slight gradient across faces, a little darkening near the ground, a quieter grid and fainter edges ([0013](docs/decisions/0013-viewport-rendering.md)).

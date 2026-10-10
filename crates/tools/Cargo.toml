@@ -15,6 +15,11 @@ publish.workspace = true
 layer = 3
 
 [dependencies]
+glam.workspace = true
+serde.workspace = true
+
+[dev-dependencies]
+ron.workspace = true
 
 [lints]
 workspace = true

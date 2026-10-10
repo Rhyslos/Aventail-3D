@@ -2,8 +2,9 @@
 //! frame to the workbench from the `ui` crate.
 
 use crate::branding;
+use crate::gpu::GpuViewport;
 use eframe::egui;
-use ui::{AppInfo, DockState, Panel, Workbench, WorkbenchAction};
+use ui::{AppInfo, DockState, NoRenderer, Panel, ViewportRenderer, Workbench, WorkbenchAction};
 
 /// Key under which the panel layout is remembered between sessions.
 const LAYOUT_KEY: &str = "panel_layout";
@@ -15,12 +16,14 @@ const MIN_SIZE: [f32; 2] = [960.0, 600.0];
 /// The running app.
 struct App {
     workbench: Workbench,
+    /// Draws the 3D viewport on the window's GPU.
+    renderer: Box<dyn ViewportRenderer>,
 }
 
 impl eframe::App for App {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let ctx = ui.ctx().clone();
-        for action in self.workbench.show(ui) {
+        for action in self.workbench.show(ui, self.renderer.as_mut()) {
             match action {
                 WorkbenchAction::Quit => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
             }
@@ -63,8 +66,15 @@ pub fn run(info: AppInfo) -> Result<(), String> {
                 ui::theme::apply(&cc.egui_ctx);
                 let saved: Option<DockState<Panel>> =
                     cc.storage.and_then(|s| eframe::get_value(s, LAYOUT_KEY));
+                let renderer: Box<dyn ViewportRenderer> = match cc.wgpu_render_state.as_ref() {
+                    Some(state) => Box::new(GpuViewport::new(state)),
+                    None => Box::new(NoRenderer {
+                        reason: "the window has no GPU device".to_string(),
+                    }),
+                };
                 Ok(Box::new(App {
                     workbench: Workbench::new(info, saved),
+                    renderer,
                 }))
             }),
         )

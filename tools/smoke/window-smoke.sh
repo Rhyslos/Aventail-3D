@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Window smoke test: opens the real app window on a virtual screen, takes a
-# screenshot, checks the viewport's background colour, switches to
+# screenshot, checks the 3D viewport (background and the test cube), switches to
 # Polygons mode with a click, quits with Ctrl+Q (or File > Quit as a
 # fallback), and checks that the panel layout was saved.
 #
@@ -59,14 +59,24 @@ WINDOW_ID="$(xdotool search --name "$TITLE" 2>/dev/null | head -1)" || true
 sleep 6
 import -window root "$OUT/window.png"
 
-# 1. The viewport shows its calm grey gradient. With the default layout on
-#    a 1440x900 screen, (500, 400) is well inside the viewport. A wrong
-#    colour-space setting shows up here as near-black or washed out.
-read -r R G B <<<"$(convert "$OUT/window.png" -format '%[fx:int(255*p{500,400}.r)] %[fx:int(255*p{500,400}.g)] %[fx:int(255*p{500,400}.b)]' info:)"
-echo "Viewport colour at (500, 400): $R $G $B (expected a neutral mid grey)"
-[ "$R" -ge 50 ] && [ "$R" -le 120 ] || fail "viewport is not a mid grey: ($R, $G, $B)"
+# Colour of one screen pixel, as "R G B".
+pixel() {
+    convert "$OUT/window.png" -format "%[fx:int(255*p{$1,$2}.r)] %[fx:int(255*p{$1,$2}.g)] %[fx:int(255*p{$1,$2}.b)]" info:
+}
+
+# 1. The 3D view is drawn. With the default layout on a 1440x900 screen,
+#    (300, 130) is background near the top of the viewport and the middle
+#    of the viewport (566, 416) is the test cube. A wrong colour-space
+#    setting shows up as near-black or washed-out background.
+read -r R G B <<<"$(pixel 300 130)"
+echo "Viewport background at (300, 130): $R $G $B (expected a neutral mid grey)"
+[ "$R" -ge 50 ] && [ "$R" -le 120 ] || fail "viewport background is not a mid grey: ($R, $G, $B)"
 diff_rb=$(( R > B ? R - B : B - R ))
-[ "$diff_rb" -le 15 ] || fail "viewport grey is tinted: ($R, $G, $B)"
+[ "$diff_rb" -le 15 ] || fail "viewport background is tinted: ($R, $G, $B)"
+read -r CR CG CB <<<"$(pixel 566 416)"
+echo "Viewport middle (the test cube) at (566, 416): $CR $CG $CB"
+[ $(( CR + CG + CB )) -gt $(( R + G + B + 90 )) ] || fail "no lit cube in the middle of the viewport: ($CR, $CG, $CB)"
+grep -q "can't be shown" "$OUT/app.log" && fail "the 3D view could not be shown"
 
 # Number of pixels that differ between two screenshots.
 changed_pixels() {
