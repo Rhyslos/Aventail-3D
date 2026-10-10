@@ -30,6 +30,7 @@ Option 2. As of Halberd's main branch on 2026-10-10:
 | `S` | Scale gizmo (again: off) | Viewport |
 | `T` | All gizmos at once (again: off) | Viewport |
 | `Esc` | Deselect, or cancel a drag | Viewport |
+| `H` / `F` | Frame all / frame selected (new here; Halberd has none, and these keys are free there) | Viewport, not while typing |
 | `B` | Create tool; again: open or close the shape list (Halberd's Draw tool, for primitives here) | Viewport |
 | `Ctrl + W` | Pick single objects inside groups (on/off) (Halberd: brushes inside entities) | Viewport |
 | `R` / `Shift` / `Alt` / `Esc` / `Q` | While creating a shape: quarter turn / equal sides / equal sides around the start / cancel / cancel and pick Select | While creating |

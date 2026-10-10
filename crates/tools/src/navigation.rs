@@ -16,6 +16,7 @@
 
 use crate::camera::{Camera, DEFAULT_TARGET, MAX_PITCH};
 use glam::{Vec2, Vec3};
+use mesh::Bounds;
 
 /// How far the view turns per unit of mouse movement while orbiting, in
 /// radians (0.3° per pixel: a drag across a typical viewport turns the
@@ -32,6 +33,13 @@ pub const WHEEL_DOLLY_SPEED: f32 = 0.003;
 pub const MIN_DISTANCE: f32 = 2.0;
 /// Farthest the camera may get from the pivot, in centimetres (1 km).
 pub const MAX_DISTANCE: f32 = 100_000.0;
+
+/// How much room framing leaves around what it frames: 1.15 keeps a
+/// little space between it and the edges of the view.
+pub const FRAME_MARGIN: f32 = 1.15;
+/// The smallest size framing zooms to, as a radius in centimetres, so a
+/// single point or a tiny part doesn't fill the whole view.
+pub const MIN_FRAME_RADIUS: f32 = 25.0;
 
 /// A mouse button, as far as navigation cares.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -116,6 +124,60 @@ impl Navigator {
         }
         self.pivot = point;
         true
+    }
+
+    /// The same view, moved so that `bounds` fits in a viewport of the
+    /// given `aspect` (width / height), with a little room around it: the
+    /// camera keeps its direction and steps forwards or back along it, and
+    /// the box's middle becomes the pivot, in the middle of the view.
+    #[must_use]
+    pub fn framed(&self, bounds: &Bounds, aspect: f32) -> Self {
+        let aspect = if aspect.is_finite() && aspect > 1e-3 {
+            aspect
+        } else {
+            1.0
+        };
+        let radius = bounds.radius().max(MIN_FRAME_RADIUS) * FRAME_MARGIN;
+        let half_tall = self.camera.fov_y * 0.5;
+        let half_wide = (half_tall.tan() * aspect).atan();
+        let half = half_tall.min(half_wide);
+        // Far enough that a ball around the box fits the narrower way.
+        let distance = (radius / half.sin()).clamp(MIN_DISTANCE, MAX_DISTANCE);
+        let mut framed = *self;
+        framed.pivot = bounds.centre();
+        framed.camera.position = framed.pivot - self.camera.forward() * distance;
+        framed
+    }
+
+    /// A view part of the way from this one to `other`: `t` 0 gives this
+    /// view, 1 gives `other`. Turns take the short way round. Used to glide
+    /// smoothly when framing.
+    #[must_use]
+    pub fn blend(&self, other: &Self, t: f32) -> Self {
+        let t = if t.is_finite() {
+            t.clamp(0.0, 1.0)
+        } else {
+            1.0
+        };
+        // Exactly the start and end views at the ends of the glide.
+        if t <= 0.0 {
+            return *self;
+        }
+        if t >= 1.0 {
+            return *other;
+        }
+        let (a, b) = (&self.camera, &other.camera);
+        let turn = wrap_angle(b.yaw - a.yaw);
+        let camera = Camera {
+            position: a.position.lerp(b.position, t),
+            yaw: wrap_angle(a.yaw + turn * t),
+            pitch: a.pitch + (b.pitch - a.pitch) * t,
+            fov_y: a.fov_y + (b.fov_y - a.fov_y) * t,
+        };
+        Self {
+            camera,
+            pivot: self.pivot.lerp(other.pivot, t),
+        }
     }
 
     /// Moves the pivot to the middle of the view, at the same depth,
@@ -591,5 +653,115 @@ mod tests {
         // Orbiting now turns around the middle of the view.
         navigator.orbit(Vec2::new(60.0, 20.0));
         assert!(centred(&navigator));
+    }
+
+    fn the_cube() -> Bounds {
+        Bounds::new(
+            Vec3::new(-100.0, -100.0, 0.0),
+            Vec3::new(100.0, 100.0, 200.0),
+        )
+        .unwrap()
+    }
+
+    fn corners(b: &Bounds) -> Vec<Vec3> {
+        (0..8)
+            .map(|i| {
+                Vec3::new(
+                    if i & 1 == 0 { b.min.x } else { b.max.x },
+                    if i & 2 == 0 { b.min.y } else { b.max.y },
+                    if i & 4 == 0 { b.min.z } else { b.max.z },
+                )
+            })
+            .collect()
+    }
+
+    /// Whether every corner of `b` is on screen, at least `room` (a share
+    /// of the view's size) away from its edges.
+    fn fits(navigator: &Navigator, b: &Bounds, size: Vec2, room: f32) -> bool {
+        corners(b).iter().all(|c| {
+            navigator.camera().project(*c, size).is_some_and(|p| {
+                p.x > size.x * room
+                    && p.x < size.x * (1.0 - room)
+                    && p.y > size.y * room
+                    && p.y < size.y * (1.0 - room)
+            })
+        })
+    }
+
+    #[test]
+    fn framing_fits_the_box_with_room_to_spare() {
+        for start in [
+            Navigator::default(),
+            Navigator::new(
+                Camera::looking_at(Vec3::new(9000.0, 50.0, 40.0), Vec3::new(8000.0, 0.0, 0.0)),
+                Vec3::new(8000.0, 0.0, 0.0),
+            ),
+        ] {
+            for size in [SIZE, Vec2::new(400.0, 900.0)] {
+                let framed = start.framed(&the_cube(), size.x / size.y);
+                assert!(fits(&framed, &the_cube(), size, 0.02), "{size}");
+                let middle = framed.camera().project(the_cube().centre(), size).unwrap();
+                assert!((middle - size / 2.0).length() < 0.05);
+                assert_eq!(framed.pivot(), the_cube().centre());
+            }
+        }
+    }
+
+    #[test]
+    fn framing_fills_the_view_rather_than_leaving_it_tiny() {
+        let framed = Navigator::default().framed(&the_cube(), SIZE.x / SIZE.y);
+        // Zoomed in a bit more and some corner would leave the view.
+        let mut closer = framed;
+        closer.dolly(0.25);
+        assert!(!fits(&closer, &the_cube(), SIZE, 0.0));
+    }
+
+    #[test]
+    fn framing_keeps_the_direction() {
+        let mut start = Navigator::default();
+        start.orbit(Vec2::new(140.0, -30.0));
+        let framed = start.framed(&the_cube(), 1.5);
+        assert_eq!(framed.camera().yaw, start.camera().yaw);
+        assert_eq!(framed.camera().pitch, start.camera().pitch);
+    }
+
+    #[test]
+    fn framing_a_point_or_odd_sizes_stays_sensible() {
+        let point = Bounds::around([Vec3::new(10.0, 20.0, 30.0)]).unwrap();
+        let framed = Navigator::default().framed(&point, f32::NAN);
+        assert!(framed.distance() > MIN_FRAME_RADIUS);
+        assert!(framed.camera().position.is_finite());
+        let huge = Bounds::new(Vec3::splat(-1e8), Vec3::splat(1e8)).unwrap();
+        let framed = Navigator::default().framed(&huge, 0.0);
+        assert!(framed.distance() <= MAX_DISTANCE + 1.0);
+    }
+
+    #[test]
+    fn blending_runs_from_one_view_to_the_other() {
+        let a = Navigator::default();
+        let b = a.framed(&the_cube(), 1.6);
+        assert_eq!(a.blend(&b, 0.0), a);
+        assert_eq!(a.blend(&b, 1.0), b);
+        let half = a.blend(&b, 0.5);
+        let mid = (a.camera().position + b.camera().position) / 2.0;
+        assert!((half.camera().position - mid).length() < 1e-3);
+        assert_eq!(
+            a.blend(&b, f32::NAN),
+            a.blend(&b, 1.0),
+            "broken input ends the glide"
+        );
+    }
+
+    #[test]
+    fn blending_turns_the_short_way_round() {
+        let mut a = Navigator::default();
+        a.camera.yaw = 3.0;
+        let mut b = a;
+        b.camera.yaw = -3.0;
+        let half = a.blend(&b, 0.5);
+        assert!(
+            half.camera().yaw.abs() > 3.0,
+            "through 180°, not through 0°"
+        );
     }
 }

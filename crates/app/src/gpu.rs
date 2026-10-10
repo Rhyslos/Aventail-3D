@@ -123,3 +123,18 @@ impl ViewportRenderer for GpuViewport {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn framing_knows_the_cube_the_renderer_draws() {
+        // The interface frames ui::TEST_SCENE; the renderer draws the test
+        // cube. Until objects exist, the two must describe the same box.
+        let scene = ui::TEST_SCENE;
+        let side = render::TEST_CUBE_SIZE;
+        assert_eq!(scene.size().to_array(), [side; 3]);
+        assert_eq!(scene.min.z, 0.0, "standing on the grid");
+        assert_eq!(scene.centre().x, 0.0);
+        assert_eq!(scene.centre().y, 0.0);
+    }
+}

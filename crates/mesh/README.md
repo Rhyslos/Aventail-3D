@@ -17,8 +17,10 @@ The foundation everything else builds on: an n-gon mesh with full adjacency (ver
 
 ## Depends on
 
-None (no other app crates).
+No other app crates. Outside libraries: `glam` (maths).
 
 ## Status
 
-Empty. The data structure arrives in Phase 3.
+- **`Bounds`**: an upright bounding box (`new`, `around` points, `union`, `centre`, `size`, `radius`, `contains`), used for framing the view. Skips points that aren't real numbers.
+
+The mesh data structure arrives in Phase 3.

@@ -239,7 +239,7 @@ Let people code their own functionality: custom tools, batch jobs, generators, e
 | Orbit | RMB drag (or Alt + LMB) |
 | Pan | MMB drag (or Alt + MMB) |
 | Zoom/dolly | mouse wheel (or Alt + RMB) |
-| Frame selected / all | keys to be chosen so they don't clash with Halberd's (§5.4) |
+| Frame selected / all | `F` / `H` (unused in Halberd; §5.4). The view keeps its direction and glides there in 0.2 s; `F` frames everything while nothing is selected |
 | Views | F1–F5: perspective, top, right, front, 4-up |
 
 **Navigation schemes** ([decision 0015](docs/decisions/0015-navigation-schemes.md)): picked from a button in the viewport's bottom-right corner. *Mouse only* (the standard: right orbits, middle pans), *Alt + mouse*, *Mouse only, middle zooms* (Shift + middle pans), *Middle pans, Alt orbits*, and *Middle orbits* (Shift + middle pans). Every scheme zooms with the wheel and leaves a plain left drag to the tools. Switches: *Alt + mouse works in every scheme* (on) and *Invert orbit direction* (off). The project lead chose *Mouse only* as the standard after trying them, because it is the easiest to start with; the choice of schemes stays, as easy customisation is part of making the app welcoming.
@@ -248,6 +248,7 @@ Let people code their own functionality: custom tools, batch jobs, generators, e
 - On orbit start, read the depth under the cursor; if it hits geometry, orbit around that 3D point. If it hits nothing, fall back to the selection centre or the last pivot.
 - Wheel zoom (and drag zoom) dollies towards the 3D point under the cursor, which stays under the cursor; over empty background, towards the ground under it, or along the line of sight.
 - Show a small pivot marker while orbiting.
+- **Switched off, it is exactly the original rotation:** orbit and zoom around the middle of the view (the project lead's explicit wish, 2026-10-10).
 
 ### 5.4 Commands and hotkeys
 - **Keys and mouse use follow Halberd** ([decision 0016](docs/decisions/0016-controls-follow-halberd.md)): `Q` select, `W`/`R`/`S`/`T` move, rotate, scale and all gizmos, `Esc` deselect, `Delete` delete, `Ctrl+Z`/`Ctrl+Y` undo and redo, `Ctrl+S` save, `B` the create tool, a right-mouse fly camera with `WASD`, and a Keybinds viewer with a drawn keyboard. Viewport navigation is the exception: it uses the schemes in §5.3 until the project lead picks a standard. Anything below that clashes with Halberd's keys gives way.
@@ -463,3 +464,4 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-10 — Keyboard and mouse controls copy Halberd's, so both Rhylib tools work the same; only viewport navigation keeps its own schemes while they're being tried ([0016](docs/decisions/0016-controls-follow-halberd.md)).
 - 2026-10-10 — *Mouse only* becomes the standard navigation scheme (easiest to start with); the others stay as choices. The grid reaches three times farther when zoomed in (at least 18 m around the focus), as the closer fade felt claustrophobic.
 - 2026-10-10 — Orbit and zoom around the point under the mouse (W6) built: the surface under the mouse is found with a one-pixel depth render read back a frame later, never stalling the interface ([0017](docs/decisions/0017-picking-the-point-under-the-mouse.md)). On by default, with a switch in the navigation controls.
+- 2026-10-10 — Frame all (`H`) and frame selected (`F`) built: the view keeps its direction and glides 0.2 s until the scene's bounding box fits with a little room; `F` frames everything until selection exists. Keys chosen not to clash with Halberd. Confirmed: with orbit around the mouse switched off, the original rotation (around the middle of the view) is what's used.

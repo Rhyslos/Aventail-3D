@@ -4,7 +4,7 @@
 
 Aventail 3D is a free, open-source modelling and UV unwrapping tool for **hard-surface game assets**, written in Rust. Model it, unwrap it, and export it to Substance Painter and Godot, all in one app.
 
-> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout and a real 3D view you can orbit, pan and zoom around a test cube, but there is nothing to model with yet. Framing the selection and the top, front and side views are next. Follow the progress tracker below.
+> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout and a real 3D view you can orbit, pan and zoom around a test cube, but there is nothing to model with yet. The top, front and side views and the four-view layout are next. Follow the progress tracker below.
 
 Created by **Rhyslos**, built with AI assistance (Claude by Anthropic). Part of the **Rhylib** family of tools, alongside [Halberd](https://github.com/Rhyslos/halberd).
 
@@ -39,9 +39,9 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** the app launches into the C4D-style layout with movable, dockable panels. *Passed 2026-10-10.*
 
-### Phase 1 · Viewport and navigation — 3 of 5
+### Phase 1 · Viewport and navigation — 4 of 5
 
-`████████░░░░░` 60%
+`██████████░░░` 80%
 
 <details>
 <summary>Milestones</summary>
@@ -49,7 +49,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] 3D viewport: soft gradient background, fading grid, a test cube
 - [x] Navigation: orbit, pan and zoom with the mouse alone (or another choice of mouse controls)
 - [x] Orbit and zoom around the point under the mouse cursor
-- [ ] Frame selected and frame all
+- [x] Frame selected and frame all
 - [ ] Perspective, top, front and right views, and the 4-view layout
 
 </details>
@@ -181,6 +181,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-10 | Frame all (H) and frame selected (F), gliding the view until everything fits |
 | 2026-10-10 | Orbit and zoom around the point under the mouse, with a marker while orbiting |
 | 2026-10-10 | A darker studio look from the approved mockup: horizon, finite grid, menu lines inside panels, a red accent with five others to choose from, and a choice of navigation controls |
 | 2026-10-10 | Cinema 4D-style navigation (Alt + drag to orbit, pan and zoom, wheel to zoom) and a grid detail switch, with a calmer 1 m grid by default |

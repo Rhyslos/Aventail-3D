@@ -93,10 +93,7 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
             ui.close();
         }
         ui.separator();
-        for item in ["Frame all", "Frame selected"] {
-            ui.add_enabled(false, egui::Button::new(item))
-                .on_disabled_hover_text(LATER_IN_PHASE_1);
-        }
+        frame_entries(ui, panel);
     });
     ui.menu_button("Cameras", |ui| {
         let _ = ui.radio(true, "Perspective");
@@ -136,6 +133,24 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
         ui.add_enabled(false, egui::Button::new("Four views"))
             .on_disabled_hover_text(LATER_IN_PHASE_1);
     });
+}
+
+/// The Frame all and Frame selected menu entries, with their keys.
+pub(crate) fn frame_entries(ui: &mut Ui, panel: &mut ViewportPanel) {
+    for what in [super::Frame::All, super::Frame::Selected] {
+        let keys = ui.ctx().format_shortcut(&egui::KeyboardShortcut::new(
+            egui::Modifiers::NONE,
+            what.key(),
+        ));
+        if ui
+            .add(egui::Button::new(what.label()).shortcut_text(keys))
+            .on_hover_text(what.explanation())
+            .clicked()
+        {
+            panel.frame(what);
+            ui.close();
+        }
+    }
 }
 
 /// A small icon button on the viewport's menu line.

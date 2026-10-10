@@ -4,7 +4,7 @@
 
 ## When to use it
 
-All the time: looking at a model from different sides is how you judge its shape. Moving the view never changes the model itself, so experiment freely. If you get lost, **View → Reset view** (in the viewport's own menu line) brings back the opening view.
+All the time: looking at a model from different sides is how you judge its shape. Moving the view never changes the model itself, so experiment freely. If you get lost, press **H** to fit everything back in view, or use **View → Reset view** (in the viewport's own menu line) to go back to the opening view.
 
 ## How to use it
 
@@ -22,7 +22,9 @@ The Alt + mouse moves work too, unless you switch them off (see [Settings](#sett
 
 **Without the mouse buttons:** the three buttons on the right of the viewport's menu line (four arrows, an up-and-down arrow, a circular arrow) pan, zoom and orbit when you drag them. Handy on a laptop touchpad.
 
-**Coming next:** framing a selected object or the whole scene, and top, front and side views.
+**Framing: fit things in the view.** Press **H** (*frame all*) to fit the whole scene in the view, or **F** (*frame selected*) to fit what you've selected. The view keeps looking the same way and glides forwards or back until everything fits, with a little room around it, so you never lose your bearings. Both are also in the **View** menus. Until objects can be selected (Phase 3), F frames everything too. The keys work anywhere in the app, except while you're typing in a field.
+
+**Coming next:** top, front and side views, and the four-view layout.
 
 ## Navigation controls
 
@@ -44,10 +46,11 @@ Whatever you pick, **a plain left drag never moves the view**: it's kept free fo
 
 | Setting | What it does |
 |---|---|
-| **Orbit and zoom around the point under the mouse** (in the controls list, or **Options**; on by standard) | Orbiting turns around, and zooming moves towards, whatever is under the mouse. Off: they always work around the middle of the view instead. |
+| **Orbit and zoom around the point under the mouse** (in the controls list, or **Options**; on by standard) | Orbiting turns around, and zooming moves towards, whatever is under the mouse. Off: they work around the middle of the view, exactly as the app's original rotation did. |
 | **Alt + mouse works in every scheme** (in the controls list, on by standard) | Keeps the Alt + mouse moves working whichever controls you pick, unless those controls use the same keys for something else. Useful while you get used to new controls. |
 | **Invert orbit direction** (in the controls list, or **Options**) | Orbiting turns the other way: the model moves against your hand instead of with it. |
 | **Fine grid lines** (the grid button at the bottom of the left palette, **Display → Fine grid lines**, or **View → Fine grid lines** on the main menu bar) | Off (standard): a line every metre, plus stronger 10 m lines further out, for a calm ground. On: adds thin lines every 10 cm, useful when placing things precisely up close. The bottom-left corner of the view shows the spacing. Remembered next time. |
+| **View → Frame all** (`H`), **Frame selected** (`F`) | Fit everything, or the selection, in the view, keeping the direction you're looking in. |
 | **View → Reset view** | Puts the camera back where it starts when the app opens. |
 
 ## Shortcuts
@@ -59,6 +62,8 @@ As standard (Mouse only controls, with Alt + mouse switched on):
 | Orbit | Right drag, or `Alt` + left drag |
 | Pan | Middle drag, or `Alt` + middle drag |
 | Zoom | Mouse wheel, or `Alt` + right drag |
+| Frame all | `H` |
+| Frame selected | `F` |
 
 On macOS, Alt is the `Option` key. The other controls are in the table above.
 
@@ -67,7 +72,7 @@ On macOS, Alt is the `Option` key. The other controls are in the table above.
 - **Problem:** nothing happens when you drag in the viewport. **Why:** a plain left drag is kept free for the selection tools, and some controls need a key. **Fix:** check the controls in use in the bottom-right corner (or the status bar), and hold the key it lists as you start the drag.
 - **Problem:** on Linux, Alt + drag moves the whole window instead of the view. **Why:** some Linux desktops use Alt + drag for moving windows. **Fix:** use the standard **Mouse only** controls (right drag orbits, middle drag pans), or in your desktop's window settings change that key (often called the "window action key" or "modifier key") to Super, the Windows-logo key.
 - **Problem:** zooming has stopped getting closer. **Why:** the camera stops 2 cm from the pivot, so it can't pass through it. **Fix:** point the mouse at something a little further away and zoom again: the new point becomes the pivot. Or zoom out and come at it from another side.
-- **Problem:** the grid has disappeared. **Why:** the grid is drawn around the point you're looking at (at least 18 m around it) and fades out at its edges; if you've panned far away or are looking at the sky, there may be none in view. **Fix:** **View → Reset view**, or zoom out: the grid reaches farther the farther away you are.
+- **Problem:** the grid has disappeared. **Why:** the grid is drawn around the point you're looking at (at least 18 m around it) and fades out at its edges; if you've panned far away or are looking at the sky, there may be none in view. **Fix:** press **H** to frame everything, or zoom out: the grid reaches farther the farther away you are.
 
 ## Related
 

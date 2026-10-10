@@ -16,7 +16,7 @@ mod picker;
 use egui::{Color32, CursorIcon, PointerButton, Rect, Response, Sense, Ui, pos2};
 use glam::{Mat4, Vec2, Vec3};
 use serde::{Deserialize, Serialize};
-use tools::{Camera, DragKind, Modifiers, MouseButton, NavigationSettings, Navigator};
+use tools::{Bounds, Camera, DragKind, Modifiers, MouseButton, NavigationSettings, Navigator};
 
 #[cfg(test)]
 pub(crate) use picker::AROUND_CURSOR_LABEL;
@@ -138,6 +138,75 @@ impl ViewportRenderer for NoRenderer {
     }
 }
 
+/// Everything in the scene, for framing. Until objects exist (Phase 2)
+/// the scene is the 2 m test cube standing on the grid at the origin; the
+/// app's tests check this matches the cube the renderer draws.
+pub const TEST_SCENE: Bounds = Bounds {
+    min: Vec3::new(-100.0, -100.0, 0.0),
+    max: Vec3::new(100.0, 100.0, 200.0),
+};
+
+/// What to fit in the view.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Frame {
+    /// Everything in the scene (key `H`).
+    All,
+    /// The selection (key `F`); everything when nothing is selected.
+    Selected,
+}
+
+impl Frame {
+    /// The menu entry's name.
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::All => "Frame all",
+            Self::Selected => "Frame selected",
+        }
+    }
+
+    /// The key that does it in the viewport.
+    pub fn key(self) -> egui::Key {
+        match self {
+            Self::All => egui::Key::H,
+            Self::Selected => egui::Key::F,
+        }
+    }
+
+    /// What the menu entry's tooltip says.
+    pub fn explanation(self) -> &'static str {
+        match self {
+            Self::All => "Fit everything in the scene in the view",
+            Self::Selected => {
+                "Fit the selection in the view (everything, while nothing is selected)"
+            }
+        }
+    }
+}
+
+/// How long the view takes to glide into place when framing, in seconds:
+/// quick, but long enough to see where you went.
+pub const GLIDE_SECONDS: f64 = 0.2;
+
+/// A short, smooth move of the camera from one view to another.
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Glide {
+    from: Navigator,
+    to: Navigator,
+    /// When it started, in egui's clock (seconds).
+    start: f64,
+}
+
+impl Glide {
+    /// The view at time `now`, and whether the glide has finished. Eases
+    /// out: fast at first, settling gently.
+    fn at(&self, now: f64) -> (Navigator, bool) {
+        let t = ((now - self.start) / GLIDE_SECONDS).clamp(0.0, 1.0);
+        let t = if t.is_finite() { t } else { 1.0 };
+        let eased = 1.0 - (1.0 - t).powi(3);
+        (self.from.blend(&self.to, eased as f32), t >= 1.0)
+    }
+}
+
 /// Accessible name of the 3D image, and the label tests look for.
 pub const VIEWPORT_LABEL: &str = "3D viewport";
 
@@ -165,6 +234,13 @@ pub struct ViewportPanel {
     asking: bool,
     /// The camera the question in flight was asked with.
     asked_with: Option<Camera>,
+    /// A framing move in progress.
+    glide: Option<Glide>,
+    /// The 3D image's size last frame, in logical pixels (for framing from
+    /// a menu, before this frame's size is known).
+    image_size: Vec2,
+    /// A framing asked for from a menu, done on the next frame.
+    frame_request: Option<Frame>,
 }
 
 impl ViewportPanel {
@@ -178,10 +254,63 @@ impl ViewportPanel {
         &self.navigator
     }
 
+    /// The camera and pivot, for moving them in tests.
+    #[cfg(test)]
+    pub(crate) fn navigator_mut(&mut self) -> &mut Navigator {
+        &mut self.navigator
+    }
+
     /// Goes back to the opening view (View → Reset view).
     pub fn reset_view(&mut self) {
         self.navigator.reset();
         self.drag = None;
+        self.glide = None;
+    }
+
+    /// Fits everything, or the selection, in the view (View → Frame all,
+    /// Frame selected, or keys `H` and `F`): the camera keeps its direction
+    /// and glides forwards or back until it fits. Nothing can be selected
+    /// yet, so both frame the whole scene.
+    pub fn frame(&mut self, what: Frame) {
+        self.frame_request = Some(what);
+    }
+
+    /// Starts gliding to frame `what`, at time `now`.
+    fn start_frame(&mut self, what: Frame, now: f64) {
+        let bounds = match what {
+            Frame::All | Frame::Selected => TEST_SCENE,
+        };
+        let aspect = if self.image_size.y > 0.0 {
+            self.image_size.x / self.image_size.y
+        } else {
+            1.0
+        };
+        let to = self.navigator.framed(&bounds, aspect);
+        self.glide = Some(Glide {
+            from: self.navigator,
+            to,
+            start: now,
+        });
+        self.drag = None;
+    }
+
+    /// Moves the camera along a glide in progress, at time `now`; returns
+    /// whether it is still going.
+    fn follow_glide(&mut self, now: f64) -> bool {
+        let Some(glide) = self.glide else {
+            return false;
+        };
+        let (view, done) = glide.at(now);
+        self.navigator = view;
+        if done {
+            self.glide = None;
+        }
+        !done
+    }
+
+    /// Whether a framing glide is in progress.
+    pub fn is_gliding(&self) -> bool {
+        self.glide.is_some()
     }
 
     /// The navigation drag in progress, if any.
@@ -208,6 +337,8 @@ impl ViewportPanel {
         ui.allocate_rect(full, Sense::hover());
 
         let size = Vec2::new(body.width(), body.height());
+        self.image_size = size;
+        self.frame_from_keys_and_menus(ui);
         chrome::header(ui, header, self, size);
 
         let response = ui.interact(body, ui.id().with("viewport_body"), Sense::click_and_drag());
@@ -316,11 +447,34 @@ impl ViewportPanel {
         }
     }
 
+    /// Starts framing for the `H` and `F` keys (unless typing in a field)
+    /// or a menu entry, and moves along a glide in progress.
+    fn frame_from_keys_and_menus(&mut self, ui: &Ui) {
+        let typing = ui.ctx().memory(|m| m.focused().is_some());
+        let now = ui.input(|i| i.time);
+        let mut wanted = self.frame_request.take();
+        if !typing {
+            for what in [Frame::All, Frame::Selected] {
+                if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, what.key())) {
+                    wanted = Some(what);
+                }
+            }
+        }
+        if let Some(what) = wanted {
+            self.start_frame(what, now);
+        }
+        if self.follow_glide(now) {
+            ui.ctx().request_repaint();
+        }
+    }
+
     /// Moves the camera for this frame's mouse input over the image.
     fn navigate(&mut self, ui: &Ui, response: &Response, rect: Rect) {
         let size = Vec2::new(rect.width(), rect.height());
         let settings = self.options.navigation;
         if response.drag_started() {
+            // Taking hold of the view stops a framing glide where it is.
+            self.glide = None;
             let keys = ui.input(|i| Modifiers {
                 alt: i.modifiers.alt,
                 shift: i.modifiers.shift,
@@ -367,6 +521,7 @@ impl ViewportPanel {
         if response.hovered() {
             let scroll = wheel_scroll(ui, rect.height());
             if scroll != 0.0 {
+                self.glide = None;
                 // While a button is held (mid-orbit or mid-pan), the point
                 // under the mouse is not being looked up, so keep zooming
                 // towards the pivot already in use instead of jumping to a
@@ -393,6 +548,7 @@ impl ViewportPanel {
 
     /// Applies a drag on one of the menu line's navigation buttons.
     fn button_drag(&mut self, kind: DragKind, delta: egui::Vec2, size: Vec2) {
+        self.glide = None;
         if !self.options.navigation.around_cursor {
             self.navigator.centre_pivot();
         }
@@ -584,5 +740,64 @@ mod tests {
         let target = panel.zoom_target(pos2(500.0, 350.0), rect);
         let distance = panel.camera().position.distance(target);
         assert!((distance - panel.navigator().distance()).abs() < 0.01);
+    }
+
+    #[test]
+    fn framing_glides_into_place_and_stops() {
+        let mut panel = ViewportPanel {
+            image_size: Vec2::new(640.0, 400.0),
+            ..ViewportPanel::default()
+        };
+        let start = *panel.navigator();
+        panel.start_frame(Frame::All, 10.0);
+        let end = start.framed(&TEST_SCENE, 1.6);
+        assert!(panel.follow_glide(10.05), "still going");
+        let partway = panel.navigator().camera().position;
+        assert_ne!(partway, start.camera().position);
+        assert_ne!(partway, end.camera().position);
+        assert!(!panel.follow_glide(10.0 + GLIDE_SECONDS + 0.01), "finished");
+        assert_eq!(*panel.navigator(), end);
+        assert!(!panel.is_gliding());
+    }
+
+    #[test]
+    fn taking_hold_of_the_view_stops_a_glide() {
+        let mut panel = ViewportPanel {
+            image_size: Vec2::new(640.0, 400.0),
+            ..ViewportPanel::default()
+        };
+        panel.start_frame(Frame::Selected, 0.0);
+        panel.follow_glide(0.05);
+        panel.button_drag(DragKind::Pan, egui::vec2(5.0, 0.0), Vec2::new(640.0, 400.0));
+        assert!(!panel.is_gliding());
+        panel.start_frame(Frame::All, 0.0);
+        panel.reset_view();
+        assert!(!panel.is_gliding());
+    }
+
+    #[test]
+    fn the_glide_eases_out() {
+        let a = Navigator::default();
+        let b = a.framed(&TEST_SCENE, 1.6);
+        let glide = Glide {
+            from: a,
+            to: b,
+            start: 0.0,
+        };
+        let travelled = |t: f64| {
+            glide
+                .at(t)
+                .0
+                .camera()
+                .position
+                .distance(a.camera().position)
+                / b.camera().position.distance(a.camera().position)
+        };
+        assert!(
+            travelled(GLIDE_SECONDS / 2.0) > 0.6,
+            "most of the way by half time"
+        );
+        assert!(!glide.at(-1.0).1, "not started yet");
+        assert!(glide.at(f64::NAN).1, "broken clocks end the glide");
     }
 }
