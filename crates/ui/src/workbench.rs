@@ -332,6 +332,8 @@ impl Workbench {
                 self.viewport.reset_view();
                 ui.close();
             }
+            crate::viewport::chrome::frame_entries(ui, &mut self.viewport);
+            ui.separator();
             let options = self.viewport.options_mut();
             ui.checkbox(&mut options.fine_grid, crate::palette::GRID_DETAIL_LABEL)
                 .on_hover_text("Show the grid's 10 cm lines as well as the 1 m lines");

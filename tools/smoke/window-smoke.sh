@@ -2,7 +2,7 @@
 # Window smoke test: opens the real app window on a virtual screen, takes a
 # screenshot, checks the 3D viewport (background and the test cube), switches to
 # Polygons mode with a click, orbits the view with Alt + drag, zooms with the
-# wheel, switches on the fine grid lines, quits with Ctrl+Q (or File > Quit
+# wheel, frames everything with H, switches on the fine grid lines, quits with Ctrl+Q (or File > Quit
 # as a fallback), and checks that the panel layout and view options were
 # saved.
 #
@@ -128,6 +128,14 @@ ZOOM_CHANGE="$(changed_pixels "$OUT/after-orbit.png" "$OUT/after-zoom.png")"
 echo "Pixels changed by zooming: $ZOOM_CHANGE"
 [ "$ZOOM_CHANGE" -gt 20000 ] || fail "the mouse wheel did not zoom the view"
 
+# 4b. H frames everything again after zooming in.
+xdotool key --window "$WINDOW_ID" h || true
+sleep 1.5
+import -window root "$OUT/after-frame.png"
+FRAME_CHANGE="$(changed_pixels "$OUT/after-zoom.png" "$OUT/after-frame.png")"
+echo "Pixels changed by framing everything (H): $FRAME_CHANGE"
+[ "$FRAME_CHANGE" -gt 20000 ] || fail "H did not frame the scene"
+
 # 5. The grid detail toggle at the bottom of the left palette adds the fine
 #    grid lines. GRID_Y is the middle of that button with the standard
 #    layout.
@@ -135,7 +143,7 @@ GRID_Y="${GRID_Y:-381}"
 xdotool mousemove 22 "$GRID_Y" click 1
 sleep 1.5
 import -window root "$OUT/after-grid.png"
-GRID_CHANGE="$(changed_pixels "$OUT/after-zoom.png" "$OUT/after-grid.png")"
+GRID_CHANGE="$(changed_pixels "$OUT/after-frame.png" "$OUT/after-grid.png")"
 echo "Pixels changed by the grid detail toggle: $GRID_CHANGE"
 [ "$GRID_CHANGE" -gt 5000 ] || fail "the grid detail toggle changed nothing"
 

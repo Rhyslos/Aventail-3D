@@ -22,7 +22,7 @@ pub use egui_dock::DockState;
 pub use palette::Mode;
 pub use panel::Panel;
 pub use viewport::{
-    NoRenderer, PICKER_LABEL, PickAsk, PickReply, Picked, VIEWPORT_LABEL, ViewOptions,
-    ViewportPanel, ViewportRenderer, ViewportView,
+    Frame, GLIDE_SECONDS, NoRenderer, PICKER_LABEL, PickAsk, PickReply, Picked, TEST_SCENE,
+    VIEWPORT_LABEL, ViewOptions, ViewportPanel, ViewportRenderer, ViewportView,
 };
 pub use workbench::{AppInfo, QUIT_SHORTCUT, Workbench, WorkbenchAction, navigation_hint};

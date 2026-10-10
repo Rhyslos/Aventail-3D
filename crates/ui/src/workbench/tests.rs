@@ -1116,3 +1116,100 @@ fn zooming_while_a_button_is_held_keeps_the_pivot() {
     harness.run();
     assert_eq!(pivot(&harness), SURFACE, "the pivot stayed put");
 }
+
+// ------------------------------------------------------------- framing ---
+
+fn all_of_the_scene_in_view(harness: &Harness<'static, State>) -> bool {
+    let body = harness.get_by_label(crate::VIEWPORT_LABEL).rect();
+    let size = glam::Vec2::new(body.width(), body.height());
+    let camera = *harness.state().workbench.viewport().camera();
+    let b = crate::TEST_SCENE;
+    (0..8).all(|i| {
+        let corner = glam::Vec3::new(
+            if i & 1 == 0 { b.min.x } else { b.max.x },
+            if i & 2 == 0 { b.min.y } else { b.max.y },
+            if i & 4 == 0 { b.min.z } else { b.max.z },
+        );
+        camera
+            .project(corner, size)
+            .is_some_and(|p| p.x > 0.0 && p.y > 0.0 && p.x < size.x && p.y < size.y)
+    })
+}
+
+/// Zooms right in on the cube's corner, so most of it is out of view.
+fn zoomed_in_close() -> Harness<'static, State> {
+    let mut harness = fresh();
+    for _ in 0..12 {
+        harness
+            .state_mut()
+            .workbench
+            .viewport_mut()
+            .navigator_mut()
+            .dolly(0.3);
+    }
+    harness.run();
+    assert!(!all_of_the_scene_in_view(&harness));
+    harness
+}
+
+#[test]
+fn h_frames_everything() {
+    let mut harness = zoomed_in_close();
+    let direction = harness.state().workbench.viewport().camera().forward();
+    harness.key_press(Key::H);
+    harness.run();
+    assert!(all_of_the_scene_in_view(&harness));
+    assert!(
+        !harness.state().workbench.viewport().is_gliding(),
+        "settled"
+    );
+    let after = harness.state().workbench.viewport().camera().forward();
+    assert!((after - direction).length() < 1e-5, "same direction");
+    assert_eq!(pivot(&harness), crate::TEST_SCENE.centre());
+}
+
+#[test]
+fn f_frames_everything_while_nothing_is_selected() {
+    let mut harness = zoomed_in_close();
+    harness.key_press(Key::F);
+    harness.run();
+    assert!(all_of_the_scene_in_view(&harness));
+}
+
+#[test]
+fn the_view_menus_frame_too() {
+    for (menu, item) in [("main", "Frame all"), ("viewport", "Frame selected")] {
+        let mut harness = zoomed_in_close();
+        if menu == "main" {
+            main_menu(&harness, "View").click();
+        } else {
+            // The viewport's own View menu sits just above the image (the
+            // Objects panel has a View menu too, further down).
+            let image_top = harness.get_by_label(crate::VIEWPORT_LABEL).rect().min.y;
+            harness
+                .get_all_by_label("View")
+                .min_by(|a, b| {
+                    (a.rect().max.y - image_top)
+                        .abs()
+                        .total_cmp(&(b.rect().max.y - image_top).abs())
+                })
+                .unwrap()
+                .click();
+        }
+        harness.run();
+        harness.get_by_label_contains(item).click();
+        harness.run();
+        assert!(all_of_the_scene_in_view(&harness), "{menu} {item}");
+    }
+}
+
+#[test]
+fn framing_keys_need_no_modifiers() {
+    let mut harness = zoomed_in_close();
+    harness.key_press_modifiers(Modifiers::COMMAND, Key::H);
+    harness.run();
+    assert!(
+        !all_of_the_scene_in_view(&harness),
+        "Ctrl + H is not framing"
+    );
+}
