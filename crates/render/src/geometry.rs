@@ -60,9 +60,6 @@ pub const Z_AXIS_HEIGHT: f32 = 10_000.0;
 pub const CUBE_COLOR: [f32; 4] = [0.5, 0.5, 0.51, 1.0];
 /// Colour of shape edges, linear space: a faint white line.
 pub const EDGE_COLOR: [f32; 4] = [1.0, 1.0, 1.0, 0.10];
-/// Colour of a selected object's edges, linear space: the orange that
-/// marks selected names in the Object Manager.
-pub const SELECTED_EDGE_COLOR: [f32; 4] = [0.89, 0.37, 0.04, 0.85];
 
 /// One object's mesh, placed in the world, for [`Shape::from_meshes`].
 #[derive(Debug, Clone, Copy)]
@@ -71,7 +68,7 @@ pub struct MeshInstance<'a> {
     pub mesh: &'a Mesh,
     /// Where it is in the world.
     pub transform: Mat4,
-    /// Whether it is selected (its edges are drawn in orange).
+    /// Whether it is selected (its edges are drawn in the selection colour).
     pub selected: bool,
 }
 /// Edge length of the test cube, in centimetres (2 m).
@@ -191,8 +188,10 @@ impl Shape {
     }
 
     /// Every object's faces and edges, placed in the world, ready to draw.
-    /// Shading follows each mesh's hard and soft edges.
-    pub fn from_meshes(instances: &[MeshInstance<'_>]) -> Self {
+    /// Shading follows each mesh's hard and soft edges; selected objects'
+    /// edges are drawn in `selected_edges` (linear-space colour with alpha;
+    /// the interface's accent colour).
+    pub fn from_meshes(instances: &[MeshInstance<'_>], selected_edges: [f32; 4]) -> Self {
         let mut shape = Self::default();
         for instance in instances {
             let matrix = instance.transform;
@@ -220,7 +219,7 @@ impl Shape {
                 }
             }
             let color = if instance.selected {
-                SELECTED_EDGE_COLOR
+                selected_edges
             } else {
                 EDGE_COLOR
             };
@@ -337,15 +336,21 @@ mod tests {
         assert_eq!(max, TEST_CUBE_SIZE);
     }
 
+    /// A selection colour for the tests.
+    const RED: [f32; 4] = [0.8, 0.1, 0.1, 0.9];
+
     #[test]
     fn meshes_become_faces_and_edges_in_the_world() {
         let cube = mesh::Primitive::Cube(Default::default()).mesh();
         let moved = Mat4::from_translation(Vec3::new(500.0, 0.0, 0.0));
-        let shape = Shape::from_meshes(&[MeshInstance {
-            mesh: &cube,
-            transform: moved,
-            selected: false,
-        }]);
+        let shape = Shape::from_meshes(
+            &[MeshInstance {
+                mesh: &cube,
+                transform: moved,
+                selected: false,
+            }],
+            RED,
+        );
         assert_eq!(
             shape.faces.len(),
             6 * 2 * 3,
@@ -364,39 +369,44 @@ mod tests {
     }
 
     #[test]
-    fn selected_meshes_have_orange_edges_and_several_meshes_add_up() {
+    fn selected_meshes_have_coloured_edges_and_several_meshes_add_up() {
         let cube = mesh::Primitive::Cube(Default::default()).mesh();
         let sphere = mesh::Primitive::Sphere(Default::default()).mesh();
-        let shape = Shape::from_meshes(&[
-            MeshInstance {
-                mesh: &cube,
-                transform: Mat4::IDENTITY,
-                selected: true,
-            },
-            MeshInstance {
-                mesh: &sphere,
-                transform: Mat4::IDENTITY,
-                selected: false,
-            },
-        ]);
-        let orange = shape
-            .edges
-            .iter()
-            .filter(|e| e.color == SELECTED_EDGE_COLOR)
-            .count();
-        assert_eq!(orange, 24, "the cube's twelve edges");
+        let shape = Shape::from_meshes(
+            &[
+                MeshInstance {
+                    mesh: &cube,
+                    transform: Mat4::IDENTITY,
+                    selected: true,
+                },
+                MeshInstance {
+                    mesh: &sphere,
+                    transform: Mat4::IDENTITY,
+                    selected: false,
+                },
+            ],
+            RED,
+        );
+        let coloured = shape.edges.iter().filter(|e| e.color == RED).count();
+        assert_eq!(
+            coloured, 24,
+            "the cube's twelve edges, in the selection colour"
+        );
         assert!(shape.faces.len() > 36);
-        assert_eq!(Shape::from_meshes(&[]), Shape::default());
+        assert_eq!(Shape::from_meshes(&[], RED), Shape::default());
     }
 
     #[test]
     fn mirrored_and_broken_placements_are_handled() {
         let cube = mesh::Primitive::Cube(Default::default()).mesh();
-        let mirrored = Shape::from_meshes(&[MeshInstance {
-            mesh: &cube,
-            transform: Mat4::from_scale(Vec3::new(-1.0, 1.0, 1.0)),
-            selected: false,
-        }]);
+        let mirrored = Shape::from_meshes(
+            &[MeshInstance {
+                mesh: &cube,
+                transform: Mat4::from_scale(Vec3::new(-1.0, 1.0, 1.0)),
+                selected: false,
+            }],
+            RED,
+        );
         for t in mirrored.faces.chunks(3) {
             let p = |i: usize| Vec3::from(t[i].position);
             let winding = (p(1) - p(0)).cross(p(2) - p(0));
@@ -405,11 +415,14 @@ mod tests {
                 "still facing out"
             );
         }
-        let broken = Shape::from_meshes(&[MeshInstance {
-            mesh: &cube,
-            transform: Mat4::from_scale(Vec3::splat(f32::NAN)),
-            selected: false,
-        }]);
+        let broken = Shape::from_meshes(
+            &[MeshInstance {
+                mesh: &cube,
+                transform: Mat4::from_scale(Vec3::splat(f32::NAN)),
+                selected: false,
+            }],
+            RED,
+        );
         assert_eq!(broken, Shape::default(), "skipped");
     }
 

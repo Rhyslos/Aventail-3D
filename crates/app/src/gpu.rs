@@ -23,8 +23,9 @@ pub struct GpuViewport {
     state: RenderState,
     renderer: GpuRenderer,
     images: [Option<SlotImage>; VIEW_COUNT],
-    /// The version of the scene drawing the renderer holds, if any.
-    uploaded: Option<u64>,
+    /// The version of the scene drawing, and the selection colour, the
+    /// renderer's shape was built from, if any.
+    uploaded: Option<(u64, [f32; 3])>,
 }
 
 impl GpuViewport {
@@ -103,7 +104,8 @@ impl ViewportRenderer for GpuViewport {
             flat_height: view.flat_height,
             grid_plane: view.grid_plane,
         };
-        if self.uploaded != Some(view.scene.version) {
+        let wanted = (view.scene.version, view.selection_color);
+        if self.uploaded != Some(wanted) {
             let instances: Vec<MeshInstance<'_>> = view
                 .scene
                 .items
@@ -114,9 +116,10 @@ impl ViewportRenderer for GpuViewport {
                     selected: item.selected,
                 })
                 .collect();
-            let shape = Shape::from_meshes(&instances);
+            let [r, g, b] = view.selection_color.map(render::srgb_to_linear);
+            let shape = Shape::from_meshes(&instances, [r, g, b, 0.9]);
             self.renderer.set_shape(&self.state.device, &shape);
-            self.uploaded = Some(view.scene.version);
+            self.uploaded = Some(wanted);
         }
         const FAILED: &str = "the viewport image could not be created";
         self.prepare_image(view.slot, view.size_px).ok_or(FAILED)?;

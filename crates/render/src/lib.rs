@@ -21,9 +21,8 @@ pub use frame::{
     GRID_STRENGTHS, GROUND_PLANE, srgb_to_linear,
 };
 pub use geometry::{
-    AXIS_SEGMENT, CUBE_COLOR, EDGE_COLOR, FaceVertex, LineVertex, MeshInstance,
-    SELECTED_EDGE_COLOR, Shape, TEST_CUBE_SIZE, X_AXIS_COLOR, Y_AXIS_COLOR, Z_AXIS_COLOR,
-    Z_AXIS_HEIGHT, ground_axes,
+    AXIS_SEGMENT, CUBE_COLOR, EDGE_COLOR, FaceVertex, LineVertex, MeshInstance, Shape,
+    TEST_CUBE_SIZE, X_AXIS_COLOR, Y_AXIS_COLOR, Z_AXIS_COLOR, Z_AXIS_HEIGHT, ground_axes,
 };
 pub use pick::{PickRequest, PickResult};
 pub use readback::read_pixels;

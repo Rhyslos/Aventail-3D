@@ -2,7 +2,7 @@
 
 > Ready-made shapes to start a model from: cube, plane, cylinder, sphere, disc, tube and cone.
 
-![The seven primitives side by side: cube (selected), plane, cylinder, sphere, disc, tube and cone](../screenshots/2026-10-10-primitive-gallery.png)
+![The seven primitives side by side: cube (selected, outlined in the accent colour), plane, cylinder, sphere, disc, tube and cone](../screenshots/2026-10-10-primitive-gallery.png)
 
 ## When to use it
 
@@ -11,7 +11,7 @@ Almost every hard-surface model starts as a simple shape: a crate starts as a cu
 ## How to use it
 
 1. Open the **Create** menu and pick a shape, or click one of the blue shape buttons on the command palette (cube, cylinder, plane, sphere).
-2. The new shape appears at the centre of the scene, selected (its edges and its name in the Objects panel turn orange). It's added at the top of the Objects list, named after its kind: *Cube*, then *Cube 2* for the next one, and so on.
+2. The new shape appears at the centre of the scene, selected (its edges in the viewport and its name in the Objects panel take on the accent colour). It's added at the top of the Objects list, named after its kind: *Cube*, then *Cube 2* for the next one, and so on.
 3. Rename, group, hide or delete it in the Objects panel like any other object (see [Objects and the Object Manager](objects.md)). **Ctrl + Z** takes the new shape away again.
 
 Every shape **stands on the ground** with its [pivot](concepts.md#objects-and-scenes) at the middle of its base, and the plane and disc lie flat on it. That's how game engines like to place things: put the asset on the floor and it sits there, instead of being half sunk in.

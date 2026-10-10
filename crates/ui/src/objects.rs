@@ -317,7 +317,7 @@ impl ObjectManager {
             self.rename_box(ui, name_rect, out);
         } else {
             let color = if selected {
-                theme::SELECTED_NAME
+                accent.text
             } else if shown {
                 theme::TEXT
             } else {

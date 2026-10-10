@@ -200,7 +200,7 @@ Newest first. One line per finished milestone or passed gate.
 
 Pictures of Aventail 3D at memorable moments, newest first. Kept in [docs/screenshots](docs/screenshots).
 
-**2026-10-10: the first primitives.** All seven shapes side by side (the selected cube has orange edges): smooth round sides, crisp rims, and ends made of single faces.
+**2026-10-10: the first primitives.** All seven shapes side by side (the selected cube outlined in the red accent): smooth round sides, crisp rims, and ends made of single faces.
 
 ![The seven primitives](docs/screenshots/2026-10-10-primitive-gallery.png)
 

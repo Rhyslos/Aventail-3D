@@ -43,8 +43,6 @@ pub const TEXT: Color32 = Color32::from_rgb(0xc8, 0xc8, 0xc8);
 pub const TEXT_STRONG: Color32 = Color32::from_rgb(0xf0, 0xf0, 0xf0);
 /// Quieter text: labels, hints, the status bar.
 pub const TEXT_WEAK: Color32 = Color32::from_rgb(0xa5, 0xa5, 0xa5);
-/// The name of a selected object, in the Objects panel.
-pub const SELECTED_NAME: Color32 = Color32::from_rgb(0xf2, 0xa3, 0x3a);
 
 /// The viewport's backdrop: a studio sky over a slightly darker ground.
 pub mod backdrop {
@@ -87,6 +85,10 @@ pub struct AccentColors {
     pub light: Color32,
     /// A quiet tint behind a chosen row or selected text.
     pub soft: Color32,
+    /// Text in the accent colour, such as a selected object's name: the
+    /// light shade lifted a little towards white, so it stays readable on
+    /// the soft tint behind it.
+    pub text: Color32,
 }
 
 impl Accent {
@@ -123,10 +125,12 @@ impl Accent {
             Self::PetrolBlue => ([0x1a, 0x6b, 0x82], [0x4c, 0xa3, 0xbb], [0x1d, 0x35, 0x40]),
         };
         let rgb = |[r, g, b]: [u8; 3]| Color32::from_rgb(r, g, b);
+        let light = rgb(light);
         AccentColors {
             fill: rgb(fill),
-            light: rgb(light),
+            light,
             soft: rgb(soft),
+            text: light.lerp_to_gamma(Color32::WHITE, 0.25),
         }
     }
 }
@@ -470,6 +474,11 @@ mod tests {
 
     #[test]
     fn every_accent_is_readable_and_visible() {
+        for accent in Accent::ALL {
+            let c = accent.colors();
+            // A selected object's name, on its selected row.
+            assert!(contrast(c.text, c.soft) >= READABLE, "{accent:?} names");
+        }
         for accent in Accent::ALL {
             let c = accent.colors();
             // A white icon on the active button (graphics need 3:1).

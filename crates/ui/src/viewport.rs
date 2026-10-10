@@ -72,6 +72,9 @@ pub struct ViewportView {
     pub fine_grid: bool,
     /// The scene's objects to draw.
     pub scene: Arc<SceneDrawing>,
+    /// The colour selected objects are outlined in (the accent colour),
+    /// sRGB 0 to 1.
+    pub selection_color: [f32; 3],
 }
 
 /// A question for the renderer: what is under this pixel of the image?
@@ -478,6 +481,7 @@ impl View {
             ground: rgb(backdrop::GROUND),
             fine_grid,
             scene: Arc::clone(scene),
+            selection_color: rgb(theme::Accent::default().colors().light),
         }
     }
 }
@@ -706,8 +710,9 @@ impl ViewportPanel {
             let settings = self.options.navigation;
             self.views[slot].navigate(ui, &response, rect, settings);
 
-            let view =
+            let mut view =
                 self.views[slot].view(slot, rect, ppp, self.options.fine_grid, &scene.drawing);
+            view.selection_color = rgb(theme::accent(ui.ctx()).colors().light);
             match renderer.render(&view) {
                 Ok(texture) => {
                     let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0));

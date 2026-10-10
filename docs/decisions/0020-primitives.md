@@ -19,7 +19,7 @@ Primitives (cube, plane, cylinder, sphere, disc, tube, cone) are the first real 
 
 **The mesh.** `mesh::Mesh` stores points and n-gon faces by id (ids count up and are never reused) and the set of hard edges. Full adjacency (walking edges, loops and rings) is left for mesh editing in Phase 3. Faces are cut into triangles as fans from their first corner, which is right for the convex faces primitives make.
 
-**Drawing.** The interface rebuilds a list of shown objects (mesh, world placement, selected) only when the scene or selection changes, reusing a primitive's mesh until its settings change; the GPU copy is replaced only when that list changes. Selected objects' edges are drawn orange, matching their names in the Object Manager. Faces are now drawn from both sides (a plane must show from below; the back side is a little darker), and the grid sits just behind shapes lying on the ground.
+**Drawing.** The interface rebuilds a list of shown objects (mesh, world placement, selected) only when the scene or selection changes, reusing a primitive's mesh until its settings change; the GPU copy is replaced only when that list changes. Selected objects' edges are drawn in the accent colour, as are their names in the Object Manager (at first orange; changed at the project lead's request so selection follows the theme). Faces are now drawn from both sides (a plane must show from below; the back side is a little darker), and the grid sits just behind shapes lying on the ground.
 
 **A new scene is empty.** The test cube is gone; the starting scene has no objects, as a new document should, and the Object Manager says how to add some.
 

@@ -635,6 +635,36 @@ fn selecting_a_row_marks_the_object_in_the_viewport_and_attributes() {
 }
 
 #[test]
+fn selected_objects_are_outlined_in_the_accent_colour() {
+    let mut harness = fresh();
+    let light = |accent: crate::theme::Accent| {
+        let c = accent.colors().light;
+        [c.r(), c.g(), c.b()].map(|v| f32::from(v) / 255.0)
+    };
+    let drawn_color = |harness: &mut Harness<'static, State>| {
+        harness.state_mut().renderer.drawn.clear();
+        harness.step();
+        harness
+            .state()
+            .renderer
+            .drawn
+            .last()
+            .unwrap()
+            .selection_color
+    };
+    assert_eq!(drawn_color(&mut harness), light(crate::theme::Accent::Red));
+    harness
+        .state_mut()
+        .workbench
+        .set_accent(crate::theme::Accent::Olive);
+    harness.run();
+    assert_eq!(
+        drawn_color(&mut harness),
+        light(crate::theme::Accent::Olive)
+    );
+}
+
+#[test]
 fn shapes_inside_a_group_move_with_it() {
     // The drawing places each object by its parents' transforms too.
     let mut harness = fresh();
