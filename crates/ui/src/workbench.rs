@@ -2,16 +2,18 @@
 //! bar and the About box.
 
 use crate::layout::{default_layout, fit_coordinates, hide_viewport_tab, restore_or_default};
-use crate::palette::{Mode, command_palette, mode_palette};
+use crate::objects::{self, DocRequest, ObjectManager};
+use crate::palette::{Mode, PaletteCommand, PaletteState, command_palette, mode_palette};
 use crate::panel::Panel;
 use crate::panels::{
-    ATTRIBUTES_MENUS, OBJECTS_MENUS, about_contents, attributes_contents, coordinates_contents,
-    menu_line, objects_contents,
+    ATTRIBUTES_MENUS, about_contents, attributes_contents, coordinates_contents, menu_line,
+    menu_line_with,
 };
 use crate::theme::{self, Accent};
-use crate::viewport::{ViewOptions, ViewportPanel, ViewportRenderer};
+use crate::viewport::{SceneSummary, ViewOptions, ViewportPanel, ViewportRenderer};
 use egui::{Align2, Id, Key, KeyboardShortcut, Modifiers, Ui, WidgetText};
 use egui_dock::{DockArea, DockState, TabViewer};
+use scene::{Command, Document, ObjectKind};
 
 /// Facts about the program, shown in the window and the About box.
 /// The app passes these in from its branding, so this crate never names it.
@@ -44,16 +46,12 @@ pub enum WorkbenchAction {
     Quit,
 }
 
+/// Create menu entries still to come, with the phase that brings them.
+const COMING_SHAPES: &[(&str, &str)] = &[("Cube, cylinder, plane, sphere and more", "Phase 2")];
+
 /// Menu entries that exist in the design but not yet in the app, with the
 /// phase that brings them.
-const COMING: [(&str, &[(&str, &str)]); 5] = [
-    (
-        "Create",
-        &[
-            ("Cube, cylinder, plane, sphere and more", "Phase 2"),
-            ("Null (empty group)", "Phase 2"),
-        ],
-    ),
+const COMING: [(&str, &[(&str, &str)]); 4] = [
     (
         "Select",
         &[
@@ -92,6 +90,9 @@ pub struct Workbench {
     /// which can only happen once the panels' sizes are known.
     fit_pending: bool,
     mode: Mode,
+    /// The scene being worked on, with its undo history and selection.
+    document: Document,
+    objects: ObjectManager,
     viewport: ViewportPanel,
     accent: Accent,
     about_open: bool,
@@ -113,6 +114,8 @@ impl Workbench {
             dock,
             fit_pending,
             mode: Mode::default(),
+            document: Document::starting_scene(),
+            objects: ObjectManager::default(),
             viewport: ViewportPanel::default(),
             accent: Accent::default(),
             about_open: false,
@@ -150,6 +153,23 @@ impl Workbench {
         self.dock = default_layout();
         self.fit_pending = true;
         self.note = Some("Panel layout reset to the standard arrangement.".into());
+    }
+
+    /// The scene being worked on.
+    pub fn document(&self) -> &Document {
+        &self.document
+    }
+
+    /// The scene being worked on, for changing it in tests.
+    #[cfg(test)]
+    pub(crate) fn document_mut(&mut self) -> &mut Document {
+        &mut self.document
+    }
+
+    /// The Object Manager's state, for tests.
+    #[cfg(test)]
+    pub(crate) fn object_manager(&self) -> &ObjectManager {
+        &self.objects
     }
 
     /// The 3D viewport panel.
@@ -206,16 +226,32 @@ impl Workbench {
         if ui.input_mut(|i| i.consume_shortcut(&QUIT_SHORTCUT)) {
             actions.push(WorkbenchAction::Quit);
         }
+        let mut requests = Vec::new();
+        self.document_keys(ui, &mut requests);
 
         egui::Panel::top("menu_bar")
             .frame(theme::menu_bar_frame())
             .show(ui, |ui| {
-                egui::MenuBar::new().ui(ui, |ui| self.menu_bar(ui, &mut actions));
+                egui::MenuBar::new().ui(ui, |ui| self.menu_bar(ui, &mut actions, &mut requests));
             });
+        let palette_state = PaletteState {
+            undo: self.document.undo_label().map(str::to_string),
+            redo: self.document.redo_label().map(str::to_string),
+        };
         egui::Panel::top("command_palette")
             .frame(theme::palette_frame())
             .exact_size(40.0)
-            .show(ui, command_palette);
+            .show(ui, |ui| {
+                if let Some(command) = command_palette(ui, &palette_state) {
+                    requests.push(match command {
+                        PaletteCommand::Undo => DocRequest::Undo,
+                        PaletteCommand::Redo => DocRequest::Redo,
+                        PaletteCommand::CreateGroup => {
+                            DocRequest::Run(Command::Create(ObjectKind::Group))
+                        }
+                    });
+                }
+            });
         egui::Panel::bottom("status_bar")
             .frame(theme::status_bar_frame())
             .exact_size(24.0)
@@ -231,6 +267,7 @@ impl Workbench {
                 }
             });
 
+        let summary = SceneSummary::of(&self.document);
         hide_viewport_tab(&mut self.dock);
         let style = theme::dock_style(ui.style().as_ref(), self.accent);
         theme::dock_frame().show(ui, |ui| {
@@ -247,11 +284,20 @@ impl Workbench {
                     &mut PanelViewer {
                         viewport: &mut self.viewport,
                         renderer,
+                        summary: &summary,
+                        document: &mut self.document,
+                        objects: &mut self.objects,
+                        requests: &mut requests,
                     },
                 );
         });
         if self.fit_pending && fit_coordinates(&mut self.dock) {
             self.fit_pending = false;
+            ui.ctx().request_repaint();
+        }
+
+        if !requests.is_empty() {
+            self.carry_out(requests);
             ui.ctx().request_repaint();
         }
 
@@ -267,10 +313,76 @@ impl Workbench {
         actions
     }
 
+    /// Keys that change the document: undo, redo, delete, deselect, group
+    /// and ungroup. Ignored while typing in a text box, which has its own.
+    fn document_keys(&mut self, ui: &Ui, out: &mut Vec<DocRequest>) {
+        // (While a name is typed, Esc means "keep the old name", even on
+        // the frame egui has already taken the keyboard away.)
+        if ui.ctx().memory(|m| m.focused().is_some()) || self.objects.is_renaming() {
+            return;
+        }
+        let popup_open = egui::Popup::is_any_open(ui.ctx());
+        let selection = self.document.selection();
+        ui.input_mut(|i| {
+            // Ctrl+Shift+Z first: Ctrl+Z would match it too.
+            if i.consume_shortcut(&objects::REDO_SHORTCUT_2)
+                || i.consume_shortcut(&objects::REDO_SHORTCUT)
+            {
+                out.push(DocRequest::Redo);
+            } else if i.consume_shortcut(&objects::UNDO_SHORTCUT) {
+                out.push(DocRequest::Undo);
+            }
+            if i.consume_shortcut(&objects::UNGROUP_SHORTCUT) && !selection.is_empty() {
+                out.push(DocRequest::Run(Command::Ungroup(selection.clone())));
+            }
+            if i.consume_shortcut(&objects::GROUP_SHORTCUT) && !selection.is_empty() {
+                out.push(DocRequest::Run(Command::Group(selection.clone())));
+            }
+            let delete = i.consume_shortcut(&objects::DELETE_SHORTCUT)
+                | i.consume_key(Modifiers::NONE, Key::Backspace);
+            if delete && !selection.is_empty() {
+                out.push(DocRequest::Run(Command::Delete(selection.clone())));
+            }
+        });
+        // Esc closes an open menu first; otherwise it deselects.
+        if !popup_open && ui.input_mut(|i| i.consume_shortcut(&objects::DESELECT_SHORTCUT)) {
+            self.document.clear_selection();
+        }
+    }
+
+    /// Carries out what the menus, keys and panels asked for this frame,
+    /// saying in the status bar what happened when it isn't plain to see.
+    fn carry_out(&mut self, requests: Vec<DocRequest>) {
+        for request in requests {
+            self.note = match request {
+                DocRequest::Run(command) => {
+                    let what = command.describe(self.document.scene());
+                    match self.document.execute(command) {
+                        Ok(()) => None,
+                        Err(why) => Some(format!("Couldn't {}: {why}.", what.to_lowercase())),
+                    }
+                }
+                DocRequest::Undo => Some(match self.document.undo() {
+                    Some(what) => format!("Undone: {what}."),
+                    None => "Nothing to undo.".into(),
+                }),
+                DocRequest::Redo => Some(match self.document.redo() {
+                    Some(what) => format!("Redone: {what}."),
+                    None => "Nothing to redo.".into(),
+                }),
+            };
+        }
+    }
+
     fn status_bar(&self, ui: &mut Ui) {
         ui.horizontal_centered(|ui| {
+            let selected = match self.document.selection().len() {
+                0 => String::new(),
+                1 => " 1 object selected.".into(),
+                n => format!(" {n} objects selected."),
+            };
             ui.label(format!(
-                "{} mode: {}.",
+                "{} mode: {}.{selected}",
                 self.mode.name(),
                 self.mode.description().to_lowercase()
             ));
@@ -284,7 +396,12 @@ impl Workbench {
         });
     }
 
-    fn menu_bar(&mut self, ui: &mut Ui, actions: &mut Vec<WorkbenchAction>) {
+    fn menu_bar(
+        &mut self,
+        ui: &mut Ui,
+        actions: &mut Vec<WorkbenchAction>,
+        requests: &mut Vec<DocRequest>,
+    ) {
         ui.menu_button("File", |ui| {
             for item in ["New", "Open…", "Save", "Save As…"] {
                 ui.add_enabled(false, egui::Button::new(item))
@@ -302,14 +419,27 @@ impl Workbench {
             }
         });
         ui.menu_button("Edit", |ui| {
-            for item in ["Undo", "Redo"] {
-                ui.add_enabled(false, egui::Button::new(item))
-                    .on_disabled_hover_text("Undo arrives in Phase 2");
-            }
+            objects::undo_entries(ui, &self.document, requests);
+            ui.separator();
+            objects::selection_entries(ui, &mut self.document, &mut self.objects, requests);
         });
         // Menu order as in DESIGN.md: File, Edit, Create, Modes, Select,
         // Tools, Mesh, UV, View, Window, Help.
-        coming_menus(ui, &COMING[..1]);
+        ui.menu_button("Create", |ui| {
+            if ui
+                .button("Group")
+                .on_hover_text("An empty object to hold and organise other objects")
+                .clicked()
+            {
+                requests.push(DocRequest::Run(Command::Create(ObjectKind::Group)));
+                ui.close();
+            }
+            ui.separator();
+            for (item, phase) in COMING_SHAPES {
+                ui.add_enabled(false, egui::Button::new(*item))
+                    .on_disabled_hover_text(format!("Arrives in {phase}"));
+            }
+        });
         ui.menu_button("Modes", |ui| {
             for mode in Mode::ALL {
                 if ui
@@ -322,7 +452,7 @@ impl Workbench {
                 }
             }
         });
-        coming_menus(ui, &COMING[1..5]);
+        coming_menus(ui, &COMING);
         ui.menu_button("View", |ui| {
             if ui
                 .button("Reset view")
@@ -431,6 +561,10 @@ fn coming_menus(ui: &mut Ui, menus: &[(&str, &[(&str, &str)])]) {
 struct PanelViewer<'a> {
     viewport: &'a mut ViewportPanel,
     renderer: &'a mut dyn ViewportRenderer,
+    summary: &'a SceneSummary,
+    document: &'a mut Document,
+    objects: &'a mut ObjectManager,
+    requests: &'a mut Vec<DocRequest>,
 }
 
 impl TabViewer for PanelViewer<'_> {
@@ -447,12 +581,14 @@ impl TabViewer for PanelViewer<'_> {
     fn ui(&mut self, ui: &mut Ui, tab: &mut Panel) {
         if *tab == Panel::Viewport {
             // Edge to edge, with no padding.
-            self.viewport.show(ui, self.renderer);
+            self.viewport.show(ui, self.renderer, self.summary);
             return;
         }
         match tab {
             Panel::Attributes => menu_line(ui, &ATTRIBUTES_MENUS),
-            Panel::Objects => menu_line(ui, &OBJECTS_MENUS),
+            Panel::Objects => menu_line_with(ui, |ui| {
+                objects::menus(ui, self.document, self.objects, self.requests);
+            }),
             Panel::Viewport | Panel::Coordinates => {}
         }
         egui::Frame::new()
@@ -460,7 +596,7 @@ impl TabViewer for PanelViewer<'_> {
             .show(ui, |ui| match tab {
                 Panel::Viewport => {}
                 Panel::Attributes => attributes_contents(ui),
-                Panel::Objects => objects_contents(ui),
+                Panel::Objects => self.objects.show(ui, self.document, self.requests),
                 Panel::Coordinates => coordinates_contents(ui),
             });
     }
@@ -497,5 +633,7 @@ impl TabViewer for PanelViewer<'_> {
     }
 }
 
+#[cfg(test)]
+mod object_tests;
 #[cfg(test)]
 mod tests;

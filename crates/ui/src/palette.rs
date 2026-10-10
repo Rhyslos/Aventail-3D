@@ -181,11 +181,25 @@ fn divider(ui: &mut Ui, vertical_bar: bool) {
     }
 }
 
-/// One command on the top palette that is not built yet.
+/// A command the top palette can carry out.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PaletteCommand {
+    /// Take back the last step.
+    Undo,
+    /// Do the last undone step again.
+    Redo,
+    /// Create an empty group.
+    CreateGroup,
+}
+
+/// One command on the top palette: one that works, or one that is not
+/// built yet (saying when it arrives).
 struct Planned {
     icon: Icon,
     label: &'static str,
+    /// For a working command, what it does; otherwise when it arrives.
     arrives: &'static str,
+    command: Option<PaletteCommand>,
 }
 
 const fn planned(icon: Icon, label: &'static str, arrives: &'static str) -> Planned {
@@ -193,14 +207,48 @@ const fn planned(icon: Icon, label: &'static str, arrives: &'static str) -> Plan
         icon,
         label,
         arrives,
+        command: None,
     }
+}
+
+const fn working(
+    icon: Icon,
+    label: &'static str,
+    note: &'static str,
+    command: PaletteCommand,
+) -> Planned {
+    Planned {
+        icon,
+        label,
+        arrives: note,
+        command: Some(command),
+    }
+}
+
+/// What the palette needs to know to draw its working commands.
+#[derive(Debug, Clone, Default)]
+pub struct PaletteState {
+    /// What Undo would take back, if anything.
+    pub undo: Option<String>,
+    /// What Redo would do again, if anything.
+    pub redo: Option<String>,
 }
 
 /// The groups of the command palette, left to right.
 const COMMAND_GROUPS: [&[Planned]; 4] = [
     &[
-        planned(Icon::Undo, "Undo", "Arrives in Phase 2"),
-        planned(Icon::Redo, "Redo", "Arrives in Phase 2"),
+        working(
+            Icon::Undo,
+            "Undo",
+            "Take back the last change",
+            PaletteCommand::Undo,
+        ),
+        working(
+            Icon::Redo,
+            "Redo",
+            "Do the last undone change again",
+            PaletteCommand::Redo,
+        ),
     ],
     &[
         planned(Icon::LiveSelection, "Live selection", "Arrives in Phase 3"),
@@ -213,7 +261,12 @@ const COMMAND_GROUPS: [&[Planned]; 4] = [
         planned(Icon::Cylinder, "Cylinder", "Arrives in Phase 2"),
         planned(Icon::Plane, "Plane", "Arrives in Phase 2"),
         planned(Icon::Sphere, "Sphere", "Arrives in Phase 2"),
-        planned(Icon::Null, "Null (empty group)", "Arrives in Phase 2"),
+        working(
+            Icon::Null,
+            "Create group",
+            "Create an empty group, to hold and organise other objects",
+            PaletteCommand::CreateGroup,
+        ),
     ],
     &[
         planned(Icon::Snap, "Snapping", "Arrives in Phase 3"),
@@ -221,8 +274,10 @@ const COMMAND_GROUPS: [&[Planned]; 4] = [
     ],
 ];
 
-/// The command palette along the top of the window.
-pub fn command_palette(ui: &mut Ui) {
+/// The command palette along the top of the window. Returns the command
+/// clicked this frame, if any.
+pub fn command_palette(ui: &mut Ui, state: &PaletteState) -> Option<PaletteCommand> {
+    let mut clicked = None;
     ui.horizontal_centered(|ui| {
         ui.spacing_mut().item_spacing.x = 2.0;
         for (index, group) in COMMAND_GROUPS.iter().enumerate() {
@@ -230,13 +285,35 @@ pub fn command_palette(ui: &mut Ui) {
                 divider(ui, true);
             }
             for command in *group {
-                icon_button(
-                    ui,
-                    command.icon,
-                    command.label,
-                    command.arrives,
-                    ButtonState::Unavailable,
-                );
+                let Some(action) = command.command else {
+                    icon_button(
+                        ui,
+                        command.icon,
+                        command.label,
+                        command.arrives,
+                        ButtonState::Unavailable,
+                    );
+                    continue;
+                };
+                let (available, note) = match action {
+                    PaletteCommand::Undo => match &state.undo {
+                        Some(what) => (true, format!("Undo: {what}")),
+                        None => (false, "Nothing to undo".to_string()),
+                    },
+                    PaletteCommand::Redo => match &state.redo {
+                        Some(what) => (true, format!("Redo: {what}")),
+                        None => (false, "Nothing to redo".to_string()),
+                    },
+                    PaletteCommand::CreateGroup => (true, command.arrives.to_string()),
+                };
+                let button_state = if available {
+                    ButtonState::Normal
+                } else {
+                    ButtonState::Unavailable
+                };
+                if icon_button(ui, command.icon, command.label, &note, button_state).clicked() {
+                    clicked = Some(action);
+                }
             }
             if index == 1 {
                 // The axis locks sit with the transform tools.
@@ -267,6 +344,7 @@ pub fn command_palette(ui: &mut Ui) {
             );
         });
     });
+    clicked
 }
 
 /// An axis lock button (X, Y or Z), shown but not available yet.
@@ -380,7 +458,11 @@ mod tests {
 
     #[test]
     fn every_planned_command_says_when_it_arrives() {
-        for command in COMMAND_GROUPS.iter().flat_map(|g| g.iter()) {
+        let planned = COMMAND_GROUPS
+            .iter()
+            .flat_map(|g| g.iter())
+            .filter(|c| c.command.is_none());
+        for command in planned {
             assert!(command.arrives.starts_with("Arrives"), "{}", command.label);
         }
     }

@@ -25,3 +25,4 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0015](0015-navigation-schemes.md) | A choice of navigation controls | Accepted |
 | [0016](0016-controls-follow-halberd.md) | Keyboard and mouse controls follow Halberd | Accepted |
 | [0017](0017-picking-the-point-under-the-mouse.md) | Finding the point under the mouse | Accepted |
+| [0018](0018-scene-document-and-undo.md) | The scene document: an object tree changed by undoable commands | Accepted |

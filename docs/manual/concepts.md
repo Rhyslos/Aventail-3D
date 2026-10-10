@@ -21,13 +21,17 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 ## Objects and scenes
 
-**Object** — Anything listed in the Objects panel: a mesh, a primitive, a group.
+**Object** — Anything listed in the Objects panel: a mesh, a primitive, a group. See [Objects and the Object Manager](objects.md).
+
+**Group** — An empty object whose only job is to hold other objects, so they can be moved, hidden or exported together. (Some programs call it a *null* or an *empty*.) Put the parts of one asset in a group and give it the asset's name.
 
 **Mode** — What kind of thing your tools work on: whole objects, or a mesh's points, edges or polygons, or its UVs. The same Move tool moves a whole object in Model mode and a single edge in Edges mode. See [Interface tour](interface-tour.md#modes).
 
 **Primitive** — A parametric shape (cube, cylinder…) whose settings, like size and segments, stay editable.
 
-**Hierarchy** — Objects can be children of other objects. Moving a parent moves its children with it.
+**Hierarchy** — Objects can be children of other objects (sit *inside* them, in the Object Manager's tree). Moving a parent moves its children with it, and hiding it hides them too.
+
+**Undo history** — The list of changes you've made, kept so they can be taken back (undo, `Ctrl + Z`) and done again (redo, `Ctrl + Y`). This app keeps every step while it's open.
 
 **Pivot (axis / origin)** — The point an object rotates and scales around. In Godot, it's also the point the asset is placed and snapped by, so where you put it matters.
 

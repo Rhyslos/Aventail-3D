@@ -17,6 +17,8 @@ layer = 3
 [dependencies]
 # Same layer: the camera the viewport looks through.
 tools.workspace = true
+# The scene document: objects, commands and undo.
+scene.workspace = true
 glam.workspace = true
 egui.workspace = true
 egui_dock.workspace = true

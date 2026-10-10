@@ -9,6 +9,7 @@
 
 pub mod icons;
 pub mod layout;
+mod objects;
 pub mod palette;
 mod panel;
 mod panels;
@@ -19,11 +20,15 @@ pub(crate) use viewport::chrome as viewport_chrome;
 mod workbench;
 
 pub use egui_dock::DockState;
+pub use objects::{
+    DELETE_SHORTCUT, DESELECT_SHORTCUT, GROUP_SHORTCUT, REDO_SHORTCUT, REDO_SHORTCUT_2,
+    UNDO_SHORTCUT, UNGROUP_SHORTCUT,
+};
 pub use palette::Mode;
 pub use panel::Panel;
 pub use viewport::{
     FOUR_VIEWS_KEY, Frame, GLIDE_SECONDS, NoRenderer, PICKER_LABEL, PickAsk, PickReply, Picked,
-    TEST_SCENE, VIEW_COUNT, VIEW_KEYS, VIEWPORT_LABEL, ViewOptions, ViewportPanel,
+    SceneSummary, TEST_SCENE, VIEW_COUNT, VIEW_KEYS, VIEWPORT_LABEL, ViewOptions, ViewportPanel,
     ViewportRenderer, ViewportView,
 };
 pub use workbench::{AppInfo, QUIT_SHORTCUT, Workbench, WorkbenchAction, navigation_hint};
