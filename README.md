@@ -181,7 +181,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
-| 2026-10-10 | Phase 0 gate passed: tested by the project lead. Coordinates fitted to its rows, icons coloured, Z set as up |
+| 2026-10-10 | Phase 0 gate passed: tested by the project lead. Coordinates fitted to its rows and styled as in the mockup, shape icons in blue, Z set as up |
 | 2026-10-10 | Calm dark theme and the Inter font. Phase 0 milestones complete |
 | 2026-10-10 | First window: the Cinema 4D-style layout with dockable panels, both palettes and a remembered layout |
 | 2026-10-10 | Repository, documentation, quality checks and crate structure in place |

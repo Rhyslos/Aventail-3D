@@ -24,6 +24,8 @@ pub const BAR: Color32 = Color32::from_rgb(0x23, 0x23, 0x23);
 pub const PALETTE: Color32 = Color32::from_rgb(0x2f, 0x2f, 0x2f);
 /// Text and number fields.
 pub const FIELD: Color32 = Color32::from_rgb(0x26, 0x26, 0x26);
+/// The edge of a text or number field.
+pub const FIELD_BORDER: Color32 = Color32::from_rgb(0x1c, 0x1c, 0x1c);
 /// Hairline borders between areas.
 pub const BORDER: Color32 = Color32::from_rgb(0x19, 0x19, 0x19);
 /// A hovered or pressed button.
@@ -41,42 +43,31 @@ pub const SELECTION: Color32 = Color32::from_rgb(0x3d, 0x4a, 0x5c);
 /// The warm accent for the active mode or tool, and focused fields.
 pub const ACCENT: Color32 = Color32::from_rgb(0xf2, 0xa3, 0x3a);
 
-/// Icon colours, one per group of commands, so the palettes are easy to
-/// scan. Calm and slightly muted; none is orange, which marks what is
-/// active.
+/// Icon and axis colours, following the approved mockups: icons are a
+/// soft white, except the shapes you can create, which are blue; the axes
+/// are red, green and blue as in every 3D program.
 pub mod tint {
     use egui::Color32;
 
-    /// Undo, redo, search: everyday commands.
-    pub const GENERAL: Color32 = Color32::from_rgb(0xcf, 0xcf, 0xcf);
-    /// Selection and transform tools.
-    pub const TOOL: Color32 = Color32::from_rgb(0xb3, 0xa0, 0xf0);
-    /// Objects you create: primitives.
-    pub const OBJECT: Color32 = Color32::from_rgb(0x62, 0xb8, 0xf2);
-    /// Empty groups (nulls).
-    pub const GROUP: Color32 = Color32::from_rgb(0xb8, 0xbe, 0xc6);
-    /// Modelling aids: snapping and symmetry.
-    pub const AID: Color32 = Color32::from_rgb(0x5f, 0xcf, 0xb5);
-    /// Element modes: points, edges, polygons.
-    pub const ELEMENT: Color32 = Color32::from_rgb(0xe8, 0x9a, 0xc4);
-    /// UV work.
-    pub const UV: Color32 = Color32::from_rgb(0x9b, 0xd4, 0x6e);
-    /// The X axis, in red as in every 3D program.
+    /// Palette icons.
+    pub const ICON: Color32 = Color32::from_rgb(0xd4, 0xd4, 0xd4);
+    /// Shapes you can create (cube, cylinder, plane, sphere).
+    pub const SHAPE: Color32 = Color32::from_rgb(0x62, 0xb8, 0xf2);
+    /// The X axis.
     pub const AXIS_X: Color32 = Color32::from_rgb(0xef, 0x6b, 0x63);
-    /// The Y axis, in green.
+    /// The Y axis.
     pub const AXIS_Y: Color32 = Color32::from_rgb(0x7f, 0xd0, 0x5a);
-    /// The Z axis (up), in blue.
+    /// The Z axis (up).
     pub const AXIS_Z: Color32 = Color32::from_rgb(0x6a, 0xa2, 0xff);
 
-    /// Every icon colour, for tests.
-    pub const ALL: [Color32; 10] = [
-        GENERAL, TOOL, OBJECT, GROUP, AID, ELEMENT, UV, AXIS_X, AXIS_Y, AXIS_Z,
-    ];
+    /// Every icon and axis colour, for tests.
+    pub const ALL: [Color32; 5] = [ICON, SHAPE, AXIS_X, AXIS_Y, AXIS_Z];
 }
 
-/// How strongly an unavailable command's icon is drawn: dimmed, but still
-/// in its colour, so the palettes don't look dead.
-pub const UNAVAILABLE_STRENGTH: f32 = 0.75;
+/// How strongly an unavailable command's icon is drawn: a little dimmer
+/// than an available one, so the palettes keep the mockups' look while
+/// still hinting that the command isn't there yet.
+pub const UNAVAILABLE_STRENGTH: f32 = 0.85;
 
 /// Name of the bolder font family, for headings.
 pub const SEMIBOLD: &str = "semibold";
@@ -366,6 +357,13 @@ mod tests {
             assert!(ratio > 1.6, "{colour:?} dimmed is invisible: {ratio}");
             assert!(ratio < contrast(colour, PALETTE));
         }
+    }
+
+    #[test]
+    fn axis_colours_differ_in_brightness_too() {
+        // Red and green alone are hard to tell apart for many people, so
+        // the letters next to them carry the meaning as well.
+        assert!(contrast(tint::AXIS_X, tint::AXIS_Y) > 1.2);
     }
 
     #[test]

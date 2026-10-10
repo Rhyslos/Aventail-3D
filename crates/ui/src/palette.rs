@@ -103,6 +103,18 @@ pub fn icon_button(
     note: &str,
     state: ButtonState,
 ) -> Response {
+    tinted_button(ui, icon, icon_tint(icon), label, note, state)
+}
+
+/// Like [`icon_button`], in a given colour instead of the icon's own.
+pub fn tinted_button(
+    ui: &mut Ui,
+    icon: Icon,
+    tint: Color32,
+    label: &str,
+    note: &str,
+    state: ButtonState,
+) -> Response {
     let enabled = state != ButtonState::Unavailable;
     let sense = if enabled {
         Sense::click()
@@ -124,8 +136,9 @@ pub fn icon_button(
         }
         let color = match state {
             ButtonState::Active => ACCENT,
-            ButtonState::Normal => icon_tint(icon),
-            ButtonState::Unavailable => dimmed(icon_tint(icon)),
+            ButtonState::Normal if response.hovered() => crate::theme::TEXT_STRONG,
+            ButtonState::Normal => tint,
+            ButtonState::Unavailable => dimmed(tint),
         };
         let icon_rect = egui::Rect::from_center_size(rect.center(), Vec2::splat(ICON_SIZE));
         icons::paint(painter, icon_rect, icon, color);
@@ -142,13 +155,8 @@ pub fn icon_button(
 /// (see `theme::tint`).
 pub fn icon_tint(icon: Icon) -> Color32 {
     match icon {
-        Icon::Undo | Icon::Redo | Icon::Search | Icon::Workplane | Icon::Solo => tint::GENERAL,
-        Icon::LiveSelection | Icon::Move | Icon::Scale | Icon::Rotate | Icon::World => tint::TOOL,
-        Icon::Cube | Icon::Cylinder | Icon::Plane | Icon::Sphere | Icon::ObjectMode => tint::OBJECT,
-        Icon::Null => tint::GROUP,
-        Icon::Snap | Icon::Symmetry => tint::AID,
-        Icon::Points | Icon::Edges | Icon::Polygons => tint::ELEMENT,
-        Icon::Uv => tint::UV,
+        Icon::Cube | Icon::Cylinder | Icon::Plane | Icon::Sphere => tint::SHAPE,
+        _ => tint::ICON,
     }
 }
 
@@ -293,7 +301,9 @@ pub fn mode_palette(ui: &mut Ui, current: Mode) -> Option<Mode> {
                 ButtonState::Normal
             };
             let label = format!("{} mode", mode.name());
-            if icon_button(ui, mode.icon(), &label, mode.description(), state).clicked() {
+            // Mode icons are always soft white, even Model's cube.
+            let tint = tint::ICON;
+            if tinted_button(ui, mode.icon(), tint, &label, mode.description(), state).clicked() {
                 picked = Some(mode);
             }
         }
@@ -335,13 +345,15 @@ mod tests {
     }
 
     #[test]
-    fn every_icon_has_a_colour_and_groups_share_one() {
+    fn shapes_are_blue_and_everything_else_soft_white() {
         for icon in crate::icons::ALL {
             assert!(tint::ALL.contains(&icon_tint(icon)), "{icon:?}");
         }
-        assert_eq!(icon_tint(Icon::Move), icon_tint(Icon::Rotate));
-        assert_eq!(icon_tint(Icon::Cube), icon_tint(Icon::Sphere));
-        assert_ne!(icon_tint(Icon::Cube), icon_tint(Icon::Move));
+        // As in the mockups: shapes are blue, everything else soft white.
+        assert_eq!(icon_tint(Icon::Cube), tint::SHAPE);
+        assert_eq!(icon_tint(Icon::Sphere), tint::SHAPE);
+        assert_eq!(icon_tint(Icon::Move), tint::ICON);
+        assert_eq!(icon_tint(Icon::Null), tint::ICON);
     }
 
     #[test]
