@@ -85,7 +85,10 @@ fn solid_primitives_are_closed_and_face_outward() {
 #[test]
 fn volumes_match_the_shapes_they_approximate() {
     let cube = Primitive::Cube(CubeParams::default()).mesh();
-    assert!((volume(&cube) / 200.0f32.powi(3) - 1.0).abs() < 1e-4);
+    assert!(
+        (volume(&cube) / 100.0f32.powi(3) - 1.0).abs() < 1e-4,
+        "a 1 m cube"
+    );
     let segmented = Primitive::Cube(CubeParams {
         segments: [4, 3, 2],
         ..CubeParams::default()
@@ -98,14 +101,14 @@ fn volumes_match_the_shapes_they_approximate() {
         ..CylinderParams::default()
     })
     .mesh();
-    let exact = PI * 50.0 * 50.0 * 200.0;
+    let exact = PI * 50.0 * 50.0 * 100.0;
     assert!((volume(&cylinder) / exact - 1.0).abs() < 0.01);
     let tube = Primitive::Tube(TubeParams {
         sides: 64,
         ..TubeParams::default()
     })
     .mesh();
-    let exact = PI * (100.0f32.powi(2) - 70.0f32.powi(2)) * 100.0;
+    let exact = PI * (50.0f32.powi(2) - 35.0f32.powi(2)) * 100.0;
     assert!((volume(&tube) / exact - 1.0).abs() < 0.01);
 }
 
@@ -241,7 +244,7 @@ fn round_sides_shade_smoothly_and_flat_sides_crisply() {
         }
     }
     let sphere = Primitive::Sphere(SphereParams::default()).mesh();
-    let centre = Vec3::new(0.0, 0.0, 100.0);
+    let centre = Vec3::new(0.0, 0.0, 50.0);
     for t in shaded_triangles(&sphere) {
         for (p, n) in t.positions.iter().zip(t.normals) {
             let error = (n - (*p - centre).normalize()).length();
@@ -263,6 +266,8 @@ fn silly_settings_are_brought_within_limits() {
             sides: 0,
             height_segments: 0,
             caps: true,
+            cap_segments: 0,
+            cap_centre: true,
         }),
         Primitive::Sphere(SphereParams {
             radius: -1.0,
@@ -273,6 +278,8 @@ fn silly_settings_are_brought_within_limits() {
             radius: 10.0,
             inner_radius: 50.0,
             sides: 2,
+            ring_segments: 9999,
+            centre_point: true,
         }),
         Primitive::Tube(TubeParams {
             outer_radius: 10.0,
@@ -288,6 +295,8 @@ fn silly_settings_are_brought_within_limits() {
             sides: 3,
             height_segments: 1,
             caps: true,
+            cap_segments: 3,
+            cap_centre: false,
         }),
         Primitive::Plane(PlaneParams {
             width: f32::NAN,
@@ -338,4 +347,91 @@ fn every_kind_has_a_name() {
             "Cube", "Plane", "Cylinder", "Sphere", "Disc", "Tube", "Cone"
         ]
     );
+}
+
+#[test]
+fn every_shape_is_a_metre_across_as_standard() {
+    for shape in Primitive::all() {
+        let size = shape.bounds().size();
+        assert_eq!(size.x, 100.0, "{shape:?}");
+        assert_eq!(size.y, 100.0, "{shape:?}");
+        assert!(
+            size.z == 100.0 || size.z == 0.0,
+            "{shape:?}: 1 m tall or flat"
+        );
+    }
+}
+
+#[test]
+fn cylinder_ends_can_be_cut_into_rings_or_meet_in_a_point() {
+    let cylinder = |cap_segments, cap_centre| {
+        Primitive::Cylinder(CylinderParams {
+            cap_segments,
+            cap_centre,
+            ..CylinderParams::default()
+        })
+        .mesh()
+    };
+    // As standard: each end one 16-cornered face.
+    let plain = cylinder(1, false);
+    assert_eq!(plain.faces().filter(|(_, c)| c.len() == 16).count(), 2);
+    // A centre point: 16 triangles per end, meeting in the middle.
+    let pointed = cylinder(1, true);
+    assert_eq!(pointed.faces().filter(|(_, c)| c.len() == 16).count(), 0);
+    assert_eq!(pointed.face_count(), 16 + 2 * 16);
+    assert_eq!(pointed.vertex_count(), 32 + 2, "two centre points");
+    // Three rings with an n-gon in the middle: 2 rings of quads + 1 n-gon.
+    let rings = cylinder(3, false);
+    assert_eq!(rings.face_count(), 16 + 2 * (2 * 16 + 1));
+    // Three rings meeting in a point: 2 rings of quads + 1 of triangles.
+    let both = cylinder(3, true);
+    assert_eq!(both.face_count(), 16 + 2 * (3 * 16));
+    for mesh in [plain, pointed, rings, both] {
+        assert!(is_closed(&mesh), "still a closed solid");
+        assert!(volume(&mesh) > 0.0, "facing outward");
+        assert_eq!(mesh.hard_edge_count(), 32, "only the rims are hard");
+        // Every end face lies flat, facing straight up or down.
+        for (face, _) in mesh.faces() {
+            let n = mesh.face_normal(face);
+            assert!(n.z.abs() < 1e-4 || n.z.abs() > 0.9999, "{n}");
+        }
+    }
+}
+
+#[test]
+fn cone_bases_and_discs_take_the_same_end_settings() {
+    let cone = Primitive::Cone(ConeParams {
+        cap_segments: 2,
+        cap_centre: true,
+        ..ConeParams::default()
+    })
+    .mesh();
+    assert!(is_closed(&cone));
+    assert!(volume(&cone) > 0.0);
+    let disc = |ring_segments, centre_point, inner_radius| {
+        Primitive::Disc(DiscParams {
+            ring_segments,
+            centre_point,
+            inner_radius,
+            ..DiscParams::default()
+        })
+        .mesh()
+    };
+    assert_eq!(disc(1, false, 0.0).face_count(), 1, "one n-gon");
+    assert_eq!(disc(1, true, 0.0).face_count(), 24, "a fan of triangles");
+    assert_eq!(disc(2, false, 0.0).face_count(), 24 + 1);
+    assert_eq!(
+        disc(3, false, 20.0).face_count(),
+        3 * 24,
+        "rings out to the hole"
+    );
+    for mesh in [disc(2, true, 0.0), disc(3, false, 20.0)] {
+        for (face, _) in mesh.faces() {
+            assert!(
+                (mesh.face_normal(face) - Vec3::Z).length() < 1e-5,
+                "facing up"
+            );
+        }
+        assert!(edge_use(&mesh).values().all(|n| *n <= 2));
+    }
 }

@@ -80,7 +80,7 @@ pub(crate) fn vertical_gradient(rect: Rect, top: Color32, bottom: Color32) -> Me
 ///
 /// Until something can be selected (Phase 3), the fields show zeros and
 /// can't be edited; hovering one says why.
-pub(crate) fn coordinates_contents(ui: &mut Ui) {
+pub(crate) fn coordinates_contents(ui: &mut Ui, units: crate::units::Units) {
     let position = [
         ("X", tint::AXIS_X),
         ("Y", tint::AXIS_Y),
@@ -92,8 +92,8 @@ pub(crate) fn coordinates_contents(ui: &mut Ui) {
         ("B", theme::TEXT_WEAK),
     ];
     let groups = [
-        ("Position", position, "cm"),
-        ("Size", position, "cm"),
+        ("Position", position, units.symbol()),
+        ("Size", position, units.symbol()),
         ("Rotation", rotation, "°"),
     ];
     ui.horizontal_top(|ui| {

@@ -697,3 +697,81 @@ fn shapes_inside_a_group_move_with_it() {
         .transform_point3(glam::Vec3::ZERO);
     assert_eq!(moved, glam::Vec3::new(300.0, 0.0, 0.0));
 }
+
+// --------------------------------------------- copying shape settings ---
+
+fn cube_size_of(harness: &Harness<'static, State>, name: &str) -> glam::Vec3 {
+    let id = id_of(harness, name);
+    match harness
+        .state()
+        .workbench
+        .document()
+        .scene()
+        .object(id)
+        .unwrap()
+        .kind
+    {
+        scene::ObjectKind::Primitive(scene::Primitive::Cube(p)) => p.size,
+        ref other => panic!("not a cube: {other:?}"),
+    }
+}
+
+#[test]
+fn the_right_click_menu_copies_and_pastes_shape_settings() {
+    let mut harness = fresh();
+    // Make the first cube taller, then add a second, standard one.
+    let first = id_of(&harness, "Cube");
+    let mut tall = scene::Primitive::Cube(Default::default());
+    if let scene::Primitive::Cube(p) = &mut tall {
+        p.size.z = 250.0;
+    }
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::SetPrimitive {
+            ids: vec![first],
+            primitive: tall,
+        })
+        .unwrap();
+    harness.get_by_label("Create cube").click();
+    harness.run();
+    let second = top_level_names(&harness)
+        .into_iter()
+        .find(|n| n != "Cube")
+        .expect("a second cube");
+    assert_eq!(cube_size_of(&harness, &second).z, 100.0);
+
+    let at = row(&harness, "Cube").center();
+    click_at(&mut harness, at, PointerButton::Secondary, Modifiers::NONE);
+    harness.get_by_label("Copy settings").click();
+    harness.run();
+
+    let at = row(&harness, &second).center();
+    click_at(&mut harness, at, PointerButton::Secondary, Modifiers::NONE);
+    harness.get_by_label("Paste cube settings").click();
+    harness.run();
+    assert_eq!(cube_size_of(&harness, &second).z, 250.0);
+    // One undo step puts it back.
+    key(&mut harness, Modifiers::COMMAND, Key::Z);
+    assert_eq!(cube_size_of(&harness, &second).z, 100.0);
+}
+
+#[test]
+fn settings_paste_only_onto_the_same_kind() {
+    let mut harness = fresh();
+    let at = row(&harness, "Cube").center();
+    click_at(&mut harness, at, PointerButton::Secondary, Modifiers::NONE);
+    harness.get_by_label("Copy settings").click();
+    harness.run();
+    harness.get_by_label("Create sphere").click();
+    harness.run();
+    let at = row(&harness, "Sphere").center();
+    click_at(&mut harness, at, PointerButton::Secondary, Modifiers::NONE);
+    assert!(
+        harness
+            .get_by_label("Paste cube settings")
+            .accesskit_node()
+            .is_disabled()
+    );
+}

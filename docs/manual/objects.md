@@ -33,7 +33,7 @@ If several objects are selected and you drag one of them, they all move, keeping
 
 **Delete.** Press **Delete** or **Backspace** (or use **Edit → Delete**) to delete the selected objects, together with everything inside them.
 
-**Right-click** a row for the same commands in one menu. (Right-clicking a row that isn't selected selects it first.)
+**Right-click** a row for the same commands in one menu. (Right-clicking a row that isn't selected selects it first.) For shapes, the menu also has **Copy settings** and **Paste … settings**: copy one shape's settings (size, segments and so on), then right-click another shape of the same kind, or a selection of them, and paste to make them match. See [The Attribute Manager](attributes.md).
 
 **Undo and redo.** Every change to the scene can be taken back: creating, renaming, moving, grouping, showing, hiding and deleting. Press **Ctrl + Z** to undo and **Ctrl + Y** (or **Ctrl + Shift + Z**) to redo, or use the arrows at the left of the command palette or the **Edit** menu, which names what would be undone ("Undo: Delete object"). Undo brings back exactly the same objects, in the same places. The status bar confirms what was undone. Changing only the selection is not an undo step (yet).
 

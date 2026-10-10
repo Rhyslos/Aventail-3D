@@ -15,7 +15,9 @@ mod objects;
 pub mod palette;
 mod panel;
 mod panels;
+mod shape_picker;
 pub mod theme;
+mod units;
 mod viewport;
 #[cfg(test)]
 pub(crate) use viewport::chrome as viewport_chrome;
@@ -29,9 +31,11 @@ pub use objects::{
 };
 pub use palette::Mode;
 pub use panel::Panel;
+pub use shape_picker::SHAPE_LIST_KEY;
+pub use units::Units;
 pub use viewport::{
-    DEFAULT_FRAME, FOUR_VIEWS_KEY, Frame, GLIDE_SECONDS, NoRenderer, PICKER_LABEL, PickAsk,
-    PickReply, Picked, VIEW_COUNT, VIEW_KEYS, VIEWPORT_LABEL, ViewOptions, ViewportPanel,
+    DEFAULT_FRAME, FOUR_VIEWS_KEY, Frame, GLIDE_SECONDS, GridDetail, NoRenderer, PICKER_LABEL,
+    PickAsk, PickReply, Picked, VIEW_COUNT, VIEW_KEYS, VIEWPORT_LABEL, ViewOptions, ViewportPanel,
     ViewportRenderer, ViewportView,
 };
 pub use workbench::{AppInfo, QUIT_SHORTCUT, Workbench, WorkbenchAction, navigation_hint};

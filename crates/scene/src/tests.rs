@@ -817,7 +817,7 @@ fn primitive_settings_change_undoably() {
     assert!(doc.revision() > revision, "redraw");
     assert_eq!(doc.undo_label(), Some("Change cube settings"));
     doc.undo();
-    assert_eq!(cube_size(&doc, cube), glam::Vec3::splat(200.0));
+    assert_eq!(cube_size(&doc, cube), glam::Vec3::splat(100.0));
 }
 
 #[test]
@@ -894,7 +894,7 @@ fn one_drag_of_a_value_is_one_undo_step() {
     doc.undo();
     assert_eq!(
         cube_size(&doc, cube),
-        glam::Vec3::splat(200.0),
+        glam::Vec3::splat(100.0),
         "back to the start"
     );
     // Redo replays the whole drag at once.
@@ -957,7 +957,7 @@ fn dragging_back_to_the_start_leaves_nothing_to_undo() {
     doc.execute_merging(
         Command::SetPrimitive {
             ids: vec![cube],
-            primitive: cube_of(200.0),
+            primitive: cube_of(100.0),
         },
         3,
     )
@@ -986,6 +986,6 @@ fn pasting_settings_to_several_primitives_is_one_step() {
     assert_eq!(doc.undo_steps(), steps + 1);
     assert_eq!(cube_size(&doc, a), cube_size(&doc, b));
     doc.undo();
-    assert_eq!(cube_size(&doc, a), glam::Vec3::splat(200.0));
-    assert_eq!(cube_size(&doc, b), glam::Vec3::splat(200.0));
+    assert_eq!(cube_size(&doc, a), glam::Vec3::splat(100.0));
+    assert_eq!(cube_size(&doc, b), glam::Vec3::splat(100.0));
 }

@@ -2,7 +2,7 @@
 
 > See and change the settings of the selected object: its name, whether it's shown, and a shape's size and segments.
 
-![The Attributes panel showing a cylinder's settings](../screenshots/2026-10-10-attributes.png)
+![The Attributes panel showing a cylinder's settings in metres, with step arrows beside each value](../screenshots/2026-10-11-attributes.png)
 
 ## When to use it
 
@@ -12,13 +12,17 @@ Whenever you want to change *what* an object is rather than where it is: make a 
 
 1. Select one object, in the Objects panel or by creating it. The **Attributes** panel (top right) shows its icon, name and kind at the top.
 2. **Basic** settings work for every object: type a new **Name** and press Enter (Esc keeps the old one), or untick **Visible** to hide it.
-3. **Shape** settings are there for primitives. There are two ways to change a value:
+3. **Shape** settings are there for primitives. There are three ways to change a value:
    - **Drag** the value field left or right: the shape changes as you drag, so you can watch it in the viewport.
    - **Click** the field, type a number, and press **Enter**.
-   Sizes are in centimetres (100 cm = 1 m). Switches such as **Closed ends** change with a click.
+   - **Click the small arrows** beside the field for fine tuning: the up arrow adds one step, the down arrow takes one away. A step is 1 cm for sizes and 1 for segments and sides. Hold **Shift** while clicking for ten steps (10 cm, or 10 segments).
+
+   Switches such as **Closed ends** and **Centre point** change with a click.
 4. **Undo** works as everywhere: one drag, one typed value or one click is one step, however long the drag was. **Ctrl + Z** takes it back.
 
-**Copy and paste settings.** To make several shapes match, select the one you like and use the panel's **Edit → Copy settings**. Then select the others (any number, in the Objects panel) and use **Edit → Paste cube settings** (or cylinder, and so on): every selected shape of the same kind gets the same settings, in one undo step. Shapes of another kind are left alone.
+**Metres or centimetres.** Sizes are shown in metres as standard (1 m, 1.5 m), which is easiest for whole objects: going from 1 m to 2 m is quicker to read and type than 100 cm to 200 cm. For small details you may prefer centimetres. Click **m** or **cm** at the right of the **Shape** title (or use the panel's **Units** menu) to switch. It only changes how sizes are shown and typed, never the shapes themselves, and the choice is remembered. The [Coordinates panel](interface-tour.md) follows it too.
+
+**Copy and paste settings.** To make several shapes match, select the one you like and use the panel's **Edit → Copy settings**, or right-click it in the Objects panel and choose **Copy settings**. Then select the others (any number, in the Objects panel) and use **Edit → Paste cube settings** (or cylinder, and so on), or right-click one of them and choose the same: every selected shape of the same kind gets the same settings, in one undo step. Shapes of another kind are left alone.
 
 With nothing selected the panel says so; with several objects selected it counts them (pick one to see its settings).
 
@@ -32,6 +36,8 @@ What each shape offers is listed on the [Primitives](primitives.md#settings) pag
 | **Radius** | Half the width of a round shape. A cone has a bottom and a top radius: a top of zero makes a point, more cuts it off flat. A disc's **Hole radius** of zero means no hole. |
 | **Segments, Sides, Rings** | How many pieces the shape is cut into. More pieces make round shapes smoother and give you more to model with, but cost more in a game: keep them as low as looks right. |
 | **Closed ends** | Whether a cylinder or cone has flat ends. Open ends are handy for pipes and lamp shades. |
+| **Cap segments** (cylinder, cone) and **Ring segments** (disc) | How many rings each flat end is cut into, from the rim inwards. One ring is a single face. More rings give you edges to model with, such as an inset ring for a lid. |
+| **Centre point** | How the middle of each end is made. Off (standard): the middle is one face with many corners (an [n-gon](concepts.md#mesh-basics)), which stays clean to model on. On: the middle is cut into triangles that meet at one point in the centre, like slices of a pie, which some game engines and sculpting steps prefer. |
 
 Values are kept within limits (sizes from 1 mm to 10 km; up to 256 segments and 512 sides; holes always smaller than the shape), so dragging too far simply stops at the limit.
 
@@ -40,12 +46,14 @@ Values are kept within limits (sizes from 1 mm to 10 km; up to 256 segments and 
 | Action | Shortcut |
 |---|---|
 | Keep a typed value or name | `Enter` (or click elsewhere) |
+| Ten steps with a step arrow | `Shift` + click |
 | Cancel a typed name | `Esc` |
 | Undo the last change | `Ctrl + Z` |
 
 ## Tips and common problems
 
-- **Tip:** drag slowly for small steps; the value follows the mouse, about half a centimetre per pixel for sizes.
+- **Tip:** drag slowly for small steps; the value follows the mouse, about half a centimetre per pixel for sizes. For an exact small change, click the step arrows instead.
+- **Tip:** typing works in the units shown: with metres showing, type `1.5` for 1.5 m; with centimetres, type `150`.
 - **Problem:** the panel says "2 objects selected" and shows no settings. **Why:** only one object's settings can be shown at a time. **Fix:** click one object in the Objects panel; to give several the same settings, use Copy and Paste settings.
 - **Problem:** a value won't go lower. **Why:** it has reached its limit (a size can't be less than 1 mm, a round shape needs at least 3 sides). **Fix:** that's as small as it goes.
 - **Problem:** the hole of a tube won't get bigger than the outside. **Why:** a hole must be smaller than the shape around it. **Fix:** make the outer radius larger first.
@@ -53,5 +61,5 @@ Values are kept within limits (sizes from 1 mm to 10 km; up to 256 segments and 
 ## Related
 
 - [Primitives](primitives.md): every shape and its settings.
-- [Objects and the Object Manager](objects.md): selecting, naming, hiding and undo.
+- [Objects and the Object Manager](objects.md): selecting, naming, hiding, undo, and the right-click menu.
 - [Concepts](concepts.md): [primitives](concepts.md#objects-and-scenes) and [n-gons](concepts.md#mesh-basics).

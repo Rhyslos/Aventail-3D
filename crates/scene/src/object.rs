@@ -142,7 +142,7 @@ mod tests {
         let cube = Object::new(ObjectKind::Primitive(Primitive::Cube(Default::default())));
         assert_eq!(cube.name, "Cube");
         let bounds = cube.kind.local_bounds().unwrap();
-        assert_eq!(bounds.size(), glam::Vec3::splat(200.0));
+        assert_eq!(bounds.size(), glam::Vec3::splat(100.0));
         assert_eq!(cube.kind.mesh().unwrap().face_count(), 6);
     }
 

@@ -3,7 +3,7 @@
 # screenshot, checks the 3D viewport background, creates a cube with the
 # command palette's cube button and checks it is drawn, switches to
 # Polygons mode with a click, orbits the view with Alt + drag, zooms with the
-# wheel, frames everything with H, switches on the fine grid lines, quits with Ctrl+Q (or File > Quit
+# wheel, frames everything with H, steps the grid through its levels, quits with Ctrl+Q (or File > Quit
 # as a fallback), and checks that the panel layout and view options were
 # saved.
 #
@@ -147,16 +147,23 @@ FRAME_CHANGE="$(changed_pixels "$OUT/after-zoom.png" "$OUT/after-frame.png")"
 echo "Pixels changed by framing everything (H): $FRAME_CHANGE"
 [ "$FRAME_CHANGE" -gt 20000 ] || fail "H did not frame the scene"
 
-# 5. The grid detail toggle at the bottom of the left palette adds the fine
-#    grid lines. GRID_Y is the middle of that button with the standard
-#    layout.
+# 5. The grid detail button at the bottom of the left palette steps
+#    through the grid levels: one click adds the 50 cm lines (each metre
+#    square cut into four), a second the fine 10 cm lines. GRID_Y is the
+#    middle of that button with the standard layout.
 GRID_Y="${GRID_Y:-381}"
 xdotool mousemove 22 "$GRID_Y" click 1
 sleep 1.5
+import -window root "$OUT/after-grid-half.png"
+HALF_CHANGE="$(changed_pixels "$OUT/after-frame.png" "$OUT/after-grid-half.png")"
+echo "Pixels changed by the 50 cm grid level: $HALF_CHANGE"
+[ "$HALF_CHANGE" -gt 1000 ] || fail "the 50 cm grid level changed nothing"
+xdotool mousemove 22 "$GRID_Y" click 1
+sleep 1.5
 import -window root "$OUT/after-grid.png"
-GRID_CHANGE="$(changed_pixels "$OUT/after-frame.png" "$OUT/after-grid.png")"
-echo "Pixels changed by the grid detail toggle: $GRID_CHANGE"
-[ "$GRID_CHANGE" -gt 5000 ] || fail "the grid detail toggle changed nothing"
+GRID_CHANGE="$(changed_pixels "$OUT/after-grid-half.png" "$OUT/after-grid.png")"
+echo "Pixels changed by the 10 cm grid level: $GRID_CHANGE"
+[ "$GRID_CHANGE" -gt 5000 ] || fail "the 10 cm grid level changed nothing"
 
 # 5b. F5 shows the four views (perspective, top, front, right); F1 goes
 #     back to the perspective view alone.
@@ -217,7 +224,7 @@ wait "$PID" || fail "the app exited with an error"
 SAVED="$(grep -rl "panel_layout" "$TEST_HOME" 2>/dev/null | head -1 || true)"
 [ -n "$SAVED" ] || fail "the panel layout was not saved"
 echo "Layout saved in: ${SAVED#"$TEST_HOME"/}"
-grep -q "fine_grid:true" "$SAVED" || fail "the grid detail choice was not saved"
+grep -q "grid_detail:TenCentimetres" "$SAVED" || fail "the grid detail choice was not saved"
 echo "Grid detail choice saved."
 
 echo "Window smoke test passed."

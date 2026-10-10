@@ -28,14 +28,95 @@ use std::sync::Arc;
 pub(crate) use picker::AROUND_CURSOR_LABEL;
 pub use picker::PICKER_LABEL;
 
+/// How detailed the grid is: how far apart its finest lines are.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum GridDetail {
+    /// Lines every metre (and stronger ones every 10 m): the calmest.
+    #[default]
+    Metre,
+    /// Each metre square cut into four: lines every 50 cm as well.
+    HalfMetre,
+    /// Thin lines every 10 cm as well: for placing things precisely.
+    TenCentimetres,
+}
+
+impl ViewOptions {
+    /// These options with an old "fine grid lines on" setting turned into
+    /// the finest grid level.
+    #[must_use]
+    pub fn migrated(mut self) -> Self {
+        if self.legacy_fine_grid {
+            self.grid_detail = GridDetail::TenCentimetres;
+            self.legacy_fine_grid = false;
+        }
+        self
+    }
+}
+
+impl GridDetail {
+    /// Every level, from calm to detailed.
+    pub const ALL: [GridDetail; 3] = [Self::Metre, Self::HalfMetre, Self::TenCentimetres];
+
+    /// The menu entry's name.
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Metre => "Every 1 m",
+            Self::HalfMetre => "Every 50 cm (quarters)",
+            Self::TenCentimetres => "Every 10 cm (fine)",
+        }
+    }
+
+    /// The finest lines' spacing, as written in the viewport's corner.
+    pub fn spacing_text(self) -> &'static str {
+        match self {
+            Self::Metre => "1 m",
+            Self::HalfMetre => "50 cm",
+            Self::TenCentimetres => "10 cm",
+        }
+    }
+
+    /// The finest lines' spacing for the renderer, in centimetres, or
+    /// `None` for only the 1 m and 10 m lines.
+    pub fn fine_spacing(self) -> Option<f32> {
+        match self {
+            Self::Metre => None,
+            Self::HalfMetre => Some(50.0),
+            Self::TenCentimetres => Some(10.0),
+        }
+    }
+
+    /// The next level, round again after the finest (the palette button).
+    #[must_use]
+    pub fn next(self) -> Self {
+        match self {
+            Self::Metre => Self::HalfMetre,
+            Self::HalfMetre => Self::TenCentimetres,
+            Self::TenCentimetres => Self::Metre,
+        }
+    }
+
+    /// A plain-language description, for tooltips.
+    pub fn explanation(self) -> &'static str {
+        match self {
+            Self::Metre => "Grid lines every metre: the calmest ground",
+            Self::HalfMetre => "Each metre square cut into four: lines every 50 cm",
+            Self::TenCentimetres => "Thin lines every 10 cm, for placing things precisely",
+        }
+    }
+}
+
 /// How the viewport is shown and steered: choices the user can switch,
 /// which are remembered between sessions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ViewOptions {
-    /// Whether the grid shows its fine 10 cm lines as well as the 1 m and
-    /// 10 m ones. Off by default, for a calmer ground.
-    pub fine_grid: bool,
+    /// How detailed the grid is. Lines every metre as standard, for a calm
+    /// ground.
+    pub grid_detail: GridDetail,
+    /// Settings saved before the grid had three levels said only whether
+    /// the 10 cm lines were on; read so that choice carries over.
+    #[serde(rename = "fine_grid", skip_serializing)]
+    pub legacy_fine_grid: bool,
     /// Which mouse controls move the view.
     pub navigation: NavigationSettings,
     /// Whether all four views (perspective, top, front, right) are shown
@@ -68,8 +149,8 @@ pub struct ViewportView {
     pub sky_horizon: [f32; 3],
     /// The ground just below the horizon, sRGB 0 to 1.
     pub ground: [f32; 3],
-    /// Whether to draw the grid's fine 10 cm lines.
-    pub fine_grid: bool,
+    /// How detailed the grid is.
+    pub grid_detail: GridDetail,
     /// The scene's objects to draw.
     pub scene: Arc<SceneDrawing>,
     /// The colour selected objects are outlined in (the accent colour),
@@ -160,11 +241,12 @@ impl ViewportRenderer for NoRenderer {
     }
 }
 
-/// What framing fits when nothing shown has a shape: a 2 m box standing
-/// at the origin, so the view goes back to the middle of the scene.
+/// What framing fits when nothing shown has a shape: a 1 m box standing
+/// at the origin (the size of a standard shape), so the view goes back to
+/// the middle of the scene.
 pub const DEFAULT_FRAME: Bounds = Bounds {
-    min: Vec3::new(-100.0, -100.0, 0.0),
-    max: Vec3::new(100.0, 100.0, 200.0),
+    min: Vec3::new(-50.0, -50.0, 0.0),
+    max: Vec3::new(50.0, 50.0, 100.0),
 };
 
 /// What to fit in the view.
@@ -460,7 +542,7 @@ impl View {
         slot: usize,
         rect: Rect,
         pixels_per_point: f32,
-        fine_grid: bool,
+        grid_detail: GridDetail,
         scene: &Arc<SceneDrawing>,
     ) -> ViewportView {
         let ppp = sane_scale(pixels_per_point);
@@ -479,7 +561,7 @@ impl View {
             sky_top: rgb(backdrop::SKY_TOP),
             sky_horizon: rgb(backdrop::HORIZON),
             ground: rgb(backdrop::GROUND),
-            fine_grid,
+            grid_detail,
             scene: Arc::clone(scene),
             selection_color: rgb(theme::Accent::default().colors().light),
         }
@@ -711,7 +793,7 @@ impl ViewportPanel {
             self.views[slot].navigate(ui, &response, rect, settings);
 
             let mut view =
-                self.views[slot].view(slot, rect, ppp, self.options.fine_grid, &scene.drawing);
+                self.views[slot].view(slot, rect, ppp, self.options.grid_detail, &scene.drawing);
             view.selection_color = rgb(theme::accent(ui.ctx()).colors().light);
             match renderer.render(&view) {
                 Ok(texture) => {
@@ -906,14 +988,21 @@ mod tests {
 
     #[test]
     fn the_view_is_sized_in_physical_pixels() {
-        let view = perspective().view(0, rect(800.0, 500.0), 1.5, false, &Arc::default());
+        let view = perspective().view(
+            0,
+            rect(800.0, 500.0),
+            1.5,
+            GridDetail::Metre,
+            &Arc::default(),
+        );
         assert_eq!(view.size_px, [1200, 750]);
     }
 
     #[test]
     fn empty_or_broken_sizes_still_make_a_valid_view() {
         for ppp in [0.0, f32::NAN, 2.0] {
-            let view = perspective().view(0, rect(0.0, 0.0), ppp, false, &Arc::default());
+            let view =
+                perspective().view(0, rect(0.0, 0.0), ppp, GridDetail::Metre, &Arc::default());
             assert_eq!(view.size_px, [1, 1]);
             assert!(view.view_projection.is_finite());
         }
@@ -922,7 +1011,13 @@ mod tests {
     #[test]
     fn the_view_uses_the_camera_pivot_and_backdrop() {
         let it = perspective();
-        let view = it.view(0, rect(640.0, 400.0), 1.0, false, &Arc::default());
+        let view = it.view(
+            0,
+            rect(640.0, 400.0),
+            1.0,
+            GridDetail::Metre,
+            &Arc::default(),
+        );
         assert_eq!(view.camera_position, it.camera().position);
         assert_eq!(view.focus, it.navigator.pivot());
         assert_eq!(
@@ -938,12 +1033,18 @@ mod tests {
     #[test]
     fn flat_views_tell_the_renderer_their_height_and_grid() {
         let it = View::new(ViewKind::Front);
-        let view = it.view(2, rect(640.0, 400.0), 1.0, true, &Arc::default());
+        let view = it.view(
+            2,
+            rect(640.0, 400.0),
+            1.0,
+            GridDetail::TenCentimetres,
+            &Arc::default(),
+        );
         assert_eq!(view.slot, 2);
         assert_eq!(view.flat_height, it.camera().ortho_height);
         assert!(view.flat_height.is_some());
         assert_eq!(view.grid_plane, [Vec3::X, Vec3::Z]);
-        assert!(view.fine_grid);
+        assert_eq!(view.grid_detail, GridDetail::TenCentimetres);
     }
 
     #[test]
@@ -1029,14 +1130,16 @@ mod tests {
     fn the_view_carries_the_grid_detail_choice() {
         let mut panel = ViewportPanel::default();
         let r = rect(640.0, 400.0);
-        let fine = |p: &ViewportPanel| {
+        let detail = |p: &ViewportPanel| {
             p.active_view()
-                .view(0, r, 1.0, p.options.fine_grid, &Arc::default())
-                .fine_grid
+                .view(0, r, 1.0, p.options.grid_detail, &Arc::default())
+                .grid_detail
         };
-        assert!(!fine(&panel), "calm by default");
-        panel.options_mut().fine_grid = true;
-        assert!(fine(&panel));
+        assert_eq!(detail(&panel), GridDetail::Metre, "calm by default");
+        for level in GridDetail::ALL {
+            panel.options_mut().grid_detail = level;
+            assert_eq!(detail(&panel), level);
+        }
     }
 
     #[test]
@@ -1071,7 +1174,7 @@ mod tests {
     #[test]
     fn view_options_survive_saving_and_old_files() {
         let mut options = ViewOptions {
-            fine_grid: true,
+            grid_detail: GridDetail::HalfMetre,
             four_views: true,
             ..ViewOptions::default()
         };
@@ -1079,10 +1182,39 @@ mod tests {
         let text = ron::to_string(&options).unwrap();
         assert_eq!(ron::from_str::<ViewOptions>(&text).unwrap(), options);
         // Files saved before a setting existed still load, with defaults.
-        let old: ViewOptions = ron::from_str("(fine_grid: true)").unwrap();
-        assert!(old.fine_grid);
+        let old: ViewOptions = ron::from_str("(four_views: false)").unwrap();
+        assert_eq!(old.grid_detail, GridDetail::Metre);
         assert!(!old.four_views);
         assert_eq!(old.navigation, NavigationSettings::default());
+    }
+
+    #[test]
+    fn an_old_fine_grid_setting_becomes_the_finest_grid() {
+        let old: ViewOptions = ron::from_str("(fine_grid: true)").unwrap();
+        let options = old.migrated();
+        assert_eq!(options.grid_detail, GridDetail::TenCentimetres);
+        let text = ron::to_string(&options).unwrap();
+        assert!(
+            !text.contains("fine_grid"),
+            "the old name is not written back"
+        );
+        let off: ViewOptions = ron::from_str("(fine_grid: false)").unwrap();
+        assert_eq!(off.migrated().grid_detail, GridDetail::Metre);
+    }
+
+    #[test]
+    fn grid_levels_go_round_from_calm_to_detailed() {
+        let mut level = GridDetail::default();
+        let mut seen = vec![level];
+        for _ in 0..2 {
+            level = level.next();
+            seen.push(level);
+        }
+        assert_eq!(seen, GridDetail::ALL);
+        assert_eq!(level.next(), GridDetail::Metre);
+        assert_eq!(GridDetail::Metre.fine_spacing(), None);
+        assert_eq!(GridDetail::HalfMetre.fine_spacing(), Some(50.0));
+        assert_eq!(GridDetail::TenCentimetres.fine_spacing(), Some(10.0));
     }
 
     #[test]

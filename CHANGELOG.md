@@ -8,6 +8,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Every new shape is 1 m across as standard (a 1 m cube, a 1 m square plane, cylinders and cones 1 m across and 1 m tall, and so on), instead of 2 m.
+- The grid button on the left palette now steps through three levels: a line every metre (standard), every 50 cm (each square cut into four), and every 10 cm. The View and Display menus list all three as **Grid lines**. A finer grid chosen before is kept as the 10 cm level.
+- Sizes in the Attributes and Coordinates panels are shown in metres as standard; a switch beside the Shape title (and the Attributes panel's Units menu) changes to centimetres. Remembered between sessions.
 - Selected objects' names in the Objects panel are now in the accent colour instead of orange, matching their outline in the viewport.
 - The small ring that marks the point you orbit around is only shown when orbiting around the point under the mouse; turning around the middle of the view no longer shows it.
 - A new scene starts empty: the test cube is gone, now that real shapes can be created.
@@ -25,6 +28,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Small step arrows beside every value in the Attributes panel: click to add or take away one step (1 cm, or 1 segment) for fine tuning; hold Shift for ten.
+- Press **B** for a list of shapes by the mouse: **B** again moves down it, **Shift + B** back up, and **Enter** or **Space** creates the highlighted shape. Clicking a shape in the list creates it too; **Esc** closes it.
+- Cylinder and cone ends, and discs, can be cut into rings (**Cap segments**, **Ring segments**), and their middle can be one n-gon (standard) or triangles meeting at a **Centre point**.
+- **Copy settings** and **Paste … settings** in the Objects panel's right-click menu.
 - The Attribute Manager works: select one object to see its name, a Visible switch, and for a shape its settings (sizes in centimetres, segments, sides, closed ends and so on). Drag a value to watch the shape change, or click and type one; each drag or typed value is one undo step. Edit → Copy settings and Paste settings give several shapes of the same kind the same settings. New manual page: The Attribute Manager.
 - Primitives: Create → Cube, Plane, Cylinder, Sphere, Disc, Tube or Cone (or the blue shape buttons on the command palette). Each stands on the ground at the centre of the scene, with crisp edges where it should have them and smooth curves elsewhere, and is listed in the Objects panel. Selected objects are outlined in the accent colour in the viewport, and the Attributes panel names the selection. New manual page: Primitives.
 - The Object Manager works: the scene's objects are listed as a tree (for now the test cube, plus any groups you make). Click to select (Ctrl adds, Shift selects a run), double-click to rename, drag to put objects inside each other or reorder them, click the eye to show or hide, and press Delete to delete. Create → Group (or the palette's group button) makes an empty group; Alt + G puts the selection in a new group and Shift + G takes it out again. Right-click a row for these commands. F now frames the selected objects. New manual page: Objects and the Object Manager.

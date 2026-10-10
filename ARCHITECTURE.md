@@ -64,7 +64,7 @@ The four middle panels are dockable (egui_dock); the bars and palettes around th
 The viewport holds four views (perspective, top, front, right), each with its own `tools::Navigator`; it shows the active one, or all four in a 2 × 2 layout. Each frame, for each view shown:
 
 1. **Navigate** (`ui` → `tools`): the panel turns this frame's drags (with the keys held) and wheel turns into plain moves on a `tools::Navigator` (the camera and its pivot); `tools::controls` decides which movement a button and keys start, for the scheme the user picked. `tools` knows nothing about egui.
-2. **Ask** (`ui`): the panel works out its size in physical pixels and the camera's matrices (`tools::Camera`), and asks a `ViewportRenderer` for an image, with the point the camera looks at (the grid is drawn around it) and display options such as fine grid lines.
+2. **Ask** (`ui`): the panel works out its size in physical pixels and the camera's matrices (`tools::Camera`), and asks a `ViewportRenderer` for an image, with the point the camera looks at (the grid is drawn around it) and display options such as the grid level (1 m, 50 cm or 10 cm lines).
 3. **Draw** (`render`, through `app`'s `GpuViewport`): the backdrop with its horizon, faces, grid and lines are drawn into that view's own offscreen image (one per view, keyed by `ViewportView::slot`) on the window's GPU device. Flat (orthographic) views get a plain backdrop and a grid in the plane facing them.
 4. **Show** (`ui`): the image is drawn into the panel as an egui texture, with the view's label on top.
 

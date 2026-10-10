@@ -73,6 +73,35 @@ fn click_field(harness: &mut Harness<'static, State>, label: &str) {
     harness.run();
 }
 
+/// Clicks into a field, replaces its text with `text` and presses Enter.
+fn type_into(harness: &mut Harness<'static, State>, label: &str, text: &str) {
+    click_field(harness, label);
+    harness.key_press_modifiers(Modifiers::COMMAND, Key::A);
+    harness.event(Event::Text(text.into()));
+    harness.run();
+    harness.key_press(Key::Enter);
+    harness.run();
+}
+
+/// Clicks a node by its accessible name, holding `modifiers`.
+fn click_with(harness: &mut Harness<'static, State>, label: &str, modifiers: Modifiers) {
+    let at = harness.get_by_label(label).rect().center();
+    harness.event(Event::ModifiersChanged(modifiers));
+    harness.event(Event::PointerMoved(at));
+    harness.step();
+    for pressed in [true, false] {
+        harness.event(Event::PointerButton {
+            pos: at,
+            button: PointerButton::Primary,
+            pressed,
+            modifiers,
+        });
+        harness.step();
+    }
+    harness.event(Event::ModifiersChanged(Modifiers::NONE));
+    harness.run();
+}
+
 /// Drags a value field sideways by `dx` points.
 fn drag_field(harness: &mut Harness<'static, State>, label: &str, dx: f32) {
     let from = field_rect(harness, label).center();
@@ -189,8 +218,9 @@ fn dragging_a_value_changes_the_shape_in_one_undo_step() {
     let steps = harness.state().workbench.document().undo_steps();
     drag_field(&mut harness, "Width", 80.0);
     let width = cube_size(&harness, id).x;
-    assert!(width > 200.0, "wider: {width}");
-    assert_eq!(cube_size(&harness, id).y, 200.0, "only the width");
+    // Half a centimetre per point dragged, whichever units are shown.
+    assert!((width - 140.0).abs() < 2.0, "wider: {width}");
+    assert_eq!(cube_size(&harness, id).y, 100.0, "only the width");
     assert_eq!(
         harness.state().workbench.document().undo_steps(),
         steps + 1,
@@ -202,7 +232,7 @@ fn dragging_a_value_changes_the_shape_in_one_undo_step() {
     );
     harness.key_press_modifiers(Modifiers::COMMAND, Key::Z);
     harness.run();
-    assert_eq!(cube_size(&harness, id).x, 200.0, "the whole drag undone");
+    assert_eq!(cube_size(&harness, id).x, 100.0, "the whole drag undone");
     // A second drag is a second step.
     drag_field(&mut harness, "Width", 40.0);
     drag_field(&mut harness, "Height", -40.0);
@@ -333,12 +363,8 @@ fn settings_can_be_copied_to_other_shapes_of_the_same_kind() {
 fn typing_a_value_sets_it_exactly() {
     let mut harness = selected_cube();
     let id = only_object(&harness);
-    click_field(&mut harness, "Depth");
-    harness.key_press_modifiers(Modifiers::COMMAND, Key::A);
-    harness.event(Event::Text("350".into()));
-    harness.run();
-    harness.key_press(Key::Enter);
-    harness.run();
+    // Lengths are typed in metres as standard.
+    type_into(&mut harness, "Depth", "3.5");
     assert_eq!(cube_size(&harness, id).y, 350.0);
     // While typing, Delete and the other document keys are left alone.
     assert_eq!(
@@ -346,4 +372,134 @@ fn typing_a_value_sets_it_exactly() {
         1,
         "nothing deleted"
     );
+}
+
+// --------------------------------------------------------- step arrows ---
+
+#[test]
+fn the_step_arrows_nudge_a_length_by_a_centimetre() {
+    let mut harness = selected_cube();
+    let id = only_object(&harness);
+    let steps = harness.state().workbench.document().undo_steps();
+    click_with(&mut harness, "Increase Width", Modifiers::NONE);
+    assert_eq!(cube_size(&harness, id).x, 101.0);
+    click_with(&mut harness, "Increase Width", Modifiers::NONE);
+    assert_eq!(cube_size(&harness, id).x, 102.0);
+    assert_eq!(
+        harness.state().workbench.document().undo_steps(),
+        steps + 2,
+        "each click is its own undo step"
+    );
+    click_with(&mut harness, "Decrease Width", Modifiers::SHIFT);
+    assert_eq!(cube_size(&harness, id).x, 92.0, "Shift: ten steps");
+    assert_eq!(cube_size(&harness, id).y, 100.0, "only the width");
+}
+
+#[test]
+fn the_step_arrows_count_segments_and_stop_at_the_limits() {
+    let mut harness = selected_cube();
+    let id = only_object(&harness);
+    let segments = |h: &Harness<'static, State>| match primitive(h, id) {
+        Primitive::Cube(p) => p.segments[0],
+        other => panic!("{other:?}"),
+    };
+    assert_eq!(segments(&harness), 1);
+    let steps = harness.state().workbench.document().undo_steps();
+    click_with(&mut harness, "Decrease Segments X", Modifiers::NONE);
+    assert_eq!(segments(&harness), 1, "never below one");
+    assert_eq!(
+        harness.state().workbench.document().undo_steps(),
+        steps,
+        "nothing changed, nothing to undo"
+    );
+    click_with(&mut harness, "Increase Segments X", Modifiers::SHIFT);
+    assert_eq!(segments(&harness), 11);
+    harness.key_press_modifiers(Modifiers::COMMAND, Key::Z);
+    harness.run();
+    assert_eq!(segments(&harness), 1);
+}
+
+#[test]
+fn the_step_arrows_stop_at_the_smallest_length() {
+    let mut harness = selected_cube();
+    let id = only_object(&harness);
+    type_into(&mut harness, "Width", "0");
+    let smallest = cube_size(&harness, id).x;
+    assert!(smallest > 0.0, "never zero: {smallest}");
+    click_with(&mut harness, "Decrease Width", Modifiers::NONE);
+    assert_eq!(cube_size(&harness, id).x, smallest);
+}
+
+// --------------------------------------------------------------- units ---
+
+#[test]
+fn lengths_show_in_metres_and_switch_to_centimetres() {
+    let mut harness = selected_cube();
+    let id = only_object(&harness);
+    assert_eq!(harness.state().workbench.units(), Units::Metres);
+    harness.get_by_label("Lengths in centimetres").click();
+    harness.run();
+    assert_eq!(harness.state().workbench.units(), Units::Centimetres);
+    type_into(&mut harness, "Height", "150");
+    assert_eq!(cube_size(&harness, id).z, 150.0, "typed in centimetres");
+    harness.get_by_label("Lengths in metres").click();
+    harness.run();
+    assert_eq!(harness.state().workbench.units(), Units::Metres);
+    type_into(&mut harness, "Height", "2");
+    assert_eq!(cube_size(&harness, id).z, 200.0, "typed in metres");
+}
+
+#[test]
+fn the_units_menu_switches_units_too() {
+    let mut harness = selected_cube();
+    harness.get_by_label("Units").click();
+    harness.run();
+    harness.get_by_label("Centimetres").click();
+    harness.run();
+    assert_eq!(harness.state().workbench.units(), Units::Centimetres);
+}
+
+#[test]
+fn remembered_units_are_restored() {
+    let workbench = Workbench::new(super::tests::info(), None).with_units(Units::Centimetres);
+    assert_eq!(workbench.units(), Units::Centimetres);
+}
+
+// ------------------------------------------------------- round ends ---
+
+#[test]
+fn cylinder_ends_take_rings_and_a_centre_point() {
+    let mut harness = empty();
+    harness.get_by_label("Create cylinder").click();
+    harness.run();
+    let id = only_object(&harness);
+    let ends = |h: &Harness<'static, State>| match primitive(h, id) {
+        Primitive::Cylinder(p) => (p.cap_segments, p.cap_centre),
+        other => panic!("{other:?}"),
+    };
+    assert_eq!(ends(&harness), (1, false), "one n-gon each end as standard");
+    click_with(&mut harness, "Increase Cap segments", Modifiers::NONE);
+    assert_eq!(ends(&harness), (2, false));
+    click_field(&mut harness, "Centre point");
+    assert_eq!(ends(&harness), (2, true));
+}
+
+#[test]
+fn cones_and_discs_have_the_end_settings_too() {
+    for (name, labels) in [
+        ("Cone", ["Cap segments", "Centre point"]),
+        ("Disc", ["Ring segments", "Centre point"]),
+    ] {
+        let mut harness = empty();
+        main_menu(&harness, "Create").click();
+        harness.run();
+        harness.get_by_label(name).click();
+        harness.run();
+        for label in labels {
+            assert!(
+                harness.query_all_by_label(label).next().is_some(),
+                "{name}: {label}"
+            );
+        }
+    }
 }

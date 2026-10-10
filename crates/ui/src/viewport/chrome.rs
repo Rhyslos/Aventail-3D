@@ -129,11 +129,7 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
         }
     });
     ui.menu_button("Display", |ui| {
-        ui.checkbox(
-            &mut panel.options.fine_grid,
-            crate::palette::GRID_DETAIL_LABEL,
-        )
-        .on_hover_text("Show the grid's 10 cm lines as well as the 1 m lines");
+        grid_entries(ui, &mut panel.options.grid_detail);
     });
     ui.menu_button("Options", |ui| {
         if ui
@@ -193,6 +189,21 @@ pub(super) fn active_border(ui: &Ui, rect: Rect) {
         Stroke::new(1.5, accent.light),
         egui::StrokeKind::Inside,
     );
+}
+
+/// The grid detail choices, under a "Grid lines" heading.
+pub(crate) fn grid_entries(ui: &mut Ui, detail: &mut super::GridDetail) {
+    ui.label(egui::RichText::new(crate::palette::GRID_DETAIL_LABEL).color(theme::TEXT_WEAK));
+    for level in super::GridDetail::ALL {
+        if ui
+            .radio(*detail == level, level.label())
+            .on_hover_text(level.explanation())
+            .clicked()
+        {
+            *detail = level;
+            ui.close();
+        }
+    }
 }
 
 /// The Frame all and Frame selected menu entries, with their keys.
@@ -279,7 +290,7 @@ pub(super) fn overlays(ui: &Ui, rect: Rect, view: &View, options: &ViewOptions) 
             theme::TEXT_WEAK,
         );
     }
-    let spacing = if options.fine_grid { "10 cm" } else { "1 m" };
+    let spacing = options.grid_detail.spacing_text();
     painter.text(
         rect.left_bottom() + vec2(10.0, -10.0),
         Align2::LEFT_BOTTOM,

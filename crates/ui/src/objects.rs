@@ -90,6 +90,9 @@ pub(crate) struct ObjectManager {
     anchor: Option<ObjectId>,
     /// The objects being dragged, if a drag is under way.
     dragging: Option<Vec<ObjectId>>,
+    /// Shape settings copied with Copy settings (here or in the
+    /// Attributes panel), ready to paste.
+    pub(crate) clipboard: Option<scene::Primitive>,
 }
 
 impl ObjectManager {
@@ -669,6 +672,8 @@ fn context_menu(
     selection_entries(ui, doc, manager, out);
     ui.separator();
     object_entries(ui, doc, out);
+    ui.separator();
+    crate::attributes::settings_entries(ui, doc, &mut manager.clipboard, out);
 }
 
 /// The Object Manager's menu line: Edit, View and Object.

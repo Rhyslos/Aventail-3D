@@ -8,7 +8,12 @@ use glam::{Mat4, Vec3};
 /// more room than any game asset needs).
 pub const GRID_HALF_EXTENT: f32 = 10_000.0;
 /// Spacing of the three grid levels, in centimetres: 10 cm, 1 m and 10 m.
+/// The finest level can also be drawn at 50 cm instead (see
+/// [`FrameParams::fine_spacing`]).
 pub const GRID_SPACINGS: [f32; 3] = [10.0, 100.0, 1000.0];
+/// How strongly 50 cm lines are drawn: a little stronger than 10 cm ones,
+/// as there are fewer of them.
+pub const HALF_METRE_STRENGTH: f32 = 0.05;
 /// How strongly each grid level is drawn (opacity of a white line, 0 to 1),
 /// in the same order as [`GRID_SPACINGS`]. Kept low so the grid stays a
 /// quiet guide rather than a pattern.
@@ -38,8 +43,10 @@ pub struct FrameParams {
     pub sky_horizon: [f32; 3],
     /// The ground just below the horizon, sRGB 0 to 1.
     pub ground: [f32; 3],
-    /// Whether to draw the grid's finest level (10 cm lines).
-    pub fine_grid: bool,
+    /// The spacing of the grid's finest lines in centimetres (10 cm, or
+    /// 50 cm to cut each metre square into four), or `None` for only the
+    /// 1 m and 10 m lines.
+    pub fine_spacing: Option<f32>,
     /// For a flat (orthographic) view, the height it shows in centimetres;
     /// `None` for perspective. Flat views get a plain backdrop, axes drawn
     /// in full, and a grid sized to the view.
@@ -62,11 +69,22 @@ pub fn srgb_to_linear(c: f32) -> f32 {
     }
 }
 
-/// The strength of each grid level for the shader (the fourth is unused);
-/// the finest level is hidden when `fine_grid` is off.
-fn grid_strengths(fine_grid: bool) -> [f32; 4] {
+/// The finest grid level's spacing and the strength of each level for the
+/// shader (the fourth strength is unused). Without fine lines the finest
+/// level is hidden; a spacing that isn't a usable number counts as none.
+fn grid_levels(fine_spacing: Option<f32>) -> (f32, [f32; 4]) {
     let [minor, major, super_level] = GRID_STRENGTHS;
-    [if fine_grid { minor } else { 0.0 }, major, super_level, 0.0]
+    match fine_spacing.filter(|s| s.is_finite() && *s > 0.0 && *s < GRID_SPACINGS[1]) {
+        Some(spacing) => {
+            let strength = if spacing >= 50.0 {
+                HALF_METRE_STRENGTH
+            } else {
+                minor
+            };
+            (spacing, [strength, major, super_level, 0.0])
+        }
+        None => (GRID_SPACINGS[0], [0.0, major, super_level, 0.0]),
+    }
 }
 
 fn linear(rgb: [f32; 3]) -> [f32; 4] {
@@ -98,7 +116,8 @@ pub(crate) struct FrameUniforms {
 
 impl FrameUniforms {
     pub(crate) fn new(params: &FrameParams) -> Self {
-        let [minor, major, super_level] = GRID_SPACINGS;
+        let [_, major, super_level] = GRID_SPACINGS;
+        let (minor, strengths) = grid_levels(params.fine_spacing);
         let p = params.camera_position;
         let f = params.focus;
         let reach = match params.flat_height {
@@ -118,7 +137,7 @@ impl FrameUniforms {
             camera: [p.x, p.y, p.z, 1.0],
             focus: [f.x, f.y, f.z, reach],
             grid: [minor, major, super_level, GRID_HALF_EXTENT],
-            grid_strength: grid_strengths(params.fine_grid),
+            grid_strength: strengths,
             grid_u: [u.x, u.y, u.z, 0.0],
             grid_v: [v.x, v.y, v.z, 0.0],
             view: [
@@ -210,7 +229,7 @@ mod tests {
             sky_top: [1.0, 0.5, 0.0],
             sky_horizon: [0.0, 0.0, 0.0],
             ground: [0.5, 0.5, 0.5],
-            fine_grid: true,
+            fine_spacing: Some(10.0),
             flat_height: None,
             grid_plane: GROUND_PLANE,
         });
@@ -227,15 +246,20 @@ mod tests {
     }
 
     #[test]
-    fn fine_grid_off_hides_only_the_finest_lines() {
+    fn the_finest_level_can_be_off_half_metres_or_ten_centimetres() {
+        let [minor, major, super_level] = GRID_STRENGTHS;
+        assert_eq!(grid_levels(None), (10.0, [0.0, major, super_level, 0.0]));
         assert_eq!(
-            grid_strengths(false),
-            [0.0, GRID_STRENGTHS[1], GRID_STRENGTHS[2], 0.0]
+            grid_levels(Some(10.0)),
+            (10.0, [minor, major, super_level, 0.0])
         );
         assert_eq!(
-            grid_strengths(true),
-            [GRID_STRENGTHS[0], GRID_STRENGTHS[1], GRID_STRENGTHS[2], 0.0]
+            grid_levels(Some(50.0)),
+            (50.0, [HALF_METRE_STRENGTH, major, super_level, 0.0])
         );
+        for broken in [0.0, -5.0, f32::NAN, 100.0, 5000.0] {
+            assert_eq!(grid_levels(Some(broken)).1[0], 0.0, "{broken}");
+        }
     }
 
     #[test]
@@ -255,7 +279,7 @@ mod tests {
             sky_top: [0.0; 3],
             sky_horizon: [0.0; 3],
             ground: [0.0; 3],
-            fine_grid: false,
+            fine_spacing: None,
             flat_height: None,
             grid_plane: GROUND_PLANE,
         });
@@ -276,7 +300,7 @@ mod tests {
             sky_top: [0.0; 3],
             sky_horizon: [0.0; 3],
             ground: [0.0; 3],
-            fine_grid: false,
+            fine_spacing: None,
             flat_height: Some(1500.0),
             grid_plane: [Vec3::X, Vec3::Z * 3.0],
         });

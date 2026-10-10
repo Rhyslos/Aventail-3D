@@ -100,7 +100,7 @@ impl ViewportRenderer for GpuViewport {
             sky_top: view.sky_top,
             sky_horizon: view.sky_horizon,
             ground: view.ground,
-            fine_grid: view.fine_grid,
+            fine_spacing: view.grid_detail.fine_spacing(),
             flat_height: view.flat_height,
             grid_plane: view.grid_plane,
         };

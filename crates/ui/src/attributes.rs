@@ -6,17 +6,23 @@
 //! hands back commands. Dragging a value changes it every frame, so those
 //! commands are merged into one undo step per drag (or per value typed).
 
+mod fields;
+mod stepper;
+
 use crate::objects::{DocRequest, shape_icon};
 use crate::panels::placeholder;
 use crate::theme::{self, tint};
-use egui::{DragValue, RichText, Ui, vec2};
-use mesh::primitives::{MAX_SEGMENTS, MAX_SIDES, MAX_SIZE, MIN_SIDES, MIN_SIZE};
+use crate::units::Units;
+use egui::{RichText, Ui, vec2};
+use fields::{Value, fields};
+use mesh::primitives::MAX_SIZE;
 use scene::{Command, Document, ObjectId, ObjectKind, Primitive};
 
 /// Width of the column of setting names, so both sections line up.
 const LABEL_WIDTH: f32 = 110.0;
-/// Width of a value field.
-const FIELD_WIDTH: f32 = 130.0;
+/// Width of a text field (the name), matching a value field with its
+/// arrows.
+const FIELD_WIDTH: f32 = stepper::NUMBER_WIDTH + 16.0;
 
 /// The Attribute Manager's own state.
 #[derive(Debug, Clone, Default)]
@@ -26,247 +32,103 @@ pub(crate) struct AttributesPanel {
     gesture: u64,
     /// A name being typed, for which object.
     name_draft: Option<(ObjectId, String)>,
-    /// Settings copied with Edit → Copy settings.
-    clipboard: Option<Primitive>,
 }
 
-/// What a setting holds, with its limits.
-enum Value<'a> {
-    /// A length in centimetres, from the minimum given.
-    Length(&'a mut f32, f32),
-    /// A count, between the limits given.
-    Count(&'a mut u32, u32, u32),
-    /// On or off.
-    Toggle(&'a mut bool),
-}
-
-/// One row of shape settings.
-struct Field<'a> {
-    label: &'static str,
-    help: &'static str,
-    value: Value<'a>,
-}
-
-const fn field<'a>(label: &'static str, help: &'static str, value: Value<'a>) -> Field<'a> {
-    Field { label, help, value }
-}
-
-/// The settings of a primitive, in the order the panel lists them, each
-/// borrowing the value it edits.
-fn fields(primitive: &mut Primitive) -> Vec<Field<'_>> {
-    use Value::{Count, Length, Toggle};
-    let segments = |v| Count(v, 1, MAX_SEGMENTS);
-    let sides = |v| Count(v, MIN_SIDES, MAX_SIDES);
-    match primitive {
-        Primitive::Cube(p) => {
-            let [sx, sy, sz] = &mut p.segments;
-            vec![
-                field("Width", "Size along X", Length(&mut p.size.x, MIN_SIZE)),
-                field("Depth", "Size along Y", Length(&mut p.size.y, MIN_SIZE)),
-                field(
-                    "Height",
-                    "Size along Z (up)",
-                    Length(&mut p.size.z, MIN_SIZE),
-                ),
-                field(
-                    "Segments X",
-                    "How many pieces each side is cut into along X",
-                    segments(sx),
-                ),
-                field(
-                    "Segments Y",
-                    "How many pieces each side is cut into along Y",
-                    segments(sy),
-                ),
-                field(
-                    "Segments Z",
-                    "How many pieces each side is cut into along Z",
-                    segments(sz),
-                ),
-            ]
+/// The menu entries for the units lengths are shown in.
+pub(crate) fn unit_entries(ui: &mut Ui, units: &mut Units) {
+    for choice in Units::ALL {
+        if ui
+            .radio(*units == choice, choice.name())
+            .on_hover_text(format!(
+                "Show and type lengths in {}",
+                choice.name().to_lowercase()
+            ))
+            .clicked()
+        {
+            *units = choice;
+            ui.close();
         }
-        Primitive::Plane(p) => {
-            let [sx, sy] = &mut p.segments;
-            vec![
-                field("Width", "Size along X", Length(&mut p.width, MIN_SIZE)),
-                field("Depth", "Size along Y", Length(&mut p.depth, MIN_SIZE)),
-                field(
-                    "Segments X",
-                    "How many pieces it is cut into along X",
-                    segments(sx),
-                ),
-                field(
-                    "Segments Y",
-                    "How many pieces it is cut into along Y",
-                    segments(sy),
-                ),
-            ]
-        }
-        Primitive::Cylinder(p) => vec![
-            field("Radius", "Half the width", Length(&mut p.radius, MIN_SIZE)),
-            field(
-                "Height",
-                "Size along Z (up)",
-                Length(&mut p.height, MIN_SIZE),
-            ),
-            field(
-                "Sides",
-                "How many flat sides make up the round side",
-                sides(&mut p.sides),
-            ),
-            field(
-                "Height segments",
-                "How many pieces the side is cut into from bottom to top",
-                segments(&mut p.height_segments),
-            ),
-            field(
-                "Closed ends",
-                "Whether the ends are closed",
-                Toggle(&mut p.caps),
-            ),
-        ],
-        Primitive::Cone(p) => vec![
-            field(
-                "Bottom radius",
-                "Half the width at the bottom",
-                Length(&mut p.bottom_radius, 0.0),
-            ),
-            field(
-                "Top radius",
-                "Half the width at the top: zero for a point, more to cut it off flat",
-                Length(&mut p.top_radius, 0.0),
-            ),
-            field(
-                "Height",
-                "Size along Z (up)",
-                Length(&mut p.height, MIN_SIZE),
-            ),
-            field(
-                "Sides",
-                "How many flat sides make up the round side",
-                sides(&mut p.sides),
-            ),
-            field(
-                "Height segments",
-                "How many pieces the side is cut into from bottom to top",
-                segments(&mut p.height_segments),
-            ),
-            field(
-                "Closed ends",
-                "Whether the ends are closed",
-                Toggle(&mut p.caps),
-            ),
-        ],
-        Primitive::Sphere(p) => vec![
-            field("Radius", "Half the width", Length(&mut p.radius, MIN_SIZE)),
-            field(
-                "Sides",
-                "How many pieces around (like lines of longitude)",
-                sides(&mut p.sides),
-            ),
-            field(
-                "Rings",
-                "How many pieces from top to bottom (like lines of latitude)",
-                Count(&mut p.rings, 2, MAX_SEGMENTS),
-            ),
-        ],
-        Primitive::Disc(p) => vec![
-            field("Radius", "Half the width", Length(&mut p.radius, MIN_SIZE)),
-            field(
-                "Hole radius",
-                "Half the width of a hole in the middle: zero for none",
-                Length(&mut p.inner_radius, 0.0),
-            ),
-            field(
-                "Sides",
-                "How many straight pieces make up the circle",
-                sides(&mut p.sides),
-            ),
-        ],
-        Primitive::Tube(p) => vec![
-            field(
-                "Outer radius",
-                "Half the width of the outside",
-                Length(&mut p.outer_radius, MIN_SIZE),
-            ),
-            field(
-                "Inner radius",
-                "Half the width of the hole",
-                Length(&mut p.inner_radius, MIN_SIZE),
-            ),
-            field(
-                "Height",
-                "Size along Z (up)",
-                Length(&mut p.height, MIN_SIZE),
-            ),
-            field(
-                "Sides",
-                "How many flat sides make up each round side",
-                sides(&mut p.sides),
-            ),
-            field(
-                "Height segments",
-                "How many pieces the sides are cut into from bottom to top",
-                segments(&mut p.height_segments),
-            ),
-        ],
+    }
+}
+
+/// Copy settings and Paste settings, for the Attributes panel's Edit menu
+/// and the Object Manager's right-click menu. The copied settings live in
+/// `clipboard`.
+pub(crate) fn settings_entries(
+    ui: &mut Ui,
+    doc: &Document,
+    clipboard: &mut Option<Primitive>,
+    out: &mut Vec<DocRequest>,
+) {
+    let selection = doc.selection();
+    let single = match selection.as_slice() {
+        [one] => primitive_of(doc, *one),
+        _ => None,
+    };
+    if ui
+        .add_enabled(single.is_some(), egui::Button::new("Copy settings"))
+        .on_hover_text("Copy the selected shape's settings")
+        .on_disabled_hover_text("Select one shape to copy its settings")
+        .clicked()
+    {
+        *clipboard = single;
+        ui.close();
+    }
+    let targets: Vec<ObjectId> = match clipboard {
+        Some(copied) => selection
+            .iter()
+            .copied()
+            .filter(|id| primitive_of(doc, *id).is_some_and(|p| p.kind() == copied.kind()))
+            .collect(),
+        None => Vec::new(),
+    };
+    let paste = match clipboard {
+        Some(copied) => format!("Paste {} settings", copied.name().to_lowercase()),
+        None => "Paste settings".to_string(),
+    };
+    if ui
+        .add_enabled(!targets.is_empty(), egui::Button::new(paste))
+        .on_hover_text("Give the selected shapes of the same kind the copied settings")
+        .on_disabled_hover_text("Copy a shape's settings, then select shapes of the same kind")
+        .clicked()
+        && let Some(primitive) = *clipboard
+    {
+        out.push(DocRequest::Run(Command::SetPrimitive {
+            ids: targets,
+            primitive,
+        }));
+        ui.close();
     }
 }
 
 impl AttributesPanel {
-    /// The panel's menu line: Mode and Edit.
-    pub(crate) fn menus(&mut self, ui: &mut Ui, doc: &Document, out: &mut Vec<DocRequest>) {
+    /// The panel's menu line: Mode, Edit and Units.
+    pub(crate) fn menus(
+        &mut self,
+        ui: &mut Ui,
+        doc: &Document,
+        shared: &mut Shared<'_>,
+        out: &mut Vec<DocRequest>,
+    ) {
         ui.menu_button("Mode", |ui| {
             let _ = ui.radio(true, "Object settings");
             ui.add_enabled(false, egui::RadioButton::new(false, "Tool settings"))
                 .on_disabled_hover_text("Arrives with the tools in Phase 3");
         });
         ui.menu_button("Edit", |ui| {
-            let selection = doc.selection();
-            let single = match selection.as_slice() {
-                [one] => primitive_of(doc, *one),
-                _ => None,
-            };
-            if ui
-                .add_enabled(single.is_some(), egui::Button::new("Copy settings"))
-                .on_hover_text("Copy the selected shape's settings")
-                .clicked()
-            {
-                self.clipboard = single;
-                ui.close();
-            }
-            let targets: Vec<ObjectId> = match self.clipboard {
-                Some(copied) => selection
-                    .iter()
-                    .copied()
-                    .filter(|id| primitive_of(doc, *id).is_some_and(|p| p.kind() == copied.kind()))
-                    .collect(),
-                None => Vec::new(),
-            };
-            let paste = match self.clipboard {
-                Some(copied) => format!("Paste {} settings", copied.name().to_lowercase()),
-                None => "Paste settings".to_string(),
-            };
-            if ui
-                .add_enabled(!targets.is_empty(), egui::Button::new(paste))
-                .on_hover_text("Give the selected shapes of the same kind the copied settings")
-                .on_disabled_hover_text(
-                    "Copy a shape's settings, then select shapes of the same kind",
-                )
-                .clicked()
-                && let Some(primitive) = self.clipboard
-            {
-                out.push(DocRequest::Run(Command::SetPrimitive {
-                    ids: targets,
-                    primitive,
-                }));
-                ui.close();
-            }
+            settings_entries(ui, doc, shared.clipboard, out)
         });
+        ui.menu_button("Units", |ui| unit_entries(ui, shared.units));
     }
 
     /// Draws the settings of the selection.
-    pub(crate) fn show(&mut self, ui: &mut Ui, doc: &Document, out: &mut Vec<DocRequest>) {
+    pub(crate) fn show(
+        &mut self,
+        ui: &mut Ui,
+        doc: &Document,
+        units: &mut Units,
+        out: &mut Vec<DocRequest>,
+    ) {
         let selection = doc.selection();
         let id = match selection.as_slice() {
             [] => {
@@ -319,8 +181,8 @@ impl AttributesPanel {
                         ui.end_row();
                     });
                 if let ObjectKind::Primitive(primitive) = object.kind {
-                    section(ui, "Shape");
-                    self.shape_rows(ui, id, primitive, out);
+                    shape_section(ui, units);
+                    self.shape_rows(ui, id, primitive, *units, out);
                 }
             });
     }
@@ -366,6 +228,7 @@ impl AttributesPanel {
         ui: &mut Ui,
         id: ObjectId,
         primitive: Primitive,
+        units: Units,
         out: &mut Vec<DocRequest>,
     ) {
         let mut edited = primitive;
@@ -377,35 +240,35 @@ impl AttributesPanel {
             .show(ui, |ui| {
                 for field in fields(&mut edited) {
                     label(ui, field.label, field.help);
-                    let is_switch = matches!(field.value, Value::Toggle(_));
-                    let response = match field.value {
-                        Value::Length(value, min) => ui.add_sized(
-                            vec2(FIELD_WIDTH, 20.0),
-                            DragValue::new(value)
-                                .range(min..=MAX_SIZE)
-                                .speed(0.5)
-                                .max_decimals(1)
-                                .suffix(" cm"),
-                        ),
-                        Value::Count(value, low, high) => ui.add_sized(
-                            vec2(FIELD_WIDTH, 20.0),
-                            DragValue::new(value).range(low..=high).speed(0.05),
-                        ),
-                        Value::Toggle(value) => ui.checkbox(value, ""),
+                    let touched = match field.value {
+                        Value::Length(value, min) => {
+                            stepper::length(ui, value, (min, MAX_SIZE), units, field.label)
+                        }
+                        Value::Count(value, low, high) => {
+                            stepper::count(ui, value, (low, high), field.label)
+                        }
+                        Value::Toggle(value) => {
+                            let response = ui.checkbox(value, "");
+                            response.widget_info(|| {
+                                egui::WidgetInfo::selected(
+                                    egui::WidgetType::Checkbox,
+                                    true,
+                                    *value,
+                                    field.label,
+                                )
+                            });
+                            stepper::Touched {
+                                changed: response.changed(),
+                                began: response.clicked(),
+                            }
+                        }
                     };
-                    let response = response.on_hover_text(field.help);
-                    let kind = if is_switch {
-                        egui::WidgetType::Checkbox
-                    } else {
-                        egui::WidgetType::DragValue
-                    };
-                    response.widget_info(|| egui::WidgetInfo::labeled(kind, true, field.label));
-                    if response.drag_started() || response.gained_focus() || response.clicked() {
+                    if touched.began {
                         // A new drag, a new value typed, or a click: a new
                         // undo step.
                         self.gesture += 1;
                     }
-                    changed |= response.changed();
+                    changed |= touched.changed;
                     ui.end_row();
                 }
             });
@@ -419,6 +282,43 @@ impl AttributesPanel {
             ));
         }
     }
+}
+
+/// What the Attributes panel shares with the rest of the window: the
+/// copied settings and the units lengths are shown in.
+pub(crate) struct Shared<'a> {
+    /// Settings copied with Copy settings.
+    pub(crate) clipboard: &'a mut Option<Primitive>,
+    /// Metres or centimetres.
+    pub(crate) units: &'a mut Units,
+}
+
+/// The "Shape" section title, with a quick switch between metres and
+/// centimetres on the right.
+fn shape_section(ui: &mut Ui, units: &mut Units) {
+    ui.add_space(6.0);
+    ui.horizontal(|ui| {
+        ui.label(RichText::new("Shape").strong());
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            for choice in Units::ALL.into_iter().rev() {
+                let response = ui
+                    .selectable_label(*units == choice, choice.symbol())
+                    .on_hover_text(format!("Show lengths in {}", choice.name().to_lowercase()));
+                response.widget_info(|| {
+                    egui::WidgetInfo::selected(
+                        egui::WidgetType::SelectableLabel,
+                        true,
+                        *units == choice,
+                        format!("Lengths in {}", choice.name().to_lowercase()),
+                    )
+                });
+                if response.clicked() {
+                    *units = choice;
+                }
+            }
+        });
+    });
+    ui.separator();
 }
 
 /// The selected object's settings, if it is a primitive.
