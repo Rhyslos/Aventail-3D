@@ -784,3 +784,28 @@ fn a_remembered_accent_is_restored() {
         crate::theme::Accent::Olive
     );
 }
+
+#[test]
+fn accent_swatches_stay_inside_their_menu() {
+    let mut harness = fresh();
+    main_menu(&harness, "Window").click();
+    harness.run();
+    harness.get_by_label_contains("Accent colour").click();
+    harness.run();
+    // The submenu opens to the right of "Accent colour". Each swatch is
+    // drawn before its name, so the names leave room for one inside the
+    // submenu, and nothing is drawn after them.
+    let parent_right = harness.get_by_label_contains("Accent colour").rect().max.x;
+    let lefts: Vec<f32> = crate::theme::Accent::ALL
+        .iter()
+        .map(|a| harness.get_by_label(a.name()).rect().min.x)
+        .collect();
+    for left in &lefts {
+        assert!((left - lefts[0]).abs() < 0.5, "names line up");
+        assert!(
+            left - parent_right >= 16.0 + 6.0,
+            "room for the swatch: {}",
+            left - parent_right
+        );
+    }
+}

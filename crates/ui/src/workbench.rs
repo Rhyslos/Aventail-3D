@@ -362,16 +362,17 @@ pub fn navigation_hint(scheme: tools::Scheme) -> String {
     format!("{}: {}", scheme.name(), scheme.summary())
 }
 
-/// One accent colour in the Window menu: a swatch, its name, and a tick
-/// on the one in use.
+/// One accent colour in the Window menu: a tick on the one in use, a
+/// swatch, and its name. The swatch sits inside the row, before the name,
+/// so it never spills out of the menu.
 fn accent_choice(ui: &mut Ui, accent: Accent, current: Accent) -> egui::Response {
-    let response = ui.add(egui::RadioButton::new(accent == current, accent.name()));
-    let swatch = egui::Rect::from_center_size(
-        egui::pos2(response.rect.right() + 14.0, response.rect.center().y),
-        egui::vec2(16.0, 10.0),
-    );
-    ui.painter().rect_filled(swatch, 3.0, accent.colors().fill);
-    response
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing.x = 6.0;
+        let (swatch, _) = ui.allocate_exact_size(egui::vec2(16.0, 10.0), egui::Sense::hover());
+        ui.painter().rect_filled(swatch, 3.0, accent.colors().fill);
+        ui.add(egui::RadioButton::new(accent == current, accent.name()))
+    })
+    .inner
 }
 
 /// The layout tabs on the right of the menu bar. Only the standard layout

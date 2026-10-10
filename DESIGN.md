@@ -239,7 +239,7 @@ Let people code their own functionality: custom tools, batch jobs, generators, e
 | Orbit | Alt + LMB |
 | Pan | Alt + MMB |
 | Zoom/dolly | Alt + RMB, mouse wheel |
-| Frame selected / all | configurable (e.g. S / H) |
+| Frame selected / all | keys to be chosen so they don't clash with Halberd's (§5.4) |
 | Views | F1–F5: perspective, top, right, front, 4-up |
 
 **Navigation schemes** ([decision 0015](docs/decisions/0015-navigation-schemes.md)): picked from a button in the viewport's bottom-right corner. *Alt + mouse* (above), *Mouse only* (right orbits, middle pans), *Mouse only, middle zooms* (Shift + middle pans), *Middle pans, Alt orbits*, and *Middle orbits* (Shift + middle pans). Every scheme zooms with the wheel and leaves a plain left drag to the tools. Switches: *Alt + mouse works in every scheme* (on) and *Invert orbit direction* (off). The project lead chooses the final standard after trying them.
@@ -250,6 +250,7 @@ Let people code their own functionality: custom tools, batch jobs, generators, e
 - Show a small pivot marker while orbiting.
 
 ### 5.4 Commands and hotkeys
+- **Keys and mouse use follow Halberd** ([decision 0016](docs/decisions/0016-controls-follow-halberd.md)): `Q` select, `W`/`R`/`S`/`T` move, rotate, scale and all gizmos, `Esc` deselect, `Delete` delete, `Ctrl+Z`/`Ctrl+Y` undo and redo, `Ctrl+S` save, `B` the create tool, a right-mouse fly camera with `WASD`, and a Keybinds viewer with a drawn keyboard. Viewport navigation is the exception: it uses the schemes in §5.3 until the project lead picks a standard. Anything below that clashes with Halberd's keys gives way.
 - Every action is a named command with a configurable hotkey (stored in a settings file).
 - **C4D-style modelling menu** (press a key, then a letter for the tool).
 - **Max-style quad menu** on right-click as an optional "sprinkle" (Phase 7).
@@ -459,3 +460,4 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-10 — The project lead found the grid busy: a grid detail switch added to the left palette (and View menu), with the fine 10 cm lines **off by default** and the choice remembered between sessions.
 - 2026-10-10 — The project lead found the app still felt like Blender. A mockup with their screenshots as reference was approved, then an accent colour picked from twelve versions: darker studio look, viewport with a horizon and a finite grid, menu lines inside panels, viewport overlays, layout tabs; **red** accent as standard with five others to choose from ([0014](docs/decisions/0014-studio-look-and-accent.md)). No other program's name appears in the app, its code or the manual.
 - 2026-10-10 — Navigation schemes to try before choosing a standard, picked from the viewport's bottom-right corner, named by what they do ([0015](docs/decisions/0015-navigation-schemes.md)).
+- 2026-10-10 — Keyboard and mouse controls copy Halberd's, so both Rhylib tools work the same; only viewport navigation keeps its own schemes while they're being tried ([0016](docs/decisions/0016-controls-follow-halberd.md)).
