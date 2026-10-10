@@ -157,6 +157,12 @@ impl Workbench {
         &self.viewport
     }
 
+    /// The 3D viewport panel, for changing it in tests.
+    #[cfg(test)]
+    pub(crate) fn viewport_mut(&mut self) -> &mut ViewportPanel {
+        &mut self.viewport
+    }
+
     /// The viewport's display choices, for saving between sessions.
     pub fn view_options(&self) -> ViewOptions {
         self.viewport.options()

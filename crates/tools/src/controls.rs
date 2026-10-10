@@ -148,6 +148,9 @@ pub struct NavigationSettings {
     /// Whether orbiting turns the other way (the scene moves against the
     /// mouse instead of with it).
     pub invert_orbit: bool,
+    /// Whether orbiting turns around, and zooming moves towards, the point
+    /// under the mouse, instead of the middle of the view.
+    pub around_cursor: bool,
 }
 
 impl Default for NavigationSettings {
@@ -156,6 +159,7 @@ impl Default for NavigationSettings {
             scheme: Scheme::default(),
             alt_everywhere: true,
             invert_orbit: false,
+            around_cursor: true,
         }
     }
 }
@@ -197,7 +201,7 @@ mod tests {
         NavigationSettings {
             scheme,
             alt_everywhere: false,
-            invert_orbit: false,
+            ..NavigationSettings::default()
         }
     }
 
@@ -331,6 +335,7 @@ mod tests {
         assert_eq!(Scheme::ALL[0], Scheme::MouseOnly, "listed first");
         assert!(s.alt_everywhere);
         assert!(!s.invert_orbit);
+        assert!(s.around_cursor, "orbit and zoom around the mouse: on");
     }
 
     #[test]
@@ -339,6 +344,7 @@ mod tests {
             scheme: Scheme::MiddleOrbits,
             alt_everywhere: false,
             invert_orbit: true,
+            around_cursor: false,
         };
         let text = ron::to_string(&s).unwrap();
         assert_eq!(ron::from_str::<NavigationSettings>(&text).unwrap(), s);

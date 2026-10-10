@@ -68,6 +68,8 @@ Each frame, for the viewport:
 3. **Draw** (`render`, through `app`'s `GpuViewport`): the backdrop with its horizon, faces, grid and lines are drawn into the viewport's own offscreen image on the window's GPU device.
 4. **Show** (`ui`): the image is drawn into the panel as an egui texture, with the view's label on top.
 
+While the mouse hovers over the image, the panel also asks the renderer what surface is under it (`ViewportRenderer::pick`); the answer arrives on a later frame and is used as the pivot when an orbit or zoom starts ([decision 0017](docs/decisions/0017-picking-the-point-under-the-mouse.md)).
+
 Rendering sits behind the `ViewportRenderer` trait, so the panel runs in tests with no GPU. See [decision 0013](docs/decisions/0013-viewport-rendering.md).
 
 ## Axes

@@ -13,23 +13,62 @@ fn info() -> AppInfo {
     }
 }
 
+/// A stand-in renderer: draws nothing (like having no GPU), and answers
+/// every question about the point under the mouse at once, with `surface`.
+#[derive(Default)]
+struct TestRenderer {
+    /// What is under the mouse, wherever it is; `None` for background.
+    surface: Option<glam::Vec3>,
+    /// Whether to answer questions at all (a renderer without picking
+    /// answers nothing).
+    picks: bool,
+    /// How many questions were asked.
+    asks: usize,
+}
+
+impl ViewportRenderer for TestRenderer {
+    fn render(&mut self, view: &crate::ViewportView) -> Result<egui::TextureId, String> {
+        NoRenderer::default().render(view)
+    }
+
+    fn pick(&mut self, ask: Option<crate::PickAsk>) -> crate::PickReply {
+        let Some(ask) = ask.filter(|_| self.picks) else {
+            return crate::PickReply::default();
+        };
+        self.asks += 1;
+        crate::PickReply {
+            answer: Some(crate::Picked {
+                pixel: ask.pixel,
+                point: self.surface,
+            }),
+            waiting: false,
+        }
+    }
+}
+
 /// The workbench plus every action it has returned so far.
 struct State {
     workbench: Workbench,
     actions: Vec<WorkbenchAction>,
+    renderer: TestRenderer,
 }
 
 fn harness_for(workbench: Workbench) -> Harness<'static, State> {
+    harness_with(workbench, TestRenderer::default())
+}
+
+fn harness_with(workbench: Workbench, renderer: TestRenderer) -> Harness<'static, State> {
     Harness::builder()
         .with_size([1440.0, 900.0])
         .build_ui_state(
             |ui, state: &mut State| {
-                let actions = state.workbench.show(ui, &mut NoRenderer::default());
+                let actions = state.workbench.show(ui, &mut state.renderer);
                 state.actions.extend(actions);
             },
             State {
                 workbench,
                 actions: Vec::new(),
+                renderer,
             },
         )
 }
@@ -830,5 +869,162 @@ fn the_alt_mouse_scheme_can_still_be_picked() {
         camera(&harness),
         before,
         "a plain right drag no longer orbits"
+    );
+}
+
+// --------------------------------------- orbit and zoom around the mouse ---
+
+/// A point on the test cube's front face, standing in for whatever is
+/// under the mouse.
+const SURFACE: glam::Vec3 = glam::Vec3::new(30.0, -100.0, 120.0);
+
+fn with_surface(surface: Option<glam::Vec3>) -> Harness<'static, State> {
+    let renderer = TestRenderer {
+        surface,
+        picks: true,
+        asks: 0,
+    };
+    let mut harness = harness_with(Workbench::new(info(), None), renderer);
+    harness.run();
+    harness
+}
+
+fn pivot(harness: &Harness<'static, State>) -> glam::Vec3 {
+    harness.state().workbench.viewport().navigator().pivot()
+}
+
+#[test]
+fn orbiting_turns_around_the_surface_under_the_mouse() {
+    let mut harness = with_surface(Some(SURFACE));
+    drag_viewport(
+        &mut harness,
+        egui::PointerButton::Secondary,
+        Modifiers::NONE,
+        egui::vec2(100.0, 30.0),
+    );
+    assert_eq!(pivot(&harness), SURFACE);
+}
+
+#[test]
+fn orbiting_over_the_background_keeps_the_pivot() {
+    let mut harness = with_surface(None);
+    drag_viewport(
+        &mut harness,
+        egui::PointerButton::Secondary,
+        Modifiers::NONE,
+        egui::vec2(100.0, 30.0),
+    );
+    assert_eq!(pivot(&harness), tools::camera::DEFAULT_TARGET);
+}
+
+#[test]
+fn switching_off_around_the_mouse_keeps_the_old_pivot() {
+    let mut harness = with_surface(Some(SURFACE));
+    harness
+        .state_mut()
+        .workbench
+        .viewport_mut()
+        .options_mut()
+        .navigation
+        .around_cursor = false;
+    drag_viewport(
+        &mut harness,
+        egui::PointerButton::Secondary,
+        Modifiers::NONE,
+        egui::vec2(100.0, 30.0),
+    );
+    assert_eq!(pivot(&harness), tools::camera::DEFAULT_TARGET);
+}
+
+#[test]
+fn the_wheel_zooms_towards_the_surface_under_the_mouse() {
+    let mut harness = with_surface(Some(SURFACE));
+    let spot = viewport_spot(&harness);
+    harness.event(egui::Event::PointerMoved(spot));
+    harness.run();
+    let before = harness
+        .state()
+        .workbench
+        .viewport()
+        .camera()
+        .position
+        .distance(SURFACE);
+    harness.event(egui::Event::MouseWheel {
+        unit: egui::MouseWheelUnit::Line,
+        delta: egui::vec2(0.0, 1.0),
+        phase: egui::TouchPhase::Move,
+        modifiers: Modifiers::NONE,
+    });
+    harness.run();
+    assert_eq!(pivot(&harness), SURFACE);
+    assert!(harness.state().workbench.viewport().navigator().distance() < before);
+}
+
+#[test]
+fn the_wheel_over_the_ground_zooms_towards_the_ground() {
+    // No surface anywhere: the ground under the mouse is the target.
+    let mut harness = with_surface(None);
+    let below_middle =
+        harness.get_by_label(crate::VIEWPORT_LABEL).rect().center() + egui::vec2(-150.0, 180.0);
+    harness.event(egui::Event::PointerMoved(below_middle));
+    harness.run();
+    harness.event(egui::Event::MouseWheel {
+        unit: egui::MouseWheelUnit::Line,
+        delta: egui::vec2(0.0, 1.0),
+        phase: egui::TouchPhase::Move,
+        modifiers: Modifiers::NONE,
+    });
+    harness.run();
+    let target = pivot(&harness);
+    assert!(target.z.abs() < 0.5, "on the ground: {target}");
+    // ...under the mouse, which zooming keeps it under.
+    let body = harness.get_by_label(crate::VIEWPORT_LABEL).rect();
+    let size = glam::Vec2::new(body.width(), body.height());
+    let seen = harness
+        .state()
+        .workbench
+        .viewport()
+        .camera()
+        .project(target, size)
+        .unwrap();
+    let mouse = below_middle - body.min;
+    assert!(
+        (seen.x - mouse.x).abs() < 2.0 && (seen.y - mouse.y).abs() < 2.0,
+        "{seen} vs {mouse:?}"
+    );
+}
+
+#[test]
+fn a_resting_mouse_asks_only_once() {
+    let mut harness = with_surface(Some(SURFACE));
+    let spot = viewport_spot(&harness);
+    harness.event(egui::Event::PointerMoved(spot));
+    harness.run();
+    let asks = harness.state().renderer.asks;
+    for _ in 0..5 {
+        harness.step();
+    }
+    assert_eq!(harness.state().renderer.asks, asks, "no new questions");
+    assert!(asks >= 1);
+    harness.event(egui::Event::PointerMoved(spot + egui::vec2(20.0, 0.0)));
+    harness.run();
+    assert!(harness.state().renderer.asks > asks, "moving asks again");
+}
+
+#[test]
+fn the_around_the_mouse_switch_is_in_the_picker_and_options() {
+    let mut harness = fresh();
+    open_picker(&mut harness);
+    harness
+        .get_by_label(crate::viewport::AROUND_CURSOR_LABEL)
+        .click();
+    harness.run();
+    assert!(
+        !harness
+            .state()
+            .workbench
+            .view_options()
+            .navigation
+            .around_cursor
     );
 }

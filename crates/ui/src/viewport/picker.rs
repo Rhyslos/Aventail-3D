@@ -14,6 +14,9 @@ use tools::{NavigationSettings, Scheme};
 /// Accessible name of the picker's button, and the title of its list.
 pub const PICKER_LABEL: &str = "Navigation controls";
 
+/// The switch for orbiting and zooming around the point under the mouse.
+pub(crate) const AROUND_CURSOR_LABEL: &str = "Orbit and zoom around the point under the mouse";
+
 /// Width of the open list, in logical pixels.
 const LIST_WIDTH: f32 = 344.0;
 
@@ -125,14 +128,11 @@ fn list(ui: &mut Ui, settings: &mut NavigationSettings) {
                 &mut settings.alt_everywhere,
                 "Alt + mouse works in every scheme",
             );
-            ui.add_enabled(
-                false,
-                egui::Checkbox::new(
-                    &mut false,
-                    "Orbit and zoom around the point under the mouse",
-                ),
-            )
-            .on_disabled_hover_text("Arrives in the next update");
+            ui.checkbox(&mut settings.around_cursor, AROUND_CURSOR_LABEL)
+                .on_hover_text(
+                    "Turn around, and zoom towards, whatever is under the mouse \
+                     instead of the middle of the view",
+                );
             ui.checkbox(&mut settings.invert_orbit, "Invert orbit direction");
         });
 }

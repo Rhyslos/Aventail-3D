@@ -4,8 +4,8 @@
 use eframe::egui;
 use eframe::egui_wgpu::RenderState;
 use eframe::wgpu;
-use render::{FrameParams, ViewportRenderer as GpuRenderer, ViewportTarget};
-use ui::{ViewportRenderer, ViewportView};
+use render::{FrameParams, PickRequest, ViewportRenderer as GpuRenderer, ViewportTarget};
+use ui::{PickAsk, PickReply, Picked, ViewportRenderer, ViewportView};
 
 /// Draws the viewport with the same GPU device the window uses.
 pub struct GpuViewport {
@@ -96,5 +96,30 @@ impl ViewportRenderer for GpuViewport {
         self.renderer
             .render(&self.state.device, &self.state.queue, target, &params);
         Ok(texture)
+    }
+
+    fn pick(&mut self, ask: Option<PickAsk>) -> PickReply {
+        let device = &self.state.device;
+        let answer = self.renderer.poll_pick(device).map(|r| Picked {
+            pixel: r.pixel,
+            point: r.point,
+        });
+        if let Some(ask) = ask
+            && !self.renderer.is_picking()
+        {
+            self.renderer.request_pick(
+                device,
+                &self.state.queue,
+                PickRequest {
+                    view_projection: ask.view_projection,
+                    pixel: ask.pixel,
+                    size: ask.size_px,
+                },
+            );
+        }
+        PickReply {
+            answer,
+            waiting: self.renderer.is_picking(),
+        }
     }
 }

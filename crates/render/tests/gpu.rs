@@ -9,7 +9,8 @@
 
 use glam::{Vec2, Vec3};
 use render::{
-    FrameParams, TEST_CUBE_SIZE, ViewportRenderer, ViewportTarget, best_sample_count, read_pixels,
+    FrameParams, PickRequest, TEST_CUBE_SIZE, ViewportRenderer, ViewportTarget, best_sample_count,
+    read_pixels,
 };
 use tools::Camera;
 
@@ -362,4 +363,98 @@ fn resizing_makes_a_new_target_of_the_right_size() {
         tools::camera::DEFAULT_TARGET,
     );
     assert_eq!(shot.pixels.len(), 300 * 150 * 4);
+}
+
+fn pick_request(camera: &Camera, pixel: Vec2, size: [u32; 2]) -> PickRequest {
+    PickRequest {
+        view_projection: camera.view_projection(Vec2::new(size[0] as f32, size[1] as f32)),
+        pixel: pixel.to_array(),
+        size,
+    }
+}
+
+#[test]
+fn picking_finds_the_surface_under_a_pixel() {
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, _) = setup(&gpu, [8, 8]);
+    let size = [640, 400];
+    let camera = Camera::default();
+    let h = TEST_CUBE_SIZE / 2.0;
+    for surface in [
+        Vec3::new(0.0, -h, 100.0),
+        Vec3::new(h, 30.0, 150.0),
+        Vec3::new(-40.0, -40.0, TEST_CUBE_SIZE),
+    ] {
+        let pixel = camera
+            .project(surface, Vec2::new(640.0, 400.0))
+            .expect("in view");
+        let result = renderer
+            .pick_now(&gpu.device, &gpu.queue, pick_request(&camera, pixel, size))
+            .expect("an answer");
+        let point = result.point.expect("the cube is there");
+        assert!((point - surface).length() < 2.0, "{point} vs {surface}");
+        assert_eq!(result.pixel, pixel.to_array());
+    }
+}
+
+#[test]
+fn picking_the_background_finds_nothing() {
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, _) = setup(&gpu, [8, 8]);
+    let camera = Camera::default();
+    // The sky in the top-left corner; the grid and axes are not surfaces.
+    for pixel in [Vec2::new(10.0, 10.0), Vec2::new(40.0, 390.0)] {
+        let result = renderer
+            .pick_now(
+                &gpu.device,
+                &gpu.queue,
+                pick_request(&camera, pixel, [640, 400]),
+            )
+            .expect("an answer");
+        assert_eq!(result.point, None, "{pixel}");
+    }
+}
+
+#[test]
+fn picking_never_waits_and_asks_one_question_at_a_time() {
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, _) = setup(&gpu, [8, 8]);
+    let camera = Camera::default();
+    let request = pick_request(&camera, Vec2::new(320.0, 200.0), [640, 400]);
+    assert!(renderer.request_pick(&gpu.device, &gpu.queue, request));
+    assert!(renderer.is_picking());
+    assert!(
+        !renderer.request_pick(&gpu.device, &gpu.queue, request),
+        "busy: the second question is refused"
+    );
+    let mut answer = None;
+    for _ in 0..200 {
+        answer = renderer.poll_pick(&gpu.device);
+        if answer.is_some() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    assert!(answer.is_some(), "the answer arrives on a later poll");
+    assert!(!renderer.is_picking());
+    assert!(
+        renderer.request_pick(&gpu.device, &gpu.queue, request),
+        "free again"
+    );
+}
+
+#[test]
+fn a_broken_pick_request_is_refused() {
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, _) = setup(&gpu, [8, 8]);
+    let camera = Camera::default();
+    let mut request = pick_request(&camera, Vec2::new(f32::NAN, 1.0), [640, 400]);
+    assert!(!renderer.request_pick(&gpu.device, &gpu.queue, request));
+    request.pixel = [1.0, 1.0];
+    request.size = [0, 0];
+    assert!(
+        renderer
+            .pick_now(&gpu.device, &gpu.queue, request)
+            .is_none()
+    );
 }
