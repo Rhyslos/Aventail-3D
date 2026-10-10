@@ -388,6 +388,31 @@ fn alt_g_groups_and_shift_g_ungroups() {
     assert_eq!(selected_names(&harness), ["Test cube"]);
 }
 
+#[test]
+fn shift_g_leaves_objects_that_are_not_groups_alone() {
+    // Regression: Shift+G with the cube selected deleted the cube.
+    let mut harness = fresh();
+    click_row(&mut harness, "Test cube", Modifiers::NONE);
+    key(&mut harness, SHIFT, Key::G);
+    assert_eq!(top_level_names(&harness), ["Test cube"]);
+    assert!(cube_drawn(&mut harness));
+    assert_eq!(harness.state().workbench.document().undo_label(), None);
+    assert!(
+        harness
+            .query_by_label_contains("only groups can be ungrouped")
+            .is_some()
+    );
+    // And the menu entry waits for a group.
+    harness.get_by_label("Object").click();
+    harness.run();
+    assert!(
+        harness
+            .get_by_label_contains("Ungroup")
+            .accesskit_node()
+            .is_disabled()
+    );
+}
+
 // ------------------------------------------------------------- renaming ---
 
 #[test]

@@ -615,10 +615,12 @@ pub(crate) fn object_entries(ui: &mut Ui, doc: &Document, out: &mut Vec<DocReque
     if entry(ui, "Group objects", Some(&GROUP_SHORTCUT), any) {
         out.push(DocRequest::Run(Command::Group(selection.clone())));
     }
-    let has_contents = selection
-        .iter()
-        .any(|id| !doc.scene().children(Some(*id)).is_empty());
-    if entry(ui, "Ungroup", Some(&UNGROUP_SHORTCUT), has_contents) {
+    if entry(
+        ui,
+        "Ungroup",
+        Some(&UNGROUP_SHORTCUT),
+        has_group(doc, &selection),
+    ) {
         out.push(DocRequest::Run(Command::Ungroup(selection.clone())));
     }
     ui.separator();
@@ -630,6 +632,15 @@ pub(crate) fn object_entries(ui: &mut Ui, doc: &Document, out: &mut Vec<DocReque
             }));
         }
     }
+}
+
+/// Whether any of `ids` is a group (the only kind Ungroup works on).
+pub(crate) fn has_group(doc: &Document, ids: &[ObjectId]) -> bool {
+    ids.iter().any(|id| {
+        doc.scene()
+            .object(*id)
+            .is_some_and(|o| o.kind == ObjectKind::Group)
+    })
 }
 
 /// The right-click menu on a row.

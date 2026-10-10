@@ -323,6 +323,8 @@ impl Workbench {
         }
         let popup_open = egui::Popup::is_any_open(ui.ctx());
         let selection = self.document.selection();
+        let can_ungroup = objects::has_group(&self.document, &selection);
+        let mut note = None;
         ui.input_mut(|i| {
             // Ctrl+Shift+Z first: Ctrl+Z would match it too.
             if i.consume_shortcut(&objects::REDO_SHORTCUT_2)
@@ -333,7 +335,11 @@ impl Workbench {
                 out.push(DocRequest::Undo);
             }
             if i.consume_shortcut(&objects::UNGROUP_SHORTCUT) && !selection.is_empty() {
-                out.push(DocRequest::Run(Command::Ungroup(selection.clone())));
+                if can_ungroup {
+                    out.push(DocRequest::Run(Command::Ungroup(selection.clone())));
+                } else {
+                    note = Some("Nothing to ungroup: only groups can be ungrouped.".to_string());
+                }
             }
             if i.consume_shortcut(&objects::GROUP_SHORTCUT) && !selection.is_empty() {
                 out.push(DocRequest::Run(Command::Group(selection.clone())));
@@ -344,6 +350,9 @@ impl Workbench {
                 out.push(DocRequest::Run(Command::Delete(selection.clone())));
             }
         });
+        if note.is_some() {
+            self.note = note;
+        }
         // Esc closes an open menu first; otherwise it deselects.
         if !popup_open && ui.input_mut(|i| i.consume_shortcut(&objects::DESELECT_SHORTCUT)) {
             self.document.clear_selection();

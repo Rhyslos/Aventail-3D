@@ -16,7 +16,7 @@ For now the scene holds the 2 m test cube, and you can add **groups**: empty obj
 
 **Create a group.** Use **Create → Group**, the group button on the command palette (the cross with a circle, after the shapes), or **Object → New group** in the panel's own menu. New objects appear at the top of the list, already selected, and are named *Group*, *Group 2* and so on.
 
-**Put objects in a group.** Select them and press **Alt + G** (or **Object → Group objects**): they go into a new group, which takes the place of the first of them. To take them out again, select the group and press **Shift + G** (**Object → Ungroup**): its contents go back where the group was, and the empty group is removed.
+**Put objects in a group.** Select them and press **Alt + G** (or **Object → Group objects**): they go into a new group, which takes the place of the first of them. To take them out again, select the group and press **Shift + G** (**Object → Ungroup**): its contents go back where the group was, and the empty group is removed. Ungroup only ever works on groups: anything else in the selection, like the test cube, is left exactly as it is.
 
 **Drag to rearrange.** Drag a row (press on its name and move the mouse):
 - onto the **middle** of another row to put it **inside** that object (an outline shows where it will go);

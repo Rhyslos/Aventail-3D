@@ -433,11 +433,55 @@ fn ungrouping_puts_the_contents_where_the_group_was() {
 }
 
 #[test]
-fn ungrouping_an_empty_object_just_removes_it() {
+fn ungrouping_an_empty_group_just_removes_it() {
     let (mut doc, ids) = with_groups(&["A", "B"]);
     doc.execute(Command::Ungroup(vec![ids[0]])).unwrap();
     assert_eq!(outline(&doc), "B");
     assert!(doc.selection().is_empty());
+}
+
+#[test]
+fn ungrouping_never_touches_objects_that_are_not_groups() {
+    // Regression: Shift+G with the test cube selected deleted the cube.
+    let mut doc = Document::starting_scene();
+    let cube = doc.scene().children(None)[0];
+    doc.set_selection([cube]);
+    let before = doc.clone();
+    doc.execute(Command::Ungroup(vec![cube])).unwrap();
+    assert_eq!(doc, before, "nothing changed, no undo step");
+
+    // Not even when something has been put inside the cube.
+    doc.execute(Command::Create(ObjectKind::Group)).unwrap();
+    let group = doc.selection()[0];
+    doc.execute(Command::Move {
+        ids: vec![group],
+        parent: Some(cube),
+        index: 0,
+    })
+    .unwrap();
+    let before = doc.scene().clone();
+    doc.execute(Command::Ungroup(vec![cube])).unwrap();
+    assert_eq!(*doc.scene(), before);
+}
+
+#[test]
+fn ungrouping_a_mixed_selection_only_ungroups_the_groups() {
+    let mut doc = Document::starting_scene();
+    let cube = doc.scene().children(None)[0];
+    doc.execute(Command::Create(ObjectKind::Group)).unwrap();
+    let empty = doc.selection()[0];
+    doc.execute(Command::Group(vec![cube])).unwrap();
+    let holder = doc.selection()[0];
+    assert_eq!(outline(&doc), "Group Group 2[Test cube]");
+    doc.execute(Command::Ungroup(vec![holder, cube, empty]))
+        .unwrap();
+    assert_eq!(
+        outline(&doc),
+        "Test cube",
+        "both groups gone, the cube kept"
+    );
+    assert_eq!(doc.selection(), [cube]);
+    assert_eq!(doc.undo_label(), Some("Ungroup 2 groups"));
 }
 
 #[test]

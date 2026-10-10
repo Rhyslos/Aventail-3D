@@ -51,9 +51,10 @@ pub enum Command {
     /// Puts objects into a new group, which takes the place of the first
     /// of them. The group becomes the selection.
     Group(Vec<ObjectId>),
-    /// Takes everything out of these groups (or other objects), putting it
-    /// where the group was, and deletes the emptied objects. What was
-    /// inside becomes the selection.
+    /// Takes everything out of the groups among these objects, putting it
+    /// where each group was, and deletes the emptied groups. What was
+    /// inside becomes the selection. Objects that aren't groups are left
+    /// alone; with no group among them, nothing happens.
     Ungroup(Vec<ObjectId>),
 }
 
@@ -79,13 +80,10 @@ impl Command {
             Self::Move { ids, .. } => format!("Move {}", objects(count(ids))),
             Self::Delete(ids) => format!("Delete {}", objects(count(ids))),
             Self::Group(ids) => format!("Group {}", objects(count(ids))),
-            Self::Ungroup(ids) => {
-                if count(ids) == 1 {
-                    "Ungroup".into()
-                } else {
-                    format!("Ungroup {}", count(ids))
-                }
-            }
+            Self::Ungroup(ids) => match groups_among(scene, ids).len() {
+                1 => "Ungroup".into(),
+                n => format!("Ungroup {n} groups"),
+            },
         }
     }
 }
@@ -236,8 +234,14 @@ impl Run<'_> {
                 Ok(Some(vec![group_id]))
             }
             Command::Ungroup(ids) => {
+                existing(self.scene, ids)?;
+                let groups = groups_among(self.scene, ids);
+                if groups.is_empty() {
+                    // Nothing to ungroup: never touch other objects.
+                    return Ok(None);
+                }
                 let mut freed = Vec::new();
-                for id in top_level(self.scene, &existing(self.scene, ids)?) {
+                for id in groups {
                     let place = self.place_of(id)?;
                     let children = self.scene.children(Some(id)).to_vec();
                     // Into the group's place, before the group itself.
@@ -317,6 +321,21 @@ fn existing(scene: &Scene, ids: &[ObjectId]) -> Result<Vec<ObjectId>, SceneError
         .map(|(id, _)| id)
         .filter(|id| ids.contains(id))
         .collect())
+}
+
+/// The groups among `ids`, in tree order, leaving out any inside another
+/// group listed (ungrouping the outer one frees them first).
+pub(crate) fn groups_among(scene: &Scene, ids: &[ObjectId]) -> Vec<ObjectId> {
+    let groups: Vec<ObjectId> = ids
+        .iter()
+        .copied()
+        .filter(|id| {
+            scene
+                .object(*id)
+                .is_some_and(|o| o.kind == ObjectKind::Group)
+        })
+        .collect();
+    top_level(scene, &groups)
 }
 
 /// `ids` in tree order, leaving out any that sit inside another one listed
