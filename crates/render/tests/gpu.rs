@@ -215,7 +215,8 @@ fn the_cube_is_shaded_like_a_studio_light() {
         tools::camera::DEFAULT_TARGET,
     );
     let h = TEST_CUBE_SIZE / 2.0;
-    let top = shot.at(Vec3::new(0.0, 0.0, TEST_CUBE_SIZE));
+    // Off-centre: the green Z axis comes out of the middle of the top.
+    let top = shot.at(Vec3::new(40.0, -40.0, TEST_CUBE_SIZE));
     let front = shot.at(Vec3::new(0.0, -h, TEST_CUBE_SIZE / 2.0));
     let right = shot.at(Vec3::new(h, 0.0, TEST_CUBE_SIZE / 2.0));
     let sky = shot.pixel(10, 10);
