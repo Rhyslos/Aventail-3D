@@ -1,4 +1,4 @@
-//! The two palettes around the viewport, as in Cinema 4D: the command
+//! The two palettes around the viewport: the command
 //! palette along the top (tools and primitives) and the mode palette down
 //! the left (what kind of element you work on).
 //!
@@ -15,7 +15,7 @@ pub const BUTTON_SIZE: f32 = 32.0;
 /// Size of the icon inside a palette button.
 const ICON_SIZE: f32 = 18.0;
 
-/// What kind of element the tools work on (Cinema 4D's modes).
+/// What kind of element the tools work on.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Mode {
     /// Whole objects, with their children.
@@ -91,9 +91,6 @@ pub enum ButtonState {
     Active,
 }
 
-/// The accent colour for the active mode, as in Cinema 4D.
-pub const ACCENT: Color32 = crate::theme::ACCENT;
-
 /// A square palette button with an icon. `label` names it for tooltips
 /// and screen readers; `note` is added to the tooltip (for example when
 /// the command arrives).
@@ -127,8 +124,9 @@ pub fn tinted_button(
     if ui.is_rect_visible(rect) {
         let visuals = ui.visuals();
         let painter = ui.painter();
+        let accent = theme::accent(ui.ctx()).colors();
         let background = match state {
-            ButtonState::Active => Some(ACCENT.gamma_multiply(0.22)),
+            ButtonState::Active => Some(accent.fill),
             _ if enabled && response.hovered() => Some(visuals.widgets.hovered.weak_bg_fill),
             _ => None,
         };
@@ -136,7 +134,7 @@ pub fn tinted_button(
             painter.rect_filled(rect, 5.0, fill);
         }
         let color = match state {
-            ButtonState::Active => ACCENT,
+            ButtonState::Active => Color32::WHITE,
             ButtonState::Normal if response.hovered() => crate::theme::TEXT_STRONG,
             ButtonState::Normal => tint,
             ButtonState::Unavailable => dimmed(tint),
@@ -241,7 +239,7 @@ pub fn command_palette(ui: &mut Ui) {
                 );
             }
             if index == 1 {
-                // The axis locks sit with the transform tools, as in Cinema 4D.
+                // The axis locks sit with the transform tools.
                 divider(ui, true);
                 for (axis, color) in [
                     ("X", tint::AXIS_X),

@@ -5,7 +5,9 @@
 //! the scene directly. See this crate's README for its purpose and limits.
 
 pub mod camera;
+pub mod controls;
 pub mod navigation;
 
 pub use camera::{Camera, Ray};
+pub use controls::{Modifiers, NavigationSettings, Scheme};
 pub use navigation::{DragKind, MouseButton, Navigator};

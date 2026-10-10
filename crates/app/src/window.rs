@@ -14,6 +14,8 @@ const LAYOUT_KEY: &str = "panel_layout";
 /// Key under which the viewport's display choices (such as grid detail)
 /// are remembered between sessions.
 const VIEW_KEY: &str = "view_options";
+/// Key under which the accent colour is remembered between sessions.
+const ACCENT_KEY: &str = "accent";
 /// Window size on first launch, in logical pixels.
 const FIRST_SIZE: [f32; 2] = [1440.0, 900.0];
 /// The smallest the window may get while staying usable.
@@ -39,6 +41,7 @@ impl eframe::App for App {
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         eframe::set_value(storage, LAYOUT_KEY, self.workbench.layout());
         eframe::set_value(storage, VIEW_KEY, &self.workbench.view_options());
+        eframe::set_value(storage, ACCENT_KEY, &self.workbench.accent());
     }
 }
 
@@ -77,6 +80,10 @@ pub fn run(info: AppInfo) -> Result<(), String> {
                     .storage
                     .and_then(|s| eframe::get_value(s, VIEW_KEY))
                     .unwrap_or_default();
+                let accent: ui::theme::Accent = cc
+                    .storage
+                    .and_then(|s| eframe::get_value(s, ACCENT_KEY))
+                    .unwrap_or_default();
                 let renderer: Box<dyn ViewportRenderer> = match cc.wgpu_render_state.as_ref() {
                     Some(state) => Box::new(GpuViewport::new(state)),
                     None => Box::new(NoRenderer {
@@ -84,7 +91,9 @@ pub fn run(info: AppInfo) -> Result<(), String> {
                     }),
                 };
                 Ok(Box::new(App {
-                    workbench: Workbench::new(info, saved).with_view_options(view),
+                    workbench: Workbench::new(info, saved)
+                        .with_view_options(view)
+                        .with_accent(accent),
                     renderer,
                 }))
             }),
@@ -144,6 +153,8 @@ mod tests {
     fn the_layout_key_does_not_name_the_app() {
         assert!(!LAYOUT_KEY.contains(branding::APP_ID));
         assert!(!VIEW_KEY.contains(branding::APP_ID));
+        assert!(!ACCENT_KEY.contains(branding::APP_ID));
         assert_ne!(LAYOUT_KEY, VIEW_KEY);
+        assert_ne!(VIEW_KEY, ACCENT_KEY);
     }
 }

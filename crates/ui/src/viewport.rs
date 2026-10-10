@@ -1,24 +1,32 @@
-//! The 3D viewport panel: shows the rendered image, with its label on top,
-//! and turns mouse input into camera navigation (Cinema 4D style: Alt +
-//! left drag orbits, Alt + middle pans, Alt + right or the wheel zooms).
+//! The 3D viewport panel: its own menu line along the top, the rendered
+//! image with quiet labels over it, and the navigation controls picker in
+//! the bottom-right corner. Mouse input over the image moves the camera,
+//! with the controls the user picked (see `tools::controls`).
 //!
 //! Rendering itself happens elsewhere, behind the [`ViewportRenderer`]
 //! trait, so this panel (and its tests) need no GPU. When no image can be
-//! drawn, the panel shows the calm background and says why.
+//! drawn, the panel shows the calm backdrop and says why.
 
-use egui::{Align2, Color32, CursorIcon, FontId, PointerButton, Rect, Response, Sense, Ui, pos2};
+pub(crate) mod chrome;
+mod picker;
+
+use egui::{Color32, CursorIcon, PointerButton, Rect, Response, Sense, Ui, pos2};
 use glam::{Mat4, Vec2, Vec3};
 use serde::{Deserialize, Serialize};
-use tools::{Camera, DragKind, MouseButton, Navigator};
+use tools::{Camera, DragKind, Modifiers, MouseButton, NavigationSettings, Navigator};
 
-/// How the viewport is shown: display choices the user can switch, which
-/// are remembered between sessions.
+pub use picker::PICKER_LABEL;
+
+/// How the viewport is shown and steered: choices the user can switch,
+/// which are remembered between sessions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ViewOptions {
     /// Whether the grid shows its fine 10 cm lines as well as the 1 m and
     /// 10 m ones. Off by default, for a calmer ground.
     pub fine_grid: bool,
+    /// Which mouse controls move the view.
+    pub navigation: NavigationSettings,
 }
 
 /// What a renderer needs to draw one viewport frame.
@@ -30,10 +38,14 @@ pub struct ViewportView {
     pub view_projection: Mat4,
     /// Where the camera is.
     pub camera_position: Vec3,
-    /// Background colour at the top of the view, sRGB 0 to 1.
+    /// The point the camera looks at; the grid is drawn around it.
+    pub focus: Vec3,
+    /// The sky straight up, sRGB 0 to 1.
     pub sky_top: [f32; 3],
-    /// Background colour at the bottom of the view, sRGB 0 to 1.
-    pub sky_bottom: [f32; 3],
+    /// The sky at the horizon, sRGB 0 to 1.
+    pub sky_horizon: [f32; 3],
+    /// The ground just below the horizon, sRGB 0 to 1.
+    pub ground: [f32; 3],
     /// Whether to draw the grid's fine 10 cm lines.
     pub fine_grid: bool,
 }
@@ -67,7 +79,7 @@ impl ViewportRenderer for NoRenderer {
     }
 }
 
-/// Accessible name of the viewport, and the label tests look for.
+/// Accessible name of the 3D image, and the label tests look for.
 pub const VIEWPORT_LABEL: &str = "3D viewport";
 
 /// The mouse buttons navigation listens to, in egui's terms and ours.
@@ -82,9 +94,12 @@ const BUTTONS: [(PointerButton, MouseButton); 3] = [
 pub struct ViewportPanel {
     navigator: Navigator,
     /// The navigation drag in progress, if any. Chosen when the drag
-    /// starts, so letting go of Alt mid-drag does not stop it.
+    /// starts, so letting go of a key mid-drag does not stop it.
     drag: Option<DragKind>,
     options: ViewOptions,
+    /// Set by Options → Navigation controls, to open the picker once its
+    /// button has been drawn this frame.
+    open_picker: bool,
 }
 
 impl ViewportPanel {
@@ -109,78 +124,66 @@ impl ViewportPanel {
         self.drag
     }
 
-    /// The display choices (grid detail and so on).
+    /// The display and navigation choices.
     pub fn options(&self) -> ViewOptions {
         self.options
     }
 
-    /// Changes the display choices.
+    /// Changes the display and navigation choices.
     pub fn options_mut(&mut self) -> &mut ViewOptions {
         &mut self.options
     }
 
-    /// Draws the viewport into all of `ui`'s space.
+    /// Draws the viewport into all of `ui`'s space: the menu line along the
+    /// top, the 3D image below it.
     pub fn show(&mut self, ui: &mut Ui, renderer: &mut dyn ViewportRenderer) {
-        let (rect, response) = ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
+        let full = ui.available_rect_before_wrap();
+        let header = Rect::from_min_size(full.min, egui::vec2(full.width(), chrome::HEADER_HEIGHT));
+        let body = Rect::from_min_max(pos2(full.min.x, header.max.y), full.max);
+        ui.allocate_rect(full, Sense::hover());
+
+        let size = Vec2::new(body.width(), body.height());
+        chrome::header(ui, header, self, size);
+
+        let response = ui.interact(body, ui.id().with("viewport_body"), Sense::click_and_drag());
         response.widget_info(|| {
             egui::WidgetInfo::labeled(egui::WidgetType::Other, true, VIEWPORT_LABEL)
         });
-        self.navigate(ui, &response, rect);
-        let painter = ui.painter_at(rect);
-        let view = self.view(rect, ui.ctx().pixels_per_point());
+        self.navigate(ui, &response, body);
+
+        let view = self.view(body, ui.ctx().pixels_per_point());
+        let painter = ui.painter_at(body);
         match renderer.render(&view) {
             Ok(texture) => {
                 let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0));
-                painter.image(texture, rect, uv, Color32::WHITE);
+                painter.image(texture, body, uv, Color32::WHITE);
             }
-            Err(reason) => {
-                painter.add(crate::panels::vertical_gradient(
-                    rect,
-                    crate::panels::VIEWPORT_TOP,
-                    crate::panels::VIEWPORT_BOTTOM,
-                ));
-                // A real label (not just painted text), so screen readers
-                // and tests can read the reason.
-                ui.put(
-                    Rect::from_center_size(rect.center(), egui::vec2(rect.width(), 40.0)),
-                    egui::Label::new(
-                        egui::RichText::new(format!("The 3D view can't be shown: {reason}."))
-                            .color(crate::theme::TEXT),
-                    )
-                    // Not selectable, so dragging across it still moves
-                    // the camera underneath.
-                    .selectable(false),
-                );
-            }
+            Err(reason) => chrome::no_image(ui, body, &reason),
         }
-        painter.text(
-            rect.left_top() + egui::vec2(14.0, 10.0),
-            Align2::LEFT_TOP,
-            "Perspective",
-            FontId::proportional(13.0),
-            crate::theme::TEXT_STRONG,
-        );
+        chrome::overlays(ui, body, self);
+        picker::show(ui, body, self);
     }
 
-    /// Moves the camera for this frame's mouse input over the viewport.
+    /// Moves the camera for this frame's mouse input over the image.
     fn navigate(&mut self, ui: &Ui, response: &Response, rect: Rect) {
         let size = Vec2::new(rect.width(), rect.height());
+        let settings = self.options.navigation;
         if response.drag_started() {
-            let alt = ui.input(|i| i.modifiers.alt);
+            let keys = ui.input(|i| Modifiers {
+                alt: i.modifiers.alt,
+                shift: i.modifiers.shift,
+            });
             self.drag = BUTTONS
                 .iter()
                 .find(|(egui_button, _)| response.drag_started_by(*egui_button))
-                .and_then(|(_, button)| DragKind::for_drag(*button, alt));
+                .and_then(|(_, button)| settings.drag(*button, keys));
         }
         if let Some(kind) = self.drag {
             if response.dragged() {
                 let delta = response.drag_delta();
-                self.navigator.drag(kind, Vec2::new(delta.x, delta.y), size);
-                ui.ctx().set_cursor_icon(match kind {
-                    DragKind::Orbit => CursorIcon::Grabbing,
-                    DragKind::Pan => CursorIcon::Move,
-                    DragKind::Dolly => CursorIcon::ZoomIn,
-                });
+                let delta = settings.movement(kind, Vec2::new(delta.x, delta.y));
+                self.navigator.drag(kind, delta, size);
+                ui.ctx().set_cursor_icon(cursor_for(kind));
             }
             if response.drag_stopped() || !response.dragged() {
                 self.drag = None;
@@ -194,7 +197,16 @@ impl ViewportPanel {
         }
     }
 
-    /// What to ask the renderer for, for a panel at `rect`.
+    /// Applies a drag on one of the menu line's navigation buttons.
+    fn button_drag(&mut self, kind: DragKind, delta: egui::Vec2, size: Vec2) {
+        let delta = self
+            .options
+            .navigation
+            .movement(kind, Vec2::new(delta.x, delta.y));
+        self.navigator.drag(kind, delta, size);
+    }
+
+    /// What to ask the renderer for, for an image at `rect`.
     fn view(&self, rect: Rect, pixels_per_point: f32) -> ViewportView {
         let ppp = if pixels_per_point.is_finite() && pixels_per_point > 0.0 {
             pixels_per_point
@@ -204,14 +216,26 @@ impl ViewportPanel {
         let px = |v: f32| (v * ppp).round().clamp(1.0, 16_384.0) as u32;
         let size_px = [px(rect.width()), px(rect.height())];
         let size = Vec2::new(size_px[0] as f32, size_px[1] as f32);
+        use crate::theme::backdrop;
         ViewportView {
             size_px,
             view_projection: self.camera().view_projection(size),
             camera_position: self.camera().position,
-            sky_top: rgb(crate::panels::VIEWPORT_TOP),
-            sky_bottom: rgb(crate::panels::VIEWPORT_BOTTOM),
+            focus: self.navigator.pivot(),
+            sky_top: rgb(backdrop::SKY_TOP),
+            sky_horizon: rgb(backdrop::HORIZON),
+            ground: rgb(backdrop::GROUND),
             fine_grid: self.options.fine_grid,
         }
+    }
+}
+
+/// The mouse pointer shown while navigating.
+fn cursor_for(kind: DragKind) -> CursorIcon {
+    match kind {
+        DragKind::Orbit => CursorIcon::Grabbing,
+        DragKind::Pan => CursorIcon::Move,
+        DragKind::Dolly => CursorIcon::ZoomIn,
     }
 }
 
@@ -248,6 +272,7 @@ fn rgb(color: Color32) -> [f32; 3] {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::theme::backdrop;
 
     #[test]
     fn the_view_is_sized_in_physical_pixels() {
@@ -269,17 +294,18 @@ mod tests {
     }
 
     #[test]
-    fn the_view_uses_the_camera_and_the_theme_colours() {
+    fn the_view_uses_the_camera_pivot_and_backdrop() {
         let panel = ViewportPanel::default();
         let rect = Rect::from_min_size(pos2(0.0, 0.0), egui::vec2(640.0, 400.0));
         let view = panel.view(rect, 1.0);
         assert_eq!(view.camera_position, panel.camera().position);
+        assert_eq!(view.focus, panel.navigator().pivot());
         assert_eq!(
             view.view_projection,
             panel.camera().view_projection(Vec2::new(640.0, 400.0))
         );
-        assert_eq!(view.sky_top, rgb(crate::panels::VIEWPORT_TOP));
-        assert!(view.sky_top[0] > view.sky_bottom[0], "lighter at the top");
+        assert_eq!(view.sky_top, rgb(backdrop::SKY_TOP));
+        assert_eq!(view.ground, rgb(backdrop::GROUND));
     }
 
     #[test]
@@ -299,5 +325,33 @@ mod tests {
         panel.reset_view();
         assert_eq!(*panel.navigator(), Navigator::default());
         assert_eq!(panel.active_drag(), None);
+    }
+
+    #[test]
+    fn button_drags_respect_the_invert_setting() {
+        let size = Vec2::new(640.0, 400.0);
+        let mut normal = ViewportPanel::default();
+        normal.button_drag(DragKind::Orbit, egui::vec2(30.0, 0.0), size);
+        let mut inverted = ViewportPanel::default();
+        inverted.options_mut().navigation.invert_orbit = true;
+        inverted.button_drag(DragKind::Orbit, egui::vec2(30.0, 0.0), size);
+        let start = Navigator::default().camera().yaw;
+        assert!(normal.camera().yaw < start);
+        assert!(inverted.camera().yaw > start);
+    }
+
+    #[test]
+    fn view_options_survive_saving_and_old_files() {
+        let mut options = ViewOptions {
+            fine_grid: true,
+            ..ViewOptions::default()
+        };
+        options.navigation.scheme = tools::Scheme::MouseOnly;
+        let text = ron::to_string(&options).unwrap();
+        assert_eq!(ron::from_str::<ViewOptions>(&text).unwrap(), options);
+        // Files saved before a setting existed still load, with defaults.
+        let old: ViewOptions = ron::from_str("(fine_grid: true)").unwrap();
+        assert!(old.fine_grid);
+        assert_eq!(old.navigation, NavigationSettings::default());
     }
 }

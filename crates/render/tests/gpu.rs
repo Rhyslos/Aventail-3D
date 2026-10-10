@@ -13,9 +13,17 @@ use render::{
 };
 use tools::Camera;
 
-/// The viewport gradient from the interface theme, sRGB 0 to 1.
-const SKY_TOP: [f32; 3] = [92.0 / 255.0, 95.0 / 255.0, 100.0 / 255.0];
-const SKY_BOTTOM: [f32; 3] = [57.0 / 255.0, 59.0 / 255.0, 63.0 / 255.0];
+/// The viewport backdrop, sRGB 0 to 1 (as in the interface theme).
+const SKY_TOP: [u8; 3] = [0x4a, 0x4a, 0x4a];
+const SKY_HORIZON: [u8; 3] = [0x3e, 0x3e, 0x3e];
+const GROUND: [u8; 3] = [0x38, 0x38, 0x38];
+
+fn srgb(c: [u8; 3]) -> [f32; 3] {
+    c.map(|v| f32::from(v) / 255.0)
+}
+
+/// A focus point so far away that no grid is drawn near the camera.
+const NO_GRID: Vec3 = Vec3::new(1.0e7, 1.0e7, 0.0);
 
 struct Gpu {
     adapter: wgpu::Adapter,
@@ -79,8 +87,15 @@ fn brightness(p: [u8; 4]) -> i32 {
     i32::from(p[0]) + i32::from(p[1]) + i32::from(p[2])
 }
 
-fn render(gpu: &Gpu, renderer: &ViewportRenderer, target: &ViewportTarget, camera: Camera) -> Shot {
-    render_with(gpu, renderer, target, camera, false)
+/// Renders what `camera` sees, with the grid around `focus`.
+fn render(
+    gpu: &Gpu,
+    renderer: &ViewportRenderer,
+    target: &ViewportTarget,
+    camera: Camera,
+    focus: Vec3,
+) -> Shot {
+    render_with(gpu, renderer, target, camera, focus, false)
 }
 
 fn render_with(
@@ -88,14 +103,17 @@ fn render_with(
     renderer: &ViewportRenderer,
     target: &ViewportTarget,
     camera: Camera,
+    focus: Vec3,
     fine_grid: bool,
 ) -> Shot {
     let size = target.size();
     let params = FrameParams {
         view_projection: camera.view_projection(Vec2::new(size[0] as f32, size[1] as f32)),
         camera_position: camera.position,
-        sky_top: SKY_TOP,
-        sky_bottom: SKY_BOTTOM,
+        focus,
+        sky_top: srgb(SKY_TOP),
+        sky_horizon: srgb(SKY_HORIZON),
+        ground: srgb(GROUND),
         fine_grid,
     };
     renderer.render(&gpu.device, &gpu.queue, target, &params);
@@ -126,33 +144,79 @@ fn setup(gpu: &Gpu, size: [u32; 2]) -> (ViewportRenderer, ViewportTarget) {
     (renderer, target)
 }
 
+fn close_to(got: [u8; 4], want: [u8; 3], tolerance: i32) -> bool {
+    (0..3).all(|c| (i32::from(got[c]) - i32::from(want[c])).abs() <= tolerance)
+}
+
 #[test]
-fn the_background_is_the_calm_gradient() {
+fn the_sky_is_above_the_horizon_and_the_ground_below() {
     let Some(gpu) = gpu() else { return };
     let (renderer, target) = setup(&gpu, [320, 200]);
-    // Looking up at the sky, nothing but background shows.
-    let camera = Camera::looking_at(Vec3::new(0.0, 0.0, 100.0), Vec3::new(0.0, 1.0, 200.0));
-    let shot = render(&gpu, &renderer, &target, camera);
+    // Looking level, away from the test cube and the Z axis at the origin:
+    // the horizon runs across the middle.
+    let level = Camera::looking_at(
+        Vec3::new(5000.0, -1000.0, 100.0),
+        Vec3::new(5000.0, 0.0, 100.0),
+    );
+    let shot = render(&gpu, &renderer, &target, level, NO_GRID);
+    let above = shot.pixel(160, 90);
+    let below = shot.pixel(160, 110);
+    assert!(close_to(above, SKY_HORIZON, 3), "{above:?}");
+    assert!(close_to(below, GROUND, 3), "{below:?}");
     let top = shot.pixel(160, 1);
+    assert!(
+        brightness(top) > brightness(above),
+        "the sky lightens upwards"
+    );
     let bottom = shot.pixel(160, 198);
-    for (got, want) in [(top, [92, 95, 100]), (bottom, [57, 59, 63])] {
-        for c in 0..3 {
-            assert!(
-                (i32::from(got[c]) - want[c]).abs() <= 3,
-                "{got:?} should be about {want:?}"
-            );
-        }
-        assert_eq!(got[3], 255);
-    }
+    assert!(
+        brightness(bottom) < brightness(below),
+        "the ground darkens downwards"
+    );
+    assert_eq!(top[3], 255);
+}
+
+#[test]
+fn looking_up_shows_the_sky_and_down_shows_the_ground() {
+    let Some(gpu) = gpu() else { return };
+    let (renderer, target) = setup(&gpu, [320, 200]);
+    let up = Camera::looking_at(
+        Vec3::new(3000.0, 3000.0, 0.0),
+        Vec3::new(3000.0, 3000.01, 100.0),
+    );
+    let shot = render(&gpu, &renderer, &target, up, NO_GRID);
+    assert!(
+        close_to(shot.pixel(160, 100), SKY_TOP, 3),
+        "{:?}",
+        shot.pixel(160, 100)
+    );
+    let down = Camera::looking_at(
+        Vec3::new(3000.0, 3000.0, 500.0),
+        Vec3::new(3000.0, 3000.01, 0.0),
+    );
+    let shot = render(&gpu, &renderer, &target, down, NO_GRID);
+    let middle = shot.pixel(160, 100);
+    assert!(brightness(middle) < i32::from(GROUND[0]) * 3, "{middle:?}");
+    assert!(
+        close_to(middle, [middle[0]; 3], 2),
+        "neutral grey: {middle:?}"
+    );
 }
 
 #[test]
 fn the_cube_is_shaded_like_a_studio_light() {
     let Some(gpu) = gpu() else { return };
     let (renderer, target) = setup(&gpu, [640, 400]);
-    let shot = render(&gpu, &renderer, &target, Camera::default());
+    let shot = render(
+        &gpu,
+        &renderer,
+        &target,
+        Camera::default(),
+        tools::camera::DEFAULT_TARGET,
+    );
     let h = TEST_CUBE_SIZE / 2.0;
-    let top = shot.at(Vec3::new(0.0, 0.0, TEST_CUBE_SIZE));
+    // Off-centre: the green Z axis comes out of the middle of the top.
+    let top = shot.at(Vec3::new(40.0, -40.0, TEST_CUBE_SIZE));
     let front = shot.at(Vec3::new(0.0, -h, TEST_CUBE_SIZE / 2.0));
     let right = shot.at(Vec3::new(h, 0.0, TEST_CUBE_SIZE / 2.0));
     let sky = shot.pixel(10, 10);
@@ -179,7 +243,13 @@ fn the_x_axis_is_red_and_the_y_axis_blue() {
         Vec3::new(-600.0, -600.0, 900.0),
         Vec3::new(-300.0, -300.0, 0.0),
     );
-    let shot = render(&gpu, &renderer, &target, camera);
+    let shot = render(
+        &gpu,
+        &renderer,
+        &target,
+        camera,
+        Vec3::new(-300.0, -300.0, 0.0),
+    );
     let size = Vec2::new(640.0, 400.0);
     let redness = |p: [u8; 4]| i32::from(p[0]) - i32::from(p[1]);
     let blueness = |p: [u8; 4]| i32::from(p[2]) - i32::from(p[0]).max(i32::from(p[1]));
@@ -213,7 +283,13 @@ fn grid_lines_are_lighter_than_the_ground_between_them() {
         Vec3::new(-300.0, -300.0, 600.0),
         Vec3::new(-300.0, -300.0, 0.0),
     );
-    let shot = render(&gpu, &renderer, &target, camera);
+    let shot = render(
+        &gpu,
+        &renderer,
+        &target,
+        camera,
+        Vec3::new(-300.0, -300.0, 0.0),
+    );
     // x = -400 is a 1 m line; x = -455, y = -255 is between all lines.
     let on_line = shot.at(Vec3::new(-400.0, -255.0, 0.0));
     let between = shot.at(Vec3::new(-455.0, -255.0, 0.0));
@@ -237,14 +313,28 @@ fn fine_grid_lines_show_only_when_switched_on() {
     // between all lines, y = -200 is a 1 m line.
     let fine_line = Vec3::new(-455.0, -210.0, 0.0);
     let between = Vec3::new(-455.0, -255.0, 0.0);
-    let on = render_with(&gpu, &renderer, &target, camera, true);
+    let on = render_with(
+        &gpu,
+        &renderer,
+        &target,
+        camera,
+        Vec3::new(-300.0, -300.0, 0.0),
+        true,
+    );
     assert!(
         brightness(on.at(fine_line)) > brightness(on.at(between)) + 3,
         "{:?} vs {:?}",
         on.at(fine_line),
         on.at(between)
     );
-    let off = render_with(&gpu, &renderer, &target, camera, false);
+    let off = render_with(
+        &gpu,
+        &renderer,
+        &target,
+        camera,
+        Vec3::new(-300.0, -300.0, 0.0),
+        false,
+    );
     assert!(
         (brightness(off.at(fine_line)) - brightness(off.at(between))).abs() <= 2,
         "{:?} vs {:?}",
@@ -264,6 +354,12 @@ fn resizing_makes_a_new_target_of_the_right_size() {
     assert_eq!(target.size(), [300, 150]);
     let zero = renderer.create_target(&gpu.device, [0, 0]);
     assert_eq!(zero.size(), [1, 1], "empty sizes become 1×1, never a crash");
-    let shot = render(&gpu, &renderer, &target, Camera::default());
+    let shot = render(
+        &gpu,
+        &renderer,
+        &target,
+        Camera::default(),
+        tools::camera::DEFAULT_TARGET,
+    );
     assert_eq!(shot.pixels.len(), 300 * 150 * 4);
 }

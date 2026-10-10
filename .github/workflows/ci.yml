@@ -50,7 +50,22 @@ jobs:
         with:
           persist-credentials: false
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
-      - run: cargo test --workspace --locked
+      # Failing tests and their messages are also shown as annotations on
+      # the pull request, so they can be read without opening the log.
+      - name: cargo test
+        shell: bash
+        run: |
+          set -o pipefail
+          if ! cargo test --workspace --locked --no-fail-fast 2>&1 | tee test-output.txt; then
+            grep -E -A3 "panicked at|^test .* FAILED|---- .* stdout ----" test-output.txt \
+              | head -n 60 > failures.txt || true
+            msg="$(cat failures.txt)"
+            msg="${msg//'%'/'%25'}"
+            msg="${msg//$'\r'/'%0D'}"
+            msg="${msg//$'\n'/'%0A'}"
+            echo "::error title=Tests failed on ${{ runner.os }}::${msg}"
+            exit 1
+          fi
 
   docs:
     name: Documentation

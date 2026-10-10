@@ -1,47 +1,153 @@
-//! The calm, dark look from DESIGN.md §5.2: neutral greys with low
-//! contrast between panels, one warm accent for the active mode or tool,
-//! and the Inter font.
+//! The calm, dark look from DESIGN.md §5.2: dark neutral greys with low
+//! contrast between panels, one accent colour for the active mode or tool
+//! (red unless the user picks another), and the Inter font.
 //!
 //! Colours follow the approved mockups. Text colours are checked for
 //! readability by the tests at the bottom (WCAG contrast 4.5:1 for normal
 //! text).
 
 use egui::{
-    Color32, Context, CornerRadius, FontData, FontDefinitions, FontFamily, FontId, Frame, Margin,
-    Shadow, Stroke, Style, TextStyle, Visuals, vec2,
+    Color32, Context, CornerRadius, FontData, FontDefinitions, FontFamily, FontId, Frame, Id,
+    Margin, Shadow, Stroke, Style, TextStyle, Visuals, vec2,
 };
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-/// Window background behind everything.
-pub const BACKGROUND: Color32 = Color32::from_rgb(0x2b, 0x2b, 0x2b);
+/// Window background behind everything, seen in the thin gaps between
+/// panels.
+pub const BACKGROUND: Color32 = Color32::from_rgb(0x1b, 0x1b, 0x1b);
 /// Panel bodies (Attributes, Objects, Coordinates).
-pub const PANEL: Color32 = Color32::from_rgb(0x33, 0x33, 0x33);
-/// Tab bars and panel headers.
-pub const HEADER: Color32 = Color32::from_rgb(0x2a, 0x2a, 0x2a);
-/// The menu bar and status bar, a step darker than the panels.
-pub const BAR: Color32 = Color32::from_rgb(0x23, 0x23, 0x23);
+pub const PANEL: Color32 = Color32::from_rgb(0x26, 0x26, 0x26);
+/// Tab strips above the panels.
+pub const HEADER: Color32 = Color32::from_rgb(0x22, 0x22, 0x22);
+/// The menu bar and status bar.
+pub const BAR: Color32 = Color32::from_rgb(0x22, 0x22, 0x22);
 /// The command and mode palettes.
-pub const PALETTE: Color32 = Color32::from_rgb(0x2f, 0x2f, 0x2f);
+pub const PALETTE: Color32 = Color32::from_rgb(0x2a, 0x2a, 0x2a);
+/// The viewport's own menu line, along its top edge.
+pub const VIEWPORT_HEADER: Color32 = Color32::from_rgb(0x2e, 0x2e, 0x2e);
 /// Text and number fields.
-pub const FIELD: Color32 = Color32::from_rgb(0x26, 0x26, 0x26);
+pub const FIELD: Color32 = Color32::from_rgb(0x1c, 0x1c, 0x1c);
 /// The edge of a text or number field.
-pub const FIELD_BORDER: Color32 = Color32::from_rgb(0x1c, 0x1c, 0x1c);
+pub const FIELD_BORDER: Color32 = Color32::from_rgb(0x16, 0x16, 0x16);
 /// Hairline borders between areas.
-pub const BORDER: Color32 = Color32::from_rgb(0x19, 0x19, 0x19);
+pub const BORDER: Color32 = Color32::from_rgb(0x16, 0x16, 0x16);
 /// A hovered or pressed button.
-pub const HOVER: Color32 = Color32::from_rgb(0x46, 0x49, 0x4e);
-/// The tab in front, in a tab bar.
-pub const ACTIVE_TAB: Color32 = Color32::from_rgb(0x3b, 0x3b, 0x3b);
+pub const HOVER: Color32 = Color32::from_rgb(0x3a, 0x3a, 0x3a);
+/// The tab in front, in a tab strip: the same as the panel below it, so
+/// the two read as one sheet.
+pub const ACTIVE_TAB: Color32 = PANEL;
 /// Normal text.
-pub const TEXT: Color32 = Color32::from_rgb(0xd6, 0xd6, 0xd6);
+pub const TEXT: Color32 = Color32::from_rgb(0xc8, 0xc8, 0xc8);
 /// Bright text: headings and the active tab.
 pub const TEXT_STRONG: Color32 = Color32::from_rgb(0xf0, 0xf0, 0xf0);
 /// Quieter text: labels, hints, the status bar.
 pub const TEXT_WEAK: Color32 = Color32::from_rgb(0xa5, 0xa5, 0xa5);
-/// Selected rows and selected text (a cool blue-grey, as in the mockups).
-pub const SELECTION: Color32 = Color32::from_rgb(0x3d, 0x4a, 0x5c);
-/// The warm accent for the active mode or tool, and focused fields.
-pub const ACCENT: Color32 = Color32::from_rgb(0xf2, 0xa3, 0x3a);
+/// The name of a selected object, in the Objects panel.
+pub const SELECTED_NAME: Color32 = Color32::from_rgb(0xf2, 0xa3, 0x3a);
+
+/// The viewport's backdrop: a studio sky over a slightly darker ground.
+pub mod backdrop {
+    use egui::Color32;
+
+    /// The sky straight up.
+    pub const SKY_TOP: Color32 = Color32::from_rgb(0x4a, 0x4a, 0x4a);
+    /// The sky at the horizon.
+    pub const HORIZON: Color32 = Color32::from_rgb(0x3e, 0x3e, 0x3e);
+    /// The ground just below the horizon.
+    pub const GROUND: Color32 = Color32::from_rgb(0x38, 0x38, 0x38);
+}
+
+/// The accent colour: marks the active mode or tool, the chosen option in
+/// a list, and selected text. Red unless the user picks another
+/// (Window → Accent colour).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum Accent {
+    /// A soft, warm red (the standard).
+    #[default]
+    Red,
+    /// A clear, saturated blue.
+    Blue,
+    /// A deep blue-green.
+    MarineGreen,
+    /// A dusky purple-pink.
+    Plum,
+    /// A natural, slightly yellow green.
+    Olive,
+    /// A dark blue leaning towards green.
+    PetrolBlue,
+}
+
+/// The shades of one accent colour.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AccentColors {
+    /// Behind the active button, under a white icon.
+    pub fill: Color32,
+    /// Lines and marks on the dark panels: rings, underlines, edges.
+    pub light: Color32,
+    /// A quiet tint behind a chosen row or selected text.
+    pub soft: Color32,
+}
+
+impl Accent {
+    /// Every accent, in the order the menu lists them.
+    pub const ALL: [Accent; 6] = [
+        Self::Red,
+        Self::Blue,
+        Self::MarineGreen,
+        Self::Plum,
+        Self::Olive,
+        Self::PetrolBlue,
+    ];
+
+    /// The accent's name, as the menu shows it.
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Red => "Red",
+            Self::Blue => "Blue",
+            Self::MarineGreen => "Marine green",
+            Self::Plum => "Plum",
+            Self::Olive => "Olive",
+            Self::PetrolBlue => "Petrol blue",
+        }
+    }
+
+    /// The accent's shades.
+    pub fn colors(self) -> AccentColors {
+        let (fill, light, soft) = match self {
+            Self::Red => ([0xc2, 0x43, 0x3d], [0xe5, 0x73, 0x6b], [0x4a, 0x2b, 0x2a]),
+            Self::Blue => ([0x24, 0x68, 0xd8], [0x5a, 0x95, 0xf2], [0x22, 0x38, 0x5a]),
+            Self::MarineGreen => ([0x16, 0x6a, 0x62], [0x3e, 0x9d, 0x93], [0x1a, 0x35, 0x32]),
+            Self::Plum => ([0x9b, 0x3f, 0x7a], [0xcf, 0x72, 0xab], [0x40, 0x28, 0x3a]),
+            Self::Olive => ([0x5d, 0x85, 0x30], [0x90, 0xbd, 0x5a], [0x2e, 0x3a, 0x23]),
+            Self::PetrolBlue => ([0x1a, 0x6b, 0x82], [0x4c, 0xa3, 0xbb], [0x1d, 0x35, 0x40]),
+        };
+        let rgb = |[r, g, b]: [u8; 3]| Color32::from_rgb(r, g, b);
+        AccentColors {
+            fill: rgb(fill),
+            light: rgb(light),
+            soft: rgb(soft),
+        }
+    }
+}
+
+/// Where the current accent is kept in egui's memory.
+fn accent_id() -> Id {
+    Id::new("theme_accent")
+}
+
+/// The accent colour in use.
+pub fn accent(ctx: &Context) -> Accent {
+    ctx.data(|d| d.get_temp::<Accent>(accent_id()))
+        .unwrap_or_default()
+}
+
+/// Switches the accent colour for the whole app.
+pub fn set_accent(ctx: &Context, accent: Accent) {
+    ctx.data_mut(|d| d.insert_temp(accent_id(), accent));
+    ctx.set_style_of(egui::Theme::Dark, style_with(accent));
+    ctx.set_style_of(egui::Theme::Light, style_with(accent));
+}
 
 /// Icon and axis colours, following the approved mockups: icons are a
 /// soft white, except the shapes you can create, which are blue; the axes
@@ -77,14 +183,14 @@ pub const SEMIBOLD: &str = "semibold";
 const INTER_REGULAR: &[u8] = include_bytes!("../assets/fonts/Inter-Regular.ttf");
 const INTER_SEMIBOLD: &[u8] = include_bytes!("../assets/fonts/Inter-SemiBold.ttf");
 
-/// Applies the theme to the whole app. Call once at startup.
+/// Applies the theme to the whole app, with the standard accent. Call
+/// once at startup; [`set_accent`] changes the accent later.
 ///
 /// The app is always dark, whatever the system prefers: the same style is
 /// set for both of egui's themes, and dark is chosen.
 pub fn apply(ctx: &Context) {
     ctx.set_fonts(fonts());
-    ctx.set_style_of(egui::Theme::Dark, style());
-    ctx.set_style_of(egui::Theme::Light, style());
+    set_accent(ctx, Accent::default());
     ctx.set_theme(egui::ThemePreference::Dark);
 }
 
@@ -110,16 +216,21 @@ pub fn fonts() -> FontDefinitions {
     fonts
 }
 
-/// Colours, sizes and spacing.
+/// Colours, sizes and spacing, with the standard accent.
 pub fn style() -> Style {
+    style_with(Accent::default())
+}
+
+/// Colours, sizes and spacing, with the given accent.
+pub fn style_with(accent: Accent) -> Style {
     let mut style = Style {
-        visuals: visuals(),
+        visuals: visuals(accent),
         ..Style::default()
     };
     style.text_styles = [
         (TextStyle::Small, FontId::proportional(11.0)),
-        (TextStyle::Body, FontId::proportional(13.0)),
-        (TextStyle::Button, FontId::proportional(13.0)),
+        (TextStyle::Body, FontId::proportional(12.5)),
+        (TextStyle::Button, FontId::proportional(12.5)),
         (
             TextStyle::Heading,
             FontId::new(16.0, FontFamily::Name(SEMIBOLD.into())),
@@ -137,7 +248,8 @@ pub fn style() -> Style {
 }
 
 /// The colour scheme.
-pub fn visuals() -> Visuals {
+pub fn visuals(accent: Accent) -> Visuals {
+    let accent = accent.colors();
     let mut v = Visuals::dark();
     v.override_text_color = None;
     v.panel_fill = PANEL;
@@ -159,10 +271,10 @@ pub fn visuals() -> Visuals {
     };
     v.extreme_bg_color = FIELD;
     v.text_edit_bg_color = Some(FIELD);
-    v.faint_bg_color = Color32::from_rgb(0x30, 0x30, 0x30);
+    v.faint_bg_color = Color32::from_rgb(0x2c, 0x2c, 0x2c);
     v.code_bg_color = FIELD;
-    v.hyperlink_color = ACCENT;
-    v.selection.bg_fill = SELECTION;
+    v.hyperlink_color = accent.light;
+    v.selection.bg_fill = accent.soft;
     v.selection.stroke = Stroke::new(1.0, TEXT_STRONG);
     v.weak_text_color = Some(TEXT_WEAK);
 
@@ -176,21 +288,21 @@ pub fn visuals() -> Visuals {
     w.noninteractive.corner_radius = radius;
     // Buttons and fields at rest.
     w.inactive.bg_fill = FIELD;
-    w.inactive.weak_bg_fill = Color32::from_rgb(0x3a, 0x3a, 0x3a);
-    w.inactive.bg_stroke = Stroke::new(1.0, Color32::from_rgb(0x1c, 0x1c, 0x1c));
+    w.inactive.weak_bg_fill = Color32::from_rgb(0x30, 0x30, 0x30);
+    w.inactive.bg_stroke = Stroke::new(1.0, FIELD_BORDER);
     w.inactive.fg_stroke = Stroke::new(1.0, TEXT);
     w.inactive.corner_radius = radius;
     // Under the mouse.
     w.hovered.bg_fill = HOVER;
     w.hovered.weak_bg_fill = HOVER;
-    w.hovered.bg_stroke = Stroke::new(1.0, Color32::from_rgb(0x55, 0x58, 0x5e));
+    w.hovered.bg_stroke = Stroke::new(1.0, Color32::from_rgb(0x4a, 0x4a, 0x4a));
     w.hovered.fg_stroke = Stroke::new(1.5, TEXT_STRONG);
     w.hovered.corner_radius = radius;
     w.hovered.expansion = 0.0;
     // Being pressed or dragged.
-    w.active.bg_fill = Color32::from_rgb(0x52, 0x55, 0x5b);
-    w.active.weak_bg_fill = Color32::from_rgb(0x52, 0x55, 0x5b);
-    w.active.bg_stroke = Stroke::new(1.0, ACCENT);
+    w.active.bg_fill = Color32::from_rgb(0x44, 0x44, 0x44);
+    w.active.weak_bg_fill = Color32::from_rgb(0x44, 0x44, 0x44);
+    w.active.bg_stroke = Stroke::new(1.0, accent.light);
     w.active.fg_stroke = Stroke::new(2.0, TEXT_STRONG);
     w.active.corner_radius = radius;
     w.active.expansion = 0.0;
@@ -237,8 +349,10 @@ pub fn panel_margin() -> Margin {
     Margin::symmetric(10, 8)
 }
 
-/// The docked panels' look: tab bars, tabs, gaps and the drop overlay.
-pub fn dock_style(base: &Style) -> egui_dock::Style {
+/// The docked panels' look: plain text tabs on a dark strip, the front
+/// tab joined to its panel, thin gaps, and the drop overlay.
+pub fn dock_style(base: &Style, accent: Accent) -> egui_dock::Style {
+    let accent = accent.colors();
     let mut s = egui_dock::Style::from_egui(base);
     s.dock_area_padding = None;
     s.main_surface_border_stroke = Stroke::NONE;
@@ -248,10 +362,10 @@ pub fn dock_style(base: &Style) -> egui_dock::Style {
     s.separator.extra = crate::layout::MIN_PANEL_SIZE;
     s.separator.color_idle = BACKGROUND;
     s.separator.color_hovered = HOVER;
-    s.separator.color_dragged = ACCENT;
+    s.separator.color_dragged = accent.light;
     s.tab_bar.bg_fill = HEADER;
-    s.tab_bar.height = 26.0;
-    s.tab_bar.hline_color = BORDER;
+    s.tab_bar.height = 28.0;
+    s.tab_bar.hline_color = HEADER;
     s.tab_bar.corner_radius = CornerRadius::ZERO;
     s.tab.tab_body.bg_fill = PANEL;
     // No padding around tab bodies, so the viewport fills its panel edge
@@ -269,7 +383,12 @@ pub fn dock_style(base: &Style) -> egui_dock::Style {
         tab.bg_fill = ACTIVE_TAB;
         tab.text_color = TEXT_STRONG;
         tab.outline_color = Color32::TRANSPARENT;
-        tab.corner_radius = CornerRadius::same(4);
+        tab.corner_radius = CornerRadius {
+            nw: 4,
+            ne: 4,
+            sw: 0,
+            se: 0,
+        };
     }
     for tab in [&mut s.tab.inactive, &mut s.tab.inactive_with_kb_focus] {
         tab.bg_fill = HEADER;
@@ -277,10 +396,17 @@ pub fn dock_style(base: &Style) -> egui_dock::Style {
         tab.outline_color = Color32::TRANSPARENT;
         tab.corner_radius = CornerRadius::same(4);
     }
-    s.tab.hovered.bg_fill = HOVER;
+    s.tab.hovered.bg_fill = HEADER;
     s.tab.hovered.text_color = TEXT_STRONG;
     s.tab.hovered.outline_color = Color32::TRANSPARENT;
-    s.overlay.selection_color = ACCENT.gamma_multiply(0.35);
+    // The viewport has no tab (its own menu line takes that place): hide
+    // the little button egui_dock shows to bring a hidden tab bar back,
+    // and don't let the panel be dragged by its top edge.
+    s.buttons.show_tab_bar_size = 0.0;
+    s.buttons.show_tab_bar_color = Color32::TRANSPARENT;
+    s.buttons.show_tab_bar_active_color = Color32::TRANSPARENT;
+    s.tab.tab_body.hidden_tab_bar_drag_height = Some(0.0);
+    s.overlay.selection_color = accent.light.gamma_multiply(0.35);
     s.overlay.button_color = TEXT_WEAK;
     s
 }
@@ -312,7 +438,17 @@ mod tests {
 
     #[test]
     fn text_is_readable_on_every_background() {
-        for background in [BACKGROUND, PANEL, HEADER, BAR, PALETTE, FIELD, ACTIVE_TAB] {
+        for background in [
+            BACKGROUND,
+            PANEL,
+            HEADER,
+            BAR,
+            PALETTE,
+            FIELD,
+            ACTIVE_TAB,
+            VIEWPORT_HEADER,
+            HOVER,
+        ] {
             assert!(
                 contrast(TEXT, background) >= READABLE,
                 "text on {background:?}"
@@ -323,7 +459,7 @@ mod tests {
 
     #[test]
     fn quiet_text_is_still_readable() {
-        for background in [PANEL, HEADER, BAR, PALETTE] {
+        for background in [PANEL, HEADER, BAR, PALETTE, VIEWPORT_HEADER, HOVER] {
             assert!(
                 contrast(TEXT_WEAK, background) >= READABLE,
                 "weak text on {background:?}: {}",
@@ -333,9 +469,52 @@ mod tests {
     }
 
     #[test]
-    fn text_is_readable_on_selection_and_hover() {
-        assert!(contrast(TEXT_STRONG, SELECTION) >= READABLE);
-        assert!(contrast(TEXT_STRONG, HOVER) >= READABLE);
+    fn every_accent_is_readable_and_visible() {
+        for accent in Accent::ALL {
+            let c = accent.colors();
+            // A white icon on the active button (graphics need 3:1).
+            assert!(contrast(Color32::WHITE, c.fill) >= 3.0, "{accent:?}");
+            // Rings and underlines on the panels.
+            assert!(contrast(c.light, PANEL) >= 3.0, "{accent:?}");
+            assert!(contrast(c.light, PALETTE) >= 3.0, "{accent:?}");
+            // Text on a chosen row or selected text.
+            assert!(contrast(TEXT_STRONG, c.soft) >= READABLE, "{accent:?}");
+            assert!(contrast(TEXT, c.soft) >= READABLE, "{accent:?}");
+        }
+    }
+
+    #[test]
+    fn accents_are_distinct_and_red_is_the_standard() {
+        assert_eq!(Accent::default(), Accent::Red);
+        for (i, a) in Accent::ALL.iter().enumerate() {
+            for b in &Accent::ALL[i + 1..] {
+                assert_ne!(a.colors(), b.colors());
+                assert_ne!(a.name(), b.name());
+            }
+        }
+    }
+
+    #[test]
+    fn the_accent_survives_saving_and_switching() {
+        let text = ron::to_string(&Accent::PetrolBlue).unwrap();
+        assert_eq!(ron::from_str::<Accent>(&text).unwrap(), Accent::PetrolBlue);
+        let ctx = Context::default();
+        apply(&ctx);
+        assert_eq!(accent(&ctx), Accent::Red);
+        set_accent(&ctx, Accent::Olive);
+        assert_eq!(accent(&ctx), Accent::Olive);
+        let style = ctx.style_of(egui::Theme::Dark);
+        assert_eq!(style.visuals.selection.bg_fill, Accent::Olive.colors().soft);
+    }
+
+    #[test]
+    fn the_backdrop_is_a_calm_neutral_grey_with_a_darker_ground() {
+        use backdrop::*;
+        for c in [SKY_TOP, HORIZON, GROUND] {
+            assert!((0x30..=0x60).contains(&c.r()), "{c:?}");
+            assert_eq!((c.r(), c.g()), (c.b(), c.b()), "neutral: {c:?}");
+        }
+        assert!(SKY_TOP.r() > HORIZON.r() && HORIZON.r() > GROUND.r());
     }
 
     #[test]
@@ -370,23 +549,23 @@ mod tests {
     }
 
     #[test]
-    fn icon_colours_are_not_the_accent() {
+    fn icon_colours_are_not_an_accent() {
         for colour in tint::ALL {
-            assert_ne!(colour, ACCENT);
+            for accent in Accent::ALL {
+                assert_ne!(colour, accent.colors().fill);
+            }
         }
-    }
-
-    #[test]
-    fn the_accent_stands_out_from_the_palettes() {
-        // Non-text graphics (icons) need 3:1.
-        assert!(contrast(ACCENT, PALETTE) >= 3.0);
-        assert!(contrast(ACCENT, PANEL) >= 3.0);
     }
 
     #[test]
     fn panels_differ_only_gently() {
         // The calm look: neighbouring areas are close in brightness.
-        for (a, b) in [(PANEL, HEADER), (PANEL, BACKGROUND), (PALETTE, BAR)] {
+        for (a, b) in [
+            (PANEL, HEADER),
+            (PANEL, BACKGROUND),
+            (PALETTE, BAR),
+            (VIEWPORT_HEADER, PANEL),
+        ] {
             assert!(contrast(a, b) < 1.4, "{a:?} vs {b:?} is too stark");
         }
     }
@@ -428,8 +607,9 @@ mod tests {
 
     #[test]
     fn dock_tabs_use_the_theme() {
-        let s = dock_style(&style());
+        let s = dock_style(&style(), Accent::default());
         assert_eq!(s.tab_bar.bg_fill, HEADER);
+        assert_eq!(s.separator.color_dragged, Accent::Red.colors().light);
         assert_eq!(s.tab.active.bg_fill, ACTIVE_TAB);
         assert_eq!(s.tab.tab_body.bg_fill, PANEL);
         assert_eq!(s.tab.tab_body.inner_margin, Margin::ZERO);

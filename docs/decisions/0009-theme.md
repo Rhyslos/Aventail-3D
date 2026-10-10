@@ -1,6 +1,6 @@
 # 0009. The calm dark theme and the Inter font
 
-- **Status:** Accepted
+- **Status:** Accepted; colours replaced by [0014](0014-studio-look-and-accent.md)
 - **Date:** 2026-10-10
 
 ## Problem

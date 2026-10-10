@@ -1,10 +1,7 @@
-//! Moving the viewport camera with the mouse, as in Cinema 4D.
+//! Moving the viewport camera: orbit, pan and zoom (dolly).
 //!
-//! | Action | Mouse |
-//! |---|---|
-//! | Orbit | Alt + left drag |
-//! | Pan | Alt + middle drag |
-//! | Zoom (dolly) | Alt + right drag, or the mouse wheel |
+//! Which buttons and keys start each movement is decided in
+//! [`crate::controls`]; this module does the movements themselves.
 //!
 //! The camera always looks at a **pivot**: the point it orbits around and
 //! moves towards when zooming. Panning carries the pivot along. (Picking
@@ -53,22 +50,6 @@ pub enum DragKind {
     Pan,
     /// Move towards or away from the pivot.
     Dolly,
-}
-
-impl DragKind {
-    /// Which navigation a mouse drag starts, Cinema 4D style: with Alt
-    /// held, left orbits, middle pans and right zooms. Without Alt the drag
-    /// belongs to the tools, not the camera.
-    pub fn for_drag(button: MouseButton, alt: bool) -> Option<Self> {
-        if !alt {
-            return None;
-        }
-        Some(match button {
-            MouseButton::Primary => Self::Orbit,
-            MouseButton::Middle => Self::Pan,
-            MouseButton::Secondary => Self::Dolly,
-        })
-    }
 }
 
 /// The viewport camera together with the pivot it looks at.
@@ -210,18 +191,6 @@ mod tests {
 
     fn centred(navigator: &Navigator) -> bool {
         (on_screen(navigator, navigator.pivot()) - SIZE / 2.0).length() < 0.05
-    }
-
-    #[test]
-    fn alt_and_a_button_pick_the_navigation() {
-        use DragKind::*;
-        use MouseButton::*;
-        assert_eq!(DragKind::for_drag(Primary, true), Some(Orbit));
-        assert_eq!(DragKind::for_drag(Middle, true), Some(Pan));
-        assert_eq!(DragKind::for_drag(Secondary, true), Some(Dolly));
-        for button in [Primary, Middle, Secondary] {
-            assert_eq!(DragKind::for_drag(button, false), None, "{button:?}");
-        }
     }
 
     #[test]

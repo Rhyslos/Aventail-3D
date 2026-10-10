@@ -22,11 +22,11 @@ pub const FAR_PLANE: f32 = 500_000.0;
 /// 36 mm frame, so shapes are not distorted.
 pub const DEFAULT_FOV_Y: f32 = 45.0 * PI / 180.0;
 /// Where the opening view looks: the middle of a 2 m object standing on
-/// the grid at the origin (a little low, so the ground shows around it).
-pub const DEFAULT_TARGET: Vec3 = Vec3::new(0.0, 0.0, 60.0);
+/// the grid at the origin.
+pub const DEFAULT_TARGET: Vec3 = Vec3::new(0.0, 0.0, 100.0);
 /// Where the opening view stands: in front of the origin, a little to the
-/// right and above.
-pub const DEFAULT_POSITION: Vec3 = Vec3::new(420.0, -760.0, 480.0);
+/// right and above, low enough that the horizon shows near the top.
+pub const DEFAULT_POSITION: Vec3 = Vec3::new(560.0, -980.0, 330.0);
 
 /// A straight line from `origin` in `direction` (unit length).
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -69,8 +69,8 @@ pub struct Camera {
 
 impl Default for Camera {
     /// The opening view: in front of the origin, a little to the right and
-    /// above, looking at a 2 m object standing on the grid, as Cinema 4D
-    /// opens a new scene.
+    /// above, looking at a 2 m object standing on the grid, low enough that
+    /// the horizon shows.
     fn default() -> Self {
         Self::looking_at(DEFAULT_POSITION, DEFAULT_TARGET)
     }
