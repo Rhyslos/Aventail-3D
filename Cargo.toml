@@ -1,0 +1,60 @@
+[workspace]
+resolver = "3"
+members = ["crates/*", "tools/layer-check"]
+
+[workspace.package]
+version = "0.0.1"
+edition = "2024"
+rust-version = "1.97"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/Rhyslos/Aventail-3D"
+authors = ["Rhyslos"]
+publish = false
+
+# Internal crates, so any crate can depend on another by name.
+# Crate names are generic on purpose (no product name), so renaming the app
+# never touches them; see RENAMING.md.
+# Which crate may depend on which is decided by layers (see ARCHITECTURE.md)
+# and enforced by the test in tools/layer-check.
+[workspace.dependencies]
+mesh = { path = "crates/mesh" }
+uv = { path = "crates/uv" }
+scene = { path = "crates/scene" }
+config = { path = "crates/config" }
+fileio = { path = "crates/fileio" }
+render = { path = "crates/render" }
+tools = { path = "crates/tools" }
+ui = { path = "crates/ui" }
+
+# Outside libraries. Every one must pass `cargo deny check` (see deny.toml),
+# and must have a permissive license (see docs/decisions/0004-gpl-license.md).
+toml = "1.1"
+
+[workspace.lints.rust]
+# Ground rule 6: no unsafe code. A crate that truly needs it must get a
+# decision record first and override this locally.
+unsafe_code = "forbid"
+# Documentation rule: every public item must be documented.
+missing_docs = "deny"
+unreachable_pub = "warn"
+
+[workspace.lints.clippy]
+# Ground rule 7: library code never crashes on purpose.
+# Tests are exempt through clippy.toml.
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+dbg_macro = "deny"
+print_stdout = "warn"
+print_stderr = "warn"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+
+# Keep debug builds usable: optimise dependencies even in development,
+# so the viewport stays smooth while working on the app.
+[profile.dev.package."*"]
+opt-level = 2
