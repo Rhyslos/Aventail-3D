@@ -1,6 +1,6 @@
 # 0007. The `.rhy` project format
 
-- **Status:** Accepted
+- **Status:** Accepted; the extension is replaced by [0010](0010-avtl-file-extension.md) (`.avtl`, signature `AVTL`). Everything else here stands.
 - **Date:** 2026-10-10
 
 ## Problem

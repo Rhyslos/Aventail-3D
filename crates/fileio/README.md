@@ -2,11 +2,11 @@
 
 **Layer 2 · Services**
 
-Everything that touches files: `.rhy` projects, OBJ and glTF import and export, the settings file.
+Everything that touches files: `.avtl` projects, OBJ and glTF import and export, the settings file.
 
 ## Purpose
 
-Reads and writes the outside world's files: the versioned `.rhy` project format (DESIGN.md §8, [decision 0007](../../docs/decisions/0007-rhy-project-format.md)), OBJ and glTF for Substance Painter and Godot (with deterministic triangulation and MikkTSpace tangents), and the settings file described by `config`.
+Reads and writes the outside world's files: the versioned `.avtl` project format (DESIGN.md §8, decisions [0007](../../docs/decisions/0007-rhy-project-format.md) and [0010](../../docs/decisions/0010-avtl-file-extension.md)), OBJ and glTF for Substance Painter and Godot (with deterministic triangulation and MikkTSpace tangents), and the settings file described by `config`.
 
 ## Must never
 

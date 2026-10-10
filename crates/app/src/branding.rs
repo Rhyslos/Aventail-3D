@@ -19,11 +19,11 @@ pub const APP_ID: &str = "aventail";
 /// The family of tools this app belongs to.
 pub const ORG_NAME: &str = "Rhylib";
 
-/// The project file extension, without the dot.
+/// The project file extension, without the dot (decision 0010).
 ///
-/// Tied to Rhylib rather than to the app's name, so it never changes on a
-/// rename and old projects keep opening.
-pub const PROJECT_EXTENSION: &str = "rhy";
+/// Short for Aventail. It stays the same even if the app is renamed, so old
+/// projects keep opening and double-clicking keeps working (RENAMING.md).
+pub const PROJECT_EXTENSION: &str = "avtl";
 
 #[cfg(test)]
 mod tests {
@@ -57,5 +57,12 @@ mod tests {
     #[test]
     fn short_name_is_part_of_the_full_name() {
         assert!(APP_NAME.contains(APP_SHORT_NAME));
+    }
+
+    #[test]
+    fn the_project_extension_is_settled() {
+        // Changing it would stop existing projects from opening by
+        // double-click. Change it only through a new decision record.
+        assert_eq!(PROJECT_EXTENSION, "avtl");
     }
 }

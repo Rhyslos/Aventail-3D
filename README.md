@@ -68,7 +68,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [ ] Primitive settings in the Attribute Manager
 - [ ] Object stack foundation: base plus recorded operations
 - [ ] Undo and redo limited by memory, not steps
-- [ ] Save and open `.rhy` projects
+- [ ] Save and open `.avtl` projects
 
 </details>
 
@@ -173,7 +173,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 </details>
 
-Further ahead: rigging, skinning and animation (Phase 9), once modelling and UVs are mature.
+Further ahead: scripting in Lua, so people can add their own tools (Phase 9), then rigging, skinning and animation (Phase 10), once modelling and UVs are mature.
 
 ### History
 

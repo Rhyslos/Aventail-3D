@@ -14,6 +14,8 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0004](0004-gpl-license.md) | GPL 3.0 license, permissive dependencies | Accepted |
 | [0005](0005-safety-lints.md) | No unsafe, no panics in library code | Accepted |
 | [0006](0006-base-plus-operation-stack.md) | Objects are a base plus an operation stack | Accepted |
-| [0007](0007-rhy-project-format.md) | The `.rhy` project format | Accepted |
+| [0007](0007-rhy-project-format.md) | The project format (extension replaced by 0010) | Accepted, extension replaced |
 | [0008](0008-window-and-panels.md) | App window: eframe, egui_dock, drawn icons | Accepted |
 | [0009](0009-theme.md) | The calm dark theme and the Inter font | Accepted |
+| [0010](0010-avtl-file-extension.md) | Project files use `.avtl` | Accepted |
+| [0011](0011-lua-scripting.md) | Scripting in Lua (Luau, through mlua) | Proposed |

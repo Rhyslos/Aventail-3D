@@ -16,7 +16,7 @@ Crate names are generic on purpose (no product name), so renaming the app never 
 
 Each crate's `README.md` states its purpose and what it **must never** do. Read it before changing the crate.
 
-Planned later: a booleans crate (layer 1, wrapping manifold) and animation support inside `scene` (Phase 9).
+Planned later: a booleans crate (layer 1, wrapping manifold), a `script` crate (layer 2, Lua scripting through the same commands as everything else; Phase 9, see [decision 0011](docs/decisions/0011-lua-scripting.md)), and animation support inside `scene` (Phase 10).
 
 ## How a frame runs
 
@@ -71,7 +71,7 @@ The four middle panels are dockable (egui_dock); the bars and palettes around th
 
 | Format | Read | Write |
 | --- | --- | --- |
-| `.rhy` (projects; versioned, compressed, crash-safe; see [decision 0007](docs/decisions/0007-rhy-project-format.md)) | Planned | Planned |
+| `.avtl` (projects; versioned, compressed, crash-safe; see decisions [0007](docs/decisions/0007-rhy-project-format.md) and [0010](docs/decisions/0010-avtl-file-extension.md)) | Planned | Planned |
 | OBJ | Planned | Planned |
 | glTF / GLB | Later | Planned |
 | FBX | No | Late, optional |
@@ -88,6 +88,7 @@ The four middle panels are dockable (egui_dock); the bars and palettes around th
 | A primitive | A primitive kind in `scene` |
 | A panel | A panel registered with the dock in `ui` |
 | A file format | `fileio` |
+| A user's own tool or command (Phase 9) | A Lua script, through `script` |
 
 ## Security
 
