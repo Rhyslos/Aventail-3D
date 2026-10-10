@@ -66,10 +66,14 @@ pub enum Icon {
     Menu,
     /// The mouse, for the navigation controls.
     Mouse,
+    /// Shown in the viewport: an open eye.
+    Shown,
+    /// Hidden from the viewport: a closed eye.
+    Hidden,
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 27] = [
+pub const ALL: [Icon; 29] = [
     Icon::Undo,
     Icon::Redo,
     Icon::LiveSelection,
@@ -97,6 +101,8 @@ pub const ALL: [Icon; 27] = [
     Icon::Maximise,
     Icon::Menu,
     Icon::Mouse,
+    Icon::Shown,
+    Icon::Hidden,
 ];
 
 /// Draws `icon` into `rect` in `color`.
@@ -374,6 +380,22 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
             body.extend(pen.arc((12.0, 15.0), (6.0, 6.0), 0.0, PI));
             pen.closed(body);
             pen.polyline(&[(12.0, 3.0), (12.0, 9.0)]);
+        }
+        Icon::Shown => {
+            // An almond-shaped eye with its pupil.
+            // Two arcs meeting at the corners (4, 12) and (20, 12).
+            let mut eye = pen.arc((12.0, 15.9), (8.9, 8.9), -2.688, -0.453);
+            eye.extend(pen.arc((12.0, 8.1), (8.9, 8.9), 0.453, 2.688));
+            pen.closed(eye);
+            pen.dot(12.0, 12.0, 2.6);
+        }
+        Icon::Hidden => {
+            // A closed eye: the lower lid, with three lashes.
+            let lid = pen.arc((12.0, 8.1), (8.9, 8.9), 0.453, 2.688);
+            pen.line(lid);
+            pen.polyline(&[(12.0, 17.0), (12.0, 20.0)]);
+            pen.polyline(&[(7.0, 15.5), (5.5, 18.0)]);
+            pen.polyline(&[(17.0, 15.5), (18.5, 18.0)]);
         }
     }
     pen.shapes

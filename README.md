@@ -4,7 +4,7 @@
 
 Aventail 3D is a free, open-source modelling and UV unwrapping tool for **hard-surface game assets**, written in Rust. Model it, unwrap it, and export it to Substance Painter and Godot, all in one app.
 
-> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout and a real 3D view you can orbit, pan and zoom around a test cube, but there is nothing to model with yet. It shows top, front and right views too, one at a time or all four at once. Phase 1 is built and waiting for its gate; objects, undo and saving (Phase 2) are next. Follow the progress tracker below.
+> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout and a real 3D view you can orbit, pan and zoom around, from four views at once if you like. The Object Manager lists the scene's objects (a test cube and any groups you make), and every change can be undone. There is nothing to model with yet: shapes such as cubes and cylinders are next. Follow the progress tracker below.
 
 Created by **Rhyslos**, built with AI assistance (Claude by Anthropic). Part of the **Rhylib** family of tools, alongside [Halberd](https://github.com/Rhyslos/halberd).
 
@@ -54,16 +54,16 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 </details>
 
-**Gate:** navigating feels smooth and calm to the project lead.
+**Gate:** navigating feels smooth and calm to the project lead. *Passed 2026-10-10.*
 
-### Phase 2 · Objects, history and saving — 0 of 6
+### Phase 2 · Objects, history and saving — 1 of 6
 
-`░░░░░░░░░░░░░` 0%
+`██░░░░░░░░░░░` 17%
 
 <details>
 <summary>Milestones</summary>
 
-- [ ] Object Manager: create, rename, reparent, hide and delete objects
+- [x] Object Manager: create, rename, reparent, hide and delete objects (with undo and redo)
 - [ ] Primitives: cube, plane, cylinder, sphere, disc, tube, cone
 - [ ] Primitive settings in the Attribute Manager
 - [ ] Object stack foundation: base plus recorded operations
@@ -181,6 +181,8 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-10 | Object Manager: select, rename, group, nest, hide and delete objects, with undo and redo |
+| 2026-10-10 | Phase 1 gate passed: tested by the project lead, "worked flawlessly and felt good" |
 | 2026-10-10 | Perspective, top, front and right views and the four-view layout (F1 to F5, middle click). Phase 1 milestones complete |
 | 2026-10-10 | Frame all (H) and frame selected (F), gliding the view until everything fits |
 | 2026-10-10 | Orbit and zoom around the point under the mouse, with a marker while orbiting |
@@ -196,6 +198,10 @@ Newest first. One line per finished milestone or passed gate.
 ### Snapshots
 
 Pictures of Aventail 3D at memorable moments, newest first. Kept in [docs/screenshots](docs/screenshots).
+
+**2026-10-10: the Object Manager.** The test cube dragged into a group (its name orange while selected), and a second group hidden with its eye.
+
+![The Object Manager](docs/screenshots/2026-10-10-object-manager.png)
 
 **2026-10-10: four views.** Perspective, top, front and right side by side, the flat views each looking at their own grid face on; the active view is outlined in red.
 

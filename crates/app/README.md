@@ -21,5 +21,5 @@ Starts the program: loads settings, opens the window, hands each frame to `ui`, 
 
 - **`branding`**: the app's name, short name, settings ID, family and project file extension.
 - **`cli`**: `--version` and `--help`; unknown options are explained (exit code 2).
-- **`gpu`**: `GpuViewport` connects the `render` crate to the window's GPU device and registers its images with egui: one per view (`ViewportView::slot`), so the four-view layout shows four images. Passes flat views' height and grid plane on to the renderer.
+- **`gpu`**: `GpuViewport` connects the `render` crate to the window's GPU device and registers its images with egui: one per view (`ViewportView::slot`), so the four-view layout shows four images. Passes flat views' height and grid plane on to the renderer, and swaps the renderer's shape for nothing when the test cube is hidden or deleted (and back).
 - **`window`**: opens the window with eframe and wgpu, hands each frame to the `ui` workbench, carries out Quit, and saves the panel layout between sessions under the stable `APP_ID`. A panic from a missing system library is caught and explained with an install hint.

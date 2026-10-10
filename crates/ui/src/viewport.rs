@@ -68,6 +68,9 @@ pub struct ViewportView {
     pub ground: [f32; 3],
     /// Whether to draw the grid's fine 10 cm lines.
     pub fine_grid: bool,
+    /// Whether the test cube is in the scene and shown (until real
+    /// objects are drawn, it is the only shape).
+    pub test_cube: bool,
 }
 
 /// A question for the renderer: what is under this pixel of the image?
@@ -153,20 +156,58 @@ impl ViewportRenderer for NoRenderer {
     }
 }
 
-/// Everything in the scene, for framing. Until objects exist (Phase 2)
-/// the scene is the 2 m test cube standing on the grid at the origin; the
-/// app's tests check this matches the cube the renderer draws.
-pub const TEST_SCENE: Bounds = Bounds {
-    min: Vec3::new(-100.0, -100.0, 0.0),
-    max: Vec3::new(100.0, 100.0, 200.0),
-};
+/// The 2 m test cube's box, standing on the grid at the origin. Framing
+/// fits it when there is nothing shown to frame, so the view goes back to
+/// the middle of the scene.
+pub const TEST_SCENE: Bounds = scene::TEST_CUBE;
+
+/// What the viewport needs to know about the scene each frame.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct SceneSummary {
+    /// Whether the test cube is in the scene and shown.
+    pub test_cube: bool,
+    /// The box around everything shown, if anything shown has a shape.
+    pub all: Option<Bounds>,
+    /// The box around the selection (and what is inside it), if any of it
+    /// is shown and has a shape.
+    pub selected: Option<Bounds>,
+}
+
+impl SceneSummary {
+    /// The summary of `document`'s scene.
+    pub fn of(document: &scene::Document) -> Self {
+        let scene = document.scene();
+        let test_cube = scene.walk().into_iter().any(|(id, _)| {
+            scene.is_shown(id)
+                && scene
+                    .object(id)
+                    .is_some_and(|o| o.kind == scene::ObjectKind::TestCube)
+        });
+        Self {
+            test_cube,
+            all: scene.bounds(),
+            selected: scene.bounds_of(document.selection()),
+        }
+    }
+
+    /// What to fit in the view for `what`: the selection (or, with nothing
+    /// selected, everything), everything, or the middle of the scene if
+    /// nothing shown has a shape.
+    pub fn bounds_for(&self, what: Frame) -> Bounds {
+        let wanted = match what {
+            Frame::All => self.all,
+            Frame::Selected => self.selected.or(self.all),
+        };
+        wanted.unwrap_or(TEST_SCENE)
+    }
+}
 
 /// What to fit in the view.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Frame {
     /// Everything in the scene (key `H`).
     All,
-    /// The selection (key `F`); everything when nothing is selected.
+    /// The selection (key `F`); everything when nothing shown is selected.
     Selected,
 }
 
@@ -192,7 +233,7 @@ impl Frame {
         match self {
             Self::All => "Fit everything in the scene in the view",
             Self::Selected => {
-                "Fit the selection in the view (everything, while nothing is selected)"
+                "Fit the selected objects in the view (everything, while nothing is selected)"
             }
         }
     }
@@ -295,11 +336,8 @@ impl View {
         };
     }
 
-    /// Starts gliding to frame `what`, at time `now`.
-    fn start_frame(&mut self, what: Frame, now: f64) {
-        let bounds = match what {
-            Frame::All | Frame::Selected => TEST_SCENE,
-        };
+    /// Starts gliding to fit `bounds` in the view, at time `now`.
+    fn start_frame(&mut self, bounds: Bounds, now: f64) {
         let aspect = if self.image_size.y > 0.0 {
             self.image_size.x / self.image_size.y
         } else {
@@ -458,6 +496,7 @@ impl View {
         rect: Rect,
         pixels_per_point: f32,
         fine_grid: bool,
+        test_cube: bool,
     ) -> ViewportView {
         let ppp = sane_scale(pixels_per_point);
         let px = |v: f32| (v * ppp).round().clamp(1.0, 16_384.0) as u32;
@@ -476,6 +515,7 @@ impl View {
             sky_horizon: rgb(backdrop::HORIZON),
             ground: rgb(backdrop::GROUND),
             fine_grid,
+            test_cube,
         }
     }
 }
@@ -658,7 +698,7 @@ impl ViewportPanel {
 
     /// Draws the viewport into all of `ui`'s space: the menu line along the
     /// top, and below it one 3D image, or four.
-    pub fn show(&mut self, ui: &mut Ui, renderer: &mut dyn ViewportRenderer) {
+    pub fn show(&mut self, ui: &mut Ui, renderer: &mut dyn ViewportRenderer, scene: &SceneSummary) {
         let full = ui.available_rect_before_wrap();
         let header = Rect::from_min_size(full.min, egui::vec2(full.width(), chrome::HEADER_HEIGHT));
         let body = Rect::from_min_max(pos2(full.min.x, header.max.y), full.max);
@@ -669,7 +709,7 @@ impl ViewportPanel {
         for (slot, rect) in &shown {
             self.views[*slot].image_size = Vec2::new(rect.width(), rect.height());
         }
-        self.frame_from_keys_and_menus(ui);
+        self.frame_from_keys_and_menus(ui, scene);
         chrome::header(ui, header, self);
 
         let four = self.options.four_views;
@@ -704,7 +744,8 @@ impl ViewportPanel {
             let settings = self.options.navigation;
             self.views[slot].navigate(ui, &response, rect, settings);
 
-            let view = self.views[slot].view(slot, rect, ppp, self.options.fine_grid);
+            let view =
+                self.views[slot].view(slot, rect, ppp, self.options.fine_grid, scene.test_cube);
             match renderer.render(&view) {
                 Ok(texture) => {
                     let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0));
@@ -798,7 +839,7 @@ impl ViewportPanel {
     /// Starts framing the active view for the `H` and `F` keys (unless
     /// typing in a field) or a menu entry, and moves every view along a
     /// glide in progress.
-    fn frame_from_keys_and_menus(&mut self, ui: &Ui) {
+    fn frame_from_keys_and_menus(&mut self, ui: &Ui, scene: &SceneSummary) {
         let typing = ui.ctx().memory(|m| m.focused().is_some());
         let now = ui.input(|i| i.time);
         let mut wanted = self.frame_request.take();
@@ -810,7 +851,8 @@ impl ViewportPanel {
             }
         }
         if let Some(what) = wanted {
-            self.active_view_mut().start_frame(what, now);
+            self.active_view_mut()
+                .start_frame(scene.bounds_for(what), now);
         }
         let mut gliding = false;
         for view in &mut self.views {
@@ -897,14 +939,14 @@ mod tests {
 
     #[test]
     fn the_view_is_sized_in_physical_pixels() {
-        let view = perspective().view(0, rect(800.0, 500.0), 1.5, false);
+        let view = perspective().view(0, rect(800.0, 500.0), 1.5, false, true);
         assert_eq!(view.size_px, [1200, 750]);
     }
 
     #[test]
     fn empty_or_broken_sizes_still_make_a_valid_view() {
         for ppp in [0.0, f32::NAN, 2.0] {
-            let view = perspective().view(0, rect(0.0, 0.0), ppp, false);
+            let view = perspective().view(0, rect(0.0, 0.0), ppp, false, true);
             assert_eq!(view.size_px, [1, 1]);
             assert!(view.view_projection.is_finite());
         }
@@ -913,7 +955,7 @@ mod tests {
     #[test]
     fn the_view_uses_the_camera_pivot_and_backdrop() {
         let it = perspective();
-        let view = it.view(0, rect(640.0, 400.0), 1.0, false);
+        let view = it.view(0, rect(640.0, 400.0), 1.0, false, true);
         assert_eq!(view.camera_position, it.camera().position);
         assert_eq!(view.focus, it.navigator.pivot());
         assert_eq!(
@@ -929,7 +971,7 @@ mod tests {
     #[test]
     fn flat_views_tell_the_renderer_their_height_and_grid() {
         let it = View::new(ViewKind::Front);
-        let view = it.view(2, rect(640.0, 400.0), 1.0, true);
+        let view = it.view(2, rect(640.0, 400.0), 1.0, true, false);
         assert_eq!(view.slot, 2);
         assert_eq!(view.flat_height, it.camera().ortho_height);
         assert!(view.flat_height.is_some());
@@ -1022,7 +1064,7 @@ mod tests {
         let r = rect(640.0, 400.0);
         let fine = |p: &ViewportPanel| {
             p.active_view()
-                .view(0, r, 1.0, p.options.fine_grid)
+                .view(0, r, 1.0, p.options.fine_grid, true)
                 .fine_grid
         };
         assert!(!fine(&panel), "calm by default");
@@ -1106,7 +1148,7 @@ mod tests {
             ..perspective()
         };
         let start = it.navigator;
-        it.start_frame(Frame::All, 10.0);
+        it.start_frame(TEST_SCENE, 10.0);
         let end = start.framed(&TEST_SCENE, 1.6);
         assert!(it.follow_glide(10.05), "still going");
         let partway = it.camera().position;
@@ -1123,7 +1165,7 @@ mod tests {
             image_size: Vec2::new(640.0, 400.0),
             ..View::new(ViewKind::Front)
         };
-        it.start_frame(Frame::All, 0.0);
+        it.start_frame(TEST_SCENE, 0.0);
         it.follow_glide(1.0);
         assert_eq!(it.kind(), ViewKind::Front);
         assert_eq!(it.navigator.pivot(), TEST_SCENE.centre());
@@ -1133,13 +1175,50 @@ mod tests {
     fn taking_hold_of_the_view_stops_a_glide() {
         let mut panel = ViewportPanel::default();
         panel.active_view_mut().image_size = Vec2::new(640.0, 400.0);
-        panel.active_view_mut().start_frame(Frame::Selected, 0.0);
+        panel.active_view_mut().start_frame(TEST_SCENE, 0.0);
         panel.active_view_mut().follow_glide(0.05);
         panel.button_drag(DragKind::Pan, egui::vec2(5.0, 0.0));
         assert!(!panel.is_gliding());
-        panel.active_view_mut().start_frame(Frame::All, 0.0);
+        panel.active_view_mut().start_frame(TEST_SCENE, 0.0);
         panel.reset_view();
         assert!(!panel.is_gliding());
+    }
+
+    #[test]
+    fn framing_picks_the_selection_then_everything_then_the_middle() {
+        let elsewhere = Bounds::new(Vec3::splat(500.0), Vec3::splat(600.0)).unwrap();
+        let summary = SceneSummary {
+            test_cube: true,
+            all: Some(TEST_SCENE),
+            selected: Some(elsewhere),
+        };
+        assert_eq!(summary.bounds_for(Frame::Selected), elsewhere);
+        assert_eq!(summary.bounds_for(Frame::All), TEST_SCENE);
+        let nothing_selected = SceneSummary {
+            selected: None,
+            ..summary
+        };
+        assert_eq!(nothing_selected.bounds_for(Frame::Selected), TEST_SCENE);
+        let empty = SceneSummary::default();
+        assert_eq!(empty.bounds_for(Frame::All), TEST_SCENE, "the middle");
+    }
+
+    #[test]
+    fn the_summary_follows_the_document() {
+        let mut doc = scene::Document::starting_scene();
+        let summary = SceneSummary::of(&doc);
+        assert!(summary.test_cube);
+        assert_eq!(summary.all, Some(TEST_SCENE));
+        assert_eq!(summary.selected, None);
+        let cube = doc.scene().children(None)[0];
+        doc.execute(scene::Command::SetVisible {
+            ids: vec![cube],
+            visible: false,
+        })
+        .unwrap();
+        let hidden = SceneSummary::of(&doc);
+        assert!(!hidden.test_cube);
+        assert_eq!(hidden.all, None);
     }
 
     #[test]

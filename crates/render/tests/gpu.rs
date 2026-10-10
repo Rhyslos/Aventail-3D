@@ -530,3 +530,29 @@ fn picking_works_in_a_flat_view() {
     let point = result.point.expect("the cube's top");
     assert!((point - top_of_cube).length() < 2.0, "{point}");
 }
+
+#[test]
+fn without_a_shape_only_the_backdrop_is_drawn_and_nothing_is_picked() {
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, target) = setup(&gpu, [320, 200]);
+    let camera = Camera::default();
+    let centre = Vec3::new(0.0, 0.0, TEST_CUBE_SIZE / 2.0);
+    let middle = camera
+        .project(centre, Vec2::new(320.0, 200.0))
+        .expect("in view");
+    let with_cube = render(&gpu, &renderer, &target, camera, Vec3::ZERO);
+    renderer.set_shape(&gpu.device, &render::Shape::default());
+    let without = render(&gpu, &renderer, &target, camera, Vec3::ZERO);
+    assert!(
+        brightness(with_cube.at(centre)) > brightness(without.at(centre)) + 60,
+        "the light grey cube is gone"
+    );
+    let result = renderer
+        .pick_now(
+            &gpu.device,
+            &gpu.queue,
+            pick_request(&camera, middle, [320, 200]),
+        )
+        .expect("an answer");
+    assert_eq!(result.point, None, "nothing to pick");
+}

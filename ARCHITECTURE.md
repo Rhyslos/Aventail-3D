@@ -81,7 +81,8 @@ Rendering sits behind the `ViewportRenderer` trait, so the panel runs in tests w
 - The single source of truth for an open project: the object hierarchy, each object's base and its operation stack. See [decision 0006](docs/decisions/0006-base-plus-operation-stack.md).
 - An object is a **base** (a parametric primitive, an imported mesh, or an editable mesh) plus a **stack of layers**, each holding recorded operations. Base parameters stay editable; the stack replays on top.
 - Every mesh element has a stable ID that is never reused. Operations create IDs deterministically, so replaying an unchanged history gives identical IDs.
-- The scene changes only through commands, which gives undo, redo and future scripting from one mechanism. Undo history is bounded by a memory budget, not a step count.
+- The scene changes only through commands, which gives undo, redo and future scripting from one mechanism. Undo history is bounded by a memory budget, not a step count (for now it keeps every step; the budget is a later Phase 2 milestone).
+- **Built so far** ([decision 0018](docs/decisions/0018-scene-document-and-undo.md)): `scene::Document` holds the `Scene` (a tree of objects with stable ids that are never reused), the undo history and the selection. `Document::execute` carries out a `Command` as small reversible edits (insert, remove, relocate, rename, show/hide) and records them as one step; `undo` applies their opposites in reverse order. The workbench owns the document: the Object Manager, menus and keys hand it commands, and the viewport reads a summary (whether the test cube is shown, and the boxes to frame).
 - Transforms are stored relative to the parent; world transforms are always derived.
 
 ## Files

@@ -25,17 +25,25 @@ pub(crate) const ATTRIBUTES_MENUS: [PanelMenu; 2] = [
     ("Edit", &[("Copy and paste settings", "Phase 2")]),
 ];
 
-/// The Objects panel's menus.
-pub(crate) const OBJECTS_MENUS: [PanelMenu; 3] = [
-    ("Edit", &[("Rename, duplicate and delete", "Phase 2")]),
-    ("View", &[("Collapse and expand all", "Phase 2")]),
-    ("Object", &[("Group and ungroup", "Phase 2")]),
-];
-
-/// A panel's own menu line, along its top: a menu icon, its menus (whose
-/// entries are greyed out until they arrive) and a search icon on the
-/// right, as in the approved mockup.
+/// A panel's own menu line, along its top, with menus whose entries are
+/// all still to come (greyed out, saying when they arrive).
 pub(crate) fn menu_line(ui: &mut Ui, menus: &[PanelMenu]) {
+    menu_line_with(ui, |ui| {
+        for (title, items) in menus {
+            ui.menu_button(*title, |ui| {
+                for (item, phase) in *items {
+                    ui.add_enabled(false, egui::Button::new(*item))
+                        .on_disabled_hover_text(format!("Arrives in {phase}"));
+                }
+            });
+        }
+    });
+}
+
+/// A panel's own menu line, along its top: a menu icon, the menus that
+/// `add_menus` draws, and a search icon on the right, as in the approved
+/// mockup.
+pub(crate) fn menu_line_with(ui: &mut Ui, add_menus: impl FnOnce(&mut Ui)) {
     let (rect, _) = ui.allocate_exact_size(
         egui::vec2(ui.available_width(), MENU_LINE_HEIGHT),
         Sense::hover(),
@@ -61,14 +69,7 @@ pub(crate) fn menu_line(ui: &mut Ui, menus: &[PanelMenu]) {
     );
     egui::MenuBar::new().ui(&mut line, |ui| {
         ui.spacing_mut().item_spacing.x = 4.0;
-        for (title, items) in menus {
-            ui.menu_button(*title, |ui| {
-                for (item, phase) in *items {
-                    ui.add_enabled(false, egui::Button::new(*item))
-                        .on_disabled_hover_text(format!("Arrives in {phase}"));
-                }
-            });
-        }
+        add_menus(ui);
     });
     line.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
         let (search, response) = ui.allocate_exact_size(egui::vec2(20.0, 20.0), Sense::hover());
@@ -110,15 +111,6 @@ pub(crate) fn attributes_contents(ui: &mut Ui) {
         ui,
         "Nothing selected",
         "Select an object or pick a tool, and its settings show up here.",
-    );
-}
-
-/// The Object Manager: the tree of objects in the scene.
-pub(crate) fn objects_contents(ui: &mut Ui) {
-    placeholder(
-        ui,
-        "No objects yet",
-        "Objects you create appear here as a tree. Primitives arrive in Phase 2.",
     );
 }
 
@@ -254,7 +246,7 @@ mod tests {
 
     #[test]
     fn every_panel_menu_entry_says_when_it_arrives() {
-        for (_, items) in ATTRIBUTES_MENUS.iter().chain(OBJECTS_MENUS.iter()) {
+        for (_, items) in ATTRIBUTES_MENUS.iter() {
             assert!(!items.is_empty());
             for (_, phase) in *items {
                 assert!(phase.starts_with("Phase"));

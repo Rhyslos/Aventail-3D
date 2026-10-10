@@ -5,7 +5,7 @@ use crate::viewport::NoRenderer;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT, Queryable};
 
-fn info() -> AppInfo {
+pub(super) fn info() -> AppInfo {
     AppInfo {
         name: "Test App".into(),
         version: "9.9.9".into(),
@@ -16,16 +16,16 @@ fn info() -> AppInfo {
 /// A stand-in renderer: draws nothing (like having no GPU), and answers
 /// every question about the point under the mouse at once, with `surface`.
 #[derive(Default)]
-struct TestRenderer {
+pub(super) struct TestRenderer {
     /// What is under the mouse, wherever it is; `None` for background.
-    surface: Option<glam::Vec3>,
+    pub(super) surface: Option<glam::Vec3>,
     /// Whether to answer questions at all (a renderer without picking
     /// answers nothing).
-    picks: bool,
+    pub(super) picks: bool,
     /// How many questions were asked.
-    asks: usize,
+    pub(super) asks: usize,
     /// Every view asked for, oldest first.
-    drawn: Vec<crate::ViewportView>,
+    pub(super) drawn: Vec<crate::ViewportView>,
 }
 
 impl ViewportRenderer for TestRenderer {
@@ -50,42 +50,66 @@ impl ViewportRenderer for TestRenderer {
 }
 
 /// The workbench plus every action it has returned so far.
-struct State {
-    workbench: Workbench,
-    actions: Vec<WorkbenchAction>,
-    renderer: TestRenderer,
+pub(super) struct State {
+    pub(super) workbench: Workbench,
+    pub(super) actions: Vec<WorkbenchAction>,
+    pub(super) renderer: TestRenderer,
 }
 
-fn harness_for(workbench: Workbench) -> Harness<'static, State> {
+pub(super) fn harness_for(workbench: Workbench) -> Harness<'static, State> {
     harness_with(workbench, TestRenderer::default())
 }
 
-fn harness_with(workbench: Workbench, renderer: TestRenderer) -> Harness<'static, State> {
-    Harness::builder()
-        .with_size([1440.0, 900.0])
-        .build_ui_state(
-            |ui, state: &mut State| {
-                let actions = state.workbench.show(ui, &mut state.renderer);
-                state.actions.extend(actions);
-            },
-            State {
-                workbench,
-                actions: Vec::new(),
-                renderer,
-            },
-        )
+pub(super) fn harness_with(
+    workbench: Workbench,
+    renderer: TestRenderer,
+) -> Harness<'static, State> {
+    harness_built(Harness::builder(), workbench, renderer)
+}
+
+/// A harness whose frames are 1/60 s apart (rather than the standard
+/// quarter second), so two clicks can be close enough to be a double click.
+pub(super) fn quick_harness() -> Harness<'static, State> {
+    let mut harness = harness_built(
+        Harness::builder().with_step_dt(1.0 / 60.0),
+        Workbench::new(info(), None),
+        TestRenderer::default(),
+    );
+    harness.run();
+    harness
+}
+
+fn harness_built(
+    builder: egui_kittest::HarnessBuilder<State>,
+    workbench: Workbench,
+    renderer: TestRenderer,
+) -> Harness<'static, State> {
+    builder.with_size([1440.0, 900.0]).build_ui_state(
+        |ui, state: &mut State| {
+            let actions = state.workbench.show(ui, &mut state.renderer);
+            state.actions.extend(actions);
+        },
+        State {
+            workbench,
+            actions: Vec::new(),
+            renderer,
+        },
+    )
 }
 
 /// A menu on the main menu bar (the panels and the viewport have menus
 /// with some of the same names, lower down).
-fn main_menu<'h>(harness: &'h Harness<'static, State>, name: &'h str) -> egui_kittest::Node<'h> {
+pub(super) fn main_menu<'h>(
+    harness: &'h Harness<'static, State>,
+    name: &'h str,
+) -> egui_kittest::Node<'h> {
     harness
         .get_all_by_label(name)
         .min_by(|a, b| a.rect().min.y.total_cmp(&b.rect().min.y))
         .unwrap_or_else(|| panic!("no menu {name}"))
 }
 
-fn fresh() -> Harness<'static, State> {
+pub(super) fn fresh() -> Harness<'static, State> {
     let mut harness = harness_for(Workbench::new(info(), None));
     harness.run();
     harness
@@ -257,7 +281,6 @@ fn window_title_shows_name_and_version() {
 fn panels_explain_what_is_coming() {
     let harness = fresh();
     assert!(harness.query_by_label("Nothing selected").is_some());
-    assert!(harness.query_by_label("No objects yet").is_some());
 }
 
 #[test]
@@ -366,7 +389,7 @@ fn without_a_gpu_the_viewport_explains_why() {
 
 /// Drags across the viewport's middle with `button`, holding `modifiers`,
 /// in a few small steps as a real mouse would.
-fn drag_viewport(
+pub(super) fn drag_viewport(
     harness: &mut Harness<'static, State>,
     button: egui::PointerButton,
     modifiers: Modifiers,
@@ -402,11 +425,11 @@ fn drag_viewport(
 
 /// A point in the viewport clear of the message shown in the middle when
 /// there is no GPU (as in these tests).
-fn viewport_spot(harness: &Harness<'static, State>) -> egui::Pos2 {
+pub(super) fn viewport_spot(harness: &Harness<'static, State>) -> egui::Pos2 {
     harness.get_by_label(crate::VIEWPORT_LABEL).rect().center() - egui::vec2(0.0, 120.0)
 }
 
-fn camera(harness: &Harness<'static, State>) -> tools::Camera {
+pub(super) fn camera(harness: &Harness<'static, State>) -> tools::Camera {
     *harness.state().workbench.viewport().camera()
 }
 

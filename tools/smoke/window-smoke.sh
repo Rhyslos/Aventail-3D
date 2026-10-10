@@ -163,6 +163,25 @@ ONE_CHANGE="$(changed_pixels "$OUT/four-views.png" "$OUT/back-to-one.png")"
 echo "Pixels changed by going back to one view (F1): $ONE_CHANGE"
 [ "$ONE_CHANGE" -gt 20000 ] || fail "F1 did not go back to one view"
 
+# 5c. Deleting the test cube in the Object Manager takes it out of the
+#     view; Ctrl+Z brings it back. CUBE_ROW_Y is the middle of its row
+#     with the standard layout.
+CUBE_ROW_Y="${CUBE_ROW_Y:-631}"
+xdotool mousemove 1200 "$CUBE_ROW_Y" click 1
+sleep 1
+xdotool key --window "$WINDOW_ID" Delete || true
+sleep 1.5
+import -window root "$OUT/cube-deleted.png"
+DELETE_CHANGE="$(changed_pixels "$OUT/back-to-one.png" "$OUT/cube-deleted.png")"
+echo "Pixels changed by deleting the cube: $DELETE_CHANGE"
+[ "$DELETE_CHANGE" -gt 20000 ] || fail "deleting the cube changed nothing"
+xdotool key --window "$WINDOW_ID" ctrl+z || true
+sleep 1.5
+import -window root "$OUT/cube-undone.png"
+UNDO_CHANGE="$(changed_pixels "$OUT/cube-deleted.png" "$OUT/cube-undone.png")"
+echo "Pixels changed by undoing (Ctrl+Z): $UNDO_CHANGE"
+[ "$UNDO_CHANGE" -gt 20000 ] || fail "Ctrl+Z did not bring the cube back"
+
 # 6. Quit with Ctrl+Q, or File > Quit if the key did not arrive.
 xdotool mousemove 500 400
 xdotool key --window "$WINDOW_ID" ctrl+q || true

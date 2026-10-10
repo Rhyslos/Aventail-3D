@@ -4,7 +4,7 @@
 use eframe::egui;
 use eframe::egui_wgpu::RenderState;
 use eframe::wgpu;
-use render::{FrameParams, PickRequest, ViewportRenderer as GpuRenderer, ViewportTarget};
+use render::{FrameParams, PickRequest, Shape, ViewportRenderer as GpuRenderer, ViewportTarget};
 use ui::{PickAsk, PickReply, Picked, VIEW_COUNT, ViewportRenderer, ViewportView};
 
 /// The image one view is drawn into, and the egui texture showing it.
@@ -21,6 +21,9 @@ pub struct GpuViewport {
     state: RenderState,
     renderer: GpuRenderer,
     images: [Option<SlotImage>; VIEW_COUNT],
+    /// Whether the renderer holds the test cube (it starts with it), or
+    /// nothing because the cube is hidden or deleted.
+    holds_test_cube: bool,
 }
 
 impl GpuViewport {
@@ -31,6 +34,7 @@ impl GpuViewport {
             renderer: GpuRenderer::new(&state.device, samples),
             state: state.clone(),
             images: std::array::from_fn(|_| None),
+            holds_test_cube: true,
         }
     }
 
@@ -98,6 +102,15 @@ impl ViewportRenderer for GpuViewport {
             flat_height: view.flat_height,
             grid_plane: view.grid_plane,
         };
+        if view.test_cube != self.holds_test_cube {
+            let shape = if view.test_cube {
+                Shape::test_cube()
+            } else {
+                Shape::default()
+            };
+            self.renderer.set_shape(&self.state.device, &shape);
+            self.holds_test_cube = view.test_cube;
+        }
         const FAILED: &str = "the viewport image could not be created";
         self.prepare_image(view.slot, view.size_px).ok_or(FAILED)?;
         let image = self
@@ -146,9 +159,9 @@ impl ViewportRenderer for GpuViewport {
 mod tests {
     #[test]
     fn framing_knows_the_cube_the_renderer_draws() {
-        // The interface frames ui::TEST_SCENE; the renderer draws the test
-        // cube. Until objects exist, the two must describe the same box.
-        let scene = ui::TEST_SCENE;
+        // The scene's test cube object and the cube the renderer draws
+        // must be the same box.
+        let scene = scene::TEST_CUBE;
         let side = render::TEST_CUBE_SIZE;
         assert_eq!(scene.size().to_array(), [side; 3]);
         assert_eq!(scene.min.z, 0.0, "standing on the grid");

@@ -199,6 +199,7 @@ version = "0.0.1"
 dependencies = [
  "eframe",
  "render",
+ "scene",
  "ui",
 ]
 
@@ -2792,6 +2793,10 @@ dependencies = [
 [[package]]
 name = "scene"
 version = "0.0.1"
+dependencies = [
+ "glam",
+ "mesh",
+]
 
 [[package]]
 name = "scoped-tls"
@@ -3344,6 +3349,7 @@ dependencies = [
  "egui_kittest",
  "glam",
  "ron",
+ "scene",
  "serde",
  "tools",
 ]
