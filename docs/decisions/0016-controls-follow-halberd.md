@@ -1,6 +1,6 @@
 # 0016. Keyboard and mouse controls follow Halberd
 
-- **Status:** Accepted
+- **Status:** Narrowed by [0019](0019-only-the-tool-keys-come-from-halberd.md): only the tool keys (`Q`, `W`, `S`, `R`, `T`, `B`) still come from Halberd
 - **Date:** 2026-10-10
 
 ## Problem

@@ -24,7 +24,7 @@ Option 3, in the `scene` crate:
 - **New objects go at the top of the list**, as in the program the layout follows, so they are seen without scrolling.
 - **Selection is not an undo step yet**; DESIGN.md §4.3 wants it undoable but coalesced, which comes with the history milestone.
 - **History is unlimited for now.** Steps are small (a few edits each), and the memory budget of §4.3 is still its own Phase 2 milestone; it will cap this list rather than replace it.
-- **Keys** follow Halberd for undo (`Ctrl + Z`), redo (`Ctrl + Y`, `Ctrl + Shift + Z`), delete (`Delete`, `Backspace`) and deselect (`Esc`), and add `Alt + G` (group) and `Shift + G` (ungroup), which are free in Halberd ([0016](0016-controls-follow-halberd.md)).
+- **Keys** are the common ones: undo (`Ctrl + Z`), redo (`Ctrl + Y`, `Ctrl + Shift + Z`), delete (`Delete`, `Backspace`), deselect (`Esc`), plus `Alt + G` (group) and `Shift + G` (ungroup) ([0019](0019-only-the-tool-keys-come-from-halberd.md)).
 
 ## Consequences
 

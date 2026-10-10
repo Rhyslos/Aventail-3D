@@ -21,11 +21,11 @@ pub(crate) const ROW_HEIGHT: f32 = 22.0;
 /// How far each level of nesting is indented.
 const INDENT: f32 = 14.0;
 
-/// Undo (Ctrl+Z, Cmd+Z on macOS), as in Halberd.
+/// Undo (Ctrl+Z, Cmd+Z on macOS).
 pub const UNDO_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::Z);
-/// Redo (Ctrl+Y), as in Halberd.
+/// Redo (Ctrl+Y).
 pub const REDO_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::Y);
-/// Redo's second shortcut (Ctrl+Shift+Z), as in Halberd.
+/// Redo's second shortcut (Ctrl+Shift+Z).
 pub const REDO_SHORTCUT_2: KeyboardShortcut = KeyboardShortcut::new(
     Modifiers {
         shift: true,
@@ -33,14 +33,13 @@ pub const REDO_SHORTCUT_2: KeyboardShortcut = KeyboardShortcut::new(
     },
     Key::Z,
 );
-/// Delete the selection (Backspace does it too), as in Halberd.
+/// Delete the selection (Backspace does it too).
 pub const DELETE_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::NONE, Key::Delete);
-/// Deselect everything, as in Halberd.
+/// Deselect everything.
 pub const DESELECT_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::NONE, Key::Escape);
-/// Put the selection into a new group (new here; free in Halberd).
+/// Put the selection into a new group.
 pub const GROUP_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::ALT, Key::G);
-/// Take the contents out of the selected groups (new here; free in
-/// Halberd).
+/// Take the contents out of the selected groups.
 pub const UNGROUP_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::SHIFT, Key::G);
 
 /// Something the Object Manager (or a menu) asks the workbench to do to

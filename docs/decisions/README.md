@@ -23,6 +23,7 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0013](0013-viewport-rendering.md) | Viewport rendering | Accepted |
 | [0014](0014-studio-look-and-accent.md) | A darker studio look, with a choice of accent colour | Accepted |
 | [0015](0015-navigation-schemes.md) | A choice of navigation controls | Accepted |
-| [0016](0016-controls-follow-halberd.md) | Keyboard and mouse controls follow Halberd | Accepted |
+| [0016](0016-controls-follow-halberd.md) | Keyboard and mouse controls follow Halberd | Narrowed by 0019 |
 | [0017](0017-picking-the-point-under-the-mouse.md) | Finding the point under the mouse | Accepted |
 | [0018](0018-scene-document-and-undo.md) | The scene document: an object tree changed by undoable commands | Accepted |
+| [0019](0019-only-the-tool-keys-come-from-halberd.md) | Only the tool keys come from Halberd | Accepted |

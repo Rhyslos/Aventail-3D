@@ -65,7 +65,7 @@ The main menu bar's **Edit** menu has the same entries as the panel's Edit menu,
 | Select a run of rows | `Shift` + click |
 | Rename | Double-click the name |
 
-On macOS, use `Cmd` instead of `Ctrl` and `Option` instead of `Alt`. These keys are the same as in Halberd, the Rhylib map editor; `Alt + G` and `Shift + G` are new here. They don't act while you're typing a name.
+On macOS, use `Cmd` instead of `Ctrl` and `Option` instead of `Alt`. They don't act while you're typing a name.
 
 ## Tips and common problems
 
