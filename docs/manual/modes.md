@@ -14,7 +14,7 @@ Most modelling happens on the parts of a shape rather than on the whole thing: p
 
 **Model mode** works on whole objects, as before.
 
-In these modes you can see a shape's points and edges, see which one is under the mouse, and select them: see [Selecting](selecting.md). Moving them comes with the next update.
+In these modes you can see a shape's points and edges, see which one is under the mouse, select them ([Selecting](selecting.md)), and move, rotate and scale them ([Move, rotate and scale](transforming.md)).
 
 ## How to use it
 

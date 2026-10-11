@@ -3,6 +3,11 @@
 //! types can change freely; this model only changes with a new format
 //! version (and an upgrade step from this one), so old files always open.
 //!
+//! The structures are generic over the recorded operations, the one part
+//! that has changed since: version 2 ([`super::v2`]) uses the same
+//! structures with more kinds of operation. With version 1's operations
+//! they encode exactly as version 1 always did.
+//!
 //! Every value read back is checked: a file may be damaged or hostile.
 
 use glam::Vec3;
@@ -14,26 +19,33 @@ use scene::{Document, Layer, Object, ObjectId, ObjectKind, Operation, Scene, Sta
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-/// A whole project.
+/// A whole project, with recorded operations of type `Op`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub(crate) struct ProjectV1 {
+pub(crate) struct ProjectFile<Op> {
     /// Every object, parents before their children, children in order.
-    pub(crate) objects: Vec<ObjectV1>,
+    pub(crate) objects: Vec<ObjectFile<Op>>,
     /// The id the next new object gets (ids are never reused).
     pub(crate) next_id: u64,
     /// The selected objects' ids.
     pub(crate) selection: Vec<u64>,
 }
 
+/// Version 1 of the file: its own operations.
+#[cfg(test)]
+pub(crate) type ProjectV1 = ProjectFile<OperationV1>;
+/// An object in a version 1 file.
+#[cfg(test)]
+pub(crate) type ObjectV1 = ObjectFile<OperationV1>;
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub(crate) struct ObjectV1 {
+pub(crate) struct ObjectFile<Op> {
     pub(crate) id: u64,
     pub(crate) parent: Option<u64>,
     pub(crate) name: String,
     pub(crate) visible: bool,
     pub(crate) transform: TransformV1,
     pub(crate) kind: KindV1,
-    pub(crate) layers: Vec<LayerV1>,
+    pub(crate) layers: Vec<LayerFile<Op>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -112,10 +124,39 @@ pub(crate) struct MeshV1 {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub(crate) struct LayerV1 {
+pub(crate) struct LayerFile<Op> {
     pub(crate) name: String,
     pub(crate) enabled: bool,
-    pub(crate) operations: Vec<OperationV1>,
+    pub(crate) operations: Vec<Op>,
+}
+
+/// A recorded operation as a format version stores it.
+pub(crate) trait FileOperation: Sized {
+    /// The file's form of `op`, or `None` if this version can't store it.
+    fn to_file(op: &Operation) -> Option<Self>;
+    /// The operation, after checking its values.
+    fn into_operation(self) -> Result<Operation, Problem>;
+}
+
+impl FileOperation for OperationV1 {
+    fn to_file(op: &Operation) -> Option<Self> {
+        match op {
+            Operation::MovePoints { points, offset } => Some(Self::MovePoints {
+                points: points.iter().map(|v| v.get()).collect(),
+                offset: offset.to_array(),
+            }),
+            _ => None,
+        }
+    }
+
+    fn into_operation(self) -> Result<Operation, Problem> {
+        match self {
+            Self::MovePoints { points, offset } => Ok(Operation::MovePoints {
+                points: points.into_iter().map(VertexId::from_raw).collect(),
+                offset: finite(offset, "recorded move")?,
+            }),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -125,8 +166,10 @@ pub(crate) enum OperationV1 {
 
 // ------------------------------------------------------------- writing ---
 
-impl ProjectV1 {
-    /// The file model of a document.
+impl<Op: FileOperation> ProjectFile<Op> {
+    /// The file model of a document. Operations this version can't store
+    /// are left out, so documents are only ever written with the newest
+    /// version.
     pub(crate) fn from_document(document: &Document) -> Self {
         let scene = document.scene();
         let objects = scene
@@ -134,7 +177,7 @@ impl ProjectV1 {
             .into_iter()
             .filter_map(|(id, _)| {
                 let object = scene.object(id)?;
-                Some(ObjectV1 {
+                Some(ObjectFile {
                     id: id.get(),
                     parent: scene.parent(id).map(ObjectId::get),
                     name: object.name.clone(),
@@ -244,22 +287,11 @@ fn mesh_to_file(mesh: &Mesh) -> MeshV1 {
     }
 }
 
-fn layer_to_file(layer: &Layer) -> LayerV1 {
-    LayerV1 {
+fn layer_to_file<Op: FileOperation>(layer: &Layer) -> LayerFile<Op> {
+    LayerFile {
         name: layer.name.clone(),
         enabled: layer.enabled,
-        operations: layer
-            .operations
-            .iter()
-            .filter_map(|op| match op {
-                Operation::MovePoints { points, offset } => Some(OperationV1::MovePoints {
-                    points: points.iter().map(|v| v.get()).collect(),
-                    offset: offset.to_array(),
-                }),
-                // New operations arrive with a new format version.
-                _ => None,
-            })
-            .collect(),
+        operations: layer.operations.iter().filter_map(Op::to_file).collect(),
     }
 }
 
@@ -268,7 +300,7 @@ fn layer_to_file(layer: &Layer) -> LayerV1 {
 /// Why the contents couldn't become a document, in plain words.
 pub(crate) type Problem = String;
 
-impl ProjectV1 {
+impl<Op: FileOperation> ProjectFile<Op> {
     /// The document this file model describes, after checking every value.
     pub(crate) fn into_document(self) -> Result<Document, Problem> {
         let mut objects = Vec::with_capacity(self.objects.len());
@@ -283,7 +315,7 @@ impl ProjectV1 {
     }
 }
 
-fn finite(values: [f32; 3], what: &str) -> Result<Vec3, Problem> {
+pub(crate) fn finite(values: [f32; 3], what: &str) -> Result<Vec3, Problem> {
     let v = Vec3::from_array(values);
     if v.is_finite() {
         Ok(v)
@@ -292,7 +324,9 @@ fn finite(values: [f32; 3], what: &str) -> Result<Vec3, Problem> {
     }
 }
 
-fn object_from_file(object: ObjectV1) -> Result<(ObjectId, Option<ObjectId>, Object), Problem> {
+fn object_from_file<Op: FileOperation>(
+    object: ObjectFile<Op>,
+) -> Result<(ObjectId, Option<ObjectId>, Object), Problem> {
     let transform = Transform {
         position: finite(object.transform.position, "position")?,
         rotation: finite(object.transform.rotation, "rotation")?,
@@ -428,16 +462,11 @@ fn mesh_from_file(mesh: MeshV1) -> Result<Mesh, Problem> {
     Mesh::from_slots(points, faces, hard).map_err(|e| format!("its mesh is damaged ({e})"))
 }
 
-fn layer_from_file(layer: LayerV1) -> Result<Layer, Problem> {
+fn layer_from_file<Op: FileOperation>(layer: LayerFile<Op>) -> Result<Layer, Problem> {
     let mut built = Layer::new(layer.name);
     built.enabled = layer.enabled;
     for op in layer.operations {
-        built.operations.push(match op {
-            OperationV1::MovePoints { points, offset } => Operation::MovePoints {
-                points: points.into_iter().map(VertexId::from_raw).collect(),
-                offset: finite(offset, "recorded move")?,
-            },
-        });
+        built.operations.push(op.into_operation()?);
     }
     Ok(built)
 }

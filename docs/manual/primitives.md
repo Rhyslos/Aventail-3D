@@ -18,7 +18,7 @@ Almost every hard-surface model starts as a simple shape: a crate starts as a cu
 
 Every shape **stands on the ground** with its [pivot](concepts.md#objects-and-scenes) at the middle of its base, and the plane and disc lie flat on it. That's how game engines like to place things: put the asset on the floor and it sits there, instead of being half sunk in.
 
-New shapes all appear at the centre of the scene, so they overlap. Moving them arrives with the Move tool in Phase 3; until then, hide the ones in the way with the eye in the Objects panel.
+New shapes all appear at the centre of the scene, so they overlap. Move them apart with the Move tool (**W**; see [Move, rotate and scale](transforming.md)), or type a position in the Coordinates panel.
 
 ![The shape list, opened with B by the mouse, with Cylinder highlighted](../screenshots/2026-10-11-shape-list.png)
 

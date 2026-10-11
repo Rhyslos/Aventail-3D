@@ -52,7 +52,7 @@ Different people come with different habits, so you can choose how the mouse mov
 
 Try them for a while and keep the one that feels natural. The status bar shows the controls in use as a reminder, and your choice is remembered.
 
-Whatever you pick, **a plain left drag never moves the view**: it's kept free for selecting and for the modelling tools (from Phase 3). A right *click* without dragging stays free for menus too.
+Whatever you pick, **a plain left drag never moves the view**: it's kept free for selecting and for the gizmos that move, rotate and scale. A right *click* without dragging stays free for menus too.
 
 ## Settings
 

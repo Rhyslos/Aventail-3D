@@ -2,9 +2,9 @@
 //! what will appear in them and when.
 
 use crate::icons::{self, Icon};
-use crate::theme::{self, tint};
+use crate::theme;
 use crate::workbench::AppInfo;
-use egui::{Align2, Color32, FontId, Mesh, Rect, RichText, Sense, Ui};
+use egui::{Color32, Mesh, Rect, RichText, Sense, Ui};
 
 /// Height of a panel's own menu line, in logical pixels.
 pub(crate) const MENU_LINE_HEIGHT: f32 = 26.0;
@@ -72,104 +72,6 @@ pub(crate) fn vertical_gradient(rect: Rect, top: Color32, bottom: Color32) -> Me
     mesh.add_triangle(0, 1, 2);
     mesh.add_triangle(0, 2, 3);
     mesh
-}
-
-/// The Coordinates panel: typed position, size and rotation of the
-/// selection, laid out as in the approved mockup. The axis letters are
-/// coloured (X red, Y blue, Z green; rotation's H, P and B in grey).
-///
-/// Until something can be selected (Phase 3), the fields show zeros and
-/// can't be edited; hovering one says why.
-pub(crate) fn coordinates_contents(ui: &mut Ui, units: crate::units::Units) {
-    let position = [
-        ("X", tint::AXIS_X),
-        ("Y", tint::AXIS_Y),
-        ("Z", tint::AXIS_Z),
-    ];
-    let rotation = [
-        ("H", theme::TEXT_WEAK),
-        ("P", theme::TEXT_WEAK),
-        ("B", theme::TEXT_WEAK),
-    ];
-    let groups = [
-        ("Position", position, units.symbol()),
-        ("Size", position, units.symbol()),
-        ("Rotation", rotation, "°"),
-    ];
-    ui.horizontal_top(|ui| {
-        ui.spacing_mut().item_spacing.x = 18.0;
-        for (title, axes, unit) in groups {
-            ui.vertical(|ui| {
-                ui.set_width(COORDINATE_GROUP_WIDTH);
-                ui.spacing_mut().item_spacing.y = 4.0;
-                ui.label(RichText::new(title).small().color(theme::TEXT_WEAK));
-                for (axis, color) in axes {
-                    ui.horizontal(|ui| {
-                        ui.spacing_mut().item_spacing.x = 6.0;
-                        let (letter, _) =
-                            ui.allocate_exact_size(egui::vec2(12.0, FIELD_HEIGHT), Sense::hover());
-                        ui.painter().text(
-                            letter.center(),
-                            Align2::CENTER_CENTER,
-                            axis,
-                            FontId::proportional(13.0),
-                            color,
-                        );
-                        coordinate_field(ui, &format!("{title} {axis}"), &format!("0 {unit}"));
-                    });
-                }
-            });
-        }
-        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            ui.vertical(|ui| {
-                ui.spacing_mut().item_spacing.y = 6.0;
-                let why = "Select something to type its coordinates";
-                ui.add_enabled(
-                    false,
-                    egui::Button::new("Object (Rel)  ⏷")
-                        .fill(theme::HEADER)
-                        .min_size(egui::vec2(120.0, FIELD_HEIGHT)),
-                )
-                .on_disabled_hover_text(
-                    "Whether values are relative to the object or the world. Arrives in Phase 3.",
-                );
-                ui.add_enabled(
-                    false,
-                    egui::Button::new("Apply").min_size(egui::vec2(120.0, FIELD_HEIGHT)),
-                )
-                .on_disabled_hover_text(why);
-            });
-        });
-    });
-}
-
-/// Width of one group (Position, Size or Rotation) in the Coordinates panel.
-const COORDINATE_GROUP_WIDTH: f32 = 200.0;
-/// Height of a value field.
-const FIELD_HEIGHT: f32 = 22.0;
-
-/// A value field, drawn as in the mockup: dark, rounded, filling the rest
-/// of the row. Read-only until there is a selection to edit.
-fn coordinate_field(ui: &mut Ui, label: &str, value: &str) {
-    let width = ui.available_width();
-    let (rect, response) = ui.allocate_exact_size(egui::vec2(width, FIELD_HEIGHT), Sense::hover());
-    response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, false, label));
-    let painter = ui.painter();
-    painter.rect(
-        rect,
-        4.0,
-        theme::FIELD,
-        egui::Stroke::new(1.0, theme::FIELD_BORDER),
-        egui::StrokeKind::Inside,
-    );
-    painter.text(
-        rect.left_center() + egui::vec2(8.0, 0.0),
-        Align2::LEFT_CENTER,
-        value,
-        FontId::proportional(13.0),
-        theme::TEXT_STRONG.gamma_multiply(0.85),
-    );
-    response.on_hover_text("Select something to type its coordinates");
 }
 
 /// The About box.

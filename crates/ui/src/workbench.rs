@@ -3,12 +3,13 @@
 
 use crate::attributes::{AttributesPanel, Shared};
 use crate::components::{self, ComponentTracker};
+use crate::coordinates::{CoordinatesView, Interaction};
 use crate::drawing::{DrawingCache, SceneSummary};
 use crate::layout::{default_layout, fit_coordinates, hide_viewport_tab, restore_or_default};
 use crate::objects::{self, DocRequest, ObjectManager};
 use crate::palette::{Mode, PaletteCommand, PaletteState, command_palette, mode_palette};
 use crate::panel::Panel;
-use crate::panels::{about_contents, coordinates_contents, menu_line_with};
+use crate::panels::{about_contents, menu_line_with};
 use crate::project::{
     NEW_SHORTCUT, OPEN_SHORTCUT, Pending, ProjectFile, SAVE_AS_SHORTCUT, SAVE_SHORTCUT,
     recent_label,
@@ -17,6 +18,7 @@ use crate::selecting::StrokeMemory;
 use crate::settings::{SETTINGS_SHORTCUT, SettingsWindow, Values};
 use crate::shape_picker::ShapePicker;
 use crate::theme::{self, Accent};
+use crate::transforming::Tool;
 use crate::undo_memory::UndoMemory;
 use crate::units::Units;
 use crate::viewport::{ViewOptions, ViewportPanel, ViewportRenderer};
@@ -89,11 +91,9 @@ const COMING: [(&str, &[(&str, &str)]); 4] = [
     // The Select menu's entries all work (see `selection`).
     ("Select", &[]),
     (
+        // The Tools menu's entries all work (see `transform`).
         "Tools",
-        &[
-            ("Move, rotate and scale", "Phase 3"),
-            ("Snapping", "Phase 3"),
-        ],
+        &[],
     ),
     (
         "Mesh",
@@ -150,6 +150,18 @@ pub struct Workbench {
     select_requests: Vec<SelectRequest>,
     /// What a flipping brush stroke has flipped so far.
     stroke_memory: StrokeMemory,
+    /// The tool in use: selecting, or a transform gizmo.
+    tool: Tool,
+    /// A change typed or dragged in the Coordinates panel, in progress.
+    coordinates_session: Option<transform::CoordinatesSession>,
+    /// A gizmo drag in progress.
+    gizmo_session: Option<crate::transforming::Session>,
+    /// The change the gizmo drag last showed, so an unchanged frame does
+    /// nothing.
+    gizmo_shown: Option<tools::Change>,
+    /// How many transform changes have been made (each gets its own undo
+    /// merge key).
+    sessions: u64,
     viewport: ViewportPanel,
     accent: Accent,
     about_open: bool,
@@ -185,6 +197,11 @@ impl Workbench {
             components: ComponentTracker::default(),
             select_requests: Vec::new(),
             stroke_memory: StrokeMemory::default(),
+            tool: Tool::default(),
+            gizmo_session: None,
+            gizmo_shown: None,
+            coordinates_session: None,
+            sessions: 0,
             viewport: ViewportPanel::default(),
             accent: Accent::default(),
             about_open: false,
@@ -597,6 +614,7 @@ impl Workbench {
             self.document_keys(ui, &mut requests);
             self.mode_keys(ui);
             self.select_keys(ui);
+            self.transform_keys(ui);
         }
 
         egui::Panel::top("menu_bar")
@@ -608,6 +626,10 @@ impl Workbench {
             undo: self.document.undo_label().map(str::to_string),
             redo: self.document.redo_label().map(str::to_string),
             select_tool: self.viewport.select_tool(),
+            tool: self.tool,
+            locked: self.viewport.options().locked,
+            axes: self.viewport.options().axes,
+            snapping: self.viewport.options().snap.on,
         };
         egui::Panel::top("command_palette")
             .frame(theme::palette_frame())
@@ -616,7 +638,27 @@ impl Workbench {
                 if let Some(command) = command_palette(ui, &palette_state) {
                     requests.push(match command {
                         PaletteCommand::NextSelectTool => {
-                            self.next_select_tool();
+                            if self.tool == Tool::Select {
+                                self.next_select_tool();
+                            } else {
+                                self.set_tool(Tool::Select);
+                            }
+                            return;
+                        }
+                        PaletteCommand::Tool(tool) => {
+                            self.set_tool(tool);
+                            return;
+                        }
+                        PaletteCommand::Lock(axis) => {
+                            self.toggle_lock(axis);
+                            return;
+                        }
+                        PaletteCommand::ToggleAxes => {
+                            self.toggle_axes();
+                            return;
+                        }
+                        PaletteCommand::ToggleSnapping => {
+                            self.toggle_snapping();
                             return;
                         }
                         PaletteCommand::Undo => DocRequest::Undo,
@@ -648,6 +690,9 @@ impl Workbench {
         let editing = components::kind_for(self.mode).is_some();
         let mut summary: SceneSummary = self.drawing.update(&self.document, editing).clone();
         summary.overlay = self.components.overlay();
+        self.place_gizmo(&summary.drawing);
+        let coordinates = self.coordinates_view(&summary.drawing);
+        let mut coordinates_done = Interaction::default();
         hide_viewport_tab(&mut self.dock);
         let style = theme::dock_style(ui.style().as_ref(), self.accent);
         theme::dock_frame().show(ui, |ui| {
@@ -670,12 +715,16 @@ impl Workbench {
                         attributes: &mut self.attributes,
                         units: &mut self.units,
                         requests: &mut requests,
+                        coordinates,
+                        coordinates_done: &mut coordinates_done,
                     },
                 );
         });
         // What is under the mouse now that the viewport knows where it is;
         // when that changes, draw again so the highlight follows at once.
         self.carry_out_selection(&summary.drawing);
+        self.carry_out_gizmo(ui, &summary.drawing);
+        self.carry_out_coordinates(coordinates_done, &summary.drawing);
         let shown = summary.overlay.version;
         let overlay = self.components.update(
             self.mode,
@@ -729,6 +778,7 @@ impl Workbench {
             grid: &mut options.grid_detail,
             select_visible_only: &mut options.select_visible_only,
             select_keys: &mut options.select_keys,
+            snap: &mut options.snap,
             undo_memory: &mut undo_memory,
             history,
         };
@@ -744,6 +794,14 @@ impl Workbench {
         // (While a name is typed, Esc means "keep the old name", even on
         // the frame egui has already taken the keyboard away.)
         if ui.ctx().memory(|m| m.focused().is_some()) || self.objects.is_renaming() {
+            return;
+        }
+        // While the gizmo is dragged, Esc cancels the drag, and nothing
+        // else happens.
+        if self.viewport.dragging_gizmo() {
+            if ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
+                self.viewport.cancel_gizmo_drag();
+            }
             return;
         }
         let popup_open = egui::Popup::is_any_open(ui.ctx());
@@ -1027,6 +1085,9 @@ impl Workbench {
                 if title == "Select" {
                     self.select_menu(ui);
                 }
+                if title == "Tools" {
+                    self.tools_menu(ui);
+                }
                 if title == "Mesh" {
                     objects::make_editable_entry(ui, &self.document, requests);
                     ui.separator();
@@ -1194,6 +1255,9 @@ struct PanelViewer<'a> {
     attributes: &'a mut AttributesPanel,
     units: &'a mut Units,
     requests: &'a mut Vec<DocRequest>,
+    /// What the Coordinates panel shows, and what was done in it.
+    coordinates: CoordinatesView,
+    coordinates_done: &'a mut Interaction,
 }
 
 impl TabViewer for PanelViewer<'_> {
@@ -1236,7 +1300,10 @@ impl TabViewer for PanelViewer<'_> {
                         .show(ui, self.document, *self.units, self.requests);
                 }
                 Panel::Objects => self.objects.show(ui, self.document, self.requests),
-                Panel::Coordinates => coordinates_contents(ui, *self.units),
+                Panel::Coordinates => {
+                    *self.coordinates_done =
+                        crate::coordinates::show(ui, *self.units, &self.coordinates);
+                }
             });
     }
 
@@ -1275,6 +1342,7 @@ impl TabViewer for PanelViewer<'_> {
 #[cfg(test)]
 mod attribute_tests;
 mod selection;
+mod transform;
 
 #[cfg(test)]
 mod mode_tests;
@@ -1290,3 +1358,5 @@ mod settings_tests;
 mod shape_picker_tests;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod transform_tests;

@@ -122,6 +122,30 @@ impl Transform {
             * Mat4::from_rotation_y(self.rotation.z)
             * Mat4::from_scale(self.scale)
     }
+
+    /// The transform a matrix describes: the reverse of
+    /// [`Self::matrix`]. A matrix that skews (scales along directions
+    /// that aren't the object's own axes) can't be described exactly; the
+    /// nearest transform without skew is given. `None` for a matrix that
+    /// isn't usable (flattened to nothing, or not numbers).
+    pub fn from_matrix(matrix: Mat4) -> Option<Self> {
+        if !matrix.is_finite() || matrix.determinant().abs() < 1e-12 {
+            return None;
+        }
+        let (scale, turn, position) = matrix.to_scale_rotation_translation();
+        let (heading, pitch, bank) = turn.to_euler(glam::EulerRot::ZXY);
+        let transform = Self {
+            position,
+            rotation: Vec3::new(heading, pitch, bank),
+            scale,
+        };
+        transform.is_finite().then_some(transform)
+    }
+
+    /// Whether every value is a number.
+    pub fn is_finite(&self) -> bool {
+        self.position.is_finite() && self.rotation.is_finite() && self.scale.is_finite()
+    }
 }
 
 /// One object in the scene.

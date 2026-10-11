@@ -7,10 +7,12 @@
 pub mod camera;
 pub mod components;
 pub mod controls;
+pub mod gizmo;
 pub mod navigation;
 
 pub use camera::{Camera, Ray};
-pub use components::{Element, ElementKind, Hovered, PickScene, Region};
+pub use components::{Element, ElementKind, Hovered, PickScene, Region, SnapTargets};
 pub use controls::{Modifiers, NavigationSettings, Scheme};
+pub use gizmo::{Change, Drag, Gizmo, GizmoTool, Handle};
 pub use mesh::Bounds;
 pub use navigation::{DragKind, MouseButton, Navigator, ViewKind};

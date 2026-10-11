@@ -183,6 +183,11 @@ impl History {
         self.undo.push_back(kept);
     }
 
+    /// The merge key of the last step that can be undone, if it has one.
+    pub(crate) fn last_merge_key(&self) -> Option<u64> {
+        self.undo.back().and_then(|k| k.step.merge_key)
+    }
+
     pub(crate) fn undo_label(&self) -> Option<&str> {
         self.undo.back().map(|k| k.step.label.as_str())
     }
@@ -255,6 +260,14 @@ impl History {
 /// earlier one for the same object (keeping where it started and where it
 /// ended), so a long drag stays one small step.
 fn merge_edit(edits: &mut Vec<Edit>, edit: Edit) {
+    if let Edit::SetTransform { id, after, .. } = &edit
+        && let Some(Edit::SetTransform { after: earlier, .. }) = edits
+            .iter_mut()
+            .find(|e| matches!(e, Edit::SetTransform { id: other, .. } if other == id))
+    {
+        *earlier = *after;
+        return;
+    }
     if let Edit::SetKind { id, after, .. } = &edit
         && let Some(Edit::SetKind { after: earlier, .. }) = edits
             .iter_mut()

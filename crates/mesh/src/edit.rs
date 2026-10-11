@@ -8,7 +8,7 @@
 //! §4.2). More operations arrive with the modelling tools (Phases 3 and 4).
 
 use crate::{Mesh, VertexId};
-use glam::Vec3;
+use glam::{Mat4, Vec3};
 
 /// What an operation did.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -38,6 +38,34 @@ pub fn move_points(mesh: &mut Mesh, points: &[VertexId], offset: Vec3) -> Outcom
         outcome.matched += 1;
         if offset.is_finite() {
             mesh.set_position(*id, position + offset);
+        }
+    }
+    outcome
+}
+
+/// Moves `points` by `matrix` (an affine transform in the mesh's own
+/// space: a turn, a scale or a move, or several together). Each point
+/// moves once, even if listed twice; points not in the mesh are counted as
+/// missing. A matrix with a value that isn't a number moves nothing, so a
+/// bad value can't break the mesh.
+pub fn transform_points(mesh: &mut Mesh, points: &[VertexId], matrix: Mat4) -> Outcome {
+    let mut outcome = Outcome::default();
+    let usable = matrix.is_finite();
+    let mut seen = std::collections::BTreeSet::new();
+    for id in points {
+        if !seen.insert(*id) {
+            continue;
+        }
+        let Some(position) = mesh.position(*id) else {
+            outcome.missing += 1;
+            continue;
+        };
+        outcome.matched += 1;
+        if usable {
+            let moved = matrix.transform_point3(position);
+            if moved.is_finite() {
+                mesh.set_position(*id, moved);
+            }
         }
     }
     outcome
@@ -126,5 +154,49 @@ mod tests {
         move_points(&mut a, &ids, Vec3::new(1.5, -2.0, 3.25));
         move_points(&mut b, &ids, Vec3::new(1.5, -2.0, 3.25));
         assert_eq!(a, b);
+    }
+
+    #[test]
+    fn points_turn_and_scale_with_a_matrix() {
+        let mut mesh = cube();
+        let ids: Vec<VertexId> = mesh.vertices().map(|(v, _)| v).collect();
+        let before: Vec<Vec3> = mesh.vertices().map(|(_, p)| p).collect();
+        let turn = Mat4::from_rotation_z(std::f32::consts::FRAC_PI_2);
+        let outcome = transform_points(&mut mesh, &ids[..2], turn);
+        assert_eq!(
+            outcome,
+            Outcome {
+                matched: 2,
+                missing: 0
+            }
+        );
+        let after: Vec<Vec3> = mesh.vertices().map(|(_, p)| p).collect();
+        for i in 0..2 {
+            let expected = turn.transform_point3(before[i]);
+            assert!(after[i].distance(expected) < 1e-3);
+        }
+        assert_eq!(after[2..], before[2..], "the others stay");
+        // Listed twice: moved once. Unknown: missing.
+        let mut mesh = cube();
+        let double = Mat4::from_scale(Vec3::splat(2.0));
+        let first = mesh.vertices().next().unwrap();
+        let outcome = transform_points(
+            &mut mesh,
+            &[first.0, first.0, VertexId::from_raw(999)],
+            double,
+        );
+        assert_eq!(
+            outcome,
+            Outcome {
+                matched: 1,
+                missing: 1
+            }
+        );
+        assert!(mesh.position(first.0).unwrap().distance(first.1 * 2.0) < 1e-3);
+        // A broken matrix moves nothing.
+        let mut mesh = cube();
+        let outcome = transform_points(&mut mesh, &ids, Mat4::from_scale(Vec3::NAN));
+        assert_eq!(outcome.matched, ids.len());
+        assert_eq!(mesh, cube());
     }
 }

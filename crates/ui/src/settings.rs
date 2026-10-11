@@ -8,6 +8,7 @@
 
 use crate::selecting::SelectKeys;
 use crate::theme::{self, Accent};
+use crate::transforming::SnapSettings;
 use crate::undo_memory::{UndoMemory, format_bytes};
 use crate::units::Units;
 use crate::viewport::GridDetail;
@@ -56,6 +57,8 @@ pub(crate) struct Values<'a> {
     pub(crate) select_visible_only: &'a mut bool,
     /// Which keys add to and take from the selection.
     pub(crate) select_keys: &'a mut SelectKeys,
+    /// How moving, rotating and scaling snap.
+    pub(crate) snap: &'a mut SnapSettings,
     pub(crate) undo_memory: &'a mut UndoMemory,
     /// What the undo history uses now: bytes and steps.
     pub(crate) history: (usize, usize),
@@ -140,6 +143,7 @@ fn restore_standard(values: &mut Values<'_>) {
     *values.grid = GridDetail::default();
     *values.select_visible_only = false;
     *values.select_keys = SelectKeys::default();
+    *values.snap = SnapSettings::default();
     *values.undo_memory = UndoMemory::default();
 }
 
@@ -261,6 +265,51 @@ fn viewport(ui: &mut Ui, values: &mut Values<'_>) {
         }
     }
     explain(ui, values.select_keys.summary());
+    ui.add_space(8.0);
+    heading(ui, "Snapping");
+    explain(
+        ui,
+        "While moving, rotating and scaling. The snapping button on the top palette \
+         turns it on and off.",
+    );
+    let snap = &mut *values.snap;
+    ui.checkbox(&mut snap.on, "Snapping on");
+    ui.checkbox(
+        &mut snap.ctrl_flips,
+        "Holding Ctrl while dragging flips snapping for that drag",
+    )
+    .on_hover_text("Off: only the button turns snapping on and off.");
+    ui.label("Moves snap to:");
+    ui.horizontal(|ui| {
+        ui.checkbox(&mut snap.points, "Points");
+        ui.checkbox(&mut snap.edges, "Edges");
+        ui.checkbox(&mut snap.polygons, "Polygons");
+        ui.checkbox(&mut snap.grid, "Grid lines").on_hover_text(
+            "The lines shown: every 1 m, 50 cm or 10 cm, as the grid button is set.",
+        );
+    });
+    ui.horizontal(|ui| {
+        ui.label("Turns snap every");
+        ui.add(
+            egui::DragValue::new(&mut snap.angle)
+                .range(1.0..=90.0)
+                .speed(0.5)
+                .suffix("°"),
+        );
+        ui.label("and scaling every");
+        let mut percent = snap.scale * 100.0;
+        if ui
+            .add(
+                egui::DragValue::new(&mut percent)
+                    .range(1.0..=100.0)
+                    .speed(0.5)
+                    .suffix("%"),
+            )
+            .changed()
+        {
+            snap.scale = percent / 100.0;
+        }
+    });
 }
 
 fn undo(ui: &mut Ui, values: &mut Values<'_>) {

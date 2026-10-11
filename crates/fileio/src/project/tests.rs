@@ -7,10 +7,31 @@ use glam::Vec3;
 use mesh::{CubeParams, PrimitiveKind, VertexId};
 use scene::{Command, Object, ObjectKind, Operation, Place, Primitive, Transform};
 
-/// A document using everything a project can hold: nested groups, every
-/// kind of primitive with changed settings, a plain mesh, recorded edits,
-/// a hidden object, a moved and turned object, and a selection.
+/// A document using everything version 2 of the format can hold: all of
+/// [`rich_document_v1`], plus points turned and scaled with a matrix.
 fn rich_document() -> Document {
+    let mut doc = rich_document_v1();
+    let cube = *doc.scene().children(None).last().unwrap();
+    doc.execute(Command::Record {
+        id: cube,
+        operation: Operation::TransformPoints {
+            points: vec![VertexId::from_raw(1), VertexId::from_raw(2)],
+            matrix: glam::Mat4::from_scale_rotation_translation(
+                Vec3::new(1.5, 1.0, 0.5),
+                glam::Quat::from_rotation_z(0.25),
+                Vec3::new(3.0, -2.0, 1.0),
+            ),
+        },
+    })
+    .unwrap();
+    doc
+}
+
+/// A document using everything version 1 of the format could hold: nested
+/// groups, every kind of primitive with changed settings, a plain mesh,
+/// recorded edits, a hidden object, a moved and turned object, and a
+/// selection. The version 1 sample file holds exactly this.
+fn rich_document_v1() -> Document {
     let mut doc = Document::new();
     for kind in PrimitiveKind::ALL {
         doc.execute(Command::Create(ObjectKind::Primitive(kind.standard())))
@@ -116,7 +137,10 @@ fn the_same_scene_saves_to_the_same_bytes() {
 fn the_header_says_what_the_file_is() {
     let bytes = to_bytes(&rich_document()).unwrap();
     assert_eq!(&bytes[..4], b"AVTL");
-    assert_eq!(u32::from_le_bytes(bytes[4..8].try_into().unwrap()), 1);
+    assert_eq!(
+        u32::from_le_bytes(bytes[4..8].try_into().unwrap()),
+        FORMAT_VERSION
+    );
     assert_eq!(
         u32::from_le_bytes(bytes[8..12].try_into().unwrap()),
         1,
@@ -187,8 +211,8 @@ fn other_files_are_not_projects() {
 
 #[test]
 fn newer_formats_are_refused_with_advice() {
-    let error = refused(&header(2, 1, 0));
-    assert!(matches!(error, ProjectError::TooNew { version: 2 }));
+    let error = refused(&header(3, 1, 0));
+    assert!(matches!(error, ProjectError::TooNew { version: 3 }));
     let text = error.to_string();
     assert!(
         text.contains("newer version") && text.contains("Update"),
@@ -231,24 +255,59 @@ fn a_cut_short_or_padded_body_is_damaged() {
 #[test]
 fn an_uncompressed_body_can_be_read() {
     let doc = rich_document();
-    let body = postcard::to_stdvec(&v1::ProjectV1::from_document(&doc)).unwrap();
-    let mut bytes = header(1, 0, body.len() as u64);
+    let body = postcard::to_stdvec(&v2::ProjectV2::from_document(&doc)).unwrap();
+    let mut bytes = header(2, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     assert_same(&doc, &from_bytes(&bytes).unwrap());
     // Data after the scene is refused.
     let mut longer = body.clone();
     longer.push(0);
-    let mut bytes = header(1, 0, longer.len() as u64);
+    let mut bytes = header(2, 0, longer.len() as u64);
     bytes.extend_from_slice(&longer);
     assert!(refused(&bytes).to_string().contains("unexpected data"));
 }
 
-/// The bytes of a file holding `model`, uncompressed.
+/// The bytes of a version 1 file holding `model`, uncompressed.
 fn file_of(model: &v1::ProjectV1) -> Vec<u8> {
     let body = postcard::to_stdvec(model).unwrap();
     let mut bytes = header(1, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     bytes
+}
+
+/// The bytes of a version 2 file holding `model`, uncompressed.
+fn file_of_v2(model: &v2::ProjectV2) -> Vec<u8> {
+    let body = postcard::to_stdvec(model).unwrap();
+    let mut bytes = header(2, 0, body.len() as u64);
+    bytes.extend_from_slice(&body);
+    bytes
+}
+
+#[test]
+fn turned_and_scaled_points_are_kept_and_checked() {
+    let doc = rich_document();
+    let back = from_bytes(&to_bytes(&doc).unwrap()).unwrap();
+    assert_same(&doc, &back);
+    let good = v2::ProjectV2::from_document(&doc);
+    let cube = good.objects.iter().position(|o| o.name == "Cube").unwrap();
+    // Read back exactly, as a version 2 file.
+    assert_same(&doc, &from_bytes(&file_of_v2(&good)).unwrap());
+    // A matrix that isn't numbers is refused, naming the object.
+    let mut bad = good.clone();
+    let ops = &mut bad.objects[cube].layers[0].operations;
+    let last = ops.len() - 1;
+    if let v2::OperationV2::TransformPoints { matrix, .. } = &mut ops[last] {
+        matrix[4] = f32::NAN;
+    }
+    let text = refused(&file_of_v2(&bad)).to_string();
+    assert!(
+        text.contains("\"Cube\"") && text.contains("turn or scale"),
+        "{text}"
+    );
+    // Version 1's model can't hold the new operation: it is only ever
+    // used for reading.
+    let old = v1::ProjectV1::from_document(&doc);
+    assert_eq!(old.objects[cube].layers[0].operations.len(), 1);
 }
 
 #[test]
@@ -499,16 +558,28 @@ fn a_file_saved_by_format_version_1_still_opens() {
     assert_eq!(doc.scene().object(cube).unwrap().name, "Cube");
     assert_eq!(doc.scene().object(cube).unwrap().stack.operation_count(), 1);
     assert_eq!(doc.selection().len(), 2);
+    assert_same(&rich_document_v1(), &doc);
+}
+
+/// A project saved by version 2 of the format, kept in the repository.
+const SAMPLE_V2: &[u8] = include_bytes!("../../tests/data/sample-v2.avtl");
+
+#[test]
+fn a_file_saved_by_format_version_2_still_opens() {
+    let doc = from_bytes(SAMPLE_V2).expect("the version 2 sample opens");
+    let cube = *doc.scene().children(None).last().unwrap();
+    assert_eq!(doc.scene().object(cube).unwrap().stack.operation_count(), 2);
     assert_same(&rich_document(), &doc);
 }
 
-/// Writes the sample again. Run only by hand, when a new format version
-/// is added and the previous sample must be kept as it is:
+/// Writes the current version's sample. Run only by hand, when a new
+/// format version is added; earlier samples are kept as they are:
 /// `WRITE_SAMPLE=1 cargo test -p fileio write_the_sample`.
 #[test]
 fn write_the_sample() {
     if std::env::var_os("WRITE_SAMPLE").is_some() {
-        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/data/sample-v1.avtl");
+        let name = format!("tests/data/sample-v{FORMAT_VERSION}.avtl");
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(name);
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         std::fs::write(path, to_bytes(&rich_document()).unwrap()).unwrap();
     }

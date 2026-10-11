@@ -66,8 +66,29 @@ impl Document {
         self.run(command, Some(key))
     }
 
+    /// Like [`Self::execute`], with a label of the caller's choosing for
+    /// the Edit menu ("Rotate Cube"), and a `merge_key` as in
+    /// [`Self::execute_merging`] if wanted.
+    pub fn execute_labelled(
+        &mut self,
+        command: Command,
+        label: impl Into<String>,
+        merge_key: Option<u64>,
+    ) -> Result<(), SceneError> {
+        self.run_labelled(command, Some(label.into()), merge_key)
+    }
+
     fn run(&mut self, command: Command, merge_key: Option<u64>) -> Result<(), SceneError> {
-        let label = command.describe(&self.scene);
+        self.run_labelled(command, None, merge_key)
+    }
+
+    fn run_labelled(
+        &mut self,
+        command: Command,
+        label: Option<String>,
+        merge_key: Option<u64>,
+    ) -> Result<(), SceneError> {
+        let label = label.unwrap_or_else(|| command.describe(&self.scene));
         let applied = command::apply(&mut self.scene, &command)?;
         if let Some(select) = applied.select {
             self.selection = select.into_iter().collect();
@@ -86,20 +107,33 @@ impl Document {
         Ok(())
     }
 
-    /// Takes back the last step. Returns what was undone, or `None` if
-    /// there was nothing to undo.
-    pub fn undo(&mut self) -> Option<String> {
-        let step = self.history.take_undo()?;
+    /// Takes back the last step if it was made with `merge_key`, and
+    /// forgets it: it can't be redone (decision 0030). A drag of the
+    /// gizmo uses this to replace what it did a frame ago with what it
+    /// does now, and to cancel. Returns whether a step was taken back.
+    pub fn abandon(&mut self, merge_key: u64) -> bool {
+        if self.history.last_merge_key() != Some(merge_key) {
+            return false;
+        }
+        let Some(step) = self.history.take_undo() else {
+            return false;
+        };
+        if !self.revert(&step) {
+            self.history.push_undo(step);
+            return false;
+        }
+        true
+    }
+
+    /// Applies the step's edits backwards. On failure, leaves the scene as
+    /// it was and returns `false`.
+    fn revert(&mut self, step: &Step) -> bool {
         for (done, edit) in step.edits.iter().rev().enumerate() {
             if self.scene.apply(&edit.inverse()).is_err() {
-                // Cannot happen while every change goes through commands;
-                // if it ever does, put the step back as it was rather than
-                // leave the scene half undone.
                 for edit in step.edits.iter().rev().take(done).rev() {
                     let _ = self.scene.apply(edit);
                 }
-                self.history.push_undo(step);
-                return None;
+                return false;
             }
         }
         for change in step.selections.iter().rev() {
@@ -111,6 +145,20 @@ impl Document {
         self.drop_missing_from_selection();
         if !step.edits.is_empty() {
             self.revision += 1;
+        }
+        true
+    }
+
+    /// Takes back the last step. Returns what was undone, or `None` if
+    /// there was nothing to undo.
+    pub fn undo(&mut self) -> Option<String> {
+        let step = self.history.take_undo()?;
+        if !self.revert(&step) {
+            // Cannot happen while every change goes through commands; if
+            // it ever does, the step is put back as it was rather than
+            // leave the scene half undone.
+            self.history.push_undo(step);
+            return None;
         }
         let label = step.label.clone();
         self.history.push_redo(step);

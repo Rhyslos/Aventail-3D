@@ -180,3 +180,120 @@ fn opening_a_scene_with_a_selection_records_no_step() {
     assert_eq!(opened.undo_steps(), 0);
     assert_eq!(opened.selection(), vec![cube]);
 }
+
+// ------------------------------------------------- transforms (0030) ---
+
+#[test]
+fn objects_move_turn_and_scale_as_one_undo_step() {
+    let (mut doc, cube) = cube_document();
+    let moved = Transform {
+        position: glam::Vec3::new(10.0, 0.0, 5.0),
+        rotation: glam::Vec3::new(0.5, 0.0, 0.0),
+        scale: glam::Vec3::splat(2.0),
+    };
+    doc.execute_labelled(
+        Command::SetTransforms(vec![(cube, moved)]),
+        "Move Cube",
+        None,
+    )
+    .unwrap();
+    assert_eq!(doc.scene().object(cube).unwrap().transform, moved);
+    assert_eq!(doc.undo_label(), Some("Move Cube"));
+    let revision = doc.revision();
+    doc.undo();
+    assert_eq!(
+        doc.scene().object(cube).unwrap().transform,
+        Transform::default()
+    );
+    assert!(doc.revision() > revision, "moving is a change to save");
+    // A value that isn't a number is refused, and nothing changes.
+    let broken = Transform {
+        position: glam::Vec3::NAN,
+        ..Transform::default()
+    };
+    assert_eq!(
+        doc.execute(Command::SetTransforms(vec![(cube, broken)])),
+        Err(SceneError::NotANumber)
+    );
+    assert_eq!(
+        Command::SetTransforms(vec![(cube, moved)]).describe(doc.scene()),
+        "Transform object"
+    );
+}
+
+#[test]
+fn a_drag_replaces_its_own_step_and_can_be_cancelled() {
+    let (mut doc, cube) = cube_document();
+    let steps = doc.undo_steps();
+    let at = |x: f32| Transform {
+        position: glam::Vec3::new(x, 0.0, 0.0),
+        ..Transform::default()
+    };
+    // Each frame of a drag takes back the frame before and does the new
+    // total: one step in the end.
+    for x in [1.0, 2.0, 3.0] {
+        doc.abandon(42);
+        doc.execute_labelled(
+            Command::SetTransforms(vec![(cube, at(x))]),
+            "Move Cube",
+            Some(42),
+        )
+        .unwrap();
+    }
+    assert_eq!(doc.undo_steps(), steps + 1);
+    assert_eq!(doc.scene().object(cube).unwrap().transform, at(3.0));
+    assert_eq!(doc.redo_steps(), 0, "nothing left to redo");
+    // Cancelling: everything back as it was.
+    assert!(doc.abandon(42));
+    assert_eq!(
+        doc.scene().object(cube).unwrap().transform,
+        Transform::default()
+    );
+    assert_eq!(doc.undo_steps(), steps);
+    assert_eq!(doc.redo_steps(), 0);
+    // Only a step made with that key is taken back.
+    assert!(!doc.abandon(42));
+    assert!(!doc.abandon(7));
+    assert_eq!(doc.undo_steps(), steps);
+}
+
+#[test]
+fn points_turn_with_a_recorded_matrix() {
+    let (mut doc, cube) = cube_document();
+    let points: Vec<VertexId> = (0..4).map(VertexId::from_raw).collect();
+    let matrix = glam::Mat4::from_scale(glam::Vec3::splat(2.0));
+    doc.execute(Command::Record {
+        id: cube,
+        operation: Operation::TransformPoints {
+            points: points.clone(),
+            matrix,
+        },
+    })
+    .unwrap();
+    assert_eq!(doc.undo_label(), Some("Transform 4 points"));
+    let shape = doc.scene().evaluated(cube).unwrap();
+    let base = PrimitiveKind::Cube.standard().mesh();
+    for v in &points {
+        let expected = base.position(*v).unwrap() * 2.0;
+        assert!(shape.mesh.position(*v).unwrap().distance(expected) < 1e-3);
+    }
+}
+
+#[test]
+fn a_transform_round_trips_through_its_matrix() {
+    let t = Transform {
+        position: glam::Vec3::new(10.0, -20.0, 30.0),
+        rotation: glam::Vec3::new(0.3, -0.4, 0.5),
+        scale: glam::Vec3::new(1.0, 2.0, 0.5),
+    };
+    let back = Transform::from_matrix(t.matrix()).unwrap();
+    assert!(back.matrix().abs_diff_eq(t.matrix(), 1e-4), "{back:?}");
+    assert!(back.position.abs_diff_eq(t.position, 1e-4));
+    assert!(back.rotation.abs_diff_eq(t.rotation, 1e-4));
+    assert!(back.scale.abs_diff_eq(t.scale, 1e-4));
+    assert_eq!(Transform::from_matrix(glam::Mat4::ZERO), None, "flat");
+    assert_eq!(
+        Transform::from_matrix(glam::Mat4::from_scale(glam::Vec3::NAN)),
+        None
+    );
+}

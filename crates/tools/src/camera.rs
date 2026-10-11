@@ -215,6 +215,25 @@ impl Camera {
         }
     }
 
+    /// How long one screen point is in the world at `at`, in a viewport
+    /// `size` points tall (so things can be drawn a fixed size on screen,
+    /// like the gizmo). Never zero.
+    pub fn world_per_pixel(&self, at: Vec3, size: Vec2) -> f32 {
+        let height = size.y.max(1.0);
+        let per_pixel = match self.flat_height() {
+            Some(shown) => shown / height,
+            None => {
+                let depth = (at - self.position).dot(self.forward()).max(1e-3);
+                2.0 * depth * (self.fov_y * 0.5).tan() / height
+            }
+        };
+        if per_pixel.is_finite() {
+            per_pixel.max(1e-6)
+        } else {
+            1.0
+        }
+    }
+
     /// Where a world point appears in a viewport of `size`, measured from the
     /// top-left corner. `None` when the point is behind the camera.
     pub fn project(&self, point: Vec3, size: Vec2) -> Option<Vec2> {

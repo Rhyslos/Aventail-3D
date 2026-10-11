@@ -45,7 +45,7 @@ If several objects are selected and you drag one of them, they all move, keeping
 
 ![A cube made editable: the Attributes panel shows "Cube (mesh)" with its points and polygons](../screenshots/2026-10-11-make-editable.png)
 
-A primitive is built from its settings, so its shape can only change through them. **Make editable** turns it into a plain mesh: what you see becomes a fixed set of points and polygons, ready to be edited freely, and the settings are gone. (Editing points, edges and polygons arrives in Phase 3; see [Base and edits](concepts.md#objects-and-scenes) for why you usually won't need this before then.)
+A primitive is built from its settings, so its shape can only change through them. **Make editable** turns it into a plain mesh: what you see becomes a fixed set of points and polygons, ready to be edited freely, and the settings are gone. (You can move, rotate and scale a primitive's points, edges and polygons without it: see [Base and edits](concepts.md#objects-and-scenes) for why you usually won't need this.)
 
 Select one or more shapes and press **Ctrl + E**, or use **Object → Make editable** in the Objects panel (also in the right-click menu) or **Mesh → Make editable** on the main menu bar. The objects keep their names and places; their icon becomes the polygon icon, and the [Attributes panel](attributes.md) shows "(mesh)" with how many points and polygons they have instead of their settings. Groups are left alone. **Ctrl + Z** brings the settings back.
 

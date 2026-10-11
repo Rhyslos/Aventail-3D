@@ -1,6 +1,6 @@
 //! Commands: every change a user can make to the scene, each one undoable.
 
-use crate::object::{Object, ObjectId, ObjectKind};
+use crate::object::{Object, ObjectId, ObjectKind, Transform};
 use crate::stack::{EDITS_LAYER, Layer, Operation};
 use crate::tree::{Edit, Place, Scene, SceneError};
 use mesh::Primitive;
@@ -78,6 +78,10 @@ pub enum Command {
         /// The edit.
         operation: Operation,
     },
+    /// Moves, turns or scales objects: each gets a new transform, relative
+    /// to its parent (decision 0030). A transform with a value that isn't
+    /// a number is refused.
+    SetTransforms(Vec<(ObjectId, Transform)>),
     /// Bakes each shape's base and recorded edits into a plain mesh, which
     /// becomes its new base (its settings are gone; its edits are part of
     /// the mesh). Groups, and meshes with nothing recorded, are left alone.
@@ -110,6 +114,10 @@ impl Command {
                 format!("Change {} settings", primitive.name().to_lowercase())
             }
             Self::Record { operation, .. } => operation.describe(),
+            Self::SetTransforms(changes) => {
+                let ids: Vec<ObjectId> = changes.iter().map(|(id, _)| *id).collect();
+                format!("Transform {}", objects(count(&ids)))
+            }
             Self::MakeEditable(ids) => {
                 let n = ids
                     .iter()
@@ -321,6 +329,26 @@ impl Run<'_> {
                     index,
                     operation: operation.clone(),
                 })?;
+                Ok(None)
+            }
+            Command::SetTransforms(changes) => {
+                for (id, after) in changes {
+                    if !after.is_finite() {
+                        return Err(SceneError::NotANumber);
+                    }
+                    let before = self
+                        .scene
+                        .object(*id)
+                        .ok_or(SceneError::UnknownObject(*id))?
+                        .transform;
+                    if before != *after {
+                        self.edit(Edit::SetTransform {
+                            id: *id,
+                            before,
+                            after: *after,
+                        })?;
+                    }
+                }
                 Ok(None)
             }
             Command::MakeEditable(ids) => {

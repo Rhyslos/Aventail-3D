@@ -34,6 +34,7 @@ A few of these settings also have a quick switch where you use them while workin
 | Viewport | **Invert orbit direction** | Orbiting turns the other way. |
 | Viewport | **Grid lines** | Every 1 m (standard), every 50 cm, or every 10 cm. |
 | Viewport | **Selection keys** | Which key adds to the selection and which takes away, for clicks, boxes, lassos, the brush and double-clicks alike: **Ctrl adds, Shift removes** (standard), **Shift adds, Ctrl removes**, **Ctrl flips**, or **Ctrl adds, Alt removes** (Alt + drag still moves the view while Alt + mouse works in every scheme). See [Selecting](selecting.md). |
+| Viewport | **Snapping** | Whether moves, turns and resizing snap; whether holding Ctrl while dragging flips it for that drag (standard) or only the button does; what moves snap to (points, edges, polygons, grid lines); and the steps for turning (15°) and scaling (10%). See [Move, rotate and scale](transforming.md#snapping). |
 | Viewport | **Select only visible** | Off (standard): the box, lasso and brush select through shapes, catching their far side too. On: only what you can see. Also the button above the grid button on the left palette. See [Selecting](selecting.md). |
 | Undo | **Undo memory** | How much memory undo may use before it starts forgetting the oldest steps: 256 MB to 8 GB, or Unlimited. 2 GB is the standard. There's no limit on the *number* of steps, and the newest step is always kept. The line above the choices shows how much is in use now and how many steps that is. |
 

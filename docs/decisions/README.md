@@ -37,3 +37,5 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0027](0027-component-modes.md) | Points, Edges and Polygons modes: what is edited, and finding what is under the mouse | Accepted |
 | [0028](0028-ask-about-controls.md) | Ask the project lead about controls before building a feature | Accepted |
 | [0029](0029-selection.md) | Selection: controls, where element selections live, and selecting through | Accepted |
+| [0030](0030-transform-gizmos.md) | Move, rotate and scale: gizmos, drags as one step, snapping and the Coordinates panel | Accepted |
+| [0031](0031-project-format-version-2.md) | Project file format version 2 | Accepted |
