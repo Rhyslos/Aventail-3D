@@ -48,13 +48,14 @@ The viewport has no tab (its menu line takes that place), so it stays where it i
 
 ## Accent colour
 
-One colour marks what's active: the current mode (and later the current tool), the chosen option in a list, the layout in use, and selected text. It's red unless you pick another: **Window → Accent colour** offers Red, Blue, Marine green, Plum, Olive and Petrol blue. The whole app changes at once, and your choice is remembered.
+One colour marks what's active: the current mode (and later the current tool), the chosen option in a list, the layout in use, and selected text. It's red unless you pick another: **Edit → Settings… → Interface** offers Red, Blue, Marine green, Plum, Olive and Petrol blue (see [Settings](settings.md)). The whole app changes at once, and your choice is remembered.
 
 ## Shortcuts
 
 | Action | Shortcut |
 |---|---|
 | Quit | `Ctrl + Q` (`Cmd + Q` on macOS) |
+| Settings | `Ctrl + ,` |
 | Undo / redo | `Ctrl + Z` / `Ctrl + Y` (or `Ctrl + Shift + Z`) |
 | Delete the selection | `Delete` or `Backspace` |
 | Frame everything / the selection | `H` / `F` |

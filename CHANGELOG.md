@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- The accent colour moved from the Window menu, and undo memory from the Edit menu, into the new Settings window.
 - Every new shape is 1 m across as standard (a 1 m cube, a 1 m square plane, cylinders and cones 1 m across and 1 m tall, and so on), instead of 2 m.
 - The grid button on the left palette now steps through three levels: a line every metre (standard), every 50 cm (each square cut into four), and every 10 cm. The View and Display menus list all three as **Grid lines**. A finer grid chosen before is kept as the 10 cm level.
 - Sizes in the Attributes and Coordinates panels are shown in metres as standard; a switch beside the Shape title (and the Attributes panel's Units menu) changes to centimetres. Remembered between sessions.
@@ -28,6 +29,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- A **Settings** window (**Edit → Settings…**, or **Ctrl + ,**) gathers every app-wide preference in one place: accent colour and metres/centimetres (Interface), navigation controls and grid lines (Viewport), and undo memory (Undo). **Restore standard** puts them all back. New manual page: Settings.
 - Undo is now limited by memory instead of being kept forever: steps are kept until they fill 2 GB (the standard), and then the oldest are forgotten first. There's still no limit on the number of steps. **Edit → Undo memory** shows how much is in use and offers 256 MB to 8 GB or Unlimited; the choice is remembered. The status bar says once when old steps start being forgotten.
 - **Make editable** (**C**, also in the Mesh menu and the Objects panel's Object and right-click menus): turns the selected shapes into plain meshes, baking in their settings. Undo brings the settings back. The Attributes panel shows a mesh's points and polygons, and the Objects panel gives it the polygon icon.
 - Shapes now keep edits apart from their settings: the modelling tools coming in Phase 3 will record edits on top of a shape, so its settings (a cube's segments, say) stay editable afterwards and the edits are made again on the new shape. The Attributes panel will count a shape's edits and flag any that no longer fully fit.

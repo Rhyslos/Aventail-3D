@@ -15,6 +15,7 @@ mod objects;
 pub mod palette;
 mod panel;
 mod panels;
+mod settings;
 mod shape_picker;
 pub mod theme;
 mod undo_memory;
@@ -32,6 +33,7 @@ pub use objects::{
 };
 pub use palette::Mode;
 pub use panel::Panel;
+pub use settings::SETTINGS_SHORTCUT;
 pub use shape_picker::SHAPE_LIST_KEY;
 pub use undo_memory::{UndoMemory, format_bytes};
 pub use units::Units;

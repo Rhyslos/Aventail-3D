@@ -852,33 +852,6 @@ fn the_menu_bar_shows_the_layouts() {
 // ------------------------------------------------------------- accent ---
 
 #[test]
-fn red_is_the_standard_accent_and_the_window_menu_changes_it() {
-    let mut harness = fresh();
-    assert_eq!(
-        harness.state().workbench.accent(),
-        crate::theme::Accent::Red
-    );
-    assert_eq!(
-        crate::theme::accent(&harness.ctx),
-        crate::theme::Accent::Red
-    );
-    main_menu(&harness, "Window").click();
-    harness.run();
-    harness.get_by_label_contains("Accent colour").click();
-    harness.run();
-    harness.get_by_label("Petrol blue").click();
-    harness.run();
-    assert_eq!(
-        harness.state().workbench.accent(),
-        crate::theme::Accent::PetrolBlue
-    );
-    assert_eq!(
-        crate::theme::accent(&harness.ctx),
-        crate::theme::Accent::PetrolBlue
-    );
-}
-
-#[test]
 fn a_remembered_accent_is_restored() {
     let workbench = Workbench::new(info(), None).with_accent(crate::theme::Accent::Olive);
     let mut harness = harness_for(workbench);
@@ -887,31 +860,6 @@ fn a_remembered_accent_is_restored() {
         crate::theme::accent(&harness.ctx),
         crate::theme::Accent::Olive
     );
-}
-
-#[test]
-fn accent_swatches_stay_inside_their_menu() {
-    let mut harness = fresh();
-    main_menu(&harness, "Window").click();
-    harness.run();
-    harness.get_by_label_contains("Accent colour").click();
-    harness.run();
-    // The submenu opens to the right of "Accent colour". Each swatch is
-    // drawn before its name, so the names leave room for one inside the
-    // submenu, and nothing is drawn after them.
-    let parent_right = harness.get_by_label_contains("Accent colour").rect().max.x;
-    let lefts: Vec<f32> = crate::theme::Accent::ALL
-        .iter()
-        .map(|a| harness.get_by_label(a.name()).rect().min.x)
-        .collect();
-    for left in &lefts {
-        assert!((left - lefts[0]).abs() < 0.5, "names line up");
-        assert!(
-            left - parent_right >= 16.0 + 6.0,
-            "room for the swatch: {}",
-            left - parent_right
-        );
-    }
 }
 
 #[test]
@@ -1531,49 +1479,6 @@ fn only_the_view_under_the_mouse_asks_what_is_there() {
 }
 
 // --------------------------------------------------------- undo memory ---
-
-fn open_undo_memory(harness: &mut Harness<'static, State>) {
-    main_menu(harness, "Edit").click();
-    harness.run();
-    harness.get_by_label_contains("Undo memory").click();
-    harness.run();
-}
-
-#[test]
-fn undo_memory_starts_at_two_gigabytes_and_shows_whats_in_use() {
-    let mut harness = fresh();
-    assert_eq!(
-        harness.state().workbench.undo_memory(),
-        crate::UndoMemory::Gb2
-    );
-    assert_eq!(
-        harness.state().workbench.document().history_limit(),
-        scene::HistoryLimit::STANDARD
-    );
-    open_undo_memory(&mut harness);
-    // The fresh window's cube is one step.
-    assert!(
-        harness
-            .query_by_label_contains("In use: 1 KB of 2 GB (1 step)")
-            .is_some()
-    );
-    assert!(harness.query_by_label("2 GB (standard)").is_some());
-}
-
-#[test]
-fn the_edit_menu_changes_the_undo_memory() {
-    let mut harness = fresh();
-    open_undo_memory(&mut harness);
-    harness.get_by_label("512 MB").click();
-    harness.run();
-    let workbench = &harness.state().workbench;
-    assert_eq!(workbench.undo_memory(), crate::UndoMemory::Mb512);
-    assert_eq!(
-        workbench.document().history_limit(),
-        crate::UndoMemory::Mb512.limit()
-    );
-    assert!(workbench.note().is_some_and(|n| n.contains("512 MB")));
-}
 
 #[test]
 fn a_remembered_undo_memory_is_restored() {

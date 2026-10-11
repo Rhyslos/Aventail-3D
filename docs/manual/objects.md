@@ -37,9 +37,7 @@ If several objects are selected and you drag one of them, they all move, keeping
 
 **Undo and redo.** Every change to the scene can be taken back: creating, renaming, moving, grouping, showing, hiding and deleting. Press **Ctrl + Z** to undo and **Ctrl + Y** (or **Ctrl + Shift + Z**) to redo, or use the arrows at the left of the command palette or the **Edit** menu, which names what would be undone ("Undo: Delete object"). Undo brings back exactly the same objects, in the same places. The status bar confirms what was undone. Changing only the selection is not an undo step (yet).
 
-**How far back undo goes.** There's no limit on the number of steps. Instead, undo keeps steps until they fill a set amount of memory, 2 GB as standard, and then forgets the oldest ones first. Small changes like renames take almost no memory, so you can undo thousands of them; steps that hold whole meshes take more. The newest step is always kept. To see how much is in use or change the limit, open **Edit → Undo memory** on the main menu bar: choose from 256 MB to 8 GB, or Unlimited. The first time old steps start being forgotten, the status bar tells you. Your choice is remembered next time.
-
-![Edit → Undo memory, showing the memory in use and the choices](../screenshots/2026-10-11-undo-memory.png)
+**How far back undo goes.** There's no limit on the number of steps. Instead, undo keeps steps until they fill a set amount of memory, 2 GB as standard, and then forgets the oldest ones first. Small changes like renames take almost no memory, so you can undo thousands of them; steps that hold whole meshes take more. The newest step is always kept. To see how much is in use or change the limit, open **Edit → Settings…** and pick **Undo**: choose from 256 MB to 8 GB, or Unlimited (see [Settings](settings.md)). The first time old steps start being forgotten, the status bar tells you. Your choice is remembered next time.
 
 **Framing.** With objects selected, **F** (*frame selected*) fits them in the view; with nothing selected it fits everything shown, like **H**. See [Navigating the view](navigating-the-view.md).
 
@@ -87,7 +85,7 @@ On macOS, use `Cmd` instead of `Ctrl` and `Option` instead of `Alt`. They don't 
 - **Problem:** a row won't drop where you want. **Why:** an object can't go inside itself or one of its own children. **Fix:** drag the child out first, or drop the parent somewhere else.
 - **Problem:** Delete or Backspace does nothing. **Why:** nothing is selected, or you're typing a name. **Fix:** click the object first, or press Enter to finish the name.
 - **Problem:** you deleted something by mistake. **Fix:** press **Ctrl + Z**. Undo keeps your steps for as long as the app is open, up to the undo memory limit.
-- **Problem:** undo stops before you got back to where you wanted. **Why:** the oldest steps were forgotten to stay within the undo memory (the status bar said so when it started). **Fix:** for long sessions with large meshes, raise the limit in **Edit → Undo memory**, if your computer has the memory to spare.
+- **Problem:** undo stops before you got back to where you wanted. **Why:** the oldest steps were forgotten to stay within the undo memory (the status bar said so when it started). **Fix:** for long sessions with large meshes, raise the limit in **Edit → Settings… → Undo**, if your computer has the memory to spare.
 - **Problem:** pressing **C** does nothing, and the status bar says "Nothing to make editable". **Why:** only shapes with settings (or with recorded edits) can be made editable; groups and meshes have nothing to bake. **Fix:** select the shapes themselves.
 - **Problem:** the Attributes panel no longer shows a shape's size and segments. **Why:** it was made editable, so it's a plain mesh now. **Fix:** press **Ctrl + Z** to get the settings back, if you need them.
 
