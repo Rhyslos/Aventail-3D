@@ -56,6 +56,8 @@ Whatever you pick, **a plain left drag never moves the view**: it's kept free fo
 
 ## Settings
 
+Every setting here is also in **Edit → Settings… → Viewport** (see [Settings](settings.md)), next to the app's other preferences.
+
 | Setting | What it does |
 |---|---|
 | **Orbit and zoom around the point under the mouse** (in the controls list, or **Options**; on by standard) | Orbiting turns around, and zooming moves towards, whatever is under the mouse. Off: they work around the middle of the view, exactly as the app's original rotation did. |

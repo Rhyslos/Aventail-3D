@@ -9,6 +9,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Navigating the view: orbit, pan and zoom, and the grid](navigating-the-view.md)
 - [Objects and the Object Manager: select, rename, group, hide, delete, and undo](objects.md)
 - [The Attribute Manager: change a selected object's name and settings](attributes.md)
+- [Settings: accent colour, units, navigation, grid and undo memory](settings.md)
 
 ## Modelling
 - [Primitives: cube, plane, cylinder, sphere, disc, tube and cone](primitives.md)

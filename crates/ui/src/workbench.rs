@@ -8,9 +8,10 @@ use crate::objects::{self, DocRequest, ObjectManager};
 use crate::palette::{Mode, PaletteCommand, PaletteState, command_palette, mode_palette};
 use crate::panel::Panel;
 use crate::panels::{about_contents, coordinates_contents, menu_line_with};
+use crate::settings::{SETTINGS_SHORTCUT, SettingsWindow, Values};
 use crate::shape_picker::ShapePicker;
 use crate::theme::{self, Accent};
-use crate::undo_memory::{UndoMemory, format_bytes};
+use crate::undo_memory::UndoMemory;
 use crate::units::Units;
 use crate::viewport::{ViewOptions, ViewportPanel, ViewportRenderer};
 use egui::{Align2, Id, Key, KeyboardShortcut, Modifiers, Ui, WidgetText};
@@ -98,6 +99,8 @@ pub struct Workbench {
     units: Units,
     /// How much memory the undo history may use.
     undo_memory: UndoMemory,
+    /// The Settings window.
+    settings: SettingsWindow,
     /// How many forgotten undo steps the status bar has already told
     /// about (it says so once, when forgetting starts).
     forgotten_told: bool,
@@ -132,6 +135,7 @@ impl Workbench {
             units: Units::default(),
             undo_memory: UndoMemory::default(),
             forgotten_told: false,
+            settings: SettingsWindow::default(),
             shape_picker: ShapePicker::default(),
             drawing: DrawingCache::default(),
             viewport: ViewportPanel::default(),
@@ -217,6 +221,16 @@ impl Workbench {
         self.units
     }
 
+    /// Whether the Settings window is open.
+    pub fn is_settings_open(&self) -> bool {
+        self.settings.open
+    }
+
+    /// Opens the Settings window.
+    pub fn open_settings(&mut self) {
+        self.settings.open = true;
+    }
+
     /// How much memory the undo history may use.
     pub fn undo_memory(&self) -> UndoMemory {
         self.undo_memory
@@ -278,6 +292,9 @@ impl Workbench {
         }
         if ui.input_mut(|i| i.consume_shortcut(&QUIT_SHORTCUT)) {
             actions.push(WorkbenchAction::Quit);
+        }
+        if ui.input_mut(|i| i.consume_shortcut(&SETTINGS_SHORTCUT)) {
+            self.settings.open = !self.settings.open;
         }
         let mut requests = Vec::new();
         // The shape list goes first: while it is open, Esc closes it
@@ -377,7 +394,31 @@ impl Workbench {
             .show(ui.ctx(), |ui| about_contents(ui, &self.info));
         self.about_open = about_open;
 
+        self.settings_window(ui.ctx());
+
         actions
+    }
+
+    /// Draws the Settings window, if open, and applies what changed.
+    fn settings_window(&mut self, ctx: &egui::Context) {
+        let mut undo_memory = self.undo_memory;
+        let history = (
+            self.document.history_memory(),
+            self.document.undo_steps() + self.document.redo_steps(),
+        );
+        let options = self.viewport.options_mut();
+        let mut values = Values {
+            accent: &mut self.accent,
+            units: &mut self.units,
+            navigation: &mut options.navigation,
+            grid: &mut options.grid_detail,
+            undo_memory: &mut undo_memory,
+            history,
+        };
+        self.settings.show(ctx, &mut values);
+        if undo_memory != self.undo_memory {
+            self.set_undo_memory(undo_memory);
+        }
     }
 
     /// Keys that change the document: undo, redo, delete, deselect, group
@@ -436,42 +477,6 @@ impl Workbench {
         }
     }
 
-    /// Edit → Undo memory: what the history uses now, and the choices.
-    fn undo_memory_entries(&mut self, ui: &mut Ui) {
-        let steps = self.document.undo_steps() + self.document.redo_steps();
-        let in_use = format!(
-            "In use: {} of {} ({} {})",
-            format_bytes(self.document.history_memory()),
-            self.undo_memory.short(),
-            steps,
-            if steps == 1 { "step" } else { "steps" }
-        );
-        ui.label(egui::RichText::new(in_use).color(theme::TEXT_WEAK));
-        ui.separator();
-        for choice in UndoMemory::ALL {
-            if ui
-                .radio(self.undo_memory == choice, choice.label())
-                .on_hover_text(choice.explanation())
-                .clicked()
-            {
-                self.set_undo_memory(choice);
-                self.note = Some(format!(
-                    "Undo memory: {}. When it is full, the oldest steps are forgotten first.",
-                    choice.short()
-                ));
-                ui.close();
-            }
-        }
-        ui.separator();
-        ui.label(
-            egui::RichText::new(
-                "Undo keeps steps until they fill this much memory,\nthen forgets the oldest first.",
-            )
-            .small()
-            .color(theme::TEXT_WEAK),
-        );
-    }
-
     /// Carries out what the menus, keys and panels asked for this frame,
     /// saying in the status bar what happened when it isn't plain to see.
     fn carry_out(&mut self, requests: Vec<DocRequest>) {
@@ -505,7 +510,7 @@ impl Workbench {
             self.forgotten_told = true;
             self.note = Some(format!(
                 "Undo memory is full ({}): the oldest steps are now forgotten as you work. \
-                 Edit → Undo memory sets the limit.",
+                 Settings → Undo sets the limit.",
                 self.undo_memory.short()
             ));
         }
@@ -557,9 +562,18 @@ impl Workbench {
         });
         ui.menu_button("Edit", |ui| {
             objects::undo_entries(ui, &self.document, requests);
-            ui.menu_button("Undo memory", |ui| self.undo_memory_entries(ui));
             ui.separator();
             objects::selection_entries(ui, &mut self.document, &mut self.objects, requests);
+            ui.separator();
+            let keys = ui.ctx().format_shortcut(&SETTINGS_SHORTCUT);
+            if ui
+                .add(egui::Button::new("Settings…").shortcut_text(keys))
+                .on_hover_text("Every preference in one place: look, units, navigation, undo")
+                .clicked()
+            {
+                self.settings.open = true;
+                ui.close();
+            }
         });
         // Menu order as in DESIGN.md: File, Edit, Create, Modes, Select,
         // Tools, Mesh, UV, View, Window, Help.
@@ -630,14 +644,6 @@ impl Workbench {
             }
         });
         ui.menu_button("Window", |ui| {
-            ui.menu_button("Accent colour", |ui| {
-                for accent in Accent::ALL {
-                    if accent_choice(ui, accent, self.accent).clicked() {
-                        self.accent = accent;
-                        ui.close();
-                    }
-                }
-            });
             ui.add_enabled(false, egui::Button::new("UV Editor panel"))
                 .on_disabled_hover_text("Arrives in Phase 6");
         });
@@ -659,19 +665,6 @@ fn create(kind: PrimitiveKind) -> DocRequest {
 /// The status bar's standing hint: the navigation controls in use.
 pub fn navigation_hint(scheme: tools::Scheme) -> String {
     format!("{}: {}", scheme.name(), scheme.summary())
-}
-
-/// One accent colour in the Window menu: a tick on the one in use, a
-/// swatch, and its name. The swatch sits inside the row, before the name,
-/// so it never spills out of the menu.
-fn accent_choice(ui: &mut Ui, accent: Accent, current: Accent) -> egui::Response {
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing.x = 6.0;
-        let (swatch, _) = ui.allocate_exact_size(egui::vec2(16.0, 10.0), egui::Sense::hover());
-        ui.painter().rect_filled(swatch, 3.0, accent.colors().fill);
-        ui.add(egui::RadioButton::new(accent == current, accent.name()))
-    })
-    .inner
 }
 
 /// The layout tabs on the right of the menu bar. Only the standard layout
@@ -806,6 +799,8 @@ impl TabViewer for PanelViewer<'_> {
 mod attribute_tests;
 #[cfg(test)]
 mod object_tests;
+#[cfg(test)]
+mod settings_tests;
 #[cfg(test)]
 mod shape_picker_tests;
 #[cfg(test)]
