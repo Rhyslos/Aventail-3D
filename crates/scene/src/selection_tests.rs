@@ -267,6 +267,7 @@ fn points_turn_with_a_recorded_matrix() {
         operation: Operation::TransformPoints {
             points: points.clone(),
             matrix,
+            anchors: None,
         },
     })
     .unwrap();

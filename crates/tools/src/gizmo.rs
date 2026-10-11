@@ -9,7 +9,9 @@
 //!   pair (move in that plane), and the centre (move facing you).
 //! - **Rotate:** a ring around each axis, and an outer ring that turns
 //!   around the line of sight.
-//! - **Scale:** a line with a box per axis, and the centre (all axes).
+//! - **Scale:** a line with a box per axis, a square between each pair
+//!   (scale those two axes, in the ratio the mouse moves along them), and
+//!   the centre (all axes).
 //! - **All:** arrows, plane squares, rings, scale boxes part way along the
 //!   axes, and the centre (move).
 //!
@@ -75,6 +77,10 @@ pub enum Handle {
     ViewRing,
     /// Scale along an axis.
     ScaleAxis(usize),
+    /// Scale along the two axes across an axis (the plane square between
+    /// them, on the scale gizmo). Which way the mouse goes decides how
+    /// much each of the two scales.
+    ScalePlane(usize),
     /// Scale along every axis at once.
     ScaleAll,
 }
@@ -84,7 +90,11 @@ impl Handle {
     /// centre and the outer ring.
     pub fn axis(self) -> Option<usize> {
         match self {
-            Self::Axis(i) | Self::Plane(i) | Self::Ring(i) | Self::ScaleAxis(i) => Some(i),
+            Self::Axis(i)
+            | Self::Plane(i)
+            | Self::Ring(i)
+            | Self::ScaleAxis(i)
+            | Self::ScalePlane(i) => Some(i),
             Self::Centre | Self::ViewRing | Self::ScaleAll => None,
         }
     }
@@ -235,7 +245,12 @@ impl Gizmo {
                 }
             }
         }
-        if moves {
+        if moves || tool == GizmoTool::Scale {
+            let make = if moves {
+                Handle::Plane
+            } else {
+                Handle::ScalePlane
+            };
             for i in 0..3 {
                 let (a, b) = ((i + 1) % 3, (i + 2) % 3);
                 if locked[a] || locked[b] {
@@ -253,7 +268,7 @@ impl Gizmo {
                 if let [Some(p), Some(q), Some(r), Some(s)] = corners
                     && quad_area(&[p, q, r, s]) > 30.0
                 {
-                    out.push((Handle::Plane(i), Shape::Quad([p, q, r, s])));
+                    out.push((make(i), Shape::Quad([p, q, r, s])));
                 }
             }
         }
@@ -299,7 +314,11 @@ impl Gizmo {
             .min_by(|a, b| {
                 // Filled squares win over lines they overlap.
                 let rank = |h: &Handle, d: f32| {
-                    if matches!(h, Handle::Plane(_) | Handle::ScaleAxis(_)) && d <= 0.0 {
+                    if matches!(
+                        h,
+                        Handle::Plane(_) | Handle::ScaleAxis(_) | Handle::ScalePlane(_)
+                    ) && d <= 0.0
+                    {
                         -1.0
                     } else {
                         d
@@ -362,7 +381,9 @@ impl Drag {
         let total = match handle {
             Handle::Axis(_) | Handle::Plane(_) | Handle::Centre => Total::Translate(Vec3::ZERO),
             Handle::Ring(_) | Handle::ViewRing => Total::Angle(0.0),
-            Handle::ScaleAxis(_) | Handle::ScaleAll => Total::Factors(Vec3::ONE),
+            Handle::ScaleAxis(_) | Handle::ScalePlane(_) | Handle::ScaleAll => {
+                Total::Factors(Vec3::ONE)
+            }
         };
         let mut drag = Self {
             handle,
@@ -459,6 +480,18 @@ impl Drag {
                 let t = along_axis(&ray, origin, axes[i])? / self.length.max(1e-6);
                 let mut f = Vec3::ZERO;
                 f[i] = t;
+                Some(f)
+            }
+            Handle::ScalePlane(i) => {
+                // The spot in the plane under the mouse, measured along
+                // each of the plane's two axes: dragging along one axis
+                // scales mostly that one, diagonally both.
+                let spot = on_plane(&ray, origin, axes[i])? - origin;
+                let length = self.length.max(1e-6);
+                let mut f = Vec3::ZERO;
+                for j in [(i + 1) % 3, (i + 2) % 3] {
+                    f[j] = spot.dot(axes[j]) / length;
+                }
                 Some(f)
             }
             Handle::ScaleAll => {

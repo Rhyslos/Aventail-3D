@@ -4,7 +4,7 @@
 
 Aventail 3D is a free, open-source modelling and UV unwrapping tool for **hard-surface game assets**, written in Rust. Model it, unwrap it, and export it to Substance Painter and Godot, all in one app.
 
-> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout and a real 3D view you can orbit, pan and zoom around, from four views at once if you like. You can create primitives (cube, plane, cylinder, sphere, disc, tube, cone) and groups, organise them in the Object Manager, and undo every change. Press B for a list of shapes, and select one to change its size and segments in the Attribute Manager, or press Ctrl + E to make it a plain, editable mesh. Press 1, 2 or 3 to see and select a selected shape's points, edges or polygons, and W, R or S to move, rotate or scale what's selected. Save your work as a project and open it again later. Modelling tools come in Phase 3 and 4. Follow the progress tracker below.
+> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout and a real 3D view you can orbit, pan and zoom around, from four views at once if you like. You can create primitives (cube, plane, cylinder, sphere, disc, tube, cone) and groups, organise them in the Object Manager, and undo every change. Press B for a list of shapes, and select one to change its size and segments in the Attribute Manager, or press Ctrl + E to make it a plain, editable mesh. Press 1, 2 or 3 to see and select a selected shape's points, edges or polygons, and W, R or S to move, rotate or scale what's selected; change a shape's settings afterwards and your edits follow. Save your work as a project and open it again later. Modelling tools come in Phase 3 and 4. Follow the progress tracker below.
 
 Created by **Rhyslos**, built with AI assistance (Claude by Anthropic). Part of the **Rhylib** family of tools, alongside [Halberd](https://github.com/Rhyslos/halberd).
 
@@ -74,9 +74,9 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** a scene of primitives can be built, edited, undone freely, saved and reopened. ✅ *Passed 2026-10-11: tested by the project lead, "it all felt great".*
 
-### Phase 3 · Editable meshes and selection — 4 of 5
+### Phase 3 · Editable meshes and selection — 5 of 5
 
-`██████████░░░` 80%
+`█████████████` 100%
 
 <details>
 <summary>Milestones</summary>
@@ -85,11 +85,11 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Point, edge and polygon modes
 - [x] Selection: click, rectangle, lasso, live selection, loop, ring, grow and shrink
 - [x] Move, rotate and scale gizmos with axis constraints, snapping and typed values
-- [ ] Edits recorded on top of the base, so base settings stay editable
+- [x] Edits recorded on top of the base, so base settings stay editable
 
 </details>
 
-**Gate:** points, edges and polygons can be selected and moved precisely, and a cube's segments can still be changed afterwards.
+**Gate:** points, edges and polygons can be selected and moved precisely, and a cube's segments can still be changed afterwards. *Awaiting the project lead's check, together with PR #22.*
 
 ### Phase 4 · Core modelling tools — 0 of 7
 
@@ -181,6 +181,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-11 | Edits find their points again when a shape's settings change, and the Scale gizmo scales along two axes at once. Phase 3 complete |
 | 2026-10-11 | Move, rotate and scale (W, R, S, T): gizmos for shapes and for points, edges and polygons, snapping, axis locks, typed values in the Coordinates panel; project files at format version 2 |
 | 2026-10-11 | Selecting: click shapes in the viewport; select points, edges and polygons by click, box, lasso or brush (through the shape, or only what's visible), loops, rings, grow and shrink, all with undo |
 | 2026-10-11 | Points, Edges and Polygons modes (keys 1, 2, 3): see a selected shape's points and edges, and the one under the mouse lights up |

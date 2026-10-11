@@ -518,3 +518,51 @@ fn changes_read_naturally() {
     assert_eq!(Tool::Select.gizmo(), None);
     assert_eq!(Tool::All.name(), "Move, rotate and scale");
 }
+
+#[test]
+fn a_moved_polygon_is_found_again_after_more_segments() {
+    let (mut doc, cube) = cube_document();
+    let mesh = PrimitiveKind::Cube.standard().mesh();
+    let top = mesh
+        .faces()
+        .map(|(f, _)| f)
+        .find(|f| mesh.face_normal(*f).z > 0.9)
+        .unwrap();
+    doc.select_elements(
+        [(cube, ElementSelection::of([scene::Element::Polygon(top)]))],
+        "Select",
+        None,
+    );
+    let t = target(&doc, Mode::Polygons, Axes::World).unwrap();
+    let Targets::Points(starts, _) = &t.targets else {
+        panic!()
+    };
+    assert!(
+        starts[0].anchors.is_some(),
+        "the edit keeps where the polygon was"
+    );
+    Session::new(t, 1)
+        .show(&mut doc, &Change::Translate(Vec3::Z * 40.0))
+        .unwrap();
+    doc.execute(Command::SetPrimitive {
+        ids: vec![cube],
+        primitive: Primitive::Cube(CubeParams {
+            segments: [3, 3, 3],
+            ..CubeParams::default()
+        }),
+    })
+    .unwrap();
+    let shape = doc.scene().evaluated(cube).unwrap();
+    let lifted = shape
+        .mesh
+        .vertices()
+        .filter(|(_, p)| (p.z - 140.0).abs() < 1e-3)
+        .count();
+    assert_eq!(lifted, 16, "the whole top, now 4 × 4 points");
+    assert!(
+        shape
+            .warnings
+            .iter()
+            .all(|w| w.found_again && w.missing == 0)
+    );
+}

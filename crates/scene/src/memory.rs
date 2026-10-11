@@ -30,8 +30,14 @@ fn kind(kind: &ObjectKind) -> usize {
 /// What an operation holds beyond its own fixed size.
 fn operation(op: &Operation) -> usize {
     match op {
-        Operation::MovePoints { points, .. } | Operation::TransformPoints { points, .. } => {
+        Operation::MovePoints {
+            points, anchors, ..
+        }
+        | Operation::TransformPoints {
+            points, anchors, ..
+        } => {
             std::mem::size_of_val(points.as_slice())
+                + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
         }
     }
 }
@@ -141,6 +147,7 @@ mod tests {
             operation: Operation::MovePoints {
                 points: (0..n).map(VertexId::from_raw).collect(),
                 offset: glam::Vec3::X,
+                anchors: None,
             },
         };
         assert_eq!(edit(&points(100)) - edit(&points(0)), 400);

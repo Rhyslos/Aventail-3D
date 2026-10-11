@@ -36,7 +36,11 @@ Below that, the app checks for problems that cause trouble later in modelling, U
 
 **Meshes.** An object that has been [made editable](objects.md#make-editable) has no settings: the panel shows "(mesh)" after its name, and the Mesh section.
 
-**Edits.** Moving, rotating and scaling points, edges and polygons ([Move, rotate and scale](transforming.md)) records your edits on top of a shape instead of changing its settings (see [Base and edits](concepts.md#objects-and-scenes)). When a shape has edits, an **Edits** section says how many, and the settings above stay editable: change them and the edits are made again on the new shape. If some edits no longer fully fit (for example, you gave a cube fewer segments, so points an edit moved are gone), a line in amber says how many. They still apply to the points that remain, and going back to the earlier settings brings the missing points back.
+**Edits.** Moving, rotating and scaling points, edges and polygons ([Move, rotate and scale](transforming.md)) records your edits on top of a shape instead of changing its settings (see [Base and edits](concepts.md#objects-and-scenes)). When a shape has edits, an **Edits** section says how many, and the settings above stay editable: change them and the edits are made again on the new shape.
+- Changing segments renumbers a shape's points. Edits remember where their points, edges and polygons were and find them there again, and a quiet line says so (*1 edit found its points again on the changed shape*; hover over it for why). Nothing needs doing.
+- If some edits no longer fully fit (for example, you gave a cube fewer segments, so points an edit moved have no place left), a line in amber says how many. They still apply to what they can find, and going back to the earlier settings brings everything back.
+
+See [Changing settings after editing](transforming.md#changing-settings-after-editing).
 
 With nothing selected the panel says so; with several objects selected it counts them (pick one to see its settings).
 

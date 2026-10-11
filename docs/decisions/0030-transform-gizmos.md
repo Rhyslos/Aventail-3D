@@ -18,7 +18,7 @@ Phase 3's fourth milestone: move, rotate and scale the selection, with axis cons
 |---|---|
 | Move, rotate, scale, all three | `W`, `R`, `S`, `T` (Halberd's keys, [0019](0019-only-the-tool-keys-come-from-halberd.md)) |
 | Back to selecting | `Q` (pressed again: the next select tool) |
-| Handles | Move: an arrow per axis, a square per plane, the centre (free, facing the viewer). Rotate: a ring per axis and an outer ring around the line of sight. Scale: a box per axis, and the centre for all axes. |
+| Handles | Move: an arrow per axis, a square per plane, the centre (free, facing the viewer). Rotate: a ring per axis and an outer ring around the line of sight. Scale: a box per axis, a square per plane (added after the first test: the mouse's direction sets how much each of the two axes scales), and the centre for all axes. |
 | A left drag off the gizmo | Selects, as with the Select tool |
 | Snapping | The palette button; holding Ctrl while dragging flips it for that drag. A setting makes it button only. |
 | Snap steps | Moves: the grid lines shown (1 m, 50 cm or 10 cm); turns: 15°; scaling: 10% |
@@ -82,6 +82,6 @@ Decided: option 3.
 ## Consequences
 
 - `TransformPoints` needs a new project file format version ([0031](0031-project-format-version-2.md)).
-- The next milestone, edits recorded on top of the base, builds on these operations: showing and editing the recorded list.
+- The next milestone, edits recorded on top of the base, builds on these operations: their points are found again when the base's settings change ([0032](0032-edits-find-their-points-again.md)).
 - During a drag the pick scene is rebuilt each frame, for snapping, because the drawing changes. That is fine for game assets; a spatial index can come later.
 - Objects can't be scaled to nothing (the matrix would be flat); points can, which is how a selection is flattened.

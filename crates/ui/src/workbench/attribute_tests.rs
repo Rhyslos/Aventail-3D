@@ -547,6 +547,7 @@ fn record_lift(harness: &mut Harness<'static, State>, id: ObjectId, points: &[u3
                     .map(|n| scene::VertexId::from_raw(*n))
                     .collect(),
                 offset: glam::Vec3::Z * 10.0,
+                anchors: None,
             },
         })
         .unwrap();
@@ -653,6 +654,7 @@ fn problems_from_recorded_edits_are_flagged() {
             operation: scene::Operation::MovePoints {
                 points: vec![p0],
                 offset,
+                anchors: None,
             },
         })
         .unwrap();

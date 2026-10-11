@@ -230,6 +230,7 @@ mod tests {
             operation: Operation::MovePoints {
                 points: top,
                 offset: glam::Vec3::Z * 100.0,
+                anchors: None,
             },
         })
         .unwrap();

@@ -4,6 +4,7 @@
 //! Layer 0 (geometry). Knows nothing about scenes, files, the GPU or UI.
 //! See this crate's README for its purpose and limits.
 
+pub mod anchors;
 pub mod bounds;
 pub mod check;
 pub mod edit;
@@ -13,6 +14,7 @@ pub mod selection;
 pub mod shading;
 pub mod topology;
 
+pub use anchors::{AnchorShape, Anchors};
 pub use bounds::Bounds;
 pub use check::MeshReport;
 pub use polygon::{EdgeKey, FaceId, Mesh, MeshError, VertexId};

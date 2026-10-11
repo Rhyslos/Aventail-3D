@@ -14,7 +14,7 @@
 use crate::object::{ObjectId, ObjectKind};
 use glam::{Mat4, Vec3};
 use mesh::edit::{self, Outcome};
-use mesh::{Mesh, VertexId};
+use mesh::{Anchors, Mesh, Topology, VertexId};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
@@ -34,6 +34,9 @@ pub enum Operation {
         points: Vec<VertexId>,
         /// How far.
         offset: Vec3,
+        /// Where the points were, to find them again if the shape's points
+        /// are renumbered (decision 0032). `None`: by ID only.
+        anchors: Option<Anchors>,
     },
     /// Turns, scales or moves points with a matrix, in the object's own
     /// space (decision 0030).
@@ -42,7 +45,19 @@ pub enum Operation {
         points: Vec<VertexId>,
         /// The change, an affine transform.
         matrix: Mat4,
+        /// As for [`Self::MovePoints`].
+        anchors: Option<Anchors>,
     },
+}
+
+/// What applying an operation did.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub(crate) struct Applied {
+    /// How many of its elements weren't found.
+    pub(crate) missing: usize,
+    /// Whether its points had to be found again by position, because the
+    /// shape's points were renumbered.
+    pub(crate) found_again: bool,
 }
 
 impl Operation {
@@ -60,13 +75,47 @@ impl Operation {
         }
     }
 
-    /// Applies the operation to `mesh`.
-    fn apply(&self, mesh: &mut Mesh) -> Outcome {
+    /// The points the operation names, and its anchors.
+    pub fn points(&self) -> (&[VertexId], Option<&Anchors>) {
         match self {
-            Self::MovePoints { points, offset } => edit::move_points(mesh, points, *offset),
-            Self::TransformPoints { points, matrix } => {
-                edit::transform_points(mesh, points, *matrix)
+            Self::MovePoints {
+                points, anchors, ..
             }
+            | Self::TransformPoints {
+                points, anchors, ..
+            } => (points, anchors.as_ref()),
+        }
+    }
+
+    /// Applies the operation to `mesh`. If its points were renumbered
+    /// (a primitive given more segments, say), they are found again by
+    /// their anchors.
+    fn apply(&self, mesh: &mut Mesh) -> Applied {
+        let (named, anchors) = self.points();
+        let mut found_again = false;
+        let mut not_found = 0;
+        let refound;
+        let points = match anchors {
+            Some(anchors) if !anchors.still_fit(mesh) => {
+                let (points, missing) = anchors.find(mesh, &Topology::new(mesh));
+                refound = points;
+                found_again = true;
+                not_found = missing;
+                refound.as_slice()
+            }
+            _ => named,
+        };
+        let outcome: Outcome = match self {
+            Self::MovePoints { offset, .. } => edit::move_points(mesh, points, *offset),
+            Self::TransformPoints { matrix, .. } => edit::transform_points(mesh, points, *matrix),
+        };
+        Applied {
+            missing: if found_again {
+                not_found
+            } else {
+                outcome.missing
+            },
+            found_again,
         }
     }
 }
@@ -140,6 +189,10 @@ pub struct StackWarning {
     pub operation: usize,
     /// How many of its elements are missing.
     pub missing: usize,
+    /// Whether its points were found again by position, because the
+    /// shape's points were renumbered (decision 0032). Not a problem in
+    /// itself: the edit still applies where it was made.
+    pub found_again: bool,
 }
 
 /// An object's final shape and any warnings from working it out.
@@ -180,12 +233,13 @@ fn evaluate_layers(input: &Arc<Mesh>, layers: &[Layer], from: usize, out: &mut V
         let mesh = if layer.enabled && !layer.operations.is_empty() {
             let mut mesh = (*below).clone();
             for (op_index, operation) in layer.operations.iter().enumerate() {
-                let outcome = operation.apply(&mut mesh);
-                if outcome.missing > 0 {
+                let applied = operation.apply(&mut mesh);
+                if applied.missing > 0 || applied.found_again {
                     warnings.push(StackWarning {
                         layer: index,
                         operation: op_index,
-                        missing: outcome.missing,
+                        missing: applied.missing,
+                        found_again: applied.found_again,
                     });
                 }
             }

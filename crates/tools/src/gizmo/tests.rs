@@ -296,3 +296,35 @@ fn shapes_measure_distance_from_the_mouse() {
     assert_eq!(Handle::Ring(1).axis(), Some(1));
     assert_eq!(Handle::Centre.axis(), None);
 }
+
+#[test]
+fn a_scale_square_scales_two_axes_as_the_mouse_goes() {
+    let top = top();
+    let g = gizmo(GizmoTool::Scale);
+    let scaling = handles(&g, &top, NONE_LOCKED);
+    assert!(
+        scaling.contains(&Handle::ScalePlane(2)),
+        "the ground square"
+    );
+    assert!(!scaling.contains(&Handle::Plane(2)), "no move squares");
+    let length = g.length(&top, SIZE);
+    let start = Vec3::new(0.3, 0.3, 0.0) * length;
+    let mut drag = Drag::new(g, Handle::ScalePlane(2), &top, SIZE, screen(&top, start));
+    // Mostly along X: X grows a lot, Y a little, Z not at all.
+    let to = start + Vec3::new(1.0, 0.2, 0.0) * length;
+    let Change::Scale(f) = drag.update(screen(&top, to), false, NONE_LOCKED) else {
+        panic!("a scale")
+    };
+    assert!((f.x - 2.0).abs() < 0.02, "{f}");
+    assert!((f.y - 1.2).abs() < 0.02, "{f}");
+    assert_eq!(f.z, 1.0);
+    // A locked axis keeps its size.
+    let Change::Scale(f) = drag.change([true, false, false]) else {
+        panic!()
+    };
+    assert_eq!(f.x, 1.0);
+    // With all three gizmos (T), the squares move instead.
+    let all = handles(&gizmo(GizmoTool::All), &top, NONE_LOCKED);
+    assert!(all.contains(&Handle::Plane(2)) && !all.contains(&Handle::ScalePlane(2)));
+    assert_eq!(Handle::ScalePlane(1).axis(), Some(1));
+}

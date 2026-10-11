@@ -464,18 +464,37 @@ fn edits_section(ui: &mut Ui, doc: &Document, id: ObjectId, stack: &Stack) {
     let warnings = doc
         .scene()
         .evaluated(id)
-        .map_or(0, |shape| shape.warnings.len());
-    if warnings > 0 {
-        let text = match warnings {
+        .map(|shape| shape.warnings)
+        .unwrap_or_default();
+    let not_fitting = warnings.iter().filter(|w| w.missing > 0).count();
+    let found_again = warnings
+        .iter()
+        .filter(|w| w.found_again && w.missing == 0)
+        .count();
+    if found_again > 0 {
+        let text = match found_again {
+            1 => "1 edit found its points again on the changed shape".to_string(),
+            n => format!("{n} edits found their points again on the changed shape"),
+        };
+        ui.label(RichText::new(text).color(theme::TEXT_WEAK))
+            .on_hover_text(
+                "The shape's points were renumbered (more or fewer segments, say), \
+                 so these edits looked for the points, edges and polygons they were \
+                 made on by where they are. A polygon split into smaller ones moves \
+                 as a whole. Nothing to fix.",
+            );
+    }
+    if not_fitting > 0 {
+        let text = match not_fitting {
             1 => "1 edit no longer fully fits the shape".to_string(),
             n => format!("{n} edits no longer fully fit the shape"),
         };
         ui.label(RichText::new(text).color(theme::WARNING))
             .on_hover_text(
-                "Some of the points these edits move are gone (for example after \
-                 giving the shape fewer segments). The edits still apply to the \
-                 points that remain; nothing else is lost, and going back to the \
-                 earlier settings brings the missing points back.",
+                "Some of the points these edits move have no place on the shape now \
+                 (for example after giving it fewer segments). The edits still apply \
+                 to what remains; nothing else is lost, and going back to the earlier \
+                 settings brings the rest back.",
             );
     }
 }

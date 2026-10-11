@@ -8,6 +8,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Edits follow a shape's settings.** Pull up a cube's top polygon, then give the cube more segments: the whole top stays lifted, because edits now remember where their points, edges and polygons were and find them again on the changed shape. The Attributes panel notes when that happened.
+- **Scale along two axes at once**: the Scale gizmo has squares between its boxes, like Move. The direction you drag decides how much each axis scales: drag mostly along X and it scales mostly along X.
 - **Move, rotate and scale.** Press **W**, **R** or **S** (or **T** for all three) with something selected, and drag the gizmo's arrows, squares, rings or boxes. It works on whole shapes in Model mode, and on points, edges and polygons in their modes, where the shape stretches to follow. Each drag is one undo step.
   - Hold **Shift** for ten times finer steps.
   - **Esc** or a right-click cancels a drag.
