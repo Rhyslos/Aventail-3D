@@ -28,6 +28,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Undo is now limited by memory instead of being kept forever: steps are kept until they fill 2 GB (the standard), and then the oldest are forgotten first. There's still no limit on the number of steps. **Edit → Undo memory** shows how much is in use and offers 256 MB to 8 GB or Unlimited; the choice is remembered. The status bar says once when old steps start being forgotten.
 - **Make editable** (**C**, also in the Mesh menu and the Objects panel's Object and right-click menus): turns the selected shapes into plain meshes, baking in their settings. Undo brings the settings back. The Attributes panel shows a mesh's points and polygons, and the Objects panel gives it the polygon icon.
 - Shapes now keep edits apart from their settings: the modelling tools coming in Phase 3 will record edits on top of a shape, so its settings (a cube's segments, say) stay editable afterwards and the edits are made again on the new shape. The Attributes panel will count a shape's edits and flag any that no longer fully fit.
 - Small step arrows beside every value in the Attributes panel: click to add or take away one step (1 cm, or 1 segment) for fine tuning; hold Shift for ten.

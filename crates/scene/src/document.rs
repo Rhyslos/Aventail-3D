@@ -1,7 +1,7 @@
 //! The open document: the scene, its undo history and the selection.
 
 use crate::command::{self, Command};
-use crate::history::{History, Step};
+use crate::history::{History, HistoryLimit, Step};
 use crate::object::ObjectId;
 use crate::tree::{Scene, SceneError};
 use std::collections::BTreeSet;
@@ -121,10 +121,47 @@ impl Document {
         self.history.undo_len()
     }
 
+    /// How many undone steps can be done again.
+    pub fn redo_steps(&self) -> usize {
+        self.history.redo_len()
+    }
+
+    /// How much memory the undo history may use. Standard:
+    /// [`HistoryLimit::STANDARD`] (2 GB).
+    pub fn history_limit(&self) -> HistoryLimit {
+        self.history.limit()
+    }
+
+    /// Changes how much memory the undo history may use. If the steps
+    /// kept no longer fit, the oldest are forgotten at once (the newest
+    /// is always kept).
+    pub fn set_history_limit(&mut self, limit: HistoryLimit) {
+        self.history.set_limit(limit);
+    }
+
+    /// Roughly how many bytes the undo history uses now, undo and redo
+    /// steps together. An estimate: it counts names, settings, meshes and
+    /// recorded edits, but not the memory system's own overheads.
+    pub fn history_memory(&self) -> usize {
+        self.history.used()
+    }
+
+    /// How many steps have been forgotten so far to keep the history
+    /// within its limit. Goes up, never down.
+    pub fn forgotten_steps(&self) -> usize {
+        self.history.forgotten()
+    }
+
     /// A number that goes up every time the scene changes (not the
     /// selection): a cheap way to tell whether anything needs redrawing.
     pub fn revision(&self) -> u64 {
         self.revision
+    }
+
+    /// The history, for tests that check its bookkeeping.
+    #[cfg(test)]
+    pub(crate) fn history(&self) -> &History {
+        &self.history
     }
 
     /// The selected objects, top to bottom as the Object Manager lists

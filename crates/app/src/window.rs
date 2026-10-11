@@ -18,6 +18,8 @@ const VIEW_KEY: &str = "view_options";
 const ACCENT_KEY: &str = "accent";
 /// Key under which the choice of metres or centimetres is remembered.
 const UNITS_KEY: &str = "units";
+/// Key under which the undo memory limit is remembered.
+const UNDO_MEMORY_KEY: &str = "undo_memory";
 /// Window size on first launch, in logical pixels.
 const FIRST_SIZE: [f32; 2] = [1440.0, 900.0];
 /// The smallest the window may get while staying usable.
@@ -45,6 +47,7 @@ impl eframe::App for App {
         eframe::set_value(storage, VIEW_KEY, &self.workbench.view_options());
         eframe::set_value(storage, ACCENT_KEY, &self.workbench.accent());
         eframe::set_value(storage, UNITS_KEY, &self.workbench.units());
+        eframe::set_value(storage, UNDO_MEMORY_KEY, &self.workbench.undo_memory());
     }
 }
 
@@ -91,6 +94,10 @@ pub fn run(info: AppInfo) -> Result<(), String> {
                     .storage
                     .and_then(|s| eframe::get_value(s, UNITS_KEY))
                     .unwrap_or_default();
+                let undo_memory: ui::UndoMemory = cc
+                    .storage
+                    .and_then(|s| eframe::get_value(s, UNDO_MEMORY_KEY))
+                    .unwrap_or_default();
                 let renderer: Box<dyn ViewportRenderer> = match cc.wgpu_render_state.as_ref() {
                     Some(state) => Box::new(GpuViewport::new(state)),
                     None => Box::new(NoRenderer {
@@ -101,7 +108,8 @@ pub fn run(info: AppInfo) -> Result<(), String> {
                     workbench: Workbench::new(info, saved)
                         .with_view_options(view)
                         .with_accent(accent)
-                        .with_units(units),
+                        .with_units(units)
+                        .with_undo_memory(undo_memory),
                     renderer,
                 }))
             }),

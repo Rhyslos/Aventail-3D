@@ -17,6 +17,7 @@ mod panel;
 mod panels;
 mod shape_picker;
 pub mod theme;
+mod undo_memory;
 mod units;
 mod viewport;
 #[cfg(test)]
@@ -32,6 +33,7 @@ pub use objects::{
 pub use palette::Mode;
 pub use panel::Panel;
 pub use shape_picker::SHAPE_LIST_KEY;
+pub use undo_memory::{UndoMemory, format_bytes};
 pub use units::Units;
 pub use viewport::{
     DEFAULT_FRAME, FOUR_VIEWS_KEY, Frame, GLIDE_SECONDS, GridDetail, NoRenderer, PICKER_LABEL,
