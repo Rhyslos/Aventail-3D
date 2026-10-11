@@ -1,6 +1,6 @@
 # 0029. Selection: controls, where element selections live, and selecting through
 
-- **Status:** Accepted
+- **Status:** Accepted (controls, undo and double-clicks revised after the project lead's first test, the same day)
 - **Date:** 2026-10-11
 - **Builds on:** [0027](0027-component-modes.md)
 
@@ -22,18 +22,35 @@ It also needs clicking shapes in the viewport, which the project lead expected a
 
 ### Controls (chosen by the project lead, [0028](0028-ask-about-controls.md))
 
+The first version gave Shift and Ctrl different jobs for clicks and for drags. After testing, the project lead asked for one pattern everywhere. **Plain replaces, Ctrl adds, Shift removes** applies to clicks, the box, the lasso, the brush and double-clicks alike. A click with the "add" key on something already selected unselects it.
+
+Other patterns can be chosen in Settings (`SelectKeys`), as the project lead asked:
+
+| Pattern | Adds | Removes |
+|---|---|---|
+| Ctrl adds, Shift removes (standard) | Ctrl | Shift |
+| Shift adds, Ctrl removes | Shift | Ctrl |
+| Ctrl flips | Ctrl flips each thing (a brush stroke flips each thing once) | — |
+| Ctrl adds, Alt removes | Ctrl | Alt |
+
+In the last pattern, Alt + drag still orbits while "Alt + mouse works in every scheme" is on (navigation comes first, [0015](0015-navigation-schemes.md)). There, Alt removes with clicks, and with drags only when that setting is off. Settings explains this.
+
 | Action | Control |
 |---|---|
-| Select | Click (replaces what's selected); click on nothing unselects |
-| Add or remove one | `Ctrl` + click |
-| Box, lasso, brush | Drag replaces, `Shift` + drag adds, `Ctrl` + drag removes |
+| Select | Click or drag replaces; click on nothing unselects |
+| Add, remove | The pattern's keys, as above |
 | Switch Box → Lasso → Brush | `Q` (Halberd's select key, pressed again) |
-| Loop, ring | Double-click, `Shift` + double-click (`Ctrl` adds them) |
+| Loop, ring | Double-click, `Alt` + double-click (in every pattern; the add and remove keys add or take away the loop or ring) |
 | Grow, shrink | `Ctrl` + wheel up or down; with the brush, `Ctrl` + wheel sizes the brush |
 | Select all, invert | `Ctrl + A`, `Ctrl + I` |
 | Unselect parts | `Esc` in the Points, Edges and Polygons modes (again in Model unselects shapes) |
 
 `Ctrl` + wheel no longer zooms the view.
+
+**Double-clicks:**
+- Two clicks count as one double-click only within 0.5 s, Windows' standard (egui's own is 0.3 s, which felt unreliable).
+- They must also land within 6 screen points of each other. egui only checks the time, so two quick clicks on different shapes counted as a double-click and the second was lost.
+- Double-clicks reach edges twice as far from the mouse as hovering does.
 
 ### Select through, or visible only
 
@@ -66,13 +83,15 @@ Decided: option 2.
 
 ### Undo
 
-1. **Not an undo step**, like object selection in the Object Manager.
-2. **An undo step for elements**, as DESIGN.md §4.3 and [0022](0022-undo-memory-budget.md) planned for this milestone.
+1. **Not an undo step**, like object selection in the Object Manager before.
+2. **An undo step for elements only**, as DESIGN.md §4.3 and [0022](0022-undo-memory-budget.md) planned for this milestone.
+3. **An undo step for every selection**: elements, and whole objects too, in the viewport and the Object Manager.
 
-Decided: option 2.
+Decided: option 3, at the project lead's request after testing option 2.
+- `Document::set_selection`, `toggle_selected` and `clear_selection` record a step ("Select Cube", "Select 3 objects", "Deselect all"); selecting what is already selected records nothing.
 - A brush stroke is one step. Its dabs merge with a stroke key, as Attribute drags do.
 - Undoing a selection step doesn't count as an unsaved change.
-- Selecting whole objects stays outside undo for now, as in the Object Manager.
+- As in most editors, a new selection after undoing forgets what could be redone.
 
 ### Polygon loops and rings
 

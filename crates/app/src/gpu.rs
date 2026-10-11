@@ -13,12 +13,12 @@ use ui::{
     ViewportView,
 };
 
-/// Plain points in the Points mode: small light squares, in pixels.
-const POINT_SIZE: f32 = 5.0;
+/// Plain points in the Points mode: small light dots, across in pixels.
+const POINT_SIZE: f32 = 6.0;
 /// Selected points: larger, in the accent colour.
-const SELECTED_POINT_SIZE: f32 = 8.0;
+const SELECTED_POINT_SIZE: f32 = 9.0;
 /// The point under the mouse: larger still, in a lighter accent.
-const HOVERED_POINT_SIZE: f32 = 9.0;
+const HOVERED_POINT_SIZE: f32 = 10.0;
 /// Edges of the edited objects, to see their structure.
 const LINE_WIDTH: f32 = 1.25;
 /// Selected edges.

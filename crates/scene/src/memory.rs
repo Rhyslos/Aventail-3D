@@ -82,6 +82,9 @@ pub(crate) fn step(step: &Step) -> usize {
             .iter()
             .map(|s| size_of_val(s) + s.before.memory_size() + s.after.memory_size())
             .sum::<usize>()
+        + step.objects.as_ref().map_or(0, |o| {
+            size_of_val(o.before.as_slice()) + size_of_val(o.after.as_slice())
+        })
 }
 
 #[cfg(test)]
@@ -148,6 +151,7 @@ mod tests {
             label: "Create group".into(),
             edits: edits.clone(),
             selections: Vec::new(),
+            objects: None,
             merge_key: None,
         });
         let parts: usize = edits.iter().map(edit).sum();

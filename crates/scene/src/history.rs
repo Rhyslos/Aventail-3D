@@ -51,8 +51,16 @@ pub(crate) struct SelectionEdit {
     pub(crate) after: ElementSelection,
 }
 
+/// A change to which objects are selected.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct ObjectsEdit {
+    pub(crate) before: Vec<ObjectId>,
+    pub(crate) after: Vec<ObjectId>,
+}
+
 /// One undoable step: a command's edits, in the order they were applied,
-/// or a change to the selected elements (decision 0029).
+/// or a change to the selection: of elements, or of objects (decision
+/// 0029).
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Step {
     /// What the step did, for the Edit menu ("Delete 2 objects").
@@ -60,6 +68,8 @@ pub(crate) struct Step {
     pub(crate) edits: Vec<Edit>,
     /// Changes to selected elements, applied after `edits`.
     pub(crate) selections: Vec<SelectionEdit>,
+    /// A change to which objects are selected.
+    pub(crate) objects: Option<ObjectsEdit>,
     /// Steps made one after another with the same key become one step:
     /// a whole drag of a value is one undo, not one per frame.
     pub(crate) merge_key: Option<u64>,
@@ -110,10 +120,21 @@ impl History {
             for change in step.selections {
                 merge_selection(&mut last.step.selections, change);
             }
+            if let Some(change) = step.objects {
+                match &mut last.step.objects {
+                    Some(earlier) => earlier.after = change.after,
+                    None => last.step.objects = Some(change),
+                }
+            }
             last.step.label = step.label;
             self.used -= last.size;
             if last.step.edits.iter().all(Edit::changes_nothing)
                 && last.step.selections.iter().all(|s| s.before == s.after)
+                && last
+                    .step
+                    .objects
+                    .as_ref()
+                    .is_none_or(|o| o.before == o.after)
             {
                 // Dragged back to where it started: nothing to undo.
                 self.undo.pop_back();

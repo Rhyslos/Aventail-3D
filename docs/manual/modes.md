@@ -21,7 +21,7 @@ In these modes you can see a shape's points and edges, see which one is under th
 1. **Select the shape** you want to work on, in the viewport or the Objects panel. The modes only show the parts of *selected* objects, so other shapes stay out of the way. You can select several.
 2. **Press `1`, `2` or `3`** for Points, Edges or Polygons mode. You can also click the mode's button on the left palette, or use the **Modes** menu. The button turns red to show the active mode.
 3. **Move the mouse over the shape.**
-   - In **Points** mode, every point shows as a small white square. The one nearest the mouse turns light red and grows.
+   - In **Points** mode, every point shows as a small white dot. The one nearest the mouse turns light red and grows.
    - In **Edges** mode, every edge is drawn as a thin white line. The one nearest the mouse turns light red and thick.
    - In **Polygons** mode, the face under the mouse is tinted light red, with an outline.
    Selected ones are drawn in the full accent red, so you can tell them apart from the one under the mouse.

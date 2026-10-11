@@ -12,7 +12,7 @@ A new scene is empty. Add [primitives](primitives.md) (cubes, cylinders and the 
 
 ## How to use it
 
-**Select.** Click a name to select that object (or click the shape itself in the viewport; see [Selecting](selecting.md)); its name and its outline in the viewport take on the [accent colour](interface-tour.md#accent-colour) (red, unless you've picked another). **Ctrl + click** adds an object to the selection, or takes it out again. **Shift + click** selects every row from the last one you clicked to this one. Click the empty space below the list, or press **Esc**, to select nothing. The status bar says how many objects are selected.
+**Select.** Click a name to select that object (or click the shape itself in the viewport; see [Selecting](selecting.md)); its name and its outline in the viewport take on the [accent colour](interface-tour.md#accent-colour) (red, unless you've picked another). **Ctrl + click** adds an object to the selection, or takes it out again. **Shift + click** selects every row from the last one you clicked to this one. Click the empty space below the list, or press **Esc**, to select nothing. The status bar says how many objects are selected. Selecting is an undo step, so **Ctrl + Z** takes a selection back.
 
 **Create a group.** Use **Create → Group**, the group button on the command palette (the cross with a circle, after the shapes), or **Object → New group** in the panel's own menu. New objects appear at the top of the list, already selected, and are named *Group*, *Group 2* and so on.
 

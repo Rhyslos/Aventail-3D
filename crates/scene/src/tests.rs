@@ -544,7 +544,11 @@ fn the_revision_goes_up_with_every_change_and_only_then() {
     assert_eq!(doc.revision(), 1, "selection and no-ops don't count");
     doc.undo();
     doc.redo();
-    assert_eq!(doc.revision(), 3);
+    assert_eq!(doc.revision(), 1, "nor does undoing a selection");
+    doc.undo();
+    doc.undo();
+    doc.redo();
+    assert_eq!(doc.revision(), 3, "undoing and redoing the creation do");
 }
 
 #[test]

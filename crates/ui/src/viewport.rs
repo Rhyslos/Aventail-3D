@@ -23,7 +23,9 @@ use tools::{
 
 use crate::components::ViewPointer;
 use crate::drawing::{ComponentOverlay, SceneDrawing, SceneSummary};
-use crate::selecting::{BRUSH_MAX, BRUSH_MIN, BRUSH_RADIUS, BRUSH_STEP, Gesture, SelectTool};
+use crate::selecting::{
+    BRUSH_MAX, BRUSH_MIN, BRUSH_RADIUS, BRUSH_STEP, Gesture, SelectKeys, SelectTool,
+};
 use crate::theme;
 use std::sync::Arc;
 
@@ -129,6 +131,8 @@ pub struct ViewOptions {
     /// as standard: they select through the shape, catching its far side
     /// too (decision 0029).
     pub select_visible_only: bool,
+    /// Which keys add to and take from the selection.
+    pub select_keys: SelectKeys,
 }
 
 /// What a renderer needs to draw one viewport frame.
@@ -365,6 +369,9 @@ struct View {
     image_size: Vec2,
     /// A selection drag (box, lasso or brush) in progress, if any.
     select_drag: Option<select::SelectDrag>,
+    /// Where the last click was, so a double-click can be told from two
+    /// quick clicks in different places.
+    last_click: Option<egui::Pos2>,
 }
 
 impl View {
@@ -377,6 +384,7 @@ impl View {
             glide: None,
             image_size: Vec2::ZERO,
             select_drag: None,
+            last_click: None,
         }
     }
 
@@ -856,6 +864,7 @@ impl ViewportPanel {
                 rect,
                 select::Capture {
                     tool: self.select_tool,
+                    keys: self.options.select_keys,
                     brush_radius: self.brush_radius,
                     strokes: &mut self.strokes,
                     out: &mut self.gestures,

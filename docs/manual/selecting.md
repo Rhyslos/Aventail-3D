@@ -22,8 +22,8 @@ For now you can only select. Moving what you selected arrives with the next upda
 ### Click
 
 - **Click** a shape (in Model mode) or a point, edge or polygon (in the other modes) to select just that.
-- **Ctrl + click** adds it to the selection, or takes it out again if it was already selected.
-- **Shift + click** only adds, never takes out.
+- **Ctrl + click** adds it to the selection. Ctrl + click on something already selected takes it out again.
+- **Shift + click** takes it out of the selection.
 - **Click on empty space** to unselect everything of that kind.
 
 A click always takes the thing you can see under the mouse, the one that lights up.
@@ -38,13 +38,26 @@ Hold the left mouse button and drag. What the drag draws depends on the **select
 
 Press **Q** to step through the three (Box → Lasso → Live selection → Box). The button near the left end of the top palette shows the active tool. You can click that button too, or pick a tool in the **Select** menu.
 
-While dragging, the keys you hold decide what happens to what was already selected:
+While dragging, the keys you hold decide what happens to what was already selected. It's the same pattern as clicking:
 
 | Drag | Result |
 |---|---|
 | Plain drag | Replaces the selection |
-| **Shift** + drag | Adds to it |
-| **Ctrl** + drag | Removes from it |
+| **Ctrl** + drag | Adds to it |
+| **Shift** + drag | Removes from it |
+
+### One pattern for everything, and other patterns to choose from
+
+Every way of selecting follows the same rule: **plain replaces, Ctrl adds, Shift removes**. That covers clicks, the box, the lasso, the brush and double-clicks. If another pattern suits your hands better, pick one in **Edit → Settings… → Viewport → Selecting → Selection keys**:
+
+| Pattern | Adds | Removes |
+|---|---|---|
+| **Ctrl adds, Shift removes** (standard) | Ctrl | Shift |
+| **Shift adds, Ctrl removes** | Shift | Ctrl |
+| **Ctrl flips** | Ctrl flips: what was selected is unselected, and the rest selected | (Ctrl, by flipping) |
+| **Ctrl adds, Alt removes** | Ctrl | Alt (clicks only: Alt + drag moves the view while **Alt + mouse works in every scheme** is on) |
+
+In every pattern, a click with the "adds" key on something already selected unselects it. With **Ctrl flips**, a brush stroke flips each thing once, however often you paint over it. This page describes the standard pattern.
 
 ### What counts as "inside"
 
@@ -68,13 +81,13 @@ Elements selected on the far side aren't drawn (the shape hides them), but the s
 
 ### Loops and rings
 
-A **double-click** selects a whole [loop](concepts.md#mesh-basics), the belt running around the shape. **Shift + double-click** selects the **ring**, the rungs across that belt.
+A **double-click** selects a whole [loop](concepts.md#mesh-basics), the belt running around the shape. **Alt + double-click** selects the **ring**, the rungs across that belt.
 
 - **Edges mode:** double-click an edge.
 - **Points mode:** double-click on an edge between two points; you get the points along its loop.
 - **Polygons mode:** double-click inside a polygon, near the edge the band should cross. The loop is the band of polygons running across that edge; the ring runs the other way.
 
-**Ctrl + double-click** adds the loop or ring to what's already selected. Loops stop where the mesh isn't made of four-sided polygons, or at a corner where three or five edges meet. That's how loops work everywhere, so on a plain cube a loop is just one edge. Give the cube more segments to see them go around.
+**Ctrl + double-click** adds the loop (Ctrl + Alt + double-click the ring) to what's already selected, and **Shift + double-click** takes it away. Two clicks only count as a double-click when they land in the same spot within half a second; two quick clicks on different things are two clicks. Loops stop where the mesh isn't made of four-sided polygons, or at a corner where three or five edges meet. That's how loops work everywhere, so on a plain cube a loop is just one edge. Give the cube more segments to see them go around.
 
 ### Grow, shrink, all, invert
 
@@ -85,7 +98,7 @@ A **double-click** selects a whole [loop](concepts.md#mesh-basics), the belt run
 
 ### Undo
 
-Selecting points, edges and polygons can be undone with **Ctrl + Z**, like any other change. A whole brush stroke is one step. Selecting whole shapes isn't an undo step, as in the Objects panel.
+Every selection can be undone with **Ctrl + Z** and redone with **Ctrl + Y**, like any other change: shapes clicked in the viewport or in the Objects panel, and points, edges and polygons. A whole brush stroke is one step. Undoing a selection doesn't count as a change to save.
 
 Each mode remembers its own selection. Select some points, switch to Polygons mode and select polygons, and the points are still selected when you go back.
 
@@ -94,6 +107,7 @@ Each mode remembers its own selection. Select some points, switch to Polygons mo
 | Setting | What it does |
 |---|---|
 | **Select only visible** | Off (standard): the box, lasso and brush select through the shape, the far side too. On: only what you can see. Left palette, Select menu or Settings. |
+| **Selection keys** | Which key adds and which removes: Ctrl adds, Shift removes (standard); Shift adds, Ctrl removes; Ctrl flips; or Ctrl adds, Alt removes. In Settings → Viewport. |
 | **Brush size** | How big the live selection brush is. Ctrl + mouse wheel while the brush is active. The circle around the mouse shows it. |
 
 ## Shortcuts
@@ -101,10 +115,11 @@ Each mode remembers its own selection. Select some points, switch to Polygons mo
 | Action | Shortcut |
 |---|---|
 | Select (replace) | Click |
-| Add or remove one | `Ctrl` + click |
-| Box, lasso or brush: replace / add / remove | Drag / `Shift` + drag / `Ctrl` + drag |
+| Add one (or, if it's selected, take it out) | `Ctrl` + click |
+| Take one out | `Shift` + click |
+| Box, lasso or brush: replace / add / remove | Drag / `Ctrl` + drag / `Shift` + drag |
 | Next select tool (Box → Lasso → Live selection) | `Q` |
-| Loop / ring | Double-click / `Shift` + double-click (`Ctrl` to add) |
+| Loop / ring | Double-click / `Alt` + double-click (`Ctrl` adds, `Shift` takes away) |
 | Grow / shrink the selection | `Ctrl` + wheel up / down |
 | Brush size (with the brush active) | `Ctrl` + wheel |
 | Select all | `Ctrl + A` |
@@ -115,9 +130,10 @@ Each mode remembers its own selection. Select some points, switch to Polygons mo
 ## Tips and common problems
 
 - **Problem:** dragging a box selects nothing in Points mode. **Why:** no shape is selected, so there are no points to select (the status bar says so). **Fix:** press `1` again to go back to Model mode, click the shape, then press `1`.
-- **Problem:** a box selected points on the back I didn't want. **Why:** selecting through is the standard. **Fix:** switch on **Select only visible**, or Ctrl + drag over the unwanted ones.
+- **Problem:** a box selected points on the back I didn't want. **Why:** selecting through is the standard. **Fix:** switch on **Select only visible**, or Shift + drag over the unwanted ones.
 - **Problem:** a double-click only selects one edge. **Why:** the loop can't continue: it reached a corner where three edges meet (every corner of a plain cube), a triangle or an n-gon. **Fix:** this is normal; add segments, or select the rest with Ctrl + click.
-- **Problem:** dragging with the left button moves the view instead. **Why:** you're holding Alt, which navigates in some control schemes. **Fix:** let go of Alt.
+- **Problem:** dragging with the left button moves the view instead. **Why:** you're holding Alt, which navigates. **Fix:** let go of Alt. (With the **Ctrl adds, Alt removes** pattern, switch off **Alt + mouse works in every scheme** in Settings if you want Alt + drag to remove.)
+- **Problem:** a double-click selects only the edge, not the loop. **Why:** the clicks were too far apart in time (more than half a second) or place. **Fix:** double-click a little quicker, without moving the mouse in between.
 - **Tip:** to select one side of a model cleanly, use a flat view (`F2`, `F3`, `F4`) and a box: in a flat view, a box through the model takes the front and back alike.
 
 ## Related

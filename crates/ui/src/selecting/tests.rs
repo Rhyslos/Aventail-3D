@@ -58,12 +58,14 @@ fn with_selector<T>(
             .iter()
             .map(|i| (i.mesh.as_ref(), i.transform, i.selected)),
     );
+    let mut stroke = StrokeMemory::default();
     let mut selector = Selector {
         document: doc,
         drawing: &drawing,
         scene: &scene,
         mode,
         visible_only,
+        stroke: &mut stroke,
     };
     work(&mut selector)
 }
@@ -119,7 +121,7 @@ fn clicking_selects_objects_in_the_model_mode() {
     );
     gesture(&mut doc, Mode::Model, click(Combine::Add));
     gesture(&mut doc, Mode::Model, click(Combine::Add));
-    assert_eq!(doc.selection(), vec![cube], "Shift + click only adds");
+    assert_eq!(doc.selection(), vec![cube], "adding twice keeps it");
     // Ctrl + click on nothing changes nothing.
     gesture(
         &mut doc,
@@ -130,7 +132,9 @@ fn clicking_selects_objects_in_the_model_mode() {
         },
     );
     assert_eq!(doc.selection(), vec![cube]);
-    assert_eq!(doc.undo_label(), Some("Create cube"), "not an undo step");
+    assert_eq!(doc.undo_label(), Some("Select Cube"), "an undo step");
+    doc.undo();
+    assert!(doc.selection().is_empty(), "undo takes the selection back");
 }
 
 #[test]
@@ -409,12 +413,111 @@ fn tools_go_round_and_keys_combine_as_chosen() {
         assert_eq!(tool, expected);
     }
     let ctrl = Modifiers::COMMAND;
-    assert_eq!(click_combine(Modifiers::NONE), Combine::Replace);
-    assert_eq!(click_combine(ctrl), Combine::Toggle);
-    assert_eq!(click_combine(Modifiers::SHIFT), Combine::Add);
-    assert_eq!(drag_combine(Modifiers::NONE), Combine::Replace);
-    assert_eq!(drag_combine(ctrl), Combine::Remove);
-    assert_eq!(drag_combine(Modifiers::SHIFT), Combine::Add);
+    let shift = Modifiers::SHIFT;
+    let alt = Modifiers::ALT;
+    let none = Modifiers::NONE;
+    // The standard: Ctrl adds (a click flips the one thing), Shift removes.
+    let keys = SelectKeys::default();
+    assert_eq!(keys, SelectKeys::CtrlAddsShiftRemoves);
+    assert_eq!(keys.combine(none, true), Combine::Replace);
+    assert_eq!(keys.combine(none, false), Combine::Replace);
+    assert_eq!(keys.combine(ctrl, true), Combine::Toggle);
+    assert_eq!(keys.combine(ctrl, false), Combine::Add);
+    assert_eq!(keys.combine(shift, true), Combine::Remove);
+    assert_eq!(keys.combine(shift, false), Combine::Remove);
+    assert_eq!(
+        keys.combine(ctrl | shift, false),
+        Combine::Remove,
+        "remove wins"
+    );
+    // The others.
+    let other = SelectKeys::ShiftAddsCtrlRemoves;
+    assert_eq!(other.combine(shift, false), Combine::Add);
+    assert_eq!(other.combine(shift, true), Combine::Toggle);
+    assert_eq!(other.combine(ctrl, false), Combine::Remove);
+    let flips = SelectKeys::CtrlFlips;
+    assert_eq!(flips.combine(ctrl, false), Combine::Toggle);
+    assert_eq!(
+        flips.combine(shift, false),
+        Combine::Replace,
+        "Shift unused"
+    );
+    let alt_removes = SelectKeys::CtrlAddsAltRemoves;
+    assert_eq!(alt_removes.combine(alt, true), Combine::Remove);
+    assert_eq!(alt_removes.combine(ctrl, false), Combine::Add);
+    // Double-clicks: Alt asks for the ring, so it never removes there.
+    assert_eq!(alt_removes.combine_loop(alt), Combine::Replace);
+    assert_eq!(keys.combine_loop(ctrl | alt), Combine::Add);
+    assert_eq!(keys.combine_loop(shift), Combine::Remove);
+    for preset in SelectKeys::ALL {
+        assert!(!preset.name().is_empty() && !preset.summary().is_empty());
+        assert_eq!(preset.combine(none, true), Combine::Replace, "{preset:?}");
+    }
     assert_eq!(count(1, ElementKind::Edges), "1 edge");
     assert_eq!(count(3, ElementKind::Edges), "3 edges");
 }
+
+#[test]
+fn a_flipping_brush_flips_each_thing_once_per_stroke() {
+    let (mut doc, cube) = cube_document();
+    let dab = |stroke| Gesture::Region {
+        camera: camera(),
+        size: SIZE,
+        regions: vec![Region::Circle {
+            centre: pointer(NEAR_CORNER).at,
+            radius: 5.0,
+        }],
+        how: Combine::Toggle,
+        stroke: Some(stroke),
+    };
+    let mut cache = DrawingCache::default();
+    let drawing = Arc::clone(&cache.update(&doc, true).drawing);
+    let scene = PickScene::new(
+        drawing
+            .items
+            .iter()
+            .map(|i| (i.mesh.as_ref(), i.transform, i.selected)),
+    );
+    let mut stroke = StrokeMemory::default();
+    let mut selector = Selector {
+        document: &mut doc,
+        drawing: &drawing,
+        scene: &scene,
+        mode: Mode::Points,
+        visible_only: false,
+        stroke: &mut stroke,
+    };
+    // Going over the same corner three times in one stroke flips it once.
+    for _ in 0..3 {
+        selector.gesture(dab(1));
+    }
+    assert_eq!(selected(selector.document, cube, ElementKind::Points), 1);
+    // A new stroke flips it back.
+    selector.gesture(dab(2));
+    assert_eq!(selected(selector.document, cube, ElementKind::Points), 0);
+}
+
+#[test]
+fn quick_brush_strokes_over_shapes_merge_and_flip() {
+    let (mut doc, cube) = cube_document();
+    doc.clear_selection();
+    let steps = doc.undo_steps();
+    let over = |how, stroke| Gesture::Region {
+        camera: camera(),
+        size: SIZE,
+        regions: vec![Region::Circle {
+            centre: pointer(MIDDLE).at,
+            radius: 5.0,
+        }],
+        how,
+        stroke: Some(stroke),
+    };
+    gesture(&mut doc, Mode::Model, over(Combine::Replace, 9));
+    gesture(&mut doc, Mode::Model, over(Combine::Add, 9));
+    assert_eq!(doc.selection(), vec![cube]);
+    assert_eq!(doc.undo_steps(), steps + 1, "one stroke, one step");
+    gesture(&mut doc, Mode::Model, over(Combine::Toggle, 10));
+    assert!(doc.selection().is_empty(), "flipped off");
+}
+
+const MIDDLE: Vec3 = Vec3::new(0.0, -50.0, 50.0);

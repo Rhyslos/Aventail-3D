@@ -13,6 +13,7 @@ use crate::project::{
     NEW_SHORTCUT, OPEN_SHORTCUT, Pending, ProjectFile, SAVE_AS_SHORTCUT, SAVE_SHORTCUT,
     recent_label,
 };
+use crate::selecting::StrokeMemory;
 use crate::settings::{SETTINGS_SHORTCUT, SettingsWindow, Values};
 use crate::shape_picker::ShapePicker;
 use crate::theme::{self, Accent};
@@ -23,6 +24,10 @@ use egui::{Align2, Id, Key, KeyboardShortcut, Modifiers, Ui, WidgetText};
 use egui_dock::{DockArea, DockState, TabViewer};
 use scene::{Command, Document, ObjectKind, PrimitiveKind};
 use selection::SelectRequest;
+
+/// How quickly two clicks must follow each other to be a double-click, in
+/// seconds: Windows' standard.
+pub const DOUBLE_CLICK_SECONDS: f64 = 0.5;
 pub(crate) use selection::VISIBLE_ONLY_HELP;
 use std::path::{Path, PathBuf};
 
@@ -143,6 +148,8 @@ pub struct Workbench {
     /// Selection commands from keys and the Select menu, carried out once
     /// the frame's drawing is known.
     select_requests: Vec<SelectRequest>,
+    /// What a flipping brush stroke has flipped so far.
+    stroke_memory: StrokeMemory,
     viewport: ViewportPanel,
     accent: Accent,
     about_open: bool,
@@ -177,6 +184,7 @@ impl Workbench {
             drawing: DrawingCache::default(),
             components: ComponentTracker::default(),
             select_requests: Vec::new(),
+            stroke_memory: StrokeMemory::default(),
             viewport: ViewportPanel::default(),
             accent: Accent::default(),
             about_open: false,
@@ -564,6 +572,12 @@ impl Workbench {
         if theme::accent(ui.ctx()) != self.accent {
             theme::set_accent(ui.ctx(), self.accent);
         }
+        // Double-clicks as forgiving as Windows' standard (egui's is 0.3 s).
+        if ui.ctx().options(|o| o.input_options.max_double_click_delay) != DOUBLE_CLICK_SECONDS {
+            ui.ctx().options_mut(|o| {
+                o.input_options.max_double_click_delay = DOUBLE_CLICK_SECONDS;
+            });
+        }
         actions.append(&mut self.queued);
         if self.file.asking.is_none() {
             self.file_keys(ui, &mut actions);
@@ -714,6 +728,7 @@ impl Workbench {
             navigation: &mut options.navigation,
             grid: &mut options.grid_detail,
             select_visible_only: &mut options.select_visible_only,
+            select_keys: &mut options.select_keys,
             undo_memory: &mut undo_memory,
             history,
         };

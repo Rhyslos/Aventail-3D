@@ -58,9 +58,9 @@ One colour marks what's active: the current mode (and later the current tool), t
 | Settings | `Ctrl + ,` |
 | Undo / redo | `Ctrl + Z` / `Ctrl + Y` (or `Ctrl + Shift + Z`) |
 | Points, Edges, Polygons mode (again: back to Model) | `1`, `2`, `3` |
-| Select, add or remove; box, lasso or brush | Click, `Ctrl` + click; drag, `Shift` + drag, `Ctrl` + drag (see [Selecting](selecting.md)) |
+| Select, add, remove; box, lasso or brush | Click, `Ctrl` + click, `Shift` + click; drag, `Ctrl` + drag, `Shift` + drag (the standard pattern; see [Selecting](selecting.md)) |
 | Next select tool (Box, Lasso, Live selection) | `Q` |
-| Loop / ring | Double-click / `Shift` + double-click |
+| Loop / ring | Double-click / `Alt` + double-click |
 | Grow / shrink the selection | `Ctrl` + wheel |
 | Select all / invert | `Ctrl + A` / `Ctrl + I` |
 | Delete the selection | `Delete` or `Backspace` |

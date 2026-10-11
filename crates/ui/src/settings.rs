@@ -6,6 +6,7 @@
 //! centimetres beside the Shape title, the navigation picker in the
 //! viewport's corner, the grid button); they show the same values here.
 
+use crate::selecting::SelectKeys;
 use crate::theme::{self, Accent};
 use crate::undo_memory::{UndoMemory, format_bytes};
 use crate::units::Units;
@@ -53,6 +54,8 @@ pub(crate) struct Values<'a> {
     pub(crate) grid: &'a mut GridDetail,
     /// Whether box, lasso and brush select only what can be seen.
     pub(crate) select_visible_only: &'a mut bool,
+    /// Which keys add to and take from the selection.
+    pub(crate) select_keys: &'a mut SelectKeys,
     pub(crate) undo_memory: &'a mut UndoMemory,
     /// What the undo history uses now: bytes and steps.
     pub(crate) history: (usize, usize),
@@ -136,6 +139,7 @@ fn restore_standard(values: &mut Values<'_>) {
     *values.navigation = NavigationSettings::default();
     *values.grid = GridDetail::default();
     *values.select_visible_only = false;
+    *values.select_keys = SelectKeys::default();
     *values.undo_memory = UndoMemory::default();
 }
 
@@ -240,6 +244,23 @@ fn viewport(ui: &mut Ui, values: &mut Values<'_>) {
     );
     ui.checkbox(values.select_visible_only, "Select only visible")
         .on_hover_text(crate::workbench::VISIBLE_ONLY_HELP);
+    ui.add_space(4.0);
+    explain(
+        ui,
+        "Selection keys: which key adds to the selection and which takes away, \
+         for clicks, boxes, lassos, the brush and double-clicks alike. A plain \
+         click or drag always starts a new selection; Alt + double-click selects a ring.",
+    );
+    for keys in SelectKeys::ALL {
+        if ui
+            .radio(*values.select_keys == keys, keys.name())
+            .on_hover_text(keys.summary())
+            .clicked()
+        {
+            *values.select_keys = keys;
+        }
+    }
+    explain(ui, values.select_keys.summary());
 }
 
 fn undo(ui: &mut Ui, values: &mut Values<'_>) {

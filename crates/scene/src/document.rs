@@ -1,7 +1,7 @@
 //! The open document: the scene, its undo history and the selection.
 
 use crate::command::{self, Command};
-use crate::history::{History, HistoryLimit, SelectionEdit, Step};
+use crate::history::{History, HistoryLimit, ObjectsEdit, SelectionEdit, Step};
 use crate::object::ObjectId;
 use crate::tree::{Scene, SceneError};
 use mesh::ElementSelection;
@@ -38,7 +38,11 @@ impl Document {
             scene,
             ..Self::default()
         };
-        document.set_selection(selection);
+        let scene = &document.scene;
+        document.selection = selection
+            .into_iter()
+            .filter(|id| scene.contains(*id))
+            .collect();
         document
     }
 
@@ -75,6 +79,7 @@ impl Document {
                 label,
                 edits: applied.edits,
                 selections: Vec::new(),
+                objects: None,
                 merge_key,
             });
         }
@@ -100,6 +105,9 @@ impl Document {
         for change in step.selections.iter().rev() {
             self.put_elements(change.id, change.before.clone());
         }
+        if let Some(change) = &step.objects {
+            self.selection = change.before.iter().copied().collect();
+        }
         self.drop_missing_from_selection();
         if !step.edits.is_empty() {
             self.revision += 1;
@@ -124,6 +132,9 @@ impl Document {
         }
         for change in &step.selections {
             self.put_elements(change.id, change.after.clone());
+        }
+        if let Some(change) = &step.objects {
+            self.selection = change.after.iter().copied().collect();
         }
         self.drop_missing_from_selection();
         if !step.edits.is_empty() {
@@ -208,25 +219,75 @@ impl Document {
         self.selection.contains(&id)
     }
 
-    /// Selects exactly these objects (unknown ones are ignored). Selecting
-    /// is not an undo step for now.
+    /// Selects exactly these objects (unknown ones are ignored), as an
+    /// undo step (decision 0029). Selecting what is already selected
+    /// records nothing.
     pub fn set_selection(&mut self, ids: impl IntoIterator<Item = ObjectId>) {
-        self.selection = ids
+        self.select_objects(ids, None);
+    }
+
+    /// Like [`Self::set_selection`], with a `merge_key` that folds the
+    /// change into the previous step made with the same key (a brush
+    /// stroke). Returns whether the selection changed.
+    pub fn select_objects(
+        &mut self,
+        ids: impl IntoIterator<Item = ObjectId>,
+        merge_key: Option<u64>,
+    ) -> bool {
+        let after: BTreeSet<ObjectId> = ids
             .into_iter()
             .filter(|id| self.scene.contains(*id))
             .collect();
+        if after == self.selection {
+            return false;
+        }
+        let before: Vec<ObjectId> = self.selection.iter().copied().collect();
+        self.selection = after;
+        let label = self.selection_label();
+        self.history.record(Step {
+            label,
+            edits: Vec::new(),
+            selections: Vec::new(),
+            objects: Some(ObjectsEdit {
+                before,
+                after: self.selection.iter().copied().collect(),
+            }),
+            merge_key,
+        });
+        true
     }
 
-    /// Adds the object to the selection, or takes it out if it was in.
-    pub fn toggle_selected(&mut self, id: ObjectId) {
-        if !self.selection.remove(&id) && self.scene.contains(id) {
-            self.selection.insert(id);
+    /// What a selection step is called: "Select Cube", "Select 3
+    /// objects" or "Deselect all".
+    fn selection_label(&self) -> String {
+        match self.selection.len() {
+            0 => "Deselect all".to_string(),
+            1 => match self
+                .selection
+                .iter()
+                .next()
+                .and_then(|id| self.scene.object(*id))
+            {
+                Some(object) => format!("Select {}", object.name),
+                None => "Select 1 object".to_string(),
+            },
+            n => format!("Select {n} objects"),
         }
     }
 
-    /// Selects nothing.
+    /// Adds the object to the selection, or takes it out if it was in (an
+    /// undo step).
+    pub fn toggle_selected(&mut self, id: ObjectId) {
+        let mut next = self.selection.clone();
+        if !next.remove(&id) {
+            next.insert(id);
+        }
+        self.select_objects(next, None);
+    }
+
+    /// Selects nothing (an undo step, if anything was selected).
     pub fn clear_selection(&mut self) {
-        self.selection.clear();
+        self.select_objects([], None);
     }
 
     /// The object's selected points, edges and polygons, as last set:
@@ -266,6 +327,7 @@ impl Document {
             label: label.into(),
             edits: Vec::new(),
             selections: edits,
+            objects: None,
             merge_key,
         });
         true

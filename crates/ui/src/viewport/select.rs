@@ -8,12 +8,16 @@
 
 use super::View;
 use crate::components::ViewPointer;
-use crate::selecting::{Gesture, SelectTool, click_combine, drag_combine};
+use crate::selecting::{Gesture, SelectKeys, SelectTool};
 use crate::theme;
 use egui::{Color32, PointerButton, Pos2, Rect, Response, Shape, Stroke, Ui, pos2};
 use glam::Vec2;
 use scene::Combine;
 use tools::Region;
+
+/// How far apart (in screen points) two clicks may be and still make a
+/// double-click.
+const DOUBLE_CLICK_DISTANCE: f32 = 6.0;
 
 /// How far apart (in screen points) the lasso's outline points are kept.
 const LASSO_SPACING: f32 = 3.0;
@@ -37,6 +41,8 @@ pub(super) struct SelectDrag {
 /// What a view needs to capture selection gestures this frame.
 pub(super) struct Capture<'a> {
     pub(super) tool: SelectTool,
+    /// Which keys add and remove.
+    pub(super) keys: SelectKeys,
     pub(super) brush_radius: f32,
     /// The last stroke number given out.
     pub(super) strokes: &'a mut u64,
@@ -70,7 +76,7 @@ impl View {
             *capture.strokes += 1;
             self.select_drag = Some(SelectDrag {
                 tool: capture.tool,
-                how: drag_combine(keys),
+                how: capture.keys.combine(keys, false),
                 points: vec![local(start)],
                 stroke: *capture.strokes,
                 dabbed: false,
@@ -146,24 +152,27 @@ impl View {
         let clicked_at = response
             .interact_pointer_pos()
             .or_else(|| ui.input(|i| i.pointer.interact_pos()));
-        if response.double_clicked_by(PointerButton::Primary) {
+        // Two quick clicks in different places are two clicks, not a
+        // double-click (egui only checks the time between them).
+        let double = response.double_clicked_by(PointerButton::Primary)
+            && clicked_at
+                .zip(self.last_click)
+                .is_some_and(|(a, b)| a.distance(b) <= DOUBLE_CLICK_DISTANCE);
+        if double {
             if let Some(at) = clicked_at {
                 capture.out.push(Gesture::DoubleClick {
                     pointer: pointer_at(at),
-                    ring: keys.shift,
-                    how: if keys.command {
-                        Combine::Add
-                    } else {
-                        Combine::Replace
-                    },
+                    ring: keys.alt,
+                    how: capture.keys.combine_loop(keys),
                 });
             }
         } else if response.clicked_by(PointerButton::Primary)
             && let Some(at) = clicked_at
         {
+            self.last_click = Some(at);
             capture.out.push(Gesture::Click {
                 pointer: pointer_at(at),
-                how: click_combine(keys),
+                how: capture.keys.combine(keys, true),
             });
         }
     }

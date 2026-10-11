@@ -602,6 +602,17 @@ fn the_overlay_draws_points_thick_lines_and_tints_hidden_behind_surfaces() {
         is_red(shot.at(near_corner)),
         "the near corner's point shows"
     );
+    // Points are round: red beside the middle, but not in the corners
+    // of the square they are drawn in.
+    let p = camera
+        .project(near_corner, Vec2::new(640.0, 400.0))
+        .unwrap();
+    let (x, y) = (p.x as u32, p.y as u32);
+    assert!(is_red(shot.pixel(x + 3, y)), "the dot is 10 pixels across");
+    assert!(
+        !is_red(shot.pixel(x + 4, y + 4)) && !is_red(shot.pixel(x - 4, y - 4)),
+        "round: the square's corners are cut away"
+    );
     assert!(
         !is_red(shot.at(far_corner)),
         "the far corner's is hidden by the cube"

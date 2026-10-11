@@ -123,9 +123,9 @@ impl Workbench {
             self.select_requests.push(SelectRequest::Grow(-1));
             ui.close();
         }
-        ui.add_enabled(false, egui::Button::new("Loop: double-click"))
+        ui.add_enabled(false, egui::Button::new("Loop and ring: double-click"))
             .on_disabled_hover_text(
-                "Double-click an edge for its loop; Shift + double-click for its ring",
+                "Double-click an edge for its loop; Alt + double-click for its ring",
             );
         ui.separator();
         let current = self.viewport.select_tool();
@@ -159,6 +159,7 @@ impl Workbench {
             scene: self.components.pick_scene(drawing),
             mode: self.mode,
             visible_only: self.viewport.options().select_visible_only,
+            stroke: &mut self.stroke_memory,
         };
         let mut notes = Vec::new();
         for gesture in gestures {

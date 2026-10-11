@@ -2,20 +2,20 @@
 //! the select tools, the gestures the viewport hands over, and what they
 //! do to the document.
 //!
-//! In the Model mode gestures select whole objects (not an undo step, as
-//! in the Object Manager). In the Points, Edges and Polygons modes they
-//! select elements of the selected objects, and each change is an undo
-//! step.
+//! In the Model mode gestures select whole objects; in the Points, Edges
+//! and Polygons modes, elements of the selected objects. Every change is
+//! an undo step.
 //!
-//! The controls, chosen by the project lead:
+//! The controls, chosen by the project lead. Which keys add and remove
+//! follows one [`SelectKeys`] pattern, chosen in Settings:
 //!
-//! | Action | Control |
+//! | Action | Control (standard pattern) |
 //! |---|---|
-//! | Select | Click (replaces); click on nothing to unselect |
-//! | Add or remove one | Ctrl + click |
-//! | Box, lasso, brush | Drag replaces, Shift + drag adds, Ctrl + drag removes |
+//! | Select | Click or drag (replaces); click on nothing to unselect |
+//! | Add | Ctrl + click or drag (Ctrl + click on something selected unselects it) |
+//! | Remove | Shift + click or drag |
 //! | Switch Box → Lasso → Brush | `Q` |
-//! | Loop, ring | Double-click, Shift + double-click (Ctrl adds) |
+//! | Loop, ring | Double-click, Alt + double-click (with the add and remove keys too) |
 //! | Grow, shrink | Ctrl + wheel (with the brush: its size) |
 //! | Select all, invert | Ctrl + A, Ctrl + I |
 //! | Unselect elements | Esc |
@@ -27,6 +27,7 @@ use egui::{Key, KeyboardShortcut, Modifiers};
 use glam::Vec2;
 use mesh::{Topology, selection as ops};
 use scene::{Combine, Document, Element, ElementKind, ElementSelection, ObjectId};
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use tools::{Camera, Hovered, PickScene, Region};
 
@@ -90,27 +91,100 @@ impl SelectTool {
     }
 }
 
-/// How a click combines with what is selected: Ctrl flips, Shift adds,
-/// otherwise it replaces.
-pub(crate) fn click_combine(keys: Modifiers) -> Combine {
-    if keys.command {
-        Combine::Toggle
-    } else if keys.shift {
-        Combine::Add
-    } else {
-        Combine::Replace
-    }
+/// The keys that add to and take from the selection: one pattern for
+/// clicks, drags, the brush and double-clicks, chosen in Settings
+/// (decision 0029). A plain click or drag always replaces the selection.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum SelectKeys {
+    /// Ctrl adds, Shift removes (the project lead's choice; standard).
+    #[default]
+    CtrlAddsShiftRemoves,
+    /// Shift adds, Ctrl removes.
+    ShiftAddsCtrlRemoves,
+    /// Ctrl flips: what is selected is unselected and the rest selected.
+    CtrlFlips,
+    /// Ctrl adds, Alt removes. Alt + drag still moves the view while
+    /// "Alt + mouse works in every scheme" is on.
+    CtrlAddsAltRemoves,
 }
 
-/// How a drag combines with what is selected: Ctrl removes, Shift adds,
-/// otherwise it replaces.
-pub(crate) fn drag_combine(keys: Modifiers) -> Combine {
-    if keys.command {
-        Combine::Remove
-    } else if keys.shift {
-        Combine::Add
-    } else {
-        Combine::Replace
+impl SelectKeys {
+    /// Every pattern, in the order Settings lists them.
+    pub const ALL: [Self; 4] = [
+        Self::CtrlAddsShiftRemoves,
+        Self::ShiftAddsCtrlRemoves,
+        Self::CtrlFlips,
+        Self::CtrlAddsAltRemoves,
+    ];
+
+    /// Its name.
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::CtrlAddsShiftRemoves => "Ctrl adds, Shift removes",
+            Self::ShiftAddsCtrlRemoves => "Shift adds, Ctrl removes",
+            Self::CtrlFlips => "Ctrl flips",
+            Self::CtrlAddsAltRemoves => "Ctrl adds, Alt removes",
+        }
+    }
+
+    /// What it means, in plain words.
+    pub fn summary(self) -> &'static str {
+        match self {
+            Self::CtrlAddsShiftRemoves => {
+                "Ctrl + click or drag adds; Shift + click or drag removes. \
+                 Ctrl + click on something selected unselects it."
+            }
+            Self::ShiftAddsCtrlRemoves => {
+                "Shift + click or drag adds; Ctrl + click or drag removes. \
+                 Shift + click on something selected unselects it."
+            }
+            Self::CtrlFlips => {
+                "Ctrl + click or drag flips: what was selected is unselected, \
+                 and the rest selected."
+            }
+            Self::CtrlAddsAltRemoves => {
+                "Ctrl + click or drag adds; Alt + click removes. Ctrl + click on \
+                 something selected unselects it. Alt + drag moves the view while \
+                 \"Alt + mouse works in every scheme\" is on."
+            }
+        }
+    }
+
+    /// How a click (`click`) or a drag combines with what is selected,
+    /// with `keys` held. The add key on a click flips the one thing
+    /// clicked, so clicking something selected unselects it.
+    pub fn combine(self, keys: Modifiers, click: bool) -> Combine {
+        let add = if click { Combine::Toggle } else { Combine::Add };
+        let (adds, removes) = match self {
+            Self::CtrlAddsShiftRemoves => (keys.command, keys.shift),
+            Self::ShiftAddsCtrlRemoves => (keys.shift, keys.command),
+            Self::CtrlFlips => {
+                return if keys.command {
+                    Combine::Toggle
+                } else {
+                    Combine::Replace
+                };
+            }
+            Self::CtrlAddsAltRemoves => (keys.command, keys.alt),
+        };
+        if removes {
+            Combine::Remove
+        } else if adds {
+            add
+        } else {
+            Combine::Replace
+        }
+    }
+
+    /// How a double-click's loop or ring combines (Alt asks for the ring,
+    /// so it never means "remove" here).
+    pub fn combine_loop(self, keys: Modifiers) -> Combine {
+        let keys = Modifiers { alt: false, ..keys };
+        match self.combine(keys, false) {
+            // Ctrl flips a loop as a whole: add it, or take it away.
+            Combine::Toggle => Combine::Toggle,
+            how => how,
+        }
     }
 }
 
@@ -151,6 +225,39 @@ pub(crate) struct Selector<'a> {
     pub(crate) scene: &'a PickScene,
     pub(crate) mode: Mode,
     pub(crate) visible_only: bool,
+    /// What a flipping brush stroke has already flipped, so going over
+    /// it again doesn't flip it back.
+    pub(crate) stroke: &'a mut StrokeMemory,
+}
+
+/// The brush stroke in progress and what it has flipped.
+#[derive(Debug, Default)]
+pub(crate) struct StrokeMemory {
+    stroke: u64,
+    flipped: std::collections::BTreeSet<(ObjectId, Option<Element>)>,
+}
+
+impl StrokeMemory {
+    /// Keeps only what `stroke` hasn't flipped yet, and remembers it.
+    fn fresh<T>(
+        &mut self,
+        stroke: Option<u64>,
+        how: Combine,
+        found: Vec<T>,
+        key: impl Fn(&T) -> (ObjectId, Option<Element>),
+    ) -> Vec<T> {
+        let (Some(stroke), Combine::Toggle) = (stroke, how) else {
+            return found;
+        };
+        if self.stroke != stroke {
+            self.stroke = stroke;
+            self.flipped.clear();
+        }
+        found
+            .into_iter()
+            .filter(|f| self.flipped.insert(key(f)))
+            .collect()
+    }
 }
 
 impl Selector<'_> {
@@ -174,7 +281,7 @@ impl Selector<'_> {
                     size,
                     regions,
                     how,
-                    ..
+                    stroke,
                 },
             ) => {
                 let mut found = Vec::new();
@@ -190,7 +297,8 @@ impl Selector<'_> {
                         }
                     }
                 }
-                self.objects_from_region(found, how);
+                let found = self.stroke.fresh(stroke, how, found, |id| (*id, None));
+                self.objects_from_region(found, how, stroke.map(|s| STROKE_KEYS | s));
                 None
             }
             (None, Gesture::DoubleClick { .. }) => None,
@@ -224,6 +332,14 @@ impl Selector<'_> {
                         }
                     }
                 }
+                let drawing = self.drawing;
+                let found = self.stroke.fresh(stroke, how, found, |hit| {
+                    let id = drawing.items.get(hit.object).map(|i| i.id);
+                    (
+                        id.unwrap_or(ObjectId::from_raw(u64::MAX)),
+                        Some(hit.element),
+                    )
+                });
                 self.elements(kind, found, how, stroke.map(|s| STROKE_KEYS | s))
             }
             (Some(kind), Gesture::DoubleClick { pointer, ring, how }) => {
@@ -387,14 +503,9 @@ impl Selector<'_> {
         // Points mode the one passing nearest; in the Polygons mode the
         // hovered polygon's edge nearest the mouse.
         let (index, edge, face) = match kind {
-            ElementKind::Edges => match self.scene.under(kind, &camera, size, at)? {
-                Hovered {
-                    object,
-                    element: Element::Edge(edge),
-                } => (object, edge, None),
-                _ => return None,
-            },
-            ElementKind::Points => {
+            // A little more forgiving than hovering: a double-click
+            // shouldn't need a perfectly steady hand.
+            ElementKind::Edges | ElementKind::Points => {
                 let reach = 2.0 * tools::components::EDGE_RADIUS;
                 let (object, edge) = self.scene.edge_near(&camera, size, at, reach)?;
                 (object, edge, None)
@@ -458,36 +569,35 @@ impl Selector<'_> {
         match (found, how) {
             (None, Combine::Replace) => self.document.clear_selection(),
             (None, _) => {}
-            (Some(id), Combine::Replace) => self.document.set_selection([id]),
-            (Some(id), Combine::Toggle) => self.document.toggle_selected(id),
-            (Some(id), Combine::Add) => {
-                if !self.document.is_selected(id) {
-                    self.document.toggle_selected(id);
-                }
-            }
-            (Some(id), Combine::Remove) => {
-                if self.document.is_selected(id) {
-                    self.document.toggle_selected(id);
-                }
-            }
+            (Some(id), how) => self.objects_from_region(vec![id], how, None),
         }
     }
 
-    /// Selects objects for a box, lasso or brush.
-    fn objects_from_region(&mut self, found: Vec<ObjectId>, how: Combine) {
+    /// Selects objects for a box, lasso or brush (a brush stroke merges
+    /// into one undo step with `merge_key`).
+    fn objects_from_region(&mut self, found: Vec<ObjectId>, how: Combine, merge_key: Option<u64>) {
         let mut selection = self.document.selection();
         match how {
             Combine::Replace => selection = found,
-            Combine::Add | Combine::Toggle => {
+            Combine::Add => {
                 for id in found {
                     if !selection.contains(&id) {
                         selection.push(id);
                     }
                 }
             }
+            Combine::Toggle => {
+                for id in found {
+                    if let Some(at) = selection.iter().position(|s| *s == id) {
+                        selection.remove(at);
+                    } else {
+                        selection.push(id);
+                    }
+                }
+            }
             Combine::Remove => selection.retain(|id| !found.contains(id)),
         }
-        self.document.set_selection(selection);
+        self.document.select_objects(selection, merge_key);
     }
 }
 

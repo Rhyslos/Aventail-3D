@@ -233,6 +233,7 @@ fn face_fs(in: FaceOut, @builtin(front_facing) front: bool) -> @location(0) vec4
 // Points and thick lines for the Points, Edges and Polygons modes, a fixed
 // number of pixels wide whatever the distance. Each is two triangles whose
 // corners are pushed out on screen from the point (or the line's ends).
+// Points are cut round in the fragment shader, with a soft one-pixel rim.
 // frame.view.yz holds the image's size in pixels.
 
 struct SpriteIn {
@@ -246,6 +247,13 @@ struct SpriteIn {
 struct SpriteOut {
     @builtin(position) clip: vec4<f32>,
     @location(0) color: vec4<f32>,
+    // Where in the square this is (-1 to 1 each way), for cutting points
+    // round.
+    @location(1) corner: vec2<f32>,
+    // 1 for a point (cut round), 0 for a line.
+    @location(2) round: f32,
+    // One pixel, in corner units.
+    @location(3) pixel: f32,
 };
 
 @vertex
@@ -255,7 +263,9 @@ fn sprite_vs(in: SpriteIn) -> SpriteOut {
     // Half the width, in pixels.
     let half = in.width * 0.5;
     var offset = in.corner * half;
+    var round = 1.0;
     if any(in.position != in.other) {
+        round = 0.0;
         // A line: push sideways from the line on screen, and a little past
         // this end so joined lines meet without gaps.
         let other = frame.view_proj * vec4<f32>(in.other, 1.0);
@@ -273,10 +283,20 @@ fn sprite_vs(in: SpriteIn) -> SpriteOut {
     var out: SpriteOut;
     out.clip = clip;
     out.color = in.color;
+    out.corner = in.corner;
+    out.round = round;
+    out.pixel = 2.0 / max(in.width, 1.0);
     return out;
 }
 
 @fragment
 fn sprite_fs(in: SpriteOut) -> @location(0) vec4<f32> {
-    return in.color;
+    if in.round < 0.5 {
+        return in.color;
+    }
+    let edge = 1.0 - smoothstep(1.0 - in.pixel, 1.0, length(in.corner));
+    if edge <= 0.0 {
+        discard;
+    }
+    return vec4<f32>(in.color.rgb, in.color.a * edge);
 }

@@ -121,12 +121,12 @@ fn clicking_a_shape_selects_it_and_clicking_nothing_unselects() {
 }
 
 #[test]
-fn a_box_selects_shapes_and_ctrl_box_unselects() {
+fn a_box_selects_shapes_and_shift_box_unselects() {
     let mut harness = fresh();
     let cube = cube_id(&harness);
     box_over_everything(&mut harness, Modifiers::NONE);
     assert_eq!(harness.state().workbench.document().selection(), vec![cube]);
-    box_over_everything(&mut harness, Modifiers::COMMAND);
+    box_over_everything(&mut harness, Modifiers::SHIFT);
     assert!(harness.state().workbench.document().selection().is_empty());
 }
 
@@ -351,4 +351,150 @@ fn the_select_menu_works() {
         harness.state().workbench.viewport().select_tool(),
         SelectTool::Lasso
     );
+}
+
+/// The cube standing on a 3 m plane.
+fn cube_and_plane() -> H {
+    let mut harness = quick_harness();
+    let doc = harness.state_mut().workbench.document_mut();
+    doc.execute(Command::Create(scene::ObjectKind::Primitive(
+        mesh::Primitive::Plane(mesh::PlaneParams {
+            width: 300.0,
+            depth: 300.0,
+            segments: [1, 1],
+        }),
+    )))
+    .unwrap();
+    doc.clear_selection();
+    harness.run();
+    harness
+}
+
+#[test]
+fn quick_clicks_on_two_shapes_swap_between_them() {
+    let mut harness = cube_and_plane();
+    let ids = harness.state().workbench.document().scene().children(None);
+    let at_cube = on_screen(&harness, MIDDLE_OF_FRONT);
+    let at_plane = on_screen(&harness, Vec3::new(-100.0, -100.0, 0.0));
+    // Clicks a frame apart: quick enough for a double-click, but in
+    // different places.
+    for (at, expected) in [(at_cube, ids[1]), (at_plane, ids[0]), (at_cube, ids[1])] {
+        harness.event(Event::PointerMoved(at));
+        harness.run();
+        button(&mut harness, at, true, Modifiers::NONE);
+        button(&mut harness, at, false, Modifiers::NONE);
+        let selection = harness.state().workbench.document().selection();
+        assert_eq!(selection, vec![expected], "only the shape clicked last");
+    }
+}
+
+#[test]
+fn undo_takes_back_clicked_selections() {
+    let mut harness = fresh();
+    let cube = cube_id(&harness);
+    let at = on_screen(&harness, MIDDLE_OF_FRONT);
+    click(&mut harness, at, Modifiers::NONE);
+    assert_eq!(harness.state().workbench.document().selection(), vec![cube]);
+    harness.key_press_modifiers(Modifiers::COMMAND, Key::Z);
+    harness.run();
+    assert!(harness.state().workbench.document().selection().is_empty());
+    harness.key_press_modifiers(Modifiers::COMMAND, Key::Y);
+    harness.run();
+    assert_eq!(harness.state().workbench.document().selection(), vec![cube]);
+    // Selecting changes nothing that needs saving.
+    assert_eq!(
+        harness.state().workbench.document().undo_label(),
+        Some("Select Cube")
+    );
+}
+
+#[test]
+fn shift_click_removes_with_the_standard_keys() {
+    let mut harness = points_mode();
+    let corner = on_screen(&harness, Vec3::new(50.0, -50.0, 100.0));
+    box_over_everything(&mut harness, Modifiers::NONE);
+    assert_eq!(selected_points(&harness), 8);
+    click(&mut harness, corner, Modifiers::SHIFT);
+    assert_eq!(selected_points(&harness), 7);
+    click(&mut harness, corner, Modifiers::COMMAND);
+    assert_eq!(selected_points(&harness), 8, "Ctrl + click adds it back");
+}
+
+#[test]
+fn another_key_pattern_can_be_chosen_in_settings() {
+    let mut harness = points_mode();
+    crate::theme::apply(&harness.ctx);
+    harness.key_press_modifiers(Modifiers::COMMAND, Key::Comma);
+    harness.run();
+    harness.get_by_label("Settings section: Viewport").click();
+    harness.run();
+    harness.get_by_label("Shift adds, Ctrl removes").click();
+    harness.run();
+    assert_eq!(
+        harness.state().workbench.view_options().select_keys,
+        crate::SelectKeys::ShiftAddsCtrlRemoves
+    );
+    harness.key_press_modifiers(Modifiers::COMMAND, Key::Comma);
+    harness.run();
+    box_over_everything(&mut harness, Modifiers::NONE);
+    let corner = on_screen(&harness, Vec3::new(50.0, -50.0, 100.0));
+    click(&mut harness, corner, Modifiers::COMMAND);
+    assert_eq!(selected_points(&harness), 7, "Ctrl removes now");
+}
+
+#[test]
+fn alt_double_click_selects_the_ring() {
+    let mut harness = quick_harness();
+    let id = cube_id(&harness);
+    let params = mesh::CubeParams {
+        segments: [2, 2, 2],
+        ..Default::default()
+    };
+    let doc = harness.state_mut().workbench.document_mut();
+    doc.execute(Command::SetPrimitive {
+        ids: vec![id],
+        primitive: mesh::Primitive::Cube(params),
+    })
+    .unwrap();
+    doc.set_selection([id]);
+    press(&mut harness, Key::Num2);
+    let at = on_screen(&harness, Vec3::new(25.0, -50.0, 50.0));
+    let edges = |h: &H| h.state().workbench.document().elements(id).cloned();
+    // First the loop, with a plain double-click.
+    harness.event(Event::PointerMoved(at));
+    harness.run();
+    for _ in 0..2 {
+        button(&mut harness, at, true, Modifiers::NONE);
+        button(&mut harness, at, false, Modifiers::NONE);
+    }
+    let the_loop = edges(&harness).unwrap();
+    assert_eq!(the_loop.count(ElementKind::Edges), 8);
+    // Wait out the double-click time, so the next two clicks start afresh.
+    let start = harness.ctx.input(|i| i.time);
+    while harness.ctx.input(|i| i.time) - start < 1.0 {
+        harness.event(Event::PointerMoved(at));
+        harness.run();
+    }
+    hold(&mut harness, Modifiers::ALT);
+    harness.event(Event::PointerMoved(at));
+    harness.run();
+    for _ in 0..2 {
+        button(&mut harness, at, true, Modifiers::ALT);
+        button(&mut harness, at, false, Modifiers::ALT);
+    }
+    hold(&mut harness, Modifiers::NONE);
+    // The ring: the rungs across a belt running the other way, also 8
+    // edges on this cube, but different ones.
+    let ring = edges(&harness).unwrap();
+    assert_eq!(ring.count(ElementKind::Edges), 8);
+    assert_ne!(ring, the_loop);
+}
+
+#[test]
+fn double_clicks_are_as_forgiving_as_windows() {
+    let harness = fresh();
+    let delay = harness
+        .ctx
+        .options(|o| o.input_options.max_double_click_delay);
+    assert_eq!(delay, crate::DOUBLE_CLICK_SECONDS);
 }

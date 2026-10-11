@@ -207,7 +207,8 @@ mod tests {
         let after = cache.update(&doc, false).drawing.clone();
         assert!(after.version > first.version);
         assert!(Arc::ptr_eq(&first.items[0].mesh, &after.items[0].mesh));
-        // Undoing the creation leaves nothing to draw.
+        // Undoing the selection, then the creation, leaves nothing to draw.
+        doc.undo();
         doc.undo();
         assert!(cache.update(&doc, false).drawing.items.is_empty());
     }

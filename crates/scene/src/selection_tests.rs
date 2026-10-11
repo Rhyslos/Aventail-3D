@@ -128,3 +128,55 @@ fn a_new_command_after_undo_forgets_the_selection_redo() {
     assert_eq!(doc.redo_steps(), 0);
     assert!(doc.elements(id).is_none());
 }
+
+#[test]
+fn selecting_objects_is_an_undo_step_too() {
+    let (mut doc, cube) = cube_document();
+    doc.execute(Command::Create(ObjectKind::Group)).unwrap();
+    let group = doc.selection()[0];
+    let steps = doc.undo_steps();
+
+    doc.set_selection([cube]);
+    assert_eq!(doc.undo_label(), Some("Select Cube"));
+    doc.toggle_selected(group);
+    assert_eq!(doc.undo_label(), Some("Select 2 objects"));
+    doc.clear_selection();
+    assert_eq!(doc.undo_label(), Some("Deselect all"));
+    assert_eq!(doc.undo_steps(), steps + 3);
+    let revision = doc.revision();
+
+    doc.undo();
+    assert_eq!(doc.selection(), vec![group, cube], "tree order");
+    doc.undo();
+    assert_eq!(doc.selection(), vec![cube]);
+    doc.redo();
+    assert_eq!(doc.selection(), vec![group, cube], "tree order");
+    assert_eq!(doc.revision(), revision, "nothing to save");
+
+    // Selecting what is already selected records nothing.
+    doc.set_selection([group, cube]);
+    assert_eq!(doc.undo_steps(), steps + 2);
+}
+
+#[test]
+fn object_selections_merge_with_a_key() {
+    let (mut doc, cube) = cube_document();
+    doc.clear_selection();
+    let steps = doc.undo_steps();
+    doc.select_objects([cube], Some(3));
+    doc.select_objects([], Some(3));
+    assert_eq!(doc.undo_steps(), steps, "back where it started: no step");
+    doc.select_objects([cube], Some(4));
+    doc.select_objects([cube], Some(4));
+    assert_eq!(doc.undo_steps(), steps + 1);
+    doc.undo();
+    assert!(doc.selection().is_empty());
+}
+
+#[test]
+fn opening_a_scene_with_a_selection_records_no_step() {
+    let (doc, cube) = cube_document();
+    let opened = Document::from_scene(doc.scene().clone(), [cube]);
+    assert_eq!(opened.undo_steps(), 0);
+    assert_eq!(opened.selection(), vec![cube]);
+}
