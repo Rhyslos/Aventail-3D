@@ -35,9 +35,6 @@ pub struct AppInfo {
     pub family: String,
 }
 
-/// Keyboard shortcut for File → Quit (Ctrl+Q, or Cmd+Q on macOS).
-pub const QUIT_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::Q);
-
 /// Layouts shown on the right of the menu bar: the standard one, and
 /// arrangements for particular kinds of work that arrive later.
 const LAYOUTS: [(&str, Option<&str>); 3] = [
@@ -250,12 +247,17 @@ impl Workbench {
 
     // ------------------------------------------------- the project file ---
 
-    /// The window title: the project's name (marked `*` with unsaved
-    /// changes), then the app's name and version.
+    /// The window title: the project's name, then the app's name and
+    /// version. With unsaved changes, a dot goes in front and "(unsaved)"
+    /// after the name, so it shows at a glance even in the taskbar.
     pub fn title(&self) -> String {
-        let changed = if self.has_unsaved_changes() { "*" } else { "" };
+        let (dot, changed) = if self.has_unsaved_changes() {
+            ("● ", " (unsaved)")
+        } else {
+            ("", "")
+        };
         format!(
-            "{}{changed} — {} {}",
+            "{dot}{}{changed} — {} {}",
             self.file.name(),
             self.info.name,
             self.info.version
@@ -548,9 +550,6 @@ impl Workbench {
             theme::set_accent(ui.ctx(), self.accent);
         }
         actions.append(&mut self.queued);
-        if ui.input_mut(|i| i.consume_shortcut(&QUIT_SHORTCUT)) {
-            self.ask_then(Pending::Quit, &mut actions);
-        }
         if self.file.asking.is_none() {
             self.file_keys(ui, &mut actions);
         }
@@ -866,7 +865,9 @@ impl Workbench {
             ui.add_enabled(false, egui::Button::new("Export…"))
                 .on_disabled_hover_text("Export arrives in Phase 5");
             ui.separator();
-            if entry(ui, "Quit", &QUIT_SHORTCUT, "Close the app") {
+            // No key for Quit, on purpose: Ctrl and Q are both used all the
+            // time, and a slip shouldn't close the app.
+            if ui.button("Quit").on_hover_text("Close the app").clicked() {
                 self.ask_then(Pending::Quit, actions);
                 ui.close();
             }
@@ -964,7 +965,8 @@ impl Workbench {
                 ui.close();
             }
         });
-        layout_tabs(ui);
+        let unsaved = self.has_unsaved_changes();
+        layout_tabs(ui, &self.file.name(), unsaved);
     }
 }
 
@@ -999,33 +1001,81 @@ pub fn navigation_hint(scheme: tools::Scheme) -> String {
 
 /// The layout tabs on the right of the menu bar. Only the standard layout
 /// exists so far; the others are shown greyed out with when they arrive.
-fn layout_tabs(ui: &mut Ui) {
+fn layout_tabs(ui: &mut Ui, project: &str, unsaved: bool) {
     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
         ui.spacing_mut().item_spacing.x = 16.0;
         ui.add_space(6.0);
-        for (name, coming) in LAYOUTS.iter().rev() {
-            match coming {
-                None => {
-                    let accent = theme::accent(ui.ctx()).colors();
-                    let response = ui.add(
-                        egui::Label::new(egui::RichText::new(*name).color(theme::TEXT_STRONG))
-                            .selectable(false),
-                    );
-                    let rect = response.rect;
-                    ui.painter().hline(
-                        rect.x_range(),
-                        rect.bottom() + 3.0,
-                        egui::Stroke::new(2.0, accent.light),
-                    );
-                    response.on_hover_text("The layout in use");
-                }
-                Some(when) => {
-                    ui.add_enabled(false, egui::Label::new(*name).selectable(false))
-                        .on_disabled_hover_text(*when);
-                }
+        let tabs = LAYOUTS.iter().rev().collect::<Vec<_>>();
+        layout_tab_labels(ui, &tabs);
+        ui.add_space(12.0);
+        project_badge(ui, project, unsaved);
+    });
+}
+
+/// The project's name in the menu bar, with a badge in the accent colour
+/// while there are unsaved changes: easier to see than a mark in the
+/// window's title, which the system draws.
+fn project_badge(ui: &mut Ui, project: &str, unsaved: bool) {
+    ui.spacing_mut().item_spacing.x = 6.0;
+    if unsaved {
+        let accent = theme::accent(ui.ctx()).colors();
+        let text = egui::RichText::new("Unsaved")
+            .small()
+            .strong()
+            .color(theme::TEXT_STRONG);
+        let galley = egui::WidgetText::from(text).into_galley(
+            ui,
+            Some(egui::TextWrapMode::Extend),
+            f32::INFINITY,
+            egui::TextStyle::Small,
+        );
+        let size = galley.size() + egui::vec2(12.0, 4.0);
+        let (rect, response) = ui.allocate_exact_size(size, egui::Sense::hover());
+        ui.painter().rect_filled(rect, size.y / 2.0, accent.fill);
+        ui.painter().galley(
+            rect.center() - galley.size() / 2.0,
+            galley,
+            theme::TEXT_STRONG,
+        );
+        response
+            .on_hover_text(format!(
+                "Changes since the last save. {} saves.",
+                ui.ctx().format_shortcut(&crate::SAVE_SHORTCUT)
+            ))
+            .widget_info(|| {
+                egui::WidgetInfo::labeled(egui::WidgetType::Label, true, "Unsaved changes")
+            });
+    }
+    ui.add(
+        egui::Label::new(egui::RichText::new(project).color(theme::TEXT_WEAK)).selectable(false),
+    )
+    .on_hover_text("The project open now");
+}
+
+/// The layout tabs themselves, right to left.
+fn layout_tab_labels(ui: &mut Ui, tabs: &[&(&str, Option<&str>)]) {
+    for (name, coming) in tabs.iter().copied() {
+        match coming {
+            None => {
+                let accent = theme::accent(ui.ctx()).colors();
+                let response = ui.add(
+                    egui::Label::new(egui::RichText::new(*name).color(theme::TEXT_STRONG))
+                        .selectable(false),
+                );
+                let rect = response.rect;
+                ui.painter().hline(
+                    rect.x_range(),
+                    rect.bottom() + 3.0,
+                    egui::Stroke::new(2.0, accent.light),
+                );
+                response.on_hover_text("The layout in use");
+            }
+            Some(when) => {
+                ui.add_enabled(false, egui::Label::new(*name).selectable(false))
+                    .on_disabled_hover_text(*when);
             }
         }
-    });
+    }
 }
 
 /// Menus whose commands are not built yet: each lists what is coming and
@@ -1086,7 +1136,7 @@ impl TabViewer for PanelViewer<'_> {
                 Panel::Viewport => {}
                 Panel::Attributes => {
                     self.attributes
-                        .show(ui, self.document, self.units, self.requests);
+                        .show(ui, self.document, *self.units, self.requests);
                 }
                 Panel::Objects => self.objects.show(ui, self.document, self.requests),
                 Panel::Coordinates => coordinates_contents(ui, *self.units),

@@ -22,7 +22,9 @@ Project files are only for this app. To take a model into Substance Painter or G
 3. **Open** a project with **File → Open…** or **Ctrl + O**, or pick one from **File → Open recent**, which lists the last eight projects you saved or opened (hover over one to see where it is). The opened scene replaces the current one, and the view frames it.
 4. **Start again** with **File → New** or **Ctrl + N**: an empty scene.
 
-The window's title shows the project's name, and a `*` after it when there are changes you haven't saved (for example "crate.avtl* — Aventail 3D"). Before the first save it's called *Untitled*.
+The project's name is shown on the right of the menu bar. When there are changes you haven't saved, a red **Unsaved** badge appears next to it, and the window's title gets a dot in front and "(unsaved)" after the name (for example "● crate.avtl (unsaved) — Aventail 3D"), so you can see it even in the taskbar. Before the first save the project is called *Untitled*.
+
+**Closing the app:** use **File → Quit** or the window's **×**. There's no key for quitting, on purpose: the keys you use all the time shouldn't be able to close the app by accident.
 
 **You won't lose changes by accident.** If you start a new project, open another, or close the app with unsaved changes, the app asks first:
 

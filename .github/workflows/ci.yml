@@ -66,6 +66,11 @@ jobs:
             echo "::error title=Tests failed on ${{ runner.os }}::${msg}"
             exit 1
           fi
+      # The lint job runs on Linux, so code that only exists on Windows
+      # (app/src/platform.rs, decision 0026) is linted here.
+      - name: cargo clippy (Windows-only code)
+        if: runner.os == 'Windows'
+        run: cargo clippy -p app --all-targets --locked -- -D warnings
 
   docs:
     name: Documentation

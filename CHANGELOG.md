@@ -8,6 +8,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **Make editable** is now **Ctrl + E** (was C), so plain letters stay free for tools.
+- **Quit has no key any more** (Ctrl + Q is gone), so a slip can't close the app: use File → Quit or the window's ×.
+- The m/cm switch beside the Shape title is gone; the Attributes panel's Units menu and Settings do the same.
+- Selected objects, the highlighted shape in the shape list, the chosen navigation scheme and other chosen items now use the same red as the active mode button.
+- Unsaved changes are easier to see: an **Unsaved** badge next to the project's name on the right of the menu bar, and "● name (unsaved)" in the window's title instead of a small `*`.
+
+### Fixed
+
+- On Windows, pressing keys no longer plays the system error sound after the app starts.
 - The accent colour moved from the Window menu, and undo memory from the Edit menu, into the new Settings window.
 - Every new shape is 1 m across as standard (a 1 m cube, a 1 m square plane, cylinders and cones 1 m across and 1 m tall, and so on), instead of 2 m.
 - The grid button on the left palette now steps through three levels: a line every metre (standard), every 50 cm (each square cut into four), and every 10 cm. The View and Display menus list all three as **Grid lines**. A finer grid chosen before is kept as the 10 cm level.
@@ -29,6 +38,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- A **Mesh** section in the Attributes panel for every shape: points, edges, polygons and **triangles** (what a game engine draws), whether the surface is closed or open, and a check for problems (edges shared by three or more faces, faces facing the wrong way, edges with no length, faces with no area, loose points). Underneath, the app now knows how every mesh connects (edge loops and rings, borders, separate pieces), ready for the selection tools.
 - **Saving and opening projects** (`.avtl` files): File → New, Open…, Open recent, Save and Save As… (Ctrl + N, O, S and Shift + S). Projects keep every object, its settings and edits, plain meshes, and the selection. Saving is safe (the old file stays until the new one is complete, and the previous save is kept as a `.bak` backup). The app asks before unsaved changes would be lost (Enter saves, Ctrl + D doesn't, Esc cancels), and the title shows the project's name with `*` for unsaved changes. A project given on the command line opens at start. New manual page: Saving and opening projects.
 - A **Settings** window (**Edit → Settings…**, or **Ctrl + ,**) gathers every app-wide preference in one place: accent colour and metres/centimetres (Interface), navigation controls and grid lines (Viewport), and undo memory (Undo). **Restore standard** puts them all back. New manual page: Settings.
 - Undo is now limited by memory instead of being kept forever: steps are kept until they fill 2 GB (the standard), and then the oldest are forgotten first. There's still no limit on the number of steps. **Edit → Undo memory** shows how much is in use and offers 256 MB to 8 GB or Unlimited; the choice is remembered. The status bar says once when old steps start being forgotten.

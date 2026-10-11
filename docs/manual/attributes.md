@@ -20,11 +20,21 @@ Whenever you want to change *what* an object is rather than where it is: make a 
    Switches such as **Closed ends** and **Centre point** change with a click.
 4. **Undo** works as everywhere: one drag, one typed value or one click is one step, however long the drag was. **Ctrl + Z** takes it back.
 
-**Metres or centimetres.** Sizes are shown in metres as standard (1 m, 1.5 m), which is easiest for whole objects: going from 1 m to 2 m is quicker to read and type than 100 cm to 200 cm. For small details you may prefer centimetres. Click **m** or **cm** at the right of the **Shape** title (or use the panel's **Units** menu, or **Edit → Settings… → Interface**) to switch. It only changes how sizes are shown and typed, never the shapes themselves, and the choice is remembered. The [Coordinates panel](interface-tour.md) follows it too.
+**Metres or centimetres.** Sizes are shown in metres as standard (1 m, 1.5 m), which is easiest for whole objects: going from 1 m to 2 m is quicker to read and type than 100 cm to 200 cm. For small details you may prefer centimetres. Use the panel's **Units** menu (or **Edit → Settings… → Interface**) to switch. It only changes how sizes are shown and typed, never the shapes themselves, and the choice is remembered. The [Coordinates panel](interface-tour.md) follows it too.
 
 **Copy and paste settings.** To make several shapes match, select the one you like and use the panel's **Edit → Copy settings**, or right-click it in the Objects panel and choose **Copy settings**. Then select the others (any number, in the Objects panel) and use **Edit → Paste cube settings** (or cylinder, and so on), or right-click one of them and choose the same: every selected shape of the same kind gets the same settings, in one undo step. Shapes of another kind are left alone.
 
-**Meshes.** An object that has been [made editable](objects.md#make-editable) has no settings: the panel shows "(mesh)" after its name and, under **Mesh**, how many **Points** and **Polygons** it has.
+**Mesh.** Every shape has a **Mesh** section (scroll down to it below the settings). It says what the shape is made of right now, settings and edits included:
+- **Points**, **Edges** and **Polygons**.
+- **Triangles**: the number a game engine actually draws, since it cuts every face into triangles. This is the usual measure of how heavy a model is, so keep an eye on it for game assets.
+- **Pieces**: only shown when the shape has separate parts that don't touch.
+- **Surface**: **Closed** (like a solid, no open borders) or **Open** with how many [border edges](concepts.md#mesh-basics) (normal for a plane or an open pipe).
+
+Below that, the app checks for problems that cause trouble later in modelling, UV unwrapping, baking or a game engine, and lists any it finds in amber: edges shared by three or more faces, faces facing the wrong way, edges with no length, faces with no area, and loose points. Hover over a line for what it means. Shapes made from settings never have these problems; they can come from editing (from Phase 3) or from imported models.
+
+![The Mesh section of a cube: 8 points, 12 edges, 6 polygons, 12 triangles, closed, no problems](../screenshots/2026-10-11-mesh-section.png)
+
+**Meshes.** An object that has been [made editable](objects.md#make-editable) has no settings: the panel shows "(mesh)" after its name, and the Mesh section.
 
 **Edits.** From Phase 3, the modelling tools record your edits on top of a shape instead of changing its settings (see [Base and edits](concepts.md#objects-and-scenes)). When a shape has edits, an **Edits** section says how many, and the settings above stay editable: change them and the edits are made again on the new shape. If some edits no longer fully fit (for example, you gave a cube fewer segments, so points an edit moved are gone), a line in amber says how many. They still apply to the points that remain, and going back to the earlier settings brings the missing points back.
 

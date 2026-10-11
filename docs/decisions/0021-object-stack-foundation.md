@@ -19,7 +19,7 @@
 
 **When edits no longer fit.** Operations name points by id. If an id is gone (a cube was given fewer segments), the operation applies to the ids that remain and the result carries a `StackWarning` (layer, operation, how many were missing). Nothing is deleted, and going back to the earlier settings brings the points back. The Attributes panel says how many edits are recorded and flags any that no longer fully fit.
 
-**Make editable.** `Command::MakeEditable` bakes each shape's base and edits into a plain mesh, which becomes its new base, and empties its stack, as one undo step. Groups, and meshes with nothing recorded, are skipped. It is in the Mesh menu, the Object Manager's Object and right-click menus, and on `C`: the key most 3D programs use for this, and unused here ([decision 0019](0019-only-the-tool-keys-come-from-halberd.md) leaves non-tool keys to us). Pressing `C` with only groups selected explains why nothing happened.
+**Make editable.** `Command::MakeEditable` bakes each shape's base and edits into a plain mesh, which becomes its new base, and empties its stack, as one undo step. Groups, and meshes with nothing recorded, are skipped. It is in the Mesh menu, the Object Manager's Object and right-click menus, and on `C`: the key most 3D programs use for this, and unused here ([decision 0019](0019-only-the-tool-keys-come-from-halberd.md) leaves non-tool keys to us). Pressing `C` with only groups selected explains why nothing happened. *Changed 2026-10-11 at the project lead's request: the key is `Ctrl + E`, so plain letters stay free for tools.*
 
 ## Consequences
 

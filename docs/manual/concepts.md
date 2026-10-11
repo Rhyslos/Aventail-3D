@@ -17,6 +17,12 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Edge loop** — A chain of edges running through quads, end to end, like a belt around the mesh. **Edge ring** — the edges running *across* a loop, like the rungs of a ladder.
 
+**Triangle count** — How many triangles a model becomes once every face is cut into triangles, as game engines and GPUs do: a quad is 2, an n-gon with 8 corners is 6. It's the usual measure of how heavy a game asset is. The Attributes panel shows it for every shape.
+
+**Border (open edge)** — An edge with a face on one side only, like the rim of a plane or the open end of a pipe. A shape with none is *closed*, like a solid. Borders are fine where you mean them; in a shape meant to be solid, they're holes.
+
+**Flipped normal** — Every face has a front, the side its *normal* points to. Neighbouring faces should all face outwards; a face pointing the other way is *flipped*, and shades, bakes and exports wrongly.
+
 **Manifold** — A mesh that could exist as a real, solid object: every edge is shared by exactly two polygons. Non-manifold geometry (edges shared by three faces, loose edges, holes) often breaks booleans, bakes and some tools.
 
 ## Objects and scenes

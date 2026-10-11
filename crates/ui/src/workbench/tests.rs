@@ -195,12 +195,13 @@ fn coordinates_sit_below_the_viewport() {
 }
 
 #[test]
-fn ctrl_q_asks_to_quit() {
-    // An empty, unchanged scene: nothing to save, so it quits at once.
+fn ctrl_q_does_not_quit() {
+    // No key closes the app: Ctrl and Q are both used all the time.
     let mut harness = empty();
     harness.key_press_modifiers(Modifiers::COMMAND, Key::Q);
     harness.run();
-    assert_eq!(harness.state().actions, vec![WorkbenchAction::Quit]);
+    assert!(harness.state().actions.is_empty());
+    assert!(!harness.state().workbench.is_asking_to_save());
 }
 
 #[test]

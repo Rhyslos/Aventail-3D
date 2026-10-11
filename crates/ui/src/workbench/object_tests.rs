@@ -796,10 +796,10 @@ fn is_mesh(harness: &Harness<'static, State>, name: &str) -> bool {
 }
 
 #[test]
-fn c_makes_the_selected_shape_editable_and_undo_brings_its_settings_back() {
+fn ctrl_e_makes_the_selected_shape_editable_and_undo_brings_its_settings_back() {
     let mut harness = fresh();
     click_row(&mut harness, "Cube", Modifiers::NONE);
-    key(&mut harness, Modifiers::NONE, Key::C);
+    key(&mut harness, Modifiers::COMMAND, Key::E);
     assert!(is_mesh(&harness, "Cube"));
     assert!(
         harness.query_by_label("Cube (mesh)").is_some(),
@@ -813,11 +813,11 @@ fn c_makes_the_selected_shape_editable_and_undo_brings_its_settings_back() {
 }
 
 #[test]
-fn c_on_a_group_explains_instead_of_doing_nothing_silently() {
+fn ctrl_e_on_a_group_explains_instead_of_doing_nothing_silently() {
     let mut harness = with_a_group();
     click_row(&mut harness, "Group", Modifiers::NONE);
     let steps = harness.state().workbench.document().undo_steps();
-    key(&mut harness, Modifiers::NONE, Key::C);
+    key(&mut harness, Modifiers::COMMAND, Key::E);
     assert_eq!(harness.state().workbench.document().undo_steps(), steps);
     assert!(
         harness
@@ -857,10 +857,18 @@ fn the_mesh_menu_makes_shapes_editable() {
 }
 
 #[test]
-fn c_types_into_a_name_instead() {
+fn ctrl_e_does_nothing_while_renaming() {
     let mut harness = quick_harness();
     double_click_row(&mut harness, "Cube");
     assert!(harness.state().workbench.object_manager().is_renaming());
+    key(&mut harness, Modifiers::COMMAND, Key::E);
+    assert!(!is_mesh(&harness, "Cube"));
+}
+
+#[test]
+fn a_plain_c_no_longer_makes_shapes_editable() {
+    let mut harness = fresh();
+    click_row(&mut harness, "Cube", Modifiers::NONE);
     key(&mut harness, Modifiers::NONE, Key::C);
     assert!(!is_mesh(&harness, "Cube"));
 }

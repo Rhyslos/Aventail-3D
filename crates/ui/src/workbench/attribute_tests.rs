@@ -438,13 +438,19 @@ fn lengths_show_in_metres_and_switch_to_centimetres() {
     let mut harness = selected_cube();
     let id = only_object(&harness);
     assert_eq!(harness.state().workbench.units(), Units::Metres);
-    harness.get_by_label("Lengths in centimetres").click();
-    harness.run();
+    // No switch beside the Shape title any more: the Units menu does it.
+    assert!(harness.query_by_label("Lengths in centimetres").is_none());
+    let choose = |h: &mut Harness<'static, State>, units: &str| {
+        h.get_by_label("Units").click();
+        h.run();
+        h.get_by_label(units).click();
+        h.run();
+    };
+    choose(&mut harness, "Centimetres");
     assert_eq!(harness.state().workbench.units(), Units::Centimetres);
     type_into(&mut harness, "Height", "150");
     assert_eq!(cube_size(&harness, id).z, 150.0, "typed in centimetres");
-    harness.get_by_label("Lengths in metres").click();
-    harness.run();
+    choose(&mut harness, "Metres");
     assert_eq!(harness.state().workbench.units(), Units::Metres);
     type_into(&mut harness, "Height", "2");
     assert_eq!(cube_size(&harness, id).z, 200.0, "typed in metres");
@@ -584,4 +590,100 @@ fn edits_that_no_longer_fit_are_flagged() {
             .query_by_label("1 edit no longer fully fits the shape")
             .is_some()
     );
+}
+
+// ----------------------------------------------------- the mesh section ---
+
+#[test]
+fn every_shape_shows_what_its_mesh_is_made_of() {
+    let harness = selected_cube();
+    for label in ["Points: 8", "Edges: 12", "Polygons: 6", "Triangles: 12"] {
+        assert!(harness.query_by_label(label).is_some(), "{label}");
+    }
+    assert!(harness.query_by_label("Closed").is_some());
+    assert!(harness.query_by_label("No problems found").is_some());
+    assert!(
+        harness.query_by_label_contains("Pieces").is_none(),
+        "one piece"
+    );
+}
+
+#[test]
+fn the_counts_follow_the_settings() {
+    let mut harness = selected_cube();
+    click_with(&mut harness, "Increase Segments X", Modifiers::NONE);
+    // Two segments along X: 12 points, 20 edges, 10 faces.
+    assert!(harness.query_by_label("Points: 12").is_some());
+    assert!(harness.query_by_label("Edges: 20").is_some());
+    assert!(harness.query_by_label("Polygons: 10").is_some());
+    assert!(harness.query_by_label("Triangles: 20").is_some());
+}
+
+#[test]
+fn an_open_shape_says_so_without_calling_it_a_problem() {
+    let mut harness = empty();
+    harness.get_by_label("Create plane").click();
+    harness.run();
+    assert!(harness.query_by_label("Open (4 border edges)").is_some());
+    assert!(harness.query_by_label("No problems found").is_some());
+}
+
+#[test]
+fn problems_from_recorded_edits_are_flagged() {
+    let mut harness = selected_cube();
+    let id = only_object(&harness);
+    // Move point 0 onto one of its neighbours: an edge with no length.
+    let shape = harness
+        .state()
+        .workbench
+        .document()
+        .scene()
+        .evaluated(id)
+        .unwrap();
+    let topology = mesh::Topology::new(&shape.mesh);
+    let p0 = scene::VertexId::from_raw(0);
+    let neighbour = topology.vertex_neighbours(p0)[0];
+    let offset = shape.mesh.position(neighbour).unwrap() - shape.mesh.position(p0).unwrap();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::Record {
+            id,
+            operation: scene::Operation::MovePoints {
+                points: vec![p0],
+                offset,
+            },
+        })
+        .unwrap();
+    harness.run();
+    assert!(harness.query_by_label("1 edge with no length").is_some());
+    assert!(harness.query_by_label("No problems found").is_none());
+    // Undo: clean again.
+    harness.key_press_modifiers(Modifiers::COMMAND, Key::Z);
+    harness.run();
+    assert!(harness.query_by_label("No problems found").is_some());
+}
+
+#[test]
+fn a_plain_mesh_also_explains_itself() {
+    let mut harness = selected_cube();
+    let id = only_object(&harness);
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::MakeEditable(vec![id]))
+        .unwrap();
+    harness.run();
+    assert!(harness.query_by_label("Triangles: 12").is_some());
+    assert!(harness.query_by_label_contains("A plain mesh").is_some());
+}
+
+#[test]
+fn a_group_has_no_mesh_section() {
+    let mut harness = empty();
+    harness.get_by_label("Create group").click();
+    harness.run();
+    assert!(harness.query_by_label_contains("Triangles").is_none());
 }

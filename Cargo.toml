@@ -47,15 +47,20 @@ zstd = { version = "0.13", default-features = false }
 # Native Open and Save dialogs (Windows, macOS, and Linux through the
 # desktop portal, so no GTK is needed).
 rfd = "0.17"
+# Windows only: giving the window keyboard focus (decision 0026). The same
+# versions the window library already uses.
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_Input_KeyboardAndMouse"] }
+raw-window-handle = "0.6"
 # Development only.
 egui_kittest = "0.36"
 ron = "0.12"
 pollster = "1.0"
 
 [workspace.lints.rust]
-# Ground rule 6: no unsafe code. A crate that truly needs it must get a
-# decision record first and override this locally.
-unsafe_code = "forbid"
+# Ground rule 6: no unsafe code. "deny" rather than "forbid" so that the
+# few reviewed exceptions, each with its own decision record, can allow it
+# on one small module (see docs/decisions/0026-windows-keyboard-focus.md).
+unsafe_code = "deny"
 # Documentation rule: every public item must be documented.
 missing_docs = "deny"
 unreachable_pub = "warn"

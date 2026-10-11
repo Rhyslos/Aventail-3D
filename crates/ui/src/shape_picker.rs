@@ -112,7 +112,7 @@ impl ShapePicker {
                         });
                         let lit = index == open.highlight;
                         if lit {
-                            ui.painter().rect_filled(rect, 4.0, accent.soft);
+                            ui.painter().rect_filled(rect, 4.0, accent.fill);
                         } else if response.hovered() {
                             ui.painter().rect_filled(rect, 4.0, theme::HOVER);
                         }
@@ -126,7 +126,7 @@ impl ShapePicker {
                             egui::Align2::LEFT_CENTER,
                             kind.name(),
                             egui::FontId::proportional(13.0),
-                            if lit { accent.text } else { theme::TEXT },
+                            if lit { theme::TEXT_STRONG } else { theme::TEXT },
                         );
                         if response.hovered() {
                             hovered = Some(index);

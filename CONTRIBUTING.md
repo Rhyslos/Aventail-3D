@@ -27,7 +27,7 @@ Optional, matching CI: `cargo install cargo-deny` and run `cargo deny check`.
 
 GPU rendering tests (`cargo test -p render --test gpu`) draw real frames and check their pixels. Without a GPU they skip with a note; set `REQUIRE_GPU=1` to make a missing GPU a failure instead, as CI does.
 
-The window smoke test (Linux only) opens the real window on a virtual screen, as CI does: it checks the 3D view (background and the test cube), picks a mode with a click, quits with Ctrl+Q and checks the panel layout was saved. Pass the app's name (`APP_NAME` in `crates/app/src/branding.rs`) as the window title:
+The window smoke test (Linux only) opens the real window on a virtual screen, as CI does: it checks the 3D view (background and the test cube), picks a mode with a click, quits with File > Quit (answering the unsaved-changes question), checks the panel layout was saved, and opens a project given on the command line. Pass the app's name (`APP_NAME` in `crates/app/src/branding.rs`) as the window title:
 
 ```
 sudo apt-get install xvfb xdotool imagemagick mesa-vulkan-drivers libxkbcommon-x11-0
@@ -55,7 +55,7 @@ A pull request that breaks one of these is sent back, however good the feature.
 
 **Safety**
 
-6. **No `unsafe` code** without a decision record. The workspace forbids it.
+6. **No `unsafe` code** without a decision record. The workspace denies it; the only exception so far is the Windows keyboard-focus fix in `app/src/platform.rs` ([decision 0026](docs/decisions/0026-windows-keyboard-focus.md)), which allows it on that one module.
 7. **No crashes on bad input.** Library code never uses `unwrap`, `expect` or `panic!` outside tests (enforced by clippy). Return errors that explain the problem in plain words.
 8. **Untrusted files are hostile.** Every reader checks sizes and counts before allocating, and gets a fuzz test.
 9. **One owner for the scene.** Only the interface thread changes it, through commands; background jobs send messages.

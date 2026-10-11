@@ -5,15 +5,19 @@
 //! See this crate's README for its purpose and limits.
 
 pub mod bounds;
+pub mod check;
 pub mod edit;
 pub mod polygon;
 pub mod primitives;
 pub mod shading;
+pub mod topology;
 
 pub use bounds::Bounds;
+pub use check::MeshReport;
 pub use polygon::{EdgeKey, FaceId, Mesh, MeshError, VertexId};
 pub use primitives::{
     ConeParams, CubeParams, CylinderParams, DiscParams, PlaneParams, Primitive, PrimitiveKind,
     SphereParams, TubeParams,
 };
 pub use shading::{ShadedTriangle, corner_normals, shaded_triangles};
+pub use topology::{EdgeUse, Topology};

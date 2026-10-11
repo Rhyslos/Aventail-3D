@@ -199,9 +199,11 @@ version = "0.0.1"
 dependencies = [
  "eframe",
  "fileio",
+ "raw-window-handle",
  "render",
  "rfd",
  "ui",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

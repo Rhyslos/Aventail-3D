@@ -3,8 +3,7 @@
 # screenshot, checks the 3D viewport background, creates a cube with the
 # command palette's cube button and checks it is drawn, switches to
 # Polygons mode with a click, orbits the view with Alt + drag, zooms with the
-# wheel, frames everything with H, steps the grid through its levels, quits with Ctrl+Q (or File > Quit
-# as a fallback), and checks that the panel layout and view options were
+# wheel, frames everything with H, steps the grid through its levels, quits with File > Quit, and checks that the panel layout and view options were
 # saved.
 #
 # Usage (needs Xvfb, xdotool, ImageMagick and a Vulkan driver such as Mesa's
@@ -200,29 +199,25 @@ UNDO_CHANGE="$(changed_pixels "$OUT/cube-deleted.png" "$OUT/cube-undone.png")"
 echo "Pixels changed by undoing (Ctrl+Z): $UNDO_CHANGE"
 [ "$UNDO_CHANGE" -gt 20000 ] || fail "Ctrl+Z did not bring the cube back"
 
-# 6. Quit with Ctrl+Q, or File > Quit if the key did not arrive. The scene
-#    has unsaved changes, so the app asks first; Ctrl+D answers "Don't save".
-xdotool mousemove 500 400
-xdotool key --window "$WINDOW_ID" ctrl+q || true
-sleep 1.5
+# File > Quit with the mouse (there is no key for it, on purpose). QUIT_Y is
+# the middle of the Quit entry with the standard font.
+QUIT_Y="${QUIT_Y:-229}"
+quit_from_menu() {
+    xdotool mousemove 20 14 click 1
+    sleep 1
+    xdotool mousemove 40 "$QUIT_Y" click 1
+    sleep 1.5
+}
+
+# 6. Quit with File > Quit. The scene has unsaved changes, so the app asks
+#    first; Ctrl+D answers "Don't save".
+quit_from_menu
 import -window root "$OUT/unsaved-question.png"
 xdotool key --window "$WINDOW_ID" ctrl+d || true
 for _ in $(seq 1 15); do
     kill -0 "$PID" 2>/dev/null || break
     sleep 1
 done
-if kill -0 "$PID" 2>/dev/null; then
-    echo "Ctrl+Q did not close the window; trying File > Quit."
-    xdotool mousemove 20 14 click 1
-    sleep 1
-    xdotool key Up Return
-    sleep 1.5
-    xdotool key --window "$WINDOW_ID" ctrl+d || true
-    for _ in $(seq 1 15); do
-        kill -0 "$PID" 2>/dev/null || break
-        sleep 1
-    done
-fi
 kill -0 "$PID" 2>/dev/null && fail "the app did not quit"
 wait "$PID" || fail "the app exited with an error"
 
@@ -235,7 +230,7 @@ echo "Grid detail choice saved."
 
 # 8. A project given on the command line opens (as when a project file is
 #    double-clicked): the title names it and its shapes are drawn. Nothing
-#    changes, so Ctrl+Q quits without asking.
+#    changes, so File > Quit quits without asking.
 SAMPLE="$(cd "$(dirname "$0")/../.." && pwd)/crates/fileio/tests/data/sample-v1.avtl"
 "$BIN" "$SAMPLE" >>"$OUT/app.log" 2>&1 </dev/null &
 PID=$!
@@ -249,7 +244,7 @@ echo "Title with the project open: $(xdotool getwindowname "$WINDOW_ID")"
 sleep 2
 import -window root "$OUT/project-opened.png"
 xdotool windowfocus --sync "$WINDOW_ID" 2>/dev/null || true
-xdotool key --window "$WINDOW_ID" ctrl+q || true
+quit_from_menu
 for _ in $(seq 1 15); do
     kill -0 "$PID" 2>/dev/null || break
     sleep 1

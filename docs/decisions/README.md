@@ -32,3 +32,5 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0022](0022-undo-memory-budget.md) | Undo history bounded by a memory budget | Accepted |
 | [0023](0023-one-settings-window.md) | One Settings window for app-wide preferences | Accepted |
 | [0024](0024-saving-projects.md) | Saving projects: the `.avtl` file in practice | Accepted |
+| [0025](0025-mesh-topology.md) | Mesh topology: a derived index over a face list | Accepted |
+| [0026](0026-windows-keyboard-focus.md) | One small unsafe exception: giving the window the keyboard on Windows | Accepted |

@@ -7,6 +7,7 @@
 pub mod branding;
 pub mod cli;
 pub mod gpu;
+pub mod platform;
 pub mod project;
 pub mod window;
 
