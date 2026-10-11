@@ -230,7 +230,7 @@ fn the_modes_menu_selects_a_mode_too() {
     let mut harness = fresh();
     main_menu(&harness, "Modes").click();
     harness.run();
-    harness.get_by_label("Edges").click();
+    harness.get_by_label("Edges 2").click();
     harness.run();
     assert_eq!(harness.state().workbench.mode(), Mode::Edges);
 }

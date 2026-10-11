@@ -34,3 +34,4 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0024](0024-saving-projects.md) | Saving projects: the `.avtl` file in practice | Accepted |
 | [0025](0025-mesh-topology.md) | Mesh topology: a derived index over a face list | Accepted |
 | [0026](0026-windows-keyboard-focus.md) | One small unsafe exception: giving the window the keyboard on Windows | Accepted |
+| [0027](0027-component-modes.md) | Points, Edges and Polygons modes: what is edited, and finding what is under the mouse | Accepted |

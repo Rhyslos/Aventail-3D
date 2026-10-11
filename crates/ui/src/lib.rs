@@ -8,6 +8,7 @@
 //! the app's branding.
 
 mod attributes;
+mod components;
 mod drawing;
 pub mod icons;
 pub mod layout;
@@ -26,7 +27,7 @@ mod viewport;
 pub(crate) use viewport::chrome as viewport_chrome;
 mod workbench;
 
-pub use drawing::{DrawItem, SceneDrawing, SceneSummary};
+pub use drawing::{ComponentOverlay, DrawItem, OverlayStyle, SceneDrawing, SceneSummary};
 pub use egui_dock::DockState;
 pub use objects::{
     DELETE_SHORTCUT, DESELECT_SHORTCUT, GROUP_SHORTCUT, MAKE_EDITABLE_SHORTCUT, REDO_SHORTCUT,
@@ -44,4 +45,6 @@ pub use viewport::{
     PickAsk, PickReply, Picked, VIEW_COUNT, VIEW_KEYS, VIEWPORT_LABEL, ViewOptions, ViewportPanel,
     ViewportRenderer, ViewportView,
 };
-pub use workbench::{AppInfo, DISCARD_SHORTCUT, Workbench, WorkbenchAction, navigation_hint};
+pub use workbench::{
+    AppInfo, DISCARD_SHORTCUT, MODE_KEYS, Workbench, WorkbenchAction, navigation_hint,
+};

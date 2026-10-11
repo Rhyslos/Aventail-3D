@@ -20,7 +20,8 @@ use tools::{
     Bounds, Camera, DragKind, Modifiers, MouseButton, NavigationSettings, Navigator, ViewKind,
 };
 
-use crate::drawing::{SceneDrawing, SceneSummary};
+use crate::components::ViewPointer;
+use crate::drawing::{ComponentOverlay, SceneDrawing, SceneSummary};
 use crate::theme;
 use std::sync::Arc;
 
@@ -156,6 +157,9 @@ pub struct ViewportView {
     /// The colour selected objects are outlined in (the accent colour),
     /// sRGB 0 to 1.
     pub selection_color: [f32; 3],
+    /// What to draw over the edited objects in the Points, Edges and
+    /// Polygons modes.
+    pub overlay: Arc<ComponentOverlay>,
 }
 
 /// A question for the renderer: what is under this pixel of the image?
@@ -564,6 +568,7 @@ impl View {
             grid_detail,
             scene: Arc::clone(scene),
             selection_color: rgb(theme::Accent::default().colors().light),
+            overlay: Arc::default(),
         }
     }
 }
@@ -600,6 +605,8 @@ pub struct ViewportPanel {
     asking: bool,
     /// A framing asked for from a menu, done on the next frame.
     frame_request: Option<Frame>,
+    /// The mouse over a view this frame, while not navigating.
+    pointer: Option<ViewPointer>,
 }
 
 impl Default for ViewportPanel {
@@ -612,6 +619,7 @@ impl Default for ViewportPanel {
             asked: None,
             asking: false,
             frame_request: None,
+            pointer: None,
         }
     }
 }
@@ -701,6 +709,12 @@ impl ViewportPanel {
     /// selected yet, so both frame the whole scene.
     pub fn frame(&mut self, what: Frame) {
         self.frame_request = Some(what);
+    }
+
+    /// The mouse over a view this frame (its camera, size and position),
+    /// if it rests there and nothing is being navigated.
+    pub(crate) fn pointer(&self) -> Option<ViewPointer> {
+        self.pointer
     }
 
     /// Whether a framing glide is in progress in the active view.
@@ -795,6 +809,7 @@ impl ViewportPanel {
             let mut view =
                 self.views[slot].view(slot, rect, ppp, self.options.grid_detail, &scene.drawing);
             view.selection_color = rgb(theme::accent(ui.ctx()).colors().light);
+            view.overlay = Arc::clone(&scene.overlay);
             match renderer.render(&view) {
                 Ok(texture) => {
                     let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0));
@@ -810,6 +825,17 @@ impl ViewportPanel {
                 chrome::active_border(ui, rect);
             }
         }
+        // Where the mouse is, for finding points, edges and polygons under
+        // it: only while it rests over a view, not while navigating.
+        self.pointer = hovered.as_ref().and_then(|(slot, rect, at, _)| {
+            let view = &self.views[*slot];
+            let at = (*at)?;
+            (view.drag.is_none() && view.glide.is_none()).then(|| ViewPointer {
+                camera: *view.camera(),
+                size: Vec2::new(rect.width(), rect.height()),
+                at: Vec2::new(at.x - rect.min.x, at.y - rect.min.y),
+            })
+        });
         self.ask_what_is_under_the_mouse(ui, hovered, renderer);
         if toggle_layout {
             self.options.four_views = !four;

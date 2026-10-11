@@ -155,6 +155,14 @@ impl FrameUniforms {
             ground: linear(params.ground),
         }
     }
+
+    /// The same uniforms for an image of `size` pixels: the overlay draws
+    /// points and thick lines a fixed number of pixels wide.
+    pub(crate) fn with_image_size(mut self, size: [u32; 2]) -> Self {
+        self.view[1] = size[0].max(1) as f32;
+        self.view[2] = size[1].max(1) as f32;
+        self
+    }
 }
 
 /// How far around the focus point a flat view's grid reaches, for a view

@@ -34,7 +34,7 @@ The mode palette sets what you're working on. The button filled with the accent 
 | Polygons | The faces of a mesh |
 | UV | The [UV map](concepts.md#uvs-and-texturing), in the UV Editor and on the model |
 
-You can also switch modes from the **Modes** menu. Until meshes exist (Phase 3), switching modes only changes the status bar.
+You can also switch modes from the **Modes** menu, or press **1**, **2** or **3** for Points, Edges or Polygons (the same key again goes back to Model). Points, Edges and Polygons show the parts of the selected shapes; see [Points, Edges and Polygons modes](modes.md). Object and UV mode only change the status bar for now.
 
 ## Rearranging panels
 
@@ -57,6 +57,7 @@ One colour marks what's active: the current mode (and later the current tool), t
 | New, open, save, save as | `Ctrl + N`, `Ctrl + O`, `Ctrl + S`, `Ctrl + Shift + S` |
 | Settings | `Ctrl + ,` |
 | Undo / redo | `Ctrl + Z` / `Ctrl + Y` (or `Ctrl + Shift + Z`) |
+| Points, Edges, Polygons mode (again: back to Model) | `1`, `2`, `3` |
 | Delete the selection | `Delete` or `Backspace` |
 | Frame everything / the selection | `H` / `F` |
 | Perspective, top, right, front view; all four | `F1`, `F2`, `F3`, `F4`; `F5` |

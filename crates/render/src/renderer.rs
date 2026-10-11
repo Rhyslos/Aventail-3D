@@ -6,7 +6,7 @@
 //! egui as a texture.
 
 use crate::frame::{FrameParams, FrameUniforms, GRID_HALF_EXTENT};
-use crate::geometry::{Shape, ground_axes};
+use crate::geometry::{Overlay, Shape, ground_axes};
 use crate::pick::{PickRequest, PickResult, Picker};
 use crate::pipelines::{PipelineKind, create_pipeline};
 use wgpu::util::DeviceExt;
@@ -111,10 +111,14 @@ pub struct ViewportRenderer {
     grid_pipeline: wgpu::RenderPipeline,
     line_pipeline: wgpu::RenderPipeline,
     pick_pipeline: wgpu::RenderPipeline,
+    tint_pipeline: wgpu::RenderPipeline,
+    sprite_pipeline: wgpu::RenderPipeline,
     picker: Picker,
     axes: Option<GpuBuffer>,
     faces: Option<GpuBuffer>,
     edges: Option<GpuBuffer>,
+    overlay_tints: Option<GpuBuffer>,
+    overlay_sprites: Option<GpuBuffer>,
 }
 
 impl ViewportRenderer {
@@ -168,10 +172,14 @@ impl ViewportRenderer {
             grid_pipeline: pipeline(PipelineKind::Grid),
             line_pipeline: pipeline(PipelineKind::Lines),
             pick_pipeline: pipeline(PipelineKind::PickDepth),
+            tint_pipeline: pipeline(PipelineKind::Tints),
+            sprite_pipeline: pipeline(PipelineKind::Sprites),
             picker: Picker::new(device, &bind_group_layout),
             axes: GpuBuffer::new(device, "ground axes", &ground_axes(GRID_HALF_EXTENT)),
             faces: None,
             edges: None,
+            overlay_tints: None,
+            overlay_sprites: None,
         };
         renderer.set_shape(device, &Shape::test_cube());
         renderer
@@ -182,6 +190,14 @@ impl ViewportRenderer {
     pub fn set_shape(&mut self, device: &wgpu::Device, shape: &Shape) {
         self.faces = GpuBuffer::new(device, "shape faces", &shape.faces);
         self.edges = GpuBuffer::new(device, "shape edges", &shape.edges);
+    }
+
+    /// Replaces the overlay drawn over the shape (the Points, Edges and
+    /// Polygons modes' points, lines and tints). An empty overlay draws
+    /// nothing.
+    pub fn set_overlay(&mut self, device: &wgpu::Device, overlay: &Overlay) {
+        self.overlay_tints = GpuBuffer::new(device, "overlay tints", &overlay.tints);
+        self.overlay_sprites = GpuBuffer::new(device, "overlay sprites", &overlay.sprites);
     }
 
     /// Asks what is under a pixel, without waiting: the answer arrives
@@ -307,7 +323,7 @@ impl ViewportRenderer {
         queue.write_buffer(
             &self.uniform_buffer,
             0,
-            bytemuck::bytes_of(&FrameUniforms::new(params)),
+            bytemuck::bytes_of(&FrameUniforms::new(params).with_image_size(target.size)),
         );
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("viewport frame"),
@@ -357,6 +373,15 @@ impl ViewportRenderer {
             }
             if let Some(edges) = &self.edges {
                 edges.draw(&mut pass);
+            }
+            // The overlay last, still hidden behind surfaces in front.
+            if let Some(tints) = &self.overlay_tints {
+                pass.set_pipeline(&self.tint_pipeline);
+                tints.draw(&mut pass);
+            }
+            if let Some(sprites) = &self.overlay_sprites {
+                pass.set_pipeline(&self.sprite_pipeline);
+                sprites.draw(&mut pass);
             }
         }
         queue.submit([encoder.finish()]);

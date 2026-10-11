@@ -227,3 +227,56 @@ fn face_fs(in: FaceOut, @builtin(front_facing) front: bool) -> @location(0) vec4
     let shade = ((fill + 0.5 * diffuse + headlight) * contact + rim) * back;
     return vec4<f32>(in.color.rgb * shade, in.color.a);
 }
+
+// ------------------------------------------------------------- overlay ---
+
+// Points and thick lines for the Points, Edges and Polygons modes, a fixed
+// number of pixels wide whatever the distance. Each is two triangles whose
+// corners are pushed out on screen from the point (or the line's ends).
+// frame.view.yz holds the image's size in pixels.
+
+struct SpriteIn {
+    @location(0) position: vec3<f32>,
+    @location(1) other: vec3<f32>,
+    @location(2) corner: vec2<f32>,
+    @location(3) width: f32,
+    @location(4) color: vec4<f32>,
+};
+
+struct SpriteOut {
+    @builtin(position) clip: vec4<f32>,
+    @location(0) color: vec4<f32>,
+};
+
+@vertex
+fn sprite_vs(in: SpriteIn) -> SpriteOut {
+    let size = max(frame.view.yz, vec2<f32>(1.0, 1.0));
+    var clip = frame.view_proj * vec4<f32>(in.position, 1.0);
+    // Half the width, in pixels.
+    let half = in.width * 0.5;
+    var offset = in.corner * half;
+    if any(in.position != in.other) {
+        // A line: push sideways from the line on screen, and a little past
+        // this end so joined lines meet without gaps.
+        let other = frame.view_proj * vec4<f32>(in.other, 1.0);
+        let here_px = clip.xy / max(clip.w, 1e-5) * size * 0.5;
+        let there_px = other.xy / max(other.w, 1e-5) * size * 0.5;
+        var along = there_px - here_px;
+        if length(along) < 1e-4 {
+            along = vec2<f32>(1.0, 0.0);
+        }
+        let dir = normalize(along);
+        let side = vec2<f32>(-dir.y, dir.x);
+        offset = side * in.corner.y * half + dir * in.corner.x * half;
+    }
+    clip = vec4<f32>(clip.xy + offset * 2.0 / size * clip.w, clip.z, clip.w);
+    var out: SpriteOut;
+    out.clip = clip;
+    out.color = in.color;
+    return out;
+}
+
+@fragment
+fn sprite_fs(in: SpriteOut) -> @location(0) vec4<f32> {
+    return in.color;
+}
