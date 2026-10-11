@@ -1,0 +1,266 @@
+//! `.avtl` project files: saving a document and opening it again
+//! (DESIGN.md §8, decisions [0007](../../../docs/decisions/0007-rhy-project-format.md),
+//! [0010](../../../docs/decisions/0010-avtl-file-extension.md) and
+//! [0024](../../../docs/decisions/0024-saving-projects.md)).
+//!
+//! A file is a 20-byte header followed by the body:
+//!
+//! | Bytes | What |
+//! |---|---|
+//! | 0–3 | The signature `AVTL`, so a project is recognised at once |
+//! | 4–7 | The format version (little-endian), so old files can be upgraded and newer ones refused clearly |
+//! | 8–11 | Flags; bit 0 says the body is zstd-compressed. Other bits are reserved and must be 0 |
+//! | 12–19 | The body's length in bytes |
+//! | 20– | The body: the file model of that version (`project/v1.rs`), encoded with postcard |
+//!
+//! Reading never trusts the file: lengths are checked before anything is
+//! allocated, the unpacked body is capped, and every value is checked
+//! before it becomes part of a scene. Problems come back as a
+//! [`ProjectError`] in plain words; reading never panics.
+
+mod v1;
+
+use scene::Document;
+use std::fmt;
+use std::io::Read;
+use std::path::{Path, PathBuf};
+
+/// The signature every project file starts with.
+pub const SIGNATURE: [u8; 4] = *b"AVTL";
+/// The format version this app writes.
+pub const FORMAT_VERSION: u32 = 1;
+/// Flag: the body is compressed with zstd.
+const FLAG_ZSTD: u32 = 1;
+/// The flags this version knows.
+const KNOWN_FLAGS: u32 = FLAG_ZSTD;
+/// The header's size in bytes.
+const HEADER_LEN: usize = 20;
+/// The largest body, packed or unpacked, a file may have: 4 GB. Anything
+/// larger is taken as damaged rather than read into memory.
+const MAX_BODY: u64 = 4 << 30;
+/// How hard zstd works: a good balance of speed and size for scenes.
+const ZSTD_LEVEL: i32 = 3;
+
+/// Why a project couldn't be saved or opened, in plain words.
+#[derive(Debug)]
+pub enum ProjectError {
+    /// The file isn't a project file (it doesn't start with `AVTL`).
+    NotAProject,
+    /// The file was saved by a newer version of the app, in a format this
+    /// version doesn't know.
+    TooNew {
+        /// The file's format version.
+        version: u32,
+    },
+    /// The file is a project but parts of it are damaged or missing.
+    Damaged(String),
+    /// The file says it is larger than any project could be.
+    TooLarge,
+    /// The file couldn't be read or written.
+    Io {
+        /// What was being done ("read", "write").
+        action: &'static str,
+        /// The file.
+        path: PathBuf,
+        /// What the system said.
+        source: std::io::Error,
+    },
+}
+
+impl fmt::Display for ProjectError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::NotAProject => f.write_str("it isn't a project file"),
+            Self::TooNew { version } => write!(
+                f,
+                "it was saved by a newer version of the app (file format {version}; this version \
+                 reads up to {FORMAT_VERSION}). Update the app to open it"
+            ),
+            Self::Damaged(why) => write!(f, "the file is damaged: {why}"),
+            Self::TooLarge => f.write_str("the file is damaged: it claims to be impossibly large"),
+            Self::Io {
+                action,
+                path,
+                source,
+            } => write!(f, "couldn't {action} {}: {source}", path.display()),
+        }
+    }
+}
+
+impl std::error::Error for ProjectError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Io { source, .. } => Some(source),
+            _ => None,
+        }
+    }
+}
+
+/// The project file's bytes for `document`.
+pub fn to_bytes(document: &Document) -> Result<Vec<u8>, ProjectError> {
+    let model = v1::ProjectV1::from_document(document);
+    let encoded = postcard::to_stdvec(&model)
+        .map_err(|e| ProjectError::Damaged(format!("the scene couldn't be encoded ({e})")))?;
+    let body = zstd::bulk::compress(&encoded, ZSTD_LEVEL)
+        .map_err(|e| ProjectError::Damaged(format!("the scene couldn't be compressed ({e})")))?;
+    let mut bytes = Vec::with_capacity(HEADER_LEN + body.len());
+    bytes.extend_from_slice(&SIGNATURE);
+    bytes.extend_from_slice(&FORMAT_VERSION.to_le_bytes());
+    bytes.extend_from_slice(&FLAG_ZSTD.to_le_bytes());
+    bytes.extend_from_slice(&(body.len() as u64).to_le_bytes());
+    bytes.extend_from_slice(&body);
+    Ok(bytes)
+}
+
+/// Reads a little-endian number from `bytes` at `at`.
+fn number<const N: usize>(bytes: &[u8], at: usize) -> Option<[u8; N]> {
+    bytes.get(at..at + N)?.try_into().ok()
+}
+
+/// The document a project file's bytes hold.
+pub fn from_bytes(bytes: &[u8]) -> Result<Document, ProjectError> {
+    if bytes.len() < SIGNATURE.len() || bytes[..SIGNATURE.len()] != SIGNATURE {
+        return Err(ProjectError::NotAProject);
+    }
+    let header = |what| ProjectError::Damaged(format!("its header is cut short ({what})"));
+    let version = u32::from_le_bytes(number(bytes, 4).ok_or_else(|| header("version"))?);
+    let flags = u32::from_le_bytes(number(bytes, 8).ok_or_else(|| header("flags"))?);
+    let length = u64::from_le_bytes(number(bytes, 12).ok_or_else(|| header("length"))?);
+    match version {
+        0 => return Err(ProjectError::Damaged("its format version is 0".into())),
+        FORMAT_VERSION => {}
+        newer => return Err(ProjectError::TooNew { version: newer }),
+    }
+    if flags & !KNOWN_FLAGS != 0 {
+        // Flags this version doesn't know mean a newer writer.
+        return Err(ProjectError::TooNew { version });
+    }
+    if length > MAX_BODY {
+        return Err(ProjectError::TooLarge);
+    }
+    let body = &bytes[HEADER_LEN.min(bytes.len())..];
+    if body.len() as u64 != length {
+        return Err(ProjectError::Damaged(format!(
+            "it should hold {length} bytes of scene but holds {}; it may be cut short",
+            body.len()
+        )));
+    }
+    let unpacked;
+    let encoded = if flags & FLAG_ZSTD != 0 {
+        unpacked = unpack(body)?;
+        unpacked.as_slice()
+    } else {
+        body
+    };
+    let (model, rest): (v1::ProjectV1, &[u8]) = postcard::take_from_bytes(encoded)
+        .map_err(|e| ProjectError::Damaged(format!("the scene can't be read ({e})")))?;
+    if !rest.is_empty() {
+        return Err(ProjectError::Damaged(
+            "there is unexpected data after the scene".into(),
+        ));
+    }
+    model.into_document().map_err(ProjectError::Damaged)
+}
+
+/// Unpacks a zstd body, refusing to unpack more than [`MAX_BODY`] bytes.
+fn unpack(body: &[u8]) -> Result<Vec<u8>, ProjectError> {
+    let decoder = zstd::stream::read::Decoder::new(body)
+        .map_err(|e| ProjectError::Damaged(format!("the scene can't be unpacked ({e})")))?;
+    let mut out = Vec::new();
+    decoder
+        .take(MAX_BODY + 1)
+        .read_to_end(&mut out)
+        .map_err(|e| ProjectError::Damaged(format!("the scene can't be unpacked ({e})")))?;
+    if out.len() as u64 > MAX_BODY {
+        return Err(ProjectError::TooLarge);
+    }
+    Ok(out)
+}
+
+/// The backup kept of the previous save: `name.avtl.bak`.
+pub fn backup_path(path: &Path) -> PathBuf {
+    with_suffix(path, ".bak")
+}
+
+/// `path` with `suffix` added to the file name.
+fn with_suffix(path: &Path, suffix: &str) -> PathBuf {
+    let mut name = path.file_name().unwrap_or_default().to_os_string();
+    name.push(suffix);
+    path.with_file_name(name)
+}
+
+/// Saves `document` to `path`, safely:
+///
+/// 1. The project is written to a temporary file beside it
+///    (`name.avtl.tmp`) and read back to check it arrived whole.
+/// 2. The previous save, if any, is copied to `name.avtl.bak`.
+/// 3. The temporary file replaces the project in one step.
+///
+/// So a crash or a full disk never leaves a half-written project: the old
+/// file stays as it was until the new one is complete.
+pub fn save(path: &Path, document: &Document) -> Result<(), ProjectError> {
+    let bytes = to_bytes(document)?;
+    let temporary = with_suffix(path, ".tmp");
+    let io = |action, path: &Path| {
+        let path = path.to_path_buf();
+        move |source| ProjectError::Io {
+            action,
+            path,
+            source,
+        }
+    };
+    let written = write_and_check(&temporary, &bytes);
+    if let Err(source) = written {
+        let _ = std::fs::remove_file(&temporary);
+        return Err(io("write", path)(source));
+    }
+    if path.exists()
+        && let Err(source) = std::fs::copy(path, backup_path(path))
+    {
+        let _ = std::fs::remove_file(&temporary);
+        return Err(io("keep a backup of", path)(source));
+    }
+    std::fs::rename(&temporary, path).map_err(|source| {
+        let _ = std::fs::remove_file(&temporary);
+        io("write", path)(source)
+    })
+}
+
+/// Writes `bytes` to `path`, makes sure they reached the disk, and reads
+/// them back to check.
+fn write_and_check(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    {
+        let mut file = std::fs::File::create(path)?;
+        std::io::Write::write_all(&mut file, bytes)?;
+        file.sync_all()?;
+    }
+    if std::fs::read(path)? != bytes {
+        return Err(std::io::Error::other(
+            "the saved file didn't read back the same; the disk may be failing",
+        ));
+    }
+    Ok(())
+}
+
+/// Opens the project at `path`.
+pub fn open(path: &Path) -> Result<Document, ProjectError> {
+    let size = std::fs::metadata(path)
+        .map_err(|source| ProjectError::Io {
+            action: "read",
+            path: path.to_path_buf(),
+            source,
+        })?
+        .len();
+    if size > MAX_BODY + HEADER_LEN as u64 {
+        return Err(ProjectError::TooLarge);
+    }
+    let bytes = std::fs::read(path).map_err(|source| ProjectError::Io {
+        action: "read",
+        path: path.to_path_buf(),
+        source,
+    })?;
+    from_bytes(&bytes)
+}
+
+#[cfg(test)]
+mod tests;

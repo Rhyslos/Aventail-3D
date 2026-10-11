@@ -15,11 +15,13 @@ Starts the program: loads settings, opens the window, hands each frame to `ui`, 
 
 ## Depends on
 
-`ui`, `render` (every other app crate planned). Outside library: `eframe` (window and frame loop).
+`ui`, `render`, `fileio` (every other app crate planned). Outside libraries: `eframe` (window and frame loop), `rfd` (native Open and Save dialogs; the desktop portal on Linux).
 
 ## Status
 
 - **`branding`**: the app's name, short name, settings ID, family and project file extension.
 - **`cli`**: `--version` and `--help`; unknown options are explained (exit code 2).
 - **`gpu`**: `GpuViewport` connects the `render` crate to the window's GPU device and registers its images with egui: one per view (`ViewportView::slot`), so the four-view layout shows four images. Passes flat views' height and grid plane on to the renderer, and, whenever the scene drawing's version changes, turns its meshes into one GPU shape (`render::Shape::from_meshes`) and uploads it.
-- **`window`**: opens the window with eframe and wgpu, hands each frame to the `ui` workbench, carries out Quit, and saves the panel layout, view options, accent colour, units (metres or centimetres) and undo memory limit between sessions under the stable `APP_ID`. A panic from a missing system library is caught and explained with an install hint.
+- **`project`**: carries out the workbench's Save and Open actions: native dialogs (`rfd`, filtered to the app's project files, `.avtl` added if left out), `fileio::project::save`/`open`, and reporting back (`saved`, `save_failed`, `save_cancelled`, `opened`, `open_failed`).
+- **`cli`**: `--version`, `--help`, and a project path to open at start (as a file association will pass it).
+- **`window`**: opens the window with eframe and wgpu, hands each frame to the `ui` workbench, carries out Quit, asks the workbench before the window's close button closes it with unsaved changes, keeps the title (project name, `*` for unsaved) up to date, and saves the panel layout, view options, accent colour, units (metres or centimetres), undo memory limit and recent projects between sessions under the stable `APP_ID`. A panic from a missing system library is caught and explained with an install hint.

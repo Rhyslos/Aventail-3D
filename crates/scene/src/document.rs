@@ -25,6 +25,17 @@ impl Document {
         Self::default()
     }
 
+    /// A document holding `scene` (as opened from a file), with `selection`
+    /// selected (ids not in the scene are ignored) and an empty history.
+    pub fn from_scene(scene: Scene, selection: impl IntoIterator<Item = ObjectId>) -> Self {
+        let mut document = Self {
+            scene,
+            ..Self::default()
+        };
+        document.set_selection(selection);
+        document
+    }
+
     /// The scene, for reading.
     pub fn scene(&self) -> &Scene {
         &self.scene

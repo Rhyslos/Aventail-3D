@@ -31,3 +31,4 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0021](0021-object-stack-foundation.md) | The object stack foundation: how edits are stored, evaluated and baked | Accepted |
 | [0022](0022-undo-memory-budget.md) | Undo history bounded by a memory budget | Accepted |
 | [0023](0023-one-settings-window.md) | One Settings window for app-wide preferences | Accepted |
+| [0024](0024-saving-projects.md) | Saving projects: the `.avtl` file in practice | Accepted |

@@ -86,6 +86,12 @@ pub struct Stack {
 }
 
 impl Stack {
+    /// A stack of these layers, bottom first (for opening saved files;
+    /// in use, the stack only changes through commands).
+    pub fn from_layers(layers: Vec<Layer>) -> Self {
+        Self { layers }
+    }
+
     /// The layers, bottom first.
     pub fn layers(&self) -> &[Layer] {
         &self.layers

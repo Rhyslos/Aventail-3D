@@ -29,6 +29,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Primitive** — A ready-made shape (cube, cylinder, sphere…) built from a few settings, like size and segments, which stay editable. In this app every primitive stands on the ground with its pivot at the middle of its base. See [Primitives](primitives.md).
 
+**Project file (.avtl)** — The file your scene is saved in: every object, its settings and edits, and what was selected. It's this app's own working format; models go to other programs by *exporting* them instead. See [Saving and opening projects](saving-and-opening.md).
+
 **Base and edits** — A shape in this app is kept in two parts: its *base*, what it starts from (a primitive's settings, or a plain mesh), and the *edits* recorded on top of it, such as moving some points. The final shape is the base with the edits applied. Because the two are kept apart, a primitive's settings stay editable after you've modelled on it: change a cube's height and your edits are made again on the taller cube. (The modelling tools that record edits arrive from Phase 3; the stack of edits is already there.)
 
 **Editable mesh (Make editable)** — Turning a shape into a plain mesh with no settings: its base and edits are baked together, so what you see becomes the new starting point. Do it when you no longer need the settings, or before editing a mesh freely. Undo brings the settings back. See [Objects](objects.md#make-editable).

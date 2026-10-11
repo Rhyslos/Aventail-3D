@@ -75,6 +75,10 @@ pub enum MeshError {
     RepeatedVertex(VertexId),
     /// The mesh can't hold more elements.
     Full,
+    /// A point's position isn't a real number (infinite or not a number).
+    NotFinite(VertexId),
+    /// A hard edge names a point that isn't in the mesh.
+    UnknownEdge(EdgeKey),
 }
 
 impl std::fmt::Display for MeshError {
@@ -84,6 +88,12 @@ impl std::fmt::Display for MeshError {
             Self::UnknownVertex(v) => write!(f, "point {} is not in the mesh", v.0),
             Self::RepeatedVertex(v) => write!(f, "a face goes through point {} twice", v.0),
             Self::Full => f.write_str("the mesh is too large"),
+            Self::NotFinite(v) => write!(f, "point {} has no real position", v.0),
+            Self::UnknownEdge(e) => write!(
+                f,
+                "a hard edge joins points {} and {}, which aren't both in the mesh",
+                e.0.0, e.1.0
+            ),
         }
     }
 }
@@ -119,6 +129,73 @@ impl Mesh {
     /// the side it faces). Refused if it has fewer than three corners, uses
     /// an unknown point, or visits a point twice.
     pub fn add_face(&mut self, corners: &[VertexId]) -> Result<FaceId, MeshError> {
+        self.check_face(corners)?;
+        let id = u32::try_from(self.faces.len()).map_err(|_| MeshError::Full)?;
+        self.faces.push(Some(corners.to_vec()));
+        Ok(FaceId(id))
+    }
+
+    /// Every point slot by id number, `None` where a point was deleted
+    /// (its id is never used again). For saving: [`Self::from_slots`]
+    /// rebuilds the same mesh, ids included.
+    pub fn point_slots(&self) -> &[Option<Vec3>] {
+        &self.positions
+    }
+
+    /// Every face slot by id number, `None` where a face was deleted.
+    pub fn face_slots(&self) -> &[Option<Vec<VertexId>>] {
+        &self.faces
+    }
+
+    /// The edges marked hard, in order.
+    pub fn hard_edges(&self) -> impl Iterator<Item = EdgeKey> + '_ {
+        self.hard.iter().copied()
+    }
+
+    /// Rebuilds a mesh from its slots (as [`Self::point_slots`] and
+    /// [`Self::face_slots`] give them) and its hard edges, keeping every
+    /// id. Everything is checked, as it may come from a damaged file:
+    /// positions must be real numbers, faces need three or more distinct
+    /// corners that exist, and hard edges must join existing points.
+    pub fn from_slots(
+        points: Vec<Option<Vec3>>,
+        faces: Vec<Option<Vec<VertexId>>>,
+        hard: impl IntoIterator<Item = EdgeKey>,
+    ) -> Result<Self, MeshError> {
+        if u32::try_from(points.len()).is_err() || u32::try_from(faces.len()).is_err() {
+            return Err(MeshError::Full);
+        }
+        if let Some(i) = points
+            .iter()
+            .position(|p| p.is_some_and(|p| !p.is_finite()))
+        {
+            return Err(MeshError::NotFinite(VertexId(i as u32)));
+        }
+        let mut mesh = Self {
+            positions: points,
+            faces: Vec::new(),
+            hard: BTreeSet::new(),
+        };
+        let mut slots = Vec::with_capacity(faces.len());
+        for face in faces {
+            if let Some(corners) = &face {
+                mesh.check_face(corners)?;
+            }
+            slots.push(face);
+        }
+        mesh.faces = slots;
+        for edge in hard {
+            let (a, b) = edge.ends();
+            if mesh.position(a).is_none() || mesh.position(b).is_none() || a == b {
+                return Err(MeshError::UnknownEdge(edge));
+            }
+            mesh.hard.insert(edge);
+        }
+        Ok(mesh)
+    }
+
+    /// Checks a face's corners: three or more, all existing, none twice.
+    fn check_face(&self, corners: &[VertexId]) -> Result<(), MeshError> {
         if corners.len() < 3 {
             return Err(MeshError::TooFewCorners);
         }
@@ -130,9 +207,7 @@ impl Mesh {
                 return Err(MeshError::RepeatedVertex(*v));
             }
         }
-        let id = u32::try_from(self.faces.len()).map_err(|_| MeshError::Full)?;
-        self.faces.push(Some(corners.to_vec()));
-        Ok(FaceId(id))
+        Ok(())
     }
 
     /// Adds a point, for builders that know the mesh stays small (the
@@ -389,6 +464,59 @@ mod tests {
         // A sphere's points and faces take at least their raw size.
         let raw = sphere.vertex_count() * 12 + sphere.face_count() * 3 * 4;
         assert!(sphere.memory_size() >= raw);
+    }
+
+    #[test]
+    fn a_mesh_rebuilt_from_its_slots_is_the_same_ids_and_all() {
+        let mut mesh = crate::PrimitiveKind::Cylinder.standard().mesh();
+        // A deleted point slot (no face uses the last point of a fresh
+        // vertex, so add one and leave it out of any face).
+        let extra = mesh.add_vertex(Vec3::splat(9.0)).unwrap();
+        mesh.positions[extra.0 as usize] = None;
+        let rebuilt = Mesh::from_slots(
+            mesh.point_slots().to_vec(),
+            mesh.face_slots().to_vec(),
+            mesh.hard_edges(),
+        )
+        .unwrap();
+        assert_eq!(rebuilt, mesh);
+        assert_eq!(rebuilt.point_slots().len(), mesh.point_slots().len());
+    }
+
+    #[test]
+    fn damaged_slots_are_refused_with_a_reason() {
+        let p = |x: f32| Some(Vec3::new(x, 0.0, 0.0));
+        let v = VertexId;
+        let points = vec![p(0.0), p(1.0), Some(Vec3::Y), None];
+        let ok = |faces: Vec<Option<Vec<VertexId>>>| {
+            Mesh::from_slots(points.clone(), faces, std::iter::empty())
+        };
+        assert!(ok(vec![Some(vec![v(0), v(1), v(2)]), None]).is_ok());
+        assert_eq!(
+            ok(vec![Some(vec![v(0), v(1)])]),
+            Err(MeshError::TooFewCorners)
+        );
+        assert_eq!(
+            ok(vec![Some(vec![v(0), v(1), v(3)])]),
+            Err(MeshError::UnknownVertex(v(3))),
+            "a deleted point"
+        );
+        assert_eq!(
+            ok(vec![Some(vec![v(0), v(1), v(0)])]),
+            Err(MeshError::RepeatedVertex(v(0)))
+        );
+        assert_eq!(
+            Mesh::from_slots(vec![p(0.0), Some(Vec3::NAN)], vec![], std::iter::empty()),
+            Err(MeshError::NotFinite(v(1)))
+        );
+        let bad_edge = EdgeKey::new(v(0), v(7));
+        assert_eq!(
+            Mesh::from_slots(points.clone(), vec![], [bad_edge]),
+            Err(MeshError::UnknownEdge(bad_edge))
+        );
+        let loop_edge = EdgeKey::new(v(1), v(1));
+        assert!(Mesh::from_slots(points, vec![], [loop_edge]).is_err());
+        assert!(MeshError::NotFinite(v(1)).to_string().contains("point 1"));
     }
 
     #[test]

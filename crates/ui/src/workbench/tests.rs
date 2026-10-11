@@ -196,7 +196,8 @@ fn coordinates_sit_below_the_viewport() {
 
 #[test]
 fn ctrl_q_asks_to_quit() {
-    let mut harness = fresh();
+    // An empty, unchanged scene: nothing to save, so it quits at once.
+    let mut harness = empty();
     harness.key_press_modifiers(Modifiers::COMMAND, Key::Q);
     harness.run();
     assert_eq!(harness.state().actions, vec![WorkbenchAction::Quit]);
@@ -204,7 +205,7 @@ fn ctrl_q_asks_to_quit() {
 
 #[test]
 fn file_quit_asks_to_quit() {
-    let mut harness = fresh();
+    let mut harness = empty();
     main_menu(&harness, "File").click();
     harness.run();
     // The button's label includes its shortcut, such as "Quit Ctrl+Q".

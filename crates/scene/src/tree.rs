@@ -225,6 +225,49 @@ impl Scene {
         Self::default()
     }
 
+    /// Rebuilds a saved scene. `objects` lists every object with its id
+    /// and parent, parents before their children and children in order
+    /// (as [`Self::walk`] lists them). `next_id` is the id the next new
+    /// object gets; it is raised past every id listed, so ids are never
+    /// reused. Everything is checked, as it may come from a damaged file:
+    /// ids must be unique, parents listed earlier, names not empty, and
+    /// groups without edits.
+    pub fn from_objects(
+        objects: impl IntoIterator<Item = (ObjectId, Option<ObjectId>, Object)>,
+        next_id: u64,
+    ) -> Result<Self, SceneError> {
+        let mut scene = Self::new();
+        for (id, parent, object) in objects {
+            if object.name.trim().is_empty() {
+                return Err(SceneError::EmptyName);
+            }
+            if !object.kind.has_shape() && !object.stack.is_empty() {
+                return Err(SceneError::NoShape);
+            }
+            if scene.contains(id) {
+                return Err(SceneError::History("two objects have the same id"));
+            }
+            if let Some(p) = parent
+                && !scene.contains(p)
+            {
+                return Err(SceneError::UnknownObject(p));
+            }
+            let index = scene.children(parent).len();
+            scene.apply(&Edit::Insert {
+                id,
+                object,
+                place: Place { parent, index },
+            })?;
+        }
+        scene.next_id = scene.next_id.max(next_id);
+        Ok(scene)
+    }
+
+    /// The id the next new object will get (for saving).
+    pub fn next_object_id(&self) -> u64 {
+        self.next_id
+    }
+
     /// How many objects there are, at every level.
     pub fn len(&self) -> usize {
         self.nodes.len()

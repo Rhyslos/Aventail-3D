@@ -12,9 +12,16 @@ use std::sync::Arc;
 pub struct ObjectId(pub(crate) u64);
 
 impl ObjectId {
-    /// The id as a number, for labels and debugging.
+    /// The id as a number, for labels, debugging and saving.
     pub fn get(self) -> u64 {
         self.0
+    }
+
+    /// The id with this number, as saved earlier. Only for rebuilding a
+    /// saved scene ([`crate::Scene::from_objects`]); new objects get their
+    /// ids from the scene.
+    pub const fn from_raw(number: u64) -> Self {
+        Self(number)
     }
 }
 

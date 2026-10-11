@@ -15,6 +15,14 @@ publish.workspace = true
 layer = 2
 
 [dependencies]
+scene.workspace = true
+mesh.workspace = true
+glam.workspace = true
+serde.workspace = true
+postcard.workspace = true
+zstd.workspace = true
+
+[dev-dependencies]
 
 [lints]
 workspace = true
