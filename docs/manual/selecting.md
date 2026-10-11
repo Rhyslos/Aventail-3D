@@ -15,7 +15,7 @@ So the usual order is:
 2. Press `1`, `2` or `3`.
 3. Select its points, edges or polygons.
 
-For now you can only select. Moving what you selected arrives with the next update (the move, rotate and scale gizmos).
+Then move, rotate or scale it: see [Move, rotate and scale](transforming.md).
 
 ## How to use it
 

@@ -544,3 +544,60 @@ fn regions_contain_points_and_touch_segments() {
         Vec2::new(1.0, 1.0)
     ));
 }
+
+// ------------------------------------------------------------ snapping ---
+
+#[test]
+fn snapping_finds_points_then_edges_then_surfaces() {
+    let mesh = cube();
+    let scene = scene_of(&[(&mesh, Mat4::IDENTITY, false)]);
+    let camera = camera();
+    let none = |_: usize| false;
+    let still = |_: usize, _: VertexId| false;
+    let all = SnapTargets::default();
+    let corner = Vec3::new(50.0, -50.0, 100.0);
+    let near_corner = screen(&camera, corner) + Vec2::new(3.0, 2.0);
+    let found = scene
+        .snap_target(&camera, SIZE, near_corner, all, &none, &still)
+        .unwrap();
+    assert!(found.distance(corner) < 1e-3, "the point: {found}");
+
+    // Partway along the front-top edge: a spot on it.
+    let a = Vec3::new(-50.0, -50.0, 100.0);
+    let on_edge = screen(&camera, a.lerp(corner, 0.4)) + Vec2::new(0.0, 3.0);
+    let found = scene
+        .snap_target(&camera, SIZE, on_edge, all, &none, &still)
+        .unwrap();
+    assert!(
+        (found.y + 50.0).abs() < 0.5 && (found.z - 100.0).abs() < 0.5,
+        "{found}"
+    );
+
+    // The middle of the front face: the surface there.
+    let middle = screen(&camera, Vec3::new(0.0, -50.0, 50.0));
+    let found = scene
+        .snap_target(&camera, SIZE, middle, all, &none, &still)
+        .unwrap();
+    assert!((found.y + 50.0).abs() < 0.5, "{found}");
+
+    // Only what is allowed counts.
+    let points_only = SnapTargets {
+        points: true,
+        edges: false,
+        polygons: false,
+    };
+    assert_eq!(
+        scene.snap_target(&camera, SIZE, middle, points_only, &none, &still),
+        None
+    );
+    // What is being moved is never a target.
+    let everything = |_: usize| true;
+    assert_eq!(
+        scene.snap_target(&camera, SIZE, near_corner, all, &everything, &still),
+        None
+    );
+    let corner_id = point_at(&mesh, corner);
+    let moving = |_: usize, v: VertexId| v == corner_id;
+    let found = scene.snap_target(&camera, SIZE, near_corner, all, &none, &moving);
+    assert!(found.is_none_or(|p| p.distance(corner) > 1.0), "{found:?}");
+}

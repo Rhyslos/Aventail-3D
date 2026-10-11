@@ -1,7 +1,7 @@
 //! The object tree, and the small reversible edits every change to it is
 //! made of.
 
-use crate::object::{Object, ObjectId, ObjectKind};
+use crate::object::{Object, ObjectId, ObjectKind, Transform};
 use crate::stack::{EvalContext, Evaluated, Layer, Operation, SharedCache};
 use glam::Mat4;
 use mesh::Bounds;
@@ -22,6 +22,8 @@ pub enum SceneError {
     WrongKind(&'static str),
     /// Edits can only be recorded on an object with a shape, not a group.
     NoShape,
+    /// A position, turn or size that isn't a number.
+    NotANumber,
 }
 
 impl std::fmt::Display for SceneError {
@@ -40,6 +42,7 @@ impl std::fmt::Display for SceneError {
                 kind.to_lowercase()
             ),
             Self::NoShape => f.write_str("a group has no shape to edit"),
+            Self::NotANumber => f.write_str("a value isn't a number"),
         }
     }
 }
@@ -92,6 +95,13 @@ pub(crate) enum Edit {
         before: bool,
         after: bool,
     },
+    /// Moves, turns or scales an object (its transform, relative to its
+    /// parent).
+    SetTransform {
+        id: ObjectId,
+        before: Transform,
+        after: Transform,
+    },
     /// Changes what an object is: a primitive's settings, for example.
     SetKind {
         id: ObjectId,
@@ -140,6 +150,7 @@ impl Edit {
             Self::Rename { before, after, .. } => before == after,
             Self::SetVisible { before, after, .. } => before == after,
             Self::SetKind { before, after, .. } => before == after,
+            Self::SetTransform { before, after, .. } => before == after,
         }
     }
 
@@ -164,6 +175,11 @@ impl Edit {
                 after: before,
             },
             Self::SetKind { id, before, after } => Self::SetKind {
+                id,
+                before: after,
+                after: before,
+            },
+            Self::SetTransform { id, before, after } => Self::SetTransform {
                 id,
                 before: after,
                 after: before,
@@ -570,6 +586,17 @@ impl Scene {
                     return Err(SceneError::History("an object's settings have changed"));
                 }
                 node.object.kind = after.clone();
+                Ok(())
+            }
+            Edit::SetTransform { id, before, after } => {
+                let node = self
+                    .nodes
+                    .get_mut(id)
+                    .ok_or(SceneError::UnknownObject(*id))?;
+                if node.object.transform != *before {
+                    return Err(SceneError::History("an object's place has changed"));
+                }
+                node.object.transform = *after;
                 Ok(())
             }
             Edit::InsertLayer { id, index, layer } => {

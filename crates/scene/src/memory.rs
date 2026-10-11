@@ -30,7 +30,9 @@ fn kind(kind: &ObjectKind) -> usize {
 /// What an operation holds beyond its own fixed size.
 fn operation(op: &Operation) -> usize {
     match op {
-        Operation::MovePoints { points, .. } => std::mem::size_of_val(points.as_slice()),
+        Operation::MovePoints { points, .. } | Operation::TransformPoints { points, .. } => {
+            std::mem::size_of_val(points.as_slice())
+        }
     }
 }
 
@@ -63,7 +65,7 @@ pub(crate) fn edit(edit: &Edit) -> usize {
     size_of::<Edit>()
         + match edit {
             Edit::Insert { object: o, .. } | Edit::Remove { object: o, .. } => object(o),
-            Edit::Relocate { .. } | Edit::SetVisible { .. } => 0,
+            Edit::Relocate { .. } | Edit::SetVisible { .. } | Edit::SetTransform { .. } => 0,
             Edit::Rename { before, after, .. } => text(before) + text(after),
             Edit::SetKind { before, after, .. } => kind(before) + kind(after),
             Edit::InsertLayer { layer: l, .. } | Edit::RemoveLayer { layer: l, .. } => layer(l),

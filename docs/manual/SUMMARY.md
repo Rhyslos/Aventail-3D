@@ -16,6 +16,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Primitives: cube, plane, cylinder, sphere, disc, tube and cone](primitives.md)
 - [Points, Edges and Polygons modes: working on the parts of a mesh](modes.md)
 - [Selecting: click, box, lasso, brush, loops, grow and shrink](selecting.md)
+- [Move, rotate and scale: the gizmo, snapping, locks and typed values](transforming.md)
 - *More pages are added here as tools are built.*
 
 ## UVs

@@ -12,7 +12,7 @@
 //! into one layer, so the user sees a plain object.
 
 use crate::object::{ObjectId, ObjectKind};
-use glam::Vec3;
+use glam::{Mat4, Vec3};
 use mesh::edit::{self, Outcome};
 use mesh::{Mesh, VertexId};
 use std::collections::HashMap;
@@ -35,6 +35,14 @@ pub enum Operation {
         /// How far.
         offset: Vec3,
     },
+    /// Turns, scales or moves points with a matrix, in the object's own
+    /// space (decision 0030).
+    TransformPoints {
+        /// The points.
+        points: Vec<VertexId>,
+        /// The change, an affine transform.
+        matrix: Mat4,
+    },
 }
 
 impl Operation {
@@ -45,6 +53,10 @@ impl Operation {
                 1 => "Move 1 point".to_string(),
                 n => format!("Move {n} points"),
             },
+            Self::TransformPoints { points, .. } => match points.len() {
+                1 => "Transform 1 point".to_string(),
+                n => format!("Transform {n} points"),
+            },
         }
     }
 
@@ -52,6 +64,9 @@ impl Operation {
     fn apply(&self, mesh: &mut Mesh) -> Outcome {
         match self {
             Self::MovePoints { points, offset } => edit::move_points(mesh, points, *offset),
+            Self::TransformPoints { points, matrix } => {
+                edit::transform_points(mesh, points, *matrix)
+            }
         }
     }
 }

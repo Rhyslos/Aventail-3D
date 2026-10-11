@@ -30,13 +30,13 @@ Whenever you want to change *what* an object is rather than where it is: make a 
 - **Pieces**: only shown when the shape has separate parts that don't touch.
 - **Surface**: **Closed** (like a solid, no open borders) or **Open** with how many [border edges](concepts.md#mesh-basics) (normal for a plane or an open pipe).
 
-Below that, the app checks for problems that cause trouble later in modelling, UV unwrapping, baking or a game engine, and lists any it finds in amber: edges shared by three or more faces, faces facing the wrong way, edges with no length, faces with no area, and loose points. Hover over a line for what it means. Shapes made from settings never have these problems; they can come from editing (from Phase 3) or from imported models.
+Below that, the app checks for problems that cause trouble later in modelling, UV unwrapping, baking or a game engine, and lists any it finds in amber: edges shared by three or more faces, faces facing the wrong way, edges with no length, faces with no area, and loose points. Hover over a line for what it means. Shapes made from settings never have these problems; they can come from editing (moving points onto each other, say) or from imported models.
 
 ![The Mesh section of a cube: 8 points, 12 edges, 6 polygons, 12 triangles, closed, no problems](../screenshots/2026-10-11-mesh-section.png)
 
 **Meshes.** An object that has been [made editable](objects.md#make-editable) has no settings: the panel shows "(mesh)" after its name, and the Mesh section.
 
-**Edits.** From Phase 3, the modelling tools record your edits on top of a shape instead of changing its settings (see [Base and edits](concepts.md#objects-and-scenes)). When a shape has edits, an **Edits** section says how many, and the settings above stay editable: change them and the edits are made again on the new shape. If some edits no longer fully fit (for example, you gave a cube fewer segments, so points an edit moved are gone), a line in amber says how many. They still apply to the points that remain, and going back to the earlier settings brings the missing points back.
+**Edits.** Moving, rotating and scaling points, edges and polygons ([Move, rotate and scale](transforming.md)) records your edits on top of a shape instead of changing its settings (see [Base and edits](concepts.md#objects-and-scenes)). When a shape has edits, an **Edits** section says how many, and the settings above stay editable: change them and the edits are made again on the new shape. If some edits no longer fully fit (for example, you gave a cube fewer segments, so points an edit moved are gone), a line in amber says how many. They still apply to the points that remain, and going back to the earlier settings brings the missing points back.
 
 With nothing selected the panel says so; with several objects selected it counts them (pick one to see its settings).
 

@@ -44,7 +44,12 @@ impl Workbench {
             )
         });
         if next {
-            self.next_select_tool();
+            if self.tool == crate::transforming::Tool::Select {
+                self.next_select_tool();
+            } else {
+                // Back to selecting, with the select tool used before.
+                self.set_tool(crate::transforming::Tool::Select);
+            }
         }
         if all {
             self.select_requests.push(SelectRequest::All);

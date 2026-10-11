@@ -8,6 +8,7 @@
 use crate::icons::{self, Icon};
 use crate::selecting::SelectTool;
 use crate::theme::{self, tint};
+use crate::transforming::{Axes, Tool};
 use crate::viewport::ViewOptions;
 use egui::{Color32, Response, Sense, Ui, Vec2, WidgetInfo, WidgetType};
 use scene::PrimitiveKind;
@@ -219,8 +220,17 @@ pub enum PaletteCommand {
     CreateGroup,
     /// Create a primitive with standard settings.
     CreateShape(PrimitiveKind),
-    /// Switch to the next select tool (as `Q` does).
+    /// Switch to the next select tool (as `Q` does), or back to
+    /// selecting from a transform tool.
     NextSelectTool,
+    /// Use a transform tool (move, rotate or scale).
+    Tool(Tool),
+    /// Lock or free an axis (0 X, 1 Y, 2 Z).
+    Lock(usize),
+    /// Switch between world and object axes.
+    ToggleAxes,
+    /// Turn snapping on or off.
+    ToggleSnapping,
 }
 
 /// One command on the top palette: one that works, or one that is not
@@ -275,6 +285,14 @@ pub struct PaletteState {
     pub redo: Option<String>,
     /// The select tool in use.
     pub select_tool: SelectTool,
+    /// The tool in use.
+    pub tool: Tool,
+    /// The locked axes.
+    pub locked: [bool; 3],
+    /// World or object axes.
+    pub axes: Axes,
+    /// Whether snapping is on.
+    pub snapping: bool,
 }
 
 /// The groups of the command palette, left to right.
@@ -300,9 +318,24 @@ const COMMAND_GROUPS: [&[Planned]; 4] = [
             "The select tool in use",
             PaletteCommand::NextSelectTool,
         ),
-        planned(Icon::Move, "Move", "Arrives in Phase 3"),
-        planned(Icon::Scale, "Scale", "Arrives in Phase 3"),
-        planned(Icon::Rotate, "Rotate", "Arrives in Phase 3"),
+        working(
+            Icon::Move,
+            "Move",
+            "Move the selection: drag the gizmo's arrows, squares or centre (W)",
+            PaletteCommand::Tool(Tool::Move),
+        ),
+        working(
+            Icon::Scale,
+            "Scale",
+            "Scale the selection: drag the gizmo's boxes, or its centre for all axes (S)",
+            PaletteCommand::Tool(Tool::Scale),
+        ),
+        working(
+            Icon::Rotate,
+            "Rotate",
+            "Rotate the selection: drag the gizmo's rings (R)",
+            PaletteCommand::Tool(Tool::Rotate),
+        ),
     ],
     &[
         shape(Icon::Cube, "Create cube", PrimitiveKind::Cube),
@@ -317,7 +350,12 @@ const COMMAND_GROUPS: [&[Planned]; 4] = [
         ),
     ],
     &[
-        planned(Icon::Snap, "Snapping", "Arrives in Phase 3"),
+        working(
+            Icon::Snap,
+            "Snapping",
+            "Snap moves to points, edges, polygons and the grid, turns to 15° and scaling to 10% steps. Hold Ctrl while dragging to flip it for that drag.",
+            PaletteCommand::ToggleSnapping,
+        ),
         planned(Icon::Symmetry, "Symmetry", "Arrives in Phase 4"),
     ],
 ];
@@ -360,7 +398,7 @@ pub fn command_palette(ui: &mut Ui, state: &PaletteState) -> Option<PaletteComma
                         let tool = state.select_tool;
                         icon = select_tool_icon(tool);
                         label = tool.name();
-                        active = true;
+                        active = state.tool == Tool::Select;
                         (
                             true,
                             format!(
@@ -382,6 +420,17 @@ pub fn command_palette(ui: &mut Ui, state: &PaletteState) -> Option<PaletteComma
                     PaletteCommand::CreateGroup | PaletteCommand::CreateShape(_) => {
                         (true, command.arrives.to_string())
                     }
+                    PaletteCommand::Tool(tool) => {
+                        active = state.tool == tool || state.tool == Tool::All;
+                        (true, command.arrives.to_string())
+                    }
+                    PaletteCommand::ToggleSnapping => {
+                        active = state.snapping;
+                        (true, command.arrives.to_string())
+                    }
+                    PaletteCommand::Lock(_) | PaletteCommand::ToggleAxes => {
+                        (true, command.arrives.to_string())
+                    }
                 };
                 let button_state = if active {
                     ButtonState::Active
@@ -397,20 +446,31 @@ pub fn command_palette(ui: &mut Ui, state: &PaletteState) -> Option<PaletteComma
             if index == 1 {
                 // The axis locks sit with the transform tools.
                 divider(ui, true);
-                for (axis, color) in [
+                for (index, (axis, color)) in [
                     ("X", tint::AXIS_X),
                     ("Y", tint::AXIS_Y),
                     ("Z", tint::AXIS_Z),
-                ] {
-                    axis_lock(ui, axis, color);
+                ]
+                .into_iter()
+                .enumerate()
+                {
+                    if axis_lock(ui, axis, color, state.locked[index]).clicked() {
+                        clicked = Some(PaletteCommand::Lock(index));
+                    }
                 }
-                icon_button(
-                    ui,
-                    Icon::World,
-                    "World or object coordinates",
-                    "Arrives in Phase 3",
-                    ButtonState::Unavailable,
-                );
+                let (axes_state, axes_note) = match state.axes {
+                    Axes::World => (
+                        ButtonState::Normal,
+                        "Now: the gizmo follows the world's axes.\nClick or press L for the object's own axes.",
+                    ),
+                    Axes::Object => (
+                        ButtonState::Active,
+                        "Now: the gizmo follows the object's own axes.\nClick or press L for the world's axes.",
+                    ),
+                };
+                if icon_button(ui, Icon::World, AXES_LABEL, axes_note, axes_state).clicked() {
+                    clicked = Some(PaletteCommand::ToggleAxes);
+                }
             }
         }
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -426,19 +486,38 @@ pub fn command_palette(ui: &mut Ui, state: &PaletteState) -> Option<PaletteComma
     clicked
 }
 
-/// An axis lock button (X, Y or Z), shown but not available yet.
-fn axis_lock(ui: &mut Ui, axis: &str, color: Color32) {
+/// Accessible name of the world or object axes switch.
+pub const AXES_LABEL: &str = "World or object axes";
+
+/// An axis lock button (X, Y or Z): filled with the accent colour while
+/// the axis is locked.
+fn axis_lock(ui: &mut Ui, axis: &str, color: Color32, locked: bool) -> Response {
     let label = format!("Lock the {axis} axis");
-    let (rect, response) = ui.allocate_exact_size(Vec2::splat(BUTTON_SIZE), Sense::hover());
-    response.widget_info(|| WidgetInfo::labeled(WidgetType::Button, false, &label));
-    ui.painter().text(
+    let (rect, response) = ui.allocate_exact_size(Vec2::splat(BUTTON_SIZE), Sense::click());
+    response.widget_info(|| WidgetInfo::selected(WidgetType::Button, true, locked, &label));
+    let painter = ui.painter();
+    if locked {
+        painter.rect_filled(rect, 5.0, theme::accent(ui.ctx()).colors().fill);
+    } else if response.hovered() {
+        painter.rect_filled(rect, 5.0, ui.visuals().widgets.hovered.weak_bg_fill);
+    }
+    painter.text(
         rect.center(),
         egui::Align2::CENTER_CENTER,
         axis,
         egui::FontId::proportional(14.0),
-        dimmed(color),
+        if locked { Color32::WHITE } else { color },
     );
-    response.on_hover_text(format!("{label}\nArrives in Phase 3"));
+    let note = if locked {
+        format!(
+            "{axis} is locked: moving, rotating and scaling leave it alone.\nClick or press {axis} to free it."
+        )
+    } else {
+        format!(
+            "Click or press {axis} to lock it, so moving, rotating and scaling leave {axis} alone."
+        )
+    };
+    response.on_hover_text(note)
 }
 
 /// Accessible name of the "select only visible" switch on the mode

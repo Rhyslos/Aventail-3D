@@ -238,7 +238,7 @@ fn the_modes_menu_selects_a_mode_too() {
 #[test]
 fn commands_that_are_not_built_yet_cannot_be_clicked() {
     let harness = fresh();
-    for label in ["Move", "Snapping", "Lock the X axis"] {
+    for label in ["Symmetry", "Find a command", "Show only the selection"] {
         assert!(
             harness.get_by_label(label).accesskit_node().is_disabled(),
             "{label} should be disabled until it is built"
@@ -360,8 +360,7 @@ fn coordinates_show_every_field_as_in_the_mockup() {
     }
     // Fields fill most of their group's width, as in the mockup.
     assert!(harness.get_by_label("Position X").rect().width() > 150.0);
-    assert!(harness.query_by_label_contains("Object (Rel)").is_some());
-    assert!(harness.query_by_label("Apply").is_some());
+    assert!(harness.query_by_label("World").is_some());
 }
 
 /// A renderer that records what it was asked to draw.

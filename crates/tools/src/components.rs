@@ -110,6 +110,27 @@ impl Region {
     }
 }
 
+/// What a moving gizmo may snap to (the grid is handled by its caller).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SnapTargets {
+    /// Points.
+    pub points: bool,
+    /// Spots along edges.
+    pub edges: bool,
+    /// Spots on polygons.
+    pub polygons: bool,
+}
+
+impl Default for SnapTargets {
+    fn default() -> Self {
+        Self {
+            points: true,
+            edges: true,
+            polygons: true,
+        }
+    }
+}
+
 /// One triangle of a face, in the world.
 #[derive(Debug, Clone, Copy)]
 struct Triangle {
@@ -515,6 +536,97 @@ impl PickScene {
             .iter()
             .filter_map(|t| hit(ray, &t.corners).map(|d| (d, *t)))
             .min_by(|a, b| a.0.total_cmp(&b.0))
+    }
+
+    /// What a moving gizmo snaps to near the mouse ([decision 0030](../../../docs/decisions/0030-transform-gizmos.md)):
+    /// the nearest visible point within [`POINT_RADIUS`], else the nearest
+    /// spot on a visible edge within [`EDGE_RADIUS`], else the surface
+    /// under the mouse, as `targets` allows. What is being moved is never
+    /// a target: whole objects for which `whole` says so, and points for
+    /// which `moving` says so (with the edges and polygons they belong to).
+    pub fn snap_target(
+        &self,
+        camera: &Camera,
+        size: Vec2,
+        mouse: Vec2,
+        targets: SnapTargets,
+        whole: &dyn Fn(usize) -> bool,
+        moving: &dyn Fn(usize, VertexId) -> bool,
+    ) -> Option<Vec3> {
+        let mut best: Option<(f32, Vec3)> = None;
+        let consider = |distance: f32, at: Vec3, best: &mut Option<(f32, Vec3)>| {
+            if best.is_none_or(|(d, _)| distance < d) {
+                *best = Some((distance, at));
+            }
+        };
+        if targets.points {
+            for (object, placed) in self.objects.iter().enumerate() {
+                if whole(object) {
+                    continue;
+                }
+                for (id, p) in &placed.points {
+                    if moving(object, *id) {
+                        continue;
+                    }
+                    let Some(s) = camera.project(*p, size) else {
+                        continue;
+                    };
+                    let d = s.distance(mouse);
+                    if d <= POINT_RADIUS && self.can_see(camera, size, *p) {
+                        consider(d, *p, &mut best);
+                    }
+                }
+            }
+            if let Some((_, at)) = best {
+                return Some(at);
+            }
+        }
+        if targets.edges {
+            for (object, placed) in self.objects.iter().enumerate() {
+                if whole(object) {
+                    continue;
+                }
+                for (edge, a, b) in &placed.edges {
+                    let (va, vb) = edge.ends();
+                    if moving(object, va) || moving(object, vb) {
+                        continue;
+                    }
+                    let (Some(sa), Some(sb)) = (camera.project(*a, size), camera.project(*b, size))
+                    else {
+                        continue;
+                    };
+                    let (d, t) = distance_to_segment(mouse, sa, sb);
+                    let at = a.lerp(*b, t);
+                    if d <= EDGE_RADIUS && self.can_see(camera, size, at) {
+                        consider(d, at, &mut best);
+                    }
+                }
+            }
+            if let Some((_, at)) = best {
+                return Some(at);
+            }
+        }
+        if targets.polygons {
+            let ray = camera.ray_through(mouse, size);
+            let still = |t: &Triangle| {
+                !whole(t.object)
+                    && self.objects[t.object]
+                        .polygons
+                        .iter()
+                        .find(|(f, ..)| *f == t.face)
+                        .is_none_or(|(_, _, corners)| {
+                            !corners.iter().any(|(v, _)| moving(t.object, *v))
+                        })
+            };
+            return self
+                .triangles
+                .iter()
+                .filter(|t| still(t))
+                .filter_map(|t| hit(&ray, &t.corners).map(|d| (d, *t)))
+                .min_by(|a, b| a.0.total_cmp(&b.0))
+                .map(|(d, _)| ray.at(d));
+        }
+        None
     }
 
     /// How many triangles hide what is behind them (for tests and

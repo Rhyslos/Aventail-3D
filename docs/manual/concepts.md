@@ -41,7 +41,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Project file (.avtl)** — The file your scene is saved in: every object, its settings and edits, and what was selected. It's this app's own working format; models go to other programs by *exporting* them instead. See [Saving and opening projects](saving-and-opening.md).
 
-**Base and edits** — A shape in this app is kept in two parts: its *base*, what it starts from (a primitive's settings, or a plain mesh), and the *edits* recorded on top of it, such as moving some points. The final shape is the base with the edits applied. Because the two are kept apart, a primitive's settings stay editable after you've modelled on it: change a cube's height and your edits are made again on the taller cube. (The modelling tools that record edits arrive from Phase 3; the stack of edits is already there.)
+**Base and edits** — A shape in this app is kept in two parts: its *base*, what it starts from (a primitive's settings, or a plain mesh), and the *edits* recorded on top of it, such as moving some points. The final shape is the base with the edits applied. Because the two are kept apart, a primitive's settings stay editable after you've modelled on it: change a cube's height and your edits are made again on the taller cube. Moving, rotating and scaling points, edges and polygons records edits like this ([Move, rotate and scale](transforming.md)).
 
 **Editable mesh (Make editable)** — Turning a shape into a plain mesh with no settings: its base and edits are baked together, so what you see becomes the new starting point. Do it when you no longer need the settings, or before editing a mesh freely. Undo brings the settings back. See [Objects](objects.md#make-editable).
 
@@ -49,7 +49,13 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Undo history** — The list of changes you've made, kept so they can be taken back (undo, `Ctrl + Z`) and done again (redo, `Ctrl + Y`). This app keeps steps while it's open, up to a memory limit (2 GB as standard, set in **Edit → Settings… → Undo**), then forgets the oldest first. There's no limit on the *number* of steps. See [Objects](objects.md).
 
-**Pivot (axis / origin)** — The point an object rotates and scales around. In Godot, it's also the point the asset is placed and snapped by, so where you put it matters.
+**Pivot (axis / origin)** — The point an object rotates and scales around. In Godot, it's also the point the asset is placed and snapped by, so where you put it matters. The [gizmo](transforming.md) sits on it.
+
+**Gizmo** — The handle drawn on what's selected while moving, rotating or scaling: arrows, rings and boxes in the axis colours. Dragging one part changes the selection in that direction only. See [Move, rotate and scale](transforming.md).
+
+**Snapping** — Making a move, turn or resize jump to exact places (a point, an edge, the grid) or steps (15°, 10%) instead of going wherever the mouse is. See [Move, rotate and scale](transforming.md#snapping).
+
+**World and object axes** — The *world's* axes are the same everywhere: Z is always up. An *object's own* axes turn with it: a cube turned on its side has its own Z pointing sideways. The gizmo can follow either (press `L`).
 
 **Axes (X, Y, Z)** — The three directions of 3D space, always coloured X red, Y blue, Z green. (Most 3D programs colour Y green and Z blue; this app swaps them, so blue is the second ground direction. The letters are always shown too.) In this app **Z points up**, and X and Y lie flat on the ground; a green line rising from the origin marks Z. Some 3D programs, Godot and the glTF file format use Y for up instead; the app converts when it exports, so models arrive standing upright.
 

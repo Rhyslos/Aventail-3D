@@ -11,6 +11,7 @@
 //! drawn, the panel shows the calm backdrop and says why.
 
 pub(crate) mod chrome;
+mod gizmo;
 mod picker;
 mod select;
 
@@ -27,6 +28,8 @@ use crate::selecting::{
     BRUSH_MAX, BRUSH_MIN, BRUSH_RADIUS, BRUSH_STEP, Gesture, SelectKeys, SelectTool,
 };
 use crate::theme;
+use crate::transforming::{Axes, SnapSettings};
+pub(crate) use gizmo::GizmoEvent;
 use std::sync::Arc;
 
 #[cfg(test)]
@@ -112,7 +115,7 @@ impl GridDetail {
 
 /// How the viewport is shown and steered: choices the user can switch,
 /// which are remembered between sessions.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ViewOptions {
     /// How detailed the grid is. Lines every metre as standard, for a calm
@@ -133,6 +136,13 @@ pub struct ViewOptions {
     pub select_visible_only: bool,
     /// Which keys add to and take from the selection.
     pub select_keys: SelectKeys,
+    /// How the move, rotate and scale gizmos snap.
+    pub snap: SnapSettings,
+    /// Axes that can't change while moving, rotating or scaling (X, Y,
+    /// Z).
+    pub locked: [bool; 3],
+    /// Whether the gizmo follows the world's axes or the object's own.
+    pub axes: Axes,
 }
 
 /// What a renderer needs to draw one viewport frame.
@@ -372,6 +382,12 @@ struct View {
     /// Where the last click was, so a double-click can be told from two
     /// quick clicks in different places.
     last_click: Option<egui::Pos2>,
+    /// A drag of the gizmo in progress, if any.
+    gizmo_drag: Option<tools::Drag>,
+    /// The gizmo handle the left button went down on, if any.
+    pressed_handle: Option<tools::Handle>,
+    /// The gizmo handle under the mouse, to light up.
+    hovered_handle: Option<tools::Handle>,
 }
 
 impl View {
@@ -385,6 +401,9 @@ impl View {
             image_size: Vec2::ZERO,
             select_drag: None,
             last_click: None,
+            gizmo_drag: None,
+            pressed_handle: None,
+            hovered_handle: None,
         }
     }
 
@@ -635,6 +654,11 @@ pub struct ViewportPanel {
     ctrl_scroll: f32,
     /// Selection gestures this frame, for the workbench.
     gestures: Vec<Gesture>,
+    /// The gizmo to show and handle, if a transform tool is in use and
+    /// something can move (set by the workbench each frame).
+    gizmo: Option<tools::Gizmo>,
+    /// Gizmo events this frame, for the workbench.
+    gizmo_events: Vec<GizmoEvent>,
 }
 
 impl Default for ViewportPanel {
@@ -653,6 +677,8 @@ impl Default for ViewportPanel {
             strokes: 0,
             ctrl_scroll: 0.0,
             gestures: Vec::new(),
+            gizmo: None,
+            gizmo_events: Vec::new(),
         }
     }
 }
@@ -765,6 +791,42 @@ impl ViewportPanel {
         self.brush_radius
     }
 
+    /// Shows `gizmo` in the views (or none), from this frame on.
+    pub(crate) fn set_gizmo(&mut self, gizmo: Option<tools::Gizmo>) {
+        self.gizmo = gizmo;
+    }
+
+    /// The gizmo shown, if any.
+    pub fn gizmo(&self) -> Option<tools::Gizmo> {
+        self.gizmo
+    }
+
+    /// The gizmo events since last asked.
+    pub(crate) fn take_gizmo_events(&mut self) -> Vec<GizmoEvent> {
+        std::mem::take(&mut self.gizmo_events)
+    }
+
+    /// Whether the gizmo is being dragged in any view.
+    pub fn dragging_gizmo(&self) -> bool {
+        self.views.iter().any(View::dragging_gizmo)
+    }
+
+    /// Cancels a gizmo drag in progress (Esc). Returns whether there was
+    /// one.
+    pub(crate) fn cancel_gizmo_drag(&mut self) -> bool {
+        let mut cancelled = false;
+        for view in &mut self.views {
+            if view.gizmo_drag.take().is_some() {
+                view.pressed_handle = None;
+                cancelled = true;
+            }
+        }
+        if cancelled {
+            self.gizmo_events.push(GizmoEvent::Cancel);
+        }
+        cancelled
+    }
+
     /// The selection gestures made since last asked.
     pub(crate) fn take_gestures(&mut self) -> Vec<Gesture> {
         std::mem::take(&mut self.gestures)
@@ -858,18 +920,30 @@ impl ViewportPanel {
             }
             let settings = self.options.navigation;
             self.views[slot].navigate(ui, &response, rect, settings);
-            self.views[slot].capture_selection(
+            let gizmo_busy = self.views[slot].capture_gizmo(
                 ui,
                 &response,
                 rect,
-                select::Capture {
-                    tool: self.select_tool,
-                    keys: self.options.select_keys,
-                    brush_radius: self.brush_radius,
-                    strokes: &mut self.strokes,
-                    out: &mut self.gestures,
+                gizmo::GizmoInput {
+                    gizmo: self.gizmo,
+                    locked: self.options.locked,
+                    out: &mut self.gizmo_events,
                 },
             );
+            if !gizmo_busy {
+                self.views[slot].capture_selection(
+                    ui,
+                    &response,
+                    rect,
+                    select::Capture {
+                        tool: self.select_tool,
+                        keys: self.options.select_keys,
+                        brush_radius: self.brush_radius,
+                        strokes: &mut self.strokes,
+                        out: &mut self.gestures,
+                    },
+                );
+            }
 
             let mut view =
                 self.views[slot].view(slot, rect, ppp, self.options.grid_detail, &scene.drawing);
@@ -885,6 +959,7 @@ impl ViewportPanel {
             if response.hovered() {
                 hovered = Some((slot, rect, response.hover_pos(), view));
             }
+            self.views[slot].paint_gizmo(ui, rect, self.gizmo, self.options.locked);
             self.views[slot].paint_selection(
                 ui,
                 rect,

@@ -8,6 +8,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Move, rotate and scale.** Press **W**, **R** or **S** (or **T** for all three) with something selected, and drag the gizmo's arrows, squares, rings or boxes. It works on whole shapes in Model mode, and on points, edges and polygons in their modes, where the shape stretches to follow. Each drag is one undo step.
+  - Hold **Shift** for ten times finer steps.
+  - **Esc** or a right-click cancels a drag.
+  - **X**, **Y** and **Z** lock axes, and **L** switches between the world's and the object's own axes. The palette buttons and the **Tools** menu do the same.
+  - **Q** goes back to selecting.
+- **Snapping**: the magnet button turns it on. Moves snap to points, edges, polygons or the grid lines shown, turns to 15° steps, and scaling to 10% steps. Holding **Ctrl** while dragging flips snapping for that drag; Settings can make it button only.
+- **The Coordinates panel works**: it shows the selection's position, size and rotation. Type a value and press Enter, or drag the number.
+
 - **Selecting in the viewport.** Click a shape to select it, **Ctrl + click** to add one (or take it out if it's selected), **Shift + click** to take one out, and click empty space to unselect. In Points, Edges and Polygons mode the same works on points, edges and polygons of the selected shapes. Every selection, including in the Objects panel, can be undone with **Ctrl + Z**.
 - **Box, lasso and live selection brush**: drag to select (Ctrl + drag adds, Shift + drag removes), and press **Q** to switch between them. They select through the shape as standard, so the far side is caught too; the new **Select only visible** button on the left palette (also in the Select menu and Settings) limits them to what you can see.
 - **One pattern of keys for every way of selecting**, with three others to choose from in **Settings → Viewport → Selection keys**: Shift adds and Ctrl removes; Ctrl flips; or Ctrl adds and Alt removes.
@@ -17,6 +25,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Projects are saved in format version 2, so turned and scaled points are kept. Older projects still open; projects saved now need this version of the app or newer.
 - **Ctrl + mouse wheel** no longer zooms the view; it grows and shrinks the selection.
 - In Points, Edges and Polygons mode, what's under the mouse is now light red, and what's selected full red. Points are round dots instead of squares.
 - Double-clicks may be up to half a second apart (was 0.3 s), as is standard on Windows, and two quick clicks on different things no longer count as a double-click.

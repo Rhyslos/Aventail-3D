@@ -9,6 +9,7 @@
 
 mod attributes;
 mod components;
+mod coordinates;
 mod drawing;
 pub mod icons;
 pub mod layout;
@@ -21,6 +22,7 @@ mod selecting;
 mod settings;
 mod shape_picker;
 pub mod theme;
+mod transforming;
 mod undo_memory;
 mod units;
 mod viewport;
@@ -43,6 +45,7 @@ pub use selecting::{
 };
 pub use settings::SETTINGS_SHORTCUT;
 pub use shape_picker::SHAPE_LIST_KEY;
+pub use transforming::{AXES_KEY, Axes, LOCK_KEYS, SnapSettings, TOOL_KEYS, Tool};
 pub use undo_memory::{UndoMemory, format_bytes};
 pub use units::Units;
 pub use viewport::{
