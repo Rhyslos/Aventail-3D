@@ -318,6 +318,13 @@ fn a_scale_square_scales_two_axes_as_the_mouse_goes() {
     assert!((f.x - 2.0).abs() < 0.02, "{f}");
     assert!((f.y - 1.2).abs() < 0.02, "{f}");
     assert_eq!(f.z, 1.0);
+    // Diagonally: both axes alike.
+    let to = start + Vec3::new(0.5, 0.5, 0.0) * length;
+    let Change::Scale(f) = drag.update(screen(&top, to), false, NONE_LOCKED) else {
+        panic!("a scale")
+    };
+    assert!((f.x - f.y).abs() < 0.02 && f.x > 1.4, "{f}");
+    assert_eq!(f.z, 1.0);
     // A locked axis keeps its size.
     let Change::Scale(f) = drag.change([true, false, false]) else {
         panic!()

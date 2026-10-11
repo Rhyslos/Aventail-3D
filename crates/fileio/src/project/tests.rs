@@ -312,6 +312,22 @@ fn turned_and_scaled_points_are_kept_and_checked() {
         text.contains("\"Cube\"") && text.contains("turn or scale"),
         "{text}"
     );
+    // So is a recorded place that isn't numbers.
+    let mut bad = good.clone();
+    let ops = &mut bad.objects[cube].layers[0].operations;
+    let v2::OperationV2::TransformPoints {
+        anchors: Some(anchors),
+        ..
+    } = &mut ops[last]
+    else {
+        panic!("the rich document's turn records where its edge was")
+    };
+    anchors.points[0].1[2] = f32::INFINITY;
+    let text = refused(&file_of_v2(&bad)).to_string();
+    assert!(
+        text.contains("\"Cube\"") && text.contains("recorded place"),
+        "{text}"
+    );
     // Version 1's model can't hold the new operation: it is only ever
     // used for reading.
     let old = v1::ProjectV1::from_document(&doc);
