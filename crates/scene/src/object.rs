@@ -1,7 +1,9 @@
 //! Objects: what the scene is made of.
 
+use crate::stack::Stack;
 use glam::{Mat4, Vec3};
 use mesh::{Bounds, Mesh, Primitive};
+use std::sync::Arc;
 
 /// An object's identity. Stable for the object's whole life, never reused
 /// for another object (even after it is deleted), and handed out in order,
@@ -22,18 +24,22 @@ impl std::fmt::Display for ObjectId {
     }
 }
 
-/// What kind of object something is. More kinds (imported and editable
-/// meshes, and much later joints) join this list; nothing assumes it is
-/// complete.
-#[derive(Debug, Clone, Copy, PartialEq)]
+/// What kind of object something is. For an object with a shape, this is
+/// its *base*: what its shape starts from, before the edits recorded in
+/// its [`Stack`]. More kinds (imported meshes, and much later joints) join
+/// this list; nothing assumes it is complete.
+#[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub enum ObjectKind {
     /// An empty object that holds others: a way to organise the scene and
     /// move things together. Has no shape of its own.
     Group,
-    /// A ready-made shape built from settings (its *base*): a cube,
-    /// cylinder and so on. The settings stay editable.
+    /// A ready-made shape built from settings: a cube, cylinder and so on.
+    /// The settings stay editable, even after edits are recorded on top.
     Primitive(Primitive),
+    /// A plain mesh, with no settings: what "Make editable" turns a shape
+    /// into. Shared, as meshes can be large and are never changed in place.
+    Mesh(Arc<Mesh>),
 }
 
 impl ObjectKind {
@@ -42,24 +48,34 @@ impl ObjectKind {
         match self {
             Self::Group => "Group",
             Self::Primitive(p) => p.name(),
+            Self::Mesh(_) => "Mesh",
         }
     }
 
-    /// The object's own shape's box, in its own space, or `None` for a
-    /// kind with no shape.
+    /// Whether this kind has a shape (and so can have edits recorded).
+    pub fn has_shape(&self) -> bool {
+        !matches!(self, Self::Group)
+    }
+
+    /// The base's box, in the object's own space, before any recorded
+    /// edits, or `None` for a kind with no shape. For the final shape's
+    /// box, ask the scene ([`crate::Scene::local_bounds`]).
     pub fn local_bounds(&self) -> Option<Bounds> {
         match self {
             Self::Group => None,
             Self::Primitive(p) => Some(p.bounds()),
+            Self::Mesh(mesh) => mesh.bounds(),
         }
     }
 
-    /// The object's own shape, in its own space, or `None` for a kind with
-    /// no shape.
+    /// The base's shape, in the object's own space, before any recorded
+    /// edits, or `None` for a kind with no shape. For the final shape, ask
+    /// the scene ([`crate::Scene::evaluated`]).
     pub fn mesh(&self) -> Option<Mesh> {
         match self {
             Self::Group => None,
             Self::Primitive(p) => Some(p.mesh()),
+            Self::Mesh(mesh) => Some((**mesh).clone()),
         }
     }
 }
@@ -113,6 +129,9 @@ pub struct Object {
     pub visible: bool,
     /// Where it is, relative to its parent.
     pub transform: Transform,
+    /// The edits recorded on top of its base, in layers. Always empty for
+    /// a group. Changed only through commands.
+    pub stack: Stack,
 }
 
 impl Object {
@@ -123,6 +142,7 @@ impl Object {
             kind,
             visible: true,
             transform: Transform::default(),
+            stack: Stack::default(),
         }
     }
 }
@@ -144,6 +164,21 @@ mod tests {
         let bounds = cube.kind.local_bounds().unwrap();
         assert_eq!(bounds.size(), glam::Vec3::splat(100.0));
         assert_eq!(cube.kind.mesh().unwrap().face_count(), 6);
+        assert!(cube.stack.is_empty());
+        assert!(cube.kind.has_shape());
+        assert!(!group.kind.has_shape());
+    }
+
+    #[test]
+    fn a_mesh_base_is_its_own_shape() {
+        let mesh = Arc::new(Primitive::Cube(Default::default()).mesh());
+        let kind = ObjectKind::Mesh(Arc::clone(&mesh));
+        assert_eq!(kind.name(), "Mesh");
+        assert!(kind.has_shape());
+        assert_eq!(kind.local_bounds(), mesh.bounds());
+        assert_eq!(kind.mesh().as_ref(), Some(&*mesh));
+        let empty = ObjectKind::Mesh(Arc::new(Mesh::new()));
+        assert_eq!(empty.local_bounds(), None, "an empty mesh has no box");
     }
 
     #[test]

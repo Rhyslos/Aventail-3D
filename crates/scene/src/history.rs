@@ -92,7 +92,7 @@ fn merge_edit(edits: &mut Vec<Edit>, edit: Edit) {
             .iter_mut()
             .find(|e| matches!(e, Edit::SetKind { id: other, .. } if other == id))
     {
-        *earlier = *after;
+        earlier.clone_from(after);
         return;
     }
     edits.push(edit);

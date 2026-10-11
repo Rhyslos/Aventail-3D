@@ -29,6 +29,10 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Primitive** — A ready-made shape (cube, cylinder, sphere…) built from a few settings, like size and segments, which stay editable. In this app every primitive stands on the ground with its pivot at the middle of its base. See [Primitives](primitives.md).
 
+**Base and edits** — A shape in this app is kept in two parts: its *base*, what it starts from (a primitive's settings, or a plain mesh), and the *edits* recorded on top of it, such as moving some points. The final shape is the base with the edits applied. Because the two are kept apart, a primitive's settings stay editable after you've modelled on it: change a cube's height and your edits are made again on the taller cube. (The modelling tools that record edits arrive from Phase 3; the stack of edits is already there.)
+
+**Editable mesh (Make editable)** — Turning a shape into a plain mesh with no settings: its base and edits are baked together, so what you see becomes the new starting point. Do it when you no longer need the settings, or before editing a mesh freely. Undo brings the settings back. See [Objects](objects.md#make-editable).
+
 **Hierarchy** — Objects can be children of other objects (sit *inside* them, in the Object Manager's tree). Moving a parent moves its children with it, and hiding it hides them too.
 
 **Undo history** — The list of changes you've made, kept so they can be taken back (undo, `Ctrl + Z`) and done again (redo, `Ctrl + Y`). This app keeps every step while it's open.
@@ -37,7 +41,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Axes (X, Y, Z)** — The three directions of 3D space, always coloured X red, Y blue, Z green. (Most 3D programs colour Y green and Z blue; this app swaps them, so blue is the second ground direction. The letters are always shown too.) In this app **Z points up**, and X and Y lie flat on the ground; a green line rising from the origin marks Z. Some 3D programs, Godot and the glTF file format use Y for up instead; the app converts when it exports, so models arrive standing upright.
 
-**Origin and grid** — The origin is the point where X, Y and Z are all zero: the centre of the world, where the red and blue axis lines cross. The grid on the ground helps you judge sizes: in this app its lines are 1 m apart, and you can add fainter lines every 50 cm (cutting each square into four) or every 10 cm when you need them. Lengths are shown in metres as standard, or centimetres if you prefer; 1 m is 100 cm. It's drawn around the point you're looking at and fades out at its edges, so it reads as a work surface rather than an endless floor.
+**Origin and grid** — The origin is the point where X, Y and Z are all zero: the centre of the world, where the red and blue axis lines cross. The grid on the ground helps you judge sizes: in this app its lines are 1 m apart, and you can add fainter lines every 50 cm (cutting each square into four) or every 10 cm when you need them. It's drawn around the point you're looking at and fades out at its edges, so it reads as a work surface rather than an endless floor. Lengths are shown in metres as standard, or centimetres if you prefer; 1 m is 100 cm.
 
 **Local vs. world space** — *World* directions are the same for the whole scene. *Local* directions follow the object's own rotation.
 

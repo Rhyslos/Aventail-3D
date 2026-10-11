@@ -1,8 +1,10 @@
 //! Commands: every change a user can make to the scene, each one undoable.
 
 use crate::object::{Object, ObjectId, ObjectKind};
+use crate::stack::{EDITS_LAYER, Layer, Operation};
 use crate::tree::{Edit, Place, Scene, SceneError};
 use mesh::Primitive;
+use std::sync::Arc;
 
 /// A change to the scene. Every change goes through one, so it can be
 /// undone and redone.
@@ -66,6 +68,20 @@ pub enum Command {
         /// Their new settings.
         primitive: Primitive,
     },
+    /// Records an edit on top of an object's shape, in its top layer (an
+    /// "Edits" layer is made if it has none). The base stays as it was, so
+    /// a primitive's settings can still change and the edit replays on the
+    /// new shape. Groups have no shape and are refused.
+    Record {
+        /// The object.
+        id: ObjectId,
+        /// The edit.
+        operation: Operation,
+    },
+    /// Bakes each shape's base and recorded edits into a plain mesh, which
+    /// becomes its new base (its settings are gone; its edits are part of
+    /// the mesh). Groups, and meshes with nothing recorded, are left alone.
+    MakeEditable(Vec<ObjectId>),
 }
 
 impl Command {
@@ -92,6 +108,14 @@ impl Command {
             Self::Group(ids) => format!("Group {}", objects(count(ids))),
             Self::SetPrimitive { primitive, .. } => {
                 format!("Change {} settings", primitive.name().to_lowercase())
+            }
+            Self::Record { operation, .. } => operation.describe(),
+            Self::MakeEditable(ids) => {
+                let n = ids
+                    .iter()
+                    .filter(|id| scene.can_make_editable(**id))
+                    .count();
+                format!("Make {} editable", objects(n.max(1)))
             }
             Self::Ungroup(ids) => match groups_among(scene, ids).len() {
                 1 => "Ungroup".into(),
@@ -158,7 +182,7 @@ impl Run<'_> {
     fn command(&mut self, command: &Command) -> Result<Option<Vec<ObjectId>>, SceneError> {
         match command {
             Command::Create(kind) => {
-                let mut object = Object::new(*kind);
+                let mut object = Object::new(kind.clone());
                 object.name = self.scene.unused_name(kind.name());
                 let id = self.insert(
                     object,
@@ -253,14 +277,72 @@ impl Run<'_> {
                         .scene
                         .object(id)
                         .ok_or(SceneError::UnknownObject(id))?
-                        .kind;
-                    match before {
+                        .kind
+                        .clone();
+                    match &before {
                         ObjectKind::Primitive(p) if p.kind() == primitive.kind() => {}
                         _ => return Err(SceneError::WrongKind(primitive.name())),
                     }
                     if before != after {
-                        self.edit(Edit::SetKind { id, before, after })?;
+                        self.edit(Edit::SetKind {
+                            id,
+                            before,
+                            after: after.clone(),
+                        })?;
                     }
+                }
+                Ok(None)
+            }
+            Command::Record { id, operation } => {
+                let object = self
+                    .scene
+                    .object(*id)
+                    .ok_or(SceneError::UnknownObject(*id))?;
+                if !object.kind.has_shape() {
+                    return Err(SceneError::NoShape);
+                }
+                let mut layers = object.stack.layers().len();
+                if layers == 0 {
+                    self.edit(Edit::InsertLayer {
+                        id: *id,
+                        index: 0,
+                        layer: Layer::new(EDITS_LAYER),
+                    })?;
+                    layers = 1;
+                }
+                let layer = layers - 1;
+                let index = self
+                    .scene
+                    .object(*id)
+                    .map_or(0, |o| o.stack.layers()[layer].operations.len());
+                self.edit(Edit::InsertOperation {
+                    id: *id,
+                    layer,
+                    index,
+                    operation: operation.clone(),
+                })?;
+                Ok(None)
+            }
+            Command::MakeEditable(ids) => {
+                for id in existing(self.scene, ids)? {
+                    if !self.scene.can_make_editable(id) {
+                        continue;
+                    }
+                    let Some(shape) = self.scene.evaluated(id) else {
+                        continue;
+                    };
+                    let object = self.scene.object(id).ok_or(SceneError::UnknownObject(id))?;
+                    let before = object.kind.clone();
+                    let layers = object.stack.layers().to_vec();
+                    // Top layer first, so every removal is of the top one.
+                    for (index, layer) in layers.into_iter().enumerate().rev() {
+                        self.edit(Edit::RemoveLayer { id, index, layer })?;
+                    }
+                    self.edit(Edit::SetKind {
+                        id,
+                        before,
+                        after: ObjectKind::Mesh(Arc::clone(&shape.mesh)),
+                    })?;
                 }
                 Ok(None)
             }

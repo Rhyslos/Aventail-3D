@@ -28,6 +28,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Make editable** (**C**, also in the Mesh menu and the Objects panel's Object and right-click menus): turns the selected shapes into plain meshes, baking in their settings. Undo brings the settings back. The Attributes panel shows a mesh's points and polygons, and the Objects panel gives it the polygon icon.
+- Shapes now keep edits apart from their settings: the modelling tools coming in Phase 3 will record edits on top of a shape, so its settings (a cube's segments, say) stay editable afterwards and the edits are made again on the new shape. The Attributes panel will count a shape's edits and flag any that no longer fully fit.
 - Small step arrows beside every value in the Attributes panel: click to add or take away one step (1 cm, or 1 segment) for fine tuning; hold Shift for ten.
 - Press **B** for a list of shapes by the mouse: **B** again moves down it, **Shift + B** back up, and **Enter** or **Space** creates the highlighted shape. Clicking a shape in the list creates it too; **Esc** closes it.
 - Cylinder and cone ends, and discs, can be cut into rings (**Cap segments**, **Ring segments**), and their middle can be one n-gon (standard) or triangles meeting at a **Centre point**.

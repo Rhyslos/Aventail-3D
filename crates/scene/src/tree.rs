@@ -2,6 +2,7 @@
 //! made of.
 
 use crate::object::{Object, ObjectId, ObjectKind};
+use crate::stack::{EvalContext, Evaluated, Layer, Operation, SharedCache};
 use glam::Mat4;
 use mesh::Bounds;
 use std::collections::BTreeMap;
@@ -19,6 +20,8 @@ pub enum SceneError {
     History(&'static str),
     /// Settings for one kind of primitive were given to something else.
     WrongKind(&'static str),
+    /// Edits can only be recorded on an object with a shape, not a group.
+    NoShape,
 }
 
 impl std::fmt::Display for SceneError {
@@ -36,6 +39,7 @@ impl std::fmt::Display for SceneError {
                 kind,
                 kind.to_lowercase()
             ),
+            Self::NoShape => f.write_str("a group has no shape to edit"),
         }
     }
 }
@@ -94,13 +98,44 @@ pub(crate) enum Edit {
         before: ObjectKind,
         after: ObjectKind,
     },
+    /// Adds a layer to an object's stack, at `index` (from the bottom).
+    InsertLayer {
+        id: ObjectId,
+        index: usize,
+        layer: Layer,
+    },
+    /// Takes a layer, with its operations, out of an object's stack.
+    RemoveLayer {
+        id: ObjectId,
+        index: usize,
+        layer: Layer,
+    },
+    /// Adds an operation to one of an object's layers, at `index`.
+    InsertOperation {
+        id: ObjectId,
+        layer: usize,
+        index: usize,
+        operation: Operation,
+    },
+    /// Takes an operation out of one of an object's layers.
+    RemoveOperation {
+        id: ObjectId,
+        layer: usize,
+        index: usize,
+        operation: Operation,
+    },
 }
 
 impl Edit {
     /// Whether the edit leaves everything as it was.
     pub(crate) fn changes_nothing(&self) -> bool {
         match self {
-            Self::Insert { .. } | Self::Remove { .. } => false,
+            Self::Insert { .. }
+            | Self::Remove { .. }
+            | Self::InsertLayer { .. }
+            | Self::RemoveLayer { .. }
+            | Self::InsertOperation { .. }
+            | Self::RemoveOperation { .. } => false,
             Self::Relocate { from, to, .. } => from == to,
             Self::Rename { before, after, .. } => before == after,
             Self::SetVisible { before, after, .. } => before == after,
@@ -133,6 +168,30 @@ impl Edit {
                 before: after,
                 after: before,
             },
+            Self::InsertLayer { id, index, layer } => Self::RemoveLayer { id, index, layer },
+            Self::RemoveLayer { id, index, layer } => Self::InsertLayer { id, index, layer },
+            Self::InsertOperation {
+                id,
+                layer,
+                index,
+                operation,
+            } => Self::RemoveOperation {
+                id,
+                layer,
+                index,
+                operation,
+            },
+            Self::RemoveOperation {
+                id,
+                layer,
+                index,
+                operation,
+            } => Self::InsertOperation {
+                id,
+                layer,
+                index,
+                operation,
+            },
         }
     }
 }
@@ -155,6 +214,9 @@ pub struct Scene {
     roots: Vec<ObjectId>,
     /// The next new object's id.
     next_id: u64,
+    /// Each object's evaluated shape, layer by layer (not part of what the
+    /// scene is: copies start empty, and it never affects equality).
+    cache: SharedCache,
 }
 
 impl Scene {
@@ -176,6 +238,44 @@ impl Scene {
     /// The object with this id, if it exists.
     pub fn object(&self, id: ObjectId) -> Option<&Object> {
         self.nodes.get(&id).map(|n| &n.object)
+    }
+
+    /// The object's final shape: its base with every recorded edit
+    /// applied, from the cache where nothing has changed. `None` for an
+    /// object without a shape (a group) or an unknown id.
+    pub fn evaluated(&self, id: ObjectId) -> Option<Evaluated> {
+        let object = self.object(id)?;
+        self.cache
+            .with(|cache| cache.evaluate(id, &object.kind, &object.stack, &EvalContext::default()))
+    }
+
+    /// The box around the object's final shape, in its own space, or
+    /// `None` without a shape. A primitive with no recorded edits gives
+    /// its box without building its mesh.
+    pub fn local_bounds(&self, id: ObjectId) -> Option<Bounds> {
+        let object = self.object(id)?;
+        match &object.kind {
+            ObjectKind::Primitive(p) if object.stack.is_empty() => Some(p.bounds()),
+            ObjectKind::Group => None,
+            _ => self.evaluated(id)?.mesh.bounds(),
+        }
+    }
+
+    /// Whether [`crate::Command::MakeEditable`] would change `id`: a
+    /// primitive (whose settings become a plain mesh), or a mesh with
+    /// edits recorded on it. Not a group, or a mesh with nothing recorded.
+    pub fn can_make_editable(&self, id: ObjectId) -> bool {
+        self.object(id).is_some_and(|o| match o.kind {
+            ObjectKind::Primitive(_) => true,
+            ObjectKind::Mesh(_) => !o.stack.is_empty(),
+            ObjectKind::Group => false,
+        })
+    }
+
+    /// What the cache had to work out the last time `id` was evaluated.
+    #[cfg(test)]
+    pub(crate) fn last_rebuilt(&self, id: ObjectId) -> Option<crate::stack::Rebuilt> {
+        self.cache.with(|cache| cache.last_rebuilt(id))
     }
 
     /// Whether an object with this id exists.
@@ -278,7 +378,7 @@ impl Scene {
                 if !self.is_shown(inner) {
                     continue;
                 }
-                let Some(local) = self.object(inner).and_then(|o| o.kind.local_bounds()) else {
+                let Some(local) = self.local_bounds(inner) else {
                     continue;
                 };
                 let matrix = self.world_matrix(inner);
@@ -373,6 +473,7 @@ impl Scene {
                 }
                 self.siblings_mut(place.parent)?.remove(place.index);
                 self.nodes.remove(id);
+                self.cache.get_mut().forget(*id);
                 Ok(())
             }
             Edit::Relocate { id, from, to } => {
@@ -425,10 +526,70 @@ impl Scene {
                 if node.object.kind != *before {
                     return Err(SceneError::History("an object's settings have changed"));
                 }
-                node.object.kind = *after;
+                node.object.kind = after.clone();
+                Ok(())
+            }
+            Edit::InsertLayer { id, index, layer } => {
+                let object = self.shaped_mut(*id)?;
+                if *index > object.stack.layers.len() {
+                    return Err(SceneError::History("a layer's place no longer exists"));
+                }
+                object.stack.layers.insert(*index, layer.clone());
+                Ok(())
+            }
+            Edit::RemoveLayer { id, index, layer } => {
+                let object = self.shaped_mut(*id)?;
+                if object.stack.layers.get(*index) != Some(layer) {
+                    return Err(SceneError::History("a layer has changed"));
+                }
+                object.stack.layers.remove(*index);
+                Ok(())
+            }
+            Edit::InsertOperation {
+                id,
+                layer,
+                index,
+                operation,
+            } => {
+                let object = self.shaped_mut(*id)?;
+                let Some(layer) = object.stack.layers.get_mut(*layer) else {
+                    return Err(SceneError::History("a layer no longer exists"));
+                };
+                if *index > layer.operations.len() {
+                    return Err(SceneError::History("an operation's place no longer exists"));
+                }
+                layer.operations.insert(*index, operation.clone());
+                Ok(())
+            }
+            Edit::RemoveOperation {
+                id,
+                layer,
+                index,
+                operation,
+            } => {
+                let object = self.shaped_mut(*id)?;
+                let Some(layer) = object.stack.layers.get_mut(*layer) else {
+                    return Err(SceneError::History("a layer no longer exists"));
+                };
+                if layer.operations.get(*index) != Some(operation) {
+                    return Err(SceneError::History("an operation has changed"));
+                }
+                layer.operations.remove(*index);
                 Ok(())
             }
         }
+    }
+
+    /// An object with a shape, to change its stack.
+    fn shaped_mut(&mut self, id: ObjectId) -> Result<&mut Object, SceneError> {
+        let node = self
+            .nodes
+            .get_mut(&id)
+            .ok_or(SceneError::UnknownObject(id))?;
+        if !node.object.kind.has_shape() {
+            return Err(SceneError::NoShape);
+        }
+        Ok(&mut node.object)
     }
 
     fn check_parent(&self, parent: Option<ObjectId>) -> Result<(), SceneError> {

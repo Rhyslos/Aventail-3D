@@ -1,11 +1,12 @@
-//! What the viewport draws of the scene: each shown object's mesh, where
-//! it is, and whether it is selected. Rebuilt only when the scene or the
-//! selection changes, and a primitive's mesh only when its settings do.
+//! What the viewport draws of the scene: each shown object's final shape
+//! (its base with its recorded edits), where it is, and whether it is
+//! selected. Rebuilt only when the scene or the selection changes; the
+//! shapes themselves come from the scene's cache, which works one out
+//! again only when that object's base or edits change.
 
 use crate::viewport::{DEFAULT_FRAME, Frame};
 use glam::Mat4;
-use scene::{Bounds, Document, Mesh, ObjectId, ObjectKind};
-use std::collections::HashMap;
+use scene::{Bounds, Document, Mesh, ObjectId};
 use std::sync::Arc;
 
 /// One object to draw.
@@ -62,8 +63,6 @@ impl SceneSummary {
 pub(crate) struct DrawingCache {
     /// The scene revision and selection the summary was built for.
     built_for: Option<(u64, Vec<ObjectId>)>,
-    /// Each primitive's settings and the mesh built from them.
-    meshes: HashMap<ObjectId, (ObjectKind, Arc<Mesh>)>,
     summary: SceneSummary,
 }
 
@@ -77,30 +76,20 @@ impl DrawingCache {
         }
         let scene = document.scene();
         let mut items = Vec::new();
-        let mut meshes = HashMap::new();
         for (id, _) in scene.walk() {
-            let Some(object) = scene.object(id) else {
-                continue;
-            };
             if !scene.is_shown(id) {
                 continue;
             }
-            let mesh = match self.meshes.remove(&id) {
-                Some((kind, mesh)) if kind == object.kind => mesh,
-                _ => match object.kind.mesh() {
-                    Some(mesh) => Arc::new(mesh),
-                    None => continue,
-                },
+            let Some(shape) = scene.evaluated(id) else {
+                continue;
             };
-            meshes.insert(id, (object.kind, Arc::clone(&mesh)));
             items.push(DrawItem {
                 id,
-                mesh,
+                mesh: shape.mesh,
                 transform: scene.world_matrix(id),
                 selected: document.is_selected(id),
             });
         }
-        self.meshes = meshes;
         let version = self.summary.drawing.version + 1;
         self.summary = SceneSummary {
             drawing: Arc::new(SceneDrawing { version, items }),
@@ -115,7 +104,7 @@ impl DrawingCache {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use scene::{Command, PrimitiveKind};
+    use scene::{Command, ObjectKind, Operation, PrimitiveKind, VertexId};
 
     fn create(doc: &mut Document, kind: PrimitiveKind) -> ObjectId {
         doc.execute(Command::Create(ObjectKind::Primitive(kind.standard())))
@@ -182,5 +171,41 @@ mod tests {
         // Undoing the creation leaves nothing to draw.
         doc.undo();
         assert!(cache.update(&doc).drawing.items.is_empty());
+    }
+
+    #[test]
+    fn recorded_edits_are_drawn_and_framed() {
+        let mut doc = Document::new();
+        let cube = create(&mut doc, PrimitiveKind::Cube);
+        let mut cache = DrawingCache::default();
+        let before = cache.update(&doc).clone();
+        let top: Vec<VertexId> = before.drawing.items[0]
+            .mesh
+            .vertices()
+            .filter(|(_, p)| p.z > 50.0)
+            .map(|(v, _)| v)
+            .collect();
+        doc.execute(Command::Record {
+            id: cube,
+            operation: Operation::MovePoints {
+                points: top,
+                offset: glam::Vec3::Z * 100.0,
+            },
+        })
+        .unwrap();
+        let after = cache.update(&doc).clone();
+        assert_ne!(after.drawing.items[0].mesh, before.drawing.items[0].mesh);
+        assert_eq!(after.all.unwrap().max.z, 200.0, "framing sees the edit");
+    }
+
+    #[test]
+    fn a_shape_made_editable_looks_the_same() {
+        let mut doc = Document::new();
+        let sphere = create(&mut doc, PrimitiveKind::Sphere);
+        let mut cache = DrawingCache::default();
+        let before = cache.update(&doc).drawing.items[0].mesh.clone();
+        doc.execute(Command::MakeEditable(vec![sphere])).unwrap();
+        let after = cache.update(&doc).drawing.items[0].mesh.clone();
+        assert_eq!(*after, *before);
     }
 }

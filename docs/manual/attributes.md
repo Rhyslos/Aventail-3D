@@ -24,6 +24,10 @@ Whenever you want to change *what* an object is rather than where it is: make a 
 
 **Copy and paste settings.** To make several shapes match, select the one you like and use the panel's **Edit → Copy settings**, or right-click it in the Objects panel and choose **Copy settings**. Then select the others (any number, in the Objects panel) and use **Edit → Paste cube settings** (or cylinder, and so on), or right-click one of them and choose the same: every selected shape of the same kind gets the same settings, in one undo step. Shapes of another kind are left alone.
 
+**Meshes.** An object that has been [made editable](objects.md#make-editable) has no settings: the panel shows "(mesh)" after its name and, under **Mesh**, how many **Points** and **Polygons** it has.
+
+**Edits.** From Phase 3, the modelling tools record your edits on top of a shape instead of changing its settings (see [Base and edits](concepts.md#objects-and-scenes)). When a shape has edits, an **Edits** section says how many, and the settings above stay editable: change them and the edits are made again on the new shape. If some edits no longer fully fit (for example, you gave a cube fewer segments, so points an edit moved are gone), a line in amber says how many. They still apply to the points that remain, and going back to the earlier settings brings the missing points back.
+
 With nothing selected the panel says so; with several objects selected it counts them (pick one to see its settings).
 
 ## Settings

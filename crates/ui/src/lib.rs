@@ -26,8 +26,8 @@ mod workbench;
 pub use drawing::{DrawItem, SceneDrawing, SceneSummary};
 pub use egui_dock::DockState;
 pub use objects::{
-    DELETE_SHORTCUT, DESELECT_SHORTCUT, GROUP_SHORTCUT, REDO_SHORTCUT, REDO_SHORTCUT_2,
-    UNDO_SHORTCUT, UNGROUP_SHORTCUT,
+    DELETE_SHORTCUT, DESELECT_SHORTCUT, GROUP_SHORTCUT, MAKE_EDITABLE_SHORTCUT, REDO_SHORTCUT,
+    REDO_SHORTCUT_2, UNDO_SHORTCUT, UNGROUP_SHORTCUT,
 };
 pub use palette::Mode;
 pub use panel::Panel;

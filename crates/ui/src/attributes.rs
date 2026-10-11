@@ -9,14 +9,14 @@
 mod fields;
 mod stepper;
 
-use crate::objects::{DocRequest, shape_icon};
+use crate::objects::{DocRequest, kind_icon};
 use crate::panels::placeholder;
-use crate::theme::{self, tint};
+use crate::theme;
 use crate::units::Units;
 use egui::{RichText, Ui, vec2};
 use fields::{Value, fields};
 use mesh::primitives::MAX_SIZE;
-use scene::{Command, Document, ObjectId, ObjectKind, Primitive};
+use scene::{Command, Document, ObjectId, ObjectKind, Primitive, Stack};
 
 /// Width of the column of setting names, so both sections line up.
 const LABEL_WIDTH: f32 = 110.0;
@@ -180,9 +180,16 @@ impl AttributesPanel {
                         }
                         ui.end_row();
                     });
-                if let ObjectKind::Primitive(primitive) = object.kind {
-                    shape_section(ui, units);
-                    self.shape_rows(ui, id, primitive, *units, out);
+                match &object.kind {
+                    ObjectKind::Primitive(primitive) => {
+                        shape_section(ui, units);
+                        self.shape_rows(ui, id, *primitive, *units, out);
+                    }
+                    ObjectKind::Mesh(_) => mesh_section(ui, doc, id),
+                    _ => {}
+                }
+                if !object.stack.is_empty() {
+                    edits_section(ui, doc, id, &object.stack);
                 }
             });
     }
@@ -321,6 +328,83 @@ fn shape_section(ui: &mut Ui, units: &mut Units) {
     ui.separator();
 }
 
+/// A plain mesh's section: how big it is, and what it is for.
+fn mesh_section(ui: &mut Ui, doc: &Document, id: ObjectId) {
+    section(ui, "Mesh");
+    let Some(shape) = doc.scene().evaluated(id) else {
+        return;
+    };
+    egui::Grid::new("attributes_mesh")
+        .num_columns(2)
+        .min_col_width(LABEL_WIDTH)
+        .spacing(vec2(12.0, 6.0))
+        .show(ui, |ui| {
+            for (name, count, help) in [
+                (
+                    "Points",
+                    shape.mesh.vertex_count(),
+                    "The corners the mesh is made of",
+                ),
+                (
+                    "Polygons",
+                    shape.mesh.face_count(),
+                    "The faces the mesh is made of",
+                ),
+            ] {
+                label(ui, name, help);
+                ui.label(count.to_string()).widget_info(|| {
+                    egui::WidgetInfo::labeled(
+                        egui::WidgetType::Label,
+                        true,
+                        format!("{name}: {count}"),
+                    )
+                });
+                ui.end_row();
+            }
+        });
+    ui.add_space(4.0);
+    ui.label(
+        RichText::new(
+            "A plain mesh: it has no settings, so its shape changes only by editing it. \
+             Editing points, edges and polygons arrives in Phase 3.",
+        )
+        .small()
+        .color(theme::TEXT_WEAK),
+    );
+}
+
+/// What is recorded on top of the shape: how many edits, and any that no
+/// longer fully match it.
+fn edits_section(ui: &mut Ui, doc: &Document, id: ObjectId, stack: &Stack) {
+    section(ui, "Edits");
+    let count = stack.operation_count();
+    let text = match count {
+        1 => "1 edit recorded on top of the shape".to_string(),
+        n => format!("{n} edits recorded on top of the shape"),
+    };
+    ui.label(text).on_hover_text(
+        "Edits are kept apart from the shape's settings, so the settings stay \
+         editable: change them and the edits are made again on the new shape.",
+    );
+    let warnings = doc
+        .scene()
+        .evaluated(id)
+        .map_or(0, |shape| shape.warnings.len());
+    if warnings > 0 {
+        let text = match warnings {
+            1 => "1 edit no longer fully fits the shape".to_string(),
+            n => format!("{n} edits no longer fully fit the shape"),
+        };
+        ui.label(RichText::new(text).color(theme::WARNING))
+            .on_hover_text(
+                "Some of the points these edits move are gone (for example after \
+                 giving the shape fewer segments). The edits still apply to the \
+                 points that remain; nothing else is lost, and going back to the \
+                 earlier settings brings the missing points back.",
+            );
+    }
+}
+
 /// The selected object's settings, if it is a primitive.
 fn primitive_of(doc: &Document, id: ObjectId) -> Option<Primitive> {
     match doc.scene().object(id)?.kind {
@@ -332,10 +416,7 @@ fn primitive_of(doc: &Document, id: ObjectId) -> Option<Primitive> {
 /// The object's icon, name and kind, at the top of the panel.
 fn heading(ui: &mut Ui, kind: &ObjectKind, name: &str) {
     ui.horizontal(|ui| {
-        let (icon, color) = match kind {
-            ObjectKind::Primitive(p) => (shape_icon(p.kind()), tint::SHAPE),
-            _ => (crate::icons::Icon::Null, tint::ICON),
-        };
+        let (icon, color) = kind_icon(kind);
         let (rect, _) = ui.allocate_exact_size(vec2(18.0, 18.0), egui::Sense::hover());
         crate::icons::paint(ui.painter(), rect, icon, color);
         // One label, so it reads as one line ("Cube (cube)").
@@ -360,6 +441,7 @@ fn heading(ui: &mut Ui, kind: &ObjectKind, name: &str) {
 fn kind_label(kind: &ObjectKind) -> String {
     match kind {
         ObjectKind::Primitive(p) => format!("({})", p.name().to_lowercase()),
+        ObjectKind::Mesh(_) => "(mesh)".to_string(),
         _ => "(group)".to_string(),
     }
 }
