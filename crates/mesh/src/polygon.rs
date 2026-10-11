@@ -234,6 +234,25 @@ impl Mesh {
         self.hard.len()
     }
 
+    /// Roughly how many bytes the mesh takes up in memory, counting what
+    /// its lists hold room for. An estimate (allocator overheads aren't
+    /// counted), good enough to keep the undo history within a budget.
+    pub fn memory_size(&self) -> usize {
+        use std::mem::size_of;
+        let positions = self.positions.capacity() * size_of::<Option<Vec3>>();
+        let faces = self.faces.capacity() * size_of::<Option<Vec<VertexId>>>()
+            + self
+                .faces
+                .iter()
+                .flatten()
+                .map(|f| f.capacity() * size_of::<VertexId>())
+                .sum::<usize>();
+        // A B-tree node holds several keys plus links; twice the keys is a
+        // fair estimate.
+        let hard = self.hard.len() * size_of::<EdgeKey>() * 2;
+        size_of::<Self>() + positions + faces + hard
+    }
+
     /// The box around every point, or `None` for an empty mesh.
     pub fn bounds(&self) -> Option<Bounds> {
         Bounds::around(self.vertices().map(|(_, p)| p))
@@ -353,6 +372,23 @@ mod tests {
         assert_eq!(mesh.vertex_count(), 4);
         assert_eq!(VertexId::from_raw(3), v[3]);
         assert_eq!(FaceId::from_raw(0).get(), 0);
+    }
+
+    #[test]
+    fn memory_size_grows_with_the_mesh() {
+        let empty = Mesh::new().memory_size();
+        assert_eq!(empty, std::mem::size_of::<Mesh>());
+        let (square, _) = square();
+        let small = square.memory_size();
+        assert!(small > empty);
+        let sphere = crate::PrimitiveKind::Sphere.standard().mesh();
+        assert!(
+            sphere.memory_size() > small * 20,
+            "many more points and faces"
+        );
+        // A sphere's points and faces take at least their raw size.
+        let raw = sphere.vertex_count() * 12 + sphere.face_count() * 3 * 4;
+        assert!(sphere.memory_size() >= raw);
     }
 
     #[test]

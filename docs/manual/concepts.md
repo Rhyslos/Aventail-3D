@@ -35,7 +35,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Hierarchy** — Objects can be children of other objects (sit *inside* them, in the Object Manager's tree). Moving a parent moves its children with it, and hiding it hides them too.
 
-**Undo history** — The list of changes you've made, kept so they can be taken back (undo, `Ctrl + Z`) and done again (redo, `Ctrl + Y`). This app keeps every step while it's open.
+**Undo history** — The list of changes you've made, kept so they can be taken back (undo, `Ctrl + Z`) and done again (redo, `Ctrl + Y`). This app keeps steps while it's open, up to a memory limit (2 GB as standard, set in **Edit → Undo memory**), then forgets the oldest first. There's no limit on the *number* of steps. See [Objects](objects.md).
 
 **Pivot (axis / origin)** — The point an object rotates and scales around. In Godot, it's also the point the asset is placed and snapped by, so where you put it matters.
 

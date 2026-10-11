@@ -10,6 +10,7 @@ use crate::panel::Panel;
 use crate::panels::{about_contents, coordinates_contents, menu_line_with};
 use crate::shape_picker::ShapePicker;
 use crate::theme::{self, Accent};
+use crate::undo_memory::{UndoMemory, format_bytes};
 use crate::units::Units;
 use crate::viewport::{ViewOptions, ViewportPanel, ViewportRenderer};
 use egui::{Align2, Id, Key, KeyboardShortcut, Modifiers, Ui, WidgetText};
@@ -95,6 +96,11 @@ pub struct Workbench {
     attributes: AttributesPanel,
     /// Metres or centimetres, for every length shown or typed.
     units: Units,
+    /// How much memory the undo history may use.
+    undo_memory: UndoMemory,
+    /// How many forgotten undo steps the status bar has already told
+    /// about (it says so once, when forgetting starts).
+    forgotten_told: bool,
     /// The `B` shape list.
     shape_picker: ShapePicker,
     /// What the viewport draws, kept up to date with the document.
@@ -124,6 +130,8 @@ impl Workbench {
             objects: ObjectManager::default(),
             attributes: AttributesPanel::default(),
             units: Units::default(),
+            undo_memory: UndoMemory::default(),
+            forgotten_told: false,
             shape_picker: ShapePicker::default(),
             drawing: DrawingCache::default(),
             viewport: ViewportPanel::default(),
@@ -207,6 +215,23 @@ impl Workbench {
     /// Metres or centimetres, for saving between sessions.
     pub fn units(&self) -> Units {
         self.units
+    }
+
+    /// How much memory the undo history may use.
+    pub fn undo_memory(&self) -> UndoMemory {
+        self.undo_memory
+    }
+
+    /// The workbench with a remembered undo memory choice restored.
+    #[must_use]
+    pub fn with_undo_memory(mut self, memory: UndoMemory) -> Self {
+        self.set_undo_memory(memory);
+        self
+    }
+
+    fn set_undo_memory(&mut self, memory: UndoMemory) {
+        self.undo_memory = memory;
+        self.document.set_history_limit(memory.limit());
     }
 
     /// The workbench with a remembered choice of units restored.
@@ -411,6 +436,42 @@ impl Workbench {
         }
     }
 
+    /// Edit → Undo memory: what the history uses now, and the choices.
+    fn undo_memory_entries(&mut self, ui: &mut Ui) {
+        let steps = self.document.undo_steps() + self.document.redo_steps();
+        let in_use = format!(
+            "In use: {} of {} ({} {})",
+            format_bytes(self.document.history_memory()),
+            self.undo_memory.short(),
+            steps,
+            if steps == 1 { "step" } else { "steps" }
+        );
+        ui.label(egui::RichText::new(in_use).color(theme::TEXT_WEAK));
+        ui.separator();
+        for choice in UndoMemory::ALL {
+            if ui
+                .radio(self.undo_memory == choice, choice.label())
+                .on_hover_text(choice.explanation())
+                .clicked()
+            {
+                self.set_undo_memory(choice);
+                self.note = Some(format!(
+                    "Undo memory: {}. When it is full, the oldest steps are forgotten first.",
+                    choice.short()
+                ));
+                ui.close();
+            }
+        }
+        ui.separator();
+        ui.label(
+            egui::RichText::new(
+                "Undo keeps steps until they fill this much memory,\nthen forgets the oldest first.",
+            )
+            .small()
+            .color(theme::TEXT_WEAK),
+        );
+    }
+
     /// Carries out what the menus, keys and panels asked for this frame,
     /// saying in the status bar what happened when it isn't plain to see.
     fn carry_out(&mut self, requests: Vec<DocRequest>) {
@@ -439,6 +500,14 @@ impl Workbench {
                     None => "Nothing to redo.".into(),
                 }),
             };
+        }
+        if self.document.forgotten_steps() > 0 && !self.forgotten_told && self.note.is_none() {
+            self.forgotten_told = true;
+            self.note = Some(format!(
+                "Undo memory is full ({}): the oldest steps are now forgotten as you work. \
+                 Edit → Undo memory sets the limit.",
+                self.undo_memory.short()
+            ));
         }
     }
 
@@ -488,6 +557,7 @@ impl Workbench {
         });
         ui.menu_button("Edit", |ui| {
             objects::undo_entries(ui, &self.document, requests);
+            ui.menu_button("Undo memory", |ui| self.undo_memory_entries(ui));
             ui.separator();
             objects::selection_entries(ui, &mut self.document, &mut self.objects, requests);
         });

@@ -1529,3 +1529,87 @@ fn only_the_view_under_the_mouse_asks_what_is_there() {
     let perspective_pivot = harness.state().workbench.viewport().navigator().pivot();
     assert_ne!(perspective_pivot, SURFACE);
 }
+
+// --------------------------------------------------------- undo memory ---
+
+fn open_undo_memory(harness: &mut Harness<'static, State>) {
+    main_menu(harness, "Edit").click();
+    harness.run();
+    harness.get_by_label_contains("Undo memory").click();
+    harness.run();
+}
+
+#[test]
+fn undo_memory_starts_at_two_gigabytes_and_shows_whats_in_use() {
+    let mut harness = fresh();
+    assert_eq!(
+        harness.state().workbench.undo_memory(),
+        crate::UndoMemory::Gb2
+    );
+    assert_eq!(
+        harness.state().workbench.document().history_limit(),
+        scene::HistoryLimit::STANDARD
+    );
+    open_undo_memory(&mut harness);
+    // The fresh window's cube is one step.
+    assert!(
+        harness
+            .query_by_label_contains("In use: 1 KB of 2 GB (1 step)")
+            .is_some()
+    );
+    assert!(harness.query_by_label("2 GB (standard)").is_some());
+}
+
+#[test]
+fn the_edit_menu_changes_the_undo_memory() {
+    let mut harness = fresh();
+    open_undo_memory(&mut harness);
+    harness.get_by_label("512 MB").click();
+    harness.run();
+    let workbench = &harness.state().workbench;
+    assert_eq!(workbench.undo_memory(), crate::UndoMemory::Mb512);
+    assert_eq!(
+        workbench.document().history_limit(),
+        crate::UndoMemory::Mb512.limit()
+    );
+    assert!(workbench.note().is_some_and(|n| n.contains("512 MB")));
+}
+
+#[test]
+fn a_remembered_undo_memory_is_restored() {
+    let workbench = Workbench::new(info(), None).with_undo_memory(crate::UndoMemory::Unlimited);
+    assert_eq!(workbench.undo_memory(), crate::UndoMemory::Unlimited);
+    assert_eq!(
+        workbench.document().history_limit(),
+        scene::HistoryLimit::Unlimited
+    );
+}
+
+#[test]
+fn the_status_bar_says_once_when_old_steps_start_to_be_forgotten() {
+    let mut harness = empty();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .set_history_limit(scene::HistoryLimit::Bytes(1));
+    harness.get_by_label("Create group").click();
+    harness.run();
+    assert!(
+        harness.state().workbench.note().is_none(),
+        "nothing forgotten yet"
+    );
+    harness.get_by_label("Create group").click();
+    harness.run();
+    assert!(
+        harness
+            .state()
+            .workbench
+            .note()
+            .is_some_and(|n| n.starts_with("Undo memory is full"))
+    );
+    harness.get_by_label("Create group").click();
+    harness.run();
+    assert!(harness.state().workbench.note().is_none(), "said only once");
+    assert_eq!(harness.state().workbench.document().undo_steps(), 1);
+}

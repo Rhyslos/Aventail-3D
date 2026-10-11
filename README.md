@@ -56,9 +56,9 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** navigating feels smooth and calm to the project lead. *Passed 2026-10-10.*
 
-### Phase 2 · Objects, history and saving — 4 of 6
+### Phase 2 · Objects, history and saving — 5 of 6
 
-`█████████░░░░` 67%
+`███████████░░` 83%
 
 <details>
 <summary>Milestones</summary>
@@ -67,7 +67,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Primitives: cube, plane, cylinder, sphere, disc, tube, cone
 - [x] Primitive settings in the Attribute Manager
 - [x] Object stack foundation: base plus recorded operations
-- [ ] Undo and redo limited by memory, not steps
+- [x] Undo and redo limited by memory, not steps
 - [ ] Save and open `.avtl` projects
 
 </details>
@@ -181,6 +181,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-11 | Undo limited by memory instead of steps: 2 GB as standard, set in Edit → Undo memory, oldest steps forgotten first |
 | 2026-10-11 | Object stack foundation: shapes keep recorded edits apart from their settings, worked out layer by layer and cached; Make editable (C) bakes a shape into a plain mesh |
 | 2026-10-10 | Attribute Manager: a shape's settings change as you drag or type, one undo step per drag; copy and paste settings. Also: 1 m standard sizes, step arrows, metres or centimetres, round-end rings and centre points, three grid levels, and the B shape list |
 | 2026-10-10 | Primitives: cube, plane, cylinder, sphere, disc, tube and cone, standing on the ground, with hard and soft edges |
