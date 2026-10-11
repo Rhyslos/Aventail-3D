@@ -20,13 +20,18 @@ pub mod tree;
 pub use command::Command;
 pub use document::Document;
 pub use history::HistoryLimit;
-pub use mesh::{Bounds, FaceId, Mesh, Primitive, PrimitiveKind, VertexId};
+pub use mesh::{
+    Bounds, Combine, EdgeKey, Element, ElementKind, ElementSelection, FaceId, Mesh, Primitive,
+    PrimitiveKind, VertexId,
+};
 pub use object::{Object, ObjectId, ObjectKind, Transform};
 pub use stack::{EDITS_LAYER, EvalContext, Evaluated, Layer, Operation, Stack, StackWarning};
 pub use tree::{Place, Scene, SceneError};
 
 #[cfg(test)]
 mod history_tests;
+#[cfg(test)]
+mod selection_tests;
 #[cfg(test)]
 mod stack_tests;
 #[cfg(test)]

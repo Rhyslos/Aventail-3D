@@ -116,10 +116,10 @@ fn the_undo_section_shows_whats_in_use_and_changes_the_limit() {
     let mut harness = fresh();
     open(&mut harness);
     section(&mut harness, "Undo");
-    // The fresh window's cube is one step.
+    // The fresh window's cube and its unselecting are two steps.
     assert!(
         harness
-            .query_by_label_contains("In use: 1 KB of 2 GB (1 step)")
+            .query_by_label_contains("In use: 1 KB of 2 GB (2 steps)")
             .is_some()
     );
     harness.get_by_label("512 MB").click();

@@ -15,6 +15,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 ## Modelling
 - [Primitives: cube, plane, cylinder, sphere, disc, tube and cone](primitives.md)
 - [Points, Edges and Polygons modes: working on the parts of a mesh](modes.md)
+- [Selecting: click, box, lasso, brush, loops, grow and shrink](selecting.md)
 - *More pages are added here as tools are built.*
 
 ## UVs

@@ -396,8 +396,8 @@ fn shift_g_leaves_objects_that_are_not_groups_alone() {
     assert!(cube_drawn(&mut harness));
     assert_eq!(
         harness.state().workbench.document().undo_label(),
-        Some("Create cube"),
-        "nothing new to undo"
+        Some("Select Cube"),
+        "nothing new to undo but the click"
     );
     assert!(
         harness

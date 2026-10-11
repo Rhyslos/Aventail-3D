@@ -41,8 +41,10 @@ pub struct SceneDrawing {
 pub enum OverlayStyle {
     /// Shown, to see the mesh's structure.
     Plain,
-    /// Under the mouse: in the accent colour, larger.
+    /// Under the mouse: in the light accent colour, larger.
     Hovered,
+    /// Selected: in the accent colour, larger.
+    Selected,
 }
 
 /// What the Points, Edges and Polygons modes draw over the edited objects,
@@ -55,8 +57,9 @@ pub struct ComponentOverlay {
     pub points: Vec<(Vec3, OverlayStyle)>,
     /// Edges, drawn as lines.
     pub lines: Vec<([Vec3; 2], OverlayStyle)>,
-    /// The polygon under the mouse, as triangles to tint.
-    pub tints: Vec<[Vec3; 3]>,
+    /// Selected polygons and the one under the mouse, as triangles to
+    /// tint.
+    pub tints: Vec<([Vec3; 3], OverlayStyle)>,
 }
 
 /// What the viewport needs to know about the scene each frame.
@@ -204,7 +207,8 @@ mod tests {
         let after = cache.update(&doc, false).drawing.clone();
         assert!(after.version > first.version);
         assert!(Arc::ptr_eq(&first.items[0].mesh, &after.items[0].mesh));
-        // Undoing the creation leaves nothing to draw.
+        // Undoing the selection, then the creation, leaves nothing to draw.
+        doc.undo();
         doc.undo();
         assert!(cache.update(&doc, false).drawing.items.is_empty());
     }

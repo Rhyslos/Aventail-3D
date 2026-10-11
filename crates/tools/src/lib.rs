@@ -10,7 +10,7 @@ pub mod controls;
 pub mod navigation;
 
 pub use camera::{Camera, Ray};
-pub use components::{Component, ComponentKind, Hovered, PickScene};
+pub use components::{Element, ElementKind, Hovered, PickScene, Region};
 pub use controls::{Modifiers, NavigationSettings, Scheme};
 pub use mesh::Bounds;
 pub use navigation::{DragKind, MouseButton, Navigator, ViewKind};

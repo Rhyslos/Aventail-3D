@@ -1,6 +1,6 @@
 # 0019. Only the tool keys come from Halberd
 
-- **Status:** Accepted
+- **Status:** Accepted; amended by [0028](0028-ask-about-controls.md) (the project lead now chooses other keys before they are built)
 - **Date:** 2026-10-10
 - **Narrows:** [0016](0016-controls-follow-halberd.md)
 

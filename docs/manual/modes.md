@@ -14,18 +14,20 @@ Most modelling happens on the parts of a shape rather than on the whole thing: p
 
 **Model mode** works on whole objects, as before.
 
-**Right now these modes let you look, not change anything yet.** You can see a shape's points and edges, and which one is under the mouse. Clicking to select elements is the next update, and moving them comes after that.
+In these modes you can see a shape's points and edges, see which one is under the mouse, and select them: see [Selecting](selecting.md). Moving them comes with the next update.
 
 ## How to use it
 
 1. **Select the shape** you want to work on, in the viewport or the Objects panel. The modes only show the parts of *selected* objects, so other shapes stay out of the way. You can select several.
 2. **Press `1`, `2` or `3`** for Points, Edges or Polygons mode. You can also click the mode's button on the left palette, or use the **Modes** menu. The button turns red to show the active mode.
 3. **Move the mouse over the shape.**
-   - In **Points** mode, every point shows as a small white square. The one nearest the mouse turns red and grows.
-   - In **Edges** mode, every edge is drawn as a thin white line. The one nearest the mouse turns red and thick.
-   - In **Polygons** mode, the face under the mouse is tinted red, with a red outline.
+   - In **Points** mode, every point shows as a small white dot. The one nearest the mouse turns light red and grows.
+   - In **Edges** mode, every edge is drawn as a thin white line. The one nearest the mouse turns light red and thick.
+   - In **Polygons** mode, the face under the mouse is tinted light red, with an outline.
+   Selected ones are drawn in the full accent red, so you can tell them apart from the one under the mouse.
    The status bar names what's under the mouse, for example *Under the mouse: point 4 of Cube*.
-4. **Press the same key again** (or pick Model) to go back to working on whole objects.
+4. **Click, drag or double-click to select** points, edges or polygons: see [Selecting](selecting.md).
+5. **Press the same key again** (or pick Model) to go back to working on whole objects.
 
 Only what you can see counts. A point or edge hidden behind the shape, or behind another object, isn't drawn and can't light up. Turn the view to reach the other side; this is the usual behaviour in 3D programs and keeps you from grabbing something by mistake.
 
@@ -50,6 +52,7 @@ The keys don't work while you're typing in a field, such as renaming an object.
 
 ## Related
 
+- [Selecting](selecting.md)
 - [Interface tour: Modes](interface-tour.md#modes)
 - [Objects: selecting and Make editable](objects.md)
 - [Concepts: mesh basics](concepts.md#mesh-basics) (vertex, edge, polygon, element)

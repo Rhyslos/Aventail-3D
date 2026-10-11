@@ -12,7 +12,7 @@ use crate::history::Step;
 use crate::object::{Object, ObjectKind};
 use crate::stack::{Layer, Operation, Stack};
 use crate::tree::Edit;
-use std::mem::size_of;
+use std::mem::{size_of, size_of_val};
 
 /// A string's size: what it has room for.
 fn text(s: &str) -> usize {
@@ -74,7 +74,17 @@ pub(crate) fn edit(edit: &Edit) -> usize {
 
 /// Roughly how many bytes one undo step takes up.
 pub(crate) fn step(step: &Step) -> usize {
-    size_of::<Step>() + text(&step.label) + step.edits.iter().map(edit).sum::<usize>()
+    size_of::<Step>()
+        + text(&step.label)
+        + step.edits.iter().map(edit).sum::<usize>()
+        + step
+            .selections
+            .iter()
+            .map(|s| size_of_val(s) + s.before.memory_size() + s.after.memory_size())
+            .sum::<usize>()
+        + step.objects.as_ref().map_or(0, |o| {
+            size_of_val(o.before.as_slice()) + size_of_val(o.after.as_slice())
+        })
 }
 
 #[cfg(test)]
@@ -140,6 +150,8 @@ mod tests {
         let total = step(&Step {
             label: "Create group".into(),
             edits: edits.clone(),
+            selections: Vec::new(),
+            objects: None,
             merge_key: None,
         });
         let parts: usize = edits.iter().map(edit).sum();

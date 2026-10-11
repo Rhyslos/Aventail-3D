@@ -15,6 +15,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Element (component)** — A vertex, edge or polygon: one of the parts a mesh is made of. The Points, Edges and Polygons modes work on elements instead of whole objects (see [Modes](modes.md)).
 
+**Selecting through** — Selecting with a box, lasso or brush can take only what faces you (*visible only*), or everything inside the outline, including the far side of the shape hidden behind it (*through*). The app selects through unless you switch it off: see [Selecting](selecting.md).
+
 **Topology** — How the vertices, edges and polygons are connected, as opposed to where they sit. Two meshes can have the same shape but different topology.
 
 **Edge loop** — A chain of edges running through quads, end to end, like a belt around the mesh. **Edge ring** — the edges running *across* a loop, like the rungs of a ladder.

@@ -67,7 +67,9 @@ fn a_saved_project_is_named_and_clean_until_changed_again() {
     );
     assert_eq!(workbench(&harness).note(), Some("Saved crate.avtl."));
     assert_eq!(workbench(&harness).recent_projects(), [path("crate.avtl")]);
-    // Undo still works after saving, and makes it changed again.
+    // Undo still works after saving, and makes it changed again (the
+    // first undo only takes back a selection, which needs no saving).
+    press(&mut harness, Modifiers::COMMAND, Key::Z);
     press(&mut harness, Modifiers::COMMAND, Key::Z);
     assert!(workbench(&harness).has_unsaved_changes());
 }

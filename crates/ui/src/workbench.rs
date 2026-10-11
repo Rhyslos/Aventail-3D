@@ -13,6 +13,7 @@ use crate::project::{
     NEW_SHORTCUT, OPEN_SHORTCUT, Pending, ProjectFile, SAVE_AS_SHORTCUT, SAVE_SHORTCUT,
     recent_label,
 };
+use crate::selecting::StrokeMemory;
 use crate::settings::{SETTINGS_SHORTCUT, SettingsWindow, Values};
 use crate::shape_picker::ShapePicker;
 use crate::theme::{self, Accent};
@@ -22,6 +23,12 @@ use crate::viewport::{ViewOptions, ViewportPanel, ViewportRenderer};
 use egui::{Align2, Id, Key, KeyboardShortcut, Modifiers, Ui, WidgetText};
 use egui_dock::{DockArea, DockState, TabViewer};
 use scene::{Command, Document, ObjectKind, PrimitiveKind};
+use selection::SelectRequest;
+
+/// How quickly two clicks must follow each other to be a double-click, in
+/// seconds: Windows' standard.
+pub const DOUBLE_CLICK_SECONDS: f64 = 0.5;
+pub(crate) use selection::VISIBLE_ONLY_HELP;
 use std::path::{Path, PathBuf};
 
 /// Facts about the program, shown in the window and the About box.
@@ -79,13 +86,8 @@ pub const MODE_KEYS: [(Key, Mode); 3] = [
 /// phase that brings them. (The Mesh menu's are listed below its working
 /// entries.)
 const COMING: [(&str, &[(&str, &str)]); 4] = [
-    (
-        "Select",
-        &[
-            ("Live selection, rectangle and lasso", "Phase 3"),
-            ("Loop, ring, grow and shrink", "Phase 3"),
-        ],
-    ),
+    // The Select menu's entries all work (see `selection`).
+    ("Select", &[]),
     (
         "Tools",
         &[
@@ -143,6 +145,11 @@ pub struct Workbench {
     /// The Points, Edges and Polygons modes: the element under the mouse
     /// and what is drawn over the edited objects.
     components: ComponentTracker,
+    /// Selection commands from keys and the Select menu, carried out once
+    /// the frame's drawing is known.
+    select_requests: Vec<SelectRequest>,
+    /// What a flipping brush stroke has flipped so far.
+    stroke_memory: StrokeMemory,
     viewport: ViewportPanel,
     accent: Accent,
     about_open: bool,
@@ -176,6 +183,8 @@ impl Workbench {
             shape_picker: ShapePicker::default(),
             drawing: DrawingCache::default(),
             components: ComponentTracker::default(),
+            select_requests: Vec::new(),
+            stroke_memory: StrokeMemory::default(),
             viewport: ViewportPanel::default(),
             accent: Accent::default(),
             about_open: false,
@@ -563,6 +572,12 @@ impl Workbench {
         if theme::accent(ui.ctx()) != self.accent {
             theme::set_accent(ui.ctx(), self.accent);
         }
+        // Double-clicks as forgiving as Windows' standard (egui's is 0.3 s).
+        if ui.ctx().options(|o| o.input_options.max_double_click_delay) != DOUBLE_CLICK_SECONDS {
+            ui.ctx().options_mut(|o| {
+                o.input_options.max_double_click_delay = DOUBLE_CLICK_SECONDS;
+            });
+        }
         actions.append(&mut self.queued);
         if self.file.asking.is_none() {
             self.file_keys(ui, &mut actions);
@@ -581,6 +596,7 @@ impl Workbench {
             }
             self.document_keys(ui, &mut requests);
             self.mode_keys(ui);
+            self.select_keys(ui);
         }
 
         egui::Panel::top("menu_bar")
@@ -591,6 +607,7 @@ impl Workbench {
         let palette_state = PaletteState {
             undo: self.document.undo_label().map(str::to_string),
             redo: self.document.redo_label().map(str::to_string),
+            select_tool: self.viewport.select_tool(),
         };
         egui::Panel::top("command_palette")
             .frame(theme::palette_frame())
@@ -598,6 +615,10 @@ impl Workbench {
             .show(ui, |ui| {
                 if let Some(command) = command_palette(ui, &palette_state) {
                     requests.push(match command {
+                        PaletteCommand::NextSelectTool => {
+                            self.next_select_tool();
+                            return;
+                        }
                         PaletteCommand::Undo => DocRequest::Undo,
                         PaletteCommand::Redo => DocRequest::Redo,
                         PaletteCommand::CreateGroup => {
@@ -654,10 +675,14 @@ impl Workbench {
         });
         // What is under the mouse now that the viewport knows where it is;
         // when that changes, draw again so the highlight follows at once.
+        self.carry_out_selection(&summary.drawing);
         let shown = summary.overlay.version;
-        let overlay = self
-            .components
-            .update(self.mode, &summary.drawing, self.viewport.pointer());
+        let overlay = self.components.update(
+            self.mode,
+            &summary.drawing,
+            &self.document,
+            self.viewport.pointer(),
+        );
         if overlay.version != shown {
             ui.ctx().request_repaint();
         }
@@ -702,6 +727,8 @@ impl Workbench {
             units: &mut self.units,
             navigation: &mut options.navigation,
             grid: &mut options.grid_detail,
+            select_visible_only: &mut options.select_visible_only,
+            select_keys: &mut options.select_keys,
             undo_memory: &mut undo_memory,
             history,
         };
@@ -761,9 +788,14 @@ impl Workbench {
         if note.is_some() {
             self.note = note;
         }
-        // Esc closes an open menu first; otherwise it deselects.
+        // Esc closes an open menu first; otherwise it deselects: the
+        // points, edges or polygons in those modes, else the objects.
         if !popup_open && ui.input_mut(|i| i.consume_shortcut(&objects::DESELECT_SHORTCUT)) {
-            self.document.clear_selection();
+            if components::kind_for(self.mode).is_some() {
+                self.select_requests.push(SelectRequest::Clear);
+            } else {
+                self.document.clear_selection();
+            }
         }
     }
 
@@ -848,8 +880,9 @@ impl Workbench {
                 ),
                 _ => String::new(),
             };
+            let elements = self.selected_elements_text();
             ui.label(format!(
-                "{} mode: {}.{selected}{under}",
+                "{} mode: {}.{selected}{elements}{under}",
                 self.mode.name(),
                 self.mode.description().to_lowercase()
             ));
@@ -991,6 +1024,9 @@ impl Workbench {
         });
         for (title, items) in COMING {
             ui.menu_button(title, |ui| {
+                if title == "Select" {
+                    self.select_menu(ui);
+                }
                 if title == "Mesh" {
                     objects::make_editable_entry(ui, &self.document, requests);
                     ui.separator();
@@ -1238,12 +1274,16 @@ impl TabViewer for PanelViewer<'_> {
 
 #[cfg(test)]
 mod attribute_tests;
+mod selection;
+
 #[cfg(test)]
 mod mode_tests;
 #[cfg(test)]
 mod object_tests;
 #[cfg(test)]
 mod project_tests;
+#[cfg(test)]
+mod select_tests;
 #[cfg(test)]
 mod settings_tests;
 #[cfg(test)]

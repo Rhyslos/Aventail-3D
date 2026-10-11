@@ -9,7 +9,9 @@
 //! change can always be undone.
 
 use crate::memory;
+use crate::object::ObjectId;
 use crate::tree::Edit;
+use mesh::ElementSelection;
 use std::collections::VecDeque;
 
 /// How much memory the undo history may use.
@@ -41,12 +43,33 @@ impl Default for HistoryLimit {
     }
 }
 
-/// One undoable step: a command's edits, in the order they were applied.
+/// A change to one object's selected points, edges and polygons.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct SelectionEdit {
+    pub(crate) id: ObjectId,
+    pub(crate) before: ElementSelection,
+    pub(crate) after: ElementSelection,
+}
+
+/// A change to which objects are selected.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct ObjectsEdit {
+    pub(crate) before: Vec<ObjectId>,
+    pub(crate) after: Vec<ObjectId>,
+}
+
+/// One undoable step: a command's edits, in the order they were applied,
+/// or a change to the selection: of elements, or of objects (decision
+/// 0029).
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Step {
     /// What the step did, for the Edit menu ("Delete 2 objects").
     pub(crate) label: String,
     pub(crate) edits: Vec<Edit>,
+    /// Changes to selected elements, applied after `edits`.
+    pub(crate) selections: Vec<SelectionEdit>,
+    /// A change to which objects are selected.
+    pub(crate) objects: Option<ObjectsEdit>,
     /// Steps made one after another with the same key become one step:
     /// a whole drag of a value is one undo, not one per frame.
     pub(crate) merge_key: Option<u64>,
@@ -94,8 +117,25 @@ impl History {
             for edit in step.edits {
                 merge_edit(&mut last.step.edits, edit);
             }
+            for change in step.selections {
+                merge_selection(&mut last.step.selections, change);
+            }
+            if let Some(change) = step.objects {
+                match &mut last.step.objects {
+                    Some(earlier) => earlier.after = change.after,
+                    None => last.step.objects = Some(change),
+                }
+            }
+            last.step.label = step.label;
             self.used -= last.size;
-            if last.step.edits.iter().all(Edit::changes_nothing) {
+            if last.step.edits.iter().all(Edit::changes_nothing)
+                && last.step.selections.iter().all(|s| s.before == s.after)
+                && last
+                    .step
+                    .objects
+                    .as_ref()
+                    .is_none_or(|o| o.before == o.after)
+            {
                 // Dragged back to where it started: nothing to undo.
                 self.undo.pop_back();
             } else {
@@ -224,4 +264,15 @@ fn merge_edit(edits: &mut Vec<Edit>, edit: Edit) {
         return;
     }
     edits.push(edit);
+}
+
+/// Adds a selection change to a step's, folding it into an earlier one for
+/// the same object (keeping where it started and where it ended), so a
+/// whole brush stroke is one small step.
+fn merge_selection(changes: &mut Vec<SelectionEdit>, change: SelectionEdit) {
+    if let Some(earlier) = changes.iter_mut().find(|c| c.id == change.id) {
+        earlier.after = change.after;
+    } else {
+        changes.push(change);
+    }
 }

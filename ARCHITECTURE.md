@@ -72,6 +72,8 @@ While the mouse hovers over a view, the panel also asks the renderer what surfac
 
 In the Points, Edges and Polygons modes, the element under the mouse is found on the CPU instead (`ui::components` → `tools::PickScene`), from the hovered view's camera and mouse position, after the views are drawn. The workbench turns the selected objects' elements into a small `ComponentOverlay`, which the app uploads as a separate `render::Overlay` layer; a mouse move rebuilds only that layer, never the scene's shape ([decision 0027](docs/decisions/0027-component-modes.md)).
 
+Selecting follows the same path ([decision 0029](docs/decisions/0029-selection.md)): the viewport only records what the mouse did (`selecting::Gesture`), and once the frame's drawing is known the workbench's `Selector` looks it up in the same `PickScene` and changes the document. Whole objects are selected through `Document::set_selection` (as the Object Manager does) and elements are kept per object in `scene::Document` and changed through `select_elements`; both record undo steps; the selection rules themselves (all, invert, grow, shrink, loops, rings) are pure functions in `mesh::selection`.
+
 Rendering sits behind the `ViewportRenderer` trait, so the panel runs in tests with no GPU. See [decision 0013](docs/decisions/0013-viewport-rendering.md).
 
 ## Axes

@@ -6,6 +6,7 @@
 //! which phase brings them, so the layout is complete from the start.
 
 use crate::icons::{self, Icon};
+use crate::selecting::SelectTool;
 use crate::theme::{self, tint};
 use crate::viewport::ViewOptions;
 use egui::{Color32, Response, Sense, Ui, Vec2, WidgetInfo, WidgetType};
@@ -218,6 +219,8 @@ pub enum PaletteCommand {
     CreateGroup,
     /// Create a primitive with standard settings.
     CreateShape(PrimitiveKind),
+    /// Switch to the next select tool (as `Q` does).
+    NextSelectTool,
 }
 
 /// One command on the top palette: one that works, or one that is not
@@ -270,6 +273,8 @@ pub struct PaletteState {
     pub undo: Option<String>,
     /// What Redo would do again, if anything.
     pub redo: Option<String>,
+    /// The select tool in use.
+    pub select_tool: SelectTool,
 }
 
 /// The groups of the command palette, left to right.
@@ -289,7 +294,12 @@ const COMMAND_GROUPS: [&[Planned]; 4] = [
         ),
     ],
     &[
-        planned(Icon::LiveSelection, "Live selection", "Arrives in Phase 3"),
+        working(
+            Icon::BoxSelection,
+            "Select tool",
+            "The select tool in use",
+            PaletteCommand::NextSelectTool,
+        ),
         planned(Icon::Move, "Move", "Arrives in Phase 3"),
         planned(Icon::Scale, "Scale", "Arrives in Phase 3"),
         planned(Icon::Rotate, "Rotate", "Arrives in Phase 3"),
@@ -312,6 +322,15 @@ const COMMAND_GROUPS: [&[Planned]; 4] = [
     ],
 ];
 
+/// The icon for a select tool.
+pub fn select_tool_icon(tool: SelectTool) -> Icon {
+    match tool {
+        SelectTool::Box => Icon::BoxSelection,
+        SelectTool::Lasso => Icon::LassoSelection,
+        SelectTool::Brush => Icon::LiveSelection,
+    }
+}
+
 /// The command palette along the top of the window. Returns the command
 /// clicked this frame, if any.
 pub fn command_palette(ui: &mut Ui, state: &PaletteState) -> Option<PaletteCommand> {
@@ -333,7 +352,25 @@ pub fn command_palette(ui: &mut Ui, state: &PaletteState) -> Option<PaletteComma
                     );
                     continue;
                 };
+                let mut icon = command.icon;
+                let mut label = command.label;
+                let mut active = false;
                 let (available, note) = match action {
+                    PaletteCommand::NextSelectTool => {
+                        let tool = state.select_tool;
+                        icon = select_tool_icon(tool);
+                        label = tool.name();
+                        active = true;
+                        (
+                            true,
+                            format!(
+                                "{}: {}.\nClick or press Q for {}.",
+                                tool.name(),
+                                tool.description(),
+                                tool.next().name().to_lowercase()
+                            ),
+                        )
+                    }
                     PaletteCommand::Undo => match &state.undo {
                         Some(what) => (true, format!("Undo: {what}")),
                         None => (false, "Nothing to undo".to_string()),
@@ -346,12 +383,14 @@ pub fn command_palette(ui: &mut Ui, state: &PaletteState) -> Option<PaletteComma
                         (true, command.arrives.to_string())
                     }
                 };
-                let button_state = if available {
+                let button_state = if active {
+                    ButtonState::Active
+                } else if available {
                     ButtonState::Normal
                 } else {
                     ButtonState::Unavailable
                 };
-                if icon_button(ui, command.icon, command.label, &note, button_state).clicked() {
+                if icon_button(ui, icon, label, &note, button_state).clicked() {
                     clicked = Some(action);
                 }
             }
@@ -402,6 +441,10 @@ fn axis_lock(ui: &mut Ui, axis: &str, color: Color32) {
     response.on_hover_text(format!("{label}\nArrives in Phase 3"));
 }
 
+/// Accessible name of the "select only visible" switch on the mode
+/// palette.
+pub const VISIBLE_ONLY_LABEL: &str = "Select only visible";
+
 /// Accessible name of the grid detail toggle on the mode palette.
 pub const GRID_DETAIL_LABEL: &str = "Grid lines";
 
@@ -443,6 +486,23 @@ pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Op
             "Arrives later",
             ButtonState::Unavailable,
         );
+        let visible = if options.select_visible_only {
+            ButtonState::Active
+        } else {
+            ButtonState::Normal
+        };
+        let note = format!(
+            "{}\nNow: {}.",
+            crate::workbench::VISIBLE_ONLY_HELP,
+            if options.select_visible_only {
+                "on, only what you can see"
+            } else {
+                "off, selecting through"
+            }
+        );
+        if icon_button(ui, Icon::VisibleOnly, VISIBLE_ONLY_LABEL, &note, visible).clicked() {
+            options.select_visible_only = !options.select_visible_only;
+        }
         let detail = options.grid_detail;
         let state = if detail == crate::viewport::GridDetail::Metre {
             ButtonState::Normal
