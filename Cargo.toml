@@ -40,6 +40,13 @@ bytemuck = { version = "1.25", features = ["derive"] }
 eframe = { version = "0.36", features = ["persistence"] }
 egui = "0.36"
 egui_dock = { version = "0.21", features = ["serde"] }
+# The .avtl project file: a compact binary encoding of the file model and
+# zstd compression; see docs/decisions/0024-saving-projects.md.
+postcard = { version = "1.1", default-features = false, features = ["use-std"] }
+zstd = { version = "0.13", default-features = false }
+# Native Open and Save dialogs (Windows, macOS, and Linux through the
+# desktop portal, so no GTK is needed).
+rfd = "0.17"
 # Development only.
 egui_kittest = "0.36"
 ron = "0.12"

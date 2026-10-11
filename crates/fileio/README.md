@@ -17,8 +17,23 @@ Reads and writes the outside world's files: the versioned `.avtl` project format
 
 ## Depends on
 
-`scene`, `mesh`, `uv`, `config` (planned).
+`scene`, `mesh`; `uv` and `config` planned. Outside libraries: `serde` and `postcard` (encoding), `zstd` (compression), `glam`.
 
 ## Status
 
-Empty. Saving and loading arrive in Phase 2; export in Phase 5.
+**Projects** (`project`, [decision 0024](../../docs/decisions/0024-saving-projects.md)):
+
+- `to_bytes`/`from_bytes` and `save`/`open`. The file is a 20-byte header (`SIGNATURE` `AVTL`, `FORMAT_VERSION` 1, flags with bit 0 for zstd, the body's length) followed by the body: the version 1 file model (`project/v1.rs`, plain data separate from the scene's types) encoded with postcard and compressed with zstd.
+- Reading checks everything, with plain-language `ProjectError`s (`NotAProject`, `TooNew`, `Damaged` naming the object, `TooLarge`, `Io`). Sizes are capped at 4 GB before reading and unpacking. Positions, rotations and moves must be real numbers; meshes go through `Mesh::from_slots`, the tree through `Scene::from_objects`; primitive settings are clamped.
+- `save` writes `name.avtl.tmp`, syncs it and reads it back, copies the previous save to `name.avtl.bak` (`backup_path`), then renames the new file into place.
+
+Tests:
+- round trips of a scene using every feature (byte-identical on resave);
+- the header;
+- refusals of other files, newer versions, unknown flags, cut and padded files and bad values;
+- clamping;
+- fuzzing every cut, 3000 random bit flips and random bodies;
+- saving on disk (backup, no leftovers, failure leaving the old file, unwritable folders, missing files);
+- `tests/data/sample-v1.avtl`, a version 1 file that must open in every future version (rewrite only for a new format version, with `WRITE_SAMPLE=1`).
+
+Export arrives in Phase 5.

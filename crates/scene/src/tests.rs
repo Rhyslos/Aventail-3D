@@ -1011,3 +1011,83 @@ fn pasting_settings_to_several_primitives_is_one_step() {
     assert_eq!(cube_size(&doc, a), glam::Vec3::splat(100.0));
     assert_eq!(cube_size(&doc, b), glam::Vec3::splat(100.0));
 }
+
+// ------------------------------------------------- rebuilding a scene ---
+
+/// The scene's objects as `from_objects` takes them.
+fn parts(scene: &Scene) -> Vec<(ObjectId, Option<ObjectId>, Object)> {
+    scene
+        .walk()
+        .into_iter()
+        .map(|(id, _)| (id, scene.parent(id), scene.object(id).unwrap().clone()))
+        .collect()
+}
+
+#[test]
+fn a_scene_rebuilt_from_its_objects_is_the_same() {
+    let (mut doc, ids) = with_groups(&["A", "B", "C"]);
+    doc.execute(Command::Move {
+        ids: vec![ids[2]],
+        parent: Some(ids[0]),
+        index: 0,
+    })
+    .unwrap();
+    doc.execute(Command::Create(ObjectKind::Primitive(Primitive::Cube(
+        Default::default(),
+    ))))
+    .unwrap();
+    doc.execute(Command::Delete(vec![ids[1]])).unwrap();
+    let scene = doc.scene();
+    let rebuilt = Scene::from_objects(parts(scene), scene.next_object_id()).unwrap();
+    assert_eq!(rebuilt, *scene);
+    assert_eq!(
+        outline(&Document::from_scene(rebuilt.clone(), [])),
+        outline(&doc)
+    );
+    // Ids are never reused: the deleted B's id stays taken.
+    assert!(rebuilt.next_object_id() > ids[1].get());
+}
+
+#[test]
+fn a_rebuilt_document_keeps_the_selection_and_starts_a_fresh_history() {
+    let (doc, ids) = with_groups(&["A", "B"]);
+    let scene = doc.scene().clone();
+    let opened = Document::from_scene(scene, [ids[1], ObjectId::from_raw(999)]);
+    assert_eq!(opened.selection(), [ids[1]], "unknown ids are left out");
+    assert_eq!(opened.undo_steps(), 0);
+    assert_eq!(opened.undo_label(), None);
+}
+
+#[test]
+fn damaged_object_lists_are_refused() {
+    let group = |name: &str| {
+        let mut o = Object::new(ObjectKind::Group);
+        o.name = name.to_string();
+        o
+    };
+    let id = ObjectId::from_raw;
+    // A parent listed after its child (or not at all).
+    assert_eq!(
+        Scene::from_objects([(id(1), Some(id(2)), group("A"))], 0),
+        Err(SceneError::UnknownObject(id(2)))
+    );
+    // The same id twice.
+    assert!(
+        Scene::from_objects([(id(1), None, group("A")), (id(1), None, group("B"))], 0).is_err()
+    );
+    // An empty name.
+    assert_eq!(
+        Scene::from_objects([(id(1), None, group("  "))], 0),
+        Err(SceneError::EmptyName)
+    );
+    // A group with edits.
+    let mut edited = group("G");
+    edited.stack.layers.push(Layer::new(EDITS_LAYER));
+    assert_eq!(
+        Scene::from_objects([(id(1), None, edited)], 0),
+        Err(SceneError::NoShape)
+    );
+    // A next id that is too low is raised past every id.
+    let scene = Scene::from_objects([(id(5), None, group("A"))], 2).unwrap();
+    assert_eq!(scene.next_object_id(), 6);
+}

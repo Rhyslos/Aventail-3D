@@ -200,9 +200,13 @@ UNDO_CHANGE="$(changed_pixels "$OUT/cube-deleted.png" "$OUT/cube-undone.png")"
 echo "Pixels changed by undoing (Ctrl+Z): $UNDO_CHANGE"
 [ "$UNDO_CHANGE" -gt 20000 ] || fail "Ctrl+Z did not bring the cube back"
 
-# 6. Quit with Ctrl+Q, or File > Quit if the key did not arrive.
+# 6. Quit with Ctrl+Q, or File > Quit if the key did not arrive. The scene
+#    has unsaved changes, so the app asks first; Ctrl+D answers "Don't save".
 xdotool mousemove 500 400
 xdotool key --window "$WINDOW_ID" ctrl+q || true
+sleep 1.5
+import -window root "$OUT/unsaved-question.png"
+xdotool key --window "$WINDOW_ID" ctrl+d || true
 for _ in $(seq 1 15); do
     kill -0 "$PID" 2>/dev/null || break
     sleep 1
@@ -212,6 +216,8 @@ if kill -0 "$PID" 2>/dev/null; then
     xdotool mousemove 20 14 click 1
     sleep 1
     xdotool key Up Return
+    sleep 1.5
+    xdotool key --window "$WINDOW_ID" ctrl+d || true
     for _ in $(seq 1 15); do
         kill -0 "$PID" 2>/dev/null || break
         sleep 1
@@ -226,5 +232,29 @@ SAVED="$(grep -rl "panel_layout" "$TEST_HOME" 2>/dev/null | head -1 || true)"
 echo "Layout saved in: ${SAVED#"$TEST_HOME"/}"
 grep -q "grid_detail:TenCentimetres" "$SAVED" || fail "the grid detail choice was not saved"
 echo "Grid detail choice saved."
+
+# 8. A project given on the command line opens (as when a project file is
+#    double-clicked): the title names it and its shapes are drawn. Nothing
+#    changes, so Ctrl+Q quits without asking.
+SAMPLE="$(cd "$(dirname "$0")/../.." && pwd)/crates/fileio/tests/data/sample-v1.avtl"
+"$BIN" "$SAMPLE" >>"$OUT/app.log" 2>&1 </dev/null &
+PID=$!
+for _ in $(seq 1 30); do
+    if xdotool search --name "sample-v1.avtl" >/dev/null 2>&1; then break; fi
+    sleep 1
+done
+WINDOW_ID="$(xdotool search --name "sample-v1.avtl" 2>/dev/null | head -1)" || true
+[ -n "$WINDOW_ID" ] || fail "opening a project from the command line didn't name it in the title"
+echo "Title with the project open: $(xdotool getwindowname "$WINDOW_ID")"
+sleep 2
+import -window root "$OUT/project-opened.png"
+xdotool windowfocus --sync "$WINDOW_ID" 2>/dev/null || true
+xdotool key --window "$WINDOW_ID" ctrl+q || true
+for _ in $(seq 1 15); do
+    kill -0 "$PID" 2>/dev/null || break
+    sleep 1
+done
+kill -0 "$PID" 2>/dev/null && fail "the app with a project open did not quit"
+wait "$PID" || fail "the app with a project open exited with an error"
 
 echo "Window smoke test passed."

@@ -4,7 +4,7 @@
 
 Aventail 3D is a free, open-source modelling and UV unwrapping tool for **hard-surface game assets**, written in Rust. Model it, unwrap it, and export it to Substance Painter and Godot, all in one app.
 
-> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout and a real 3D view you can orbit, pan and zoom around, from four views at once if you like. You can create primitives (cube, plane, cylinder, sphere, disc, tube, cone) and groups, organise them in the Object Manager, and undo every change. Press B for a list of shapes, and select one to change its size and segments in the Attribute Manager, or press C to make it a plain, editable mesh. Saving projects is next in Phase 2; modelling tools come in Phase 3 and 4. Follow the progress tracker below.
+> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout and a real 3D view you can orbit, pan and zoom around, from four views at once if you like. You can create primitives (cube, plane, cylinder, sphere, disc, tube, cone) and groups, organise them in the Object Manager, and undo every change. Press B for a list of shapes, and select one to change its size and segments in the Attribute Manager, or press C to make it a plain, editable mesh. Save your work as a project and open it again later. Modelling tools come in Phase 3 and 4. Follow the progress tracker below.
 
 Created by **Rhyslos**, built with AI assistance (Claude by Anthropic). Part of the **Rhylib** family of tools, alongside [Halberd](https://github.com/Rhyslos/halberd).
 
@@ -56,9 +56,9 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** navigating feels smooth and calm to the project lead. *Passed 2026-10-10.*
 
-### Phase 2 · Objects, history and saving — 5 of 6
+### Phase 2 · Objects, history and saving — 6 of 6
 
-`███████████░░` 83%
+`█████████████` 100%
 
 <details>
 <summary>Milestones</summary>
@@ -68,11 +68,11 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Primitive settings in the Attribute Manager
 - [x] Object stack foundation: base plus recorded operations
 - [x] Undo and redo limited by memory, not steps
-- [ ] Save and open `.avtl` projects
+- [x] Save and open `.avtl` projects
 
 </details>
 
-**Gate:** a scene of primitives can be built, edited, undone freely, saved and reopened.
+**Gate:** a scene of primitives can be built, edited, undone freely, saved and reopened. *Ready for the project lead's check.*
 
 ### Phase 3 · Editable meshes and selection — 0 of 5
 
@@ -181,6 +181,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-11 | Saving and opening `.avtl` projects: File menu, safe saving with a backup, a question before unsaved changes are lost. Phase 2 complete |
 | 2026-10-11 | Settings window (Edit → Settings…, Ctrl + ,): accent, units, navigation, grid and undo memory in one place |
 | 2026-10-11 | Undo limited by memory instead of steps: 2 GB as standard, set in Edit → Undo memory, oldest steps forgotten first |
 | 2026-10-11 | Object stack foundation: shapes keep recorded edits apart from their settings, worked out layer by layer and cached; Make editable (C) bakes a shape into a plain mesh |

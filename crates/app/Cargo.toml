@@ -21,6 +21,8 @@ path = "src/main.rs"
 
 [dependencies]
 ui.workspace = true
+fileio.workspace = true
+rfd.workspace = true
 render.workspace = true
 eframe.workspace = true
 

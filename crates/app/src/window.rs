@@ -3,7 +3,9 @@
 
 use crate::branding;
 use crate::gpu::GpuViewport;
+use crate::project;
 use eframe::egui;
+use std::path::PathBuf;
 use ui::{
     AppInfo, DockState, NoRenderer, Panel, ViewOptions, ViewportRenderer, Workbench,
     WorkbenchAction,
@@ -20,6 +22,8 @@ const ACCENT_KEY: &str = "accent";
 const UNITS_KEY: &str = "units";
 /// Key under which the undo memory limit is remembered.
 const UNDO_MEMORY_KEY: &str = "undo_memory";
+/// Key under which the recently used projects are remembered.
+const RECENT_KEY: &str = "recent_projects";
 /// Window size on first launch, in logical pixels.
 const FIRST_SIZE: [f32; 2] = [1440.0, 900.0];
 /// The smallest the window may get while staying usable.
@@ -30,15 +34,36 @@ struct App {
     workbench: Workbench,
     /// Draws the 3D viewport on the window's GPU.
     renderer: Box<dyn ViewportRenderer>,
+    /// The window title last set, to change it only when it changes.
+    title: String,
+    /// Closing has been agreed (unsaved changes dealt with).
+    closing: bool,
 }
 
 impl eframe::App for App {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let ctx = ui.ctx().clone();
+        // The window's close button: ask about unsaved changes first.
+        if ctx.input(|i| i.viewport().close_requested())
+            && !self.closing
+            && !self.workbench.request_close()
+        {
+            ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+        }
         for action in self.workbench.show(ui, self.renderer.as_mut()) {
             match action {
-                WorkbenchAction::Quit => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
+                WorkbenchAction::Quit => {
+                    self.closing = true;
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                }
+                WorkbenchAction::Save { path } => project::save(&mut self.workbench, path),
+                WorkbenchAction::Open { path } => project::open(&mut self.workbench, path),
             }
+        }
+        let title = self.workbench.title();
+        if title != self.title {
+            ctx.send_viewport_cmd(egui::ViewportCommand::Title(title.clone()));
+            self.title = title;
         }
     }
 
@@ -48,14 +73,16 @@ impl eframe::App for App {
         eframe::set_value(storage, ACCENT_KEY, &self.workbench.accent());
         eframe::set_value(storage, UNITS_KEY, &self.workbench.units());
         eframe::set_value(storage, UNDO_MEMORY_KEY, &self.workbench.undo_memory());
+        eframe::set_value(storage, RECENT_KEY, &self.workbench.recent_projects());
     }
 }
 
-/// Opens the app window and runs until it is closed.
+/// Opens the app window and runs until it is closed, with the project at
+/// `open` open, if given.
 ///
 /// Returns a plain-language reason if the window could not be opened (for
 /// example, no graphics driver that supports Vulkan, DirectX 12 or Metal).
-pub fn run(info: AppInfo) -> Result<(), String> {
+pub fn run(info: AppInfo, open: Option<PathBuf>) -> Result<(), String> {
     let title = format!("{} {}", info.name, info.version);
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
@@ -94,6 +121,10 @@ pub fn run(info: AppInfo) -> Result<(), String> {
                     .storage
                     .and_then(|s| eframe::get_value(s, UNITS_KEY))
                     .unwrap_or_default();
+                let recent: Vec<PathBuf> = cc
+                    .storage
+                    .and_then(|s| eframe::get_value(s, RECENT_KEY))
+                    .unwrap_or_default();
                 let undo_memory: ui::UndoMemory = cc
                     .storage
                     .and_then(|s| eframe::get_value(s, UNDO_MEMORY_KEY))
@@ -104,12 +135,19 @@ pub fn run(info: AppInfo) -> Result<(), String> {
                         reason: "the window has no GPU device".to_string(),
                     }),
                 };
+                let mut workbench = Workbench::new(info, saved)
+                    .with_view_options(view)
+                    .with_accent(accent)
+                    .with_units(units)
+                    .with_undo_memory(undo_memory)
+                    .with_recent_projects(recent);
+                if let Some(path) = open {
+                    project::open_from(&mut workbench, path);
+                }
                 Ok(Box::new(App {
-                    workbench: Workbench::new(info, saved)
-                        .with_view_options(view)
-                        .with_accent(accent)
-                        .with_units(units)
-                        .with_undo_memory(undo_memory),
+                    title: String::new(),
+                    closing: false,
+                    workbench,
                     renderer,
                 }))
             }),
@@ -172,5 +210,6 @@ mod tests {
         assert!(!ACCENT_KEY.contains(branding::APP_ID));
         assert_ne!(LAYOUT_KEY, VIEW_KEY);
         assert_ne!(VIEW_KEY, ACCENT_KEY);
+        assert!(!RECENT_KEY.contains(branding::APP_ID));
     }
 }

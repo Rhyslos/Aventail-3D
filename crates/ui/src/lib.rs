@@ -15,6 +15,7 @@ mod objects;
 pub mod palette;
 mod panel;
 mod panels;
+mod project;
 mod settings;
 mod shape_picker;
 pub mod theme;
@@ -33,6 +34,7 @@ pub use objects::{
 };
 pub use palette::Mode;
 pub use panel::Panel;
+pub use project::{NEW_SHORTCUT, OPEN_SHORTCUT, RECENT_COUNT, SAVE_AS_SHORTCUT, SAVE_SHORTCUT};
 pub use settings::SETTINGS_SHORTCUT;
 pub use shape_picker::SHAPE_LIST_KEY;
 pub use undo_memory::{UndoMemory, format_bytes};
@@ -42,4 +44,6 @@ pub use viewport::{
     PickAsk, PickReply, Picked, VIEW_COUNT, VIEW_KEYS, VIEWPORT_LABEL, ViewOptions, ViewportPanel,
     ViewportRenderer, ViewportView,
 };
-pub use workbench::{AppInfo, QUIT_SHORTCUT, Workbench, WorkbenchAction, navigation_hint};
+pub use workbench::{
+    AppInfo, DISCARD_SHORTCUT, QUIT_SHORTCUT, Workbench, WorkbenchAction, navigation_hint,
+};

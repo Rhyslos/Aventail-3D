@@ -8,6 +8,10 @@ use crate::objects::{self, DocRequest, ObjectManager};
 use crate::palette::{Mode, PaletteCommand, PaletteState, command_palette, mode_palette};
 use crate::panel::Panel;
 use crate::panels::{about_contents, coordinates_contents, menu_line_with};
+use crate::project::{
+    NEW_SHORTCUT, OPEN_SHORTCUT, Pending, ProjectFile, SAVE_AS_SHORTCUT, SAVE_SHORTCUT,
+    recent_label,
+};
 use crate::settings::{SETTINGS_SHORTCUT, SettingsWindow, Values};
 use crate::shape_picker::ShapePicker;
 use crate::theme::{self, Accent};
@@ -17,6 +21,7 @@ use crate::viewport::{ViewOptions, ViewportPanel, ViewportRenderer};
 use egui::{Align2, Id, Key, KeyboardShortcut, Modifiers, Ui, WidgetText};
 use egui_dock::{DockArea, DockState, TabViewer};
 use scene::{Command, Document, ObjectKind, PrimitiveKind};
+use std::path::{Path, PathBuf};
 
 /// Facts about the program, shown in the window and the About box.
 /// The app passes these in from its branding, so this crate never names it.
@@ -43,10 +48,24 @@ const LAYOUTS: [(&str, Option<&str>); 3] = [
 
 /// Something the user asked for that the program around the workbench
 /// must carry out (the workbench never touches files or the window itself).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum WorkbenchAction {
-    /// Close the window.
+    /// Close the window (unsaved changes have been dealt with).
     Quit,
+    /// Save the document to `path`, or ask where first (Save As, or a
+    /// project never saved) when `None`. Report back with
+    /// [`Workbench::saved`], [`Workbench::save_failed`] or
+    /// [`Workbench::save_cancelled`].
+    Save {
+        /// Where to save, if already known.
+        path: Option<PathBuf>,
+    },
+    /// Open the project at `path`, or ask which first when `None`. Report
+    /// back with [`Workbench::opened`] or [`Workbench::open_failed`].
+    Open {
+        /// Which project, if already known (File → Open recent).
+        path: Option<PathBuf>,
+    },
 }
 
 /// Menu entries that exist in the design but not yet in the app, with the
@@ -101,6 +120,12 @@ pub struct Workbench {
     undo_memory: UndoMemory,
     /// The Settings window.
     settings: SettingsWindow,
+    /// Where the project is saved, whether it has unsaved changes, and
+    /// the recent projects.
+    file: ProjectFile,
+    /// Actions to hand to the app on the next frame (what was waiting for
+    /// a save to finish).
+    queued: Vec<WorkbenchAction>,
     /// How many forgotten undo steps the status bar has already told
     /// about (it says so once, when forgetting starts).
     forgotten_told: bool,
@@ -136,6 +161,8 @@ impl Workbench {
             undo_memory: UndoMemory::default(),
             forgotten_told: false,
             settings: SettingsWindow::default(),
+            file: ProjectFile::default(),
+            queued: Vec::new(),
             shape_picker: ShapePicker::default(),
             drawing: DrawingCache::default(),
             viewport: ViewportPanel::default(),
@@ -221,6 +248,236 @@ impl Workbench {
         self.units
     }
 
+    // ------------------------------------------------- the project file ---
+
+    /// The window title: the project's name (marked `*` with unsaved
+    /// changes), then the app's name and version.
+    pub fn title(&self) -> String {
+        let changed = if self.has_unsaved_changes() { "*" } else { "" };
+        format!(
+            "{}{changed} — {} {}",
+            self.file.name(),
+            self.info.name,
+            self.info.version
+        )
+    }
+
+    /// Where the project is saved, if it has been.
+    pub fn project_path(&self) -> Option<&Path> {
+        self.file.path.as_deref()
+    }
+
+    /// Whether the scene has changed since it was last saved or opened.
+    pub fn has_unsaved_changes(&self) -> bool {
+        self.document.revision() != self.file.saved_revision
+    }
+
+    /// Recently saved or opened projects, newest first (for remembering
+    /// between sessions).
+    pub fn recent_projects(&self) -> &[PathBuf] {
+        &self.file.recent
+    }
+
+    /// The workbench with remembered recent projects restored.
+    #[must_use]
+    pub fn with_recent_projects(mut self, recent: Vec<PathBuf>) -> Self {
+        self.file.recent = recent;
+        self.file.recent.truncate(crate::project::RECENT_COUNT);
+        self
+    }
+
+    /// The app saved the document to `path`. Carries on with whatever was
+    /// waiting for the save (a new project, opening another, closing).
+    pub fn saved(&mut self, path: PathBuf) {
+        self.note = Some(format!("Saved {}.", file_name(&path)));
+        self.file.saved_revision = self.document.revision();
+        self.file.remember(&path);
+        self.file.path = Some(path);
+        if let Some(next) = self.file.after_save.take() {
+            self.go_ahead(next);
+        }
+    }
+
+    /// Saving failed: says why, and stops whatever was waiting for it.
+    pub fn save_failed(&mut self, reason: &str) {
+        self.note = Some(format!("Couldn't save: {reason}."));
+        self.file.after_save = None;
+    }
+
+    /// The user closed the Save dialog without choosing: nothing is saved,
+    /// and whatever was waiting for the save doesn't happen.
+    pub fn save_cancelled(&mut self) {
+        self.file.after_save = None;
+    }
+
+    /// The app opened `document` from `path`: it replaces the current one
+    /// (whose unsaved changes were already dealt with), with a fresh undo
+    /// history, and the view frames it.
+    pub fn opened(&mut self, document: Document, path: PathBuf) {
+        self.replace_document(document);
+        self.note = Some(format!("Opened {}.", file_name(&path)));
+        self.file.remember(&path);
+        self.file.path = Some(path);
+        self.viewport.frame(crate::Frame::All);
+    }
+
+    /// Opening `path` failed: says why. A recent project that can no
+    /// longer be found is taken off the list.
+    pub fn open_failed(&mut self, path: &Path, reason: &str) {
+        self.note = Some(format!("Couldn't open {}: {reason}.", file_name(path)));
+        if !path.exists() {
+            self.file.recent.retain(|p| p != path);
+        }
+    }
+
+    /// The window's close button was pressed. Returns `true` if it may
+    /// close now; with unsaved changes it asks first and returns `false`
+    /// (a [`WorkbenchAction::Quit`] follows if the user agrees).
+    pub fn request_close(&mut self) -> bool {
+        if self.has_unsaved_changes() {
+            self.file.asking = Some(Pending::Quit);
+            false
+        } else {
+            true
+        }
+    }
+
+    /// Does `next` now, or first asks whether to save unsaved changes.
+    fn ask_then(&mut self, next: Pending, actions: &mut Vec<WorkbenchAction>) {
+        if self.has_unsaved_changes() {
+            self.file.asking = Some(next);
+        } else {
+            self.go_ahead(next);
+            actions.append(&mut self.queued);
+        }
+    }
+
+    /// Carries out `next`, unsaved changes being dealt with. A new project
+    /// starts at once; opening and closing are queued for the app (handed
+    /// over at once inside a frame, or on the next frame otherwise).
+    fn go_ahead(&mut self, next: Pending) {
+        match next {
+            Pending::New => {
+                self.replace_document(Document::new());
+                self.file.path = None;
+                self.note = Some("New project.".into());
+            }
+            Pending::Open(path) => self.queued.push(WorkbenchAction::Open { path }),
+            Pending::Quit => self.queued.push(WorkbenchAction::Quit),
+        }
+    }
+
+    /// Puts `document` in place of the current one, keeping the undo
+    /// memory limit, and starts the view and panels afresh.
+    fn replace_document(&mut self, mut document: Document) {
+        document.set_history_limit(self.undo_memory.limit());
+        self.file.saved_revision = document.revision();
+        self.document = document;
+        self.drawing = DrawingCache::default();
+        self.forgotten_told = false;
+    }
+
+    /// The "Save changes before …?" question, while asked.
+    fn unsaved_question(&mut self, ctx: &egui::Context, actions: &mut Vec<WorkbenchAction>) {
+        let Some(pending) = self.file.asking.clone() else {
+            return;
+        };
+        let mut answer = None;
+        egui::Modal::new(egui::Id::new("unsaved_changes")).show(ctx, |ui| {
+            ui.set_width(380.0);
+            ui.label(
+                egui::RichText::new(format!("Save changes to {}?", self.file.name()))
+                    .strong()
+                    .color(theme::TEXT_STRONG),
+            );
+            ui.add_space(4.0);
+            ui.label(format!(
+                "Your changes will be lost if you don't save them before {}.",
+                pending.before()
+            ));
+            ui.add_space(10.0);
+            ui.horizontal(|ui| {
+                if ui.button("Save").clicked() {
+                    answer = Some(UnsavedAnswer::Save);
+                }
+                if ui.button("Don't save").clicked() {
+                    answer = Some(UnsavedAnswer::Discard);
+                }
+                if ui.button("Cancel").clicked() {
+                    answer = Some(UnsavedAnswer::Cancel);
+                }
+            });
+            ui.add_space(4.0);
+            let discard = ui.ctx().format_shortcut(&DISCARD_SHORTCUT);
+            ui.label(
+                egui::RichText::new(format!("Enter: save · {discard}: don't save · Esc: cancel"))
+                    .small()
+                    .color(theme::TEXT_WEAK),
+            );
+        });
+        let (save, discard, cancel) = ctx.input_mut(|i| {
+            (
+                i.consume_key(Modifiers::NONE, Key::Enter),
+                i.consume_shortcut(&DISCARD_SHORTCUT),
+                i.consume_key(Modifiers::NONE, Key::Escape),
+            )
+        });
+        if save {
+            answer = Some(UnsavedAnswer::Save);
+        } else if discard {
+            answer = Some(UnsavedAnswer::Discard);
+        } else if cancel {
+            answer = Some(UnsavedAnswer::Cancel);
+        }
+        match answer {
+            Some(UnsavedAnswer::Save) => {
+                self.file.asking = None;
+                self.file.after_save = Some(pending);
+                actions.push(WorkbenchAction::Save {
+                    path: self.file.path.clone(),
+                });
+            }
+            Some(UnsavedAnswer::Discard) => {
+                self.file.asking = None;
+                self.go_ahead(pending);
+                actions.append(&mut self.queued);
+            }
+            Some(UnsavedAnswer::Cancel) => self.file.asking = None,
+            None => {}
+        }
+    }
+
+    /// Whether the "Save changes?" question is showing.
+    pub fn is_asking_to_save(&self) -> bool {
+        self.file.asking.is_some()
+    }
+
+    /// The File menu's project entries and their keys.
+    fn file_keys(&mut self, ui: &Ui, actions: &mut Vec<WorkbenchAction>) {
+        let (new, open, save_as, save) = ui.input_mut(|i| {
+            (
+                i.consume_shortcut(&NEW_SHORTCUT),
+                i.consume_shortcut(&OPEN_SHORTCUT),
+                // Ctrl+Shift+S first: Ctrl+S would match it too.
+                i.consume_shortcut(&SAVE_AS_SHORTCUT),
+                i.consume_shortcut(&SAVE_SHORTCUT),
+            )
+        });
+        if new {
+            self.ask_then(Pending::New, actions);
+        }
+        if open {
+            self.ask_then(Pending::Open(None), actions);
+        }
+        if save_as {
+            actions.push(WorkbenchAction::Save { path: None });
+        } else if save {
+            actions.push(WorkbenchAction::Save {
+                path: self.file.path.clone(),
+            });
+        }
+    }
+
     /// Whether the Settings window is open.
     pub fn is_settings_open(&self) -> bool {
         self.settings.open
@@ -290,8 +547,12 @@ impl Workbench {
         if theme::accent(ui.ctx()) != self.accent {
             theme::set_accent(ui.ctx(), self.accent);
         }
+        actions.append(&mut self.queued);
         if ui.input_mut(|i| i.consume_shortcut(&QUIT_SHORTCUT)) {
-            actions.push(WorkbenchAction::Quit);
+            self.ask_then(Pending::Quit, &mut actions);
+        }
+        if self.file.asking.is_none() {
+            self.file_keys(ui, &mut actions);
         }
         if ui.input_mut(|i| i.consume_shortcut(&SETTINGS_SHORTCUT)) {
             self.settings.open = !self.settings.open;
@@ -299,11 +560,14 @@ impl Workbench {
         let mut requests = Vec::new();
         // The shape list goes first: while it is open, Esc closes it
         // rather than deselecting.
-        let typing = ui.ctx().memory(|m| m.focused().is_some()) || self.objects.is_renaming();
-        if let Some(kind) = self.shape_picker.keys(ui, typing) {
-            requests.push(create(kind));
+        // While "Save changes?" is asked, keys answer it, not the scene.
+        if self.file.asking.is_none() {
+            let typing = ui.ctx().memory(|m| m.focused().is_some()) || self.objects.is_renaming();
+            if let Some(kind) = self.shape_picker.keys(ui, typing) {
+                requests.push(create(kind));
+            }
+            self.document_keys(ui, &mut requests);
         }
-        self.document_keys(ui, &mut requests);
 
         egui::Panel::top("menu_bar")
             .frame(theme::menu_bar_frame())
@@ -395,6 +659,7 @@ impl Workbench {
         self.about_open = about_open;
 
         self.settings_window(ui.ctx());
+        self.unsaved_question(ui.ctx(), &mut actions);
 
         actions
     }
@@ -545,19 +810,65 @@ impl Workbench {
         requests: &mut Vec<DocRequest>,
     ) {
         ui.menu_button("File", |ui| {
-            for item in ["New", "Open…", "Save", "Save As…"] {
-                ui.add_enabled(false, egui::Button::new(item))
-                    .on_disabled_hover_text("Projects arrive in Phase 2");
+            let entry = |ui: &mut Ui, label: &str, keys: &KeyboardShortcut, help: &str| {
+                let keys = ui.ctx().format_shortcut(keys);
+                ui.add(egui::Button::new(label).shortcut_text(keys))
+                    .on_hover_text(help)
+                    .clicked()
+            };
+            if entry(ui, "New", &NEW_SHORTCUT, "Start a new, empty project") {
+                self.ask_then(Pending::New, actions);
+                ui.close();
             }
+            if entry(ui, "Open…", &OPEN_SHORTCUT, "Open a saved project") {
+                self.ask_then(Pending::Open(None), actions);
+                ui.close();
+            }
+            let recent = self.file.recent.clone();
+            ui.add_enabled_ui(!recent.is_empty(), |ui| {
+                ui.menu_button("Open recent", |ui| {
+                    for path in &recent {
+                        if ui
+                            .button(recent_label(path))
+                            .on_hover_text(path.display().to_string())
+                            .clicked()
+                        {
+                            self.ask_then(Pending::Open(Some(path.clone())), actions);
+                            ui.close();
+                        }
+                    }
+                    ui.separator();
+                    if ui.button("Clear the list").clicked() {
+                        self.file.recent.clear();
+                        ui.close();
+                    }
+                })
+            })
+            .response
+            .on_disabled_hover_text("Projects you save or open are listed here");
+            ui.separator();
+            if entry(ui, "Save", &SAVE_SHORTCUT, "Save the project") {
+                actions.push(WorkbenchAction::Save {
+                    path: self.file.path.clone(),
+                });
+                ui.close();
+            }
+            if entry(
+                ui,
+                "Save As…",
+                &SAVE_AS_SHORTCUT,
+                "Save the project under a new name or in another folder",
+            ) {
+                actions.push(WorkbenchAction::Save { path: None });
+                ui.close();
+            }
+            ui.separator();
             ui.add_enabled(false, egui::Button::new("Export…"))
                 .on_disabled_hover_text("Export arrives in Phase 5");
             ui.separator();
-            let keys = ui.ctx().format_shortcut(&QUIT_SHORTCUT);
-            if ui
-                .add(egui::Button::new("Quit").shortcut_text(keys))
-                .clicked()
-            {
-                actions.push(WorkbenchAction::Quit);
+            if entry(ui, "Quit", &QUIT_SHORTCUT, "Close the app") {
+                self.ask_then(Pending::Quit, actions);
+                ui.close();
             }
         });
         ui.menu_button("Edit", |ui| {
@@ -655,6 +966,25 @@ impl Workbench {
         });
         layout_tabs(ui);
     }
+}
+
+/// The answers to "Save changes?".
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum UnsavedAnswer {
+    Save,
+    Discard,
+    Cancel,
+}
+
+/// "Don't save" in the "Save changes?" question, from the keyboard.
+pub const DISCARD_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::D);
+
+/// A path's file name, for messages.
+fn file_name(path: &Path) -> String {
+    path.file_name().map_or_else(
+        || path.display().to_string(),
+        |n| n.to_string_lossy().into_owned(),
+    )
 }
 
 /// The request that creates a primitive of `kind` with standard settings.
@@ -799,6 +1129,8 @@ impl TabViewer for PanelViewer<'_> {
 mod attribute_tests;
 #[cfg(test)]
 mod object_tests;
+#[cfg(test)]
+mod project_tests;
 #[cfg(test)]
 mod settings_tests;
 #[cfg(test)]
