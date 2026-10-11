@@ -9,6 +9,7 @@ pub mod check;
 pub mod edit;
 pub mod polygon;
 pub mod primitives;
+pub mod selection;
 pub mod shading;
 pub mod topology;
 
@@ -19,5 +20,6 @@ pub use primitives::{
     ConeParams, CubeParams, CylinderParams, DiscParams, PlaneParams, Primitive, PrimitiveKind,
     SphereParams, TubeParams,
 };
+pub use selection::{Combine, Element, ElementKind, ElementSelection};
 pub use shading::{ShadedTriangle, corner_normals, shaded_triangles};
 pub use topology::{EdgeUse, Topology};

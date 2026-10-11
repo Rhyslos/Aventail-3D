@@ -17,6 +17,7 @@ pub mod palette;
 mod panel;
 mod panels;
 mod project;
+mod selecting;
 mod settings;
 mod shape_picker;
 pub mod theme;
@@ -36,6 +37,10 @@ pub use objects::{
 pub use palette::Mode;
 pub use panel::Panel;
 pub use project::{NEW_SHORTCUT, OPEN_SHORTCUT, RECENT_COUNT, SAVE_AS_SHORTCUT, SAVE_SHORTCUT};
+pub use selecting::{
+    BRUSH_MAX, BRUSH_MIN, BRUSH_RADIUS, BRUSH_STEP, INVERT_SHORTCUT, SELECT_ALL_SHORTCUT,
+    SELECT_TOOL_KEY, SelectTool,
+};
 pub use settings::SETTINGS_SHORTCUT;
 pub use shape_picker::SHAPE_LIST_KEY;
 pub use undo_memory::{UndoMemory, format_bytes};

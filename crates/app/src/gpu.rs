@@ -15,34 +15,53 @@ use ui::{
 
 /// Plain points in the Points mode: small light squares, in pixels.
 const POINT_SIZE: f32 = 5.0;
-/// The point under the mouse: larger, in the accent colour.
+/// Selected points: larger, in the accent colour.
+const SELECTED_POINT_SIZE: f32 = 8.0;
+/// The point under the mouse: larger still, in a lighter accent.
 const HOVERED_POINT_SIZE: f32 = 9.0;
 /// Edges of the edited objects, to see their structure.
 const LINE_WIDTH: f32 = 1.25;
+/// Selected edges.
+const SELECTED_LINE_WIDTH: f32 = 3.0;
 /// The edge under the mouse, or the polygon's outline.
 const HOVERED_LINE_WIDTH: f32 = 3.5;
 /// Light grey, linear space, for plain points and edges.
 const PLAIN_POINT: [f32; 4] = [0.85, 0.85, 0.85, 0.95];
 const PLAIN_LINE: [f32; 4] = [0.9, 0.9, 0.9, 0.45];
+/// How see-through the tint on selected and hovered polygons is.
+const SELECTED_TINT: f32 = 0.45;
+const HOVERED_TINT: f32 = 0.3;
+/// How far towards white the hovered colour is from the accent, so what
+/// is under the mouse stands out from what is selected.
+const HOVER_LIFT: f32 = 0.45;
 
-/// The renderer's overlay for the interface's description of it, with the
-/// hovered element in `accent` (linear colour).
+/// The renderer's overlay for the interface's description of it: selected
+/// elements in `accent` (linear colour), the hovered one lighter.
 fn overlay_geometry(overlay: &ComponentOverlay, accent: [f32; 3]) -> Overlay {
     let [r, g, b] = accent;
+    let lift = |c: f32| c + (1.0 - c) * HOVER_LIFT;
+    let selected = [r, g, b, 1.0];
+    let hovered = [lift(r), lift(g), lift(b), 1.0];
     let mut out = Overlay::default();
     for ([a, b2], style) in &overlay.lines {
         match style {
             OverlayStyle::Plain => out.line(*a, *b2, LINE_WIDTH, PLAIN_LINE),
-            OverlayStyle::Hovered => out.line(*a, *b2, HOVERED_LINE_WIDTH, [r, g, b, 1.0]),
+            OverlayStyle::Selected => out.line(*a, *b2, SELECTED_LINE_WIDTH, selected),
+            OverlayStyle::Hovered => out.line(*a, *b2, HOVERED_LINE_WIDTH, hovered),
         }
     }
-    for triangle in &overlay.tints {
-        out.triangle(*triangle, [r, g, b, 0.35]);
+    for (triangle, style) in &overlay.tints {
+        let color = match style {
+            OverlayStyle::Hovered => [hovered[0], hovered[1], hovered[2], HOVERED_TINT],
+            OverlayStyle::Selected | OverlayStyle::Plain => [r, g, b, SELECTED_TINT],
+        };
+        out.triangle(*triangle, color);
     }
     for (at, style) in &overlay.points {
         match style {
             OverlayStyle::Plain => out.point(*at, POINT_SIZE, PLAIN_POINT),
-            OverlayStyle::Hovered => out.point(*at, HOVERED_POINT_SIZE, [r, g, b, 1.0]),
+            OverlayStyle::Selected => out.point(*at, SELECTED_POINT_SIZE, selected),
+            OverlayStyle::Hovered => out.point(*at, HOVERED_POINT_SIZE, hovered),
         }
     }
     out
@@ -228,17 +247,32 @@ mod tests {
             points: vec![
                 (Vec3::ZERO, OverlayStyle::Plain),
                 (Vec3::X, OverlayStyle::Hovered),
+                (Vec3::Y, OverlayStyle::Selected),
             ],
             lines: vec![([Vec3::ZERO, Vec3::Y], OverlayStyle::Plain)],
-            tints: vec![[Vec3::ZERO, Vec3::X, Vec3::Y]],
+            tints: vec![([Vec3::ZERO, Vec3::X, Vec3::Y], OverlayStyle::Selected)],
         };
         let geometry = overlay_geometry(&overlay, [1.0, 0.0, 0.0]);
-        // Two points and one line, six corners each; one tinted triangle.
-        assert_eq!(geometry.sprites.len(), 18);
+        // Three points and one line, six corners each; one tinted triangle.
+        assert_eq!(geometry.sprites.len(), 24);
         assert_eq!(geometry.tints.len(), 3);
-        let hovered = &geometry.sprites[12..];
+        assert!(
+            geometry
+                .tints
+                .iter()
+                .all(|v| v.color == [1.0, 0.0, 0.0, SELECTED_TINT])
+        );
+        let hovered = &geometry.sprites[12..18];
         assert!(hovered.iter().all(|v| v.width == HOVERED_POINT_SIZE));
-        assert!(hovered.iter().all(|v| v.color == [1.0, 0.0, 0.0, 1.0]));
+        // Lighter than the accent, so it stands out from the selection.
+        assert!(
+            hovered
+                .iter()
+                .all(|v| v.color[0] == 1.0 && v.color[1] > 0.3)
+        );
+        let selected = &geometry.sprites[18..];
+        assert!(selected.iter().all(|v| v.width == SELECTED_POINT_SIZE));
+        assert!(selected.iter().all(|v| v.color == [1.0, 0.0, 0.0, 1.0]));
         assert!(overlay_geometry(&ComponentOverlay::default(), [1.0; 3]).is_empty());
     }
 }

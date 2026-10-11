@@ -35,3 +35,5 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0025](0025-mesh-topology.md) | Mesh topology: a derived index over a face list | Accepted |
 | [0026](0026-windows-keyboard-focus.md) | One small unsafe exception: giving the window the keyboard on Windows | Accepted |
 | [0027](0027-component-modes.md) | Points, Edges and Polygons modes: what is edited, and finding what is under the mouse | Accepted |
+| [0028](0028-ask-about-controls.md) | Ask the project lead about controls before building a feature | Accepted |
+| [0029](0029-selection.md) | Selection: controls, where element selections live, and selecting through | Accepted |

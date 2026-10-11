@@ -51,6 +51,8 @@ pub(crate) struct Values<'a> {
     pub(crate) units: &'a mut Units,
     pub(crate) navigation: &'a mut NavigationSettings,
     pub(crate) grid: &'a mut GridDetail,
+    /// Whether box, lasso and brush select only what can be seen.
+    pub(crate) select_visible_only: &'a mut bool,
     pub(crate) undo_memory: &'a mut UndoMemory,
     /// What the undo history uses now: bytes and steps.
     pub(crate) history: (usize, usize),
@@ -133,6 +135,7 @@ fn restore_standard(values: &mut Values<'_>) {
     *values.units = Units::default();
     *values.navigation = NavigationSettings::default();
     *values.grid = GridDetail::default();
+    *values.select_visible_only = false;
     *values.undo_memory = UndoMemory::default();
 }
 
@@ -229,6 +232,14 @@ fn viewport(ui: &mut Ui, values: &mut Values<'_>) {
             *values.grid = level;
         }
     }
+    ui.add_space(8.0);
+    heading(ui, "Selecting");
+    explain(
+        ui,
+        "Also switched with the button above the grid button on the left palette.",
+    );
+    ui.checkbox(values.select_visible_only, "Select only visible")
+        .on_hover_text(crate::workbench::VISIBLE_ONLY_HELP);
 }
 
 fn undo(ui: &mut Ui, values: &mut Values<'_>) {

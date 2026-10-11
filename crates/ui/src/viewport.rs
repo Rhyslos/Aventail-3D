@@ -12,6 +12,7 @@
 
 pub(crate) mod chrome;
 mod picker;
+mod select;
 
 use egui::{Color32, CursorIcon, PointerButton, Rect, Response, Sense, Ui, pos2};
 use glam::{Mat4, Vec2, Vec3};
@@ -22,6 +23,7 @@ use tools::{
 
 use crate::components::ViewPointer;
 use crate::drawing::{ComponentOverlay, SceneDrawing, SceneSummary};
+use crate::selecting::{BRUSH_MAX, BRUSH_MIN, BRUSH_RADIUS, BRUSH_STEP, Gesture, SelectTool};
 use crate::theme;
 use std::sync::Arc;
 
@@ -123,6 +125,10 @@ pub struct ViewOptions {
     /// Whether all four views (perspective, top, front, right) are shown
     /// at once, rather than one filling the viewport.
     pub four_views: bool,
+    /// Whether the box, lasso and brush only select what can be seen. Off
+    /// as standard: they select through the shape, catching its far side
+    /// too (decision 0029).
+    pub select_visible_only: bool,
 }
 
 /// What a renderer needs to draw one viewport frame.
@@ -344,7 +350,7 @@ pub const FOUR_VIEWS_KEY: egui::Key = egui::Key::F5;
 const VIEW_GAP: f32 = 2.0;
 
 /// One view: its camera and what the mouse is doing in it.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 struct View {
     navigator: Navigator,
     /// The navigation drag in progress, if any. Chosen when the drag
@@ -357,6 +363,8 @@ struct View {
     /// The image's size last frame, in logical pixels (for framing from a
     /// menu, before this frame's size is known).
     image_size: Vec2,
+    /// A selection drag (box, lasso or brush) in progress, if any.
+    select_drag: Option<select::SelectDrag>,
 }
 
 impl View {
@@ -368,6 +376,7 @@ impl View {
             under_mouse: None,
             glide: None,
             image_size: Vec2::ZERO,
+            select_drag: None,
         }
     }
 
@@ -502,7 +511,8 @@ impl View {
                 self.drag = None;
             }
         }
-        if response.hovered() {
+        // Ctrl + wheel grows and shrinks the selection instead.
+        if response.hovered() && !ui.input(|i| i.modifiers.command) {
             let scroll = wheel_scroll(ui, rect.height());
             if scroll != 0.0 {
                 self.glide = None;
@@ -607,6 +617,16 @@ pub struct ViewportPanel {
     frame_request: Option<Frame>,
     /// The mouse over a view this frame, while not navigating.
     pointer: Option<ViewPointer>,
+    /// What a left drag selects with.
+    select_tool: SelectTool,
+    /// The selection brush's radius, in screen points.
+    brush_radius: f32,
+    /// The last selection drag's number.
+    strokes: u64,
+    /// Ctrl + wheel turned but not yet a whole step.
+    ctrl_scroll: f32,
+    /// Selection gestures this frame, for the workbench.
+    gestures: Vec<Gesture>,
 }
 
 impl Default for ViewportPanel {
@@ -620,6 +640,11 @@ impl Default for ViewportPanel {
             asking: false,
             frame_request: None,
             pointer: None,
+            select_tool: SelectTool::default(),
+            brush_radius: BRUSH_RADIUS,
+            strokes: 0,
+            ctrl_scroll: 0.0,
+            gestures: Vec::new(),
         }
     }
 }
@@ -656,7 +681,7 @@ impl ViewportPanel {
 
     /// The kind of each of the four views, in layout order.
     pub fn view_kinds(&self) -> [ViewKind; VIEW_COUNT] {
-        self.views.map(|v| v.kind())
+        std::array::from_fn(|slot| self.views[slot].kind())
     }
 
     /// Which of the four views is active (0 top left, 1 top right, 2
@@ -715,6 +740,26 @@ impl ViewportPanel {
     /// if it rests there and nothing is being navigated.
     pub(crate) fn pointer(&self) -> Option<ViewPointer> {
         self.pointer
+    }
+
+    /// What a left drag selects with.
+    pub fn select_tool(&self) -> SelectTool {
+        self.select_tool
+    }
+
+    /// Changes what a left drag selects with.
+    pub fn set_select_tool(&mut self, tool: SelectTool) {
+        self.select_tool = tool;
+    }
+
+    /// The selection brush's radius, in screen points.
+    pub fn brush_radius(&self) -> f32 {
+        self.brush_radius
+    }
+
+    /// The selection gestures made since last asked.
+    pub(crate) fn take_gestures(&mut self) -> Vec<Gesture> {
+        std::mem::take(&mut self.gestures)
     }
 
     /// Whether a framing glide is in progress in the active view.
@@ -805,6 +850,17 @@ impl ViewportPanel {
             }
             let settings = self.options.navigation;
             self.views[slot].navigate(ui, &response, rect, settings);
+            self.views[slot].capture_selection(
+                ui,
+                &response,
+                rect,
+                select::Capture {
+                    tool: self.select_tool,
+                    brush_radius: self.brush_radius,
+                    strokes: &mut self.strokes,
+                    out: &mut self.gestures,
+                },
+            );
 
             let mut view =
                 self.views[slot].view(slot, rect, ppp, self.options.grid_detail, &scene.drawing);
@@ -820,6 +876,13 @@ impl ViewportPanel {
             if response.hovered() {
                 hovered = Some((slot, rect, response.hover_pos(), view));
             }
+            self.views[slot].paint_selection(
+                ui,
+                rect,
+                self.select_tool,
+                self.brush_radius,
+                response.hover_pos(),
+            );
             chrome::overlays(ui, rect, &self.views[slot], &self.options);
             if four && slot == self.active {
                 chrome::active_border(ui, rect);
@@ -836,11 +899,45 @@ impl ViewportPanel {
                 at: Vec2::new(at.x - rect.min.x, at.y - rect.min.y),
             })
         });
+        if hovered.is_some() {
+            self.ctrl_wheel(ui);
+        }
         self.ask_what_is_under_the_mouse(ui, hovered, renderer);
         if toggle_layout {
             self.options.four_views = !four;
         }
         picker::show(ui, body, self);
+    }
+
+    /// Ctrl + wheel over a view: with the brush, changes its size;
+    /// otherwise grows or shrinks the selection, a step for each notch of
+    /// the wheel.
+    fn ctrl_wheel(&mut self, ui: &Ui) {
+        if !ui.input(|i| i.modifiers.command) {
+            self.ctrl_scroll = 0.0;
+            return;
+        }
+        let scroll = wheel_scroll(ui, 400.0);
+        if scroll == 0.0 {
+            return;
+        }
+        // One notch of a mouse wheel; touchpads send many small turns.
+        let notch = ui
+            .ctx()
+            .options(|o| o.input_options.line_scroll_speed)
+            .max(1.0);
+        self.ctrl_scroll += scroll;
+        let steps = (self.ctrl_scroll / notch).trunc();
+        if steps == 0.0 {
+            return;
+        }
+        self.ctrl_scroll -= steps * notch;
+        if self.select_tool == SelectTool::Brush {
+            self.brush_radius =
+                (self.brush_radius * BRUSH_STEP.powf(steps)).clamp(BRUSH_MIN, BRUSH_MAX);
+        } else {
+            self.gestures.push(Gesture::Grow(steps as i32));
+        }
     }
 
     /// Shows one view or four, for keys `F1` to `F5` (unless typing in a
@@ -1142,7 +1239,7 @@ mod tests {
     fn changing_a_views_kind_starts_it_fresh_and_keeps_others() {
         let mut panel = ViewportPanel::default();
         panel.views[1].navigator.pan(Vec2::new(40.0, 0.0), 400.0);
-        let top = panel.views[1];
+        let top = panel.views[1].clone();
         panel.navigator_mut().orbit(Vec2::new(50.0, 0.0));
         panel.set_kind(ViewKind::Right);
         assert_eq!(*panel.navigator(), Navigator::for_view(ViewKind::Right));

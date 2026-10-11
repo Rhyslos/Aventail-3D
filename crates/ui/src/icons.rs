@@ -18,6 +18,13 @@ pub enum Icon {
     Redo,
     /// Live selection: paint to select.
     LiveSelection,
+    /// Box selection: drag a box.
+    BoxSelection,
+    /// Lasso selection: draw around what to select.
+    LassoSelection,
+    /// Select only what can be seen: a box whose hidden edges are left
+    /// out.
+    VisibleOnly,
     /// Move tool.
     Move,
     /// Scale tool.
@@ -79,10 +86,13 @@ pub enum Icon {
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 32] = [
+pub const ALL: [Icon; 35] = [
     Icon::Undo,
     Icon::Redo,
     Icon::LiveSelection,
+    Icon::BoxSelection,
+    Icon::LassoSelection,
+    Icon::VisibleOnly,
     Icon::Move,
     Icon::Scale,
     Icon::Rotate,
@@ -251,6 +261,36 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
             }
             pen.polyline(&[(12.0, 9.0), (12.0, 15.0)]);
             pen.polyline(&[(9.0, 12.0), (15.0, 12.0)]);
+        }
+        Icon::BoxSelection => {
+            // A dashed square with a pointer at its corner.
+            for i in 0..4 {
+                let at = 4.0 + i as f32 * 4.0;
+                pen.segment((at, 4.0), (at + 2.5, 4.0), 1.5, 1.0);
+                pen.segment((4.0, at), (4.0, at + 2.5), 1.5, 1.0);
+                pen.segment((at, 18.0), (at + 2.0, 18.0), 1.5, 1.0);
+                pen.segment((18.0, at), (18.0, at + 2.0), 1.5, 1.0);
+            }
+            pen.polygon(&[(14.0, 14.0), (21.0, 17.5), (17.5, 18.0), (18.5, 21.5)]);
+        }
+        Icon::LassoSelection => {
+            // A loose dashed loop with a tail.
+            for i in 0..10 {
+                let a = i as f32 / 10.0 * TAU;
+                let dash = pen.arc((12.0, 10.0), (9.0, 6.5), a, a + TAU / 20.0);
+                pen.line(dash);
+            }
+            pen.polyline(&[(7.0, 15.0), (6.0, 18.5), (8.5, 21.0)]);
+        }
+        Icon::VisibleOnly => {
+            // A box seen from the front, right and above: the edges in
+            // sight solid, the hidden ones barely there.
+            pen.polygon(&[(4.0, 9.0), (15.0, 9.0), (15.0, 20.0), (4.0, 20.0)]);
+            pen.polyline(&[(4.0, 9.0), (9.0, 4.0), (20.0, 4.0), (15.0, 9.0)]);
+            pen.polyline(&[(20.0, 4.0), (20.0, 15.0), (15.0, 20.0)]);
+            pen.segment((9.0, 4.0), (9.0, 15.0), 1.0, 0.3);
+            pen.segment((9.0, 15.0), (20.0, 15.0), 1.0, 0.3);
+            pen.segment((9.0, 15.0), (4.0, 20.0), 1.0, 0.3);
         }
         Icon::Move => {
             pen.polyline(&[(12.0, 3.0), (12.0, 21.0)]);

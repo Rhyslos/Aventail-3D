@@ -38,21 +38,21 @@ fn a_visible_point_is_found_under_the_mouse() {
     // The corner nearest the camera.
     let corner = Vec3::new(50.0, -50.0, 100.0);
     let mouse = screen(&camera, corner) + Vec2::new(4.0, -3.0);
-    let found = scene.under(ComponentKind::Points, &camera, SIZE, mouse);
+    let found = scene.under(ElementKind::Points, &camera, SIZE, mouse);
     assert_eq!(
         found,
         Some(Hovered {
             object: 0,
-            component: Component::Point(point_at(&mesh, corner)),
+            element: Element::Point(point_at(&mesh, corner)),
         })
     );
     // Too far away from any point: nothing.
     let away = screen(&camera, corner) + Vec2::new(POINT_RADIUS + 30.0, 0.0);
     assert_ne!(
         scene
-            .under(ComponentKind::Points, &camera, SIZE, away)
-            .map(|h| h.component),
-        Some(Component::Point(point_at(&mesh, corner)))
+            .under(ElementKind::Points, &camera, SIZE, away)
+            .map(|h| h.element),
+        Some(Element::Point(point_at(&mesh, corner)))
     );
 }
 
@@ -63,15 +63,10 @@ fn a_point_behind_the_shape_is_not_found() {
     let camera = camera();
     // The corner farthest from the camera, hidden behind the cube.
     let hidden = Vec3::new(-50.0, 50.0, 0.0);
-    let found = scene.under(
-        ComponentKind::Points,
-        &camera,
-        SIZE,
-        screen(&camera, hidden),
-    );
+    let found = scene.under(ElementKind::Points, &camera, SIZE, screen(&camera, hidden));
     assert_ne!(
-        found.map(|h| h.component),
-        Some(Component::Point(point_at(&mesh, hidden)))
+        found.map(|h| h.element),
+        Some(Element::Point(point_at(&mesh, hidden)))
     );
 }
 
@@ -86,17 +81,12 @@ fn another_object_in_front_hides_points_and_polygons() {
     let camera = camera();
     let middle = screen(&camera, Vec3::new(0.0, 0.0, 50.0));
     assert_eq!(
-        scene.under(ComponentKind::Polygons, &camera, SIZE, middle),
+        scene.under(ElementKind::Polygons, &camera, SIZE, middle),
         None
     );
     let corner = Vec3::new(50.0, -50.0, 100.0);
     assert_eq!(
-        scene.under(
-            ComponentKind::Points,
-            &camera,
-            SIZE,
-            screen(&camera, corner)
-        ),
+        scene.under(ElementKind::Points, &camera, SIZE, screen(&camera, corner)),
         None,
         "covered by the blocker"
     );
@@ -111,12 +101,12 @@ fn an_edge_is_found_where_it_passes_the_mouse() {
     let a = Vec3::new(-50.0, -50.0, 100.0);
     let b = Vec3::new(50.0, -50.0, 100.0);
     let mouse = screen(&camera, a.lerp(b, 0.4)) + Vec2::new(0.0, 3.0);
-    let found = scene.under(ComponentKind::Edges, &camera, SIZE, mouse);
+    let found = scene.under(ElementKind::Edges, &camera, SIZE, mouse);
     assert_eq!(
         found,
         Some(Hovered {
             object: 0,
-            component: Component::Edge(EdgeKey::new(point_at(&mesh, a), point_at(&mesh, b))),
+            element: Element::Edge(EdgeKey::new(point_at(&mesh, a), point_at(&mesh, b))),
         })
     );
 }
@@ -131,12 +121,12 @@ fn a_hidden_edge_is_not_found() {
     let b = Vec3::new(50.0, 50.0, 0.0);
     let hidden = EdgeKey::new(point_at(&mesh, a), point_at(&mesh, b));
     let found = scene.under(
-        ComponentKind::Edges,
+        ElementKind::Edges,
         &camera,
         SIZE,
         screen(&camera, a.lerp(b, 0.5)),
     );
-    assert_ne!(found.map(|h| h.component), Some(Component::Edge(hidden)));
+    assert_ne!(found.map(|h| h.element), Some(Element::Edge(hidden)));
 }
 
 #[test]
@@ -152,15 +142,15 @@ fn the_polygon_under_the_mouse_is_the_nearest_one() {
         .unwrap();
     let mouse = screen(&camera, Vec3::new(0.0, -50.0, 50.0));
     assert_eq!(
-        scene.under(ComponentKind::Polygons, &camera, SIZE, mouse),
+        scene.under(ElementKind::Polygons, &camera, SIZE, mouse),
         Some(Hovered {
             object: 0,
-            component: Component::Polygon(front),
+            element: Element::Polygon(front),
         })
     );
     // Over the background: nothing.
     assert_eq!(
-        scene.under(ComponentKind::Polygons, &camera, SIZE, Vec2::new(5.0, 5.0)),
+        scene.under(ElementKind::Polygons, &camera, SIZE, Vec2::new(5.0, 5.0)),
         None
     );
 }
@@ -172,9 +162,9 @@ fn objects_not_being_edited_offer_no_elements() {
     let camera = camera();
     let corner = screen(&camera, Vec3::new(50.0, -50.0, 100.0));
     for kind in [
-        ComponentKind::Points,
-        ComponentKind::Edges,
-        ComponentKind::Polygons,
+        ElementKind::Points,
+        ElementKind::Edges,
+        ElementKind::Polygons,
     ] {
         assert_eq!(scene.under(kind, &camera, SIZE, corner), None, "{kind:?}");
     }
@@ -189,14 +179,14 @@ fn moved_objects_are_found_where_they_are() {
     let corner = Vec3::new(50.0, -50.0, 100.0);
     let found = scene
         .under(
-            ComponentKind::Points,
+            ElementKind::Points,
             &camera,
             SIZE,
             screen(&camera, moved.transform_point3(corner)),
         )
         .unwrap();
     assert_eq!(found.object, 1);
-    assert_eq!(found.component, Component::Point(point_at(&mesh, corner)));
+    assert_eq!(found.element, Element::Point(point_at(&mesh, corner)));
 }
 
 #[test]
@@ -206,22 +196,17 @@ fn flat_views_find_elements_too() {
     let camera = *Navigator::for_view(ViewKind::Front).camera();
     // In the front view the front face's top-right corner is in plain sight.
     let corner = Vec3::new(50.0, -50.0, 100.0);
-    let found = scene.under(
-        ComponentKind::Points,
-        &camera,
-        SIZE,
-        screen(&camera, corner),
-    );
+    let found = scene.under(ElementKind::Points, &camera, SIZE, screen(&camera, corner));
     assert_eq!(
-        found.map(|h| h.component),
-        Some(Component::Point(point_at(&mesh, corner)))
+        found.map(|h| h.element),
+        Some(Element::Point(point_at(&mesh, corner)))
     );
     let middle = screen(&camera, Vec3::new(0.0, 0.0, 50.0));
     assert!(matches!(
         scene
-            .under(ComponentKind::Polygons, &camera, SIZE, middle)
-            .map(|h| h.component),
-        Some(Component::Polygon(_))
+            .under(ElementKind::Polygons, &camera, SIZE, middle)
+            .map(|h| h.element),
+        Some(Element::Polygon(_))
     ));
 }
 
@@ -237,12 +222,12 @@ fn an_n_gon_is_one_polygon() {
         Vec3::new(-20.0, 25.0, 0.0),
     ] {
         let found = scene.under(
-            ComponentKind::Polygons,
+            ElementKind::Polygons,
             &camera,
             SIZE,
             screen(&camera, offset),
         );
-        assert_eq!(found.map(|h| h.component), Some(Component::Polygon(face)));
+        assert_eq!(found.map(|h| h.element), Some(Element::Polygon(face)));
     }
 }
 
@@ -256,9 +241,9 @@ fn broken_placements_and_empty_meshes_are_ignored() {
     let camera = camera();
     let anywhere = SIZE / 2.0;
     for kind in [
-        ComponentKind::Points,
-        ComponentKind::Edges,
-        ComponentKind::Polygons,
+        ElementKind::Points,
+        ElementKind::Edges,
+        ElementKind::Polygons,
     ] {
         assert_eq!(scene.under(kind, &camera, SIZE, anywhere), None);
     }
@@ -275,7 +260,7 @@ fn every_primitive_can_be_picked_somewhere() {
         let found = (0..40).find_map(|i| {
             let offset = Vec2::new((i % 8) as f32 * 6.0 - 21.0, (i / 8) as f32 * 6.0 - 12.0);
             scene.under(
-                ComponentKind::Polygons,
+                ElementKind::Polygons,
                 &camera,
                 SIZE,
                 screen(&camera, centre) + offset,
@@ -315,4 +300,247 @@ fn segment_distance_and_ray_hits() {
         ..down
     };
     assert_eq!(hit(&outside, &triangle), None);
+}
+
+// ------------------------------------------------------------- regions ---
+
+/// A box around the whole cube on screen.
+fn around_cube(camera: &Camera) -> Region {
+    let corners: Vec<Vec2> = cube().vertices().map(|(_, p)| screen(camera, p)).collect();
+    let min = corners.iter().copied().reduce(Vec2::min).unwrap() - Vec2::splat(5.0);
+    let max = corners.iter().copied().reduce(Vec2::max).unwrap() + Vec2::splat(5.0);
+    Region::Rect { a: max, b: min }
+}
+
+fn kinds_in(scene: &PickScene, kind: ElementKind, region: &Region, visible_only: bool) -> usize {
+    scene
+        .elements_in(kind, &camera(), SIZE, region, visible_only)
+        .len()
+}
+
+#[test]
+fn a_box_selects_through_the_shape_unless_only_visible_ones_are_wanted() {
+    let mesh = cube();
+    let scene = scene_of(&[(&mesh, Mat4::IDENTITY, true)]);
+    let region = around_cube(&camera());
+    assert_eq!(kinds_in(&scene, ElementKind::Points, &region, false), 8);
+    assert_eq!(kinds_in(&scene, ElementKind::Edges, &region, false), 12);
+    assert_eq!(kinds_in(&scene, ElementKind::Polygons, &region, false), 6);
+    // From the front, right and above, one corner (and its three edges
+    // and three polygons) is out of sight.
+    assert_eq!(kinds_in(&scene, ElementKind::Points, &region, true), 7);
+    assert_eq!(kinds_in(&scene, ElementKind::Edges, &region, true), 9);
+    assert_eq!(kinds_in(&scene, ElementKind::Polygons, &region, true), 3);
+}
+
+#[test]
+fn a_box_needs_both_ends_of_an_edge_and_a_polygon_s_middle() {
+    let mesh = cube();
+    let scene = scene_of(&[(&mesh, Mat4::IDENTITY, true)]);
+    let camera = camera();
+    // A small box around one corner only.
+    let corner = screen(&camera, Vec3::new(50.0, -50.0, 100.0));
+    let region = Region::Rect {
+        a: corner - Vec2::splat(4.0),
+        b: corner + Vec2::splat(4.0),
+    };
+    assert_eq!(kinds_in(&scene, ElementKind::Points, &region, true), 1);
+    assert_eq!(kinds_in(&scene, ElementKind::Edges, &region, true), 0);
+    assert_eq!(kinds_in(&scene, ElementKind::Polygons, &region, true), 0);
+}
+
+#[test]
+fn a_lasso_selects_what_it_surrounds() {
+    let mesh = cube();
+    let scene = scene_of(&[(&mesh, Mat4::IDENTITY, true)]);
+    let camera = camera();
+    let corner = screen(&camera, Vec3::new(50.0, -50.0, 100.0));
+    let lasso = Region::Lasso(vec![
+        corner + Vec2::new(-10.0, -10.0),
+        corner + Vec2::new(12.0, -6.0),
+        corner + Vec2::new(0.0, 12.0),
+    ]);
+    let found = scene.elements_in(ElementKind::Points, &camera, SIZE, &lasso, true);
+    assert_eq!(
+        found.iter().map(|h| h.element).collect::<Vec<_>>(),
+        vec![Element::Point(point_at(
+            &mesh,
+            Vec3::new(50.0, -50.0, 100.0)
+        ))]
+    );
+    // An outline of fewer than three points surrounds nothing.
+    let line = Region::Lasso(vec![corner, corner + Vec2::X]);
+    assert_eq!(kinds_in(&scene, ElementKind::Points, &line, false), 0);
+}
+
+#[test]
+fn the_brush_catches_edges_it_crosses_and_polygons_under_it() {
+    let mesh = cube();
+    let scene = scene_of(&[(&mesh, Mat4::IDENTITY, true)]);
+    let camera = camera();
+    // A small brush on the front face, off its middle.
+    let spot = screen(&camera, Vec3::new(25.0, -50.0, 30.0));
+    let brush = Region::Circle {
+        centre: spot,
+        radius: 2.0,
+    };
+    let visible = scene.elements_in(ElementKind::Polygons, &camera, SIZE, &brush, true);
+    assert_eq!(visible.len(), 1, "the front polygon, under the brush");
+    let through = scene.elements_in(ElementKind::Polygons, &camera, SIZE, &brush, false);
+    assert_eq!(through.len(), 2, "the front and the one behind it");
+    assert!(through.contains(&visible[0]));
+    assert_eq!(kinds_in(&scene, ElementKind::Edges, &brush, false), 0);
+
+    // Over the front-top edge, the brush catches it.
+    let a = Vec3::new(-50.0, -50.0, 100.0);
+    let b = Vec3::new(50.0, -50.0, 100.0);
+    let over_edge = Region::Circle {
+        centre: screen(&camera, a.lerp(b, 0.3)) + Vec2::new(0.0, 3.0),
+        radius: 5.0,
+    };
+    let edges = scene.elements_in(ElementKind::Edges, &camera, SIZE, &over_edge, true);
+    assert_eq!(
+        edges.iter().map(|h| h.element).collect::<Vec<_>>(),
+        vec![Element::Edge(EdgeKey::new(
+            point_at(&mesh, a),
+            point_at(&mesh, b)
+        ))]
+    );
+}
+
+#[test]
+fn objects_not_being_edited_offer_nothing_in_a_region() {
+    let mesh = cube();
+    let scene = scene_of(&[(&mesh, Mat4::IDENTITY, false)]);
+    let region = around_cube(&camera());
+    for kind in [
+        ElementKind::Points,
+        ElementKind::Edges,
+        ElementKind::Polygons,
+    ] {
+        assert_eq!(kinds_in(&scene, kind, &region, false), 0);
+    }
+}
+
+#[test]
+fn whole_objects_are_found_under_the_mouse_and_in_regions() {
+    let front = cube();
+    let behind = cube();
+    let camera = camera();
+    let away = (camera.position - Vec3::new(0.0, 0.0, 50.0)).normalize() * -300.0;
+    let scene = scene_of(&[
+        (&front, Mat4::IDENTITY, false),
+        (&behind, Mat4::from_translation(away), false),
+    ]);
+    let middle = screen(&camera, Vec3::new(0.0, 0.0, 50.0));
+    assert_eq!(scene.object_under(&camera, SIZE, middle), Some(0));
+    assert_eq!(scene.object_under(&camera, SIZE, Vec2::new(3.0, 3.0)), None);
+
+    // A small box in the middle of the front cube: the cube behind it is
+    // only caught when selecting through.
+    let small = Region::Rect {
+        a: middle - Vec2::splat(3.0),
+        b: middle + Vec2::splat(3.0),
+    };
+    assert_eq!(scene.objects_in(&camera, SIZE, &small, true), vec![0]);
+    assert_eq!(scene.objects_in(&camera, SIZE, &small, false), vec![0, 1]);
+    // A box just reaching over the front cube's left edge (the edge of
+    // its outline) catches it, though no point and not its middle are
+    // inside. The same box moved a little further left catches nothing.
+    let a = Vec3::new(-50.0, -50.0, 20.0);
+    let b = Vec3::new(-50.0, -50.0, 80.0);
+    let on_edge = screen(&camera, a.lerp(b, 0.5));
+    let reaching = Region::Rect {
+        a: on_edge + Vec2::new(-20.0, -2.0),
+        b: on_edge + Vec2::new(1.5, 2.0),
+    };
+    assert_eq!(scene.objects_in(&camera, SIZE, &reaching, true), vec![0]);
+    let outside = Region::Rect {
+        a: on_edge + Vec2::new(-20.0, -2.0),
+        b: on_edge + Vec2::new(-3.0, 2.0),
+    };
+    assert!(scene.objects_in(&camera, SIZE, &outside, false).is_empty());
+}
+
+#[test]
+fn double_clicks_find_the_nearest_edge() {
+    let mesh = cube();
+    let scene = scene_of(&[(&mesh, Mat4::IDENTITY, true)]);
+    let camera = camera();
+    let a = Vec3::new(-50.0, -50.0, 100.0);
+    let b = Vec3::new(50.0, -50.0, 100.0);
+    let top_front = EdgeKey::new(point_at(&mesh, a), point_at(&mesh, b));
+    let near = screen(&camera, a.lerp(b, 0.5)) + Vec2::new(0.0, 6.0);
+    assert_eq!(
+        scene.edge_near(&camera, SIZE, near, 12.0),
+        Some((0, top_front))
+    );
+    assert_eq!(
+        scene.edge_near(&camera, SIZE, Vec2::new(3.0, 3.0), 12.0),
+        None
+    );
+
+    // Inside the front polygon, just below its top edge.
+    let front = mesh
+        .faces()
+        .map(|(f, _)| f)
+        .find(|f| mesh.face_normal(*f).y < -0.9)
+        .unwrap();
+    let inside = screen(&camera, Vec3::new(0.0, -50.0, 90.0));
+    assert_eq!(
+        scene.nearest_edge_of(0, front, &camera, SIZE, inside),
+        Some(top_front)
+    );
+    assert_eq!(scene.nearest_edge_of(5, front, &camera, SIZE, inside), None);
+}
+
+#[test]
+fn regions_contain_points_and_touch_segments() {
+    let rect = Region::Rect {
+        a: Vec2::new(10.0, 10.0),
+        b: Vec2::ZERO,
+    };
+    assert!(rect.contains(Vec2::new(5.0, 5.0)));
+    assert!(rect.contains(Vec2::new(10.0, 0.0)), "the rim counts");
+    assert!(!rect.contains(Vec2::new(11.0, 5.0)));
+    assert!(
+        rect.touches_segment(Vec2::new(-5.0, 5.0), Vec2::new(15.0, 5.0)),
+        "crosses"
+    );
+    assert!(!rect.touches_segment(Vec2::new(-5.0, 20.0), Vec2::new(15.0, 20.0)));
+    assert_eq!(rect.middle(), Vec2::splat(5.0));
+
+    // A bow tie: the two loops are inside, the crossing between them not
+    // (the even-odd rule).
+    let bow = Region::Lasso(vec![
+        Vec2::ZERO,
+        Vec2::new(10.0, 10.0),
+        Vec2::new(10.0, 0.0),
+        Vec2::new(0.0, 10.0),
+    ]);
+    assert!(bow.contains(Vec2::new(1.0, 5.0)));
+    assert!(bow.contains(Vec2::new(9.0, 5.0)));
+    assert!(!bow.contains(Vec2::new(5.0, 2.0)));
+    assert!(bow.touches_segment(Vec2::new(5.0, -5.0), Vec2::new(5.0, 15.0)));
+    assert!(!Region::Lasso(Vec::new()).contains(Vec2::ZERO));
+    assert_eq!(Region::Lasso(Vec::new()).middle(), Vec2::ZERO);
+
+    let circle = Region::Circle {
+        centre: Vec2::ZERO,
+        radius: 5.0,
+    };
+    assert!(circle.contains(Vec2::new(3.0, 4.0)));
+    assert!(circle.touches_segment(Vec2::new(-10.0, 4.0), Vec2::new(10.0, 4.0)));
+    assert!(!circle.touches_segment(Vec2::new(-10.0, 6.0), Vec2::new(10.0, 6.0)));
+
+    assert!(
+        segments_cross(Vec2::ZERO, Vec2::X, Vec2::X, Vec2::new(1.0, 1.0)),
+        "touching"
+    );
+    assert!(!segments_cross(
+        Vec2::ZERO,
+        Vec2::X,
+        Vec2::Y,
+        Vec2::new(1.0, 1.0)
+    ));
 }

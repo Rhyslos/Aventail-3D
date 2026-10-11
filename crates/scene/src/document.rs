@@ -1,10 +1,11 @@
 //! The open document: the scene, its undo history and the selection.
 
 use crate::command::{self, Command};
-use crate::history::{History, HistoryLimit, Step};
+use crate::history::{History, HistoryLimit, SelectionEdit, Step};
 use crate::object::ObjectId;
 use crate::tree::{Scene, SceneError};
-use std::collections::BTreeSet;
+use mesh::ElementSelection;
+use std::collections::{BTreeMap, BTreeSet};
 
 /// Everything about the scene being worked on. The scene only changes
 /// through [`Document::execute`], [`Document::undo`] and
@@ -14,9 +15,14 @@ pub struct Document {
     scene: Scene,
     history: History,
     selection: BTreeSet<ObjectId>,
+    /// Each object's selected points, edges and polygons (decision 0029).
+    /// Objects with nothing selected have no entry.
+    elements: BTreeMap<ObjectId, ElementSelection>,
     /// Goes up whenever the scene changes, so whoever draws it knows when
     /// to rebuild what it shows.
     revision: u64,
+    /// Goes up whenever the selected elements change.
+    element_revision: u64,
 }
 
 impl Document {
@@ -68,6 +74,7 @@ impl Document {
             self.history.record(Step {
                 label,
                 edits: applied.edits,
+                selections: Vec::new(),
                 merge_key,
             });
         }
@@ -90,8 +97,13 @@ impl Document {
                 return None;
             }
         }
+        for change in step.selections.iter().rev() {
+            self.put_elements(change.id, change.before.clone());
+        }
         self.drop_missing_from_selection();
-        self.revision += 1;
+        if !step.edits.is_empty() {
+            self.revision += 1;
+        }
         let label = step.label.clone();
         self.history.push_redo(step);
         Some(label)
@@ -110,8 +122,13 @@ impl Document {
                 return None;
             }
         }
+        for change in &step.selections {
+            self.put_elements(change.id, change.after.clone());
+        }
         self.drop_missing_from_selection();
-        self.revision += 1;
+        if !step.edits.is_empty() {
+            self.revision += 1;
+        }
         let label = step.label.clone();
         self.history.push_undo(step);
         Some(label)
@@ -212,8 +229,70 @@ impl Document {
         self.selection.clear();
     }
 
+    /// The object's selected points, edges and polygons, as last set:
+    /// it may name elements its shape no longer has (see
+    /// [`ElementSelection::valid_in`]). `None` when nothing is selected.
+    pub fn elements(&self, id: ObjectId) -> Option<&ElementSelection> {
+        self.elements.get(&id)
+    }
+
+    /// Changes the selected elements of one or more objects, as one undo
+    /// step called `label` ("Select 4 points"). Like
+    /// [`Self::execute_merging`], a `merge_key` folds the change into the
+    /// previous step made with the same key, so a whole brush stroke
+    /// undoes in one go. Objects not in the scene are skipped; when nothing
+    /// changes, no step is recorded. Returns whether anything changed.
+    pub fn select_elements(
+        &mut self,
+        changes: impl IntoIterator<Item = (ObjectId, ElementSelection)>,
+        label: impl Into<String>,
+        merge_key: Option<u64>,
+    ) -> bool {
+        let mut edits = Vec::new();
+        for (id, after) in changes {
+            if !self.scene.contains(id) {
+                continue;
+            }
+            let before = self.elements.get(&id).cloned().unwrap_or_default();
+            if before != after {
+                self.put_elements(id, after.clone());
+                edits.push(SelectionEdit { id, before, after });
+            }
+        }
+        if edits.is_empty() {
+            return false;
+        }
+        self.history.record(Step {
+            label: label.into(),
+            edits: Vec::new(),
+            selections: edits,
+            merge_key,
+        });
+        true
+    }
+
+    /// A number that goes up every time the selected elements change
+    /// (through [`Self::select_elements`], undo or redo).
+    pub fn element_revision(&self) -> u64 {
+        self.element_revision
+    }
+
+    fn put_elements(&mut self, id: ObjectId, selection: ElementSelection) {
+        if selection.is_empty() {
+            self.elements.remove(&id);
+        } else {
+            self.elements.insert(id, selection);
+        }
+        self.element_revision += 1;
+    }
+
     fn drop_missing_from_selection(&mut self) {
         let scene = &self.scene;
         self.selection.retain(|id| scene.contains(*id));
+        let before = self.elements.len();
+        self.elements.retain(|id, _| scene.contains(*id));
+        if self.elements.len() != before {
+            self.element_revision += 1;
+        }
     }
 }

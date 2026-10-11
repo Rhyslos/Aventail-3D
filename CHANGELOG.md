@@ -8,10 +8,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Selecting in the viewport.** Click a shape to select it, **Ctrl + click** to add or remove one, and click empty space to unselect. In Points, Edges and Polygons mode the same works on points, edges and polygons of the selected shapes, and **Ctrl + Z** undoes it.
+- **Box, lasso and live selection brush**: drag to select (Shift + drag adds, Ctrl + drag removes), and press **Q** to switch between them. They select through the shape as standard, so the far side is caught too; the new **Select only visible** button on the left palette (also in the Select menu and Settings) limits them to what you can see.
+- **Loops and rings**: double-click for a loop, Shift + double-click for a ring. **Ctrl + mouse wheel** grows or shrinks the selection (with the brush, it changes the brush size). **Ctrl + A** selects all, **Ctrl + I** inverts, and **Esc** in Points, Edges or Polygons mode unselects the parts but keeps the shape. The **Select** menu has all of these.
+
 - **Points, Edges and Polygons modes** now do something: press **1**, **2** or **3** (or use the Modes menu or the left palette) with a shape selected to see its edges, and in Points mode its points. The point, edge or polygon under the mouse lights up in the accent colour, and the status bar names it. Press the same key again to go back to Model mode. Selecting by clicking comes next.
 
 ### Changed
 
+- **Ctrl + mouse wheel** no longer zooms the view; it grows and shrinks the selection.
+- In Points, Edges and Polygons mode, what's under the mouse is now light red, and what's selected full red.
 - **Make editable** is now **Ctrl + E** (was C), so plain letters stay free for tools.
 - **Quit has no key any more** (Ctrl + Q is gone), so a slip can't close the app: use File → Quit or the window's ×.
 - The m/cm switch beside the Shape title is gone; the Attributes panel's Units menu and Settings do the same.
