@@ -15,8 +15,10 @@ use crate::theme;
 use crate::units::Units;
 use egui::{RichText, Ui, vec2};
 use fields::{Value, fields};
+use mesh::MeshReport;
 use mesh::primitives::MAX_SIZE;
-use scene::{Command, Document, ObjectId, ObjectKind, Primitive, Stack};
+use scene::{Command, Document, Mesh, ObjectId, ObjectKind, Primitive, Stack};
+use std::sync::Arc;
 
 /// Width of the column of setting names, so both sections line up.
 const LABEL_WIDTH: f32 = 110.0;
@@ -32,6 +34,9 @@ pub(crate) struct AttributesPanel {
     gesture: u64,
     /// A name being typed, for which object.
     name_draft: Option<(ObjectId, String)>,
+    /// The last mesh checked and its report, so the check runs only when
+    /// the shape changes.
+    checked: Option<(Arc<Mesh>, MeshReport)>,
 }
 
 /// The menu entries for the units lengths are shown in.
@@ -180,18 +185,31 @@ impl AttributesPanel {
                         }
                         ui.end_row();
                     });
-                match &object.kind {
-                    ObjectKind::Primitive(primitive) => {
-                        shape_section(ui, units);
-                        self.shape_rows(ui, id, *primitive, *units, out);
-                    }
-                    ObjectKind::Mesh(_) => mesh_section(ui, doc, id),
-                    _ => {}
+                if let ObjectKind::Primitive(primitive) = &object.kind {
+                    shape_section(ui, units);
+                    self.shape_rows(ui, id, *primitive, *units, out);
+                }
+                if let Some(report) = self.report(doc, id) {
+                    mesh_section(ui, &report, matches!(object.kind, ObjectKind::Mesh(_)));
                 }
                 if !object.stack.is_empty() {
                     edits_section(ui, doc, id, &object.stack);
                 }
             });
+    }
+
+    /// The check of `id`'s final mesh, worked out again only when the
+    /// mesh changes. `None` for an object without a shape.
+    fn report(&mut self, doc: &Document, id: ObjectId) -> Option<MeshReport> {
+        let shape = doc.scene().evaluated(id)?;
+        match &self.checked {
+            Some((mesh, report)) if Arc::ptr_eq(mesh, &shape.mesh) => Some(*report),
+            _ => {
+                let report = MeshReport::new(&shape.mesh);
+                self.checked = Some((shape.mesh, report));
+                Some(report)
+            }
+        }
     }
 
     /// The name, typed in place; kept when Enter is pressed or the box is
@@ -328,29 +346,35 @@ fn shape_section(ui: &mut Ui, units: &mut Units) {
     ui.separator();
 }
 
-/// A plain mesh's section: how big it is, and what it is for.
-fn mesh_section(ui: &mut Ui, doc: &Document, id: ObjectId) {
+/// The Mesh section, for every shape: what its final mesh is made of
+/// (counted from the shape with its edits) and whether anything is wrong
+/// with it. A plain mesh also says what it is for.
+fn mesh_section(ui: &mut Ui, report: &MeshReport, plain_mesh: bool) {
     section(ui, "Mesh");
-    let Some(shape) = doc.scene().evaluated(id) else {
-        return;
-    };
     egui::Grid::new("attributes_mesh")
         .num_columns(2)
         .min_col_width(LABEL_WIDTH)
         .spacing(vec2(12.0, 6.0))
         .show(ui, |ui| {
-            for (name, count, help) in [
-                (
-                    "Points",
-                    shape.mesh.vertex_count(),
-                    "The corners the mesh is made of",
-                ),
+            let mut rows = vec![
+                ("Points", report.points, "The corners the mesh is made of"),
+                ("Edges", report.edges, "The lines between the points"),
                 (
                     "Polygons",
-                    shape.mesh.face_count(),
-                    "The faces the mesh is made of",
+                    report.faces,
+                    "The faces, with any number of corners",
                 ),
-            ] {
+                (
+                    "Triangles",
+                    report.triangles,
+                    "The triangles a game engine cuts the faces into: the usual measure of \
+                     how heavy a model is",
+                ),
+            ];
+            if report.pieces > 1 {
+                rows.push(("Pieces", report.pieces, "Separate parts that don't touch"));
+            }
+            for (name, count, help) in rows {
                 label(ui, name, help);
                 ui.label(count.to_string()).widget_info(|| {
                     egui::WidgetInfo::labeled(
@@ -361,16 +385,95 @@ fn mesh_section(ui: &mut Ui, doc: &Document, id: ObjectId) {
                 });
                 ui.end_row();
             }
+            label(
+                ui,
+                "Surface",
+                "Closed: no open borders, like a solid. Open: some edges have a face on \
+                 one side only, as on a plane or an open pipe",
+            );
+            let surface = if report.is_closed() {
+                "Closed".to_string()
+            } else {
+                format!("Open ({})", count(report.border_edges, "border edge"))
+            };
+            ui.label(surface);
+            ui.end_row();
         });
-    ui.add_space(4.0);
-    ui.label(
-        RichText::new(
-            "A plain mesh: it has no settings, so its shape changes only by editing it. \
-             Editing points, edges and polygons arrives in Phase 3.",
-        )
-        .small()
-        .color(theme::TEXT_WEAK),
-    );
+    let problems = [
+        (
+            report.non_manifold_edges,
+            "edge shared by three or more faces",
+            "edges shared by three or more faces",
+            "No real solid has these, and most tools can't work on them. They usually come \
+             from faces stacked on each other.",
+        ),
+        (
+            report.flipped_edges,
+            "edge between faces facing opposite ways",
+            "edges between faces facing opposite ways",
+            "One face on each of these edges points inwards (a flipped normal); it will \
+             shade and bake wrongly.",
+        ),
+        (
+            report.zero_length_edges,
+            "edge with no length",
+            "edges with no length",
+            "Both ends sit on the same spot. Usually left over from moving points together.",
+        ),
+        (
+            report.flat_faces,
+            "face with no area",
+            "faces with no area",
+            "Faces squashed flat to a line or a point: invisible, but they still count and \
+             can break tools.",
+        ),
+        (
+            report.loose_points,
+            "loose point",
+            "loose points",
+            "Points that no face uses.",
+        ),
+    ];
+    let mut any = false;
+    for (n, one, many, help) in problems {
+        if n > 0 {
+            any = true;
+            let text = if n == 1 {
+                format!("1 {one}")
+            } else {
+                format!("{n} {many}")
+            };
+            ui.label(RichText::new(text).color(theme::WARNING))
+                .on_hover_text(help);
+        }
+    }
+    if !any {
+        ui.label(RichText::new("No problems found").color(theme::TEXT_WEAK))
+            .on_hover_text(
+                "Checked for edges shared by three or more faces, faces facing the wrong \
+                 way, edges with no length, faces with no area and loose points",
+            );
+    }
+    if plain_mesh {
+        ui.add_space(4.0);
+        ui.label(
+            RichText::new(
+                "A plain mesh: it has no settings, so its shape changes only by editing it. \
+                 Editing points, edges and polygons arrives later in Phase 3.",
+            )
+            .small()
+            .color(theme::TEXT_WEAK),
+        );
+    }
+}
+
+/// "1 border edge", "4 border edges".
+fn count(n: usize, thing: &str) -> String {
+    if n == 1 {
+        format!("1 {thing}")
+    } else {
+        format!("{n} {thing}s")
+    }
 }
 
 /// What is recorded on top of the shape: how many edits, and any that no

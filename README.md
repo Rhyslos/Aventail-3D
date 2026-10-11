@@ -72,16 +72,16 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 </details>
 
-**Gate:** a scene of primitives can be built, edited, undone freely, saved and reopened. *Ready for the project lead's check.*
+**Gate:** a scene of primitives can be built, edited, undone freely, saved and reopened. *Check deferred: the project lead asked to start Phase 3 and test this gate with its first pull request.*
 
-### Phase 3 · Editable meshes and selection — 0 of 5
+### Phase 3 · Editable meshes and selection — 1 of 5
 
-`░░░░░░░░░░░░░` 0%
+`███░░░░░░░░░░` 20%
 
 <details>
 <summary>Milestones</summary>
 
-- [ ] Mesh data structure, fully tested
+- [x] Mesh data structure, fully tested
 - [ ] Point, edge and polygon modes
 - [ ] Selection: click, rectangle, lasso, live selection, loop, ring, grow and shrink
 - [ ] Move, rotate and scale gizmos with axis constraints, snapping and typed values
@@ -181,6 +181,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-11 | Phase 3 begins: every mesh's connections (loops, rings, borders, pieces) worked out, and a Mesh section with triangle count and a health check for every shape |
 | 2026-10-11 | Saving and opening `.avtl` projects: File menu, safe saving with a backup, a question before unsaved changes are lost. Phase 2 complete |
 | 2026-10-11 | Settings window (Edit → Settings…, Ctrl + ,): accent, units, navigation, grid and undo memory in one place |
 | 2026-10-11 | Undo limited by memory instead of steps: 2 GB as standard, set in Edit → Undo memory, oldest steps forgotten first |
