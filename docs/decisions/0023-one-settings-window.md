@@ -22,7 +22,7 @@ Option 2: a **Settings** window, opened with **Edit → Settings…** and **Ctrl
 
 Changes apply at once. **Restore standard** resets them all; the panel layout keeps its own reset in the View menu.
 
-Rarely changed preferences live **only** in Settings: the accent colour (taken out of the Window menu) and undo memory (taken out of the Edit menu). Switches that are flipped while working stay where they're used **and** show in Settings, changing the same value: m/cm beside the Shape title, the navigation button in the viewport's corner, the grid button.
+Rarely changed preferences live **only** in Settings: the accent colour (taken out of the Window menu) and undo memory (taken out of the Edit menu). Switches that are flipped while working stay where they're used **and** show in Settings, changing the same value: the navigation button in the viewport's corner and the grid button. *(The m/cm switch beside the Shape title was removed on 2026-10-11 at the project lead's request: the Attributes panel's Units menu already does it, and the switch sat far from everything else.)*
 
 ## Consequences
 

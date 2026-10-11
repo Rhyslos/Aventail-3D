@@ -8,6 +8,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **Make editable** is now **Ctrl + E** (was C), so plain letters stay free for tools.
+- **Quit has no key any more** (Ctrl + Q is gone), so a slip can't close the app: use File → Quit or the window's ×.
+- The m/cm switch beside the Shape title is gone; the Attributes panel's Units menu and Settings do the same.
+- Selected objects, the highlighted shape in the shape list, the chosen navigation scheme and other chosen items now use the same red as the active mode button.
+- Unsaved changes are easier to see: an **Unsaved** badge next to the project's name on the right of the menu bar, and "● name (unsaved)" in the window's title instead of a small `*`.
+
+### Fixed
+
+- On Windows, pressing keys no longer plays the system error sound after the app starts.
 - The accent colour moved from the Window menu, and undo memory from the Edit menu, into the new Settings window.
 - Every new shape is 1 m across as standard (a 1 m cube, a 1 m square plane, cylinders and cones 1 m across and 1 m tall, and so on), instead of 2 m.
 - The grid button on the left palette now steps through three levels: a line every metre (standard), every 50 cm (each square cut into four), and every 10 cm. The View and Display menus list all three as **Grid lines**. A finer grid chosen before is kept as the 10 cm level.

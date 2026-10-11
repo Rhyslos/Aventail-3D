@@ -41,8 +41,10 @@ pub const DESELECT_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers:
 pub const GROUP_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::ALT, Key::G);
 /// Take the contents out of the selected groups.
 pub const UNGROUP_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::SHIFT, Key::G);
-/// Turn the selected shapes into plain meshes (Make editable).
-pub const MAKE_EDITABLE_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::NONE, Key::C);
+/// Turn the selected shapes into plain meshes (Make editable): Ctrl + E,
+/// at the project lead's request, so plain letters stay free for tools.
+pub const MAKE_EDITABLE_SHORTCUT: KeyboardShortcut =
+    KeyboardShortcut::new(Modifiers::COMMAND, Key::E);
 
 /// Something the Object Manager (or a menu) asks the workbench to do to
 /// the document.
@@ -222,7 +224,8 @@ impl ObjectManager {
         let painter = ui.painter_at(rect);
         let accent = theme::accent(ui.ctx()).colors();
         if selected {
-            painter.rect_filled(rect, 3.0, accent.soft);
+            // The same fill as the active mode button: one red everywhere.
+            painter.rect_filled(rect, 3.0, accent.fill);
         } else if response.hovered() && self.dragging.is_none() {
             painter.rect_filled(rect, 3.0, theme::HOVER.gamma_multiply(0.6));
         }
@@ -322,7 +325,7 @@ impl ObjectManager {
             self.rename_box(ui, name_rect, out);
         } else {
             let color = if selected {
-                accent.text
+                theme::TEXT_STRONG
             } else if shown {
                 theme::TEXT
             } else {

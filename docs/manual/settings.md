@@ -9,7 +9,7 @@
 Whenever you want to change how the app behaves for you, rather than something in your scene. Your choices are remembered the next time you open the app.
 
 A few of these settings also have a quick switch where you use them while working. They show and change the same value as Settings, so use whichever is closer:
-- **m / cm** beside the Shape title in the [Attributes panel](attributes.md).
+- The **Units** menu in the [Attributes panel](attributes.md) (metres or centimetres).
 - The **navigation controls** button in the viewport's bottom-right corner (see [Navigating the view](navigating-the-view.md)).
 - The **grid button** at the bottom of the left palette.
 
@@ -45,7 +45,7 @@ A few of these settings also have a quick switch where you use them while workin
 
 - **Tip:** if you work on very large meshes for hours, check **Undo** now and then: if "In use" is close to the limit and your computer has memory to spare, a higher limit lets you undo further back.
 - **Problem:** undo stops before you got back to where you wanted. **Why:** the oldest steps were forgotten to stay within the undo memory (the status bar said so when it started). **Fix:** raise **Undo memory**, if your computer has the memory to spare.
-- **Problem:** a setting seems to have changed by itself. **Why:** the quick switches (m/cm, the navigation button, the grid button) change the same settings. **Fix:** this is intended; set it back from either place.
+- **Problem:** a setting seems to have changed by itself. **Why:** the quick switches (the Attributes panel's Units menu, the navigation button, the grid button) change the same settings. **Fix:** this is intended; set it back from either place.
 
 ## Related
 

@@ -20,6 +20,14 @@ fn workbench<'h>(harness: &'h Harness<'static, State>) -> &'h Workbench {
     &harness.state().workbench
 }
 
+/// File → Quit (there is no key for it).
+fn quit(harness: &mut Harness<'static, State>) {
+    main_menu(harness, "File").click();
+    harness.run();
+    harness.get_by_label("Quit").click();
+    harness.run();
+}
+
 fn path(name: &str) -> PathBuf {
     PathBuf::from(format!("/work/{name}"))
 }
@@ -43,7 +51,10 @@ fn a_new_project_is_untitled_and_marked_when_changed() {
     harness.get_by_label("Create group").click();
     harness.run();
     assert!(workbench(&harness).has_unsaved_changes());
-    assert_eq!(workbench(&harness).title(), "Untitled* — Test App 9.9.9");
+    assert_eq!(
+        workbench(&harness).title(),
+        "● Untitled (unsaved) — Test App 9.9.9"
+    );
 }
 
 #[test]
@@ -139,7 +150,7 @@ fn a_failed_or_cancelled_save_changes_nothing() {
 #[test]
 fn quitting_with_unsaved_changes_asks_first() {
     let mut harness = fresh();
-    press(&mut harness, Modifiers::COMMAND, Key::Q);
+    quit(&mut harness);
     assert!(actions(&mut harness).is_empty(), "not yet");
     assert!(workbench(&harness).is_asking_to_save());
     assert!(
@@ -153,7 +164,7 @@ fn quitting_with_unsaved_changes_asks_first() {
     assert!(!workbench(&harness).is_asking_to_save());
     assert!(actions(&mut harness).is_empty());
     // Ask again, and choose not to save.
-    press(&mut harness, Modifiers::COMMAND, Key::Q);
+    quit(&mut harness);
     harness.get_by_label("Don't save").click();
     harness.run();
     assert_eq!(actions(&mut harness), [WorkbenchAction::Quit]);
@@ -162,7 +173,7 @@ fn quitting_with_unsaved_changes_asks_first() {
 #[test]
 fn ctrl_d_answers_dont_save() {
     let mut harness = fresh();
-    press(&mut harness, Modifiers::COMMAND, Key::Q);
+    quit(&mut harness);
     press(&mut harness, Modifiers::COMMAND, Key::D);
     assert_eq!(actions(&mut harness), [WorkbenchAction::Quit]);
 }
@@ -170,7 +181,7 @@ fn ctrl_d_answers_dont_save() {
 #[test]
 fn choosing_save_saves_then_carries_on() {
     let mut harness = fresh();
-    press(&mut harness, Modifiers::COMMAND, Key::Q);
+    quit(&mut harness);
     press(&mut harness, Modifiers::NONE, Key::Enter);
     assert_eq!(
         actions(&mut harness),
@@ -186,7 +197,7 @@ fn choosing_save_saves_then_carries_on() {
 #[test]
 fn a_cancelled_save_stops_the_quit() {
     let mut harness = fresh();
-    press(&mut harness, Modifiers::COMMAND, Key::Q);
+    quit(&mut harness);
     harness.get_by_label("Save").click();
     harness.run();
     actions(&mut harness);
@@ -221,7 +232,7 @@ fn keys_answer_the_question_not_the_scene() {
         .workbench
         .document_mut()
         .set_selection([id]);
-    press(&mut harness, Modifiers::COMMAND, Key::Q);
+    quit(&mut harness);
     press(&mut harness, Modifiers::NONE, Key::Delete);
     press(&mut harness, Modifiers::NONE, Key::B);
     assert_eq!(
@@ -391,4 +402,18 @@ fn at_most_eight_recent_projects_are_kept() {
     let many = (0..20).map(|n| path(&format!("{n}.avtl"))).collect();
     let workbench = Workbench::new(info(), None).with_recent_projects(many);
     assert_eq!(workbench.recent_projects().len(), crate::RECENT_COUNT);
+}
+
+#[test]
+fn the_menu_bar_names_the_project_and_flags_unsaved_changes() {
+    let mut harness = empty();
+    assert!(harness.query_by_label("Untitled").is_some());
+    assert!(harness.query_by_label("Unsaved changes").is_none());
+    harness.get_by_label("Create group").click();
+    harness.run();
+    assert!(harness.query_by_label("Unsaved changes").is_some());
+    harness.state_mut().workbench.saved(path("crate.avtl"));
+    harness.run();
+    assert!(harness.query_by_label("crate.avtl").is_some());
+    assert!(harness.query_by_label("Unsaved changes").is_none());
 }

@@ -438,13 +438,19 @@ fn lengths_show_in_metres_and_switch_to_centimetres() {
     let mut harness = selected_cube();
     let id = only_object(&harness);
     assert_eq!(harness.state().workbench.units(), Units::Metres);
-    harness.get_by_label("Lengths in centimetres").click();
-    harness.run();
+    // No switch beside the Shape title any more: the Units menu does it.
+    assert!(harness.query_by_label("Lengths in centimetres").is_none());
+    let choose = |h: &mut Harness<'static, State>, units: &str| {
+        h.get_by_label("Units").click();
+        h.run();
+        h.get_by_label(units).click();
+        h.run();
+    };
+    choose(&mut harness, "Centimetres");
     assert_eq!(harness.state().workbench.units(), Units::Centimetres);
     type_into(&mut harness, "Height", "150");
     assert_eq!(cube_size(&harness, id).z, 150.0, "typed in centimetres");
-    harness.get_by_label("Lengths in metres").click();
-    harness.run();
+    choose(&mut harness, "Metres");
     assert_eq!(harness.state().workbench.units(), Units::Metres);
     type_into(&mut harness, "Height", "2");
     assert_eq!(cube_size(&harness, id).z, 200.0, "typed in metres");

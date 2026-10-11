@@ -149,7 +149,12 @@ fn scheme_row(ui: &mut Ui, scheme: Scheme, chosen: bool) -> egui::Response {
     let summary = ui.painter().layout(
         scheme.summary().to_string(),
         FontId::proportional(11.5),
-        theme::TEXT_WEAK,
+        // Readable on the accent fill of the chosen row too.
+        if chosen {
+            theme::TEXT
+        } else {
+            theme::TEXT_WEAK
+        },
         wrap,
     );
     let height = 14.0 + name.size().y + 3.0 + summary.size().y;
@@ -158,14 +163,14 @@ fn scheme_row(ui: &mut Ui, scheme: Scheme, chosen: bool) -> egui::Response {
         .widget_info(|| WidgetInfo::selected(WidgetType::RadioButton, true, chosen, scheme.name()));
     let painter = ui.painter();
     if chosen {
-        painter.rect_filled(rect, 0.0, accent.soft);
+        painter.rect_filled(rect, 0.0, accent.fill);
     } else if response.hovered() {
         painter.rect_filled(rect, 0.0, theme::HOVER);
     }
     let marker = pos2(rect.left() + 21.0, rect.top() + 7.0 + name.size().y / 2.0);
     painter.circle_filled(marker, 7.0, theme::FIELD);
     if chosen {
-        painter.circle_stroke(marker, 5.0, Stroke::new(4.0, accent.light));
+        painter.circle_stroke(marker, 5.0, Stroke::new(4.0, theme::TEXT_STRONG));
     } else {
         painter.circle_stroke(marker, 6.25, Stroke::new(1.5, theme::TEXT_WEAK));
     }

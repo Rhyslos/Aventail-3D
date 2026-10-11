@@ -46,7 +46,7 @@ At every moment there is a complete project on disk.
 
 **In the interface:**
 - File → New (`Ctrl + N`), Open… (`Ctrl + O`), Open recent (the last eight), Save (`Ctrl + S`) and Save As… (`Ctrl + Shift + S`). These are the keys almost every program uses.
-- The title shows the project's name with `*` for unsaved changes.
+- The title shows the project's name. *Changed 2026-10-11 at the project lead's request, as `*` was hard to see:* unsaved changes put `●` in front and "(unsaved)" after the name, and the menu bar shows the project's name with an **Unsaved** badge in the accent colour. File → Quit has no key (Ctrl + Q was removed), so a slip can't close the app.
 - Before New, Open, Quit or the window's close button, unsaved changes bring a question: Save / Don't save / Cancel, with `Enter`, `Ctrl + D` and `Esc` as keys.
 - "Unsaved" means the scene changed since the last save or open, so undoing back to the saved state still counts as a change. That's simple and errs on the side of asking.
 - The interface never touches files. It asks the app (`WorkbenchAction::Save`/`Open`), and the app shows native dialogs through `rfd` (MIT) and calls `fileio`. On Linux, `rfd` uses the desktop portal, so no GTK is needed.

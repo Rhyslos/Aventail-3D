@@ -131,7 +131,7 @@ impl AttributesPanel {
         &mut self,
         ui: &mut Ui,
         doc: &Document,
-        units: &mut Units,
+        units: Units,
         out: &mut Vec<DocRequest>,
     ) {
         let selection = doc.selection();
@@ -186,8 +186,8 @@ impl AttributesPanel {
                         ui.end_row();
                     });
                 if let ObjectKind::Primitive(primitive) = &object.kind {
-                    shape_section(ui, units);
-                    self.shape_rows(ui, id, *primitive, *units, out);
+                    section(ui, "Shape");
+                    self.shape_rows(ui, id, *primitive, units, out);
                 }
                 if let Some(report) = self.report(doc, id) {
                     mesh_section(ui, &report, matches!(object.kind, ObjectKind::Mesh(_)));
@@ -316,34 +316,6 @@ pub(crate) struct Shared<'a> {
     pub(crate) clipboard: &'a mut Option<Primitive>,
     /// Metres or centimetres.
     pub(crate) units: &'a mut Units,
-}
-
-/// The "Shape" section title, with a quick switch between metres and
-/// centimetres on the right.
-fn shape_section(ui: &mut Ui, units: &mut Units) {
-    ui.add_space(6.0);
-    ui.horizontal(|ui| {
-        ui.label(RichText::new("Shape").strong());
-        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            for choice in Units::ALL.into_iter().rev() {
-                let response = ui
-                    .selectable_label(*units == choice, choice.symbol())
-                    .on_hover_text(format!("Show lengths in {}", choice.name().to_lowercase()));
-                response.widget_info(|| {
-                    egui::WidgetInfo::selected(
-                        egui::WidgetType::SelectableLabel,
-                        true,
-                        *units == choice,
-                        format!("Lengths in {}", choice.name().to_lowercase()),
-                    )
-                });
-                if response.clicked() {
-                    *units = choice;
-                }
-            }
-        });
-    });
-    ui.separator();
 }
 
 /// The Mesh section, for every shape: what its final mesh is made of

@@ -281,7 +281,9 @@ pub fn visuals(accent: Accent) -> Visuals {
     v.faint_bg_color = Color32::from_rgb(0x2c, 0x2c, 0x2c);
     v.code_bg_color = FIELD;
     v.hyperlink_color = accent.light;
-    v.selection.bg_fill = accent.soft;
+    // Chosen rows, selected text and selected items: the same fill as the
+    // active mode button, so the accent is one colour everywhere.
+    v.selection.bg_fill = accent.fill;
     v.selection.stroke = Stroke::new(1.0, TEXT_STRONG);
     v.weak_text_color = Some(TEXT_WEAK);
 
@@ -516,7 +518,7 @@ mod tests {
         set_accent(&ctx, Accent::Olive);
         assert_eq!(accent(&ctx), Accent::Olive);
         let style = ctx.style_of(egui::Theme::Dark);
-        assert_eq!(style.visuals.selection.bg_fill, Accent::Olive.colors().soft);
+        assert_eq!(style.visuals.selection.bg_fill, Accent::Olive.colors().fill);
     }
 
     #[test]

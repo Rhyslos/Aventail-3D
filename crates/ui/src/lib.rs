@@ -44,6 +44,4 @@ pub use viewport::{
     PickAsk, PickReply, Picked, VIEW_COUNT, VIEW_KEYS, VIEWPORT_LABEL, ViewOptions, ViewportPanel,
     ViewportRenderer, ViewportView,
 };
-pub use workbench::{
-    AppInfo, DISCARD_SHORTCUT, QUIT_SHORTCUT, Workbench, WorkbenchAction, navigation_hint,
-};
+pub use workbench::{AppInfo, DISCARD_SHORTCUT, Workbench, WorkbenchAction, navigation_hint};

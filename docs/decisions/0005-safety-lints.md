@@ -16,7 +16,7 @@ The app opens files made by other people, and a crash loses the user's work. A m
 
 The workspace `Cargo.toml` sets, for every crate:
 
-- `unsafe_code = "forbid"`: no unsafe Rust. An exception needs its own decision record. (Vendored C++ libraries such as xatlas will need a small binding layer; that gets its own record when it arrives.)
+- `unsafe_code = "forbid"`: no unsafe Rust. An exception needs its own decision record. *(Since [0026](0026-windows-keyboard-focus.md): `deny`, so a module with its own decision record can allow it; the first is the Windows keyboard-focus fix.)* (Vendored C++ libraries such as xatlas will need a small binding layer; that gets its own record when it arrives.)
 - `missing_docs = "deny"`: every public item is documented.
 - Clippy denies `unwrap`, `expect`, `panic!`, `todo!`, `unimplemented!` and `dbg!` outside tests (`clippy.toml` exempts tests).
 
