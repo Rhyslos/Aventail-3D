@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- **Points, Edges and Polygons modes** now do something: press **1**, **2** or **3** (or use the Modes menu or the left palette) with a shape selected to see its edges, and in Points mode its points. The point, edge or polygon under the mouse lights up in the accent colour, and the status bar names it. Press the same key again to go back to Model mode. Selecting by clicking comes next.
+
 ### Changed
 
 - **Make editable** is now **Ctrl + E** (was C), so plain letters stay free for tools.

@@ -21,8 +21,9 @@ pub use frame::{
     GRID_STRENGTHS, GROUND_PLANE, HALF_METRE_STRENGTH, srgb_to_linear,
 };
 pub use geometry::{
-    AXIS_SEGMENT, CUBE_COLOR, EDGE_COLOR, FaceVertex, LineVertex, MeshInstance, Shape,
-    TEST_CUBE_SIZE, X_AXIS_COLOR, Y_AXIS_COLOR, Z_AXIS_COLOR, Z_AXIS_HEIGHT, ground_axes,
+    AXIS_SEGMENT, CUBE_COLOR, EDGE_COLOR, FaceVertex, LineVertex, MeshInstance, Overlay, Shape,
+    SpriteVertex, TEST_CUBE_SIZE, X_AXIS_COLOR, Y_AXIS_COLOR, Z_AXIS_COLOR, Z_AXIS_HEIGHT,
+    ground_axes,
 };
 pub use pick::{PickRequest, PickResult};
 pub use readback::read_pixels;
@@ -62,8 +63,16 @@ mod shader_tests {
         assert_eq!(
             names,
             [
-                "face_fs", "face_vs", "grid_fs", "grid_vs", "line_fs", "line_vs", "sky_fs",
-                "sky_vs"
+                "face_fs",
+                "face_vs",
+                "grid_fs",
+                "grid_vs",
+                "line_fs",
+                "line_vs",
+                "sky_fs",
+                "sky_vs",
+                "sprite_fs",
+                "sprite_vs"
             ]
         );
     }

@@ -70,6 +70,8 @@ The viewport holds four views (perspective, top, front, right), each with its ow
 
 While the mouse hovers over a view, the panel also asks the renderer what surface is under it (`ViewportRenderer::pick`); the answer arrives on a later frame and is used as that view's pivot when an orbit or zoom starts; only the view under the mouse asks, one question at a time ([decision 0017](docs/decisions/0017-picking-the-point-under-the-mouse.md)).
 
+In the Points, Edges and Polygons modes, the element under the mouse is found on the CPU instead (`ui::components` → `tools::PickScene`), from the hovered view's camera and mouse position, after the views are drawn. The workbench turns the selected objects' elements into a small `ComponentOverlay`, which the app uploads as a separate `render::Overlay` layer; a mouse move rebuilds only that layer, never the scene's shape ([decision 0027](docs/decisions/0027-component-modes.md)).
+
 Rendering sits behind the `ViewportRenderer` trait, so the panel runs in tests with no GPU. See [decision 0013](docs/decisions/0013-viewport-rendering.md).
 
 ## Axes

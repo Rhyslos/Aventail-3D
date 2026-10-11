@@ -199,6 +199,7 @@ version = "0.0.1"
 dependencies = [
  "eframe",
  "fileio",
+ "glam",
  "raw-window-handle",
  "render",
  "rfd",

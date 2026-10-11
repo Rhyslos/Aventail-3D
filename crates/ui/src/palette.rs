@@ -69,6 +69,25 @@ impl Mode {
         }
     }
 
+    /// The key that switches to this mode (and, pressed again, back to
+    /// the Model mode), if it has one. See `MODE_KEYS`.
+    pub const fn key(self) -> Option<egui::Key> {
+        match self {
+            Self::Points => Some(egui::Key::Num1),
+            Self::Edges => Some(egui::Key::Num2),
+            Self::Polygons => Some(egui::Key::Num3),
+            Self::Model | Self::Object | Self::Uv => None,
+        }
+    }
+
+    /// The tooltip: what the mode is for, and its key.
+    fn tooltip(self) -> String {
+        match self.key() {
+            Some(key) => format!("{} ({})", self.description(), key.name()),
+            None => self.description().to_string(),
+        }
+    }
+
     fn icon(self) -> Icon {
         match self {
             Self::Model => Icon::Cube,
@@ -405,7 +424,7 @@ pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Op
             let label = format!("{} mode", mode.name());
             // Mode icons are always soft white, even Model's cube.
             let tint = tint::ICON;
-            if tinted_button(ui, mode.icon(), tint, &label, mode.description(), state).clicked() {
+            if tinted_button(ui, mode.icon(), tint, &label, &mode.tooltip(), state).clicked() {
                 picked = Some(mode);
             }
         }

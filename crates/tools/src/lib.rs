@@ -5,10 +5,12 @@
 //! the scene directly. See this crate's README for its purpose and limits.
 
 pub mod camera;
+pub mod components;
 pub mod controls;
 pub mod navigation;
 
 pub use camera::{Camera, Ray};
+pub use components::{Component, ComponentKind, Hovered, PickScene};
 pub use controls::{Modifiers, NavigationSettings, Scheme};
 pub use mesh::Bounds;
 pub use navigation::{DragKind, MouseButton, Navigator, ViewKind};

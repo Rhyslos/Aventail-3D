@@ -45,6 +45,119 @@ impl FaceVertex {
     };
 }
 
+/// One corner of an overlay sprite: a point drawn as a small square, or a
+/// piece of a thick line, both a fixed number of pixels wide whatever the
+/// distance (see [`Overlay`]).
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable)]
+pub struct SpriteVertex {
+    /// This corner's point in the world, in centimetres: the point, or
+    /// this end of the line.
+    pub position: [f32; 3],
+    /// The line's other end; the same as `position` for a point.
+    pub other: [f32; 3],
+    /// Which corner: for a point, -1 or 1 along screen X and Y; for a
+    /// line, x = -1 (this end's cap) and y = -1 or 1 (which side).
+    pub corner: [f32; 2],
+    /// Width in pixels.
+    pub width: f32,
+    /// Linear-space colour with alpha.
+    pub color: [f32; 4],
+}
+
+impl SpriteVertex {
+    /// Vertex layout for the sprite pipeline.
+    pub(crate) const LAYOUT: wgpu::VertexBufferLayout<'static> = wgpu::VertexBufferLayout {
+        array_stride: std::mem::size_of::<SpriteVertex>() as wgpu::BufferAddress,
+        step_mode: wgpu::VertexStepMode::Vertex,
+        attributes: &wgpu::vertex_attr_array![
+            0 => Float32x3,
+            1 => Float32x3,
+            2 => Float32x2,
+            3 => Float32,
+            4 => Float32x4
+        ],
+    };
+}
+
+/// What the Points, Edges and Polygons modes draw over the scene: points
+/// as small squares, lines a few pixels thick, and see-through tinted
+/// triangles. Kept apart from the [`Shape`] so moving the mouse only
+/// rebuilds this small layer. Everything stays hidden behind surfaces in
+/// front of it.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct Overlay {
+    /// Points and thick lines, six corners (two triangles) each.
+    pub sprites: Vec<SpriteVertex>,
+    /// See-through triangles laid on faces.
+    pub tints: Vec<LineVertex>,
+}
+
+impl Overlay {
+    /// Adds a point at `at`, drawn as a square `size` pixels across.
+    pub fn point(&mut self, at: Vec3, size: f32, color: [f32; 4]) {
+        let p = at.to_array();
+        for corner in [
+            [-1.0, -1.0],
+            [1.0, -1.0],
+            [1.0, 1.0],
+            [-1.0, -1.0],
+            [1.0, 1.0],
+            [-1.0, 1.0],
+        ] {
+            self.sprites.push(SpriteVertex {
+                position: p,
+                other: p,
+                corner,
+                width: size,
+                color,
+            });
+        }
+    }
+
+    /// Adds a line from `a` to `b`, `width` pixels thick. A line with no
+    /// length is drawn as a point.
+    pub fn line(&mut self, a: Vec3, b: Vec3, width: f32, color: [f32; 4]) {
+        if a == b {
+            return self.point(a, width, color);
+        }
+        let (a, b) = (a.to_array(), b.to_array());
+        let corner = |at: [f32; 3], other: [f32; 3], side: f32| SpriteVertex {
+            position: at,
+            other,
+            corner: [-1.0, side],
+            width,
+            color,
+        };
+        // Each end measures "sideways" from its own direction along the
+        // line, so side +1 at `b` is the same side as -1 at `a`. The quad's
+        // corners: a-, a+ at `a`; b- (= -1 at a's sides) is `b` with +1.
+        self.sprites.extend([
+            corner(a, b, -1.0),
+            corner(b, a, 1.0),
+            corner(b, a, -1.0),
+            corner(a, b, -1.0),
+            corner(b, a, -1.0),
+            corner(a, b, 1.0),
+        ]);
+    }
+
+    /// Adds a see-through triangle.
+    pub fn triangle(&mut self, corners: [Vec3; 3], color: [f32; 4]) {
+        for c in corners {
+            self.tints.push(LineVertex {
+                position: c.to_array(),
+                color,
+            });
+        }
+    }
+
+    /// Whether there is nothing to draw.
+    pub fn is_empty(&self) -> bool {
+        self.sprites.is_empty() && self.tints.is_empty()
+    }
+}
+
 /// The X axis on the ground, in red (linear space, partly see-through so it
 /// stays calm, as in the mockups).
 pub const X_AXIS_COLOR: [f32; 4] = [0.80, 0.12, 0.10, 0.55];
@@ -304,6 +417,24 @@ mod tests {
             z.iter().all(|v| v.position[2] >= 0.0),
             "nothing below ground"
         );
+    }
+
+    #[test]
+    fn overlay_points_and_lines_are_two_triangles_each() {
+        let mut overlay = Overlay::default();
+        assert!(overlay.is_empty());
+        overlay.point(Vec3::ZERO, 6.0, [1.0; 4]);
+        overlay.line(Vec3::ZERO, Vec3::X, 3.0, [1.0; 4]);
+        assert_eq!(overlay.sprites.len(), 12);
+        assert!(overlay.sprites[..6].iter().all(|v| v.position == v.other));
+        assert!(overlay.sprites[6..].iter().all(|v| v.position != v.other));
+        // A line with no length becomes a point.
+        overlay.line(Vec3::Y, Vec3::Y, 3.0, [1.0; 4]);
+        assert_eq!(overlay.sprites.len(), 18);
+        overlay.triangle([Vec3::ZERO, Vec3::X, Vec3::Y], [1.0; 4]);
+        assert_eq!(overlay.tints.len(), 3);
+        assert_eq!(std::mem::size_of::<SpriteVertex>(), 52);
+        assert_eq!(SpriteVertex::LAYOUT.attributes[4].offset, 36);
     }
 
     #[test]

@@ -1,6 +1,6 @@
 //! The render pipelines: how each kind of geometry is drawn.
 
-use crate::geometry::{FaceVertex, LineVertex};
+use crate::geometry::{FaceVertex, LineVertex, SpriteVertex};
 use crate::renderer::{COLOR_FORMAT, DEPTH_FORMAT};
 
 /// The kinds of geometry the viewport draws, in drawing order.
@@ -17,6 +17,10 @@ pub(crate) enum PipelineKind {
     /// Faces drawn for depth only, into the one-pixel image used to find
     /// the point under the mouse (see `pick`).
     PickDepth,
+    /// The overlay's see-through tinted triangles, laid on faces.
+    Tints,
+    /// The overlay's points and thick lines, a fixed size on screen.
+    Sprites,
 }
 
 /// Builds the pipeline for one kind of geometry.
@@ -29,6 +33,8 @@ pub(crate) fn create_pipeline(
 ) -> wgpu::RenderPipeline {
     let line_buffers: &[Option<wgpu::VertexBufferLayout<'static>>] = &[Some(LineVertex::LAYOUT)];
     let face_buffers: &[Option<wgpu::VertexBufferLayout<'static>>] = &[Some(FaceVertex::LAYOUT)];
+    let sprite_buffers: &[Option<wgpu::VertexBufferLayout<'static>>] =
+        &[Some(SpriteVertex::LAYOUT)];
     let (label, vs, fs, topology, buffers) = match kind {
         PipelineKind::Sky => (
             "sky pipeline",
@@ -62,9 +68,26 @@ pub(crate) fn create_pipeline(
             wgpu::PrimitiveTopology::LineList,
             line_buffers,
         ),
+        PipelineKind::Tints => (
+            "overlay tint pipeline",
+            "line_vs",
+            "line_fs",
+            wgpu::PrimitiveTopology::TriangleList,
+            line_buffers,
+        ),
+        PipelineKind::Sprites => (
+            "overlay sprite pipeline",
+            "sprite_vs",
+            "sprite_fs",
+            wgpu::PrimitiveTopology::TriangleList,
+            sprite_buffers,
+        ),
     };
-    let blend = matches!(kind, PipelineKind::Grid | PipelineKind::Lines)
-        .then_some(wgpu::BlendState::ALPHA_BLENDING);
+    let blend = matches!(
+        kind,
+        PipelineKind::Grid | PipelineKind::Lines | PipelineKind::Tints | PipelineKind::Sprites
+    )
+    .then_some(wgpu::BlendState::ALPHA_BLENDING);
     let faces = matches!(kind, PipelineKind::Faces | PipelineKind::PickDepth);
     let depth_write = faces;
     let depth_compare = if kind == PipelineKind::Sky {

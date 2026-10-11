@@ -577,3 +577,80 @@ fn without_a_shape_only_the_backdrop_is_drawn_and_nothing_is_picked() {
         .expect("an answer");
     assert_eq!(result.point, None, "nothing to pick");
 }
+
+/// Whether a pixel is clearly the overlay's pure red.
+fn is_red(p: [u8; 4]) -> bool {
+    p[0] > 180 && p[1] < 80 && p[2] < 80
+}
+
+#[test]
+fn the_overlay_draws_points_thick_lines_and_tints_hidden_behind_surfaces() {
+    use render::Overlay;
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, target) = setup(&gpu, [640, 400]);
+    let camera = Camera::default();
+    let h = TEST_CUBE_SIZE / 2.0;
+    let red = [1.0, 0.0, 0.0, 1.0];
+    let near_corner = Vec3::new(h, -h, TEST_CUBE_SIZE);
+    let far_corner = Vec3::new(-h, h, 0.0);
+    let mut overlay = Overlay::default();
+    overlay.point(near_corner, 10.0, red);
+    overlay.point(far_corner, 10.0, red);
+    renderer.set_overlay(&gpu.device, &overlay);
+    let shot = render(&gpu, &renderer, &target, camera, NO_GRID);
+    assert!(
+        is_red(shot.at(near_corner)),
+        "the near corner's point shows"
+    );
+    assert!(
+        !is_red(shot.at(far_corner)),
+        "the far corner's is hidden by the cube"
+    );
+
+    // A thick line along the front-top edge: red a few pixels to the side.
+    let a = Vec3::new(-h, -h, TEST_CUBE_SIZE);
+    let b = Vec3::new(h, -h, TEST_CUBE_SIZE);
+    let mut overlay = Overlay::default();
+    overlay.line(a, b, 6.0, red);
+    renderer.set_overlay(&gpu.device, &overlay);
+    let shot = render(&gpu, &renderer, &target, camera, NO_GRID);
+    let size = Vec2::new(640.0, 400.0);
+    let middle = camera.project(a.lerp(b, 0.5), size).unwrap();
+    assert!(is_red(shot.pixel(middle.x as u32, middle.y as u32)));
+    assert!(
+        is_red(shot.pixel(middle.x as u32, middle.y as u32 + 2)),
+        "thick"
+    );
+    assert!(
+        !is_red(shot.pixel(middle.x as u32, middle.y as u32 + 12)),
+        "not too thick"
+    );
+
+    // A see-through tint over the front face.
+    let mut overlay = Overlay::default();
+    overlay.triangle(
+        [
+            Vec3::new(-h, -h, 0.0),
+            Vec3::new(h, -h, 0.0),
+            Vec3::new(h, -h, TEST_CUBE_SIZE),
+        ],
+        [1.0, 0.0, 0.0, 0.5],
+    );
+    renderer.set_overlay(&gpu.device, &overlay);
+    let before = shot.at(Vec3::new(h * 0.6, -h, TEST_CUBE_SIZE * 0.2));
+    let tinted = render(&gpu, &renderer, &target, camera, NO_GRID).at(Vec3::new(
+        h * 0.6,
+        -h,
+        TEST_CUBE_SIZE * 0.2,
+    ));
+    assert!(
+        i32::from(tinted[0]) > i32::from(before[0]) + 20,
+        "{before:?} -> {tinted:?}"
+    );
+    assert!(tinted[1] < before[1]);
+
+    // An empty overlay draws nothing.
+    renderer.set_overlay(&gpu.device, &Overlay::default());
+    let clean = render(&gpu, &renderer, &target, camera, NO_GRID);
+    assert!(!is_red(clean.at(near_corner)));
+}

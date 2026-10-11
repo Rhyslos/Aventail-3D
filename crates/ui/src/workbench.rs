@@ -2,6 +2,7 @@
 //! bar and the About box.
 
 use crate::attributes::{AttributesPanel, Shared};
+use crate::components::{self, ComponentTracker};
 use crate::drawing::{DrawingCache, SceneSummary};
 use crate::layout::{default_layout, fit_coordinates, hide_viewport_tab, restore_or_default};
 use crate::objects::{self, DocRequest, ObjectManager};
@@ -64,6 +65,15 @@ pub enum WorkbenchAction {
         path: Option<PathBuf>,
     },
 }
+
+/// The keys that switch to the Points, Edges and Polygons modes. Common in
+/// 3D programs, and free here (Q is the Select tool, decision 0019); the
+/// same key again goes back to the Model mode.
+pub const MODE_KEYS: [(Key, Mode); 3] = [
+    (Key::Num1, Mode::Points),
+    (Key::Num2, Mode::Edges),
+    (Key::Num3, Mode::Polygons),
+];
 
 /// Menu entries that exist in the design but not yet in the app, with the
 /// phase that brings them. (The Mesh menu's are listed below its working
@@ -130,6 +140,9 @@ pub struct Workbench {
     shape_picker: ShapePicker,
     /// What the viewport draws, kept up to date with the document.
     drawing: DrawingCache,
+    /// The Points, Edges and Polygons modes: the element under the mouse
+    /// and what is drawn over the edited objects.
+    components: ComponentTracker,
     viewport: ViewportPanel,
     accent: Accent,
     about_open: bool,
@@ -162,6 +175,7 @@ impl Workbench {
             queued: Vec::new(),
             shape_picker: ShapePicker::default(),
             drawing: DrawingCache::default(),
+            components: ComponentTracker::default(),
             viewport: ViewportPanel::default(),
             accent: Accent::default(),
             about_open: false,
@@ -566,6 +580,7 @@ impl Workbench {
                 requests.push(create(kind));
             }
             self.document_keys(ui, &mut requests);
+            self.mode_keys(ui);
         }
 
         egui::Panel::top("menu_bar")
@@ -609,7 +624,9 @@ impl Workbench {
                 }
             });
 
-        let summary: SceneSummary = self.drawing.update(&self.document).clone();
+        let editing = components::kind_for(self.mode).is_some();
+        let mut summary: SceneSummary = self.drawing.update(&self.document, editing).clone();
+        summary.overlay = self.components.overlay();
         hide_viewport_tab(&mut self.dock);
         let style = theme::dock_style(ui.style().as_ref(), self.accent);
         theme::dock_frame().show(ui, |ui| {
@@ -635,6 +652,15 @@ impl Workbench {
                     },
                 );
         });
+        // What is under the mouse now that the viewport knows where it is;
+        // when that changes, draw again so the highlight follows at once.
+        let shown = summary.overlay.version;
+        let overlay = self
+            .components
+            .update(self.mode, &summary.drawing, self.viewport.pointer());
+        if overlay.version != shown {
+            ui.ctx().request_repaint();
+        }
         if self.fit_pending && fit_coordinates(&mut self.dock) {
             self.fit_pending = false;
             ui.ctx().request_repaint();
@@ -780,6 +806,30 @@ impl Workbench {
         }
     }
 
+    /// Whether a selected object has a shape to edit (for the Points,
+    /// Edges and Polygons modes).
+    fn editing_anything(&self) -> bool {
+        self.document.selection().iter().any(|id| {
+            self.document
+                .scene()
+                .object(*id)
+                .is_some_and(|o| o.kind.has_shape())
+        })
+    }
+
+    /// The mode keys: 1 Points, 2 Edges, 3 Polygons; the same key again
+    /// goes back to the Model mode. Not while typing.
+    fn mode_keys(&mut self, ui: &Ui) {
+        if ui.ctx().memory(|m| m.focused().is_some()) || self.objects.is_renaming() {
+            return;
+        }
+        for (key, mode) in MODE_KEYS {
+            if ui.input_mut(|i| i.consume_key(Modifiers::NONE, key)) {
+                self.mode = if self.mode == mode { Mode::Model } else { mode };
+            }
+        }
+    }
+
     fn status_bar(&self, ui: &mut Ui) {
         ui.horizontal_centered(|ui| {
             let selected = match self.document.selection().len() {
@@ -787,8 +837,19 @@ impl Workbench {
                 1 => " 1 object selected.".into(),
                 n => format!(" {n} objects selected."),
             };
+            let under = match (components::kind_for(self.mode), self.components.hovered()) {
+                (Some(_), Some(element)) => format!(
+                    " Under the mouse: {}.",
+                    components::describe(&self.document, element)
+                ),
+                (Some(_), None) if !self.editing_anything() => format!(
+                    " Select an object to see its {}.",
+                    self.mode.name().to_lowercase()
+                ),
+                _ => String::new(),
+            };
             ui.label(format!(
-                "{} mode: {}.{selected}",
+                "{} mode: {}.{selected}{under}",
                 self.mode.name(),
                 self.mode.description().to_lowercase()
             ));
@@ -918,11 +979,11 @@ impl Workbench {
         });
         ui.menu_button("Modes", |ui| {
             for mode in Mode::ALL {
-                if ui
-                    .radio(self.mode == mode, mode.name())
-                    .on_hover_text(mode.description())
-                    .clicked()
-                {
+                let mut entry = egui::Button::selectable(self.mode == mode, mode.name());
+                if let Some(key) = mode.key() {
+                    entry = entry.shortcut_text(key.name());
+                }
+                if ui.add(entry).on_hover_text(mode.description()).clicked() {
                     self.mode = mode;
                     ui.close();
                 }
@@ -1177,6 +1238,8 @@ impl TabViewer for PanelViewer<'_> {
 
 #[cfg(test)]
 mod attribute_tests;
+#[cfg(test)]
+mod mode_tests;
 #[cfg(test)]
 mod object_tests;
 #[cfg(test)]

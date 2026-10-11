@@ -5,9 +5,48 @@ use eframe::egui;
 use eframe::egui_wgpu::RenderState;
 use eframe::wgpu;
 use render::{
-    FrameParams, MeshInstance, PickRequest, Shape, ViewportRenderer as GpuRenderer, ViewportTarget,
+    FrameParams, MeshInstance, Overlay, PickRequest, Shape, ViewportRenderer as GpuRenderer,
+    ViewportTarget,
 };
-use ui::{PickAsk, PickReply, Picked, VIEW_COUNT, ViewportRenderer, ViewportView};
+use ui::{
+    ComponentOverlay, OverlayStyle, PickAsk, PickReply, Picked, VIEW_COUNT, ViewportRenderer,
+    ViewportView,
+};
+
+/// Plain points in the Points mode: small light squares, in pixels.
+const POINT_SIZE: f32 = 5.0;
+/// The point under the mouse: larger, in the accent colour.
+const HOVERED_POINT_SIZE: f32 = 9.0;
+/// Edges of the edited objects, to see their structure.
+const LINE_WIDTH: f32 = 1.25;
+/// The edge under the mouse, or the polygon's outline.
+const HOVERED_LINE_WIDTH: f32 = 3.5;
+/// Light grey, linear space, for plain points and edges.
+const PLAIN_POINT: [f32; 4] = [0.85, 0.85, 0.85, 0.95];
+const PLAIN_LINE: [f32; 4] = [0.9, 0.9, 0.9, 0.45];
+
+/// The renderer's overlay for the interface's description of it, with the
+/// hovered element in `accent` (linear colour).
+fn overlay_geometry(overlay: &ComponentOverlay, accent: [f32; 3]) -> Overlay {
+    let [r, g, b] = accent;
+    let mut out = Overlay::default();
+    for ([a, b2], style) in &overlay.lines {
+        match style {
+            OverlayStyle::Plain => out.line(*a, *b2, LINE_WIDTH, PLAIN_LINE),
+            OverlayStyle::Hovered => out.line(*a, *b2, HOVERED_LINE_WIDTH, [r, g, b, 1.0]),
+        }
+    }
+    for triangle in &overlay.tints {
+        out.triangle(*triangle, [r, g, b, 0.35]);
+    }
+    for (at, style) in &overlay.points {
+        match style {
+            OverlayStyle::Plain => out.point(*at, POINT_SIZE, PLAIN_POINT),
+            OverlayStyle::Hovered => out.point(*at, HOVERED_POINT_SIZE, [r, g, b, 1.0]),
+        }
+    }
+    out
+}
 
 /// The image one view is drawn into, and the egui texture showing it.
 struct SlotImage {
@@ -26,6 +65,8 @@ pub struct GpuViewport {
     /// The version of the scene drawing, and the selection colour, the
     /// renderer's shape was built from, if any.
     uploaded: Option<(u64, [f32; 3])>,
+    /// The same for the overlay.
+    uploaded_overlay: Option<(u64, [f32; 3])>,
 }
 
 impl GpuViewport {
@@ -37,6 +78,7 @@ impl GpuViewport {
             state: state.clone(),
             images: std::array::from_fn(|_| None),
             uploaded: None,
+            uploaded_overlay: None,
         }
     }
 
@@ -113,13 +155,22 @@ impl ViewportRenderer for GpuViewport {
                 .map(|item| MeshInstance {
                     mesh: &item.mesh,
                     transform: item.transform,
-                    selected: item.selected,
+                    // Objects being edited show their elements instead of
+                    // an outline.
+                    selected: item.selected && !view.scene.editing,
                 })
                 .collect();
             let [r, g, b] = view.selection_color.map(render::srgb_to_linear);
             let shape = Shape::from_meshes(&instances, [r, g, b, 0.9]);
             self.renderer.set_shape(&self.state.device, &shape);
             self.uploaded = Some(wanted);
+        }
+        let wanted = (view.overlay.version, view.selection_color);
+        if self.uploaded_overlay != Some(wanted) {
+            let accent = view.selection_color.map(render::srgb_to_linear);
+            let overlay = overlay_geometry(&view.overlay, accent);
+            self.renderer.set_overlay(&self.state.device, &overlay);
+            self.uploaded_overlay = Some(wanted);
         }
         const FAILED: &str = "the viewport image could not be created";
         self.prepare_image(view.slot, view.size_px).ok_or(FAILED)?;
@@ -162,5 +213,32 @@ impl ViewportRenderer for GpuViewport {
             answer,
             waiting: self.renderer.is_picking(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use glam::Vec3;
+
+    #[test]
+    fn the_overlay_turns_into_points_lines_and_tints() {
+        let overlay = ComponentOverlay {
+            version: 1,
+            points: vec![
+                (Vec3::ZERO, OverlayStyle::Plain),
+                (Vec3::X, OverlayStyle::Hovered),
+            ],
+            lines: vec![([Vec3::ZERO, Vec3::Y], OverlayStyle::Plain)],
+            tints: vec![[Vec3::ZERO, Vec3::X, Vec3::Y]],
+        };
+        let geometry = overlay_geometry(&overlay, [1.0, 0.0, 0.0]);
+        // Two points and one line, six corners each; one tinted triangle.
+        assert_eq!(geometry.sprites.len(), 18);
+        assert_eq!(geometry.tints.len(), 3);
+        let hovered = &geometry.sprites[12..];
+        assert!(hovered.iter().all(|v| v.width == HOVERED_POINT_SIZE));
+        assert!(hovered.iter().all(|v| v.color == [1.0, 0.0, 0.0, 1.0]));
+        assert!(overlay_geometry(&ComponentOverlay::default(), [1.0; 3]).is_empty());
     }
 }
