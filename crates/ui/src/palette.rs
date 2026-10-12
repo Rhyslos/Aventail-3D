@@ -5,6 +5,7 @@
 //! Commands that don't exist yet are shown disabled, with a tooltip saying
 //! which phase brings them, so the layout is complete from the start.
 
+use crate::commands::CommandId;
 use crate::icons::{self, Icon};
 use crate::selecting::SelectTool;
 use crate::theme::{self, tint};
@@ -241,6 +242,9 @@ struct Planned {
     /// For a working command, what it does; otherwise when it arrives.
     arrives: &'static str,
     command: Option<PaletteCommand>,
+    /// The command list's entry, when it has one: its key is added to
+    /// the tooltip.
+    listed: Option<CommandId>,
 }
 
 const fn planned(icon: Icon, label: &'static str, arrives: &'static str) -> Planned {
@@ -249,6 +253,7 @@ const fn planned(icon: Icon, label: &'static str, arrives: &'static str) -> Plan
         label,
         arrives,
         command: None,
+        listed: None,
     }
 }
 
@@ -263,6 +268,20 @@ const fn working(
         label,
         arrives: note,
         command: Some(command),
+        listed: None,
+    }
+}
+
+/// A palette button for a command from the command list: its icon, name
+/// and explanation come from there.
+const fn listed(id: CommandId, command: PaletteCommand) -> Planned {
+    let info = id.info();
+    Planned {
+        icon: info.icon,
+        label: info.name,
+        arrives: info.help,
+        command: Some(command),
+        listed: Some(id),
     }
 }
 
@@ -318,24 +337,9 @@ const COMMAND_GROUPS: [&[Planned]; 4] = [
             "The select tool in use",
             PaletteCommand::NextSelectTool,
         ),
-        working(
-            Icon::Move,
-            "Move",
-            "Move the selection: drag the gizmo's arrows, squares or centre (W)",
-            PaletteCommand::Tool(Tool::Move),
-        ),
-        working(
-            Icon::Scale,
-            "Scale",
-            "Scale the selection: drag the gizmo's boxes, or its centre for all axes (S)",
-            PaletteCommand::Tool(Tool::Scale),
-        ),
-        working(
-            Icon::Rotate,
-            "Rotate",
-            "Rotate the selection: drag the gizmo's rings (R)",
-            PaletteCommand::Tool(Tool::Rotate),
-        ),
+        listed(CommandId::Move, PaletteCommand::Tool(Tool::Move)),
+        listed(CommandId::Scale, PaletteCommand::Tool(Tool::Scale)),
+        listed(CommandId::Rotate, PaletteCommand::Tool(Tool::Rotate)),
     ],
     &[
         shape(Icon::Cube, "Create cube", PrimitiveKind::Cube),
@@ -422,7 +426,12 @@ pub fn command_palette(ui: &mut Ui, state: &PaletteState) -> Option<PaletteComma
                     }
                     PaletteCommand::Tool(tool) => {
                         active = state.tool == tool || state.tool == Tool::All;
-                        (true, command.arrives.to_string())
+                        let keys = command
+                            .listed
+                            .and_then(|id| id.info().shortcut)
+                            .map(|keys| format!(" ({})", ui.ctx().format_shortcut(&keys)))
+                            .unwrap_or_default();
+                        (true, format!("{}{keys}", command.arrives))
                     }
                     PaletteCommand::ToggleSnapping => {
                         active = state.snapping;

@@ -5,6 +5,7 @@ use crate::attributes::{AttributesPanel, Shared};
 use crate::autosave::{
     AutosaveSettings, Autosaver, RecoveryAnswer, RecoveryOffer, RecoveryQuestion, Tick,
 };
+use crate::commands::CommandId;
 use crate::components::{self, ComponentTracker};
 use crate::coordinates::{CoordinatesView, Interaction};
 use crate::drawing::{DrawingCache, SceneSummary};
@@ -21,6 +22,7 @@ use crate::selecting::StrokeMemory;
 use crate::settings::{SETTINGS_SHORTCUT, SettingsWindow, Values};
 use crate::shape_picker::ShapePicker;
 use crate::theme::{self, Accent};
+use crate::tool_menu::ToolMenu;
 use crate::transforming::Tool;
 use crate::undo_memory::UndoMemory;
 use crate::units::Units;
@@ -124,13 +126,8 @@ const COMING: [(&str, &[(&str, &str)]); 4] = [
         "Tools",
         &[],
     ),
-    (
-        "Mesh",
-        &[
-            ("Extrude, inset, bevel", "Phase 4"),
-            ("Loop cut, knife, bridge, weld", "Phase 4"),
-        ],
-    ),
+    // The Mesh menu lists the modelling tools from the command list.
+    ("Mesh", &[]),
     (
         "UV",
         &[
@@ -169,6 +166,8 @@ pub struct Workbench {
     forgotten_told: bool,
     /// The `B` shape list.
     shape_picker: ShapePicker,
+    /// The tool menu (E).
+    tool_menu: ToolMenu,
     /// What the viewport draws, kept up to date with the document.
     drawing: DrawingCache,
     /// The Points, Edges and Polygons modes: the element under the mouse
@@ -228,6 +227,7 @@ impl Workbench {
             file: ProjectFile::default(),
             queued: Vec::new(),
             shape_picker: ShapePicker::default(),
+            tool_menu: ToolMenu::default(),
             drawing: DrawingCache::default(),
             components: ComponentTracker::default(),
             select_requests: Vec::new(),
@@ -749,6 +749,10 @@ impl Workbench {
             if let Some(kind) = self.shape_picker.keys(ui, typing) {
                 requests.push(create(kind));
             }
+            // The tool menu next: while it is open, Esc closes it, and
+            // Enter or Space use its tool.
+            let entries = self.tool_menu_entries();
+            self.tool_menu_keys(ui, typing, &entries, &mut requests);
             self.document_keys(ui, &mut requests);
             self.mode_keys(ui);
             self.select_keys(ui);
@@ -884,6 +888,8 @@ impl Workbench {
         if let Some(kind) = self.shape_picker.show(ui.ctx()) {
             requests.push(create(kind));
         }
+        let entries = self.tool_menu_entries();
+        self.tool_menu_show(ui.ctx(), &entries, &mut requests);
         if !requests.is_empty() {
             self.carry_out(requests);
             ui.ctx().request_repaint();
@@ -925,6 +931,7 @@ impl Workbench {
             history,
             autosave: &mut self.autosaver.settings,
             autosave_folder: self.autosave_folder.as_deref(),
+            tool_menu: &mut self.tool_menu.style,
         };
         self.settings.show(ctx, &mut values);
         if undo_memory != self.undo_memory {
@@ -949,9 +956,8 @@ impl Workbench {
             return;
         }
         let popup_open = egui::Popup::is_any_open(ui.ctx());
-        let selection = self.document.selection();
-        let can_ungroup = objects::has_group(&self.document, &selection);
-        let mut note = None;
+        let anything = !self.document.selection().is_empty();
+        let mut commands = Vec::new();
         ui.input_mut(|i| {
             // Ctrl+Shift+Z first: Ctrl+Z would match it too.
             if i.consume_shortcut(&objects::REDO_SHORTCUT_2)
@@ -961,34 +967,26 @@ impl Workbench {
             } else if i.consume_shortcut(&objects::UNDO_SHORTCUT) {
                 out.push(DocRequest::Undo);
             }
-            if i.consume_shortcut(&objects::UNGROUP_SHORTCUT) && !selection.is_empty() {
-                if can_ungroup {
-                    out.push(DocRequest::Run(Command::Ungroup(selection.clone())));
-                } else {
-                    note = Some("Nothing to ungroup: only groups can be ungrouped.".to_string());
+            // The object commands with keys, from the command list.
+            for command in [
+                CommandId::Ungroup,
+                CommandId::MakeEditable,
+                CommandId::Group,
+                CommandId::Delete,
+            ] {
+                let pressed = command
+                    .info()
+                    .shortcut
+                    .is_some_and(|keys| i.consume_shortcut(&keys));
+                let backspace =
+                    command == CommandId::Delete && i.consume_key(Modifiers::NONE, Key::Backspace);
+                if (pressed || backspace) && anything {
+                    commands.push(command);
                 }
-            }
-            if i.consume_shortcut(&objects::MAKE_EDITABLE_SHORTCUT) && !selection.is_empty() {
-                if objects::can_make_editable(&self.document, &selection) {
-                    out.push(DocRequest::Run(Command::MakeEditable(selection.clone())));
-                } else {
-                    note = Some(
-                        "Nothing to make editable: groups and meshes have no settings to bake."
-                            .to_string(),
-                    );
-                }
-            }
-            if i.consume_shortcut(&objects::GROUP_SHORTCUT) && !selection.is_empty() {
-                out.push(DocRequest::Run(Command::Group(selection.clone())));
-            }
-            let delete = i.consume_shortcut(&objects::DELETE_SHORTCUT)
-                | i.consume_key(Modifiers::NONE, Key::Backspace);
-            if delete && !selection.is_empty() {
-                out.push(DocRequest::Run(Command::Delete(selection.clone())));
             }
         });
-        if note.is_some() {
-            self.note = note;
+        for command in commands {
+            self.run_command(command, ui.ctx(), out);
         }
         // Esc closes an open menu first; otherwise it deselects: the
         // points, edges or polygons in those modes, else the objects.
@@ -1235,6 +1233,7 @@ impl Workbench {
                 if title == "Mesh" {
                     objects::make_editable_entry(ui, &self.document, requests);
                     ui.separator();
+                    commands_entries(ui, &crate::commands::MODELLING_RING);
                 }
                 coming_entries(ui, items);
             });
@@ -1432,6 +1431,28 @@ fn layout_tab_labels(ui: &mut Ui, tabs: &[&(&str, Option<&str>)]) {
     }
 }
 
+/// Menu entries for commands from the command list, each with its key;
+/// one not built yet is greyed out, saying when it arrives.
+fn commands_entries(ui: &mut Ui, list: &[CommandId]) {
+    for command in list {
+        let info = command.info();
+        let mut button = egui::Button::new(info.name);
+        if let Some(keys) = info.shortcut {
+            button = button.shortcut_text(ui.ctx().format_shortcut(&keys));
+        }
+        let built = info.arrives.is_none();
+        let response = ui.add_enabled(built, button);
+        match info.arrives {
+            Some(when) => {
+                response.on_disabled_hover_text(format!("{}\n{when}", info.help));
+            }
+            None => {
+                response.on_hover_text(info.help);
+            }
+        }
+    }
+}
+
 /// Menus whose commands are not built yet: each lists what is coming and
 /// when, greyed out.
 fn coming_entries(ui: &mut Ui, items: &[(&str, &str)]) {
@@ -1537,6 +1558,7 @@ impl TabViewer for PanelViewer<'_> {
 
 #[cfg(test)]
 mod attribute_tests;
+mod command;
 mod selection;
 mod transform;
 
@@ -1558,5 +1580,7 @@ mod settings_tests;
 mod shape_picker_tests;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod tool_menu_tests;
 #[cfg(test)]
 mod transform_tests;

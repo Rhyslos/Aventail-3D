@@ -1,5 +1,5 @@
 //! The Settings window: every app-wide preference in one place, in
-//! sections (Interface, Viewport, Undo). Opened from Edit → Settings… or
+//! sections (Interface, Viewport, Undo, Autosave). Opened from Edit → Settings… or
 //! with `Ctrl + ,`.
 //!
 //! Switches you flip while working stay where you use them too (metres or
@@ -9,6 +9,7 @@
 use crate::autosave::{AutosaveSettings, COPIES, MINUTES};
 use crate::selecting::SelectKeys;
 use crate::theme::{self, Accent};
+use crate::tool_menu::ToolMenuStyle;
 use crate::transforming::SnapSettings;
 use crate::undo_memory::{UndoMemory, format_bytes};
 use crate::units::Units;
@@ -71,6 +72,8 @@ pub(crate) struct Values<'a> {
     pub(crate) autosave: &'a mut AutosaveSettings,
     /// Where they go, if known.
     pub(crate) autosave_folder: Option<&'a std::path::Path>,
+    /// How the tool menu (E) looks.
+    pub(crate) tool_menu: &'a mut ToolMenuStyle,
 }
 
 /// The Settings window's state.
@@ -156,6 +159,7 @@ fn restore_standard(values: &mut Values<'_>) {
     *values.snap = SnapSettings::default();
     *values.undo_memory = UndoMemory::default();
     *values.autosave = AutosaveSettings::default();
+    *values.tool_menu = ToolMenuStyle::default();
 }
 
 /// A heading for a group of settings.
@@ -203,6 +207,22 @@ fn interface(ui: &mut Ui, values: &mut Values<'_>) {
             .clicked()
         {
             *values.units = units;
+        }
+    }
+    ui.add_space(8.0);
+    heading(ui, "Tool menu (E)");
+    explain(
+        ui,
+        "Press E for the tools of what you're working on. Both looks hold the same \
+         tools in the same order; tap E to step through them, Enter or Space to use one.",
+    );
+    for style in ToolMenuStyle::ALL {
+        if ui
+            .radio(*values.tool_menu == style, style.name())
+            .on_hover_text(style.description())
+            .clicked()
+        {
+            *values.tool_menu = style;
         }
     }
 }

@@ -10,7 +10,7 @@ use egui::{Color32, Painter, Pos2, Rect, Shape, Stroke, StrokeKind, vec2};
 use std::f32::consts::{PI, TAU};
 
 /// Every icon the palettes use.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Icon {
     /// Edit → Undo.
     Undo,
@@ -83,10 +83,48 @@ pub enum Icon {
     Tube,
     /// The cone primitive.
     Cone,
+    /// Move, rotate and scale at once.
+    AllGizmos,
+    /// Make editable: a cube showing its points.
+    MakeEditable,
+    /// Group objects: two shapes held together.
+    Group,
+    /// Ungroup: two shapes moving apart.
+    Ungroup,
+    /// Delete: a bin.
+    Delete,
+    /// Frame the selection: corners around a point.
+    FrameSelected,
+    /// Extrude: a polygon lifted from its place, with new sides.
+    Extrude,
+    /// Inset: a polygon with a smaller one inside it.
+    Inset,
+    /// Bevel: a corner cut off.
+    Bevel,
+    /// Bridge: two pieces joined by a span.
+    Bridge,
+    /// Fill hole: an outline filled in.
+    FillHole,
+    /// Flip normals: a surface with arrows on both sides.
+    FlipNormals,
+    /// Hard edges: two sides meeting at a sharp crease.
+    HardEdges,
+    /// Soft edges: a smooth bend.
+    SoftEdges,
+    /// Dissolve: an edge fading out of a polygon.
+    Dissolve,
+    /// Weld: two points meeting in one.
+    Weld,
+    /// Connect: a new edge across a polygon.
+    Connect,
+    /// Knife: a blade cutting a line.
+    Knife,
+    /// Loop cut: a new loop around a shape.
+    LoopCut,
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 35] = [
+pub const ALL: [Icon; 54] = [
     Icon::Undo,
     Icon::Redo,
     Icon::LiveSelection,
@@ -122,6 +160,25 @@ pub const ALL: [Icon; 35] = [
     Icon::Disc,
     Icon::Tube,
     Icon::Cone,
+    Icon::AllGizmos,
+    Icon::MakeEditable,
+    Icon::Group,
+    Icon::Ungroup,
+    Icon::Delete,
+    Icon::FrameSelected,
+    Icon::Extrude,
+    Icon::Inset,
+    Icon::Bevel,
+    Icon::Bridge,
+    Icon::FillHole,
+    Icon::FlipNormals,
+    Icon::HardEdges,
+    Icon::SoftEdges,
+    Icon::Dissolve,
+    Icon::Weld,
+    Icon::Connect,
+    Icon::Knife,
+    Icon::LoopCut,
 ];
 
 /// Draws `icon` into `rect` in `color`.
@@ -456,6 +513,167 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
             eye.extend(pen.arc((12.0, 8.1), (8.9, 8.9), 0.453, 2.688));
             pen.closed(eye);
             pen.dot(12.0, 12.0, 2.6);
+        }
+        Icon::AllGizmos => {
+            // The move arrows inside the rotate ring.
+            pen.ellipse((12.0, 12.0), (9.0, 9.0));
+            pen.polyline(&[(12.0, 6.0), (12.0, 18.0)]);
+            pen.polyline(&[(6.0, 12.0), (18.0, 12.0)]);
+            pen.polyline(&[(10.0, 8.0), (12.0, 6.0), (14.0, 8.0)]);
+            pen.polyline(&[(16.0, 10.0), (18.0, 12.0), (16.0, 14.0)]);
+        }
+        Icon::MakeEditable => {
+            // The cube, with its corners as points.
+            let corners = [
+                (12.0, 3.5),
+                (20.0, 7.5),
+                (20.0, 16.5),
+                (12.0, 20.5),
+                (4.0, 16.5),
+                (4.0, 7.5),
+            ];
+            pen.polygon(&corners);
+            pen.polyline(&[(4.0, 7.5), (12.0, 11.5), (20.0, 7.5)]);
+            pen.polyline(&[(12.0, 11.5), (12.0, 20.5)]);
+            for (x, y) in corners.into_iter().chain([(12.0, 11.5)]) {
+                pen.dot(x, y, 1.9);
+            }
+        }
+        Icon::Group => {
+            // Two shapes inside one dashed outline.
+            pen.square((6.0, 6.0), (11.0, 11.0), false);
+            pen.square((13.0, 13.0), (18.0, 18.0), false);
+            for i in 0..4 {
+                let at = 3.0 + i as f32 * 4.5;
+                pen.segment((at, 3.0), (at + 2.5, 3.0), 1.0, 0.7);
+                pen.segment((at, 21.0), (at + 2.5, 21.0), 1.0, 0.7);
+                pen.segment((3.0, at), (3.0, at + 2.5), 1.0, 0.7);
+                pen.segment((21.0, at), (21.0, at + 2.5), 1.0, 0.7);
+            }
+        }
+        Icon::Ungroup => {
+            // Two shapes moving apart.
+            pen.square((3.0, 3.0), (9.0, 9.0), false);
+            pen.square((15.0, 15.0), (21.0, 21.0), false);
+            // Arrows pointing each away from the middle.
+            pen.polyline(&[(10.5, 10.5), (13.5, 13.5)]);
+            pen.polyline(&[(9.5, 12.5), (9.5, 9.5), (12.5, 9.5)]);
+            pen.polyline(&[(14.5, 11.5), (14.5, 14.5), (11.5, 14.5)]);
+        }
+        Icon::Delete => {
+            // A bin with its lid and handle.
+            pen.polygon(&[(6.5, 7.5), (17.5, 7.5), (16.5, 21.0), (7.5, 21.0)]);
+            pen.polyline(&[(4.0, 7.5), (20.0, 7.5)]);
+            pen.polyline(&[(9.5, 7.5), (9.5, 4.0), (14.5, 4.0), (14.5, 7.5)]);
+            pen.polyline(&[(10.5, 11.0), (10.5, 18.0)]);
+            pen.polyline(&[(13.5, 11.0), (13.5, 18.0)]);
+        }
+        Icon::FrameSelected => {
+            // Four corners around a point.
+            pen.polyline(&[(3.0, 8.0), (3.0, 3.0), (8.0, 3.0)]);
+            pen.polyline(&[(16.0, 3.0), (21.0, 3.0), (21.0, 8.0)]);
+            pen.polyline(&[(21.0, 16.0), (21.0, 21.0), (16.0, 21.0)]);
+            pen.polyline(&[(8.0, 21.0), (3.0, 21.0), (3.0, 16.0)]);
+            pen.dot(12.0, 12.0, 2.6);
+        }
+        Icon::Extrude => {
+            // The polygon's old place (faint), lifted with new sides.
+            pen.segment((3.0, 19.0), (14.0, 19.0), 1.0, 0.4);
+            pen.segment((14.0, 19.0), (21.0, 15.0), 1.0, 0.4);
+            pen.polygon(&[(3.0, 10.0), (14.0, 10.0), (21.0, 6.0), (10.0, 6.0)]);
+            pen.polyline(&[(3.0, 10.0), (3.0, 19.0)]);
+            pen.polyline(&[(14.0, 10.0), (14.0, 19.0)]);
+            pen.polyline(&[(21.0, 6.0), (21.0, 15.0)]);
+        }
+        Icon::Inset => {
+            pen.square((3.0, 3.0), (21.0, 21.0), false);
+            pen.square((8.0, 8.0), (16.0, 16.0), false);
+            pen.segment((3.0, 3.0), (8.0, 8.0), 1.0, 0.5);
+            pen.segment((21.0, 3.0), (16.0, 8.0), 1.0, 0.5);
+            pen.segment((21.0, 21.0), (16.0, 16.0), 1.0, 0.5);
+            pen.segment((3.0, 21.0), (8.0, 16.0), 1.0, 0.5);
+        }
+        Icon::Bevel => {
+            // A corner cut off: the old corner faint.
+            pen.polyline(&[(4.0, 21.0), (4.0, 11.0), (11.0, 4.0), (21.0, 4.0)]);
+            pen.segment((4.0, 11.0), (4.0, 4.0), 1.0, 0.35);
+            pen.segment((4.0, 4.0), (11.0, 4.0), 1.0, 0.35);
+            pen.polyline(&[(4.0, 11.0), (11.0, 4.0)]);
+            pen.segment((5.5, 12.5), (12.5, 5.5), 1.0, 0.35);
+        }
+        Icon::Bridge => {
+            // Two pieces, and the span built between them.
+            pen.square((2.5, 6.0), (8.0, 18.0), false);
+            pen.square((16.0, 6.0), (21.5, 18.0), false);
+            pen.fill((8.0, 9.0), (16.0, 15.0), 0.45);
+            pen.polyline(&[(8.0, 9.0), (16.0, 9.0)]);
+            pen.polyline(&[(8.0, 15.0), (16.0, 15.0)]);
+        }
+        Icon::FillHole => {
+            // An open outline, filled in.
+            pen.fill((5.0, 5.0), (19.0, 19.0), 0.4);
+            pen.square((5.0, 5.0), (19.0, 19.0), false);
+            pen.dot(5.0, 5.0, 1.8);
+            pen.dot(19.0, 5.0, 1.8);
+            pen.dot(19.0, 19.0, 1.8);
+            pen.dot(5.0, 19.0, 1.8);
+        }
+        Icon::FlipNormals => {
+            // A surface, with arrows to both sides.
+            pen.polyline(&[(3.0, 12.0), (21.0, 12.0)]);
+            pen.polyline(&[(8.0, 12.0), (8.0, 4.0)]);
+            pen.polyline(&[(5.5, 6.5), (8.0, 4.0), (10.5, 6.5)]);
+            pen.polyline(&[(16.0, 12.0), (16.0, 20.0)]);
+            pen.polyline(&[(13.5, 17.5), (16.0, 20.0), (18.5, 17.5)]);
+        }
+        Icon::HardEdges => {
+            // Two sides meeting at a sharp crease, the crease marked.
+            pen.polyline(&[(3.0, 19.0), (12.0, 6.0), (21.0, 19.0)]);
+            pen.dot(12.0, 6.0, 2.2);
+        }
+        Icon::SoftEdges => {
+            // The same bend, smooth.
+            let bend = pen.arc((12.0, 19.0), (9.0, 13.0), PI, TAU);
+            pen.line(bend);
+        }
+        Icon::Dissolve => {
+            // A polygon whose middle edge fades away.
+            pen.square((4.0, 4.0), (20.0, 20.0), false);
+            for i in 0..4 {
+                let y = 5.0 + i as f32 * 4.0;
+                pen.segment((12.0, y), (12.0, y + 2.0), 1.0, 0.45);
+            }
+        }
+        Icon::Weld => {
+            // Two points drawn into one.
+            pen.dot(5.0, 6.0, 2.0);
+            pen.dot(5.0, 18.0, 2.0);
+            pen.polyline(&[(6.5, 7.0), (17.0, 12.0)]);
+            pen.polyline(&[(6.5, 17.0), (17.0, 12.0)]);
+            pen.dot(18.5, 12.0, 3.0);
+        }
+        Icon::Connect => {
+            // A new edge across a polygon, between two points.
+            pen.square((4.0, 4.0), (20.0, 20.0), true);
+            pen.polyline(&[(4.0, 9.0), (20.0, 15.0)]);
+            pen.dot(4.0, 9.0, 2.2);
+            pen.dot(20.0, 15.0, 2.2);
+        }
+        Icon::Knife => {
+            // A blade, and the line it cuts.
+            pen.polygon(&[(9.0, 15.0), (19.5, 4.5), (21.0, 5.5), (12.0, 17.0)]);
+            pen.polyline(&[(9.0, 15.0), (6.5, 17.5)]);
+            pen.segment((3.0, 21.0), (9.0, 21.0), 1.0, 0.6);
+            pen.segment((11.0, 21.0), (13.0, 21.0), 1.0, 0.6);
+        }
+        Icon::LoopCut => {
+            // A box with a new loop around its middle.
+            pen.square((5.0, 4.0), (19.0, 20.0), true);
+            pen.polyline(&[(5.0, 12.0), (19.0, 12.0)]);
+            pen.dot(5.0, 12.0, 2.0);
+            pen.dot(19.0, 12.0, 2.0);
+            pen.polyline(&[(12.0, 7.0), (12.0, 10.0)]);
+            pen.polyline(&[(12.0, 14.0), (12.0, 17.0)]);
         }
         Icon::Hidden => {
             // A closed eye: the lower lid, with three lashes.

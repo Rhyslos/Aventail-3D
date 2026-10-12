@@ -27,6 +27,8 @@ const UNDO_MEMORY_KEY: &str = "undo_memory";
 const RECENT_KEY: &str = "recent_projects";
 /// Key under which the backup (autosave) settings are remembered.
 const AUTOSAVE_KEY: &str = "autosave";
+/// Key under which the tool menu's look (radial or list) is remembered.
+const TOOL_MENU_KEY: &str = "tool_menu";
 /// Window size on first launch, in logical pixels.
 const FIRST_SIZE: [f32; 2] = [1440.0, 900.0];
 /// The smallest the window may get while staying usable.
@@ -100,6 +102,7 @@ impl eframe::App for App {
         eframe::set_value(storage, UNDO_MEMORY_KEY, &self.workbench.undo_memory());
         eframe::set_value(storage, RECENT_KEY, &self.workbench.recent_projects());
         eframe::set_value(storage, AUTOSAVE_KEY, &self.workbench.autosave_settings());
+        eframe::set_value(storage, TOOL_MENU_KEY, &self.workbench.tool_menu_style());
     }
 
     /// A normal close: this run's backup copies are no longer needed.
@@ -164,6 +167,10 @@ pub fn run(info: AppInfo, open: Option<PathBuf>) -> Result<(), String> {
                     .storage
                     .and_then(|s| eframe::get_value(s, AUTOSAVE_KEY))
                     .unwrap_or_default();
+                let tool_menu: ui::ToolMenuStyle = cc
+                    .storage
+                    .and_then(|s| eframe::get_value(s, TOOL_MENU_KEY))
+                    .unwrap_or_default();
                 let renderer: Box<dyn ViewportRenderer> = match cc.wgpu_render_state.as_ref() {
                     Some(state) => Box::new(GpuViewport::new(state)),
                     None => Box::new(NoRenderer {
@@ -176,7 +183,8 @@ pub fn run(info: AppInfo, open: Option<PathBuf>) -> Result<(), String> {
                     .with_units(units)
                     .with_undo_memory(undo_memory)
                     .with_recent_projects(recent)
-                    .with_autosave(autosave);
+                    .with_autosave(autosave)
+                    .with_tool_menu_style(tool_menu);
                 if let Some(path) = open {
                     project::open_from(&mut workbench, path);
                 }
@@ -251,5 +259,7 @@ mod tests {
         assert!(!RECENT_KEY.contains(branding::APP_ID));
         assert!(!AUTOSAVE_KEY.contains(branding::APP_ID));
         assert_ne!(AUTOSAVE_KEY, UNDO_MEMORY_KEY);
+        assert!(!TOOL_MENU_KEY.contains(branding::APP_ID));
+        assert_ne!(TOOL_MENU_KEY, AUTOSAVE_KEY);
     }
 }

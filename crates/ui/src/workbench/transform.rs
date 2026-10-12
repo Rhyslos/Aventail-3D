@@ -3,6 +3,7 @@
 //! drags as one undo step each ([decision 0030](../../../../docs/decisions/0030-transform-gizmos.md)).
 
 use super::Workbench;
+use crate::commands::CommandId;
 use crate::coordinates::{CoordinatesView, Field, Interaction};
 use crate::drawing::SceneDrawing;
 use crate::transforming::{
@@ -104,18 +105,29 @@ impl Workbench {
     /// The Tools menu: the tools, the axis locks, world or object axes,
     /// and snapping.
     pub(super) fn tools_menu(&mut self, ui: &mut Ui) {
-        let tools = [
-            (Tool::Select, "Q"),
-            (Tool::Move, "W"),
-            (Tool::Rotate, "R"),
-            (Tool::Scale, "S"),
-            (Tool::All, "T"),
-        ];
-        for (tool, key) in tools {
-            if ui
-                .add(egui::Button::selectable(self.tool == tool, tool.name()).shortcut_text(key))
-                .clicked()
-            {
+        if ui
+            .add(
+                egui::Button::selectable(self.tool == Tool::Select, Tool::Select.name())
+                    .shortcut_text(crate::selecting::SELECT_TOOL_KEY.name()),
+            )
+            .clicked()
+        {
+            self.set_tool(Tool::Select);
+            ui.close();
+        }
+        // The rest from the command list.
+        for (tool, command) in [
+            (Tool::Move, CommandId::Move),
+            (Tool::Rotate, CommandId::Rotate),
+            (Tool::Scale, CommandId::Scale),
+            (Tool::All, CommandId::AllGizmos),
+        ] {
+            let info = command.info();
+            let mut button = egui::Button::selectable(self.tool == tool, info.name);
+            if let Some(keys) = info.shortcut {
+                button = button.shortcut_text(ui.ctx().format_shortcut(&keys));
+            }
+            if ui.add(button).on_hover_text(info.help).clicked() {
                 self.set_tool(tool);
                 ui.close();
             }
@@ -152,6 +164,12 @@ impl Workbench {
             self.toggle_snapping();
             ui.close();
         }
+        ui.separator();
+        ui.label(
+            egui::RichText::new("Tip: press E for the tool menu")
+                .small()
+                .color(crate::theme::TEXT_WEAK),
+        );
     }
 
     /// What the gizmo would change now, if a transform tool is in use.

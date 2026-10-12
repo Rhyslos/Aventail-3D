@@ -39,6 +39,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Mode** — What kind of thing your tools work on: whole objects, or a mesh's points, edges or polygons, or its UVs. The same Move tool moves a whole object in Model mode and a single edge in Edges mode. See [Interface tour](interface-tour.md#modes).
 
+**Tool menu** — The menu that opens at the mouse when you press **E**, holding the tools for what you're working on: object tools in Model mode, modelling tools while editing points, edges or polygons. Shown as a ring (a *radial* or *pie* menu) or a list. See [The tool menu](tool-menu.md).
+
 **Primitive** — A ready-made shape (cube, cylinder, sphere…) built from a few settings, like size and segments, which stay editable. In this app every primitive stands on the ground with its pivot at the middle of its base. See [Primitives](primitives.md).
 
 **Project file (.avtl)** — The file your scene is saved in: every object, its settings and edits, and what was selected. It's this app's own working format; models go to other programs by *exporting* them instead. See [Saving and opening projects](saving-and-opening.md).

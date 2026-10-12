@@ -32,9 +32,19 @@ pub(crate) struct ShapePicker {
 
 impl ShapePicker {
     /// Whether the list is showing.
-    #[cfg(test)]
     pub(crate) fn is_open(&self) -> bool {
         self.open.is_some()
+    }
+
+    /// Opens the list at `at` (from the tool menu), the first shape
+    /// highlighted.
+    pub(crate) fn open_at(&mut self, at: Pos2) {
+        self.open = Some(Open { highlight: 0, at });
+    }
+
+    /// Closes the list.
+    pub(crate) fn close(&mut self) {
+        self.open = None;
     }
 
     /// The highlighted shape, while the list is open.
