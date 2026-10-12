@@ -157,7 +157,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 <details>
 <summary>Milestones</summary>
 
-- [ ] Edit Layers: a stack of edit layers per object, inspired by 3ds Max's Edit Poly stack, whose layers find their parts again when a layer below changes
+- [ ] Edit Layers: a stack of edit layers per object, inspired by 3ds Max's Edit Poly stack, whose layers find their parts again when a layer below changes, added from a new modifiers palette between the viewport and the Attributes and Objects panels
 - [ ] Quick align and align tools
 - [ ] Optional quad menu
 

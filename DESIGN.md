@@ -240,21 +240,22 @@ The app is built for game assets (thousands to a few hundred thousand polygons),
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │ Menu bar                                                         │
-│ Top command palette (primitives, generators, tools)              │
-├──┬──────────────────────────────────────────┬────────────────────┤
-│M │                                          │ Attribute Manager  │
-│o │            Viewport(s)                   │ (selected object / │
-│d │   single perspective or 4-up             │  active tool)      │
-│e │                                          ├────────────────────┤
-│s │                                          │ Object Manager     │
-│  │                                          │ (hierarchy tree,   │
-│  │                                          │  later Edit Layers)│
-├──┴──────────────────────────────────────────┴────────────────────┤
+│ Top command palette (primitives, tools)                          │
+├──┬───────────────────────────────────────┬──┬────────────────────┤
+│M │                                       │M │ Attribute Manager  │
+│o │            Viewport(s)                │o │ (selected object / │
+│d │   single perspective or 4-up          │d │  active tool)      │
+│e │                                       │i ├────────────────────┤
+│s │                                       │f │ Object Manager     │
+│  │                                       │s │ (hierarchy tree,   │
+│  │                                       │  │  later Edit Layers)│
+├──┴───────────────────────────────────────┴──┴────────────────────┤
 │ Status bar: hints, selection counts, snapping state              │
 └──────────────────────────────────────────────────────────────────┘
 ```
 - **Right column order:** Attribute Manager on top, Object Manager below. This deliberately differs from C4D's default (user preference, 2026-10-10).
 - **Left palette:** mode switches (Model / Object / Points / Edges / Polygons / UV) and snapping, like C4D, with viewport display switches at the bottom (grid detail: fine 10 cm lines on or off).
+- **Modifiers palette** (the project lead's choice, 2026-10-12): a thin column of icon buttons between the viewport and the right column, holding everything that changes a shape non-destructively: edit layers (Phase 7), mirror and array (Phase 8), booleans, subdivision, weighted normals and the game bevel. It sits right next to the Object Manager because that is where modifiers are applied and shown. C4D keeps its generators and deformers in a similar spot; we copy only the placement, with our own icons (drawn in code) and names. It appears with the first modifier (Edit Layers, Phase 7), not as an empty placeholder: a strip of buttons that do nothing would only confuse. How a click applies a modifier (to the selection, as a child or a parent, as a layer) is asked about before it is built ([0028](docs/decisions/0028-ask-about-controls.md)).
 - **Object Manager:** tree with drag-to-reparent, rename, visibility toggles, and later the Edit Poly stack shown as a sub-list. Built: click, Ctrl and Shift selection with names in the accent colour, double-click to rename, drag onto a row to nest or onto its edge to reorder, an eye per row, fold arrows, a right-click menu, and Edit, View and Object menus ([0018](docs/decisions/0018-scene-document-and-undo.md)).
 - **Attribute Manager:** tabbed properties for the selection or active tool.
 - A **Coordinates panel** (C4D's position/scale/rotation fields) can be docked under the viewport.
@@ -427,6 +428,7 @@ Each phase ends with something runnable. The user tests the *feel* at the end of
 - **Done when:** that prop can be unwrapped and packed in Aventail 3D with clean bakes in Substance Painter.
 
 ### Phase 7 — 3ds Max sprinkles
+- **The modifiers palette** (§5.1) between the viewport and the right column, starting with Edit Layers
 - **Edit Poly stack UI (W5):** add/disable/reorder/collapse layers; edit lower layers and see upper ones re-evaluate, each layer finding its elements again by their anchors (**W14**); warning badges only for what truly can't be found
 - Quick Align and align tools (W7)
 - Optional quad menu
@@ -435,6 +437,7 @@ Each phase ends with something runnable. The user tests the *feel* at the end of
 ### Phase 8 — Advanced hard-surface
 - Booleans, weighted normals, better bevel, generators (array, mirror)
 - Game bevel and modular kit helpers (§6; **W15**, **W16**)
+- Generators, booleans, weighted normals and the game bevel are added to the modifiers palette (§5.1)
 
 ### Phase 9 — Scripting
 Lua scripting so people can add their own tools and automate work. Full design in §4.7.
@@ -536,3 +539,4 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-11 — Fourth Phase 3 milestone, move, rotate and scale, with the project lead's controls: `W`/`R`/`S`/`T` gizmos (arrows, plane squares and a free centre; axis rings and a line-of-sight ring; per-axis boxes and a uniform centre), `Q` back to selecting, Shift for ten times finer, Esc or a right click to cancel, `X`/`Y`/`Z` axis locks and `L` world/object axes, snapping on the palette button with Ctrl flipping it per drag (button-only in Settings) to points, edges, polygons or the grid shown, 15° and 10% steps. A drag is one undo step by taking back the previous frame (`Document::abandon`) and doing the whole change again. Objects get `Command::SetTransforms`; points record `MovePoints` or a new `TransformPoints` on top of the base. The Coordinates panel shows and edits world position, size and rotation ([0030](docs/decisions/0030-transform-gizmos.md)). Project files move to format version 2 to store `TransformPoints`; version 1 still opens ([0031](docs/decisions/0031-project-format-version-2.md)).
 - 2026-10-11 — At the project lead's request after PR #22: the Scale gizmo gets plane squares like Move; the mouse's direction sets the ratio between the two axes (drag mostly along X and it scales mostly along X). Fifth and last Phase 3 milestone, edits recorded on top of the base: edits also record where their points, edges or polygons were (anchors, relative to the shape's box), and when a settings change renumbers the points they find them again by position (a polygon finds every polygon inside it, an edge every edge along it). The Attributes panel notes when that happened. Project format version 2 (unreleased) stores the anchors ([0032](docs/decisions/0032-edits-find-their-points-again.md)). **Phase 3 is complete and awaits the project lead's gate check**, together with PR #22.
 - 2026-10-12 — After a planning talk with the project lead, added to the plan: heavy-mesh robustness as a safeguard (one imported 2–3 million polygon object must stay usable; targets and fixes in §4.8; the *Heavy meshes* milestone opens Phase 4; the heavy-mesh check runs at every phase gate and on request, not on every pull request) ([0033](docs/decisions/0033-heavy-mesh-safeguard.md)); autosave and crash recovery (Phase 4); and what should set the app apart: bake readiness (Phases 5–6), edits that survive changes underneath (every Phase 4 tool records anchors; Phase 7 layers use them), a game bevel for mid-poly work and modular kit helpers (Phase 8), trim sheets (Phase 6), kit export with Godot collision meshes (Phase 5), and an app that explains itself (principle 7). Wishlist W11–W17. Collision meshes and the mesh check before export moved from the backlog into Phase 5.
+- 2026-10-12 — At the project lead's request, a **modifiers palette**: a thin column of buttons between the viewport and the right column, next to the Object Manager where modifiers are applied (C4D's placement; our own icons and names). It arrives with the first modifier (Edit Layers, Phase 7) rather than as an empty placeholder, and Phase 8's generators, booleans, weighted normals and game bevel join it. Generators leave the top palette's plan.
