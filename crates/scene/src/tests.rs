@@ -744,6 +744,7 @@ fn random_commands_keep_the_tree_whole_and_undo_exactly() {
                                 .map(|_| VertexId::from_raw(rng.next(12) as u32))
                                 .collect(),
                             offset: glam::Vec3::new(rng.next(20) as f32, 0.0, 1.0),
+                            anchors: None,
                         },
                     },
                     None => Command::Create(ObjectKind::Group),

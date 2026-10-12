@@ -18,7 +18,7 @@ What moves depends on the [mode](modes.md):
 - In **Model** mode, whole shapes move.
 - In **Points**, **Edges** and **Polygons** mode, the selected parts of the selected shapes move. Moving a polygon moves its corners, so the polygons around it stretch to follow.
 
-Changes to points, edges and polygons are recorded on top of the shape's [base](concepts.md#objects-and-scenes). A primitive keeps its settings: change a cube's segments later and your moves are made again on the new cube.
+Changes to points, edges and polygons are recorded on top of the shape's [base](concepts.md#objects-and-scenes). A primitive keeps its settings: change a cube's size or segments later and your moves are made again on the new cube. See [Changing settings after editing](#changing-settings-after-editing).
 
 ## How to use it
 
@@ -37,6 +37,7 @@ Changes to points, edges and polygons are recorded on top of the shape's [base](
      - Drag the **outer white ring** to turn around the line you're looking along.
    - **Scale:**
      - Drag a **box** to stretch or squash along that axis.
+     - Drag a small **square** between two boxes to scale along both of those axes at once. The direction you drag decides how much each one changes: drag the green square (X and Y) mostly along X, and it scales mostly along X and only a little along Y. Drag diagonally to scale both alike. Away from the centre makes it bigger, towards it smaller.
      - Drag the **centre dot** to scale evenly. Right or up makes it bigger; left or down makes it smaller.
 4. **Let go** to keep the change. While you drag, the status bar shows how far you've gone (*Moving: X 0.25 m, Y 0 m, Z 0 m*).
 5. **Q** goes back to selecting.
@@ -58,6 +59,16 @@ The gizmo stays the same size on screen however far you zoom.
 - **Press Esc, or right-click,** while still holding the left button to cancel. Everything goes back where it was.
 - **Press X, Y or Z** (or click the X, Y and Z buttons on the top palette) to **lock** that axis. While it's locked, moving, rotating and scaling leave it alone, and its gizmo handles disappear. The button turns red while locked; press the key again to free it. *Example:* lock Z, then drag the centre dot to slide a shape around the floor without lifting it.
 - **Press L** (or click the globe button beside the locks) to switch the gizmo between the **world's axes** and the **object's own axes**. Use the object's own axes to move a turned shape along its own length.
+
+### Changing settings after editing
+
+Because your moves, turns and scaling are kept apart from the shape's settings, you can still change a primitive's size, segments and so on in the [Attributes panel](attributes.md) afterwards. The edits are made again on the new shape:
+
+- **Bigger or smaller:** the edited points are the same points, in the same place on the shape, so everything just stretches with it.
+- **More segments:** the shape's points are made afresh, so the old point numbers no longer fit. Each edit remembers *where* its points, edges or polygons were, and finds them there again. A polygon you pulled up finds every smaller polygon now inside it, so the whole area stays lifted; an edge finds every piece of edge along it. The Attributes panel says so in its **Edits** section (*1 edit found its points again on the changed shape*).
+- **Fewer segments:** points that were moved may have no place left on the simpler shape. Those edits apply to what they can find, and the **Edits** section warns in amber. Go back to the earlier settings and everything returns.
+
+*Example:* make a cube, press `3`, select its top polygon, press `W` and drag the green arrow up. Then select the cube in Model mode and raise its segments in the Attributes panel: the top stays lifted, now cut into a grid.
 
 ### Snapping
 
@@ -102,6 +113,7 @@ What the fields show:
 | Action | Shortcut |
 |---|---|
 | Move / rotate / scale / all three | `W` / `R` / `S` / `T` |
+| Scale along two axes | Drag a square of the Scale gizmo; the drag's direction sets the mix |
 | Back to selecting | `Q` |
 | Ten times slower | Hold `Shift` while dragging |
 | Snap for this drag (or not, if snapping is on) | Hold `Ctrl` while dragging |
@@ -117,11 +129,14 @@ What the fields show:
 - **Problem:** scaling a turned shape along X looks skewed or wrong. **Why:** with the world's axes, X isn't the shape's own length. **Fix:** press **L** for the object's own axes.
 - **Problem:** a move won't land between grid lines. **Why:** snapping is on. **Fix:** hold **Ctrl** while dragging, or turn snapping off.
 - **Tip:** to lift a polygon straight up, select it in Polygons mode, press **W** and drag the green arrow. The polygons around it stretch to follow, which is the start of many hard-surface shapes.
+- **Problem:** after changing a shape's segments, an edit moved the wrong points, or the Edits section warns. **Why:** with fewer segments, some edited points have no place left; an edit that moved points onto exactly the same spot as others can also pick the nearest one. **Fix:** go back to the earlier settings (Ctrl + Z), or make the change before editing.
+- **Tip:** to scale a panel wider without making it taller, use the Scale gizmo's square for the two axes you want and drag along the one that should grow most.
 - **Tip:** to flatten points (to make them all the same height), select them, press **S**, lock X and Y, and drag the centre dot left until the status bar says 0%. With snapping on it stops neatly on 0%.
 
 ## Related
 
 - [Selecting](selecting.md)
 - [Points, Edges and Polygons modes](modes.md)
-- [Concepts: pivot, axes and grid](concepts.md#objects-and-scenes)
+- [Concepts: pivot, axes and grid](concepts.md#objects-and-scenes), [base and edits](concepts.md#objects-and-scenes)
+- [Attributes](attributes.md) (the Edits section)
 - [Settings](settings.md)

@@ -24,6 +24,7 @@ fn lift(points: &[u32], by: f32) -> Operation {
     Operation::MovePoints {
         points: points.iter().map(|n| VertexId::from_raw(*n)).collect(),
         offset: Vec3::Z * by,
+        anchors: None,
     }
 }
 
@@ -173,7 +174,8 @@ fn edits_whose_points_are_gone_still_apply_to_the_rest_and_warn() {
         [StackWarning {
             layer: 0,
             operation: 0,
-            missing: 2
+            missing: 2,
+            found_again: false,
         }]
     );
 }
@@ -498,4 +500,109 @@ fn make_editable_with_nothing_or_unknown_objects() {
         ObjectKind::Primitive(cube()),
         "refused as a whole"
     );
+}
+
+// ------------------------------------- finding points again (0032) ---
+
+/// Records lifting the cube's top polygon by 50 cm, with anchors, as the
+/// move gizmo does.
+fn lift_top_with_anchors(doc: &mut Document, id: ObjectId) {
+    let shape = doc.scene().evaluated(id).unwrap().mesh;
+    let top = shape
+        .faces()
+        .find(|(f, _)| shape.face_normal(*f).z > 0.9)
+        .map(|(_, c)| c.to_vec())
+        .unwrap();
+    let anchors = mesh::Anchors::record(
+        &shape,
+        mesh::ElementKind::Polygons,
+        std::slice::from_ref(&top),
+    );
+    doc.execute(Command::Record {
+        id,
+        operation: Operation::MovePoints {
+            points: top,
+            offset: Vec3::Z * 50.0,
+            anchors,
+        },
+    })
+    .unwrap();
+}
+
+fn segments(doc: &mut Document, id: ObjectId, n: u32) {
+    doc.execute(Command::SetPrimitive {
+        ids: vec![id],
+        primitive: Primitive::Cube(CubeParams {
+            segments: [n; 3],
+            ..CubeParams::default()
+        }),
+    })
+    .unwrap();
+}
+
+#[test]
+fn a_lifted_top_stays_lifted_with_more_segments() {
+    let (mut doc, id) = with_a_cube();
+    lift_top_with_anchors(&mut doc, id);
+    let shape = doc.scene().evaluated(id).unwrap();
+    assert!(shape.warnings.is_empty());
+    let tall = |m: &Mesh| {
+        m.vertices()
+            .filter(|(_, p)| (p.z - 150.0).abs() < 1e-3)
+            .count()
+    };
+    assert_eq!(tall(&shape.mesh), 4);
+
+    // More segments: the points are renumbered, but the whole top, now
+    // nine points, is found again and lifted.
+    segments(&mut doc, id, 2);
+    let shape = doc.scene().evaluated(id).unwrap();
+    assert_eq!(tall(&shape.mesh), 9);
+    assert!(
+        shape.mesh.vertices().all(|(_, p)| p.z < 1e-3 || p.z > 49.0),
+        "nothing else moved up to the top: the middle row stays at 50"
+    );
+    assert_eq!(
+        shape.warnings,
+        [StackWarning {
+            layer: 0,
+            operation: 0,
+            missing: 0,
+            found_again: true,
+        }]
+    );
+
+    // A taller cube keeps the same numbering: no searching needed.
+    segments(&mut doc, id, 1);
+    doc.execute(Command::SetPrimitive {
+        ids: vec![id],
+        primitive: Primitive::Cube(CubeParams {
+            size: Vec3::new(100.0, 100.0, 300.0),
+            ..CubeParams::default()
+        }),
+    })
+    .unwrap();
+    let shape = doc.scene().evaluated(id).unwrap();
+    assert!(shape.warnings.is_empty());
+    assert_eq!(
+        shape
+            .mesh
+            .vertices()
+            .filter(|(_, p)| (p.z - 350.0).abs() < 1e-3)
+            .count(),
+        4
+    );
+}
+
+#[test]
+fn without_anchors_edits_keep_naming_points_by_id() {
+    let (mut doc, id) = with_a_cube();
+    doc.execute(Command::Record {
+        id,
+        operation: lift(&[0], 10.0),
+    })
+    .unwrap();
+    segments(&mut doc, id, 2);
+    let shape = doc.scene().evaluated(id).unwrap();
+    assert!(shape.warnings.iter().all(|w| !w.found_again));
 }

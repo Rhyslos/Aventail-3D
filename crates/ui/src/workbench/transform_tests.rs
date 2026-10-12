@@ -363,3 +363,42 @@ fn typing_in_the_coordinates_panel_moves_and_scales() {
     harness.run();
     assert!(field(&harness, "Position X"));
 }
+
+#[test]
+fn the_attributes_panel_says_when_an_edit_found_its_points_again() {
+    let mut harness = fresh();
+    let id = cube(&harness);
+    let doc = harness.state_mut().workbench.document_mut();
+    doc.set_selection([id]);
+    let shape = doc.scene().evaluated(id).unwrap().mesh;
+    let corner = scene::VertexId::from_raw(0);
+    let anchors = mesh::Anchors::record(&shape, scene::ElementKind::Points, &[vec![corner]]);
+    doc.execute(Command::Record {
+        id,
+        operation: scene::Operation::MovePoints {
+            points: vec![corner],
+            offset: Vec3::Z * 10.0,
+            anchors,
+        },
+    })
+    .unwrap();
+    doc.execute(Command::SetPrimitive {
+        ids: vec![id],
+        primitive: mesh::Primitive::Cube(mesh::CubeParams {
+            segments: [2, 2, 2],
+            ..Default::default()
+        }),
+    })
+    .unwrap();
+    harness.run();
+    assert!(
+        harness
+            .query_by_label("1 edit found its points again on the changed shape")
+            .is_some()
+    );
+    assert!(
+        harness
+            .query_by_label("1 edit no longer fully fits the shape")
+            .is_none()
+    );
+}

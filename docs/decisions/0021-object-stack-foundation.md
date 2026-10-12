@@ -24,6 +24,6 @@
 ## Consequences
 
 - Phase 3 tools only need to produce operations; recording, undo, replay after a settings change, warnings and baking already work and are tested.
-- Point ids are only stable while the base's topology is: changing a cube's segments renumbers its points, so edits recorded before can land on different points. This is the predictable compromise DESIGN.md §4.2 accepts; the warning makes it visible when points disappear, but not when they are renumbered. Better matching can come later without changing the stack.
+- Point ids are only stable while the base's topology is: changing a cube's segments renumbers its points, so edits recorded before can land on different points. This is the predictable compromise DESIGN.md §4.2 accepts; the warning makes it visible when points disappear, but not when they are renumbered. Better matching can come later without changing the stack. *(Done in [0032](0032-edits-find-their-points-again.md): edits also record where their elements were and find them again by position.)*
 - Evaluated shapes, not bases, decide what is drawn and framed, so framing and the viewport see recorded edits.
 - Saving (`.avtl`, a later Phase 2 milestone) must store each object's base and stack.

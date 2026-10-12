@@ -24,7 +24,7 @@ use crate::palette::Mode;
 use crate::viewport::GridDetail;
 use egui::Key;
 use glam::{Mat4, Quat, Vec2, Vec3};
-use mesh::Topology;
+use mesh::{Anchors, Topology};
 use scene::{Bounds, Command, Document, ElementKind, ObjectId, Operation, Transform, VertexId};
 use serde::{Deserialize, Serialize};
 use tools::gizmo::{Handle, into_plane, nearest_on_axis, snap};
@@ -165,6 +165,9 @@ pub(crate) struct PointsStart {
     /// Where the object is in the world.
     pub(crate) world: Mat4,
     pub(crate) points: Vec<VertexId>,
+    /// Where the selected elements are in the shape, so the edit can find
+    /// them again if the shape's points are renumbered (decision 0032).
+    pub(crate) anchors: Option<Anchors>,
 }
 
 /// What a change works on.
@@ -251,6 +254,21 @@ impl Target {
                     };
                     let topology = Topology::new(&item.mesh);
                     let valid = selected.valid_in(&item.mesh, &topology);
+                    let elements: Vec<Vec<VertexId>> = match kind {
+                        ElementKind::Points => valid.points().map(|v| vec![v]).collect(),
+                        ElementKind::Edges => valid
+                            .edges()
+                            .map(|e| {
+                                let (a, b) = e.ends();
+                                vec![a, b]
+                            })
+                            .collect(),
+                        ElementKind::Polygons => valid
+                            .polygons()
+                            .filter_map(|f| Some(item.mesh.face(f)?.to_vec()))
+                            .collect(),
+                    };
+                    let anchors = Anchors::record(&item.mesh, kind, &elements);
                     let mut points: Vec<VertexId> = match kind {
                         ElementKind::Points => valid.points().collect(),
                         ElementKind::Edges => valid
@@ -280,6 +298,7 @@ impl Target {
                         id: item.id,
                         world: item.transform,
                         points,
+                        anchors,
                     });
                 }
                 let first = starts.first()?;
@@ -353,10 +372,12 @@ impl Target {
                         Change::Translate(d) => Operation::MovePoints {
                             points: s.points.clone(),
                             offset: inverse.transform_vector3(*d),
+                            anchors: s.anchors.clone(),
                         },
                         _ => Operation::TransformPoints {
                             points: s.points.clone(),
                             matrix: inverse * m * s.world,
+                            anchors: s.anchors.clone(),
                         },
                     };
                     Command::Record {

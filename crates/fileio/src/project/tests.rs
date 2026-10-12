@@ -8,19 +8,26 @@ use mesh::{CubeParams, PrimitiveKind, VertexId};
 use scene::{Command, Object, ObjectKind, Operation, Place, Primitive, Transform};
 
 /// A document using everything version 2 of the format can hold: all of
-/// [`rich_document_v1`], plus points turned and scaled with a matrix.
+/// [`rich_document_v1`], plus points turned and scaled with a matrix,
+/// with anchors to find them again.
 fn rich_document() -> Document {
     let mut doc = rich_document_v1();
     let cube = *doc.scene().children(None).last().unwrap();
+    // Where the two points are, so the edit can find them again.
+    let shape = doc.scene().evaluated(cube).unwrap().mesh;
+    let points = [VertexId::from_raw(1), VertexId::from_raw(2)];
+    let anchors = mesh::Anchors::record(&shape, mesh::ElementKind::Edges, &[points.to_vec()]);
+    assert!(anchors.is_some());
     doc.execute(Command::Record {
         id: cube,
         operation: Operation::TransformPoints {
-            points: vec![VertexId::from_raw(1), VertexId::from_raw(2)],
+            points: points.to_vec(),
             matrix: glam::Mat4::from_scale_rotation_translation(
                 Vec3::new(1.5, 1.0, 0.5),
                 glam::Quat::from_rotation_z(0.25),
                 Vec3::new(3.0, -2.0, 1.0),
             ),
+            anchors,
         },
     })
     .unwrap();
@@ -54,6 +61,7 @@ fn rich_document_v1() -> Document {
         operation: Operation::MovePoints {
             points: vec![VertexId::from_raw(0), VertexId::from_raw(4000)],
             offset: Vec3::new(0.0, 0.0, 12.5),
+            anchors: None,
         },
     })
     .unwrap();
@@ -302,6 +310,22 @@ fn turned_and_scaled_points_are_kept_and_checked() {
     let text = refused(&file_of_v2(&bad)).to_string();
     assert!(
         text.contains("\"Cube\"") && text.contains("turn or scale"),
+        "{text}"
+    );
+    // So is a recorded place that isn't numbers.
+    let mut bad = good.clone();
+    let ops = &mut bad.objects[cube].layers[0].operations;
+    let v2::OperationV2::TransformPoints {
+        anchors: Some(anchors),
+        ..
+    } = &mut ops[last]
+    else {
+        panic!("the rich document's turn records where its edge was")
+    };
+    anchors.points[0].1[2] = f32::INFINITY;
+    let text = refused(&file_of_v2(&bad)).to_string();
+    assert!(
+        text.contains("\"Cube\"") && text.contains("recorded place"),
         "{text}"
     );
     // Version 1's model can't hold the new operation: it is only ever

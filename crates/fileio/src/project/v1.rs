@@ -141,7 +141,9 @@ pub(crate) trait FileOperation: Sized {
 impl FileOperation for OperationV1 {
     fn to_file(op: &Operation) -> Option<Self> {
         match op {
-            Operation::MovePoints { points, offset } => Some(Self::MovePoints {
+            // Version 1 couldn't keep where the points were; only the
+            // version 2 writer is used, so nothing is lost in practice.
+            Operation::MovePoints { points, offset, .. } => Some(Self::MovePoints {
                 points: points.iter().map(|v| v.get()).collect(),
                 offset: offset.to_array(),
             }),
@@ -154,6 +156,7 @@ impl FileOperation for OperationV1 {
             Self::MovePoints { points, offset } => Ok(Operation::MovePoints {
                 points: points.into_iter().map(VertexId::from_raw).collect(),
                 offset: finite(offset, "recorded move")?,
+                anchors: None,
             }),
         }
     }

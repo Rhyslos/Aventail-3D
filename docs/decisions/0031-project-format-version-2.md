@@ -23,6 +23,7 @@ Option 3.
 - `v2.rs` defines `OperationV2` (`MovePoints`, then `TransformPoints` with the matrix's 12 affine numbers) and `ProjectV2 = ProjectFile<OperationV2>`.
 - The header's version picks the model: 1 is read with version 1's operations, 2 with version 2's. A version 1 file needs no upgrade step, as the scene it describes is the same.
 - The app always writes version 2 (`FORMAT_VERSION = 2`), and a new `sample-v2.avtl` is committed with a test. Every matrix value is checked on reading, as everything else is.
+- Before release, version 2 also gained each edit's anchors (where its elements were), for [0032](0032-edits-find-their-points-again.md). Version 2 had not been released, so it was changed in place and its sample rewritten.
 
 ## Consequences
 
