@@ -1,6 +1,6 @@
 # Settings
 
-> Every app-wide preference in one place: the accent colour, metres or centimetres, how the mouse moves the view, the grid, and how much undo may keep.
+> Every app-wide preference in one place: the accent colour, metres or centimetres, how the mouse moves the view, the grid, how much undo may keep, and backup copies.
 
 ![The Settings window, showing the Interface section](../screenshots/2026-10-11-settings.png)
 
@@ -16,7 +16,7 @@ A few of these settings also have a quick switch where you use them while workin
 ## How to use it
 
 1. Open **Edit → Settings…** on the main menu bar, or press **Ctrl + ,** (Ctrl and the comma key).
-2. Pick a section on the left: **Interface**, **Viewport** or **Undo**.
+2. Pick a section on the left: **Interface**, **Viewport**, **Undo** or **Autosave**.
 3. Click a choice. It takes effect at once; there's no OK button to press.
 4. Close the window with the **×** in its corner, or press **Ctrl + ,** again.
 
@@ -37,6 +37,7 @@ A few of these settings also have a quick switch where you use them while workin
 | Viewport | **Snapping** | Whether moves, turns and resizing snap; whether holding Ctrl while dragging flips it for that drag (standard) or only the button does; what moves snap to (points, edges, polygons, grid lines); and the steps for turning (15°) and scaling (10%). See [Move, rotate and scale](transforming.md#snapping). |
 | Viewport | **Select only visible** | Off (standard): the box, lasso and brush select through shapes, catching their far side too. On: only what you can see. Also the button above the grid button on the left palette. See [Selecting](selecting.md). |
 | Undo | **Undo memory** | How much memory undo may use before it starts forgetting the oldest steps: 256 MB to 8 GB, or Unlimited. 2 GB is the standard. There's no limit on the *number* of steps, and the newest step is always kept. The line above the choices shows how much is in use now and how many steps that is. |
+| Autosave | **Backup copies** | Whether the app saves backup copies of your scene in the background (on as standard), how often (every 5 minutes as standard, 1 to 30), and how many it keeps (5 as standard, 1 to 20). Also shows the folder they go to. See [Backup copies and crash recovery](autosave.md). |
 
 ## Shortcuts
 
@@ -55,4 +56,5 @@ A few of these settings also have a quick switch where you use them while workin
 - [Interface tour](interface-tour.md): where everything is.
 - [Navigating the view](navigating-the-view.md): the navigation schemes in detail.
 - [Objects and the Object Manager](objects.md): undo and redo.
+- [Backup copies and crash recovery](autosave.md): the Autosave section in detail.
 - [Concepts](concepts.md): [undo history](concepts.md#objects-and-scenes).

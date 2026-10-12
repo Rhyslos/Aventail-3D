@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Backup copies and crash recovery.** While you work, the app saves a backup copy of your scene in the background every 5 minutes (only when something changed), keeping the newest 5. If the app ever closes without saving, a crash or a power cut, it asks **Recover unsaved work?** the next time it starts: **Restore** a copy, **Open as saved**, or **Discard**. The copies never replace your project file and are deleted when the app closes normally. Change how often, how many, or switch them off in **Settings → Autosave**.
 - **Heavy shapes stay quick.** A shape of millions of polygons, like a detailed model someone might import, can now be selected, hovered over and edited without the window stalling. Work that takes a moment happens in the background, with a quiet note in the view ("Preparing a heavy shape for drawing…") or in the Attributes panel ("Checking the mesh…").
 - **Help → Add a heavy test shape** adds a bumpy ball of 3 million polygons, to see how your computer copes. Undo takes it away again.
 - **Edits follow a shape's settings.** Pull up a cube's top polygon, then give the cube more segments: the whole top stays lifted, because edits now remember where their points, edges and polygons were and find them again on the changed shape. The Attributes panel notes when that happened.
@@ -45,6 +46,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Opening a project while another was open could leave the viewport empty until something changed.
 - On Windows, pressing keys no longer plays the system error sound after the app starts.
 - The accent colour moved from the Window menu, and undo memory from the Edit menu, into the new Settings window.
 - Every new shape is 1 m across as standard (a 1 m cube, a 1 m square plane, cylinders and cones 1 m across and 1 m tall, and so on), instead of 2 m.

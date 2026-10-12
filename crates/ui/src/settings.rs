@@ -6,6 +6,7 @@
 //! centimetres beside the Shape title, the navigation picker in the
 //! viewport's corner, the grid button); they show the same values here.
 
+use crate::autosave::{AutosaveSettings, COPIES, MINUTES};
 use crate::selecting::SelectKeys;
 use crate::theme::{self, Accent};
 use crate::transforming::SnapSettings;
@@ -32,16 +33,20 @@ pub(crate) enum Section {
     Viewport,
     /// How much the undo history may keep.
     Undo,
+    /// Backup copies made in the background.
+    Autosave,
 }
 
 impl Section {
-    pub(crate) const ALL: [Section; 3] = [Self::Interface, Self::Viewport, Self::Undo];
+    pub(crate) const ALL: [Section; 4] =
+        [Self::Interface, Self::Viewport, Self::Undo, Self::Autosave];
 
     pub(crate) fn name(self) -> &'static str {
         match self {
             Self::Interface => "Interface",
             Self::Viewport => "Viewport",
             Self::Undo => "Undo",
+            Self::Autosave => "Autosave",
         }
     }
 }
@@ -62,6 +67,10 @@ pub(crate) struct Values<'a> {
     pub(crate) undo_memory: &'a mut UndoMemory,
     /// What the undo history uses now: bytes and steps.
     pub(crate) history: (usize, usize),
+    /// How backup copies are made.
+    pub(crate) autosave: &'a mut AutosaveSettings,
+    /// Where they go, if known.
+    pub(crate) autosave_folder: Option<&'a std::path::Path>,
 }
 
 /// The Settings window's state.
@@ -125,6 +134,7 @@ impl SettingsWindow {
                             Section::Interface => interface(ui, values),
                             Section::Viewport => viewport(ui, values),
                             Section::Undo => undo(ui, values),
+                            Section::Autosave => autosave(ui, values),
                         }
                     });
                 });
@@ -145,6 +155,7 @@ fn restore_standard(values: &mut Values<'_>) {
     *values.select_keys = SelectKeys::default();
     *values.snap = SnapSettings::default();
     *values.undo_memory = UndoMemory::default();
+    *values.autosave = AutosaveSettings::default();
 }
 
 /// A heading for a group of settings.
@@ -335,6 +346,74 @@ fn undo(ui: &mut Ui, values: &mut Values<'_>) {
             .clicked()
         {
             *values.undo_memory = choice;
+        }
+    }
+}
+
+fn autosave(ui: &mut Ui, values: &mut Values<'_>) {
+    heading(ui, "Backup copies");
+    explain(
+        ui,
+        "While you work, the app saves a backup copy of your scene in the background, only \
+         when something changed. If the app ever closes without saving, it offers the copies \
+         the next time it starts. They never replace your project file: saving does that.",
+    );
+    let settings = &mut *values.autosave;
+    ui.checkbox(&mut settings.on, "Save backup copies in the background");
+    ui.add_enabled_ui(settings.on, |ui| {
+        ui.horizontal(|ui| {
+            ui.label("Every");
+            let unit = if settings.minutes == 1 {
+                " minute"
+            } else {
+                " minutes"
+            };
+            ui.add(
+                egui::DragValue::new(&mut settings.minutes)
+                    .range(MINUTES)
+                    .speed(0.2)
+                    .suffix(unit),
+            )
+            .on_hover_text("Counted from the first change since the last copy.");
+        });
+        ui.horizontal(|ui| {
+            ui.label("Keep the newest");
+            let unit = if settings.copies == 1 {
+                " copy"
+            } else {
+                " copies"
+            };
+            ui.add(
+                egui::DragValue::new(&mut settings.copies)
+                    .range(COPIES)
+                    .speed(0.2)
+                    .suffix(unit),
+            )
+            .on_hover_text(
+                "More copies let you go further back after a crash. A heavy scene takes \
+                 tens of MB per copy.",
+            );
+        });
+    });
+    ui.add_space(8.0);
+    heading(ui, "Where they go");
+    match values.autosave_folder {
+        Some(folder) => {
+            explain(
+                ui,
+                "The app's own folder, so your project folders stay tidy. Copies are deleted \
+                 when the app closes normally.",
+            );
+            ui.add(
+                egui::Label::new(RichText::new(folder.display().to_string()).monospace())
+                    .selectable(true),
+            );
+        }
+        None => {
+            explain(
+                ui,
+                "No folder for backup copies could be found on this computer.",
+            );
         }
     }
 }

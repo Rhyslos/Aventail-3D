@@ -105,6 +105,14 @@ pub(crate) struct DrawingCache {
 }
 
 impl DrawingCache {
+    /// Forgets the summary, so the next [`update`](Self::update) rebuilds
+    /// it (for a different document, whose revisions start again). The
+    /// version keeps counting up, so a renderer never mistakes the new
+    /// scene for one it already drew.
+    pub(crate) fn forget(&mut self) {
+        self.built_for = None;
+    }
+
     /// The summary of `document`, with the selected objects' `editing`
     /// elements shown (in the Points, Edges or Polygons mode), rebuilt if
     /// the scene or selection has changed since last time.
@@ -159,6 +167,24 @@ mod tests {
         doc.execute(Command::Create(ObjectKind::Primitive(kind.standard())))
             .unwrap();
         doc.selection()[0]
+    }
+
+    #[test]
+    fn a_different_document_gets_a_new_version() {
+        // Regression: opening or restoring a project mid-session reset the
+        // version to the one the GPU had just drawn, so nothing was drawn.
+        let mut cache = DrawingCache::default();
+        let empty = cache.update(&Document::new(), None).drawing.version;
+        let mut other = Document::new();
+        create(&mut other, PrimitiveKind::Cube);
+        let mut fresh = Document::new();
+        create(&mut fresh, PrimitiveKind::Cube);
+        let first = cache.update(&other, None).drawing.version;
+        assert!(first > empty);
+        cache.forget();
+        let after = cache.update(&fresh, None);
+        assert!(after.drawing.version > first);
+        assert_eq!(after.drawing.items.len(), 1);
     }
 
     #[test]

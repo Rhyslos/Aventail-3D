@@ -1,6 +1,7 @@
 //! The app window: opens it with eframe (winit + wgpu) and hands each
 //! frame to the workbench from the `ui` crate.
 
+use crate::backups::{self, Backups};
 use crate::branding;
 use crate::gpu::GpuViewport;
 use crate::project;
@@ -24,6 +25,8 @@ const UNITS_KEY: &str = "units";
 const UNDO_MEMORY_KEY: &str = "undo_memory";
 /// Key under which the recently used projects are remembered.
 const RECENT_KEY: &str = "recent_projects";
+/// Key under which the backup (autosave) settings are remembered.
+const AUTOSAVE_KEY: &str = "autosave";
 /// Window size on first launch, in logical pixels.
 const FIRST_SIZE: [f32; 2] = [1440.0, 900.0];
 /// The smallest the window may get while staying usable.
@@ -38,6 +41,8 @@ struct App {
     title: String,
     /// Closing has been agreed (unsaved changes dealt with).
     closing: bool,
+    /// Backup copies in the background, and what a crash left behind.
+    backups: Backups,
 }
 
 impl eframe::App for App {
@@ -51,7 +56,12 @@ impl eframe::App for App {
         {
             ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
         }
-        for action in self.workbench.show(ui, self.renderer.as_mut()) {
+        let actions = self.workbench.show(ui, self.renderer.as_mut());
+        // What the app did (opened, restored, ...) shows on the next frame.
+        if !actions.is_empty() {
+            ctx.request_repaint();
+        }
+        for action in actions {
             match action {
                 WorkbenchAction::Quit => {
                     self.closing = true;
@@ -59,8 +69,22 @@ impl eframe::App for App {
                 }
                 WorkbenchAction::Save { path } => project::save(&mut self.workbench, path),
                 WorkbenchAction::Open { path } => project::open(&mut self.workbench, path),
+                WorkbenchAction::Autosave { document, keep } => {
+                    self.backups.write(*document, keep, &mut self.workbench);
+                }
+                WorkbenchAction::Restore {
+                    folder,
+                    copy,
+                    project,
+                } => {
+                    let keep = self.workbench.autosave_settings().clamped().copies as usize;
+                    self.backups
+                        .restore(&folder, &copy, project, keep, &mut self.workbench);
+                }
+                WorkbenchAction::DiscardBackups { folder } => self.backups.discard(&folder),
             }
         }
+        self.backups.update(&mut self.workbench);
         let title = self.workbench.title();
         if title != self.title {
             ctx.send_viewport_cmd(egui::ViewportCommand::Title(title.clone()));
@@ -75,6 +99,12 @@ impl eframe::App for App {
         eframe::set_value(storage, UNITS_KEY, &self.workbench.units());
         eframe::set_value(storage, UNDO_MEMORY_KEY, &self.workbench.undo_memory());
         eframe::set_value(storage, RECENT_KEY, &self.workbench.recent_projects());
+        eframe::set_value(storage, AUTOSAVE_KEY, &self.workbench.autosave_settings());
+    }
+
+    /// A normal close: this run's backup copies are no longer needed.
+    fn on_exit(&mut self) {
+        self.backups.end();
     }
 }
 
@@ -130,6 +160,10 @@ pub fn run(info: AppInfo, open: Option<PathBuf>) -> Result<(), String> {
                     .storage
                     .and_then(|s| eframe::get_value(s, UNDO_MEMORY_KEY))
                     .unwrap_or_default();
+                let autosave: ui::AutosaveSettings = cc
+                    .storage
+                    .and_then(|s| eframe::get_value(s, AUTOSAVE_KEY))
+                    .unwrap_or_default();
                 let renderer: Box<dyn ViewportRenderer> = match cc.wgpu_render_state.as_ref() {
                     Some(state) => Box::new(GpuViewport::new(state)),
                     None => Box::new(NoRenderer {
@@ -141,15 +175,18 @@ pub fn run(info: AppInfo, open: Option<PathBuf>) -> Result<(), String> {
                     .with_accent(accent)
                     .with_units(units)
                     .with_undo_memory(undo_memory)
-                    .with_recent_projects(recent);
+                    .with_recent_projects(recent)
+                    .with_autosave(autosave);
                 if let Some(path) = open {
                     project::open_from(&mut workbench, path);
                 }
+                let backups = Backups::start(backups::folder().as_deref(), &mut workbench);
                 Ok(Box::new(App {
                     title: String::new(),
                     closing: false,
                     workbench,
                     renderer,
+                    backups,
                 }))
             }),
         )
@@ -212,5 +249,7 @@ mod tests {
         assert_ne!(LAYOUT_KEY, VIEW_KEY);
         assert_ne!(VIEW_KEY, ACCENT_KEY);
         assert!(!RECENT_KEY.contains(branding::APP_ID));
+        assert!(!AUTOSAVE_KEY.contains(branding::APP_ID));
+        assert_ne!(AUTOSAVE_KEY, UNDO_MEMORY_KEY);
     }
 }
