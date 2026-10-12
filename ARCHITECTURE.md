@@ -95,7 +95,7 @@ Rendering sits behind the `ViewportRenderer` trait, so the panel runs in tests w
 - The single source of truth for an open project: the object hierarchy, each object's base and its operation stack. See [decision 0006](docs/decisions/0006-base-plus-operation-stack.md).
 - An object is a **base** (a parametric primitive, an imported mesh, or an editable mesh) plus a **stack of layers**, each holding recorded operations. Base parameters stay editable; the stack replays on top. Built so far ([decision 0021](docs/decisions/0021-object-stack-foundation.md)): the base is the object's kind (a primitive or a plain mesh), the stack a list of layers with one implicit *Edits* layer, and `Scene::evaluated` works out the final shape from a per-layer cache inside the scene. The interface draws and frames evaluated shapes.
 - Every mesh element has a stable ID that is never reused. Operations create IDs deterministically, so replaying an unchanged history gives identical IDs.
-- The scene changes only through commands, which gives undo, redo and future scripting from one mechanism. Projects are saved and opened by `fileio` through a file model kept separate from the scene's types, so the scene can change without breaking old files ([decision 0024](docs/decisions/0024-saving-projects.md)); the interface asks the app to save or open, and the app shows the dialogs. Undo history is bounded by a memory budget, not a step count: 2 GB as standard, oldest steps forgotten first, the newest always kept ([decision 0022](docs/decisions/0022-undo-memory-budget.md)).
+- The scene changes only through commands, which gives undo, redo and future scripting from one mechanism. Projects are saved and opened by `fileio` through a file model kept separate from the scene's types, so the scene can change without breaking old files ([decision 0024](docs/decisions/0024-saving-projects.md)); the interface asks the app to save or open, and the app shows the dialogs. While the app runs it also saves backup copies of the scene in the background: the workbench decides when (every interval while the scene changes, on its own clock separate from saving) and asks the app, which writes them on another thread into its own session folder, kept locked so the next start can tell a crash from a running app and offer the copies back ([decision 0036](docs/decisions/0036-autosave.md)). Undo history is bounded by a memory budget, not a step count: 2 GB as standard, oldest steps forgotten first, the newest always kept ([decision 0022](docs/decisions/0022-undo-memory-budget.md)).
 - **Built so far** ([decision 0018](docs/decisions/0018-scene-document-and-undo.md)): `scene::Document` holds the `Scene` (a tree of objects with stable ids that are never reused), the undo history and the selection. `Document::execute` carries out a `Command` as small reversible edits (insert, remove, relocate, rename, show/hide) and records them as one step; `undo` applies their opposites in reverse order. The workbench owns the document: the Object Manager, menus and keys hand it commands, and the viewport reads a summary: the shown objects' meshes, world placements and selection (rebuilt only when the scene or selection changes), and the boxes to frame. An object's shape comes from its kind: a primitive's settings build a `mesh::Mesh` ([decision 0020](docs/decisions/0020-primitives.md)); the app turns the meshes into one GPU shape when the drawing's version changes.
 - Transforms are stored relative to the parent; world transforms are always derived.
 
@@ -103,12 +103,13 @@ Rendering sits behind the `ViewportRenderer` trait, so the panel runs in tests w
 
 | Format | Read | Write |
 | --- | --- | --- |
-| `.avtl` (projects; versioned, compressed, crash-safe; see decisions [0007](docs/decisions/0007-rhy-project-format.md) and [0010](docs/decisions/0010-avtl-file-extension.md)) | Planned | Planned |
+| `.avtl` (projects; versioned, compressed, crash-safe; see decisions [0007](docs/decisions/0007-rhy-project-format.md), [0010](docs/decisions/0010-avtl-file-extension.md) and [0024](docs/decisions/0024-saving-projects.md)) | Yes | Yes |
 | OBJ | Planned | Planned |
 | glTF / GLB | Later | Planned |
 | FBX | No | Late, optional |
 | Settings file | Planned | Planned |
 | `app.ron` (window size and panel layout; written by eframe) | Yes | Yes |
+| Backup copies (`autosave/session-*/copy-N.avtl`, ordinary projects, in the app's own data folder) | Yes | Yes |
 
 ## Extension points
 

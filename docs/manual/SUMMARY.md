@@ -10,7 +10,8 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Objects and the Object Manager: select, rename, group, hide, delete, and undo](objects.md)
 - [The Attribute Manager: change a selected object's name and settings](attributes.md)
 - [Saving and opening projects](saving-and-opening.md)
-- [Settings: accent colour, units, navigation, grid and undo memory](settings.md)
+- [Backup copies and crash recovery: autosave](autosave.md)
+- [Settings: accent colour, units, navigation, grid, undo memory and autosave](settings.md)
 
 ## Modelling
 - [Primitives: cube, plane, cylinder, sphere, disc, tube and cone](primitives.md)

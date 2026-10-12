@@ -2,6 +2,9 @@
 //! bar and the About box.
 
 use crate::attributes::{AttributesPanel, Shared};
+use crate::autosave::{
+    AutosaveSettings, Autosaver, RecoveryAnswer, RecoveryOffer, RecoveryQuestion, Tick,
+};
 use crate::components::{self, ComponentTracker};
 use crate::coordinates::{CoordinatesView, Interaction};
 use crate::drawing::{DrawingCache, SceneSummary};
@@ -55,7 +58,7 @@ const LAYOUTS: [(&str, Option<&str>); 3] = [
 
 /// Something the user asked for that the program around the workbench
 /// must carry out (the workbench never touches files or the window itself).
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum WorkbenchAction {
     /// Close the window (unsaved changes have been dealt with).
     Quit,
@@ -72,6 +75,32 @@ pub enum WorkbenchAction {
     Open {
         /// Which project, if already known (File → Open recent).
         path: Option<PathBuf>,
+    },
+    /// Save a backup copy of `document` in the background, keeping the
+    /// newest `keep` copies. Report back with [`Workbench::autosaved`] or
+    /// [`Workbench::autosave_failed`].
+    Autosave {
+        /// A copy of the document as it is now.
+        document: Box<Document>,
+        /// How many copies to keep.
+        keep: usize,
+    },
+    /// Bring back the backup copy `copy` from the backups `folder` left by
+    /// a crash, for the project at `project` (if it had been saved). Report
+    /// back with [`Workbench::recovered`] or [`Workbench::recovery_failed`];
+    /// once restored, the folder can go.
+    Restore {
+        /// The leftover backups.
+        folder: PathBuf,
+        /// The copy chosen.
+        copy: PathBuf,
+        /// The project it belongs to.
+        project: Option<PathBuf>,
+    },
+    /// Delete the backups `folder` left by a crash.
+    DiscardBackups {
+        /// The leftover backups.
+        folder: PathBuf,
     },
 }
 
@@ -167,6 +196,12 @@ pub struct Workbench {
     about_open: bool,
     /// A message for the status bar, such as "Panel layout reset".
     note: Option<String>,
+    /// When the next backup copy is due.
+    autosaver: Autosaver,
+    /// Where backup copies go, to show in Settings.
+    autosave_folder: Option<PathBuf>,
+    /// The question asked after a crash.
+    recovery: RecoveryQuestion,
 }
 
 impl Workbench {
@@ -206,6 +241,108 @@ impl Workbench {
             accent: Accent::default(),
             about_open: false,
             note,
+            autosaver: Autosaver::default(),
+            autosave_folder: None,
+            recovery: RecoveryQuestion::default(),
+        }
+    }
+
+    /// The workbench with remembered autosave settings restored.
+    #[must_use]
+    pub fn with_autosave(mut self, settings: AutosaveSettings) -> Self {
+        self.autosaver.settings = settings.clamped();
+        self
+    }
+
+    /// The autosave settings, for remembering between sessions.
+    pub fn autosave_settings(&self) -> AutosaveSettings {
+        self.autosaver.settings
+    }
+
+    /// Where the app keeps backup copies, to show in Settings.
+    pub fn set_autosave_folder(&mut self, folder: Option<PathBuf>) {
+        self.autosave_folder = folder;
+    }
+
+    /// Work left behind by a crash: the workbench asks what to do with it
+    /// (one at a time, newest first).
+    pub fn offer_recovery(&mut self, offers: Vec<RecoveryOffer>) {
+        self.recovery
+            .offers
+            .extend(offers.into_iter().filter(|o| !o.copies.is_empty()));
+    }
+
+    /// Whether the question about work left by a crash is showing.
+    pub fn is_asking_to_recover(&self) -> bool {
+        !self.recovery.offers.is_empty()
+    }
+
+    /// The app wrote the backup copy it was asked for.
+    pub fn autosaved(&mut self) {
+        self.autosaver.finished(true);
+    }
+
+    /// Writing a backup copy failed: says why (once), and tries again
+    /// after the next interval.
+    pub fn autosave_failed(&mut self, reason: &str) {
+        self.autosaver.finished(false);
+        self.note = Some(format!("Couldn't save a backup copy: {reason}."));
+    }
+
+    /// The app brought back `document` from a backup copy, for the
+    /// project at `project` (if it had been saved): it replaces the
+    /// current scene as unsaved work, so saving keeps it.
+    pub fn recovered(&mut self, document: Document, project: Option<PathBuf>, when: &str) {
+        self.replace_document(document);
+        // Unsaved: the project file (if any) doesn't have this work.
+        self.file.saved_revision = u64::MAX;
+        self.file.path = project;
+        // The app already kept it as this run's newest backup copy, and
+        // the timer starts from it (`replace_document`).
+        self.note = Some(format!(
+            "Restored your work from {when}. Save it to keep it."
+        ));
+        self.viewport.frame(crate::Frame::All);
+    }
+
+    /// Restoring a backup copy failed: says why. The copies are kept.
+    pub fn recovery_failed(&mut self, reason: &str) {
+        self.note = Some(format!("Couldn't restore the backup copy: {reason}."));
+    }
+
+    /// Asks about work left by a crash, and when it is due, has a backup
+    /// copy made.
+    fn autosave_and_recovery(&mut self, ctx: &egui::Context, actions: &mut Vec<WorkbenchAction>) {
+        if let Some((offer, answer)) = self.recovery.show(ctx) {
+            let folder = offer.folder.clone();
+            match answer {
+                RecoveryAnswer::Restore(copy) => actions.push(WorkbenchAction::Restore {
+                    folder,
+                    copy,
+                    project: offer.project,
+                }),
+                RecoveryAnswer::OpenSaved(path) => {
+                    actions.push(WorkbenchAction::Open { path: Some(path) });
+                    actions.push(WorkbenchAction::DiscardBackups { folder });
+                }
+                RecoveryAnswer::Discard => actions.push(WorkbenchAction::DiscardBackups { folder }),
+            }
+        }
+        let now = ctx.input(|i| i.time);
+        let revision = self.document.revision();
+        match self.autosaver.tick(now, revision) {
+            Tick::Idle => {}
+            Tick::Wait(seconds) => {
+                ctx.request_repaint_after(std::time::Duration::from_secs_f64(seconds));
+            }
+            Tick::Save => {
+                self.autosaver.started(revision, now);
+                let scene = self.document.scene().clone();
+                actions.push(WorkbenchAction::Autosave {
+                    document: Box::new(Document::from_scene(scene, self.document.selection())),
+                    keep: self.autosaver.settings.copies as usize,
+                });
+            }
         }
     }
 
@@ -415,7 +552,8 @@ impl Workbench {
         document.set_history_limit(self.undo_memory.limit());
         self.file.saved_revision = document.revision();
         self.document = document;
-        self.drawing = DrawingCache::default();
+        self.autosaver.restart();
+        self.drawing.forget();
         self.forgotten_told = false;
     }
 
@@ -762,6 +900,7 @@ impl Workbench {
 
         self.settings_window(ui.ctx());
         self.unsaved_question(ui.ctx(), &mut actions);
+        self.autosave_and_recovery(ui.ctx(), &mut actions);
 
         actions
     }
@@ -784,6 +923,8 @@ impl Workbench {
             snap: &mut options.snap,
             undo_memory: &mut undo_memory,
             history,
+            autosave: &mut self.autosaver.settings,
+            autosave_folder: self.autosave_folder.as_deref(),
         };
         self.settings.show(ctx, &mut values);
         if undo_memory != self.undo_memory {
@@ -1399,6 +1540,8 @@ mod attribute_tests;
 mod selection;
 mod transform;
 
+#[cfg(test)]
+mod autosave_tests;
 #[cfg(test)]
 mod heavy_check;
 #[cfg(test)]

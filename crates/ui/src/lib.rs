@@ -8,6 +8,7 @@
 //! the app's branding.
 
 mod attributes;
+mod autosave;
 mod components;
 mod coordinates;
 mod drawing;
@@ -30,6 +31,7 @@ mod viewport;
 pub(crate) use viewport::chrome as viewport_chrome;
 mod workbench;
 
+pub use autosave::{AutosaveSettings, COPIES, MINUTES, RecoveryCopy, RecoveryOffer, ago};
 pub use drawing::{ComponentOverlay, DrawItem, OverlayStyle, SceneDrawing, SceneSummary};
 pub use egui_dock::DockState;
 pub use objects::{

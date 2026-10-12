@@ -36,6 +36,8 @@ The project's name is shown on the right of the menu bar. When there are changes
 
 **Saving is safe.** The app writes the new file next to the old one, checks it arrived whole, and only then puts it in place. So a crash or a full disk while saving never leaves you with a damaged project. The previous save is kept as a backup beside it, named like `crate.avtl.bak`: if you ever need it, rename it to end in `.avtl` and open it.
 
+**Backup copies cover the time between saves.** While you work, the app also saves backup copies of your scene in the background (every 5 minutes as standard, only when something changed). They never replace your project file. If the app ever closes without saving, it offers them back the next time it starts. See [Backup copies and crash recovery](autosave.md).
+
 **Undo starts fresh** when you open a project: the undo history isn't saved in the file (yet). Saving doesn't clear it, so you can still undo after saving.
 
 You can also open a project by giving it to the app when it starts (for example, from a terminal: `aventail crate.avtl`). Once the app has an installer, double-clicking a project file will do the same.
@@ -61,11 +63,13 @@ On macOS, use `Cmd` instead of `Ctrl`.
 - **Tip:** save often, and use Save As with a number (crate-01.avtl, crate-02.avtl) before big changes, so you can always go back.
 - **Problem:** "Couldn't open … it was saved by a newer version of the app". **Why:** the project was saved by a newer version, in a format this version doesn't know yet. **Fix:** update the app. (Newer versions always open projects from older ones.)
 - **Problem:** "Couldn't open … the file is damaged". **Why:** the file was cut short or changed by something else (an interrupted copy, a sync tool). **Fix:** open the backup: rename `name.avtl.bak` so it ends in `.avtl`, and open that.
+- **Problem:** the app crashed, or the power went, before you saved. **Fix:** start the app again: it offers the backup copies it saved in the background ([Backup copies and crash recovery](autosave.md)).
 - **Problem:** "Couldn't open … it isn't a project file". **Why:** the file isn't one of this app's projects. **Fix:** to bring in a model from elsewhere, use import (from Phase 5).
 - **Problem:** a project in Open recent is gone from the list. **Why:** it couldn't be found when you tried to open it (moved, renamed or deleted). **Fix:** use **File → Open…** to find it where it is now.
 
 ## Related
 
 - [Objects and the Object Manager](objects.md): undo and redo.
+- [Backup copies and crash recovery](autosave.md): autosave, and what happens after a crash.
 - [Settings](settings.md): preferences that belong to you, not the project.
 - [Concepts](concepts.md): [project file](concepts.md#objects-and-scenes).

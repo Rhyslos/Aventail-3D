@@ -37,4 +37,12 @@ Tests:
 - an ignored heavy-mesh check timing saving and opening a project with a 3-million-polygon shape (`tools/heavy/heavy-check.sh`);
 - `tests/data/sample-v1.avtl` and `sample-v2.avtl`, files of each version that must open in every future version (`WRITE_SAMPLE=1` writes only the current version's).
 
+**Backup copies** (`autosave`, [decision 0036](../../docs/decisions/0036-autosave.md)):
+
+- `Session::start` makes a `session-<time>-<process>-<n>` folder inside the autosave folder and keeps its `lock` file locked (`File::try_lock`) while the app runs; the system lets go of the lock when the process ends in any way, a crash included.
+- `Session::set_project` notes the open project in `project.txt`. `write`/`write_copy_in` write `copy-N.avtl` (written beside its name, synced, then renamed) and delete the oldest beyond the number kept (at least one). `adopt` copies a restored copy into the new session, keeping its time. `end` deletes the folder (a normal close).
+- `leftovers` lists the sessions whose lock can be taken (no longer running) with their copies, newest first, and tidies away dead sessions without copies; `discard` deletes one.
+
+Tests: numbering and keeping the newest, a running session versus a crashed one, order and the untitled case, tidying and ignoring other files, adopting (with its time) and two sessions side by side.
+
 Export arrives in Phase 5.

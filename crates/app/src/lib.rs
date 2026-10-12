@@ -4,6 +4,7 @@
 //! `main.rs`; this library part holds what the entry point and its tests
 //! share. See this crate's README for its purpose and limits.
 
+pub mod backups;
 pub mod branding;
 pub mod cli;
 pub mod gpu;

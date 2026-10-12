@@ -228,6 +228,15 @@ echo "Layout saved in: ${SAVED#"$TEST_HOME"/}"
 grep -q "grid_detail:TenCentimetres" "$SAVED" || fail "the grid detail choice was not saved"
 echo "Grid detail choice saved."
 
+# 7b. Backups: the run made its own session folder for backup copies, and
+#     a normal quit tidied it away (only a crash leaves one behind).
+BACKUPS="$(find "$TEST_HOME" -type d -name autosave 2>/dev/null | head -1 || true)"
+[ -n "$BACKUPS" ] || fail "no backup folder was made"
+if find "$BACKUPS" -mindepth 1 -maxdepth 1 -name 'session-*' | grep -q .; then
+    fail "a normal quit left backup copies behind"
+fi
+echo "Backup folder made and tidied on quit: ${BACKUPS#"$TEST_HOME"/}"
+
 # 8. A project given on the command line opens (as when a project file is
 #    double-clicked): the title names it and its shapes are drawn. Nothing
 #    changes, so File > Quit quits without asking.

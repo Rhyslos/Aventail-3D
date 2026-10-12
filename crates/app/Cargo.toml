@@ -25,12 +25,13 @@ ui.workspace = true
 mesh.workspace = true
 glam.workspace = true
 fileio.workspace = true
+# Backup copies are written from a copy of the document.
+scene.workspace = true
 rfd.workspace = true
 render.workspace = true
 eframe.workspace = true
 
 [dev-dependencies]
-scene.workspace = true
 # Aims the camera in tests.
 tools.workspace = true
 
