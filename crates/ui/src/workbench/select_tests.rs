@@ -142,14 +142,7 @@ fn a_box_selects_points_through_the_shape_as_standard() {
     );
     // The selected points are drawn in the selection style.
     let overlay = &harness.state().renderer.drawn.last().unwrap().overlay;
-    assert_eq!(
-        overlay
-            .points
-            .iter()
-            .filter(|(_, s)| *s != crate::OverlayStyle::Plain)
-            .count(),
-        8
-    );
+    assert_eq!(overlay.points.len(), 8);
 
     // With "select only visible" on, the hidden corner is left out.
     harness

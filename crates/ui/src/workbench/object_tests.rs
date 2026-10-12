@@ -872,3 +872,24 @@ fn a_plain_c_no_longer_makes_shapes_editable() {
     key(&mut harness, Modifiers::NONE, Key::C);
     assert!(!is_mesh(&harness, "Cube"));
 }
+
+#[test]
+fn help_offers_a_heavy_test_shape_that_undoes_in_one_step() {
+    let mut harness = empty();
+    main_menu(&harness, "Help").click();
+    harness.run();
+    assert!(harness.query_by_label("Add a heavy test shape").is_some());
+    // The menu entry makes three million polygons; the same with a few.
+    let workbench = &mut harness.state_mut().workbench;
+    workbench.add_test_shape(2_000);
+    let doc = workbench.document();
+    let id = doc.selection()[0];
+    let object = doc.scene().object(id).unwrap();
+    assert_eq!(object.name, "Heavy test shape");
+    let faces = doc.scene().evaluated(id).unwrap().mesh.face_count();
+    assert!((1_800..2_200).contains(&faces), "{faces}");
+    assert_eq!(doc.undo_label(), Some("Add heavy test shape"));
+    let workbench = &mut harness.state_mut().workbench;
+    workbench.document_mut().undo();
+    assert!(workbench.document().scene().children(None).is_empty());
+}

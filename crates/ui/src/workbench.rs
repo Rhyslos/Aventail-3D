@@ -687,9 +687,12 @@ impl Workbench {
                 }
             });
 
-        let editing = components::kind_for(self.mode).is_some();
+        let editing = components::kind_for(self.mode);
         let mut summary: SceneSummary = self.drawing.update(&self.document, editing).clone();
         summary.overlay = self.components.overlay();
+        self.components
+            .freeze(self.gizmo_session.is_some() || self.coordinates_session.is_some());
+        self.components.prepare(&summary.drawing);
         self.place_gizmo(&summary.drawing);
         let coordinates = self.coordinates_view(&summary.drawing);
         let mut coordinates_done = Interaction::default();
@@ -1118,6 +1121,19 @@ impl Workbench {
                 .on_disabled_hover_text("Arrives in Phase 8");
         });
         ui.menu_button("Help", |ui| {
+            if ui
+                .button("Add a heavy test shape")
+                .on_hover_text(
+                    "Adds a bumpy ball of 3 million polygons, like a detailed model you \
+                     might import, to see how your computer copes with heavy shapes. Undo \
+                     takes it away again.",
+                )
+                .clicked()
+            {
+                self.add_heavy_test_shape();
+                ui.close();
+            }
+            ui.separator();
             if ui.button(format!("About {}", self.info.name)).clicked() {
                 self.about_open = true;
                 ui.close();
@@ -1125,6 +1141,45 @@ impl Workbench {
         });
         let unsaved = self.has_unsaved_changes();
         layout_tabs(ui, &self.file.name(), unsaved);
+    }
+}
+
+/// How many polygons Help → Add a heavy test shape makes.
+pub(crate) const HEAVY_TEST_POLYGONS: usize = 3_000_000;
+
+impl Workbench {
+    /// Adds a bumpy ball of [`HEAVY_TEST_POLYGONS`] polygons, 2 m tall, as
+    /// one undo step: for trying how the app copes with heavy shapes
+    /// (DESIGN.md §4.8).
+    pub(crate) fn add_heavy_test_shape(&mut self) {
+        self.add_test_shape(HEAVY_TEST_POLYGONS);
+    }
+
+    /// Adds a bumpy ball of about `polygons` polygons, as one undo step.
+    pub(crate) fn add_test_shape(&mut self, polygons: usize) {
+        /// Marks this step's merge key apart from every other.
+        const HEAVY_SHAPE_KEY: u64 = 0x4845_4156_0000_0000;
+        self.sessions += 1;
+        let key = Some(HEAVY_SHAPE_KEY | self.sessions);
+        let label = "Add heavy test shape";
+        let ball = mesh::samples::heavy_ball(polygons, 100.0);
+        let created = self.document.execute_labelled(
+            Command::Create(ObjectKind::Mesh(std::sync::Arc::new(ball))),
+            label,
+            key,
+        );
+        if created.is_ok()
+            && let Some(id) = self.document.selection().first().copied()
+        {
+            let _ = self.document.execute_labelled(
+                Command::Rename {
+                    id,
+                    name: "Heavy test shape".into(),
+                },
+                label,
+                key,
+            );
+        }
     }
 }
 
@@ -1344,6 +1399,8 @@ mod attribute_tests;
 mod selection;
 mod transform;
 
+#[cfg(test)]
+mod heavy_check;
 #[cfg(test)]
 mod mode_tests;
 #[cfg(test)]

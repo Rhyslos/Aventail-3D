@@ -268,6 +268,21 @@ pub(super) fn no_image(ui: &mut Ui, rect: Rect, reason: &str) {
     );
 }
 
+/// A quiet note at the bottom of a view while a heavy shape is made ready
+/// to draw in the background.
+pub(super) fn preparing(ui: &mut Ui, rect: Rect) {
+    ui.put(
+        Rect::from_center_size(
+            rect.center_bottom() - vec2(0.0, 34.0),
+            vec2(rect.width(), 20.0),
+        ),
+        egui::Label::new(
+            egui::RichText::new("Preparing a heavy shape for drawing…").color(theme::TEXT_WEAK),
+        )
+        .selectable(false),
+    );
+}
+
 /// Quiet labels over a view's image: its name, the camera, an axis
 /// marker, and the grid spacing.
 pub(super) fn overlays(ui: &Ui, rect: Rect, view: &View, options: &ViewOptions) {

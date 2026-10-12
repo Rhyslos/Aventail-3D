@@ -70,19 +70,15 @@ fn the_points_mode_shows_the_selected_objects_points() {
     let mut harness = selected_cube();
     let drawn = |h: &Harness<'static, State>| {
         let view = h.state().renderer.drawn.last().unwrap().clone();
-        (
-            view.scene.editing,
-            view.overlay.points.len(),
-            view.overlay.lines.len(),
-        )
+        (view.scene.editing, view.scene.points)
     };
-    assert_eq!(drawn(&harness), (false, 0, 0), "the Model mode shows none");
+    assert_eq!(drawn(&harness), (false, false), "the Model mode shows none");
     press(&mut harness, Key::Num1);
     harness.run();
-    assert_eq!(drawn(&harness), (true, 8, 12));
+    assert_eq!(drawn(&harness), (true, true), "every point, with the edges");
     press(&mut harness, Key::Num2);
     harness.run();
-    assert_eq!(drawn(&harness), (true, 0, 12), "edges only");
+    assert_eq!(drawn(&harness), (true, false), "edges only");
 }
 
 #[test]

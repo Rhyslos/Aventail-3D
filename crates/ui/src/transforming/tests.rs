@@ -20,7 +20,7 @@ fn cube_document() -> (Document, ObjectId) {
 
 fn drawing(doc: &Document, mode: Mode) -> Arc<SceneDrawing> {
     let mut cache = DrawingCache::default();
-    Arc::clone(&cache.update(doc, kind_for(mode).is_some()).drawing)
+    Arc::clone(&cache.update(doc, kind_for(mode)).drawing)
 }
 
 fn target(doc: &Document, mode: Mode, axes: Axes) -> Option<Target> {

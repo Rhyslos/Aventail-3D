@@ -272,13 +272,11 @@ fn mesh_to_file(mesh: &Mesh) -> MeshV1 {
     MeshV1 {
         points: mesh
             .point_slots()
-            .iter()
             .map(|p| p.map(|p| p.to_array()))
             .collect(),
         faces: mesh
             .face_slots()
-            .iter()
-            .map(|f| f.as_ref().map(|c| c.iter().map(|v| v.get()).collect()))
+            .map(|f| f.map(|c| c.iter().map(|v| v.get()).collect()))
             .collect(),
         hard: mesh
             .hard_edges()

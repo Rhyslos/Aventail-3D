@@ -26,7 +26,7 @@ The interface thread draws 60+ frames a second and must never wait on slow work.
 2. **Interpret:** the active tool (`tools`) turns input into an intent ("extrude these faces by 50 cm").
 3. **Command:** the intent becomes an operation plus a command, applied to the scene. Every command can undo itself.
 4. **Evaluate:** the object's stack is re-evaluated from the changed layer upward, using cached results below it.
-5. **Sync:** the renderer updates GPU data only for meshes that changed.
+5. **Sync:** the renderer updates GPU data only for meshes that changed, and for a mesh whose points only moved, only the vertices around them.
 6. **Draw:** viewports render with wgpu; panels (egui) draw on top.
 
 Slow work (large unwraps, booleans, exports) runs on background threads. **Background jobs never touch the scene.** They send results as messages, and the interface thread applies them at the start of the next frame.
@@ -65,12 +65,20 @@ The viewport holds four views (perspective, top, front, right), each with its ow
 
 1. **Navigate** (`ui` → `tools`): the panel turns this frame's drags (with the keys held) and wheel turns into plain moves on a `tools::Navigator` (the camera and its pivot); `tools::controls` decides which movement a button and keys start, for the scheme the user picked. `tools` knows nothing about egui.
 2. **Ask** (`ui`): the panel works out its size in physical pixels and the camera's matrices (`tools::Camera`), and asks a `ViewportRenderer` for an image, with the point the camera looks at (the grid is drawn around it) and display options such as the grid level (1 m, 50 cm or 10 cm lines).
-3. **Draw** (`render`, through `app`'s `GpuViewport`): the backdrop with its horizon, faces, grid and lines are drawn into that view's own offscreen image (one per view, keyed by `ViewportView::slot`) on the window's GPU device. Flat (orthographic) views get a plain backdrop and a grid in the plane facing them.
+3. **Draw** (`render`, through `app`'s `GpuViewport`): the backdrop with its horizon, each object's mesh (kept on the GPU in its own space and placed in the world), the grid and lines are drawn into that view's own offscreen image (one per view, keyed by `ViewportView::slot`) on the window's GPU device. Flat (orthographic) views get a plain backdrop and a grid in the plane facing them.
 4. **Show** (`ui`): the image is drawn into the panel as an egui texture, with the view's label on top.
 
 While the mouse hovers over a view, the panel also asks the renderer what surface is under it (`ViewportRenderer::pick`); the answer arrives on a later frame and is used as that view's pivot when an orbit or zoom starts; only the view under the mouse asks, one question at a time ([decision 0017](docs/decisions/0017-picking-the-point-under-the-mouse.md)).
 
-In the Points, Edges and Polygons modes, the element under the mouse is found on the CPU instead (`ui::components` → `tools::PickScene`), from the hovered view's camera and mouse position, after the views are drawn. The workbench turns the selected objects' elements into a small `ComponentOverlay`, which the app uploads as a separate `render::Overlay` layer; a mouse move rebuilds only that layer, never the scene's shape ([decision 0027](docs/decisions/0027-component-modes.md)).
+In the Points, Edges and Polygons modes, the element under the mouse is found on the CPU instead (`ui::components` → `tools::PickScene`), from the hovered view's camera and mouse position, after the views are drawn. The workbench turns the selected and hovered elements into a small `ComponentOverlay`, which the app uploads as a separate `render::Overlay` layer; a mouse move rebuilds only that layer, never the scene's shapes ([decision 0027](docs/decisions/0027-component-modes.md)). The edited objects' own edges and points are drawn with their meshes.
+
+**Heavy shapes** ([decision 0035](docs/decisions/0035-heavy-meshes.md)). The work an action costs follows what it changes, not the size of the mesh:
+- **Meshes** share their parts between copies until one changes them: points in chunks, faces in one flat list, hard edges. A recorded move copies only the chunks it touches, and `Mesh::moved_since` tells caches what moved. Connections (`Mesh::topology`) and the box around the points are kept with the parts they depend on.
+- **Picking:** `tools::MeshPick` indexes one mesh in its own space (bounding volume hierarchies over its triangles, points, edges and polygon middles). The `ui` `ComponentTracker` keeps one per object, builds new heavy ones on another thread (`prepare`), updates them around moved points, and keeps its `PickScene` as it was while a drag is under way.
+- **Drawing:** the app's `GpuViewport` keeps each object's `render::MeshGeometry` on the GPU in its own space (`ViewportRenderer::set_mesh`), works out heavy new ones on another thread, uploads only the vertices around moved points (`update_mesh`), and places objects each frame (`set_draws`, a uniform per object). Dense wireframes fade in the shader, and are left out when too dense to see.
+- **The mesh check** in the Attributes panel runs on another thread for heavy shapes.
+
+`tools/heavy/heavy-check.sh` times all of this on a 3-million-polygon shape at the end of each phase.
 
 Selecting follows the same path ([decision 0029](docs/decisions/0029-selection.md)): the viewport only records what the mouse did (`selecting::Gesture`), and once the frame's drawing is known the workbench's `Selector` looks it up in the same `PickScene` and changes the document. Whole objects are selected through `Document::set_selection` (as the Object Manager does) and elements are kept per object in `scene::Document` and changed through `select_elements`; both record undo steps; the selection rules themselves (all, invert, grow, shrink, loops, rings) are pure functions in `mesh::selection`.
 

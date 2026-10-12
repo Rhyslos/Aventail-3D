@@ -157,7 +157,8 @@ impl Picker {
     }
 
     /// Asks what is under `request`'s pixel, drawing `faces` with
-    /// `pipeline` (the depth-only face pipeline). Returns `false`, doing
+    /// `pipeline` (the depth-only face pipeline), and then whatever
+    /// `meshes` draws (the objects' meshes). Returns `false`, doing
     /// nothing, while an earlier question is still in flight or when the
     /// request makes no sense (an empty image, a broken camera).
     pub(crate) fn request(
@@ -166,6 +167,7 @@ impl Picker {
         queue: &wgpu::Queue,
         pipeline: &wgpu::RenderPipeline,
         faces: Option<(&wgpu::Buffer, u32)>,
+        meshes: &dyn Fn(&mut wgpu::RenderPass<'_>),
         request: PickRequest,
     ) -> bool {
         if self.pending.is_some() {
@@ -209,12 +211,13 @@ impl Picker {
                 occlusion_query_set: None,
                 multiview_mask: None,
             });
+            pass.set_bind_group(0, &self.bind_group, &[]);
             if let Some((buffer, count)) = faces {
                 pass.set_pipeline(pipeline);
-                pass.set_bind_group(0, &self.bind_group, &[]);
                 pass.set_vertex_buffer(0, buffer.slice(..));
                 pass.draw(0..count, 0..1);
             }
+            meshes(&mut pass);
         }
         encoder.copy_texture_to_buffer(
             wgpu::TexelCopyTextureInfo {

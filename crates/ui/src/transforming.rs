@@ -24,7 +24,7 @@ use crate::palette::Mode;
 use crate::viewport::GridDetail;
 use egui::Key;
 use glam::{Mat4, Quat, Vec2, Vec3};
-use mesh::{Anchors, Topology};
+use mesh::Anchors;
 use scene::{Bounds, Command, Document, ElementKind, ObjectId, Operation, Transform, VertexId};
 use serde::{Deserialize, Serialize};
 use tools::gizmo::{Handle, into_plane, nearest_on_axis, snap};
@@ -252,8 +252,8 @@ impl Target {
                     let Some(selected) = document.elements(item.id) else {
                         continue;
                     };
-                    let topology = Topology::new(&item.mesh);
-                    let valid = selected.valid_in(&item.mesh, &topology);
+                    let topology = item.mesh.topology();
+                    let valid = selected.valid_in(&item.mesh, topology);
                     let elements: Vec<Vec<VertexId>> = match kind {
                         ElementKind::Points => valid.points().map(|v| vec![v]).collect(),
                         ElementKind::Edges => valid

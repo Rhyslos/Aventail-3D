@@ -322,12 +322,13 @@ impl Selector<'_> {
                 },
             ) => {
                 let mut found = Vec::new();
+                let mut seen = std::collections::HashSet::new();
                 for region in &regions {
                     for hit in
                         self.scene
                             .elements_in(kind, &camera, size, region, self.visible_only)
                     {
-                        if !found.contains(&hit) {
+                        if seen.insert(hit) {
                             found.push(hit);
                         }
                     }
@@ -432,10 +433,10 @@ impl Selector<'_> {
         let none = ElementSelection::new();
         let mut changes = Vec::new();
         for item in self.drawing.items.iter().filter(|i| i.selected) {
-            let topology = Topology::new(&item.mesh);
+            let topology = item.mesh.topology();
             let current = self.document.elements(item.id).unwrap_or(&none);
             let mut next = current.clone();
-            let chosen = work(&item.mesh, &topology, current);
+            let chosen = work(&item.mesh, topology, current);
             next.combine(kind, chosen, Combine::Replace);
             changes.push((item.id, next));
         }
@@ -524,11 +525,11 @@ impl Selector<'_> {
             },
         };
         let item = self.drawing.items.get(index)?;
-        let topology = Topology::new(&item.mesh);
+        let topology = item.mesh.topology();
         let elements = if ring {
-            ops::ring_through(&item.mesh, &topology, edge, face, kind)
+            ops::ring_through(&item.mesh, topology, edge, face, kind)
         } else {
-            ops::loop_through(&topology, edge, kind)
+            ops::loop_through(topology, edge, kind)
         };
         let mut next = self.document.elements(item.id).cloned().unwrap_or_default();
         next.combine(kind, elements, how);

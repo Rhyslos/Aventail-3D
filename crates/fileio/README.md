@@ -34,6 +34,7 @@ Tests:
 - clamping;
 - fuzzing every cut, 3000 random bit flips and random bodies;
 - saving on disk (backup, no leftovers, failure leaving the old file, unwritable folders, missing files);
+- an ignored heavy-mesh check timing saving and opening a project with a 3-million-polygon shape (`tools/heavy/heavy-check.sh`);
 - `tests/data/sample-v1.avtl` and `sample-v2.avtl`, files of each version that must open in every future version (`WRITE_SAMPLE=1` writes only the current version's).
 
 Export arrives in Phase 5.

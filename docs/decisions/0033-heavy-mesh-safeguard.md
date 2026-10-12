@@ -44,6 +44,6 @@ Option 2 for both:
 
 ## Consequences
 
-- Phase 4 starts one milestone later, and the tools build on fast foundations.
+- Phase 4 starts one milestone later, and the tools build on fast foundations. *(Built: [0035](0035-heavy-meshes.md).)*
 - Between phase gates, a slowdown with heavy meshes can go unnoticed for a while. The small benchmarks on performance paths, and the gate check, limit how far it can go.
 - Measured numbers depend on the machine. The check reports them against the targets with some margin, and the project lead's own feel test on his machine counts most.

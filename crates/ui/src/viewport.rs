@@ -226,6 +226,12 @@ pub trait ViewportRenderer {
         let _ = ask;
         PickReply::default()
     }
+
+    /// Whether a heavy shape is still being made ready to draw in the
+    /// background (the viewport says so, and keeps drawing until it is).
+    fn preparing(&self) -> bool {
+        false
+    }
 }
 
 /// How close (in logical pixels) a picked answer must be to where the
@@ -968,6 +974,12 @@ impl ViewportPanel {
                 response.hover_pos(),
             );
             chrome::overlays(ui, rect, &self.views[slot], &self.options);
+            if renderer.preparing() {
+                chrome::preparing(ui, rect);
+                // Keep drawing, so the shape shows as soon as it is ready.
+                ui.ctx()
+                    .request_repaint_after(std::time::Duration::from_millis(100));
+            }
             if four && slot == self.active {
                 chrome::active_border(ui, rect);
             }

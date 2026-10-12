@@ -43,7 +43,7 @@ pub struct MeshReport {
 impl MeshReport {
     /// Checks `mesh`.
     pub fn new(mesh: &Mesh) -> Self {
-        Self::with_topology(mesh, &Topology::new(mesh))
+        Self::with_topology(mesh, mesh.topology())
     }
 
     /// Checks `mesh`, whose topology is already known.

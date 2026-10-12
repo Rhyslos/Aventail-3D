@@ -616,3 +616,49 @@ fn the_backup_sits_beside_the_project() {
         PathBuf::from("/work/crate.avtl.bak")
     );
 }
+
+/// Part of the heavy-mesh check (DESIGN.md §4.8): saving and opening a
+/// project holding a shape of millions of polygons. Run with
+/// `tools/heavy/heavy-check.sh`.
+#[test]
+#[ignore = "heavy: run with tools/heavy/heavy-check.sh"]
+fn heavy_project_check() {
+    use std::time::Instant;
+    let polygons: usize = std::env::var("HEAVY_POLYGONS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(3_000_000);
+    let mut doc = Document::new();
+    doc.execute(scene::Command::Create(ObjectKind::Mesh(
+        std::sync::Arc::new(mesh::samples::heavy_ball(polygons, 100.0)),
+    )))
+    .unwrap();
+    let start = Instant::now();
+    let bytes = to_bytes(&doc).unwrap();
+    let saved = start.elapsed();
+    let start = Instant::now();
+    let back = from_bytes(&bytes).unwrap();
+    let opened = start.elapsed();
+    assert_same(&doc, &back);
+    let line = |what: &str, took: std::time::Duration, target: u128| {
+        println!(
+            "{:<58} {:>8.1}ms {:>10} {:>8}ms  {}",
+            what,
+            took.as_secs_f64() * 1000.0,
+            "",
+            target,
+            if took.as_millis() <= target {
+                "ok"
+            } else {
+                "SLOW"
+            }
+        );
+        took.as_millis() <= target
+    };
+    println!();
+    println!("Heavy-mesh check, project files: {polygons} polygons");
+    let ok = line("Save the project (to memory, compressed)", saved, 5_000)
+        & line("Open it again", opened, 5_000);
+    println!("Project file size: about {} MB", bytes.len() / 1_000_000);
+    assert!(ok);
+}

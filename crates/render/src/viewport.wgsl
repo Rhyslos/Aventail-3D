@@ -1,5 +1,6 @@
 // Viewport shaders: the background gradient, the ground grid, coloured
-// lines (axes and edges) and shaded faces.
+// lines (axes and edges), shaded faces, the overlay, and objects' meshes
+// placed in the world.
 //
 // Colours are written in linear space; the render target is sRGB, so the
 // GPU converts them when storing. Z is up; the grid lies on the X-Y plane.
@@ -211,6 +212,10 @@ fn face_vs(in: FaceIn) -> FaceOut {
 // front, a little darker, so the inside of a shape still reads as inside.
 @fragment
 fn face_fs(in: FaceOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
+    return shade(in, front);
+}
+
+fn shade(in: FaceOut, front: bool) -> vec4<f32> {
     let n = select(-normalize(in.normal), normalize(in.normal), front);
     let back = select(0.8, 1.0, front);
     let to_camera = normalize(frame.camera.xyz - in.world);
@@ -231,17 +236,17 @@ fn face_fs(in: FaceOut, @builtin(front_facing) front: bool) -> @location(0) vec4
 // ------------------------------------------------------------- overlay ---
 
 // Points and thick lines for the Points, Edges and Polygons modes, a fixed
-// number of pixels wide whatever the distance. Each is two triangles whose
-// corners are pushed out on screen from the point (or the line's ends).
-// Points are cut round in the fragment shader, with a soft one-pixel rim.
-// frame.view.yz holds the image's size in pixels.
+// number of pixels wide whatever the distance. Each is one record (a point
+// has both ends in the same place) drawn as two triangles, six corners
+// worked out here and pushed out on screen from the point (or the line's
+// ends). Points are cut round in the fragment shader, with a soft
+// one-pixel rim. frame.view.yz holds the image's size in pixels.
 
 struct SpriteIn {
-    @location(0) position: vec3<f32>,
-    @location(1) other: vec3<f32>,
-    @location(2) corner: vec2<f32>,
-    @location(3) width: f32,
-    @location(4) color: vec4<f32>,
+    @location(0) a: vec3<f32>,
+    @location(1) b: vec3<f32>,
+    @location(2) width: f32,
+    @location(3) color: vec4<f32>,
 };
 
 struct SpriteOut {
@@ -257,18 +262,39 @@ struct SpriteOut {
 };
 
 @vertex
-fn sprite_vs(in: SpriteIn) -> SpriteOut {
+fn sprite_vs(@builtin(vertex_index) index: u32, in: SpriteIn) -> SpriteOut {
+    let i = index % 6u;
+    var point_corners = array<vec2<f32>, 6>(
+        vec2<f32>(-1.0, -1.0), vec2<f32>(1.0, -1.0), vec2<f32>(1.0, 1.0),
+        vec2<f32>(-1.0, -1.0), vec2<f32>(1.0, 1.0), vec2<f32>(-1.0, 1.0),
+    );
+    // For a line: which end each corner is at (1 for b), and which side.
+    // Each end measures "sideways" from its own direction along the line,
+    // so side +1 at b is the same side as -1 at a.
+    var at_b = array<f32, 6>(0.0, 1.0, 1.0, 0.0, 1.0, 0.0);
+    var sides = array<f32, 6>(-1.0, 1.0, -1.0, -1.0, -1.0, 1.0);
+    let is_line = any(in.a != in.b);
+    var position = in.a;
+    var other_end = in.b;
+    var corner = point_corners[i];
+    if is_line {
+        if at_b[i] > 0.5 {
+            position = in.b;
+            other_end = in.a;
+        }
+        corner = vec2<f32>(-1.0, sides[i]);
+    }
     let size = max(frame.view.yz, vec2<f32>(1.0, 1.0));
-    var clip = frame.view_proj * vec4<f32>(in.position, 1.0);
+    var clip = frame.view_proj * vec4<f32>(position, 1.0);
     // Half the width, in pixels.
     let half = in.width * 0.5;
-    var offset = in.corner * half;
+    var offset = corner * half;
     var round = 1.0;
-    if any(in.position != in.other) {
+    if is_line {
         round = 0.0;
         // A line: push sideways from the line on screen, and a little past
         // this end so joined lines meet without gaps.
-        let other = frame.view_proj * vec4<f32>(in.other, 1.0);
+        let other = frame.view_proj * vec4<f32>(other_end, 1.0);
         let here_px = clip.xy / max(clip.w, 1e-5) * size * 0.5;
         let there_px = other.xy / max(other.w, 1e-5) * size * 0.5;
         var along = there_px - here_px;
@@ -277,13 +303,13 @@ fn sprite_vs(in: SpriteIn) -> SpriteOut {
         }
         let dir = normalize(along);
         let side = vec2<f32>(-dir.y, dir.x);
-        offset = side * in.corner.y * half + dir * in.corner.x * half;
+        offset = side * corner.y * half + dir * corner.x * half;
     }
     clip = vec4<f32>(clip.xy + offset * 2.0 / size * clip.w, clip.z, clip.w);
     var out: SpriteOut;
     out.clip = clip;
     out.color = in.color;
-    out.corner = in.corner;
+    out.corner = corner;
     out.round = round;
     out.pixel = 2.0 / max(in.width, 1.0);
     return out;
@@ -299,4 +325,114 @@ fn sprite_fs(in: SpriteOut) -> @location(0) vec4<f32> {
         discard;
     }
     return vec4<f32>(in.color.rgb, in.color.a * edge);
+}
+
+// ------------------------------------------------------------- objects ---
+
+// Each object's mesh stays on the GPU in its own space; these say where
+// it is and how to draw it this frame (see mesh_draw.rs).
+struct Object {
+    model: mat4x4<f32>,
+    // The model matrix's inverse transposed, for normals.
+    normal: mat4x4<f32>,
+    edge_color: vec4<f32>,
+    point_color: vec4<f32>,
+    // x: point size in pixels; y: -1 when the placement mirrors the shape;
+    // z: the average edge length in the world; w: how faint a dense
+    // wireframe may fade.
+    options: vec4<f32>,
+};
+
+@group(1) @binding(0) var<uniform> object: Object;
+
+// The shapes' surface colour, linear space (geometry.rs CUBE_COLOR).
+const SHAPE_COLOR = vec4<f32>(0.5, 0.5, 0.51, 1.0);
+
+struct MeshIn {
+    @location(0) position: vec3<f32>,
+    @location(1) normal: vec3<f32>,
+};
+
+fn object_world(position: vec3<f32>) -> vec3<f32> {
+    return (object.model * vec4<f32>(position, 1.0)).xyz;
+}
+
+@vertex
+fn mesh_face_vs(in: MeshIn) -> FaceOut {
+    let world = object_world(in.position);
+    var out: FaceOut;
+    out.clip = frame.view_proj * vec4<f32>(world, 1.0);
+    out.normal = (object.normal * vec4<f32>(in.normal, 0.0)).xyz;
+    out.color = SHAPE_COLOR;
+    out.world = world;
+    return out;
+}
+
+// A mirrored placement turns the faces inside out: what the GPU sees as
+// the back is the outside.
+@fragment
+fn mesh_face_fs(in: FaceOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
+    return shade(in, front == (object.options.y > 0.0));
+}
+
+// How far apart, in pixels, the object's edges are on screen around
+// `world`: its average edge length seen at that distance.
+fn edge_spacing(world: vec3<f32>, clip: vec4<f32>) -> f32 {
+    let size = max(frame.view.yz, vec2<f32>(1.0, 1.0));
+    let to_world = normalize(world - frame.camera.xyz + vec3<f32>(0.0, 0.0, 1e-6));
+    var across = cross(to_world, vec3<f32>(0.0, 0.0, 1.0));
+    if length(across) < 1e-3 {
+        across = cross(to_world, vec3<f32>(1.0, 0.0, 0.0));
+    }
+    let other = frame.view_proj * vec4<f32>(world + normalize(across) * object.options.z, 1.0);
+    let here_px = clip.xy / max(clip.w, 1e-5) * size * 0.5;
+    let there_px = other.xy / max(other.w, 1e-5) * size * 0.5;
+    return length(there_px - here_px);
+}
+
+// A dense wireframe (edges only a few pixels apart, as on a heavy shape
+// seen from afar) fades out, so the shape reads as a surface instead of a
+// solid block of lines. Zoom in and the edges come back. A selected
+// object keeps a faint tint of its colour: with many edges crossing each
+// pixel, each one gets a share of it, so together they add up to about
+// that much.
+fn density_fade(world: vec3<f32>, clip: vec4<f32>) -> f32 {
+    let spacing = edge_spacing(world, clip);
+    let tint = object.options.w * clamp(spacing * 1.5, 0.0, 1.0);
+    return max(smoothstep(1.5, 6.0, spacing), tint);
+}
+
+@vertex
+fn mesh_line_vs(in: MeshIn) -> LineOut {
+    let world = object_world(in.position);
+    var out: LineOut;
+    out.clip = frame.view_proj * vec4<f32>(world, 1.0);
+    out.color = vec4<f32>(object.edge_color.rgb, object.edge_color.a * density_fade(world, out.clip));
+    out.world = world;
+    return out;
+}
+
+// Every point of an object as a small round dot: six corners per point,
+// the point itself read once per dot.
+@vertex
+fn mesh_point_vs(@builtin(vertex_index) index: u32, @location(0) position: vec3<f32>) -> SpriteOut {
+    var corners = array<vec2<f32>, 6>(
+        vec2<f32>(-1.0, -1.0), vec2<f32>(1.0, -1.0), vec2<f32>(1.0, 1.0),
+        vec2<f32>(-1.0, -1.0), vec2<f32>(1.0, 1.0), vec2<f32>(-1.0, 1.0),
+    );
+    let corner = corners[index % 6u];
+    let size = max(frame.view.yz, vec2<f32>(1.0, 1.0));
+    let width = object.options.x;
+    let world = object_world(position);
+    var clip = frame.view_proj * vec4<f32>(world, 1.0);
+    let fade = smoothstep(2.0, 6.0, edge_spacing(world, clip));
+    let offset = corner * width * 0.5;
+    clip = vec4<f32>(clip.xy + offset * 2.0 / size * clip.w, clip.z, clip.w);
+    var out: SpriteOut;
+    out.clip = clip;
+    out.color = vec4<f32>(object.point_color.rgb, object.point_color.a * fade);
+    out.corner = corner;
+    out.round = 1.0;
+    out.pixel = 2.0 / max(width, 1.0);
+    return out;
 }

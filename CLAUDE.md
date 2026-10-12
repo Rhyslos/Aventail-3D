@@ -16,7 +16,7 @@ Aventail 3D is developed largely by Claude, steered by the project lead (Rhyslos
 - Update documentation in the same pull request: code comments, crate READMEs, `ARCHITECTURE.md`, `CHANGELOG.md`, the **user manual** (`docs/manual/`), and the README progress tracker and history when a milestone completes.
 - The pull request's "How to test" list covers what automated tests cannot: feel, visuals, the export pipeline into Substance Painter and Godot. Write it for a non-programmer.
 - Explain decisions to the project lead in plain words.
-- At the end of each phase (from Phase 4) and whenever the project lead asks, run the heavy-mesh check and put its numbers in the pull request (DESIGN.md §4.8, [decision 0033](docs/decisions/0033-heavy-mesh-safeguard.md)). Not on every pull request.
+- At the end of each phase (from Phase 4) and whenever the project lead asks, run the heavy-mesh check (`tools/heavy/heavy-check.sh`) and put its numbers in the pull request (DESIGN.md §4.8, [decision 0033](docs/decisions/0033-heavy-mesh-safeguard.md)). Not on every pull request.
 
 ## Specific to this project
 

@@ -12,8 +12,9 @@ use crate::drawing::{ComponentOverlay, DrawItem, OverlayStyle, SceneDrawing};
 use crate::palette::Mode;
 use glam::{Vec2, Vec3};
 use scene::{Document, ElementSelection, ObjectId};
+use std::collections::HashMap;
 use std::sync::Arc;
-use tools::{Camera, Element, ElementKind, PickScene};
+use tools::{Camera, Element, ElementKind, MeshPick, PickScene};
 
 /// The mouse over a view: the view's camera, its size and where the mouse
 /// is in it (both in screen points, from the view's top-left corner).
@@ -47,6 +48,15 @@ pub(crate) struct ComponentTracker {
     /// The scene the mouse is looked up in, and the drawing version it was
     /// built from.
     scene: Option<(u64, PickScene)>,
+    /// Each drawn object's mesh, indexed for picking: kept while the mesh
+    /// stays the same, and updated quickly when only its points moved.
+    picks: HashMap<ObjectId, Arc<MeshPick>>,
+    /// Indexes being built in the background for shapes that are new.
+    building: HashMap<ObjectId, (Arc<scene::Mesh>, std::thread::JoinHandle<MeshPick>)>,
+    /// Whether a drag is under way: the scene stays as it was when the
+    /// drag began (what moves is never a snap target, so nothing it holds
+    /// goes out of date), and nothing is looked up under the mouse.
+    frozen: bool,
     hovered: Option<ObjectElement>,
     built_for: Option<BuiltFor>,
     overlay: Arc<ComponentOverlay>,
@@ -64,7 +74,7 @@ impl ComponentTracker {
     ) -> Arc<ComponentOverlay> {
         let kind = kind_for(mode);
         self.hovered = match (kind, pointer) {
-            (Some(kind), Some(pointer)) => self.find(kind, drawing, pointer),
+            (Some(kind), Some(pointer)) if !self.frozen => self.find(kind, drawing, pointer),
             _ => None,
         };
         let wanted = (
@@ -87,6 +97,76 @@ impl ComponentTracker {
         Arc::clone(&self.overlay)
     }
 
+    /// Keeps the scene as it is while a drag is under way (see `frozen`).
+    pub(crate) fn freeze(&mut self, frozen: bool) {
+        self.frozen = frozen;
+    }
+
+    /// Starts indexing new shapes in the background, so the first click
+    /// on a heavy shape doesn't wait for it ([decision 0035](../../../docs/decisions/0035-heavy-meshes.md)).
+    /// Shapes whose points only moved are left alone: they are updated
+    /// quickly when next needed. Their connections ([`scene::Mesh::topology`])
+    /// are worked out on the same thread, for the tools that need them.
+    pub(crate) fn prepare(&mut self, drawing: &SceneDrawing) {
+        /// Below this many polygons, indexing is quick enough to do when
+        /// needed.
+        const BACKGROUND_FROM: usize = 50_000;
+        if self.frozen {
+            return;
+        }
+        for item in &drawing.items {
+            if item.mesh.face_count() < BACKGROUND_FROM {
+                continue;
+            }
+            let known = self.picks.get(&item.id).is_some_and(|p| {
+                Arc::ptr_eq(p.mesh(), &item.mesh) || p.mesh().same_structure(&item.mesh)
+            });
+            let running = self.building.get(&item.id).is_some_and(|(mesh, handle)| {
+                Arc::ptr_eq(mesh, &item.mesh) || !handle.is_finished()
+            });
+            if known || running {
+                continue;
+            }
+            let mesh = Arc::clone(&item.mesh);
+            let handle = std::thread::spawn(move || {
+                let pick = MeshPick::new(Arc::clone(&mesh));
+                let _ = mesh.topology();
+                pick
+            });
+            self.building
+                .insert(item.id, (Arc::clone(&item.mesh), handle));
+        }
+    }
+
+    /// Whether shapes are still being indexed in the background.
+    #[cfg(test)]
+    pub(crate) fn preparing(&self) -> bool {
+        self.building
+            .values()
+            .any(|(_, handle)| !handle.is_finished())
+    }
+
+    /// The index for `item`: kept, finished in the background, updated
+    /// from the kept one, or built now.
+    fn pick_for(&mut self, item: &DrawItem) -> Arc<MeshPick> {
+        if let Some(kept) = self.picks.get(&item.id)
+            && Arc::ptr_eq(kept.mesh(), &item.mesh)
+        {
+            return Arc::clone(kept);
+        }
+        if let Some((mesh, _)) = self.building.get(&item.id)
+            && Arc::ptr_eq(mesh, &item.mesh)
+            && let Some((_, handle)) = self.building.remove(&item.id)
+            && let Ok(pick) = handle.join()
+        {
+            return Arc::new(pick);
+        }
+        match self.picks.get(&item.id) {
+            Some(kept) => Arc::new(kept.moved(Arc::clone(&item.mesh))),
+            None => Arc::new(MeshPick::new(Arc::clone(&item.mesh))),
+        }
+    }
+
     /// The overlay as last built.
     pub(crate) fn overlay(&self) -> Arc<ComponentOverlay> {
         Arc::clone(&self.overlay)
@@ -100,17 +180,24 @@ impl ComponentTracker {
     /// The scene for finding what is under the mouse or in a region,
     /// built again only when the drawing has changed.
     pub(crate) fn pick_scene(&mut self, drawing: &SceneDrawing) -> &PickScene {
-        if self
+        let stale = self
             .scene
             .as_ref()
-            .is_none_or(|(v, _)| *v != drawing.version)
-        {
-            let scene = PickScene::new(
+            .is_none_or(|(v, _)| *v != drawing.version);
+        if stale && !(self.frozen && self.scene.is_some()) {
+            let mut picks = HashMap::with_capacity(drawing.items.len());
+            for item in &drawing.items {
+                picks.insert(item.id, self.pick_for(item));
+            }
+            self.building
+                .retain(|id, _| drawing.items.iter().any(|i| i.id == *id));
+            let scene = PickScene::from_picks(
                 drawing
                     .items
                     .iter()
-                    .map(|item| (item.mesh.as_ref(), item.transform, item.selected)),
+                    .map(|item| (Arc::clone(&picks[&item.id]), item.transform, item.selected)),
             );
+            self.picks = picks;
             self.scene = Some((drawing.version, scene));
         }
         let (_, scene) = self.scene.get_or_insert_with(Default::default);
@@ -131,20 +218,9 @@ impl ComponentTracker {
     }
 }
 
-/// How an element is drawn: under the mouse, selected, or plain.
-fn style(hovered: bool, selected: bool) -> OverlayStyle {
-    if hovered {
-        OverlayStyle::Hovered
-    } else if selected {
-        OverlayStyle::Selected
-    } else {
-        OverlayStyle::Plain
-    }
-}
-
-/// The overlay for `kind`: the edited objects' edges (and points, in the
-/// Points mode; selected polygons, in the Polygons mode), with the
-/// selected and hovered elements picked out.
+/// The overlay for `kind`: the edited objects' selected elements, and the
+/// one under the mouse. It never walks the whole mesh, only what is
+/// selected, so it stays quick to rebuild on heavy shapes.
 fn build(
     kind: ElementKind,
     drawing: &SceneDrawing,
@@ -168,33 +244,46 @@ fn build(
                 .position(v)
                 .map(|p| item.transform.transform_point3(p))
         };
-        for edge in item.mesh.edges() {
-            let (a, b) = edge.ends();
-            if let (Some(a), Some(b)) = (place(a), place(b)) {
-                let element = Element::Edge(edge);
-                let chosen = kind == ElementKind::Edges && selected.contains(element);
-                overlay
-                    .lines
-                    .push(([a, b], style(hovered_here == Some(element), chosen)));
-            }
-        }
-        if kind == ElementKind::Points {
-            for (v, p) in item.mesh.vertices() {
-                let element = Element::Point(v);
-                overlay.points.push((
-                    item.transform.transform_point3(p),
-                    style(hovered_here == Some(element), selected.contains(element)),
-                ));
-            }
-        }
-        if kind == ElementKind::Polygons {
-            for face in selected.polygons() {
-                if hovered_here != Some(Element::Polygon(face)) {
-                    tint(&mut overlay, item, face, OverlayStyle::Selected);
+        match kind {
+            ElementKind::Edges => {
+                let mut line = |edge: mesh::EdgeKey, style| {
+                    let (a, b) = edge.ends();
+                    if let (Some(a), Some(b)) = (place(a), place(b)) {
+                        overlay.lines.push(([a, b], style));
+                    }
+                };
+                for edge in selected.edges() {
+                    if hovered_here != Some(Element::Edge(edge)) {
+                        line(edge, OverlayStyle::Selected);
+                    }
+                }
+                if let Some(Element::Edge(edge)) = hovered_here {
+                    line(edge, OverlayStyle::Hovered);
                 }
             }
-            if let Some(Element::Polygon(face)) = hovered_here {
-                tint(&mut overlay, item, face, OverlayStyle::Hovered);
+            ElementKind::Points => {
+                for v in selected.points() {
+                    if hovered_here != Some(Element::Point(v))
+                        && let Some(p) = place(v)
+                    {
+                        overlay.points.push((p, OverlayStyle::Selected));
+                    }
+                }
+                if let Some(Element::Point(v)) = hovered_here
+                    && let Some(p) = place(v)
+                {
+                    overlay.points.push((p, OverlayStyle::Hovered));
+                }
+            }
+            ElementKind::Polygons => {
+                for face in selected.polygons() {
+                    if hovered_here != Some(Element::Polygon(face)) {
+                        tint(&mut overlay, item, face, OverlayStyle::Selected);
+                    }
+                }
+                if let Some(Element::Polygon(face)) = hovered_here {
+                    tint(&mut overlay, item, face, OverlayStyle::Hovered);
+                }
             }
         }
     }
@@ -256,6 +345,7 @@ mod tests {
                 selected,
             }],
             editing: true,
+            points: false,
         }
     }
 
@@ -280,22 +370,40 @@ mod tests {
     }
 
     #[test]
-    fn the_points_mode_draws_every_point_and_edge_of_the_selection() {
+    fn the_overlay_holds_only_what_is_selected_or_under_the_mouse() {
+        // Plain points and edges are drawn with the shape itself, so with
+        // nothing selected and nothing under the mouse the overlay is
+        // empty.
         let mut tracker = ComponentTracker::default();
         let overlay = tracker.update(Mode::Points, &drawing(true), &Document::new(), None);
-        assert_eq!(overlay.points.len(), 8);
-        assert_eq!(overlay.lines.len(), 12);
+        assert!(overlay.points.is_empty() && overlay.lines.is_empty());
         assert!(overlay.tints.is_empty());
+        // Selected edges are drawn in the Edges mode.
+        let mut doc = Document::new();
+        doc.execute(scene::Command::Create(scene::ObjectKind::Primitive(
+            PrimitiveKind::Cube.standard(),
+        )))
+        .unwrap();
+        let id = doc.selection()[0];
+        let mut drawn = drawing(true);
+        drawn.items[0].id = id;
+        let edges: Vec<mesh::EdgeKey> = drawn.items[0].mesh.edges()[..3].to_vec();
+        let mut chosen = ElementSelection::new();
+        chosen.combine(
+            ElementKind::Edges,
+            edges.iter().map(|e| Element::Edge(*e)),
+            mesh::Combine::Add,
+        );
+        doc.select_elements(vec![(id, chosen)], "Select", None);
+        let overlay = tracker.update(Mode::Edges, &drawn, &doc, None);
+        assert_eq!(overlay.lines.len(), 3);
         assert!(
             overlay
-                .points
+                .lines
                 .iter()
-                .all(|(_, s)| *s == OverlayStyle::Plain)
+                .all(|(_, s)| *s == OverlayStyle::Selected)
         );
-        // The edges mode draws edges only.
-        let overlay = tracker.update(Mode::Edges, &drawing(true), &Document::new(), None);
-        assert!(overlay.points.is_empty());
-        assert_eq!(overlay.lines.len(), 12);
+        assert!(overlay.points.is_empty(), "the Edges mode draws edges only");
     }
 
     #[test]
@@ -360,6 +468,74 @@ mod tests {
         moved.version = 2;
         let newer = tracker.update(Mode::Points, &moved, &Document::new(), None);
         assert!(newer.version > other.version);
+    }
+
+    fn heavy_drawing(version: u64, mesh: Arc<scene::Mesh>) -> SceneDrawing {
+        SceneDrawing {
+            version,
+            items: vec![DrawItem {
+                id: ObjectId::from_raw(3),
+                mesh,
+                transform: Mat4::IDENTITY,
+                selected: true,
+            }],
+            editing: true,
+            points: false,
+        }
+    }
+
+    #[test]
+    fn heavy_shapes_are_indexed_in_the_background() {
+        let ball = Arc::new(mesh::samples::heavy_ball(60_000, 100.0));
+        let drawing = heavy_drawing(1, Arc::clone(&ball));
+        let mut tracker = ComponentTracker::default();
+        tracker.prepare(&drawing);
+        assert_eq!(tracker.building.len(), 1, "started on another thread");
+        // Asking again doesn't start it twice.
+        tracker.prepare(&drawing);
+        assert_eq!(tracker.building.len(), 1);
+        // The scene waits for it when needed, and finds the shape.
+        let pointer = pointer_at(Vec3::new(0.0, -100.0, 100.0));
+        let scene = tracker.pick_scene(&drawing);
+        assert!(
+            scene
+                .object_under(&pointer.camera, pointer.size, pointer.at)
+                .is_some()
+        );
+        assert!(tracker.building.is_empty());
+        // Light shapes are indexed when needed, not in the background.
+        let light = heavy_drawing(2, Arc::new(PrimitiveKind::Cube.standard().mesh()));
+        tracker.prepare(&light);
+        assert!(tracker.building.is_empty());
+    }
+
+    #[test]
+    fn during_a_drag_the_scene_is_kept_and_nothing_is_looked_up() {
+        let ball = Arc::new(mesh::samples::heavy_ball(2_000, 100.0));
+        let drawing = heavy_drawing(1, Arc::clone(&ball));
+        let mut tracker = ComponentTracker::default();
+        let pointer = pointer_at(Vec3::new(0.0, -100.0, 100.0));
+        tracker.update(Mode::Polygons, &drawing, &Document::new(), Some(pointer));
+        assert!(tracker.hovered().is_some());
+        tracker.freeze(true);
+        // A newer drawing (the shape moving) keeps the scene as it was,
+        // and nothing is hovered while dragging.
+        let mut moved = (*ball).clone();
+        let v = moved.vertices().next().unwrap().0;
+        moved.set_position(v, Vec3::splat(500.0));
+        let newer = heavy_drawing(2, Arc::new(moved));
+        tracker.update(Mode::Polygons, &newer, &Document::new(), Some(pointer));
+        assert_eq!(tracker.hovered(), None);
+        let kept = tracker.pick_scene(&newer).triangle_count();
+        assert_eq!(
+            tracker.scene.as_ref().unwrap().0,
+            1,
+            "still the first drawing"
+        );
+        assert_eq!(kept, ball.face_layout().1.len() - 2 * ball.face_count());
+        tracker.freeze(false);
+        tracker.pick_scene(&newer);
+        assert_eq!(tracker.scene.as_ref().unwrap().0, 2, "brought up to date");
     }
 
     #[test]
