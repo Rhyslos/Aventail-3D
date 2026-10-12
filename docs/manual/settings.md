@@ -1,6 +1,6 @@
 # Settings
 
-> Every app-wide preference in one place: the accent colour, metres or centimetres, how the mouse moves the view, the grid, how much undo may keep, and backup copies.
+> Every app-wide preference in one place: the accent colour, metres or centimetres, the tool menu's look, how the mouse moves the view, the grid, how much undo may keep, and backup copies.
 
 ![The Settings window, showing the Interface section](../screenshots/2026-10-11-settings.png)
 
@@ -27,6 +27,9 @@ A few of these settings also have a quick switch where you use them while workin
 | Section | Setting | What it does |
 |---|---|---|
 | Interface | **Accent colour** | The one colour that marks what's active: the current mode, the chosen option, the selection. Red as standard; Blue, Marine green, Plum, Olive or Petrol blue instead. |
+| Interface → Radial menu | **Look** | How the tool menu (E) looks: **Continuous ring** (standard), **Inner edge**, **Outlined**, **Solid tiles**, or a **List** like the shape list. Same tools, same places, same keys. See [The tool menu](tool-menu.md). |
+| Interface → Radial menu | **Show keys around the ring** | On (standard): each tool's key sits just outside its button. Off: the key shows in the middle, with the tool's name. |
+| Interface → Radial menu | **Tap E to open** | On (standard): a tap opens the menu and keeps it open. Off: it shows only while you hold E. |
 | Interface | **Lengths** | Show and type sizes in **metres** (standard) or **centimetres**. Only the display changes, never the shapes. |
 | Viewport | **Navigation controls** | Which mouse buttons orbit, pan and zoom. **Mouse only** is the standard; see [Navigating the view](navigating-the-view.md) for each scheme. |
 | Viewport | **Alt + mouse works in every scheme** | Keeps the Alt + mouse moves working whichever controls you pick. |

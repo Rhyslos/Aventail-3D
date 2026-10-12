@@ -44,3 +44,4 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0034](0034-uv-phase-after-modelling.md) | UVs as one phase after modelling, aiming to be the best UV tools | Accepted |
 | [0035](0035-heavy-meshes.md) | Heavy meshes: shared parts, flat lists, kept indexes, background work | Accepted |
 | [0036](0036-autosave.md) | Autosave: backup copies in the app's own folder, found again by file locks | Accepted |
+| [0037](0037-tool-menu-and-command-list.md) | The tool menu (E) and one command list | Accepted |

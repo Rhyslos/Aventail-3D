@@ -1,5 +1,5 @@
 //! The Settings window: every app-wide preference in one place, in
-//! sections (Interface, Viewport, Undo). Opened from Edit → Settings… or
+//! sections (Interface, Viewport, Undo, Autosave). Opened from Edit → Settings… or
 //! with `Ctrl + ,`.
 //!
 //! Switches you flip while working stay where you use them too (metres or
@@ -9,6 +9,7 @@
 use crate::autosave::{AutosaveSettings, COPIES, MINUTES};
 use crate::selecting::SelectKeys;
 use crate::theme::{self, Accent};
+use crate::tool_menu::{ToolMenuSettings, ToolMenuStyle};
 use crate::transforming::SnapSettings;
 use crate::undo_memory::{UndoMemory, format_bytes};
 use crate::units::Units;
@@ -71,6 +72,8 @@ pub(crate) struct Values<'a> {
     pub(crate) autosave: &'a mut AutosaveSettings,
     /// Where they go, if known.
     pub(crate) autosave_folder: Option<&'a std::path::Path>,
+    /// How the tool menu (E) looks.
+    pub(crate) tool_menu: &'a mut ToolMenuSettings,
 }
 
 /// The Settings window's state.
@@ -156,6 +159,7 @@ fn restore_standard(values: &mut Values<'_>) {
     *values.snap = SnapSettings::default();
     *values.undo_memory = UndoMemory::default();
     *values.autosave = AutosaveSettings::default();
+    *values.tool_menu = ToolMenuSettings::default();
 }
 
 /// A heading for a group of settings.
@@ -205,6 +209,48 @@ fn interface(ui: &mut Ui, values: &mut Values<'_>) {
             *values.units = units;
         }
     }
+    ui.add_space(8.0);
+    ui.add_space(6.0);
+    ui.separator();
+    radial_menu(ui, values);
+}
+
+/// The Interface page's Radial menu section: how the tool menu (E) looks
+/// and opens.
+fn radial_menu(ui: &mut Ui, values: &mut Values<'_>) {
+    ui.label(
+        RichText::new("Radial menu")
+            .size(15.0)
+            .strong()
+            .color(theme::TEXT_STRONG),
+    );
+    explain(
+        ui,
+        "Press E for the tools of what you're working on. Every look holds the same \
+         tools in the same places.",
+    );
+    heading(ui, "Look");
+    for style in ToolMenuStyle::ALL {
+        if ui
+            .radio(values.tool_menu.style == style, style.name())
+            .on_hover_text(style.description())
+            .clicked()
+        {
+            values.tool_menu.style = style;
+        }
+    }
+    ui.add_space(4.0);
+    ui.checkbox(&mut values.tool_menu.show_keys, "Show keys around the ring")
+        .on_hover_text(
+            "On: each tool's key sits just outside its button.\n\
+             Off: the key shows in the middle, with the name of the tool you point at.",
+        );
+    ui.checkbox(&mut values.tool_menu.tap_to_open, "Tap E to open")
+        .on_hover_text(
+            "On: a tap opens the menu and keeps it open; tap E again to step through it, \
+             and Enter or Space to use a tool. Easier if holding a key is hard.\n\
+             Off: the menu shows only while you hold E; let go over a tool to use it.",
+        );
 }
 
 fn viewport(ui: &mut Ui, values: &mut Values<'_>) {

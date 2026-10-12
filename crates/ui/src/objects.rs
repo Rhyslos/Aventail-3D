@@ -7,6 +7,7 @@
 //! [`DocRequest`]s (commands, undo, redo) for the workbench to carry out.
 //! Only the selection, which is not an undo step yet, is changed directly.
 
+use crate::commands::CommandId;
 use crate::icons::{self, Icon};
 use crate::theme::{self, tint};
 use egui::{
@@ -608,7 +609,13 @@ pub(crate) fn selection_entries(
     {
         manager.start_rename(doc, id);
     }
-    if entry(ui, "Delete", Some(&DELETE_SHORTCUT), !selection.is_empty()) {
+    let delete = CommandId::Delete.info();
+    if entry(
+        ui,
+        delete.name,
+        delete.shortcut.as_ref(),
+        !selection.is_empty(),
+    ) {
         out.push(DocRequest::Run(Command::Delete(selection.clone())));
     }
     ui.separator();
@@ -630,16 +637,21 @@ pub(crate) fn selection_entries(
 pub(crate) fn object_entries(ui: &mut Ui, doc: &Document, out: &mut Vec<DocRequest>) {
     let selection = doc.selection();
     let any = !selection.is_empty();
-    if entry(ui, "New group", None, true) {
+    let (new_group, group, ungroup) = (
+        CommandId::NewGroup.info(),
+        CommandId::Group.info(),
+        CommandId::Ungroup.info(),
+    );
+    if entry(ui, new_group.name, new_group.shortcut.as_ref(), true) {
         out.push(DocRequest::Run(Command::Create(ObjectKind::Group)));
     }
-    if entry(ui, "Group objects", Some(&GROUP_SHORTCUT), any) {
+    if entry(ui, group.name, group.shortcut.as_ref(), any) {
         out.push(DocRequest::Run(Command::Group(selection.clone())));
     }
     if entry(
         ui,
-        "Ungroup",
-        Some(&UNGROUP_SHORTCUT),
+        ungroup.name,
+        ungroup.shortcut.as_ref(),
         has_group(doc, &selection),
     ) {
         out.push(DocRequest::Run(Command::Ungroup(selection.clone())));
@@ -670,15 +682,14 @@ pub(crate) fn kind_icon(kind: &ObjectKind) -> (Icon, egui::Color32) {
 pub(crate) fn make_editable_entry(ui: &mut Ui, doc: &Document, out: &mut Vec<DocRequest>) {
     let selection = doc.selection();
     let can = can_make_editable(doc, &selection);
-    let mut button = egui::Button::new("Make editable");
-    button = button.shortcut_text(ui.ctx().format_shortcut(&MAKE_EDITABLE_SHORTCUT));
+    let info = CommandId::MakeEditable.info();
+    let mut button = egui::Button::new(info.name);
+    if let Some(keys) = info.shortcut {
+        button = button.shortcut_text(ui.ctx().format_shortcut(&keys));
+    }
     let response = ui
         .add_enabled(can, button)
-        .on_hover_text(
-            "Turn the selected shapes into plain meshes, ready for editing points, \
-             edges and polygons. Their settings and recorded edits are baked in. \
-             Undo brings the settings back.",
-        )
+        .on_hover_text(info.help)
         .on_disabled_hover_text("Select a shape (a group or a mesh has no settings to bake)");
     if response.clicked() {
         out.push(DocRequest::Run(Command::MakeEditable(selection)));

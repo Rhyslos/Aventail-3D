@@ -34,7 +34,7 @@ The mode palette sets what you're working on. The button filled with the accent 
 | Polygons | The faces of a mesh |
 | UV | The [UV map](concepts.md#uvs-and-texturing), in the UV Editor and on the model |
 
-You can also switch modes from the **Modes** menu, or press **1**, **2** or **3** for Points, Edges or Polygons (the same key again goes back to Model). Points, Edges and Polygons show the parts of the selected shapes; see [Points, Edges and Polygons modes](modes.md). Object and UV mode only change the status bar for now.
+You can also switch modes from the **Modes** menu, or press **1**, **2** or **3** for Points, Edges or Polygons (the same key again goes back to Model). Press **E** in any mode for that mode's tools ([The tool menu](tool-menu.md)). Points, Edges and Polygons show the parts of the selected shapes; see [Points, Edges and Polygons modes](modes.md). Object and UV mode only change the status bar for now.
 
 ## Rearranging panels
 
@@ -56,10 +56,11 @@ One colour marks what's active: the current mode (and later the current tool), t
 |---|---|
 | New, open, save, save as | `Ctrl + N`, `Ctrl + O`, `Ctrl + S`, `Ctrl + Shift + S` |
 | Settings | `Ctrl + ,` |
+| The tool menu: every tool for what you're working on | `E` (see [The tool menu](tool-menu.md)) |
 | Undo / redo | `Ctrl + Z` / `Ctrl + Y` (or `Ctrl + Shift + Z`) |
 | Points, Edges, Polygons mode (again: back to Model) | `1`, `2`, `3` |
 | Select, add, remove; box, lasso or brush | Click, `Ctrl` + click, `Shift` + click; drag, `Ctrl` + drag, `Shift` + drag (the standard pattern; see [Selecting](selecting.md)) |
-| Move / rotate / scale / all three; back to selecting | `W` / `R` / `S` / `T`; `Q` (see [Move, rotate and scale](transforming.md)) |
+| Move / rotate / scale / Transform (all three); back to selecting | `W` / `R` / `S` / `T`; `Q` (see [Move, rotate and scale](transforming.md)) |
 | Next select tool (Box, Lasso, Live selection) | `Q` (while selecting) |
 | Lock X / Y / Z; world or object axes | `X` / `Y` / `Z`; `L` |
 | While dragging the gizmo: fine, snap, cancel | Hold `Shift`; hold `Ctrl`; `Esc` or right-click |
