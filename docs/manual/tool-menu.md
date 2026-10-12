@@ -24,7 +24,7 @@ The modelling tools arrive one by one during Phase 4. Until a tool is built, its
    - **Point and click:** point towards a tool and click. You don't have to hit the button itself: anywhere in the slice towards it counts, so a rough direction is enough.
    - **Keys only:** tap **E** again to step to the next tool (**Shift + E** goes back; the arrow keys work too), then press **Enter** or **Space**.
    - **Hold and flick:** hold **E**, move the mouse towards a tool, and let go. With practice this becomes muscle memory: "extrude is straight up".
-3. To close the menu without choosing, press **Esc**, or click the cancel sign in the middle (a circle with a line), or click anywhere away from the ring.
+3. To close the menu without choosing, press **Esc**, or click anywhere away from the ring. Or point at the **cancel sign** in the middle (a circle with a line): it lights up, no tool is highlighted, and clicking, pressing Enter or letting go of E closes the menu without doing anything.
 
 **The buttons show only icons.** The middle of the ring names the tool you point at. If it can't be used right now (Ungroup with no group selected, say), the reason shows under the cancel sign, in yellow; for a tool still to come, it says when it arrives.
 
@@ -47,7 +47,7 @@ In **Edit → Settings… → Interface → Radial menu**:
 
 | Setting | What it does |
 |---|---|
-| **Look** | **Continuous ring** (standard): one solid band split by thin lines, like a dial; the slice you point at lights up, with an accent edge on its outside. **Inner edge**: dark tiles, and the one you point at gets an accent bar along the edge facing the middle. **Outlined**: dark tiles with a crisp edge; the one you point at glows in your accent colour. **Solid tiles**: grey tiles; the one you point at fills with your accent colour. **List**: a plain list by the mouse, like the shape list (B), with each tool's key on the right. All hold the same tools, in the same order. |
+| **Look** | **Continuous ring** (standard): one solid band split by thin lines, like a dial; the slice you point at lights up, with an accent edge on its outside. **Inner edge**: dark tiles, and the one you point at gets an accent bar along the edge facing the middle. **Outlined**: dark tiles with a crisp edge; the one you point at glows in your accent colour. **Solid tiles**: grey tiles with a white border; the one you point at fills with your accent colour. **List**: a plain list by the mouse, like the shape list (B), with each tool's key on the right. All hold the same tools, in the same order. |
 | **Show keys around the ring** | On (standard): each tool's key sits just outside its button. Off: the key shows in the middle, under the name of the tool you point at. |
 | **Tap E to open** | On (standard): a tap opens the menu and keeps it open. Off: the menu shows only while you hold E, and letting go over a tool uses it. |
 

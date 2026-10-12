@@ -72,7 +72,8 @@ The project lead redesigned the menu and every tool's icon with Claude in a mock
 
 **The ring**
 - **Same size and places everywhere.** Every mode's ring has the same **14 places** at the same size, so no button ever moves or changes size between modes. Delete has the same place in the object and modelling rings, and empty places stay empty.
-- **Icon only.** The buttons hold only their icons, centred. The middle names the tool pointed at, above a **cancel sign** (Delete's circle with a line): clicking there closes the menu.
+- **Icon only.** The buttons hold only their icons, centred. The middle names the tool pointed at, above a **cancel sign** (Delete's circle with a line). Pointing at it lights it up and unlights every tool; clicking, Enter or letting go of `E` there closes the menu without doing anything (fixed after the project lead found the last tool still being used).
+- **Solid tiles get a white border**, so they stand out from the scene (the project lead's request).
 - **Keys.** **Show keys around the ring** (a setting, on as standard) puts each key just outside its button. Off, the key shows in the middle with the name.
 
 **Settings**

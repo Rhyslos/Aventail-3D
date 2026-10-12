@@ -53,7 +53,8 @@ pub enum ToolMenuStyle {
     /// Dark tiles with a crisp edge; the highlighted one glows in the
     /// accent colour.
     Outlined,
-    /// Plain grey tiles; the highlighted one fills with the accent colour.
+    /// Grey tiles with a white border; the highlighted one fills with the
+    /// accent colour.
     SolidTiles,
     /// A list by the mouse, like the shape list.
     List,
@@ -90,7 +91,9 @@ impl ToolMenuStyle {
                 "Dark tiles; the highlighted one gets an accent bar along the edge facing the middle"
             }
             Self::Outlined => "Dark tiles with a crisp edge; the highlighted one glows",
-            Self::SolidTiles => "Grey tiles; the highlighted one fills with the accent colour",
+            Self::SolidTiles => {
+                "Grey tiles with a white border; the highlighted one fills with the accent colour"
+            }
             Self::List => "A list by the mouse, like the shape list (B)",
         }
     }
@@ -157,6 +160,10 @@ struct Open {
     held: bool,
     /// While held, the mouse pointed at a tool: letting go uses it.
     pointed: bool,
+    /// The mouse is in the middle, on the cancel sign: no tool is
+    /// highlighted, and letting go of `E`, `Enter` or `Space` closes the
+    /// menu without doing anything.
+    cancel: bool,
 }
 
 /// What the keys did this frame.
@@ -217,6 +224,9 @@ impl ToolMenu {
     #[cfg(test)]
     pub(crate) fn highlighted(&self, entries: &[Entry]) -> Option<CommandId> {
         let open = self.open?;
+        if open.cancel {
+            return None;
+        }
         entries.get(open.highlight).map(|e| e.slot.command)
     }
 
@@ -256,6 +266,7 @@ impl ToolMenu {
                 // A release in the same frame was a tap.
                 held: !released,
                 pointed: false,
+                cancel: false,
             });
             return None;
         };
@@ -264,6 +275,7 @@ impl ToolMenu {
             return None;
         }
         for back in presses {
+            open.cancel = false;
             open.highlight = if back {
                 (open.highlight + count - 1) % count
             } else {
@@ -271,13 +283,20 @@ impl ToolMenu {
             };
         }
         if pressed(ui, Key::ArrowDown) || pressed(ui, Key::ArrowRight) {
+            open.cancel = false;
             open.highlight = (open.highlight + 1) % count;
         }
         if pressed(ui, Key::ArrowUp) || pressed(ui, Key::ArrowLeft) {
+            open.cancel = false;
             open.highlight = (open.highlight + count - 1) % count;
         }
         if released && open.held {
             open.held = false;
+            if open.cancel {
+                // Let go on the cancel sign: nothing, and close.
+                self.open = None;
+                return None;
+            }
             if open.pointed {
                 let chosen = entries[open.highlight.min(count - 1)].slot.command;
                 self.open = None;
@@ -294,6 +313,10 @@ impl ToolMenu {
             return None;
         }
         if pressed(ui, Key::Enter) || pressed(ui, Key::Space) {
+            if open.cancel {
+                self.open = None;
+                return None;
+            }
             let chosen = entries[open.highlight.min(count - 1)].slot.command;
             self.open = None;
             return Some(KeyOutcome::Chose(chosen));
@@ -336,11 +359,21 @@ impl ToolMenu {
             && let Some(state) = self.open.as_mut()
         {
             state.highlight = index;
+            state.cancel = false;
             if state.held {
                 state.pointed = true;
             }
         }
-        let highlight = self.open.map_or(open.highlight, |o| o.highlight);
+        // Pointing into the middle: the cancel sign, and no tool.
+        let in_middle = pointer.is_some_and(|p| p.distance(ring.centre) <= MIDDLE);
+        if moved
+            && in_middle
+            && let Some(state) = self.open.as_mut()
+        {
+            state.cancel = true;
+        }
+        let state = self.open.unwrap_or(open);
+        let highlight = (!state.cancel).then_some(state.highlight);
         let accent = theme::accent(ctx).colors().fill;
         let show_keys = self.settings.show_keys;
         let mut chosen = None;
@@ -355,17 +388,20 @@ impl ToolMenu {
                     ring.band(painter);
                 }
                 // The middle, where a click closes the menu: the cancel sign.
-                painter.circle(
-                    ring.centre,
-                    MIDDLE,
-                    MIDDLE_FILL,
-                    Stroke::new(1.0, theme::TEXT_WEAK.gamma_multiply(0.45)),
-                );
+                let (edge, sign) = if state.cancel {
+                    (Stroke::new(2.0, accent), theme::TEXT_STRONG)
+                } else {
+                    (
+                        Stroke::new(1.0, theme::TEXT_WEAK.gamma_multiply(0.45)),
+                        theme::TEXT_WEAK,
+                    )
+                };
+                painter.circle(ring.centre, MIDDLE, MIDDLE_FILL, edge);
                 icons::paint(
                     painter,
                     Rect::from_center_size(ring.centre, Vec2::splat(MIDDLE * 0.95)),
                     Icon::Cancel,
-                    theme::TEXT_WEAK,
+                    sign,
                 );
                 if let Some(p) = pointer
                     && p.distance(ring.centre) > MIDDLE
@@ -382,7 +418,7 @@ impl ToolMenu {
                         ui.id().with(("tool", entry.slot.command)),
                         Sense::click(),
                     );
-                    let lit = index == highlight;
+                    let lit = Some(index) == highlight;
                     response.widget_info(|| {
                         WidgetInfo::selected(
                             WidgetType::Button,
@@ -413,15 +449,21 @@ impl ToolMenu {
                         chosen = Some(entry.slot.command);
                     }
                 }
-                // In the middle: what the highlighted tool is.
-                if let Some(entry) = entries.get(highlight) {
-                    caption(ui, ring.centre, entry, !show_keys);
-                    // The same in words for screen readers (and tests).
-                    let middle = Rect::from_center_size(ring.centre, Vec2::splat(2.0 * MIDDLE));
-                    let text = caption_text(ui.ctx(), entry);
-                    ui.interact(middle, ui.id().with("caption"), Sense::hover())
-                        .widget_info(|| WidgetInfo::labeled(WidgetType::Label, true, &text));
-                }
+                // In the middle: what the highlighted tool is, or Cancel.
+                let middle = Rect::from_center_size(ring.centre, Vec2::splat(2.0 * MIDDLE));
+                let text = match highlight.and_then(|i| entries.get(i)) {
+                    Some(entry) => {
+                        caption(ui, ring.centre, entry, !show_keys);
+                        caption_text(ui.ctx(), entry)
+                    }
+                    None => {
+                        cancel_caption(ui, ring.centre);
+                        CANCEL_TEXT.to_string()
+                    }
+                };
+                // The same in words for screen readers (and tests).
+                ui.interact(middle, ui.id().with("caption"), Sense::hover())
+                    .widget_info(|| WidgetInfo::labeled(WidgetType::Label, true, &text));
             });
         // A click anywhere in a tool's slice uses it; in the middle or far
         // away, it closes the menu.
@@ -582,6 +624,8 @@ const DIVIDER: Color32 = Color32::from_rgb(0x46, 0x46, 0x4c);
 const OUTLINE: Color32 = Color32::from_rgb(0x5a, 0x5a, 0x60);
 const INNER_LIT: Color32 = Color32::from_rgb(0x3e, 0x3e, 0x44);
 const INNER_BAR: Color32 = Color32::from_rgb(0x55, 0x55, 0x5b);
+/// The Solid tiles' border.
+const TILE_BORDER: Color32 = Color32::from_rgb(0xe8, 0xe8, 0xec);
 
 /// How many places the entries' ring has.
 fn count_places(entries: &[Entry]) -> usize {
@@ -752,6 +796,9 @@ impl Ring {
             }
             ToolMenuStyle::SolidTiles => {
                 painter.add(fill_slice(&tile, if lit { accent } else { TILE }));
+                // A white border, so the tiles stand out from the scene
+                // (the project lead's request).
+                outline_slice(painter, &tile, Stroke::new(1.2, TILE_BORDER));
             }
             ToolMenuStyle::List => {}
         }
@@ -845,6 +892,25 @@ fn backing(painter: &egui::Painter, text: Rect) {
         4.0,
         theme::PANEL.gamma_multiply(0.92),
     );
+}
+
+/// What the middle of the ring says while the mouse is on the cancel sign.
+pub(crate) const CANCEL_TEXT: &str = "Cancel. Close the menu without choosing a tool";
+
+/// The middle of the ring while the mouse is on the cancel sign.
+fn cancel_caption(ui: &Ui, centre: Pos2) {
+    let painter = ui.painter();
+    let name = painter.layout_no_wrap(
+        "Cancel".to_string(),
+        FontId::proportional(15.0),
+        theme::TEXT_STRONG,
+    );
+    let above = pos2(
+        centre.x - name.size().x / 2.0,
+        centre.y - MIDDLE - 8.0 - name.size().y,
+    );
+    backing(painter, Rect::from_min_size(above, name.size()));
+    painter.galley(above, name, theme::TEXT_STRONG);
 }
 
 /// What the middle of the ring says, as one line of words.

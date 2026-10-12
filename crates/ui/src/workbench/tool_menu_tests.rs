@@ -476,3 +476,51 @@ fn the_mesh_and_tools_menus_read_from_the_command_list() {
             .is_some()
     );
 }
+
+#[test]
+fn pointing_at_the_middle_cancels_instead_of_using_the_last_tool() {
+    // Regression: moving the mouse back into the middle kept the last
+    // tool lit, and Enter (or letting go of E) still used it.
+    let mut harness = fresh();
+    open(&mut harness);
+    let ring = Ring::new(MIDDLE, crate::commands::RING_PLACES);
+    let towards = (ring.place(2) - MIDDLE).normalized();
+    point(&mut harness, MIDDLE + towards * 90.0);
+    assert_eq!(highlighted(&harness), Some(CommandId::Scale));
+    point(&mut harness, MIDDLE + vec2(6.0, 4.0));
+    assert_eq!(
+        highlighted(&harness),
+        None,
+        "nothing lit on the cancel sign"
+    );
+    assert!(
+        harness
+            .query_by_label(crate::tool_menu::CANCEL_TEXT)
+            .is_some()
+    );
+    press(&mut harness, Modifiers::NONE, Key::Enter);
+    assert!(!harness.state().workbench.is_tool_menu_open());
+    assert_eq!(harness.state().workbench.tool(), Tool::Select);
+}
+
+#[test]
+fn letting_go_of_e_on_the_middle_does_nothing() {
+    let mut harness = fresh();
+    point(&mut harness, MIDDLE);
+    harness.key_down(TOOL_MENU_KEY);
+    harness.run();
+    let ring = Ring::new(MIDDLE, crate::commands::RING_PLACES);
+    let towards = (ring.place(1) - MIDDLE).normalized();
+    point(&mut harness, MIDDLE + towards * 90.0);
+    assert_eq!(highlighted(&harness), Some(CommandId::Rotate));
+    point(&mut harness, MIDDLE - vec2(5.0, 5.0));
+    harness.key_up(TOOL_MENU_KEY);
+    harness.run();
+    assert!(!harness.state().workbench.is_tool_menu_open());
+    assert_eq!(harness.state().workbench.tool(), Tool::Select);
+    // Stepping with E after pointing at the middle picks a tool again.
+    open(&mut harness);
+    point(&mut harness, MIDDLE + vec2(3.0, 0.0));
+    press(&mut harness, Modifiers::NONE, TOOL_MENU_KEY);
+    assert!(highlighted(&harness).is_some());
+}
