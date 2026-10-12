@@ -40,3 +40,4 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0030](0030-transform-gizmos.md) | Move, rotate and scale: gizmos, drags as one step, snapping and the Coordinates panel | Accepted |
 | [0031](0031-project-format-version-2.md) | Project file format version 2 | Accepted |
 | [0032](0032-edits-find-their-points-again.md) | Edits find their points again when a shape's settings change | Accepted |
+| [0033](0033-heavy-mesh-safeguard.md) | Heavy meshes: a safeguard, checked at phase gates | Accepted |

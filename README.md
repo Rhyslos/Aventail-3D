@@ -91,13 +91,15 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** points, edges and polygons can be selected and moved precisely, and a cube's segments can still be changed afterwards. *Awaiting the project lead's check, together with PR #22.*
 
-### Phase 4 · Core modelling tools — 0 of 7
+### Phase 4 · Core modelling tools — 0 of 9
 
 `░░░░░░░░░░░░░` 0%
 
 <details>
 <summary>Milestones</summary>
 
+- [ ] Heavy meshes: stays usable with a 2–3 million polygon object, checked at every phase gate
+- [ ] Autosave and crash recovery
 - [ ] Extrude and inset
 - [ ] Bevel and chamfer
 - [ ] Loop cut and knife
@@ -108,9 +110,9 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 </details>
 
-**Gate:** a simple hard-surface prop (a crate, a sci-fi panel) can be modelled from start to finish.
+**Gate:** a simple hard-surface prop (a crate, a sci-fi panel) can be modelled from start to finish, and the heavy-mesh check passes. From here on, every gate includes the heavy-mesh check.
 
-### Phase 5 · Export pipeline — 0 of 4
+### Phase 5 · Export pipeline — 0 of 6
 
 `░░░░░░░░░░░░░` 0%
 
@@ -121,12 +123,14 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [ ] glTF export
 - [ ] Consistent triangulation and MikkTSpace tangents
 - [ ] Export presets for Godot and Substance Painter
+- [ ] Bake readiness check: what would spoil a bake, in plain words, with one-click fixes
+- [ ] Kit export: each piece as its own file, and Godot collision meshes
 
 </details>
 
 **Gate:** a prop goes through Substance Painter into Godot with no fixes in other software.
 
-### Phase 6 · UVs — 0 of 6
+### Phase 6 · UVs — 0 of 8
 
 `░░░░░░░░░░░░░` 0%
 
@@ -139,6 +143,8 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [ ] Packing with padding
 - [ ] Texel density display and normalising
 - [ ] Checker texture and stretch view
+- [ ] Bake readiness for UVs: seams, overlaps, padding, texel density
+- [ ] Trim sheets
 
 </details>
 
@@ -151,7 +157,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 <details>
 <summary>Milestones</summary>
 
-- [ ] Edit Layers: a stack of edit layers per object, inspired by 3ds Max's Edit Poly stack
+- [ ] Edit Layers: a stack of edit layers per object, inspired by 3ds Max's Edit Poly stack, whose layers find their parts again when a layer below changes
 - [ ] Quick align and align tools
 - [ ] Optional quad menu
 
@@ -159,7 +165,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** stacking, toggling and editing earlier layers feels right to the project lead.
 
-### Phase 8 · Advanced hard-surface — 0 of 4
+### Phase 8 · Advanced hard-surface — 0 of 6
 
 `░░░░░░░░░░░░░` 0%
 
@@ -170,6 +176,8 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [ ] Weighted normals
 - [ ] Improved bevel
 - [ ] Array and mirror generators
+- [ ] Game bevel for mid-poly models: bevel, weighted normals, hard edges and seams in one step
+- [ ] Modular kit helpers: grid-sized pieces and pivot presets
 
 </details>
 
