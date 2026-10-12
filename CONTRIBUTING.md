@@ -88,7 +88,7 @@ A change is not done until its documentation is.
 
 ## Testing: two sign-offs per pull request
 
-1. **Code tests** by the author: normal cases, edge cases, failure cases (bad input gives an error, never a crash), a regression test for every bug fixed, round trips for anything that reads and writes a format, fuzz targets for new file readers, benchmarks for code on a performance path. The heavy-mesh check (a 3-million-polygon object, DESIGN.md §4.8) is not run on every pull request: it runs at the end of each phase as part of the gate, and whenever the project lead asks ([decision 0033](docs/decisions/0033-heavy-mesh-safeguard.md)). Run the full suite and report the results in the pull request.
+1. **Code tests** by the author: normal cases, edge cases, failure cases (bad input gives an error, never a crash), a regression test for every bug fixed, round trips for anything that reads and writes a format, fuzz targets for new file readers, benchmarks for code on a performance path. The heavy-mesh check (`tools/heavy/heavy-check.sh`, a 3-million-polygon object, DESIGN.md §4.8) is not run on every pull request: it runs at the end of each phase as part of the gate, and whenever the project lead asks ([decision 0033](docs/decisions/0033-heavy-mesh-safeguard.md)). Run the full suite and report the results in the pull request.
 2. **Functional test** by the project lead: the "how to test" list in the pull request, tried in the app (and in Substance Painter or Godot when export is involved).
 
 Both must pass before merging.

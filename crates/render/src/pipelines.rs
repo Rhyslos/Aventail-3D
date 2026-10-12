@@ -1,6 +1,7 @@
 //! The render pipelines: how each kind of geometry is drawn.
 
-use crate::geometry::{FaceVertex, LineVertex, SpriteVertex};
+use crate::geometry::{FaceVertex, LineVertex, Sprite};
+use crate::mesh_draw::MeshVertex;
 use crate::renderer::{COLOR_FORMAT, DEPTH_FORMAT};
 
 /// The kinds of geometry the viewport draws, in drawing order.
@@ -21,6 +22,25 @@ pub(crate) enum PipelineKind {
     Tints,
     /// The overlay's points and thick lines, a fixed size on screen.
     Sprites,
+    /// An object's mesh, placed in the world: its faces.
+    MeshFaces,
+    /// The same, for depth only (picking).
+    MeshPickDepth,
+    /// An object's edges.
+    MeshLines,
+    /// Every point of an object as a small dot.
+    MeshPoints,
+}
+
+impl PipelineKind {
+    /// Whether it draws an object's mesh, and so reads the object's
+    /// placement (bind group 1).
+    pub(crate) fn per_object(self) -> bool {
+        matches!(
+            self,
+            Self::MeshFaces | Self::MeshPickDepth | Self::MeshLines | Self::MeshPoints
+        )
+    }
 }
 
 /// Builds the pipeline for one kind of geometry.
@@ -33,8 +53,10 @@ pub(crate) fn create_pipeline(
 ) -> wgpu::RenderPipeline {
     let line_buffers: &[Option<wgpu::VertexBufferLayout<'static>>] = &[Some(LineVertex::LAYOUT)];
     let face_buffers: &[Option<wgpu::VertexBufferLayout<'static>>] = &[Some(FaceVertex::LAYOUT)];
-    let sprite_buffers: &[Option<wgpu::VertexBufferLayout<'static>>] =
-        &[Some(SpriteVertex::LAYOUT)];
+    let sprite_buffers: &[Option<wgpu::VertexBufferLayout<'static>>] = &[Some(Sprite::LAYOUT)];
+    let mesh_buffers: &[Option<wgpu::VertexBufferLayout<'static>>] = &[Some(MeshVertex::LAYOUT)];
+    let point_buffers: &[Option<wgpu::VertexBufferLayout<'static>>] =
+        &[Some(MeshVertex::POINT_LAYOUT)];
     let (label, vs, fs, topology, buffers) = match kind {
         PipelineKind::Sky => (
             "sky pipeline",
@@ -82,13 +104,50 @@ pub(crate) fn create_pipeline(
             wgpu::PrimitiveTopology::TriangleList,
             sprite_buffers,
         ),
+        PipelineKind::MeshFaces | PipelineKind::MeshPickDepth => (
+            if kind == PipelineKind::MeshFaces {
+                "object face pipeline"
+            } else {
+                "object pick depth pipeline"
+            },
+            "mesh_face_vs",
+            "mesh_face_fs",
+            wgpu::PrimitiveTopology::TriangleList,
+            mesh_buffers,
+        ),
+        PipelineKind::MeshLines => (
+            "object edge pipeline",
+            "mesh_line_vs",
+            "line_fs",
+            wgpu::PrimitiveTopology::LineList,
+            mesh_buffers,
+        ),
+        PipelineKind::MeshPoints => (
+            "object point pipeline",
+            "mesh_point_vs",
+            "sprite_fs",
+            wgpu::PrimitiveTopology::TriangleList,
+            point_buffers,
+        ),
     };
     let blend = matches!(
         kind,
-        PipelineKind::Grid | PipelineKind::Lines | PipelineKind::Tints | PipelineKind::Sprites
+        PipelineKind::Grid
+            | PipelineKind::Lines
+            | PipelineKind::Tints
+            | PipelineKind::Sprites
+            | PipelineKind::MeshLines
+            | PipelineKind::MeshPoints
     )
     .then_some(wgpu::BlendState::ALPHA_BLENDING);
-    let faces = matches!(kind, PipelineKind::Faces | PipelineKind::PickDepth);
+    let picking = matches!(kind, PipelineKind::PickDepth | PipelineKind::MeshPickDepth);
+    let faces = matches!(
+        kind,
+        PipelineKind::Faces
+            | PipelineKind::PickDepth
+            | PipelineKind::MeshFaces
+            | PipelineKind::MeshPickDepth
+    );
     let depth_write = faces;
     let depth_compare = if kind == PipelineKind::Sky {
         wgpu::CompareFunction::Always
@@ -100,7 +159,7 @@ pub(crate) fn create_pipeline(
     // grid is pushed back further still, so a shape lying on the ground
     // (a plane, a disc) hides the grid under it.
     let bias = match kind {
-        PipelineKind::Faces => wgpu::DepthBiasState {
+        PipelineKind::Faces | PipelineKind::MeshFaces => wgpu::DepthBiasState {
             constant: 4,
             slope_scale: 2.0,
             clamp: 0.0,
@@ -136,15 +195,11 @@ pub(crate) fn create_pipeline(
             bias,
         }),
         multisample: wgpu::MultisampleState {
-            count: if kind == PipelineKind::PickDepth {
-                1
-            } else {
-                sample_count
-            },
+            count: if picking { 1 } else { sample_count },
             ..Default::default()
         },
         // Picking only needs depth: no colour, no fragment shader.
-        fragment: (kind != PipelineKind::PickDepth).then_some(wgpu::FragmentState {
+        fragment: (!picking).then_some(wgpu::FragmentState {
             module: shader,
             entry_point: Some(fs),
             compilation_options: wgpu::PipelineCompilationOptions::default(),

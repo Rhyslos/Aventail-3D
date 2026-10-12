@@ -601,3 +601,108 @@ fn snapping_finds_points_then_edges_then_surfaces() {
     let found = scene.snap_target(&camera, SIZE, near_corner, all, &none, &moving);
     assert!(found.is_none_or(|p| p.distance(corner) > 1.0), "{found:?}");
 }
+
+// ---------------------------------------------------- heavy shapes, kept ---
+
+/// A bumpy ball and the same ball with a patch of points pulled out.
+fn ball_and_pulled() -> (Arc<Mesh>, Arc<Mesh>, Vec<VertexId>) {
+    let ball = mesh::samples::heavy_ball(4_000, 50.0);
+    let mut pulled = ball.clone();
+    let face = ball.faces().nth(1_800).unwrap().1.to_vec();
+    for v in &face {
+        let p = pulled.position(*v).unwrap();
+        pulled.set_position(*v, p + (p - Vec3::new(0.0, 0.0, 50.0)).normalize() * 30.0);
+    }
+    (Arc::new(ball), Arc::new(pulled), face)
+}
+
+/// Everything a scene answers about the view, to compare two scenes.
+fn answers(scene: &PickScene, camera: &Camera) -> Vec<String> {
+    let mut out = Vec::new();
+    for x in (0..1000).step_by(131) {
+        for y in (0..600).step_by(83) {
+            let at = Vec2::new(x as f32, y as f32);
+            for kind in [
+                ElementKind::Points,
+                ElementKind::Edges,
+                ElementKind::Polygons,
+            ] {
+                out.push(format!("{:?}", scene.under(kind, camera, SIZE, at)));
+            }
+        }
+    }
+    let region = Region::Rect {
+        a: Vec2::new(300.0, 150.0),
+        b: Vec2::new(700.0, 450.0),
+    };
+    for kind in [
+        ElementKind::Points,
+        ElementKind::Edges,
+        ElementKind::Polygons,
+    ] {
+        for visible in [false, true] {
+            out.push(format!(
+                "{:?}",
+                scene.elements_in(kind, camera, SIZE, &region, visible)
+            ));
+        }
+    }
+    out
+}
+
+#[test]
+fn an_index_updated_after_a_move_answers_as_a_fresh_one() {
+    let (ball, pulled, moved) = ball_and_pulled();
+    let camera = Camera::looking_at(Vec3::new(0.0, -260.0, 120.0), Vec3::new(0.0, 0.0, 50.0));
+    let kept = MeshPick::new(Arc::clone(&ball));
+    // Use every index once, so all of them are updated by the move.
+    let before = PickScene::from_picks([(Arc::new(kept), Mat4::IDENTITY, true)]);
+    let _ = answers(&before, &camera);
+    let kept = before.objects[0].pick.clone().unwrap();
+    let updated = kept.moved(Arc::clone(&pulled));
+    assert!(Arc::ptr_eq(updated.mesh(), &pulled));
+    let fresh = MeshPick::new(Arc::clone(&pulled));
+    let a = PickScene::from_picks([(Arc::new(updated), Mat4::IDENTITY, true)]);
+    let b = PickScene::from_picks([(Arc::new(fresh), Mat4::IDENTITY, true)]);
+    assert_eq!(answers(&a, &camera), answers(&b, &camera));
+    // The pulled-out patch is found where it now is.
+    let tip = moved
+        .iter()
+        .map(|v| pulled.position(*v).unwrap())
+        .sum::<Vec3>()
+        / moved.len() as f32;
+    let hovered = a.under(ElementKind::Polygons, &camera, SIZE, screen(&camera, tip));
+    assert!(hovered.is_some());
+    // A shape with different faces is indexed afresh.
+    let other = Arc::new(cube());
+    let rebuilt = a.objects[0]
+        .pick
+        .as_ref()
+        .unwrap()
+        .moved(Arc::clone(&other));
+    assert_eq!(rebuilt.tris.len(), 12);
+}
+
+#[test]
+fn a_heavy_shape_is_found_through_its_boxes_quickly() {
+    let ball = Arc::new(mesh::samples::heavy_ball(60_000, 50.0));
+    let camera = Camera::looking_at(Vec3::new(0.0, -260.0, 120.0), Vec3::new(0.0, 0.0, 50.0));
+    let scene = PickScene::from_picks([(Arc::new(MeshPick::new(ball)), Mat4::IDENTITY, true)]);
+    let middle = Vec2::new(500.0, 300.0);
+    let start = std::time::Instant::now();
+    for _ in 0..20 {
+        assert!(
+            scene
+                .under(ElementKind::Polygons, &camera, SIZE, middle)
+                .is_some()
+        );
+        assert!(
+            scene
+                .under(ElementKind::Points, &camera, SIZE, middle)
+                .is_some()
+        );
+    }
+    // Generous, even for a slow test machine in debug: a full scan of
+    // 120 000 triangles per look would take far longer.
+    assert!(start.elapsed().as_secs_f32() < 5.0, "{:?}", start.elapsed());
+}

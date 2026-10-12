@@ -4,6 +4,7 @@
 //! Layer 3 (front end). Produces operations and commands; never changes
 //! the scene directly. See this crate's README for its purpose and limits.
 
+mod bvh;
 pub mod camera;
 pub mod components;
 pub mod controls;
@@ -11,7 +12,7 @@ pub mod gizmo;
 pub mod navigation;
 
 pub use camera::{Camera, Ray};
-pub use components::{Element, ElementKind, Hovered, PickScene, Region, SnapTargets};
+pub use components::{Element, ElementKind, Hovered, MeshPick, PickScene, Region, SnapTargets};
 pub use controls::{Modifiers, NavigationSettings, Scheme};
 pub use gizmo::{Change, Drag, Gizmo, GizmoTool, Handle};
 pub use mesh::Bounds;

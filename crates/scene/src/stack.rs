@@ -14,7 +14,7 @@
 use crate::object::{ObjectId, ObjectKind};
 use glam::{Mat4, Vec3};
 use mesh::edit::{self, Outcome};
-use mesh::{Anchors, Mesh, Topology, VertexId};
+use mesh::{Anchors, Mesh, VertexId};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
@@ -97,7 +97,7 @@ impl Operation {
         let refound;
         let points = match anchors {
             Some(anchors) if !anchors.still_fit(mesh) => {
-                let (points, missing) = anchors.find(mesh, &Topology::new(mesh));
+                let (points, missing) = anchors.find(mesh, mesh.topology());
                 refound = points;
                 found_again = true;
                 not_found = missing;

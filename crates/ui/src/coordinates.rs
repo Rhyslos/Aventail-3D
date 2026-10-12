@@ -261,7 +261,7 @@ mod tests {
         doc.execute(Command::SetTransforms(vec![(cube, placed)]))
             .unwrap();
         let mut cache = DrawingCache::default();
-        let drawing = cache.update(&doc, false).drawing.clone();
+        let drawing = cache.update(&doc, None).drawing.clone();
         let target = Target::of(&doc, &drawing, Mode::Model, Axes::World);
         let view = CoordinatesView::of(target.as_ref(), &doc);
         assert!(view.position.unwrap().abs_diff_eq(placed.position, 1e-3));
@@ -274,7 +274,7 @@ mod tests {
 
         // Nothing selected: nothing to show.
         doc.clear_selection();
-        let drawing = cache.update(&doc, false).drawing.clone();
+        let drawing = cache.update(&doc, None).drawing.clone();
         let target = Target::of(&doc, &drawing, Mode::Model, Axes::World);
         assert_eq!(
             CoordinatesView::of(target.as_ref(), &doc),

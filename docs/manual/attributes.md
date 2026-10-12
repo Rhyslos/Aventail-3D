@@ -32,6 +32,8 @@ Whenever you want to change *what* an object is rather than where it is: make a 
 
 Below that, the app checks for problems that cause trouble later in modelling, UV unwrapping, baking or a game engine, and lists any it finds in amber: edges shared by three or more faces, faces facing the wrong way, edges with no length, faces with no area, and loose points. Hover over a line for what it means. Shapes made from settings never have these problems; they can come from editing (moving points onto each other, say) or from imported models.
 
+On a [heavy shape](heavy-shapes.md) (from about 50 000 polygons), the check runs in the background so the window doesn't stall, and the section says **Checking the mesh…** until it's done. The numbers under it are from before your last change until then.
+
 ![The Mesh section of a cube: 8 points, 12 edges, 6 polygons, 12 triangles, closed, no problems](../screenshots/2026-10-11-mesh-section.png)
 
 **Meshes.** An object that has been [made editable](objects.md#make-editable) has no settings: the panel shows "(mesh)" after its name, and the Mesh section.

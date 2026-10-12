@@ -45,37 +45,32 @@ impl FaceVertex {
     };
 }
 
-/// One corner of an overlay sprite: a point drawn as a small square, or a
-/// piece of a thick line, both a fixed number of pixels wide whatever the
-/// distance (see [`Overlay`]).
+/// One overlay sprite: a point drawn as a small dot, or a thick line, both
+/// a fixed number of pixels wide whatever the distance (see [`Overlay`]).
+/// The GPU makes its six corners (two triangles), so each costs one record.
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable)]
-pub struct SpriteVertex {
-    /// This corner's point in the world, in centimetres: the point, or
-    /// this end of the line.
-    pub position: [f32; 3],
-    /// The line's other end; the same as `position` for a point.
-    pub other: [f32; 3],
-    /// Which corner: for a point, -1 or 1 along screen X and Y; for a
-    /// line, x = -1 (this end's cap) and y = -1 or 1 (which side).
-    pub corner: [f32; 2],
+pub struct Sprite {
+    /// The point, or the line's first end, in the world (centimetres).
+    pub a: [f32; 3],
+    /// The line's other end; the same as `a` for a point.
+    pub b: [f32; 3],
     /// Width in pixels.
     pub width: f32,
     /// Linear-space colour with alpha.
     pub color: [f32; 4],
 }
 
-impl SpriteVertex {
-    /// Vertex layout for the sprite pipeline.
+impl Sprite {
+    /// Layout for the sprite pipeline: one record per sprite.
     pub(crate) const LAYOUT: wgpu::VertexBufferLayout<'static> = wgpu::VertexBufferLayout {
-        array_stride: std::mem::size_of::<SpriteVertex>() as wgpu::BufferAddress,
-        step_mode: wgpu::VertexStepMode::Vertex,
+        array_stride: std::mem::size_of::<Sprite>() as wgpu::BufferAddress,
+        step_mode: wgpu::VertexStepMode::Instance,
         attributes: &wgpu::vertex_attr_array![
             0 => Float32x3,
             1 => Float32x3,
-            2 => Float32x2,
-            3 => Float32,
-            4 => Float32x4
+            2 => Float32,
+            3 => Float32x4
         ],
     };
 }
@@ -87,59 +82,32 @@ impl SpriteVertex {
 /// front of it.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Overlay {
-    /// Points and thick lines, six corners (two triangles) each.
-    pub sprites: Vec<SpriteVertex>,
+    /// Points and thick lines.
+    pub sprites: Vec<Sprite>,
     /// See-through triangles laid on faces.
     pub tints: Vec<LineVertex>,
 }
 
 impl Overlay {
-    /// Adds a point at `at`, drawn as a square `size` pixels across.
+    /// Adds a point at `at`, drawn as a dot `size` pixels across.
     pub fn point(&mut self, at: Vec3, size: f32, color: [f32; 4]) {
-        let p = at.to_array();
-        for corner in [
-            [-1.0, -1.0],
-            [1.0, -1.0],
-            [1.0, 1.0],
-            [-1.0, -1.0],
-            [1.0, 1.0],
-            [-1.0, 1.0],
-        ] {
-            self.sprites.push(SpriteVertex {
-                position: p,
-                other: p,
-                corner,
-                width: size,
-                color,
-            });
-        }
+        self.sprites.push(Sprite {
+            a: at.to_array(),
+            b: at.to_array(),
+            width: size,
+            color,
+        });
     }
 
     /// Adds a line from `a` to `b`, `width` pixels thick. A line with no
     /// length is drawn as a point.
     pub fn line(&mut self, a: Vec3, b: Vec3, width: f32, color: [f32; 4]) {
-        if a == b {
-            return self.point(a, width, color);
-        }
-        let (a, b) = (a.to_array(), b.to_array());
-        let corner = |at: [f32; 3], other: [f32; 3], side: f32| SpriteVertex {
-            position: at,
-            other,
-            corner: [-1.0, side],
+        self.sprites.push(Sprite {
+            a: a.to_array(),
+            b: b.to_array(),
             width,
             color,
-        };
-        // Each end measures "sideways" from its own direction along the
-        // line, so side +1 at `b` is the same side as -1 at `a`. The quad's
-        // corners: a-, a+ at `a`; b- (= -1 at a's sides) is `b` with +1.
-        self.sprites.extend([
-            corner(a, b, -1.0),
-            corner(b, a, 1.0),
-            corner(b, a, -1.0),
-            corner(a, b, -1.0),
-            corner(b, a, -1.0),
-            corner(a, b, 1.0),
-        ]);
+        });
     }
 
     /// Adds a see-through triangle.
@@ -420,21 +388,22 @@ mod tests {
     }
 
     #[test]
-    fn overlay_points_and_lines_are_two_triangles_each() {
+    fn overlay_points_and_lines_are_one_record_each() {
         let mut overlay = Overlay::default();
         assert!(overlay.is_empty());
         overlay.point(Vec3::ZERO, 6.0, [1.0; 4]);
         overlay.line(Vec3::ZERO, Vec3::X, 3.0, [1.0; 4]);
-        assert_eq!(overlay.sprites.len(), 12);
-        assert!(overlay.sprites[..6].iter().all(|v| v.position == v.other));
-        assert!(overlay.sprites[6..].iter().all(|v| v.position != v.other));
-        // A line with no length becomes a point.
+        assert_eq!(overlay.sprites.len(), 2);
+        assert_eq!(overlay.sprites[0].a, overlay.sprites[0].b, "a point");
+        assert_ne!(overlay.sprites[1].a, overlay.sprites[1].b, "a line");
+        // A line with no length is drawn as a point.
         overlay.line(Vec3::Y, Vec3::Y, 3.0, [1.0; 4]);
-        assert_eq!(overlay.sprites.len(), 18);
+        assert_eq!(overlay.sprites.len(), 3);
+        assert_eq!(overlay.sprites[2].a, overlay.sprites[2].b);
         overlay.triangle([Vec3::ZERO, Vec3::X, Vec3::Y], [1.0; 4]);
         assert_eq!(overlay.tints.len(), 3);
-        assert_eq!(std::mem::size_of::<SpriteVertex>(), 52);
-        assert_eq!(SpriteVertex::LAYOUT.attributes[4].offset, 36);
+        assert_eq!(std::mem::size_of::<Sprite>(), 44);
+        assert_eq!(Sprite::LAYOUT.attributes[3].offset, 28);
     }
 
     #[test]

@@ -34,9 +34,89 @@ pub(crate) struct AttributesPanel {
     gesture: u64,
     /// A name being typed, for which object.
     name_draft: Option<(ObjectId, String)>,
-    /// The last mesh checked and its report, so the check runs only when
-    /// the shape changes.
-    checked: Option<(Arc<Mesh>, MeshReport)>,
+    /// The mesh check, run only when the shape changes.
+    checker: MeshChecker,
+}
+
+/// Below this many polygons the mesh check is quick enough to run at
+/// once; above, it runs in the background so the window never stalls
+/// ([decision 0035](../../../docs/decisions/0035-heavy-meshes.md)).
+const CHECK_IN_BACKGROUND_FROM: usize = 50_000;
+
+/// Checks objects' meshes, keeping the last report.
+#[derive(Default)]
+struct MeshChecker {
+    /// The last report, for which object and which mesh.
+    shown: Option<(ObjectId, Arc<Mesh>, MeshReport)>,
+    /// A check running in the background.
+    running: Option<(ObjectId, Arc<Mesh>, std::thread::JoinHandle<MeshReport>)>,
+}
+
+impl Clone for MeshChecker {
+    /// A copy starts afresh: reports are worked out again when needed.
+    fn clone(&self) -> Self {
+        Self::default()
+    }
+}
+
+impl std::fmt::Debug for MeshChecker {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MeshChecker")
+            .field("running", &self.running.is_some())
+            .finish()
+    }
+}
+
+impl MeshChecker {
+    /// The report on object `id`'s `mesh`, and whether it is up to date.
+    /// For a heavy mesh the check runs in the background, and until it
+    /// finishes the object's previous report (if any) is given, out of
+    /// date; `ctx` is asked to draw again when it is done.
+    fn report(
+        &mut self,
+        id: ObjectId,
+        mesh: &Arc<Mesh>,
+        ctx: &egui::Context,
+    ) -> (Option<MeshReport>, bool) {
+        if let Some((shown_id, shown, report)) = &self.shown
+            && *shown_id == id
+            && Arc::ptr_eq(shown, mesh)
+        {
+            return (Some(*report), true);
+        }
+        if self
+            .running
+            .as_ref()
+            .is_some_and(|(.., handle)| handle.is_finished())
+            && let Some((done_id, done, handle)) = self.running.take()
+            && let Ok(report) = handle.join()
+        {
+            self.shown = Some((done_id, Arc::clone(&done), report));
+            if done_id == id && Arc::ptr_eq(&done, mesh) {
+                return (Some(report), true);
+            }
+        }
+        if mesh.face_count() < CHECK_IN_BACKGROUND_FROM {
+            let report = MeshReport::new(mesh);
+            self.shown = Some((id, Arc::clone(mesh), report));
+            return (Some(report), true);
+        }
+        if self.running.is_none() {
+            let (work, ctx) = (Arc::clone(mesh), ctx.clone());
+            let handle = std::thread::spawn(move || {
+                let report = MeshReport::new(&work);
+                ctx.request_repaint();
+                report
+            });
+            self.running = Some((id, Arc::clone(mesh), handle));
+        }
+        let earlier = self
+            .shown
+            .as_ref()
+            .filter(|(shown_id, ..)| *shown_id == id)
+            .map(|(.., report)| *report);
+        (earlier, false)
+    }
 }
 
 /// The menu entries for the units lengths are shown in.
@@ -189,27 +269,19 @@ impl AttributesPanel {
                     section(ui, "Shape");
                     self.shape_rows(ui, id, *primitive, units, out);
                 }
-                if let Some(report) = self.report(doc, id) {
-                    mesh_section(ui, &report, matches!(object.kind, ObjectKind::Mesh(_)));
+                if let Some(shape) = doc.scene().evaluated(id) {
+                    let (report, current) = self.checker.report(id, &shape.mesh, ui.ctx());
+                    mesh_section(
+                        ui,
+                        report.as_ref(),
+                        current,
+                        matches!(object.kind, ObjectKind::Mesh(_)),
+                    );
                 }
                 if !object.stack.is_empty() {
                     edits_section(ui, doc, id, &object.stack);
                 }
             });
-    }
-
-    /// The check of `id`'s final mesh, worked out again only when the
-    /// mesh changes. `None` for an object without a shape.
-    fn report(&mut self, doc: &Document, id: ObjectId) -> Option<MeshReport> {
-        let shape = doc.scene().evaluated(id)?;
-        match &self.checked {
-            Some((mesh, report)) if Arc::ptr_eq(mesh, &shape.mesh) => Some(*report),
-            _ => {
-                let report = MeshReport::new(&shape.mesh);
-                self.checked = Some((shape.mesh, report));
-                Some(report)
-            }
-        }
     }
 
     /// The name, typed in place; kept when Enter is pressed or the box is
@@ -321,8 +393,18 @@ pub(crate) struct Shared<'a> {
 /// The Mesh section, for every shape: what its final mesh is made of
 /// (counted from the shape with its edits) and whether anything is wrong
 /// with it. A plain mesh also says what it is for.
-fn mesh_section(ui: &mut Ui, report: &MeshReport, plain_mesh: bool) {
+fn mesh_section(ui: &mut Ui, report: Option<&MeshReport>, current: bool, plain_mesh: bool) {
     section(ui, "Mesh");
+    if !current {
+        ui.label(RichText::new("Checking the mesh…").color(theme::TEXT_WEAK))
+            .on_hover_text(
+                "A heavy shape is checked in the background, so you can keep working. The \
+                 numbers below are from before the last change until it finishes.",
+            );
+    }
+    let Some(report) = report else {
+        return;
+    };
     egui::Grid::new("attributes_mesh")
         .num_columns(2)
         .min_col_width(LABEL_WIDTH)
@@ -430,8 +512,8 @@ fn mesh_section(ui: &mut Ui, report: &MeshReport, plain_mesh: bool) {
         ui.add_space(4.0);
         ui.label(
             RichText::new(
-                "A plain mesh: it has no settings, so its shape changes only by editing it. \
-                 Editing points, edges and polygons arrives later in Phase 3.",
+                "A plain mesh: it has no settings, so its shape changes only by editing \
+                 its points, edges and polygons (press 1, 2 or 3).",
             )
             .small()
             .color(theme::TEXT_WEAK),
@@ -551,4 +633,40 @@ fn section(ui: &mut Ui, title: &str) {
 fn label(ui: &mut Ui, text: &str, help: &str) {
     ui.label(RichText::new(text).color(theme::TEXT_WEAK))
         .on_hover_text(help);
+}
+
+#[cfg(test)]
+mod checker_tests {
+    use super::*;
+
+    #[test]
+    fn heavy_meshes_are_checked_in_the_background() {
+        let ctx = egui::Context::default();
+        let mut checker = MeshChecker::default();
+        let id = ObjectId::from_raw(1);
+        let light = Arc::new(mesh::PrimitiveKind::Cube.standard().mesh());
+        let (report, current) = checker.report(id, &light, &ctx);
+        assert!(current && report.unwrap().faces == 6, "light: at once");
+        let heavy = Arc::new(mesh::samples::heavy_ball(60_000, 100.0));
+        let (report, current) = checker.report(id, &heavy, &ctx);
+        assert!(!current, "heavy: in the background");
+        assert_eq!(
+            report.unwrap().faces,
+            6,
+            "the object's last report meanwhile"
+        );
+        // Another object has no report to show meanwhile.
+        let (other, _) = checker.report(ObjectId::from_raw(2), &heavy, &ctx);
+        assert!(other.is_none());
+        let start = std::time::Instant::now();
+        loop {
+            let (report, current) = checker.report(id, &heavy, &ctx);
+            if current {
+                assert_eq!(report.unwrap().faces, heavy.face_count());
+                break;
+            }
+            assert!(start.elapsed().as_secs() < 60, "the check never finished");
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+    }
 }

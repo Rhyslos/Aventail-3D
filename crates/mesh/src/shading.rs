@@ -9,7 +9,7 @@
 //! smooth curve. Normals are always worked out like this, never stored
 //! (DESIGN.md §4.1).
 
-use crate::polygon::{EdgeKey, FaceId, Mesh, VertexId, sides};
+use crate::polygon::{FaceId, Mesh, VertexId};
 use glam::Vec3;
 use std::collections::BTreeMap;
 
@@ -29,24 +29,22 @@ pub struct ShadedTriangle {
 /// primitives make; faces with dents get a proper cut with the modelling
 /// tools (Phase 4).
 pub fn shaded_triangles(mesh: &Mesh) -> Vec<ShadedTriangle> {
-    let normals = corner_normals(mesh);
+    let normals = corner_normal_list(mesh);
+    let (starts, corners) = mesh.face_layout();
     let mut out = Vec::new();
-    for (face, corners) in mesh.faces() {
-        let corner = |i: usize| {
-            let v = corners[i];
-            let position = mesh.position(v).unwrap_or(Vec3::ZERO);
-            let normal = normals
-                .get(&(face, v))
-                .copied()
-                .unwrap_or_else(|| mesh.face_normal(face));
-            (position, normal)
+    for (index, pair) in starts.windows(2).enumerate() {
+        let (a, b) = (pair[0] as usize, pair[1] as usize);
+        let face = FaceId::from_raw(index as u32);
+        let corner = |k: usize| {
+            let position = mesh.position(corners[k]).unwrap_or(Vec3::ZERO);
+            (position, normals[k])
         };
-        for i in 1..corners.len().saturating_sub(1) {
-            let (a, b, c) = (corner(0), corner(i), corner(i + 1));
+        for i in a + 1..b.saturating_sub(1) {
+            let (p, q, r) = (corner(a), corner(i), corner(i + 1));
             out.push(ShadedTriangle {
                 face,
-                positions: [a.0, b.0, c.0],
-                normals: [a.1, b.1, c.1],
+                positions: [p.0, q.0, r.0],
+                normals: [p.1, q.1, r.1],
             });
         }
     }
@@ -55,71 +53,192 @@ pub fn shaded_triangles(mesh: &Mesh) -> Vec<ShadedTriangle> {
 
 /// The shading normal of every face corner, keyed by face and point.
 pub fn corner_normals(mesh: &Mesh) -> BTreeMap<(FaceId, VertexId), Vec3> {
-    // How much each face counts at each of its corners: its normal scaled
-    // by the corner's angle, so a face counts by how much of the view
-    // around the point it fills, however it is cut up.
-    let mut weighted: BTreeMap<(FaceId, VertexId), Vec3> = BTreeMap::new();
-    for (face, corners) in mesh.faces() {
-        let normal = mesh.face_normal(face);
-        let n = corners.len();
-        for i in 0..n {
-            let at = |k: usize| mesh.position(corners[k]).unwrap_or(Vec3::ZERO);
-            let here = at(i);
-            let to_prev = at((i + n - 1) % n) - here;
-            let to_next = at((i + 1) % n) - here;
-            let angle = to_prev.angle_between(to_next);
-            let angle = if angle.is_finite() { angle } else { 0.0 };
-            weighted.insert((face, corners[i]), normal * angle.max(1e-6));
-        }
-    }
-    let mut faces_at: BTreeMap<VertexId, Vec<FaceId>> = BTreeMap::new();
-    let mut faces_on: BTreeMap<EdgeKey, Vec<FaceId>> = BTreeMap::new();
-    let mut edges_at: BTreeMap<VertexId, Vec<EdgeKey>> = BTreeMap::new();
-    for (face, corners) in mesh.faces() {
-        for (a, b) in sides(corners) {
-            faces_at.entry(a).or_default().push(face);
-            let key = EdgeKey::new(a, b);
-            let on = faces_on.entry(key).or_default();
-            if on.is_empty() {
-                edges_at.entry(a).or_default().push(key);
-                edges_at.entry(b).or_default().push(key);
-            }
-            on.push(face);
-        }
-    }
+    let normals = corner_normal_list(mesh);
+    let (starts, corners) = mesh.face_layout();
     let mut out = BTreeMap::new();
-    for (vertex, faces) in &faces_at {
-        // Join faces around this point that share a soft edge through it;
-        // each joined group shades as one smooth surface.
-        let mut group: Vec<usize> = (0..faces.len()).collect();
-        for edge in edges_at.get(vertex).into_iter().flatten() {
-            let (a, b) = edge.ends();
-            if mesh.is_hard(a, b) {
-                continue;
-            }
-            let Some(sharing) = faces_on.get(edge) else {
-                continue;
-            };
-            let members: Vec<usize> = sharing
-                .iter()
-                .filter_map(|f| faces.iter().position(|g| g == f))
-                .collect();
-            for pair in members.windows(2) {
-                join(&mut group, pair[0], pair[1]);
-            }
-        }
-        for (i, face) in faces.iter().enumerate() {
-            let root = find(&mut group, i);
-            let sum: Vec3 = (0..faces.len())
-                .filter(|j| find(&mut group, *j) == root)
-                .filter_map(|j| weighted.get(&(faces[j], *vertex)))
-                .sum();
-            let normal = sum
-                .try_normalize()
-                .unwrap_or_else(|| mesh.face_normal(*face));
-            out.insert((*face, *vertex), normal);
+    for (index, pair) in starts.windows(2).enumerate() {
+        for k in pair[0] as usize..pair[1] as usize {
+            out.insert((FaceId::from_raw(index as u32), corners[k]), normals[k]);
         }
     }
+    out
+}
+
+/// The shading normal of every face corner, in the order the mesh lists
+/// its faces' corners (face by face).
+pub fn corner_normal_list(mesh: &Mesh) -> Vec<Vec3> {
+    corner_shading(mesh).1
+}
+
+/// The smooth groups ([`smooth_groups`]) and the shading normal of every
+/// face corner, in the order the mesh lists its faces' corners. Worked out
+/// in a few passes over the corners, so it stays quick for heavy meshes.
+pub fn corner_shading(mesh: &Mesh) -> (Vec<u32>, Vec<Vec3>) {
+    let groups = smooth_groups(mesh);
+    let (starts, corners) = mesh.face_layout();
+    let faces = starts.len().saturating_sub(1);
+    // Each face's normal, and how much it counts at each of its corners
+    // (its normal times the corner's angle), worked out a share of the
+    // faces per thread.
+    let parts = crate::parallel::in_parallel(faces, |range| {
+        let mut face_normals = Vec::with_capacity(range.len());
+        let mut weights = Vec::new();
+        for f in range {
+            let (a, b) = (starts[f] as usize, starts[f + 1] as usize);
+            let normal = mesh.face_normal(FaceId::from_raw(f as u32));
+            face_normals.push(normal);
+            let n = b.saturating_sub(a);
+            let at = |i: usize| mesh.position(corners[a + i]).unwrap_or(Vec3::ZERO);
+            for i in 0..n {
+                let here = at(i);
+                let angle = (at((i + n - 1) % n) - here).angle_between(at((i + 1) % n) - here);
+                let angle = if angle.is_finite() { angle } else { 0.0 };
+                weights.push(normal * angle.max(1e-6));
+            }
+        }
+        (face_normals, weights)
+    });
+    let mut face_normals = Vec::with_capacity(faces);
+    let mut weights = Vec::with_capacity(corners.len());
+    for (normals, part) in parts {
+        face_normals.extend(normals);
+        weights.extend(part);
+    }
+    // Each group's weights add up at its first corner.
+    let mut sums = vec![Vec3::ZERO; corners.len()];
+    for (k, weight) in weights.iter().enumerate() {
+        sums[groups[k] as usize] += *weight;
+    }
+    let mut normals = vec![Vec3::Z; corners.len()];
+    for (f, pair) in starts.windows(2).enumerate() {
+        for k in pair[0] as usize..pair[1] as usize {
+            normals[k] = sums[groups[k] as usize]
+                .try_normalize()
+                .unwrap_or(face_normals[f]);
+        }
+    }
+    (groups, normals)
+}
+
+/// Where point `v` is in the mesh's corner list as a corner of `face`.
+fn corner_at(mesh: &Mesh, face: FaceId, v: VertexId) -> Option<usize> {
+    let (starts, corners) = mesh.face_layout();
+    let f = face.get() as usize;
+    let (a, b) = (*starts.get(f)? as usize, *starts.get(f + 1)? as usize);
+    (a..b).find(|k| corners[*k] == v)
+}
+
+/// The smooth groups at every point: for each face corner (in the order
+/// the mesh lists them), the first corner of the group it shades with.
+/// Corners around a point are in one group when their faces are joined
+/// through soft edges at that point; a hard edge splits them. Groups
+/// depend only on the faces and hard edges, not on where points are, so
+/// they stay the same while points move.
+pub fn smooth_groups(mesh: &Mesh) -> Vec<u32> {
+    let topology = mesh.topology();
+    let (starts, corners) = mesh.face_layout();
+    let mut groups: Vec<u32> = (0..corners.len() as u32).collect();
+    let any_hard = mesh.hard_edge_count() > 0;
+    // Each corner's previous and next corner in its face.
+    let neighbours = |k: usize, f: usize| {
+        let (a, b) = (starts[f] as usize, starts[f + 1] as usize);
+        let prev = if k == a { b - 1 } else { k - 1 };
+        let next = if k + 1 == b { a } else { k + 1 };
+        (corners[prev], corners[next])
+    };
+    // The corners at one point: (corner, its two neighbouring points).
+    let mut local: Vec<(usize, VertexId, VertexId)> = Vec::new();
+    let mut parent: Vec<usize> = Vec::new();
+    for (v, _) in mesh.vertices() {
+        local.clear();
+        for face in topology.vertex_faces(v) {
+            if let Some(k) = corner_at(mesh, *face, v) {
+                let (prev, next) = neighbours(k, face.get() as usize);
+                local.push((k, prev, next));
+            }
+        }
+        if local.len() < 2 {
+            continue;
+        }
+        parent.clear();
+        parent.extend(0..local.len());
+        // Two corners at `v` join when their faces share a soft edge
+        // through `v`: one corner's neighbour is the other's.
+        for i in 0..local.len() {
+            for j in i + 1..local.len() {
+                let (_, pi, ni) = local[i];
+                let (_, pj, nj) = local[j];
+                for other in [pi, ni] {
+                    if (other == pj || other == nj) && !(any_hard && mesh.is_hard(v, other)) {
+                        join(&mut parent, i, j);
+                    }
+                }
+            }
+        }
+        for i in 0..local.len() {
+            let root = find(&mut parent, i);
+            let first = (0..local.len())
+                .filter(|j| find(&mut parent, *j) == root)
+                .map(|j| local[j].0)
+                .min()
+                .unwrap_or(local[i].0);
+            groups[local[i].0] = first as u32;
+        }
+    }
+    groups
+}
+
+/// The shading normal of each smooth group at point `v`: the faces of
+/// the group, each counted by its normal times the angle it fills at `v`
+/// (so a face counts by how much of the view around the point it fills,
+/// however it is cut up). Gives each group's first corner (as
+/// [`smooth_groups`] names it) and its normal.
+pub fn group_normals_at(mesh: &Mesh, groups: &[u32], v: VertexId) -> Vec<(u32, Vec3)> {
+    let topology = mesh.topology();
+    let mut sums: Vec<(u32, Vec3, FaceId)> = Vec::new();
+    for face in topology.vertex_faces(v) {
+        let Some(k) = corner_at(mesh, *face, v) else {
+            continue;
+        };
+        let own = mesh.face(*face).unwrap_or_default();
+        let n = own.len();
+        let i = own.iter().position(|c| *c == v).unwrap_or(0);
+        let at = |j: usize| mesh.position(own[j]).unwrap_or(Vec3::ZERO);
+        let here = at(i);
+        let angle = (at((i + n - 1) % n) - here).angle_between(at((i + 1) % n) - here);
+        let angle = if angle.is_finite() { angle } else { 0.0 };
+        let weighted = mesh.face_normal(*face) * angle.max(1e-6);
+        let rep = groups.get(k).copied().unwrap_or(k as u32);
+        match sums.iter_mut().find(|(r, ..)| *r == rep) {
+            Some(entry) => entry.1 += weighted,
+            None => sums.push((rep, weighted, *face)),
+        }
+    }
+    sums.into_iter()
+        .map(|(rep, sum, face)| {
+            (
+                rep,
+                sum.try_normalize()
+                    .unwrap_or_else(|| mesh.face_normal(face)),
+            )
+        })
+        .collect()
+}
+
+/// The points whose shading changes when `moved` points move: every
+/// corner of every face that uses one of them (the faces turn, and the
+/// angles at their corners change).
+pub fn shading_reach(mesh: &Mesh, moved: &[VertexId]) -> Vec<VertexId> {
+    let topology = mesh.topology();
+    let mut out: Vec<VertexId> = Vec::new();
+    for v in moved {
+        out.push(*v);
+        for face in topology.vertex_faces(*v) {
+            out.extend_from_slice(mesh.face(*face).unwrap_or_default());
+        }
+    }
+    out.sort_unstable();
+    out.dedup();
     out
 }
 
@@ -197,5 +316,70 @@ mod tests {
     #[test]
     fn an_empty_mesh_draws_nothing() {
         assert!(shaded_triangles(&Mesh::new()).is_empty());
+        assert!(corner_shading(&Mesh::new()).0.is_empty());
+    }
+
+    #[test]
+    fn groups_split_at_hard_edges_and_stay_while_points_move() {
+        let (soft, v) = folded(false);
+        let groups = smooth_groups(&soft);
+        // v[0] is a corner of both faces: one group when soft.
+        let (starts, corners) = soft.face_layout();
+        let at = |f: usize| {
+            (starts[f] as usize..starts[f + 1] as usize)
+                .find(|k| corners[*k] == v[0])
+                .unwrap()
+        };
+        assert_eq!(groups[at(0)], groups[at(1)]);
+        let (hard, _) = folded(true);
+        let groups = smooth_groups(&hard);
+        assert_ne!(groups[at(0)], groups[at(1)]);
+        // Moving a point changes the normals, not the groups.
+        let mut moved = soft.clone();
+        moved.set_position(v[2], Vec3::new(1.0, 1.0, 0.5));
+        assert_eq!(smooth_groups(&moved), smooth_groups(&soft));
+        assert_ne!(corner_normal_list(&moved), corner_normal_list(&soft));
+    }
+
+    #[test]
+    fn faces_meeting_only_at_a_point_shade_apart() {
+        // Two triangles touching at one point, sharing no edge (a "bow
+        // tie"): each keeps its own normal there.
+        let mut mesh = Mesh::new();
+        let p = [
+            Vec3::ZERO,
+            Vec3::new(1.0, 0.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+            Vec3::new(-1.0, 0.0, 0.5),
+            Vec3::new(0.0, -1.0, 0.5),
+        ]
+        .map(|q| mesh.add_vertex(q).unwrap());
+        mesh.add_face(&[p[0], p[1], p[2]]).unwrap();
+        mesh.add_face(&[p[0], p[3], p[4]]).unwrap();
+        let groups = smooth_groups(&mesh);
+        assert_ne!(groups[0], groups[3], "the shared point's two corners");
+    }
+
+    #[test]
+    fn updating_around_moved_points_matches_working_everything_out() {
+        let mesh = crate::samples::heavy_ball(3_000, 50.0);
+        let mut moved = mesh.clone();
+        let points: Vec<VertexId> = mesh.faces().nth(1_000).unwrap().1.to_vec();
+        for v in &points {
+            let q = moved.position(*v).unwrap();
+            moved.set_position(*v, q * 1.2);
+        }
+        let (groups, full) = corner_shading(&moved);
+        let reach = shading_reach(&moved, &points);
+        assert!(
+            reach.len() > points.len() && reach.len() < 40,
+            "{}",
+            reach.len()
+        );
+        for v in reach {
+            for (rep, normal) in group_normals_at(&moved, &groups, v) {
+                assert!((full[rep as usize] - normal).length() < 1e-4);
+            }
+        }
     }
 }

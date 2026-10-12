@@ -50,8 +50,7 @@ fn with_selector<T>(
     work: impl FnOnce(&mut Selector<'_>) -> T,
 ) -> T {
     let mut cache = DrawingCache::default();
-    let drawing: Arc<SceneDrawing> =
-        Arc::clone(&cache.update(doc, kind_for(mode).is_some()).drawing);
+    let drawing: Arc<SceneDrawing> = Arc::clone(&cache.update(doc, kind_for(mode)).drawing);
     let scene = PickScene::new(
         drawing
             .items
@@ -471,7 +470,11 @@ fn a_flipping_brush_flips_each_thing_once_per_stroke() {
         stroke: Some(stroke),
     };
     let mut cache = DrawingCache::default();
-    let drawing = Arc::clone(&cache.update(&doc, true).drawing);
+    let drawing = Arc::clone(
+        &cache
+            .update(&doc, Some(tools::ElementKind::Polygons))
+            .drawing,
+    );
     let scene = PickScene::new(
         drawing
             .items

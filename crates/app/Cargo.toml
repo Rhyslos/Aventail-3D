@@ -21,13 +21,18 @@ path = "src/main.rs"
 
 [dependencies]
 ui.workspace = true
+# Meshes kept on the GPU per object, updated where points moved.
+mesh.workspace = true
+glam.workspace = true
 fileio.workspace = true
 rfd.workspace = true
 render.workspace = true
 eframe.workspace = true
 
 [dev-dependencies]
-glam.workspace = true
+scene.workspace = true
+# Aims the camera in tests.
+tools.workspace = true
 
 [target.'cfg(windows)'.dependencies]
 windows-sys.workspace = true

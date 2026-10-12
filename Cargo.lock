@@ -200,9 +200,12 @@ dependencies = [
  "eframe",
  "fileio",
  "glam",
+ "mesh",
  "raw-window-handle",
  "render",
  "rfd",
+ "scene",
+ "tools",
  "ui",
  "windows-sys 0.61.2",
 ]

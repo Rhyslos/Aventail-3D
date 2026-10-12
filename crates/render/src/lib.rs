@@ -3,7 +3,9 @@
 //! Draws each viewport with wgpu into its own offscreen image: a calm
 //! backdrop with a horizon, a finite ground grid on the X–Y plane (Z is
 //! up) with the X, Y and Z axes, and shapes with soft studio shading and faint edges.
-//! For now the only shape is a test cube; objects arrive in Phase 2.
+//! Each object's mesh is kept on the GPU in its own space ([`MeshGeometry`],
+//! [`ViewportRenderer::set_mesh`]) and placed in the world as it is drawn
+//! ([`MeshDraw`]).
 //!
 //! This crate knows nothing about egui or windows: it receives a
 //! [`FrameParams`] (camera matrices, background colours) and produces an
@@ -11,6 +13,7 @@
 
 mod frame;
 mod geometry;
+mod mesh_draw;
 mod pick;
 mod pipelines;
 mod readback;
@@ -22,9 +25,9 @@ pub use frame::{
 };
 pub use geometry::{
     AXIS_SEGMENT, CUBE_COLOR, EDGE_COLOR, FaceVertex, LineVertex, MeshInstance, Overlay, Shape,
-    SpriteVertex, TEST_CUBE_SIZE, X_AXIS_COLOR, Y_AXIS_COLOR, Z_AXIS_COLOR, Z_AXIS_HEIGHT,
-    ground_axes,
+    Sprite, TEST_CUBE_SIZE, X_AXIS_COLOR, Y_AXIS_COLOR, Z_AXIS_COLOR, Z_AXIS_HEIGHT, ground_axes,
 };
+pub use mesh_draw::{MeshDraw, MeshGeometry, MeshVertex};
 pub use pick::{PickRequest, PickResult};
 pub use readback::read_pixels;
 pub use renderer::{
@@ -69,6 +72,10 @@ mod shader_tests {
                 "grid_vs",
                 "line_fs",
                 "line_vs",
+                "mesh_face_fs",
+                "mesh_face_vs",
+                "mesh_line_vs",
+                "mesh_point_vs",
                 "sky_fs",
                 "sky_vs",
                 "sprite_fs",

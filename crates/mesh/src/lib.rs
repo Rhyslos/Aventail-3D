@@ -8,8 +8,10 @@ pub mod anchors;
 pub mod bounds;
 pub mod check;
 pub mod edit;
+pub mod parallel;
 pub mod polygon;
 pub mod primitives;
+pub mod samples;
 pub mod selection;
 pub mod shading;
 pub mod topology;
@@ -23,5 +25,8 @@ pub use primitives::{
     SphereParams, TubeParams,
 };
 pub use selection::{Combine, Element, ElementKind, ElementSelection};
-pub use shading::{ShadedTriangle, corner_normals, shaded_triangles};
+pub use shading::{
+    ShadedTriangle, corner_normal_list, corner_normals, corner_shading, group_normals_at,
+    shaded_triangles, shading_reach, smooth_groups,
+};
 pub use topology::{EdgeUse, Topology};

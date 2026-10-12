@@ -8,6 +8,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Heavy shapes stay quick.** A shape of millions of polygons, like a detailed model someone might import, can now be selected, hovered over and edited without the window stalling. Work that takes a moment happens in the background, with a quiet note in the view ("Preparing a heavy shape for drawing…") or in the Attributes panel ("Checking the mesh…").
+- **Help → Add a heavy test shape** adds a bumpy ball of 3 million polygons, to see how your computer copes. Undo takes it away again.
 - **Edits follow a shape's settings.** Pull up a cube's top polygon, then give the cube more segments: the whole top stays lifted, because edits now remember where their points, edges and polygons were and find them again on the changed shape. The Attributes panel notes when that happened.
 - **Scale along two axes at once**: the Scale gizmo has squares between its boxes, like Move. The direction you drag decides how much each axis scales: drag mostly along X and it scales mostly along X.
 - **Move, rotate and scale.** Press **W**, **R** or **S** (or **T** for all three) with something selected, and drag the gizmo's arrows, squares, rings or boxes. It works on whole shapes in Model mode, and on points, edges and polygons in their modes, where the shape stretches to follow. Each drag is one undo step.
@@ -27,6 +29,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Wireframes too dense to see (a heavy shape from afar) fade out instead of covering the shape; zoom in and the edges come back. A selected heavy shape keeps a faint tint of the accent colour.
+- In Points, Edges and Polygons mode, the edited shape's edges are drawn as fine lines, with its points as dots, by the graphics card directly.
+- The Attributes panel's note on plain meshes no longer says editing arrives later.
 - The menus' notes about upcoming UV tools now say Phase 8: UVs come after the modelling phases.
 - Projects are saved in format version 2, so turned and scaled points are kept. Older projects still open; projects saved now need this version of the app or newer.
 - **Ctrl + mouse wheel** no longer zooms the view; it grows and shrinks the selection.

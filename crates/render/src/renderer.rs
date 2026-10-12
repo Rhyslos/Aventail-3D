@@ -7,8 +7,11 @@
 
 use crate::frame::{FrameParams, FrameUniforms, GRID_HALF_EXTENT};
 use crate::geometry::{Overlay, Shape, ground_axes};
+use crate::mesh_draw::{MeshDraw, MeshGeometry, ObjectUniforms};
 use crate::pick::{PickRequest, PickResult, Picker};
 use crate::pipelines::{PipelineKind, create_pipeline};
+use std::collections::HashMap;
+use std::ops::Range;
 use wgpu::util::DeviceExt;
 
 /// Colour format the viewport renders in: 8-bit RGBA, sRGB-encoded, so
@@ -100,6 +103,55 @@ impl GpuBuffer {
     }
 }
 
+/// One object's mesh on the GPU.
+#[derive(Debug)]
+struct GpuMesh {
+    vertices: wgpu::Buffer,
+    vertex_count: u32,
+    edge_length: f32,
+    triangles: Option<GpuIndices>,
+    edges: Option<GpuIndices>,
+}
+
+/// Vertex numbers on the GPU, with how many there are.
+#[derive(Debug)]
+struct GpuIndices {
+    buffer: wgpu::Buffer,
+    count: u32,
+}
+
+impl GpuIndices {
+    fn new(device: &wgpu::Device, label: &str, data: &[u32]) -> Option<Self> {
+        (!data.is_empty()).then(|| Self {
+            buffer: device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some(label),
+                contents: bytemuck::cast_slice(data),
+                usage: wgpu::BufferUsages::INDEX,
+            }),
+            count: u32::try_from(data.len()).unwrap_or(u32::MAX),
+        })
+    }
+}
+
+/// The objects to draw this frame: each one's placement in the uniform
+/// buffer, where it starts.
+#[derive(Debug)]
+struct Placements {
+    buffer: wgpu::Buffer,
+    bind_group: wgpu::BindGroup,
+    /// How many objects fit.
+    capacity: usize,
+    draws: Vec<(MeshDraw, u32)>,
+}
+
+/// Which part of the object meshes to draw.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum MeshPart {
+    Faces,
+    Edges,
+    Points,
+}
+
 /// Everything needed to draw viewports on one GPU device.
 #[derive(Debug)]
 pub struct ViewportRenderer {
@@ -119,6 +171,16 @@ pub struct ViewportRenderer {
     edges: Option<GpuBuffer>,
     overlay_tints: Option<GpuBuffer>,
     overlay_sprites: Option<GpuBuffer>,
+    mesh_face_pipeline: wgpu::RenderPipeline,
+    mesh_pick_pipeline: wgpu::RenderPipeline,
+    mesh_line_pipeline: wgpu::RenderPipeline,
+    mesh_point_pipeline: wgpu::RenderPipeline,
+    object_layout: wgpu::BindGroupLayout,
+    /// Bytes between objects' placements in the uniform buffer (the GPU's
+    /// alignment for them).
+    object_stride: u64,
+    meshes: HashMap<u64, GpuMesh>,
+    placements: Option<Placements>,
 }
 
 impl ViewportRenderer {
@@ -162,7 +224,38 @@ impl ViewportRenderer {
             bind_group_layouts: &[Some(&bind_group_layout)],
             immediate_size: 0,
         });
-        let pipeline = |kind| create_pipeline(device, &layout, &shader, sample_count, kind);
+        let object_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("object layout"),
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: true,
+                    min_binding_size: wgpu::BufferSize::new(
+                        std::mem::size_of::<ObjectUniforms>() as u64
+                    ),
+                },
+                count: None,
+            }],
+        });
+        let object_pipeline_layout =
+            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("object layout"),
+                bind_group_layouts: &[Some(&bind_group_layout), Some(&object_layout)],
+                immediate_size: 0,
+            });
+        let pipeline = |kind: PipelineKind| {
+            let layout = if kind.per_object() {
+                &object_pipeline_layout
+            } else {
+                &layout
+            };
+            create_pipeline(device, layout, &shader, sample_count, kind)
+        };
+        let alignment = u64::from(device.limits().min_uniform_buffer_offset_alignment).max(1);
+        let size = std::mem::size_of::<ObjectUniforms>() as u64;
+        let object_stride = size.div_ceil(alignment) * alignment;
         let mut renderer = Self {
             sample_count,
             uniform_buffer,
@@ -180,6 +273,14 @@ impl ViewportRenderer {
             edges: None,
             overlay_tints: None,
             overlay_sprites: None,
+            mesh_face_pipeline: pipeline(PipelineKind::MeshFaces),
+            mesh_pick_pipeline: pipeline(PipelineKind::MeshPickDepth),
+            mesh_line_pipeline: pipeline(PipelineKind::MeshLines),
+            mesh_point_pipeline: pipeline(PipelineKind::MeshPoints),
+            object_layout,
+            object_stride,
+            meshes: HashMap::new(),
+            placements: None,
         };
         renderer.set_shape(device, &Shape::test_cube());
         renderer
@@ -190,6 +291,122 @@ impl ViewportRenderer {
     pub fn set_shape(&mut self, device: &wgpu::Device, shape: &Shape) {
         self.faces = GpuBuffer::new(device, "shape faces", &shape.faces);
         self.edges = GpuBuffer::new(device, "shape edges", &shape.edges);
+    }
+
+    /// Uploads an object's mesh under `key`, replacing any mesh it had.
+    /// It is drawn where [`Self::set_draws`] places it.
+    pub fn set_mesh(&mut self, device: &wgpu::Device, key: u64, geometry: &MeshGeometry) {
+        if geometry.vertices.is_empty() {
+            self.meshes.remove(&key);
+            return;
+        }
+        let vertices = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("object vertices"),
+            contents: bytemuck::cast_slice(&geometry.vertices),
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+        });
+        self.meshes.insert(
+            key,
+            GpuMesh {
+                vertices,
+                vertex_count: u32::try_from(geometry.vertices.len()).unwrap_or(u32::MAX),
+                edge_length: geometry.edge_length,
+                triangles: GpuIndices::new(device, "object triangles", &geometry.triangles),
+                edges: GpuIndices::new(device, "object edges", &geometry.edges),
+            },
+        );
+    }
+
+    /// Uploads only `ranges` of an object's vertices, after
+    /// [`MeshGeometry::moved`]. Does nothing if the mesh under `key` has a
+    /// different number of vertices (upload it whole instead).
+    pub fn update_mesh(
+        &mut self,
+        queue: &wgpu::Queue,
+        key: u64,
+        geometry: &MeshGeometry,
+        ranges: &[Range<usize>],
+    ) {
+        let Some(mesh) = self.meshes.get(&key) else {
+            return;
+        };
+        if mesh.vertex_count as usize != geometry.vertices.len() {
+            return;
+        }
+        let stride = std::mem::size_of::<crate::MeshVertex>() as u64;
+        for range in ranges {
+            let Some(part) = geometry.vertices.get(range.clone()) else {
+                continue;
+            };
+            queue.write_buffer(
+                &mesh.vertices,
+                range.start as u64 * stride,
+                bytemuck::cast_slice(part),
+            );
+        }
+    }
+
+    /// Forgets every object mesh except those under `keys`.
+    pub fn keep_meshes(&mut self, keys: &[u64]) {
+        self.meshes.retain(|key, _| keys.contains(key));
+    }
+
+    /// How many object meshes are on the GPU.
+    pub fn mesh_count(&self) -> usize {
+        self.meshes.len()
+    }
+
+    /// Which object meshes to draw from now on, where, and how.
+    pub fn set_draws(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, draws: &[MeshDraw]) {
+        let needed = draws.len().max(1);
+        if self.placements.as_ref().is_none_or(|p| p.capacity < needed) {
+            let capacity = needed.next_power_of_two();
+            let buffer = device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("object placements"),
+                size: self.object_stride * capacity as u64,
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            });
+            let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("object placements"),
+                layout: &self.object_layout,
+                entries: &[wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                        buffer: &buffer,
+                        offset: 0,
+                        size: wgpu::BufferSize::new(std::mem::size_of::<ObjectUniforms>() as u64),
+                    }),
+                }],
+            });
+            self.placements = Some(Placements {
+                buffer,
+                bind_group,
+                capacity,
+                draws: Vec::new(),
+            });
+        }
+        let Some(placements) = self.placements.as_mut() else {
+            return;
+        };
+        let stride = self.object_stride as usize;
+        let mut bytes = vec![0u8; stride * draws.len()];
+        placements.draws.clear();
+        for (i, draw) in draws.iter().enumerate() {
+            let edge_length = self.meshes.get(&draw.key).map_or(0.0, |m| m.edge_length);
+            let uniforms = ObjectUniforms::new(draw, edge_length);
+            let raw = bytemuck::bytes_of(&uniforms);
+            bytes[i * stride..i * stride + raw.len()].copy_from_slice(raw);
+            placements.draws.push((*draw, (i * stride) as u32));
+        }
+        if !bytes.is_empty() {
+            queue.write_buffer(&placements.buffer, 0, &bytes);
+        }
+    }
+
+    /// Draws every placed object mesh with `part`.
+    fn draw_meshes(&self, pass: &mut wgpu::RenderPass<'_>, part: MeshPart) {
+        draw_meshes(&self.meshes, self.placements.as_ref(), pass, part);
     }
 
     /// Replaces the overlay drawn over the shape (the Points, Edges and
@@ -211,8 +428,17 @@ impl ViewportRenderer {
         request: PickRequest,
     ) -> bool {
         let faces = self.faces.as_ref().map(|f| (&f.buffer, f.count));
+        let (all, placements, pipeline) = (
+            &self.meshes,
+            self.placements.as_ref(),
+            &self.mesh_pick_pipeline,
+        );
+        let meshes = |pass: &mut wgpu::RenderPass<'_>| {
+            pass.set_pipeline(pipeline);
+            draw_meshes(all, placements, pass, MeshPart::Faces);
+        };
         self.picker
-            .request(device, queue, &self.pick_pipeline, faces, request)
+            .request(device, queue, &self.pick_pipeline, faces, &meshes, request)
     }
 
     /// The answer to the last [`Self::request_pick`], if the GPU has
@@ -365,6 +591,8 @@ impl ViewportRenderer {
             if let Some(faces) = &self.faces {
                 faces.draw(&mut pass);
             }
+            pass.set_pipeline(&self.mesh_face_pipeline);
+            self.draw_meshes(&mut pass, MeshPart::Faces);
             pass.set_pipeline(&self.grid_pipeline);
             pass.draw(0..6, 0..1);
             pass.set_pipeline(&self.line_pipeline);
@@ -374,16 +602,61 @@ impl ViewportRenderer {
             if let Some(edges) = &self.edges {
                 edges.draw(&mut pass);
             }
+            pass.set_pipeline(&self.mesh_line_pipeline);
+            self.draw_meshes(&mut pass, MeshPart::Edges);
             // The overlay last, still hidden behind surfaces in front.
             if let Some(tints) = &self.overlay_tints {
                 pass.set_pipeline(&self.tint_pipeline);
                 tints.draw(&mut pass);
             }
+            pass.set_pipeline(&self.mesh_point_pipeline);
+            self.draw_meshes(&mut pass, MeshPart::Points);
             if let Some(sprites) = &self.overlay_sprites {
                 pass.set_pipeline(&self.sprite_pipeline);
-                sprites.draw(&mut pass);
+                pass.set_vertex_buffer(0, sprites.buffer.slice(..));
+                pass.draw(0..6, 0..sprites.count);
             }
         }
         queue.submit([encoder.finish()]);
+    }
+}
+
+/// Draws every placed object mesh with `part`.
+fn draw_meshes(
+    meshes: &HashMap<u64, GpuMesh>,
+    placements: Option<&Placements>,
+    pass: &mut wgpu::RenderPass<'_>,
+    part: MeshPart,
+) {
+    let Some(placements) = placements else {
+        return;
+    };
+    for (draw, offset) in &placements.draws {
+        let Some(mesh) = meshes.get(&draw.key) else {
+            continue;
+        };
+        pass.set_bind_group(1, &placements.bind_group, &[*offset]);
+        match part {
+            MeshPart::Faces => {
+                if let Some(triangles) = &mesh.triangles {
+                    pass.set_vertex_buffer(0, mesh.vertices.slice(..));
+                    pass.set_index_buffer(triangles.buffer.slice(..), wgpu::IndexFormat::Uint32);
+                    pass.draw_indexed(0..triangles.count, 0, 0..1);
+                }
+            }
+            MeshPart::Edges => {
+                if let Some(edges) = mesh.edges.as_ref().filter(|_| draw.edges) {
+                    pass.set_vertex_buffer(0, mesh.vertices.slice(..));
+                    pass.set_index_buffer(edges.buffer.slice(..), wgpu::IndexFormat::Uint32);
+                    pass.draw_indexed(0..edges.count, 0, 0..1);
+                }
+            }
+            MeshPart::Points => {
+                if draw.points.is_some() {
+                    pass.set_vertex_buffer(0, mesh.vertices.slice(..));
+                    pass.draw(0..6, 0..mesh.vertex_count);
+                }
+            }
+        }
     }
 }

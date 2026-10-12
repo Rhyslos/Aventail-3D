@@ -23,6 +23,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Triangle count** — How many triangles a model becomes once every face is cut into triangles, as game engines and GPUs do: a quad is 2, an n-gon with 8 corners is 6. It's the usual measure of how heavy a game asset is. The Attributes panel shows it for every shape.
 
+**High-poly and low-poly** — A *high-poly* model has millions of small polygons for fine detail, like a sculpt or a 3D scan; it's too heavy for a game. A *low-poly* model is the light version a game uses, often modelled on top of the high-poly one (*retopology*), with the detail baked into textures. The app copes with high-poly shapes in the scene: see [Heavy shapes](heavy-shapes.md).
+
 **Border (open edge)** — An edge with a face on one side only, like the rim of a plane or the open end of a pipe. A shape with none is *closed*, like a solid. Borders are fine where you mean them; in a shape meant to be solid, they're holes.
 
 **Flipped normal** — Every face has a front, the side its *normal* points to. Neighbouring faces should all face outwards; a face pointing the other way is *flipped*, and shades, bakes and exports wrongly.

@@ -665,3 +665,123 @@ fn the_overlay_draws_points_thick_lines_and_tints_hidden_behind_surfaces() {
     let clean = render(&gpu, &renderer, &target, camera, NO_GRID);
     assert!(!is_red(clean.at(near_corner)));
 }
+
+// ---------------------------------------------------------- object meshes ---
+
+/// The cube as an object mesh, the renderer's own test cube removed.
+fn with_object_cube(gpu: &Gpu, renderer: &mut ViewportRenderer) -> render::MeshGeometry {
+    renderer.set_shape(&gpu.device, &render::Shape::default());
+    let cube = mesh::PrimitiveKind::Cube.standard().mesh();
+    let geometry = render::MeshGeometry::new(&cube);
+    renderer.set_mesh(&gpu.device, 7, &geometry);
+    geometry
+}
+
+fn place(model: glam::Mat4) -> render::MeshDraw {
+    render::MeshDraw {
+        key: 7,
+        model,
+        edge_color: [1.0, 0.0, 0.0, 1.0],
+        edges: true,
+        points: None,
+        faintest: 0.0,
+    }
+}
+
+#[test]
+fn object_meshes_are_drawn_and_picked_where_they_are_placed() {
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, target) = setup(&gpu, [320, 200]);
+    with_object_cube(&gpu, &mut renderer);
+    let camera = Camera::default();
+    let size = Vec2::new(320.0, 200.0);
+    // Not placed yet: not drawn.
+    let empty = render(&gpu, &renderer, &target, camera, NO_GRID);
+    let middle = Vec3::new(0.0, 0.0, 50.0);
+    renderer.set_draws(&gpu.device, &gpu.queue, &[place(glam::Mat4::IDENTITY)]);
+    let shot = render(&gpu, &renderer, &target, camera, NO_GRID);
+    assert!(
+        brightness(shot.at(middle)) > brightness(empty.at(middle)) + 60,
+        "the grey cube shows"
+    );
+    let pixel = camera.project(middle, size).unwrap();
+    let picked = renderer
+        .pick_now(
+            &gpu.device,
+            &gpu.queue,
+            pick_request(&camera, pixel, [320, 200]),
+        )
+        .and_then(|r| r.point)
+        .expect("the cube is picked");
+    assert!(picked.y < -45.0, "on its front face: {picked}");
+    // Placed a metre to the right, it is drawn there instead.
+    let moved = glam::Mat4::from_translation(Vec3::X * 150.0);
+    renderer.set_draws(&gpu.device, &gpu.queue, &[place(moved)]);
+    let shot = render(&gpu, &renderer, &target, camera, NO_GRID);
+    assert!(brightness(shot.at(middle)) < brightness(empty.at(middle)) + 20);
+    assert!(brightness(shot.at(middle + Vec3::X * 150.0)) > brightness(empty.at(middle)) + 60);
+    // Forgotten, it isn't drawn.
+    renderer.keep_meshes(&[]);
+    assert_eq!(renderer.mesh_count(), 0);
+    let gone = render(&gpu, &renderer, &target, camera, NO_GRID);
+    assert!(brightness(gone.at(middle + Vec3::X * 150.0)) < brightness(empty.at(middle)) + 20);
+}
+
+#[test]
+fn moved_points_are_updated_in_place_and_mirrors_shade_the_right_way() {
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, target) = setup(&gpu, [320, 200]);
+    let mut geometry = with_object_cube(&gpu, &mut renderer);
+    let camera = Camera::default();
+    renderer.set_draws(&gpu.device, &gpu.queue, &[place(glam::Mat4::IDENTITY)]);
+    let plain = render(&gpu, &renderer, &target, camera, NO_GRID);
+    // Pull the top up by a metre: only the moved vertices are uploaded.
+    let cube = mesh::PrimitiveKind::Cube.standard().mesh();
+    let mut taller = cube.clone();
+    let top: Vec<mesh::VertexId> = cube
+        .vertices()
+        .filter(|(_, p)| p.z > 50.0)
+        .map(|(v, _)| v)
+        .collect();
+    for v in &top {
+        let p = taller.position(*v).unwrap();
+        taller.set_position(*v, p + Vec3::Z * 100.0);
+    }
+    let ranges = geometry.moved(&taller, &taller.moved_since(&cube).unwrap());
+    renderer.update_mesh(&gpu.queue, 7, &geometry, &ranges);
+    let high = Vec3::new(0.0, -50.0, 150.0);
+    let shot = render(&gpu, &renderer, &target, camera, NO_GRID);
+    assert!(
+        brightness(shot.at(high)) > brightness(plain.at(high)) + 60,
+        "the cube is taller now"
+    );
+    // A mirrored placement looks the same as the plain one: the faces'
+    // light doesn't turn inside out.
+    renderer.set_draws(
+        &gpu.device,
+        &gpu.queue,
+        &[place(glam::Mat4::from_scale(Vec3::new(-1.0, 1.0, 1.0)))],
+    );
+    let mirrored = render(&gpu, &renderer, &target, camera, NO_GRID);
+    let front = Vec3::new(0.0, -50.0, 50.0);
+    let difference = (brightness(mirrored.at(front)) - brightness(shot.at(front))).abs();
+    assert!(difference < 30, "{difference}");
+}
+
+#[test]
+fn an_object_can_show_every_point() {
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, target) = setup(&gpu, [640, 400]);
+    with_object_cube(&gpu, &mut renderer);
+    let camera = Camera::default();
+    let corner = Vec3::new(50.0, -50.0, 100.0);
+    let mut draw = place(glam::Mat4::IDENTITY);
+    draw.edge_color = [0.2, 0.2, 0.2, 0.0];
+    renderer.set_draws(&gpu.device, &gpu.queue, &[draw]);
+    let without = render(&gpu, &renderer, &target, camera, NO_GRID);
+    assert!(!is_red(without.at(corner)));
+    draw.points = Some(([1.0, 0.0, 0.0, 1.0], 10.0));
+    renderer.set_draws(&gpu.device, &gpu.queue, &[draw]);
+    let with = render(&gpu, &renderer, &target, camera, NO_GRID);
+    assert!(is_red(with.at(corner)), "{:?}", with.at(corner));
+}

@@ -7,15 +7,15 @@
 //! borders, edges shared by three or more faces, loose points. This index
 //! answers the questions selection and modelling tools ask: which faces
 //! use an edge, which edges meet at a point, which faces are neighbours,
-//! and how edge loops and rings run. It is built in one pass and never
-//! changes the mesh; build it again after the mesh changes.
+//! and how edge loops and rings run. It never changes the mesh. It
+//! depends only on the faces, so the mesh keeps it with them
+//! ([`Mesh::topology`]): moving points doesn't need it worked out again.
 //!
 //! Edges are named by their two points ([`EdgeKey`]), so an edge's name
 //! is as stable as its points' ids.
 
-use crate::polygon::sides;
 use crate::{EdgeKey, FaceId, Mesh, VertexId};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 /// A face's use of an edge: which face, and whether it runs along the
 /// edge from its lower point to its higher one (the edge's "forward"
@@ -28,50 +28,188 @@ pub struct EdgeUse {
     pub forward: bool,
 }
 
-/// How a mesh's elements connect. Built by [`Topology::new`].
+/// How a mesh's elements connect. Built by [`Topology::new`], or kept with
+/// the mesh by [`Mesh::topology`].
+///
+/// Everything is stored in flat lists, each element's neighbours one after
+/// another with where each element's start, so even a mesh of millions of
+/// polygons is indexed in well under a second
+/// ([decision 0035](../../../docs/decisions/0035-heavy-meshes.md)).
 #[derive(Debug, Clone, Default)]
 pub struct Topology {
-    /// Every edge with the faces using it, in face id order.
-    edges: BTreeMap<EdgeKey, Vec<EdgeUse>>,
-    /// Every point with the edges meeting there, in edge order.
-    vertex_edges: BTreeMap<VertexId, Vec<EdgeKey>>,
-    /// Every point with the faces using it, in face id order.
-    vertex_faces: BTreeMap<VertexId, Vec<FaceId>>,
-    /// Every face with its edges, in corner order (the edge from corner
-    /// `i` to corner `i + 1` first).
-    face_edges: BTreeMap<FaceId, Vec<EdgeKey>>,
+    /// Every edge, in order.
+    edges: Vec<EdgeKey>,
+    /// Where each edge's uses start in `uses` (one more than edges).
+    use_starts: Vec<u32>,
+    /// The faces using each edge, in face id order.
+    uses: Vec<EdgeUse>,
+    /// Where each point's edges start in `vertex_edges`, by point id.
+    vertex_edge_starts: Vec<u32>,
+    /// The edges meeting at each point, in the order the faces first use
+    /// them.
+    vertex_edges: Vec<EdgeKey>,
+    /// Where each point's faces start in `vertex_faces`, by point id.
+    vertex_face_starts: Vec<u32>,
+    /// The faces using each point, in face id order.
+    vertex_faces: Vec<FaceId>,
+    /// Where each face's edges start in `face_edges`, by face id (the
+    /// mesh's own face starts).
+    face_starts: Vec<u32>,
+    /// Each face's edges, in corner order (the edge from corner `i` to
+    /// corner `i + 1` first).
+    face_edges: Vec<EdgeKey>,
+}
+
+/// Turns per-item counts into where each item's entries start (one more
+/// entry than items, the last being the total).
+fn starts_from_counts(counts: &[u32]) -> Vec<u32> {
+    let mut starts = Vec::with_capacity(counts.len() + 1);
+    let mut total = 0u32;
+    starts.push(0);
+    for c in counts {
+        total += c;
+        starts.push(total);
+    }
+    starts
+}
+
+/// The entries between `starts[i]` and `starts[i + 1]`, or none.
+fn slice_at<'a, T>(starts: &[u32], items: &'a [T], i: usize) -> &'a [T] {
+    match (starts.get(i), starts.get(i + 1)) {
+        (Some(&a), Some(&b)) => &items[a as usize..b as usize],
+        _ => &[],
+    }
 }
 
 impl Topology {
-    /// The topology of `mesh`.
+    /// The topology of `mesh`. Prefer [`Mesh::topology`], which works it
+    /// out once and keeps it.
     pub fn new(mesh: &Mesh) -> Self {
-        let mut topology = Self::default();
-        for (face, corners) in mesh.faces() {
-            let mut edges = Vec::with_capacity(corners.len());
-            for (a, b) in sides(corners) {
-                let key = EdgeKey::new(a, b);
-                let uses = topology.edges.entry(key).or_default();
-                if uses.is_empty() {
-                    topology.vertex_edges.entry(a).or_default().push(key);
-                    topology.vertex_edges.entry(b).or_default().push(key);
-                }
-                uses.push(EdgeUse {
-                    face,
-                    forward: a < b,
-                });
-                edges.push(key);
+        let (face_starts, corners) = mesh.face_layout();
+        let face_starts = face_starts.to_vec();
+        let points = mesh.point_slot_count();
+        let sides = corners.len();
+        // Each corner starts a side running to the next corner.
+        let mut side_face = vec![0u32; sides];
+        let mut side_next = vec![0u32; sides];
+        for f in 0..face_starts.len().saturating_sub(1) {
+            let (a, b) = (face_starts[f] as usize, face_starts[f + 1] as usize);
+            for k in a..b {
+                side_face[k] = f as u32;
+                side_next[k] = if k + 1 < b { k + 1 } else { a } as u32;
             }
-            for v in corners {
-                topology.vertex_faces.entry(*v).or_default().push(face);
-            }
-            topology.face_edges.insert(face, edges);
         }
-        topology
+        let ends = |k: usize| (corners[k], corners[side_next[k] as usize]);
+        // Group the sides by their lower point, then by their higher one:
+        // each group is one edge, and edges come out in order.
+        let mut low_counts = vec![0u32; points];
+        for k in 0..sides {
+            let (a, b) = ends(k);
+            low_counts[a.min(b).get() as usize] += 1;
+        }
+        let low_starts = starts_from_counts(&low_counts);
+        let mut fill = low_starts.clone();
+        let mut by_low = vec![(0u32, 0u32); sides];
+        for k in 0..sides {
+            let (a, b) = ends(k);
+            let low = a.min(b).get() as usize;
+            by_low[fill[low] as usize] = (a.max(b).get(), k as u32);
+            fill[low] += 1;
+        }
+        let mut edges = Vec::new();
+        let mut use_starts = vec![0u32];
+        let mut uses = Vec::with_capacity(sides);
+        let mut side_edge = vec![0u32; sides];
+        let mut first_side = Vec::new();
+        for low in 0..points {
+            let bucket = &mut by_low[low_starts[low] as usize..low_starts[low + 1] as usize];
+            // Stable, so each edge's sides stay in face order.
+            bucket.sort_by_key(|(high, _)| *high);
+            let mut i = 0;
+            while i < bucket.len() {
+                let high = bucket[i].0;
+                let index = edges.len() as u32;
+                edges.push(EdgeKey::new(
+                    VertexId::from_raw(low as u32),
+                    VertexId::from_raw(high),
+                ));
+                first_side.push(bucket[i].1);
+                while i < bucket.len() && bucket[i].0 == high {
+                    let k = bucket[i].1 as usize;
+                    let (a, b) = ends(k);
+                    side_edge[k] = index;
+                    uses.push(EdgeUse {
+                        face: FaceId::from_raw(side_face[k]),
+                        forward: a < b,
+                    });
+                    i += 1;
+                }
+                use_starts.push(uses.len() as u32);
+            }
+        }
+        // Edges at each point, in the order faces first use them.
+        let mut counts = vec![0u32; points];
+        for edge in &edges {
+            let (a, b) = edge.ends();
+            counts[a.get() as usize] += 1;
+            counts[b.get() as usize] += 1;
+        }
+        let vertex_edge_starts = starts_from_counts(&counts);
+        let mut fill = vertex_edge_starts.clone();
+        let mut vertex_edges =
+            vec![EdgeKey::new(VertexId::from_raw(0), VertexId::from_raw(0)); fill[points] as usize];
+        for (k, e) in side_edge.iter().enumerate() {
+            let e = *e as usize;
+            if first_side[e] as usize != k {
+                continue;
+            }
+            let (a, b) = ends(k);
+            for v in [a, b] {
+                let at = &mut fill[v.get() as usize];
+                vertex_edges[*at as usize] = edges[e];
+                *at += 1;
+            }
+        }
+        // Faces at each point, in face order.
+        let mut counts = vec![0u32; points];
+        for v in corners {
+            counts[v.get() as usize] += 1;
+        }
+        let vertex_face_starts = starts_from_counts(&counts);
+        let mut fill = vertex_face_starts.clone();
+        let mut vertex_faces = vec![FaceId::from_raw(0); sides];
+        for (k, v) in corners.iter().enumerate() {
+            let at = &mut fill[v.get() as usize];
+            vertex_faces[*at as usize] = FaceId::from_raw(side_face[k]);
+            *at += 1;
+        }
+        let face_edges = side_edge.iter().map(|e| edges[*e as usize]).collect();
+        Self {
+            edges,
+            use_starts,
+            uses,
+            vertex_edge_starts,
+            vertex_edges,
+            vertex_face_starts,
+            vertex_faces,
+            face_starts,
+            face_edges,
+        }
+    }
+
+    /// Where `edge` is in the edge list.
+    fn edge_index(&self, edge: EdgeKey) -> Option<usize> {
+        self.edges.binary_search(&edge).ok()
     }
 
     /// Every edge, in order.
     pub fn edges(&self) -> impl Iterator<Item = EdgeKey> + '_ {
-        self.edges.keys().copied()
+        self.edges.iter().copied()
+    }
+
+    /// Every edge, in order, as a list.
+    pub fn edge_list(&self) -> &[EdgeKey] {
+        &self.edges
     }
 
     /// How many edges there are.
@@ -81,13 +219,14 @@ impl Topology {
 
     /// Whether `edge` is an edge of some face.
     pub fn has_edge(&self, edge: EdgeKey) -> bool {
-        self.edges.contains_key(&edge)
+        self.edge_index(edge).is_some()
     }
 
     /// The faces using `edge`, and which way each runs along it. Empty
     /// for an edge no face uses.
     pub fn edge_uses(&self, edge: EdgeKey) -> &[EdgeUse] {
-        self.edges.get(&edge).map_or(&[], Vec::as_slice)
+        self.edge_index(edge)
+            .map_or(&[], |i| slice_at(&self.use_starts, &self.uses, i))
     }
 
     /// The faces using `edge`.
@@ -97,17 +236,25 @@ impl Topology {
 
     /// The edges meeting at `vertex`. Empty for a loose point.
     pub fn vertex_edges(&self, vertex: VertexId) -> &[EdgeKey] {
-        self.vertex_edges.get(&vertex).map_or(&[], Vec::as_slice)
+        slice_at(
+            &self.vertex_edge_starts,
+            &self.vertex_edges,
+            vertex.get() as usize,
+        )
     }
 
     /// The faces using `vertex`. Empty for a loose point.
     pub fn vertex_faces(&self, vertex: VertexId) -> &[FaceId] {
-        self.vertex_faces.get(&vertex).map_or(&[], Vec::as_slice)
+        slice_at(
+            &self.vertex_face_starts,
+            &self.vertex_faces,
+            vertex.get() as usize,
+        )
     }
 
     /// The edges of `face`, in corner order. Empty for an unknown face.
     pub fn face_edges(&self, face: FaceId) -> &[EdgeKey] {
-        self.face_edges.get(&face).map_or(&[], Vec::as_slice)
+        slice_at(&self.face_starts, &self.face_edges, face.get() as usize)
     }
 
     /// The faces sharing an edge with `face`, each once, in id order.
@@ -154,30 +301,37 @@ impl Topology {
     /// of them faces the opposite way to its neighbour (its "normal is
     /// flipped").
     pub fn flipped_edges(&self) -> Vec<EdgeKey> {
-        self.edges
-            .iter()
-            .filter(|(_, uses)| uses.len() == 2 && uses[0].forward == uses[1].forward)
-            .map(|(e, _)| *e)
+        (0..self.edges.len())
+            .filter(|i| {
+                let uses = slice_at(&self.use_starts, &self.uses, *i);
+                uses.len() == 2 && uses[0].forward == uses[1].forward
+            })
+            .map(|i| self.edges[i])
             .collect()
     }
 
     /// The mesh's separate pieces: faces linked through shared points,
     /// each piece's faces in id order, pieces ordered by their first face.
     pub fn pieces(&self) -> Vec<Vec<FaceId>> {
-        let mut seen = BTreeSet::new();
+        let slots = self.face_starts.len().saturating_sub(1);
+        let mut seen = vec![false; slots];
         let mut pieces = Vec::new();
-        for face in self.face_edges.keys() {
-            if !seen.insert(*face) {
+        for index in 0..slots {
+            let face = FaceId::from_raw(index as u32);
+            if seen[index] || self.face_edges(face).is_empty() {
                 continue;
             }
-            let mut piece = vec![*face];
-            let mut stack = vec![*face];
+            seen[index] = true;
+            let mut piece = vec![face];
+            let mut stack = vec![face];
             while let Some(at) = stack.pop() {
                 for edge in self.face_edges(at) {
                     let (a, b) = edge.ends();
                     for v in [a, b] {
                         for next in self.vertex_faces(v) {
-                            if seen.insert(*next) {
+                            let i = next.get() as usize;
+                            if !seen[i] {
+                                seen[i] = true;
                                 piece.push(*next);
                                 stack.push(*next);
                             }

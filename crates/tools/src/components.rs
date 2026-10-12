@@ -3,10 +3,11 @@
 //! ([decision 0027](../../../docs/decisions/0027-component-modes.md),
 //! [decision 0029](../../../docs/decisions/0029-selection.md)).
 //!
-//! A [`PickScene`] holds every shown object's mesh placed in the world,
-//! built once when the scene changes. Asking it what is under the mouse
-//! then costs one pass over the editable objects' elements, plus a ray
-//! cast for each one close enough to the mouse to matter:
+//! Each shown object's mesh is indexed once ([`MeshPick`]: boxes inside
+//! boxes around its triangles, points, edges and polygons), and a
+//! [`PickScene`] places those in the world. Asking what is under the mouse
+//! then only looks inside the boxes near it, so it stays quick for meshes
+//! of millions of polygons ([decision 0035](../../../docs/decisions/0035-heavy-meshes.md)):
 //!
 //! - **Points** count when they appear within [`POINT_RADIUS`] of the
 //!   mouse on screen; the closest wins.
@@ -19,10 +20,12 @@
 //! skipped, as is a polygon behind something else. Inside a [`Region`],
 //! hidden elements count too unless only visible ones are asked for.
 
+use crate::bvh::{Aabb, Bvh};
 use crate::camera::{Camera, Ray};
 use glam::{Mat4, Vec2, Vec3};
 use mesh::{EdgeKey, FaceId, Mesh, VertexId};
 pub use mesh::{Element, ElementKind};
+use std::sync::{Arc, OnceLock};
 
 /// How close to the mouse (in screen points) a point must appear to be
 /// under it.
@@ -33,7 +36,7 @@ pub const EDGE_RADIUS: f32 = 8.0;
 
 /// An element found under the mouse: which object (its position in the
 /// list the scene was built from) and which element.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Hovered {
     /// The object's index in the list given to [`PickScene::new`].
     pub object: usize,
@@ -96,6 +99,18 @@ impl Region {
         }
     }
 
+    /// The box on screen around the region.
+    fn screen_box(&self) -> (Vec2, Vec2) {
+        match self {
+            Self::Rect { a, b } => (a.min(*b), a.max(*b)),
+            Self::Lasso(outline) => outline.iter().fold(
+                (Vec2::splat(f32::INFINITY), Vec2::splat(f32::NEG_INFINITY)),
+                |(lo, hi), p| (lo.min(*p), hi.max(*p)),
+            ),
+            Self::Circle { centre, radius } => around(*centre, *radius),
+        }
+    }
+
     /// A point well inside the region (the box's or circle's middle, or
     /// the lasso's average point).
     pub fn middle(&self) -> Vec2 {
@@ -131,37 +146,291 @@ impl Default for SnapTargets {
     }
 }
 
-/// One triangle of a face, in the world.
+/// One triangle of a face: the face, and which fan triangle it is (corners
+/// 0, `k` and `k + 1`).
 #[derive(Debug, Clone, Copy)]
-struct Triangle {
-    corners: [Vec3; 3],
-    object: usize,
+struct Tri {
     face: FaceId,
+    k: u32,
 }
 
-/// A polygon placed in the world: its ID, its middle and its corners.
-type PlacedPolygon = (FaceId, Vec3, Vec<(VertexId, Vec3)>);
+/// One mesh, ready for finding what is under the mouse, in its own space:
+/// its triangles, points, edges and polygons in boxes inside boxes (a
+/// bounding volume hierarchy). Built once per shape and shared
+/// ([`MeshPick::new`]); when only points have moved, a new one is made
+/// from the old one far more quickly ([`MeshPick::moved`]). The point, edge and polygon indexes are only
+/// built when first needed (the Points, Edges or Polygons mode).
+#[derive(Debug)]
+pub struct MeshPick {
+    mesh: Arc<Mesh>,
+    tris: Arc<Vec<Tri>>,
+    /// Where each face's triangles start in `tris` (one more than faces).
+    tri_starts: Arc<Vec<u32>>,
+    tri_bvh: Bvh,
+    /// The points that exist, by id number, and their index.
+    points: OnceLock<(Arc<Vec<u32>>, Bvh)>,
+    /// An index over the mesh's edges (as [`Mesh::edges`] lists them).
+    edges: OnceLock<Bvh>,
+    /// The faces that exist, and an index over their middles.
+    faces: OnceLock<(Arc<Vec<FaceId>>, Bvh)>,
+}
 
-/// One object's elements, placed in the world.
-#[derive(Debug, Clone, Default)]
+impl MeshPick {
+    /// Gets `mesh` ready for picking.
+    pub fn new(mesh: Arc<Mesh>) -> Self {
+        let mut tris = Vec::new();
+        let mut tri_starts = vec![0u32];
+        for (index, corners) in mesh.face_slots().enumerate() {
+            let face = FaceId::from_raw(index as u32);
+            for k in 1..corners.unwrap_or_default().len().saturating_sub(1) {
+                tris.push(Tri { face, k: k as u32 });
+            }
+            tri_starts.push(tris.len() as u32);
+        }
+        let tri_bvh = Bvh::build(tris.len(), |i| {
+            Aabb::around(tri_corners(&mesh, tris[i as usize]).into_iter().flatten())
+        });
+        Self {
+            mesh,
+            tris: Arc::new(tris),
+            tri_starts: Arc::new(tri_starts),
+            tri_bvh,
+            points: OnceLock::new(),
+            edges: OnceLock::new(),
+            faces: OnceLock::new(),
+        }
+    }
+
+    /// `mesh` ready for picking, made from this one if `mesh` only moves
+    /// points of the shape this was made for ([`Mesh::same_structure`]):
+    /// the indexes keep their order and only their boxes are worked out
+    /// again.
+    pub fn moved(&self, mesh: Arc<Mesh>) -> Self {
+        let Some(moved) = mesh.moved_since(&self.mesh) else {
+            return Self::new(mesh);
+        };
+        // Only a few points moved: only the boxes around what uses them
+        // are worked out again. Many: everything, which is then quicker.
+        let few = moved.len() * 8 < self.mesh.vertex_count().max(1);
+        let topology = mesh.topology();
+        let faces: Vec<FaceId> = if few {
+            let mut faces: Vec<FaceId> = moved
+                .iter()
+                .flat_map(|v| topology.vertex_faces(*v).iter().copied())
+                .collect();
+            faces.sort_unstable();
+            faces.dedup();
+            faces
+        } else {
+            Vec::new()
+        };
+        let tri_box = |i: u32| {
+            Aabb::around(
+                tri_corners(&mesh, self.tris[i as usize])
+                    .into_iter()
+                    .flatten(),
+            )
+        };
+        let tri_bvh = if few {
+            let items: Vec<u32> = faces
+                .iter()
+                .flat_map(|f| {
+                    let f = f.get() as usize;
+                    self.tri_starts[f]..self.tri_starts[f + 1]
+                })
+                .collect();
+            self.tri_bvh.refit_items(&items, tri_box)
+        } else {
+            self.tri_bvh.refit(tri_box)
+        };
+        let points = OnceLock::new();
+        if let Some((ids, bvh)) = self.points.get() {
+            let point_box = |i: u32| point_box(&mesh, ids[i as usize]);
+            let refit = if few {
+                let items: Vec<u32> = moved
+                    .iter()
+                    .filter_map(|v| ids.binary_search(&v.get()).ok())
+                    .map(|i| i as u32)
+                    .collect();
+                bvh.refit_items(&items, point_box)
+            } else {
+                bvh.refit(point_box)
+            };
+            let _ = points.set((Arc::clone(ids), refit));
+        }
+        let edges = OnceLock::new();
+        if let Some(bvh) = self.edges.get() {
+            let list = mesh.edges();
+            let edge_box = |i: u32| edge_box(&mesh, list[i as usize]);
+            let refit = if few {
+                let items: Vec<u32> = moved
+                    .iter()
+                    .flat_map(|v| topology.vertex_edges(*v).iter())
+                    .filter_map(|e| list.binary_search(e).ok())
+                    .map(|i| i as u32)
+                    .collect();
+                bvh.refit_items(&items, edge_box)
+            } else {
+                bvh.refit(edge_box)
+            };
+            let _ = edges.set(refit);
+        }
+        let face_index = OnceLock::new();
+        if let Some((ids, bvh)) = self.faces.get() {
+            let face_box = |i: u32| face_box(&mesh, ids[i as usize]);
+            let refit = if few {
+                let items: Vec<u32> = faces
+                    .iter()
+                    .filter_map(|f| ids.binary_search(f).ok())
+                    .map(|i| i as u32)
+                    .collect();
+                bvh.refit_items(&items, face_box)
+            } else {
+                bvh.refit(face_box)
+            };
+            let _ = face_index.set((Arc::clone(ids), refit));
+        }
+        Self {
+            mesh,
+            tris: Arc::clone(&self.tris),
+            tri_starts: Arc::clone(&self.tri_starts),
+            tri_bvh,
+            points,
+            edges,
+            faces: face_index,
+        }
+    }
+
+    /// The mesh it was made for.
+    pub fn mesh(&self) -> &Arc<Mesh> {
+        &self.mesh
+    }
+
+    fn points(&self) -> &(Arc<Vec<u32>>, Bvh) {
+        self.points.get_or_init(|| {
+            let ids: Vec<u32> = self.mesh.vertices().map(|(v, _)| v.get()).collect();
+            let bvh = Bvh::build(ids.len(), |i| point_box(&self.mesh, ids[i as usize]));
+            (Arc::new(ids), bvh)
+        })
+    }
+
+    fn edges(&self) -> &Bvh {
+        self.edges.get_or_init(|| {
+            let list = self.mesh.edges();
+            Bvh::build(list.len(), |i| edge_box(&self.mesh, list[i as usize]))
+        })
+    }
+
+    fn faces(&self) -> &(Arc<Vec<FaceId>>, Bvh) {
+        self.faces.get_or_init(|| {
+            let ids: Vec<FaceId> = self.mesh.faces().map(|(f, _)| f).collect();
+            let bvh = Bvh::build(ids.len(), |i| face_box(&self.mesh, ids[i as usize]));
+            (Arc::new(ids), bvh)
+        })
+    }
+
+    /// The nearest triangle `ray` (in the mesh's own space) hits, among
+    /// those `allowed` lets through: how far along, and its face.
+    fn first_hit(&self, ray: &Ray, allowed: &dyn Fn(FaceId) -> bool) -> Option<(f32, FaceId)> {
+        self.tri_bvh
+            .nearest(ray, |i| {
+                let tri = self.tris[i as usize];
+                if !allowed(tri.face) {
+                    return None;
+                }
+                let [a, b, c] = tri_corners(&self.mesh, tri);
+                hit(ray, &[a?, b?, c?])
+            })
+            .map(|(d, i)| (d, self.tris[i as usize].face))
+    }
+}
+
+/// A fan triangle's corners.
+fn tri_corners(mesh: &Mesh, tri: Tri) -> [Option<Vec3>; 3] {
+    let corners = mesh.face(tri.face).unwrap_or_default();
+    let at = |i: usize| corners.get(i).and_then(|v| mesh.position(*v));
+    [at(0), at(tri.k as usize), at(tri.k as usize + 1)]
+}
+
+fn point_box(mesh: &Mesh, id: u32) -> Aabb {
+    Aabb::around(mesh.position(VertexId::from_raw(id)))
+}
+
+fn edge_box(mesh: &Mesh, edge: EdgeKey) -> Aabb {
+    let (a, b) = edge.ends();
+    Aabb::around([mesh.position(a), mesh.position(b)].into_iter().flatten())
+}
+
+fn face_box(mesh: &Mesh, face: FaceId) -> Aabb {
+    Aabb::around(face_middle(mesh, face))
+}
+
+/// The middle of a face (the average of its corners).
+fn face_middle(mesh: &Mesh, face: FaceId) -> Option<Vec3> {
+    let corners = mesh.face(face)?;
+    let sum: Vec3 = corners.iter().filter_map(|v| mesh.position(*v)).sum();
+    Some(sum / corners.len().max(1) as f32)
+}
+
+/// One shown object: its mesh ready for picking, where it is, and
+/// whether its elements can be found.
+#[derive(Debug, Clone)]
 struct Placed {
-    /// Whether its elements can be found (it is being edited).
+    /// `None` for an object with a broken placement (left out).
+    pick: Option<Arc<MeshPick>>,
+    matrix: Mat4,
+    inverse: Mat4,
     editable: bool,
-    points: Vec<(VertexId, Vec3)>,
-    edges: Vec<(EdgeKey, Vec3, Vec3)>,
-    /// Each polygon's middle and corners.
-    polygons: Vec<PlacedPolygon>,
+}
+
+impl Placed {
+    /// `ray` in the object's own space. Its direction isn't unit length,
+    /// so distances along it are the same as along the world ray.
+    fn local(&self, ray: &Ray) -> Ray {
+        Ray {
+            origin: self.inverse.transform_point3(ray.origin),
+            direction: self.inverse.transform_vector3(ray.direction),
+        }
+    }
+
+    fn world(&self, p: Vec3) -> Vec3 {
+        self.matrix.transform_point3(p)
+    }
+
+    /// Where a box of the object's own space appears on screen, as the
+    /// box around its corners; `None` if part of it is behind the camera
+    /// (so it can't be ruled out).
+    fn on_screen(&self, b: &Aabb, camera: &Camera, size: Vec2) -> Option<(Vec2, Vec2)> {
+        let mut min = Vec2::splat(f32::INFINITY);
+        let mut max = Vec2::splat(f32::NEG_INFINITY);
+        for corner in b.corners() {
+            let s = camera.project(self.world(corner), size)?;
+            min = min.min(s);
+            max = max.max(s);
+        }
+        Some((min, max))
+    }
+
+    /// Whether a box of the object's own space may appear within `area`
+    /// on screen.
+    fn may_reach(&self, b: &Aabb, camera: &Camera, size: Vec2, area: (Vec2, Vec2)) -> bool {
+        self.on_screen(b, camera, size).is_none_or(|(min, max)| {
+            min.x <= area.1.x && max.x >= area.0.x && min.y <= area.1.y && max.y >= area.0.y
+        })
+    }
 }
 
 /// The shown objects' meshes, placed in the world, ready for finding
-/// what is under the mouse or inside a region.
+/// what is under the mouse or inside a region. Cheap to make from
+/// [`MeshPick`]s that already exist: only the placements are new.
 #[derive(Debug, Clone, Default)]
 pub struct PickScene {
-    /// Every shown object's faces, cut into triangles: they hide what is
-    /// behind them.
-    triangles: Vec<Triangle>,
-    /// Each object's elements, in the order given.
     objects: Vec<Placed>,
+}
+
+/// The screen area within `radius` of `at`.
+fn around(at: Vec2, radius: f32) -> (Vec2, Vec2) {
+    (at - Vec2::splat(radius), at + Vec2::splat(radius))
 }
 
 impl PickScene {
@@ -169,51 +438,37 @@ impl PickScene {
     /// world, and whether its elements can be found (the objects being
     /// edited). The others can still be picked as whole objects, and hide
     /// what is behind them. Objects placed with a broken transform are
-    /// left out.
+    /// left out. Each mesh is indexed afresh: when the meshes are kept
+    /// between changes, use [`Self::from_picks`] with kept [`MeshPick`]s.
     pub fn new<'a>(objects: impl IntoIterator<Item = (&'a Mesh, Mat4, bool)>) -> Self {
-        let mut scene = Self::default();
-        for (index, (mesh, matrix, editable)) in objects.into_iter().enumerate() {
-            if !matrix.is_finite() {
-                scene.objects.push(Placed::default());
-                continue;
-            }
-            let place = |v: VertexId| mesh.position(v).map(|p| matrix.transform_point3(p));
-            let mut placed = Placed {
+        Self::from_picks(objects.into_iter().map(|(mesh, matrix, editable)| {
+            (
+                Arc::new(MeshPick::new(Arc::new(mesh.clone()))),
+                matrix,
                 editable,
-                ..Placed::default()
-            };
-            for (face, corners) in mesh.faces() {
-                let world: Vec<(VertexId, Vec3)> = corners
-                    .iter()
-                    .filter_map(|v| place(*v).map(|p| (*v, p)))
-                    .collect();
-                if let Some(((_, first), rest)) = world.split_first() {
-                    for pair in rest.windows(2) {
-                        scene.triangles.push(Triangle {
-                            corners: [*first, pair[0].1, pair[1].1],
-                            object: index,
-                            face,
-                        });
-                    }
-                    let middle = world.iter().map(|(_, p)| *p).sum::<Vec3>() / world.len() as f32;
-                    placed.polygons.push((face, middle, world));
+            )
+        }))
+    }
+
+    /// The scene from meshes already indexed.
+    pub fn from_picks(objects: impl IntoIterator<Item = (Arc<MeshPick>, Mat4, bool)>) -> Self {
+        let objects = objects
+            .into_iter()
+            .map(|(pick, matrix, editable)| {
+                let usable = matrix.is_finite() && matrix.determinant().abs() > 1e-20;
+                Placed {
+                    pick: usable.then_some(pick),
+                    matrix,
+                    inverse: if usable {
+                        matrix.inverse()
+                    } else {
+                        Mat4::IDENTITY
+                    },
+                    editable,
                 }
-            }
-            placed.points = mesh
-                .vertices()
-                .map(|(v, p)| (v, matrix.transform_point3(p)))
-                .collect();
-            placed.edges = mesh
-                .edges()
-                .into_iter()
-                .filter_map(|e| {
-                    let (a, b) = e.ends();
-                    Some((e, place(a)?, place(b)?))
-                })
-                .collect();
-            scene.objects.push(placed);
-        }
-        scene
+            })
+            .collect();
+        Self { objects }
     }
 
     /// What of `kind` is under the mouse at `mouse` in a view of `size`
@@ -230,11 +485,11 @@ impl PickScene {
             ElementKind::Points => self.point_under(camera, size, mouse),
             ElementKind::Edges => self.edge_within(camera, size, mouse, EDGE_RADIUS),
             ElementKind::Polygons => {
-                let (_, triangle) = self.first_hit(&camera.ray_through(mouse, size))?;
-                self.editable(triangle.object)?;
+                let (_, object, face) = self.first_hit(&camera.ray_through(mouse, size))?;
+                self.editable(object)?;
                 Some(Hovered {
-                    object: triangle.object,
-                    element: Element::Polygon(triangle.face),
+                    object,
+                    element: Element::Polygon(face),
                 })
             }
         }
@@ -244,7 +499,7 @@ impl PickScene {
     /// edited or not.
     pub fn object_under(&self, camera: &Camera, size: Vec2, mouse: Vec2) -> Option<usize> {
         self.first_hit(&camera.ray_through(mouse, size))
-            .map(|(_, t)| t.object)
+            .map(|(_, object, _)| object)
     }
 
     /// The visible edge of an editable object passing nearest the mouse,
@@ -275,16 +530,15 @@ impl PickScene {
         size: Vec2,
         mouse: Vec2,
     ) -> Option<EdgeKey> {
-        let (_, _, corners) = self
-            .objects
-            .get(object)?
-            .polygons
-            .iter()
-            .find(|(f, ..)| *f == face)?;
+        let placed = self.objects.get(object)?;
+        let mesh = &placed.pick.as_ref()?.mesh;
+        let corners = mesh.face(face)?;
         let n = corners.len();
         (0..n)
             .filter_map(|i| {
-                let ((va, a), (vb, b)) = (corners[i], corners[(i + 1) % n]);
+                let (va, vb) = (corners[i], corners[(i + 1) % n]);
+                let a = placed.world(mesh.position(va)?);
+                let b = placed.world(mesh.position(vb)?);
                 let (sa, sb) = (camera.project(a, size)?, camera.project(b, size)?);
                 Some((distance_to_segment(mouse, sa, sb).0, EdgeKey::new(va, vb)))
             })
@@ -314,26 +568,40 @@ impl PickScene {
         let mut out = Vec::new();
         let seen = |p: Vec3| !visible_only || self.can_see(camera, size, p);
         let brush = matches!(region, Region::Circle { .. });
+        let area = region.screen_box();
         for (object, placed) in self.objects.iter().enumerate() {
-            if !placed.editable {
+            let Some(pick) = placed.pick.as_ref().filter(|_| placed.editable) else {
                 continue;
-            }
-            let mut push = |element| out.push(Hovered { object, element });
+            };
+            let mesh = &pick.mesh;
+            let keep = |b: &Aabb| placed.may_reach(b, camera, size, area);
+            let mut found = Vec::new();
             match kind {
                 ElementKind::Points => {
-                    for (id, p) in &placed.points {
-                        if camera.project(*p, size).is_some_and(|s| region.contains(s)) && seen(*p)
-                        {
-                            push(Element::Point(*id));
+                    let (ids, bvh) = pick.points();
+                    bvh.visit(keep, |i| {
+                        let id = VertexId::from_raw(ids[i as usize]);
+                        let Some(p) = mesh.position(id).map(|p| placed.world(p)) else {
+                            return;
+                        };
+                        if camera.project(p, size).is_some_and(|s| region.contains(s)) && seen(p) {
+                            found.push(Element::Point(id));
                         }
-                    }
+                    });
                 }
                 ElementKind::Edges => {
-                    for (edge, a, b) in &placed.edges {
+                    let list = mesh.edges();
+                    pick.edges().visit(keep, |i| {
+                        let edge = list[i as usize];
+                        let (va, vb) = edge.ends();
+                        let (Some(a), Some(b)) = (mesh.position(va), mesh.position(vb)) else {
+                            return;
+                        };
+                        let (a, b) = (placed.world(a), placed.world(b));
                         let (Some(sa), Some(sb)) =
-                            (camera.project(*a, size), camera.project(*b, size))
+                            (camera.project(a, size), camera.project(b, size))
                         else {
-                            continue;
+                            return;
                         };
                         let (inside, at) = if let Region::Circle { centre, radius } = region {
                             let (distance, t) = distance_to_segment(*centre, sa, sb);
@@ -341,23 +609,32 @@ impl PickScene {
                         } else {
                             (region.contains(sa) && region.contains(sb), 0.5)
                         };
-                        if inside && seen(a.lerp(*b, at)) {
-                            push(Element::Edge(*edge));
+                        if inside && seen(a.lerp(b, at)) {
+                            found.push(Element::Edge(edge));
                         }
-                    }
+                    });
                 }
                 ElementKind::Polygons => {
-                    for (face, middle, _) in &placed.polygons {
+                    let (ids, bvh) = pick.faces();
+                    bvh.visit(keep, |i| {
+                        let face = ids[i as usize];
+                        let Some(middle) = face_middle(mesh, face).map(|p| placed.world(p)) else {
+                            return;
+                        };
                         if camera
-                            .project(*middle, size)
+                            .project(middle, size)
                             .is_some_and(|s| region.contains(s))
-                            && seen(*middle)
+                            && seen(middle)
                         {
-                            push(Element::Polygon(*face));
+                            found.push(Element::Polygon(face));
                         }
-                    }
+                    });
                 }
             }
+            // Keep each object's elements in id order, as a full scan
+            // would list them.
+            found.sort_unstable_by_key(element_order);
+            out.extend(found.into_iter().map(|element| Hovered { object, element }));
         }
         if brush && kind == ElementKind::Polygons {
             let ray = camera.ray_through(region.middle(), size);
@@ -385,21 +662,62 @@ impl PickScene {
         visible_only: bool,
     ) -> Vec<usize> {
         let seen = |p: Vec3| !visible_only || self.can_see(camera, size, p);
+        let area = region.screen_box();
         let mut out: Vec<usize> = self
             .objects
             .iter()
             .enumerate()
             .filter(|(_, placed)| {
-                placed.points.iter().any(|(_, p)| {
-                    camera.project(*p, size).is_some_and(|s| region.contains(s)) && seen(*p)
-                }) || placed.edges.iter().any(|(_, a, b)| {
-                    let (Some(sa), Some(sb)) = (camera.project(*a, size), camera.project(*b, size))
-                    else {
-                        return false;
-                    };
-                    region.touches_segment(sa, sb)
-                        && (!visible_only || self.edge_seen_in(camera, size, region, *a, *b))
-                })
+                let Some(pick) = placed.pick.as_ref() else {
+                    return false;
+                };
+                let mesh = &pick.mesh;
+                let any = std::cell::Cell::new(false);
+                let (ids, bvh) = pick.points();
+                bvh.visit(
+                    |b| !any.get() && placed.may_reach(b, camera, size, area),
+                    |i| {
+                        if any.get() {
+                            return;
+                        }
+                        let Some(p) = mesh
+                            .position(VertexId::from_raw(ids[i as usize]))
+                            .map(|p| placed.world(p))
+                        else {
+                            return;
+                        };
+                        any.set(
+                            camera.project(p, size).is_some_and(|s| region.contains(s)) && seen(p),
+                        );
+                    },
+                );
+                if any.get() {
+                    return true;
+                }
+                let list = mesh.edges();
+                pick.edges().visit(
+                    |b| !any.get() && placed.may_reach(b, camera, size, area),
+                    |i| {
+                        if any.get() {
+                            return;
+                        }
+                        let (va, vb) = list[i as usize].ends();
+                        let (Some(a), Some(b)) = (mesh.position(va), mesh.position(vb)) else {
+                            return;
+                        };
+                        let (a, b) = (placed.world(a), placed.world(b));
+                        let (Some(sa), Some(sb)) =
+                            (camera.project(a, size), camera.project(b, size))
+                        else {
+                            return;
+                        };
+                        any.set(
+                            region.touches_segment(sa, sb)
+                                && (!visible_only || self.edge_seen_in(camera, size, region, a, b)),
+                        );
+                    },
+                );
+                any.get()
             })
             .map(|(index, _)| index)
             .collect();
@@ -430,14 +748,28 @@ impl PickScene {
         if first_only {
             return self
                 .first_hit(ray)
-                .map(|(_, t)| vec![(t.object, t.face)])
+                .map(|(_, object, face)| vec![(object, face)])
                 .unwrap_or_default();
         }
-        let mut hits: Vec<(f32, usize, FaceId)> = self
-            .triangles
-            .iter()
-            .filter_map(|t| hit(ray, &t.corners).map(|d| (d, t.object, t.face)))
-            .collect();
+        let mut hits: Vec<(f32, usize, FaceId)> = Vec::new();
+        for (object, placed) in self.objects.iter().enumerate() {
+            let Some(pick) = &placed.pick else {
+                continue;
+            };
+            let local = placed.local(ray);
+            pick.tri_bvh.visit(
+                |b| b.entry(&local).is_some(),
+                |i| {
+                    let tri = pick.tris[i as usize];
+                    let [a, b, c] = tri_corners(&pick.mesh, tri);
+                    if let (Some(a), Some(b), Some(c)) = (a, b, c)
+                        && let Some(d) = hit(&local, &[a, b, c])
+                    {
+                        hits.push((d, object, tri.face));
+                    }
+                },
+            );
+        }
         hits.sort_by(|a, b| a.0.total_cmp(&b.0));
         let mut out: Vec<(usize, FaceId)> = Vec::new();
         for (_, object, face) in hits {
@@ -448,37 +780,63 @@ impl PickScene {
         out
     }
 
-    /// The object's elements if it is being edited.
+    /// The object's placement if it is being edited.
     fn editable(&self, object: usize) -> Option<&Placed> {
-        self.objects.get(object).filter(|p| p.editable)
+        self.objects
+            .get(object)
+            .filter(|p| p.editable && p.pick.is_some())
     }
 
     fn point_under(&self, camera: &Camera, size: Vec2, mouse: Vec2) -> Option<Hovered> {
-        let mut best: Option<(f32, Hovered)> = None;
+        // Every point near the mouse, nearest first; the first one that
+        // can be seen wins. On a dense mesh many points crowd under the
+        // mouse, so checking whether each can be seen would be slow: the
+        // nearest is usually in front.
+        let mut near: Vec<(f32, (usize, u64), Vec3, Hovered)> = Vec::new();
         for (object, placed) in self.objects.iter().enumerate() {
-            if !placed.editable {
+            let Some(pick) = placed.pick.as_ref().filter(|_| placed.editable) else {
                 continue;
-            }
-            for (id, point) in &placed.points {
-                let Some(screen) = camera.project(*point, size) else {
-                    continue;
-                };
-                let distance = screen.distance(mouse);
-                if distance > POINT_RADIUS || best.is_some_and(|(d, _)| d <= distance) {
-                    continue;
-                }
-                if self.can_see(camera, size, *point) {
-                    best = Some((
-                        distance,
-                        Hovered {
-                            object,
-                            element: Element::Point(*id),
-                        },
-                    ));
-                }
-            }
+            };
+            let (ids, bvh) = pick.points();
+            bvh.visit(
+                |b| placed.may_reach(b, camera, size, around(mouse, POINT_RADIUS)),
+                |i| {
+                    let id = VertexId::from_raw(ids[i as usize]);
+                    let Some(point) = pick.mesh.position(id).map(|p| placed.world(p)) else {
+                        return;
+                    };
+                    let Some(screen) = camera.project(point, size) else {
+                        return;
+                    };
+                    let distance = screen.distance(mouse);
+                    if distance <= POINT_RADIUS {
+                        let element = Element::Point(id);
+                        near.push((
+                            distance,
+                            (object, element_order(&element)),
+                            point,
+                            Hovered { object, element },
+                        ));
+                    }
+                },
+            );
         }
-        best.map(|(_, hovered)| hovered)
+        self.first_seen(camera, size, near)
+    }
+
+    /// The first of `near` (distance on screen, an order for ties, where
+    /// to check it can be seen, and what it is) that can be seen, nearest
+    /// first.
+    fn first_seen(
+        &self,
+        camera: &Camera,
+        size: Vec2,
+        mut near: Vec<(f32, (usize, u64), Vec3, Hovered)>,
+    ) -> Option<Hovered> {
+        near.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
+        near.into_iter()
+            .find(|(_, _, at, _)| self.can_see(camera, size, *at))
+            .map(|(.., hovered)| hovered)
     }
 
     fn edge_within(
@@ -488,33 +846,41 @@ impl PickScene {
         mouse: Vec2,
         radius: f32,
     ) -> Option<Hovered> {
-        let mut best: Option<(f32, Hovered)> = None;
+        let mut near: Vec<(f32, (usize, u64), Vec3, Hovered)> = Vec::new();
         for (object, placed) in self.objects.iter().enumerate() {
-            if !placed.editable {
+            let Some(pick) = placed.pick.as_ref().filter(|_| placed.editable) else {
                 continue;
-            }
-            for (edge, a, b) in &placed.edges {
-                let (Some(sa), Some(sb)) = (camera.project(*a, size), camera.project(*b, size))
-                else {
-                    continue;
-                };
-                let (distance, t) = distance_to_segment(mouse, sa, sb);
-                if distance > radius || best.is_some_and(|(d, _)| d <= distance) {
-                    continue;
-                }
-                // The edge is seen where it passes the mouse.
-                if self.can_see(camera, size, a.lerp(*b, t)) {
-                    best = Some((
-                        distance,
-                        Hovered {
-                            object,
-                            element: Element::Edge(*edge),
-                        },
-                    ));
-                }
-            }
+            };
+            let list = pick.mesh.edges();
+            pick.edges().visit(
+                |b| placed.may_reach(b, camera, size, around(mouse, radius)),
+                |i| {
+                    let edge = list[i as usize];
+                    let (va, vb) = edge.ends();
+                    let (Some(a), Some(b)) = (pick.mesh.position(va), pick.mesh.position(vb))
+                    else {
+                        return;
+                    };
+                    let (a, b) = (placed.world(a), placed.world(b));
+                    let (Some(sa), Some(sb)) = (camera.project(a, size), camera.project(b, size))
+                    else {
+                        return;
+                    };
+                    let (distance, t) = distance_to_segment(mouse, sa, sb);
+                    if distance <= radius {
+                        let element = Element::Edge(edge);
+                        // The edge is seen where it passes the mouse.
+                        near.push((
+                            distance,
+                            (object, element_order(&element)),
+                            a.lerp(b, t),
+                            Hovered { object, element },
+                        ));
+                    }
+                },
+            );
         }
-        best.map(|(_, hovered)| hovered)
+        self.first_seen(camera, size, near)
     }
 
     /// Whether `point` can be seen: nothing lies in front of it along the
@@ -527,15 +893,34 @@ impl PickScene {
         let depth = (point - ray.origin).dot(ray.direction);
         let tolerance = 1e-3 * depth.abs() + 0.05;
         self.first_hit(&ray)
-            .is_none_or(|(distance, _)| distance >= depth - tolerance)
+            .is_none_or(|(distance, ..)| distance >= depth - tolerance)
     }
 
-    /// The nearest triangle the ray hits, and how far along it.
-    fn first_hit(&self, ray: &Ray) -> Option<(f32, Triangle)> {
-        self.triangles
-            .iter()
-            .filter_map(|t| hit(ray, &t.corners).map(|d| (d, *t)))
-            .min_by(|a, b| a.0.total_cmp(&b.0))
+    /// The nearest surface the ray hits: how far along, which object and
+    /// which face.
+    fn first_hit(&self, ray: &Ray) -> Option<(f32, usize, FaceId)> {
+        self.first_hit_where(ray, &|_, _| true)
+    }
+
+    /// As [`Self::first_hit`], among the faces `allowed` lets through.
+    fn first_hit_where(
+        &self,
+        ray: &Ray,
+        allowed: &dyn Fn(usize, FaceId) -> bool,
+    ) -> Option<(f32, usize, FaceId)> {
+        let mut best: Option<(f32, usize, FaceId)> = None;
+        for (object, placed) in self.objects.iter().enumerate() {
+            let Some(pick) = &placed.pick else {
+                continue;
+            };
+            let local = placed.local(ray);
+            if let Some((d, face)) = pick.first_hit(&local, &|f| allowed(object, f))
+                && best.is_none_or(|(b, ..)| d < b)
+            {
+                best = Some((d, object, face));
+            }
+        }
+        best
     }
 
     /// What a moving gizmo snaps to near the mouse ([decision 0030](../../../docs/decisions/0030-transform-gizmos.md)):
@@ -553,78 +938,91 @@ impl PickScene {
         whole: &dyn Fn(usize) -> bool,
         moving: &dyn Fn(usize, VertexId) -> bool,
     ) -> Option<Vec3> {
-        let mut best: Option<(f32, Vec3)> = None;
-        let consider = |distance: f32, at: Vec3, best: &mut Option<(f32, Vec3)>| {
-            if best.is_none_or(|(d, _)| distance < d) {
-                *best = Some((distance, at));
-            }
+        // Candidates near the mouse, nearest first; the first that can be
+        // seen wins (as for hovering).
+        let nearest_seen = |mut near: Vec<(f32, Vec3)>| {
+            near.sort_by(|a, b| a.0.total_cmp(&b.0));
+            near.into_iter()
+                .find(|(_, at)| self.can_see(camera, size, *at))
+                .map(|(_, at)| at)
         };
         if targets.points {
+            let mut near = Vec::new();
             for (object, placed) in self.objects.iter().enumerate() {
-                if whole(object) {
+                let Some(pick) = placed.pick.as_ref().filter(|_| !whole(object)) else {
                     continue;
-                }
-                for (id, p) in &placed.points {
-                    if moving(object, *id) {
-                        continue;
-                    }
-                    let Some(s) = camera.project(*p, size) else {
-                        continue;
-                    };
-                    let d = s.distance(mouse);
-                    if d <= POINT_RADIUS && self.can_see(camera, size, *p) {
-                        consider(d, *p, &mut best);
-                    }
-                }
+                };
+                let (ids, bvh) = pick.points();
+                bvh.visit(
+                    |b| placed.may_reach(b, camera, size, around(mouse, POINT_RADIUS)),
+                    |i| {
+                        let id = VertexId::from_raw(ids[i as usize]);
+                        if moving(object, id) {
+                            return;
+                        }
+                        let Some(p) = pick.mesh.position(id).map(|p| placed.world(p)) else {
+                            return;
+                        };
+                        let Some(s) = camera.project(p, size) else {
+                            return;
+                        };
+                        let d = s.distance(mouse);
+                        if d <= POINT_RADIUS {
+                            near.push((d, p));
+                        }
+                    },
+                );
             }
-            if let Some((_, at)) = best {
+            if let Some(at) = nearest_seen(near) {
                 return Some(at);
             }
         }
         if targets.edges {
+            let mut near = Vec::new();
             for (object, placed) in self.objects.iter().enumerate() {
-                if whole(object) {
+                let Some(pick) = placed.pick.as_ref().filter(|_| !whole(object)) else {
                     continue;
-                }
-                for (edge, a, b) in &placed.edges {
-                    let (va, vb) = edge.ends();
-                    if moving(object, va) || moving(object, vb) {
-                        continue;
-                    }
-                    let (Some(sa), Some(sb)) = (camera.project(*a, size), camera.project(*b, size))
-                    else {
-                        continue;
-                    };
-                    let (d, t) = distance_to_segment(mouse, sa, sb);
-                    let at = a.lerp(*b, t);
-                    if d <= EDGE_RADIUS && self.can_see(camera, size, at) {
-                        consider(d, at, &mut best);
-                    }
-                }
+                };
+                let list = pick.mesh.edges();
+                pick.edges().visit(
+                    |b| placed.may_reach(b, camera, size, around(mouse, EDGE_RADIUS)),
+                    |i| {
+                        let (va, vb) = list[i as usize].ends();
+                        if moving(object, va) || moving(object, vb) {
+                            return;
+                        }
+                        let (Some(a), Some(b)) = (pick.mesh.position(va), pick.mesh.position(vb))
+                        else {
+                            return;
+                        };
+                        let (a, b) = (placed.world(a), placed.world(b));
+                        let (Some(sa), Some(sb)) =
+                            (camera.project(a, size), camera.project(b, size))
+                        else {
+                            return;
+                        };
+                        let (d, t) = distance_to_segment(mouse, sa, sb);
+                        if d <= EDGE_RADIUS {
+                            near.push((d, a.lerp(b, t)));
+                        }
+                    },
+                );
             }
-            if let Some((_, at)) = best {
+            if let Some(at) = nearest_seen(near) {
                 return Some(at);
             }
         }
         if targets.polygons {
             let ray = camera.ray_through(mouse, size);
-            let still = |t: &Triangle| {
-                !whole(t.object)
-                    && self.objects[t.object]
-                        .polygons
-                        .iter()
-                        .find(|(f, ..)| *f == t.face)
-                        .is_none_or(|(_, _, corners)| {
-                            !corners.iter().any(|(v, _)| moving(t.object, *v))
-                        })
+            let still = |object: usize, face: FaceId| {
+                !whole(object)
+                    && self.objects[object]
+                        .pick
+                        .as_ref()
+                        .and_then(|p| p.mesh.face(face))
+                        .is_none_or(|corners| !corners.iter().any(|v| moving(object, *v)))
             };
-            return self
-                .triangles
-                .iter()
-                .filter(|t| still(t))
-                .filter_map(|t| hit(&ray, &t.corners).map(|d| (d, *t)))
-                .min_by(|a, b| a.0.total_cmp(&b.0))
-                .map(|(d, _)| ray.at(d));
+            return self.first_hit_where(&ray, &still).map(|(d, ..)| ray.at(d));
         }
         None
     }
@@ -632,7 +1030,23 @@ impl PickScene {
     /// How many triangles hide what is behind them (for tests and
     /// statistics).
     pub fn triangle_count(&self) -> usize {
-        self.triangles.len()
+        self.objects
+            .iter()
+            .filter_map(|p| p.pick.as_ref())
+            .map(|p| p.tris.len())
+            .sum()
+    }
+}
+
+/// Orders elements by id, as a scan in id order meets them.
+fn element_order(element: &Element) -> u64 {
+    match element {
+        Element::Point(v) => u64::from(v.get()),
+        Element::Polygon(f) => u64::from(f.get()),
+        Element::Edge(e) => {
+            let (a, b) = e.ends();
+            (u64::from(a.get()) << 32) | u64::from(b.get())
+        }
     }
 }
 
