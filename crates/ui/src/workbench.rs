@@ -297,9 +297,8 @@ impl Workbench {
         // Unsaved: the project file (if any) doesn't have this work.
         self.file.saved_revision = u64::MAX;
         self.file.path = project;
-        // The app already kept it as this run's newest backup copy.
-        self.autosaver.started(self.document.revision());
-        self.autosaver.finished(true);
+        // The app already kept it as this run's newest backup copy, and
+        // the timer starts from it (`replace_document`).
         self.note = Some(format!(
             "Restored your work from {when}. Save it to keep it."
         ));
@@ -331,13 +330,13 @@ impl Workbench {
         }
         let now = ctx.input(|i| i.time);
         let revision = self.document.revision();
-        match self.autosaver.tick(now, revision, self.file.saved_revision) {
+        match self.autosaver.tick(now, revision) {
             Tick::Idle => {}
             Tick::Wait(seconds) => {
                 ctx.request_repaint_after(std::time::Duration::from_secs_f64(seconds));
             }
             Tick::Save => {
-                self.autosaver.started(revision);
+                self.autosaver.started(revision, now);
                 let scene = self.document.scene().clone();
                 actions.push(WorkbenchAction::Autosave {
                     document: Box::new(Document::from_scene(scene, self.document.selection())),

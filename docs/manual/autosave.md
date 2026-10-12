@@ -6,7 +6,7 @@
 
 ## When to use it
 
-You don't have to do anything: backups are on as standard. Every 5 minutes, *if something changed*, the app saves a [backup copy](concepts.md#objects-and-scenes) of the whole scene. It keeps the newest 5. It works for scenes you have never saved (*Untitled*) as well as for projects.
+You don't have to do anything: backups are on as standard. Every 5 minutes, *if something changed since the last copy*, the app saves a [backup copy](concepts.md#objects-and-scenes) of the whole scene. It runs on its own clock, separate from saving: pressing Ctrl + S doesn't restart the countdown. It keeps the newest 5. It works for scenes you have never saved (*Untitled*) as well as for projects.
 
 Backups are a safety net, not a way of saving:
 - **They never replace your project file.** Only **File → Save** (Ctrl + S) changes that. If you close the app and choose *Don't save*, your changes are gone, as you asked.
@@ -39,7 +39,7 @@ In **Edit → Settings… → Autosave**:
 | Setting | What it does |
 |---|---|
 | **Save backup copies in the background** | On as standard. Switch it off only if you have a reason, such as a very slow disk. Your project file is saved the same either way. |
-| **Every … minutes** | How long after a change the next copy is saved: 1 to 30, 5 as standard. A shorter time loses less work in a crash; a longer one writes to the disk less often. Nothing is saved while nothing changes. |
+| **Every … minutes** | Minutes between copies, counted from the last copy: 1 to 30, 5 as standard. A shorter time loses less work in a crash; a longer one writes to the disk less often. When nothing has changed since the last copy, nothing is saved. |
 | **Keep the newest … copies** | How many copies to keep, 1 to 20, 5 as standard. More copies let you go further back if the newest has a mistake in it. Each copy is as large as a saved project, so heavy scenes with many copies take more disk space. |
 | **Where they go** | Shows the folder the copies are kept in. It's the app's own folder, not your project folder, so your project folders stay tidy. |
 
@@ -61,7 +61,8 @@ Inside, each run of the app has its own `session-…` folder. The copies are ord
 
 - **Tip:** after restoring, check the scene before saving over your project. If something is missing, use **File → Open…** to look at your last save, or open an older copy from the backup folder.
 - **Problem:** the status bar says "Couldn't save a backup copy: …". **Why:** the backup folder couldn't be written to, for example because the disk is full. **Fix:** free some disk space. The app tries again at the next interval, and your work in the window is unaffected.
-- **Problem:** the app didn't offer anything after a crash. **Why:** either nothing had changed since you last saved, or it crashed before the first interval was over. In both cases there was nothing newer than your project file to keep. **Fix:** open the project as usual. A shorter interval in Settings narrows that window.
+- **Problem:** the app didn't offer anything after a crash. **Why:** either it crashed before the first copy was due (nothing had been copied yet), or it didn't really crash: it closed normally and tidied its copies away. **Fix:** open the project as usual. A shorter interval in Settings narrows that window.
+- **Testing it yourself on Windows:** Task Manager's **End task** on the *Processes* tab doesn't crash the app. It asks the app to close, like clicking ×, so the app closes normally and deletes its copies. To end it the hard way, as a crash would, use the *Details* tab instead (right-click the app → **End task**), or type `taskkill /F /IM aventail.exe` in a Command Prompt.
 - **Problem:** "Couldn't restore the backup copy: …". **Why:** the copy was damaged or deleted. **Fix:** the copies are kept when this happens: start the app again and choose an older one, or Open as saved.
 
 ## Related

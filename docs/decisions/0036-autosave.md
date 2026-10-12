@@ -41,7 +41,7 @@ Asked on 2026-10-12:
 
 **Writing copies**
 - **Separate jobs.** The workbench (`ui`) decides *when* a copy is due and asks for one with `WorkbenchAction::Autosave`; it never touches files. The app (`app::backups`) writes the copy on another thread. The file work is in `fileio::autosave`.
-- **The timer** starts at the first change since the last save or backup. A quiet scene therefore never writes, and a busy one writes once per interval. While a copy is being written, no other is started.
+- **The timer runs on its own clock, separate from saving.** A copy is due an interval after the last copy (or after the scene was opened), if anything changed since that copy, whether or not the project was saved in between. A quiet scene therefore never writes, a busy one writes once per interval, and the first change after a quiet spell longer than the interval is copied at once. While a copy is being written, no other is started. (First built counting from the first change since the last *save* or copy. The project lead found that each Ctrl + S restarted the countdown, and asked for the two to be separate, 2026-10-12.)
 - **Copies are ordinary project files** (`copy-N.avtl`, the highest number the newest). Each is written beside its final name and then renamed, so a copy is never half-written. The oldest beyond the chosen number are deleted.
 - **The project file itself is never touched** by autosave.
 

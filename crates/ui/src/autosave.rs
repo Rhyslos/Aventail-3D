@@ -72,30 +72,34 @@ pub(crate) enum Tick {
     Save,
 }
 
-/// Keeps track of when the next backup is due.
+/// Keeps track of when the next backup is due. Backups run on their own
+/// clock, separate from saving: every interval after the last backup, if
+/// anything changed since that backup, whether or not the project was
+/// saved in between (the project lead's choice, 2026-10-12).
 #[derive(Debug, Clone, Default)]
 pub(crate) struct Autosaver {
     pub(crate) settings: AutosaveSettings,
-    /// When the first change not yet backed up was seen.
-    changed_at: Option<f64>,
-    /// The document's revision in the last backup.
+    /// When the last backup was made (or the document was opened).
+    since: Option<f64>,
+    /// The document's revision in the last backup (or when it was
+    /// opened: an unchanged document needs no backup).
     backed_up: Option<u64>,
+    /// `backed_up` before the backup being written, to go back to if it
+    /// fails.
+    previous: Option<u64>,
     /// A backup is being written.
     writing: bool,
 }
 
 impl Autosaver {
-    /// Whether a backup is due at `now` (seconds), for a document at
-    /// `revision` that was last saved (or opened) at `saved`. The interval
-    /// runs from the first change since the last backup, so a quiet
-    /// scene never saves and a busy one saves every interval.
-    pub(crate) fn tick(&mut self, now: f64, revision: u64, saved: u64) -> Tick {
-        let safe = revision == saved || Some(revision) == self.backed_up;
-        if !self.settings.on || safe {
-            self.changed_at = None;
+    /// Whether a backup is due at `now` (seconds) for a document at
+    /// `revision`.
+    pub(crate) fn tick(&mut self, now: f64, revision: u64) -> Tick {
+        let backed_up = *self.backed_up.get_or_insert(revision);
+        let since = *self.since.get_or_insert(now);
+        if !self.settings.on || revision == backed_up {
             return Tick::Idle;
         }
-        let since = *self.changed_at.get_or_insert(now);
         let due = since + self.settings.interval();
         if self.writing {
             Tick::Wait((due - now).max(1.0))
@@ -106,26 +110,29 @@ impl Autosaver {
         }
     }
 
-    /// A backup of `revision` was handed to the app to write.
-    pub(crate) fn started(&mut self, revision: u64) {
+    /// A backup of `revision` was handed to the app to write at `now`.
+    pub(crate) fn started(&mut self, revision: u64, now: f64) {
+        self.previous = self.backed_up;
         self.backed_up = Some(revision);
-        self.changed_at = None;
+        self.since = Some(now);
         self.writing = true;
     }
 
-    /// The app finished writing it (or failed: the next change tries
-    /// again after the interval).
+    /// The app finished writing it, or failed (then the changes are
+    /// tried again after the next interval).
     pub(crate) fn finished(&mut self, ok: bool) {
         self.writing = false;
         if !ok {
-            self.backed_up = None;
+            self.backed_up = self.previous;
         }
     }
 
-    /// A different document is open: nothing of it is backed up yet.
+    /// A different document is open: the clock starts again, and the
+    /// document as opened needs no backup.
     pub(crate) fn restart(&mut self) {
-        self.changed_at = None;
+        self.since = None;
         self.backed_up = None;
+        self.previous = None;
     }
 }
 
@@ -277,26 +284,35 @@ mod tests {
     use std::time::Duration;
 
     #[test]
-    fn a_backup_is_due_an_interval_after_the_first_unsaved_change() {
+    fn backups_run_on_their_own_clock_when_something_changed() {
         let mut timer = Autosaver::default();
-        // Nothing changed since the last save: nothing to do.
-        assert_eq!(timer.tick(0.0, 4, 4), Tick::Idle);
-        // A change: due five minutes later, however many more follow.
-        assert_eq!(timer.tick(10.0, 5, 4), Tick::Wait(300.0));
-        assert_eq!(timer.tick(200.0, 9, 4), Tick::Wait(110.0));
-        assert_eq!(timer.tick(310.0, 9, 4), Tick::Save);
-        timer.started(9);
+        // Opened at 0 with revision 4: nothing to back up.
+        assert_eq!(timer.tick(0.0, 4), Tick::Idle);
+        assert_eq!(timer.tick(1_000.0, 4), Tick::Idle);
+        // A change after a long quiet spell: due at once.
+        assert_eq!(timer.tick(1_001.0, 5), Tick::Save);
+        timer.started(5, 1_001.0);
         // While it is written, nothing more is started.
-        assert!(matches!(timer.tick(311.0, 10, 4), Tick::Wait(_)));
+        assert!(matches!(timer.tick(1_002.0, 6), Tick::Wait(_)));
+        timer.finished(true);
+        // Busy work: the next one is due an interval after the last.
+        assert_eq!(timer.tick(1_100.0, 9), Tick::Wait(201.0));
+        assert_eq!(timer.tick(1_301.0, 9), Tick::Save);
+        timer.started(9, 1_301.0);
         timer.finished(true);
         // Backed up and unchanged since: idle.
-        let mut fresh = Autosaver::default();
-        fresh.tick(0.0, 9, 4);
-        fresh.started(9);
-        fresh.finished(true);
-        assert_eq!(fresh.tick(1_000.0, 9, 4), Tick::Idle);
-        // Saving the project counts as safe too.
-        assert_eq!(fresh.tick(1_000.0, 12, 12), Tick::Idle);
+        assert_eq!(timer.tick(5_000.0, 9), Tick::Idle);
+    }
+
+    #[test]
+    fn saving_does_not_reset_the_clock() {
+        // The timer doesn't know about saving at all: a change saved with
+        // Ctrl + S still gets its backup on time.
+        let mut timer = Autosaver::default();
+        timer.tick(0.0, 1);
+        assert_eq!(timer.tick(10.0, 2), Tick::Wait(290.0));
+        // (saved here, revision 2 is in the project file)
+        assert_eq!(timer.tick(300.0, 2), Tick::Save);
     }
 
     #[test]
@@ -308,16 +324,19 @@ mod tests {
             },
             ..Autosaver::default()
         };
-        assert_eq!(timer.tick(0.0, 5, 0), Tick::Idle);
+        assert_eq!(timer.tick(0.0, 0), Tick::Idle);
+        assert_eq!(timer.tick(10.0, 5), Tick::Idle, "off");
         timer.settings.on = true;
         timer.settings.minutes = 1;
-        assert_eq!(timer.tick(0.0, 5, 0), Tick::Wait(60.0));
-        assert_eq!(timer.tick(60.0, 5, 0), Tick::Save);
-        timer.started(5);
+        assert_eq!(timer.tick(60.0, 5), Tick::Save);
+        timer.started(5, 60.0);
         timer.finished(false);
-        assert_eq!(timer.tick(61.0, 5, 0), Tick::Wait(60.0), "tries again");
+        assert_eq!(timer.tick(61.0, 5), Tick::Wait(59.0), "tries again");
+        assert_eq!(timer.tick(120.0, 5), Tick::Save);
+        // Another document: its state when opened needs no backup.
         timer.restart();
-        assert_eq!(timer.tick(70.0, 5, 0), Tick::Wait(60.0));
+        assert_eq!(timer.tick(130.0, 7), Tick::Idle);
+        assert_eq!(timer.tick(140.0, 8), Tick::Wait(50.0));
     }
 
     #[test]

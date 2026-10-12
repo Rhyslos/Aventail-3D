@@ -66,20 +66,34 @@ fn asking(project: Option<&str>) -> Harness<'static, State> {
 
 // ---------------------------------------------------------------- timer ---
 
-#[test]
-fn unsaved_work_is_backed_up_after_the_interval_with_the_copies_to_keep() {
+/// A harness whose scene was changed (a group added) at 100 s.
+fn changed_at_100() -> Harness<'static, State> {
     let mut harness = fresh();
-    actions(&mut harness);
+    at(&mut harness, 50.0);
+    harness.get_by_label("Create group").click();
     at(&mut harness, 100.0);
+    actions(&mut harness);
+    harness
+}
+
+#[test]
+fn changed_work_is_backed_up_on_the_clock_with_the_copies_to_keep() {
+    // A scene as opened needs no backup, however long it waits.
+    let mut quiet = fresh();
+    at(&mut quiet, 10_000.0);
+    assert!(autosaves(&actions(&mut quiet)).is_empty());
+
+    let mut harness = changed_at_100();
+    at(&mut harness, 200.0);
     assert!(autosaves(&actions(&mut harness)).is_empty(), "not yet");
-    at(&mut harness, 100.0 + 5.0 * 60.0);
+    at(&mut harness, 5.0 * 60.0 + 1.0);
     let found = actions(&mut harness);
     assert_eq!(autosaves(&found), [5]);
-    // The copy holds the scene.
+    // The copy holds the scene: the cube and the group.
     let Some(WorkbenchAction::Autosave { document, .. }) = found.first() else {
         panic!("no copy");
     };
-    assert_eq!(document.scene().children(None).len(), 1);
+    assert_eq!(document.scene().children(None).len(), 2);
     // Only one is asked for until it is written.
     at(&mut harness, 1_000.0);
     assert!(autosaves(&actions(&mut harness)).is_empty());
@@ -89,23 +103,29 @@ fn unsaved_work_is_backed_up_after_the_interval_with_the_copies_to_keep() {
 }
 
 #[test]
-fn saved_work_and_switched_off_backups_ask_for_nothing() {
-    let mut harness = fresh();
+fn saving_and_backups_are_separate() {
+    // Ctrl + S doesn't reset the backup clock: the change still gets
+    // its backup copy on time.
+    let mut harness = changed_at_100();
     harness
         .state_mut()
         .workbench
         .saved(PathBuf::from("/work/a.avtl"));
-    at(&mut harness, 0.0);
-    at(&mut harness, 10_000.0);
-    assert!(autosaves(&actions(&mut harness)).is_empty());
+    at(&mut harness, 5.0 * 60.0 + 1.0);
+    assert_eq!(autosaves(&actions(&mut harness)), [5]);
+}
 
+#[test]
+fn switched_off_backups_ask_for_nothing() {
     let mut off = super::tests::harness_for(super::tests::with_a_cube(
         Workbench::new(info(), None).with_autosave(AutosaveSettings {
             on: false,
             ..AutosaveSettings::default()
         }),
     ));
-    at(&mut off, 0.0);
+    at(&mut off, 50.0);
+    off.get_by_label("Create group").click();
+    at(&mut off, 100.0);
     at(&mut off, 10_000.0);
     assert!(autosaves(&actions(&mut off)).is_empty());
 }
