@@ -27,6 +27,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- The menus' notes about upcoming UV tools now say Phase 8: UVs come after the modelling phases.
 - Projects are saved in format version 2, so turned and scaled points are kept. Older projects still open; projects saved now need this version of the app or newer.
 - **Ctrl + mouse wheel** no longer zooms the view; it grows and shrinks the selection.
 - In Points, Edges and Polygons mode, what's under the mouse is now light red, and what's selected full red. Points are round dots instead of squares.

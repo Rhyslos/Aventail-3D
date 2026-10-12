@@ -20,4 +20,4 @@ Turns a mesh's surface into flat UV islands and arranges them in the texture squ
 
 ## Status
 
-Empty. UV tools arrive in Phase 6.
+Empty. UV tools arrive in Phase 8, after the modelling phases.

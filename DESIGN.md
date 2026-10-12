@@ -35,6 +35,8 @@ Aventail 3D (model + UV)  ──glTF/OBJ──►  Substance Painter (bake + tex
 3. **Never lose work.** Undo is effectively unlimited. Base object properties stay editable no matter how much has been done since.
 4. **Copy C4D first, diverge later.** The C4D layout is the starting target. Changes come from real use, not guesses.
 5. **Free forever.** Every dependency must allow free use and redistribution (see §9).
+6. **Robust with heavy meshes.** Game assets are small, but someone may import a 2–3 million polygon model and build on top of it. The app must stay usable then: slower is acceptable, freezing or crashing is not (§4.8).
+7. **Explains itself.** Warnings, checks and tooltips say in plain words what is wrong, why it matters and how to fix it, ideally with a one-click fix. Most 3D programs assume you already know them; this one shouldn't.
 
 ---
 
@@ -45,13 +47,20 @@ Aventail 3D (model + UV)  ──glTF/OBJ──►  Substance Painter (bake + tex
 | W1 | C4D look and feel: calm, clean viewport, smooth interaction | C4D | Core | 0–1, ongoing |
 | W2 | C4D layout: Object Manager + Attribute Manager + viewports | C4D | Core | 0, 2 |
 | W3 | Near-unlimited undo history | Max | Core | 2 |
-| W4 | Base object properties always editable, however much the object has been edited | Max | Core (architecture now) | 2, 7 |
-| W5 | **Edit Poly stack**: a layered history of Edit Poly modifiers on top of each other. *"By far the most important tool."* | Max | **Top** (architecture now, UI later) | 2 (foundation), 7 (UI) |
+| W4 | Base object properties always editable, however much the object has been edited | Max | Core (architecture now) | 2, 6 |
+| W5 | **Edit Poly stack**: a layered history of Edit Poly modifiers on top of each other. *"By far the most important tool."* | Max | **Top** (architecture now, UI later) | 2 (foundation), 6 (UI) |
 | W6 | Zoom/orbit around the point under the mouse cursor | Max | High | 1 |
-| W7 | Quick Align | Max | Medium | 7 |
-| W8 | Clean, powerful UV unwrapping like C4D | C4D | Core | 6 |
-| W9 | Max-like breadth of modelling tools | Max | Core | 4, 8 |
+| W7 | Quick Align | Max | Medium | 6 |
+| W8 | Clean, powerful UV unwrapping like C4D, aiming to be **the best UV tools available** (§7) | C4D | Core | 8 |
+| W9 | Max-like breadth of modelling tools | Max | Core | 4, 7 |
 | W10 | Scripting, so people can code their own functionality | Blender, Max, C4D | Later | 9 |
+| W11 | Stays usable with a heavy imported mesh (2–3 million polygons in one object): a safeguard, not the expected use (§4.8) | Own | High (foundation now) | 4, checked at every phase gate |
+| W12 | Never lose work to a crash: autosave and recovery | Own | High | 4 |
+| W13 | **Bake readiness**: a live check that explains, in plain words, why a bake would go wrong (hard edge without a UV seam, overlapping UVs, missing high/low pair, flipped normals), each with a one-click fix | Own | High (sets the app apart) | 5, 8 |
+| W14 | **Edits that survive changes underneath**: every recorded edit finds its elements again when a base's settings or a lower layer change ([0032](docs/decisions/0032-edits-find-their-points-again.md)) | Own, from W4/W5 | High (sets the app apart) | 3 (moves), 4 (every tool), 6 (layers), 8 (UVs) |
+| W15 | **Game bevel** for the mid-poly workflow: bevel, weighted normals and hard edges and seams set in one step | Own | Medium (sets the app apart) | 7 |
+| W16 | **Trim sheets and modular kits**: UV strips laid onto rows of a shared texture; pieces on a grid with sensible pivots, Godot collision meshes, each piece exported as its own file | Own | Medium (sets the app apart) | 5, 7, 8 |
+| W17 | **Explains itself**: plain-language warnings and tooltips, a manual written for someone rusty, help one key away | Own | Ongoing | all |
 
 > **W4 and W5 are the same idea underneath:** an object is a *base* plus a *stack of operations* that can be re-evaluated. This is why the architecture is designed for it from day one (§4), even though the Edit Poly stack UI comes later. Retrofitting non-destructive editing into a destructive modeller is close to a rewrite, so it must not be postponed at the architecture level.
 
@@ -117,6 +126,7 @@ Crate names are deliberately generic (no product name in them), so renaming the 
   - Corner: **UV(s)**, custom normal (for weighted normals)
 - Normals are computed from hard edges and face weights. They are never the source of truth unless explicitly custom.
 - Every topology operation is a pure function `(&Mesh, params, selection) -> Result<(Mesh or delta, IdMap)>` with unit tests.
+- Adjacency (`Topology`) must stay fast on 2–3 million polygons and update in part after small edits (§4.8).
 
 ### 4.2 Objects and the operation stack (`scene`)
 
@@ -129,18 +139,20 @@ Object
       Layer { name, enabled, ops: [Operation] }
 ```
 - **Evaluation:** `base → layer 1 → layer 2 → … → final mesh`. Each layer's output is cached. Changing something in layer *k* re-evaluates only from *k* upward.
-- **Phase 2–6 behaviour (C4D-like):** the user sees a normal object. Edits are silently recorded as `Operation`s in an implicit single layer. Primitive parameters (e.g. cube segments) remain editable in the Attribute Manager, and the recorded edits replay on top (**W4**).
-- **Phase 7 behaviour (Max-like):** the Edit Poly stack UI exposes layers. Users can add a new Edit Poly layer, disable one, reorder, collapse, or go back down and edit an earlier layer (**W5**).
+- **Phase 2–5 behaviour (C4D-like):** the user sees a normal object. Edits are silently recorded as `Operation`s in an implicit single layer. Primitive parameters (e.g. cube segments) remain editable in the Attribute Manager, and the recorded edits replay on top (**W4**).
+- **Phase 6 behaviour (Max-like):** the Edit Poly stack UI exposes layers. Users can add a new Edit Poly layer, disable one, reorder, collapse, or go back down and edit an earlier layer (**W5**).
 - **Collapse** ("Make Editable" in C4D, "Collapse to" in Max) bakes the stack into an `EditableMesh` base. This is always available as an escape hatch.
 
 **The hard problem — topological naming.** Operations refer to elements (e.g. "extrude faces 12, 15"). If a lower layer or base parameter changes the topology, those references can break.
 Strategy:
 1. IDs are generated **deterministically** by each operation, so replaying an unchanged history yields identical IDs.
-2. When an upstream change makes a reference invalid, the operation applies to whatever still matches and the layer shows a **warning badge**. Nothing is silently destroyed, and collapse/undo still work.
-3. This is the same compromise 3ds Max makes; it does not need to be perfect, it needs to be predictable.
+2. Each operation also records **anchors**: where its elements were, relative to the shape's box. When the IDs no longer sit there (new settings renumbered the points), it finds its elements again by position ([decision 0032](docs/decisions/0032-edits-find-their-points-again.md)). Built for moves, turns and scaling; **every Phase 4 tool records anchors the same way**, and Phase 6's layers use them when a lower layer changes (**W14**).
+3. When an element can't be found at all, the operation applies to whatever still matches and the layer shows a **warning badge**. Nothing is silently destroyed, and collapse/undo still work.
+4. 3ds Max stops at the compromise in step 3; step 2 is where this app aims to do better. It does not need to be perfect, it needs to be predictable.
 
 ### 4.3 Undo / history (**W3**)
 - Every user action is a `Command` that can apply and revert itself (storing a compact delta, not a full scene copy).
+  - *To change (§4.8):* a few commands still keep whole meshes (Make editable keeps the mesh it replaced). On a 2-million-polygon object that's about 115 MB per step; they should keep only what changed, or spill to disk.
 - **No fixed step limit.** History is bounded by a **memory budget** (default e.g. 2 GB, configurable, or "unlimited"). Older entries can spill to disk.
 - Selection changes are undoable but coalesced (a drag-select is one step).
 - Optional: save undo history inside the project file, so undo survives restarts.
@@ -164,10 +176,10 @@ Nothing animation-related is built before Phase 10, but these rules avoid a rewr
 - **glTF as the target.** glTF supports skins and animation, and Godot imports them, so the same export path extends to animated assets.
 
 ### 4.6 Rendering (`render`)
-- wgpu, MSAA, and a stable 60+ fps target on ordinary hardware for game-asset-sized meshes (up to ~1M triangles).
+- wgpu, MSAA, and a stable 60+ fps target on ordinary hardware for game-asset-sized meshes (up to ~1M triangles). Heavier meshes follow the safeguard targets in §4.8.
 - Draw passes: shaded (soft studio lighting, matcap optional) → wireframe overlay → selection highlight → gizmos/HUD.
 - **GPU picking** (ID buffer) for vertices/edges/faces, and **depth readback** for cursor-point navigation.
-- Only meshes that changed are re-uploaded.
+- Only meshes that changed are re-uploaded. *To improve (§4.8):* within a mesh, only the part that changed, so moving a few points of a huge mesh doesn't re-upload all of it.
 
 ### 4.7 Scripting (Phase 9)
 Let people code their own functionality: custom tools, batch jobs, generators, export helpers. Blender, 3ds Max and Cinema 4D all have this, and a free tool gains a lot when its users can extend it.
@@ -193,6 +205,33 @@ Let people code their own functionality: custom tools, batch jobs, generators, e
 - **Operations and commands take plain data** (numbers, IDs, settings), never UI objects, so a script can call them the same way a tool does.
 - **The scripting API gets a version number.** Scripts say which version they target, so future changes can keep old scripts working.
 
+### 4.8 Performance and robustness (**W11**)
+
+The app is built for game assets (thousands to a few hundred thousand polygons), but must not fall over when someone imports a high-poly model (2–3 million polygons in **one** object) and models on top of it. This is a safeguard, not the expected use ([decision 0033](docs/decisions/0033-heavy-mesh-safeguard.md)).
+
+**Targets** on ordinary hardware:
+
+| | Game-sized scene | One 2–3M polygon object (safeguard) |
+|---|---|---|
+| Orbit, pan, zoom | 60 fps | 60 fps |
+| Hover highlight, click to select | instant | under 50 ms |
+| Drag a few points or a polygon | 60 fps | no visible stutter (30 fps or better) |
+| Whole-shape rebuilds (import, a settings change, Make editable) | instant | a few seconds at most, never a freeze without feedback |
+| Memory | small | the mesh plus a small multiple, not a copy per undo step |
+
+**Where it stands** (measured 2026-10-12 on a 2-million-polygon grid, before any of the fixes below): holding, copying and moving the mesh is fast (about 0.1 s, 115 MB), and finding what's under the mouse takes 35 ms. Working out the mesh's connections takes **3 s** and building the picking map **1.9 s**, and both are rebuilt when the shape changes (every frame of a drag with snapping), so a drag would stutter badly. Game-sized meshes are unaffected.
+
+**Fixes** (the *Heavy meshes* milestone at the start of Phase 4, before the tools build on them):
+1. **Connections in flat lists**: `mesh::Topology` keeps edges, point–edge and point–face links in sorted arrays (or a half-edge structure) instead of tree maps. The usual 10–50× speed-up; its interface stays the same.
+2. **A spatial index** (a BVH: boxes inside boxes) inside `tools::PickScene`, so picking and snapping only test the few polygons near the mouse ([0027](docs/decisions/0027-component-modes.md) planned this).
+3. **Update only what changed**: an edit that touches 50 points updates the connections, the picking index and the GPU buffers for those points, not the whole mesh. During a drag, nothing that doesn't depend on positions is rebuilt.
+4. **Small undo steps** (§4.3): no command keeps a whole mesh when a difference will do.
+5. Long jobs (import, rebuilds) run off the interface thread with progress shown, so the window never stops responding.
+
+**How it is checked**:
+- Ordinary pull requests run the normal test suite, plus small benchmarks for code on a performance path (CONTRIBUTING). They do **not** run the heavy test.
+- The **heavy-mesh check** loads a 3-million-polygon object and measures the targets above. It runs **at the end of every phase**, as part of the gate, and **whenever the project lead asks**. Its results go in the pull request. It comes with the *Heavy meshes* milestone.
+
 ---
 
 ## 5. UI specification — C4D first
@@ -201,21 +240,22 @@ Let people code their own functionality: custom tools, batch jobs, generators, e
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │ Menu bar                                                         │
-│ Top command palette (primitives, generators, tools)              │
-├──┬──────────────────────────────────────────┬────────────────────┤
-│M │                                          │ Attribute Manager  │
-│o │            Viewport(s)                   │ (selected object / │
-│d │   single perspective or 4-up             │  active tool)      │
-│e │                                          ├────────────────────┤
-│s │                                          │ Object Manager     │
-│  │                                          │ (hierarchy tree,   │
-│  │                                          │  later Edit Layers)│
-├──┴──────────────────────────────────────────┴────────────────────┤
+│ Top command palette (primitives, tools)                          │
+├──┬───────────────────────────────────────┬──┬────────────────────┤
+│M │                                       │M │ Attribute Manager  │
+│o │            Viewport(s)                │o │ (selected object / │
+│d │   single perspective or 4-up          │d │  active tool)      │
+│e │                                       │i ├────────────────────┤
+│s │                                       │f │ Object Manager     │
+│  │                                       │s │ (hierarchy tree,   │
+│  │                                       │  │  later Edit Layers)│
+├──┴───────────────────────────────────────┴──┴────────────────────┤
 │ Status bar: hints, selection counts, snapping state              │
 └──────────────────────────────────────────────────────────────────┘
 ```
 - **Right column order:** Attribute Manager on top, Object Manager below. This deliberately differs from C4D's default (user preference, 2026-10-10).
 - **Left palette:** mode switches (Model / Object / Points / Edges / Polygons / UV) and snapping, like C4D, with viewport display switches at the bottom (grid detail: fine 10 cm lines on or off).
+- **Modifiers palette** (the project lead's choice, 2026-10-12): a thin column of icon buttons between the viewport and the right column, holding everything that changes a shape non-destructively: edit layers (Phase 6), mirror and array (Phase 7), booleans, subdivision, weighted normals and the game bevel. It sits right next to the Object Manager because that is where modifiers are applied and shown. C4D keeps its generators and deformers in a similar spot; we copy only the placement, with our own icons (drawn in code) and names. It appears with the first modifier (Edit Layers, Phase 6), not as an empty placeholder: a strip of buttons that do nothing would only confuse. How a click applies a modifier (to the selection, as a child or a parent, as a layer) is asked about before it is built ([0028](docs/decisions/0028-ask-about-controls.md)).
 - **Object Manager:** tree with drag-to-reparent, rename, visibility toggles, and later the Edit Poly stack shown as a sub-list. Built: click, Ctrl and Shift selection with names in the accent colour, double-click to rename, drag onto a row to nest or onto its edge to reorder, an eye per row, fold arrows, a right-click menu, and Edit, View and Object menus ([0018](docs/decisions/0018-scene-document-and-undo.md)).
 - **Attribute Manager:** tabbed properties for the selection or active tool.
 - A **Coordinates panel** (C4D's position/scale/rotation fields) can be docked under the viewport.
@@ -254,7 +294,7 @@ Let people code their own functionality: custom tools, batch jobs, generators, e
 - **The tool keys come from Halberd** ([decision 0019](docs/decisions/0019-only-the-tool-keys-come-from-halberd.md), narrowing 0016): `Q` select, `W` move, `S` scale, `R` rotate, `T` all gizmos, `B` a new shape. Other keys are chosen by the project lead before each feature is built ([0028](docs/decisions/0028-ask-about-controls.md)); selection's are in [0029](docs/decisions/0029-selection.md). Others built earlier (common in 3D programs, no clashes with these): built so far `Ctrl+Z`/`Ctrl+Y` undo and redo, `Delete` delete, `Esc` deselect, `H`/`F` frame, `F1`–`F5` views, `Alt+G`/`Shift+G` group and ungroup; `Ctrl+S` save to come. Nothing else is taken from Halberd unless the project lead asks for it. Viewport navigation uses the schemes in §5.3.
 - Every action is a named command with a configurable hotkey (stored in a settings file).
 - **C4D-style modelling menu** (press a key, then a letter for the tool).
-- **Max-style quad menu** on right-click as an optional "sprinkle" (Phase 7).
+- **Max-style quad menu** on right-click as an optional "sprinkle" (Phase 6).
 - Searchable **command palette** (Ctrl/Cmd+K or Shift+C, like C4D's Commander).
 
 ---
@@ -274,24 +314,41 @@ Let people code their own functionality: custom tools, batch jobs, generators, e
 - Dissolve, Delete, Fill hole, Flip normals
 - Hard/soft edges, auto-smooth by angle
 
-**Tools — Phase 8 (advanced hard-surface):**
+**Tools — Phase 7 (advanced hard-surface):**
 - Booleans (union/subtract/intersect) via manifold
 - Weighted normals
 - Improved bevel (clamping, mitre patterns)
+- **Game bevel** (**W15**): for the mid-poly workflow, where a model is bevelled and shaded well instead of baked. One step bevels the chosen edges, sets weighted normals, and marks the hard edges and seams that go with them.
+- **Modular kit helpers** (**W16**): pieces sized to the grid, pivot presets (base centre, a corner, a snapping edge), and checking that pieces line up.
 - Array, mirror and other non-destructive generators
 - Subdivision preview with creases (optional for game assets)
 
 ---
 
-## 7. UV toolset (W8)
+## 7. UV toolset (W8, Phase 8)
 
-- **UV mode** in the left palette, with a dockable **UV Editor** panel (C4D style).
-- Seams: mark/clear, and **"seams from hard edges"** (the most common hard-surface workflow).
-- Unwrap: angle/conformal (LSCM via `faer`) using marked seams; automatic charting via xatlas.
+The aim is the best UV tools available for game assets. Unwrapping itself is a mature field (RizomUV is the specialists' choice), so the difference comes from the workflow around it: UVs that don't break when you keep modelling, seams that place themselves well, and a UV editor that knows the bake. UVs come after the modelling phases, as one large phase, so the project lead learns modelling first ([decision 0034](docs/decisions/0034-uv-phase-after-modelling.md)).
+
+**Foundations** (professional standard):
+- **UV mode** in the left palette, with a dockable **UV Editor** panel (C4D style) and the UV Edit layout.
+- Seams: mark/clear, painted with a brush in the viewport, and **"seams from hard edges"** (the most common hard-surface workflow).
+- Unwrap: angle/conformal (LSCM via `faer`) using marked seams, **live** while seams change; automatic charting via xatlas.
 - Relax, straighten (rectify to grid), rotate/flip/align islands, stitch/weld.
-- **Packing** with padding in pixels for a target texture size (xatlas).
 - **Texel density** display and normalization across islands/objects.
 - Checker texture and seam/stretch visualisation in the viewport.
+
+**What sets it apart:**
+1. **UVs that survive modelling** (**W14**). UV work is recorded in the shape's history like any edit: seams follow their edges by their anchors ([0032](docs/decisions/0032-edits-find-their-points-again.md)), islands unwrap again after a change, and hand-made tweaks (rotating, straightening, placing an island) are kept and applied again. Model and UV in any order; a late bevel or loop cut no longer means redoing the UVs.
+2. **Seams suggested for hard surfaces.** Proposed from hard edges, sharp angles and *hidden places* (undersides, backs, inside corners where a seam won't show). Each suggestion is accepted or rejected with a click, and the unwrap updates live while deciding.
+3. **Bake-aware from the start** (**W13**). Texture size and target texel density (pixels per metre) are scene settings, with per-object overrides for hero assets. Every unwrap and pack respects them. Padding is in real pixels, with a warning when islands will bleed into each other in the texture's smaller mipmap levels (what a game shows at a distance). The promise: if the UV editor is happy, the bake is clean.
+4. **UV editing on the model.** Move, rotate and scale a texture's placement by dragging the checker pattern directly on the surface. Hovering an island in 3D lights it up in 2D and the other way round, so many quick fixes never need the flat editor.
+5. **Problems explained, with a fix** (principle 7). A stretch heatmap; clicking a red area suggests "cut a seam here" or "relax this", in plain words.
+6. **Straight by default.** Hard-surface strips are straightened automatically, islands line up with the model's axes so panel lines and grain run the right way, and mirrored halves share UV space or not with one switch.
+7. **Packing that rivals the specialists.** Rotation, nesting small islands inside the holes of large ones, keeping chosen islands together, one texture set per material, and **stacking identical parts** (bolts, panels) on the same UV space, with a warning about their bake offset. xatlas (MIT) is the starting point; matching the best packers means writing our own.
+
+Also in this phase:
+- **Bake readiness, UV part** (**W13**): hard edges that aren't seams, overlapping or flipped UVs, islands too close for the padding, uneven texel density; each explained, with a one-click fix where there is one.
+- **Trim sheets** (**W16**): define the rows of a shared trim texture, then lay a strip of polygons straight onto a row (straightened, scaled to fit its height, moved along it).
 
 ---
 
@@ -303,6 +360,10 @@ Let people code their own functionality: custom tools, batch jobs, generators, e
 | OBJ | in/out | 5 | Simple exchange, Substance Painter |
 | glTF / GLB | out (in later) | 5 | Godot, Substance Painter |
 | FBX | out | late, optional | Only if needed; own writer (Autodesk's SDK is not redistributable) |
+
+**Bake readiness, model part** (**W13**, Phase 5): before exporting for Substance Painter, a check lists in plain words what would spoil the bake (flipped normals, n-gons that triangulate badly, non-manifold edges, faces with no area, a low-poly object without a high-poly partner or the other way round) with a one-click fix where there is one. High- and low-poly pairs are named the way Substance Painter matches them (`_high` / `_low`).
+
+**Kit export** (**W16**, Phase 5): each selected piece to its own file in one go, and Godot collision meshes (a `-col` / `-colonly` suffix, generated from a simple shape or a chosen object).
 
 Export options: triangulation (deterministic, so the bake matches the game), MikkTSpace tangents, scale and up-axis presets ("Godot", "Substance Painter"; the app is Z-up and glTF is Y-up, so glTF export converts automatically, see [decision 0012](docs/decisions/0012-z-up-axes.md)), export selected only.
 
@@ -331,7 +392,7 @@ Export options: triangulation (deterministic, so the bake matches the game), Mik
 
 ## 10. Roadmap
 
-Each phase ends with something runnable. The user tests the *feel* at the end of each phase before the next starts.
+Each phase ends with something runnable. The user tests the *feel* at the end of each phase before the next starts. From Phase 4 on, every gate also includes the **heavy-mesh check** (§4.8).
 
 ### Phase 0 — Skeleton
 - Repository set up in Halberd's style: license, README with progress tracker, security policy, contribution rules, decision records, templates
@@ -361,28 +422,43 @@ Each phase ends with something runnable. The user tests the *feel* at the end of
 - **Done when:** you can select and transform components precisely, and base parameters remain editable.
 
 ### Phase 4 — Core modelling tools
-- Tools from §6 Phase 4, each with live parameters and HUD
+- **Heavy meshes** first (**W11**, §4.8): flat connection lists, a spatial index for picking and snapping, partial updates, small undo steps, and the heavy-mesh check
+- **Autosave and crash recovery** (**W12**): a copy saved in the background every few minutes (and before risky steps), offered back after a crash; never overwrites the project itself
+- Tools from §6 Phase 4, each with live parameters and HUD, each recording anchors so it survives base changes (**W14**)
 - Hard edges and normals display
 - **Done when:** you can model a simple hard-surface prop (crate, sci-fi panel) start to finish.
 
 ### Phase 5 — Export pipeline
 - OBJ and glTF export with triangulation, tangents and presets
-- Round-trip test: model → Substance Painter bake → Godot looks correct
-- **Done when:** a prop goes through the full pipeline without fixes in other software.
+- Round-trip test: model → Godot and Substance Painter, shape, hard edges, normals and scale correct (the full bake round trip is the UV phase's gate)
+- Bake readiness, model part, and kit export (§8; **W13**, **W16**)
+- **Done when:** a prop exports into Godot and Substance Painter and looks right (shape, hard edges, scale) with no fixes in other software.
 
-### Phase 6 — UVs
-- Everything in §7
-- The UV Edit layout (and a Modelling layout alongside it), switched from the layout tabs on the menu bar
-- **Done when:** that prop can be unwrapped and packed in Aventail 3D with clean bakes in Substance Painter.
-
-### Phase 7 — 3ds Max sprinkles
-- **Edit Poly stack UI (W5):** add/disable/reorder/collapse layers; edit lower layers and see upper ones re-evaluate; warning badges for broken references
+### Phase 6 — 3ds Max sprinkles
+- **The modifiers palette** (§5.1) between the viewport and the right column, starting with Edit Layers
+- **Edit Poly stack UI (W5):** add/disable/reorder/collapse layers; edit lower layers and see upper ones re-evaluate, each layer finding its elements again by their anchors (**W14**); warning badges only for what truly can't be found
 - Quick Align and align tools (W7)
 - Optional quad menu
 - **Done when:** the user's Max workflow of stacking Edit Polys feels right.
 
-### Phase 8 — Advanced hard-surface
+### Phase 7 — Advanced hard-surface
 - Booleans, weighted normals, better bevel, generators (array, mirror)
+- Game bevel and modular kit helpers (§6; **W15**, **W16**)
+- Generators, booleans, weighted normals and the game bevel are added to the modifiers palette (§5.1)
+
+### Phase 8 — UVs
+Everything in §7, as one phase after the modelling phases ([decision 0034](docs/decisions/0034-uv-phase-after-modelling.md)):
+- UV mode, the UV Editor panel and the UV Edit layout (and a Modelling layout alongside it), switched from the layout tabs on the menu bar
+- Seams: marking, painting, from hard edges, and suggested seams
+- Live unwrap, relax and straighten; automatic straightening, axis alignment and mirrored halves
+- Texture settings: texture size and texel density for the scene, density display and normalising
+- Packing: pixel padding aware of mipmaps, rotation, nesting, groups, texture sets per material, stacking identical parts
+- Checker texture, and a stretch heatmap with explained fixes
+- UV editing on the model, with 3D and 2D highlighting each other
+- UVs that survive modelling
+- Bake readiness for UVs, and trim sheets
+- Round-trip test: model → Substance Painter bake → Godot looks correct
+- **Done when:** a prop is unwrapped and packed in Aventail 3D with clean bakes in Substance Painter, and changing the model afterwards keeps its UVs.
 
 ### Phase 9 — Scripting
 Lua scripting so people can add their own tools and automate work. Full design in §4.7.
@@ -416,7 +492,8 @@ The user is relearning 3D modelling while building this, so the manual is a firs
 - **Concepts page** (`docs/manual/concepts.md`): plain-language explanations of 3D and game-asset ideas (normals, hard edges, seams, texel density, n-gons…). Every page links to it rather than re-explaining.
 - **Kept current:** any PR that adds or changes user-facing behaviour updates the manual in the same PR. A PR without the docs update is not finished.
 - **Changelog:** `CHANGELOG.md` (repository root, Keep a Changelog format) gets one plain-language line per user-facing change, so the user can see what's new since they last opened the app. CI fails a pull request that changes code without a changelog entry.
-- **Later:** in-app help (F1 on a tool opens its manual page, tooltips link to it).
+- **The app explains itself** (**W17**, principle 7): every warning and check in the app says what is wrong, why it matters and how to fix it, in the manual's plain language, with a hover explanation and a one-click fix where possible.
+- **Later:** in-app help (a key on a tool opens its manual page, tooltips link to it).
 
 ## 12. Ideas backlog
 
@@ -429,8 +506,6 @@ Possible features noted along the way. Not scheduled; nothing here blocks other 
 | Pivot / axis editing | The object's origin is where Godot places, rotates and snaps the asset; Quick Align needs it too | Object mode, W7 |
 | Scene units and export scale | Godot works in metres; a wrong scale means re-scaling every import | Export presets (§8) |
 | Reference images in viewports | Blueprints/concept art to model hard-surface parts against | Renderer, ortho views |
-| Collision meshes | Godot builds collision from meshes named with suffixes like `-col` / `-colonly` | Object naming, glTF export |
-| Mesh check before export | Catches flipped normals, n-gons, non-manifold edges and zero-area faces before they break a bake | mesh queries |
 | LODs | Lower-detail versions for distance; Godot can also generate them automatically | Export, possibly a decimate tool |
 | Measure tool | Checking real-world sizes (door frames, crates) while modelling | Snapping |
 
@@ -484,3 +559,6 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-11 — After testing the selection milestone, at the project lead's request: one key pattern for every way of selecting (plain replaces, **Ctrl adds, Shift removes**; Ctrl + click on something selected unselects it), with three other patterns in Settings (Shift adds and Ctrl removes; Ctrl flips; Ctrl adds and Alt removes); rings on Alt + double-click; every selection, objects included, is an undo step; double-clicks allow 0.5 s and must land in the same spot (two quick clicks on different shapes were taken as a double-click); points drawn as round dots ([0029](docs/decisions/0029-selection.md)).
 - 2026-10-11 — Fourth Phase 3 milestone, move, rotate and scale, with the project lead's controls: `W`/`R`/`S`/`T` gizmos (arrows, plane squares and a free centre; axis rings and a line-of-sight ring; per-axis boxes and a uniform centre), `Q` back to selecting, Shift for ten times finer, Esc or a right click to cancel, `X`/`Y`/`Z` axis locks and `L` world/object axes, snapping on the palette button with Ctrl flipping it per drag (button-only in Settings) to points, edges, polygons or the grid shown, 15° and 10% steps. A drag is one undo step by taking back the previous frame (`Document::abandon`) and doing the whole change again. Objects get `Command::SetTransforms`; points record `MovePoints` or a new `TransformPoints` on top of the base. The Coordinates panel shows and edits world position, size and rotation ([0030](docs/decisions/0030-transform-gizmos.md)). Project files move to format version 2 to store `TransformPoints`; version 1 still opens ([0031](docs/decisions/0031-project-format-version-2.md)).
 - 2026-10-11 — At the project lead's request after PR #22: the Scale gizmo gets plane squares like Move; the mouse's direction sets the ratio between the two axes (drag mostly along X and it scales mostly along X). Fifth and last Phase 3 milestone, edits recorded on top of the base: edits also record where their points, edges or polygons were (anchors, relative to the shape's box), and when a settings change renumbers the points they find them again by position (a polygon finds every polygon inside it, an edge every edge along it). The Attributes panel notes when that happened. Project format version 2 (unreleased) stores the anchors ([0032](docs/decisions/0032-edits-find-their-points-again.md)). **Phase 3 is complete and awaits the project lead's gate check**, together with PR #22.
+- 2026-10-12 — After a planning talk with the project lead, added to the plan: heavy-mesh robustness as a safeguard (one imported 2–3 million polygon object must stay usable; targets and fixes in §4.8; the *Heavy meshes* milestone opens Phase 4; the heavy-mesh check runs at every phase gate and on request, not on every pull request) ([0033](docs/decisions/0033-heavy-mesh-safeguard.md)); autosave and crash recovery (Phase 4); and what should set the app apart: bake readiness (Phases 5–6), edits that survive changes underneath (every Phase 4 tool records anchors; Phase 7 layers use them), a game bevel for mid-poly work and modular kit helpers (Phase 8), trim sheets (Phase 6), kit export with Godot collision meshes (Phase 5), and an app that explains itself (principle 7). Wishlist W11–W17. Collision meshes and the mesh check before export moved from the backlog into Phase 5.
+- 2026-10-12 — At the project lead's request, a **modifiers palette**: a thin column of buttons between the viewport and the right column, next to the Object Manager where modifiers are applied (C4D's placement; our own icons and names). It arrives with the first modifier (Edit Layers, Phase 7) rather than as an empty placeholder, and Phase 8's generators, booleans, weighted normals and game bevel join it. Generators leave the top palette's plan.
+- 2026-10-12 — At the project lead's request, UVs become one large phase **after modelling**: Phase 6 is now the workflow tools (edit layers, modifiers palette), Phase 7 advanced hard-surface, Phase 8 UVs. The UV phase aims to be the best UV tools available: the basics at professional standard plus UVs that survive modelling, suggested seams in hidden places, bake-aware texture settings, UV editing on the model, explained fixes, straight-by-default islands and specialist-grade packing (§7). Export's gate no longer includes the bake round trip, which moves to the UV gate ([0034](docs/decisions/0034-uv-phase-after-modelling.md)).
