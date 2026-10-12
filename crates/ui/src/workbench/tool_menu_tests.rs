@@ -7,7 +7,7 @@ use super::tests::{State, fresh, harness_for, info, main_menu, with_a_cube};
 use super::*;
 use crate::TOOL_MENU_KEY;
 use crate::commands::CommandId;
-use crate::tool_menu::{Ring, ToolMenuStyle};
+use crate::tool_menu::{Ring, ToolMenuSettings, ToolMenuStyle};
 use egui::{Event, PointerButton, pos2, vec2};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT, Queryable};
@@ -281,9 +281,12 @@ fn the_uv_mode_has_no_tools_yet() {
 
 #[test]
 fn the_list_look_holds_the_same_tools() {
-    let mut harness = harness_for(
-        with_a_cube(Workbench::new(info(), None)).with_tool_menu_style(ToolMenuStyle::List),
-    );
+    let mut harness = harness_for(with_a_cube(Workbench::new(info(), None)).with_tool_menu(
+        ToolMenuSettings {
+            style: ToolMenuStyle::List,
+            ..ToolMenuSettings::default()
+        },
+    ));
     harness.run();
     open(&mut harness);
     assert!(harness.query_by_label("Tools for objects").is_some());
@@ -334,15 +337,90 @@ fn settings_switch_between_radial_and_list() {
     harness.get_by_label("List").click();
     harness.run();
     assert_eq!(
-        harness.state().workbench.tool_menu_style(),
+        harness.state().workbench.tool_menu_settings().style,
         ToolMenuStyle::List
+    );
+    harness.get_by_label("Segments").click();
+    harness.get_by_label("Tap E to open").click();
+    harness.run();
+    assert_eq!(
+        harness.state().workbench.tool_menu_settings(),
+        ToolMenuSettings {
+            style: ToolMenuStyle::Segments,
+            tap_to_open: false,
+        }
     );
     harness.get_by_label("Restore standard").click();
     harness.run();
     assert_eq!(
-        harness.state().workbench.tool_menu_style(),
-        ToolMenuStyle::Radial
+        harness.state().workbench.tool_menu_settings(),
+        ToolMenuSettings::default()
     );
+}
+
+/// A harness whose tool menu opens only while E is held.
+fn hold_only() -> Harness<'static, State> {
+    let mut harness = harness_for(with_a_cube(Workbench::new(info(), None)).with_tool_menu(
+        ToolMenuSettings {
+            tap_to_open: false,
+            ..ToolMenuSettings::default()
+        },
+    ));
+    harness.run();
+    harness
+}
+
+#[test]
+fn with_tapping_off_a_tap_does_nothing() {
+    let mut harness = hold_only();
+    point(&mut harness, MIDDLE);
+    press(&mut harness, Modifiers::NONE, TOOL_MENU_KEY);
+    assert!(!harness.state().workbench.is_tool_menu_open());
+    assert_eq!(harness.state().workbench.tool(), Tool::Select);
+}
+
+#[test]
+fn with_tapping_off_the_menu_shows_while_held() {
+    let mut harness = hold_only();
+    point(&mut harness, MIDDLE);
+    harness.key_down(TOOL_MENU_KEY);
+    harness.run();
+    assert!(harness.state().workbench.is_tool_menu_open());
+    // Letting go without pointing at a tool closes it, doing nothing.
+    harness.key_up(TOOL_MENU_KEY);
+    harness.run();
+    assert!(!harness.state().workbench.is_tool_menu_open());
+    assert_eq!(harness.state().workbench.tool(), Tool::Select);
+    // Letting go after pointing uses the tool.
+    harness.key_down(TOOL_MENU_KEY);
+    harness.run();
+    let ring = Ring::new(MIDDLE, crate::commands::OBJECT_RING.len());
+    let towards = (ring.place(1) - MIDDLE).normalized();
+    point(&mut harness, MIDDLE + towards * 90.0);
+    harness.key_up(TOOL_MENU_KEY);
+    harness.run();
+    assert_eq!(harness.state().workbench.tool(), Tool::Rotate);
+}
+
+#[test]
+fn the_segments_look_works_like_the_ring() {
+    let mut harness = harness_for(with_a_cube(Workbench::new(info(), None)).with_tool_menu(
+        ToolMenuSettings {
+            style: ToolMenuStyle::Segments,
+            ..ToolMenuSettings::default()
+        },
+    ));
+    harness.run();
+    open(&mut harness);
+    assert!(harness.query_by_label("Tool menu: Move").is_some());
+    assert!(harness.query_by_label_contains("Move. Key: W").is_some());
+    harness.get_by_label("Tool menu: Scale").click();
+    harness.run();
+    assert_eq!(harness.state().workbench.tool(), Tool::Scale);
+    // A click in the (bigger) middle closes it.
+    open(&mut harness);
+    click_at(&mut harness, MIDDLE + vec2(30.0, 0.0));
+    assert!(!harness.state().workbench.is_tool_menu_open());
 }
 
 #[test]

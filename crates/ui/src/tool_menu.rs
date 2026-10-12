@@ -8,9 +8,15 @@
 //! - Or hold `E`, point towards a tool and let go.
 //! - `Esc`, or a click away from the menu, closes it.
 //!
-//! Two looks, chosen in Settings → Interface: a ring around the mouse
-//! (standard) or a list, like the shape list. Both hold the same tools in
-//! the same order. The tools come from the command list (`commands`);
+//! Three looks, chosen in Settings → Interface: a ring of round buttons on
+//! a disc around the mouse (standard), a ring of separate tiles with no
+//! disc behind them, or a list like the shape list. All hold the same tools
+//! in the same order.
+//!
+//! "Tap E to open" (Settings, on as standard) lets a tap open the menu and
+//! keep it open, for stepping with `E` and choosing with `Enter`: easier
+//! for anyone who finds holding a key hard. Off, the menu shows only while
+//! `E` is held: letting go over a tool uses it, anywhere else closes it. The tools come from the command list (`commands`);
 //! which can be used now is decided by the workbench.
 
 use crate::commands::{CommandId, Slot};
@@ -33,21 +39,24 @@ pub(crate) const ENTRY_PREFIX: &str = "Tool menu: ";
 /// How the tool menu looks: chosen in Settings → Interface.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum ToolMenuStyle {
-    /// A ring of tools around the mouse.
+    /// A ring of round buttons on a disc around the mouse.
     #[default]
     Radial,
+    /// A ring of separate tiles around the mouse, with no disc behind.
+    Segments,
     /// A list by the mouse, like the shape list.
     List,
 }
 
 impl ToolMenuStyle {
-    /// Both looks, in Settings order.
-    pub const ALL: [Self; 2] = [Self::Radial, Self::List];
+    /// Every look, in Settings order.
+    pub const ALL: [Self; 3] = [Self::Radial, Self::Segments, Self::List];
 
     /// Its name.
     pub fn name(self) -> &'static str {
         match self {
             Self::Radial => "Radial",
+            Self::Segments => "Segments",
             Self::List => "List",
         }
     }
@@ -55,10 +64,37 @@ impl ToolMenuStyle {
     /// What it looks like, in plain words.
     pub fn description(self) -> &'static str {
         match self {
-            Self::Radial => {
-                "A ring of tools around the mouse: point towards one and click, or hold E and let go"
+            Self::Radial => "Round buttons on a disc around the mouse",
+            Self::Segments => {
+                "A ring of separate tiles around the mouse, with nothing behind them, so the scene stays in view"
             }
             Self::List => "A list by the mouse, like the shape list (B)",
+        }
+    }
+
+    /// Whether it is a ring (pointing in a direction picks a tool).
+    fn is_ring(self) -> bool {
+        self != Self::List
+    }
+}
+
+/// How the tool menu looks and opens: chosen in Settings → Interface, and
+/// remembered by the app.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct ToolMenuSettings {
+    /// Its look.
+    pub style: ToolMenuStyle,
+    /// A tap of `E` opens the menu and keeps it open (on as standard).
+    /// Off: the menu shows only while `E` is held.
+    pub tap_to_open: bool,
+}
+
+impl Default for ToolMenuSettings {
+    fn default() -> Self {
+        Self {
+            style: ToolMenuStyle::Radial,
+            tap_to_open: true,
         }
     }
 }
@@ -109,8 +145,8 @@ pub(crate) enum KeyOutcome {
 #[derive(Debug, Clone, Default)]
 pub(crate) struct ToolMenu {
     open: Option<Open>,
-    /// How it looks.
-    pub(crate) style: ToolMenuStyle,
+    /// How it looks and opens.
+    pub(crate) settings: ToolMenuSettings,
 }
 
 /// A press of `E` (not repeated by holding it): `Some(true)` with Shift
@@ -178,11 +214,14 @@ impl ToolMenu {
             let mouse = ui
                 .input(|i| i.pointer.latest_pos())
                 .unwrap_or_else(|| ui.ctx().content_rect().center());
-            let at = match self.style {
-                ToolMenuStyle::Radial => {
-                    fit_ring(mouse, count_places(entries), ui.ctx().content_rect())
-                }
-                ToolMenuStyle::List => mouse + vec2(12.0, 12.0),
+            if released && !self.settings.tap_to_open {
+                // A tap does nothing while the menu opens only when held.
+                return None;
+            }
+            let at = if self.settings.style.is_ring() {
+                fit_ring(mouse, count_places(entries), ui.ctx().content_rect())
+            } else {
+                mouse + vec2(12.0, 12.0)
             };
             self.open = Some(Open {
                 at,
@@ -217,6 +256,11 @@ impl ToolMenu {
                 self.open = None;
                 return Some(KeyOutcome::Chose(chosen));
             }
+            if !self.settings.tap_to_open {
+                // Let go without pointing at a tool: nothing, and close.
+                self.open = None;
+                return None;
+            }
         }
         if pressed(ui, Key::Escape) {
             self.open = None;
@@ -242,13 +286,22 @@ impl ToolMenu {
             self.open = None;
             return None;
         }
-        match self.style {
-            ToolMenuStyle::Radial => self.show_ring(ctx, open, entries),
+        match self.settings.style {
+            ToolMenuStyle::Radial => self.show_ring(ctx, open, entries, false),
+            ToolMenuStyle::Segments => self.show_ring(ctx, open, entries, true),
             ToolMenuStyle::List => self.show_list(ctx, mode, open, entries),
         }
     }
 
-    fn show_ring(&mut self, ctx: &Context, open: Open, entries: &[Entry]) -> Option<CommandId> {
+    /// The ring: round buttons on a disc, or (`tiles`) separate tiles with
+    /// nothing behind them.
+    fn show_ring(
+        &mut self,
+        ctx: &Context,
+        open: Open,
+        entries: &[Entry],
+        tiles: bool,
+    ) -> Option<CommandId> {
         let places = count_places(entries);
         let ring = Ring::new(open.at, places);
         let pointer = ctx.input(|i| i.pointer.latest_pos());
@@ -273,14 +326,22 @@ impl ToolMenu {
             .show(ctx, |ui| {
                 let (_, _) = ui.allocate_exact_size(bounds.size(), Sense::hover());
                 let painter = ui.painter();
-                // The ring's band, behind the tools.
+                if !tiles {
+                    // The disc, behind the tools.
+                    painter.circle(
+                        ring.centre,
+                        ring.radius + CHIP_RADIUS + 8.0,
+                        theme::PANEL.gamma_multiply(0.92),
+                        Stroke::new(1.0, theme::BORDER),
+                    );
+                }
+                // The middle, where a click closes the menu.
                 painter.circle(
                     ring.centre,
-                    ring.radius + CHIP_RADIUS + 8.0,
-                    theme::PANEL.gamma_multiply(0.92),
-                    Stroke::new(1.0, theme::BORDER),
+                    DEADZONE,
+                    theme::PANEL.gamma_multiply(if tiles { 0.75 } else { 0.0 }),
+                    Stroke::new(1.0, theme::TEXT_WEAK.gamma_multiply(0.6)),
                 );
-                painter.circle_stroke(ring.centre, DEADZONE, Stroke::new(1.0, theme::BORDER));
                 if let Some(p) = pointer
                     && p.distance(ring.centre) > DEADZONE
                 {
@@ -306,35 +367,53 @@ impl ToolMenu {
                         )
                     });
                     let usable = entry.ready == Ready::Yes;
-                    let (fill, icon_color) = if lit {
-                        (accent.fill, Color32::WHITE)
-                    } else {
-                        (theme::HOVER, icon_tint(info.icon))
+                    let icon_color = match (lit, usable, tiles) {
+                        (true, _, false) => Color32::WHITE,
+                        (true, _, true) | (false, true, _) => icon_tint(info.icon),
+                        (false, false, _) => faint(icon_tint(info.icon)),
                     };
-                    let icon_color = if usable || lit {
-                        icon_color
+                    if tiles {
+                        let fill = match (lit, usable) {
+                            (true, _) => TILE_LIT,
+                            (false, true) => TILE,
+                            (false, false) => TILE_FAINT,
+                        };
+                        tile(
+                            painter,
+                            &ring,
+                            entry.slot.place,
+                            fill,
+                            lit.then_some(accent.fill),
+                        );
                     } else {
-                        faint(icon_color)
-                    };
-                    painter.circle_filled(
-                        centre,
-                        CHIP_RADIUS,
-                        if usable || lit { fill } else { faint(fill) },
-                    );
+                        let fill = if lit { accent.fill } else { theme::HOVER };
+                        painter.circle_filled(
+                            centre,
+                            CHIP_RADIUS,
+                            if usable || lit { fill } else { faint(fill) },
+                        );
+                    }
                     icons::paint(
                         painter,
                         Rect::from_center_size(centre, Vec2::splat(20.0)),
                         info.icon,
                         icon_color,
                     );
-                    label(ui, &ring, entry, lit);
+                    let reach = if tiles { TILE_HALF } else { CHIP_RADIUS };
+                    label(ui, &ring, entry, lit, reach);
                     if response.clicked() {
                         chosen = Some(entry.slot.command);
                     }
                 }
                 // In the middle: what the highlighted tool is.
                 if let Some(entry) = entries.get(highlight) {
-                    caption(ui, ring.centre, ring.radius - CHIP_RADIUS - 12.0, entry);
+                    caption(
+                        ui,
+                        ring.centre,
+                        ring.radius - CHIP_RADIUS - 12.0,
+                        entry,
+                        tiles,
+                    );
                     // The same in words for screen readers (and tests).
                     let middle = Rect::from_center_size(ring.centre, Vec2::splat(2.0 * DEADZONE));
                     let text = caption_text(ui.ctx(), entry);
@@ -478,8 +557,20 @@ impl ToolMenu {
 
 /// The radius of a tool's round button on the ring.
 const CHIP_RADIUS: f32 = 19.0;
-/// The middle of the ring, where the mouse points at nothing.
-const DEADZONE: f32 = 22.0;
+/// The middle of the ring, where the mouse points at nothing and a click
+/// closes the menu.
+const DEADZONE: f32 = 40.0;
+/// Half the width of a tile's band (the Segments look).
+const TILE_HALF: f32 = 25.0;
+/// The gap between tiles, in screen points.
+const TILE_GAP: f32 = 6.0;
+/// A tile's colour.
+const TILE: Color32 = Color32::from_rgba_premultiplied(0x3a, 0x3a, 0x3a, 0xf5);
+/// A tile whose tool can't be used now: darker, never see-through, so it
+/// still reads over a light shape.
+const TILE_FAINT: Color32 = Color32::from_rgba_premultiplied(0x2c, 0x2c, 0x2c, 0xf5);
+/// The highlighted tile's colour.
+const TILE_LIT: Color32 = Color32::from_rgba_premultiplied(0x55, 0x55, 0x55, 0xf8);
 /// Room around the ring for the tools' names.
 const LABEL_ROOM: f32 = 110.0;
 
@@ -589,13 +680,45 @@ fn hover_text(entry: &Entry) -> String {
     }
 }
 
-/// A tool's name (and key) outside its button, on a dark pill so it reads
-/// over the scene.
-fn label(ui: &Ui, ring: &Ring, entry: &Entry, lit: bool) {
+/// A tile of the Segments look: the slice of a band around the ring at
+/// `place`, with a gap to its neighbours, and (when highlighted) an
+/// accent edge along its outside.
+fn tile(painter: &egui::Painter, ring: &Ring, place: usize, fill: Color32, edge: Option<Color32>) {
+    let half_span = PI / ring.places as f32 - TILE_GAP / 2.0 / ring.radius;
+    let middle = ring.angle(place);
+    let (inner, outer) = (ring.radius - TILE_HALF, ring.radius + TILE_HALF);
+    let steps = 12;
+    let at = |radius: f32, angle: f32| ring.centre + vec2(angle.cos(), angle.sin()) * radius;
+    let mut mesh = egui::Mesh::default();
+    for i in 0..=steps {
+        let a = middle - half_span + 2.0 * half_span * i as f32 / steps as f32;
+        mesh.colored_vertex(at(inner, a), fill);
+        mesh.colored_vertex(at(outer, a), fill);
+        if i > 0 {
+            let n = 2 * i as u32;
+            mesh.add_triangle(n - 2, n - 1, n);
+            mesh.add_triangle(n - 1, n + 1, n);
+        }
+    }
+    painter.add(mesh);
+    if let Some(color) = edge {
+        let arc: Vec<Pos2> = (0..=steps)
+            .map(|i| {
+                let a = middle - half_span + 2.0 * half_span * i as f32 / steps as f32;
+                at(outer - 1.5, a)
+            })
+            .collect();
+        painter.add(egui::Shape::line(arc, Stroke::new(3.0, color)));
+    }
+}
+
+/// A tool's name (and key) outside its button or tile (`reach` from the
+/// ring), on a dark pill so it reads over the scene.
+fn label(ui: &Ui, ring: &Ring, entry: &Entry, lit: bool, reach: f32) {
     let info = entry.slot.command.info();
     let place = ring.place(entry.slot.place);
     let direction = (place - ring.centre).normalized();
-    let anchor = place + direction * (CHIP_RADIUS + 8.0);
+    let anchor = place + direction * (reach + 8.0);
     let align = if direction.x > 0.15 {
         Align2::LEFT_CENTER
     } else if direction.x < -0.15 {
@@ -650,7 +773,7 @@ fn caption_text(ctx: &Context, entry: &Entry) -> String {
 /// The middle of the ring: the highlighted tool's name above the pointer
 /// ring, and below it its key and what it does, or why it can't be used
 /// now.
-fn caption(ui: &Ui, centre: Pos2, room: f32, entry: &Entry) {
+fn caption(ui: &Ui, centre: Pos2, room: f32, entry: &Entry, backed: bool) {
     let info = entry.slot.command.info();
     let painter = ui.painter();
     let width = (room * 1.3).max(120.0);
@@ -664,6 +787,14 @@ fn caption(ui: &Ui, centre: Pos2, room: f32, entry: &Entry) {
         centre.x - name.size().x / 2.0,
         centre.y - DEADZONE - 6.0 - name.size().y,
     );
+    if backed {
+        // No disc behind: a dark pill keeps it readable over the scene.
+        painter.rect_filled(
+            Rect::from_min_size(above, name.size()).expand2(vec2(6.0, 2.0)),
+            4.0,
+            theme::PANEL.gamma_multiply(0.92),
+        );
+    }
     painter.galley(above, name, theme::TEXT_STRONG);
     let mut lines = Vec::new();
     if let Some(keys) = info.shortcut {
@@ -682,6 +813,13 @@ fn caption(ui: &Ui, centre: Pos2, room: f32, entry: &Entry) {
         let galley = painter.layout(text, FontId::proportional(11.5), color, width);
         let at = pos2(centre.x - galley.size().x / 2.0, y);
         y += galley.size().y + 2.0;
+        if backed {
+            painter.rect_filled(
+                Rect::from_min_size(at, galley.size()).expand2(vec2(6.0, 2.0)),
+                4.0,
+                theme::PANEL.gamma_multiply(0.92),
+            );
+        }
         painter.galley(at, galley, color);
     }
 }
@@ -744,8 +882,14 @@ mod tests {
     }
 
     #[test]
-    fn both_looks_are_named_and_radial_is_standard() {
+    fn every_look_is_named_and_radial_with_tapping_is_standard() {
         assert_eq!(ToolMenuStyle::default(), ToolMenuStyle::Radial);
+        let standard = ToolMenuSettings::default();
+        assert!(standard.tap_to_open);
+        // Settings saved before tapping could be switched read as on.
+        let read: ToolMenuSettings = ron::from_str("(style: Segments)").unwrap();
+        assert_eq!(read.style, ToolMenuStyle::Segments);
+        assert!(read.tap_to_open);
         for style in ToolMenuStyle::ALL {
             assert!(!style.name().is_empty() && !style.description().is_empty());
         }

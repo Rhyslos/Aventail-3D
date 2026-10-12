@@ -24,7 +24,9 @@ The modelling tools arrive one by one during Phase 4. Until a tool is built, it'
    - **Point and click:** point towards a tool and click. In the ring, you don't have to hit the round button: anywhere in the slice towards it counts, so a rough direction is enough.
    - **Keys only:** tap **E** again to step to the next tool (**Shift + E** goes back; the arrow keys work too), then press **Enter** or **Space**.
    - **Hold and flick:** hold **E**, move the mouse towards a tool, and let go. With practice this becomes muscle memory: "extrude is straight up".
-3. To close the menu without choosing, press **Esc**, or click in its middle or anywhere away from it.
+3. To close the menu without choosing, press **Esc**, or click in its middle (the round space around the mouse) or anywhere away from it.
+
+**Hold only, if you prefer.** As standard a tap of E opens the menu and keeps it open, so you can step through it with E and choose with Enter, which helps anyone who finds holding a key awkward. If you'd rather the menu only show while you hold E, switch off **Tap E to open** in **Settings → Interface**. Then a tap of E does nothing; hold E, point towards a tool and let go to use it, or let go anywhere else to close the menu without doing anything.
 
 **Every tool keeps its place.** In Points, Edges and Polygons mode the ring has the same places. A tool that doesn't apply in one mode leaves a gap rather than moving the others, so extrude is always at the top and loop cut always at the top left. The places are grouped:
 
@@ -37,7 +39,13 @@ The modelling tools arrive one by one during Phase 4. Until a tool is built, it'
 
 **The middle of the ring** names the highlighted tool, its key, and what it does. If it can't be used right now (Ungroup with no group selected, say), it says why instead, in yellow.
 
-**Two looks.** The ring is the standard. If you prefer a plain list, like Cinema 4D's M menus, choose **List** in **Edit → Settings… → Interface → Tool menu (E)**. Both hold the same tools in the same order, and work with the same keys. The list also shows the tool's key on the right.
+**Three looks**, chosen in **Edit → Settings… → Interface → Tool menu (E)**. All hold the same tools in the same order, and work with the same keys and mouse.
+
+- **Radial** (standard): round buttons on a dark disc.
+- **Segments**: the ring as separate tiles with a little space between, and nothing behind them, so you can still see your scene through the middle. The highlighted tile lights up, with an accent edge along its outside.
+- **List**: a plain list, like Cinema 4D's M menus, with each tool's key on the right.
+
+![The Segments look](../screenshots/2026-10-12-tool-menu-segments.png)
 
 ![The list look, in Edges mode](../screenshots/2026-10-12-tool-menu-list.png)
 
@@ -45,13 +53,14 @@ The modelling tools arrive one by one during Phase 4. Until a tool is built, it'
 
 | Setting | What it does |
 |---|---|
-| **Tool menu (E)** in **Settings → Interface** | **Radial** (standard): a ring of tools around the mouse. **List**: a list by the mouse, like the shape list (B). |
+| **Tool menu (E)** in **Settings → Interface** | **Radial** (standard): round buttons on a disc around the mouse. **Segments**: a ring of separate tiles with nothing behind them. **List**: a list by the mouse, like the shape list (B). |
+| **Tap E to open** | On (standard): a tap opens the menu and keeps it open, for stepping with E and choosing with Enter or Space. Off: the menu shows only while you hold E, and letting go over a tool uses it. |
 
 ## Shortcuts
 
 | Action | Shortcut |
 |---|---|
-| Open the tool menu | `E` |
+| Open the tool menu | `E` (or hold `E`, when Tap E to open is off) |
 | Next tool / previous tool | `E` / `Shift + E` (or the arrow keys) |
 | Use the highlighted tool | `Enter` or `Space` |
 | Use a tool by flicking | Hold `E`, point towards it, let go |

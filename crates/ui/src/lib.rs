@@ -49,7 +49,7 @@ pub use selecting::{
 };
 pub use settings::SETTINGS_SHORTCUT;
 pub use shape_picker::SHAPE_LIST_KEY;
-pub use tool_menu::{TOOL_MENU_KEY, ToolMenuStyle};
+pub use tool_menu::{TOOL_MENU_KEY, ToolMenuSettings, ToolMenuStyle};
 pub use transforming::{AXES_KEY, Axes, LOCK_KEYS, SnapSettings, TOOL_KEYS, Tool};
 pub use undo_memory::{UndoMemory, format_bytes};
 pub use units::Units;

@@ -102,7 +102,7 @@ impl eframe::App for App {
         eframe::set_value(storage, UNDO_MEMORY_KEY, &self.workbench.undo_memory());
         eframe::set_value(storage, RECENT_KEY, &self.workbench.recent_projects());
         eframe::set_value(storage, AUTOSAVE_KEY, &self.workbench.autosave_settings());
-        eframe::set_value(storage, TOOL_MENU_KEY, &self.workbench.tool_menu_style());
+        eframe::set_value(storage, TOOL_MENU_KEY, &self.workbench.tool_menu_settings());
     }
 
     /// A normal close: this run's backup copies are no longer needed.
@@ -167,7 +167,7 @@ pub fn run(info: AppInfo, open: Option<PathBuf>) -> Result<(), String> {
                     .storage
                     .and_then(|s| eframe::get_value(s, AUTOSAVE_KEY))
                     .unwrap_or_default();
-                let tool_menu: ui::ToolMenuStyle = cc
+                let tool_menu: ui::ToolMenuSettings = cc
                     .storage
                     .and_then(|s| eframe::get_value(s, TOOL_MENU_KEY))
                     .unwrap_or_default();
@@ -184,7 +184,7 @@ pub fn run(info: AppInfo, open: Option<PathBuf>) -> Result<(), String> {
                     .with_undo_memory(undo_memory)
                     .with_recent_projects(recent)
                     .with_autosave(autosave)
-                    .with_tool_menu_style(tool_menu);
+                    .with_tool_menu(tool_menu);
                 if let Some(path) = open {
                     project::open_from(&mut workbench, path);
                 }

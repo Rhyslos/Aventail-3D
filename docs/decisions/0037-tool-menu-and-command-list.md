@@ -21,7 +21,7 @@ A second problem showed up in the code. A command's name, icon, key and tooltip 
 Asked on 2026-10-12:
 
 - **`E` opens the tool menu**, everywhere in the app. A tap opens it; holding isn't needed. The menu is **context sensitive**: object tools in the Model and Object modes (move, rotate and scale included), and only modelling tools in the Points, Edges and Polygons modes, since the top palette already has the transform tools.
-- **Two looks, chosen in Settings → Interface:** a **radial** ring (standard), or a **list** for those who prefer C4D's M menus. Both open with `E` and hold the same tools in the same order.
+- **Looks, chosen in Settings → Interface:** a **radial** ring (standard), or a **list** for those who prefer C4D's M menus (a third, **Segments**, was added after the first look; see below). Both open with `E` and hold the same tools in the same order.
 - **Stepping:** tapping `E` again steps through the tools, as `B` does in the shape list, and **`Space` or `Enter`** uses the highlighted one.
 - **The ring may hold more than eight tools**, as long as the icons are clean and understandable.
 - **Keys for tools to come:** `D` extrude, `I` inset, `V` bevel. `D` matches Cinema 4D. The keys switch on when the tools are built.
@@ -47,6 +47,16 @@ Asked on 2026-10-12:
 - **The shape list and the tool menu never show at once.** The menu's "Create a shape…" opens the shape list where the menu was.
 
 **Controls added** (0028): `E`, `Shift + E`, the arrow keys, `Enter`, `Space` and `Esc` while the menu is open, plus pointing, clicking and hold-and-flick. All follow what the project lead chose, and the shape list's pattern where he said "as with the shape list". No key that was already in use changed.
+
+## Added after the first look (2026-10-12)
+
+After trying it, the project lead asked for three changes, all in the same pull request:
+
+- **A bigger middle.** The space where the mouse points at nothing, and a click closes the menu, grew from 22 to 40 points across its radius.
+- **A third look, Segments**, after a picture he shared: the ring as separate tiles with a little space between (6 points), nothing behind them, and the name and key outside each tile. The highlighted tile lights up, with an accent edge on its outside. Tiles of tools that can't be used now are darker but never see-through, so they still read over a light shape.
+- **"Tap E to open"**, a switch in Settings → Interface, on as the standard. Off, a tap of `E` does nothing: the menu shows only while `E` is held, letting go over a tool uses it, and letting go anywhere else closes it. He may prefer it off himself. It stays on as the standard because tapping and stepping is the accessible way, for anyone who finds holding a key hard.
+
+The settings are remembered together (`ToolMenuSettings`: the look and the switch).
 
 ## Consequences
 

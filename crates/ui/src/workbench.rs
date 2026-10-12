@@ -931,7 +931,7 @@ impl Workbench {
             history,
             autosave: &mut self.autosaver.settings,
             autosave_folder: self.autosave_folder.as_deref(),
-            tool_menu: &mut self.tool_menu.style,
+            tool_menu: &mut self.tool_menu.settings,
         };
         self.settings.show(ctx, &mut values);
         if undo_memory != self.undo_memory {

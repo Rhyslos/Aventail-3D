@@ -6,22 +6,23 @@ use super::Workbench;
 use crate::commands::{CommandId, menu_for};
 use crate::objects::{self, DocRequest};
 use crate::palette::Mode;
-use crate::tool_menu::{Entry, KeyOutcome, Ready, ToolMenuStyle};
+use crate::tool_menu::{Entry, KeyOutcome, Ready, ToolMenuSettings};
 use crate::transforming::Tool;
 use egui::Ui;
 use scene::{Command, ObjectKind};
 
 impl Workbench {
-    /// The workbench with the remembered look of the tool menu.
+    /// The workbench with the remembered tool menu settings.
     #[must_use]
-    pub fn with_tool_menu_style(mut self, style: ToolMenuStyle) -> Self {
-        self.tool_menu.style = style;
+    pub fn with_tool_menu(mut self, settings: ToolMenuSettings) -> Self {
+        self.tool_menu.settings = settings;
         self
     }
 
-    /// How the tool menu looks, for remembering between sessions.
-    pub fn tool_menu_style(&self) -> ToolMenuStyle {
-        self.tool_menu.style
+    /// How the tool menu looks and opens, for remembering between
+    /// sessions.
+    pub fn tool_menu_settings(&self) -> ToolMenuSettings {
+        self.tool_menu.settings
     }
 
     /// Whether the tool menu is showing.
