@@ -516,7 +516,7 @@ fn changes_read_naturally() {
     );
     assert_eq!(Tool::Move.gizmo(), Some(GizmoTool::Move));
     assert_eq!(Tool::Select.gizmo(), None);
-    assert_eq!(Tool::All.name(), "Move, rotate and scale");
+    assert_eq!(Tool::All.name(), "Transform");
 }
 
 #[test]

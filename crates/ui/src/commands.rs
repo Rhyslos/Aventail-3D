@@ -118,10 +118,10 @@ impl CommandId {
                 None,
             ),
             Self::AllGizmos => (
-                "Move, rotate and scale",
+                "Transform",
                 Icon::AllGizmos,
                 plain(Key::T),
-                "All three gizmos at once",
+                "Move, rotate and scale at once: all three gizmos",
                 None,
             ),
             Self::MakeEditable => (
@@ -156,14 +156,14 @@ impl CommandId {
             ),
             Self::NewGroup => (
                 "New group",
-                Icon::Null,
+                Icon::NewGroup,
                 None,
                 "Create an empty group, to hold and organise other objects",
                 None,
             ),
             Self::ShapeList => (
                 "Create a shape…",
-                Icon::Cube,
+                Icon::ShapeList,
                 plain(Key::B),
                 "Open the shape list: a cube, sphere, cylinder and the rest",
                 None,
@@ -263,7 +263,7 @@ impl CommandId {
                 PHASE_4,
             ),
             Self::Knife => (
-                "Knife",
+                "Slit",
                 Icon::Knife,
                 None,
                 "Cut new edges wherever you draw a line",
@@ -322,20 +322,29 @@ impl CommandId {
     }
 }
 
+/// How many places every ring of the tool menu has. Every mode's ring has
+/// the same places at the same size, so a button never moves or changes
+/// size between modes (the project lead's choice, 2026-10-12).
+pub const RING_PLACES: usize = 14;
+
 /// The tool menu's places for whole objects (the Model and Object
-/// modes), clockwise from the top. Every command keeps its place.
-pub const OBJECT_RING: [CommandId; 11] = [
-    CommandId::Move,
-    CommandId::Rotate,
-    CommandId::Scale,
-    CommandId::AllGizmos,
-    CommandId::FrameSelected,
-    CommandId::MakeEditable,
-    CommandId::Delete,
-    CommandId::Ungroup,
-    CommandId::Group,
-    CommandId::NewGroup,
-    CommandId::ShapeList,
+/// modes), clockwise from the top; `None` is an empty place. Delete has
+/// the same place as in the modelling ring.
+pub const OBJECT_RING: [Option<CommandId>; RING_PLACES] = [
+    Some(CommandId::Move),
+    Some(CommandId::Rotate),
+    Some(CommandId::Scale),
+    Some(CommandId::AllGizmos),
+    Some(CommandId::FrameSelected),
+    None,
+    Some(CommandId::MakeEditable),
+    None,
+    Some(CommandId::Delete),
+    Some(CommandId::Ungroup),
+    Some(CommandId::Group),
+    Some(CommandId::NewGroup),
+    Some(CommandId::ShapeList),
+    None,
 ];
 
 /// The tool menu's places for points, edges and polygons, clockwise from
@@ -343,7 +352,7 @@ pub const OBJECT_RING: [CommandId; 11] = [
 /// without it leaves a gap rather than moving the others: building at the
 /// top right, shading at the right, removing at the bottom, cutting and
 /// joining at the left.
-pub const MODELLING_RING: [CommandId; 14] = [
+pub const MODELLING_RING: [CommandId; RING_PLACES] = [
     CommandId::Extrude,
     CommandId::Inset,
     CommandId::Bevel,
@@ -374,18 +383,19 @@ pub struct Slot {
 /// The tool menu's entries in `mode`, in order (empty when the mode has
 /// no tools yet, like UV).
 pub fn menu_for(mode: Mode) -> Vec<Slot> {
-    let ring: &[CommandId] = match mode {
-        Mode::Model | Mode::Object => &OBJECT_RING,
-        Mode::Points | Mode::Edges | Mode::Polygons => &MODELLING_RING,
-        Mode::Uv => &[],
+    let ring: [Option<CommandId>; RING_PLACES] = match mode {
+        Mode::Model | Mode::Object => OBJECT_RING,
+        Mode::Points | Mode::Edges | Mode::Polygons => MODELLING_RING.map(Some),
+        Mode::Uv => return Vec::new(),
     };
     ring.iter()
         .enumerate()
+        .filter_map(|(place, command)| Some((place, (*command)?)))
         .filter(|(_, c)| c.modes().contains(&mode))
-        .map(|(place, &command)| Slot {
+        .map(|(place, command)| Slot {
             command,
             place,
-            places: ring.len(),
+            places: RING_PLACES,
         })
         .collect()
 }
@@ -429,7 +439,7 @@ mod tests {
         let all: HashSet<_> = ALL.into_iter().collect();
         assert_eq!(all.len(), ALL.len());
         for command in ALL {
-            let placed = OBJECT_RING.contains(&command) || MODELLING_RING.contains(&command);
+            let placed = OBJECT_RING.contains(&Some(command)) || MODELLING_RING.contains(&command);
             assert!(placed, "{command:?} has no place in the tool menu");
             assert!(!command.modes().is_empty(), "{command:?}");
         }
@@ -483,7 +493,22 @@ mod tests {
             assert!(commands.contains(&CommandId::LoopCut), "{mode:?}");
         }
         let model: Vec<_> = menu_for(Mode::Model).iter().map(|s| s.command).collect();
-        assert_eq!(model, OBJECT_RING);
+        assert_eq!(
+            model,
+            OBJECT_RING.iter().flatten().copied().collect::<Vec<_>>()
+        );
+        // Every ring has the same places, and Delete the same one.
+        let delete = |slots: Vec<Slot>| {
+            slots
+                .iter()
+                .find(|s| matches!(s.command, CommandId::Delete | CommandId::DeleteElements))
+                .map(|s| (s.place, s.places))
+        };
+        assert_eq!(
+            delete(menu_for(Mode::Model)),
+            delete(menu_for(Mode::Points))
+        );
+        assert_eq!(delete(menu_for(Mode::Model)), Some((8, RING_PLACES)));
         assert!(menu_for(Mode::Uv).is_empty());
     }
 
@@ -514,7 +539,8 @@ mod tests {
             }
         }
         // Within one ring, every icon is different.
-        for ring in [&OBJECT_RING[..], &MODELLING_RING[..]] {
+        let objects: Vec<_> = OBJECT_RING.iter().flatten().copied().collect();
+        for ring in [&objects[..], &MODELLING_RING[..]] {
             let icons: HashSet<_> = ring.iter().map(|c| c.info().icon).collect();
             assert_eq!(icons.len(), ring.len());
         }

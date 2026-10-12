@@ -25,7 +25,7 @@ Changes to points, edges and polygons are recorded on top of the shape's [base](
 1. **Select** what you want to change (see [Selecting](selecting.md)).
 2. **Pick a tool:**
    - **W** to move, **R** to rotate, **S** to scale.
-   - **T** shows all three gizmos at once.
+   - **T** shows all three gizmos at once (**Transform**).
    - The same tools are on the top palette and in the **Tools** menu.
 3. **Drag a part of the gizmo.** The part under the mouse lights up yellow, so you can see what you're about to grab.
    - **Move:**
@@ -112,7 +112,7 @@ What the fields show:
 
 | Action | Shortcut |
 |---|---|
-| Move / rotate / scale / all three | `W` / `R` / `S` / `T` |
+| Move / rotate / scale / Transform (all three) | `W` / `R` / `S` / `T` |
 | Scale along two axes | Drag a square of the Scale gizmo; the drag's direction sets the mix |
 | Back to selecting | `Q` |
 | Ten times slower | Hold `Shift` while dragging |

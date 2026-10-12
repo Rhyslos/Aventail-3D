@@ -183,7 +183,8 @@ pub fn icon_tint(icon: Icon) -> Color32 {
         | Icon::Sphere
         | Icon::Disc
         | Icon::Tube
-        | Icon::Cone => tint::SHAPE,
+        | Icon::Cone
+        | Icon::ShapeList => tint::SHAPE,
         _ => tint::ICON,
     }
 }
@@ -347,7 +348,7 @@ const COMMAND_GROUPS: [&[Planned]; 4] = [
         shape(Icon::Plane, "Create plane", PrimitiveKind::Plane),
         shape(Icon::Sphere, "Create sphere", PrimitiveKind::Sphere),
         working(
-            Icon::Null,
+            CommandId::NewGroup.info().icon,
             "Create group",
             "Create an empty group, to hold and organise other objects",
             PaletteCommand::CreateGroup,
@@ -637,6 +638,7 @@ mod tests {
         assert_eq!(icon_tint(Icon::Sphere), tint::SHAPE);
         assert_eq!(icon_tint(Icon::Move), tint::ICON);
         assert_eq!(icon_tint(Icon::Null), tint::ICON);
+        assert_eq!(icon_tint(Icon::ShapeList), tint::SHAPE);
     }
 
     #[test]

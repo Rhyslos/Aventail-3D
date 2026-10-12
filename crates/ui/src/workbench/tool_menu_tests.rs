@@ -328,25 +328,30 @@ fn ctrl_e_still_makes_editable_and_e_types_into_names() {
 }
 
 #[test]
-fn settings_switch_between_radial_and_list() {
+fn settings_have_a_radial_menu_section_with_every_look_and_switch() {
     let mut harness = fresh();
     crate::theme::apply(&harness.ctx);
     harness.key_press_modifiers(Modifiers::COMMAND, Key::Comma);
     harness.run();
-    assert!(harness.query_by_label("Tool menu (E)").is_some());
+    assert!(harness.query_by_label("Radial menu").is_some());
+    for style in ToolMenuStyle::ALL {
+        assert!(harness.query_by_label(style.name()).is_some(), "{style:?}");
+    }
     harness.get_by_label("List").click();
     harness.run();
     assert_eq!(
         harness.state().workbench.tool_menu_settings().style,
         ToolMenuStyle::List
     );
-    harness.get_by_label("Segments").click();
+    harness.get_by_label("Inner edge").click();
+    harness.get_by_label("Show keys around the ring").click();
     harness.get_by_label("Tap E to open").click();
     harness.run();
     assert_eq!(
         harness.state().workbench.tool_menu_settings(),
         ToolMenuSettings {
-            style: ToolMenuStyle::Segments,
+            style: ToolMenuStyle::InnerEdge,
+            show_keys: false,
             tap_to_open: false,
         }
     );
@@ -403,24 +408,49 @@ fn with_tapping_off_the_menu_shows_while_held() {
 }
 
 #[test]
-fn the_segments_look_works_like_the_ring() {
-    let mut harness = harness_for(with_a_cube(Workbench::new(info(), None)).with_tool_menu(
-        ToolMenuSettings {
-            style: ToolMenuStyle::Segments,
-            ..ToolMenuSettings::default()
-        },
-    ));
-    harness.run();
+fn every_ring_look_works_the_same() {
+    for style in [
+        ToolMenuStyle::ContinuousRing,
+        ToolMenuStyle::InnerEdge,
+        ToolMenuStyle::Outlined,
+        ToolMenuStyle::SolidTiles,
+    ] {
+        let mut harness = harness_for(with_a_cube(Workbench::new(info(), None)).with_tool_menu(
+            ToolMenuSettings {
+                style,
+                ..ToolMenuSettings::default()
+            },
+        ));
+        harness.run();
+        open(&mut harness);
+        assert!(
+            harness.query_by_label("Tool menu: Move").is_some(),
+            "{style:?}"
+        );
+        assert!(harness.query_by_label_contains("Move. Key: W").is_some());
+        harness.get_by_label("Tool menu: Scale").click();
+        harness.run();
+        assert_eq!(harness.state().workbench.tool(), Tool::Scale, "{style:?}");
+        // A click in the middle (the cancel sign) closes it.
+        open(&mut harness);
+        click_at(&mut harness, MIDDLE + vec2(25.0, 0.0));
+        assert!(!harness.state().workbench.is_tool_menu_open(), "{style:?}");
+    }
+}
+
+#[test]
+fn every_mode_uses_the_same_ring() {
+    // The same places, at the same size: Delete sits in the same spot in
+    // the Model ring and the modelling ring.
+    let mut harness = cube_selected();
     open(&mut harness);
-    assert!(harness.query_by_label("Tool menu: Move").is_some());
-    assert!(harness.query_by_label_contains("Move. Key: W").is_some());
-    harness.get_by_label("Tool menu: Scale").click();
-    harness.run();
-    assert_eq!(harness.state().workbench.tool(), Tool::Scale);
-    // A click in the (bigger) middle closes it.
+    let model = harness.get_by_label("Tool menu: Delete").rect();
+    press(&mut harness, Modifiers::NONE, Key::Escape);
+    press(&mut harness, Modifiers::NONE, Key::Num1);
     open(&mut harness);
-    click_at(&mut harness, MIDDLE + vec2(30.0, 0.0));
-    assert!(!harness.state().workbench.is_tool_menu_open());
+    let points = harness.get_by_label("Tool menu: Delete").rect();
+    assert!((model.center() - points.center()).length() < 0.5);
+    assert!((model.size() - points.size()).length() < 0.5);
 }
 
 #[test]
@@ -439,11 +469,7 @@ fn the_mesh_and_tools_menus_read_from_the_command_list() {
     press(&mut harness, Modifiers::NONE, Key::Escape);
     main_menu(&harness, "Tools").click();
     harness.run();
-    assert!(
-        harness
-            .query_by_label_contains("Move, rotate and scale")
-            .is_some()
-    );
+    assert!(harness.query_by_label_contains("Transform").is_some());
     assert!(
         harness
             .query_by_label("Tip: press E for the tool menu")

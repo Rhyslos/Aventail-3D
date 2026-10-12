@@ -58,6 +58,34 @@ After trying it, the project lead asked for three changes, all in the same pull 
 
 The settings are remembered together (`ToolMenuSettings`: the look and the switch).
 
+## The final design (2026-10-13)
+
+The project lead redesigned the menu and every tool's icon with Claude in a mockup page: an HTML page where he picked between drawn versions, with a live ring preview, over six rounds. The page saved his picks for Claude to read back. What was built from it **replaces the Radial and Segments looks above**:
+
+**Icons**
+- **A new icon for every tool**, the same everywhere (tool menu, palette and menus). All are drawn on the 24 × 24 grid with **one line width**; they differ only in tone (faint lines, light and strong fills, smooth shading) and, for Flip normals and Transform, the axis colours.
+- **Converted point for point.** The picked drawings were converted from the mockup into the app's icon code, so the app draws exactly what was approved.
+
+**Names**
+- **Transform:** "Move, rotate and scale" (T).
+- **Slit:** Knife, named after its icon.
+
+**The ring**
+- **Same size and places everywhere.** Every mode's ring has the same **14 places** at the same size, so no button ever moves or changes size between modes. Delete has the same place in the object and modelling rings, and empty places stay empty.
+- **Icon only.** The buttons hold only their icons, centred. The middle names the tool pointed at, above a **cancel sign** (Delete's circle with a line): clicking there closes the menu.
+- **Keys.** **Show keys around the ring** (a setting, on as standard) puts each key just outside its button. Off, the key shows in the middle with the name.
+
+**Settings**
+- **Four ring looks**, chosen in a new **Radial menu** section of Settings → Interface: **Continuous ring** (the standard: one band split by thin lines, the lit slice with an accent rim), **Inner edge**, **Outlined** and **Solid tiles**.
+- **The List look stays** for those who prefer C4D's M menus.
+- **Tap E to open** moved into the same section.
+- **Tried and left out:**
+  - turning icons with their buttons ("looks bad and isn't necessary");
+  - labels inside the buttons, which pushed the icon off centre;
+  - a 16-place ring, whose buttons were too narrow;
+  - keycap and capsule buttons;
+  - the earlier disc and Segments looks.
+
 ## Consequences
 
 - **Adding a tool is one entry in the command list,** plus its work. The tool menu, the menus and the keys pick it up.

@@ -210,12 +210,26 @@ fn interface(ui: &mut Ui, values: &mut Values<'_>) {
         }
     }
     ui.add_space(8.0);
-    heading(ui, "Tool menu (E)");
+    ui.add_space(6.0);
+    ui.separator();
+    radial_menu(ui, values);
+}
+
+/// The Interface page's Radial menu section: how the tool menu (E) looks
+/// and opens.
+fn radial_menu(ui: &mut Ui, values: &mut Values<'_>) {
+    ui.label(
+        RichText::new("Radial menu")
+            .size(15.0)
+            .strong()
+            .color(theme::TEXT_STRONG),
+    );
     explain(
         ui,
         "Press E for the tools of what you're working on. Every look holds the same \
-         tools in the same order.",
+         tools in the same places.",
     );
+    heading(ui, "Look");
     for style in ToolMenuStyle::ALL {
         if ui
             .radio(values.tool_menu.style == style, style.name())
@@ -226,6 +240,11 @@ fn interface(ui: &mut Ui, values: &mut Values<'_>) {
         }
     }
     ui.add_space(4.0);
+    ui.checkbox(&mut values.tool_menu.show_keys, "Show keys around the ring")
+        .on_hover_text(
+            "On: each tool's key sits just outside its button.\n\
+             Off: the key shows in the middle, with the name of the tool you point at.",
+        );
     ui.checkbox(&mut values.tool_menu.tap_to_open, "Tap E to open")
         .on_hover_text(
             "On: a tap opens the menu and keeps it open; tap E again to step through it, \

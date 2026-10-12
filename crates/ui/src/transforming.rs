@@ -66,7 +66,7 @@ impl Tool {
             Self::Move => "Move",
             Self::Rotate => "Rotate",
             Self::Scale => "Scale",
-            Self::All => "Move, rotate and scale",
+            Self::All => "Transform",
         }
     }
 

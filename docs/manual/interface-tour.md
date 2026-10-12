@@ -60,7 +60,7 @@ One colour marks what's active: the current mode (and later the current tool), t
 | Undo / redo | `Ctrl + Z` / `Ctrl + Y` (or `Ctrl + Shift + Z`) |
 | Points, Edges, Polygons mode (again: back to Model) | `1`, `2`, `3` |
 | Select, add, remove; box, lasso or brush | Click, `Ctrl` + click, `Shift` + click; drag, `Ctrl` + drag, `Shift` + drag (the standard pattern; see [Selecting](selecting.md)) |
-| Move / rotate / scale / all three; back to selecting | `W` / `R` / `S` / `T`; `Q` (see [Move, rotate and scale](transforming.md)) |
+| Move / rotate / scale / Transform (all three); back to selecting | `W` / `R` / `S` / `T`; `Q` (see [Move, rotate and scale](transforming.md)) |
 | Next select tool (Box, Lasso, Live selection) | `Q` (while selecting) |
 | Lock X / Y / Z; world or object axes | `X` / `Y` / `Z`; `L` |
 | While dragging the gizmo: fine, snap, cancel | Hold `Shift`; hold `Ctrl`; `Esc` or right-click |
