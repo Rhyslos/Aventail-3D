@@ -41,3 +41,4 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0031](0031-project-format-version-2.md) | Project file format version 2 | Accepted |
 | [0032](0032-edits-find-their-points-again.md) | Edits find their points again when a shape's settings change | Accepted |
 | [0033](0033-heavy-mesh-safeguard.md) | Heavy meshes: a safeguard, checked at phase gates | Accepted |
+| [0034](0034-uv-phase-after-modelling.md) | UVs as one phase after modelling, aiming to be the best UV tools | Accepted |

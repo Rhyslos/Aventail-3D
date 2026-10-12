@@ -50,7 +50,7 @@ pub struct AppInfo {
 const LAYOUTS: [(&str, Option<&str>); 3] = [
     ("Standard", None),
     ("Modelling", Some("A layout for modelling arrives later")),
-    ("UV Edit", Some("A layout for UV work arrives in Phase 6")),
+    ("UV Edit", Some("A layout for UV work arrives in Phase 8")),
 ];
 
 /// Something the user asked for that the program around the workbench
@@ -105,8 +105,8 @@ const COMING: [(&str, &[(&str, &str)]); 4] = [
     (
         "UV",
         &[
-            ("Seams, unwrap, relax", "Phase 6"),
-            ("Pack and texel density", "Phase 6"),
+            ("Seams, unwrap, relax", "Phase 8"),
+            ("Pack and texel density", "Phase 8"),
         ],
     ),
 ];
@@ -1115,7 +1115,7 @@ impl Workbench {
         });
         ui.menu_button("Window", |ui| {
             ui.add_enabled(false, egui::Button::new("UV Editor panel"))
-                .on_disabled_hover_text("Arrives in Phase 6");
+                .on_disabled_hover_text("Arrives in Phase 8");
         });
         ui.menu_button("Help", |ui| {
             if ui.button(format!("About {}", self.info.name)).clicked() {
