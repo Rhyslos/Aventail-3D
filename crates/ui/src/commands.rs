@@ -181,7 +181,7 @@ impl CommandId {
                 plain(Key::D),
                 "Push the selected polygons or edges out, building new sides between \
                  the old place and the new",
-                PHASE_4,
+                None,
             ),
             Self::Inset => (
                 "Inset",
@@ -189,7 +189,7 @@ impl CommandId {
                 plain(Key::I),
                 "Shrink the selected polygons inward, leaving a ring of new polygons \
                  around each",
-                PHASE_4,
+                None,
             ),
             Self::Bevel => (
                 "Bevel",

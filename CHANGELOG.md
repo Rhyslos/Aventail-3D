@@ -8,6 +8,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Extrude and inset.** In Polygons mode, press **D** (Extrude) or **I** (Inset), or pick them from the E menu or the Mesh menu, and drag left or right anywhere in the viewport. Extrude pushes the selected polygons out (or in) and builds walls behind them; Inset shrinks them inward with a ring of new polygons around them. Shift gives fine steps, Esc or a right-click cancels, and each drag is one undo step. The polygons stay selected, so you can drag again to carry on.
+- **Extrude border edges**: in Edges mode, D grows a flat strip of polygons from edges on an open border, like extending a plane; the selection moves to the new edge.
+- **Keep together**: a switch in the Attributes panel decides whether touching polygons move as one piece or each on its own.
+- **Change the last extrude or inset afterwards**: its Distance and Keep together switch show at the top of the Attributes panel until you make another edit.
+- The Mesh menu's built tools can now be clicked.
+
 - **The tool menu: press E.** It opens at the mouse with the tools for what you're working on: object tools (move, rotate, scale, make editable, group, delete and more) in Model mode, and the modelling tools while editing points, edges or polygons. Point towards a tool and click, tap **E** to step through and press **Enter** or **Space**, or hold **E**, point and let go. Every entry shows its key; tools still to come are dimmed and say when they arrive. The ring holds icons only and never changes size or moves its buttons between modes; the middle names the tool you point at, and a click there cancels. **Settings → Interface → Radial menu** offers four ring looks (Continuous ring, the standard; Inner edge; Outlined; Solid tiles) or a list, **Show keys around the ring**, and **Tap E to open**, which can be switched off so the menu shows only while E is held.
 - **New icons for every tool**, designed with the project lead and the same everywhere: the tool menu, the palette and the menus. **Move, rotate and scale** (T) is now called **Transform**.
 - The **Mesh** menu lists every modelling tool, with its key, and when it arrives. Extrude, inset and bevel will be **D**, **I** and **V**.
@@ -33,6 +39,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Projects are saved in **file format version 3**, which can hold extrudes and insets. Older projects still open; projects saved now need this version of the app or newer.
 - Wireframes too dense to see (a heavy shape from afar) fade out instead of covering the shape; zoom in and the edges come back. A selected heavy shape keeps a faint tint of the accent colour.
 - In Points, Edges and Polygons mode, the edited shape's edges are drawn as fine lines, with its points as dots, by the graphics card directly.
 - The Attributes panel's note on plain meshes no longer says editing arrives later.

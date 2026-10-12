@@ -78,6 +78,20 @@ pub enum Command {
         /// The edit.
         operation: Operation,
     },
+    /// Puts a changed version of a recorded edit in its place: an
+    /// extrude's distance changed in the Attributes panel afterwards, say
+    /// (decision 0038). Everything recorded above it replays on the new
+    /// result.
+    ReplaceOperation {
+        /// The object.
+        id: ObjectId,
+        /// Which layer, from the bottom (0).
+        layer: usize,
+        /// Which operation in the layer, from the first (0).
+        index: usize,
+        /// The edit to put there.
+        operation: Operation,
+    },
     /// Moves, turns or scales objects: each gets a new transform, relative
     /// to its parent (decision 0030). A transform with a value that isn't
     /// a number is refused.
@@ -114,6 +128,7 @@ impl Command {
                 format!("Change {} settings", primitive.name().to_lowercase())
             }
             Self::Record { operation, .. } => operation.describe(),
+            Self::ReplaceOperation { operation, .. } => format!("Change {}", operation.describe()),
             Self::SetTransforms(changes) => {
                 let ids: Vec<ObjectId> = changes.iter().map(|(id, _)| *id).collect();
                 format!("Transform {}", objects(count(&ids)))
@@ -327,6 +342,40 @@ impl Run<'_> {
                     id: *id,
                     layer,
                     index,
+                    operation: operation.clone(),
+                })?;
+                Ok(None)
+            }
+            Command::ReplaceOperation {
+                id,
+                layer,
+                index,
+                operation,
+            } => {
+                let object = self
+                    .scene
+                    .object(*id)
+                    .ok_or(SceneError::UnknownObject(*id))?;
+                let before = object
+                    .stack
+                    .layers()
+                    .get(*layer)
+                    .and_then(|l| l.operations.get(*index))
+                    .cloned()
+                    .ok_or(SceneError::History("that edit no longer exists"))?;
+                if before == *operation {
+                    return Ok(None);
+                }
+                self.edit(Edit::RemoveOperation {
+                    id: *id,
+                    layer: *layer,
+                    index: *index,
+                    operation: before,
+                })?;
+                self.edit(Edit::InsertOperation {
+                    id: *id,
+                    layer: *layer,
+                    index: *index,
                     operation: operation.clone(),
                 })?;
                 Ok(None)

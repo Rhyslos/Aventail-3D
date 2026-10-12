@@ -49,6 +49,14 @@ impl Workbench {
             CommandId::Ungroup if !objects::has_group(&self.document, &selection) => {
                 Ready::NotNow("Nothing to ungroup: only groups can be ungrouped".into())
             }
+            CommandId::Extrude if !command.modes().contains(&self.mode) => Ready::NotNow(
+                "Extrude works on polygons or edges: press 3 for the Polygons mode, \
+                 or 2 for Edges"
+                    .into(),
+            ),
+            CommandId::Inset if !command.modes().contains(&self.mode) => {
+                Ready::NotNow("Inset works on polygons: press 3 for the Polygons mode".into())
+            }
             _ => Ready::Yes,
         }
     }
@@ -77,6 +85,8 @@ impl Workbench {
             CommandId::Rotate => self.set_tool(Tool::Rotate),
             CommandId::Scale => self.set_tool(Tool::Scale),
             CommandId::AllGizmos => self.set_tool(Tool::All),
+            CommandId::Extrude => self.set_tool(Tool::Extrude),
+            CommandId::Inset => self.set_tool(Tool::Inset),
             CommandId::MakeEditable => {
                 requests.push(DocRequest::Run(Command::MakeEditable(selection)));
             }

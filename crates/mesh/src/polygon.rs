@@ -79,6 +79,11 @@ pub enum MeshError {
     NotFinite(VertexId),
     /// A hard edge names a point that isn't in the mesh.
     UnknownEdge(EdgeKey),
+    /// A face that isn't in the mesh.
+    UnknownFace(FaceId),
+    /// A face's corners were to be replaced by a different number of
+    /// corners.
+    CornerCountChanged(FaceId),
 }
 
 impl std::fmt::Display for MeshError {
@@ -93,6 +98,12 @@ impl std::fmt::Display for MeshError {
                 f,
                 "a hard edge joins points {} and {}, which aren't both in the mesh",
                 e.0.0, e.1.0
+            ),
+            Self::UnknownFace(id) => write!(f, "polygon {} is not in the mesh", id.0),
+            Self::CornerCountChanged(id) => write!(
+                f,
+                "polygon {} would get a different number of corners",
+                id.0
             ),
         }
     }
@@ -504,6 +515,26 @@ impl Mesh {
         }
         self.positions.set(id.0 as usize, Some(position));
         true
+    }
+
+    /// Gives face `id` new corners, as many as it has now: the face keeps
+    /// its id, so a selection of it still holds (an extruded polygon is
+    /// still the selected one). Refused, changing nothing, for a face that
+    /// doesn't exist, a different number of corners, or corners
+    /// [`Self::add_face`] would refuse.
+    pub fn replace_corners(&mut self, id: FaceId, corners: &[VertexId]) -> Result<(), MeshError> {
+        let index = id.0 as usize;
+        let Some(old) = self.faces.get(index) else {
+            return Err(MeshError::UnknownFace(id));
+        };
+        if old.len() != corners.len() {
+            return Err(MeshError::CornerCountChanged(id));
+        }
+        self.check_face(corners)?;
+        let faces = Arc::make_mut(&mut self.faces);
+        let start = faces.starts[index] as usize;
+        faces.corners[start..start + corners.len()].copy_from_slice(corners);
+        Ok(())
     }
 
     /// Where a point is, if it exists.

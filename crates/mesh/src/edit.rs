@@ -6,7 +6,11 @@
 //! that still match and says how many didn't, instead of failing. The
 //! scene's operation stack turns that count into a warning (DESIGN.md
 //! §4.2). More operations arrive with the modelling tools (Phases 3 and 4).
+//!
+//! Extruding and insetting are in [`crate::extrude`]; they are re-exported
+//! here so every operation is found in one place.
 
+pub use crate::extrude::{Grouping, extrude_edges, extrude_polygons, inset_polygons};
 use crate::{Mesh, VertexId};
 use glam::{Mat4, Vec3};
 
@@ -18,6 +22,10 @@ pub struct Outcome {
     /// How many of the elements asked for aren't in the mesh, and so were
     /// left out.
     pub missing: usize,
+    /// How many of the elements asked for are in the mesh but don't suit
+    /// the operation (an edge that isn't on an open border, for extruding
+    /// edges), and so were left out.
+    pub skipped: usize,
 }
 
 /// Moves `points` by `offset` (in the mesh's own space). Each point moves
@@ -90,7 +98,8 @@ mod tests {
             outcome,
             Outcome {
                 matched: 2,
-                missing: 0
+                missing: 0,
+                skipped: 0
             }
         );
         for (id, p) in before.vertices() {
@@ -167,7 +176,8 @@ mod tests {
             outcome,
             Outcome {
                 matched: 2,
-                missing: 0
+                missing: 0,
+                skipped: 0
             }
         );
         let after: Vec<Vec3> = mesh.vertices().map(|(_, p)| p).collect();
@@ -189,7 +199,8 @@ mod tests {
             outcome,
             Outcome {
                 matched: 1,
-                missing: 1
+                missing: 1,
+                skipped: 0
             }
         );
         assert!(mesh.position(first.0).unwrap().distance(first.1 * 2.0) < 1e-3);

@@ -12,12 +12,13 @@ mod stepper;
 use crate::objects::{DocRequest, kind_icon};
 use crate::panels::placeholder;
 use crate::theme;
+use crate::transforming::Tool;
 use crate::units::Units;
 use egui::{RichText, Ui, vec2};
 use fields::{Value, fields};
 use mesh::MeshReport;
 use mesh::primitives::MAX_SIZE;
-use scene::{Command, Document, Mesh, ObjectId, ObjectKind, Primitive, Stack};
+use scene::{Command, Document, Grouping, Mesh, ObjectId, ObjectKind, Operation, Primitive, Stack};
 use std::sync::Arc;
 
 /// Width of the column of setting names, so both sections line up.
@@ -36,6 +37,12 @@ pub(crate) struct AttributesPanel {
     name_draft: Option<(ObjectId, String)>,
     /// The mesh check, run only when the shape changes.
     checker: MeshChecker,
+    /// The tool in use (set by the workbench each frame): Extrude and
+    /// Inset show their settings at the top.
+    pub(crate) tool: Tool,
+    /// Whether Extrude and Inset keep neighbours together (the Keep
+    /// together switch), for the next drag (decision 0038).
+    pub(crate) grouping: Grouping,
 }
 
 /// Below this many polygons the mesh check is quick enough to run at
@@ -215,6 +222,19 @@ impl AttributesPanel {
         out: &mut Vec<DocRequest>,
     ) {
         let selection = doc.selection();
+        // Extrude's and Inset's switch, unless the last edit shows its own
+        // (which sets the tool's too, so there is only one to think about).
+        let last_shown = match selection.as_slice() {
+            [one] => doc
+                .scene()
+                .object(*one)
+                .and_then(|o| last_edit(&o.stack).map(|(_, _, op)| op.distance().is_some()))
+                .unwrap_or(false),
+            _ => false,
+        };
+        if self.tool.drags_anywhere() && !last_shown {
+            self.tool_section(ui);
+        }
         let id = match selection.as_slice() {
             [] => {
                 return placeholder(
@@ -239,6 +259,8 @@ impl AttributesPanel {
             .auto_shrink([false, false])
             .show(ui, |ui| {
                 heading(ui, &object.kind, &object.name);
+                // The last extrude or inset first: it is what was just done.
+                self.last_edit_section(ui, id, &object.stack, units, out);
                 section(ui, "Basic");
                 egui::Grid::new("attributes_basic")
                     .num_columns(2)
@@ -282,6 +304,92 @@ impl AttributesPanel {
                     edits_section(ui, doc, id, &object.stack);
                 }
             });
+    }
+
+    /// Extrude's or Inset's own settings, while it is the tool in use.
+    fn tool_section(&mut self, ui: &mut Ui) {
+        section(ui, self.tool.name());
+        egui::Grid::new("attributes_tool")
+            .num_columns(2)
+            .min_col_width(LABEL_WIDTH)
+            .spacing(vec2(12.0, 6.0))
+            .show(ui, |ui| {
+                let mut together = self.grouping == Grouping::Together;
+                if keep_together(ui, &mut together) {
+                    self.grouping = grouping_of(together);
+                }
+                ui.end_row();
+            });
+        ui.label(
+            RichText::new(
+                "Drag left or right anywhere in the viewport. Hold Shift for fine steps.",
+            )
+            .small()
+            .color(theme::TEXT_WEAK),
+        );
+    }
+
+    /// The last edit's settings, if it is an extrude or inset: they can
+    /// still be changed, and the shape follows (decision 0038). Once
+    /// another edit is made on top, it is fixed.
+    fn last_edit_section(
+        &mut self,
+        ui: &mut Ui,
+        id: ObjectId,
+        stack: &Stack,
+        units: Units,
+        out: &mut Vec<DocRequest>,
+    ) {
+        let Some((layer, index, operation)) = last_edit(stack) else {
+            return;
+        };
+        let (Some(distance), Some(grouping)) = (operation.distance(), operation.grouping()) else {
+            return;
+        };
+        section(ui, &format!("Last edit: {}", operation.describe()));
+        let mut edited = distance;
+        let mut together = grouping == Grouping::Together;
+        let mut changed = false;
+        let low = match operation {
+            Operation::InsetPolygons { .. } => 0.0,
+            _ => -MAX_SIZE,
+        };
+        egui::Grid::new("attributes_last_edit")
+            .num_columns(2)
+            .min_col_width(LABEL_WIDTH)
+            .spacing(vec2(12.0, 6.0))
+            .show(ui, |ui| {
+                label(
+                    ui,
+                    "Distance",
+                    "How far it was pushed (in the object's own size). Change it and the \
+                     shape follows.",
+                );
+                let touched = stepper::length(ui, &mut edited, (low, MAX_SIZE), units, "Distance");
+                if touched.began {
+                    self.gesture += 1;
+                }
+                changed |= touched.changed;
+                ui.end_row();
+                if keep_together(ui, &mut together) {
+                    self.gesture += 1;
+                    self.grouping = grouping_of(together);
+                    changed = true;
+                }
+                ui.end_row();
+            });
+        let after = operation.with_settings(edited, grouping_of(together));
+        if changed && after != *operation {
+            out.push(DocRequest::RunMerging(
+                Command::ReplaceOperation {
+                    id,
+                    layer,
+                    index,
+                    operation: after,
+                },
+                self.gesture,
+            ));
+        }
     }
 
     /// The name, typed in place; kept when Enter is pressed or the box is
@@ -528,6 +636,41 @@ fn count(n: usize, thing: &str) -> String {
     } else {
         format!("{n} {thing}s")
     }
+}
+
+/// The top edit of `stack` (where it is, and what), if any.
+fn last_edit(stack: &Stack) -> Option<(usize, usize, &Operation)> {
+    let (layer, top) = stack
+        .layers()
+        .iter()
+        .enumerate()
+        .rev()
+        .find(|(_, l)| !l.operations.is_empty())?;
+    let index = top.operations.len() - 1;
+    Some((layer, index, &top.operations[index]))
+}
+
+fn grouping_of(together: bool) -> Grouping {
+    if together {
+        Grouping::Together
+    } else {
+        Grouping::Separate
+    }
+}
+
+/// The Keep together switch and its label. Returns whether it changed.
+fn keep_together(ui: &mut Ui, together: &mut bool) -> bool {
+    label(
+        ui,
+        "Keep together",
+        "On: polygons that touch move as one piece, like a block pulled out of a \
+         wall. Off: each polygon on its own, a separate bump for each.",
+    );
+    let response = ui.checkbox(together, "");
+    response.widget_info(|| {
+        egui::WidgetInfo::selected(egui::WidgetType::Checkbox, true, *together, "Keep together")
+    });
+    response.changed()
 }
 
 /// What is recorded on top of the shape: how many edits, and any that no

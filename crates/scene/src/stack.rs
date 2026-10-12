@@ -13,9 +13,9 @@
 
 use crate::object::{ObjectId, ObjectKind};
 use glam::{Mat4, Vec3};
-use mesh::edit::{self, Outcome};
-use mesh::{Anchors, Mesh, VertexId};
-use std::collections::HashMap;
+use mesh::edit::{self, Grouping, Outcome};
+use mesh::{Anchors, EdgeKey, FaceId, Mesh, VertexId};
+use std::collections::{BTreeSet, HashMap};
 use std::sync::{Arc, Mutex};
 
 /// The name of the layer edits go into until layers can be managed.
@@ -48,6 +48,44 @@ pub enum Operation {
         /// As for [`Self::MovePoints`].
         anchors: Option<Anchors>,
     },
+    /// Pushes polygons out along their facing, building walls between
+    /// the old place and the new (decision 0038). The polygons keep their
+    /// IDs.
+    ExtrudePolygons {
+        /// The polygons.
+        faces: Vec<FaceId>,
+        /// How far, in the object's own space (centimetres); negative
+        /// pushes them in.
+        distance: f32,
+        /// Neighbours as one piece, or each on its own.
+        grouping: Grouping,
+        /// Where the polygons were, to find them again (decision 0032).
+        anchors: Option<Anchors>,
+    },
+    /// Shrinks polygons inward, flat where they are, leaving a ring of new
+    /// polygons around them (decision 0038).
+    InsetPolygons {
+        /// The polygons.
+        faces: Vec<FaceId>,
+        /// How far in, in the object's own space (centimetres).
+        distance: f32,
+        /// Neighbours as one piece, or each on its own.
+        grouping: Grouping,
+        /// Where the polygons were, to find them again (decision 0032).
+        anchors: Option<Anchors>,
+    },
+    /// Grows a strip of new polygons outward from edges on an open
+    /// border (decision 0038).
+    ExtrudeEdges {
+        /// The edges.
+        edges: Vec<EdgeKey>,
+        /// How far, in the object's own space (centimetres).
+        distance: f32,
+        /// Edges joined at a point as one piece, or each on its own.
+        grouping: Grouping,
+        /// Where the edges were, to find them again (decision 0032).
+        anchors: Option<Anchors>,
+    },
 }
 
 /// What applying an operation did.
@@ -72,52 +110,173 @@ impl Operation {
                 1 => "Transform 1 point".to_string(),
                 n => format!("Transform {n} points"),
             },
+            Self::ExtrudePolygons { faces, .. } => counted("Extrude", faces.len(), "polygon"),
+            Self::InsetPolygons { faces, .. } => counted("Inset", faces.len(), "polygon"),
+            Self::ExtrudeEdges { edges, .. } => counted("Extrude", edges.len(), "edge"),
         }
     }
 
-    /// The points the operation names, and its anchors.
+    /// Where the operation's elements were, if it keeps that.
+    pub fn anchors(&self) -> Option<&Anchors> {
+        match self {
+            Self::MovePoints { anchors, .. }
+            | Self::TransformPoints { anchors, .. }
+            | Self::ExtrudePolygons { anchors, .. }
+            | Self::InsetPolygons { anchors, .. }
+            | Self::ExtrudeEdges { anchors, .. } => anchors.as_ref(),
+        }
+    }
+
+    /// The distance of an extrude or inset, if it is one: what the
+    /// Attributes panel lets you change afterwards.
+    pub fn distance(&self) -> Option<f32> {
+        match self {
+            Self::ExtrudePolygons { distance, .. }
+            | Self::InsetPolygons { distance, .. }
+            | Self::ExtrudeEdges { distance, .. } => Some(*distance),
+            Self::MovePoints { .. } | Self::TransformPoints { .. } => None,
+        }
+    }
+
+    /// The same extrude or inset with a new distance and grouping
+    /// (anything else unchanged).
+    #[must_use]
+    pub fn with_settings(&self, new_distance: f32, new_grouping: Grouping) -> Self {
+        let mut changed = self.clone();
+        match &mut changed {
+            Self::ExtrudePolygons {
+                distance, grouping, ..
+            }
+            | Self::InsetPolygons {
+                distance, grouping, ..
+            }
+            | Self::ExtrudeEdges {
+                distance, grouping, ..
+            } => {
+                *distance = new_distance;
+                *grouping = new_grouping;
+            }
+            Self::MovePoints { .. } | Self::TransformPoints { .. } => {}
+        }
+        changed
+    }
+
+    /// The grouping of an extrude or inset, if it is one.
+    pub fn grouping(&self) -> Option<Grouping> {
+        match self {
+            Self::ExtrudePolygons { grouping, .. }
+            | Self::InsetPolygons { grouping, .. }
+            | Self::ExtrudeEdges { grouping, .. } => Some(*grouping),
+            Self::MovePoints { .. } | Self::TransformPoints { .. } => None,
+        }
+    }
+
+    /// The points the operation names, and its anchors. Empty for
+    /// operations that name polygons or edges.
     pub fn points(&self) -> (&[VertexId], Option<&Anchors>) {
         match self {
-            Self::MovePoints {
-                points, anchors, ..
+            Self::MovePoints { points, .. } | Self::TransformPoints { points, .. } => {
+                (points, self.anchors())
             }
-            | Self::TransformPoints {
-                points, anchors, ..
-            } => (points, anchors.as_ref()),
+            _ => (&[], self.anchors()),
         }
     }
 
-    /// Applies the operation to `mesh`. If its points were renumbered
+    /// Applies the operation to `mesh`. If its elements were renumbered
     /// (a primitive given more segments, say), they are found again by
     /// their anchors.
     fn apply(&self, mesh: &mut Mesh) -> Applied {
-        let (named, anchors) = self.points();
-        let mut found_again = false;
-        let mut not_found = 0;
-        let refound;
-        let points = match anchors {
-            Some(anchors) if !anchors.still_fit(mesh) => {
-                let (points, missing) = anchors.find(mesh, mesh.topology());
-                refound = points;
-                found_again = true;
-                not_found = missing;
-                refound.as_slice()
-            }
-            _ => named,
+        // The points at the anchored places, when the IDs no longer fit.
+        let refound = match self.anchors() {
+            Some(anchors) if !anchors.still_fit(mesh) => Some(anchors.find(mesh, mesh.topology())),
+            _ => None,
         };
         let outcome: Outcome = match self {
-            Self::MovePoints { offset, .. } => edit::move_points(mesh, points, *offset),
-            Self::TransformPoints { matrix, .. } => edit::transform_points(mesh, points, *matrix),
+            Self::MovePoints { points, offset, .. } => {
+                let points = refound.as_ref().map_or(points.as_slice(), |r| &r.0);
+                edit::move_points(mesh, points, *offset)
+            }
+            Self::TransformPoints { points, matrix, .. } => {
+                let points = refound.as_ref().map_or(points.as_slice(), |r| &r.0);
+                edit::transform_points(mesh, points, *matrix)
+            }
+            Self::ExtrudePolygons {
+                faces,
+                distance,
+                grouping,
+                ..
+            } => {
+                let faces = refound
+                    .as_ref()
+                    .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
+                edit::extrude_polygons(mesh, &faces, *distance, *grouping)
+            }
+            Self::InsetPolygons {
+                faces,
+                distance,
+                grouping,
+                ..
+            } => {
+                let faces = refound
+                    .as_ref()
+                    .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
+                edit::inset_polygons(mesh, &faces, *distance, *grouping)
+            }
+            Self::ExtrudeEdges {
+                edges,
+                distance,
+                grouping,
+                ..
+            } => {
+                let edges = refound
+                    .as_ref()
+                    .map_or_else(|| edges.clone(), |r| edges_within(mesh, &r.0));
+                edit::extrude_edges(mesh, &edges, *distance, *grouping)
+            }
         };
-        Applied {
-            missing: if found_again {
-                not_found
-            } else {
-                outcome.missing
+        match refound {
+            Some((_, not_found)) => Applied {
+                missing: not_found,
+                found_again: true,
             },
-            found_again,
+            None => Applied {
+                missing: outcome.missing,
+                found_again: false,
+            },
         }
     }
+}
+
+/// "Extrude 1 polygon", "Inset 4 polygons".
+fn counted(verb: &str, n: usize, thing: &str) -> String {
+    if n == 1 {
+        format!("{verb} 1 {thing}")
+    } else {
+        format!("{verb} {n} {thing}s")
+    }
+}
+
+/// The polygons of `mesh` whose corners are all among `points`: the
+/// polygons found again at an edit's anchored places.
+fn faces_within(mesh: &Mesh, points: &[VertexId]) -> Vec<FaceId> {
+    let points: BTreeSet<VertexId> = points.iter().copied().collect();
+    mesh.faces()
+        .filter(|(_, corners)| corners.iter().all(|v| points.contains(v)))
+        .map(|(f, _)| f)
+        .collect()
+}
+
+/// The edges of `mesh` with both ends among `points`.
+fn edges_within(mesh: &Mesh, points: &[VertexId]) -> Vec<EdgeKey> {
+    let points: BTreeSet<VertexId> = points.iter().copied().collect();
+    mesh.edges()
+        .iter()
+        .filter(|e| {
+            let (a, b) = e.ends();
+            points.contains(&a) && points.contains(&b)
+        })
+        .copied()
+        .collect()
 }
 
 /// A named group of operations that can be switched off as a whole.

@@ -14,6 +14,7 @@ pub(crate) mod chrome;
 mod gizmo;
 mod picker;
 mod select;
+mod tool_drag;
 
 use egui::{Color32, CursorIcon, PointerButton, Rect, Response, Sense, Ui, pos2};
 use glam::{Mat4, Vec2, Vec3};
@@ -31,6 +32,7 @@ use crate::theme;
 use crate::transforming::{Axes, SnapSettings};
 pub(crate) use gizmo::GizmoEvent;
 use std::sync::Arc;
+pub(crate) use tool_drag::ToolDragEvent;
 
 #[cfg(test)]
 pub(crate) use picker::AROUND_CURSOR_LABEL;
@@ -394,6 +396,8 @@ struct View {
     pressed_handle: Option<tools::Handle>,
     /// The gizmo handle under the mouse, to light up.
     hovered_handle: Option<tools::Handle>,
+    /// A modelling tool's drag (extrude, inset) in progress, if any.
+    tool_drag: Option<tool_drag::ToolDrag>,
 }
 
 impl View {
@@ -410,6 +414,7 @@ impl View {
             gizmo_drag: None,
             pressed_handle: None,
             hovered_handle: None,
+            tool_drag: None,
         }
     }
 
@@ -665,6 +670,13 @@ pub struct ViewportPanel {
     gizmo: Option<tools::Gizmo>,
     /// Gizmo events this frame, for the workbench.
     gizmo_events: Vec<GizmoEvent>,
+    /// Whether a modelling tool that is dragged anywhere (extrude, inset)
+    /// is in use (set by the workbench each frame).
+    drag_tool: bool,
+    /// What the modelling tool's drag is doing, written by the mouse.
+    tool_label: Option<String>,
+    /// Modelling tool drag events this frame, for the workbench.
+    tool_events: Vec<ToolDragEvent>,
 }
 
 impl Default for ViewportPanel {
@@ -685,6 +697,9 @@ impl Default for ViewportPanel {
             gestures: Vec::new(),
             gizmo: None,
             gizmo_events: Vec::new(),
+            drag_tool: false,
+            tool_label: None,
+            tool_events: Vec::new(),
         }
     }
 }
@@ -833,6 +848,40 @@ impl ViewportPanel {
         cancelled
     }
 
+    /// Whether a modelling tool that is dragged anywhere is in use, from
+    /// this frame on.
+    pub(crate) fn set_drag_tool(&mut self, active: bool) {
+        self.drag_tool = active;
+    }
+
+    /// What to write beside the mouse while a modelling tool is dragged.
+    pub(crate) fn set_tool_label(&mut self, label: Option<String>) {
+        self.tool_label = label;
+    }
+
+    /// The modelling tool drag events since last asked.
+    pub(crate) fn take_tool_events(&mut self) -> Vec<ToolDragEvent> {
+        std::mem::take(&mut self.tool_events)
+    }
+
+    /// Whether a modelling tool is being dragged in any view.
+    pub fn dragging_tool(&self) -> bool {
+        self.views.iter().any(View::dragging_tool)
+    }
+
+    /// Cancels a modelling tool's drag in progress (Esc). Returns whether
+    /// there was one.
+    pub(crate) fn cancel_tool_drag(&mut self) -> bool {
+        let mut cancelled = false;
+        for view in &mut self.views {
+            cancelled |= view.tool_drag.take().is_some();
+        }
+        if cancelled {
+            self.tool_events.push(ToolDragEvent::Cancel);
+        }
+        cancelled
+    }
+
     /// The selection gestures made since last asked.
     pub(crate) fn take_gestures(&mut self) -> Vec<Gesture> {
         std::mem::take(&mut self.gestures)
@@ -926,16 +975,24 @@ impl ViewportPanel {
             }
             let settings = self.options.navigation;
             self.views[slot].navigate(ui, &response, rect, settings);
-            let gizmo_busy = self.views[slot].capture_gizmo(
+            let tool_busy = self.views[slot].capture_tool_drag(
                 ui,
                 &response,
                 rect,
-                gizmo::GizmoInput {
-                    gizmo: self.gizmo,
-                    locked: self.options.locked,
-                    out: &mut self.gizmo_events,
-                },
+                self.drag_tool,
+                &mut self.tool_events,
             );
+            let gizmo_busy = tool_busy
+                || self.views[slot].capture_gizmo(
+                    ui,
+                    &response,
+                    rect,
+                    gizmo::GizmoInput {
+                        gizmo: self.gizmo,
+                        locked: self.options.locked,
+                        out: &mut self.gizmo_events,
+                    },
+                );
             if !gizmo_busy {
                 self.views[slot].capture_selection(
                     ui,
@@ -966,6 +1023,7 @@ impl ViewportPanel {
                 hovered = Some((slot, rect, response.hover_pos(), view));
             }
             self.views[slot].paint_gizmo(ui, rect, self.gizmo, self.options.locked);
+            self.views[slot].paint_tool_label(ui, rect, self.tool_label.as_deref());
             self.views[slot].paint_selection(
                 ui,
                 rect,

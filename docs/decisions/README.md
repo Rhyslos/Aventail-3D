@@ -45,3 +45,4 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0035](0035-heavy-meshes.md) | Heavy meshes: shared parts, flat lists, kept indexes, background work | Accepted |
 | [0036](0036-autosave.md) | Autosave: backup copies in the app's own folder, found again by file locks | Accepted |
 | [0037](0037-tool-menu-and-command-list.md) | The tool menu (E) and one command list | Accepted |
+| [0038](0038-extrude-and-inset.md) | Extrude and inset: drag anywhere, Keep together, ids that stay, file format version 3 | Accepted |

@@ -29,6 +29,10 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Flipped normal** — Every face has a front, the side its *normal* points to. Neighbouring faces should all face outwards; a face pointing the other way is *flipped*, and shades, bakes and exports wrongly.
 
+**Extrude** — Pushing polygons (or border edges) out of a shape and building new polygons, the *walls*, between where they were and where they are now: the most common way to add volume. Pushing them in makes a recess. See [Extrude and inset](extrude-and-inset.md).
+
+**Inset** — Shrinking polygons inward, flat on the surface, with a ring of new polygons around them: a frame or border drawn onto the shape, often followed by an extrude. See [Extrude and inset](extrude-and-inset.md).
+
 **Manifold** — A mesh that could exist as a real, solid object: every edge is shared by exactly two polygons. Non-manifold geometry (edges shared by three faces, loose edges, holes) often breaks booleans, bakes and some tools.
 
 ## Objects and scenes

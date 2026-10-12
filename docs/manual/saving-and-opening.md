@@ -61,7 +61,7 @@ On macOS, use `Cmd` instead of `Ctrl`.
 ## Tips and common problems
 
 - **Tip:** save often, and use Save As with a number (crate-01.avtl, crate-02.avtl) before big changes, so you can always go back.
-- **Problem:** "Couldn't open … it was saved by a newer version of the app". **Why:** the project was saved by a newer version, in a format this version doesn't know yet. **Fix:** update the app. (Newer versions always open projects from older ones.)
+- **Problem:** "Couldn't open … it was saved by a newer version of the app". **Why:** the project was saved by a newer version, in a format this version doesn't know yet. **Fix:** update the app. (Newer versions always open projects from older ones. Projects with extrudes or insets need a version from October 2026 on.)
 - **Problem:** "Couldn't open … the file is damaged". **Why:** the file was cut short or changed by something else (an interrupted copy, a sync tool). **Fix:** open the backup: rename `name.avtl.bak` so it ends in `.avtl`, and open that.
 - **Problem:** the app crashed, or the power went, before you saved. **Fix:** start the app again: it offers the backup copies it saved in the background ([Backup copies and crash recovery](autosave.md)).
 - **Problem:** "Couldn't open … it isn't a project file". **Why:** the file isn't one of this app's projects. **Fix:** to bring in a model from elsewhere, use import (from Phase 5).

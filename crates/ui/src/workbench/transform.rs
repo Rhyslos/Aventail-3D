@@ -38,6 +38,13 @@ impl Workbench {
                 "Select: {} (press Q again for the next way of selecting).",
                 self.viewport.select_tool().name().to_lowercase()
             ),
+            Tool::Extrude => "Extrude: drag left or right anywhere in the viewport to push the \
+                 selected polygons (or open border edges) out. Shift for fine steps; Esc or a \
+                 right click cancels."
+                .into(),
+            Tool::Inset => "Inset: drag left or right anywhere in the viewport to shrink the \
+                 selected polygons inward. Shift for fine steps; Esc or a right click cancels."
+                .into(),
             _ => format!(
                 "{}: drag the gizmo's handles. Hold Shift for fine steps; Esc or a right click cancels.",
                 tool.name()
