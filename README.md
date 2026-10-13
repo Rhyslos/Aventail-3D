@@ -289,7 +289,9 @@ The first build downloads dependencies and takes a few minutes. Ready-made build
 
 ## Contributing
 
-Ideas, bug reports and feedback are very welcome through Issues. Code contributions aren't accepted at the moment; see [CONTRIBUTING.md](CONTRIBUTING.md).
+**Aventail 3D isn't accepting outside contributions: it is too early in development.** The design is still moving quickly, and the project is built by one person with AI assistance, so pull requests from others won't be merged.
+
+Bug reports and ideas are welcome through [Issues](https://github.com/Rhyslos/Aventail-3D/issues). See [CONTRIBUTING.md](CONTRIBUTING.md) for how the project is developed.
 
 ## License
 
