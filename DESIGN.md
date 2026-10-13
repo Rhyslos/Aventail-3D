@@ -672,3 +672,9 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
   - **Fix facing**, which turns every polygon of a closed shape to face outward in one click;
   - **Select by facing**: polygons facing a direction (up, say) within an angle, or facing like the one clicked.
 - 2026-10-13 — Where new tools go: basic modelling tools in Phase 4 (hide and isolate, slide, duplicate and instances, split and join); advanced tools and modifiers in Phase 7 (shell, curves and splines, pipe bends, the smoothing modifier); pivot editing and scene units with export in Phase 5. Testers join around Phase 7. Keys: **Bridge `C`** (free). Slit `X`, Loop cut `F` and `Z` for the camera were proposed but clash with keys in use (X/Y/Z axis locks, F frame selected); to be settled before those tools are built.
+- 2026-10-13 — Keys settled for tools to come (per 0028):
+  - **`X` Slit**, **`F` Loop cut**, **`C` Bridge**;
+  - **`Z` frames the selection** (what `F` does now), and `H` still frames everything;
+  - **axis locks move to `Shift + X / Y / Z`** (`Ctrl` would clash with undo, redo and cut).
+
+  The switch happens in one go with the first of Slit or Loop cut, updating the manual, the tool menu and the keyboard viewer at the same time.
