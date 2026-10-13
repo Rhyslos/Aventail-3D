@@ -649,3 +649,15 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
   - glTF (and OBJ) **import**. No FBX, as it can't be licensed.
   - **Screenshots and turntable GIFs** from the viewport.
   - Wishlist: interface size scaling, a first-start welcome with sample projects.
+- 2026-10-13 — Follow-ups to the gap review:
+  - **Pipe bends that keep their size**, a possible unique selling point. The project lead showed the problem in Blender: turning a cylinder's end ring pinches it, so a bend narrows.
+    - **Keep round:** a switch on extrude, and when turning a ring of a round shape. The ring at the joint sits on the plane halfway between the two directions and stretches by 1 / cos(half the angle), so both pieces keep their full width (a mitre joint).
+    - Attributes panel settings: **Angle**, **Bend radius** and **Segments**. With a radius, the bend is a smooth elbow of several rings, each kept round.
+    - To design with the curves and splines work, which faces the same problem.
+  - **Names to change for safety** (common functional words such as extrude, bevel, inset, bridge, weld and loop cut are fine):
+    - Cinema 4D's "Object Manager", "Attribute Manager" and "Live selection" → "Objects panel", "Attributes panel" and "Brush selection";
+    - 3ds Max's "Quick Align" → our own name;
+    - "Edit Poly" was already renamed "Edit Layers".
+    - To do as one small renaming pull request.
+  - **Export stays in Phase 5,** kept simple: a minimal material slot (polygons assigned to a named material with a colour) so engines get their parts. Real materials come with texturing. Testers and the project lead's own Godot tests need a way out of the app.
+  - The **keyboard shortcut viewer** becomes the last Phase 4 milestone.
