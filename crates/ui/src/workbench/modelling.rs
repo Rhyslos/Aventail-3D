@@ -1,11 +1,13 @@
 //! The workbench's part in the modelling tools set by dragging anywhere in
-//! a view: Extrude and Inset ([decision 0038](../../../../docs/decisions/0038-extrude-and-inset.md)).
+//! a view: Extrude and Inset ([decision 0038](../../../../docs/decisions/0038-extrude-and-inset.md))
+//! and Bevel ([decision 0040](../../../../docs/decisions/0040-bevel.md)).
 //!
 //! A drag is one undo step, as with the gizmos: each frame takes back the
 //! frame before (`Document::abandon`) and records the edit again with the
 //! new distance. Letting go at no distance leaves nothing behind.
 
 use super::Workbench;
+use crate::attributes::BevelLook;
 use crate::commands::CommandId;
 use crate::components::ViewPointer;
 use crate::drawing::SceneDrawing;
@@ -16,7 +18,8 @@ use egui::Ui;
 use glam::{Mat4, Vec2, Vec3};
 use mesh::Anchors;
 use scene::{
-    Bounds, Command, Document, EdgeKey, ElementKind, FaceId, Grouping, ObjectId, Operation,
+    BevelShape, Bounds, Command, Document, EdgeKey, ElementKind, FaceId, Grouping, ObjectId,
+    Operation, VertexId,
 };
 
 /// Merge keys for modelling tool drags: kept apart from other merge keys.
@@ -27,6 +30,7 @@ const MODELLING_KEYS: u64 = 1 << 60;
 enum Elements {
     Polygons(Vec<FaceId>),
     Edges(Vec<EdgeKey>),
+    Points(Vec<VertexId>),
 }
 
 /// One object's part in a drag, as it was when the drag began.
@@ -54,6 +58,11 @@ pub(super) struct ModellingSession {
     /// Inset, or when they face every way at once.
     direction: Option<Vec3>,
     grouping: Grouping,
+    /// Bevel's rows and profile.
+    bevel: BevelLook,
+    /// For Bevel, the selected edges (or points, as edges of no length) in
+    /// the world: the drag is measured away from them.
+    reach: Vec<(Vec3, Vec3)>,
     /// Where the drag started, in the view's screen points.
     start: Option<Vec2>,
     /// The distance last shown, in world centimetres.
@@ -89,6 +98,26 @@ impl ModellingSession {
     fn distance(&self, drag: Vec2, pointer: &ViewPointer) -> f32 {
         let camera = &pointer.camera;
         let per_point = camera.world_per_pixel(self.pivot, pointer.size);
+        if self.tool == Tool::Bevel
+            && let Some(start) = self.start
+        {
+            // Bevel follows the pull away from the selected edges: how
+            // much further from the nearest of them the mouse is than
+            // where the drag began.
+            let away = |at: Vec2| -> Option<f32> {
+                self.reach
+                    .iter()
+                    .filter_map(|(a, b)| {
+                        let a = camera.project(*a, pointer.size)?;
+                        let b = camera.project(*b, pointer.size)?;
+                        Some(to_segment(at, a, b))
+                    })
+                    .reduce(f32::min)
+            };
+            if let (Some(from), Some(now)) = (away(start), away(start + drag)) {
+                return (now - from) * per_point;
+            }
+        }
         if let Some(direction) = self.direction {
             let step = per_point * PROBE;
             let ends = (
@@ -134,6 +163,20 @@ impl ModellingSession {
                 grouping: self.grouping,
                 anchors,
             },
+            (Elements::Edges(edges), Tool::Bevel) => Operation::BevelEdges {
+                edges: edges.clone(),
+                shape: BevelShape {
+                    width: local,
+                    segments: self.bevel.segments,
+                    profile: self.bevel.profile,
+                },
+                anchors,
+            },
+            (Elements::Points(points), _) => Operation::BevelPoints {
+                points: points.clone(),
+                width: local,
+                anchors,
+            },
             (Elements::Edges(edges), _) => Operation::ExtrudeEdges {
                 edges: edges.clone(),
                 distance: local,
@@ -145,12 +188,13 @@ impl ModellingSession {
 
     /// The undo step's name: "Extrude 4 polygons".
     fn label(&self) -> String {
-        let (polygons, edges) =
+        let (polygons, edges, points) =
             self.parts
                 .iter()
-                .fold((0, 0), |(p, e), part| match &part.elements {
-                    Elements::Polygons(f) => (p + f.len(), e),
-                    Elements::Edges(x) => (p, e + x.len()),
+                .fold((0, 0, 0), |(p, e, v), part| match &part.elements {
+                    Elements::Polygons(f) => (p + f.len(), e, v),
+                    Elements::Edges(x) => (p, e + x.len(), v),
+                    Elements::Points(x) => (p, e, v + x.len()),
                 });
         let count = |n: usize, thing: &str| {
             if n == 1 {
@@ -161,6 +205,8 @@ impl ModellingSession {
         };
         let what = if edges > 0 {
             count(edges, "edge")
+        } else if points > 0 {
+            count(points, "point")
         } else {
             count(polygons, "polygon")
         };
@@ -194,7 +240,7 @@ impl Workbench {
         if ui.ctx().memory(|m| m.focused().is_some()) || self.objects.is_renaming() {
             return;
         }
-        for command in [CommandId::Extrude, CommandId::Inset] {
+        for command in [CommandId::Extrude, CommandId::Inset, CommandId::Bevel] {
             let pressed = command
                 .info()
                 .shortcut
@@ -232,9 +278,9 @@ impl Workbench {
                         continue;
                     };
                     let mut distance = session.distance(drag, &pointer);
-                    if session.tool == Tool::Inset {
-                        // Inward only: outward would overlap the
-                        // neighbours.
+                    if matches!(session.tool, Tool::Inset | Tool::Bevel) {
+                        // Inset inward only (outward would overlap the
+                        // neighbours); a bevel has no negative width.
                         distance = distance.max(0.0);
                     }
                     if session.shown == Some(distance) {
@@ -273,11 +319,14 @@ impl Workbench {
     /// status bar why not, when there is nothing to work on.
     fn begin_modelling(&mut self, drawing: &SceneDrawing) -> Option<ModellingSession> {
         let tool = self.tool;
-        let kind = match (self.mode, tool) {
-            (Mode::Polygons, Tool::Extrude | Tool::Inset) => ElementKind::Polygons,
-            (Mode::Edges, Tool::Extrude) => ElementKind::Edges,
-            _ => {
+        let kind = match kind_for(self.mode, tool) {
+            Some(kind) => kind,
+            None => {
                 self.note = Some(match tool {
+                    Tool::Bevel => {
+                        "Bevel works on edges or points: press 2 for the Edges mode (or 1 for \
+                         Points) and select some."
+                    }
                     Tool::Inset => {
                         "Inset works on polygons: press 3 for the Polygons mode and select some."
                     }
@@ -294,6 +343,7 @@ impl Workbench {
         let mut points = Vec::new();
         // The way everything faces, summed in the world.
         let mut facing = Vec3::ZERO;
+        let mut reach = Vec::new();
         for item in drawing.items.iter().filter(|i| i.selected) {
             let Some(selected) = self.document.elements(item.id) else {
                 continue;
@@ -308,7 +358,12 @@ impl Workbench {
                         .collect();
                     (Elements::Polygons(faces), corners)
                 }
-                _ => {
+                ElementKind::Points => {
+                    let points: Vec<VertexId> = valid.points().collect();
+                    let corners = points.iter().map(|v| vec![*v]).collect();
+                    (Elements::Points(points), corners)
+                }
+                ElementKind::Edges => {
                     let edges: Vec<EdgeKey> = valid.edges().collect();
                     let corners = edges
                         .iter()
@@ -324,6 +379,16 @@ impl Workbench {
                 continue;
             }
             facing += world_facing(&item.mesh, item.transform, &elements);
+            for c in &corners {
+                let world = |v: &VertexId| {
+                    item.mesh
+                        .position(*v)
+                        .map(|p| item.transform.transform_point3(p))
+                };
+                if let (Some(a), Some(b)) = (c.first().and_then(world), c.last().and_then(world)) {
+                    reach.push((a, b));
+                }
+            }
             points.extend(
                 corners
                     .iter()
@@ -356,6 +421,8 @@ impl Workbench {
                 .then(|| facing.try_normalize())
                 .flatten(),
             grouping: self.grouping(),
+            bevel: self.attributes.bevel,
+            reach,
             start: None,
             shown: None,
         })
@@ -367,10 +434,8 @@ impl Workbench {
     /// polygon you want, without clicking it first. Starting on something
     /// selected, or on empty space, keeps the selection.
     fn select_under_the_press(&mut self) {
-        let kind = match (self.mode, self.tool) {
-            (Mode::Polygons, Tool::Extrude | Tool::Inset) => ElementKind::Polygons,
-            (Mode::Edges, Tool::Extrude) => ElementKind::Edges,
-            _ => return,
+        let Some(kind) = kind_for(self.mode, self.tool) else {
+            return;
         };
         let Some((id, element)) = self.components.hovered() else {
             return;
@@ -408,6 +473,9 @@ impl Workbench {
     fn finish_modelling(&mut self, session: &ModellingSession) {
         if session.shown.is_none_or(|d| d.abs() < 1e-4) {
             self.note = Some(format!("{}: nothing changed.", session.tool.name()));
+            return;
+        }
+        if session.tool != Tool::Extrude {
             return;
         }
         let mut changes = Vec::new();
@@ -457,6 +525,7 @@ fn world_facing(mesh: &scene::Mesh, world: Mat4, elements: &Elements) -> Vec3 {
     let to_world = |v: Vec3| normals.transform_vector3(v).normalize_or_zero();
     match elements {
         Elements::Polygons(faces) => faces.iter().map(|f| to_world(mesh.face_normal(*f))).sum(),
+        Elements::Points(_) => Vec3::ZERO,
         Elements::Edges(edges) => {
             let topology = mesh.topology();
             edges
@@ -478,6 +547,27 @@ fn world_facing(mesh: &scene::Mesh, world: Mat4, elements: &Elements) -> Vec3 {
                 .sum()
         }
     }
+}
+
+/// What the modelling tool in use works on in `mode`, if anything.
+fn kind_for(mode: Mode, tool: Tool) -> Option<ElementKind> {
+    match (mode, tool) {
+        (Mode::Polygons, Tool::Extrude | Tool::Inset) => Some(ElementKind::Polygons),
+        (Mode::Edges, Tool::Extrude | Tool::Bevel) => Some(ElementKind::Edges),
+        (Mode::Points, Tool::Bevel) => Some(ElementKind::Points),
+        _ => None,
+    }
+}
+
+/// How far `at` is from the segment from `a` to `b` (all on screen).
+fn to_segment(at: Vec2, a: Vec2, b: Vec2) -> f32 {
+    let along = b - a;
+    let t = if along.length_squared() > 1e-9 {
+        ((at - a).dot(along) / along.length_squared()).clamp(0.0, 1.0)
+    } else {
+        0.0
+    };
+    at.distance(a + along * t)
 }
 
 /// An object's size compared with its own space: its world matrix's scale,

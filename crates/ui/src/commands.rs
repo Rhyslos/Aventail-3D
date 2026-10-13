@@ -197,7 +197,7 @@ impl CommandId {
                 plain(Key::V),
                 "Cut the corner off the selected edges or points, with a width, \
                  segments and roundness",
-                PHASE_4,
+                None,
             ),
             Self::Bridge => (
                 "Bridge",

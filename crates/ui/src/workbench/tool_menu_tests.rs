@@ -473,8 +473,8 @@ fn the_mesh_and_tools_menus_read_from_the_command_list() {
     assert!(!extrude.accesskit_node().is_disabled(), "built");
     let label = extrude.accesskit_node().label().unwrap_or_default();
     assert!(label.contains('D'), "shows its key: {label}");
-    let bevel = harness.get_by_label_contains("Bevel");
-    assert!(bevel.accesskit_node().is_disabled(), "not built yet");
+    let bridge = harness.get_by_label_contains("Bridge");
+    assert!(bridge.accesskit_node().is_disabled(), "not built yet");
     press(&mut harness, Modifiers::NONE, Key::Escape);
     main_menu(&harness, "Tools").click();
     harness.run();

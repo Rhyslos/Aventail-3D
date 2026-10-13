@@ -41,7 +41,8 @@ You can also switch modes from the **Modes** menu, or press **1**, **2** or **3*
 One habit works with every tool: **pull the thing where you want it to go**. A drag in the viewport is measured from what it changes, not from a fixed direction on screen:
 - a gizmo's arrow moves along its axis;
 - an [extruded](extrude-and-inset.md) polygon comes out the way it faces, following the mouse;
-- an [inset](extrude-and-inset.md) shrinks as you pull towards the polygon's middle.
+- an [inset](extrude-and-inset.md) shrinks as you pull towards the polygon's middle;
+- a [bevel](bevel.md) widens as you pull away from the edges.
 
 Only when there's no way to follow (a polygon facing you straight on, or a drag that starts right on the middle) does dragging right mean "more".
 

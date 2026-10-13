@@ -43,6 +43,24 @@ pub(crate) struct AttributesPanel {
     /// Whether Extrude and Inset keep neighbours together (the Keep
     /// together switch), for the next drag (decision 0038).
     pub(crate) grouping: Grouping,
+    /// Bevel's rows and profile, for the next drag (decision 0040).
+    pub(crate) bevel: BevelLook,
+}
+
+/// Bevel's rows and profile, set in the Attributes panel before a drag.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct BevelLook {
+    pub(crate) segments: u32,
+    pub(crate) profile: f32,
+}
+
+impl Default for BevelLook {
+    fn default() -> Self {
+        Self {
+            segments: 1,
+            profile: 1.0,
+        }
+    }
 }
 
 /// Below this many polygons the mesh check is quick enough to run at
@@ -228,7 +246,7 @@ impl AttributesPanel {
             [one] => doc
                 .scene()
                 .object(*one)
-                .and_then(|o| last_edit(&o.stack).map(|(_, _, op)| op.distance().is_some()))
+                .and_then(|o| last_edit(&o.stack).map(|(_, _, op)| made_by(op, self.tool)))
                 .unwrap_or(false),
             _ => false,
         };
@@ -306,30 +324,44 @@ impl AttributesPanel {
             });
     }
 
-    /// Extrude's or Inset's own settings, while it is the tool in use.
+    /// Extrude's, Inset's or Bevel's own settings, while it is the tool
+    /// in use: they apply to the next drag.
     fn tool_section(&mut self, ui: &mut Ui) {
         section(ui, self.tool.name());
-        egui::Grid::new("attributes_tool")
-            .num_columns(2)
-            .min_col_width(LABEL_WIDTH)
-            .spacing(vec2(12.0, 6.0))
-            .show(ui, |ui| {
-                let mut together = self.grouping == Grouping::Together;
-                if keep_together(ui, &mut together) {
-                    self.grouping = grouping_of(together);
-                }
-                ui.end_row();
-            });
-        ui.label(
-            RichText::new("Drag anywhere in the viewport. Hold Shift for fine steps.")
-                .small()
-                .color(theme::TEXT_WEAK),
-        );
+        ui.push_id("tool", |ui| {
+            egui::Grid::new("attributes_tool")
+                .num_columns(2)
+                .min_col_width(LABEL_WIDTH)
+                .spacing(vec2(12.0, 6.0))
+                .show(ui, |ui| {
+                    if self.tool == Tool::Bevel {
+                        let mut look = self.bevel;
+                        segments_row(ui, &mut look.segments);
+                        ui.end_row();
+                        profile_row(ui, &mut look.profile);
+                        ui.end_row();
+                        self.bevel = look;
+                    } else {
+                        let mut together = self.grouping == Grouping::Together;
+                        if keep_together(ui, &mut together) {
+                            self.grouping = grouping_of(together);
+                        }
+                        ui.end_row();
+                    }
+                });
+        });
+        let hint = if self.tool == Tool::Bevel {
+            "Drag away from the selected edges or points to widen. Hold Shift for fine steps."
+        } else {
+            "Drag anywhere in the viewport. Hold Shift for fine steps."
+        };
+        ui.label(RichText::new(hint).small().color(theme::TEXT_WEAK));
     }
 
-    /// The last edit's settings, if it is an extrude or inset: they can
-    /// still be changed, and the shape follows (decision 0038). Once
-    /// another edit is made on top, it is fixed.
+    /// The last edit's settings, if it is an extrude, inset or bevel: they
+    /// can still be changed, and the shape follows (decisions 0038 and
+    /// 0040). Once another edit is made on top, it is fixed. Changes here
+    /// also become the tool's settings for the next drag.
     fn last_edit_section(
         &mut self,
         ui: &mut Ui,
@@ -341,42 +373,86 @@ impl AttributesPanel {
         let Some((layer, index, operation)) = last_edit(stack) else {
             return;
         };
-        let (Some(distance), Some(grouping)) = (operation.distance(), operation.grouping()) else {
+        let Some(settings) = operation.settings() else {
             return;
         };
         section(ui, &format!("Last edit: {}", operation.describe()));
-        let mut edited = distance;
-        let mut together = grouping == Grouping::Together;
+        let mut edited = settings;
         let mut changed = false;
+        let bevel = matches!(
+            operation,
+            Operation::BevelEdges { .. } | Operation::BevelPoints { .. }
+        );
         let low = match operation {
-            Operation::InsetPolygons { .. } => 0.0,
-            _ => -MAX_SIZE,
+            Operation::ExtrudePolygons { .. } | Operation::ExtrudeEdges { .. } => -MAX_SIZE,
+            _ => 0.0,
         };
-        egui::Grid::new("attributes_last_edit")
-            .num_columns(2)
-            .min_col_width(LABEL_WIDTH)
-            .spacing(vec2(12.0, 6.0))
-            .show(ui, |ui| {
-                label(
-                    ui,
-                    "Distance",
-                    "How far it was pushed (in the object's own size). Change it and the \
-                     shape follows.",
-                );
-                let touched = stepper::length(ui, &mut edited, (low, MAX_SIZE), units, "Distance");
-                if touched.began {
-                    self.gesture += 1;
-                }
-                changed |= touched.changed;
-                ui.end_row();
-                if keep_together(ui, &mut together) {
-                    self.gesture += 1;
-                    self.grouping = grouping_of(together);
-                    changed = true;
-                }
-                ui.end_row();
-            });
-        let after = operation.with_settings(edited, grouping_of(together));
+        // Its own id scope: its Width field mustn't share ids with the
+        // shape's Width below.
+        ui.push_id("last_edit", |ui| {
+            egui::Grid::new("attributes_last_edit")
+                .num_columns(2)
+                .min_col_width(LABEL_WIDTH)
+                .spacing(vec2(12.0, 6.0))
+                .show(ui, |ui| {
+                    let (name, help) = if bevel {
+                        (
+                            "Width",
+                            "How far the bevel reaches into each polygon (in the object's own \
+                         size). Change it and the shape follows.",
+                        )
+                    } else {
+                        (
+                            "Distance",
+                            "How far it was pushed (in the object's own size). Change it and the \
+                         shape follows.",
+                        )
+                    };
+                    label(ui, name, help);
+                    let touched =
+                        stepper::length(ui, &mut edited.distance, (low, MAX_SIZE), units, name);
+                    if touched.began {
+                        self.gesture += 1;
+                    }
+                    changed |= touched.changed;
+                    ui.end_row();
+                    if let Some(grouping) = edited.grouping {
+                        let mut together = grouping == Grouping::Together;
+                        if keep_together(ui, &mut together) {
+                            self.gesture += 1;
+                            self.grouping = grouping_of(together);
+                            edited.grouping = Some(self.grouping);
+                            changed = true;
+                        }
+                        ui.end_row();
+                    }
+                    if let Some(mut segments) = edited.segments {
+                        let touched = segments_row(ui, &mut segments);
+                        if touched.began {
+                            self.gesture += 1;
+                        }
+                        if touched.changed {
+                            edited.segments = Some(segments);
+                            self.bevel.segments = segments;
+                            changed = true;
+                        }
+                        ui.end_row();
+                    }
+                    if let Some(mut profile) = edited.profile {
+                        let touched = profile_row(ui, &mut profile);
+                        if touched.began {
+                            self.gesture += 1;
+                        }
+                        if touched.changed {
+                            edited.profile = Some(profile);
+                            self.bevel.profile = profile;
+                            changed = true;
+                        }
+                        ui.end_row();
+                    }
+                });
+        });
+        let after = operation.with(edited);
         if changed && after != *operation {
             out.push(DocRequest::RunMerging(
                 Command::ReplaceOperation {
@@ -653,6 +729,50 @@ fn grouping_of(together: bool) -> Grouping {
         Grouping::Together
     } else {
         Grouping::Separate
+    }
+}
+
+/// Whether `operation` is the kind of edit `tool` makes.
+fn made_by(operation: &Operation, tool: Tool) -> bool {
+    matches!(
+        (operation, tool),
+        (
+            Operation::ExtrudePolygons { .. } | Operation::ExtrudeEdges { .. },
+            Tool::Extrude
+        ) | (Operation::InsetPolygons { .. }, Tool::Inset)
+            | (
+                Operation::BevelEdges { .. } | Operation::BevelPoints { .. },
+                Tool::Bevel
+            )
+    )
+}
+
+/// A bevel's rows, with its label.
+fn segments_row(ui: &mut Ui, segments: &mut u32) -> stepper::Touched {
+    label(
+        ui,
+        "Segments",
+        "How many rows the bevel has: 1 is a flat cut (a chamfer), more make it round",
+    );
+    stepper::count(ui, segments, (1, mesh::bevel::MAX_SEGMENTS), "Segments")
+}
+
+/// A bevel's profile as a percentage, with its label.
+fn profile_row(ui: &mut Ui, profile: &mut f32) -> stepper::Touched {
+    label(
+        ui,
+        "Profile",
+        "The shape across the bevel: 100% is round, 0% is flat. Needs 2 or more segments to show.",
+    );
+    let mut percent = *profile * 100.0;
+    let response = ui.add(egui::Slider::new(&mut percent, 0.0..=100.0).suffix("%"));
+    response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Slider, true, "Profile"));
+    if response.changed() {
+        *profile = (percent / 100.0).clamp(0.0, 1.0);
+    }
+    stepper::Touched {
+        changed: response.changed(),
+        began: response.drag_started() || (response.changed() && !response.dragged()),
     }
 }
 

@@ -42,6 +42,10 @@ impl Workbench {
                  polygons (or open border edges) should go. Shift for fine steps; Esc or a \
                  right click cancels."
                 .into(),
+            Tool::Bevel => "Bevel: drag away from the selected edges (or points) to cut them \
+                 away; back towards them to narrow it. Segments and Profile are in the \
+                 Attributes panel. Shift for fine steps; Esc or a right click cancels."
+                .into(),
             Tool::Inset => "Inset: drag left or right anywhere in the viewport to shrink the \
                  selected polygons inward. Shift for fine steps; Esc or a right click cancels."
                 .into(),

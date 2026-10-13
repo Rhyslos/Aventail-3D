@@ -11,7 +11,7 @@
 //! | 4–7 | The format version (little-endian), so old files can be upgraded and newer ones refused clearly |
 //! | 8–11 | Flags; bit 0 says the body is zstd-compressed. Other bits are reserved and must be 0 |
 //! | 12–19 | The body's length in bytes |
-//! | 20– | The body: the file model of that version (`project/v1.rs`, `project/v2.rs`, `project/v3.rs`), encoded with postcard |
+//! | 20– | The body: the file model of that version (`project/v1.rs`, `project/v2.rs`, `project/v3.rs`, `project/v4.rs`), encoded with postcard |
 //!
 //! Reading never trusts the file: lengths are checked before anything is
 //! allocated, the unpacked body is capped, and every value is checked
@@ -21,6 +21,7 @@
 mod v1;
 mod v2;
 mod v3;
+mod v4;
 
 use scene::Document;
 use std::fmt;
@@ -30,7 +31,7 @@ use std::path::{Path, PathBuf};
 /// The signature every project file starts with.
 pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// The format version this app writes.
-pub const FORMAT_VERSION: u32 = 3;
+pub const FORMAT_VERSION: u32 = 4;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -100,7 +101,7 @@ impl std::error::Error for ProjectError {
 
 /// The project file's bytes for `document`.
 pub fn to_bytes(document: &Document) -> Result<Vec<u8>, ProjectError> {
-    let model = v3::ProjectV3::from_document(document);
+    let model = v4::ProjectV4::from_document(document);
     let encoded = postcard::to_stdvec(&model)
         .map_err(|e| ProjectError::Damaged(format!("the scene couldn't be encoded ({e})")))?;
     let body = zstd::bulk::compress(&encoded, ZSTD_LEVEL)
@@ -130,7 +131,7 @@ pub fn from_bytes(bytes: &[u8]) -> Result<Document, ProjectError> {
     let length = u64::from_le_bytes(number(bytes, 12).ok_or_else(|| header("length"))?);
     match version {
         0 => return Err(ProjectError::Damaged("its format version is 0".into())),
-        1 | 2 | FORMAT_VERSION => {}
+        1..=FORMAT_VERSION => {}
         newer => return Err(ProjectError::TooNew { version: newer }),
     }
     if flags & !KNOWN_FLAGS != 0 {
@@ -158,7 +159,8 @@ pub fn from_bytes(bytes: &[u8]) -> Result<Document, ProjectError> {
     match version {
         1 => decode::<v1::OperationV1>(encoded),
         2 => decode::<v2::OperationV2>(encoded),
-        _ => decode::<v3::OperationV3>(encoded),
+        3 => decode::<v3::OperationV3>(encoded),
+        _ => decode::<v4::OperationV4>(encoded),
     }
 }
 

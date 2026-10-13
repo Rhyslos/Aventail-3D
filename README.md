@@ -4,7 +4,7 @@
 
 Aventail 3D is a free, open-source modelling and UV unwrapping tool for **hard-surface game assets**, written in Rust. Model it, unwrap it, and export it to Substance Painter and Godot, all in one app.
 
-> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout and a real 3D view you can orbit, pan and zoom around, from four views at once if you like. You can create primitives (cube, plane, cylinder, sphere, disc, tube, cone) and groups, organise them in the Object Manager, and undo every change. Press B for a list of shapes, and select one to change its size and segments in the Attribute Manager, or press Ctrl + E to make it a plain, editable mesh. Press 1, 2 or 3 to see and select a selected shape's points, edges or polygons, and W, R or S to move, rotate or scale what's selected; change a shape's settings afterwards and your edits follow. Save your work as a project and open it again later. Press E anywhere for a menu of the tools for what you're working on, and D or I to extrude or inset polygons. Heavy shapes of millions of polygons stay quick to work with, and backup copies saved in the background bring your work back after a crash. More modelling tools follow through Phase 4. Follow the progress tracker below.
+> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout and a real 3D view you can orbit, pan and zoom around, from four views at once if you like. You can create primitives (cube, plane, cylinder, sphere, disc, tube, cone) and groups, organise them in the Object Manager, and undo every change. Press B for a list of shapes, and select one to change its size and segments in the Attribute Manager, or press Ctrl + E to make it a plain, editable mesh. Press 1, 2 or 3 to see and select a selected shape's points, edges or polygons, and W, R or S to move, rotate or scale what's selected; change a shape's settings afterwards and your edits follow. Save your work as a project and open it again later. Press E anywhere for a menu of the tools for what you're working on, D or I to extrude or inset polygons, and V to bevel edges. Heavy shapes of millions of polygons stay quick to work with, and backup copies saved in the background bring your work back after a crash. More modelling tools follow through Phase 4. Follow the progress tracker below.
 
 Created by **Rhyslos**, built with AI assistance (Claude by Anthropic). Part of the **Rhylib** family of tools, alongside [Halberd](https://github.com/Rhyslos/halberd).
 
@@ -91,9 +91,9 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** points, edges and polygons can be selected and moved precisely, and a cube's segments can still be changed afterwards. ✅ *Passed 2026-10-12: tested by the project lead.*
 
-### Phase 4 · Core modelling tools — 4 of 11
+### Phase 4 · Core modelling tools — 5 of 11
 
-`█████░░░░░░░░` 36%
+`██████░░░░░░░` 45%
 
 <details>
 <summary>Milestones</summary>
@@ -102,7 +102,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Autosave and crash recovery: backup copies in the background, offered back after a crash
 - [x] Tool menu (E): every tool for the current mode at the mouse, radial or list, from one command list
 - [x] Extrude and inset: drag anywhere to push polygons out or in, inset them, or grow border edges; neighbours together or each on its own
-- [ ] Bevel and chamfer
+- [x] Bevel and chamfer: edges and points, with width, segments and profile; drag away from the edges
 - [ ] Loop cut and knife
 - [ ] Connect, bridge and weld
 - [ ] Dissolve, delete, fill hole and flip normals, with select flipped, fix facing and select by facing
@@ -196,6 +196,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-13 | Bevel (V): chamfer or round edges and cut corners, pulling away from the edges; Segments and Profile in the Attributes panel |
 | 2026-10-13 | Extrude and inset (D and I): drag anywhere in the view; Keep together; the last one can be changed in the Attributes panel; border edges extrude too |
 | 2026-10-12 | The tool menu (E): object or modelling tools at the mouse as a ring or a list; one command list behind every menu |
 | 2026-10-12 | Autosave: backup copies of the scene in the background (every 5 minutes, newest 5 kept, both changeable in Settings), offered back after a crash |

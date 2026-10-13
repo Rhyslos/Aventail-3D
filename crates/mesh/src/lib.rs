@@ -5,6 +5,7 @@
 //! See this crate's README for its purpose and limits.
 
 pub mod anchors;
+pub mod bevel;
 pub mod bounds;
 pub mod check;
 pub mod edit;

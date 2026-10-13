@@ -749,7 +749,24 @@ fn random_commands_keep_the_tree_whole_and_undo_exactly() {
                         };
                         Command::Record {
                             id: *id,
-                            operation: if rng.next(2) == 0 {
+                            operation: if rng.next(3) == 0 {
+                                Operation::BevelEdges {
+                                    edges: (0..rng.next(3) + 1)
+                                        .map(|_| {
+                                            EdgeKey::new(
+                                                VertexId::from_raw(rng.next(8) as u32),
+                                                VertexId::from_raw(rng.next(8) as u32 + 8),
+                                            )
+                                        })
+                                        .collect(),
+                                    shape: BevelShape {
+                                        width: distance.abs() / 4.0,
+                                        segments: rng.next(3) as u32 + 1,
+                                        profile: 1.0,
+                                    },
+                                    anchors: None,
+                                }
+                            } else if rng.next(2) == 0 {
                                 Operation::ExtrudePolygons {
                                     faces,
                                     distance,
