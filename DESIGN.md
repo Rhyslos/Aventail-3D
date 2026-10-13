@@ -515,6 +515,26 @@ Each style can have its own starting layout and presets.
   - a ready-made outline shader file for each engine (a Godot shader first; Unity and Unreal after), set up by the engine export paths.
 - Settings can vary the width per area (thinner on small details) and use vertex colours or a painted mask.
 
+**Texturing choices from the project lead (2026-10-13):**
+
+| Idea | Decision |
+|---|---|
+| Painting in the 3D and 2D (UV) views at once, one stroke showing in both | **Yes** |
+| Colour palettes saved with the project, and picking swatches from the model | **Yes** |
+| Light-and-shadow helper: a sun direction pre-paints soft light and shade as a starting layer | **Yes**, with a switch to turn it off for those who don't want lighting while texturing |
+| Edge highlight from the curvature map | **Yes** |
+| A small, good stylised brush set, with smudge and blend | **Yes** |
+| A toon (cel-shaded) viewport preview, with the outlines | **Yes, almost a priority** |
+| Material and style presets saved as files to reuse and share | **Yes** |
+| Live preview in an open engine while painting, through the engine export paths | **Yes**: what the engine integration is for |
+| Texture budget | **Yes, extended:** warnings while working, and on export a detailed report about each file (size, format, channels, memory) |
+| Pen tablets | **Both mouse and pen** must feel good: pressure and tilt with a pen, sensible defaults with a mouse |
+| Trim sheets | **Their own pipeline:** making and using trim sheets in modelling, UVs and texturing. One texture per prop stays the default |
+| Where textures are saved | **Both:** inside the project and as image files beside it, to open in other apps |
+| Low-resolution and pixel-art textures | **Later.** No full pixel-art pipeline: Aseprite does that well |
+| Vertex colours | **Later**, after the texturing tools are robust |
+| Reference images in the paint view | **Ideas backlog** |
+
 ### Later / maybe
 - Make the UI our own (driven by real use)
 - FBX export, LOD helpers, baking preview
