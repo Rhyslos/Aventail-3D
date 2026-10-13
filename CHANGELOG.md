@@ -41,6 +41,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **Bevelling big selections is faster still**: every edge of a 32,000-polygon sphere now takes about a third of a second (it was 2 seconds).
 - **Edits stay quick however long the history.** Dragging, adding an edit, undoing it and changing the last edit now only work out that one edit, instead of every edit since the shape was made. A small prop with 200 edits went from 26 ms per frame to under a tenth of a millisecond; a 3-million-polygon shape from 3.5 s per frame to 35 ms.
 - **Faster bevels on big selections**: bevelling every edge of a 32,000-polygon sphere went from 65 s to 2 s, and every point from 5 minutes to a tenth of a second.
 - **Edits find their elements again much faster** after a shape's settings change (1,000 points on a 3-million-polygon shape: 19 s to 0.15 s), and on dense shapes an edited polygon no longer picks up its neighbours.

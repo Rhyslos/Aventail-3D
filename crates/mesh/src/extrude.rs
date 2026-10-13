@@ -27,7 +27,14 @@
 //! **Hard edges carry over.** The new border copies the old border's hard
 //! edges, and a wall's upright edge is hard where a hard border edge meets
 //! it, so an extruded cube stays crisp and an extruded sphere stays smooth.
+//!
+//! **Attributes carry over** through the [`Builder`]: new points copy the
+//! point they came from, walls are like the polygon they came from (its
+//! material slot, say), their corners copy that polygon's corners, and the
+//! new border takes the old border's edge values (seams as well as hard
+//! edges).
 
+use crate::builder::{Builder, CornerFrom, PointFrom};
 use crate::edit::Outcome;
 use crate::polygon::sides;
 use crate::topology::Topology;
@@ -166,25 +173,23 @@ impl Region {
 
     /// Gives the piece's polygons their new corners (`map`), and carries
     /// hard edges inside the piece over to the new corners.
-    fn rewire(&self, original: &Mesh, mesh: &mut Mesh, map: &BTreeMap<VertexId, VertexId>) {
+    fn rewire(&self, build: &mut Builder, map: &BTreeMap<VertexId, VertexId>) {
         let to = |v: VertexId| map.get(&v).copied().unwrap_or(v);
         for face in &self.faces {
-            let corners: Vec<VertexId> = original
+            let corners: Vec<VertexId> = build
+                .original()
                 .face(*face)
                 .unwrap_or_default()
                 .iter()
                 .map(|v| to(*v))
                 .collect();
             // Can't fail: the same number of distinct, existing corners.
-            let _ = mesh.replace_corners(*face, &corners);
+            // Corner values stay with their corners.
+            let _ = build.mesh().replace_corners(*face, &corners);
         }
         for edge in &self.inner {
             let (a, b) = edge.ends();
-            let (x, y) = (to(a), to(b));
-            if (x, y) != (a, b) && original.is_hard(a, b) {
-                mesh.set_hard(a, b, false);
-                mesh.set_hard(x, y, true);
-            }
+            build.move_edge(*edge, to(a), to(b));
         }
     }
 
@@ -192,21 +197,23 @@ impl Region {
     /// border to the new one, and copies the border's hard edges to the
     /// new border. With `hard_uprights`, a wall's upright edge is hard
     /// where a hard border edge meets it.
-    fn walls(
-        &self,
-        original: &Mesh,
-        mesh: &mut Mesh,
-        map: &BTreeMap<VertexId, VertexId>,
-        hard_uprights: bool,
-    ) {
+    fn walls(&self, build: &mut Builder, map: &BTreeMap<VertexId, VertexId>, hard_uprights: bool) {
         let mut hard_points = BTreeSet::new();
-        for (_, a, b) in &self.border {
+        for (face, a, b) in &self.border {
             let (Some(x), Some(y)) = (map.get(a), map.get(b)) else {
                 continue;
             };
-            mesh.push_face(&[*a, *b, *y, *x]);
-            if original.is_hard(*a, *b) {
-                mesh.set_hard(*x, *y, true);
+            // The wall is like the polygon it grew from; its corners copy
+            // that polygon's corners at the same points.
+            let corners = [
+                (*a, CornerFrom::Copy(*face, *a)),
+                (*b, CornerFrom::Copy(*face, *b)),
+                (*y, CornerFrom::Copy(*face, *b)),
+                (*x, CornerFrom::Copy(*face, *a)),
+            ];
+            build.face(&corners, Some(*face));
+            build.copy_edge(EdgeKey::new(*a, *b), *x, *y);
+            if build.original().is_hard(*a, *b) {
                 hard_points.insert(*a);
                 hard_points.insert(*b);
             }
@@ -214,7 +221,7 @@ impl Region {
         if hard_uprights {
             for v in hard_points {
                 if let Some(copy) = map.get(&v) {
-                    mesh.set_hard(v, *copy, true);
+                    build.mesh().set_hard(v, *copy, true);
                 }
             }
         }
@@ -250,6 +257,7 @@ pub fn extrude_polygons(
     }
     let original = mesh.clone();
     let topology = original.topology();
+    let mut build = Builder::new(&original, mesh);
     for faces in face_regions(topology, &faces, grouping) {
         let region = Region::new(&original, faces);
         let chosen: BTreeSet<FaceId> = region.faces.iter().copied().collect();
@@ -279,13 +287,13 @@ pub fn extrude_polygons(
                 .iter()
                 .any(|f| !chosen.contains(f));
             if *on_border || shared {
-                map.insert(*v, mesh.push_vertex(to));
+                map.insert(*v, build.point(to, PointFrom::Copy(*v)));
             } else {
-                mesh.set_position(*v, to);
+                build.mesh().set_position(*v, to);
             }
         }
-        region.rewire(&original, mesh, &map);
-        region.walls(&original, mesh, &map, true);
+        region.rewire(&mut build, &map);
+        region.walls(&mut build, &map, true);
     }
     outcome
 }
@@ -319,6 +327,7 @@ pub fn inset_polygons(
     }
     let original = mesh.clone();
     let topology = original.topology();
+    let mut build = Builder::new(&original, mesh);
     for faces in face_regions(topology, &faces, grouping) {
         let region = Region::new(&original, faces);
         // Each border point's inward directions, from the border sides
@@ -346,11 +355,11 @@ pub fn inset_polygons(
             } else {
                 at
             };
-            map.insert(*v, mesh.push_vertex(to));
+            map.insert(*v, build.point(to, PointFrom::Copy(*v)));
         }
-        region.rewire(&original, mesh, &map);
+        region.rewire(&mut build, &map);
         // The ring is flat with the polygons: no hard uprights.
-        region.walls(&original, mesh, &map, false);
+        region.walls(&mut build, &map, false);
     }
     outcome
 }
@@ -374,7 +383,7 @@ pub fn extrude_edges(
     let mut outcome = Outcome::default();
     // Each border edge as its polygon runs along it, with the outward
     // direction.
-    let mut border: BTreeMap<EdgeKey, (VertexId, VertexId, Vec3)> = BTreeMap::new();
+    let mut border: BTreeMap<EdgeKey, (VertexId, VertexId, Vec3, FaceId)> = BTreeMap::new();
     for edge in edges.iter().copied().collect::<BTreeSet<_>>() {
         if !topology.has_edge(edge) {
             outcome.missing += 1;
@@ -397,16 +406,17 @@ pub fn extrude_edges(
         let outward = (pb - pa)
             .cross(original.face_normal(only.face))
             .normalize_or_zero();
-        border.insert(edge, (a, b, outward));
+        border.insert(edge, (a, b, outward, only.face));
         outcome.matched += 1;
     }
     if border.is_empty() || !distance.is_finite() {
         return outcome;
     }
+    let mut build = Builder::new(&original, mesh);
     for group in edge_regions(&border, grouping) {
         let mut outward: BTreeMap<VertexId, Vec<Vec3>> = BTreeMap::new();
         for edge in &group {
-            let (a, b, direction) = border[edge];
+            let (a, b, direction, _) = border[edge];
             outward.entry(a).or_default().push(direction);
             outward.entry(b).or_default().push(direction);
         }
@@ -421,12 +431,19 @@ pub fn extrude_edges(
             } else {
                 at
             };
-            map.insert(*v, mesh.push_vertex(to));
+            map.insert(*v, build.point(to, PointFrom::Copy(*v)));
         }
         for edge in &group {
-            let (a, b, _) = border[edge];
-            // The polygon runs a → b, so the new one runs b → a.
-            mesh.push_face(&[b, a, map[&a], map[&b]]);
+            let (a, b, _, face) = border[edge];
+            // The polygon runs a → b, so the new one runs b → a. It is like
+            // that polygon, and its corners copy that polygon's.
+            let corners = [
+                (b, CornerFrom::Copy(face, b)),
+                (a, CornerFrom::Copy(face, a)),
+                (map[&a], CornerFrom::Copy(face, a)),
+                (map[&b], CornerFrom::Copy(face, b)),
+            ];
+            build.face(&corners, Some(face));
         }
     }
     outcome
@@ -434,10 +451,7 @@ pub fn extrude_edges(
 
 /// Border edges split into the groups that grow together: joined at a
 /// point (`Together`), or each alone (`Separate`).
-fn edge_regions(
-    border: &BTreeMap<EdgeKey, (VertexId, VertexId, Vec3)>,
-    grouping: Grouping,
-) -> Vec<Vec<EdgeKey>> {
+fn edge_regions<T>(border: &BTreeMap<EdgeKey, T>, grouping: Grouping) -> Vec<Vec<EdgeKey>> {
     if grouping == Grouping::Separate {
         return border.keys().map(|e| vec![*e]).collect();
     }

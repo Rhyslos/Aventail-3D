@@ -50,3 +50,4 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0040](0040-bevel.md) | Bevel: edges and points, drag away from them, file format version 4 | Accepted |
 | [0041](0041-saves-that-always-reopen.md) | Saves that always reopen: verified saves, one safe-write helper, gaps closed at the source | Accepted |
 | [0042](0042-fast-edits.md) | Fast edits: checkpoints inside a layer, bevel without quadratic loops, finding edits again through a grid, topology in undo memory | Accepted |
+| [0043](0043-attribute-layers-and-the-builder.md) | Attribute layers (point, edge, polygon, corner), hard edges as the first; the mesh builder; deleting polygons | Accepted |

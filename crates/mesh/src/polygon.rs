@@ -1,5 +1,6 @@
 //! The polygon mesh: points in space joined into faces with any number of
-//! corners (n-gons), with each edge marked hard or soft.
+//! corners (n-gons), with named values on its elements ([attribute
+//! layers](crate::attributes)), hard edges among them.
 //!
 //! Every point and face has an id that stays the same for its whole life
 //! and is never given to another element, even after it is deleted. Ids
@@ -9,6 +10,9 @@
 //! Adjacency (walking from an edge to its faces, loops and rings) lives in
 //! [`Topology`], worked out once per set of faces ([`Mesh::topology`]).
 
+use crate::attributes::{
+    AttributeElement, AttributeError, AttributeKind, Attributes, Domain, HARD, Layer, Value,
+};
 use crate::{Bounds, Topology};
 use glam::Vec3;
 use std::collections::BTreeSet;
@@ -127,8 +131,9 @@ pub struct Mesh {
     /// Faces by id, as their corners in order (counter-clockwise seen from
     /// outside).
     faces: Arc<Faces>,
-    /// Edges marked hard: shading breaks across them.
-    hard: Arc<BTreeSet<EdgeKey>>,
+    /// Named values per point, edge, polygon or corner, hard edges among
+    /// them ([`crate::attributes`]).
+    attributes: Attributes,
 }
 
 /// Points per chunk of [`Points`].
@@ -364,7 +369,7 @@ impl PartialEq for Mesh {
     fn eq(&self, other: &Self) -> bool {
         self.positions == other.positions
             && (Arc::ptr_eq(&self.faces, &other.faces) || self.faces == other.faces)
-            && (Arc::ptr_eq(&self.hard, &other.hard) || self.hard == other.hard)
+            && self.attributes == other.attributes
     }
 }
 
@@ -373,7 +378,8 @@ impl std::fmt::Debug for Mesh {
         f.debug_struct("Mesh")
             .field("points", &self.live_points)
             .field("faces", &self.faces.live)
-            .field("hard_edges", &self.hard.len())
+            .field("hard_edges", &self.hard_edge_count())
+            .field("attributes", &self.attributes.iter().count())
             .finish()
     }
 }
@@ -427,7 +433,12 @@ impl Mesh {
 
     /// The edges marked hard, in order.
     pub fn hard_edges(&self) -> impl Iterator<Item = EdgeKey> + '_ {
-        self.hard.iter().copied()
+        self.attributes
+            .get(HARD)
+            .into_iter()
+            .flat_map(Layer::edges)
+            .filter(|(_, v)| *v == Value::Bool(true))
+            .map(|(e, _)| e)
     }
 
     /// Rebuilds a mesh from its slots (as [`Self::point_slots`] and
@@ -454,7 +465,7 @@ impl Mesh {
             positions: Points::new(points),
             live_points,
             faces: Arc::default(),
-            hard: Arc::default(),
+            attributes: Attributes::default(),
         };
         let mut table = Faces::default();
         for face in &faces {
@@ -469,14 +480,10 @@ impl Mesh {
         mesh.faces = Arc::new(table);
         // Hard edges only change shading: one that names a missing point,
         // or a point twice, is left out rather than refusing the mesh.
-        let mut hard_edges = BTreeSet::new();
         for edge in hard {
             let (a, b) = edge.ends();
-            if mesh.position(a).is_some() && mesh.position(b).is_some() && a != b {
-                hard_edges.insert(edge);
-            }
+            mesh.set_hard(a, b, true);
         }
-        mesh.hard = Arc::new(hard_edges);
         Ok(mesh)
     }
 
@@ -567,6 +574,8 @@ impl Mesh {
             }
             self.check_face(corners)?;
         }
+        let carry = self.attributes.has_domain(Domain::Corner);
+        let mut from = Vec::new();
         let mut table = Faces::default();
         for (index, face) in self.face_slots().enumerate() {
             let replaced = changes.get(&FaceId(index as u32)).map(Vec::as_slice);
@@ -576,9 +585,24 @@ impl Mesh {
             {
                 return Err(MeshError::Full);
             }
+            if carry && let Some(c) = corners {
+                // Unchanged polygons keep their corner values; rewritten
+                // ones start from the default (the builder fills them in).
+                let start = self.faces.starts[index] as usize;
+                if replaced.is_some() {
+                    from.extend(std::iter::repeat_n(None, c.len()));
+                } else {
+                    from.extend((start..start + c.len()).map(Some));
+                }
+            }
             table.push(corners);
         }
         self.faces = Arc::new(table);
+        if carry {
+            for layer in self.attributes.of_domain_mut(Domain::Corner) {
+                layer.regather(&from);
+            }
+        }
         Ok(())
     }
 
@@ -591,9 +615,7 @@ impl Mesh {
         }
         self.positions.set(id.0 as usize, None);
         self.live_points -= 1;
-        if self.hard.iter().any(|e| e.0 == id || e.1 == id) {
-            Arc::make_mut(&mut self.hard).retain(|e| e.0 != id && e.1 != id);
-        }
+        self.forget_edges(|e| e.0 == id || e.1 == id);
         true
     }
 
@@ -619,14 +641,7 @@ impl Mesh {
             self.positions.set(v.0 as usize, None);
         }
         self.live_points -= unused.len();
-        if self
-            .hard
-            .iter()
-            .any(|e| unused.contains(&e.0) || unused.contains(&e.1))
-        {
-            Arc::make_mut(&mut self.hard)
-                .retain(|e| !unused.contains(&e.0) && !unused.contains(&e.1));
-        }
+        self.forget_edges(|e| unused.contains(&e.0) || unused.contains(&e.1));
         unused.len()
     }
 
@@ -683,7 +698,7 @@ impl Mesh {
     /// update only what moved.
     pub fn same_structure(&self, other: &Mesh) -> bool {
         Arc::ptr_eq(&self.faces, &other.faces)
-            && Arc::ptr_eq(&self.hard, &other.hard)
+            && self.attributes.shared_with(&other.attributes)
             && self.positions.len() == other.positions.len()
     }
 
@@ -705,33 +720,241 @@ impl Mesh {
     }
 
     /// Marks the edge between `a` and `b` hard (shading breaks across it)
-    /// or soft (shading flows over it). Edges are soft unless marked.
+    /// or soft (shading flows over it). Edges are soft unless marked. Hard
+    /// edges are the built-in edge attribute [`HARD`].
     pub fn set_hard(&mut self, a: VertexId, b: VertexId, hard: bool) {
         // Only an edge between two different, existing points can be hard
         // (anything else couldn't be saved and opened again).
         if hard && (a == b || self.position(a).is_none() || self.position(b).is_none()) {
             return;
         }
-        let key = EdgeKey::new(a, b);
-        if hard == self.hard.contains(&key) {
+        if hard == self.is_hard(a, b) {
             return;
         }
-        let set = Arc::make_mut(&mut self.hard);
         if hard {
-            set.insert(key);
-        } else {
-            set.remove(&key);
+            let _ = self.attributes.add(HARD, Domain::Edge, Value::Bool(false));
         }
+        if let Some(layer) = self.attributes.get_mut(HARD) {
+            layer.set_edge(EdgeKey::new(a, b), Value::Bool(hard));
+        }
+        self.drop_empty_hard();
     }
 
     /// Whether the edge between `a` and `b` is hard.
     pub fn is_hard(&self, a: VertexId, b: VertexId) -> bool {
-        self.hard.contains(&EdgeKey::new(a, b))
+        self.attributes
+            .get(HARD)
+            .is_some_and(|l| l.edge(EdgeKey::new(a, b)) == Value::Bool(true))
     }
 
     /// How many edges are marked hard.
     pub fn hard_edge_count(&self) -> usize {
-        self.hard.len()
+        self.attributes.get(HARD).map_or(0, Layer::edge_count)
+    }
+
+    /// Without hard edges, the mesh has no hard-edge layer at all, so a
+    /// mesh whose last hard edge went soft equals one that never had any.
+    pub(crate) fn drop_empty_hard(&mut self) {
+        if self
+            .attributes
+            .get(HARD)
+            .is_some_and(|l| l.edge_count() == 0)
+        {
+            self.attributes.remove(HARD);
+        }
+    }
+
+    /// Forgets every edge value on edges `gone` says yes to.
+    fn forget_edges(&mut self, gone: impl Fn(EdgeKey) -> bool) {
+        if !self.attributes.has_edge_values() {
+            return;
+        }
+        for layer in self.attributes.of_domain_mut(Domain::Edge) {
+            layer.forget_edges(&gone);
+        }
+        self.drop_empty_hard();
+    }
+
+    /// Deletes polygons; their ids are never used again. Points they used
+    /// stay (other polygons may use them; [`Self::remove_unused_vertices`]
+    /// deletes the ones left over), and so do values on edges other
+    /// polygons still use. Returns how many polygons were deleted (ids not
+    /// in the mesh are ignored).
+    pub fn delete_faces(&mut self, ids: &[FaceId]) -> usize {
+        let gone: BTreeSet<FaceId> = ids
+            .iter()
+            .copied()
+            .filter(|f| self.face(*f).is_some())
+            .collect();
+        if gone.is_empty() {
+            return 0;
+        }
+        // Their edges: values on any that no polygon uses any more go.
+        let candidates: std::collections::HashSet<EdgeKey> = if self.attributes.has_edge_values() {
+            gone.iter()
+                .flat_map(|f| sides(self.face(*f).unwrap_or_default()))
+                .map(|(a, b)| EdgeKey::new(a, b))
+                .collect()
+        } else {
+            Default::default()
+        };
+        let carry = self.attributes.has_domain(Domain::Corner);
+        let mut from = Vec::new();
+        let mut table = Faces::default();
+        for (index, face) in self.face_slots().enumerate() {
+            let kept = face.filter(|_| !gone.contains(&FaceId(index as u32)));
+            if carry && let Some(c) = kept {
+                let start = self.faces.starts[index] as usize;
+                from.extend((start..start + c.len()).map(Some));
+            }
+            table.push(kept);
+        }
+        self.faces = Arc::new(table);
+        if carry {
+            for layer in self.attributes.of_domain_mut(Domain::Corner) {
+                layer.regather(&from);
+            }
+        }
+        if !candidates.is_empty() {
+            let still: std::collections::HashSet<EdgeKey> = self
+                .faces()
+                .flat_map(|(_, c)| sides(c))
+                .map(|(a, b)| EdgeKey::new(a, b))
+                .filter(|e| candidates.contains(e))
+                .collect();
+            self.forget_edges(|e| candidates.contains(&e) && !still.contains(&e));
+        }
+        gone.len()
+    }
+
+    // ------------------------------------------------------------ attributes
+
+    /// Adds an attribute layer called `name`, holding a value of the same
+    /// kind as `default` for each element of `domain`, every one `default`
+    /// to begin with. Adding a layer that exists with the same domain and
+    /// kind changes nothing. Refused if the name is taken by another
+    /// domain or kind, or the default isn't a real number.
+    pub fn add_attribute(
+        &mut self,
+        name: &str,
+        domain: Domain,
+        default: Value,
+    ) -> Result<(), AttributeError> {
+        self.attributes.add(name, domain, default)
+    }
+
+    /// Removes an attribute layer and its values. Returns whether it
+    /// existed.
+    pub fn remove_attribute(&mut self, name: &str) -> bool {
+        self.attributes.remove(name)
+    }
+
+    /// Every attribute layer: its name, domain and kind of value.
+    pub fn attributes(&self) -> impl Iterator<Item = (&str, Domain, AttributeKind)> + '_ {
+        self.attributes
+            .iter()
+            .map(|(n, l)| (n, l.domain(), l.kind()))
+    }
+
+    /// The value of attribute `name` on `element`: `None` if there is no
+    /// such layer, the element is of another domain, or isn't in the mesh.
+    pub fn attribute(&self, name: &str, element: AttributeElement) -> Option<Value> {
+        let layer = self.attributes.get(name)?;
+        if layer.domain() != element.domain() || !self.has_element(element) {
+            return None;
+        }
+        Some(match element {
+            AttributeElement::Edge(edge) => layer.edge(edge),
+            other => layer.at(self.element_index(other)?),
+        })
+    }
+
+    /// Sets attribute `name` on `element` to `value`. Refused, changing
+    /// nothing, for an unknown layer, an element of another domain or not
+    /// in the mesh, a value of another kind, or one that isn't a real
+    /// number.
+    pub fn set_attribute(
+        &mut self,
+        name: &str,
+        element: AttributeElement,
+        value: Value,
+    ) -> Result<(), AttributeError> {
+        let Some(layer) = self.attributes.get(name) else {
+            return Err(AttributeError::Unknown(name.to_owned()));
+        };
+        if layer.domain() != element.domain() {
+            return Err(AttributeError::WrongDomain {
+                layer: layer.domain(),
+                element: element.domain(),
+            });
+        }
+        if layer.kind() != value.kind() {
+            return Err(AttributeError::WrongKind {
+                layer: layer.kind(),
+                value: value.kind(),
+            });
+        }
+        if !value.is_finite() {
+            return Err(AttributeError::NotANumber);
+        }
+        if !self.has_element(element) {
+            return Err(AttributeError::NoSuchElement);
+        }
+        let index = self.element_index(element);
+        if let Some(layer) = self.attributes.get_mut(name) {
+            match (element, index) {
+                (AttributeElement::Edge(edge), _) => layer.set_edge(edge, value),
+                (_, Some(i)) => layer.set_at(i, value),
+                _ => {}
+            }
+        }
+        if name == HARD {
+            self.drop_empty_hard();
+        }
+        Ok(())
+    }
+
+    /// Whether `element` is in the mesh. An edge counts if its two points
+    /// exist and differ (it needn't have a polygon, as with hard edges).
+    pub fn has_element(&self, element: AttributeElement) -> bool {
+        match element {
+            AttributeElement::Point(v) => self.position(v).is_some(),
+            AttributeElement::Edge(edge) => {
+                let (a, b) = edge.ends();
+                a != b && self.position(a).is_some() && self.position(b).is_some()
+            }
+            AttributeElement::Face(f) => self.face(f).is_some(),
+            AttributeElement::Corner(f, i) => self.face(f).is_some_and(|c| i < c.len()),
+        }
+    }
+
+    /// Where `element`'s values are kept in a dense layer: its id, or for
+    /// a corner its place in the mesh's list of corners.
+    fn element_index(&self, element: AttributeElement) -> Option<usize> {
+        match element {
+            AttributeElement::Point(v) => Some(v.0 as usize),
+            AttributeElement::Face(f) => Some(f.0 as usize),
+            AttributeElement::Corner(f, i) => {
+                Some(*self.faces.starts.get(f.0 as usize)? as usize + i)
+            }
+            AttributeElement::Edge(_) => None,
+        }
+    }
+
+    /// Where corner `v` of polygon `face` is kept, if `face` has it.
+    pub(crate) fn corner_index(&self, face: FaceId, v: VertexId) -> Option<usize> {
+        let i = self.face(face)?.iter().position(|c| *c == v)?;
+        Some(self.faces.starts[face.0 as usize] as usize + i)
+    }
+
+    /// The attribute layers, for the builder.
+    pub(crate) fn attribute_layers(&self) -> &Attributes {
+        &self.attributes
+    }
+
+    /// The attribute layers, for the builder, to change.
+    pub(crate) fn attribute_layers_mut(&mut self) -> &mut Attributes {
+        &mut self.attributes
     }
 
     /// Roughly how many bytes the mesh takes up in memory, counting what
@@ -745,9 +968,7 @@ impl Mesh {
         let positions = self.positions.memory_size();
         let faces = self.faces.starts.capacity() * size_of::<u32>()
             + self.faces.corners.capacity() * size_of::<VertexId>();
-        // A B-tree node holds several keys plus links; twice the keys is a
-        // fair estimate.
-        let hard = self.hard.len() * size_of::<EdgeKey>() * 2;
+        let attributes = self.attributes.memory_size();
         let topology = self.faces.topology.get().map_or_else(
             || {
                 crate::topology::Topology::estimate(
@@ -758,7 +979,7 @@ impl Mesh {
             },
             crate::topology::Topology::memory_size,
         );
-        size_of::<Self>() + positions + faces + hard + topology
+        size_of::<Self>() + positions + faces + attributes + topology
     }
 
     /// The box around every point, or `None` for an empty mesh. Worked
