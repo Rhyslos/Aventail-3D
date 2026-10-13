@@ -465,13 +465,14 @@ impl Mesh {
             table.push(face.as_deref());
         }
         mesh.faces = Arc::new(table);
+        // Hard edges only change shading: one that names a missing point,
+        // or a point twice, is left out rather than refusing the mesh.
         let mut hard_edges = BTreeSet::new();
         for edge in hard {
             let (a, b) = edge.ends();
-            if mesh.position(a).is_none() || mesh.position(b).is_none() || a == b {
-                return Err(MeshError::UnknownEdge(edge));
+            if mesh.position(a).is_some() && mesh.position(b).is_some() && a != b {
+                hard_edges.insert(edge);
             }
-            hard_edges.insert(edge);
         }
         mesh.hard = Arc::new(hard_edges);
         Ok(mesh)
@@ -486,8 +487,18 @@ impl Mesh {
             if self.position(*v).is_none() {
                 return Err(MeshError::UnknownVertex(*v));
             }
-            if corners[..i].contains(v) {
+            // Short faces: compare directly. Long ones: see below.
+            if corners.len() <= 32 && corners[..i].contains(v) {
                 return Err(MeshError::RepeatedVertex(*v));
+            }
+        }
+        if corners.len() > 32 {
+            // A sorted copy finds repeats without comparing every pair, so
+            // a huge polygon (from a hostile file) can't stall opening.
+            let mut sorted = corners.to_vec();
+            sorted.sort_unstable();
+            if let Some(w) = sorted.windows(2).find(|w| w[0] == w[1]) {
+                return Err(MeshError::RepeatedVertex(w[0]));
             }
         }
         Ok(())
@@ -661,6 +672,11 @@ impl Mesh {
     /// Marks the edge between `a` and `b` hard (shading breaks across it)
     /// or soft (shading flows over it). Edges are soft unless marked.
     pub fn set_hard(&mut self, a: VertexId, b: VertexId, hard: bool) {
+        // Only an edge between two different, existing points can be hard
+        // (anything else couldn't be saved and opened again).
+        if hard && (a == b || self.position(a).is_none() || self.position(b).is_none()) {
+            return;
+        }
         let key = EdgeKey::new(a, b);
         if hard == self.hard.contains(&key) {
             return;
@@ -881,13 +897,26 @@ mod tests {
             Mesh::from_slots(vec![p(0.0), Some(Vec3::NAN)], vec![], std::iter::empty()),
             Err(MeshError::NotFinite(v(1)))
         );
+        // Bad hard edges are left out (they only change shading), so a
+        // project with one still opens.
         let bad_edge = EdgeKey::new(v(0), v(7));
-        assert_eq!(
-            Mesh::from_slots(points.clone(), vec![], [bad_edge]),
-            Err(MeshError::UnknownEdge(bad_edge))
-        );
         let loop_edge = EdgeKey::new(v(1), v(1));
-        assert!(Mesh::from_slots(points, vec![], [loop_edge]).is_err());
+        let good_edge = EdgeKey::new(v(0), v(1));
+        let mesh = Mesh::from_slots(points, vec![], [bad_edge, loop_edge, good_edge]).unwrap();
+        assert_eq!(mesh.hard_edges().collect::<Vec<_>>(), vec![good_edge]);
+        // And none can be made in the first place.
+        let mut m = mesh.clone();
+        m.set_hard(v(1), v(1), true);
+        m.set_hard(v(0), v(99), true);
+        assert_eq!(m.hard_edge_count(), 1);
+        // A long polygon with a repeat is still caught.
+        let many: Vec<Option<Vec3>> = (0..100).map(|i| p(i as f32)).collect();
+        let mut corners: Vec<VertexId> = (0..100).map(v).collect();
+        corners[60] = v(10);
+        assert_eq!(
+            Mesh::from_slots(many, vec![Some(corners)], std::iter::empty()),
+            Err(MeshError::RepeatedVertex(v(10)))
+        );
         assert!(MeshError::NotFinite(v(1)).to_string().contains("point 1"));
     }
 

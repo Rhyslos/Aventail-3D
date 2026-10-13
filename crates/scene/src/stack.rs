@@ -224,6 +224,34 @@ impl Operation {
         changed
     }
 
+    /// Whether every number the operation holds is a real number (not
+    /// infinite or NaN). Edits with other numbers are refused, as they
+    /// couldn't be saved and opened again.
+    pub fn numbers_are_real(&self) -> bool {
+        let anchors_ok = self.anchors().is_none_or(|a| {
+            a.bounds.min.is_finite()
+                && a.bounds.max.is_finite()
+                && a.points.iter().all(|(_, p)| p.is_finite())
+                && match &a.shape {
+                    mesh::AnchorShape::Points(p) => p.iter().all(|v| v.is_finite()),
+                    mesh::AnchorShape::Edges(e) => {
+                        e.iter().all(|[a, b]| a.is_finite() && b.is_finite())
+                    }
+                    mesh::AnchorShape::Polygons(p) => p.iter().flatten().all(|v| v.is_finite()),
+                }
+        });
+        let own = match self {
+            Self::MovePoints { offset, .. } => offset.is_finite(),
+            Self::TransformPoints { matrix, .. } => matrix.is_finite(),
+            Self::ExtrudePolygons { distance, .. }
+            | Self::InsetPolygons { distance, .. }
+            | Self::ExtrudeEdges { distance, .. } => distance.is_finite(),
+            Self::BevelEdges { shape, .. } => shape.width.is_finite() && shape.profile.is_finite(),
+            Self::BevelPoints { width, .. } => width.is_finite(),
+        };
+        own && anchors_ok
+    }
+
     /// Where the operation's elements were, if it keeps that.
     pub fn anchors(&self) -> Option<&Anchors> {
         match self {

@@ -220,6 +220,11 @@ struct Node {
     children: Vec<ObjectId>,
 }
 
+/// Object ids at or above this are refused when a scene is rebuilt from
+/// a file: far more than any scene could use, and safe from counting
+/// past the largest number.
+const MAX_OBJECT_ID: u64 = u64::MAX / 2;
+
 /// Every object in the scene, arranged in a tree: objects can sit inside
 /// other objects, and the order among brothers and sisters matters (it is
 /// the order the Object Manager lists them in).
@@ -263,6 +268,9 @@ impl Scene {
             if scene.contains(id) {
                 return Err(SceneError::History("two objects have the same id"));
             }
+            if id.0 >= MAX_OBJECT_ID {
+                return Err(SceneError::History("an object's id is impossibly large"));
+            }
             if let Some(p) = parent
                 && !scene.contains(p)
             {
@@ -275,7 +283,7 @@ impl Scene {
                 place: Place { parent, index },
             })?;
         }
-        scene.next_id = scene.next_id.max(next_id);
+        scene.next_id = scene.next_id.max(next_id.min(MAX_OBJECT_ID));
         Ok(scene)
     }
 
@@ -519,7 +527,7 @@ impl Scene {
                     },
                 );
                 self.siblings_mut(place.parent)?.insert(place.index, *id);
-                self.next_id = self.next_id.max(id.0 + 1);
+                self.next_id = self.next_id.max(id.0.saturating_add(1));
                 Ok(())
             }
             Edit::Remove { id, place, .. } => {

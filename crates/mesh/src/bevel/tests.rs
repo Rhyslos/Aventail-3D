@@ -431,3 +431,32 @@ fn the_topology_is_fresh_after_adding_polygons() {
     m.add_face(&[a, b, c]).unwrap();
     assert_eq!(m.topology().edge_count(), before + 3);
 }
+
+#[test]
+fn back_to_back_polygons_never_make_a_hard_edge_from_a_point_to_itself() {
+    // A regression test from the whole-app review (L1): this bevel used
+    // to record hard edges like (3, 3), which made the project impossible
+    // to open after Make editable.
+    let mut mesh = Mesh::new();
+    let v: Vec<VertexId> = [(0.0, 0.0), (10.0, 0.0), (0.0, 10.0)]
+        .into_iter()
+        .map(|(x, y)| mesh.add_vertex(Vec3::new(x, y, 0.0)).unwrap())
+        .collect();
+    mesh.add_face(&[v[0], v[1], v[2]]).unwrap();
+    mesh.add_face(&[v[2], v[1], v[0]]).unwrap();
+    mesh.set_hard(v[0], v[1], true);
+    bevel_edges(&mut mesh, &[EdgeKey::new(v[0], v[1])], shape(5.0, 1, 1.0));
+    for edge in mesh.hard_edges() {
+        let (a, b) = edge.ends();
+        assert_ne!(a, b);
+    }
+    // Whatever came out can be rebuilt from its slots, as opening a file
+    // does.
+    let slots: Vec<Option<Vec3>> = mesh.point_slots().collect();
+    let faces: Vec<Option<Vec<VertexId>>> = mesh
+        .face_slots()
+        .map(|f| f.map(<[VertexId]>::to_vec))
+        .collect();
+    let rebuilt = Mesh::from_slots(slots, faces, mesh.hard_edges()).unwrap();
+    assert_eq!(rebuilt.hard_edge_count(), mesh.hard_edge_count());
+}

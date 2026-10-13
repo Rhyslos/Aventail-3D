@@ -328,8 +328,9 @@ fn coordinates_change(
         }
         Field::Size(i) => {
             let start = active.start.size.unwrap_or(Vec3::ONE)[i];
-            if start.abs() < 1e-4 {
-                // Nothing to scale from (a flat side).
+            if start.abs() < 1e-4 || value.abs() < 1e-3 {
+                // Nothing to scale from (a flat side), or a size of 0,
+                // which would squash the shape flat for good.
                 return Ok(());
             }
             let factor = value / start;

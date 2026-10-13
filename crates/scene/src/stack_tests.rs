@@ -879,3 +879,41 @@ fn a_point_bevel_is_recorded() {
     // Moves and turns have no settings to change afterwards.
     assert!(lift(&[0], 1.0).settings().is_none());
 }
+
+#[test]
+fn edits_holding_numbers_that_arent_real_are_refused() {
+    // A regression test from the whole-app review (L2): such an edit
+    // could be saved but not opened again.
+    let (mut doc, id) = with_a_cube();
+    let steps = doc.undo_steps();
+    for operation in [
+        lift(&[0], f32::NAN),
+        Operation::TransformPoints {
+            points: vec![VertexId::from_raw(0)],
+            matrix: glam::Mat4::from_scale(Vec3::INFINITY),
+            anchors: None,
+        },
+        Operation::BevelPoints {
+            points: vec![VertexId::from_raw(0)],
+            width: f32::NAN,
+            anchors: None,
+        },
+    ] {
+        assert!(!operation.numbers_are_real());
+        assert_eq!(
+            doc.execute(Command::Record { id, operation }),
+            Err(SceneError::NotANumber)
+        );
+    }
+    assert_eq!(doc.undo_steps(), steps);
+    record(&mut doc, id, lift(&[0], 5.0));
+    assert_eq!(
+        doc.execute(Command::ReplaceOperation {
+            id,
+            layer: 0,
+            index: 0,
+            operation: lift(&[0], f32::INFINITY),
+        }),
+        Err(SceneError::NotANumber)
+    );
+}
