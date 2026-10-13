@@ -4,9 +4,11 @@ Thanks for your interest. Aventail 3D is a hobby project with high standards for
 
 ## Who can contribute
 
-**Ideas, bug reports and feedback are very welcome** through Issues.
+**Aventail 3D isn't accepting outside contributions: it is too early in development.** The design still changes quickly, and the project is built by its creator with AI assistance. Pull requests from others won't be merged; please don't spend time on them.
 
-**Code contributions are not accepted at the moment.** Keeping the copyright in one place keeps every future option open for the project (see [decision 0004](docs/decisions/0004-gpl-license.md)). If that changes, contributors will be asked to sign a Contributor License Agreement first, and this section will say so.
+**Bug reports and ideas are welcome** through Issues.
+
+Keeping the copyright in one place keeps every future option open for the project (see [decision 0004](docs/decisions/0004-gpl-license.md)). If that changes, contributors will be asked to sign a Contributor License Agreement first, and this section will say so.
 
 The rest of this guide describes how the project itself is developed.
 
