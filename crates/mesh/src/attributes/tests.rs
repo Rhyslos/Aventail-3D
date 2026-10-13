@@ -367,3 +367,118 @@ fn values_blend_by_kind() {
     );
     assert!(!Value::Vec2(Vec2::new(0.0, f32::NAN)).is_finite());
 }
+
+#[test]
+fn whole_layers_go_out_and_come_back_checked() {
+    let (mut mesh, v, f) = two_squares();
+    mesh.add_attribute("uv", Domain::Corner, uv(0.0, 0.0))
+        .unwrap();
+    mesh.add_attribute("seam", Domain::Edge, Value::Bool(false))
+        .unwrap();
+    mesh.set_attribute("uv", AttributeElement::Corner(f[1], 2), uv(0.5, 0.5))
+        .unwrap();
+    let edge = EdgeKey::new(v[1], v[2]);
+    mesh.set_attribute("seam", AttributeElement::Edge(edge), Value::Bool(true))
+        .unwrap();
+    // Out and back in: the same mesh.
+    let mut copy = two_squares().0;
+    for name in ["uv", "seam"] {
+        let (domain, default, values) = mesh.attribute_values(name).unwrap();
+        copy.set_attribute_values(name, domain, default, values)
+            .unwrap();
+    }
+    assert_eq!(copy, mesh);
+    assert_eq!(mesh.attribute_values("nope"), None);
+    // Everything that doesn't fit is refused.
+    let mut m = two_squares().0;
+    let refused = |m: &mut Mesh, name, domain, default, values| {
+        let before = m.clone();
+        let result = m.set_attribute_values(name, domain, default, values);
+        assert_eq!(*m, before, "nothing changed");
+        result.unwrap_err()
+    };
+    let nine = AttributeValues::Vec2(vec![Vec2::ZERO; 9]);
+    assert_eq!(
+        refused(&mut m, "uv", Domain::Corner, uv(0.0, 0.0), nine),
+        AttributeError::NoSuchElement,
+        "two squares have eight corners"
+    );
+    assert_eq!(
+        refused(
+            &mut m,
+            "uv",
+            Domain::Corner,
+            uv(0.0, 0.0),
+            AttributeValues::Float(vec![1.0])
+        ),
+        AttributeError::WrongKind {
+            layer: AttributeKind::Vec2,
+            value: AttributeKind::Float
+        }
+    );
+    assert_eq!(
+        refused(
+            &mut m,
+            "w",
+            Domain::Point,
+            Value::Float(0.0),
+            AttributeValues::Float(vec![f32::NAN])
+        ),
+        AttributeError::NotANumber
+    );
+    let far = EdgeKey::new(v[0], VertexId::from_raw(77));
+    assert_eq!(
+        refused(
+            &mut m,
+            "seam",
+            Domain::Edge,
+            Value::Bool(false),
+            AttributeValues::Edges(vec![(far, Value::Bool(true))])
+        ),
+        AttributeError::NoSuchElement
+    );
+    assert_eq!(
+        refused(
+            &mut m,
+            "seam",
+            Domain::Edge,
+            Value::Bool(false),
+            AttributeValues::Edges(vec![(edge, Value::Int(1))])
+        ),
+        AttributeError::WrongKind {
+            layer: AttributeKind::Bool,
+            value: AttributeKind::Int
+        }
+    );
+    assert!(matches!(
+        refused(
+            &mut m,
+            "seam",
+            Domain::Edge,
+            Value::Bool(false),
+            AttributeValues::Bool(vec![true])
+        ),
+        AttributeError::WrongDomain { .. }
+    ));
+    assert!(matches!(
+        refused(
+            &mut m,
+            "w",
+            Domain::Point,
+            Value::Bool(false),
+            AttributeValues::Edges(vec![])
+        ),
+        AttributeError::WrongDomain { .. }
+    ));
+    assert_eq!(
+        refused(
+            &mut m,
+            HARD,
+            Domain::Edge,
+            Value::Bool(false),
+            AttributeValues::Edges(vec![])
+        ),
+        AttributeError::NameTaken(HARD.into()),
+        "hard edges are kept with the mesh"
+    );
+}

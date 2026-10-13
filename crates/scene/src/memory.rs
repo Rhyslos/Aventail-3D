@@ -10,7 +10,7 @@
 
 use crate::history::Step;
 use crate::object::{Object, ObjectKind};
-use crate::stack::{Layer, Operation, Stack};
+use crate::stack::{Entry, Layer, Operation, Stack};
 use crate::tree::Edit;
 use std::mem::{size_of, size_of_val};
 
@@ -59,9 +59,9 @@ fn operation(op: &Operation) -> usize {
 fn layer(layer: &Layer) -> usize {
     text(&layer.name)
         + layer
-            .operations
+            .entries
             .iter()
-            .map(|op| size_of::<Operation>() + operation(op))
+            .map(|e| size_of::<Entry>() + operation(&e.operation))
             .sum::<usize>()
 }
 
@@ -88,8 +88,9 @@ pub(crate) fn edit(edit: &Edit) -> usize {
             Edit::Rename { before, after, .. } => text(before) + text(after),
             Edit::SetKind { before, after, .. } => kind(before) + kind(after),
             Edit::InsertLayer { layer: l, .. } | Edit::RemoveLayer { layer: l, .. } => layer(l),
-            Edit::InsertOperation { operation: op, .. }
-            | Edit::RemoveOperation { operation: op, .. } => operation(op),
+            Edit::InsertEntry { entry, .. } | Edit::RemoveEntry { entry, .. } => {
+                operation(&entry.operation)
+            }
         }
 }
 
@@ -153,15 +154,18 @@ mod tests {
             after: "B".repeat(500),
         });
         assert_eq!(long - short, 499);
-        let points = |n: u32| Edit::InsertOperation {
+        let points = |n: u32| Edit::InsertEntry {
             id: ObjectId(1),
             layer: 0,
             index: 0,
-            operation: Operation::MovePoints {
-                points: (0..n).map(VertexId::from_raw).collect(),
-                offset: glam::Vec3::X,
-                anchors: None,
-            },
+            entry: Entry::new(
+                crate::stack::EditId::from_raw(1),
+                Operation::MovePoints {
+                    points: (0..n).map(VertexId::from_raw).collect(),
+                    offset: glam::Vec3::X,
+                    anchors: None,
+                },
+            ),
         };
         assert_eq!(edit(&points(100)) - edit(&points(0)), 400);
     }

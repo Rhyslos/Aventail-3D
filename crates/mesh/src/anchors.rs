@@ -14,11 +14,24 @@
 //!   in two by more segments moves as a whole.
 //! - **Polygons:** every polygon lying inside an anchored polygon, so a
 //!   face split into four moves as a whole.
+//!
+//! **Ids are trusted when the structure is the same**
+//! ([decision 0044](../../../docs/decisions/0044-edits-that-hold.md)). Anchors keep a fingerprint of the
+//! shape's structure ([`Mesh::structure_fingerprint`]). When an earlier
+//! edit changes only where points are (a longer extrude, say), the
+//! structure is unchanged, so the ids still name the right elements even
+//! though they moved: they are used as they are, not searched for.
+//!
+//! **New rows stretch along.** A move keeps its *reach*: the edges from
+//! the points it moved to their neighbours. When more segments put new
+//! points along such an edge, [`Anchors::stretch`] says how much of the
+//! move each one gets: all of it next to a moved point, none next to a
+//! point that stayed, in between along the way.
 
 use crate::topology::Topology;
 use crate::{Bounds, ElementKind, FaceId, Mesh, VertexId};
 use glam::{Vec2, Vec3};
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 /// Where an edit's elements were, in the shape it was made on.
 #[derive(Debug, Clone, PartialEq)]
@@ -29,6 +42,31 @@ pub struct Anchors {
     pub points: Vec<(VertexId, Vec3)>,
     /// The elements the edit was made on, by position.
     pub shape: AnchorShape,
+    /// The structure of the shape the edit was made on
+    /// ([`Mesh::structure_fingerprint`]); `None` in older files.
+    pub structure: Option<u64>,
+    /// For edits that move points: the edges from those points to their
+    /// neighbours, so new points along them can stretch (empty otherwise,
+    /// and in older files).
+    pub reach: Vec<Reach>,
+}
+
+/// One edge from a moved point (by its place in [`Anchors::points`]).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Reach {
+    /// The moved point it starts at.
+    pub from: u32,
+    /// Where it ends.
+    pub to: ReachEnd,
+}
+
+/// The far end of a [`Reach`] edge.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ReachEnd {
+    /// Another moved point, by its place in [`Anchors::points`].
+    Moved(u32),
+    /// A point that stayed, where it was.
+    Still(Vec3),
 }
 
 /// The elements an edit was made on, by position.
@@ -82,7 +120,110 @@ impl Anchors {
             bounds,
             points,
             shape,
+            structure: Some(mesh.structure_fingerprint()),
+            reach: Vec::new(),
         })
+    }
+
+    /// The anchors with their reach: every edge of `mesh` from one of the
+    /// anchored points to a neighbour. For edits that move the anchored
+    /// points, so new points along those edges can stretch.
+    #[must_use]
+    pub fn with_reach(mut self, mesh: &Mesh) -> Self {
+        let index: HashMap<VertexId, u32> = self
+            .points
+            .iter()
+            .enumerate()
+            .map(|(i, (v, _))| (*v, i as u32))
+            .collect();
+        let topology = mesh.topology();
+        let mut reach = Vec::new();
+        for (i, (v, _)) in self.points.iter().enumerate() {
+            for edge in topology.vertex_edges(*v) {
+                let other = crate::topology::other_end(*edge, *v);
+                match index.get(&other) {
+                    // Each edge between two moved points once.
+                    Some(j) if *j > i as u32 => reach.push(Reach {
+                        from: i as u32,
+                        to: ReachEnd::Moved(*j),
+                    }),
+                    Some(_) => {}
+                    None => {
+                        if let Some(p) = mesh.position(other) {
+                            reach.push(Reach {
+                                from: i as u32,
+                                to: ReachEnd::Still(p),
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        self.reach = reach;
+        self
+    }
+
+    /// Whether `mesh` has the structure the edit was made on, so its ids
+    /// can be trusted as they are, wherever the points now are.
+    pub fn same_structure(&self, mesh: &Mesh) -> bool {
+        self.structure == Some(mesh.structure_fingerprint())
+    }
+
+    /// How much of a move each point of `mesh` that isn't one of `found`
+    /// gets, for the points lying along the anchors' reach: 1 next to a
+    /// moved point, 0 next to one that stayed, in between along the edge
+    /// (and all of it between two moved points). Points that get nothing
+    /// aren't listed. For use after [`Self::find`], when more segments put
+    /// new points along the edges the edit moved.
+    pub fn stretch(&self, mesh: &Mesh, found: &[VertexId]) -> Vec<(VertexId, f32)> {
+        if self.reach.is_empty() {
+            return Vec::new();
+        }
+        let Some(now) = mesh.bounds() else {
+            return Vec::new();
+        };
+        let found: HashSet<VertexId> = found.iter().copied().collect();
+        let tolerance = Self::tolerance(&now);
+        let grid = PointGrid::new(mesh, &now, tolerance);
+        let place = |i: u32| {
+            self.points
+                .get(i as usize)
+                .map(|(_, p)| self.moved(*p, &now))
+        };
+        let mut share: BTreeMap<VertexId, f32> = BTreeMap::new();
+        for reach in &self.reach {
+            let Some(a) = place(reach.from) else {
+                continue;
+            };
+            let (b, far_share) = match reach.to {
+                ReachEnd::Moved(j) => match place(j) {
+                    Some(b) => (b, 1.0),
+                    None => continue,
+                },
+                ReachEnd::Still(p) => (self.moved(p, &now), 0.0),
+            };
+            let length = a.distance(b);
+            if length <= tolerance * 2.0 {
+                continue;
+            }
+            let tolerance = tighter(tolerance, length);
+            for (v, p) in grid.near(mesh, a.min(b), a.max(b), tolerance) {
+                if found.contains(&v) || distance_to_segment(p, a, b) > tolerance {
+                    continue;
+                }
+                let along = ((p - a).dot(b - a) / (length * length)).clamp(0.0, 1.0);
+                // The two ends themselves aren't new points.
+                if along * length <= tolerance || (1.0 - along) * length <= tolerance {
+                    continue;
+                }
+                let amount = 1.0 - along + along * far_share;
+                if amount > 0.0 {
+                    let entry = share.entry(v).or_insert(0.0);
+                    *entry = entry.max(amount);
+                }
+            }
+        }
+        share.into_iter().collect()
     }
 
     /// Where a recorded place is in `mesh`, whose box is `now`: the same
@@ -240,7 +381,9 @@ impl Anchors {
                 .map(|c| std::mem::size_of_val(c.as_slice()) + size_of::<Vec<Vec3>>())
                 .sum(),
         };
-        std::mem::size_of_val(self.points.as_slice()) + shape
+        std::mem::size_of_val(self.points.as_slice())
+            + shape
+            + std::mem::size_of_val(self.reach.as_slice())
     }
 }
 

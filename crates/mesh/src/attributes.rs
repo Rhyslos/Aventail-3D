@@ -201,6 +201,85 @@ impl std::fmt::Display for AttributeError {
 
 impl std::error::Error for AttributeError {}
 
+/// A whole layer's values, for saving and opening: by id (corners in the
+/// order of the mesh's corner list) as far as any was set, or by edge.
+#[derive(Debug, Clone, PartialEq)]
+pub enum AttributeValues {
+    /// On/off values by id.
+    Bool(Vec<bool>),
+    /// Whole numbers by id.
+    Int(Vec<i32>),
+    /// Numbers by id.
+    Float(Vec<f32>),
+    /// Pairs of numbers by id.
+    Vec2(Vec<Vec2>),
+    /// Three numbers by id.
+    Vec3(Vec<Vec3>),
+    /// Four numbers by id.
+    Vec4(Vec<Vec4>),
+    /// Values by edge, where not the default.
+    Edges(Vec<(EdgeKey, Value)>),
+}
+
+impl AttributeValues {
+    /// How many values are listed.
+    pub fn len(&self) -> usize {
+        match self {
+            Self::Bool(v) => v.len(),
+            Self::Int(v) => v.len(),
+            Self::Float(v) => v.len(),
+            Self::Vec2(v) => v.len(),
+            Self::Vec3(v) => v.len(),
+            Self::Vec4(v) => v.len(),
+            Self::Edges(v) => v.len(),
+        }
+    }
+
+    /// Whether no values are listed.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    /// The kind of the listed values (`None` for edges, which say it per
+    /// value).
+    fn kind(&self) -> Option<AttributeKind> {
+        Some(match self {
+            Self::Bool(_) => AttributeKind::Bool,
+            Self::Int(_) => AttributeKind::Int,
+            Self::Float(_) => AttributeKind::Float,
+            Self::Vec2(_) => AttributeKind::Vec2,
+            Self::Vec3(_) => AttributeKind::Vec3,
+            Self::Vec4(_) => AttributeKind::Vec4,
+            Self::Edges(_) => return None,
+        })
+    }
+
+    /// Whether every listed number is a real number.
+    fn is_finite(&self) -> bool {
+        match self {
+            Self::Bool(_) | Self::Int(_) => true,
+            Self::Float(v) => v.iter().all(|x| x.is_finite()),
+            Self::Vec2(v) => v.iter().all(|x| x.is_finite()),
+            Self::Vec3(v) => v.iter().all(|x| x.is_finite()),
+            Self::Vec4(v) => v.iter().all(|x| x.is_finite()),
+            Self::Edges(v) => v.iter().all(|(_, x)| x.is_finite()),
+        }
+    }
+}
+
+impl From<Column> for AttributeValues {
+    fn from(column: Column) -> Self {
+        match column {
+            Column::Bool(v) => Self::Bool(v),
+            Column::Int(v) => Self::Int(v),
+            Column::Float(v) => Self::Float(v),
+            Column::Vec2(v) => Self::Vec2(v),
+            Column::Vec3(v) => Self::Vec3(v),
+            Column::Vec4(v) => Self::Vec4(v),
+        }
+    }
+}
+
 /// The name of the built-in edge layer marking hard edges.
 pub const HARD: &str = "hard";
 
@@ -411,6 +490,80 @@ impl Layer {
         }
     }
 
+    /// Its values, for saving.
+    pub(crate) fn values(&self) -> AttributeValues {
+        match &self.data {
+            Data::Dense(c) => c.clone().into(),
+            Data::Edges(map) => AttributeValues::Edges(map.iter().map(|(e, v)| (*e, *v)).collect()),
+        }
+    }
+
+    /// A layer holding `values`, checked against its domain and kind
+    /// (where each element exists is checked by the mesh).
+    pub(crate) fn from_values(
+        domain: Domain,
+        default: Value,
+        values: AttributeValues,
+    ) -> Result<Self, AttributeError> {
+        if !default.is_finite() || !values.is_finite() {
+            return Err(AttributeError::NotANumber);
+        }
+        let mut layer = Self::new(domain, default);
+        match (domain, values) {
+            (Domain::Edge, AttributeValues::Edges(list)) => {
+                for (edge, value) in list {
+                    if value.kind() != default.kind() {
+                        return Err(AttributeError::WrongKind {
+                            layer: default.kind(),
+                            value: value.kind(),
+                        });
+                    }
+                    layer.set_edge(edge, value);
+                }
+            }
+            // Values by id for an edge layer, or by edge for another.
+            (Domain::Edge, _) => {
+                return Err(AttributeError::WrongDomain {
+                    layer: Domain::Edge,
+                    element: Domain::Point,
+                });
+            }
+            (_, AttributeValues::Edges(_)) => {
+                return Err(AttributeError::WrongDomain {
+                    layer: domain,
+                    element: Domain::Edge,
+                });
+            }
+            (_, values) => {
+                let kind = values.kind().unwrap_or(default.kind());
+                if kind != default.kind() {
+                    return Err(AttributeError::WrongKind {
+                        layer: default.kind(),
+                        value: kind,
+                    });
+                }
+                layer.data = Data::Dense(match values {
+                    AttributeValues::Bool(v) => Column::Bool(v),
+                    AttributeValues::Int(v) => Column::Int(v),
+                    AttributeValues::Float(v) => Column::Float(v),
+                    AttributeValues::Vec2(v) => Column::Vec2(v),
+                    AttributeValues::Vec3(v) => Column::Vec3(v),
+                    AttributeValues::Vec4(v) => Column::Vec4(v),
+                    AttributeValues::Edges(_) => Column::new(kind),
+                });
+            }
+        }
+        Ok(layer)
+    }
+
+    /// How many values are stored by index (dense layers).
+    pub(crate) fn stored(&self) -> usize {
+        match &self.data {
+            Data::Dense(c) => c.len(),
+            Data::Edges(_) => 0,
+        }
+    }
+
     fn memory_size(&self) -> usize {
         size_of::<Self>()
             + match &self.data {
@@ -458,6 +611,11 @@ impl Attributes {
         self.layers
             .insert(name.to_owned(), Arc::new(Layer::new(domain, default)));
         Ok(())
+    }
+
+    /// Puts `layer` in under `name`, replacing any layer of that name.
+    pub(crate) fn put(&mut self, name: &str, layer: Layer) {
+        self.layers.insert(name.to_owned(), Arc::new(layer));
     }
 
     pub(crate) fn remove(&mut self, name: &str) -> bool {

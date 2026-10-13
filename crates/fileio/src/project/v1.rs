@@ -15,7 +15,10 @@ use mesh::{
     ConeParams, CubeParams, CylinderParams, DiscParams, EdgeKey, Mesh, PlaneParams, Primitive,
     SphereParams, TubeParams, VertexId,
 };
-use scene::{Document, Layer, Object, ObjectId, ObjectKind, Operation, Scene, Stack, Transform};
+use scene::{
+    Document, EditId, Entry, Layer, Object, ObjectId, ObjectKind, Operation, Scene, Stack,
+    Transform,
+};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
@@ -130,12 +133,23 @@ pub(crate) struct LayerFile<Op> {
     pub(crate) operations: Vec<Op>,
 }
 
-/// A recorded operation as a format version stores it.
+/// A recorded operation (or, from version 5, a whole recorded edit) as a
+/// format version stores it.
 pub(crate) trait FileOperation: Sized {
     /// The file's form of `op`, or `None` if this version can't store it.
     fn to_file(op: &Operation) -> Option<Self>;
     /// The operation, after checking its values.
     fn into_operation(self) -> Result<Operation, Problem>;
+    /// The file's form of a recorded edit. Before version 5 only the
+    /// operation is stored.
+    fn entry_to_file(entry: &Entry) -> Option<Self> {
+        Self::to_file(&entry.operation)
+    }
+    /// The recorded edit. Before version 5 edits had no ids or switches:
+    /// each gets `fallback` as its id, switched on and unpinned.
+    fn into_entry(self, fallback: EditId) -> Result<Entry, Problem> {
+        Ok(Entry::new(fallback, self.into_operation()?))
+    }
 }
 
 impl FileOperation for OperationV1 {
@@ -292,7 +306,7 @@ fn layer_to_file<Op: FileOperation>(layer: &Layer) -> LayerFile<Op> {
     LayerFile {
         name: layer.name.clone(),
         enabled: layer.enabled,
-        operations: layer.operations.iter().filter_map(Op::to_file).collect(),
+        operations: layer.entries.iter().filter_map(Op::entry_to_file).collect(),
     }
 }
 
@@ -304,11 +318,24 @@ pub(crate) type Problem = String;
 impl<Op: FileOperation> ProjectFile<Op> {
     /// The document this file model describes, after checking every value.
     pub(crate) fn into_document(self) -> Result<Document, Problem> {
+        self.into_document_with(|_, _| Ok(()))
+    }
+
+    /// [`Self::into_document`], with `attach` adding what a later version
+    /// keeps beside this model to each object (by its id) before the scene
+    /// is built.
+    pub(crate) fn into_document_with(
+        self,
+        mut attach: impl FnMut(u64, &mut Object) -> Result<(), Problem>,
+    ) -> Result<Document, Problem> {
         let mut objects = Vec::with_capacity(self.objects.len());
         for object in self.objects {
             let name = object.name.clone();
-            objects
-                .push(object_from_file(object).map_err(|why| format!("object \"{name}\": {why}"))?);
+            let id = object.id;
+            let built = object_from_file(object)
+                .and_then(|mut o| attach(id, &mut o.2).map(|()| o))
+                .map_err(|why| format!("object \"{name}\": {why}"))?;
+            objects.push(built);
         }
         let scene = Scene::from_objects(objects, self.next_id).map_err(|e| e.to_string())?;
         let selection = self.selection.into_iter().map(ObjectId::from_raw);
@@ -339,8 +366,10 @@ fn object_from_file<Op: FileOperation>(
         KindV1::Mesh(m) => ObjectKind::Mesh(Arc::new(mesh_from_file(m)?)),
     };
     let mut layers = Vec::with_capacity(object.layers.len());
+    // Edits from before version 5 are numbered 1, 2, 3… in order.
+    let mut next = 1;
     for layer in object.layers {
-        layers.push(layer_from_file(layer)?);
+        layers.push(layer_from_file(layer, &mut next)?);
     }
     let mut built = Object::new(kind);
     built.name = object.name;
@@ -463,11 +492,16 @@ fn mesh_from_file(mesh: MeshV1) -> Result<Mesh, Problem> {
     Mesh::from_slots(points, faces, hard).map_err(|e| format!("its mesh is damaged ({e})"))
 }
 
-fn layer_from_file<Op: FileOperation>(layer: LayerFile<Op>) -> Result<Layer, Problem> {
+fn layer_from_file<Op: FileOperation>(
+    layer: LayerFile<Op>,
+    next: &mut u64,
+) -> Result<Layer, Problem> {
     let mut built = Layer::new(layer.name);
     built.enabled = layer.enabled;
     for op in layer.operations {
-        built.operations.push(op.into_operation()?);
+        let entry = op.into_entry(EditId::from_raw(*next))?;
+        *next = (*next).max(entry.id.get()).saturating_add(1);
+        built.entries.push(entry);
     }
     Ok(built)
 }

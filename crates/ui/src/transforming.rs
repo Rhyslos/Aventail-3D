@@ -291,6 +291,18 @@ impl Target {
                             .collect(),
                     };
                     let anchors = Anchors::record(&item.mesh, kind, &elements);
+                    // On a shape whose settings can still change, the move
+                    // keeps its reach, so new rows stretch along (decision
+                    // 0044). A plain mesh's points never get renumbered.
+                    let has_settings = document
+                        .scene()
+                        .object(item.id)
+                        .is_some_and(|o| matches!(o.kind, scene::ObjectKind::Primitive(_)));
+                    let anchors = if has_settings {
+                        anchors.map(|a| a.with_reach(&item.mesh))
+                    } else {
+                        anchors
+                    };
                     let mut points: Vec<VertexId> = match kind {
                         ElementKind::Points => valid.points().collect(),
                         ElementKind::Edges => valid

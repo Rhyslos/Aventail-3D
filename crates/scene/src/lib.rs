@@ -27,7 +27,8 @@ pub use mesh::{
 };
 pub use object::{Object, ObjectId, ObjectKind, Transform};
 pub use stack::{
-    EDITS_LAYER, EditSettings, EvalContext, Evaluated, Layer, Operation, Stack, StackWarning,
+    EDITS_LAYER, EditId, EditSettings, Entry, EvalContext, Evaluated, Layer, Operation, Stack,
+    StackWarning,
 };
 pub use tree::{Place, Scene, SceneError};
 

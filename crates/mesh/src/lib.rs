@@ -21,7 +21,9 @@ pub mod shading;
 pub mod topology;
 
 pub use anchors::{AnchorShape, Anchors};
-pub use attributes::{AttributeElement, AttributeError, AttributeKind, Domain, Value};
+pub use attributes::{
+    AttributeElement, AttributeError, AttributeKind, AttributeValues, Domain, Value,
+};
 pub use bounds::Bounds;
 pub use builder::{Builder, CornerFrom, PointFrom};
 pub use check::MeshReport;
