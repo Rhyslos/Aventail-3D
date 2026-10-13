@@ -661,3 +661,13 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
     - To do as one small renaming pull request.
   - **Export stays in Phase 5,** kept simple: a minimal material slot (polygons assigned to a named material with a colour) so engines get their parts. Real materials come with texturing. Testers and the project lead's own Godot tests need a way out of the app.
   - The **keyboard shortcut viewer** becomes the last Phase 4 milestone.
+- 2026-10-13 — Names decided:
+  - Attribute Manager → **Attributes panel**
+  - Object Manager → **Objects panel**
+  - Live selection → **Paint select**
+  - Quick Align → **Snap to**
+
+  Added to the flip normals milestone:
+  - **Select flipped polygons**, from the mesh check that already finds them;
+  - **Fix facing**, which turns every polygon of a closed shape to face outward in one click;
+  - **Select by facing**: polygons facing a direction (up, say) within an angle, or facing like the one clicked.

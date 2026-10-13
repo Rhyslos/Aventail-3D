@@ -105,7 +105,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [ ] Bevel and chamfer
 - [ ] Loop cut and knife
 - [ ] Connect, bridge and weld
-- [ ] Dissolve, delete, fill hole and flip normals
+- [ ] Dissolve, delete, fill hole and flip normals, with select flipped, fix facing and select by facing
 - [ ] Hard and soft edges, with normals display
 - [ ] Symmetry
 - [ ] Keyboard shortcut viewer: every key in one place
