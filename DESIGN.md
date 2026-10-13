@@ -30,6 +30,8 @@ Aventail 3D (model + UV)  ──glTF/OBJ──►  Substance Painter (bake + tex
 - Sculpting, texturing and materials beyond a preview/checker
 
 ### Guiding principles
+*Aim:* game development first, but good enough for a hobbyist generalist. If one hobbyist picks it up and enjoys it, the project has won.
+
 1. **Feel first.** The viewport and interaction must feel calm, clean and smooth, like C4D. A smaller tool that feels great beats a larger one that feels clunky.
 2. **Tools are the gateway.** As in 3ds Max, a deep, reliable modelling toolset is the core value.
 3. **Never lose work.** Undo is effectively unlimited. Base object properties stay editable no matter how much has been done since.
@@ -437,6 +439,7 @@ Each phase ends with something runnable. The user tests the *feel* at the end of
 - OBJ and glTF export with triangulation, tangents and presets
 - Round-trip test: model → Godot and Substance Painter, shape, hard edges, normals and scale correct (the full bake round trip is the UV phase's gate)
 - Bake readiness, model part, and kit export (§8; **W13**, **W16**)
+- **Engine export paths** (to plan): presets for Godot, Unity and Unreal Engine that save straight into the engine's project folder and export again on every save. Godot and Unreal re-import by themselves. Unity reads glTF through its glTFast package (our own FBX writer would be extra work, and the Autodesk FBX SDK is ruled out). A live-link plugin per engine may come later
 - A **splash screen** while the app starts (the app's name and version, and what it is loading), at the project lead's request
 - **Done when:** a prop exports into Godot and Substance Painter and looks right (shape, hard edges, scale) with no fixes in other software.
 
@@ -481,6 +484,17 @@ Starts only once modelling and UVs are mature. Rough contents, to be designed pr
 - Skinning: bind mesh to skeleton, weight painting, weight tools (normalize, mirror, smooth)
 - Animation: keyframes on transforms, timeline and dope sheet, curve editor, playback in the viewport
 - Export skinned and animated meshes to glTF for Godot
+
+### To be designed: Texturing and a material builder (after Phase 8)
+At the project lead's request (2026-10-13): a built-in texture painter, so no Substance Painter subscription is needed, and a material builder after it. Both still need a planning talk before they get phases and milestones. Rough parts:
+- baking: normal, AO, curvature, thickness, position, ID;
+- a layer stack with fill and paint layers and masks;
+- smart masks driven by the baked maps;
+- 3D painting;
+- export to each engine's texture layout;
+- later, a node-based material builder.
+
+**Game-first, not a Painter copy.** The tools should be shaped by game work (texel density, trim sheets, texture sets, engine channel packing, mid-poly shading) and may well differ from Painter's. They still need to be good enough for a hobbyist generalist. Scripting and rigging move back to make room.
 
 ### Later / maybe
 - Make the UI our own (driven by real use)
@@ -576,3 +590,4 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-13 — Fourth Phase 4 milestone, **extrude and inset**, with the project lead's controls: `D` and `I` make Extrude and Inset the tool, a left drag anywhere in a view sets the distance (after the first test: Extrude follows the way the polygons face on screen, right for Inset or when they face the viewer; a drag starting on an unselected polygon selects it first; Shift ten times finer; Esc or a right click cancels; a click still selects), exact values in the Attributes panel only, and a **Keep together** switch for neighbouring polygons (on as standard). Polygons keep their ids, so the selection holds; thickness stays even round corners; hard edges carry over; border edges extrude flat in the Edges mode, with the selection moving to the new edge. The last extrude or inset can be changed in the Attributes panel (`Command::ReplaceOperation`). Project files move to format version 3 ([0038](docs/decisions/0038-extrude-and-inset.md)). Added to Phase 5 at the project lead's request: a **splash screen** while the app starts.
 - 2026-10-13 — At the project lead's request, a new guiding principle, **drags follow the pull** (§1, principle 8, [0039](docs/decisions/0039-drags-follow-the-pull.md)): a drag in the viewport is measured from what it changes (its facing, its axis, its middle), with a fixed screen direction only as a fallback. Extrude already followed the polygons' facing; Inset now follows the pull towards the polygons' middle. The gizmos already worked this way; the Scale gizmo's uniform centre keeps "right or up grows", as a drag that starts on the middle has no way to follow.
 - 2026-10-13 — At the project lead's request, the README and CONTRIBUTING say plainly that the project isn't accepting outside contributions, as it is too early in development; bug reports and ideas stay welcome through Issues. The project stays open source under the GPL.
+- 2026-10-13 — The official name is **Aventail 3D** (the "3D" says what it is). Added to the plan, still to be designed in detail: a built-in **texture painter** and later a **material builder**, after the UV phase, shaped by game work rather than copying Substance Painter, and good enough for hobbyist generalists; **engine export paths** for Godot, Unity and Unreal Engine in Phase 5. Scripting and rigging move later.
