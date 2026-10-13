@@ -64,7 +64,7 @@ In **Edit → Settings… → Interface → Radial menu**:
 | Close without choosing | `Esc`, or click the middle |
 | Transform (all three gizmos) | `T` |
 | [Extrude](extrude-and-inset.md) / [inset](extrude-and-inset.md) | `D` / `I` |
-| Bevel (when built, Phase 4) | `V` |
+| [Bevel](bevel.md) | `V` |
 
 ## Tips and common problems
 

@@ -8,13 +8,17 @@
 //! (`OperationV3::V2`), so their checks are shared; new kinds go at the
 //! end, in a later version.
 
-use super::v1::{FileOperation, Problem, ProjectFile};
+#[cfg(test)]
+use super::v1::ProjectFile;
+use super::v1::{FileOperation, Problem};
 use super::v2::{AnchorsV2, OperationV2, anchors_from_file, anchors_to_file};
 use mesh::{EdgeKey, FaceId, VertexId};
 use scene::{Grouping, Operation};
 use serde::{Deserialize, Serialize};
 
-/// Version 3 of the file.
+/// Version 3 of the file (written by tests; the app reads version 3
+/// files through `decode`).
+#[cfg(test)]
 pub(crate) type ProjectV3 = ProjectFile<OperationV3>;
 
 /// The recorded operations version 3 stores.

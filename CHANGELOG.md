@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Bevel.** In Edges mode, select edges, press **V** (or pick Bevel from the E menu or the Mesh menu) and drag away from them: the edges are cut away and replaced by a strip, flat (a chamfer) or rounded. In Points mode, V cuts corners off. **Segments** and **Profile** (round to flat) are set in the Attributes panel before the drag, and the last bevel's Width, Segments and Profile can be changed afterwards. Where bevelled edges meet, a corner polygon closes the gap.
 - **Extrude and inset.** In Polygons mode, press **D** (Extrude) or **I** (Inset), or pick them from the E menu or the Mesh menu, and drag anywhere in the viewport. Extrude follows your drag: drag the way the polygons face to bring them out, the other way to push them in, and it builds walls behind them. Start the drag on another polygon to extrude that one without clicking it first. Inset follows your pull too: drag towards the middle of the polygons and they shrink. Inset shrinks them inward with a ring of new polygons around them. Shift gives fine steps, Esc or a right-click cancels, and each drag is one undo step. The polygons stay selected, so you can drag again to carry on.
 - **Extrude border edges**: in Edges mode, D grows a flat strip of polygons from edges on an open border, like extending a plane; the selection moves to the new edge.
 - **Keep together**: a switch in the Attributes panel decides whether touching polygons move as one piece or each on its own.
@@ -39,6 +40,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Projects are saved in **file format version 4**, which can hold bevels. Older projects still open.
 - Projects are saved in **file format version 3**, which can hold extrudes and insets. Older projects still open; projects saved now need this version of the app or newer.
 - Wireframes too dense to see (a heavy shape from afar) fade out instead of covering the shape; zoom in and the edges come back. A selected heavy shape keeps a faint tint of the accent colour.
 - In Points, Edges and Polygons mode, the edited shape's edges are drawn as fine lines, with its points as dots, by the graphics card directly.

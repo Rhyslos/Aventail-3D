@@ -349,6 +349,8 @@ impl Faces {
             self.live += 1;
         }
         self.starts.push(self.corners.len() as u32);
+        // The faces changed: any topology worked out before is stale.
+        self.topology = OnceLock::new();
     }
 }
 
@@ -534,7 +536,52 @@ impl Mesh {
         let faces = Arc::make_mut(&mut self.faces);
         let start = faces.starts[index] as usize;
         faces.corners[start..start + corners.len()].copy_from_slice(corners);
+        faces.topology = OnceLock::new();
         Ok(())
+    }
+
+    /// Gives several faces new corners, any number each (three or more),
+    /// keeping their ids: the face list is rebuilt once. Refused, changing
+    /// nothing, if a face doesn't exist or its new corners are ones
+    /// [`Self::add_face`] would refuse.
+    pub fn rewrite_faces(
+        &mut self,
+        changes: &std::collections::BTreeMap<FaceId, Vec<VertexId>>,
+    ) -> Result<(), MeshError> {
+        for (id, corners) in changes {
+            if self.face(*id).is_none() {
+                return Err(MeshError::UnknownFace(*id));
+            }
+            self.check_face(corners)?;
+        }
+        let mut table = Faces::default();
+        for (index, face) in self.face_slots().enumerate() {
+            let replaced = changes.get(&FaceId(index as u32)).map(Vec::as_slice);
+            let corners = replaced.or(face);
+            if let Some(c) = corners
+                && u32::try_from(table.corners.len() + c.len()).is_err()
+            {
+                return Err(MeshError::Full);
+            }
+            table.push(corners);
+        }
+        self.faces = Arc::new(table);
+        Ok(())
+    }
+
+    /// Deletes a point that no face uses any more, with any hard edges
+    /// naming it; its id is never used again. Returns whether it was
+    /// deleted (a point some face still uses is kept).
+    pub fn remove_unused_vertex(&mut self, id: VertexId) -> bool {
+        if self.position(id).is_none() || !self.topology().vertex_faces(id).is_empty() {
+            return false;
+        }
+        self.positions.set(id.0 as usize, None);
+        self.live_points -= 1;
+        if self.hard.iter().any(|e| e.0 == id || e.1 == id) {
+            Arc::make_mut(&mut self.hard).retain(|e| e.0 != id && e.1 != id);
+        }
+        true
     }
 
     /// Where a point is, if it exists.

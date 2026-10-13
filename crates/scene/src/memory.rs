@@ -35,6 +35,9 @@ fn operation(op: &Operation) -> usize {
         }
         | Operation::TransformPoints {
             points, anchors, ..
+        }
+        | Operation::BevelPoints {
+            points, anchors, ..
         } => {
             std::mem::size_of_val(points.as_slice())
                 + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
@@ -44,7 +47,8 @@ fn operation(op: &Operation) -> usize {
             std::mem::size_of_val(faces.as_slice())
                 + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
         }
-        Operation::ExtrudeEdges { edges, anchors, .. } => {
+        Operation::ExtrudeEdges { edges, anchors, .. }
+        | Operation::BevelEdges { edges, anchors, .. } => {
             std::mem::size_of_val(edges.as_slice())
                 + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
         }

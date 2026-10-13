@@ -563,3 +563,134 @@ fn dragging_on_another_polygon_selects_it_first() {
     let doc = harness.state().workbench.document();
     assert!(doc.elements(id).unwrap().contains(Element::Polygon(top)));
 }
+
+// ---------------------------------------------------------------- bevel
+
+/// The fresh window's cube selected, in `mode_key`'s mode, with `element`
+/// selected and Bevel in use.
+fn bevel_ready(mode_key: Key, element: impl Fn(&scene::Mesh) -> Element) -> H {
+    let mut harness = fresh();
+    let id = cube(&harness);
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .set_selection([id]);
+    harness.run();
+    press(&mut harness, Modifiers::NONE, mode_key);
+    let chosen = element(&shape(&harness));
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .select_elements([(id, ElementSelection::of([chosen]))], "Select", None);
+    harness.run();
+    press(&mut harness, Modifiers::NONE, Key::V);
+    harness
+}
+
+/// The cube's top edge facing the camera's right side (+X, top).
+fn top_right_edge(mesh: &scene::Mesh) -> Element {
+    let edge = *mesh
+        .edges()
+        .iter()
+        .find(|e| {
+            let (a, b) = e.ends();
+            let (pa, pb) = (mesh.position(a).unwrap(), mesh.position(b).unwrap());
+            pa.x > 49.0 && pb.x > 49.0 && pa.z > 99.0 && pb.z > 99.0
+        })
+        .unwrap();
+    Element::Edge(edge)
+}
+
+/// The middle of the cube's top +X edge on screen.
+fn edge_middle(harness: &H) -> Pos2 {
+    on_screen(harness, glam::Vec3::new(50.0, 0.0, 100.0))
+}
+
+#[test]
+fn v_picks_bevel_where_it_works() {
+    let mut harness = bevel_ready(Key::Num2, top_right_edge);
+    assert_eq!(harness.state().workbench.tool(), Tool::Bevel);
+    assert!(note(&harness).starts_with("Bevel: drag away"));
+    // In the Polygons mode it says which modes it needs.
+    press(&mut harness, Modifiers::NONE, Key::Q);
+    press(&mut harness, Modifiers::NONE, Key::Num3);
+    press(&mut harness, Modifiers::NONE, Key::V);
+    assert_eq!(harness.state().workbench.tool(), Tool::Select);
+    assert!(note(&harness).starts_with("Bevel works on edges or points"));
+}
+
+#[test]
+fn dragging_away_from_the_edge_bevels_it() {
+    let mut harness = bevel_ready(Key::Num2, top_right_edge);
+    let steps = harness.state().workbench.document().undo_steps();
+    // From the edge, straight up the screen: away from it.
+    let from = edge_middle(&harness);
+    drag_by(&mut harness, from, egui::vec2(0.0, -60.0));
+    assert_eq!(shape(&harness).face_count(), 7);
+    let doc = harness.state().workbench.document();
+    assert_eq!(doc.undo_steps(), steps + 1);
+    assert_eq!(doc.undo_label(), Some("Bevel 1 edge"));
+    let Some(Operation::BevelEdges { shape: s, .. }) = last_operation(&harness) else {
+        panic!("a bevel");
+    };
+    assert!(s.width > 1.0, "{}", s.width);
+    assert_eq!((s.segments, s.profile), (1, 1.0));
+}
+
+#[test]
+fn dragging_towards_the_edge_never_bevels() {
+    let mut harness = bevel_ready(Key::Num2, top_right_edge);
+    let steps = harness.state().workbench.document().undo_steps();
+    let middle = edge_middle(&harness);
+    let from = middle + egui::vec2(0.0, -120.0);
+    drag_by(&mut harness, from, egui::vec2(0.0, 100.0));
+    assert_eq!(harness.state().workbench.document().undo_steps(), steps);
+    assert_eq!(shape(&harness).face_count(), 6);
+}
+
+#[test]
+fn segments_and_profile_are_set_before_and_changed_after() {
+    let mut harness = bevel_ready(Key::Num2, top_right_edge);
+    // The tool's settings: Segments and Profile, no Keep together.
+    assert!(harness.query_all_by_label("Segments").count() >= 1);
+    assert!(harness.query_all_by_label("Profile").count() >= 1);
+    assert!(harness.query_by_label("Keep together").is_none());
+    harness.state_mut().workbench.attributes.bevel.segments = 3;
+    harness.run();
+    let from = edge_middle(&harness);
+    drag_by(&mut harness, from, egui::vec2(0.0, -60.0));
+    let Some(Operation::BevelEdges { shape: s, .. }) = last_operation(&harness) else {
+        panic!("a bevel");
+    };
+    assert_eq!(s.segments, 3);
+    assert_eq!(shape(&harness).face_count(), 6 + 3);
+    // Afterwards, as the Last edit, with Width.
+    assert!(
+        harness
+            .query_by_label_contains("Last edit: Bevel 1 edge")
+            .is_some()
+    );
+    assert!(harness.query_all_by_label("Width").count() >= 1);
+}
+
+#[test]
+fn a_corner_point_bevels_too() {
+    let mut harness = bevel_ready(Key::Num1, |mesh| {
+        let corner = mesh
+            .vertices()
+            .find(|(_, p)| p.x > 49.0 && p.y < -49.0 && p.z > 99.0)
+            .unwrap()
+            .0;
+        Element::Point(corner)
+    });
+    assert_eq!(harness.state().workbench.tool(), Tool::Bevel);
+    let from = on_screen(&harness, glam::Vec3::new(50.0, -50.0, 100.0));
+    drag_by(&mut harness, from, egui::vec2(-50.0, -50.0));
+    assert_eq!(shape(&harness).face_count(), 7);
+    assert_eq!(
+        harness.state().workbench.document().undo_label(),
+        Some("Bevel 1 point")
+    );
+}

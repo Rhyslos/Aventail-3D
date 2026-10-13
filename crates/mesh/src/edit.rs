@@ -10,6 +10,7 @@
 //! Extruding and insetting are in [`crate::extrude`]; they are re-exported
 //! here so every operation is found in one place.
 
+pub use crate::bevel::{BevelShape, bevel_edges, bevel_points};
 pub use crate::extrude::{Grouping, extrude_edges, extrude_polygons, inset_polygons};
 use crate::{Mesh, VertexId};
 use glam::{Mat4, Vec3};

@@ -57,6 +57,10 @@ impl Workbench {
             CommandId::Inset if !command.modes().contains(&self.mode) => {
                 Ready::NotNow("Inset works on polygons: press 3 for the Polygons mode".into())
             }
+            CommandId::Bevel if !command.modes().contains(&self.mode) => Ready::NotNow(
+                "Bevel works on edges or points: press 2 for the Edges mode, or 1 for Points"
+                    .into(),
+            ),
             _ => Ready::Yes,
         }
     }
@@ -87,6 +91,7 @@ impl Workbench {
             CommandId::AllGizmos => self.set_tool(Tool::All),
             CommandId::Extrude => self.set_tool(Tool::Extrude),
             CommandId::Inset => self.set_tool(Tool::Inset),
+            CommandId::Bevel => self.set_tool(Tool::Bevel),
             CommandId::MakeEditable => {
                 requests.push(DocRequest::Run(Command::MakeEditable(selection)));
             }

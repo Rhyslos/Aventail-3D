@@ -783,3 +783,99 @@ fn make_editable_keeps_an_extrude() {
     };
     assert_eq!(mesh.face_count(), 10);
 }
+
+// ---------------------------------------------------------------- bevel ---
+
+/// The cube's edges around its top, as the stack would record them.
+fn bevel_top(doc: &Document, id: ObjectId, width: f32, segments: u32) -> Operation {
+    let mesh = doc.scene().evaluated(id).unwrap().mesh;
+    let edges: Vec<EdgeKey> = mesh
+        .edges()
+        .iter()
+        .filter(|e| {
+            let (a, b) = e.ends();
+            mesh.position(a).unwrap().z > 99.0 && mesh.position(b).unwrap().z > 99.0
+        })
+        .copied()
+        .collect();
+    let ends: Vec<Vec<VertexId>> = edges
+        .iter()
+        .map(|e| {
+            let (a, b) = e.ends();
+            vec![a, b]
+        })
+        .collect();
+    Operation::BevelEdges {
+        edges,
+        shape: BevelShape {
+            width,
+            segments,
+            profile: 1.0,
+        },
+        anchors: mesh::Anchors::record(&mesh, ElementKind::Edges, &ends),
+    }
+}
+
+#[test]
+fn a_bevel_is_recorded_changed_and_replayed() {
+    let (mut doc, id) = with_a_cube();
+    let op = bevel_top(&doc, id, 10.0, 2);
+    record(&mut doc, id, op.clone());
+    assert_eq!(doc.undo_label(), Some("Bevel 4 edges"));
+    let faces = |doc: &Document| doc.scene().evaluated(id).unwrap().mesh.face_count();
+    assert_eq!(faces(&doc), 6 + 8);
+    // The Last edit: width, rows and profile, no grouping.
+    let settings = op.settings().unwrap();
+    assert_eq!(settings.distance, 10.0);
+    assert_eq!(settings.segments, Some(2));
+    assert_eq!(settings.profile, Some(1.0));
+    assert_eq!(settings.grouping, None);
+    let changed = op.with(EditSettings {
+        segments: Some(4),
+        ..settings
+    });
+    doc.execute(Command::ReplaceOperation {
+        id,
+        layer: 0,
+        index: 0,
+        operation: changed,
+    })
+    .unwrap();
+    assert_eq!(faces(&doc), 6 + 16);
+    doc.undo().unwrap();
+    assert_eq!(faces(&doc), 6 + 8);
+    // More segments on the cube: the top's edges are found again along
+    // where they were, and the bevel follows.
+    doc.execute(Command::SetPrimitive {
+        ids: vec![id],
+        primitive: Primitive::Cube(CubeParams {
+            segments: [2, 2, 2],
+            ..Default::default()
+        }),
+    })
+    .unwrap();
+    let shape = doc.scene().evaluated(id).unwrap();
+    assert!(shape.warnings.iter().all(|w| w.missing == 0));
+    assert!(mesh::MeshReport::new(&shape.mesh).is_closed());
+    assert!(shape.mesh.face_count() > 24);
+}
+
+#[test]
+fn a_point_bevel_is_recorded() {
+    let (mut doc, id) = with_a_cube();
+    record(
+        &mut doc,
+        id,
+        Operation::BevelPoints {
+            points: vec![VertexId::from_raw(0)],
+            width: 10.0,
+            anchors: None,
+        },
+    );
+    assert_eq!(doc.undo_label(), Some("Bevel 1 point"));
+    let shape = doc.scene().evaluated(id).unwrap();
+    assert_eq!(shape.mesh.face_count(), 7);
+    assert!(mesh::MeshReport::new(&shape.mesh).is_closed());
+    // Moves and turns have no settings to change afterwards.
+    assert!(lift(&[0], 1.0).settings().is_none());
+}

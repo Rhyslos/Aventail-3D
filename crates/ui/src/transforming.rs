@@ -49,6 +49,9 @@ pub enum Tool {
     Extrude,
     /// Inset: drag anywhere to shrink the selected polygons inward.
     Inset,
+    /// Bevel: drag away from the selected edges or points to cut them
+    /// away (decision 0040).
+    Bevel,
 }
 
 /// The tool keys (Halberd's, decision 0019): move, rotate, scale, all.
@@ -74,18 +77,19 @@ impl Tool {
             Self::All => "Transform",
             Self::Extrude => "Extrude",
             Self::Inset => "Inset",
+            Self::Bevel => "Bevel",
         }
     }
 
     /// Whether it is a modelling tool set by dragging anywhere in a view.
     pub fn drags_anywhere(self) -> bool {
-        matches!(self, Self::Extrude | Self::Inset)
+        matches!(self, Self::Extrude | Self::Inset | Self::Bevel)
     }
 
     /// Its gizmo, if it has one.
     pub fn gizmo(self) -> Option<GizmoTool> {
         match self {
-            Self::Select | Self::Extrude | Self::Inset => None,
+            Self::Select | Self::Extrude | Self::Inset | Self::Bevel => None,
             Self::Move => Some(GizmoTool::Move),
             Self::Rotate => Some(GizmoTool::Rotate),
             Self::Scale => Some(GizmoTool::Scale),

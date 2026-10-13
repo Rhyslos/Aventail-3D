@@ -22,6 +22,7 @@ How each drag follows it today:
 | Scale gizmo's uniform centre | — | Right or up grows: a drag that starts on the middle has no way to follow |
 | Extrude (polygons, border edges) | The way they face on screen, scaled so they follow the mouse | Right means out when they face the viewer straight on |
 | Inset | Towards the polygons' middle on screen, from where the drag began | Right means more when the drag starts on the middle |
+| Bevel (edges, points) | Away from the selected edges or points on screen, from where the drag began | Right means more when no edge can be seen |
 | Tool menu flick (E) | The direction of the flick | — |
 
 Typed and dragged numbers in panels (the Attributes and Coordinates panels) aren't viewport pulls and keep the usual "right or up for more".

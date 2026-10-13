@@ -47,3 +47,4 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0037](0037-tool-menu-and-command-list.md) | The tool menu (E) and one command list | Accepted |
 | [0038](0038-extrude-and-inset.md) | Extrude and inset: drag anywhere, Keep together, ids that stay, file format version 3 | Accepted |
 | [0039](0039-drags-follow-the-pull.md) | Drags follow the pull: measured from what they change, a fixed direction only as fallback | Accepted |
+| [0040](0040-bevel.md) | Bevel: edges and points, drag away from them, file format version 4 | Accepted |

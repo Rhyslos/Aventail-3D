@@ -7,10 +7,50 @@ use glam::Vec3;
 use mesh::{CubeParams, PrimitiveKind, VertexId};
 use scene::{Command, Object, ObjectKind, Operation, Place, Primitive, Transform};
 
+/// A document using everything version 4 of the format can hold: all of
+/// [`rich_document_v3`], plus a bevel of edges (with anchors) and of a
+/// point.
+fn rich_document() -> Document {
+    let mut doc = rich_document_v3();
+    let cube = *doc.scene().children(None).last().unwrap();
+    let shape = doc.scene().evaluated(cube).unwrap().mesh;
+    let edge = *shape
+        .edges()
+        .iter()
+        .find(|e| shape.topology().edge_uses(**e).len() == 2)
+        .unwrap();
+    let (a, b) = edge.ends();
+    let anchors = mesh::Anchors::record(&shape, mesh::ElementKind::Edges, &[vec![a, b]]);
+    for operation in [
+        Operation::BevelEdges {
+            edges: vec![edge],
+            shape: scene::BevelShape {
+                width: 2.5,
+                segments: 3,
+                profile: 0.75,
+            },
+            anchors,
+        },
+        Operation::BevelPoints {
+            points: vec![VertexId::from_raw(5)],
+            width: 1.5,
+            anchors: None,
+        },
+    ] {
+        doc.execute(Command::Record {
+            id: cube,
+            operation,
+        })
+        .unwrap();
+    }
+    doc
+}
+
 /// A document using everything version 3 of the format can hold: all of
 /// [`rich_document_v2`], plus an extruded and an inset polygon (with
-/// anchors) and an extruded border edge.
-fn rich_document() -> Document {
+/// anchors) and an extruded border edge. The version 3 sample holds
+/// exactly this.
+fn rich_document_v3() -> Document {
     let mut doc = rich_document_v2();
     let cube = *doc.scene().children(None).last().unwrap();
     let shape = doc.scene().evaluated(cube).unwrap().mesh;
@@ -306,14 +346,14 @@ fn a_cut_short_or_padded_body_is_damaged() {
 #[test]
 fn an_uncompressed_body_can_be_read() {
     let doc = rich_document();
-    let body = postcard::to_stdvec(&v3::ProjectV3::from_document(&doc)).unwrap();
-    let mut bytes = header(3, 0, body.len() as u64);
+    let body = postcard::to_stdvec(&v4::ProjectV4::from_document(&doc)).unwrap();
+    let mut bytes = header(4, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     assert_same(&doc, &from_bytes(&bytes).unwrap());
     // Data after the scene is refused.
     let mut longer = body.clone();
     longer.push(0);
-    let mut bytes = header(3, 0, longer.len() as u64);
+    let mut bytes = header(4, 0, longer.len() as u64);
     bytes.extend_from_slice(&longer);
     assert!(refused(&bytes).to_string().contains("unexpected data"));
 }
@@ -645,9 +685,9 @@ const SAMPLE_V3: &[u8] = include_bytes!("../../tests/data/sample-v3.avtl");
 #[test]
 fn a_file_saved_by_format_version_3_still_opens() {
     let doc = from_bytes(SAMPLE_V3).expect("the version 3 sample opens");
+    assert_same(&rich_document_v3(), &doc);
     let cube = *doc.scene().children(None).last().unwrap();
     assert_eq!(doc.scene().object(cube).unwrap().stack.operation_count(), 5);
-    assert_same(&rich_document(), &doc);
 }
 
 /// The bytes of a version 3 file holding `model`, uncompressed.
@@ -660,7 +700,7 @@ fn file_of_v3(model: &v3::ProjectV3) -> Vec<u8> {
 
 #[test]
 fn extrudes_and_insets_are_kept_and_checked() {
-    let doc = rich_document();
+    let doc = rich_document_v3();
     assert_same(&doc, &from_bytes(&to_bytes(&doc).unwrap()).unwrap());
     let good = v3::ProjectV3::from_document(&doc);
     let cube = good.objects.iter().position(|o| o.name == "Cube").unwrap();
@@ -692,6 +732,76 @@ fn extrudes_and_insets_are_kept_and_checked() {
     // Version 2's model can't hold them: it is only used for reading.
     let old = v2::ProjectV2::from_document(&doc);
     assert_eq!(old.objects[cube].layers[0].operations.len(), ops - 3);
+}
+
+/// A project saved by version 4 of the format, kept in the repository.
+const SAMPLE_V4: &[u8] = include_bytes!("../../tests/data/sample-v4.avtl");
+
+#[test]
+fn a_file_saved_by_format_version_4_still_opens() {
+    let doc = from_bytes(SAMPLE_V4).expect("the version 4 sample opens");
+    assert_same(&rich_document(), &doc);
+}
+
+/// The bytes of a version 4 file holding `model`, uncompressed.
+fn file_of_v4(model: &v4::ProjectV4) -> Vec<u8> {
+    let body = postcard::to_stdvec(model).unwrap();
+    let mut bytes = header(4, 0, body.len() as u64);
+    bytes.extend_from_slice(&body);
+    bytes
+}
+
+#[test]
+fn bevels_are_kept_and_checked() {
+    let doc = rich_document();
+    assert_same(&doc, &from_bytes(&to_bytes(&doc).unwrap()).unwrap());
+    let good = v4::ProjectV4::from_document(&doc);
+    let cube = good.objects.iter().position(|o| o.name == "Cube").unwrap();
+    assert_same(&doc, &from_bytes(&file_of_v4(&good)).unwrap());
+    let ops = good.objects[cube].layers[0].operations.len();
+    // A width that isn't a number is refused, naming the object.
+    for index in [ops - 2, ops - 1] {
+        let mut bad = good.clone();
+        match &mut bad.objects[cube].layers[0].operations[index] {
+            v4::OperationV4::BevelEdges { width, .. }
+            | v4::OperationV4::BevelPoints { width, .. } => *width = f32::NAN,
+            v4::OperationV4::V3(_) => panic!("a bevel"),
+        }
+        let text = refused(&file_of_v4(&bad)).to_string();
+        assert!(
+            text.contains("\"Cube\"") && text.contains("width"),
+            "{text}"
+        );
+    }
+    // So is a profile that isn't a number, and an edge joining a point to
+    // itself; rows out of range are brought within limits.
+    let mut bad = good.clone();
+    if let v4::OperationV4::BevelEdges { profile, .. } =
+        &mut bad.objects[cube].layers[0].operations[ops - 2]
+    {
+        *profile = f32::INFINITY;
+    }
+    assert!(refused(&file_of_v4(&bad)).to_string().contains("profile"));
+    let mut bad = good.clone();
+    if let v4::OperationV4::BevelEdges { edges, .. } =
+        &mut bad.objects[cube].layers[0].operations[ops - 2]
+    {
+        edges[0] = [3, 3];
+    }
+    assert!(refused(&file_of_v4(&bad)).to_string().contains("to itself"));
+    let mut big = good.clone();
+    if let v4::OperationV4::BevelEdges { segments, .. } =
+        &mut big.objects[cube].layers[0].operations[ops - 2]
+    {
+        *segments = 100_000;
+    }
+    let opened = from_bytes(&file_of_v4(&big)).unwrap();
+    let id = *opened.scene().children(None).last().unwrap();
+    let ops_now = &opened.scene().object(id).unwrap().stack.layers()[0].operations;
+    let Operation::BevelEdges { shape, .. } = &ops_now[ops - 2] else {
+        panic!("a bevel");
+    };
+    assert_eq!(shape.segments, mesh::bevel::MAX_SEGMENTS);
 }
 
 /// Writes the current version's sample. Run only by hand, when a new

@@ -13,7 +13,7 @@
 
 use crate::object::{ObjectId, ObjectKind};
 use glam::{Mat4, Vec3};
-use mesh::edit::{self, Grouping, Outcome};
+use mesh::edit::{self, BevelShape, Grouping, Outcome};
 use mesh::{Anchors, EdgeKey, FaceId, Mesh, VertexId};
 use std::collections::{BTreeSet, HashMap};
 use std::sync::{Arc, Mutex};
@@ -86,6 +86,42 @@ pub enum Operation {
         /// Where the edges were, to find them again (decision 0032).
         anchors: Option<Anchors>,
     },
+    /// Cuts edges away, putting a strip of polygons in their place
+    /// (decision 0040).
+    BevelEdges {
+        /// The edges.
+        edges: Vec<EdgeKey>,
+        /// Its width (in the object's own space, centimetres), rows and
+        /// profile.
+        shape: BevelShape,
+        /// Where the edges were, to find them again (decision 0032).
+        anchors: Option<Anchors>,
+    },
+    /// Cuts corners away, putting a polygon in their place (decision
+    /// 0040).
+    BevelPoints {
+        /// The points.
+        points: Vec<VertexId>,
+        /// How far along each edge the cut goes, in the object's own
+        /// space (centimetres).
+        width: f32,
+        /// Where the points were, to find them again (decision 0032).
+        anchors: Option<Anchors>,
+    },
+}
+
+/// The settings of a recorded edit that can still be changed afterwards
+/// (the Attributes panel's Last edit): an extrude, inset or bevel.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct EditSettings {
+    /// The distance, or a bevel's width (centimetres, own space).
+    pub distance: f32,
+    /// Neighbours together or each on its own (extrude and inset).
+    pub grouping: Option<Grouping>,
+    /// A bevel's rows.
+    pub segments: Option<u32>,
+    /// A bevel's profile, flat (0) to round (1).
+    pub profile: Option<f32>,
 }
 
 /// What applying an operation did.
@@ -113,35 +149,50 @@ impl Operation {
             Self::ExtrudePolygons { faces, .. } => counted("Extrude", faces.len(), "polygon"),
             Self::InsetPolygons { faces, .. } => counted("Inset", faces.len(), "polygon"),
             Self::ExtrudeEdges { edges, .. } => counted("Extrude", edges.len(), "edge"),
+            Self::BevelEdges { edges, .. } => counted("Bevel", edges.len(), "edge"),
+            Self::BevelPoints { points, .. } => counted("Bevel", points.len(), "point"),
         }
     }
 
-    /// Where the operation's elements were, if it keeps that.
-    pub fn anchors(&self) -> Option<&Anchors> {
+    /// The settings that can still be changed, for an extrude, inset or
+    /// bevel.
+    pub fn settings(&self) -> Option<EditSettings> {
+        let plain = |distance: f32, grouping: Grouping| EditSettings {
+            distance,
+            grouping: Some(grouping),
+            segments: None,
+            profile: None,
+        };
         match self {
-            Self::MovePoints { anchors, .. }
-            | Self::TransformPoints { anchors, .. }
-            | Self::ExtrudePolygons { anchors, .. }
-            | Self::InsetPolygons { anchors, .. }
-            | Self::ExtrudeEdges { anchors, .. } => anchors.as_ref(),
-        }
-    }
-
-    /// The distance of an extrude or inset, if it is one: what the
-    /// Attributes panel lets you change afterwards.
-    pub fn distance(&self) -> Option<f32> {
-        match self {
-            Self::ExtrudePolygons { distance, .. }
-            | Self::InsetPolygons { distance, .. }
-            | Self::ExtrudeEdges { distance, .. } => Some(*distance),
+            Self::ExtrudePolygons {
+                distance, grouping, ..
+            }
+            | Self::InsetPolygons {
+                distance, grouping, ..
+            }
+            | Self::ExtrudeEdges {
+                distance, grouping, ..
+            } => Some(plain(*distance, *grouping)),
+            Self::BevelEdges { shape, .. } => Some(EditSettings {
+                distance: shape.width,
+                grouping: None,
+                segments: Some(shape.segments),
+                profile: Some(shape.profile),
+            }),
+            Self::BevelPoints { width, .. } => Some(EditSettings {
+                distance: *width,
+                grouping: None,
+                segments: None,
+                profile: None,
+            }),
             Self::MovePoints { .. } | Self::TransformPoints { .. } => None,
         }
     }
 
-    /// The same extrude or inset with a new distance and grouping
-    /// (anything else unchanged).
+    /// The same edit with new settings (those it doesn't have are
+    /// ignored; an edit without settings is unchanged).
     #[must_use]
-    pub fn with_settings(&self, new_distance: f32, new_grouping: Grouping) -> Self {
+    pub fn with(&self, settings: EditSettings) -> Self {
         let mut changed = self.clone();
         match &mut changed {
             Self::ExtrudePolygons {
@@ -153,31 +204,71 @@ impl Operation {
             | Self::ExtrudeEdges {
                 distance, grouping, ..
             } => {
-                *distance = new_distance;
-                *grouping = new_grouping;
+                *distance = settings.distance;
+                if let Some(g) = settings.grouping {
+                    *grouping = g;
+                }
             }
+            Self::BevelEdges { shape, .. } => {
+                shape.width = settings.distance;
+                if let Some(n) = settings.segments {
+                    shape.segments = n;
+                }
+                if let Some(p) = settings.profile {
+                    shape.profile = p;
+                }
+            }
+            Self::BevelPoints { width, .. } => *width = settings.distance,
             Self::MovePoints { .. } | Self::TransformPoints { .. } => {}
         }
         changed
     }
 
+    /// Where the operation's elements were, if it keeps that.
+    pub fn anchors(&self) -> Option<&Anchors> {
+        match self {
+            Self::MovePoints { anchors, .. }
+            | Self::TransformPoints { anchors, .. }
+            | Self::ExtrudePolygons { anchors, .. }
+            | Self::InsetPolygons { anchors, .. }
+            | Self::ExtrudeEdges { anchors, .. }
+            | Self::BevelEdges { anchors, .. }
+            | Self::BevelPoints { anchors, .. } => anchors.as_ref(),
+        }
+    }
+
+    /// The distance of an extrude or inset (or a bevel's width), if it
+    /// is one: what the Attributes panel lets you change afterwards.
+    pub fn distance(&self) -> Option<f32> {
+        self.settings().map(|s| s.distance)
+    }
+
+    /// The same extrude or inset with a new distance and grouping
+    /// (anything else unchanged).
+    #[must_use]
+    pub fn with_settings(&self, distance: f32, grouping: Grouping) -> Self {
+        match self.settings() {
+            Some(s) => self.with(EditSettings {
+                distance,
+                grouping: Some(grouping),
+                ..s
+            }),
+            None => self.clone(),
+        }
+    }
+
     /// The grouping of an extrude or inset, if it is one.
     pub fn grouping(&self) -> Option<Grouping> {
-        match self {
-            Self::ExtrudePolygons { grouping, .. }
-            | Self::InsetPolygons { grouping, .. }
-            | Self::ExtrudeEdges { grouping, .. } => Some(*grouping),
-            Self::MovePoints { .. } | Self::TransformPoints { .. } => None,
-        }
+        self.settings().and_then(|s| s.grouping)
     }
 
     /// The points the operation names, and its anchors. Empty for
     /// operations that name polygons or edges.
     pub fn points(&self) -> (&[VertexId], Option<&Anchors>) {
         match self {
-            Self::MovePoints { points, .. } | Self::TransformPoints { points, .. } => {
-                (points, self.anchors())
-            }
+            Self::MovePoints { points, .. }
+            | Self::TransformPoints { points, .. }
+            | Self::BevelPoints { points, .. } => (points, self.anchors()),
             _ => (&[], self.anchors()),
         }
     }
@@ -232,6 +323,16 @@ impl Operation {
                     .as_ref()
                     .map_or_else(|| edges.clone(), |r| edges_within(mesh, &r.0));
                 edit::extrude_edges(mesh, &edges, *distance, *grouping)
+            }
+            Self::BevelEdges { edges, shape, .. } => {
+                let edges = refound
+                    .as_ref()
+                    .map_or_else(|| edges.clone(), |r| edges_within(mesh, &r.0));
+                edit::bevel_edges(mesh, &edges, *shape)
+            }
+            Self::BevelPoints { points, width, .. } => {
+                let points = refound.as_ref().map_or(points.as_slice(), |r| &r.0);
+                edit::bevel_points(mesh, points, *width)
             }
         };
         match refound {

@@ -33,6 +33,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Inset** — Shrinking polygons inward, flat on the surface, with a ring of new polygons around them: a frame or border drawn onto the shape, often followed by an extrude. See [Extrude and inset](extrude-and-inset.md).
 
+**Bevel and chamfer** — Cutting a sharp edge away and putting a strip of polygons in its place. A *chamfer* is a single flat strip; a *bevel* with more segments is rounded. Real objects rarely have perfectly sharp edges, so a small bevel catches the light and makes a model read as solid. See [Bevel](bevel.md).
+
 **Manifold** — A mesh that could exist as a real, solid object: every edge is shared by exactly two polygons. Non-manifold geometry (edges shared by three faces, loose edges, holes) often breaks booleans, bakes and some tools.
 
 ## Objects and scenes
