@@ -1,6 +1,6 @@
 # Bevel
 
-> Bevel cuts a sharp edge or corner away and puts a strip of new polygons in its place: a flat chamfer, or a rounded edge with more segments.
+> Bevel cuts a sharp edge or corner away and puts a strip of new polygons in its place: a flat chamfer, a rounded edge, or a hollow curve (a cove) with more segments.
 
 Real objects almost never have perfectly sharp edges. A slightly bevelled edge catches the light, which is one of the quickest ways to make a game prop look solid and well made instead of like a box. Bevels also make baking and shading behave better on hard-surface models.
 
@@ -10,6 +10,7 @@ Real objects almost never have perfectly sharp edges. A slightly bevelled edge c
 
 - **Soften a hard edge** so it catches the light, like the rim of a crate or the edge of a panel: bevel its edges with one segment (a [chamfer](concepts.md#mesh-basics)) or a few (rounded).
 - **Round a corner off**, like a rounded box or a worn edge: more segments, Profile at 100%.
+- **Carve a hollow curve** along an edge, like a cove moulding on furniture or a scooped edge on a stone block: more segments, Profile at -100%. The bevel curves inward instead of bulging out.
 - **Cut a corner off** with a single flat face: bevel a point in Points mode.
 
 To push polygons out or make frames, use [Extrude and inset](extrude-and-inset.md) instead.
@@ -40,13 +41,19 @@ Before you drag, the top of the **Attributes panel** shows the tool's **Segments
 - Let go where you started, or closer to the edges than where you started, and nothing is recorded.
 - A **click** without dragging still selects.
 
+### Rounded or hollow
+
+With 2 or more segments, the **Profile** decides which way the bevel curves. At **100%** it bulges out, like a worn edge. At **0%** the rows lie flat, like a wide chamfer. Below 0 it curves the other way, into the shape: at **-100%** each edge is scooped out along a quarter circle, a *cove*, the kind of hollow edge you see on furniture mouldings and carved stone. You can change it on the bevel you just made, under **Last edit**, and watch the edge go from round through flat to hollow.
+
+![The same cube with its edges bevelled at Profile -100%: each edge is scooped inward, so the top overhangs a hollow groove.](../screenshots/2026-10-13-bevel-hollow.png)
+
 ## Settings
 
 | Setting | What it does |
 |---|---|
 | **Width** | How far the bevel reaches into each polygon next to the edge, in the object's own size. A typical bevel on a game prop is a few millimetres to a couple of centimetres. |
 | **Segments** | How many rows the bevel has. **1** is a flat cut (a chamfer), cheap and very common in game art. **2–4** make a rounded edge. More look smoother but cost polygons. |
-| **Profile** | The shape across the bevel: **100%** is round, **0%** is flat. It only shows with 2 or more segments. |
+| **Profile** | The shape across the bevel, from **100%** (round, bulging out like a worn edge) through **0%** (flat) to **-100%** (hollow, curving inward like a [cove](concepts.md#mesh-basics)). Values in between are gentler curves. It only shows with 2 or more segments. |
 
 ## Shortcuts
 

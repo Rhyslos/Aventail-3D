@@ -5,7 +5,8 @@
 //! **Edges.** Each bevelled edge is replaced by a strip `width` wide on
 //! each side, measured across each polygon next to it. With more
 //! `segments` the strip is cut lengthwise into rows that follow a
-//! `profile` from flat (0, a chamfer) to round (1). Where the strip ends:
+//! `profile` from round (1) through flat (0, a chamfer) to hollow (-1),
+//! curving inward like a cove. Where the strip ends:
 //! - a polygon corner between two bevelled edges moves to where both
 //!   offsets meet;
 //! - a corner between a bevelled and a plain edge slides along the plain
@@ -29,7 +30,7 @@ use crate::edit::Outcome;
 use crate::topology::Topology;
 use crate::{EdgeKey, FaceId, Mesh, VertexId};
 use glam::Vec3;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 /// The most rows a bevel can have.
 pub const MAX_SEGMENTS: u32 = 64;
@@ -48,7 +49,8 @@ pub struct BevelShape {
     pub width: f32,
     /// How many rows the strip has (1: a flat chamfer).
     pub segments: u32,
-    /// From flat (0) to round (1).
+    /// Round (1), flat (0) or hollow (-1, curving inward), or anything
+    /// between.
     pub profile: f32,
 }
 
@@ -64,13 +66,13 @@ impl Default for BevelShape {
 
 impl BevelShape {
     /// The shape brought within limits: width not below 0, 1 to
-    /// [`MAX_SEGMENTS`] rows, profile 0 to 1. `None` if a value isn't a
+    /// [`MAX_SEGMENTS`] rows, profile -1 to 1. `None` if a value isn't a
     /// number.
     pub fn clamped(self) -> Option<Self> {
         (self.width.is_finite() && self.profile.is_finite()).then(|| Self {
             width: self.width.max(0.0),
             segments: self.segments.clamp(1, MAX_SEGMENTS),
-            profile: self.profile.clamp(0.0, 1.0),
+            profile: self.profile.clamp(-1.0, 1.0),
         })
     }
 }
@@ -191,8 +193,8 @@ fn slide_by(width: f32, sin: f32) -> f32 {
 }
 
 /// A point on the quadratic curve from `a` to `b`, `t` of the way, bent
-/// towards `corner` by `profile` (0: a straight line, 1: through the
-/// corner's pull).
+/// by `profile`: 1 bulges out towards `corner` (round), 0 is a straight
+/// line (flat), -1 hollows in the same amount the other way (a cove).
 fn profile_point(a: Vec3, b: Vec3, corner: Vec3, profile: f32, t: f32) -> Vec3 {
     let control = (a + b) * 0.5 + (corner - (a + b) * 0.5) * profile;
     let s = 1.0 - t;
@@ -387,6 +389,10 @@ pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Out
         }
     };
     let mut rows: BTreeMap<(EdgeKey, VertexId), Vec<VertexId>> = BTreeMap::new();
+    // Which row runs between which two points round a bevelled point:
+    // (point, first, last) -> the edge whose row it is (the lowest, when
+    // several do). Finds shared end rows without searching every row.
+    let mut row_ends: HashMap<(VertexId, VertexId, VertexId), EdgeKey> = HashMap::new();
     for edge in &chosen {
         let uses = topology.edge_uses(*edge);
         let forward = uses.iter().find(|u| u.forward).map(|u| u.face);
@@ -408,17 +414,16 @@ pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Out
             let px = original.position(x).unwrap_or_default();
             // Two strips ending between the same two points (round a
             // cube's corner, say) share their end rows.
-            let shared = rows.iter().find_map(|((_, at), row)| {
-                if *at != x {
-                    None
-                } else if row.first() == Some(&b) && row.last() == Some(&a) {
-                    Some(row.iter().rev().copied().collect::<Vec<_>>())
-                } else if row.first() == Some(&a) && row.last() == Some(&b) {
-                    Some(row.clone())
-                } else {
-                    None
-                }
-            });
+            let reversed = row_ends.get(&(x, b, a)).copied();
+            let same = row_ends.get(&(x, a, b)).copied();
+            let shared = match (reversed, same) {
+                (Some(r), Some(s)) if s < r => rows.get(&(s, x)).cloned(),
+                (Some(r), _) => rows
+                    .get(&(r, x))
+                    .map(|row| row.iter().rev().copied().collect()),
+                (None, Some(s)) => rows.get(&(s, x)).cloned(),
+                (None, None) => None,
+            };
             let row = shared.unwrap_or_else(|| {
                 let mut row = vec![a];
                 for k in 1..shape.segments {
@@ -429,6 +434,11 @@ pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Out
                 row.push(b);
                 row
             });
+            if let (Some(first), Some(last)) = (row.first(), row.last()) {
+                let key = (x, *first, *last);
+                let lowest = row_ends.get(&key).map_or(*edge, |e| (*e).min(*edge));
+                row_ends.insert(key, lowest);
+            }
             rows.insert((*edge, x), row);
         }
     }
@@ -600,9 +610,7 @@ pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Out
     }
 
     // 8. Points no polygon uses any more go.
-    for v in corners.keys() {
-        out.remove_unused_vertex(*v);
-    }
+    out.remove_unused_vertices(&corners.keys().copied().collect::<Vec<_>>());
     *mesh = out;
     outcome
 }
@@ -689,14 +697,15 @@ pub fn bevel_points(mesh: &mut Mesh, points: &[VertexId], width: f32) -> Outcome
             out.push_face(&patch);
         }
         // Edges that were hard stay hard up to the cut.
-        for ((from, far), p) in &cut {
-            if from == v && original.is_hard(*v, *far) {
+        let mine = (*v, VertexId::from_raw(0))..=(*v, VertexId::from_raw(u32::MAX));
+        for ((_, far), p) in cut.range(mine) {
+            if original.is_hard(*v, *far) {
                 let other = cut.get(&(*far, *v)).copied().unwrap_or(*far);
                 out.set_hard(*p, other, true);
             }
         }
-        out.remove_unused_vertex(*v);
     }
+    out.remove_unused_vertices(&fans.keys().copied().collect::<Vec<_>>());
     *mesh = out;
     outcome
 }

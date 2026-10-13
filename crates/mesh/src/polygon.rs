@@ -419,7 +419,9 @@ impl Mesh {
     }
 
     /// Every face slot by id number, `None` where a face was deleted.
-    pub fn face_slots(&self) -> impl ExactSizeIterator<Item = Option<&[VertexId]>> + '_ {
+    pub fn face_slots(
+        &self,
+    ) -> impl ExactSizeIterator<Item = Option<&[VertexId]>> + DoubleEndedIterator + '_ {
         (0..self.faces.slot_count()).map(|i| self.faces.get(i))
     }
 
@@ -595,6 +597,39 @@ impl Mesh {
         true
     }
 
+    /// Deletes those of `ids` that no face uses any more, with any hard
+    /// edges naming them, in one pass over the faces: quicker than
+    /// [`Mesh::remove_unused_vertex`] one at a time when there are many.
+    /// Returns how many were deleted.
+    pub fn remove_unused_vertices(&mut self, ids: &[VertexId]) -> usize {
+        let mut unused: std::collections::HashSet<VertexId> = ids
+            .iter()
+            .copied()
+            .filter(|v| self.position(*v).is_some())
+            .collect();
+        if unused.is_empty() {
+            return 0;
+        }
+        for (_, corners) in self.faces() {
+            for c in corners {
+                unused.remove(c);
+            }
+        }
+        for v in &unused {
+            self.positions.set(v.0 as usize, None);
+        }
+        self.live_points -= unused.len();
+        if self
+            .hard
+            .iter()
+            .any(|e| unused.contains(&e.0) || unused.contains(&e.1))
+        {
+            Arc::make_mut(&mut self.hard)
+                .retain(|e| !unused.contains(&e.0) && !unused.contains(&e.1));
+        }
+        unused.len()
+    }
+
     /// Where a point is, if it exists.
     pub fn position(&self, id: VertexId) -> Option<Vec3> {
         self.positions.get(id.0 as usize)
@@ -702,7 +737,9 @@ impl Mesh {
     /// Roughly how many bytes the mesh takes up in memory, counting what
     /// its lists hold room for. An estimate (allocator overheads aren't
     /// counted), good enough to keep the undo history within a budget.
-    /// Parts shared with other copies are counted in full.
+    /// Parts shared with other copies are counted in full, and so is the
+    /// topology (often the larger part): as it is once worked out, and as
+    /// an estimate before, since nearly every mesh gets one.
     pub fn memory_size(&self) -> usize {
         use std::mem::size_of;
         let positions = self.positions.memory_size();
@@ -711,7 +748,17 @@ impl Mesh {
         // A B-tree node holds several keys plus links; twice the keys is a
         // fair estimate.
         let hard = self.hard.len() * size_of::<EdgeKey>() * 2;
-        size_of::<Self>() + positions + faces + hard
+        let topology = self.faces.topology.get().map_or_else(
+            || {
+                crate::topology::Topology::estimate(
+                    self.positions.len(),
+                    self.faces.starts.len().saturating_sub(1),
+                    self.faces.corners.len(),
+                )
+            },
+            crate::topology::Topology::memory_size,
+        );
+        size_of::<Self>() + positions + faces + hard + topology
     }
 
     /// The box around every point, or `None` for an empty mesh. Worked
@@ -766,6 +813,42 @@ mod tests {
         .map(|p| mesh.add_vertex(p).unwrap());
         mesh.add_face(&v).unwrap();
         (mesh, v)
+    }
+
+    #[test]
+    fn unused_points_go_in_one_pass_and_used_ones_stay() {
+        let (mut mesh, v) = square();
+        let loose = mesh.add_vertex(Vec3::new(5.0, 0.0, 0.0)).unwrap();
+        let other = mesh.add_vertex(Vec3::new(6.0, 0.0, 0.0)).unwrap();
+        mesh.set_hard(loose, other, true);
+        mesh.set_hard(v[0], v[1], true);
+        let ghost = VertexId(99);
+        // Used, unused, repeated and unknown points together.
+        let gone = mesh.remove_unused_vertices(&[v[0], loose, loose, ghost, other]);
+        assert_eq!(gone, 2);
+        assert_eq!(mesh.vertex_count(), 4);
+        assert!(mesh.position(loose).is_none() && mesh.position(other).is_none());
+        assert!(!mesh.is_hard(loose, other), "its hard edge went with it");
+        assert!(mesh.is_hard(v[0], v[1]), "other hard edges stay");
+        assert_eq!(mesh.remove_unused_vertices(&[]), 0);
+        assert_eq!(mesh.remove_unused_vertices(&[loose]), 0, "already gone");
+        assert_eq!(
+            mesh.add_vertex(Vec3::ZERO).unwrap(),
+            VertexId(6),
+            "ids are never used again"
+        );
+    }
+
+    #[test]
+    fn memory_size_counts_the_topology_before_and_after_it_is_worked_out() {
+        let sphere = crate::PrimitiveKind::Sphere.standard().mesh();
+        let estimated = sphere.memory_size();
+        let topology = sphere.topology().memory_size();
+        let counted = sphere.memory_size();
+        assert!(counted > topology, "the topology is part of it");
+        // The estimate is within a third of the real thing.
+        let (a, b) = (estimated as f64, counted as f64);
+        assert!((a - b).abs() / b < 0.33, "estimated {a}, counted {b}");
     }
 
     #[test]

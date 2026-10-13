@@ -21,6 +21,7 @@ use scene::{
     BevelShape, Bounds, Command, Document, EdgeKey, ElementKind, FaceId, Grouping, ObjectId,
     Operation, VertexId,
 };
+use std::collections::{HashMap, HashSet};
 
 /// Merge keys for modelling tool drags: kept apart from other merge keys.
 const MODELLING_KEYS: u64 = 1 << 60;
@@ -501,19 +502,31 @@ impl Workbench {
 }
 
 /// For each of `edges` (just extruded), the new outer edge: the far side
-/// of the newest polygon along it.
+/// of the newest polygon along it. Looks from the newest polygon back and
+/// stops once every edge is found, so a heavy shape's connections don't
+/// have to be worked out while the drag ends.
 fn outer_edges(mesh: &scene::Mesh, edges: &[EdgeKey]) -> Vec<EdgeKey> {
-    let topology = mesh.topology();
+    let mut newest: HashMap<EdgeKey, Option<EdgeKey>> = HashMap::new();
+    let wanted: HashSet<EdgeKey> = edges.iter().copied().collect();
+    for corners in mesh.face_slots().rev().flatten() {
+        if newest.len() == wanted.len() {
+            break;
+        }
+        let n = corners.len();
+        for i in 0..n {
+            let side = EdgeKey::new(corners[i], corners[(i + 1) % n]);
+            if wanted.contains(&side) && !newest.contains_key(&side) {
+                let outer = match corners {
+                    [_, _, c, d] => Some(EdgeKey::new(*c, *d)),
+                    _ => None,
+                };
+                newest.insert(side, outer);
+            }
+        }
+    }
     edges
         .iter()
-        .filter_map(|edge| {
-            let newest = topology.edge_faces(*edge).max()?;
-            let corners = mesh.face(newest)?;
-            let [_, _, c, d] = corners else {
-                return None;
-            };
-            Some(EdgeKey::new(*c, *d))
-        })
+        .filter_map(|edge| newest.get(edge).copied().flatten())
         .collect()
 }
 

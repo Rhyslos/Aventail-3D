@@ -97,7 +97,7 @@ impl FileOperation for OperationV4 {
                 shape: BevelShape {
                     width: number(width, "width")?.max(0.0),
                     segments: segments.clamp(1, MAX_SEGMENTS),
-                    profile: number(profile, "profile")?.clamp(0.0, 1.0),
+                    profile: number(profile, "profile")?.clamp(-1.0, 1.0),
                 },
                 anchors: anchors(a)?,
             }),

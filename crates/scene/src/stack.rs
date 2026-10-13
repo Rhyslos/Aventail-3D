@@ -510,38 +510,137 @@ fn same_base(a: &ObjectKind, b: &ObjectKind) -> bool {
     }
 }
 
-/// Evaluates `stack` on top of `input`, layers from `from` upward, adding
-/// each layer's result to `out`.
-fn evaluate_layers(input: &Arc<Mesh>, layers: &[Layer], from: usize, out: &mut Vec<CachedLayer>) {
+/// Applies `operations[from..]` of layer `layer` to `start` (the shape
+/// after the first `from` operations), adding warnings to `warnings`.
+/// Returns the shape after all of them and, when there was at least one
+/// to apply, the shape just before the last one: the checkpoint that lets
+/// a drag or a Last edit change replay only that one (decision 0042).
+fn apply_from(
+    start: &Arc<Mesh>,
+    layer: usize,
+    operations: &[Operation],
+    from: usize,
+    warnings: &mut Vec<StackWarning>,
+) -> (Arc<Mesh>, Option<Arc<Mesh>>) {
+    if from >= operations.len() {
+        return (Arc::clone(start), None);
+    }
+    let last = operations.len() - 1;
+    let mut previous = (from == last).then(|| Arc::clone(start));
+    let mut mesh = (**start).clone();
+    for (op_index, operation) in operations.iter().enumerate().skip(from) {
+        if op_index == last && previous.is_none() {
+            // One extra copy, so the next change to the last edit is quick.
+            previous = Some(Arc::new(mesh.clone()));
+        }
+        let applied = operation.apply(&mut mesh);
+        if applied.missing > 0 || applied.found_again {
+            warnings.push(StackWarning {
+                layer,
+                operation: op_index,
+                missing: applied.missing,
+                found_again: applied.found_again,
+            });
+        }
+    }
+    (Arc::new(mesh), previous)
+}
+
+/// Evaluates layer `index` on top of `below`, reusing what `cached` (the
+/// same layer's last result on the same shape below) still has right.
+/// Returns the new cached layer and how many operations were applied.
+fn evaluate_layer(
+    below: &Arc<Mesh>,
+    index: usize,
+    layer: &Layer,
+    cached: Option<CachedLayer>,
+) -> (CachedLayer, usize) {
+    if !layer.enabled || layer.operations.is_empty() {
+        let cached = CachedLayer {
+            layer: layer.clone(),
+            mesh: Arc::clone(below),
+            previous: None,
+            warnings: Vec::new(),
+        };
+        return (cached, 0);
+    }
+    // Where to start: after the longest run of operations that is still
+    // the same, from the nearest shape the cache kept (none, all but the
+    // last, or all of them).
+    let (start, from, kept_previous, mut warnings) = match cached {
+        Some(old) if old.layer.enabled => {
+            let same = old
+                .layer
+                .operations
+                .iter()
+                .zip(&layer.operations)
+                .take_while(|(a, b)| a == b)
+                .count();
+            let kept = old.layer.operations.len();
+            let resume = if same == kept {
+                // Everything it had is still right; its checkpoint too.
+                Some((old.mesh, kept, old.previous))
+            } else if kept > 0 && same == kept - 1 {
+                old.previous.map(|previous| (previous, kept - 1, None))
+            } else {
+                None
+            };
+            match resume {
+                Some((mesh, from, kept_previous)) => {
+                    let warnings = old
+                        .warnings
+                        .into_iter()
+                        .filter(|w| w.operation < from)
+                        .collect();
+                    (mesh, from, kept_previous, warnings)
+                }
+                None => (Arc::clone(below), 0, None, Vec::new()),
+            }
+        }
+        _ => (Arc::clone(below), 0, None, Vec::new()),
+    };
+    let (mesh, previous) = apply_from(&start, index, &layer.operations, from, &mut warnings);
+    let applied = layer.operations.len() - from;
+    // Nothing new applied: the checkpoint is still the one it had, if the
+    // layer is as long as before (after an undo it isn't known).
+    let previous = if applied == 0 {
+        kept_previous
+    } else {
+        previous
+    };
+    (
+        CachedLayer {
+            layer: layer.clone(),
+            mesh,
+            previous,
+            warnings,
+        },
+        applied,
+    )
+}
+
+/// Evaluates `layers` from `from` upward on top of what `out` already
+/// holds (or `input`), adding each layer's result to `out`. `first` is the
+/// cached result of layer `from`, whose checkpoints may still be usable.
+/// Returns how many operations were applied.
+fn evaluate_layers(
+    input: &Arc<Mesh>,
+    layers: &[Layer],
+    from: usize,
+    mut first: Option<CachedLayer>,
+    out: &mut Vec<CachedLayer>,
+) -> usize {
     let mut below = out
         .last()
         .map_or_else(|| Arc::clone(input), |l| Arc::clone(&l.mesh));
+    let mut applied = 0;
     for (index, layer) in layers.iter().enumerate().skip(from) {
-        let mut warnings = Vec::new();
-        let mesh = if layer.enabled && !layer.operations.is_empty() {
-            let mut mesh = (*below).clone();
-            for (op_index, operation) in layer.operations.iter().enumerate() {
-                let applied = operation.apply(&mut mesh);
-                if applied.missing > 0 || applied.found_again {
-                    warnings.push(StackWarning {
-                        layer: index,
-                        operation: op_index,
-                        missing: applied.missing,
-                        found_again: applied.found_again,
-                    });
-                }
-            }
-            Arc::new(mesh)
-        } else {
-            Arc::clone(&below)
-        };
-        below = Arc::clone(&mesh);
-        out.push(CachedLayer {
-            layer: layer.clone(),
-            mesh,
-            warnings,
-        });
+        let (cached, count) = evaluate_layer(&below, index, layer, first.take());
+        applied += count;
+        below = Arc::clone(&cached.mesh);
+        out.push(cached);
     }
+    applied
 }
 
 /// What the cache had to work out on its last evaluation of an object.
@@ -551,8 +650,9 @@ pub(crate) enum Rebuilt {
     Nothing,
     /// The base and every layer.
     Everything,
-    /// The layers from this one upward.
-    From(usize),
+    /// The layers from `layer` upward, applying `operations` operations
+    /// in all (the rest came from checkpoints).
+    From { layer: usize, operations: usize },
 }
 
 /// One layer's cached result.
@@ -560,7 +660,11 @@ pub(crate) enum Rebuilt {
 struct CachedLayer {
     /// The layer as it was evaluated, to tell when it changes.
     layer: Layer,
+    /// The shape after all its operations.
     mesh: Arc<Mesh>,
+    /// The shape after all but its last operation, when known: dragging or
+    /// changing the last edit starts from here (decision 0042).
+    previous: Option<Arc<Mesh>>,
     warnings: Vec<StackWarning>,
 }
 
@@ -620,15 +724,25 @@ impl StackCache {
                 entry.last = Rebuilt::Nothing;
                 return Some(entry.result());
             }
-            entry.layers.truncate(first_changed);
-            let base_mesh = Arc::clone(&entry.base_mesh);
-            evaluate_layers(&base_mesh, &stack.layers, first_changed, &mut entry.layers);
-            entry.last = Rebuilt::From(first_changed);
+            // The changed layer itself can start from its checkpoints; the
+            // layers above it sit on a new shape and start over.
+            let mut old = entry.layers.split_off(first_changed).into_iter();
+            let operations = evaluate_layers(
+                &entry.base_mesh.clone(),
+                &stack.layers,
+                first_changed,
+                old.next(),
+                &mut entry.layers,
+            );
+            entry.last = Rebuilt::From {
+                layer: first_changed,
+                operations,
+            };
             return Some(entry.result());
         }
         let base_mesh = base_mesh(base)?;
         let mut layers = Vec::new();
-        evaluate_layers(&base_mesh, &stack.layers, 0, &mut layers);
+        evaluate_layers(&base_mesh, &stack.layers, 0, None, &mut layers);
         let entry = Entry {
             base: base.clone(),
             base_mesh,

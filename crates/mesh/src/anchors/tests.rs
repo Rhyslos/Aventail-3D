@@ -134,3 +134,72 @@ fn flat_shapes_keep_their_height() {
     assert!(anchors.memory_size() > 0);
     assert!(Anchors::record(&Mesh::new(), ElementKind::Points, &[]).is_none());
 }
+
+/// A long strip of narrow polygons: each is narrower than the shape-wide
+/// tolerance, as on a very dense mesh.
+fn narrow_strip() -> Mesh {
+    let mut mesh = Mesh::new();
+    let columns: Vec<[VertexId; 2]> = (0..=2000)
+        .map(|i| {
+            let x = i as f32 * 0.5 - 500.0;
+            [
+                mesh.add_vertex(Vec3::new(x, 0.0, 0.0)).unwrap(),
+                mesh.add_vertex(Vec3::new(x, 1.0, 0.0)).unwrap(),
+            ]
+        })
+        .collect();
+    for pair in columns.windows(2) {
+        mesh.add_face(&[pair[0][0], pair[1][0], pair[1][1], pair[0][1]])
+            .unwrap();
+    }
+    mesh
+}
+
+#[test]
+fn on_a_dense_mesh_a_polygon_finds_only_itself() {
+    let strip = narrow_strip();
+    let middle = strip
+        .faces()
+        .find(|(_, c)| {
+            let x: f32 = c.iter().map(|v| strip.position(*v).unwrap().x).sum::<f32>() / 4.0;
+            x.abs() < 0.3
+        })
+        .map(|(_, c)| c.to_vec())
+        .unwrap();
+    let anchors =
+        Anchors::record(&strip, ElementKind::Polygons, std::slice::from_ref(&middle)).unwrap();
+    let (found, missing) = anchors.find(&strip, &Topology::new(&strip));
+    assert_eq!(missing, 0);
+    let mut expected = middle;
+    expected.sort();
+    assert_eq!(found, expected, "not its neighbours too");
+}
+
+#[test]
+fn on_a_dense_mesh_an_edge_finds_only_itself() {
+    let strip = narrow_strip();
+    let topology = Topology::new(&strip);
+    let edge = topology
+        .edges()
+        .find(|e| {
+            let (a, b) = e.ends();
+            let (pa, pb) = (strip.position(a).unwrap(), strip.position(b).unwrap());
+            (pa.x - pb.x).abs() > 0.1 && pa.x.abs() < 0.3 && pa.y > 0.0
+        })
+        .unwrap();
+    let (a, b) = edge.ends();
+    let anchors = Anchors::record(&strip, ElementKind::Edges, &[vec![a, b]]).unwrap();
+    let (found, missing) = anchors.find(&strip, &topology);
+    assert_eq!(missing, 0);
+    assert_eq!(found, vec![a.min(b), a.max(b)]);
+}
+
+#[test]
+fn every_point_of_a_dense_mesh_is_found_in_its_own_place() {
+    let strip = narrow_strip();
+    let all: Vec<VertexId> = strip.vertices().map(|(v, _)| v).collect();
+    let anchors = Anchors::record(&strip, ElementKind::Points, std::slice::from_ref(&all)).unwrap();
+    let (found, missing) = anchors.find(&strip, &Topology::new(&strip));
+    assert_eq!(missing, 0);
+    assert_eq!(found, all);
+}

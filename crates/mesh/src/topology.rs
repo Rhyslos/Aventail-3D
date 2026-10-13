@@ -202,6 +202,39 @@ impl Topology {
         self.edges.binary_search(&edge).ok()
     }
 
+    /// Roughly how many bytes the topology of a mesh with this many point
+    /// slots, face slots and corners will take, before it is worked out:
+    /// one edge per two corners (a closed surface; open ones have a few
+    /// more), every corner used once by each list that follows corners.
+    pub(crate) fn estimate(points: usize, faces: usize, corners: usize) -> usize {
+        use std::mem::size_of;
+        let edges = corners / 2 + 1;
+        size_of::<Self>()
+            + edges * (size_of::<EdgeKey>() + size_of::<u32>())
+            + corners * size_of::<EdgeUse>()
+            + (points + 1) * 2 * size_of::<u32>()
+            + edges * 2 * size_of::<EdgeKey>()
+            + corners * size_of::<FaceId>()
+            + (faces + 1) * size_of::<u32>()
+            + corners * size_of::<EdgeKey>()
+    }
+
+    /// Roughly how many bytes the topology takes up: what its lists hold
+    /// room for. On a big mesh it is several times the mesh itself.
+    pub fn memory_size(&self) -> usize {
+        use std::mem::size_of;
+        size_of::<Self>()
+            + self.edges.capacity() * size_of::<EdgeKey>()
+            + self.use_starts.capacity() * size_of::<u32>()
+            + self.uses.capacity() * size_of::<EdgeUse>()
+            + self.vertex_edge_starts.capacity() * size_of::<u32>()
+            + self.vertex_edges.capacity() * size_of::<EdgeKey>()
+            + self.vertex_face_starts.capacity() * size_of::<u32>()
+            + self.vertex_faces.capacity() * size_of::<FaceId>()
+            + self.face_starts.capacity() * size_of::<u32>()
+            + self.face_edges.capacity() * size_of::<EdgeKey>()
+    }
+
     /// Every edge, in order.
     pub fn edges(&self) -> impl Iterator<Item = EdgeKey> + '_ {
         self.edges.iter().copied()

@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Hollow bevels.** The bevel's Profile now goes from 100% down to -100%: 100% is round, 0% is flat, and below 0 the bevel curves inward instead, like a cove moulding.
 - **Bevel.** In Edges mode, select edges, press **V** (or pick Bevel from the E menu or the Mesh menu) and drag away from them: the edges are cut away and replaced by a strip, flat (a chamfer) or rounded. In Points mode, V cuts corners off. **Segments** and **Profile** (round to flat) are set in the Attributes panel before the drag, and the last bevel's Width, Segments and Profile can be changed afterwards. Where bevelled edges meet, a corner polygon closes the gap.
 - **Extrude and inset.** In Polygons mode, press **D** (Extrude) or **I** (Inset), or pick them from the E menu or the Mesh menu, and drag anywhere in the viewport. Extrude follows your drag: drag the way the polygons face to bring them out, the other way to push them in, and it builds walls behind them. Start the drag on another polygon to extrude that one without clicking it first. Inset follows your pull too: drag towards the middle of the polygons and they shrink. Inset shrinks them inward with a ring of new polygons around them. Shift gives fine steps, Esc or a right-click cancels, and each drag is one undo step. The polygons stay selected, so you can drag again to carry on.
 - **Extrude border edges**: in Edges mode, D grows a flat strip of polygons from edges on an open border, like extending a plane; the selection moves to the new edge.
@@ -40,6 +41,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **Edits stay quick however long the history.** Dragging, adding an edit, undoing it and changing the last edit now only work out that one edit, instead of every edit since the shape was made. A small prop with 200 edits went from 26 ms per frame to under a tenth of a millisecond; a 3-million-polygon shape from 3.5 s per frame to 35 ms.
+- **Faster bevels on big selections**: bevelling every edge of a 32,000-polygon sphere went from 65 s to 2 s, and every point from 5 minutes to a tenth of a second.
+- **Edits find their elements again much faster** after a shape's settings change (1,000 points on a 3-million-polygon shape: 19 s to 0.15 s), and on dense shapes an edited polygon no longer picks up its neighbours.
+- No pause when you let go of a drag on a heavy shape: hovering highlights again a moment later instead of making the window wait.
 - Projects are saved in **file format version 4**, which can hold bevels. Older projects still open.
 - Projects are saved in **file format version 3**, which can hold extrudes and insets. Older projects still open; projects saved now need this version of the app or newer.
 - Wireframes too dense to see (a heavy shape from afar) fade out instead of covering the shape; zoom in and the edges come back. A selected heavy shape keeps a faint tint of the accent colour.
@@ -58,6 +63,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Undo's memory use is counted more truthfully, including the extra data the app keeps about how each shape's parts connect, so the history stays within its budget on huge shapes.
 - **A project can no longer be saved in a state the app can't open again.** Every save and backup copy is now checked to open before it replaces the previous one; if it wouldn't, the save stops with a message and your previous save stays as it was. Two ways this could happen were found and fixed: bevelling two polygons back to back, and moving points of a shape whose size was set to 0 (a size of 0 in the Coordinates panel is now ignored).
 - Saving no longer writes through links placed beside a project, so a project folder from a zip or download can't make Save overwrite another file.
 - Opening a project with a damaged hard edge (which only affects shading) now leaves that edge out instead of refusing the whole project.

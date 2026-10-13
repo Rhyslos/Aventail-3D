@@ -204,12 +204,33 @@ impl ComponentTracker {
         scene
     }
 
+    /// Whether a drawn shape's index is still being built in the
+    /// background and the scene would have to wait for it.
+    fn waiting_on_background(&self, drawing: &SceneDrawing) -> bool {
+        let current = self
+            .scene
+            .as_ref()
+            .is_some_and(|(v, _)| *v == drawing.version);
+        !current
+            && drawing.items.iter().any(|item| {
+                self.building.get(&item.id).is_some_and(|(mesh, handle)| {
+                    Arc::ptr_eq(mesh, &item.mesh) && !handle.is_finished()
+                })
+            })
+    }
+
     fn find(
         &mut self,
         kind: ElementKind,
         drawing: &SceneDrawing,
         pointer: ViewPointer,
     ) -> Option<ObjectElement> {
+        // Hovering never waits for a heavy shape's index (it would stall
+        // the moment a drag ends): nothing is highlighted until it is
+        // ready. Clicks still wait, since they need the answer.
+        if self.waiting_on_background(drawing) {
+            return None;
+        }
         let found =
             self.pick_scene(drawing)
                 .under(kind, &pointer.camera, pointer.size, pointer.at)?;
@@ -507,6 +528,28 @@ mod tests {
         let light = heavy_drawing(2, Arc::new(PrimitiveKind::Cube.standard().mesh()));
         tracker.prepare(&light);
         assert!(tracker.building.is_empty());
+    }
+
+    #[test]
+    fn hovering_does_not_wait_for_a_background_index() {
+        let ball = Arc::new(mesh::samples::heavy_ball(60_000, 100.0));
+        let drawing = heavy_drawing(1, Arc::clone(&ball));
+        let mut tracker = ComponentTracker::default();
+        tracker.prepare(&drawing);
+        let pointer = pointer_at(Vec3::new(0.0, -100.0, 100.0));
+        let busy = tracker.preparing();
+        tracker.update(Mode::Polygons, &drawing, &Document::new(), Some(pointer));
+        if busy && tracker.preparing() {
+            assert_eq!(tracker.hovered(), None, "nothing until it is ready");
+            assert_eq!(tracker.building.len(), 1, "still building, not joined");
+        }
+        while tracker.preparing() {
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+        let mut later = drawing.clone();
+        later.version = 1;
+        tracker.update(Mode::Polygons, &later, &Document::new(), Some(pointer));
+        assert!(tracker.hovered().is_some(), "found once it is ready");
     }
 
     #[test]

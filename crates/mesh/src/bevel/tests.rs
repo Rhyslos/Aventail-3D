@@ -117,6 +117,20 @@ fn more_segments_round_the_edge() {
             .fold(f32::MIN, f32::max)
     };
     assert!(reach(&round) > reach(&flat) + 1.0);
+    // A hollow profile curves the other way, inward past the flat one.
+    let mut hollow = cube();
+    bevel_edges(&mut hollow, &[edge], shape(10.0, 4, -1.0));
+    closed_and_clean(&hollow);
+    let inner = |m: &Mesh| {
+        // The deepest point across the strip, at the edge's ends: on the
+        // flat chamfer every point lies on the straight line.
+        m.vertices()
+            .filter(|(_, p)| p.x.abs() > 49.0)
+            .map(|(_, p)| Vec3::new(0.0, -1.0, 1.0).normalize().dot(p))
+            .filter(|d| *d > 80.0)
+            .fold(f32::MAX, f32::min)
+    };
+    assert!(inner(&hollow) < inner(&flat) - 1.0);
 }
 
 #[test]
@@ -292,6 +306,7 @@ fn missing_repeated_and_broken_input() {
     // Silly settings are brought within limits.
     let s = shape(-4.0, 0, 7.0).clamped().unwrap();
     assert_eq!((s.width, s.segments, s.profile), (0.0, 1, 1.0));
+    assert_eq!(shape(1.0, 1, -9.0).clamped().unwrap().profile, -1.0);
     assert_eq!(
         shape(1.0, 1000, 0.5).clamped().unwrap().segments,
         MAX_SEGMENTS
