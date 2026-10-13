@@ -506,6 +506,15 @@ At the project lead's request (2026-10-13): a built-in texture painter, so no Su
 
 Each style can have its own starting layout and presets.
 
+**Hand-painted first.** The project lead's priority: stylised, hand-painted work is the main focus and gets built first. Realism follows and stays the lesser focus. The aim is to be exceptional for creative, artistic assets and good enough for realism.
+
+**Outlines for cartoon looks.** One switch gives an object an outline:
+- **In the viewport:** a live outline with a chosen width and colour.
+- **On export,** two ways that can be combined:
+  - an *inverted-hull* outline as real geometry (a slightly larger, inside-out copy that renders black), which works in every engine with no shader;
+  - a ready-made outline shader file for each engine (a Godot shader first; Unity and Unreal after), set up by the engine export paths.
+- Settings can vary the width per area (thinner on small details) and use vertex colours or a painted mask.
+
 ### Later / maybe
 - Make the UI our own (driven by real use)
 - FBX export, LOD helpers, baking preview
