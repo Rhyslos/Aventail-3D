@@ -480,6 +480,7 @@ Lua scripting so people can add their own tools and automate work. Full design i
 
 ### Phase 10 — Rigging, skinning and animation (far future)
 Starts only once modelling and UVs are mature. Rough contents, to be designed properly when the time comes:
+- **Aim (project lead, 2026-10-13):** every animation tool is for game developers, helping them animate for games in both first and third person: first-person arms and weapons, third-person characters, and loops and clips that export cleanly to engines.
 - Joints/bones in the Object Manager hierarchy; bone display and editing
 - Skinning: bind mesh to skeleton, weight painting, weight tools (normalize, mirror, smooth)
 - Animation: keyframes on transforms, timeline and dope sheet, curve editor, playback in the viewport
