@@ -762,13 +762,14 @@ fn profile_row(ui: &mut Ui, profile: &mut f32) -> stepper::Touched {
     label(
         ui,
         "Profile",
-        "The shape across the bevel: 100% is round, 0% is flat. Needs 2 or more segments to show.",
+        "The shape across the bevel: 100% is round, 0% is flat, -100% curves inward \
+         (hollow, like a cove). Needs 2 or more segments to show.",
     );
     let mut percent = *profile * 100.0;
-    let response = ui.add(egui::Slider::new(&mut percent, 0.0..=100.0).suffix("%"));
+    let response = ui.add(egui::Slider::new(&mut percent, -100.0..=100.0).suffix("%"));
     response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Slider, true, "Profile"));
     if response.changed() {
-        *profile = (percent / 100.0).clamp(0.0, 1.0);
+        *profile = (percent / 100.0).clamp(-1.0, 1.0);
     }
     stepper::Touched {
         changed: response.changed(),

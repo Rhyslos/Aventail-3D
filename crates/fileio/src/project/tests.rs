@@ -808,6 +808,22 @@ fn bevels_are_kept_and_checked() {
         panic!("a bevel");
     };
     assert_eq!(shape.segments, mesh::bevel::MAX_SEGMENTS);
+    // Hollow profiles (below 0) are kept; beyond -100% is brought to it.
+    for (stored, opened_as) in [(-0.5, -0.5), (-1.0, -1.0), (-7.0, -1.0), (3.0, 1.0)] {
+        let mut file = good.clone();
+        if let v4::OperationV4::BevelEdges { profile, .. } =
+            &mut file.objects[cube].layers[0].operations[ops - 2]
+        {
+            *profile = stored;
+        }
+        let opened = from_bytes(&file_of_v4(&file)).unwrap();
+        let id = *opened.scene().children(None).last().unwrap();
+        let ops_now = &opened.scene().object(id).unwrap().stack.layers()[0].operations;
+        let Operation::BevelEdges { shape, .. } = &ops_now[ops - 2] else {
+            panic!("a bevel");
+        };
+        assert_eq!(shape.profile, opened_as, "stored {stored}");
+    }
 }
 
 /// Writes the current version's sample. Run only by hand, when a new

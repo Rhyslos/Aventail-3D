@@ -252,7 +252,14 @@ fn a_new_edit_reevaluates_only_its_layer_and_a_new_base_everything() {
     let _ = doc.scene().evaluated(id);
     record(&mut doc, id, lift(&[1], 5.0));
     let _ = doc.scene().evaluated(id);
-    assert_eq!(doc.scene().last_rebuilt(id), Some(Rebuilt::From(0)));
+    assert_eq!(
+        doc.scene().last_rebuilt(id),
+        Some(Rebuilt::From {
+            layer: 0,
+            operations: 1
+        }),
+        "only the new edit is applied"
+    );
     let mut wide = CubeParams::default();
     wide.size.x = 250.0;
     doc.execute(Command::SetPrimitive {
@@ -291,8 +298,11 @@ fn changing_an_upper_layer_keeps_the_layers_below_it() {
     let second = cache.evaluate(id, &base, &stack, &context).unwrap();
     assert_eq!(
         cache.last_rebuilt(id),
-        Some(Rebuilt::From(1)),
-        "only the top"
+        Some(Rebuilt::From {
+            layer: 1,
+            operations: 1
+        }),
+        "only the new edit on the top"
     );
     assert_eq!(
         second.mesh.position(VertexId::from_raw(0)),
@@ -301,7 +311,14 @@ fn changing_an_upper_layer_keeps_the_layers_below_it() {
     // Changing the lower layer evaluates both again.
     stack.layers[0].operations.clear();
     let third = cache.evaluate(id, &base, &stack, &context).unwrap();
-    assert_eq!(cache.last_rebuilt(id), Some(Rebuilt::From(0)));
+    assert_eq!(
+        cache.last_rebuilt(id),
+        Some(Rebuilt::From {
+            layer: 0,
+            operations: 2
+        }),
+        "the top layer starts over on the new shape"
+    );
     assert_eq!(
         third.mesh.position(VertexId::from_raw(0)),
         Some(start + Vec3::Z * 101.0)
@@ -916,4 +933,140 @@ fn edits_holding_numbers_that_arent_real_are_refused() {
         }),
         Err(SceneError::NotANumber)
     );
+}
+
+// ---------------------------------------------------------- checkpoints ---
+
+fn one_layer(operations: Vec<Operation>) -> Stack {
+    let mut layer = Layer::new("Edits");
+    layer.operations = operations;
+    Stack {
+        layers: vec![layer],
+    }
+}
+
+fn applied(cache: &StackCache, id: ObjectId) -> usize {
+    match cache.last_rebuilt(id) {
+        Some(Rebuilt::From { operations, .. }) => operations,
+        Some(Rebuilt::Nothing) => 0,
+        other => panic!("unexpected {other:?}"),
+    }
+}
+
+#[test]
+fn changing_the_last_edit_replays_only_that_edit() {
+    let mut cache = StackCache::default();
+    let id = ObjectId(1);
+    let base = ObjectKind::Primitive(cube());
+    let context = EvalContext::default();
+    let mut ops: Vec<Operation> = (0..20).map(|i| lift(&[i % 8], 1.0)).collect();
+    let _ = cache.evaluate(id, &base, &one_layer(ops.clone()), &context);
+    // A drag: the last edit changes every frame.
+    for frame in 1..5 {
+        *ops.last_mut().unwrap() = lift(&[3], 1.0 + frame as f32);
+        let now = cache
+            .evaluate(id, &base, &one_layer(ops.clone()), &context)
+            .unwrap();
+        assert_eq!(applied(&cache, id), 1, "frame {frame}");
+        let fresh = StackCache::default()
+            .evaluate(id, &base, &one_layer(ops.clone()), &context)
+            .unwrap();
+        assert_eq!(now, fresh, "the same shape as working it all out");
+    }
+}
+
+#[test]
+fn a_new_edit_after_opening_and_then_its_drag_apply_one_each() {
+    let mut cache = StackCache::default();
+    let id = ObjectId(1);
+    let base = ObjectKind::Primitive(cube());
+    let context = EvalContext::default();
+    let mut ops: Vec<Operation> = (0..10).map(|i| lift(&[i % 8], 1.0)).collect();
+    let _ = cache.evaluate(id, &base, &one_layer(ops.clone()), &context);
+    ops.push(lift(&[0], 1.0));
+    let _ = cache.evaluate(id, &base, &one_layer(ops.clone()), &context);
+    assert_eq!(applied(&cache, id), 1, "the new edit");
+    *ops.last_mut().unwrap() = lift(&[0], 7.0);
+    let _ = cache.evaluate(id, &base, &one_layer(ops.clone()), &context);
+    assert_eq!(applied(&cache, id), 1, "dragging it");
+}
+
+#[test]
+fn changing_an_earlier_edit_replays_from_the_start() {
+    let mut cache = StackCache::default();
+    let id = ObjectId(1);
+    let base = ObjectKind::Primitive(cube());
+    let context = EvalContext::default();
+    let mut ops: Vec<Operation> = (0..6).map(|i| lift(&[i], 1.0)).collect();
+    let _ = cache.evaluate(id, &base, &one_layer(ops.clone()), &context);
+    ops[2] = lift(&[2], 9.0);
+    let now = cache
+        .evaluate(id, &base, &one_layer(ops.clone()), &context)
+        .unwrap();
+    assert_eq!(applied(&cache, id), 6);
+    let fresh = StackCache::default()
+        .evaluate(id, &base, &one_layer(ops), &context)
+        .unwrap();
+    assert_eq!(now, fresh);
+}
+
+#[test]
+fn undo_uses_the_checkpoint_and_redo_applies_one() {
+    let mut cache = StackCache::default();
+    let id = ObjectId(1);
+    let base = ObjectKind::Primitive(cube());
+    let context = EvalContext::default();
+    let ops: Vec<Operation> = (0..6).map(|i| lift(&[i], 1.0)).collect();
+    let _ = cache.evaluate(id, &base, &one_layer(ops.clone()), &context);
+    let undone = cache
+        .evaluate(id, &base, &one_layer(ops[..5].to_vec()), &context)
+        .unwrap();
+    assert_eq!(applied(&cache, id), 0, "the shape before the last edit");
+    let fresh = StackCache::default()
+        .evaluate(id, &base, &one_layer(ops[..5].to_vec()), &context)
+        .unwrap();
+    assert_eq!(undone, fresh);
+    let _ = cache.evaluate(id, &base, &one_layer(ops.clone()), &context);
+    assert_eq!(applied(&cache, id), 1);
+    // Undoing twice in a row has no checkpoint for the second: all again.
+    let _ = cache.evaluate(id, &base, &one_layer(ops[..5].to_vec()), &context);
+    let _ = cache.evaluate(id, &base, &one_layer(ops[..4].to_vec()), &context);
+    assert_eq!(applied(&cache, id), 4);
+}
+
+#[test]
+fn checkpoints_keep_warnings_right() {
+    let mut cache = StackCache::default();
+    let id = ObjectId(1);
+    let base = ObjectKind::Primitive(cube());
+    let context = EvalContext::default();
+    // Point 999 doesn't exist: a warning for the first and the last edit.
+    let mut ops = vec![lift(&[999], 1.0), lift(&[0], 1.0), lift(&[999], 1.0)];
+    let first = cache
+        .evaluate(id, &base, &one_layer(ops.clone()), &context)
+        .unwrap();
+    assert_eq!(first.warnings.len(), 2);
+    ops[2] = lift(&[1], 1.0);
+    let second = cache
+        .evaluate(id, &base, &one_layer(ops.clone()), &context)
+        .unwrap();
+    assert_eq!(applied(&cache, id), 1);
+    assert_eq!(second.warnings.len(), 1, "the last edit's warning is gone");
+    assert_eq!(second.warnings[0].operation, 0);
+}
+
+#[test]
+fn switching_a_layer_off_and_on_gives_the_same_shape() {
+    let mut cache = StackCache::default();
+    let id = ObjectId(1);
+    let base = ObjectKind::Primitive(cube());
+    let context = EvalContext::default();
+    let mut stack = one_layer((0..4).map(|i| lift(&[i], 1.0)).collect());
+    let on = cache.evaluate(id, &base, &stack, &context).unwrap();
+    stack.layers[0].enabled = false;
+    let off = cache.evaluate(id, &base, &stack, &context).unwrap();
+    assert_eq!(*off.mesh, cube().mesh());
+    stack.layers[0].enabled = true;
+    let again = cache.evaluate(id, &base, &stack, &context).unwrap();
+    assert_eq!(on, again);
 }

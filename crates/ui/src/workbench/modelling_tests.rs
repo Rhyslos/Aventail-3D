@@ -676,6 +676,21 @@ fn segments_and_profile_are_set_before_and_changed_after() {
 }
 
 #[test]
+fn a_hollow_profile_is_recorded_as_set() {
+    let mut harness = bevel_ready(Key::Num2, top_right_edge);
+    harness.state_mut().workbench.attributes.bevel.segments = 3;
+    harness.state_mut().workbench.attributes.bevel.profile = -1.0;
+    harness.run();
+    let from = edge_middle(&harness);
+    drag_by(&mut harness, from, egui::vec2(0.0, -60.0));
+    let Some(Operation::BevelEdges { shape: s, .. }) = last_operation(&harness) else {
+        panic!("a bevel");
+    };
+    assert_eq!((s.segments, s.profile), (3, -1.0));
+    assert_eq!(shape(&harness).face_count(), 6 + 3);
+}
+
+#[test]
 fn a_corner_point_bevels_too() {
     let mut harness = bevel_ready(Key::Num1, |mesh| {
         let corner = mesh

@@ -16,9 +16,9 @@
 //!   face split into four moves as a whole.
 
 use crate::topology::Topology;
-use crate::{Bounds, ElementKind, Mesh, VertexId};
+use crate::{Bounds, ElementKind, FaceId, Mesh, VertexId};
 use glam::{Vec2, Vec3};
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 /// Where an edit's elements were, in the shape it was made on.
 #[derive(Debug, Clone, PartialEq)]
@@ -122,22 +122,28 @@ impl Anchors {
 
     /// The points of `mesh` at the anchored elements, and how many of the
     /// anchored elements weren't found.
+    ///
+    /// The points are sorted into a grid first, so each element only looks
+    /// at the points near it rather than the whole mesh. Edges and polygons
+    /// also tighten "the same place" to a quarter of their own shortest
+    /// side, so on a dense mesh a polygon doesn't pick up its neighbours.
     pub fn find(&self, mesh: &Mesh, topology: &Topology) -> (Vec<VertexId>, usize) {
         let Some(now) = mesh.bounds() else {
             return (Vec::new(), self.element_count());
         };
         let tolerance = Self::tolerance(&now);
+        let grid = PointGrid::new(mesh, &now, tolerance);
         let mut found = BTreeSet::new();
         let mut missing = 0;
         match &self.shape {
             AnchorShape::Points(places) => {
                 for place in places {
                     let place = self.moved(*place, &now);
-                    let nearest = mesh
-                        .vertices()
+                    let nearest = grid
+                        .near(mesh, place, place, tolerance)
                         .map(|(v, p)| (v, p.distance(place)))
                         .filter(|(_, d)| *d <= tolerance)
-                        .min_by(|a, b| a.1.total_cmp(&b.1));
+                        .min_by(|a, b| a.1.total_cmp(&b.1).then(a.0.cmp(&b.0)));
                     match nearest {
                         Some((v, _)) => {
                             found.insert(v);
@@ -149,21 +155,24 @@ impl Anchors {
             AnchorShape::Edges(edges) => {
                 for [a, b] in edges {
                     let (a, b) = (self.moved(*a, &now), self.moved(*b, &now));
-                    let on = |v: VertexId| {
-                        mesh.position(v)
-                            .is_some_and(|p| distance_to_segment(p, a, b) <= tolerance)
-                    };
-                    let before = found.len();
+                    let tolerance = tighter(tolerance, a.distance(b));
+                    let on: HashSet<VertexId> = grid
+                        .near(mesh, a.min(b), a.max(b), tolerance)
+                        .filter(|(_, p)| distance_to_segment(*p, a, b) <= tolerance)
+                        .map(|(v, _)| v)
+                        .collect();
                     let mut any = false;
-                    for edge in topology.edges() {
-                        let (x, y) = edge.ends();
-                        if on(x) && on(y) {
-                            found.insert(x);
-                            found.insert(y);
-                            any = true;
+                    for x in &on {
+                        for edge in topology.vertex_edges(*x) {
+                            let (lo, hi) = edge.ends();
+                            if on.contains(&lo) && on.contains(&hi) {
+                                found.insert(lo);
+                                found.insert(hi);
+                                any = true;
+                            }
                         }
                     }
-                    if !any && found.len() == before {
+                    if !any {
                         missing += 1;
                     }
                 }
@@ -175,13 +184,30 @@ impl Anchors {
                         missing += 1;
                         continue;
                     };
-                    let mut any = false;
-                    for (_, face) in mesh.faces() {
-                        let inside = face.iter().all(|v| {
-                            mesh.position(*v)
-                                .is_some_and(|p| flat.contains(p, tolerance))
+                    let shortest = (0..corners.len())
+                        .map(|i| corners[i].distance(corners[(i + 1) % corners.len()]))
+                        .fold(f32::INFINITY, f32::min);
+                    let tolerance = tighter(tolerance, shortest);
+                    let (lo, hi) = corners
+                        .iter()
+                        .fold((corners[0], corners[0]), |(lo, hi), c| {
+                            (lo.min(*c), hi.max(*c))
                         });
-                        if inside {
+                    let inside: HashSet<VertexId> = grid
+                        .near(mesh, lo, hi, tolerance)
+                        .filter(|(_, p)| flat.contains(*p, tolerance))
+                        .map(|(v, _)| v)
+                        .collect();
+                    let faces: BTreeSet<FaceId> = inside
+                        .iter()
+                        .flat_map(|v| topology.vertex_faces(*v).iter().copied())
+                        .collect();
+                    let mut any = false;
+                    for face in faces {
+                        let Some(face) = mesh.face(face) else {
+                            continue;
+                        };
+                        if face.iter().all(|v| inside.contains(v)) {
                             found.extend(face.iter().copied());
                             any = true;
                         }
@@ -215,6 +241,88 @@ impl Anchors {
                 .sum(),
         };
         std::mem::size_of_val(self.points.as_slice()) + shape
+    }
+}
+
+/// "The same place" for an element whose shortest side is `shortest`: at
+/// most a quarter of that side, so neighbouring elements on a dense mesh
+/// don't count (a zero-length side keeps the shape-wide tolerance).
+fn tighter(tolerance: f32, shortest: f32) -> f32 {
+    if shortest.is_finite() && shortest > 1e-9 {
+        tolerance.min(shortest * 0.25)
+    } else {
+        tolerance
+    }
+}
+
+/// A mesh's points sorted into equal boxes, to find the points near a
+/// place without looking at all of them.
+struct PointGrid {
+    min: Vec3,
+    cell: f32,
+    cells: HashMap<[i32; 3], Vec<VertexId>>,
+    count: usize,
+}
+
+impl PointGrid {
+    fn new(mesh: &Mesh, bounds: &Bounds, tolerance: f32) -> Self {
+        let count = mesh.vertex_count();
+        // About one box per point along the diagonal's cube root, never
+        // smaller than the tolerance.
+        let diagonal = bounds.size().length();
+        let per_axis = (count.max(1) as f32).cbrt().max(1.0);
+        let cell = (diagonal / per_axis).max(tolerance * 2.0).max(1e-6);
+        let mut grid = Self {
+            min: bounds.min,
+            cell,
+            cells: HashMap::new(),
+            count,
+        };
+        for (v, p) in mesh.vertices() {
+            grid.cells.entry(grid.key(p)).or_default().push(v);
+        }
+        grid
+    }
+
+    fn key(&self, p: Vec3) -> [i32; 3] {
+        let k = ((p - self.min) / self.cell).floor();
+        // Points that aren't numbers, or far outside, land in edge boxes.
+        let clamp = |x: f32| {
+            if x.is_finite() {
+                x.clamp(-1e6, 1e6) as i32
+            } else {
+                0
+            }
+        };
+        [clamp(k.x), clamp(k.y), clamp(k.z)]
+    }
+
+    /// The points (with where they are) in the box from `lo` to `hi`
+    /// widened by `margin`, and perhaps a few more.
+    fn near<'a>(
+        &'a self,
+        mesh: &'a Mesh,
+        lo: Vec3,
+        hi: Vec3,
+        margin: f32,
+    ) -> Box<dyn Iterator<Item = (VertexId, Vec3)> + 'a> {
+        let (a, b) = (self.key(lo - margin), self.key(hi + margin));
+        let boxes: i64 = (0..3)
+            .map(|i| i64::from(b[i]) - i64::from(a[i]) + 1)
+            .product();
+        if boxes > self.count as i64 {
+            // A big search: every point is quicker than every box.
+            return Box::new(mesh.vertices());
+        }
+        Box::new(
+            (a[0]..=b[0])
+                .flat_map(move |x| {
+                    (a[1]..=b[1]).flat_map(move |y| (a[2]..=b[2]).map(move |z| [x, y, z]))
+                })
+                .filter_map(|k| self.cells.get(&k))
+                .flatten()
+                .filter_map(|v| Some((*v, mesh.position(*v)?))),
+        )
     }
 }
 

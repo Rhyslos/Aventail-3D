@@ -2,11 +2,11 @@
 //! (DESIGN.md §4.3).
 //!
 //! These are estimates: they count what each piece holds (names, meshes,
-//! recorded operations) and the fixed size of its parts, but not the
-//! allocator's own overheads. A mesh shared between the scene and the
-//! history is counted in full every time a step holds it, so the history
-//! is, if anything, over-counted: it never takes more memory than the
-//! budget allows.
+//! recorded operations, and a mesh's topology, built or estimated) and the
+//! fixed size of its parts, but not the allocator's own overheads. A mesh
+//! shared between the scene and the history is counted in full every time
+//! a step holds it, so the history is, if anything, over-counted: it never
+//! takes more memory than the budget allows.
 
 use crate::history::Step;
 use crate::object::{Object, ObjectKind};
