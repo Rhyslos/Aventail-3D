@@ -58,6 +58,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **A project can no longer be saved in a state the app can't open again.** Every save and backup copy is now checked to open before it replaces the previous one; if it wouldn't, the save stops with a message and your previous save stays as it was. Two ways this could happen were found and fixed: bevelling two polygons back to back, and moving points of a shape whose size was set to 0 (a size of 0 in the Coordinates panel is now ignored).
+- Saving no longer writes through links placed beside a project, so a project folder from a zip or download can't make Save overwrite another file.
+- Opening a project with a damaged hard edge (which only affects shading) now leaves that edge out instead of refusing the whole project.
+
 - Opening a project while another was open could leave the viewport empty until something changed.
 - On Windows, pressing keys no longer plays the system error sound after the app starts.
 - The accent colour moved from the Window menu, and undo memory from the Edit menu, into the new Settings window.

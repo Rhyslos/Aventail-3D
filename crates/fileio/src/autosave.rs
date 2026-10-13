@@ -134,16 +134,10 @@ impl Session {
 /// thread, which only needs the folder).
 pub fn write_copy_in(folder: &Path, bytes: &[u8], keep: usize) -> io::Result<PathBuf> {
     let numbers = copy_numbers(folder)?;
-    let next = numbers.last().map_or(1, |n| n + 1);
+    let next = numbers.last().map_or(1, |n| n.saturating_add(1));
     let path = folder.join(format!("{COPY_PREFIX}{next}.{COPY_EXTENSION}"));
     // Written beside it first, so a copy is never half-written.
-    let temporary = path.with_extension("tmp");
-    {
-        let mut file = File::create(&temporary)?;
-        io::Write::write_all(&mut file, bytes)?;
-        file.sync_all()?;
-    }
-    std::fs::rename(&temporary, &path)?;
+    crate::project::safe_write(&path, bytes)?;
     let keep = keep.max(1);
     let mut all = numbers;
     all.push(next);

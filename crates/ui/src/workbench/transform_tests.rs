@@ -402,3 +402,45 @@ fn the_attributes_panel_says_when_an_edit_found_its_points_again() {
             .is_none()
     );
 }
+
+#[test]
+fn a_shape_squashed_flat_gets_no_gizmo_for_its_points() {
+    // A regression test from the whole-app review (L2): moving points of
+    // a shape scaled to 0 recorded a move that isn't a number, which
+    // saved but couldn't be opened again.
+    let mut harness = moving_cube();
+    let id = cube(&harness);
+    let mut squashed = harness
+        .state()
+        .workbench
+        .document()
+        .scene()
+        .object(id)
+        .unwrap()
+        .transform;
+    squashed.scale.x = 0.0;
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::SetTransforms(vec![(id, squashed)]))
+        .unwrap();
+    harness.run();
+    press(&mut harness, Key::Num1);
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .select_elements(
+            [(
+                id,
+                scene::ElementSelection::of([scene::Element::Point(scene::VertexId::from_raw(0))]),
+            )],
+            "Select",
+            None,
+        );
+    harness.run();
+    press(&mut harness, Key::W);
+    harness.run();
+    assert!(harness.state().workbench.viewport().gizmo().is_none());
+}

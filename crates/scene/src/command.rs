@@ -317,6 +317,9 @@ impl Run<'_> {
                 Ok(None)
             }
             Command::Record { id, operation } => {
+                if !operation.numbers_are_real() {
+                    return Err(SceneError::NotANumber);
+                }
                 let object = self
                     .scene
                     .object(*id)
@@ -352,6 +355,9 @@ impl Run<'_> {
                 index,
                 operation,
             } => {
+                if !operation.numbers_are_real() {
+                    return Err(SceneError::NotANumber);
+                }
                 let object = self
                     .scene
                     .object(*id)

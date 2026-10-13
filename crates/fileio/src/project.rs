@@ -59,6 +59,10 @@ pub enum ProjectError {
     Damaged(String),
     /// The file says it is larger than any project could be.
     TooLarge,
+    /// Saving was stopped because the saved project wouldn't open again
+    /// (or an edit couldn't be stored): writing it would have lost work.
+    /// The previous save is untouched.
+    WouldNotReopen(String),
     /// The file couldn't be read or written.
     Io {
         /// What was being done ("read", "write").
@@ -81,6 +85,11 @@ impl fmt::Display for ProjectError {
             ),
             Self::Damaged(why) => write!(f, "the file is damaged: {why}"),
             Self::TooLarge => f.write_str("the file is damaged: it claims to be impossibly large"),
+            Self::WouldNotReopen(why) => write!(
+                f,
+                "it wasn't saved, because the saved copy wouldn't open again ({why}). Your \
+                 previous save is untouched; please report this so it can be fixed"
+            ),
             Self::Io {
                 action,
                 path,
@@ -99,9 +108,42 @@ impl std::error::Error for ProjectError {
     }
 }
 
-/// The project file's bytes for `document`.
+/// The project file's bytes for `document`, checked by reading them back
+/// with the same loader that opens projects: bytes that wouldn't open
+/// again are never handed out, so a save can't silently lose a project.
 pub fn to_bytes(document: &Document) -> Result<Vec<u8>, ProjectError> {
+    let bytes = encode(document)?;
+    match from_bytes(&bytes) {
+        Ok(_) => Ok(bytes),
+        Err(why) => Err(ProjectError::WouldNotReopen(why.to_string())),
+    }
+}
+
+/// How many recorded edits each object holds.
+fn edit_counts(document: &Document) -> usize {
+    let scene = document.scene();
+    scene
+        .walk()
+        .iter()
+        .filter_map(|(id, _)| scene.object(*id))
+        .map(|o| o.stack.operation_count())
+        .sum()
+}
+
+/// The project file's bytes for `document`, unchecked.
+fn encode(document: &Document) -> Result<Vec<u8>, ProjectError> {
     let model = v4::ProjectV4::from_document(document);
+    let stored: usize = model
+        .objects
+        .iter()
+        .flat_map(|o| o.layers.iter())
+        .map(|l| l.operations.len())
+        .sum();
+    if stored != edit_counts(document) {
+        return Err(ProjectError::WouldNotReopen(
+            "an edit of a kind this version can't store yet".into(),
+        ));
+    }
     let encoded = postcard::to_stdvec(&model)
         .map_err(|e| ProjectError::Damaged(format!("the scene couldn't be encoded ({e})")))?;
     let body = zstd::bulk::compress(&encoded, ZSTD_LEVEL)
@@ -209,16 +251,20 @@ fn with_suffix(path: &Path, suffix: &str) -> PathBuf {
 
 /// Saves `document` to `path`, safely:
 ///
-/// 1. The project is written to a temporary file beside it
-///    (`name.avtl.tmp`) and read back to check it arrived whole.
-/// 2. The previous save, if any, is copied to `name.avtl.bak`.
-/// 3. The temporary file replaces the project in one step.
+/// 1. The project's bytes are checked to open again (see [`to_bytes`]).
+///    If they wouldn't, nothing is replaced; the bytes go to
+///    `name.avtl.unreadable` for a bug report, and saving fails.
+/// 2. They are written to a new, uniquely named temporary file beside
+///    the project (never one that already exists, so a planted link
+///    can't redirect the write) and read back to check they arrived
+///    whole.
+/// 3. The previous save, if any, becomes `name.avtl.bak` the same way.
+/// 4. The temporary file replaces the project in one step.
 ///
-/// So a crash or a full disk never leaves a half-written project: the old
-/// file stays as it was until the new one is complete.
+/// So a crash, a full disk or a bug never leaves a half-written or
+/// unreadable project: the old file stays as it was until the new one is
+/// complete and known to open.
 pub fn save(path: &Path, document: &Document) -> Result<(), ProjectError> {
-    let bytes = to_bytes(document)?;
-    let temporary = with_suffix(path, ".tmp");
     let io = |action, path: &Path| {
         let path = path.to_path_buf();
         move |source| ProjectError::Io {
@@ -227,37 +273,89 @@ pub fn save(path: &Path, document: &Document) -> Result<(), ProjectError> {
             source,
         }
     };
-    let written = write_and_check(&temporary, &bytes);
-    if let Err(source) = written {
-        let _ = std::fs::remove_file(&temporary);
-        return Err(io("write", path)(source));
+    let bytes = match to_bytes(document) {
+        Ok(bytes) => bytes,
+        Err(error @ ProjectError::WouldNotReopen(_)) => {
+            if let Ok(raw) = encode(document) {
+                let _ = safe_write(&with_suffix(path, ".unreadable"), &raw);
+            }
+            return Err(error);
+        }
+        Err(other) => return Err(other),
+    };
+    if path.exists() {
+        let previous = std::fs::read(path).map_err(io("keep a backup of", path))?;
+        safe_write(&backup_path(path), &previous).map_err(io("keep a backup of", path))?;
     }
-    if path.exists()
-        && let Err(source) = std::fs::copy(path, backup_path(path))
-    {
-        let _ = std::fs::remove_file(&temporary);
-        return Err(io("keep a backup of", path)(source));
-    }
-    std::fs::rename(&temporary, path).map_err(|source| {
-        let _ = std::fs::remove_file(&temporary);
-        io("write", path)(source)
-    })
+    safe_write(path, &bytes).map_err(io("write", path))
 }
 
-/// Writes `bytes` to `path`, makes sure they reached the disk, and reads
-/// them back to check.
-fn write_and_check(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+/// Writes `bytes` to `path` without ever writing through a file or link
+/// already at a temporary name: a new, uniquely named temporary file
+/// beside it is created (refusing one that exists), written, synced, read
+/// back, and then renamed over `path` in one step. Renaming replaces a
+/// link at `path` itself rather than the file it points to. Every save,
+/// backup and copy goes through here.
+pub fn safe_write(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    let temporary = unique_temporary(path)?;
+    let result = (|| {
+        {
+            let mut file = std::fs::File::options()
+                .write(true)
+                .create_new(true)
+                .open(&temporary)?;
+            std::io::Write::write_all(&mut file, bytes)?;
+            file.sync_all()?;
+        }
+        if std::fs::read(&temporary)? != bytes {
+            return Err(std::io::Error::other(
+                "the saved file didn't read back the same; the disk may be failing",
+            ));
+        }
+        std::fs::rename(&temporary, path)?;
+        sync_folder(path);
+        Ok(())
+    })();
+    if result.is_err() {
+        let _ = std::fs::remove_file(&temporary);
+    }
+    result
+}
+
+/// A temporary file name beside `path` that doesn't exist yet.
+fn unique_temporary(path: &Path) -> std::io::Result<PathBuf> {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static COUNT: AtomicU64 = AtomicU64::new(0);
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.subsec_nanos());
+    for _ in 0..100 {
+        let n = COUNT.fetch_add(1, Ordering::Relaxed);
+        let candidate = with_suffix(path, &format!(".{}-{nanos:x}-{n}.tmp", std::process::id()));
+        if std::fs::symlink_metadata(&candidate).is_err() {
+            return Ok(candidate);
+        }
+    }
+    Err(std::io::Error::other(
+        "couldn't find a free temporary file name",
+    ))
+}
+
+/// Makes a rename in `path`'s folder reach the disk, where the system
+/// allows it (Linux and macOS; Windows has no such step).
+fn sync_folder(path: &Path) {
+    #[cfg(unix)]
+    if let Some(folder) = path.parent()
+        && let Ok(dir) = std::fs::File::open(if folder.as_os_str().is_empty() {
+            Path::new(".")
+        } else {
+            folder
+        })
     {
-        let mut file = std::fs::File::create(path)?;
-        std::io::Write::write_all(&mut file, bytes)?;
-        file.sync_all()?;
+        let _ = dir.sync_all();
     }
-    if std::fs::read(path)? != bytes {
-        return Err(std::io::Error::other(
-            "the saved file didn't read back the same; the disk may be failing",
-        ));
-    }
-    Ok(())
+    #[cfg(not(unix))]
+    let _ = path;
 }
 
 /// Opens the project at `path`.

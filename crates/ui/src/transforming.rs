@@ -265,6 +265,12 @@ impl Target {
                 let mut starts = Vec::new();
                 let mut world_points = Vec::new();
                 for item in drawing.items.iter().filter(|i| i.selected) {
+                    // A shape squashed flat (scaled to 0) can't have its
+                    // points moved: the change can't be worked out in its
+                    // own space.
+                    if item.transform.determinant().abs() < 1e-12 {
+                        continue;
+                    }
                     let Some(selected) = document.elements(item.id) else {
                         continue;
                     };

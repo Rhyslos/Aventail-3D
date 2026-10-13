@@ -626,10 +626,16 @@ fn a_failed_save_keeps_the_previous_file() {
     let path = folder.0.join("crate.avtl");
     let first = rich_document();
     save(&path, &first).unwrap();
-    // Block the temporary file's place with a folder, so writing fails.
-    std::fs::create_dir_all(folder.0.join("crate.avtl.tmp")).unwrap();
+    // Block the backup's place with a folder that isn't empty, so saving
+    // fails part way.
+    std::fs::create_dir_all(folder.0.join("crate.avtl.bak").join("in the way")).unwrap();
     assert!(save(&path, &Document::new()).is_err());
     assert_same(&first, &open(&path).unwrap());
+    let names: Vec<String> = std::fs::read_dir(&folder.0)
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    assert!(!names.iter().any(|n| n.ends_with(".tmp")), "{names:?}");
 }
 
 // --------------------------------------------- files from older versions ---
@@ -869,4 +875,66 @@ fn heavy_project_check() {
         & line("Open it again", opened, 5_000);
     println!("Project file size: about {} MB", bytes.len() / 1_000_000);
     assert!(ok);
+}
+
+#[test]
+fn a_project_that_wouldnt_reopen_is_never_saved_over_the_old_one() {
+    // A regression test from the whole-app review (L3): a mesh with a
+    // point that isn't a number can exist in a session but can't be
+    // opened. Saving it must fail and leave the previous save alone.
+    let folder = Folder::new("unreadable");
+    let path = folder.0.join("crate.avtl");
+    let good = rich_document();
+    save(&path, &good).unwrap();
+    let mut bad_mesh = mesh::Mesh::new();
+    let a = bad_mesh.add_vertex(Vec3::ZERO).unwrap();
+    let b = bad_mesh.add_vertex(Vec3::X).unwrap();
+    let c = bad_mesh.add_vertex(Vec3::NAN).unwrap();
+    bad_mesh.add_face(&[a, b, c]).unwrap();
+    let mut bad = good.clone();
+    bad.execute(Command::Create(ObjectKind::Mesh(std::sync::Arc::new(
+        bad_mesh,
+    ))))
+    .unwrap();
+    let error = save(&path, &bad).unwrap_err();
+    assert!(matches!(error, ProjectError::WouldNotReopen(_)), "{error}");
+    assert!(error.to_string().contains("previous save is untouched"));
+    // The old project still opens, unchanged; the bytes are kept aside
+    // for a bug report; no temporary files are left.
+    assert_same(&good, &open(&path).unwrap());
+    assert!(with_suffix(&path, ".unreadable").exists());
+    assert!(!backup_path(&path).exists(), "nothing was replaced");
+    let names: Vec<String> = std::fs::read_dir(&folder.0)
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    assert!(!names.iter().any(|n| n.ends_with(".tmp")), "{names:?}");
+    // Bytes for an autosave copy are checked the same way.
+    assert!(to_bytes(&bad).is_err());
+}
+
+#[cfg(unix)]
+#[test]
+fn saving_never_writes_through_planted_links() {
+    // A regression test from the whole-app review (S3): links beside the
+    // project, named like its temporary file or its backup, must not
+    // redirect the save onto another file.
+    let folder = Folder::new("links");
+    let path = folder.0.join("crate.avtl");
+    let victim = folder.0.join("victim.txt");
+    std::fs::write(&victim, b"keep me").unwrap();
+    std::os::unix::fs::symlink(&victim, with_suffix(&path, ".tmp")).unwrap();
+    std::os::unix::fs::symlink(&victim, backup_path(&path)).unwrap();
+    let doc = rich_document();
+    save(&path, &doc).unwrap();
+    save(&path, &doc).unwrap();
+    assert_eq!(std::fs::read(&victim).unwrap(), b"keep me");
+    assert_same(&doc, &open(&path).unwrap());
+    // The backup is a real file now, not the link.
+    assert!(
+        !std::fs::symlink_metadata(backup_path(&path))
+            .unwrap()
+            .file_type()
+            .is_symlink()
+    );
 }

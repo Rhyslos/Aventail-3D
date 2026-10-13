@@ -48,3 +48,4 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0038](0038-extrude-and-inset.md) | Extrude and inset: drag anywhere, Keep together, ids that stay, file format version 3 | Accepted |
 | [0039](0039-drags-follow-the-pull.md) | Drags follow the pull: measured from what they change, a fixed direction only as fallback | Accepted |
 | [0040](0040-bevel.md) | Bevel: edges and points, drag away from them, file format version 4 | Accepted |
+| [0041](0041-saves-that-always-reopen.md) | Saves that always reopen: verified saves, one safe-write helper, gaps closed at the source | Accepted |
