@@ -4,10 +4,10 @@
 //! - **Recorded edits keep their id and switches.** Each is an
 //!   [`EntryV5`]: its id, on/off and pinned, and version 4's operation
 //!   stored as it was.
-//! - **Anchors keep more.** The structure fingerprint of the shape the edit
-//!   was made on, and a move's reach, so new rows stretch along. They sit
-//!   beside the operation in the entry ([`AnchorsMoreV5`]), as version 4's
-//!   operations are unchanged.
+//! - **Anchors keep the structure** the edit was made on (its fingerprint),
+//!   so the edit can trust its ids while that structure is unchanged. It
+//!   sits beside the operation in the entry ([`AnchorsMoreV5`]), as
+//!   version 4's operations are unchanged.
 //! - **Plain meshes keep their attribute layers** (UVs, materials and the
 //!   like, once tools make them), beside the objects ([`MeshLayersV5`]).
 //!   Hard edges are stored with the mesh, as before.
@@ -17,7 +17,6 @@
 use super::v1::{FileOperation, Problem, ProjectFile};
 use super::v4::OperationV4;
 use glam::{Vec2, Vec3, Vec4};
-use mesh::anchors::{Reach, ReachEnd};
 use mesh::{AttributeValues, Domain, EdgeKey, Mesh, Value, VertexId};
 use scene::{Document, EditId, Entry, ObjectKind, Operation};
 use serde::{Deserialize, Serialize};
@@ -47,15 +46,6 @@ pub(crate) struct EntryV5 {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) struct AnchorsMoreV5 {
     pub(crate) structure: Option<u64>,
-    pub(crate) reach: Vec<(u32, ReachEndV5)>,
-    /// The polygons the move touched, by their corners.
-    pub(crate) reach_faces: Vec<Vec<ReachEndV5>>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-pub(crate) enum ReachEndV5 {
-    Moved(u32),
-    Still([f32; 3]),
 }
 
 /// One plain mesh's attribute layers (besides hard edges).
@@ -117,22 +107,6 @@ impl FileOperation for EntryV5 {
     fn entry_to_file(entry: &Entry) -> Option<Self> {
         let anchors = entry.operation.anchors().map(|a| AnchorsMoreV5 {
             structure: a.structure,
-            reach: a
-                .reach
-                .iter()
-                .map(|r| {
-                    let to = match r.to {
-                        ReachEnd::Moved(j) => ReachEndV5::Moved(j),
-                        ReachEnd::Still(p) => ReachEndV5::Still(p.to_array()),
-                    };
-                    (r.from, to)
-                })
-                .collect(),
-            reach_faces: a
-                .reach_faces
-                .iter()
-                .map(|f| f.iter().map(|c| end_to_file(*c)).collect())
-                .collect(),
         });
         Some(Self {
             id: entry.id.get(),
@@ -146,58 +120,7 @@ impl FileOperation for EntryV5 {
     fn into_entry(self, _fallback: EditId) -> Result<Entry, Problem> {
         let mut operation = self.operation.into_operation()?;
         if let (Some(more), Some(anchors)) = (self.anchors, operation.anchors_mut()) {
-            let count = anchors.points.len();
-            let place = |i: u32| {
-                if (i as usize) < count {
-                    Ok(i)
-                } else {
-                    Err("an edit's reach names a point it doesn't have".to_string())
-                }
-            };
-            let end = |c: ReachEndV5| -> Result<ReachEnd, Problem> {
-                Ok(match c {
-                    ReachEndV5::Moved(j) => ReachEnd::Moved(place(j)?),
-                    ReachEndV5::Still(p) => {
-                        let p = Vec3::from_array(p);
-                        if !p.is_finite() {
-                            return Err("an edit's reach isn't a real number".to_string());
-                        }
-                        ReachEnd::Still(p)
-                    }
-                })
-            };
-            anchors.reach_faces = more
-                .reach_faces
-                .into_iter()
-                .map(|f| {
-                    if f.len() < 3 {
-                        return Err(
-                            "an edit's reach has a polygon of fewer than three corners".to_string()
-                        );
-                    }
-                    f.into_iter().map(end).collect::<Result<Vec<_>, Problem>>()
-                })
-                .collect::<Result<_, Problem>>()?;
             anchors.structure = more.structure;
-            anchors.reach = more
-                .reach
-                .into_iter()
-                .map(|(from, to)| {
-                    Ok(Reach {
-                        from: place(from)?,
-                        to: match to {
-                            ReachEndV5::Moved(j) => ReachEnd::Moved(place(j)?),
-                            ReachEndV5::Still(p) => {
-                                let p = Vec3::from_array(p);
-                                if !p.is_finite() {
-                                    return Err("an edit's reach isn't a real number".to_string());
-                                }
-                                ReachEnd::Still(p)
-                            }
-                        },
-                    })
-                })
-                .collect::<Result<_, Problem>>()?;
         }
         Ok(Entry {
             id: EditId::from_raw(self.id),
@@ -205,13 +128,6 @@ impl FileOperation for EntryV5 {
             pinned: self.pinned,
             operation,
         })
-    }
-}
-
-fn end_to_file(c: ReachEnd) -> ReachEndV5 {
-    match c {
-        ReachEnd::Moved(j) => ReachEndV5::Moved(j),
-        ReachEnd::Still(p) => ReachEndV5::Still(p.to_array()),
     }
 }
 

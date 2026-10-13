@@ -8,18 +8,17 @@ use mesh::{CubeParams, PrimitiveKind, VertexId};
 use scene::{Command, Object, ObjectKind, Operation, Place, Primitive, Transform};
 
 /// A document using everything version 5 of the format can hold: all of
-/// [`rich_document_v4`], plus a move that keeps its reach, a switched-off
-/// edit, a pinned edit, and a plain mesh with attribute layers of every
-/// domain and kind.
+/// [`rich_document_v4`], plus a move that keeps the structure it was made
+/// on, a switched-off edit, a pinned edit, and a plain mesh with attribute
+/// layers of every domain and kind.
 fn rich_document() -> Document {
     let mut doc = rich_document_v4();
     let cube = *doc.scene().children(None).last().unwrap();
     let shape = doc.scene().evaluated(cube).unwrap().mesh;
     let points: Vec<VertexId> = shape.vertices().take(3).map(|(v, _)| v).collect();
     let elements: Vec<Vec<VertexId>> = points.iter().map(|v| vec![*v]).collect();
-    let anchors = mesh::Anchors::record(&shape, mesh::ElementKind::Points, &elements)
-        .map(|a| a.with_reach(&shape));
-    assert!(anchors.as_ref().is_some_and(|a| !a.reach.is_empty()));
+    let anchors = mesh::Anchors::record(&shape, mesh::ElementKind::Points, &elements);
+    assert!(anchors.as_ref().is_some_and(|a| a.structure.is_some()));
     doc.execute(Command::Record {
         id: cube,
         operation: Operation::MovePoints {
@@ -972,7 +971,7 @@ fn file_of_v5(model: &v5::ProjectV5) -> Vec<u8> {
 }
 
 #[test]
-fn edits_keep_their_ids_switches_and_reach() {
+fn edits_keep_their_ids_switches_and_structure() {
     let doc = rich_document();
     let opened = from_bytes(&to_bytes(&doc).unwrap()).unwrap();
     let cube = opened
@@ -988,7 +987,7 @@ fn edits_keep_their_ids_switches_and_reach() {
     assert!(!entries[1].enabled, "edit 2 is off");
     assert!(entries[3].pinned, "edit 4 is pinned");
     let last = entries.last().unwrap().operation.anchors().unwrap();
-    assert!(last.structure.is_some() && !last.reach.is_empty());
+    assert!(last.structure.is_some());
     // Edits from older files are numbered in order, on, and unpinned.
     let old = from_bytes(SAMPLE_V4).unwrap();
     let cube = *old.scene().children(None).last().unwrap();
@@ -1007,44 +1006,11 @@ fn damaged_edits_and_mesh_layers_are_refused() {
         .iter()
         .position(|o| o.name == "Cube")
         .unwrap();
-    let last = good.project.objects[cube].layers[0].operations.len() - 1;
     let damaged = |change: &dyn Fn(&mut v5::ProjectV5)| {
         let mut bad = good.clone();
         change(&mut bad);
         refused(&file_of_v5(&bad)).to_string()
     };
-    let reach = |p: &mut v5::ProjectV5| {
-        p.project.objects[cube].layers[0].operations[last]
-            .anchors
-            .as_mut()
-            .unwrap()
-            .reach
-            .clone()
-    };
-    // Reach naming a point the edit doesn't have, or not a number.
-    let text = damaged(&|p| {
-        let mut r = reach(p);
-        r[0].0 = 999;
-        p.project.objects[cube].layers[0].operations[last]
-            .anchors
-            .as_mut()
-            .unwrap()
-            .reach = r;
-    });
-    assert!(
-        text.contains("reach") && text.contains("\"Cube\""),
-        "{text}"
-    );
-    let text = damaged(&|p| {
-        let mut r = reach(p);
-        r[0].1 = v5::ReachEndV5::Still([f32::NAN, 0.0, 0.0]);
-        p.project.objects[cube].layers[0].operations[last]
-            .anchors
-            .as_mut()
-            .unwrap()
-            .reach = r;
-    });
-    assert!(text.contains("real number"), "{text}");
     // Two edits with one id.
     let text = damaged(&|p| p.project.objects[cube].layers[0].operations[1].id = 1);
     assert!(text.contains("same id"), "{text}");

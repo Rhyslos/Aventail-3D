@@ -66,12 +66,11 @@ Because your moves, turns and scaling are kept apart from the shape's settings, 
 
 - **Bigger or smaller:** the edited points are the same points, in the same place on the shape, so everything just stretches with it.
 - **More segments:** the shape's points are made afresh, so the old point numbers no longer fit. Each edit remembers *where* its points, edges or polygons were, and finds them there again. A polygon you pulled up finds every smaller polygon now inside it, so the whole area stays lifted; an edge finds every piece of edge along it. The Attributes panel says so in its **Edits** section (*1 edit found its points again on the changed shape*).
-- **New rows stretch along.** New points that land on an edge you stretched move part of the way with it: all of the way next to the points you moved, none next to points that stayed, and evenly in between. Lift a cube's top to three times its height, then give it more height segments: the new rows spread evenly up the whole tall box, rather than bunching up where the cube used to end. Turning and scaling stretch the same way, so a cube whose top you shrank to a point gets rows that taper evenly towards the tip.
 - **Fewer segments:** points that were moved may have no place left on the simpler shape. Those edits apply to what they can find, and the **Edits** section warns in amber. Go back to the earlier settings and everything returns.
 
-*Example:* make a cube, press `3`, select its top polygon, press `W` and drag the green arrow up. Then select the cube in Model mode and raise its segments in the Attributes panel: the top stays lifted, now cut into a grid, and the new rows on the sides spread evenly up its whole height.
+*Example:* make a cube, press `3`, select its top polygon, press `W` and drag the green arrow up. Then select the cube in Model mode and raise its segments in the Attributes panel: the top stays lifted, now cut into a grid.
 
-Stretching works for moves, turns and scaling made from now on. Edits saved before this version of the app keep the old behaviour, where new rows follow the shape's settings only. Extruded walls are new polygons of their own, so a cube's segments don't add rows to them.
+New rows follow the shape's settings, not your edits: lift a cube's top a long way, then add height segments, and the new rows are spread over the cube's original height, below the lift. To add rows where you need them on an edited shape, use Loop cut (coming soon in Phase 4).
 
 ### Snapping
 

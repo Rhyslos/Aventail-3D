@@ -288,14 +288,6 @@ impl Operation {
                     }
                     mesh::AnchorShape::Polygons(p) => p.iter().flatten().all(|v| v.is_finite()),
                 }
-                && a.reach.iter().all(|r| match r.to {
-                    mesh::anchors::ReachEnd::Still(p) => p.is_finite(),
-                    mesh::anchors::ReachEnd::Moved(_) => true,
-                })
-                && a.reach_faces.iter().flatten().all(|c| match c {
-                    mesh::anchors::ReachEnd::Still(p) => p.is_finite(),
-                    mesh::anchors::ReachEnd::Moved(_) => true,
-                })
         });
         let own = match self {
             Self::MovePoints { offset, .. } => offset.is_finite(),
@@ -373,10 +365,9 @@ impl Operation {
     }
 
     /// Applies the operation to `mesh`. Its ids are used as they are when
-    /// the shape has the structure the edit was made on, or its anchored
-    /// places still fit. Otherwise (a primitive given more segments, say)
-    /// its elements are found again by their anchors, and a move stretches
-    /// to new points along the edges it moved (decision 0044).
+    /// the shape has the structure the edit was made on (decision 0044), or
+    /// its anchored places still fit. Otherwise (a primitive given more
+    /// segments, say) its elements are found again by their anchors.
     fn apply(&self, mesh: &mut Mesh) -> Applied {
         let same = self.anchors().is_some_and(|a| a.same_structure(mesh));
         // The points at the anchored places, when the ids can't be trusted.
@@ -385,38 +376,13 @@ impl Operation {
             Some(anchors) => Some(anchors.find(mesh, mesh.topology())),
             None => None,
         };
-        // When the structure changed, new points along the edges a move
-        // reached, and their share of it.
-        let stretched = match (self, self.anchors()) {
-            (
-                Self::MovePoints { points, .. } | Self::TransformPoints { points, .. },
-                Some(anchors),
-            ) if !same => {
-                let moved = refound.as_ref().map_or(points.as_slice(), |r| &r.0);
-                anchors.stretch(mesh, moved)
-            }
-            _ => Vec::new(),
-        };
         let outcome: Outcome = match self {
             Self::MovePoints { points, offset, .. } => {
                 let points = refound.as_ref().map_or(points.as_slice(), |r| &r.0);
-                for (v, share) in &stretched {
-                    if let Some(p) = mesh.position(*v) {
-                        mesh.set_position(*v, p + *offset * *share);
-                    }
-                }
                 edit::move_points(mesh, points, *offset)
             }
             Self::TransformPoints { points, matrix, .. } => {
                 let points = refound.as_ref().map_or(points.as_slice(), |r| &r.0);
-                for (v, share) in &stretched {
-                    if let Some(p) = mesh.position(*v) {
-                        let to = matrix.transform_point3(p);
-                        if to.is_finite() {
-                            mesh.set_position(*v, p + (to - p) * *share);
-                        }
-                    }
-                }
                 edit::transform_points(mesh, points, *matrix)
             }
             Self::ExtrudePolygons {

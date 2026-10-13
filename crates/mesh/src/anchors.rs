@@ -21,17 +21,11 @@
 //! edit changes only where points are (a longer extrude, say), the
 //! structure is unchanged, so the ids still name the right elements even
 //! though they moved: they are used as they are, not searched for.
-//!
-//! **New rows stretch along.** A move keeps its *reach*: the edges from
-//! the points it moved to their neighbours. When more segments put new
-//! points along such an edge, [`Anchors::stretch`] says how much of the
-//! move each one gets: all of it next to a moved point, none next to a
-//! point that stayed, in between along the way.
 
 use crate::topology::Topology;
 use crate::{Bounds, ElementKind, FaceId, Mesh, VertexId};
 use glam::{Vec2, Vec3};
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 /// Where an edit's elements were, in the shape it was made on.
 #[derive(Debug, Clone, PartialEq)]
@@ -45,31 +39,6 @@ pub struct Anchors {
     /// The structure of the shape the edit was made on
     /// ([`Mesh::structure_fingerprint`]); `None` in older files.
     pub structure: Option<u64>,
-    /// For edits that move points: the edges from those points to their
-    /// neighbours, so new points along them can stretch (empty otherwise,
-    /// and in older files).
-    pub reach: Vec<Reach>,
-    /// For edits that move points: the polygons touching those points, by
-    /// their corners in order, so new points inside them can stretch too.
-    pub reach_faces: Vec<Vec<ReachEnd>>,
-}
-
-/// One edge from a moved point (by its place in [`Anchors::points`]).
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Reach {
-    /// The moved point it starts at.
-    pub from: u32,
-    /// Where it ends.
-    pub to: ReachEnd,
-}
-
-/// The far end of a [`Reach`] edge.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum ReachEnd {
-    /// Another moved point, by its place in [`Anchors::points`].
-    Moved(u32),
-    /// A point that stayed, where it was.
-    Still(Vec3),
 }
 
 /// The elements an edit was made on, by position.
@@ -124,169 +93,13 @@ impl Anchors {
             points,
             shape,
             structure: Some(mesh.structure_fingerprint()),
-            reach: Vec::new(),
-            reach_faces: Vec::new(),
         })
-    }
-
-    /// The anchors with their reach: every edge of `mesh` from one of the
-    /// anchored points to a neighbour. For edits that move the anchored
-    /// points, so new points along those edges can stretch.
-    #[must_use]
-    pub fn with_reach(mut self, mesh: &Mesh) -> Self {
-        let index: HashMap<VertexId, u32> = self
-            .points
-            .iter()
-            .enumerate()
-            .map(|(i, (v, _))| (*v, i as u32))
-            .collect();
-        let topology = mesh.topology();
-        let mut reach = Vec::new();
-        for (i, (v, _)) in self.points.iter().enumerate() {
-            for edge in topology.vertex_edges(*v) {
-                let other = crate::topology::other_end(*edge, *v);
-                match index.get(&other) {
-                    // Each edge between two moved points once.
-                    Some(j) if *j > i as u32 => reach.push(Reach {
-                        from: i as u32,
-                        to: ReachEnd::Moved(*j),
-                    }),
-                    Some(_) => {}
-                    None => {
-                        if let Some(p) = mesh.position(other) {
-                            reach.push(Reach {
-                                from: i as u32,
-                                to: ReachEnd::Still(p),
-                            });
-                        }
-                    }
-                }
-            }
-        }
-        self.reach = reach;
-        // The polygons touching the moved points, each once.
-        let touching: BTreeSet<crate::FaceId> = self
-            .points
-            .iter()
-            .flat_map(|(v, _)| topology.vertex_faces(*v).iter().copied())
-            .collect();
-        self.reach_faces = touching
-            .into_iter()
-            .filter_map(|f| {
-                mesh.face(f)?
-                    .iter()
-                    .map(|c| match index.get(c) {
-                        Some(i) => Some(ReachEnd::Moved(*i)),
-                        None => mesh.position(*c).map(ReachEnd::Still),
-                    })
-                    .collect()
-            })
-            .collect();
-        self
     }
 
     /// Whether `mesh` has the structure the edit was made on, so its ids
     /// can be trusted as they are, wherever the points now are.
     pub fn same_structure(&self, mesh: &Mesh) -> bool {
         self.structure == Some(mesh.structure_fingerprint())
-    }
-
-    /// How much of a move each point of `mesh` that isn't one of `found`
-    /// gets, for the points lying along the anchors' reach: 1 next to a
-    /// moved point, 0 next to one that stayed, in between along the edge
-    /// (and all of it between two moved points). Points inside a polygon
-    /// the move touched get a blend of its corners' shares, so new rows
-    /// and columns in the middle of a side stretch as evenly as those on
-    /// its edges. Points that get nothing aren't listed. For use after
-    /// [`Self::find`], when more segments put new points where the edit
-    /// moved.
-    pub fn stretch(&self, mesh: &Mesh, found: &[VertexId]) -> Vec<(VertexId, f32)> {
-        if self.reach.is_empty() && self.reach_faces.is_empty() {
-            return Vec::new();
-        }
-        let Some(now) = mesh.bounds() else {
-            return Vec::new();
-        };
-        let found: HashSet<VertexId> = found.iter().copied().collect();
-        let tolerance = Self::tolerance(&now);
-        let grid = PointGrid::new(mesh, &now, tolerance);
-        let place = |i: u32| {
-            self.points
-                .get(i as usize)
-                .map(|(_, p)| self.moved(*p, &now))
-        };
-        let mut share: BTreeMap<VertexId, f32> = BTreeMap::new();
-        let mut on_edges: HashSet<VertexId> = HashSet::new();
-        for reach in &self.reach {
-            let Some(a) = place(reach.from) else {
-                continue;
-            };
-            let (b, far_share) = match reach.to {
-                ReachEnd::Moved(j) => match place(j) {
-                    Some(b) => (b, 1.0),
-                    None => continue,
-                },
-                ReachEnd::Still(p) => (self.moved(p, &now), 0.0),
-            };
-            let length = a.distance(b);
-            if length <= tolerance * 2.0 {
-                continue;
-            }
-            let tolerance = tighter(tolerance, length);
-            for (v, p) in grid.near(mesh, a.min(b), a.max(b), tolerance) {
-                if found.contains(&v) || distance_to_segment(p, a, b) > tolerance {
-                    continue;
-                }
-                let along = ((p - a).dot(b - a) / (length * length)).clamp(0.0, 1.0);
-                // The two ends themselves aren't new points.
-                if along * length <= tolerance || (1.0 - along) * length <= tolerance {
-                    continue;
-                }
-                let amount = 1.0 - along + along * far_share;
-                on_edges.insert(v);
-                if amount > 0.0 {
-                    let entry = share.entry(v).or_insert(0.0);
-                    *entry = entry.max(amount);
-                }
-            }
-        }
-        // Points inside the polygons the move touched.
-        for corners in &self.reach_faces {
-            let Some(corners): Option<Vec<(Vec3, f32)>> = corners
-                .iter()
-                .map(|c| match *c {
-                    ReachEnd::Moved(i) => place(i).map(|p| (p, 1.0)),
-                    ReachEnd::Still(p) => Some((self.moved(p, &now), 0.0)),
-                })
-                .collect()
-            else {
-                continue;
-            };
-            let places: Vec<Vec3> = corners.iter().map(|(p, _)| *p).collect();
-            let shares: Vec<f32> = corners.iter().map(|(_, s)| *s).collect();
-            let Some(flat) = Flat::new(&places) else {
-                continue;
-            };
-            let n = places.len();
-            let shortest = (0..n)
-                .map(|i| places[i].distance(places[(i + 1) % n]))
-                .fold(f32::INFINITY, f32::min);
-            let tolerance = tighter(tolerance, shortest);
-            let (lo, hi) = places.iter().fold((places[0], places[0]), |(lo, hi), c| {
-                (lo.min(*c), hi.max(*c))
-            });
-            for (v, p) in grid.near(mesh, lo, hi, tolerance) {
-                if found.contains(&v) || on_edges.contains(&v) || !flat.contains(p, tolerance) {
-                    continue;
-                }
-                let amount = flat.blend(p, &shares, tolerance);
-                if amount > 0.0 {
-                    let entry = share.entry(v).or_insert(0.0);
-                    *entry = entry.max(amount);
-                }
-            }
-        }
-        share.into_iter().collect()
     }
 
     /// Where a recorded place is in `mesh`, whose box is `now`: the same
@@ -444,14 +257,7 @@ impl Anchors {
                 .map(|c| std::mem::size_of_val(c.as_slice()) + size_of::<Vec<Vec3>>())
                 .sum(),
         };
-        std::mem::size_of_val(self.points.as_slice())
-            + shape
-            + std::mem::size_of_val(self.reach.as_slice())
-            + self
-                .reach_faces
-                .iter()
-                .map(|f| std::mem::size_of_val(f.as_slice()) + size_of::<Vec<ReachEnd>>())
-                .sum::<usize>()
+        std::mem::size_of_val(self.points.as_slice()) + shape
     }
 }
 
@@ -573,57 +379,6 @@ impl Flat {
             v,
             outline,
         })
-    }
-
-    /// `values` (one per corner) blended at `p`, a point in the polygon:
-    /// along the outline where `p` is on it, otherwise with mean value
-    /// coordinates, which blend any polygon's corners smoothly and give
-    /// back exactly any value that changes in a straight line across it
-    /// (so evenly spaced rows stay evenly spaced).
-    fn blend(&self, p: Vec3, values: &[f32], tolerance: f32) -> f32 {
-        let d = p - self.origin;
-        let q = Vec2::new(d.dot(self.u), d.dot(self.v));
-        let n = self.outline.len();
-        // On the outline: straight along that side.
-        for i in 0..n {
-            let (a, b) = (self.outline[i], self.outline[(i + 1) % n]);
-            if distance_to_segment_2d(q, a, b) <= tolerance {
-                let length_squared = (b - a).length_squared();
-                let t = if length_squared > 1e-12 {
-                    ((q - a).dot(b - a) / length_squared).clamp(0.0, 1.0)
-                } else {
-                    0.0
-                };
-                return values[i] + (values[(i + 1) % n] - values[i]) * t;
-            }
-        }
-        // Inside: mean value coordinates.
-        let offsets: Vec<Vec2> = self.outline.iter().map(|c| *c - q).collect();
-        let lengths: Vec<f32> = offsets.iter().map(|o| o.length()).collect();
-        // tan(half the angle at q) between corner i and the next.
-        let half_tan = |i: usize| {
-            let (a, b) = (offsets[i], offsets[(i + 1) % n]);
-            let cross = a.perp_dot(b);
-            if cross.abs() < 1e-12 {
-                0.0
-            } else {
-                (lengths[i] * lengths[(i + 1) % n] - a.dot(b)) / cross
-            }
-        };
-        let mut total = 0.0;
-        let mut weighted = 0.0;
-        for i in 0..n {
-            if lengths[i] < 1e-12 {
-                return values[i];
-            }
-            let w = (half_tan((i + n - 1) % n) + half_tan(i)) / lengths[i];
-            total += w;
-            weighted += w * values[i];
-        }
-        if total.abs() < 1e-12 || !weighted.is_finite() {
-            return 0.0;
-        }
-        (weighted / total).clamp(0.0, 1.0)
     }
 
     /// Whether `p` lies in the polygon (on its plane, inside or on its
