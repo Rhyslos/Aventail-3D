@@ -2,7 +2,7 @@
 //! in the view as one undo step, fine steps, cancelling, the Attributes
 //! panel's Keep together switch and last edit, and extruding border edges.
 
-use super::tests::{State, fresh};
+use super::tests::{State, camera, fresh};
 use super::*;
 use crate::transforming::Tool;
 use egui::{Event, PointerButton, Pos2};
@@ -92,15 +92,15 @@ fn empty_spot(harness: &H) -> Pos2 {
         + egui::vec2(60.0, 80.0)
 }
 
-/// Presses at `from` and moves `dx` points sideways in steps, without
-/// letting go.
+/// Presses at `from` and moves `dx` points right and `dx` up (up and
+/// right push the cube's top out), in steps, without letting go.
 fn drag_without_letting_go(harness: &mut H, from: Pos2, dx: f32) -> Pos2 {
     harness.event(Event::PointerMoved(from));
     harness.run();
     button(harness, from, true, PointerButton::Primary, Modifiers::NONE);
     let mut at = from;
     for _ in 0..5 {
-        at += egui::vec2(dx / 5.0, 0.0);
+        at += egui::vec2(dx / 5.0, -dx / 5.0);
         harness.event(Event::PointerMoved(at));
         harness.run();
     }
@@ -111,6 +111,34 @@ fn drag(harness: &mut H, dx: f32) {
     let from = empty_spot(harness);
     let at = drag_without_letting_go(harness, from, dx);
     button(harness, at, false, PointerButton::Primary, Modifiers::NONE);
+}
+
+/// Where `world` appears on screen.
+fn on_screen(harness: &H, world: glam::Vec3) -> Pos2 {
+    let rect = harness.get_by_label(crate::VIEWPORT_LABEL).rect();
+    let size = glam::Vec2::new(rect.width(), rect.height());
+    let at = camera(harness).project(world, size).expect("in view");
+    rect.min + egui::vec2(at.x, at.y)
+}
+
+/// Drags from `from` by `by` points, in steps, and lets go.
+fn drag_by(harness: &mut H, from: Pos2, by: egui::Vec2) {
+    harness.event(Event::PointerMoved(from));
+    harness.run();
+    button(harness, from, true, PointerButton::Primary, Modifiers::NONE);
+    let mut at = from;
+    for _ in 0..5 {
+        at += by / 5.0;
+        harness.event(Event::PointerMoved(at));
+        harness.run();
+    }
+    button(harness, at, false, PointerButton::Primary, Modifiers::NONE);
+}
+
+/// The way world +X points on screen, `length` points long.
+fn screen_x(harness: &H, length: f32) -> egui::Vec2 {
+    let way = on_screen(harness, glam::Vec3::X * 100.0) - on_screen(harness, glam::Vec3::ZERO);
+    way.normalized() * length
 }
 
 fn top_height(harness: &H) -> f32 {
@@ -165,7 +193,7 @@ fn last_operation(harness: &H) -> Option<Operation> {
 fn d_and_i_pick_extrude_and_inset() {
     let mut harness = ready(Key::D);
     assert_eq!(harness.state().workbench.tool(), Tool::Extrude);
-    assert!(note(&harness).starts_with("Extrude: drag left or right"));
+    assert!(note(&harness).starts_with("Extrude: drag anywhere"));
     press(&mut harness, Modifiers::NONE, Key::I);
     assert_eq!(harness.state().workbench.tool(), Tool::Inset);
     // Ctrl + I still inverts the selection: it doesn't pick Inset.
@@ -386,7 +414,15 @@ fn border_edges_extrude_and_the_selection_follows() {
         .evaluated(plane)
         .unwrap()
         .mesh;
-    let edge = mesh.edges()[0];
+    // The edge along the plane's +X side, which grows towards +X.
+    let edge = *mesh
+        .edges()
+        .iter()
+        .find(|e| {
+            let (a, b) = e.ends();
+            mesh.position(a).unwrap().x > 49.0 && mesh.position(b).unwrap().x > 49.0
+        })
+        .unwrap();
     harness
         .state_mut()
         .workbench
@@ -398,7 +434,9 @@ fn border_edges_extrude_and_the_selection_follows() {
         );
     harness.run();
     press(&mut harness, Modifiers::NONE, Key::D);
-    drag(&mut harness, 80.0);
+    let way = screen_x(&harness, 80.0);
+    let from = empty_spot(&harness);
+    drag_by(&mut harness, from, way);
     let faces = |h: &H| {
         h.state()
             .workbench
@@ -414,6 +452,20 @@ fn border_edges_extrude_and_the_selection_follows() {
         harness.state().workbench.document().undo_label(),
         Some("Extrude 1 edge")
     );
+    let reach = |h: &H| {
+        h.state()
+            .workbench
+            .document()
+            .scene()
+            .evaluated(plane)
+            .unwrap()
+            .mesh
+            .bounds()
+            .unwrap()
+            .max
+            .x
+    };
+    assert!(reach(&harness) > 51.0, "grew the way it was dragged");
     // The new outer edge is selected now, so the next drag carries on.
     let selected = harness
         .state()
@@ -424,9 +476,80 @@ fn border_edges_extrude_and_the_selection_follows() {
         .clone();
     assert_eq!(selected.count(scene::ElementKind::Edges), 1);
     assert!(!selected.contains(Element::Edge(edge)));
-    drag(&mut harness, 80.0);
+    drag_by(&mut harness, from, way);
     assert_eq!(faces(&harness), 3);
     // One undo takes back the second strip and its selection together.
     harness.state_mut().workbench.document_mut().undo();
     assert_eq!(faces(&harness), 2);
+}
+
+#[test]
+fn extrude_follows_the_way_the_polygon_faces_on_screen() {
+    // The cube's +X side: dragging the way +X points on screen pushes it
+    // out, the other way pushes it in, whichever way that is on screen.
+    let mut harness = ready(Key::Q);
+    let id = cube(&harness);
+    let mesh = shape(&harness);
+    let side = mesh
+        .faces()
+        .map(|(f, _)| f)
+        .max_by(|a, b| mesh.face_normal(*a).x.total_cmp(&mesh.face_normal(*b).x))
+        .unwrap();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .select_elements(
+            [(id, ElementSelection::of([Element::Polygon(side)]))],
+            "Select",
+            None,
+        );
+    harness.run();
+    press(&mut harness, Modifiers::NONE, Key::D);
+    let reach = |h: &H| shape(h).bounds().unwrap().max.x;
+    let from = empty_spot(&harness);
+    let way = screen_x(&harness, 80.0);
+    drag_by(&mut harness, from, way);
+    assert!(reach(&harness) > 55.0, "out: {}", reach(&harness));
+    harness.state_mut().workbench.document_mut().undo();
+    harness.run();
+    drag_by(&mut harness, from, -way);
+    assert!(reach(&harness) < 50.01, "in: {}", reach(&harness));
+    // Sideways to that way does almost nothing.
+    harness.state_mut().workbench.document_mut().undo();
+    harness.run();
+    let across = egui::vec2(-way.y, way.x);
+    drag_by(&mut harness, from, across);
+    assert!((reach(&harness) - 50.0).abs() < 5.0, "{}", reach(&harness));
+}
+
+#[test]
+fn dragging_on_another_polygon_selects_it_first() {
+    // The top is selected; a drag that starts on the +X side extrudes
+    // the side instead, without clicking it first.
+    let mut harness = ready(Key::D);
+    let id = cube(&harness);
+    let side_centre = on_screen(&harness, glam::Vec3::new(50.0, 0.0, 50.0));
+    // Rest the mouse there so the polygon under it is known.
+    harness.event(Event::PointerMoved(side_centre));
+    harness.run();
+    harness.run();
+    let way = screen_x(&harness, 80.0);
+    drag_by(&mut harness, side_centre, way);
+    let doc = harness.state().workbench.document();
+    let selected: Vec<FaceId> = doc.elements(id).unwrap().polygons().collect();
+    assert_eq!(selected.len(), 1);
+    let mesh = shape(&harness);
+    assert!(mesh.bounds().unwrap().max.x > 55.0, "the side came out");
+    assert!(
+        (mesh.bounds().unwrap().max.z - 100.0).abs() < 1e-3,
+        "the top stayed"
+    );
+    // Undo takes back the extrude, then the selection.
+    harness.state_mut().workbench.document_mut().undo();
+    harness.state_mut().workbench.document_mut().undo();
+    harness.run();
+    let top = top_face(&shape(&harness));
+    let doc = harness.state().workbench.document();
+    assert!(doc.elements(id).unwrap().contains(Element::Polygon(top)));
 }

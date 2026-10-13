@@ -70,10 +70,18 @@ A plain click still selects while the tool is in use, so polygons can be picked 
 
 - Saved projects need this version of the app or newer. Older builds refuse them clearly ("made by a newer version").
 - **Heavy meshes:** each frame of a drag copies the face list and works the topology out again. That is quick for game assets but will be slow on the 3-million-polygon test shape (not measured yet). The heavy-mesh check at the phase gate will show whether partial updates are needed.
-- The drag follows the screen, so it is quicker when zoomed out. Shift and the Attributes panel give precision.
+- The polygons follow the mouse, so a drag goes further when zoomed out. Shift and the Attributes panel give precision.
 - **Bevel** (`V`) can reuse `Grouping`, the Last edit section and the drag.
 - Points mode has no extrude yet. Extruding inner edges (with polygons on both sides) does nothing; a later tool may make "extrude edges as a flap" if wanted.
 
 ## Also decided
 
 At the project lead's request, a **splash screen while the app starts** is added to Phase 5 of the plan (the project lead chose Phase 5 from: Phase 5, Phase 6, the ideas backlog, or right after this milestone).
+
+## Changed after the first test (2026-10-13)
+
+The project lead found "right for more, left for less" too rigid: dragging a polygon on the left side to the left should bring it out. And starting a drag on another polygon should extrude that one, without clicking it first.
+
+- **Extrude follows the way the polygons face on screen.** The drag counts along their average facing as seen on screen, scaled so the polygons follow the mouse. When they face the viewer almost straight on (less than a fifth of the facing across the screen), right means out, as before. Inset has no screen direction and keeps right for more.
+- **A drag that starts on an unselected polygon** (or, for edges, an edge) of a selected object selects it first, as its own undo step. Starting on something selected, or on empty space, keeps the selection, so several polygons still extrude together.
+- **Gaps between separately extruded blocks** are expected: Keep together joins polygons that share an edge, and separately extruded blocks each have their own points along the seam. Welding them belongs to the Connect, bridge and weld milestone.

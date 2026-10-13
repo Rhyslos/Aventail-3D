@@ -321,11 +321,9 @@ impl AttributesPanel {
                 ui.end_row();
             });
         ui.label(
-            RichText::new(
-                "Drag left or right anywhere in the viewport. Hold Shift for fine steps.",
-            )
-            .small()
-            .color(theme::TEXT_WEAK),
+            RichText::new("Drag anywhere in the viewport. Hold Shift for fine steps.")
+                .small()
+                .color(theme::TEXT_WEAK),
         );
     }
 

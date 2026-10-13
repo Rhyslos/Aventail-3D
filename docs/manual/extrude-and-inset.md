@@ -27,7 +27,9 @@ To move polygons without building new ones, use [Move](transforming.md) instead.
 1. Select a shape and press **3** for the [Polygons mode](modes.md).
 2. [Select](selecting.md) the polygons to extrude.
 3. Press **D** (or pick **Extrude** from the [tool menu](tool-menu.md) **E**, or the **Mesh** menu).
-4. Drag left or right **anywhere in the viewport**. You don't have to aim at the polygons: right pushes them out, left pushes them in. A label by the mouse says how far.
+4. Drag **anywhere in the viewport**, the way you want the polygons to go. Drag the way they face on screen and they come out, following the mouse; drag the other way and they sink in. A polygon on the left side comes out when you drag left, the top when you drag up. A label by the mouse says how far.
+   - When the polygons face you straight on, there is no "way" on screen to follow, so drag **right** to bring them out and left to push them in.
+   - **Start the drag on another polygon** and that polygon becomes the selection first, so you can extrude it straight away without clicking it. Starting on a selected polygon, or on empty space, extrudes what is selected.
 5. Let go. The whole drag is one undo step.
 
 The polygons stay selected, so you can drag again straight away to extrude another step. Each drag is its own extrude.
@@ -41,7 +43,7 @@ The polygons stay selected, so you can drag again straight away to extrude anoth
 ### Extrude border edges
 
 1. Press **2** for the Edges mode and select edges on an **open border**: edges with a polygon on one side only, like the rim of a [plane](primitives.md).
-2. Press **D** and drag right. A new strip of polygons grows outward from each edge, flat with the polygon it belongs to.
+2. Press **D** and drag the way you want the edge to grow. A new strip of polygons grows outward from each edge, flat with the polygon it belongs to.
 3. The selection moves to the new outer edges, so you can drag again to keep growing.
 
 Edges with polygons on both sides have nothing to grow from and are left alone; the status bar doesn't count them.
@@ -75,7 +77,7 @@ This works until you make another edit on top. After that, the extrude is fixed 
 |---|---|
 | Extrude | `D` |
 | Inset | `I` |
-| Set the distance | Left drag anywhere in the viewport |
+| Set the distance | Left drag anywhere in the viewport: Extrude the way the polygons face, Inset to the right |
 | Finer steps | Hold `Shift` while dragging |
 | Cancel the drag | `Esc` or a right-click |
 | Back to selecting | `Q` |
@@ -90,7 +92,8 @@ This works until you make another edit on top. After that, the extrude is fixed 
 - **Problem:** extruding edges does nothing. **Why:** the edges aren't on an open border; a cube has none. **Fix:** use a plane, or extrude polygons instead.
 - **Problem:** an inset crossed over itself and looks folded. **Why:** it went further than the polygon is wide. **Fix:** undo, or lower the Distance in the Attributes panel.
 - **Problem:** after changing the cube's segments, the extrude went somewhere odd or the Attributes panel says an edit no longer fits. **Why:** edits find their polygons again by where they were ([Attributes: Edits](attributes.md)); a big change can leave nothing at that spot. **Fix:** go back to the earlier settings, or undo.
-- **Problem:** the extrude is too fast or too slow to control. **Why:** the drag follows the screen, so it is faster when zoomed out. **Fix:** zoom in, hold Shift, or type the Distance.
+- **Problem:** the extrude is too fast or too slow to control. **Why:** the polygons follow the mouse, so a small drag goes a long way when zoomed out. **Fix:** zoom in, hold Shift, or type the Distance.
+- **Problem:** neighbouring polygons came out as separate blocks with a gap between them, even with Keep together on. **Why:** Keep together joins polygons that share an edge. Polygons made by separate extrudes (or with Keep together off) sit side by side but each has its own copy of the points along the seam, so they aren't joined. **Fix:** for now, select the polygons together before the first extrude. Welding points back together arrives with Connect, bridge and weld later in Phase 4.
 
 ## Related
 

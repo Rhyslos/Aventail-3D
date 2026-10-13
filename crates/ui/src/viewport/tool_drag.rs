@@ -2,8 +2,9 @@
 //! and inset, [decision 0038](../../../../docs/decisions/0038-extrude-and-inset.md)).
 //!
 //! The controls, chosen by the project lead: with Extrude or Inset in use,
-//! a left drag anywhere in a view sets the distance, right for more and
-//! left for less (or the other way). A plain click still selects, so
+//! a left drag anywhere in a view sets the distance. The workbench decides
+//! which way counts as "more": for Extrude, the way the polygons face on
+//! screen. A plain click still selects, so
 //! polygons can be picked without leaving the tool. Shift makes the drag
 //! ten times finer; a right click (or Esc, handled by the panel) cancels.
 
@@ -22,9 +23,10 @@ const FINE: f32 = 0.1;
 pub(crate) enum ToolDragEvent {
     /// A drag began, with the mouse at `pointer`.
     Begin { pointer: ViewPointer },
-    /// The drag so far: how far it has gone sideways, in screen points
-    /// (right is positive; Shift counts a tenth).
-    Update { amount: f32, pointer: ViewPointer },
+    /// The drag so far: how far the mouse has gone since the press, in
+    /// screen points (down is positive y; movement with Shift held counts
+    /// a tenth).
+    Update { drag: Vec2, pointer: ViewPointer },
     /// The drag ended: keep what it did.
     End,
     /// The drag was cancelled: put everything back.
@@ -35,9 +37,9 @@ pub(crate) enum ToolDragEvent {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(super) struct ToolDrag {
     /// How far it has gone, in screen points.
-    amount: f32,
-    /// Where the mouse was last frame, across the view.
-    last_x: f32,
+    drag: Vec2,
+    /// Where the mouse was last frame.
+    last: Pos2,
 }
 
 impl View {
@@ -74,11 +76,11 @@ impl View {
                 return true;
             }
             if let Some(at) = response.interact_pointer_pos().or(response.hover_pos()) {
-                let moved = at.x - drag.last_x;
-                drag.last_x = at.x;
-                drag.amount += if shift { moved * FINE } else { moved };
+                let moved = Vec2::new(at.x - drag.last.x, at.y - drag.last.y);
+                drag.last = at;
+                drag.drag += if shift { moved * FINE } else { moved };
                 out.push(ToolDragEvent::Update {
-                    amount: drag.amount,
+                    drag: drag.drag,
                     pointer: pointer(at),
                 });
             }
@@ -99,16 +101,13 @@ impl View {
                 pointer: pointer(start),
             });
             let now = response.interact_pointer_pos().unwrap_or(start);
-            let moved = now.x - start.x;
-            let amount = if shift { moved * FINE } else { moved };
+            let moved = Vec2::new(now.x - start.x, now.y - start.y);
+            let drag = if shift { moved * FINE } else { moved };
             out.push(ToolDragEvent::Update {
-                amount,
+                drag,
                 pointer: pointer(now),
             });
-            self.tool_drag = Some(ToolDrag {
-                amount,
-                last_x: now.x,
-            });
+            self.tool_drag = Some(ToolDrag { drag, last: now });
             return true;
         }
         false

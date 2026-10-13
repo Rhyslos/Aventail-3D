@@ -7,12 +7,13 @@
 
 use super::Workbench;
 use crate::commands::CommandId;
+use crate::components::ViewPointer;
 use crate::drawing::SceneDrawing;
 use crate::palette::Mode;
 use crate::transforming::Tool;
 use crate::viewport::ToolDragEvent;
 use egui::Ui;
-use glam::{Mat4, Vec3};
+use glam::{Mat4, Vec2, Vec3};
 use mesh::Anchors;
 use scene::{
     Bounds, Command, Document, EdgeKey, ElementKind, FaceId, Grouping, ObjectId, Operation,
@@ -48,12 +49,51 @@ pub(super) struct ModellingSession {
     /// The middle of what is worked on, in the world: where a screen
     /// point is measured in centimetres.
     pivot: Vec3,
+    /// For Extrude, the way the polygons (or edges) face on average, in
+    /// the world: dragging that way on screen pushes them out. `None` for
+    /// Inset, or when they face every way at once.
+    direction: Option<Vec3>,
     grouping: Grouping,
     /// The distance last shown, in world centimetres.
     shown: Option<f32>,
 }
 
+/// How long a world step is measured on screen, in points, to see how much
+/// of the extrude direction lies across the screen.
+const PROBE: f32 = 50.0;
+
+/// Below this part of the direction lying across the screen (it points
+/// almost straight at the viewer), dragging right means "more" instead.
+const MIN_ACROSS: f32 = 0.2;
+
 impl ModellingSession {
+    /// The distance (world centimetres) a drag of `drag` screen points
+    /// means, seen through `pointer`'s camera.
+    ///
+    /// For Extrude, the drag counts along the way the polygons face on
+    /// screen, scaled so the polygons follow the mouse: drag a polygon on
+    /// the left side to the left and it comes out. When they face the
+    /// viewer almost straight on (or for Inset), right means more.
+    fn distance(&self, drag: Vec2, pointer: &ViewPointer) -> f32 {
+        let camera = &pointer.camera;
+        let per_point = camera.world_per_pixel(self.pivot, pointer.size);
+        if let Some(direction) = self.direction {
+            let step = per_point * PROBE;
+            let ends = (
+                camera.project(self.pivot, pointer.size),
+                camera.project(self.pivot + direction * step, pointer.size),
+            );
+            if let (Some(a), Some(b)) = ends {
+                let across = (b - a).length() / PROBE;
+                if across > MIN_ACROSS && across.is_finite() {
+                    let way = (b - a) / (b - a).length();
+                    return drag.dot(way) * per_point / across;
+                }
+            }
+        }
+        drag.x * per_point
+    }
+
     /// The operation for `part` at `distance` (world centimetres).
     fn operation(&self, part: &Part, distance: f32) -> Operation {
         let local = distance / part.scale;
@@ -158,14 +198,14 @@ impl Workbench {
         for event in self.viewport.take_tool_events() {
             match event {
                 ToolDragEvent::Begin { .. } => {
+                    self.select_under_the_press();
                     self.modelling_session = self.begin_modelling(drawing);
                 }
-                ToolDragEvent::Update { amount, pointer } => {
+                ToolDragEvent::Update { drag, pointer } => {
                     let Some(session) = &mut self.modelling_session else {
                         continue;
                     };
-                    let per_point = pointer.camera.world_per_pixel(session.pivot, pointer.size);
-                    let mut distance = amount * per_point;
+                    let mut distance = session.distance(drag, &pointer);
                     if session.tool == Tool::Inset {
                         // Inward only: outward would overlap the
                         // neighbours.
@@ -226,6 +266,8 @@ impl Workbench {
         };
         let mut parts = Vec::new();
         let mut points = Vec::new();
+        // The way everything faces, summed in the world.
+        let mut facing = Vec3::ZERO;
         for item in drawing.items.iter().filter(|i| i.selected) {
             let Some(selected) = self.document.elements(item.id) else {
                 continue;
@@ -255,6 +297,7 @@ impl Workbench {
             if corners.is_empty() {
                 continue;
             }
+            facing += world_facing(&item.mesh, item.transform, &elements);
             points.extend(
                 corners
                     .iter()
@@ -283,9 +326,53 @@ impl Workbench {
             key: MODELLING_KEYS | self.sessions,
             parts,
             pivot: bounds.centre(),
+            direction: (tool == Tool::Extrude)
+                .then(|| facing.try_normalize())
+                .flatten(),
             grouping: self.grouping(),
             shown: None,
         })
+    }
+
+    /// When a drag starts on a polygon (or, for Extrude in the Edges mode,
+    /// an edge) of a selected object that isn't selected, it becomes the
+    /// selection first, as its own undo step: drag straight on the
+    /// polygon you want, without clicking it first. Starting on something
+    /// selected, or on empty space, keeps the selection.
+    fn select_under_the_press(&mut self) {
+        let kind = match (self.mode, self.tool) {
+            (Mode::Polygons, Tool::Extrude | Tool::Inset) => ElementKind::Polygons,
+            (Mode::Edges, Tool::Extrude) => ElementKind::Edges,
+            _ => return,
+        };
+        let Some((id, element)) = self.components.hovered() else {
+            return;
+        };
+        if element.kind() != kind || !self.document.selection().contains(&id) {
+            return;
+        }
+        if self
+            .document
+            .elements(id)
+            .is_some_and(|s| s.contains(element))
+        {
+            return;
+        }
+        let changes: Vec<_> = self
+            .document
+            .selection()
+            .into_iter()
+            .map(|object| {
+                let mut selection = self.document.elements(object).cloned().unwrap_or_default();
+                selection.clear_kind(kind);
+                if object == id {
+                    selection.insert(element);
+                }
+                (object, selection)
+            })
+            .collect();
+        let label = format!("Select 1 {}", kind.singular());
+        self.document.select_elements(changes, label, None);
     }
 
     /// After a drag: says what was done, and after extruding edges moves
@@ -333,6 +420,37 @@ fn outer_edges(mesh: &scene::Mesh, edges: &[EdgeKey]) -> Vec<EdgeKey> {
             Some(EdgeKey::new(*c, *d))
         })
         .collect()
+}
+
+/// The way `elements` of `mesh` face, summed and in the world (`world` is
+/// the object's matrix): polygons by their facing, border edges by the way
+/// they grow.
+fn world_facing(mesh: &scene::Mesh, world: Mat4, elements: &Elements) -> Vec3 {
+    let normals = world.inverse().transpose();
+    let to_world = |v: Vec3| normals.transform_vector3(v).normalize_or_zero();
+    match elements {
+        Elements::Polygons(faces) => faces.iter().map(|f| to_world(mesh.face_normal(*f))).sum(),
+        Elements::Edges(edges) => {
+            let topology = mesh.topology();
+            edges
+                .iter()
+                .filter_map(|edge| {
+                    let [only] = topology.edge_uses(*edge) else {
+                        return None;
+                    };
+                    let (low, high) = edge.ends();
+                    let (a, b) = if only.forward {
+                        (low, high)
+                    } else {
+                        (high, low)
+                    };
+                    let along = mesh.position(b)? - mesh.position(a)?;
+                    let outward = along.cross(mesh.face_normal(only.face));
+                    Some(world.transform_vector3(outward).normalize_or_zero())
+                })
+                .sum()
+        }
+    }
 }
 
 /// An object's size compared with its own space: its world matrix's scale,
