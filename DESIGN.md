@@ -631,3 +631,21 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-13 — At the project lead's request, a new guiding principle, **drags follow the pull** (§1, principle 8, [0039](docs/decisions/0039-drags-follow-the-pull.md)): a drag in the viewport is measured from what it changes (its facing, its axis, its middle), with a fixed screen direction only as a fallback. Extrude already followed the polygons' facing; Inset now follows the pull towards the polygons' middle. The gizmos already worked this way; the Scale gizmo's uniform centre keeps "right or up grows", as a drag that starts on the middle has no way to follow.
 - 2026-10-13 — At the project lead's request, the README and CONTRIBUTING say plainly that the project isn't accepting outside contributions, as it is too early in development; bug reports and ideas stay welcome through Issues. The project stays open source under the GPL.
 - 2026-10-13 — The official name is **Aventail 3D** (the "3D" says what it is). Added to the plan, still to be designed in detail: a built-in **texture painter** and later a **material builder**, after the UV phase, shaped by game work rather than copying Substance Painter, and good enough for hobbyist generalists; **engine export paths** for Godot, Unity and Unreal Engine in Phase 5. Scripting and rigging move later.
+- 2026-10-13 — Gap review with the project lead. Decisions:
+  - **Materials** come with texturing, unless the engine export needs something earlier (to check: a minimal material slot per polygon for export).
+  - **High-poly models** for baking are sculpted elsewhere (Blender, ZBrush) and imported. **Sculpting** is left to Blender, or comes far later.
+  - Our own **smoothing modifier** (subdivision, like 3ds Max's TurboSmooth) gets its own name, not copied from another program.
+  - **Curves and splines** (sweep, lathe; pipes, cables, railings) are needed.
+  - The **official release** comes when the app is finished, well after the material phase. Friends have agreed to test once there are enough tools to build something.
+  - Wanted:
+    - duplicate and **instances**;
+    - splitting polygons off into an object, and joining objects;
+    - hide and isolate;
+    - **slide** points and edges along their neighbours, and drag them along existing surfaces;
+    - pivot editing and scene units (needed by export);
+    - shell (thickness).
+  - **Pipe joins that keep their size:** turning a pipe's end ring keeps its cross-section from squashing, so pipes connect cleanly. A possible unique selling point, to be designed.
+  - A **keyboard shortcut viewer** soon. Custom hotkeys are added along the way.
+  - glTF (and OBJ) **import**. No FBX, as it can't be licensed.
+  - **Screenshots and turntable GIFs** from the viewport.
+  - Wishlist: interface size scaling, a first-start welcome with sample projects.
