@@ -719,9 +719,9 @@ fn last_edit(stack: &Stack) -> Option<(usize, usize, &Operation)> {
         .iter()
         .enumerate()
         .rev()
-        .find(|(_, l)| !l.operations.is_empty())?;
-    let index = top.operations.len() - 1;
-    Some((layer, index, &top.operations[index]))
+        .find(|(_, l)| !l.entries.is_empty())?;
+    let index = top.entries.len() - 1;
+    Some((layer, index, &top.entries[index].operation))
 }
 
 fn grouping_of(together: bool) -> Grouping {

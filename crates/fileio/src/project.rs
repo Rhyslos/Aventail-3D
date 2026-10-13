@@ -11,7 +11,7 @@
 //! | 4–7 | The format version (little-endian), so old files can be upgraded and newer ones refused clearly |
 //! | 8–11 | Flags; bit 0 says the body is zstd-compressed. Other bits are reserved and must be 0 |
 //! | 12–19 | The body's length in bytes |
-//! | 20– | The body: the file model of that version (`project/v1.rs`, `project/v2.rs`, `project/v3.rs`, `project/v4.rs`), encoded with postcard |
+//! | 20– | The body: the file model of that version (`project/v1.rs` to `project/v5.rs`), encoded with postcard |
 //!
 //! Reading never trusts the file: lengths are checked before anything is
 //! allocated, the unpacked body is capped, and every value is checked
@@ -22,6 +22,7 @@ mod v1;
 mod v2;
 mod v3;
 mod v4;
+mod v5;
 
 use scene::Document;
 use std::fmt;
@@ -31,7 +32,7 @@ use std::path::{Path, PathBuf};
 /// The signature every project file starts with.
 pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// The format version this app writes.
-pub const FORMAT_VERSION: u32 = 4;
+pub const FORMAT_VERSION: u32 = 5;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -132,8 +133,9 @@ fn edit_counts(document: &Document) -> usize {
 
 /// The project file's bytes for `document`, unchecked.
 fn encode(document: &Document) -> Result<Vec<u8>, ProjectError> {
-    let model = v4::ProjectV4::from_document(document);
+    let model = v5::ProjectV5::from_document(document);
     let stored: usize = model
+        .project
         .objects
         .iter()
         .flat_map(|o| o.layers.iter())
@@ -202,8 +204,21 @@ pub fn from_bytes(bytes: &[u8]) -> Result<Document, ProjectError> {
         1 => decode::<v1::OperationV1>(encoded),
         2 => decode::<v2::OperationV2>(encoded),
         3 => decode::<v3::OperationV3>(encoded),
-        _ => decode::<v4::OperationV4>(encoded),
+        4 => decode::<v4::OperationV4>(encoded),
+        _ => decode_v5(encoded),
     }
+}
+
+/// The document a version 5 body holds.
+fn decode_v5(encoded: &[u8]) -> Result<Document, ProjectError> {
+    let (model, rest): (v5::ProjectV5, &[u8]) = postcard::take_from_bytes(encoded)
+        .map_err(|e| ProjectError::Damaged(format!("the scene can't be read ({e})")))?;
+    if !rest.is_empty() {
+        return Err(ProjectError::Damaged(
+            "there is unexpected data after the scene".into(),
+        ));
+    }
+    model.into_document().map_err(ProjectError::Damaged)
 }
 
 /// The document an unpacked body holds, read with the model for

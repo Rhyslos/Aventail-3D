@@ -7,10 +7,125 @@ use glam::Vec3;
 use mesh::{CubeParams, PrimitiveKind, VertexId};
 use scene::{Command, Object, ObjectKind, Operation, Place, Primitive, Transform};
 
+/// A document using everything version 5 of the format can hold: all of
+/// [`rich_document_v4`], plus a move that keeps the structure it was made
+/// on, a switched-off edit, a pinned edit, and a plain mesh with attribute
+/// layers of every domain and kind.
+fn rich_document() -> Document {
+    let mut doc = rich_document_v4();
+    let cube = *doc.scene().children(None).last().unwrap();
+    let shape = doc.scene().evaluated(cube).unwrap().mesh;
+    let points: Vec<VertexId> = shape.vertices().take(3).map(|(v, _)| v).collect();
+    let elements: Vec<Vec<VertexId>> = points.iter().map(|v| vec![*v]).collect();
+    let anchors = mesh::Anchors::record(&shape, mesh::ElementKind::Points, &elements);
+    assert!(anchors.as_ref().is_some_and(|a| a.structure.is_some()));
+    doc.execute(Command::Record {
+        id: cube,
+        operation: Operation::MovePoints {
+            points,
+            offset: Vec3::new(1.0, 2.0, 3.0),
+            anchors,
+        },
+    })
+    .unwrap();
+    doc.execute(Command::SetEditEnabled {
+        id: cube,
+        edit: scene::EditId::from_raw(2),
+        enabled: false,
+    })
+    .unwrap();
+    doc.execute(Command::SetEditPinned {
+        id: cube,
+        edit: scene::EditId::from_raw(4),
+        pinned: true,
+    })
+    .unwrap();
+    // A plain mesh with a layer of every domain and kind.
+    let mut plane = PrimitiveKind::Plane.standard().mesh();
+    let (v, f) = (
+        plane.vertices().next().unwrap().0,
+        plane.faces().next().unwrap().0,
+    );
+    let corners = plane.face(f).unwrap().to_vec();
+    let edge = mesh::EdgeKey::new(corners[0], corners[1]);
+    use mesh::{AttributeElement as At, Domain, Value};
+    let layers = [
+        (
+            "colour",
+            Domain::Point,
+            Value::Vec4(glam::Vec4::ONE),
+            At::Point(v),
+            Value::Vec4(glam::Vec4::new(1.0, 0.5, 0.25, 1.0)),
+        ),
+        (
+            "weight",
+            Domain::Point,
+            Value::Float(0.0),
+            At::Point(v),
+            Value::Float(0.75),
+        ),
+        (
+            "seam",
+            Domain::Edge,
+            Value::Bool(false),
+            At::Edge(edge),
+            Value::Bool(true),
+        ),
+        (
+            "crease",
+            Domain::Edge,
+            Value::Float(0.0),
+            At::Edge(edge),
+            Value::Float(0.5),
+        ),
+        (
+            "material",
+            Domain::Face,
+            Value::Int(0),
+            At::Face(f),
+            Value::Int(3),
+        ),
+        (
+            "uv",
+            Domain::Corner,
+            Value::Vec2(glam::Vec2::ZERO),
+            At::Corner(f, 2),
+            Value::Vec2(glam::Vec2::new(0.25, 0.5)),
+        ),
+        (
+            "normal",
+            Domain::Corner,
+            Value::Vec3(Vec3::Z),
+            At::Corner(f, 1),
+            Value::Vec3(Vec3::X),
+        ),
+    ];
+    for (name, domain, default, element, value) in layers {
+        plane.add_attribute(name, domain, default).unwrap();
+        plane.set_attribute(name, element, value).unwrap();
+    }
+    plane.set_hard(corners[1], corners[2], true);
+    doc.execute(Command::Create(ObjectKind::Mesh(std::sync::Arc::new(
+        plane,
+    ))))
+    .unwrap();
+    doc.set_selection([cube]);
+    doc
+}
+
+/// Anchors as files before version 5 kept them: without the structure the
+/// edit was made on.
+fn older(anchors: Option<mesh::Anchors>) -> Option<mesh::Anchors> {
+    anchors.map(|mut a| {
+        a.structure = None;
+        a
+    })
+}
+
 /// A document using everything version 4 of the format can hold: all of
 /// [`rich_document_v3`], plus a bevel of edges (with anchors) and of a
-/// point.
-fn rich_document() -> Document {
+/// point. The version 4 sample holds exactly this.
+fn rich_document_v4() -> Document {
     let mut doc = rich_document_v3();
     let cube = *doc.scene().children(None).last().unwrap();
     let shape = doc.scene().evaluated(cube).unwrap().mesh;
@@ -20,7 +135,11 @@ fn rich_document() -> Document {
         .find(|e| shape.topology().edge_uses(**e).len() == 2)
         .unwrap();
     let (a, b) = edge.ends();
-    let anchors = mesh::Anchors::record(&shape, mesh::ElementKind::Edges, &[vec![a, b]]);
+    let anchors = older(mesh::Anchors::record(
+        &shape,
+        mesh::ElementKind::Edges,
+        &[vec![a, b]],
+    ));
     for operation in [
         Operation::BevelEdges {
             edges: vec![edge],
@@ -56,7 +175,11 @@ fn rich_document_v3() -> Document {
     let shape = doc.scene().evaluated(cube).unwrap().mesh;
     let face = shape.faces().next().unwrap().0;
     let corners = vec![shape.face(face).unwrap().to_vec()];
-    let anchors = mesh::Anchors::record(&shape, mesh::ElementKind::Polygons, &corners);
+    let anchors = older(mesh::Anchors::record(
+        &shape,
+        mesh::ElementKind::Polygons,
+        &corners,
+    ));
     for operation in [
         Operation::InsetPolygons {
             faces: vec![face],
@@ -99,7 +222,11 @@ fn rich_document_v2() -> Document {
     // Where the two points are, so the edit can find them again.
     let shape = doc.scene().evaluated(cube).unwrap().mesh;
     let points = [VertexId::from_raw(1), VertexId::from_raw(2)];
-    let anchors = mesh::Anchors::record(&shape, mesh::ElementKind::Edges, &[points.to_vec()]);
+    let anchors = older(mesh::Anchors::record(
+        &shape,
+        mesh::ElementKind::Edges,
+        &[points.to_vec()],
+    ));
     assert!(anchors.is_some());
     doc.execute(Command::Record {
         id: cube,
@@ -346,14 +473,14 @@ fn a_cut_short_or_padded_body_is_damaged() {
 #[test]
 fn an_uncompressed_body_can_be_read() {
     let doc = rich_document();
-    let body = postcard::to_stdvec(&v4::ProjectV4::from_document(&doc)).unwrap();
-    let mut bytes = header(4, 0, body.len() as u64);
+    let body = postcard::to_stdvec(&v5::ProjectV5::from_document(&doc)).unwrap();
+    let mut bytes = header(5, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     assert_same(&doc, &from_bytes(&bytes).unwrap());
     // Data after the scene is refused.
     let mut longer = body.clone();
     longer.push(0);
-    let mut bytes = header(4, 0, longer.len() as u64);
+    let mut bytes = header(5, 0, longer.len() as u64);
     bytes.extend_from_slice(&longer);
     assert!(refused(&bytes).to_string().contains("unexpected data"));
 }
@@ -746,7 +873,7 @@ const SAMPLE_V4: &[u8] = include_bytes!("../../tests/data/sample-v4.avtl");
 #[test]
 fn a_file_saved_by_format_version_4_still_opens() {
     let doc = from_bytes(SAMPLE_V4).expect("the version 4 sample opens");
-    assert_same(&rich_document(), &doc);
+    assert_same(&rich_document_v4(), &doc);
 }
 
 /// The bytes of a version 4 file holding `model`, uncompressed.
@@ -759,7 +886,7 @@ fn file_of_v4(model: &v4::ProjectV4) -> Vec<u8> {
 
 #[test]
 fn bevels_are_kept_and_checked() {
-    let doc = rich_document();
+    let doc = rich_document_v4();
     assert_same(&doc, &from_bytes(&to_bytes(&doc).unwrap()).unwrap());
     let good = v4::ProjectV4::from_document(&doc);
     let cube = good.objects.iter().position(|o| o.name == "Cube").unwrap();
@@ -803,8 +930,8 @@ fn bevels_are_kept_and_checked() {
     }
     let opened = from_bytes(&file_of_v4(&big)).unwrap();
     let id = *opened.scene().children(None).last().unwrap();
-    let ops_now = &opened.scene().object(id).unwrap().stack.layers()[0].operations;
-    let Operation::BevelEdges { shape, .. } = &ops_now[ops - 2] else {
+    let ops_now = &opened.scene().object(id).unwrap().stack.layers()[0].entries;
+    let Operation::BevelEdges { shape, .. } = &ops_now[ops - 2].operation else {
         panic!("a bevel");
     };
     assert_eq!(shape.segments, mesh::bevel::MAX_SEGMENTS);
@@ -818,12 +945,96 @@ fn bevels_are_kept_and_checked() {
         }
         let opened = from_bytes(&file_of_v4(&file)).unwrap();
         let id = *opened.scene().children(None).last().unwrap();
-        let ops_now = &opened.scene().object(id).unwrap().stack.layers()[0].operations;
-        let Operation::BevelEdges { shape, .. } = &ops_now[ops - 2] else {
+        let ops_now = &opened.scene().object(id).unwrap().stack.layers()[0].entries;
+        let Operation::BevelEdges { shape, .. } = &ops_now[ops - 2].operation else {
             panic!("a bevel");
         };
         assert_eq!(shape.profile, opened_as, "stored {stored}");
     }
+}
+
+/// A project saved by version 5 of the format, kept in the repository.
+const SAMPLE_V5: &[u8] = include_bytes!("../../tests/data/sample-v5.avtl");
+
+#[test]
+fn a_file_saved_by_format_version_5_still_opens() {
+    let doc = from_bytes(SAMPLE_V5).expect("the version 5 sample opens");
+    assert_same(&rich_document(), &doc);
+}
+
+/// The bytes of a version 5 file holding `model`, uncompressed.
+fn file_of_v5(model: &v5::ProjectV5) -> Vec<u8> {
+    let body = postcard::to_stdvec(model).unwrap();
+    let mut bytes = header(5, 0, body.len() as u64);
+    bytes.extend_from_slice(&body);
+    bytes
+}
+
+#[test]
+fn edits_keep_their_ids_switches_and_structure() {
+    let doc = rich_document();
+    let opened = from_bytes(&to_bytes(&doc).unwrap()).unwrap();
+    let cube = opened
+        .scene()
+        .walk()
+        .into_iter()
+        .map(|(id, _)| id)
+        .find(|id| opened.scene().object(*id).unwrap().name == "Cube")
+        .unwrap();
+    let entries = &opened.scene().object(cube).unwrap().stack.layers()[0].entries;
+    let ids: Vec<u64> = entries.iter().map(|e| e.id.get()).collect();
+    assert_eq!(ids, (1..=entries.len() as u64).collect::<Vec<_>>());
+    assert!(!entries[1].enabled, "edit 2 is off");
+    assert!(entries[3].pinned, "edit 4 is pinned");
+    let last = entries.last().unwrap().operation.anchors().unwrap();
+    assert!(last.structure.is_some());
+    // Edits from older files are numbered in order, on, and unpinned.
+    let old = from_bytes(SAMPLE_V4).unwrap();
+    let cube = *old.scene().children(None).last().unwrap();
+    let entries = &old.scene().object(cube).unwrap().stack.layers()[0].entries;
+    assert!(entries.iter().all(|e| e.enabled && !e.pinned));
+    assert_eq!(entries[2].id.get(), 3);
+}
+
+#[test]
+fn damaged_edits_and_mesh_layers_are_refused() {
+    let good = v5::ProjectV5::from_document(&rich_document());
+    assert_same(&rich_document(), &from_bytes(&file_of_v5(&good)).unwrap());
+    let cube = good
+        .project
+        .objects
+        .iter()
+        .position(|o| o.name == "Cube")
+        .unwrap();
+    let damaged = |change: &dyn Fn(&mut v5::ProjectV5)| {
+        let mut bad = good.clone();
+        change(&mut bad);
+        refused(&file_of_v5(&bad)).to_string()
+    };
+    // Two edits with one id.
+    let text = damaged(&|p| p.project.objects[cube].layers[0].operations[1].id = 1);
+    assert!(text.contains("same id"), "{text}");
+    // Mesh layers: too many values, not numbers, hard edges, for a
+    // missing object, for an object without a mesh, or listed twice.
+    fn layer(p: &mut v5::ProjectV5) -> &mut v5::LayerV5 {
+        &mut p.layers[0].layers[0]
+    }
+    assert!(
+        damaged(&|p| layer(p).values = v5::ValuesV5::Vec4(vec![[0.0; 4]; 999])).contains("damaged")
+    );
+    assert!(
+        damaged(&|p| layer(p).default = v5::ValueV5::Vec4([f32::NAN; 4])).contains("real number")
+    );
+    assert!(damaged(&|p| layer(p).name = mesh::attributes::HARD.into()).contains("already exists"));
+    assert!(damaged(&|p| p.layers[0].object = 9999).contains("isn't there"));
+    assert!(damaged(&|p| p.layers[0].object = 0).contains("no mesh"));
+    assert!(
+        damaged(&|p| {
+            let again = p.layers[0].clone();
+            p.layers.push(again);
+        })
+        .contains("twice")
+    );
 }
 
 /// Writes the current version's sample. Run only by hand, when a new

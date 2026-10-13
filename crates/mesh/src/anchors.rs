@@ -14,6 +14,13 @@
 //!   in two by more segments moves as a whole.
 //! - **Polygons:** every polygon lying inside an anchored polygon, so a
 //!   face split into four moves as a whole.
+//!
+//! **Ids are trusted when the structure is the same**
+//! ([decision 0044](../../../docs/decisions/0044-edits-that-hold.md)). Anchors keep a fingerprint of the
+//! shape's structure ([`Mesh::structure_fingerprint`]). When an earlier
+//! edit changes only where points are (a longer extrude, say), the
+//! structure is unchanged, so the ids still name the right elements even
+//! though they moved: they are used as they are, not searched for.
 
 use crate::topology::Topology;
 use crate::{Bounds, ElementKind, FaceId, Mesh, VertexId};
@@ -29,6 +36,9 @@ pub struct Anchors {
     pub points: Vec<(VertexId, Vec3)>,
     /// The elements the edit was made on, by position.
     pub shape: AnchorShape,
+    /// The structure of the shape the edit was made on
+    /// ([`Mesh::structure_fingerprint`]); `None` in older files.
+    pub structure: Option<u64>,
 }
 
 /// The elements an edit was made on, by position.
@@ -82,7 +92,14 @@ impl Anchors {
             bounds,
             points,
             shape,
+            structure: Some(mesh.structure_fingerprint()),
         })
+    }
+
+    /// Whether `mesh` has the structure the edit was made on, so its ids
+    /// can be trusted as they are, wherever the points now are.
+    pub fn same_structure(&self, mesh: &Mesh) -> bool {
+        self.structure == Some(mesh.structure_fingerprint())
     }
 
     /// Where a recorded place is in `mesh`, whose box is `now`: the same

@@ -10,6 +10,11 @@
 //! the base (a cube's segments, say) replays every recorded edit on the
 //! new shape. Until the Edit Layers interface arrives, every edit goes
 //! into one layer, so the user sees a plain object.
+//!
+//! Each recorded edit is an [`Entry`]: its operation, an id ([`EditId`],
+//! unique among the object's edits) and two switches, on/off and pinned
+//! ([decision 0044](../../../docs/decisions/0044-edits-that-hold.md)). A switched-off edit is skipped. The
+//! switches are there for the edit list to come (Phase 6).
 
 use crate::object::{ObjectId, ObjectKind};
 use glam::{Mat4, Vec3};
@@ -108,6 +113,50 @@ pub enum Operation {
         /// Where the points were, to find them again (decision 0032).
         anchors: Option<Anchors>,
     },
+}
+
+/// An edit's id: unique among the edits of its object while they exist,
+/// so an edit can be named however the list changes around it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct EditId(u64);
+
+impl EditId {
+    /// The id as a number.
+    pub fn get(self) -> u64 {
+        self.0
+    }
+
+    /// The id with this number, as saved earlier.
+    pub const fn from_raw(number: u64) -> Self {
+        Self(number)
+    }
+}
+
+/// One recorded edit in a layer: its operation, its id, and its switches.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Entry {
+    /// The edit's id.
+    pub id: EditId,
+    /// A switched-off edit is skipped: the shape is as if it weren't
+    /// there, but it can be switched on again.
+    pub enabled: bool,
+    /// Pinned edits stay changeable; unpinned old ones may later be frozen
+    /// into the shape to keep big models quick (Phase 6).
+    pub pinned: bool,
+    /// What the edit does.
+    pub operation: Operation,
+}
+
+impl Entry {
+    /// A switched-on, unpinned edit.
+    pub fn new(id: EditId, operation: Operation) -> Self {
+        Self {
+            id,
+            enabled: true,
+            pinned: false,
+            operation,
+        }
+    }
 }
 
 /// The settings of a recorded edit that can still be changed afterwards
@@ -265,6 +314,20 @@ impl Operation {
         }
     }
 
+    /// Where the operation's elements were, to change (for opening saved
+    /// files that keep more about them).
+    pub fn anchors_mut(&mut self) -> Option<&mut Anchors> {
+        match self {
+            Self::MovePoints { anchors, .. }
+            | Self::TransformPoints { anchors, .. }
+            | Self::ExtrudePolygons { anchors, .. }
+            | Self::InsetPolygons { anchors, .. }
+            | Self::ExtrudeEdges { anchors, .. }
+            | Self::BevelEdges { anchors, .. }
+            | Self::BevelPoints { anchors, .. } => anchors.as_mut(),
+        }
+    }
+
     /// The distance of an extrude or inset (or a bevel's width), if it
     /// is one: what the Attributes panel lets you change afterwards.
     pub fn distance(&self) -> Option<f32> {
@@ -301,14 +364,17 @@ impl Operation {
         }
     }
 
-    /// Applies the operation to `mesh`. If its elements were renumbered
-    /// (a primitive given more segments, say), they are found again by
-    /// their anchors.
+    /// Applies the operation to `mesh`. Its ids are used as they are when
+    /// the shape has the structure the edit was made on (decision 0044), or
+    /// its anchored places still fit. Otherwise (a primitive given more
+    /// segments, say) its elements are found again by their anchors.
     fn apply(&self, mesh: &mut Mesh) -> Applied {
-        // The points at the anchored places, when the IDs no longer fit.
+        let same = self.anchors().is_some_and(|a| a.same_structure(mesh));
+        // The points at the anchored places, when the ids can't be trusted.
         let refound = match self.anchors() {
-            Some(anchors) if !anchors.still_fit(mesh) => Some(anchors.find(mesh, mesh.topology())),
-            _ => None,
+            Some(anchors) if same || anchors.still_fit(mesh) => None,
+            Some(anchors) => Some(anchors.find(mesh, mesh.topology())),
+            None => None,
         };
         let outcome: Outcome = match self {
             Self::MovePoints { points, offset, .. } => {
@@ -408,15 +474,15 @@ fn edges_within(mesh: &Mesh, points: &[VertexId]) -> Vec<EdgeKey> {
         .collect()
 }
 
-/// A named group of operations that can be switched off as a whole.
+/// A named group of edits that can be switched off as a whole.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Layer {
     /// Its name, for the future Edit Layers panel.
     pub name: String,
     /// A switched-off layer passes the shape below it through unchanged.
     pub enabled: bool,
-    /// Its operations, in the order they apply.
-    pub operations: Vec<Operation>,
+    /// Its edits, in the order they apply.
+    pub entries: Vec<Entry>,
 }
 
 impl Layer {
@@ -425,7 +491,7 @@ impl Layer {
         Self {
             name: name.into(),
             enabled: true,
-            operations: Vec::new(),
+            entries: Vec::new(),
         }
     }
 }
@@ -454,9 +520,44 @@ impl Stack {
         self.layers.is_empty()
     }
 
-    /// How many operations are recorded, in every layer.
+    /// How many edits are recorded, in every layer.
     pub fn operation_count(&self) -> usize {
-        self.layers.iter().map(|l| l.operations.len()).sum()
+        self.layers.iter().map(|l| l.entries.len()).sum()
+    }
+
+    /// The id the next recorded edit gets: one more than the highest id
+    /// in the stack (1 for the first).
+    pub fn next_edit_id(&self) -> EditId {
+        let highest = self
+            .layers
+            .iter()
+            .flat_map(|l| &l.entries)
+            .map(|e| e.id.0)
+            .max()
+            .unwrap_or(0);
+        EditId(highest.saturating_add(1))
+    }
+
+    /// The edit with id `id`: its layer, its place in the layer, and the
+    /// edit.
+    pub fn entry(&self, id: EditId) -> Option<(usize, usize, &Entry)> {
+        self.layers.iter().enumerate().find_map(|(l, layer)| {
+            layer
+                .entries
+                .iter()
+                .position(|e| e.id == id)
+                .map(|i| (l, i, &layer.entries[i]))
+        })
+    }
+
+    /// An id two edits share, if any (a damaged file).
+    pub fn repeated_edit_id(&self) -> Option<EditId> {
+        let mut seen = BTreeSet::new();
+        self.layers
+            .iter()
+            .flat_map(|l| &l.entries)
+            .map(|e| e.id)
+            .find(|id| !seen.insert(*id))
     }
 }
 
@@ -518,22 +619,25 @@ fn same_base(a: &ObjectKind, b: &ObjectKind) -> bool {
 fn apply_from(
     start: &Arc<Mesh>,
     layer: usize,
-    operations: &[Operation],
+    entries: &[Entry],
     from: usize,
     warnings: &mut Vec<StackWarning>,
 ) -> (Arc<Mesh>, Option<Arc<Mesh>>) {
-    if from >= operations.len() {
+    if from >= entries.len() {
         return (Arc::clone(start), None);
     }
-    let last = operations.len() - 1;
+    let last = entries.len() - 1;
     let mut previous = (from == last).then(|| Arc::clone(start));
     let mut mesh = (**start).clone();
-    for (op_index, operation) in operations.iter().enumerate().skip(from) {
+    for (op_index, entry) in entries.iter().enumerate().skip(from) {
         if op_index == last && previous.is_none() {
             // One extra copy, so the next change to the last edit is quick.
             previous = Some(Arc::new(mesh.clone()));
         }
-        let applied = operation.apply(&mut mesh);
+        if !entry.enabled {
+            continue;
+        }
+        let applied = entry.operation.apply(&mut mesh);
         if applied.missing > 0 || applied.found_again {
             warnings.push(StackWarning {
                 layer,
@@ -555,7 +659,7 @@ fn evaluate_layer(
     layer: &Layer,
     cached: Option<CachedLayer>,
 ) -> (CachedLayer, usize) {
-    if !layer.enabled || layer.operations.is_empty() {
+    if !layer.enabled || layer.entries.is_empty() {
         let cached = CachedLayer {
             layer: layer.clone(),
             mesh: Arc::clone(below),
@@ -571,12 +675,12 @@ fn evaluate_layer(
         Some(old) if old.layer.enabled => {
             let same = old
                 .layer
-                .operations
+                .entries
                 .iter()
-                .zip(&layer.operations)
+                .zip(&layer.entries)
                 .take_while(|(a, b)| a == b)
                 .count();
-            let kept = old.layer.operations.len();
+            let kept = old.layer.entries.len();
             let resume = if same == kept {
                 // Everything it had is still right; its checkpoint too.
                 Some((old.mesh, kept, old.previous))
@@ -599,8 +703,8 @@ fn evaluate_layer(
         }
         _ => (Arc::clone(below), 0, None, Vec::new()),
     };
-    let (mesh, previous) = apply_from(&start, index, &layer.operations, from, &mut warnings);
-    let applied = layer.operations.len() - from;
+    let (mesh, previous) = apply_from(&start, index, &layer.entries, from, &mut warnings);
+    let applied = layer.entries.len() - from;
     // Nothing new applied: the checkpoint is still the one it had, if the
     // layer is as long as before (after an undo it isn't known).
     let previous = if applied == 0 {
@@ -670,14 +774,14 @@ struct CachedLayer {
 
 /// One object's cached evaluation.
 #[derive(Debug, Clone)]
-struct Entry {
+struct CachedObject {
     base: ObjectKind,
     base_mesh: Arc<Mesh>,
     layers: Vec<CachedLayer>,
     last: Rebuilt,
 }
 
-impl Entry {
+impl CachedObject {
     fn result(&self) -> Evaluated {
         Evaluated {
             mesh: self
@@ -697,7 +801,7 @@ impl Entry {
 /// asked for and kept until the object changes.
 #[derive(Debug, Default)]
 pub(crate) struct StackCache {
-    entries: HashMap<ObjectId, Entry>,
+    entries: HashMap<ObjectId, CachedObject>,
 }
 
 impl StackCache {
@@ -743,7 +847,7 @@ impl StackCache {
         let base_mesh = base_mesh(base)?;
         let mut layers = Vec::new();
         evaluate_layers(&base_mesh, &stack.layers, 0, None, &mut layers);
-        let entry = Entry {
+        let entry = CachedObject {
             base: base.clone(),
             base_mesh,
             layers,

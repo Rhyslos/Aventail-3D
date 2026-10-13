@@ -1,7 +1,7 @@
 //! Commands: every change a user can make to the scene, each one undoable.
 
 use crate::object::{Object, ObjectId, ObjectKind, Transform};
-use crate::stack::{EDITS_LAYER, Layer, Operation};
+use crate::stack::{EDITS_LAYER, EditId, Entry, Layer, Operation};
 use crate::tree::{Edit, Place, Scene, SceneError};
 use mesh::Primitive;
 use std::sync::Arc;
@@ -92,6 +92,26 @@ pub enum Command {
         /// The edit to put there.
         operation: Operation,
     },
+    /// Switches a recorded edit off (the shape is as if it weren't there)
+    /// or on again (decision 0044).
+    SetEditEnabled {
+        /// The object.
+        id: ObjectId,
+        /// The edit.
+        edit: EditId,
+        /// On or off.
+        enabled: bool,
+    },
+    /// Pins a recorded edit (it stays changeable) or unpins it (decision
+    /// 0044).
+    SetEditPinned {
+        /// The object.
+        id: ObjectId,
+        /// The edit.
+        edit: EditId,
+        /// Pinned or not.
+        pinned: bool,
+    },
     /// Moves, turns or scales objects: each gets a new transform, relative
     /// to its parent (decision 0030). A transform with a value that isn't
     /// a number is refused.
@@ -129,6 +149,20 @@ impl Command {
             }
             Self::Record { operation, .. } => operation.describe(),
             Self::ReplaceOperation { operation, .. } => format!("Change {}", operation.describe()),
+            Self::SetEditEnabled { enabled, .. } => {
+                if *enabled {
+                    "Switch edit on".into()
+                } else {
+                    "Switch edit off".into()
+                }
+            }
+            Self::SetEditPinned { pinned, .. } => {
+                if *pinned {
+                    "Pin edit".into()
+                } else {
+                    "Unpin edit".into()
+                }
+            }
             Self::SetTransforms(changes) => {
                 let ids: Vec<ObjectId> = changes.iter().map(|(id, _)| *id).collect();
                 format!("Transform {}", objects(count(&ids)))
@@ -187,6 +221,51 @@ impl Run<'_> {
         self.scene.apply(&edit)?;
         self.edits.push(edit);
         Ok(())
+    }
+
+    /// Puts `after` in place of `before` (at `layer`, `index`).
+    fn swap_entry(
+        &mut self,
+        id: ObjectId,
+        layer: usize,
+        index: usize,
+        before: Entry,
+        after: Entry,
+    ) -> Result<(), SceneError> {
+        self.edit(Edit::RemoveEntry {
+            id,
+            layer,
+            index,
+            entry: before,
+        })?;
+        self.edit(Edit::InsertEntry {
+            id,
+            layer,
+            index,
+            entry: after,
+        })
+    }
+
+    /// Changes the switches of edit `edit` of object `id` with `change`;
+    /// nothing is recorded if they are already so.
+    fn change_entry(
+        &mut self,
+        id: ObjectId,
+        edit: EditId,
+        change: impl FnOnce(&mut Entry),
+    ) -> Result<(), SceneError> {
+        let object = self.scene.object(id).ok_or(SceneError::UnknownObject(id))?;
+        let (layer, index, before) = object
+            .stack
+            .entry(edit)
+            .ok_or(SceneError::History("that edit no longer exists"))?;
+        let before = before.clone();
+        let mut after = before.clone();
+        change(&mut after);
+        if after == before {
+            return Ok(());
+        }
+        self.swap_entry(id, layer, index, before, after)
     }
 
     /// Undoes the edits made so far.
@@ -337,15 +416,14 @@ impl Run<'_> {
                     layers = 1;
                 }
                 let layer = layers - 1;
-                let index = self
-                    .scene
-                    .object(*id)
-                    .map_or(0, |o| o.stack.layers()[layer].operations.len());
-                self.edit(Edit::InsertOperation {
+                let stack = self.scene.object(*id).map(|o| &o.stack);
+                let index = stack.map_or(0, |s| s.layers()[layer].entries.len());
+                let edit = stack.map_or(EditId::from_raw(1), crate::stack::Stack::next_edit_id);
+                self.edit(Edit::InsertEntry {
                     id: *id,
                     layer,
                     index,
-                    operation: operation.clone(),
+                    entry: Entry::new(edit, operation.clone()),
                 })?;
                 Ok(None)
             }
@@ -366,24 +444,26 @@ impl Run<'_> {
                     .stack
                     .layers()
                     .get(*layer)
-                    .and_then(|l| l.operations.get(*index))
+                    .and_then(|l| l.entries.get(*index))
                     .cloned()
                     .ok_or(SceneError::History("that edit no longer exists"))?;
-                if before == *operation {
+                if before.operation == *operation {
                     return Ok(None);
                 }
-                self.edit(Edit::RemoveOperation {
-                    id: *id,
-                    layer: *layer,
-                    index: *index,
-                    operation: before,
-                })?;
-                self.edit(Edit::InsertOperation {
-                    id: *id,
-                    layer: *layer,
-                    index: *index,
+                // The same edit (id and switches) with new settings.
+                let after = Entry {
                     operation: operation.clone(),
-                })?;
+                    ..before.clone()
+                };
+                self.swap_entry(*id, *layer, *index, before, after)?;
+                Ok(None)
+            }
+            Command::SetEditEnabled { id, edit, enabled } => {
+                self.change_entry(*id, *edit, |e| e.enabled = *enabled)?;
+                Ok(None)
+            }
+            Command::SetEditPinned { id, edit, pinned } => {
+                self.change_entry(*id, *edit, |e| e.pinned = *pinned)?;
                 Ok(None)
             }
             Command::SetTransforms(changes) => {

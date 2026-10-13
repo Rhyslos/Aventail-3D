@@ -37,6 +37,10 @@ fn point(doc: &Document, id: ObjectId, n: u32) -> Vec3 {
         .unwrap()
 }
 
+fn entry(id: u64, operation: Operation) -> Entry {
+    Entry::new(EditId::from_raw(id), operation)
+}
+
 fn record(doc: &mut Document, id: ObjectId, operation: Operation) {
     doc.execute(Command::Record { id, operation }).unwrap();
 }
@@ -273,9 +277,9 @@ fn a_new_edit_reevaluates_only_its_layer_and_a_new_base_everything() {
 
 fn two_layers() -> Stack {
     let mut lower = Layer::new("Lower");
-    lower.operations.push(lift(&[0], 10.0));
+    lower.entries.push(entry(1, lift(&[0], 10.0)));
     let mut upper = Layer::new("Upper");
-    upper.operations.push(lift(&[0], 1.0));
+    upper.entries.push(entry(2, lift(&[0], 1.0)));
     Stack {
         layers: vec![lower, upper],
     }
@@ -294,7 +298,7 @@ fn changing_an_upper_layer_keeps_the_layers_below_it() {
         first.mesh.position(VertexId::from_raw(0)),
         Some(start + Vec3::Z * 11.0)
     );
-    stack.layers[1].operations.push(lift(&[0], 100.0));
+    stack.layers[1].entries.push(entry(3, lift(&[0], 100.0)));
     let second = cache.evaluate(id, &base, &stack, &context).unwrap();
     assert_eq!(
         cache.last_rebuilt(id),
@@ -309,7 +313,7 @@ fn changing_an_upper_layer_keeps_the_layers_below_it() {
         Some(start + Vec3::Z * 111.0)
     );
     // Changing the lower layer evaluates both again.
-    stack.layers[0].operations.clear();
+    stack.layers[0].entries.clear();
     let third = cache.evaluate(id, &base, &stack, &context).unwrap();
     assert_eq!(
         cache.last_rebuilt(id),
@@ -691,7 +695,11 @@ fn an_extrudes_distance_can_be_changed_afterwards() {
         .z;
     assert!((top - 150.0).abs() < 1e-3);
     assert_eq!(
-        doc.scene().object(id).unwrap().stack.layers()[0].operations,
+        doc.scene().object(id).unwrap().stack.layers()[0]
+            .entries
+            .iter()
+            .map(|e| e.operation.clone())
+            .collect::<Vec<_>>(),
         vec![changed.clone()]
     );
     // Undo puts the old distance back; the same value again is no step.
@@ -939,7 +947,11 @@ fn edits_holding_numbers_that_arent_real_are_refused() {
 
 fn one_layer(operations: Vec<Operation>) -> Stack {
     let mut layer = Layer::new("Edits");
-    layer.operations = operations;
+    layer.entries = operations
+        .into_iter()
+        .enumerate()
+        .map(|(i, op)| entry(i as u64 + 1, op))
+        .collect();
     Stack {
         layers: vec![layer],
     }
@@ -1069,4 +1081,170 @@ fn switching_a_layer_off_and_on_gives_the_same_shape() {
     stack.layers[0].enabled = true;
     let again = cache.evaluate(id, &base, &stack, &context).unwrap();
     assert_eq!(on, again);
+}
+
+// ------------------------------------- edit ids and switches (0044) ---
+
+fn entries(doc: &Document, id: ObjectId) -> Vec<Entry> {
+    doc.scene().object(id).unwrap().stack.layers()[0]
+        .entries
+        .clone()
+}
+
+#[test]
+fn every_edit_gets_an_id_that_stays_with_it() {
+    let (mut doc, id) = with_a_cube();
+    record(&mut doc, id, lift(&[0], 5.0));
+    record(&mut doc, id, lift(&[1], 5.0));
+    let ids: Vec<u64> = entries(&doc, id).iter().map(|e| e.id.get()).collect();
+    assert_eq!(ids, [1, 2]);
+    assert!(entries(&doc, id).iter().all(|e| e.enabled && !e.pinned));
+    // Undo and redo bring the same edit back, id and all.
+    doc.undo().unwrap();
+    doc.redo().unwrap();
+    assert_eq!(entries(&doc, id)[1].id, EditId::from_raw(2));
+    // Changing an edit's settings keeps its id and switches.
+    doc.execute(Command::SetEditPinned {
+        id,
+        edit: EditId::from_raw(1),
+        pinned: true,
+    })
+    .unwrap();
+    doc.execute(Command::ReplaceOperation {
+        id,
+        layer: 0,
+        index: 0,
+        operation: lift(&[0], 9.0),
+    })
+    .unwrap();
+    let first = &entries(&doc, id)[0];
+    assert_eq!((first.id, first.pinned), (EditId::from_raw(1), true));
+    assert_eq!(first.operation, lift(&[0], 9.0));
+    assert_eq!(
+        doc.scene()
+            .object(id)
+            .unwrap()
+            .stack
+            .entry(EditId::from_raw(2))
+            .map(|(l, i, _)| (l, i)),
+        Some((0, 1))
+    );
+}
+
+#[test]
+fn a_switched_off_edit_is_skipped_and_can_come_back() {
+    let (mut doc, id) = with_a_cube();
+    let start = point(&doc, id, 0);
+    record(&mut doc, id, lift(&[0], 5.0));
+    record(&mut doc, id, lift(&[0], 1.0));
+    let off = |enabled| Command::SetEditEnabled {
+        id,
+        edit: EditId::from_raw(1),
+        enabled,
+    };
+    doc.execute(off(false)).unwrap();
+    assert_eq!(point(&doc, id, 0), start + Vec3::Z, "only the second edit");
+    assert_eq!(doc.undo_label(), Some("Switch edit off"));
+    let steps = doc.undo_steps();
+    doc.execute(off(false)).unwrap();
+    assert_eq!(doc.undo_steps(), steps, "already off: no step");
+    doc.undo().unwrap();
+    assert_eq!(point(&doc, id, 0), start + Vec3::Z * 6.0);
+    doc.redo().unwrap();
+    doc.execute(off(true)).unwrap();
+    assert_eq!(point(&doc, id, 0), start + Vec3::Z * 6.0);
+    // Unknown edits and objects are refused.
+    assert!(
+        doc.execute(Command::SetEditEnabled {
+            id,
+            edit: EditId::from_raw(99),
+            enabled: false,
+        })
+        .is_err()
+    );
+    assert_eq!(
+        doc.execute(Command::SetEditPinned {
+            id: ObjectId(999),
+            edit: EditId::from_raw(1),
+            pinned: true,
+        }),
+        Err(SceneError::UnknownObject(ObjectId(999)))
+    );
+    // Make editable leaves switched-off edits out, as they are shown.
+    doc.execute(off(false)).unwrap();
+    doc.execute(Command::MakeEditable(vec![id])).unwrap();
+    assert_eq!(point(&doc, id, 0), start + Vec3::Z);
+}
+
+#[test]
+fn a_saved_scene_with_two_edits_sharing_an_id_is_refused() {
+    let mut object = Object::new(ObjectKind::Primitive(cube()));
+    let mut layer = Layer::new(EDITS_LAYER);
+    layer.entries = vec![entry(3, lift(&[0], 1.0)), entry(3, lift(&[1], 1.0))];
+    object.stack = Stack::from_layers(vec![layer]);
+    assert!(Scene::from_objects([(ObjectId(1), None, object)], 2).is_err());
+}
+
+/// Records a move of `points` (by id) of `id`'s current shape by `offset`,
+/// with anchors, as the gizmo does.
+fn move_with_anchors(doc: &mut Document, id: ObjectId, points: Vec<VertexId>, offset: Vec3) {
+    let shape = doc.scene().evaluated(id).unwrap().mesh;
+    let elements: Vec<Vec<VertexId>> = points.iter().map(|v| vec![*v]).collect();
+    let anchors = mesh::Anchors::record(&shape, mesh::ElementKind::Points, &elements);
+    doc.execute(Command::Record {
+        id,
+        operation: Operation::MovePoints {
+            points,
+            offset,
+            anchors,
+        },
+    })
+    .unwrap();
+}
+
+#[test]
+fn changing_an_earlier_edit_keeps_later_edits_on_their_points() {
+    // Extrude the top twice, move the middle ring out, then make the first
+    // extrude longer: the ring moved, but it is the same ring, so the move
+    // still applies to it (review A2).
+    let (mut doc, id) = with_a_cube();
+    let shape = doc.scene().evaluated(id).unwrap().mesh;
+    let top = shape
+        .faces()
+        .find(|(f, _)| shape.face_normal(*f).z > 0.9)
+        .unwrap()
+        .0;
+    let extrude = |distance| Operation::ExtrudePolygons {
+        faces: vec![top],
+        distance,
+        grouping: Grouping::Together,
+        anchors: None,
+    };
+    record(&mut doc, id, extrude(50.0));
+    record(&mut doc, id, extrude(50.0));
+    let shape = doc.scene().evaluated(id).unwrap().mesh;
+    let ring: Vec<VertexId> = shape
+        .vertices()
+        .filter(|(_, p)| (p.z - 150.0).abs() < 1e-3)
+        .map(|(v, _)| v)
+        .collect();
+    assert_eq!(ring.len(), 4);
+    move_with_anchors(&mut doc, id, ring.clone(), Vec3::X * 20.0);
+    doc.execute(Command::ReplaceOperation {
+        id,
+        layer: 0,
+        index: 0,
+        operation: extrude(80.0),
+    })
+    .unwrap();
+    let shape = doc.scene().evaluated(id).unwrap();
+    for v in &ring {
+        let p = shape.mesh.position(*v).unwrap();
+        assert!((p.z - 180.0).abs() < 1e-3, "the ring rose with the extrude");
+        assert!(
+            (p.x - 70.0).abs() < 1e-3 || (p.x + 30.0).abs() < 1e-3,
+            "and is still moved 20 along X: {p}"
+        );
+    }
+    assert!(shape.warnings.is_empty(), "nothing had to be searched for");
 }

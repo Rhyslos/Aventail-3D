@@ -203,3 +203,40 @@ fn every_point_of_a_dense_mesh_is_found_in_its_own_place() {
     assert_eq!(missing, 0);
     assert_eq!(found, all);
 }
+
+#[test]
+fn the_structure_fingerprint_follows_faces_and_point_slots_only() {
+    let a = cube(SIZE, 1);
+    let mut moved = a.clone();
+    let v = moved.vertices().next().unwrap().0;
+    moved.set_position(v, Vec3::splat(999.0));
+    assert_eq!(a.structure_fingerprint(), moved.structure_fingerprint());
+    assert_eq!(
+        a.structure_fingerprint(),
+        cube(Vec3::new(10.0, 20.0, 30.0), 1).structure_fingerprint(),
+        "a resized cube has the same structure"
+    );
+    assert_ne!(
+        a.structure_fingerprint(),
+        cube(SIZE, 2).structure_fingerprint()
+    );
+    let mut more = a.clone();
+    more.add_vertex(Vec3::ZERO).unwrap();
+    assert_ne!(a.structure_fingerprint(), more.structure_fingerprint());
+    let mut fewer = a.clone();
+    fewer.delete_faces(&[FaceId::from_raw(0)]);
+    assert_ne!(a.structure_fingerprint(), fewer.structure_fingerprint());
+    // It is saved in project files, so it must never change between
+    // versions of the app: this value is fixed.
+    assert_eq!(Mesh::new().structure_fingerprint(), 0xdfeb_b0bf_8d1d_4a20);
+    assert_eq!(a.structure_fingerprint(), 0xeac8_5ef3_7e0f_d7e8);
+}
+
+#[test]
+fn anchors_know_the_structure_they_were_made_on() {
+    let small = cube(SIZE, 1);
+    let anchors = Anchors::record(&small, ElementKind::Polygons, &[top_polygon(&small)]).unwrap();
+    assert!(anchors.same_structure(&small));
+    assert!(anchors.same_structure(&cube(Vec3::new(10.0, 20.0, 30.0), 1)));
+    assert!(!anchors.same_structure(&cube(SIZE, 2)));
+}

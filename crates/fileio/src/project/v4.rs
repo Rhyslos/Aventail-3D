@@ -7,7 +7,7 @@
 //! (`OperationV4::V3`), so their checks are shared; new kinds go at the
 //! end, in a later version.
 
-use super::v1::{FileOperation, Problem, ProjectFile};
+use super::v1::{FileOperation, Problem};
 use super::v2::{AnchorsV2, anchors_from_file, anchors_to_file};
 use super::v3::OperationV3;
 use mesh::bevel::MAX_SEGMENTS;
@@ -16,7 +16,8 @@ use scene::{BevelShape, Operation};
 use serde::{Deserialize, Serialize};
 
 /// Version 4 of the file.
-pub(crate) type ProjectV4 = ProjectFile<OperationV4>;
+#[cfg(test)]
+pub(crate) type ProjectV4 = super::v1::ProjectFile<OperationV4>;
 
 /// The recorded operations version 4 stores.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

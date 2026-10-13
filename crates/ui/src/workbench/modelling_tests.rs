@@ -186,7 +186,13 @@ fn note(harness: &H) -> String {
 fn last_operation(harness: &H) -> Option<Operation> {
     let doc = harness.state().workbench.document();
     let object = doc.scene().object(cube(harness))?;
-    object.stack.layers().last()?.operations.last().cloned()
+    object
+        .stack
+        .layers()
+        .last()?
+        .entries
+        .last()
+        .map(|e| e.operation.clone())
 }
 
 #[test]

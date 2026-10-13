@@ -11,7 +11,8 @@
 //! [`Topology`], worked out once per set of faces ([`Mesh::topology`]).
 
 use crate::attributes::{
-    AttributeElement, AttributeError, AttributeKind, Attributes, Domain, HARD, Layer, Value,
+    AttributeElement, AttributeError, AttributeKind, AttributeValues, Attributes, Domain, HARD,
+    Layer, Value,
 };
 use crate::{Bounds, Topology};
 use glam::Vec3;
@@ -321,6 +322,8 @@ pub(crate) struct Faces {
     /// How many faces exist.
     live: usize,
     topology: OnceLock<Topology>,
+    /// A fingerprint of the corner lists, worked out when first asked for.
+    fingerprint: OnceLock<u64>,
 }
 
 impl Clone for Faces {
@@ -331,6 +334,7 @@ impl Clone for Faces {
             live: self.live,
             // Whoever copies the faces is about to change them.
             topology: OnceLock::new(),
+            fingerprint: OnceLock::new(),
         }
     }
 }
@@ -356,6 +360,7 @@ impl Faces {
         self.starts.push(self.corners.len() as u32);
         // The faces changed: any topology worked out before is stale.
         self.topology = OnceLock::new();
+        self.fingerprint = OnceLock::new();
     }
 }
 
@@ -557,6 +562,7 @@ impl Mesh {
         let start = faces.starts[index] as usize;
         faces.corners[start..start + corners.len()].copy_from_slice(corners);
         faces.topology = OnceLock::new();
+        faces.fingerprint = OnceLock::new();
         Ok(())
     }
 
@@ -690,6 +696,31 @@ impl Mesh {
     /// only move points share it.
     pub fn topology(&self) -> &Topology {
         self.faces.topology.get_or_init(|| Topology::new(self))
+    }
+
+    /// A number standing for the mesh's structure: its faces' corners (by
+    /// point id) and how many point slots it has, but not where the points
+    /// are. Two meshes with the same structure name the same elements with
+    /// the same ids, so an edit made on one can trust its ids on the
+    /// other, even if points have moved ([decision 0044](../../../docs/decisions/0044-edits-that-hold.md)).
+    /// Worked out once per set of faces; the same in every version of the
+    /// app and on every computer, so it can be saved.
+    pub fn structure_fingerprint(&self) -> u64 {
+        let faces = *self.faces.fingerprint.get_or_init(|| {
+            let mut hash = Fingerprint::new();
+            for start in &self.faces.starts {
+                hash.add(*start);
+            }
+            for corner in &self.faces.corners {
+                hash.add(corner.0);
+            }
+            hash.finish()
+        });
+        let mut hash = Fingerprint::new();
+        hash.add((faces >> 32) as u32);
+        hash.add(faces as u32);
+        hash.add(self.positions.len() as u32);
+        hash.finish()
     }
 
     /// Whether `other` has the very same faces and hard edges as this
@@ -914,6 +945,51 @@ impl Mesh {
         Ok(())
     }
 
+    /// A whole attribute layer: its domain, default and values, for
+    /// saving. `None` if there is no layer of that name.
+    pub fn attribute_values(&self, name: &str) -> Option<(Domain, Value, AttributeValues)> {
+        let layer = self.attributes.get(name)?;
+        Some((layer.domain(), layer.default(), layer.values()))
+    }
+
+    /// Puts a whole attribute layer in, replacing any of that name, after
+    /// checking every value (it may come from a damaged file): values of
+    /// the default's kind and real numbers, by-id values for the domain's
+    /// elements only (no more than there are point slots, polygon slots or
+    /// corners), edge values on edges between two different existing
+    /// points. The hard-edge layer ([`HARD`]) is kept with the mesh's hard
+    /// edges and can't be put in this way. Refused, changing nothing, if
+    /// anything doesn't fit.
+    pub fn set_attribute_values(
+        &mut self,
+        name: &str,
+        domain: Domain,
+        default: Value,
+        values: AttributeValues,
+    ) -> Result<(), AttributeError> {
+        if name == HARD {
+            return Err(AttributeError::NameTaken(name.to_owned()));
+        }
+        let layer = Layer::from_values(domain, default, values)?;
+        let room = match domain {
+            Domain::Point => self.positions.len(),
+            Domain::Face => self.faces.slot_count(),
+            Domain::Corner => self.faces.corners.len(),
+            Domain::Edge => usize::MAX,
+        };
+        if layer.stored() > room {
+            return Err(AttributeError::NoSuchElement);
+        }
+        if layer
+            .edges()
+            .any(|(e, _)| !self.has_element(AttributeElement::Edge(e)))
+        {
+            return Err(AttributeError::NoSuchElement);
+        }
+        self.attributes.put(name, layer);
+        Ok(())
+    }
+
     /// Whether `element` is in the mesh. An edge counts if its two points
     /// exist and differ (it needn't have a polygon, as with hard edges).
     pub fn has_element(&self, element: AttributeElement) -> bool {
@@ -1008,6 +1084,29 @@ impl Mesh {
             );
         }
         normal.try_normalize().unwrap_or(Vec3::Z)
+    }
+}
+
+/// A fixed 64-bit hash of a list of numbers (FNV-1a, a word at a time),
+/// written out here so it never changes with a library or platform.
+struct Fingerprint(u64);
+
+impl Fingerprint {
+    fn new() -> Self {
+        Self(0xcbf2_9ce4_8422_2325)
+    }
+
+    fn add(&mut self, word: u32) {
+        self.0 = (self.0 ^ u64::from(word)).wrapping_mul(0x0000_0100_0000_01b3);
+    }
+
+    fn finish(&self) -> u64 {
+        // Mix the last words through every bit.
+        let mut x = self.0;
+        x ^= x >> 33;
+        x = x.wrapping_mul(0xff51_afd7_ed55_8ccd);
+        x ^= x >> 33;
+        x
     }
 }
 

@@ -2,7 +2,7 @@
 //! made of.
 
 use crate::object::{Object, ObjectId, ObjectKind, Transform};
-use crate::stack::{EvalContext, Evaluated, Layer, Operation, SharedCache};
+use crate::stack::{Entry, EvalContext, Evaluated, Layer, SharedCache};
 use glam::Mat4;
 use mesh::Bounds;
 use std::collections::BTreeMap;
@@ -120,19 +120,19 @@ pub(crate) enum Edit {
         index: usize,
         layer: Layer,
     },
-    /// Adds an operation to one of an object's layers, at `index`.
-    InsertOperation {
+    /// Adds a recorded edit to one of an object's layers, at `index`.
+    InsertEntry {
         id: ObjectId,
         layer: usize,
         index: usize,
-        operation: Operation,
+        entry: Entry,
     },
-    /// Takes an operation out of one of an object's layers.
-    RemoveOperation {
+    /// Takes a recorded edit out of one of an object's layers.
+    RemoveEntry {
         id: ObjectId,
         layer: usize,
         index: usize,
-        operation: Operation,
+        entry: Entry,
     },
 }
 
@@ -144,8 +144,8 @@ impl Edit {
             | Self::Remove { .. }
             | Self::InsertLayer { .. }
             | Self::RemoveLayer { .. }
-            | Self::InsertOperation { .. }
-            | Self::RemoveOperation { .. } => false,
+            | Self::InsertEntry { .. }
+            | Self::RemoveEntry { .. } => false,
             Self::Relocate { from, to, .. } => from == to,
             Self::Rename { before, after, .. } => before == after,
             Self::SetVisible { before, after, .. } => before == after,
@@ -186,27 +186,27 @@ impl Edit {
             },
             Self::InsertLayer { id, index, layer } => Self::RemoveLayer { id, index, layer },
             Self::RemoveLayer { id, index, layer } => Self::InsertLayer { id, index, layer },
-            Self::InsertOperation {
+            Self::InsertEntry {
                 id,
                 layer,
                 index,
-                operation,
-            } => Self::RemoveOperation {
+                entry,
+            } => Self::RemoveEntry {
                 id,
                 layer,
                 index,
-                operation,
+                entry,
             },
-            Self::RemoveOperation {
+            Self::RemoveEntry {
                 id,
                 layer,
                 index,
-                operation,
-            } => Self::InsertOperation {
+                entry,
+            } => Self::InsertEntry {
                 id,
                 layer,
                 index,
-                operation,
+                entry,
             },
         }
     }
@@ -264,6 +264,11 @@ impl Scene {
             }
             if !object.kind.has_shape() && !object.stack.is_empty() {
                 return Err(SceneError::NoShape);
+            }
+            if object.stack.repeated_edit_id().is_some() {
+                return Err(SceneError::History(
+                    "two of an object's edits have the same id",
+                ));
             }
             if scene.contains(id) {
                 return Err(SceneError::History("two objects have the same id"));
@@ -623,36 +628,39 @@ impl Scene {
                 object.stack.layers.remove(*index);
                 Ok(())
             }
-            Edit::InsertOperation {
+            Edit::InsertEntry {
                 id,
                 layer,
                 index,
-                operation,
+                entry,
             } => {
                 let object = self.shaped_mut(*id)?;
+                if object.stack.entry(entry.id).is_some() {
+                    return Err(SceneError::History("an edit with that id already exists"));
+                }
                 let Some(layer) = object.stack.layers.get_mut(*layer) else {
                     return Err(SceneError::History("a layer no longer exists"));
                 };
-                if *index > layer.operations.len() {
-                    return Err(SceneError::History("an operation's place no longer exists"));
+                if *index > layer.entries.len() {
+                    return Err(SceneError::History("an edit's place no longer exists"));
                 }
-                layer.operations.insert(*index, operation.clone());
+                layer.entries.insert(*index, entry.clone());
                 Ok(())
             }
-            Edit::RemoveOperation {
+            Edit::RemoveEntry {
                 id,
                 layer,
                 index,
-                operation,
+                entry,
             } => {
                 let object = self.shaped_mut(*id)?;
                 let Some(layer) = object.stack.layers.get_mut(*layer) else {
                     return Err(SceneError::History("a layer no longer exists"));
                 };
-                if layer.operations.get(*index) != Some(operation) {
-                    return Err(SceneError::History("an operation has changed"));
+                if layer.entries.get(*index) != Some(entry) {
+                    return Err(SceneError::History("an edit has changed"));
                 }
-                layer.operations.remove(*index);
+                layer.entries.remove(*index);
                 Ok(())
             }
         }

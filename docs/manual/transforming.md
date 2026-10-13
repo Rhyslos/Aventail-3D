@@ -70,6 +70,8 @@ Because your moves, turns and scaling are kept apart from the shape's settings, 
 
 *Example:* make a cube, press `3`, select its top polygon, press `W` and drag the green arrow up. Then select the cube in Model mode and raise its segments in the Attributes panel: the top stays lifted, now cut into a grid.
 
+New rows follow the shape's settings, not your edits: lift a cube's top a long way, then add height segments, and the new rows are spread over the cube's original height, below the lift. To add rows where you need them on an edited shape, use Loop cut (coming soon in Phase 4).
+
 ### Snapping
 
 Snapping makes a drag jump to exact places instead of going anywhere:
