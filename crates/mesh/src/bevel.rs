@@ -18,6 +18,12 @@
 //! **Points.** Each bevelled point is cut away: a point is put `width`
 //! along each of its edges, and one polygon closes the corner.
 //!
+//! Attribute values come along through the [`Builder`]: new points copy
+//! or blend the points they lie between, a strip's corners blend the two
+//! polygons' corners it runs between (so UVs stretch across it), corner
+//! polygons copy the polygons around them, and edges that slide take their
+//! values (hard, seam) with them. A bevelled edge's own values go with it.
+//!
 //! As with every edit, polygons keep their ids (they get new corners), new
 //! points and polygons take the next ids in a fixed order, and points no
 //! polygon uses any more are deleted. Edges need a polygon on each side
@@ -26,6 +32,7 @@
 //! (clamping comes with the improved bevel in Phase 7), but never make
 //! points that aren't numbers.
 
+use crate::builder::{Builder, CornerFrom, PointFrom};
 use crate::edit::Outcome;
 use crate::topology::Topology;
 use crate::{EdgeKey, FaceId, Mesh, VertexId};
@@ -210,6 +217,19 @@ fn without_repeats(mut list: Vec<VertexId>, closed: bool) -> Vec<VertexId> {
     list
 }
 
+/// [`without_repeats`] for corners that carry where their values come
+/// from (the first of each run of repeats is kept).
+fn without_repeated_corners(
+    mut list: Vec<(VertexId, CornerFrom)>,
+    closed: bool,
+) -> Vec<(VertexId, CornerFrom)> {
+    list.dedup_by_key(|c| c.0);
+    while closed && list.len() > 1 && list.first().map(|c| c.0) == list.last().map(|c| c.0) {
+        list.pop();
+    }
+    list
+}
+
 /// Everything worked out about one bevelled point.
 struct Corner {
     wedges: Vec<Wedge>,
@@ -256,15 +276,21 @@ pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Out
     if chosen.is_empty() {
         return outcome;
     }
-    let fans: BTreeMap<VertexId, (Vec<Wedge>, bool)> = fans
-        .into_iter()
-        .filter_map(|(v, f)| {
-            let f = f?;
-            let touched = chosen.iter().any(|e| e.ends().0 == v || e.ends().1 == v);
-            touched.then_some((v, f))
+    // The points at the ends of the edges left to bevel (looked up once,
+    // not by scanning every edge for every point).
+    let ends: BTreeSet<VertexId> = chosen
+        .iter()
+        .flat_map(|e| {
+            let (a, b) = e.ends();
+            [a, b]
         })
         .collect();
+    let fans: BTreeMap<VertexId, (Vec<Wedge>, bool)> = fans
+        .into_iter()
+        .filter_map(|(v, f)| ends.contains(&v).then_some((v, f?)))
+        .collect();
     let mut out = original.clone();
+    let mut build = Builder::new(&original, &mut out);
     let bevelled = |a: VertexId, b: VertexId| chosen.contains(&EdgeKey::new(a, b));
 
     // 1. Where each polygon corner at a bevelled point goes.
@@ -336,7 +362,9 @@ pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Out
         let mut made: Vec<Option<VertexId>> = Vec::new();
         for spot in spots[v].iter().flatten() {
             made.push(match spot {
-                Spot::At(p) => Some(out.push_vertex(if p.is_finite() { *p } else { pv })),
+                Spot::At(p) => {
+                    Some(build.point(if p.is_finite() { *p } else { pv }, PointFrom::Copy(*v)))
+                }
                 _ => None,
             });
         }
@@ -345,9 +373,13 @@ pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Out
             let length = pf.distance(pv);
             let along = (sum / *count as f32).min(length * MAX_SLIDE);
             let p = pv + (pf - pv).normalize_or_zero() * along;
+            let t = if length > 0.0 { along / length } else { 0.0 };
             slid.insert(
                 (*v, *far),
-                out.push_vertex(if p.is_finite() { p } else { pv }),
+                build.point(
+                    if p.is_finite() { p } else { pv },
+                    PointFrom::Between(*v, *far, t),
+                ),
             );
         }
         let mut made = made.into_iter();
@@ -389,6 +421,9 @@ pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Out
         }
     };
     let mut rows: BTreeMap<(EdgeKey, VertexId), Vec<VertexId>> = BTreeMap::new();
+    // Each strip's forward and backward polygon: its rows run from the
+    // first's side to the second's.
+    let mut between: BTreeMap<EdgeKey, (FaceId, FaceId)> = BTreeMap::new();
     // Which row runs between which two points round a bevelled point:
     // (point, first, last) -> the edge whose row it is (the lowest, when
     // several do). Finds shared end rows without searching every row.
@@ -400,6 +435,7 @@ pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Out
         let (Some(forward), Some(backward)) = (forward, backward) else {
             continue;
         };
+        between.insert(*edge, (forward, backward));
         let (lo, hi) = edge.ends();
         for (x, other) in [(lo, hi), (hi, lo)] {
             let corner = &corners[&x];
@@ -408,8 +444,8 @@ pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Out
                 continue;
             };
             let (pa, pb) = (
-                out.position(a).unwrap_or_default(),
-                out.position(b).unwrap_or_default(),
+                build.mesh().position(a).unwrap_or_default(),
+                build.mesh().position(b).unwrap_or_default(),
             );
             let px = original.position(x).unwrap_or_default();
             // Two strips ending between the same two points (round a
@@ -429,7 +465,10 @@ pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Out
                 for k in 1..shape.segments {
                     let t = k as f32 / shape.segments as f32;
                     let p = profile_point(pa, pb, px, shape.profile, t);
-                    row.push(out.push_vertex(if p.is_finite() { p } else { px }));
+                    row.push(build.point(
+                        if p.is_finite() { p } else { px },
+                        PointFrom::Between(a, b, t),
+                    ));
                 }
                 row.push(b);
                 row
@@ -525,7 +564,8 @@ pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Out
     }
 
     // 5. The polygons around bevelled points get their new corners.
-    let mut changes: BTreeMap<FaceId, Vec<VertexId>> = BTreeMap::new();
+    // Every new corner copies the polygon's corner it replaces.
+    let mut changes: BTreeMap<FaceId, Vec<(VertexId, CornerFrom)>> = BTreeMap::new();
     let touched: BTreeSet<FaceId> = corners
         .values()
         .flat_map(|c| c.wedges.iter().map(|w| w.face))
@@ -536,20 +576,21 @@ pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Out
         };
         let mut new = Vec::new();
         for c in old {
+            let from = CornerFrom::Copy(face, *c);
             match corners.get(c) {
                 Some(corner) => {
                     let i = corner.wedges.iter().position(|w| w.face == face);
                     match i {
-                        Some(i) => new.extend(corner.lists[i].iter().copied()),
-                        None => new.push(*c),
+                        Some(i) => new.extend(corner.lists[i].iter().map(|v| (*v, from))),
+                        None => new.push((*c, from)),
                     }
                 }
-                None => new.push(*c),
+                None => new.push((*c, from)),
             }
         }
-        changes.insert(face, without_repeats(new, true));
+        changes.insert(face, without_repeated_corners(new, true));
     }
-    if out.rewrite_faces(&changes).is_err() {
+    if build.rewrite_faces(&changes).is_err() {
         return outcome;
     }
 
@@ -559,13 +600,39 @@ pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Out
         let (Some(at_lo), Some(at_hi)) = (rows.get(&(*edge, lo)), rows.get(&(*edge, hi))) else {
             continue;
         };
+        let Some(&(forward, backward)) = between.get(edge) else {
+            continue;
+        };
+        // Row k's corners blend the two polygons' corners, k / segments
+        // of the way from the forward polygon to the backward one.
+        let blend = |x: VertexId, k: usize| {
+            let t = k as f32 / shape.segments as f32;
+            CornerFrom::Between(forward, x, backward, x, t)
+        };
         for k in 0..shape.segments as usize {
-            let quad = [at_hi[k], at_lo[k], at_lo[k + 1], at_hi[k + 1]];
-            out.push_face(&without_repeats(quad.to_vec(), true));
+            let quad = vec![
+                (at_hi[k], blend(hi, k)),
+                (at_lo[k], blend(lo, k)),
+                (at_lo[k + 1], blend(lo, k + 1)),
+                (at_hi[k + 1], blend(hi, k + 1)),
+            ];
+            build.face(&without_repeated_corners(quad, true), Some(forward));
         }
     }
-    for (_, patch) in &patches {
-        out.push_face(patch);
+    for (v, patch) in &patches {
+        // A corner polygon is like the first polygon round the point; each
+        // corner copies the corner of the polygon it came from.
+        let corner = &corners[v];
+        let from = |p: VertexId| {
+            let i = corner
+                .lists
+                .iter()
+                .position(|l| l.contains(&p))
+                .unwrap_or(0);
+            CornerFrom::Copy(corner.wedges[i].face, *v)
+        };
+        let with: Vec<(VertexId, CornerFrom)> = patch.iter().map(|p| (*p, from(*p))).collect();
+        build.face(&with, corner.wedges.first().map(|w| w.face));
     }
 
     // 7. Hard edges: a hard bevelled edge's strip keeps hard borders (and
@@ -574,12 +641,14 @@ pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Out
     for edge in &chosen {
         let (lo, hi) = edge.ends();
         let hard = original.is_hard(lo, hi);
-        out.set_hard(lo, hi, false);
+        // The bevelled edge is gone, and its values with it.
+        build.clear_edge(*edge);
         if !hard {
             continue;
         }
         if let (Some(a), Some(b)) = (rows.get(&(*edge, lo)), rows.get(&(*edge, hi))) {
             let n = a.len() - 1;
+            let out = build.mesh();
             out.set_hard(a[0], b[0], true);
             out.set_hard(a[n], b[n], true);
             if shape.segments == 1 {
@@ -596,21 +665,23 @@ pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Out
                 .any(|w| bevelled(*v, w.after) && original.is_hard(*v, w.after));
             if hard {
                 for i in 0..patch.len() {
-                    out.set_hard(patch[i], patch[(i + 1) % patch.len()], true);
+                    build
+                        .mesh()
+                        .set_hard(patch[i], patch[(i + 1) % patch.len()], true);
                 }
             }
         }
     }
+    // Plain edges that slid take their values (hard, seam) with them.
     for ((v, far), s) in &slid {
         let other = slid.get(&(*far, *v)).copied().unwrap_or(*far);
-        if original.is_hard(*v, *far) {
-            out.set_hard(*v, *far, false);
-            out.set_hard(*s, other, true);
-        }
+        build.move_edge(EdgeKey::new(*v, *far), *s, other);
     }
 
     // 8. Points no polygon uses any more go.
-    out.remove_unused_vertices(&corners.keys().copied().collect::<Vec<_>>());
+    build
+        .mesh()
+        .remove_unused_vertices(&corners.keys().copied().collect::<Vec<_>>());
     *mesh = out;
     outcome
 }
@@ -643,6 +714,7 @@ pub fn bevel_points(mesh: &mut Mesh, points: &[VertexId], width: f32) -> Outcome
     }
     let width = width.max(0.0);
     let mut out = original.clone();
+    let mut build = Builder::new(&original, &mut out);
     let mut cut: BTreeMap<(VertexId, VertexId), VertexId> = BTreeMap::new();
     for (v, (wedges, _)) in &fans {
         let pv = original.position(*v).unwrap_or_default();
@@ -650,15 +722,20 @@ pub fn bevel_points(mesh: &mut Mesh, points: &[VertexId], width: f32) -> Outcome
             wedges.iter().flat_map(|w| [w.before, w.after]).collect();
         for far in neighbours {
             let pf = original.position(far).unwrap_or(pv);
-            let along = width.min(pf.distance(pv) * MAX_SLIDE);
+            let length = pf.distance(pv);
+            let along = width.min(length * MAX_SLIDE);
             let p = pv + (pf - pv).normalize_or_zero() * along;
+            let t = if length > 0.0 { along / length } else { 0.0 };
             cut.insert(
                 (*v, far),
-                out.push_vertex(if p.is_finite() { p } else { pv }),
+                build.point(
+                    if p.is_finite() { p } else { pv },
+                    PointFrom::Between(*v, far, t),
+                ),
             );
         }
     }
-    let mut changes: BTreeMap<FaceId, Vec<VertexId>> = BTreeMap::new();
+    let mut changes: BTreeMap<FaceId, Vec<(VertexId, CornerFrom)>> = BTreeMap::new();
     let touched: BTreeSet<FaceId> = fans
         .values()
         .flat_map(|(w, _)| w.iter().map(|w| w.face))
@@ -670,42 +747,44 @@ pub fn bevel_points(mesh: &mut Mesh, points: &[VertexId], width: f32) -> Outcome
         let n = old.len();
         let mut new = Vec::new();
         for (i, c) in old.iter().enumerate() {
+            let from = CornerFrom::Copy(face, *c);
             if fans.contains_key(c) {
                 let before = old[(i + n - 1) % n];
                 let after = old[(i + 1) % n];
-                new.push(cut[&(*c, before)]);
-                new.push(cut[&(*c, after)]);
+                new.push((cut[&(*c, before)], from));
+                new.push((cut[&(*c, after)], from));
             } else {
-                new.push(*c);
+                new.push((*c, from));
             }
         }
-        changes.insert(face, without_repeats(new, true));
+        changes.insert(face, without_repeated_corners(new, true));
     }
-    if out.rewrite_faces(&changes).is_err() {
+    if build.rewrite_faces(&changes).is_err() {
         return outcome;
     }
     for (v, (wedges, closed)) in &fans {
-        let mut ring: Vec<VertexId> = Vec::new();
+        let mut ring: Vec<(VertexId, CornerFrom)> = Vec::new();
         for w in wedges {
-            ring.push(cut[&(*v, w.before)]);
-            ring.push(cut[&(*v, w.after)]);
+            let from = CornerFrom::Copy(w.face, *v);
+            ring.push((cut[&(*v, w.before)], from));
+            ring.push((cut[&(*v, w.after)], from));
         }
-        let ring = without_repeats(ring, *closed);
+        let ring = without_repeated_corners(ring, *closed);
         if ring.len() >= 3 {
             let mut patch = ring;
             patch.reverse();
-            out.push_face(&patch);
+            build.face(&patch, wedges.first().map(|w| w.face));
         }
-        // Edges that were hard stay hard up to the cut.
+        // Edges keep their values (hard, seam) up to the cut.
         let mine = (*v, VertexId::from_raw(0))..=(*v, VertexId::from_raw(u32::MAX));
         for ((_, far), p) in cut.range(mine) {
-            if original.is_hard(*v, *far) {
-                let other = cut.get(&(*far, *v)).copied().unwrap_or(*far);
-                out.set_hard(*p, other, true);
-            }
+            let other = cut.get(&(*far, *v)).copied().unwrap_or(*far);
+            build.copy_edge(EdgeKey::new(*v, *far), *p, other);
         }
     }
-    out.remove_unused_vertices(&fans.keys().copied().collect::<Vec<_>>());
+    build
+        .mesh()
+        .remove_unused_vertices(&fans.keys().copied().collect::<Vec<_>>());
     *mesh = out;
     outcome
 }

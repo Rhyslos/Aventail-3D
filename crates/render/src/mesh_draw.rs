@@ -350,6 +350,19 @@ mod tests {
     }
 
     #[test]
+    fn deleted_polygons_are_left_out() {
+        let mut cube = PrimitiveKind::Cube.standard().mesh();
+        let top = cube
+            .faces()
+            .find(|(f, _)| cube.face_normal(*f).z > 0.9)
+            .unwrap()
+            .0;
+        assert_eq!(cube.delete_faces(&[top]), 1);
+        let geometry = MeshGeometry::new(&cube);
+        assert_eq!(geometry.triangles.len(), 5 * 2 * 3, "five sides left");
+    }
+
+    #[test]
     fn ranges_join_close_vertices() {
         assert_eq!(ranges_of(vec![5, 3, 4, 200, 3]), vec![3..6, 200..201]);
         assert_eq!(ranges_of(vec![1, 60]), vec![1..61]);

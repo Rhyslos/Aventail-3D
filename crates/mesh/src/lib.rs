@@ -5,8 +5,10 @@
 //! See this crate's README for its purpose and limits.
 
 pub mod anchors;
+pub mod attributes;
 pub mod bevel;
 pub mod bounds;
+pub mod builder;
 pub mod check;
 pub mod edit;
 pub mod extrude;
@@ -19,7 +21,9 @@ pub mod shading;
 pub mod topology;
 
 pub use anchors::{AnchorShape, Anchors};
+pub use attributes::{AttributeElement, AttributeError, AttributeKind, Domain, Value};
 pub use bounds::Bounds;
+pub use builder::{Builder, CornerFrom, PointFrom};
 pub use check::MeshReport;
 pub use polygon::{EdgeKey, FaceId, Mesh, MeshError, VertexId};
 pub use primitives::{

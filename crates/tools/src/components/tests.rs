@@ -57,6 +57,24 @@ fn a_visible_point_is_found_under_the_mouse() {
 }
 
 #[test]
+fn a_deleted_polygon_is_never_found() {
+    let mut mesh = cube();
+    let front = mesh
+        .faces()
+        .find(|(f, _)| mesh.face_normal(*f).y < -0.9)
+        .unwrap()
+        .0;
+    let whole = scene_of(&[(&mesh, Mat4::IDENTITY, true)]).triangle_count();
+    assert_eq!(mesh.delete_faces(&[front]), 1);
+    let scene = scene_of(&[(&mesh, Mat4::IDENTITY, true)]);
+    assert_eq!(scene.triangle_count(), whole - 2);
+    let camera = camera();
+    let middle = screen(&camera, Vec3::new(0.0, -50.0, 50.0));
+    let found = scene.under(ElementKind::Polygons, &camera, SIZE, middle);
+    assert_ne!(found.map(|h| h.element), Some(Element::Polygon(front)));
+}
+
+#[test]
 fn a_point_behind_the_shape_is_not_found() {
     let mesh = cube();
     let scene = scene_of(&[(&mesh, Mat4::IDENTITY, true)]);
