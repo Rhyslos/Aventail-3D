@@ -48,6 +48,8 @@ pub(crate) struct EntryV5 {
 pub(crate) struct AnchorsMoreV5 {
     pub(crate) structure: Option<u64>,
     pub(crate) reach: Vec<(u32, ReachEndV5)>,
+    /// The polygons the move touched, by their corners.
+    pub(crate) reach_faces: Vec<Vec<ReachEndV5>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -126,6 +128,11 @@ impl FileOperation for EntryV5 {
                     (r.from, to)
                 })
                 .collect(),
+            reach_faces: a
+                .reach_faces
+                .iter()
+                .map(|f| f.iter().map(|c| end_to_file(*c)).collect())
+                .collect(),
         });
         Some(Self {
             id: entry.id.get(),
@@ -147,6 +154,30 @@ impl FileOperation for EntryV5 {
                     Err("an edit's reach names a point it doesn't have".to_string())
                 }
             };
+            let end = |c: ReachEndV5| -> Result<ReachEnd, Problem> {
+                Ok(match c {
+                    ReachEndV5::Moved(j) => ReachEnd::Moved(place(j)?),
+                    ReachEndV5::Still(p) => {
+                        let p = Vec3::from_array(p);
+                        if !p.is_finite() {
+                            return Err("an edit's reach isn't a real number".to_string());
+                        }
+                        ReachEnd::Still(p)
+                    }
+                })
+            };
+            anchors.reach_faces = more
+                .reach_faces
+                .into_iter()
+                .map(|f| {
+                    if f.len() < 3 {
+                        return Err(
+                            "an edit's reach has a polygon of fewer than three corners".to_string()
+                        );
+                    }
+                    f.into_iter().map(end).collect::<Result<Vec<_>, Problem>>()
+                })
+                .collect::<Result<_, Problem>>()?;
             anchors.structure = more.structure;
             anchors.reach = more
                 .reach
@@ -174,6 +205,13 @@ impl FileOperation for EntryV5 {
             pinned: self.pinned,
             operation,
         })
+    }
+}
+
+fn end_to_file(c: ReachEnd) -> ReachEndV5 {
+    match c {
+        ReachEnd::Moved(j) => ReachEndV5::Moved(j),
+        ReachEnd::Still(p) => ReachEndV5::Still(p.to_array()),
     }
 }
 

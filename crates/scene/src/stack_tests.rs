@@ -1366,3 +1366,114 @@ fn a_turned_top_stretches_its_new_rows_part_of_the_way() {
         assert!((p.x.abs() - 25.0).abs() < 1e-3, "halfway in: {p}");
     }
 }
+
+#[test]
+fn rows_stretch_evenly_with_segments_on_every_axis() {
+    // The project lead's report: after adding rows on one axis, adding
+    // them on another broke the shape, because new points in the middle
+    // of a side lay on no edge the move had touched. Lifting the top of a
+    // 1 m cube by 2 m triples every height, whatever the segments; moving
+    // it sideways leans every point in proportion to its height.
+    for (offset, expect) in [
+        (
+            Vec3::Z * 200.0,
+            (|p: Vec3| Vec3::new(p.x, p.y, p.z * 3.0)) as fn(Vec3) -> Vec3,
+        ),
+        (Vec3::X * 60.0, |p: Vec3| {
+            Vec3::new(p.x + 0.6 * p.z, p.y, p.z)
+        }),
+    ] {
+        let (mut doc, id) = with_a_cube();
+        let shape = doc.scene().evaluated(id).unwrap().mesh;
+        let top: Vec<VertexId> = shape
+            .vertices()
+            .filter(|(_, p)| p.z > 99.0)
+            .map(|(v, _)| v)
+            .collect();
+        move_with_reach(&mut doc, id, top, offset);
+        for segments in [
+            [1, 1, 4],
+            [2, 1, 4],
+            [2, 2, 4],
+            [3, 3, 3],
+            [4, 1, 1],
+            [5, 2, 7],
+        ] {
+            let cube = CubeParams {
+                segments,
+                ..CubeParams::default()
+            };
+            doc.execute(Command::SetPrimitive {
+                ids: vec![id],
+                primitive: Primitive::Cube(cube),
+            })
+            .unwrap();
+            let before = Primitive::Cube(cube).mesh();
+            let after = doc.scene().evaluated(id).unwrap().mesh;
+            for (v, p) in before.vertices() {
+                let got = after.position(v).unwrap();
+                assert!(
+                    got.distance(expect(p)) < 1e-2,
+                    "{segments:?}: {p} went to {got}, not {}",
+                    expect(p)
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn a_lifted_cylinder_top_stretches_evenly_with_more_rows_and_sides() {
+    let mut doc = Document::new();
+    let base = |height_segments, sides, cap_segments| mesh::CylinderParams {
+        height: 100.0,
+        height_segments,
+        sides,
+        cap_segments,
+        ..Default::default()
+    };
+    doc.execute(Command::Create(ObjectKind::Primitive(Primitive::Cylinder(
+        base(1, 16, 1),
+    ))))
+    .unwrap();
+    let id = doc.selection()[0];
+    let shape = doc.scene().evaluated(id).unwrap().mesh;
+    let top: Vec<VertexId> = shape
+        .vertices()
+        .filter(|(_, p)| p.z > 99.0)
+        .map(|(v, _)| v)
+        .collect();
+    move_with_reach(&mut doc, id, top, Vec3::Z * 100.0);
+    for (rows, sides, rings) in [(4, 16, 1), (4, 32, 1), (3, 32, 3)] {
+        let params = base(rows, sides, rings);
+        doc.execute(Command::SetPrimitive {
+            ids: vec![id],
+            primitive: Primitive::Cylinder(params),
+        })
+        .unwrap();
+        let before = Primitive::Cylinder(params).mesh();
+        let after = doc.scene().evaluated(id).unwrap().mesh;
+        let mut off = 0;
+        for (v, p) in before.vertices() {
+            let got = after.position(v).unwrap();
+            let want = Vec3::new(p.x, p.y, p.z * 2.0);
+            if got.distance(want) > 1e-2 {
+                off += 1;
+            }
+            // New sides lie on the old ones' straight chords only where
+            // they meet them; elsewhere they are on the round, outside
+            // any polygon the move touched, and the rows there follow
+            // the old behaviour. Points on the old polygons stretch.
+            if got.distance(want) > 1e-2 {
+                assert!(
+                    (got.z - p.z).abs() < 1e-3 || (got.z - 2.0 * p.z).abs() < 1e-2,
+                    "({rows}, {sides}, {rings}): {p} went to {got}"
+                );
+            }
+        }
+        println!(
+            "({rows}, {sides}, {rings}): {off} of {} points off",
+            before.vertex_count()
+        );
+    }
+}

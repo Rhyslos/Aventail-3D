@@ -113,6 +113,7 @@ pub(crate) fn anchors_from_file(a: AnchorsV2) -> Result<Anchors, Problem> {
         // Kept from format version 5 on.
         structure: None,
         reach: Vec::new(),
+        reach_faces: Vec::new(),
     })
 }
 

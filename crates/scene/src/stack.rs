@@ -292,6 +292,10 @@ impl Operation {
                     mesh::anchors::ReachEnd::Still(p) => p.is_finite(),
                     mesh::anchors::ReachEnd::Moved(_) => true,
                 })
+                && a.reach_faces.iter().flatten().all(|c| match c {
+                    mesh::anchors::ReachEnd::Still(p) => p.is_finite(),
+                    mesh::anchors::ReachEnd::Moved(_) => true,
+                })
         });
         let own = match self {
             Self::MovePoints { offset, .. } => offset.is_finite(),
