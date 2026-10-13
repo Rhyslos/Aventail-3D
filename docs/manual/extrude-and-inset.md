@@ -38,7 +38,9 @@ The polygons stay selected, so you can drag again straight away to extrude anoth
 
 1. In the Polygons mode, select the polygons.
 2. Press **I** (or pick **Inset** from the tool menu or the Mesh menu).
-3. Drag right anywhere in the viewport to shrink them inward. Dragging back to the start leaves them as they were; it never grows them outward.
+3. Drag anywhere in the viewport **towards the middle of the polygons**: they shrink inward, following the pull. Pulling away from the middle again lets them grow back; it never grows them past where they started.
+   - It doesn't matter which side you start on: from the left of the polygons you pull right, from above you pull down.
+   - If you start the drag right on their middle, there's no way to pull towards, so drag right to shrink them.
 
 ### Extrude border edges
 
@@ -77,7 +79,7 @@ This works until you make another edit on top. After that, the extrude is fixed 
 |---|---|
 | Extrude | `D` |
 | Inset | `I` |
-| Set the distance | Left drag anywhere in the viewport: Extrude the way the polygons face, Inset to the right |
+| Set the distance | Left drag anywhere in the viewport: Extrude the way the polygons face, Inset towards their middle |
 | Finer steps | Hold `Shift` while dragging |
 | Cancel the drag | `Esc` or a right-click |
 | Back to selecting | `Q` |

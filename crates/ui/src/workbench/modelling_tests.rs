@@ -318,9 +318,12 @@ fn esc_or_a_right_click_cancels_and_letting_go_at_nothing_leaves_nothing() {
 }
 
 #[test]
-fn inset_shrinks_and_never_grows() {
+fn inset_follows_the_pull_towards_the_middle() {
     let mut harness = ready(Key::I);
-    drag(&mut harness, 60.0);
+    let middle = on_screen(&harness, glam::Vec3::new(0.0, 0.0, 100.0));
+    // From the left, pulling right (towards the middle) insets.
+    let left = middle - egui::vec2(150.0, 0.0);
+    drag_by(&mut harness, left, egui::vec2(60.0, 0.0));
     let mesh = shape(&harness);
     assert_eq!(mesh.face_count(), 10);
     assert_eq!(
@@ -331,8 +334,15 @@ fn inset_shrinks_and_never_grows() {
     assert!((top_height(&harness) - 100.0).abs() < 1e-3);
     harness.state_mut().workbench.document_mut().undo();
     harness.run();
+    // From the right, it is pulling left that insets...
+    let right = middle + egui::vec2(150.0, 0.0);
+    drag_by(&mut harness, right, egui::vec2(-60.0, 0.0));
+    assert_eq!(shape(&harness).face_count(), 10);
+    harness.state_mut().workbench.document_mut().undo();
+    harness.run();
+    // ...and pulling away from the middle never grows the polygon.
     let steps = harness.state().workbench.document().undo_steps();
-    drag(&mut harness, -60.0);
+    drag_by(&mut harness, right, egui::vec2(60.0, 0.0));
     assert_eq!(harness.state().workbench.document().undo_steps(), steps);
 }
 

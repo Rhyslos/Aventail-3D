@@ -54,6 +54,8 @@ pub(super) struct ModellingSession {
     /// Inset, or when they face every way at once.
     direction: Option<Vec3>,
     grouping: Grouping,
+    /// Where the drag started, in the view's screen points.
+    start: Option<Vec2>,
     /// The distance last shown, in world centimetres.
     shown: Option<f32>,
 }
@@ -66,14 +68,24 @@ const PROBE: f32 = 50.0;
 /// almost straight at the viewer), dragging right means "more" instead.
 const MIN_ACROSS: f32 = 0.2;
 
+/// Closer than this to the middle of the polygons (in screen points), an
+/// Inset drag has no way to follow, and right means more.
+const MIN_TO_CENTRE: f32 = 8.0;
+
 impl ModellingSession {
     /// The distance (world centimetres) a drag of `drag` screen points
-    /// means, seen through `pointer`'s camera.
+    /// means, seen through `pointer`'s camera. Drags follow the pull
+    /// (decision 0039):
     ///
-    /// For Extrude, the drag counts along the way the polygons face on
-    /// screen, scaled so the polygons follow the mouse: drag a polygon on
-    /// the left side to the left and it comes out. When they face the
-    /// viewer almost straight on (or for Inset), right means more.
+    /// - **Extrude** counts the drag along the way the polygons face on
+    ///   screen, scaled so they follow the mouse: drag a polygon on the
+    ///   left side to the left and it comes out.
+    /// - **Inset** counts the drag towards the middle of the polygons on
+    ///   screen, from where the drag started: pull towards it and they
+    ///   shrink, back out and they grow again.
+    /// - When there is no way to follow (the polygons face the viewer
+    ///   straight on, or the drag started on their middle), right means
+    ///   more.
     fn distance(&self, drag: Vec2, pointer: &ViewPointer) -> f32 {
         let camera = &pointer.camera;
         let per_point = camera.world_per_pixel(self.pivot, pointer.size);
@@ -89,6 +101,17 @@ impl ModellingSession {
                     let way = (b - a) / (b - a).length();
                     return drag.dot(way) * per_point / across;
                 }
+            }
+        }
+        if self.tool == Tool::Inset
+            && let (Some(start), Some(centre)) =
+                (self.start, camera.project(self.pivot, pointer.size))
+        {
+            // Inset follows the pull towards the middle of the polygons:
+            // drag towards it and the border follows the mouse inward.
+            let way = centre - start;
+            if way.length() > MIN_TO_CENTRE {
+                return drag.dot(way / way.length()) * per_point;
             }
         }
         drag.x * per_point
@@ -197,9 +220,12 @@ impl Workbench {
     pub(super) fn carry_out_tool_drag(&mut self, drawing: &SceneDrawing) {
         for event in self.viewport.take_tool_events() {
             match event {
-                ToolDragEvent::Begin { .. } => {
+                ToolDragEvent::Begin { pointer } => {
                     self.select_under_the_press();
                     self.modelling_session = self.begin_modelling(drawing);
+                    if let Some(session) = &mut self.modelling_session {
+                        session.start = Some(pointer.at);
+                    }
                 }
                 ToolDragEvent::Update { drag, pointer } => {
                     let Some(session) = &mut self.modelling_session else {
@@ -330,6 +356,7 @@ impl Workbench {
                 .then(|| facing.try_normalize())
                 .flatten(),
             grouping: self.grouping(),
+            start: None,
             shown: None,
         })
     }

@@ -36,6 +36,15 @@ The mode palette sets what you're working on. The button filled with the accent 
 
 You can also switch modes from the **Modes** menu, or press **1**, **2** or **3** for Points, Edges or Polygons (the same key again goes back to Model). Press **E** in any mode for that mode's tools ([The tool menu](tool-menu.md)). Points, Edges and Polygons show the parts of the selected shapes; see [Points, Edges and Polygons modes](modes.md). Object and UV mode only change the status bar for now.
 
+## Drags follow the pull
+
+One habit works with every tool: **pull the thing where you want it to go**. A drag in the viewport is measured from what it changes, not from a fixed direction on screen:
+- a gizmo's arrow moves along its axis;
+- an [extruded](extrude-and-inset.md) polygon comes out the way it faces, following the mouse;
+- an [inset](extrude-and-inset.md) shrinks as you pull towards the polygon's middle.
+
+Only when there's no way to follow (a polygon facing you straight on, or a drag that starts right on the middle) does dragging right mean "more".
+
 ## Rearranging panels
 
 Attributes, Objects and Coordinates are **panels** you can rearrange around the viewport:
