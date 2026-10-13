@@ -19,6 +19,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Points, Edges and Polygons modes: working on the parts of a mesh](modes.md)
 - [Selecting: click, box, lasso, brush, loops, grow and shrink](selecting.md)
 - [Move, rotate and scale: the gizmo, snapping, locks and typed values](transforming.md)
+- [Extrude and inset: push polygons out or in, and add rings and frames](extrude-and-inset.md)
 - [Heavy shapes: millions of polygons, and the heavy test shape](heavy-shapes.md)
 - *More pages are added here as tools are built.*
 

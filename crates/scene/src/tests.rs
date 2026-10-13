@@ -736,6 +736,38 @@ fn random_commands_keep_the_tree_whole_and_undo_exactly() {
             };
             let command = match rng.next(12) {
                 0 | 1 => Command::Create(ObjectKind::Group),
+                10 if rng.next(2) == 0 => match ids.get(rng.next(ids.len())) {
+                    Some(id) => {
+                        let faces = (0..rng.next(3) + 1)
+                            .map(|_| FaceId::from_raw(rng.next(8) as u32))
+                            .collect();
+                        let distance = rng.next(40) as f32 - 10.0;
+                        let grouping = if rng.next(2) == 0 {
+                            Grouping::Together
+                        } else {
+                            Grouping::Separate
+                        };
+                        Command::Record {
+                            id: *id,
+                            operation: if rng.next(2) == 0 {
+                                Operation::ExtrudePolygons {
+                                    faces,
+                                    distance,
+                                    grouping,
+                                    anchors: None,
+                                }
+                            } else {
+                                Operation::InsetPolygons {
+                                    faces,
+                                    distance: distance.abs() / 4.0,
+                                    grouping,
+                                    anchors: None,
+                                }
+                            },
+                        }
+                    }
+                    None => Command::Create(ObjectKind::Group),
+                },
                 9 | 10 => match ids.get(rng.next(ids.len())) {
                     Some(id) => Command::Record {
                         id: *id,

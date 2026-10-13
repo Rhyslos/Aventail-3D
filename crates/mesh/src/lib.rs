@@ -8,6 +8,7 @@ pub mod anchors;
 pub mod bounds;
 pub mod check;
 pub mod edit;
+pub mod extrude;
 pub mod parallel;
 pub mod polygon;
 pub mod primitives;

@@ -20,6 +20,7 @@ pub mod tree;
 pub use command::Command;
 pub use document::Document;
 pub use history::HistoryLimit;
+pub use mesh::edit::Grouping;
 pub use mesh::{
     Bounds, Combine, EdgeKey, Element, ElementKind, ElementSelection, FaceId, Mesh, Primitive,
     PrimitiveKind, VertexId,

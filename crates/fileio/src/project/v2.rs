@@ -7,13 +7,17 @@
 //! are renumbered. Version 1 files are read with version 1's model and
 //! need no conversion: the scene they describe is the same.
 
-use super::v1::{FileOperation, Problem, ProjectFile, finite};
+#[cfg(test)]
+use super::v1::ProjectFile;
+use super::v1::{FileOperation, Problem, finite};
 use glam::{Mat4, Vec3};
 use mesh::{AnchorShape, Anchors, Bounds, VertexId};
 use scene::Operation;
 use serde::{Deserialize, Serialize};
 
-/// Version 2 of the file.
+/// Version 2 of the file (written by tests; the app reads version 2 files
+/// through `decode`).
+#[cfg(test)]
 pub(crate) type ProjectV2 = ProjectFile<OperationV2>;
 
 /// The recorded operations version 2 stores. New kinds go at the end, in
@@ -52,7 +56,7 @@ pub(crate) enum AnchorShapeV2 {
     Polygons(Vec<Vec<[f32; 3]>>),
 }
 
-fn anchors_to_file(a: &Anchors) -> AnchorsV2 {
+pub(crate) fn anchors_to_file(a: &Anchors) -> AnchorsV2 {
     AnchorsV2 {
         bounds: [a.bounds.min.to_array(), a.bounds.max.to_array()],
         points: a
@@ -78,7 +82,7 @@ fn anchors_to_file(a: &Anchors) -> AnchorsV2 {
     }
 }
 
-fn anchors_from_file(a: AnchorsV2) -> Result<Anchors, Problem> {
+pub(crate) fn anchors_from_file(a: AnchorsV2) -> Result<Anchors, Problem> {
     let place = |p: [f32; 3]| finite(p, "recorded place");
     let bounds = Bounds::new(place(a.bounds[0])?, place(a.bounds[1])?)
         .ok_or_else(|| "its recorded box isn't a real box".to_string())?;

@@ -184,6 +184,8 @@ pub struct Workbench {
     coordinates_session: Option<transform::CoordinatesSession>,
     /// A gizmo drag in progress.
     gizmo_session: Option<crate::transforming::Session>,
+    /// A modelling tool's drag (extrude, inset) in progress.
+    modelling_session: Option<modelling::ModellingSession>,
     /// The change the gizmo drag last showed, so an unchanged frame does
     /// nothing.
     gizmo_shown: Option<tools::Change>,
@@ -234,6 +236,7 @@ impl Workbench {
             stroke_memory: StrokeMemory::default(),
             tool: Tool::default(),
             gizmo_session: None,
+            modelling_session: None,
             gizmo_shown: None,
             coordinates_session: None,
             sessions: 0,
@@ -757,6 +760,7 @@ impl Workbench {
             self.mode_keys(ui);
             self.select_keys(ui);
             self.transform_keys(ui);
+            self.modelling_keys(ui);
         }
 
         egui::Panel::top("menu_bar")
@@ -832,12 +836,17 @@ impl Workbench {
         let editing = components::kind_for(self.mode);
         let mut summary: SceneSummary = self.drawing.update(&self.document, editing).clone();
         summary.overlay = self.components.overlay();
-        self.components
-            .freeze(self.gizmo_session.is_some() || self.coordinates_session.is_some());
+        self.components.freeze(
+            self.gizmo_session.is_some()
+                || self.coordinates_session.is_some()
+                || self.modelling_session.is_some(),
+        );
         self.components.prepare(&summary.drawing);
         self.place_gizmo(&summary.drawing);
+        self.place_drag_tool();
         let coordinates = self.coordinates_view(&summary.drawing);
         let mut coordinates_done = Interaction::default();
+        self.attributes.tool = self.tool;
         hide_viewport_tab(&mut self.dock);
         let style = theme::dock_style(ui.style().as_ref(), self.accent);
         theme::dock_frame().show(ui, |ui| {
@@ -869,6 +878,7 @@ impl Workbench {
         // when that changes, draw again so the highlight follows at once.
         self.carry_out_selection(&summary.drawing);
         self.carry_out_gizmo(ui, &summary.drawing);
+        self.carry_out_tool_drag(&summary.drawing);
         self.carry_out_coordinates(coordinates_done, &summary.drawing);
         let shown = summary.overlay.version;
         let overlay = self.components.update(
@@ -952,6 +962,13 @@ impl Workbench {
         if self.viewport.dragging_gizmo() {
             if ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
                 self.viewport.cancel_gizmo_drag();
+            }
+            return;
+        }
+        // The same for a modelling tool's drag.
+        if self.viewport.dragging_tool() {
+            if ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
+                self.viewport.cancel_tool_drag();
             }
             return;
         }
@@ -1233,7 +1250,10 @@ impl Workbench {
                 if title == "Mesh" {
                     objects::make_editable_entry(ui, &self.document, requests);
                     ui.separator();
-                    commands_entries(ui, &crate::commands::MODELLING_RING);
+                    if let Some(command) = commands_entries(ui, &crate::commands::MODELLING_RING) {
+                        self.run_command(command, ui.ctx(), requests);
+                        ui.close();
+                    }
                 }
                 coming_entries(ui, items);
             });
@@ -1432,8 +1452,10 @@ fn layout_tab_labels(ui: &mut Ui, tabs: &[&(&str, Option<&str>)]) {
 }
 
 /// Menu entries for commands from the command list, each with its key;
-/// one not built yet is greyed out, saying when it arrives.
-fn commands_entries(ui: &mut Ui, list: &[CommandId]) {
+/// one not built yet is greyed out, saying when it arrives. Returns the
+/// command clicked, if any.
+fn commands_entries(ui: &mut Ui, list: &[CommandId]) -> Option<CommandId> {
+    let mut chosen = None;
     for command in list {
         let info = command.info();
         let mut button = egui::Button::new(info.name);
@@ -1447,10 +1469,13 @@ fn commands_entries(ui: &mut Ui, list: &[CommandId]) {
                 response.on_disabled_hover_text(format!("{}\n{when}", info.help));
             }
             None => {
-                response.on_hover_text(info.help);
+                if response.on_hover_text(info.help).clicked() {
+                    chosen = Some(*command);
+                }
             }
         }
     }
+    chosen
 }
 
 /// Menus whose commands are not built yet: each lists what is coming and
@@ -1559,6 +1584,9 @@ impl TabViewer for PanelViewer<'_> {
 #[cfg(test)]
 mod attribute_tests;
 mod command;
+mod modelling;
+#[cfg(test)]
+mod modelling_tests;
 mod selection;
 mod transform;
 

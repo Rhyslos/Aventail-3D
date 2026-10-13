@@ -63,7 +63,8 @@ In **Edit → Settings… → Interface → Radial menu**:
 | Use a tool by flicking | Hold `E`, point towards it, let go |
 | Close without choosing | `Esc`, or click the middle |
 | Transform (all three gizmos) | `T` |
-| Extrude / inset / bevel (when built, Phase 4) | `D` / `I` / `V` |
+| [Extrude](extrude-and-inset.md) / [inset](extrude-and-inset.md) | `D` / `I` |
+| Bevel (when built, Phase 4) | `V` |
 
 ## Tips and common problems
 

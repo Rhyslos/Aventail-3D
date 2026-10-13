@@ -69,6 +69,10 @@ A pull request that breaks one of these is sent back, however good the feature.
 14. **Documentation changes with the code.** See below.
 15. **The app's name lives in `branding.rs`.** Never hardcode it; see `RENAMING.md`.
 
+**Feel**
+
+16. **Drags follow the pull.** A viewport drag is measured from what it changes (its facing, axis or middle), not a fixed screen direction; "right for more" is only the fallback when there is no way to follow ([decision 0039](docs/decisions/0039-drags-follow-the-pull.md)). New tools follow this, and their pull request says how.
+
 ## Documentation rule
 
 A change is not done until its documentation is.

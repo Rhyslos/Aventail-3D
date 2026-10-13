@@ -7,10 +7,53 @@ use glam::Vec3;
 use mesh::{CubeParams, PrimitiveKind, VertexId};
 use scene::{Command, Object, ObjectKind, Operation, Place, Primitive, Transform};
 
+/// A document using everything version 3 of the format can hold: all of
+/// [`rich_document_v2`], plus an extruded and an inset polygon (with
+/// anchors) and an extruded border edge.
+fn rich_document() -> Document {
+    let mut doc = rich_document_v2();
+    let cube = *doc.scene().children(None).last().unwrap();
+    let shape = doc.scene().evaluated(cube).unwrap().mesh;
+    let face = shape.faces().next().unwrap().0;
+    let corners = vec![shape.face(face).unwrap().to_vec()];
+    let anchors = mesh::Anchors::record(&shape, mesh::ElementKind::Polygons, &corners);
+    for operation in [
+        Operation::InsetPolygons {
+            faces: vec![face],
+            distance: 7.5,
+            grouping: scene::Grouping::Separate,
+            anchors: anchors.clone(),
+        },
+        Operation::ExtrudePolygons {
+            faces: vec![face],
+            distance: -12.25,
+            grouping: scene::Grouping::Together,
+            anchors,
+        },
+        Operation::ExtrudeEdges {
+            edges: vec![mesh::EdgeKey::new(
+                VertexId::from_raw(0),
+                VertexId::from_raw(1),
+            )],
+            distance: 3.0,
+            grouping: scene::Grouping::Together,
+            anchors: None,
+        },
+    ] {
+        doc.execute(Command::Record {
+            id: cube,
+            operation,
+        })
+        .unwrap();
+    }
+    doc
+}
+
 /// A document using everything version 2 of the format can hold: all of
 /// [`rich_document_v1`], plus points turned and scaled with a matrix,
-/// with anchors to find them again.
-fn rich_document() -> Document {
+/// with anchors to find them again. The version 2 sample holds exactly
+/// this.
+fn rich_document_v2() -> Document {
     let mut doc = rich_document_v1();
     let cube = *doc.scene().children(None).last().unwrap();
     // Where the two points are, so the edit can find them again.
@@ -219,8 +262,8 @@ fn other_files_are_not_projects() {
 
 #[test]
 fn newer_formats_are_refused_with_advice() {
-    let error = refused(&header(3, 1, 0));
-    assert!(matches!(error, ProjectError::TooNew { version: 3 }));
+    let error = refused(&header(FORMAT_VERSION + 1, 1, 0));
+    assert!(matches!(error, ProjectError::TooNew { version } if version == FORMAT_VERSION + 1));
     let text = error.to_string();
     assert!(
         text.contains("newer version") && text.contains("Update"),
@@ -263,14 +306,14 @@ fn a_cut_short_or_padded_body_is_damaged() {
 #[test]
 fn an_uncompressed_body_can_be_read() {
     let doc = rich_document();
-    let body = postcard::to_stdvec(&v2::ProjectV2::from_document(&doc)).unwrap();
-    let mut bytes = header(2, 0, body.len() as u64);
+    let body = postcard::to_stdvec(&v3::ProjectV3::from_document(&doc)).unwrap();
+    let mut bytes = header(3, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     assert_same(&doc, &from_bytes(&bytes).unwrap());
     // Data after the scene is refused.
     let mut longer = body.clone();
     longer.push(0);
-    let mut bytes = header(2, 0, longer.len() as u64);
+    let mut bytes = header(3, 0, longer.len() as u64);
     bytes.extend_from_slice(&longer);
     assert!(refused(&bytes).to_string().contains("unexpected data"));
 }
@@ -293,7 +336,7 @@ fn file_of_v2(model: &v2::ProjectV2) -> Vec<u8> {
 
 #[test]
 fn turned_and_scaled_points_are_kept_and_checked() {
-    let doc = rich_document();
+    let doc = rich_document_v2();
     let back = from_bytes(&to_bytes(&doc).unwrap()).unwrap();
     assert_same(&doc, &back);
     let good = v2::ProjectV2::from_document(&doc);
@@ -593,7 +636,62 @@ fn a_file_saved_by_format_version_2_still_opens() {
     let doc = from_bytes(SAMPLE_V2).expect("the version 2 sample opens");
     let cube = *doc.scene().children(None).last().unwrap();
     assert_eq!(doc.scene().object(cube).unwrap().stack.operation_count(), 2);
+    assert_same(&rich_document_v2(), &doc);
+}
+
+/// A project saved by version 3 of the format, kept in the repository.
+const SAMPLE_V3: &[u8] = include_bytes!("../../tests/data/sample-v3.avtl");
+
+#[test]
+fn a_file_saved_by_format_version_3_still_opens() {
+    let doc = from_bytes(SAMPLE_V3).expect("the version 3 sample opens");
+    let cube = *doc.scene().children(None).last().unwrap();
+    assert_eq!(doc.scene().object(cube).unwrap().stack.operation_count(), 5);
     assert_same(&rich_document(), &doc);
+}
+
+/// The bytes of a version 3 file holding `model`, uncompressed.
+fn file_of_v3(model: &v3::ProjectV3) -> Vec<u8> {
+    let body = postcard::to_stdvec(model).unwrap();
+    let mut bytes = header(3, 0, body.len() as u64);
+    bytes.extend_from_slice(&body);
+    bytes
+}
+
+#[test]
+fn extrudes_and_insets_are_kept_and_checked() {
+    let doc = rich_document();
+    assert_same(&doc, &from_bytes(&to_bytes(&doc).unwrap()).unwrap());
+    let good = v3::ProjectV3::from_document(&doc);
+    let cube = good.objects.iter().position(|o| o.name == "Cube").unwrap();
+    assert_same(&doc, &from_bytes(&file_of_v3(&good)).unwrap());
+    let ops = good.objects[cube].layers[0].operations.len();
+    for (index, what) in [
+        (ops - 3, "inset"),
+        (ops - 2, "extrude"),
+        (ops - 1, "extrude"),
+    ] {
+        let mut bad = good.clone();
+        match &mut bad.objects[cube].layers[0].operations[index] {
+            v3::OperationV3::InsetPolygons { distance, .. }
+            | v3::OperationV3::ExtrudePolygons { distance, .. }
+            | v3::OperationV3::ExtrudeEdges { distance, .. } => *distance = f32::NAN,
+            v3::OperationV3::V2(_) => panic!("an extrude or inset"),
+        }
+        let text = refused(&file_of_v3(&bad)).to_string();
+        assert!(text.contains("\"Cube\"") && text.contains(what), "{text}");
+    }
+    let mut bad = good.clone();
+    if let v3::OperationV3::ExtrudeEdges { edges, .. } =
+        &mut bad.objects[cube].layers[0].operations[ops - 1]
+    {
+        edges[0] = [4, 4];
+    }
+    let text = refused(&file_of_v3(&bad)).to_string();
+    assert!(text.contains("to itself"), "{text}");
+    // Version 2's model can't hold them: it is only used for reading.
+    let old = v2::ProjectV2::from_document(&doc);
+    assert_eq!(old.objects[cube].layers[0].operations.len(), ops - 3);
 }
 
 /// Writes the current version's sample. Run only by hand, when a new

@@ -44,6 +44,11 @@ pub enum Tool {
     Scale,
     /// All three gizmos at once.
     All,
+    /// Extrude: drag anywhere to push the selected polygons or border
+    /// edges out (decision 0038).
+    Extrude,
+    /// Inset: drag anywhere to shrink the selected polygons inward.
+    Inset,
 }
 
 /// The tool keys (Halberd's, decision 0019): move, rotate, scale, all.
@@ -67,13 +72,20 @@ impl Tool {
             Self::Rotate => "Rotate",
             Self::Scale => "Scale",
             Self::All => "Transform",
+            Self::Extrude => "Extrude",
+            Self::Inset => "Inset",
         }
+    }
+
+    /// Whether it is a modelling tool set by dragging anywhere in a view.
+    pub fn drags_anywhere(self) -> bool {
+        matches!(self, Self::Extrude | Self::Inset)
     }
 
     /// Its gizmo, if it has one.
     pub fn gizmo(self) -> Option<GizmoTool> {
         match self {
-            Self::Select => None,
+            Self::Select | Self::Extrude | Self::Inset => None,
             Self::Move => Some(GizmoTool::Move),
             Self::Rotate => Some(GizmoTool::Rotate),
             Self::Scale => Some(GizmoTool::Scale),

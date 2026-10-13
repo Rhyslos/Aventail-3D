@@ -207,15 +207,22 @@ fn editing_shows_the_modelling_tools_in_their_places() {
     // No moving or scaling here, and no polygon-only tools.
     assert!(harness.query_by_label("Tool menu: Move").is_none());
     assert!(harness.query_by_label("Tool menu: Inset").is_none());
+    assert!(harness.query_by_label_contains("Extrude. Key: D").is_some());
     assert!(
         harness
-            .query_by_label_contains("Extrude. Key: D. Arrives in Phase 4")
-            .is_some()
+            .query_by_label_contains("Extrude. Key: D. Arrives")
+            .is_none(),
+        "Extrude is built"
     );
-    // A tool still to come says so instead.
+    // Extrude is highlighted first: Enter makes it the tool in use.
     press(&mut harness, Modifiers::NONE, Key::Enter);
-    assert_eq!(note(&harness), "Extrude: arrives in phase 4.");
+    assert_eq!(harness.state().workbench.tool(), Tool::Extrude);
     assert!(!harness.state().workbench.is_tool_menu_open());
+    // A tool still to come says so instead.
+    open(&mut harness);
+    harness.get_by_label("Tool menu: Hard edges").click();
+    harness.run();
+    assert_eq!(note(&harness), "Hard edges: arrives in phase 4.");
 }
 
 #[test]
@@ -463,9 +470,11 @@ fn the_mesh_and_tools_menus_read_from_the_command_list() {
         assert!(harness.query_by_label_contains(name).is_some(), "{name}");
     }
     let extrude = harness.get_by_label_contains("Extrude");
-    assert!(extrude.accesskit_node().is_disabled(), "not built yet");
+    assert!(!extrude.accesskit_node().is_disabled(), "built");
     let label = extrude.accesskit_node().label().unwrap_or_default();
     assert!(label.contains('D'), "shows its key: {label}");
+    let bevel = harness.get_by_label_contains("Bevel");
+    assert!(bevel.accesskit_node().is_disabled(), "not built yet");
     press(&mut harness, Modifiers::NONE, Key::Escape);
     main_menu(&harness, "Tools").click();
     harness.run();

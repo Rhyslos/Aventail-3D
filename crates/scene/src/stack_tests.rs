@@ -606,3 +606,180 @@ fn without_anchors_edits_keep_naming_points_by_id() {
     let shape = doc.scene().evaluated(id).unwrap();
     assert!(shape.warnings.iter().all(|w| !w.found_again));
 }
+
+// ------------------------------------------------- extrude and inset ---
+
+/// The cube's polygon facing up.
+fn top_face(mesh: &Mesh) -> FaceId {
+    mesh.faces()
+        .map(|(f, _)| f)
+        .max_by(|a, b| mesh.face_normal(*a).z.total_cmp(&mesh.face_normal(*b).z))
+        .unwrap()
+}
+
+fn extrude_top(doc: &Document, id: ObjectId, distance: f32, anchored: bool) -> Operation {
+    let mesh = doc.scene().evaluated(id).unwrap().mesh;
+    let top = top_face(&mesh);
+    let corners = vec![mesh.face(top).unwrap().to_vec()];
+    Operation::ExtrudePolygons {
+        faces: vec![top],
+        distance,
+        grouping: Grouping::Together,
+        anchors: anchored
+            .then(|| mesh::Anchors::record(&mesh, ElementKind::Polygons, &corners))
+            .flatten(),
+    }
+}
+
+#[test]
+fn an_extrude_is_recorded_undone_and_redone() {
+    let (mut doc, id) = with_a_cube();
+    let op = extrude_top(&doc, id, 30.0, true);
+    record(&mut doc, id, op);
+    assert_eq!(doc.undo_label(), Some("Extrude 1 polygon"));
+    let shape = doc.scene().evaluated(id).unwrap();
+    assert_eq!(shape.mesh.face_count(), 10);
+    assert!((shape.mesh.bounds().unwrap().max.z - 130.0).abs() < 1e-3);
+    assert!(shape.warnings.is_empty());
+    doc.undo().unwrap();
+    assert_eq!(doc.scene().evaluated(id).unwrap().mesh.face_count(), 6);
+    doc.redo().unwrap();
+    assert_eq!(doc.scene().evaluated(id).unwrap().mesh.face_count(), 10);
+}
+
+#[test]
+fn an_extrudes_distance_can_be_changed_afterwards() {
+    let (mut doc, id) = with_a_cube();
+    let op = extrude_top(&doc, id, 30.0, true);
+    record(&mut doc, id, op.clone());
+    let changed = op.with_settings(50.0, Grouping::Separate);
+    assert_eq!(changed.distance(), Some(50.0));
+    assert_eq!(changed.grouping(), Some(Grouping::Separate));
+    doc.execute(Command::ReplaceOperation {
+        id,
+        layer: 0,
+        index: 0,
+        operation: changed.clone(),
+    })
+    .unwrap();
+    assert_eq!(doc.undo_label(), Some("Change Extrude 1 polygon"));
+    let top = doc
+        .scene()
+        .evaluated(id)
+        .unwrap()
+        .mesh
+        .bounds()
+        .unwrap()
+        .max
+        .z;
+    assert!((top - 150.0).abs() < 1e-3);
+    assert_eq!(
+        doc.scene().object(id).unwrap().stack.layers()[0].operations,
+        vec![changed.clone()]
+    );
+    // Undo puts the old distance back; the same value again is no step.
+    doc.undo().unwrap();
+    let top = doc
+        .scene()
+        .evaluated(id)
+        .unwrap()
+        .mesh
+        .bounds()
+        .unwrap()
+        .max
+        .z;
+    assert!((top - 130.0).abs() < 1e-3);
+    let steps = doc.undo_steps();
+    doc.execute(Command::ReplaceOperation {
+        id,
+        layer: 0,
+        index: 0,
+        operation: op,
+    })
+    .unwrap();
+    assert_eq!(doc.undo_steps(), steps);
+    // An edit that isn't there is refused.
+    assert!(
+        doc.execute(Command::ReplaceOperation {
+            id,
+            layer: 0,
+            index: 5,
+            operation: changed,
+        })
+        .is_err()
+    );
+}
+
+#[test]
+fn an_extrude_replays_when_the_cube_gets_more_segments() {
+    let (mut doc, id) = with_a_cube();
+    let op = extrude_top(&doc, id, 30.0, true);
+    record(&mut doc, id, op);
+    doc.execute(Command::SetPrimitive {
+        ids: vec![id],
+        primitive: Primitive::Cube(CubeParams {
+            segments: [2, 2, 2],
+            ..Default::default()
+        }),
+    })
+    .unwrap();
+    let shape = doc.scene().evaluated(id).unwrap();
+    // The top, now four polygons, was found again and extruded as one
+    // block: 24 polygons, plus 8 walls.
+    assert_eq!(shape.mesh.face_count(), 24 + 8);
+    assert!((shape.mesh.bounds().unwrap().max.z - 130.0).abs() < 1e-3);
+    assert!(
+        shape
+            .warnings
+            .iter()
+            .all(|w| w.missing == 0 && w.found_again)
+    );
+    assert!(mesh::MeshReport::new(&shape.mesh).is_closed());
+}
+
+#[test]
+fn inset_and_edge_extrude_are_recorded_too() {
+    let (mut doc, id) = with_a_cube();
+    let mesh = doc.scene().evaluated(id).unwrap().mesh;
+    let top = top_face(&mesh);
+    record(
+        &mut doc,
+        id,
+        Operation::InsetPolygons {
+            faces: vec![top],
+            distance: 10.0,
+            grouping: Grouping::Together,
+            anchors: None,
+        },
+    );
+    assert_eq!(doc.undo_label(), Some("Inset 1 polygon"));
+    assert_eq!(doc.scene().evaluated(id).unwrap().mesh.face_count(), 10);
+    // A cube has no open border: an edge extrude changes nothing.
+    let edge = mesh.edges()[0];
+    record(
+        &mut doc,
+        id,
+        Operation::ExtrudeEdges {
+            edges: vec![edge],
+            distance: 10.0,
+            grouping: Grouping::Together,
+            anchors: None,
+        },
+    );
+    assert_eq!(doc.undo_label(), Some("Extrude 1 edge"));
+    assert_eq!(doc.scene().evaluated(id).unwrap().mesh.face_count(), 10);
+}
+
+#[test]
+fn make_editable_keeps_an_extrude() {
+    let (mut doc, id) = with_a_cube();
+    let op = extrude_top(&doc, id, 30.0, false);
+    record(&mut doc, id, op);
+    doc.execute(Command::MakeEditable(vec![id])).unwrap();
+    let object = doc.scene().object(id).unwrap();
+    assert!(object.stack.is_empty());
+    let ObjectKind::Mesh(mesh) = &object.kind else {
+        panic!("a mesh now");
+    };
+    assert_eq!(mesh.face_count(), 10);
+}

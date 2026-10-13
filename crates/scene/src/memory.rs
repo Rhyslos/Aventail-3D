@@ -39,6 +39,15 @@ fn operation(op: &Operation) -> usize {
             std::mem::size_of_val(points.as_slice())
                 + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
         }
+        Operation::ExtrudePolygons { faces, anchors, .. }
+        | Operation::InsetPolygons { faces, anchors, .. } => {
+            std::mem::size_of_val(faces.as_slice())
+                + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
+        }
+        Operation::ExtrudeEdges { edges, anchors, .. } => {
+            std::mem::size_of_val(edges.as_slice())
+                + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
+        }
     }
 }
 
