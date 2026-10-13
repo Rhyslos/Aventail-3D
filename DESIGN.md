@@ -500,6 +500,12 @@ At the project lead's request (2026-10-13): a built-in texture painter, so no Su
 
 **Planning approach.** The project lead is new to texturing. Before this is planned, research what game texture artists actually use most (and what they skip) in Substance Painter and its free alternatives. Then bring a short, explained proposal to the planning talk. The manual should teach texturing from the basics, as it does modelling.
 
+**Two styles on one core.** The project lead wants specialised tools for both hand-painted, stylised art (World of Warcraft, League of Legends, The Clone Wars) and realism. They share one core: layers, masks, baking, painting in both views and export. On top of that come:
+- **Hand-painted kits:** an unlit/flat-colour view, brushes with pressure and smooth blending, colour picking from the model, gradient fills by height or direction, baked AO and curvature used as painting guides rather than final maps, and painting across UV seams without visible joins.
+- **Realism kits:** PBR material layers (metal, roughness, normal, height), smart masks for wear, dirt and rust, and lighting previews.
+
+Each style can have its own starting layout and presets.
+
 ### Later / maybe
 - Make the UI our own (driven by real use)
 - FBX export, LOD helpers, baking preview
