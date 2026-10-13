@@ -146,4 +146,5 @@ The file format sections (A6) come before Phase 5. Evaluation that sees other ob
 
 - **1. Never lose a project:** done ([decision 0041](../decisions/0041-saves-that-always-reopen.md)).
 - **2. Fast edits:** done ([decision 0042](../decisions/0042-fast-edits.md)). Measured before and after, release build: a drag after 200 edits on a 3k-polygon prop 25.9 ms → 0.07 ms per frame; dragging an extrude on a 3M-polygon shape with five extrudes in its history 3.5 s → 35 ms per frame; bevelling every edge of a 32k-polygon sphere 65 s → 1.9 s and every point 298 s → 0.1 s; finding 1,000 points again on 3M polygons 19 s → 0.15 s. P5 counts the topology; shared meshes are still counted once per step that holds them (an over-count, the safe direction).
-- **3. Room to grow** and **4. Hostile files:** next.
+- **3. Room to grow:** next. Also takes in, at the project lead's request, edits stretching new rows along when a shape's settings add points (see the DESIGN.md decision log).
+- **4. Hostile files:** after that.
