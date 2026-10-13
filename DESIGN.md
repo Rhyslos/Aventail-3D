@@ -496,6 +496,10 @@ At the project lead's request (2026-10-13): a built-in texture painter, so no Su
 
 **Game-first, not a Painter copy.** The tools should be shaped by game work (texel density, trim sheets, texture sets, engine channel packing, mid-poly shading) and may well differ from Painter's. They still need to be good enough for a hobbyist generalist. Scripting and rigging move back to make room.
 
+**Tied to the UV tools.** The project lead works in the 2D (UV) and 3D views side by side, and texturing should work the same way: paint in either view and see it in both. The UV phase's work should carry straight into texturing: texel density, trim sheets, texture sets and islands that survive modelling.
+
+**Planning approach.** The project lead is new to texturing. Before this is planned, research what game texture artists actually use most (and what they skip) in Substance Painter and its free alternatives. Then bring a short, explained proposal to the planning talk. The manual should teach texturing from the basics, as it does modelling.
+
 ### Later / maybe
 - Make the UI our own (driven by real use)
 - FBX export, LOD helpers, baking preview
