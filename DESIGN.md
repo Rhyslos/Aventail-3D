@@ -30,6 +30,8 @@ Aventail 3D (model + UV)  ──glTF/OBJ──►  Substance Painter (bake + tex
 - Sculpting, texturing and materials beyond a preview/checker
 
 ### Guiding principles
+*Aim:* game development first, but good enough for a hobbyist generalist. If one hobbyist picks it up and enjoys it, the project has won.
+
 1. **Feel first.** The viewport and interaction must feel calm, clean and smooth, like C4D. A smaller tool that feels great beats a larger one that feels clunky.
 2. **Tools are the gateway.** As in 3ds Max, a deep, reliable modelling toolset is the core value.
 3. **Never lose work.** Undo is effectively unlimited. Base object properties stay editable no matter how much has been done since.
@@ -437,6 +439,7 @@ Each phase ends with something runnable. The user tests the *feel* at the end of
 - OBJ and glTF export with triangulation, tangents and presets
 - Round-trip test: model → Godot and Substance Painter, shape, hard edges, normals and scale correct (the full bake round trip is the UV phase's gate)
 - Bake readiness, model part, and kit export (§8; **W13**, **W16**)
+- **Engine export paths** (to plan): presets for Godot, Unity and Unreal Engine that save straight into the engine's project folder and export again on every save. Godot and Unreal re-import by themselves. Unity reads glTF through its glTFast package (our own FBX writer would be extra work, and the Autodesk FBX SDK is ruled out). A live-link plugin per engine may come later
 - A **splash screen** while the app starts (the app's name and version, and what it is loading), at the project lead's request
 - **Done when:** a prop exports into Godot and Substance Painter and looks right (shape, hard edges, scale) with no fixes in other software.
 
@@ -477,10 +480,61 @@ Lua scripting so people can add their own tools and automate work. Full design i
 
 ### Phase 10 — Rigging, skinning and animation (far future)
 Starts only once modelling and UVs are mature. Rough contents, to be designed properly when the time comes:
+- **Aim (project lead, 2026-10-13):** every animation tool is for game developers, helping them animate for games in both first and third person: first-person arms and weapons, third-person characters, and loops and clips that export cleanly to engines.
 - Joints/bones in the Object Manager hierarchy; bone display and editing
 - Skinning: bind mesh to skeleton, weight painting, weight tools (normalize, mirror, smooth)
 - Animation: keyframes on transforms, timeline and dope sheet, curve editor, playback in the viewport
 - Export skinned and animated meshes to glTF for Godot
+
+### To be designed: Texturing and a material builder (after Phase 8)
+At the project lead's request (2026-10-13): a built-in texture painter, so no Substance Painter subscription is needed, and a material builder after it. Both still need a planning talk before they get phases and milestones. Rough parts:
+- baking: normal, AO, curvature, thickness, position, ID;
+- a layer stack with fill and paint layers and masks;
+- smart masks driven by the baked maps;
+- 3D painting;
+- export to each engine's texture layout;
+- later, a node-based material builder.
+
+**Game-first, not a Painter copy.** The tools should be shaped by game work (texel density, trim sheets, texture sets, engine channel packing, mid-poly shading) and may well differ from Painter's. They still need to be good enough for a hobbyist generalist. Scripting and rigging move back to make room.
+
+**Tied to the UV tools.** The project lead works in the 2D (UV) and 3D views side by side, and texturing should work the same way: paint in either view and see it in both. The UV phase's work should carry straight into texturing: texel density, trim sheets, texture sets and islands that survive modelling.
+
+**Planning approach.** The project lead is new to texturing. Before this is planned, research what game texture artists actually use most (and what they skip) in Substance Painter and its free alternatives. Then bring a short, explained proposal to the planning talk. The manual should teach texturing from the basics, as it does modelling.
+
+**Two styles on one core.** The project lead wants specialised tools for both hand-painted, stylised art (World of Warcraft, League of Legends, The Clone Wars) and realism. They share one core: layers, masks, baking, painting in both views and export. On top of that come:
+- **Hand-painted kits:** an unlit/flat-colour view, brushes with pressure and smooth blending, colour picking from the model, gradient fills by height or direction, baked AO and curvature used as painting guides rather than final maps, and painting across UV seams without visible joins.
+- **Realism kits:** PBR material layers (metal, roughness, normal, height), smart masks for wear, dirt and rust, and lighting previews.
+
+Each style can have its own starting layout and presets.
+
+**Hand-painted first.** The project lead's priority: stylised, hand-painted work is the main focus and gets built first. Realism follows and stays the lesser focus. The aim is to be exceptional for creative, artistic assets and good enough for realism.
+
+**Outlines for cartoon looks.** One switch gives an object an outline:
+- **In the viewport:** a live outline with a chosen width and colour.
+- **On export,** two ways that can be combined:
+  - an *inverted-hull* outline as real geometry (a slightly larger, inside-out copy that renders black), which works in every engine with no shader;
+  - a ready-made outline shader file for each engine (a Godot shader first; Unity and Unreal after), set up by the engine export paths.
+- Settings can vary the width per area (thinner on small details) and use vertex colours or a painted mask.
+
+**Texturing choices from the project lead (2026-10-13):**
+
+| Idea | Decision |
+|---|---|
+| Painting in the 3D and 2D (UV) views at once, one stroke showing in both | **Yes** |
+| Colour palettes saved with the project, and picking swatches from the model | **Yes** |
+| Light-and-shadow helper: a sun direction pre-paints soft light and shade as a starting layer | **Yes**, with a switch to turn it off for those who don't want lighting while texturing |
+| Edge highlight from the curvature map | **Yes** |
+| A small, good stylised brush set, with smudge and blend | **Yes** |
+| A toon (cel-shaded) viewport preview, with the outlines | **Yes, almost a priority** |
+| Material and style presets saved as files to reuse and share | **Yes** |
+| Live preview in an open engine while painting, through the engine export paths | **Yes**: what the engine integration is for |
+| Texture budget | **Yes, extended:** warnings while working, and on export a detailed report about each file (size, format, channels, memory) |
+| Pen tablets | **Both mouse and pen** must feel good: pressure and tilt with a pen, sensible defaults with a mouse |
+| Trim sheets | **Their own pipeline:** making and using trim sheets in modelling, UVs and texturing. One texture per prop stays the default |
+| Where textures are saved | **Both:** inside the project and as image files beside it, to open in other apps |
+| Low-resolution and pixel-art textures | **Later.** No full pixel-art pipeline: Aseprite does that well |
+| Vertex colours | **Later**, after the texturing tools are robust |
+| Reference images in the paint view | **Ideas backlog** |
 
 ### Later / maybe
 - Make the UI our own (driven by real use)
@@ -576,3 +630,51 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-13 — Fourth Phase 4 milestone, **extrude and inset**, with the project lead's controls: `D` and `I` make Extrude and Inset the tool, a left drag anywhere in a view sets the distance (after the first test: Extrude follows the way the polygons face on screen, right for Inset or when they face the viewer; a drag starting on an unselected polygon selects it first; Shift ten times finer; Esc or a right click cancels; a click still selects), exact values in the Attributes panel only, and a **Keep together** switch for neighbouring polygons (on as standard). Polygons keep their ids, so the selection holds; thickness stays even round corners; hard edges carry over; border edges extrude flat in the Edges mode, with the selection moving to the new edge. The last extrude or inset can be changed in the Attributes panel (`Command::ReplaceOperation`). Project files move to format version 3 ([0038](docs/decisions/0038-extrude-and-inset.md)). Added to Phase 5 at the project lead's request: a **splash screen** while the app starts.
 - 2026-10-13 — At the project lead's request, a new guiding principle, **drags follow the pull** (§1, principle 8, [0039](docs/decisions/0039-drags-follow-the-pull.md)): a drag in the viewport is measured from what it changes (its facing, its axis, its middle), with a fixed screen direction only as a fallback. Extrude already followed the polygons' facing; Inset now follows the pull towards the polygons' middle. The gizmos already worked this way; the Scale gizmo's uniform centre keeps "right or up grows", as a drag that starts on the middle has no way to follow.
 - 2026-10-13 — At the project lead's request, the README and CONTRIBUTING say plainly that the project isn't accepting outside contributions, as it is too early in development; bug reports and ideas stay welcome through Issues. The project stays open source under the GPL.
+- 2026-10-13 — The official name is **Aventail 3D** (the "3D" says what it is). Added to the plan, still to be designed in detail: a built-in **texture painter** and later a **material builder**, after the UV phase, shaped by game work rather than copying Substance Painter, and good enough for hobbyist generalists; **engine export paths** for Godot, Unity and Unreal Engine in Phase 5. Scripting and rigging move later.
+- 2026-10-13 — Gap review with the project lead. Decisions:
+  - **Materials** come with texturing, unless the engine export needs something earlier (to check: a minimal material slot per polygon for export).
+  - **High-poly models** for baking are sculpted elsewhere (Blender, ZBrush) and imported. **Sculpting** is left to Blender, or comes far later.
+  - Our own **smoothing modifier** (subdivision, like 3ds Max's TurboSmooth) gets its own name, not copied from another program.
+  - **Curves and splines** (sweep, lathe; pipes, cables, railings) are needed.
+  - The **official release** comes when the app is finished, well after the material phase. Friends have agreed to test once there are enough tools to build something.
+  - Wanted:
+    - duplicate and **instances**;
+    - splitting polygons off into an object, and joining objects;
+    - hide and isolate;
+    - **slide** points and edges along their neighbours, and drag them along existing surfaces;
+    - pivot editing and scene units (needed by export);
+    - shell (thickness).
+  - **Pipe joins that keep their size:** turning a pipe's end ring keeps its cross-section from squashing, so pipes connect cleanly. A possible unique selling point, to be designed.
+  - A **keyboard shortcut viewer** soon. Custom hotkeys are added along the way.
+  - glTF (and OBJ) **import**. No FBX, as it can't be licensed.
+  - **Screenshots and turntable GIFs** from the viewport.
+  - Wishlist: interface size scaling, a first-start welcome with sample projects.
+- 2026-10-13 — Follow-ups to the gap review:
+  - **Pipe bends that keep their size**, a possible unique selling point. The project lead showed the problem in Blender: turning a cylinder's end ring pinches it, so a bend narrows.
+    - **Keep round:** a switch on extrude, and when turning a ring of a round shape. The ring at the joint sits on the plane halfway between the two directions and stretches by 1 / cos(half the angle), so both pieces keep their full width (a mitre joint).
+    - Attributes panel settings: **Angle**, **Bend radius** and **Segments**. With a radius, the bend is a smooth elbow of several rings, each kept round.
+    - To design with the curves and splines work, which faces the same problem.
+  - **Names to change for safety** (common functional words such as extrude, bevel, inset, bridge, weld and loop cut are fine):
+    - Cinema 4D's "Object Manager", "Attribute Manager" and "Live selection" → "Objects panel", "Attributes panel" and "Brush selection";
+    - 3ds Max's "Quick Align" → our own name;
+    - "Edit Poly" was already renamed "Edit Layers".
+    - To do as one small renaming pull request.
+  - **Export stays in Phase 5,** kept simple: a minimal material slot (polygons assigned to a named material with a colour) so engines get their parts. Real materials come with texturing. Testers and the project lead's own Godot tests need a way out of the app.
+  - The **keyboard shortcut viewer** becomes the last Phase 4 milestone.
+- 2026-10-13 — Names decided:
+  - Attribute Manager → **Attributes panel**
+  - Object Manager → **Objects panel**
+  - Live selection → **Paint select**
+  - Quick Align → **Snap to**
+
+  Added to the flip normals milestone:
+  - **Select flipped polygons**, from the mesh check that already finds them;
+  - **Fix facing**, which turns every polygon of a closed shape to face outward in one click;
+  - **Select by facing**: polygons facing a direction (up, say) within an angle, or facing like the one clicked.
+- 2026-10-13 — Where new tools go: basic modelling tools in Phase 4 (hide and isolate, slide, duplicate and instances, split and join); advanced tools and modifiers in Phase 7 (shell, curves and splines, pipe bends, the smoothing modifier); pivot editing and scene units with export in Phase 5. Testers join around Phase 7. Keys: **Bridge `C`** (free). Slit `X`, Loop cut `F` and `Z` for the camera were proposed but clash with keys in use (X/Y/Z axis locks, F frame selected); to be settled before those tools are built.
+- 2026-10-13 — Keys settled for tools to come (per 0028):
+  - **`X` Slit**, **`F` Loop cut**, **`C` Bridge**;
+  - **`Z` frames the selection** (what `F` does now), and `H` still frames everything;
+  - **axis locks move to `Shift + X / Y / Z`** (`Ctrl` would clash with undo, redo and cut).
+
+  The switch happens in one go with the first of Slit or Loop cut, updating the manual, the tool menu and the keyboard viewer at the same time.

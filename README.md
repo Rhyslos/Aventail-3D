@@ -91,9 +91,9 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** points, edges and polygons can be selected and moved precisely, and a cube's segments can still be changed afterwards. ✅ *Passed 2026-10-12: tested by the project lead.*
 
-### Phase 4 · Core modelling tools — 4 of 10
+### Phase 4 · Core modelling tools — 4 of 11
 
-`█████░░░░░░░░` 40%
+`█████░░░░░░░░` 36%
 
 <details>
 <summary>Milestones</summary>
@@ -105,9 +105,10 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [ ] Bevel and chamfer
 - [ ] Loop cut and knife
 - [ ] Connect, bridge and weld
-- [ ] Dissolve, delete, fill hole and flip normals
+- [ ] Dissolve, delete, fill hole and flip normals, with select flipped, fix facing and select by facing
 - [ ] Hard and soft edges, with normals display
 - [ ] Symmetry
+- [ ] Keyboard shortcut viewer: every key in one place
 
 </details>
 
