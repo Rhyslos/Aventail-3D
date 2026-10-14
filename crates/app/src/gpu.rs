@@ -11,7 +11,7 @@ use render::{
 use std::collections::HashMap;
 use std::sync::Arc;
 use ui::{
-    ComponentOverlay, OverlayStyle, PickAsk, PickReply, Picked, SceneDrawing, VIEW_COUNT,
+    ComponentOverlay, OverlayStyle, PickAsk, PickReply, Picked, SceneDrawing, Shading, VIEW_COUNT,
     ViewportRenderer, ViewportView,
 };
 
@@ -37,6 +37,15 @@ const SELECTED_FAINTEST: f32 = 0.25;
 /// How see-through the tint on selected and hovered polygons is.
 const SELECTED_TINT: f32 = 0.45;
 const HOVERED_TINT: f32 = 0.3;
+/// Plain edges in the Shaded with wires look: clear light lines on the
+/// grey surface, linear space.
+const WIRE_LINE: [f32; 4] = [0.95, 0.95, 0.97, 0.4];
+/// Plain edges in the Wireframe look, with no surface behind them.
+const WIREFRAME_LINE: [f32; 4] = [0.85, 0.86, 0.9, 0.75];
+/// How faint a dense wireframe may fade in the Wireframe look: with no
+/// surface, a heavy shape seen from afar would otherwise vanish.
+const WIREFRAME_FAINTEST: f32 = 0.3;
+
 /// Hard edges (Display → Hard edges): light cyan, a little thicker than
 /// the plain edges, linear space.
 const HARD_LINE: [f32; 4] = [0.25, 0.75, 0.95, 1.0];
@@ -85,10 +94,19 @@ fn overlay_geometry(overlay: &ComponentOverlay, accent: [f32; 3]) -> Overlay {
 }
 
 /// How each object's mesh is drawn: where it is, its edges in the accent
-/// when selected (plain while its elements are being edited), and every
-/// point shown in the Points mode.
-fn mesh_draws(scene: &SceneDrawing, accent: [f32; 3]) -> Vec<MeshDraw> {
+/// when selected (plain while its elements are being edited) and clearer
+/// in the wire looks, and every point shown in the Points mode.
+fn mesh_draws(scene: &SceneDrawing, accent: [f32; 3], shading: Shading) -> Vec<MeshDraw> {
     let [r, g, b] = accent;
+    let (plain, edited_line, least) = match shading {
+        Shading::Shaded => (EDGE_COLOR, PLAIN_LINE, 0.0),
+        Shading::ShadedWithWires => (WIRE_LINE, PLAIN_LINE, 0.0),
+        Shading::Wireframe => (
+            WIREFRAME_LINE,
+            [PLAIN_LINE[0], PLAIN_LINE[1], PLAIN_LINE[2], 0.8],
+            WIREFRAME_FAINTEST,
+        ),
+    };
     scene
         .items
         .iter()
@@ -100,17 +118,17 @@ fn mesh_draws(scene: &SceneDrawing, accent: [f32; 3]) -> Vec<MeshDraw> {
                 model: item.transform,
                 edges: true,
                 edge_color: if edited {
-                    PLAIN_LINE
+                    edited_line
                 } else if item.selected {
                     [r, g, b, SELECTED_EDGE_ALPHA]
                 } else {
-                    EDGE_COLOR
+                    plain
                 },
                 points: (edited && scene.points).then_some((PLAIN_POINT, POINT_SIZE)),
                 faintest: if item.selected && !edited {
-                    SELECTED_FAINTEST
+                    SELECTED_FAINTEST.max(least)
                 } else {
-                    0.0
+                    least
                 },
             }
         })
@@ -365,7 +383,8 @@ impl ViewportRenderer for GpuViewport {
         // Placed for each view, as what is too dense to see depends on
         // how close the view is.
         let accent = view.selection_color.map(render::srgb_to_linear);
-        let mut draws = mesh_draws(&view.scene, accent);
+        let mut draws = mesh_draws(&view.scene, accent, view.shading);
+        self.renderer.set_show_faces(view.shading.shows_faces());
         leave_out_dense(&mut draws, view, &self.meshes);
         self.renderer
             .set_draws(&self.state.device, &self.state.queue, &draws);
@@ -482,7 +501,7 @@ mod tests {
             editing,
             points,
         };
-        let draws = mesh_draws(&scene(false, false), [1.0, 0.0, 0.0]);
+        let draws = mesh_draws(&scene(false, false), [1.0, 0.0, 0.0], Shading::Shaded);
         assert_eq!(draws.len(), 2);
         assert_eq!(draws[0].key, 1);
         assert_eq!(draws[0].model.w_axis.x, 1.0);
@@ -490,14 +509,33 @@ mod tests {
         assert_eq!(draws[1].edge_color, EDGE_COLOR);
         assert!(draws.iter().all(|d| d.points.is_none()));
         // Edited: plain edges, and points in the Points mode.
-        let draws = mesh_draws(&scene(true, true), [1.0, 0.0, 0.0]);
+        let draws = mesh_draws(&scene(true, true), [1.0, 0.0, 0.0], Shading::Shaded);
         assert_eq!(draws[0].edge_color, PLAIN_LINE);
         assert_eq!(draws[0].points, Some((PLAIN_POINT, POINT_SIZE)));
         assert_eq!(draws[1].points, None, "only the edited object");
         // A broken placement isn't drawn.
         let mut broken = scene(false, false);
         broken.items[1].transform = glam::Mat4::from_scale(Vec3::NAN);
-        assert_eq!(mesh_draws(&broken, [1.0; 3]).len(), 1);
+        assert_eq!(mesh_draws(&broken, [1.0; 3], Shading::Shaded).len(), 1);
+    }
+
+    #[test]
+    fn the_wire_looks_draw_edges_clearly() {
+        let scene = SceneDrawing {
+            version: 1,
+            items: vec![item(1, true), item(2, false)],
+            editing: false,
+            points: false,
+        };
+        let wires = mesh_draws(&scene, [1.0, 0.0, 0.0], Shading::ShadedWithWires);
+        assert_eq!(wires[1].edge_color, WIRE_LINE);
+        const { assert!(WIRE_LINE[3] > EDGE_COLOR[3] * 2.0, "clearly stronger") };
+        assert_eq!(wires[0].edge_color, [1.0, 0.0, 0.0, SELECTED_EDGE_ALPHA]);
+        let wireframe = mesh_draws(&scene, [1.0, 0.0, 0.0], Shading::Wireframe);
+        assert_eq!(wireframe[1].edge_color, WIREFRAME_LINE);
+        // With no surface, even a heavy shape keeps a faint outline.
+        assert!(wireframe.iter().all(|d| d.faintest >= WIREFRAME_FAINTEST));
+        assert!(!Shading::Wireframe.shows_faces() && Shading::ShadedWithWires.shows_faces());
     }
 
     /// A view of `scene` from `distance` centimetres in front of the
@@ -520,6 +558,7 @@ mod tests {
             scene: Arc::new(scene),
             selection_color: [1.0; 3],
             overlay: Arc::new(ComponentOverlay::default()),
+            shading: Shading::default(),
         }
     }
 
@@ -548,7 +587,7 @@ mod tests {
         );
         let draws = |distance, selected| {
             let view = view_from(distance, scene(selected));
-            let mut draws = mesh_draws(&view.scene, [1.0, 0.0, 0.0]);
+            let mut draws = mesh_draws(&view.scene, [1.0, 0.0, 0.0], Shading::Shaded);
             leave_out_dense(&mut draws, &view, &meshes);
             draws[0]
         };
@@ -567,7 +606,7 @@ mod tests {
                 ..scene(true)
             },
         );
-        let mut tinted = mesh_draws(&view.scene, [1.0, 0.0, 0.0]);
+        let mut tinted = mesh_draws(&view.scene, [1.0, 0.0, 0.0], Shading::Shaded);
         leave_out_dense(&mut tinted, &view, &meshes);
         assert!(tinted[0].edges && tinted[0].faintest > 0.0);
         // The spacing grows as the view comes closer.

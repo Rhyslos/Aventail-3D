@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Wireframe.** A new button in the viewport's bottom-left corner (and the top of the **Display** menu) chooses how shapes are drawn: **Shaded**, **Shaded with wires** (every edge drawn clearly on top) or **Wireframe** (only the edges, seen through the shape). Remembered.
 - **Spirals.** With a Bend radius, an extrude's bend **Angle** can now go past 360°, up to ten turns: each loop climbs just clear of the one before, like a spring. **Rise per turn** (under Segments) adds more room between the loops; under one turn it tilts the bend into a ramp. Past one turn, Segments counts the rows in each turn. With Symmetry on, the mirrored copy winds the other way. Projects move to file format 15.
 - **The Keys window draws your keyboard.** Every key the app uses is lit, with coloured marks for where it works (anywhere, Model mode, Points/Edges/Polygons, while dragging, menus). Point at a key to see its jobs, click it to keep them shown, and click the coloured chips to hide a situation. The search outlines matching keys. The keyboard follows your system language (US, UK, Norwegian, Danish, Swedish / Finnish, German, French), and you can pick another from the **Keyboard** list. The window opens big, sized to your screen, and its keys and text grow with it.
 - **Symmetry for every edit.** With Symmetry on, extrude, inset, bevel, loop cut, slit, connect, bridge, weld, delete, dissolve, fill hole, flip and hard or soft edges are made on the other side too, mirrored, as one undo step; the Last edit changes both sides. Projects move to file format 14.
@@ -63,6 +64,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- The X/Y/Z axis arrows moved from the viewport's top-right corner to the bottom left, beside the new shading button, with the grid spacing just above them.
 - **1, 2 and 3 put a tool away.** With a modelling tool in use (Extrude, Slit, Weld…), pressing a mode key (or clicking a mode button) puts the tool away and you're selecting in that mode, without leaving it. With no tool in use, the keys work as before.
 - **Connect moved from J to A**, within easy reach of the left hand.
 - **A click selects while Bridge or Weld is the tool**, with the usual red highlight under the mouse, and a drag from empty space draws a selection box. Only a drag that starts on an open edge (Bridge) or a point (Weld) is the tool's.

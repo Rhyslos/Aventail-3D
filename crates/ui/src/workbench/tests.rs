@@ -832,6 +832,40 @@ fn display_menu_chooses_the_grid_level() {
 }
 
 #[test]
+fn display_menu_and_the_corner_button_choose_the_shading() {
+    use crate::Shading;
+    let mut harness = fresh();
+    assert_eq!(
+        harness.state().workbench.view_options().shading,
+        Shading::Shaded
+    );
+    // The Display menu lists the looks.
+    harness.get_by_label("Display").click();
+    harness.run();
+    harness.get_by_label(Shading::Wireframe.label()).click();
+    harness.run();
+    assert_eq!(
+        harness.state().workbench.view_options().shading,
+        Shading::Wireframe
+    );
+    // The button in the bottom-left corner opens the same list.
+    harness.get_by_label(crate::viewport::SHADING_LABEL).click();
+    harness.run();
+    harness
+        .get_by_label(Shading::ShadedWithWires.label())
+        .click();
+    harness.run();
+    assert_eq!(
+        harness.state().workbench.view_options().shading,
+        Shading::ShadedWithWires
+    );
+    // It sits in the bottom-left corner of the viewport, beside the axes.
+    let button = harness.get_by_label(crate::viewport::SHADING_LABEL).rect();
+    let view = harness.get_by_label(crate::VIEWPORT_LABEL).rect();
+    assert!(button.left() < view.center().x && button.bottom() > view.center().y);
+}
+
+#[test]
 fn the_managers_have_their_own_menu_lines() {
     let harness = fresh();
     for menu in ["Mode", "Object"] {

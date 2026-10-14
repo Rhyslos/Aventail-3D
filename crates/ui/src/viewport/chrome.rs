@@ -129,6 +129,8 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
         }
     });
     ui.menu_button("Display", |ui| {
+        super::look::choices(ui, &mut panel.options.shading);
+        ui.separator();
         grid_entries(ui, &mut panel.options.grid_detail);
         ui.separator();
         let mut hard = !panel.options.hide_hard_edges;
@@ -305,8 +307,12 @@ pub(super) fn preparing(ui: &mut Ui, rect: Rect) {
     );
 }
 
+/// Where the axis marker's middle sits, from a view's bottom-left corner:
+/// in the corner, beside the look row ([decision 0063](../../../../docs/decisions/0063-wireframe.md)).
+pub(super) const AXIS_MARKER_AT: egui::Vec2 = vec2(32.0, -32.0);
+
 /// Quiet labels over a view's image: its name, the camera, an axis
-/// marker, and the grid spacing.
+/// marker in the bottom-left corner, and the grid spacing above it.
 pub(super) fn overlays(ui: &Ui, rect: Rect, view: &View, options: &ViewOptions) {
     let painter = ui.painter_at(rect);
     let small = FontId::proportional(12.0);
@@ -329,17 +335,13 @@ pub(super) fn overlays(ui: &Ui, rect: Rect, view: &View, options: &ViewOptions) 
     }
     let spacing = options.grid_detail.spacing_text();
     painter.text(
-        rect.left_bottom() + vec2(10.0, -10.0),
+        rect.left_bottom() + vec2(10.0, -64.0),
         Align2::LEFT_BOTTOM,
         format!("Grid spacing: {spacing}"),
         small,
         theme::TEXT_WEAK,
     );
-    axis_marker(
-        &painter,
-        rect.right_top() + vec2(-36.0, 36.0),
-        view.camera(),
-    );
+    axis_marker(&painter, rect.left_bottom() + AXIS_MARKER_AT, view.camera());
     if shows_pivot_marker(view.drag, options) {
         pivot_marker(ui, &painter, rect, view);
     }
