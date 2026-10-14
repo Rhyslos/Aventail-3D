@@ -894,6 +894,11 @@ impl Workbench {
             .show(ui, |ui| {
                 ui.add_space(6.0);
                 match mode_palette(ui, self.mode, self.viewport.options_mut()) {
+                    // With a modelling tool in use, picking a mode puts it
+                    // away, as the mode keys do.
+                    Some(crate::palette::ModePick::Mode(mode)) if self.tool.has_settings() => {
+                        self.press_mode_key(mode);
+                    }
                     Some(crate::palette::ModePick::Mode(mode)) => self.mode = mode,
                     Some(crate::palette::ModePick::Isolate) => {
                         self.hide(showing::Hiding::Others);
@@ -1284,7 +1289,7 @@ impl Workbench {
         }
         for (key, mode) in MODE_KEYS {
             if ui.input_mut(|i| i.consume_key(Modifiers::NONE, key)) {
-                self.mode = if self.mode == mode { Mode::Model } else { mode };
+                self.press_mode_key(mode);
             }
         }
         if ui.input_mut(|i| i.consume_key(Modifiers::NONE, BACK_KEY)) {
@@ -1294,6 +1299,27 @@ impl Workbench {
                 .memory_mut(|m| m.move_focus(egui::FocusDirection::None));
             self.step_back();
         }
+    }
+
+    /// 1, 2 or 3. With a modelling tool in use (Extrude, Slit, Weld...),
+    /// the key puts it away and selects in that mode, staying in it if
+    /// already there ([decision 0060](../../../docs/decisions/0060-mode-keys-put-tools-away.md)):
+    /// pressing the mode key is how the project lead goes back to
+    /// selecting. Otherwise the key switches to its mode, or back to the
+    /// Model mode when already in it.
+    pub(crate) fn press_mode_key(&mut self, mode: Mode) {
+        if self.tool.has_settings() {
+            let tool = self.tool.name();
+            // Finishes a Slit line too, keeping what it cut.
+            self.set_tool(Tool::Select);
+            self.mode = mode;
+            self.note = Some(format!(
+                "{} mode: selecting ({tool} put away; its key brings it back).",
+                mode.name()
+            ));
+            return;
+        }
+        self.mode = if self.mode == mode { Mode::Model } else { mode };
     }
 
     /// Tab: finishes whatever is going on and lands in the Model mode with
