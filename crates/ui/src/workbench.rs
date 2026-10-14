@@ -865,6 +865,10 @@ impl Workbench {
                             self.toggle_symmetry();
                             return;
                         }
+                        PaletteCommand::WeldMiddle => {
+                            self.weld_middle_now();
+                            return;
+                        }
                         PaletteCommand::Undo => DocRequest::Undo,
                         PaletteCommand::Redo => DocRequest::Redo,
                         PaletteCommand::CreateGroup => {
@@ -1170,8 +1174,19 @@ impl Workbench {
     /// space: across its own axes, through the chosen centre moved by the
     /// offset.
     pub(crate) fn mirror_for(&self, id: scene::ObjectId) -> Option<mesh::symmetry::Mirror> {
+        self.viewport.options().symmetry.active_axes()?;
+        self.mirror_planes(id)
+    }
+
+    /// The mirror planes the Symmetry menu describes for `id`'s shape,
+    /// whether symmetry is on or not (for Weld the middle now). `None`
+    /// with no axis chosen.
+    pub(crate) fn mirror_planes(&self, id: scene::ObjectId) -> Option<mesh::symmetry::Mirror> {
         let symmetry = self.viewport.options().symmetry;
-        let axes = symmetry.active_axes()?;
+        let axes = symmetry.axes;
+        if !axes.contains(&true) {
+            return None;
+        }
         let offset = glam::Vec3::from_array(symmetry.offset);
         let offset = if offset.is_finite() {
             offset
@@ -1197,17 +1212,56 @@ impl Workbench {
                 }
             }
         };
-        let weld = if symmetry.weld && symmetry.weld_distance.is_finite() {
-            symmetry.weld_distance.max(0.0)
-        } else {
-            0.0
-        };
         Some(mesh::symmetry::Mirror {
             axes,
             centre,
-            weld,
             clip: symmetry.clip,
         })
+    }
+
+    /// The Symmetry menu's Weld the middle now: joins the halves of each
+    /// selected shape at the middle, once, as one undo step (decision
+    /// 0059). Points within the weld distance go onto the middle, and
+    /// points meeting there become one.
+    pub(crate) fn weld_middle_now(&mut self) {
+        let distance = self.viewport.options().symmetry.weld_distance;
+        let distance = if distance.is_finite() {
+            distance.max(0.0)
+        } else {
+            0.0
+        };
+        let mut ops = Vec::new();
+        let mut welded = 0;
+        for id in self.document.selection() {
+            let Some(shape) = self.document.scene().evaluated(id) else {
+                continue;
+            };
+            let Some(mirror) = self.mirror_planes(id) else {
+                self.note =
+                    Some("Weld the middle: pick X, Y or Z in the Symmetry menu first.".into());
+                return;
+            };
+            // Tried on a copy, so nothing is recorded when nothing joins.
+            let mut trial = (*shape.mesh).clone();
+            let n = mesh::symmetry::weld_middle(&mut trial, &mirror, distance);
+            if n > 0 {
+                welded += n;
+                ops.push((id, scene::Operation::WeldMiddle { mirror, distance }));
+            }
+        }
+        if ops.is_empty() {
+            self.note = Some(format!(
+                "Weld the middle: nothing within {} of the middle to join.",
+                self.units.format(distance)
+            ));
+            return;
+        }
+        if self.record_each("Weld the middle", ops) {
+            self.note = Some(format!(
+                "Welded the middle ({welded} point{}). Ctrl + Z takes it back.",
+                if welded == 1 { "" } else { "s" }
+            ));
+        }
     }
 
     /// Whether a selected object has a shape to edit (for the Points,

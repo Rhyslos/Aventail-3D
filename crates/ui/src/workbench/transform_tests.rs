@@ -737,3 +737,69 @@ fn with_symmetry_points_can_be_kept_from_crossing_the_middle() {
     let moved = shape(&harness).position(right).unwrap();
     assert!(moved.x.abs() < 1e-3, "{moved}");
 }
+
+#[test]
+fn weld_the_middle_now_joins_the_halves_once_when_asked() {
+    let mut harness = fresh();
+    let id = cube(&harness);
+    let doc = harness.state_mut().workbench.document_mut();
+    doc.set_selection([id]);
+    doc.execute(scene::Command::SetPrimitive {
+        ids: vec![id],
+        primitive: scene::Primitive::Cube(mesh::CubeParams {
+            segments: [2, 1, 1],
+            ..Default::default()
+        }),
+    })
+    .unwrap();
+    harness.run();
+    let middle = shape(&harness)
+        .vertices()
+        .find(|(_, p)| p.x.abs() < 1e-3)
+        .map(|(v, _)| v)
+        .unwrap();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::Record {
+            id,
+            operation: scene::Operation::MovePoints {
+                points: vec![middle],
+                offset: glam::Vec3::new(0.05, 0.0, 0.0),
+                anchors: None,
+            },
+        })
+        .unwrap();
+    harness.run();
+    // Nothing joins by itself: the point stays off the middle.
+    assert!((shape(&harness).position(middle).unwrap().x - 0.05).abs() < 1e-5);
+    harness
+        .get_by_label(crate::palette::SYMMETRY_MENU_LABEL)
+        .click();
+    harness.run();
+    harness
+        .get_by_label(crate::palette::WELD_MIDDLE_LABEL)
+        .click();
+    harness.run();
+    assert_eq!(shape(&harness).position(middle).unwrap().x, 0.0);
+    assert_eq!(
+        harness.state().workbench.document().undo_label(),
+        Some("Weld the middle")
+    );
+    // Ctrl + Z takes it back; with nothing near the middle, nothing is
+    // recorded.
+    harness.state_mut().workbench.document_mut().undo();
+    harness.run();
+    assert!((shape(&harness).position(middle).unwrap().x - 0.05).abs() < 1e-5);
+    harness
+        .state_mut()
+        .workbench
+        .viewport_mut()
+        .options_mut()
+        .symmetry
+        .weld_distance = 0.01;
+    let steps = harness.state().workbench.document().undo_steps();
+    harness.state_mut().workbench.weld_middle_now();
+    assert_eq!(harness.state().workbench.document().undo_steps(), steps);
+}

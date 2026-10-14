@@ -110,6 +110,7 @@ pub(crate) fn operation_size(op: &Operation) -> usize {
         }
         Operation::Slit { line } => std::mem::size_of_val(line.points.as_slice()),
         Operation::Mirrored { op, .. } => operation_size(op),
+        Operation::WeldMiddle { .. } => 0,
         Operation::LoopCut { anchors, .. } => {
             anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
         }

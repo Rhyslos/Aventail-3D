@@ -204,7 +204,7 @@ pub fn mirror_plan(mesh: &Mesh, chosen: &[VertexId], mirror: Mirror) -> MirrorPl
         let Some(p) = mesh.position(v) else {
             continue;
         };
-        let keep_on = [0, 1, 2].map(|a| axes[a] && (p[a] - centre[a]).abs() <= mirror.on_plane());
+        let keep_on = [0, 1, 2].map(|a| axes[a] && (p[a] - centre[a]).abs() <= TOLERANCE);
         add([false; 3], keep_on, v);
         for reflect in &mirrors {
             // Mirroring across a plane the point is on gives the point.
@@ -232,34 +232,18 @@ pub struct Mirror {
     pub axes: [bool; 3],
     /// The point the planes go through.
     pub centre: Vec3,
-    /// Weld the middle: points this close to a plane (in centimetres) are
-    /// put on it, and points meeting there become one ([`weld_middle`]).
-    /// 0: off.
-    pub weld: f32,
     /// Points may not cross a plane: an edit or a move stops them on it
     /// ([`keep_sides`], [`move_limits`]).
     pub clip: bool,
 }
 
 impl Mirror {
-    /// Across `axes`, through the shape's origin, without welding or
-    /// clipping.
+    /// Across `axes`, through the shape's origin, without clipping.
     pub fn through_origin(axes: [bool; 3]) -> Self {
         Self {
             axes,
             centre: Vec3::ZERO,
-            weld: 0.0,
             clip: false,
-        }
-    }
-
-    /// How close to a plane counts as on it: the weld distance, or
-    /// [`TOLERANCE`] at least.
-    pub fn on_plane(&self) -> f32 {
-        if self.weld.is_finite() {
-            self.weld.max(TOLERANCE)
-        } else {
-            TOLERANCE
         }
     }
 
@@ -337,12 +321,13 @@ impl<'a> Partners<'a> {
     }
 }
 
-/// Welds the middle of a shape modelled with `mirror`: every point closer
-/// than `mirror.weld` to a plane is put on it, then points that meet on a
-/// plane (within [`TOLERANCE`]) become one. Returns how many points were
-/// moved or merged. Does nothing with welding off.
-pub fn weld_middle(mesh: &mut Mesh, mirror: &Mirror) -> usize {
-    if mirror.weld <= 0.0 || !mirror.weld.is_finite() {
+/// Welds the middle of a shape modelled with `mirror`, once, when asked
+/// ([decision 0059](../../../docs/decisions/0059-symmetry-for-every-edit.md)):
+/// every point closer than `distance` to a plane is put on it, then points
+/// that meet on a plane (within [`TOLERANCE`]) become one. Returns how many
+/// points were moved or merged.
+pub fn weld_middle(mesh: &mut Mesh, mirror: &Mirror, distance: f32) -> usize {
+    if distance <= 0.0 || !distance.is_finite() {
         return 0;
     }
     let mut changed = 0;
@@ -353,7 +338,7 @@ pub fn weld_middle(mesh: &mut Mesh, mirror: &Mirror) -> usize {
             let mut q = p;
             for a in 0..3 {
                 let off = p[a] - mirror.centre[a];
-                if mirror.axes[a] && off != 0.0 && off.abs() <= mirror.weld {
+                if mirror.axes[a] && off != 0.0 && off.abs() <= distance {
                     q[a] = mirror.centre[a];
                 }
             }
@@ -464,7 +449,7 @@ pub fn move_limits(mesh: &Mesh, points: &[VertexId], mirror: &Mirror) -> [(f32, 
     for p in points.iter().filter_map(|v| mesh.position(*v)) {
         for a in 0..3 {
             let off = p[a] - mirror.centre[a];
-            if !mirror.axes[a] || off.abs() <= mirror.on_plane() {
+            if !mirror.axes[a] || off.abs() <= TOLERANCE {
                 continue;
             }
             if off > 0.0 {

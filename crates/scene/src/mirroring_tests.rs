@@ -18,7 +18,6 @@ fn cube() -> Mesh {
 const ACROSS_X: Mirror = Mirror {
     axes: [true, false, false],
     centre: Vec3::ZERO,
-    weld: 0.0,
     clip: false,
 };
 
@@ -327,7 +326,7 @@ fn whole_shape_edits_and_moves_are_not_mirrored() {
 }
 
 #[test]
-fn a_mirrored_edit_welds_the_middle_and_keeps_sides() {
+fn the_middle_is_welded_only_when_asked() {
     let mut doc = Document::new();
     doc.execute(Command::Create(ObjectKind::Primitive(Primitive::Cube(
         CubeParams {
@@ -354,11 +353,7 @@ fn a_mirrored_edit_welds_the_middle_and_keeps_sides() {
     })
     .unwrap();
     let face = right_face(&base, Vec3::X);
-    let welding = Mirror {
-        weld: 0.1,
-        clip: true,
-        ..ACROSS_X
-    };
+    // A mirrored edit no longer welds anything by itself.
     doc.execute(Command::Record {
         id,
         operation: Operation::Mirrored {
@@ -366,10 +361,24 @@ fn a_mirrored_edit_welds_the_middle_and_keeps_sides() {
                 faces: vec![face],
                 anchors: None,
             }),
-            mirror: welding,
+            mirror: ACROSS_X,
         },
     })
     .unwrap();
+    let shape = doc.scene().evaluated(id).unwrap();
+    assert!((shape.mesh.position(middle).unwrap().x - 0.05).abs() < 1e-5);
+    // Weld the middle, when asked: back on the middle, as its own edit
+    // that Ctrl + Z takes back.
+    let steps = doc.undo_steps();
+    doc.execute(Command::Record {
+        id,
+        operation: Operation::WeldMiddle {
+            mirror: ACROSS_X,
+            distance: 0.1,
+        },
+    })
+    .unwrap();
+    assert_eq!(doc.undo_steps(), steps + 1);
     let shape = doc.scene().evaluated(id).unwrap();
     assert_eq!(
         shape.mesh.position(middle).unwrap().x,
@@ -377,4 +386,7 @@ fn a_mirrored_edit_welds_the_middle_and_keeps_sides() {
         "back on the middle"
     );
     assert_eq!(shape.mesh.vertex_count(), base.vertex_count());
+    doc.undo();
+    let shape = doc.scene().evaluated(id).unwrap();
+    assert!((shape.mesh.position(middle).unwrap().x - 0.05).abs() < 1e-5);
 }

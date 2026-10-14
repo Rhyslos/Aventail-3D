@@ -162,7 +162,6 @@ fn partners_find_mirrored_points_edges_and_polygons() {
         Mirror {
             axes: [true, false, false],
             centre: Vec3::new(7.0, 0.0, 0.0),
-            weld: 0.0,
             clip: false,
         },
         [true, false, false],
@@ -175,7 +174,6 @@ fn a_mirror_reflects_points_through_its_middle() {
     let m = Mirror {
         axes: [true, true, false],
         centre: Vec3::new(10.0, 0.0, 0.0),
-        weld: 0.0,
         clip: false,
     };
     assert_eq!(m.reflections().len(), 3);
@@ -197,7 +195,6 @@ fn the_mirror_can_go_through_another_middle() {
     let mirror = Mirror {
         axes: X,
         centre: Vec3::new(30.0, 0.0, 0.0),
-        weld: 0.0,
         clip: false,
     };
     let plan = mirror_plan(&mesh, &[right], mirror);
@@ -238,31 +235,24 @@ fn halves(gap: f32) -> Mesh {
     mesh
 }
 
-fn welding(distance: f32) -> Mirror {
-    Mirror {
-        weld: distance,
-        ..Mirror::through_origin(X)
-    }
-}
-
 #[test]
 fn welding_the_middle_closes_the_seam() {
     let mut mesh = halves(0.08);
     assert_eq!(crate::MeshReport::new(&mesh).pieces, 2);
-    assert!(weld_middle(&mut mesh, &welding(0.1)) > 0);
+    assert!(weld_middle(&mut mesh, &Mirror::through_origin(X), 0.1) > 0);
     assert_eq!(mesh.vertex_count(), 6, "the seam's points became one");
     assert_eq!(mesh.face_count(), 2);
     assert_eq!(crate::MeshReport::new(&mesh).pieces, 1);
     assert!(mesh.vertices().filter(|(_, p)| p.x.abs() < 1e-6).count() == 2);
     // Too far apart for the distance, or welding off: nothing.
     let mut far = halves(0.5);
-    assert_eq!(weld_middle(&mut far, &welding(0.1)), 0);
+    assert_eq!(weld_middle(&mut far, &Mirror::through_origin(X), 0.1), 0);
     assert_eq!(far, halves(0.5));
     let mut off = halves(0.08);
-    assert_eq!(weld_middle(&mut off, &welding(0.0)), 0);
+    assert_eq!(weld_middle(&mut off, &Mirror::through_origin(X), 0.0), 0);
     // Already joined: nothing more to do.
     let mut again = mesh.clone();
-    assert_eq!(weld_middle(&mut again, &welding(0.1)), 0);
+    assert_eq!(weld_middle(&mut again, &Mirror::through_origin(X), 0.1), 0);
     assert_eq!(again, mesh);
 }
 
@@ -297,23 +287,4 @@ fn clipping_keeps_points_on_their_side() {
         move_limits(&before, &[left], &clip)[0],
         (f32::NEG_INFINITY, 50.0)
     );
-}
-
-#[test]
-fn with_welding_points_near_the_middle_stay_on_it() {
-    let mut mesh = cube([2, 1, 1]);
-    let middle = at(&mesh, Vec3::new(0.0, -50.0, 100.0));
-    mesh.set_position(middle, Vec3::new(0.05, -50.0, 100.0));
-    // Not on the plane within the tolerance; within the weld distance.
-    assert_eq!(
-        mirror_plan(&mesh, &[middle], Mirror::through_origin(X)).groups[0].keep_on,
-        NONE
-    );
-    let plan = mirror_plan(&mesh, &[middle], welding(0.1));
-    assert_eq!(plan.groups[0].keep_on, X);
-    // Its move puts it on the plane.
-    let moved = plan.groups[0]
-        .matrix(Mat4::from_translation(Vec3::new(5.0, 3.0, 0.0)))
-        .transform_point3(Vec3::new(0.05, -50.0, 100.0));
-    assert!(moved.x.abs() < 1e-6 && (moved.y + 47.0).abs() < 1e-4);
 }

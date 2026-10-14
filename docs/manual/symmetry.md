@@ -33,7 +33,7 @@ Details:
 
 ### The Symmetry menu
 
-![The Symmetry menu: On, Mirror across X, Y and Z, Mirror through the object's pivot, its middle or the world centre, Weld the middle with its distance, Don't cross the middle, and Move the mirror by X, Y and Z.](../screenshots/2026-10-14-symmetry-menu.png)
+![The Symmetry menu: On, Mirror across X, Y and Z, Mirror through the object's pivot, its middle or the world centre, Weld the middle now with its distance, Don't cross the middle, and Move the mirror by X, Y and Z.](../screenshots/2026-10-14-symmetry-menu.png)
 
 - **On** switches symmetry on or off, like the button.
 - **Mirror across X, Y, Z**: which of the shape's own axes to mirror across. X mirrors left and right, Y front and back, Z top and bottom. Pick more than one for quarters or eighths.
@@ -41,7 +41,7 @@ Details:
   - **Object's pivot** (the standard): the point the object moves and turns around.
   - **Object's middle**: the middle of the object's box, wherever its pivot is. Handy when the pivot sits at a corner.
   - **World centre**: the middle of the scene, where the red and green lines cross. Handy for a shape built to be symmetrical about the middle of the scene, whatever its pivot.
-- **Weld the middle** (on as standard): keeps the two halves joined. After each edit, points closer to the middle than the **Weld distance** (0.1 cm as standard) are put exactly on it, and points that meet there become one. So a half modelled with its seam slightly off the middle still closes up into one shape, and parts that grow into their own mirror merge instead of overlapping. While moving, points within that distance of the middle stay on it.
+- **Weld the middle now** joins the two halves of the selected shapes at the middle, once, when you click it: points closer to the middle than the **Weld distance** (0.1 cm as standard) are put exactly on it, and points that meet there become one. So a half modelled with its seam slightly off the middle closes up into one shape, and parts that grew into their own mirror merge instead of overlapping. It's an edit like any other: **Ctrl + Z** takes it back. Nothing is welded on its own, so a point that strays near the middle by accident never gets stuck there. (A live weld, which joins points only while they're close and parts them again when moved away, is planned with the mirror generator in Phase 7.)
 - **Don't cross the middle** (off as standard): points stop at the middle instead of passing through to the other side, where they would overlap their mirror. A move stops when the first selected point reaches the middle; after an edit, any point pushed past it is put back on it. Turning and scaling aren't held back.
 - **Move the mirror by X, Y, Z**: shifts the mirror from there. The amounts are in the object's own directions, or the world's for World centre.
 
@@ -54,7 +54,7 @@ The mirror always lies along the object's own axes, so a turned object mirrors a
 | **Symmetry** (palette button, Tools menu, or On in its menu) | On or off. Off as standard. Remembered. |
 | **Mirror across X / Y / Z** (Symmetry menu) | Which of the shape's own axes to mirror across. X as standard. Remembered. |
 | **Mirror through** (Symmetry menu) | Object's pivot (standard), Object's middle or World centre. Remembered. |
-| **Weld the middle**, **Weld distance** (Symmetry menu) | Join the halves at the middle: points this close go onto it, and points meeting there become one. On, 0.1 cm as standard. Remembered. |
+| **Weld the middle now**, **Weld distance** (Symmetry menu) | Join the selected shapes' halves at the middle once: points this close go onto it, and points meeting there become one. 0.1 cm as standard; the distance is remembered. |
 | **Don't cross the middle** (Symmetry menu) | Points stop at the middle instead of passing to the other side. Off as standard. Remembered. |
 | **Move the mirror by X / Y / Z** (Symmetry menu) | How far the mirror is moved from there. 0 as standard. Remembered. |
 
@@ -70,7 +70,8 @@ The mirror always lies along the object's own axes, so a turned object mirrors a
 - **Tip:** model the half you can see best, with Symmetry on from the start, so both sides always match.
 - **Tip:** to keep an edit on one side only (a scratch, a logo), switch Symmetry off for that edit.
 - **Problem:** only the selected part changed. **Why:** the other side doesn't have a point in the mirrored spot (within 0.01 cm), for example after an edit on one side only, or the mirror sits somewhere else (check **Mirror through** and the offsets). **Fix:** make the sides match again, or move the mirror to the shape's middle.
-- **Problem:** two points near the middle merged when I didn't want them to. **Why:** Weld the middle joins points that close to it. **Fix:** Ctrl + Z, then lower the Weld distance or untick Weld the middle.
+- **Problem:** Weld the middle now joined two points I wanted apart. **Why:** they were within the weld distance of the middle. **Fix:** Ctrl + Z, then lower the Weld distance and weld again.
+- **Problem:** Weld the middle now says there's nothing to join. **Why:** no point is within the weld distance of the middle. **Fix:** raise the Weld distance a little, or check Mirror through: the middle may not be where you think.
 - **Problem:** the middle points won't move sideways. **Why:** points on the mirror stay on it, on purpose. **Fix:** turn Symmetry off to move them off the middle.
 - **Problem:** an edit happened twice, overlapping, in the middle. **Why:** rarely, an edit crossing the middle is both made and mirrored. **Fix:** Ctrl + Z, then make it with Symmetry off, selecting both sides yourself.
 

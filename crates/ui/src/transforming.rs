@@ -244,9 +244,6 @@ pub(crate) struct PointsStart {
     /// points' anchors), instead of `points` all moving alike
     /// (decision 0054).
     pub(crate) mirror: Option<Vec<(mesh::symmetry::MirrorGroup, Option<Anchors>)>>,
-    /// With symmetry's weld on, points near the middle are put on it as
-    /// they move (decision 0059).
-    pub(crate) weld: bool,
     /// With symmetry's "don't cross the middle" on, how far the points
     /// may move along each axis of the shape (least, most).
     pub(crate) limits: Option<[(f32, f32); 3]>,
@@ -391,7 +388,6 @@ impl Target {
                         points,
                         anchors,
                         mirror: None,
-                        weld: false,
                         limits: None,
                         slide: None,
                     });
@@ -427,7 +423,6 @@ impl Target {
                     continue;
                 };
                 let plan = mesh::symmetry::mirror_plan(&item.mesh, &start.points, mirror);
-                start.weld = mirror.weld > 0.0;
                 start.limits = mirror
                     .clip
                     .then(|| mesh::symmetry::move_limits(&item.mesh, &start.points, &mirror));
@@ -558,18 +553,6 @@ impl Target {
                                     }
                                 }
                                 let operation = match change {
-                                    // Welding puts points near the middle
-                                    // on it: through the matrix, which
-                                    // flattens them onto the plane.
-                                    Change::Translate(_)
-                                        if s.weld && group.keep_on.contains(&true) =>
-                                    {
-                                        Operation::TransformPoints {
-                                            points: group.points.clone(),
-                                            matrix: group.matrix(Mat4::from_translation(d)),
-                                            anchors: anchors.clone(),
-                                        }
-                                    }
                                     Change::Translate(_) => Operation::MovePoints {
                                         points: group.points.clone(),
                                         offset: group.offset(d),

@@ -32,9 +32,20 @@ fn rich_document() -> Document {
             mirror: mesh::symmetry::Mirror {
                 axes: [true, false, false],
                 centre: glam::Vec3::new(1.5, 0.0, 0.0),
-                weld: 0.1,
                 clip: true,
             },
+        },
+    })
+    .unwrap();
+    doc.execute(Command::Record {
+        id: cube,
+        operation: Operation::WeldMiddle {
+            mirror: mesh::symmetry::Mirror {
+                axes: [false, true, false],
+                centre: glam::Vec3::new(0.0, 2.0, 0.0),
+                clip: false,
+            },
+            distance: 0.25,
         },
     })
     .unwrap();
@@ -2164,12 +2175,15 @@ fn random_model(noise: &mut Noise) -> v14::ProjectV14 {
                                 }) => {
                                     slides.push((noise.count(), noise.count(), noise.float()));
                                 }
-                                v14::OperationV14::Mirrored {
-                                    axes, centre, weld, ..
-                                } => {
+                                v14::OperationV14::Mirrored { axes, centre, .. } => {
                                     axes[0] = noise.below(2) == 0;
                                     centre[0] = noise.float();
-                                    *weld = noise.float();
+                                }
+                                v14::OperationV14::WeldMiddle {
+                                    centre, distance, ..
+                                } => {
+                                    centre[1] = noise.float();
+                                    *distance = noise.float();
                                 }
                                 _ => {}
                             },

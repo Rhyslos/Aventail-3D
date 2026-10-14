@@ -60,7 +60,8 @@ pub fn mirrors(op: &Operation) -> bool {
         | Operation::SlidePoints { .. }
         | Operation::FixFacing
         | Operation::HardEdgesByAngle { .. }
-        | Operation::Mirrored { .. } => false,
+        | Operation::Mirrored { .. }
+        | Operation::WeldMiddle { .. } => false,
     }
 }
 

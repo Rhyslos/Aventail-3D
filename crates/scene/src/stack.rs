@@ -268,6 +268,16 @@ pub enum Operation {
         /// The mirror planes.
         mirror: mesh::symmetry::Mirror,
     },
+    /// Joins the two halves of a symmetrical shape at the middle, once,
+    /// when asked (the Symmetry menu's Weld the middle now, decision 0059):
+    /// points within `distance` of a mirror plane are put on it, and
+    /// points meeting there become one.
+    WeldMiddle {
+        /// The mirror planes.
+        mirror: mesh::symmetry::Mirror,
+        /// How near counts, in the object's own space (centimetres).
+        distance: f32,
+    },
 }
 
 /// An edit's id: unique among the edits of its object while they exist,
@@ -413,6 +423,7 @@ impl Operation {
             Self::Slit { line } if line.through => "Slit through".to_string(),
             Self::Slit { .. } => "Slit".to_string(),
             Self::Mirrored { op, .. } => format!("{}, mirrored", op.describe()),
+            Self::WeldMiddle { .. } => "Weld the middle".to_string(),
         }
     }
 
@@ -500,7 +511,10 @@ impl Operation {
             | Self::SetHardEdges { .. }
             | Self::SlidePoints { .. }
             | Self::FixFacing => None,
-            Self::MovePoints { .. } | Self::TransformPoints { .. } | Self::Mirrored { .. } => None,
+            Self::MovePoints { .. }
+            | Self::TransformPoints { .. }
+            | Self::Mirrored { .. }
+            | Self::WeldMiddle { .. } => None,
         }
     }
 
@@ -624,7 +638,10 @@ impl Operation {
             | Self::SetHardEdges { .. }
             | Self::SlidePoints { .. }
             | Self::FixFacing => {}
-            Self::MovePoints { .. } | Self::TransformPoints { .. } | Self::Mirrored { .. } => {}
+            Self::MovePoints { .. }
+            | Self::TransformPoints { .. }
+            | Self::Mirrored { .. }
+            | Self::WeldMiddle { .. } => {}
         }
         changed
     }
@@ -679,6 +696,9 @@ impl Operation {
                     }
             }
             Self::Mirrored { op, mirror } => op.numbers_are_real() && mirror.centre.is_finite(),
+            Self::WeldMiddle { mirror, distance } => {
+                mirror.centre.is_finite() && distance.is_finite()
+            }
         };
         own && anchors_ok
     }
@@ -707,6 +727,7 @@ impl Operation {
             Self::FixFacing | Self::HardEdgesByAngle { .. } => None,
             Self::Slit { .. } => None,
             Self::Mirrored { op, .. } => op.anchors(),
+            Self::WeldMiddle { .. } => None,
         }
     }
 
@@ -735,6 +756,7 @@ impl Operation {
             Self::FixFacing | Self::HardEdgesByAngle { .. } => None,
             Self::Slit { .. } => None,
             Self::Mirrored { op, .. } => op.anchors_mut(),
+            Self::WeldMiddle { .. } => None,
         }
     }
 
@@ -802,7 +824,6 @@ impl Operation {
             if let Some(before) = before {
                 mesh::symmetry::keep_sides(&before, mesh, mirror);
             }
-            mesh::symmetry::weld_middle(mesh, mirror);
             return applied;
         }
         let same = self.anchors().is_some_and(|a| a.same_structure(mesh));
@@ -1086,6 +1107,14 @@ impl Operation {
             },
             // Handled above.
             Self::Mirrored { .. } => return skipped,
+            Self::WeldMiddle { mirror, distance } => {
+                let n = mesh::symmetry::weld_middle(mesh, mirror, *distance);
+                Outcome {
+                    matched: n,
+                    missing: 0,
+                    skipped: usize::from(n == 0),
+                }
+            }
             Self::Slit { line } => {
                 // One more polygon for each piece cut off.
                 if too_big(mesh::slit::slit_size(mesh, line)) {

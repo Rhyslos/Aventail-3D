@@ -176,10 +176,8 @@ pub struct Symmetry {
     /// centimetres: in the shape's own space, or the world's for
     /// [`SymmetryCentre::World`].
     pub offset: [f32; 3],
-    /// Weld the middle: points near it go onto it, and points meeting
-    /// there become one (on as standard).
-    pub weld: bool,
-    /// How near counts, in centimetres (0.1 as standard).
+    /// How near the middle counts for Weld the middle now, in centimetres
+    /// (0.1 as standard).
     pub weld_distance: f32,
     /// Points can't cross the middle (off as standard).
     pub clip: bool,
@@ -195,7 +193,6 @@ impl Default for Symmetry {
             axes: [true, false, false],
             centre: SymmetryCentre::default(),
             offset: [0.0; 3],
-            weld: true,
             weld_distance: WELD_DISTANCE,
             clip: false,
         }
