@@ -301,7 +301,7 @@ impl CommandId {
                 Icon::Knife,
                 plain(Key::X),
                 "Cut new edges along a line: click or drag its points over the shape; \
-                 Esc or Enter finishes",
+                 Esc or Enter finishes, or click the first point to close a loop",
                 None,
             ),
             Self::LoopCut => (

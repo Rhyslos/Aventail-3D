@@ -268,3 +268,78 @@ fn shift_keeps_the_stretch_at_steps_of_15_degrees() {
     let angle = (b - a).y.atan2((b - a).x).to_degrees();
     assert!((angle - 15.0).abs() < 0.5, "{angle}");
 }
+
+/// The last recorded slit's line.
+fn last_line(harness: &H) -> scene::SlitLine {
+    match super::modelling_tests::last_operation(harness) {
+        Some(Operation::Slit { line }) => line,
+        other => panic!("not a slit: {other:?}"),
+    }
+}
+
+#[test]
+fn clicking_the_first_point_closes_the_line_into_a_loop() {
+    let mut harness = ready();
+    // Four points well inside the cube's front polygon.
+    let corners = [
+        glam::Vec3::new(-25.0, -50.0, 25.0),
+        glam::Vec3::new(25.0, -50.0, 25.0),
+        glam::Vec3::new(25.0, -50.0, 75.0),
+        glam::Vec3::new(-25.0, -50.0, 75.0),
+    ];
+    for c in corners {
+        let at = on_screen(&harness, c);
+        click(&mut harness, at, Modifiers::NONE);
+    }
+    assert!(!last_line(&harness).is_closed());
+    let faces = shape(&harness).face_count();
+    assert_eq!(faces, 6, "an open line inside one polygon cuts nothing");
+    let steps = harness.state().workbench.document().undo_steps();
+    // Back to the first point: hovering it shows the closing stretch.
+    let first = point_on_screen(&harness, 0);
+    harness.event(Event::PointerMoved(first));
+    harness.run();
+    let path = harness.state().workbench.viewport().tool_path().unwrap();
+    assert_eq!(path.cursor, Some(path.points[0]));
+    click(&mut harness, first, Modifiers::NONE);
+    // Closed and finished: the square is cut into the front, in the same
+    // undo step as the line.
+    assert!(last_line(&harness).is_closed());
+    assert_eq!(shape(&harness).face_count(), 6 + 2);
+    // Finished: the next click starts a new line.
+    assert!(
+        harness
+            .state()
+            .workbench
+            .viewport()
+            .tool_path()
+            .is_none_or(|p| p.points.is_empty())
+    );
+    assert!(note(&harness).starts_with("Slit closed"));
+    assert_eq!(harness.state().workbench.document().undo_steps(), steps);
+    let report = mesh::MeshReport::new(&shape(&harness));
+    assert!(!report.has_problems(), "{report:?}");
+    // Ctrl + Z takes the whole slit back.
+    harness.key_press_modifiers(Modifiers::COMMAND, Key::Z);
+    harness.run();
+    assert_eq!(shape(&harness).face_count(), 6);
+}
+
+#[test]
+fn clicking_a_point_leaves_it_where_it_is_and_two_points_never_close() {
+    let mut harness = ready();
+    let (a, b) = ends(&harness);
+    click(&mut harness, a, Modifiers::NONE);
+    click(&mut harness, b, Modifiers::NONE);
+    let before = last_line(&harness);
+    // A click a little off the first point: a click, not a drag, so the
+    // point stays and (with only two points) nothing closes.
+    let first = point_on_screen(&harness, 0);
+    click(&mut harness, first + egui::vec2(2.0, 1.0), Modifiers::NONE);
+    let after = last_line(&harness);
+    assert_eq!(after, before);
+    assert!(harness.state().workbench.viewport().tool_path().is_some());
+    // Dragging it still moves it.
+    drag(&mut harness, first, first + egui::vec2(0.0, -30.0));
+    assert_ne!(last_line(&harness).points[0], before.points[0]);
+}
