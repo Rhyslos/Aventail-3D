@@ -106,7 +106,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Foundations: saves that always reopen, fast edits however long the history, extra values per point, edge, polygon and corner (ready for UVs), edits that hold when earlier ones change, limits for damaged files; and our own names (Attributes panel, Objects panel, Paint select)
 - [x] Loop cut (F): point at an edge, click or drag; Ctrl + wheel for a tool's count; Z frames the selection
 - [x] Slit (X): cut new edges along a line of points over the shape, visible only or through; close it into a loop to cut a shape into a polygon
-- [x] Extrude with a bend: pipe bends that keep their size, with an angle, direction, bend radius and segments
+- [x] Extrude with a bend: pipe bends that keep their size, with an angle, direction, bend radius and segments; past one turn, spirals whose loops clear each other
 - [x] Connect (A), Bridge (C, or drag edge to edge) and Weld (M, or Ctrl + M onto a point)
 - [x] Clean-up: Delete deletes, Backspace dissolves; fill hole and flip normals, with select flipped, fix facing and select similar facing
 - [x] Hard and soft edges, by hand or by angle, with hard edges and normals shown from the Display menu
@@ -218,6 +218,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-14 | Spirals: a bend past 360° (up to ten turns) climbs clear of itself, with Rise per turn for more room; project files at format version 15 |
 | 2026-10-14 | The Keys window draws a keyboard: used keys lit by situation, point or click a key for its jobs; seven layouts, guessed from the system language |
 | 2026-10-14 | Symmetry for every edit (extrude, cut, weld, delete and the rest made on both sides) and a Symmetry menu (axes, where the mirror sits, offsets); project files at format version 14 |
 | 2026-10-14 | Closed slits: click the first point to close the line; drawn inside a polygon, it cuts its shape in |

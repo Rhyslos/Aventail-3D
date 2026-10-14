@@ -65,6 +65,20 @@ An extrude can turn a corner before it goes on, like a pipe's elbow. Unlike simp
 
 ![The same with Bend radius 0: a sharp mitre joint, still the full width.](../screenshots/2026-10-14-pipe-mitre.png)
 
+#### Spirals: going round more than once
+
+With a **Bend radius**, the **Angle** can go past 360°, up to 3600° (ten full turns). Past one turn the pipe would run into itself, so each loop **climbs sideways just far enough to clear the loop before**, like a coiled spring or a [spiral](concepts.md#mesh-basics). You don't have to work anything out: 720° gives two loops side by side, 1080° three.
+
+- **Rise per turn** adds extra room between the loops: how much further each full turn climbs. At **0** the loops are just apart (a small gap, so they never touch); more makes an open, stretched spring. Under one turn it tilts the bend into a ramp instead, like a spiral staircase's handrail. It needs a Bend radius; without one it's greyed out.
+- **Segments** counts the rows in **each full turn** once a bend goes past one turn, so a spiral stays as smooth as one loop of it. A whole spiral has at most 256 rows, so changing it stays quick: very long spirals get a little fewer per turn.
+- **Under one turn nothing changes**: an elbow stays exactly as it was.
+- The spiral climbs along the line the turn goes round: sideways, across the way it turns. For an upright pipe turning up towards +X (Direction 0°), the loops stand upright and climb along Y. **Direction** turns the whole spiral round the pipe.
+- With **Symmetry** on, the copy on the other side is the spiral's true mirror image: it winds the other way round, as a mirrored spring would.
+
+Big angles are easiest to type: click the Angle number and type 1080, rather than dragging.
+
+![A cylinder's top extruded with Angle 1080°, Bend radius 0.6 m, 24 segments and Rise per turn 0.05 m: three loops of a spring, each just clear of the last.](../screenshots/2026-10-14-spiral.png)
+
 You can also set the bend before dragging (at the top of the Attributes panel, while Extrude is in use), and the next drag bends. Once that extrude is done, or you pick another tool, **Angle goes back to 0**, so the extrude after it starts straight and nothing turns by surprise. The finished extrude keeps its bend, and you can still change it under Last edit. Direction, Bend radius and Segments stay as you set them. To build a pipe, extrude its end again and again, straight or bent.
 
 Each bend setting is a number field, like the ones further down the panel: drag the number, click and type one, or click the small arrows beside it (with **Shift**, ten steps at a time). The bend rows sit under a small **Bend** heading, below the extrude's **Distance**.
@@ -75,7 +89,7 @@ Right after an extrude or inset, the **Attributes panel** shows it at the top, u
 
 - **Distance**: type an exact value, drag the number, or use the arrows. The shape follows as you change it.
 - **Keep together**: switch it to change how neighbouring polygons were treated (see Settings below).
-- **Angle**, **Direction**, **Bend radius** and **Segments**: bend it (see above).
+- **Angle**, **Direction**, **Bend radius**, **Segments** and **Rise per turn**: bend it, or coil it into a spiral (see above).
 
 This works until you make another edit on top. After that, the extrude is fixed in place, like any other edit.
 
@@ -92,10 +106,11 @@ This works until you make another edit on top. After that, the extrude is fixed 
 |---|---|
 | **Keep together** (Attributes panel) | **On** (the standard): polygons that touch move as **one piece**, like a slab pulled out of a wall; the edges between them stay and no walls form between them. **Off**: **each polygon on its own**, so every one becomes a separate bump (extrude) or gets its own ring (inset). The switch shows at the top of the Attributes panel while Extrude or Inset is the tool in use, and on the last edit; changing it on the last edit also sets it for the next one. For edges, on means edges that meet at a point grow as one strip. |
 | **Distance** (Attributes panel, Last edit) | How far the polygons were pushed or shrunk, in the object's own size. Negative extrudes push inward. With a bend, how far it goes on straight after the turn. |
-| **Angle** | How far an extrude turns before going on: 0° is straight, up to 180° (150° with no Bend radius). |
+| **Angle** | How far an extrude turns before going on: 0° is straight. With a Bend radius up to 3600° (past 360° it spirals); with none, up to 150°. |
 | **Direction** | Which way round the pipe it turns: 0° turns up (an upright pipe turns towards +X). |
 | **Bend radius** | From the middle of the turn to the middle of the pipe. 0 is a sharp mitre corner; more is a smooth elbow. Below the pipe's own radius, the inside of the turn folds over. |
-| **Segments** | How many rows a smooth turn has. **Ctrl + wheel** changes it while Extrude is in use. |
+| **Segments** | How many rows a smooth turn has; for a spiral, how many each full turn has. **Ctrl + wheel** changes it while Extrude is in use. |
+| **Rise per turn** | Extra room between a spiral's loops: how much further each full turn climbs. 0 leaves the loops just apart. Under one turn, it tilts the bend into a ramp. Needs a Bend radius. |
 
 ## Shortcuts
 
@@ -113,6 +128,8 @@ This works until you make another edit on top. After that, the extrude is fixed 
 
 - **Tip: inset, then extrude inward** makes a recessed panel. **Inset, then extrude outward** makes a raised plate with a border round it.
 - **Tip:** for a pipe that keeps turning, give each new extrude its Angle under Last edit right after dragging it. Angle goes back to 0 after every extrude, so a straight piece never turns by surprise; Bend radius and Segments carry on, so each elbow matches the last.
+- **Tip:** for a spring, start from a small cylinder's top: Angle in whole turns (720°, 1080°…), a Bend radius a few times the cylinder's radius, and Rise per turn for how open the coils are.
+- **Problem:** my spiral's loops cut into each other. **Why:** the Bend radius is smaller than the pipe's own radius, so the inside of each turn folds over (the same as with a single elbow). **Fix:** make the Bend radius bigger than the pipe's radius.
 - **Tip:** to push several separate panels in at once, select them all with **Keep together** off; with it on, touching polygons go in as one big panel.
 - **Tip:** the cube's hard edges carry over: an extruded block on a cube has crisp edges, and one on a sphere stays smooth. To change them, see [Hard and soft edges](hard-and-soft-edges.md).
 - **Problem:** I switched from Extrude to Inset and the extrude's rows are gone from the Attributes panel. **Why:** while a tool is in use, the panel shows that tool's own settings, and the last edit only when the same tool made it. **Fix:** press **D** again (or **Tab** to put the tool away) and the extrude shows under Last edit again.

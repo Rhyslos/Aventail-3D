@@ -488,8 +488,18 @@ fn edge_regions<T>(border: &BTreeMap<EdgeKey, T>, grouping: Grouping) -> Vec<Vec
 
 // ------------------------------------------------------------ bending ---
 
-/// The most rows a bend can have.
+/// The most rows a bend can have in one turn (or in the whole bend, for
+/// a bend of one turn or less).
 pub const MAX_BEND_SEGMENTS: u32 = 64;
+/// The furthest a bend with a radius can turn, in degrees: ten turns, a
+/// long spiral ([decision 0062](../../../docs/decisions/0062-spirals.md)).
+pub const MAX_BEND_ANGLE: f32 = 3600.0;
+/// The most rows a whole spiral can have, so changing a long spiral stays
+/// quick: enough for 64 rows a turn over four turns, or 25 over ten.
+pub const MAX_BEND_ROWS: usize = 256;
+/// How much room a spiral leaves between its loops, as a share of the
+/// pipe's width, so the loops don't touch.
+pub const SPIRAL_GAP: f32 = 0.05;
 /// The sharpest a joint without a bend radius can turn, in degrees: a
 /// mitre joint stretches its ring by 1 / cos(half the angle), which grows
 /// without limit towards 180°.
@@ -497,9 +507,15 @@ pub const MAX_MITRE_ANGLE: f32 = 150.0;
 
 /// A bend at the start of an extrude, so a pipe turns a corner and keeps
 /// its full width ([decision 0050](../../../docs/decisions/0050-pipe-bends.md)).
+///
+/// With a radius it can turn past a full circle into a spiral
+/// ([decision 0062](../../../docs/decisions/0062-spirals.md)): each loop
+/// climbs along the turn's axis just far enough to clear the one before,
+/// plus `rise`.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Bend {
-    /// How far it turns, in degrees: 0 (straight) to 180.
+    /// How far it turns, in degrees: 0 (straight) to 180 for a sharp
+    /// corner, up to [`MAX_BEND_ANGLE`] with a radius.
     pub angle: f32,
     /// Which way round it turns, in degrees: 0 turns up (an upright pipe
     /// turns towards +X), and it goes round the pipe from there.
@@ -507,8 +523,17 @@ pub struct Bend {
     /// How far the middle of the turn is from the middle of the pipe, in
     /// the mesh's own units: 0 is a sharp corner (a mitre joint).
     pub radius: f32,
-    /// How many rows a rounded turn has (1 to [`MAX_BEND_SEGMENTS`]).
+    /// How many rows a rounded turn has (1 to [`MAX_BEND_SEGMENTS`]); for a
+    /// spiral, how many each full turn has.
     pub segments: u32,
+    /// How much further each full turn climbs along the turn's axis, in
+    /// the mesh's own units (0 or more): past one turn on top of what
+    /// clears the loop before, under one turn on its own. Needs a radius.
+    pub rise: f32,
+    /// Whether it climbs the other way along its axis: set on a mirrored
+    /// copy, so the copy is the spiral's mirror image (a mirror turns a
+    /// right-handed spiral into a left-handed one).
+    pub mirrored: bool,
 }
 
 impl Default for Bend {
@@ -518,6 +543,8 @@ impl Default for Bend {
             direction: 0.0,
             radius: 0.0,
             segments: 8,
+            rise: 0.0,
+            mirrored: false,
         }
     }
 }
@@ -529,13 +556,56 @@ impl Bend {
     pub fn clamped(self) -> Self {
         let real = |x: f32, or: f32| if x.is_finite() { x } else { or };
         let radius = real(self.radius, 0.0).max(0.0);
-        let most = if radius > 0.0 { 180.0 } else { MAX_MITRE_ANGLE };
+        let most = if radius > 0.0 {
+            MAX_BEND_ANGLE
+        } else {
+            MAX_MITRE_ANGLE
+        };
         Self {
             angle: real(self.angle, 0.0).clamp(0.0, most),
             direction: real(self.direction, 0.0).rem_euclid(360.0),
             radius,
             segments: self.segments.clamp(1, MAX_BEND_SEGMENTS),
+            rise: real(self.rise, 0.0).max(0.0),
+            mirrored: self.mirrored,
         }
+    }
+
+    /// Whether it turns past a full circle, into a spiral whose loops
+    /// climb clear of each other.
+    pub fn spirals(&self) -> bool {
+        let bend = self.clamped();
+        bend.radius > 0.0 && bend.angle > 360.0 + 1e-3
+    }
+
+    /// How many rows its turn has: the segments, or for a spiral the
+    /// segments in each turn (at most [`MAX_BEND_ROWS`]).
+    pub fn rows(&self) -> usize {
+        let bend = self.clamped();
+        if !bend.bends() || bend.radius <= 0.0 {
+            0
+        } else if bend.spirals() {
+            let rows = (bend.segments as f32 * bend.angle / 360.0).ceil() as usize;
+            rows.min(MAX_BEND_ROWS)
+        } else {
+            bend.segments as usize
+        }
+    }
+
+    /// How far it climbs along its axis in each full turn, for a pipe
+    /// `width` wide along that axis: past one turn, the width and a small
+    /// gap so the loops clear each other; plus the rise.
+    pub fn climb_per_turn(&self, width: f32) -> f32 {
+        let bend = self.clamped();
+        if bend.radius <= 0.0 {
+            return 0.0;
+        }
+        let clear = if bend.spirals() {
+            width.max(0.0) * (1.0 + SPIRAL_GAP)
+        } else {
+            0.0
+        };
+        clear + bend.rise
     }
 
     /// Whether it turns at all.
@@ -546,14 +616,7 @@ impl Bend {
     /// How many rings of new points an extrude with this bend makes: one
     /// per row of the turn, and one more for a straight part after it.
     pub fn rings(&self, distance: f32) -> usize {
-        let bend = self.clamped();
-        let turn = if !bend.bends() {
-            0
-        } else if bend.radius > 0.0 {
-            bend.segments as usize
-        } else {
-            0
-        };
+        let turn = self.rows();
         let straight = usize::from(distance > 1e-4 || turn == 0);
         turn + straight
     }
@@ -703,12 +766,24 @@ pub fn extrude_bent(
         follow.push(step);
     }
     let angle = bend.angle.to_radians();
+    let rows = bend.rows();
     for (piece, turn) in &pieces {
         let points: BTreeSet<VertexId> = piece
             .iter()
             .flat_map(|f| original.face(*f).unwrap_or_default().iter().copied())
             .collect();
         let ahead = glam::Quat::from_axis_angle(turn.axis, angle) * turn.facing;
+        // A spiral climbs along the turn's axis as it goes round, by its
+        // climb for each full turn.
+        let across: Vec<f32> = points
+            .iter()
+            .filter_map(|v| original.position(*v))
+            .map(|p| (p - turn.middle).dot(turn.axis))
+            .collect();
+        let width = across.iter().copied().fold(f32::NEG_INFINITY, f32::max)
+            - across.iter().copied().fold(f32::INFINITY, f32::min);
+        let up = if bend.mirrored { -turn.axis } else { turn.axis };
+        let climb = |turned: f32| up * bend.climb_per_turn(width) * turned / std::f32::consts::TAU;
         for v in points {
             let Some(at) = original.position(v) else {
                 continue;
@@ -724,9 +799,9 @@ pub fn extrude_bent(
             let mut places = Vec::with_capacity(rings);
             if bend.radius > 0.0 {
                 let pivot = turn.middle + turn.towards * bend.radius;
-                for k in 1..=bend.segments {
-                    let share = k as f32 / bend.segments as f32;
-                    places.push(turn.turned(pivot, angle * share, at));
+                for k in 1..=rows {
+                    let share = k as f32 / rows as f32;
+                    places.push(turn.turned(pivot, angle * share, at) + climb(angle * share));
                 }
             } else if on_border {
                 // The old border becomes the mitre joint.

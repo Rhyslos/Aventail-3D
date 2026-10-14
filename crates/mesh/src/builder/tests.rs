@@ -310,6 +310,7 @@ fn every_tool_keeps_values_on_every_primitive() {
                 direction: 30.0,
                 radius,
                 segments: 3,
+                ..Bend::default()
             };
             extrude_bent(&mut m, &faces, 10.0, Grouping::Together, bend);
             nothing_left_at_the_default(&m);

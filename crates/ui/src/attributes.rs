@@ -955,8 +955,8 @@ fn segments_row(ui: &mut Ui, segments: &mut u32) -> stepper::Touched {
     stepper::count(ui, segments, (1, mesh::bevel::MAX_SEGMENTS), "Segments")
 }
 
-/// Extrude's bend: Angle, Direction, Bend radius and Segments, a row each
-/// (decision 0050).
+/// Extrude's bend: Angle, Direction, Bend radius, Segments and Rise per
+/// turn, a row each (decisions 0050 and 0062).
 fn bend_rows(ui: &mut Ui, bend: &mut scene::Bend, units: Units) -> stepper::Touched {
     // A small heading, so the bend reads as its own group under the
     // extrude's Distance.
@@ -974,7 +974,7 @@ fn bend_rows(ui: &mut Ui, bend: &mut scene::Bend, units: Units) -> stepper::Touc
         touched
     };
     let most = if bend.radius > 0.0 {
-        180.0
+        mesh::extrude::MAX_BEND_ANGLE
     } else {
         mesh::extrude::MAX_MITRE_ANGLE
     };
@@ -984,7 +984,9 @@ fn bend_rows(ui: &mut Ui, bend: &mut scene::Bend, units: Units) -> stepper::Touc
         most,
         "Angle",
         "How far the extrude turns before going on straight: 0° is straight, 90° a corner. \
-         The pipe keeps its full width through the turn.",
+         The pipe keeps its full width through the turn. With a bend radius it can go past \
+         360° into a spiral (up to 3600°, ten turns): each loop climbs just clear of the one \
+         before.",
     ));
     add(degrees(
         ui,
@@ -1011,7 +1013,8 @@ fn bend_rows(ui: &mut Ui, bend: &mut scene::Bend, units: Units) -> stepper::Touc
     label(
         ui,
         "Segments",
-        "How many rows a smooth turn has (with a bend radius). Ctrl + wheel changes it.",
+        "How many rows a smooth turn has (with a bend radius); for a spiral, how many each \
+         full turn has. Ctrl + wheel changes it.",
     );
     add(stepper::count(
         ui,
@@ -1019,6 +1022,27 @@ fn bend_rows(ui: &mut Ui, bend: &mut scene::Bend, units: Units) -> stepper::Touc
         (1, mesh::extrude::MAX_BEND_SEGMENTS),
         "Bend segments",
     ));
+    ui.end_row();
+    // The rise only does something with a bend radius, so it's greyed out
+    // without one.
+    label(
+        ui,
+        "Rise per turn",
+        "Extra room between a spiral's loops: how much further each full turn climbs \
+         along the spiral's middle. Past one turn the loops already clear each other, so 0 \
+         leaves them just apart; under one turn it tilts the bend into a ramp. Needs a bend \
+         radius.",
+    );
+    let rounded = bend.radius > 0.0;
+    ui.add_enabled_ui(rounded, |ui| {
+        add(stepper::length(
+            ui,
+            &mut bend.rise,
+            (0.0, MAX_SIZE),
+            units,
+            "Rise per turn",
+        ));
+    });
     ui.end_row();
     *bend = bend.clamped();
     out

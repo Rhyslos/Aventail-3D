@@ -575,6 +575,7 @@ fn bend(angle: f32, radius: f32, segments: u32) -> Bend {
         direction: 0.0,
         radius,
         segments,
+        ..Bend::default()
     }
 }
 
@@ -700,25 +701,60 @@ fn bends_keep_their_numbers_in_range() {
         direction: -90.0,
         radius: -3.0,
         segments: 0,
+        rise: -4.0,
+        mirrored: false,
     }
     .clamped();
     assert_eq!(
-        (b.angle, b.direction, b.radius, b.segments),
-        (MAX_MITRE_ANGLE, 270.0, 0.0, 1)
+        (b.angle, b.direction, b.radius, b.segments, b.rise),
+        (MAX_MITRE_ANGLE, 270.0, 0.0, 1, 0.0)
     );
     let b = Bend {
         angle: f32::NAN,
         direction: f32::INFINITY,
         radius: f32::NAN,
         segments: 9999,
+        rise: f32::NAN,
+        mirrored: true,
     }
     .clamped();
     assert_eq!(
-        (b.angle, b.direction, b.radius, b.segments),
-        (0.0, 0.0, 0.0, MAX_BEND_SEGMENTS)
+        (
+            b.angle,
+            b.direction,
+            b.radius,
+            b.segments,
+            b.rise,
+            b.mirrored
+        ),
+        (0.0, 0.0, 0.0, MAX_BEND_SEGMENTS, 0.0, true)
     );
     assert!(!b.bends());
-    assert_eq!(bend(200.0, 10.0, 3).clamped().angle, 180.0);
+    // With a radius it can turn up to ten times.
+    assert_eq!(bend(200.0, 10.0, 3).clamped().angle, 200.0);
+    assert_eq!(bend(5000.0, 10.0, 3).clamped().angle, MAX_BEND_ANGLE);
+    // A spiral's segments count each turn's rows.
+    assert_eq!(bend(360.0, 10.0, 8).rows(), 8);
+    assert_eq!(bend(720.0, 10.0, 8).rows(), 16);
+    assert_eq!(bend(450.0, 10.0, 8).rows(), 10);
+    assert_eq!(
+        bend(MAX_BEND_ANGLE, 10.0, MAX_BEND_SEGMENTS).rows(),
+        MAX_BEND_ROWS
+    );
+    assert_eq!(bend(720.0, 10.0, 8).rings(5.0), 17);
+    assert_eq!(bend(90.0, 0.0, 8).rows(), 0);
+    // Only past one turn do the loops clear each other.
+    assert!(!bend(360.0, 10.0, 8).spirals());
+    assert!(bend(361.0, 10.0, 8).spirals());
+    assert_eq!(bend(300.0, 10.0, 8).climb_per_turn(100.0), 0.0);
+    let clear = bend(720.0, 10.0, 8).climb_per_turn(100.0);
+    assert!((clear - 100.0 * (1.0 + SPIRAL_GAP)).abs() < 1e-4);
+    let mut b = bend(720.0, 10.0, 8);
+    b.rise = 30.0;
+    assert!((b.climb_per_turn(100.0) - clear - 30.0).abs() < 1e-4);
+    // A sharp corner never climbs.
+    b.radius = 0.0;
+    assert_eq!(b.climb_per_turn(100.0), 0.0);
     assert_eq!(bend(90.0, 10.0, 3).rings(0.0), 3);
     assert_eq!(bend(90.0, 10.0, 3).rings(5.0), 4);
     assert_eq!(bend(90.0, 0.0, 3).rings(0.0), 1);
@@ -735,6 +771,7 @@ fn every_shape_bends_cleanly() {
                 bend(90.0, 60.0, 4),
                 bend(45.0, 0.0, 1),
                 bend(180.0, 200.0, 6),
+                bend(800.0, 120.0, 6),
             ] {
                 let mut mesh = before.clone();
                 extrude_bent(&mut mesh, &some, 20.0, grouping, b);
@@ -767,5 +804,141 @@ fn a_bend_direction_and_its_way_round_turn_into_each_other() {
                 "{facing} {direction} → {back}"
             );
         }
+    }
+}
+
+// ------------------------------------------------------------ spirals ---
+
+/// The middle of a ring of points.
+fn middle_of(ring: &[Vec3]) -> Vec3 {
+    ring.iter().copied().sum::<Vec3>() / ring.len() as f32
+}
+
+#[test]
+fn past_one_turn_each_loop_climbs_clear_of_the_last() {
+    let (before, top) = pipe();
+    let mut mesh = before.clone();
+    // Two full turns, 8 rows each, then 50 straight on.
+    let out = extrude_bent(
+        &mut mesh,
+        &[top],
+        50.0,
+        Grouping::Together,
+        bend(720.0, 100.0, 8),
+    );
+    assert_eq!(out.matched, 1);
+    assert_eq!(mesh.vertex_count(), before.vertex_count() + 17 * 16);
+    let r = report(&mesh);
+    assert!(r.is_closed() && !r.has_problems(), "{r:?}");
+    every_point_is_a_number(&mesh);
+    let rings = rings(&mesh, before.vertex_count(), 16);
+    // The pipe is 100 wide along the turn's axis (+Y for an upright pipe
+    // turning towards +X), so each turn climbs 100 and a small gap.
+    let climb = 100.0 * (1.0 + SPIRAL_GAP);
+    for k in 0..8 {
+        for (a, b) in rings[k].iter().zip(&rings[k + 8]) {
+            assert!((*b - *a - Vec3::Y * climb).length() < 1e-2, "{a} {b}");
+        }
+        // Each ring keeps the pipe's full size.
+        let (lo, hi) = spread(&rings[k + 8]);
+        assert!(lo > 49.9 && hi < 50.1, "{lo} {hi}");
+    }
+    // Ring k climbs smoothly: k / 8 of a turn's climb.
+    for (k, ring) in rings.iter().take(16).enumerate() {
+        let y = middle_of(ring).y;
+        let wanted = climb * (k + 1) as f32 / 8.0;
+        assert!((y - wanted).abs() < 1e-2, "ring {k}: {y} vs {wanted}");
+    }
+    // The end faces up again after two turns, beside where it started,
+    // and goes on straight up from there.
+    assert!(mesh.face_normal(top).dot(Vec3::Z) > 0.999);
+    let end = centre(&mesh, top);
+    assert!(
+        end.distance(Vec3::new(0.0, 2.0 * climb, 150.0)) < 1e-2,
+        "{end}"
+    );
+}
+
+#[test]
+fn up_to_one_turn_nothing_climbs() {
+    for angle in [90.0, 270.0, 360.0] {
+        let (before, top) = pipe();
+        let mut mesh = before.clone();
+        extrude_bent(
+            &mut mesh,
+            &[top],
+            0.0,
+            Grouping::Together,
+            bend(angle, 100.0, 8),
+        );
+        for (_, p) in mesh.vertices() {
+            assert!(p.y.abs() < 50.0 + 1e-3, "{angle}: {p}");
+        }
+    }
+}
+
+#[test]
+fn rise_adds_its_climb_even_under_one_turn() {
+    let (before, top) = pipe();
+    let mut mesh = before.clone();
+    let mut b = bend(180.0, 100.0, 8);
+    b.rise = 40.0;
+    extrude_bent(&mut mesh, &[top], 0.0, Grouping::Together, b);
+    // Half a turn climbs half the rise.
+    let end = centre(&mesh, top);
+    assert!((end.y - 20.0).abs() < 1e-2, "{end}");
+    // Past one turn, it adds to the climb that clears the loops.
+    let mut mesh = before.clone();
+    b.angle = 720.0;
+    extrude_bent(&mut mesh, &[top], 0.0, Grouping::Together, b);
+    let end = centre(&mesh, top);
+    let wanted = 2.0 * (100.0 * (1.0 + SPIRAL_GAP) + 40.0);
+    assert!((end.y - wanted).abs() < 1e-2, "{end}");
+}
+
+#[test]
+fn a_mirrored_spiral_climbs_the_other_way() {
+    let (before, top) = pipe();
+    let mut mesh = before.clone();
+    let mut b = bend(540.0, 100.0, 8);
+    b.mirrored = true;
+    extrude_bent(&mut mesh, &[top], 0.0, Grouping::Together, b);
+    let end = centre(&mesh, top);
+    assert!(end.y < -100.0, "{end}");
+    let r = report(&mesh);
+    assert!(r.is_closed() && !r.has_problems(), "{r:?}");
+}
+
+#[test]
+fn a_spiral_of_many_turns_stays_within_its_rows() {
+    let (before, top) = pipe();
+    let mut mesh = before.clone();
+    extrude_bent(
+        &mut mesh,
+        &[top],
+        0.0,
+        Grouping::Together,
+        bend(MAX_BEND_ANGLE * 2.0, 100.0, MAX_BEND_SEGMENTS),
+    );
+    assert_eq!(
+        mesh.vertex_count(),
+        before.vertex_count() + MAX_BEND_ROWS * 16
+    );
+    every_point_is_a_number(&mesh);
+}
+
+#[test]
+fn a_spiral_of_separate_polygons_clears_each_loop() {
+    // Two neighbouring polygons on the cube's top, each its own spiral.
+    let before = Primitive::Cube(Default::default()).mesh();
+    let faces = middle(&before, 1e9);
+    for grouping in [Grouping::Together, Grouping::Separate] {
+        let mut mesh = before.clone();
+        let some: Vec<FaceId> = faces.iter().copied().take(2).collect();
+        extrude_bent(&mut mesh, &some, 10.0, grouping, bend(1000.0, 150.0, 12));
+        let r = report(&mesh);
+        assert_eq!(r.non_manifold_edges, 0, "{grouping:?} {r:?}");
+        assert_eq!(r.loose_points, 0, "{grouping:?}");
+        every_point_is_a_number(&mesh);
     }
 }

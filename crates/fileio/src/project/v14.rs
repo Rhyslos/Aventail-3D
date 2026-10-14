@@ -8,7 +8,6 @@
 
 use super::v1::{FileOperation, Problem};
 use super::v5::EntryWith;
-use super::v12::ProjectWithInstances;
 use super::v13::OperationV13;
 use glam::Vec3;
 use mesh::symmetry::Mirror;
@@ -16,7 +15,8 @@ use scene::Operation;
 use serde::{Deserialize, Serialize};
 
 /// Version 14 of the file.
-pub(crate) type ProjectV14 = ProjectWithInstances<EntryV14>;
+#[cfg(test)]
+pub(crate) type ProjectV14 = super::v12::ProjectWithInstances<EntryV14>;
 
 /// A recorded edit in version 14.
 pub(crate) type EntryV14 = EntryWith<OperationV14>;

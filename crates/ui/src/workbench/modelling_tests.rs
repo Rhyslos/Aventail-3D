@@ -905,6 +905,42 @@ fn an_extrude_bends_with_the_settings_set_before_and_changed_after() {
 }
 
 #[test]
+fn a_bend_past_one_turn_spirals_with_its_rise() {
+    let mut harness = ready(Key::D);
+    // Without a bend radius, the rise can't be changed: it needs one.
+    drag(&mut harness, 40.0);
+    // (Its label and its number field share the name: look at the field.)
+    let rise_off = |h: &H| {
+        h.get_all_by_label("Rise per turn")
+            .any(|n| n.accesskit_node().is_disabled())
+    };
+    assert!(rise_off(&harness));
+    // Two turns round a radius, rising 10 more per turn.
+    harness.state_mut().workbench.attributes.bend = scene::Bend {
+        angle: 720.0,
+        radius: 30.0,
+        segments: 6,
+        rise: 10.0,
+        ..Default::default()
+    };
+    harness.run();
+    drag(&mut harness, 40.0);
+    let Some(Operation::ExtrudeBent { bend, .. }) = last_operation(&harness) else {
+        panic!("a bent extrude");
+    };
+    assert_eq!((bend.angle, bend.rise), (720.0, 10.0));
+    assert!(bend.spirals());
+    assert!(
+        harness
+            .query_by_label_contains("Last edit: Extrude 1 polygon with a spiral")
+            .is_some()
+    );
+    assert!(!rise_off(&harness));
+    let report = mesh::MeshReport::new(&shape(&harness));
+    assert!(report.is_closed() && !report.has_problems(), "{report:?}");
+}
+
+#[test]
 fn changing_tools_sets_the_bend_straight_again() {
     let mut harness = ready(Key::D);
     harness.state_mut().workbench.attributes.bend.angle = 60.0;

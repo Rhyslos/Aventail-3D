@@ -378,6 +378,12 @@ impl Operation {
                 n => format!("Transform {n} points"),
             },
             Self::ExtrudePolygons { faces, .. } => counted("Extrude", faces.len(), "polygon"),
+            Self::ExtrudeBent { faces, bend, .. } if bend.spirals() => {
+                format!(
+                    "{} with a spiral",
+                    counted("Extrude", faces.len(), "polygon")
+                )
+            }
             Self::ExtrudeBent { faces, bend, .. } if bend.bends() => {
                 format!("{} with a bend", counted("Extrude", faces.len(), "polygon"))
             }
@@ -684,7 +690,7 @@ impl Operation {
             Self::HardEdgesByAngle { angle } => angle.is_finite(),
             Self::ExtrudeBent { distance, bend, .. } => {
                 distance.is_finite()
-                    && [bend.angle, bend.direction, bend.radius]
+                    && [bend.angle, bend.direction, bend.radius, bend.rise]
                         .iter()
                         .all(|x| x.is_finite())
             }
