@@ -101,7 +101,17 @@ impl Shading {
     }
 }
 
+/// The angle from which edges shade hard while Automatic hard edges is on,
+/// in degrees: the same as Hard edges by angle starts at.
+pub const AUTO_HARD_ANGLE: f32 = mesh::hardness::DEFAULT_ANGLE;
+
 impl ViewOptions {
+    /// The angle edges shade hard from, while Automatic hard edges is on
+    /// (`None`: by their marks).
+    pub fn auto_hard_angle(&self) -> Option<f32> {
+        (!self.hard_edges_by_hand).then_some(AUTO_HARD_ANGLE)
+    }
+
     /// These options with an old "fine grid lines on" setting turned into
     /// the finest grid level.
     #[must_use]
@@ -210,6 +220,10 @@ pub struct ViewOptions {
     pub dissolve_without_warning: bool,
     /// How shapes are drawn: shaded, shaded with wires, or wireframe.
     pub shading: Shading,
+    /// Whether shapes are shaded by their marked hard edges, with
+    /// *Automatic hard edges* off. Off as standard: the angle decides
+    /// ([`AUTO_HARD_ANGLE`], decision 0064).
+    pub hard_edges_by_hand: bool,
     /// The keyboard the Keys window draws, once picked there (`None`:
     /// guessed from the system language; decision 0061).
     pub keyboard: Option<crate::KeyboardLayout>,
@@ -338,6 +352,9 @@ pub struct ViewportView {
     pub overlay: Arc<ComponentOverlay>,
     /// How shapes are drawn.
     pub shading: Shading,
+    /// Shade by angle from this many degrees, whatever edges are marked
+    /// (Automatic hard edges), or by the marks (`None`).
+    pub auto_hard_angle: Option<f32>,
 }
 
 /// A question for the renderer: what is under this pixel of the image?
@@ -793,6 +810,7 @@ impl View {
             selection_color: rgb(theme::Accent::default().colors().light),
             overlay: Arc::default(),
             shading: Shading::default(),
+            auto_hard_angle: Some(AUTO_HARD_ANGLE),
         }
     }
 }
@@ -1233,6 +1251,7 @@ impl ViewportPanel {
             view.selection_color = rgb(theme::accent(ui.ctx()).colors().light);
             view.overlay = Arc::clone(&scene.overlay);
             view.shading = self.options.shading;
+            view.auto_hard_angle = self.options.auto_hard_angle();
             match renderer.render(&view) {
                 Ok(texture) => {
                     let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0));

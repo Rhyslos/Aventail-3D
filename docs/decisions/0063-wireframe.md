@@ -20,7 +20,7 @@ They were also unsure where the corner axes should sit, and wanted the display s
 - **Where the axes and display settings go:** keep the axes top right with the settings only in the Display menu; move the axes to the bottom left alone; or **move them to the bottom left with a small row of display buttons beside them** (chosen).
 - **What clicking an axis does:** **swing the view to look along it, staying in perspective, with a second click looking from the other side** (chosen, like Blender's); switch to the matching flat view; or both, by click and double-click.
 - **A key for the look:** **none for now** (chosen); `4` to cycle; or `Shift + Z` as in Blender, which would move the Z lock.
-- **Automatic hard edges:** **per object, on by default, with an angle (30°), saved with the project** (chosen, like Blender's Auto Smooth); one switch for the whole project in the Display menu; or a display-only switch that exports ignore.
+- **Automatic hard edges:** per object, on by default, with an angle (30°), saved with the project (chosen at first, like Blender's Auto Smooth); one switch for the whole project in the Display menu; or a display-only switch that exports ignore. *Replaced by [0064](0064-automatic-hard-edges.md): one Display menu switch.*
 
 ## Decision
 
@@ -35,7 +35,7 @@ They were also unsure where the corner axes should sit, and wanted the display s
 4. The **other three milestones** follow in this order, each in its own pull request:
    - **Cavity:** a Display switch and a button in the row.
    - **Clickable corner axes:** a click swings the view to look along that axis, and a second click looks from the other side.
-   - **Automatic hard edges by angle:** per object in the Attributes panel, on by default at 30°, saved with the project, with a Display menu entry for the selected objects.
+   - **Automatic hard edges by angle:** chosen here as a per-object setting, then corrected by the project lead the same day: one Display menu switch, below Hard edges, on as standard. See [0064](0064-automatic-hard-edges.md).
 
    The hard edge highlight they asked for already exists: **Display → Hard edges**, on as standard.
 

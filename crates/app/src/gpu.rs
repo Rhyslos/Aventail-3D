@@ -216,9 +216,9 @@ pub struct GpuViewport {
     state: RenderState,
     renderer: GpuRenderer,
     images: [Option<SlotImage>; VIEW_COUNT],
-    /// The version of the scene drawing, and the selection colour, the
-    /// renderer's placements were made for, if any.
-    uploaded: Option<(u64, [f32; 3])>,
+    /// The version of the scene drawing, the selection colour and the
+    /// shading's hardness the renderer's placements were made for, if any.
+    uploaded: Option<(u64, [f32; 3], mesh::Hardness)>,
     /// Each object's mesh on the GPU.
     meshes: HashMap<u64, Uploaded>,
     /// Heavy shapes' geometry being worked out in the background.
@@ -251,7 +251,7 @@ impl GpuViewport {
     /// updated around them, anything else is uploaded whole. A heavy new
     /// shape is worked out on another thread; until it is ready its
     /// object shows its previous shape, if it had one.
-    fn upload_meshes(&mut self, scene: &SceneDrawing) {
+    fn upload_meshes(&mut self, scene: &SceneDrawing, hardness: mesh::Hardness) {
         let device = &self.state.device;
         let queue = &self.state.queue;
         let mut keys = Vec::with_capacity(scene.items.len());
@@ -262,9 +262,17 @@ impl GpuViewport {
                 .preparing
                 .get(&key)
                 .is_some_and(|(mesh, _)| Arc::ptr_eq(mesh, &item.shown));
+            // Shading with another hardness (Automatic hard edges switched)
+            // is built afresh.
+            let same = |old: &Uploaded| old.geometry.hardness() == hardness;
             match self.meshes.get_mut(&key) {
-                Some(old) if Arc::ptr_eq(&old.mesh, &item.shown) => continue,
-                Some(old) if !waiting && let Some(moved) = item.shown.moved_since(&old.mesh) => {
+                Some(old) if same(old) && Arc::ptr_eq(&old.mesh, &item.shown) => continue,
+                Some(old)
+                    if same(old)
+                        && !waiting
+                        && let Some(moved) = item.shown.moved_since(&old.mesh)
+                        && old.geometry.can_follow(&old.mesh, &item.shown, &moved) =>
+                {
                     let ranges = old.geometry.moved(&item.shown, &moved);
                     self.renderer
                         .update_mesh(queue, key, &old.geometry, &ranges);
@@ -278,7 +286,7 @@ impl GpuViewport {
                 .get(&key)
                 .is_some_and(|(_, handle)| handle.is_finished());
             let geometry = if item.shown.face_count() < BACKGROUND_FROM {
-                Some(MeshGeometry::new(&item.shown))
+                Some(MeshGeometry::shaded(&item.shown, hardness))
             } else if waiting && finished {
                 self.preparing
                     .remove(&key)
@@ -288,7 +296,7 @@ impl GpuViewport {
                 // done, so changes in quick succession don't pile up work.
                 if !self.preparing.contains_key(&key) || finished {
                     let mesh = Arc::clone(&item.shown);
-                    let handle = std::thread::spawn(move || MeshGeometry::new(&mesh));
+                    let handle = std::thread::spawn(move || MeshGeometry::shaded(&mesh, hardness));
                     self.preparing
                         .insert(key, (Arc::clone(&item.shown), handle));
                 }
@@ -375,9 +383,12 @@ impl ViewportRenderer for GpuViewport {
             flat_height: view.flat_height,
             grid_plane: view.grid_plane,
         };
-        let wanted = (view.scene.version, view.selection_color);
+        let hardness = view
+            .auto_hard_angle
+            .map_or(mesh::Hardness::Marked, mesh::Hardness::ByAngle);
+        let wanted = (view.scene.version, view.selection_color, hardness);
         if self.uploaded != Some(wanted) || !self.preparing.is_empty() {
-            self.upload_meshes(&view.scene);
+            self.upload_meshes(&view.scene, hardness);
             self.uploaded = Some(wanted);
         }
         // Placed for each view, as what is too dense to see depends on
@@ -559,6 +570,7 @@ mod tests {
             selection_color: [1.0; 3],
             overlay: Arc::new(ComponentOverlay::default()),
             shading: Shading::default(),
+            auto_hard_angle: Some(ui::AUTO_HARD_ANGLE),
         }
     }
 

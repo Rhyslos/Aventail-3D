@@ -59,6 +59,7 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0049](0049-slit.md) | Slit: a line of points over the shape, cut as seen (or through); file format version 7 | Accepted |
 | [0050](0050-pipe-bends.md) | Pipe bends: an extrude that turns a corner and keeps its size (smooth elbow or mitre joint); file format version 8 | Accepted |
 | [0051](0051-connect-bridge-weld.md) | Connect (J), Bridge (C or drag) and Weld (M, Ctrl + M); file format version 9 | Accepted |
+| [0064](0064-automatic-hard-edges.md) | Automatic hard edges: a Display menu switch (on as standard) shading every shape by angle after every change; edges set by hand kept | Accepted |
 | [0063](0063-wireframe.md) | Wireframe (Shaded, Shaded with wires, Wireframe) from a button beside the corner axes, which move to the bottom left; the choices for cavity, clickable axes and automatic hard edges | Accepted |
 | [0062](0062-spirals.md) | Spirals: bends past one turn (up to 3600°) climb clear of the loop before, plus Rise per turn; Segments per turn; mirrored copies wind the other way; file format version 15 | Accepted |
 | [0061](0061-drawn-keyboard.md) | The Keys window draws a keyboard: lit keys with situation colours, point or click for a key's jobs, search, mouse actions; seven layouts, guessed from the system language | Accepted |

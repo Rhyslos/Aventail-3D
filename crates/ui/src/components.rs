@@ -52,10 +52,14 @@ type BuiltFor = (
 
 /// Guides drawn over the selected objects from the Display menu
 /// ([decision 0053](../../../docs/decisions/0053-hard-and-soft-edges.md)).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub(crate) struct Guides {
     /// Hard edges, in the Points, Edges and Polygons modes.
     pub(crate) hard_edges: bool,
+    /// Which edges count as hard: those sharper than this angle in
+    /// degrees, while Automatic hard edges is on (decision 0064), or the
+    /// marked ones (`None`).
+    pub(crate) by_angle: Option<f32>,
     /// Each polygon's normal, in every mode.
     pub(crate) normals: bool,
 }
@@ -413,10 +417,18 @@ fn guide_lines(
         }
         let world = |p: Vec3| item.transform.transform_point3(p);
         if hard {
-            // Only edges the shape still has: a mark left on a gone edge
-            // (from an older file) isn't drawn.
+            // By angle, the edges that shade hard; otherwise the marked
+            // ones the shape still has (a mark left on a gone edge, from an
+            // older file, isn't drawn).
             let topology = mesh.topology();
-            for edge in mesh.hard_edges().filter(|e| topology.has_edge(*e)) {
+            let edges: Vec<mesh::EdgeKey> = match guides.by_angle {
+                Some(angle) => mesh::hardness::sharp_edges(mesh, angle),
+                None => mesh
+                    .hard_edges()
+                    .filter(|e| topology.has_edge(*e))
+                    .collect(),
+            };
+            for edge in edges {
                 let (a, b) = edge.ends();
                 if let (Some(a), Some(b)) = (mesh.position(a), mesh.position(b)) {
                     out.push(([world(a), world(b)], OverlayStyle::Hard));
@@ -827,6 +839,7 @@ mod tests {
         let mut tracker = ComponentTracker::default();
         let both = Guides {
             hard_edges: true,
+            by_angle: None,
             normals: true,
         };
         let count = |overlay: &ComponentOverlay, style| {
@@ -836,6 +849,28 @@ mod tests {
         let overlay = tracker.update(Mode::Edges, &drawing(true), &Document::new(), None, both);
         assert_eq!(count(&overlay, OverlayStyle::Hard), 12);
         assert_eq!(count(&overlay, OverlayStyle::Normal), 6);
+        // By angle, the edges that shade hard: a cube's 90° edges count
+        // from 30°, not from 100°.
+        let by = |angle| Guides {
+            by_angle: Some(angle),
+            ..both
+        };
+        let overlay = tracker.update(
+            Mode::Edges,
+            &drawing(true),
+            &Document::new(),
+            None,
+            by(30.0),
+        );
+        assert_eq!(count(&overlay, OverlayStyle::Hard), 12);
+        let overlay = tracker.update(
+            Mode::Edges,
+            &drawing(true),
+            &Document::new(),
+            None,
+            by(100.0),
+        );
+        assert_eq!(count(&overlay, OverlayStyle::Hard), 0);
         // In the Model mode, only the normals.
         let overlay = tracker.update(Mode::Model, &drawing(true), &Document::new(), None, both);
         assert_eq!(count(&overlay, OverlayStyle::Hard), 0);

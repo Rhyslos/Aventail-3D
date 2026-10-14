@@ -156,3 +156,37 @@ fn the_display_menu_marks_hard_edges_and_shows_normals() {
     assert!(harness.query_by_label("Normals").is_some());
     assert!(harness.query_by_label("Hard edges").is_some());
 }
+
+#[test]
+fn automatic_hard_edges_is_on_below_hard_edges_and_hand_edits_say_so() {
+    use crate::viewport::chrome::{AUTO_HARD_EDGES_ENTRY, HARD_EDGES_ENTRY};
+    let mut harness = ready(Key::Num2, first_edge);
+    let options = |h: &H| h.state().workbench.viewport.options();
+    assert!(!options(&harness).hard_edges_by_hand, "on as standard");
+    assert_eq!(
+        options(&harness).auto_hard_angle(),
+        Some(crate::AUTO_HARD_ANGLE)
+    );
+    // Softening an edge by hand is kept, and the note says the angle
+    // decides the shading for now.
+    run(&mut harness, CommandId::SoftEdges);
+    assert_eq!(shape(&harness).hard_edge_count(), 11);
+    assert!(
+        note(&harness).contains("Automatic hard edges is on"),
+        "{}",
+        note(&harness)
+    );
+    // The switch sits right below Hard edges in the Display menu.
+    harness.get_by_label("Display").click();
+    harness.run();
+    let hard = harness.get_by_label(HARD_EDGES_ENTRY).rect();
+    let auto = harness.get_by_label(AUTO_HARD_EDGES_ENTRY).rect();
+    assert!(auto.top() >= hard.bottom() - 1.0 && auto.top() - hard.bottom() < 12.0);
+    harness.get_by_label(AUTO_HARD_EDGES_ENTRY).click();
+    harness.run();
+    assert!(options(&harness).hard_edges_by_hand);
+    assert_eq!(options(&harness).auto_hard_angle(), None);
+    // Switched off, hand edits say nothing more.
+    run(&mut harness, CommandId::HardEdges);
+    assert!(!note(&harness).contains("Automatic"), "{}", note(&harness));
+}
