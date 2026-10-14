@@ -112,7 +112,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Hard and soft edges, by hand or by angle, with hard edges and normals shown from the Display menu
 - [x] Symmetry: every edit is made on the other side too, across the shape's own X, Y or Z, through its pivot, its middle or the world centre
 - [x] Basics: hide and isolate, slide points and edges, duplicate and instances, split polygons off and join objects
-- [x] Keyboard shortcut viewer: every key in one place (Keys on the menu bar)
+- [x] Keyboard shortcut viewer: every key in one place (Keys on the menu bar), on a drawn keyboard in your layout
 
 </details>
 
@@ -218,6 +218,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-14 | The Keys window draws a keyboard: used keys lit by situation, point or click a key for its jobs; seven layouts, guessed from the system language |
 | 2026-10-14 | Symmetry for every edit (extrude, cut, weld, delete and the rest made on both sides) and a Symmetry menu (axes, where the mirror sits, offsets); project files at format version 14 |
 | 2026-10-14 | Closed slits: click the first point to close the line; drawn inside a polygon, it cuts its shape in |
 | 2026-10-14 | After testing Phase 4: Tab steps back to the Model mode, Connect on A, Fill hole on J, clicks select in Weld and Bridge, Weld snaps, the bend Angle resets, Dissolve asks before a sharp corner, bent polygons drawn right |

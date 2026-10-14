@@ -14,6 +14,7 @@ mod components;
 mod coordinates;
 mod drawing;
 pub mod icons;
+mod keyboard;
 pub mod layout;
 mod objects;
 pub mod palette;
@@ -36,6 +37,7 @@ mod workbench;
 pub use autosave::{AutosaveSettings, COPIES, MINUTES, RecoveryCopy, RecoveryOffer, ago};
 pub use drawing::{ComponentOverlay, DrawItem, OverlayStyle, SceneDrawing, SceneSummary};
 pub use egui_dock::DockState;
+pub use keyboard::KeyboardLayout;
 pub use objects::{
     DELETE_SHORTCUT, DESELECT_SHORTCUT, GROUP_SHORTCUT, MAKE_EDITABLE_SHORTCUT, REDO_SHORTCUT,
     REDO_SHORTCUT_2, UNDO_SHORTCUT, UNGROUP_SHORTCUT,

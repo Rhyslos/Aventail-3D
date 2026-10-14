@@ -47,6 +47,8 @@ zstd = { version = "0.13", default-features = false }
 # Native Open and Save dialogs (Windows, macOS, and Linux through the
 # desktop portal, so no GTK is needed).
 rfd = "0.17"
+# The system language, to guess the keyboard drawn in the Keys window.
+sys-locale = "0.3"
 # Windows only: giving the window keyboard focus (decision 0026). The same
 # versions the window library already uses.
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_Input_KeyboardAndMouse"] }

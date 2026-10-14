@@ -15,7 +15,7 @@ Starts the program: loads settings, opens the window, hands each frame to `ui`, 
 
 ## Depends on
 
-`ui`, `render`, `fileio`, `scene` (for the backup copy's document) (every other app crate planned). Outside libraries: `eframe` (window and frame loop), `windows-sys` and `raw-window-handle` (Windows only), `rfd` (native Open and Save dialogs; the desktop portal on Linux).
+`ui`, `render`, `fileio`, `scene` (for the backup copy's document) (every other app crate planned). Outside libraries: `eframe` (window and frame loop), `windows-sys` and `raw-window-handle` (Windows only), `rfd` (native Open and Save dialogs; the desktop portal on Linux), `sys-locale` (the system language, so the Keys window draws the right keyboard; decision 0061).
 
 ## Status
 

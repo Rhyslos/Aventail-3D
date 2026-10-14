@@ -59,6 +59,7 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0049](0049-slit.md) | Slit: a line of points over the shape, cut as seen (or through); file format version 7 | Accepted |
 | [0050](0050-pipe-bends.md) | Pipe bends: an extrude that turns a corner and keeps its size (smooth elbow or mitre joint); file format version 8 | Accepted |
 | [0051](0051-connect-bridge-weld.md) | Connect (J), Bridge (C or drag) and Weld (M, Ctrl + M); file format version 9 | Accepted |
+| [0061](0061-drawn-keyboard.md) | The Keys window draws a keyboard: lit keys with situation colours, point or click for a key's jobs, search, mouse actions; seven layouts, guessed from the system language | Accepted |
 | [0060](0060-mode-keys-put-tools-away.md) | With a modelling tool in use, 1, 2 and 3 (and the mode buttons) put it away and select in that mode | Accepted |
 | [0059](0059-symmetry-for-every-edit.md) | Symmetry for every edit (mirrored edits, together or as copies) and the Symmetry menu (axes, mirror through pivot, middle or world, offsets); file format version 14 | Accepted |
 | [0058](0058-closed-slit.md) | Closed slits: click the first point to close the line; a loop inside a polygon cuts its shape in, the ring round it cut in two; saved as the first point again, no format change | Accepted |

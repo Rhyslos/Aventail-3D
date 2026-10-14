@@ -157,6 +157,9 @@ pub struct ViewOptions {
     /// Whether Dissolve goes ahead across a sharp corner without asking
     /// first ("Don't warn me again"; it asks as standard, decision 0057).
     pub dissolve_without_warning: bool,
+    /// The keyboard the Keys window draws, once picked there (`None`:
+    /// guessed from the system language; decision 0061).
+    pub keyboard: Option<crate::KeyboardLayout>,
 }
 
 /// Symmetry while moving, rotating and scaling points, edges and polygons
