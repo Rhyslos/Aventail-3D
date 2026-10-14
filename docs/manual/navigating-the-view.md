@@ -22,7 +22,7 @@ The Alt + mouse moves work too, unless you switch them off (see [Settings](#sett
 
 **Without the mouse buttons:** the three buttons on the right of the viewport's menu line (four arrows, an up-and-down arrow, a circular arrow) pan, zoom and orbit when you drag them. Handy on a laptop touchpad.
 
-**Framing: fit things in the view.** Press **H** (*frame all*) to fit the whole scene in the view, or **F** (*frame selected*) to fit what you've selected. The view keeps looking the same way and glides forwards or back until everything fits, with a little room around it, so you never lose your bearings. Both are also in the **View** menus. With nothing selected, F frames everything too. Hidden objects are left out; with nothing shown at all, both go back to the middle of the scene. The keys work anywhere in the app, except while you're typing in a field.
+**Framing: fit things in the view.** Press **H** (*frame all*) to fit the whole scene in the view, or **Z** (*frame selected*) to fit what you've selected. The view keeps looking the same way and glides forwards or back until everything fits, with a little room around it, so you never lose your bearings. Both are also in the **View** menus. With nothing selected, Z frames everything too. (Frame selected used to be **F**; F is [Loop cut](loop-cut.md) now.) Hidden objects are left out; with nothing shown at all, both go back to the middle of the scene. The keys work anywhere in the app, except while you're typing in a field.
 
 ## Views and the four-view layout
 
@@ -64,7 +64,7 @@ Every setting here is also in **Edit → Settings… → Viewport** (see [Settin
 | **Alt + mouse works in every scheme** (in the controls list, on by standard) | Keeps the Alt + mouse moves working whichever controls you pick, unless those controls use the same keys for something else. Useful while you get used to new controls. |
 | **Invert orbit direction** (in the controls list, or **Options**) | Orbiting turns the other way: the model moves against your hand instead of with it. |
 | **Grid lines** (the grid button at the bottom of the left palette, **Display → Grid lines**, or **View → Grid lines** on the main menu bar) | Three levels. **Every 1 m** (standard): a line every metre, plus stronger 10 m lines further out, for a calm ground. **Every 50 cm (quarters)**: each metre square is cut into four by fainter lines, handy for halves and quarters of a metre. **Every 10 cm (fine)**: thin lines every 10 cm, for placing things precisely up close. Each click on the grid button moves to the next level, and from the finest back to the calmest; the menus let you pick one directly. The bottom-left corner of the view shows the spacing. Remembered next time. |
-| **View → Frame all** (`H`), **Frame selected** (`F`) | Fit everything shown, or the selected objects, in the view, keeping the direction you're looking in. |
+| **View → Frame all** (`H`), **Frame selected** (`Z`) | Fit everything shown, or the selected objects, in the view, keeping the direction you're looking in. |
 | **View → Reset view** | Puts the active view's camera back where it starts when the app opens. |
 | **Cameras → Perspective, Top, Front, Right** | Turns the active view into that kind of view. |
 | **Panel → Four views** (`F5`) | Shows all four views at once; again for just the active one. Remembered next time. |
@@ -79,7 +79,7 @@ As standard (Mouse only controls, with Alt + mouse switched on):
 | Pan | Middle drag, or `Alt` + middle drag |
 | Zoom | Mouse wheel, or `Alt` + right drag |
 | Frame all | `H` |
-| Frame selected | `F` |
+| Frame selected | `Z` |
 | Perspective, top, right, front view on its own | `F1`, `F2`, `F3`, `F4` |
 | All four views | `F5` |
 | Switch between one view and four | Middle click on a view |

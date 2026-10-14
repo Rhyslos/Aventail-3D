@@ -72,13 +72,13 @@ One colour marks what's active: the current mode (and later the current tool), t
 | Select, add, remove; box, lasso or brush | Click, `Ctrl` + click, `Shift` + click; drag, `Ctrl` + drag, `Shift` + drag (the standard pattern; see [Selecting](selecting.md)) |
 | Move / rotate / scale / Transform (all three); back to selecting | `W` / `R` / `S` / `T`; `Q` (see [Move, rotate and scale](transforming.md)) |
 | Next select tool (Box, Lasso, Paint select) | `Q` (while selecting) |
-| Lock X / Y / Z; world or object axes | `X` / `Y` / `Z`; `L` |
+| Lock X / Y / Z; world or object axes | `Shift + X` / `Shift + Y` / `Shift + Z`; `L` |
 | While dragging the gizmo: fine, snap, cancel | Hold `Shift`; hold `Ctrl`; `Esc` or right-click |
 | Loop / ring | Double-click / `Alt` + double-click |
 | Grow / shrink the selection | `Ctrl` + wheel |
 | Select all / invert | `Ctrl + A` / `Ctrl + I` |
 | Delete the selection | `Delete` or `Backspace` |
-| Frame everything / the selection | `H` / `F` |
+| Frame everything / the selection | `H` / `Z` |
 | Perspective, top, right, front view; all four | `F1`, `F2`, `F3`, `F4`; `F5` |
 | Orbit, pan, zoom the view | Depends on your navigation controls; as standard right drag to orbit, middle drag to pan and the mouse wheel to zoom (`Alt` + left, middle or right drag work too). See [Navigating the view](navigating-the-view.md) |
 

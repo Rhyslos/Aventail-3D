@@ -21,6 +21,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Edge loop** — A chain of edges running through quads, end to end, like a belt around the mesh. **Edge ring** — the edges running *across* a loop, like the rungs of a ladder.
 
+**Loop cut** — Cutting a new edge loop through a ring of quads: every edge of the ring is cut, and the new points are joined across each quad. It adds rows exactly where you need them, instead of everywhere. See [Loop cut](loop-cut.md).
+
 **Triangle count** — How many triangles a model becomes once every face is cut into triangles, as game engines and GPUs do: a quad is 2, an n-gon with 8 corners is 6. It's the usual measure of how heavy a game asset is. The Attributes panel shows it for every shape.
 
 **High-poly and low-poly** — A *high-poly* model has millions of small polygons for fine detail, like a sculpt or a 3D scan; it's too heavy for a game. A *low-poly* model is the light version a game uses, often modelled on top of the high-poly one (*retopology*), with the detail baked into textures. The app copes with high-poly shapes in the scene: see [Heavy shapes](heavy-shapes.md).

@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Loop cut.** In Points, Edges or Polygons mode, press **F** (or pick Loop cut from the E menu or the Mesh menu) and point at an edge: the new loop shows all the way around the shape. Click to cut it, or press and drag along the edge to slide it into place first. Set **Cuts** in the Attributes panel to make several evenly spaced loops at once; afterwards the cut's Cuts and Position can still be changed under Last edit. The loop stops cleanly at triangles, caps and open borders.
 - **Hollow bevels.** The bevel's Profile now goes from 100% down to -100%: 100% is round, 0% is flat, and below 0 the bevel curves inward instead, like a cove moulding.
 - **Bevel.** In Edges mode, select edges, press **V** (or pick Bevel from the E menu or the Mesh menu) and drag away from them: the edges are cut away and replaced by a strip, flat (a chamfer) or rounded. In Points mode, V cuts corners off. **Segments** and **Profile** (round to flat) are set in the Attributes panel before the drag, and the last bevel's Width, Segments and Profile can be changed afterwards. Where bevelled edges meet, a corner polygon closes the gap.
 - **Extrude and inset.** In Polygons mode, press **D** (Extrude) or **I** (Inset), or pick them from the E menu or the Mesh menu, and drag anywhere in the viewport. Extrude follows your drag: drag the way the polygons face to bring them out, the other way to push them in, and it builds walls behind them. Start the drag on another polygon to extrude that one without clicking it first. Inset follows your pull too: drag towards the middle of the polygons and they shrink. Inset shrinks them inward with a ring of new polygons around them. Shift gives fine steps, Esc or a right-click cancels, and each drag is one undo step. The polygons stay selected, so you can drag again to carry on.
@@ -41,6 +42,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **New keys:** **Z** frames the selection (it was F, which is Loop cut now), and the axis locks are **Shift + X / Y / Z** (plain X is kept for the Slit tool).
+- Projects are saved in **file format version 6**, which can hold loop cuts. Older projects still open; a project saved now won't open in an older version of the app.
 - Our own names for things that had borrowed another program's names: the **Attributes panel** (was "Attribute Manager"), the **Objects panel** (was "Object Manager") and **Paint select** (was "Live selection", the brush in the Select tools). The future "Quick Align" tool will be called **Snap to**. Only names change; everything works as before.
 - Projects are saved in **file format version 5**, which keeps more about each edit so it can follow later changes to the shape. Older projects still open; a project saved now won't open in an older version of the app.
 - Edits hold on to their points better: when an earlier edit changes only where points are, later edits stay on the same points instead of searching for them.

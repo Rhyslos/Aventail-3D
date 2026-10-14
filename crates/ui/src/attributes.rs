@@ -826,7 +826,13 @@ fn position_row(ui: &mut Ui, position: &mut f32) -> stepper::Touched {
          cuts, it slides them all together.",
     );
     let mut percent = *position * 100.0;
-    let response = ui.add(egui::Slider::new(&mut percent, 0.0..=100.0).suffix("%"));
+    let response = ui.add(
+        egui::Slider::new(&mut percent, 0.0..=100.0)
+            .suffix("%")
+            // Shown as a whole percent, without rounding the value itself
+            // (that would change the cut as soon as it is shown).
+            .custom_formatter(|v, _| format!("{v:.0}")),
+    );
     response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Slider, true, "Position"));
     if response.changed() {
         *position = (percent / 100.0).clamp(0.0, 1.0);

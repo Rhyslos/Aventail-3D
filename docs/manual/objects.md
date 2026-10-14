@@ -29,7 +29,7 @@ If several objects are selected and you drag one of them, they all move, keeping
 
 **Rename.** Double-click a name (or select one object and use **Edit → Rename**, or type in the **Name** field of the [Attributes panel](attributes.md)), type the new name and press **Enter**. Clicking elsewhere keeps the new name too; **Esc** keeps the old one. Names can't be empty.
 
-**Show and hide.** Click the eye at the right of a row to hide that object from the viewport; click the closed eye to show it again. If the object is part of the selection, the whole selection is shown or hidden. Hiding a group hides everything inside it too: their own eyes stay open but turn faint, so you can see they're only hidden because of the group. **Object → Show** and **Hide** work on the selection. Hidden objects are left out when you frame with **H** or **F**.
+**Show and hide.** Click the eye at the right of a row to hide that object from the viewport; click the closed eye to show it again. If the object is part of the selection, the whole selection is shown or hidden. Hiding a group hides everything inside it too: their own eyes stay open but turn faint, so you can see they're only hidden because of the group. **Object → Show** and **Hide** work on the selection. Hidden objects are left out when you frame with **H** or **Z**.
 
 **Delete.** Press **Delete** or **Backspace** (or use **Edit → Delete**) to delete the selected objects, together with everything inside them.
 
@@ -39,7 +39,7 @@ If several objects are selected and you drag one of them, they all move, keeping
 
 **How far back undo goes.** There's no limit on the number of steps. Instead, undo keeps steps until they fill a set amount of memory, 2 GB as standard, and then forgets the oldest ones first. Small changes like renames take almost no memory, so you can undo thousands of them; steps that hold whole meshes take more. The newest step is always kept. To see how much is in use or change the limit, open **Edit → Settings…** and pick **Undo**: choose from 256 MB to 8 GB, or Unlimited (see [Settings](settings.md)). The first time old steps start being forgotten, the status bar tells you. Your choice is remembered next time.
 
-**Framing.** With objects selected, **F** (*frame selected*) fits them in the view; with nothing selected it fits everything shown, like **H**. See [Navigating the view](navigating-the-view.md).
+**Framing.** With objects selected, **Z** (*frame selected*) fits them in the view; with nothing selected it fits everything shown, like **H**. See [Navigating the view](navigating-the-view.md).
 
 ### Make editable
 
@@ -93,4 +93,4 @@ On macOS, use `Cmd` instead of `Ctrl` and `Option` instead of `Alt`. They don't 
 
 - [Concepts](concepts.md): [objects, groups and hierarchy](concepts.md#objects-and-scenes), and [undo](concepts.md#objects-and-scenes).
 - [Interface tour](interface-tour.md): where the Objects panel sits, and how to move it.
-- [Navigating the view](navigating-the-view.md): framing the selection with **F**.
+- [Navigating the view](navigating-the-view.md): framing the selection with **Z**.
