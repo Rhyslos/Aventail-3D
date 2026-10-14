@@ -31,6 +31,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Dissolve** — Removing an edge or point without leaving a hole: the polygons around it merge into one. *Deleting* removes the polygons too, and leaves a hole. See [Clean-up](clean-up.md).
 
+**Bent polygon** (non-planar polygon) — A polygon whose corners don't all lie flat on one plane, like two sides of a box merged into one round the corner. It can't be drawn as one flat shape, so it's cut into triangles along its fold; it shades less cleanly than flat polygons and game engines may cut it differently. Dissolve asks before making one across a sharp corner. See [Clean-up](clean-up.md#dissolving-across-a-sharp-corner).
+
 **Fill hole** — Closing an opening (a loop of border edges) with a polygon, like a lid. See [Clean-up](clean-up.md).
 
 **Slide** — Moving points along the edges they already have, so they stay on the surface, instead of moving them freely through space. See [Move, rotate and scale](transforming.md#slide).
@@ -141,7 +143,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Tangent space** — The coordinate system normal maps are stored in. The standard one is MikkTSpace, which Substance Painter and Godot both use; when the bake and the engine agree on it, normal maps look the same in both.
 
-**Triangulation** — Splitting polygons into triangles. It needs to happen the same way every time, so the model you bake in Substance Painter matches the one in Godot exactly.
+**Triangulation** — Splitting polygons into triangles. It needs to happen the same way every time, so the model you bake in Substance Painter matches the one in Godot exactly. The app cuts each polygon along lines that stay inside it: flat round polygons from one corner like a fan, polygons with dents round the dent, and [bent polygons](#mesh-basics) along their fold. The same polygon always gets the same cut.
 
 **glTF** — An open 3D file format ("the JPEG of 3D") that both Godot and Substance Painter read.
 

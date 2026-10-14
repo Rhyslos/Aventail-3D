@@ -410,3 +410,61 @@ fn every_shape_takes_every_join() {
         }
     }
 }
+
+#[test]
+fn a_bridge_between_boxes_has_crisp_corners() {
+    // Two boxes, the near sides facing each other, bridged by a square
+    // tube two rows deep.
+    let mut before = combine(&cube(), &cube(), Vec3::new(300.0, 0.0, 0.0));
+    // Nothing hard to begin with, so only what the bridge marks is.
+    let marked: Vec<EdgeKey> = before.hard_edges().collect();
+    crate::hardness::set_hard_edges(&mut before, &marked, false);
+    let side = |way: f32, near: bool| {
+        before
+            .faces()
+            .map(|(f, _)| f)
+            .find(|f| {
+                before.face_normal(*f).x * way > 0.9
+                    && before
+                        .face(*f)
+                        .unwrap()
+                        .iter()
+                        .all(|v| (before.position(*v).unwrap().x < 100.0) == near)
+            })
+            .unwrap()
+    };
+    let (right, left) = (side(1.0, true), side(-1.0, false));
+    let first_new = before.face_slots().len();
+    let mut mesh = before.clone();
+    assert_eq!(bridge_faces(&mut mesh, &[right, left], 2, 0).matched, 8);
+    let sharp: BTreeSet<EdgeKey> = crate::hardness::sharp_edges(&mesh, 30.0)
+        .into_iter()
+        .collect();
+    let band_edges: BTreeSet<EdgeKey> = mesh
+        .face_slots()
+        .skip(first_new)
+        .flatten()
+        .flat_map(|c| {
+            let n = c.len();
+            (0..n).map(move |i| EdgeKey::new(c[i], c[(i + 1) % n]))
+        })
+        .collect();
+    // The 8 along the tube's corners; where it meets the boxes and round
+    // its middle row it carries on flat, and stays soft.
+    let hard = band_edges
+        .iter()
+        .filter(|e| mesh.is_hard(e.ends().0, e.ends().1))
+        .count();
+    assert_eq!(hard, 8);
+    for edge in &band_edges {
+        let (a, b) = edge.ends();
+        assert_eq!(mesh.is_hard(a, b), sharp.contains(edge), "{edge:?}");
+    }
+    // Bridging open edges marks theirs the same way.
+    let mut tubes = combine(&tube(), &tube(), Vec3::new(0.0, 0.0, 300.0));
+    let mut chosen = border_at(&tubes, 100.0);
+    chosen.extend(border_at(&tubes, 300.0));
+    let edges_before = tubes.hard_edge_count();
+    bridge_edges(&mut tubes, &chosen, 1, 0);
+    assert!(tubes.hard_edge_count() >= edges_before);
+}

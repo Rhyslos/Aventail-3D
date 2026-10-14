@@ -8,6 +8,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Tab steps back.** Press **Tab** anywhere (not while typing) to go straight back to the Model mode: a Slit line is finished and a modelling tool put away, so a click selects objects again.
+- **Fill hole has a key: J.** Select a hole's rim and press J. To cap both ends of an open tube, select both rims and press J (C still bridges them with a tube).
+- **Dissolve asks before making a bent polygon.** Dissolving where polygons meet at a sharp corner (over 30°) asks first, with an "I know what I'm doing, proceed" tickbox and a "Don't warn me again" choice; switch the question back on in Settings → Interface → Warnings.
+- **Weld snaps.** While dragging a point with the Weld tool (Ctrl + M), the line snaps onto the point under the mouse and rings it, so you see where it will go. Bridge's drag snaps onto edges the same way.
 - **Keyboard shortcuts window.** Click **Keys** on the menu bar, after Help, for every key and mouse action in one place, grouped, with a search field.
 - **Slide.** In the Points, Edges and Polygons modes, hold **Alt** and drag the Move gizmo: the points slide along their edges, staying on the surface. Handy for moving a loop cut after making it.
 - **Split off and join.** **Mesh → Split off** moves the selected polygons into a new object of their own; **Join objects** (E menu in the Model mode, or the Mesh menu) makes the selected shapes one.
@@ -54,6 +58,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **Connect moved from J to A**, within easy reach of the left hand.
+- **A click selects while Bridge or Weld is the tool**, with the usual red highlight under the mouse, and a drag from empty space draws a selection box. Only a drag that starts on an open edge (Bridge) or a point (Weld) is the tool's.
+- **The bend Angle goes back to 0** once an extrude is done or another tool is picked, so the next extrude starts straight. The finished extrude keeps its bend under Last edit.
+- **The bend settings are number fields with arrows**, like the rest of the Attributes panel, under a small Bend heading below Distance.
+- **New corners come out crisp.** Where a Bridge band or a Fill hole cap meets the shape at a sharp corner (over 30°), the new edges are hard, so a band between two boxes no longer looks smeared.
 - Projects are saved in **file format version 13**, which can hold slid points. Older projects still open.
 - Projects are saved in **file format version 12**, which can hold instances. Older projects still open.
 - Projects are saved in **file format version 11**, which can hold hard and soft edges. Older projects still open.
@@ -91,6 +100,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- After dissolving an edge, its red selected line and its cyan hard-edge mark no longer stay behind.
+- Bent polygons and polygons with a dent are drawn (and picked) correctly, cut along lines inside them instead of a wrong triangle and a gap.
+- Picking Inset after an extrude no longer shows the extrude's bend rows as if they were Inset's.
 - **Damaged or booby-trapped project files can't crash or freeze the app.** Opening a file now checks, while reading, that it doesn't ask for more than the app can handle (memory, objects, edits, polygons), and explains when it does. A file of a few kilobytes that would unpack to gigabytes is refused at once.
 - An edit that would make a shape impossibly large (over 30 million polygons) is skipped with a warning in the Attributes panel, instead of freezing the app.
 - After a crash, a backup copy that closed the app while being restored isn't offered again, so you can't get stuck restoring it over and over. The question says when a copy was left out.

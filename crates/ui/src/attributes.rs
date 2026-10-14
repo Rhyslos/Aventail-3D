@@ -73,7 +73,7 @@ impl Default for HardAngle {
 
 /// Hard edges by angle's standard angle, in degrees: the corners of boxy
 /// shapes come out hard and curves made of 12 or more sides soft.
-pub(crate) const HARD_ANGLE: f32 = 30.0;
+pub(crate) const HARD_ANGLE: f32 = mesh::hardness::DEFAULT_ANGLE;
 
 /// Connect's and Bridge's settings, for their next use.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -312,7 +312,11 @@ impl AttributesPanel {
         if self.symmetry.on {
             self.symmetry_section(ui);
         }
-        if self.tool.has_settings() && !last_shown {
+        // Another tool's last edit (an extrude while Inset is in use) is
+        // left out, so the panel only shows the settings of the tool in
+        // use: its rows would otherwise read as the tool's own.
+        let own_tool_shown = self.tool.has_settings() && !last_shown;
+        if own_tool_shown {
             self.tool_section(ui, units);
         }
         let id = match selection.as_slice() {
@@ -340,7 +344,9 @@ impl AttributesPanel {
             .show(ui, |ui| {
                 heading(ui, &object.kind, &object.name);
                 // The last extrude or inset first: it is what was just done.
-                self.last_edit_section(ui, id, &object.stack, units, out);
+                if !own_tool_shown {
+                    self.last_edit_section(ui, id, &object.stack, units, out);
+                }
                 section(ui, "Basic");
                 egui::Grid::new("attributes_basic")
                     .num_columns(2)
@@ -641,7 +647,9 @@ impl AttributesPanel {
                         }
                         if touched.changed {
                             edited.bend = Some(bend);
-                            self.bend = bend;
+                            // The rest carries on to the next extrude, but
+                            // not the turn: that starts straight.
+                            self.bend = scene::Bend { angle: 0.0, ..bend };
                             changed = true;
                         }
                     }
@@ -985,6 +993,10 @@ fn segments_row(ui: &mut Ui, segments: &mut u32) -> stepper::Touched {
 /// Extrude's bend: Angle, Direction, Bend radius and Segments, a row each
 /// (decision 0050).
 fn bend_rows(ui: &mut Ui, bend: &mut scene::Bend, units: Units) -> stepper::Touched {
+    // A small heading, so the bend reads as its own group under the
+    // extrude's Distance.
+    ui.label(RichText::new("Bend").small().color(theme::TEXT_WEAK));
+    ui.end_row();
     let mut out = stepper::Touched::default();
     let mut add = |t: stepper::Touched| {
         out.changed |= t.changed;
@@ -992,17 +1004,9 @@ fn bend_rows(ui: &mut Ui, bend: &mut scene::Bend, units: Units) -> stepper::Touc
     };
     let degrees = |ui: &mut Ui, value: &mut f32, most: f32, name: &str, help: &str| {
         label(ui, name, help);
-        let response = ui.add(
-            egui::Slider::new(value, 0.0..=most)
-                .suffix("°")
-                .custom_formatter(|v, _| format!("{v:.0}")),
-        );
-        response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Slider, true, name));
+        let touched = stepper::degrees(ui, value, (0.0, most), name);
         ui.end_row();
-        stepper::Touched {
-            changed: response.changed(),
-            began: response.drag_started() || (response.changed() && !response.dragged()),
-        }
+        touched
     };
     let most = if bend.radius > 0.0 {
         180.0

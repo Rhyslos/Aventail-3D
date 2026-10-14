@@ -12,10 +12,10 @@ These are the tools for tidying up and joining. Connect splits polygons where yo
 
 ## How to use them
 
-### Connect (J)
+### Connect (A)
 
 1. In the **Points** mode, select two or more points on the same polygon. Or in the **Edges** mode, select two or more edges of the same polygons.
-2. Press **J** (or pick **Connect** from the [tool menu](tool-menu.md) **E**, or the **Mesh** menu).
+2. Press **A** (or pick **Connect** from the [tool menu](tool-menu.md) **E**, or the **Mesh** menu).
 
 Points are joined straight across each polygon holding them. With three or more on one polygon, they're joined all the way round. Edges are cut in the middle and the cuts joined, so a ring of selected edges gets a loop through it. Under **Last edit**, **Cuts** makes more than one cut along each edge.
 
@@ -27,12 +27,16 @@ Points are joined straight across each polygon holding them. With three or more 
 
 Then press **C**. The polygons are removed and a band of new polygons joins their borders.
 
-**By dragging:** with nothing to bridge selected, **C** makes Bridge the tool. Press on an open edge and drag to another one; let go and a polygon joins the two. Do it edge by edge to fill a gap your way.
+**By dragging:** with nothing to bridge selected, **C** makes Bridge the tool. Press on an open edge (it lights up under the mouse) and drag to another one; the line snaps onto the edge it would join, which is ringed. Let go and a polygon joins the two. Do it edge by edge to fill a gap your way.
+
+Where the band turns a sharp corner (sharper than 30°), its new edges come out [hard](hard-and-soft-edges.md), so a band between two boxes keeps crisp corners instead of a smeared look.
 
 ### Weld (M, Ctrl + M)
 
 - In the **Points** mode, select two or more points and press **M**: they melt into one at their middle.
-- Press **Ctrl + M** to make Weld the tool. Then drag a point onto another: it melts into that one, which stays where it is. Drag one of the selected points and the whole selection goes there.
+- Press **Ctrl + M** to make Weld the tool. Then drag a point onto another: as you get close, the line **snaps onto the point** under the mouse and rings it, so you see exactly where it will go. Let go and it melts into that one, which stays where it is. Drag one of the selected points and the whole selection goes there.
+
+While Bridge or Weld is the tool, a **click still selects**, with the usual light-red highlight under the mouse, and a drag from empty space still draws a selection box. Only a drag that starts on a point (Weld) or an open edge (Bridge) is the tool's. **Tab** puts the tool away.
 
 Polygons squeezed to fewer than three corners disappear.
 
@@ -50,9 +54,11 @@ Polygons squeezed to fewer than three corners disappear.
 
 | Action | Shortcut |
 |---|---|
-| Connect | `J` |
+| Connect | `A` |
 | Bridge the selection, or pick the Bridge tool | `C` |
 | Bridge two edges | With the Bridge tool, drag from one open edge to another |
+| Select while Bridge or Weld is the tool | Click, or drag from empty space |
+| Put the tool away, back to the Model mode | `Tab` |
 | Weld at the middle | `M` |
 | Weld onto a point | `Ctrl + M`, then drag a point onto another |
 | Bridge's segments | `Ctrl` + wheel (Bridge tool) |
@@ -63,6 +69,7 @@ Polygons squeezed to fewer than three corners disappear.
 - **Tip:** after welding two pieces, check the Mesh section of the Attributes panel: "closed" means the shape has no holes left.
 - **Problem:** C picked the Bridge tool instead of bridging. **Why:** the selection isn't two open borders or two polygons. **Fix:** select exactly two borders (Edges mode) or two polygons (Polygons mode), or drag from edge to edge.
 - **Problem:** Bridge did nothing when dragging. **Why:** it joins open edges only, with a polygon on one side. Edges inside the surface already have polygons on both sides.
+- **Problem:** I used to press J for Connect. **Why:** Connect moved to **A**, which is easier to reach; J now fills holes ([Clean-up](clean-up.md)).
 - **Problem:** Connect did nothing. **Why:** the points are already joined by an edge (neighbours on the polygon), or they aren't on the same polygon.
 
 ## Related

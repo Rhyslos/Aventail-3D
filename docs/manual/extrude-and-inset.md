@@ -65,7 +65,9 @@ An extrude can turn a corner before it goes on, like a pipe's elbow. Unlike simp
 
 ![The same with Bend radius 0: a sharp mitre joint, still the full width.](../screenshots/2026-10-14-pipe-mitre.png)
 
-Set the bend before dragging (at the top of the Attributes panel, while Extrude is in use) and every drag bends. Set Angle back to 0 for straight extrudes again. To build a pipe, extrude its end again and again, straight or bent.
+You can also set the bend before dragging (at the top of the Attributes panel, while Extrude is in use), and the next drag bends. Once that extrude is done, or you pick another tool, **Angle goes back to 0**, so the extrude after it starts straight and nothing turns by surprise. The finished extrude keeps its bend, and you can still change it under Last edit. Direction, Bend radius and Segments stay as you set them. To build a pipe, extrude its end again and again, straight or bent.
+
+Each bend setting is a number field, like the ones further down the panel: drag the number, click and type one, or click the small arrows beside it (with **Shift**, ten steps at a time). The bend rows sit under a small **Bend** heading, below the extrude's **Distance**.
 
 ### Change it afterwards
 
@@ -110,9 +112,10 @@ This works until you make another edit on top. After that, the extrude is fixed 
 ## Tips and common problems
 
 - **Tip: inset, then extrude inward** makes a recessed panel. **Inset, then extrude outward** makes a raised plate with a border round it.
-- **Tip:** for a pipe that keeps turning the same way, set the bend before dragging; each drag adds an elbow and a straight piece.
+- **Tip:** for a pipe that keeps turning, give each new extrude its Angle under Last edit right after dragging it. Angle goes back to 0 after every extrude, so a straight piece never turns by surprise; Bend radius and Segments carry on, so each elbow matches the last.
 - **Tip:** to push several separate panels in at once, select them all with **Keep together** off; with it on, touching polygons go in as one big panel.
 - **Tip:** the cube's hard edges carry over: an extruded block on a cube has crisp edges, and one on a sphere stays smooth. To change them, see [Hard and soft edges](hard-and-soft-edges.md).
+- **Problem:** I switched from Extrude to Inset and the extrude's rows are gone from the Attributes panel. **Why:** while a tool is in use, the panel shows that tool's own settings, and the last edit only when the same tool made it. **Fix:** press **D** again (or **Tab** to put the tool away) and the extrude shows under Last edit again.
 - **Problem:** pressing D or I does nothing but the status bar talks about modes. **Why:** Extrude works in the Polygons and Edges modes, Inset only in Polygons. **Fix:** press **3** (or **2** for edges) and try again.
 - **Problem:** the drag does nothing. **Why:** nothing of the right kind is selected; the status bar says so. **Fix:** select polygons (or border edges) first.
 - **Problem:** extruding edges does nothing. **Why:** the edges aren't on an open border; a cube has none. **Fix:** use a plane, or extrude polygons instead.

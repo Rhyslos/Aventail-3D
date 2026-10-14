@@ -187,6 +187,9 @@ fn merge(mesh: &mut Mesh, groups: &[BTreeSet<FaceId>]) -> usize {
         .flat_map(|f| original.face(*f).unwrap_or_default().iter().copied())
         .collect();
     mesh.remove_unused_vertices(&inside);
+    // The edges inside the merged polygons are gone, and so are their
+    // values (a hard edge there would otherwise still be drawn).
+    mesh.forget_unused_edge_values();
     rewrites.len()
 }
 
@@ -196,6 +199,8 @@ fn merge(mesh: &mut Mesh, groups: &[BTreeSet<FaceId>]) -> usize {
 /// corners.
 fn tidy(mesh: &mut Mesh, candidates: &BTreeSet<VertexId>, straight_only: bool) {
     let mut lone: Vec<VertexId> = Vec::new();
+    // The two edges each lone point joins, which become one.
+    let mut joined_edges: Vec<(EdgeKey, EdgeKey)> = Vec::new();
     {
         let topology = mesh.topology();
         for v in candidates {
@@ -217,6 +222,7 @@ fn tidy(mesh: &mut Mesh, candidates: &BTreeSet<VertexId>, straight_only: bool) {
                     .all(|f| mesh.face(*f).is_some_and(|c| c.len() > 3))
             {
                 lone.push(*v);
+                joined_edges.push((edges[0], edges[1]));
             }
         }
     }
@@ -240,11 +246,32 @@ fn tidy(mesh: &mut Mesh, candidates: &BTreeSet<VertexId>, straight_only: bool) {
         }
     }
     let mut build = Builder::new(&original, mesh);
-    if build.rewrite_faces(&rewrites).is_ok() {
-        mesh.remove_unused_vertices(&lone);
-    } else {
+    if build.rewrite_faces(&rewrites).is_err() {
         *mesh = original;
+        return;
     }
+    // Two hard edges meeting at a point that goes make one hard edge.
+    for (first, second) in &joined_edges {
+        let ends = |e: &EdgeKey| {
+            let (a, b) = e.ends();
+            [a, b]
+        };
+        let (Some(a), Some(b)) = (
+            ends(first).into_iter().find(|p| !lone_set.contains(p)),
+            ends(second).into_iter().find(|p| !lone_set.contains(p)),
+        ) else {
+            continue;
+        };
+        let hard = |e: &EdgeKey| {
+            let (x, y) = e.ends();
+            original.is_hard(x, y)
+        };
+        if hard(first) && hard(second) {
+            build.copy_edge(*first, a, b);
+        }
+    }
+    mesh.remove_unused_vertices(&lone);
+    mesh.forget_unused_edge_values();
 }
 
 /// Dissolves `edges`: the polygons on both sides of each merge into one
@@ -434,6 +461,7 @@ pub fn fill_holes(mesh: &mut Mesh, points: &[VertexId]) -> Outcome {
         .collect();
     let original = mesh.clone();
     let topology = original.topology();
+    let first_new = mesh.face_slots().len();
     let mut build = Builder::new(&original, mesh);
     let mut made = 0;
     for l in &loops {
@@ -451,6 +479,8 @@ pub fn fill_holes(mesh: &mut Mesh, points: &[VertexId]) -> Outcome {
             .collect();
         made += usize::from(build.face(&corners, like).is_some());
     }
+    // A cap meeting the sides at a corner gets a crisp rim.
+    crate::hardness::harden_new_edges(mesh, first_new, crate::hardness::DEFAULT_ANGLE);
     Outcome {
         matched: made,
         missing: 0,

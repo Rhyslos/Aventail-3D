@@ -111,7 +111,14 @@ impl Tool {
     /// Whether it is a modelling tool used by clicking (and dragging) on
     /// the shape itself: a left click never selects while it is in use.
     pub fn clicks_on_shapes(self) -> bool {
-        matches!(self, Self::LoopCut | Self::Slit | Self::Bridge | Self::Weld)
+        matches!(self, Self::LoopCut | Self::Slit)
+    }
+
+    /// Whether it is a modelling tool used by dragging from one point or
+    /// edge to another (Bridge, Weld). A drag that starts on one is the
+    /// tool's; a click, or a drag from empty space, selects as usual.
+    pub fn drags_between_elements(self) -> bool {
+        matches!(self, Self::Bridge | Self::Weld)
     }
 
     /// Whether it has a count that Ctrl + wheel changes while it is in use
@@ -125,7 +132,7 @@ impl Tool {
 
     /// Whether it has settings in the Attributes panel for its next use.
     pub fn has_settings(self) -> bool {
-        self.drags_anywhere() || self.clicks_on_shapes()
+        self.drags_anywhere() || self.clicks_on_shapes() || self.drags_between_elements()
     }
 
     /// Its gizmo, if it has one.

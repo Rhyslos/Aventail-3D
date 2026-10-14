@@ -35,6 +35,11 @@ impl Workbench {
         if tool != Tool::Slit {
             self.finish_slit();
         }
+        if tool != self.tool {
+            // Extrude's bend angle is for the extrude about to be made:
+            // leaving the tool sets it straight again.
+            self.attributes.bend.angle = 0.0;
+        }
         self.tool = tool;
         self.note = Some(match tool {
             Tool::Select => format!(

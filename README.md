@@ -107,7 +107,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Loop cut (F): point at an edge, click or drag; Ctrl + wheel for a tool's count; Z frames the selection
 - [x] Slit (X): cut new edges along a line of points over the shape, visible only or through
 - [x] Extrude with a bend: pipe bends that keep their size, with an angle, direction, bend radius and segments
-- [x] Connect (J), Bridge (C, or drag edge to edge) and Weld (M, or Ctrl + M onto a point)
+- [x] Connect (A), Bridge (C, or drag edge to edge) and Weld (M, or Ctrl + M onto a point)
 - [x] Clean-up: Delete deletes, Backspace dissolves; fill hole and flip normals, with select flipped, fix facing and select similar facing
 - [x] Hard and soft edges, by hand or by angle, with hard edges and normals shown from the Display menu
 - [x] Symmetry: moving points moves their mirrors, across the shape's own X, Y or Z
@@ -218,6 +218,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-14 | After testing Phase 4: Tab steps back to the Model mode, Connect on A, Fill hole on J, clicks select in Weld and Bridge, Weld snaps, the bend Angle resets, Dissolve asks before a sharp corner, bent polygons drawn right |
 | 2026-10-14 | Keyboard shortcut viewer (Keys on the menu bar). Every Phase 4 milestone built; the heavy-mesh check run for the gate |
 | 2026-10-14 | Basics, second part: slide (Alt + drag on the Move gizmo), split off, join objects; project files at format version 13 |
 | 2026-10-14 | Basics, first part: hide and isolate (Shift/Ctrl/Alt + H), copies and instances (Ctrl/Alt + C and V, Duplicate and Instance in the E menu); project files at format version 12 |

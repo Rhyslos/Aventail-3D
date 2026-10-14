@@ -7,9 +7,11 @@
 //!   selected elements (leaving a hole) and **Backspace** dissolves them
 //!   (the surface stays closed). In the Model mode both keys still delete
 //!   the selected objects.
-//! - Fill hole, Flip normals and Fix facing have no keys: they are in the
-//!   tool menu (`E`) and the Mesh menu, and Select flipped and Select
-//!   similar facing are in the Select menu.
+//! - **J** fills holes. Flip normals and Fix facing have no keys: they
+//!   are in the tool menu (`E`) and the Mesh menu, and Select flipped and
+//!   Select similar facing are in the Select menu.
+//! - Dissolving across a sharp corner (sharper than 30°) asks first, as
+//!   the merged polygon would be bent ([decision 0057](../../../../docs/decisions/0057-after-phase-4-testing.md)).
 //!
 //! Each is recorded per object as an `Operation` with anchors, one undo
 //! step in all.
@@ -17,9 +19,30 @@
 use super::Workbench;
 use super::joining::counted;
 use crate::palette::Mode;
+use crate::theme;
+use egui::{Key, Modifiers, RichText};
 use mesh::Anchors;
-use scene::{EdgeKey, ElementKind, FaceId, Operation, VertexId};
+use scene::{EdgeKey, ElementKind, FaceId, ObjectId, Operation, VertexId};
 use std::collections::BTreeSet;
+
+/// The question asked before dissolving across a sharp corner
+/// ([decision 0057](../../../../docs/decisions/0057-after-phase-4-testing.md)):
+/// what would be dissolved, waiting for an answer.
+#[derive(Debug, Clone, PartialEq)]
+pub(super) struct DissolveQuestion {
+    /// The undo step's name: "Dissolve 1 edge".
+    label: String,
+    /// The operations to record if the answer is yes.
+    ops: Vec<(ObjectId, Operation)>,
+    /// The "I know what I'm doing, proceed" tickbox, which unlocks the
+    /// Dissolve button.
+    sure: bool,
+    /// The "Don't warn me again" tickbox.
+    dont_warn: bool,
+}
+
+/// The question window's title.
+pub(crate) const DISSOLVE_QUESTION_TITLE: &str = "Dissolve across a sharp corner?";
 
 /// How far apart, in degrees, two polygons' facing may be for Select
 /// similar facing to count them alike.
@@ -108,14 +131,22 @@ impl Workbench {
         let mut ops = Vec::new();
         let mut count = 0;
         let mut refused = 0;
+        // Whether dissolving would merge polygons meeting at a sharp
+        // corner into one bent polygon.
+        let mut sharp = false;
         for (id, selected, mesh) in self.selected_parts() {
             let c = chosen(mode, &selected, &mesh);
             if c.len() == 0 {
                 continue;
             }
-            if dissolve && !dissolves(&mesh, &c) {
-                refused += c.len();
-                continue;
+            if dissolve {
+                match dissolved(&mesh, &c) {
+                    None => {
+                        refused += c.len();
+                        continue;
+                    }
+                    Some(after) => sharp |= bends(&mesh, &after),
+                }
             }
             count += c.len();
             let (points, edges, faces, anchors) = (c.points, c.edges, c.faces, c.anchors);
@@ -148,8 +179,87 @@ impl Workbench {
             return;
         }
         let label = counted(verb, count, thing(mode));
+        if sharp && !self.viewport.options().dissolve_without_warning {
+            self.dissolve_question = Some(DissolveQuestion {
+                label,
+                ops,
+                sure: false,
+                dont_warn: false,
+            });
+            self.note = Some(
+                "Dissolve: this would merge polygons across a sharp corner. See the question."
+                    .into(),
+            );
+            return;
+        }
         if self.record_each(&label, ops) {
             self.note = Some(format!("{label}. Ctrl + Z takes it back."));
+        }
+    }
+
+    /// Shows the question asked before dissolving across a sharp corner,
+    /// if one is waiting, and carries out the answer.
+    pub(super) fn dissolve_question_window(&mut self, ctx: &egui::Context) {
+        let Some(question) = self.dissolve_question.as_mut() else {
+            return;
+        };
+        let mut answer = None;
+        egui::Modal::new(egui::Id::new("dissolve_question")).show(ctx, |ui| {
+            ui.set_width(420.0);
+            ui.label(
+                RichText::new(DISSOLVE_QUESTION_TITLE)
+                    .strong()
+                    .color(theme::TEXT_STRONG),
+            );
+            ui.add_space(4.0);
+            ui.label(
+                "Dissolving here merges polygons that meet at a sharp corner into one bent \
+                 polygon. A bent polygon isn't flat, so it shades badly and can look torn or \
+                 creased.",
+            );
+            ui.add_space(4.0);
+            ui.label(
+                "To take the polygons away and leave a hole, use Delete instead. To keep the \
+                 surface but lose a corner, Weld or Bevel are usually what you want.",
+            );
+            ui.add_space(8.0);
+            ui.checkbox(&mut question.sure, "I know what I'm doing, proceed");
+            ui.checkbox(&mut question.dont_warn, "Don't warn me again")
+                .on_hover_text("You can switch the warning back on in Settings → Interface.");
+            ui.add_space(8.0);
+            ui.horizontal(|ui| {
+                if ui
+                    .add_enabled(question.sure, egui::Button::new("Dissolve"))
+                    .on_disabled_hover_text("Tick \"I know what I'm doing, proceed\" first.")
+                    .clicked()
+                {
+                    answer = Some(true);
+                }
+                if ui.button("Cancel").clicked() {
+                    answer = Some(false);
+                }
+            });
+            ui.add_space(4.0);
+            ui.label(RichText::new("Esc: cancel").small().color(theme::TEXT_WEAK));
+        });
+        if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
+            answer = Some(false);
+        }
+        let Some(answer) = answer else {
+            return;
+        };
+        let Some(question) = self.dissolve_question.take() else {
+            return;
+        };
+        if !answer {
+            self.note = Some("Dissolve cancelled: nothing changed.".into());
+            return;
+        }
+        if question.dont_warn {
+            self.viewport.options_mut().dissolve_without_warning = true;
+        }
+        if self.record_each(&question.label, question.ops) {
+            self.note = Some(format!("{}. Ctrl + Z takes it back.", question.label));
         }
     }
 
@@ -272,9 +382,10 @@ impl Workbench {
     }
 }
 
-/// Whether dissolving `c` on `mesh` would change anything (tried on a
-/// copy), so a refused dissolve isn't recorded as an empty undo step.
-fn dissolves(mesh: &scene::Mesh, c: &Chosen) -> bool {
+/// `mesh` with `c` dissolved (tried on a copy), or `None` when nothing
+/// would change, so a refused dissolve isn't recorded as an empty undo
+/// step.
+fn dissolved(mesh: &scene::Mesh, c: &Chosen) -> Option<scene::Mesh> {
     let mut trial = mesh.clone();
     let outcome = if !c.faces.is_empty() {
         mesh::edit::dissolve_faces(&mut trial, &c.faces)
@@ -283,5 +394,20 @@ fn dissolves(mesh: &scene::Mesh, c: &Chosen) -> bool {
     } else {
         mesh::edit::dissolve_points(&mut trial, &c.points)
     };
-    outcome.matched > 0
+    (outcome.matched > 0).then_some(trial)
+}
+
+/// Whether going from `before` to `after` took away an edge whose two
+/// polygons met more sharply than the Hard edges by angle start (30°):
+/// the merged polygon is then bent, not flat.
+pub(crate) fn bends(before: &scene::Mesh, after: &scene::Mesh) -> bool {
+    let cos = mesh::hardness::DEFAULT_ANGLE.to_radians().cos();
+    let (old, new) = (before.topology(), after.topology());
+    old.edges().filter(|e| !new.has_edge(*e)).any(|e| {
+        let [one, two] = old.edge_uses(e) else {
+            return false;
+        };
+        let (n1, n2) = (before.face_normal(one.face), before.face_normal(two.face));
+        n1.length_squared() > 0.5 && n2.length_squared() > 0.5 && n1.dot(n2) < cos - 1e-6
+    })
 }

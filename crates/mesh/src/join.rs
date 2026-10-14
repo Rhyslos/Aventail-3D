@@ -498,8 +498,10 @@ pub fn bridge_edges(mesh: &mut Mesh, edges: &[EdgeKey], segments: u32, twist: i3
             .first()
             .map_or(CornerFrom::Nothing, |f| CornerFrom::Copy(*f, v))
     };
+    let first_new = mesh.face_slots().len();
     let mut build = Builder::new(&original, mesh);
     let made = band(&mut build, &one, &two, closed, segments, like, &corner_face);
+    crate::hardness::harden_new_edges(mesh, first_new, crate::hardness::DEFAULT_ANGLE);
     Outcome {
         matched: made,
         missing,
@@ -553,8 +555,10 @@ pub fn bridge_faces(mesh: &mut Mesh, faces: &[FaceId], segments: u32, twist: i32
             CornerFrom::Copy(*b, v)
         }
     };
+    let first_new = mesh.face_slots().len();
     let mut build = Builder::new(&original, mesh);
     let made = band(&mut build, &one, &two, true, segments, Some(*a), &corner);
+    crate::hardness::harden_new_edges(mesh, first_new, crate::hardness::DEFAULT_ANGLE);
     Outcome {
         matched: made,
         missing,

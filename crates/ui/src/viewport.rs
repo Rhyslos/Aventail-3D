@@ -154,6 +154,9 @@ pub struct ViewOptions {
     /// Symmetry: whether moving points moves their mirrors too, and
     /// across which axes (decision 0054).
     pub symmetry: Symmetry,
+    /// Whether Dissolve goes ahead across a sharp corner without asking
+    /// first ("Don't warn me again"; it asks as standard, decision 0057).
+    pub dissolve_without_warning: bool,
 }
 
 /// Symmetry while moving, rotating and scaling points, edges and polygons
