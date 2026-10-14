@@ -2,13 +2,19 @@
 //! the other side of the shape mirror them, so they can move too
 //! ([decision 0054](../../../docs/decisions/0054-symmetry.md)).
 //!
-//! The mirror planes go through the shape's own middle (its origin),
-//! across its own X, Y or Z axis. Points are matched by position, within
+//! The mirror planes go across the shape's own X, Y or Z axis, through a
+//! chosen point ([`Mirror::centre`]: the shape's origin, its middle, or
+//! the world's centre, with an offset). Points are matched by position, within
 //! [`TOLERANCE`]. The result is a [`MirrorPlan`]: groups of points, each
 //! moved by the change seen through a mirror (`reflect`) and kept on the
 //! planes they sit on (`keep_on`).
+//!
+//! **Mirroring edits** ([decision 0059](../../../docs/decisions/0059-symmetry-for-every-edit.md)).
+//! A [`Mirror`] says which planes, through which point; [`Partners`]
+//! finds each point's, edge's and polygon's mirror across one of them, so
+//! an edit made on one side can be made on the other too.
 
-use crate::{Mesh, VertexId};
+use crate::{EdgeKey, FaceId, Mesh, VertexId};
 use glam::{Mat4, Vec3};
 use std::collections::{BTreeSet, HashMap};
 
@@ -26,6 +32,8 @@ pub struct MirrorGroup {
     pub keep_on: [bool; 3],
     /// The points, in order.
     pub points: Vec<VertexId>,
+    /// The point the mirror planes go through.
+    pub centre: Vec3,
 }
 
 impl MirrorGroup {
@@ -33,7 +41,9 @@ impl MirrorGroup {
     /// make it: mirrored, then kept on their planes.
     pub fn matrix(&self, local: Mat4) -> Mat4 {
         let s = reflection(self.reflect);
-        s * flatten(self.keep_on) * local * s
+        let to = Mat4::from_translation(self.centre);
+        let from = Mat4::from_translation(-self.centre);
+        to * s * flatten(self.keep_on) * from * local * to * s * from
     }
 
     /// A move by `offset` (in the shape's own space) as these points make
@@ -141,7 +151,7 @@ fn reflections(axes: [bool; 3]) -> Vec<[bool; 3]> {
 }
 
 /// Which points move how when `chosen` points move with symmetry across
-/// `axes` (in the shape's own space).
+/// `mirror`'s planes (in the shape's own space).
 ///
 /// - Each chosen point drives its mirrors: they move the mirrored way.
 /// - A chosen point that is itself the mirror of one before it (both
@@ -151,7 +161,9 @@ fn reflections(axes: [bool; 3]) -> Vec<[bool; 3]> {
 ///   moves.
 ///
 /// With no axis on, every chosen point is in one group, moving as it is.
-pub fn mirror_plan(mesh: &Mesh, chosen: &[VertexId], axes: [bool; 3]) -> MirrorPlan {
+pub fn mirror_plan(mesh: &Mesh, chosen: &[VertexId], mirror: Mirror) -> MirrorPlan {
+    let axes = mirror.axes;
+    let centre = mirror.centre;
     let mut chosen: Vec<VertexId> = chosen
         .iter()
         .copied()
@@ -165,6 +177,7 @@ pub fn mirror_plan(mesh: &Mesh, chosen: &[VertexId], axes: [bool; 3]) -> MirrorP
                 reflect: [false; 3],
                 keep_on: [false; 3],
                 points: chosen,
+                centre,
             }],
         };
     }
@@ -181,6 +194,7 @@ pub fn mirror_plan(mesh: &Mesh, chosen: &[VertexId], axes: [bool; 3]) -> MirrorP
             reflect,
             keep_on,
             points: vec![v],
+            centre,
         }),
     };
     for v in chosen {
@@ -190,14 +204,14 @@ pub fn mirror_plan(mesh: &Mesh, chosen: &[VertexId], axes: [bool; 3]) -> MirrorP
         let Some(p) = mesh.position(v) else {
             continue;
         };
-        let keep_on = [0, 1, 2].map(|a| axes[a] && p[a].abs() <= TOLERANCE);
+        let keep_on = [0, 1, 2].map(|a| axes[a] && (p[a] - centre[a]).abs() <= TOLERANCE);
         add([false; 3], keep_on, v);
         for reflect in &mirrors {
             // Mirroring across a plane the point is on gives the point.
             if (0..3).all(|a| !reflect[a] || keep_on[a]) {
                 continue;
             }
-            let at = reflection(*reflect).transform_point3(p);
+            let at = mirror.point(*reflect, p);
             if let Some(other) = index.near(at, v)
                 && taken.insert(other)
             {
@@ -208,6 +222,99 @@ pub fn mirror_plan(mesh: &Mesh, chosen: &[VertexId], axes: [bool; 3]) -> MirrorP
     // The chosen points' own groups first, then by mirror.
     groups.sort_by_key(|g| (g.reflect, g.keep_on));
     MirrorPlan { groups }
+}
+
+/// Mirror planes for edits: across the shape's own X, Y and/or Z axes,
+/// through `centre` (in the shape's own space).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Mirror {
+    /// The axes mirrored across.
+    pub axes: [bool; 3],
+    /// The point the planes go through.
+    pub centre: Vec3,
+}
+
+impl Mirror {
+    /// Across `axes`, through the shape's origin.
+    pub fn through_origin(axes: [bool; 3]) -> Self {
+        Self {
+            axes,
+            centre: Vec3::ZERO,
+        }
+    }
+
+    /// Every mirror to make an edit's copy across: each combination of
+    /// the axes (X and Y gives X, Y and both).
+    pub fn reflections(&self) -> Vec<[bool; 3]> {
+        reflections(self.axes)
+    }
+
+    /// `p` mirrored across `reflect`.
+    pub fn point(&self, reflect: [bool; 3], p: Vec3) -> Vec3 {
+        self.centre + reflection(reflect).transform_vector3(p - self.centre)
+    }
+
+    /// The direction `d` mirrored across `reflect`.
+    pub fn vector(reflect: [bool; 3], d: Vec3) -> Vec3 {
+        reflection(reflect).transform_vector3(d)
+    }
+}
+
+/// Each element's mirror across one plane (or more) of a shape, matched by
+/// position within [`TOLERANCE`]. A point on the plane is its own mirror.
+pub struct Partners<'a> {
+    mesh: &'a Mesh,
+    index: PointIndex<'a>,
+    mirror: Mirror,
+    reflect: [bool; 3],
+}
+
+impl<'a> Partners<'a> {
+    /// The mirrors in `mesh` across `reflect` of `mirror`.
+    pub fn new(mesh: &'a Mesh, mirror: Mirror, reflect: [bool; 3]) -> Self {
+        Self {
+            mesh,
+            index: PointIndex::new(mesh),
+            mirror,
+            reflect,
+        }
+    }
+
+    /// The point mirroring `v`, if the shape has one there.
+    pub fn point(&self, v: VertexId) -> Option<VertexId> {
+        let at = self.mirror.point(self.reflect, self.mesh.position(v)?);
+        if self.mesh.position(v)?.distance(at) <= TOLERANCE {
+            return Some(v);
+        }
+        self.index.near(at, v)
+    }
+
+    /// The edge mirroring `edge`, if the shape has one there.
+    pub fn edge(&self, edge: EdgeKey) -> Option<EdgeKey> {
+        let (a, b) = edge.ends();
+        let mirrored = EdgeKey::new(self.point(a)?, self.point(b)?);
+        self.mesh.topology().has_edge(mirrored).then_some(mirrored)
+    }
+
+    /// The polygon mirroring `face`, if the shape has one there.
+    pub fn face(&self, face: FaceId) -> Option<FaceId> {
+        let corners = self.mesh.face(face)?;
+        let mirrored: Vec<VertexId> = corners
+            .iter()
+            .map(|v| self.point(*v))
+            .collect::<Option<_>>()?;
+        let wanted: BTreeSet<VertexId> = mirrored.iter().copied().collect();
+        self.mesh
+            .topology()
+            .vertex_faces(*mirrored.first()?)
+            .iter()
+            .copied()
+            .find(|f| {
+                self.mesh.face(*f).is_some_and(|c| {
+                    c.len() == corners.len() && c.iter().copied().collect::<BTreeSet<_>>() == wanted
+                })
+            })
+    }
 }
 
 #[cfg(test)]

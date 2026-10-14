@@ -748,3 +748,24 @@ fn every_shape_bends_cleanly() {
         }
     }
 }
+
+#[test]
+fn a_bend_direction_and_its_way_round_turn_into_each_other() {
+    for facing in [
+        Vec3::X,
+        Vec3::Z,
+        -Vec3::Z,
+        Vec3::new(1.0, 1.0, 0.3).normalize(),
+    ] {
+        for direction in [0.0, 45.0, 90.0, 200.0, 359.0] {
+            let towards = bend_towards(facing, direction).unwrap();
+            assert!(towards.dot(facing).abs() < 1e-4);
+            let back = bend_direction(facing, towards);
+            let apart = (back - direction).rem_euclid(360.0);
+            assert!(
+                apart.min(360.0 - apart) < 1e-2,
+                "{facing} {direction} → {back}"
+            );
+        }
+    }
+}

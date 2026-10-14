@@ -258,6 +258,16 @@ pub enum Operation {
         /// The line, where it is seen from, and whether it cuts through.
         line: SlitLine,
     },
+    /// An edit made with symmetry on: made on its own elements and on
+    /// their mirrors across `mirror` ([decision 0059](../../../docs/decisions/0059-symmetry-for-every-edit.md),
+    /// [`crate::mirroring`]). Its settings are the edit's own, so changing
+    /// them changes both sides.
+    Mirrored {
+        /// The edit as it was made.
+        op: Box<Operation>,
+        /// The mirror planes.
+        mirror: mesh::symmetry::Mirror,
+    },
 }
 
 /// An edit's id: unique among the edits of its object while they exist,
@@ -402,12 +412,25 @@ impl Operation {
             }
             Self::Slit { line } if line.through => "Slit through".to_string(),
             Self::Slit { .. } => "Slit".to_string(),
+            Self::Mirrored { op, .. } => format!("{}, mirrored", op.describe()),
+        }
+    }
+
+    /// The edit itself: for a mirrored edit, the edit as it was made;
+    /// otherwise this one.
+    pub fn inner(&self) -> &Operation {
+        match self {
+            Self::Mirrored { op, .. } => op,
+            _ => self,
         }
     }
 
     /// The settings that can still be changed, for an extrude, inset or
     /// bevel.
     pub fn settings(&self) -> Option<EditSettings> {
+        if let Self::Mirrored { op, .. } = self {
+            return op.settings();
+        }
         let plain = |distance: f32, grouping: Grouping| EditSettings {
             distance: Some(distance),
             grouping: Some(grouping),
@@ -477,7 +500,7 @@ impl Operation {
             | Self::SetHardEdges { .. }
             | Self::SlidePoints { .. }
             | Self::FixFacing => None,
-            Self::MovePoints { .. } | Self::TransformPoints { .. } => None,
+            Self::MovePoints { .. } | Self::TransformPoints { .. } | Self::Mirrored { .. } => None,
         }
     }
 
@@ -485,6 +508,12 @@ impl Operation {
     /// ignored; an edit without settings is unchanged).
     #[must_use]
     pub fn with(&self, settings: EditSettings) -> Self {
+        if let Self::Mirrored { op, mirror } = self {
+            return Self::Mirrored {
+                op: Box::new(op.with(settings)),
+                mirror: *mirror,
+            };
+        }
         // A straight extrude given a bend becomes a bent one.
         if let (
             Self::ExtrudePolygons {
@@ -595,7 +624,7 @@ impl Operation {
             | Self::SetHardEdges { .. }
             | Self::SlidePoints { .. }
             | Self::FixFacing => {}
-            Self::MovePoints { .. } | Self::TransformPoints { .. } => {}
+            Self::MovePoints { .. } | Self::TransformPoints { .. } | Self::Mirrored { .. } => {}
         }
         changed
     }
@@ -649,6 +678,7 @@ impl Operation {
                         edit::Eye::Along(d) => d.is_finite(),
                     }
             }
+            Self::Mirrored { op, mirror } => op.numbers_are_real() && mirror.centre.is_finite(),
         };
         own && anchors_ok
     }
@@ -676,6 +706,7 @@ impl Operation {
             | Self::SlidePoints { anchors, .. } => anchors.as_ref(),
             Self::FixFacing | Self::HardEdgesByAngle { .. } => None,
             Self::Slit { .. } => None,
+            Self::Mirrored { op, .. } => op.anchors(),
         }
     }
 
@@ -703,6 +734,7 @@ impl Operation {
             | Self::SlidePoints { anchors, .. } => anchors.as_mut(),
             Self::FixFacing | Self::HardEdgesByAngle { .. } => None,
             Self::Slit { .. } => None,
+            Self::Mirrored { op, .. } => op.anchors_mut(),
         }
     }
 
@@ -739,6 +771,7 @@ impl Operation {
             | Self::TransformPoints { points, .. }
             | Self::BevelPoints { points, .. }
             | Self::Weld { points, .. } => (points, self.anchors()),
+            Self::Mirrored { op, .. } => op.points(),
             _ => (&[], self.anchors()),
         }
     }
@@ -748,6 +781,22 @@ impl Operation {
     /// its anchored places still fit. Otherwise (a primitive given more
     /// segments, say) its elements are found again by their anchors.
     fn apply(&self, mesh: &mut Mesh) -> Applied {
+        // With symmetry: on both sides, together or as copies.
+        if let Self::Mirrored { op, mirror } = self {
+            return match crate::mirroring::both_sides(op, mesh, mirror) {
+                crate::mirroring::Both::Together(all) => all.apply(mesh),
+                crate::mirroring::Both::Copies(copies) => {
+                    let mut applied = op.apply(mesh);
+                    for copy in copies {
+                        let more = copy.apply(mesh);
+                        applied.missing += more.missing;
+                        applied.found_again |= more.found_again;
+                        applied.too_big |= more.too_big;
+                    }
+                    applied
+                }
+            };
+        }
         let same = self.anchors().is_some_and(|a| a.same_structure(mesh));
         // The points at the anchored places, when the ids can't be trusted.
         let refound = match self.anchors() {
@@ -1027,6 +1076,8 @@ impl Operation {
                 }
                 _ => edit::slide_points(mesh, slides),
             },
+            // Handled above.
+            Self::Mirrored { .. } => return skipped,
             Self::Slit { line } => {
                 // One more polygon for each piece cut off.
                 if too_big(mesh::slit::slit_size(mesh, line)) {

@@ -43,6 +43,8 @@ enum Elements {
 struct Part {
     id: ObjectId,
     elements: Elements,
+    /// With symmetry on, the planes the edit is mirrored across.
+    mirror: Option<mesh::symmetry::Mirror>,
     /// How many world centimetres one of the object's own is (its scale,
     /// averaged over the three axes).
     scale: f32,
@@ -239,7 +241,7 @@ impl ModellingSession {
         for part in &self.parts {
             let command = Command::Record {
                 id: part.id,
-                operation: self.operation(part, distance),
+                operation: super::with_mirror(self.operation(part, distance), part.mirror),
             };
             document
                 .execute_labelled(command, &label, Some(self.key))
@@ -424,7 +426,7 @@ impl Workbench {
         };
         let count_of = |op: &Operation| {
             let settings = op.settings()?;
-            match (self.tool, op) {
+            match (self.tool, op.inner()) {
                 (Tool::Bevel, _) => settings.segments,
                 // Only a bent extrude has its own segments; a straight one
                 // shows the tool's.
@@ -581,6 +583,7 @@ impl Workbench {
             );
             parts.push(Part {
                 id: item.id,
+                mirror: self.edit_mirror(item.id),
                 elements,
                 scale: average_scale(item.transform),
                 anchors: Anchors::record(&item.mesh, kind, &corners),

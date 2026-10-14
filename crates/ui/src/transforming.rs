@@ -405,13 +405,20 @@ impl Target {
     /// mirror plane stay on it (decision 0054). Worked out once, when a
     /// change begins. Objects are unchanged.
     #[must_use]
-    pub(crate) fn mirrored(mut self, drawing: &SceneDrawing, axes: [bool; 3]) -> Self {
+    pub(crate) fn mirrored(
+        mut self,
+        drawing: &SceneDrawing,
+        mirror_for: impl Fn(ObjectId) -> Option<mesh::symmetry::Mirror>,
+    ) -> Self {
         if let Targets::Points(starts, _) = &mut self.targets {
             for start in starts {
                 let Some(item) = drawing.items.iter().find(|i| i.id == start.id) else {
                     continue;
                 };
-                let plan = mesh::symmetry::mirror_plan(&item.mesh, &start.points, axes);
+                let Some(mirror) = mirror_for(start.id) else {
+                    continue;
+                };
+                let plan = mesh::symmetry::mirror_plan(&item.mesh, &start.points, mirror);
                 let groups = plan
                     .groups
                     .into_iter()

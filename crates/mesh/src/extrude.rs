@@ -559,6 +559,36 @@ impl Bend {
     }
 }
 
+/// Where a bend's direction 0° points for a piece facing `facing` (unit):
+/// up, or +X for a piece facing straight up or down.
+fn bend_reference(facing: Vec3) -> Option<Vec3> {
+    let reference = if facing.z.abs() < 0.99 {
+        Vec3::Z
+    } else {
+        Vec3::X
+    };
+    (reference - facing * reference.dot(facing)).try_normalize()
+}
+
+/// The way a bend with `direction` (degrees) turns a piece facing
+/// `facing` (unit): a unit direction across the facing.
+pub fn bend_towards(facing: Vec3, direction: f32) -> Option<Vec3> {
+    let first = bend_reference(facing)?;
+    Some(glam::Quat::from_axis_angle(facing, direction.to_radians()) * first)
+}
+
+/// The bend direction (degrees, 0 to 360) that turns a piece facing
+/// `facing` (unit) towards `towards`: the opposite of [`bend_towards`].
+/// Symmetry uses it to turn a mirrored pipe the mirrored way.
+pub fn bend_direction(facing: Vec3, towards: Vec3) -> f32 {
+    let Some(first) = bend_reference(facing) else {
+        return 0.0;
+    };
+    let across = (towards - facing * towards.dot(facing)).normalize_or_zero();
+    let angle = facing.dot(first.cross(across)).atan2(first.dot(across));
+    angle.to_degrees().rem_euclid(360.0)
+}
+
 /// The way a piece faces and turns: its middle, its facing, the way the
 /// bend turns towards, and the axis it turns around.
 struct Turn {
@@ -584,14 +614,7 @@ impl Turn {
             .map(|f| mesh.face_normal(*f))
             .sum::<Vec3>()
             .try_normalize()?;
-        // Up, or +X for something facing straight up or down.
-        let reference = if facing.z.abs() < 0.99 {
-            Vec3::Z
-        } else {
-            Vec3::X
-        };
-        let first = (reference - facing * reference.dot(facing)).try_normalize()?;
-        let towards = glam::Quat::from_axis_angle(facing, direction.to_radians()) * first;
+        let towards = bend_towards(facing, direction)?;
         Some(Self {
             middle,
             facing,

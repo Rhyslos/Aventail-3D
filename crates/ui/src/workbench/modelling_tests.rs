@@ -113,7 +113,7 @@ fn drag_without_letting_go(harness: &mut H, from: Pos2, dx: f32) -> Pos2 {
     at
 }
 
-fn drag(harness: &mut H, dx: f32) {
+pub(super) fn drag(harness: &mut H, dx: f32) {
     let from = empty_spot(harness);
     let at = drag_without_letting_go(harness, from, dx);
     button(harness, at, false, PointerButton::Primary, Modifiers::NONE);

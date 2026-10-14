@@ -514,8 +514,15 @@ fn with_symmetry_moving_a_point_moves_its_mirror() {
             .is_some()
     );
     press(&mut harness, Key::Num1);
-    // Its X, Y and Z switches are in the Attributes panel.
+    // Its X, Y and Z switches are in the menu beside the switch.
+    assert!(harness.query_by_label("Symmetry X").is_none());
+    harness
+        .get_by_label(crate::palette::SYMMETRY_MENU_LABEL)
+        .click();
+    harness.run();
     assert!(harness.query_by_label("Symmetry X").is_some());
+    harness.key_press(Key::Escape);
+    harness.run();
     // One top corner on the right.
     let mesh = shape(&harness);
     let right = mesh
@@ -622,4 +629,57 @@ fn alt_dragging_the_move_gizmo_slides_points_along_their_edges() {
         harness.state().workbench.document().undo_label(),
         Some("Slide 4 points")
     );
+}
+
+#[test]
+fn the_symmetry_menu_sets_the_axes_and_where_the_mirror_goes() {
+    let mut harness = fresh();
+    let id = cube(&harness);
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .set_selection([id]);
+    harness.run();
+    harness
+        .get_by_label(crate::palette::SYMMETRY_MENU_LABEL)
+        .click();
+    harness.run();
+    // Turned on, across Y as well, through the world centre.
+    harness.get_by_label("On").click();
+    harness.run();
+    harness.get_by_label("Symmetry Y").click();
+    harness.run();
+    harness.get_by_label("World centre").click();
+    harness.run();
+    let symmetry = harness.state().workbench.viewport().options().symmetry;
+    assert!(symmetry.on);
+    assert_eq!(symmetry.axes, [true, true, false]);
+    assert_eq!(symmetry.centre, crate::SymmetryCentre::World);
+    // Through the world centre, an object moved to x = 100 mirrors about
+    // its own x = -100.
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::SetTransforms(vec![(
+            id,
+            scene::Transform {
+                position: glam::Vec3::new(100.0, 0.0, 0.0),
+                ..Default::default()
+            },
+        )]))
+        .unwrap();
+    harness.run();
+    let mirror = harness.state().workbench.mirror_for(id).unwrap();
+    assert!(mirror.centre.distance(glam::Vec3::new(-100.0, 0.0, 0.0)) < 1e-3);
+    // Its middle: the box's centre, moved by the offset.
+    let options = harness.state_mut().workbench.viewport_mut().options_mut();
+    options.symmetry.centre = crate::SymmetryCentre::Middle;
+    options.symmetry.offset = [5.0, 0.0, 0.0];
+    let mirror = harness.state().workbench.mirror_for(id).unwrap();
+    assert!(mirror.centre.distance(glam::Vec3::new(5.0, 0.0, 50.0)) < 1e-3);
+    // Off: no mirror.
+    harness.state_mut().workbench.toggle_symmetry();
+    assert!(harness.state().workbench.mirror_for(id).is_none());
 }

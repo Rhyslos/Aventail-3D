@@ -115,6 +115,21 @@ pub const MODE_KEYS: [(Key, Mode); 3] = [
     (Key::Num3, Mode::Polygons),
 ];
 
+/// `op`, made on both sides of `mirror` when there is one and the edit can
+/// be mirrored ([decision 0059](../../../docs/decisions/0059-symmetry-for-every-edit.md)).
+pub(crate) fn with_mirror(
+    op: scene::Operation,
+    mirror: Option<mesh::symmetry::Mirror>,
+) -> scene::Operation {
+    match mirror {
+        Some(mirror) if scene::mirroring::mirrors(&op) => scene::Operation::Mirrored {
+            op: Box::new(op),
+            mirror,
+        },
+        _ => op,
+    }
+}
+
 /// Steps straight back to the Model mode from wherever editing has got to
 /// ([decision 0057](../../../docs/decisions/0057-after-phase-4-testing.md)):
 /// a Slit line is finished, a modelling tool is put away and the Points,
@@ -811,11 +826,16 @@ impl Workbench {
             snapping: self.viewport.options().snap.on,
             symmetry: self.viewport.options().symmetry.on,
         };
+        // The Symmetry menu changes a copy, kept if it changed (the
+        // palette's switch changes the options directly).
+        let symmetry_before = self.viewport.options().symmetry;
+        let mut symmetry = symmetry_before;
+        let units = self.units;
         egui::Panel::top("command_palette")
             .frame(theme::palette_frame())
             .exact_size(40.0)
             .show(ui, |ui| {
-                if let Some(command) = command_palette(ui, &palette_state) {
+                if let Some(command) = command_palette(ui, &palette_state, &mut symmetry, units) {
                     requests.push(match command {
                         PaletteCommand::NextSelectTool => {
                             if self.tool == Tool::Select {
@@ -856,6 +876,9 @@ impl Workbench {
                     });
                 }
             });
+        if symmetry != symmetry_before {
+            self.viewport.options_mut().symmetry = symmetry;
+        }
         egui::Panel::bottom("status_bar")
             .frame(theme::status_bar_frame())
             .exact_size(24.0)
@@ -893,7 +916,6 @@ impl Workbench {
         let coordinates = self.coordinates_view(&summary.drawing);
         let mut coordinates_done = Interaction::default();
         self.attributes.tool = self.tool;
-        self.attributes.symmetry = self.viewport.options().symmetry;
         hide_viewport_tab(&mut self.dock);
         let style = theme::dock_style(ui.style().as_ref(), self.accent);
         theme::dock_frame().show(ui, |ui| {
@@ -921,7 +943,6 @@ impl Workbench {
                     },
                 );
         });
-        self.viewport.options_mut().symmetry = self.attributes.symmetry;
         // What is under the mouse now that the viewport knows where it is;
         // when that changes, draw again so the highlight follows at once.
         self.carry_out_selection(&summary.drawing);
@@ -1135,6 +1156,48 @@ impl Workbench {
                 self.undo_memory.short()
             ));
         }
+    }
+
+    /// The mirror planes edits to `id`'s shape are made across: with
+    /// symmetry on, in the Points, Edges and Polygons modes
+    /// ([decision 0059](../../../docs/decisions/0059-symmetry-for-every-edit.md)).
+    pub(crate) fn edit_mirror(&self, id: scene::ObjectId) -> Option<mesh::symmetry::Mirror> {
+        components::kind_for(self.mode)?;
+        self.mirror_for(id)
+    }
+
+    /// With symmetry on, the mirror planes for `id`'s shape, in its own
+    /// space: across its own axes, through the chosen centre moved by the
+    /// offset.
+    pub(crate) fn mirror_for(&self, id: scene::ObjectId) -> Option<mesh::symmetry::Mirror> {
+        let symmetry = self.viewport.options().symmetry;
+        let axes = symmetry.active_axes()?;
+        let offset = glam::Vec3::from_array(symmetry.offset);
+        let offset = if offset.is_finite() {
+            offset
+        } else {
+            glam::Vec3::ZERO
+        };
+        let scene = self.document.scene();
+        let centre = match symmetry.centre {
+            crate::SymmetryCentre::Pivot => offset,
+            crate::SymmetryCentre::Middle => {
+                let middle = scene
+                    .evaluated(id)
+                    .and_then(|shape| shape.mesh.bounds())
+                    .map_or(glam::Vec3::ZERO, |b| b.centre());
+                middle + offset
+            }
+            crate::SymmetryCentre::World => {
+                let inverse = scene.world_matrix(id).inverse();
+                if inverse.is_finite() {
+                    inverse.transform_point3(offset)
+                } else {
+                    glam::Vec3::ZERO
+                }
+            }
+        };
+        Some(mesh::symmetry::Mirror { axes, centre })
     }
 
     /// Whether a selected object has a shape to edit (for the Points,
@@ -1781,6 +1844,8 @@ mod showing;
 mod slit;
 #[cfg(test)]
 mod slit_tests;
+#[cfg(test)]
+mod symmetry_tests;
 mod transform;
 
 #[cfg(test)]

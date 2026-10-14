@@ -13,16 +13,16 @@ const HEIGHT: f32 = 20.0;
 
 /// What happened to a field this frame.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub(super) struct Touched {
+pub(crate) struct Touched {
     /// The value changed.
-    pub(super) changed: bool,
+    pub(crate) changed: bool,
     /// A new drag, typing or click began: a new undo step.
-    pub(super) began: bool,
+    pub(crate) began: bool,
 }
 
 /// A length field (stored in centimetres, shown in `units`), with step
 /// arrows. Kept between `min` and `max` centimetres.
-pub(super) fn length(
+pub(crate) fn length(
     ui: &mut Ui,
     cm: &mut f32,
     (min, max): (f32, f32),

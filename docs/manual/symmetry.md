@@ -1,49 +1,73 @@
 # Symmetry
 
-> Model one half: moving points, edges or polygons moves their mirror on the other side too.
+> Model one half: every edit to points, edges or polygons is made on the other side too, mirrored.
 
-Most things are symmetrical: a crate, a gun, a car, a face. With **Symmetry** on, when you move, rotate or scale part of a shape, the matching part on the other side does the same, mirrored. The two halves stay alike without you doing the work twice.
+Most things are symmetrical: a crate, a gun, a car, a face. With **Symmetry** on, whatever you do to one side of a shape happens to the matching part of the other side too, mirrored. You can move, rotate or scale points, and also extrude, inset, bevel, loop cut, slit, connect, bridge, weld, delete, dissolve, fill holes, flip, and make edges hard or soft. The two halves stay alike without you doing the work twice.
 
 ## When to use it
 
-- Shaping a symmetrical prop by moving points, edges or polygons.
+- Building a symmetrical prop: extrude a panel on the left and the right gets it too; loop cut one side and the cut appears on the other.
 - Widening or narrowing a shape evenly from its middle: move one side, and the other side moves out too.
-
-It works while moving, rotating and scaling (the gizmo and the Coordinates panel). The modelling tools, such as Extrude and Bevel, work on one side only for now: do those on both sides by selecting both.
+- Cleaning up both halves at once: delete, dissolve or weld on one side.
 
 ## How to use it
 
 1. Click the **Symmetry** button at the right end of the top palette (or **Tools → Symmetry**). It lights up.
-2. In the Attributes panel, choose which way to mirror under **Symmetry**: **X** (left and right, the standard), **Y** (front and back) or **Z** (top and bottom). The mirror goes through the shape's own middle, along its own axes.
-3. In the **Points**, **Edges** or **Polygons** mode, select part of one side and move, rotate or scale it. Its mirror follows.
+2. Click the small **arrow** just right of the button for its settings (see below): which way to mirror, and where the mirror sits. **X** (left and right, through the object's pivot) is the standard.
+3. In the **Points**, **Edges** or **Polygons** mode, work on one side as usual. The other side follows.
+
+What happens with each kind of edit:
+- **Moving, rotating and scaling** move the mirror the mirrored way while you drag.
+- **Extrude, inset, bevel, delete, dissolve, fill hole, flip and hard or soft edges** work on your selection and its mirror together. Polygons that touch across the middle move as one piece, as if you had selected both sides yourself.
+- **Loop cut, slit, connect, bridge, weld and bent extrudes** are made once on your side and once, mirrored, on the other. A loop cut whose loop already goes round through the middle (its own mirror) is made only once. A bend turns the mirrored way on the other side.
+- The edit's settings under **Last edit** belong to both sides: change the Distance or the Cuts and both sides follow. The edit's name ends in "mirrored".
 
 Details:
-- Points sitting on the middle line stay on it, so the shape never splits down the middle.
+- Points sitting on the mirror stay on it, so the shape never splits down the middle.
 - With two axes on, a corner takes all four corners with it.
-- If you select both sides, they still move as mirrors of each other.
-- Where the shape isn't symmetrical (no matching point on the other side), only what you selected moves.
+- If you select both sides, they still work as mirrors of each other.
+- Where the shape isn't symmetrical (no matching point, edge or polygon on the other side), only your side changes.
+- Edits on whole objects (in the Model mode), Fix facing and Hard edges by angle aren't mirrored: they already cover the whole shape.
 
 ![A cube with Symmetry on across X: one side was moved out to 0.8 m, and the other side moved out by as much, making a wider box.](../screenshots/2026-10-14-symmetry.png)
+
+### The Symmetry menu
+
+![The Symmetry menu: On, Mirror across X, Y and Z, Mirror through the object's pivot, its middle or the world centre, and Move the mirror by X, Y and Z.](../screenshots/2026-10-14-symmetry-menu.png)
+
+- **On** switches symmetry on or off, like the button.
+- **Mirror across X, Y, Z**: which of the shape's own axes to mirror across. X mirrors left and right, Y front and back, Z top and bottom. Pick more than one for quarters or eighths.
+- **Mirror through**: where the mirror sits.
+  - **Object's pivot** (the standard): the point the object moves and turns around.
+  - **Object's middle**: the middle of the object's box, wherever its pivot is. Handy when the pivot sits at a corner.
+  - **World centre**: the middle of the scene, where the red and green lines cross. Handy for a shape built to be symmetrical about the middle of the scene, whatever its pivot.
+- **Move the mirror by X, Y, Z**: shifts the mirror from there. The amounts are in the object's own directions, or the world's for World centre.
+
+The mirror always lies along the object's own axes, so a turned object mirrors along its own sides.
 
 ## Settings
 
 | Setting | What it does |
 |---|---|
-| **Symmetry** (palette button, Tools menu) | On or off. Off as standard. Remembered. |
-| **X / Y / Z** (Attributes panel, while Symmetry is on) | Which of the shape's own axes to mirror across. X as standard. Remembered. |
+| **Symmetry** (palette button, Tools menu, or On in its menu) | On or off. Off as standard. Remembered. |
+| **Mirror across X / Y / Z** (Symmetry menu) | Which of the shape's own axes to mirror across. X as standard. Remembered. |
+| **Mirror through** (Symmetry menu) | Object's pivot (standard), Object's middle or World centre. Remembered. |
+| **Move the mirror by X / Y / Z** (Symmetry menu) | How far the mirror is moved from there. 0 as standard. Remembered. |
 
 ## Shortcuts
 
 | Action | Shortcut |
 |---|---|
 | Symmetry on or off | The Symmetry palette button, or Tools → Symmetry |
+| Symmetry settings | The arrow beside the Symmetry button |
 
 ## Tips and common problems
 
-- **Tip:** symmetry mirrors across the shape's *own* middle. If you moved the whole object, it still mirrors around its own axis, not the world's.
-- **Problem:** only the selected part moved. **Why:** the other side doesn't have a point in the mirrored spot (within 0.01 cm), for example after an edit on one side only. **Fix:** make the sides match again, or work on both.
-- **Problem:** the middle points won't move sideways. **Why:** points on the mirror plane stay on it, on purpose. **Fix:** turn Symmetry off to move them off the middle.
-- **Problem:** Extrude or Bevel only changed one side. **Why:** the modelling tools aren't mirrored yet. **Fix:** select both sides before using them.
+- **Tip:** model the half you can see best, with Symmetry on from the start, so both sides always match.
+- **Tip:** to keep an edit on one side only (a scratch, a logo), switch Symmetry off for that edit.
+- **Problem:** only the selected part changed. **Why:** the other side doesn't have a point in the mirrored spot (within 0.01 cm), for example after an edit on one side only, or the mirror sits somewhere else (check **Mirror through** and the offsets). **Fix:** make the sides match again, or move the mirror to the shape's middle.
+- **Problem:** the middle points won't move sideways. **Why:** points on the mirror stay on it, on purpose. **Fix:** turn Symmetry off to move them off the middle.
+- **Problem:** an edit happened twice, overlapping, in the middle. **Why:** rarely, an edit crossing the middle is both made and mirrored. **Fix:** Ctrl + Z, then make it with Symmetry off, selecting both sides yourself.
 
 ## Related
 
