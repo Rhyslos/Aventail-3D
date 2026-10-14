@@ -130,10 +130,11 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
     });
     ui.menu_button("Display", |ui| {
         super::look::choices(ui, &mut panel.options.shading);
-        cavity_entry(ui, &mut panel.options);
         ui.separator();
         grid_entries(ui, &mut panel.options.grid_detail);
         ui.separator();
+        // What is drawn over the surfaces: cavity, hard edges, normals.
+        cavity_entry(ui, &mut panel.options);
         let mut hard = !panel.options.hide_hard_edges;
         if ui
             .checkbox(&mut hard, HARD_EDGES_ENTRY)

@@ -59,7 +59,7 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0049](0049-slit.md) | Slit: a line of points over the shape, cut as seen (or through); file format version 7 | Accepted |
 | [0050](0050-pipe-bends.md) | Pipe bends: an extrude that turns a corner and keeps its size (smooth elbow or mitre joint); file format version 8 | Accepted |
 | [0051](0051-connect-bridge-weld.md) | Connect (J), Bridge (C or drag) and Weld (M, Ctrl + M); file format version 9 | Accepted |
-| [0066](0066-clickable-axes.md) | Clickable corner axes: click X, Y or Z to look along it (again: the other side); Cavity into the Shading list; heavy shapes reshaded in the background while dragging | Accepted |
+| [0066](0066-clickable-axes.md) | Clickable corner axes: click X, Y or Z to look along it (again: the other side); Cavity beside Hard edges in the Display menu; heavy shapes reshaded in the background while dragging | Accepted |
 | [0065](0065-cavity.md) | Cavity: ridges brightened and creases darkened from the surfaces' facing on screen, on as standard; Automatic hard edges moved to the Mesh menu | Accepted |
 | [0064](0064-automatic-hard-edges.md) | Automatic hard edges: a switch (on as standard; in the Mesh menu since 0065) shading every shape by angle after every change; edges set by hand kept | Accepted |
 | [0063](0063-wireframe.md) | Wireframe (Shaded, Shaded with wires, Wireframe) from a button beside the corner axes, which move to the bottom left; the choices for cavity, clickable axes and automatic hard edges | Accepted |

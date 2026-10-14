@@ -1,4 +1,4 @@
-# 0066. Clickable corner axes, and Cavity in the Shading list
+# 0066. Clickable corner axes, and Cavity beside Hard edges
 
 - **Status:** Accepted
 - **Date:** 2026-10-14
@@ -8,7 +8,7 @@
 
 The project lead asked for "snapping by clicking on the gizmo" in the corner, as in Blender. In 0063 they chose that a click swings the view to look along the axis, staying in perspective, and a second click looks from the other side.
 
-After Cavity was merged, they asked to move it "to the display dropdown". It was already in the viewport's Display menu, so this was read as putting it in the Shading button's dropdown in the bottom-left corner, instead of a button of its own.
+After Cavity was merged, they asked to move it "to the display dropdown". It was first read as the Shading button's dropdown; they meant the viewport's Display menu, "where hard edges and such is".
 
 ## Decision
 
@@ -22,7 +22,7 @@ After Cavity was merged, they asked to move it "to the display dropdown". It was
    - It grows a little: 22-point lines, with each letter in a soft round button of its colour (8-point radius).
    - A hovered letter gets a ring and a pointing hand.
    - The grid spacing text and the look row move to make room.
-5. **Cavity** moves into the Shading list, under the three looks. Its checkbox keeps the list open, so it can be tried on and off. Its own button goes, and it stays in Display → Cavity.
+5. **Cavity** loses its own button in the corner and sits in the Display menu's group with **Hard edges** and **Normals**, the things drawn over the surfaces, first in that group. The bottom-left row keeps only the Shading button.
 6. **Heavy shapes**, found by the phase-end heavy-mesh check:
    - Shaded by angle, a move can turn edges sharp or soft. A shape of 50,000 polygons or more then follows the move at once, with its old shading groups, and is reshaded on another thread. Lighter shapes are reshaded at once.
    - Shading groups and face facings are worked out on every core.

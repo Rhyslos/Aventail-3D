@@ -68,7 +68,7 @@ pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) {
     );
     let response = response.on_hover_text("How shapes are drawn: shaded, with wires, or wireframe");
     Popup::from_toggle_button_response(&response)
-        .close_behavior(PopupCloseBehavior::CloseOnClickOutside)
+        .close_behavior(PopupCloseBehavior::CloseOnClick)
         .align(RectAlign::TOP_START)
         .gap(6.0)
         .width(LIST_WIDTH)
@@ -83,10 +83,6 @@ pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) {
         .show(|ui| {
             ui.set_width(LIST_WIDTH - 16.0);
             choices(ui, &mut panel.options.shading);
-            // Cavity's switch, in the same list (decision 0066); it keeps
-            // the list open, so it can be tried on and off.
-            ui.separator();
-            super::chrome::cavity_entry(ui, &mut panel.options);
         });
 }
 

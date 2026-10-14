@@ -9,7 +9,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Added
 
 - **Look along an axis.** In the perspective view, click X, Y or Z on the axis arrows in the bottom-left corner: the view swings round to look straight along that axis (Z from above, X from the right, Y from the back). Click it again to look from the other side.
-- **Cavity.** Ridges catch a light line and creases and inner corners darken, so edges and a shape's form read clearly at a glance, like Blender's cavity. On as standard; switch it in the Shading list in the viewport's bottom-left corner, or in the **Display** menu.
+- **Cavity.** Ridges catch a light line and creases and inner corners darken, so edges and a shape's form read clearly at a glance, like Blender's cavity. On as standard; switch it in the viewport's **Display** menu, with Hard edges and Normals.
 - **Automatic hard edges.** A new switch in the **Mesh** menu, on as standard, shades every shape by angle after every change: edges where polygons meet more sharply than 30° are crisp, the rest smooth. Bent extrudes no longer look faceted, and a cylinder's sides stay smooth however you extrude it. Switch it off to shade by the edges you set by hand, which are kept.
 - **Wireframe.** A new button in the viewport's bottom-left corner (and the top of the **Display** menu) chooses how shapes are drawn: **Shaded**, **Shaded with wires** (every edge drawn clearly on top) or **Wireframe** (only the edges, seen through the shape). Remembered.
 - **Spirals.** With a Bend radius, an extrude's bend **Angle** can now go past 360°, up to ten turns: each loop climbs just clear of the one before, like a spring. **Rise per turn** (under Segments) adds more room between the loops; under one turn it tilts the bend into a ramp. Past one turn, Segments counts the rows in each turn. With Symmetry on, the mirrored copy winds the other way. Projects move to file format 15.
@@ -67,7 +67,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
-- **Cavity** moved from its own button into the Shading list in the viewport's bottom-left corner (it's still in the Display menu too). The axis arrows there are a little bigger, with round letters to click.
+- **Cavity** moved from its own button in the viewport's bottom-left corner into the **Display** menu's group with Hard edges and Normals. The axis arrows there are a little bigger, with round letters to click.
 - The X/Y/Z axis arrows moved from the viewport's top-right corner to the bottom left, beside the new shading button, with the grid spacing just above them.
 - **1, 2 and 3 put a tool away.** With a modelling tool in use (Extrude, Slit, Weld…), pressing a mode key (or clicking a mode button) puts the tool away and you're selecting in that mode, without leaving it. With no tool in use, the keys work as before.
 - **Connect moved from J to A**, within easy reach of the left hand.

@@ -866,33 +866,27 @@ fn display_menu_and_the_corner_button_choose_the_shading() {
 }
 
 #[test]
-fn cavity_is_on_and_switches_from_the_shading_list_and_the_display_menu() {
-    use crate::viewport::chrome::CAVITY_ENTRY;
+fn cavity_is_on_and_sits_with_hard_edges_in_the_display_menu() {
+    use crate::viewport::chrome::{CAVITY_ENTRY, HARD_EDGES_ENTRY, NORMALS_ENTRY};
     let mut harness = fresh();
     let on =
         |h: &egui_kittest::Harness<'static, State>| !h.state().workbench.view_options().hide_cavity;
     assert!(on(&harness), "on as standard");
-    // No button of its own in the corner any more.
+    // Not in the corner: no button, and not in the Shading list.
     assert!(harness.query_by_label(CAVITY_ENTRY).is_none());
-    // In the bottom-left Shading list, under the looks; the list stays
-    // open, so it can be tried on and off.
     harness.get_by_label(crate::viewport::SHADING_LABEL).click();
     harness.run();
-    harness.get_by_label(CAVITY_ENTRY).click();
-    harness.run();
-    assert!(!on(&harness));
-    assert!(
-        harness.query_by_label(CAVITY_ENTRY).is_some(),
-        "the list is still open"
-    );
-    harness.get_by_label(CAVITY_ENTRY).click();
-    harness.run();
-    assert!(on(&harness));
+    assert!(harness.query_by_label(CAVITY_ENTRY).is_none());
     harness.key_press(egui::Key::Escape);
     harness.run();
-    // And in the Display menu.
+    // In the Display menu, in the group with Hard edges and Normals.
     harness.get_by_label("Display").click();
     harness.run();
+    let cavity = harness.get_by_label(CAVITY_ENTRY).rect();
+    let hard = harness.get_by_label(HARD_EDGES_ENTRY).rect();
+    let normals = harness.get_by_label(NORMALS_ENTRY).rect();
+    assert!(cavity.bottom() <= hard.top() + 1.0 && hard.top() - cavity.bottom() < 12.0);
+    assert!(hard.bottom() <= normals.top() + 1.0);
     harness.get_by_label(CAVITY_ENTRY).click();
     harness.run();
     assert!(!on(&harness));
