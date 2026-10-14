@@ -13,6 +13,7 @@ pub mod check;
 pub mod cleanup;
 pub mod edit;
 pub mod extrude;
+pub mod hardness;
 pub mod join;
 pub mod loopcut;
 pub mod parallel;

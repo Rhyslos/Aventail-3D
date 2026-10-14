@@ -1736,3 +1736,56 @@ fn an_edit_that_would_make_the_shape_too_large_is_skipped_with_a_warning() {
     record(&mut doc, id, lift(&[0], 5.0));
     assert_eq!(doc.scene().evaluated(id).unwrap().warnings.len(), 1);
 }
+
+#[test]
+fn hard_and_soft_edges_are_recorded() {
+    let (mut doc, id) = with_a_cube();
+    let mesh = doc.scene().evaluated(id).unwrap().mesh;
+    assert_eq!(mesh.hard_edge_count(), 12);
+    let edges: Vec<EdgeKey> = mesh.edges()[..4].to_vec();
+    let ends: Vec<Vec<VertexId>> = edges
+        .iter()
+        .map(|e| {
+            let (a, b) = e.ends();
+            vec![a, b]
+        })
+        .collect();
+    record(
+        &mut doc,
+        id,
+        Operation::SetHardEdges {
+            edges,
+            hard: false,
+            anchors: mesh::Anchors::record(&mesh, ElementKind::Edges, &ends),
+        },
+    );
+    assert_eq!(doc.undo_label(), Some("Soften 4 edges"));
+    let hard = |doc: &Document| doc.scene().evaluated(id).unwrap().mesh.hard_edge_count();
+    assert_eq!(hard(&doc), 8);
+    // By angle: every corner of a cube is sharper than 30°.
+    let by_angle = Operation::HardEdgesByAngle { angle: 30.0 };
+    assert_eq!(by_angle.settings().unwrap().angle, Some(30.0));
+    record(&mut doc, id, by_angle.clone());
+    assert_eq!(hard(&doc), 12);
+    assert_eq!(doc.undo_label(), Some("Hard edges by angle"));
+    // A wider angle than a cube's corners softens them all; out of range
+    // is brought within 0–180°.
+    let wide = by_angle.with(EditSettings {
+        angle: Some(500.0),
+        ..EditSettings::default()
+    });
+    assert_eq!(wide.settings().unwrap().angle, Some(180.0));
+    assert!(!Operation::HardEdgesByAngle { angle: f32::NAN }.numbers_are_real());
+    // A taller cube afterwards: the edits still apply.
+    doc.execute(Command::SetPrimitive {
+        ids: vec![id],
+        primitive: Primitive::Cube(CubeParams {
+            size: glam::Vec3::new(100.0, 100.0, 300.0),
+            ..Default::default()
+        }),
+    })
+    .unwrap();
+    let shape = doc.scene().evaluated(id).unwrap();
+    assert!(shape.warnings.is_empty());
+    assert_eq!(shape.mesh.hard_edge_count(), 12);
+}
