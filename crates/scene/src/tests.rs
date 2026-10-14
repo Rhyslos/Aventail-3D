@@ -1145,3 +1145,158 @@ fn damaged_object_lists_are_refused() {
     let scene = Scene::from_objects([(id(5), None, group("A"))], 2).unwrap();
     assert_eq!(scene.next_object_id(), 6);
 }
+
+// ------------------------------------------- duplicates and instances ---
+
+#[test]
+fn duplicating_copies_with_edits_after_the_original() {
+    let (mut doc, id) = with_a_cube();
+    doc.execute(Command::Record {
+        id,
+        operation: Operation::HardEdgesByAngle { angle: 100.0 },
+    })
+    .unwrap();
+    doc.execute(Command::Duplicate {
+        ids: vec![id],
+        instances: false,
+    })
+    .unwrap();
+    let top = doc.scene().children(None).to_vec();
+    assert_eq!(top.len(), 2);
+    assert_eq!(top[0], id, "the copy goes just after its original");
+    let copy = top[1];
+    assert_eq!(doc.selection(), vec![copy]);
+    let object = doc.scene().object(copy).unwrap();
+    assert_eq!(object.name, "Cube 2");
+    assert_eq!(object.stack.operation_count(), 1, "edits come along");
+    assert_eq!(doc.undo_label(), Some("Duplicate object"));
+    // The copy is its own: changing the original leaves it alone.
+    doc.execute(Command::SetPrimitive {
+        ids: vec![id],
+        primitive: Primitive::Cube(mesh::CubeParams {
+            segments: [3, 1, 1],
+            ..Default::default()
+        }),
+    })
+    .unwrap();
+    let faces = |doc: &Document, id| doc.scene().evaluated(id).unwrap().mesh.face_count();
+    assert_eq!(faces(&doc, id), 14);
+    assert_eq!(faces(&doc, copy), 6);
+    doc.undo().unwrap();
+    doc.undo().unwrap();
+    assert_eq!(doc.scene().children(None).len(), 1);
+}
+
+#[test]
+fn an_instance_follows_its_original_and_refuses_edits() {
+    let (mut doc, id) = with_a_cube();
+    doc.execute(Command::Duplicate {
+        ids: vec![id],
+        instances: true,
+    })
+    .unwrap();
+    let instance = doc.selection()[0];
+    assert_eq!(
+        doc.scene().object(instance).unwrap().kind,
+        ObjectKind::Instance(id)
+    );
+    assert_eq!(doc.undo_label(), Some("Instance 1 object"));
+    doc.execute(Command::SetPrimitive {
+        ids: vec![id],
+        primitive: Primitive::Cube(mesh::CubeParams {
+            segments: [3, 1, 1],
+            ..Default::default()
+        }),
+    })
+    .unwrap();
+    let shape = doc.scene().evaluated(instance).unwrap();
+    assert_eq!(shape.mesh.face_count(), 14, "it shows the original's shape");
+    assert!(doc.scene().local_bounds(instance).is_some());
+    // No edits of its own.
+    let refused = doc.execute(Command::Record {
+        id: instance,
+        operation: Operation::FixFacing,
+    });
+    assert_eq!(refused, Err(SceneError::Instance));
+    // An instance of the instance shows the same original.
+    doc.execute(Command::Duplicate {
+        ids: vec![instance],
+        instances: true,
+    })
+    .unwrap();
+    let second = doc.selection()[0];
+    assert_eq!(
+        doc.scene().object(second).unwrap().kind,
+        ObjectKind::Instance(id)
+    );
+    // Make editable gives it its own copy.
+    assert!(doc.scene().can_make_editable(instance));
+    doc.execute(Command::MakeEditable(vec![instance])).unwrap();
+    assert!(matches!(
+        doc.scene().object(instance).unwrap().kind,
+        ObjectKind::Mesh(_)
+    ));
+}
+
+#[test]
+fn deleting_an_original_gives_its_instances_their_own_shape() {
+    let (mut doc, id) = with_a_cube();
+    doc.execute(Command::Duplicate {
+        ids: vec![id],
+        instances: true,
+    })
+    .unwrap();
+    let instance = doc.selection()[0];
+    doc.execute(Command::Delete(vec![id])).unwrap();
+    let object = doc.scene().object(instance).unwrap();
+    assert!(matches!(object.kind, ObjectKind::Mesh(_)));
+    assert_eq!(
+        doc.scene().evaluated(instance).unwrap().mesh.face_count(),
+        6
+    );
+    // Undo brings the original and the instance back as they were.
+    doc.undo().unwrap();
+    assert_eq!(
+        doc.scene().object(instance).unwrap().kind,
+        ObjectKind::Instance(id)
+    );
+}
+
+#[test]
+fn duplicating_a_group_copies_what_is_inside_and_files_check_instances() {
+    let (mut doc, ids) = with_groups(&["Outer"]);
+    doc.execute(Command::Insert {
+        object: cube(),
+        place: Place {
+            parent: Some(ids[0]),
+            index: 0,
+        },
+    })
+    .unwrap();
+    let inner = doc.scene().children(Some(ids[0]))[0];
+    doc.execute(Command::Duplicate {
+        ids: vec![ids[0], inner],
+        instances: true,
+    })
+    .unwrap();
+    let copy = doc.selection();
+    assert_eq!(copy.len(), 1, "the cube came along with its group");
+    let inside = doc.scene().children(Some(copy[0])).to_vec();
+    assert_eq!(inside.len(), 1);
+    assert_eq!(
+        doc.scene().object(copy[0]).unwrap().kind,
+        ObjectKind::Group,
+        "a group's copy is a group"
+    );
+    assert_eq!(
+        doc.scene().object(inside[0]).unwrap().kind,
+        ObjectKind::Instance(inner)
+    );
+    // A scene whose instance shows nothing that exists is refused.
+    let objects = vec![(
+        ObjectId::from_raw(1),
+        None,
+        Object::new(ObjectKind::Instance(ObjectId::from_raw(9))),
+    )];
+    assert!(Scene::from_objects(objects, 2).is_err());
+}

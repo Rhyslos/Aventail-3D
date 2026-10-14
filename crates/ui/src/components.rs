@@ -190,26 +190,26 @@ impl ComponentTracker {
             return;
         }
         for item in &drawing.items {
-            if item.mesh.face_count() < BACKGROUND_FROM {
+            if item.shown.face_count() < BACKGROUND_FROM {
                 continue;
             }
             let known = self.picks.get(&item.id).is_some_and(|p| {
-                Arc::ptr_eq(p.mesh(), &item.mesh) || p.mesh().same_structure(&item.mesh)
+                Arc::ptr_eq(p.mesh(), &item.shown) || p.mesh().same_structure(&item.shown)
             });
             let running = self.building.get(&item.id).is_some_and(|(mesh, handle)| {
-                Arc::ptr_eq(mesh, &item.mesh) || !handle.is_finished()
+                Arc::ptr_eq(mesh, &item.shown) || !handle.is_finished()
             });
             if known || running {
                 continue;
             }
-            let mesh = Arc::clone(&item.mesh);
+            let mesh = Arc::clone(&item.shown);
             let handle = std::thread::spawn(move || {
                 let pick = MeshPick::new(Arc::clone(&mesh));
                 let _ = mesh.topology();
                 pick
             });
             self.building
-                .insert(item.id, (Arc::clone(&item.mesh), handle));
+                .insert(item.id, (Arc::clone(&item.shown), handle));
         }
     }
 
@@ -225,20 +225,20 @@ impl ComponentTracker {
     /// from the kept one, or built now.
     fn pick_for(&mut self, item: &DrawItem) -> Arc<MeshPick> {
         if let Some(kept) = self.picks.get(&item.id)
-            && Arc::ptr_eq(kept.mesh(), &item.mesh)
+            && Arc::ptr_eq(kept.mesh(), &item.shown)
         {
             return Arc::clone(kept);
         }
         if let Some((mesh, _)) = self.building.get(&item.id)
-            && Arc::ptr_eq(mesh, &item.mesh)
+            && Arc::ptr_eq(mesh, &item.shown)
             && let Some((_, handle)) = self.building.remove(&item.id)
             && let Ok(pick) = handle.join()
         {
             return Arc::new(pick);
         }
         match self.picks.get(&item.id) {
-            Some(kept) => Arc::new(kept.moved(Arc::clone(&item.mesh))),
-            None => Arc::new(MeshPick::new(Arc::clone(&item.mesh))),
+            Some(kept) => Arc::new(kept.moved(Arc::clone(&item.shown))),
+            None => Arc::new(MeshPick::new(Arc::clone(&item.shown))),
         }
     }
 
@@ -289,7 +289,7 @@ impl ComponentTracker {
         !current
             && drawing.items.iter().any(|item| {
                 self.building.get(&item.id).is_some_and(|(mesh, handle)| {
-                    Arc::ptr_eq(mesh, &item.mesh) && !handle.is_finished()
+                    Arc::ptr_eq(mesh, &item.shown) && !handle.is_finished()
                 })
             })
     }
@@ -401,7 +401,8 @@ fn guide_lines(
         return out;
     }
     for item in drawing.items.iter().filter(|i| i.selected) {
-        let mesh = &item.mesh;
+        // Only what is shown: hidden polygons have no guides.
+        let mesh = &item.shown;
         if !item.transform.is_finite() || mesh.face_count() > GUIDES_UP_TO {
             continue;
         }
@@ -496,6 +497,7 @@ mod tests {
             items: vec![DrawItem {
                 id: ObjectId::from_raw(7),
                 mesh: Arc::new(PrimitiveKind::Cube.standard().mesh()),
+                shown: Arc::new(PrimitiveKind::Cube.standard().mesh()),
                 transform: Mat4::IDENTITY,
                 selected,
             }],
@@ -674,6 +676,7 @@ mod tests {
             version,
             items: vec![DrawItem {
                 id: ObjectId::from_raw(3),
+                shown: Arc::clone(&mesh),
                 mesh,
                 transform: Mat4::IDENTITY,
                 selected: true,

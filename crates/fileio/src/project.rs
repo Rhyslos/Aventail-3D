@@ -11,7 +11,7 @@
 //! | 4–7 | The format version (little-endian), so old files can be upgraded and newer ones refused clearly |
 //! | 8–11 | Flags; bit 0 says the body is zstd-compressed. Other bits are reserved and must be 0 |
 //! | 12–19 | The body's length in bytes |
-//! | 20– | The body: the file model of that version (`project/v1.rs` to `project/v11.rs`), encoded with postcard |
+//! | 20– | The body: the file model of that version (`project/v1.rs` to `project/v12.rs`), encoded with postcard |
 //!
 //! Reading never trusts the file: lengths are checked before anything is
 //! allocated, the unpacked body is capped, every list is paid for from a
@@ -23,6 +23,7 @@
 mod v1;
 mod v10;
 mod v11;
+mod v12;
 mod v2;
 mod v3;
 mod v4;
@@ -40,7 +41,7 @@ use std::path::{Path, PathBuf};
 /// The signature every project file starts with.
 pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// The format version this app writes.
-pub const FORMAT_VERSION: u32 = 11;
+pub const FORMAT_VERSION: u32 = 12;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -142,7 +143,7 @@ fn edit_counts(document: &Document) -> usize {
 
 /// The project file's bytes for `document`, unchecked.
 fn encode(document: &Document) -> Result<Vec<u8>, ProjectError> {
-    let model = v11::ProjectV11::from_document(document);
+    let model = v12::ProjectV12::from_document(document);
     let stored: usize = model
         .project
         .objects
@@ -220,7 +221,8 @@ pub fn from_bytes(bytes: &[u8]) -> Result<Document, ProjectError> {
         8 => decode_entries::<v8::EntryV8>(encoded),
         9 => decode_entries::<v9::EntryV9>(encoded),
         10 => decode_entries::<v10::EntryV10>(encoded),
-        _ => decode_entries::<v11::EntryV11>(encoded),
+        11 => decode_entries::<v11::EntryV11>(encoded),
+        _ => decode_instances::<v12::EntryV12>(encoded),
     }
 }
 
@@ -240,6 +242,26 @@ where
     E: v1::FileOperation + serde::de::DeserializeOwned,
 {
     let (model, rest): (v5::ProjectWith<E>, &[u8]) =
+        crate::limits::within_budget(|| postcard::take_from_bytes(encoded)).map_err(unreadable)?;
+    if !rest.is_empty() {
+        return Err(ProjectError::Damaged(
+            "there is unexpected data after the scene".into(),
+        ));
+    }
+    model
+        .project
+        .check_limits()
+        .map_err(ProjectError::Damaged)?;
+    model.into_document().map_err(ProjectError::Damaged)
+}
+
+/// The document a body of version 12 or later holds (with instances), its
+/// recorded edits read as `E`.
+fn decode_instances<E>(encoded: &[u8]) -> Result<Document, ProjectError>
+where
+    E: v1::FileOperation + serde::de::DeserializeOwned,
+{
+    let (model, rest): (v12::ProjectWithInstances<E>, &[u8]) =
         crate::limits::within_budget(|| postcard::take_from_bytes(encoded)).map_err(unreadable)?;
     if !rest.is_empty() {
         return Err(ProjectError::Damaged(

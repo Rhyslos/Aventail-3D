@@ -119,7 +119,19 @@ pub enum Command {
     /// Bakes each shape's base and recorded edits into a plain mesh, which
     /// becomes its new base (its settings are gone; its edits are part of
     /// the mesh). Groups, and meshes with nothing recorded, are left alone.
+    /// An instance gets its own copy of its original's shape.
     MakeEditable(Vec<ObjectId>),
+    /// Copies objects, with everything inside them, each copy placed just
+    /// after its original and named like it (decision 0055). With
+    /// `instances`, each shape's copy is an instance of it instead: it
+    /// shows the original's shape, and follows its changes. The copies
+    /// become the selection.
+    Duplicate {
+        /// The objects. Any inside another one listed is copied with it.
+        ids: Vec<ObjectId>,
+        /// Instances rather than independent copies.
+        instances: bool,
+    },
 }
 
 impl Command {
@@ -166,6 +178,14 @@ impl Command {
             Self::SetTransforms(changes) => {
                 let ids: Vec<ObjectId> = changes.iter().map(|(id, _)| *id).collect();
                 format!("Transform {}", objects(count(&ids)))
+            }
+            Self::Duplicate { ids, instances } => {
+                let n = count(ids);
+                match (instances, n) {
+                    (false, _) => format!("Duplicate {}", objects(n)),
+                    (true, 1) => "Instance 1 object".into(),
+                    (true, n) => format!("Instance {n} objects"),
+                }
             }
             Self::MakeEditable(ids) => {
                 let n = ids
@@ -341,7 +361,25 @@ impl Run<'_> {
                 Ok(None)
             }
             Command::Delete(ids) => {
-                for id in top_level(self.scene, &existing(self.scene, ids)?) {
+                let top = top_level(self.scene, &existing(self.scene, ids)?);
+                // Instances of what goes, that stay themselves, get their
+                // own copy of its shape first, so they don't vanish.
+                let going: Vec<ObjectId> =
+                    top.iter().flat_map(|id| self.scene.subtree(*id)).collect();
+                let orphans: Vec<ObjectId> = self
+                    .scene
+                    .walk()
+                    .into_iter()
+                    .map(|(id, _)| id)
+                    .filter(|id| !going.contains(id))
+                    .filter(|id| {
+                        self.scene.object(*id).is_some_and(
+                            |o| matches!(o.kind, ObjectKind::Instance(s) if going.contains(&s)),
+                        )
+                    })
+                    .collect();
+                self.bake_instances(&orphans)?;
+                for id in top {
                     // Empty the object first, last child first, so every
                     // removal is of an object with nothing inside.
                     for inner in self.scene.subtree(id).into_iter().rev() {
@@ -405,6 +443,9 @@ impl Run<'_> {
                     .ok_or(SceneError::UnknownObject(*id))?;
                 if !object.kind.has_shape() {
                     return Err(SceneError::NoShape);
+                }
+                if matches!(object.kind, ObjectKind::Instance(_)) {
+                    return Err(SceneError::Instance);
                 }
                 let mut layers = object.stack.layers().len();
                 if layers == 0 {
@@ -486,6 +527,22 @@ impl Run<'_> {
                 }
                 Ok(None)
             }
+            Command::Duplicate { ids, instances } => {
+                let mut copies = Vec::new();
+                for id in top_level(self.scene, &existing(self.scene, ids)?) {
+                    let place = self.place_of(id)?;
+                    let copy = self.copy_tree(
+                        id,
+                        Place {
+                            parent: place.parent,
+                            index: place.index + 1,
+                        },
+                        *instances,
+                    )?;
+                    copies.push(copy);
+                }
+                Ok(Some(copies))
+            }
             Command::MakeEditable(ids) => {
                 for id in existing(self.scene, ids)? {
                     if !self.scene.can_make_editable(id) {
@@ -534,6 +591,67 @@ impl Run<'_> {
                 Ok(Some(freed))
             }
         }
+    }
+
+    /// Copies `id` and everything inside it to `place`, as plain copies or
+    /// (for shapes) instances. Returns the copy's id.
+    fn copy_tree(
+        &mut self,
+        id: ObjectId,
+        place: Place,
+        instances: bool,
+    ) -> Result<ObjectId, SceneError> {
+        let original = self
+            .scene
+            .object(id)
+            .ok_or(SceneError::UnknownObject(id))?
+            .clone();
+        let mut copy = original.clone();
+        copy.name = self.scene.unused_name(&original.name);
+        if instances && original.kind.has_shape() {
+            // An instance of an instance shows the same original.
+            let source = match original.kind {
+                ObjectKind::Instance(source) => source,
+                _ => id,
+            };
+            copy.kind = ObjectKind::Instance(source);
+            copy.stack = crate::stack::Stack::default();
+        }
+        let new = self.insert(copy, place)?;
+        let children = self.scene.children(Some(id)).to_vec();
+        for (index, child) in children.into_iter().enumerate() {
+            self.copy_tree(
+                child,
+                Place {
+                    parent: Some(new),
+                    index,
+                },
+                instances,
+            )?;
+        }
+        Ok(new)
+    }
+
+    /// Gives each of `ids` (instances) its own copy of its original's
+    /// final shape, as a plain mesh.
+    fn bake_instances(&mut self, ids: &[ObjectId]) -> Result<(), SceneError> {
+        for id in ids {
+            let Some(shape) = self.scene.evaluated(*id) else {
+                continue;
+            };
+            let before = self
+                .scene
+                .object(*id)
+                .ok_or(SceneError::UnknownObject(*id))?
+                .kind
+                .clone();
+            self.edit(Edit::SetKind {
+                id: *id,
+                before,
+                after: ObjectKind::Mesh(Arc::clone(&shape.mesh)),
+            })?;
+        }
+        Ok(())
     }
 
     fn insert(&mut self, object: Object, place: Place) -> Result<ObjectId, SceneError> {

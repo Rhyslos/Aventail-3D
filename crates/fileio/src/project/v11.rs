@@ -7,7 +7,7 @@
 
 use super::v1::{FileOperation, Problem};
 use super::v2::{AnchorsV2, anchors_from_file, anchors_to_file};
-use super::v5::{EntryWith, ProjectWith};
+use super::v5::EntryWith;
 use super::v10::OperationV10;
 use crate::limits::Bounded;
 use mesh::{EdgeKey, VertexId};
@@ -15,7 +15,8 @@ use scene::Operation;
 use serde::{Deserialize, Serialize};
 
 /// Version 11 of the file.
-pub(crate) type ProjectV11 = ProjectWith<EntryV11>;
+#[cfg(test)]
+pub(crate) type ProjectV11 = super::v5::ProjectWith<EntryV11>;
 
 /// A recorded edit in version 11.
 pub(crate) type EntryV11 = EntryWith<OperationV11>;

@@ -170,6 +170,8 @@ pub struct Workbench {
     tool_menu: ToolMenu,
     /// What the viewport draws, kept up to date with the document.
     drawing: DrawingCache,
+    /// Polygons hidden from view (Shift + H, Ctrl + H; decision 0055).
+    hidden: crate::drawing::Hidden,
     /// The Points, Edges and Polygons modes: the element under the mouse
     /// and what is drawn over the edited objects.
     components: ComponentTracker,
@@ -237,6 +239,7 @@ impl Workbench {
             shape_picker: ShapePicker::default(),
             tool_menu: ToolMenu::default(),
             drawing: DrawingCache::default(),
+            hidden: crate::drawing::Hidden::default(),
             components: ComponentTracker::default(),
             select_requests: Vec::new(),
             stroke_memory: StrokeMemory::default(),
@@ -566,6 +569,8 @@ impl Workbench {
         self.document = document;
         self.autosaver.restart();
         self.drawing.forget();
+        self.hidden.faces.clear();
+        self.hidden.revision += 1;
         self.forgotten_told = false;
     }
 
@@ -765,6 +770,7 @@ impl Workbench {
             // Enter or Space use its tool.
             let entries = self.tool_menu_entries();
             self.tool_menu_keys(ui, typing, &entries, &mut requests);
+            self.showing_keys(ui, &mut requests);
             self.document_keys(ui, &mut requests);
             self.mode_keys(ui);
             self.select_keys(ui);
@@ -842,13 +848,20 @@ impl Workbench {
             .resizable(false)
             .show(ui, |ui| {
                 ui.add_space(6.0);
-                if let Some(mode) = mode_palette(ui, self.mode, self.viewport.options_mut()) {
-                    self.mode = mode;
+                match mode_palette(ui, self.mode, self.viewport.options_mut()) {
+                    Some(crate::palette::ModePick::Mode(mode)) => self.mode = mode,
+                    Some(crate::palette::ModePick::Isolate) => {
+                        self.hide(showing::Hiding::Others, &mut requests);
+                    }
+                    None => {}
                 }
             });
 
         let editing = components::kind_for(self.mode);
-        let mut summary: SceneSummary = self.drawing.update(&self.document, editing).clone();
+        let mut summary: SceneSummary = self
+            .drawing
+            .update(&self.document, editing, &self.hidden)
+            .clone();
         summary.overlay = self.components.overlay();
         self.components.freeze(
             self.gizmo_session.is_some()
@@ -1146,8 +1159,9 @@ impl Workbench {
                 _ => String::new(),
             };
             let elements = self.selected_elements_text();
+            let hidden = self.hidden_text();
             ui.label(format!(
-                "{} mode: {}.{selected}{elements}{under}",
+                "{} mode: {}.{selected}{elements}{hidden}{under}",
                 self.mode.name(),
                 self.mode.description().to_lowercase()
             ));
@@ -1673,6 +1687,7 @@ mod modelling;
 #[cfg(test)]
 mod modelling_tests;
 mod selection;
+mod showing;
 mod slit;
 #[cfg(test)]
 mod slit_tests;

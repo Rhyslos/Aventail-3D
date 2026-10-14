@@ -23,7 +23,7 @@ fn text(s: &str) -> usize {
 fn kind(kind: &ObjectKind) -> usize {
     match kind {
         ObjectKind::Mesh(mesh) => mesh.memory_size(),
-        ObjectKind::Group | ObjectKind::Primitive(_) => 0,
+        ObjectKind::Group | ObjectKind::Primitive(_) | ObjectKind::Instance(_) => 0,
     }
 }
 

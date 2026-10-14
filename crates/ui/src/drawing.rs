@@ -17,6 +17,9 @@ pub struct DrawItem {
     pub id: ObjectId,
     /// Its shape, in its own space.
     pub mesh: Arc<Mesh>,
+    /// What of it is shown: the same shape, or a copy without its hidden
+    /// polygons (decision 0055). What is drawn and picked.
+    pub shown: Arc<Mesh>,
     /// Where it is in the world.
     pub transform: Mat4,
     /// Whether it is selected.
@@ -99,13 +102,44 @@ impl SceneSummary {
     }
 }
 
+/// Polygons hidden from view, by object (Shift + H, Ctrl + H; decision
+/// 0055). A view setting: not saved and not undone. `revision` goes up
+/// with every change.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub(crate) struct Hidden {
+    pub(crate) revision: u64,
+    pub(crate) faces: std::collections::HashMap<ObjectId, std::collections::BTreeSet<scene::FaceId>>,
+}
+
+impl Hidden {
+
+    /// `mesh` without the polygons hidden on `id` (the same shape when
+    /// none are), and the points only they used.
+    pub(crate) fn shown(&self, id: ObjectId, mesh: &Arc<Mesh>) -> Arc<Mesh> {
+        let Some(hidden) = self.faces.get(&id).filter(|f| !f.is_empty()) else {
+            return Arc::clone(mesh);
+        };
+        let gone: Vec<scene::FaceId> = hidden
+            .iter()
+            .copied()
+            .filter(|f| mesh.face(*f).is_some())
+            .collect();
+        if gone.is_empty() {
+            return Arc::clone(mesh);
+        }
+        let mut copy = (**mesh).clone();
+        mesh::cleanup::delete_elements(&mut copy, &[], &[], &gone);
+        Arc::new(copy)
+    }
+}
+
 /// Keeps the summary up to date with the document, rebuilding as little
 /// as possible.
 #[derive(Debug, Default)]
 pub(crate) struct DrawingCache {
     /// The scene revision, selection and kind of element edited the
     /// summary was built for.
-    built_for: Option<(u64, Vec<ObjectId>, Option<ElementKind>)>,
+    built_for: Option<(u64, Vec<ObjectId>, Option<ElementKind>, u64)>,
     summary: SceneSummary,
 }
 
@@ -125,8 +159,14 @@ impl DrawingCache {
         &mut self,
         document: &Document,
         editing: Option<ElementKind>,
+        hidden: &Hidden,
     ) -> &SceneSummary {
-        let key = (document.revision(), document.selection(), editing);
+        let key = (
+            document.revision(),
+            document.selection(),
+            editing,
+            hidden.revision,
+        );
         if self.built_for.as_ref() == Some(&key) {
             return &self.summary;
         }
@@ -141,6 +181,7 @@ impl DrawingCache {
             };
             items.push(DrawItem {
                 id,
+                shown: hidden.shown(id, &shape.mesh),
                 mesh: shape.mesh,
                 transform: scene.world_matrix(id),
                 selected: document.is_selected(id),
@@ -179,15 +220,15 @@ mod tests {
         // Regression: opening or restoring a project mid-session reset the
         // version to the one the GPU had just drawn, so nothing was drawn.
         let mut cache = DrawingCache::default();
-        let empty = cache.update(&Document::new(), None).drawing.version;
+        let empty = cache.update(&Document::new(), None, &Hidden::default()).drawing.version;
         let mut other = Document::new();
         create(&mut other, PrimitiveKind::Cube);
         let mut fresh = Document::new();
         create(&mut fresh, PrimitiveKind::Cube);
-        let first = cache.update(&other, None).drawing.version;
+        let first = cache.update(&other, None, &Hidden::default()).drawing.version;
         assert!(first > empty);
         cache.forget();
-        let after = cache.update(&fresh, None);
+        let after = cache.update(&fresh, None, &Hidden::default());
         assert!(after.drawing.version > first);
         assert_eq!(after.drawing.items.len(), 1);
     }
@@ -195,7 +236,7 @@ mod tests {
     #[test]
     fn an_empty_scene_draws_nothing_and_frames_the_middle() {
         let mut cache = DrawingCache::default();
-        let summary = cache.update(&Document::new(), None).clone();
+        let summary = cache.update(&Document::new(), None, &Hidden::default()).clone();
         assert!(summary.drawing.items.is_empty());
         assert_eq!(summary.bounds_for(Frame::All), DEFAULT_FRAME);
     }
@@ -212,7 +253,7 @@ mod tests {
         })
         .unwrap();
         let mut cache = DrawingCache::default();
-        let summary = cache.update(&doc, None).clone();
+        let summary = cache.update(&doc, None, &Hidden::default()).clone();
         let drawn: Vec<ObjectId> = summary.drawing.items.iter().map(|i| i.id).collect();
         assert_eq!(drawn, [cube]);
         assert_eq!(summary.all, Some(PrimitiveKind::Cube.standard().bounds()));
@@ -225,7 +266,7 @@ mod tests {
         let plane = create(&mut doc, PrimitiveKind::Plane);
         doc.set_selection([plane]);
         let mut cache = DrawingCache::default();
-        let summary = cache.update(&doc, None).clone();
+        let summary = cache.update(&doc, None, &Hidden::default()).clone();
         let selected: Vec<bool> = summary.drawing.items.iter().map(|i| i.selected).collect();
         assert_eq!(selected, [true, false], "the plane (on top) is selected");
         assert_eq!(
@@ -240,18 +281,18 @@ mod tests {
         let mut doc = Document::new();
         create(&mut doc, PrimitiveKind::Sphere);
         let mut cache = DrawingCache::default();
-        let first = cache.update(&doc, None).drawing.clone();
-        let again = cache.update(&doc, None).drawing.clone();
+        let first = cache.update(&doc, None, &Hidden::default()).drawing.clone();
+        let again = cache.update(&doc, None, &Hidden::default()).drawing.clone();
         assert!(Arc::ptr_eq(&first, &again), "same frame, same drawing");
         // Selecting rebuilds the list but keeps the built mesh.
         doc.clear_selection();
-        let after = cache.update(&doc, None).drawing.clone();
+        let after = cache.update(&doc, None, &Hidden::default()).drawing.clone();
         assert!(after.version > first.version);
         assert!(Arc::ptr_eq(&first.items[0].mesh, &after.items[0].mesh));
         // Undoing the selection, then the creation, leaves nothing to draw.
         doc.undo();
         doc.undo();
-        assert!(cache.update(&doc, None).drawing.items.is_empty());
+        assert!(cache.update(&doc, None, &Hidden::default()).drawing.items.is_empty());
     }
 
     #[test]
@@ -259,7 +300,7 @@ mod tests {
         let mut doc = Document::new();
         let cube = create(&mut doc, PrimitiveKind::Cube);
         let mut cache = DrawingCache::default();
-        let before = cache.update(&doc, None).clone();
+        let before = cache.update(&doc, None, &Hidden::default()).clone();
         let top: Vec<VertexId> = before.drawing.items[0]
             .mesh
             .vertices()
@@ -275,7 +316,7 @@ mod tests {
             },
         })
         .unwrap();
-        let after = cache.update(&doc, None).clone();
+        let after = cache.update(&doc, None, &Hidden::default()).clone();
         assert_ne!(after.drawing.items[0].mesh, before.drawing.items[0].mesh);
         assert_eq!(after.all.unwrap().max.z, 200.0, "framing sees the edit");
     }
@@ -285,9 +326,9 @@ mod tests {
         let mut doc = Document::new();
         let sphere = create(&mut doc, PrimitiveKind::Sphere);
         let mut cache = DrawingCache::default();
-        let before = cache.update(&doc, None).drawing.items[0].mesh.clone();
+        let before = cache.update(&doc, None, &Hidden::default()).drawing.items[0].mesh.clone();
         doc.execute(Command::MakeEditable(vec![sphere])).unwrap();
-        let after = cache.update(&doc, None).drawing.items[0].mesh.clone();
+        let after = cache.update(&doc, None, &Hidden::default()).drawing.items[0].mesh.clone();
         assert_eq!(*after, *before);
     }
 }
