@@ -59,3 +59,4 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0049](0049-slit.md) | Slit: a line of points over the shape, cut as seen (or through); file format version 7 | Accepted |
 | [0050](0050-pipe-bends.md) | Pipe bends: an extrude that turns a corner and keeps its size (smooth elbow or mitre joint); file format version 8 | Accepted |
 | [0051](0051-connect-bridge-weld.md) | Connect (J), Bridge (C or drag) and Weld (M, Ctrl + M); file format version 9 | Accepted |
+| [0052](0052-clean-up.md) | Clean-up: Delete deletes, Backspace dissolves; Fill hole, Flip normals, Fix facing, Select flipped, Select similar facing; file format version 10 | Accepted |

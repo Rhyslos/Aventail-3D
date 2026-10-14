@@ -10,6 +10,7 @@ use crate::selecting::{
     INVERT_SHORTCUT, SELECT_ALL_SHORTCUT, SELECT_TOOL_KEY, SelectTool, Selector, count,
 };
 use egui::{Modifiers, Ui};
+use scene::ElementKind;
 
 /// A selection command from a key or the Select menu, carried out once
 /// the frame's scene drawing is known.
@@ -234,8 +235,31 @@ impl Workbench {
             .document
             .selection()
             .iter()
-            .filter_map(|id| self.document.elements(*id))
-            .map(|s| s.count(kind))
+            .filter_map(|id| {
+                let selected = self.document.elements(*id)?;
+                let all = selected.count(kind);
+                // Only what is still there: a deleted polygon stays in
+                // the selection (so undo brings it back selected). Checked
+                // only for selections small enough to check every frame.
+                if all > STILL_THERE_CHECK {
+                    return Some(all);
+                }
+                let mesh = self.document.scene().evaluated(*id)?.mesh;
+                Some(match kind {
+                    ElementKind::Points => selected
+                        .points()
+                        .filter(|v| mesh.position(*v).is_some())
+                        .count(),
+                    ElementKind::Edges => selected
+                        .edges()
+                        .filter(|e| mesh.topology().has_edge(*e))
+                        .count(),
+                    ElementKind::Polygons => selected
+                        .polygons()
+                        .filter(|f| mesh.face(*f).is_some())
+                        .count(),
+                })
+            })
             .sum();
         if total == 0 {
             String::new()
@@ -244,6 +268,10 @@ impl Workbench {
         }
     }
 }
+
+/// Up to how many selected elements the status bar checks they are all
+/// still there.
+const STILL_THERE_CHECK: usize = 10_000;
 
 /// "Ctrl+" (or the Mac's Command sign and a plus), for the wheel entries.
 fn wheel_keys(ui: &Ui) -> String {

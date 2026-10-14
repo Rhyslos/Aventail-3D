@@ -77,7 +77,7 @@ One colour marks what's active: the current mode (and later the current tool), t
 | Loop / ring | Double-click / `Alt` + double-click |
 | Grow / shrink the selection | `Ctrl` + wheel (with a tool that has a count, like Bevel's segments, Loop cut's cuts or Extrude's bend segments: that count) |
 | Select all / invert | `Ctrl + A` / `Ctrl + I` |
-| Delete the selection | `Delete` or `Backspace` |
+| Delete the selection | `Delete` or `Backspace` (in the Points, Edges and Polygons modes, `Delete` deletes elements and `Backspace` dissolves them) |
 | Frame everything / the selection | `H` / `Z` |
 | Connect / Bridge / Weld (Weld onto a point) | `J` / `C` / `M` (`Ctrl + M`) |
 | Perspective, top, right, front view; all four | `F1`, `F2`, `F3`, `F4`; `F5` |
