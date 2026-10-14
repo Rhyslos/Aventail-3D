@@ -47,6 +47,8 @@ pub(crate) struct AttributesPanel {
     pub(crate) bevel: BevelLook,
     /// Loop cut's number of cuts, for the next cut (decision 0047).
     pub(crate) loop_cut: LoopLook,
+    /// Whether Slit cuts through to the far side (decision 0049).
+    pub(crate) slit_through: bool,
 }
 
 /// Loop cut's settings, set in the Attributes panel before a cut.
@@ -349,7 +351,10 @@ impl AttributesPanel {
                 .min_col_width(LABEL_WIDTH)
                 .spacing(vec2(12.0, 6.0))
                 .show(ui, |ui| {
-                    if self.tool == Tool::LoopCut {
+                    if self.tool == Tool::Slit {
+                        through_row(ui, &mut self.slit_through);
+                        ui.end_row();
+                    } else if self.tool == Tool::LoopCut {
                         cuts_row(ui, &mut self.loop_cut.cuts);
                         ui.end_row();
                     } else if self.tool == Tool::Bevel {
@@ -368,7 +373,9 @@ impl AttributesPanel {
                     }
                 });
         });
-        let hint = if self.tool == Tool::LoopCut {
+        let hint = if self.tool == Tool::Slit {
+            "Click or drag points over the shape. Esc or Enter finishes the line."
+        } else if self.tool == Tool::LoopCut {
             "Point at an edge to see the loop; click to cut, or drag along the edge to slide it."
         } else if self.tool == Tool::Bevel {
             "Drag away from the selected edges or points to widen. Hold Shift for fine steps."
@@ -424,6 +431,15 @@ impl AttributesPanel {
                         if touched.changed {
                             edited.cuts = Some(cuts);
                             self.loop_cut.cuts = cuts;
+                            changed = true;
+                        }
+                        ui.end_row();
+                    }
+                    if let Some(mut through) = edited.through {
+                        if through_row(ui, &mut through) {
+                            self.gesture += 1;
+                            edited.through = Some(through);
+                            self.slit_through = through;
                             changed = true;
                         }
                         ui.end_row();
@@ -794,6 +810,7 @@ pub(crate) fn made_by(operation: &Operation, tool: Tool) -> bool {
                 Tool::Bevel
             )
             | (Operation::LoopCut { .. }, Tool::LoopCut)
+            | (Operation::Slit { .. }, Tool::Slit)
     )
 }
 
@@ -805,6 +822,21 @@ fn segments_row(ui: &mut Ui, segments: &mut u32) -> stepper::Touched {
         "How many rows the bevel has: 1 is a flat cut (a chamfer), more make it round",
     );
     stepper::count(ui, segments, (1, mesh::bevel::MAX_SEGMENTS), "Segments")
+}
+
+/// Slit's Cut through switch, with its label. Returns whether it changed.
+fn through_row(ui: &mut Ui, through: &mut bool) -> bool {
+    label(
+        ui,
+        "Cut through",
+        "On: everything under the line is cut, the far side too. Off: only what you \
+         can see.",
+    );
+    let response = ui.checkbox(through, "");
+    response.widget_info(|| {
+        egui::WidgetInfo::selected(egui::WidgetType::Checkbox, true, *through, "Cut through")
+    });
+    response.changed()
 }
 
 /// Loop cut's number of cuts, with its label.

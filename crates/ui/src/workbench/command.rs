@@ -64,6 +64,9 @@ impl Workbench {
             CommandId::LoopCut if !command.modes().contains(&self.mode) => Ready::NotNow(
                 "Loop cut works in the Points, Edges or Polygons mode: press 1, 2 or 3".into(),
             ),
+            CommandId::Knife if !command.modes().contains(&self.mode) => Ready::NotNow(
+                "Slit works in the Points, Edges or Polygons mode: press 1, 2 or 3".into(),
+            ),
             _ => Ready::Yes,
         }
     }
@@ -96,6 +99,7 @@ impl Workbench {
             CommandId::Inset => self.set_tool(Tool::Inset),
             CommandId::Bevel => self.set_tool(Tool::Bevel),
             CommandId::LoopCut => self.set_tool(Tool::LoopCut),
+            CommandId::Knife => self.set_tool(Tool::Slit),
             CommandId::MakeEditable => {
                 requests.push(DocRequest::Run(Command::MakeEditable(selection)));
             }

@@ -55,6 +55,9 @@ pub enum Tool {
     /// Loop cut: hover an edge to see the loop, click to cut it, drag to
     /// slide it (decision 0047).
     LoopCut,
+    /// Slit: click or drag points of a line over the shape, which cuts it
+    /// (decision 0049).
+    Slit,
 }
 
 /// The tool keys (Halberd's, decision 0019): move, rotate, scale, all.
@@ -88,6 +91,7 @@ impl Tool {
             Self::Inset => "Inset",
             Self::Bevel => "Bevel",
             Self::LoopCut => "Loop cut",
+            Self::Slit => "Slit",
         }
     }
 
@@ -99,7 +103,7 @@ impl Tool {
     /// Whether it is a modelling tool used by clicking (and dragging) on
     /// the shape itself: a left click never selects while it is in use.
     pub fn clicks_on_shapes(self) -> bool {
-        self == Self::LoopCut
+        matches!(self, Self::LoopCut | Self::Slit)
     }
 
     /// Whether it has a count that Ctrl + wheel changes while it is in use
@@ -110,13 +114,18 @@ impl Tool {
 
     /// Whether it has settings in the Attributes panel for its next use.
     pub fn has_settings(self) -> bool {
-        self.drags_anywhere() || self == Self::LoopCut
+        self.drags_anywhere() || self.clicks_on_shapes()
     }
 
     /// Its gizmo, if it has one.
     pub fn gizmo(self) -> Option<GizmoTool> {
         match self {
-            Self::Select | Self::Extrude | Self::Inset | Self::Bevel | Self::LoopCut => None,
+            Self::Select
+            | Self::Extrude
+            | Self::Inset
+            | Self::Bevel
+            | Self::LoopCut
+            | Self::Slit => None,
             Self::Move => Some(GizmoTool::Move),
             Self::Rotate => Some(GizmoTool::Rotate),
             Self::Scale => Some(GizmoTool::Scale),

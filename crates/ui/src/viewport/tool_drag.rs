@@ -37,6 +37,15 @@ pub(crate) enum ToolDragEvent {
     Cancel,
 }
 
+/// A line a tool shows over the views (Slit's), in the world.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub(crate) struct ToolPath {
+    /// The line's points, in order.
+    pub(crate) points: Vec<glam::Vec3>,
+    /// Where the next point would go, if the mouse is over a view.
+    pub(crate) cursor: Option<glam::Vec3>,
+}
+
 /// A modelling tool's drag in progress in a view.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(super) struct ToolDrag {
@@ -137,6 +146,47 @@ impl View {
     /// Whether a modelling tool is being dragged in this view.
     pub(super) fn dragging_tool(&self) -> bool {
         self.tool_drag.is_some()
+    }
+
+    /// Draws a tool's line over the view (Slit's), on top of everything:
+    /// its stretches, its points, and where the next point would go.
+    pub(super) fn paint_tool_path(&self, ui: &Ui, rect: Rect, path: Option<&ToolPath>) {
+        let Some(path) = path else {
+            return;
+        };
+        let size = Vec2::new(rect.width(), rect.height());
+        let camera = *self.camera();
+        let screen = |p: glam::Vec3| {
+            camera
+                .project(p, size)
+                .map(|s| rect.min + egui::vec2(s.x, s.y))
+        };
+        let painter = ui.painter_at(rect);
+        let accent = theme::accent(ui.ctx()).colors();
+        let line = egui::Stroke::new(2.0, accent.light);
+        let shown: Vec<Option<Pos2>> = path.points.iter().map(|p| screen(*p)).collect();
+        for pair in shown.windows(2) {
+            if let [Some(a), Some(b)] = pair {
+                painter.line_segment([*a, *b], line);
+            }
+        }
+        for p in shown.iter().flatten() {
+            painter.circle(
+                *p,
+                4.0,
+                accent.fill,
+                egui::Stroke::new(1.5, theme::TEXT_STRONG),
+            );
+        }
+        if let Some(at) = path.cursor.and_then(screen) {
+            if let Some(Some(last)) = shown.last() {
+                painter.line_segment(
+                    [*last, at],
+                    egui::Stroke::new(1.0, accent.light.gamma_multiply(0.6)),
+                );
+            }
+            painter.circle_stroke(at, 4.0, egui::Stroke::new(1.5, accent.light));
+        }
     }
 
     /// Writes `label` (the tool and its amount) beside the mouse while a
