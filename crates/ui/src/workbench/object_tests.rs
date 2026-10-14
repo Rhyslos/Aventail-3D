@@ -1,4 +1,4 @@
-//! Tests for the Object Manager, undo and redo, run through the real
+//! Tests for the Objects panel, undo and redo, run through the real
 //! interface without a window.
 
 use super::tests::{State, empty, fresh, main_menu, quick_harness};

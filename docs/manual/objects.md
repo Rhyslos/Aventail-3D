@@ -1,12 +1,12 @@
-# Objects and the Object Manager
+# The Objects panel
 
 > List, select, rename, nest, show, hide and delete the objects in your scene, and undo any change.
 
-![The Object Manager with two groups and a cube](../screenshots/2026-10-10-object-manager.png)
+![The Objects panel with two groups and a cube](../screenshots/2026-10-10-object-manager.png)
 
 ## When to use it
 
-Every model is built from [objects](concepts.md#objects-and-scenes), and the **Objects** panel (the Object Manager, bottom right) lists them all as a tree. Use it to keep a scene tidy as it grows: give parts clear names ("Barrel", "Handle"), gather the parts of one asset into a [group](concepts.md#objects-and-scenes) so they move and hide together, and hide what's in the way while you work on something else.
+Every model is built from [objects](concepts.md#objects-and-scenes), and the **Objects** panel (bottom right) lists them all as a tree. Use it to keep a scene tidy as it grows: give parts clear names ("Barrel", "Handle"), gather the parts of one asset into a [group](concepts.md#objects-and-scenes) so they move and hide together, and hide what's in the way while you work on something else.
 
 A new scene is empty. Add [primitives](primitives.md) (cubes, cylinders and the rest) from the **Create** menu or the shape buttons on the command palette, and **groups**: empty objects whose job is to hold others.
 
@@ -33,7 +33,7 @@ If several objects are selected and you drag one of them, they all move, keeping
 
 **Delete.** Press **Delete** or **Backspace** (or use **Edit → Delete**) to delete the selected objects, together with everything inside them.
 
-**Right-click** a row for the same commands in one menu. (Right-clicking a row that isn't selected selects it first.) For shapes, the menu also has **Copy settings** and **Paste … settings**: copy one shape's settings (size, segments and so on), then right-click another shape of the same kind, or a selection of them, and paste to make them match. See [The Attribute Manager](attributes.md).
+**Right-click** a row for the same commands in one menu. (Right-clicking a row that isn't selected selects it first.) For shapes, the menu also has **Copy settings** and **Paste … settings**: copy one shape's settings (size, segments and so on), then right-click another shape of the same kind, or a selection of them, and paste to make them match. See [The Attributes panel](attributes.md).
 
 **Undo and redo.** Every change to the scene can be taken back: creating, renaming, moving, grouping, showing, hiding and deleting. Press **Ctrl + Z** to undo and **Ctrl + Y** (or **Ctrl + Shift + Z**) to redo, or use the arrows at the left of the command palette or the **Edit** menu, which names what would be undone ("Undo: Delete object"). Undo brings back exactly the same objects, in the same places. The status bar confirms what was undone. Changing only the selection is not an undo step (yet). Opening a project starts a fresh undo history; saving keeps it.
 
@@ -51,7 +51,7 @@ Select one or more shapes and press **Ctrl + E**, or use **Object → Make edita
 
 ## Settings
 
-The Object Manager has no settings of its own yet. Its menus:
+The Objects panel has no settings of its own yet. Its menus:
 
 | Menu | Entries |
 |---|---|

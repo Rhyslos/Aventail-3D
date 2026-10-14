@@ -16,7 +16,7 @@ pub enum Icon {
     Undo,
     /// Edit → Redo.
     Redo,
-    /// Live selection: paint to select.
+    /// Paint select: paint to select.
     LiveSelection,
     /// Box selection: drag a box.
     BoxSelection,

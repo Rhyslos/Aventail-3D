@@ -33,7 +33,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - **The Coordinates panel works**: it shows the selection's position, size and rotation. Type a value and press Enter, or drag the number.
 
 - **Selecting in the viewport.** Click a shape to select it, **Ctrl + click** to add one (or take it out if it's selected), **Shift + click** to take one out, and click empty space to unselect. In Points, Edges and Polygons mode the same works on points, edges and polygons of the selected shapes. Every selection, including in the Objects panel, can be undone with **Ctrl + Z**.
-- **Box, lasso and live selection brush**: drag to select (Ctrl + drag adds, Shift + drag removes), and press **Q** to switch between them. They select through the shape as standard, so the far side is caught too; the new **Select only visible** button on the left palette (also in the Select menu and Settings) limits them to what you can see.
+- **Box, lasso and paint select brush**: drag to select (Ctrl + drag adds, Shift + drag removes), and press **Q** to switch between them. They select through the shape as standard, so the far side is caught too; the new **Select only visible** button on the left palette (also in the Select menu and Settings) limits them to what you can see.
 - **One pattern of keys for every way of selecting**, with three others to choose from in **Settings → Viewport → Selection keys**: Shift adds and Ctrl removes; Ctrl flips; or Ctrl adds and Alt removes.
 - **Loops and rings**: double-click for a loop, Alt + double-click for a ring. **Ctrl + mouse wheel** grows or shrinks the selection (with the brush, it changes the brush size). **Ctrl + A** selects all, **Ctrl + I** inverts, and **Esc** in Points, Edges or Polygons mode unselects the parts but keeps the shape. The **Select** menu has all of these.
 
@@ -41,6 +41,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Our own names for things that had borrowed another program's names: the **Attributes panel** (was "Attribute Manager"), the **Objects panel** (was "Object Manager") and **Paint select** (was "Live selection", the brush in the Select tools). The future "Quick Align" tool will be called **Snap to**. Only names change; everything works as before.
 - Projects are saved in **file format version 5**, which keeps more about each edit so it can follow later changes to the shape. Older projects still open; a project saved now won't open in an older version of the app.
 - Edits hold on to their points better: when an earlier edit changes only where points are, later edits stay on the same points instead of searching for them.
 - **Bevelling big selections is faster still**: every edge of a 32,000-polygon sphere now takes about a third of a second (it was 2 seconds).

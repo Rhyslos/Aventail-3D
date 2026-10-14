@@ -1,4 +1,4 @@
-//! Tests for the Attribute Manager: showing and editing a selected
+//! Tests for the Attributes panel: showing and editing a selected
 //! object's settings, through the real interface without a window.
 
 use super::tests::{State, empty, fresh, main_menu};

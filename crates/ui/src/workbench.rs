@@ -398,7 +398,7 @@ impl Workbench {
         &self.shape_picker
     }
 
-    /// The Object Manager's state, for tests.
+    /// The Objects panel's state, for tests.
     #[cfg(test)]
     pub(crate) fn object_manager(&self) -> &ObjectManager {
         &self.objects

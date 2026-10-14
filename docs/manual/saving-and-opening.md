@@ -71,7 +71,7 @@ On macOS, use `Cmd` instead of `Ctrl`.
 
 ## Related
 
-- [Objects and the Object Manager](objects.md): undo and redo.
+- [The Objects panel](objects.md): undo and redo.
 - [Backup copies and crash recovery](autosave.md): autosave, and what happens after a crash.
 - [Settings](settings.md): preferences that belong to you, not the project.
 - [Concepts](concepts.md): [project file](concepts.md#objects-and-scenes).

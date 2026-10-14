@@ -209,7 +209,7 @@ fn q_steps_through_the_select_tools() {
     press(&mut harness, Key::Q);
     assert_eq!(tool(&harness), SelectTool::Brush);
     // The palette button steps on too.
-    harness.get_by_label("Live selection").click();
+    harness.get_by_label("Paint select").click();
     harness.run();
     assert_eq!(tool(&harness), SelectTool::Box);
 }

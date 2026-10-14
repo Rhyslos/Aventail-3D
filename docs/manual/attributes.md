@@ -1,4 +1,4 @@
-# The Attribute Manager
+# The Attributes panel
 
 > See and change the settings of the selected object: its name, whether it's shown, and a shape's size and segments.
 
@@ -84,5 +84,5 @@ Values are kept within limits (sizes from 1 mm to 10 km; up to 256 segments and 
 ## Related
 
 - [Primitives](primitives.md): every shape and its settings.
-- [Objects and the Object Manager](objects.md): selecting, naming, hiding, undo, and the right-click menu.
+- [The Objects panel](objects.md): selecting, naming, hiding, undo, and the right-click menu.
 - [Concepts](concepts.md): [primitives](concepts.md#objects-and-scenes) and [n-gons](concepts.md#mesh-basics).

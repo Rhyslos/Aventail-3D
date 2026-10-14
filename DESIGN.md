@@ -48,12 +48,12 @@ Aventail 3D (model + UV)  ──glTF/OBJ──►  Substance Painter (bake + tex
 | # | Feature | Origin | Priority | Phase |
 |---|---------|--------|----------|-------|
 | W1 | C4D look and feel: calm, clean viewport, smooth interaction | C4D | Core | 0–1, ongoing |
-| W2 | C4D layout: Object Manager + Attribute Manager + viewports | C4D | Core | 0, 2 |
+| W2 | C4D layout: Objects panel + Attributes panel + viewports | C4D | Core | 0, 2 |
 | W3 | Near-unlimited undo history | Max | Core | 2 |
 | W4 | Base object properties always editable, however much the object has been edited | Max | Core (architecture now) | 2, 6 |
 | W5 | **Edit Poly stack**: a layered history of Edit Poly modifiers on top of each other. *"By far the most important tool."* | Max | **Top** (architecture now, UI later) | 2 (foundation), 6 (UI) |
 | W6 | Zoom/orbit around the point under the mouse cursor | Max | High | 1 |
-| W7 | Quick Align | Max | Medium | 6 |
+| W7 | Snap to | Max | Medium | 6 |
 | W8 | Clean, powerful UV unwrapping like C4D, aiming to be **the best UV tools available** (§7) | C4D | Core | 8 |
 | W9 | Max-like breadth of modelling tools | Max | Core | 4, 7 |
 | W10 | Scripting, so people can code their own functionality | Blender, Max, C4D | Later | 9 |
@@ -142,7 +142,7 @@ Object
       Layer { name, enabled, ops: [Operation] }
 ```
 - **Evaluation:** `base → layer 1 → layer 2 → … → final mesh`. Each layer's output is cached. Changing something in layer *k* re-evaluates only from *k* upward.
-- **Phase 2–5 behaviour (C4D-like):** the user sees a normal object. Edits are silently recorded as `Operation`s in an implicit single layer. Primitive parameters (e.g. cube segments) remain editable in the Attribute Manager, and the recorded edits replay on top (**W4**).
+- **Phase 2–5 behaviour (C4D-like):** the user sees a normal object. Edits are silently recorded as `Operation`s in an implicit single layer. Primitive parameters (e.g. cube segments) remain editable in the Attributes panel, and the recorded edits replay on top (**W4**).
 - **Phase 6 behaviour (Max-like):** the Edit Poly stack UI exposes layers. Users can add a new Edit Poly layer, disable one, reorder, collapse, or go back down and edit an earlier layer (**W5**).
 - **Collapse** ("Make Editable" in C4D, "Collapse to" in Max) bakes the stack into an `EditableMesh` base. This is always available as an escape hatch.
 
@@ -165,7 +165,7 @@ Strategy:
 A tool implements a common trait:
 - **activate / deactivate**
 - **viewport interaction** (hover, click, drag, with HUD feedback)
-- **parameters** shown live in the Attribute Manager (C4D style: change "Offset" after extruding and the result updates)
+- **parameters** shown live in the Attributes panel (C4D style: change "Offset" after extruding and the result updates)
 - **commit** → produces an `Operation` + `Command`
 
 Tools never mutate the mesh directly; they produce operations, which keeps undo and the stack consistent.
@@ -247,22 +247,22 @@ Also: dense wireframes fade out from afar (and aren't drawn when too dense to se
 │ Menu bar                                                         │
 │ Top command palette (primitives, tools)                          │
 ├──┬───────────────────────────────────────┬──┬────────────────────┤
-│M │                                       │M │ Attribute Manager  │
+│M │                                       │M │ Attributes panel   │
 │o │            Viewport(s)                │o │ (selected object / │
 │d │   single perspective or 4-up          │d │  active tool)      │
 │e │                                       │i ├────────────────────┤
-│s │                                       │f │ Object Manager     │
+│s │                                       │f │ Objects panel      │
 │  │                                       │s │ (hierarchy tree,   │
 │  │                                       │  │  later Edit Layers)│
 ├──┴───────────────────────────────────────┴──┴────────────────────┤
 │ Status bar: hints, selection counts, snapping state              │
 └──────────────────────────────────────────────────────────────────┘
 ```
-- **Right column order:** Attribute Manager on top, Object Manager below. This deliberately differs from C4D's default (user preference, 2026-10-10).
+- **Right column order:** Attributes panel on top, Objects panel below. This deliberately differs from C4D's default (user preference, 2026-10-10).
 - **Left palette:** mode switches (Model / Object / Points / Edges / Polygons / UV) and snapping, like C4D, with viewport display switches at the bottom (grid detail: fine 10 cm lines on or off).
-- **Modifiers palette** (the project lead's choice, 2026-10-12): a thin column of icon buttons between the viewport and the right column, holding everything that changes a shape non-destructively: edit layers (Phase 6), mirror and array (Phase 7), booleans, subdivision, weighted normals and the game bevel. It sits right next to the Object Manager because that is where modifiers are applied and shown. C4D keeps its generators and deformers in a similar spot; we copy only the placement, with our own icons (drawn in code) and names. It appears with the first modifier (Edit Layers, Phase 6), not as an empty placeholder: a strip of buttons that do nothing would only confuse. How a click applies a modifier (to the selection, as a child or a parent, as a layer) is asked about before it is built ([0028](docs/decisions/0028-ask-about-controls.md)).
-- **Object Manager:** tree with drag-to-reparent, rename, visibility toggles, and later the Edit Poly stack shown as a sub-list. Built: click, Ctrl and Shift selection with names in the accent colour, double-click to rename, drag onto a row to nest or onto its edge to reorder, an eye per row, fold arrows, a right-click menu, and Edit, View and Object menus ([0018](docs/decisions/0018-scene-document-and-undo.md)).
-- **Attribute Manager:** tabbed properties for the selection or active tool.
+- **Modifiers palette** (the project lead's choice, 2026-10-12): a thin column of icon buttons between the viewport and the right column, holding everything that changes a shape non-destructively: edit layers (Phase 6), mirror and array (Phase 7), booleans, subdivision, weighted normals and the game bevel. It sits right next to the Objects panel because that is where modifiers are applied and shown. C4D keeps its generators and deformers in a similar spot; we copy only the placement, with our own icons (drawn in code) and names. It appears with the first modifier (Edit Layers, Phase 6), not as an empty placeholder: a strip of buttons that do nothing would only confuse. How a click applies a modifier (to the selection, as a child or a parent, as a layer) is asked about before it is built ([0028](docs/decisions/0028-ask-about-controls.md)).
+- **Objects panel:** tree with drag-to-reparent, rename, visibility toggles, and later the Edit Poly stack shown as a sub-list. Built: click, Ctrl and Shift selection with names in the accent colour, double-click to rename, drag onto a row to nest or onto its edge to reorder, an eye per row, fold arrows, a right-click menu, and Edit, View and Object menus ([0018](docs/decisions/0018-scene-document-and-undo.md)).
+- **Attributes panel:** tabbed properties for the selection or active tool.
 - A **Coordinates panel** (C4D's position/scale/rotation fields) can be docked under the viewport.
 - **Menu lines inside panels** ([decision 0014](docs/decisions/0014-studio-look-and-accent.md)): the viewport has its own (View, Cameras, Display, Options, Panel, and buttons to drag for pan, zoom and orbit) in place of a tab; Attributes and Objects have small ones too.
 - **Overlays on the viewport:** view name top left, camera name top centre, axis marker top right, grid spacing bottom left, navigation controls picker bottom right.
@@ -270,7 +270,7 @@ Also: dense wireframes fade out from afar (and aren't drawn when too dense to se
 - The app never shows another program's name: commands, schemes and settings are named by what they do.
 
 ### 5.2 Visual style ("clean, pleasant, calm")
-- Dark neutral greys with low contrast between panels; one accent colour for the active mode or tool and chosen options. **Red** is the standard; Blue, Marine green, Plum, Olive and Petrol blue can be chosen (Window → Accent colour). Selected objects (their names in the Object Manager and their outline in the viewport) use the accent colour, so selection follows the theme (2026-10-10). See [decision 0014](docs/decisions/0014-studio-look-and-accent.md).
+- Dark neutral greys with low contrast between panels; one accent colour for the active mode or tool and chosen options. **Red** is the standard; Blue, Marine green, Plum, Olive and Petrol blue can be chosen (Window → Accent colour). Selected objects (their names in the Objects panel and their outline in the viewport) use the accent colour, so selection follows the theme (2026-10-10). See [decision 0014](docs/decisions/0014-studio-look-and-accent.md).
 - Viewport: a studio backdrop with a horizon (sky over a slightly darker ground), a finite grid that fades out around the point the camera looks at, the green Z axis rising from the origin, mid-grey shapes, thin anti-aliased wireframe, gentle highlight on hover.
 - Typography: Inter, small but legible sizes; generous padding.
 - Smooth motion: camera moves are immediate (no laggy smoothing by default), but UI transitions are short and soft.
@@ -307,7 +307,7 @@ Also: dense wireframes fade out from afar (and aren't drawn when too dense to se
 
 ## 6. Modelling toolset (hard-surface focus)
 
-**Selection:** click, rectangle, lasso, live selection brush (C4D), loop, ring, grow/shrink, select by hard edges/seams, invert, select connected; "visible only" toggle.
+**Selection:** click, rectangle, lasso, paint select (a brush), loop, ring, grow/shrink, select by hard edges/seams, invert, select connected; "visible only" toggle.
 
 **Transform:** move/rotate/scale gizmos, axis/plane constraints, numeric input, grid/vertex/edge/face snapping, symmetry (live mirror).
 
@@ -403,7 +403,7 @@ Each phase ends with something runnable. The user tests the *feel* at the end of
 ### Phase 0 — Skeleton
 - Repository set up in Halberd's style: license, README with progress tracker, security policy, contribution rules, decision records, templates
 - Cargo workspace with the crates above and `layer-check`; CI (fmt, clippy, tests and builds on three platforms, docs, cargo-deny, changelog check)
-- Window with egui + egui_dock: empty viewport, Attribute Manager (top right), Object Manager (below it), palettes, status bar
+- Window with egui + egui_dock: empty viewport, Attributes panel (top right), Objects panel (below it), palettes, status bar
 - Theme: colours, Inter font, spacing
 - **Done when:** the app launches into the C4D-style layout with movable/dockable panels.
 
@@ -413,8 +413,8 @@ Each phase ends with something runnable. The user tests the *feel* at the end of
 - **Done when:** navigating feels smooth and calm to the user.
 
 ### Phase 2 — Document, objects, history
-- Scene graph and Object Manager (create, rename, reparent, hide, delete)
-- Parametric primitives: cube, plane, cylinder, sphere, disc, tube, cone — parameters live in the Attribute Manager
+- Scene graph and Objects panel (create, rename, reparent, hide, delete)
+- Parametric primitives: cube, plane, cylinder, sphere, disc, tube, cone — parameters live in the Attributes panel
 - Object stack foundation (§4.2): base + implicit layer, cached evaluation
 - Command system and memory-budgeted undo (W3)
 - Save/load native project
@@ -446,7 +446,7 @@ Each phase ends with something runnable. The user tests the *feel* at the end of
 ### Phase 6 — 3ds Max sprinkles
 - **The modifiers palette** (§5.1) between the viewport and the right column, starting with Edit Layers
 - **Edit Poly stack UI (W5):** add/disable/reorder/collapse layers; an **edit list** inside each layer, where any recorded edit can be opened and changed, pinned to keep it editable, frozen, or switched off (see the 2026-10-13 log entry); edit lower layers and see upper ones re-evaluate, each layer finding its elements again by their anchors (**W14**); warning badges only for what truly can't be found
-- Quick Align and align tools (W7)
+- Snap to and align tools (W7)
 - Optional quad menu
 - **Done when:** the user's Max workflow of stacking Edit Polys feels right.
 
@@ -481,7 +481,7 @@ Lua scripting so people can add their own tools and automate work. Full design i
 ### Phase 10 — Rigging, skinning and animation (far future)
 Starts only once modelling and UVs are mature. Rough contents, to be designed properly when the time comes:
 - **Aim (project lead, 2026-10-13):** every animation tool is for game developers, helping them animate for games in both first and third person: first-person arms and weapons, third-person characters, and loops and clips that export cleanly to engines.
-- Joints/bones in the Object Manager hierarchy; bone display and editing
+- Joints/bones in the Objects panel hierarchy; bone display and editing
 - Skinning: bind mesh to skeleton, weight painting, weight tools (normalize, mirror, smooth)
 - Animation: keyframes on transforms, timeline and dope sheet, curve editor, playback in the viewport
 - Export skinned and animated meshes to glTF for Godot
@@ -563,7 +563,7 @@ Possible features noted along the way. Not scheduled; nothing here blocks other 
 | Item | Why it matters for game assets | Depends on / relates to |
 |---|---|---|
 | Material slots / polygon selection sets | Each slot becomes a texture set in Substance Painter and a material in Godot | Face attributes (§4.1), export |
-| Pivot / axis editing | The object's origin is where Godot places, rotates and snaps the asset; Quick Align needs it too | Object mode, W7 |
+| Pivot / axis editing | The object's origin is where Godot places, rotates and snaps the asset; Snap to needs it too | Object mode, W7 |
 | Scene units and export scale | Godot works in metres; a wrong scale means re-scaling every import | Export presets (§8) |
 | Reference images in viewports | Blueprints/concept art to model hard-surface parts against | Renderer, ortho views |
 | LODs | Lower-detail versions for distance; Godot can also generate them automatically | Export, possibly a decimate tool |
@@ -689,3 +689,4 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-14 — Foundations 3, second part, **edits that hold** ([0044](docs/decisions/0044-edits-that-hold.md)): every edit gets an id and on/off and pinned switches (no interface until the Phase 6 edit list); edits trust their ids while the shape's structure below them is unchanged, so changing an earlier edit no longer loses later ones; file format version 5 saves all of it and plain meshes' attribute layers. Stable element names (review A3) are left for a smaller step before the Phase 6 edit list.
 - 2026-10-14 — **Stretching new rows along an edit, dropped** at the project lead's request after testing: blending a move along the edges, then across the polygons it touched, fixed boxes with segments on every axis, but round shapes given more sides still broke (new points on the curve lie on none of the old polygons), and a full fix would be a deep problem for little reward at this stage. New rows follow the shape's settings only; Loop cut adds rows where they're needed. The attempt is kept in the history of pull request #37.
 - 2026-10-14 — Foundations 4, **hostile files** ([0045](docs/decisions/0045-limits-for-files.md)): one limits rulebook applied while files are read (512 MB unpacked, a 2 GB memory budget every list is paid from, at most 100,000 objects and edits and about 30 million polygons), a size guard skipping edits that would grow a shape past 30 million polygons, recovery that doesn't offer a copy whose restore closed the app, private backup folders, and fuzz tests. Foundations complete; next, the renames, then Loop cut and Slit.
+- 2026-10-14 — The agreed renames done ([0046](docs/decisions/0046-our-own-names.md)): Attributes panel, Objects panel and Paint select in the app, the manual and the code; Snap to in the plans. Decision records and dated log lines keep the names as they were.

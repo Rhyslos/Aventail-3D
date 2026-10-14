@@ -34,9 +34,9 @@ Hold the left mouse button and drag. What the drag draws depends on the **select
 
 - **Box selection** (the standard): drag a rectangle. Everything inside it is selected.
 - **Lasso selection**: draw a loop around what you want, freehand. Useful for odd shapes a box would cut through.
-- **Live selection** (the brush): paint over what you want with a circle that follows the mouse. Everything the circle touches is selected as you go.
+- **Paint select** (the brush): paint over what you want with a circle that follows the mouse. Everything the circle touches is selected as you go.
 
-Press **Q** to step through the three (Box → Lasso → Live selection → Box). The button near the left end of the top palette shows the active tool. You can click that button too, or pick a tool in the **Select** menu.
+Press **Q** to step through the three (Box → Lasso → Paint select → Box). The button near the left end of the top palette shows the active tool. You can click that button too, or pick a tool in the **Select** menu.
 
 While dragging, the keys you hold decide what happens to what was already selected. It's the same pattern as clicking:
 
@@ -108,7 +108,7 @@ Each mode remembers its own selection. Select some points, switch to Polygons mo
 |---|---|
 | **Select only visible** | Off (standard): the box, lasso and brush select through the shape, the far side too. On: only what you can see. Left palette, Select menu or Settings. |
 | **Selection keys** | Which key adds and which removes: Ctrl adds, Shift removes (standard); Shift adds, Ctrl removes; Ctrl flips; or Ctrl adds, Alt removes. In Settings → Viewport. |
-| **Brush size** | How big the live selection brush is. Ctrl + mouse wheel while the brush is active. The circle around the mouse shows it. |
+| **Brush size** | How big the Paint select brush is. Ctrl + mouse wheel while the brush is active. The circle around the mouse shows it. |
 
 ## Shortcuts
 
@@ -118,7 +118,7 @@ Each mode remembers its own selection. Select some points, switch to Polygons mo
 | Add one (or, if it's selected, take it out) | `Ctrl` + click |
 | Take one out | `Shift` + click |
 | Box, lasso or brush: replace / add / remove | Drag / `Ctrl` + drag / `Shift` + drag |
-| Next select tool (Box → Lasso → Live selection) | `Q` |
+| Next select tool (Box → Lasso → Paint select) | `Q` |
 | Loop / ring | Double-click / `Alt` + double-click (`Ctrl` adds, `Shift` takes away) |
 | Grow / shrink the selection | `Ctrl` + wheel up / down |
 | Brush size (with the brush active) | `Ctrl` + wheel |

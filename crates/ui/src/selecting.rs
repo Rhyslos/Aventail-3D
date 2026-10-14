@@ -55,7 +55,7 @@ pub enum SelectTool {
     Box,
     /// Draw around what to select.
     Lasso,
-    /// Paint over what to select (live selection).
+    /// Paint over what to select (Paint select).
     Brush,
 }
 
@@ -68,7 +68,7 @@ impl SelectTool {
         match self {
             Self::Box => "Box selection",
             Self::Lasso => "Lasso selection",
-            Self::Brush => "Live selection",
+            Self::Brush => "Paint select",
         }
     }
 

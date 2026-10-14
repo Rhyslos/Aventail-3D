@@ -251,7 +251,7 @@ impl Document {
         &self.history
     }
 
-    /// The selected objects, top to bottom as the Object Manager lists
+    /// The selected objects, top to bottom as the Objects panel lists
     /// them.
     pub fn selection(&self) -> Vec<ObjectId> {
         self.scene

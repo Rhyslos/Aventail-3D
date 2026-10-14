@@ -10,7 +10,7 @@ use std::sync::Arc;
 /// undone and redone.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Command {
-    /// Adds a new object of `kind` at the top of the Object Manager's
+    /// Adds a new object of `kind` at the top of the Objects panel's
     /// list, named after its kind (with a number if that name is taken).
     /// It becomes the selection.
     Create(ObjectKind),
