@@ -185,6 +185,9 @@ pub fn run(info: AppInfo, open: Option<PathBuf>) -> Result<(), String> {
                     .with_recent_projects(recent)
                     .with_autosave(autosave)
                     .with_tool_menu(tool_menu);
+                // The Keys window draws the keyboard that goes with the
+                // system language, until one is picked there.
+                workbench.set_system_language(&sys_locale::get_locale().unwrap_or_default());
                 if let Some(path) = open {
                     project::open_from(&mut workbench, path);
                 }

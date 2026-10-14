@@ -230,6 +230,9 @@ pub struct Workbench {
     about_open: bool,
     /// The keyboard shortcut viewer (Keys on the menu bar; decision 0056).
     shortcuts: shortcuts::ShortcutViewer,
+    /// The keyboard guessed from the system language, drawn in the Keys
+    /// window until one is picked there.
+    system_keyboard: crate::KeyboardLayout,
     /// A message for the status bar, such as "Panel layout reset".
     note: Option<String>,
     /// When the next backup copy is due.
@@ -285,6 +288,7 @@ impl Workbench {
             accent: Accent::default(),
             about_open: false,
             shortcuts: shortcuts::ShortcutViewer::default(),
+            system_keyboard: crate::KeyboardLayout::default(),
             note,
             autosaver: Autosaver::default(),
             autosave_folder: None,
