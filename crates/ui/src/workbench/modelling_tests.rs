@@ -799,7 +799,7 @@ fn ctrl_and_the_wheel_change_the_bevels_segments() {
 
 #[test]
 fn ctrl_and_the_wheel_grow_the_selection_with_tools_without_a_count() {
-    let mut harness = ready(Key::D);
+    let mut harness = ready(Key::I);
     let before = harness
         .state()
         .workbench
@@ -819,4 +819,82 @@ fn ctrl_and_the_wheel_grow_the_selection_with_tools_without_a_count() {
         .polygons()
         .count();
     assert!(after > before, "{before} → {after}");
+}
+
+#[test]
+fn an_extrude_bends_with_the_settings_set_before_and_changed_after() {
+    let mut harness = ready(Key::D);
+    // The tool's bend rows, with Keep together.
+    for name in ["Angle", "Direction", "Bend radius", "Bend segments"] {
+        assert!(harness.query_all_by_label(name).count() >= 1, "{name}");
+    }
+    // A straight drag first.
+    drag(&mut harness, 60.0);
+    let Some(Operation::ExtrudePolygons { distance, .. }) = last_operation(&harness) else {
+        panic!("a straight extrude");
+    };
+    assert!(distance > 1.0);
+    let straight = shape(&harness).face_count();
+    // Given an angle as the Last edit, it bends, as the same undo step's
+    // replacement.
+    let (id, steps) = (
+        cube(&harness),
+        harness.state().workbench.document().undo_steps(),
+    );
+    let op = last_operation(&harness).unwrap();
+    let settings = op.settings().unwrap();
+    let bent = op.with(scene::EditSettings {
+        bend: Some(scene::Bend {
+            angle: 90.0,
+            radius: 30.0,
+            segments: 4,
+            ..settings.bend.unwrap()
+        }),
+        ..settings
+    });
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::ReplaceOperation {
+            id,
+            layer: 0,
+            index: 0,
+            operation: bent,
+        })
+        .unwrap();
+    harness.run();
+    assert!(matches!(
+        last_operation(&harness),
+        Some(Operation::ExtrudeBent { .. })
+    ));
+    assert!(shape(&harness).face_count() > straight);
+    assert!(
+        harness
+            .query_by_label_contains("Last edit: Extrude 1 polygon with a bend")
+            .is_some()
+    );
+    // Ctrl + wheel changes its rows, one step per notch.
+    let at = on_screen(&harness, glam::Vec3::new(0.0, 0.0, 100.0));
+    ctrl_wheel(&mut harness, at, true);
+    let Some(Operation::ExtrudeBent { bend, .. }) = last_operation(&harness) else {
+        panic!("a bent extrude");
+    };
+    assert_eq!(bend.segments, 5);
+    assert_eq!(harness.state().workbench.document().undo_steps(), steps + 2);
+    // With the tool's bend set, the next drag bends at once.
+    harness.state_mut().workbench.attributes.bend = scene::Bend {
+        angle: 45.0,
+        radius: 0.0,
+        ..Default::default()
+    };
+    harness.run();
+    drag(&mut harness, 40.0);
+    let Some(Operation::ExtrudeBent { bend, distance, .. }) = last_operation(&harness) else {
+        panic!("a bent extrude");
+    };
+    assert_eq!(bend.angle, 45.0);
+    assert!(distance >= 0.0);
+    let report = mesh::MeshReport::new(&shape(&harness));
+    assert!(report.is_closed(), "{report:?}");
 }

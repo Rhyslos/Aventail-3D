@@ -61,6 +61,8 @@ pub(super) struct ModellingSession {
     grouping: Grouping,
     /// Bevel's rows and profile.
     bevel: BevelLook,
+    /// Extrude's bend (decision 0050).
+    bend: scene::Bend,
     /// For Bevel, the selected edges (or points, as edges of no length) in
     /// the world: the drag is measured away from them.
     reach: Vec<(Vec3, Vec3)>,
@@ -156,6 +158,14 @@ impl ModellingSession {
                 faces: faces.clone(),
                 distance: local,
                 grouping: self.grouping,
+                anchors,
+            },
+            (Elements::Polygons(faces), _) if self.bend.bends() => Operation::ExtrudeBent {
+                faces: faces.clone(),
+                // The straight part after the bend goes only outward.
+                distance: local.max(0.0),
+                grouping: self.grouping,
+                bend: self.bend,
                 anchors,
             },
             (Elements::Polygons(faces), _) => Operation::ExtrudePolygons {
@@ -359,6 +369,11 @@ impl Workbench {
                 mesh::loopcut::MAX_CUTS,
                 self.attributes.loop_cut.cuts,
             ),
+            Tool::Extrude => (
+                "bend segments",
+                mesh::extrude::MAX_BEND_SEGMENTS,
+                self.attributes.bend.segments,
+            ),
             _ => return,
         };
         let dragging = self.modelling_session.is_some() || self.loop_cut_session.is_some();
@@ -372,8 +387,12 @@ impl Workbench {
         };
         let count_of = |op: &Operation| {
             let settings = op.settings()?;
-            match self.tool {
-                Tool::Bevel => settings.segments,
+            match (self.tool, op) {
+                (Tool::Bevel, _) => settings.segments,
+                // Only a bent extrude has its own segments; a straight one
+                // shows the tool's.
+                (Tool::Extrude, Operation::ExtrudeBent { .. }) => settings.bend.map(|b| b.segments),
+                (Tool::Extrude, _) => None,
                 _ => settings.cuts,
             }
         };
@@ -384,6 +403,7 @@ impl Workbench {
         let count = (i64::from(current) + i64::from(steps)).clamp(1, i64::from(max)) as u32;
         match self.tool {
             Tool::Bevel => self.attributes.bevel.segments = count,
+            Tool::Extrude => self.attributes.bend.segments = count,
             _ => self.attributes.loop_cut.cuts = count,
         }
         self.note = Some(format!(
@@ -392,6 +412,7 @@ impl Workbench {
         ));
         if let Some(session) = &mut self.modelling_session {
             session.bevel.segments = count;
+            session.bend.segments = count;
             if let Some(distance) = session.shown {
                 let session = session.clone();
                 session.show(&mut self.document, distance).ok();
@@ -407,6 +428,13 @@ impl Workbench {
             let operation = op.with(match self.tool {
                 Tool::Bevel => scene::EditSettings {
                     segments: Some(count),
+                    ..settings
+                },
+                Tool::Extrude => scene::EditSettings {
+                    bend: settings.bend.map(|b| scene::Bend {
+                        segments: count,
+                        ..b
+                    }),
                     ..settings
                 },
                 _ => scene::EditSettings {
@@ -534,6 +562,7 @@ impl Workbench {
                 .flatten(),
             grouping: self.grouping(),
             bevel: self.attributes.bevel,
+            bend: self.attributes.bend,
             reach,
             start: None,
             shown: None,

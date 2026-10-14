@@ -6,7 +6,7 @@
 //! operation is version 5's.
 
 use super::v1::{FileOperation, Problem};
-use super::v5::{EntryWith, ProjectWith};
+use super::v5::EntryWith;
 use super::v6::OperationV6;
 use crate::limits::Bounded;
 use glam::Vec3;
@@ -15,7 +15,8 @@ use scene::{Eye, Operation, SlitLine};
 use serde::{Deserialize, Serialize};
 
 /// Version 7 of the file.
-pub(crate) type ProjectV7 = ProjectWith<EntryV7>;
+#[cfg(test)]
+pub(crate) type ProjectV7 = super::v5::ProjectWith<EntryV7>;
 
 /// A recorded edit in version 7.
 pub(crate) type EntryV7 = EntryWith<OperationV7>;

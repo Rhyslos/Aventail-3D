@@ -486,5 +486,247 @@ fn edge_regions<T>(border: &BTreeMap<EdgeKey, T>, grouping: Grouping) -> Vec<Vec
     groups
 }
 
+// ------------------------------------------------------------ bending ---
+
+/// The most rows a bend can have.
+pub const MAX_BEND_SEGMENTS: u32 = 64;
+/// The sharpest a joint without a bend radius can turn, in degrees: a
+/// mitre joint stretches its ring by 1 / cos(half the angle), which grows
+/// without limit towards 180°.
+pub const MAX_MITRE_ANGLE: f32 = 150.0;
+
+/// A bend at the start of an extrude, so a pipe turns a corner and keeps
+/// its full width ([decision 0050](../../../docs/decisions/0050-pipe-bends.md)).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Bend {
+    /// How far it turns, in degrees: 0 (straight) to 180.
+    pub angle: f32,
+    /// Which way round it turns, in degrees: 0 turns up (an upright pipe
+    /// turns towards +X), and it goes round the pipe from there.
+    pub direction: f32,
+    /// How far the middle of the turn is from the middle of the pipe, in
+    /// the mesh's own units: 0 is a sharp corner (a mitre joint).
+    pub radius: f32,
+    /// How many rows a rounded turn has (1 to [`MAX_BEND_SEGMENTS`]).
+    pub segments: u32,
+}
+
+impl Default for Bend {
+    fn default() -> Self {
+        Self {
+            angle: 0.0,
+            direction: 0.0,
+            radius: 0.0,
+            segments: 8,
+        }
+    }
+}
+
+impl Bend {
+    /// The same bend with every number in range (and numbers that aren't
+    /// real made straight).
+    #[must_use]
+    pub fn clamped(self) -> Self {
+        let real = |x: f32, or: f32| if x.is_finite() { x } else { or };
+        let radius = real(self.radius, 0.0).max(0.0);
+        let most = if radius > 0.0 { 180.0 } else { MAX_MITRE_ANGLE };
+        Self {
+            angle: real(self.angle, 0.0).clamp(0.0, most),
+            direction: real(self.direction, 0.0).rem_euclid(360.0),
+            radius,
+            segments: self.segments.clamp(1, MAX_BEND_SEGMENTS),
+        }
+    }
+
+    /// Whether it turns at all.
+    pub fn bends(&self) -> bool {
+        self.clamped().angle > 1e-3
+    }
+
+    /// How many rings of new points an extrude with this bend makes: one
+    /// per row of the turn, and one more for a straight part after it.
+    pub fn rings(&self, distance: f32) -> usize {
+        let bend = self.clamped();
+        let turn = if !bend.bends() {
+            0
+        } else if bend.radius > 0.0 {
+            bend.segments as usize
+        } else {
+            0
+        };
+        let straight = usize::from(distance > 1e-4 || turn == 0);
+        turn + straight
+    }
+}
+
+/// The way a piece faces and turns: its middle, its facing, the way the
+/// bend turns towards, and the axis it turns around.
+struct Turn {
+    middle: Vec3,
+    facing: Vec3,
+    towards: Vec3,
+    axis: Vec3,
+}
+
+impl Turn {
+    fn of(mesh: &Mesh, faces: &[FaceId], direction: f32) -> Option<Self> {
+        let points: BTreeSet<VertexId> = faces
+            .iter()
+            .flat_map(|f| mesh.face(*f).unwrap_or_default().iter().copied())
+            .collect();
+        let places: Vec<Vec3> = points.iter().filter_map(|v| mesh.position(*v)).collect();
+        if places.is_empty() {
+            return None;
+        }
+        let middle = places.iter().copied().sum::<Vec3>() / places.len() as f32;
+        let facing = faces
+            .iter()
+            .map(|f| mesh.face_normal(*f))
+            .sum::<Vec3>()
+            .try_normalize()?;
+        // Up, or +X for something facing straight up or down.
+        let reference = if facing.z.abs() < 0.99 {
+            Vec3::Z
+        } else {
+            Vec3::X
+        };
+        let first = (reference - facing * reference.dot(facing)).try_normalize()?;
+        let towards = glam::Quat::from_axis_angle(facing, direction.to_radians()) * first;
+        Some(Self {
+            middle,
+            facing,
+            towards,
+            axis: facing.cross(towards),
+        })
+    }
+
+    /// `p` turned by `angle` (radians) around the turn's axis through
+    /// `pivot`.
+    fn turned(&self, pivot: Vec3, angle: f32, p: Vec3) -> Vec3 {
+        pivot + glam::Quat::from_axis_angle(self.axis, angle) * (p - pivot)
+    }
+
+    /// Where `p`, on the piece's border, goes in a mitre joint turning by
+    /// `angle` (radians): onto the plane halfway between the two
+    /// directions, stretched across the turn so the pipe keeps its width.
+    fn mitred(&self, angle: f32, p: Vec3) -> Vec3 {
+        let q = p - self.middle;
+        let (x, y, z) = (q.dot(self.towards), q.dot(self.axis), q.dot(self.facing));
+        let half = angle * 0.5;
+        let flat = self.towards * (x / half.cos()) + self.axis * y;
+        self.middle + glam::Quat::from_axis_angle(self.axis, half) * flat + self.facing * z
+    }
+}
+
+/// Extrudes `faces` with a bend: each piece (see [`Grouping`]) first
+/// turns by the bend's angle, in its direction, around a point `radius`
+/// away from the piece's middle, then goes on straight for `distance`
+/// (negative counts as 0). The turn is made of rings that keep the piece's
+/// full size, so a pipe bends without pinching. With no radius the turn
+/// is a sharp mitre joint: the piece's old border moves onto the plane
+/// halfway between the two directions, stretched so the pipe stays round
+/// through the corner.
+///
+/// A bend that doesn't turn is a plain [`extrude_polygons`]. Polygons keep
+/// their ids, new points and polygons take the next ids, and values come
+/// along as with every extrude. Polygons not in the mesh are counted as
+/// missing; numbers that aren't real change nothing.
+pub fn extrude_bent(
+    mesh: &mut Mesh,
+    faces: &[FaceId],
+    distance: f32,
+    grouping: Grouping,
+    bend: Bend,
+) -> Outcome {
+    let bend = bend.clamped();
+    if !bend.bends() || !distance.is_finite() {
+        return extrude_polygons(mesh, faces, distance, grouping);
+    }
+    let (faces, missing) = existing_faces(mesh, faces);
+    let outcome = Outcome {
+        matched: faces.len(),
+        missing,
+        skipped: 0,
+    };
+    if faces.is_empty() {
+        return outcome;
+    }
+    let distance = distance.max(0.0);
+    let original = mesh.clone();
+    let pieces: Vec<(Vec<FaceId>, Turn)> = face_regions(original.topology(), &faces, grouping)
+        .into_iter()
+        .filter_map(|piece| {
+            let turn = Turn::of(&original, &piece, bend.direction)?;
+            Some((piece, turn))
+        })
+        .collect();
+    // Extrude ring after ring (where they go is set afterwards), following
+    // each original point to its copy in every ring through the polygons'
+    // corners, which keep their order.
+    let rings = bend.rings(distance);
+    let mut follow: Vec<BTreeMap<VertexId, VertexId>> = Vec::with_capacity(rings);
+    for _ in 0..rings {
+        let before: Vec<Vec<VertexId>> = faces
+            .iter()
+            .map(|f| mesh.face(*f).unwrap_or_default().to_vec())
+            .collect();
+        extrude_polygons(mesh, &faces, 1.0, grouping);
+        let mut step = BTreeMap::new();
+        for (f, old) in faces.iter().zip(&before) {
+            for (a, b) in old.iter().zip(mesh.face(*f).unwrap_or_default()) {
+                step.insert(*a, *b);
+            }
+        }
+        follow.push(step);
+    }
+    let angle = bend.angle.to_radians();
+    for (piece, turn) in &pieces {
+        let points: BTreeSet<VertexId> = piece
+            .iter()
+            .flat_map(|f| original.face(*f).unwrap_or_default().iter().copied())
+            .collect();
+        let ahead = glam::Quat::from_axis_angle(turn.axis, angle) * turn.facing;
+        for v in points {
+            let Some(at) = original.position(v) else {
+                continue;
+            };
+            // The point in each ring.
+            let mut id = v;
+            let mut ids = Vec::with_capacity(rings);
+            for step in &follow {
+                id = step.get(&id).copied().unwrap_or(id);
+                ids.push(id);
+            }
+            let on_border = ids.first().is_some_and(|first| *first != v);
+            let mut places = Vec::with_capacity(rings);
+            if bend.radius > 0.0 {
+                let pivot = turn.middle + turn.towards * bend.radius;
+                for k in 1..=bend.segments {
+                    let share = k as f32 / bend.segments as f32;
+                    places.push(turn.turned(pivot, angle * share, at));
+                }
+            } else if on_border {
+                // The old border becomes the mitre joint.
+                mesh.set_position(v, turn.mitred(angle, at));
+            }
+            if places.len() < rings {
+                let end = turn.turned(turn.middle, angle, at);
+                let end = if bend.radius > 0.0 {
+                    places.last().copied().unwrap_or(end)
+                } else {
+                    end
+                };
+                places.push(end + ahead * distance);
+            }
+            for (id, place) in ids.iter().zip(&places) {
+                if place.is_finite() {
+                    mesh.set_position(*id, *place);
+                }
+            }
+        }
+    }
+    outcome
+}
+
 #[cfg(test)]
 mod tests;

@@ -11,7 +11,9 @@
 //! here so every operation is found in one place.
 
 pub use crate::bevel::{BevelShape, bevel_edges, bevel_points};
-pub use crate::extrude::{Grouping, extrude_edges, extrude_polygons, inset_polygons};
+pub use crate::extrude::{
+    Bend, Grouping, extrude_bent, extrude_edges, extrude_polygons, inset_polygons,
+};
 pub use crate::loopcut::loop_cut;
 pub use crate::slit::{Eye, SlitLine, slit};
 use crate::{Mesh, VertexId};
