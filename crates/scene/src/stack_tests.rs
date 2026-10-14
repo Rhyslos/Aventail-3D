@@ -1056,6 +1056,76 @@ fn a_loop_cut_whose_edge_is_gone_is_missing() {
     assert_eq!(shape.warnings[0].missing, 1);
 }
 
+/// A slit across the cube's front at 30 cm high, seen from in front.
+fn slit_front(through: bool) -> Operation {
+    Operation::Slit {
+        line: SlitLine {
+            points: vec![Vec3::new(-80.0, -50.0, 30.0), Vec3::new(80.0, -50.0, 30.0)],
+            eye: Eye::At(Vec3::new(0.0, -500.0, 30.0)),
+            through,
+        },
+    }
+}
+
+#[test]
+fn a_slit_is_recorded_changed_and_follows_the_shape() {
+    let (mut doc, id) = with_a_cube();
+    record(&mut doc, id, slit_front(false));
+    assert_eq!(doc.undo_label(), Some("Slit"));
+    let faces = |doc: &Document| doc.scene().evaluated(id).unwrap().mesh.face_count();
+    assert_eq!(faces(&doc), 7);
+    // The Last edit: only Cut through.
+    let settings = slit_front(false).settings().unwrap();
+    assert_eq!(settings.through, Some(false));
+    assert_eq!((settings.distance, settings.cuts), (None, None));
+    let changed = slit_front(false).with(EditSettings {
+        through: Some(true),
+        ..settings
+    });
+    assert_eq!(changed.describe(), "Slit through");
+    doc.execute(Command::ReplaceOperation {
+        id,
+        layer: 0,
+        index: 0,
+        operation: changed,
+    })
+    .unwrap();
+    assert_eq!(faces(&doc), 10);
+    // More height segments: the slit still cuts at 30 cm, through the
+    // lower row.
+    doc.execute(Command::SetPrimitive {
+        ids: vec![id],
+        primitive: Primitive::Cube(CubeParams {
+            segments: [1, 1, 2],
+            ..Default::default()
+        }),
+    })
+    .unwrap();
+    let shape = doc.scene().evaluated(id).unwrap();
+    assert_eq!(shape.mesh.face_count(), 10 + 4);
+    assert!(shape.warnings.is_empty(), "{:?}", shape.warnings);
+    assert!(mesh::MeshReport::new(&shape.mesh).is_closed());
+    let low = shape
+        .mesh
+        .vertices()
+        .filter(|(_, p)| (p.z - 30.0).abs() < 1e-3)
+        .count();
+    assert_eq!(low, 4);
+    // Numbers that aren't real are refused, and a slit keeps only its
+    // points.
+    let mut broken = slit_front(false);
+    if let Operation::Slit { line } = &mut broken {
+        line.eye = Eye::At(Vec3::NAN);
+    }
+    assert!(!broken.numbers_are_real());
+    let op = slit_front(true);
+    assert_eq!(
+        crate::memory::operation_size(&op),
+        2 * std::mem::size_of::<Vec3>()
+    );
+    assert!(op.anchors().is_none());
+}
+
 #[test]
 fn edits_holding_numbers_that_arent_real_are_refused() {
     // A regression test from the whole-app review (L2): such an edit

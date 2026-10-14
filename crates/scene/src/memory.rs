@@ -47,6 +47,7 @@ pub(crate) fn operation_size(op: &Operation) -> usize {
             std::mem::size_of_val(faces.as_slice())
                 + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
         }
+        Operation::Slit { line } => std::mem::size_of_val(line.points.as_slice()),
         Operation::LoopCut { anchors, .. } => {
             anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
         }

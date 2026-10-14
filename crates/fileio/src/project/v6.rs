@@ -8,14 +8,15 @@
 use super::v1::{FileOperation, Problem};
 use super::v2::{AnchorsV2, anchors_from_file, anchors_to_file};
 use super::v4::OperationV4;
-use super::v5::{EntryWith, ProjectWith};
+use super::v5::EntryWith;
 use mesh::loopcut::MAX_CUTS;
 use mesh::{EdgeKey, VertexId};
 use scene::Operation;
 use serde::{Deserialize, Serialize};
 
 /// Version 6 of the file.
-pub(crate) type ProjectV6 = ProjectWith<EntryV6>;
+#[cfg(test)]
+pub(crate) type ProjectV6 = super::v5::ProjectWith<EntryV6>;
 
 /// A recorded edit in version 6.
 pub(crate) type EntryV6 = EntryWith<OperationV6>;

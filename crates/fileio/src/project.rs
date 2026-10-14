@@ -11,7 +11,7 @@
 //! | 4–7 | The format version (little-endian), so old files can be upgraded and newer ones refused clearly |
 //! | 8–11 | Flags; bit 0 says the body is zstd-compressed. Other bits are reserved and must be 0 |
 //! | 12–19 | The body's length in bytes |
-//! | 20– | The body: the file model of that version (`project/v1.rs` to `project/v6.rs`), encoded with postcard |
+//! | 20– | The body: the file model of that version (`project/v1.rs` to `project/v7.rs`), encoded with postcard |
 //!
 //! Reading never trusts the file: lengths are checked before anything is
 //! allocated, the unpacked body is capped, every list is paid for from a
@@ -26,6 +26,7 @@ mod v3;
 mod v4;
 mod v5;
 mod v6;
+mod v7;
 
 use scene::Document;
 use std::fmt;
@@ -35,7 +36,7 @@ use std::path::{Path, PathBuf};
 /// The signature every project file starts with.
 pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// The format version this app writes.
-pub const FORMAT_VERSION: u32 = 6;
+pub const FORMAT_VERSION: u32 = 7;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -137,7 +138,7 @@ fn edit_counts(document: &Document) -> usize {
 
 /// The project file's bytes for `document`, unchecked.
 fn encode(document: &Document) -> Result<Vec<u8>, ProjectError> {
-    let model = v6::ProjectV6::from_document(document);
+    let model = v7::ProjectV7::from_document(document);
     let stored: usize = model
         .project
         .objects
@@ -210,7 +211,8 @@ pub fn from_bytes(bytes: &[u8]) -> Result<Document, ProjectError> {
         3 => decode::<v3::OperationV3>(encoded),
         4 => decode::<v4::OperationV4>(encoded),
         5 => decode_entries::<v5::EntryV5>(encoded),
-        _ => decode_entries::<v6::EntryV6>(encoded),
+        6 => decode_entries::<v6::EntryV6>(encoded),
+        _ => decode_entries::<v7::EntryV7>(encoded),
     }
 }
 
