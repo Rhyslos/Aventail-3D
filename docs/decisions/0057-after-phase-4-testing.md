@@ -18,6 +18,7 @@ What he ran into:
 7. Weld's drag only circled the target; he wanted it to snap.
 8. A bend set for one extrude carried on to the next, which then turned by surprise; the bend's sliders didn't match the rest of the panel.
 9. Dissolve across a sharp corner is almost never wanted, but he didn't want it forbidden.
+10. Double-clicking to select a loop was unreliable. With Move, Rotate or Scale on, the first click moves the gizmo to the clicked edge or point, right under the mouse, so the second click landed on the gizmo and was taken by it.
 
 ## Options
 
@@ -39,6 +40,7 @@ For the back key (5): one step at a time (tool, then mode), or **straight back t
 - **Gone elements aren't drawn**: the overlay draws only edges the shape still has, and Dissolve forgets the values (hard marks) of edges it took away. Two hard edges joined into one by dissolving the point between them stay hard.
 - **Bridge and Fill hole mark their new sharp edges hard** (sharper than 30°, the same start as Hard edges by angle). Nothing is made soft. Old projects with bridges or filled holes show the crisper corners when opened, as edits are worked out again from the file.
 - **Polygons are cut into triangles properly** (`mesh::triangulate`), brought forward from Phase 5's consistent triangulation: triangles as they are; quads 0–2 unless dented; flat polygons without dents as a fan; anything else laid flat on its best plane and cut along lines inside it, the shortest cut for up to 32 corners (which follows a bent polygon's fold), ear by ear above that. Drawing, picking and the selection tint use the same cut.
+- **A double-click on a gizmo handle goes through to selecting**: a press on a handle that ends without a drag and is the second click of a double-click is left to the selection, so the loop is selected. A single click on a handle still does nothing, as before.
 - **Dissolve warns** when it would take away an edge whose polygons meet more sharply than 30°. The question explains why and suggests Delete; **Dissolve** stays locked until "I know what I'm doing, proceed" is ticked; "Don't warn me again" switches it off, and Settings → Interface → Warnings switches it back on (remembered with the view options).
 
 ## Consequences

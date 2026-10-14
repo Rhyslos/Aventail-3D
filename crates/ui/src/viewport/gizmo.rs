@@ -140,8 +140,15 @@ impl View {
             }
             self.gizmo_drag = Some(drag);
         } else if !primary_down {
-            // Pressed on a handle and let go without moving: nothing.
+            // Pressed on a handle and let go without moving: nothing,
+            // unless it was the second click of a double-click. Clicking an
+            // edge or point moves the gizmo to it, right under the mouse,
+            // so the second click lands on the gizmo; it must still select
+            // the loop.
             self.pressed_handle = None;
+            if response.double_clicked_by(PointerButton::Primary) {
+                return false;
+            }
         }
         true
     }

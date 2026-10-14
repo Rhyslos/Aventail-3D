@@ -100,6 +100,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Double-clicking to select a loop works every time with the Move, Rotate and Scale tools on. Before, the first click moved the gizmo under the mouse and the second click landed on it instead.
 - After dissolving an edge, its red selected line and its cyan hard-edge mark no longer stay behind.
 - Bent polygons and polygons with a dent are drawn (and picked) correctly, cut along lines inside them instead of a wrong triangle and a gap.
 - Picking Inset after an extrude no longer shows the extrude's bend rows as if they were Inset's.
