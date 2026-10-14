@@ -46,6 +46,11 @@ pub enum OverlayStyle {
     Hovered,
     /// Selected: in the accent colour, larger.
     Selected,
+    /// A hard edge of an edited object (Display → Hard edges).
+    Hard,
+    /// A polygon's normal: a short line from its middle the way it faces
+    /// (Display → Normals).
+    Normal,
 }
 
 /// What the Points, Edges and Polygons modes draw over the edited objects,

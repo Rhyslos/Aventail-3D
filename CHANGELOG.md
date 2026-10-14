@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Hard and soft edges.** Pick **Hard edges** or **Soft edges** from the E menu or the Mesh menu to make the selected edges (or the selected polygons' edges) crisp or smooth. **Mesh → Hard edges by angle** does a whole object at once, with an **Angle** you can change afterwards, and **Select → Select hard edges** selects them. The viewport's **Display** menu marks hard edges in light cyan (on as standard) and can show **Normals**: which way each polygon faces.
 - **Clean-up.** In the Points, Edges and Polygons modes, **Delete** deletes the selected points, edges or polygons (leaving a hole) and **Backspace** dissolves them: they go, but the polygons around them merge so the surface stays closed. **Fill hole** closes holes with a polygon, and **Flip normals** turns polygons inside out (both in the E menu and the Mesh menu). **Mesh → Fix facing** turns every polygon facing the wrong way round, and the Select menu gains **Select flipped** and **Select similar facing**.
 - **Connect, Bridge and Weld.** **J** joins the selected points (or the middles of the selected edges) across their polygons. **C** bridges two selected open borders or two polygons with a band of new polygons (Segments and Twist in the Attributes panel); with nothing to bridge selected, C lets you drag from one open edge to another. **M** welds the selected points into one at their middle, and **Ctrl + M** lets you drag a point onto another to weld it there.
 - **Pipe bends.** An extrude can turn a corner and keep its full width: after extruding (D), set **Angle**, **Direction**, **Bend radius** and **Segments** under Last edit (or before dragging) for a smooth elbow, or a sharp mitre joint with no radius. Ctrl + wheel changes Segments while Extrude is in use.
@@ -47,6 +48,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Projects are saved in **file format version 11**, which can hold hard and soft edges. Older projects still open.
 - Projects are saved in **file format version 10**, which can hold the clean-up edits. Older projects still open.
 - In the Points, Edges and Polygons modes, Delete and Backspace now work on the selected points, edges or polygons instead of deleting the whole object. In the Model mode they still delete objects.
 - Projects are saved in **file format version 9**, which can hold Connect, Bridge and Weld. Older projects still open.

@@ -53,7 +53,24 @@ pub(crate) struct AttributesPanel {
     pub(crate) bend: scene::Bend,
     /// Connect's cuts and Bridge's rows and twist (decision 0051).
     pub(crate) join: JoinLook,
+    /// Hard edges by angle's angle, for its next use (decision 0053).
+    pub(crate) hard_angle: HardAngle,
 }
+
+/// Hard edges by angle's angle in degrees, for its next use: edges whose
+/// polygons meet more sharply than this become hard.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct HardAngle(pub(crate) f32);
+
+impl Default for HardAngle {
+    fn default() -> Self {
+        Self(HARD_ANGLE)
+    }
+}
+
+/// Hard edges by angle's standard angle, in degrees: the corners of boxy
+/// shapes come out hard and curves made of 12 or more sides soft.
+pub(crate) const HARD_ANGLE: f32 = 30.0;
 
 /// Connect's and Bridge's settings, for their next use.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -471,6 +488,18 @@ impl AttributesPanel {
                             } else {
                                 self.loop_cut.cuts = cuts;
                             }
+                            changed = true;
+                        }
+                        ui.end_row();
+                    }
+                    if let Some(mut angle) = edited.angle {
+                        let touched = angle_row(ui, &mut angle);
+                        if touched.began {
+                            self.gesture += 1;
+                        }
+                        if touched.changed {
+                            edited.angle = Some(angle);
+                            self.hard_angle = HardAngle(angle);
                             changed = true;
                         }
                         ui.end_row();
@@ -1018,6 +1047,26 @@ fn through_row(ui: &mut Ui, through: &mut bool) -> bool {
         egui::WidgetInfo::selected(egui::WidgetType::Checkbox, true, *through, "Cut through")
     });
     response.changed()
+}
+
+/// Hard edges by angle's angle, with its label.
+fn angle_row(ui: &mut Ui, angle: &mut f32) -> stepper::Touched {
+    label(
+        ui,
+        "Angle",
+        "Edges whose polygons meet more sharply than this become hard (a crisp edge); the \
+         rest become soft (smooth). 0° is flat.",
+    );
+    let response = ui.add(
+        egui::Slider::new(angle, 0.0..=mesh::hardness::MAX_ANGLE)
+            .suffix("°")
+            .custom_formatter(|v, _| format!("{v:.0}")),
+    );
+    response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Slider, true, "Angle"));
+    stepper::Touched {
+        changed: response.changed(),
+        began: response.drag_started() || (response.changed() && !response.dragged()),
+    }
 }
 
 /// Loop cut's number of cuts, with its label.

@@ -28,6 +28,8 @@ pub(super) enum SelectRequest {
     Flipped,
     /// Add the polygons facing like the selected ones.
     SimilarFacing,
+    /// Select the hard edges.
+    HardEdges,
 }
 
 /// The Select menu's tooltip for the visible-only switch, and the mode
@@ -159,6 +161,17 @@ impl Workbench {
             polygons(self, SelectRequest::SimilarFacing);
             ui.close();
         }
+        if entry(
+            ui,
+            "Select hard edges",
+            String::new(),
+            "Select every hard edge: where the shading breaks into a crisp edge. Shows the \
+             Edges mode.",
+        ) {
+            self.mode = Mode::Edges;
+            self.select_requests.push(SelectRequest::HardEdges);
+            ui.close();
+        }
         ui.add_enabled(false, egui::Button::new("Loop and ring: double-click"))
             .on_disabled_hover_text(
                 "Double-click an edge for its loop; Alt + double-click for its ring",
@@ -209,6 +222,7 @@ impl Workbench {
                     selector.gesture(crate::selecting::Gesture::Grow(steps))
                 }
                 SelectRequest::Flipped => selector.select_flipped(),
+                SelectRequest::HardEdges => selector.select_hard_edges(),
                 SelectRequest::SimilarFacing => {
                     selector.select_similar_facing(super::cleaning::SIMILAR_FACING_ANGLE)
                 }

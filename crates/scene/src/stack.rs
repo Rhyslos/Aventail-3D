@@ -226,6 +226,23 @@ pub enum Operation {
     },
     /// Turns every polygon facing the wrong way round (decision 0052).
     FixFacing,
+    /// Marks edges hard (a crisp break in the shading) or soft (smooth
+    /// shading across) (decision 0053).
+    SetHardEdges {
+        /// The edges.
+        edges: Vec<EdgeKey>,
+        /// Hard, or soft.
+        hard: bool,
+        /// Where they were, to find them again (decision 0032).
+        anchors: Option<Anchors>,
+    },
+    /// Marks every edge whose polygons meet more sharply than `angle`
+    /// degrees hard and the rest soft (decision 0053). Worked out from the
+    /// shape as it is.
+    HardEdgesByAngle {
+        /// The angle, 0 to 180 degrees.
+        angle: f32,
+    },
     /// Cuts new edges along a line drawn over the shape, as seen from
     /// where it was drawn (decision 0049). Worked out from the shape as it
     /// is, so it needs no ids or anchors.
@@ -303,6 +320,8 @@ pub struct EditSettings {
     pub bend: Option<Bend>,
     /// A bridge's rows and twist.
     pub bridge: Option<(u32, i32)>,
+    /// Hard edges by angle's angle, in degrees.
+    pub angle: Option<f32>,
 }
 
 /// What applying an operation did.
@@ -362,6 +381,11 @@ impl Operation {
             Self::FillHoles { .. } => "Fill hole".to_string(),
             Self::FlipPolygons { faces, .. } => counted("Flip", faces.len(), "polygon"),
             Self::FixFacing => "Fix facing".to_string(),
+            Self::SetHardEdges { edges, hard, .. } => {
+                let verb = if *hard { "Harden" } else { "Soften" };
+                counted(verb, edges.len(), "edge")
+            }
+            Self::HardEdgesByAngle { .. } => "Hard edges by angle".to_string(),
             Self::Bridge { edges, .. } => counted("Bridge", edges.len(), "edge"),
             Self::Weld { points, target, .. } => {
                 let n = points.len() + usize::from(target.is_some_and(|t| !points.contains(&t)));
@@ -431,12 +455,17 @@ impl Operation {
                 bridge: Some((*segments, *twist)),
                 ..EditSettings::default()
             }),
+            Self::HardEdgesByAngle { angle } => Some(EditSettings {
+                angle: Some(*angle),
+                ..EditSettings::default()
+            }),
             Self::Connect { .. }
             | Self::Weld { .. }
             | Self::DeleteElements { .. }
             | Self::Dissolve { .. }
             | Self::FillHoles { .. }
             | Self::FlipPolygons { .. }
+            | Self::SetHardEdges { .. }
             | Self::FixFacing => None,
             Self::MovePoints { .. } | Self::TransformPoints { .. } => None,
         }
@@ -543,11 +572,17 @@ impl Operation {
                     *twist = t;
                 }
             }
+            Self::HardEdgesByAngle { angle } => {
+                if let Some(a) = settings.angle {
+                    *angle = a.clamp(0.0, mesh::hardness::MAX_ANGLE);
+                }
+            }
             Self::Weld { .. }
             | Self::DeleteElements { .. }
             | Self::Dissolve { .. }
             | Self::FillHoles { .. }
             | Self::FlipPolygons { .. }
+            | Self::SetHardEdges { .. }
             | Self::FixFacing => {}
             Self::MovePoints { .. } | Self::TransformPoints { .. } => {}
         }
@@ -586,7 +621,9 @@ impl Operation {
             | Self::Dissolve { .. }
             | Self::FillHoles { .. }
             | Self::FlipPolygons { .. }
+            | Self::SetHardEdges { .. }
             | Self::FixFacing => true,
+            Self::HardEdgesByAngle { angle } => angle.is_finite(),
             Self::ExtrudeBent { distance, bend, .. } => {
                 distance.is_finite()
                     && [bend.angle, bend.direction, bend.radius]
@@ -622,8 +659,9 @@ impl Operation {
             | Self::DeleteElements { anchors, .. }
             | Self::Dissolve { anchors, .. }
             | Self::FillHoles { anchors, .. }
-            | Self::FlipPolygons { anchors, .. } => anchors.as_ref(),
-            Self::FixFacing => None,
+            | Self::FlipPolygons { anchors, .. }
+            | Self::SetHardEdges { anchors, .. } => anchors.as_ref(),
+            Self::FixFacing | Self::HardEdgesByAngle { .. } => None,
             Self::Slit { .. } => None,
         }
     }
@@ -647,8 +685,9 @@ impl Operation {
             | Self::DeleteElements { anchors, .. }
             | Self::Dissolve { anchors, .. }
             | Self::FillHoles { anchors, .. }
-            | Self::FlipPolygons { anchors, .. } => anchors.as_mut(),
-            Self::FixFacing => None,
+            | Self::FlipPolygons { anchors, .. }
+            | Self::SetHardEdges { anchors, .. } => anchors.as_mut(),
+            Self::FixFacing | Self::HardEdgesByAngle { .. } => None,
             Self::Slit { .. } => None,
         }
     }
@@ -936,6 +975,13 @@ impl Operation {
                 edit::flip_faces(mesh, &faces)
             }
             Self::FixFacing => edit::fix_facing(mesh),
+            Self::SetHardEdges { edges, hard, .. } => {
+                let edges = refound
+                    .as_ref()
+                    .map_or_else(|| edges.clone(), |r| edges_within(mesh, &r.0));
+                edit::set_hard_edges(mesh, &edges, *hard)
+            }
+            Self::HardEdgesByAngle { angle } => edit::hard_edges_by_angle(mesh, *angle),
             Self::Slit { line } => {
                 // One more polygon for each piece cut off.
                 if too_big(mesh::slit::slit_size(mesh, line)) {

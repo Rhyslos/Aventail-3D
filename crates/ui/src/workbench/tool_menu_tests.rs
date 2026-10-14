@@ -218,11 +218,11 @@ fn editing_shows_the_modelling_tools_in_their_places() {
     press(&mut harness, Modifiers::NONE, Key::Enter);
     assert_eq!(harness.state().workbench.tool(), Tool::Extrude);
     assert!(!harness.state().workbench.is_tool_menu_open());
-    // A tool still to come says so instead.
+    // A tool with nothing to work on says so.
     open(&mut harness);
     harness.get_by_label("Tool menu: Hard edges").click();
     harness.run();
-    assert_eq!(note(&harness), "Hard edges: arrives in phase 4.");
+    assert_eq!(note(&harness), "Hard edges: select some edges first.");
 }
 
 #[test]
@@ -467,7 +467,10 @@ fn the_mesh_and_tools_menus_read_from_the_command_list() {
     harness.run();
     for command in crate::commands::MODELLING_RING {
         let name = command.name();
-        assert!(harness.query_by_label_contains(name).is_some(), "{name}");
+        assert!(
+            harness.query_all_by_label_contains(name).count() >= 1,
+            "{name}"
+        );
     }
     let extrude = harness.get_by_label_contains("Extrude");
     assert!(!extrude.accesskit_node().is_disabled(), "built");

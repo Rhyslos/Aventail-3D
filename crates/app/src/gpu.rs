@@ -37,6 +37,13 @@ const SELECTED_FAINTEST: f32 = 0.25;
 /// How see-through the tint on selected and hovered polygons is.
 const SELECTED_TINT: f32 = 0.45;
 const HOVERED_TINT: f32 = 0.3;
+/// Hard edges (Display → Hard edges): light cyan, a little thicker than
+/// the plain edges, linear space.
+const HARD_LINE: [f32; 4] = [0.25, 0.75, 0.95, 1.0];
+const HARD_LINE_WIDTH: f32 = 2.5;
+/// Normals (Display → Normals): light violet, thin.
+const NORMAL_LINE: [f32; 4] = [0.6, 0.5, 1.0, 1.0];
+const NORMAL_LINE_WIDTH: f32 = 1.5;
 /// How far towards white the hovered colour is from the accent, so what
 /// is under the mouse stands out from what is selected.
 const HOVER_LIFT: f32 = 0.45;
@@ -53,12 +60,16 @@ fn overlay_geometry(overlay: &ComponentOverlay, accent: [f32; 3]) -> Overlay {
         match style {
             OverlayStyle::Selected => out.line(*a, *b2, SELECTED_LINE_WIDTH, selected),
             OverlayStyle::Hovered => out.line(*a, *b2, HOVERED_LINE_WIDTH, hovered),
+            OverlayStyle::Hard => out.line(*a, *b2, HARD_LINE_WIDTH, HARD_LINE),
+            OverlayStyle::Normal => out.line(*a, *b2, NORMAL_LINE_WIDTH, NORMAL_LINE),
         }
     }
     for (triangle, style) in &overlay.tints {
         let color = match style {
             OverlayStyle::Hovered => [hovered[0], hovered[1], hovered[2], HOVERED_TINT],
-            OverlayStyle::Selected => [r, g, b, SELECTED_TINT],
+            OverlayStyle::Selected | OverlayStyle::Hard | OverlayStyle::Normal => {
+                [r, g, b, SELECTED_TINT]
+            }
         };
         out.triangle(*triangle, color);
     }
@@ -66,6 +77,8 @@ fn overlay_geometry(overlay: &ComponentOverlay, accent: [f32; 3]) -> Overlay {
         match style {
             OverlayStyle::Selected => out.point(*at, SELECTED_POINT_SIZE, selected),
             OverlayStyle::Hovered => out.point(*at, HOVERED_POINT_SIZE, hovered),
+            OverlayStyle::Hard => out.point(*at, SELECTED_POINT_SIZE, HARD_LINE),
+            OverlayStyle::Normal => out.point(*at, POINT_SIZE, NORMAL_LINE),
         }
     }
     out

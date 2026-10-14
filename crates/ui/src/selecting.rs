@@ -420,6 +420,20 @@ impl Selector<'_> {
         })
     }
 
+    /// Selects the hard edges (Select menu → Select hard edges).
+    pub(crate) fn select_hard_edges(&mut self) -> Option<String> {
+        self.each_edited(
+            ElementKind::Edges,
+            "Select hard edges",
+            |mesh, topology, _| {
+                mesh.hard_edges()
+                    .filter(|e| topology.has_edge(*e))
+                    .map(Element::Edge)
+                    .collect()
+            },
+        )
+    }
+
     /// Adds the polygons facing within `angle` degrees of a selected
     /// polygon (Select menu → Select similar facing).
     pub(crate) fn select_similar_facing(&mut self, angle: f32) -> Option<String> {
