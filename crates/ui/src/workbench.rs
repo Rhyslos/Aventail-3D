@@ -785,6 +785,7 @@ impl Workbench {
             locked: self.viewport.options().locked,
             axes: self.viewport.options().axes,
             snapping: self.viewport.options().snap.on,
+            symmetry: self.viewport.options().symmetry.on,
         };
         egui::Panel::top("command_palette")
             .frame(theme::palette_frame())
@@ -814,6 +815,10 @@ impl Workbench {
                         }
                         PaletteCommand::ToggleSnapping => {
                             self.toggle_snapping();
+                            return;
+                        }
+                        PaletteCommand::ToggleSymmetry => {
+                            self.toggle_symmetry();
                             return;
                         }
                         PaletteCommand::Undo => DocRequest::Undo,
@@ -857,6 +862,7 @@ impl Workbench {
         let coordinates = self.coordinates_view(&summary.drawing);
         let mut coordinates_done = Interaction::default();
         self.attributes.tool = self.tool;
+        self.attributes.symmetry = self.viewport.options().symmetry;
         hide_viewport_tab(&mut self.dock);
         let style = theme::dock_style(ui.style().as_ref(), self.accent);
         theme::dock_frame().show(ui, |ui| {
@@ -884,6 +890,7 @@ impl Workbench {
                     },
                 );
         });
+        self.viewport.options_mut().symmetry = self.attributes.symmetry;
         // What is under the mouse now that the viewport knows where it is;
         // when that changes, draw again so the highlight follows at once.
         self.carry_out_selection(&summary.drawing);

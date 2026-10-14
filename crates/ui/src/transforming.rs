@@ -233,6 +233,10 @@ pub(crate) struct PointsStart {
     /// Where the selected elements are in the shape, so the edit can find
     /// them again if the shape's points are renumbered (decision 0032).
     pub(crate) anchors: Option<Anchors>,
+    /// With symmetry on, which points move how (each group with its
+    /// points' anchors), instead of `points` all moving alike
+    /// (decision 0054).
+    pub(crate) mirror: Option<Vec<(mesh::symmetry::MirrorGroup, Option<Anchors>)>>,
 }
 
 /// What a change works on.
@@ -370,6 +374,7 @@ impl Target {
                         world: item.transform,
                         points,
                         anchors,
+                        mirror: None,
                     });
                 }
                 let first = starts.first()?;
@@ -382,6 +387,35 @@ impl Target {
                 })
             }
         }
+    }
+
+    /// The same target with symmetry across `axes` (the shapes' own X, Y
+    /// and Z): moving points moves their mirrors too, and points on a
+    /// mirror plane stay on it (decision 0054). Worked out once, when a
+    /// change begins. Objects are unchanged.
+    #[must_use]
+    pub(crate) fn mirrored(mut self, drawing: &SceneDrawing, axes: [bool; 3]) -> Self {
+        if let Targets::Points(starts, _) = &mut self.targets {
+            for start in starts {
+                let Some(item) = drawing.items.iter().find(|i| i.id == start.id) else {
+                    continue;
+                };
+                let plan = mesh::symmetry::mirror_plan(&item.mesh, &start.points, axes);
+                let groups = plan
+                    .groups
+                    .into_iter()
+                    .filter(|g| !g.points.is_empty())
+                    .map(|g| {
+                        let places: Vec<Vec<VertexId>> =
+                            g.points.iter().map(|v| vec![*v]).collect();
+                        let anchors = Anchors::record(&item.mesh, ElementKind::Points, &places);
+                        (g, anchors)
+                    })
+                    .collect();
+                start.mirror = Some(groups);
+            }
+        }
+        self
     }
 
     /// The gizmo for `tool` at this target.
@@ -437,8 +471,32 @@ impl Target {
             }
             Targets::Points(starts, _) => starts
                 .iter()
-                .map(|s| {
+                .flat_map(|s| {
                     let inverse = s.world.inverse();
+                    if let Some(groups) = &s.mirror {
+                        let local = inverse * m * s.world;
+                        return groups
+                            .iter()
+                            .map(|(group, anchors)| {
+                                let operation = match change {
+                                    Change::Translate(d) => Operation::MovePoints {
+                                        points: group.points.clone(),
+                                        offset: group.offset(inverse.transform_vector3(*d)),
+                                        anchors: anchors.clone(),
+                                    },
+                                    _ => Operation::TransformPoints {
+                                        points: group.points.clone(),
+                                        matrix: group.matrix(local),
+                                        anchors: anchors.clone(),
+                                    },
+                                };
+                                Command::Record {
+                                    id: s.id,
+                                    operation,
+                                }
+                            })
+                            .collect::<Vec<_>>();
+                    }
                     let operation = match change {
                         Change::Translate(d) => Operation::MovePoints {
                             points: s.points.clone(),
@@ -451,10 +509,10 @@ impl Target {
                             anchors: s.anchors.clone(),
                         },
                     };
-                    Command::Record {
+                    vec![Command::Record {
                         id: s.id,
                         operation,
-                    }
+                    }]
                 })
                 .collect(),
         }
@@ -474,7 +532,14 @@ impl Target {
                 many => format!("{verb} {} objects", many.len()),
             },
             Targets::Points(starts, _) => {
-                let n: usize = starts.iter().map(|s| s.points.len()).sum();
+                let n: usize = starts
+                    .iter()
+                    .map(|s| {
+                        s.mirror.as_ref().map_or(s.points.len(), |groups| {
+                            groups.iter().map(|(g, _)| g.points.len()).sum()
+                        })
+                    })
+                    .sum();
                 if n == 1 {
                     format!("{verb} 1 point")
                 } else {
@@ -504,9 +569,13 @@ impl Target {
         else {
             return false;
         };
-        starts
-            .iter()
-            .any(|s| s.id == item.id && s.points.binary_search(&point).is_ok())
+        starts.iter().any(|s| {
+            s.id == item.id
+                && match &s.mirror {
+                    Some(groups) => groups.iter().any(|(g, _)| g.points.contains(&point)),
+                    None => s.points.binary_search(&point).is_ok(),
+                }
+        })
     }
 }
 

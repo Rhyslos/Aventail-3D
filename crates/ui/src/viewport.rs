@@ -151,6 +151,38 @@ pub struct ViewOptions {
     /// Whether the selected objects show which way each polygon faces,
     /// as short lines (off as standard; decision 0053).
     pub show_normals: bool,
+    /// Symmetry: whether moving points moves their mirrors too, and
+    /// across which axes (decision 0054).
+    pub symmetry: Symmetry,
+}
+
+/// Symmetry while moving, rotating and scaling points, edges and polygons
+/// ([decision 0054](../../../docs/decisions/0054-symmetry.md)): the
+/// points' mirrors across the shape's own axes move the mirrored way.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Symmetry {
+    /// Whether it is on (off as standard).
+    pub on: bool,
+    /// Across which of the shape's own axes, X, Y and Z (X as standard:
+    /// left and right).
+    pub axes: [bool; 3],
+}
+
+impl Default for Symmetry {
+    fn default() -> Self {
+        Self {
+            on: false,
+            axes: [true, false, false],
+        }
+    }
+}
+
+impl Symmetry {
+    /// The axes to mirror across, when on and any is chosen.
+    pub fn active_axes(&self) -> Option<[bool; 3]> {
+        (self.on && self.axes.contains(&true)).then_some(self.axes)
+    }
 }
 
 /// What a renderer needs to draw one viewport frame.

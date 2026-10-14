@@ -238,7 +238,7 @@ fn the_modes_menu_selects_a_mode_too() {
 #[test]
 fn commands_that_are_not_built_yet_cannot_be_clicked() {
     let harness = fresh();
-    for label in ["Symmetry", "Find a command", "Show only the selection"] {
+    for label in ["Find a command", "Show only the selection"] {
         assert!(
             harness.get_by_label(label).accesskit_node().is_disabled(),
             "{label} should be disabled until it is built"

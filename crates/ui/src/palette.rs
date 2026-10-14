@@ -233,6 +233,8 @@ pub enum PaletteCommand {
     ToggleAxes,
     /// Turn snapping on or off.
     ToggleSnapping,
+    /// Turn symmetry on or off.
+    ToggleSymmetry,
 }
 
 /// One command on the top palette: one that works, or one that is not
@@ -246,16 +248,6 @@ struct Planned {
     /// The command list's entry, when it has one: its key is added to
     /// the tooltip.
     listed: Option<CommandId>,
-}
-
-const fn planned(icon: Icon, label: &'static str, arrives: &'static str) -> Planned {
-    Planned {
-        icon,
-        label,
-        arrives,
-        command: None,
-        listed: None,
-    }
 }
 
 const fn working(
@@ -313,7 +305,14 @@ pub struct PaletteState {
     pub axes: Axes,
     /// Whether snapping is on.
     pub snapping: bool,
+    /// Whether symmetry is on.
+    pub symmetry: bool,
 }
+
+/// What the Symmetry switch does, for its tooltips.
+pub(crate) const SYMMETRY_HELP: &str = "Model one half: moving, rotating or scaling points, edges or polygons \
+     moves their mirror on the other side too, and points on the middle stay there. Choose X, Y \
+     or Z (the shape's own axes) in the Attributes panel.";
 
 /// The groups of the command palette, left to right.
 const COMMAND_GROUPS: [&[Planned]; 4] = [
@@ -361,7 +360,12 @@ const COMMAND_GROUPS: [&[Planned]; 4] = [
             "Snap moves to points, edges, polygons and the grid, turns to 15° and scaling to 10% steps. Hold Ctrl while dragging to flip it for that drag.",
             PaletteCommand::ToggleSnapping,
         ),
-        planned(Icon::Symmetry, "Symmetry", "Arrives in Phase 4"),
+        working(
+            Icon::Symmetry,
+            "Symmetry",
+            SYMMETRY_HELP,
+            PaletteCommand::ToggleSymmetry,
+        ),
     ],
 ];
 
@@ -436,6 +440,10 @@ pub fn command_palette(ui: &mut Ui, state: &PaletteState) -> Option<PaletteComma
                     }
                     PaletteCommand::ToggleSnapping => {
                         active = state.snapping;
+                        (true, command.arrives.to_string())
+                    }
+                    PaletteCommand::ToggleSymmetry => {
+                        active = state.symmetry;
                         (true, command.arrives.to_string())
                     }
                     PaletteCommand::Lock(_) | PaletteCommand::ToggleAxes => {
