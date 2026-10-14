@@ -4,8 +4,8 @@
 use super::*;
 use crate::attributes::{AttributeElement, HARD};
 use crate::edit::{
-    BevelShape, Grouping, bevel_edges, bevel_points, extrude_edges, extrude_polygons,
-    inset_polygons, loop_cut,
+    BevelShape, Eye, Grouping, SlitLine, bevel_edges, bevel_points, extrude_edges,
+    extrude_polygons, inset_polygons, loop_cut, slit,
 };
 use crate::{PlaneParams, Primitive, PrimitiveKind};
 use glam::{Vec2, Vec3};
@@ -317,5 +317,55 @@ fn every_tool_keeps_values_on_every_primitive() {
             loop_cut(&mut m, *edge, 2, 0.3);
             nothing_left_at_the_default(&m);
         }
+        let middle = mesh.bounds().unwrap().centre();
+        let mut m = mesh.clone();
+        slit(
+            &mut m,
+            &SlitLine {
+                points: vec![
+                    middle + Vec3::new(-200.0, -10.0, -30.0),
+                    middle + Vec3::new(3.0, 2.0, 1.0),
+                    middle + Vec3::new(200.0, 15.0, 40.0),
+                ],
+                eye: Eye::At(middle + Vec3::new(40.0, -600.0, 300.0)),
+                through: true,
+            },
+        );
+        nothing_left_at_the_default(&m);
     }
+}
+
+#[test]
+fn points_and_corners_inside_a_polygon_blend_its_corners() {
+    let (mut mesh, v, f) = square();
+    let original = mesh.clone();
+    let spot = Vec3::new(0.25, 0.5, 0.0);
+    let weights = weights_inside(&original, f, spot);
+    let sum: f32 = weights.iter().map(|(.., w)| w).sum();
+    assert!((sum - 1.0).abs() < 1e-5);
+    // On a corner: all of it.
+    let at_corner = weights_inside(&original, f, Vec3::new(1.0, 1.0, 0.0));
+    assert_eq!(at_corner[2].2, 1.0);
+    let mut build = Builder::new(&original, &mut mesh);
+    let p = build.point(spot, PointFrom::Inside(f, spot));
+    let g = build
+        .face(
+            &[
+                (v[0], CornerFrom::Copy(f, v[0])),
+                (v[1], CornerFrom::Copy(f, v[1])),
+                (p, CornerFrom::Inside(f, spot)),
+            ],
+            Some(f),
+        )
+        .unwrap();
+    // w is height plus one; uv is the point's X and Y.
+    assert_eq!(
+        value(&mesh, "w", AttributeElement::Point(p)),
+        Value::Float(1.0)
+    );
+    let Value::Vec2(got) = value(&mesh, "uv", AttributeElement::Corner(g, 2)) else {
+        panic!("a uv");
+    };
+    assert!(got.distance(glam::Vec2::new(0.25, 0.5)) < 1e-5, "{got}");
+    assert!(weights_inside(&original, FaceId::from_raw(99), spot).is_empty());
 }
