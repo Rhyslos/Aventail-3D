@@ -473,8 +473,18 @@ fn the_mesh_and_tools_menus_read_from_the_command_list() {
     assert!(!extrude.accesskit_node().is_disabled(), "built");
     let label = extrude.accesskit_node().label().unwrap_or_default();
     assert!(label.contains('D'), "shows its key: {label}");
-    let bridge = harness.get_by_label_contains("Bridge");
-    assert!(bridge.accesskit_node().is_disabled(), "not built yet");
+    // A tool still to come can't be clicked.
+    if let Some(later) = crate::commands::MODELLING_RING
+        .iter()
+        .find(|c| !c.is_built())
+    {
+        let node = harness.get_by_label_contains(later.name());
+        assert!(
+            node.accesskit_node().is_disabled(),
+            "{} isn't built yet",
+            later.name()
+        );
+    }
     press(&mut harness, Modifiers::NONE, Key::Escape);
     main_menu(&harness, "Tools").click();
     harness.run();

@@ -25,6 +25,10 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Mitre joint** — Where two straight pieces meet at an angle with no rounding, each cut at half the angle, like the corner of a picture frame. A pipe bent this way keeps its full width. See [bending an extrude](extrude-and-inset.md#bend-it-pipes-that-turn-a-corner).
 
+**Bridge** — A band of new polygons between two openings (open borders, or two polygons that are removed), like a tube between two holes. See [Connect, Bridge and Weld](connect-bridge-weld.md).
+
+**Weld** — Melting points into one, at their middle or onto a chosen point. Polygons squeezed to fewer than three corners disappear. See [Connect, Bridge and Weld](connect-bridge-weld.md).
+
 **Slit** — Cutting new edges along a line drawn over the shape, across any polygons, as you see them (or right through the shape). Other programs call this a knife or line cut. See [Slit](slit.md).
 
 **Triangle count** — How many triangles a model becomes once every face is cut into triangles, as game engines and GPUs do: a quad is 2, an n-gon with 8 corners is 6. It's the usual measure of how heavy a game asset is. The Attributes panel shows it for every shape.

@@ -14,6 +14,7 @@ After trying Ctrl + wheel for Loop cut's number of cuts, the project lead asked 
    - Bevel: Segments;
    - Loop cut: Cuts;
    - Extrude: its bend's Segments ([0050](0050-pipe-bends.md));
+   - Bridge (the drag tool): Segments ([0051](0051-connect-bridge-weld.md));
    - tools to come: their own count, such as Bridge's segments or Slit's cuts where they have one.
 2. **What it changes.** Exactly what the arrows beside that count in the Attributes panel change:
    - **Before** using the tool: its setting for the next use.
