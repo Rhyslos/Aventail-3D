@@ -4,7 +4,7 @@
 
 Aventail 3D is a free, open-source modelling and UV unwrapping tool for **hard-surface game assets**, written in Rust. Model it, unwrap it, and export it to Substance Painter and Godot, all in one app.
 
-> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout and a real 3D view you can orbit, pan and zoom around, from four views at once if you like. You can create primitives (cube, plane, cylinder, sphere, disc, tube, cone) and groups, organise them in the Object Manager, and undo every change. Press B for a list of shapes, and select one to change its size and segments in the Attribute Manager, or press Ctrl + E to make it a plain, editable mesh. Press 1, 2 or 3 to see and select a selected shape's points, edges or polygons, and W, R or S to move, rotate or scale what's selected; change a shape's settings afterwards and your edits follow. Save your work as a project and open it again later. Press E anywhere for a menu of the tools for what you're working on, D or I to extrude or inset polygons, and V to bevel edges. Heavy shapes of millions of polygons stay quick to work with, and backup copies saved in the background bring your work back after a crash. More modelling tools follow through Phase 4. Follow the progress tracker below.
+> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout and a real 3D view you can orbit, pan and zoom around, from four views at once if you like. You can create primitives (cube, plane, cylinder, sphere, disc, tube, cone) and groups, organise them in the Objects panel, and undo every change. Press B for a list of shapes, and select one to change its size and segments in the Attributes panel, or press Ctrl + E to make it a plain, editable mesh. Press 1, 2 or 3 to see and select a selected shape's points, edges or polygons, and W, R or S to move, rotate or scale what's selected; change a shape's settings afterwards and your edits follow. Save your work as a project and open it again later. Press E anywhere for a menu of the tools for what you're working on, D or I to extrude or inset polygons, and V to bevel edges. Heavy shapes of millions of polygons stay quick to work with, and backup copies saved in the background bring your work back after a crash. More modelling tools follow through Phase 4. Follow the progress tracker below.
 
 Created by **Rhyslos**, built with AI assistance (Claude by Anthropic). Part of the **Rhylib** family of tools, alongside [Halberd](https://github.com/Rhyslos/halberd).
 
@@ -34,7 +34,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Quality checks in CI: formatting, lint, tests, license and vulnerability scans
 - [x] Documentation setup: architecture, contributing guide, changelog, decision records, pull request template, API reference, user manual
 - [x] Workspace split into crates
-- [x] Window with the C4D-style layout: viewport, Attribute Manager, Object Manager, palettes, status bar, all dockable
+- [x] Window with the C4D-style layout: viewport, Attributes panel, Objects panel, palettes, status bar, all dockable
 - [x] Theme: calm dark colours, font and spacing
 
 **Gate:** the app launches into the C4D-style layout with movable, dockable panels. *Passed 2026-10-10.*
@@ -63,9 +63,9 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 <details>
 <summary>Milestones</summary>
 
-- [x] Object Manager: create, rename, reparent, hide and delete objects (with undo and redo)
+- [x] Objects panel: create, rename, reparent, hide and delete objects (with undo and redo)
 - [x] Primitives: cube, plane, cylinder, sphere, disc, tube, cone
-- [x] Primitive settings in the Attribute Manager
+- [x] Primitive settings in the Attributes panel
 - [x] Object stack foundation: base plus recorded operations
 - [x] Undo and redo limited by memory, not steps
 - [x] Save and open `.avtl` projects
@@ -83,7 +83,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 - [x] Mesh data structure, fully tested
 - [x] Point, edge and polygon modes
-- [x] Selection: click, rectangle, lasso, live selection, loop, ring, grow and shrink
+- [x] Selection: click, rectangle, lasso, paint select, loop, ring, grow and shrink
 - [x] Move, rotate and scale gizmos with axis constraints, snapping and typed values
 - [x] Edits recorded on top of the base, so base settings stay editable
 
@@ -141,7 +141,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 <summary>Milestones</summary>
 
 - [ ] Edit Layers: a stack of edit layers per object, inspired by 3ds Max's Edit Poly stack, whose layers find their parts again when a layer below changes, added from a new modifiers palette between the viewport and the Attributes and Objects panels
-- [ ] Quick align and align tools
+- [ ] Snap to and align tools
 - [ ] Optional quad menu
 
 </details>
@@ -196,6 +196,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-14 | Our own names: the Attributes panel, the Objects panel and Paint select |
 | 2026-10-14 | Foundations, hostile files: damaged or booby-trapped projects are refused with a message instead of crashing or freezing the app; edits that would make a shape impossibly large are skipped; recovery can't get stuck. Foundations complete |
 | 2026-10-14 | Foundations, room to grow (part 2): edits keep their ids and switches and hold on to their points when earlier edits change; project files at format version 5 |
 | 2026-10-14 | Foundations, room to grow (part 1): shapes can hold extra values per point, edge, polygon and corner, and the tools carry them along (ready for UVs and materials); polygons can be deleted |

@@ -53,3 +53,4 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0043](0043-attribute-layers-and-the-builder.md) | Attribute layers (point, edge, polygon, corner), hard edges as the first; the mesh builder; deleting polygons | Accepted |
 | [0044](0044-edits-that-hold.md) | Edits that hold: ids and switches, ids trusted when the structure is the same, file format version 5 (stretching new rows tried and dropped) | Accepted |
 | [0045](0045-limits-for-files.md) | Limits for files (unpacked size, a memory budget while reading, counts) and a size guard for shapes; recovery that can't loop | Accepted |
+| [0046](0046-our-own-names.md) | Our own names: Attributes panel, Objects panel, Paint select, Snap to | Accepted |

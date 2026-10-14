@@ -1,8 +1,8 @@
-//! The Attribute Manager: the settings of the selected object. Its name
+//! The Attributes panel: the settings of the selected object. Its name
 //! and whether it is shown, and for a primitive its shape settings (size,
 //! segments and so on), which change the shape as you drag or type.
 //!
-//! Like the Object Manager, the panel never changes the scene itself: it
+//! Like the Objects panel, the panel never changes the scene itself: it
 //! hands back commands. Dragging a value changes it every frame, so those
 //! commands are merged into one undo step per drag (or per value typed).
 
@@ -27,7 +27,7 @@ const LABEL_WIDTH: f32 = 110.0;
 /// arrows.
 const FIELD_WIDTH: f32 = stepper::NUMBER_WIDTH + 16.0;
 
-/// The Attribute Manager's own state.
+/// The Attributes panel's own state.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct AttributesPanel {
     /// Counts drags, typed values and clicks, so each one is its own undo
@@ -162,7 +162,7 @@ pub(crate) fn unit_entries(ui: &mut Ui, units: &mut Units) {
 }
 
 /// Copy settings and Paste settings, for the Attributes panel's Edit menu
-/// and the Object Manager's right-click menu. The copied settings live in
+/// and the Objects panel's right-click menu. The copied settings live in
 /// `clipboard`.
 pub(crate) fn settings_entries(
     ui: &mut Ui,

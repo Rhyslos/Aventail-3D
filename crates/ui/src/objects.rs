@@ -1,4 +1,4 @@
-//! The Object Manager: the tree of objects in the scene. Click to select
+//! The Objects panel: the tree of objects in the scene. Click to select
 //! (Ctrl adds or removes, Shift selects a run), double-click a name to
 //! rename it, click the eye to show or hide, drag rows to nest or reorder,
 //! and right-click for the object commands.
@@ -47,7 +47,7 @@ pub const UNGROUP_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::
 pub const MAKE_EDITABLE_SHORTCUT: KeyboardShortcut =
     KeyboardShortcut::new(Modifiers::COMMAND, Key::E);
 
-/// Something the Object Manager (or a menu) asks the workbench to do to
+/// Something the Objects panel (or a menu) asks the workbench to do to
 /// the document.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum DocRequest {
@@ -84,7 +84,7 @@ enum DropAt {
     End,
 }
 
-/// The Object Manager's own state: what is folded away, a name being
+/// The Objects panel's own state: what is folded away, a name being
 /// typed, and rows being dragged.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct ObjectManager {
@@ -668,7 +668,7 @@ pub(crate) fn object_entries(ui: &mut Ui, doc: &Document, out: &mut Vec<DocReque
     }
 }
 
-/// An object kind's icon and its colour, for the Object Manager and the
+/// An object kind's icon and its colour, for the Objects panel and the
 /// Attributes panel's heading.
 pub(crate) fn kind_icon(kind: &ObjectKind) -> (Icon, egui::Color32) {
     match kind {
@@ -725,7 +725,7 @@ fn context_menu(
     crate::attributes::settings_entries(ui, doc, &mut manager.clipboard, out);
 }
 
-/// The Object Manager's menu line: Edit, View and Object.
+/// The Objects panel's menu line: Edit, View and Object.
 pub(crate) fn menus(
     ui: &mut Ui,
     doc: &mut Document,

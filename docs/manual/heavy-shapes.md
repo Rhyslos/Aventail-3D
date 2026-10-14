@@ -58,5 +58,5 @@ None. The app decides on its own what to do in the background (anything from abo
 ## Related
 
 - [Concepts: polygons and triangle count](concepts.md#mesh-basics)
-- [The Attribute Manager: the Mesh section](attributes.md)
+- [The Attributes panel: the Mesh section](attributes.md)
 - [Points, Edges and Polygons modes](modes.md)

@@ -14,7 +14,7 @@ Almost every hard-surface model starts as a simple shape: a crate starts as a cu
 
    Or open the **Create** menu and pick a shape, or click one of the blue shape buttons on the command palette (cube, cylinder, plane, sphere).
 2. The new shape appears at the centre of the scene, selected (its edges in the viewport and its name in the Objects panel take on the accent colour). It's added at the top of the Objects list, named after its kind: *Cube*, then *Cube 2* for the next one, and so on.
-3. Rename, group, hide or delete it in the Objects panel like any other object (see [Objects and the Object Manager](objects.md)). **Ctrl + Z** takes the new shape away again.
+3. Rename, group, hide or delete it in the Objects panel like any other object (see [The Objects panel](objects.md)). **Ctrl + Z** takes the new shape away again.
 
 Every shape **stands on the ground** with its [pivot](concepts.md#objects-and-scenes) at the middle of its base, and the plane and disc lie flat on it. That's how game engines like to place things: put the asset on the floor and it sits there, instead of being half sunk in.
 
@@ -79,5 +79,5 @@ The shape keys don't work while you're typing a name or a value, so a "b" you ty
 
 ## Related
 
-- [Objects and the Object Manager](objects.md): select, rename, group, hide and delete shapes.
+- [The Objects panel](objects.md): select, rename, group, hide and delete shapes.
 - [Concepts](concepts.md): [primitives and pivots](concepts.md#objects-and-scenes), [n-gons](concepts.md#mesh-basics), and [hard and soft edges](concepts.md#shading-and-normals).

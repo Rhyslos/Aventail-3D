@@ -58,6 +58,6 @@ A few of these settings also have a quick switch where you use them while workin
 
 - [Interface tour](interface-tour.md): where everything is.
 - [Navigating the view](navigating-the-view.md): the navigation schemes in detail.
-- [Objects and the Object Manager](objects.md): undo and redo.
+- [The Objects panel](objects.md): undo and redo.
 - [Backup copies and crash recovery](autosave.md): the Autosave section in detail.
 - [Concepts](concepts.md): [undo history](concepts.md#objects-and-scenes).

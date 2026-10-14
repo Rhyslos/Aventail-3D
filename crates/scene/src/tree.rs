@@ -227,7 +227,7 @@ const MAX_OBJECT_ID: u64 = u64::MAX / 2;
 
 /// Every object in the scene, arranged in a tree: objects can sit inside
 /// other objects, and the order among brothers and sisters matters (it is
-/// the order the Object Manager lists them in).
+/// the order the Objects panel lists them in).
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Scene {
     nodes: BTreeMap<ObjectId, Node>,
@@ -377,7 +377,7 @@ impl Scene {
         Some(Place { parent, index })
     }
 
-    /// Every object, top to bottom as the Object Manager lists them (each
+    /// Every object, top to bottom as the Objects panel lists them (each
     /// object followed by everything inside it), with how deep it is (0 at
     /// the top of the tree).
     pub fn walk(&self) -> Vec<(ObjectId, usize)> {

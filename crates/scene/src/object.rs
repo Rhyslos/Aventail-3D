@@ -151,7 +151,7 @@ impl Transform {
 /// One object in the scene.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Object {
-    /// The name shown in the Object Manager. Never empty.
+    /// The name shown in the Objects panel. Never empty.
     pub name: String,
     /// What it is.
     pub kind: ObjectKind,

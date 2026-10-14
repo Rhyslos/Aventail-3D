@@ -39,7 +39,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 ## Objects and scenes
 
-**Object** — Anything listed in the Objects panel: a mesh, a primitive, a group. See [Objects and the Object Manager](objects.md).
+**Object** — Anything listed in the Objects panel: a mesh, a primitive, a group. See [The Objects panel](objects.md).
 
 **Group** — An empty object whose only job is to hold other objects, so they can be moved, hidden or exported together. (Some programs call it a *null* or an *empty*.) Put the parts of one asset in a group and give it the asset's name.
 
@@ -57,7 +57,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Editable mesh (Make editable)** — Turning a shape into a plain mesh with no settings: its base and edits are baked together, so what you see becomes the new starting point. Do it when you no longer need the settings, or before editing a mesh freely. Undo brings the settings back. See [Objects](objects.md#make-editable).
 
-**Hierarchy** — Objects can be children of other objects (sit *inside* them, in the Object Manager's tree). Moving a parent moves its children with it, and hiding it hides them too.
+**Hierarchy** — Objects can be children of other objects (sit *inside* them, in the Objects panel's tree). Moving a parent moves its children with it, and hiding it hides them too.
 
 **Undo history** — The list of changes you've made, kept so they can be taken back (undo, `Ctrl + Z`) and done again (redo, `Ctrl + Y`). This app keeps steps while it's open, up to a memory limit (2 GB as standard, set in **Edit → Settings… → Undo**), then forgets the oldest first. There's no limit on the *number* of steps. See [Objects](objects.md).
 
