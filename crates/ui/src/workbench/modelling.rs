@@ -23,6 +23,10 @@ use scene::{
 };
 use std::collections::{HashMap, HashSet};
 
+/// Ctrl + M: Weld onto a target (decision 0051).
+pub(crate) const WELD_TARGET_KEYS: egui::KeyboardShortcut =
+    egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::M);
+
 /// Merge keys for modelling tool drags: kept apart from other merge keys.
 const MODELLING_KEYS: u64 = 1 << 60;
 
@@ -246,11 +250,19 @@ impl ModellingSession {
 }
 
 impl Workbench {
-    /// D, I, V, F and X: Extrude, Inset, Bevel, Loop cut and Slit, from
-    /// the command list. Not while typing.
+    /// D, I, V, F, X, J, C and M: Extrude, Inset, Bevel, Loop cut, Slit,
+    /// Connect, Bridge and Weld, from the command list, and Ctrl + M for
+    /// welding onto a target. Not while typing.
     pub(super) fn modelling_keys(&mut self, ui: &Ui) {
         if ui.ctx().memory(|m| m.focused().is_some()) || self.objects.is_renaming() {
             return;
+        }
+        if ui.input_mut(|i| i.consume_shortcut(&WELD_TARGET_KEYS)) {
+            if self.mode == crate::palette::Mode::Points {
+                self.set_tool(Tool::Weld);
+            } else {
+                self.note = Some("Weld works on points: press 1 for the Points mode.".into());
+            }
         }
         for command in [
             CommandId::Extrude,
@@ -258,6 +270,9 @@ impl Workbench {
             CommandId::Bevel,
             CommandId::LoopCut,
             CommandId::Knife,
+            CommandId::Connect,
+            CommandId::Bridge,
+            CommandId::Weld,
         ] {
             let pressed = command
                 .info()
@@ -294,6 +309,9 @@ impl Workbench {
         let steps = self.viewport.take_tool_steps();
         if steps != 0 {
             self.wheel_count(steps);
+        }
+        if matches!(self.tool, Tool::Bridge | Tool::Weld) || self.pair_session.is_some() {
+            return self.carry_out_pairing(drawing);
         }
         if self.tool == Tool::Slit || self.slit_session.is_some() {
             return self.carry_out_slit(drawing, keys);
@@ -374,6 +392,11 @@ impl Workbench {
                 mesh::extrude::MAX_BEND_SEGMENTS,
                 self.attributes.bend.segments,
             ),
+            Tool::Bridge => (
+                "segments",
+                mesh::join::MAX_BRIDGE_SEGMENTS,
+                self.attributes.join.bridge.0,
+            ),
             _ => return,
         };
         let dragging = self.modelling_session.is_some() || self.loop_cut_session.is_some();
@@ -393,6 +416,7 @@ impl Workbench {
                 // shows the tool's.
                 (Tool::Extrude, Operation::ExtrudeBent { .. }) => settings.bend.map(|b| b.segments),
                 (Tool::Extrude, _) => None,
+                (Tool::Bridge, _) => settings.bridge.map(|b| b.0),
                 _ => settings.cuts,
             }
         };
@@ -404,6 +428,7 @@ impl Workbench {
         match self.tool {
             Tool::Bevel => self.attributes.bevel.segments = count,
             Tool::Extrude => self.attributes.bend.segments = count,
+            Tool::Bridge => self.attributes.join.bridge.0 = count,
             _ => self.attributes.loop_cut.cuts = count,
         }
         self.note = Some(format!(
@@ -435,6 +460,10 @@ impl Workbench {
                         segments: count,
                         ..b
                     }),
+                    ..settings
+                },
+                Tool::Bridge => scene::EditSettings {
+                    bridge: settings.bridge.map(|(_, t)| (count, t)),
                     ..settings
                 },
                 _ => scene::EditSettings {

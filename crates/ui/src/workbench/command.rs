@@ -64,6 +64,18 @@ impl Workbench {
             CommandId::LoopCut if !command.modes().contains(&self.mode) => Ready::NotNow(
                 "Loop cut works in the Points, Edges or Polygons mode: press 1, 2 or 3".into(),
             ),
+            CommandId::Connect if !command.modes().contains(&self.mode) => Ready::NotNow(
+                "Connect works on points or edges: press 1 for the Points mode, or 2 for Edges"
+                    .into(),
+            ),
+            CommandId::Bridge if !command.modes().contains(&self.mode) => Ready::NotNow(
+                "Bridge works on edges or polygons: press 2 for the Edges mode, or 3 for \
+                 Polygons"
+                    .into(),
+            ),
+            CommandId::Weld if !command.modes().contains(&self.mode) => {
+                Ready::NotNow("Weld works on points: press 1 for the Points mode".into())
+            }
             CommandId::Knife if !command.modes().contains(&self.mode) => Ready::NotNow(
                 "Slit works in the Points, Edges or Polygons mode: press 1, 2 or 3".into(),
             ),
@@ -100,6 +112,9 @@ impl Workbench {
             CommandId::Bevel => self.set_tool(Tool::Bevel),
             CommandId::LoopCut => self.set_tool(Tool::LoopCut),
             CommandId::Knife => self.set_tool(Tool::Slit),
+            CommandId::Connect => self.run_connect(),
+            CommandId::Bridge => self.run_bridge(),
+            CommandId::Weld => self.run_weld(),
             CommandId::MakeEditable => {
                 requests.push(DocRequest::Run(Command::MakeEditable(selection)));
             }

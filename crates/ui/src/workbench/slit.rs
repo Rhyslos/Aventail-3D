@@ -256,7 +256,10 @@ impl Workbench {
             if self.slit_session.is_some() {
                 self.finish_slit();
             }
-            self.viewport.set_tool_path(None);
+            // Bridge and Weld show their own line.
+            if !matches!(self.tool, Tool::Bridge | Tool::Weld) {
+                self.viewport.set_tool_path(None);
+            }
             return;
         }
         let points = self
