@@ -6,6 +6,8 @@
 //!   sharply than an angle hard, and the rest soft, as many programs'
 //!   *auto-smooth* does.
 //! - [`sharp_edges`] lists those edges, without changing anything.
+//! - [`harden_new_edges`] marks the sharp edges of polygons an edit just
+//!   made hard, so new corners come out crisp.
 //!
 //! Hardness is only about shading ([`crate::shading`]): the shape itself
 //! doesn't change. Edges on an open border have one polygon, so shading
@@ -17,6 +19,56 @@ use crate::{EdgeKey, Mesh};
 /// The largest angle accepted, in degrees: polygons can't meet more
 /// sharply than folded flat onto each other.
 pub const MAX_ANGLE: f32 = 180.0;
+
+/// The angle, in degrees, from which edges count as sharp unless the user
+/// says otherwise: Hard edges by angle starts here, and new edges an edit
+/// makes are marked hard from here ([`harden_new_edges`]).
+pub const DEFAULT_ANGLE: f32 = 30.0;
+
+/// Marks hard the sharp edges (see [`sharp_edges`]) of the polygons from
+/// slot `first_new` on: the polygons an edit just made. Nothing is made
+/// soft. Bridge and Fill hole use it, so a band between two boxes keeps
+/// crisp corners instead of smearing the shading round them. Returns how
+/// many edges were marked.
+pub fn harden_new_edges(mesh: &mut Mesh, first_new: usize, angle: f32) -> usize {
+    let new_edges: std::collections::BTreeSet<EdgeKey> = mesh
+        .face_slots()
+        .skip(first_new)
+        .flatten()
+        .flat_map(|corners| {
+            let n = corners.len();
+            (0..n).map(move |i| EdgeKey::new(corners[i], corners[(i + 1) % n]))
+        })
+        .collect();
+    if new_edges.is_empty() {
+        return 0;
+    }
+    let cos = angle.clamp(0.0, MAX_ANGLE).to_radians().cos();
+    let sharp: Vec<EdgeKey> = {
+        let topology = mesh.topology();
+        new_edges
+            .into_iter()
+            .filter(|e| match topology.edge_uses(*e) {
+                [one, two] => {
+                    let (n1, n2) = (mesh.face_normal(one.face), mesh.face_normal(two.face));
+                    n1.length_squared() > 0.5
+                        && n2.length_squared() > 0.5
+                        && n1.dot(n2) < cos - 1e-6
+                }
+                _ => false,
+            })
+            .collect()
+    };
+    let mut marked = 0;
+    for edge in sharp {
+        let (a, b) = edge.ends();
+        if !mesh.is_hard(a, b) {
+            mesh.set_hard(a, b, true);
+            marked += 1;
+        }
+    }
+    marked
+}
 
 /// Marks `edges` hard (or soft, with `hard` false). Edges not in the mesh
 /// are missing; edges already so are skipped.

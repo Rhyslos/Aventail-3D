@@ -112,3 +112,21 @@ fn missing_and_degenerate_edges() {
     // An empty mesh has nothing to do.
     assert_eq!(hard_edges_by_angle(&mut Mesh::new(), 30.0).skipped, 1);
 }
+
+#[test]
+fn only_the_new_polygons_sharp_edges_are_marked() {
+    // A cube with nothing hard: from slot 0 every sharp edge is new.
+    let mut mesh = Primitive::Cube(Default::default()).mesh();
+    let all: Vec<EdgeKey> = mesh.hard_edges().collect();
+    set_hard_edges(&mut mesh, &all, false);
+    assert_eq!(mesh.hard_edge_count(), 0);
+    let slots = mesh.face_slots().len();
+    // From past the last slot, nothing is new.
+    assert_eq!(harden_new_edges(&mut mesh, slots, DEFAULT_ANGLE), 0);
+    // The last polygon is "new": its four edges are sharp.
+    assert_eq!(harden_new_edges(&mut mesh, slots - 1, DEFAULT_ANGLE), 4);
+    // Again: already hard, nothing marked; nothing made soft either.
+    assert_eq!(harden_new_edges(&mut mesh, 0, 180.0), 0);
+    assert_eq!(mesh.hard_edge_count(), 4);
+    assert_eq!(harden_new_edges(&mut mesh, 0, DEFAULT_ANGLE), 8);
+}

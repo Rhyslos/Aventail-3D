@@ -74,6 +74,8 @@ pub(crate) struct Values<'a> {
     pub(crate) autosave_folder: Option<&'a std::path::Path>,
     /// How the tool menu (E) looks.
     pub(crate) tool_menu: &'a mut ToolMenuSettings,
+    /// Whether Dissolve goes ahead across a sharp corner without asking.
+    pub(crate) dissolve_without_warning: &'a mut bool,
 }
 
 /// The Settings window's state.
@@ -160,6 +162,7 @@ fn restore_standard(values: &mut Values<'_>) {
     *values.undo_memory = UndoMemory::default();
     *values.autosave = AutosaveSettings::default();
     *values.tool_menu = ToolMenuSettings::default();
+    *values.dissolve_without_warning = false;
 }
 
 /// A heading for a group of settings.
@@ -210,6 +213,23 @@ fn interface(ui: &mut Ui, values: &mut Values<'_>) {
         }
     }
     ui.add_space(8.0);
+    heading(ui, "Warnings");
+    explain(
+        ui,
+        "Questions asked before an edit that is easy to get wrong. Each can also be \
+         switched off from the question itself.",
+    );
+    let mut warn = !*values.dissolve_without_warning;
+    if ui
+        .checkbox(&mut warn, "Ask before dissolving across a sharp corner")
+        .on_hover_text(
+            "Dissolving where polygons meet at more than 30° makes one bent polygon, which \
+             shades badly. Delete is usually what's wanted there.",
+        )
+        .changed()
+    {
+        *values.dissolve_without_warning = !warn;
+    }
     ui.add_space(6.0);
     ui.separator();
     radial_menu(ui, values);

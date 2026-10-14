@@ -92,7 +92,12 @@ pub(crate) fn groups(ctx: &Context) -> Vec<Group> {
                 plain(key),
             ))
         })
-        .collect();
+        .collect::<Vec<_>>();
+    let mut modes = modes;
+    modes.push(line(
+        "Step back to the Model mode (finishes a slit, puts a tool away)",
+        plain(super::BACK_KEY),
+    ));
 
     let select = vec![
         line("Select", "Click"),

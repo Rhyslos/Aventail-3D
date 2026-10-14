@@ -27,6 +27,7 @@ pub mod slide;
 pub mod slit;
 pub mod symmetry;
 pub mod topology;
+pub mod triangulate;
 
 pub use anchors::{AnchorShape, Anchors};
 pub use attributes::{
@@ -46,3 +47,4 @@ pub use shading::{
     shaded_triangles, shading_reach, smooth_groups,
 };
 pub use topology::{EdgeUse, Topology};
+pub use triangulate::{face_triangles, triangulate};

@@ -237,7 +237,7 @@ impl CommandId {
             Self::FillHole => (
                 "Fill hole",
                 Icon::FillHole,
-                None,
+                plain(Key::J),
                 "Close the open holes touching the selection with a polygon each; with \
                  nothing selected, every hole",
                 None,
@@ -292,7 +292,7 @@ impl CommandId {
             Self::Connect => (
                 "Connect",
                 Icon::Connect,
-                plain(Key::J),
+                plain(Key::A),
                 "Join the selected points or edges with a new edge across their polygon",
                 None,
             ),
@@ -534,7 +534,8 @@ mod tests {
         assert_eq!(CommandId::Bevel.info().shortcut, plain(Key::V));
         assert_eq!(CommandId::LoopCut.info().shortcut, plain(Key::F));
         assert_eq!(CommandId::Knife.info().shortcut, plain(Key::X));
-        assert_eq!(CommandId::Connect.info().shortcut, plain(Key::J));
+        assert_eq!(CommandId::Connect.info().shortcut, plain(Key::A));
+        assert_eq!(CommandId::FillHole.info().shortcut, plain(Key::J));
         assert_eq!(CommandId::Bridge.info().shortcut, plain(Key::C));
         assert_eq!(CommandId::Weld.info().shortcut, plain(Key::M));
         assert_eq!(CommandId::FrameSelected.info().shortcut, plain(Key::Z));

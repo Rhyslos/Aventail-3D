@@ -27,7 +27,7 @@ In these modes you can see a shape's points and edges, see which one is under th
    Selected ones are drawn in the full accent red, so you can tell them apart from the one under the mouse.
    The status bar names what's under the mouse, for example *Under the mouse: point 4 of Cube*.
 4. **Click, drag or double-click to select** points, edges or polygons: see [Selecting](selecting.md).
-5. **Press the same key again** (or pick Model) to go back to working on whole objects.
+5. **Press the same key again** (or pick Model) to go back to working on whole objects. Or press **Tab** from anywhere: it steps straight back to the Model mode, finishing a [Slit](slit.md) line and putting a modelling tool away on the way (Move, Rotate and Scale stay, as they work on objects too). Handy when you've forgotten you're still in the Edges mode and a click won't select the object.
 
 Only what you can see counts. A point or edge hidden behind the shape, or behind another object, isn't drawn and can't light up. Turn the view to reach the other side; this is the usual behaviour in 3D programs and keeps you from grabbing something by mistake.
 
@@ -40,8 +40,9 @@ A primitive (a cube with its Width, Segments and so on) works in these modes too
 | Points mode (again: back to Model) | `1` |
 | Edges mode (again: back to Model) | `2` |
 | Polygons mode (again: back to Model) | `3` |
+| Straight back to the Model mode, tool put away | `Tab` |
 
-The keys don't work while you're typing in a field, such as renaming an object.
+The keys don't work while you're typing in a field, such as renaming an object; there, Tab moves to the next field as usual.
 
 ## Tips and common problems
 

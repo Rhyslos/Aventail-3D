@@ -897,4 +897,42 @@ fn an_extrude_bends_with_the_settings_set_before_and_changed_after() {
     assert!(distance >= 0.0);
     let report = mesh::MeshReport::new(&shape(&harness));
     assert!(report.is_closed(), "{report:?}");
+    // Once done, the next extrude starts straight again; the rest of the
+    // bend stays.
+    let tool_bend = harness.state().workbench.attributes.bend;
+    assert_eq!(tool_bend.angle, 0.0);
+    assert_eq!(tool_bend.segments, bend.segments);
+}
+
+#[test]
+fn changing_tools_sets_the_bend_straight_again() {
+    let mut harness = ready(Key::D);
+    harness.state_mut().workbench.attributes.bend.angle = 60.0;
+    harness.run();
+    // Pressing D again keeps it: still the same tool.
+    press(&mut harness, Modifiers::NONE, Key::D);
+    assert_eq!(harness.state().workbench.attributes.bend.angle, 60.0);
+    press(&mut harness, Modifiers::NONE, Key::I);
+    assert_eq!(harness.state().workbench.attributes.bend.angle, 0.0);
+}
+
+#[test]
+fn inset_shows_its_own_settings_not_the_last_extrudes() {
+    let mut harness = ready(Key::D);
+    drag(&mut harness, 60.0);
+    assert!(
+        harness
+            .query_by_label_contains("Last edit: Extrude")
+            .is_some()
+    );
+    press(&mut harness, Modifiers::NONE, Key::I);
+    harness.run();
+    // The extrude's rows are gone; Inset's heading and switch show.
+    assert!(
+        harness
+            .query_by_label_contains("Last edit: Extrude")
+            .is_none()
+    );
+    assert_eq!(harness.query_all_by_label("Bend radius").count(), 0);
+    assert!(harness.query_by_label("Inset").is_some());
 }

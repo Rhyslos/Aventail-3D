@@ -117,9 +117,14 @@ impl MeshGeometry {
         let mut triangles = Vec::with_capacity(corners.len() * 3);
         for pair in starts.windows(2) {
             let (a, b) = (pair[0] as usize, pair[1] as usize);
-            for i in a + 1..b.saturating_sub(1) {
-                triangles.extend([corner_vertex[a], corner_vertex[i], corner_vertex[i + 1]]);
-            }
+            // Bent and dented polygons are cut along lines inside them.
+            mesh::face_triangles(mesh, &corners[a..b], |[i, j, k]| {
+                triangles.extend([
+                    corner_vertex[a + i],
+                    corner_vertex[a + j],
+                    corner_vertex[a + k],
+                ]);
+            });
         }
         let mut edges = Vec::with_capacity(mesh.edges().len() * 2);
         let mut total_length = 0.0f64;

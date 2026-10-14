@@ -173,3 +173,27 @@ fn the_close_button_closes_settings() {
     harness.run();
     assert!(!harness.state().workbench.is_settings_open());
 }
+
+#[test]
+fn the_dissolve_warning_can_be_switched_back_on() {
+    let mut harness = fresh();
+    harness
+        .state_mut()
+        .workbench
+        .viewport_mut()
+        .options_mut()
+        .dissolve_without_warning = true;
+    open(&mut harness);
+    section(&mut harness, "Interface");
+    harness
+        .get_by_label("Ask before dissolving across a sharp corner")
+        .click();
+    harness.run();
+    assert!(
+        !harness
+            .state()
+            .workbench
+            .view_options()
+            .dissolve_without_warning
+    );
+}

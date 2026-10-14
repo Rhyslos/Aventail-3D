@@ -806,6 +806,34 @@ impl Mesh {
         self.drop_empty_hard();
     }
 
+    /// Forgets the values (hard, seam) on edges no polygon uses any more,
+    /// as left where polygons were merged into one: otherwise a gone
+    /// edge would still be drawn as hard, and would come back hard if the
+    /// same two points were ever joined again. Returns how many edges
+    /// were forgotten.
+    pub fn forget_unused_edge_values(&mut self) -> usize {
+        if !self.attributes.has_edge_values() {
+            return 0;
+        }
+        let used: std::collections::HashSet<EdgeKey> = self
+            .faces()
+            .flat_map(|(_, c)| sides(c))
+            .map(|(a, b)| EdgeKey::new(a, b))
+            .collect();
+        let before: usize = self
+            .attributes
+            .of_domain_mut(Domain::Edge)
+            .map(|l| l.edge_count())
+            .sum();
+        self.forget_edges(|e| !used.contains(&e));
+        let after: usize = self
+            .attributes
+            .of_domain_mut(Domain::Edge)
+            .map(|l| l.edge_count())
+            .sum();
+        before - after
+    }
+
     /// Deletes polygons; their ids are never used again. Points they used
     /// stay (other polygons may use them; [`Self::remove_unused_vertices`]
     /// deletes the ones left over), and so do values on edges other

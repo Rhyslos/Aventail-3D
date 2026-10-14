@@ -146,12 +146,13 @@ impl Default for SnapTargets {
     }
 }
 
-/// One triangle of a face: the face, and which fan triangle it is (corners
-/// 0, `k` and `k + 1`).
+/// One triangle of a face: the face, and which of its corners the
+/// triangle joins (places in the face, as [`mesh::triangulate`] cuts it,
+/// so picking finds what is drawn).
 #[derive(Debug, Clone, Copy)]
 struct Tri {
     face: FaceId,
-    k: u32,
+    corners: [u32; 3],
 }
 
 /// One mesh, ready for finding what is under the mouse, in its own space:
@@ -182,9 +183,12 @@ impl MeshPick {
         let mut tri_starts = vec![0u32];
         for (index, corners) in mesh.face_slots().enumerate() {
             let face = FaceId::from_raw(index as u32);
-            for k in 1..corners.unwrap_or_default().len().saturating_sub(1) {
-                tris.push(Tri { face, k: k as u32 });
-            }
+            mesh::face_triangles(&mesh, corners.unwrap_or_default(), |t| {
+                tris.push(Tri {
+                    face,
+                    corners: t.map(|i| i as u32),
+                });
+            });
             tri_starts.push(tris.len() as u32);
         }
         let tri_bvh = Bvh::build(tris.len(), |i| {
@@ -345,11 +349,11 @@ impl MeshPick {
     }
 }
 
-/// A fan triangle's corners.
+/// A triangle's corners.
 fn tri_corners(mesh: &Mesh, tri: Tri) -> [Option<Vec3>; 3] {
     let corners = mesh.face(tri.face).unwrap_or_default();
-    let at = |i: usize| corners.get(i).and_then(|v| mesh.position(*v));
-    [at(0), at(tri.k as usize), at(tri.k as usize + 1)]
+    let at = |i: u32| corners.get(i as usize).and_then(|v| mesh.position(*v));
+    tri.corners.map(at)
 }
 
 fn point_box(mesh: &Mesh, id: u32) -> Aabb {

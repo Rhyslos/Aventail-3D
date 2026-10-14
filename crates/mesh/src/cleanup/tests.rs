@@ -226,3 +226,81 @@ fn every_shape_takes_every_clean_up() {
         }
     }
 }
+
+#[test]
+fn dissolving_an_edge_forgets_its_hard_mark() {
+    // A cube's twelve edges are hard. Dissolving an upright one merges
+    // two sides; the edge is gone, and so is its mark.
+    let mut mesh = cube();
+    assert_eq!(mesh.hard_edge_count(), 12);
+    let upright = mesh
+        .edges()
+        .iter()
+        .find(|e| {
+            let (a, b) = e.ends();
+            (mesh.position(a).unwrap().z - mesh.position(b).unwrap().z).abs() > 1.0
+        })
+        .copied()
+        .unwrap();
+    assert_eq!(dissolve_edges(&mut mesh, &[upright]).matched, 1);
+    assert_eq!(mesh.hard_edge_count(), 11);
+    assert!(!mesh.is_hard(upright.ends().0, upright.ends().1));
+    let topology = mesh.topology();
+    assert!(mesh.hard_edges().all(|e| topology.has_edge(e)));
+}
+
+#[test]
+fn dissolving_polygons_forgets_the_marks_inside() {
+    let mut mesh = cube();
+    let top = facing(&mesh, Vec3::Z);
+    let side = facing(&mesh, Vec3::X);
+    assert_eq!(dissolve_faces(&mut mesh, &[top, side]).matched, 1);
+    let topology = mesh.topology();
+    assert!(mesh.hard_edges().all(|e| topology.has_edge(e)));
+    assert_eq!(mesh.hard_edge_count(), 11);
+}
+
+#[test]
+fn a_point_between_two_hard_edges_leaves_one_hard_edge() {
+    // A square with a point in the middle of its bottom side, both halves
+    // of that side hard.
+    let p = VertexId::from_raw;
+    let points = vec![
+        Some(Vec3::new(0.0, 0.0, 0.0)),
+        Some(Vec3::new(50.0, 0.0, 0.0)),
+        Some(Vec3::new(100.0, 0.0, 0.0)),
+        Some(Vec3::new(100.0, 100.0, 0.0)),
+        Some(Vec3::new(0.0, 100.0, 0.0)),
+    ];
+    let faces = vec![Some(vec![p(0), p(1), p(2), p(3), p(4)])];
+    let hard = [EdgeKey::new(p(0), p(1)), EdgeKey::new(p(1), p(2))];
+    let mut mesh = Mesh::from_slots(points, faces, hard).unwrap();
+    assert!(dissolve_points(&mut mesh, &[p(1)]).matched > 0);
+    assert_eq!(mesh.vertex_count(), 4);
+    assert!(mesh.is_hard(p(0), p(2)));
+    assert_eq!(mesh.hard_edge_count(), 1);
+    // Only one half hard: the joined edge is soft.
+    let points = vec![
+        Some(Vec3::new(0.0, 0.0, 0.0)),
+        Some(Vec3::new(50.0, 0.0, 0.0)),
+        Some(Vec3::new(100.0, 0.0, 0.0)),
+        Some(Vec3::new(100.0, 100.0, 0.0)),
+        Some(Vec3::new(0.0, 100.0, 0.0)),
+    ];
+    let faces = vec![Some(vec![p(0), p(1), p(2), p(3), p(4)])];
+    let mut mesh = Mesh::from_slots(points, faces, [EdgeKey::new(p(0), p(1))]).unwrap();
+    dissolve_points(&mut mesh, &[p(1)]);
+    assert_eq!(mesh.hard_edge_count(), 0);
+}
+
+#[test]
+fn forgetting_unused_edge_values_keeps_used_ones() {
+    let mut mesh = cube();
+    assert_eq!(mesh.forget_unused_edge_values(), 0);
+    assert_eq!(mesh.hard_edge_count(), 12);
+    // A mesh without edge values has nothing to forget.
+    let mut plain = Primitive::Plane(PlaneParams::default()).mesh();
+    let _ = plain.forget_unused_edge_values();
+    let topology = plain.topology();
+    assert!(plain.hard_edges().all(|e| topology.has_edge(e)));
+}

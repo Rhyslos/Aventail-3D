@@ -24,10 +24,8 @@ pub struct ShadedTriangle {
     pub normals: [Vec3; 3],
 }
 
-/// Every face cut into triangles, with shading normals. Faces are cut
-/// as a fan from their first corner, which is right for the convex faces
-/// primitives make; faces with dents get a proper cut with the modelling
-/// tools (Phase 4).
+/// Every face cut into triangles ([`crate::triangulate()`]: bent and
+/// dented polygons are cut along lines inside them), with shading normals.
 pub fn shaded_triangles(mesh: &Mesh) -> Vec<ShadedTriangle> {
     let normals = corner_normal_list(mesh);
     let (starts, corners) = mesh.face_layout();
@@ -39,14 +37,14 @@ pub fn shaded_triangles(mesh: &Mesh) -> Vec<ShadedTriangle> {
             let position = mesh.position(corners[k]).unwrap_or(Vec3::ZERO);
             (position, normals[k])
         };
-        for i in a + 1..b.saturating_sub(1) {
-            let (p, q, r) = (corner(a), corner(i), corner(i + 1));
+        crate::triangulate::face_triangles(mesh, &corners[a..b], |[i, j, k]| {
+            let (p, q, r) = (corner(a + i), corner(a + j), corner(a + k));
             out.push(ShadedTriangle {
                 face,
                 positions: [p.0, q.0, r.0],
                 normals: [p.1, q.1, r.1],
             });
-        }
+        });
     }
     out
 }

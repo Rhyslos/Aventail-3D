@@ -3,8 +3,9 @@
 //!
 //! The controls, chosen by the project lead:
 //!
-//! - **J** connects the selected points (Points mode) or edges (Edges
-//!   mode) across their polygons, at once.
+//! - **A** connects the selected points (Points mode) or edges (Edges
+//!   mode) across their polygons, at once (it was J until the project
+//!   lead moved it within easy reach, [decision 0057](../../../../docs/decisions/0057-after-phase-4-testing.md)).
 //! - **C** bridges at once when the selection can be bridged: two open
 //!   borders in the Edges mode, or two polygons in the Polygons mode.
 //!   Otherwise C makes Bridge the tool: drag from one open edge to another
@@ -41,6 +42,9 @@ pub(super) struct PairSession {
     from: Picked,
     /// Where the mouse was last.
     pointer: ViewPointer,
+    /// What the drag would end on if let go now: another point or edge of
+    /// the same object under the mouse. The line snaps to it.
+    onto: Option<Picked>,
 }
 
 /// "Connect 3 points", "Weld 1 point".
@@ -93,7 +97,7 @@ impl Workbench {
         true
     }
 
-    /// J: connects the selected points or edges.
+    /// A: connects the selected points or edges.
     pub(super) fn run_connect(&mut self) {
         let mut ops = Vec::new();
         let mut count = 0;
@@ -295,9 +299,11 @@ impl Workbench {
         for event in self.viewport.take_tool_events() {
             match event {
                 ToolDragEvent::Begin { pointer } => {
-                    self.pair_session = self
-                        .pick(drawing, pointer, kind)
-                        .map(|from| PairSession { from, pointer });
+                    self.pair_session = self.pick(drawing, pointer, kind).map(|from| PairSession {
+                        from,
+                        pointer,
+                        onto: None,
+                    });
                     if self.pair_session.is_none() {
                         self.note = Some(match self.tool {
                             Tool::Weld => "Weld: press on a point of a selected object and drag \
@@ -310,13 +316,23 @@ impl Workbench {
                     }
                 }
                 ToolDragEvent::Update { pointer, .. } => {
+                    let Some(from) = self.pair_session.as_ref().map(|s| s.from) else {
+                        continue;
+                    };
+                    let onto = self
+                        .pick(drawing, pointer, kind)
+                        .filter(|o| o.id == from.id && o.element != from.element);
                     if let Some(session) = &mut self.pair_session {
                         session.pointer = pointer;
+                        session.onto = onto;
                     }
                 }
                 ToolDragEvent::End => {
                     if let Some(session) = self.pair_session.take() {
-                        let onto = self.pick(drawing, session.pointer, kind);
+                        // What the line snapped to is what it joins.
+                        let onto = session
+                            .onto
+                            .or_else(|| self.pick(drawing, session.pointer, kind));
                         self.finish_pair(drawing, session.from, onto);
                     }
                 }
@@ -326,8 +342,15 @@ impl Workbench {
                 }
             }
         }
-        // The line from where the drag began to the mouse.
+        // The line from where the drag began to the mouse, snapped onto
+        // the point or edge it would join, which is ringed.
         let path = self.pair_session.as_ref().map(|s| {
+            if let Some(onto) = s.onto {
+                return ToolPath {
+                    points: vec![s.from.at, onto.at],
+                    cursor: Some(onto.at),
+                };
+            }
             let ray = s.pointer.camera.ray_through(s.pointer.at, s.pointer.size);
             let depth = (s.from.at - ray.origin).dot(ray.direction).max(1.0);
             ToolPath {

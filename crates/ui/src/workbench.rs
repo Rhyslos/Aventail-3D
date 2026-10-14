@@ -115,6 +115,12 @@ pub const MODE_KEYS: [(Key, Mode); 3] = [
     (Key::Num3, Mode::Polygons),
 ];
 
+/// Steps straight back to the Model mode from wherever editing has got to
+/// ([decision 0057](../../../docs/decisions/0057-after-phase-4-testing.md)):
+/// a Slit line is finished, a modelling tool is put away and the Points,
+/// Edges or Polygons mode is left, so a click selects objects again.
+pub(crate) const BACK_KEY: Key = Key::Tab;
+
 /// Menu entries that exist in the design but not yet in the app, with the
 /// phase that brings them. (The Mesh menu's are listed below its working
 /// entries.)
@@ -196,6 +202,8 @@ pub struct Workbench {
     slit_session: Option<slit::SlitSession>,
     /// A Bridge or Weld drag in progress (decision 0051).
     pair_session: Option<joining::PairSession>,
+    /// The question asked before dissolving across a sharp corner.
+    dissolve_question: Option<cleaning::DissolveQuestion>,
     /// The change the gizmo drag last showed, so an unchanged frame does
     /// nothing.
     gizmo_shown: Option<tools::Change>,
@@ -254,6 +262,7 @@ impl Workbench {
             loop_cut_session: None,
             slit_session: None,
             pair_session: None,
+            dissolve_question: None,
             gizmo_shown: None,
             coordinates_session: None,
             sessions: 0,
@@ -767,8 +776,9 @@ impl Workbench {
         let mut requests = Vec::new();
         // The shape list goes first: while it is open, Esc closes it
         // rather than deselecting.
-        // While "Save changes?" is asked, keys answer it, not the scene.
-        if self.file.asking.is_none() {
+        // While "Save changes?" (or the dissolve question) is asked, keys
+        // answer it, not the scene.
+        if self.file.asking.is_none() && self.dissolve_question.is_none() {
             let typing = ui.ctx().memory(|m| m.focused().is_some()) || self.objects.is_renaming();
             if let Some(kind) = self.shape_picker.keys(ui, typing) {
                 requests.push(create(kind));
@@ -962,6 +972,7 @@ impl Workbench {
         self.about_open = about_open;
 
         self.settings_window(ui.ctx());
+        self.dissolve_question_window(ui.ctx());
         self.unsaved_question(ui.ctx(), &mut actions);
         self.autosave_and_recovery(ui.ctx(), &mut actions);
 
@@ -989,6 +1000,7 @@ impl Workbench {
             autosave: &mut self.autosaver.settings,
             autosave_folder: self.autosave_folder.as_deref(),
             tool_menu: &mut self.tool_menu.settings,
+            dissolve_without_warning: &mut options.dissolve_without_warning,
         };
         self.settings.show(ctx, &mut values);
         if undo_memory != self.undo_memory {
@@ -1137,7 +1149,8 @@ impl Workbench {
     }
 
     /// The mode keys: 1 Points, 2 Edges, 3 Polygons; the same key again
-    /// goes back to the Model mode. Not while typing.
+    /// goes back to the Model mode. Tab steps straight back ([`BACK_KEY`]).
+    /// Not while typing (there Tab moves to the next field).
     fn mode_keys(&mut self, ui: &Ui) {
         if ui.ctx().memory(|m| m.focused().is_some()) || self.objects.is_renaming() {
             return;
@@ -1147,6 +1160,45 @@ impl Workbench {
                 self.mode = if self.mode == mode { Mode::Model } else { mode };
             }
         }
+        if ui.input_mut(|i| i.consume_key(Modifiers::NONE, BACK_KEY)) {
+            // egui would also move the keyboard focus to the next button,
+            // which would then take every key: not here.
+            ui.ctx()
+                .memory_mut(|m| m.move_focus(egui::FocusDirection::None));
+            self.step_back();
+        }
+    }
+
+    /// Tab: finishes whatever is going on and lands in the Model mode with
+    /// the Select tool (or the Move, Rotate or Scale tool in use, which
+    /// work on objects too), so a click selects objects again. A drag
+    /// under way is left alone: let go (or Esc) first.
+    pub(crate) fn step_back(&mut self) {
+        let dragging = self.gizmo_session.is_some()
+            || self.coordinates_session.is_some()
+            || self.modelling_session.is_some()
+            || self.loop_cut_session.is_some()
+            || self.pair_session.is_some();
+        if dragging {
+            self.note = Some("Let go of the drag (or press Esc) first, then Tab.".into());
+            return;
+        }
+        let menu = self.tool_menu.is_open();
+        self.tool_menu.close();
+        let tool = self.tool.has_settings();
+        if tool {
+            // Finishes a Slit line too, keeping what it cut.
+            self.set_tool(Tool::Select);
+        }
+        let mode = self.mode != Mode::Model;
+        self.mode = Mode::Model;
+        self.note = Some(if mode || tool || menu {
+            "Back in the Model mode: click an object to select it.".into()
+        } else {
+            "Already in the Model mode: Tab steps back here from editing points, edges or \
+             polygons, or from a modelling tool."
+                .into()
+        });
     }
 
     fn status_bar(&self, ui: &mut Ui) {

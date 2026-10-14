@@ -350,7 +350,12 @@ fn build(
                         overlay.lines.push(([a, b], style));
                     }
                 };
-                for edge in selected.edges() {
+                // The selection may still name edges an edit took away
+                // (a dissolved edge's two points remain): only edges the
+                // shape still has are drawn.
+                let mut edges = selected.edges().peekable();
+                let topology = edges.peek().map(|_| item.mesh.topology());
+                for edge in edges.filter(|e| topology.is_some_and(|t| t.has_edge(*e))) {
                     if hovered_here != Some(Element::Edge(edge)) {
                         line(edge, OverlayStyle::Selected);
                     }
@@ -408,7 +413,10 @@ fn guide_lines(
         }
         let world = |p: Vec3| item.transform.transform_point3(p);
         if hard {
-            for edge in mesh.hard_edges() {
+            // Only edges the shape still has: a mark left on a gone edge
+            // (from an older file) isn't drawn.
+            let topology = mesh.topology();
+            for edge in mesh.hard_edges().filter(|e| topology.has_edge(*e)) {
                 let (a, b) = edge.ends();
                 if let (Some(a), Some(b)) = (mesh.position(a), mesh.position(b)) {
                     out.push(([world(a), world(b)], OverlayStyle::Hard));
@@ -456,10 +464,15 @@ fn tint(overlay: &mut ComponentOverlay, item: &DrawItem, face: scene::FaceId, ho
         .filter_map(|v| item.mesh.position(*v))
         .map(|p| item.transform.transform_point3(p))
         .collect();
-    if let Some((first, rest)) = world.split_first() {
-        for pair in rest.windows(2) {
-            overlay.tints.push(([*first, pair[0], pair[1]], how));
-        }
+    if world.len() == corners.len() {
+        // Cut as it is drawn, so a bent or dented polygon's tint fits it.
+        mesh::triangulate(
+            world.len(),
+            |i| world[i],
+            |[a, b, c]| {
+                overlay.tints.push(([world[a], world[b], world[c]], how));
+            },
+        );
     }
     if how == OverlayStyle::Hovered {
         for (i, a) in world.iter().enumerate() {

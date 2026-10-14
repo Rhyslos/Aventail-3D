@@ -166,3 +166,59 @@ fn every_mode_key_is_shown_on_its_mode() {
     let with_keys = Mode::ALL.iter().filter(|m| m.key().is_some()).count();
     assert_eq!(with_keys, MODE_KEYS.len());
 }
+
+#[test]
+fn tab_steps_straight_back_to_the_model_mode() {
+    let mut harness = selected_cube();
+    // From the Edges mode with Extrude in use.
+    press(&mut harness, Key::Num2);
+    press(&mut harness, Key::D);
+    assert_eq!(harness.state().workbench.tool(), Tool::Extrude);
+    press(&mut harness, Key::Tab);
+    assert_eq!(harness.state().workbench.mode(), Mode::Model);
+    assert_eq!(harness.state().workbench.tool(), Tool::Select);
+    // Nothing took the keyboard: the keys still work afterwards, and Tab
+    // again just says where it is.
+    press(&mut harness, Key::Num1);
+    assert_eq!(harness.state().workbench.mode(), Mode::Points);
+    press(&mut harness, Key::Tab);
+    press(&mut harness, Key::Tab);
+    assert_eq!(harness.state().workbench.mode(), Mode::Model);
+    assert!(
+        harness
+            .state()
+            .workbench
+            .note
+            .as_deref()
+            .unwrap()
+            .starts_with("Already")
+    );
+    press(&mut harness, Key::Num3);
+    assert_eq!(harness.state().workbench.mode(), Mode::Polygons);
+    // Move, Rotate and Scale stay: they work on objects too.
+    press(&mut harness, Key::W);
+    press(&mut harness, Key::Tab);
+    assert_eq!(harness.state().workbench.mode(), Mode::Model);
+    assert_eq!(harness.state().workbench.tool(), Tool::Move);
+}
+
+#[test]
+fn tab_moves_between_fields_while_typing() {
+    let mut harness = selected_cube();
+    press(&mut harness, Key::Num1);
+    harness.get_by_label("Object name").click();
+    harness.run();
+    press(&mut harness, Key::Tab);
+    assert_eq!(harness.state().workbench.mode(), Mode::Points);
+}
+
+#[test]
+fn tab_finishes_a_slit_line() {
+    let mut harness = selected_cube();
+    press(&mut harness, Key::Num2);
+    press(&mut harness, Key::X);
+    assert_eq!(harness.state().workbench.tool(), Tool::Slit);
+    press(&mut harness, Key::Tab);
+    assert_eq!(harness.state().workbench.tool(), Tool::Select);
+    assert_eq!(harness.state().workbench.mode(), Mode::Model);
+}

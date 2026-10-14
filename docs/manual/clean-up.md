@@ -23,7 +23,15 @@ Modelling leaves bits to tidy: an edge you no longer need, a corner of points in
    - a dissolved **point** merges the polygons around it into one;
    - dissolved **polygons** merge into one where they touch.
 
-Both are also in the [tool menu](tool-menu.md) (**E**) and the **Mesh** menu. Points left in the middle of a straight line by a dissolve go too, so no needless corners are left.
+Both are also in the [tool menu](tool-menu.md) (**E**) and the **Mesh** menu. Points left in the middle of a straight line by a dissolve go too, so no needless corners are left. A [hard edge](hard-and-soft-edges.md) that is dissolved away loses its hard mark too, and two hard edges joined into one stay hard.
+
+#### Dissolving across a sharp corner
+
+Dissolve is meant for flat areas. Across a sharp corner, such as a cube's edge, it would merge the two sides into one **bent polygon**: one polygon that isn't flat. It shades badly and can look creased, and it's rarely what you want; usually **Delete** (to make a hole) is.
+
+So when the polygons being merged meet more sharply than 30°, the app asks first. The **Dissolve** button stays locked until you tick **I know what I'm doing, proceed**; **Cancel** (or **Esc**) changes nothing. Tick **Don't warn me again** to stop the question; switch it back on in [Settings](settings.md) → Interface → Warnings.
+
+If you do make a bent polygon, it's drawn cut along its fold, so it still looks like the two sides it came from.
 
 In the **Model** mode, Delete and Backspace delete the selected objects, as before.
 
@@ -32,9 +40,11 @@ In the **Model** mode, Delete and Backspace delete the selected objects, as befo
 ### Fill hole
 
 1. In the **Edges** or **Polygons** mode, select an edge on the hole's rim (or a polygon beside it).
-2. Pick **Fill hole** from the tool menu (**E**) or the **Mesh** menu.
+2. Press **J**, or pick **Fill hole** from the tool menu (**E**) or the **Mesh** menu.
 
-One polygon closes each hole touching the selection. With nothing selected, every hole of the selected objects is filled.
+One polygon closes each hole touching the selection. With nothing selected, every hole of the selected objects is filled. Where the new polygon meets the sides at a sharp corner (sharper than 30°), like the cap of an open cylinder, the rim comes out [hard](hard-and-soft-edges.md), so it looks crisp.
+
+To close the two ends of an open tube, select their rims and press **J**: each end gets its own cap. (**C** would instead [bridge](connect-bridge-weld.md) them, building a tube between the two rims.)
 
 ### Flip normals
 
@@ -62,7 +72,8 @@ None: each command applies at once and is one undo step (Ctrl + Z).
 | Delete the selected points, edges or polygons | `Delete` (Points, Edges or Polygons mode) |
 | Dissolve them | `Backspace` (Points, Edges or Polygons mode) |
 | Delete the selected objects | `Delete` or `Backspace` (Model mode) |
-| Fill hole, Flip normals | Tool menu `E`, or the Mesh menu |
+| Fill hole | `J` (Edges or Polygons mode), the tool menu `E`, or the Mesh menu |
+| Flip normals | Tool menu `E`, or the Mesh menu |
 | Fix facing | Mesh menu |
 | Select flipped, Select similar facing | Select menu |
 
@@ -71,6 +82,7 @@ None: each command applies at once and is one undo step (Ctrl + Z).
 - **Tip:** the Mesh section of the Attributes panel tells you whether a shape is closed and whether any polygons face the wrong way.
 - **Tip:** dissolving makes polygons with many sides (n-gons). They're fine on flat areas; on curves, cut them up again with [Connect](connect-bridge-weld.md) or [Slit](slit.md).
 - **Problem:** Backspace did nothing, and the status bar says nothing can go. **Why:** an edge or point on an open border can't be dissolved without opening a hole, and neither can polygons that wouldn't merge into one simple polygon. **Fix:** use Delete instead, or select something else.
+- **Problem:** a box appeared asking about a sharp corner. **Why:** dissolving there would make one bent polygon (see above). **Fix:** press Esc and use Delete instead, or tick "I know what I'm doing, proceed" if a bent polygon is what you want.
 - **Problem:** Fill hole says no hole touches the selection. **Why:** the selected edges or polygons aren't on a hole's rim. **Fix:** select an edge on the rim, or select nothing to fill every hole.
 - **Problem:** Fix facing turned a whole plane over. **Why:** an open sheet has no inside, so the polygons are made to agree with most of them. **Fix:** Flip normals on the whole sheet turns it back.
 

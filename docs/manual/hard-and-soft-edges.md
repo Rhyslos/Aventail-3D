@@ -59,6 +59,7 @@ In the viewport's **Display** menu:
 
 - **Tip:** a cylinder with few sides (say 8) has sides meeting at 45°. With the 30° start they come out hard and it looks faceted: set the Angle to 50° to make it round again.
 - **Tip:** soft edges between polygons at a sharp angle look smeared and dark. If a corner looks muddy, make that edge hard, or bevel it.
+- **Tip:** new polygons from [Bridge](connect-bridge-weld.md) and [Fill hole](clean-up.md) get hard edges by themselves where they meet the shape at more than 30°, so a band between two boxes or a cap on a tube looks crisp straight away. Make them soft afterwards if you want them round.
 - **Problem:** Hard edges did nothing, and the status bar says they already are. **Why:** every selected edge is already hard. **Fix:** nothing to do, or pick Soft edges.
 - **Problem:** the hard edges or normals don't show on a very detailed shape. **Why:** they're drawn only for shapes of up to 50,000 polygons, to keep the view quick.
 

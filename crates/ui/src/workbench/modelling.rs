@@ -250,9 +250,9 @@ impl ModellingSession {
 }
 
 impl Workbench {
-    /// D, I, V, F, X, J, C and M: Extrude, Inset, Bevel, Loop cut, Slit,
-    /// Connect, Bridge and Weld, from the command list, and Ctrl + M for
-    /// welding onto a target. Not while typing.
+    /// D, I, V, F, X, A, C, M and J: Extrude, Inset, Bevel, Loop cut,
+    /// Slit, Connect, Bridge, Weld and Fill hole, from the command list,
+    /// and Ctrl + M for welding onto a target. Not while typing.
     pub(super) fn modelling_keys(&mut self, ui: &Ui) {
         if ui.ctx().memory(|m| m.focused().is_some()) || self.objects.is_renaming() {
             return;
@@ -273,6 +273,7 @@ impl Workbench {
             CommandId::Connect,
             CommandId::Bridge,
             CommandId::Weld,
+            CommandId::FillHole,
         ] {
             let pressed = command
                 .info()
@@ -291,9 +292,16 @@ impl Workbench {
         // polygons; in the other modes, clicks select objects as usual.
         let editing = components::kind_for(self.mode).is_some();
         let clicks = self.tool.clicks_on_shapes() && editing;
+        // Bridge and Weld take a drag only when it starts on a highlighted
+        // point or edge (or one is being dragged), so clicks and drags from
+        // empty space still select.
+        let pairing = self.tool.drags_between_elements()
+            && editing
+            && (self.components.hovered().is_some() || self.pair_session.is_some());
         self.viewport
             .set_wheel_tool(self.tool.has_wheel_count() && editing);
-        self.viewport.set_drag_tool(self.tool.drags_anywhere());
+        self.viewport
+            .set_drag_tool(self.tool.drags_anywhere() || pairing);
         self.viewport.set_click_tool(clicks);
         self.components.set_quiet(clicks);
     }
@@ -355,6 +363,12 @@ impl Workbench {
                 ToolDragEvent::End => {
                     if let Some(session) = self.modelling_session.take() {
                         self.finish_modelling(&session);
+                        if session.tool == Tool::Extrude {
+                            // The next extrude starts straight: a turn
+                            // left over would surprise. This one keeps its
+                            // bend (still in Last edit).
+                            self.attributes.bend.angle = 0.0;
+                        }
                     }
                     self.viewport.set_tool_label(None);
                 }

@@ -329,6 +329,51 @@ fn double_clicking_an_edge_selects_its_loop() {
 }
 
 #[test]
+fn double_clicking_works_with_the_move_tool_too() {
+    // The first click selects the edge and the Move gizmo jumps to its
+    // middle, right under the mouse: the second click lands on the gizmo
+    // and must still count.
+    let mut harness = quick_harness();
+    let id = cube_id(&harness);
+    let params = mesh::CubeParams {
+        segments: [2, 2, 2],
+        ..Default::default()
+    };
+    let doc = harness.state_mut().workbench.document_mut();
+    doc.execute(Command::SetPrimitive {
+        ids: vec![id],
+        primitive: mesh::Primitive::Cube(params),
+    })
+    .unwrap();
+    doc.set_selection([id]);
+    press(&mut harness, Key::Num2);
+    for tool in [Key::W, Key::R, Key::S, Key::T] {
+        press(&mut harness, tool);
+        // Start from nothing selected, after the double-click time.
+        let doc = harness.state_mut().workbench.document_mut();
+        doc.select_elements([(id, scene::ElementSelection::new())], "Select", None);
+        let start = harness.ctx.input(|i| i.time);
+        while harness.ctx.input(|i| i.time) - start < 1.0 {
+            harness.run();
+        }
+        let at = on_screen(&harness, Vec3::new(25.0, -50.0, 50.0));
+        harness.event(Event::PointerMoved(at));
+        harness.run();
+        for _ in 0..2 {
+            button(&mut harness, at, true, Modifiers::NONE);
+            button(&mut harness, at, false, Modifiers::NONE);
+        }
+        let doc = harness.state().workbench.document();
+        assert_eq!(
+            doc.elements(id).map(|s| s.count(ElementKind::Edges)),
+            Some(8),
+            "{tool:?}"
+        );
+        assert!(harness.state().workbench.viewport().gizmo().is_some());
+    }
+}
+
+#[test]
 fn the_select_menu_works() {
     let mut harness = points_mode();
     main_menu(&harness, "Select").click();

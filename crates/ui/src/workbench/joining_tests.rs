@@ -1,4 +1,4 @@
-//! Tests for Connect (J), Bridge (C) and Weld (M, Ctrl + M) in the window.
+//! Tests for Connect (A), Bridge (C) and Weld (M, Ctrl + M) in the window.
 
 use super::modelling_tests::{H, button, cube, last_operation, note, on_screen, press, shape};
 use super::tests::fresh;
@@ -49,10 +49,10 @@ fn top_points(mesh: &scene::Mesh) -> Vec<Element> {
 }
 
 #[test]
-fn j_connects_the_selected_edges() {
+fn a_connects_the_selected_edges() {
     let mut harness = ready(Key::Num2, uprights);
     let steps = harness.state().workbench.document().undo_steps();
-    press(&mut harness, Modifiers::NONE, Key::J);
+    press(&mut harness, Modifiers::NONE, Key::A);
     assert_eq!(shape(&harness).face_count(), 10);
     let doc = harness.state().workbench.document();
     assert_eq!(doc.undo_steps(), steps + 1);
@@ -65,8 +65,26 @@ fn j_connects_the_selected_edges() {
     );
     // In the Polygons mode it says where it works.
     press(&mut harness, Modifiers::NONE, Key::Num3);
-    press(&mut harness, Modifiers::NONE, Key::J);
+    press(&mut harness, Modifiers::NONE, Key::A);
     assert!(note(&harness).starts_with("Connect works on points or edges"));
+}
+
+#[test]
+fn ctrl_a_still_selects_everything_and_does_not_connect() {
+    let mut harness = ready(Key::Num2, |_| Vec::new());
+    let faces = shape(&harness).face_count();
+    press(&mut harness, Modifiers::COMMAND, Key::A);
+    assert_eq!(shape(&harness).face_count(), faces, "nothing connected");
+    let id = cube(&harness);
+    let edges = harness
+        .state()
+        .workbench
+        .document()
+        .elements(id)
+        .unwrap()
+        .edges()
+        .count();
+    assert_eq!(edges, 12);
 }
 
 #[test]
@@ -138,7 +156,10 @@ fn ctrl_m_drags_a_point_onto_another() {
         harness.event(Event::PointerMoved(from + (to - from) * (k as f32 / 5.0)));
         harness.run();
     }
-    assert!(harness.state().workbench.viewport().tool_path().is_some());
+    // The line snaps onto the target point, ringed.
+    let path = harness.state().workbench.viewport().tool_path().unwrap();
+    let ring = path.cursor.expect("snapped onto the target");
+    assert!(ring.distance(glam::Vec3::new(50.0, -50.0, 100.0)) < 1e-3);
     button(
         &mut harness,
         to,
@@ -165,4 +186,60 @@ fn ctrl_m_drags_a_point_onto_another() {
             ..
         })
     ));
+}
+
+#[test]
+fn a_click_selects_while_weld_or_bridge_is_in_use() {
+    for (mode, keys, tool) in [
+        (Key::Num1, Modifiers::COMMAND, Tool::Weld),
+        (Key::Num2, Modifiers::NONE, Tool::Bridge),
+    ] {
+        let mut harness = ready(mode, |_| Vec::new());
+        let key = if tool == Tool::Weld { Key::M } else { Key::C };
+        harness.event(Event::Key {
+            key,
+            physical_key: None,
+            pressed: true,
+            repeat: false,
+            modifiers: keys,
+        });
+        harness.run();
+        assert_eq!(harness.state().workbench.tool(), tool);
+        // A front top corner, or the middle of the front top edge.
+        let spot = if tool == Tool::Weld {
+            glam::Vec3::new(-50.0, -50.0, 100.0)
+        } else {
+            glam::Vec3::new(0.0, -50.0, 100.0)
+        };
+        let at = on_screen(&harness, spot);
+        harness.event(Event::PointerMoved(at));
+        harness.run();
+        assert!(
+            harness.state().workbench.components.hovered().is_some(),
+            "{tool:?}: the hover highlight shows"
+        );
+        button(
+            &mut harness,
+            at,
+            true,
+            PointerButton::Primary,
+            Modifiers::NONE,
+        );
+        button(
+            &mut harness,
+            at,
+            false,
+            PointerButton::Primary,
+            Modifiers::NONE,
+        );
+        let id = cube(&harness);
+        let selected = harness
+            .state()
+            .workbench
+            .document()
+            .elements(id)
+            .map_or(0, |s| s.points().count() + s.edges().count());
+        assert_eq!(selected, 1, "{tool:?}: the click selected it");
+        assert_eq!(harness.state().workbench.tool(), tool, "still in use");
+    }
 }

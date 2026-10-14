@@ -84,7 +84,8 @@ Every key is listed in the **Keys** window: click **Keys** on the menu bar, afte
 | Frame everything / the selection | `H` / `Z` |
 | Hide / isolate / show everything | `Shift + H` / `Ctrl + H` / `Alt + H` (see [Hide and isolate](hide-and-isolate.md)) |
 | Copy; paste copies; paste instances | `Ctrl + C`; `Ctrl + V`; `Alt + V` (see [Copies and instances](copies-and-instances.md)) |
-| Connect / Bridge / Weld (Weld onto a point) | `J` / `C` / `M` (`Ctrl + M`) |
+| Connect / Bridge / Weld (Weld onto a point) / Fill hole | `A` / `C` / `M` (`Ctrl + M`) / `J` |
+| Straight back to the Model mode, tool put away | `Tab` |
 | Perspective, top, right, front view; all four | `F1`, `F2`, `F3`, `F4`; `F5` |
 | Orbit, pan, zoom the view | Depends on your navigation controls; as standard right drag to orbit, middle drag to pan and the mouse wheel to zoom (`Alt` + left, middle or right drag work too). See [Navigating the view](navigating-the-view.md) |
 
