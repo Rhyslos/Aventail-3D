@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Orthographic view.** Press **P** to switch a view between perspective and orthographic (no perspective: parallel lines stay parallel), keeping where it looks. It orbits, pans and zooms freely. Also in the viewport's **Cameras** menu.
 - **Look along an axis.** In the perspective view, click X, Y or Z on the axis arrows in the bottom-left corner: the view swings round to look straight along that axis (Z from above, X from the right, Y from the back). Click it again to look from the other side.
 - **Cavity.** Ridges catch a light line and creases and inner corners darken, so edges and a shape's form read clearly at a glance, like Blender's cavity. On as standard; switch it in the viewport's **Display** menu, with Hard edges and Normals.
 - **Automatic hard edges.** A new switch in the **Mesh** menu, on as standard, shades every shape by angle after every change: edges where polygons meet more sharply than 30° are crisp, the rest smooth. Bent extrudes no longer look faceted, and a cylinder's sides stay smooth however you extrude it. Switch it off to shade by the edges you set by hand, which are kept.
@@ -67,6 +68,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **Flat views orbit.** Orbiting the Top, Front or Right view now turns it into a free orthographic view instead of doing nothing; F2, F3 and F4 bring the exact views back. The corner axis letters work in flat views too.
 - **Clearer names:** Fix facing is now **Fix normals**, Select similar facing is **Select same facing**, the left palette's Show only the selection button is **Isolate**, and the Instance command is **Duplicate as instance**.
 - **Cavity** moved from its own button in the viewport's bottom-left corner into the **Display** menu's group with Hard edges and Normals. The axis arrows there are a little bigger, with round letters to click.
 - The X/Y/Z axis arrows moved from the viewport's top-right corner to the bottom left, beside the new shading button, with the grid spacing just above them.

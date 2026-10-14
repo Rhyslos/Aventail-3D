@@ -923,11 +923,19 @@ fn clicking_an_axis_on_the_corner_marker_looks_along_it_and_again_from_the_other
     settle(&mut harness);
     assert!(camera(&harness).forward().dot(-glam::Vec3::X) > 0.999);
     assert!(camera(&harness).position.x > 0.0);
-    // Flat views keep their direction: no clickable letters there.
+    // In a flat view the letters work too, and the view stays flat: from
+    // the Top view, X lands exactly on the Right view.
     harness.key_press(egui::Key::F2);
     settle(&mut harness);
     assert!(camera(&harness).is_flat());
-    assert!(harness.query_by_label(&look_along_label("X")).is_none());
+    harness.get_by_label(&look_along_label("X")).click();
+    settle(&mut harness);
+    assert!(camera(&harness).is_flat());
+    assert!(camera(&harness).forward().dot(-glam::Vec3::X) > 0.999);
+    assert_eq!(
+        harness.state().workbench.viewport().active_kind(),
+        tools::ViewKind::Right
+    );
 }
 
 #[test]
@@ -1530,6 +1538,49 @@ fn the_cameras_menu_changes_the_active_view() {
 }
 
 #[test]
+fn p_and_the_cameras_menu_switch_to_orthographic_and_back() {
+    let mut harness = fresh();
+    let before = *harness.state().workbench.viewport().navigator();
+    harness.key_press(Key::P);
+    harness.run();
+    let viewport = harness.state().workbench.viewport();
+    assert_eq!(viewport.active_kind(), tools::ViewKind::Orthographic);
+    assert_eq!(
+        viewport.camera().forward(),
+        before.camera().forward(),
+        "it keeps looking the same way"
+    );
+    harness.state_mut().renderer.drawn.clear();
+    harness.step();
+    let drawn = &harness.state().renderer.drawn;
+    assert!(
+        drawn.len() == 1 && drawn[0].flat_height.is_some(),
+        "drawn flat"
+    );
+    // The menu takes it back to perspective, the same way round.
+    viewport_menu(&mut harness, "Cameras");
+    harness.get_by_label_contains("Perspective").click();
+    harness.run();
+    let viewport = harness.state().workbench.viewport();
+    assert_eq!(viewport.active_kind(), tools::ViewKind::Perspective);
+    assert!(
+        viewport
+            .camera()
+            .position
+            .distance(before.camera().position)
+            < 0.1
+    );
+    // P in the Top view: perspective from above.
+    harness.key_press(Key::F2);
+    harness.run();
+    harness.key_press(Key::P);
+    harness.run();
+    let camera = camera(&harness);
+    assert!(!camera.is_flat());
+    assert!(camera.forward().z < -0.99);
+}
+
+#[test]
 fn the_panel_menu_and_header_button_switch_the_layout() {
     let mut harness = fresh();
     viewport_menu(&mut harness, "Panel");
@@ -1545,7 +1596,7 @@ fn the_panel_menu_and_header_button_switch_the_layout() {
 }
 
 #[test]
-fn flat_views_pan_and_zoom_but_never_orbit() {
+fn orbiting_a_flat_view_makes_it_a_free_orthographic_one() {
     let mut harness = fresh();
     harness.key_press(Key::F4);
     harness.run();
@@ -1557,8 +1608,9 @@ fn flat_views_pan_and_zoom_but_never_orbit() {
         egui::vec2(80.0, 40.0),
     );
     let after = *harness.state().workbench.viewport().navigator();
-    assert_eq!(after.kind(), tools::ViewKind::Front, "still a front view");
-    assert_eq!(after.camera().yaw, start.camera().yaw);
+    assert_eq!(after.kind(), tools::ViewKind::Orthographic);
+    assert_ne!(after.camera().yaw, start.camera().yaw, "it turned");
+    assert!(after.camera().is_flat(), "still without perspective");
     let height = |h: &Harness<'static, State>| camera(h).ortho_height.unwrap();
     let before = height(&harness);
     harness.event(egui::Event::PointerMoved(viewport_spot(&harness)));
