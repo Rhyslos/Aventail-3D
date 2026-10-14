@@ -244,6 +244,12 @@ pub(crate) struct PointsStart {
     /// points' anchors), instead of `points` all moving alike
     /// (decision 0054).
     pub(crate) mirror: Option<Vec<(mesh::symmetry::MirrorGroup, Option<Anchors>)>>,
+    /// With symmetry's weld on, points near the middle are put on it as
+    /// they move (decision 0059).
+    pub(crate) weld: bool,
+    /// With symmetry's "don't cross the middle" on, how far the points
+    /// may move along each axis of the shape (least, most).
+    pub(crate) limits: Option<[(f32, f32); 3]>,
     /// While sliding (Alt + drag on the Move gizmo, decision 0055): the
     /// shape as it was, whose edges the points slide along.
     pub(crate) slide: Option<std::sync::Arc<scene::Mesh>>,
@@ -385,6 +391,8 @@ impl Target {
                         points,
                         anchors,
                         mirror: None,
+                        weld: false,
+                        limits: None,
                         slide: None,
                     });
                 }
@@ -419,6 +427,10 @@ impl Target {
                     continue;
                 };
                 let plan = mesh::symmetry::mirror_plan(&item.mesh, &start.points, mirror);
+                start.weld = mirror.weld > 0.0;
+                start.limits = mirror
+                    .clip
+                    .then(|| mesh::symmetry::move_limits(&item.mesh, &start.points, &mirror));
                 let groups = plan
                     .groups
                     .into_iter()
@@ -535,10 +547,32 @@ impl Target {
                         return groups
                             .iter()
                             .map(|(group, anchors)| {
+                                // Kept from crossing the middle.
+                                let mut d = match change {
+                                    Change::Translate(d) => inverse.transform_vector3(*d),
+                                    _ => Vec3::ZERO,
+                                };
+                                if let Some(limits) = s.limits {
+                                    for a in 0..3 {
+                                        d[a] = d[a].clamp(limits[a].0, limits[a].1);
+                                    }
+                                }
                                 let operation = match change {
-                                    Change::Translate(d) => Operation::MovePoints {
+                                    // Welding puts points near the middle
+                                    // on it: through the matrix, which
+                                    // flattens them onto the plane.
+                                    Change::Translate(_)
+                                        if s.weld && group.keep_on.contains(&true) =>
+                                    {
+                                        Operation::TransformPoints {
+                                            points: group.points.clone(),
+                                            matrix: group.matrix(Mat4::from_translation(d)),
+                                            anchors: anchors.clone(),
+                                        }
+                                    }
+                                    Change::Translate(_) => Operation::MovePoints {
                                         points: group.points.clone(),
-                                        offset: group.offset(inverse.transform_vector3(*d)),
+                                        offset: group.offset(d),
                                         anchors: anchors.clone(),
                                     },
                                     _ => Operation::TransformPoints {

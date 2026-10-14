@@ -683,3 +683,57 @@ fn the_symmetry_menu_sets_the_axes_and_where_the_mirror_goes() {
     harness.state_mut().workbench.toggle_symmetry();
     assert!(harness.state().workbench.mirror_for(id).is_none());
 }
+
+#[test]
+fn with_symmetry_points_can_be_kept_from_crossing_the_middle() {
+    let mut harness = fresh();
+    let id = cube(&harness);
+    let doc = harness.state_mut().workbench.document_mut();
+    doc.set_selection([id]);
+    doc.execute(scene::Command::SetPrimitive {
+        ids: vec![id],
+        primitive: scene::Primitive::Cube(mesh::CubeParams {
+            segments: [2, 1, 1],
+            ..Default::default()
+        }),
+    })
+    .unwrap();
+    harness.run();
+    harness.state_mut().workbench.toggle_symmetry();
+    harness
+        .state_mut()
+        .workbench
+        .viewport_mut()
+        .options_mut()
+        .symmetry
+        .clip = true;
+    press(&mut harness, Key::Num1);
+    let mesh = shape(&harness);
+    let right = mesh
+        .vertices()
+        .find(|(_, p)| p.x > 49.0 && p.y < -49.0 && p.z > 99.0)
+        .map(|(v, _)| v)
+        .unwrap();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .select_elements(
+            [(
+                id,
+                scene::ElementSelection::of([scene::Element::Point(right)]),
+            )],
+            "Select",
+            None,
+        );
+    press(&mut harness, Key::W);
+    // Dragged far to the left: it stops at the middle.
+    let start = x_arrow(&harness);
+    let path: Vec<Pos2> = (1..=8)
+        .map(|i| along_x(&harness, start, -(i as f32) * 20.0))
+        .collect();
+    drag_without_letting_go(&mut harness, start, &path);
+    let_go(&mut harness, *path.last().unwrap());
+    let moved = shape(&harness).position(right).unwrap();
+    assert!(moved.x.abs() < 1e-3, "{moved}");
+}

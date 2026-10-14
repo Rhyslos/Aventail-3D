@@ -783,7 +783,10 @@ impl Operation {
     fn apply(&self, mesh: &mut Mesh) -> Applied {
         // With symmetry: on both sides, together or as copies.
         if let Self::Mirrored { op, mirror } = self {
-            return match crate::mirroring::both_sides(op, mesh, mirror) {
+            // Clipping needs the points as they were, to keep them on
+            // their side.
+            let before = mirror.clip.then(|| mesh.clone());
+            let applied = match crate::mirroring::both_sides(op, mesh, mirror) {
                 crate::mirroring::Both::Together(all) => all.apply(mesh),
                 crate::mirroring::Both::Copies(copies) => {
                     let mut applied = op.apply(mesh);
@@ -796,6 +799,11 @@ impl Operation {
                     applied
                 }
             };
+            if let Some(before) = before {
+                mesh::symmetry::keep_sides(&before, mesh, mirror);
+            }
+            mesh::symmetry::weld_middle(mesh, mirror);
+            return applied;
         }
         let same = self.anchors().is_some_and(|a| a.same_structure(mesh));
         // The points at the anchored places, when the ids can't be trusted.

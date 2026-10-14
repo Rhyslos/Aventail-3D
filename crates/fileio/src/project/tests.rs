@@ -32,6 +32,8 @@ fn rich_document() -> Document {
             mirror: mesh::symmetry::Mirror {
                 axes: [true, false, false],
                 centre: glam::Vec3::new(1.5, 0.0, 0.0),
+                weld: 0.1,
+                clip: true,
             },
         },
     })
@@ -2162,9 +2164,12 @@ fn random_model(noise: &mut Noise) -> v14::ProjectV14 {
                                 }) => {
                                     slides.push((noise.count(), noise.count(), noise.float()));
                                 }
-                                v14::OperationV14::Mirrored { axes, centre, .. } => {
+                                v14::OperationV14::Mirrored {
+                                    axes, centre, weld, ..
+                                } => {
                                     axes[0] = noise.below(2) == 0;
                                     centre[0] = noise.float();
+                                    *weld = noise.float();
                                 }
                                 _ => {}
                             },

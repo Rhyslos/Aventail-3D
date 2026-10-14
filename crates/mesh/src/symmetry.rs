@@ -204,7 +204,7 @@ pub fn mirror_plan(mesh: &Mesh, chosen: &[VertexId], mirror: Mirror) -> MirrorPl
         let Some(p) = mesh.position(v) else {
             continue;
         };
-        let keep_on = [0, 1, 2].map(|a| axes[a] && (p[a] - centre[a]).abs() <= TOLERANCE);
+        let keep_on = [0, 1, 2].map(|a| axes[a] && (p[a] - centre[a]).abs() <= mirror.on_plane());
         add([false; 3], keep_on, v);
         for reflect in &mirrors {
             // Mirroring across a plane the point is on gives the point.
@@ -232,14 +232,34 @@ pub struct Mirror {
     pub axes: [bool; 3],
     /// The point the planes go through.
     pub centre: Vec3,
+    /// Weld the middle: points this close to a plane (in centimetres) are
+    /// put on it, and points meeting there become one ([`weld_middle`]).
+    /// 0: off.
+    pub weld: f32,
+    /// Points may not cross a plane: an edit or a move stops them on it
+    /// ([`keep_sides`], [`move_limits`]).
+    pub clip: bool,
 }
 
 impl Mirror {
-    /// Across `axes`, through the shape's origin.
+    /// Across `axes`, through the shape's origin, without welding or
+    /// clipping.
     pub fn through_origin(axes: [bool; 3]) -> Self {
         Self {
             axes,
             centre: Vec3::ZERO,
+            weld: 0.0,
+            clip: false,
+        }
+    }
+
+    /// How close to a plane counts as on it: the weld distance, or
+    /// [`TOLERANCE`] at least.
+    pub fn on_plane(&self) -> f32 {
+        if self.weld.is_finite() {
+            self.weld.max(TOLERANCE)
+        } else {
+            TOLERANCE
         }
     }
 
@@ -315,6 +335,146 @@ impl<'a> Partners<'a> {
                 })
             })
     }
+}
+
+/// Welds the middle of a shape modelled with `mirror`: every point closer
+/// than `mirror.weld` to a plane is put on it, then points that meet on a
+/// plane (within [`TOLERANCE`]) become one. Returns how many points were
+/// moved or merged. Does nothing with welding off.
+pub fn weld_middle(mesh: &mut Mesh, mirror: &Mirror) -> usize {
+    if mirror.weld <= 0.0 || !mirror.weld.is_finite() {
+        return 0;
+    }
+    let mut changed = 0;
+    // Onto the planes.
+    let near: Vec<(VertexId, Vec3)> = mesh
+        .vertices()
+        .filter_map(|(v, p)| {
+            let mut q = p;
+            for a in 0..3 {
+                let off = p[a] - mirror.centre[a];
+                if mirror.axes[a] && off != 0.0 && off.abs() <= mirror.weld {
+                    q[a] = mirror.centre[a];
+                }
+            }
+            (q != p).then_some((v, q))
+        })
+        .collect();
+    for (v, q) in near {
+        mesh.set_position(v, q);
+        changed += 1;
+    }
+    // Points meeting on a plane become one, the lowest id kept.
+    let on_plane =
+        |p: Vec3| (0..3).any(|a| mirror.axes[a] && (p[a] - mirror.centre[a]).abs() <= TOLERANCE);
+    let mut cells: HashMap<[i64; 3], Vec<VertexId>> = HashMap::new();
+    for (v, p) in mesh.vertices() {
+        if on_plane(p) && p.is_finite() {
+            cells.entry(cell(p)).or_default().push(v);
+        }
+    }
+    let mut taken: BTreeSet<VertexId> = BTreeSet::new();
+    let mut clusters: Vec<Vec<VertexId>> = Vec::new();
+    let mut points: Vec<(VertexId, Vec3)> = cells
+        .values()
+        .flatten()
+        .filter_map(|v| Some((*v, mesh.position(*v)?)))
+        .collect();
+    points.sort_by_key(|(v, _)| *v);
+    for (v, p) in &points {
+        if taken.contains(v) {
+            continue;
+        }
+        let [x, y, z] = cell(*p);
+        let mut cluster = vec![*v];
+        for dx in -1..=1 {
+            for dy in -1..=1 {
+                for dz in -1..=1 {
+                    for w in cells.get(&[x + dx, y + dy, z + dz]).into_iter().flatten() {
+                        if *w != *v
+                            && !taken.contains(w)
+                            && mesh
+                                .position(*w)
+                                .is_some_and(|q| q.distance(*p) <= TOLERANCE)
+                        {
+                            cluster.push(*w);
+                        }
+                    }
+                }
+            }
+        }
+        if cluster.len() > 1 {
+            cluster.sort();
+            cluster.dedup();
+            taken.extend(cluster.iter().copied());
+            clusters.push(cluster);
+        }
+    }
+    for cluster in clusters {
+        let target = cluster[0];
+        changed += crate::join::weld(mesh, &cluster, Some(target))
+            .matched
+            .min(cluster.len());
+    }
+    changed
+}
+
+/// Keeps points on their side of `mirror`'s planes (clipping): each point
+/// of `mesh` that `before` had on one side, and that is now past a plane,
+/// is put on it. Returns how many were. Does nothing with clipping off.
+pub fn keep_sides(before: &Mesh, mesh: &mut Mesh, mirror: &Mirror) -> usize {
+    if !mirror.clip {
+        return 0;
+    }
+    let mut stopped = Vec::new();
+    for (v, now) in mesh.vertices() {
+        let Some(then) = before.position(v) else {
+            continue;
+        };
+        let mut q = now;
+        for a in 0..3 {
+            if !mirror.axes[a] {
+                continue;
+            }
+            let (was, is) = (then[a] - mirror.centre[a], now[a] - mirror.centre[a]);
+            if was.abs() > TOLERANCE && was.signum() != is.signum() && is != 0.0 {
+                q[a] = mirror.centre[a];
+            }
+        }
+        if q != now {
+            stopped.push((v, q));
+        }
+    }
+    let n = stopped.len();
+    for (v, q) in stopped {
+        mesh.set_position(v, q);
+    }
+    n
+}
+
+/// How far `points` of `mesh` may move along each axis without crossing
+/// `mirror`'s planes (with clipping on): the least and most offset per
+/// axis, unlimited where nothing stops them. A point already on a plane
+/// doesn't limit it.
+pub fn move_limits(mesh: &Mesh, points: &[VertexId], mirror: &Mirror) -> [(f32, f32); 3] {
+    let mut limits = [(f32::NEG_INFINITY, f32::INFINITY); 3];
+    if !mirror.clip {
+        return limits;
+    }
+    for p in points.iter().filter_map(|v| mesh.position(*v)) {
+        for a in 0..3 {
+            let off = p[a] - mirror.centre[a];
+            if !mirror.axes[a] || off.abs() <= mirror.on_plane() {
+                continue;
+            }
+            if off > 0.0 {
+                limits[a].0 = limits[a].0.max(-off);
+            } else {
+                limits[a].1 = limits[a].1.min(-off);
+            }
+        }
+    }
+    limits
 }
 
 #[cfg(test)]

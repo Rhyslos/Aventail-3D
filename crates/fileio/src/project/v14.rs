@@ -26,12 +26,15 @@ pub(crate) type EntryV14 = EntryWith<OperationV14>;
 pub(crate) enum OperationV14 {
     /// Everything version 13 could store, stored the same way.
     V13(OperationV13),
-    /// An edit made with symmetry on: the edit, the axes mirrored across
-    /// and the point the planes go through.
+    /// An edit made with symmetry on: the edit, the axes mirrored across,
+    /// the point the planes go through, the weld distance (0: off) and
+    /// whether points are kept on their side.
     Mirrored {
         op: OperationV13,
         axes: [bool; 3],
         centre: [f32; 3],
+        weld: f32,
+        clip: bool,
     },
 }
 
@@ -42,6 +45,8 @@ impl FileOperation for OperationV14 {
                 op: OperationV13::to_file(op)?,
                 axes: mirror.axes,
                 centre: mirror.centre.to_array(),
+                weld: mirror.weld,
+                clip: mirror.clip,
             },
             _ => Self::V13(OperationV13::to_file(op)?),
         })
@@ -50,10 +55,19 @@ impl FileOperation for OperationV14 {
     fn into_operation(self) -> Result<Operation, Problem> {
         match self {
             Self::V13(op) => op.into_operation(),
-            Self::Mirrored { op, axes, centre } => {
+            Self::Mirrored {
+                op,
+                axes,
+                centre,
+                weld,
+                clip,
+            } => {
                 let centre = Vec3::from_array(centre);
                 if !centre.is_finite() {
                     return Err("a mirror's middle isn't a real number".to_string());
+                }
+                if !weld.is_finite() || weld < 0.0 {
+                    return Err("a mirror's weld distance isn't a real distance".to_string());
                 }
                 if !axes.contains(&true) {
                     return Err("a mirrored edit mirrors across no axis".to_string());
@@ -64,7 +78,12 @@ impl FileOperation for OperationV14 {
                 }
                 Ok(Operation::Mirrored {
                     op: Box::new(op),
-                    mirror: Mirror { axes, centre },
+                    mirror: Mirror {
+                        axes,
+                        centre,
+                        weld: weld.min(mesh::primitives::MAX_SIZE),
+                        clip,
+                    },
                 })
             }
         }

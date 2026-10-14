@@ -18,6 +18,8 @@ fn cube() -> Mesh {
 const ACROSS_X: Mirror = Mirror {
     axes: [true, false, false],
     centre: Vec3::ZERO,
+    weld: 0.0,
+    clip: false,
 };
 
 /// The shape after `op` on the cube, worked out through a document.
@@ -322,4 +324,57 @@ fn whole_shape_edits_and_moves_are_not_mirrored() {
         faces: Vec::new(),
         anchors: None
     }));
+}
+
+#[test]
+fn a_mirrored_edit_welds_the_middle_and_keeps_sides() {
+    let mut doc = Document::new();
+    doc.execute(Command::Create(ObjectKind::Primitive(Primitive::Cube(
+        CubeParams {
+            segments: [2, 2, 2],
+            ..Default::default()
+        },
+    ))))
+    .unwrap();
+    let id = doc.selection()[0];
+    let base = cube();
+    let middle = base
+        .vertices()
+        .find(|(_, p)| p.x.abs() < 1e-3 && p.z > 99.0 && p.y < -49.0)
+        .unwrap()
+        .0;
+    // Nudge a middle point just off the middle.
+    doc.execute(Command::Record {
+        id,
+        operation: Operation::MovePoints {
+            points: vec![middle],
+            offset: Vec3::new(0.05, 0.0, 0.0),
+            anchors: None,
+        },
+    })
+    .unwrap();
+    let face = right_face(&base, Vec3::X);
+    let welding = Mirror {
+        weld: 0.1,
+        clip: true,
+        ..ACROSS_X
+    };
+    doc.execute(Command::Record {
+        id,
+        operation: Operation::Mirrored {
+            op: Box::new(Operation::FlipPolygons {
+                faces: vec![face],
+                anchors: None,
+            }),
+            mirror: welding,
+        },
+    })
+    .unwrap();
+    let shape = doc.scene().evaluated(id).unwrap();
+    assert_eq!(
+        shape.mesh.position(middle).unwrap().x,
+        0.0,
+        "back on the middle"
+    );
+    assert_eq!(shape.mesh.vertex_count(), base.vertex_count());
 }

@@ -586,6 +586,29 @@ pub(crate) fn symmetry_settings(
             .on_hover_text(centre.explanation());
     }
     ui.add_space(6.0);
+    ui.checkbox(&mut symmetry.weld, "Weld the middle")
+        .on_hover_text(
+            "Points this close to the middle are put on it, and points meeting there become one, \
+         so the two halves are one closed shape.",
+        );
+    ui.horizontal(|ui| {
+        ui.add_enabled_ui(symmetry.weld, |ui| {
+            ui.label("Weld distance");
+            crate::attributes::stepper::length(
+                ui,
+                &mut symmetry.weld_distance,
+                (0.0, 100.0),
+                units,
+                "Weld distance",
+            );
+        });
+    });
+    ui.checkbox(&mut symmetry.clip, "Don't cross the middle")
+        .on_hover_text(
+            "Points stop at the middle instead of passing through to the other side, where \
+             they would overlap their mirror.",
+        );
+    ui.add_space(6.0);
     ui.label("Move the mirror by");
     for (axis, name) in ["X", "Y", "Z"].into_iter().enumerate() {
         ui.horizontal(|ui| {

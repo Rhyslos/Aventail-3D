@@ -1197,7 +1197,17 @@ impl Workbench {
                 }
             }
         };
-        Some(mesh::symmetry::Mirror { axes, centre })
+        let weld = if symmetry.weld && symmetry.weld_distance.is_finite() {
+            symmetry.weld_distance.max(0.0)
+        } else {
+            0.0
+        };
+        Some(mesh::symmetry::Mirror {
+            axes,
+            centre,
+            weld,
+            clip: symmetry.clip,
+        })
     }
 
     /// Whether a selected object has a shape to edit (for the Points,
