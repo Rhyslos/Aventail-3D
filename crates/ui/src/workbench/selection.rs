@@ -5,10 +5,12 @@
 use super::Workbench;
 use crate::components::kind_for;
 use crate::drawing::SceneDrawing;
+use crate::palette::Mode;
 use crate::selecting::{
     INVERT_SHORTCUT, SELECT_ALL_SHORTCUT, SELECT_TOOL_KEY, SelectTool, Selector, count,
 };
 use egui::{Modifiers, Ui};
+use scene::ElementKind;
 
 /// A selection command from a key or the Select menu, carried out once
 /// the frame's scene drawing is known.
@@ -22,6 +24,10 @@ pub(super) enum SelectRequest {
     Clear,
     /// Grow (positive) or shrink (negative) by this many steps.
     Grow(i32),
+    /// Select the polygons facing the wrong way.
+    Flipped,
+    /// Add the polygons facing like the selected ones.
+    SimilarFacing,
 }
 
 /// The Select menu's tooltip for the visible-only switch, and the mode
@@ -128,6 +134,31 @@ impl Workbench {
             self.select_requests.push(SelectRequest::Grow(-1));
             ui.close();
         }
+        let polygons = |this: &mut Self, request| {
+            // These select polygons, so they show the Polygons mode.
+            this.mode = Mode::Polygons;
+            this.select_requests.push(request);
+        };
+        if entry(
+            ui,
+            "Select flipped",
+            String::new(),
+            "Select the polygons facing the wrong way round: inside out compared with \
+             their neighbours, or facing into a closed shape",
+        ) {
+            polygons(self, SelectRequest::Flipped);
+            ui.close();
+        }
+        if entry(
+            ui,
+            "Select similar facing",
+            String::new(),
+            "Add every polygon facing within 30° of a selected polygon: the top of a shape, \
+             say, or every wall facing one way",
+        ) {
+            polygons(self, SelectRequest::SimilarFacing);
+            ui.close();
+        }
         ui.add_enabled(false, egui::Button::new("Loop and ring: double-click"))
             .on_disabled_hover_text(
                 "Double-click an edge for its loop; Alt + double-click for its ring",
@@ -177,6 +208,10 @@ impl Workbench {
                 SelectRequest::Grow(steps) => {
                     selector.gesture(crate::selecting::Gesture::Grow(steps))
                 }
+                SelectRequest::Flipped => selector.select_flipped(),
+                SelectRequest::SimilarFacing => {
+                    selector.select_similar_facing(super::cleaning::SIMILAR_FACING_ANGLE)
+                }
                 SelectRequest::Clear => {
                     if !selector.clear_elements() {
                         selector.document.clear_selection();
@@ -200,8 +235,31 @@ impl Workbench {
             .document
             .selection()
             .iter()
-            .filter_map(|id| self.document.elements(*id))
-            .map(|s| s.count(kind))
+            .filter_map(|id| {
+                let selected = self.document.elements(*id)?;
+                let all = selected.count(kind);
+                // Only what is still there: a deleted polygon stays in
+                // the selection (so undo brings it back selected). Checked
+                // only for selections small enough to check every frame.
+                if all > STILL_THERE_CHECK {
+                    return Some(all);
+                }
+                let mesh = self.document.scene().evaluated(*id)?.mesh;
+                Some(match kind {
+                    ElementKind::Points => selected
+                        .points()
+                        .filter(|v| mesh.position(*v).is_some())
+                        .count(),
+                    ElementKind::Edges => selected
+                        .edges()
+                        .filter(|e| mesh.topology().has_edge(*e))
+                        .count(),
+                    ElementKind::Polygons => selected
+                        .polygons()
+                        .filter(|f| mesh.face(*f).is_some())
+                        .count(),
+                })
+            })
             .sum();
         if total == 0 {
             String::new()
@@ -210,6 +268,10 @@ impl Workbench {
         }
     }
 }
+
+/// Up to how many selected elements the status bar checks they are all
+/// still there.
+const STILL_THERE_CHECK: usize = 10_000;
 
 /// "Ctrl+" (or the Mac's Command sign and a plus), for the wheel entries.
 fn wheel_keys(ui: &Ui) -> String {

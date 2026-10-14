@@ -29,6 +29,10 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Weld** — Melting points into one, at their middle or onto a chosen point. Polygons squeezed to fewer than three corners disappear. See [Connect, Bridge and Weld](connect-bridge-weld.md).
 
+**Dissolve** — Removing an edge or point without leaving a hole: the polygons around it merge into one. *Deleting* removes the polygons too, and leaves a hole. See [Clean-up](clean-up.md).
+
+**Fill hole** — Closing an opening (a loop of border edges) with a polygon, like a lid. See [Clean-up](clean-up.md).
+
 **Slit** — Cutting new edges along a line drawn over the shape, across any polygons, as you see them (or right through the shape). Other programs call this a knife or line cut. See [Slit](slit.md).
 
 **Triangle count** — How many triangles a model becomes once every face is cut into triangles, as game engines and GPUs do: a quad is 2, an n-gon with 8 corners is 6. It's the usual measure of how heavy a game asset is. The Attributes panel shows it for every shape.
@@ -37,7 +41,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Border (open edge)** — An edge with a face on one side only, like the rim of a plane or the open end of a pipe. A shape with none is *closed*, like a solid. Borders are fine where you mean them; in a shape meant to be solid, they're holes.
 
-**Flipped normal** — Every face has a front, the side its *normal* points to. Neighbouring faces should all face outwards; a face pointing the other way is *flipped*, and shades, bakes and exports wrongly.
+**Flipped normal** — Every face has a front, the side its *normal* points to. Neighbouring faces should all face outwards; a face pointing the other way is *flipped*, and shades, bakes and exports wrongly. [Clean-up](clean-up.md) finds and fixes them.
 
 **Extrude** — Pushing polygons (or border edges) out of a shape and building new polygons, the *walls*, between where they were and where they are now: the most common way to add volume. Pushing them in makes a recess. See [Extrude and inset](extrude-and-inset.md).
 

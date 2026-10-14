@@ -4,7 +4,7 @@
 
 Aventail 3D is a free, open-source modelling and UV unwrapping tool for **hard-surface game assets**, written in Rust. Model it, unwrap it, and export it to Substance Painter and Godot, all in one app.
 
-> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout and a real 3D view you can orbit, pan and zoom around, from four views at once if you like. You can create primitives (cube, plane, cylinder, sphere, disc, tube, cone) and groups, organise them in the Objects panel, and undo every change. Press B for a list of shapes, and select one to change its size and segments in the Attributes panel, or press Ctrl + E to make it a plain, editable mesh. Press 1, 2 or 3 to see and select a selected shape's points, edges or polygons, and W, R or S to move, rotate or scale what's selected; change a shape's settings afterwards and your edits follow. Save your work as a project and open it again later. Press E anywhere for a menu of the tools for what you're working on, D or I to extrude or inset polygons, V to bevel edges, F to cut a new loop of edges around a shape, and X to cut along a line you draw. Heavy shapes of millions of polygons stay quick to work with, and backup copies saved in the background bring your work back after a crash. More modelling tools follow through Phase 4. Follow the progress tracker below.
+> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout and a real 3D view you can orbit, pan and zoom around, from four views at once if you like. You can create primitives (cube, plane, cylinder, sphere, disc, tube, cone) and groups, organise them in the Objects panel, and undo every change. Press B for a list of shapes, and select one to change its size and segments in the Attributes panel, or press Ctrl + E to make it a plain, editable mesh. Press 1, 2 or 3 to see and select a selected shape's points, edges or polygons, and W, R or S to move, rotate or scale what's selected; change a shape's settings afterwards and your edits follow. Save your work as a project and open it again later. Press E anywhere for a menu of the tools for what you're working on, D or I to extrude or inset polygons, V to bevel edges, F to cut a new loop of edges around a shape, X to cut along a line you draw, J, C and M to connect, bridge and weld, and Delete or Backspace to delete or dissolve points, edges and polygons. Heavy shapes of millions of polygons stay quick to work with, and backup copies saved in the background bring your work back after a crash. More modelling tools follow through Phase 4. Follow the progress tracker below.
 
 Created by **Rhyslos**, built with AI assistance (Claude by Anthropic). Part of the **Rhylib** family of tools, alongside [Halberd](https://github.com/Rhyslos/halberd).
 
@@ -91,9 +91,9 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** points, edges and polygons can be selected and moved precisely, and a cube's segments can still be changed afterwards. ✅ *Passed 2026-10-12: tested by the project lead.*
 
-### Phase 4 · Core modelling tools — 10 of 15
+### Phase 4 · Core modelling tools — 11 of 15
 
-`█████████░░░░` 67%
+`██████████░░░` 73%
 
 <details>
 <summary>Milestones</summary>
@@ -108,7 +108,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Slit (X): cut new edges along a line of points over the shape, visible only or through
 - [x] Extrude with a bend: pipe bends that keep their size, with an angle, direction, bend radius and segments
 - [x] Connect (J), Bridge (C, or drag edge to edge) and Weld (M, or Ctrl + M onto a point)
-- [ ] Clean-up: dissolve, delete, fill hole and flip normals, with select flipped, fix facing and select by facing
+- [x] Clean-up: Delete deletes, Backspace dissolves; fill hole and flip normals, with select flipped, fix facing and select similar facing
 - [ ] Hard and soft edges, with normals display
 - [ ] Symmetry
 - [ ] Basics: hide and isolate, slide points and edges, duplicate and instances, split polygons off and join objects
@@ -218,6 +218,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-14 | Clean-up: Delete deletes and Backspace dissolves points, edges and polygons; Fill hole, Flip normals, Fix facing, Select flipped and Select similar facing; project files at format version 10 |
 | 2026-10-14 | Connect (J), Bridge (C, or drag from edge to edge) and Weld (M at the middle, Ctrl + M onto a point); project files at format version 9 |
 | 2026-10-14 | Pipe bends: an extrude turns a corner with Angle, Direction, Bend radius and Segments, as a smooth elbow or a mitre joint, keeping the pipe's full width; project files at format version 8 |
 | 2026-10-14 | Slit (X): cut along a line of points clicked over the shape, editable until finished, visible only or through; project files at format version 7. Pipe bends moved into Phase 4 |

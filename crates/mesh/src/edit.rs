@@ -11,6 +11,10 @@
 //! here so every operation is found in one place.
 
 pub use crate::bevel::{BevelShape, bevel_edges, bevel_points};
+pub use crate::cleanup::{
+    delete_elements, dissolve_edges, dissolve_faces, dissolve_points, fill_holes, fix_facing,
+    flip_faces,
+};
 pub use crate::extrude::{
     Bend, Grouping, extrude_bent, extrude_edges, extrude_polygons, inset_polygons,
 };

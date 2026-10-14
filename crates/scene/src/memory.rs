@@ -74,6 +74,32 @@ pub(crate) fn operation_size(op: &Operation) -> usize {
             std::mem::size_of_val(points.as_slice())
                 + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
         }
+        Operation::DeleteElements {
+            points,
+            edges,
+            faces,
+            anchors,
+        }
+        | Operation::Dissolve {
+            points,
+            edges,
+            faces,
+            anchors,
+        } => {
+            std::mem::size_of_val(points.as_slice())
+                + std::mem::size_of_val(edges.as_slice())
+                + std::mem::size_of_val(faces.as_slice())
+                + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
+        }
+        Operation::FillHoles { points, anchors } => {
+            std::mem::size_of_val(points.as_slice())
+                + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
+        }
+        Operation::FlipPolygons { faces, anchors } => {
+            std::mem::size_of_val(faces.as_slice())
+                + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
+        }
+        Operation::FixFacing => 0,
         Operation::Slit { line } => std::mem::size_of_val(line.points.as_slice()),
         Operation::LoopCut { anchors, .. } => {
             anchors.as_ref().map_or(0, mesh::Anchors::memory_size)

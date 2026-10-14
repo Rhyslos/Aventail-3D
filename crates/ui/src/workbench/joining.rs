@@ -44,7 +44,7 @@ pub(super) struct PairSession {
 }
 
 /// "Connect 3 points", "Weld 1 point".
-fn counted(verb: &str, n: usize, thing: &str) -> String {
+pub(super) fn counted(verb: &str, n: usize, thing: &str) -> String {
     if n == 1 {
         format!("{verb} 1 {thing}")
     } else {
@@ -55,7 +55,7 @@ fn counted(verb: &str, n: usize, thing: &str) -> String {
 impl Workbench {
     /// Each selected object with a shape, with its selected elements as
     /// they fit the shape now.
-    fn selected_parts(
+    pub(super) fn selected_parts(
         &self,
     ) -> Vec<(
         ObjectId,
@@ -75,7 +75,7 @@ impl Workbench {
     }
 
     /// Records one operation per object as one undo step called `label`.
-    fn record_each(&mut self, label: &str, ops: Vec<(ObjectId, Operation)>) -> bool {
+    pub(super) fn record_each(&mut self, label: &str, ops: Vec<(ObjectId, Operation)>) -> bool {
         if ops.is_empty() {
             return false;
         }

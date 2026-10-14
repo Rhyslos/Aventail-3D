@@ -998,6 +998,7 @@ impl Workbench {
         }
         let popup_open = egui::Popup::is_any_open(ui.ctx());
         let anything = !self.document.selection().is_empty();
+        let mode = self.mode;
         let mut commands = Vec::new();
         ui.input_mut(|i| {
             // Ctrl+Shift+Z first: Ctrl+Z would match it too.
@@ -1008,22 +1009,33 @@ impl Workbench {
             } else if i.consume_shortcut(&objects::UNDO_SHORTCUT) {
                 out.push(DocRequest::Undo);
             }
-            // The object commands with keys, from the command list.
+            // The object commands with keys, from the command list. In
+            // the Points, Edges and Polygons modes, Delete deletes the
+            // selected elements and Backspace dissolves them instead.
+            let editing = components::kind_for(mode).is_some();
+            let (delete, dissolve) = if editing {
+                (CommandId::DeleteElements, CommandId::Dissolve)
+            } else {
+                (CommandId::Delete, CommandId::Delete)
+            };
             for command in [
                 CommandId::Ungroup,
                 CommandId::MakeEditable,
                 CommandId::Group,
-                CommandId::Delete,
             ] {
                 let pressed = command
                     .info()
                     .shortcut
                     .is_some_and(|keys| i.consume_shortcut(&keys));
-                let backspace =
-                    command == CommandId::Delete && i.consume_key(Modifiers::NONE, Key::Backspace);
-                if (pressed || backspace) && anything {
+                if pressed && anything {
                     commands.push(command);
                 }
+            }
+            if i.consume_key(Modifiers::NONE, Key::Delete) && anything {
+                commands.push(delete);
+            }
+            if i.consume_key(Modifiers::NONE, Key::Backspace) && anything {
+                commands.push(dissolve);
             }
         });
         for command in commands {
@@ -1276,6 +1288,19 @@ impl Workbench {
                     ui.separator();
                     if let Some(command) = commands_entries(ui, &crate::commands::MODELLING_RING) {
                         self.run_command(command, ui.ctx(), requests);
+                        ui.close();
+                    }
+                    ui.separator();
+                    if ui
+                        .button("Fix facing")
+                        .on_hover_text(
+                            "Turn every polygon of the selected objects that faces the wrong \
+                             way round: inside out compared with its neighbours, or facing \
+                             into a closed shape. Select → Select flipped shows them first.",
+                        )
+                        .clicked()
+                    {
+                        self.run_fix_facing();
                         ui.close();
                     }
                 }
@@ -1607,6 +1632,9 @@ impl TabViewer for PanelViewer<'_> {
 
 #[cfg(test)]
 mod attribute_tests;
+mod cleaning;
+#[cfg(test)]
+mod cleaning_tests;
 mod command;
 mod joining;
 #[cfg(test)]
