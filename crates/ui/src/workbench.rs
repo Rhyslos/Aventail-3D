@@ -205,6 +205,8 @@ pub struct Workbench {
     viewport: ViewportPanel,
     accent: Accent,
     about_open: bool,
+    /// The keyboard shortcut viewer (Keys on the menu bar; decision 0056).
+    shortcuts: shortcuts::ShortcutViewer,
     /// A message for the status bar, such as "Panel layout reset".
     note: Option<String>,
     /// When the next backup copy is due.
@@ -258,6 +260,7 @@ impl Workbench {
             viewport: ViewportPanel::default(),
             accent: Accent::default(),
             about_open: false,
+            shortcuts: shortcuts::ShortcutViewer::default(),
             note,
             autosaver: Autosaver::default(),
             autosave_folder: None,
@@ -948,6 +951,7 @@ impl Workbench {
             ui.ctx().request_repaint();
         }
 
+        self.shortcut_window(ui.ctx());
         let mut about_open = self.about_open;
         egui::Window::new(format!("About {}", self.info.name))
             .open(&mut about_open)
@@ -1414,6 +1418,7 @@ impl Workbench {
                 ui.close();
             }
         });
+        self.keys_button(ui);
         let unsaved = self.has_unsaved_changes();
         layout_tabs(ui, &self.file.name(), unsaved);
     }
@@ -1719,6 +1724,7 @@ mod modelling;
 mod modelling_tests;
 mod parts;
 mod selection;
+mod shortcuts;
 mod showing;
 mod slit;
 #[cfg(test)]
