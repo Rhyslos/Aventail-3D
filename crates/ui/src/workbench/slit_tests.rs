@@ -101,7 +101,7 @@ fn x_picks_slit_while_editing() {
     let mut harness = ready();
     assert_eq!(harness.state().workbench.tool(), Tool::Slit);
     assert!(
-        note(&harness).starts_with("Slit: click or drag"),
+        note(&harness).starts_with("Slit: click points"),
         "{}",
         note(&harness)
     );

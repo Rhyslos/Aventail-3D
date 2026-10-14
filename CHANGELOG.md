@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Slit.** In Points, Edges or Polygons mode, press **X** and click points over a shape: it is cut along the line as you go, across any polygons, turning wherever a point sits inside one. Drag a point to move it, click the line to add one, Ctrl + click to remove one, and hold Shift for 15° steps. Esc or Enter finishes the line, and Ctrl + Z takes it back. As standard only what you can see is cut; **Cut through** in the Attributes panel cuts the far side too.
 - **Ctrl + mouse wheel changes a tool's count**: Bevel's Segments and Loop cut's Cuts, before, while dragging, and on the edit you just made. With every other tool it still grows and shrinks the selection.
 - **Loop cut.** In Points, Edges or Polygons mode, press **F** (or pick Loop cut from the E menu or the Mesh menu) and point at an edge: the new loop shows all the way around the shape. Click to cut it, or press and drag along the edge to slide it into place first. Hold **Ctrl** and turn the mouse wheel (or set **Cuts** in the Attributes panel) to make several evenly spaced loops at once; afterwards the cut's Cuts and Position can still be changed under Last edit. The loop stops cleanly at triangles, caps and open borders.
 - **Hollow bevels.** The bevel's Profile now goes from 100% down to -100%: 100% is round, 0% is flat, and below 0 the bevel curves inward instead, like a cove moulding.
@@ -43,6 +44,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Projects are saved in **file format version 7**, which can hold slits. Older projects still open; a project saved now won't open in an older version of the app.
 - **New keys:** **Z** frames the selection (it was F, which is Loop cut now), and the axis locks are **Shift + X / Y / Z** (plain X is kept for the Slit tool).
 - Projects are saved in **file format version 6**, which can hold loop cuts. Older projects still open; a project saved now won't open in an older version of the app.
 - Our own names for things that had borrowed another program's names: the **Attributes panel** (was "Attribute Manager"), the **Objects panel** (was "Object Manager") and **Paint select** (was "Live selection", the brush in the Select tools). The future "Quick Align" tool will be called **Snap to**. Only names change; everything works as before.

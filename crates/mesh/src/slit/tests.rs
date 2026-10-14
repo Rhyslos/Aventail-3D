@@ -317,3 +317,33 @@ fn every_shape_cuts_cleanly() {
         assert!(cuts >= 3, "{}: only {cuts} cuts", primitive.name());
     }
 }
+
+#[test]
+fn a_line_can_turn_from_one_polygon_onto_the_next() {
+    // Seen from the front right, as the app first opens: across the front,
+    // turning inside it, round the corner and across the right side.
+    let before = cube();
+    let mut mesh = before.clone();
+    let l = line(
+        &[
+            [-80.0, -50.0, 90.0],
+            [30.0, -50.0, 40.0],
+            [50.0, 0.0, 60.0],
+            [50.0, 120.0, 140.0],
+        ],
+        Eye::At(Vec3::new(560.0, -980.0, 330.0)),
+        false,
+    );
+    assert_eq!(slit(&mut mesh, &l).matched, 2);
+    assert_eq!(mesh.face_count(), 8);
+    // In, the turn and the corner on the front; the turn and out on the
+    // side.
+    assert_eq!(mesh.vertex_count(), 13);
+    clean(&mesh, &before);
+    // Ending inside the side: it is cut only up to the corner's polygon.
+    let mut short = before.clone();
+    let mut l = l.clone();
+    l.points.pop();
+    assert_eq!(slit(&mut short, &l).matched, 1);
+    clean(&short, &before);
+}

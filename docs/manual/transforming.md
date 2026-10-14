@@ -57,7 +57,7 @@ The gizmo stays the same size on screen however far you zoom.
 
 - **Hold Shift** while dragging to go ten times slower, for small nudges.
 - **Press Esc, or right-click,** while still holding the left button to cancel. Everything goes back where it was.
-- **Press Shift + X, Y or Z** (or click the X, Y and Z buttons on the top palette) to **lock** that axis. While it's locked, moving, rotating and scaling leave it alone, and its gizmo handles disappear. The button turns red while locked; press the keys again to free it. (Shift is needed because plain **Z** frames the selection, and plain **X** is kept for the Slit tool.) *Example:* lock Z, then drag the centre dot to slide a shape around the floor without lifting it.
+- **Press Shift + X, Y or Z** (or click the X, Y and Z buttons on the top palette) to **lock** that axis. While it's locked, moving, rotating and scaling leave it alone, and its gizmo handles disappear. The button turns red while locked; press the keys again to free it. (Shift is needed because plain **Z** frames the selection, and plain **X** is the [Slit](slit.md) tool.) *Example:* lock Z, then drag the centre dot to slide a shape around the floor without lifting it.
 - **Press L** (or click the globe button beside the locks) to switch the gizmo between the **world's axes** and the **object's own axes**. Use the object's own axes to move a turned shape along its own length.
 
 ### Changing settings after editing
