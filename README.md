@@ -91,9 +91,9 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** points, edges and polygons can be selected and moved precisely, and a cube's segments can still be changed afterwards. ✅ *Passed 2026-10-12: tested by the project lead.*
 
-### Phase 4 · Core modelling tools — 11 of 15
+### Phase 4 · Core modelling tools — 12 of 15
 
-`██████████░░░` 73%
+`██████████░░░` 80%
 
 <details>
 <summary>Milestones</summary>
@@ -109,7 +109,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Extrude with a bend: pipe bends that keep their size, with an angle, direction, bend radius and segments
 - [x] Connect (J), Bridge (C, or drag edge to edge) and Weld (M, or Ctrl + M onto a point)
 - [x] Clean-up: Delete deletes, Backspace dissolves; fill hole and flip normals, with select flipped, fix facing and select similar facing
-- [ ] Hard and soft edges, with normals display
+- [x] Hard and soft edges, by hand or by angle, with hard edges and normals shown from the Display menu
 - [ ] Symmetry
 - [ ] Basics: hide and isolate, slide points and edges, duplicate and instances, split polygons off and join objects
 - [ ] Keyboard shortcut viewer: every key in one place
@@ -218,6 +218,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-14 | Hard and soft edges (E menu, Mesh menu), Hard edges by angle, Select hard edges; the Display menu marks hard edges and shows normals; project files at format version 11 |
 | 2026-10-14 | Clean-up: Delete deletes and Backspace dissolves points, edges and polygons; Fill hole, Flip normals, Fix facing, Select flipped and Select similar facing; project files at format version 10 |
 | 2026-10-14 | Connect (J), Bridge (C, or drag from edge to edge) and Weld (M at the middle, Ctrl + M onto a point); project files at format version 9 |
 | 2026-10-14 | Pipe bends: an extrude turns a corner with Angle, Direction, Bend radius and Segments, as a smooth elbow or a mitre joint, keeping the pipe's full width; project files at format version 8 |

@@ -103,7 +103,9 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Flipped normals** — Normals pointing inward. The surface looks inside-out or disappears in a game engine.
 
-**Hard and soft edges (smoothing)** — A *soft* edge blends the shading of the two faces next to it, so they look like one smooth surface. A *hard* edge keeps a sharp light/dark break. Hard-surface models need the right edges marked hard, or curved and flat areas shade wrongly. Other programs may call this *smoothing groups* or *Phong* breaks.
+**Hard and soft edges (smoothing)** — A *soft* edge blends the shading of the two faces next to it, so they look like one smooth surface. A *hard* edge keeps a sharp light/dark break. Hard-surface models need the right edges marked hard, or curved and flat areas shade wrongly. Other programs may call this *smoothing groups* or *Phong* breaks. See [Hard and soft edges](hard-and-soft-edges.md).
+
+**Auto-smooth (hard edges by angle)** — Marking every edge hard where its polygons meet more sharply than an angle, and the rest soft, instead of choosing edge by edge. See [Hard and soft edges](hard-and-soft-edges.md#by-angle).
 
 **Weighted normals** — A trick that makes large flat faces shade perfectly flat on low-poly bevelled models, without baking a normal map.
 

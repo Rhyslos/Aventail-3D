@@ -112,7 +112,7 @@ This works until you make another edit on top. After that, the extrude is fixed 
 - **Tip: inset, then extrude inward** makes a recessed panel. **Inset, then extrude outward** makes a raised plate with a border round it.
 - **Tip:** for a pipe that keeps turning the same way, set the bend before dragging; each drag adds an elbow and a straight piece.
 - **Tip:** to push several separate panels in at once, select them all with **Keep together** off; with it on, touching polygons go in as one big panel.
-- **Tip:** the cube's hard edges carry over: an extruded block on a cube has crisp edges, and one on a sphere stays smooth. (Hard and soft edges get their own tools later in Phase 4.)
+- **Tip:** the cube's hard edges carry over: an extruded block on a cube has crisp edges, and one on a sphere stays smooth. To change them, see [Hard and soft edges](hard-and-soft-edges.md).
 - **Problem:** pressing D or I does nothing but the status bar talks about modes. **Why:** Extrude works in the Polygons and Edges modes, Inset only in Polygons. **Fix:** press **3** (or **2** for edges) and try again.
 - **Problem:** the drag does nothing. **Why:** nothing of the right kind is selected; the status bar says so. **Fix:** select polygons (or border edges) first.
 - **Problem:** extruding edges does nothing. **Why:** the edges aren't on an open border; a cube has none. **Fix:** use a plane, or extrude polygons instead.
