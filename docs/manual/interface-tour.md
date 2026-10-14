@@ -75,7 +75,7 @@ One colour marks what's active: the current mode (and later the current tool), t
 | Lock X / Y / Z; world or object axes | `Shift + X` / `Shift + Y` / `Shift + Z`; `L` |
 | While dragging the gizmo: fine, snap, cancel | Hold `Shift`; hold `Ctrl`; `Esc` or right-click |
 | Loop / ring | Double-click / `Alt` + double-click |
-| Grow / shrink the selection | `Ctrl` + wheel |
+| Grow / shrink the selection | `Ctrl` + wheel (with Loop cut: more or fewer cuts) |
 | Select all / invert | `Ctrl + A` / `Ctrl + I` |
 | Delete the selection | `Delete` or `Backspace` |
 | Frame everything / the selection | `H` / `Z` |

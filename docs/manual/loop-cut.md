@@ -23,7 +23,7 @@ The cut and any sliding are one undo step: **Ctrl + Z** takes it back.
 
 ### Several cuts at once
 
-Before you cut, set **Cuts** at the top of the **Attributes panel**. Several cuts are spread evenly across the polygons (two cuts at a third and two thirds), and dragging slides them together.
+Before you cut, hold **Ctrl** and turn the **mouse wheel**: up for more cuts, down for fewer. The loops shown follow at once. You can also type the number in **Cuts** at the top of the **Attributes panel**. Several cuts are spread evenly across the polygons (two cuts at a third and two thirds), and dragging slides them together.
 
 ### Change it afterwards
 
@@ -34,8 +34,9 @@ After a cut, the Attributes panel shows it under **Last edit**, with its **Cuts*
 ### While you drag
 
 - Hold **Shift** for ten times finer steps.
+- **Ctrl + wheel** changes the number of cuts on the cut you're placing.
 - Press **Esc** or **right-click** to cancel.
-- While Loop cut is in use, clicking never selects. Press **Q** to go back to selecting.
+- While Loop cut is in use, clicking never selects, and Ctrl + wheel changes the cuts instead of growing the selection. Press **Q** to go back to selecting.
 
 ## How far the loop goes
 
@@ -51,7 +52,7 @@ Every edge the loop crosses is cut at the same share of its length, measured fro
 
 | Setting | What it does |
 |---|---|
-| **Cuts** | How many new loops are cut at once, from 1 to 64, spread evenly across the polygons. |
+| **Cuts** | How many new loops are cut at once, from 1 to 64, spread evenly across the polygons. **Ctrl + wheel** in the viewport changes it too. |
 | **Position** | Where the cut sits across the polygons: 50% is the middle. With several cuts, it slides them all together; they stay inside the polygons. Shown under Last edit. |
 
 ## Shortcuts
@@ -61,6 +62,7 @@ Every edge the loop crosses is cut at the same share of its length, measured fro
 | Loop cut | `F` |
 | Cut | Click an edge |
 | Slide, then cut | Left drag along the edge |
+| More or fewer cuts | `Ctrl` + wheel up / down |
 | Finer steps | Hold `Shift` while dragging |
 | Cancel the drag | `Esc` or a right-click |
 | Back to selecting | `Q` |

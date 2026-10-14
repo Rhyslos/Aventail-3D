@@ -226,3 +226,81 @@ fn clicking_away_from_the_shape_cuts_nothing() {
     // And the object stays selected.
     assert_eq!(harness.state().workbench.document().selection().len(), 1);
 }
+
+/// One notch of Ctrl + wheel at `at`, up or down.
+fn ctrl_wheel(harness: &mut H, at: Pos2, up: bool) {
+    harness.event(Event::ModifiersChanged(Modifiers::COMMAND));
+    harness.event(Event::PointerMoved(at));
+    harness.event(Event::MouseWheel {
+        unit: egui::MouseWheelUnit::Line,
+        delta: egui::vec2(0.0, if up { 1.0 } else { -1.0 }),
+        modifiers: Modifiers::COMMAND,
+        phase: egui::TouchPhase::Move,
+    });
+    harness.run();
+    harness.event(Event::ModifiersChanged(Modifiers::NONE));
+    harness.run();
+}
+
+#[test]
+fn ctrl_and_the_wheel_change_the_cuts() {
+    let mut harness = ready();
+    let middle = edge_middle(&harness);
+    let camera_before = *harness.state().workbench.viewport().camera();
+    let steps = harness.state().workbench.document().undo_steps();
+    for _ in 0..2 {
+        ctrl_wheel(&mut harness, middle, true);
+    }
+    assert_eq!(harness.state().workbench.attributes.loop_cut.cuts, 3);
+    assert!(
+        note(&harness).starts_with("Loop cut: 3 cuts"),
+        "{}",
+        note(&harness)
+    );
+    // The view didn't zoom, and the selection didn't grow.
+    assert_eq!(
+        *harness.state().workbench.viewport().camera(),
+        camera_before
+    );
+    assert_eq!(harness.state().workbench.document().undo_steps(), steps);
+    hover(&mut harness, middle + egui::vec2(1.0, 0.0));
+    assert_eq!(shown_lines(&harness), 12);
+    // Never below one.
+    for _ in 0..5 {
+        ctrl_wheel(&mut harness, middle, false);
+    }
+    assert_eq!(harness.state().workbench.attributes.loop_cut.cuts, 1);
+    // While dragging, it changes the cut being placed.
+    hover(&mut harness, middle);
+    button(
+        &mut harness,
+        middle,
+        true,
+        PointerButton::Primary,
+        Modifiers::NONE,
+    );
+    for k in 1..=3 {
+        harness.event(Event::PointerMoved(middle + egui::vec2(0.0, k as f32)));
+        harness.run();
+    }
+    ctrl_wheel(&mut harness, middle + egui::vec2(0.0, 3.0), true);
+    let at = middle + egui::vec2(0.0, 3.0);
+    button(
+        &mut harness,
+        at,
+        false,
+        PointerButton::Primary,
+        Modifiers::NONE,
+    );
+    assert_eq!(loop_cut(&harness).0, 2);
+    assert_eq!(harness.state().workbench.document().undo_steps(), steps + 1);
+}
+
+#[test]
+fn ctrl_and_the_wheel_still_grow_the_selection_with_other_tools() {
+    let mut harness = ready();
+    press(&mut harness, Modifiers::NONE, Key::Q);
+    let middle = edge_middle(&harness);
+    ctrl_wheel(&mut harness, middle, true);
+    assert_eq!(harness.state().workbench.attributes.loop_cut.cuts, 1);
+}

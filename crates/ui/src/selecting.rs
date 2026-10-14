@@ -16,7 +16,7 @@
 //! | Remove | Shift + click or drag |
 //! | Switch Box → Lasso → Brush | `Q` |
 //! | Loop, ring | Double-click, Alt + double-click (with the add and remove keys too) |
-//! | Grow, shrink | Ctrl + wheel (with the brush: its size) |
+//! | Grow, shrink | Ctrl + wheel (with the brush: its size; with Loop cut: its cuts) |
 //! | Select all, invert | Ctrl + A, Ctrl + I |
 //! | Unselect elements | Esc |
 

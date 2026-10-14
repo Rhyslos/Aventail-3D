@@ -23,6 +23,7 @@ Loop cut is the first Phase 4 tool that works on the shape under the mouse rathe
 
    The middle button is our pan.
 2. **A number in the Attributes panel** (chosen): set before cutting, and changeable afterwards as the Last edit.
+3. **Ctrl + wheel** (chosen too, by the project lead after the first build): quick for those who want it, and unused by those who don't. Ctrl + wheel grows and shrinks the selection, but while Loop cut is in use nothing is being selected, so it changes the cuts instead, as it changes the brush's size while the brush is in use. The plain wheel still zooms.
 
 ### Placing the cut
 
@@ -36,7 +37,7 @@ Loop cut is the first Phase 4 tool that works on the shape under the mouse rathe
    - Point at an edge of a selected object: the new loop shows across every polygon it would cut.
    - **Click** to cut. **Press and drag** along the edge to slide the cut, then let go. A cut, with its sliding, is one undo step.
    - With one cut, it sits where the mouse is along the edge. Several cuts are spread evenly, and dragging slides them together.
-   - **Cuts** (1 to 64) is set in the Attributes panel before cutting. Afterwards **Cuts** and **Position** show as the Last edit, and changing them reshapes the cut just made.
+   - **Cuts** (1 to 64) is set in the Attributes panel or with **Ctrl + wheel** (up for more) before cutting, or while dragging a cut. Afterwards **Cuts** and **Position** show as the Last edit, and changing them reshapes the cut just made.
    - Esc or a right click cancels a drag. While Loop cut is in use, a left click never selects. In the Model mode clicks select objects as usual.
    - Shift makes the slide ten times finer, as with every drag.
 2. **Keys** (settled 2026-10-13, switched now in one go):
