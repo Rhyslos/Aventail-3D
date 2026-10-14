@@ -9,7 +9,7 @@
 use super::Workbench;
 use crate::attributes::BevelLook;
 use crate::commands::CommandId;
-use crate::components::ViewPointer;
+use crate::components::{self, ViewPointer};
 use crate::drawing::SceneDrawing;
 use crate::palette::Mode;
 use crate::transforming::Tool;
@@ -236,12 +236,18 @@ impl ModellingSession {
 }
 
 impl Workbench {
-    /// D and I: Extrude and Inset, from the command list. Not while typing.
+    /// D, I, V and F: Extrude, Inset, Bevel and Loop cut, from the command
+    /// list. Not while typing.
     pub(super) fn modelling_keys(&mut self, ui: &Ui) {
         if ui.ctx().memory(|m| m.focused().is_some()) || self.objects.is_renaming() {
             return;
         }
-        for command in [CommandId::Extrude, CommandId::Inset, CommandId::Bevel] {
+        for command in [
+            CommandId::Extrude,
+            CommandId::Inset,
+            CommandId::Bevel,
+            CommandId::LoopCut,
+        ] {
             let pressed = command
                 .info()
                 .shortcut
@@ -252,9 +258,18 @@ impl Workbench {
         }
     }
 
-    /// Tells the viewport whether drags go to a modelling tool.
+    /// Tells the viewport whether drags (and clicks) go to a modelling
+    /// tool, and the element tracker whether the tool finds its own.
     pub(super) fn place_drag_tool(&mut self) {
+        // Tools used on the shape work only while editing points, edges or
+        // polygons; in the other modes, clicks select objects as usual.
+        let editing = components::kind_for(self.mode).is_some();
+        let clicks = self.tool.clicks_on_shapes() && editing;
+        self.viewport
+            .set_wheel_tool(self.tool.has_wheel_count() && editing);
         self.viewport.set_drag_tool(self.tool.drags_anywhere());
+        self.viewport.set_click_tool(clicks);
+        self.components.set_quiet(clicks);
     }
 
     /// The grouping the modelling tools use: neighbours together, or each
@@ -265,6 +280,13 @@ impl Workbench {
 
     /// Carries out this frame's modelling tool drags.
     pub(super) fn carry_out_tool_drag(&mut self, drawing: &SceneDrawing) {
+        let steps = self.viewport.take_tool_steps();
+        if steps != 0 {
+            self.wheel_count(steps);
+        }
+        if self.tool == Tool::LoopCut || self.loop_cut_session.is_some() {
+            return self.carry_out_loop_cut(drawing);
+        }
         for event in self.viewport.take_tool_events() {
             match event {
                 ToolDragEvent::Begin { pointer } => {
@@ -311,6 +333,91 @@ impl Workbench {
                     }
                     self.viewport.set_tool_label(None);
                 }
+            }
+        }
+    }
+
+    /// Ctrl + wheel while a tool with a count is in use ([decision 0048](../../../../docs/decisions/0048-ctrl-wheel-changes-a-tools-count.md)):
+    /// `steps` notches up (more) or down (fewer), doing what the arrows
+    /// beside that count in the Attributes panel do. The count is changed
+    /// for the tool's next use and on the edit being dragged; with no drag,
+    /// also on the last edit when the tool made it (the panel shows it as
+    /// the Last edit then), as one undo step per notch.
+    fn wheel_count(&mut self, steps: i32) {
+        let (name, max, tool_count) = match self.tool {
+            Tool::Bevel => (
+                "segments",
+                mesh::bevel::MAX_SEGMENTS,
+                self.attributes.bevel.segments,
+            ),
+            Tool::LoopCut => (
+                "cuts",
+                mesh::loopcut::MAX_CUTS,
+                self.attributes.loop_cut.cuts,
+            ),
+            _ => return,
+        };
+        let dragging = self.modelling_session.is_some() || self.loop_cut_session.is_some();
+        // The last edit the tool made, on the one selected object.
+        let last = match self.document.selection().as_slice() {
+            [id] if !dragging => self.document.scene().object(*id).and_then(|o| {
+                let (layer, index, op) = crate::attributes::last_edit(&o.stack)?;
+                crate::attributes::made_by(op, self.tool).then(|| (*id, layer, index, op.clone()))
+            }),
+            _ => None,
+        };
+        let count_of = |op: &Operation| {
+            let settings = op.settings()?;
+            match self.tool {
+                Tool::Bevel => settings.segments,
+                _ => settings.cuts,
+            }
+        };
+        let current = last
+            .as_ref()
+            .and_then(|(.., op)| count_of(op))
+            .unwrap_or(tool_count);
+        let count = (i64::from(current) + i64::from(steps)).clamp(1, i64::from(max)) as u32;
+        match self.tool {
+            Tool::Bevel => self.attributes.bevel.segments = count,
+            _ => self.attributes.loop_cut.cuts = count,
+        }
+        self.note = Some(format!(
+            "{}: {count} {name} (Ctrl + wheel for more or fewer).",
+            self.tool.name()
+        ));
+        if let Some(session) = &mut self.modelling_session {
+            session.bevel.segments = count;
+            if let Some(distance) = session.shown {
+                let session = session.clone();
+                session.show(&mut self.document, distance).ok();
+            }
+        } else if let Some(session) = &mut self.loop_cut_session {
+            session.cuts = count;
+            let session = session.clone();
+            self.show_loop_cut(&session);
+        } else if let Some((id, layer, index, op)) = last
+            && count_of(&op).is_some_and(|c| c != count)
+        {
+            let settings = op.settings().unwrap_or_default();
+            let operation = op.with(match self.tool {
+                Tool::Bevel => scene::EditSettings {
+                    segments: Some(count),
+                    ..settings
+                },
+                _ => scene::EditSettings {
+                    cuts: Some(count),
+                    ..settings
+                },
+            });
+            let command = Command::ReplaceOperation {
+                id,
+                layer,
+                index,
+                operation,
+            };
+            if let Err(why) = self.document.execute(command) {
+                self.note = Some(format!("Couldn't do that: {why}."));
             }
         }
     }

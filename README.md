@@ -4,7 +4,7 @@
 
 Aventail 3D is a free, open-source modelling and UV unwrapping tool for **hard-surface game assets**, written in Rust. Model it, unwrap it, and export it to Substance Painter and Godot, all in one app.
 
-> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout and a real 3D view you can orbit, pan and zoom around, from four views at once if you like. You can create primitives (cube, plane, cylinder, sphere, disc, tube, cone) and groups, organise them in the Objects panel, and undo every change. Press B for a list of shapes, and select one to change its size and segments in the Attributes panel, or press Ctrl + E to make it a plain, editable mesh. Press 1, 2 or 3 to see and select a selected shape's points, edges or polygons, and W, R or S to move, rotate or scale what's selected; change a shape's settings afterwards and your edits follow. Save your work as a project and open it again later. Press E anywhere for a menu of the tools for what you're working on, D or I to extrude or inset polygons, and V to bevel edges. Heavy shapes of millions of polygons stay quick to work with, and backup copies saved in the background bring your work back after a crash. More modelling tools follow through Phase 4. Follow the progress tracker below.
+> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout and a real 3D view you can orbit, pan and zoom around, from four views at once if you like. You can create primitives (cube, plane, cylinder, sphere, disc, tube, cone) and groups, organise them in the Objects panel, and undo every change. Press B for a list of shapes, and select one to change its size and segments in the Attributes panel, or press Ctrl + E to make it a plain, editable mesh. Press 1, 2 or 3 to see and select a selected shape's points, edges or polygons, and W, R or S to move, rotate or scale what's selected; change a shape's settings afterwards and your edits follow. Save your work as a project and open it again later. Press E anywhere for a menu of the tools for what you're working on, D or I to extrude or inset polygons, V to bevel edges, and F to cut a new loop of edges around a shape. Heavy shapes of millions of polygons stay quick to work with, and backup copies saved in the background bring your work back after a crash. More modelling tools follow through Phase 4. Follow the progress tracker below.
 
 Created by **Rhyslos**, built with AI assistance (Claude by Anthropic). Part of the **Rhylib** family of tools, alongside [Halberd](https://github.com/Rhyslos/halberd).
 
@@ -91,9 +91,9 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** points, edges and polygons can be selected and moved precisely, and a cube's segments can still be changed afterwards. ✅ *Passed 2026-10-12: tested by the project lead.*
 
-### Phase 4 · Core modelling tools — 5 of 11
+### Phase 4 · Core modelling tools — 6 of 12
 
-`██████░░░░░░░` 45%
+`███████░░░░░░` 50%
 
 <details>
 <summary>Milestones</summary>
@@ -103,7 +103,8 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Tool menu (E): every tool for the current mode at the mouse, radial or list, from one command list
 - [x] Extrude and inset: drag anywhere to push polygons out or in, inset them, or grow border edges; neighbours together or each on its own
 - [x] Bevel and chamfer: edges and points, with width, segments and profile; drag away from the edges
-- [ ] Loop cut and knife
+- [x] Loop cut: point at an edge, click or drag; several cuts at once
+- [ ] Slit (knife): cut new edges along a line you draw
 - [ ] Connect, bridge and weld
 - [ ] Dissolve, delete, fill hole and flip normals, with select flipped, fix facing and select by facing
 - [ ] Hard and soft edges, with normals display
@@ -196,6 +197,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-14 | Loop cut (F): a new loop of edges around a shape, shown before you click, slid by dragging; Z frames the selection and Shift + X/Y/Z lock axes; project files at format version 6 |
 | 2026-10-14 | Our own names: the Attributes panel, the Objects panel and Paint select |
 | 2026-10-14 | Foundations, hostile files: damaged or booby-trapped projects are refused with a message instead of crashing or freezing the app; edits that would make a shape impossibly large are skipped; recovery can't get stuck. Foundations complete |
 | 2026-10-14 | Foundations, room to grow (part 2): edits keep their ids and switches and hold on to their points when earlier edits change; project files at format version 5 |

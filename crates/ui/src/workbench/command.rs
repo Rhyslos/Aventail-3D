@@ -61,6 +61,9 @@ impl Workbench {
                 "Bevel works on edges or points: press 2 for the Edges mode, or 1 for Points"
                     .into(),
             ),
+            CommandId::LoopCut if !command.modes().contains(&self.mode) => Ready::NotNow(
+                "Loop cut works in the Points, Edges or Polygons mode: press 1, 2 or 3".into(),
+            ),
             _ => Ready::Yes,
         }
     }
@@ -92,6 +95,7 @@ impl Workbench {
             CommandId::Extrude => self.set_tool(Tool::Extrude),
             CommandId::Inset => self.set_tool(Tool::Inset),
             CommandId::Bevel => self.set_tool(Tool::Bevel),
+            CommandId::LoopCut => self.set_tool(Tool::LoopCut),
             CommandId::MakeEditable => {
                 requests.push(DocRequest::Run(Command::MakeEditable(selection)));
             }

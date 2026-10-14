@@ -22,7 +22,7 @@ use crate::components::kind_for;
 use crate::drawing::SceneDrawing;
 use crate::palette::Mode;
 use crate::viewport::GridDetail;
-use egui::Key;
+use egui::{Key, KeyboardShortcut, Modifiers};
 use glam::{Mat4, Quat, Vec2, Vec3};
 use mesh::Anchors;
 use scene::{Bounds, Command, Document, ElementKind, ObjectId, Operation, Transform, VertexId};
@@ -52,6 +52,9 @@ pub enum Tool {
     /// Bevel: drag away from the selected edges or points to cut them
     /// away (decision 0040).
     Bevel,
+    /// Loop cut: hover an edge to see the loop, click to cut it, drag to
+    /// slide it (decision 0047).
+    LoopCut,
 }
 
 /// The tool keys (Halberd's, decision 0019): move, rotate, scale, all.
@@ -61,8 +64,14 @@ pub const TOOL_KEYS: [(Key, Tool); 4] = [
     (Key::S, Tool::Scale),
     (Key::T, Tool::All),
 ];
-/// The keys that lock and free the X, Y and Z axes.
-pub const LOCK_KEYS: [(Key, usize); 3] = [(Key::X, 0), (Key::Y, 1), (Key::Z, 2)];
+/// The keys that lock and free the X, Y and Z axes: Shift with the axis's
+/// letter ([decision 0047](../../../docs/decisions/0047-loop-cut.md); plain
+/// Z frames the selection, and X is kept for Slit).
+pub const LOCK_KEYS: [(KeyboardShortcut, usize); 3] = [
+    (KeyboardShortcut::new(Modifiers::SHIFT, Key::X), 0),
+    (KeyboardShortcut::new(Modifiers::SHIFT, Key::Y), 1),
+    (KeyboardShortcut::new(Modifiers::SHIFT, Key::Z), 2),
+];
 /// The key that switches between world and object axes.
 pub const AXES_KEY: Key = Key::L;
 
@@ -78,6 +87,7 @@ impl Tool {
             Self::Extrude => "Extrude",
             Self::Inset => "Inset",
             Self::Bevel => "Bevel",
+            Self::LoopCut => "Loop cut",
         }
     }
 
@@ -86,10 +96,27 @@ impl Tool {
         matches!(self, Self::Extrude | Self::Inset | Self::Bevel)
     }
 
+    /// Whether it is a modelling tool used by clicking (and dragging) on
+    /// the shape itself: a left click never selects while it is in use.
+    pub fn clicks_on_shapes(self) -> bool {
+        self == Self::LoopCut
+    }
+
+    /// Whether it has a count that Ctrl + wheel changes while it is in use
+    /// (Bevel's segments, Loop cut's cuts; [decision 0048](../../../docs/decisions/0048-ctrl-wheel-changes-a-tools-count.md)).
+    pub fn has_wheel_count(self) -> bool {
+        matches!(self, Self::Bevel | Self::LoopCut)
+    }
+
+    /// Whether it has settings in the Attributes panel for its next use.
+    pub fn has_settings(self) -> bool {
+        self.drags_anywhere() || self == Self::LoopCut
+    }
+
     /// Its gizmo, if it has one.
     pub fn gizmo(self) -> Option<GizmoTool> {
         match self {
-            Self::Select | Self::Extrude | Self::Inset | Self::Bevel => None,
+            Self::Select | Self::Extrude | Self::Inset | Self::Bevel | Self::LoopCut => None,
             Self::Move => Some(GizmoTool::Move),
             Self::Rotate => Some(GizmoTool::Rotate),
             Self::Scale => Some(GizmoTool::Scale),

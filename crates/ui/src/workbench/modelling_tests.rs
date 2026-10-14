@@ -10,9 +10,9 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT, Queryable};
 use scene::{Element, ElementSelection, FaceId, Grouping, ObjectId, Operation};
 
-type H = Harness<'static, State>;
+pub(super) type H = Harness<'static, State>;
 
-fn press(harness: &mut H, modifiers: Modifiers, key: Key) {
+pub(super) fn press(harness: &mut H, modifiers: Modifiers, key: Key) {
     harness.event(Event::Key {
         key,
         physical_key: None,
@@ -30,11 +30,11 @@ fn press(harness: &mut H, modifiers: Modifiers, key: Key) {
     harness.run();
 }
 
-fn cube(harness: &H) -> ObjectId {
+pub(super) fn cube(harness: &H) -> ObjectId {
     harness.state().workbench.document().scene().children(None)[0]
 }
 
-fn shape(harness: &H) -> std::sync::Arc<scene::Mesh> {
+pub(super) fn shape(harness: &H) -> std::sync::Arc<scene::Mesh> {
     let doc = harness.state().workbench.document();
     doc.scene().evaluated(cube(harness)).unwrap().mesh
 }
@@ -73,7 +73,13 @@ fn ready(key: Key) -> H {
     harness
 }
 
-fn button(harness: &mut H, at: Pos2, pressed: bool, button: PointerButton, modifiers: Modifiers) {
+pub(super) fn button(
+    harness: &mut H,
+    at: Pos2,
+    pressed: bool,
+    button: PointerButton,
+    modifiers: Modifiers,
+) {
     harness.event(Event::PointerButton {
         pos: at,
         button,
@@ -114,7 +120,7 @@ fn drag(harness: &mut H, dx: f32) {
 }
 
 /// Where `world` appears on screen.
-fn on_screen(harness: &H, world: glam::Vec3) -> Pos2 {
+pub(super) fn on_screen(harness: &H, world: glam::Vec3) -> Pos2 {
     let rect = harness.get_by_label(crate::VIEWPORT_LABEL).rect();
     let size = glam::Vec2::new(rect.width(), rect.height());
     let at = camera(harness).project(world, size).expect("in view");
@@ -179,11 +185,11 @@ fn click_keep_together(harness: &mut H, n: usize) -> usize {
     count
 }
 
-fn note(harness: &H) -> String {
+pub(super) fn note(harness: &H) -> String {
     harness.state().workbench.note.clone().unwrap_or_default()
 }
 
-fn last_operation(harness: &H) -> Option<Operation> {
+pub(super) fn last_operation(harness: &H) -> Option<Operation> {
     let doc = harness.state().workbench.document();
     let object = doc.scene().object(cube(harness))?;
     object
@@ -714,4 +720,103 @@ fn a_corner_point_bevels_too() {
         harness.state().workbench.document().undo_label(),
         Some("Bevel 1 point")
     );
+}
+
+/// One notch of Ctrl + wheel at `at`, up or down.
+fn ctrl_wheel(harness: &mut H, at: Pos2, up: bool) {
+    harness.event(Event::ModifiersChanged(Modifiers::COMMAND));
+    harness.event(Event::PointerMoved(at));
+    harness.event(Event::MouseWheel {
+        unit: egui::MouseWheelUnit::Line,
+        delta: egui::vec2(0.0, if up { 1.0 } else { -1.0 }),
+        modifiers: Modifiers::COMMAND,
+        phase: egui::TouchPhase::Move,
+    });
+    harness.run();
+    harness.event(Event::ModifiersChanged(Modifiers::NONE));
+    harness.run();
+}
+
+fn bevel_segments(harness: &H) -> u32 {
+    match last_operation(harness) {
+        Some(Operation::BevelEdges { shape, .. }) => shape.segments,
+        other => panic!("not a bevel: {other:?}"),
+    }
+}
+
+#[test]
+fn ctrl_and_the_wheel_change_the_bevels_segments() {
+    let mut harness = bevel_ready(Key::Num2, top_right_edge);
+    let middle = edge_middle(&harness);
+    let camera = *harness.state().workbench.viewport().camera();
+    // Before: the tool's Segments.
+    ctrl_wheel(&mut harness, middle, true);
+    assert_eq!(harness.state().workbench.attributes.bevel.segments, 2);
+    assert!(
+        note(&harness).starts_with("Bevel: 2 segments"),
+        "{}",
+        note(&harness)
+    );
+    assert_eq!(*harness.state().workbench.viewport().camera(), camera);
+    // While dragging: the bevel being made.
+    harness.event(Event::PointerMoved(middle));
+    harness.run();
+    button(
+        &mut harness,
+        middle,
+        true,
+        PointerButton::Primary,
+        Modifiers::NONE,
+    );
+    let mut at = middle;
+    for _ in 0..5 {
+        at += egui::vec2(0.0, -12.0);
+        harness.event(Event::PointerMoved(at));
+        harness.run();
+    }
+    assert_eq!(bevel_segments(&harness), 2);
+    ctrl_wheel(&mut harness, at, true);
+    assert_eq!(bevel_segments(&harness), 3);
+    button(
+        &mut harness,
+        at,
+        false,
+        PointerButton::Primary,
+        Modifiers::NONE,
+    );
+    let steps = harness.state().workbench.document().undo_steps();
+    assert_eq!(shape(&harness).face_count(), 6 + 3);
+    // After: the last bevel, one undo step per notch, never below one.
+    ctrl_wheel(&mut harness, middle, false);
+    assert_eq!(bevel_segments(&harness), 2);
+    assert_eq!(harness.state().workbench.document().undo_steps(), steps + 1);
+    for _ in 0..4 {
+        ctrl_wheel(&mut harness, middle, false);
+    }
+    assert_eq!(bevel_segments(&harness), 1);
+    assert_eq!(harness.state().workbench.attributes.bevel.segments, 1);
+}
+
+#[test]
+fn ctrl_and_the_wheel_grow_the_selection_with_tools_without_a_count() {
+    let mut harness = ready(Key::D);
+    let before = harness
+        .state()
+        .workbench
+        .document()
+        .elements(cube(&harness))
+        .unwrap()
+        .polygons()
+        .count();
+    let at = on_screen(&harness, glam::Vec3::new(0.0, 0.0, 100.0));
+    ctrl_wheel(&mut harness, at, true);
+    let after = harness
+        .state()
+        .workbench
+        .document()
+        .elements(cube(&harness))
+        .unwrap()
+        .polygons()
+        .count();
+    assert!(after > before, "{before} → {after}");
 }

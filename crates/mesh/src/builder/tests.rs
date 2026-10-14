@@ -5,7 +5,7 @@ use super::*;
 use crate::attributes::{AttributeElement, HARD};
 use crate::edit::{
     BevelShape, Grouping, bevel_edges, bevel_points, extrude_edges, extrude_polygons,
-    inset_polygons,
+    inset_polygons, loop_cut,
 };
 use crate::{PlaneParams, Primitive, PrimitiveKind};
 use glam::{Vec2, Vec3};
@@ -312,5 +312,10 @@ fn every_tool_keeps_values_on_every_primitive() {
         let mut m = mesh.clone();
         bevel_points(&mut m, &points, 1.0);
         nothing_left_at_the_default(&m);
+        for edge in &edges {
+            let mut m = mesh.clone();
+            loop_cut(&mut m, *edge, 2, 0.3);
+            nothing_left_at_the_default(&m);
+        }
     }
 }

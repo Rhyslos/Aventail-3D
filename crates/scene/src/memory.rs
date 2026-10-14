@@ -28,7 +28,7 @@ fn kind(kind: &ObjectKind) -> usize {
 }
 
 /// What an operation holds beyond its own fixed size.
-fn operation(op: &Operation) -> usize {
+pub(crate) fn operation_size(op: &Operation) -> usize {
     match op {
         Operation::MovePoints {
             points, anchors, ..
@@ -47,6 +47,9 @@ fn operation(op: &Operation) -> usize {
             std::mem::size_of_val(faces.as_slice())
                 + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
         }
+        Operation::LoopCut { anchors, .. } => {
+            anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
+        }
         Operation::ExtrudeEdges { edges, anchors, .. }
         | Operation::BevelEdges { edges, anchors, .. } => {
             std::mem::size_of_val(edges.as_slice())
@@ -61,7 +64,7 @@ fn layer(layer: &Layer) -> usize {
         + layer
             .entries
             .iter()
-            .map(|e| size_of::<Entry>() + operation(&e.operation))
+            .map(|e| size_of::<Entry>() + operation_size(&e.operation))
             .sum::<usize>()
 }
 
@@ -89,7 +92,7 @@ pub(crate) fn edit(edit: &Edit) -> usize {
             Edit::SetKind { before, after, .. } => kind(before) + kind(after),
             Edit::InsertLayer { layer: l, .. } | Edit::RemoveLayer { layer: l, .. } => layer(l),
             Edit::InsertEntry { entry, .. } | Edit::RemoveEntry { entry, .. } => {
-                operation(&entry.operation)
+                operation_size(&entry.operation)
             }
         }
 }

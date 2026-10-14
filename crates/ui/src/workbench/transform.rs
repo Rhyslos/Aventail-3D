@@ -46,6 +46,10 @@ impl Workbench {
                  away; back towards them to narrow it. Segments and Profile are in the \
                  Attributes panel. Shift for fine steps; Esc or a right click cancels."
                 .into(),
+            Tool::LoopCut => "Loop cut: point at an edge to see the new loop, click to cut \
+                 it, or press and drag along the edge to slide it into place. Cuts is in the \
+                 Attributes panel. Esc or a right click cancels a drag."
+                .into(),
             Tool::Inset => "Inset: drag left or right anywhere in the viewport to shrink the \
                  selected polygons inward. Shift for fine steps; Esc or a right click cancels."
                 .into(),
@@ -92,7 +96,7 @@ impl Workbench {
         });
     }
 
-    /// `W`, `R`, `S`, `T` pick a tool; `X`, `Y`, `Z` lock axes; `L`
+    /// `W`, `R`, `S`, `T` pick a tool; Shift+`X`, `Y`, `Z` lock axes; `L`
     /// switches world and object axes. Not while typing.
     pub(super) fn transform_keys(&mut self, ui: &Ui) {
         if ui.ctx().memory(|m| m.focused().is_some()) || self.objects.is_renaming() {
@@ -103,8 +107,8 @@ impl Workbench {
                 self.set_tool(tool);
             }
         }
-        for (key, axis) in LOCK_KEYS {
-            if ui.input_mut(|i| i.consume_key(Modifiers::NONE, key)) {
+        for (keys, axis) in LOCK_KEYS {
+            if ui.input_mut(|i| i.consume_shortcut(&keys)) {
                 self.toggle_lock(axis);
             }
         }
@@ -145,10 +149,11 @@ impl Workbench {
         }
         ui.separator();
         let locked = self.viewport.options().locked;
-        for (axis, name) in ["X", "Y", "Z"].into_iter().enumerate() {
-            let label = format!("Lock {name}");
+        for (keys, axis) in LOCK_KEYS {
+            let label = format!("Lock {}", ["X", "Y", "Z"][axis]);
+            let keys = ui.ctx().format_shortcut(&keys);
             if ui
-                .add(egui::Button::selectable(locked[axis], label).shortcut_text(name))
+                .add(egui::Button::selectable(locked[axis], label).shortcut_text(keys))
                 .on_hover_text("A locked axis doesn't change while moving, rotating or scaling")
                 .clicked()
             {

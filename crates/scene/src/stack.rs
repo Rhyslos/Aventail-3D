@@ -120,6 +120,20 @@ pub enum Operation {
         /// Where the points were, to find them again (decision 0032).
         anchors: Option<Anchors>,
     },
+    /// Cuts a new loop of edges through the ring of four-sided polygons
+    /// across an edge (decision 0047).
+    LoopCut {
+        /// The edge the cut runs across.
+        edge: EdgeKey,
+        /// How many evenly spaced cuts (1 to [`mesh::loopcut::MAX_CUTS`]).
+        cuts: u32,
+        /// Where the cuts sit across the edge, 0 to 1 from its lower point
+        /// id (0.5: centred).
+        position: f32,
+        /// Where the edge was, its lower point first, to find it again
+        /// (decision 0032).
+        anchors: Option<Anchors>,
+    },
 }
 
 /// An edit's id: unique among the edits of its object while they exist,
@@ -167,17 +181,22 @@ impl Entry {
 }
 
 /// The settings of a recorded edit that can still be changed afterwards
-/// (the Attributes panel's Last edit): an extrude, inset or bevel.
-#[derive(Debug, Clone, Copy, PartialEq)]
+/// (the Attributes panel's Last edit): an extrude, inset, bevel or loop
+/// cut. Those an edit doesn't have are `None`.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct EditSettings {
     /// The distance, or a bevel's width (centimetres, own space).
-    pub distance: f32,
+    pub distance: Option<f32>,
     /// Neighbours together or each on its own (extrude and inset).
     pub grouping: Option<Grouping>,
     /// A bevel's rows.
     pub segments: Option<u32>,
     /// A bevel's profile, flat (0) to round (1).
     pub profile: Option<f32>,
+    /// A loop cut's number of cuts.
+    pub cuts: Option<u32>,
+    /// Where a loop cut sits across its edge, 0 to 1.
+    pub position: Option<f32>,
 }
 
 /// What applying an operation did.
@@ -210,6 +229,8 @@ impl Operation {
             Self::ExtrudeEdges { edges, .. } => counted("Extrude", edges.len(), "edge"),
             Self::BevelEdges { edges, .. } => counted("Bevel", edges.len(), "edge"),
             Self::BevelPoints { points, .. } => counted("Bevel", points.len(), "point"),
+            Self::LoopCut { cuts: 1, .. } => "Loop cut".to_string(),
+            Self::LoopCut { cuts, .. } => format!("Loop cut ({cuts} cuts)"),
         }
     }
 
@@ -217,10 +238,9 @@ impl Operation {
     /// bevel.
     pub fn settings(&self) -> Option<EditSettings> {
         let plain = |distance: f32, grouping: Grouping| EditSettings {
-            distance,
+            distance: Some(distance),
             grouping: Some(grouping),
-            segments: None,
-            profile: None,
+            ..EditSettings::default()
         };
         match self {
             Self::ExtrudePolygons {
@@ -233,16 +253,19 @@ impl Operation {
                 distance, grouping, ..
             } => Some(plain(*distance, *grouping)),
             Self::BevelEdges { shape, .. } => Some(EditSettings {
-                distance: shape.width,
-                grouping: None,
+                distance: Some(shape.width),
                 segments: Some(shape.segments),
                 profile: Some(shape.profile),
+                ..EditSettings::default()
             }),
             Self::BevelPoints { width, .. } => Some(EditSettings {
-                distance: *width,
-                grouping: None,
-                segments: None,
-                profile: None,
+                distance: Some(*width),
+                ..EditSettings::default()
+            }),
+            Self::LoopCut { cuts, position, .. } => Some(EditSettings {
+                cuts: Some(*cuts),
+                position: Some(*position),
+                ..EditSettings::default()
             }),
             Self::MovePoints { .. } | Self::TransformPoints { .. } => None,
         }
@@ -263,13 +286,17 @@ impl Operation {
             | Self::ExtrudeEdges {
                 distance, grouping, ..
             } => {
-                *distance = settings.distance;
+                if let Some(d) = settings.distance {
+                    *distance = d;
+                }
                 if let Some(g) = settings.grouping {
                     *grouping = g;
                 }
             }
             Self::BevelEdges { shape, .. } => {
-                shape.width = settings.distance;
+                if let Some(w) = settings.distance {
+                    shape.width = w;
+                }
                 if let Some(n) = settings.segments {
                     shape.segments = n;
                 }
@@ -277,7 +304,19 @@ impl Operation {
                     shape.profile = p;
                 }
             }
-            Self::BevelPoints { width, .. } => *width = settings.distance,
+            Self::BevelPoints { width, .. } => {
+                if let Some(w) = settings.distance {
+                    *width = w;
+                }
+            }
+            Self::LoopCut { cuts, position, .. } => {
+                if let Some(n) = settings.cuts {
+                    *cuts = n;
+                }
+                if let Some(p) = settings.position {
+                    *position = p;
+                }
+            }
             Self::MovePoints { .. } | Self::TransformPoints { .. } => {}
         }
         changed
@@ -307,6 +346,7 @@ impl Operation {
             | Self::ExtrudeEdges { distance, .. } => distance.is_finite(),
             Self::BevelEdges { shape, .. } => shape.width.is_finite() && shape.profile.is_finite(),
             Self::BevelPoints { width, .. } => width.is_finite(),
+            Self::LoopCut { position, .. } => position.is_finite(),
         };
         own && anchors_ok
     }
@@ -320,7 +360,8 @@ impl Operation {
             | Self::InsetPolygons { anchors, .. }
             | Self::ExtrudeEdges { anchors, .. }
             | Self::BevelEdges { anchors, .. }
-            | Self::BevelPoints { anchors, .. } => anchors.as_ref(),
+            | Self::BevelPoints { anchors, .. }
+            | Self::LoopCut { anchors, .. } => anchors.as_ref(),
         }
     }
 
@@ -334,14 +375,15 @@ impl Operation {
             | Self::InsetPolygons { anchors, .. }
             | Self::ExtrudeEdges { anchors, .. }
             | Self::BevelEdges { anchors, .. }
-            | Self::BevelPoints { anchors, .. } => anchors.as_mut(),
+            | Self::BevelPoints { anchors, .. }
+            | Self::LoopCut { anchors, .. } => anchors.as_mut(),
         }
     }
 
     /// The distance of an extrude or inset (or a bevel's width), if it
     /// is one: what the Attributes panel lets you change afterwards.
     pub fn distance(&self) -> Option<f32> {
-        self.settings().map(|s| s.distance)
+        self.settings().and_then(|s| s.distance)
     }
 
     /// The same extrude or inset with a new distance and grouping
@@ -350,7 +392,7 @@ impl Operation {
     pub fn with_settings(&self, distance: f32, grouping: Grouping) -> Self {
         match self.settings() {
             Some(s) => self.with(EditSettings {
-                distance,
+                distance: Some(distance),
                 grouping: Some(grouping),
                 ..s
             }),
@@ -464,6 +506,32 @@ impl Operation {
                 }
                 edit::bevel_points(mesh, points, *width)
             }
+            Self::LoopCut {
+                edge,
+                cuts,
+                position,
+                anchors,
+            } => {
+                let (edge, position) = match &refound {
+                    None => (*edge, *position),
+                    Some((points, _)) => {
+                        let Some(found) = edges_within(mesh, points).first().copied() else {
+                            return Applied {
+                                missing: 1,
+                                found_again: true,
+                                too_big: false,
+                            };
+                        };
+                        (found, facing(mesh, found, anchors.as_ref(), *position))
+                    }
+                };
+                // Each polygon of the ring gains one polygon per cut.
+                let cuts_made = (*cuts).clamp(1, mesh::loopcut::MAX_CUTS) as usize;
+                if too_big(mesh::loopcut::ring_polygons(mesh, edge).saturating_mul(cuts_made)) {
+                    return skipped;
+                }
+                edit::loop_cut(mesh, edge, *cuts, position)
+            }
         };
         match refound {
             Some((_, not_found)) => Applied {
@@ -487,6 +555,23 @@ fn corner_count(mesh: &Mesh, faces: &[FaceId]) -> usize {
         .iter()
         .map(|f| mesh.face(*f).map_or(0, <[VertexId]>::len))
         .sum()
+}
+
+/// A loop cut's `position` across `edge`, found again by its anchors:
+/// measured from the end nearest where the edge's lower point was, so the
+/// cut stays on the same side when the points are renumbered.
+fn facing(mesh: &Mesh, edge: EdgeKey, anchors: Option<&Anchors>, position: f32) -> f32 {
+    let Some(mesh::AnchorShape::Edges(ends)) = anchors.map(|a| &a.shape) else {
+        return position;
+    };
+    let Some([was_low, _]) = ends.first() else {
+        return position;
+    };
+    let (low, high) = edge.ends();
+    match (mesh.position(low), mesh.position(high)) {
+        (Some(l), Some(h)) if h.distance(*was_low) < l.distance(*was_low) => 1.0 - position,
+        _ => position,
+    }
 }
 
 /// "Extrude 1 polygon", "Inset 4 polygons".

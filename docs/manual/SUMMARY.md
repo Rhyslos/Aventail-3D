@@ -21,6 +21,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Move, rotate and scale: the gizmo, snapping, locks and typed values](transforming.md)
 - [Extrude and inset: push polygons out or in, and add rings and frames](extrude-and-inset.md)
 - [Bevel: chamfer or round edges, and cut corners off](bevel.md)
+- [Loop cut: add a new loop of edges all the way around a shape](loop-cut.md)
 - [Heavy shapes: millions of polygons, and the heavy test shape](heavy-shapes.md)
 - *More pages are added here as tools are built.*
 

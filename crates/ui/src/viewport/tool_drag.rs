@@ -7,6 +7,10 @@
 //! screen. A plain click still selects, so
 //! polygons can be picked without leaving the tool. Shift makes the drag
 //! ten times finer; a right click (or Esc, handled by the panel) cancels.
+//!
+//! Tools used on the shape itself (Loop cut, [decision 0047](../../../../docs/decisions/0047-loop-cut.md))
+//! take clicks too: a click is a drag that went nowhere, and a left click
+//! never selects while such a tool is in use.
 
 use super::View;
 use crate::components::ViewPointer;
@@ -44,15 +48,16 @@ pub(super) struct ToolDrag {
 
 impl View {
     /// Handles a modelling tool's drag for this frame's input over the
-    /// view at `rect`. `active`: whether a tool that drags is in use.
-    /// Returns whether the drag has the left button (so selecting should
-    /// leave this input alone).
+    /// view at `rect`. `active`: whether a tool that drags is in use;
+    /// `clicks`: whether it takes clicks too. Returns whether the left
+    /// button belongs to the tool (so selecting should leave this input
+    /// alone).
     pub(super) fn capture_tool_drag(
         &mut self,
         ui: &Ui,
         response: &Response,
         rect: Rect,
-        active: bool,
+        (active, clicks): (bool, bool),
         out: &mut Vec<ToolDragEvent>,
     ) -> bool {
         let size = Vec2::new(rect.width(), rect.height());
@@ -90,7 +95,7 @@ impl View {
             }
             return true;
         }
-        if !active {
+        if !active && !clicks {
             return false;
         }
         if response.drag_started_by(PointerButton::Primary)
@@ -108,6 +113,22 @@ impl View {
                 pointer: pointer(now),
             });
             self.tool_drag = Some(ToolDrag { drag, last: now });
+            return true;
+        }
+        if clicks {
+            if response.clicked_by(PointerButton::Primary)
+                && let Some(at) = response.interact_pointer_pos()
+            {
+                out.push(ToolDragEvent::Begin {
+                    pointer: pointer(at),
+                });
+                out.push(ToolDragEvent::Update {
+                    drag: Vec2::ZERO,
+                    pointer: pointer(at),
+                });
+                out.push(ToolDragEvent::End);
+            }
+            // The left button is the tool's, even between clicks.
             return true;
         }
         false

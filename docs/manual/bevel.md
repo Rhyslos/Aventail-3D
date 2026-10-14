@@ -34,6 +34,8 @@ To push polygons out or make frames, use [Extrude and inset](extrude-and-inset.m
 
 Before you drag, the top of the **Attributes panel** shows the tool's **Segments** and **Profile** for the next bevel. After a bevel, the same settings and its **Width** show under **Last edit**, and changing them reshapes the bevel you just made. This works until you make another edit on top.
 
+**Ctrl + mouse wheel** changes Segments without leaving the viewport: up for more, down for fewer. It does what the arrows beside Segments do. Before a drag it sets the next bevel. While dragging it changes the bevel you're making. Afterwards it reshapes the bevel you just made, one undo step per notch.
+
 ### While you drag
 
 - Hold **Shift** for ten times finer steps.
@@ -52,7 +54,7 @@ With 2 or more segments, the **Profile** decides which way the bevel curves. At 
 | Setting | What it does |
 |---|---|
 | **Width** | How far the bevel reaches into each polygon next to the edge, in the object's own size. A typical bevel on a game prop is a few millimetres to a couple of centimetres. |
-| **Segments** | How many rows the bevel has. **1** is a flat cut (a chamfer), cheap and very common in game art. **2–4** make a rounded edge. More look smoother but cost polygons. |
+| **Segments** | How many rows the bevel has (**Ctrl + wheel** in the viewport changes it too). **1** is a flat cut (a chamfer), cheap and very common in game art. **2–4** make a rounded edge. More look smoother but cost polygons. |
 | **Profile** | The shape across the bevel, from **100%** (round, bulging out like a worn edge) through **0%** (flat) to **-100%** (hollow, curving inward like a [cove](concepts.md#mesh-basics)). Values in between are gentler curves. It only shows with 2 or more segments. |
 
 ## Shortcuts
@@ -62,11 +64,13 @@ With 2 or more segments, the **Profile** decides which way the bevel curves. At 
 | Bevel | `V` |
 | Set the width | Left drag away from the selected edges or points |
 | Finer steps | Hold `Shift` while dragging |
+| More or fewer segments | `Ctrl` + wheel up / down |
 | Cancel the drag | `Esc` or a right-click |
 | Back to selecting | `Q` |
 
 ## Tips and common problems
 
+- **Tip:** while Bevel is in use, Ctrl + wheel changes Segments instead of growing the selection. To grow or shrink the selection, use the **Select** menu, or press **Q** first.
 - **Tip:** a single-segment chamfer on every hard edge of a prop is the classic look of mid-poly game art: it shades nicely and costs few polygons.
 - **Tip:** the cube's hard edges carry over. A chamfered cube stays crisp; a rounded bevel's inner rows are smooth so it looks round.
 - **Where several bevelled edges meet** (a cube's corner), a corner polygon closes the gap. With several segments it is one polygon for now; a properly rounded corner comes with the improved bevel in Phase 7.

@@ -303,7 +303,7 @@ impl Frame {
     pub fn key(self) -> egui::Key {
         match self {
             Self::All => egui::Key::H,
-            Self::Selected => egui::Key::F,
+            Self::Selected => egui::Key::Z,
         }
     }
 
@@ -673,6 +673,12 @@ pub struct ViewportPanel {
     /// Whether a modelling tool that is dragged anywhere (extrude, inset)
     /// is in use (set by the workbench each frame).
     drag_tool: bool,
+    /// Whether a modelling tool used by clicking on shapes is in use.
+    click_tool: bool,
+    /// Whether the tool in use has a count Ctrl + wheel changes.
+    wheel_tool: bool,
+    /// Ctrl + wheel notches for that tool since last asked (up is more).
+    tool_steps: i32,
     /// What the modelling tool's drag is doing, written by the mouse.
     tool_label: Option<String>,
     /// Modelling tool drag events this frame, for the workbench.
@@ -698,6 +704,9 @@ impl Default for ViewportPanel {
             gizmo: None,
             gizmo_events: Vec::new(),
             drag_tool: false,
+            click_tool: false,
+            wheel_tool: false,
+            tool_steps: 0,
             tool_label: None,
             tool_events: Vec::new(),
         }
@@ -854,6 +863,24 @@ impl ViewportPanel {
         self.drag_tool = active;
     }
 
+    /// Whether a modelling tool used by clicking on shapes is in use (it
+    /// takes drags too), from this frame on.
+    pub(crate) fn set_click_tool(&mut self, active: bool) {
+        self.click_tool = active;
+    }
+
+    /// Whether the tool in use has a count that Ctrl + wheel changes
+    /// (instead of growing the selection), from this frame on.
+    pub(crate) fn set_wheel_tool(&mut self, active: bool) {
+        self.wheel_tool = active;
+    }
+
+    /// The Ctrl + wheel notches for the tool's count since last asked (up
+    /// is positive).
+    pub(crate) fn take_tool_steps(&mut self) -> i32 {
+        std::mem::take(&mut self.tool_steps)
+    }
+
     /// What to write beside the mouse while a modelling tool is dragged.
     pub(crate) fn set_tool_label(&mut self, label: Option<String>) {
         self.tool_label = label;
@@ -979,7 +1006,7 @@ impl ViewportPanel {
                 ui,
                 &response,
                 rect,
-                self.drag_tool,
+                (self.drag_tool, self.click_tool),
                 &mut self.tool_events,
             );
             let gizmo_busy = tool_busy
@@ -1086,7 +1113,11 @@ impl ViewportPanel {
             return;
         }
         self.ctrl_scroll -= steps * notch;
-        if self.select_tool == SelectTool::Brush {
+        if self.wheel_tool {
+            // A tool with a count (Bevel's segments, Loop cut's cuts) takes
+            // the turns while it is in use (decision 0048).
+            self.tool_steps += steps as i32;
+        } else if self.select_tool == SelectTool::Brush {
             self.brush_radius =
                 (self.brush_radius * BRUSH_STEP.powf(steps)).clamp(BRUSH_MIN, BRUSH_MAX);
         } else {
@@ -1162,7 +1193,7 @@ impl ViewportPanel {
         }
     }
 
-    /// Starts framing the active view for the `H` and `F` keys (unless
+    /// Starts framing the active view for the `H` and `Z` keys (unless
     /// typing in a field) or a menu entry, and moves every view along a
     /// glide in progress.
     fn frame_from_keys_and_menus(&mut self, ui: &Ui, scene: &SceneSummary) {

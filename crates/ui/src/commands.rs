@@ -171,7 +171,7 @@ impl CommandId {
             Self::FrameSelected => (
                 "Frame selected",
                 Icon::FrameSelected,
-                plain(Key::F),
+                plain(Key::Z),
                 "Turn and zoom the view so the selection fills it",
                 None,
             ),
@@ -272,9 +272,10 @@ impl CommandId {
             Self::LoopCut => (
                 "Loop cut",
                 Icon::LoopCut,
+                plain(Key::F),
+                "Cut a new loop of edges all the way around a shape: point at an edge, \
+                 then click, or drag to slide it",
                 None,
-                "Cut a new loop of edges all the way around a shape",
-                PHASE_4,
             ),
         };
         CommandInfo {
@@ -483,6 +484,8 @@ mod tests {
         assert_eq!(CommandId::Extrude.info().shortcut, plain(Key::D));
         assert_eq!(CommandId::Inset.info().shortcut, plain(Key::I));
         assert_eq!(CommandId::Bevel.info().shortcut, plain(Key::V));
+        assert_eq!(CommandId::LoopCut.info().shortcut, plain(Key::F));
+        assert_eq!(CommandId::FrameSelected.info().shortcut, plain(Key::Z));
     }
 
     #[test]

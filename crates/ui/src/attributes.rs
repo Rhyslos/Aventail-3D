@@ -45,6 +45,21 @@ pub(crate) struct AttributesPanel {
     pub(crate) grouping: Grouping,
     /// Bevel's rows and profile, for the next drag (decision 0040).
     pub(crate) bevel: BevelLook,
+    /// Loop cut's number of cuts, for the next cut (decision 0047).
+    pub(crate) loop_cut: LoopLook,
+}
+
+/// Loop cut's settings, set in the Attributes panel before a cut.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct LoopLook {
+    /// How many evenly spaced cuts.
+    pub(crate) cuts: u32,
+}
+
+impl Default for LoopLook {
+    fn default() -> Self {
+        Self { cuts: 1 }
+    }
 }
 
 /// Bevel's rows and profile, set in the Attributes panel before a drag.
@@ -250,7 +265,7 @@ impl AttributesPanel {
                 .unwrap_or(false),
             _ => false,
         };
-        if self.tool.drags_anywhere() && !last_shown {
+        if self.tool.has_settings() && !last_shown {
             self.tool_section(ui);
         }
         let id = match selection.as_slice() {
@@ -324,8 +339,8 @@ impl AttributesPanel {
             });
     }
 
-    /// Extrude's, Inset's or Bevel's own settings, while it is the tool
-    /// in use: they apply to the next drag.
+    /// Extrude's, Inset's, Bevel's or Loop cut's own settings, while it is
+    /// the tool in use: they apply to the next drag or cut.
     fn tool_section(&mut self, ui: &mut Ui) {
         section(ui, self.tool.name());
         ui.push_id("tool", |ui| {
@@ -334,7 +349,10 @@ impl AttributesPanel {
                 .min_col_width(LABEL_WIDTH)
                 .spacing(vec2(12.0, 6.0))
                 .show(ui, |ui| {
-                    if self.tool == Tool::Bevel {
+                    if self.tool == Tool::LoopCut {
+                        cuts_row(ui, &mut self.loop_cut.cuts);
+                        ui.end_row();
+                    } else if self.tool == Tool::Bevel {
                         let mut look = self.bevel;
                         segments_row(ui, &mut look.segments);
                         ui.end_row();
@@ -350,7 +368,9 @@ impl AttributesPanel {
                     }
                 });
         });
-        let hint = if self.tool == Tool::Bevel {
+        let hint = if self.tool == Tool::LoopCut {
+            "Point at an edge to see the loop; click to cut, or drag along the edge to slide it."
+        } else if self.tool == Tool::Bevel {
             "Drag away from the selected edges or points to widen. Hold Shift for fine steps."
         } else {
             "Drag anywhere in the viewport. Hold Shift for fine steps."
@@ -358,7 +378,8 @@ impl AttributesPanel {
         ui.label(RichText::new(hint).small().color(theme::TEXT_WEAK));
     }
 
-    /// The last edit's settings, if it is an extrude, inset or bevel: they
+    /// The last edit's settings, if it is an extrude, inset, bevel or loop
+    /// cut: they
     /// can still be changed, and the shape follows (decisions 0038 and
     /// 0040). Once another edit is made on top, it is fixed. Changes here
     /// also become the tool's settings for the next drag.
@@ -395,6 +416,32 @@ impl AttributesPanel {
                 .min_col_width(LABEL_WIDTH)
                 .spacing(vec2(12.0, 6.0))
                 .show(ui, |ui| {
+                    if let Some(mut cuts) = edited.cuts {
+                        let touched = cuts_row(ui, &mut cuts);
+                        if touched.began {
+                            self.gesture += 1;
+                        }
+                        if touched.changed {
+                            edited.cuts = Some(cuts);
+                            self.loop_cut.cuts = cuts;
+                            changed = true;
+                        }
+                        ui.end_row();
+                    }
+                    if let Some(mut position) = edited.position {
+                        let touched = position_row(ui, &mut position);
+                        if touched.began {
+                            self.gesture += 1;
+                        }
+                        if touched.changed {
+                            edited.position = Some(position);
+                            changed = true;
+                        }
+                        ui.end_row();
+                    }
+                    let Some(mut distance) = edited.distance else {
+                        return;
+                    };
                     let (name, help) = if bevel {
                         (
                             "Width",
@@ -409,12 +456,14 @@ impl AttributesPanel {
                         )
                     };
                     label(ui, name, help);
-                    let touched =
-                        stepper::length(ui, &mut edited.distance, (low, MAX_SIZE), units, name);
+                    let touched = stepper::length(ui, &mut distance, (low, MAX_SIZE), units, name);
                     if touched.began {
                         self.gesture += 1;
                     }
-                    changed |= touched.changed;
+                    if touched.changed {
+                        edited.distance = Some(distance);
+                        changed = true;
+                    }
                     ui.end_row();
                     if let Some(grouping) = edited.grouping {
                         let mut together = grouping == Grouping::Together;
@@ -713,7 +762,7 @@ fn count(n: usize, thing: &str) -> String {
 }
 
 /// The top edit of `stack` (where it is, and what), if any.
-fn last_edit(stack: &Stack) -> Option<(usize, usize, &Operation)> {
+pub(crate) fn last_edit(stack: &Stack) -> Option<(usize, usize, &Operation)> {
     let (layer, top) = stack
         .layers()
         .iter()
@@ -733,7 +782,7 @@ fn grouping_of(together: bool) -> Grouping {
 }
 
 /// Whether `operation` is the kind of edit `tool` makes.
-fn made_by(operation: &Operation, tool: Tool) -> bool {
+pub(crate) fn made_by(operation: &Operation, tool: Tool) -> bool {
     matches!(
         (operation, tool),
         (
@@ -744,6 +793,7 @@ fn made_by(operation: &Operation, tool: Tool) -> bool {
                 Operation::BevelEdges { .. } | Operation::BevelPoints { .. },
                 Tool::Bevel
             )
+            | (Operation::LoopCut { .. }, Tool::LoopCut)
     )
 }
 
@@ -755,6 +805,42 @@ fn segments_row(ui: &mut Ui, segments: &mut u32) -> stepper::Touched {
         "How many rows the bevel has: 1 is a flat cut (a chamfer), more make it round",
     );
     stepper::count(ui, segments, (1, mesh::bevel::MAX_SEGMENTS), "Segments")
+}
+
+/// Loop cut's number of cuts, with its label.
+fn cuts_row(ui: &mut Ui, cuts: &mut u32) -> stepper::Touched {
+    label(
+        ui,
+        "Cuts",
+        "How many new loops are cut, spread evenly across the polygons",
+    );
+    stepper::count(ui, cuts, (1, mesh::loopcut::MAX_CUTS), "Cuts")
+}
+
+/// Where a loop cut sits across its edge, as a percentage, with its label.
+fn position_row(ui: &mut Ui, position: &mut f32) -> stepper::Touched {
+    label(
+        ui,
+        "Position",
+        "Where the cut sits across the polygons: 50% is the middle. With several \
+         cuts, it slides them all together.",
+    );
+    let mut percent = *position * 100.0;
+    let response = ui.add(
+        egui::Slider::new(&mut percent, 0.0..=100.0)
+            .suffix("%")
+            // Shown as a whole percent, without rounding the value itself
+            // (that would change the cut as soon as it is shown).
+            .custom_formatter(|v, _| format!("{v:.0}")),
+    );
+    response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Slider, true, "Position"));
+    if response.changed() {
+        *position = (percent / 100.0).clamp(0.0, 1.0);
+    }
+    stepper::Touched {
+        changed: response.changed(),
+        began: response.drag_started() || (response.changed() && !response.dragged()),
+    }
 }
 
 /// A bevel's profile as a percentage, with its label.

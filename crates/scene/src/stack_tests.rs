@@ -853,7 +853,7 @@ fn a_bevel_is_recorded_changed_and_replayed() {
     assert_eq!(faces(&doc), 6 + 8);
     // The Last edit: width, rows and profile, no grouping.
     let settings = op.settings().unwrap();
-    assert_eq!(settings.distance, 10.0);
+    assert_eq!(settings.distance, Some(10.0));
     assert_eq!(settings.segments, Some(2));
     assert_eq!(settings.profile, Some(1.0));
     assert_eq!(settings.grouping, None);
@@ -905,6 +905,155 @@ fn a_point_bevel_is_recorded() {
     assert!(mesh::MeshReport::new(&shape.mesh).is_closed());
     // Moves and turns have no settings to change afterwards.
     assert!(lift(&[0], 1.0).settings().is_none());
+}
+
+/// A loop cut across the cube's top front edge (along X), with anchors.
+fn loop_cut_top_front(doc: &Document, id: ObjectId, cuts: u32, position: f32) -> Operation {
+    let mesh = doc.scene().evaluated(id).unwrap().mesh;
+    let edge = *mesh
+        .edges()
+        .iter()
+        .find(|e| {
+            let (a, b) = e.ends();
+            let (pa, pb) = (mesh.position(a).unwrap(), mesh.position(b).unwrap());
+            pa.y < -49.0 && pb.y < -49.0 && pa.z > 99.0 && pb.z > 99.0
+        })
+        .unwrap();
+    let (a, b) = edge.ends();
+    Operation::LoopCut {
+        edge,
+        cuts,
+        position,
+        anchors: mesh::Anchors::record(&mesh, ElementKind::Edges, &[vec![a, b]]),
+    }
+}
+
+/// The X of every point the cube's shape has beyond its first `before`.
+fn new_xs(doc: &Document, id: ObjectId, before: usize) -> Vec<f32> {
+    let mesh = doc.scene().evaluated(id).unwrap().mesh;
+    mesh.vertices().skip(before).map(|(_, p)| p.x).collect()
+}
+
+#[test]
+fn a_loop_cut_is_recorded_changed_and_replayed() {
+    let (mut doc, id) = with_a_cube();
+    let op = loop_cut_top_front(&doc, id, 1, 0.5);
+    record(&mut doc, id, op.clone());
+    assert_eq!(doc.undo_label(), Some("Loop cut"));
+    let faces = |doc: &Document| doc.scene().evaluated(id).unwrap().mesh.face_count();
+    assert_eq!(faces(&doc), 10);
+    // The Last edit: cuts and position, nothing else.
+    let settings = op.settings().unwrap();
+    assert_eq!(settings.cuts, Some(1));
+    assert_eq!(settings.position, Some(0.5));
+    assert_eq!(settings.distance, None);
+    assert_eq!(settings.segments, None);
+    let changed = op.with(EditSettings {
+        cuts: Some(3),
+        ..settings
+    });
+    assert_eq!(changed.describe(), "Loop cut (3 cuts)");
+    doc.execute(Command::ReplaceOperation {
+        id,
+        layer: 0,
+        index: 0,
+        operation: changed,
+    })
+    .unwrap();
+    assert_eq!(faces(&doc), 6 + 12);
+    doc.undo().unwrap();
+    assert_eq!(faces(&doc), 10);
+    // A loop cut keeps only what it says.
+    assert_eq!(
+        crate::memory::operation_size(&op),
+        op.anchors().unwrap().memory_size()
+    );
+}
+
+#[test]
+fn a_loop_cut_stays_on_its_side_when_the_points_are_renumbered() {
+    let (mut doc, id) = with_a_cube();
+    let op = loop_cut_top_front(&doc, id, 1, 0.25);
+    let Operation::LoopCut { edge, .. } = &op else {
+        unreachable!()
+    };
+    let low = point(&doc, id, edge.ends().0.get());
+    let want = low.x * 0.5;
+    record(&mut doc, id, op.clone());
+    assert!(new_xs(&doc, id, 8).iter().all(|x| (x - want).abs() < 1e-3));
+    // More segments up and across (not along the cut edge): every point
+    // is renumbered, and the cut is found again, on the same side.
+    doc.execute(Command::SetPrimitive {
+        ids: vec![id],
+        primitive: Primitive::Cube(CubeParams {
+            segments: [1, 3, 2],
+            ..Default::default()
+        }),
+    })
+    .unwrap();
+    let shape = doc.scene().evaluated(id).unwrap();
+    assert!(
+        shape.warnings.iter().all(|w| w.missing == 0),
+        "{:?}",
+        shape.warnings
+    );
+    let before = Primitive::Cube(CubeParams {
+        segments: [1, 3, 2],
+        ..Default::default()
+    })
+    .mesh()
+    .vertex_count();
+    let xs = new_xs(&doc, id, before);
+    assert!(!xs.is_empty());
+    assert!(
+        xs.iter().all(|x| (x - want).abs() < 1e-3),
+        "{xs:?}, want {want}"
+    );
+    assert!(mesh::MeshReport::new(&shape.mesh).is_closed());
+}
+
+#[test]
+fn a_loop_cut_whose_edge_was_split_follows_a_piece_of_it() {
+    let (mut doc, id) = with_a_cube();
+    let op = loop_cut_top_front(&doc, id, 1, 0.5);
+    record(&mut doc, id, op);
+    // Two segments along the edge: it is now two edges. The cut is found
+    // again across one of them, and the shape stays whole.
+    doc.execute(Command::SetPrimitive {
+        ids: vec![id],
+        primitive: Primitive::Cube(CubeParams {
+            segments: [2, 1, 1],
+            ..Default::default()
+        }),
+    })
+    .unwrap();
+    let shape = doc.scene().evaluated(id).unwrap();
+    assert!(
+        shape
+            .warnings
+            .iter()
+            .all(|w| w.found_again && w.missing == 0)
+    );
+    assert_eq!(shape.mesh.face_count(), 10 + 4);
+    let report = mesh::MeshReport::new(&shape.mesh);
+    assert!(report.is_closed() && !report.has_problems(), "{report:?}");
+    // A position that isn't a number is refused.
+    assert!(!loop_cut_top_front(&doc, id, 1, f32::NAN).numbers_are_real());
+}
+
+#[test]
+fn a_loop_cut_whose_edge_is_gone_is_missing() {
+    let (mut doc, id) = with_a_cube();
+    let mut op = loop_cut_top_front(&doc, id, 1, 0.5);
+    if let Operation::LoopCut { edge, anchors, .. } = &mut op {
+        *edge = mesh::EdgeKey::new(VertexId::from_raw(0), VertexId::from_raw(6));
+        *anchors = None;
+    }
+    record(&mut doc, id, op);
+    let shape = doc.scene().evaluated(id).unwrap();
+    assert_eq!(shape.mesh.face_count(), 6);
+    assert_eq!(shape.warnings.len(), 1);
+    assert_eq!(shape.warnings[0].missing, 1);
 }
 
 #[test]

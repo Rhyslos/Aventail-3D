@@ -7,11 +7,46 @@ use glam::Vec3;
 use mesh::{CubeParams, PrimitiveKind, VertexId};
 use scene::{Command, Object, ObjectKind, Operation, Place, Primitive, Transform};
 
+/// A document using everything version 6 of the format can hold: all of
+/// [`rich_document_v5`], plus a loop cut (with anchors). The version 6
+/// sample holds exactly this.
+fn rich_document() -> Document {
+    let mut doc = rich_document_v5();
+    let cube = doc
+        .scene()
+        .walk()
+        .into_iter()
+        .map(|(id, _)| id)
+        .find(|id| doc.scene().object(*id).unwrap().name == "Cube")
+        .unwrap();
+    let shape = doc.scene().evaluated(cube).unwrap().mesh;
+    let edge = *shape
+        .edges()
+        .iter()
+        .find(|e| mesh::loopcut::ring_polygons(&shape, **e) > 1)
+        .unwrap();
+    let (a, b) = edge.ends();
+    let anchors = mesh::Anchors::record(&shape, mesh::ElementKind::Edges, &[vec![a, b]]);
+    doc.execute(Command::Record {
+        id: cube,
+        operation: Operation::LoopCut {
+            edge,
+            cuts: 2,
+            position: 0.375,
+            anchors,
+        },
+    })
+    .unwrap();
+    doc.set_selection([cube]);
+    doc
+}
+
 /// A document using everything version 5 of the format can hold: all of
 /// [`rich_document_v4`], plus a move that keeps the structure it was made
 /// on, a switched-off edit, a pinned edit, and a plain mesh with attribute
-/// layers of every domain and kind.
-fn rich_document() -> Document {
+/// layers of every domain and kind. The version 5 sample holds exactly
+/// this.
+fn rich_document_v5() -> Document {
     let mut doc = rich_document_v4();
     let cube = *doc.scene().children(None).last().unwrap();
     let shape = doc.scene().evaluated(cube).unwrap().mesh;
@@ -473,14 +508,14 @@ fn a_cut_short_or_padded_body_is_damaged() {
 #[test]
 fn an_uncompressed_body_can_be_read() {
     let doc = rich_document();
-    let body = postcard::to_stdvec(&v5::ProjectV5::from_document(&doc)).unwrap();
-    let mut bytes = header(5, 0, body.len() as u64);
+    let body = postcard::to_stdvec(&v6::ProjectV6::from_document(&doc)).unwrap();
+    let mut bytes = header(6, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     assert_same(&doc, &from_bytes(&bytes).unwrap());
     // Data after the scene is refused.
     let mut longer = body.clone();
     longer.push(0);
-    let mut bytes = header(5, 0, longer.len() as u64);
+    let mut bytes = header(6, 0, longer.len() as u64);
     bytes.extend_from_slice(&longer);
     assert!(refused(&bytes).to_string().contains("unexpected data"));
 }
@@ -959,13 +994,21 @@ const SAMPLE_V5: &[u8] = include_bytes!("../../tests/data/sample-v5.avtl");
 #[test]
 fn a_file_saved_by_format_version_5_still_opens() {
     let doc = from_bytes(SAMPLE_V5).expect("the version 5 sample opens");
-    assert_same(&rich_document(), &doc);
+    assert_same(&rich_document_v5(), &doc);
 }
 
 /// The bytes of a version 5 file holding `model`, uncompressed.
 fn file_of_v5(model: &v5::ProjectV5) -> Vec<u8> {
     let body = postcard::to_stdvec(model).unwrap();
     let mut bytes = header(5, 0, body.len() as u64);
+    bytes.extend_from_slice(&body);
+    bytes
+}
+
+/// The bytes of a version 6 file holding `model`, uncompressed.
+fn file_of_v6(model: &v6::ProjectV6) -> Vec<u8> {
+    let body = postcard::to_stdvec(model).unwrap();
+    let mut bytes = header(6, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     bytes
 }
@@ -998,8 +1041,11 @@ fn edits_keep_their_ids_switches_and_structure() {
 
 #[test]
 fn damaged_edits_and_mesh_layers_are_refused() {
-    let good = v5::ProjectV5::from_document(&rich_document());
-    assert_same(&rich_document(), &from_bytes(&file_of_v5(&good)).unwrap());
+    let good = v5::ProjectV5::from_document(&rich_document_v5());
+    assert_same(
+        &rich_document_v5(),
+        &from_bytes(&file_of_v5(&good)).unwrap(),
+    );
     let cube = good
         .project
         .objects
@@ -1036,6 +1082,71 @@ fn damaged_edits_and_mesh_layers_are_refused() {
         })
         .contains("twice")
     );
+}
+
+/// A project saved by version 6 of the format, kept in the repository.
+const SAMPLE_V6: &[u8] = include_bytes!("../../tests/data/sample-v6.avtl");
+
+#[test]
+fn a_file_saved_by_format_version_6_still_opens() {
+    let doc = from_bytes(SAMPLE_V6).expect("the version 6 sample opens");
+    assert_same(&rich_document(), &doc);
+}
+
+#[test]
+fn loop_cuts_are_kept_and_checked() {
+    let doc = rich_document();
+    assert_same(&doc, &from_bytes(&to_bytes(&doc).unwrap()).unwrap());
+    let good = v6::ProjectV6::from_document(&doc);
+    assert_same(&doc, &from_bytes(&file_of_v6(&good)).unwrap());
+    let cube = good
+        .project
+        .objects
+        .iter()
+        .position(|o| o.name == "Cube")
+        .unwrap();
+    let with = |change: &dyn Fn(&mut [u32; 2], &mut u32, &mut f32)| {
+        let mut file = good.clone();
+        let entry = file.project.objects[cube].layers[0]
+            .operations
+            .last_mut()
+            .unwrap();
+        let v6::OperationV6::LoopCut {
+            edge,
+            cuts,
+            position,
+            ..
+        } = &mut entry.operation
+        else {
+            panic!("a loop cut");
+        };
+        change(edge, cuts, position);
+        from_bytes(&file_of_v6(&file))
+    };
+    // A position that isn't a number, or an edge from a point to itself.
+    let text = with(&|_, _, p| *p = f32::NAN).unwrap_err().to_string();
+    assert!(text.contains("real number"), "{text}");
+    let text = with(&|e, _, _| e[1] = e[0]).unwrap_err().to_string();
+    assert!(text.contains("itself"), "{text}");
+    // Settings out of range are brought back in.
+    let opened = with(&|_, c, p| {
+        *c = u32::MAX;
+        *p = 7.0;
+    })
+    .unwrap();
+    let id = opened
+        .scene()
+        .walk()
+        .into_iter()
+        .map(|(id, _)| id)
+        .find(|id| opened.scene().object(*id).unwrap().name == "Cube")
+        .unwrap();
+    let entries = &opened.scene().object(id).unwrap().stack.layers()[0].entries;
+    let Operation::LoopCut { cuts, position, .. } = entries.last().unwrap().operation else {
+        panic!("a loop cut");
+    };
+    assert_eq!(cuts, mesh::loopcut::MAX_CUTS);
+    assert_eq!(position, 1.0);
 }
 
 /// Writes the current version's sample. Run only by hand, when a new
@@ -1323,8 +1434,8 @@ impl Noise {
 /// A file model with a few random, often nonsensical values: ids
 /// pointing nowhere, corners naming missing points, numbers that aren't
 /// real, huge settings, empty names, repeated edit ids.
-fn random_model(noise: &mut Noise) -> v5::ProjectV5 {
-    let mut model = v5::ProjectV5::from_document(&rich_document());
+fn random_model(noise: &mut Noise) -> v6::ProjectV6 {
+    let mut model = v6::ProjectV6::from_document(&rich_document());
     let count = model.project.objects.len() as u64;
     for _ in 0..1 + noise.below(3) {
         let at = noise.below(count) as usize;
@@ -1370,15 +1481,27 @@ fn random_model(noise: &mut Noise) -> v5::ProjectV5 {
                         match noise.below(4) {
                             0 => entry.id = noise.below(4),
                             1 => entry.enabled = !entry.enabled,
-                            _ => {
-                                if let v4::OperationV4::BevelEdges {
-                                    segments, width, ..
-                                } = &mut entry.operation
-                                {
+                            _ => match &mut entry.operation {
+                                v6::OperationV6::V4(v4::OperationV4::BevelEdges {
+                                    segments,
+                                    width,
+                                    ..
+                                }) => {
                                     *segments = noise.count();
                                     *width = noise.float();
                                 }
-                            }
+                                v6::OperationV6::LoopCut {
+                                    edge,
+                                    cuts,
+                                    position,
+                                    ..
+                                } => {
+                                    edge[noise.below(2) as usize] = noise.below(40) as u32;
+                                    *cuts = noise.count();
+                                    *position = noise.float();
+                                }
+                                _ => {}
+                            },
                         }
                     }
                 }
@@ -1406,7 +1529,7 @@ fn random_nonsense_inside_a_well_formed_file_is_refused_or_opened_never_a_crash(
     let mut opened = 0;
     for _ in 0..150 {
         let model = random_model(&mut noise);
-        let bytes = file_of_v5(&model);
+        let bytes = file_of_v6(&model);
         let start = std::time::Instant::now();
         if let Ok(doc) = from_bytes(&bytes) {
             opened += 1;
