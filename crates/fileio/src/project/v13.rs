@@ -8,14 +8,15 @@
 use super::v1::{FileOperation, Problem};
 use super::v2::{AnchorsV2, anchors_from_file, anchors_to_file};
 use super::v5::EntryWith;
-use super::v12::{OperationV12, ProjectWithInstances};
+use super::v12::OperationV12;
 use crate::limits::Bounded;
 use mesh::VertexId;
 use scene::{Operation, Slide};
 use serde::{Deserialize, Serialize};
 
 /// Version 13 of the file.
-pub(crate) type ProjectV13 = ProjectWithInstances<EntryV13>;
+#[cfg(test)]
+pub(crate) type ProjectV13 = super::v12::ProjectWithInstances<EntryV13>;
 
 /// A recorded edit in version 13.
 pub(crate) type EntryV13 = EntryWith<OperationV13>;

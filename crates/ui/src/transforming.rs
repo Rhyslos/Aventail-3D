@@ -244,6 +244,9 @@ pub(crate) struct PointsStart {
     /// points' anchors), instead of `points` all moving alike
     /// (decision 0054).
     pub(crate) mirror: Option<Vec<(mesh::symmetry::MirrorGroup, Option<Anchors>)>>,
+    /// With symmetry's "don't cross the middle" on, how far the points
+    /// may move along each axis of the shape (least, most).
+    pub(crate) limits: Option<[(f32, f32); 3]>,
     /// While sliding (Alt + drag on the Move gizmo, decision 0055): the
     /// shape as it was, whose edges the points slide along.
     pub(crate) slide: Option<std::sync::Arc<scene::Mesh>>,
@@ -385,6 +388,7 @@ impl Target {
                         points,
                         anchors,
                         mirror: None,
+                        limits: None,
                         slide: None,
                     });
                 }
@@ -405,13 +409,23 @@ impl Target {
     /// mirror plane stay on it (decision 0054). Worked out once, when a
     /// change begins. Objects are unchanged.
     #[must_use]
-    pub(crate) fn mirrored(mut self, drawing: &SceneDrawing, axes: [bool; 3]) -> Self {
+    pub(crate) fn mirrored(
+        mut self,
+        drawing: &SceneDrawing,
+        mirror_for: impl Fn(ObjectId) -> Option<mesh::symmetry::Mirror>,
+    ) -> Self {
         if let Targets::Points(starts, _) = &mut self.targets {
             for start in starts {
                 let Some(item) = drawing.items.iter().find(|i| i.id == start.id) else {
                     continue;
                 };
-                let plan = mesh::symmetry::mirror_plan(&item.mesh, &start.points, axes);
+                let Some(mirror) = mirror_for(start.id) else {
+                    continue;
+                };
+                let plan = mesh::symmetry::mirror_plan(&item.mesh, &start.points, mirror);
+                start.limits = mirror
+                    .clip
+                    .then(|| mesh::symmetry::move_limits(&item.mesh, &start.points, &mirror));
                 let groups = plan
                     .groups
                     .into_iter()
@@ -528,10 +542,20 @@ impl Target {
                         return groups
                             .iter()
                             .map(|(group, anchors)| {
+                                // Kept from crossing the middle.
+                                let mut d = match change {
+                                    Change::Translate(d) => inverse.transform_vector3(*d),
+                                    _ => Vec3::ZERO,
+                                };
+                                if let Some(limits) = s.limits {
+                                    for a in 0..3 {
+                                        d[a] = d[a].clamp(limits[a].0, limits[a].1);
+                                    }
+                                }
                                 let operation = match change {
-                                    Change::Translate(d) => Operation::MovePoints {
+                                    Change::Translate(_) => Operation::MovePoints {
                                         points: group.points.clone(),
-                                        offset: group.offset(inverse.transform_vector3(*d)),
+                                        offset: group.offset(d),
                                         anchors: anchors.clone(),
                                     },
                                     _ => Operation::TransformPoints {

@@ -96,6 +96,58 @@ impl Anchors {
         })
     }
 
+    /// The anchors of the same elements' mirrors across `reflect` of
+    /// `mirror`, in the same shape: every place mirrored, and each point
+    /// id given as `partner` maps it (its mirror's id, where known).
+    pub fn mirrored(
+        &self,
+        mirror: &crate::symmetry::Mirror,
+        reflect: [bool; 3],
+        partner: impl Fn(VertexId) -> VertexId,
+    ) -> Self {
+        let at = |p: Vec3| mirror.point(reflect, p);
+        Self {
+            bounds: self.bounds,
+            points: self
+                .points
+                .iter()
+                .map(|(v, p)| (partner(*v), at(*p)))
+                .collect(),
+            shape: match &self.shape {
+                AnchorShape::Points(p) => AnchorShape::Points(p.iter().map(|p| at(*p)).collect()),
+                AnchorShape::Edges(e) => {
+                    AnchorShape::Edges(e.iter().map(|[a, b]| [at(*a), at(*b)]).collect())
+                }
+                AnchorShape::Polygons(f) => AnchorShape::Polygons(
+                    f.iter()
+                        .map(|c| c.iter().map(|p| at(*p)).collect())
+                        .collect(),
+                ),
+            },
+            structure: self.structure,
+        }
+    }
+
+    /// These anchors and `other`'s together (both recorded on the same
+    /// shape, for the same kind of element); elements of another kind are
+    /// left out.
+    #[must_use]
+    pub fn joined(&self, other: &Self) -> Self {
+        let mut out = self.clone();
+        for (v, p) in &other.points {
+            if !out.points.iter().any(|(w, _)| w == v) {
+                out.points.push((*v, *p));
+            }
+        }
+        match (&mut out.shape, &other.shape) {
+            (AnchorShape::Points(a), AnchorShape::Points(b)) => a.extend(b.iter().copied()),
+            (AnchorShape::Edges(a), AnchorShape::Edges(b)) => a.extend(b.iter().copied()),
+            (AnchorShape::Polygons(a), AnchorShape::Polygons(b)) => a.extend(b.iter().cloned()),
+            _ => {}
+        }
+        out
+    }
+
     /// Whether `mesh` has the structure the edit was made on, so its ids
     /// can be trusted as they are, wherever the points now are.
     pub fn same_structure(&self, mesh: &Mesh) -> bool {

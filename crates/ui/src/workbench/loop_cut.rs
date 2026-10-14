@@ -102,6 +102,8 @@ pub(super) struct LoopCutSession {
     start_share: f32,
     /// Where the cut started: the slide is measured from here.
     start_position: f32,
+    /// With symmetry on, the planes the cut is mirrored across.
+    mirror: Option<mesh::symmetry::Mirror>,
 }
 
 impl LoopCutSession {
@@ -111,7 +113,7 @@ impl LoopCutSession {
         document.abandon(self.key);
         let command = Command::Record {
             id: self.target.id,
-            operation: self.target.operation(self.cuts),
+            operation: super::with_mirror(self.target.operation(self.cuts), self.mirror),
         };
         document
             .execute_labelled(command, label(self.cuts), Some(self.key))
@@ -241,6 +243,7 @@ impl Workbench {
             start: pointer.at,
             start_share: target.share_at(&pointer, pointer.at).unwrap_or(0.5),
             start_position: target.position,
+            mirror: self.edit_mirror(target.id),
             cuts: self.attributes.loop_cut.cuts,
             target,
         };

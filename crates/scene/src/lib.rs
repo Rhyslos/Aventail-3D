@@ -13,6 +13,7 @@ pub mod command;
 pub mod document;
 mod history;
 mod memory;
+pub mod mirroring;
 pub mod object;
 pub mod stack;
 pub mod tree;
@@ -34,6 +35,8 @@ pub use tree::{Place, Scene, SceneError};
 
 #[cfg(test)]
 mod history_tests;
+#[cfg(test)]
+mod mirroring_tests;
 #[cfg(test)]
 mod selection_tests;
 #[cfg(test)]

@@ -162,7 +162,7 @@ pub struct ViewOptions {
 /// Symmetry while moving, rotating and scaling points, edges and polygons
 /// ([decision 0054](../../../docs/decisions/0054-symmetry.md)): the
 /// points' mirrors across the shape's own axes move the mirrored way.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Symmetry {
     /// Whether it is on (off as standard).
@@ -170,13 +170,70 @@ pub struct Symmetry {
     /// Across which of the shape's own axes, X, Y and Z (X as standard:
     /// left and right).
     pub axes: [bool; 3],
+    /// Where the mirror planes go through (decision 0059).
+    pub centre: SymmetryCentre,
+    /// How far the planes are moved from there along X, Y and Z, in
+    /// centimetres: in the shape's own space, or the world's for
+    /// [`SymmetryCentre::World`].
+    pub offset: [f32; 3],
+    /// How near the middle counts for Weld the middle now, in centimetres
+    /// (0.1 as standard).
+    pub weld_distance: f32,
+    /// Points can't cross the middle (off as standard).
+    pub clip: bool,
 }
+
+/// The standard weld distance, in centimetres.
+pub(crate) const WELD_DISTANCE: f32 = 0.1;
 
 impl Default for Symmetry {
     fn default() -> Self {
         Self {
             on: false,
             axes: [true, false, false],
+            centre: SymmetryCentre::default(),
+            offset: [0.0; 3],
+            weld_distance: WELD_DISTANCE,
+            clip: false,
+        }
+    }
+}
+
+/// Where symmetry's mirror planes go through ([decision 0059](../../../docs/decisions/0059-symmetry-for-every-edit.md)).
+/// They always lie across the shape's own axes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum SymmetryCentre {
+    /// The shape's pivot (its origin): what symmetry always did.
+    #[default]
+    Pivot,
+    /// The middle of the shape's box.
+    Middle,
+    /// The world's centre.
+    World,
+}
+
+impl SymmetryCentre {
+    /// All of them, in the order offered.
+    pub const ALL: [Self; 3] = [Self::Pivot, Self::Middle, Self::World];
+
+    /// Its name, for the menu.
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Pivot => "Object's pivot",
+            Self::Middle => "Object's middle",
+            Self::World => "World centre",
+        }
+    }
+
+    /// What it means, for tooltips.
+    pub fn explanation(self) -> &'static str {
+        match self {
+            Self::Pivot => "Through the object's pivot point, the point it moves and turns around",
+            Self::Middle => "Through the middle of the object's box, wherever its pivot is",
+            Self::World => {
+                "Through the world's centre, where the red and green lines cross: for a \
+                 shape built to be symmetrical about the middle of the scene"
+            }
         }
     }
 }

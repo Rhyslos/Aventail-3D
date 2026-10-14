@@ -514,8 +514,15 @@ fn with_symmetry_moving_a_point_moves_its_mirror() {
             .is_some()
     );
     press(&mut harness, Key::Num1);
-    // Its X, Y and Z switches are in the Attributes panel.
+    // Its X, Y and Z switches are in the menu beside the switch.
+    assert!(harness.query_by_label("Symmetry X").is_none());
+    harness
+        .get_by_label(crate::palette::SYMMETRY_MENU_LABEL)
+        .click();
+    harness.run();
     assert!(harness.query_by_label("Symmetry X").is_some());
+    harness.key_press(Key::Escape);
+    harness.run();
     // One top corner on the right.
     let mesh = shape(&harness);
     let right = mesh
@@ -622,4 +629,177 @@ fn alt_dragging_the_move_gizmo_slides_points_along_their_edges() {
         harness.state().workbench.document().undo_label(),
         Some("Slide 4 points")
     );
+}
+
+#[test]
+fn the_symmetry_menu_sets_the_axes_and_where_the_mirror_goes() {
+    let mut harness = fresh();
+    let id = cube(&harness);
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .set_selection([id]);
+    harness.run();
+    harness
+        .get_by_label(crate::palette::SYMMETRY_MENU_LABEL)
+        .click();
+    harness.run();
+    // Turned on, across Y as well, through the world centre.
+    harness.get_by_label("On").click();
+    harness.run();
+    harness.get_by_label("Symmetry Y").click();
+    harness.run();
+    harness.get_by_label("World centre").click();
+    harness.run();
+    let symmetry = harness.state().workbench.viewport().options().symmetry;
+    assert!(symmetry.on);
+    assert_eq!(symmetry.axes, [true, true, false]);
+    assert_eq!(symmetry.centre, crate::SymmetryCentre::World);
+    // Through the world centre, an object moved to x = 100 mirrors about
+    // its own x = -100.
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::SetTransforms(vec![(
+            id,
+            scene::Transform {
+                position: glam::Vec3::new(100.0, 0.0, 0.0),
+                ..Default::default()
+            },
+        )]))
+        .unwrap();
+    harness.run();
+    let mirror = harness.state().workbench.mirror_for(id).unwrap();
+    assert!(mirror.centre.distance(glam::Vec3::new(-100.0, 0.0, 0.0)) < 1e-3);
+    // Its middle: the box's centre, moved by the offset.
+    let options = harness.state_mut().workbench.viewport_mut().options_mut();
+    options.symmetry.centre = crate::SymmetryCentre::Middle;
+    options.symmetry.offset = [5.0, 0.0, 0.0];
+    let mirror = harness.state().workbench.mirror_for(id).unwrap();
+    assert!(mirror.centre.distance(glam::Vec3::new(5.0, 0.0, 50.0)) < 1e-3);
+    // Off: no mirror.
+    harness.state_mut().workbench.toggle_symmetry();
+    assert!(harness.state().workbench.mirror_for(id).is_none());
+}
+
+#[test]
+fn with_symmetry_points_can_be_kept_from_crossing_the_middle() {
+    let mut harness = fresh();
+    let id = cube(&harness);
+    let doc = harness.state_mut().workbench.document_mut();
+    doc.set_selection([id]);
+    doc.execute(scene::Command::SetPrimitive {
+        ids: vec![id],
+        primitive: scene::Primitive::Cube(mesh::CubeParams {
+            segments: [2, 1, 1],
+            ..Default::default()
+        }),
+    })
+    .unwrap();
+    harness.run();
+    harness.state_mut().workbench.toggle_symmetry();
+    harness
+        .state_mut()
+        .workbench
+        .viewport_mut()
+        .options_mut()
+        .symmetry
+        .clip = true;
+    press(&mut harness, Key::Num1);
+    let mesh = shape(&harness);
+    let right = mesh
+        .vertices()
+        .find(|(_, p)| p.x > 49.0 && p.y < -49.0 && p.z > 99.0)
+        .map(|(v, _)| v)
+        .unwrap();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .select_elements(
+            [(
+                id,
+                scene::ElementSelection::of([scene::Element::Point(right)]),
+            )],
+            "Select",
+            None,
+        );
+    press(&mut harness, Key::W);
+    // Dragged far to the left: it stops at the middle.
+    let start = x_arrow(&harness);
+    let path: Vec<Pos2> = (1..=8)
+        .map(|i| along_x(&harness, start, -(i as f32) * 20.0))
+        .collect();
+    drag_without_letting_go(&mut harness, start, &path);
+    let_go(&mut harness, *path.last().unwrap());
+    let moved = shape(&harness).position(right).unwrap();
+    assert!(moved.x.abs() < 1e-3, "{moved}");
+}
+
+#[test]
+fn weld_the_middle_now_joins_the_halves_once_when_asked() {
+    let mut harness = fresh();
+    let id = cube(&harness);
+    let doc = harness.state_mut().workbench.document_mut();
+    doc.set_selection([id]);
+    doc.execute(scene::Command::SetPrimitive {
+        ids: vec![id],
+        primitive: scene::Primitive::Cube(mesh::CubeParams {
+            segments: [2, 1, 1],
+            ..Default::default()
+        }),
+    })
+    .unwrap();
+    harness.run();
+    let middle = shape(&harness)
+        .vertices()
+        .find(|(_, p)| p.x.abs() < 1e-3)
+        .map(|(v, _)| v)
+        .unwrap();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::Record {
+            id,
+            operation: scene::Operation::MovePoints {
+                points: vec![middle],
+                offset: glam::Vec3::new(0.05, 0.0, 0.0),
+                anchors: None,
+            },
+        })
+        .unwrap();
+    harness.run();
+    // Nothing joins by itself: the point stays off the middle.
+    assert!((shape(&harness).position(middle).unwrap().x - 0.05).abs() < 1e-5);
+    harness
+        .get_by_label(crate::palette::SYMMETRY_MENU_LABEL)
+        .click();
+    harness.run();
+    harness
+        .get_by_label(crate::palette::WELD_MIDDLE_LABEL)
+        .click();
+    harness.run();
+    assert_eq!(shape(&harness).position(middle).unwrap().x, 0.0);
+    assert_eq!(
+        harness.state().workbench.document().undo_label(),
+        Some("Weld the middle")
+    );
+    // Ctrl + Z takes it back; with nothing near the middle, nothing is
+    // recorded.
+    harness.state_mut().workbench.document_mut().undo();
+    harness.run();
+    assert!((shape(&harness).position(middle).unwrap().x - 0.05).abs() < 1e-5);
+    harness
+        .state_mut()
+        .workbench
+        .viewport_mut()
+        .options_mut()
+        .symmetry
+        .weld_distance = 0.01;
+    let steps = harness.state().workbench.document().undo_steps();
+    harness.state_mut().workbench.weld_middle_now();
+    assert_eq!(harness.state().workbench.document().undo_steps(), steps);
 }

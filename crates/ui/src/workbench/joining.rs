@@ -86,6 +86,7 @@ impl Workbench {
         self.sessions += 1;
         let key = (1 << 57) | self.sessions;
         for (id, operation) in ops {
+            let operation = super::with_mirror(operation, self.edit_mirror(id));
             if let Err(why) =
                 self.document
                     .execute_labelled(Command::Record { id, operation }, label, Some(key))

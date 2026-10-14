@@ -110,7 +110,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Connect (A), Bridge (C, or drag edge to edge) and Weld (M, or Ctrl + M onto a point)
 - [x] Clean-up: Delete deletes, Backspace dissolves; fill hole and flip normals, with select flipped, fix facing and select similar facing
 - [x] Hard and soft edges, by hand or by angle, with hard edges and normals shown from the Display menu
-- [x] Symmetry: moving points moves their mirrors, across the shape's own X, Y or Z
+- [x] Symmetry: every edit is made on the other side too, across the shape's own X, Y or Z, through its pivot, its middle or the world centre
 - [x] Basics: hide and isolate, slide points and edges, duplicate and instances, split polygons off and join objects
 - [x] Keyboard shortcut viewer: every key in one place (Keys on the menu bar)
 
@@ -218,6 +218,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-14 | Symmetry for every edit (extrude, cut, weld, delete and the rest made on both sides) and a Symmetry menu (axes, where the mirror sits, offsets); project files at format version 14 |
 | 2026-10-14 | Closed slits: click the first point to close the line; drawn inside a polygon, it cuts its shape in |
 | 2026-10-14 | After testing Phase 4: Tab steps back to the Model mode, Connect on A, Fill hole on J, clicks select in Weld and Bridge, Weld snaps, the bend Angle resets, Dissolve asks before a sharp corner, bent polygons drawn right |
 | 2026-10-14 | Keyboard shortcut viewer (Keys on the menu bar). Every Phase 4 milestone built; the heavy-mesh check run for the gate |

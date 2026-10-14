@@ -7,7 +7,7 @@
 //! commands are merged into one undo step per drag (or per value typed).
 
 mod fields;
-mod stepper;
+pub(crate) mod stepper;
 
 use crate::objects::{DocRequest, kind_icon};
 use crate::panels::placeholder;
@@ -55,9 +55,6 @@ pub(crate) struct AttributesPanel {
     pub(crate) join: JoinLook,
     /// Hard edges by angle's angle, for its next use (decision 0053).
     pub(crate) hard_angle: HardAngle,
-    /// Symmetry (set by the workbench each frame, and read back): its
-    /// axes are chosen here while it is on (decision 0054).
-    pub(crate) symmetry: crate::Symmetry,
 }
 
 /// Hard edges by angle's angle in degrees, for its next use: edges whose
@@ -309,9 +306,6 @@ impl AttributesPanel {
                 .unwrap_or(false),
             _ => false,
         };
-        if self.symmetry.on {
-            self.symmetry_section(ui);
-        }
         // Another tool's last edit (an extrude while Inset is in use) is
         // left out, so the panel only shows the settings of the tool in
         // use: its rows would otherwise read as the tool's own.
@@ -408,37 +402,6 @@ impl AttributesPanel {
             });
     }
 
-    /// Symmetry's axes, while it is on: X, Y and Z switches in a row.
-    fn symmetry_section(&mut self, ui: &mut Ui) {
-        section(ui, "Symmetry");
-        ui.horizontal(|ui| {
-            label(
-                ui,
-                "Mirror across",
-                "The shape's own axes to mirror across: X mirrors left and right, Y front and \
-                 back, Z top and bottom. The mirror goes through the shape's own middle.",
-            );
-            for (axis, name) in ["X", "Y", "Z"].into_iter().enumerate() {
-                let response = ui.checkbox(&mut self.symmetry.axes[axis], name);
-                response.widget_info(|| {
-                    egui::WidgetInfo::selected(
-                        egui::WidgetType::Checkbox,
-                        true,
-                        self.symmetry.axes[axis],
-                        format!("Symmetry {name}"),
-                    )
-                });
-            }
-        });
-        if !self.symmetry.axes.contains(&true) {
-            ui.label(
-                RichText::new("Pick an axis: with none, nothing is mirrored.")
-                    .small()
-                    .color(theme::TEXT_WEAK),
-            );
-        }
-    }
-
     /// Extrude's, Inset's, Bevel's or Loop cut's own settings, while it is
     /// the tool in use: they apply to the next drag or cut.
     fn tool_section(&mut self, ui: &mut Ui, units: Units) {
@@ -519,11 +482,13 @@ impl AttributesPanel {
         section(ui, &format!("Last edit: {}", operation.describe()));
         let mut edited = settings;
         let mut changed = false;
+        // A mirrored edit shows the edit's own settings.
+        let kind = operation.inner();
         let bevel = matches!(
-            operation,
+            kind,
             Operation::BevelEdges { .. } | Operation::BevelPoints { .. }
         );
-        let low = match operation {
+        let low = match kind {
             Operation::ExtrudePolygons { .. } | Operation::ExtrudeEdges { .. } => -MAX_SIZE,
             _ => 0.0,
         };
@@ -542,7 +507,7 @@ impl AttributesPanel {
                         }
                         if touched.changed {
                             edited.cuts = Some(cuts);
-                            if matches!(operation, Operation::Connect { .. }) {
+                            if matches!(kind, Operation::Connect { .. }) {
                                 self.join.connect_cuts = cuts;
                             } else {
                                 self.loop_cut.cuts = cuts;
@@ -633,7 +598,7 @@ impl AttributesPanel {
                     if let Some(bend) = edited.bend {
                         // A straight extrude shows the tool's bend, turned
                         // to no angle: give it an angle and it bends so.
-                        let mut bend = if matches!(operation, Operation::ExtrudeBent { .. }) {
+                        let mut bend = if matches!(kind, Operation::ExtrudeBent { .. }) {
                             bend
                         } else {
                             scene::Bend {
@@ -962,7 +927,7 @@ fn grouping_of(together: bool) -> Grouping {
 /// Whether `operation` is the kind of edit `tool` makes.
 pub(crate) fn made_by(operation: &Operation, tool: Tool) -> bool {
     matches!(
-        (operation, tool),
+        (operation.inner(), tool),
         (
             Operation::ExtrudePolygons { .. }
                 | Operation::ExtrudeBent { .. }

@@ -133,16 +133,16 @@ impl Workbench {
                 names.join(" and ")
             )
         } else {
-            "Symmetry on, but no axis is chosen: pick X, Y or Z in the Attributes panel.".into()
+            "Symmetry on, but no axis is chosen: pick X, Y or Z in its menu (the arrow beside the Symmetry button).".into()
         });
     }
 
     /// `target` with symmetry, when it is on (decision 0054).
     pub(super) fn with_symmetry(&self, target: Target, drawing: &SceneDrawing) -> Target {
-        match self.viewport.options().symmetry.active_axes() {
-            Some(axes) => target.mirrored(drawing, axes),
-            None => target,
+        if self.viewport.options().symmetry.active_axes().is_none() {
+            return target;
         }
+        target.mirrored(drawing, |id| self.mirror_for(id))
     }
 
     /// `W`, `R`, `S`, `T` pick a tool; Shift+`X`, `Y`, `Z` lock axes; `L`
