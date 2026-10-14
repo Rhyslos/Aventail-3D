@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Keyboard shortcuts window.** Click **Keys** on the menu bar, after Help, for every key and mouse action in one place, grouped, with a search field.
 - **Slide.** In the Points, Edges and Polygons modes, hold **Alt** and drag the Move gizmo: the points slide along their edges, staying on the surface. Handy for moving a loop cut after making it.
 - **Split off and join.** **Mesh → Split off** moves the selected polygons into a new object of their own; **Join objects** (E menu in the Model mode, or the Mesh menu) makes the selected shapes one.
 - **Hide and isolate.** **Shift + H** hides the selection, **Ctrl + H** hides everything else, and **Alt + H** shows everything again: whole objects in the Model mode, polygons in the Points, Edges and Polygons modes (to see inside a shape). The left palette's **Show only the selection** button works now.
