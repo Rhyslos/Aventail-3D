@@ -8,7 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
-- **Closed slits.** With Slit (X), click three or more points and then the first point again: the line closes into a loop. Drawn inside a polygon, the loop cuts its shape into it as a polygon of its own, like a window in a wall, ready to extrude or delete for a hole. Clicking a line point without moving the mouse no longer nudges it.
+- **Closed slits.** With Slit (X), click three or more points and then the first point again: the line closes into a loop. Drawn inside a polygon, the loop cuts its shape into it as a polygon of its own, like a window in a wall, ready to extrude or delete for a hole. Clicking a line point without moving the mouse no longer nudges it. Lines that touch a polygon's edge from inside and carry on now keep cutting.
 - **Tab steps back.** Press **Tab** anywhere (not while typing) to go straight back to the Model mode: a Slit line is finished and a modelling tool put away, so a click selects objects again.
 - **Fill hole has a key: J.** Select a hole's rim and press J. To cap both ends of an open tube, select both rims and press J (C still bridges them with a tube).
 - **Dissolve asks before making a bent polygon.** Dissolving where polygons meet at a sharp corner (over 30°) asks first, with an "I know what I'm doing, proceed" tickbox and a "Don't warn me again" choice; switch the question back on in Settings → Interface → Warnings.

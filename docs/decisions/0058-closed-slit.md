@@ -27,8 +27,9 @@ How to save a closed line:
 
 ## Decision
 
-- **Click the first point to close**, chosen by the project lead. A click on a line point that doesn't move the mouse (within 3 screen points) is a click, not a drag: on the first point, with three or more points, it closes the line and finishes it. Hovering the first point shows the closing stretch.
+- **Click the first point to close**, chosen by the project lead. A click on a line point that doesn't move the mouse (within 6 screen points, as for any click) is a click, not a drag: on the first point, with three or more points, it closes the line and finishes it. Hovering the first point shows the closing stretch.
 - **A loop wholly inside one polygon** cuts its shape in as a polygon of its own, and the ring round it in two halves. One new edge goes from the polygon's corner nearest the shape to the shape's point facing it. The other goes from the corner most nearly opposite to the point facing that. If either half would cross itself (a star-shaped loop), other corners and points are tried, nearest first, a limited number of times; if none fits, that loop isn't cut. The shape keeps the polygon's way round, whichever way the loop was drawn.
+- **A line point snapped onto the border** may only touch it. From inside and back in, it counts as leaving and coming in again there; from outside and back out, it cuts nothing. So a loop touching the border at one spot still cuts its shape in, sharing that spot (the touch is the first of the two lines across the ring), and a loop touching it at two spots cuts the polygon in three. This also fixes open lines that touch the border from inside, which used to stop cutting there. A spot met by two stretches of the line is one new point, not two.
 - **A loop crossing polygons** cuts like an open line, the stretch back to the start included. Where the loop starts inside a polygon, the cut there runs from where the loop last comes in, through the start, to where it first leaves.
 - **Saved as the first point again at the end** (`SlitLine::is_closed`), so no format change.
 

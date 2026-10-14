@@ -39,7 +39,7 @@ const ANGLE_STEP: f32 = 15.0;
 /// How far (screen points) the mouse may move while pressing a line point
 /// for it to count as a click, not a drag: a click on a point leaves it
 /// where it is (and on the first point, closes the line).
-const CLICK_SLACK: f32 = 3.0;
+const CLICK_SLACK: f32 = 6.0;
 
 /// A slit's line being drawn.
 #[derive(Debug, Clone, PartialEq)]

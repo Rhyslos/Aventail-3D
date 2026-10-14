@@ -592,3 +592,126 @@ fn a_star_shaped_loop_still_cuts_cleanly() {
         assert!(simple(&flat), "{f:?} crosses itself");
     }
 }
+
+/// Every polygon is simple, faces up, and together they cover the plane.
+fn covers_the_plane(mesh: &Mesh) {
+    let r = MeshReport::new(mesh);
+    assert!(!r.has_problems(), "{r:?}");
+    let total: f32 = mesh.faces().map(|(f, _)| area(mesh, f)).sum();
+    assert!((total - 100.0 * 100.0).abs() < 1.0, "{total}");
+    for (f, c) in mesh.faces() {
+        assert!(mesh.face_normal(f).z > 0.99, "{f:?} faces up");
+        let flat: Vec<glam::Vec2> = c
+            .iter()
+            .map(|v| mesh.position(*v).unwrap().truncate())
+            .collect();
+        assert!(simple(&flat), "{f:?} crosses itself");
+        let mut seen = std::collections::BTreeSet::new();
+        assert!(c.iter().all(|v| seen.insert(*v)), "{f:?} repeats a corner");
+    }
+}
+
+#[test]
+fn a_loop_touching_the_border_at_one_point_cuts_its_shape_in() {
+    // The first point snapped onto the plane's left edge, the rest inside.
+    let line = closed(
+        &[
+            [-50.0, 0.0, 0.0],
+            [0.0, -20.0, 0.0],
+            [20.0, 0.0, 0.0],
+            [0.0, 20.0, 0.0],
+        ],
+        ABOVE,
+        false,
+    );
+    let mut mesh = plane();
+    assert_eq!(slit(&mut mesh, &line).matched, 1);
+    // The shape, and the rest cut in two: one new point on the edge.
+    assert_eq!(mesh.face_count(), 3);
+    assert_eq!(mesh.vertex_count(), 4 + 4);
+    covers_the_plane(&mesh);
+    // The same with the touching point in the middle of the line.
+    let line = closed(
+        &[
+            [0.0, -20.0, 0.0],
+            [20.0, 0.0, 0.0],
+            [0.0, 20.0, 0.0],
+            [-50.0, 0.0, 0.0],
+        ],
+        ABOVE,
+        false,
+    );
+    let mut mesh = plane();
+    assert_eq!(slit(&mut mesh, &line).matched, 1);
+    assert_eq!(mesh.face_count(), 3);
+    covers_the_plane(&mesh);
+}
+
+#[test]
+fn a_loop_touching_a_corner_shares_it() {
+    let line = closed(
+        &[[-50.0, -50.0, 0.0], [10.0, -30.0, 0.0], [-30.0, 10.0, 0.0]],
+        ABOVE,
+        false,
+    );
+    let mut mesh = plane();
+    assert_eq!(slit(&mut mesh, &line).matched, 1);
+    assert_eq!(mesh.vertex_count(), 4 + 2, "the corner is shared");
+    assert_eq!(mesh.face_count(), 3);
+    covers_the_plane(&mesh);
+}
+
+#[test]
+fn a_loop_touching_the_border_twice_cuts_in_two_pieces() {
+    // From the left edge to the right edge and back, bulging both ways:
+    // the two halves of a lens, cut out across the plane.
+    let line = closed(
+        &[
+            [-50.0, 0.0, 0.0],
+            [0.0, -20.0, 0.0],
+            [50.0, 0.0, 0.0],
+            [0.0, 20.0, 0.0],
+        ],
+        ABOVE,
+        false,
+    );
+    let mut mesh = plane();
+    let out = slit(&mut mesh, &line);
+    assert!(out.matched >= 1);
+    assert_eq!(mesh.face_count(), 3);
+    covers_the_plane(&mesh);
+}
+
+#[test]
+fn an_open_line_touching_the_border_from_inside_cuts_on() {
+    // In from the bottom, touching the right edge, out at the top.
+    let line = line(
+        &[
+            [0.0, -60.0, 0.0],
+            [10.0, -20.0, 0.0],
+            [50.0, 0.0, 0.0],
+            [10.0, 20.0, 0.0],
+            [0.0, 60.0, 0.0],
+        ],
+        ABOVE,
+        false,
+    );
+    let mut mesh = plane();
+    slit(&mut mesh, &line);
+    // Left of the line, and the wedge between it and the right edge, cut
+    // in two where it touches.
+    assert_eq!(mesh.face_count(), 3);
+    covers_the_plane(&mesh);
+    // Touching from outside cuts nothing.
+    let outside = line_from_outside();
+    let mut mesh = plane();
+    assert_eq!(slit(&mut mesh, &outside).skipped, 1);
+}
+
+fn line_from_outside() -> SlitLine {
+    line(
+        &[[60.0, -20.0, 0.0], [50.0, 0.0, 0.0], [60.0, 20.0, 0.0]],
+        ABOVE,
+        false,
+    )
+}

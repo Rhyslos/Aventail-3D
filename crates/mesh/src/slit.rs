@@ -73,12 +73,23 @@ impl SlitLine {
     }
 }
 
-/// A closed line drawn wholly inside one polygon: the spots of its
-/// points there, in order.
+/// A closed line drawn inside one polygon: the spots of its points there,
+/// in order, and where it touches the border, if it does at one spot
+/// (the loop then runs from there through the spots and back).
 #[derive(Debug, Clone, PartialEq)]
 struct InnerLoop {
     face: FaceId,
     spots: Vec<Vec3>,
+    touch: Option<Meets>,
+}
+
+/// Whether two meetings are the same spot on a polygon's border.
+fn same_spot(a: Meets, b: Meets) -> bool {
+    match (a, b) {
+        (Meets::Point(x), Meets::Point(y)) => x == y,
+        (Meets::Edge(x, tx, _), Meets::Edge(y, ty, _)) => x == y && (tx - ty).abs() < 1e-3,
+        _ => false,
+    }
 }
 
 /// Something the line meets on a polygon's border or inside it.
@@ -381,19 +392,71 @@ fn chains(mesh: &Mesh, line: &SlitLine) -> (Vec<Chain>, Vec<InnerLoop>) {
         if meets.is_empty() {
             continue;
         }
+        // A closed line's end is its start.
+        if closed {
+            for (at, _) in &mut meets {
+                if *at > own as f32 - 1e-3 {
+                    *at -= own as f32;
+                }
+            }
+        }
         meets.sort_by(|a, b| a.0.total_cmp(&b.0));
         // The same point met twice in a row (where two stretches join, or
         // by both edges at a corner) counts once.
-        meets.dedup_by(|b, a| {
-            (b.0 - a.0).abs() < 1e-3
-                && match (a.1, b.1) {
-                    (Meets::Point(x), Meets::Point(y)) => x == y,
-                    (Meets::Edge(x, tx, _), Meets::Edge(y, ty, _)) => {
-                        x == y && (tx - ty).abs() < 1e-3
-                    }
-                    _ => false,
+        meets.dedup_by(|b, a| (b.0 - a.0).abs() < 1e-3 && same_spot(a.1, b.1));
+        // A line point on the border (snapped to a point or an edge) may
+        // only touch it: from inside and back in, it both leaves and comes
+        // in again there; from outside and back out, it cuts nothing.
+        let inside_at = |at: f32| {
+            let last = (points.len() - 1) as f32;
+            let at = if closed {
+                at.rem_euclid(own as f32)
+            } else {
+                at
+            };
+            if !(0.0..=last).contains(&at) {
+                return false;
+            }
+            let s = (at.floor() as usize).min(points.len() - 2);
+            let p = points[s].lerp(points[s + 1], at - s as f32);
+            let Some((from, way)) = sweep.ray(p) else {
+                return false;
+            };
+            let denom = way.dot(normal);
+            if denom.abs() < 1e-9 {
+                return false;
+            }
+            let t = (middle - from).dot(normal) / denom;
+            t > 0.0 && strictly_inside(mesh, face, normal, from + way * t, 0.0)
+        };
+        let mut sorted = Vec::with_capacity(meets.len());
+        for (at, m) in meets {
+            let k = at.round();
+            let at_point = (at - k).abs() < 1e-3;
+            let end_of_open = !closed && (k <= 0.0 || k >= (points.len() - 1) as f32);
+            if matches!(m, Meets::Inside(_)) || !at_point || end_of_open {
+                sorted.push((at, m));
+                continue;
+            }
+            const STEP: f32 = 0.01;
+            match (inside_at(k - STEP), inside_at(k + STEP)) {
+                (true, true) => {
+                    // Arriving just before, leaving just after; at a
+                    // closed line's start, it arrives at the very end.
+                    let arrive = if closed && k == 0.0 {
+                        own as f32 - 1e-6
+                    } else {
+                        at - 1e-6
+                    };
+                    sorted.push((arrive, m));
+                    sorted.push((at + 1e-6, m));
                 }
-        });
+                (false, false) => {}
+                _ => sorted.push((at, m)),
+            }
+        }
+        sorted.sort_by(|a, b| a.0.total_cmp(&b.0));
+        let mut meets = sorted;
         if closed {
             let first_border = meets
                 .iter()
@@ -409,7 +472,11 @@ fn chains(mesh: &Mesh, line: &SlitLine) -> (Vec<Chain>, Vec<InnerLoop>) {
                                 _ => None,
                             })
                             .collect();
-                        let inner = InnerLoop { face, spots };
+                        let inner = InnerLoop {
+                            face,
+                            spots,
+                            touch: None,
+                        };
                         if seen_loop(mesh, &sweep, &inner) {
                             loops.push(inner);
                         }
@@ -431,6 +498,19 @@ fn chains(mesh: &Mesh, line: &SlitLine) -> (Vec<Chain>, Vec<InnerLoop>) {
                 (Meets::Inside(p), Some(_)) => inside.push(p),
                 (Meets::Inside(_), None) => {}
                 (border, None) => start = Some(border),
+                (border, Some(first)) if closed && same_spot(first, border) => {
+                    // Out and back in at the same spot: a loop touching
+                    // the border there.
+                    let inner = InnerLoop {
+                        face,
+                        spots: std::mem::take(&mut inside),
+                        touch: Some(border),
+                    };
+                    if inner.spots.len() >= 2 && seen_loop(mesh, &sweep, &inner) {
+                        loops.push(inner);
+                    }
+                    start = None;
+                }
                 (border, Some(first)) => {
                     let chain = Chain {
                         face,
@@ -582,6 +662,17 @@ pub fn slit(mesh: &mut Mesh, line: &SlitLine) -> Outcome {
                 if let Some(v) = on_edges.get(&(e, s)) {
                     return Some(*v);
                 }
+                // The same spot met by another stretch: one point.
+                let found = on_edges
+                    .range((e, 0)..=(e, usize::MAX))
+                    .map(|(_, v)| *v)
+                    .find(
+                        |v| matches!(made.get(v), Some(Made::Edge(_, u)) if (u - t).abs() < 1e-3),
+                    );
+                if let Some(v) = found {
+                    on_edges.insert((e, s), v);
+                    return Some(v);
+                }
                 let (a, b) = e.ends();
                 let p = original.position(a)?.lerp(original.position(b)?, t);
                 let v = build.point(p, PointFrom::Between(a, b, t));
@@ -614,6 +705,12 @@ pub fn slit(mesh: &mut Mesh, line: &SlitLine) -> Outcome {
             ));
         }
     }
+    // Where loops touch the border: points there too, so the polygons
+    // beside take them as corners.
+    let touches: Vec<Option<VertexId>> = loops
+        .iter()
+        .map(|l| l.touch.and_then(|t| point_at(&mut build, t, l.face)))
+        .collect();
     // The new points along each cut edge, by how far along they are.
     let mut along: BTreeMap<EdgeKey, Vec<(f32, VertexId)>> = BTreeMap::new();
     for ((edge, _), v) in &on_edges {
@@ -623,6 +720,8 @@ pub fn slit(mesh: &mut Mesh, line: &SlitLine) -> Outcome {
     }
     for list in along.values_mut() {
         list.sort_by(|a, b| a.0.total_cmp(&b.0));
+        // One point met by several stretches is listed once.
+        list.dedup_by_key(|(_, v)| *v);
     }
 
     // 2. Every polygon beside a cut edge takes its new points as corners.
@@ -630,6 +729,7 @@ pub fn slit(mesh: &mut Mesh, line: &SlitLine) -> Outcome {
         .keys()
         .flat_map(|e| topology.edge_faces(*e))
         .chain(chains.iter().map(|c| c.face))
+        .chain(loops.iter().map(|l| l.face))
         .collect();
     let mut outlines: BTreeMap<FaceId, Vec<VertexId>> = BTreeMap::new();
     for face in &touched {
@@ -661,11 +761,31 @@ pub fn slit(mesh: &mut Mesh, line: &SlitLine) -> Outcome {
         let Some(list) = pieces.get_mut(&chain.face) else {
             continue;
         };
-        let Some(k) = list
-            .iter()
-            .position(|p| p.contains(start) && p.contains(end))
-        else {
-            continue;
+        // The piece holding both ends; with several (a polygon already
+        // cut between the same two spots), the one the cut runs through.
+        let holders: Vec<usize> = (0..list.len())
+            .filter(|k| list[*k].contains(start) && list[*k].contains(end))
+            .collect();
+        let k = match holders.as_slice() {
+            [] => continue,
+            [one] => *one,
+            many => {
+                let normal = original.face_normal(chain.face);
+                let through = chain.inside.first().copied().or_else(|| {
+                    let a = build.mesh().position(*start)?;
+                    let b = build.mesh().position(*end)?;
+                    Some(a.lerp(b, 0.5))
+                });
+                let mesh = build.mesh();
+                match through.and_then(|p| {
+                    many.iter()
+                        .copied()
+                        .find(|k| piece_holds(mesh, &list[*k], normal, p))
+                }) {
+                    Some(k) => k,
+                    None => many[0],
+                }
+            }
         };
         let piece = &list[k];
         let n = piece.len();
@@ -703,7 +823,10 @@ pub fn slit(mesh: &mut Mesh, line: &SlitLine) -> Outcome {
     // 3b. A loop inside a polygon: its shape becomes a polygon of its own,
     //     and the ring round it is cut in two from the polygon's corners.
     let mut looped = 0;
-    for inner in &loops {
+    for (inner, touch) in loops.iter().zip(&touches) {
+        if inner.touch.is_some() && touch.is_none() {
+            continue;
+        }
         let outline = match pieces.get(&inner.face) {
             Some(list) if list.len() == 1 => list[0].clone(),
             Some(_) => continue,
@@ -712,7 +835,22 @@ pub fn slit(mesh: &mut Mesh, line: &SlitLine) -> Outcome {
                 None => continue,
             },
         };
-        let Some((one, two, shape)) = ring_cut(&original, inner, &outline, |p| {
+        let placed: Option<Vec<(VertexId, Vec3)>> = outline
+            .iter()
+            .map(|v| Some((*v, build.mesh().position(*v)?)))
+            .collect();
+        let Some(placed) = placed else {
+            continue;
+        };
+        let touch_at = match touch {
+            Some(v) => match build.mesh().position(*v) {
+                Some(p) => Some((*v, p)),
+                None => continue,
+            },
+            None => None,
+        };
+        let normal = original.face_normal(inner.face);
+        let Some((one, two, shape)) = ring_cut(normal, inner, &placed, touch_at, |p| {
             let v = build.point(p, PointFrom::Inside(inner.face, p));
             made.insert(v, Made::Inside(inner.face, p));
             v
@@ -780,39 +918,55 @@ pub fn slit(mesh: &mut Mesh, line: &SlitLine) -> Outcome {
 /// The three polygons a loop inside a polygon makes: the two halves of the
 /// ring between the polygon's `outline` and the loop, and the loop's own
 /// shape, each running the polygon's way round. `point` makes the loop's
-/// points. The ring is cut by two lines from outline corners to loop
-/// points on opposite sides, each from a corner to the loop point facing
-/// it, so neither half has a hole. `None` for a loop of fewer than three
-/// points, or a polygon with no facing.
+/// new points; a loop touching the border at one point (`touch`, a point
+/// already on the outline) shares it. The ring is cut by two lines from
+/// outline corners to loop points on opposite sides, each from a corner to
+/// the loop point facing it (for a touching loop, the touch is the first
+/// line), so neither half has a hole. `None` for a loop of fewer than
+/// three points, a polygon with no facing, or a ring no lines could cut
+/// cleanly.
 fn ring_cut(
-    mesh: &Mesh,
+    normal: Vec3,
     inner: &InnerLoop,
-    outline: &[VertexId],
+    outline: &[(VertexId, Vec3)],
+    touch: Option<(VertexId, Vec3)>,
     mut point: impl FnMut(Vec3) -> VertexId,
 ) -> Option<(Vec<VertexId>, Vec<VertexId>, Vec<VertexId>)> {
-    let (n, m) = (outline.len(), inner.spots.len());
+    let n = outline.len();
+    // The loop's corners: the touch first (if any), then its spots.
+    let mut corners: Vec<(Option<VertexId>, Vec3)> = Vec::new();
+    if let Some((v, at)) = touch {
+        corners.push((Some(v), at));
+    }
+    corners.extend(inner.spots.iter().map(|p| (None, *p)));
+    let m = corners.len();
     if n < 3 || m < 3 {
         return None;
     }
-    let normal = mesh.face_normal(inner.face).try_normalize()?;
-    let outer: Vec<Vec3> = outline
-        .iter()
-        .map(|v| mesh.position(*v))
-        .collect::<Option<_>>()?;
+    let normal = normal.try_normalize()?;
+    let outer: Vec<Vec3> = outline.iter().map(|(_, p)| *p).collect();
     // The loop runs the polygon's way round.
-    let mut spots = inner.spots.clone();
-    let middle = spots.iter().copied().sum::<Vec3>() / m as f32;
-    let turn: f32 = spots
+    let middle = corners.iter().map(|(_, p)| *p).sum::<Vec3>() / m as f32;
+    let turn: f32 = corners
         .iter()
-        .zip(spots.iter().cycle().skip(1))
-        .map(|(a, b)| (*a - middle).cross(*b - middle).dot(normal))
+        .zip(corners.iter().cycle().skip(1))
+        .map(|((_, a), (_, b))| (*a - middle).cross(*b - middle).dot(normal))
         .sum();
     if turn.abs() < 1e-9 {
         return None;
     }
     if turn < 0.0 {
-        spots.reverse();
+        corners.reverse();
     }
+    let spot = |q: usize| corners[q].1;
+    // Where the touch is, on the outline and on the loop.
+    let touched = match touch {
+        Some((v, _)) => Some((
+            outline.iter().position(|(o, _)| *o == v)?,
+            corners.iter().position(|(id, _)| *id == Some(v))?,
+        )),
+        None => None,
+    };
     // Angles round the loop's middle, on the polygon's plane.
     let x = normal.any_orthonormal_vector();
     let y = normal.cross(x);
@@ -824,18 +978,36 @@ fn ring_cut(
         let d = (a - b).rem_euclid(std::f32::consts::TAU);
         d.min(std::f32::consts::TAU - d)
     };
-    let facing = |at: f32, skip: Option<usize>| {
+    let facing = |at: f32, skip: usize| {
         (0..m)
-            .filter(|q| Some(*q) != skip)
-            .min_by(|a, b| apart(angle(spots[*a]), at).total_cmp(&apart(angle(spots[*b]), at)))
+            .filter(|q| *q != skip)
+            .min_by(|a, b| apart(angle(spot(*a)), at).total_cmp(&apart(angle(spot(*b)), at)))
     };
-    // Each half as positions on the polygon's plane, for checking it.
-    let flat = |p: Vec3| glam::Vec2::new(p.dot(x), p.dot(y));
-    let half_at = |from_o: usize, to_o: usize, from_q: usize, to_q: usize| {
-        let mut out = Vec::new();
+    /// A corner of a half: on the outline, or on the loop.
+    #[derive(Clone, Copy, PartialEq)]
+    enum Corner {
+        Outer(usize),
+        Loop(usize),
+    }
+    // The outline forward from one corner to another, then the loop back
+    // from one point to another; the touch, met twice, counts once.
+    let half = |from_o: usize, to_o: usize, from_q: usize, to_q: usize| {
+        let same = |a: Corner, b: Corner| {
+            a == b
+                || touched.is_some_and(|(o, q)| {
+                    (a, b) == (Corner::Outer(o), Corner::Loop(q))
+                        || (a, b) == (Corner::Loop(q), Corner::Outer(o))
+                })
+        };
+        let mut out: Vec<Corner> = Vec::new();
+        let push = |c: Corner, out: &mut Vec<Corner>| {
+            if out.last().is_none_or(|l| !same(*l, c)) {
+                out.push(c);
+            }
+        };
         let mut o = from_o;
         loop {
-            out.push(flat(outer[o]));
+            push(Corner::Outer(o), &mut out);
             if o == to_o {
                 break;
             }
@@ -843,69 +1015,92 @@ fn ring_cut(
         }
         let mut q = from_q;
         loop {
-            out.push(flat(spots[q]));
+            push(Corner::Loop(q), &mut out);
             if q == to_q {
                 break;
             }
             q = (q + m - 1) % m;
         }
+        if out.len() > 1 && same(out[0], out[out.len() - 1]) {
+            out.pop();
+        }
         out
     };
-    let fits = |(i_o, i_q, j_o, j_q): (usize, usize, usize, usize)| {
-        i_o != j_o
-            && i_q != j_q
-            && simple(&half_at(i_o, j_o, j_q, i_q))
-            && simple(&half_at(j_o, i_o, i_q, j_q))
+    let place = |c: Corner| match c {
+        Corner::Outer(o) => outer[o],
+        Corner::Loop(q) => spot(q),
     };
-    // The first line from the outline corner nearest the loop, to the loop
-    // point facing it; the second from the corner most nearly opposite.
-    let nearest_corner = (0..n).min_by(|a, b| {
-        let near = |o: usize| {
-            spots
-                .iter()
-                .map(|s| s.distance_squared(outer[o]))
-                .fold(f32::INFINITY, f32::min)
+    let flat = |p: Vec3| glam::Vec2::new(p.dot(x), p.dot(y));
+    let fits = |(i_o, i_q, j_o, j_q): (usize, usize, usize, usize)| {
+        let ok = |h: Vec<Corner>| {
+            h.len() >= 3 && simple(&h.iter().map(|c| flat(place(*c))).collect::<Vec<_>>())
         };
-        near(*a).total_cmp(&near(*b))
-    })?;
-    let choice = |i_o: usize| -> Option<(usize, usize, usize, usize)> {
-        let i_q = facing(angle(outer[i_o]), None)?;
+        i_o != j_o && i_q != j_q && ok(half(i_o, j_o, j_q, i_q)) && ok(half(j_o, i_o, i_q, j_q))
+    };
+    // The first line: the touch, or from the outline corner nearest the
+    // loop to the loop point facing it. The second: from the corner most
+    // nearly opposite to the loop point facing that.
+    let first = match touched {
+        Some(t) => t,
+        None => {
+            let i_o = (0..n).min_by(|a, b| {
+                let near = |o: usize| {
+                    (0..m)
+                        .map(|q| spot(q).distance_squared(outer[o]))
+                        .fold(f32::INFINITY, f32::min)
+                };
+                near(*a).total_cmp(&near(*b))
+            })?;
+            (i_o, facing(angle(outer[i_o]), usize::MAX)?)
+        }
+    };
+    let second = |(i_o, i_q): (usize, usize)| -> Option<(usize, usize)> {
         let opposite = angle(outer[i_o]) + std::f32::consts::PI;
         let j_o = (0..n).filter(|o| *o != i_o).min_by(|a, b| {
             apart(angle(outer[*a]), opposite).total_cmp(&apart(angle(outer[*b]), opposite))
         })?;
-        let j_q = facing(angle(outer[j_o]), Some(i_q))?;
-        Some((i_o, i_q, j_o, j_q))
+        Some((j_o, facing(angle(outer[j_o]), i_q)?))
     };
+    let chosen = second(first)
+        .map(|(j_o, j_q)| (first.0, first.1, j_o, j_q))
+        .filter(|c| fits(*c));
     // If those lines would cross the loop (a star-shaped loop, say), try
     // other corners and points, nearest first, a limited number of times.
-    let tried = choice(nearest_corner).filter(|c| fits(*c));
-    let (i_o, i_q, j_o, j_q) = match tried {
+    let (i_o, i_q, j_o, j_q) = match chosen {
         Some(c) => c,
         None => {
             let by_distance = |at: Vec3| {
                 let mut order: Vec<usize> = (0..m).collect();
                 order.sort_by(|a, b| {
-                    spots[*a]
+                    spot(*a)
                         .distance_squared(at)
-                        .total_cmp(&spots[*b].distance_squared(at))
+                        .total_cmp(&spot(*b).distance_squared(at))
                 });
                 order
             };
+            let starts: Vec<(usize, usize)> = match touched {
+                Some(t) => vec![t],
+                None => (0..n)
+                    .flat_map(|a| {
+                        by_distance(outer[a])
+                            .into_iter()
+                            .take(8)
+                            .map(move |q| (a, q))
+                    })
+                    .collect(),
+            };
             let mut found = None;
             let mut budget = 400;
-            'search: for a in 0..n {
-                for &qa in by_distance(outer[a]).iter().take(8) {
-                    for b in (0..n).filter(|b| *b != a) {
-                        for &qb in by_distance(outer[b]).iter().take(8) {
-                            budget -= 1;
-                            if budget == 0 {
-                                break 'search;
-                            }
-                            if fits((a, qa, b, qb)) {
-                                found = Some((a, qa, b, qb));
-                                break 'search;
-                            }
+            'search: for (a, qa) in starts {
+                for b in (0..n).filter(|b| *b != a) {
+                    for &qb in by_distance(outer[b]).iter().take(8) {
+                        budget -= 1;
+                        if budget == 0 {
+                            break 'search;
+                        }
+                        if fits((a, qa, b, qb)) {
+                            found = Some((a, qa, b, qb));
+                            break 'search;
                         }
                     }
                 }
@@ -913,31 +1108,44 @@ fn ring_cut(
             found?
         }
     };
-    let ids: Vec<VertexId> = spots.iter().map(|p| point(*p)).collect();
-    // Outline forward from one corner to the other, then the loop back.
-    let half = |from_o: usize, to_o: usize, from_q: usize, to_q: usize| {
-        let mut out = Vec::new();
-        let mut o = from_o;
-        loop {
-            out.push(outline[o]);
-            if o == to_o {
-                break;
-            }
-            o = (o + 1) % n;
-        }
-        let mut q = from_q;
-        loop {
-            out.push(ids[q]);
-            if q == to_q {
-                break;
-            }
-            q = (q + m - 1) % m;
-        }
-        out
+    // Only now make the loop's points, once the cut is sure.
+    let ids: Vec<VertexId> = corners
+        .iter()
+        .map(|(id, p)| id.unwrap_or_else(|| point(*p)))
+        .collect();
+    let to_ids = |h: Vec<Corner>| -> Vec<VertexId> {
+        h.into_iter()
+            .map(|c| match c {
+                Corner::Outer(o) => outline[o].0,
+                Corner::Loop(q) => ids[q],
+            })
+            .collect()
     };
-    let one = half(i_o, j_o, j_q, i_q);
-    let two = half(j_o, i_o, i_q, j_q);
+    let one = to_ids(half(i_o, j_o, j_q, i_q));
+    let two = to_ids(half(j_o, i_o, i_q, j_q));
     Some((one, two, ids))
+}
+
+/// Whether the spot `p` lies inside the polygon through `corners` of
+/// `mesh`, seen along `normal`.
+fn piece_holds(mesh: &Mesh, corners: &[VertexId], normal: Vec3, p: Vec3) -> bool {
+    let points: Vec<Vec3> = corners.iter().filter_map(|v| mesh.position(*v)).collect();
+    let axis = normal.abs().max_position();
+    let flat = |v: Vec3| match axis {
+        0 => (v.y, v.z),
+        1 => (v.z, v.x),
+        _ => (v.x, v.y),
+    };
+    let (px, py) = flat(p);
+    let n = points.len();
+    let mut inside = false;
+    for i in 0..n {
+        let ((ax, ay), (bx, by)) = (flat(points[i]), flat(points[(i + 1) % n]));
+        if (ay > py) != (by > py) && px < ax + (py - ay) / (by - ay) * (bx - ax) {
+            inside = !inside;
+        }
+    }
+    inside
 }
 
 /// Whether a flat polygon doesn't cross itself: no two of its sides that

@@ -38,6 +38,8 @@ To cut a shape into the middle of a polygon, like a window in a wall, draw its o
 
 The shape becomes a polygon of its own, ready to [extrude](extrude-and-inset.md), [inset](extrude-and-inset.md) or delete for a hole. A polygon can't have a hole in it, so the ring of polygon left round the shape is cut in two, by two new edges from the polygon's corners to the shape.
 
+Points of the loop may sit on the polygon's border too (snapped to an edge or a corner): the shape is still cut in, sharing that spot.
+
 A closed loop doesn't have to stay inside one polygon. Across several polygons it cuts like any line, the stretch back to the start included, so you can cut a shape over an edge or round a corner.
 
 ![A square cut into the cube's front with a closed slit: the square is its own polygon, and two edges from the front's corners cut the ring round it in two.](../screenshots/2026-10-14-slit-closed.png)
