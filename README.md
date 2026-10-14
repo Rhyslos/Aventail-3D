@@ -4,7 +4,7 @@
 
 Aventail 3D is a free, open-source modelling and UV unwrapping tool for **hard-surface game assets**, written in Rust. Model it, unwrap it, and export it to Substance Painter and Godot, all in one app.
 
-> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout and a real 3D view you can orbit, pan and zoom around, from four views at once if you like. You can create primitives (cube, plane, cylinder, sphere, disc, tube, cone) and groups, organise them in the Objects panel, and undo every change. Press B for a list of shapes, and select one to change its size and segments in the Attributes panel, or press Ctrl + E to make it a plain, editable mesh. Press 1, 2 or 3 to see and select a selected shape's points, edges or polygons, and W, R or S to move, rotate or scale what's selected; change a shape's settings afterwards and your edits follow. Save your work as a project and open it again later. Press E anywhere for a menu of the tools for what you're working on, D or I to extrude or inset polygons, V to bevel edges, F to cut a new loop of edges around a shape, X to cut along a line you draw, J, C and M to connect, bridge and weld, Delete or Backspace to delete or dissolve points, edges and polygons, Shift/Ctrl/Alt + H to hide, isolate and show, and Ctrl + C and Ctrl + V (Alt + V for instances) to copy objects. Heavy shapes of millions of polygons stay quick to work with, and backup copies saved in the background bring your work back after a crash. More modelling tools follow through Phase 4. Follow the progress tracker below.
+> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout and a real 3D view you can orbit, pan and zoom around, from four views at once if you like. You can create primitives (cube, plane, cylinder, sphere, disc, tube, cone) and groups, organise them in the Objects panel, and undo every change. Press B for a list of shapes, and select one to change its size and segments in the Attributes panel, or press Ctrl + E to make it a plain, editable mesh. Press 1, 2 or 3 to see and select a selected shape's points, edges or polygons, and W, R or S to move, rotate or scale what's selected; change a shape's settings afterwards and your edits follow. Save your work as a project and open it again later. Press E anywhere for a menu of the tools for what you're working on, D or I to extrude or inset polygons, V to bevel edges, F to cut a new loop of edges around a shape, X to cut along a line you draw, J, C and M to connect, bridge and weld, Delete or Backspace to delete or dissolve points, edges and polygons, Shift/Ctrl/Alt + H to hide, isolate and show, and Ctrl + C and Ctrl + V (Alt + V for instances) to copy objects. Heavy shapes of millions of polygons stay quick to work with, and backup copies saved in the background bring your work back after a crash. Click Keys on the menu bar for every key. Every Phase 4 modelling tool is in; the phase's gate (modelling a simple prop start to finish) comes next, then export in Phase 5. Follow the progress tracker below.
 
 Created by **Rhyslos**, built with AI assistance (Claude by Anthropic). Part of the **Rhylib** family of tools, alongside [Halberd](https://github.com/Rhyslos/halberd).
 
@@ -91,9 +91,9 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** points, edges and polygons can be selected and moved precisely, and a cube's segments can still be changed afterwards. ✅ *Passed 2026-10-12: tested by the project lead.*
 
-### Phase 4 · Core modelling tools — 14 of 15
+### Phase 4 · Core modelling tools — 15 of 15
 
-`████████████░` 93%
+`█████████████` 100%
 
 <details>
 <summary>Milestones</summary>
@@ -112,7 +112,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Hard and soft edges, by hand or by angle, with hard edges and normals shown from the Display menu
 - [x] Symmetry: moving points moves their mirrors, across the shape's own X, Y or Z
 - [x] Basics: hide and isolate, slide points and edges, duplicate and instances, split polygons off and join objects
-- [ ] Keyboard shortcut viewer: every key in one place
+- [x] Keyboard shortcut viewer: every key in one place (Keys on the menu bar)
 
 </details>
 
@@ -218,6 +218,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-14 | Keyboard shortcut viewer (Keys on the menu bar). Every Phase 4 milestone built; the heavy-mesh check run for the gate |
 | 2026-10-14 | Basics, second part: slide (Alt + drag on the Move gizmo), split off, join objects; project files at format version 13 |
 | 2026-10-14 | Basics, first part: hide and isolate (Shift/Ctrl/Alt + H), copies and instances (Ctrl/Alt + C and V, Duplicate and Instance in the E menu); project files at format version 12 |
 | 2026-10-14 | Symmetry: a palette switch, with X, Y and Z in the Attributes panel; moving, rotating and scaling points moves their mirrors too |

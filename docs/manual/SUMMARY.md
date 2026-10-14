@@ -6,6 +6,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 ## Basics
 - [Concepts: the ideas behind 3D modelling for games](concepts.md)
 - [Interface tour: the window, the modes, and rearranging panels](interface-tour.md)
+- [Keyboard shortcuts: every key in one place (Keys on the menu bar)](keyboard-shortcuts.md)
 - [The tool menu (E): every tool for what you're working on, at the mouse](tool-menu.md)
 - [Navigating the view: orbit, pan and zoom, and the grid](navigating-the-view.md)
 - [The Objects panel: select, rename, group, hide, delete, and undo](objects.md)

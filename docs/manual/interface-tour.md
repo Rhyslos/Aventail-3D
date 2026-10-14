@@ -62,6 +62,8 @@ One colour marks what's active: the current mode (and later the current tool), t
 
 ## Shortcuts
 
+Every key is listed in the **Keys** window: click **Keys** on the menu bar, after Help (see [Keyboard shortcuts](keyboard-shortcuts.md)). The most used:
+
 | Action | Shortcut |
 |---|---|
 | New, open, save, save as | `Ctrl + N`, `Ctrl + O`, `Ctrl + S`, `Ctrl + Shift + S` |
