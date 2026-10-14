@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 /// Version 12 of the file.
+#[cfg(test)]
 pub(crate) type ProjectV12 = ProjectWithInstances<EntryV12>;
 
 /// A recorded edit in version 12.

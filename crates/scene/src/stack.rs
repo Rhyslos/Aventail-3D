@@ -236,6 +236,14 @@ pub enum Operation {
         /// Where they were, to find them again (decision 0032).
         anchors: Option<Anchors>,
     },
+    /// Slides points along their edges towards a neighbour each
+    /// (decision 0055).
+    SlidePoints {
+        /// Each point, its neighbour and how far along the edge.
+        slides: Vec<edit::Slide>,
+        /// Where the points were, then their neighbours (decision 0032).
+        anchors: Option<Anchors>,
+    },
     /// Marks every edge whose polygons meet more sharply than `angle`
     /// degrees hard and the rest soft (decision 0053). Worked out from the
     /// shape as it is.
@@ -386,6 +394,7 @@ impl Operation {
                 counted(verb, edges.len(), "edge")
             }
             Self::HardEdgesByAngle { .. } => "Hard edges by angle".to_string(),
+            Self::SlidePoints { slides, .. } => counted("Slide", slides.len(), "point"),
             Self::Bridge { edges, .. } => counted("Bridge", edges.len(), "edge"),
             Self::Weld { points, target, .. } => {
                 let n = points.len() + usize::from(target.is_some_and(|t| !points.contains(&t)));
@@ -466,6 +475,7 @@ impl Operation {
             | Self::FillHoles { .. }
             | Self::FlipPolygons { .. }
             | Self::SetHardEdges { .. }
+            | Self::SlidePoints { .. }
             | Self::FixFacing => None,
             Self::MovePoints { .. } | Self::TransformPoints { .. } => None,
         }
@@ -583,6 +593,7 @@ impl Operation {
             | Self::FillHoles { .. }
             | Self::FlipPolygons { .. }
             | Self::SetHardEdges { .. }
+            | Self::SlidePoints { .. }
             | Self::FixFacing => {}
             Self::MovePoints { .. } | Self::TransformPoints { .. } => {}
         }
@@ -623,6 +634,7 @@ impl Operation {
             | Self::FlipPolygons { .. }
             | Self::SetHardEdges { .. }
             | Self::FixFacing => true,
+            Self::SlidePoints { slides, .. } => slides.iter().all(|s| s.amount.is_finite()),
             Self::HardEdgesByAngle { angle } => angle.is_finite(),
             Self::ExtrudeBent { distance, bend, .. } => {
                 distance.is_finite()
@@ -660,7 +672,8 @@ impl Operation {
             | Self::Dissolve { anchors, .. }
             | Self::FillHoles { anchors, .. }
             | Self::FlipPolygons { anchors, .. }
-            | Self::SetHardEdges { anchors, .. } => anchors.as_ref(),
+            | Self::SetHardEdges { anchors, .. }
+            | Self::SlidePoints { anchors, .. } => anchors.as_ref(),
             Self::FixFacing | Self::HardEdgesByAngle { .. } => None,
             Self::Slit { .. } => None,
         }
@@ -686,7 +699,8 @@ impl Operation {
             | Self::Dissolve { anchors, .. }
             | Self::FillHoles { anchors, .. }
             | Self::FlipPolygons { anchors, .. }
-            | Self::SetHardEdges { anchors, .. } => anchors.as_mut(),
+            | Self::SetHardEdges { anchors, .. }
+            | Self::SlidePoints { anchors, .. } => anchors.as_mut(),
             Self::FixFacing | Self::HardEdgesByAngle { .. } => None,
             Self::Slit { .. } => None,
         }
@@ -982,6 +996,37 @@ impl Operation {
                 edit::set_hard_edges(mesh, &edges, *hard)
             }
             Self::HardEdgesByAngle { angle } => edit::hard_edges_by_angle(mesh, *angle),
+            Self::SlidePoints { slides, anchors } => match (&refound, anchors) {
+                (Some((found, _)), Some(anchors)) => {
+                    // Each point and neighbour is the one found nearest
+                    // where it was.
+                    let mesh::AnchorShape::Points(places) = &anchors.shape else {
+                        return skipped;
+                    };
+                    let nearest = |was: Vec3| {
+                        found.iter().copied().min_by(|a, b| {
+                            let d = |v: &VertexId| {
+                                mesh.position(*v).map_or(f32::MAX, |p| p.distance(was))
+                            };
+                            d(a).total_cmp(&d(b))
+                        })
+                    };
+                    let n = slides.len();
+                    let moved: Vec<edit::Slide> = slides
+                        .iter()
+                        .enumerate()
+                        .filter_map(|(i, s)| {
+                            Some(edit::Slide {
+                                point: nearest(*places.get(i)?)?,
+                                towards: nearest(*places.get(n + i)?)?,
+                                amount: s.amount,
+                            })
+                        })
+                        .collect();
+                    edit::slide_points(mesh, &moved)
+                }
+                _ => edit::slide_points(mesh, slides),
+            },
             Self::Slit { line } => {
                 // One more polygon for each piece cut off.
                 if too_big(mesh::slit::slit_size(mesh, line)) {

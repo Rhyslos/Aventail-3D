@@ -560,3 +560,66 @@ fn with_symmetry_moving_a_point_moves_its_mirror() {
     harness.run();
     assert!(!harness.state().workbench.viewport().options().symmetry.on);
 }
+
+// ------------------------------------------------------------- sliding ---
+
+#[test]
+fn alt_dragging_the_move_gizmo_slides_points_along_their_edges() {
+    let mut harness = fresh();
+    let id = cube(&harness);
+    let doc = harness.state_mut().workbench.document_mut();
+    doc.set_selection([id]);
+    doc.execute(scene::Command::SetPrimitive {
+        ids: vec![id],
+        primitive: scene::Primitive::Cube(mesh::CubeParams {
+            segments: [1, 1, 2],
+            ..Default::default()
+        }),
+    })
+    .unwrap();
+    harness.run();
+    press(&mut harness, Key::Num1);
+    // The ring of points half way up.
+    let ring: Vec<scene::Element> = shape(&harness)
+        .vertices()
+        .filter(|(_, p)| (p.z - 50.0).abs() < 1e-3)
+        .map(|(v, _)| scene::Element::Point(v))
+        .collect();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .select_elements(
+            [(id, scene::ElementSelection::of(ring.clone()))],
+            "Select",
+            None,
+        );
+    press(&mut harness, Key::W);
+    // Alt + drag up the Z arrow.
+    let rect = harness.get_by_label(crate::VIEWPORT_LABEL).rect();
+    let size = Vec2::new(rect.width(), rect.height());
+    let gizmo = harness.state().workbench.viewport().gizmo().unwrap();
+    let length = gizmo.length(&camera(&harness), size);
+    let start = on_screen(&harness, gizmo.origin + Vec3::Z * length * 0.8);
+    let up = (on_screen(&harness, Vec3::Z * 100.0) - on_screen(&harness, Vec3::ZERO)).normalized();
+    let camera_before = camera(&harness);
+    hold(&mut harness, Modifiers::ALT);
+    let path: Vec<Pos2> = (1..=4).map(|i| start + up * (i as f32 * 8.0)).collect();
+    drag_without_letting_go(&mut harness, start, &path);
+    let_go(&mut harness, *path.last().unwrap());
+    hold(&mut harness, Modifiers::NONE);
+    assert_eq!(camera(&harness), camera_before, "it didn't orbit");
+    let mesh = shape(&harness);
+    for element in &ring {
+        let scene::Element::Point(v) = element else {
+            continue;
+        };
+        let p = mesh.position(*v).unwrap();
+        assert!(p.z > 52.0 && p.z <= 100.0, "slid up: {p}");
+        assert!((p.x.abs() - 50.0).abs() < 1e-3, "stayed on the side: {p}");
+    }
+    assert_eq!(
+        harness.state().workbench.document().undo_label(),
+        Some("Slide 4 points")
+    );
+}

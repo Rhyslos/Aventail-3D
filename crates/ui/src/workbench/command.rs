@@ -44,7 +44,11 @@ impl Workbench {
                     "Nothing to make editable: groups and meshes have no settings to bake".into(),
                 )
             }
-            CommandId::Group | CommandId::Delete | CommandId::Duplicate | CommandId::Instance
+            CommandId::Group
+            | CommandId::Delete
+            | CommandId::Duplicate
+            | CommandId::Instance
+            | CommandId::Join
                 if selection.is_empty() =>
             {
                 nothing()
@@ -154,6 +158,17 @@ impl Workbench {
             CommandId::Group => requests.push(DocRequest::Run(Command::Group(selection))),
             CommandId::Ungroup => requests.push(DocRequest::Run(Command::Ungroup(selection))),
             CommandId::Delete => requests.push(DocRequest::Run(Command::Delete(selection))),
+            CommandId::Join => {
+                let shapes = selection
+                    .iter()
+                    .filter(|id| self.document.scene().evaluated(**id).is_some())
+                    .count();
+                if shapes < 2 {
+                    self.note = Some("Join: select two or more shapes first.".into());
+                } else {
+                    requests.push(DocRequest::Run(Command::Join(selection)));
+                }
+            }
             CommandId::Duplicate | CommandId::Instance => {
                 requests.push(DocRequest::Run(Command::Duplicate {
                     ids: selection,

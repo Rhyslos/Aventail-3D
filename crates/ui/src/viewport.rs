@@ -539,9 +539,28 @@ impl View {
     }
 
     /// Moves the camera for this frame's mouse input over the image.
-    fn navigate(&mut self, ui: &Ui, response: &Response, rect: Rect, settings: NavigationSettings) {
+    fn navigate(
+        &mut self,
+        ui: &Ui,
+        response: &Response,
+        rect: Rect,
+        settings: NavigationSettings,
+        slide_gizmo: Option<tools::Gizmo>,
+    ) {
         let size = Vec2::new(rect.width(), rect.height());
-        if response.drag_started() {
+        // Alt + left drag on the Move gizmo slides points (decision 0055),
+        // so it doesn't orbit there.
+        let sliding = response.drag_started_by(PointerButton::Primary)
+            && ui.input(|i| i.modifiers.alt)
+            && slide_gizmo.is_some_and(|gizmo| {
+                ui.input(|i| i.pointer.press_origin()).is_some_and(|at| {
+                    let local = Vec2::new(at.x - rect.min.x, at.y - rect.min.y);
+                    gizmo
+                        .handle_at(self.camera(), size, local, [false; 3])
+                        .is_some()
+                })
+            });
+        if response.drag_started() && !sliding {
             // Taking hold of the view stops a framing glide where it is.
             self.glide = None;
             let keys = ui.input(|i| Modifiers {
@@ -1053,7 +1072,10 @@ impl ViewportPanel {
                 toggle_layout = true;
             }
             let settings = self.options.navigation;
-            self.views[slot].navigate(ui, &response, rect, settings);
+            let slide_gizmo = self
+                .gizmo
+                .filter(|g| matches!(g.tool, tools::GizmoTool::Move | tools::GizmoTool::All));
+            self.views[slot].navigate(ui, &response, rect, settings, slide_gizmo);
             let tool_busy = self.views[slot].capture_tool_drag(
                 ui,
                 &response,

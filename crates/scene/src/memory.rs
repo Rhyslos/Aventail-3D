@@ -100,6 +100,10 @@ pub(crate) fn operation_size(op: &Operation) -> usize {
                 + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
         }
         Operation::FixFacing | Operation::HardEdgesByAngle { .. } => 0,
+        Operation::SlidePoints { slides, anchors } => {
+            std::mem::size_of_val(slides.as_slice())
+                + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
+        }
         Operation::SetHardEdges { edges, anchors, .. } => {
             std::mem::size_of_val(edges.as_slice())
                 + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)

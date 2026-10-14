@@ -1325,6 +1325,27 @@ impl Workbench {
                     }
                     ui.separator();
                     if ui
+                        .button("Split off")
+                        .on_hover_text(
+                            "Move the selected polygons into a new object of their own, in the \
+                             same place (Polygons mode)",
+                        )
+                        .clicked()
+                    {
+                        self.run_split_off();
+                        ui.close();
+                    }
+                    let join = crate::commands::CommandId::Join;
+                    if ui
+                        .button(join.name())
+                        .on_hover_text(join.info().help)
+                        .clicked()
+                    {
+                        self.run_command(join, ui.ctx(), requests);
+                        ui.close();
+                    }
+                    ui.separator();
+                    if ui
                         .button("Hard edges by angle")
                         .on_hover_text(
                             "In the selected objects, make every edge whose polygons meet more \
@@ -1696,6 +1717,7 @@ mod loop_cut_tests;
 mod modelling;
 #[cfg(test)]
 mod modelling_tests;
+mod parts;
 mod selection;
 mod showing;
 mod slit;

@@ -21,6 +21,7 @@ pub use crate::extrude::{
 pub use crate::hardness::{hard_edges_by_angle, set_hard_edges, sharp_edges};
 pub use crate::join::{bridge_edges, bridge_faces, connect_edges, connect_points, weld};
 pub use crate::loopcut::loop_cut;
+pub use crate::slide::{Slide, slide_points, slides_for};
 pub use crate::slit::{Eye, SlitLine, slit};
 use crate::{Mesh, VertexId};
 use glam::{Mat4, Vec3};

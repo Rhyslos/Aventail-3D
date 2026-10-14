@@ -131,10 +131,12 @@ pub enum Icon {
     Duplicate,
     /// Instance: a square with a dashed copy behind it, joined to it.
     Instance,
+    /// Join objects: two squares sharing a side, made one.
+    Join,
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 59] = [
+pub const ALL: [Icon; 60] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -194,6 +196,7 @@ pub const ALL: [Icon; 59] = [
     Icon::Cancel,
     Icon::Duplicate,
     Icon::Instance,
+    Icon::Join,
 ];
 
 /// Draws `icon` into `rect` in `color`.
@@ -1234,6 +1237,16 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
                 Ink::Line,
             );
             pen.stroke(&[(15.0, 9.0), (20.0, 4.0)], false, Ink::Line);
+        }
+        Icon::Join => {
+            // Two halves made one: the outline whole, the old join faint.
+            pen.stroke(
+                &[(3.0, 7.0), (21.0, 7.0), (21.0, 17.0), (3.0, 17.0)],
+                true,
+                Ink::Line,
+            );
+            pen.stroke(&[(12.0, 7.0), (12.0, 17.0)], false, Ink::Dashed);
+            pen.stroke(&[(9.0, 12.0), (15.0, 12.0)], false, Ink::Line);
         }
         Icon::Hidden => {
             // A closed eye: the lower lid, with three lashes.

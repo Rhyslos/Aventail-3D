@@ -42,6 +42,8 @@ pub enum CommandId {
     Duplicate,
     /// Make instances of the selected objects in place.
     Instance,
+    /// Join the selected objects into one.
+    Join,
     // --------------------------------------------- points, edges, polygons
     /// Push polygons or edges out, building new sides.
     Extrude,
@@ -192,6 +194,14 @@ impl CommandId {
                  original's shape and follow its changes. Or Alt + C, then Alt + V.",
                 None,
             ),
+            Self::Join => (
+                "Join objects",
+                Icon::Join,
+                None,
+                "Join the selected shapes into the first of them, as one plain mesh, each part \
+                 staying where it was",
+                None,
+            ),
             Self::Extrude => (
                 "Extrude",
                 Icon::Extrude,
@@ -338,7 +348,8 @@ impl CommandId {
             | Self::ShapeList
             | Self::FrameSelected
             | Self::Duplicate
-            | Self::Instance => &[Model, Object],
+            | Self::Instance
+            | Self::Join => &[Model, Object],
             Self::Extrude | Self::Bridge => &[Edges, Polygons],
             Self::Inset | Self::FlipNormals => &[Polygons],
             Self::Bevel | Self::Connect => &[Points, Edges],
@@ -374,7 +385,7 @@ pub const OBJECT_RING: [Option<CommandId>; RING_PLACES] = [
     Some(CommandId::Group),
     Some(CommandId::NewGroup),
     Some(CommandId::ShapeList),
-    None,
+    Some(CommandId::Join),
 ];
 
 /// The tool menu's places for points, edges and polygons, clockwise from
@@ -431,7 +442,7 @@ pub fn menu_for(mode: Mode) -> Vec<Slot> {
 }
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 27] = [
+pub const ALL: [CommandId; 28] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -445,6 +456,7 @@ pub const ALL: [CommandId; 27] = [
     CommandId::FrameSelected,
     CommandId::Duplicate,
     CommandId::Instance,
+    CommandId::Join,
     CommandId::Extrude,
     CommandId::Inset,
     CommandId::Bevel,

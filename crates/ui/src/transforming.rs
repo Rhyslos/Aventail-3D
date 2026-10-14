@@ -237,6 +237,9 @@ pub(crate) struct PointsStart {
     /// points' anchors), instead of `points` all moving alike
     /// (decision 0054).
     pub(crate) mirror: Option<Vec<(mesh::symmetry::MirrorGroup, Option<Anchors>)>>,
+    /// While sliding (Alt + drag on the Move gizmo, decision 0055): the
+    /// shape as it was, whose edges the points slide along.
+    pub(crate) slide: Option<std::sync::Arc<scene::Mesh>>,
 }
 
 /// What a change works on.
@@ -375,6 +378,7 @@ impl Target {
                         points,
                         anchors,
                         mirror: None,
+                        slide: None,
                     });
                 }
                 let first = starts.first()?;
@@ -416,6 +420,27 @@ impl Target {
             }
         }
         self
+    }
+
+    /// The same target, sliding: a move slides the points along their
+    /// edges instead (decision 0055). Objects are unchanged.
+    #[must_use]
+    pub(crate) fn sliding(mut self, drawing: &SceneDrawing) -> Self {
+        if let Targets::Points(starts, _) = &mut self.targets {
+            for start in starts {
+                start.slide = drawing
+                    .items
+                    .iter()
+                    .find(|i| i.id == start.id)
+                    .map(|i| std::sync::Arc::clone(&i.mesh));
+            }
+        }
+        self
+    }
+
+    /// Whether this target slides its points.
+    pub(crate) fn slides(&self) -> bool {
+        matches!(&self.targets, Targets::Points(starts, _) if starts.iter().any(|s| s.slide.is_some()))
     }
 
     /// The gizmo for `tool` at this target.
@@ -473,6 +498,24 @@ impl Target {
                 .iter()
                 .flat_map(|s| {
                     let inverse = s.world.inverse();
+                    if let (Some(shape), Change::Translate(d)) = (&s.slide, change) {
+                        let slides = mesh::slide::slides_for(
+                            shape,
+                            &s.points,
+                            inverse.transform_vector3(*d),
+                        );
+                        // The points' places, then their neighbours'.
+                        let places: Vec<Vec<VertexId>> = slides
+                            .iter()
+                            .map(|sl| vec![sl.point])
+                            .chain(slides.iter().map(|sl| vec![sl.towards]))
+                            .collect();
+                        let anchors = Anchors::record(shape, ElementKind::Points, &places);
+                        return vec![Command::Record {
+                            id: s.id,
+                            operation: Operation::SlidePoints { slides, anchors },
+                        }];
+                    }
                     if let Some(groups) = &s.mirror {
                         let local = inverse * m * s.world;
                         return groups
@@ -522,6 +565,7 @@ impl Target {
     /// points".
     pub(crate) fn label(&self, change: &Change) -> String {
         let verb = match change {
+            Change::Translate(_) if self.slides() => "Slide",
             Change::Translate(_) => "Move",
             Change::Rotate { .. } => "Rotate",
             Change::Scale(_) => "Scale",
@@ -761,7 +805,14 @@ pub(crate) fn describe(change: &Change, target: &Target, units: crate::units::Un
                 .zip(target.axes)
                 .map(|(name, axis)| format!("{name} {}", units.format(d.dot(axis))))
                 .collect();
-            format!("Moving: {}", parts.join(", "))
+            if target.slides() {
+                format!(
+                    "Sliding along the edges (the drag: {})",
+                    parts.join(", ")
+                )
+            } else {
+                format!("Moving: {}", parts.join(", "))
+            }
         }
         Change::Rotate { angle, .. } => format!("Rotating: {:.1}°", angle.to_degrees()),
         Change::Scale(f) => {
