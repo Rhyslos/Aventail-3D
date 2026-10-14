@@ -45,6 +45,7 @@ fn offer(project: Option<&str>) -> RecoveryOffer {
                 saved: now - Duration::from_secs(10 * 60 + 5),
             },
         ],
+        left_out: false,
     }
 }
 
@@ -238,6 +239,7 @@ fn two_leftovers_are_asked_about_one_after_the_other() {
             folder: PathBuf::from("/backups/empty"),
             project: None,
             copies: Vec::new(),
+            left_out: false,
         },
     ]);
     harness.run();
@@ -316,5 +318,19 @@ fn settings_change_how_backups_are_made_and_show_where_they_go() {
     assert_eq!(
         harness.state().workbench.autosave_settings(),
         AutosaveSettings::default()
+    );
+}
+
+#[test]
+fn the_question_says_when_a_copy_was_left_out() {
+    let mut harness = empty();
+    let mut left = offer(None);
+    left.left_out = true;
+    harness.state_mut().workbench.offer_recovery(vec![left]);
+    harness.run();
+    assert!(
+        harness
+            .query_by_label_contains("restoring it closed the app last time")
+            .is_some()
     );
 }

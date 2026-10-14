@@ -435,3 +435,52 @@ fn cone_bases_and_discs_take_the_same_end_settings() {
         assert!(edge_use(&mesh).values().all(|n| *n <= 2));
     }
 }
+
+#[test]
+fn the_polygon_estimate_is_never_below_the_real_count() {
+    // Many settings for every kind, from a simple repeatable sequence.
+    let mut seed = 12_345u64;
+    let mut next = |most: u32| {
+        seed = seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
+        1 + ((seed >> 33) as u32 % most)
+    };
+    for kind in PrimitiveKind::ALL {
+        for round in 0..40 {
+            let mut p = kind.standard();
+            if round > 0 {
+                match &mut p {
+                    Primitive::Cube(c) => c.segments = [next(12), next(12), next(12)],
+                    Primitive::Plane(c) => c.segments = [next(20), next(20)],
+                    Primitive::Cylinder(c) => {
+                        (c.sides, c.height_segments, c.cap_segments) = (next(40), next(8), next(5));
+                        c.caps = round % 2 == 0;
+                        c.cap_centre = round % 3 == 0;
+                    }
+                    Primitive::Sphere(c) => (c.sides, c.rings) = (next(40), next(30)),
+                    Primitive::Disc(c) => {
+                        (c.sides, c.ring_segments) = (next(40), next(6));
+                        c.centre_point = round % 2 == 0;
+                    }
+                    Primitive::Tube(c) => (c.sides, c.height_segments) = (next(40), next(8)),
+                    Primitive::Cone(c) => {
+                        (c.sides, c.height_segments, c.cap_segments) = (next(40), next(8), next(5));
+                        c.caps = round % 2 == 0;
+                        c.top_radius = if round % 4 == 0 { 0.0 } else { 20.0 };
+                    }
+                }
+            }
+            let real = p.mesh().face_count();
+            let estimate = p.polygon_estimate();
+            assert!(
+                estimate >= real && estimate <= 64 * real + 1024,
+                "{p:?}: estimate {estimate}, real {real}"
+            );
+        }
+    }
+    // At the largest settings it stays a plain number, quickly.
+    let biggest = Primitive::Cube(CubeParams {
+        segments: [u32::MAX; 3],
+        ..Default::default()
+    });
+    assert_eq!(biggest.polygon_estimate(), 6 * 256 * 256);
+}

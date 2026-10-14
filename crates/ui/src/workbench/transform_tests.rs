@@ -444,3 +444,39 @@ fn a_shape_squashed_flat_gets_no_gizmo_for_its_points() {
     harness.run();
     assert!(harness.state().workbench.viewport().gizmo().is_none());
 }
+
+#[test]
+fn the_attributes_panel_says_when_an_edit_was_too_large() {
+    let mut harness = fresh();
+    let id = cube(&harness);
+    let doc = harness.state_mut().workbench.document_mut();
+    doc.set_selection([id]);
+    doc.execute(Command::SetPrimitive {
+        ids: vec![id],
+        primitive: mesh::Primitive::Cube(mesh::CubeParams {
+            segments: [256, 256, 256],
+            ..Default::default()
+        }),
+    })
+    .unwrap();
+    let edges = doc.scene().evaluated(id).unwrap().mesh.edges().to_vec();
+    doc.execute(Command::Record {
+        id,
+        operation: scene::Operation::BevelEdges {
+            edges,
+            shape: scene::BevelShape {
+                width: 0.1,
+                segments: 64,
+                profile: 1.0,
+            },
+            anchors: None,
+        },
+    })
+    .unwrap();
+    harness.run();
+    assert!(
+        harness
+            .query_by_label("1 edit was skipped: the shape would be too large")
+            .is_some()
+    );
+}

@@ -26,6 +26,13 @@ use std::sync::{Arc, Mutex};
 /// The name of the layer edits go into until layers can be managed.
 pub const EDITS_LAYER: &str = "Edits";
 
+/// The most polygons a shape may grow to through its edits. An edit that
+/// would make the shape larger is skipped, with a warning, so neither a
+/// damaged or hostile file nor a slip of the hand (a 64-row bevel on every
+/// edge of a heavy shape) can freeze the app or run it out of memory
+/// ([decision 0045](../../../docs/decisions/0045-limits-for-files.md)).
+pub const MAX_SHAPE_POLYGONS: usize = 30_000_000;
+
 /// One recorded edit. Elements are named by id, so replaying the same
 /// history gives the same result; ids that are no longer in the shape are
 /// skipped and reported (see [`StackWarning`]). More kinds arrive with the
@@ -181,6 +188,9 @@ pub(crate) struct Applied {
     /// Whether its points had to be found again by position, because the
     /// shape's points were renumbered.
     pub(crate) found_again: bool,
+    /// Whether it was skipped because the shape would grow past
+    /// [`MAX_SHAPE_POLYGONS`].
+    pub(crate) too_big: bool,
 }
 
 impl Operation {
@@ -376,6 +386,14 @@ impl Operation {
             Some(anchors) => Some(anchors.find(mesh, mesh.topology())),
             None => None,
         };
+        // Skipped (changing nothing) if it could grow the shape too large.
+        let polygons = mesh.face_count();
+        let too_big = |extra: usize| polygons.saturating_add(extra) > MAX_SHAPE_POLYGONS;
+        let skipped = Applied {
+            missing: 0,
+            found_again: refound.is_some(),
+            too_big: true,
+        };
         let outcome: Outcome = match self {
             Self::MovePoints { points, offset, .. } => {
                 let points = refound.as_ref().map_or(points.as_slice(), |r| &r.0);
@@ -394,6 +412,9 @@ impl Operation {
                 let faces = refound
                     .as_ref()
                     .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
+                if too_big(corner_count(mesh, &faces)) {
+                    return skipped;
+                }
                 edit::extrude_polygons(mesh, &faces, *distance, *grouping)
             }
             Self::InsetPolygons {
@@ -405,6 +426,9 @@ impl Operation {
                 let faces = refound
                     .as_ref()
                     .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
+                if too_big(corner_count(mesh, &faces)) {
+                    return skipped;
+                }
                 edit::inset_polygons(mesh, &faces, *distance, *grouping)
             }
             Self::ExtrudeEdges {
@@ -416,16 +440,28 @@ impl Operation {
                 let edges = refound
                     .as_ref()
                     .map_or_else(|| edges.clone(), |r| edges_within(mesh, &r.0));
+                if too_big(edges.len()) {
+                    return skipped;
+                }
                 edit::extrude_edges(mesh, &edges, *distance, *grouping)
             }
             Self::BevelEdges { edges, shape, .. } => {
                 let edges = refound
                     .as_ref()
                     .map_or_else(|| edges.clone(), |r| edges_within(mesh, &r.0));
+                // A strip of rows per edge, and a corner polygon at each end.
+                let rows = shape.segments.clamp(1, mesh::bevel::MAX_SEGMENTS) as usize;
+                if too_big(edges.len().saturating_mul(rows + 2)) {
+                    return skipped;
+                }
                 edit::bevel_edges(mesh, &edges, *shape)
             }
             Self::BevelPoints { points, width, .. } => {
                 let points = refound.as_ref().map_or(points.as_slice(), |r| &r.0);
+                // One corner polygon per point.
+                if too_big(points.len()) {
+                    return skipped;
+                }
                 edit::bevel_points(mesh, points, *width)
             }
         };
@@ -433,13 +469,24 @@ impl Operation {
             Some((_, not_found)) => Applied {
                 missing: not_found,
                 found_again: true,
+                too_big: false,
             },
             None => Applied {
                 missing: outcome.missing,
                 found_again: false,
+                too_big: false,
             },
         }
     }
+}
+
+/// How many corners the polygons `faces` of `mesh` have in all: an upper
+/// bound on the walls an extrude or the ring an inset adds.
+fn corner_count(mesh: &Mesh, faces: &[FaceId]) -> usize {
+    faces
+        .iter()
+        .map(|f| mesh.face(*f).map_or(0, <[VertexId]>::len))
+        .sum()
 }
 
 /// "Extrude 1 polygon", "Inset 4 polygons".
@@ -582,6 +629,9 @@ pub struct StackWarning {
     /// shape's points were renumbered (decision 0032). Not a problem in
     /// itself: the edit still applies where it was made.
     pub found_again: bool,
+    /// Whether the edit was skipped because it would have grown the shape
+    /// past [`MAX_SHAPE_POLYGONS`].
+    pub too_big: bool,
 }
 
 /// An object's final shape and any warnings from working it out.
@@ -638,12 +688,13 @@ fn apply_from(
             continue;
         }
         let applied = entry.operation.apply(&mut mesh);
-        if applied.missing > 0 || applied.found_again {
+        if applied.missing > 0 || applied.found_again || applied.too_big {
             warnings.push(StackWarning {
                 layer,
                 operation: op_index,
                 missing: applied.missing,
                 found_again: applied.found_again,
+                too_big: applied.too_big,
             });
         }
     }

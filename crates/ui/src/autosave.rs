@@ -155,6 +155,8 @@ pub struct RecoveryOffer {
     pub project: Option<PathBuf>,
     /// Its copies, newest first.
     pub copies: Vec<RecoveryCopy>,
+    /// Whether a copy was left out because restoring it closed the app.
+    pub left_out: bool,
 }
 
 /// "3 minutes ago", for when a copy was saved.
@@ -225,6 +227,15 @@ impl RecoveryQuestion {
                 if ui.radio(self.chosen == i, text).clicked() {
                     self.chosen = i;
                 }
+            }
+            if offer.left_out {
+                ui.label(
+                    RichText::new(
+                        "One newer copy is left out: restoring it closed the app last time.",
+                    )
+                    .small()
+                    .color(theme::TEXT_WEAK),
+                );
             }
             ui.add_space(10.0);
             ui.horizontal(|ui| {

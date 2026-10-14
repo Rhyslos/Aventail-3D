@@ -43,6 +43,7 @@ On a [heavy shape](heavy-shapes.md) (from about 50 000 polygons), the check runs
 **Edits.** Moving, rotating and scaling points, edges and polygons ([Move, rotate and scale](transforming.md)), and extruding and insetting, record your edits on top of a shape instead of changing its settings (see [Base and edits](concepts.md#objects-and-scenes)). When a shape has edits, an **Edits** section says how many, and the settings above stay editable: change them and the edits are made again on the new shape.
 - Changing segments renumbers a shape's points. Edits remember where their points, edges and polygons were and find them there again, and a quiet line says so (*1 edit found its points again on the changed shape*; hover over it for why). Nothing needs doing.
 - If some edits no longer fully fit (for example, you gave a cube fewer segments, so points an edit moved have no place left), a line in amber says how many. They still apply to what they can find, and going back to the earlier settings brings everything back.
+- If an edit would make the shape larger than the app can work with safely (more than 30 million polygons, say a 64-row bevel on every edge of a very dense shape), it is skipped and a line in amber says *1 edit was skipped: the shape would be too large*. Undo it, or use fewer rows or a smaller selection.
 
 See [Changing settings after editing](transforming.md#changing-settings-after-editing).
 

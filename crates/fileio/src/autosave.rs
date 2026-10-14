@@ -29,6 +29,15 @@ const PROJECT: &str = "project.txt";
 const COPY_PREFIX: &str = "copy-";
 /// A backup copy's file extension.
 const COPY_EXTENSION: &str = "avtl";
+/// A note left in a leftover session while one of its copies is being
+/// restored, naming the copy. Still there at the next start, it means
+/// restoring that copy closed the app, so it isn't offered again
+/// ([decision 0045](../../../docs/decisions/0045-limits-for-files.md)).
+const RESTORING: &str = "restoring.txt";
+/// How long a session folder may lack its lock file before it counts as
+/// left behind: a new app could be between making the folder and locking
+/// it.
+const STARTING: std::time::Duration = std::time::Duration::from_secs(60);
 
 /// This running app's session: its folder, kept locked while it runs.
 #[derive(Debug)]
@@ -57,12 +66,42 @@ pub struct Leftover {
     pub project: Option<PathBuf>,
     /// Its copies, newest first.
     pub copies: Vec<Copy>,
+    /// Whether a copy was left out because restoring it closed the app.
+    pub left_out: bool,
+}
+
+/// Notes that `copy` (in a leftover session) is about to be restored.
+pub fn mark_restoring(copy: &Path) -> io::Result<()> {
+    let (Some(folder), Some(name)) = (copy.parent(), copy.file_name()) else {
+        return Ok(());
+    };
+    crate::project::safe_write(&folder.join(RESTORING), name.to_string_lossy().as_bytes())
+}
+
+/// Removes the note [`mark_restoring`] left in `folder`: the restore
+/// finished, one way or the other.
+pub fn clear_restoring(folder: &Path) {
+    let _ = std::fs::remove_file(folder.join(RESTORING));
+}
+
+/// Makes a folder only its owner can read (on Linux and macOS: backup
+/// copies hold the user's work). Elsewhere the folder's own rights apply.
+fn private(folder: &Path) -> io::Result<()> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(folder, std::fs::Permissions::from_mode(0o700))?;
+    }
+    #[cfg(not(unix))]
+    let _ = folder;
+    Ok(())
 }
 
 impl Session {
     /// Starts a session in a new folder inside `root` (made if needed).
     pub fn start(root: &Path) -> io::Result<Self> {
         std::fs::create_dir_all(root)?;
+        private(root)?;
         let stamp = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .map_or(0, |d| d.as_millis());
@@ -73,7 +112,10 @@ impl Session {
         let folder = loop {
             let candidate = root.join(format!("session-{stamp}-{pid}-{n}"));
             match std::fs::create_dir(&candidate) {
-                Ok(()) => break candidate,
+                Ok(()) => {
+                    private(&candidate)?;
+                    break candidate;
+                }
                 Err(e) if e.kind() == io::ErrorKind::AlreadyExists && n < 1000 => n += 1,
                 Err(e) => return Err(e),
             }
@@ -170,6 +212,11 @@ fn copy_numbers(folder: &Path) -> io::Result<Vec<u64>> {
 /// copies. Sessions that ended without a copy (nothing to recover) are
 /// tidied away; sessions still running are left alone.
 pub fn leftovers(root: &Path) -> Vec<Leftover> {
+    leftovers_at(root, SystemTime::now())
+}
+
+/// [`leftovers`], as at time `now` (for telling how old a folder is).
+fn leftovers_at(root: &Path, now: SystemTime) -> Vec<Leftover> {
     let Ok(entries) = std::fs::read_dir(root) else {
         return Vec::new();
     };
@@ -186,13 +233,28 @@ pub fn leftovers(root: &Path) -> Vec<Leftover> {
         {
             continue;
         }
+        // Just made, not locked yet: an app starting at this moment.
+        let young = || {
+            std::fs::metadata(&folder)
+                .and_then(|m| m.modified())
+                .ok()
+                .and_then(|t| now.duration_since(t).ok())
+                .is_some_and(|age| age < STARTING)
+        };
+        if lock.is_err() && young() {
+            continue;
+        }
         drop(lock);
         let numbers = copy_numbers(&folder).unwrap_or_default();
         if numbers.is_empty() {
             let _ = std::fs::remove_dir_all(&folder);
             continue;
         }
-        let copies = numbers
+        // A copy whose restore closed the app isn't offered again.
+        let crashed = std::fs::read_to_string(folder.join(RESTORING))
+            .ok()
+            .map(|name| folder.join(name.trim()));
+        let copies: Vec<Copy> = numbers
             .iter()
             .rev()
             .filter_map(|n| {
@@ -200,7 +262,12 @@ pub fn leftovers(root: &Path) -> Vec<Leftover> {
                 let saved = std::fs::metadata(&path).ok()?.modified().ok()?;
                 Some(Copy { path, saved })
             })
+            .filter(|c| crashed.as_ref() != Some(&c.path))
             .collect();
+        if copies.is_empty() {
+            // Nothing safe to offer; the files stay, untouched.
+            continue;
+        }
         let project = std::fs::read_to_string(folder.join(PROJECT))
             .ok()
             .map(|t| t.trim().to_string())
@@ -210,6 +277,7 @@ pub fn leftovers(root: &Path) -> Vec<Leftover> {
             folder,
             project,
             copies,
+            left_out: crashed.is_some(),
         });
     }
     // Newest first, by their newest copy.
@@ -340,6 +408,62 @@ mod tests {
         );
         new.end().unwrap();
         other.end().unwrap();
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn a_copy_whose_restore_closed_the_app_is_not_offered_again() {
+        let root = root("restoring");
+        let old = Session::start(&root).unwrap();
+        old.write(b"older", 5).unwrap();
+        let newest = old.write(b"newest", 5).unwrap();
+        drop(old);
+        // The restore starts, then the app closes before it finishes.
+        mark_restoring(&newest).unwrap();
+        let found = leftovers(&root);
+        assert_eq!(found.len(), 1);
+        assert!(found[0].left_out);
+        assert_eq!(found[0].copies.len(), 1, "only the older copy");
+        assert_ne!(found[0].copies[0].path, newest);
+        assert!(newest.exists(), "the file itself is kept");
+        // A restore that finished (either way) clears the note.
+        clear_restoring(&found[0].folder);
+        let again = leftovers(&root);
+        assert_eq!((again[0].copies.len(), again[0].left_out), (2, false));
+        // With the only copy left out, there is nothing to offer.
+        let lone = root.join("lone");
+        let only = Session::start(&lone).unwrap();
+        let copy = only.write(b"only", 5).unwrap();
+        drop(only);
+        mark_restoring(&copy).unwrap();
+        assert!(leftovers(&lone).is_empty());
+        assert!(copy.exists());
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn a_session_folder_just_made_by_a_starting_app_is_left_alone() {
+        let root = root("starting");
+        std::fs::create_dir_all(root.join("session-1-2-0")).unwrap();
+        std::fs::write(root.join("session-1-2-0").join("copy-1.avtl"), b"x").unwrap();
+        assert!(leftovers(&root).is_empty(), "no lock yet, but just made");
+        // An hour later it was clearly left behind.
+        let hour_later = SystemTime::now() + std::time::Duration::from_secs(3600);
+        assert_eq!(leftovers_at(&root, hour_later).len(), 1);
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn backup_folders_are_private() {
+        use std::os::unix::fs::PermissionsExt;
+        let root = root("private");
+        let session = Session::start(&root).unwrap();
+        for folder in [root.as_path(), session.folder()] {
+            let mode = std::fs::metadata(folder).unwrap().permissions().mode();
+            assert_eq!(mode & 0o777, 0o700, "{}", folder.display());
+        }
+        session.end().unwrap();
         let _ = std::fs::remove_dir_all(&root);
     }
 }

@@ -64,6 +64,7 @@ Inside, each run of the app has its own `session-…` folder. The copies are ord
 - **Problem:** the app didn't offer anything after a crash. **Why:** either it crashed before the first copy was due (nothing had been copied yet), or it didn't really crash: it closed normally and tidied its copies away. **Fix:** open the project as usual. A shorter interval in Settings narrows that window.
 - **Testing it yourself on Windows:** Task Manager's **End task** on the *Processes* tab doesn't crash the app. It asks the app to close, like clicking ×, so the app closes normally and deletes its copies. To end it the hard way, as a crash would, use the *Details* tab instead (right-click the app → **End task**), or type `taskkill /F /IM aventail.exe` in a Command Prompt.
 - **Problem:** "Couldn't restore the backup copy: …". **Why:** the copy was damaged or deleted. **Fix:** the copies are kept when this happens: start the app again and choose an older one, or Open as saved.
+- **Problem:** the question says "One newer copy is left out: restoring it closed the app last time". **Why:** that copy closed the app while it was being restored, so it isn't offered again, and you won't get stuck in a loop. The file itself is kept in the backup folder. **Fix:** restore one of the copies offered, or open the project as saved.
 
 ## Related
 

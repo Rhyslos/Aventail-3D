@@ -560,7 +560,7 @@ fn bad_values_inside_are_refused_naming_the_object() {
     let mut bad = good.clone();
     let sphere = bad.objects.iter().position(|o| o.name == "Sphere").unwrap();
     if let v1::KindV1::Mesh(mesh) = &mut bad.objects[sphere].kind {
-        mesh.faces[0] = Some(vec![0, 1, 99_999]);
+        mesh.faces[0] = Some(vec![0, 1, 99_999].into());
     }
     let text = refused(&file_of(&bad)).to_string();
     assert!(
@@ -570,7 +570,7 @@ fn bad_values_inside_are_refused_naming_the_object() {
 
     let mut bad = good.clone();
     bad.objects[cube].layers[0].operations[0] = v1::OperationV1::MovePoints {
-        points: vec![0],
+        points: vec![0].into(),
         offset: [0.0, f32::INFINITY, 0.0],
     };
     assert!(
@@ -606,7 +606,7 @@ fn settings_out_of_range_are_brought_within_limits() {
             sides: u32::MAX,
             rings: 0,
         }),
-        layers: Vec::new(),
+        layers: Vec::new().into(),
     });
     let doc = from_bytes(&file_of(&model)).unwrap();
     let id = doc.scene().children(None)[0];
@@ -1020,7 +1020,8 @@ fn damaged_edits_and_mesh_layers_are_refused() {
         &mut p.layers[0].layers[0]
     }
     assert!(
-        damaged(&|p| layer(p).values = v5::ValuesV5::Vec4(vec![[0.0; 4]; 999])).contains("damaged")
+        damaged(&|p| layer(p).values = v5::ValuesV5::Vec4(vec![[0.0; 4]; 999].into()))
+            .contains("damaged")
     );
     assert!(
         damaged(&|p| layer(p).default = v5::ValueV5::Vec4([f32::NAN; 4])).contains("real number")
@@ -1164,4 +1165,262 @@ fn saving_never_writes_through_planted_links() {
             .file_type()
             .is_symlink()
     );
+}
+
+// ------------------------------------------------ limits (decision 0045) ---
+
+/// A shown object at the origin, with no edits.
+fn plain_object(id: u64, kind: v1::KindV1) -> v1::ObjectV1 {
+    v1::ObjectV1 {
+        id,
+        parent: None,
+        name: format!("Object {id}"),
+        visible: true,
+        transform: v1::TransformV1 {
+            position: [0.0; 3],
+            rotation: [0.0; 3],
+            scale: [1.0; 3],
+        },
+        kind,
+        layers: Vec::new().into(),
+    }
+}
+
+/// A file of `model` compressed, as the app saves them.
+fn packed_file_of(model: &v1::ProjectV1) -> Vec<u8> {
+    let body = zstd::bulk::compress(&postcard::to_stdvec(model).unwrap(), 3).unwrap();
+    let mut bytes = header(1, FLAG_ZSTD, body.len() as u64);
+    bytes.extend_from_slice(&body);
+    bytes
+}
+
+#[test]
+fn too_many_objects_edits_or_polygons_are_refused_with_the_limit() {
+    use crate::limits::{MAX_EDITS, MAX_OBJECTS, MAX_POLYGONS};
+    let mut model = v1::ProjectV1::from_document(&Document::new());
+    model.objects = (0..=MAX_OBJECTS as u64)
+        .map(|id| plain_object(id, v1::KindV1::Group))
+        .collect();
+    model.next_id = MAX_OBJECTS as u64 + 1;
+    let text = refused(&packed_file_of(&model)).to_string();
+    assert!(
+        text.contains("objects") && text.contains(&MAX_OBJECTS.to_string()),
+        "{text}"
+    );
+
+    let mut model = v1::ProjectV1::from_document(&Document::new());
+    let cube = v1::KindV1::Primitive(v1::PrimitiveV1::Cube {
+        size: [100.0; 3],
+        segments: [1; 3],
+    });
+    let mut object = plain_object(0, cube);
+    let mut layer = v1::LayerFile {
+        name: "Edits".into(),
+        enabled: true,
+        operations: Vec::new().into(),
+    };
+    for _ in 0..=MAX_EDITS {
+        layer.operations.push(v1::OperationV1::MovePoints {
+            points: vec![0].into(),
+            offset: [0.0, 0.0, 1.0],
+        });
+    }
+    object.layers.push(layer);
+    model.objects.push(object);
+    model.next_id = 1;
+    let text = refused(&packed_file_of(&model)).to_string();
+    assert!(text.contains("edits"), "{text}");
+
+    // Many of the densest cubes: estimated from their settings, refused
+    // before any is built.
+    let dense = v1::KindV1::Primitive(v1::PrimitiveV1::Cube {
+        size: [100.0; 3],
+        segments: [256; 3],
+    });
+    let count = MAX_POLYGONS / (6 * 256 * 256) + 1;
+    let mut model = v1::ProjectV1::from_document(&Document::new());
+    model.objects = (0..count as u64)
+        .map(|id| plain_object(id, dense.clone()))
+        .collect();
+    model.next_id = count as u64;
+    let start = std::time::Instant::now();
+    let text = refused(&packed_file_of(&model)).to_string();
+    assert!(text.contains("polygons"), "{text}");
+    assert!(start.elapsed().as_secs() < 2, "refused at once");
+}
+
+#[test]
+fn a_file_that_unpacks_to_too_much_is_refused() {
+    use std::io::Write;
+    // A few kilobytes that unpack to more than the limit (a "zip bomb"),
+    // with the size written up front, and without.
+    let size = crate::limits::MAX_UNPACKED as usize + (1 << 20);
+    for say_size in [true, false] {
+        let mut encoder = zstd::stream::Encoder::new(Vec::new(), 19).unwrap();
+        if say_size {
+            encoder.set_pledged_src_size(Some(size as u64)).unwrap();
+        }
+        let zeros = vec![0u8; 1 << 20];
+        for _ in 0..size / zeros.len() {
+            encoder.write_all(&zeros).unwrap();
+        }
+        let body = encoder.finish().unwrap();
+        assert!(body.len() < 100_000, "a small file: {}", body.len());
+        let mut bytes = header(5, FLAG_ZSTD, body.len() as u64);
+        bytes.extend_from_slice(&body);
+        assert!(
+            matches!(refused(&bytes), ProjectError::TooLarge),
+            "{say_size}"
+        );
+    }
+}
+
+#[test]
+fn reading_stops_when_the_memory_budget_runs_out() {
+    let bytes = to_bytes(&rich_document()).unwrap();
+    let small = crate::limits::within(10_000, || from_bytes(&bytes));
+    let text = small.err().unwrap().to_string();
+    assert!(text.contains("limit"), "{text}");
+    assert!(crate::limits::within(100 << 20, || from_bytes(&bytes)).is_ok());
+}
+
+/// A simple repeatable sequence of numbers, for the fuzz tests.
+struct Noise(u64);
+
+impl Noise {
+    fn next(&mut self) -> u64 {
+        self.0 = self
+            .0
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
+        self.0 >> 16
+    }
+
+    fn below(&mut self, n: u64) -> u64 {
+        self.next() % n.max(1)
+    }
+
+    /// A number that is often ordinary and sometimes hostile.
+    fn float(&mut self) -> f32 {
+        match self.below(8) {
+            0 => f32::NAN,
+            1 => f32::INFINITY,
+            2 => -1e30,
+            3 => 0.0,
+            _ => self.below(2000) as f32 - 1000.0,
+        }
+    }
+
+    fn count(&mut self) -> u32 {
+        match self.below(6) {
+            0 => u32::MAX,
+            1 => 0,
+            _ => self.below(300) as u32,
+        }
+    }
+}
+
+/// A file model with a few random, often nonsensical values: ids
+/// pointing nowhere, corners naming missing points, numbers that aren't
+/// real, huge settings, empty names, repeated edit ids.
+fn random_model(noise: &mut Noise) -> v5::ProjectV5 {
+    let mut model = v5::ProjectV5::from_document(&rich_document());
+    let count = model.project.objects.len() as u64;
+    for _ in 0..1 + noise.below(3) {
+        let at = noise.below(count) as usize;
+        let object = &mut model.project.objects[at];
+        match noise.below(10) {
+            0 => object.id = noise.below(20),
+            1 => object.parent = Some(noise.below(30)),
+            2 => object.name = String::new(),
+            3 => object.transform.position[noise.below(3) as usize] = noise.float(),
+            4 => match &mut object.kind {
+                v1::KindV1::Primitive(v1::PrimitiveV1::Cube { size, segments }) => {
+                    size[0] = noise.float();
+                    segments[noise.below(3) as usize] = noise.count();
+                }
+                v1::KindV1::Primitive(v1::PrimitiveV1::Sphere { sides, rings, .. }) => {
+                    *sides = noise.count();
+                    *rings = noise.count();
+                }
+                _ => {}
+            },
+            5 | 6 => {
+                if let v1::KindV1::Mesh(mesh) = &mut object.kind {
+                    match noise.below(3) {
+                        0 => {
+                            if let Some(Some(corners)) = mesh.faces.first_mut() {
+                                corners[0] = noise.below(5000) as u32;
+                            }
+                        }
+                        1 => {
+                            if let Some(Some(p)) = mesh.points.first_mut() {
+                                p[1] = noise.float();
+                            }
+                        }
+                        _ => mesh
+                            .hard
+                            .push([noise.below(100) as u32, noise.below(100) as u32]),
+                    }
+                }
+            }
+            7 | 8 => {
+                for layer in object.layers.iter_mut() {
+                    for entry in layer.operations.iter_mut() {
+                        match noise.below(4) {
+                            0 => entry.id = noise.below(4),
+                            1 => entry.enabled = !entry.enabled,
+                            _ => {
+                                if let v4::OperationV4::BevelEdges {
+                                    segments, width, ..
+                                } = &mut entry.operation
+                                {
+                                    *segments = noise.count();
+                                    *width = noise.float();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            _ => {
+                if let Some(m) = model.layers.first_mut() {
+                    match noise.below(2) {
+                        0 => m.object = noise.below(30),
+                        _ => {
+                            if let Some(layer) = m.layers.first_mut() {
+                                layer.default = v5::ValueV5::Float(noise.float());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    model
+}
+
+#[test]
+fn random_nonsense_inside_a_well_formed_file_is_refused_or_opened_never_a_crash() {
+    let mut noise = Noise(2026);
+    let mut opened = 0;
+    for _ in 0..150 {
+        let model = random_model(&mut noise);
+        let bytes = file_of_v5(&model);
+        let start = std::time::Instant::now();
+        if let Ok(doc) = from_bytes(&bytes) {
+            opened += 1;
+            // Working out every shape (as drawing does) stays quick too.
+            for (id, _) in doc.scene().walk() {
+                let _ = doc.scene().evaluated(id);
+            }
+        }
+        assert!(
+            start.elapsed().as_secs() < 5,
+            "a file took {:?} to read",
+            start.elapsed()
+        );
+    }
+    // Some damage is harmless and some isn't: both happen.
+    assert!(opened > 0 && opened < 150, "{opened} opened");
 }

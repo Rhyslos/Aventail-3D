@@ -12,6 +12,7 @@
 use super::v1::ProjectFile;
 use super::v1::{FileOperation, Problem};
 use super::v2::{AnchorsV2, OperationV2, anchors_from_file, anchors_to_file};
+use crate::limits::Bounded;
 use mesh::{EdgeKey, FaceId, VertexId};
 use scene::{Grouping, Operation};
 use serde::{Deserialize, Serialize};
@@ -28,7 +29,7 @@ pub(crate) enum OperationV3 {
     V2(OperationV2),
     /// Polygons extruded.
     ExtrudePolygons {
-        faces: Vec<u32>,
+        faces: Bounded<u32>,
         distance: f32,
         /// Each polygon on its own (`true`) or neighbours together.
         separate: bool,
@@ -36,14 +37,14 @@ pub(crate) enum OperationV3 {
     },
     /// Polygons inset.
     InsetPolygons {
-        faces: Vec<u32>,
+        faces: Bounded<u32>,
         distance: f32,
         separate: bool,
         anchors: Option<AnchorsV2>,
     },
     /// Border edges extruded, each by its two points.
     ExtrudeEdges {
-        edges: Vec<[u32; 2]>,
+        edges: Bounded<[u32; 2]>,
         distance: f32,
         separate: bool,
         anchors: Option<AnchorsV2>,
@@ -119,7 +120,7 @@ impl FileOperation for OperationV3 {
     }
 
     fn into_operation(self) -> Result<Operation, Problem> {
-        let faces = |faces: Vec<u32>| faces.into_iter().map(FaceId::from_raw).collect();
+        let faces = |faces: Bounded<u32>| faces.into_iter().map(FaceId::from_raw).collect();
         let anchors = |a: Option<AnchorsV2>| a.map(anchors_from_file).transpose();
         match self {
             Self::V2(op) => op.into_operation(),

@@ -66,6 +66,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **Damaged or booby-trapped project files can't crash or freeze the app.** Opening a file now checks, while reading, that it doesn't ask for more than the app can handle (memory, objects, edits, polygons), and explains when it does. A file of a few kilobytes that would unpack to gigabytes is refused at once.
+- An edit that would make a shape impossibly large (over 30 million polygons) is skipped with a warning in the Attributes panel, instead of freezing the app.
+- After a crash, a backup copy that closed the app while being restored isn't offered again, so you can't get stuck restoring it over and over. The question says when a copy was left out.
+- Backup copies are kept in folders only you can read (on macOS and Linux), and two copies of the app starting at the same moment no longer mistake each other's backups for leftovers.
+- A project whose file name starts with `-` can be opened from the command line by putting `--` before it.
 - Undo's memory use is counted more truthfully, including the extra data the app keeps about how each shape's parts connect, so the history stays within its budget on huge shapes.
 - **A project can no longer be saved in a state the app can't open again.** Every save and backup copy is now checked to open before it replaces the previous one; if it wouldn't, the save stops with a message and your previous save stays as it was. Two ways this could happen were found and fixed: bevelling two polygons back to back, and moving points of a shape whose size was set to 0 (a size of 0 in the Coordinates panel is now ignored).
 - Saving no longer writes through links placed beside a project, so a project folder from a zip or download can't make Save overwrite another file.
