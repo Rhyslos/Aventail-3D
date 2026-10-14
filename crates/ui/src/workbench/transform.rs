@@ -265,9 +265,23 @@ impl Workbench {
         let ctrl = ui.input(|i| i.modifiers.command);
         for event in self.viewport.take_gizmo_events() {
             match event {
-                GizmoEvent::Begin { .. } => {
+                GizmoEvent::Begin { slide, .. } => {
                     if let Some(target) = self.target(drawing) {
-                        let target = self.with_symmetry(target, drawing);
+                        // Alt + drag on the Move gizmo slides points along
+                        // their edges (not with symmetry, which mirrors moves).
+                        let slide = slide
+                            && matches!(self.tool, Tool::Move | Tool::All)
+                            && crate::components::kind_for(self.mode).is_some();
+                        let target = if slide {
+                            self.note = Some(
+                                "Sliding: the points move along their edges, staying on the \
+                                 surface."
+                                    .into(),
+                            );
+                            target.sliding(drawing)
+                        } else {
+                            self.with_symmetry(target, drawing)
+                        };
                         self.sessions += 1;
                         self.gizmo_session = Some(Session::new(target, self.sessions));
                         self.gizmo_shown = None;

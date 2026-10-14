@@ -33,6 +33,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Fill hole** — Closing an opening (a loop of border edges) with a polygon, like a lid. See [Clean-up](clean-up.md).
 
+**Slide** — Moving points along the edges they already have, so they stay on the surface, instead of moving them freely through space. See [Move, rotate and scale](transforming.md#slide).
+
 **Slit** — Cutting new edges along a line drawn over the shape, across any polygons, as you see them (or right through the shape). Other programs call this a knife or line cut. See [Slit](slit.md).
 
 **Triangle count** — How many triangles a model becomes once every face is cut into triangles, as game engines and GPUs do: a quad is 2, an n-gon with 8 corners is 6. It's the usual measure of how heavy a game asset is. The Attributes panel shows it for every shape.

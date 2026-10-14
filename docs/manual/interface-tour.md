@@ -74,6 +74,7 @@ One colour marks what's active: the current mode (and later the current tool), t
 | Next select tool (Box, Lasso, Paint select) | `Q` (while selecting) |
 | Lock X / Y / Z; world or object axes | `Shift + X` / `Shift + Y` / `Shift + Z`; `L` |
 | While dragging the gizmo: fine, snap, cancel | Hold `Shift`; hold `Ctrl`; `Esc` or right-click |
+| Slide points along their edges | `Alt` + drag the Move gizmo (Points, Edges, Polygons modes) |
 | Loop / ring | Double-click / `Alt` + double-click |
 | Grow / shrink the selection | `Ctrl` + wheel (with a tool that has a count, like Bevel's segments, Loop cut's cuts or Extrude's bend segments: that count) |
 | Select all / invert | `Ctrl + A` / `Ctrl + I` |

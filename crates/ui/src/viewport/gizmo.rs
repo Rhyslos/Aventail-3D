@@ -29,8 +29,9 @@ const ARROW_HALF_WIDTH: f32 = 5.0;
 /// Something done with the gizmo in a view, for the workbench.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum GizmoEvent {
-    /// A drag of `handle` began.
-    Begin { handle: Handle },
+    /// A drag of `handle` began; `slide` when Alt was held (Alt + drag
+    /// on the Move gizmo slides points along their edges, decision 0055).
+    Begin { handle: Handle, slide: bool },
     /// The drag so far, with the mouse at `pointer`.
     Update {
         change: Change,
@@ -123,7 +124,8 @@ impl View {
             && let Some(start) = ui.input(|i| i.pointer.press_origin())
         {
             let mut drag = Drag::new(gizmo, handle, &camera, size, local(start));
-            input.out.push(GizmoEvent::Begin { handle });
+            let slide = ui.input(|i| i.modifiers.alt);
+            input.out.push(GizmoEvent::Begin { handle, slide });
             if let Some(at) = response.interact_pointer_pos() {
                 let change = drag.update(local(at), shift, input.locked);
                 input.out.push(GizmoEvent::Update {

@@ -229,3 +229,56 @@ fn duplicate_and_instance_from_the_tool_menu_and_copying_needs_objects() {
     keys(&mut harness, Modifiers::COMMAND, Key::C);
     assert!(note(&harness).starts_with("Copy works on whole objects"));
 }
+
+#[test]
+fn split_off_makes_the_selected_polygons_an_object_and_join_puts_them_back() {
+    let mut harness = selected_cube();
+    let id = cube(&harness);
+    press(&mut harness, Modifiers::NONE, Key::Num3);
+    let top: Vec<Element> = {
+        let mesh = shape(&harness);
+        mesh.faces()
+            .map(|(f, _)| f)
+            .filter(|f| mesh.face_normal(*f).z > 0.9)
+            .map(Element::Polygon)
+            .collect()
+    };
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .select_elements([(id, ElementSelection::of(top))], "Select", None);
+    harness.run();
+    harness.state_mut().workbench.run_split_off();
+    harness.run();
+    let doc = harness.state().workbench.document();
+    assert_eq!(doc.scene().children(None).len(), 2);
+    let piece = doc.selection()[0];
+    assert_ne!(piece, id);
+    assert!(note(&harness).starts_with("Split off 1 polygon"));
+    // Join them again from the Model mode's tool menu command.
+    press(&mut harness, Modifiers::NONE, Key::Num3);
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .set_selection([id, piece]);
+    let ctx = harness.ctx.clone();
+    let mut requests = Vec::new();
+    harness
+        .state_mut()
+        .workbench
+        .run_command(CommandId::Join, &ctx, &mut requests);
+    harness.state_mut().workbench.carry_out(requests);
+    harness.run();
+    let doc = harness.state().workbench.document();
+    assert_eq!(doc.scene().children(None).len(), 1);
+    let mesh = doc.scene().evaluated(id).unwrap().mesh;
+    assert_eq!(mesh.face_count(), 6);
+    // One shape alone can't be joined.
+    harness
+        .state_mut()
+        .workbench
+        .run_command(CommandId::Join, &ctx, &mut Vec::new());
+    assert!(note(&harness).starts_with("Join: select two or more shapes"));
+}

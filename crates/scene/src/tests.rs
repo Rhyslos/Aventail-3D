@@ -1300,3 +1300,65 @@ fn duplicating_a_group_copies_what_is_inside_and_files_check_instances() {
     )];
     assert!(Scene::from_objects(objects, 2).is_err());
 }
+
+// ------------------------------------------------ split off and join ---
+
+#[test]
+fn splitting_off_moves_polygons_into_a_new_object() {
+    let (mut doc, id) = with_a_cube();
+    let mesh = doc.scene().evaluated(id).unwrap().mesh;
+    let top = mesh
+        .faces()
+        .map(|(f, _)| f)
+        .find(|f| mesh.face_normal(*f).z > 0.9)
+        .unwrap();
+    doc.execute(Command::SplitOff {
+        id,
+        faces: vec![top],
+        anchors: None,
+    })
+    .unwrap();
+    let piece = doc.selection()[0];
+    assert_ne!(piece, id);
+    let faces = |doc: &Document, id| doc.scene().evaluated(id).unwrap().mesh.face_count();
+    assert_eq!(faces(&doc, id), 5);
+    assert_eq!(faces(&doc, piece), 1);
+    assert_eq!(doc.undo_label(), Some("Split off 1 polygon"));
+    assert_eq!(doc.scene().children(None), &[id, piece]);
+    doc.undo().unwrap();
+    assert_eq!(faces(&doc, id), 6);
+    assert_eq!(doc.scene().children(None).len(), 1);
+}
+
+#[test]
+fn joining_puts_shapes_into_the_first_where_they_were() {
+    let (mut doc, id) = with_a_cube();
+    doc.execute(Command::Duplicate {
+        ids: vec![id],
+        instances: false,
+    })
+    .unwrap();
+    let copy = doc.selection()[0];
+    doc.execute(Command::SetTransforms(vec![(
+        copy,
+        Transform {
+            position: glam::Vec3::new(300.0, 0.0, 0.0),
+            ..Transform::default()
+        },
+    )]))
+    .unwrap();
+    doc.execute(Command::Join(vec![id, copy])).unwrap();
+    assert_eq!(doc.selection(), vec![id]);
+    assert_eq!(doc.scene().children(None), &[id]);
+    let mesh = doc.scene().evaluated(id).unwrap().mesh;
+    assert_eq!(mesh.face_count(), 12);
+    let far = mesh.vertices().map(|(_, p)| p.x).fold(f32::MIN, f32::max);
+    assert!((far - 350.0).abs() < 1e-3, "the copy stayed where it was");
+    assert_eq!(doc.undo_label(), Some("Join 2 objects"));
+    doc.undo().unwrap();
+    assert_eq!(doc.scene().children(None).len(), 2);
+    // One shape alone: nothing to join.
+    let steps = doc.undo_steps();
+    doc.execute(Command::Join(vec![id])).unwrap();
+    assert_eq!(doc.undo_steps(), steps);
+}

@@ -84,6 +84,12 @@ Snapping makes a drag jump to exact places instead of going anywhere:
 
 The **magnet button** on the top palette (and **Tools → Snapping**) turns snapping on and off. **Hold Ctrl while dragging** to flip it for that one drag: snap when it's off, move freely when it's on. If you'd rather only use the button, switch off **Holding Ctrl while dragging flips snapping** in **Edit → Settings… → Viewport → Snapping**. That's also where you choose what moves snap to and the rotate and scale steps.
 
+### Slide
+
+In the Points, Edges and Polygons modes, hold **Alt** and drag the Move gizmo (an arrow, a square or the middle): the points **slide along their edges** instead of moving freely, so they stay on the surface. A selected loop slides along the edges crossing it, which is how to move a loop cut after making it. Each point stops when it reaches the next point. (Alt + drag anywhere else still turns the view.)
+
+![A loop of edges half way up a box, slid up along the sides with Alt + drag: it stays on the box's sides.](../screenshots/2026-10-14-slide.png)
+
 ### Symmetry
 
 With **Symmetry** on (the palette button at the right end, or **Tools → Symmetry**), moving, rotating or scaling points, edges or polygons also moves their mirror on the other side of the shape. See [Symmetry](symmetry.md).
@@ -125,6 +131,7 @@ What the fields show:
 | Ten times slower | Hold `Shift` while dragging |
 | Snap for this drag (or not, if snapping is on) | Hold `Ctrl` while dragging |
 | Cancel a drag | `Esc` or right-click, while still dragging |
+| Slide points along their edges | Hold `Alt` and drag the Move gizmo (Points, Edges, Polygons modes) |
 | Lock or free X / Y / Z | `Shift + X` / `Shift + Y` / `Shift + Z` |
 | World or object axes | `L` |
 | Undo a move | `Ctrl + Z` |

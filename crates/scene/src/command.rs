@@ -132,6 +132,23 @@ pub enum Command {
         /// Instances rather than independent copies.
         instances: bool,
     },
+    /// Moves polygons of a shape into a new plain-mesh object of their
+    /// own, placed just after it, in the same place (decision 0055). They
+    /// are deleted from the shape as a recorded edit. The new object
+    /// becomes the selection.
+    SplitOff {
+        /// The shape.
+        id: ObjectId,
+        /// Its polygons to split off.
+        faces: Vec<mesh::FaceId>,
+        /// Where they were, to find them again (decision 0032).
+        anchors: Option<mesh::Anchors>,
+    },
+    /// Joins shapes into the first of them, which becomes a plain mesh
+    /// holding them all where they were; the others are deleted (anything
+    /// inside them takes their place) (decision 0055). Groups listed are
+    /// left alone. It becomes the selection.
+    Join(Vec<ObjectId>),
 }
 
 impl Command {
@@ -187,6 +204,11 @@ impl Command {
                     (true, n) => format!("Instance {n} objects"),
                 }
             }
+            Self::SplitOff { faces, .. } => match faces.len() {
+                1 => "Split off 1 polygon".into(),
+                n => format!("Split off {n} polygons"),
+            },
+            Self::Join(ids) => format!("Join {}", objects(count(ids))),
             Self::MakeEditable(ids) => {
                 let n = ids
                     .iter()
@@ -542,6 +564,98 @@ impl Run<'_> {
                     copies.push(copy);
                 }
                 Ok(Some(copies))
+            }
+            Command::SplitOff { id, faces, anchors } => {
+                let object = self
+                    .scene
+                    .object(*id)
+                    .ok_or(SceneError::UnknownObject(*id))?
+                    .clone();
+                if matches!(object.kind, ObjectKind::Instance(_)) {
+                    return Err(SceneError::Instance);
+                }
+                let shape = self.scene.evaluated(*id).ok_or(SceneError::NoShape)?;
+                let part = mesh::parts::keep_only(&shape.mesh, faces);
+                if part.face_count() == 0 {
+                    return Ok(None);
+                }
+                let mut piece = Object::new(ObjectKind::Mesh(Arc::new(part)));
+                piece.name = self.scene.unused_name(&object.name);
+                piece.transform = object.transform;
+                piece.visible = object.visible;
+                let place = self.place_of(*id)?;
+                self.command(&Command::Record {
+                    id: *id,
+                    operation: Operation::DeleteElements {
+                        points: Vec::new(),
+                        edges: Vec::new(),
+                        faces: faces.clone(),
+                        anchors: anchors.clone(),
+                    },
+                })?;
+                let new = self.insert(
+                    piece,
+                    Place {
+                        parent: place.parent,
+                        index: place.index + 1,
+                    },
+                )?;
+                Ok(Some(vec![new]))
+            }
+            Command::Join(ids) => {
+                let shapes: Vec<ObjectId> = existing(self.scene, ids)?
+                    .into_iter()
+                    .filter(|id| self.scene.evaluated(*id).is_some())
+                    .collect();
+                let Some((&target, others)) = shapes.split_first() else {
+                    return Ok(None);
+                };
+                if others.is_empty() {
+                    return Ok(None);
+                }
+                let into = self.scene.world_matrix(target).inverse();
+                let meshes: Vec<(Arc<mesh::Mesh>, glam::Mat4)> = shapes
+                    .iter()
+                    .filter_map(|id| {
+                        let shape = self.scene.evaluated(*id)?;
+                        Some((shape.mesh, into * self.scene.world_matrix(*id)))
+                    })
+                    .collect();
+                let parts: Vec<(&mesh::Mesh, glam::Mat4)> =
+                    meshes.iter().map(|(m, x)| (m.as_ref(), *x)).collect();
+                let joined = mesh::parts::combine(&parts);
+                // The target becomes the joined mesh, its edits baked in.
+                let object = self
+                    .scene
+                    .object(target)
+                    .ok_or(SceneError::UnknownObject(target))?;
+                let before = object.kind.clone();
+                let layers = object.stack.layers().to_vec();
+                for (index, layer) in layers.into_iter().enumerate().rev() {
+                    self.edit(Edit::RemoveLayer {
+                        id: target,
+                        index,
+                        layer,
+                    })?;
+                }
+                self.edit(Edit::SetKind {
+                    id: target,
+                    before,
+                    after: ObjectKind::Mesh(Arc::new(joined)),
+                })?;
+                // The others go; anything inside them takes their place.
+                for other in others {
+                    if !self.scene.contains(*other) {
+                        continue;
+                    }
+                    let place = self.place_of(*other)?;
+                    let children = self.scene.children(Some(*other)).to_vec();
+                    if !children.is_empty() {
+                        self.move_into(&children, place.parent, place.index)?;
+                    }
+                    self.command(&Command::Delete(vec![*other]))?;
+                }
+                Ok(Some(vec![target]))
             }
             Command::MakeEditable(ids) => {
                 for id in existing(self.scene, ids)? {
