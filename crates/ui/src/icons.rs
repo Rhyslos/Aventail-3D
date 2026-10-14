@@ -14,6 +14,14 @@ use std::f32::consts::{PI, TAU};
 pub enum Icon {
     /// Edit → Undo.
     Undo,
+    /// Pivot to centre.
+    PivotToCentre,
+    /// Pivot to world origin.
+    PivotToOrigin,
+    /// Pivot to object.
+    PivotToObject,
+    /// Object to world origin.
+    ObjectToOrigin,
     /// Edit → Redo.
     Redo,
     /// Paint select: paint to select.
@@ -136,7 +144,7 @@ pub enum Icon {
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 60] = [
+pub const ALL: [Icon; 64] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -197,6 +205,10 @@ pub const ALL: [Icon; 60] = [
     Icon::Duplicate,
     Icon::Instance,
     Icon::Join,
+    Icon::PivotToCentre,
+    Icon::PivotToOrigin,
+    Icon::PivotToObject,
+    Icon::ObjectToOrigin,
 ];
 
 /// Draws `icon` into `rect` in `color`.
@@ -1248,6 +1260,61 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
             pen.stroke(&[(12.0, 7.0), (12.0, 17.0)], false, Ink::Dashed);
             pen.stroke(&[(9.0, 12.0), (15.0, 12.0)], false, Ink::Line);
         }
+        Icon::PivotToCentre => {
+            // A shape with its pivot moved from a corner to its middle.
+            pen.stroke(
+                &[(4.0, 4.0), (20.0, 4.0), (20.0, 20.0), (4.0, 20.0)],
+                true,
+                Ink::Faint,
+            );
+            pen.stroke(&[(5.5, 18.5), (10.5, 13.5)], false, Ink::Dashed);
+            pivot(&mut pen, (12.0, 12.0));
+        }
+        Icon::PivotToOrigin => {
+            // The origin's cross, a shape away from it, and its pivot
+            // moved onto the cross.
+            pen.stroke(&[(2.0, 18.0), (14.0, 18.0)], false, Ink::AxisX);
+            pen.stroke(&[(6.0, 22.0), (6.0, 10.0)], false, Ink::AxisY);
+            pen.stroke(
+                &[(12.0, 3.0), (21.0, 3.0), (21.0, 12.0), (12.0, 12.0)],
+                true,
+                Ink::Faint,
+            );
+            pen.stroke(&[(14.0, 10.0), (8.5, 15.5)], false, Ink::Dashed);
+            pivot(&mut pen, (6.0, 18.0));
+        }
+        Icon::PivotToObject => {
+            // Two shapes: the first's pivot jumps to the second's.
+            pen.stroke(
+                &[(2.0, 11.0), (10.0, 11.0), (10.0, 19.0), (2.0, 19.0)],
+                true,
+                Ink::Faint,
+            );
+            pen.stroke(
+                &[(13.0, 5.0), (22.0, 5.0), (22.0, 14.0), (13.0, 14.0)],
+                true,
+                Ink::Line,
+            );
+            pen.stroke(&[(6.0, 15.0), (15.5, 10.5)], false, Ink::Dashed);
+            pivot(&mut pen, (17.5, 9.5));
+        }
+        Icon::ObjectToOrigin => {
+            // The origin's cross, the shape's old place dashed, and the
+            // shape standing on the cross.
+            pen.stroke(&[(2.0, 18.0), (22.0, 18.0)], false, Ink::AxisX);
+            pen.stroke(&[(6.0, 22.0), (6.0, 6.0)], false, Ink::AxisY);
+            pen.stroke(
+                &[(13.0, 3.0), (21.0, 3.0), (21.0, 11.0), (13.0, 11.0)],
+                true,
+                Ink::Dashed,
+            );
+            pen.stroke(
+                &[(6.0, 10.0), (14.0, 10.0), (14.0, 18.0), (6.0, 18.0)],
+                true,
+                Ink::Line,
+            );
+            pen.dot(6.0, 18.0, 2.0);
+        }
         Icon::Hidden => {
             // A closed eye: the lower lid, with three lashes.
             let lid = pen.arc((12.0, 8.1), (8.9, 8.9), 0.453, 2.688);
@@ -1258,6 +1325,14 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         }
     }
     pen.shapes
+}
+
+/// A pivot: a dot with two short arms.
+fn pivot(pen: &mut Pen, at: (f32, f32)) {
+    let (x, y) = at;
+    pen.polyline(&[(x, y), (x, y - 4.5)]);
+    pen.polyline(&[(x, y), (x + 4.5, y)]);
+    pen.dot(x, y, 2.0);
 }
 
 #[cfg(test)]

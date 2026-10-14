@@ -183,7 +183,7 @@ impl DrawingCache {
                 id,
                 shown: hidden.shown(id, &shape.mesh),
                 mesh: shape.mesh,
-                transform: scene.world_matrix(id),
+                transform: scene.shape_matrix(id),
                 selected: document.is_selected(id),
             });
         }

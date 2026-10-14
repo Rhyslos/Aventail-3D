@@ -151,7 +151,11 @@ pub(crate) fn edit(edit: &Edit) -> usize {
     size_of::<Edit>()
         + match edit {
             Edit::Insert { object: o, .. } | Edit::Remove { object: o, .. } => object(o),
-            Edit::Relocate { .. } | Edit::SetVisible { .. } | Edit::SetTransform { .. } => 0,
+            Edit::Relocate { .. }
+            | Edit::SetVisible { .. }
+            | Edit::SetTransform { .. }
+            | Edit::SetOffset { .. }
+            | Edit::SetUnits { .. } => 0,
             Edit::Rename { before, after, .. } => text(before) + text(after),
             Edit::SetKind { before, after, .. } => kind(before) + kind(after),
             Edit::InsertLayer { layer: l, .. } | Edit::RemoveLayer { layer: l, .. } => layer(l),

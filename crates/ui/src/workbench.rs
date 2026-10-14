@@ -170,8 +170,14 @@ pub struct Workbench {
     document: Document,
     objects: ObjectManager,
     attributes: AttributesPanel,
-    /// Metres or centimetres, for every length shown or typed.
+    /// The project's units (decision 0068), for every length shown or
+    /// typed this frame: read from the document as the frame starts; a
+    /// change made in the panels or Settings becomes an undoable step as
+    /// it ends.
     units: Units,
+    /// The units a new project starts with: a preference, remembered
+    /// between sessions.
+    new_units: Units,
     /// How much memory the undo history may use.
     undo_memory: UndoMemory,
     /// The Settings window.
@@ -217,6 +223,9 @@ pub struct Workbench {
     slit_session: Option<slit::SlitSession>,
     /// A Bridge or Weld drag in progress (decision 0051).
     pair_session: Option<joining::PairSession>,
+    /// Pivot to object is waiting for a click on the target (decision
+    /// 0068).
+    pivot_target: bool,
     /// The question asked before dissolving across a sharp corner.
     dissolve_question: Option<cleaning::DissolveQuestion>,
     /// The change the gizmo drag last showed, so an unchanged frame does
@@ -261,6 +270,7 @@ impl Workbench {
             objects: ObjectManager::default(),
             attributes: AttributesPanel::default(),
             units: Units::default(),
+            new_units: Units::default(),
             undo_memory: UndoMemory::default(),
             forgotten_told: false,
             settings: SettingsWindow::default(),
@@ -280,6 +290,7 @@ impl Workbench {
             loop_cut_session: None,
             slit_session: None,
             pair_session: None,
+            pivot_target: false,
             dissolve_question: None,
             gizmo_shown: None,
             coordinates_session: None,
@@ -466,9 +477,40 @@ impl Workbench {
         self.viewport.options()
     }
 
-    /// Metres or centimetres, for saving between sessions.
+    /// The project's units: metres or centimetres.
     pub fn units(&self) -> Units {
-        self.units
+        self.document.scene().units().into()
+    }
+
+    /// The units new projects start with, for saving between sessions.
+    pub fn new_project_units(&self) -> Units {
+        self.new_units
+    }
+
+    /// An empty document for a new project, in the units chosen for new
+    /// projects.
+    fn new_document(&self) -> Document {
+        Document::from_scene(scene::Scene::new().with_units(self.new_units.into()), [])
+    }
+
+    /// Makes a change of units made in the panels or Settings this frame
+    /// (from `shown`, what the frame started with) an undoable step.
+    fn keep_units(&mut self, shown: Units) {
+        if self.units == shown || self.units == self.units() {
+            return;
+        }
+        let units = self.units;
+        self.note = Some(
+            match self.document.execute(Command::SetUnits(units.into())) {
+                Ok(()) => format!(
+                    "This project is now in {}: lengths show and are typed in {}. Ctrl + Z \
+                     takes it back.",
+                    units.name().to_lowercase(),
+                    units.symbol()
+                ),
+                Err(why) => format!("Couldn't change the units: {why}."),
+            },
+        );
     }
 
     // ------------------------------------------------- the project file ---
@@ -586,7 +628,7 @@ impl Workbench {
     fn go_ahead(&mut self, next: Pending) {
         match next {
             Pending::New => {
-                self.replace_document(Document::new());
+                self.replace_document(self.new_document());
                 self.file.path = None;
                 self.note = Some("New project.".into());
             }
@@ -737,10 +779,17 @@ impl Workbench {
         self.document.set_history_limit(memory.limit());
     }
 
-    /// The workbench with a remembered choice of units restored.
+    /// The workbench with the remembered units for new projects
+    /// restored; the empty project it starts with gets them too.
     #[must_use]
     pub fn with_units(mut self, units: Units) -> Self {
-        self.units = units;
+        self.new_units = units;
+        let untouched = self.document.scene().children(None).is_empty()
+            && self.document.undo_steps() == 0
+            && self.document.redo_steps() == 0;
+        if untouched {
+            self.replace_document(self.new_document());
+        }
         self
     }
 
@@ -786,6 +835,8 @@ impl Workbench {
             });
         }
         actions.append(&mut self.queued);
+        self.units = self.units();
+        let units_shown = self.units;
         if self.file.asking.is_none() {
             self.file_keys(ui, &mut actions);
         }
@@ -1007,6 +1058,11 @@ impl Workbench {
         self.about_open = about_open;
 
         self.settings_window(ui.ctx());
+        self.keep_units(units_shown);
+        // While Pivot to object waits for its click, the pointer says so.
+        if self.pivot_target {
+            ui.ctx().set_cursor_icon(egui::CursorIcon::Crosshair);
+        }
         self.dissolve_question_window(ui.ctx());
         self.unsaved_question(ui.ctx(), &mut actions);
         self.autosave_and_recovery(ui.ctx(), &mut actions);
@@ -1025,6 +1081,7 @@ impl Workbench {
         let mut values = Values {
             accent: &mut self.accent,
             units: &mut self.units,
+            new_units: &mut self.new_units,
             navigation: &mut options.navigation,
             grid: &mut options.grid_detail,
             select_visible_only: &mut options.select_visible_only,
@@ -1064,6 +1121,11 @@ impl Workbench {
             if ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
                 self.viewport.cancel_tool_drag();
             }
+            return;
+        }
+        // While Pivot to object waits for a click, Esc cancels it.
+        if self.pivot_target && ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
+            self.cancel_pivot_target();
             return;
         }
         // While a slit's line is drawn, Esc and Enter finish it (and Esc
@@ -1214,7 +1276,7 @@ impl Workbench {
                 middle + offset
             }
             crate::SymmetryCentre::World => {
-                let inverse = scene.world_matrix(id).inverse();
+                let inverse = scene.shape_matrix(id).inverse();
                 if inverse.is_finite() {
                     inverse.transform_point3(offset)
                 } else {
@@ -1343,6 +1405,7 @@ impl Workbench {
         }
         let menu = self.tool_menu.is_open();
         self.tool_menu.close();
+        self.pivot_target = false;
         let tool = self.tool.has_settings();
         if tool {
             // Finishes a Slit line too, keeping what it cut.
@@ -1934,6 +1997,9 @@ mod modelling;
 #[cfg(test)]
 mod modelling_tests;
 mod parts;
+mod pivots;
+#[cfg(test)]
+mod pivots_tests;
 mod selection;
 mod shortcuts;
 mod showing;

@@ -116,6 +116,15 @@ pub enum Command {
     /// to its parent (decision 0030). A transform with a value that isn't
     /// a number is refused.
     SetTransforms(Vec<(ObjectId, Transform)>),
+    /// Moves objects' pivots (their axes) without moving their shapes or
+    /// their children (decision 0068): each object gets a new transform,
+    /// relative to its parent, and its shape's offset and its children's
+    /// transforms change the opposite way. A transform with a value that
+    /// isn't a number, or that flattens the object, is refused.
+    MovePivots(Vec<(ObjectId, Transform)>),
+    /// Changes the project's units (decision 0068): how lengths are shown
+    /// and typed. The shapes don't change.
+    SetUnits(crate::Units),
     /// Bakes each shape's base and recorded edits into a plain mesh, which
     /// becomes its new base (its settings are gone; its edits are part of
     /// the mesh). Groups, and meshes with nothing recorded, are left alone.
@@ -196,6 +205,11 @@ impl Command {
                 let ids: Vec<ObjectId> = changes.iter().map(|(id, _)| *id).collect();
                 format!("Transform {}", objects(count(&ids)))
             }
+            Self::SetUnits(units) => format!("Change units to {}", units.name()),
+            Self::MovePivots(changes) => match changes.len() {
+                1 => "Move pivot".to_string(),
+                n => format!("Move {n} pivots"),
+            },
             Self::Duplicate { ids, instances } => {
                 let n = count(ids);
                 match (instances, n) {
@@ -316,6 +330,71 @@ impl Run<'_> {
             // Undoing edits that were just applied cannot fail.
             let _ = self.scene.apply(&edit.inverse());
         }
+    }
+
+    /// Gives `id` the transform `after`, its pivot moving there on its
+    /// own: its shape's offset and its children's transforms change the
+    /// opposite way, so nothing moves in the world.
+    fn move_pivot(&mut self, id: ObjectId, after: Transform) -> Result<(), SceneError> {
+        if !after.is_finite() {
+            return Err(SceneError::NotANumber);
+        }
+        let object = self
+            .scene
+            .object(id)
+            .ok_or(SceneError::UnknownObject(id))?
+            .clone();
+        let parent = self
+            .scene
+            .parent(id)
+            .map_or(glam::Mat4::IDENTITY, |p| self.scene.world_matrix(p));
+        let old = parent * object.transform.matrix();
+        let new = parent * after.matrix();
+        if new.determinant().abs() < 1e-12 {
+            return Err(SceneError::NotANumber);
+        }
+        // From the old pivot's space into the new one's.
+        let shift = new.inverse() * old;
+        let offset =
+            Transform::from_matrix(shift * object.offset.matrix()).ok_or(SceneError::NotANumber)?;
+        let children: Vec<(ObjectId, Transform)> = self
+            .scene
+            .children(Some(id))
+            .iter()
+            .filter_map(|child| {
+                let t = self.scene.object(*child)?.transform;
+                Some((*child, Transform::from_matrix(shift * t.matrix())?))
+            })
+            .collect();
+        if object.transform != after {
+            self.edit(Edit::SetTransform {
+                id,
+                before: object.transform,
+                after,
+            })?;
+        }
+        if object.offset != offset {
+            self.edit(Edit::SetOffset {
+                id,
+                before: object.offset,
+                after: offset,
+            })?;
+        }
+        for (child, t) in children {
+            let before = self
+                .scene
+                .object(child)
+                .ok_or(SceneError::UnknownObject(child))?
+                .transform;
+            if before != t {
+                self.edit(Edit::SetTransform {
+                    id: child,
+                    before,
+                    after: t,
+                })?;
+            }
+        }
+        Ok(())
     }
 
     fn place_of(&self, id: ObjectId) -> Result<Place, SceneError> {
@@ -549,6 +628,22 @@ impl Run<'_> {
                 }
                 Ok(None)
             }
+            Command::SetUnits(units) => {
+                let before = self.scene.units();
+                if before != *units {
+                    self.edit(Edit::SetUnits {
+                        before,
+                        after: *units,
+                    })?;
+                }
+                Ok(None)
+            }
+            Command::MovePivots(changes) => {
+                for (id, after) in changes {
+                    self.move_pivot(*id, *after)?;
+                }
+                Ok(None)
+            }
             Command::Duplicate { ids, instances } => {
                 let mut copies = Vec::new();
                 for id in top_level(self.scene, &existing(self.scene, ids)?) {
@@ -582,6 +677,7 @@ impl Run<'_> {
                 let mut piece = Object::new(ObjectKind::Mesh(Arc::new(part)));
                 piece.name = self.scene.unused_name(&object.name);
                 piece.transform = object.transform;
+                piece.offset = object.offset;
                 piece.visible = object.visible;
                 let place = self.place_of(*id)?;
                 self.command(&Command::Record {
@@ -613,12 +709,12 @@ impl Run<'_> {
                 if others.is_empty() {
                     return Ok(None);
                 }
-                let into = self.scene.world_matrix(target).inverse();
+                let into = self.scene.shape_matrix(target).inverse();
                 let meshes: Vec<(Arc<mesh::Mesh>, glam::Mat4)> = shapes
                     .iter()
                     .filter_map(|id| {
                         let shape = self.scene.evaluated(*id)?;
-                        Some((shape.mesh, into * self.scene.world_matrix(*id)))
+                        Some((shape.mesh, into * self.scene.shape_matrix(*id)))
                     })
                     .collect();
                 let parts: Vec<(&mesh::Mesh, glam::Mat4)> =

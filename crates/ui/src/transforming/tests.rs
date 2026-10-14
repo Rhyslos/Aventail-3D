@@ -570,3 +570,133 @@ fn a_moved_polygon_is_found_again_after_more_segments() {
             .all(|w| w.found_again && w.missing == 0)
     );
 }
+
+// ------------------------------------------------- pivots (Object mode) ---
+
+#[test]
+fn in_the_object_mode_the_gizmo_moves_and_turns_the_pivot_only() {
+    let (mut doc, cube) = cube_document();
+    let shape_before = doc.scene().shape_matrix(cube);
+    let t = target(&doc, Mode::Object, Axes::World).unwrap();
+    assert!(t.pivots);
+    let change = Change::Translate(Vec3::new(0.0, 0.0, 100.0));
+    assert_eq!(t.label(&change), "Move Cube's pivot");
+    let commands = t.commands(&change);
+    assert!(matches!(commands.as_slice(), [Command::MovePivots(_)]));
+    for command in commands {
+        doc.execute(command).unwrap();
+    }
+    assert!(
+        transform_of(&doc, cube)
+            .position
+            .abs_diff_eq(Vec3::new(0.0, 0.0, 100.0), 1e-4)
+    );
+    assert!(
+        doc.scene()
+            .shape_matrix(cube)
+            .abs_diff_eq(shape_before, 1e-3)
+    );
+    // Turning too.
+    let t = target(&doc, Mode::Object, Axes::World).unwrap();
+    let turn = Change::Rotate {
+        axis: Vec3::Z,
+        angle: FRAC_PI_2,
+    };
+    assert_eq!(t.label(&turn), "Rotate Cube's pivot");
+    for command in t.commands(&turn) {
+        doc.execute(command).unwrap();
+    }
+    assert!((transform_of(&doc, cube).rotation.x - FRAC_PI_2).abs() < 1e-4);
+    assert!(
+        doc.scene()
+            .shape_matrix(cube)
+            .abs_diff_eq(shape_before, 1e-3)
+    );
+    // A pivot has no size: scaling does nothing.
+    let t = target(&doc, Mode::Object, Axes::World).unwrap();
+    assert!(t.commands(&Change::Scale(Vec3::splat(2.0))).is_empty());
+    // In the Model mode, the shape goes with its pivot as before.
+    let t = target(&doc, Mode::Model, Axes::World).unwrap();
+    assert!(!t.pivots);
+    assert!(matches!(
+        t.commands(&change).as_slice(),
+        [Command::SetTransforms(_)]
+    ));
+}
+
+#[test]
+fn the_object_modes_gizmo_sits_on_the_pivot_not_the_shape() {
+    let (mut doc, cube) = cube_document();
+    doc.execute(Command::MovePivots(vec![(
+        cube,
+        Transform {
+            position: Vec3::new(500.0, 0.0, 0.0),
+            ..Transform::default()
+        },
+    )]))
+    .unwrap();
+    for mode in [Mode::Model, Mode::Object] {
+        let t = target(&doc, mode, Axes::World).unwrap();
+        assert!(t.pivot.abs_diff_eq(Vec3::new(500.0, 0.0, 0.0), 1e-4));
+    }
+    // Points are drawn, and moved, where the shape is.
+    doc.select_elements(
+        [(
+            cube,
+            ElementSelection::of(
+                doc.scene()
+                    .evaluated(cube)
+                    .unwrap()
+                    .mesh
+                    .vertices()
+                    .map(|(v, _)| scene::Element::Point(v)),
+            ),
+        )],
+        "Select",
+        None,
+    );
+    let t = target(&doc, Mode::Points, Axes::World).unwrap();
+    assert!(t.bounds.centre().x.abs() < 1e-3, "{:?}", t.bounds);
+}
+
+#[test]
+fn a_pivot_snaps_to_its_own_shapes_corner() {
+    let (doc, _) = cube_document();
+    let drawing = drawing(&doc, Mode::Object);
+    let scene = PickScene::new(
+        drawing
+            .items
+            .iter()
+            .map(|i| (i.mesh.as_ref(), i.transform, i.selected)),
+    );
+    let camera = Camera::looking_at(Vec3::new(300.0, -800.0, 400.0), Vec3::ZERO);
+    let size = Vec2::new(1000.0, 600.0);
+    // The cube's own near top corner.
+    let corner = Vec3::new(50.0, -50.0, 100.0);
+    let snapping = Snapping {
+        settings: SnapSettings::default(),
+        grid: GridDetail::Metre,
+        scene: &scene,
+        drawing: &drawing,
+        document: &doc,
+        camera,
+        size,
+        mouse: camera.project(corner, size).unwrap(),
+        locked: [false; 3],
+    };
+    let pivot = target(&doc, Mode::Object, Axes::World).unwrap();
+    let Change::Translate(d) =
+        pivot.snapped(Change::Translate(Vec3::ZERO), Handle::Centre, &snapping)
+    else {
+        panic!()
+    };
+    assert!(d.abs_diff_eq(corner, 1e-2), "{d}");
+    // Moving the whole object, its own shape is never snapped to.
+    let whole = target(&doc, Mode::Model, Axes::World).unwrap();
+    let Change::Translate(d) =
+        whole.snapped(Change::Translate(Vec3::ZERO), Handle::Centre, &snapping)
+    else {
+        panic!()
+    };
+    assert!(!d.abs_diff_eq(corner, 1e-2), "{d}");
+}

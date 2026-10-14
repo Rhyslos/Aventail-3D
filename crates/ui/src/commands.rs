@@ -44,6 +44,16 @@ pub enum CommandId {
     Instance,
     /// Join the selected objects into one.
     Join,
+    // ------------------------------------------- pivots (the Object mode)
+    /// Move the selected objects' pivots to the middle of their shapes.
+    PivotToCentre,
+    /// Move the selected objects' pivots to the world origin.
+    PivotToOrigin,
+    /// Move the selected objects' pivots to another object's pivot,
+    /// picked with a click.
+    PivotToObject,
+    /// Move the selected objects so their pivots sit at the world origin.
+    ObjectToOrigin,
     // --------------------------------------------- points, edges, polygons
     /// Push polygons or edges out, building new sides.
     Extrude,
@@ -202,6 +212,38 @@ impl CommandId {
                  staying where it was",
                 None,
             ),
+            Self::PivotToCentre => (
+                "Pivot to centre",
+                Icon::PivotToCentre,
+                None,
+                "Move the selected objects' pivots to the middle of their shapes; the shapes \
+                 stay where they are",
+                None,
+            ),
+            Self::PivotToOrigin => (
+                "Pivot to world origin",
+                Icon::PivotToOrigin,
+                None,
+                "Move the selected objects' pivots to the world origin, where the red and \
+                 blue lines cross; the shapes stay where they are",
+                None,
+            ),
+            Self::PivotToObject => (
+                "Pivot to object…",
+                Icon::PivotToObject,
+                None,
+                "Then click another object: the selected objects' pivots move to its pivot, \
+                 and the shapes stay where they are. Esc cancels.",
+                None,
+            ),
+            Self::ObjectToOrigin => (
+                "Object to world origin",
+                Icon::ObjectToOrigin,
+                None,
+                "Move the selected objects, shape and pivot together, so their pivots sit at \
+                 the world origin",
+                None,
+            ),
             Self::Extrude => (
                 "Extrude",
                 Icon::Extrude,
@@ -338,18 +380,22 @@ impl CommandId {
         match self {
             Self::Move
             | Self::Rotate
-            | Self::Scale
             | Self::AllGizmos
-            | Self::MakeEditable
             | Self::Group
             | Self::Ungroup
             | Self::Delete
             | Self::NewGroup
             | Self::ShapeList
-            | Self::FrameSelected
-            | Self::Duplicate
-            | Self::Instance
-            | Self::Join => &[Model, Object],
+            | Self::FrameSelected => &[Model, Object],
+            // A pivot has no size, and the Object mode's ring makes room
+            // for the pivot commands.
+            Self::Scale | Self::MakeEditable | Self::Duplicate | Self::Instance | Self::Join => {
+                &[Model]
+            }
+            Self::PivotToCentre
+            | Self::PivotToOrigin
+            | Self::PivotToObject
+            | Self::ObjectToOrigin => &[Object],
             Self::Extrude | Self::Bridge => &[Edges, Polygons],
             Self::Inset | Self::FlipNormals => &[Polygons],
             Self::Bevel | Self::Connect => &[Points, Edges],
@@ -368,9 +414,9 @@ impl CommandId {
 /// size between modes (the project lead's choice, 2026-10-12).
 pub const RING_PLACES: usize = 14;
 
-/// The tool menu's places for whole objects (the Model and Object
-/// modes), clockwise from the top; `None` is an empty place. Delete has
-/// the same place as in the modelling ring.
+/// The tool menu's places for whole objects (the Model mode), clockwise
+/// from the top; `None` is an empty place. Delete has the same place as
+/// in the modelling ring.
 pub const OBJECT_RING: [Option<CommandId>; RING_PLACES] = [
     Some(CommandId::Move),
     Some(CommandId::Rotate),
@@ -386,6 +432,27 @@ pub const OBJECT_RING: [Option<CommandId>; RING_PLACES] = [
     Some(CommandId::NewGroup),
     Some(CommandId::ShapeList),
     Some(CommandId::Join),
+];
+
+/// The tool menu's places in the Object mode, where the gizmos move pivots
+/// (decision 0068): the commands they share with the Model mode keep
+/// their places, and the pivot commands take the places of those that
+/// work on shapes. Scale's place is empty: a pivot has no size.
+pub const PIVOT_RING: [Option<CommandId>; RING_PLACES] = [
+    Some(CommandId::Move),
+    Some(CommandId::Rotate),
+    None,
+    Some(CommandId::AllGizmos),
+    Some(CommandId::FrameSelected),
+    Some(CommandId::PivotToCentre),
+    Some(CommandId::PivotToOrigin),
+    Some(CommandId::PivotToObject),
+    Some(CommandId::Delete),
+    Some(CommandId::Ungroup),
+    Some(CommandId::Group),
+    Some(CommandId::NewGroup),
+    Some(CommandId::ShapeList),
+    Some(CommandId::ObjectToOrigin),
 ];
 
 /// The tool menu's places for points, edges and polygons, clockwise from
@@ -425,7 +492,8 @@ pub struct Slot {
 /// no tools yet, like UV).
 pub fn menu_for(mode: Mode) -> Vec<Slot> {
     let ring: [Option<CommandId>; RING_PLACES] = match mode {
-        Mode::Model | Mode::Object => OBJECT_RING,
+        Mode::Model => OBJECT_RING,
+        Mode::Object => PIVOT_RING,
         Mode::Points | Mode::Edges | Mode::Polygons => MODELLING_RING.map(Some),
         Mode::Uv => return Vec::new(),
     };
@@ -442,7 +510,7 @@ pub fn menu_for(mode: Mode) -> Vec<Slot> {
 }
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 28] = [
+pub const ALL: [CommandId; 32] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -457,6 +525,10 @@ pub const ALL: [CommandId; 28] = [
     CommandId::Duplicate,
     CommandId::Instance,
     CommandId::Join,
+    CommandId::PivotToCentre,
+    CommandId::PivotToOrigin,
+    CommandId::PivotToObject,
+    CommandId::ObjectToOrigin,
     CommandId::Extrude,
     CommandId::Inset,
     CommandId::Bevel,
@@ -483,7 +555,9 @@ mod tests {
         let all: HashSet<_> = ALL.into_iter().collect();
         assert_eq!(all.len(), ALL.len());
         for command in ALL {
-            let placed = OBJECT_RING.contains(&Some(command)) || MODELLING_RING.contains(&command);
+            let placed = OBJECT_RING.contains(&Some(command))
+                || PIVOT_RING.contains(&Some(command))
+                || MODELLING_RING.contains(&command);
             assert!(placed, "{command:?} has no place in the tool menu");
             assert!(!command.modes().is_empty(), "{command:?}");
         }
@@ -574,6 +648,34 @@ mod tests {
     }
 
     #[test]
+    fn the_object_mode_menu_places_pivots_where_shapes_were() {
+        let object: Vec<_> = menu_for(Mode::Object).iter().map(|s| s.command).collect();
+        assert_eq!(
+            object,
+            PIVOT_RING.iter().flatten().copied().collect::<Vec<_>>()
+        );
+        for command in [
+            CommandId::PivotToCentre,
+            CommandId::PivotToOrigin,
+            CommandId::PivotToObject,
+            CommandId::ObjectToOrigin,
+        ] {
+            assert!(object.contains(&command), "{command:?}");
+            assert!(!command.modes().contains(&Mode::Model), "{command:?}");
+        }
+        // A pivot has no size.
+        assert!(!object.contains(&CommandId::Scale));
+        // What both modes share keeps its place.
+        for (place, command) in OBJECT_RING.iter().enumerate() {
+            if let Some(command) = command
+                && PIVOT_RING.contains(&Some(*command))
+            {
+                assert_eq!(PIVOT_RING[place], Some(*command), "{command:?}");
+            }
+        }
+    }
+
+    #[test]
     fn a_tool_keeps_its_place_in_every_mode() {
         for mode in [Mode::Points, Mode::Edges, Mode::Polygons] {
             for slot in menu_for(mode) {
@@ -601,7 +703,8 @@ mod tests {
         }
         // Within one ring, every icon is different.
         let objects: Vec<_> = OBJECT_RING.iter().flatten().copied().collect();
-        for ring in [&objects[..], &MODELLING_RING[..]] {
+        let pivots: Vec<_> = PIVOT_RING.iter().flatten().copied().collect();
+        for ring in [&objects[..], &pivots[..], &MODELLING_RING[..]] {
             let icons: HashSet<_> = ring.iter().map(|c| c.info().icon).collect();
             assert_eq!(icons.len(), ring.len());
         }

@@ -271,6 +271,16 @@ fn new_starts_an_empty_project_asking_first_if_needed() {
 }
 
 #[test]
+fn a_new_project_starts_in_the_units_chosen_for_new_projects() {
+    let mut harness = saved_cube();
+    harness.state_mut().workbench.new_units = crate::Units::Centimetres;
+    assert_eq!(workbench(&harness).units(), crate::Units::Metres);
+    press(&mut harness, Modifiers::COMMAND, Key::N);
+    assert_eq!(workbench(&harness).units(), crate::Units::Centimetres);
+    assert_eq!(workbench(&harness).document().undo_steps(), 0);
+}
+
+#[test]
 fn open_asks_the_app_once_changes_are_dealt_with() {
     let mut harness = saved_cube();
     press(&mut harness, Modifiers::COMMAND, Key::O);

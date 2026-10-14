@@ -8,6 +8,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Pivot editing.** In the **Object** mode, Move (W) and Rotate (R) move and turn the selected objects' pivots, and the shapes stay where they are; the pivot can snap onto the shape's own corners. The E menu there, and the **Tools** menu, add **Pivot to centre**, **Pivot to world origin**, **Pivot to object…** (click another object to use its pivot; Esc cancels) and **Object to world origin**.
+- **Each project keeps its units.** Metres or centimetres is now saved with the project, and changing it (Attributes → Units, or Settings) is an undo step. Settings also chooses the units new projects start with. Projects move to file format 16; older projects open in metres.
 - **Look along an axis.** In the perspective view, click X, Y or Z on the axis arrows in the bottom-left corner: the view swings round to look straight along that axis (Z from above, X from the right, Y from the back). Click it again to look from the other side.
 - **Cavity.** Ridges catch a light line and creases and inner corners darken, so edges and a shape's form read clearly at a glance, like Blender's cavity. On as standard; switch it in the viewport's **Display** menu, with Hard edges and Normals.
 - **Automatic hard edges.** A new switch in the **Mesh** menu, on as standard, shades every shape by angle after every change: edges where polygons meet more sharply than 30° are crisp, the rest smooth. Bent extrudes no longer look faceted, and a cylinder's sides stay smooth however you extrude it. Switch it off to shade by the edges you set by hand, which are kept.
@@ -67,6 +69,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **Settings → Interface → Lengths** is now **Units**, with this project's units and the units for new projects.
 - **Clearer names:** Fix facing is now **Fix normals**, Select similar facing is **Select same facing**, the left palette's Show only the selection button is **Isolate**, and the Instance command is **Duplicate as instance**.
 - **Cavity** moved from its own button in the viewport's bottom-left corner into the **Display** menu's group with Hard edges and Normals. The axis arrows there are a little bigger, with round letters to click.
 - The X/Y/Z axis arrows moved from the viewport's top-right corner to the bottom left, beside the new shading button, with the grid spacing just above them.

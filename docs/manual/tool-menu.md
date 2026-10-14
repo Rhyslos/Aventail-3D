@@ -9,6 +9,7 @@
 Whenever you want a tool and don't remember its key, or it doesn't have one. The tool menu holds the tools that make sense for what you're doing now:
 
 - **In Model mode** (whole objects): Move, Rotate, Scale, Transform (all three gizmos at once), Frame selected, Make editable, Delete, Ungroup, Group objects, New group, and Create a shape… (the shape list).
+- **In Object mode** (pivots): the same, except that Scale's place is empty (a pivot has no size) and the four pivot commands take the places of Duplicate, Make editable, Duplicate as instance and Join: **Pivot to centre**, **Pivot to world origin**, **Pivot to object…** and **Object to world origin**. See [Pivots and the Object mode](pivots.md).
 - **In Points, Edges and Polygons mode**: the modelling tools for that kind of element, such as Extrude, Inset, Bevel, Loop cut, Slit, Weld and so on. Move, rotate and scale aren't here, since they're always on the palette at the top.
 
 Each tool's key is shown next to its button, so the menu teaches you the keys as you go. Once you know a key, pressing it directly is quicker. The menu is there for everything else.

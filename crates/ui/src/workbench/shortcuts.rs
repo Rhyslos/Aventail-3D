@@ -271,6 +271,7 @@ pub(crate) fn bindings() -> Vec<Binding> {
         held(KeyId::Shift, "Ten times finer", Dragging),
         held(KeyId::Ctrl, "Snap (or not, when snapping is on)", Dragging),
         plain(Key::Escape, "Cancel the drag", Dragging),
+        plain(Key::Escape, "Cancel Pivot to object", Model),
     ]);
 
     // Modelling.
