@@ -10,6 +10,7 @@
 #[cfg(test)]
 use super::v1::ProjectFile;
 use super::v1::{FileOperation, Problem, finite};
+use crate::limits::Bounded;
 use glam::{Mat4, Vec3};
 use mesh::{AnchorShape, Anchors, Bounds, VertexId};
 use scene::Operation;
@@ -26,14 +27,14 @@ pub(crate) type ProjectV2 = ProjectFile<OperationV2>;
 pub(crate) enum OperationV2 {
     /// Points moved by an offset.
     MovePoints {
-        points: Vec<u32>,
+        points: Bounded<u32>,
         offset: [f32; 3],
         anchors: Option<AnchorsV2>,
     },
     /// Points moved by an affine matrix, in the object's own space: its
     /// first three columns (each three numbers), then the move.
     TransformPoints {
-        points: Vec<u32>,
+        points: Bounded<u32>,
         matrix: [f32; 12],
         anchors: Option<AnchorsV2>,
     },
@@ -45,15 +46,15 @@ pub(crate) struct AnchorsV2 {
     /// The shape's box then: its smallest and largest corners.
     pub(crate) bounds: [[f32; 3]; 2],
     /// Each point named, and where it was.
-    pub(crate) points: Vec<(u32, [f32; 3])>,
+    pub(crate) points: Bounded<(u32, [f32; 3])>,
     pub(crate) shape: AnchorShapeV2,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) enum AnchorShapeV2 {
-    Points(Vec<[f32; 3]>),
-    Edges(Vec<[[f32; 3]; 2]>),
-    Polygons(Vec<Vec<[f32; 3]>>),
+    Points(Bounded<[f32; 3]>),
+    Edges(Bounded<[[f32; 3]; 2]>),
+    Polygons(Bounded<Bounded<[f32; 3]>>),
 }
 
 pub(crate) fn anchors_to_file(a: &Anchors) -> AnchorsV2 {
@@ -150,7 +151,7 @@ impl FileOperation for OperationV2 {
     }
 
     fn into_operation(self) -> Result<Operation, Problem> {
-        let ids = |points: Vec<u32>| points.into_iter().map(VertexId::from_raw).collect();
+        let ids = |points: Bounded<u32>| points.into_iter().map(VertexId::from_raw).collect();
         let anchors = |a: Option<AnchorsV2>| a.map(anchors_from_file).transpose();
         match self {
             Self::MovePoints {

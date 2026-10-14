@@ -16,6 +16,7 @@
 
 use super::v1::{FileOperation, Problem, ProjectFile};
 use super::v4::OperationV4;
+use crate::limits::Bounded;
 use glam::{Vec2, Vec3, Vec4};
 use mesh::{AttributeValues, Domain, EdgeKey, Mesh, Value, VertexId};
 use scene::{Document, EditId, Entry, ObjectKind, Operation};
@@ -28,7 +29,7 @@ pub(crate) struct ProjectV5 {
     /// Everything version 4 kept, with recorded edits as entries.
     pub(crate) project: ProjectFile<EntryV5>,
     /// The attribute layers of plain meshes, by object.
-    pub(crate) layers: Vec<MeshLayersV5>,
+    pub(crate) layers: Bounded<MeshLayersV5>,
 }
 
 /// A recorded edit.
@@ -53,7 +54,7 @@ pub(crate) struct AnchorsMoreV5 {
 pub(crate) struct MeshLayersV5 {
     /// The object whose base the mesh is.
     pub(crate) object: u64,
-    pub(crate) layers: Vec<LayerV5>,
+    pub(crate) layers: Bounded<LayerV5>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -84,13 +85,13 @@ pub(crate) enum ValueV5 {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) enum ValuesV5 {
-    Bool(Vec<bool>),
-    Int(Vec<i32>),
-    Float(Vec<f32>),
-    Vec2(Vec<[f32; 2]>),
-    Vec3(Vec<[f32; 3]>),
-    Vec4(Vec<[f32; 4]>),
-    Edges(Vec<([u32; 2], ValueV5)>),
+    Bool(Bounded<bool>),
+    Int(Bounded<i32>),
+    Float(Bounded<f32>),
+    Vec2(Bounded<[f32; 2]>),
+    Vec3(Bounded<[f32; 3]>),
+    Vec4(Bounded<[f32; 4]>),
+    Edges(Bounded<([u32; 2], ValueV5)>),
 }
 
 // ------------------------------------------------------------ entries ---
@@ -178,9 +179,9 @@ fn values_to_file(v: AttributeValues) -> ValuesV5 {
     let arrays3 = |l: Vec<Vec3>| l.iter().map(Vec3::to_array).collect();
     let arrays4 = |l: Vec<Vec4>| l.iter().map(Vec4::to_array).collect();
     match v {
-        AttributeValues::Bool(l) => ValuesV5::Bool(l),
-        AttributeValues::Int(l) => ValuesV5::Int(l),
-        AttributeValues::Float(l) => ValuesV5::Float(l),
+        AttributeValues::Bool(l) => ValuesV5::Bool(l.into()),
+        AttributeValues::Int(l) => ValuesV5::Int(l.into()),
+        AttributeValues::Float(l) => ValuesV5::Float(l.into()),
         AttributeValues::Vec2(l) => ValuesV5::Vec2(arrays2(l)),
         AttributeValues::Vec3(l) => ValuesV5::Vec3(arrays3(l)),
         AttributeValues::Vec4(l) => ValuesV5::Vec4(arrays4(l)),
@@ -197,9 +198,9 @@ fn values_to_file(v: AttributeValues) -> ValuesV5 {
 
 fn values_from_file(v: ValuesV5) -> AttributeValues {
     match v {
-        ValuesV5::Bool(l) => AttributeValues::Bool(l),
-        ValuesV5::Int(l) => AttributeValues::Int(l),
-        ValuesV5::Float(l) => AttributeValues::Float(l),
+        ValuesV5::Bool(l) => AttributeValues::Bool(l.0),
+        ValuesV5::Int(l) => AttributeValues::Int(l.0),
+        ValuesV5::Float(l) => AttributeValues::Float(l.0),
         ValuesV5::Vec2(l) => AttributeValues::Vec2(l.into_iter().map(Vec2::from_array).collect()),
         ValuesV5::Vec3(l) => AttributeValues::Vec3(l.into_iter().map(Vec3::from_array).collect()),
         ValuesV5::Vec4(l) => AttributeValues::Vec4(l.into_iter().map(Vec4::from_array).collect()),
@@ -246,7 +247,7 @@ impl ProjectV5 {
                     let layers = mesh_layers(mesh);
                     (!layers.is_empty()).then_some(MeshLayersV5 {
                         object: id.get(),
-                        layers,
+                        layers: layers.into(),
                     })
                 }
                 _ => None,
@@ -263,7 +264,7 @@ impl ProjectV5 {
         let mut layers: std::collections::BTreeMap<u64, Vec<LayerV5>> =
             std::collections::BTreeMap::new();
         for mesh in self.layers {
-            if layers.insert(mesh.object, mesh.layers).is_some() {
+            if layers.insert(mesh.object, mesh.layers.0).is_some() {
                 return Err("an object's mesh layers are listed twice".into());
             }
         }

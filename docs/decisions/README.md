@@ -52,3 +52,4 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0042](0042-fast-edits.md) | Fast edits: checkpoints inside a layer, bevel without quadratic loops, finding edits again through a grid, topology in undo memory | Accepted |
 | [0043](0043-attribute-layers-and-the-builder.md) | Attribute layers (point, edge, polygon, corner), hard edges as the first; the mesh builder; deleting polygons | Accepted |
 | [0044](0044-edits-that-hold.md) | Edits that hold: ids and switches, ids trusted when the structure is the same, file format version 5 (stretching new rows tried and dropped) | Accepted |
+| [0045](0045-limits-for-files.md) | Limits for files (unpacked size, a memory budget while reading, counts) and a size guard for shapes; recovery that can't loop | Accepted |

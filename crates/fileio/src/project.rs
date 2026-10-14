@@ -14,8 +14,10 @@
 //! | 20– | The body: the file model of that version (`project/v1.rs` to `project/v5.rs`), encoded with postcard |
 //!
 //! Reading never trusts the file: lengths are checked before anything is
-//! allocated, the unpacked body is capped, and every value is checked
-//! before it becomes part of a scene. Problems come back as a
+//! allocated, the unpacked body is capped, every list is paid for from a
+//! memory budget while it is read, counts of objects, edits and polygons
+//! are held to the limits rulebook ([`crate::limits`]), and every value
+//! is checked before it becomes part of a scene. Problems come back as a
 //! [`ProjectError`] in plain words; reading never panics.
 
 mod v1;
@@ -39,9 +41,10 @@ const FLAG_ZSTD: u32 = 1;
 const KNOWN_FLAGS: u32 = FLAG_ZSTD;
 /// The header's size in bytes.
 const HEADER_LEN: usize = 20;
-/// The largest body, packed or unpacked, a file may have: 4 GB. Anything
-/// larger is taken as damaged rather than read into memory.
-const MAX_BODY: u64 = 4 << 30;
+/// The largest body, packed or unpacked, a file may have (the limits
+/// rulebook, [`crate::limits`]). Anything larger is taken as damaged
+/// rather than read into memory.
+const MAX_BODY: u64 = crate::limits::MAX_UNPACKED;
 /// How hard zstd works: a good balance of speed and size for scenes.
 const ZSTD_LEVEL: i32 = 3;
 
@@ -209,15 +212,28 @@ pub fn from_bytes(bytes: &[u8]) -> Result<Document, ProjectError> {
     }
 }
 
+/// Why a body couldn't be read: a limit, or damage.
+fn unreadable(error: postcard::Error) -> ProjectError {
+    if crate::limits::limit_hit() {
+        ProjectError::Damaged(crate::limits::TOO_MUCH.into())
+    } else {
+        ProjectError::Damaged(format!("the scene can't be read ({error})"))
+    }
+}
+
 /// The document a version 5 body holds.
 fn decode_v5(encoded: &[u8]) -> Result<Document, ProjectError> {
-    let (model, rest): (v5::ProjectV5, &[u8]) = postcard::take_from_bytes(encoded)
-        .map_err(|e| ProjectError::Damaged(format!("the scene can't be read ({e})")))?;
+    let (model, rest): (v5::ProjectV5, &[u8]) =
+        crate::limits::within_budget(|| postcard::take_from_bytes(encoded)).map_err(unreadable)?;
     if !rest.is_empty() {
         return Err(ProjectError::Damaged(
             "there is unexpected data after the scene".into(),
         ));
     }
+    model
+        .project
+        .check_limits()
+        .map_err(ProjectError::Damaged)?;
     model.into_document().map_err(ProjectError::Damaged)
 }
 
@@ -227,18 +243,25 @@ fn decode<Op>(encoded: &[u8]) -> Result<Document, ProjectError>
 where
     Op: v1::FileOperation + serde::de::DeserializeOwned,
 {
-    let (model, rest): (v1::ProjectFile<Op>, &[u8]) = postcard::take_from_bytes(encoded)
-        .map_err(|e| ProjectError::Damaged(format!("the scene can't be read ({e})")))?;
+    let (model, rest): (v1::ProjectFile<Op>, &[u8]) =
+        crate::limits::within_budget(|| postcard::take_from_bytes(encoded)).map_err(unreadable)?;
     if !rest.is_empty() {
         return Err(ProjectError::Damaged(
             "there is unexpected data after the scene".into(),
         ));
     }
+    model.check_limits().map_err(ProjectError::Damaged)?;
     model.into_document().map_err(ProjectError::Damaged)
 }
 
 /// Unpacks a zstd body, refusing to unpack more than [`MAX_BODY`] bytes.
+/// A body that says up front it is larger is refused without unpacking.
 fn unpack(body: &[u8]) -> Result<Vec<u8>, ProjectError> {
+    if let Ok(Some(size)) = zstd::zstd_safe::get_frame_content_size(body)
+        && size > MAX_BODY
+    {
+        return Err(ProjectError::TooLarge);
+    }
     let decoder = zstd::stream::read::Decoder::new(body)
         .map_err(|e| ProjectError::Damaged(format!("the scene can't be unpacked ({e})")))?;
     let mut out = Vec::new();

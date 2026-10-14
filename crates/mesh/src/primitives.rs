@@ -332,6 +332,31 @@ impl Primitive {
         self.kind().name()
     }
 
+    /// How many polygons the shape has, at most, worked out from its
+    /// settings (brought within limits) without building it: for checking
+    /// a file before opening it.
+    pub fn polygon_estimate(&self) -> usize {
+        let n = |x: u32| x as usize;
+        match self.clamped() {
+            Self::Cube(p) => {
+                let [x, y, z] = p.segments.map(n);
+                2 * (x * y + y * z + x * z)
+            }
+            Self::Plane(p) => n(p.segments[0]) * n(p.segments[1]),
+            Self::Cylinder(p) => {
+                let caps = if p.caps { 2 * n(p.cap_segments) } else { 0 };
+                n(p.sides) * (n(p.height_segments) + caps)
+            }
+            Self::Sphere(p) => n(p.sides) * n(p.rings),
+            Self::Disc(p) => n(p.sides) * n(p.ring_segments),
+            Self::Tube(p) => n(p.sides) * (2 * n(p.height_segments) + 2),
+            Self::Cone(p) => {
+                let caps = if p.caps { 2 * n(p.cap_segments) } else { 0 };
+                n(p.sides) * (n(p.height_segments) + caps)
+            }
+        }
+    }
+
     /// The same primitive with its settings brought within limits:
     /// sizes between [`MIN_SIZE`] and [`MAX_SIZE`] (anything that isn't a
     /// number becomes the standard size), segment and side counts within

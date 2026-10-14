@@ -828,6 +828,20 @@ fn edits_section(ui: &mut Ui, doc: &Document, id: ObjectId, stack: &Stack) {
                  as a whole. Nothing to fix.",
             );
     }
+    let too_big = warnings.iter().filter(|w| w.too_big).count();
+    if too_big > 0 {
+        let text = match too_big {
+            1 => "1 edit was skipped: the shape would be too large".to_string(),
+            n => format!("{n} edits were skipped: the shape would be too large"),
+        };
+        ui.label(RichText::new(text).color(theme::WARNING))
+            .on_hover_text(format!(
+                "These edits would have made the shape larger than {} million polygons, \
+                 more than the app can work with safely, so they were left out. Undo \
+                 them, or use fewer rows or a smaller selection.",
+                scene::MAX_SHAPE_POLYGONS / 1_000_000
+            ));
+    }
     if not_fitting > 0 {
         let text = match not_fitting {
             1 => "1 edit no longer fully fits the shape".to_string(),

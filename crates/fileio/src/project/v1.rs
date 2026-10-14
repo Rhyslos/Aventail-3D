@@ -10,6 +10,7 @@
 //!
 //! Every value read back is checked: a file may be damaged or hostile.
 
+use crate::limits::Bounded;
 use glam::Vec3;
 use mesh::{
     ConeParams, CubeParams, CylinderParams, DiscParams, EdgeKey, Mesh, PlaneParams, Primitive,
@@ -26,11 +27,11 @@ use std::sync::Arc;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) struct ProjectFile<Op> {
     /// Every object, parents before their children, children in order.
-    pub(crate) objects: Vec<ObjectFile<Op>>,
+    pub(crate) objects: Bounded<ObjectFile<Op>>,
     /// The id the next new object gets (ids are never reused).
     pub(crate) next_id: u64,
     /// The selected objects' ids.
-    pub(crate) selection: Vec<u64>,
+    pub(crate) selection: Bounded<u64>,
 }
 
 /// Version 1 of the file: its own operations.
@@ -48,7 +49,7 @@ pub(crate) struct ObjectFile<Op> {
     pub(crate) visible: bool,
     pub(crate) transform: TransformV1,
     pub(crate) kind: KindV1,
-    pub(crate) layers: Vec<LayerFile<Op>>,
+    pub(crate) layers: Bounded<LayerFile<Op>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -119,18 +120,18 @@ pub(crate) enum PrimitiveV1 {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) struct MeshV1 {
     /// Point positions by id number; `None` where a point was deleted.
-    pub(crate) points: Vec<Option<[f32; 3]>>,
+    pub(crate) points: Bounded<Option<[f32; 3]>>,
     /// Faces by id number, as point id numbers; `None` where deleted.
-    pub(crate) faces: Vec<Option<Vec<u32>>>,
+    pub(crate) faces: Bounded<Option<Bounded<u32>>>,
     /// Hard edges, as pairs of point id numbers.
-    pub(crate) hard: Vec<[u32; 2]>,
+    pub(crate) hard: Bounded<[u32; 2]>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) struct LayerFile<Op> {
     pub(crate) name: String,
     pub(crate) enabled: bool,
-    pub(crate) operations: Vec<Op>,
+    pub(crate) operations: Bounded<Op>,
 }
 
 /// A recorded operation (or, from version 5, a whole recorded edit) as a
@@ -178,7 +179,10 @@ impl FileOperation for OperationV1 {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) enum OperationV1 {
-    MovePoints { points: Vec<u32>, offset: [f32; 3] },
+    MovePoints {
+        points: Bounded<u32>,
+        offset: [f32; 3],
+    },
 }
 
 // ------------------------------------------------------------- writing ---
@@ -311,6 +315,46 @@ fn layer_to_file<Op: FileOperation>(layer: &Layer) -> LayerFile<Op> {
 }
 
 // ------------------------------------------------------------- reading ---
+
+impl<Op> ProjectFile<Op> {
+    /// Checks the counts the limits rulebook sets (`crate::limits`):
+    /// objects, recorded edits, and polygons before edits (plain meshes as
+    /// stored, primitives estimated from their settings).
+    pub(crate) fn check_limits(&self) -> Result<(), Problem> {
+        use crate::limits::{MAX_EDITS, MAX_OBJECTS, MAX_POLYGONS};
+        let objects = self.objects.len();
+        if objects > MAX_OBJECTS {
+            return Err(format!(
+                "it holds {objects} objects, and the app opens up to {MAX_OBJECTS}"
+            ));
+        }
+        let edits: usize = self
+            .objects
+            .iter()
+            .flat_map(|o| o.layers.iter())
+            .map(|l| l.operations.len())
+            .sum();
+        if edits > MAX_EDITS {
+            return Err(format!(
+                "it holds {edits} recorded edits, and the app opens up to {MAX_EDITS}"
+            ));
+        }
+        let polygons = self.objects.iter().fold(0usize, |sum, o| {
+            sum.saturating_add(match &o.kind {
+                KindV1::Group => 0,
+                KindV1::Primitive(p) => primitive_from_file(*p).polygon_estimate(),
+                KindV1::Mesh(m) => m.faces.len(),
+            })
+        });
+        if polygons > MAX_POLYGONS {
+            return Err(format!(
+                "its shapes have about {polygons} polygons, and the app opens up to \
+                 {MAX_POLYGONS}"
+            ));
+        }
+        Ok(())
+    }
+}
 
 /// Why the contents couldn't become a document, in plain words.
 pub(crate) type Problem = String;

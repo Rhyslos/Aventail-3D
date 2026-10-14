@@ -10,6 +10,7 @@
 use super::v1::{FileOperation, Problem};
 use super::v2::{AnchorsV2, anchors_from_file, anchors_to_file};
 use super::v3::OperationV3;
+use crate::limits::Bounded;
 use mesh::bevel::MAX_SEGMENTS;
 use mesh::{EdgeKey, VertexId};
 use scene::{BevelShape, Operation};
@@ -26,7 +27,7 @@ pub(crate) enum OperationV4 {
     V3(OperationV3),
     /// Edges bevelled, each by its two points.
     BevelEdges {
-        edges: Vec<[u32; 2]>,
+        edges: Bounded<[u32; 2]>,
         width: f32,
         segments: u32,
         profile: f32,
@@ -34,7 +35,7 @@ pub(crate) enum OperationV4 {
     },
     /// Points bevelled.
     BevelPoints {
-        points: Vec<u32>,
+        points: Bounded<u32>,
         width: f32,
         anchors: Option<AnchorsV2>,
     },

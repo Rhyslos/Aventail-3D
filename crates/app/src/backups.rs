@@ -54,6 +54,7 @@ fn offer(leftover: &Leftover) -> RecoveryOffer {
                 saved: c.saved,
             })
             .collect(),
+        left_out: leftover.left_out,
     }
 }
 
@@ -137,7 +138,12 @@ impl Backups {
                 |_| "a backup copy".to_string(),
                 |saved| ui::ago(saved, SystemTime::now()),
             );
-        match fileio::project::open(copy) {
+        // If opening the copy closes the app, the next start won't offer
+        // it again (decision 0045).
+        let _ = autosave::mark_restoring(copy);
+        let opened = fileio::project::open(copy);
+        autosave::clear_restoring(folder);
+        match opened {
             Ok(document) => {
                 if let Some(session) = &self.session {
                     let _ = session.adopt(copy, keep);

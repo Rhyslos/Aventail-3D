@@ -180,6 +180,7 @@ fn edits_whose_points_are_gone_still_apply_to_the_rest_and_warn() {
             operation: 0,
             missing: 2,
             found_again: false,
+            too_big: false,
         }]
     );
 }
@@ -590,6 +591,7 @@ fn a_lifted_top_stays_lifted_with_more_segments() {
             operation: 0,
             missing: 0,
             found_again: true,
+            too_big: false,
         }]
     );
 
@@ -1247,4 +1249,53 @@ fn changing_an_earlier_edit_keeps_later_edits_on_their_points() {
         );
     }
     assert!(shape.warnings.is_empty(), "nothing had to be searched for");
+}
+
+// ------------------------------------------------ limits (decision 0045) ---
+
+#[test]
+fn an_edit_that_would_make_the_shape_too_large_is_skipped_with_a_warning() {
+    let mut doc = Document::new();
+    let dense = Primitive::Cube(CubeParams {
+        segments: [256; 3],
+        ..CubeParams::default()
+    });
+    doc.execute(Command::Create(ObjectKind::Primitive(dense)))
+        .unwrap();
+    let id = doc.selection()[0];
+    let shape = doc.scene().evaluated(id).unwrap().mesh;
+    let edges: Vec<mesh::EdgeKey> = shape.edges().to_vec();
+    // Every edge, 64 rows: about 50 million polygons. Skipped.
+    record(
+        &mut doc,
+        id,
+        Operation::BevelEdges {
+            edges,
+            shape: BevelShape {
+                width: 0.1,
+                segments: 64,
+                profile: 1.0,
+            },
+            anchors: None,
+        },
+    );
+    let after = doc.scene().evaluated(id).unwrap();
+    assert_eq!(
+        after.mesh.face_count(),
+        shape.face_count(),
+        "nothing changed"
+    );
+    assert_eq!(
+        after.warnings,
+        [StackWarning {
+            layer: 0,
+            operation: 0,
+            missing: 0,
+            found_again: false,
+            too_big: true,
+        }]
+    );
+    // A sensible edit after it still applies.
+    record(&mut doc, id, lift(&[0], 5.0));
+    assert_eq!(doc.scene().evaluated(id).unwrap().warnings.len(), 1);
 }

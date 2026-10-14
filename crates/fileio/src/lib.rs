@@ -5,6 +5,7 @@
 //! crate's README for its purpose and limits.
 
 pub mod autosave;
+pub mod limits;
 pub mod project;
 
 pub use project::{FORMAT_VERSION, ProjectError, SIGNATURE};

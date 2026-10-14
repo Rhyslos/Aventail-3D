@@ -33,7 +33,7 @@ Slow work (large unwraps, booleans, exports) runs on background threads. **Backg
 
 ## Startup
 
-1. **Command line** (`app`): `--version` and `--help` print and exit; anything unknown is explained, with exit code 2.
+1. **Command line** (`app`): `--version` and `--help` print and exit; anything unknown is explained, with exit code 2; `--` ends the options, so a file name may start with `-`.
 2. **Window** (`app` with eframe): open the window, named and identified through `branding.rs`, apply the theme (`ui::theme`; see [decision 0009](docs/decisions/0009-theme.md)), and restore the panel layout saved last time. See [decision 0008](docs/decisions/0008-window-and-panels.md).
 3. **Each frame** (`ui`): the workbench draws the menu bar, the command palette, the mode palette, the status bar and the docked panels, and returns any actions (such as Quit) for the app to carry out.
 4. **Closing**: eframe saves the window size and the panel layout (`app.ron`, in a per-user folder named after `APP_ID`).
@@ -125,7 +125,7 @@ Rendering sits behind the `ViewportRenderer` trait, so the panel runs in tests w
 
 ## Security
 
-- Files from strangers are hostile: every reader checks sizes before allocating and has a fuzz test.
+- Files from strangers are hostile: every reader checks sizes before allocating and has a fuzz test. Project files are held to one limits rulebook (`fileio::limits`, [decision 0045](docs/decisions/0045-limits-for-files.md)): a cap on the unpacked body, a memory budget every list is paid from while it is read (`Bounded`), and counts of objects, edits and polygons. Shapes can't grow past `scene::MAX_SHAPE_POLYGONS` through their edits.
 - No usernames or local paths are written into exported files. No telemetry.
 - Dependencies are audited for licenses and known vulnerabilities on every change (`cargo deny`).
 
