@@ -1155,6 +1155,15 @@ fn a_straight_extrude_given_a_bend_becomes_a_bent_one() {
     });
     assert!(matches!(bent, Operation::ExtrudeBent { distance, .. } if distance == 50.0));
     assert_eq!(bent.describe(), "Extrude 1 polygon with a bend");
+    let spiral = straight.with(EditSettings {
+        bend: Some(Bend {
+            angle: 720.0,
+            radius: 30.0,
+            ..Bend::default()
+        }),
+        ..settings
+    });
+    assert_eq!(spiral.describe(), "Extrude 1 polygon with a spiral");
     doc.execute(Command::ReplaceOperation {
         id,
         layer: 0,
@@ -1172,6 +1181,7 @@ fn a_straight_extrude_given_a_bend_becomes_a_bent_one() {
             radius: 40.0,
             segments: 5,
             direction: 0.0,
+            ..Bend::default()
         }),
         ..bent.settings().unwrap()
     });

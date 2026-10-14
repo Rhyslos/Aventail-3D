@@ -25,6 +25,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Mitre joint** — Where two straight pieces meet at an angle with no rounding, each cut at half the angle, like the corner of a picture frame. A pipe bent this way keeps its full width. See [bending an extrude](extrude-and-inset.md#bend-it-pipes-that-turn-a-corner).
 
+**Spiral (helix)** — A curve that goes round and round while climbing along a line, like a spring, a screw thread or a spiral staircase. An extrude bent past one full turn becomes one. See [Spirals](extrude-and-inset.md#spirals-going-round-more-than-once).
+
 **Bridge** — A band of new polygons between two openings (open borders, or two polygons that are removed), like a tube between two holes. See [Connect, Bridge and Weld](connect-bridge-weld.md).
 
 **Weld** — Melting points into one, at their middle or onto a chosen point. Polygons squeezed to fewer than three corners disappear. See [Connect, Bridge and Weld](connect-bridge-weld.md).

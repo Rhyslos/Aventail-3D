@@ -207,11 +207,35 @@ fn a_slit_weld_and_bent_extrude_are_mirrored_copies() {
             direction: 70.0,
             radius: 20.0,
             segments: 3,
+            ..Bend::default()
         },
         anchors: None,
     };
     let both = after(mirrored(bent));
     assert!(symmetrical(&both));
+    // A spiral on the right climbs the mirrored way on the left, so the
+    // two are mirror images (one right-handed, one left-handed).
+    let spiral = Operation::ExtrudeBent {
+        faces: vec![right_face(&base, Vec3::X)],
+        distance: 10.0,
+        grouping: Grouping::Together,
+        bend: Bend {
+            angle: 720.0,
+            direction: 70.0,
+            radius: 40.0,
+            segments: 6,
+            rise: 10.0,
+            mirrored: false,
+        },
+        anchors: None,
+    };
+    let both = after(mirrored(spiral.clone()));
+    assert!(symmetrical(&both));
+    assert_eq!(
+        both.vertex_count(),
+        base.vertex_count() + 2 * 13 * 4,
+        "twelve rows and one straight on, on each side"
+    );
 }
 
 #[test]

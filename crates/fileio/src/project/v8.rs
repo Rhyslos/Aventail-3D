@@ -100,6 +100,7 @@ impl FileOperation for OperationV8 {
                         direction: bend.direction,
                         radius: bend.radius,
                         segments: bend.segments,
+                        ..Bend::default()
                     }
                     .clamped(),
                     anchors: anchors.map(anchors_from_file).transpose()?,

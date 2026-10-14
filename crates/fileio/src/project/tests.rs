@@ -8,10 +8,65 @@ use glam::Vec3;
 use mesh::{CubeParams, PrimitiveKind, VertexId};
 use scene::{Command, Object, ObjectKind, Operation, Place, Primitive, Transform};
 
+/// A document using everything the current version of the format can
+/// hold: all of [`rich_document_v14`], plus the edits version 15 adds
+/// (a spiral, on its own and mirrored; the version 15 sample holds
+/// exactly this).
+fn rich_document() -> Document {
+    let mut doc = rich_document_v14();
+    let cube = doc
+        .scene()
+        .walk()
+        .into_iter()
+        .map(|(id, _)| id)
+        .find(|id| doc.scene().object(*id).unwrap().name == "Cube")
+        .unwrap();
+    let shape = doc.scene().evaluated(cube).unwrap().mesh;
+    let top = shape
+        .faces()
+        .map(|(f, _)| f)
+        .max_by(|a, b| shape.face_normal(*a).z.total_cmp(&shape.face_normal(*b).z))
+        .unwrap();
+    let spiral = scene::Bend {
+        angle: 900.0,
+        direction: 30.0,
+        radius: 40.0,
+        segments: 6,
+        rise: 7.5,
+        mirrored: true,
+    };
+    let bent = Operation::ExtrudeBent {
+        faces: vec![top],
+        distance: 5.0,
+        grouping: scene::Grouping::Together,
+        bend: spiral,
+        anchors: None,
+    };
+    for operation in [
+        bent.clone(),
+        Operation::Mirrored {
+            op: Box::new(bent),
+            mirror: mesh::symmetry::Mirror {
+                axes: [true, false, true],
+                centre: glam::Vec3::new(0.5, 0.0, -1.0),
+                clip: false,
+            },
+        },
+    ] {
+        doc.execute(Command::Record {
+            id: cube,
+            operation,
+        })
+        .unwrap();
+    }
+    doc.set_selection([cube]);
+    doc
+}
+
 /// A document using everything version 14 of the format can hold: all
 /// of [`rich_document_v13`], plus the edits version 14 adds (the version
 /// 14 sample holds exactly this).
-fn rich_document() -> Document {
+fn rich_document_v14() -> Document {
     let mut doc = rich_document_v13();
     let cube = doc
         .scene()
@@ -280,6 +335,7 @@ fn rich_document_v8() -> Document {
                 direction: 45.0,
                 radius: 20.0,
                 segments: 3,
+                ..scene::Bend::default()
             },
             anchors: None,
         },
@@ -821,14 +877,14 @@ fn a_cut_short_or_padded_body_is_damaged() {
 #[test]
 fn an_uncompressed_body_can_be_read() {
     let doc = rich_document();
-    let body = postcard::to_stdvec(&v14::ProjectV14::from_document(&doc)).unwrap();
-    let mut bytes = header(14, 0, body.len() as u64);
+    let body = postcard::to_stdvec(&v15::ProjectV15::from_document(&doc)).unwrap();
+    let mut bytes = header(15, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     assert_same(&doc, &from_bytes(&bytes).unwrap());
     // Data after the scene is refused.
     let mut longer = body.clone();
     longer.push(0);
-    let mut bytes = header(14, 0, longer.len() as u64);
+    let mut bytes = header(15, 0, longer.len() as u64);
     bytes.extend_from_slice(&longer);
     assert!(refused(&bytes).to_string().contains("unexpected data"));
 }
@@ -1573,7 +1629,7 @@ fn bent_extrudes_are_kept_and_checked() {
     assert!(text.contains("real"), "{text}");
     // Settings out of range are brought back in.
     let opened = with(&|_, b| {
-        b.angle = 999.0;
+        b.angle = 99_999.0;
         b.segments = 0;
     })
     .unwrap();
@@ -1588,7 +1644,10 @@ fn bent_extrudes_are_kept_and_checked() {
     let Operation::ExtrudeBent { bend, .. } = entries.last().unwrap().operation else {
         panic!("a bent extrude");
     };
-    assert_eq!((bend.angle, bend.segments), (180.0, 1));
+    assert_eq!(
+        (bend.angle, bend.segments),
+        (mesh::extrude::MAX_BEND_ANGLE, 1)
+    );
 }
 
 /// The bytes of a version 9 file holding `model`, uncompressed.
@@ -1705,10 +1764,40 @@ const SAMPLE_V14: &[u8] = include_bytes!("../../tests/data/sample-v14.avtl");
 #[test]
 fn a_file_saved_by_format_version_14_still_opens() {
     let doc = from_bytes(SAMPLE_V14).expect("the version 14 sample opens");
-    assert_same(&rich_document(), &doc);
+    assert_same(&rich_document_v14(), &doc);
     // And reads back the same through its own model.
     let model = v14::ProjectV14::from_document(&doc);
     assert_same(&doc, &from_bytes(&file_of_v14(&model)).unwrap());
+}
+
+/// The bytes of a version 15 file holding `model`, uncompressed.
+fn file_of_v15(model: &v15::ProjectV15) -> Vec<u8> {
+    let body = postcard::to_stdvec(model).unwrap();
+    let mut bytes = header(15, 0, body.len() as u64);
+    bytes.extend_from_slice(&body);
+    bytes
+}
+
+/// A project saved by version 15 of the format, kept in the repository.
+const SAMPLE_V15: &[u8] = include_bytes!("../../tests/data/sample-v15.avtl");
+
+#[test]
+fn a_file_saved_by_format_version_15_still_opens() {
+    let doc = from_bytes(SAMPLE_V15).expect("the version 15 sample opens");
+    assert_same(&rich_document(), &doc);
+    // And reads back the same through its own model.
+    let model = v15::ProjectV15::from_document(&doc);
+    assert_same(&doc, &from_bytes(&file_of_v15(&model)).unwrap());
+}
+
+#[test]
+fn a_spiral_keeps_its_rise_and_way_round() {
+    let doc = from_bytes(&to_bytes(&rich_document()).unwrap()).unwrap();
+    let text = format!("{:?}", v15::ProjectV15::from_document(&doc));
+    // Both spirals, on its own and mirrored, keep the bend's every number.
+    assert_eq!(text.matches("angle: 900.0").count(), 2, "{text}");
+    assert_eq!(text.matches("rise: 7.5, mirrored: true").count(), 2);
+    assert_eq!(text.matches("MirroredBent").count(), 1);
 }
 
 /// Writes the current version's sample. Run only by hand, when a new

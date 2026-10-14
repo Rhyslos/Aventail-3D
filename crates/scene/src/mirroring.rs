@@ -260,6 +260,9 @@ pub(crate) fn both_sides(op: &Operation, mesh: &Mesh, mirror: &Mirror) -> Both {
                             return None;
                         }
                         let mut bend = *bend;
+                        // A mirror turns a spiral the other way round
+                        // (right-handed into left-handed).
+                        bend.mirrored = !bend.mirrored;
                         if let Some(facing) = facing
                             && let Some(towards) =
                                 mesh::extrude::bend_towards(facing, bend.direction)
