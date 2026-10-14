@@ -4,7 +4,7 @@
 
 Aventail 3D is a free, open-source modelling and UV unwrapping tool for **hard-surface game assets**, written in Rust. Model it, unwrap it, and export it to Substance Painter and Godot, all in one app.
 
-> **Status: pre-alpha.** Every Phase 4 modelling tool is in: primitives you can keep changing, points, edges and polygons to edit, extrude and inset, bevel, loop cut, slit, connect, bridge and weld, clean-up, hard and soft edges, symmetry, pipe bends and spirals, with undo for everything and projects that save and reopen. Heavy shapes of millions of polygons stay quick, and backup copies bring your work back after a crash. Export comes next, in Phase 5. Click **Keys** on the menu bar for every key, and see the [user manual](docs/manual/SUMMARY.md) for how everything works. Follow the progress tracker below.
+> **Status: pre-alpha.** Every Phase 4 modelling tool is in: primitives you can keep changing, points, edges and polygons to edit, extrude and inset, bevel, loop cut, slit, connect, bridge and weld, clean-up, hard and soft edges, symmetry, pipe bends and spirals, with undo for everything and projects that save and reopen. Heavy shapes of millions of polygons stay quick, and backup copies bring your work back after a crash. Phase 5, export, has begun: pivots can be placed and each project keeps its units. Click **Keys** on the menu bar for every key, and see the [user manual](docs/manual/SUMMARY.md) for how everything works. Follow the progress tracker below.
 
 Created by **Rhyslos**, built with AI assistance (Claude by Anthropic). Part of the **Rhylib** family of tools, alongside [Halberd](https://github.com/Rhyslos/halberd).
 
@@ -122,14 +122,14 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** a simple hard-surface prop (a crate, a sci-fi panel) can be modelled from start to finish, and the heavy-mesh check passes. From here on, every gate includes the heavy-mesh check.
 
-### Phase 5 · Export pipeline — 0 of 10
+### Phase 5 · Export pipeline — 1 of 10
 
-`░░░░░░░░░░░░░` 0%
+`█░░░░░░░░░░░░` 10%
 
 <details>
 <summary>Milestones</summary>
 
-- [ ] Pivot editing and scene units
+- [x] Pivot editing and scene units: the Object mode moves and turns pivots, with ready-made places; each project saves its units
 - [ ] OBJ export and import
 - [ ] glTF export
 - [ ] Consistent triangulation and MikkTSpace tangents
@@ -222,6 +222,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-15 | Pivot editing and scene units: the Object mode moves and turns pivots (Pivot to centre, world origin, another object; Object to world origin), and each project saves its units; project files at format version 16 |
 | 2026-10-14 | Clickable corner axes: click X, Y or Z to look along it, again for the other side; Cavity moved beside Hard edges in the Display menu. Every Phase 4 milestone built again; heavy-mesh check run (one background step a little over its target on the test machine) |
 | 2026-10-14 | Cavity: ridges brightened and creases darkened on the surfaces, on as standard, from the Display menu and a button beside Shading; Automatic hard edges moved to the Mesh menu |
 | 2026-10-14 | Automatic hard edges: every shape shaded by angle (30°) after every change, from a switch on as standard (now in the Mesh menu); edges set by hand kept for when it's off |

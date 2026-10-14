@@ -271,6 +271,9 @@ pub(crate) struct Target {
     /// The box around what would change, in the world.
     pub(crate) bounds: Bounds,
     pub(crate) targets: Targets,
+    /// Whether objects' pivots move instead of the objects (the Object
+    /// mode, decision 0068): the shapes stay where they are.
+    pub(crate) pivots: bool,
 }
 
 impl Target {
@@ -325,6 +328,7 @@ impl Target {
                     axes: axes_of(axes, first.world),
                     bounds,
                     targets: Targets::Objects(starts),
+                    pivots: mode == Mode::Object,
                 })
             }
             Some(kind) => {
@@ -399,6 +403,7 @@ impl Target {
                     axes: axes_of(axes, first.world),
                     bounds,
                     targets: Targets::Points(starts, kind),
+                    pivots: false,
                 })
             }
         }
@@ -498,6 +503,10 @@ impl Target {
     pub(crate) fn commands(&self, change: &Change) -> Vec<Command> {
         let m = self.matrix(change);
         match &self.targets {
+            Targets::Objects(_) if self.pivots && matches!(change, Change::Scale(_)) => {
+                // A pivot has no size: scaling it does nothing.
+                Vec::new()
+            }
             Targets::Objects(starts) => {
                 let changes = starts
                     .iter()
@@ -513,7 +522,7 @@ impl Target {
                         Some((s.id, t))
                     })
                     .collect();
-                vec![Command::SetTransforms(changes)]
+                vec![self.objects_command(changes)]
             }
             Targets::Points(starts, _) => starts
                 .iter()
@@ -592,8 +601,18 @@ impl Target {
         }
     }
 
+    /// The command that places objects (or, in the Object mode, their
+    /// pivots) as `changes` say.
+    pub(crate) fn objects_command(&self, changes: Vec<(ObjectId, Transform)>) -> Command {
+        if self.pivots {
+            Command::MovePivots(changes)
+        } else {
+            Command::SetTransforms(changes)
+        }
+    }
+
     /// The undo step's name: "Move Cube", "Rotate 2 objects", "Scale 8
-    /// points".
+    /// points"; for pivots, "Move Cube's pivot", "Rotate 2 pivots".
     pub(crate) fn label(&self, change: &Change) -> String {
         let verb = match change {
             Change::Translate(_) if self.slides() => "Slide",
@@ -602,9 +621,11 @@ impl Target {
             Change::Scale(_) => "Scale",
         };
         match &self.targets {
-            Targets::Objects(starts) => match starts.as_slice() {
-                [one] => format!("{verb} {}", one.name),
-                many => format!("{verb} {} objects", many.len()),
+            Targets::Objects(starts) => match (starts.as_slice(), self.pivots) {
+                ([one], false) => format!("{verb} {}", one.name),
+                (many, false) => format!("{verb} {} objects", many.len()),
+                ([one], true) => format!("{verb} {}'s pivot", one.name),
+                (many, true) => format!("{verb} {} pivots", many.len()),
             },
             Targets::Points(starts, _) => {
                 let n: usize = starts
@@ -632,6 +653,9 @@ impl Target {
             return false;
         };
         match &self.targets {
+            // Moving pivots moves no shape: a pivot can snap to its own
+            // shape's points (a corner, say).
+            Targets::Objects(_) if self.pivots => false,
             Targets::Objects(starts) => starts
                 .iter()
                 .any(|s| s.id == item.id || document.scene().is_inside(item.id, s.id)),

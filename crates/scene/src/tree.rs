@@ -3,6 +3,7 @@
 
 use crate::object::{Object, ObjectId, ObjectKind, Transform};
 use crate::stack::{Entry, EvalContext, Evaluated, Layer, SharedCache};
+use crate::units::Units;
 use glam::Mat4;
 use mesh::Bounds;
 use std::collections::BTreeMap;
@@ -107,6 +108,14 @@ pub(crate) enum Edit {
         before: Transform,
         after: Transform,
     },
+    /// Changes the project's units.
+    SetUnits { before: Units, after: Units },
+    /// Moves an object's shape relative to its pivot (its offset).
+    SetOffset {
+        id: ObjectId,
+        before: Transform,
+        after: Transform,
+    },
     /// Changes what an object is: a primitive's settings, for example.
     SetKind {
         id: ObjectId,
@@ -155,7 +164,10 @@ impl Edit {
             Self::Rename { before, after, .. } => before == after,
             Self::SetVisible { before, after, .. } => before == after,
             Self::SetKind { before, after, .. } => before == after,
-            Self::SetTransform { before, after, .. } => before == after,
+            Self::SetUnits { before, after } => before == after,
+            Self::SetTransform { before, after, .. } | Self::SetOffset { before, after, .. } => {
+                before == after
+            }
         }
     }
 
@@ -180,6 +192,15 @@ impl Edit {
                 after: before,
             },
             Self::SetKind { id, before, after } => Self::SetKind {
+                id,
+                before: after,
+                after: before,
+            },
+            Self::SetUnits { before, after } => Self::SetUnits {
+                before: after,
+                after: before,
+            },
+            Self::SetOffset { id, before, after } => Self::SetOffset {
                 id,
                 before: after,
                 after: before,
@@ -240,6 +261,8 @@ pub struct Scene {
     roots: Vec<ObjectId>,
     /// The next new object's id.
     next_id: u64,
+    /// The project's units (decision 0068).
+    units: Units,
     /// Each object's evaluated shape, layer by layer (not part of what the
     /// scene is: copies start empty, and it never affects equality).
     cache: SharedCache,
@@ -312,6 +335,20 @@ impl Scene {
         }
         scene.next_id = scene.next_id.max(next_id.min(MAX_OBJECT_ID));
         Ok(scene)
+    }
+
+    /// The project's units (decision 0068).
+    pub fn units(&self) -> Units {
+        self.units
+    }
+
+    /// The same scene measured in `units`, for a new project or one
+    /// being opened (not a step to undo: use [`crate::Command::SetUnits`]
+    /// for that).
+    #[must_use]
+    pub fn with_units(mut self, units: Units) -> Self {
+        self.units = units;
+        self
     }
 
     /// The id the next new object will get (for saving).
@@ -471,6 +508,18 @@ impl Scene {
         matrix
     }
 
+    /// Where the object's shape is in the world: its pivot's place
+    /// ([`Self::world_matrix`]) with the shape's offset from the pivot
+    /// (decision 0068). Drawing, picking, editing points and joining use
+    /// it; children sit relative to the pivot instead.
+    pub fn shape_matrix(&self, id: ObjectId) -> Mat4 {
+        let offset = self
+            .nodes
+            .get(&id)
+            .map_or(Mat4::IDENTITY, |node| node.object.offset.matrix());
+        self.world_matrix(id) * offset
+    }
+
     /// The box around everything shown among `ids` and the objects inside
     /// them, in world space, or `None` if none of it has a shape.
     pub fn bounds_of(&self, ids: impl IntoIterator<Item = ObjectId>) -> Option<Bounds> {
@@ -483,7 +532,7 @@ impl Scene {
                 let Some(local) = self.local_bounds(inner) else {
                     continue;
                 };
-                let matrix = self.world_matrix(inner);
+                let matrix = self.shape_matrix(inner);
                 if let Some(world) =
                     Bounds::around(corners(&local).map(|c| matrix.transform_point3(c)))
                 {
@@ -640,6 +689,24 @@ impl Scene {
                     return Err(SceneError::History("an object's place has changed"));
                 }
                 node.object.transform = *after;
+                Ok(())
+            }
+            Edit::SetUnits { before, after } => {
+                if self.units != *before {
+                    return Err(SceneError::History("the project's units have changed"));
+                }
+                self.units = *after;
+                Ok(())
+            }
+            Edit::SetOffset { id, before, after } => {
+                let node = self
+                    .nodes
+                    .get_mut(id)
+                    .ok_or(SceneError::UnknownObject(*id))?;
+                if node.object.offset != *before {
+                    return Err(SceneError::History("an object's shape has moved"));
+                }
+                node.object.offset = *after;
                 Ok(())
             }
             Edit::InsertLayer { id, index, layer } => {

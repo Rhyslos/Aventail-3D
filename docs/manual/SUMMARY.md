@@ -23,6 +23,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Points, Edges and Polygons modes: working on the parts of a mesh](modes.md)
 - [Selecting: click, box, lasso, brush, loops, grow and shrink](selecting.md)
 - [Move, rotate and scale: the gizmo, snapping, locks and typed values](transforming.md)
+- [Pivots and the Object mode: move an object's pivot, ready-made places, and the project's units](pivots.md)
 - [Symmetry: model one half, and the other follows](symmetry.md)
 - [Extrude and inset: push polygons out or in, and add rings and frames](extrude-and-inset.md)
 - [Bevel: chamfer or round edges, and cut corners off](bevel.md)

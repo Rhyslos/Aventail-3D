@@ -49,6 +49,10 @@ impl Workbench {
             | CommandId::Duplicate
             | CommandId::Instance
             | CommandId::Join
+            | CommandId::PivotToCentre
+            | CommandId::PivotToOrigin
+            | CommandId::PivotToObject
+            | CommandId::ObjectToOrigin
                 if selection.is_empty() =>
             {
                 nothing()
@@ -185,6 +189,12 @@ impl Workbench {
                 self.shape_picker.open_at(at + egui::vec2(12.0, 12.0));
             }
             CommandId::FrameSelected => self.viewport.frame(crate::Frame::Selected),
+            CommandId::PivotToCentre => self.run_placement(super::pivots::Placement::PivotToCentre),
+            CommandId::PivotToOrigin => self.run_placement(super::pivots::Placement::PivotToOrigin),
+            CommandId::ObjectToOrigin => {
+                self.run_placement(super::pivots::Placement::ObjectToOrigin);
+            }
+            CommandId::PivotToObject => self.start_pivot_to_object(),
         }
     }
 

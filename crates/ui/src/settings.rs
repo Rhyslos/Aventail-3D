@@ -56,7 +56,10 @@ impl Section {
 /// values, borrowed for the frame.
 pub(crate) struct Values<'a> {
     pub(crate) accent: &'a mut Accent,
+    /// The project's units.
     pub(crate) units: &'a mut Units,
+    /// The units new projects start with.
+    pub(crate) new_units: &'a mut Units,
     pub(crate) navigation: &'a mut NavigationSettings,
     pub(crate) grid: &'a mut GridDetail,
     /// Whether box, lasso and brush select only what can be seen.
@@ -153,7 +156,8 @@ impl SettingsWindow {
 /// Puts every setting back to its standard value.
 fn restore_standard(values: &mut Values<'_>) {
     *values.accent = Accent::default();
-    *values.units = Units::default();
+    // The project's own units are part of the project, not a setting.
+    *values.new_units = Units::default();
     *values.navigation = NavigationSettings::default();
     *values.grid = GridDetail::default();
     *values.select_visible_only = false;
@@ -195,21 +199,37 @@ fn interface(ui: &mut Ui, values: &mut Values<'_>) {
         });
     }
     ui.add_space(8.0);
-    heading(ui, "Lengths");
+    heading(ui, "Units");
     explain(
         ui,
-        "How sizes are shown and typed. Only the display changes, never the shapes. \
-         Also switched beside the Shape title in the Attributes panel.",
+        "How sizes are shown and typed. Each project keeps its own, saved with it; \
+         only the display changes, never the shapes. Also switched in the Attributes \
+         panel's Units menu.",
     );
+    ui.label("This project");
     for units in Units::ALL {
         if ui
             .radio(
                 *values.units == units,
                 format!("{} ({})", units.name(), units.symbol()),
             )
+            .on_hover_text("Changing them is a step Ctrl + Z can take back")
             .clicked()
         {
             *values.units = units;
+        }
+    }
+    ui.add_space(4.0);
+    for units in Units::ALL {
+        if ui
+            .radio(
+                *values.new_units == units,
+                format!("{} for new projects", units.name()),
+            )
+            .on_hover_text("The units a new project starts with")
+            .clicked()
+        {
+            *values.new_units = units;
         }
     }
     ui.add_space(8.0);

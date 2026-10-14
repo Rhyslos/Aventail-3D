@@ -268,6 +268,14 @@ fn merge_edit(edits: &mut Vec<Edit>, edit: Edit) {
         *earlier = *after;
         return;
     }
+    if let Edit::SetOffset { id, after, .. } = &edit
+        && let Some(Edit::SetOffset { after: earlier, .. }) = edits
+            .iter_mut()
+            .find(|e| matches!(e, Edit::SetOffset { id: other, .. } if other == id))
+    {
+        *earlier = *after;
+        return;
+    }
     if let Edit::SetKind { id, after, .. } = &edit
         && let Some(Edit::SetKind { after: earlier, .. }) = edits
             .iter_mut()

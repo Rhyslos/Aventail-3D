@@ -163,8 +163,14 @@ pub struct Object {
     /// Whether it is shown in the viewport. An object is only seen if its
     /// parents are shown too.
     pub visible: bool,
-    /// Where it is, relative to its parent.
+    /// Where it is, relative to its parent: where its pivot (its axis) is,
+    /// which way the pivot turns and how it scales. Children sit relative
+    /// to it.
     pub transform: Transform,
+    /// Where its shape sits relative to its pivot (decision 0068): moving
+    /// the pivot on its own changes this the opposite way, so the shape
+    /// stays put. Usually nothing (the shape sits on its pivot, as made).
+    pub offset: Transform,
     /// The edits recorded on top of its base, in layers. Always empty for
     /// a group. Changed only through commands.
     pub stack: Stack,
@@ -178,6 +184,7 @@ impl Object {
             kind,
             visible: true,
             transform: Transform::default(),
+            offset: Transform::default(),
             stack: Stack::default(),
         }
     }
