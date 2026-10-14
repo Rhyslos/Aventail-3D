@@ -12,6 +12,7 @@
 
 pub use crate::bevel::{BevelShape, bevel_edges, bevel_points};
 pub use crate::extrude::{Grouping, extrude_edges, extrude_polygons, inset_polygons};
+pub use crate::loopcut::loop_cut;
 use crate::{Mesh, VertexId};
 use glam::{Mat4, Vec3};
 

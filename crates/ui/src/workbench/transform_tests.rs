@@ -216,7 +216,11 @@ fn shift_drags_ten_times_finer() {
 #[test]
 fn a_locked_axis_doesnt_move() {
     let mut harness = moving_cube();
+    // X alone doesn't lock (it is kept for Slit); Shift+X does.
     press(&mut harness, Key::X);
+    assert!(!harness.state().workbench.view_options().locked[0]);
+    harness.key_press_modifiers(Modifiers::SHIFT, Key::X);
+    harness.run();
     assert!(harness.state().workbench.view_options().locked[0]);
     // The X arrow is gone; drag the centre instead, sideways.
     let centre = on_screen(&harness, Vec3::ZERO);
@@ -229,7 +233,8 @@ fn a_locked_axis_doesnt_move() {
     let moved = position(&harness);
     assert!(moved.x.abs() < 1e-3, "{moved}");
     assert!(moved.length() > 1.0, "it moved along Y or Z: {moved}");
-    press(&mut harness, Key::X);
+    harness.key_press_modifiers(Modifiers::SHIFT, Key::X);
+    harness.run();
     assert!(!harness.state().workbench.view_options().locked[0]);
 }
 
@@ -294,7 +299,7 @@ fn the_palette_and_tools_menu_pick_tools() {
     assert_eq!(harness.state().workbench.tool(), Tool::Scale);
     main_menu(&harness, "Tools").click();
     harness.run();
-    harness.get_by_label("Lock Y Y").click();
+    harness.get_by_label("Lock Y Shift+Y").click();
     harness.run();
     assert!(harness.state().workbench.view_options().locked[1]);
     harness.get_by_label("Lock the Y axis").click();

@@ -10,9 +10,9 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT, Queryable};
 use scene::{Element, ElementSelection, FaceId, Grouping, ObjectId, Operation};
 
-type H = Harness<'static, State>;
+pub(super) type H = Harness<'static, State>;
 
-fn press(harness: &mut H, modifiers: Modifiers, key: Key) {
+pub(super) fn press(harness: &mut H, modifiers: Modifiers, key: Key) {
     harness.event(Event::Key {
         key,
         physical_key: None,
@@ -30,11 +30,11 @@ fn press(harness: &mut H, modifiers: Modifiers, key: Key) {
     harness.run();
 }
 
-fn cube(harness: &H) -> ObjectId {
+pub(super) fn cube(harness: &H) -> ObjectId {
     harness.state().workbench.document().scene().children(None)[0]
 }
 
-fn shape(harness: &H) -> std::sync::Arc<scene::Mesh> {
+pub(super) fn shape(harness: &H) -> std::sync::Arc<scene::Mesh> {
     let doc = harness.state().workbench.document();
     doc.scene().evaluated(cube(harness)).unwrap().mesh
 }
@@ -73,7 +73,13 @@ fn ready(key: Key) -> H {
     harness
 }
 
-fn button(harness: &mut H, at: Pos2, pressed: bool, button: PointerButton, modifiers: Modifiers) {
+pub(super) fn button(
+    harness: &mut H,
+    at: Pos2,
+    pressed: bool,
+    button: PointerButton,
+    modifiers: Modifiers,
+) {
     harness.event(Event::PointerButton {
         pos: at,
         button,
@@ -114,7 +120,7 @@ fn drag(harness: &mut H, dx: f32) {
 }
 
 /// Where `world` appears on screen.
-fn on_screen(harness: &H, world: glam::Vec3) -> Pos2 {
+pub(super) fn on_screen(harness: &H, world: glam::Vec3) -> Pos2 {
     let rect = harness.get_by_label(crate::VIEWPORT_LABEL).rect();
     let size = glam::Vec2::new(rect.width(), rect.height());
     let at = camera(harness).project(world, size).expect("in view");
@@ -179,11 +185,11 @@ fn click_keep_together(harness: &mut H, n: usize) -> usize {
     count
 }
 
-fn note(harness: &H) -> String {
+pub(super) fn note(harness: &H) -> String {
     harness.state().workbench.note.clone().unwrap_or_default()
 }
 
-fn last_operation(harness: &H) -> Option<Operation> {
+pub(super) fn last_operation(harness: &H) -> Option<Operation> {
     let doc = harness.state().workbench.document();
     let object = doc.scene().object(cube(harness))?;
     object

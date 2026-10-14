@@ -39,8 +39,9 @@ pub(crate) fn kind_for(mode: Mode) -> Option<ElementKind> {
 pub(crate) type ObjectElement = (ObjectId, Element);
 
 /// What the overlay was last built for: the drawing's version, the kind
-/// of element, the hovered element and the selected elements' revision.
-type BuiltFor = (u64, Option<ElementKind>, Option<ObjectElement>, u64);
+/// of element, the hovered element, the selected elements' revision and
+/// the tool lines' revision.
+type BuiltFor = (u64, Option<ElementKind>, Option<ObjectElement>, u64, u64);
 
 /// Keeps track of the element under the mouse and the overlay.
 #[derive(Debug, Default)]
@@ -58,6 +59,12 @@ pub(crate) struct ComponentTracker {
     /// goes out of date), and nothing is looked up under the mouse.
     frozen: bool,
     hovered: Option<ObjectElement>,
+    /// Whether a tool that finds its own elements under the mouse is in
+    /// use (Loop cut): the mode's element isn't looked up or highlighted.
+    quiet: bool,
+    /// Lines a tool shows over the shapes (Loop cut's new loop), in the
+    /// world, and a count that goes up whenever they change.
+    tool_lines: (Vec<[Vec3; 2]>, u64),
     built_for: Option<BuiltFor>,
     overlay: Arc<ComponentOverlay>,
 }
@@ -74,7 +81,9 @@ impl ComponentTracker {
     ) -> Arc<ComponentOverlay> {
         let kind = kind_for(mode);
         self.hovered = match (kind, pointer) {
-            (Some(kind), Some(pointer)) if !self.frozen => self.find(kind, drawing, pointer),
+            (Some(kind), Some(pointer)) if !self.frozen && !self.quiet => {
+                self.find(kind, drawing, pointer)
+            }
             _ => None,
         };
         let wanted = (
@@ -82,19 +91,41 @@ impl ComponentTracker {
             kind,
             self.hovered,
             document.element_revision(),
+            self.tool_lines.1,
         );
         if self.built_for != Some(wanted) {
             let version = self.overlay.version + 1;
-            self.overlay = Arc::new(match kind {
+            let mut overlay = match kind {
                 Some(kind) => build(kind, drawing, document, self.hovered, version),
                 None => ComponentOverlay {
                     version,
                     ..ComponentOverlay::default()
                 },
-            });
+            };
+            if kind.is_some() {
+                let lines = self.tool_lines.0.iter();
+                overlay
+                    .lines
+                    .extend(lines.map(|line| (*line, OverlayStyle::Hovered)));
+            }
+            self.overlay = Arc::new(overlay);
             self.built_for = Some(wanted);
         }
         Arc::clone(&self.overlay)
+    }
+
+    /// Whether a tool that finds its own elements under the mouse is in
+    /// use (see `quiet`).
+    pub(crate) fn set_quiet(&mut self, quiet: bool) {
+        self.quiet = quiet;
+    }
+
+    /// The lines a tool shows over the shapes, in the world (none: `[]`).
+    pub(crate) fn set_tool_lines(&mut self, lines: Vec<[Vec3; 2]>) {
+        if self.tool_lines.0 != lines {
+            self.tool_lines.0 = lines;
+            self.tool_lines.1 += 1;
+        }
     }
 
     /// Keeps the scene as it is while a drag is under way (see `frozen`).
@@ -219,7 +250,9 @@ impl ComponentTracker {
             })
     }
 
-    fn find(
+    /// The element of `kind` under `pointer` on an edited object, if any.
+    /// Never waits for a heavy shape's index still being built.
+    pub(crate) fn find(
         &mut self,
         kind: ElementKind,
         drawing: &SceneDrawing,

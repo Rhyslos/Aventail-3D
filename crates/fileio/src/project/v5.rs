@@ -13,6 +13,10 @@
 //!   Hard edges are stored with the mesh, as before.
 //!
 //! Every value read back is checked: a file may be damaged or hostile.
+//!
+//! Later versions keep this shape and store more kinds of edit: the
+//! structures here are generic over the operation ([`EntryWith`],
+//! [`ProjectWith`]), and version 5 is them with version 4's operations.
 
 use super::v1::{FileOperation, Problem, ProjectFile};
 use super::v4::OperationV4;
@@ -24,21 +28,28 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 /// Version 5 of the file.
+#[cfg(test)]
+pub(crate) type ProjectV5 = ProjectWith<EntryV5>;
+
+/// A recorded edit in version 5.
+pub(crate) type EntryV5 = EntryWith<OperationV4>;
+
+/// A file of version 5 or later, recorded edits stored as `E`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub(crate) struct ProjectV5 {
+pub(crate) struct ProjectWith<E> {
     /// Everything version 4 kept, with recorded edits as entries.
-    pub(crate) project: ProjectFile<EntryV5>,
+    pub(crate) project: ProjectFile<E>,
     /// The attribute layers of plain meshes, by object.
     pub(crate) layers: Bounded<MeshLayersV5>,
 }
 
-/// A recorded edit.
+/// A recorded edit, its operation stored as `Op`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub(crate) struct EntryV5 {
+pub(crate) struct EntryWith<Op> {
     pub(crate) id: u64,
     pub(crate) enabled: bool,
     pub(crate) pinned: bool,
-    pub(crate) operation: OperationV4,
+    pub(crate) operation: Op,
     /// What the operation's anchors keep beyond version 4.
     pub(crate) anchors: Option<AnchorsMoreV5>,
 }
@@ -96,7 +107,7 @@ pub(crate) enum ValuesV5 {
 
 // ------------------------------------------------------------ entries ---
 
-impl FileOperation for EntryV5 {
+impl<Op: FileOperation> FileOperation for EntryWith<Op> {
     fn to_file(op: &Operation) -> Option<Self> {
         Self::entry_to_file(&Entry::new(EditId::from_raw(1), op.clone()))
     }
@@ -113,7 +124,7 @@ impl FileOperation for EntryV5 {
             id: entry.id.get(),
             enabled: entry.enabled,
             pinned: entry.pinned,
-            operation: OperationV4::to_file(&entry.operation)?,
+            operation: Op::to_file(&entry.operation)?,
             anchors,
         })
     }
@@ -235,7 +246,7 @@ fn mesh_layers(mesh: &Mesh) -> Vec<LayerV5> {
 
 // ------------------------------------------------------- the whole file ---
 
-impl ProjectV5 {
+impl<E: FileOperation> ProjectWith<E> {
     /// The file model of a document.
     pub(crate) fn from_document(document: &Document) -> Self {
         let scene = document.scene();

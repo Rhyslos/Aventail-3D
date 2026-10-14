@@ -186,6 +186,8 @@ pub struct Workbench {
     gizmo_session: Option<crate::transforming::Session>,
     /// A modelling tool's drag (extrude, inset) in progress.
     modelling_session: Option<modelling::ModellingSession>,
+    /// A loop cut being placed (decision 0047).
+    loop_cut_session: Option<loop_cut::LoopCutSession>,
     /// The change the gizmo drag last showed, so an unchanged frame does
     /// nothing.
     gizmo_shown: Option<tools::Change>,
@@ -237,6 +239,7 @@ impl Workbench {
             tool: Tool::default(),
             gizmo_session: None,
             modelling_session: None,
+            loop_cut_session: None,
             gizmo_shown: None,
             coordinates_session: None,
             sessions: 0,
@@ -839,7 +842,8 @@ impl Workbench {
         self.components.freeze(
             self.gizmo_session.is_some()
                 || self.coordinates_session.is_some()
-                || self.modelling_session.is_some(),
+                || self.modelling_session.is_some()
+                || self.loop_cut_session.is_some(),
         );
         self.components.prepare(&summary.drawing);
         self.place_gizmo(&summary.drawing);
@@ -879,6 +883,7 @@ impl Workbench {
         self.carry_out_selection(&summary.drawing);
         self.carry_out_gizmo(ui, &summary.drawing);
         self.carry_out_tool_drag(&summary.drawing);
+        self.show_loop_cut_preview(&summary.drawing);
         self.carry_out_coordinates(coordinates_done, &summary.drawing);
         let shown = summary.overlay.version;
         let overlay = self.components.update(
@@ -1584,6 +1589,9 @@ impl TabViewer for PanelViewer<'_> {
 #[cfg(test)]
 mod attribute_tests;
 mod command;
+mod loop_cut;
+#[cfg(test)]
+mod loop_cut_tests;
 mod modelling;
 #[cfg(test)]
 mod modelling_tests;

@@ -9,7 +9,7 @@
 use super::Workbench;
 use crate::attributes::BevelLook;
 use crate::commands::CommandId;
-use crate::components::ViewPointer;
+use crate::components::{self, ViewPointer};
 use crate::drawing::SceneDrawing;
 use crate::palette::Mode;
 use crate::transforming::Tool;
@@ -236,12 +236,18 @@ impl ModellingSession {
 }
 
 impl Workbench {
-    /// D and I: Extrude and Inset, from the command list. Not while typing.
+    /// D, I, V and F: Extrude, Inset, Bevel and Loop cut, from the command
+    /// list. Not while typing.
     pub(super) fn modelling_keys(&mut self, ui: &Ui) {
         if ui.ctx().memory(|m| m.focused().is_some()) || self.objects.is_renaming() {
             return;
         }
-        for command in [CommandId::Extrude, CommandId::Inset, CommandId::Bevel] {
+        for command in [
+            CommandId::Extrude,
+            CommandId::Inset,
+            CommandId::Bevel,
+            CommandId::LoopCut,
+        ] {
             let pressed = command
                 .info()
                 .shortcut
@@ -252,9 +258,15 @@ impl Workbench {
         }
     }
 
-    /// Tells the viewport whether drags go to a modelling tool.
+    /// Tells the viewport whether drags (and clicks) go to a modelling
+    /// tool, and the element tracker whether the tool finds its own.
     pub(super) fn place_drag_tool(&mut self) {
+        // Tools used on the shape work only while editing points, edges or
+        // polygons; in the other modes, clicks select objects as usual.
+        let clicks = self.tool.clicks_on_shapes() && components::kind_for(self.mode).is_some();
         self.viewport.set_drag_tool(self.tool.drags_anywhere());
+        self.viewport.set_click_tool(clicks);
+        self.components.set_quiet(clicks);
     }
 
     /// The grouping the modelling tools use: neighbours together, or each
@@ -265,6 +277,9 @@ impl Workbench {
 
     /// Carries out this frame's modelling tool drags.
     pub(super) fn carry_out_tool_drag(&mut self, drawing: &SceneDrawing) {
+        if self.tool == Tool::LoopCut || self.loop_cut_session.is_some() {
+            return self.carry_out_loop_cut(drawing);
+        }
         for event in self.viewport.take_tool_events() {
             match event {
                 ToolDragEvent::Begin { pointer } => {

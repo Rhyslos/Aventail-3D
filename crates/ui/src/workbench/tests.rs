@@ -1180,9 +1180,9 @@ fn h_frames_everything() {
 }
 
 #[test]
-fn f_frames_everything_while_nothing_is_selected() {
+fn z_frames_everything_while_nothing_is_selected() {
     let mut harness = zoomed_in_close();
-    harness.key_press(Key::F);
+    harness.key_press(Key::Z);
     harness.run();
     assert!(all_of_the_scene_in_view(&harness));
 }

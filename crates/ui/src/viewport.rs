@@ -303,7 +303,7 @@ impl Frame {
     pub fn key(self) -> egui::Key {
         match self {
             Self::All => egui::Key::H,
-            Self::Selected => egui::Key::F,
+            Self::Selected => egui::Key::Z,
         }
     }
 
@@ -673,6 +673,8 @@ pub struct ViewportPanel {
     /// Whether a modelling tool that is dragged anywhere (extrude, inset)
     /// is in use (set by the workbench each frame).
     drag_tool: bool,
+    /// Whether a modelling tool used by clicking on shapes is in use.
+    click_tool: bool,
     /// What the modelling tool's drag is doing, written by the mouse.
     tool_label: Option<String>,
     /// Modelling tool drag events this frame, for the workbench.
@@ -698,6 +700,7 @@ impl Default for ViewportPanel {
             gizmo: None,
             gizmo_events: Vec::new(),
             drag_tool: false,
+            click_tool: false,
             tool_label: None,
             tool_events: Vec::new(),
         }
@@ -854,6 +857,12 @@ impl ViewportPanel {
         self.drag_tool = active;
     }
 
+    /// Whether a modelling tool used by clicking on shapes is in use (it
+    /// takes drags too), from this frame on.
+    pub(crate) fn set_click_tool(&mut self, active: bool) {
+        self.click_tool = active;
+    }
+
     /// What to write beside the mouse while a modelling tool is dragged.
     pub(crate) fn set_tool_label(&mut self, label: Option<String>) {
         self.tool_label = label;
@@ -979,7 +988,7 @@ impl ViewportPanel {
                 ui,
                 &response,
                 rect,
-                self.drag_tool,
+                (self.drag_tool, self.click_tool),
                 &mut self.tool_events,
             );
             let gizmo_busy = tool_busy
@@ -1162,7 +1171,7 @@ impl ViewportPanel {
         }
     }
 
-    /// Starts framing the active view for the `H` and `F` keys (unless
+    /// Starts framing the active view for the `H` and `Z` keys (unless
     /// typing in a field) or a menu entry, and moves every view along a
     /// glide in progress.
     fn frame_from_keys_and_menus(&mut self, ui: &Ui, scene: &SceneSummary) {

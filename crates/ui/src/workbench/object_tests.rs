@@ -542,9 +542,9 @@ fn a_group_cannot_be_dropped_inside_itself() {
 // -------------------------------------------------------------- framing ---
 
 #[test]
-fn f_frames_the_selected_objects() {
+fn z_frames_the_selected_objects() {
     let mut harness = fresh();
-    // Far away, looking elsewhere: then select the cube and press F.
+    // Far away, looking elsewhere: then select the cube and press Z.
     harness
         .state_mut()
         .workbench
@@ -553,7 +553,7 @@ fn f_frames_the_selected_objects() {
         .pan(glam::Vec2::new(4000.0, 0.0), 400.0);
     harness.run();
     click_row(&mut harness, "Cube", Modifiers::NONE);
-    harness.key_press(Key::F);
+    harness.key_press(Key::Z);
     harness.run();
     let pivot = harness.state().workbench.viewport().navigator().pivot();
     assert_eq!(pivot, crate::DEFAULT_FRAME.centre());

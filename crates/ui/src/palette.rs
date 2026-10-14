@@ -520,11 +520,11 @@ fn axis_lock(ui: &mut Ui, axis: &str, color: Color32, locked: bool) -> Response 
     );
     let note = if locked {
         format!(
-            "{axis} is locked: moving, rotating and scaling leave it alone.\nClick or press {axis} to free it."
+            "{axis} is locked: moving, rotating and scaling leave it alone.\nClick or press Shift+{axis} to free it."
         )
     } else {
         format!(
-            "Click or press {axis} to lock it, so moving, rotating and scaling leave {axis} alone."
+            "Click or press Shift+{axis} to lock it, so moving, rotating and scaling leave {axis} alone."
         )
     };
     response.on_hover_text(note)
