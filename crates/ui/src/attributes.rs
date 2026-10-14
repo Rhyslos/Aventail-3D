@@ -840,7 +840,7 @@ fn mesh_section(ui: &mut Ui, report: Option<&MeshReport>, current: bool, plain_m
             "edge between faces facing opposite ways",
             "edges between faces facing opposite ways",
             "One face on each of these edges points inwards (a flipped normal); it will \
-             shade and bake wrongly. Mesh → Fix facing turns them the right way.",
+             shade and bake wrongly. Mesh → Fix normals turns them the right way.",
         ),
         (
             report.zero_length_edges,

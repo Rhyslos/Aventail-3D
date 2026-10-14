@@ -13,7 +13,7 @@ When a model gets busy, parts of it hide what you want to work on: the inside of
 ## How to use it
 
 1. Select what to hide, or what to keep.
-2. Press **Shift + H** to hide it, or **Ctrl + H** to isolate it (or click **Show only the selection** on the left palette, the icon under the mode buttons).
+2. Press **Shift + H** to hide it, or **Ctrl + H** to isolate it (or click **Isolate** on the left palette, the icon under the mode buttons).
 3. Press **Alt + H** to show everything again.
 
 What gets hidden depends on the mode:
@@ -34,7 +34,7 @@ None.
 | Action | Shortcut |
 |---|---|
 | Hide the selection | `Shift + H` |
-| Isolate the selection (hide everything else) | `Ctrl + H`, or the Show only the selection button |
+| Isolate the selection (hide everything else) | `Ctrl + H`, or the Isolate button |
 | Show everything | `Alt + H` |
 
 ## Tips and common problems

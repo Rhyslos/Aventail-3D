@@ -27,7 +27,7 @@ Details:
 - With two axes on, a corner takes all four corners with it.
 - If you select both sides, they still work as mirrors of each other.
 - Where the shape isn't symmetrical (no matching point, edge or polygon on the other side), only your side changes.
-- Edits on whole objects (in the Model mode), Fix facing and Hard edges by angle aren't mirrored: they already cover the whole shape.
+- Edits on whole objects (in the Model mode), Fix normals and Hard edges by angle aren't mirrored: they already cover the whole shape.
 
 ![A cube with Symmetry on across X: one side was moved out to 0.8 m, and the other side moved out by as much, making a wider box.](../screenshots/2026-10-14-symmetry.png)
 

@@ -70,7 +70,7 @@ pub enum CommandId {
     /// Join points or edges with a new edge across their polygon.
     Connect,
     /// Cut new edges along a line.
-    Knife,
+    Slit,
     /// Cut a new loop of edges around a shape.
     LoopCut,
 }
@@ -187,7 +187,7 @@ impl CommandId {
                 None,
             ),
             Self::Instance => (
-                "Instance",
+                "Duplicate as instance",
                 Icon::Instance,
                 None,
                 "Make instances of the selected objects right where they are: they show the \
@@ -296,9 +296,9 @@ impl CommandId {
                 "Join the selected points or edges with a new edge across their polygon",
                 None,
             ),
-            Self::Knife => (
+            Self::Slit => (
                 "Slit",
-                Icon::Knife,
+                Icon::Slit,
                 plain(Key::X),
                 "Cut new edges along a line: click or drag its points over the shape; \
                  Esc or Enter finishes, or click the first point to close a loop",
@@ -356,7 +356,7 @@ impl CommandId {
             Self::FillHole => &[Edges, Polygons],
             Self::HardEdges | Self::SoftEdges => &[Edges, Polygons],
             Self::Weld => &[Points],
-            Self::DeleteElements | Self::Dissolve | Self::Knife | Self::LoopCut => {
+            Self::DeleteElements | Self::Dissolve | Self::Slit | Self::LoopCut => {
                 &[Points, Edges, Polygons]
             }
         }
@@ -406,7 +406,7 @@ pub const MODELLING_RING: [CommandId; RING_PLACES] = [
     CommandId::Dissolve,
     CommandId::Weld,
     CommandId::Connect,
-    CommandId::Knife,
+    CommandId::Slit,
     CommandId::LoopCut,
 ];
 
@@ -469,7 +469,7 @@ pub const ALL: [CommandId; 28] = [
     CommandId::Dissolve,
     CommandId::Weld,
     CommandId::Connect,
-    CommandId::Knife,
+    CommandId::Slit,
     CommandId::LoopCut,
 ];
 
@@ -533,7 +533,7 @@ mod tests {
         assert_eq!(CommandId::Inset.info().shortcut, plain(Key::I));
         assert_eq!(CommandId::Bevel.info().shortcut, plain(Key::V));
         assert_eq!(CommandId::LoopCut.info().shortcut, plain(Key::F));
-        assert_eq!(CommandId::Knife.info().shortcut, plain(Key::X));
+        assert_eq!(CommandId::Slit.info().shortcut, plain(Key::X));
         assert_eq!(CommandId::Connect.info().shortcut, plain(Key::A));
         assert_eq!(CommandId::FillHole.info().shortcut, plain(Key::J));
         assert_eq!(CommandId::Bridge.info().shortcut, plain(Key::C));

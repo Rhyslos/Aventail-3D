@@ -413,7 +413,7 @@ impl Selector<'_> {
         } else {
             format!(
                 "{found} polygon{} facing the wrong way selected: Flip normals turns {}, \
-                 or Mesh → Fix facing turns every one.",
+                 or Mesh → Fix normals turns every one.",
                 if found == 1 { "" } else { "s" },
                 if found == 1 { "it" } else { "them" }
             )
@@ -435,11 +435,11 @@ impl Selector<'_> {
     }
 
     /// Adds the polygons facing within `angle` degrees of a selected
-    /// polygon (Select menu → Select similar facing).
+    /// polygon (Select menu → Select same facing).
     pub(crate) fn select_similar_facing(&mut self, angle: f32) -> Option<String> {
         self.each_edited(
             ElementKind::Polygons,
-            "Select similar facing",
+            "Select same facing",
             |mesh, _, selected| {
                 let mut out: std::collections::BTreeSet<scene::FaceId> =
                     selected.polygons().collect();

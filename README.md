@@ -1,23 +1,23 @@
 # Aventail 3D
 
-**A calm, tool-rich 3D modeller for game assets.**
+**A calm, easy-to-learn 3D modeller for game assets.**
 
 Aventail 3D is a free, open-source modelling and UV unwrapping tool for **hard-surface game assets**, written in Rust. Model it, unwrap it, and export it to Substance Painter and Godot, all in one app.
 
-> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout and a real 3D view you can orbit, pan and zoom around, from four views at once if you like. You can create primitives (cube, plane, cylinder, sphere, disc, tube, cone) and groups, organise them in the Objects panel, and undo every change. Press B for a list of shapes, and select one to change its size and segments in the Attributes panel, or press Ctrl + E to make it a plain, editable mesh. Press 1, 2 or 3 to see and select a selected shape's points, edges or polygons, and W, R or S to move, rotate or scale what's selected; change a shape's settings afterwards and your edits follow. Save your work as a project and open it again later. Press E anywhere for a menu of the tools for what you're working on, D or I to extrude or inset polygons, V to bevel edges, F to cut a new loop of edges around a shape, X to cut along a line you draw, J, C and M to connect, bridge and weld, Delete or Backspace to delete or dissolve points, edges and polygons, Shift/Ctrl/Alt + H to hide, isolate and show, and Ctrl + C and Ctrl + V (Alt + V for instances) to copy objects. Heavy shapes of millions of polygons stay quick to work with, and backup copies saved in the background bring your work back after a crash. Click Keys on the menu bar for every key. Every Phase 4 modelling tool is in; the phase's gate (modelling a simple prop start to finish) comes next, then export in Phase 5. Follow the progress tracker below.
+> **Status: pre-alpha.** Every Phase 4 modelling tool is in: primitives you can keep changing, points, edges and polygons to edit, extrude and inset, bevel, loop cut, slit, connect, bridge and weld, clean-up, hard and soft edges, symmetry, pipe bends and spirals, with undo for everything and projects that save and reopen. Heavy shapes of millions of polygons stay quick, and backup copies bring your work back after a crash. Export comes next, in Phase 5. Click **Keys** on the menu bar for every key, and see the [user manual](docs/manual/SUMMARY.md) for how everything works. Follow the progress tracker below.
 
 Created by **Rhyslos**, built with AI assistance (Claude by Anthropic). Part of the **Rhylib** family of tools, alongside [Halberd](https://github.com/Rhyslos/halberd).
 
 ## Why
 
-Aventail 3D is built for people who loved the modelling workflows of classic 3D packages like Cinema 4D and 3ds Max, but no longer have access to them and never got along with the alternatives. It takes inspiration from how those tools *felt* to use: a clean, calm viewport, deep modelling tools and a powerful UV unwrapper. It starts close to that feel and grows into its own thing.
+Making a game asset means modelling it, unwrapping it, and getting it into a texturing tool and an engine without surprises. The big general-purpose 3D programs can do all of that, but they are built to do everything, and learning them takes a long time. Aventail 3D does one job: **game assets**, made well, in a tool you can learn quickly.
 
-What it's for:
+- **Easy to learn:** a clear layout, tools that say what they do, a manual that explains *why* as well as *how*, and every key on one drawn keyboard.
+- **Made for game assets:** hard-surface modelling, clean shading with hard and soft edges, and UVs, the parts a game model needs.
+- **Into your pipeline:** export to glTF and OBJ for Godot and Substance Painter, checked before it leaves the app.
+- **Never losing work:** undo for everything, and shapes whose settings stay editable after you've modelled on top of them.
 
-- **Hard-surface modelling** for game assets: props, weapons, vehicles, environment pieces
-- **UV unwrapping**: seams, unwrapping, packing, texel density
-- **Clean export** to glTF and OBJ for Godot and Substance Painter
-- **Never losing work**: effectively unlimited undo, and base object settings that stay editable after you've modelled on top of them
+Its way of working is inspired by Cinema 4D and 3ds Max, two programs many modellers learned on, but it is not a copy of either: it borrows what made them pleasant to use and grows into its own tool.
 
 Rendering, sculpting and texturing are left to the tools that already do them well. Rigging and animation are planned for much later.
 
@@ -34,10 +34,10 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Quality checks in CI: formatting, lint, tests, license and vulnerability scans
 - [x] Documentation setup: architecture, contributing guide, changelog, decision records, pull request template, API reference, user manual
 - [x] Workspace split into crates
-- [x] Window with the C4D-style layout: viewport, Attributes panel, Objects panel, palettes, status bar, all dockable
+- [x] Window with the main layout: viewport, Attributes panel, Objects panel, palettes, status bar, all dockable
 - [x] Theme: calm dark colours, font and spacing
 
-**Gate:** the app launches into the C4D-style layout with movable, dockable panels. *Passed 2026-10-10.*
+**Gate:** the app launches into its layout with movable, dockable panels. *Passed 2026-10-10.*
 
 ### Phase 1 · Viewport and navigation — 5 of 5
 
@@ -108,7 +108,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Slit (X): cut new edges along a line of points over the shape, visible only or through; close it into a loop to cut a shape into a polygon
 - [x] Extrude with a bend: pipe bends that keep their size, with an angle, direction, bend radius and segments; past one turn, spirals whose loops clear each other
 - [x] Connect (A), Bridge (C, or drag edge to edge) and Weld (M, or Ctrl + M onto a point)
-- [x] Clean-up: Delete deletes, Backspace dissolves; fill hole and flip normals, with select flipped, fix facing and select similar facing
+- [x] Clean-up: Delete deletes, Backspace dissolves; fill hole and flip normals, with select flipped, fix normals and select same facing
 - [x] Hard and soft edges, by hand or by angle, with hard edges and normals shown from the Display menu
 - [x] Symmetry: every edit is made on the other side too, across the shape's own X, Y or Z, through its pivot, its middle or the world centre
 - [x] Basics: hide and isolate, slide points and edges, duplicate and instances, split polygons off and join objects
@@ -225,6 +225,7 @@ Newest first. One line per finished milestone or passed gate.
 | 2026-10-14 | Clickable corner axes: click X, Y or Z to look along it, again for the other side; Cavity moved beside Hard edges in the Display menu. Every Phase 4 milestone built again; heavy-mesh check run (one background step a little over its target on the test machine) |
 | 2026-10-14 | Cavity: ridges brightened and creases darkened on the surfaces, on as standard, from the Display menu and a button beside Shading; Automatic hard edges moved to the Mesh menu |
 | 2026-10-14 | Automatic hard edges: every shape shaded by angle (30°) after every change, from a switch on as standard (now in the Mesh menu); edges set by hand kept for when it's off |
+| 2026-10-14 | Names tidied: Fix normals, Isolate, Duplicate as instance, Select same facing; the README's introduction rewritten for game developers |
 | 2026-10-14 | Four Phase 4 milestones added at the project lead's request (wireframe, cavity, clickable corner axes, automatic hard edges); the first built: Shaded, Shaded with wires and Wireframe, from a button beside the corner axes, which move to the bottom left |
 | 2026-10-14 | Spirals: a bend past 360° (up to ten turns) climbs clear of itself, with Rise per turn for more room; project files at format version 15 |
 | 2026-10-14 | The Keys window draws a keyboard: used keys lit by situation, point or click a key for its jobs; seven layouts, guessed from the system language |

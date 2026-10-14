@@ -153,7 +153,7 @@ impl Workbench {
         }
         if entry(
             ui,
-            "Select similar facing",
+            "Select same facing",
             String::new(),
             "Add every polygon facing within 30° of a selected polygon: the top of a shape, \
              say, or every wall facing one way",

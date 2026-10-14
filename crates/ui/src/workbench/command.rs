@@ -107,7 +107,7 @@ impl Workbench {
             CommandId::FlipNormals if !command.modes().contains(&self.mode) => Ready::NotNow(
                 "Flip normals works on polygons: press 3 for the Polygons mode".into(),
             ),
-            CommandId::Knife if !command.modes().contains(&self.mode) => Ready::NotNow(
+            CommandId::Slit if !command.modes().contains(&self.mode) => Ready::NotNow(
                 "Slit works in the Points, Edges or Polygons mode: press 1, 2 or 3".into(),
             ),
             _ => Ready::Yes,
@@ -142,7 +142,7 @@ impl Workbench {
             CommandId::Inset => self.set_tool(Tool::Inset),
             CommandId::Bevel => self.set_tool(Tool::Bevel),
             CommandId::LoopCut => self.set_tool(Tool::LoopCut),
-            CommandId::Knife => self.set_tool(Tool::Slit),
+            CommandId::Slit => self.set_tool(Tool::Slit),
             CommandId::Connect => self.run_connect(),
             CommandId::Bridge => self.run_bridge(),
             CommandId::Weld => self.run_weld(),

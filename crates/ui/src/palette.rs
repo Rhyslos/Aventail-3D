@@ -693,12 +693,12 @@ pub const GRID_DETAIL_LABEL: &str = "Grid lines";
 pub enum ModePick {
     /// A mode.
     Mode(Mode),
-    /// Show only the selection (as Ctrl + H does).
+    /// Isolate (as Ctrl + H does).
     Isolate,
 }
 
 /// Accessible name of the mode palette's isolate button.
-pub const ISOLATE_LABEL: &str = "Show only the selection";
+pub const ISOLATE_LABEL: &str = "Isolate";
 
 /// The mode palette down the left side, with the viewport's display
 /// toggles at the bottom. Returns what was picked this frame, if
@@ -735,7 +735,7 @@ pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Op
             ui,
             Icon::Solo,
             ISOLATE_LABEL,
-            "Show only the selection: hide every other object, or in the Points, Edges and \
+            "Isolate: hide every other object, or in the Points, Edges and \
              Polygons modes every other polygon (Ctrl + H). Alt + H shows everything again.",
             ButtonState::Normal,
         )

@@ -414,7 +414,7 @@ impl Operation {
             Self::FillHoles { points, .. } if points.is_empty() => "Fill every hole".to_string(),
             Self::FillHoles { .. } => "Fill hole".to_string(),
             Self::FlipPolygons { faces, .. } => counted("Flip", faces.len(), "polygon"),
-            Self::FixFacing => "Fix facing".to_string(),
+            Self::FixFacing => "Fix normals".to_string(),
             Self::SetHardEdges { edges, hard, .. } => {
                 let verb = if *hard { "Harden" } else { "Soften" };
                 counted(verb, edges.len(), "edge")

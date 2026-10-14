@@ -117,8 +117,8 @@ pub enum Icon {
     Weld,
     /// Connect: a new edge across a polygon.
     Connect,
-    /// Knife: a blade cutting a line.
-    Knife,
+    /// Slit: a blade cutting a line.
+    Slit,
     /// Loop cut: a new loop around a shape.
     LoopCut,
     /// New group: a dashed outline with a plus.
@@ -189,7 +189,7 @@ pub const ALL: [Icon; 60] = [
     Icon::Dissolve,
     Icon::Weld,
     Icon::Connect,
-    Icon::Knife,
+    Icon::Slit,
     Icon::LoopCut,
     Icon::NewGroup,
     Icon::ShapeList,
@@ -1169,7 +1169,7 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
             pen.disc((4.0, 12.0), 2.0, Paint::Solid);
             pen.disc((20.0, 12.0), 2.0, Paint::Solid);
         }
-        Icon::Knife => {
+        Icon::Slit => {
             pen.stroke(
                 &[(3.0, 3.0), (21.0, 3.0), (21.0, 21.0), (3.0, 21.0)],
                 true,
