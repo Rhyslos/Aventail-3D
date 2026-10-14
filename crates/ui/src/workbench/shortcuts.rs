@@ -339,6 +339,15 @@ impl Workbench {
 mod tests {
     use super::*;
 
+    /// A context that has drawn one frame: on a Mac, writing out a
+    /// shortcut needs the fonts, which load on the first frame.
+    fn ready_context() -> Context {
+        let ctx = Context::default();
+        let mut output = ctx.run_ui(egui::RawInput::default(), |_| {});
+        output.textures_delta.clear();
+        ctx
+    }
+
     fn all_text(ctx: &Context) -> String {
         groups(ctx)
             .iter()
@@ -349,7 +358,7 @@ mod tests {
 
     #[test]
     fn every_command_with_a_key_is_listed_with_it() {
-        let ctx = Context::default();
+        let ctx = ready_context();
         let text = all_text(&ctx);
         for command in commands::ALL {
             let Some(keys) = command.info().shortcut else {
@@ -374,7 +383,7 @@ mod tests {
 
     #[test]
     fn every_line_has_an_action_and_keys_and_groups_have_lines() {
-        let ctx = Context::default();
+        let ctx = ready_context();
         for group in groups(&ctx) {
             assert!(!group.lines.is_empty(), "{}", group.title);
             for l in &group.lines {
