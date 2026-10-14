@@ -866,6 +866,40 @@ fn display_menu_and_the_corner_button_choose_the_shading() {
 }
 
 #[test]
+fn the_shading_list_keeps_its_size_while_pointing_at_its_choices() {
+    // In the app, a choice's tooltip made the list narrower and "Shaded
+    // with wires" wrapped onto two lines (fixed by a fixed width). The test
+    // harness lays text out a little differently and never showed the
+    // shrink, so this guards the outcome: one line each, tooltips showing.
+    use crate::Shading;
+    let mut harness = fresh();
+    harness.get_by_label(crate::viewport::SHADING_LABEL).click();
+    harness.run();
+    let size = |h: &egui_kittest::Harness<'static, State>| {
+        h.get_by_label(Shading::ShadedWithWires.label())
+            .rect()
+            .size()
+    };
+    let before = size(&harness);
+    for look in Shading::ALL {
+        harness.get_by_label(look.label()).hover();
+        // Long enough for the tooltip to appear.
+        for _ in 0..8 {
+            harness.run();
+        }
+        assert!(
+            harness.query_by_label(look.explanation()).is_some(),
+            "{look:?}: its tooltip shows"
+        );
+        let after = size(&harness);
+        assert!(
+            (after.y - before.y).abs() < 0.5 && after.x >= before.x - 0.5,
+            "{look:?}: {before:?} -> {after:?}"
+        );
+    }
+}
+
+#[test]
 fn the_managers_have_their_own_menu_lines() {
     let harness = fresh();
     for menu in ["Mode", "Object"] {

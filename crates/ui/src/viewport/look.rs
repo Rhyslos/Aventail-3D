@@ -19,6 +19,9 @@ pub(crate) const SHADING_LABEL: &str = "Shading";
 pub(super) const ROW_LEFT: f32 = 64.0;
 /// The row's buttons' height, as the navigation picker's.
 const HEIGHT: f32 = 26.0;
+/// The shading list's width, fixed so it never changes size as the mouse
+/// moves over it (a tooltip appearing used to make it narrower).
+const LIST_WIDTH: f32 = 180.0;
 
 /// Draws the shading button at the bottom left of `rect` (past the axis
 /// marker), and its list when open.
@@ -68,6 +71,7 @@ pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) {
         .close_behavior(PopupCloseBehavior::CloseOnClick)
         .align(RectAlign::TOP_START)
         .gap(6.0)
+        .width(LIST_WIDTH)
         .frame(
             Frame::new()
                 .fill(theme::PANEL)
@@ -76,7 +80,10 @@ pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) {
                 .inner_margin(Margin::symmetric(8, 8))
                 .shadow(ui.visuals().popup_shadow),
         )
-        .show(|ui| choices(ui, &mut panel.options.shading));
+        .show(|ui| {
+            ui.set_width(LIST_WIDTH - 16.0);
+            choices(ui, &mut panel.options.shading);
+        });
 }
 
 /// The shading choices, under a heading: in the button's list and the
@@ -85,7 +92,10 @@ pub(crate) fn choices(ui: &mut Ui, shading: &mut Shading) {
     ui.label(egui::RichText::new(SHADING_LABEL).color(theme::TEXT_WEAK));
     for look in Shading::ALL {
         if ui
-            .add(egui::Button::selectable(*shading == look, look.label()))
+            .add(
+                egui::Button::selectable(*shading == look, look.label())
+                    .wrap_mode(egui::TextWrapMode::Extend),
+            )
             .on_hover_text(look.explanation())
             .clicked()
         {
