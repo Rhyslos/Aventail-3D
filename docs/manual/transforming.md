@@ -84,6 +84,10 @@ Snapping makes a drag jump to exact places instead of going anywhere:
 
 The **magnet button** on the top palette (and **Tools → Snapping**) turns snapping on and off. **Hold Ctrl while dragging** to flip it for that one drag: snap when it's off, move freely when it's on. If you'd rather only use the button, switch off **Holding Ctrl while dragging flips snapping** in **Edit → Settings… → Viewport → Snapping**. That's also where you choose what moves snap to and the rotate and scale steps.
 
+### Symmetry
+
+With **Symmetry** on (the palette button at the right end, or **Tools → Symmetry**), moving, rotating or scaling points, edges or polygons also moves their mirror on the other side of the shape. See [Symmetry](symmetry.md).
+
 ### Typing exact values
 
 ![The Coordinates panel](../screenshots/2026-10-11-coordinates.png)
@@ -109,6 +113,7 @@ What the fields show:
 | **Turns snap every / scaling every** | 15° and 10% as standard. |
 | **Lock X / Y / Z** | An axis that can't change. Remembered between sessions. |
 | **World or object axes** | Which way the gizmo's arrows point. Remembered. |
+| **Symmetry**, and its **X / Y / Z** | Mirror moves onto the other side of the shape. See [Symmetry](symmetry.md). |
 
 ## Shortcuts
 
@@ -138,6 +143,7 @@ What the fields show:
 ## Related
 
 - [Selecting](selecting.md)
+- [Symmetry](symmetry.md)
 - [Points, Edges and Polygons modes](modes.md)
 - [Concepts: pivot, axes and grid](concepts.md#objects-and-scenes), [base and edits](concepts.md#objects-and-scenes)
 - [Attributes](attributes.md) (the Edits section)

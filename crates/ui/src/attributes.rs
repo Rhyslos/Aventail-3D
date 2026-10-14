@@ -55,6 +55,9 @@ pub(crate) struct AttributesPanel {
     pub(crate) join: JoinLook,
     /// Hard edges by angle's angle, for its next use (decision 0053).
     pub(crate) hard_angle: HardAngle,
+    /// Symmetry (set by the workbench each frame, and read back): its
+    /// axes are chosen here while it is on (decision 0054).
+    pub(crate) symmetry: crate::Symmetry,
 }
 
 /// Hard edges by angle's angle in degrees, for its next use: edges whose
@@ -306,6 +309,9 @@ impl AttributesPanel {
                 .unwrap_or(false),
             _ => false,
         };
+        if self.symmetry.on {
+            self.symmetry_section(ui);
+        }
         if self.tool.has_settings() && !last_shown {
             self.tool_section(ui, units);
         }
@@ -378,6 +384,37 @@ impl AttributesPanel {
                     edits_section(ui, doc, id, &object.stack);
                 }
             });
+    }
+
+    /// Symmetry's axes, while it is on: X, Y and Z switches in a row.
+    fn symmetry_section(&mut self, ui: &mut Ui) {
+        section(ui, "Symmetry");
+        ui.horizontal(|ui| {
+            label(
+                ui,
+                "Mirror across",
+                "The shape's own axes to mirror across: X mirrors left and right, Y front and \
+                 back, Z top and bottom. The mirror goes through the shape's own middle.",
+            );
+            for (axis, name) in ["X", "Y", "Z"].into_iter().enumerate() {
+                let response = ui.checkbox(&mut self.symmetry.axes[axis], name);
+                response.widget_info(|| {
+                    egui::WidgetInfo::selected(
+                        egui::WidgetType::Checkbox,
+                        true,
+                        self.symmetry.axes[axis],
+                        format!("Symmetry {name}"),
+                    )
+                });
+            }
+        });
+        if !self.symmetry.axes.contains(&true) {
+            ui.label(
+                RichText::new("Pick an axis: with none, nothing is mirrored.")
+                    .small()
+                    .color(theme::TEXT_WEAK),
+            );
+        }
     }
 
     /// Extrude's, Inset's, Bevel's or Loop cut's own settings, while it is

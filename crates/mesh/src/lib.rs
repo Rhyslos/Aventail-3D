@@ -23,6 +23,7 @@ pub mod samples;
 pub mod selection;
 pub mod shading;
 pub mod slit;
+pub mod symmetry;
 pub mod topology;
 
 pub use anchors::{AnchorShape, Anchors};

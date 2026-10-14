@@ -108,6 +108,37 @@ impl Workbench {
         });
     }
 
+    /// Turns symmetry on or off (decision 0054).
+    pub(crate) fn toggle_symmetry(&mut self) {
+        let symmetry = &mut self.viewport.options_mut().symmetry;
+        symmetry.on = !symmetry.on;
+        let axes = symmetry.axes;
+        self.note = Some(if !symmetry.on {
+            "Symmetry off.".into()
+        } else if axes.contains(&true) {
+            let names: Vec<&str> = ["X", "Y", "Z"]
+                .into_iter()
+                .zip(axes)
+                .filter(|(_, on)| *on)
+                .map(|(name, _)| name)
+                .collect();
+            format!(
+                "Symmetry on, across {}: moving points moves their mirrors too.",
+                names.join(" and ")
+            )
+        } else {
+            "Symmetry on, but no axis is chosen: pick X, Y or Z in the Attributes panel.".into()
+        });
+    }
+
+    /// `target` with symmetry, when it is on (decision 0054).
+    pub(super) fn with_symmetry(&self, target: Target, drawing: &SceneDrawing) -> Target {
+        match self.viewport.options().symmetry.active_axes() {
+            Some(axes) => target.mirrored(drawing, axes),
+            None => target,
+        }
+    }
+
     /// `W`, `R`, `S`, `T` pick a tool; Shift+`X`, `Y`, `Z` lock axes; `L`
     /// switches world and object axes. Not while typing.
     pub(super) fn transform_keys(&mut self, ui: &Ui) {
@@ -192,6 +223,15 @@ impl Workbench {
             self.toggle_snapping();
             ui.close();
         }
+        let symmetry = self.viewport.options().symmetry.on;
+        if ui
+            .add(egui::Button::selectable(symmetry, "Symmetry"))
+            .on_hover_text(crate::palette::SYMMETRY_HELP)
+            .clicked()
+        {
+            self.toggle_symmetry();
+            ui.close();
+        }
         ui.separator();
         ui.label(
             egui::RichText::new("Tip: press E for the tool menu")
@@ -227,6 +267,7 @@ impl Workbench {
             match event {
                 GizmoEvent::Begin { .. } => {
                     if let Some(target) = self.target(drawing) {
+                        let target = self.with_symmetry(target, drawing);
                         self.sessions += 1;
                         self.gizmo_session = Some(Session::new(target, self.sessions));
                         self.gizmo_shown = None;
@@ -300,6 +341,7 @@ impl Workbench {
             if fresh {
                 self.coordinates_session =
                     Target::of(&self.document, drawing, self.mode, Axes::World).map(|target| {
+                        let target = self.with_symmetry(target, drawing);
                         self.sessions += 1;
                         let start = CoordinatesView::of(Some(&target), &self.document);
                         CoordinatesSession {

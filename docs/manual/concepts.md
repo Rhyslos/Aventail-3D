@@ -89,6 +89,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Local vs. world space** — *World* directions are the same for the whole scene. *Local* directions follow the object's own rotation.
 
+**Symmetry (mirror modelling)** — Working on one half of a shape while the other half copies every change, mirrored across a plane through the middle. See [Symmetry](symmetry.md).
+
 ## Viewing the scene
 
 **Orbit, pan and zoom** — The three ways to move the view. *Orbiting* turns the camera around a point, like walking around a statue. *Panning* slides the camera sideways or up and down without turning it. *Zooming* (strictly, *dollying*) moves the camera closer or farther. None of them change the model. See [Navigating the view](navigating-the-view.md).

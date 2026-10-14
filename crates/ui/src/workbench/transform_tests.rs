@@ -485,3 +485,78 @@ fn the_attributes_panel_says_when_an_edit_was_too_large() {
             .is_some()
     );
 }
+
+// ------------------------------------------------------------ symmetry ---
+
+/// The cube's evaluated shape.
+fn shape(harness: &H) -> std::sync::Arc<scene::Mesh> {
+    let doc = harness.state().workbench.document();
+    doc.scene().evaluated(cube(harness)).unwrap().mesh
+}
+
+#[test]
+fn with_symmetry_moving_a_point_moves_its_mirror() {
+    let mut harness = fresh();
+    let id = cube(&harness);
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .set_selection([id]);
+    harness.run();
+    // The palette switch turns it on, across X as standard.
+    harness.get_by_label("Symmetry").click();
+    harness.run();
+    assert!(harness.state().workbench.viewport().options().symmetry.on);
+    assert!(
+        harness
+            .query_by_label_contains("Symmetry on, across X")
+            .is_some()
+    );
+    press(&mut harness, Key::Num1);
+    // Its X, Y and Z switches are in the Attributes panel.
+    assert!(harness.query_by_label("Symmetry X").is_some());
+    // One top corner on the right.
+    let mesh = shape(&harness);
+    let right = mesh
+        .vertices()
+        .find(|(_, p)| p.x > 0.0 && p.y > 0.0 && p.z > 99.0)
+        .map(|(v, _)| v)
+        .unwrap();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .select_elements(
+            [(
+                id,
+                scene::ElementSelection::of([scene::Element::Point(right)]),
+            )],
+            "Select",
+            None,
+        );
+    press(&mut harness, Key::W);
+    let start = x_arrow(&harness);
+    let path: Vec<Pos2> = (1..=6)
+        .map(|i| along_x(&harness, start, i as f32 * 15.0))
+        .collect();
+    drag_without_letting_go(&mut harness, start, &path);
+    let_go(&mut harness, *path.last().unwrap());
+    let mesh = shape(&harness);
+    let moved = mesh.position(right).unwrap();
+    assert!(moved.x > 70.0, "{moved}");
+    // Its mirror went the other way, by as much.
+    let left = mesh
+        .vertices()
+        .find(|(v, p)| *v != right && p.y > 0.0 && p.z > 99.0 && p.x < -70.0)
+        .map(|(_, p)| p)
+        .expect("the mirror moved left");
+    assert!((left.x + moved.x).abs() < 1e-3, "{left} {moved}");
+    let doc = harness.state().workbench.document();
+    assert_eq!(doc.undo_label(), Some("Move 2 points"), "one undo step");
+    // Off again (the Tools menu, or the palette, whose button shares its
+    // name with the panel's section now).
+    harness.state_mut().workbench.toggle_symmetry();
+    harness.run();
+    assert!(!harness.state().workbench.viewport().options().symmetry.on);
+}
