@@ -328,6 +328,15 @@ fn every_tool_keeps_values_on_every_primitive() {
             loop_cut(&mut m, *edge, 2, 0.3);
             nothing_left_at_the_default(&m);
         }
+        let mut m = mesh.clone();
+        crate::join::connect_edges(&mut m, &edges, 2);
+        nothing_left_at_the_default(&m);
+        let mut m = mesh.clone();
+        crate::join::connect_points(&mut m, &points);
+        nothing_left_at_the_default(&m);
+        let mut m = mesh.clone();
+        crate::join::weld(&mut m, &points, None);
+        nothing_left_at_the_default(&m);
         let middle = mesh.bounds().unwrap().centre();
         let mut m = mesh.clone();
         slit(

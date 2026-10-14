@@ -1191,6 +1191,101 @@ fn a_straight_extrude_given_a_bend_becomes_a_bent_one() {
 }
 
 #[test]
+fn connect_and_weld_are_recorded_and_follow_the_shape() {
+    let (mut doc, id) = with_a_cube();
+    let mesh = doc.scene().evaluated(id).unwrap().mesh;
+    let upright: Vec<mesh::EdgeKey> = mesh
+        .edges()
+        .iter()
+        .copied()
+        .filter(|e| {
+            let (a, b) = e.ends();
+            (mesh.position(a).unwrap().z - mesh.position(b).unwrap().z).abs() > 1.0
+        })
+        .collect();
+    let ends: Vec<Vec<VertexId>> = upright
+        .iter()
+        .map(|e| {
+            let (a, b) = e.ends();
+            vec![a, b]
+        })
+        .collect();
+    let connect = Operation::Connect {
+        points: Vec::new(),
+        edges: upright.clone(),
+        cuts: 1,
+        anchors: mesh::Anchors::record(&mesh, ElementKind::Edges, &ends),
+    };
+    record(&mut doc, id, connect.clone());
+    assert_eq!(doc.undo_label(), Some("Connect 4 edges"));
+    let faces = |doc: &Document| doc.scene().evaluated(id).unwrap().mesh.face_count();
+    assert_eq!(faces(&doc), 10);
+    // Cuts is its Last edit.
+    let more = connect.with(EditSettings {
+        cuts: Some(3),
+        ..connect.settings().unwrap()
+    });
+    doc.execute(Command::ReplaceOperation {
+        id,
+        layer: 0,
+        index: 0,
+        operation: more,
+    })
+    .unwrap();
+    assert_eq!(faces(&doc), 6 + 12);
+    // Weld the top's corners into one: a roof.
+    let top: Vec<VertexId> = mesh
+        .vertices()
+        .filter(|(_, p)| p.z > 99.0)
+        .map(|(v, _)| v)
+        .collect();
+    let places: Vec<Vec<VertexId>> = top.iter().map(|v| vec![*v]).collect();
+    record(
+        &mut doc,
+        id,
+        Operation::Weld {
+            points: top.clone(),
+            target: None,
+            anchors: mesh::Anchors::record(&mesh, ElementKind::Points, &places),
+        },
+    );
+    assert_eq!(doc.undo_label(), Some("Weld 4 points"));
+    let shape = doc.scene().evaluated(id).unwrap();
+    assert!(mesh::MeshReport::new(&shape.mesh).is_closed());
+    assert!(shape.warnings.is_empty(), "{:?}", shape.warnings);
+    assert!(
+        Operation::Weld {
+            points: top,
+            target: None,
+            anchors: None
+        }
+        .settings()
+        .is_none()
+    );
+    // A bridge's rows and twist are its Last edit.
+    let bridge = Operation::Bridge {
+        edges: Vec::new(),
+        faces: vec![FaceId::from_raw(0), FaceId::from_raw(1)],
+        segments: 2,
+        twist: 0,
+        anchors: None,
+    };
+    assert_eq!(bridge.describe(), "Bridge 2 polygons");
+    let turned = bridge.with(EditSettings {
+        bridge: Some((4, 1)),
+        ..bridge.settings().unwrap()
+    });
+    assert!(matches!(
+        turned,
+        Operation::Bridge {
+            segments: 4,
+            twist: 1,
+            ..
+        }
+    ));
+}
+
+#[test]
 fn edits_holding_numbers_that_arent_real_are_refused() {
     // A regression test from the whole-app review (L2): such an edit
     // could be saved but not opened again.

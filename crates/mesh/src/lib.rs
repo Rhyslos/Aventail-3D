@@ -12,6 +12,7 @@ pub mod builder;
 pub mod check;
 pub mod edit;
 pub mod extrude;
+pub mod join;
 pub mod loopcut;
 pub mod parallel;
 pub mod polygon;
