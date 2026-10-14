@@ -152,7 +152,7 @@ fn leave_out_dense(draws: &mut [MeshDraw], view: &ViewportView, meshes: &HashMap
         let Some(uploaded) = meshes.get(&draw.key) else {
             continue;
         };
-        let Some(bounds) = item.mesh.bounds() else {
+        let Some(bounds) = item.shown.bounds() else {
             continue;
         };
         let scale = (draw.model.x_axis.truncate().length()
@@ -243,14 +243,14 @@ impl GpuViewport {
             let waiting = self
                 .preparing
                 .get(&key)
-                .is_some_and(|(mesh, _)| Arc::ptr_eq(mesh, &item.mesh));
+                .is_some_and(|(mesh, _)| Arc::ptr_eq(mesh, &item.shown));
             match self.meshes.get_mut(&key) {
-                Some(old) if Arc::ptr_eq(&old.mesh, &item.mesh) => continue,
-                Some(old) if !waiting && let Some(moved) = item.mesh.moved_since(&old.mesh) => {
-                    let ranges = old.geometry.moved(&item.mesh, &moved);
+                Some(old) if Arc::ptr_eq(&old.mesh, &item.shown) => continue,
+                Some(old) if !waiting && let Some(moved) = item.shown.moved_since(&old.mesh) => {
+                    let ranges = old.geometry.moved(&item.shown, &moved);
                     self.renderer
                         .update_mesh(queue, key, &old.geometry, &ranges);
-                    old.mesh = Arc::clone(&item.mesh);
+                    old.mesh = Arc::clone(&item.shown);
                     continue;
                 }
                 _ => {}
@@ -259,8 +259,8 @@ impl GpuViewport {
                 .preparing
                 .get(&key)
                 .is_some_and(|(_, handle)| handle.is_finished());
-            let geometry = if item.mesh.face_count() < BACKGROUND_FROM {
-                Some(MeshGeometry::new(&item.mesh))
+            let geometry = if item.shown.face_count() < BACKGROUND_FROM {
+                Some(MeshGeometry::new(&item.shown))
             } else if waiting && finished {
                 self.preparing
                     .remove(&key)
@@ -269,9 +269,10 @@ impl GpuViewport {
                 // A newer shape waits until the one being worked out is
                 // done, so changes in quick succession don't pile up work.
                 if !self.preparing.contains_key(&key) || finished {
-                    let mesh = Arc::clone(&item.mesh);
+                    let mesh = Arc::clone(&item.shown);
                     let handle = std::thread::spawn(move || MeshGeometry::new(&mesh));
-                    self.preparing.insert(key, (Arc::clone(&item.mesh), handle));
+                    self.preparing
+                        .insert(key, (Arc::clone(&item.shown), handle));
                 }
                 None
             };
@@ -281,7 +282,7 @@ impl GpuViewport {
                 self.meshes.insert(
                     key,
                     Uploaded {
-                        mesh: Arc::clone(&item.mesh),
+                        mesh: Arc::clone(&item.shown),
                         geometry,
                     },
                 );
@@ -467,6 +468,7 @@ mod tests {
         ui::DrawItem {
             id: scene::ObjectId::from_raw(id),
             mesh: Arc::new(mesh::PrimitiveKind::Cube.standard().mesh()),
+            shown: Arc::new(mesh::PrimitiveKind::Cube.standard().mesh()),
             transform: glam::Mat4::from_translation(Vec3::X * id as f32),
             selected,
         }
@@ -529,6 +531,7 @@ mod tests {
             items: vec![ui::DrawItem {
                 id: scene::ObjectId::from_raw(1),
                 mesh: Arc::clone(&ball),
+                shown: Arc::clone(&ball),
                 transform: glam::Mat4::IDENTITY,
                 selected,
             }],

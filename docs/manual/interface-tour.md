@@ -79,6 +79,8 @@ One colour marks what's active: the current mode (and later the current tool), t
 | Select all / invert | `Ctrl + A` / `Ctrl + I` |
 | Delete the selection | `Delete` or `Backspace` (in the Points, Edges and Polygons modes, `Delete` deletes elements and `Backspace` dissolves them) |
 | Frame everything / the selection | `H` / `Z` |
+| Hide / isolate / show everything | `Shift + H` / `Ctrl + H` / `Alt + H` (see [Hide and isolate](hide-and-isolate.md)) |
+| Copy; paste copies; paste instances | `Ctrl + C`; `Ctrl + V`; `Alt + V` (see [Copies and instances](copies-and-instances.md)) |
 | Connect / Bridge / Weld (Weld onto a point) | `J` / `C` / `M` (`Ctrl + M`) |
 | Perspective, top, right, front view; all four | `F1`, `F2`, `F3`, `F4`; `F5` |
 | Orbit, pan, zoom the view | Depends on your navigation controls; as standard right drag to orbit, middle drag to pan and the mouse wheel to zoom (`Alt` + left, middle or right drag work too). See [Navigating the view](navigating-the-view.md) |

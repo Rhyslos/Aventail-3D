@@ -22,6 +22,8 @@ pub enum SceneError {
     WrongKind(&'static str),
     /// Edits can only be recorded on an object with a shape, not a group.
     NoShape,
+    /// An instance shows its original's shape and has no edits of its own.
+    Instance,
     /// A position, turn or size that isn't a number.
     NotANumber,
 }
@@ -42,6 +44,9 @@ impl std::fmt::Display for SceneError {
                 kind.to_lowercase()
             ),
             Self::NoShape => f.write_str("a group has no shape to edit"),
+            Self::Instance => f.write_str(
+                "it's an instance: edit its original, or make it editable to give it its own shape",
+            ),
             Self::NotANumber => f.write_str("a value isn't a number"),
         }
     }
@@ -265,6 +270,9 @@ impl Scene {
             if !object.kind.has_shape() && !object.stack.is_empty() {
                 return Err(SceneError::NoShape);
             }
+            if matches!(object.kind, ObjectKind::Instance(_)) && !object.stack.is_empty() {
+                return Err(SceneError::Instance);
+            }
             if object.stack.repeated_edit_id().is_some() {
                 return Err(SceneError::History(
                     "two of an object's edits have the same id",
@@ -287,6 +295,20 @@ impl Scene {
                 object,
                 place: Place { parent, index },
             })?;
+        }
+        // Every instance shows an object that is there, with a shape of
+        // its own (not another instance).
+        for (id, _) in scene.walk() {
+            if let Some(ObjectKind::Instance(source)) = scene.object(id).map(|o| &o.kind) {
+                match scene.object(*source).map(|o| &o.kind) {
+                    None => return Err(SceneError::UnknownObject(*source)),
+                    Some(ObjectKind::Instance(_)) => {
+                        return Err(SceneError::History("an instance shows another instance"));
+                    }
+                    Some(kind) if !kind.has_shape() => return Err(SceneError::NoShape),
+                    Some(_) => {}
+                }
+            }
         }
         scene.next_id = scene.next_id.max(next_id.min(MAX_OBJECT_ID));
         Ok(scene)
@@ -317,6 +339,14 @@ impl Scene {
     /// object without a shape (a group) or an unknown id.
     pub fn evaluated(&self, id: ObjectId) -> Option<Evaluated> {
         let object = self.object(id)?;
+        if let ObjectKind::Instance(source) = object.kind {
+            // An instance's original is never an instance itself, so this
+            // goes one step at most.
+            return self
+                .object(source)
+                .filter(|o| !matches!(o.kind, ObjectKind::Instance(_)))
+                .and_then(|_| self.evaluated(source));
+        }
         self.cache
             .with(|cache| cache.evaluate(id, &object.kind, &object.stack, &EvalContext::default()))
     }
@@ -338,7 +368,7 @@ impl Scene {
     /// edits recorded on it. Not a group, or a mesh with nothing recorded.
     pub fn can_make_editable(&self, id: ObjectId) -> bool {
         self.object(id).is_some_and(|o| match o.kind {
-            ObjectKind::Primitive(_) => true,
+            ObjectKind::Primitive(_) | ObjectKind::Instance(_) => true,
             ObjectKind::Mesh(_) => !o.stack.is_empty(),
             ObjectKind::Group => false,
         })

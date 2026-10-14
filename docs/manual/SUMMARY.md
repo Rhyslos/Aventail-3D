@@ -9,6 +9,8 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [The tool menu (E): every tool for what you're working on, at the mouse](tool-menu.md)
 - [Navigating the view: orbit, pan and zoom, and the grid](navigating-the-view.md)
 - [The Objects panel: select, rename, group, hide, delete, and undo](objects.md)
+- [Hide and isolate: get parts out of the way, and show them again](hide-and-isolate.md)
+- [Copies and instances: Ctrl + C, Ctrl + V, Alt + V](copies-and-instances.md)
 - [The Attributes panel: change a selected object's name and settings](attributes.md)
 - [Saving and opening projects](saving-and-opening.md)
 - [Backup copies and crash recovery: autosave](autosave.md)

@@ -29,7 +29,9 @@ If several objects are selected and you drag one of them, they all move, keeping
 
 **Rename.** Double-click a name (or select one object and use **Edit → Rename**, or type in the **Name** field of the [Attributes panel](attributes.md)), type the new name and press **Enter**. Clicking elsewhere keeps the new name too; **Esc** keeps the old one. Names can't be empty.
 
-**Show and hide.** Click the eye at the right of a row to hide that object from the viewport; click the closed eye to show it again. If the object is part of the selection, the whole selection is shown or hidden. Hiding a group hides everything inside it too: their own eyes stay open but turn faint, so you can see they're only hidden because of the group. **Object → Show** and **Hide** work on the selection. Hidden objects are left out when you frame with **H** or **Z**.
+**Show and hide.** Click the eye at the right of a row to hide that object from the viewport; click the closed eye to show it again. If the object is part of the selection, the whole selection is shown or hidden. Hiding a group hides everything inside it too: their own eyes stay open but turn faint, so you can see they're only hidden because of the group. **Object → Show** and **Hide** work on the selection. Hidden objects are left out when you frame with **H** or **Z**. In the Model mode, **Shift + H** hides the selection, **Ctrl + H** hides everything else and **Alt + H** shows everything: see [Hide and isolate](hide-and-isolate.md).
+
+**Copy.** **Ctrl + C** and **Ctrl + V** paste copies of the selected objects; **Alt + V** pastes instances. See [Copies and instances](copies-and-instances.md).
 
 **Delete.** Press **Delete** or **Backspace** (or use **Edit → Delete**) to delete the selected objects, together with everything inside them. In the Points, Edges and Polygons modes, these keys delete or dissolve the selected elements instead: see [Clean-up](clean-up.md).
 
@@ -75,6 +77,8 @@ The main menu bar's **Edit** menu has the same entries as the panel's Edit menu,
 | Add to or take out of the selection | `Ctrl` + click |
 | Select a run of rows | `Shift` + click |
 | Rename | Double-click the name |
+| Hide / isolate / show everything | `Shift + H` / `Ctrl + H` / `Alt + H` |
+| Copy; paste copies; paste instances | `Ctrl + C`; `Ctrl + V`; `Alt + V` |
 
 On macOS, use `Cmd` instead of `Ctrl` and `Option` instead of `Alt`. They don't act while you're typing a name.
 

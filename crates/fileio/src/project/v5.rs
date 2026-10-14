@@ -272,6 +272,15 @@ impl<E: FileOperation> ProjectWith<E> {
 
     /// The document this file model describes, after checking every value.
     pub(crate) fn into_document(self) -> Result<Document, Problem> {
+        self.into_document_with(|_, _| Ok(()))
+    }
+
+    /// [`Self::into_document`], with `attach` adding what a later version
+    /// keeps beside this model to each object (by its id).
+    pub(crate) fn into_document_with(
+        self,
+        mut attach: impl FnMut(u64, &mut scene::Object) -> Result<(), Problem>,
+    ) -> Result<Document, Problem> {
         let mut layers: std::collections::BTreeMap<u64, Vec<LayerV5>> =
             std::collections::BTreeMap::new();
         for mesh in self.layers {
@@ -280,6 +289,7 @@ impl<E: FileOperation> ProjectWith<E> {
             }
         }
         let document = self.project.into_document_with(|id, object| {
+            attach(id, object)?;
             let Some(list) = layers.remove(&id) else {
                 return Ok(());
             };

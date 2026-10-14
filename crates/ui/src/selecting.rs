@@ -494,10 +494,11 @@ impl Selector<'_> {
         let none = ElementSelection::new();
         let mut changes = Vec::new();
         for item in self.drawing.items.iter().filter(|i| i.selected) {
-            let topology = item.mesh.topology();
+            // Only what is shown: hidden polygons aren't selected.
+            let topology = item.shown.topology();
             let current = self.document.elements(item.id).unwrap_or(&none);
             let mut next = current.clone();
-            let chosen = work(&item.mesh, topology, current);
+            let chosen = work(&item.shown, topology, current);
             next.combine(kind, chosen, Combine::Replace);
             changes.push((item.id, next));
         }

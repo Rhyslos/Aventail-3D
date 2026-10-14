@@ -38,6 +38,10 @@ pub enum CommandId {
     ShapeList,
     /// Frame the selection in the view.
     FrameSelected,
+    /// Copy the selected objects in place.
+    Duplicate,
+    /// Make instances of the selected objects in place.
+    Instance,
     // --------------------------------------------- points, edges, polygons
     /// Push polygons or edges out, building new sides.
     Extrude,
@@ -170,6 +174,22 @@ impl CommandId {
                 Icon::FrameSelected,
                 plain(Key::Z),
                 "Turn and zoom the view so the selection fills it",
+                None,
+            ),
+            Self::Duplicate => (
+                "Duplicate",
+                Icon::Duplicate,
+                None,
+                "Copy the selected objects, with their edits, right where they are. Or Ctrl + C, \
+                 then Ctrl + V to paste copies.",
+                None,
+            ),
+            Self::Instance => (
+                "Instance",
+                Icon::Instance,
+                None,
+                "Make instances of the selected objects right where they are: they show the \
+                 original's shape and follow its changes. Or Alt + C, then Alt + V.",
                 None,
             ),
             Self::Extrude => (
@@ -316,7 +336,9 @@ impl CommandId {
             | Self::Delete
             | Self::NewGroup
             | Self::ShapeList
-            | Self::FrameSelected => &[Model, Object],
+            | Self::FrameSelected
+            | Self::Duplicate
+            | Self::Instance => &[Model, Object],
             Self::Extrude | Self::Bridge => &[Edges, Polygons],
             Self::Inset | Self::FlipNormals => &[Polygons],
             Self::Bevel | Self::Connect => &[Points, Edges],
@@ -344,9 +366,9 @@ pub const OBJECT_RING: [Option<CommandId>; RING_PLACES] = [
     Some(CommandId::Scale),
     Some(CommandId::AllGizmos),
     Some(CommandId::FrameSelected),
-    None,
+    Some(CommandId::Duplicate),
     Some(CommandId::MakeEditable),
-    None,
+    Some(CommandId::Instance),
     Some(CommandId::Delete),
     Some(CommandId::Ungroup),
     Some(CommandId::Group),
@@ -409,7 +431,7 @@ pub fn menu_for(mode: Mode) -> Vec<Slot> {
 }
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 25] = [
+pub const ALL: [CommandId; 27] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -421,6 +443,8 @@ pub const ALL: [CommandId; 25] = [
     CommandId::NewGroup,
     CommandId::ShapeList,
     CommandId::FrameSelected,
+    CommandId::Duplicate,
+    CommandId::Instance,
     CommandId::Extrude,
     CommandId::Inset,
     CommandId::Bevel,

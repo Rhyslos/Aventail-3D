@@ -1222,7 +1222,7 @@ pub struct Evaluated {
 /// The shape a base gives on its own, or `None` for a kind without one.
 fn base_mesh(base: &ObjectKind) -> Option<Arc<Mesh>> {
     match base {
-        ObjectKind::Group => None,
+        ObjectKind::Group | ObjectKind::Instance(_) => None,
         ObjectKind::Primitive(p) => Some(Arc::new(p.mesh())),
         ObjectKind::Mesh(mesh) => Some(Arc::clone(mesh)),
     }

@@ -545,10 +545,22 @@ pub const VISIBLE_ONLY_LABEL: &str = "Select only visible";
 /// Accessible name of the grid detail toggle on the mode palette.
 pub const GRID_DETAIL_LABEL: &str = "Grid lines";
 
+/// What was clicked on the mode palette.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ModePick {
+    /// A mode.
+    Mode(Mode),
+    /// Show only the selection (as Ctrl + H does).
+    Isolate,
+}
+
+/// Accessible name of the mode palette's isolate button.
+pub const ISOLATE_LABEL: &str = "Show only the selection";
+
 /// The mode palette down the left side, with the viewport's display
-/// toggles at the bottom. Returns the mode picked this frame, if any;
-/// toggles change `options` directly.
-pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Option<Mode> {
+/// toggles at the bottom. Returns what was picked this frame, if
+/// anything; toggles change `options` directly.
+pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Option<ModePick> {
     let mut picked = None;
     ui.vertical_centered(|ui| {
         ui.spacing_mut().item_spacing.y = 2.0;
@@ -565,7 +577,7 @@ pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Op
             // Mode icons are always soft white, even Model's cube.
             let tint = tint::ICON;
             if tinted_button(ui, mode.icon(), tint, &label, &mode.tooltip(), state).clicked() {
-                picked = Some(mode);
+                picked = Some(ModePick::Mode(mode));
             }
         }
         divider(ui, false);
@@ -576,13 +588,18 @@ pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Op
             "Arrives later",
             ButtonState::Unavailable,
         );
-        icon_button(
+        if icon_button(
             ui,
             Icon::Solo,
-            "Show only the selection",
-            "Arrives later",
-            ButtonState::Unavailable,
-        );
+            ISOLATE_LABEL,
+            "Show only the selection: hide every other object, or in the Points, Edges and \
+             Polygons modes every other polygon (Ctrl + H). Alt + H shows everything again.",
+            ButtonState::Normal,
+        )
+        .clicked()
+        {
+            picked = Some(ModePick::Isolate);
+        }
         let visible = if options.select_visible_only {
             ButtonState::Active
         } else {

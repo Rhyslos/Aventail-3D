@@ -127,10 +127,14 @@ pub enum Icon {
     ShapeList,
     /// Cancel, in the middle of the tool menu: a circle with a line.
     Cancel,
+    /// Duplicate: a square with a copy behind it.
+    Duplicate,
+    /// Instance: a square with a dashed copy behind it, joined to it.
+    Instance,
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 57] = [
+pub const ALL: [Icon; 59] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -188,6 +192,8 @@ pub const ALL: [Icon; 57] = [
     Icon::NewGroup,
     Icon::ShapeList,
     Icon::Cancel,
+    Icon::Duplicate,
+    Icon::Instance,
 ];
 
 /// Draws `icon` into `rect` in `color`.
@@ -1199,6 +1205,35 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         Icon::Cancel => {
             pen.ring((12.0, 12.0), (9.0, 9.0), Ink::Line);
             pen.stroke(&[(7.5, 12.0), (16.5, 12.0)], false, Ink::Line);
+        }
+        Icon::Duplicate => {
+            // The copy behind, then the square in front.
+            pen.stroke(
+                &[(9.0, 4.0), (20.0, 4.0), (20.0, 15.0), (16.0, 15.0)],
+                false,
+                Ink::Line,
+            );
+            pen.stroke(&[(9.0, 4.0), (9.0, 8.0)], false, Ink::Line);
+            pen.stroke(
+                &[(4.0, 9.0), (15.0, 9.0), (15.0, 20.0), (4.0, 20.0)],
+                true,
+                Ink::Line,
+            );
+        }
+        Icon::Instance => {
+            // A dashed copy behind, joined to the square in front.
+            pen.stroke(
+                &[(9.0, 4.0), (20.0, 4.0), (20.0, 15.0), (16.0, 15.0)],
+                false,
+                Ink::Dashed,
+            );
+            pen.stroke(&[(9.0, 4.0), (9.0, 8.0)], false, Ink::Dashed);
+            pen.stroke(
+                &[(4.0, 9.0), (15.0, 9.0), (15.0, 20.0), (4.0, 20.0)],
+                true,
+                Ink::Line,
+            );
+            pen.stroke(&[(15.0, 9.0), (20.0, 4.0)], false, Ink::Line);
         }
         Icon::Hidden => {
             // A closed eye: the lower lid, with three lashes.

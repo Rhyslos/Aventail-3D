@@ -8,10 +8,32 @@ use glam::Vec3;
 use mesh::{CubeParams, PrimitiveKind, VertexId};
 use scene::{Command, Object, ObjectKind, Operation, Place, Primitive, Transform};
 
+/// A document using everything version 12 of the format can hold: all
+/// of [`rich_document_v11`], plus the edits version 12 adds (the version
+/// 12 sample holds exactly this).
+fn rich_document() -> Document {
+    let mut doc = rich_document_v11();
+    let cube = doc
+        .scene()
+        .walk()
+        .into_iter()
+        .map(|(id, _)| id)
+        .find(|id| doc.scene().object(*id).unwrap().name == "Cube")
+        .unwrap();
+    doc.execute(Command::Duplicate {
+        ids: vec![cube],
+        instances: true,
+    })
+    .unwrap();
+
+    doc.set_selection([cube]);
+    doc
+}
+
 /// A document using everything version 11 of the format can hold: all
 /// of [`rich_document_v10`], plus the edits version 11 adds (the version
 /// 11 sample holds exactly this).
-fn rich_document() -> Document {
+fn rich_document_v11() -> Document {
     let mut doc = rich_document_v10();
     let cube = doc
         .scene()
@@ -722,14 +744,14 @@ fn a_cut_short_or_padded_body_is_damaged() {
 #[test]
 fn an_uncompressed_body_can_be_read() {
     let doc = rich_document();
-    let body = postcard::to_stdvec(&v11::ProjectV11::from_document(&doc)).unwrap();
-    let mut bytes = header(11, 0, body.len() as u64);
+    let body = postcard::to_stdvec(&v12::ProjectV12::from_document(&doc)).unwrap();
+    let mut bytes = header(12, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     assert_same(&doc, &from_bytes(&bytes).unwrap());
     // Data after the scene is refused.
     let mut longer = body.clone();
     longer.push(0);
-    let mut bytes = header(11, 0, longer.len() as u64);
+    let mut bytes = header(12, 0, longer.len() as u64);
     bytes.extend_from_slice(&longer);
     assert!(refused(&bytes).to_string().contains("unexpected data"));
 }
@@ -1546,10 +1568,30 @@ const SAMPLE_V11: &[u8] = include_bytes!("../../tests/data/sample-v11.avtl");
 #[test]
 fn a_file_saved_by_format_version_11_still_opens() {
     let doc = from_bytes(SAMPLE_V11).expect("the version 11 sample opens");
-    assert_same(&rich_document(), &doc);
+    assert_same(&rich_document_v11(), &doc);
     // And reads back the same through its own model.
     let model = v11::ProjectV11::from_document(&doc);
     assert_same(&doc, &from_bytes(&file_of_v11(&model)).unwrap());
+}
+
+/// The bytes of a version 12 file holding `model`, uncompressed.
+fn file_of_v12(model: &v12::ProjectV12) -> Vec<u8> {
+    let body = postcard::to_stdvec(model).unwrap();
+    let mut bytes = header(12, 0, body.len() as u64);
+    bytes.extend_from_slice(&body);
+    bytes
+}
+
+/// A project saved by version 12 of the format, kept in the repository.
+const SAMPLE_V12: &[u8] = include_bytes!("../../tests/data/sample-v12.avtl");
+
+#[test]
+fn a_file_saved_by_format_version_12_still_opens() {
+    let doc = from_bytes(SAMPLE_V12).expect("the version 12 sample opens");
+    assert_same(&rich_document(), &doc);
+    // And reads back the same through its own model.
+    let model = v12::ProjectV12::from_document(&doc);
+    assert_same(&doc, &from_bytes(&file_of_v12(&model)).unwrap());
 }
 
 /// Writes the current version's sample. Run only by hand, when a new
@@ -1837,8 +1879,18 @@ impl Noise {
 /// A file model with a few random, often nonsensical values: ids
 /// pointing nowhere, corners naming missing points, numbers that aren't
 /// real, huge settings, empty names, repeated edit ids.
-fn random_model(noise: &mut Noise) -> v11::ProjectV11 {
-    let mut model = v11::ProjectV11::from_document(&rich_document());
+fn random_model(noise: &mut Noise) -> v12::ProjectV12 {
+    let mut model = v12::ProjectV12::from_document(&rich_document());
+    // An instance pointing anywhere, or listed twice.
+    match noise.below(6) {
+        0 => model.instances.0[0].source = noise.below(40),
+        1 => model.instances.0[0].object = noise.below(40),
+        2 => {
+            let again = model.instances.0[0];
+            model.instances.0.push(again);
+        }
+        _ => {}
+    }
     let count = model.project.objects.len() as u64;
     for _ in 0..1 + noise.below(3) {
         let at = noise.below(count) as usize;
@@ -1885,35 +1937,43 @@ fn random_model(noise: &mut Noise) -> v11::ProjectV11 {
                             0 => entry.id = noise.below(4),
                             1 => entry.enabled = !entry.enabled,
                             _ => match &mut entry.operation {
-                                v11::OperationV11::V10(v10::OperationV10::V9(
-                                    v9::OperationV9::V8(v8::OperationV8::V7(v7::OperationV7::V6(
-                                        v6::OperationV6::V4(v4::OperationV4::BevelEdges {
-                                            segments,
-                                            width,
-                                            ..
-                                        }),
-                                    ))),
+                                v12::OperationV12::V11(v11::OperationV11::V10(
+                                    v10::OperationV10::V9(v9::OperationV9::V8(
+                                        v8::OperationV8::V7(v7::OperationV7::V6(
+                                            v6::OperationV6::V4(v4::OperationV4::BevelEdges {
+                                                segments,
+                                                width,
+                                                ..
+                                            }),
+                                        )),
+                                    )),
                                 )) => {
                                     *segments = noise.count();
                                     *width = noise.float();
                                 }
-                                v11::OperationV11::V10(v10::OperationV10::V9(
-                                    v9::OperationV9::V8(v8::OperationV8::V7(v7::OperationV7::V6(
-                                        v6::OperationV6::LoopCut {
-                                            edge,
-                                            cuts,
-                                            position,
-                                            ..
-                                        },
-                                    ))),
+                                v12::OperationV12::V11(v11::OperationV11::V10(
+                                    v10::OperationV10::V9(v9::OperationV9::V8(
+                                        v8::OperationV8::V7(v7::OperationV7::V6(
+                                            v6::OperationV6::LoopCut {
+                                                edge,
+                                                cuts,
+                                                position,
+                                                ..
+                                            },
+                                        )),
+                                    )),
                                 )) => {
                                     edge[noise.below(2) as usize] = noise.below(40) as u32;
                                     *cuts = noise.count();
                                     *position = noise.float();
                                 }
-                                v11::OperationV11::V10(v10::OperationV10::V9(
-                                    v9::OperationV9::V8(v8::OperationV8::V7(
-                                        v7::OperationV7::Slit { points, eye, .. },
+                                v12::OperationV12::V11(v11::OperationV11::V10(
+                                    v10::OperationV10::V9(v9::OperationV9::V8(
+                                        v8::OperationV8::V7(v7::OperationV7::Slit {
+                                            points,
+                                            eye,
+                                            ..
+                                        }),
                                     )),
                                 )) => {
                                     if noise.below(2) == 0 {
@@ -1925,46 +1985,51 @@ fn random_model(noise: &mut Noise) -> v11::ProjectV11 {
                                         *eye = v7::EyeV7::Along([noise.float(), 0.0, 0.0]);
                                     }
                                 }
-                                v11::OperationV11::V10(v10::OperationV10::V9(
-                                    v9::OperationV9::V8(v8::OperationV8::ExtrudeBent {
-                                        distance,
-                                        bend,
-                                        ..
-                                    }),
+                                v12::OperationV12::V11(v11::OperationV11::V10(
+                                    v10::OperationV10::V9(v9::OperationV9::V8(
+                                        v8::OperationV8::ExtrudeBent { distance, bend, .. },
+                                    )),
                                 )) => {
                                     *distance = noise.float();
                                     bend.angle = noise.float();
                                     bend.radius = noise.float();
                                     bend.segments = noise.count();
                                 }
-                                v11::OperationV11::V10(v10::OperationV10::V9(
-                                    v9::OperationV9::Connect { cuts, edges, .. },
+                                v12::OperationV12::V11(v11::OperationV11::V10(
+                                    v10::OperationV10::V9(v9::OperationV9::Connect {
+                                        cuts,
+                                        edges,
+                                        ..
+                                    }),
                                 )) => {
                                     *cuts = noise.count();
                                     if let Some(e) = edges.first_mut() {
                                         e[1] = e[0];
                                     }
                                 }
-                                v11::OperationV11::V10(v10::OperationV10::V9(
-                                    v9::OperationV9::Bridge {
-                                        segments, twist, ..
-                                    },
+                                v12::OperationV12::V11(v11::OperationV11::V10(
+                                    v10::OperationV10::V9(v9::OperationV9::Bridge {
+                                        segments,
+                                        twist,
+                                        ..
+                                    }),
                                 )) => {
                                     *segments = noise.count();
                                     *twist = noise.count() as i32;
                                 }
-                                v11::OperationV11::V10(v10::OperationV10::V9(
-                                    v9::OperationV9::Weld { target, .. },
+                                v12::OperationV12::V11(v11::OperationV11::V10(
+                                    v10::OperationV10::V9(v9::OperationV9::Weld { target, .. }),
                                 )) => {
                                     *target = Some(noise.count());
                                 }
-                                v11::OperationV11::V10(v10::OperationV10::FillHoles {
-                                    points,
-                                    ..
-                                }) => {
+                                v12::OperationV12::V11(v11::OperationV11::V10(
+                                    v10::OperationV10::FillHoles { points, .. },
+                                )) => {
                                     points.push(noise.count());
                                 }
-                                v11::OperationV11::HardEdgesByAngle { angle } => {
+                                v12::OperationV12::V11(v11::OperationV11::HardEdgesByAngle {
+                                    angle,
+                                }) => {
                                     *angle = noise.float();
                                 }
                                 _ => {}
@@ -1996,7 +2061,7 @@ fn random_nonsense_inside_a_well_formed_file_is_refused_or_opened_never_a_crash(
     let mut opened = 0;
     for _ in 0..150 {
         let model = random_model(&mut noise);
-        let bytes = file_of_v11(&model);
+        let bytes = file_of_v12(&model);
         let start = std::time::Instant::now();
         if let Ok(doc) = from_bytes(&bytes) {
             opened += 1;

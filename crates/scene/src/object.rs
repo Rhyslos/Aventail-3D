@@ -47,6 +47,10 @@ pub enum ObjectKind {
     /// A plain mesh, with no settings: what "Make editable" turns a shape
     /// into. Shared, as meshes can be large and are never changed in place.
     Mesh(Arc<Mesh>),
+    /// An instance: shows another object's final shape, wherever it is put
+    /// (decision 0055). Changing the original changes every instance. It
+    /// has no edits of its own; making it editable gives it its own copy.
+    Instance(ObjectId),
 }
 
 impl ObjectKind {
@@ -56,6 +60,7 @@ impl ObjectKind {
             Self::Group => "Group",
             Self::Primitive(p) => p.name(),
             Self::Mesh(_) => "Mesh",
+            Self::Instance(_) => "Instance",
         }
     }
 
@@ -69,7 +74,7 @@ impl ObjectKind {
     /// box, ask the scene ([`crate::Scene::local_bounds`]).
     pub fn local_bounds(&self) -> Option<Bounds> {
         match self {
-            Self::Group => None,
+            Self::Group | Self::Instance(_) => None,
             Self::Primitive(p) => Some(p.bounds()),
             Self::Mesh(mesh) => mesh.bounds(),
         }
@@ -80,7 +85,7 @@ impl ObjectKind {
     /// the scene ([`crate::Scene::evaluated`]).
     pub fn mesh(&self) -> Option<Mesh> {
         match self {
-            Self::Group => None,
+            Self::Group | Self::Instance(_) => None,
             Self::Primitive(p) => Some(p.mesh()),
             Self::Mesh(mesh) => Some((**mesh).clone()),
         }

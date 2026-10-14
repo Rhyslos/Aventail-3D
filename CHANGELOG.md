@@ -8,6 +8,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Hide and isolate.** **Shift + H** hides the selection, **Ctrl + H** hides everything else, and **Alt + H** shows everything again: whole objects in the Model mode, polygons in the Points, Edges and Polygons modes (to see inside a shape). The left palette's **Show only the selection** button works now.
+- **Copies and instances.** **Ctrl + C** then **Ctrl + V** pastes copies of the selected objects; **Alt + V** pastes instances, which show their original's shape and change with it. **Duplicate** and **Instance** are in the E menu and the Edit menu too.
 - **Symmetry.** Click the **Symmetry** button at the right end of the top palette (or Tools → Symmetry) and choose **X**, **Y** or **Z** in the Attributes panel: moving, rotating or scaling points, edges or polygons now moves their mirror on the other side of the shape too, and points on the middle stay there.
 - **Hard and soft edges.** Pick **Hard edges** or **Soft edges** from the E menu or the Mesh menu to make the selected edges (or the selected polygons' edges) crisp or smooth. **Mesh → Hard edges by angle** does a whole object at once, with an **Angle** you can change afterwards, and **Select → Select hard edges** selects them. The viewport's **Display** menu marks hard edges in light cyan (on as standard) and can show **Normals**: which way each polygon faces.
 - **Clean-up.** In the Points, Edges and Polygons modes, **Delete** deletes the selected points, edges or polygons (leaving a hole) and **Backspace** dissolves them: they go, but the polygons around them merge so the surface stays closed. **Fill hole** closes holes with a polygon, and **Flip normals** turns polygons inside out (both in the E menu and the Mesh menu). **Mesh → Fix facing** turns every polygon facing the wrong way round, and the Select menu gains **Select flipped** and **Select similar facing**.
@@ -49,6 +51,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Projects are saved in **file format version 12**, which can hold instances. Older projects still open.
 - Projects are saved in **file format version 11**, which can hold hard and soft edges. Older projects still open.
 - Projects are saved in **file format version 10**, which can hold the clean-up edits. Older projects still open.
 - In the Points, Edges and Polygons modes, Delete and Backspace now work on the selected points, edges or polygons instead of deleting the whole object. In the Model mode they still delete objects.
