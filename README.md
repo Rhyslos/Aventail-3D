@@ -91,9 +91,9 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** points, edges and polygons can be selected and moved precisely, and a cube's segments can still be changed afterwards. ✅ *Passed 2026-10-12: tested by the project lead.*
 
-### Phase 4 · Core modelling tools — 7 of 14
+### Phase 4 · Core modelling tools — 7 of 15
 
-`███████░░░░░░` 50%
+`██████░░░░░░░` 47%
 
 <details>
 <summary>Milestones</summary>
@@ -106,6 +106,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Foundations: saves that always reopen, fast edits however long the history, extra values per point, edge, polygon and corner (ready for UVs), edits that hold when earlier ones change, limits for damaged files; and our own names (Attributes panel, Objects panel, Paint select)
 - [x] Loop cut (F): point at an edge, click or drag; Ctrl + wheel for a tool's count; Z frames the selection
 - [ ] Slit (X): cut new edges along a line you draw
+- [ ] Pipe bends that keep their size: turn the end of a pipe or cylinder and the joint stays round instead of pinching, with an optional bend radius for a smooth elbow
 - [ ] Connect, Bridge (C) and Weld
 - [ ] Clean-up: dissolve, delete, fill hole and flip normals, with select flipped, fix facing and select by facing
 - [ ] Hard and soft edges, with normals display
@@ -156,7 +157,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** stacking, toggling and editing earlier layers and edits feels right to the project lead.
 
-### Phase 7 · Advanced hard-surface — 0 of 10
+### Phase 7 · Advanced hard-surface — 0 of 9
 
 `░░░░░░░░░░░░░` 0%
 
@@ -171,7 +172,6 @@ Friends join as testers around here, once there are enough tools to build someth
 - [ ] Array and mirror generators
 - [ ] Shell: give a surface thickness
 - [ ] Curves and splines: sweep and lathe, for pipes, cables and railings
-- [ ] Pipe bends that keep their size: a turned ring stays round, with an optional bend radius
 - [ ] Smoothing modifier (subdivision), with creases
 - [ ] Game bevel for mid-poly models: bevel, weighted normals, hard edges and seams in one step
 - [ ] Modular kit helpers: grid-sized pieces and pivot presets
