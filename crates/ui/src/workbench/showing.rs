@@ -15,7 +15,6 @@
 
 use super::Workbench;
 use crate::components::kind_for;
-use crate::objects::DocRequest;
 use egui::{Key, KeyboardShortcut, Modifiers, Ui};
 use scene::{Command, ElementKind, FaceId, ObjectId};
 use std::collections::BTreeSet;
@@ -23,8 +22,7 @@ use std::collections::BTreeSet;
 /// Hide the selection.
 pub(crate) const HIDE_KEYS: KeyboardShortcut = KeyboardShortcut::new(Modifiers::SHIFT, Key::H);
 /// Isolate the selection: hide everything else.
-pub(crate) const ISOLATE_KEYS: KeyboardShortcut =
-    KeyboardShortcut::new(Modifiers::COMMAND, Key::H);
+pub(crate) const ISOLATE_KEYS: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::H);
 /// Show everything again.
 pub(crate) const SHOW_ALL_KEYS: KeyboardShortcut = KeyboardShortcut::new(Modifiers::ALT, Key::H);
 
@@ -41,7 +39,7 @@ impl Workbench {
     /// Shift + H, Ctrl + H and Alt + H. Not while typing. They come before
     /// the viewport's H (frame all), which would otherwise take Shift + H
     /// and Alt + H too.
-    pub(super) fn showing_keys(&mut self, ui: &Ui, out: &mut Vec<DocRequest>) {
+    pub(super) fn showing_keys(&mut self, ui: &Ui) {
         if ui.ctx().memory(|m| m.focused().is_some()) || self.objects.is_renaming() {
             return;
         }
@@ -53,25 +51,25 @@ impl Workbench {
             (isolate, hide, show)
         });
         if isolate {
-            self.hide(Hiding::Others, out);
+            self.hide(Hiding::Others);
         }
         if hide {
-            self.hide(Hiding::Selection, out);
+            self.hide(Hiding::Selection);
         }
         if show {
-            self.show_everything(out);
+            self.show_everything();
         }
     }
 
     /// Hides the selection, or everything else.
-    pub(crate) fn hide(&mut self, what: Hiding, out: &mut Vec<DocRequest>) {
+    pub(crate) fn hide(&mut self, what: Hiding) {
         match kind_for(self.mode) {
-            None => self.hide_objects(what, out),
+            None => self.hide_objects(what),
             Some(kind) => self.hide_polygons(kind, what),
         }
     }
 
-    fn hide_objects(&mut self, what: Hiding, out: &mut Vec<DocRequest>) {
+    fn hide_objects(&mut self, what: Hiding) {
         let selection = self.document.selection();
         if selection.is_empty() {
             self.note = Some(match what {
@@ -90,9 +88,9 @@ impl Workbench {
                 .filter(|id| {
                     // Not a selected object, not inside one, and not a
                     // group holding one (hiding that would hide it too).
-                    !selection.iter().any(|s| {
-                        s == id || scene.is_inside(*id, *s) || scene.is_inside(*s, *id)
-                    })
+                    !selection
+                        .iter()
+                        .any(|s| s == id || scene.is_inside(*id, *s) || scene.is_inside(*s, *id))
                 })
                 .filter(|id| scene.object(*id).is_some_and(|o| o.visible))
                 .collect(),
@@ -102,12 +100,17 @@ impl Workbench {
             return;
         }
         let n = ids.len();
-        out.push(DocRequest::Run(Command::SetVisible {
-            ids,
-            visible: false,
-        }));
+        // Unselected first, so Ctrl + Z first shows them again. Run here
+        // rather than queued, so the status bar keeps saying what happened.
         if what == Hiding::Selection {
             self.document.clear_selection();
+        }
+        if let Err(why) = self.document.execute(Command::SetVisible {
+            ids,
+            visible: false,
+        }) {
+            self.note = Some(format!("Couldn't hide that: {why}."));
+            return;
         }
         let things = if n == 1 { "object" } else { "objects" };
         self.note = Some(format!(
@@ -164,16 +167,28 @@ impl Workbench {
         }
         if hidden_now == 0 {
             let what_for = match what {
-                Hiding::Selection => "Hide: select the polygons (or their points or edges) to hide first.",
-                Hiding::Others => "Isolate: select the polygons (or their points or edges) to keep first.",
+                Hiding::Selection => {
+                    "Hide: select the polygons (or their points or edges) to hide first."
+                }
+                Hiding::Others => {
+                    "Isolate: select the polygons (or their points or edges) to keep first."
+                }
             };
             self.note = Some(what_for.into());
             return;
         }
         self.hidden.revision += 1;
-        let label = if what == Hiding::Selection { "Hide" } else { "Isolate" };
+        let label = if what == Hiding::Selection {
+            "Hide"
+        } else {
+            "Isolate"
+        };
         self.document.select_elements(selections, label, None);
-        let things = if hidden_now == 1 { "polygon" } else { "polygons" };
+        let things = if hidden_now == 1 {
+            "polygon"
+        } else {
+            "polygons"
+        };
         self.note = Some(format!(
             "{} {hidden_now} {things}. Alt + H shows everything again.",
             if what == Hiding::Selection {
@@ -186,7 +201,7 @@ impl Workbench {
 
     /// Alt + H: shows every hidden polygon, and in the Model mode every
     /// hidden object too.
-    pub(crate) fn show_everything(&mut self, out: &mut Vec<DocRequest>) {
+    pub(crate) fn show_everything(&mut self) {
         let polygons: usize = self.hidden.faces.values().map(BTreeSet::len).sum();
         if polygons > 0 {
             self.hidden.faces.clear();
@@ -202,8 +217,13 @@ impl Workbench {
                 .filter(|id| scene.object(*id).is_some_and(|o| !o.visible))
                 .collect();
             objects = ids.len();
-            if !ids.is_empty() {
-                out.push(DocRequest::Run(Command::SetVisible { ids, visible: true }));
+            if !ids.is_empty()
+                && let Err(why) = self
+                    .document
+                    .execute(Command::SetVisible { ids, visible: true })
+            {
+                self.note = Some(format!("Couldn't show them: {why}."));
+                return;
             }
         }
         self.note = Some(match (objects, polygons) {

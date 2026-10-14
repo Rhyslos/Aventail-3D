@@ -367,6 +367,22 @@ impl AttributesPanel {
                         }
                         ui.end_row();
                     });
+                if let ObjectKind::Instance(source) = &object.kind {
+                    section(ui, "Instance");
+                    let original = doc
+                        .scene()
+                        .object(*source)
+                        .map_or_else(|| "(gone)".to_string(), |o| o.name.clone());
+                    ui.label(format!("Shows the shape of: {original}"));
+                    ui.label(
+                        RichText::new(
+                            "Change the original and every instance follows. Make editable \
+                             (Ctrl + E) gives this one its own shape.",
+                        )
+                        .small()
+                        .color(theme::TEXT_WEAK),
+                    );
+                }
                 if let ObjectKind::Primitive(primitive) = &object.kind {
                     section(ui, "Shape");
                     self.shape_rows(ui, id, *primitive, units, out);
@@ -1279,6 +1295,7 @@ fn kind_label(kind: &ObjectKind) -> String {
     match kind {
         ObjectKind::Primitive(p) => format!("({})", p.name().to_lowercase()),
         ObjectKind::Mesh(_) => "(mesh)".to_string(),
+        ObjectKind::Instance(_) => "(instance)".to_string(),
         _ => "(group)".to_string(),
     }
 }

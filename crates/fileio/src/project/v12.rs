@@ -6,7 +6,7 @@
 //! list keeps its shape from version 1. Recorded edits are version 11's,
 //! stored inside `OperationV12::V11` as they were.
 
-use super::v1::{FileOperation, ProjectFile, Problem};
+use super::v1::{FileOperation, Problem, ProjectFile};
 use super::v5::{EntryWith, MeshLayersV5, ProjectWith};
 use super::v11::OperationV11;
 use crate::limits::Bounded;

@@ -674,6 +674,8 @@ pub(crate) fn kind_icon(kind: &ObjectKind) -> (Icon, egui::Color32) {
     match kind {
         ObjectKind::Primitive(p) => (shape_icon(p.kind()), tint::SHAPE),
         ObjectKind::Mesh(_) => (Icon::Polygons, tint::SHAPE),
+        // White, not blue: its shape is another object's.
+        ObjectKind::Instance(_) => (Icon::Instance, tint::ICON),
         _ => (Icon::Null, tint::ICON),
     }
 }

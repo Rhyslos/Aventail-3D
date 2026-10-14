@@ -1937,37 +1937,45 @@ fn random_model(noise: &mut Noise) -> v12::ProjectV12 {
                             0 => entry.id = noise.below(4),
                             1 => entry.enabled = !entry.enabled,
                             _ => match &mut entry.operation {
-                                v12::OperationV12::V11(v11::OperationV11::V10(v10::OperationV10::V9(
-                                    v9::OperationV9::V8(v8::OperationV8::V7(v7::OperationV7::V6(
-                                        v6::OperationV6::V4(v4::OperationV4::BevelEdges {
-                                            segments,
-                                            width,
-                                            ..
-                                        }),
-                                    ))),
-                                ))) => {
+                                v12::OperationV12::V11(v11::OperationV11::V10(
+                                    v10::OperationV10::V9(v9::OperationV9::V8(
+                                        v8::OperationV8::V7(v7::OperationV7::V6(
+                                            v6::OperationV6::V4(v4::OperationV4::BevelEdges {
+                                                segments,
+                                                width,
+                                                ..
+                                            }),
+                                        )),
+                                    )),
+                                )) => {
                                     *segments = noise.count();
                                     *width = noise.float();
                                 }
-                                v12::OperationV12::V11(v11::OperationV11::V10(v10::OperationV10::V9(
-                                    v9::OperationV9::V8(v8::OperationV8::V7(v7::OperationV7::V6(
-                                        v6::OperationV6::LoopCut {
-                                            edge,
-                                            cuts,
-                                            position,
-                                            ..
-                                        },
-                                    ))),
-                                ))) => {
+                                v12::OperationV12::V11(v11::OperationV11::V10(
+                                    v10::OperationV10::V9(v9::OperationV9::V8(
+                                        v8::OperationV8::V7(v7::OperationV7::V6(
+                                            v6::OperationV6::LoopCut {
+                                                edge,
+                                                cuts,
+                                                position,
+                                                ..
+                                            },
+                                        )),
+                                    )),
+                                )) => {
                                     edge[noise.below(2) as usize] = noise.below(40) as u32;
                                     *cuts = noise.count();
                                     *position = noise.float();
                                 }
-                                v12::OperationV12::V11(v11::OperationV11::V10(v10::OperationV10::V9(
-                                    v9::OperationV9::V8(v8::OperationV8::V7(
-                                        v7::OperationV7::Slit { points, eye, .. },
+                                v12::OperationV12::V11(v11::OperationV11::V10(
+                                    v10::OperationV10::V9(v9::OperationV9::V8(
+                                        v8::OperationV8::V7(v7::OperationV7::Slit {
+                                            points,
+                                            eye,
+                                            ..
+                                        }),
                                     )),
-                                ))) => {
+                                )) => {
                                     if noise.below(2) == 0 {
                                         points.0.truncate(noise.below(3) as usize);
                                     } else if let Some(p) = points.first_mut() {
@@ -1977,46 +1985,51 @@ fn random_model(noise: &mut Noise) -> v12::ProjectV12 {
                                         *eye = v7::EyeV7::Along([noise.float(), 0.0, 0.0]);
                                     }
                                 }
-                                v12::OperationV12::V11(v11::OperationV11::V10(v10::OperationV10::V9(
-                                    v9::OperationV9::V8(v8::OperationV8::ExtrudeBent {
-                                        distance,
-                                        bend,
-                                        ..
-                                    }),
-                                ))) => {
+                                v12::OperationV12::V11(v11::OperationV11::V10(
+                                    v10::OperationV10::V9(v9::OperationV9::V8(
+                                        v8::OperationV8::ExtrudeBent { distance, bend, .. },
+                                    )),
+                                )) => {
                                     *distance = noise.float();
                                     bend.angle = noise.float();
                                     bend.radius = noise.float();
                                     bend.segments = noise.count();
                                 }
-                                v12::OperationV12::V11(v11::OperationV11::V10(v10::OperationV10::V9(
-                                    v9::OperationV9::Connect { cuts, edges, .. },
-                                ))) => {
+                                v12::OperationV12::V11(v11::OperationV11::V10(
+                                    v10::OperationV10::V9(v9::OperationV9::Connect {
+                                        cuts,
+                                        edges,
+                                        ..
+                                    }),
+                                )) => {
                                     *cuts = noise.count();
                                     if let Some(e) = edges.first_mut() {
                                         e[1] = e[0];
                                     }
                                 }
-                                v12::OperationV12::V11(v11::OperationV11::V10(v10::OperationV10::V9(
-                                    v9::OperationV9::Bridge {
-                                        segments, twist, ..
-                                    },
-                                ))) => {
+                                v12::OperationV12::V11(v11::OperationV11::V10(
+                                    v10::OperationV10::V9(v9::OperationV9::Bridge {
+                                        segments,
+                                        twist,
+                                        ..
+                                    }),
+                                )) => {
                                     *segments = noise.count();
                                     *twist = noise.count() as i32;
                                 }
-                                v12::OperationV12::V11(v11::OperationV11::V10(v10::OperationV10::V9(
-                                    v9::OperationV9::Weld { target, .. },
-                                ))) => {
+                                v12::OperationV12::V11(v11::OperationV11::V10(
+                                    v10::OperationV10::V9(v9::OperationV9::Weld { target, .. }),
+                                )) => {
                                     *target = Some(noise.count());
                                 }
-                                v12::OperationV12::V11(v11::OperationV11::V10(v10::OperationV10::FillHoles {
-                                    points,
-                                    ..
-                                })) => {
+                                v12::OperationV12::V11(v11::OperationV11::V10(
+                                    v10::OperationV10::FillHoles { points, .. },
+                                )) => {
                                     points.push(noise.count());
                                 }
-                                v12::OperationV12::V11(v11::OperationV11::HardEdgesByAngle { angle }) => {
+                                v12::OperationV12::V11(v11::OperationV11::HardEdgesByAngle {
+                                    angle,
+                                }) => {
                                     *angle = noise.float();
                                 }
                                 _ => {}

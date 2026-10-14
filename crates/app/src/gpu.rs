@@ -271,7 +271,8 @@ impl GpuViewport {
                 if !self.preparing.contains_key(&key) || finished {
                     let mesh = Arc::clone(&item.shown);
                     let handle = std::thread::spawn(move || MeshGeometry::new(&mesh));
-                    self.preparing.insert(key, (Arc::clone(&item.shown), handle));
+                    self.preparing
+                        .insert(key, (Arc::clone(&item.shown), handle));
                 }
                 None
             };

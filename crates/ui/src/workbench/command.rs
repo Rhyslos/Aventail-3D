@@ -44,7 +44,11 @@ impl Workbench {
                     "Nothing to make editable: groups and meshes have no settings to bake".into(),
                 )
             }
-            CommandId::Group | CommandId::Delete if selection.is_empty() => nothing(),
+            CommandId::Group | CommandId::Delete | CommandId::Duplicate | CommandId::Instance
+                if selection.is_empty() =>
+            {
+                nothing()
+            }
             CommandId::Ungroup if selection.is_empty() => nothing(),
             CommandId::Ungroup if !objects::has_group(&self.document, &selection) => {
                 Ready::NotNow("Nothing to ungroup: only groups can be ungrouped".into())
@@ -150,6 +154,12 @@ impl Workbench {
             CommandId::Group => requests.push(DocRequest::Run(Command::Group(selection))),
             CommandId::Ungroup => requests.push(DocRequest::Run(Command::Ungroup(selection))),
             CommandId::Delete => requests.push(DocRequest::Run(Command::Delete(selection))),
+            CommandId::Duplicate | CommandId::Instance => {
+                requests.push(DocRequest::Run(Command::Duplicate {
+                    ids: selection,
+                    instances: command == CommandId::Instance,
+                }));
+            }
             CommandId::NewGroup => {
                 requests.push(DocRequest::Run(Command::Create(ObjectKind::Group)));
             }
