@@ -61,6 +61,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **1, 2 and 3 put a tool away.** With a modelling tool in use (Extrude, Slit, Weld…), pressing a mode key (or clicking a mode button) puts the tool away and you're selecting in that mode, without leaving it. With no tool in use, the keys work as before.
 - **Connect moved from J to A**, within easy reach of the left hand.
 - **A click selects while Bridge or Weld is the tool**, with the usual red highlight under the mouse, and a drag from empty space draws a selection box. Only a drag that starts on an open edge (Bridge) or a point (Weld) is the tool's.
 - **The bend Angle goes back to 0** once an extrude is done or another tool is picked, so the next extrude starts straight. The finished extrude keeps its bend under Last edit.

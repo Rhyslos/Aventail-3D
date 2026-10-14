@@ -88,7 +88,10 @@ pub(crate) fn groups(ctx: &Context) -> Vec<Group> {
         .filter_map(|mode| {
             let key = mode.key()?;
             Some(line(
-                format!("{} mode (again: back to Model)", mode.name()),
+                format!(
+                    "{} mode (again: back to Model; with a tool in use: selecting in it)",
+                    mode.name()
+                ),
                 plain(key),
             ))
         })

@@ -222,3 +222,39 @@ fn tab_finishes_a_slit_line() {
     assert_eq!(harness.state().workbench.tool(), Tool::Select);
     assert_eq!(harness.state().workbench.mode(), Mode::Model);
 }
+
+#[test]
+fn a_mode_key_puts_a_tool_away_and_selects_in_that_mode() {
+    let mut harness = selected_cube();
+    // In the Edges mode with Slit: 2 keeps the Edges mode and selects.
+    press(&mut harness, Key::Num2);
+    press(&mut harness, Key::X);
+    assert_eq!(harness.state().workbench.tool(), Tool::Slit);
+    press(&mut harness, Key::Num2);
+    assert_eq!(harness.state().workbench.mode(), Mode::Edges);
+    assert_eq!(harness.state().workbench.tool(), Tool::Select);
+    assert!(
+        harness
+            .state()
+            .workbench
+            .note
+            .as_deref()
+            .unwrap()
+            .contains("Slit put away")
+    );
+    // With Extrude: 3 goes to the Polygons mode, selecting.
+    press(&mut harness, Key::D);
+    assert_eq!(harness.state().workbench.tool(), Tool::Extrude);
+    press(&mut harness, Key::Num3);
+    assert_eq!(harness.state().workbench.mode(), Mode::Polygons);
+    assert_eq!(harness.state().workbench.tool(), Tool::Select);
+    // With no tool (or Move), the same key goes back to the Model mode,
+    // as before.
+    press(&mut harness, Key::Num3);
+    assert_eq!(harness.state().workbench.mode(), Mode::Model);
+    press(&mut harness, Key::Num1);
+    press(&mut harness, Key::W);
+    press(&mut harness, Key::Num1);
+    assert_eq!(harness.state().workbench.mode(), Mode::Model);
+    assert_eq!(harness.state().workbench.tool(), Tool::Move);
+}
