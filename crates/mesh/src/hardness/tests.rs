@@ -78,7 +78,10 @@ fn by_angle_hardens_corners_and_softens_curves() {
 #[test]
 fn border_edges_are_left_alone() {
     let mut mesh = Primitive::Plane(PlaneParams::default()).mesh();
-    assert!(sharp_edges(&mesh, 0.0).is_empty(), "a plane has only borders");
+    assert!(
+        sharp_edges(&mesh, 0.0).is_empty(),
+        "a plane has only borders"
+    );
     let border = mesh.edges()[0];
     let (a, b) = border.ends();
     mesh.set_hard(a, b, true);

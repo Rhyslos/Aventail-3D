@@ -87,6 +87,15 @@ impl Workbench {
             CommandId::FillHole if !command.modes().contains(&self.mode) => {
                 Ready::NotNow("Fill hole works in the Edges or Polygons mode: press 2 or 3".into())
             }
+            CommandId::HardEdges | CommandId::SoftEdges
+                if !command.modes().contains(&self.mode) =>
+            {
+                Ready::NotNow(format!(
+                    "{} works on edges or polygons: press 2 for the Edges mode, or 3 for \
+                     Polygons",
+                    command.name()
+                ))
+            }
             CommandId::FlipNormals if !command.modes().contains(&self.mode) => Ready::NotNow(
                 "Flip normals works on polygons: press 3 for the Polygons mode".into(),
             ),
@@ -133,6 +142,8 @@ impl Workbench {
             CommandId::Dissolve => self.run_dissolve(),
             CommandId::FillHole => self.run_fill_hole(),
             CommandId::FlipNormals => self.run_flip(),
+            CommandId::HardEdges => self.run_hardness(true),
+            CommandId::SoftEdges => self.run_hardness(false),
             CommandId::MakeEditable => {
                 requests.push(DocRequest::Run(Command::MakeEditable(selection)));
             }
@@ -149,8 +160,6 @@ impl Workbench {
                 self.shape_picker.open_at(at + egui::vec2(12.0, 12.0));
             }
             CommandId::FrameSelected => self.viewport.frame(crate::Frame::Selected),
-            // Every other command is still to come (caught above).
-            _ => {}
         }
     }
 

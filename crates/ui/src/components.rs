@@ -39,9 +39,37 @@ pub(crate) fn kind_for(mode: Mode) -> Option<ElementKind> {
 pub(crate) type ObjectElement = (ObjectId, Element);
 
 /// What the overlay was last built for: the drawing's version, the kind
-/// of element, the hovered element, the selected elements' revision and
-/// the tool lines' revision.
-type BuiltFor = (u64, Option<ElementKind>, Option<ObjectElement>, u64, u64);
+/// of element, the hovered element, the selected elements' revision, the
+/// tool lines' revision and the guides shown.
+type BuiltFor = (
+    u64,
+    Option<ElementKind>,
+    Option<ObjectElement>,
+    u64,
+    u64,
+    Guides,
+);
+
+/// Guides drawn over the selected objects from the Display menu
+/// ([decision 0053](../../../docs/decisions/0053-hard-and-soft-edges.md)).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub(crate) struct Guides {
+    /// Hard edges, in the Points, Edges and Polygons modes.
+    pub(crate) hard_edges: bool,
+    /// Each polygon's normal, in every mode.
+    pub(crate) normals: bool,
+}
+
+/// A line of the overlay, in the world, and how it is drawn.
+type OverlayLine = ([Vec3; 2], OverlayStyle);
+
+/// What guide lines were made for: the drawing's version, the kind of
+/// element and the guides shown.
+type GuidesFor = (u64, Option<ElementKind>, Guides);
+
+/// Up to how many polygons an object may have to show guides: they are
+/// drawn line by line, which would slow heavy shapes down.
+pub(crate) const GUIDES_UP_TO: usize = 50_000;
 
 /// Keeps track of the element under the mouse and the overlay.
 #[derive(Debug, Default)]
@@ -67,6 +95,9 @@ pub(crate) struct ComponentTracker {
     tool_lines: (Vec<[Vec3; 2]>, u64),
     built_for: Option<BuiltFor>,
     overlay: Arc<ComponentOverlay>,
+    /// The guide lines, and the drawing version, kind and guides they
+    /// were made for (kept while only the hovered element changes).
+    guides: (Vec<OverlayLine>, Option<GuidesFor>),
 }
 
 impl ComponentTracker {
@@ -78,6 +109,7 @@ impl ComponentTracker {
         drawing: &SceneDrawing,
         document: &Document,
         pointer: Option<ViewPointer>,
+        guides: Guides,
     ) -> Arc<ComponentOverlay> {
         let kind = kind_for(mode);
         self.hovered = match (kind, pointer) {
@@ -92,8 +124,13 @@ impl ComponentTracker {
             self.hovered,
             document.element_revision(),
             self.tool_lines.1,
+            guides,
         );
         if self.built_for != Some(wanted) {
+            let made_for = Some((drawing.version, kind, guides));
+            if self.guides.1 != made_for {
+                self.guides = (guide_lines(drawing, kind, guides), made_for);
+            }
             let version = self.overlay.version + 1;
             let mut overlay = match kind {
                 Some(kind) => build(kind, drawing, document, self.hovered, version),
@@ -107,6 +144,13 @@ impl ComponentTracker {
                 overlay
                     .lines
                     .extend(lines.map(|line| (*line, OverlayStyle::Hovered)));
+            }
+            // Guides first, so the selection and the hovered element draw
+            // over them.
+            if !self.guides.0.is_empty() {
+                let mut lines = self.guides.0.clone();
+                lines.append(&mut overlay.lines);
+                overlay.lines = lines;
             }
             self.overlay = Arc::new(overlay);
             self.built_for = Some(wanted);
@@ -344,6 +388,63 @@ fn build(
     overlay
 }
 
+/// The guide lines for the selected objects (see [`Guides`]): hard edges
+/// while editing elements (`kind`), and normals.
+fn guide_lines(
+    drawing: &SceneDrawing,
+    kind: Option<ElementKind>,
+    guides: Guides,
+) -> Vec<OverlayLine> {
+    let mut out = Vec::new();
+    let hard = guides.hard_edges && kind.is_some();
+    if !hard && !guides.normals {
+        return out;
+    }
+    for item in drawing.items.iter().filter(|i| i.selected) {
+        let mesh = &item.mesh;
+        if !item.transform.is_finite() || mesh.face_count() > GUIDES_UP_TO {
+            continue;
+        }
+        let world = |p: Vec3| item.transform.transform_point3(p);
+        if hard {
+            for edge in mesh.hard_edges() {
+                let (a, b) = edge.ends();
+                if let (Some(a), Some(b)) = (mesh.position(a), mesh.position(b)) {
+                    out.push(([world(a), world(b)], OverlayStyle::Hard));
+                }
+            }
+        }
+        if guides.normals {
+            for (_, corners) in mesh.faces() {
+                let points: Vec<Vec3> = corners.iter().filter_map(|v| mesh.position(*v)).collect();
+                if let Some((start, end)) = normal_line(&points) {
+                    out.push(([world(start), world(end)], OverlayStyle::Normal));
+                }
+            }
+        }
+    }
+    out
+}
+
+/// A polygon's normal as a line from its middle, half as long as the
+/// polygon is across (the square root of its area), so it reads at any
+/// size. `None` for a polygon with no area.
+pub(crate) fn normal_line(corners: &[Vec3]) -> Option<(Vec3, Vec3)> {
+    if corners.len() < 3 {
+        return None;
+    }
+    let middle = corners.iter().copied().sum::<Vec3>() / corners.len() as f32;
+    // Newell's method: twice the area, along the normal.
+    let twice: Vec3 = corners
+        .iter()
+        .zip(corners.iter().cycle().skip(1))
+        .map(|(a, b)| (*a - middle).cross(*b - middle))
+        .sum();
+    let area = twice.length() / 2.0;
+    let normal = twice.try_normalize()?;
+    Some((middle, middle + normal * area.sqrt() * 0.5))
+}
+
 /// Tints a polygon of `item`; a hovered one is outlined too.
 fn tint(overlay: &mut ComponentOverlay, item: &DrawItem, face: scene::FaceId, how: OverlayStyle) {
     let Some(corners) = item.mesh.face(face) else {
@@ -429,7 +530,13 @@ mod tests {
         // nothing selected and nothing under the mouse the overlay is
         // empty.
         let mut tracker = ComponentTracker::default();
-        let overlay = tracker.update(Mode::Points, &drawing(true), &Document::new(), None);
+        let overlay = tracker.update(
+            Mode::Points,
+            &drawing(true),
+            &Document::new(),
+            None,
+            Guides::default(),
+        );
         assert!(overlay.points.is_empty() && overlay.lines.is_empty());
         assert!(overlay.tints.is_empty());
         // Selected edges are drawn in the Edges mode.
@@ -449,7 +556,7 @@ mod tests {
             mesh::Combine::Add,
         );
         doc.select_elements(vec![(id, chosen)], "Select", None);
-        let overlay = tracker.update(Mode::Edges, &drawn, &doc, None);
+        let overlay = tracker.update(Mode::Edges, &drawn, &doc, None, Guides::default());
         assert_eq!(overlay.lines.len(), 3);
         assert!(
             overlay
@@ -463,9 +570,21 @@ mod tests {
     #[test]
     fn unselected_objects_and_other_modes_draw_nothing() {
         let mut tracker = ComponentTracker::default();
-        let overlay = tracker.update(Mode::Points, &drawing(false), &Document::new(), None);
+        let overlay = tracker.update(
+            Mode::Points,
+            &drawing(false),
+            &Document::new(),
+            None,
+            Guides::default(),
+        );
         assert!(overlay.points.is_empty() && overlay.lines.is_empty());
-        let overlay = tracker.update(Mode::Model, &drawing(true), &Document::new(), None);
+        let overlay = tracker.update(
+            Mode::Model,
+            &drawing(true),
+            &Document::new(),
+            None,
+            Guides::default(),
+        );
         assert!(overlay.points.is_empty() && overlay.lines.is_empty());
     }
 
@@ -478,6 +597,7 @@ mod tests {
             &drawing(true),
             &Document::new(),
             Some(pointer_at(corner)),
+            Guides::default(),
         );
         let (id, component) = tracker.hovered().unwrap();
         assert_eq!(id, ObjectId::from_raw(7));
@@ -496,6 +616,7 @@ mod tests {
             &drawing(true),
             &Document::new(),
             Some(pointer_at(face_middle)),
+            Guides::default(),
         );
         assert!(matches!(tracker.hovered(), Some((_, Element::Polygon(_)))));
         assert_eq!(overlay.tints.len(), 2, "a quad is two triangles");
@@ -513,14 +634,38 @@ mod tests {
     #[test]
     fn the_overlay_is_rebuilt_only_when_something_changes() {
         let mut tracker = ComponentTracker::default();
-        let first = tracker.update(Mode::Edges, &drawing(true), &Document::new(), None);
-        let again = tracker.update(Mode::Edges, &drawing(true), &Document::new(), None);
+        let first = tracker.update(
+            Mode::Edges,
+            &drawing(true),
+            &Document::new(),
+            None,
+            Guides::default(),
+        );
+        let again = tracker.update(
+            Mode::Edges,
+            &drawing(true),
+            &Document::new(),
+            None,
+            Guides::default(),
+        );
         assert!(Arc::ptr_eq(&first, &again));
-        let other = tracker.update(Mode::Points, &drawing(true), &Document::new(), None);
+        let other = tracker.update(
+            Mode::Points,
+            &drawing(true),
+            &Document::new(),
+            None,
+            Guides::default(),
+        );
         assert!(other.version > first.version);
         let mut moved = drawing(true);
         moved.version = 2;
-        let newer = tracker.update(Mode::Points, &moved, &Document::new(), None);
+        let newer = tracker.update(
+            Mode::Points,
+            &moved,
+            &Document::new(),
+            None,
+            Guides::default(),
+        );
         assert!(newer.version > other.version);
     }
 
@@ -571,7 +716,13 @@ mod tests {
         tracker.prepare(&drawing);
         let pointer = pointer_at(Vec3::new(0.0, -100.0, 100.0));
         let busy = tracker.preparing();
-        tracker.update(Mode::Polygons, &drawing, &Document::new(), Some(pointer));
+        tracker.update(
+            Mode::Polygons,
+            &drawing,
+            &Document::new(),
+            Some(pointer),
+            Guides::default(),
+        );
         if busy && tracker.preparing() {
             assert_eq!(tracker.hovered(), None, "nothing until it is ready");
             assert_eq!(tracker.building.len(), 1, "still building, not joined");
@@ -581,7 +732,13 @@ mod tests {
         }
         let mut later = drawing.clone();
         later.version = 1;
-        tracker.update(Mode::Polygons, &later, &Document::new(), Some(pointer));
+        tracker.update(
+            Mode::Polygons,
+            &later,
+            &Document::new(),
+            Some(pointer),
+            Guides::default(),
+        );
         assert!(tracker.hovered().is_some(), "found once it is ready");
     }
 
@@ -591,7 +748,13 @@ mod tests {
         let drawing = heavy_drawing(1, Arc::clone(&ball));
         let mut tracker = ComponentTracker::default();
         let pointer = pointer_at(Vec3::new(0.0, -100.0, 100.0));
-        tracker.update(Mode::Polygons, &drawing, &Document::new(), Some(pointer));
+        tracker.update(
+            Mode::Polygons,
+            &drawing,
+            &Document::new(),
+            Some(pointer),
+            Guides::default(),
+        );
         assert!(tracker.hovered().is_some());
         tracker.freeze(true);
         // A newer drawing (the shape moving) keeps the scene as it was,
@@ -600,7 +763,13 @@ mod tests {
         let v = moved.vertices().next().unwrap().0;
         moved.set_position(v, Vec3::splat(500.0));
         let newer = heavy_drawing(2, Arc::new(moved));
-        tracker.update(Mode::Polygons, &newer, &Document::new(), Some(pointer));
+        tracker.update(
+            Mode::Polygons,
+            &newer,
+            &Document::new(),
+            Some(pointer),
+            Guides::default(),
+        );
         assert_eq!(tracker.hovered(), None);
         let kept = tracker.pick_scene(&newer).triangle_count();
         assert_eq!(
@@ -635,5 +804,58 @@ mod tests {
             describe(&doc, (id, Element::Polygon(scene::FaceId::from_raw(3)))),
             "polygon 3 of Cube"
         );
+    }
+
+    #[test]
+    fn guides_show_hard_edges_while_editing_and_normals_always() {
+        let mut tracker = ComponentTracker::default();
+        let both = Guides {
+            hard_edges: true,
+            normals: true,
+        };
+        let count = |overlay: &ComponentOverlay, style| {
+            overlay.lines.iter().filter(|(_, s)| *s == style).count()
+        };
+        // A cube's 12 hard edges and 6 normals in the Edges mode.
+        let overlay = tracker.update(Mode::Edges, &drawing(true), &Document::new(), None, both);
+        assert_eq!(count(&overlay, OverlayStyle::Hard), 12);
+        assert_eq!(count(&overlay, OverlayStyle::Normal), 6);
+        // In the Model mode, only the normals.
+        let overlay = tracker.update(Mode::Model, &drawing(true), &Document::new(), None, both);
+        assert_eq!(count(&overlay, OverlayStyle::Hard), 0);
+        assert_eq!(count(&overlay, OverlayStyle::Normal), 6);
+        // Unselected objects and switched-off guides show nothing.
+        let overlay = tracker.update(Mode::Edges, &drawing(false), &Document::new(), None, both);
+        assert!(overlay.lines.is_empty());
+        let overlay = tracker.update(
+            Mode::Edges,
+            &drawing(true),
+            &Document::new(),
+            None,
+            Guides::default(),
+        );
+        assert!(overlay.lines.is_empty());
+    }
+
+    #[test]
+    fn a_normal_line_starts_in_the_middle_and_points_the_way_it_faces() {
+        let square = [
+            Vec3::ZERO,
+            Vec3::new(100.0, 0.0, 0.0),
+            Vec3::new(100.0, 100.0, 0.0),
+            Vec3::new(0.0, 100.0, 0.0),
+        ];
+        let (start, end) = normal_line(&square).unwrap();
+        assert!(start.distance(Vec3::new(50.0, 50.0, 0.0)) < 1e-3);
+        assert!(
+            end.distance(Vec3::new(50.0, 50.0, 50.0)) < 1e-3,
+            "half its width up"
+        );
+        let mut flipped = square;
+        flipped.reverse();
+        assert!(normal_line(&flipped).unwrap().1.z < 0.0);
+        // No area, no line.
+        assert!(normal_line(&[Vec3::ZERO, Vec3::X, Vec3::X * 2.0]).is_none());
+        assert!(normal_line(&[Vec3::ZERO, Vec3::X]).is_none());
     }
 }

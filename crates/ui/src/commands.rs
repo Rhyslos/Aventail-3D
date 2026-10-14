@@ -89,9 +89,6 @@ const fn plain(key: Key) -> Option<KeyboardShortcut> {
     Some(KeyboardShortcut::new(Modifiers::NONE, key))
 }
 
-/// The phase the modelling tools arrive in.
-const PHASE_4: Option<&str> = Some("Arrives in Phase 4");
-
 impl CommandId {
     /// Everything shown about the command.
     pub const fn info(self) -> CommandInfo {
@@ -226,15 +223,17 @@ impl CommandId {
                 "Hard edges",
                 Icon::HardEdges,
                 None,
-                "Shade the selected edges as sharp creases",
-                PHASE_4,
+                "Shade the selected edges (or the selected polygons' edges) as crisp edges: \
+                 the light breaks there",
+                None,
             ),
             Self::SoftEdges => (
                 "Soft edges",
                 Icon::SoftEdges,
                 None,
-                "Shade the selected edges smoothly",
-                PHASE_4,
+                "Shade the selected edges (or the selected polygons' edges) smoothly: the light \
+                 flows across, so a curve looks round",
+                None,
             ),
             Self::DeleteElements => (
                 "Delete",
@@ -322,7 +321,7 @@ impl CommandId {
             Self::Inset | Self::FlipNormals => &[Polygons],
             Self::Bevel | Self::Connect => &[Points, Edges],
             Self::FillHole => &[Edges, Polygons],
-            Self::HardEdges | Self::SoftEdges => &[Edges],
+            Self::HardEdges | Self::SoftEdges => &[Edges, Polygons],
             Self::Weld => &[Points],
             Self::DeleteElements | Self::Dissolve | Self::Knife | Self::LoopCut => {
                 &[Points, Edges, Polygons]

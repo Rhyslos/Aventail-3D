@@ -894,11 +894,16 @@ impl Workbench {
         self.show_slit(&summary.drawing);
         self.carry_out_coordinates(coordinates_done, &summary.drawing);
         let shown = summary.overlay.version;
+        let options = self.viewport.options();
         let overlay = self.components.update(
             self.mode,
             &summary.drawing,
             &self.document,
             self.viewport.pointer(),
+            crate::components::Guides {
+                hard_edges: !options.hide_hard_edges,
+                normals: options.show_normals,
+            },
         );
         if overlay.version != shown {
             ui.ctx().request_repaint();
@@ -1292,6 +1297,18 @@ impl Workbench {
                     }
                     ui.separator();
                     if ui
+                        .button("Hard edges by angle")
+                        .on_hover_text(
+                            "In the selected objects, make every edge whose polygons meet more \
+                             sharply than an angle (30° to start with) hard, and the rest soft: \
+                             boxy corners crisp, curves smooth. Change the angle under Last edit.",
+                        )
+                        .clicked()
+                    {
+                        self.run_hard_by_angle();
+                        ui.close();
+                    }
+                    if ui
                         .button("Fix facing")
                         .on_hover_text(
                             "Turn every polygon of the selected objects that faces the wrong \
@@ -1636,6 +1653,9 @@ mod cleaning;
 #[cfg(test)]
 mod cleaning_tests;
 mod command;
+mod hardness;
+#[cfg(test)]
+mod hardness_tests;
 mod joining;
 #[cfg(test)]
 mod joining_tests;

@@ -145,6 +145,12 @@ pub struct ViewOptions {
     pub locked: [bool; 3],
     /// Whether the gizmo follows the world's axes or the object's own.
     pub axes: Axes,
+    /// Whether hard edges are *not* marked in the Points, Edges and
+    /// Polygons modes (they are as standard; decision 0053).
+    pub hide_hard_edges: bool,
+    /// Whether the selected objects show which way each polygon faces,
+    /// as short lines (off as standard; decision 0053).
+    pub show_normals: bool,
 }
 
 /// What a renderer needs to draw one viewport frame.

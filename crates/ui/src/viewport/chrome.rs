@@ -130,6 +130,23 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
     });
     ui.menu_button("Display", |ui| {
         grid_entries(ui, &mut panel.options.grid_detail);
+        ui.separator();
+        let mut hard = !panel.options.hide_hard_edges;
+        if ui
+            .checkbox(&mut hard, HARD_EDGES_ENTRY)
+            .on_hover_text(
+                "Mark hard edges, where the shading breaks into a crisp edge, in a colour of \
+                 their own while editing points, edges or polygons",
+            )
+            .changed()
+        {
+            panel.options.hide_hard_edges = !hard;
+        }
+        ui.checkbox(&mut panel.options.show_normals, NORMALS_ENTRY)
+            .on_hover_text(
+                "Show which way each polygon of the selected objects faces, as a short line \
+                 from its middle. Lines pointing into a shape show flipped polygons.",
+            );
     });
     ui.menu_button("Options", |ui| {
         if ui
@@ -169,6 +186,11 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
         }
     });
 }
+
+/// The Display menu's switch for marking hard edges.
+pub(crate) const HARD_EDGES_ENTRY: &str = "Hard edges";
+/// The Display menu's switch for showing normals.
+pub(crate) const NORMALS_ENTRY: &str = "Normals";
 
 /// What the Cameras menu's tooltip says about a kind of view.
 fn camera_explanation(kind: ViewKind) -> &'static str {

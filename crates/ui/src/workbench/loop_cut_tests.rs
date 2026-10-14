@@ -44,8 +44,17 @@ fn click(harness: &mut H, at: Pos2) {
 }
 
 /// The lines Loop cut shows over the cube.
+/// The lines the tool shows (not the hard edges marked as standard).
 fn shown_lines(harness: &H) -> usize {
-    harness.state().workbench.components.overlay().lines.len()
+    harness
+        .state()
+        .workbench
+        .components
+        .overlay()
+        .lines
+        .iter()
+        .filter(|(_, style)| *style != crate::OverlayStyle::Hard)
+        .count()
 }
 
 fn loop_cut(harness: &H) -> (u32, f32) {
