@@ -212,6 +212,11 @@ fn copy_numbers(folder: &Path) -> io::Result<Vec<u64>> {
 /// copies. Sessions that ended without a copy (nothing to recover) are
 /// tidied away; sessions still running are left alone.
 pub fn leftovers(root: &Path) -> Vec<Leftover> {
+    leftovers_at(root, SystemTime::now())
+}
+
+/// [`leftovers`], as at time `now` (for telling how old a folder is).
+fn leftovers_at(root: &Path, now: SystemTime) -> Vec<Leftover> {
     let Ok(entries) = std::fs::read_dir(root) else {
         return Vec::new();
     };
@@ -233,7 +238,7 @@ pub fn leftovers(root: &Path) -> Vec<Leftover> {
             std::fs::metadata(&folder)
                 .and_then(|m| m.modified())
                 .ok()
-                .and_then(|t| SystemTime::now().duration_since(t).ok())
+                .and_then(|t| now.duration_since(t).ok())
                 .is_some_and(|age| age < STARTING)
         };
         if lock.is_err() && young() {
@@ -443,12 +448,8 @@ mod tests {
         std::fs::write(root.join("session-1-2-0").join("copy-1.avtl"), b"x").unwrap();
         assert!(leftovers(&root).is_empty(), "no lock yet, but just made");
         // An hour later it was clearly left behind.
-        let hour_ago = SystemTime::now() - std::time::Duration::from_secs(3600);
-        File::open(root.join("session-1-2-0"))
-            .unwrap()
-            .set_modified(hour_ago)
-            .unwrap();
-        assert_eq!(leftovers(&root).len(), 1);
+        let hour_later = SystemTime::now() + std::time::Duration::from_secs(3600);
+        assert_eq!(leftovers_at(&root, hour_later).len(), 1);
         let _ = std::fs::remove_dir_all(&root);
     }
 
