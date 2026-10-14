@@ -2,7 +2,7 @@
 
 use crate::geometry::{FaceVertex, LineVertex, Sprite};
 use crate::mesh_draw::MeshVertex;
-use crate::renderer::{COLOR_FORMAT, DEPTH_FORMAT};
+use crate::renderer::{COLOR_FORMAT, DEPTH_FORMAT, FACING_FORMAT};
 
 /// The kinds of geometry the viewport draws, in drawing order.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -30,6 +30,9 @@ pub(crate) enum PipelineKind {
     MeshLines,
     /// Every point of an object as a small dot.
     MeshPoints,
+    /// Cavity: one triangle over the view, brightening ridges and
+    /// darkening creases (reads the facing image, bind group 1).
+    Cavity,
 }
 
 impl PipelineKind {
@@ -40,6 +43,12 @@ impl PipelineKind {
             self,
             Self::MeshFaces | Self::MeshPickDepth | Self::MeshLines | Self::MeshPoints
         )
+    }
+
+    /// Whether it is drawn in the first stage, with the surfaces: it also
+    /// writes the facing image cavity reads.
+    pub(crate) fn writes_facing(self) -> bool {
+        matches!(self, Self::Sky | Self::Faces | Self::MeshFaces)
     }
 }
 
@@ -129,6 +138,13 @@ pub(crate) fn create_pipeline(
             wgpu::PrimitiveTopology::TriangleList,
             point_buffers,
         ),
+        PipelineKind::Cavity => (
+            "cavity pipeline",
+            "cavity_vs",
+            "cavity_fs",
+            wgpu::PrimitiveTopology::TriangleList,
+            &[][..],
+        ),
     };
     let blend = matches!(
         kind,
@@ -138,6 +154,7 @@ pub(crate) fn create_pipeline(
             | PipelineKind::Sprites
             | PipelineKind::MeshLines
             | PipelineKind::MeshPoints
+            | PipelineKind::Cavity
     )
     .then_some(wgpu::BlendState::ALPHA_BLENDING);
     let picking = matches!(kind, PipelineKind::PickDepth | PipelineKind::MeshPickDepth);
@@ -171,6 +188,20 @@ pub(crate) fn create_pipeline(
         },
         _ => wgpu::DepthBiasState::default(),
     };
+    let color = Some(wgpu::ColorTargetState {
+        format: COLOR_FORMAT,
+        blend,
+        write_mask: wgpu::ColorWrites::ALL,
+    });
+    let color_only = [color.clone()];
+    let with_facing = [
+        color,
+        Some(wgpu::ColorTargetState {
+            format: FACING_FORMAT,
+            blend: None,
+            write_mask: wgpu::ColorWrites::ALL,
+        }),
+    ];
     device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: Some(label),
         layout: Some(layout),
@@ -187,7 +218,8 @@ pub(crate) fn create_pipeline(
             cull_mode: None,
             ..Default::default()
         },
-        depth_stencil: Some(wgpu::DepthStencilState {
+        // Cavity is drawn in a stage of its own, with no depth.
+        depth_stencil: (kind != PipelineKind::Cavity).then_some(wgpu::DepthStencilState {
             format: DEPTH_FORMAT,
             depth_write_enabled: Some(depth_write),
             depth_compare: Some(depth_compare),
@@ -203,11 +235,11 @@ pub(crate) fn create_pipeline(
             module: shader,
             entry_point: Some(fs),
             compilation_options: wgpu::PipelineCompilationOptions::default(),
-            targets: &[Some(wgpu::ColorTargetState {
-                format: COLOR_FORMAT,
-                blend,
-                write_mask: wgpu::ColorWrites::ALL,
-            })],
+            targets: if kind.writes_facing() {
+                &with_facing
+            } else {
+                &color_only
+            },
         }),
         multiview_mask: None,
         cache: None,

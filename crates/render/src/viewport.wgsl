@@ -31,9 +31,27 @@ struct Frame {
     sky_top: vec4<f32>,
     sky_horizon: vec4<f32>,
     ground: vec4<f32>,
+    // Which way is right and up on screen, in the world (xyz; w unused).
+    screen_right: vec4<f32>,
+    screen_up: vec4<f32>,
 };
 
 @group(0) @binding(0) var<uniform> frame: Frame;
+
+// What the first stage writes: the colour, and which way the surface
+// faces across the screen for cavity (xy: right and up, z: towards the
+// camera; w: 1 on a surface, 0 elsewhere).
+struct SceneOut {
+    @location(0) color: vec4<f32>,
+    @location(1) facing: vec4<f32>,
+};
+
+// A surface's facing across the screen, for `normal` in the world.
+fn screen_facing(normal: vec3<f32>) -> vec4<f32> {
+    let n = normalize(normal);
+    let toward = cross(frame.screen_right.xyz, frame.screen_up.xyz);
+    return vec4<f32>(dot(n, frame.screen_right.xyz), dot(n, frame.screen_up.xyz), dot(n, toward), 1.0);
+}
 
 // ---------------------------------------------------------- background ---
 
@@ -61,7 +79,14 @@ fn sky_vs(@builtin(vertex_index) index: u32) -> SkyOut {
 // darkens a little more towards your feet. The horizon follows the camera
 // as it tilts, so you always know which way is up.
 @fragment
-fn sky_fs(in: SkyOut) -> @location(0) vec4<f32> {
+fn sky_fs(in: SkyOut) -> SceneOut {
+    var out: SceneOut;
+    out.color = sky_color(in);
+    out.facing = vec4<f32>(0.0);
+    return out;
+}
+
+fn sky_color(in: SkyOut) -> vec4<f32> {
     // Flat views have no horizon: a plain, calm backdrop.
     if frame.view.x > 0.5 {
         return vec4<f32>(frame.sky_horizon.rgb, 1.0);
@@ -211,8 +236,11 @@ fn face_vs(in: FaceIn) -> FaceOut {
 // plane, the inside of an open cylinder) the light treats the back as the
 // front, a little darker, so the inside of a shape still reads as inside.
 @fragment
-fn face_fs(in: FaceOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
-    return shade(in, front);
+fn face_fs(in: FaceOut, @builtin(front_facing) front: bool) -> SceneOut {
+    var out: SceneOut;
+    out.color = shade(in, front);
+    out.facing = screen_facing(select(-in.normal, in.normal, front));
+    return out;
 }
 
 fn shade(in: FaceOut, front: bool) -> vec4<f32> {
@@ -371,8 +399,12 @@ fn mesh_face_vs(in: MeshIn) -> FaceOut {
 // A mirrored placement turns the faces inside out: what the GPU sees as
 // the back is the outside.
 @fragment
-fn mesh_face_fs(in: FaceOut, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
-    return shade(in, front == (object.options.y > 0.0));
+fn mesh_face_fs(in: FaceOut, @builtin(front_facing) front: bool) -> SceneOut {
+    let outside = front == (object.options.y > 0.0);
+    var out: SceneOut;
+    out.color = shade(in, outside);
+    out.facing = screen_facing(select(-in.normal, in.normal, outside));
+    return out;
 }
 
 // How far apart, in pixels, the object's edges are on screen around
@@ -435,4 +467,67 @@ fn mesh_point_vs(@builtin(vertex_index) index: u32, @location(0) position: vec3<
     out.round = 1.0;
     out.pixel = 2.0 / max(width, 1.0);
     return out;
+}
+
+// -------------------------------------------------------------- cavity ---
+
+// Cavity (decision 0065): after the surfaces are drawn and before the
+// grid, edges and overlay, one triangle over the whole view brightens
+// ridges and darkens creases, from how the surfaces' facing changes
+// across the screen. Where it turns away from the middle of a spot (a
+// ridge, a box's outer corner) the light catches it; where it turns
+// towards it (a crease, an inner corner) it is shaded.
+
+@group(1) @binding(0) var facing_image: texture_2d<f32>;
+
+struct CavityOut {
+    @builtin(position) clip: vec4<f32>,
+};
+
+@vertex
+fn cavity_vs(@builtin(vertex_index) index: u32) -> CavityOut {
+    var corners = array<vec2<f32>, 3>(
+        vec2<f32>(-1.0, -1.0), vec2<f32>(3.0, -1.0), vec2<f32>(-1.0, 3.0),
+    );
+    var out: CavityOut;
+    out.clip = vec4<f32>(corners[index], 0.0, 1.0);
+    return out;
+}
+
+// The facing at pixel `p`, or `fallback` off the image or off a surface
+// (so a shape's outline is neither ridge nor crease).
+fn facing_at(p: vec2<i32>, fallback: vec4<f32>) -> vec4<f32> {
+    let size = vec2<i32>(textureDimensions(facing_image));
+    if p.x < 0 || p.y < 0 || p.x >= size.x || p.y >= size.y {
+        return fallback;
+    }
+    let f = textureLoad(facing_image, p, 0);
+    return select(fallback, f, f.w > 0.99);
+}
+
+// How much the facing spreads apart around `p`, `r` pixels each way:
+// above 0 on a ridge, below on a crease.
+fn spread(p: vec2<i32>, here: vec4<f32>, r: i32) -> f32 {
+    let left = facing_at(p - vec2<i32>(r, 0), here);
+    let right = facing_at(p + vec2<i32>(r, 0), here);
+    let above = facing_at(p - vec2<i32>(0, r), here);
+    let below = facing_at(p + vec2<i32>(0, r), here);
+    return (right.x - left.x) + (above.y - below.y);
+}
+
+@fragment
+fn cavity_fs(in: CavityOut) -> @location(0) vec4<f32> {
+    let p = vec2<i32>(floor(in.clip.xy));
+    let here = facing_at(p, vec4<f32>(0.0));
+    if here.w < 0.99 {
+        discard;
+    }
+    // A thin line and a softer one around it.
+    let curve = 0.6 * spread(p, here, 1) + 0.4 * spread(p, here, 2);
+    let ridge = clamp(curve * 0.5, 0.0, 1.0);
+    let crease = clamp(-curve * 0.7, 0.0, 1.0);
+    if ridge > crease {
+        return vec4<f32>(1.0, 1.0, 1.0, ridge * 0.45);
+    }
+    return vec4<f32>(0.0, 0.0, 0.0, crease * 0.7);
 }

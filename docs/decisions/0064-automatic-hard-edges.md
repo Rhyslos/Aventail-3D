@@ -17,7 +17,7 @@ Decision 0063 first recorded a per-object setting. The project lead then explain
 
 ## Decision
 
-1. **The switch:** **Automatic hard edges** sits in the viewport's Display menu, right below Hard edges. It is on as standard and remembered (`ViewOptions::hard_edges_by_hand`, false as standard).
+1. **The switch:** **Automatic hard edges** sits in the viewport's Display menu, right below Hard edges (*moved to the main Mesh menu at the project lead's request, [0065](0065-cavity.md)*). It is on as standard and remembered (`ViewOptions::hard_edges_by_hand`, false as standard).
 2. **What it does:** while it is on, every shape is shaded by angle, whatever its edges are marked. Where two polygons meet more sharply than **30°** (`AUTO_HARD_ANGLE`, the same as Hard edges by angle's start), the shading breaks; everywhere else it flows. Edges shared by more than two polygons break too; polygons with no area don't.
 3. **How it works:**
    - `mesh::smooth_groups_with` / `corner_shading_with` take a `Hardness`: `Marked` or `ByAngle(degrees)`.

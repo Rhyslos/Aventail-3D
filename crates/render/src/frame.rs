@@ -112,6 +112,24 @@ pub(crate) struct FrameUniforms {
     sky_top: [f32; 4],
     sky_horizon: [f32; 4],
     ground: [f32; 4],
+    /// Which way is right and up on screen, in the world (unit; w unused):
+    /// cavity reads surfaces' facing across the screen with them.
+    screen_right: [f32; 4],
+    screen_up: [f32; 4],
+}
+
+/// Which way is right and up on screen, in the world, for a view: the
+/// view-projection's first two rows, made unit length.
+fn screen_axes(view_projection: Mat4) -> (Vec3, Vec3) {
+    let row = |i: usize| {
+        Vec3::new(
+            view_projection.x_axis[i],
+            view_projection.y_axis[i],
+            view_projection.z_axis[i],
+        )
+        .normalize_or_zero()
+    };
+    (row(0), row(1))
 }
 
 impl FrameUniforms {
@@ -153,6 +171,14 @@ impl FrameUniforms {
             sky_top: linear(params.sky_top),
             sky_horizon: linear(params.sky_horizon),
             ground: linear(params.ground),
+            screen_right: {
+                let r = screen_axes(params.view_projection).0;
+                [r.x, r.y, r.z, 0.0]
+            },
+            screen_up: {
+                let u = screen_axes(params.view_projection).1;
+                [u.x, u.y, u.z, 0.0]
+            },
         }
     }
 
@@ -205,9 +231,17 @@ mod tests {
 
     #[test]
     fn uniforms_match_the_shader_layout() {
-        // Two mat4x4<f32> and ten vec4<f32>, no padding.
-        assert_eq!(std::mem::size_of::<FrameUniforms>(), 288);
+        // Two mat4x4<f32> and twelve vec4<f32>, no padding.
+        assert_eq!(std::mem::size_of::<FrameUniforms>(), 320);
         assert_eq!(std::mem::size_of::<FrameUniforms>() % 16, 0);
+    }
+
+    #[test]
+    fn the_screen_axes_point_right_and_up() {
+        let camera = tools::Camera::looking_at(Vec3::new(0.0, -500.0, 0.0), Vec3::ZERO);
+        let (right, up) = screen_axes(camera.view_projection(glam::Vec2::new(1600.0, 900.0)));
+        assert!(right.distance(Vec3::X) < 1e-4, "{right}");
+        assert!(up.distance(Vec3::Z) < 1e-4, "{up}");
     }
 
     #[test]

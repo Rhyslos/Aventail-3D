@@ -827,3 +827,41 @@ fn without_faces_every_edge_shows_through_the_shape() {
         .and_then(|r| r.point);
     assert!(picked.is_some());
 }
+
+#[test]
+fn cavity_brightens_an_outer_edge_and_leaves_the_backdrop() {
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, target) = setup(&gpu, [640, 400]);
+    with_object_cube(&gpu, &mut renderer);
+    let mut draw = place(glam::Mat4::IDENTITY);
+    // No edge lines, so only the shading shows.
+    draw.edges = false;
+    renderer.set_draws(&gpu.device, &gpu.queue, &[draw]);
+    let camera = Camera::default();
+    let size = Vec2::new(640.0, 400.0);
+    let plain = render(&gpu, &renderer, &target, camera, NO_GRID);
+    renderer.set_show_cavity(true);
+    let cavity = render(&gpu, &renderer, &target, camera, NO_GRID);
+    // Along the front-top edge (an outer corner: a ridge), the pixels just
+    // around it are brighter.
+    let edge = camera.project(Vec3::new(0.0, -50.0, 100.0), size).unwrap();
+    let lift = |dy: i32| {
+        let (x, y) = (edge.x as u32, (edge.y as i32 + dy) as u32);
+        brightness(cavity.pixel(x, y)) - brightness(plain.pixel(x, y))
+    };
+    let most = (-3..=3).map(lift).max().unwrap();
+    assert!(most > 20, "the ridge is lit: {most}");
+    // The middle of the front face is flat: unchanged.
+    let middle = Vec3::new(0.0, -50.0, 50.0);
+    let flat = (brightness(cavity.at(middle)) - brightness(plain.at(middle))).abs();
+    assert!(flat < 4, "{flat}");
+    // The backdrop is untouched.
+    let sky = (brightness(cavity.pixel(5, 5)) - brightness(plain.pixel(5, 5))).abs();
+    assert_eq!(sky, 0);
+    // Without faces (Wireframe) there's nothing to shade.
+    renderer.set_show_faces(false);
+    let wire = render(&gpu, &renderer, &target, camera, NO_GRID);
+    renderer.set_show_cavity(false);
+    let wire_plain = render(&gpu, &renderer, &target, camera, NO_GRID);
+    assert_eq!(wire.pixels, wire_plain.pixels);
+}

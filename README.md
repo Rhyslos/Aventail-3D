@@ -91,9 +91,9 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** points, edges and polygons can be selected and moved precisely, and a cube's segments can still be changed afterwards. ✅ *Passed 2026-10-12: tested by the project lead.*
 
-### Phase 4 · Core modelling tools — 17 of 19
+### Phase 4 · Core modelling tools — 18 of 19
 
-`████████████░` 89%
+`████████████░` 95%
 
 <details>
 <summary>Milestones</summary>
@@ -114,9 +114,9 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Basics: hide and isolate, slide points and edges, duplicate and instances, split polygons off and join objects
 - [x] Keyboard shortcut viewer: every key in one place (Keys on the menu bar), on a drawn keyboard in your layout
 - [x] Wireframe: shaded, shaded with wires or wireframe, from a button beside the corner axes (now bottom left)
-- [ ] Cavity: creases darkened and ridges brightened, so a shape's form reads clearly
+- [x] Cavity: creases darkened and ridges brightened, so a shape's form reads clearly (on as standard)
 - [ ] Clickable corner axes: click X, Y or Z to look straight along it
-- [x] Automatic hard edges: shapes shaded by angle after every change (Display menu, on as standard), so extrudes and bends stay smooth
+- [x] Automatic hard edges: shapes shaded by angle after every change (Mesh menu, on as standard), so extrudes and bends stay smooth
 
 </details>
 
@@ -222,7 +222,8 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
-| 2026-10-14 | Automatic hard edges: every shape shaded by angle (30°) after every change, from a Display menu switch on as standard; edges set by hand kept for when it's off |
+| 2026-10-14 | Cavity: ridges brightened and creases darkened on the surfaces, on as standard, from the Display menu and a button beside Shading; Automatic hard edges moved to the Mesh menu |
+| 2026-10-14 | Automatic hard edges: every shape shaded by angle (30°) after every change, from a switch on as standard (now in the Mesh menu); edges set by hand kept for when it's off |
 | 2026-10-14 | Four Phase 4 milestones added at the project lead's request (wireframe, cavity, clickable corner axes, automatic hard edges); the first built: Shaded, Shaded with wires and Wireframe, from a button beside the corner axes, which move to the bottom left |
 | 2026-10-14 | Spirals: a bend past 360° (up to ten turns) climbs clear of itself, with Rise per turn for more room; project files at format version 15 |
 | 2026-10-14 | The Keys window draws a keyboard: used keys lit by situation, point or click a key for its jobs; seven layouts, guessed from the system language |

@@ -31,8 +31,8 @@ pub use mesh_draw::{MeshDraw, MeshGeometry, MeshVertex};
 pub use pick::{PickRequest, PickResult};
 pub use readback::read_pixels;
 pub use renderer::{
-    COLOR_FORMAT, DEPTH_FORMAT, DISPLAY_FORMAT, SHADER_SOURCE, ViewportRenderer, ViewportTarget,
-    best_sample_count,
+    COLOR_FORMAT, DEPTH_FORMAT, DISPLAY_FORMAT, FACING_FORMAT, SHADER_SOURCE, ViewportRenderer,
+    ViewportTarget, best_sample_count,
 };
 
 #[cfg(test)]
@@ -66,6 +66,8 @@ mod shader_tests {
         assert_eq!(
             names,
             [
+                "cavity_fs",
+                "cavity_vs",
                 "face_fs",
                 "face_vs",
                 "grid_fs",

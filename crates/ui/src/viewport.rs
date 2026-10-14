@@ -220,6 +220,9 @@ pub struct ViewOptions {
     pub dissolve_without_warning: bool,
     /// How shapes are drawn: shaded, shaded with wires, or wireframe.
     pub shading: Shading,
+    /// Whether Cavity is *off*: ridges not brightened and creases not
+    /// darkened. Cavity is on as standard (decision 0065).
+    pub hide_cavity: bool,
     /// Whether shapes are shaded by their marked hard edges, with
     /// *Automatic hard edges* off. Off as standard: the angle decides
     /// ([`AUTO_HARD_ANGLE`], decision 0064).
@@ -355,6 +358,8 @@ pub struct ViewportView {
     /// Shade by angle from this many degrees, whatever edges are marked
     /// (Automatic hard edges), or by the marks (`None`).
     pub auto_hard_angle: Option<f32>,
+    /// Whether ridges are brightened and creases darkened (Cavity).
+    pub cavity: bool,
 }
 
 /// A question for the renderer: what is under this pixel of the image?
@@ -811,6 +816,7 @@ impl View {
             overlay: Arc::default(),
             shading: Shading::default(),
             auto_hard_angle: Some(AUTO_HARD_ANGLE),
+            cavity: true,
         }
     }
 }
@@ -1252,6 +1258,7 @@ impl ViewportPanel {
             view.overlay = Arc::clone(&scene.overlay);
             view.shading = self.options.shading;
             view.auto_hard_angle = self.options.auto_hard_angle();
+            view.cavity = !self.options.hide_cavity;
             match renderer.render(&view) {
                 Ok(texture) => {
                     let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0));

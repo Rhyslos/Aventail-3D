@@ -396,6 +396,7 @@ impl ViewportRenderer for GpuViewport {
         let accent = view.selection_color.map(render::srgb_to_linear);
         let mut draws = mesh_draws(&view.scene, accent, view.shading);
         self.renderer.set_show_faces(view.shading.shows_faces());
+        self.renderer.set_show_cavity(view.cavity);
         leave_out_dense(&mut draws, view, &self.meshes);
         self.renderer
             .set_draws(&self.state.device, &self.state.queue, &draws);
@@ -571,6 +572,7 @@ mod tests {
             overlay: Arc::new(ComponentOverlay::default()),
             shading: Shading::default(),
             auto_hard_angle: Some(ui::AUTO_HARD_ANGLE),
+            cavity: true,
         }
     }
 
