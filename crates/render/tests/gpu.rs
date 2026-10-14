@@ -785,3 +785,45 @@ fn an_object_can_show_every_point() {
     let with = render(&gpu, &renderer, &target, camera, NO_GRID);
     assert!(is_red(with.at(corner)), "{:?}", with.at(corner));
 }
+
+#[test]
+fn without_faces_every_edge_shows_through_the_shape() {
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, target) = setup(&gpu, [640, 400]);
+    with_object_cube(&gpu, &mut renderer);
+    let camera = Camera::default();
+    renderer.set_draws(&gpu.device, &gpu.queue, &[place(glam::Mat4::IDENTITY)]);
+    let size = Vec2::new(640.0, 400.0);
+    let red_pixels = |shot: &Shot| {
+        shot.pixels
+            .chunks(4)
+            .filter(|p| is_red([p[0], p[1], p[2], p[3]]))
+            .count()
+    };
+    assert!(renderer.shows_faces());
+    let shaded = render(&gpu, &renderer, &target, camera, NO_GRID);
+    let middle = Vec3::new(0.0, -50.0, 50.0);
+    renderer.set_show_faces(false);
+    let wire = render(&gpu, &renderer, &target, camera, NO_GRID);
+    // The edges behind the cube show too: about half as many more.
+    assert!(
+        red_pixels(&wire) > red_pixels(&shaded) * 5 / 4,
+        "{} vs {}",
+        red_pixels(&wire),
+        red_pixels(&shaded)
+    );
+    assert!(
+        brightness(wire.at(middle)) < brightness(shaded.at(middle)) - 40,
+        "no grey surface: the backdrop shows through"
+    );
+    // Picking still finds the shape.
+    let pixel = camera.project(middle, size).unwrap();
+    let picked = renderer
+        .pick_now(
+            &gpu.device,
+            &gpu.queue,
+            pick_request(&camera, pixel, [640, 400]),
+        )
+        .and_then(|r| r.point);
+    assert!(picked.is_some());
+}

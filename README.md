@@ -91,9 +91,9 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** points, edges and polygons can be selected and moved precisely, and a cube's segments can still be changed afterwards. ✅ *Passed 2026-10-12: tested by the project lead.*
 
-### Phase 4 · Core modelling tools — 15 of 15
+### Phase 4 · Core modelling tools — 16 of 19
 
-`█████████████` 100%
+`███████████░░` 84%
 
 <details>
 <summary>Milestones</summary>
@@ -113,6 +113,10 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Symmetry: every edit is made on the other side too, across the shape's own X, Y or Z, through its pivot, its middle or the world centre
 - [x] Basics: hide and isolate, slide points and edges, duplicate and instances, split polygons off and join objects
 - [x] Keyboard shortcut viewer: every key in one place (Keys on the menu bar), on a drawn keyboard in your layout
+- [x] Wireframe: shaded, shaded with wires or wireframe, from a button beside the corner axes (now bottom left)
+- [ ] Cavity: creases darkened and ridges brightened, so a shape's form reads clearly
+- [ ] Clickable corner axes: click X, Y or Z to look straight along it
+- [ ] Automatic hard edges by angle, per object, so edits stay clean
 
 </details>
 
@@ -218,6 +222,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-14 | Four Phase 4 milestones added at the project lead's request (wireframe, cavity, clickable corner axes, automatic hard edges); the first built: Shaded, Shaded with wires and Wireframe, from a button beside the corner axes, which move to the bottom left |
 | 2026-10-14 | Spirals: a bend past 360° (up to ten turns) climbs clear of itself, with Rise per turn for more room; project files at format version 15 |
 | 2026-10-14 | The Keys window draws a keyboard: used keys lit by situation, point or click a key for its jobs; seven layouts, guessed from the system language |
 | 2026-10-14 | Symmetry for every edit (extrude, cut, weld, delete and the rest made on both sides) and a Symmetry menu (axes, where the mirror sits, offsets); project files at format version 14 |

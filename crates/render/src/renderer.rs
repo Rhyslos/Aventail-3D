@@ -181,6 +181,9 @@ pub struct ViewportRenderer {
     object_stride: u64,
     meshes: HashMap<u64, GpuMesh>,
     placements: Option<Placements>,
+    /// Whether objects' faces are drawn (off for a wireframe look, where
+    /// only their edges show, so every edge can be seen through the shape).
+    show_faces: bool,
 }
 
 impl ViewportRenderer {
@@ -281,6 +284,7 @@ impl ViewportRenderer {
             object_stride,
             meshes: HashMap::new(),
             placements: None,
+            show_faces: true,
         };
         renderer.set_shape(device, &Shape::test_cube());
         renderer
@@ -402,6 +406,18 @@ impl ViewportRenderer {
         if !bytes.is_empty() {
             queue.write_buffer(&placements.buffer, 0, &bytes);
         }
+    }
+
+    /// Whether the next frames draw objects' faces (on as standard). With
+    /// them off, only edges and points show, and every edge is seen
+    /// through the shape: a wireframe. Picking still finds the faces.
+    pub fn set_show_faces(&mut self, show: bool) {
+        self.show_faces = show;
+    }
+
+    /// Whether objects' faces are drawn.
+    pub fn shows_faces(&self) -> bool {
+        self.show_faces
     }
 
     /// Draws every placed object mesh with `part`.
@@ -591,8 +607,10 @@ impl ViewportRenderer {
             if let Some(faces) = &self.faces {
                 faces.draw(&mut pass);
             }
-            pass.set_pipeline(&self.mesh_face_pipeline);
-            self.draw_meshes(&mut pass, MeshPart::Faces);
+            if self.show_faces {
+                pass.set_pipeline(&self.mesh_face_pipeline);
+                self.draw_meshes(&mut pass, MeshPart::Faces);
+            }
             pass.set_pipeline(&self.grid_pipeline);
             pass.draw(0..6, 0..1);
             pass.set_pipeline(&self.line_pipeline);

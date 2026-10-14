@@ -12,6 +12,7 @@
 
 pub(crate) mod chrome;
 mod gizmo;
+mod look;
 mod picker;
 mod select;
 mod tool_drag;
@@ -35,6 +36,8 @@ use std::sync::Arc;
 pub(crate) use tool_drag::{ToolDragEvent, ToolPath};
 
 #[cfg(test)]
+pub(crate) use look::SHADING_LABEL;
+#[cfg(test)]
 pub(crate) use picker::AROUND_CURSOR_LABEL;
 pub use picker::PICKER_LABEL;
 
@@ -48,6 +51,54 @@ pub enum GridDetail {
     HalfMetre,
     /// Thin lines every 10 cm as well: for placing things precisely.
     TenCentimetres,
+}
+
+/// How shapes are drawn in the viewport ([decision 0063](../../../docs/decisions/0063-wireframe.md)).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum Shading {
+    /// Solid, softly lit surfaces with faint edges: the calmest.
+    #[default]
+    Shaded,
+    /// Solid surfaces with every edge drawn clearly on top, to see how a
+    /// shape is built while still seeing its form.
+    ShadedWithWires,
+    /// Only the edges, seen through the shape: every edge at once, front
+    /// and back.
+    Wireframe,
+}
+
+impl Shading {
+    /// Every look, in the order offered.
+    pub const ALL: [Shading; 3] = [Self::Shaded, Self::ShadedWithWires, Self::Wireframe];
+
+    /// Its name, in the menu and on the button.
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Shaded => "Shaded",
+            Self::ShadedWithWires => "Shaded with wires",
+            Self::Wireframe => "Wireframe",
+        }
+    }
+
+    /// What it shows, for its tooltip.
+    pub fn explanation(self) -> &'static str {
+        match self {
+            Self::Shaded => "Solid, softly lit surfaces with faint edges",
+            Self::ShadedWithWires => {
+                "Solid surfaces with every edge drawn clearly on top, to see how the shape \
+                 is built"
+            }
+            Self::Wireframe => {
+                "Only the edges, seen through the shape: front and back at once. Clicking \
+                 still picks the shape."
+            }
+        }
+    }
+
+    /// Whether surfaces are drawn.
+    pub fn shows_faces(self) -> bool {
+        self != Self::Wireframe
+    }
 }
 
 impl ViewOptions {
@@ -157,6 +208,8 @@ pub struct ViewOptions {
     /// Whether Dissolve goes ahead across a sharp corner without asking
     /// first ("Don't warn me again"; it asks as standard, decision 0057).
     pub dissolve_without_warning: bool,
+    /// How shapes are drawn: shaded, shaded with wires, or wireframe.
+    pub shading: Shading,
     /// The keyboard the Keys window draws, once picked there (`None`:
     /// guessed from the system language; decision 0061).
     pub keyboard: Option<crate::KeyboardLayout>,
@@ -283,6 +336,8 @@ pub struct ViewportView {
     /// What to draw over the edited objects in the Points, Edges and
     /// Polygons modes.
     pub overlay: Arc<ComponentOverlay>,
+    /// How shapes are drawn.
+    pub shading: Shading,
 }
 
 /// A question for the renderer: what is under this pixel of the image?
@@ -737,6 +792,7 @@ impl View {
             scene: Arc::clone(scene),
             selection_color: rgb(theme::Accent::default().colors().light),
             overlay: Arc::default(),
+            shading: Shading::default(),
         }
     }
 }
@@ -1176,6 +1232,7 @@ impl ViewportPanel {
                 self.views[slot].view(slot, rect, ppp, self.options.grid_detail, &scene.drawing);
             view.selection_color = rgb(theme::accent(ui.ctx()).colors().light);
             view.overlay = Arc::clone(&scene.overlay);
+            view.shading = self.options.shading;
             match renderer.render(&view) {
                 Ok(texture) => {
                     let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0));
@@ -1226,6 +1283,7 @@ impl ViewportPanel {
             self.options.four_views = !four;
         }
         picker::show(ui, body, self);
+        look::show(ui, body, self);
     }
 
     /// Ctrl + wheel over a view: with the brush, changes its size;
