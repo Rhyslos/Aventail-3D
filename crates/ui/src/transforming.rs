@@ -806,10 +806,7 @@ pub(crate) fn describe(change: &Change, target: &Target, units: crate::units::Un
                 .map(|(name, axis)| format!("{name} {}", units.format(d.dot(axis))))
                 .collect();
             if target.slides() {
-                format!(
-                    "Sliding along the edges (the drag: {})",
-                    parts.join(", ")
-                )
+                format!("Sliding along the edges (the drag: {})", parts.join(", "))
             } else {
                 format!("Moving: {}", parts.join(", "))
             }

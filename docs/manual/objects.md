@@ -33,6 +33,8 @@ If several objects are selected and you drag one of them, they all move, keeping
 
 **Copy.** **Ctrl + C** and **Ctrl + V** paste copies of the selected objects; **Alt + V** pastes instances. See [Copies and instances](copies-and-instances.md).
 
+**Join and split.** **E → Join objects** makes the selected shapes one; **Mesh → Split off** moves selected polygons into an object of their own. See [Split off and join](split-and-join.md).
+
 **Delete.** Press **Delete** or **Backspace** (or use **Edit → Delete**) to delete the selected objects, together with everything inside them. In the Points, Edges and Polygons modes, these keys delete or dissolve the selected elements instead: see [Clean-up](clean-up.md).
 
 **Right-click** a row for the same commands in one menu. (Right-clicking a row that isn't selected selects it first.) For shapes, the menu also has **Copy settings** and **Paste … settings**: copy one shape's settings (size, segments and so on), then right-click another shape of the same kind, or a selection of them, and paste to make them match. See [The Attributes panel](attributes.md).

@@ -8,6 +8,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Slide.** In the Points, Edges and Polygons modes, hold **Alt** and drag the Move gizmo: the points slide along their edges, staying on the surface. Handy for moving a loop cut after making it.
+- **Split off and join.** **Mesh → Split off** moves the selected polygons into a new object of their own; **Join objects** (E menu in the Model mode, or the Mesh menu) makes the selected shapes one.
 - **Hide and isolate.** **Shift + H** hides the selection, **Ctrl + H** hides everything else, and **Alt + H** shows everything again: whole objects in the Model mode, polygons in the Points, Edges and Polygons modes (to see inside a shape). The left palette's **Show only the selection** button works now.
 - **Copies and instances.** **Ctrl + C** then **Ctrl + V** pastes copies of the selected objects; **Alt + V** pastes instances, which show their original's shape and change with it. **Duplicate** and **Instance** are in the E menu and the Edit menu too.
 - **Symmetry.** Click the **Symmetry** button at the right end of the top palette (or Tools → Symmetry) and choose **X**, **Y** or **Z** in the Attributes panel: moving, rotating or scaling points, edges or polygons now moves their mirror on the other side of the shape too, and points on the middle stay there.
@@ -51,6 +53,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Projects are saved in **file format version 13**, which can hold slid points. Older projects still open.
 - Projects are saved in **file format version 12**, which can hold instances. Older projects still open.
 - Projects are saved in **file format version 11**, which can hold hard and soft edges. Older projects still open.
 - Projects are saved in **file format version 10**, which can hold the clean-up edits. Older projects still open.
