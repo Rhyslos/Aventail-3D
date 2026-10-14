@@ -628,6 +628,24 @@ impl View {
         self.drag = None;
     }
 
+    /// Starts gliding round the pivot to look along `axis`'s line, at time
+    /// `now`: from its own side (towards -axis), or from the other side
+    /// if the view already looks that way (decision 0066).
+    fn start_look_along(&mut self, axis: Vec3, now: f64) {
+        let looking = self.navigator.camera().forward();
+        let towards = if looking.dot(-axis) > 0.999 {
+            axis
+        } else {
+            -axis
+        };
+        self.glide = Some(Glide {
+            from: self.navigator,
+            to: self.navigator.looking_along(towards),
+            start: now,
+        });
+        self.drag = None;
+    }
+
     /// Moves the camera along a glide in progress, at time `now`; returns
     /// whether it is still going.
     fn follow_glide(&mut self, now: f64) -> bool {
@@ -1280,6 +1298,15 @@ impl ViewportPanel {
                 response.hover_pos(),
             );
             chrome::overlays(ui, rect, &self.views[slot], &self.options);
+            // The corner marker's letters turn a perspective view to look
+            // along their axis (flat views keep their direction).
+            if !self.views[slot].kind().is_flat()
+                && let Some(axis) = chrome::axis_clicks(ui, rect, slot, self.views[slot].camera())
+            {
+                self.active = slot;
+                let now = ui.input(|i| i.time);
+                self.views[slot].start_look_along(axis, now);
+            }
             if renderer.preparing() {
                 chrome::preparing(ui, rect);
                 // Keep drawing, so the shape shows as soon as it is ready.

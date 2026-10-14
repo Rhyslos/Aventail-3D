@@ -188,17 +188,33 @@ pub fn smooth_groups_with(mesh: &Mesh, hardness: Hardness) -> Vec<u32> {
     let by_angle = match hardness {
         Hardness::Marked => None,
         Hardness::ByAngle(angle) => {
-            let normals: Vec<Vec3> = (0..starts.len().saturating_sub(1))
-                .map(|f| mesh.face_normal(FaceId::from_raw(f as u32)))
-                .collect();
+            // Worked out a share of the faces per thread.
+            let faces = starts.len().saturating_sub(1);
+            let parts = crate::parallel::in_parallel(faces, |range| {
+                range
+                    .map(|f| mesh.face_normal(FaceId::from_raw(f as u32)))
+                    .collect::<Vec<Vec3>>()
+            });
+            let normals: Vec<Vec3> = parts.into_iter().flatten().collect();
             Some((cosine(angle), normals))
         }
     };
-    let hard = |v: VertexId, other: VertexId, fi: usize, fj: usize| match &by_angle {
+    // Whether the edge from `v` to `other`, between the faces of corners
+    // `i` and `j` at `v`, breaks the shading. By angle, an edge shared by
+    // more than two of the faces around `v` breaks it too: counted from
+    // the corners at hand rather than looked up.
+    let hard = |v: VertexId,
+                other: VertexId,
+                local: &[(usize, VertexId, VertexId, usize)],
+                i: usize,
+                j: usize| match &by_angle {
         None => any_hard && mesh.is_hard(v, other),
         Some((cos, normals)) => {
-            topology.edge_uses(EdgeKey::new(v, other)).len() > 2
-                || meet_sharply(normals[fi], normals[fj], *cos)
+            let sharing = local
+                .iter()
+                .filter(|(_, p, n, _)| *p == other || *n == other)
+                .count();
+            sharing > 2 || meet_sharply(normals[local[i].3], normals[local[j].3], *cos)
         }
     };
     // Each corner's previous and next corner in its face.
@@ -208,45 +224,61 @@ pub fn smooth_groups_with(mesh: &Mesh, hardness: Hardness) -> Vec<u32> {
         let next = if k + 1 == b { a } else { k + 1 };
         (corners[prev], corners[next])
     };
-    // The corners at one point: (corner, its two neighbouring points, its
-    // face).
-    let mut local: Vec<(usize, VertexId, VertexId, usize)> = Vec::new();
-    let mut parent: Vec<usize> = Vec::new();
-    for (v, _) in mesh.vertices() {
-        local.clear();
-        for face in topology.vertex_faces(v) {
-            if let Some(k) = corner_at(mesh, *face, v) {
-                let f = face.get() as usize;
-                let (prev, next) = neighbours(k, f);
-                local.push((k, prev, next, f));
+    // Each point's corners are grouped on their own, so the points are
+    // shared out between threads; each gives (corner, its group's first
+    // corner) for its points.
+    let parts = crate::parallel::in_parallel(mesh.point_slot_count(), |range| {
+        // The corners at one point: (corner, its two neighbouring points,
+        // its face).
+        let mut local: Vec<(usize, VertexId, VertexId, usize)> = Vec::new();
+        let mut parent: Vec<usize> = Vec::new();
+        let mut out: Vec<(u32, u32)> = Vec::new();
+        for slot in range {
+            let v = VertexId::from_raw(slot as u32);
+            if mesh.position(v).is_none() {
+                continue;
             }
-        }
-        if local.len() < 2 {
-            continue;
-        }
-        parent.clear();
-        parent.extend(0..local.len());
-        // Two corners at `v` join when their faces share a soft edge
-        // through `v`: one corner's neighbour is the other's.
-        for i in 0..local.len() {
-            for j in i + 1..local.len() {
-                let (_, pi, ni, fi) = local[i];
-                let (_, pj, nj, fj) = local[j];
-                for other in [pi, ni] {
-                    if (other == pj || other == nj) && !hard(v, other, fi, fj) {
-                        join(&mut parent, i, j);
+            local.clear();
+            for face in topology.vertex_faces(v) {
+                if let Some(k) = corner_at(mesh, *face, v) {
+                    let f = face.get() as usize;
+                    let (prev, next) = neighbours(k, f);
+                    local.push((k, prev, next, f));
+                }
+            }
+            if local.len() < 2 {
+                continue;
+            }
+            parent.clear();
+            parent.extend(0..local.len());
+            // Two corners at `v` join when their faces share a soft edge
+            // through `v`: one corner's neighbour is the other's.
+            for i in 0..local.len() {
+                for j in i + 1..local.len() {
+                    let (_, pi, ni, _) = local[i];
+                    let (_, pj, nj, _) = local[j];
+                    for other in [pi, ni] {
+                        if (other == pj || other == nj) && !hard(v, other, &local, i, j) {
+                            join(&mut parent, i, j);
+                        }
                     }
                 }
             }
+            for i in 0..local.len() {
+                let root = find(&mut parent, i);
+                let first = (0..local.len())
+                    .filter(|j| find(&mut parent, *j) == root)
+                    .map(|j| local[j].0)
+                    .min()
+                    .unwrap_or(local[i].0);
+                out.push((local[i].0 as u32, first as u32));
+            }
         }
-        for i in 0..local.len() {
-            let root = find(&mut parent, i);
-            let first = (0..local.len())
-                .filter(|j| find(&mut parent, *j) == root)
-                .map(|j| local[j].0)
-                .min()
-                .unwrap_or(local[i].0);
-            groups[local[i].0] = first as u32;
+        out
+    });
+    for part in parts {
+        for (k, first) in part {
+            groups[k as usize] = first;
         }
     }
     groups

@@ -492,8 +492,10 @@ mod heavy_check {
             .and_then(|v| v.parse().ok())
             .unwrap_or(3_000_000);
         let mesh = mesh::samples::heavy_ball(polygons, 100.0);
+        // Shaded by angle, as the app draws it while Automatic hard edges
+        // is on (the standard, decision 0064).
         let start = Instant::now();
-        let mut geometry = MeshGeometry::new(&mesh);
+        let mut geometry = MeshGeometry::shaded(&mesh, mesh::Hardness::ByAngle(30.0));
         let built = start.elapsed();
         let mut after = mesh.clone();
         let moved: Vec<VertexId> = mesh.faces().nth(polygons / 2).unwrap().1.to_vec();
@@ -503,6 +505,8 @@ mod heavy_check {
         }
         let start = Instant::now();
         let found = after.moved_since(&mesh).expect("same faces");
+        // Whether an edge turned sharp or soft doesn't matter here: a heavy
+        // shape follows the move at once and is rebuilt in the background.
         let ranges = geometry.moved(&after, &found);
         let updated = start.elapsed();
         let bytes: usize = geometry.vertices.len() * std::mem::size_of::<MeshVertex>()

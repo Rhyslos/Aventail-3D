@@ -350,7 +350,7 @@ pub(super) fn preparing(ui: &mut Ui, rect: Rect) {
 
 /// Where the axis marker's middle sits, from a view's bottom-left corner:
 /// in the corner, beside the look row ([decision 0063](../../../../docs/decisions/0063-wireframe.md)).
-pub(super) const AXIS_MARKER_AT: egui::Vec2 = vec2(32.0, -32.0);
+pub(super) const AXIS_MARKER_AT: egui::Vec2 = vec2(40.0, -40.0);
 
 /// Quiet labels over a view's image: its name, the camera, an axis
 /// marker in the bottom-left corner, and the grid spacing above it.
@@ -376,7 +376,7 @@ pub(super) fn overlays(ui: &Ui, rect: Rect, view: &View, options: &ViewOptions) 
     }
     let spacing = options.grid_detail.spacing_text();
     painter.text(
-        rect.left_bottom() + vec2(10.0, -64.0),
+        rect.left_bottom() + vec2(10.0, -82.0),
         Align2::LEFT_BOTTOM,
         format!("Grid spacing: {spacing}"),
         small,
@@ -437,23 +437,105 @@ pub(super) fn axis_directions(
         .collect()
 }
 
+/// The marker's axis letters: each axis's name, its direction in the world,
+/// and where its letter sits, for a marker around `centre`. Farthest first,
+/// as drawn, so nearer letters are on top.
+pub(super) fn axis_letters(
+    camera: &tools::Camera,
+    centre: egui::Pos2,
+) -> Vec<(&'static str, Vec3, egui::Pos2)> {
+    axis_directions(camera, AXIS_LENGTH)
+        .into_iter()
+        .map(|(name, _, dir)| {
+            let axis = match name {
+                "X" => Vec3::X,
+                "Y" => Vec3::Y,
+                _ => Vec3::Z,
+            };
+            (name, axis, centre + dir + letter_offset(dir))
+        })
+        .collect()
+}
+
+/// How far an axis letter sits past its line's end: a little further
+/// along it, or on the centre for an axis pointing straight at or away
+/// from the view.
+fn letter_offset(dir: egui::Vec2) -> egui::Vec2 {
+    if dir.length() > 1.0 {
+        dir.normalized() * LETTER_RADIUS
+    } else {
+        egui::Vec2::ZERO
+    }
+}
+
+/// The radius of the round button each axis letter sits in, in points.
+const LETTER_RADIUS: f32 = 8.0;
+
+/// How long the marker's axis lines are, in points.
+const AXIS_LENGTH: f32 = 22.0;
+
+/// Accessible name of an axis letter on the marker, which turns the view
+/// to look along it when clicked (decision 0066).
+pub(crate) fn look_along_label(axis: &str) -> String {
+    format!("Look along {axis}")
+}
+
+/// The marker's letters as buttons, in a perspective view: returns the
+/// axis clicked, if any. A hovered letter gets a ring.
+pub(super) fn axis_clicks(
+    ui: &Ui,
+    rect: Rect,
+    slot: usize,
+    camera: &tools::Camera,
+) -> Option<Vec3> {
+    let mut clicked = None;
+    for (name, axis, at) in axis_letters(camera, rect.left_bottom() + AXIS_MARKER_AT) {
+        let hit = Rect::from_center_size(at, vec2(LETTER_RADIUS, LETTER_RADIUS) * 2.0);
+        let response = ui.interact(
+            hit,
+            ui.id().with(("look_along", slot, name)),
+            Sense::click(),
+        );
+        response.widget_info(|| {
+            egui::WidgetInfo::labeled(egui::WidgetType::Button, true, look_along_label(name))
+        });
+        if response.hovered() {
+            ui.painter()
+                .circle_stroke(at, LETTER_RADIUS, Stroke::new(1.2, theme::TEXT_STRONG));
+            ui.ctx().set_cursor_icon(CursorIcon::PointingHand);
+        }
+        if response
+            .on_hover_text(format!(
+                "Look at the scene from the {name} side (click again: from the other side)"
+            ))
+            .clicked()
+        {
+            clicked = Some(axis);
+        }
+    }
+    clicked
+}
+
 /// A small marker showing which way X, Y and Z point from this view.
 fn axis_marker(painter: &egui::Painter, centre: egui::Pos2, camera: &tools::Camera) {
-    for (name, color, dir) in axis_directions(camera, 18.0) {
+    for (name, color, dir) in axis_directions(camera, AXIS_LENGTH) {
         painter.line_segment([centre, centre + dir], Stroke::new(1.6, color));
         // An axis pointing straight at or away from you is just a dot;
         // its letter then sits on the centre.
-        let away = if dir.length() > 1.0 {
-            dir.normalized() * 7.0
-        } else {
-            egui::Vec2::ZERO
-        };
-        let label_at = centre + dir + away;
+        let label_at = centre + dir + letter_offset(dir);
+        // Each letter in a soft round button of its colour: click it to
+        // look along the axis (perspective views, decision 0066).
+        painter.circle_filled(label_at, LETTER_RADIUS, color.gamma_multiply(0.22));
+        painter.circle_stroke(
+            label_at,
+            LETTER_RADIUS,
+            Stroke::new(1.0, color.gamma_multiply(0.6)),
+        );
         painter.text(
             label_at,
             Align2::CENTER_CENTER,
             name,
-            FontId::proportional(10.0),
+            FontId::proportional(11.0),
             color,
         );
     }

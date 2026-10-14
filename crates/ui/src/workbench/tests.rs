@@ -866,37 +866,74 @@ fn display_menu_and_the_corner_button_choose_the_shading() {
 }
 
 #[test]
-fn cavity_is_on_and_switches_from_the_display_menu_and_the_corner_button() {
+fn cavity_is_on_and_switches_from_the_shading_list_and_the_display_menu() {
     use crate::viewport::chrome::CAVITY_ENTRY;
     let mut harness = fresh();
     let on =
         |h: &egui_kittest::Harness<'static, State>| !h.state().workbench.view_options().hide_cavity;
     assert!(on(&harness), "on as standard");
-    // The button beside Shading in the bottom-left corner.
-    let button = harness.get_by_label(CAVITY_ENTRY);
-    let shading = harness.get_by_label(crate::viewport::SHADING_LABEL).rect();
-    assert!(
-        button.rect().left() > shading.right()
-            && (button.rect().center().y - shading.center().y).abs() < 1.0
-    );
-    button.click();
+    // No button of its own in the corner any more.
+    assert!(harness.query_by_label(CAVITY_ENTRY).is_none());
+    // In the bottom-left Shading list, under the looks; the list stays
+    // open, so it can be tried on and off.
+    harness.get_by_label(crate::viewport::SHADING_LABEL).click();
+    harness.run();
+    harness.get_by_label(CAVITY_ENTRY).click();
     harness.run();
     assert!(!on(&harness));
-    // And in the Display menu, under the shading choices.
-    harness.get_by_label("Display").click();
-    harness.run();
-    let entries: Vec<_> = harness
-        .get_all_by_label(CAVITY_ENTRY)
-        .map(|n| n.rect())
-        .collect();
-    assert_eq!(entries.len(), 2, "the button and the menu entry");
-    harness
-        .get_all_by_label(CAVITY_ENTRY)
-        .min_by(|a, b| a.rect().top().total_cmp(&b.rect().top()))
-        .unwrap()
-        .click();
+    assert!(
+        harness.query_by_label(CAVITY_ENTRY).is_some(),
+        "the list is still open"
+    );
+    harness.get_by_label(CAVITY_ENTRY).click();
     harness.run();
     assert!(on(&harness));
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    // And in the Display menu.
+    harness.get_by_label("Display").click();
+    harness.run();
+    harness.get_by_label(CAVITY_ENTRY).click();
+    harness.run();
+    assert!(!on(&harness));
+}
+
+#[test]
+fn clicking_an_axis_on_the_corner_marker_looks_along_it_and_again_from_the_other_side() {
+    use crate::viewport::chrome::look_along_label;
+    let mut harness = fresh();
+    let settle = |h: &mut egui_kittest::Harness<'static, State>| {
+        for _ in 0..4 {
+            h.run();
+        }
+    };
+    let pivot_distance = |h: &egui_kittest::Harness<'static, State>| {
+        let v = h.state().workbench.viewport();
+        v.camera().position.distance(v.navigator().pivot())
+    };
+    let before = pivot_distance(&harness);
+    // Z: straight down from above.
+    harness.get_by_label(&look_along_label("Z")).click();
+    settle(&mut harness);
+    assert!(camera(&harness).forward().dot(-glam::Vec3::Z) > 0.999);
+    assert!(
+        (pivot_distance(&harness) - before).abs() < 0.5,
+        "same distance"
+    );
+    // Again: up from below.
+    harness.get_by_label(&look_along_label("Z")).click();
+    settle(&mut harness);
+    assert!(camera(&harness).forward().dot(glam::Vec3::Z) > 0.999);
+    // X: from the right, looking towards -X.
+    harness.get_by_label(&look_along_label("X")).click();
+    settle(&mut harness);
+    assert!(camera(&harness).forward().dot(-glam::Vec3::X) > 0.999);
+    assert!(camera(&harness).position.x > 0.0);
+    // Flat views keep their direction: no clickable letters there.
+    harness.key_press(egui::Key::F2);
+    settle(&mut harness);
+    assert!(camera(&harness).is_flat());
+    assert!(harness.query_by_label(&look_along_label("X")).is_none());
 }
 
 #[test]

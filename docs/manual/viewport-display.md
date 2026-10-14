@@ -29,7 +29,9 @@ In **Wireframe**, clicking still picks the shape you click inside, as if it were
 
 **Cavity** brightens ridges and darkens creases on the surfaces: a thin light line where a shape turns outward (a box's outer corner, the rim of a raised panel) and a soft shadow where it turns inward (the inside corner of a recess, a groove). It's like light catching the edges and dust settling in the cracks. It makes a shape's form easy to read at a glance, especially flat hard-surface parts in a single grey. It changes only how the shape looks, never the shape.
 
-It's **on as standard**. Click the **Cavity** button beside the Shading button in the bottom-left corner (its dot is lit while it's on), or use **Display → Cavity**. Remembered.
+It's **on as standard**. Switch it in the Shading button's list in the bottom-left corner (under the three looks; the list stays open, so you can try it on and off), or with **Display → Cavity**. Remembered.
+
+![The Shading list open from the bottom-left corner: Shaded, Shaded with wires, Wireframe, and Cavity ticked below them.](../screenshots/2026-10-14-shading-list.png)
 
 ![A cube with recessed and raised panels. Left, Cavity off. Right, on: the outer edges catch a light line and the inner corners of the recesses darken.](../screenshots/2026-10-14-cavity.png)
 
@@ -39,7 +41,7 @@ Cavity works in **Shaded** and **Shaded with wires**. **Wireframe** has no surfa
 
 | Setting | What it does |
 |---|---|
-| **Cavity** (the bottom-left button, or **Display** menu) | On (the standard): ridges brightened and creases darkened. Off: plain shading. Remembered. |
+| **Cavity** (the Shading list in the bottom-left corner, or **Display** menu) | On (the standard): ridges brightened and creases darkened. Off: plain shading. Remembered. |
 | **Shading** (the bottom-left button, or **Display** menu) | **Shaded**: solid, softly lit surfaces with faint edges. **Shaded with wires**: solid surfaces with every edge drawn clearly in light grey. **Wireframe**: only the edges, seen through the shape. Remembered. |
 
 ## Shortcuts
@@ -47,7 +49,7 @@ Cavity works in **Shaded** and **Shaded with wires**. **Wireframe** has no surfa
 | Action | Shortcut |
 |---|---|
 | Choose the look | Click the button in the viewport's bottom-left corner, or **Display** in the viewport's menu line |
-| Cavity on or off | Click **Cavity** in the bottom-left corner, or **Display → Cavity** |
+| Cavity on or off | **Cavity** in the bottom-left Shading list, or **Display → Cavity** |
 
 There is no key for it yet, so no key is taken from future tools. Ask if you'd like one.
 
