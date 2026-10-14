@@ -59,6 +59,7 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0049](0049-slit.md) | Slit: a line of points over the shape, cut as seen (or through); file format version 7 | Accepted |
 | [0050](0050-pipe-bends.md) | Pipe bends: an extrude that turns a corner and keeps its size (smooth elbow or mitre joint); file format version 8 | Accepted |
 | [0051](0051-connect-bridge-weld.md) | Connect (J), Bridge (C or drag) and Weld (M, Ctrl + M); file format version 9 | Accepted |
+| [0058](0058-closed-slit.md) | Closed slits: click the first point to close the line; a loop inside a polygon cuts its shape in, the ring round it cut in two; saved as the first point again, no format change | Accepted |
 | [0057](0057-after-phase-4-testing.md) | Fixes and keys after Phase 4 testing: Tab steps back, Connect on A, Fill hole on J, click selects in Weld and Bridge, weld snap, bend Angle resets, Dissolve warns on sharp corners, proper triangulation | Accepted |
 | [0056](0056-shortcut-viewer.md) | The keyboard shortcut viewer: Keys on the menu bar, every key from the app's own constants | Accepted |
 | [0055](0055-basics.md) | The basics: hide and isolate (Shift/Ctrl/Alt + H), copies and instances (Ctrl/Alt + C and V), slide (Alt + Move drag), split off and join; file format versions 12 and 13 | Accepted |

@@ -9,6 +9,11 @@
 //! stretch at 15° steps on screen. Esc or Enter finishes the line, as does
 //! picking another tool or mode; Ctrl + Z takes the cut back.
 //!
+//! Clicking the line's first point again (with three or more points)
+//! closes it into a loop and finishes it, as the project lead asked
+//! ([decision 0058](../../../../docs/decisions/0058-closed-slit.md)): drawn
+//! inside one polygon, the loop cuts its shape into it.
+//!
 //! The whole line is one undo step: each change takes back the cut before
 //! (`Document::abandon`) and records it again with the new line, one
 //! `Operation::Slit` per selected object, in its own space.
@@ -31,6 +36,10 @@ const POINT_REACH: f32 = 9.0;
 const LINE_REACH: f32 = 6.0;
 /// Shift keeps a stretch at steps of this many degrees on screen.
 const ANGLE_STEP: f32 = 15.0;
+/// How far (screen points) the mouse may move while pressing a line point
+/// for it to count as a click, not a drag: a click on a point leaves it
+/// where it is (and on the first point, closes the line).
+const CLICK_SLACK: f32 = 3.0;
 
 /// A slit's line being drawn.
 #[derive(Debug, Clone, PartialEq)]
@@ -48,6 +57,11 @@ pub(super) struct SlitSession {
     /// The point being dragged, and where it was before (`None`: just
     /// added).
     dragging: Option<(usize, Option<Vec3>)>,
+    /// Where an existing point was pressed on screen, until the mouse
+    /// moves away from there: so far it's a click, not a drag.
+    pressed_at: Option<Vec2>,
+    /// Whether the line has been closed into a loop.
+    closed: bool,
     /// How many undo steps there were after the last change: any other
     /// change (an undo, a selection) finishes the line.
     steps: usize,
@@ -65,12 +79,19 @@ impl SlitSession {
         } else {
             Eye::At(inverse.transform_point3(self.camera.position))
         };
+        let mut points: Vec<Vec3> = self
+            .points
+            .iter()
+            .map(|p| inverse.transform_point3(*p))
+            .collect();
+        // A closed line ends where it began (`SlitLine::is_closed`).
+        if self.closed
+            && let Some(first) = points.first().copied()
+        {
+            points.push(first);
+        }
         Some(SlitLine {
-            points: self
-                .points
-                .iter()
-                .map(|p| inverse.transform_point3(*p))
-                .collect(),
+            points,
             eye,
             through: self.through,
         })
@@ -240,7 +261,9 @@ impl Workbench {
     /// Finishes the line being drawn, keeping its cut.
     pub(super) fn finish_slit(&mut self) {
         if let Some(session) = self.slit_session.take() {
-            self.note = Some(if session.points.len() >= 2 {
+            self.note = Some(if session.closed {
+                "Slit closed: the loop is cut in. Ctrl + Z takes it back.".into()
+            } else if session.points.len() >= 2 {
                 "Slit finished. Ctrl + Z takes it back.".into()
             } else {
                 "Slit: nothing was cut.".into()
@@ -272,6 +295,16 @@ impl Workbench {
             .as_ref()
             .is_some_and(|s| s.dragging.is_some());
         let cursor = match self.viewport.pointer() {
+            // Over the first point, with enough points to close: the next
+            // click closes the line, so the cursor shows the stretch back.
+            Some(pointer)
+                if !dragging
+                    && points.len() >= 3
+                    && on_screen(&pointer, points[0])
+                        .is_some_and(|s| s.distance(pointer.at) <= POINT_REACH) =>
+            {
+                Some(points[0])
+            }
             Some(pointer) if !dragging => {
                 Some(self.slit_spot(drawing, pointer, points.last().copied(), false))
             }
@@ -306,6 +339,15 @@ impl Workbench {
                     let Some(mut session) = self.slit_session.take() else {
                         continue;
                     };
+                    // Still within a click of where an existing point was
+                    // pressed: it stays put.
+                    if let Some(at) = session.pressed_at {
+                        if at.distance(pointer.at) <= CLICK_SLACK {
+                            self.slit_session = Some(session);
+                            continue;
+                        }
+                        session.pressed_at = None;
+                    }
                     if let Some((i, _)) = session.dragging {
                         let from = i.checked_sub(1).map(|k| session.points[k]);
                         let spot = self.slit_place(drawing, pointer, from, keys.shift);
@@ -318,8 +360,21 @@ impl Workbench {
                     self.slit_session = Some(session);
                 }
                 ToolDragEvent::End => {
-                    if let Some(session) = &mut self.slit_session {
-                        session.dragging = None;
+                    let Some(mut session) = self.slit_session.take() else {
+                        continue;
+                    };
+                    // A click on the first point closes the line.
+                    let clicked_first = session.pressed_at.is_some()
+                        && matches!(session.dragging, Some((0, Some(_))));
+                    session.dragging = None;
+                    session.pressed_at = None;
+                    if clicked_first && !session.closed && session.points.len() >= 3 {
+                        session.closed = true;
+                        self.record_slit(&mut session);
+                        self.slit_session = Some(session);
+                        self.finish_slit();
+                    } else {
+                        self.slit_session = Some(session);
                     }
                 }
                 ToolDragEvent::Cancel => {
@@ -327,6 +382,7 @@ impl Workbench {
                     let Some(mut session) = self.slit_session.take() else {
                         continue;
                     };
+                    session.pressed_at = None;
                     match session.dragging.take() {
                         Some((i, Some(was))) => session.points[i] = was,
                         Some((i, None)) => {
@@ -365,6 +421,8 @@ impl Workbench {
                     camera: pointer.camera,
                     through: self.attributes.slit_through,
                     dragging: None,
+                    pressed_at: None,
+                    closed: false,
                     steps: self.document.undo_steps(),
                 }
             }
@@ -393,6 +451,7 @@ impl Workbench {
         }
         if let Some(i) = near_point {
             session.dragging = Some((i, Some(session.points[i])));
+            session.pressed_at = Some(pointer.at);
             self.slit_session = Some(session);
             return;
         }
@@ -414,8 +473,9 @@ impl Workbench {
         let spot = self.slit_place(drawing, pointer, from, keys.shift);
         session.points.insert(at, spot);
         session.dragging = Some((at, None));
-        if session.points.len() > mesh::slit::MAX_LINE_POINTS {
-            session.points.truncate(mesh::slit::MAX_LINE_POINTS);
+        // One place is kept for closing the line (its first point again).
+        if session.points.len() >= mesh::slit::MAX_LINE_POINTS {
+            session.points.truncate(mesh::slit::MAX_LINE_POINTS - 1);
             session.dragging = None;
         }
         self.record_slit(&mut session);

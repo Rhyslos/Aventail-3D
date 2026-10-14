@@ -486,7 +486,7 @@ impl AttributesPanel {
         } else if self.tool == Tool::Weld {
             "Drag a point onto another; a selected point brings the whole selection."
         } else if self.tool == Tool::Slit {
-            "Click or drag points over the shape. Esc or Enter finishes the line."
+            "Click or drag points over the shape. Esc or Enter finishes the line; click the first point to close it into a loop."
         } else if self.tool == Tool::LoopCut {
             "Point at an edge to see the loop; click to cut, or drag along the edge to slide it."
         } else if self.tool == Tool::Bevel {
