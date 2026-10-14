@@ -721,3 +721,102 @@ fn a_corner_point_bevels_too() {
         Some("Bevel 1 point")
     );
 }
+
+/// One notch of Ctrl + wheel at `at`, up or down.
+fn ctrl_wheel(harness: &mut H, at: Pos2, up: bool) {
+    harness.event(Event::ModifiersChanged(Modifiers::COMMAND));
+    harness.event(Event::PointerMoved(at));
+    harness.event(Event::MouseWheel {
+        unit: egui::MouseWheelUnit::Line,
+        delta: egui::vec2(0.0, if up { 1.0 } else { -1.0 }),
+        modifiers: Modifiers::COMMAND,
+        phase: egui::TouchPhase::Move,
+    });
+    harness.run();
+    harness.event(Event::ModifiersChanged(Modifiers::NONE));
+    harness.run();
+}
+
+fn bevel_segments(harness: &H) -> u32 {
+    match last_operation(harness) {
+        Some(Operation::BevelEdges { shape, .. }) => shape.segments,
+        other => panic!("not a bevel: {other:?}"),
+    }
+}
+
+#[test]
+fn ctrl_and_the_wheel_change_the_bevels_segments() {
+    let mut harness = bevel_ready(Key::Num2, top_right_edge);
+    let middle = edge_middle(&harness);
+    let camera = *harness.state().workbench.viewport().camera();
+    // Before: the tool's Segments.
+    ctrl_wheel(&mut harness, middle, true);
+    assert_eq!(harness.state().workbench.attributes.bevel.segments, 2);
+    assert!(
+        note(&harness).starts_with("Bevel: 2 segments"),
+        "{}",
+        note(&harness)
+    );
+    assert_eq!(*harness.state().workbench.viewport().camera(), camera);
+    // While dragging: the bevel being made.
+    harness.event(Event::PointerMoved(middle));
+    harness.run();
+    button(
+        &mut harness,
+        middle,
+        true,
+        PointerButton::Primary,
+        Modifiers::NONE,
+    );
+    let mut at = middle;
+    for _ in 0..5 {
+        at += egui::vec2(0.0, -12.0);
+        harness.event(Event::PointerMoved(at));
+        harness.run();
+    }
+    assert_eq!(bevel_segments(&harness), 2);
+    ctrl_wheel(&mut harness, at, true);
+    assert_eq!(bevel_segments(&harness), 3);
+    button(
+        &mut harness,
+        at,
+        false,
+        PointerButton::Primary,
+        Modifiers::NONE,
+    );
+    let steps = harness.state().workbench.document().undo_steps();
+    assert_eq!(shape(&harness).face_count(), 6 + 3);
+    // After: the last bevel, one undo step per notch, never below one.
+    ctrl_wheel(&mut harness, middle, false);
+    assert_eq!(bevel_segments(&harness), 2);
+    assert_eq!(harness.state().workbench.document().undo_steps(), steps + 1);
+    for _ in 0..4 {
+        ctrl_wheel(&mut harness, middle, false);
+    }
+    assert_eq!(bevel_segments(&harness), 1);
+    assert_eq!(harness.state().workbench.attributes.bevel.segments, 1);
+}
+
+#[test]
+fn ctrl_and_the_wheel_grow_the_selection_with_tools_without_a_count() {
+    let mut harness = ready(Key::D);
+    let before = harness
+        .state()
+        .workbench
+        .document()
+        .elements(cube(&harness))
+        .unwrap()
+        .polygons()
+        .count();
+    let at = on_screen(&harness, glam::Vec3::new(0.0, 0.0, 100.0));
+    ctrl_wheel(&mut harness, at, true);
+    let after = harness
+        .state()
+        .workbench
+        .document()
+        .elements(cube(&harness))
+        .unwrap()
+        .polygons()
+        .count();
+    assert!(after > before, "{before} → {after}");
+}

@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Ctrl + mouse wheel changes a tool's count**: Bevel's Segments and Loop cut's Cuts, before, while dragging, and on the edit you just made. With every other tool it still grows and shrinks the selection.
 - **Loop cut.** In Points, Edges or Polygons mode, press **F** (or pick Loop cut from the E menu or the Mesh menu) and point at an edge: the new loop shows all the way around the shape. Click to cut it, or press and drag along the edge to slide it into place first. Hold **Ctrl** and turn the mouse wheel (or set **Cuts** in the Attributes panel) to make several evenly spaced loops at once; afterwards the cut's Cuts and Position can still be changed under Last edit. The loop stops cleanly at triangles, caps and open borders.
 - **Hollow bevels.** The bevel's Profile now goes from 100% down to -100%: 100% is round, 0% is flat, and below 0 the bevel curves inward instead, like a cove moulding.
 - **Bevel.** In Edges mode, select edges, press **V** (or pick Bevel from the E menu or the Mesh menu) and drag away from them: the edges are cut away and replaced by a strip, flat (a chamfer) or rounded. In Points mode, V cuts corners off. **Segments** and **Profile** (round to flat) are set in the Attributes panel before the drag, and the last bevel's Width, Segments and Profile can be changed afterwards. Where bevelled edges meet, a corner polygon closes the gap.

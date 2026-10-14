@@ -675,6 +675,8 @@ pub struct ViewportPanel {
     drag_tool: bool,
     /// Whether a modelling tool used by clicking on shapes is in use.
     click_tool: bool,
+    /// Whether the tool in use has a count Ctrl + wheel changes.
+    wheel_tool: bool,
     /// Ctrl + wheel notches for that tool since last asked (up is more).
     tool_steps: i32,
     /// What the modelling tool's drag is doing, written by the mouse.
@@ -703,6 +705,7 @@ impl Default for ViewportPanel {
             gizmo_events: Vec::new(),
             drag_tool: false,
             click_tool: false,
+            wheel_tool: false,
             tool_steps: 0,
             tool_label: None,
             tool_events: Vec::new(),
@@ -866,8 +869,14 @@ impl ViewportPanel {
         self.click_tool = active;
     }
 
-    /// The Ctrl + wheel notches for a tool used on shapes since last asked
-    /// (up is positive).
+    /// Whether the tool in use has a count that Ctrl + wheel changes
+    /// (instead of growing the selection), from this frame on.
+    pub(crate) fn set_wheel_tool(&mut self, active: bool) {
+        self.wheel_tool = active;
+    }
+
+    /// The Ctrl + wheel notches for the tool's count since last asked (up
+    /// is positive).
     pub(crate) fn take_tool_steps(&mut self) -> i32 {
         std::mem::take(&mut self.tool_steps)
     }
@@ -1104,9 +1113,9 @@ impl ViewportPanel {
             return;
         }
         self.ctrl_scroll -= steps * notch;
-        if self.click_tool {
-            // A tool used on the shape (Loop cut) takes the turns: there is
-            // no selecting to grow while it is in use.
+        if self.wheel_tool {
+            // A tool with a count (Bevel's segments, Loop cut's cuts) takes
+            // the turns while it is in use (decision 0048).
             self.tool_steps += steps as i32;
         } else if self.select_tool == SelectTool::Brush {
             self.brush_radius =

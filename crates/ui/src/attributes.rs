@@ -762,7 +762,7 @@ fn count(n: usize, thing: &str) -> String {
 }
 
 /// The top edit of `stack` (where it is, and what), if any.
-fn last_edit(stack: &Stack) -> Option<(usize, usize, &Operation)> {
+pub(crate) fn last_edit(stack: &Stack) -> Option<(usize, usize, &Operation)> {
     let (layer, top) = stack
         .layers()
         .iter()
@@ -782,7 +782,7 @@ fn grouping_of(together: bool) -> Grouping {
 }
 
 /// Whether `operation` is the kind of edit `tool` makes.
-fn made_by(operation: &Operation, tool: Tool) -> bool {
+pub(crate) fn made_by(operation: &Operation, tool: Tool) -> bool {
     matches!(
         (operation, tool),
         (

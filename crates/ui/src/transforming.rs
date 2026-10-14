@@ -102,6 +102,12 @@ impl Tool {
         self == Self::LoopCut
     }
 
+    /// Whether it has a count that Ctrl + wheel changes while it is in use
+    /// (Bevel's segments, Loop cut's cuts; [decision 0048](../../../docs/decisions/0048-ctrl-wheel-changes-a-tools-count.md)).
+    pub fn has_wheel_count(self) -> bool {
+        matches!(self, Self::Bevel | Self::LoopCut)
+    }
+
     /// Whether it has settings in the Attributes panel for its next use.
     pub fn has_settings(self) -> bool {
         self.drags_anywhere() || self == Self::LoopCut

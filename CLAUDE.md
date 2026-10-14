@@ -11,6 +11,7 @@ Aventail 3D is developed largely by Claude, steered by the project lead (Rhyslos
 ## Rules that are easy to forget
 
 - One milestone per branch and pull request. Never push to `main`.
+- A new tool with a count (segments, cuts, sides) gets **Ctrl + wheel** for it while the tool is in use ([decision 0048](docs/decisions/0048-ctrl-wheel-changes-a-tools-count.md)): add it to `Tool::has_wheel_count` and `Workbench::wheel_count`, and list it in its manual page.
 - Follow every ground rule in `CONTRIBUTING.md`; CI enforces many of them, review enforces the rest.
 - Write tests for every batch (normal, edge, failure, regression, round trip, fuzz, benchmarks as relevant), run the whole suite, and report results in the pull request.
 - Update documentation in the same pull request: code comments, crate READMEs, `ARCHITECTURE.md`, `CHANGELOG.md`, the **user manual** (`docs/manual/`), and the README progress tracker and history when a milestone completes.

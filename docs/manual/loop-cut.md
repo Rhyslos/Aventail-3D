@@ -27,7 +27,7 @@ Before you cut, hold **Ctrl** and turn the **mouse wheel**: up for more cuts, do
 
 ### Change it afterwards
 
-After a cut, the Attributes panel shows it under **Last edit**, with its **Cuts** and **Position**. Change either and the cut you just made follows. This works until you make another edit on top. Changing Cuts there also sets it for your next cut.
+After a cut, the Attributes panel shows it under **Last edit**, with its **Cuts** and **Position**. Change either and the cut you just made follows; **Ctrl + wheel** changes its Cuts too, one undo step per notch. This works until you make another edit on top. Changing Cuts there also sets it for your next cut.
 
 ![The cube after a loop cut with Cuts raised to 3 under Last edit: three evenly spaced loops around its sides.](../screenshots/2026-10-14-loop-cut.png)
 

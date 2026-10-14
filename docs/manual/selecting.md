@@ -91,7 +91,7 @@ A **double-click** selects a whole [loop](concepts.md#mesh-basics), the belt run
 
 ### Grow, shrink, all, invert
 
-- **Ctrl + mouse wheel up** grows the selection by one step: everything touching it is added. **Ctrl + wheel down** shrinks it by one step, taking away its outer rim. (With the brush active, Ctrl + wheel changes the brush's size instead, and with [Loop cut](loop-cut.md) its number of cuts; use the Select menu to grow and shrink then.)
+- **Ctrl + mouse wheel up** grows the selection by one step: everything touching it is added. **Ctrl + wheel down** shrinks it by one step, taking away its outer rim. (With the brush active, Ctrl + wheel changes the brush's size instead, and with a tool that has a count, that count: [Bevel](bevel.md)'s segments, [Loop cut](loop-cut.md)'s cuts; use the Select menu to grow and shrink then.)
 - **Ctrl + A** selects everything: all shapes in Model mode, or all points, edges or polygons of the selected shapes.
 - **Ctrl + I** inverts: what was selected is unselected, and the rest selected.
 - **Esc** unselects the points, edges or polygons, but keeps the shape selected, so you can keep working on it. In Model mode, Esc unselects the shapes.

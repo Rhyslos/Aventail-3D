@@ -304,3 +304,16 @@ fn ctrl_and_the_wheel_still_grow_the_selection_with_other_tools() {
     ctrl_wheel(&mut harness, middle, true);
     assert_eq!(harness.state().workbench.attributes.loop_cut.cuts, 1);
 }
+
+#[test]
+fn ctrl_and_the_wheel_change_the_last_cut() {
+    let mut harness = ready();
+    let middle = edge_middle(&harness);
+    click(&mut harness, middle);
+    let steps = harness.state().workbench.document().undo_steps();
+    ctrl_wheel(&mut harness, middle, true);
+    assert_eq!(loop_cut(&harness).0, 2);
+    assert_eq!(shape(&harness).face_count(), 6 + 8);
+    assert_eq!(harness.state().workbench.document().undo_steps(), steps + 1);
+    assert_eq!(harness.state().workbench.attributes.loop_cut.cuts, 2);
+}

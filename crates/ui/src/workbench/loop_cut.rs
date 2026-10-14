@@ -95,7 +95,7 @@ impl LoopTarget {
 pub(super) struct LoopCutSession {
     key: u64,
     target: LoopTarget,
-    cuts: u32,
+    pub(super) cuts: u32,
     /// Where the press was, in the view's screen points, and how far along
     /// the edge that is.
     start: Vec2,
@@ -172,13 +172,8 @@ impl Workbench {
         self.components.set_tool_lines(lines);
     }
 
-    /// Carries out this frame's Loop cut presses, drags and clicks, and
-    /// Ctrl + wheel turns (more or fewer cuts).
+    /// Carries out this frame's Loop cut presses, drags and clicks.
     pub(super) fn carry_out_loop_cut(&mut self, drawing: &SceneDrawing) {
-        let steps = self.viewport.take_tool_steps();
-        if steps != 0 {
-            self.change_cuts(steps);
-        }
         for event in self.viewport.take_tool_events() {
             match event {
                 ToolDragEvent::Begin { pointer } => {
@@ -226,29 +221,6 @@ impl Workbench {
         }
     }
 
-    /// Ctrl + wheel: `steps` more cuts (fewer when negative), for the next
-    /// cut and the one being placed.
-    fn change_cuts(&mut self, steps: i32) {
-        let max = mesh::loopcut::MAX_CUTS as i64;
-        let cuts =
-            (i64::from(self.attributes.loop_cut.cuts) + i64::from(steps)).clamp(1, max) as u32;
-        self.attributes.loop_cut.cuts = cuts;
-        self.note = Some(format!(
-            "Loop cut: {} (Ctrl + wheel for more or fewer).",
-            match cuts {
-                1 => "1 cut".to_string(),
-                n => format!("{n} cuts"),
-            }
-        ));
-        if let Some(session) = &mut self.loop_cut_session
-            && session.cuts != cuts
-        {
-            session.cuts = cuts;
-            let session = session.clone();
-            self.show_loop_cut(&session);
-        }
-    }
-
     /// Starts a loop cut across the edge under the press, and cuts it.
     /// Says in the status bar why not, when there is no edge to cut.
     fn begin_loop_cut(
@@ -277,7 +249,7 @@ impl Workbench {
     }
 
     /// Shows the session's cut, saying where it is beside the mouse.
-    fn show_loop_cut(&mut self, session: &LoopCutSession) {
+    pub(super) fn show_loop_cut(&mut self, session: &LoopCutSession) {
         let percent = (session.target.position * 100.0).round();
         let text = format!("{}: {percent}%", label(session.cuts));
         match session.show(&mut self.document) {

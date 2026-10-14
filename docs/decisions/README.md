@@ -55,3 +55,4 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0045](0045-limits-for-files.md) | Limits for files (unpacked size, a memory budget while reading, counts) and a size guard for shapes; recovery that can't loop | Accepted |
 | [0046](0046-our-own-names.md) | Our own names: Attributes panel, Objects panel, Paint select, Snap to | Accepted |
 | [0047](0047-loop-cut.md) | Loop cut: hover, click or drag; Cuts in the Attributes panel; Z frames, Shift + X/Y/Z lock; file format version 6 | Accepted |
+| [0048](0048-ctrl-wheel-changes-a-tools-count.md) | Ctrl + wheel changes a tool's count (Bevel's segments, Loop cut's cuts, and every tool to come) | Accepted |
