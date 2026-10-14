@@ -370,7 +370,7 @@ pub fn select_tool_icon(tool: SelectTool) -> Icon {
     match tool {
         SelectTool::Box => Icon::BoxSelection,
         SelectTool::Lasso => Icon::LassoSelection,
-        SelectTool::Brush => Icon::LiveSelection,
+        SelectTool::Brush => Icon::PaintSelect,
     }
 }
 

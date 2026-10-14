@@ -17,7 +17,7 @@ pub enum Icon {
     /// Edit → Redo.
     Redo,
     /// Paint select: paint to select.
-    LiveSelection,
+    PaintSelect,
     /// Box selection: drag a box.
     BoxSelection,
     /// Lasso selection: draw around what to select.
@@ -133,7 +133,7 @@ pub enum Icon {
 pub const ALL: [Icon; 57] = [
     Icon::Undo,
     Icon::Redo,
-    Icon::LiveSelection,
+    Icon::PaintSelect,
     Icon::BoxSelection,
     Icon::LassoSelection,
     Icon::VisibleOnly,
@@ -436,7 +436,7 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
             curve.push(pen.p(13.0, 20.0));
             pen.line(curve);
         }
-        Icon::LiveSelection => {
+        Icon::PaintSelect => {
             // A dashed circle with a plus in it.
             for i in 0..12 {
                 let a = i as f32 / 12.0 * TAU;
