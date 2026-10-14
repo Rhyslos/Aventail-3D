@@ -974,6 +974,7 @@ impl Workbench {
             self.viewport.pointer(),
             crate::components::Guides {
                 hard_edges: !options.hide_hard_edges,
+                by_angle: options.auto_hard_angle(),
                 normals: options.show_normals,
             },
         );

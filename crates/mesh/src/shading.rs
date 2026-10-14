@@ -8,10 +8,45 @@
 //! breaks, giving a crisp edge; across soft edges it flows, giving a
 //! smooth curve. Normals are always worked out like this, never stored
 //! (DESIGN.md §4.1).
+//!
+//! The shading can also break by angle instead of by the marks
+//! ([`Hardness::ByAngle`], [decision 0064](../../../docs/decisions/0064-automatic-hard-edges.md)):
+//! wherever two polygons meet more sharply than the angle, whatever the
+//! edge is marked. The viewport does this while *Automatic hard edges* is
+//! on, so a cylinder's sides stay smooth and its caps crisp after any edit.
 
+use crate::EdgeKey;
 use crate::polygon::{FaceId, Mesh, VertexId};
 use glam::Vec3;
 use std::collections::BTreeMap;
+
+/// What decides where the shading breaks.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub enum Hardness {
+    /// The edges marked hard (the standard).
+    #[default]
+    Marked,
+    /// Every edge where two polygons meet more sharply than this many
+    /// degrees, whatever it is marked; an edge shared by more than two
+    /// polygons too. Edges between polygons with no area stay soft.
+    ByAngle(f32),
+}
+
+/// Whether two polygons with these normals meet more sharply than the
+/// angle whose cosine is `cos`. A polygon with no area has no facing:
+/// such an edge stays soft.
+fn meet_sharply(n1: Vec3, n2: Vec3, cos: f32) -> bool {
+    n1.length_squared() > 0.5 && n2.length_squared() > 0.5 && n1.dot(n2) < cos - 1e-6
+}
+
+/// The cosine of `angle` degrees, kept within 0–180°.
+fn cosine(angle: f32) -> f32 {
+    let angle = if angle.is_finite() { angle } else { 0.0 };
+    angle
+        .clamp(0.0, crate::hardness::MAX_ANGLE)
+        .to_radians()
+        .cos()
+}
 
 /// One triangle ready to draw.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -72,7 +107,12 @@ pub fn corner_normal_list(mesh: &Mesh) -> Vec<Vec3> {
 /// face corner, in the order the mesh lists its faces' corners. Worked out
 /// in a few passes over the corners, so it stays quick for heavy meshes.
 pub fn corner_shading(mesh: &Mesh) -> (Vec<u32>, Vec<Vec3>) {
-    let groups = smooth_groups(mesh);
+    corner_shading_with(mesh, Hardness::Marked)
+}
+
+/// [`corner_shading`], with the shading breaking where `hardness` says.
+pub fn corner_shading_with(mesh: &Mesh, hardness: Hardness) -> (Vec<u32>, Vec<Vec3>) {
+    let groups = smooth_groups_with(mesh, hardness);
     let (starts, corners) = mesh.face_layout();
     let faces = starts.len().saturating_sub(1);
     // Each face's normal, and how much it counts at each of its corners
@@ -133,10 +173,34 @@ fn corner_at(mesh: &Mesh, face: FaceId, v: VertexId) -> Option<usize> {
 /// depend only on the faces and hard edges, not on where points are, so
 /// they stay the same while points move.
 pub fn smooth_groups(mesh: &Mesh) -> Vec<u32> {
+    smooth_groups_with(mesh, Hardness::Marked)
+}
+
+/// [`smooth_groups`], with the groups split where `hardness` says. By
+/// angle, the groups depend on where points are too: see
+/// [`angle_hardness_changed`].
+pub fn smooth_groups_with(mesh: &Mesh, hardness: Hardness) -> Vec<u32> {
     let topology = mesh.topology();
     let (starts, corners) = mesh.face_layout();
     let mut groups: Vec<u32> = (0..corners.len() as u32).collect();
     let any_hard = mesh.hard_edge_count() > 0;
+    // By angle: each face's normal, worked out once.
+    let by_angle = match hardness {
+        Hardness::Marked => None,
+        Hardness::ByAngle(angle) => {
+            let normals: Vec<Vec3> = (0..starts.len().saturating_sub(1))
+                .map(|f| mesh.face_normal(FaceId::from_raw(f as u32)))
+                .collect();
+            Some((cosine(angle), normals))
+        }
+    };
+    let hard = |v: VertexId, other: VertexId, fi: usize, fj: usize| match &by_angle {
+        None => any_hard && mesh.is_hard(v, other),
+        Some((cos, normals)) => {
+            topology.edge_uses(EdgeKey::new(v, other)).len() > 2
+                || meet_sharply(normals[fi], normals[fj], *cos)
+        }
+    };
     // Each corner's previous and next corner in its face.
     let neighbours = |k: usize, f: usize| {
         let (a, b) = (starts[f] as usize, starts[f + 1] as usize);
@@ -144,15 +208,17 @@ pub fn smooth_groups(mesh: &Mesh) -> Vec<u32> {
         let next = if k + 1 == b { a } else { k + 1 };
         (corners[prev], corners[next])
     };
-    // The corners at one point: (corner, its two neighbouring points).
-    let mut local: Vec<(usize, VertexId, VertexId)> = Vec::new();
+    // The corners at one point: (corner, its two neighbouring points, its
+    // face).
+    let mut local: Vec<(usize, VertexId, VertexId, usize)> = Vec::new();
     let mut parent: Vec<usize> = Vec::new();
     for (v, _) in mesh.vertices() {
         local.clear();
         for face in topology.vertex_faces(v) {
             if let Some(k) = corner_at(mesh, *face, v) {
-                let (prev, next) = neighbours(k, face.get() as usize);
-                local.push((k, prev, next));
+                let f = face.get() as usize;
+                let (prev, next) = neighbours(k, f);
+                local.push((k, prev, next, f));
             }
         }
         if local.len() < 2 {
@@ -164,10 +230,10 @@ pub fn smooth_groups(mesh: &Mesh) -> Vec<u32> {
         // through `v`: one corner's neighbour is the other's.
         for i in 0..local.len() {
             for j in i + 1..local.len() {
-                let (_, pi, ni) = local[i];
-                let (_, pj, nj) = local[j];
+                let (_, pi, ni, fi) = local[i];
+                let (_, pj, nj, fj) = local[j];
                 for other in [pi, ni] {
-                    if (other == pj || other == nj) && !(any_hard && mesh.is_hard(v, other)) {
+                    if (other == pj || other == nj) && !hard(v, other, fi, fj) {
                         join(&mut parent, i, j);
                     }
                 }
@@ -238,6 +304,43 @@ pub fn shading_reach(mesh: &Mesh, moved: &[VertexId]) -> Vec<VertexId> {
     out.sort_unstable();
     out.dedup();
     out
+}
+
+/// Whether moving points from where they are in `before` to where they
+/// are in `after` (the same faces) changes which edges around `around`
+/// meet more sharply than `angle` degrees: if so, shading by angle has
+/// new groups and must be worked out afresh rather than updated.
+pub fn angle_hardness_changed(
+    before: &Mesh,
+    after: &Mesh,
+    around: &[VertexId],
+    angle: f32,
+) -> bool {
+    let cos = cosine(angle);
+    let topology = after.topology();
+    around.iter().any(|v| {
+        topology.vertex_faces(*v).iter().any(|face| {
+            let corners = after.face(*face).unwrap_or_default();
+            let n = corners.len();
+            (0..n).any(|i| {
+                let edge = EdgeKey::new(corners[i], corners[(i + 1) % n]);
+                match topology.edge_uses(edge) {
+                    [one, two] => {
+                        meet_sharply(
+                            before.face_normal(one.face),
+                            before.face_normal(two.face),
+                            cos,
+                        ) != meet_sharply(
+                            after.face_normal(one.face),
+                            after.face_normal(two.face),
+                            cos,
+                        )
+                    }
+                    _ => false,
+                }
+            })
+        })
+    })
 }
 
 /// The group's representative, shortening the path on the way.
@@ -379,5 +482,116 @@ mod tests {
                 assert!((full[rep as usize] - normal).length() < 1e-4);
             }
         }
+    }
+
+    /// The number of different groups among `point`'s corners.
+    fn groups_at(mesh: &Mesh, groups: &[u32], point: VertexId) -> usize {
+        let (_, corners) = mesh.face_layout();
+        let mut found: Vec<u32> = (0..corners.len())
+            .filter(|k| corners[*k] == point)
+            .map(|k| groups[k])
+            .collect();
+        found.sort_unstable();
+        found.dedup();
+        found.len()
+    }
+
+    #[test]
+    fn by_angle_the_marks_are_ignored() {
+        // A 90° fold: hard by angle whatever it is marked.
+        for marked in [false, true] {
+            let (mesh, v) = folded(marked);
+            let groups = smooth_groups_with(&mesh, Hardness::ByAngle(30.0));
+            assert_eq!(groups_at(&mesh, &groups, v[0]), 2, "marked {marked}");
+            // Above the fold's angle, it is soft.
+            let groups = smooth_groups_with(&mesh, Hardness::ByAngle(120.0));
+            assert_eq!(groups_at(&mesh, &groups, v[0]), 1, "marked {marked}");
+        }
+    }
+
+    #[test]
+    fn a_cylinder_marked_hard_all_over_shades_smooth_sides_and_crisp_caps() {
+        // As after an extrude that marked every new edge hard.
+        let mut cylinder = crate::Primitive::Cylinder(crate::CylinderParams {
+            sides: 16,
+            ..Default::default()
+        })
+        .mesh();
+        let edges: Vec<EdgeKey> = cylinder.edges().to_vec();
+        for e in &edges {
+            let (a, b) = e.ends();
+            cylinder.set_hard(a, b, true);
+        }
+        let marked = smooth_groups(&cylinder);
+        let by_angle = smooth_groups_with(&cylinder, Hardness::ByAngle(30.0));
+        for (v, p) in cylinder.vertices() {
+            // A point on a cap's rim: the sides (22.5° apart) shade as one,
+            // apart from the cap (90°).
+            if p.truncate().length() > 1.0 {
+                assert_eq!(groups_at(&cylinder, &by_angle, v), 2, "{p}");
+                assert!(groups_at(&cylinder, &marked, v) > 2);
+            }
+        }
+        // The normals on the sides point straight out, as on a smooth
+        // cylinder.
+        let (_, normals) = corner_shading_with(&cylinder, Hardness::ByAngle(30.0));
+        let (_, corners) = cylinder.face_layout();
+        for (k, n) in normals.iter().enumerate() {
+            let p = cylinder.position(corners[k]).unwrap();
+            if n.z.abs() < 0.5 {
+                let out = p.truncate().normalize().extend(0.0);
+                assert!(n.dot(out) > 0.99, "{p} {n}");
+            }
+        }
+    }
+
+    #[test]
+    fn by_angle_handles_odd_shapes() {
+        // Three polygons on one edge: hard. A polygon with no area: soft.
+        let mut mesh = Mesh::new();
+        let p = [
+            Vec3::ZERO,
+            Vec3::X,
+            Vec3::new(0.0, 1.0, 0.0),
+            Vec3::new(0.0, -1.0, 0.0),
+            Vec3::new(0.0, 0.0, 1.0),
+            Vec3::new(2.0, 0.0, 0.0),
+        ]
+        .map(|q| mesh.add_vertex(q).unwrap());
+        mesh.add_face(&[p[0], p[1], p[2]]).unwrap();
+        mesh.add_face(&[p[1], p[0], p[3]]).unwrap();
+        mesh.add_face(&[p[0], p[1], p[4]]).unwrap();
+        let groups = smooth_groups_with(&mesh, Hardness::ByAngle(170.0));
+        assert_eq!(groups_at(&mesh, &groups, p[0]), 3, "non-manifold: apart");
+        // A flat sliver with no area beside a polygon.
+        let mut sliver = Mesh::new();
+        let q = [Vec3::ZERO, Vec3::X, Vec3::Y, Vec3::new(2.0, 0.0, 0.0)]
+            .map(|x| sliver.add_vertex(x).unwrap());
+        sliver.add_face(&[q[0], q[1], q[2]]).unwrap();
+        sliver.add_face(&[q[1], q[0], q[3]]).unwrap();
+        let groups = smooth_groups_with(&sliver, Hardness::ByAngle(1.0));
+        assert_eq!(groups_at(&sliver, &groups, q[0]), 1);
+        // Numbers that aren't real count as 0°.
+        let (mesh, v) = folded(false);
+        let groups = smooth_groups_with(&mesh, Hardness::ByAngle(f32::NAN));
+        assert_eq!(groups_at(&mesh, &groups, v[0]), 2);
+        // An empty mesh.
+        assert!(smooth_groups_with(&Mesh::new(), Hardness::ByAngle(30.0)).is_empty());
+    }
+
+    #[test]
+    fn moving_points_can_change_which_edges_are_sharp() {
+        let (flat, v) = folded(false);
+        // Lift the far edge of the second face a little: still sharp.
+        let mut slight = flat.clone();
+        slight.set_position(v[4], Vec3::new(1.0, -0.1, -1.0));
+        let around = shading_reach(&flat, &[v[4]]);
+        assert!(!angle_hardness_changed(&flat, &slight, &around, 30.0));
+        // Fold it nearly flat: the edge turns soft.
+        let mut opened = flat.clone();
+        opened.set_position(v[4], Vec3::new(1.0, -1.0, -0.05));
+        opened.set_position(v[5], Vec3::new(0.0, -1.0, -0.05));
+        let around = shading_reach(&flat, &[v[4], v[5]]);
+        assert!(angle_hardness_changed(&flat, &opened, &around, 30.0));
     }
 }

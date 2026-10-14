@@ -144,6 +144,20 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
         {
             panel.options.hide_hard_edges = !hard;
         }
+        let mut auto = !panel.options.hard_edges_by_hand;
+        if ui
+            .checkbox(&mut auto, AUTO_HARD_EDGES_ENTRY)
+            .on_hover_text(format!(
+                "Shade every shape by angle: edges where polygons meet more sharply than \
+                 {}° are crisp, the rest smooth, after every change. A cylinder's sides stay \
+                 smooth and its caps crisp, however you extrude it. Switch it off to shade by \
+                 the hard and soft edges you set yourself.",
+                super::AUTO_HARD_ANGLE
+            ))
+            .changed()
+        {
+            panel.options.hard_edges_by_hand = !auto;
+        }
         ui.checkbox(&mut panel.options.show_normals, NORMALS_ENTRY)
             .on_hover_text(
                 "Show which way each polygon of the selected objects faces, as a short line \
@@ -191,6 +205,8 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
 
 /// The Display menu's switch for marking hard edges.
 pub(crate) const HARD_EDGES_ENTRY: &str = "Hard edges";
+/// The Display menu's switch for shading by angle (decision 0064).
+pub(crate) const AUTO_HARD_EDGES_ENTRY: &str = "Automatic hard edges";
 /// The Display menu's switch for showing normals.
 pub(crate) const NORMALS_ENTRY: &str = "Normals";
 

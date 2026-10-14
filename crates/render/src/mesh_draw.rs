@@ -58,6 +58,8 @@ pub struct MeshGeometry {
     corner_vertex: Vec<u32>,
     /// One vertex at each point, by point id number (`u32::MAX` for none).
     point_vertex: Vec<u32>,
+    /// What decided where the shading breaks.
+    hardness: mesh::Hardness,
 }
 
 /// Merges sorted vertex numbers into ranges, joining ranges with small
@@ -78,9 +80,16 @@ fn ranges_of(mut indices: Vec<u32>) -> Vec<Range<usize>> {
 }
 
 impl MeshGeometry {
-    /// The geometry of `mesh`.
+    /// The geometry of `mesh`, shaded by its hard edges.
     pub fn new(mesh: &Mesh) -> Self {
-        let (groups, normals) = mesh::corner_shading(mesh);
+        Self::shaded(mesh, mesh::Hardness::Marked)
+    }
+
+    /// The geometry of `mesh`, with the shading breaking where `hardness`
+    /// says (by angle while Automatic hard edges is on,
+    /// [decision 0064](../../../docs/decisions/0064-automatic-hard-edges.md)).
+    pub fn shaded(mesh: &Mesh, hardness: mesh::Hardness) -> Self {
+        let (groups, normals) = mesh::corner_shading_with(mesh, hardness);
         let (starts, corners) = mesh.face_layout();
         let mut vertices = Vec::new();
         // The vertex made for each group's first corner.
@@ -152,6 +161,7 @@ impl MeshGeometry {
             groups,
             corner_vertex,
             point_vertex,
+            hardness,
         }
     }
 
@@ -169,10 +179,30 @@ impl MeshGeometry {
         touched
     }
 
+    /// What decided where its shading breaks.
+    pub fn hardness(&self) -> mesh::Hardness {
+        self.hardness
+    }
+
+    /// Whether moving points from where they are in `before` to `after`
+    /// can be brought up to date with [`Self::moved`]: always for shading
+    /// by the marks; by angle, only while no edge around them turns
+    /// sharp or soft (otherwise build it afresh).
+    pub fn can_follow(&self, before: &Mesh, after: &Mesh, moved: &[VertexId]) -> bool {
+        match self.hardness {
+            mesh::Hardness::Marked => true,
+            mesh::Hardness::ByAngle(angle) => {
+                let around = mesh::shading_reach(after, moved);
+                !mesh::angle_hardness_changed(before, after, &around, angle)
+            }
+        }
+    }
+
     /// Brings the geometry up to date after `moved` points of the mesh it
     /// was made from moved to where they are in `mesh` (which must have
     /// the same faces: [`Mesh::same_structure`]). Only the vertices around
     /// them are worked out again; returns the ranges of vertices to upload.
+    /// Shaded by angle, check [`Self::can_follow`] first.
     pub fn moved(&mut self, mesh: &Mesh, moved: &[VertexId]) -> Vec<Range<usize>> {
         let topology = mesh.topology();
         let mut touched = Vec::new();
@@ -336,6 +366,55 @@ mod tests {
             assert!((Vec3::from(a.position) - Vec3::from(b.position)).length() < 1e-4);
             assert!((Vec3::from(a.normal) - Vec3::from(b.normal)).length() < 1e-4);
         }
+    }
+
+    #[test]
+    fn shading_by_angle_smooths_marked_edges_and_says_when_to_rebuild() {
+        // A cylinder with every edge marked hard, as after an extrude.
+        let mut cylinder = PrimitiveKind::Cylinder.standard().mesh();
+        let edges: Vec<mesh::EdgeKey> = cylinder.edges().to_vec();
+        for e in &edges {
+            let (a, b) = e.ends();
+            cylinder.set_hard(a, b, true);
+        }
+        let marked = MeshGeometry::new(&cylinder);
+        let by_angle = MeshGeometry::shaded(&cylinder, mesh::Hardness::ByAngle(30.0));
+        assert_eq!(by_angle.hardness(), mesh::Hardness::ByAngle(30.0));
+        // Smooth sides share vertices: at a rim point, one for the sides
+        // and one for the cap, where the marks gave each side its own.
+        assert!(
+            by_angle.vertices.len() * 4 < marked.vertices.len() * 3,
+            "{} vs {}",
+            by_angle.vertices.len(),
+            marked.vertices.len()
+        );
+        // Moving a cap up keeps every edge as it was: it can follow.
+        let top: Vec<VertexId> = cylinder
+            .vertices()
+            .filter(|(_, p)| p.z > 50.0)
+            .map(|(v, _)| v)
+            .collect();
+        let mut taller = cylinder.clone();
+        for v in &top {
+            let p = taller.position(*v).unwrap();
+            taller.set_position(*v, p + Vec3::Z * 30.0);
+        }
+        assert!(by_angle.can_follow(&cylinder, &taller, &top));
+        assert!(marked.can_follow(&cylinder, &taller, &top));
+        // Pulling one rim point far out folds the side panels beside it
+        // sharply: build it afresh.
+        let corner = *top
+            .iter()
+            .max_by(|a, b| {
+                let x = |v: &VertexId| cylinder.position(*v).unwrap().x;
+                x(a).total_cmp(&x(b))
+            })
+            .unwrap();
+        let mut pulled = cylinder.clone();
+        let p = pulled.position(corner).unwrap();
+        pulled.set_position(corner, p + Vec3::X * 200.0);
+        assert!(!by_angle.can_follow(&cylinder, &pulled, &[corner]));
+        assert!(marked.can_follow(&cylinder, &pulled, &[corner]));
     }
 
     #[test]

@@ -43,8 +43,9 @@ pub use primitives::{
 };
 pub use selection::{Combine, Element, ElementKind, ElementSelection};
 pub use shading::{
-    ShadedTriangle, corner_normal_list, corner_normals, corner_shading, group_normals_at,
-    shaded_triangles, shading_reach, smooth_groups,
+    Hardness, ShadedTriangle, angle_hardness_changed, corner_normal_list, corner_normals,
+    corner_shading, corner_shading_with, group_normals_at, shaded_triangles, shading_reach,
+    smooth_groups, smooth_groups_with,
 };
 pub use topology::{EdgeUse, Topology};
 pub use triangulate::{face_triangles, triangulate};

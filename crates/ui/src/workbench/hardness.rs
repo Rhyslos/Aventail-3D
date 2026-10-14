@@ -77,7 +77,22 @@ impl Workbench {
         }
         let label = counted(if hard { "Harden" } else { "Soften" }, count, "edge");
         if self.record_each(&label, ops) {
-            self.note = Some(format!("{label}. Ctrl + Z takes it back."));
+            self.note = Some(format!(
+                "{label}. Ctrl + Z takes it back.{}",
+                self.auto_hard_note()
+            ));
+        }
+    }
+
+    /// What to add to a hard or soft edge command's note while Automatic
+    /// hard edges is on: the marks are kept, but the angle decides the
+    /// shading until it is switched off (decision 0064).
+    fn auto_hard_note(&self) -> &'static str {
+        if self.viewport.options().hard_edges_by_hand {
+            ""
+        } else {
+            " Automatic hard edges is on (Display menu), so the angle decides the shading \
+             for now; switch it off to see edges set by hand."
         }
     }
 
@@ -101,7 +116,8 @@ impl Workbench {
         if self.record_each("Hard edges by angle", ops) {
             self.note = Some(format!(
                 "Edges sharper than {angle:.0}° are hard, the rest soft. Change the Angle \
-                 under Last edit; Ctrl + Z takes it back."
+                 under Last edit; Ctrl + Z takes it back.{}",
+                self.auto_hard_note()
             ));
         }
     }

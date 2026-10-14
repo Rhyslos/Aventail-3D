@@ -56,9 +56,9 @@ pub use transforming::{AXES_KEY, Axes, LOCK_KEYS, SnapSettings, TOOL_KEYS, Tool}
 pub use undo_memory::{UndoMemory, format_bytes};
 pub use units::Units;
 pub use viewport::{
-    DEFAULT_FRAME, FOUR_VIEWS_KEY, Frame, GLIDE_SECONDS, GridDetail, NoRenderer, PICKER_LABEL,
-    PickAsk, PickReply, Picked, Shading, Symmetry, SymmetryCentre, VIEW_COUNT, VIEW_KEYS,
-    VIEWPORT_LABEL, ViewOptions, ViewportPanel, ViewportRenderer, ViewportView,
+    AUTO_HARD_ANGLE, DEFAULT_FRAME, FOUR_VIEWS_KEY, Frame, GLIDE_SECONDS, GridDetail, NoRenderer,
+    PICKER_LABEL, PickAsk, PickReply, Picked, Shading, Symmetry, SymmetryCentre, VIEW_COUNT,
+    VIEW_KEYS, VIEWPORT_LABEL, ViewOptions, ViewportPanel, ViewportRenderer, ViewportView,
 };
 pub use workbench::{
     AppInfo, DISCARD_SHORTCUT, DOUBLE_CLICK_SECONDS, MODE_KEYS, Workbench, WorkbenchAction,
