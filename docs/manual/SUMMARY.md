@@ -23,6 +23,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Bevel: chamfer or round edges, and cut corners off](bevel.md)
 - [Loop cut: add a new loop of edges all the way around a shape](loop-cut.md)
 - [Slit: cut new edges along a line you draw over a shape](slit.md)
+- [Connect, Bridge and Weld: join points, fill gaps between openings, melt points together](connect-bridge-weld.md)
 - [Heavy shapes: millions of polygons, and the heavy test shape](heavy-shapes.md)
 - *More pages are added here as tools are built.*
 

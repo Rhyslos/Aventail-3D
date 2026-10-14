@@ -202,9 +202,10 @@ impl CommandId {
             Self::Bridge => (
                 "Bridge",
                 Icon::Bridge,
+                plain(Key::C),
+                "Build polygons between two open borders or two polygons; with nothing to \
+                 bridge selected, drag from one open edge to another",
                 None,
-                "Build polygons between two open edges or two holes",
-                PHASE_4,
             ),
             Self::FillHole => (
                 "Fill hole",
@@ -251,16 +252,17 @@ impl CommandId {
             Self::Weld => (
                 "Weld",
                 Icon::Weld,
+                plain(Key::M),
+                "Melt the selected points into one at their middle; Ctrl + M to drag a point \
+                 onto another",
                 None,
-                "Melt the selected points into one, at their middle or onto a target point",
-                PHASE_4,
             ),
             Self::Connect => (
                 "Connect",
                 Icon::Connect,
-                None,
+                plain(Key::J),
                 "Join the selected points or edges with a new edge across their polygon",
-                PHASE_4,
+                None,
             ),
             Self::Knife => (
                 "Slit",
@@ -487,6 +489,9 @@ mod tests {
         assert_eq!(CommandId::Bevel.info().shortcut, plain(Key::V));
         assert_eq!(CommandId::LoopCut.info().shortcut, plain(Key::F));
         assert_eq!(CommandId::Knife.info().shortcut, plain(Key::X));
+        assert_eq!(CommandId::Connect.info().shortcut, plain(Key::J));
+        assert_eq!(CommandId::Bridge.info().shortcut, plain(Key::C));
+        assert_eq!(CommandId::Weld.info().shortcut, plain(Key::M));
         assert_eq!(CommandId::FrameSelected.info().shortcut, plain(Key::Z));
     }
 

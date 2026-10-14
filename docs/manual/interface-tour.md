@@ -79,6 +79,7 @@ One colour marks what's active: the current mode (and later the current tool), t
 | Select all / invert | `Ctrl + A` / `Ctrl + I` |
 | Delete the selection | `Delete` or `Backspace` |
 | Frame everything / the selection | `H` / `Z` |
+| Connect / Bridge / Weld (Weld onto a point) | `J` / `C` / `M` (`Ctrl + M`) |
 | Perspective, top, right, front view; all four | `F1`, `F2`, `F3`, `F4`; `F5` |
 | Orbit, pan, zoom the view | Depends on your navigation controls; as standard right drag to orbit, middle drag to pan and the mouse wheel to zoom (`Alt` + left, middle or right drag work too). See [Navigating the view](navigating-the-view.md) |
 

@@ -58,6 +58,12 @@ pub enum Tool {
     /// Slit: click or drag points of a line over the shape, which cuts it
     /// (decision 0049).
     Slit,
+    /// Bridge: drag from one open edge to another to join them (decision
+    /// 0051).
+    Bridge,
+    /// Weld onto a target: drag a point onto another to melt it there
+    /// (decision 0051).
+    Weld,
 }
 
 /// The tool keys (Halberd's, decision 0019): move, rotate, scale, all.
@@ -92,6 +98,8 @@ impl Tool {
             Self::Bevel => "Bevel",
             Self::LoopCut => "Loop cut",
             Self::Slit => "Slit",
+            Self::Bridge => "Bridge",
+            Self::Weld => "Weld",
         }
     }
 
@@ -103,13 +111,16 @@ impl Tool {
     /// Whether it is a modelling tool used by clicking (and dragging) on
     /// the shape itself: a left click never selects while it is in use.
     pub fn clicks_on_shapes(self) -> bool {
-        matches!(self, Self::LoopCut | Self::Slit)
+        matches!(self, Self::LoopCut | Self::Slit | Self::Bridge | Self::Weld)
     }
 
     /// Whether it has a count that Ctrl + wheel changes while it is in use
     /// (Bevel's segments, Loop cut's cuts; [decision 0048](../../../docs/decisions/0048-ctrl-wheel-changes-a-tools-count.md)).
     pub fn has_wheel_count(self) -> bool {
-        matches!(self, Self::Bevel | Self::LoopCut | Self::Extrude)
+        matches!(
+            self,
+            Self::Bevel | Self::LoopCut | Self::Extrude | Self::Bridge
+        )
     }
 
     /// Whether it has settings in the Attributes panel for its next use.
@@ -125,7 +136,9 @@ impl Tool {
             | Self::Inset
             | Self::Bevel
             | Self::LoopCut
-            | Self::Slit => None,
+            | Self::Slit
+            | Self::Bridge
+            | Self::Weld => None,
             Self::Move => Some(GizmoTool::Move),
             Self::Rotate => Some(GizmoTool::Rotate),
             Self::Scale => Some(GizmoTool::Scale),

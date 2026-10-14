@@ -190,6 +190,8 @@ pub struct Workbench {
     loop_cut_session: Option<loop_cut::LoopCutSession>,
     /// A slit's line being drawn (decision 0049).
     slit_session: Option<slit::SlitSession>,
+    /// A Bridge or Weld drag in progress (decision 0051).
+    pair_session: Option<joining::PairSession>,
     /// The change the gizmo drag last showed, so an unchanged frame does
     /// nothing.
     gizmo_shown: Option<tools::Change>,
@@ -243,6 +245,7 @@ impl Workbench {
             modelling_session: None,
             loop_cut_session: None,
             slit_session: None,
+            pair_session: None,
             gizmo_shown: None,
             coordinates_session: None,
             sessions: 0,
@@ -1605,6 +1608,9 @@ impl TabViewer for PanelViewer<'_> {
 #[cfg(test)]
 mod attribute_tests;
 mod command;
+mod joining;
+#[cfg(test)]
+mod joining_tests;
 mod loop_cut;
 #[cfg(test)]
 mod loop_cut_tests;

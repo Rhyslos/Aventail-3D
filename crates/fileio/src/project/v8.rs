@@ -7,7 +7,7 @@
 
 use super::v1::{FileOperation, Problem};
 use super::v2::{AnchorsV2, anchors_from_file, anchors_to_file};
-use super::v5::{EntryWith, ProjectWith};
+use super::v5::EntryWith;
 use super::v7::OperationV7;
 use crate::limits::Bounded;
 use mesh::FaceId;
@@ -15,7 +15,8 @@ use scene::{Bend, Grouping, Operation};
 use serde::{Deserialize, Serialize};
 
 /// Version 8 of the file.
-pub(crate) type ProjectV8 = ProjectWith<EntryV8>;
+#[cfg(test)]
+pub(crate) type ProjectV8 = super::v5::ProjectWith<EntryV8>;
 
 /// A recorded edit in version 8.
 pub(crate) type EntryV8 = EntryWith<OperationV8>;

@@ -149,6 +149,42 @@ pub enum Operation {
         /// (decision 0032).
         anchors: Option<Anchors>,
     },
+    /// Joins points (or new points along edges) with new edges across
+    /// their polygons (decision 0051).
+    Connect {
+        /// The points joined (Points mode); empty when edges are.
+        points: Vec<VertexId>,
+        /// The edges cut and joined (Edges mode).
+        edges: Vec<EdgeKey>,
+        /// How many cuts along each edge.
+        cuts: u32,
+        /// Where they were, to find them again (decision 0032).
+        anchors: Option<Anchors>,
+    },
+    /// A band of polygons between two open borders, or between two
+    /// polygons, which go (decision 0051).
+    Bridge {
+        /// The border edges (both borders), or none.
+        edges: Vec<EdgeKey>,
+        /// The two polygons, or none.
+        faces: Vec<FaceId>,
+        /// The rows the band has.
+        segments: u32,
+        /// How many steps round the band is turned (closed loops).
+        twist: i32,
+        /// Where they were, to find them again (decision 0032).
+        anchors: Option<Anchors>,
+    },
+    /// Points melted into one, at their middle or onto a target point
+    /// (decision 0051).
+    Weld {
+        /// The points.
+        points: Vec<VertexId>,
+        /// The point they melt onto, if any.
+        target: Option<VertexId>,
+        /// Where the points were (the target last), to find them again.
+        anchors: Option<Anchors>,
+    },
     /// Cuts new edges along a line drawn over the shape, as seen from
     /// where it was drawn (decision 0049). Worked out from the shape as it
     /// is, so it needs no ids or anchors.
@@ -224,6 +260,8 @@ pub struct EditSettings {
     /// An extrude's bend (straight for an extrude of polygons without
     /// one; none for other edits).
     pub bend: Option<Bend>,
+    /// A bridge's rows and twist.
+    pub bridge: Option<(u32, i32)>,
 }
 
 /// What applying an operation did.
@@ -262,6 +300,16 @@ impl Operation {
             Self::BevelPoints { points, .. } => counted("Bevel", points.len(), "point"),
             Self::LoopCut { cuts: 1, .. } => "Loop cut".to_string(),
             Self::LoopCut { cuts, .. } => format!("Loop cut ({cuts} cuts)"),
+            Self::Connect { points, edges, .. } if edges.is_empty() => {
+                counted("Connect", points.len(), "point")
+            }
+            Self::Connect { edges, .. } => counted("Connect", edges.len(), "edge"),
+            Self::Bridge { faces, .. } if !faces.is_empty() => "Bridge 2 polygons".to_string(),
+            Self::Bridge { edges, .. } => counted("Bridge", edges.len(), "edge"),
+            Self::Weld { points, target, .. } => {
+                let n = points.len() + usize::from(target.is_some_and(|t| !points.contains(&t)));
+                counted("Weld", n, "point")
+            }
             Self::Slit { line } if line.through => "Slit through".to_string(),
             Self::Slit { .. } => "Slit".to_string(),
         }
@@ -316,6 +364,17 @@ impl Operation {
                 through: Some(line.through),
                 ..EditSettings::default()
             }),
+            Self::Connect { edges, cuts, .. } if !edges.is_empty() => Some(EditSettings {
+                cuts: Some(*cuts),
+                ..EditSettings::default()
+            }),
+            Self::Bridge {
+                segments, twist, ..
+            } => Some(EditSettings {
+                bridge: Some((*segments, *twist)),
+                ..EditSettings::default()
+            }),
+            Self::Connect { .. } | Self::Weld { .. } => None,
             Self::MovePoints { .. } | Self::TransformPoints { .. } => None,
         }
     }
@@ -408,6 +467,20 @@ impl Operation {
                     line.through = t;
                 }
             }
+            Self::Connect { cuts, .. } => {
+                if let Some(n) = settings.cuts {
+                    *cuts = n;
+                }
+            }
+            Self::Bridge {
+                segments, twist, ..
+            } => {
+                if let Some((s, t)) = settings.bridge {
+                    *segments = s;
+                    *twist = t;
+                }
+            }
+            Self::Weld { .. } => {}
             Self::MovePoints { .. } | Self::TransformPoints { .. } => {}
         }
         changed
@@ -438,6 +511,7 @@ impl Operation {
             Self::BevelEdges { shape, .. } => shape.width.is_finite() && shape.profile.is_finite(),
             Self::BevelPoints { width, .. } => width.is_finite(),
             Self::LoopCut { position, .. } => position.is_finite(),
+            Self::Connect { .. } | Self::Bridge { .. } | Self::Weld { .. } => true,
             Self::ExtrudeBent { distance, bend, .. } => {
                 distance.is_finite()
                     && [bend.angle, bend.direction, bend.radius]
@@ -466,7 +540,10 @@ impl Operation {
             | Self::BevelEdges { anchors, .. }
             | Self::BevelPoints { anchors, .. }
             | Self::LoopCut { anchors, .. }
-            | Self::ExtrudeBent { anchors, .. } => anchors.as_ref(),
+            | Self::ExtrudeBent { anchors, .. }
+            | Self::Connect { anchors, .. }
+            | Self::Bridge { anchors, .. }
+            | Self::Weld { anchors, .. } => anchors.as_ref(),
             Self::Slit { .. } => None,
         }
     }
@@ -483,7 +560,10 @@ impl Operation {
             | Self::BevelEdges { anchors, .. }
             | Self::BevelPoints { anchors, .. }
             | Self::LoopCut { anchors, .. }
-            | Self::ExtrudeBent { anchors, .. } => anchors.as_mut(),
+            | Self::ExtrudeBent { anchors, .. }
+            | Self::Connect { anchors, .. }
+            | Self::Bridge { anchors, .. }
+            | Self::Weld { anchors, .. } => anchors.as_mut(),
             Self::Slit { .. } => None,
         }
     }
@@ -519,7 +599,8 @@ impl Operation {
         match self {
             Self::MovePoints { points, .. }
             | Self::TransformPoints { points, .. }
-            | Self::BevelPoints { points, .. } => (points, self.anchors()),
+            | Self::BevelPoints { points, .. }
+            | Self::Weld { points, .. } => (points, self.anchors()),
             _ => (&[], self.anchors()),
         }
     }
@@ -657,6 +738,78 @@ impl Operation {
                 }
                 edit::loop_cut(mesh, edge, *cuts, position)
             }
+            Self::Connect {
+                points,
+                edges,
+                cuts,
+                ..
+            } => {
+                if edges.is_empty() {
+                    let points = refound.as_ref().map_or(points.as_slice(), |r| &r.0);
+                    if too_big(points.len()) {
+                        return skipped;
+                    }
+                    edit::connect_points(mesh, points)
+                } else {
+                    let edges = refound
+                        .as_ref()
+                        .map_or_else(|| edges.clone(), |r| edges_within(mesh, &r.0));
+                    let rows = (*cuts).clamp(1, mesh::join::MAX_CONNECT_CUTS) as usize;
+                    if too_big(edges.len().saturating_mul(rows)) {
+                        return skipped;
+                    }
+                    edit::connect_edges(mesh, &edges, *cuts)
+                }
+            }
+            Self::Bridge {
+                edges,
+                faces,
+                segments,
+                twist,
+                ..
+            } => {
+                let rows = (*segments).clamp(1, mesh::join::MAX_BRIDGE_SEGMENTS) as usize;
+                if faces.is_empty() {
+                    let edges = refound
+                        .as_ref()
+                        .map_or_else(|| edges.clone(), |r| edges_within(mesh, &r.0));
+                    if too_big(edges.len().saturating_mul(rows)) {
+                        return skipped;
+                    }
+                    edit::bridge_edges(mesh, &edges, *segments, *twist)
+                } else {
+                    let faces = refound
+                        .as_ref()
+                        .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
+                    if too_big(corner_count(mesh, &faces).saturating_mul(rows)) {
+                        return skipped;
+                    }
+                    edit::bridge_faces(mesh, &faces, *segments, *twist)
+                }
+            }
+            Self::Weld {
+                points,
+                target,
+                anchors,
+            } => match &refound {
+                None => edit::weld(mesh, points, *target),
+                Some((found, _)) => {
+                    // The target is the point found nearest where it was.
+                    let target = target.and_then(|_| {
+                        let mesh::AnchorShape::Points(places) = &anchors.as_ref()?.shape else {
+                            return None;
+                        };
+                        let was = *places.last()?;
+                        found.iter().copied().min_by(|a, b| {
+                            let d = |v: &VertexId| {
+                                mesh.position(*v).map_or(f32::MAX, |p| p.distance(was))
+                            };
+                            d(a).total_cmp(&d(b))
+                        })
+                    });
+                    edit::weld(mesh, found, target)
+                }
+            },
             Self::Slit { line } => {
                 // One more polygon for each piece cut off.
                 if too_big(mesh::slit::slit_size(mesh, line)) {

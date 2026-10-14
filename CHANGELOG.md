@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Connect, Bridge and Weld.** **J** joins the selected points (or the middles of the selected edges) across their polygons. **C** bridges two selected open borders or two polygons with a band of new polygons (Segments and Twist in the Attributes panel); with nothing to bridge selected, C lets you drag from one open edge to another. **M** welds the selected points into one at their middle, and **Ctrl + M** lets you drag a point onto another to weld it there.
 - **Pipe bends.** An extrude can turn a corner and keep its full width: after extruding (D), set **Angle**, **Direction**, **Bend radius** and **Segments** under Last edit (or before dragging) for a smooth elbow, or a sharp mitre joint with no radius. Ctrl + wheel changes Segments while Extrude is in use.
 - **Slit.** In Points, Edges or Polygons mode, press **X** and click points over a shape: it is cut along the line as you go, across any polygons, turning wherever a point sits inside one. Drag a point to move it, click the line to add one, Ctrl + click to remove one, and hold Shift for 15° steps. Esc or Enter finishes the line, and Ctrl + Z takes it back. As standard only what you can see is cut; **Cut through** in the Attributes panel cuts the far side too.
 - **Ctrl + mouse wheel changes a tool's count**: Bevel's Segments and Loop cut's Cuts, before, while dragging, and on the edit you just made. With every other tool it still grows and shrinks the selection.
@@ -45,6 +46,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Projects are saved in **file format version 9**, which can hold Connect, Bridge and Weld. Older projects still open.
 - Projects are saved in **file format version 8**, which can hold extrudes with a bend. Older projects still open.
 - While Extrude is in use, Ctrl + wheel changes the bend's Segments instead of growing the selection (the Select menu still grows it).
 - Projects are saved in **file format version 7**, which can hold slits. Older projects still open; a project saved now won't open in an older version of the app.

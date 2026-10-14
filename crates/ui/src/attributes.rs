@@ -51,6 +51,26 @@ pub(crate) struct AttributesPanel {
     pub(crate) slit_through: bool,
     /// Extrude's bend, for the next drag (decision 0050).
     pub(crate) bend: scene::Bend,
+    /// Connect's cuts and Bridge's rows and twist (decision 0051).
+    pub(crate) join: JoinLook,
+}
+
+/// Connect's and Bridge's settings, for their next use.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct JoinLook {
+    /// How many cuts Connect makes along each edge.
+    pub(crate) connect_cuts: u32,
+    /// Bridge's rows and twist.
+    pub(crate) bridge: (u32, i32),
+}
+
+impl Default for JoinLook {
+    fn default() -> Self {
+        Self {
+            connect_cuts: 1,
+            bridge: (1, 0),
+        }
+    }
 }
 
 /// Loop cut's settings, set in the Attributes panel before a cut.
@@ -356,6 +376,10 @@ impl AttributesPanel {
                     if self.tool == Tool::Slit {
                         through_row(ui, &mut self.slit_through);
                         ui.end_row();
+                    } else if self.tool == Tool::Bridge {
+                        bridge_rows(ui, &mut self.join.bridge);
+                    } else if self.tool == Tool::Weld {
+                        // Nothing to set: the hint says how.
                     } else if self.tool == Tool::LoopCut {
                         cuts_row(ui, &mut self.loop_cut.cuts);
                         ui.end_row();
@@ -380,7 +404,12 @@ impl AttributesPanel {
                     }
                 });
         });
-        let hint = if self.tool == Tool::Slit {
+        let hint = if self.tool == Tool::Bridge {
+            "Drag from one open edge to another. With two borders or two polygons selected, C \
+             bridges them at once."
+        } else if self.tool == Tool::Weld {
+            "Drag a point onto another; a selected point brings the whole selection."
+        } else if self.tool == Tool::Slit {
             "Click or drag points over the shape. Esc or Enter finishes the line."
         } else if self.tool == Tool::LoopCut {
             "Point at an edge to see the loop; click to cut, or drag along the edge to slide it."
@@ -437,10 +466,25 @@ impl AttributesPanel {
                         }
                         if touched.changed {
                             edited.cuts = Some(cuts);
-                            self.loop_cut.cuts = cuts;
+                            if matches!(operation, Operation::Connect { .. }) {
+                                self.join.connect_cuts = cuts;
+                            } else {
+                                self.loop_cut.cuts = cuts;
+                            }
                             changed = true;
                         }
                         ui.end_row();
+                    }
+                    if let Some(mut bridge) = edited.bridge {
+                        let touched = bridge_rows(ui, &mut bridge);
+                        if touched.began {
+                            self.gesture += 1;
+                        }
+                        if touched.changed {
+                            edited.bridge = Some(bridge);
+                            self.join.bridge = bridge;
+                            changed = true;
+                        }
                     }
                     if let Some(mut through) = edited.through {
                         if through_row(ui, &mut through) {
@@ -841,6 +885,8 @@ pub(crate) fn made_by(operation: &Operation, tool: Tool) -> bool {
             )
             | (Operation::LoopCut { .. }, Tool::LoopCut)
             | (Operation::Slit { .. }, Tool::Slit)
+            | (Operation::Bridge { .. }, Tool::Bridge)
+            | (Operation::Weld { .. }, Tool::Weld)
     )
 }
 
@@ -924,6 +970,38 @@ fn bend_rows(ui: &mut Ui, bend: &mut scene::Bend, units: Units) -> stepper::Touc
     ));
     ui.end_row();
     *bend = bend.clamped();
+    out
+}
+
+/// Bridge's Segments and Twist, a row each.
+fn bridge_rows(ui: &mut Ui, (segments, twist): &mut (u32, i32)) -> stepper::Touched {
+    label(
+        ui,
+        "Segments",
+        "How many rows the bridge has: more make a longer bridge bend smoothly later. Ctrl + \
+         wheel changes it.",
+    );
+    let mut out = stepper::count(
+        ui,
+        segments,
+        (1, mesh::join::MAX_BRIDGE_SEGMENTS),
+        "Bridge segments",
+    );
+    ui.end_row();
+    label(
+        ui,
+        "Twist",
+        "Turns a bridge between two closed loops round by whole steps, if the points pair up \
+         wrongly and the band twists.",
+    );
+    let mut steps = (*twist + 1000) as u32;
+    let t = stepper::count(ui, &mut steps, (0, 2000), "Twist");
+    if t.changed {
+        *twist = steps as i32 - 1000;
+    }
+    out.changed |= t.changed;
+    out.began |= t.began;
+    ui.end_row();
     out
 }
 
