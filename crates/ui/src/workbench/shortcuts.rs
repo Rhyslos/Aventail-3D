@@ -34,10 +34,23 @@ pub(crate) const LAYOUT_LABEL: &str = "Keyboard";
 pub(crate) const MOUSE_HEADING: &str = "Mouse";
 /// What the side panel says while no key is pointed at or searched for.
 const HINT: &str = "Point at a key to see what it does. Click a key to keep it shown.";
-/// How wide the side panel beside the keyboard is.
-const DETAILS_WIDTH: f32 = 270.0;
-/// The space between drawn keys, in points.
-const KEY_GAP: f32 = 4.0;
+/// How wide the side panel beside the keyboard is, in key widths.
+const DETAILS_KEYS: f32 = 7.5;
+/// The key width at which the window's text is its normal size: bigger
+/// keys scale the text with them.
+const NORMAL_KEY: f32 = 38.0;
+/// The smallest and largest key width, in points. Below the smallest, the
+/// window scrolls.
+const KEY_RANGE: (f32, f32) = (24.0, 110.0);
+/// How tall everything is, in key widths, at the text scale that goes
+/// with them: the search and chips (about 2), the keyboard (6.25), and
+/// the mouse actions (about 7).
+const HEIGHT_KEYS: f32 = 15.5;
+/// How much of the app's window the Keys window takes when it opens.
+const SCREEN_SHARE: f32 = 0.9;
+/// The widest it opens, as a multiple of its height, so a very wide
+/// monitor doesn't stretch it out of proportion.
+const WIDEST: f32 = 2.1;
 
 /// Where a key or mouse action works. Each has a colour, marked on the
 /// keys and in the lists.
@@ -488,16 +501,25 @@ impl Workbench {
         let bindings = bindings();
         let mut open = true;
         let viewer = &mut self.shortcuts;
+        // It opens as big as fits comfortably: most of the app's window,
+        // but no wider than about twice its height.
+        let screen = ctx.content_rect();
+        let height = screen.height() * SCREEN_SHARE;
+        let width = (screen.width() * SCREEN_SHARE).min(height * WIDEST);
         egui::Window::new(VIEWER_TITLE)
+            // Its own id, so a size remembered from before it grew is
+            // forgotten.
+            .id(egui::Id::new("keys window, drawn keyboard"))
             .open(&mut open)
             .collapsible(false)
             .resizable(true)
-            .default_width(1020.0)
-            .default_height(700.0)
+            .default_size([width, height])
             // In the middle, clear of the menu bar.
             .pivot(egui::Align2::CENTER_CENTER)
-            .default_pos(ctx.content_rect().center())
+            .default_pos(screen.center())
             .show(ctx, |ui| {
+                let unit = key_width(ui.available_size());
+                scale_text(ui, unit / NORMAL_KEY);
                 header(ui, viewer, &mut layout);
                 ui.separator();
                 egui::ScrollArea::vertical()
@@ -505,14 +527,24 @@ impl Workbench {
                     .show(ui, |ui| {
                         let caps = keyboard::caps(layout);
                         ui.horizontal_top(|ui| {
-                            let hovered = draw_keyboard(ui, viewer, &caps, &bindings);
-                            ui.add_space(12.0);
+                            let hovered = draw_keyboard(ui, viewer, &caps, &bindings, unit);
+                            // A line between the keyboard and the jobs, as tall as
+                            // the keyboard.
+                            let (line, _) = ui.allocate_exact_size(
+                                egui::vec2((unit * 0.6).round(), keyboard::SIZE.1 * unit),
+                                egui::Sense::hover(),
+                            );
+                            ui.painter().vline(
+                                line.center().x.round(),
+                                line.y_range(),
+                                ui.visuals().widgets.noninteractive.bg_stroke,
+                            );
                             ui.vertical(|ui| {
-                                ui.set_width(DETAILS_WIDTH);
+                                ui.set_width(unit * DETAILS_KEYS);
                                 details(ui, viewer, &caps, &bindings, hovered.or(viewer.pinned));
                             });
                         });
-                        ui.add_space(10.0);
+                        ui.add_space((unit * 0.3).round());
                         mouse_section(ui, viewer);
                     });
             });
@@ -523,13 +555,40 @@ impl Workbench {
     }
 }
 
+/// The width of a drawn key that fills `size` (the window's inside):
+/// the keyboard and the side panel across, everything down.
+fn key_width(size: egui::Vec2) -> f32 {
+    let across = size.x / (keyboard::SIZE.0 + DETAILS_KEYS + 1.0);
+    let down = size.y / HEIGHT_KEYS;
+    across.min(down).clamp(KEY_RANGE.0, KEY_RANGE.1).floor()
+}
+
+/// Makes the window's text and spacing `scale` times their normal size,
+/// to go with the drawn keys.
+fn scale_text(ui: &mut Ui, scale: f32) {
+    let style = ui.style_mut();
+    for font in style.text_styles.values_mut() {
+        font.size *= scale;
+    }
+    // Spacing stays on whole points, so widgets line up with the pixels.
+    let spacing = &mut style.spacing;
+    spacing.item_spacing = (spacing.item_spacing * scale).round();
+    spacing.button_padding = (spacing.button_padding * scale).round();
+    spacing.interact_size = (spacing.interact_size * scale).round();
+    spacing.icon_width = (spacing.icon_width * scale).round();
+    spacing.icon_width_inner = (spacing.icon_width_inner * scale).round();
+    spacing.icon_spacing = (spacing.icon_spacing * scale).round();
+    spacing.combo_width = (spacing.combo_width * scale).round();
+    spacing.text_edit_width = (spacing.text_edit_width * scale).round();
+}
+
 /// The search, the keyboard picker and the situation chips.
 fn header(ui: &mut Ui, viewer: &mut ShortcutViewer, layout: &mut KeyboardLayout) {
     ui.horizontal_wrapped(|ui| {
         ui.add(
             egui::TextEdit::singleline(&mut viewer.filter)
                 .hint_text(FILTER_HINT)
-                .desired_width(220.0),
+                .desired_width((ui.spacing().text_edit_width * 0.8).round()),
         );
         egui::ComboBox::from_label(LAYOUT_LABEL)
             .selected_text(layout.name())
@@ -547,7 +606,7 @@ fn header(ui: &mut Ui, viewer: &mut ShortcutViewer, layout: &mut KeyboardLayout)
     // The situations, each a chip with its colour: click one to hide or
     // show its keys.
     ui.horizontal_wrapped(|ui| {
-        ui.spacing_mut().item_spacing.x = 4.0;
+        ui.spacing_mut().item_spacing.x = (ui.spacing().item_spacing.x * 0.5).round();
         for situation in Situation::ALL {
             let shown = !viewer.hidden.contains(&situation);
             let colour = situation.colour();
@@ -571,7 +630,7 @@ fn header(ui: &mut Ui, viewer: &mut ShortcutViewer, layout: &mut KeyboardLayout)
                     .stroke(egui::Stroke::new(1.0, theme::HOVER))
             };
             let chip = ui
-                .add(chip.corner_radius(10.0))
+                .add(chip.corner_radius(ui.spacing().interact_size.y * 0.5))
                 .on_hover_text("Click to hide or show the keys for this situation");
             if chip.clicked() {
                 if shown {
@@ -580,7 +639,7 @@ fn header(ui: &mut Ui, viewer: &mut ShortcutViewer, layout: &mut KeyboardLayout)
                     viewer.hidden.remove(&situation);
                 }
             }
-            ui.add_space(8.0);
+            ui.add_space(ui.spacing().item_spacing.x * 2.0);
         }
     });
 }
@@ -603,9 +662,12 @@ fn draw_keyboard(
     viewer: &mut ShortcutViewer,
     caps: &[Cap],
     bindings: &[Binding],
+    unit: f32,
 ) -> Option<KeyId> {
     let ctx = ui.ctx().clone();
-    let unit = ((ui.available_width() - DETAILS_WIDTH - 22.0) / keyboard::SIZE.0).clamp(24.0, 44.0);
+    let scale = unit / NORMAL_KEY;
+    let gap = unit * 0.1;
+    let corner = unit * 0.1;
     let (area, _) = ui.allocate_exact_size(
         egui::vec2(keyboard::SIZE.0 * unit, keyboard::SIZE.1 * unit),
         egui::Sense::hover(),
@@ -616,7 +678,7 @@ fn draw_keyboard(
     for (index, cap) in caps.iter().enumerate() {
         let rect = egui::Rect::from_min_size(
             area.min + egui::vec2(cap.x * unit, cap.y * unit),
-            egui::vec2(cap.w * unit - KEY_GAP, cap.h * unit - KEY_GAP),
+            egui::vec2(cap.w * unit - gap, cap.h * unit - gap),
         );
         let mut state = CapState::default();
         if let Some(id) = cap.id {
@@ -664,13 +726,13 @@ fn draw_keyboard(
             theme::FIELD
         };
         let painter = ui.painter();
-        painter.rect_filled(rect, 4.0, fill);
+        painter.rect_filled(rect, corner, fill);
         let outline = if state.found {
-            egui::Stroke::new(2.0, accent.light)
+            egui::Stroke::new(2.0 * scale, accent.light)
         } else {
             egui::Stroke::new(1.0, theme::BORDER)
         };
-        painter.rect_stroke(rect, 4.0, outline, egui::StrokeKind::Inside);
+        painter.rect_stroke(rect, corner, outline, egui::StrokeKind::Inside);
         let text_colour = if pinned || lit {
             theme::TEXT_STRONG
         } else if used {
@@ -691,9 +753,13 @@ fn draw_keyboard(
             text_colour,
         );
         // A small coloured mark for each situation it works in.
-        let mark = egui::vec2((unit * 0.16).max(4.0), 3.0);
+        let mark = egui::vec2(unit * 0.16, 3.0 * scale);
         for (i, situation) in state.situations.iter().enumerate() {
-            let min = rect.left_bottom() + egui::vec2(5.0 + i as f32 * (mark.x + 2.0), -7.0);
+            let min = rect.left_bottom()
+                + egui::vec2(
+                    5.0 * scale + i as f32 * (mark.x + 2.0 * scale),
+                    -7.0 * scale,
+                );
             let colour = if lit || pinned {
                 situation.colour()
             } else {
@@ -878,6 +944,23 @@ mod tests {
         for l in mouse() {
             assert!(!l.action.is_empty() && !l.how.is_empty());
         }
+    }
+
+    #[test]
+    fn keys_fill_the_window_within_limits() {
+        // A small window: the smallest keys, and the window scrolls.
+        assert_eq!(key_width(egui::vec2(400.0, 300.0)), KEY_RANGE.0);
+        // A wide, short window: its height decides.
+        let wide = key_width(egui::vec2(3000.0, 1000.0));
+        assert_eq!(wide, (1000.0 / HEIGHT_KEYS).floor());
+        // A narrow, tall one: its width decides.
+        let tall = key_width(egui::vec2(1000.0, 3000.0));
+        assert_eq!(
+            tall,
+            (1000.0 / (keyboard::SIZE.0 + DETAILS_KEYS + 1.0)).floor()
+        );
+        // Never bigger than the largest.
+        assert_eq!(key_width(egui::vec2(9000.0, 9000.0)), KEY_RANGE.1);
     }
 
     #[test]

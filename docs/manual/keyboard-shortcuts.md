@@ -13,7 +13,7 @@ The app has a lot of keys, and it's easy to forget one, especially when coming b
 
 ## How to use it
 
-1. Click **Keys** on the menu bar, right after **Help**.
+1. Click **Keys** on the menu bar, right after **Help**. The window opens over most of the screen, so the keys and text are easy to read.
 2. **Point at a key** on the drawing. The panel on the right lists its jobs, each with the full keys to press (such as **Shift+H**) and a coloured dot saying where it works.
 3. **Click a key** to keep its jobs listed while you move the mouse away. Click it again to let go.
 4. Point at or click **Shift**, **Ctrl** or **Alt** to see what holding it does (such as "Ten times finer" while dragging), and under **Held with**, every shortcut that uses it.
@@ -64,7 +64,7 @@ Keys can't be changed yet; custom keys are planned.
 
 ## Tips and common problems
 
-- **Tip:** the window can be moved and resized; the drawing grows with it.
+- **Tip:** the window opens big, sized to fit your screen (on a very wide monitor it stays about twice as wide as it is tall, so it doesn't stretch). Everything in it, keys and text alike, grows and shrinks with it: drag its corner to make it bigger or smaller, and move it by its title.
 - **Tip:** a key with several marks does several jobs: Esc, for example, deselects, cancels a drag, finishes a slit and closes menus. Point at it to see which is which.
 - **Problem:** typing in the search field does nothing in the viewport. **Why:** while you type there, keys go to the field, not the tools. **Fix:** click the viewport to use the keys again.
 - **Problem:** a key doesn't work in some mode. **Why:** many keys belong to a mode. **Fix:** check its coloured dot: orange keys work in the Points, Edges and Polygons modes, purple ones in the Model mode.

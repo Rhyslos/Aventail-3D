@@ -26,7 +26,8 @@ Option 2.
 5. **Mouse actions** are listed under the keyboard, with the same colours.
 6. **Layouts:** US, UK, Norwegian, Danish, Swedish / Finnish, German (QWERTZ) and French (AZERTY). The first time, the layout is guessed from the system language (read with the `sys-locale` crate, MIT or Apache-2.0); a layout picked in the window is remembered with the view options.
 7. **What a key gives:** letters follow the printed letter, the number row always gives 1 to 0 (on AZERTY, the & key is 1), as egui reports them. Each drawn key records the key the app reads from it, and a test checks that every key the app uses exists on every layout.
-8. **Still never out of date:** every job comes from the same constants and command list the app acts on, as in 0056; only what holding Shift, Ctrl or Alt does, the situations, and the mouse actions are written out in the window's code.
+8. **Size** (the project lead: the first version was far too small to read on an ultrawide): the window opens at 90% of the app's window, but no wider than 2.1 times its height, so very wide monitors don't stretch it. The key size is whatever fits the window (the keyboard and the jobs panel across, everything down), from 24 to 110 points, and the window's text and spacing scale with the keys. A line divides the keyboard from the jobs panel.
+9. **Still never out of date:** every job comes from the same constants and command list the app acts on, as in 0056; only what holding Shift, Ctrl or Alt does, the situations, and the mouse actions are written out in the window's code.
 
 ## Consequences
 
