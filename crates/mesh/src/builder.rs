@@ -6,12 +6,15 @@
 //! has, including ones the tool has never heard of (UVs, material slots,
 //! vertex colours to come):
 //!
-//! - a new point is a copy of another ([`PointFrom::Copy`]) or lies between
-//!   two ([`PointFrom::Between`]), and its point values follow;
+//! - a new point is a copy of another ([`PointFrom::Copy`]), lies between
+//!   two ([`PointFrom::Between`]) or lies inside a polygon
+//!   ([`PointFrom::Inside`], blending its corners), and its point values
+//!   follow;
 //! - a new polygon is *like* an existing one, and its polygon values (a
 //!   material slot, say) are copied;
 //! - each new corner copies a corner of an original polygon
-//!   ([`CornerFrom::Copy`]) or blends two ([`CornerFrom::Between`]), so
+//!   ([`CornerFrom::Copy`]), blends two ([`CornerFrom::Between`]) or blends
+//!   all of a polygon's at a spot inside it ([`CornerFrom::Inside`]), so
 //!   UVs stretch across an extruded wall or a bevel instead of being lost;
 //! - an edge that moves or is copied takes its edge values (hard, seam)
 //!   with it ([`Builder::move_edge`], [`Builder::copy_edge`]).
@@ -34,6 +37,9 @@ pub enum PointFrom {
     Copy(VertexId),
     /// `t` of the way from the first point to the second.
     Between(VertexId, VertexId, f32),
+    /// At this spot inside the original polygon: its corners' points
+    /// blended by how close the spot is to each (mean value weights).
+    Inside(FaceId, Vec3),
 }
 
 /// Where a new polygon corner's values come from: corners of the original
@@ -47,6 +53,72 @@ pub enum CornerFrom {
     /// `t` (`.4`) of the way from polygon `.0`'s corner at point `.1` to
     /// polygon `.2`'s corner at point `.3`.
     Between(FaceId, VertexId, FaceId, VertexId, f32),
+    /// At this spot inside the original polygon: its corners blended by
+    /// how close the spot is to each (mean value weights).
+    Inside(FaceId, Vec3),
+}
+
+/// How much each corner of `face` counts at `spot`, inside or on it: mean
+/// value weights, which blend smoothly across any polygon and give a
+/// corner all the weight at the corner itself. Each weight goes with the
+/// corner's place in the polygon and its point; they add up to 1. Empty
+/// for an unknown polygon.
+pub fn weights_inside(mesh: &Mesh, face: FaceId, spot: Vec3) -> Vec<(usize, VertexId, f32)> {
+    let Some(corners) = mesh.face(face) else {
+        return Vec::new();
+    };
+    let places: Vec<Vec3> = corners
+        .iter()
+        .map(|v| mesh.position(*v).unwrap_or(spot))
+        .collect();
+    let n = places.len();
+    let to: Vec<Vec3> = places.iter().map(|p| *p - spot).collect();
+    let lengths: Vec<f32> = to.iter().map(|d| d.length()).collect();
+    // On a corner: all of it.
+    if let Some(i) = lengths.iter().position(|l| *l < 1e-6) {
+        return corners
+            .iter()
+            .enumerate()
+            .map(|(k, v)| (k, *v, if k == i { 1.0 } else { 0.0 }))
+            .collect();
+    }
+    // tan(half the angle) at the spot between corners i and i + 1.
+    let half_tan = |i: usize| {
+        let (a, b) = (to[i], to[(i + 1) % n]);
+        let cos = (a.dot(b) / (lengths[i] * lengths[(i + 1) % n])).clamp(-1.0, 1.0);
+        let angle = cos.acos();
+        (angle * 0.5).tan()
+    };
+    let mut weights: Vec<f32> = (0..n)
+        .map(|i| (half_tan((i + n - 1) % n) + half_tan(i)) / lengths[i])
+        .collect();
+    let mut sum: f32 = weights.iter().sum();
+    if !sum.is_finite() || sum <= 1e-12 {
+        // On an edge, or something odd: by closeness instead.
+        weights = lengths.iter().map(|l| 1.0 / (l * l)).collect();
+        sum = weights.iter().sum();
+    }
+    corners
+        .iter()
+        .enumerate()
+        .map(|(k, v)| (k, *v, weights[k] / sum))
+        .collect()
+}
+
+/// Blends `values` by their weights (adding up to 1), one at a time.
+fn blend(values: impl IntoIterator<Item = (Value, f32)>) -> Option<Value> {
+    let mut out: Option<(Value, f32)> = None;
+    for (value, weight) in values {
+        out = Some(match out {
+            None => (value, weight),
+            Some((acc, so_far)) => {
+                let total = so_far + weight;
+                let t = if total > 1e-12 { weight / total } else { 0.0 };
+                (Value::mix(acc, value, t), total)
+            }
+        });
+    }
+    out.map(|(v, _)| v)
 }
 
 /// Makes and rewires geometry in `mesh`, carrying attribute values over
@@ -79,6 +151,10 @@ impl<'a> Builder<'a> {
         if from == PointFrom::Nothing {
             return id;
         }
+        let inside = match from {
+            PointFrom::Inside(face, spot) => weights_inside(self.original, face, spot),
+            _ => Vec::new(),
+        };
         for layer in self
             .mesh
             .attribute_layers_mut()
@@ -90,6 +166,12 @@ impl<'a> Builder<'a> {
                 PointFrom::Between(a, b, t) => {
                     Value::mix(layer.at(a.get() as usize), layer.at(b.get() as usize), t)
                 }
+                PointFrom::Inside(..) => blend(
+                    inside
+                        .iter()
+                        .map(|(_, v, w)| (layer.at(v.get() as usize), *w)),
+                )
+                .unwrap_or_else(|| layer.default()),
             };
             layer.set_at(id.get() as usize, value);
         }
@@ -237,6 +319,14 @@ impl<'a> Builder<'a> {
                         let b = index(g, w).map_or(source.default(), |i| source.at(i));
                         Value::mix(a, b, t)
                     }
+                    CornerFrom::Inside(f, spot) => blend(
+                        weights_inside(original, f, spot)
+                            .into_iter()
+                            .map(|(_, v, w)| {
+                                (index(f, v).map_or(source.default(), |i| source.at(i)), w)
+                            }),
+                    )
+                    .unwrap_or_else(|| source.default()),
                 })
                 .collect();
             if let Some(layer) = self.mesh.attribute_layers_mut().get_mut(&name) {

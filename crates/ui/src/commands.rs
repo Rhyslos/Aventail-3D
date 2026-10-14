@@ -265,9 +265,10 @@ impl CommandId {
             Self::Knife => (
                 "Slit",
                 Icon::Knife,
+                plain(Key::X),
+                "Cut new edges along a line: click or drag its points over the shape; \
+                 Esc or Enter finishes",
                 None,
-                "Cut new edges wherever you draw a line",
-                PHASE_4,
             ),
             Self::LoopCut => (
                 "Loop cut",
@@ -485,6 +486,7 @@ mod tests {
         assert_eq!(CommandId::Inset.info().shortcut, plain(Key::I));
         assert_eq!(CommandId::Bevel.info().shortcut, plain(Key::V));
         assert_eq!(CommandId::LoopCut.info().shortcut, plain(Key::F));
+        assert_eq!(CommandId::Knife.info().shortcut, plain(Key::X));
         assert_eq!(CommandId::FrameSelected.info().shortcut, plain(Key::Z));
     }
 

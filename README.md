@@ -4,7 +4,7 @@
 
 Aventail 3D is a free, open-source modelling and UV unwrapping tool for **hard-surface game assets**, written in Rust. Model it, unwrap it, and export it to Substance Painter and Godot, all in one app.
 
-> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout and a real 3D view you can orbit, pan and zoom around, from four views at once if you like. You can create primitives (cube, plane, cylinder, sphere, disc, tube, cone) and groups, organise them in the Objects panel, and undo every change. Press B for a list of shapes, and select one to change its size and segments in the Attributes panel, or press Ctrl + E to make it a plain, editable mesh. Press 1, 2 or 3 to see and select a selected shape's points, edges or polygons, and W, R or S to move, rotate or scale what's selected; change a shape's settings afterwards and your edits follow. Save your work as a project and open it again later. Press E anywhere for a menu of the tools for what you're working on, D or I to extrude or inset polygons, V to bevel edges, and F to cut a new loop of edges around a shape. Heavy shapes of millions of polygons stay quick to work with, and backup copies saved in the background bring your work back after a crash. More modelling tools follow through Phase 4. Follow the progress tracker below.
+> **Status: pre-alpha.** The window opens with its calm, Cinema 4D-style layout and a real 3D view you can orbit, pan and zoom around, from four views at once if you like. You can create primitives (cube, plane, cylinder, sphere, disc, tube, cone) and groups, organise them in the Objects panel, and undo every change. Press B for a list of shapes, and select one to change its size and segments in the Attributes panel, or press Ctrl + E to make it a plain, editable mesh. Press 1, 2 or 3 to see and select a selected shape's points, edges or polygons, and W, R or S to move, rotate or scale what's selected; change a shape's settings afterwards and your edits follow. Save your work as a project and open it again later. Press E anywhere for a menu of the tools for what you're working on, D or I to extrude or inset polygons, V to bevel edges, F to cut a new loop of edges around a shape, and X to cut along a line you draw. Heavy shapes of millions of polygons stay quick to work with, and backup copies saved in the background bring your work back after a crash. More modelling tools follow through Phase 4. Follow the progress tracker below.
 
 Created by **Rhyslos**, built with AI assistance (Claude by Anthropic). Part of the **Rhylib** family of tools, alongside [Halberd](https://github.com/Rhyslos/halberd).
 
@@ -91,9 +91,9 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** points, edges and polygons can be selected and moved precisely, and a cube's segments can still be changed afterwards. ✅ *Passed 2026-10-12: tested by the project lead.*
 
-### Phase 4 · Core modelling tools — 7 of 14
+### Phase 4 · Core modelling tools — 8 of 15
 
-`███████░░░░░░` 50%
+`███████░░░░░░` 53%
 
 <details>
 <summary>Milestones</summary>
@@ -105,7 +105,8 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Bevel (V): edges and points, with width, segments and profile (round, flat or hollow); drag away from the edges
 - [x] Foundations: saves that always reopen, fast edits however long the history, extra values per point, edge, polygon and corner (ready for UVs), edits that hold when earlier ones change, limits for damaged files; and our own names (Attributes panel, Objects panel, Paint select)
 - [x] Loop cut (F): point at an edge, click or drag; Ctrl + wheel for a tool's count; Z frames the selection
-- [ ] Slit (X): cut new edges along a line you draw
+- [x] Slit (X): cut new edges along a line of points over the shape, visible only or through
+- [ ] Extrude with a bend: pipe bends that keep their size, with an angle, direction, bend radius and segments
 - [ ] Connect, Bridge (C) and Weld
 - [ ] Clean-up: dissolve, delete, fill hole and flip normals, with select flipped, fix facing and select by facing
 - [ ] Hard and soft edges, with normals display
@@ -156,7 +157,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** stacking, toggling and editing earlier layers and edits feels right to the project lead.
 
-### Phase 7 · Advanced hard-surface — 0 of 10
+### Phase 7 · Advanced hard-surface — 0 of 9
 
 `░░░░░░░░░░░░░` 0%
 
@@ -171,7 +172,6 @@ Friends join as testers around here, once there are enough tools to build someth
 - [ ] Array and mirror generators
 - [ ] Shell: give a surface thickness
 - [ ] Curves and splines: sweep and lathe, for pipes, cables and railings
-- [ ] Pipe bends that keep their size: a turned ring stays round, with an optional bend radius
 - [ ] Smoothing modifier (subdivision), with creases
 - [ ] Game bevel for mid-poly models: bevel, weighted normals, hard edges and seams in one step
 - [ ] Modular kit helpers: grid-sized pieces and pivot presets
@@ -218,6 +218,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-14 | Slit (X): cut along a line of points clicked over the shape, editable until finished, visible only or through; project files at format version 7. Pipe bends moved into Phase 4 |
 | 2026-10-14 | Loop cut (F): a new loop of edges around a shape, shown before you click, slid by dragging; Ctrl + wheel changes a tool's count (Bevel's segments, Loop cut's cuts); Z frames the selection and Shift + X/Y/Z lock axes; project files at format version 6 |
 | 2026-10-14 | Our own names: the Attributes panel, the Objects panel and Paint select |
 | 2026-10-14 | Foundations, hostile files: damaged or booby-trapped projects are refused with a message instead of crashing or freezing the app; edits that would make a shape impossibly large are skipped; recovery can't get stuck. Foundations complete |

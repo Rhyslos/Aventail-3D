@@ -20,7 +20,7 @@ pub mod tree;
 pub use command::Command;
 pub use document::Document;
 pub use history::HistoryLimit;
-pub use mesh::edit::{BevelShape, Grouping};
+pub use mesh::edit::{BevelShape, Eye, Grouping, SlitLine};
 pub use mesh::{
     Bounds, Combine, EdgeKey, Element, ElementKind, ElementSelection, FaceId, Mesh, Primitive,
     PrimitiveKind, VertexId,

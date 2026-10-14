@@ -32,7 +32,7 @@ use crate::theme;
 use crate::transforming::{Axes, SnapSettings};
 pub(crate) use gizmo::GizmoEvent;
 use std::sync::Arc;
-pub(crate) use tool_drag::ToolDragEvent;
+pub(crate) use tool_drag::{ToolDragEvent, ToolPath};
 
 #[cfg(test)]
 pub(crate) use picker::AROUND_CURSOR_LABEL;
@@ -681,6 +681,8 @@ pub struct ViewportPanel {
     tool_steps: i32,
     /// What the modelling tool's drag is doing, written by the mouse.
     tool_label: Option<String>,
+    /// A line a tool shows over the views (Slit's).
+    tool_path: Option<ToolPath>,
     /// Modelling tool drag events this frame, for the workbench.
     tool_events: Vec<ToolDragEvent>,
 }
@@ -708,6 +710,7 @@ impl Default for ViewportPanel {
             wheel_tool: false,
             tool_steps: 0,
             tool_label: None,
+            tool_path: None,
             tool_events: Vec::new(),
         }
     }
@@ -881,6 +884,17 @@ impl ViewportPanel {
         std::mem::take(&mut self.tool_steps)
     }
 
+    /// The line a tool shows over the views, if any.
+    pub(crate) fn set_tool_path(&mut self, path: Option<ToolPath>) {
+        self.tool_path = path;
+    }
+
+    /// The line a tool shows over the views, if any.
+    #[cfg(test)]
+    pub(crate) fn tool_path(&self) -> Option<&ToolPath> {
+        self.tool_path.as_ref()
+    }
+
     /// What to write beside the mouse while a modelling tool is dragged.
     pub(crate) fn set_tool_label(&mut self, label: Option<String>) {
         self.tool_label = label;
@@ -1050,6 +1064,7 @@ impl ViewportPanel {
                 hovered = Some((slot, rect, response.hover_pos(), view));
             }
             self.views[slot].paint_gizmo(ui, rect, self.gizmo, self.options.locked);
+            self.views[slot].paint_tool_path(ui, rect, self.tool_path.as_ref());
             self.views[slot].paint_tool_label(ui, rect, self.tool_label.as_deref());
             self.views[slot].paint_selection(
                 ui,

@@ -13,7 +13,7 @@ Whenever you want a tool and don't remember its key, or it doesn't have one. The
 
 Each tool's key is shown next to its button, so the menu teaches you the keys as you go. Once you know a key, pressing it directly is quicker. The menu is there for everything else.
 
-The modelling tools arrive one by one during Phase 4; built so far are Extrude, Inset, Bevel and [Loop cut](loop-cut.md). Until a tool is built, its icon is dimmed, and choosing it says when it arrives.
+The modelling tools arrive one by one during Phase 4; built so far are Extrude, Inset, Bevel, [Loop cut](loop-cut.md) and [Slit](slit.md). Until a tool is built, its icon is dimmed, and choosing it says when it arrives.
 
 ![The tool menu in Edges mode](../screenshots/2026-10-13-tool-menu-edges.png)
 

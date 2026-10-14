@@ -32,6 +32,9 @@ impl Workbench {
 
     /// Switches to `tool`, saying so in the status bar.
     pub(crate) fn set_tool(&mut self, tool: Tool) {
+        if tool != Tool::Slit {
+            self.finish_slit();
+        }
         self.tool = tool;
         self.note = Some(match tool {
             Tool::Select => format!(
@@ -49,6 +52,9 @@ impl Workbench {
             Tool::LoopCut => "Loop cut: point at an edge to see the new loop, click to cut \
                  it, or press and drag along the edge to slide it into place. Cuts is in the \
                  Attributes panel. Esc or a right click cancels a drag."
+                .into(),
+            Tool::Slit => "Slit: click points over the shape to cut along them. Drag a point to \
+                 move it, Ctrl + click to remove it; Esc or Enter finishes."
                 .into(),
             Tool::Inset => "Inset: drag left or right anywhere in the viewport to shrink the \
                  selected polygons inward. Shift for fine steps; Esc or a right click cancels."

@@ -18,7 +18,7 @@
 
 use crate::object::{ObjectId, ObjectKind};
 use glam::{Mat4, Vec3};
-use mesh::edit::{self, BevelShape, Grouping, Outcome};
+use mesh::edit::{self, BevelShape, Grouping, Outcome, SlitLine};
 use mesh::{Anchors, EdgeKey, FaceId, Mesh, VertexId};
 use std::collections::{BTreeSet, HashMap};
 use std::sync::{Arc, Mutex};
@@ -134,6 +134,13 @@ pub enum Operation {
         /// (decision 0032).
         anchors: Option<Anchors>,
     },
+    /// Cuts new edges along a line drawn over the shape, as seen from
+    /// where it was drawn (decision 0049). Worked out from the shape as it
+    /// is, so it needs no ids or anchors.
+    Slit {
+        /// The line, where it is seen from, and whether it cuts through.
+        line: SlitLine,
+    },
 }
 
 /// An edit's id: unique among the edits of its object while they exist,
@@ -197,6 +204,8 @@ pub struct EditSettings {
     pub cuts: Option<u32>,
     /// Where a loop cut sits across its edge, 0 to 1.
     pub position: Option<f32>,
+    /// Whether a slit cuts through to the far side.
+    pub through: Option<bool>,
 }
 
 /// What applying an operation did.
@@ -231,6 +240,8 @@ impl Operation {
             Self::BevelPoints { points, .. } => counted("Bevel", points.len(), "point"),
             Self::LoopCut { cuts: 1, .. } => "Loop cut".to_string(),
             Self::LoopCut { cuts, .. } => format!("Loop cut ({cuts} cuts)"),
+            Self::Slit { line } if line.through => "Slit through".to_string(),
+            Self::Slit { .. } => "Slit".to_string(),
         }
     }
 
@@ -265,6 +276,10 @@ impl Operation {
             Self::LoopCut { cuts, position, .. } => Some(EditSettings {
                 cuts: Some(*cuts),
                 position: Some(*position),
+                ..EditSettings::default()
+            }),
+            Self::Slit { line } => Some(EditSettings {
+                through: Some(line.through),
                 ..EditSettings::default()
             }),
             Self::MovePoints { .. } | Self::TransformPoints { .. } => None,
@@ -317,6 +332,11 @@ impl Operation {
                     *position = p;
                 }
             }
+            Self::Slit { line } => {
+                if let Some(t) = settings.through {
+                    line.through = t;
+                }
+            }
             Self::MovePoints { .. } | Self::TransformPoints { .. } => {}
         }
         changed
@@ -347,6 +367,13 @@ impl Operation {
             Self::BevelEdges { shape, .. } => shape.width.is_finite() && shape.profile.is_finite(),
             Self::BevelPoints { width, .. } => width.is_finite(),
             Self::LoopCut { position, .. } => position.is_finite(),
+            Self::Slit { line } => {
+                line.points.iter().all(|p| p.is_finite())
+                    && match line.eye {
+                        edit::Eye::At(e) => e.is_finite(),
+                        edit::Eye::Along(d) => d.is_finite(),
+                    }
+            }
         };
         own && anchors_ok
     }
@@ -362,6 +389,7 @@ impl Operation {
             | Self::BevelEdges { anchors, .. }
             | Self::BevelPoints { anchors, .. }
             | Self::LoopCut { anchors, .. } => anchors.as_ref(),
+            Self::Slit { .. } => None,
         }
     }
 
@@ -377,6 +405,7 @@ impl Operation {
             | Self::BevelEdges { anchors, .. }
             | Self::BevelPoints { anchors, .. }
             | Self::LoopCut { anchors, .. } => anchors.as_mut(),
+            Self::Slit { .. } => None,
         }
     }
 
@@ -531,6 +560,13 @@ impl Operation {
                     return skipped;
                 }
                 edit::loop_cut(mesh, edge, *cuts, position)
+            }
+            Self::Slit { line } => {
+                // One more polygon for each piece cut off.
+                if too_big(mesh::slit::slit_size(mesh, line)) {
+                    return skipped;
+                }
+                edit::slit(mesh, line)
             }
         };
         match refound {

@@ -314,7 +314,8 @@ Also: dense wireframes fade out from afar (and aren't drawn when too dense to se
 **Tools — Phase 4 (core):**
 - Extrude, Inset (built)
 - Bevel (edges and points; width, segments, profile; built)
-- Loop cut (built), Slit (cutting along a drawn line)
+- Loop cut (built), Slit (cutting along a drawn line; built)
+- Extrude with a bend: pipe bends that keep their size (moved from Phase 7 at the project lead's request)
 - Connect (edges and points)
 - Bridge, Weld (to the middle, or onto a target point)
 - Dissolve, Delete, Fill hole, Flip normals, with select flipped, fix facing and select by facing
@@ -325,7 +326,7 @@ Also: dense wireframes fade out from afar (and aren't drawn when too dense to se
 
 **Tools — Phase 7 (advanced hard-surface):**
 - Booleans (union/subtract/intersect) via manifold
-- Shell (thickness), curves and splines (sweep, lathe), and pipe bends that keep their size (see the 2026-10-13 log)
+- Shell (thickness), and curves and splines (sweep, lathe)
 - Our own smoothing modifier (subdivision, with creases)
 - Weighted normals
 - Improved bevel (clamping, mitre patterns)
@@ -437,7 +438,7 @@ Each phase ends with something runnable. The user tests the *feel* at the end of
 - **Autosave and crash recovery** (**W12**): a copy saved in the background every few minutes, offered back after a crash; never overwrites the project itself. *Built* ([0036](docs/decisions/0036-autosave.md)): every 5 minutes after a change and the newest 5 kept (both in Settings → Autosave), in the app's own folder (Local AppData on Windows), "Recover unsaved work?" asked after a crash. Copies before risky steps come with the first tool that needs them
 - **The tool menu** (`E`): the tools of the current mode at the mouse, as a ring (standard) or a list (Settings), every tool in a fixed place, from one **command list** that every menu, the palette and the keys read from. *Built* ([0037](docs/decisions/0037-tool-menu-and-command-list.md)). Keys for tools to come: `D` extrude, `I` inset, `V` bevel
 - **Foundations** (between bevel and loop cut, from the whole-app review): saves that always reopen ([0041](docs/decisions/0041-saves-that-always-reopen.md)), fast edits ([0042](docs/decisions/0042-fast-edits.md)), attribute layers and the builder ([0043](docs/decisions/0043-attribute-layers-and-the-builder.md)), edits that hold ([0044](docs/decisions/0044-edits-that-hold.md)), limits for files ([0045](docs/decisions/0045-limits-for-files.md)), and our own names ([0046](docs/decisions/0046-our-own-names.md)). *Built.*
-- Tools from §6 Phase 4, in this order after loop cut: Slit (`X`); Connect, Bridge (`C`) and Weld; the clean-up tools; hard and soft edges with normals display; symmetry; the basics (hide and isolate, slide, duplicate and instances, split and join); and the keyboard shortcut viewer last. Each with live parameters and HUD, each recording anchors so it survives base changes (**W14**). *Extrude and inset built* ([0038](docs/decisions/0038-extrude-and-inset.md)): `D` and `I`, dragged anywhere in the view; polygons together or each on its own (Keep together); border edges extrude too; the last one changeable in the Attributes panel. *Bevel built* ([0040](docs/decisions/0040-bevel.md)): `V`, dragged away from the edges or points; width, segments and profile. *Loop cut built* ([0047](docs/decisions/0047-loop-cut.md)): `F`, point at an edge to see the loop, click to cut or drag to slide; Cuts and Position in the Attributes panel.
+- Tools from §6 Phase 4, in this order after loop cut: Slit (`X`); extrude with a bend (pipe bends); Connect, Bridge (`C`) and Weld; the clean-up tools; hard and soft edges with normals display; symmetry; the basics (hide and isolate, slide, duplicate and instances, split and join); and the keyboard shortcut viewer last. Each with live parameters and HUD, each recording anchors so it survives base changes (**W14**). *Extrude and inset built* ([0038](docs/decisions/0038-extrude-and-inset.md)): `D` and `I`, dragged anywhere in the view; polygons together or each on its own (Keep together); border edges extrude too; the last one changeable in the Attributes panel. *Bevel built* ([0040](docs/decisions/0040-bevel.md)): `V`, dragged away from the edges or points; width, segments and profile. *Loop cut built* ([0047](docs/decisions/0047-loop-cut.md)): `F`, point at an edge to see the loop, click to cut or drag to slide; Cuts and Position in the Attributes panel. *Slit built* ([0049](docs/decisions/0049-slit.md)): `X`, click points over the shape, cut as seen (or through), editable until Esc or Enter.
 - Hard edges and normals display
 - **Done when:** you can model a simple hard-surface prop (crate, sci-fi panel) start to finish.
 
@@ -461,7 +462,7 @@ Each phase ends with something runnable. The user tests the *feel* at the end of
 
 ### Phase 7 — Advanced hard-surface
 - Booleans, weighted normals, better bevel, generators (array, mirror)
-- Shell, curves and splines, pipe bends that keep their size, and our own smoothing modifier
+- Shell, curves and splines, and our own smoothing modifier
 - Friends join as testers around this phase
 - Game bevel and modular kit helpers (§6; **W15**, **W16**)
 - Generators, booleans, weighted normals and the game bevel are added to the modifiers palette (§5.1)
@@ -705,3 +706,5 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-14 — After the first build, the project lead added **Ctrl + wheel for Loop cut's number of cuts**, for those who want it. It doesn't clash: Ctrl + wheel grows the selection, but while Loop cut is in use nothing is selected, so it changes the cuts instead (as it changes the brush's size with the brush). Works while pointing and while dragging a cut.
 - 2026-10-14 — At the project lead's request, **Ctrl + wheel changes the count of the tool in use, as the standard for every tool from now on** ([0048](docs/decisions/0048-ctrl-wheel-changes-a-tools-count.md)): Bevel's segments and Loop cut's cuts now, every later tool's count when it has one. It does what the arrows beside the count in the Attributes panel do: the next use before, the edit being dragged during, the last edit after (one undo step per notch). With tools without a count, Ctrl + wheel still grows the selection.
 - 2026-10-14 — At the project lead's request, the README's progress tracker brought up to date with this plan: the Foundations step and the basics milestone added to Phase 4 in the agreed order, Slit, Bridge and the clean-up tools under their current names; pivot editing and scene units, simple material slots and engine export paths in Phase 5; stable element names and the edit list in Phase 6; shell, curves and splines, pipe bends and the smoothing modifier in Phase 7; texturing before scripting and rigging; the old panel names replaced. This document's tool list (§6) and roadmap (§10) now say the same, with our own names (Edit Layers, Slit, Weld).
+- 2026-10-14 — Seventh Phase 4 milestone, **Slit** ([0049](docs/decisions/0049-slit.md)), with the controls chosen earlier (as in Cinema 4D, visible only with a switch): `X`, click or drag points over the shape, each snapping to a point, edge or polygon; the shape is cut as the line grows; drag a point to move it, click the line to add one, Ctrl + click to remove one, Shift for 15° steps; Esc or Enter finishes; **Cut through** in the Attributes panel. Each stretch of the line sweeps a fan from the eye and cuts the polygons it crosses; a point inside a polygon turns the cut there; a line ending inside a polygon doesn't cut it. Stored as the line in the object's own space, so it follows changes to the shape. The builder can blend a polygon's corners at a spot inside it. Project files move to format version 7.
+- 2026-10-14 — At the project lead's request, **pipe bends that keep their size move from Phase 7 into Phase 4**, as the milestone after Slit: needed for the simple prop that tests the Phase 4 gate. Controls chosen: **extrude with a bend**: press `D` and drag the length as usual, then Angle, Direction, Bend radius and Segments in the Attributes panel make a smooth elbow that keeps its full width; Ctrl + wheel changes Segments ([0048](docs/decisions/0048-ctrl-wheel-changes-a-tools-count.md)). Rotating a ring with a Keep round switch was offered and not chosen.

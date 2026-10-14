@@ -188,6 +188,8 @@ pub struct Workbench {
     modelling_session: Option<modelling::ModellingSession>,
     /// A loop cut being placed (decision 0047).
     loop_cut_session: Option<loop_cut::LoopCutSession>,
+    /// A slit's line being drawn (decision 0049).
+    slit_session: Option<slit::SlitSession>,
     /// The change the gizmo drag last showed, so an unchanged frame does
     /// nothing.
     gizmo_shown: Option<tools::Change>,
@@ -240,6 +242,7 @@ impl Workbench {
             gizmo_session: None,
             modelling_session: None,
             loop_cut_session: None,
+            slit_session: None,
             gizmo_shown: None,
             coordinates_session: None,
             sessions: 0,
@@ -882,8 +885,10 @@ impl Workbench {
         // when that changes, draw again so the highlight follows at once.
         self.carry_out_selection(&summary.drawing);
         self.carry_out_gizmo(ui, &summary.drawing);
-        self.carry_out_tool_drag(&summary.drawing);
+        let keys = ui.input(|i| i.modifiers);
+        self.carry_out_tool_drag(&summary.drawing, keys);
         self.show_loop_cut_preview(&summary.drawing);
+        self.show_slit(&summary.drawing);
         self.carry_out_coordinates(coordinates_done, &summary.drawing);
         let shown = summary.overlay.version;
         let overlay = self.components.update(
@@ -975,6 +980,17 @@ impl Workbench {
             if ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
                 self.viewport.cancel_tool_drag();
             }
+            return;
+        }
+        // While a slit's line is drawn, Esc and Enter finish it (and Esc
+        // deselects nothing).
+        if self.slit_session.is_some()
+            && ui.input_mut(|i| {
+                i.consume_key(Modifiers::NONE, Key::Escape)
+                    || i.consume_key(Modifiers::NONE, Key::Enter)
+            })
+        {
+            self.finish_slit();
             return;
         }
         let popup_open = egui::Popup::is_any_open(ui.ctx());
@@ -1596,6 +1612,9 @@ mod modelling;
 #[cfg(test)]
 mod modelling_tests;
 mod selection;
+mod slit;
+#[cfg(test)]
+mod slit_tests;
 mod transform;
 
 #[cfg(test)]

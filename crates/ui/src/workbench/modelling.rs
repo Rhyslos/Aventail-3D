@@ -236,8 +236,8 @@ impl ModellingSession {
 }
 
 impl Workbench {
-    /// D, I, V and F: Extrude, Inset, Bevel and Loop cut, from the command
-    /// list. Not while typing.
+    /// D, I, V, F and X: Extrude, Inset, Bevel, Loop cut and Slit, from
+    /// the command list. Not while typing.
     pub(super) fn modelling_keys(&mut self, ui: &Ui) {
         if ui.ctx().memory(|m| m.focused().is_some()) || self.objects.is_renaming() {
             return;
@@ -247,6 +247,7 @@ impl Workbench {
             CommandId::Inset,
             CommandId::Bevel,
             CommandId::LoopCut,
+            CommandId::Knife,
         ] {
             let pressed = command
                 .info()
@@ -279,10 +280,13 @@ impl Workbench {
     }
 
     /// Carries out this frame's modelling tool drags.
-    pub(super) fn carry_out_tool_drag(&mut self, drawing: &SceneDrawing) {
+    pub(super) fn carry_out_tool_drag(&mut self, drawing: &SceneDrawing, keys: egui::Modifiers) {
         let steps = self.viewport.take_tool_steps();
         if steps != 0 {
             self.wheel_count(steps);
+        }
+        if self.tool == Tool::Slit || self.slit_session.is_some() {
+            return self.carry_out_slit(drawing, keys);
         }
         if self.tool == Tool::LoopCut || self.loop_cut_session.is_some() {
             return self.carry_out_loop_cut(drawing);
