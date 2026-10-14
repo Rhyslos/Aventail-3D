@@ -211,15 +211,16 @@ impl CommandId {
                 "Fill hole",
                 Icon::FillHole,
                 None,
-                "Close an open hole with a polygon",
-                PHASE_4,
+                "Close the open holes touching the selection with a polygon each; with \
+                 nothing selected, every hole",
+                None,
             ),
             Self::FlipNormals => (
                 "Flip normals",
                 Icon::FlipNormals,
                 None,
                 "Turn the selected polygons inside out, for when they face the wrong way",
-                PHASE_4,
+                None,
             ),
             Self::HardEdges => (
                 "Hard edges",
@@ -238,16 +239,18 @@ impl CommandId {
             Self::DeleteElements => (
                 "Delete",
                 Icon::Delete,
+                plain(Key::Delete),
+                "Delete the selected points, edges or polygons, and the polygons using them, \
+                 leaving a hole",
                 None,
-                "Delete the selected points, edges or polygons, leaving a hole",
-                PHASE_4,
             ),
             Self::Dissolve => (
                 "Dissolve",
                 Icon::Dissolve,
+                plain(Key::Backspace),
+                "Take the selected points, edges or polygons away but keep the surface \
+                 closed: the polygons around them merge into one",
                 None,
-                "Remove the selected edges or points but keep the surface closed",
-                PHASE_4,
             ),
             Self::Weld => (
                 "Weld",
@@ -317,11 +320,13 @@ impl CommandId {
             | Self::FrameSelected => &[Model, Object],
             Self::Extrude | Self::Bridge => &[Edges, Polygons],
             Self::Inset | Self::FlipNormals => &[Polygons],
-            Self::Bevel | Self::Connect | Self::Dissolve => &[Points, Edges],
+            Self::Bevel | Self::Connect => &[Points, Edges],
             Self::FillHole => &[Edges, Polygons],
             Self::HardEdges | Self::SoftEdges => &[Edges],
             Self::Weld => &[Points],
-            Self::DeleteElements | Self::Knife | Self::LoopCut => &[Points, Edges, Polygons],
+            Self::DeleteElements | Self::Dissolve | Self::Knife | Self::LoopCut => {
+                &[Points, Edges, Polygons]
+            }
         }
     }
 }
@@ -451,18 +456,23 @@ mod tests {
 
     #[test]
     fn keys_are_unique_and_match_what_the_keys_do() {
+        // A key may be shared only by commands of different modes (Delete
+        // deletes objects in the Model mode and elements in the others).
         let mut seen = HashSet::new();
         for command in ALL {
             if let Some(shortcut) = command.info().shortcut {
-                assert!(
-                    seen.insert((
-                        shortcut.modifiers.command,
-                        shortcut.modifiers.alt,
-                        shortcut.modifiers.shift,
-                        shortcut.logical_key
-                    )),
-                    "{command:?} shares its key"
-                );
+                for mode in command.modes() {
+                    assert!(
+                        seen.insert((
+                            mode.name(),
+                            shortcut.modifiers.command,
+                            shortcut.modifiers.alt,
+                            shortcut.modifiers.shift,
+                            shortcut.logical_key
+                        )),
+                        "{command:?} shares its key in {mode:?}"
+                    );
+                }
             }
         }
         // The keys the app already uses are named the same here.
@@ -493,6 +503,11 @@ mod tests {
         assert_eq!(CommandId::Bridge.info().shortcut, plain(Key::C));
         assert_eq!(CommandId::Weld.info().shortcut, plain(Key::M));
         assert_eq!(CommandId::FrameSelected.info().shortcut, plain(Key::Z));
+        assert_eq!(
+            CommandId::DeleteElements.info().shortcut,
+            plain(Key::Delete)
+        );
+        assert_eq!(CommandId::Dissolve.info().shortcut, plain(Key::Backspace));
     }
 
     #[test]

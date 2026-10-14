@@ -391,6 +391,53 @@ impl Selector<'_> {
         }
     }
 
+    /// Selects the polygons facing the wrong way round (Select menu →
+    /// Select flipped): those disagreeing with their neighbours, or a
+    /// closed shape's polygons facing inward. Says how many it found.
+    pub(crate) fn select_flipped(&mut self) -> Option<String> {
+        let mut found = 0;
+        let note = self.each_edited(ElementKind::Polygons, "Select flipped", |mesh, _, _| {
+            mesh::cleanup::faces_facing_wrong(mesh)
+                .into_iter()
+                .map(Element::Polygon)
+                .collect()
+        });
+        if note.is_some() {
+            return note;
+        }
+        for item in self.drawing.items.iter().filter(|i| i.selected) {
+            found += mesh::cleanup::faces_facing_wrong(&item.mesh).len();
+        }
+        Some(if found == 0 {
+            "No polygon faces the wrong way.".into()
+        } else {
+            format!(
+                "{found} polygon{} facing the wrong way selected: Flip normals turns {}, \
+                 or Mesh → Fix facing turns every one.",
+                if found == 1 { "" } else { "s" },
+                if found == 1 { "it" } else { "them" }
+            )
+        })
+    }
+
+    /// Adds the polygons facing within `angle` degrees of a selected
+    /// polygon (Select menu → Select similar facing).
+    pub(crate) fn select_similar_facing(&mut self, angle: f32) -> Option<String> {
+        self.each_edited(
+            ElementKind::Polygons,
+            "Select similar facing",
+            |mesh, _, selected| {
+                let mut out: std::collections::BTreeSet<scene::FaceId> =
+                    selected.polygons().collect();
+                let ways: Vec<glam::Vec3> = out.iter().map(|f| mesh.face_normal(*f)).collect();
+                for way in ways {
+                    out.extend(mesh::cleanup::faces_facing(mesh, way, angle));
+                }
+                out.into_iter().map(Element::Polygon).collect()
+            },
+        )
+    }
+
     /// Unselects the edited objects' elements of the mode's kind (Esc).
     /// Returns whether it was in an element mode.
     pub(crate) fn clear_elements(&mut self) -> bool {

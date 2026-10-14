@@ -1286,6 +1286,65 @@ fn connect_and_weld_are_recorded_and_follow_the_shape() {
 }
 
 #[test]
+fn clean_up_edits_are_recorded() {
+    let (mut doc, id) = with_a_cube();
+    let mesh = doc.scene().evaluated(id).unwrap().mesh;
+    let top = mesh
+        .faces()
+        .map(|(f, _)| f)
+        .find(|f| mesh.face_normal(*f).z > 0.9)
+        .unwrap();
+    let corners = vec![mesh.face(top).unwrap().to_vec()];
+    record(
+        &mut doc,
+        id,
+        Operation::DeleteElements {
+            points: Vec::new(),
+            edges: Vec::new(),
+            faces: vec![top],
+            anchors: mesh::Anchors::record(&mesh, ElementKind::Polygons, &corners),
+        },
+    );
+    assert_eq!(doc.undo_label(), Some("Delete 1 polygon"));
+    let report = |doc: &Document| mesh::MeshReport::new(&doc.scene().evaluated(id).unwrap().mesh);
+    assert_eq!(report(&doc).border_edges, 4);
+    record(
+        &mut doc,
+        id,
+        Operation::FillHoles {
+            points: Vec::new(),
+            anchors: None,
+        },
+    );
+    assert_eq!(doc.undo_label(), Some("Fill every hole"));
+    assert!(report(&doc).is_closed());
+    record(
+        &mut doc,
+        id,
+        Operation::FlipPolygons {
+            faces: vec![FaceId::from_raw(0)],
+            anchors: None,
+        },
+    );
+    assert_eq!(report(&doc).flipped_edges, 4);
+    record(&mut doc, id, Operation::FixFacing);
+    assert_eq!(report(&doc).flipped_edges, 0);
+    assert_eq!(doc.undo_label(), Some("Fix facing"));
+    // More segments afterwards: the deleted polygon is found again.
+    doc.execute(Command::SetPrimitive {
+        ids: vec![id],
+        primitive: Primitive::Cube(CubeParams {
+            segments: [1, 1, 2],
+            ..Default::default()
+        }),
+    })
+    .unwrap();
+    let shape = doc.scene().evaluated(id).unwrap();
+    assert!(mesh::MeshReport::new(&shape.mesh).is_closed());
+    assert!(Operation::FixFacing.settings().is_none());
+}
+
+#[test]
 fn edits_holding_numbers_that_arent_real_are_refused() {
     // A regression test from the whole-app review (L2): such an edit
     // could be saved but not opened again.

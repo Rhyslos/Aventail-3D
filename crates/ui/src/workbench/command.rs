@@ -76,6 +76,20 @@ impl Workbench {
             CommandId::Weld if !command.modes().contains(&self.mode) => {
                 Ready::NotNow("Weld works on points: press 1 for the Points mode".into())
             }
+            CommandId::DeleteElements | CommandId::Dissolve
+                if !command.modes().contains(&self.mode) =>
+            {
+                Ready::NotNow(format!(
+                    "{} works in the Points, Edges or Polygons mode: press 1, 2 or 3",
+                    command.name()
+                ))
+            }
+            CommandId::FillHole if !command.modes().contains(&self.mode) => {
+                Ready::NotNow("Fill hole works in the Edges or Polygons mode: press 2 or 3".into())
+            }
+            CommandId::FlipNormals if !command.modes().contains(&self.mode) => Ready::NotNow(
+                "Flip normals works on polygons: press 3 for the Polygons mode".into(),
+            ),
             CommandId::Knife if !command.modes().contains(&self.mode) => Ready::NotNow(
                 "Slit works in the Points, Edges or Polygons mode: press 1, 2 or 3".into(),
             ),
@@ -115,6 +129,10 @@ impl Workbench {
             CommandId::Connect => self.run_connect(),
             CommandId::Bridge => self.run_bridge(),
             CommandId::Weld => self.run_weld(),
+            CommandId::DeleteElements => self.run_delete_elements(),
+            CommandId::Dissolve => self.run_dissolve(),
+            CommandId::FillHole => self.run_fill_hole(),
+            CommandId::FlipNormals => self.run_flip(),
             CommandId::MakeEditable => {
                 requests.push(DocRequest::Run(Command::MakeEditable(selection)));
             }

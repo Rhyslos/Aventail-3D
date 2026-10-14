@@ -185,6 +185,47 @@ pub enum Operation {
         /// Where the points were (the target last), to find them again.
         anchors: Option<Anchors>,
     },
+    /// Deletes points, edges or polygons, with every polygon using them,
+    /// leaving a hole (decision 0052).
+    DeleteElements {
+        /// The points.
+        points: Vec<VertexId>,
+        /// The edges.
+        edges: Vec<EdgeKey>,
+        /// The polygons.
+        faces: Vec<FaceId>,
+        /// Where they were, to find them again (decision 0032).
+        anchors: Option<Anchors>,
+    },
+    /// Takes points, edges or polygons away but keeps the surface closed:
+    /// the polygons around them merge (decision 0052).
+    Dissolve {
+        /// The points.
+        points: Vec<VertexId>,
+        /// The edges.
+        edges: Vec<EdgeKey>,
+        /// The polygons.
+        faces: Vec<FaceId>,
+        /// Where they were, to find them again (decision 0032).
+        anchors: Option<Anchors>,
+    },
+    /// Closes holes with polygons: those touching these points, or every
+    /// hole when there are none (decision 0052).
+    FillHoles {
+        /// Points on the holes' borders.
+        points: Vec<VertexId>,
+        /// Where they were, to find them again (decision 0032).
+        anchors: Option<Anchors>,
+    },
+    /// Turns polygons inside out (decision 0052).
+    FlipPolygons {
+        /// The polygons.
+        faces: Vec<FaceId>,
+        /// Where they were, to find them again (decision 0032).
+        anchors: Option<Anchors>,
+    },
+    /// Turns every polygon facing the wrong way round (decision 0052).
+    FixFacing,
     /// Cuts new edges along a line drawn over the shape, as seen from
     /// where it was drawn (decision 0049). Worked out from the shape as it
     /// is, so it needs no ids or anchors.
@@ -305,6 +346,22 @@ impl Operation {
             }
             Self::Connect { edges, .. } => counted("Connect", edges.len(), "edge"),
             Self::Bridge { faces, .. } if !faces.is_empty() => "Bridge 2 polygons".to_string(),
+            Self::DeleteElements {
+                points,
+                edges,
+                faces,
+                ..
+            } => elements("Delete", points, edges, faces),
+            Self::Dissolve {
+                points,
+                edges,
+                faces,
+                ..
+            } => elements("Dissolve", points, edges, faces),
+            Self::FillHoles { points, .. } if points.is_empty() => "Fill every hole".to_string(),
+            Self::FillHoles { .. } => "Fill hole".to_string(),
+            Self::FlipPolygons { faces, .. } => counted("Flip", faces.len(), "polygon"),
+            Self::FixFacing => "Fix facing".to_string(),
             Self::Bridge { edges, .. } => counted("Bridge", edges.len(), "edge"),
             Self::Weld { points, target, .. } => {
                 let n = points.len() + usize::from(target.is_some_and(|t| !points.contains(&t)));
@@ -374,7 +431,13 @@ impl Operation {
                 bridge: Some((*segments, *twist)),
                 ..EditSettings::default()
             }),
-            Self::Connect { .. } | Self::Weld { .. } => None,
+            Self::Connect { .. }
+            | Self::Weld { .. }
+            | Self::DeleteElements { .. }
+            | Self::Dissolve { .. }
+            | Self::FillHoles { .. }
+            | Self::FlipPolygons { .. }
+            | Self::FixFacing => None,
             Self::MovePoints { .. } | Self::TransformPoints { .. } => None,
         }
     }
@@ -480,7 +543,12 @@ impl Operation {
                     *twist = t;
                 }
             }
-            Self::Weld { .. } => {}
+            Self::Weld { .. }
+            | Self::DeleteElements { .. }
+            | Self::Dissolve { .. }
+            | Self::FillHoles { .. }
+            | Self::FlipPolygons { .. }
+            | Self::FixFacing => {}
             Self::MovePoints { .. } | Self::TransformPoints { .. } => {}
         }
         changed
@@ -511,7 +579,14 @@ impl Operation {
             Self::BevelEdges { shape, .. } => shape.width.is_finite() && shape.profile.is_finite(),
             Self::BevelPoints { width, .. } => width.is_finite(),
             Self::LoopCut { position, .. } => position.is_finite(),
-            Self::Connect { .. } | Self::Bridge { .. } | Self::Weld { .. } => true,
+            Self::Connect { .. }
+            | Self::Bridge { .. }
+            | Self::Weld { .. }
+            | Self::DeleteElements { .. }
+            | Self::Dissolve { .. }
+            | Self::FillHoles { .. }
+            | Self::FlipPolygons { .. }
+            | Self::FixFacing => true,
             Self::ExtrudeBent { distance, bend, .. } => {
                 distance.is_finite()
                     && [bend.angle, bend.direction, bend.radius]
@@ -543,7 +618,12 @@ impl Operation {
             | Self::ExtrudeBent { anchors, .. }
             | Self::Connect { anchors, .. }
             | Self::Bridge { anchors, .. }
-            | Self::Weld { anchors, .. } => anchors.as_ref(),
+            | Self::Weld { anchors, .. }
+            | Self::DeleteElements { anchors, .. }
+            | Self::Dissolve { anchors, .. }
+            | Self::FillHoles { anchors, .. }
+            | Self::FlipPolygons { anchors, .. } => anchors.as_ref(),
+            Self::FixFacing => None,
             Self::Slit { .. } => None,
         }
     }
@@ -563,7 +643,12 @@ impl Operation {
             | Self::ExtrudeBent { anchors, .. }
             | Self::Connect { anchors, .. }
             | Self::Bridge { anchors, .. }
-            | Self::Weld { anchors, .. } => anchors.as_mut(),
+            | Self::Weld { anchors, .. }
+            | Self::DeleteElements { anchors, .. }
+            | Self::Dissolve { anchors, .. }
+            | Self::FillHoles { anchors, .. }
+            | Self::FlipPolygons { anchors, .. } => anchors.as_mut(),
+            Self::FixFacing => None,
             Self::Slit { .. } => None,
         }
     }
@@ -810,6 +895,47 @@ impl Operation {
                     edit::weld(mesh, found, target)
                 }
             },
+            Self::DeleteElements {
+                points,
+                edges,
+                faces,
+                ..
+            } => {
+                let (points, edges, faces) =
+                    elements_in(mesh, refound.as_ref(), points, edges, faces);
+                edit::delete_elements(mesh, &points, &edges, &faces)
+            }
+            Self::Dissolve {
+                points,
+                edges,
+                faces,
+                ..
+            } => {
+                let (points, edges, faces) =
+                    elements_in(mesh, refound.as_ref(), points, edges, faces);
+                if !faces.is_empty() {
+                    edit::dissolve_faces(mesh, &faces)
+                } else if !edges.is_empty() {
+                    edit::dissolve_edges(mesh, &edges)
+                } else {
+                    edit::dissolve_points(mesh, &points)
+                }
+            }
+            Self::FillHoles { points, .. } => {
+                let points = refound.as_ref().map_or(points.as_slice(), |r| &r.0);
+                // One polygon per hole, at most one per border edge.
+                if too_big(mesh.topology().border_edges().len()) {
+                    return skipped;
+                }
+                edit::fill_holes(mesh, points)
+            }
+            Self::FlipPolygons { faces, .. } => {
+                let faces = refound
+                    .as_ref()
+                    .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
+                edit::flip_faces(mesh, &faces)
+            }
+            Self::FixFacing => edit::fix_facing(mesh),
             Self::Slit { line } => {
                 // One more polygon for each piece cut off.
                 if too_big(mesh::slit::slit_size(mesh, line)) {
@@ -856,6 +982,40 @@ fn facing(mesh: &Mesh, edge: EdgeKey, anchors: Option<&Anchors>, position: f32) 
     match (mesh.position(low), mesh.position(high)) {
         (Some(l), Some(h)) if h.distance(*was_low) < l.distance(*was_low) => 1.0 - position,
         _ => position,
+    }
+}
+
+/// "Delete 3 polygons", "Dissolve 1 edge": by the kind of element named.
+fn elements(verb: &str, points: &[VertexId], edges: &[EdgeKey], faces: &[FaceId]) -> String {
+    if !faces.is_empty() {
+        counted(verb, faces.len(), "polygon")
+    } else if !edges.is_empty() {
+        counted(verb, edges.len(), "edge")
+    } else {
+        counted(verb, points.len(), "point")
+    }
+}
+
+/// An edit's points, edges and polygons in `mesh`: as they are, or found
+/// again at the anchored places.
+fn elements_in(
+    mesh: &Mesh,
+    refound: Option<&(Vec<VertexId>, usize)>,
+    points: &[VertexId],
+    edges: &[EdgeKey],
+    faces: &[FaceId],
+) -> (Vec<VertexId>, Vec<EdgeKey>, Vec<FaceId>) {
+    match refound {
+        None => (points.to_vec(), edges.to_vec(), faces.to_vec()),
+        Some((found, _)) => {
+            if !faces.is_empty() {
+                (Vec::new(), Vec::new(), faces_within(mesh, found))
+            } else if !edges.is_empty() {
+                (Vec::new(), edges_within(mesh, found), Vec::new())
+            } else {
+                (found.clone(), Vec::new(), Vec::new())
+            }
+        }
     }
 }
 

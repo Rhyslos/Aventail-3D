@@ -5,6 +5,7 @@
 use super::Workbench;
 use crate::components::kind_for;
 use crate::drawing::SceneDrawing;
+use crate::palette::Mode;
 use crate::selecting::{
     INVERT_SHORTCUT, SELECT_ALL_SHORTCUT, SELECT_TOOL_KEY, SelectTool, Selector, count,
 };
@@ -22,6 +23,10 @@ pub(super) enum SelectRequest {
     Clear,
     /// Grow (positive) or shrink (negative) by this many steps.
     Grow(i32),
+    /// Select the polygons facing the wrong way.
+    Flipped,
+    /// Add the polygons facing like the selected ones.
+    SimilarFacing,
 }
 
 /// The Select menu's tooltip for the visible-only switch, and the mode
@@ -128,6 +133,31 @@ impl Workbench {
             self.select_requests.push(SelectRequest::Grow(-1));
             ui.close();
         }
+        let polygons = |this: &mut Self, request| {
+            // These select polygons, so they show the Polygons mode.
+            this.mode = Mode::Polygons;
+            this.select_requests.push(request);
+        };
+        if entry(
+            ui,
+            "Select flipped",
+            String::new(),
+            "Select the polygons facing the wrong way round: inside out compared with \
+             their neighbours, or facing into a closed shape",
+        ) {
+            polygons(self, SelectRequest::Flipped);
+            ui.close();
+        }
+        if entry(
+            ui,
+            "Select similar facing",
+            String::new(),
+            "Add every polygon facing within 30° of a selected polygon: the top of a shape, \
+             say, or every wall facing one way",
+        ) {
+            polygons(self, SelectRequest::SimilarFacing);
+            ui.close();
+        }
         ui.add_enabled(false, egui::Button::new("Loop and ring: double-click"))
             .on_disabled_hover_text(
                 "Double-click an edge for its loop; Alt + double-click for its ring",
@@ -176,6 +206,10 @@ impl Workbench {
                 SelectRequest::Invert => selector.invert(),
                 SelectRequest::Grow(steps) => {
                     selector.gesture(crate::selecting::Gesture::Grow(steps))
+                }
+                SelectRequest::Flipped => selector.select_flipped(),
+                SelectRequest::SimilarFacing => {
+                    selector.select_similar_facing(super::cleaning::SIMILAR_FACING_ANGLE)
                 }
                 SelectRequest::Clear => {
                     if !selector.clear_elements() {

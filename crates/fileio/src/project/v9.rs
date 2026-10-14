@@ -7,7 +7,7 @@
 
 use super::v1::{FileOperation, Problem};
 use super::v2::{AnchorsV2, anchors_from_file, anchors_to_file};
-use super::v5::{EntryWith, ProjectWith};
+use super::v5::EntryWith;
 use super::v8::OperationV8;
 use crate::limits::Bounded;
 use mesh::join::{MAX_BRIDGE_SEGMENTS, MAX_CONNECT_CUTS};
@@ -16,7 +16,8 @@ use scene::Operation;
 use serde::{Deserialize, Serialize};
 
 /// Version 9 of the file.
-pub(crate) type ProjectV9 = ProjectWith<EntryV9>;
+#[cfg(test)]
+pub(crate) type ProjectV9 = super::v5::ProjectWith<EntryV9>;
 
 /// A recorded edit in version 9.
 pub(crate) type EntryV9 = EntryWith<OperationV9>;
