@@ -91,9 +91,9 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** points, edges and polygons can be selected and moved precisely, and a cube's segments can still be changed afterwards. ✅ *Passed 2026-10-12: tested by the project lead.*
 
-### Phase 4 · Core modelling tools — 18 of 19
+### Phase 4 · Core modelling tools — 19 of 19
 
-`████████████░` 95%
+`█████████████` 100%
 
 <details>
 <summary>Milestones</summary>
@@ -115,7 +115,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Keyboard shortcut viewer: every key in one place (Keys on the menu bar), on a drawn keyboard in your layout
 - [x] Wireframe: shaded, shaded with wires or wireframe, from a button beside the corner axes (now bottom left)
 - [x] Cavity: creases darkened and ridges brightened, so a shape's form reads clearly (on as standard)
-- [ ] Clickable corner axes: click X, Y or Z to look straight along it
+- [x] Clickable corner axes: click X, Y or Z to look straight along it (again: from the other side)
 - [x] Automatic hard edges: shapes shaded by angle after every change (Mesh menu, on as standard), so extrudes and bends stay smooth
 
 </details>
@@ -222,6 +222,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-14 | Clickable corner axes: click X, Y or Z to look along it, again for the other side; Cavity moved beside Hard edges in the Display menu. Every Phase 4 milestone built again; heavy-mesh check run (one background step a little over its target on the test machine) |
 | 2026-10-14 | Cavity: ridges brightened and creases darkened on the surfaces, on as standard, from the Display menu and a button beside Shading; Automatic hard edges moved to the Mesh menu |
 | 2026-10-14 | Automatic hard edges: every shape shaded by angle (30°) after every change, from a switch on as standard (now in the Mesh menu); edges set by hand kept for when it's off |
 | 2026-10-14 | Four Phase 4 milestones added at the project lead's request (wireframe, cavity, clickable corner axes, automatic hard edges); the first built: Shaded, Shaded with wires and Wireframe, from a button beside the corner axes, which move to the bottom left |

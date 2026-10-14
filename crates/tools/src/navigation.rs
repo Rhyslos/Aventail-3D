@@ -230,6 +230,35 @@ impl Navigator {
         true
     }
 
+    /// The same view turned to look along `forward`, around the pivot
+    /// and at the same distance: what clicking an axis on the corner
+    /// marker glides to ([decision 0066](../../../docs/decisions/0066-clickable-axes.md)).
+    /// Looking straight up or down stops just short, as orbiting does, and
+    /// turns the view as the Top view is turned: X to the right, Y up the
+    /// screen. A direction of no length (or not a real number) changes
+    /// nothing.
+    #[must_use]
+    pub fn looking_along(&self, forward: Vec3) -> Self {
+        let f = forward.normalize_or_zero();
+        if f == Vec3::ZERO || !f.is_finite() {
+            return *self;
+        }
+        let mut camera = self.camera;
+        let level = Vec2::new(f.x, f.y).length();
+        camera.pitch = f.z.atan2(level).clamp(-MAX_PITCH, MAX_PITCH);
+        camera.yaw = if level > 1e-4 {
+            f.y.atan2(f.x)
+        } else {
+            std::f32::consts::FRAC_PI_2
+        };
+        let mut turned = Self {
+            camera,
+            pivot: self.pivot,
+        };
+        turned.place_camera(self.distance());
+        turned
+    }
+
     /// The same view, moved so that `bounds` fits in a viewport of the
     /// given `aspect` (width / height), with a little room around it: the
     /// camera keeps its direction and steps forwards or back along it, and
@@ -480,6 +509,28 @@ mod tests {
 
     fn centred(navigator: &Navigator) -> bool {
         (on_screen(navigator, navigator.pivot()) - SIZE / 2.0).length() < 0.05
+    }
+
+    #[test]
+    fn looking_along_an_axis_keeps_the_pivot_and_distance() {
+        let start = Navigator::default();
+        let (pivot, distance) = (start.pivot(), start.distance());
+        // From the right (+X), looking towards -X.
+        let right = start.looking_along(-Vec3::X);
+        assert!(right.camera().forward().distance(-Vec3::X) < 1e-4);
+        assert!(right.camera().position.x > pivot.x);
+        assert_eq!(right.pivot(), pivot);
+        assert!((right.distance() - distance).abs() < 1e-2);
+        // Straight down stops just short, turned like the Top view: X to
+        // the right, Y up the screen.
+        let down = start.looking_along(-Vec3::Z);
+        assert!(down.camera().forward().dot(-Vec3::Z) > 0.999);
+        assert!(down.camera().right().distance(Vec3::X) < 1e-4);
+        assert!(down.camera().up().dot(Vec3::Y) > 0.999);
+        assert!((down.distance() - distance).abs() < 1e-2);
+        // Nothing to look along: unchanged.
+        assert_eq!(start.looking_along(Vec3::ZERO), start);
+        assert_eq!(start.looking_along(Vec3::NAN), start);
     }
 
     #[test]

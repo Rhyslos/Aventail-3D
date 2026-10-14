@@ -265,19 +265,45 @@ impl GpuViewport {
             // Shading with another hardness (Automatic hard edges switched)
             // is built afresh.
             let same = |old: &Uploaded| old.geometry.hardness() == hardness;
+            let heavy = item.shown.face_count() >= BACKGROUND_FROM;
+            // A background rebuild of the shape shown now that has finished
+            // is swapped in below.
+            let ready = waiting
+                && self
+                    .preparing
+                    .get(&key)
+                    .is_some_and(|(_, handle)| handle.is_finished());
             match self.meshes.get_mut(&key) {
-                Some(old) if same(old) && Arc::ptr_eq(&old.mesh, &item.shown) => continue,
+                Some(old) if !ready && same(old) && Arc::ptr_eq(&old.mesh, &item.shown) => continue,
                 Some(old)
-                    if same(old)
+                    if !ready
+                        && same(old)
                         && !waiting
-                        && let Some(moved) = item.shown.moved_since(&old.mesh)
-                        && old.geometry.can_follow(&old.mesh, &item.shown, &moved) =>
+                        && let Some(moved) = item.shown.moved_since(&old.mesh) =>
                 {
-                    let ranges = old.geometry.moved(&item.shown, &moved);
-                    self.renderer
-                        .update_mesh(queue, key, &old.geometry, &ranges);
-                    old.mesh = Arc::clone(&item.shown);
-                    continue;
+                    // Shaded by angle, a move can turn edges sharp or soft.
+                    // A light shape is then built afresh at once; a heavy
+                    // one follows the move with the shading it had, and is
+                    // rebuilt in the background (decision 0066).
+                    let follows = old.geometry.can_follow(&old.mesh, &item.shown, &moved);
+                    if follows || heavy {
+                        let ranges = old.geometry.moved(&item.shown, &moved);
+                        self.renderer
+                            .update_mesh(queue, key, &old.geometry, &ranges);
+                        old.mesh = Arc::clone(&item.shown);
+                        let idle = self
+                            .preparing
+                            .get(&key)
+                            .is_none_or(|(_, handle)| handle.is_finished());
+                        if !follows && idle {
+                            let mesh = Arc::clone(&item.shown);
+                            let handle =
+                                std::thread::spawn(move || MeshGeometry::shaded(&mesh, hardness));
+                            self.preparing
+                                .insert(key, (Arc::clone(&item.shown), handle));
+                        }
+                        continue;
+                    }
                 }
                 _ => {}
             }

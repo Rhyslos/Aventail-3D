@@ -23,7 +23,7 @@ They also asked to move Automatic hard edges (0064) from the viewport's Display 
    - Only then are the grid, edges and overlay drawn, so they aren't shaded.
    - `ViewportRenderer::set_show_cavity`. The frame uniforms gain the screen's right and up directions.
 2. **On as standard** (`ViewOptions::hide_cavity`, false as standard).
-   - Switched by a **Cavity** button beside Shading in the bottom-left row (its dot lit while on), and by **Display → Cavity**.
+   - Switched by a **Cavity** button beside Shading in the bottom-left row (its dot lit while on), and by **Display → Cavity**. *The button was taken out at the project lead's request, and Cavity sits with Hard edges in the Display menu, [0066](0066-clickable-axes.md).*
    - Remembered.
    - Nothing in Wireframe.
 3. **Strength:** light lines at up to 45%, shadows at up to 70%, tuned by eye on a panelled box.

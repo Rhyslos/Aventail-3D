@@ -24,6 +24,18 @@ The Alt + mouse moves work too, unless you switch them off (see [Settings](#sett
 
 **Framing: fit things in the view.** Press **H** (*frame all*) to fit the whole scene in the view, or **Z** (*frame selected*) to fit what you've selected. The view keeps looking the same way and glides forwards or back until everything fits, with a little room around it, so you never lose your bearings. Both are also in the **View** menus. With nothing selected, Z frames everything too. (Frame selected used to be **F**; F is [Loop cut](loop-cut.md) now.) Hidden objects are left out; with nothing shown at all, both go back to the middle of the scene. The keys work anywhere in the app, except while you're typing in a field.
 
+## Look along an axis
+
+The small **X**, **Y** and **Z** arrows in the bottom-left corner of a view show which way the [axes](concepts.md#objects-and-scenes) point. In the perspective view, their round letters are buttons:
+
+- **Click a letter** and the view swings round to look straight along that axis, towards the point you're turning around, from that axis's side, at the same distance. **Z** looks straight down from above, **X** looks from the right (the +X side), and **Y** from the back (the +Y side).
+- **Click the same letter again** to look from the other side: Z again looks up from below.
+- Looking straight down or up, the view lines up like the Top view: X to the right, Y up the screen.
+
+It's a quick way to check a shape square-on without switching to a flat view. You can orbit away again at once. Pointing at a letter rings it, so you know what you'll click. In flat views the letters only show the directions, because flat views keep their own direction.
+
+![After clicking Z: the view looks straight down at a crate, with X to the right and Y up.](../screenshots/2026-10-14-look-along.png)
+
 ## Views and the four-view layout
 
 The viewport can show four views: **Perspective** (the ordinary 3D view), **Top**, **Front** and **Right**. Top, front and right are [flat views](concepts.md#viewing-the-scene): no perspective, so sizes and lines read true, which makes them handy for lining things up.
@@ -84,6 +96,7 @@ As standard (Mouse only controls, with Alt + mouse switched on):
 | Perspective, top, right, front view on its own | `F1`, `F2`, `F3`, `F4` |
 | All four views | `F5` |
 | Switch between one view and four | Middle click on a view |
+| Look along X, Y or Z (again: from the other side) | Click its letter in the bottom-left corner (perspective view) |
 
 On macOS, Alt is the `Option` key. The other controls are in the table above.
 
