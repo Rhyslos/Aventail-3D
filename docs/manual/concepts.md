@@ -89,6 +89,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Local vs. world space** — *World* directions are the same for the whole scene. *Local* directions follow the object's own rotation.
 
+**Instance** — An object that shows another object's shape instead of having its own. Change the original and every instance changes too. See [Copies and instances](copies-and-instances.md).
+
 **Symmetry (mirror modelling)** — Working on one half of a shape while the other half copies every change, mirrored across a plane through the middle. See [Symmetry](symmetry.md).
 
 ## Viewing the scene
@@ -98,6 +100,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 **Perspective and flat (orthographic) views** — A *perspective* view shows the scene as your eye or a camera would: far things look smaller, and parallel lines meet in the distance. A *flat* view (the proper term is *orthographic*) drops that: things look the same size however far away they are, and parallel lines stay parallel, like a technical drawing or a floor plan. That makes flat views good for checking that edges line up, that two parts are the same height, or that a shape is symmetrical, because nothing is distorted. The **top**, **front** and **right** views are flat views looking straight down, from the front (along Y), and from the right (along X, back towards the origin). See [Navigating the view](navigating-the-view.md#views-and-the-four-view-layout).
 
 **Camera pivot** — The point the view turns around and moves towards. In this app it's normally the spot under the mouse when you start to orbit or zoom, so you turn around and close in on whatever you point at; panning carries it along. (Not the same as an object's pivot, which belongs to the object.)
+
+**Isolate** — Showing only the selection for a while, with everything else hidden, so you can work on it without distractions. See [Hide and isolate](hide-and-isolate.md).
 
 ## Shading and normals
 

@@ -111,7 +111,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Clean-up: Delete deletes, Backspace dissolves; fill hole and flip normals, with select flipped, fix facing and select similar facing
 - [x] Hard and soft edges, by hand or by angle, with hard edges and normals shown from the Display menu
 - [x] Symmetry: moving points moves their mirrors, across the shape's own X, Y or Z
-- [ ] Basics: hide and isolate, slide points and edges, duplicate and instances, split polygons off and join objects
+- [ ] Basics: hide and isolate, slide points and edges, duplicate and instances, split polygons off and join objects (first part done: hide and isolate, duplicate and instances)
 - [ ] Keyboard shortcut viewer: every key in one place
 
 </details>
@@ -218,6 +218,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-14 | Basics, first part: hide and isolate (Shift/Ctrl/Alt + H), copies and instances (Ctrl/Alt + C and V, Duplicate and Instance in the E menu); project files at format version 12 |
 | 2026-10-14 | Symmetry: a palette switch, with X, Y and Z in the Attributes panel; moving, rotating and scaling points moves their mirrors too |
 | 2026-10-14 | Hard and soft edges (E menu, Mesh menu), Hard edges by angle, Select hard edges; the Display menu marks hard edges and shows normals; project files at format version 11 |
 | 2026-10-14 | Clean-up: Delete deletes and Backspace dissolves points, edges and polygons; Fill hole, Flip normals, Fix facing, Select flipped and Select similar facing; project files at format version 10 |
