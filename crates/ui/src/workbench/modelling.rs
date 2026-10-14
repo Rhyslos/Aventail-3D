@@ -271,7 +271,7 @@ impl Workbench {
             CommandId::Inset,
             CommandId::Bevel,
             CommandId::LoopCut,
-            CommandId::Knife,
+            CommandId::Slit,
             CommandId::Connect,
             CommandId::Bridge,
             CommandId::Weld,

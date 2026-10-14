@@ -1573,7 +1573,7 @@ impl Workbench {
                         ui.close();
                     }
                     if ui
-                        .button("Fix facing")
+                        .button("Fix normals")
                         .on_hover_text(
                             "Turn every polygon of the selected objects that faces the wrong \
                              way round: inside out compared with its neighbours, or facing \

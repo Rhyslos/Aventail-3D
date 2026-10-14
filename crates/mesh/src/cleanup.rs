@@ -8,7 +8,7 @@
 //!   the polygons around them merge into one.
 //! - **Fill hole** ([`fill_holes`]): a polygon closes each open border loop.
 //! - **Flip** ([`flip_faces`]): polygons turned inside out.
-//! - **Fix facing** ([`fix_facing`], [`faces_facing_wrong`]): every polygon of
+//! - **Fix normals** ([`fix_facing`], [`faces_facing_wrong`]): every polygon of
 //!   a piece turned to agree with its neighbours, and a closed piece turned
 //!   to face outward.
 //!

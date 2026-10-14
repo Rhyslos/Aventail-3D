@@ -1,4 +1,4 @@
-# Clean-up: delete, dissolve, fill holes and fix facing
+# Clean-up: delete, dissolve, fill holes and fix normals
 
 > Take points, edges or polygons away (leaving a hole, or keeping the surface closed), close holes, and turn polygons that face the wrong way.
 
@@ -9,8 +9,8 @@ Modelling leaves bits to tidy: an edge you no longer need, a corner of points in
 - **Delete:** cut a hole on purpose (a window, an opening for a pipe), or remove a part of the shape you don't want.
 - **Dissolve:** remove an extra edge or point without leaving a hole. The polygons around it merge into one. Use it to simplify a flat area, or to take back a cut you made too many times.
 - **Fill hole:** close an opening with one polygon, like a lid.
-- **Flip normals, Fix facing, Select flipped:** find and turn polygons that face the wrong way. A [flipped normal](concepts.md#shading-and-normals) shades wrongly and can vanish in a game engine.
-- **Select similar facing:** pick every polygon facing roughly the same way, like the whole top of a shape or every wall facing one way.
+- **Flip normals, Fix normals, Select flipped:** find and turn polygons that face the wrong way. A [flipped normal](concepts.md#shading-and-normals) shades wrongly and can vanish in a game engine.
+- **Select same facing:** pick every polygon facing roughly the same way, like the whole top of a shape or every wall facing one way.
 
 ## How to use them
 
@@ -50,16 +50,16 @@ To close the two ends of an open tube, select their rims and press **J**: each e
 
 In the **Polygons** mode, select polygons and pick **Flip normals** from the tool menu or the **Mesh** menu. They turn inside out.
 
-### Fix facing and Select flipped
+### Fix normals and Select flipped
 
 - **Select → Select flipped** selects the polygons facing the wrong way, so you can see them first. It switches to the Polygons mode.
-- **Mesh → Fix facing** turns every one of them, in each selected object, the right way round.
+- **Mesh → Fix normals** turns every one of them, in each selected object, the right way round.
 
 "The wrong way" means against their neighbours, or, in a closed shape, facing inward instead of out.
 
-### Select similar facing
+### Select same facing
 
-In the **Polygons** mode, select one or more polygons and pick **Select → Select similar facing**. Every polygon facing within 30° of a selected one is added.
+In the **Polygons** mode, select one or more polygons and pick **Select → Select same facing**. Every polygon facing within 30° of a selected one is added.
 
 ## Settings
 
@@ -74,8 +74,8 @@ None: each command applies at once and is one undo step (Ctrl + Z).
 | Delete the selected objects | `Delete` or `Backspace` (Model mode) |
 | Fill hole | `J` (Edges or Polygons mode), the tool menu `E`, or the Mesh menu |
 | Flip normals | Tool menu `E`, or the Mesh menu |
-| Fix facing | Mesh menu |
-| Select flipped, Select similar facing | Select menu |
+| Fix normals | Mesh menu |
+| Select flipped, Select same facing | Select menu |
 
 ## Tips and common problems
 
@@ -84,7 +84,7 @@ None: each command applies at once and is one undo step (Ctrl + Z).
 - **Problem:** Backspace did nothing, and the status bar says nothing can go. **Why:** an edge or point on an open border can't be dissolved without opening a hole, and neither can polygons that wouldn't merge into one simple polygon. **Fix:** use Delete instead, or select something else.
 - **Problem:** a box appeared asking about a sharp corner. **Why:** dissolving there would make one bent polygon (see above). **Fix:** press Esc and use Delete instead, or tick "I know what I'm doing, proceed" if a bent polygon is what you want.
 - **Problem:** Fill hole says no hole touches the selection. **Why:** the selected edges or polygons aren't on a hole's rim. **Fix:** select an edge on the rim, or select nothing to fill every hole.
-- **Problem:** Fix facing turned a whole plane over. **Why:** an open sheet has no inside, so the polygons are made to agree with most of them. **Fix:** Flip normals on the whole sheet turns it back.
+- **Problem:** Fix normals turned a whole plane over. **Why:** an open sheet has no inside, so the polygons are made to agree with most of them. **Fix:** Flip normals on the whole sheet turns it back.
 
 ## Related
 

@@ -15,7 +15,7 @@ In the **Model** mode, select the objects, then:
 
 - **Ctrl + C**, then **Ctrl + V**: paste copies.
 - **Alt + C** (or Ctrl + C), then **Alt + V**: paste instances.
-- Or press **E** and pick **Duplicate** or **Instance**, or use the **Edit** menu: they copy and paste in one go.
+- Or press **E** and pick **Duplicate** or **Duplicate as instance**, or use the **Edit** menu: they copy and paste in one go.
 
 Each copy or instance goes right on top of its original (and just below it in the Objects panel), and becomes the selection: press **W** and move it away, or type a new position in the Coordinates panel. Copies take everything: settings, edits and whatever is inside a group. They're named like the original, with a number.
 
@@ -42,7 +42,7 @@ None.
 | Copy the selected objects | `Ctrl + C` (or `Alt + C`) |
 | Paste copies | `Ctrl + V` |
 | Paste instances | `Alt + V` |
-| Duplicate, Instance (copy and paste at once) | Tool menu `E`, or the Edit menu |
+| Duplicate, Duplicate as instance (copy and paste at once) | Tool menu `E`, or the Edit menu |
 
 ## Tips and common problems
 

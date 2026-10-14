@@ -1339,7 +1339,7 @@ fn clean_up_edits_are_recorded() {
     assert_eq!(report(&doc).flipped_edges, 4);
     record(&mut doc, id, Operation::FixFacing);
     assert_eq!(report(&doc).flipped_edges, 0);
-    assert_eq!(doc.undo_label(), Some("Fix facing"));
+    assert_eq!(doc.undo_label(), Some("Fix normals"));
     // More segments afterwards: the deleted polygon is found again.
     doc.execute(Command::SetPrimitive {
         ids: vec![id],

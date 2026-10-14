@@ -1,6 +1,6 @@
 //! Tests for clean-up in the window: Delete and Backspace in the element
-//! modes, Fill hole, Flip normals, Fix facing, Select flipped and Select
-//! similar facing.
+//! modes, Fill hole, Flip normals, Fix normals, Select flipped and Select
+//! same facing.
 
 use super::modelling_tests::{H, cube, last_operation, note, press, shape};
 use super::selection::SelectRequest;
@@ -181,7 +181,7 @@ fn flip_then_select_flipped_then_fix_facing() {
         .count();
     assert_eq!(selected, 1);
     assert!(note(&harness).starts_with("1 polygon facing the wrong way"));
-    // Fix facing turns it back.
+    // Fix normals turns it back.
     harness.state_mut().workbench.run_fix_facing();
     harness.run();
     assert_eq!(report(&harness).flipped_edges, 0);
@@ -229,7 +229,7 @@ fn select_similar_facing_keeps_the_selection_and_adds_alike_polygons() {
     assert_eq!(doc.elements(id).unwrap().polygons().count(), 4);
     assert_eq!(
         doc.undo_label(),
-        Some("Select similar facing (4 polygons selected)")
+        Some("Select same facing (4 polygons selected)")
     );
 }
 

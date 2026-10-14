@@ -1,5 +1,5 @@
 //! The workbench's part in clean-up: Delete, Dissolve, Fill hole, Flip
-//! normals and Fix facing ([decision 0052](../../../../docs/decisions/0052-clean-up.md)).
+//! normals and Fix normals ([decision 0052](../../../../docs/decisions/0052-clean-up.md)).
 //!
 //! The controls, chosen by the project lead:
 //!
@@ -7,9 +7,9 @@
 //!   selected elements (leaving a hole) and **Backspace** dissolves them
 //!   (the surface stays closed). In the Model mode both keys still delete
 //!   the selected objects.
-//! - **J** fills holes. Flip normals and Fix facing have no keys: they
+//! - **J** fills holes. Flip normals and Fix normals have no keys: they
 //!   are in the tool menu (`E`) and the Mesh menu, and Select flipped and
-//!   Select similar facing are in the Select menu.
+//!   Select same facing are in the Select menu.
 //! - Dissolving across a sharp corner (sharper than 30°) asks first, as
 //!   the merged polygon would be bent ([decision 0057](../../../../docs/decisions/0057-after-phase-4-testing.md)).
 //!
@@ -45,7 +45,7 @@ pub(super) struct DissolveQuestion {
 pub(crate) const DISSOLVE_QUESTION_TITLE: &str = "Dissolve across a sharp corner?";
 
 /// How far apart, in degrees, two polygons' facing may be for Select
-/// similar facing to count them alike.
+/// same facing to count them alike.
 pub(crate) const SIMILAR_FACING_ANGLE: f32 = 30.0;
 
 /// The selected elements of one object in the current mode, with the
@@ -353,11 +353,11 @@ impl Workbench {
         }
     }
 
-    /// Fix facing: turns every polygon of the selected objects that faces
+    /// Fix normals: turns every polygon of the selected objects that faces
     /// the wrong way round.
     pub(super) fn run_fix_facing(&mut self) {
         if self.document.selection().is_empty() {
-            self.note = Some("Fix facing: select the objects to fix first.".into());
+            self.note = Some("Fix normals: select the objects to fix first.".into());
             return;
         }
         let mut ops = Vec::new();
@@ -370,10 +370,10 @@ impl Workbench {
             }
         }
         if ops.is_empty() {
-            self.note = Some("Fix facing: every polygon already faces the right way.".into());
+            self.note = Some("Fix normals: every polygon already faces the right way.".into());
             return;
         }
-        if self.record_each("Fix facing", ops) {
+        if self.record_each("Fix normals", ops) {
             self.note = Some(format!(
                 "Turned {} the right way round. Ctrl + Z takes it back.",
                 counted("", count, "polygon").trim_start()
