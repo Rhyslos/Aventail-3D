@@ -5,7 +5,7 @@
 > **Renaming is designed to be cheap:** the name lives in one place in code (`crates/app/src/branding.rs`), and `RENAMING.md` lists every other place it appears.
 
 A free, open-source 3D modelling and UV-unwrapping tool for **hard-surface game assets**, written in Rust.
-It starts as a faithful recreation of how Cinema 4D *looks, works and feels*, with the best parts of 3ds Max added on top. Over time it evolves into its own thing.
+It takes inspiration from how Cinema 4D and 3ds Max *feel to use*, and grows into its own tool.
 
 ---
 
@@ -32,10 +32,10 @@ Aventail 3D (model + UV)  ──glTF/OBJ──►  Substance Painter (bake + tex
 ### Guiding principles
 *Aim:* game development first, but good enough for a hobbyist generalist. If one hobbyist picks it up and enjoys it, the project has won.
 
-1. **Feel first.** The viewport and interaction must feel calm, clean and smooth, like C4D. A smaller tool that feels great beats a larger one that feels clunky.
+1. **Feel first.** The viewport and interaction must feel calm, clean and smooth. A smaller tool that feels great beats a larger one that feels clunky.
 2. **Tools are the gateway.** As in 3ds Max, a deep, reliable modelling toolset is the core value.
 3. **Never lose work.** Undo is effectively unlimited. Base object properties stay editable no matter how much has been done since.
-4. **Copy C4D first, diverge later.** The C4D layout is the starting target. Changes come from real use, not guesses.
+4. **Familiar first, our own way after.** Start from layouts modellers already know, and change them from real use, not guesses.
 5. **Free forever.** Every dependency must allow free use and redistribution (see §9).
 6. **Robust with heavy meshes.** Game assets are small, but someone may import a 2–3 million polygon model and build on top of it. The app must stay usable then: slower is acceptable, freezing or crashing is not (§4.8).
 7. **Explains itself.** Warnings, checks and tooltips say in plain words what is wrong, why it matters and how to fix it, ideally with a one-click fix. Most 3D programs assume you already know them; this one shouldn't.
@@ -239,7 +239,7 @@ Also: dense wireframes fade out from afar (and aren't drawn when too dense to se
 
 ---
 
-## 5. UI specification — C4D first
+## 5. UI specification
 
 ### 5.1 Layout (default, dockable via `egui_dock`)
 ```
@@ -298,7 +298,7 @@ Also: dense wireframes fade out from afar (and aren't drawn when too dense to se
 ### 5.4 Commands and hotkeys
 - **The tool keys come from Halberd** ([decision 0019](docs/decisions/0019-only-the-tool-keys-come-from-halberd.md), narrowing 0016): `Q` select, `W` move, `S` scale, `R` rotate, `T` all gizmos, `B` a new shape. Other keys are chosen by the project lead before each feature is built ([0028](docs/decisions/0028-ask-about-controls.md)); selection's are in [0029](docs/decisions/0029-selection.md). Others built earlier (common in 3D programs, no clashes with these): built so far `Ctrl+Z`/`Ctrl+Y` undo and redo, `Delete` delete, `Esc` deselect, `H`/`Z` frame (`Z` was `F`), `Shift+X`/`Y`/`Z` axis locks, `Ctrl` + wheel for the count of the tool in use (Bevel's segments, Loop cut's cuts, Extrude's bend segments; [0048](docs/decisions/0048-ctrl-wheel-changes-a-tools-count.md)), `F1`–`F5` views, `Alt+G`/`Shift+G` group and ungroup; `Ctrl+S` save to come. Nothing else is taken from Halberd unless the project lead asks for it. Viewport navigation uses the schemes in §5.3.
 - Every action is a named command with a configurable hotkey (stored in a settings file).
-- **C4D-style modelling menu** (press a key, then a letter for the tool).
+- **A modelling menu** (press a key, then a letter for the tool).
 - **Max-style quad menu** on right-click as an optional "sprinkle" (Phase 6).
 - Searchable **command palette** (Ctrl/Cmd+K or Shift+C, like C4D's Commander), reading from the command list ([0037](docs/decisions/0037-tool-menu-and-command-list.md)).
 - **Tool menu** (`E`): the current mode's tools at the mouse, as a ring or a list ([0037](docs/decisions/0037-tool-menu-and-command-list.md)).
@@ -412,7 +412,7 @@ Each phase ends with something runnable. The user tests the *feel* at the end of
 - Cargo workspace with the crates above and `layer-check`; CI (fmt, clippy, tests and builds on three platforms, docs, cargo-deny, changelog check)
 - Window with egui + egui_dock: empty viewport, Attributes panel (top right), Objects panel (below it), palettes, status bar
 - Theme: colours, Inter font, spacing
-- **Done when:** the app launches into the C4D-style layout with movable/dockable panels.
+- **Done when:** the app launches into the main layout with movable/dockable panels.
 
 ### Phase 1 — Viewport and navigation
 - wgpu renderer inside the egui viewport panel; gradient background, grid, a test cube
@@ -729,3 +729,4 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-14 — **Cavity** ([0065](docs/decisions/0065-cavity.md)): ridges brightened and creases darkened on the surfaces, worked out on screen from their facing (as Blender's screen-space cavity), before edges and the grid are drawn; on as standard, from a Cavity button beside Shading and the Display menu. At the project lead's request, **Automatic hard edges moves to the main Mesh menu**, just above Hard edges by angle.
 - 2026-10-14 — **Clickable corner axes** ([0066](docs/decisions/0066-clickable-axes.md)), with the project lead's choice from 0063: in a perspective view, clicking X, Y or Z on the corner marker swings the view round its pivot, at the same distance, to look along that axis from its side (Z from above); again, from the other side. Straight down or up lines up like the Top view. The marker grows a little, with round letters to click. At the project lead's request, Cavity loses its own button and sits with Hard edges and Normals in the Display menu. Every Phase 4 milestone is built again. The heavy-mesh check was run: all targets met except turning a new 3-million-polygon shape into GPU geometry, 3.1–3.5 s against 3 s on the 2-core test machine (by marks it was 2.7–3.2 s there), a background step. To make it cheaper, shading groups and face facings are now worked out on every core, and a heavy shape whose edges turn sharp or soft while dragging follows the move at once and is reshaded in the background.
 - 2026-10-14 — **Clearer names** ([0067](docs/decisions/0067-clearer-names.md)), as agreed with the project lead: Fix facing → Fix normals, Show only the selection → Isolate, Instance → Duplicate as instance, Select similar facing → Select same facing (and `Knife` → `Slit` in code). The README's introduction is rewritten for game developers: "A calm, easy-to-learn 3D modeller for game assets", inspired by Cinema 4D and 3ds Max but not a copy.
+- 2026-10-14 — At the project lead's request, this document's own wording follows the README ([0067](docs/decisions/0067-clearer-names.md)): the app takes inspiration from Cinema 4D and 3ds Max and grows into its own tool; principle 4 is now *Familiar first, our own way after*; "like C4D" and "C4D-style" dropped from principle 1, the UI specification's heading, the Phase 0 gate and the modelling menu. Comparisons that say where an idea came from stay.
