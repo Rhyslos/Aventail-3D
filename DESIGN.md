@@ -65,7 +65,7 @@ Aventail 3D (model + UV)  ──glTF/OBJ──►  Substance Painter (bake + tex
 | W16 | **Trim sheets and modular kits**: UV strips laid onto rows of a shared texture; pieces on a grid with sensible pivots, Godot collision meshes, each piece exported as its own file | Own | Medium (sets the app apart) | 5, 7, 8 |
 | W17 | **Explains itself**: plain-language warnings and tooltips, a manual written for someone rusty, help one key away | Own | Ongoing | all |
 
-> **W4 and W5 are the same idea underneath:** an object is a *base* plus a *stack of operations* that can be re-evaluated. This is why the architecture is designed for it from day one (§4), even though the Edit Poly stack UI comes later. Retrofitting non-destructive editing into a destructive modeller is close to a rewrite, so it must not be postponed at the architecture level.
+> **W4 and W5 are the same idea underneath:** an object is a *base* plus a *stack of operations* that can be re-evaluated. This is why the architecture is designed for it from day one (§4), even though the Edit Layers interface comes later. Retrofitting non-destructive editing into a destructive modeller is close to a rewrite, so it must not be postponed at the architecture level.
 
 ---
 
@@ -143,7 +143,7 @@ Object
 ```
 - **Evaluation:** `base → layer 1 → layer 2 → … → final mesh`. Each layer's output is cached. Changing something in layer *k* re-evaluates only from *k* upward.
 - **Phase 2–5 behaviour (C4D-like):** the user sees a normal object. Edits are silently recorded as `Operation`s in an implicit single layer. Primitive parameters (e.g. cube segments) remain editable in the Attributes panel, and the recorded edits replay on top (**W4**).
-- **Phase 6 behaviour (Max-like):** the Edit Poly stack UI exposes layers. Users can add a new Edit Poly layer, disable one, reorder, collapse, or go back down and edit an earlier layer (**W5**).
+- **Phase 6 behaviour (Max-like):** the Edit Layers interface exposes layers. Users can add a new edit layer, disable one, reorder, collapse, or go back down and edit an earlier layer (**W5**).
 - **Collapse** ("Make Editable" in C4D, "Collapse to" in Max) bakes the stack into an `EditableMesh` base. This is always available as an escape hatch.
 
 **The hard problem — topological naming.** Operations refer to elements (e.g. "extrude faces 12, 15"). If a lower layer or base parameter changes the topology, those references can break.
@@ -261,7 +261,7 @@ Also: dense wireframes fade out from afar (and aren't drawn when too dense to se
 - **Right column order:** Attributes panel on top, Objects panel below. This deliberately differs from C4D's default (user preference, 2026-10-10).
 - **Left palette:** mode switches (Model / Object / Points / Edges / Polygons / UV) and snapping, like C4D, with viewport display switches at the bottom (grid detail: fine 10 cm lines on or off).
 - **Modifiers palette** (the project lead's choice, 2026-10-12): a thin column of icon buttons between the viewport and the right column, holding everything that changes a shape non-destructively: edit layers (Phase 6), mirror and array (Phase 7), booleans, subdivision, weighted normals and the game bevel. It sits right next to the Objects panel because that is where modifiers are applied and shown. C4D keeps its generators and deformers in a similar spot; we copy only the placement, with our own icons (drawn in code) and names. It appears with the first modifier (Edit Layers, Phase 6), not as an empty placeholder: a strip of buttons that do nothing would only confuse. How a click applies a modifier (to the selection, as a child or a parent, as a layer) is asked about before it is built ([0028](docs/decisions/0028-ask-about-controls.md)).
-- **Objects panel:** tree with drag-to-reparent, rename, visibility toggles, and later the Edit Poly stack shown as a sub-list. Built: click, Ctrl and Shift selection with names in the accent colour, double-click to rename, drag onto a row to nest or onto its edge to reorder, an eye per row, fold arrows, a right-click menu, and Edit, View and Object menus ([0018](docs/decisions/0018-scene-document-and-undo.md)).
+- **Objects panel:** tree with drag-to-reparent, rename, visibility toggles, and later the Edit Layers stack shown as a sub-list. Built: click, Ctrl and Shift selection with names in the accent colour, double-click to rename, drag onto a row to nest or onto its edge to reorder, an eye per row, fold arrows, a right-click menu, and Edit, View and Object menus ([0018](docs/decisions/0018-scene-document-and-undo.md)).
 - **Attributes panel:** tabbed properties for the selection or active tool.
 - A **Coordinates panel** (C4D's position/scale/rotation fields) can be docked under the viewport.
 - **Menu lines inside panels** ([decision 0014](docs/decisions/0014-studio-look-and-accent.md)): the viewport has its own (View, Cameras, Display, Options, Panel, and buttons to drag for pan, zoom and orbit) in place of a tab; Attributes and Objects have small ones too.
@@ -312,16 +312,21 @@ Also: dense wireframes fade out from afar (and aren't drawn when too dense to se
 **Transform:** move/rotate/scale gizmos, axis/plane constraints, numeric input, grid/vertex/edge/face snapping, symmetry (live mirror).
 
 **Tools — Phase 4 (core):**
-- Extrude, Extrude Inner/Inset
-- Bevel/Chamfer (edges and vertices; offset, segments, profile)
-- Loop/Path Cut, Knife/Line Cut
-- Connect (edges/vertices)
-- Bridge, Weld/Merge (collapse, target weld)
-- Dissolve, Delete, Fill hole, Flip normals
-- Hard/soft edges, auto-smooth by angle
+- Extrude, Inset (built)
+- Bevel (edges and points; width, segments, profile; built)
+- Loop cut (built), Slit (cutting along a drawn line)
+- Connect (edges and points)
+- Bridge, Weld (to the middle, or onto a target point)
+- Dissolve, Delete, Fill hole, Flip normals, with select flipped, fix facing and select by facing
+- Hard and soft edges, auto-smooth by angle
+- Symmetry
+- Basics: hide and isolate, slide points and edges, duplicate and instances, split polygons off and join objects
+- A keyboard shortcut viewer, last
 
 **Tools — Phase 7 (advanced hard-surface):**
 - Booleans (union/subtract/intersect) via manifold
+- Shell (thickness), curves and splines (sweep, lathe), and pipe bends that keep their size (see the 2026-10-13 log)
+- Our own smoothing modifier (subdivision, with creases)
 - Weighted normals
 - Improved bevel (clamping, mitre patterns)
 - **Game bevel** (**W15**): for the mid-poly workflow, where a model is bevelled and shaded well instead of baked. One step bevels the chosen edges, sets weighted normals, and marks the hard edges and seams that go with them.
@@ -431,12 +436,15 @@ Each phase ends with something runnable. The user tests the *feel* at the end of
 - **Heavy meshes** first (**W11**, §4.8): flat connection lists, a spatial index for picking and snapping, partial updates, small undo steps, and the heavy-mesh check
 - **Autosave and crash recovery** (**W12**): a copy saved in the background every few minutes, offered back after a crash; never overwrites the project itself. *Built* ([0036](docs/decisions/0036-autosave.md)): every 5 minutes after a change and the newest 5 kept (both in Settings → Autosave), in the app's own folder (Local AppData on Windows), "Recover unsaved work?" asked after a crash. Copies before risky steps come with the first tool that needs them
 - **The tool menu** (`E`): the tools of the current mode at the mouse, as a ring (standard) or a list (Settings), every tool in a fixed place, from one **command list** that every menu, the palette and the keys read from. *Built* ([0037](docs/decisions/0037-tool-menu-and-command-list.md)). Keys for tools to come: `D` extrude, `I` inset, `V` bevel
-- Tools from §6 Phase 4, each with live parameters and HUD, each recording anchors so it survives base changes (**W14**). *Extrude and inset built* ([0038](docs/decisions/0038-extrude-and-inset.md)): `D` and `I`, dragged anywhere in the view; polygons together or each on its own (Keep together); border edges extrude too; the last one changeable in the Attributes panel. *Bevel built* ([0040](docs/decisions/0040-bevel.md)): `V`, dragged away from the edges or points; width, segments and profile. *Loop cut built* ([0047](docs/decisions/0047-loop-cut.md)): `F`, point at an edge to see the loop, click to cut or drag to slide; Cuts and Position in the Attributes panel.
+- **Foundations** (between bevel and loop cut, from the whole-app review): saves that always reopen ([0041](docs/decisions/0041-saves-that-always-reopen.md)), fast edits ([0042](docs/decisions/0042-fast-edits.md)), attribute layers and the builder ([0043](docs/decisions/0043-attribute-layers-and-the-builder.md)), edits that hold ([0044](docs/decisions/0044-edits-that-hold.md)), limits for files ([0045](docs/decisions/0045-limits-for-files.md)), and our own names ([0046](docs/decisions/0046-our-own-names.md)). *Built.*
+- Tools from §6 Phase 4, in this order after loop cut: Slit (`X`); Connect, Bridge (`C`) and Weld; the clean-up tools; hard and soft edges with normals display; symmetry; the basics (hide and isolate, slide, duplicate and instances, split and join); and the keyboard shortcut viewer last. Each with live parameters and HUD, each recording anchors so it survives base changes (**W14**). *Extrude and inset built* ([0038](docs/decisions/0038-extrude-and-inset.md)): `D` and `I`, dragged anywhere in the view; polygons together or each on its own (Keep together); border edges extrude too; the last one changeable in the Attributes panel. *Bevel built* ([0040](docs/decisions/0040-bevel.md)): `V`, dragged away from the edges or points; width, segments and profile. *Loop cut built* ([0047](docs/decisions/0047-loop-cut.md)): `F`, point at an edge to see the loop, click to cut or drag to slide; Cuts and Position in the Attributes panel.
 - Hard edges and normals display
 - **Done when:** you can model a simple hard-surface prop (crate, sci-fi panel) start to finish.
 
 ### Phase 5 — Export pipeline
+- Pivot editing and scene units, which export needs
 - OBJ and glTF export with triangulation, tangents and presets
+- Simple material slots: polygons assigned to a named material with a colour, so engines get their parts (real materials come with texturing)
 - Round-trip test: model → Godot and Substance Painter, shape, hard edges, normals and scale correct (the full bake round trip is the UV phase's gate)
 - Bake readiness, model part, and kit export (§8; **W13**, **W16**)
 - **Engine export paths** (to plan): presets for Godot, Unity and Unreal Engine that save straight into the engine's project folder and export again on every save. Godot and Unreal re-import by themselves. Unity reads glTF through its glTFast package (our own FBX writer would be extra work, and the Autodesk FBX SDK is ruled out). A live-link plugin per engine may come later
@@ -444,14 +452,17 @@ Each phase ends with something runnable. The user tests the *feel* at the end of
 - **Done when:** a prop exports into Godot and Substance Painter and looks right (shape, hard edges, scale) with no fixes in other software.
 
 ### Phase 6 — 3ds Max sprinkles
+- **Stable element names** first (review A3, [0044](docs/decisions/0044-edits-that-hold.md)): edits keep their exact elements even when an earlier edit renumbers them, which the edit list makes common
 - **The modifiers palette** (§5.1) between the viewport and the right column, starting with Edit Layers
-- **Edit Poly stack UI (W5):** add/disable/reorder/collapse layers; an **edit list** inside each layer, where any recorded edit can be opened and changed, pinned to keep it editable, frozen, or switched off (see the 2026-10-13 log entry); edit lower layers and see upper ones re-evaluate, each layer finding its elements again by their anchors (**W14**); warning badges only for what truly can't be found
+- **Edit Layers interface (W5):** add/disable/reorder/collapse layers; an **edit list** inside each layer, where any recorded edit can be opened and changed, pinned to keep it editable, frozen, or switched off (see the 2026-10-13 log entry); edit lower layers and see upper ones re-evaluate, each layer finding its elements again by their anchors (**W14**); warning badges only for what truly can't be found
 - Snap to and align tools (W7)
 - Optional quad menu
-- **Done when:** the user's Max workflow of stacking Edit Polys feels right.
+- **Done when:** the user's Max workflow of stacking edit layers feels right.
 
 ### Phase 7 — Advanced hard-surface
 - Booleans, weighted normals, better bevel, generators (array, mirror)
+- Shell, curves and splines, pipe bends that keep their size, and our own smoothing modifier
+- Friends join as testers around this phase
 - Game bevel and modular kit helpers (§6; **W15**, **W16**)
 - Generators, booleans, weighted normals and the game bevel are added to the modifiers palette (§5.1)
 
@@ -693,3 +704,4 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-14 — Sixth Phase 4 milestone, **loop cut** ([0047](docs/decisions/0047-loop-cut.md)), with the project lead's controls: `F`, point at an edge to see the loop, click to cut or press and drag along the edge to slide it; Cuts in the Attributes panel (the mouse wheel was asked for only if Cinema 4D or 3ds Max use it, and neither does: Cinema 4D uses the middle button, a heads-up display and its attribute panel; 3ds Max's SwiftLoop has no wheel control); Cuts and Position changeable as the Last edit. The agreed key switch is done with it: `Z` frames the selection, axis locks are `Shift + X / Y / Z`, plain `X` waits for Slit. The ring runs through four-sided polygons, cutting every edge at the same share from the same side; polygons where it ends take the new points. Project files move to format version 6. The milestone "Loop cut and knife" is split: Slit (knife) is next, as its own milestone.
 - 2026-10-14 — After the first build, the project lead added **Ctrl + wheel for Loop cut's number of cuts**, for those who want it. It doesn't clash: Ctrl + wheel grows the selection, but while Loop cut is in use nothing is selected, so it changes the cuts instead (as it changes the brush's size with the brush). Works while pointing and while dragging a cut.
 - 2026-10-14 — At the project lead's request, **Ctrl + wheel changes the count of the tool in use, as the standard for every tool from now on** ([0048](docs/decisions/0048-ctrl-wheel-changes-a-tools-count.md)): Bevel's segments and Loop cut's cuts now, every later tool's count when it has one. It does what the arrows beside the count in the Attributes panel do: the next use before, the edit being dragged during, the last edit after (one undo step per notch). With tools without a count, Ctrl + wheel still grows the selection.
+- 2026-10-14 — At the project lead's request, the README's progress tracker brought up to date with this plan: the Foundations step and the basics milestone added to Phase 4 in the agreed order, Slit, Bridge and the clean-up tools under their current names; pivot editing and scene units, simple material slots and engine export paths in Phase 5; stable element names and the edit list in Phase 6; shell, curves and splines, pipe bends and the smoothing modifier in Phase 7; texturing before scripting and rigging; the old panel names replaced. This document's tool list (§6) and roadmap (§10) now say the same, with our own names (Edit Layers, Slit, Weld).

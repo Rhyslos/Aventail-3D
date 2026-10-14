@@ -91,7 +91,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** points, edges and polygons can be selected and moved precisely, and a cube's segments can still be changed afterwards. ✅ *Passed 2026-10-12: tested by the project lead.*
 
-### Phase 4 · Core modelling tools — 6 of 12
+### Phase 4 · Core modelling tools — 7 of 14
 
 `███████░░░░░░` 50%
 
@@ -101,31 +101,36 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Heavy meshes: stays usable with a 2–3 million polygon object, checked at every phase gate
 - [x] Autosave and crash recovery: backup copies in the background, offered back after a crash
 - [x] Tool menu (E): every tool for the current mode at the mouse, radial or list, from one command list
-- [x] Extrude and inset: drag anywhere to push polygons out or in, inset them, or grow border edges; neighbours together or each on its own
-- [x] Bevel and chamfer: edges and points, with width, segments and profile; drag away from the edges
-- [x] Loop cut: point at an edge, click or drag; several cuts at once
-- [ ] Slit (knife): cut new edges along a line you draw
-- [ ] Connect, bridge and weld
-- [ ] Dissolve, delete, fill hole and flip normals, with select flipped, fix facing and select by facing
+- [x] Extrude and inset (D, I): drag anywhere to push polygons out or in, inset them, or grow border edges; neighbours together or each on its own
+- [x] Bevel (V): edges and points, with width, segments and profile (round, flat or hollow); drag away from the edges
+- [x] Foundations: saves that always reopen, fast edits however long the history, extra values per point, edge, polygon and corner (ready for UVs), edits that hold when earlier ones change, limits for damaged files; and our own names (Attributes panel, Objects panel, Paint select)
+- [x] Loop cut (F): point at an edge, click or drag; Ctrl + wheel for a tool's count; Z frames the selection
+- [ ] Slit (X): cut new edges along a line you draw
+- [ ] Connect, Bridge (C) and Weld
+- [ ] Clean-up: dissolve, delete, fill hole and flip normals, with select flipped, fix facing and select by facing
 - [ ] Hard and soft edges, with normals display
 - [ ] Symmetry
+- [ ] Basics: hide and isolate, slide points and edges, duplicate and instances, split polygons off and join objects
 - [ ] Keyboard shortcut viewer: every key in one place
 
 </details>
 
 **Gate:** a simple hard-surface prop (a crate, a sci-fi panel) can be modelled from start to finish, and the heavy-mesh check passes. From here on, every gate includes the heavy-mesh check.
 
-### Phase 5 · Export pipeline — 0 of 7
+### Phase 5 · Export pipeline — 0 of 10
 
 `░░░░░░░░░░░░░` 0%
 
 <details>
 <summary>Milestones</summary>
 
+- [ ] Pivot editing and scene units
 - [ ] OBJ export and import
 - [ ] glTF export
 - [ ] Consistent triangulation and MikkTSpace tangents
+- [ ] Simple material slots: polygons assigned to a named material with a colour, so engines get their parts
 - [ ] Export presets for Godot and Substance Painter
+- [ ] Engine export paths: save straight into a Godot, Unity or Unreal Engine project, exported again on every save
 - [ ] Bake readiness check: what would spoil a bake, in plain words, with one-click fixes
 - [ ] Kit export: each piece as its own file, and Godot collision meshes
 - [ ] Splash screen while the app starts
@@ -134,32 +139,40 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** a prop exports into Godot and Substance Painter and looks right (shape, hard edges, scale) with no fixes in other software. The full bake round trip comes with UVs (Phase 8).
 
-### Phase 6 · Workflow tools — 0 of 3
+### Phase 6 · Workflow tools — 0 of 5
 
 `░░░░░░░░░░░░░` 0%
 
 <details>
 <summary>Milestones</summary>
 
-- [ ] Edit Layers: a stack of edit layers per object, inspired by 3ds Max's Edit Poly stack, whose layers find their parts again when a layer below changes, added from a new modifiers palette between the viewport and the Attributes and Objects panels
+- [ ] Stable element names: edits keep their exact points, edges and polygons even when an earlier edit renumbers them
+- [ ] Edit Layers: a stack of edit layers per object (inspired by 3ds Max's stack of edit modifiers), whose layers find their parts again when a layer below changes, added from a new modifiers palette between the viewport and the Attributes and Objects panels
+- [ ] Edit list: every recorded edit in order, each one changeable, pinned to stay changeable, frozen to keep big models quick, or switched off
 - [ ] Snap to and align tools
-- [ ] Optional quad menu
+- [ ] Optional quad menu on right-click
 
 </details>
 
-**Gate:** stacking, toggling and editing earlier layers feels right to the project lead.
+**Gate:** stacking, toggling and editing earlier layers and edits feels right to the project lead.
 
-### Phase 7 · Advanced hard-surface — 0 of 6
+### Phase 7 · Advanced hard-surface — 0 of 10
 
 `░░░░░░░░░░░░░` 0%
+
+Friends join as testers around here, once there are enough tools to build something.
 
 <details>
 <summary>Milestones</summary>
 
 - [ ] Booleans: union, subtract, intersect
 - [ ] Weighted normals
-- [ ] Improved bevel
+- [ ] Improved bevel: rounded corners where bevels meet, and bevels that never overlap
 - [ ] Array and mirror generators
+- [ ] Shell: give a surface thickness
+- [ ] Curves and splines: sweep and lathe, for pipes, cables and railings
+- [ ] Pipe bends that keep their size: a turned ring stays round, with an optional bend radius
+- [ ] Smoothing modifier (subdivision), with creases
 - [ ] Game bevel for mid-poly models: bevel, weighted normals, hard edges and seams in one step
 - [ ] Modular kit helpers: grid-sized pieces and pivot presets
 
@@ -189,7 +202,15 @@ UVs come after modelling, as one big phase, aiming to be the best UV tools aroun
 
 **Gate:** a prop is unwrapped and packed in Aventail 3D, with clean bakes in Substance Painter, and changing the model afterwards keeps its UVs.
 
-Further ahead: scripting in Lua, so people can add their own tools (Phase 9), then rigging, skinning and animation (Phase 10), once modelling and UVs are mature.
+### Further ahead
+
+In this order, each planned in detail when its time comes:
+
+1. **Texturing and a material builder** (to be planned): a built-in texture painter shaped by game work, so no Substance Painter subscription is needed. Hand-painted, stylised art first (painting in the 3D and UV views at once, palettes, a light-and-shadow helper, a toon preview and outlines for cartoon looks), realism after (PBR layers and smart masks for wear and dirt). Then a node-based material builder.
+2. **Scripting in Lua** (Phase 9): people add their own tools, as undoable commands.
+3. **Rigging, skinning and animation** (Phase 10): for game developers, first and third person, exporting cleanly to engines.
+
+The official release comes when the app is finished, after texturing. Also wanted, not yet scheduled: glTF import, screenshots and turntable GIFs from the viewport, interface size scaling, a first-start welcome with sample projects, and custom hotkeys (added along the way).
 
 ### History
 
@@ -197,7 +218,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
-| 2026-10-14 | Loop cut (F): a new loop of edges around a shape, shown before you click, slid by dragging; Z frames the selection and Shift + X/Y/Z lock axes; project files at format version 6 |
+| 2026-10-14 | Loop cut (F): a new loop of edges around a shape, shown before you click, slid by dragging; Ctrl + wheel changes a tool's count (Bevel's segments, Loop cut's cuts); Z frames the selection and Shift + X/Y/Z lock axes; project files at format version 6 |
 | 2026-10-14 | Our own names: the Attributes panel, the Objects panel and Paint select |
 | 2026-10-14 | Foundations, hostile files: damaged or booby-trapped projects are refused with a message instead of crashing or freezing the app; edits that would make a shape impossibly large are skipped; recovery can't get stuck. Foundations complete |
 | 2026-10-14 | Foundations, room to grow (part 2): edits keep their ids and switches and hold on to their points when earlier edits change; project files at format version 5 |
@@ -219,13 +240,13 @@ Newest first. One line per finished milestone or passed gate.
 | 2026-10-11 | Saving and opening `.avtl` projects: File menu, safe saving with a backup, a question before unsaved changes are lost. Phase 2 complete |
 | 2026-10-11 | Settings window (Edit → Settings…, Ctrl + ,): accent, units, navigation, grid and undo memory in one place |
 | 2026-10-11 | Undo limited by memory instead of steps: 2 GB as standard, set in Edit → Undo memory, oldest steps forgotten first |
-| 2026-10-11 | Object stack foundation: shapes keep recorded edits apart from their settings, worked out layer by layer and cached; Make editable (C) bakes a shape into a plain mesh |
-| 2026-10-10 | Attribute Manager: a shape's settings change as you drag or type, one undo step per drag; copy and paste settings. Also: 1 m standard sizes, step arrows, metres or centimetres, round-end rings and centre points, three grid levels, and the B shape list |
+| 2026-10-11 | Object stack foundation: shapes keep recorded edits apart from their settings, worked out layer by layer and cached; Make editable (then C, now Ctrl + E) bakes a shape into a plain mesh |
+| 2026-10-10 | Attributes panel: a shape's settings change as you drag or type, one undo step per drag; copy and paste settings. Also: 1 m standard sizes, step arrows, metres or centimetres, round-end rings and centre points, three grid levels, and the B shape list |
 | 2026-10-10 | Primitives: cube, plane, cylinder, sphere, disc, tube and cone, standing on the ground, with hard and soft edges |
-| 2026-10-10 | Object Manager: select, rename, group, nest, hide and delete objects, with undo and redo |
+| 2026-10-10 | Objects panel: select, rename, group, nest, hide and delete objects, with undo and redo |
 | 2026-10-10 | Phase 1 gate passed: tested by the project lead, "worked flawlessly and felt good" |
 | 2026-10-10 | Perspective, top, front and right views and the four-view layout (F1 to F5, middle click). Phase 1 milestones complete |
-| 2026-10-10 | Frame all (H) and frame selected (F), gliding the view until everything fits |
+| 2026-10-10 | Frame all (H) and frame selected (then F, now Z), gliding the view until everything fits |
 | 2026-10-10 | Orbit and zoom around the point under the mouse, with a marker while orbiting |
 | 2026-10-10 | A darker studio look from the approved mockup: horizon, finite grid, menu lines inside panels, a red accent with five others to choose from, and a choice of navigation controls |
 | 2026-10-10 | Cinema 4D-style navigation (Alt + drag to orbit, pan and zoom, wheel to zoom) and a grid detail switch, with a calmer 1 m grid by default |
@@ -244,9 +265,9 @@ Pictures of Aventail 3D at memorable moments, newest first. Kept in [docs/screen
 
 ![The seven primitives](docs/screenshots/2026-10-10-primitive-gallery.png)
 
-**2026-10-10: the Object Manager.** The test cube dragged into a group (its name orange while selected), and a second group hidden with its eye.
+**2026-10-10: the Objects panel.** The test cube dragged into a group (its name orange while selected), and a second group hidden with its eye.
 
-![The Object Manager](docs/screenshots/2026-10-10-object-manager.png)
+![The Objects panel](docs/screenshots/2026-10-10-object-manager.png)
 
 **2026-10-10: four views.** Perspective, top, front and right side by side, the flat views each looking at their own grid face on; the active view is outlined in red.
 
