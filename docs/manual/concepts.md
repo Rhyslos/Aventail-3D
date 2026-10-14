@@ -25,6 +25,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Mitre joint** — Where two straight pieces meet at an angle with no rounding, each cut at half the angle, like the corner of a picture frame. A pipe bent this way keeps its full width. See [bending an extrude](extrude-and-inset.md#bend-it-pipes-that-turn-a-corner).
 
+**Cavity** — A way of drawing a model in the viewport that brightens ridges and darkens creases and inner corners, like dust settling in the cracks and light catching the edges. It makes a shape's form read clearly without changing it. See [How shapes are drawn](viewport-display.md#cavity).
+
 **Spiral (helix)** — A curve that goes round and round while climbing along a line, like a spring, a screw thread or a spiral staircase. An extrude bent past one full turn becomes one. See [Spirals](extrude-and-inset.md#spirals-going-round-more-than-once).
 
 **Bridge** — A band of new polygons between two openings (open borders, or two polygons that are removed), like a tube between two holes. See [Connect, Bridge and Weld](connect-bridge-weld.md).
@@ -117,7 +119,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Hard and soft edges (smoothing)** — A *soft* edge blends the shading of the two faces next to it, so they look like one smooth surface. A *hard* edge keeps a sharp light/dark break. Hard-surface models need the right edges marked hard, or curved and flat areas shade wrongly. Other programs may call this *smoothing groups* or *Phong* breaks. See [Hard and soft edges](hard-and-soft-edges.md).
 
-**Auto-smooth (hard edges by angle)** — Marking every edge hard where its polygons meet more sharply than an angle, and the rest soft, instead of choosing edge by edge. This app does it for every shape after every change while **Automatic hard edges** is on (the standard; Display menu). See [Hard and soft edges](hard-and-soft-edges.md#automatic-hard-edges).
+**Auto-smooth (hard edges by angle)** — Marking every edge hard where its polygons meet more sharply than an angle, and the rest soft, instead of choosing edge by edge. This app does it for every shape after every change while **Automatic hard edges** is on (the standard; Mesh menu). See [Hard and soft edges](hard-and-soft-edges.md#automatic-hard-edges).
 
 **Weighted normals** — A trick that makes large flat faces shade perfectly flat on low-poly bevelled models, without baking a normal map.
 

@@ -158,7 +158,7 @@ fn the_display_menu_marks_hard_edges_and_shows_normals() {
 }
 
 #[test]
-fn automatic_hard_edges_is_on_below_hard_edges_and_hand_edits_say_so() {
+fn automatic_hard_edges_is_on_in_the_mesh_menu_and_hand_edits_say_so() {
     use crate::viewport::chrome::{AUTO_HARD_EDGES_ENTRY, HARD_EDGES_ENTRY};
     let mut harness = ready(Key::Num2, first_edge);
     let options = |h: &H| h.state().workbench.viewport.options();
@@ -176,12 +176,16 @@ fn automatic_hard_edges_is_on_below_hard_edges_and_hand_edits_say_so() {
         "{}",
         note(&harness)
     );
-    // The switch sits right below Hard edges in the Display menu.
+    // The switch is in the main Mesh menu, not the viewport's Display menu
+    // (moved there at the project lead's request, decision 0065).
     harness.get_by_label("Display").click();
     harness.run();
-    let hard = harness.get_by_label(HARD_EDGES_ENTRY).rect();
-    let auto = harness.get_by_label(AUTO_HARD_EDGES_ENTRY).rect();
-    assert!(auto.top() >= hard.bottom() - 1.0 && auto.top() - hard.bottom() < 12.0);
+    assert!(harness.query_by_label(HARD_EDGES_ENTRY).is_some());
+    assert!(harness.query_by_label(AUTO_HARD_EDGES_ENTRY).is_none());
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    crate::workbench::tests::main_menu(&harness, "Mesh").click();
+    harness.run();
     harness.get_by_label(AUTO_HARD_EDGES_ENTRY).click();
     harness.run();
     assert!(options(&harness).hard_edges_by_hand);

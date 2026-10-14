@@ -19,7 +19,7 @@ The primitives already come with sensible edges: a cube's corners are hard, and 
 
 ### Automatic hard edges
 
-On as standard, in the viewport's **Display** menu, right below **Hard edges**.
+On as standard, in the main **Mesh** menu, just above **Hard edges by angle**. (It's a setting about the mesh's shading, so it lives with the mesh tools.)
 
 While it's on, every shape is shaded by angle, whatever its edges are marked: where two polygons meet more sharply than **30°** the shading breaks into a crisp edge, and everywhere else it flows smoothly. This is worked out again after every change. A cylinder's sides stay smooth and its caps crisp however you extrude, bend or cut it. Without it, edits can leave edges marked hard where the shape is meant to be round. For example, every ring of a bent extrude comes out hard, and the pipe looks faceted.
 
@@ -31,7 +31,7 @@ Switch it off when you want edges the angle wouldn't choose. For example, a soft
 
 ### By hand
 
-Switch **Automatic hard edges** off first, in the viewport's Display menu, or you won't see the difference: while it's on, the angle decides the shading. The status bar reminds you.
+Switch **Automatic hard edges** off first, in the **Mesh** menu, or you won't see the difference: while it's on, the angle decides the shading. The status bar reminds you.
 
 1. In the **Edges** mode, select edges. Or in the **Polygons** mode, select polygons: their edges are used.
 2. Press **E** and pick **Hard edges** or **Soft edges** (or use the **Mesh** menu).
@@ -50,7 +50,6 @@ Every edge whose two polygons meet more sharply than the **Angle** becomes hard,
 In the viewport's **Display** menu:
 
 - **Hard edges** (on as standard): while editing points, edges or polygons, hard edges are drawn in light cyan.
-- **Automatic hard edges** (on as standard): shade by angle after every change (see above).
 - **Normals**: each polygon of the selected objects shows a short violet line from its middle, the way it faces. A line pointing into a shape means that polygon is flipped: see [Clean-up](clean-up.md).
 
 **Select → Select hard edges** selects every hard edge, to check them or to change them all at once.
@@ -61,7 +60,7 @@ In the viewport's **Display** menu:
 
 | Setting | What it does |
 |---|---|
-| **Automatic hard edges** (Display menu) | On (the standard): every shape is shaded by angle after every change, edges sharper than 30° crisp and the rest smooth, whatever they are marked. Off: shaded by the hard and soft edges you set. Remembered. |
+| **Automatic hard edges** (Mesh menu) | On (the standard): every shape is shaded by angle after every change, edges sharper than 30° crisp and the rest smooth, whatever they are marked. Off: shaded by the hard and soft edges you set. Remembered. |
 | **Angle** (Hard edges by angle, Last edit) | Edges whose polygons meet more sharply than this become hard. 0° is flat. **30°** (the start) makes a box's corners hard and curves of 12 or more sides soft. Lower it for curves with fewer sides. |
 
 ## Shortcuts
@@ -71,14 +70,15 @@ In the viewport's **Display** menu:
 | Hard edges, Soft edges | Tool menu `E`, or the Mesh menu |
 | Hard edges by angle | Mesh menu |
 | Select hard edges | Select menu |
-| Show hard edges, normals; Automatic hard edges | The viewport's Display menu |
+| Show hard edges, normals | The viewport's Display menu |
+| Automatic hard edges | Mesh menu |
 
 ## Tips and common problems
 
 - **Tip:** a cylinder with few sides (say 8) has sides meeting at 45°. With the 30° start they come out hard and it looks faceted: with Automatic hard edges off, set Hard edges by angle's Angle to 50° to make it round again.
 - **Tip:** soft edges between polygons at a sharp angle look smeared and dark. If a corner looks muddy, make that edge hard, or bevel it.
 - **Tip:** new polygons from [Bridge](connect-bridge-weld.md) and [Fill hole](clean-up.md) get hard edges by themselves where they meet the shape at more than 30°, so a band between two boxes or a cap on a tube looks crisp straight away. Make them soft afterwards if you want them round.
-- **Problem:** Hard edges or Soft edges changed nothing on screen. **Why:** Automatic hard edges is on, so the angle decides the shading; your edges are kept for when it's off. **Fix:** switch it off in the Display menu.
+- **Problem:** Hard edges or Soft edges changed nothing on screen. **Why:** Automatic hard edges is on, so the angle decides the shading; your edges are kept for when it's off. **Fix:** switch it off in the Mesh menu.
 - **Problem:** a low-poly curve (say an 8-sided cylinder) looks faceted. **Why:** its sides meet at 45°, sharper than the automatic 30°. **Fix:** switch Automatic hard edges off and soften those edges by hand, or use more sides.
 - **Problem:** Hard edges did nothing, and the status bar says they already are. **Why:** every selected edge is already hard. **Fix:** nothing to do, or pick Soft edges.
 - **Problem:** the hard edges or normals don't show on a very detailed shape. **Why:** they're drawn only for shapes of up to 50,000 polygons, to keep the view quick.

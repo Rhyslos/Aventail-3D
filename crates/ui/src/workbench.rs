@@ -1559,6 +1559,7 @@ impl Workbench {
                         ui.close();
                     }
                     ui.separator();
+                    crate::viewport::chrome::auto_hard_edges_entry(ui, self.viewport.options_mut());
                     if ui
                         .button("Hard edges by angle")
                         .on_hover_text(

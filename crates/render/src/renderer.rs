@@ -23,6 +23,9 @@ pub const COLOR_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8UnormSrg
 pub const DISPLAY_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
 /// Depth buffer format.
 pub const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
+/// Format of the facing image: which way the surface at each pixel faces
+/// across the screen, for cavity ([decision 0065](../../../docs/decisions/0065-cavity.md)).
+pub const FACING_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Float;
 /// The viewport shaders, in WGSL.
 pub const SHADER_SOURCE: &str = include_str!("viewport.wgsl");
 
@@ -54,6 +57,12 @@ pub struct ViewportTarget {
     resolved_view: wgpu::TextureView,
     display_view: wgpu::TextureView,
     depth_view: wgpu::TextureView,
+    /// Multisampled facing image (only when multisampling).
+    facing_msaa_view: Option<wgpu::TextureView>,
+    /// The finished facing image, which cavity reads.
+    facing_view: wgpu::TextureView,
+    /// Cavity's way to read it.
+    cavity_bind_group: wgpu::BindGroup,
 }
 
 impl ViewportTarget {
@@ -175,6 +184,9 @@ pub struct ViewportRenderer {
     mesh_pick_pipeline: wgpu::RenderPipeline,
     mesh_line_pipeline: wgpu::RenderPipeline,
     mesh_point_pipeline: wgpu::RenderPipeline,
+    cavity_pipeline: wgpu::RenderPipeline,
+    /// How cavity reads a target's facing image.
+    cavity_layout: wgpu::BindGroupLayout,
     object_layout: wgpu::BindGroupLayout,
     /// Bytes between objects' placements in the uniform buffer (the GPU's
     /// alignment for them).
@@ -184,6 +196,8 @@ pub struct ViewportRenderer {
     /// Whether objects' faces are drawn (off for a wireframe look, where
     /// only their edges show, so every edge can be seen through the shape).
     show_faces: bool,
+    /// Whether ridges are brightened and creases darkened (cavity).
+    show_cavity: bool,
 }
 
 impl ViewportRenderer {
@@ -248,9 +262,30 @@ impl ViewportRenderer {
                 bind_group_layouts: &[Some(&bind_group_layout), Some(&object_layout)],
                 immediate_size: 0,
             });
+        let cavity_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("cavity layout"),
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    multisampled: false,
+                },
+                count: None,
+            }],
+        });
+        let cavity_pipeline_layout =
+            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("cavity pipeline layout"),
+                bind_group_layouts: &[Some(&bind_group_layout), Some(&cavity_layout)],
+                immediate_size: 0,
+            });
         let pipeline = |kind: PipelineKind| {
             let layout = if kind.per_object() {
                 &object_pipeline_layout
+            } else if kind == PipelineKind::Cavity {
+                &cavity_pipeline_layout
             } else {
                 &layout
             };
@@ -280,11 +315,14 @@ impl ViewportRenderer {
             mesh_pick_pipeline: pipeline(PipelineKind::MeshPickDepth),
             mesh_line_pipeline: pipeline(PipelineKind::MeshLines),
             mesh_point_pipeline: pipeline(PipelineKind::MeshPoints),
+            cavity_pipeline: pipeline(PipelineKind::Cavity),
+            cavity_layout,
             object_layout,
             object_stride,
             meshes: HashMap::new(),
             placements: None,
             show_faces: true,
+            show_cavity: false,
         };
         renderer.set_shape(device, &Shape::test_cube());
         renderer
@@ -420,6 +458,12 @@ impl ViewportRenderer {
         self.show_faces
     }
 
+    /// Whether the next frames brighten ridges and darken creases on the
+    /// surfaces (cavity, off as standard here; [decision 0065](../../../docs/decisions/0065-cavity.md)).
+    pub fn set_show_cavity(&mut self, show: bool) {
+        self.show_cavity = show;
+    }
+
     /// Draws every placed object mesh with `part`.
     fn draw_meshes(&self, pass: &mut wgpu::RenderPass<'_>, part: MeshPart) {
         draw_meshes(&self.meshes, self.placements.as_ref(), pass, part);
@@ -539,6 +583,32 @@ impl ViewportRenderer {
         )
         .create_view(&wgpu::TextureViewDescriptor::default());
         let resolved_view = resolved.create_view(&wgpu::TextureViewDescriptor::default());
+        let facing_view = texture(
+            "viewport facing",
+            FACING_FORMAT,
+            wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
+            1,
+            &[],
+        )
+        .create_view(&wgpu::TextureViewDescriptor::default());
+        let facing_msaa_view = (self.sample_count > 1).then(|| {
+            texture(
+                "viewport facing (multisampled)",
+                FACING_FORMAT,
+                wgpu::TextureUsages::RENDER_ATTACHMENT,
+                self.sample_count,
+                &[],
+            )
+            .create_view(&wgpu::TextureViewDescriptor::default())
+        });
+        let cavity_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("cavity bind group"),
+            layout: &self.cavity_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(&facing_view),
+            }],
+        });
         let display_view = resolved.create_view(&wgpu::TextureViewDescriptor {
             label: Some("viewport display view"),
             format: Some(DISPLAY_FORMAT),
@@ -551,6 +621,9 @@ impl ViewportRenderer {
             resolved_view,
             display_view,
             depth_view,
+            facing_msaa_view,
+            facing_view,
+            cavity_bind_group,
         }
     }
 
@@ -570,27 +643,48 @@ impl ViewportRenderer {
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("viewport frame"),
         });
+        // With multisampling, drawing goes into the multisampled images,
+        // which are smoothed into the finished ones at the end.
+        let color = target.msaa_view.as_ref().unwrap_or(&target.resolved_view);
+        let smoothed = target.msaa_view.is_some().then_some(&target.resolved_view);
+        // First the backdrop and the surfaces, which also record which way
+        // they face at each pixel, for cavity.
         {
-            let (view, resolve_target, store) = match &target.msaa_view {
-                Some(msaa) => (msaa, Some(&target.resolved_view), wgpu::StoreOp::Discard),
-                None => (&target.resolved_view, None, wgpu::StoreOp::Store),
+            let (facing, facing_resolve) = match &target.facing_msaa_view {
+                Some(msaa) => (msaa, Some(&target.facing_view)),
+                None => (&target.facing_view, None),
             };
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("viewport pass"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view,
-                    depth_slice: None,
-                    resolve_target,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                        store,
-                    },
-                })],
+                label: Some("viewport surfaces"),
+                color_attachments: &[
+                    Some(wgpu::RenderPassColorAttachment {
+                        view: color,
+                        depth_slice: None,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                            store: wgpu::StoreOp::Store,
+                        },
+                    }),
+                    Some(wgpu::RenderPassColorAttachment {
+                        view: facing,
+                        depth_slice: None,
+                        resolve_target: facing_resolve,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                            store: if facing_resolve.is_some() {
+                                wgpu::StoreOp::Discard
+                            } else {
+                                wgpu::StoreOp::Store
+                            },
+                        },
+                    }),
+                ],
                 depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
                     view: &target.depth_view,
                     depth_ops: Some(wgpu::Operations {
                         load: wgpu::LoadOp::Clear(1.0),
-                        store: wgpu::StoreOp::Discard,
+                        store: wgpu::StoreOp::Store,
                     }),
                     stencil_ops: None,
                 }),
@@ -601,8 +695,6 @@ impl ViewportRenderer {
             pass.set_bind_group(0, &self.bind_group, &[]);
             pass.set_pipeline(&self.sky_pipeline);
             pass.draw(0..3, 0..1);
-            // Solids before the see-through grid and lines, so those are
-            // hidden behind them.
             pass.set_pipeline(&self.face_pipeline);
             if let Some(faces) = &self.faces {
                 faces.draw(&mut pass);
@@ -611,6 +703,62 @@ impl ViewportRenderer {
                 pass.set_pipeline(&self.mesh_face_pipeline);
                 self.draw_meshes(&mut pass, MeshPart::Faces);
             }
+        }
+        // Then cavity, on the surfaces only, before anything is drawn over
+        // them.
+        if self.show_cavity && self.show_faces {
+            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("viewport cavity"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: color,
+                    depth_slice: None,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+                multiview_mask: None,
+            });
+            pass.set_bind_group(0, &self.bind_group, &[]);
+            pass.set_bind_group(1, &target.cavity_bind_group, &[]);
+            pass.set_pipeline(&self.cavity_pipeline);
+            pass.draw(0..3, 0..1);
+        }
+        // Last the see-through grid, lines and overlay, hidden behind the
+        // surfaces in front of them.
+        {
+            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("viewport lines"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: color,
+                    depth_slice: None,
+                    resolve_target: smoothed,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: if smoothed.is_some() {
+                            wgpu::StoreOp::Discard
+                        } else {
+                            wgpu::StoreOp::Store
+                        },
+                    },
+                })],
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                    view: &target.depth_view,
+                    depth_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: wgpu::StoreOp::Discard,
+                    }),
+                    stencil_ops: None,
+                }),
+                timestamp_writes: None,
+                occlusion_query_set: None,
+                multiview_mask: None,
+            });
+            pass.set_bind_group(0, &self.bind_group, &[]);
             pass.set_pipeline(&self.grid_pipeline);
             pass.draw(0..6, 0..1);
             pass.set_pipeline(&self.line_pipeline);

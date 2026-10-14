@@ -866,6 +866,40 @@ fn display_menu_and_the_corner_button_choose_the_shading() {
 }
 
 #[test]
+fn cavity_is_on_and_switches_from_the_display_menu_and_the_corner_button() {
+    use crate::viewport::chrome::CAVITY_ENTRY;
+    let mut harness = fresh();
+    let on =
+        |h: &egui_kittest::Harness<'static, State>| !h.state().workbench.view_options().hide_cavity;
+    assert!(on(&harness), "on as standard");
+    // The button beside Shading in the bottom-left corner.
+    let button = harness.get_by_label(CAVITY_ENTRY);
+    let shading = harness.get_by_label(crate::viewport::SHADING_LABEL).rect();
+    assert!(
+        button.rect().left() > shading.right()
+            && (button.rect().center().y - shading.center().y).abs() < 1.0
+    );
+    button.click();
+    harness.run();
+    assert!(!on(&harness));
+    // And in the Display menu, under the shading choices.
+    harness.get_by_label("Display").click();
+    harness.run();
+    let entries: Vec<_> = harness
+        .get_all_by_label(CAVITY_ENTRY)
+        .map(|n| n.rect())
+        .collect();
+    assert_eq!(entries.len(), 2, "the button and the menu entry");
+    harness
+        .get_all_by_label(CAVITY_ENTRY)
+        .min_by(|a, b| a.rect().top().total_cmp(&b.rect().top()))
+        .unwrap()
+        .click();
+    harness.run();
+    assert!(on(&harness));
+}
+
+#[test]
 fn the_shading_list_keeps_its_size_while_pointing_at_its_choices() {
     // In the app, a choice's tooltip made the list narrower and "Shaded
     // with wires" wrapped onto two lines (fixed by a fixed width). The test

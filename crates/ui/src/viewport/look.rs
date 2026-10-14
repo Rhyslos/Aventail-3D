@@ -67,6 +67,7 @@ pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) {
         Stroke::new(1.5, theme::TEXT_WEAK),
     );
     let response = response.on_hover_text("How shapes are drawn: shaded, with wires, or wireframe");
+    cavity_toggle(ui, button, &mut panel.options);
     Popup::from_toggle_button_response(&response)
         .close_behavior(PopupCloseBehavior::CloseOnClick)
         .align(RectAlign::TOP_START)
@@ -119,5 +120,53 @@ fn swatch(painter: &egui::Painter, centre: egui::Pos2, shading: Shading) {
         painter.line_segment([square.left_top(), square.right_bottom()], wire);
         painter.line_segment([square.center_top(), square.center_bottom()], wire);
         painter.line_segment([square.left_center(), square.right_center()], wire);
+    }
+}
+
+/// The Cavity switch beside the shading button: lit while on.
+fn cavity_toggle(ui: &mut Ui, beside: Rect, options: &mut super::ViewOptions) {
+    use super::chrome::{CAVITY_ENTRY, CAVITY_EXPLANATION};
+    let on = !options.hide_cavity;
+    let font = FontId::proportional(12.0);
+    let name = ui
+        .painter()
+        .layout_no_wrap(CAVITY_ENTRY.to_string(), font, theme::TEXT);
+    let button = Rect::from_min_size(
+        pos2(beside.right() + 6.0, beside.top()),
+        vec2(name.size().x + 34.0, HEIGHT),
+    );
+    let response = ui.interact(button, ui.id().with("cavity_button"), Sense::click());
+    response.widget_info(|| WidgetInfo::selected(WidgetType::Checkbox, true, on, CAVITY_ENTRY));
+    let accent = theme::accent(ui.ctx()).colors();
+    let painter = ui.painter();
+    let fill = if response.hovered() {
+        theme::HOVER
+    } else {
+        theme::PALETTE
+    };
+    painter.rect(
+        button,
+        5.0,
+        fill,
+        Stroke::new(1.0, if on { accent.light } else { theme::BORDER }),
+        egui::StrokeKind::Inside,
+    );
+    // A small dot: lit while on.
+    let dot = button.left_center() + vec2(13.0, 0.0);
+    if on {
+        painter.circle_filled(dot, 4.0, accent.light);
+    } else {
+        painter.circle_stroke(dot, 4.0, Stroke::new(1.2, theme::TEXT_WEAK));
+    }
+    painter.galley(
+        pos2(
+            button.left() + 24.0,
+            button.center().y - name.size().y / 2.0,
+        ),
+        name,
+        if on { theme::TEXT_STRONG } else { theme::TEXT },
+    );
+    if response.on_hover_text(CAVITY_EXPLANATION).clicked() {
+        options.hide_cavity = on;
     }
 }
