@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Pipe bends.** An extrude can turn a corner and keep its full width: after extruding (D), set **Angle**, **Direction**, **Bend radius** and **Segments** under Last edit (or before dragging) for a smooth elbow, or a sharp mitre joint with no radius. Ctrl + wheel changes Segments while Extrude is in use.
 - **Slit.** In Points, Edges or Polygons mode, press **X** and click points over a shape: it is cut along the line as you go, across any polygons, turning wherever a point sits inside one. Drag a point to move it, click the line to add one, Ctrl + click to remove one, and hold Shift for 15° steps. Esc or Enter finishes the line, and Ctrl + Z takes it back. As standard only what you can see is cut; **Cut through** in the Attributes panel cuts the far side too.
 - **Ctrl + mouse wheel changes a tool's count**: Bevel's Segments and Loop cut's Cuts, before, while dragging, and on the edit you just made. With every other tool it still grows and shrinks the selection.
 - **Loop cut.** In Points, Edges or Polygons mode, press **F** (or pick Loop cut from the E menu or the Mesh menu) and point at an edge: the new loop shows all the way around the shape. Click to cut it, or press and drag along the edge to slide it into place first. Hold **Ctrl** and turn the mouse wheel (or set **Cuts** in the Attributes panel) to make several evenly spaced loops at once; afterwards the cut's Cuts and Position can still be changed under Last edit. The loop stops cleanly at triangles, caps and open borders.
@@ -44,6 +45,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Projects are saved in **file format version 8**, which can hold extrudes with a bend. Older projects still open.
+- While Extrude is in use, Ctrl + wheel changes the bend's Segments instead of growing the selection (the Select menu still grows it).
 - Projects are saved in **file format version 7**, which can hold slits. Older projects still open; a project saved now won't open in an older version of the app.
 - **New keys:** **Z** frames the selection (it was F, which is Loop cut now), and the axis locks are **Shift + X / Y / Z** (plain X is kept for the Slit tool).
 - Projects are saved in **file format version 6**, which can hold loop cuts. Older projects still open; a project saved now won't open in an older version of the app.

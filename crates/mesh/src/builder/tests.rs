@@ -4,8 +4,8 @@
 use super::*;
 use crate::attributes::{AttributeElement, HARD};
 use crate::edit::{
-    BevelShape, Eye, Grouping, SlitLine, bevel_edges, bevel_points, extrude_edges,
-    extrude_polygons, inset_polygons, loop_cut, slit,
+    Bend, BevelShape, Eye, Grouping, SlitLine, bevel_edges, bevel_points, extrude_bent,
+    extrude_edges, extrude_polygons, inset_polygons, loop_cut, slit,
 };
 use crate::{PlaneParams, Primitive, PrimitiveKind};
 use glam::{Vec2, Vec3};
@@ -303,6 +303,17 @@ fn every_tool_keeps_values_on_every_primitive() {
         let mut m = mesh.clone();
         extrude_polygons(&mut m, &faces, 5.0, Grouping::Separate);
         nothing_left_at_the_default(&m);
+        for radius in [0.0, 30.0] {
+            let mut m = mesh.clone();
+            let bend = Bend {
+                angle: 60.0,
+                direction: 30.0,
+                radius,
+                segments: 3,
+            };
+            extrude_bent(&mut m, &faces, 10.0, Grouping::Together, bend);
+            nothing_left_at_the_default(&m);
+        }
         let mut m = mesh.clone();
         inset_polygons(&mut m, &faces, 1.0, Grouping::Together);
         nothing_left_at_the_default(&m);

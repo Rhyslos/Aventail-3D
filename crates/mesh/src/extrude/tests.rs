@@ -550,3 +550,201 @@ fn replacing_corners_keeps_the_id_and_refuses_bad_corners() {
     assert!(mesh.replace_corners(top, &twice).is_err());
     assert_eq!(mesh.face(top).unwrap(), turned.as_slice());
 }
+
+// ------------------------------------------------------------ bending ---
+
+/// An upright cylinder of 16 sides, radius 50, 100 tall, with flat caps,
+/// and its top cap.
+fn pipe() -> (Mesh, FaceId) {
+    let mesh = Primitive::Cylinder(crate::CylinderParams {
+        sides: 16,
+        height_segments: 1,
+        caps: true,
+        cap_segments: 1,
+        cap_centre: false,
+        ..Default::default()
+    })
+    .mesh();
+    let top = facing(&mesh, Vec3::Z);
+    (mesh, top)
+}
+
+fn bend(angle: f32, radius: f32, segments: u32) -> Bend {
+    Bend {
+        angle,
+        direction: 0.0,
+        radius,
+        segments,
+    }
+}
+
+/// The ring of points made by an extrude, by ring: `per` points each, in
+/// id order after the first `before`.
+fn rings(mesh: &Mesh, before: usize, per: usize) -> Vec<Vec<Vec3>> {
+    let points: Vec<Vec3> = mesh.vertices().skip(before).map(|(_, p)| p).collect();
+    points.chunks(per).map(<[Vec3]>::to_vec).collect()
+}
+
+/// How far each point is from the ring's middle.
+fn spread(ring: &[Vec3]) -> (f32, f32) {
+    let middle = ring.iter().copied().sum::<Vec3>() / ring.len() as f32;
+    ring.iter()
+        .map(|p| p.distance(middle))
+        .fold((f32::MAX, f32::MIN), |(lo, hi), d| (lo.min(d), hi.max(d)))
+}
+
+#[test]
+fn a_rounded_bend_keeps_the_pipe_full_size() {
+    let (before, top) = pipe();
+    let radius = spread(
+        &before
+            .face(top)
+            .unwrap()
+            .iter()
+            .map(|v| before.position(*v).unwrap())
+            .collect::<Vec<_>>(),
+    )
+    .0;
+    let mut mesh = before.clone();
+    let out = extrude_bent(
+        &mut mesh,
+        &[top],
+        50.0,
+        Grouping::Together,
+        bend(90.0, 100.0, 8),
+    );
+    assert_eq!(out.matched, 1);
+    // Eight rows round the turn and one straight on: nine rings of 16.
+    assert_eq!(mesh.vertex_count(), before.vertex_count() + 9 * 16);
+    assert_eq!(mesh.face_count(), before.face_count() + 9 * 16);
+    let r = report(&mesh);
+    assert!(r.is_closed() && !r.has_problems(), "{r:?}");
+    every_point_is_a_number(&mesh);
+    for ring in rings(&mesh, before.vertex_count(), 16) {
+        let (lo, hi) = spread(&ring);
+        assert!(
+            (lo - radius).abs() < 1e-2 && (hi - radius).abs() < 1e-2,
+            "{lo} {hi}"
+        );
+    }
+    // The end faces +X, beyond the turn: up 100 (the radius) and across
+    // 100 plus 50 straight on.
+    assert!(mesh.face_normal(top).dot(Vec3::X) > 0.999);
+    let end = centre(&mesh, top);
+    assert!(end.distance(Vec3::new(150.0, 0.0, 200.0)) < 1e-2, "{end}");
+}
+
+#[test]
+fn a_sharp_bend_is_a_mitre_joint_that_stays_round() {
+    let (before, top) = pipe();
+    let old: Vec<VertexId> = before.face(top).unwrap().to_vec();
+    let mut mesh = before.clone();
+    extrude_bent(
+        &mut mesh,
+        &[top],
+        80.0,
+        Grouping::Together,
+        bend(90.0, 0.0, 8),
+    );
+    // One ring: the cap's copy, round the corner.
+    assert_eq!(mesh.vertex_count(), before.vertex_count() + 16);
+    let r = report(&mesh);
+    assert!(r.is_closed() && !r.has_problems(), "{r:?}");
+    // The old top ring now lies on the 45° plane through the corner, still
+    // on the pipe's side: as far from the upright axis as before.
+    for v in &old {
+        let p = mesh.position(*v).unwrap();
+        assert!((p.z - (100.0 - p.x)).abs() < 1e-2, "{p}");
+        assert!((p.truncate().length() - 50.0).abs() < 0.5, "{p}");
+    }
+    // The end is a full circle facing +X, 80 along.
+    let end = centre(&mesh, top);
+    assert!(end.distance(Vec3::new(80.0, 0.0, 100.0)) < 1e-2, "{end}");
+    let (lo, hi) = spread(&rings(&mesh, before.vertex_count(), 16)[0]);
+    assert!(lo > 49.0 && hi < 51.0, "{lo} {hi}");
+}
+
+#[test]
+fn the_direction_turns_the_bend_round_the_pipe() {
+    let (before, top) = pipe();
+    let mut mesh = before.clone();
+    let mut b = bend(90.0, 100.0, 4);
+    b.direction = 90.0;
+    extrude_bent(&mut mesh, &[top], 0.0, Grouping::Together, b);
+    // A quarter turn round from +X is +Y.
+    assert!(mesh.face_normal(top).dot(Vec3::Y) > 0.999);
+    // No straight part: just the four rows of the turn.
+    assert_eq!(mesh.vertex_count(), before.vertex_count() + 4 * 16);
+}
+
+#[test]
+fn no_angle_is_a_plain_extrude() {
+    let (before, top) = pipe();
+    let mut bent = before.clone();
+    extrude_bent(
+        &mut bent,
+        &[top],
+        40.0,
+        Grouping::Together,
+        bend(0.0, 30.0, 8),
+    );
+    let mut plain = before.clone();
+    extrude_polygons(&mut plain, &[top], 40.0, Grouping::Together);
+    assert_eq!(bent, plain);
+}
+
+#[test]
+fn bends_keep_their_numbers_in_range() {
+    let b = Bend {
+        angle: 500.0,
+        direction: -90.0,
+        radius: -3.0,
+        segments: 0,
+    }
+    .clamped();
+    assert_eq!(
+        (b.angle, b.direction, b.radius, b.segments),
+        (MAX_MITRE_ANGLE, 270.0, 0.0, 1)
+    );
+    let b = Bend {
+        angle: f32::NAN,
+        direction: f32::INFINITY,
+        radius: f32::NAN,
+        segments: 9999,
+    }
+    .clamped();
+    assert_eq!(
+        (b.angle, b.direction, b.radius, b.segments),
+        (0.0, 0.0, 0.0, MAX_BEND_SEGMENTS)
+    );
+    assert!(!b.bends());
+    assert_eq!(bend(200.0, 10.0, 3).clamped().angle, 180.0);
+    assert_eq!(bend(90.0, 10.0, 3).rings(0.0), 3);
+    assert_eq!(bend(90.0, 10.0, 3).rings(5.0), 4);
+    assert_eq!(bend(90.0, 0.0, 3).rings(0.0), 1);
+}
+
+#[test]
+fn every_shape_bends_cleanly() {
+    for primitive in Primitive::all() {
+        let before = primitive.mesh();
+        let faces = middle(&before, 1e9);
+        let some: Vec<FaceId> = faces.iter().copied().take(3).collect();
+        for grouping in [Grouping::Together, Grouping::Separate] {
+            for b in [
+                bend(90.0, 60.0, 4),
+                bend(45.0, 0.0, 1),
+                bend(180.0, 200.0, 6),
+            ] {
+                let mut mesh = before.clone();
+                extrude_bent(&mut mesh, &some, 20.0, grouping, b);
+                let r = report(&mesh);
+                let what = format!("{} {grouping:?} {b:?}: {r:?}", primitive.name());
+                assert_eq!(r.non_manifold_edges, 0, "{what}");
+                assert_eq!(r.loose_points, 0, "{what}");
+                assert_eq!(r.is_closed(), report(&before).is_closed(), "{what}");
+                every_point_is_a_number(&mesh);
+            }
+        }
+    }
+}

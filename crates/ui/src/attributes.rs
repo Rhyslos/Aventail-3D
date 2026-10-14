@@ -49,6 +49,8 @@ pub(crate) struct AttributesPanel {
     pub(crate) loop_cut: LoopLook,
     /// Whether Slit cuts through to the far side (decision 0049).
     pub(crate) slit_through: bool,
+    /// Extrude's bend, for the next drag (decision 0050).
+    pub(crate) bend: scene::Bend,
 }
 
 /// Loop cut's settings, set in the Attributes panel before a cut.
@@ -268,7 +270,7 @@ impl AttributesPanel {
             _ => false,
         };
         if self.tool.has_settings() && !last_shown {
-            self.tool_section(ui);
+            self.tool_section(ui, units);
         }
         let id = match selection.as_slice() {
             [] => {
@@ -343,7 +345,7 @@ impl AttributesPanel {
 
     /// Extrude's, Inset's, Bevel's or Loop cut's own settings, while it is
     /// the tool in use: they apply to the next drag or cut.
-    fn tool_section(&mut self, ui: &mut Ui) {
+    fn tool_section(&mut self, ui: &mut Ui, units: Units) {
         section(ui, self.tool.name());
         ui.push_id("tool", |ui| {
             egui::Grid::new("attributes_tool")
@@ -370,6 +372,11 @@ impl AttributesPanel {
                             self.grouping = grouping_of(together);
                         }
                         ui.end_row();
+                        if self.tool == Tool::Extrude {
+                            let mut bend = self.bend;
+                            bend_rows(ui, &mut bend, units);
+                            self.bend = bend;
+                        }
                     }
                 });
         });
@@ -490,6 +497,27 @@ impl AttributesPanel {
                             changed = true;
                         }
                         ui.end_row();
+                    }
+                    if let Some(bend) = edited.bend {
+                        // A straight extrude shows the tool's bend, turned
+                        // to no angle: give it an angle and it bends so.
+                        let mut bend = if matches!(operation, Operation::ExtrudeBent { .. }) {
+                            bend
+                        } else {
+                            scene::Bend {
+                                angle: 0.0,
+                                ..self.bend
+                            }
+                        };
+                        let touched = bend_rows(ui, &mut bend, units);
+                        if touched.began {
+                            self.gesture += 1;
+                        }
+                        if touched.changed {
+                            edited.bend = Some(bend);
+                            self.bend = bend;
+                            changed = true;
+                        }
                     }
                     if let Some(mut segments) = edited.segments {
                         let touched = segments_row(ui, &mut segments);
@@ -802,7 +830,9 @@ pub(crate) fn made_by(operation: &Operation, tool: Tool) -> bool {
     matches!(
         (operation, tool),
         (
-            Operation::ExtrudePolygons { .. } | Operation::ExtrudeEdges { .. },
+            Operation::ExtrudePolygons { .. }
+                | Operation::ExtrudeBent { .. }
+                | Operation::ExtrudeEdges { .. },
             Tool::Extrude
         ) | (Operation::InsetPolygons { .. }, Tool::Inset)
             | (
@@ -822,6 +852,79 @@ fn segments_row(ui: &mut Ui, segments: &mut u32) -> stepper::Touched {
         "How many rows the bevel has: 1 is a flat cut (a chamfer), more make it round",
     );
     stepper::count(ui, segments, (1, mesh::bevel::MAX_SEGMENTS), "Segments")
+}
+
+/// Extrude's bend: Angle, Direction, Bend radius and Segments, a row each
+/// (decision 0050).
+fn bend_rows(ui: &mut Ui, bend: &mut scene::Bend, units: Units) -> stepper::Touched {
+    let mut out = stepper::Touched::default();
+    let mut add = |t: stepper::Touched| {
+        out.changed |= t.changed;
+        out.began |= t.began;
+    };
+    let degrees = |ui: &mut Ui, value: &mut f32, most: f32, name: &str, help: &str| {
+        label(ui, name, help);
+        let response = ui.add(
+            egui::Slider::new(value, 0.0..=most)
+                .suffix("°")
+                .custom_formatter(|v, _| format!("{v:.0}")),
+        );
+        response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Slider, true, name));
+        ui.end_row();
+        stepper::Touched {
+            changed: response.changed(),
+            began: response.drag_started() || (response.changed() && !response.dragged()),
+        }
+    };
+    let most = if bend.radius > 0.0 {
+        180.0
+    } else {
+        mesh::extrude::MAX_MITRE_ANGLE
+    };
+    add(degrees(
+        ui,
+        &mut bend.angle,
+        most,
+        "Angle",
+        "How far the extrude turns before going on straight: 0° is straight, 90° a corner. \
+         The pipe keeps its full width through the turn.",
+    ));
+    add(degrees(
+        ui,
+        &mut bend.direction,
+        360.0,
+        "Direction",
+        "Which way round it turns: 0° turns up (an upright pipe turns towards +X), and it \
+         goes round from there.",
+    ));
+    label(
+        ui,
+        "Bend radius",
+        "How wide the turn is, from its middle to the middle of the pipe: 0 is a sharp \
+         corner (a mitre joint, up to 150°), more is a smooth elbow.",
+    );
+    add(stepper::length(
+        ui,
+        &mut bend.radius,
+        (0.0, MAX_SIZE),
+        units,
+        "Bend radius",
+    ));
+    ui.end_row();
+    label(
+        ui,
+        "Segments",
+        "How many rows a smooth turn has (with a bend radius). Ctrl + wheel changes it.",
+    );
+    add(stepper::count(
+        ui,
+        &mut bend.segments,
+        (1, mesh::extrude::MAX_BEND_SEGMENTS),
+        "Bend segments",
+    ));
+    ui.end_row();
+    *bend = bend.clamped();
+    out
 }
 
 /// Slit's Cut through switch, with its label. Returns whether it changed.

@@ -91,9 +91,9 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** points, edges and polygons can be selected and moved precisely, and a cube's segments can still be changed afterwards. ✅ *Passed 2026-10-12: tested by the project lead.*
 
-### Phase 4 · Core modelling tools — 8 of 15
+### Phase 4 · Core modelling tools — 9 of 15
 
-`███████░░░░░░` 53%
+`████████░░░░░` 60%
 
 <details>
 <summary>Milestones</summary>
@@ -106,7 +106,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Foundations: saves that always reopen, fast edits however long the history, extra values per point, edge, polygon and corner (ready for UVs), edits that hold when earlier ones change, limits for damaged files; and our own names (Attributes panel, Objects panel, Paint select)
 - [x] Loop cut (F): point at an edge, click or drag; Ctrl + wheel for a tool's count; Z frames the selection
 - [x] Slit (X): cut new edges along a line of points over the shape, visible only or through
-- [ ] Extrude with a bend: pipe bends that keep their size, with an angle, direction, bend radius and segments
+- [x] Extrude with a bend: pipe bends that keep their size, with an angle, direction, bend radius and segments
 - [ ] Connect, Bridge (C) and Weld
 - [ ] Clean-up: dissolve, delete, fill hole and flip normals, with select flipped, fix facing and select by facing
 - [ ] Hard and soft edges, with normals display
@@ -218,6 +218,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-14 | Pipe bends: an extrude turns a corner with Angle, Direction, Bend radius and Segments, as a smooth elbow or a mitre joint, keeping the pipe's full width; project files at format version 8 |
 | 2026-10-14 | Slit (X): cut along a line of points clicked over the shape, editable until finished, visible only or through; project files at format version 7. Pipe bends moved into Phase 4 |
 | 2026-10-14 | Loop cut (F): a new loop of edges around a shape, shown before you click, slid by dragging; Ctrl + wheel changes a tool's count (Bevel's segments, Loop cut's cuts); Z frames the selection and Shift + X/Y/Z lock axes; project files at format version 6 |
 | 2026-10-14 | Our own names: the Attributes panel, the Objects panel and Paint select |

@@ -50,12 +50,30 @@ The polygons stay selected, so you can drag again straight away to extrude anoth
 
 Edges with polygons on both sides have nothing to grow from and are left alone; the status bar doesn't count them.
 
+### Bend it: pipes that turn a corner
+
+An extrude can turn a corner before it goes on, like a pipe's elbow. Unlike simply turning a pipe's end, the pipe **keeps its full width** all the way through the turn.
+
+1. Select the end polygon of a pipe (a cylinder's top, say) in Polygons mode.
+2. Press **D** and drag out as usual.
+3. Under **Last edit** in the Attributes panel, set **Angle** (90° for a right angle). The extrude now turns first, then goes on straight for its Distance.
+4. Set **Bend radius** for a smooth elbow: how far the middle of the turn is from the middle of the pipe. With **0** the turn is a sharp corner, cut at the halfway angle like a mitred pipe fitting.
+5. **Direction** turns the bend round the pipe: 0° turns up (an upright pipe turns towards +X), 90° a quarter of the way round, and so on.
+6. **Segments** is how many rows a smooth elbow has. **Ctrl + mouse wheel** changes it too.
+
+![A cylinder's top extruded with a bend: Angle 90°, Bend radius 0.6 m and 8 segments, a smooth elbow the full width of the pipe.](../screenshots/2026-10-14-pipe-bend.png)
+
+![The same with Bend radius 0: a sharp mitre joint, still the full width.](../screenshots/2026-10-14-pipe-mitre.png)
+
+Set the bend before dragging (at the top of the Attributes panel, while Extrude is in use) and every drag bends. Set Angle back to 0 for straight extrudes again. To build a pipe, extrude its end again and again, straight or bent.
+
 ### Change it afterwards
 
 Right after an extrude or inset, the **Attributes panel** shows it at the top, under **Last edit**:
 
 - **Distance**: type an exact value, drag the number, or use the arrows. The shape follows as you change it.
 - **Keep together**: switch it to change how neighbouring polygons were treated (see Settings below).
+- **Angle**, **Direction**, **Bend radius** and **Segments**: bend it (see above).
 
 This works until you make another edit on top. After that, the extrude is fixed in place, like any other edit.
 
@@ -71,7 +89,11 @@ This works until you make another edit on top. After that, the extrude is fixed 
 | Setting | What it does |
 |---|---|
 | **Keep together** (Attributes panel) | **On** (the standard): polygons that touch move as **one piece**, like a slab pulled out of a wall; the edges between them stay and no walls form between them. **Off**: **each polygon on its own**, so every one becomes a separate bump (extrude) or gets its own ring (inset). The switch shows at the top of the Attributes panel while Extrude or Inset is the tool in use, and on the last edit; changing it on the last edit also sets it for the next one. For edges, on means edges that meet at a point grow as one strip. |
-| **Distance** (Attributes panel, Last edit) | How far the polygons were pushed or shrunk, in the object's own size. Negative extrudes push inward. |
+| **Distance** (Attributes panel, Last edit) | How far the polygons were pushed or shrunk, in the object's own size. Negative extrudes push inward. With a bend, how far it goes on straight after the turn. |
+| **Angle** | How far an extrude turns before going on: 0° is straight, up to 180° (150° with no Bend radius). |
+| **Direction** | Which way round the pipe it turns: 0° turns up (an upright pipe turns towards +X). |
+| **Bend radius** | From the middle of the turn to the middle of the pipe. 0 is a sharp mitre corner; more is a smooth elbow. Below the pipe's own radius, the inside of the turn folds over. |
+| **Segments** | How many rows a smooth turn has. **Ctrl + wheel** changes it while Extrude is in use. |
 
 ## Shortcuts
 
@@ -81,12 +103,14 @@ This works until you make another edit on top. After that, the extrude is fixed 
 | Inset | `I` |
 | Set the distance | Left drag anywhere in the viewport: Extrude the way the polygons face, Inset towards their middle |
 | Finer steps | Hold `Shift` while dragging |
+| A bend's segments | `Ctrl` + wheel (while Extrude is in use) |
 | Cancel the drag | `Esc` or a right-click |
 | Back to selecting | `Q` |
 
 ## Tips and common problems
 
 - **Tip: inset, then extrude inward** makes a recessed panel. **Inset, then extrude outward** makes a raised plate with a border round it.
+- **Tip:** for a pipe that keeps turning the same way, set the bend before dragging; each drag adds an elbow and a straight piece.
 - **Tip:** to push several separate panels in at once, select them all with **Keep together** off; with it on, touching polygons go in as one big panel.
 - **Tip:** the cube's hard edges carry over: an extruded block on a cube has crisp edges, and one on a sphere stays smooth. (Hard and soft edges get their own tools later in Phase 4.)
 - **Problem:** pressing D or I does nothing but the status bar talks about modes. **Why:** Extrude works in the Polygons and Edges modes, Inset only in Polygons. **Fix:** press **3** (or **2** for edges) and try again.

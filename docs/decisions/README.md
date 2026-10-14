@@ -57,3 +57,4 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0047](0047-loop-cut.md) | Loop cut: hover, click or drag; Cuts in the Attributes panel; Z frames, Shift + X/Y/Z lock; file format version 6 | Accepted |
 | [0048](0048-ctrl-wheel-changes-a-tools-count.md) | Ctrl + wheel changes a tool's count (Bevel's segments, Loop cut's cuts, and every tool to come) | Accepted |
 | [0049](0049-slit.md) | Slit: a line of points over the shape, cut as seen (or through); file format version 7 | Accepted |
+| [0050](0050-pipe-bends.md) | Pipe bends: an extrude that turns a corner and keeps its size (smooth elbow or mitre joint); file format version 8 | Accepted |

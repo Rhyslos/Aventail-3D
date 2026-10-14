@@ -1127,6 +1127,70 @@ fn a_slit_is_recorded_changed_and_follows_the_shape() {
 }
 
 #[test]
+fn a_straight_extrude_given_a_bend_becomes_a_bent_one() {
+    let (mut doc, id) = with_a_cube();
+    let mesh = doc.scene().evaluated(id).unwrap().mesh;
+    let top = mesh
+        .faces()
+        .map(|(f, _)| f)
+        .find(|f| mesh.face_normal(*f).z > 0.9)
+        .unwrap();
+    let straight = Operation::ExtrudePolygons {
+        faces: vec![top],
+        distance: 50.0,
+        grouping: Grouping::Together,
+        anchors: None,
+    };
+    record(&mut doc, id, straight.clone());
+    // A straight extrude shows a bend that doesn't turn.
+    let settings = straight.settings().unwrap();
+    assert!(!settings.bend.unwrap().bends());
+    let bent = straight.with(EditSettings {
+        bend: Some(Bend {
+            angle: 90.0,
+            radius: 0.0,
+            ..Bend::default()
+        }),
+        ..settings
+    });
+    assert!(matches!(bent, Operation::ExtrudeBent { distance, .. } if distance == 50.0));
+    assert_eq!(bent.describe(), "Extrude 1 polygon with a bend");
+    doc.execute(Command::ReplaceOperation {
+        id,
+        layer: 0,
+        index: 0,
+        operation: bent.clone(),
+    })
+    .unwrap();
+    let shape = doc.scene().evaluated(id).unwrap();
+    assert!(mesh::MeshReport::new(&shape.mesh).is_closed());
+    assert_eq!(shape.mesh.face_count(), 6 + 4);
+    // Its own settings change it; numbers that aren't real are refused.
+    let wider = bent.with(EditSettings {
+        bend: Some(Bend {
+            angle: 90.0,
+            radius: 40.0,
+            segments: 5,
+            direction: 0.0,
+        }),
+        ..bent.settings().unwrap()
+    });
+    let Operation::ExtrudeBent { bend, .. } = &wider else {
+        panic!("still bent");
+    };
+    assert_eq!(bend.segments, 5);
+    let mut broken = wider.clone();
+    if let Operation::ExtrudeBent { bend, .. } = &mut broken {
+        bend.radius = f32::NAN;
+    }
+    assert!(!broken.numbers_are_real());
+    assert_eq!(
+        crate::memory::operation_size(&wider),
+        std::mem::size_of::<FaceId>()
+    );
+}
+
+#[test]
 fn edits_holding_numbers_that_arent_real_are_refused() {
     // A regression test from the whole-app review (L2): such an edit
     // could be saved but not opened again.

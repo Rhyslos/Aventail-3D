@@ -23,6 +23,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Loop cut** — Cutting a new edge loop through a ring of quads: every edge of the ring is cut, and the new points are joined across each quad. It adds rows exactly where you need them, instead of everywhere. See [Loop cut](loop-cut.md).
 
+**Mitre joint** — Where two straight pieces meet at an angle with no rounding, each cut at half the angle, like the corner of a picture frame. A pipe bent this way keeps its full width. See [bending an extrude](extrude-and-inset.md#bend-it-pipes-that-turn-a-corner).
+
 **Slit** — Cutting new edges along a line drawn over the shape, across any polygons, as you see them (or right through the shape). Other programs call this a knife or line cut. See [Slit](slit.md).
 
 **Triangle count** — How many triangles a model becomes once every face is cut into triangles, as game engines and GPUs do: a quad is 2, an n-gon with 8 corners is 6. It's the usual measure of how heavy a game asset is. The Attributes panel shows it for every shape.

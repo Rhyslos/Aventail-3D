@@ -13,6 +13,7 @@ After trying Ctrl + wheel for Loop cut's number of cuts, the project lead asked 
 1. **The rule.** While a tool with a count is in use, **Ctrl + wheel up adds one, down takes one away** (never below 1 or above the tool's maximum). The counts are:
    - Bevel: Segments;
    - Loop cut: Cuts;
+   - Extrude: its bend's Segments ([0050](0050-pipe-bends.md));
    - tools to come: their own count, such as Bridge's segments or Slit's cuts where they have one.
 2. **What it changes.** Exactly what the arrows beside that count in the Attributes panel change:
    - **Before** using the tool: its setting for the next use.
