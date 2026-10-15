@@ -828,13 +828,79 @@ fn rich_document_v1() -> Document {
 }
 
 /// Checks two documents hold the same scene, shapes and selection.
+///
+/// Exactly, or else to 4 significant figures: a sample saved on one
+/// computer is compared with a document worked out again on another,
+/// whose sines and cosines may differ in the last bit (macOS on Arm and
+/// Linux on x86 do), which a turned pivot carries into its numbers.
 fn assert_same(a: &Document, b: &Document) {
-    assert_eq!(a.scene(), b.scene());
+    if a.scene() != b.scene() {
+        assert_eq!(
+            rounded(&format!("{:?}", a.scene())),
+            rounded(&format!("{:?}", b.scene()))
+        );
+    }
     assert_eq!(a.selection(), b.selection());
     assert_eq!(a.scene().next_object_id(), b.scene().next_object_id());
     for (id, _) in a.scene().walk() {
-        assert_eq!(a.scene().evaluated(id), b.scene().evaluated(id), "{id}");
+        let (x, y) = (a.scene().evaluated(id), b.scene().evaluated(id));
+        if x != y {
+            assert_eq!(
+                rounded(&format!("{x:?}")),
+                rounded(&format!("{y:?}")),
+                "{id}"
+            );
+        }
     }
+}
+
+/// `text` with every number that has a decimal point rounded to 4
+/// significant figures (and -0 written as 0), for comparing values worked
+/// out on different computers.
+fn rounded(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let chars: Vec<char> = text.chars().collect();
+    let mut i = 0;
+    while i < chars.len() {
+        let starts_number = chars[i].is_ascii_digit()
+            || (chars[i] == '-' && chars.get(i + 1).is_some_and(char::is_ascii_digit));
+        let after_word = i > 0 && (chars[i - 1].is_alphanumeric() || chars[i - 1] == '_');
+        if !starts_number || after_word {
+            out.push(chars[i]);
+            i += 1;
+            continue;
+        }
+        let mut j = i + 1;
+        while j < chars.len()
+            && (chars[j].is_ascii_digit()
+                || chars[j] == '.'
+                || chars[j] == 'e'
+                || (chars[j] == '-' && chars[j - 1] == 'e'))
+        {
+            j += 1;
+        }
+        let token: String = chars[i..j].iter().collect();
+        match token.parse::<f64>() {
+            Ok(x) if token.contains('.') || token.contains('e') => {
+                let x = if x.abs() < 1e-4 { 0.0 } else { x };
+                out.push_str(&format!("{x:.3e}"));
+            }
+            _ => out.push_str(&token),
+        }
+        i = j;
+    }
+    out
+}
+
+#[test]
+fn rounding_for_comparisons_keeps_whole_numbers_and_rounds_the_rest() {
+    assert_eq!(
+        rounded("Vec3(-7.1011944, 10.0, 3) V2"),
+        rounded("Vec3(-7.1011950, 10.000001, 3) V2")
+    );
+    assert_ne!(rounded("Vec3(1.5)"), rounded("Vec3(1.6)"));
+    assert_eq!(rounded("(-0.0000001)"), rounded("(0.0)"));
+    assert_eq!(rounded("FaceId(12)"), "FaceId(12)");
 }
 
 // ----------------------------------------------------------- round trip ---
