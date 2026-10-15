@@ -40,7 +40,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - *Pages are added here as UV tools are built.*
 
 ## Export
-- [Export and import: OBJ files for game engines and Substance Painter](export-and-import.md)
+- [Export and import: glTF and OBJ files for game engines and Substance Painter](export-and-import.md)
 
 ## Reference
 - *Keyboard shortcuts* — a full list arrives once there are more than a few; for now see each page's Shortcuts section

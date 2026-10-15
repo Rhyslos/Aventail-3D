@@ -30,6 +30,8 @@ fn the_export_window_asks_the_app_to_export_as_chosen() {
     let mut harness = fresh();
     file_entry(&mut harness, "Export…");
     assert!(harness.query_by_label("Kind of file").is_some());
+    harness.get_by_label_contains("OBJ (.obj)").click();
+    harness.run();
     harness.get_by_label("Centimetres").click();
     harness.run();
     harness.get_by_label("Z up").click();
@@ -55,6 +57,17 @@ fn the_export_window_asks_the_app_to_export_as_chosen() {
     // Automatic hard edges is on as standard: shading by angle.
     assert!(matches!(options.hardness, mesh::Hardness::ByAngle(_)));
     assert!(harness.query_by_label("Kind of file").is_none(), "closed");
+}
+
+#[test]
+fn gltf_is_the_standard_and_fixes_its_own_space() {
+    let mut harness = fresh();
+    file_entry(&mut harness, "Export…");
+    harness.get_all_by_label("Export…").last().unwrap().click();
+    harness.run();
+    let request = export_requests(&harness).pop().unwrap();
+    assert_eq!(request.format, ExportFormat::Glb);
+    assert_eq!(request.suggested_name, "Untitled.glb");
 }
 
 #[test]

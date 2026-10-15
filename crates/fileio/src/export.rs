@@ -104,18 +104,22 @@ impl ExportOptions {
 /// The kinds of file the app exports to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub enum ExportFormat {
-    /// OBJ (`.obj`): plain text, read by almost every 3D program.
+    /// Binary glTF (`.glb`): Godot's and Substance Painter's favourite,
+    /// with each object at its pivot (decision 0072).
     #[default]
+    Glb,
+    /// OBJ (`.obj`): plain text, read by almost every 3D program.
     Obj,
 }
 
 impl ExportFormat {
     /// Every format, in the order the Export window lists them.
-    pub const ALL: [Self; 1] = [Self::Obj];
+    pub const ALL: [Self; 2] = [Self::Glb, Self::Obj];
 
     /// Its name, as listed.
     pub fn name(self) -> &'static str {
         match self {
+            Self::Glb => "glTF",
             Self::Obj => "OBJ",
         }
     }
@@ -123,7 +127,29 @@ impl ExportFormat {
     /// Its file extension, without the dot.
     pub fn extension(self) -> &'static str {
         match self {
+            Self::Glb => "glb",
             Self::Obj => "obj",
+        }
+    }
+
+    /// Whether the format fixes the units (metres), up axis (Y) and
+    /// triangles itself, whatever the Export window says: glTF does.
+    pub fn fixes_space(self) -> bool {
+        self == Self::Glb
+    }
+
+    /// `options` as this format writes them: for glTF, metres, Y up and
+    /// triangles.
+    pub fn options(self, options: &ExportOptions) -> ExportOptions {
+        if self.fixes_space() {
+            ExportOptions {
+                units: FileUnits::Metres,
+                up: UpAxis::Y,
+                triangulate: true,
+                ..*options
+            }
+        } else {
+            *options
         }
     }
 }
@@ -167,6 +193,7 @@ pub fn export_bytes(
     options: &ExportOptions,
     generator: &str,
 ) -> Result<(Vec<u8>, ExportSummary), ExportError> {
+    let options = &format.options(options);
     let objects = prepare(document, options);
     if objects.is_empty() {
         return Err(ExportError::Nothing);
@@ -176,6 +203,7 @@ pub fn export_bytes(
         triangles: objects.iter().map(|o| o.world.triangle_count()).sum(),
     };
     let bytes = match format {
+        ExportFormat::Glb => crate::gltf::write_glb(&objects, generator),
         ExportFormat::Obj => crate::obj::write_obj(&objects, options, generator).into_bytes(),
     };
     Ok((bytes, summary))
