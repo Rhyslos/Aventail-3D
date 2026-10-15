@@ -44,6 +44,8 @@ egui_dock = { version = "0.21", features = ["serde"] }
 # zstd compression; see docs/decisions/0024-saving-projects.md.
 postcard = { version = "1.1", default-features = false, features = ["use-std"] }
 zstd = { version = "0.13", default-features = false }
+# The JSON part of glTF exports; see docs/decisions/0072-gltf-export.md.
+serde_json = "1.0"
 # Native Open and Save dialogs (Windows, macOS, and Linux through the
 # desktop portal, so no GTK is needed).
 rfd = "0.17"

@@ -1,16 +1,17 @@
 # Export and import
 
-> Write your models to a file for a game engine or Substance Painter, and bring models in from other programs.
+> Write your models to a glTF or OBJ file for a game engine or Substance Painter, and bring models in from OBJ files.
 
-![The Export window: the kind of file, what to export, metres or centimetres, Y up or Z up, and cutting polygons into triangles](../screenshots/2026-10-15-export-window.png)
+![The Export window: the kind of file (glTF or OBJ), what to export, metres or centimetres, Y up or Z up, and cutting polygons into triangles](../screenshots/2026-10-15-export-window.png)
 
 ## When to use it
 
 Your project file (`.avtl`) keeps everything the app needs to go on working: settings, recorded edits, undo-ready shapes. Other programs can't read it. To use a model elsewhere, **export** it to a common file:
 
-- **OBJ** (`.obj`): plain text, read by almost every 3D program, including Godot, Unity, Unreal Engine, Blender and Substance Painter. It holds the shapes (points, polygons, normals and UVs), not where each object's pivot is.
+- **glTF** (`.glb`, the standard): the open format Godot and Substance Painter read best, and Unity and Unreal Engine read too. Each object arrives as its own piece **placed at its [pivot](pivots.md)**, so the engine places, turns and snaps it by the pivot you set. It's always metres, Y up, and triangles, as the format requires.
+- **OBJ** (`.obj`): plain text, read by almost every 3D program, including Godot, Unity, Unreal Engine, Blender and Substance Painter. It holds the shapes (points, polygons, normals and UVs), not where each object's pivot is: every object is written where it stands in the scene.
 
-More kinds of file (glTF for Godot, with each object's pivot) and ready-made settings for Godot and Substance Painter arrive in the next updates of Phase 5.
+Ready-made settings for Godot and Substance Painter arrive in the next updates of Phase 5.
 
 **Import** does the reverse: it brings shapes in from an OBJ file made elsewhere, as plain meshes you can edit.
 
@@ -19,9 +20,9 @@ More kinds of file (glTF for Godot, with each object's pivot) and ready-made set
 ### Export
 
 1. Choose **File → Export…**. The Export window opens.
-2. Pick the **kind of file** (OBJ for now).
+2. Pick the **kind of file**: **glTF** (standard) or **OBJ**.
 3. Pick **What**: **Everything shown** (hidden objects stay out), or **The selected objects** (and what's inside them).
-4. Check **Size and direction** for where the file is going:
+4. For OBJ, check **Size and direction** for where the file is going (glTF is always metres, Y up and triangles, so these are greyed out):
    - **Metres** for Godot, Unity and Substance Painter; **Centimetres** for Unreal Engine.
    - **Y up** for nearly every program. The app is Z up, so it turns the model on the way out and it arrives standing upright. **Z up** keeps the app's own axes.
 5. Tick **Cut polygons into triangles** if the model will be baked in Substance Painter: the file then holds exactly the triangles the game will draw, cut the same way the viewport cuts them, so the bake matches. Game engines cut polygons themselves otherwise, not always the same way.
@@ -44,7 +45,7 @@ The app reads an OBJ as metres with Y up, the usual way, and turns it to centime
 
 | Setting | What it does |
 |---|---|
-| **Kind of file** | OBJ (`.obj`) for now. |
+| **Kind of file** | **glTF** (`.glb`, standard): each object at its pivot; always metres, Y up, triangles. **OBJ** (`.obj`): plain shapes where they stand. |
 | **What** | Everything shown (standard), or the selected objects and what's inside them. Groups have no shape of their own; only shapes are exported. |
 | **Metres / Centimetres** | The file's units. 1 unit = 1 m for Godot, Unity and Substance Painter (standard); 1 cm for Unreal Engine. |
 | **Y up / Z up** | Y up (standard) turns the model so its height runs along Y, as nearly every program expects. Z up keeps the app's own axes. |
@@ -58,6 +59,8 @@ None yet: use the File menu.
 
 ## Tips and common problems
 
+- **Problem:** in Godot, an object turns around the wrong point. **Why:** its pivot is where the app has it. **Fix:** move the pivot in the [Object mode](pivots.md) and export again (glTF keeps pivots; OBJ doesn't).
+- **Tip:** glTF splits a point where its shading breaks into one per side, as every game engine does, so a crisp cube has 24 corners in the file, not 8. That's normal.
 - **Problem:** the model arrives lying on its back. **Why:** the file was written Z up, and the program expected Y up (or the other way round). **Fix:** export again with the other choice.
 - **Problem:** the model is 100 times too big or too small. **Why:** metres and centimetres were mixed up. **Fix:** Godot, Unity and Substance Painter want **Metres**; Unreal Engine wants **Centimetres**.
 - **Problem:** the status bar says there is nothing to export. **Why:** everything is hidden, or *The selected objects* was chosen with only groups selected. **Fix:** show the objects, or choose Everything shown.

@@ -122,16 +122,16 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** a simple hard-surface prop (a crate, a sci-fi panel) can be modelled from start to finish, and the heavy-mesh check passes. From here on, every gate includes the heavy-mesh check.
 
-### Phase 5 · Export pipeline — 2 of 10
+### Phase 5 · Export pipeline — 3 of 10
 
-`███░░░░░░░░░░` 20%
+`████░░░░░░░░░` 30%
 
 <details>
 <summary>Milestones</summary>
 
 - [x] Pivot editing and scene units: the Object mode moves and turns pivots, with ready-made places; each project saves its units
 - [x] OBJ export and import
-- [ ] glTF export
+- [x] glTF export
 - [ ] Consistent triangulation and MikkTSpace tangents
 - [ ] Simple material slots: polygons assigned to a named material with a colour, so engines get their parts
 - [ ] Export presets for Godot and Substance Painter
@@ -222,6 +222,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-15 | glTF export: binary `.glb`, each object at its pivot, the Export window's standard |
 | 2026-10-15 | OBJ export and import: File → Export… (metres or centimetres, Y or Z up, triangles), Export again, and Import… |
 | 2026-10-15 | Extrude freedom: straight out as standard, with Direction, End size, Steps and Flat end; the Scale squares scale equally; project files at format version 17 |
 | 2026-10-15 | Orthographic view: P switches any view between perspective and orthographic; flat views orbit into a free orthographic view |

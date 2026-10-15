@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **glTF export.** **File → Export…** now offers **glTF** (`.glb`), the standard: Godot's and Substance Painter's favourite, with each object placed at its pivot, in metres, Y up and triangles.
 - **Export and import OBJ files.** **File → Export…** writes everything shown (or the selection) to an OBJ file, in metres or centimetres, Y up or Z up, optionally cut into triangles, with the shading you see. **File → Export again** repeats it. **File → Import…** brings OBJ objects in as plain meshes, with hard edges where the file's shading breaks.
 - **Extrude, shaped.** While Extrude is in use (and on the last extrude), the Attributes panel has **Direction** (Straight out, Along normals, Along X, Y or Z), **End size** (taper the end in or flare it out), **Steps** (rows along the walls; Ctrl + wheel changes them) and **Flat end**. Projects move to file format 17.
 - **Orthographic view.** Press **P** to switch a view between perspective and orthographic (no perspective: parallel lines stay parallel), keeping where it looks. It orbits, pans and zooms freely. Also in the viewport's **Cameras** menu.

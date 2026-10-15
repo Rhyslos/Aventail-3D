@@ -6,6 +6,7 @@
 
 pub mod autosave;
 pub mod export;
+pub mod gltf;
 pub mod limits;
 pub mod obj;
 pub mod project;

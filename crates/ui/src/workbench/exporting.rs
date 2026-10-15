@@ -162,25 +162,40 @@ impl Workbench {
                     .on_disabled_hover_text("Select some objects first");
                 });
                 heading(ui, "Size and direction");
-                ui.horizontal(|ui| {
-                    ui.radio_value(&mut choice.units, FileUnits::Metres, "Metres")
-                        .on_hover_text(
-                            "1 unit in the file is 1 m: Godot, Unity, Substance Painter",
-                        );
-                    ui.radio_value(&mut choice.units, FileUnits::Centimetres, "Centimetres")
-                        .on_hover_text("1 unit in the file is 1 cm: Unreal Engine");
-                });
-                ui.horizontal(|ui| {
-                    ui.radio_value(&mut choice.up, UpAxis::Y, "Y up")
-                        .on_hover_text("Godot, Unity, Unreal's OBJ import and Substance Painter");
-                    ui.radio_value(&mut choice.up, UpAxis::Z, "Z up")
-                        .on_hover_text("As in this app; Blender and 3ds Max's own axes");
-                });
-                ui.checkbox(&mut choice.triangulate, "Cut polygons into triangles")
-                    .on_hover_text(
-                        "Cut every polygon into triangles the same way the viewport does, so a \
-                         bake in Substance Painter matches the game exactly",
+                let fixed = choice.format.fixes_space();
+                if fixed {
+                    ui.label(
+                        RichText::new(
+                            "glTF is always metres, Y up and triangles: every program reads it \
+                             that way.",
+                        )
+                        .small()
+                        .color(theme::TEXT_WEAK),
                     );
+                }
+                ui.add_enabled_ui(!fixed, |ui| {
+                    ui.horizontal(|ui| {
+                        ui.radio_value(&mut choice.units, FileUnits::Metres, "Metres")
+                            .on_hover_text(
+                                "1 unit in the file is 1 m: Godot, Unity, Substance Painter",
+                            );
+                        ui.radio_value(&mut choice.units, FileUnits::Centimetres, "Centimetres")
+                            .on_hover_text("1 unit in the file is 1 cm: Unreal Engine");
+                    });
+                    ui.horizontal(|ui| {
+                        ui.radio_value(&mut choice.up, UpAxis::Y, "Y up")
+                            .on_hover_text(
+                                "Godot, Unity, Unreal's OBJ import and Substance Painter",
+                            );
+                        ui.radio_value(&mut choice.up, UpAxis::Z, "Z up")
+                            .on_hover_text("As in this app; Blender and 3ds Max's own axes");
+                    });
+                    ui.checkbox(&mut choice.triangulate, "Cut polygons into triangles")
+                        .on_hover_text(
+                            "Cut every polygon into triangles the same way the viewport does, so a \
+                         bake in Substance Painter matches the game exactly",
+                        );
+                });
                 ui.add_space(6.0);
                 ui.label(
                     RichText::new(
@@ -287,6 +302,9 @@ impl Workbench {
 /// A format as the Export window lists it.
 fn format_label(format: ExportFormat) -> &'static str {
     match format {
+        ExportFormat::Glb => {
+            "glTF (.glb): for Godot and Substance Painter, each object at its pivot"
+        }
         ExportFormat::Obj => "OBJ (.obj): plain, read by almost every 3D program",
     }
 }
