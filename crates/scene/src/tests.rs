@@ -1363,3 +1363,27 @@ fn joining_puts_shapes_into_the_first_where_they_were() {
     doc.execute(Command::Join(vec![id])).unwrap();
     assert_eq!(doc.undo_steps(), steps);
 }
+
+#[test]
+fn insert_many_adds_objects_at_the_end_as_one_step() {
+    let (mut doc, id) = with_a_cube();
+    let mut a = cube();
+    a.name = "Cube".into();
+    let mut b = cube();
+    b.name = "Panel".into();
+    let steps = doc.undo_steps();
+    doc.execute(Command::InsertMany(vec![a, b])).unwrap();
+    assert_eq!(doc.undo_steps(), steps + 1);
+    assert_eq!(doc.undo_label(), Some("Add 2 objects"));
+    let roots = doc.scene().children(None).to_vec();
+    assert_eq!(roots.len(), 3);
+    assert_eq!(roots[0], id);
+    // A taken name gets a number; the new objects are selected.
+    assert_eq!(doc.scene().object(roots[1]).unwrap().name, "Cube 2");
+    assert_eq!(doc.selection(), roots[1..].to_vec());
+    doc.undo().unwrap();
+    assert_eq!(doc.scene().children(None).len(), 1);
+    let mut nameless = cube();
+    nameless.name = " ".into();
+    assert!(doc.execute(Command::InsertMany(vec![nameless])).is_err());
+}

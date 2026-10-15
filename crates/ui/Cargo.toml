@@ -19,6 +19,9 @@ layer = 3
 tools.workspace = true
 # The scene document: objects, commands and undo.
 scene.workspace = true
+# What exports and imports take and give (layer 2); the app does the
+# writing and reading.
+fileio.workspace = true
 # Primitive settings' limits and the mesh check (layer 0).
 mesh.workspace = true
 glam.workspace = true

@@ -61,6 +61,6 @@ pub use viewport::{
     VIEW_KEYS, VIEWPORT_LABEL, ViewOptions, ViewportPanel, ViewportRenderer, ViewportView,
 };
 pub use workbench::{
-    AppInfo, DISCARD_SHORTCUT, DOUBLE_CLICK_SECONDS, MODE_KEYS, Workbench, WorkbenchAction,
-    navigation_hint,
+    AppInfo, DISCARD_SHORTCUT, DOUBLE_CLICK_SECONDS, ExportChoice, ExportRequest, MODE_KEYS,
+    Workbench, WorkbenchAction, navigation_hint,
 };

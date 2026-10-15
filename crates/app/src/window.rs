@@ -84,6 +84,8 @@ impl eframe::App for App {
                         .restore(&folder, &copy, project, keep, &mut self.workbench);
                 }
                 WorkbenchAction::DiscardBackups { folder } => self.backups.discard(&folder),
+                WorkbenchAction::Export(request) => project::export(&mut self.workbench, &request),
+                WorkbenchAction::Import { path } => project::import(&mut self.workbench, path),
             }
         }
         self.backups.update(&mut self.workbench);
