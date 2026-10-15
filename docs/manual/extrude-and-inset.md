@@ -97,6 +97,8 @@ Big angles are easiest to type: click the Angle number and type 1080, rather tha
 
 You can also set the bend before dragging (at the top of the Attributes panel, while Extrude is in use), and the next drag bends. Once that extrude is done, or you pick another tool, **Angle goes back to 0**, so the extrude after it starts straight and nothing turns by surprise. The finished extrude keeps its bend, and you can still change it under Last edit. Direction, Bend radius and Segments stay as you set them. To build a pipe, extrude its end again and again, straight or bent.
 
+**On a stretched object** (one scaled more along one axis than another in Object mode, such as a cylinder made twice as tall with its height box), a bend keeps the pipe's shape **as you see it**: the turn is worked out with the object's stretch, so the pipe stays round all the way round the corner instead of widening as it turns into the stretched direction. The bend remembers the stretch the object had when you made it, or when you last changed the bend. If you stretch the object differently afterwards, change any bend setting (or nudge **Ctrl + wheel**) and it is bent again for the new stretch. See [stretched objects](concepts.md#objects-and-scenes) for why this matters.
+
 Each bend setting is a number field, like the ones further down the panel: drag the number, click and type one, or click the small arrows beside it (with **Shift**, ten steps at a time). The bend rows sit under a small **Bend** heading, below the extrude's **Distance**.
 
 ### Change it afterwards
@@ -150,6 +152,8 @@ This works until you make another edit on top. After that, the extrude is fixed 
 - **Tip: inset, then extrude inward** makes a recessed panel. **Inset, then extrude outward** makes a raised plate with a border round it.
 - **Tip:** for a pipe that keeps turning, give each new extrude its Angle under Last edit right after dragging it. Angle goes back to 0 after every extrude, so a straight piece never turns by surprise; Bend radius and Segments carry on, so each elbow matches the last.
 - **Tip:** for a spring, start from a small cylinder's top: Angle in whole turns (720°, 1080°…), a Bend radius a few times the cylinder's radius, and Rise per turn for how open the coils are.
+- **Problem:** a bend made before this version widens the pipe, or makes its end oval, on a stretched object. **Why:** older bends ignored the object's stretch, and a project opened from an older version keeps them as they were. **Fix:** change any of that bend's settings under Last edit (or press **Ctrl + wheel** twice, up then down), and it is bent again as the object is seen. For a bend further down the edits, undo back to it and make it again.
+- **Tip:** with **Keep together** off, each polygon bends on its own and keeps its own size and shape.
 - **Problem:** my spiral's loops cut into each other. **Why:** the Bend radius is smaller than the pipe's own radius, so the inside of each turn folds over (the same as with a single elbow). **Fix:** make the Bend radius bigger than the pipe's radius.
 - **Tip:** to push several separate panels in at once, select them all with **Keep together** off; with it on, touching polygons go in as one big panel.
 - **Tip:** the cube's hard edges carry over: an extruded block on a cube has crisp edges, and one on a sphere stays smooth. To change them, see [Hard and soft edges](hard-and-soft-edges.md).

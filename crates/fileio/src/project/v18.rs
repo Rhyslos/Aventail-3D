@@ -23,9 +23,10 @@ use std::collections::BTreeMap;
 
 /// Version 18 of the file.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub(crate) struct ProjectV18 {
-    /// Version 17's file, its edits stored as version 18's.
-    pub(crate) places: ProjectWithPlaces<EntryV18>,
+pub(crate) struct ProjectV18<E = EntryV18> {
+    /// Version 17's file, its edits stored as version 18's (or as a later
+    /// version's, `E`).
+    pub(crate) places: ProjectWithPlaces<E>,
     /// The objects' materials (only objects that have some).
     pub(crate) materials: Bounded<MaterialsV18>,
 }
@@ -149,7 +150,7 @@ impl FileOperation for OperationV18 {
     }
 }
 
-impl ProjectV18 {
+impl<E: FileOperation> ProjectV18<E> {
     /// The file model of a document.
     pub(crate) fn from_document(document: &Document) -> Self {
         let scene = document.scene();

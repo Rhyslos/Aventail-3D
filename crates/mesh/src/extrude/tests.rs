@@ -942,3 +942,173 @@ fn a_spiral_of_separate_polygons_clears_each_loop() {
         every_point_is_a_number(&mesh);
     }
 }
+
+// ------------------------------------- bends that keep their shape ---
+
+/// How far apart a polygon's corners are from its middle, least and most.
+fn face_spread(mesh: &Mesh, face: FaceId) -> (f32, f32) {
+    let corners: Vec<Vec3> = mesh
+        .face(face)
+        .unwrap()
+        .iter()
+        .map(|v| mesh.position(*v).unwrap())
+        .collect();
+    spread(&corners)
+}
+
+#[test]
+fn separate_polygons_bend_without_growing() {
+    // Regression: polygons bent each on their own shared their corners'
+    // copies, so most of them came out bigger and pulled out of shape.
+    let before = grid(3);
+    let all: Vec<FaceId> = before.faces().map(|(f, _)| f).collect();
+    let size = face_spread(&before, all[0]);
+    for b in [
+        bend(90.0, 20.0, 4),
+        bend(400.0, 20.0, 6),
+        bend(60.0, 0.0, 1),
+    ] {
+        let mut mesh = before.clone();
+        extrude_bent(&mut mesh, &all, 10.0, Grouping::Separate, b);
+        for f in &all {
+            let (lo, hi) = face_spread(&mesh, *f);
+            assert!(
+                (lo - size.0).abs() < 1e-2 && (hi - size.1).abs() < 1e-2,
+                "{b:?}: {lo} {hi} instead of {size:?}"
+            );
+        }
+        let r = report(&mesh);
+        assert_eq!(r.non_manifold_edges, 0, "{r:?}");
+        assert_eq!(r.loose_points, 0, "{r:?}");
+        every_point_is_a_number(&mesh);
+    }
+}
+
+/// `mesh` as it is seen on an object stretched by `stretch`.
+fn seen(mesh: &Mesh, stretch: Vec3) -> Mesh {
+    let mut shown = mesh.clone();
+    let points: Vec<(VertexId, Vec3)> = mesh.vertices().collect();
+    for (v, p) in points {
+        shown.set_position(v, p * stretch);
+    }
+    shown
+}
+
+#[test]
+fn a_bend_on_a_stretched_object_stays_round_as_seen() {
+    // An object stretched to twice its height: the upright pipe's rings
+    // are round on screen (only its height is stretched). Bent sideways,
+    // the plain bend would carry the height's stretch into the rings
+    // across the turn; the stretched bend keeps them round.
+    let (before, top) = pipe();
+    let stretch = Vec3::new(1.0, 1.0, 2.0) / (4.0 / 3.0);
+    let round = 50.0 * stretch.x;
+    let b = bend(90.0, 100.0, 8);
+    let rings_seen = |mesh: &Mesh| rings(&seen(mesh, stretch), before.vertex_count(), 16);
+
+    let mut plain = before.clone();
+    extrude_bent(&mut plain, &[top], 50.0, Grouping::Together, b);
+    let last = rings_seen(&plain).pop().unwrap();
+    let (lo, hi) = spread(&last);
+    assert!(hi - lo > 10.0, "the plain bend is out of shape as seen");
+
+    let mut mesh = before.clone();
+    let out = extrude_bent_stretched(&mut mesh, &[top], 50.0, Grouping::Together, b, stretch);
+    assert_eq!(out.matched, 1);
+    assert_eq!(mesh.vertex_count(), plain.vertex_count());
+    for ring in rings_seen(&mesh) {
+        let (lo, hi) = spread(&ring);
+        assert!(
+            (lo - round).abs() < 1e-2 && (hi - round).abs() < 1e-2,
+            "{lo} {hi} instead of {round}"
+        );
+    }
+    let r = report(&mesh);
+    assert!(r.is_closed() && !r.has_problems(), "{r:?}");
+    every_point_is_a_number(&mesh);
+    // As seen, the end faces +X, square to the way it goes.
+    let shown = seen(&mesh, stretch);
+    assert!(shown.face_normal(top).dot(Vec3::X) > 0.999);
+    // Points the bend doesn't move stay exactly where they were.
+    for (v, p) in before.vertices() {
+        let moved = before.face(top).unwrap().contains(&v);
+        if !moved {
+            assert_eq!(mesh.position(v), Some(p));
+        }
+    }
+}
+
+#[test]
+fn a_sharp_bend_on_a_stretched_object_stays_round_as_seen() {
+    let (before, top) = pipe();
+    let stretch = Vec3::new(1.0, 1.0, 2.0) / (4.0 / 3.0);
+    let round = 50.0 * stretch.x;
+    let mut mesh = before.clone();
+    extrude_bent_stretched(
+        &mut mesh,
+        &[top],
+        80.0,
+        Grouping::Together,
+        bend(90.0, 0.0, 8),
+        stretch,
+    );
+    let end = rings(&seen(&mesh, stretch), before.vertex_count(), 16)
+        .pop()
+        .unwrap();
+    let (lo, hi) = spread(&end);
+    assert!(
+        (lo - round).abs() < 1e-2 && (hi - round).abs() < 1e-2,
+        "{lo} {hi} instead of {round}"
+    );
+}
+
+#[test]
+fn no_stretch_or_a_broken_one_is_the_plain_bend() {
+    let (before, top) = pipe();
+    let b = bend(120.0, 80.0, 6);
+    let mut plain = before.clone();
+    extrude_bent(&mut plain, &[top], 30.0, Grouping::Together, b);
+    for stretch in [
+        Vec3::ONE,
+        Vec3::new(f32::NAN, 1.0, 1.0),
+        Vec3::new(0.0, 1.0, 1.0),
+        Vec3::new(-1.0, 1.0, 1.0),
+        Vec3::new(1.0, f32::INFINITY, 1.0),
+        Vec3::new(1.0, 1.0, MAX_STRETCH * 2.0),
+    ] {
+        let mut mesh = before.clone();
+        extrude_bent_stretched(&mut mesh, &[top], 30.0, Grouping::Together, b, stretch);
+        assert_eq!(mesh, plain, "{stretch}");
+    }
+    assert_eq!(
+        usable_stretch(Vec3::new(0.5, 1.0, 1.5)),
+        Vec3::new(0.5, 1.0, 1.5)
+    );
+}
+
+#[test]
+fn a_stretched_bend_of_nothing_or_missing_polygons_changes_nothing() {
+    let (before, _) = pipe();
+    let stretch = Vec3::new(0.5, 1.0, 1.5);
+    let mut mesh = before.clone();
+    let out = extrude_bent_stretched(
+        &mut mesh,
+        &[FaceId::from_raw(999)],
+        10.0,
+        Grouping::Together,
+        bend(90.0, 10.0, 4),
+        stretch,
+    );
+    assert_eq!(out.missing, 1);
+    assert_eq!(mesh, before);
+    let out = extrude_bent_stretched(
+        &mut mesh,
+        &[],
+        10.0,
+        Grouping::Together,
+        bend(90.0, 10.0, 4),
+        stretch,
+    );
+    assert_eq!(out.matched, 0);
+    assert_eq!(mesh, before);
+}

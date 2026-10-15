@@ -257,12 +257,15 @@ pub(crate) fn both_sides(op: &Operation, mesh: &Mesh, mirror: &Mirror) -> Both {
             distance,
             grouping,
             bend,
+            stretch,
             anchors,
         } => {
-            // The pipe turns the mirrored way.
+            // The pipe turns the mirrored way, as seen on a stretched
+            // object (a facing is stretched the opposite way to points).
+            let stretch = *stretch;
             let facing = faces
                 .iter()
-                .map(|f| mesh.face_normal(*f))
+                .map(|f| mesh.face_normal(*f) / mesh::extrude::usable_stretch(stretch))
                 .sum::<glam::Vec3>()
                 .try_normalize();
             Both::Copies(
@@ -291,6 +294,7 @@ pub(crate) fn both_sides(op: &Operation, mesh: &Mesh, mirror: &Mirror) -> Both {
                             distance: *distance,
                             grouping: *grouping,
                             bend,
+                            stretch,
                             anchors: s.anchors(anchors),
                         })
                     })

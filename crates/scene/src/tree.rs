@@ -4,7 +4,7 @@
 use crate::object::{Object, ObjectId, ObjectKind, Transform};
 use crate::stack::{Entry, EvalContext, Evaluated, Layer, SharedCache};
 use crate::units::Units;
-use glam::Mat4;
+use glam::{Mat4, Vec3};
 use mesh::Bounds;
 use std::collections::BTreeMap;
 
@@ -905,4 +905,28 @@ fn corners(b: &Bounds) -> [glam::Vec3; 8] {
             if i & 4 == 0 { b.min.z } else { b.max.z },
         )
     })
+}
+
+/// How much an object placed by `world` (its world matrix) is stretched
+/// along each of its own axes: its scale on each over the three's
+/// average. One on every axis for an object scaled evenly, or one whose
+/// scale isn't usable. A bend made on the object keeps its shape as seen
+/// by being worked out with this stretch (decision 0081).
+pub fn stretch_of(world: Mat4) -> Vec3 {
+    let scale = Vec3::new(
+        world.x_axis.truncate().length(),
+        world.y_axis.truncate().length(),
+        world.z_axis.truncate().length(),
+    );
+    let average = (scale.x + scale.y + scale.z) / 3.0;
+    if !(average.is_finite() && average > 1e-6) {
+        return Vec3::ONE;
+    }
+    let stretch = mesh::extrude::usable_stretch(scale / average);
+    // An even scale is no stretch at all, not one off by rounding.
+    if (stretch - Vec3::ONE).abs().max_element() < 1e-5 {
+        Vec3::ONE
+    } else {
+        stretch
+    }
 }
