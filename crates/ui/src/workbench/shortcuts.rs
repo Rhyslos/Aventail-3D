@@ -359,6 +359,11 @@ pub(crate) fn bindings() -> Vec<Binding> {
     );
     all.extend([
         plain(viewport::FOUR_VIEWS_KEY, "All four views", Anywhere),
+        plain(
+            viewport::PROJECTION_KEY,
+            "Perspective or orthographic",
+            Anywhere,
+        ),
         held(
             KeyId::Alt,
             "Orbit, pan and zoom with a left, middle or right drag (standard navigation)",

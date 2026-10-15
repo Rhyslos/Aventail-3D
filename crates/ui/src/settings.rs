@@ -322,6 +322,11 @@ fn viewport(ui: &mut Ui, values: &mut Values<'_>) {
         &mut values.navigation.invert_orbit,
         "Invert orbit direction",
     );
+    ui.checkbox(
+        &mut values.navigation.show_pivot,
+        crate::viewport::chrome::SHOW_PIVOT_LABEL,
+    )
+    .on_hover_text(crate::viewport::chrome::SHOW_PIVOT_HELP);
     ui.add_space(8.0);
     heading(ui, "Grid lines");
     explain(
