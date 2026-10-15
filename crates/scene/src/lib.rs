@@ -35,7 +35,7 @@ pub use stack::{
     Operation, Stack, StackWarning,
 };
 pub use tree::{Place, Scene, SceneError};
-pub use units::Units;
+pub use units::{ExportTarget, Units};
 
 #[cfg(test)]
 mod history_tests;

@@ -66,11 +66,44 @@ pub fn save(workbench: &mut Workbench, path: Option<PathBuf>) {
     save_to(workbench, path);
 }
 
-/// Saves the workbench's document to `path` and reports back.
+/// Saves the workbench's document to `path` and reports back. A project
+/// that exports into a game project on every save does that too, once
+/// the save has succeeded (decision 0076).
 pub fn save_to(workbench: &mut Workbench, path: PathBuf) {
+    let export = workbench.save_export_request(&path);
     match fileio::project::save(&path, workbench.document()) {
-        Ok(()) => workbench.saved(path),
+        Ok(()) => {
+            let outcome = export.map(|request| export_into(workbench, &request));
+            workbench.saved_with_export(path, outcome);
+        }
         Err(error) => workbench.save_failed(&error.to_string()),
+    }
+}
+
+/// Exports the workbench's document into its game project folder as
+/// `request` says.
+pub fn export_into(workbench: &Workbench, request: &ui::TargetRequest) -> ui::TargetOutcome {
+    fileio::engine::export_into(
+        &request.folder,
+        &request.name,
+        workbench.document(),
+        request.preset,
+        &request.options,
+        &generator(),
+        APP_NAME,
+    )
+    .map_err(|e| e.to_string())
+}
+
+/// Asks which folder of a game project to export into, starting at
+/// `start`, and tells the workbench.
+pub fn choose_export_folder(workbench: &mut Workbench, start: Option<PathBuf>) {
+    let mut dialog = rfd::FileDialog::new().set_title("Game project folder");
+    if let Some(start) = start.filter(|s| s.is_dir()) {
+        dialog = dialog.set_directory(start);
+    }
+    if let Some(folder) = dialog.pick_folder() {
+        workbench.export_folder_chosen(folder);
     }
 }
 
@@ -283,6 +316,26 @@ mod tests {
         assert_eq!(second.document().scene().children(None).len(), 1);
         import_from(&mut second, &folder.join("missing.obj"));
         assert_eq!(second.document().scene().children(None).len(), 1);
+
+        // A game project folder: every save exports there too, named after
+        // the project.
+        let game = folder.join("game");
+        std::fs::create_dir_all(game.join("models")).unwrap();
+        std::fs::write(game.join("project.godot"), "").unwrap();
+        first.export_folder_chosen(game.join("models"));
+        save_to(&mut first, folder.join("crate.avtl"));
+        let glb = game.join("models/crate.glb");
+        assert!(glb.exists());
+        assert!(fileio::engine::may_replace(&glb, APP_NAME));
+        // Someone else's file of that name is left alone, and the save
+        // still happens.
+        std::fs::write(game.join("models/barrel.glb"), "theirs").unwrap();
+        save_to(&mut first, folder.join("barrel.avtl"));
+        assert!(folder.join("barrel.avtl").exists());
+        assert_eq!(
+            std::fs::read_to_string(game.join("models/barrel.glb")).unwrap(),
+            "theirs"
+        );
 
         // Nothing to export: nothing written.
         let mut empty = workbench();

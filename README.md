@@ -135,7 +135,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Consistent triangulation and MikkTSpace tangents
 - [x] Simple material slots: polygons assigned to a named material with a colour, so engines get their parts
 - [x] Export presets for Godot and Substance Painter
-- [ ] Engine export paths: save straight into a Godot, Unity or Unreal Engine project, exported again on every save
+- [x] Engine export paths: save straight into a Godot, Unity or Unreal Engine project, exported again on every save
 - [ ] Bake readiness check: what would spoil a bake, in plain words, with one-click fixes
 - [ ] Kit export: each piece as its own file, and Godot collision meshes
 - [ ] Splash screen while the app starts
@@ -224,6 +224,7 @@ Newest first. One line per finished milestone or passed gate.
 | --- | --- |
 | 2026-10-15 | Consistent triangulation and MikkTSpace tangents: exports cut polygons the viewport's way; glTF carries tangents for shapes with UVs |
 | 2026-10-15 | glTF export: binary `.glb`, each object at its pivot, the Export window's standard |
+| 2026-10-15 | Engine export paths: a game project folder per project (Godot, Unity or Unreal Engine, found from the folder), exported into on every save and from File → Export to game project; project files at format version 19 |
 | 2026-10-15 | Export presets: Made for Godot (glTF) or Substance Painter (OBJ, triangles) in the Export window |
 | 2026-10-15 | Material slots: a Materials list in the Attributes panel, Assign, Select by material, colours in the viewport, and materials in OBJ (with a `.mtl` file) and glTF exports; project files at format version 18 |
 | 2026-10-15 | OBJ export and import: File → Export… (metres or centimetres, Y or Z up, triangles), Export again, and Import… |

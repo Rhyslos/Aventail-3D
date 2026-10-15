@@ -47,10 +47,37 @@ Each object's points stay joined in the file: a smooth surface is one connected 
 | Made for | What it chooses | Why |
 |---|---|---|
 | **Godot** (standard) | glTF, metres, Y up, triangles | glTF is Godot's favourite: each object arrives at its [pivot](pivots.md) with its [materials](materials.md), and Godot re-imports the file by itself whenever you export again into its project folder. |
+| **Unity** | glTF, metres, Y up, triangles | The same file; Unity reads it once its *glTFast* package is installed. |
+| **Unreal Engine** | glTF, metres, Y up, triangles | The same file; Unreal Engine 5 reads it and turns it into its own centimetres and Z up. |
 | **Substance Painter** | OBJ, metres, Y up, cut into triangles | The usual way into Substance Painter. Each [material](materials.md) becomes a texture set, and the triangles are the viewport's, the same ones the glTF for the game holds, so the bake matches. |
-| **Your own settings** | whatever you choose below | For anything else, such as Unreal Engine (OBJ in centimetres). |
+| **Your own settings** | whatever you choose below | For anything else, such as an OBJ in centimetres for an older Unreal Engine. |
 
 Change any setting under a preset and the window switches to **Your own settings**, so it never claims a preset it isn't following. The status bar names the preset after exporting: *Exported 3 objects for Godot (240 triangles, 2 materials) to crate.glb.*
+
+### Export into a game project
+
+Instead of choosing where to save every time, tell the app which folder of your game project the model goes in. It then exports there in one click, and again **every time you save the project**, so the engine picks up each change.
+
+![The Export window's Game project folder section: the folder inside the Godot project Crate Run, Export on every save ticked, Choose folder… and Clear](../screenshots/2026-10-15-game-project-folder.png)
+
+1. Choose **File → Export…**. Under **Game project folder**, click **Choose folder…** and pick the folder inside your game project the models go in (for example `models` in a Godot project, `Assets/Models` in Unity, `Content/Models` in Unreal Engine).
+2. The window says which engine's project the folder is in, and **Made for** switches to that engine. **Export on every save** is ticked.
+3. Save the project (**Ctrl + S**). The status bar says *Saved crate.avtl. Exported crate.glb (240 triangles) into models.*
+
+**File → Export to game project** exports there straight away, without saving.
+
+How it works:
+
+- **One file per project, named after it.** Saving `crate.avtl` exports `crate.glb`, with everything shown, using the engine's settings: glTF for all three engines, so pivots and materials come along.
+- **The engine is worked out from the folder.** A Godot project has a `project.godot` file, a Unity project `Assets` and `ProjectSettings` folders, an Unreal Engine project a `.uproject` file, in the folder or one above it. A folder in none of them gets Godot's settings.
+- **Unity** reads glTF once its *glTFast* package is installed (Window → Package Manager). **Unreal Engine 5** reads glTF and turns it into its own centimetres and Z up.
+- **The folder is saved with the project.** Untick **Export on every save** to stop exporting when you save, or click **Clear** to forget the folder. Each change is an undo step.
+
+It is careful with your game project:
+
+- It **never creates folders**. If the folder has gone (moved, renamed, a drive unplugged), the status bar says so, and the save still happens.
+- It **only replaces files it wrote itself.** If a file of that name is already there and another program made it, it is left alone and the status bar says why. Rename one of them.
+- Backup copies (autosave) don't export.
 
 ### Import
 
@@ -63,11 +90,12 @@ The app reads an OBJ as metres with Y up, the usual way, and turns it to centime
 
 | Setting | What it does |
 |---|---|
-| **Made for** | **Godot** (standard) or **Substance Painter** choose the settings below for you; **Your own settings** lets you choose. |
+| **Made for** | **Godot** (standard), **Unity**, **Unreal Engine** or **Substance Painter** choose the settings below for you; **Your own settings** lets you choose. |
 | **Kind of file** | **glTF** (`.glb`, standard): each object at its pivot; always metres, Y up, triangles. **OBJ** (`.obj`): plain shapes where they stand. |
 | **What** | Everything shown (standard), or the selected objects and what's inside them. Groups have no shape of their own; only shapes are exported. |
 | **Metres / Centimetres** | The file's units. 1 unit = 1 m for Godot, Unity and Substance Painter (standard); 1 cm for Unreal Engine. |
 | **Y up / Z up** | Y up (standard) turns the model so its height runs along Y, as nearly every program expects. Z up keeps the app's own axes. |
+| **Game project folder** | The folder in your game project this project exports into (saved with the project), with **Export on every save** (on once a folder is chosen). |
 | **Cut polygons into triangles** | Off: polygons go out as they are (an OBJ for most programs). On (the presets): every polygon is cut into triangles the same way the viewport cuts them. |
 
 The Export window remembers its choices while the app is open.
@@ -91,6 +119,7 @@ None yet: use the File menu.
 ## Related
 
 - [Materials](materials.md)
+- [Saving and opening projects](saving-and-opening.md) (Export on every save)
 - [Hard and soft edges, and normals](hard-and-soft-edges.md)
 - [Pivots and the Object mode](pivots.md) (the units of the project)
 - [Concepts: triangulation, glTF and the game-asset pipeline](concepts.md#the-game-asset-pipeline)

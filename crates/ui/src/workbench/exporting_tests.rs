@@ -229,3 +229,113 @@ fn imported_objects_join_the_scene_as_one_step() {
             .any(|a| matches!(a, WorkbenchAction::Import { path: None }))
     );
 }
+
+#[test]
+fn a_game_project_folder_is_chosen_used_and_cleared() {
+    let mut harness = fresh();
+    file_entry(&mut harness, "Export…");
+    harness.get_by_label("Choose folder…").click();
+    harness.run();
+    assert!(
+        harness
+            .state()
+            .actions
+            .iter()
+            .any(|a| matches!(a, WorkbenchAction::ChooseExportFolder { .. }))
+    );
+    // The app asks, and the user picks a folder inside a Unity project.
+    let root = std::env::temp_dir().join(format!("ui-target-{}", std::process::id()));
+    let models = root.join("Assets/Models");
+    std::fs::create_dir_all(&models).unwrap();
+    std::fs::create_dir_all(root.join("ProjectSettings")).unwrap();
+    harness
+        .state_mut()
+        .workbench
+        .export_folder_chosen(models.clone());
+    harness.run();
+    let workbench = &harness.state().workbench;
+    let target = workbench.document().scene().export_target().unwrap();
+    assert!(target.on_save, "on once a folder is chosen");
+    assert_eq!(workbench.exporting.choice.preset, Some(ExportPreset::Unity));
+    assert!(workbench.note.as_deref().unwrap().contains("Unity project"));
+    assert!(
+        harness
+            .query_by_label_contains("In the Unity project")
+            .is_some()
+    );
+    // File → Export to game project exports there, named after the project.
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    file_entry(&mut harness, "Export to game project");
+    let request = harness
+        .state()
+        .actions
+        .iter()
+        .find_map(|a| match a {
+            WorkbenchAction::ExportToTarget(r) => Some((**r).clone()),
+            _ => None,
+        })
+        .unwrap();
+    assert_eq!(request.folder, models);
+    assert_eq!(request.name, "Untitled");
+    assert_eq!(request.preset, ExportPreset::Unity);
+    // Saving asks for the same, named after the saved project.
+    let saving = harness
+        .state_mut()
+        .workbench
+        .save_export_request(std::path::Path::new("/w/crate.avtl"))
+        .unwrap();
+    assert_eq!(saving.name, "crate");
+    harness.state_mut().workbench.saved_with_export(
+        "/w/crate.avtl".into(),
+        Some(Ok((
+            models.join("crate.glb"),
+            ExportSummary {
+                objects: 1,
+                triangles: 12,
+                materials: 1,
+            },
+        ))),
+    );
+    assert_eq!(
+        harness.state().workbench.note.as_deref(),
+        Some("Saved crate.avtl. Exported crate.glb (12 triangles) into Models.")
+    );
+    // Switch Export on every save off (the window is still open): saving
+    // asks for nothing.
+    harness.get_by_label("Export on every save").click();
+    harness.run();
+    assert!(
+        harness
+            .state_mut()
+            .workbench
+            .save_export_request(std::path::Path::new("/w/crate.avtl"))
+            .is_none()
+    );
+    harness.get_by_label("Clear").click();
+    harness.run();
+    assert!(
+        harness
+            .state()
+            .workbench
+            .document()
+            .scene()
+            .export_target()
+            .is_none()
+    );
+    std::fs::remove_dir_all(&root).unwrap();
+}
+
+#[test]
+fn a_failed_export_into_the_game_project_says_why() {
+    let mut harness = fresh();
+    harness
+        .state_mut()
+        .workbench
+        .target_exported(Err("the folder isn't there".into()));
+    assert_eq!(
+        harness.state().workbench.note.as_deref(),
+        Some("Couldn't export into the game project: the folder isn't there.")
+    );
+    harness.run();
+}

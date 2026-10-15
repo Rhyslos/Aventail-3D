@@ -5,6 +5,7 @@
 //! crate's README for its purpose and limits.
 
 pub mod autosave;
+pub mod engine;
 pub mod export;
 pub mod gltf;
 pub mod limits;

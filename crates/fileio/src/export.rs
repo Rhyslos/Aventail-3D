@@ -165,6 +165,10 @@ impl ExportFormat {
 pub enum ExportPreset {
     /// Godot: glTF, each object at its pivot (metres, Y up, triangles).
     Godot,
+    /// Unity: glTF too, read through Unity's glTFast package.
+    Unity,
+    /// Unreal Engine: glTF too (Unreal turns metres into its centimetres).
+    UnrealEngine,
     /// Substance Painter: OBJ in metres, Y up, cut into triangles the
     /// viewport's way, its materials becoming texture sets.
     SubstancePainter,
@@ -185,12 +189,19 @@ pub struct PresetSettings {
 
 impl ExportPreset {
     /// Every preset, in the order the Export window lists them.
-    pub const ALL: [Self; 2] = [Self::Godot, Self::SubstancePainter];
+    pub const ALL: [Self; 4] = [
+        Self::Godot,
+        Self::Unity,
+        Self::UnrealEngine,
+        Self::SubstancePainter,
+    ];
 
     /// Its name, as listed.
     pub fn name(self) -> &'static str {
         match self {
             Self::Godot => "Godot",
+            Self::Unity => "Unity",
+            Self::UnrealEngine => "Unreal Engine",
             Self::SubstancePainter => "Substance Painter",
         }
     }
@@ -202,6 +213,14 @@ impl ExportPreset {
                 "glTF, each object at its pivot, in metres with Y up: drop it into the Godot \
                  project and it imports by itself"
             }
+            Self::Unity => {
+                "glTF, each object at its pivot, in metres with Y up: Unity reads it once its \
+                 glTFast package is installed"
+            }
+            Self::UnrealEngine => {
+                "glTF, each object at its pivot, in metres with Y up: Unreal Engine 5 reads it \
+                 and turns it into its centimetres and Z up"
+            }
             Self::SubstancePainter => {
                 "OBJ in metres with Y up, cut into the viewport's triangles so the bake \
                  matches the game; each material becomes a texture set"
@@ -212,7 +231,7 @@ impl ExportPreset {
     /// The settings it chooses.
     pub fn settings(self) -> PresetSettings {
         match self {
-            Self::Godot => PresetSettings {
+            Self::Godot | Self::Unity | Self::UnrealEngine => PresetSettings {
                 format: ExportFormat::Glb,
                 units: FileUnits::Metres,
                 up: UpAxis::Y,

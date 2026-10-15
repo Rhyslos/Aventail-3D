@@ -38,13 +38,15 @@ The project's name is shown on the right of the menu bar. When there are changes
 
 **Backup copies cover the time between saves.** While you work, the app also saves backup copies of your scene in the background (every 5 minutes as standard, only when something changed). They never replace your project file. If the app ever closes without saving, it offers them back the next time it starts. See [Backup copies and crash recovery](autosave.md).
 
+**Saving can export too.** When the project has a game project folder with **Export on every save** ticked, each save also exports the model into that folder, so Godot, Unity or Unreal Engine picks up the change. See [Export into a game project](export-and-import.md#export-into-a-game-project).
+
 **Undo starts fresh** when you open a project: the undo history isn't saved in the file (yet). Saving doesn't clear it, so you can still undo after saving.
 
 You can also open a project by giving it to the app when it starts (for example, from a terminal: `aventail crate.avtl`). Once the app has an installer, double-clicking a project file will do the same.
 
 ## Settings
 
-None of its own. Your preferences (accent colour, navigation and so on) are not part of a project: they belong to you, not the scene, and are kept in [Settings](settings.md). Two things that are part of the model are saved with it: the project's **units** (metres or centimetres) and where every object's **pivot** sits ([Pivots and the Object mode](pivots.md)). A new project starts in the units chosen in Settings.
+None of its own. Your preferences (accent colour, navigation and so on) are not part of a project: they belong to you, not the scene, and are kept in [Settings](settings.md). A few things that are part of the model are saved with it: the project's **units** (metres or centimetres), where every object's **pivot** sits ([Pivots and the Object mode](pivots.md)), its [materials](materials.md), and its **game project folder** ([Export and import](export-and-import.md#export-into-a-game-project)). A new project starts in the units chosen in Settings.
 
 ## Shortcuts
 
@@ -73,5 +75,6 @@ On macOS, use `Cmd` instead of `Ctrl`.
 
 - [The Objects panel](objects.md): undo and redo.
 - [Backup copies and crash recovery](autosave.md): autosave, and what happens after a crash.
+- [Export and import](export-and-import.md): exporting into a game project on every save.
 - [Settings](settings.md): preferences that belong to you, not the project.
 - [Concepts](concepts.md): [project file](concepts.md#objects-and-scenes).

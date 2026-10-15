@@ -7,6 +7,7 @@
 use super::{Workbench, WorkbenchAction, file_name};
 use crate::theme;
 use egui::{RichText, Ui};
+use fileio::engine::Engine;
 use fileio::export::{
     ExportFormat, ExportOptions, ExportPreset, ExportSummary, ExportWhat, FileUnits, UpAxis,
 };
@@ -85,6 +86,39 @@ impl ExportChoice {
     }
 }
 
+/// An export into the project's game project folder the app is asked to
+/// make (decision 0076).
+#[derive(Debug, Clone, PartialEq)]
+pub struct TargetRequest {
+    /// The folder.
+    pub folder: PathBuf,
+    /// The file's name, without its extension: the project's name.
+    pub name: String,
+    /// The settings: the engine's preset.
+    pub preset: ExportPreset,
+    /// What is exported, with the shading seen on screen.
+    pub options: ExportOptions,
+}
+
+/// How an export into the game project folder went: the file written and
+/// what it held, or why not.
+pub type TargetOutcome = Result<(PathBuf, ExportSummary), String>;
+
+/// The status bar's words for `outcome`.
+pub(crate) fn target_note(outcome: &TargetOutcome) -> String {
+    match outcome {
+        Ok((path, summary)) => {
+            let place = path.parent().map(file_name).unwrap_or_default();
+            format!(
+                "Exported {} ({} triangles) into {place}.",
+                file_name(path),
+                summary.triangles
+            )
+        }
+        Err(why) => format!("Couldn't export into the game project: {why}."),
+    }
+}
+
 /// The Export window and the last export.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct Exporting {
@@ -94,6 +128,9 @@ pub(crate) struct Exporting {
     pub(crate) choice: ExportChoice,
     /// The last export: where, and how (for Export again).
     pub(crate) last: Option<(PathBuf, ExportChoice)>,
+    /// The engine the game project folder belongs to, and that project's
+    /// own folder, worked out for the folder named (only when it changes).
+    detected: Option<(String, Option<(Engine, PathBuf)>)>,
 }
 
 /// An export the app is asked to make.
@@ -153,14 +190,130 @@ impl Workbench {
             actions.push(self.export_action(choice, Some(path)));
             ui.close();
         }
+        let target = self.target_request(None);
+        let response = ui
+            .add_enabled(
+                target.is_some(),
+                egui::Button::new("Export to game project"),
+            )
+            .on_disabled_hover_text(
+                "Choose a game project folder in the Export window first; this then exports \
+                 straight into it",
+            );
+        let response = match &target {
+            Some(request) => response.on_hover_text(format!(
+                "Export into {} now, named after the project",
+                request.folder.display()
+            )),
+            None => response,
+        };
+        if response.clicked()
+            && let Some(request) = target
+        {
+            actions.push(WorkbenchAction::ExportToTarget(Box::new(request)));
+            ui.close();
+        }
+    }
+
+    /// The engine the game project folder belongs to, if any, and that
+    /// project's folder (worked out again only when the folder changes).
+    pub(crate) fn detected_engine(&mut self) -> Option<(Engine, PathBuf)> {
+        let folder = self.document.scene().export_target()?.folder.clone();
+        match &self.exporting.detected {
+            Some((known, found)) if *known == folder => found.clone(),
+            _ => {
+                let found = fileio::engine::detect(Path::new(&folder));
+                self.exporting.detected = Some((folder, found.clone()));
+                found
+            }
+        }
+    }
+
+    /// The shading exports use: as the viewport shows it.
+    fn export_hardness(&self) -> mesh::Hardness {
+        match self.viewport.options().auto_hard_angle() {
+            Some(angle) => mesh::Hardness::ByAngle(angle),
+            None => mesh::Hardness::Marked,
+        }
+    }
+
+    /// The export into the game project folder, if the project has one:
+    /// everything shown, with the engine's preset (Godot's when the folder
+    /// isn't in a known engine's project), named after the project saved
+    /// at `saving_to` (or the project's own file, or "Untitled").
+    pub fn target_request(&mut self, saving_to: Option<&Path>) -> Option<TargetRequest> {
+        let folder = PathBuf::from(&self.document.scene().export_target()?.folder);
+        let preset = self
+            .detected_engine()
+            .map_or(ExportPreset::Godot, |(engine, _)| engine.preset());
+        let name = saving_to
+            .or(self.file.path.as_deref())
+            .and_then(Path::file_stem)
+            .map_or_else(
+                || "Untitled".to_string(),
+                |s| s.to_string_lossy().into_owned(),
+            );
+        Some(TargetRequest {
+            folder,
+            name,
+            preset,
+            options: ExportOptions {
+                what: ExportWhat::Everything,
+                hardness: self.export_hardness(),
+                ..ExportOptions::default()
+            },
+        })
+    }
+
+    /// The export to make after saving to `path`, if the project exports
+    /// into its game project folder on every save.
+    pub fn save_export_request(&mut self, path: &Path) -> Option<TargetRequest> {
+        if !self.document.scene().export_target()?.on_save {
+            return None;
+        }
+        self.target_request(Some(path))
+    }
+
+    /// The app exported into the game project folder (File → Export to
+    /// game project): says how it went.
+    pub fn target_exported(&mut self, outcome: TargetOutcome) {
+        self.note = Some(target_note(&outcome));
+    }
+
+    /// The user chose `folder` as the project's game project folder:
+    /// exports go there, and on every save. The Export window's Made for
+    /// follows the folder's engine.
+    pub fn export_folder_chosen(&mut self, folder: PathBuf) {
+        let target = scene::ExportTarget {
+            folder: folder.display().to_string(),
+            on_save: true,
+        };
+        if let Err(why) = self
+            .document
+            .execute(scene::Command::SetExportTarget(Some(target)))
+        {
+            self.note = Some(format!("Couldn't use that folder: {why}."));
+            return;
+        }
+        let engine = self.detected_engine();
+        if let Some((engine, _)) = &engine {
+            self.exporting.choice = self.exporting.choice.with_preset(engine.preset());
+        }
+        self.note = Some(match engine {
+            Some((engine, project)) => format!(
+                "Game project folder set: {} project {}. Every save now exports there too.",
+                engine.name(),
+                file_name(&project)
+            ),
+            None => "Game project folder set. It isn't inside a Godot, Unity or Unreal Engine \
+                     project, but exports still go there. Every save now exports there too."
+                .to_string(),
+        });
     }
 
     /// The export of `choice`, to `path` (or asking where).
     fn export_action(&self, choice: ExportChoice, path: Option<PathBuf>) -> WorkbenchAction {
-        let hardness = match self.viewport.options().auto_hard_angle() {
-            Some(angle) => mesh::Hardness::ByAngle(angle),
-            None => mesh::Hardness::Marked,
-        };
+        let hardness = self.export_hardness();
         let stem = self
             .file
             .path
@@ -292,6 +445,8 @@ impl Workbench {
                     .small()
                     .color(theme::TEXT_WEAK),
                 );
+                heading(ui, "Game project folder");
+                self.target_rows(ui, actions);
                 ui.add_space(8.0);
                 ui.horizontal(|ui| {
                     if ui.button("Export…").clicked() {
@@ -318,6 +473,93 @@ impl Workbench {
         if go {
             self.exporting.open = false;
             actions.push(self.export_action(choice, None));
+        }
+    }
+
+    /// The Export window's game project folder rows: the folder and its
+    /// engine, Export on every save, and choosing or clearing it.
+    fn target_rows(&mut self, ui: &mut Ui, actions: &mut Vec<WorkbenchAction>) {
+        let target = self.document.scene().export_target().cloned();
+        let weak = |ui: &mut Ui, text: String| {
+            ui.label(RichText::new(text).small().color(theme::TEXT_WEAK));
+        };
+        let start = target
+            .as_ref()
+            .map(|t| PathBuf::from(&t.folder))
+            .or_else(|| {
+                self.file
+                    .path
+                    .as_deref()
+                    .and_then(Path::parent)
+                    .map(Path::to_path_buf)
+            });
+        match &target {
+            None => weak(
+                ui,
+                "Export straight into a Godot, Unity or Unreal Engine project, and again on \
+                 every save."
+                    .to_string(),
+            ),
+            Some(target) => {
+                ui.label(&target.folder);
+                let engine = self.detected_engine();
+                weak(
+                    ui,
+                    match engine {
+                        Some((engine, project)) => format!(
+                            "In the {} project {}: exported as {} with its settings.",
+                            engine.name(),
+                            file_name(&project),
+                            engine.preset().settings().format.name()
+                        ),
+                        None => "Not inside a Godot, Unity or Unreal Engine project: exported \
+                                 with Godot's settings."
+                            .to_string(),
+                    },
+                );
+                let mut on_save = target.on_save;
+                if ui
+                    .checkbox(&mut on_save, "Export on every save")
+                    .on_hover_text(
+                        "Each time you save the project, export it into this folder too, named \
+                         after the project, so the engine picks up the change",
+                    )
+                    .changed()
+                {
+                    self.run_target(Some(scene::ExportTarget {
+                        on_save,
+                        ..target.clone()
+                    }));
+                }
+            }
+        }
+        ui.horizontal(|ui| {
+            if ui
+                .button("Choose folder…")
+                .on_hover_text("Pick the folder inside your game project the models go in")
+                .clicked()
+            {
+                actions.push(WorkbenchAction::ChooseExportFolder {
+                    start: start.clone(),
+                });
+            }
+            if target.is_some()
+                && ui
+                    .button("Clear")
+                    .on_hover_text("Stop exporting into a game project")
+                    .clicked()
+            {
+                self.run_target(None);
+            }
+        });
+    }
+
+    fn run_target(&mut self, target: Option<scene::ExportTarget>) {
+        if let Err(why) = self
+            .document
+            .execute(scene::Command::SetExportTarget(target))
+        {
+            self.note = Some(format!("Couldn't change the game project folder: {why}."));
         }
     }
 
