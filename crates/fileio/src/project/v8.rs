@@ -49,13 +49,15 @@ pub(crate) struct BendV8 {
 impl FileOperation for OperationV8 {
     fn to_file(op: &Operation) -> Option<Self> {
         Some(match op {
+            // (A bend on a stretched object needs version 21.)
             Operation::ExtrudeBent {
                 faces,
                 distance,
                 grouping,
                 bend,
+                stretch,
                 anchors,
-            } => Self::ExtrudeBent {
+            } if *stretch == glam::Vec3::ONE => Self::ExtrudeBent {
                 faces: faces.iter().map(|f| f.get()).collect(),
                 distance: *distance,
                 separate: *grouping == Grouping::Separate,
@@ -88,6 +90,7 @@ impl FileOperation for OperationV8 {
                     return Err("its bent extrude holds a number that isn't real".into());
                 }
                 Ok(Operation::ExtrudeBent {
+                    stretch: glam::Vec3::ONE,
                     faces: faces.into_iter().map(FaceId::from_raw).collect(),
                     distance,
                     grouping: if separate {

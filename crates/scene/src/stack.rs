@@ -90,6 +90,12 @@ pub enum Operation {
         grouping: Grouping,
         /// The bend: angle, direction, radius and rows.
         bend: Bend,
+        /// How much the object was stretched along its own X, Y and Z
+        /// when the bend was made or last changed (its scale on each axis
+        /// over their average), so the bend keeps its shape as seen
+        /// (decision 0081). `Vec3::ONE` for an object scaled evenly, and
+        /// for bends saved before file format 21.
+        stretch: Vec3,
         /// Where the polygons were, to find them again (decision 0032).
         anchors: Option<Anchors>,
     },
@@ -366,6 +372,9 @@ pub struct EditSettings {
     /// A straight extrude's way, end size, steps and flat end (decision
     /// 0070); none for a bent extrude or other edits.
     pub extrude: Option<ExtrudeShape>,
+    /// How much the object is stretched along each of its axes, for a
+    /// bent extrude (decision 0081); none to keep what it has.
+    pub stretch: Option<Vec3>,
 }
 
 /// What applying an operation did.
@@ -487,9 +496,11 @@ impl Operation {
                 distance,
                 grouping,
                 bend,
+                stretch,
                 ..
             } => Some(EditSettings {
                 bend: Some(*bend),
+                stretch: Some(*stretch),
                 ..plain(*distance, *grouping)
             }),
             Self::InsetPolygons {
@@ -576,6 +587,7 @@ impl Operation {
                 distance: *distance,
                 grouping: *grouping,
                 bend,
+                stretch: Vec3::ONE,
                 anchors: anchors.clone(),
             };
             return bent.with(settings);
@@ -586,6 +598,7 @@ impl Operation {
                 distance,
                 grouping,
                 bend,
+                stretch,
                 ..
             } => {
                 if let Some(d) = settings.distance {
@@ -596,6 +609,9 @@ impl Operation {
                 }
                 if let Some(b) = settings.bend {
                     *bend = b;
+                }
+                if let Some(s) = settings.stretch {
+                    *stretch = mesh::extrude::usable_stretch(s);
                 }
             }
             Self::ExtrudePolygons {
@@ -696,6 +712,7 @@ impl Operation {
             grouping,
             bend,
             anchors,
+            ..
         } = &changed
             && !bend.bends()
             && settings.bend.is_some()
@@ -748,8 +765,14 @@ impl Operation {
             | Self::FixFacing => true,
             Self::SlidePoints { slides, .. } => slides.iter().all(|s| s.amount.is_finite()),
             Self::HardEdgesByAngle { angle } => angle.is_finite(),
-            Self::ExtrudeBent { distance, bend, .. } => {
+            Self::ExtrudeBent {
+                distance,
+                bend,
+                stretch,
+                ..
+            } => {
                 distance.is_finite()
+                    && stretch.is_finite()
                     && [bend.angle, bend.direction, bend.radius, bend.rise]
                         .iter()
                         .all(|x| x.is_finite())
@@ -940,6 +963,7 @@ impl Operation {
                 distance,
                 grouping,
                 bend,
+                stretch,
                 ..
             } => {
                 let faces = refound
@@ -950,7 +974,7 @@ impl Operation {
                 if too_big(corner_count(mesh, &faces).saturating_mul(rings)) {
                     return skipped;
                 }
-                edit::extrude_bent(mesh, &faces, *distance, *grouping, *bend)
+                edit::extrude_bent_stretched(mesh, &faces, *distance, *grouping, *bend, *stretch)
             }
             Self::InsetPolygons {
                 faces,

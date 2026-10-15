@@ -5,16 +5,16 @@
 //! whether every save exports there, if one was chosen. Older files open
 //! with none.
 
-use super::v1::Problem;
-use super::v18::ProjectV18;
+use super::v1::{FileOperation, Problem};
+use super::v18::{EntryV18, ProjectV18};
 use scene::{Document, ExportTarget};
 use serde::{Deserialize, Serialize};
 
 /// Version 19 of the file.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub(crate) struct ProjectV19 {
-    /// Version 18's file.
-    pub(crate) project: ProjectV18,
+pub(crate) struct ProjectV19<E = EntryV18> {
+    /// Version 18's file (its edits stored as `E`).
+    pub(crate) project: ProjectV18<E>,
     /// The game project folder, if one was chosen.
     pub(crate) target: Option<TargetV19>,
 }
@@ -26,7 +26,7 @@ pub(crate) struct TargetV19 {
     pub(crate) on_save: bool,
 }
 
-impl ProjectV19 {
+impl<E: FileOperation> ProjectV19<E> {
     /// The file model of a document.
     pub(crate) fn from_document(document: &Document) -> Self {
         Self {

@@ -48,6 +48,9 @@ struct Part {
     /// How many world centimetres one of the object's own is (its scale,
     /// averaged over the three axes).
     scale: f32,
+    /// How much the object is stretched along each of its own axes, for
+    /// a bend that keeps its shape as seen (decision 0081).
+    stretch: Vec3,
     anchors: Option<Anchors>,
 }
 
@@ -174,6 +177,7 @@ impl ModellingSession {
                 distance: local.max(0.0),
                 grouping: self.grouping,
                 bend: self.bend,
+                stretch: part.stretch,
                 anchors,
             },
             (Elements::Polygons(faces), _) => Operation::ExtrudePolygons {
@@ -499,6 +503,8 @@ impl Workbench {
                         segments: count,
                         ..b
                     }),
+                    // Bent as the object is stretched now (decision 0081).
+                    stretch: Some(scene::stretch_of(self.document.scene().shape_matrix(id))),
                     ..settings
                 },
                 Tool::Extrude => scene::EditSettings {
@@ -621,6 +627,7 @@ impl Workbench {
                 mirror: self.edit_mirror(item.id),
                 elements,
                 scale: average_scale(item.transform),
+                stretch: scene::stretch_of(item.transform),
                 anchors: Anchors::record(&item.mesh, kind, &corners),
             });
         }

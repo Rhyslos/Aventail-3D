@@ -119,3 +119,62 @@ fn the_last_extrudes_shape_can_be_changed_and_bending_takes_over() {
         "{back:?}"
     );
 }
+
+/// Gives the cube `scale`.
+fn scale_cube(harness: &mut H, scale: glam::Vec3) {
+    let id = cube(harness);
+    let doc = harness.state_mut().workbench.document_mut();
+    let mut transform = doc.scene().object(id).unwrap().transform;
+    transform.scale = scale;
+    doc.execute(scene::Command::SetTransforms(vec![(id, transform)]))
+        .unwrap();
+    harness.run();
+}
+
+fn last_stretch(harness: &H) -> glam::Vec3 {
+    match last_operation(harness).map(|op| op.inner().clone()) {
+        Some(Operation::ExtrudeBent { stretch, .. }) => stretch,
+        other => panic!("not a bent extrude: {other:?}"),
+    }
+}
+
+#[test]
+fn a_bend_on_a_stretched_object_keeps_its_shape_as_seen() {
+    // The cube stretched to twice its height (decision 0081).
+    let mut harness = ready(Key::D);
+    scale_cube(&mut harness, glam::Vec3::new(1.0, 1.0, 2.0));
+    harness.state_mut().workbench.attributes.bend = scene::Bend {
+        angle: 90.0,
+        radius: 20.0,
+        segments: 4,
+        ..scene::Bend::default()
+    };
+    harness.run();
+    drag(&mut harness, 40.0);
+    let stretch = last_stretch(&harness);
+    assert!(
+        (stretch - glam::Vec3::new(0.75, 0.75, 1.5)).length() < 1e-4,
+        "{stretch}"
+    );
+    let report = mesh::MeshReport::new(&shape(&harness));
+    assert!(report.is_closed() && !report.has_problems(), "{report:?}");
+    // Scaled evenly afterwards, changing the bend bends it as the object
+    // is now: no stretch.
+    scale_cube(&mut harness, glam::Vec3::splat(2.0));
+    let at = on_screen(&harness, glam::Vec3::new(0.0, 0.0, 200.0));
+    ctrl_wheel(&mut harness, at, true);
+    assert_eq!(last_stretch(&harness), glam::Vec3::ONE);
+}
+
+#[test]
+fn an_evenly_scaled_object_bends_with_no_stretch() {
+    let mut harness = ready(Key::D);
+    scale_cube(&mut harness, glam::Vec3::splat(3.0));
+    harness.state_mut().workbench.attributes.bend = scene::Bend {
+        angle: 45.0,
+        ..scene::Bend::default()
+    };
+    harness.run();
+    drag(&mut harness, 40.0);
+    assert_eq!(last_stretch(&harness), glam::Vec3::ONE);
+}

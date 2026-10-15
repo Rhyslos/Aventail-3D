@@ -85,6 +85,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Pivot (axis / origin)** — The point an object rotates and scales around. In Godot, it's also the point the asset is placed and snapped by, so where you put it matters: on the hinge of a door, at the bottom corner of a wall piece. The [gizmo](transforming.md) sits on it. In the Object mode you can move and turn it without moving the shape; see [Pivots and the Object mode](pivots.md).
 
+**Stretched object (uneven scale)** — An object scaled more along one of its axes than another in the Object mode, say twice as tall as it is wide. The shape itself isn't changed: the object is drawn stretched. Most edits don't mind, but anything that turns part of a shape (a bend) has to know about the stretch, or a round pipe turning into the stretched direction would come out oval. A bend in this app takes the object's stretch into account ([Extrude: bend it](extrude-and-inset.md#bend-it-pipes-that-turn-a-corner)). Scaling the points in the Points mode instead changes the shape itself, with no stretch on the object; many modellers prefer it for that reason. (Other programs call fixing this "apply scale" or "freeze scale".)
+
 **Gizmo** — The handle drawn on what's selected while moving, rotating or scaling: arrows, rings and boxes in the axis colours. Dragging one part changes the selection in that direction only. See [Move, rotate and scale](transforming.md).
 
 **Snapping** — Making a move, turn or resize jump to exact places (a point, an edge, the grid) or steps (15°, 10%) instead of going wherever the mouse is. See [Move, rotate and scale](transforming.md#snapping).

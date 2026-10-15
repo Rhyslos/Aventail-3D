@@ -9,10 +9,62 @@ use mesh::{CubeParams, PrimitiveKind, VertexId};
 use scene::{Command, Object, ObjectKind, Operation, Place, Primitive, Transform};
 
 /// A document using everything the current version of the format can
-/// hold: all of [`rich_document_v19`], plus what version 20 adds (each
-/// kind of collision shape on a shape; the version 20 sample holds
-/// exactly this).
+/// hold: all of [`rich_document_v20`], plus what version 21 adds (a bend
+/// made on a stretched object, on its own and mirrored; the version 21
+/// sample holds exactly this).
 fn rich_document() -> Document {
+    let mut doc = rich_document_v20();
+    let cylinder = doc
+        .scene()
+        .walk()
+        .into_iter()
+        .map(|(id, _)| id)
+        .find(|id| doc.scene().object(*id).unwrap().name == "Cylinder")
+        .unwrap();
+    let shape = doc.scene().evaluated(cylinder).unwrap().mesh;
+    let top = shape
+        .faces()
+        .map(|(f, _)| f)
+        .max_by(|a, b| shape.face_normal(*a).z.total_cmp(&shape.face_normal(*b).z))
+        .unwrap();
+    let bent = Operation::ExtrudeBent {
+        faces: vec![top],
+        distance: 15.0,
+        grouping: scene::Grouping::Together,
+        bend: scene::Bend {
+            angle: 75.0,
+            direction: 120.0,
+            radius: 30.0,
+            segments: 5,
+            ..scene::Bend::default()
+        },
+        stretch: Vec3::new(0.75, 0.75, 1.5),
+        anchors: None,
+    };
+    for operation in [
+        bent.clone(),
+        Operation::Mirrored {
+            op: Box::new(bent),
+            mirror: mesh::symmetry::Mirror {
+                axes: [false, true, false],
+                centre: Vec3::new(0.0, 2.0, 0.0),
+                clip: true,
+            },
+        },
+    ] {
+        doc.execute(Command::Record {
+            id: cylinder,
+            operation,
+        })
+        .unwrap();
+    }
+    doc
+}
+
+/// A document using everything version 20 of the format can hold: all
+/// of [`rich_document_v19`], plus what version 20 adds (each kind of
+/// collision shape on a shape; the version 20 sample holds exactly this).
+fn rich_document_v20() -> Document {
     let mut doc = rich_document_v19();
     let named = |doc: &Document, name: &str| {
         doc.scene()
@@ -275,6 +327,7 @@ fn rich_document_v15() -> Document {
         distance: 5.0,
         grouping: scene::Grouping::Together,
         bend: spiral,
+        stretch: glam::Vec3::ONE,
         anchors: None,
     };
     for operation in [
@@ -572,6 +625,7 @@ fn rich_document_v8() -> Document {
                 segments: 3,
                 ..scene::Bend::default()
             },
+            stretch: glam::Vec3::ONE,
             anchors: None,
         },
     })
@@ -1179,14 +1233,14 @@ fn a_cut_short_or_padded_body_is_damaged() {
 #[test]
 fn an_uncompressed_body_can_be_read() {
     let doc = rich_document();
-    let body = postcard::to_stdvec(&v20::ProjectV20::from_document(&doc)).unwrap();
-    let mut bytes = header(20, 0, body.len() as u64);
+    let body = postcard::to_stdvec(&v21::ProjectV21::from_document(&doc)).unwrap();
+    let mut bytes = header(21, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     assert_same(&doc, &from_bytes(&bytes).unwrap());
     // Data after the scene is refused.
     let mut longer = body.clone();
     longer.push(0);
-    let mut bytes = header(20, 0, longer.len() as u64);
+    let mut bytes = header(21, 0, longer.len() as u64);
     bytes.extend_from_slice(&longer);
     assert!(refused(&bytes).to_string().contains("unexpected data"));
 }
@@ -2248,7 +2302,7 @@ fn a_file_saved_by_format_version_18_still_opens() {
 #[test]
 fn materials_and_slots_come_back_and_older_files_have_none() {
     let doc = from_bytes(&to_bytes(&rich_document()).unwrap()).unwrap();
-    let model = v18::ProjectV18::from_document(&doc);
+    let model: v18::ProjectV18 = v18::ProjectV18::from_document(&doc);
     // Only the two objects with materials store a list.
     assert_eq!(model.materials.len(), 2);
     let text = format!("{model:?}");
@@ -2357,8 +2411,8 @@ const SAMPLE_V20: &[u8] = include_bytes!("../../tests/data/sample-v20.avtl");
 #[test]
 fn a_file_saved_by_format_version_20_still_opens() {
     let doc = from_bytes(SAMPLE_V20).expect("the version 20 sample opens");
-    assert_same(&rich_document(), &doc);
-    let model = v20::ProjectV20::from_document(&doc);
+    assert_same(&rich_document_v20(), &doc);
+    let model: v20::ProjectV20 = v20::ProjectV20::from_document(&doc);
     assert_eq!(model.collisions.len(), 3);
     assert_same(&doc, &from_bytes(&file_of_v20(&model)).unwrap());
     // Older files have none.
@@ -2373,7 +2427,7 @@ fn a_file_saved_by_format_version_20_still_opens() {
 
 #[test]
 fn damaged_collisions_are_refused() {
-    let good = v20::ProjectV20::from_document(&rich_document());
+    let good: v20::ProjectV20 = v20::ProjectV20::from_document(&rich_document_v20());
     let mut twice = good.clone();
     let first = twice.collisions[0];
     twice.collisions.push(first);
@@ -2384,6 +2438,78 @@ fn damaged_collisions_are_refused() {
         refused(&file_of_v20(&missing))
             .to_string()
             .contains("isn't there")
+    );
+}
+
+/// The bytes of a version 21 file holding `model`, uncompressed.
+fn file_of_v21(model: &v21::ProjectV21) -> Vec<u8> {
+    let body = postcard::to_stdvec(model).unwrap();
+    let mut bytes = header(21, 0, body.len() as u64);
+    bytes.extend_from_slice(&body);
+    bytes
+}
+
+/// A project saved by version 21 of the format, kept in the repository.
+const SAMPLE_V21: &[u8] = include_bytes!("../../tests/data/sample-v21.avtl");
+
+#[test]
+fn a_file_saved_by_format_version_21_still_opens() {
+    let doc = from_bytes(SAMPLE_V21).expect("the version 21 sample opens");
+    assert_same(&rich_document(), &doc);
+    let model = v21::ProjectV21::from_document(&doc);
+    assert_same(&doc, &from_bytes(&file_of_v21(&model)).unwrap());
+}
+
+#[test]
+fn stretched_bends_come_back_and_older_files_have_none() {
+    let doc = from_bytes(&to_bytes(&rich_document()).unwrap()).unwrap();
+    let text = format!("{:?}", v21::ProjectV21::from_document(&doc));
+    assert_eq!(text.matches("StretchedBent {").count(), 2, "{text}");
+    assert_eq!(text.matches("MirroredStretchedBent").count(), 1);
+    let stretches = |doc: &Document| -> Vec<Vec3> {
+        doc.scene()
+            .walk()
+            .iter()
+            .flat_map(|(id, _)| doc.scene().object(*id).unwrap().stack.layers().to_vec())
+            .flat_map(|layer| layer.entries.clone())
+            .filter_map(|entry| match entry.operation.inner() {
+                Operation::ExtrudeBent { stretch, .. } => Some(*stretch),
+                _ => None,
+            })
+            .collect()
+    };
+    let now = stretches(&doc);
+    assert_eq!(
+        now.iter().filter(|s| **s != Vec3::ONE).count(),
+        2,
+        "{now:?}"
+    );
+    let old = from_bytes(SAMPLE_V20).unwrap();
+    let before = stretches(&old);
+    assert!(!before.is_empty() && before.iter().all(|s| *s == Vec3::ONE));
+}
+
+#[test]
+fn a_damaged_stretch_is_refused() {
+    let mut model = v21::ProjectV21::from_document(&rich_document());
+    let text = format!("{model:?}");
+    assert!(text.contains("StretchedBent"));
+    let mut broke = false;
+    for object in &mut model.project.project.places.project.project.objects.0 {
+        for layer in &mut object.layers.0 {
+            for entry in &mut layer.operations.0 {
+                if let v21::OperationV21::StretchedBent { stretch, .. } = &mut entry.operation {
+                    stretch[1] = -2.0;
+                    broke = true;
+                }
+            }
+        }
+    }
+    assert!(broke);
+    assert!(
+        refused(&file_of_v21(&model))
+            .to_string()
+            .contains("stretch")
     );
 }
 
