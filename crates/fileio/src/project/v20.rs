@@ -4,7 +4,8 @@
 //! Beside version 19's file: the collision shape of each object that has
 //! one. Older files open with none.
 
-use super::v1::Problem;
+use super::v1::{FileOperation, Problem};
+use super::v18::EntryV18;
 use super::v19::ProjectV19;
 use crate::limits::Bounded;
 use scene::{Collision, Document};
@@ -13,9 +14,9 @@ use std::collections::BTreeMap;
 
 /// Version 20 of the file.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub(crate) struct ProjectV20 {
-    /// Version 19's file.
-    pub(crate) project: ProjectV19,
+pub(crate) struct ProjectV20<E = EntryV18> {
+    /// Version 19's file (its edits stored as `E`).
+    pub(crate) project: ProjectV19<E>,
     /// The objects' collision shapes (only objects with one).
     pub(crate) collisions: Bounded<CollisionV20>,
 }
@@ -35,7 +36,7 @@ pub(crate) enum ShapeV20 {
     Box,
 }
 
-impl ProjectV20 {
+impl<E: FileOperation> ProjectV20<E> {
     /// The file model of a document.
     pub(crate) fn from_document(document: &Document) -> Self {
         let scene = document.scene();

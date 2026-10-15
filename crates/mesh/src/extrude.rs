@@ -1011,26 +1011,32 @@ pub fn extrude_bent(
         .collect();
     // Extrude ring after ring (where they go is set afterwards), following
     // each original point to its copy in every ring through the polygons'
-    // corners, which keep their order.
+    // corners, which keep their order. Pieces are followed apart:
+    // polygons extruded each on their own copy a shared point once for
+    // each, and each copy goes round with its own piece.
     let rings = bend.rings(distance);
-    let mut follow: Vec<BTreeMap<VertexId, VertexId>> = Vec::with_capacity(rings);
+    let mut follow: Vec<Vec<BTreeMap<VertexId, VertexId>>> =
+        vec![Vec::with_capacity(rings); pieces.len()];
     for _ in 0..rings {
-        let before: Vec<Vec<VertexId>> = faces
+        let before: BTreeMap<FaceId, Vec<VertexId>> = faces
             .iter()
-            .map(|f| mesh.face(*f).unwrap_or_default().to_vec())
+            .map(|f| (*f, mesh.face(*f).unwrap_or_default().to_vec()))
             .collect();
         extrude_polygons(mesh, &faces, 1.0, grouping);
-        let mut step = BTreeMap::new();
-        for (f, old) in faces.iter().zip(&before) {
-            for (a, b) in old.iter().zip(mesh.face(*f).unwrap_or_default()) {
-                step.insert(*a, *b);
+        for ((piece, _), steps) in pieces.iter().zip(&mut follow) {
+            let mut step = BTreeMap::new();
+            for face in piece {
+                let old = before.get(face).map_or(&[][..], Vec::as_slice);
+                for (a, b) in old.iter().zip(mesh.face(*face).unwrap_or_default()) {
+                    step.insert(*a, *b);
+                }
             }
+            steps.push(step);
         }
-        follow.push(step);
     }
     let angle = bend.angle.to_radians();
     let rows = bend.rows();
-    for (piece, turn) in &pieces {
+    for ((piece, turn), follow) in pieces.iter().zip(&follow) {
         let points: BTreeSet<VertexId> = piece
             .iter()
             .flat_map(|f| original.face(*f).unwrap_or_default().iter().copied())
@@ -1054,7 +1060,7 @@ pub fn extrude_bent(
             // The point in each ring.
             let mut id = v;
             let mut ids = Vec::with_capacity(rings);
-            for step in &follow {
+            for step in follow {
                 id = step.get(&id).copied().unwrap_or(id);
                 ids.push(id);
             }
@@ -1085,6 +1091,65 @@ pub fn extrude_bent(
                 }
             }
         }
+    }
+    outcome
+}
+
+/// The most an object's stretch may be along one axis compared with the
+/// others' average, for [`extrude_bent_stretched`]: beyond it a stretch
+/// is taken as none.
+pub const MAX_STRETCH: f32 = 1000.0;
+
+/// `stretch` if it is a real, usable stretch (each axis above
+/// 1 / [`MAX_STRETCH`] and below [`MAX_STRETCH`]), otherwise none
+/// ([`Vec3::ONE`]).
+#[must_use]
+pub fn usable_stretch(stretch: Vec3) -> Vec3 {
+    let fine = |x: f32| x.is_finite() && x > 1.0 / MAX_STRETCH && x < MAX_STRETCH;
+    if stretch.to_array().into_iter().all(fine) {
+        stretch
+    } else {
+        Vec3::ONE
+    }
+}
+
+/// [`extrude_bent`] on an object that is stretched unevenly
+/// ([decision 0081](../../../docs/decisions/0081-bends-keep-their-shape-on-stretched-objects.md)):
+/// `stretch` is how much the object is stretched along its own X, Y and
+/// Z (its scale on each axis divided by their average). The bend is
+/// worked out as the object is seen, stretched, so the pipe turns and
+/// keeps its round shape on screen; the result is then taken back into
+/// the object's own space. `distance` and the bend's radius count as
+/// seen at the average scale.
+///
+/// With no stretch ([`Vec3::ONE`], or one that isn't usable, see
+/// [`usable_stretch`]) this is exactly [`extrude_bent`]. Points the bend
+/// doesn't move keep exactly where they were.
+pub fn extrude_bent_stretched(
+    mesh: &mut Mesh,
+    faces: &[FaceId],
+    distance: f32,
+    grouping: Grouping,
+    bend: Bend,
+    stretch: Vec3,
+) -> Outcome {
+    let stretch = usable_stretch(stretch);
+    if stretch == Vec3::ONE {
+        return extrude_bent(mesh, faces, distance, grouping, bend);
+    }
+    let before: BTreeMap<VertexId, Vec3> = mesh.vertices().collect();
+    for (v, p) in &before {
+        mesh.set_position(*v, *p * stretch);
+    }
+    let outcome = extrude_bent(mesh, faces, distance, grouping, bend);
+    let after: Vec<(VertexId, Vec3)> = mesh.vertices().collect();
+    for (v, p) in after {
+        let back = match before.get(&v) {
+            // Not moved by the bend: exactly as it was.
+            Some(old) if *old * stretch == p => *old,
+            _ => p / stretch,
+        };
+        mesh.set_position(v, back);
     }
     outcome
 }

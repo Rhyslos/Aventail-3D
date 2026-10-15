@@ -1203,6 +1203,101 @@ fn a_straight_extrude_given_a_bend_becomes_a_bent_one() {
 }
 
 #[test]
+fn a_bend_keeps_the_stretch_it_is_given() {
+    let (mut doc, id) = with_a_cube();
+    let mesh = doc.scene().evaluated(id).unwrap().mesh;
+    let top = mesh
+        .faces()
+        .map(|(f, _)| f)
+        .find(|f| mesh.face_normal(*f).z > 0.9)
+        .unwrap();
+    let straight = Operation::ExtrudePolygons {
+        faces: vec![top],
+        distance: 30.0,
+        grouping: Grouping::Together,
+        shape: crate::ExtrudeShape::default(),
+        anchors: None,
+    };
+    let turn = Bend {
+        angle: 90.0,
+        radius: 20.0,
+        segments: 4,
+        ..Bend::default()
+    };
+    let stretch = glam::Vec3::new(0.75, 0.75, 1.5);
+    // A straight extrude given a bend and a stretch takes both.
+    let bent = straight.with(EditSettings {
+        bend: Some(turn),
+        stretch: Some(stretch),
+        ..straight.settings().unwrap()
+    });
+    let Operation::ExtrudeBent { stretch: kept, .. } = &bent else {
+        panic!("bent");
+    };
+    assert_eq!(*kept, stretch);
+    assert_eq!(bent.settings().unwrap().stretch, Some(stretch));
+    // Without a stretch it keeps what it has; a broken one counts as none.
+    let same = bent.with(EditSettings {
+        stretch: None,
+        ..bent.settings().unwrap()
+    });
+    assert_eq!(same, bent);
+    let broken = bent.with(EditSettings {
+        stretch: Some(glam::Vec3::new(f32::NAN, 1.0, 1.0)),
+        ..bent.settings().unwrap()
+    });
+    assert!(matches!(broken, Operation::ExtrudeBent { stretch, .. } if stretch == glam::Vec3::ONE));
+    // The shape is the stretched bend's.
+    record(&mut doc, id, bent);
+    let shape = doc.scene().evaluated(id).unwrap().mesh;
+    let mut expected = (*mesh).clone();
+    mesh::edit::extrude_bent_stretched(
+        &mut expected,
+        &[top],
+        30.0,
+        Grouping::Together,
+        turn,
+        stretch,
+    );
+    assert_eq!(shape.vertex_count(), expected.vertex_count());
+    for (v, p) in expected.vertices() {
+        assert!(shape.position(v).unwrap().distance(p) < 1e-3, "{v:?}");
+    }
+    let mut plain = (*mesh).clone();
+    mesh::edit::extrude_bent(&mut plain, &[top], 30.0, Grouping::Together, turn);
+    assert!(
+        plain
+            .vertices()
+            .any(|(v, p)| shape.position(v).unwrap().distance(p) > 1.0)
+    );
+}
+
+#[test]
+fn a_stretch_comes_from_the_objects_scale() {
+    use glam::{Mat4, Quat, Vec3};
+    assert_eq!(crate::stretch_of(Mat4::IDENTITY), Vec3::ONE);
+    let even = Mat4::from_scale_rotation_translation(
+        Vec3::splat(3.0),
+        Quat::from_rotation_z(0.7),
+        Vec3::X,
+    );
+    assert_eq!(crate::stretch_of(even), Vec3::ONE);
+    let tall = Mat4::from_scale_rotation_translation(
+        Vec3::new(1.0, 1.0, 2.0),
+        Quat::from_rotation_x(1.1),
+        Vec3::new(4.0, 5.0, 6.0),
+    );
+    assert!((crate::stretch_of(tall) - Vec3::new(0.75, 0.75, 1.5)).length() < 1e-5);
+    for broken in [
+        Mat4::ZERO,
+        Mat4::from_scale(Vec3::new(f32::NAN, 1.0, 1.0)),
+        Mat4::from_scale(Vec3::new(1e-9, 1.0, 1.0)),
+    ] {
+        assert_eq!(crate::stretch_of(broken), Vec3::ONE);
+    }
+}
+
+#[test]
 fn connect_and_weld_are_recorded_and_follow_the_shape() {
     let (mut doc, id) = with_a_cube();
     let mesh = doc.scene().evaluated(id).unwrap().mesh;

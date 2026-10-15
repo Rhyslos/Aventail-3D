@@ -360,7 +360,8 @@ impl AttributesPanel {
                 heading(ui, &object.kind, &object.name);
                 // The last extrude or inset first: it is what was just done.
                 if !own_tool_shown {
-                    self.last_edit_section(ui, id, &object.stack, units, out);
+                    let stretch = scene::stretch_of(doc.scene().shape_matrix(id));
+                    self.last_edit_section(ui, id, &object.stack, units, stretch, out);
                 }
                 section(ui, "Basic");
                 egui::Grid::new("attributes_basic")
@@ -501,6 +502,7 @@ impl AttributesPanel {
         id: ObjectId,
         stack: &Stack,
         units: Units,
+        stretch: glam::Vec3,
         out: &mut Vec<DocRequest>,
     ) {
         let Some((layer, index, operation)) = last_edit(stack) else {
@@ -657,6 +659,9 @@ impl AttributesPanel {
                         }
                         if touched.changed {
                             edited.bend = Some(bend);
+                            // Bent as the object is stretched now, so it
+                            // keeps its shape as seen (decision 0081).
+                            edited.stretch = Some(stretch);
                             // The rest carries on to the next extrude, but
                             // not the turn: that starts straight.
                             self.bend = scene::Bend { angle: 0.0, ..bend };

@@ -212,6 +212,7 @@ fn a_slit_weld_and_bent_extrude_are_mirrored_copies() {
             segments: 3,
             ..Bend::default()
         },
+        stretch: Vec3::ONE,
         anchors: None,
     };
     let both = after(mirrored(bent));
@@ -230,6 +231,7 @@ fn a_slit_weld_and_bent_extrude_are_mirrored_copies() {
             rise: 10.0,
             mirrored: false,
         },
+        stretch: Vec3::ONE,
         anchors: None,
     };
     let both = after(mirrored(spiral.clone()));
@@ -239,6 +241,36 @@ fn a_slit_weld_and_bent_extrude_are_mirrored_copies() {
         base.vertex_count() + 2 * 13 * 4,
         "twelve rows and one straight on, on each side"
     );
+}
+
+#[test]
+fn a_bend_on_a_stretched_object_is_mirrored_as_seen() {
+    // Stretched along X and sideways and up; the copy on the left turns
+    // the mirrored way and keeps the same stretch.
+    let base = cube();
+    for stretch in [Vec3::new(1.5, 0.75, 0.75), Vec3::new(0.6, 1.2, 1.2)] {
+        let bent = Operation::ExtrudeBent {
+            faces: vec![right_face(&base, Vec3::X)],
+            distance: 20.0,
+            grouping: Grouping::Together,
+            bend: Bend {
+                angle: 80.0,
+                direction: 40.0,
+                radius: 25.0,
+                segments: 4,
+                ..Bend::default()
+            },
+            stretch,
+            anchors: None,
+        };
+        let one = after(bent.clone());
+        let both = after(mirrored(bent));
+        assert!(symmetrical(&both), "{stretch}");
+        assert_eq!(
+            both.vertex_count() - base.vertex_count(),
+            2 * (one.vertex_count() - base.vertex_count())
+        );
+    }
 }
 
 #[test]

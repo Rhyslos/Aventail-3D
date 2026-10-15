@@ -68,18 +68,24 @@ pub(crate) struct BendV15 {
 }
 
 impl ExtrudeBentV15 {
-    /// The file's form of `op`, if it is a bent extrude.
-    fn of(op: &Operation) -> Option<Self> {
+    /// The file's form of `op`, if it is a bent extrude (not on a
+    /// stretched object: version 21 adds the stretch).
+    pub(super) fn of(op: &Operation) -> Option<Self> {
         let Operation::ExtrudeBent {
             faces,
             distance,
             grouping,
             bend,
+            stretch,
             anchors,
         } = op
         else {
             return None;
         };
+        if *stretch != Vec3::ONE {
+            // A bend on a stretched object needs version 21.
+            return None;
+        }
         Some(Self {
             faces: faces.iter().map(|f| f.get()).collect(),
             distance: *distance,
@@ -96,7 +102,7 @@ impl ExtrudeBentV15 {
         })
     }
 
-    fn into_operation(self) -> Result<Operation, Problem> {
+    pub(super) fn into_operation(self) -> Result<Operation, Problem> {
         let Self {
             faces,
             distance,
@@ -111,6 +117,7 @@ impl ExtrudeBentV15 {
             return Err("its bent extrude holds a number that isn't real".into());
         }
         Ok(Operation::ExtrudeBent {
+            stretch: Vec3::ONE,
             faces: faces.into_iter().map(FaceId::from_raw).collect(),
             distance,
             grouping: if separate {
