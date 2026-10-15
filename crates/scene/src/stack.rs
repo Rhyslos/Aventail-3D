@@ -18,7 +18,7 @@
 
 use crate::object::{ObjectId, ObjectKind};
 use glam::{Mat4, Vec3};
-use mesh::edit::{self, Bend, BevelShape, Grouping, Outcome, SlitLine};
+use mesh::edit::{self, Bend, BevelShape, ExtrudeShape, Grouping, Outcome, SlitLine};
 use mesh::{Anchors, EdgeKey, FaceId, Mesh, VertexId};
 use std::collections::{BTreeSet, HashMap};
 use std::sync::{Arc, Mutex};
@@ -71,6 +71,10 @@ pub enum Operation {
         distance: f32,
         /// Neighbours as one piece, or each on its own.
         grouping: Grouping,
+        /// Which way it goes, its end's size, its rows and whether its end
+        /// is flat (decision 0070). Extrudes saved before file format 17
+        /// have `ExtrudeShape::EARLIER`.
+        shape: ExtrudeShape,
         /// Where the polygons were, to find them again (decision 0032).
         anchors: Option<Anchors>,
     },
@@ -350,6 +354,9 @@ pub struct EditSettings {
     pub bridge: Option<(u32, i32)>,
     /// Hard edges by angle's angle, in degrees.
     pub angle: Option<f32>,
+    /// A straight extrude's way, end size, steps and flat end (decision
+    /// 0070); none for a bent extrude or other edits.
+    pub extrude: Option<ExtrudeShape>,
 }
 
 /// What applying an operation did.
@@ -455,9 +462,13 @@ impl Operation {
         };
         match self {
             Self::ExtrudePolygons {
-                distance, grouping, ..
+                distance,
+                grouping,
+                shape,
+                ..
             } => Some(EditSettings {
                 bend: Some(Bend::default()),
+                extrude: Some(*shape),
                 ..plain(*distance, *grouping)
             }),
             Self::ExtrudeBent {
@@ -541,6 +552,7 @@ impl Operation {
                 distance,
                 grouping,
                 anchors,
+                ..
             },
             Some(bend),
         ) = (self, settings.bend)
@@ -574,9 +586,22 @@ impl Operation {
                 }
             }
             Self::ExtrudePolygons {
-                distance, grouping, ..
+                distance,
+                grouping,
+                shape,
+                ..
+            } => {
+                if let Some(d) = settings.distance {
+                    *distance = d;
+                }
+                if let Some(g) = settings.grouping {
+                    *grouping = g;
+                }
+                if let Some(s) = settings.extrude {
+                    *shape = s.clamped();
+                }
             }
-            | Self::InsetPolygons {
+            Self::InsetPolygons {
                 distance, grouping, ..
             }
             | Self::ExtrudeEdges {
@@ -648,6 +673,26 @@ impl Operation {
             | Self::TransformPoints { .. }
             | Self::Mirrored { .. }
             | Self::WeldMiddle { .. } => {}
+        }
+        // A bend taken back to nothing makes a straight extrude again,
+        // shaped as asked (straight out as standard, decision 0070).
+        if let Self::ExtrudeBent {
+            faces,
+            distance,
+            grouping,
+            bend,
+            anchors,
+        } = &changed
+            && !bend.bends()
+            && settings.bend.is_some()
+        {
+            return Self::ExtrudePolygons {
+                faces: faces.clone(),
+                distance: *distance,
+                grouping: *grouping,
+                shape: settings.extrude.unwrap_or_default().clamped(),
+                anchors: anchors.clone(),
+            };
         }
         changed
     }
@@ -860,15 +905,18 @@ impl Operation {
                 faces,
                 distance,
                 grouping,
+                shape,
                 ..
             } => {
                 let faces = refound
                     .as_ref()
                     .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
-                if too_big(corner_count(mesh, &faces)) {
+                // A wall of every row round each polygon.
+                let rows = shape.clamped().steps as usize;
+                if too_big(corner_count(mesh, &faces).saturating_mul(rows)) {
                     return skipped;
                 }
-                edit::extrude_polygons(mesh, &faces, *distance, *grouping)
+                edit::extrude_shaped(mesh, &faces, *distance, *grouping, *shape)
             }
             Self::ExtrudeBent {
                 faces,

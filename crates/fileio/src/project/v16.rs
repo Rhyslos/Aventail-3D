@@ -9,20 +9,25 @@
 //! pivots), and the units the project is measured in. Older files open
 //! with every shape on its pivot, in metres.
 
-use super::v1::{Problem, TransformV1, finite};
+use super::v1::{FileOperation, Problem, TransformV1, finite};
 use super::v12::ProjectWithInstances;
-use super::v15::EntryV15;
 use crate::limits::Bounded;
 use scene::{Document, Transform, Units};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 /// Version 16 of the file.
+#[cfg(test)]
+pub(crate) type ProjectV16 = ProjectWithPlaces<super::v15::EntryV15>;
+
+/// A file of version 16 or later, recorded edits stored as `E`:
+/// version 12's with its instances, the shapes' places relative to their
+/// pivots, and the units. Version 17 stores its edits in it the same way.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub(crate) struct ProjectV16 {
+pub(crate) struct ProjectWithPlaces<E> {
     /// Version 15's file: the objects, their edits, the selection, the
     /// mesh layers and the instances.
-    pub(crate) project: ProjectWithInstances<EntryV15>,
+    pub(crate) project: ProjectWithInstances<E>,
     /// Where shapes sit relative to their pivots, by object (only those
     /// not on their pivots).
     pub(crate) offsets: Bounded<OffsetV16>,
@@ -44,7 +49,7 @@ pub(crate) enum UnitsV16 {
     Centimetres,
 }
 
-impl ProjectV16 {
+impl<E: FileOperation> ProjectWithPlaces<E> {
     /// The file model of a document.
     pub(crate) fn from_document(document: &Document) -> Self {
         let scene = document.scene();

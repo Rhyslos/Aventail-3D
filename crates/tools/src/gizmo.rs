@@ -10,7 +10,8 @@
 //! - **Rotate:** a ring around each axis, and an outer ring that turns
 //!   around the line of sight.
 //! - **Scale:** a line with a box per axis, a square between each pair
-//!   (scale those two axes, in the ratio the mouse moves along them), and
+//!   (scale those two axes equally: away from the centre grows, towards
+//!   it shrinks, [decision 0070](../../../docs/decisions/0070-extrude-freedom.md)), and
 //!   the centre (all axes).
 //! - **All:** arrows, plane squares, rings, scale boxes part way along the
 //!   axes, and the centre (move).
@@ -484,14 +485,16 @@ impl Drag {
             }
             Handle::ScalePlane(i) => {
                 // The spot in the plane under the mouse, measured along
-                // each of the plane's two axes: dragging along one axis
-                // scales mostly that one, diagonally both.
+                // the square's diagonal (the two axes' average): both axes
+                // scale equally, whichever way the mouse goes (the project
+                // lead's choice; the mix by direction caught him out).
                 let spot = on_plane(&ray, origin, axes[i])? - origin;
                 let length = self.length.max(1e-6);
+                let (a, b) = ((i + 1) % 3, (i + 2) % 3);
+                let t = (spot.dot(axes[a]) + spot.dot(axes[b])) / (2.0 * length);
                 let mut f = Vec3::ZERO;
-                for j in [(i + 1) % 3, (i + 2) % 3] {
-                    f[j] = spot.dot(axes[j]) / length;
-                }
+                f[a] = t;
+                f[b] = t;
                 Some(f)
             }
             Handle::ScaleAll => {

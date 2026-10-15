@@ -648,6 +648,7 @@ fn extrude_top(doc: &Document, id: ObjectId, distance: f32, anchored: bool) -> O
         faces: vec![top],
         distance,
         grouping: Grouping::Together,
+        shape: crate::ExtrudeShape::EARLIER,
         anchors: anchored
             .then(|| mesh::Anchors::record(&mesh, ElementKind::Polygons, &corners))
             .flatten(),
@@ -1139,6 +1140,7 @@ fn a_straight_extrude_given_a_bend_becomes_a_bent_one() {
         faces: vec![top],
         distance: 50.0,
         grouping: Grouping::Together,
+        shape: crate::ExtrudeShape::EARLIER,
         anchors: None,
     };
     record(&mut doc, id, straight.clone());
@@ -1667,6 +1669,7 @@ fn changing_an_earlier_edit_keeps_later_edits_on_their_points() {
         faces: vec![top],
         distance,
         grouping: Grouping::Together,
+        shape: crate::ExtrudeShape::EARLIER,
         anchors: None,
     };
     record(&mut doc, id, extrude(50.0));

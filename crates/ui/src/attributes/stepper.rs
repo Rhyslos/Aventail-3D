@@ -97,6 +97,44 @@ pub(super) fn degrees(
     touched
 }
 
+/// A share shown as a percentage with step arrows (a percent a step),
+/// kept between `low` and `high` (as shares: 1 is 100%).
+pub(super) fn percent(
+    ui: &mut Ui,
+    value: &mut f32,
+    (low, high): (f32, f32),
+    label: &str,
+) -> Touched {
+    let mut shown = f64::from(*value) * 100.0;
+    let (low, high) = (f64::from(low) * 100.0, f64::from(high) * 100.0);
+    let mut touched = Touched::default();
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing.x = 2.0;
+        let response = ui.add_sized(
+            vec2(NUMBER_WIDTH, HEIGHT),
+            DragValue::new(&mut shown)
+                .range(low..=high)
+                .speed(0.5)
+                .max_decimals(1)
+                .suffix("%"),
+        );
+        touched = touched_by(&response);
+        response.widget_info(|| WidgetInfo::labeled(WidgetType::DragValue, true, label));
+        let steps = arrows(ui, label);
+        if steps != 0 {
+            shown = (shown + f64::from(steps)).clamp(low, high);
+            touched = Touched {
+                changed: true,
+                began: true,
+            };
+        }
+    });
+    if touched.changed {
+        *value = (shown / 100.0) as f32;
+    }
+    touched
+}
+
 /// A whole-number field with step arrows, kept between `low` and `high`.
 pub(super) fn count(ui: &mut Ui, value: &mut u32, (low, high): (u32, u32), label: &str) -> Touched {
     let mut touched = Touched::default();

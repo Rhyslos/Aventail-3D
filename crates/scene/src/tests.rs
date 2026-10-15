@@ -771,6 +771,7 @@ fn random_commands_keep_the_tree_whole_and_undo_exactly() {
                                     faces,
                                     distance,
                                     grouping,
+                                    shape: crate::ExtrudeShape::EARLIER,
                                     anchors: None,
                                 }
                             } else {

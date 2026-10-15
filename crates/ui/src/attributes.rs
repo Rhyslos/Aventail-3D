@@ -51,10 +51,21 @@ pub(crate) struct AttributesPanel {
     pub(crate) slit_through: bool,
     /// Extrude's bend, for the next drag (decision 0050).
     pub(crate) bend: scene::Bend,
+    /// Extrude's way, end size, steps and flat end, for the next drag
+    /// (decision 0070).
+    pub(crate) extrude: scene::ExtrudeShape,
     /// Connect's cuts and Bridge's rows and twist (decision 0051).
     pub(crate) join: JoinLook,
     /// Hard edges by angle's angle, for its next use (decision 0053).
     pub(crate) hard_angle: HardAngle,
+}
+
+impl AttributesPanel {
+    /// Whether the next extrude bends (then its way, end size, steps and
+    /// flat end don't apply).
+    pub(crate) fn extrude_bends(&self) -> bool {
+        self.bend.bends()
+    }
 }
 
 /// Hard edges by angle's angle in degrees, for its next use: edges whose
@@ -436,6 +447,9 @@ impl AttributesPanel {
                         }
                         ui.end_row();
                         if self.tool == Tool::Extrude {
+                            let mut shape = self.extrude;
+                            extrude_rows(ui, &mut shape, !self.bend.bends());
+                            self.extrude = shape;
                             let mut bend = self.bend;
                             bend_rows(ui, &mut bend, units);
                             self.bend = bend;
@@ -594,6 +608,21 @@ impl AttributesPanel {
                             changed = true;
                         }
                         ui.end_row();
+                    }
+                    if let Some(mut shape) = edited.extrude {
+                        let touched = extrude_rows(ui, &mut shape, true);
+                        if touched.began {
+                            self.gesture += 1;
+                        }
+                        if touched.changed {
+                            edited.extrude = Some(shape);
+                            self.extrude = shape;
+                            changed = true;
+                        }
+                    } else if matches!(kind, Operation::ExtrudeBent { .. }) {
+                        // A bend taken back to nothing becomes a straight
+                        // extrude shaped as the tool is.
+                        edited.extrude = Some(self.extrude);
                     }
                     if let Some(bend) = edited.bend {
                         // A straight extrude shows the tool's bend, turned
@@ -953,6 +982,129 @@ fn segments_row(ui: &mut Ui, segments: &mut u32) -> stepper::Touched {
         "How many rows the bevel has: 1 is a flat cut (a chamfer), more make it round",
     );
     stepper::count(ui, segments, (1, mesh::bevel::MAX_SEGMENTS), "Segments")
+}
+
+/// The name of an extrude's way, as listed.
+pub(crate) fn direction_name(direction: scene::ExtrudeDirection) -> &'static str {
+    use scene::ExtrudeDirection as D;
+    match direction {
+        D::Straight => "Straight out",
+        D::AlongNormals => "Along normals",
+        D::AlongX => "Along X",
+        D::AlongY => "Along Y",
+        D::AlongZ => "Along Z",
+    }
+}
+
+/// What an extrude's way does, in plain words.
+fn direction_help(direction: scene::ExtrudeDirection) -> &'static str {
+    use scene::ExtrudeDirection as D;
+    match direction {
+        D::Straight => {
+            "Every point goes the same way: straight out along the polygons' average facing. \
+             The end keeps the polygons' shape."
+        }
+        D::AlongNormals => {
+            "Each point goes along its own facing, so the end follows the surface's curve at \
+             an even thickness, like puffing it out."
+        }
+        D::AlongX | D::AlongY | D::AlongZ => {
+            "Straight along this axis of the object (its own axes), out the way the polygons \
+             face: pull a sloped patch out level, say."
+        }
+    }
+}
+
+/// Extrude's shape: Direction, End size, Steps and Flat end, a row each
+/// (decision 0070). Greyed out (`enabled` false) while a bend is set: a
+/// bent extrude goes out its own way.
+fn extrude_rows(ui: &mut Ui, shape: &mut scene::ExtrudeShape, enabled: bool) -> stepper::Touched {
+    let mut out = stepper::Touched::default();
+    let mut add = |t: stepper::Touched| {
+        out.changed |= t.changed;
+        out.began |= t.began;
+    };
+    let why = "A bent extrude goes out its own way: set the bend's Angle to 0 for these.";
+    label(
+        ui,
+        "Direction",
+        "Which way the polygons go. Straight out is the standard.",
+    );
+    ui.add_enabled_ui(enabled, |ui| {
+        let before = shape.direction;
+        let response = egui::ComboBox::from_id_salt("extrude_direction")
+            .width(FIELD_WIDTH)
+            .selected_text(direction_name(shape.direction))
+            .show_ui(ui, |ui| {
+                for direction in scene::ExtrudeDirection::ALL {
+                    ui.selectable_value(&mut shape.direction, direction, direction_name(direction))
+                        .on_hover_text(direction_help(direction));
+                }
+            })
+            .response
+            .on_hover_text(direction_help(shape.direction))
+            .on_disabled_hover_text(why);
+        response.widget_info(|| {
+            egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, true, "Extrude direction")
+        });
+        if shape.direction != before {
+            add(stepper::Touched {
+                changed: true,
+                began: true,
+            });
+        }
+    });
+    ui.end_row();
+    label(
+        ui,
+        "End size",
+        "How big the new end is, compared with where it started: 100% the same, less tapers \
+         it in (0% to a point), more flares it out.",
+    );
+    ui.add_enabled_ui(enabled, |ui| {
+        add(stepper::percent(
+            ui,
+            &mut shape.end_size,
+            (0.0, mesh::edit::MAX_END_SIZE),
+            "End size",
+        ));
+    });
+    ui.end_row();
+    label(
+        ui,
+        "Steps",
+        "How many rows the new walls have: more give loops to bend or shape later. Ctrl + \
+         wheel changes it.",
+    );
+    ui.add_enabled_ui(enabled, |ui| {
+        add(stepper::count(
+            ui,
+            &mut shape.steps,
+            (1, mesh::edit::MAX_EXTRUDE_STEPS),
+            "Extrude steps",
+        ));
+    });
+    ui.end_row();
+    label(
+        ui,
+        "Flat end",
+        "Lay the new end flat, square to the way it went: a curved patch ends in a flat face.",
+    );
+    ui.add_enabled_ui(enabled, |ui| {
+        let response = ui.checkbox(&mut shape.flat_end, "");
+        response.widget_info(|| {
+            egui::WidgetInfo::selected(egui::WidgetType::Checkbox, true, shape.flat_end, "Flat end")
+        });
+        if response.changed() {
+            add(stepper::Touched {
+                changed: true,
+                began: true,
+            });
+        }
+    });
+    ui.end_row();
+    *shape = shape.clamped();
+    out
 }
 
 /// Extrude's bend: Angle, Direction, Bend radius, Segments and Rise per

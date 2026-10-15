@@ -152,11 +152,15 @@ pub(crate) fn both_sides(op: &Operation, mesh: &Mesh, mirror: &Mirror) -> Both {
             faces,
             distance,
             grouping,
+            shape,
             anchors,
         } => together(Operation::ExtrudePolygons {
             faces: all_faces(faces),
             distance: *distance,
             grouping: *grouping,
+            // Along an axis, each side goes out the way it faces, so the
+            // mirrored side goes the mirrored way.
+            shape: *shape,
             anchors: joined(anchors),
         }),
         Operation::InsetPolygons {

@@ -16,7 +16,8 @@ pub use crate::cleanup::{
     flip_faces,
 };
 pub use crate::extrude::{
-    Bend, Grouping, extrude_bent, extrude_edges, extrude_polygons, inset_polygons,
+    Bend, ExtrudeDirection, ExtrudeShape, Grouping, MAX_END_SIZE, MAX_EXTRUDE_STEPS, extrude_bent,
+    extrude_edges, extrude_polygons, extrude_shaped, inset_polygons,
 };
 pub use crate::hardness::{hard_edges_by_angle, set_hard_edges, sharp_edges};
 pub use crate::join::{bridge_edges, bridge_faces, connect_edges, connect_points, weld};

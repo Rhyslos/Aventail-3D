@@ -59,6 +59,7 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0049](0049-slit.md) | Slit: a line of points over the shape, cut as seen (or through); file format version 7 | Accepted |
 | [0050](0050-pipe-bends.md) | Pipe bends: an extrude that turns a corner and keeps its size (smooth elbow or mitre joint); file format version 8 | Accepted |
 | [0051](0051-connect-bridge-weld.md) | Connect (J), Bridge (C or drag) and Weld (M, Ctrl + M); file format version 9 | Accepted |
+| [0070](0070-extrude-freedom.md) | Extrude straight out as standard, with direction, end size, steps and a flat end; the Scale squares scale equally; file format version 17 | Accepted |
 | [0068](0068-pivot-editing-and-scene-units.md) | Pivot editing in the Object mode (an offset between pivot and shape; Pivot to centre, world origin, object; Object to world origin) and units saved with the project; file format version 16 | Accepted |
 | [0067](0067-clearer-names.md) | Clearer names (Fix normals, Isolate, Duplicate as instance, Select same facing) and a README introduction for game developers | Accepted |
 | [0066](0066-clickable-axes.md) | Clickable corner axes: click X, Y or Z to look along it (again: the other side); Cavity beside Hard edges in the Display menu; heavy shapes reshaded in the background while dragging | Accepted |

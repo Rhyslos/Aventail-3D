@@ -298,7 +298,7 @@ fn shapes_measure_distance_from_the_mouse() {
 }
 
 #[test]
-fn a_scale_square_scales_two_axes_as_the_mouse_goes() {
+fn a_scale_square_scales_its_two_axes_equally() {
     let top = top();
     let g = gizmo(GizmoTool::Scale);
     let scaling = handles(&g, &top, NONE_LOCKED);
@@ -310,21 +310,27 @@ fn a_scale_square_scales_two_axes_as_the_mouse_goes() {
     let length = g.length(&top, SIZE);
     let start = Vec3::new(0.3, 0.3, 0.0) * length;
     let mut drag = Drag::new(g, Handle::ScalePlane(2), &top, SIZE, screen(&top, start));
-    // Mostly along X: X grows a lot, Y a little, Z not at all.
+    // Mostly along X: both X and Y grow, equally; Z not at all.
     let to = start + Vec3::new(1.0, 0.2, 0.0) * length;
     let Change::Scale(f) = drag.update(screen(&top, to), false, NONE_LOCKED) else {
         panic!("a scale")
     };
-    assert!((f.x - 2.0).abs() < 0.02, "{f}");
-    assert!((f.y - 1.2).abs() < 0.02, "{f}");
+    assert!((f.x - 1.6).abs() < 0.02, "{f}");
+    assert!((f.x - f.y).abs() < 1e-4, "{f}");
     assert_eq!(f.z, 1.0);
-    // Diagonally: both axes alike.
+    // Diagonally: the same.
     let to = start + Vec3::new(0.5, 0.5, 0.0) * length;
     let Change::Scale(f) = drag.update(screen(&top, to), false, NONE_LOCKED) else {
         panic!("a scale")
     };
-    assert!((f.x - f.y).abs() < 0.02 && f.x > 1.4, "{f}");
+    assert!((f.x - f.y).abs() < 1e-4 && (f.x - 1.5).abs() < 0.02, "{f}");
     assert_eq!(f.z, 1.0);
+    // Back towards the centre: both shrink.
+    let to = start - Vec3::new(0.2, 0.0, 0.0) * length;
+    let Change::Scale(f) = drag.update(screen(&top, to), false, NONE_LOCKED) else {
+        panic!("a scale")
+    };
+    assert!(f.x < 1.0 && (f.x - f.y).abs() < 1e-4, "{f}");
     // A locked axis keeps its size.
     let Change::Scale(f) = drag.change([true, false, false]) else {
         panic!()
