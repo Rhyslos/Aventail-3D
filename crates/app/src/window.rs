@@ -1,5 +1,7 @@
 //! The app window: opens it with eframe (winit + wgpu) and hands each
-//! frame to the workbench from the `ui` crate.
+//! frame to the workbench from the `ui` crate. While the app starts, the
+//! window shows a splash screen and does one step of starting up between
+//! frames, saying which ([decision 0079](../../../docs/decisions/0079-splash-screen.md)).
 
 use crate::backups::{self, Backups};
 use crate::branding;
@@ -7,6 +9,7 @@ use crate::gpu::GpuViewport;
 use crate::project;
 use eframe::egui;
 use std::path::PathBuf;
+use std::time::{Duration, Instant};
 use ui::{
     AppInfo, DockState, NoRenderer, Panel, ViewOptions, ViewportRenderer, Workbench,
     WorkbenchAction,
@@ -47,8 +50,232 @@ struct App {
     backups: Backups,
 }
 
-impl eframe::App for App {
+/// The shortest time the splash screen shows, so a quick start doesn't
+/// just flash it.
+const SPLASH_AT_LEAST: Duration = Duration::from_millis(600);
+
+/// The settings remembered from the last session.
+#[derive(Default)]
+struct Remembered {
+    layout: Option<DockState<Panel>>,
+    view: ViewOptions,
+    accent: ui::theme::Accent,
+    units: ui::Units,
+    recent: Vec<PathBuf>,
+    undo_memory: ui::UndoMemory,
+    autosave: ui::AutosaveSettings,
+    tool_menu: ui::ToolMenuSettings,
+}
+
+impl Remembered {
+    /// The settings in `storage`, or the standard ones.
+    fn read(storage: Option<&dyn eframe::Storage>) -> Self {
+        Self {
+            layout: storage.and_then(|s| eframe::get_value(s, LAYOUT_KEY)),
+            view: storage
+                .and_then(|s| eframe::get_value(s, VIEW_KEY))
+                .unwrap_or_default(),
+            accent: storage
+                .and_then(|s| eframe::get_value(s, ACCENT_KEY))
+                .unwrap_or_default(),
+            units: storage
+                .and_then(|s| eframe::get_value(s, UNITS_KEY))
+                .unwrap_or_default(),
+            recent: storage
+                .and_then(|s| eframe::get_value(s, RECENT_KEY))
+                .unwrap_or_default(),
+            undo_memory: storage
+                .and_then(|s| eframe::get_value(s, UNDO_MEMORY_KEY))
+                .unwrap_or_default(),
+            autosave: storage
+                .and_then(|s| eframe::get_value(s, AUTOSAVE_KEY))
+                .unwrap_or_default(),
+            tool_menu: storage
+                .and_then(|s| eframe::get_value(s, TOOL_MENU_KEY))
+                .unwrap_or_default(),
+        }
+    }
+}
+
+/// One step of starting up.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum Step {
+    /// Making the viewport's renderer on the window's GPU.
+    Graphics,
+    /// Making the workbench with the remembered settings.
+    Workbench,
+    /// Opening the project given on the command line.
+    Open(PathBuf),
+    /// Starting backup copies, and looking for what a crash left.
+    Backups,
+}
+
+impl Step {
+    /// What the splash screen says while it happens.
+    pub(crate) fn doing(&self) -> String {
+        match self {
+            Self::Graphics => "Starting the graphics…".to_string(),
+            Self::Workbench => "Getting the workbench ready…".to_string(),
+            Self::Open(path) => format!(
+                "Opening {}…",
+                path.file_name().map_or_else(
+                    || path.display().to_string(),
+                    |n| n.to_string_lossy().into_owned()
+                )
+            ),
+            Self::Backups => "Checking for unsaved work from last time…".to_string(),
+        }
+    }
+}
+
+/// The steps of starting up, in order, with the project at `open` if any.
+pub(crate) fn steps(open: Option<PathBuf>) -> Vec<Step> {
+    let mut steps = vec![Step::Graphics, Step::Workbench];
+    steps.extend(open.map(Step::Open));
+    steps.push(Step::Backups);
+    steps
+}
+
+/// The app while it starts: what is done so far.
+struct Starting {
+    info: AppInfo,
+    remembered: Option<Remembered>,
+    accent: ui::theme::Accent,
+    steps: Vec<Step>,
+    /// The next step.
+    next: usize,
+    /// Whether the splash screen naming the next step has been shown, so
+    /// it is on screen while that step works.
+    shown: bool,
+    began: Instant,
+    renderer: Option<Box<dyn ViewportRenderer>>,
+    workbench: Option<Workbench>,
+    backups: Option<Backups>,
+}
+
+impl Starting {
+    /// Does `step`.
+    fn run(&mut self, step: Step, frame: &eframe::Frame) {
+        match step {
+            Step::Graphics => {
+                self.renderer = Some(match frame.wgpu_render_state() {
+                    Some(state) => Box::new(GpuViewport::new(state)),
+                    None => Box::new(NoRenderer {
+                        reason: "the window has no GPU device".to_string(),
+                    }),
+                });
+            }
+            Step::Workbench => {
+                let r = self.remembered.take().unwrap_or_default();
+                let mut workbench = Workbench::new(self.info.clone(), r.layout)
+                    .with_view_options(r.view)
+                    .with_accent(r.accent)
+                    .with_units(r.units)
+                    .with_undo_memory(r.undo_memory)
+                    .with_recent_projects(r.recent)
+                    .with_autosave(r.autosave)
+                    .with_tool_menu(r.tool_menu);
+                // The Keys window draws the keyboard that goes with the
+                // system language, until one is picked there.
+                workbench.set_system_language(&sys_locale::get_locale().unwrap_or_default());
+                self.workbench = Some(workbench);
+            }
+            Step::Open(path) => {
+                if let Some(workbench) = self.workbench.as_mut() {
+                    project::open_from(workbench, path);
+                }
+            }
+            Step::Backups => {
+                if let Some(workbench) = self.workbench.as_mut() {
+                    self.backups = Some(Backups::start(backups::folder().as_deref(), workbench));
+                }
+            }
+        }
+    }
+
+    /// The running app, once every step is done and the splash screen
+    /// has shown long enough.
+    fn finished(&mut self) -> Option<App> {
+        if self.next < self.steps.len() || self.began.elapsed() < SPLASH_AT_LEAST {
+            return None;
+        }
+        Some(App {
+            title: String::new(),
+            closing: false,
+            workbench: self.workbench.take()?,
+            renderer: self.renderer.take()?,
+            backups: self.backups.take()?,
+        })
+    }
+}
+
+/// The app window's contents: the splash screen while starting, then the
+/// app.
+enum Shell {
+    Starting(Box<Starting>),
+    Running(Box<App>),
+}
+
+impl eframe::App for Shell {
     fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
+        let Self::Starting(starting) = self else {
+            if let Self::Running(app) = self {
+                app.frame(ui, frame);
+            }
+            return;
+        };
+        // The step named on screen last frame is done now, while it shows.
+        if starting.shown && starting.next < starting.steps.len() {
+            let step = starting.steps[starting.next].clone();
+            starting.run(step, frame);
+            starting.next += 1;
+            starting.shown = false;
+        }
+        if let Some(app) = starting.finished() {
+            *self = Self::Running(Box::new(app));
+            ui.ctx().request_repaint();
+            return;
+        }
+        let total = starting.steps.len().max(1);
+        let doing = starting
+            .steps
+            .get(starting.next)
+            .map_or_else(|| "Ready".to_string(), Step::doing);
+        ui::splash::show(
+            ui,
+            &ui::splash::SplashView {
+                info: &starting.info,
+                accent: starting.accent,
+                doing: &doing,
+                progress: starting.next as f32 / total as f32,
+            },
+        );
+        starting.shown = true;
+        ui.ctx().request_repaint();
+    }
+
+    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        // Nothing has changed while starting: the settings stay as they were.
+        if let Self::Running(app) = self {
+            app.save(storage);
+        }
+    }
+
+    fn on_exit(&mut self) {
+        match self {
+            Self::Running(app) => app.on_exit(),
+            Self::Starting(starting) => {
+                if let Some(backups) = starting.backups.as_mut() {
+                    backups.end();
+                }
+            }
+        }
+    }
+}
+
+impl App {
+    /// One frame of the running app.
+    fn frame(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
         crate::platform::keep_keyboard_focus(frame);
         let ctx = ui.ctx().clone();
         // The window's close button: ask about unsaved changes first.
@@ -153,64 +380,20 @@ pub fn run(info: AppInfo, open: Option<PathBuf>) -> Result<(), String> {
             options,
             Box::new(move |cc| {
                 ui::theme::apply(&cc.egui_ctx);
-                let saved: Option<DockState<Panel>> =
-                    cc.storage.and_then(|s| eframe::get_value(s, LAYOUT_KEY));
-                let view: ViewOptions = cc
-                    .storage
-                    .and_then(|s| eframe::get_value(s, VIEW_KEY))
-                    .unwrap_or_default();
-                let accent: ui::theme::Accent = cc
-                    .storage
-                    .and_then(|s| eframe::get_value(s, ACCENT_KEY))
-                    .unwrap_or_default();
-                let units: ui::Units = cc
-                    .storage
-                    .and_then(|s| eframe::get_value(s, UNITS_KEY))
-                    .unwrap_or_default();
-                let recent: Vec<PathBuf> = cc
-                    .storage
-                    .and_then(|s| eframe::get_value(s, RECENT_KEY))
-                    .unwrap_or_default();
-                let undo_memory: ui::UndoMemory = cc
-                    .storage
-                    .and_then(|s| eframe::get_value(s, UNDO_MEMORY_KEY))
-                    .unwrap_or_default();
-                let autosave: ui::AutosaveSettings = cc
-                    .storage
-                    .and_then(|s| eframe::get_value(s, AUTOSAVE_KEY))
-                    .unwrap_or_default();
-                let tool_menu: ui::ToolMenuSettings = cc
-                    .storage
-                    .and_then(|s| eframe::get_value(s, TOOL_MENU_KEY))
-                    .unwrap_or_default();
-                let renderer: Box<dyn ViewportRenderer> = match cc.wgpu_render_state.as_ref() {
-                    Some(state) => Box::new(GpuViewport::new(state)),
-                    None => Box::new(NoRenderer {
-                        reason: "the window has no GPU device".to_string(),
-                    }),
-                };
-                let mut workbench = Workbench::new(info, saved)
-                    .with_view_options(view)
-                    .with_accent(accent)
-                    .with_units(units)
-                    .with_undo_memory(undo_memory)
-                    .with_recent_projects(recent)
-                    .with_autosave(autosave)
-                    .with_tool_menu(tool_menu);
-                // The Keys window draws the keyboard that goes with the
-                // system language, until one is picked there.
-                workbench.set_system_language(&sys_locale::get_locale().unwrap_or_default());
-                if let Some(path) = open {
-                    project::open_from(&mut workbench, path);
-                }
-                let backups = Backups::start(backups::folder().as_deref(), &mut workbench);
-                Ok(Box::new(App {
-                    title: String::new(),
-                    closing: false,
-                    workbench,
-                    renderer,
-                    backups,
-                }))
+                let remembered = Remembered::read(cc.storage);
+                let accent = remembered.accent;
+                Ok(Box::new(Shell::Starting(Box::new(Starting {
+                    info,
+                    remembered: Some(remembered),
+                    accent,
+                    steps: steps(open),
+                    next: 0,
+                    shown: false,
+                    began: Instant::now(),
+                    renderer: None,
+                    workbench: None,
+                    backups: None,
+                }))))
             }),
         )
     }));
@@ -241,6 +424,26 @@ fn explain_panic(payload: &(dyn std::any::Any + Send)) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn starting_up_says_what_it_does_in_order() {
+        let plain: Vec<String> = steps(None).iter().map(Step::doing).collect();
+        assert_eq!(
+            plain,
+            [
+                "Starting the graphics…",
+                "Getting the workbench ready…",
+                "Checking for unsaved work from last time…",
+            ]
+        );
+        let opening = steps(Some(PathBuf::from("/work/crate.avtl")));
+        assert_eq!(opening.len(), 4);
+        assert_eq!(opening[2].doing(), "Opening crate.avtl…");
+        // The project opens after the workbench is made, and before the
+        // backups look for what a crash left (which may offer them back).
+        assert_eq!(opening[1], Step::Workbench);
+        assert_eq!(opening[3], Step::Backups);
+    }
 
     #[test]
     fn missing_linux_library_gets_an_install_hint() {
