@@ -638,8 +638,13 @@ impl AttributesPanel {
                             changed = true;
                         }
                     } else if matches!(kind, Operation::ExtrudeBent { .. }) {
-                        // A bend taken back to nothing becomes a straight
+                        // The shape rows stay, greyed out, so the bend rows
+                        // below don't jump up the moment the Angle leaves 0.
+                        // They show the shape it takes if the bend is taken
+                        // back to nothing: then it becomes a straight
                         // extrude shaped as the tool is.
+                        let mut shape = self.extrude;
+                        extrude_rows(ui, &mut shape, false);
                         edited.extrude = Some(self.extrude);
                     }
                     if let Some(bend) = edited.bend {
