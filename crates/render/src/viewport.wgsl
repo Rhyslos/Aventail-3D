@@ -369,6 +369,9 @@ struct Object {
     // z: the average edge length in the world; w: how faint a dense
     // wireframe may fade.
     options: vec4<f32>,
+    // The material colours by slot, four to a row, each sRGB bytes (red
+    // lowest) with 255 above; 0 for the standard surface colour.
+    materials: array<vec4<u32>, 16>,
 };
 
 @group(1) @binding(0) var<uniform> object: Object;
@@ -379,7 +382,25 @@ const SHAPE_COLOR = vec4<f32>(0.5, 0.5, 0.51, 1.0);
 struct MeshIn {
     @location(0) position: vec3<f32>,
     @location(1) normal: vec3<f32>,
+    @location(2) material: u32,
 };
+
+// An sRGB colour as linear light.
+fn srgb_to_linear(c: vec3<f32>) -> vec3<f32> {
+    let low = c / 12.92;
+    let high = pow((c + vec3<f32>(0.055)) / 1.055, vec3<f32>(2.4));
+    return select(high, low, c <= vec3<f32>(0.04045));
+}
+
+// The surface colour of material slot `slot` (decision 0074).
+fn material_color(slot: u32) -> vec4<f32> {
+    let s = min(slot, 63u);
+    let packed = object.materials[s / 4u][s % 4u];
+    if packed == 0u {
+        return SHAPE_COLOR;
+    }
+    return vec4<f32>(srgb_to_linear(unpack4x8unorm(packed).rgb), 1.0);
+}
 
 fn object_world(position: vec3<f32>) -> vec3<f32> {
     return (object.model * vec4<f32>(position, 1.0)).xyz;
@@ -391,7 +412,7 @@ fn mesh_face_vs(in: MeshIn) -> FaceOut {
     var out: FaceOut;
     out.clip = frame.view_proj * vec4<f32>(world, 1.0);
     out.normal = (object.normal * vec4<f32>(in.normal, 0.0)).xyz;
-    out.color = SHAPE_COLOR;
+    out.color = material_color(in.material);
     out.world = world;
     return out;
 }

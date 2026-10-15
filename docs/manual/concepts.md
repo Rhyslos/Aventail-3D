@@ -157,7 +157,9 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Export and import** — Writing your models into a file another program reads (export), and reading one in (import). The project file keeps everything the app needs to keep working; an export holds just the finished shapes. See [Export and import](export-and-import.md).
 
-**Material slot / texture set** — Groups of polygons that get their own material. Each one becomes a separate texture set in Substance Painter.
+**Material** — What a surface is made of: painted metal, rubber, glass. In this app for now a material is a name and a colour; textures and the rest come with texturing. See [Materials](materials.md).
+
+**Material slot / texture set** — Groups of polygons that get their own material. Each one becomes a separate texture set in Substance Painter, and a separate surface (with its own material) in Godot. In this app each polygon holds the number of its material in its object's list. See [Materials](materials.md).
 
 **LOD (level of detail)** — Simpler versions of a model that the engine swaps in when it's far away.
 

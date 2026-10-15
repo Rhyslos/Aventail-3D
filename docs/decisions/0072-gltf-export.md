@@ -26,7 +26,7 @@ Godot and Substance Painter read glTF best, and glTF can keep where each object'
    - **Meshes:** each node holds a mesh of the object's shape around its pivot.
    - **Vertices:** one per distinct point, normal and UV, so points split where shading or UVs break, as every engine needs.
    - **UVs:** turned to glTF's way (V counts down).
-   - **Triangles and materials:** triangles are listed per material slot, with one grey material until material slots arrive.
+   - **Triangles and materials:** triangles are listed per material slot, with one grey material until material slots arrive (they did: [0074](0074-material-slots.md)).
 4. **Checked:** a sample with three shapes passes the Khronos glTF validator with no errors, warnings or hints. Tests read files back the way an engine does: the container, the JSON, the numbers, and buffer views aligned to 4 bytes.
 
 ## Consequences

@@ -685,6 +685,7 @@ fn place(model: glam::Mat4) -> render::MeshDraw {
         edges: true,
         points: None,
         faintest: 0.0,
+        palette: [0; render::PALETTE_SIZE],
     }
 }
 

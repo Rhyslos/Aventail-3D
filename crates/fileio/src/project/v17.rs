@@ -11,7 +11,6 @@ use super::v1::{FileOperation, Problem};
 use super::v2::{AnchorsV2, anchors_from_file, anchors_to_file};
 use super::v5::EntryWith;
 use super::v15::OperationV15;
-use super::v16::ProjectWithPlaces;
 use crate::limits::Bounded;
 use glam::Vec3;
 use mesh::FaceId;
@@ -20,7 +19,8 @@ use scene::{ExtrudeDirection, ExtrudeShape, Grouping, Operation};
 use serde::{Deserialize, Serialize};
 
 /// Version 17 of the file.
-pub(crate) type ProjectV17 = ProjectWithPlaces<EntryV17>;
+#[cfg(test)]
+pub(crate) type ProjectV17 = super::v16::ProjectWithPlaces<EntryV17>;
 
 /// A recorded edit in version 17.
 pub(crate) type EntryV17 = EntryWith<OperationV17>;

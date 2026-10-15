@@ -24,6 +24,9 @@ pub struct DrawItem {
     pub transform: Mat4,
     /// Whether it is selected.
     pub selected: bool,
+    /// Its materials' colours by slot (sRGB, 0 to 1); empty while it has
+    /// no materials of its own, for the standard surface colour.
+    pub colors: Vec<[f32; 3]>,
 }
 
 /// Everything the viewport draws of the scene. `version` changes whenever
@@ -179,12 +182,23 @@ impl DrawingCache {
             let Some(shape) = scene.evaluated(id) else {
                 continue;
             };
+            // An instance shows its original's materials.
+            let own = match scene.object(id).map(|o| &o.kind) {
+                Some(scene::ObjectKind::Instance(source)) => *source,
+                _ => id,
+            };
+            let colors = if scene.object(own).is_some_and(|o| !o.materials.is_empty()) {
+                scene.material_list(id).iter().map(|m| m.color).collect()
+            } else {
+                Vec::new()
+            };
             items.push(DrawItem {
                 id,
                 shown: hidden.shown(id, &shape.mesh),
                 mesh: shape.mesh,
                 transform: scene.shape_matrix(id),
                 selected: document.is_selected(id),
+                colors,
             });
         }
         let version = self.summary.drawing.version + 1;

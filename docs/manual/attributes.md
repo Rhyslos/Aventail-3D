@@ -24,6 +24,8 @@ Whenever you want to change *what* an object is rather than where it is: make a 
 
 **Copy and paste settings.** To make several shapes match, select the one you like and use the panel's **Edit → Copy settings**, or right-click it in the Objects panel and choose **Copy settings**. Then select the others (any number, in the Objects panel) and use **Edit → Paste cube settings** (or cylinder, and so on), or right-click one of them and choose the same: every selected shape of the same kind gets the same settings, in one undo step. Shapes of another kind are left alone.
 
+**Materials.** Every shape has a **Materials** section: its materials, each with a colour, a name, how many polygons use it and an **Assign** button that gives the selected polygons that material (in the Polygons mode). **Add material** and **Remove last** change the list. See [Materials](materials.md).
+
 **Mesh.** Every shape has a **Mesh** section (scroll down to it below the settings). It says what the shape is made of right now, settings and edits included:
 - **Points**, **Edges** and **Polygons**.
 - **Triangles**: the number a game engine actually draws, since it cuts every face into triangles. This is the usual measure of how heavy a model is, so keep an eye on it for game assets.

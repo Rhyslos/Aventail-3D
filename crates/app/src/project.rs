@@ -187,7 +187,10 @@ pub fn import_from(workbench: &mut Workbench, path: &Path) {
         fileio::export::FileUnits::Metres,
         fileio::export::UpAxis::Y,
     ) {
-        Ok(import) => workbench.imported(path, import),
+        Ok(mut import) => {
+            import.colour_from_files(path.parent().unwrap_or(Path::new(".")));
+            workbench.imported(path, import)
+        }
         Err(error) => workbench.import_failed(path, &error.to_string()),
     }
 }

@@ -993,6 +993,7 @@ impl Workbench {
         let coordinates = self.coordinates_view(&summary.drawing);
         let mut coordinates_done = Interaction::default();
         self.attributes.tool = self.tool;
+        self.attributes.polygons_selected = self.polygons_selected_for_attributes();
         hide_viewport_tab(&mut self.dock);
         let style = theme::dock_style(ui.style().as_ref(), self.accent);
         theme::dock_frame().show(ui, |ui| {
@@ -1020,6 +1021,9 @@ impl Workbench {
                     },
                 );
         });
+        if let Some(slot) = self.attributes.assign.take() {
+            self.assign_material(slot);
+        }
         // What is under the mouse now that the viewport knows where it is;
         // when that changes, draw again so the highlight follows at once.
         self.carry_out_selection(&summary.drawing);
@@ -2011,6 +2015,9 @@ mod joining_tests;
 mod loop_cut;
 #[cfg(test)]
 mod loop_cut_tests;
+#[cfg(test)]
+mod material_tests;
+mod materials;
 pub use exporting::{ExportChoice, ExportRequest};
 mod modelling;
 #[cfg(test)]

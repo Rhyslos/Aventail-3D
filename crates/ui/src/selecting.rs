@@ -420,6 +420,55 @@ impl Selector<'_> {
         })
     }
 
+    /// Selects the polygons of the edited objects using a material called
+    /// `name` (Select menu → Select by material, decision 0074).
+    pub(crate) fn select_by_material(&mut self, name: &str) -> Option<String> {
+        // Each edited object's slots holding a material of that name.
+        // (A slot past the last uses the first material.)
+        let slots: BTreeMap<ObjectId, (Vec<u32>, u32)> = self
+            .drawing
+            .items
+            .iter()
+            .filter(|i| i.selected)
+            .map(|i| {
+                let list = self.document.scene().material_list(i.id);
+                let slots = (0..list.len() as u32)
+                    .filter(|s| list[*s as usize].name == name)
+                    .collect();
+                (i.id, (slots, list.len() as u32))
+            })
+            .collect();
+        let none = ElementSelection::new();
+        let mut changes = Vec::new();
+        let mut found = 0;
+        for item in self.drawing.items.iter().filter(|i| i.selected) {
+            let (wanted, count) = slots.get(&item.id).cloned().unwrap_or_default();
+            let mut next = self.document.elements(item.id).unwrap_or(&none).clone();
+            let chosen: Vec<Element> = item
+                .shown
+                .faces()
+                .map(|(f, _)| f)
+                .filter(|f| {
+                    let slot = mesh::material::slot_of(&item.shown, *f);
+                    wanted.contains(if slot < count { &slot } else { &0 })
+                })
+                .map(Element::Polygon)
+                .collect();
+            found += chosen.len();
+            next.combine(ElementKind::Polygons, chosen, Combine::Replace);
+            changes.push((item.id, next));
+        }
+        if changes.is_empty() {
+            return Some(nothing_to_edit(ElementKind::Polygons));
+        }
+        self.record(ElementKind::Polygons, changes, "Select by material", None);
+        Some(match found {
+            0 => format!("No polygon uses {name}."),
+            1 => format!("1 polygon using {name} selected."),
+            n => format!("{n} polygons using {name} selected."),
+        })
+    }
+
     /// Selects the hard edges (Select menu → Select hard edges).
     pub(crate) fn select_hard_edges(&mut self) -> Option<String> {
         self.each_edited(

@@ -95,7 +95,8 @@ pub(crate) fn operation_size(op: &Operation) -> usize {
             std::mem::size_of_val(points.as_slice())
                 + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
         }
-        Operation::FlipPolygons { faces, anchors } => {
+        Operation::FlipPolygons { faces, anchors }
+        | Operation::SetMaterial { faces, anchors, .. } => {
             std::mem::size_of_val(faces.as_slice())
                 + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
         }
@@ -156,6 +157,14 @@ pub(crate) fn edit(edit: &Edit) -> usize {
             | Edit::SetTransform { .. }
             | Edit::SetOffset { .. }
             | Edit::SetUnits { .. } => 0,
+            Edit::SetMaterials { before, after, .. } => {
+                (before.len() + after.len()) * size_of::<crate::Material>()
+                    + before
+                        .iter()
+                        .chain(after)
+                        .map(|m| m.name.len())
+                        .sum::<usize>()
+            }
             Edit::Rename { before, after, .. } => text(before) + text(after),
             Edit::SetKind { before, after, .. } => kind(before) + kind(after),
             Edit::InsertLayer { layer: l, .. } | Edit::RemoveLayer { layer: l, .. } => layer(l),

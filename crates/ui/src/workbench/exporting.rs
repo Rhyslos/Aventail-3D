@@ -263,6 +263,7 @@ impl Workbench {
             .map(|o| {
                 let mut object = scene::Object::new(scene::ObjectKind::Mesh(Arc::new(o.mesh)));
                 object.name = o.name;
+                object.materials = o.materials;
                 object
             })
             .collect();
