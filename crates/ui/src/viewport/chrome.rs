@@ -112,18 +112,35 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
     });
     ui.menu_button("Cameras", |ui| {
         let active = panel.active_kind();
-        for kind in ViewKind::ALL {
-            let key = VIEW_KEYS
-                .iter()
-                .find(|(_, k)| *k == kind)
-                .map(|(key, _)| key.name())
-                .unwrap_or_default();
+        for kind in MENU_KINDS {
+            let key = if kind == ViewKind::Orthographic {
+                super::PROJECTION_KEY.name()
+            } else {
+                VIEW_KEYS
+                    .iter()
+                    .find(|(_, k)| *k == kind)
+                    .map(|(key, _)| key.name())
+                    .unwrap_or_default()
+            };
             if ui
                 .add(egui::Button::selectable(kind == active, kind.name()).shortcut_text(key))
                 .on_hover_text(camera_explanation(kind))
                 .clicked()
             {
-                panel.set_kind(kind);
+                // Between perspective and orthographic the view keeps
+                // looking where it looked (as P does); other kinds start
+                // at their opening camera.
+                let flat = panel.camera().is_flat();
+                let switch = match kind {
+                    ViewKind::Perspective => flat,
+                    ViewKind::Orthographic => !flat,
+                    _ => false,
+                };
+                if switch {
+                    panel.toggle_projection();
+                } else {
+                    panel.set_kind(kind);
+                }
                 ui.close();
             }
         }
@@ -236,6 +253,15 @@ pub(crate) fn auto_hard_edges_entry(ui: &mut Ui, options: &mut ViewOptions) {
 /// The Display menu's switch for showing normals.
 pub(crate) const NORMALS_ENTRY: &str = "Normals";
 
+/// The kinds of view the Cameras menu offers, in order.
+const MENU_KINDS: [ViewKind; 5] = [
+    ViewKind::Perspective,
+    ViewKind::Orthographic,
+    ViewKind::Top,
+    ViewKind::Front,
+    ViewKind::Right,
+];
+
 /// What the Cameras menu's tooltip says about a kind of view.
 fn camera_explanation(kind: ViewKind) -> &'static str {
     match kind {
@@ -243,6 +269,9 @@ fn camera_explanation(kind: ViewKind) -> &'static str {
         ViewKind::Top => "A flat view looking straight down: no perspective, true sizes",
         ViewKind::Front => "A flat view from the front: no perspective, true sizes",
         ViewKind::Right => "A flat view from the right: no perspective, true sizes",
+        ViewKind::Orthographic => {
+            "No perspective, from any direction: orbit it freely; parallel lines stay parallel"
+        }
     }
 }
 

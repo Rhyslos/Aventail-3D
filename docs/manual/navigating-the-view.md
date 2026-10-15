@@ -32,7 +32,7 @@ The small **X**, **Y** and **Z** arrows in the bottom-left corner of a view show
 - **Click the same letter again** to look from the other side: Z again looks up from below.
 - Looking straight down or up, the view lines up like the Top view: X to the right, Y up the screen.
 
-It's a quick way to check a shape square-on without switching to a flat view. You can orbit away again at once. Pointing at a letter rings it, so you know what you'll click. In flat views the letters only show the directions, because flat views keep their own direction.
+It's a quick way to check a shape square-on without switching to a flat view. You can orbit away again at once. Pointing at a letter rings it, so you know what you'll click. The letters work in flat views too, and the view stays flat: from the Top view, clicking X turns it into the Right view.
 
 ![After clicking Z: the view looks straight down at a crate, with X to the right and Y up.](../screenshots/2026-10-14-look-along.png)
 
@@ -46,9 +46,17 @@ The viewport can show four views: **Perspective** (the ordinary 3D view), **Top*
 - **Show one view large:** press **F1** (perspective), **F2** (top), **F3** (right) or **F4** (front), or click the square button again (it shows the active view on its own).
 - **Middle click to switch:** a middle click (press the wheel without moving the mouse) on a view shows just that view; another middle click goes back to all four. Dragging with the middle button still pans as usual.
 - **The active view:** the last view you clicked is the active one, marked with a thin line in the accent colour. The viewport's menus (View, Cameras) and keys such as **H** act on it.
-- **Change what a view shows:** **Cameras** lists the four kinds; picking one turns the active view into that kind, starting from its opening camera.
+- **Change what a view shows:** **Cameras** lists the kinds (Perspective, Orthographic, Top, Front, Right); picking one turns the active view into that kind, starting from its opening camera. Between Perspective and Orthographic the view keeps looking where it looked, as **P** does.
 
-Each view keeps its own camera, so moving around in one never disturbs the others. In a flat view you can **pan and zoom, but not orbit**: a front view always stays a front view. Zooming a flat view shows more or less of the scene (the spot under the mouse stays put), and **H** fits everything in it. Each flat view's grid stands facing you: the top view shows the ground grid from above, the front view an upright grid along X and Z, and the right view one along Y and Z. The view's name is in its top-left corner. Whether you last used one view or four is remembered.
+Each view keeps its own camera, so moving around in one never disturbs the others. In a flat view you can pan and zoom as usual, and **orbiting turns it into a free orthographic view**: the Top view becomes *Orthographic*, still flat, from wherever you turn it. Press **F2** (or F3, F4) to get the exact Top (or Right, Front) view back. Zooming a flat view shows more or less of the scene (the spot under the mouse stays put), and **H** fits everything in it. Each flat view's grid stands facing you: the top view shows the ground grid from above, the front view an upright grid along X and Z, and the right view one along Y and Z. The view's name is in its top-left corner. Whether you last used one view or four is remembered.
+
+### Orthographic: no perspective, from any direction
+
+Press **P** to switch the active view between **perspective** and **orthographic** (or pick **Cameras → Orthographic**). An orthographic view is [flat](concepts.md#viewing-the-scene): parallel lines stay parallel and nothing shrinks with distance, so you can judge whether edges line up, whether parts are the same height, and how a shape reads as a game sprite or an isometric asset. Unlike Top, Front and Right, it can be orbited freely, panned and zoomed like the perspective view.
+
+The switch keeps the view looking the same way, at the same point, with things at that point the same size, so nothing jumps. Press **P** again to go back. The view's name in its top-left corner says *Orthographic*. In the Top view, P gives a perspective view looking straight down.
+
+![An orthographic view of a cube, orbited: its parallel edges stay parallel, and the grid lines don't converge](../screenshots/2026-10-15-orthographic.png)
 
 ## Navigation controls
 
@@ -94,6 +102,7 @@ As standard (Mouse only controls, with Alt + mouse switched on):
 | Frame all | `H` |
 | Frame selected | `Z` |
 | Perspective, top, right, front view on its own | `F1`, `F2`, `F3`, `F4` |
+| Switch between perspective and orthographic | `P` |
 | All four views | `F5` |
 | Switch between one view and four | Middle click on a view |
 | Look along X, Y or Z (again: from the other side) | Click its letter in the bottom-left corner (perspective view) |
@@ -105,7 +114,8 @@ On macOS, Alt is the `Option` key. The other controls are in the table above.
 - **Problem:** nothing happens when you drag in the viewport. **Why:** a plain left drag is kept free for the selection tools, and some controls need a key. **Fix:** check the controls in use in the bottom-right corner (or the status bar), and hold the key it lists as you start the drag.
 - **Problem:** on Linux, Alt + drag moves the whole window instead of the view. **Why:** some Linux desktops use Alt + drag for moving windows. **Fix:** use the standard **Mouse only** controls (right drag orbits, middle drag pans), or in your desktop's window settings change that key (often called the "window action key" or "modifier key") to Super, the Windows-logo key.
 - **Problem:** zooming has stopped getting closer. **Why:** the camera stops 2 cm from the pivot, so it can't pass through it. **Fix:** point the mouse at something a little further away and zoom again: the new point becomes the pivot. Or zoom out and come at it from another side.
-- **Problem:** orbiting does nothing. **Why:** you're in a flat view (top, front or right), which keeps its direction. **Fix:** orbit in the perspective view (**F1**), or turn this view into a perspective one with **Cameras → Perspective**.
+- **Problem:** I orbited the Top view and now it says *Orthographic*. **Why:** orbiting a flat view frees it, as in Blender. **Fix:** press **F2** for the exact Top view again (F3 Right, F4 Front).
+- **Problem:** far things don't look smaller, and the view feels odd. **Why:** the view is orthographic (its name says so). **Fix:** press **P** for perspective.
 - **Problem:** a function key does something else, like changing the screen brightness. **Why:** on many laptops the F keys control the hardware unless you hold **Fn**. **Fix:** hold **Fn** with the key, or use the square button on the viewport's menu line, a middle click, or the **Panel** and **Cameras** menus.
 - **Problem:** the grid has disappeared. **Why:** the grid is drawn around the point you're looking at (at least 18 m around it) and fades out at its edges; if you've panned far away or are looking at the sky, there may be none in view. **Fix:** press **H** to frame everything, or zoom out: the grid reaches farther the farther away you are.
 

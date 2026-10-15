@@ -546,6 +546,10 @@ pub const VIEW_KEYS: [(egui::Key, ViewKind); 4] = [
 /// The key that shows all four views at once.
 pub const FOUR_VIEWS_KEY: egui::Key = egui::Key::F5;
 
+/// The key that switches the active view between perspective and
+/// orthographic (the project lead's choice, [decision 0069](../../../docs/decisions/0069-orthographic-view.md)).
+pub(crate) const PROJECTION_KEY: egui::Key = egui::Key::P;
+
 /// Gap between the four views, in logical pixels: a thin dark line.
 const VIEW_GAP: f32 = 2.0;
 
@@ -602,6 +606,12 @@ impl View {
 
     fn kind(&self) -> ViewKind {
         self.navigator.kind()
+    }
+
+    /// Switches between perspective and orthographic, stopping a glide.
+    fn toggle_projection(&mut self) {
+        self.glide = None;
+        self.navigator = self.navigator.toggled_projection();
     }
 
     /// Goes back to the opening camera for this kind of view.
@@ -1007,6 +1017,12 @@ impl ViewportPanel {
         self.options.four_views = false;
     }
 
+    /// Switches the active view between perspective and orthographic (key
+    /// P, or the Cameras menu), keeping where it looks.
+    pub fn toggle_projection(&mut self) {
+        self.active_view_mut().toggle_projection();
+    }
+
     /// Goes back to the opening camera of the active view (View → Reset
     /// view), keeping its kind.
     pub fn reset_view(&mut self) {
@@ -1298,11 +1314,10 @@ impl ViewportPanel {
                 response.hover_pos(),
             );
             chrome::overlays(ui, rect, &self.views[slot], &self.options);
-            // The corner marker's letters turn a perspective view to look
-            // along their axis (flat views keep their direction).
-            if !self.views[slot].kind().is_flat()
-                && let Some(axis) = chrome::axis_clicks(ui, rect, slot, self.views[slot].camera())
-            {
+            // The corner marker's letters turn the view to look along
+            // their axis (a flat Top, Front or Right view becomes a free
+            // Orthographic one, as when orbited).
+            if let Some(axis) = chrome::axis_clicks(ui, rect, slot, self.views[slot].camera()) {
                 self.active = slot;
                 let now = ui.input(|i| i.time);
                 self.views[slot].start_look_along(axis, now);
@@ -1387,6 +1402,9 @@ impl ViewportPanel {
         }
         if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, FOUR_VIEWS_KEY)) {
             self.options.four_views = true;
+        }
+        if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, PROJECTION_KEY)) {
+            self.toggle_projection();
         }
     }
 
