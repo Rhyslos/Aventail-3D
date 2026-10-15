@@ -184,6 +184,8 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
             super::picker::AROUND_CURSOR_LABEL,
         );
         ui.checkbox(&mut navigation.invert_orbit, "Invert orbit direction");
+        ui.checkbox(&mut navigation.show_pivot, SHOW_PIVOT_LABEL)
+            .on_hover_text(SHOW_PIVOT_HELP);
         ui.checkbox(
             &mut navigation.alt_everywhere,
             "Alt + mouse works in every scheme",
@@ -418,11 +420,24 @@ pub(super) fn overlays(ui: &Ui, rect: Rect, view: &View, options: &ViewOptions) 
     }
 }
 
-/// Whether the pivot marker shows: while orbiting or drag-zooming around
-/// the point under the mouse. Around the middle of the view it would just
-/// sit there, distracting, so it stays hidden.
+/// The name of the switch for the pivot marker, in the Options menu and
+/// Settings.
+pub(crate) const SHOW_PIVOT_LABEL: &str = "Show the turning point while orbiting";
+/// What it does.
+pub(crate) const SHOW_PIVOT_HELP: &str = "While you orbit, a small ring marks the point the view turns around \
+     (and, when zooming with a drag, the point it moves towards)";
+
+/// Whether the pivot marker shows (decision 0080): with its switch on,
+/// while orbiting, and while drag-zooming towards the point under the
+/// mouse.
 pub(super) fn shows_pivot_marker(drag: Option<DragKind>, options: &ViewOptions) -> bool {
-    options.navigation.around_cursor && matches!(drag, Some(DragKind::Orbit | DragKind::Dolly))
+    let navigation = options.navigation;
+    navigation.show_pivot
+        && match drag {
+            Some(DragKind::Orbit) => true,
+            Some(DragKind::Dolly) => navigation.around_cursor,
+            _ => false,
+        }
 }
 
 /// A small ring and dot on the point the view turns around or zooms
@@ -437,10 +452,11 @@ fn pivot_marker(ui: &Ui, painter: &egui::Painter, rect: Rect, view: &View) {
         return;
     }
     let accent = theme::accent(ui.ctx()).colors();
-    let shadow = Stroke::new(3.5, egui::Color32::from_black_alpha(110));
-    painter.circle_stroke(centre, 7.0, shadow);
-    painter.circle_stroke(centre, 7.0, Stroke::new(1.5, accent.light));
-    painter.circle_filled(centre, 2.0, accent.light);
+    let shadow = Stroke::new(4.5, egui::Color32::from_black_alpha(130));
+    painter.circle_stroke(centre, 9.0, shadow);
+    painter.circle_stroke(centre, 9.0, Stroke::new(2.0, accent.light));
+    painter.circle_filled(centre, 3.5, egui::Color32::from_black_alpha(130));
+    painter.circle_filled(centre, 2.5, accent.light);
 }
 
 /// Screen directions of the world axes as the camera sees them, `length`
@@ -576,17 +592,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_pivot_marker_shows_only_around_the_mouse() {
+    fn the_pivot_marker_shows_while_orbiting_unless_switched_off() {
         let mut options = ViewOptions::default();
         assert!(shows_pivot_marker(Some(DragKind::Orbit), &options));
         assert!(shows_pivot_marker(Some(DragKind::Dolly), &options));
         assert!(!shows_pivot_marker(Some(DragKind::Pan), &options));
         assert!(!shows_pivot_marker(None, &options));
+        // Around the middle of the view: still while orbiting, not when
+        // zooming (it would just sit in the middle).
         options.navigation.around_cursor = false;
-        assert!(
-            !shows_pivot_marker(Some(DragKind::Orbit), &options),
-            "hidden when turning around the middle of the view"
-        );
+        assert!(shows_pivot_marker(Some(DragKind::Orbit), &options));
+        assert!(!shows_pivot_marker(Some(DragKind::Dolly), &options));
+        // Switched off: never.
+        options.navigation.show_pivot = false;
+        assert!(!shows_pivot_marker(Some(DragKind::Orbit), &options));
     }
 
     #[test]
