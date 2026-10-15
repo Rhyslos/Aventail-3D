@@ -453,6 +453,41 @@ pub(super) fn camera(harness: &Harness<'static, State>) -> tools::Camera {
 }
 
 #[test]
+fn an_orbit_turns_by_the_whole_drag_from_the_first_pixel() {
+    let mut harness = fresh();
+    let before = camera(&harness);
+    // A slow start: 2 pixels a frame, so egui only takes it for a drag
+    // after a few frames. Those first pixels must still turn the view.
+    let start = viewport_spot(&harness);
+    let button = egui::PointerButton::Secondary;
+    harness.event(egui::Event::PointerMoved(start));
+    harness.step();
+    harness.event(egui::Event::PointerButton {
+        pos: start,
+        button,
+        pressed: true,
+        modifiers: Modifiers::NONE,
+    });
+    harness.step();
+    for i in 1..=30 {
+        harness.event(egui::Event::PointerMoved(
+            start + egui::vec2(2.0 * i as f32, 0.0),
+        ));
+        harness.step();
+    }
+    harness.event(egui::Event::PointerButton {
+        pos: start + egui::vec2(60.0, 0.0),
+        button,
+        pressed: false,
+        modifiers: Modifiers::NONE,
+    });
+    harness.run();
+    let turned = before.yaw - camera(&harness).yaw;
+    let expected = 60.0 * tools::navigation::ORBIT_SPEED;
+    assert!((turned - expected).abs() < 1e-4, "{turned} vs {expected}");
+}
+
+#[test]
 fn alt_left_drag_orbits_the_view() {
     let mut harness = fresh();
     let before = camera(&harness);
@@ -467,8 +502,10 @@ fn alt_left_drag_orbits_the_view() {
         after.yaw < before.yaw,
         "dragging right turns the scene right"
     );
+    // Started over empty space (no GPU here, so nothing is found under
+    // the mouse): around the middle of what's shown, the cube.
     let navigator = harness.state().workbench.viewport().navigator();
-    assert_eq!(navigator.pivot(), tools::camera::DEFAULT_TARGET);
+    assert_eq!(navigator.pivot(), glam::Vec3::new(0.0, 0.0, 50.0));
     assert!(harness.state().workbench.viewport().active_drag().is_none());
 }
 
@@ -1057,7 +1094,9 @@ fn orbiting_turns_around_the_surface_under_the_mouse() {
 }
 
 #[test]
-fn orbiting_over_the_background_keeps_the_pivot() {
+fn orbiting_over_empty_space_turns_around_the_middle_of_the_view() {
+    // An empty scene, and a pivot that isn't on a surface: the middle of
+    // the view, at the pivot's depth.
     let mut harness = with_surface(None);
     drag_viewport(
         &mut harness,
@@ -1065,7 +1104,7 @@ fn orbiting_over_the_background_keeps_the_pivot() {
         Modifiers::NONE,
         egui::vec2(100.0, 30.0),
     );
-    assert_eq!(pivot(&harness), tools::camera::DEFAULT_TARGET);
+    assert!(pivot(&harness).distance(tools::camera::DEFAULT_TARGET) < 0.01);
 }
 
 #[test]

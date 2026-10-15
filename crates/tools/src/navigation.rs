@@ -32,6 +32,11 @@ pub const DOLLY_DRAG_SPEED: f32 = 0.005;
 pub const WHEEL_DOLLY_SPEED: f32 = 0.003;
 /// Closest the camera may get to the pivot, in centimetres.
 pub const MIN_DISTANCE: f32 = 2.0;
+/// Within this distance of the pivot (in centimetres), zooming in no
+/// longer slows down: it moves on in steady small steps and pushes the
+/// pivot ahead, so you can move up to and past a surface instead of
+/// creeping towards it ([decision 0080](../../../docs/decisions/0080-navigation-feel.md)).
+pub const ZOOM_THROUGH_DISTANCE: f32 = 10.0;
 /// Farthest the camera may get from the pivot, in centimetres (1 km).
 pub const MAX_DISTANCE: f32 = 100_000.0;
 
@@ -518,8 +523,21 @@ impl Navigator {
         if !(amount.is_finite() && distance.is_finite() && distance > 1e-6) {
             return;
         }
-        let wanted = (distance * (-amount).exp()).clamp(MIN_DISTANCE, MAX_DISTANCE);
-        self.camera.position = target - to / distance * wanted;
+        let direction = to / distance;
+        let wanted = distance * (-amount).exp();
+        if amount > 0.0 && wanted < ZOOM_THROUGH_DISTANCE {
+            // Close in: step as if the pivot were ZOOM_THROUGH_DISTANCE
+            // away, and keep the pivot that far ahead.
+            let step = distance.max(ZOOM_THROUGH_DISTANCE) * (1.0 - (-amount).exp());
+            self.camera.position += direction * step;
+            let ahead = (self.pivot - self.camera.position).dot(direction);
+            if ahead < ZOOM_THROUGH_DISTANCE {
+                self.pivot = self.camera.position + direction * ZOOM_THROUGH_DISTANCE;
+            }
+            return;
+        }
+        let wanted = wanted.clamp(MIN_DISTANCE, MAX_DISTANCE);
+        self.camera.position = target - direction * wanted;
     }
 
     /// Zooms a flat view by showing less (or more) height, keeping
@@ -699,8 +717,9 @@ mod tests {
     #[test]
     fn zooming_stops_at_the_limits() {
         let mut navigator = Navigator::default();
+        // In: up to the pivot, which is pushed ahead (zooming through).
         navigator.dolly(1000.0);
-        assert!((navigator.distance() - MIN_DISTANCE).abs() < 1e-3);
+        assert!((navigator.distance() - ZOOM_THROUGH_DISTANCE).abs() < 1e-3);
         navigator.dolly(-1000.0);
         assert!((navigator.distance() - MAX_DISTANCE).abs() < 1.0);
         assert!(centred(&navigator));
@@ -1152,5 +1171,35 @@ mod tests {
             assert!(normal.dot(forward).abs() > 0.999, "{kind:?}");
         }
         assert_eq!(ViewKind::Perspective.grid_plane(), [Vec3::X, Vec3::Y]);
+    }
+
+    #[test]
+    fn zooming_in_close_keeps_going_past_the_surface() {
+        let mut navigator = Navigator::default();
+        let surface = navigator.pivot();
+        let towards = navigator.camera().forward();
+        // Many notches in: it never stalls, and goes past the point.
+        let mut last = navigator.camera().position;
+        for _ in 0..400 {
+            navigator.wheel(40.0);
+            let moved = (navigator.camera().position - last).dot(towards);
+            assert!(moved > 0.0, "every notch moves forward");
+            last = navigator.camera().position;
+        }
+        assert!(
+            (navigator.camera().position - surface).dot(towards) > 0.0,
+            "past it"
+        );
+        // The pivot stays ahead, close: orbiting turns around a near point.
+        let ahead = (navigator.pivot() - navigator.camera().position).dot(towards);
+        assert!((ahead - ZOOM_THROUGH_DISTANCE).abs() < 1e-3, "{ahead}");
+        // Steps close in are steady, not ever smaller.
+        let before = navigator.camera().position;
+        navigator.wheel(40.0);
+        let step = navigator.camera().position.distance(before);
+        assert!(step > 1.0, "{step}");
+        // Zooming out works as before.
+        navigator.wheel(-400.0);
+        assert!(navigator.distance() > ZOOM_THROUGH_DISTANCE);
     }
 }

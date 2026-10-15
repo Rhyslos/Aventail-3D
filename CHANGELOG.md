@@ -70,6 +70,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **Steadier navigation.** Orbiting or panning over empty space now turns around something you can see (what you last pointed at, the selection, or the scene) instead of a hidden point, so the view no longer swings wildly; panning keeps the spot you grabbed under the mouse, so it's never suddenly too fast; zooming in close keeps going in steady steps (even through a surface) instead of slowing to a stop; and the first pixels of a drag are no longer lost. The ring marking the turning point shows whenever you orbit, and **Show the turning point while orbiting** (Options menu, Settings) switches it off.
 - **Flat views orbit.** Orbiting the Top, Front or Right view now turns it into a free orthographic view instead of doing nothing; F2, F3 and F4 bring the exact views back. The corner axis letters work in flat views too.
 - **Settings → Interface → Lengths** is now **Units**, with this project's units and the units for new projects.
 - **Clearer names:** Fix facing is now **Fix normals**, Select similar facing is **Select same facing**, the left palette's Show only the selection button is **Isolate**, and the Instance command is **Duplicate as instance**.
