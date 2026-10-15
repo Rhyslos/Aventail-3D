@@ -64,7 +64,9 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0073](0073-mikktspace-tangents.md) | Exports cut polygons the viewport's way; MikkTSpace tangents in glTF for shapes with UVs (`bevy_mikktspace`) | Accepted |
 | [0072](0072-gltf-export.md) | glTF export: binary `.glb`, each object a node at its pivot, metres, Y up, triangles; `serde_json` | Accepted |
 | [0071](0071-obj-export-and-import.md) | OBJ export and import: File menu entries, shading as seen, exports prepared once for every format | Accepted |
+| [0080](0080-navigation-feel.md) | Navigation feel: a pivot you can see over empty space, pans at the grabbed depth, steady close zoom (through surfaces), no lost movement, an optional turning-point ring | Accepted |
 | [0070](0070-extrude-freedom.md) | Extrude straight out as standard, with direction, end size, steps and a flat end; the Scale squares scale equally; file format version 17 | Accepted |
+| [0069](0069-orthographic-view.md) | An orthographic view that orbits, on P; flat views orbit into it | Accepted |
 | [0068](0068-pivot-editing-and-scene-units.md) | Pivot editing in the Object mode (an offset between pivot and shape; Pivot to centre, world origin, object; Object to world origin) and units saved with the project; file format version 16 | Accepted |
 | [0067](0067-clearer-names.md) | Clearer names (Fix normals, Isolate, Duplicate as instance, Select same facing) and a README introduction for game developers | Accepted |
 | [0066](0066-clickable-axes.md) | Clickable corner axes: click X, Y or Z to look along it (again: the other side); Cavity beside Hard edges in the Display menu; heavy shapes reshaded in the background while dragging | Accepted |

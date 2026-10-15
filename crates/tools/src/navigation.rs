@@ -32,6 +32,11 @@ pub const DOLLY_DRAG_SPEED: f32 = 0.005;
 pub const WHEEL_DOLLY_SPEED: f32 = 0.003;
 /// Closest the camera may get to the pivot, in centimetres.
 pub const MIN_DISTANCE: f32 = 2.0;
+/// Within this distance of the pivot (in centimetres), zooming in no
+/// longer slows down: it moves on in steady small steps and pushes the
+/// pivot ahead, so you can move up to and past a surface instead of
+/// creeping towards it ([decision 0080](../../../docs/decisions/0080-navigation-feel.md)).
+pub const ZOOM_THROUGH_DISTANCE: f32 = 10.0;
 /// Farthest the camera may get from the pivot, in centimetres (1 km).
 pub const MAX_DISTANCE: f32 = 100_000.0;
 
@@ -63,6 +68,11 @@ pub enum ViewKind {
     Front,
     /// Flat, looking along -X from the right: Y to the right, Z up.
     Right,
+    /// Flat (orthographic) but free to orbit, from any direction
+    /// ([decision 0069](../../../docs/decisions/0069-orthographic-view.md)):
+    /// what P makes of a perspective view, and what a flat view becomes
+    /// when orbited.
+    Orthographic,
 }
 
 impl ViewKind {
@@ -78,6 +88,7 @@ impl ViewKind {
             Self::Top => "Top",
             Self::Front => "Front",
             Self::Right => "Right",
+            Self::Orthographic => "Orthographic",
         }
     }
 
@@ -92,7 +103,7 @@ impl ViewKind {
     /// always looks at its grid face on.
     pub fn grid_plane(self) -> [Vec3; 2] {
         match self {
-            Self::Perspective | Self::Top => [Vec3::X, Vec3::Y],
+            Self::Perspective | Self::Top | Self::Orthographic => [Vec3::X, Vec3::Y],
             Self::Front => [Vec3::X, Vec3::Z],
             Self::Right => [Vec3::Y, Vec3::Z],
         }
@@ -102,7 +113,7 @@ impl ViewKind {
     fn direction(self) -> Option<(f32, f32)> {
         use std::f32::consts::{FRAC_PI_2, PI};
         match self {
-            Self::Perspective => None,
+            Self::Perspective | Self::Orthographic => None,
             Self::Top => Some((FRAC_PI_2, -FRAC_PI_2)),
             Self::Front => Some((FRAC_PI_2, 0.0)),
             Self::Right => Some((PI, 0.0)),
@@ -172,6 +183,9 @@ impl Navigator {
     /// or a flat view looking at the middle of the scene, showing about
     /// 6 m from bottom to top.
     pub fn for_view(kind: ViewKind) -> Self {
+        if kind == ViewKind::Orthographic {
+            return Self::default().toggled_projection();
+        }
         let Some((yaw, pitch)) = kind.direction() else {
             return Self::default();
         };
@@ -188,18 +202,61 @@ impl Navigator {
         }
     }
 
-    /// Which kind of view this is.
+    /// Which kind of view this is: a flat view looking exactly as Top,
+    /// Front or Right look is that view; any other flat view is a free
+    /// Orthographic one.
     pub fn kind(&self) -> ViewKind {
         if !self.camera.is_flat() {
             return ViewKind::Perspective;
         }
-        let forward = self.camera.forward();
-        if forward.z < -0.99 {
-            ViewKind::Top
-        } else if forward.y > 0.99 {
-            ViewKind::Front
-        } else {
-            ViewKind::Right
+        let (yaw, pitch) = (self.camera.yaw, self.camera.pitch);
+        let same = |a: f32, b: f32| wrap_angle(a - b).abs() < 1e-4;
+        [ViewKind::Top, ViewKind::Front, ViewKind::Right]
+            .into_iter()
+            .find(|kind| {
+                kind.direction()
+                    .is_some_and(|(y, p)| same(yaw, y) && same(pitch, p))
+            })
+            .unwrap_or(ViewKind::Orthographic)
+    }
+
+    /// The same view switched between perspective and orthographic (key
+    /// P, [decision 0069](../../../docs/decisions/0069-orthographic-view.md)):
+    /// it keeps its direction and pivot, the pivot stays where it is on
+    /// screen, and things at the pivot's depth keep their size. A flat
+    /// view looking straight up or down tips just short of it, as
+    /// orbiting does.
+    #[must_use]
+    pub fn toggled_projection(&self) -> Self {
+        let to_pivot = self.pivot - self.camera.position;
+        let seen = Vec3::new(
+            to_pivot.dot(self.camera.right()),
+            to_pivot.dot(self.camera.up()),
+            to_pivot.dot(self.camera.forward()),
+        );
+        let tan = (self.camera.fov_y * 0.5).tan().max(1e-3);
+        let mut camera = self.camera;
+        let depth = match self.camera.ortho_height {
+            Some(height) => {
+                camera.ortho_height = None;
+                camera.pitch = camera.pitch.clamp(-MAX_PITCH, MAX_PITCH);
+                (height / (2.0 * tan)).clamp(MIN_DISTANCE, MAX_DISTANCE)
+            }
+            None => {
+                let depth = seen.z.max(MIN_DISTANCE);
+                camera.ortho_height =
+                    Some((2.0 * depth * tan).clamp(MIN_FLAT_HEIGHT, MAX_FLAT_HEIGHT));
+                FLAT_STANDOFF
+            }
+        };
+        if !seen.is_finite() {
+            return *self;
+        }
+        camera.position = self.pivot
+            - (camera.right() * seen.x + camera.up() * seen.y + camera.forward() * depth);
+        Self {
+            camera,
+            pivot: self.pivot,
         }
     }
 
@@ -391,8 +448,10 @@ impl Navigator {
     /// around it. The scene follows the mouse: dragging right turns its
     /// front to the right, dragging down tips its top towards you.
     pub fn orbit(&mut self, delta: Vec2) {
-        // Flat views keep their direction: a front view stays a front view.
-        if !delta.is_finite() || self.camera.is_flat() {
+        // A flat view orbits too, and stays flat: orbiting the Top view
+        // makes a free Orthographic view (the project lead's choice,
+        // decision 0069).
+        if !delta.is_finite() {
             return;
         }
         // Where the pivot sits as seen from the camera (right, up and
@@ -464,8 +523,21 @@ impl Navigator {
         if !(amount.is_finite() && distance.is_finite() && distance > 1e-6) {
             return;
         }
-        let wanted = (distance * (-amount).exp()).clamp(MIN_DISTANCE, MAX_DISTANCE);
-        self.camera.position = target - to / distance * wanted;
+        let direction = to / distance;
+        let wanted = distance * (-amount).exp();
+        if amount > 0.0 && wanted < ZOOM_THROUGH_DISTANCE {
+            // Close in: step as if the pivot were ZOOM_THROUGH_DISTANCE
+            // away, and keep the pivot that far ahead.
+            let step = distance.max(ZOOM_THROUGH_DISTANCE) * (1.0 - (-amount).exp());
+            self.camera.position += direction * step;
+            let ahead = (self.pivot - self.camera.position).dot(direction);
+            if ahead < ZOOM_THROUGH_DISTANCE {
+                self.pivot = self.camera.position + direction * ZOOM_THROUGH_DISTANCE;
+            }
+            return;
+        }
+        let wanted = wanted.clamp(MIN_DISTANCE, MAX_DISTANCE);
+        self.camera.position = target - direction * wanted;
     }
 
     /// Zooms a flat view by showing less (or more) height, keeping
@@ -645,8 +717,9 @@ mod tests {
     #[test]
     fn zooming_stops_at_the_limits() {
         let mut navigator = Navigator::default();
+        // In: up to the pivot, which is pushed ahead (zooming through).
         navigator.dolly(1000.0);
-        assert!((navigator.distance() - MIN_DISTANCE).abs() < 1e-3);
+        assert!((navigator.distance() - ZOOM_THROUGH_DISTANCE).abs() < 1e-3);
         navigator.dolly(-1000.0);
         assert!((navigator.distance() - MAX_DISTANCE).abs() < 1.0);
         assert!(centred(&navigator));
@@ -990,11 +1063,57 @@ mod tests {
     }
 
     #[test]
-    fn flat_views_do_not_orbit() {
-        let mut view = Navigator::for_view(ViewKind::Front);
-        let before = view;
-        view.orbit(Vec2::new(100.0, 50.0));
-        assert_eq!(view, before);
+    fn orbiting_a_flat_view_keeps_it_flat_and_frees_it() {
+        for kind in [ViewKind::Top, ViewKind::Front, ViewKind::Right] {
+            let mut view = Navigator::for_view(kind);
+            assert_eq!(view.kind(), kind);
+            let height = view.camera().ortho_height;
+            let pivot_at = on_screen(&view, view.pivot());
+            view.orbit(Vec2::new(100.0, 50.0));
+            assert_eq!(view.kind(), ViewKind::Orthographic, "{kind:?}");
+            assert_eq!(view.camera().ortho_height, height, "same zoom");
+            assert!((on_screen(&view, view.pivot()) - pivot_at).length() < 0.05);
+        }
+        // Turned back exactly, it is that view again.
+        let view = Navigator::for_view(ViewKind::Front).looking_along(Vec3::Y);
+        assert_eq!(view.kind(), ViewKind::Front);
+    }
+
+    #[test]
+    fn p_switches_projection_keeping_the_pivot_and_its_size() {
+        let mut start = Navigator::default();
+        start.orbit(Vec2::new(40.0, 20.0));
+        assert!(start.set_pivot(Vec3::new(30.0, -20.0, 10.0)));
+        // Something at the pivot's depth: a metre across.
+        let right = start.camera().right() * 100.0;
+        let width =
+            |n: &Navigator| (on_screen(n, n.pivot() + right) - on_screen(n, n.pivot())).length();
+        let ortho = start.toggled_projection();
+        assert!(ortho.camera().is_flat());
+        assert_eq!(ortho.kind(), ViewKind::Orthographic);
+        assert_eq!(ortho.pivot(), start.pivot());
+        assert_eq!(ortho.camera().forward(), start.camera().forward());
+        assert!(
+            (on_screen(&ortho, ortho.pivot()) - on_screen(&start, start.pivot())).length() < 0.05
+        );
+        assert!((width(&ortho) - width(&start)).abs() < 0.05);
+        // And back: the same view as before.
+        let back = ortho.toggled_projection();
+        assert!(!back.camera().is_flat());
+        assert!(back.camera().position.distance(start.camera().position) < 0.05);
+        assert!((width(&back) - width(&start)).abs() < 0.05);
+        // From the Top view, perspective tips just short of straight down.
+        let top = Navigator::for_view(ViewKind::Top).toggled_projection();
+        assert_eq!(top.kind(), ViewKind::Perspective);
+        assert!(top.camera().pitch >= -MAX_PITCH);
+        assert!(centred(&top));
+        // The opening Orthographic view is the opening view, flat.
+        let opening = Navigator::for_view(ViewKind::Orthographic);
+        assert_eq!(opening.kind(), ViewKind::Orthographic);
+        assert_eq!(
+            opening.camera().forward(),
+            Navigator::default().camera().forward()
+        );
     }
 
     #[test]
@@ -1052,5 +1171,35 @@ mod tests {
             assert!(normal.dot(forward).abs() > 0.999, "{kind:?}");
         }
         assert_eq!(ViewKind::Perspective.grid_plane(), [Vec3::X, Vec3::Y]);
+    }
+
+    #[test]
+    fn zooming_in_close_keeps_going_past_the_surface() {
+        let mut navigator = Navigator::default();
+        let surface = navigator.pivot();
+        let towards = navigator.camera().forward();
+        // Many notches in: it never stalls, and goes past the point.
+        let mut last = navigator.camera().position;
+        for _ in 0..400 {
+            navigator.wheel(40.0);
+            let moved = (navigator.camera().position - last).dot(towards);
+            assert!(moved > 0.0, "every notch moves forward");
+            last = navigator.camera().position;
+        }
+        assert!(
+            (navigator.camera().position - surface).dot(towards) > 0.0,
+            "past it"
+        );
+        // The pivot stays ahead, close: orbiting turns around a near point.
+        let ahead = (navigator.pivot() - navigator.camera().position).dot(towards);
+        assert!((ahead - ZOOM_THROUGH_DISTANCE).abs() < 1e-3, "{ahead}");
+        // Steps close in are steady, not ever smaller.
+        let before = navigator.camera().position;
+        navigator.wheel(40.0);
+        let step = navigator.camera().position.distance(before);
+        assert!(step > 1.0, "{step}");
+        // Zooming out works as before.
+        navigator.wheel(-400.0);
+        assert!(navigator.distance() > ZOOM_THROUGH_DISTANCE);
     }
 }
