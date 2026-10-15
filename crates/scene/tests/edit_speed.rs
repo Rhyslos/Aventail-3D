@@ -110,6 +110,7 @@ fn edit_speed_check() {
         faces: vec![FaceId::from_raw(face)],
         distance,
         grouping: Grouping::Together,
+        shape: scene::ExtrudeShape::EARLIER,
         anchors: None,
     };
     let prop = sphere(64, 48);

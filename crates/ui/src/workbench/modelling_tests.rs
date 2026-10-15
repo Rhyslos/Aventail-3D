@@ -48,7 +48,7 @@ fn top_face(mesh: &scene::Mesh) -> FaceId {
 
 /// The fresh window's cube selected, in the Polygons mode, its top
 /// polygon selected, and `key`'s tool in use.
-fn ready(key: Key) -> H {
+pub(super) fn ready(key: Key) -> H {
     let mut harness = fresh();
     let id = cube(&harness);
     harness
@@ -723,7 +723,7 @@ fn a_corner_point_bevels_too() {
 }
 
 /// One notch of Ctrl + wheel at `at`, up or down.
-fn ctrl_wheel(harness: &mut H, at: Pos2, up: bool) {
+pub(super) fn ctrl_wheel(harness: &mut H, at: Pos2, up: bool) {
     harness.event(Event::ModifiersChanged(Modifiers::COMMAND));
     harness.event(Event::PointerMoved(at));
     harness.event(Event::MouseWheel {

@@ -83,6 +83,7 @@ fn an_extrude_is_made_on_both_sides_together() {
         faces: vec![face],
         distance: 30.0,
         grouping: Grouping::Together,
+        shape: crate::ExtrudeShape::EARLIER,
         anchors: None,
     };
     let one = after(op.clone());
@@ -115,6 +116,7 @@ fn a_selection_crossing_the_middle_moves_as_one_piece() {
         faces: vec![tops[0]],
         distance: 20.0,
         grouping: Grouping::Together,
+        shape: crate::ExtrudeShape::EARLIER,
         anchors: None,
     };
     let both = after(mirrored(op));
@@ -122,6 +124,7 @@ fn a_selection_crossing_the_middle_moves_as_one_piece() {
         faces: tops.clone(),
         distance: 20.0,
         grouping: Grouping::Together,
+        shape: crate::ExtrudeShape::EARLIER,
         anchors: None,
     });
     assert_eq!(both.face_count(), by_hand.face_count());
@@ -280,6 +283,7 @@ fn settings_change_both_sides_and_the_name_says_so() {
         faces: vec![right_face(&base, Vec3::X)],
         distance: 30.0,
         grouping: Grouping::Together,
+        shape: crate::ExtrudeShape::EARLIER,
         anchors: None,
     });
     assert_eq!(op.describe(), "Extrude 1 polygon, mirrored");

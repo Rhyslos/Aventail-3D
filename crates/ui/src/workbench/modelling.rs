@@ -69,6 +69,8 @@ pub(super) struct ModellingSession {
     bevel: BevelLook,
     /// Extrude's bend (decision 0050).
     bend: scene::Bend,
+    /// Extrude's way, end size, steps and flat end (decision 0070).
+    extrude: scene::ExtrudeShape,
     /// For Bevel, the selected edges (or points, as edges of no length) in
     /// the world: the drag is measured away from them.
     reach: Vec<(Vec3, Vec3)>,
@@ -178,6 +180,7 @@ impl ModellingSession {
                 faces: faces.clone(),
                 distance: local,
                 grouping: self.grouping,
+                shape: self.extrude,
                 anchors,
             },
             (Elements::Edges(edges), Tool::Bevel) => Operation::BevelEdges {
@@ -392,6 +395,22 @@ impl Workbench {
     /// also on the last edit when the tool made it (the panel shows it as
     /// the Last edit then), as one undo step per notch.
     fn wheel_count(&mut self, steps: i32) {
+        let dragging = self.modelling_session.is_some() || self.loop_cut_session.is_some();
+        // The last edit the tool made, on the one selected object.
+        let last = match self.document.selection().as_slice() {
+            [id] if !dragging => self.document.scene().object(*id).and_then(|o| {
+                let (layer, index, op) = crate::attributes::last_edit(&o.stack)?;
+                crate::attributes::made_by(op, self.tool).then(|| (*id, layer, index, op.clone()))
+            }),
+            _ => None,
+        };
+        // Extrude's count is its bend's segments while it bends, and its
+        // steps otherwise (decision 0070).
+        let bends = match (&self.modelling_session, &last) {
+            (Some(session), _) => session.bend.bends(),
+            (None, Some((.., op))) => matches!(op.inner(), Operation::ExtrudeBent { .. }),
+            (None, None) => self.attributes.bend.bends(),
+        };
         let (name, max, tool_count) = match self.tool {
             Tool::Bevel => (
                 "segments",
@@ -403,10 +422,15 @@ impl Workbench {
                 mesh::loopcut::MAX_CUTS,
                 self.attributes.loop_cut.cuts,
             ),
-            Tool::Extrude => (
+            Tool::Extrude if bends => (
                 "bend segments",
                 mesh::extrude::MAX_BEND_SEGMENTS,
                 self.attributes.bend.segments,
+            ),
+            Tool::Extrude => (
+                "steps",
+                mesh::edit::MAX_EXTRUDE_STEPS,
+                self.attributes.extrude.steps,
             ),
             Tool::Bridge => (
                 "segments",
@@ -415,15 +439,6 @@ impl Workbench {
             ),
             _ => return,
         };
-        let dragging = self.modelling_session.is_some() || self.loop_cut_session.is_some();
-        // The last edit the tool made, on the one selected object.
-        let last = match self.document.selection().as_slice() {
-            [id] if !dragging => self.document.scene().object(*id).and_then(|o| {
-                let (layer, index, op) = crate::attributes::last_edit(&o.stack)?;
-                crate::attributes::made_by(op, self.tool).then(|| (*id, layer, index, op.clone()))
-            }),
-            _ => None,
-        };
         let count_of = |op: &Operation| {
             let settings = op.settings()?;
             match (self.tool, op.inner()) {
@@ -431,6 +446,9 @@ impl Workbench {
                 // Only a bent extrude has its own segments; a straight one
                 // shows the tool's.
                 (Tool::Extrude, Operation::ExtrudeBent { .. }) => settings.bend.map(|b| b.segments),
+                (Tool::Extrude, Operation::ExtrudePolygons { .. }) => {
+                    settings.extrude.map(|e| e.steps)
+                }
                 (Tool::Extrude, _) => None,
                 (Tool::Bridge, _) => settings.bridge.map(|b| b.0),
                 _ => settings.cuts,
@@ -443,7 +461,8 @@ impl Workbench {
         let count = (i64::from(current) + i64::from(steps)).clamp(1, i64::from(max)) as u32;
         match self.tool {
             Tool::Bevel => self.attributes.bevel.segments = count,
-            Tool::Extrude => self.attributes.bend.segments = count,
+            Tool::Extrude if bends => self.attributes.bend.segments = count,
+            Tool::Extrude => self.attributes.extrude.steps = count,
             Tool::Bridge => self.attributes.join.bridge.0 = count,
             _ => self.attributes.loop_cut.cuts = count,
         }
@@ -453,7 +472,11 @@ impl Workbench {
         ));
         if let Some(session) = &mut self.modelling_session {
             session.bevel.segments = count;
-            session.bend.segments = count;
+            if bends {
+                session.bend.segments = count;
+            } else {
+                session.extrude.steps = count;
+            }
             if let Some(distance) = session.shown {
                 let session = session.clone();
                 session.show(&mut self.document, distance).ok();
@@ -471,11 +494,17 @@ impl Workbench {
                     segments: Some(count),
                     ..settings
                 },
-                Tool::Extrude => scene::EditSettings {
+                Tool::Extrude if bends => scene::EditSettings {
                     bend: settings.bend.map(|b| scene::Bend {
                         segments: count,
                         ..b
                     }),
+                    ..settings
+                },
+                Tool::Extrude => scene::EditSettings {
+                    extrude: settings
+                        .extrude
+                        .map(|e| scene::ExtrudeShape { steps: count, ..e }),
                     ..settings
                 },
                 Tool::Bridge => scene::EditSettings {
@@ -528,6 +557,9 @@ impl Workbench {
         let mut points = Vec::new();
         // The way everything faces, summed in the world.
         let mut facing = Vec3::ZERO;
+        // The extrude's axis in the world, for Along X, Y or Z.
+        let axis = self.attributes.extrude.direction.axis();
+        let mut along = Vec3::ZERO;
         let mut reach = Vec::new();
         for item in drawing.items.iter().filter(|i| i.selected) {
             let Some(selected) = self.document.elements(item.id) else {
@@ -564,6 +596,9 @@ impl Workbench {
                 continue;
             }
             facing += world_facing(&item.mesh, item.transform, &elements);
+            if let Some(axis) = axis {
+                along += item.transform.transform_vector3(axis).normalize_or_zero();
+            }
             for c in &corners {
                 let world = |v: &VertexId| {
                     item.mesh
@@ -604,11 +639,23 @@ impl Workbench {
             parts,
             pivot: bounds.centre(),
             direction: (tool == Tool::Extrude)
-                .then(|| facing.try_normalize())
+                .then(|| match (axis, along.try_normalize()) {
+                    // Along an axis, out the way the polygons face (and so
+                    // dragging that way on screen pushes them out).
+                    (Some(_), Some(along)) if !self.attributes.extrude_bends() => {
+                        if along.dot(facing) < 0.0 {
+                            Some(-along)
+                        } else {
+                            Some(along)
+                        }
+                    }
+                    _ => facing.try_normalize(),
+                })
                 .flatten(),
             grouping: self.grouping(),
             bevel: self.attributes.bevel,
             bend: self.attributes.bend,
+            extrude: self.attributes.extrude,
             reach,
             start: None,
             shown: None,

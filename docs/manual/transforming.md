@@ -37,7 +37,7 @@ Changes to points, edges and polygons are recorded on top of the shape's [base](
      - Drag the **outer white ring** to turn around the line you're looking along.
    - **Scale:**
      - Drag a **box** to stretch or squash along that axis.
-     - Drag a small **square** between two boxes to scale along both of those axes at once. The direction you drag decides how much each one changes: drag the green square (X and Y) mostly along X, and it scales mostly along X and only a little along Y. Drag diagonally to scale both alike. Away from the centre makes it bigger, towards it smaller.
+     - Drag a small **square** between two boxes to scale along both of those axes at once, **equally**: the green square (X and Y) makes a shape wider and deeper by the same amount, keeping its height. Away from the centre makes it bigger, towards it smaller; the direction you drag doesn't change the mix. To stretch one axis more than the other, use its box instead.
      - Drag the **centre dot** to scale evenly. Right or up makes it bigger; left or down makes it smaller.
 4. **Let go** to keep the change. While you drag, the status bar shows how far you've gone (*Moving: X 0.25 m, Y 0 m, Z 0 m*).
 5. **Q** goes back to selecting.
@@ -128,7 +128,7 @@ What the fields show:
 | Action | Shortcut |
 |---|---|
 | Move / rotate / scale / Transform (all three) | `W` / `R` / `S` / `T` |
-| Scale along two axes | Drag a square of the Scale gizmo; the drag's direction sets the mix |
+| Scale along two axes, equally | Drag a square of the Scale gizmo |
 | Back to selecting | `Q` |
 | Ten times slower | Hold `Shift` while dragging |
 | Snap for this drag (or not, if snapping is on) | Hold `Ctrl` while dragging |
@@ -146,7 +146,7 @@ What the fields show:
 - **Problem:** a move won't land between grid lines. **Why:** snapping is on. **Fix:** hold **Ctrl** while dragging, or turn snapping off.
 - **Tip:** to lift a polygon straight up, select it in Polygons mode, press **W** and drag the green arrow. The polygons around it stretch to follow, which is the start of many hard-surface shapes.
 - **Problem:** after changing a shape's segments, an edit moved the wrong points, or the Edits section warns. **Why:** with fewer segments, some edited points have no place left; an edit that moved points onto exactly the same spot as others can also pick the nearest one. **Fix:** go back to the earlier settings (Ctrl + Z), or make the change before editing.
-- **Tip:** to scale a panel wider without making it taller, use the Scale gizmo's square for the two axes you want and drag along the one that should grow most.
+- **Tip:** to scale a panel wider and deeper without making it taller, drag the Scale gizmo's square for those two axes: both grow by the same amount.
 - **Tip:** to flatten points (to make them all the same height), select them, press **S**, lock X and Y, and drag the centre dot left until the status bar says 0%. With snapping on it stops neatly on 0%.
 
 ## Related

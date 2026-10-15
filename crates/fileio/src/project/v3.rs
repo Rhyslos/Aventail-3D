@@ -76,12 +76,15 @@ impl FileOperation for OperationV3 {
         let faces = |faces: &[FaceId]| faces.iter().map(|f| f.get()).collect();
         let anchors = |a: Option<&mesh::Anchors>| a.map(anchors_to_file);
         Some(match op {
+            // Only extrudes shaped the first way (decision 0070); later
+            // ones are stored by version 17.
             Operation::ExtrudePolygons {
                 faces: f,
                 distance,
                 grouping,
+                shape,
                 ..
-            } => Self::ExtrudePolygons {
+            } if *shape == scene::ExtrudeShape::EARLIER => Self::ExtrudePolygons {
                 faces: faces(f),
                 distance: *distance,
                 separate: separate(*grouping),
@@ -133,6 +136,7 @@ impl FileOperation for OperationV3 {
                 faces: faces(f),
                 distance: distance(d, "extrude")?,
                 grouping: grouping(separate),
+                shape: scene::ExtrudeShape::EARLIER,
                 anchors: anchors(a)?,
             }),
             Self::InsetPolygons {

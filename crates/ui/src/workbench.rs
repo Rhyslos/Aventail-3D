@@ -1984,6 +1984,8 @@ mod cleaning;
 mod cleaning_tests;
 mod command;
 mod copying;
+#[cfg(test)]
+mod extrude_tests;
 mod hardness;
 #[cfg(test)]
 mod hardness_tests;

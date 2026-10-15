@@ -9,11 +9,77 @@ use mesh::{CubeParams, PrimitiveKind, VertexId};
 use scene::{Command, Object, ObjectKind, Operation, Place, Primitive, Transform};
 
 /// A document using everything the current version of the format can
+/// hold: all of [`rich_document_v16`], plus what version 17 adds (shaped
+/// extrudes: straight out with a smaller end and steps, along Z with a
+/// flat end, and one made with symmetry on; the version 17 sample holds
+/// exactly this).
+fn rich_document() -> Document {
+    let mut doc = rich_document_v16();
+    let cube = doc
+        .scene()
+        .walk()
+        .into_iter()
+        .map(|(id, _)| id)
+        .find(|id| doc.scene().object(*id).unwrap().name == "Cube")
+        .unwrap();
+    let shape = doc.scene().evaluated(cube).unwrap().mesh;
+    let side = shape
+        .faces()
+        .map(|(f, _)| f)
+        .max_by(|a, b| shape.face_normal(*a).x.total_cmp(&shape.face_normal(*b).x))
+        .unwrap();
+    let tapered = Operation::ExtrudePolygons {
+        faces: vec![side],
+        distance: 6.5,
+        grouping: scene::Grouping::Together,
+        shape: scene::ExtrudeShape {
+            direction: scene::ExtrudeDirection::Straight,
+            end_size: 0.75,
+            steps: 3,
+            flat_end: false,
+        },
+        anchors: None,
+    };
+    let level = Operation::ExtrudePolygons {
+        faces: vec![side],
+        distance: 2.0,
+        grouping: scene::Grouping::Separate,
+        shape: scene::ExtrudeShape {
+            direction: scene::ExtrudeDirection::AlongZ,
+            end_size: 1.25,
+            steps: 1,
+            flat_end: true,
+        },
+        anchors: None,
+    };
+    for operation in [
+        tapered.clone(),
+        level,
+        Operation::Mirrored {
+            op: Box::new(tapered),
+            mirror: mesh::symmetry::Mirror {
+                axes: [false, true, false],
+                centre: glam::Vec3::new(0.0, 1.5, 0.0),
+                clip: true,
+            },
+        },
+    ] {
+        doc.execute(Command::Record {
+            id: cube,
+            operation,
+        })
+        .unwrap();
+    }
+    doc.set_selection([cube]);
+    doc
+}
+
+/// A document using everything version 16 of the format can
 /// hold: all of [`rich_document_v15`], plus what version 16 adds (a
 /// pivot moved and turned apart from its shape, a group's pivot moved
 /// with an object inside, and the project in centimetres; the version
 /// 16 sample holds exactly this).
-fn rich_document() -> Document {
+fn rich_document_v16() -> Document {
     let mut doc = rich_document_v15();
     let find = |doc: &Document, name: &str| {
         doc.scene()
@@ -636,6 +702,7 @@ fn rich_document_v3() -> Document {
             faces: vec![face],
             distance: -12.25,
             grouping: scene::Grouping::Together,
+            shape: scene::ExtrudeShape::EARLIER,
             anchors,
         },
         Operation::ExtrudeEdges {
@@ -984,14 +1051,14 @@ fn a_cut_short_or_padded_body_is_damaged() {
 #[test]
 fn an_uncompressed_body_can_be_read() {
     let doc = rich_document();
-    let body = postcard::to_stdvec(&v16::ProjectV16::from_document(&doc)).unwrap();
-    let mut bytes = header(16, 0, body.len() as u64);
+    let body = postcard::to_stdvec(&v17::ProjectV17::from_document(&doc)).unwrap();
+    let mut bytes = header(17, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     assert_same(&doc, &from_bytes(&bytes).unwrap());
     // Data after the scene is refused.
     let mut longer = body.clone();
     longer.push(0);
-    let mut bytes = header(16, 0, longer.len() as u64);
+    let mut bytes = header(17, 0, longer.len() as u64);
     bytes.extend_from_slice(&longer);
     assert!(refused(&bytes).to_string().contains("unexpected data"));
 }
@@ -1926,7 +1993,7 @@ const SAMPLE_V16: &[u8] = include_bytes!("../../tests/data/sample-v16.avtl");
 #[test]
 fn a_file_saved_by_format_version_16_still_opens() {
     let doc = from_bytes(SAMPLE_V16).expect("the version 16 sample opens");
-    assert_same(&rich_document(), &doc);
+    assert_same(&rich_document_v16(), &doc);
     let model = v16::ProjectV16::from_document(&doc);
     assert_same(&doc, &from_bytes(&file_of_v16(&model)).unwrap());
 }
@@ -1958,7 +2025,7 @@ fn moved_pivots_and_the_units_come_back() {
 
 #[test]
 fn damaged_shape_places_are_refused() {
-    let good = v16::ProjectV16::from_document(&rich_document());
+    let good = v16::ProjectV16::from_document(&rich_document_v16());
     let first = good.offsets[0];
     let cases: Vec<(v16::ProjectV16, &str)> = vec![
         {
@@ -1986,6 +2053,49 @@ fn damaged_shape_places_are_refused() {
         let text = refused(&file_of_v16(&bad)).to_string();
         assert!(text.contains(words), "{words}: {text}");
     }
+}
+
+/// The bytes of a version 17 file holding `model`, uncompressed.
+fn file_of_v17(model: &v17::ProjectV17) -> Vec<u8> {
+    let body = postcard::to_stdvec(model).unwrap();
+    let mut bytes = header(17, 0, body.len() as u64);
+    bytes.extend_from_slice(&body);
+    bytes
+}
+
+/// A project saved by version 17 of the format, kept in the repository.
+const SAMPLE_V17: &[u8] = include_bytes!("../../tests/data/sample-v17.avtl");
+
+#[test]
+fn a_file_saved_by_format_version_17_still_opens() {
+    let doc = from_bytes(SAMPLE_V17).expect("the version 17 sample opens");
+    assert_same(&rich_document(), &doc);
+    let model = v17::ProjectV17::from_document(&doc);
+    assert_same(&doc, &from_bytes(&file_of_v17(&model)).unwrap());
+}
+
+#[test]
+fn shaped_extrudes_keep_their_shape_and_older_ones_the_first_way() {
+    let doc = from_bytes(&to_bytes(&rich_document()).unwrap()).unwrap();
+    let text = format!("{:?}", v17::ProjectV17::from_document(&doc));
+    assert_eq!(text.matches("Extrude(").count(), 2, "{text}");
+    assert_eq!(text.matches("MirroredExtrude").count(), 1);
+    assert!(text.contains("end_size: 0.75, steps: 3"));
+    assert!(text.contains("AlongZ"));
+    // Extrudes from older files open shaped the first way.
+    let old = from_bytes(SAMPLE_V16).unwrap();
+    let mut extrudes = 0;
+    for (id, _) in old.scene().walk() {
+        for layer in old.scene().object(id).unwrap().stack.layers() {
+            for entry in &layer.entries {
+                if let Operation::ExtrudePolygons { shape, .. } = entry.operation.inner() {
+                    assert_eq!(*shape, scene::ExtrudeShape::EARLIER);
+                    extrudes += 1;
+                }
+            }
+        }
+    }
+    assert!(extrudes > 0);
 }
 
 /// Writes the current version's sample. Run only by hand, when a new

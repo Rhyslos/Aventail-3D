@@ -298,6 +298,269 @@ pub fn extrude_polygons(
     outcome
 }
 
+/// Which way an extrude goes ([decision 0070](../../../docs/decisions/0070-extrude-freedom.md)).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum ExtrudeDirection {
+    /// Each piece goes straight out, every point the same way: along the
+    /// piece's average facing (its polygons' facings weighted by their
+    /// size). The end keeps the piece's shape.
+    #[default]
+    Straight,
+    /// Each point moves along its own facing (the piece's polygons around
+    /// it), so the end follows the surface's curve at an even thickness:
+    /// the first extrude's way ([decision 0038](../../../docs/decisions/0038-extrude-and-inset.md)),
+    /// and how extrudes saved before file format 17 still work.
+    AlongNormals,
+    /// Straight along the shape's own X axis, out the way the piece faces.
+    AlongX,
+    /// Straight along the shape's own Y axis, out the way the piece faces.
+    AlongY,
+    /// Straight along the shape's own Z axis, out the way the piece faces.
+    AlongZ,
+}
+
+impl ExtrudeDirection {
+    /// Every direction, in the order the interface lists them.
+    pub const ALL: [Self; 5] = [
+        Self::Straight,
+        Self::AlongNormals,
+        Self::AlongX,
+        Self::AlongY,
+        Self::AlongZ,
+    ];
+
+    /// The axis it goes along, if it goes along one.
+    pub fn axis(self) -> Option<Vec3> {
+        match self {
+            Self::AlongX => Some(Vec3::X),
+            Self::AlongY => Some(Vec3::Y),
+            Self::AlongZ => Some(Vec3::Z),
+            Self::Straight | Self::AlongNormals => None,
+        }
+    }
+}
+
+/// The most rows (steps) one extrude makes.
+pub const MAX_EXTRUDE_STEPS: u32 = 64;
+/// The largest end size, as a share of the start (1000%).
+pub const MAX_END_SIZE: f32 = 10.0;
+
+/// How an extrude is shaped beyond its distance (decision 0070): which way
+/// it goes, how big its end is, how many rows its walls have, and whether
+/// its end is made flat.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ExtrudeShape {
+    /// Which way it goes.
+    pub direction: ExtrudeDirection,
+    /// The end's size across the way it goes, as a share of the start's
+    /// (1 the same, 0.5 half, 0 a point), around the end's middle.
+    pub end_size: f32,
+    /// How many rows the walls have, 1 to [`MAX_EXTRUDE_STEPS`].
+    pub steps: u32,
+    /// Whether the end is laid flat, square to the way it goes.
+    pub flat_end: bool,
+}
+
+impl Default for ExtrudeShape {
+    /// Straight out, the end the same size, one row, not flattened.
+    fn default() -> Self {
+        Self {
+            direction: ExtrudeDirection::Straight,
+            end_size: 1.0,
+            steps: 1,
+            flat_end: false,
+        }
+    }
+}
+
+impl ExtrudeShape {
+    /// How every extrude worked before decision 0070: each point along
+    /// its own facing, nothing else. Extrudes saved before file format 17
+    /// keep it, so they keep their shape.
+    pub const EARLIER: Self = Self {
+        direction: ExtrudeDirection::AlongNormals,
+        end_size: 1.0,
+        steps: 1,
+        flat_end: false,
+    };
+
+    /// The same shape with its numbers brought into range: an end size of
+    /// 0 to [`MAX_END_SIZE`] (1 if not a number), 1 to
+    /// [`MAX_EXTRUDE_STEPS`] steps.
+    #[must_use]
+    pub fn clamped(self) -> Self {
+        Self {
+            end_size: if self.end_size.is_finite() {
+                self.end_size.clamp(0.0, MAX_END_SIZE)
+            } else {
+                1.0
+            },
+            steps: self.steps.clamp(1, MAX_EXTRUDE_STEPS),
+            ..self
+        }
+    }
+}
+
+/// Twice a polygon's area, along its facing (Newell's method).
+fn facing_by_size(mesh: &Mesh, face: FaceId) -> Vec3 {
+    let points: Vec<Vec3> = mesh
+        .face(face)
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|v| mesh.position(*v))
+        .collect();
+    let middle = points.iter().copied().sum::<Vec3>() / points.len().max(1) as f32;
+    points
+        .iter()
+        .zip(points.iter().cycle().skip(1))
+        .map(|(a, b)| (*a - middle).cross(*b - middle))
+        .sum()
+}
+
+/// Where each point of a piece ends up when extruded by `distance` with
+/// `shape`, worked out on the shape before the extrude.
+fn piece_ends(
+    mesh: &Mesh,
+    piece: &[FaceId],
+    distance: f32,
+    shape: &ExtrudeShape,
+) -> BTreeMap<VertexId, Vec3> {
+    let facing = piece
+        .iter()
+        .map(|f| facing_by_size(mesh, *f))
+        .sum::<Vec3>()
+        .try_normalize()
+        .or_else(|| piece.first().map(|f| mesh.face_normal(*f)))
+        .unwrap_or(Vec3::Z);
+    // The way the end goes as a whole (for its size and flattening).
+    let way = match shape.direction.axis() {
+        Some(axis) if axis.dot(facing) < 0.0 => -axis,
+        Some(axis) => axis,
+        None => facing,
+    };
+    let mut facings: BTreeMap<VertexId, Vec<Vec3>> = BTreeMap::new();
+    for face in piece {
+        let normal = mesh.face_normal(*face);
+        for v in mesh.face(*face).unwrap_or_default() {
+            facings.entry(*v).or_default().push(normal);
+        }
+    }
+    let moved: BTreeMap<VertexId, (Vec3, Vec3)> = facings
+        .iter()
+        .filter_map(|(v, around)| {
+            let at = mesh.position(*v)?;
+            let offset = match shape.direction {
+                ExtrudeDirection::AlongNormals => even_direction(around) * distance,
+                _ => way * distance,
+            };
+            Some((*v, (at, at + offset)))
+        })
+        .collect();
+    if moved.is_empty() {
+        return BTreeMap::new();
+    }
+    let centre = moved.values().map(|(_, end)| *end).sum::<Vec3>() / moved.len() as f32;
+    moved
+        .into_iter()
+        .map(|(v, (at, end))| {
+            let q = end - centre;
+            let along = q.dot(way);
+            let across = q - way * along;
+            let along = if shape.flat_end { 0.0 } else { along };
+            let shaped = centre + across * shape.end_size + way * along;
+            let place = if shaped.is_finite() {
+                shaped
+            } else if end.is_finite() {
+                end
+            } else {
+                at
+            };
+            (v, place)
+        })
+        .collect()
+}
+
+/// Extrudes `faces` by `distance` (in the mesh's own units; negative
+/// pushes them in) shaped by `shape` ([decision 0070](../../../docs/decisions/0070-extrude-freedom.md)):
+/// which way each piece goes, how big its end is, how many rows its walls
+/// have, and whether its end is flat. Pieces are as in
+/// [`extrude_polygons`] (`grouping`), and so are ids, values and hard
+/// edges. With [`ExtrudeShape::EARLIER`] this is exactly
+/// [`extrude_polygons`].
+///
+/// The walls are built as `steps` rings, then every point is placed: each
+/// ring evenly between the start and the end, so a smaller end tapers
+/// the walls in a straight line.
+///
+/// Polygons not in the mesh are counted as missing. A distance that isn't
+/// a number changes nothing.
+pub fn extrude_shaped(
+    mesh: &mut Mesh,
+    faces: &[FaceId],
+    distance: f32,
+    grouping: Grouping,
+    shape: ExtrudeShape,
+) -> Outcome {
+    let shape = shape.clamped();
+    if shape == ExtrudeShape::EARLIER {
+        return extrude_polygons(mesh, faces, distance, grouping);
+    }
+    let (faces, missing) = existing_faces(mesh, faces);
+    let outcome = Outcome {
+        matched: faces.len(),
+        missing,
+        skipped: 0,
+    };
+    if faces.is_empty() || !distance.is_finite() {
+        return outcome;
+    }
+    let original = mesh.clone();
+    let pieces = face_regions(original.topology(), &faces, grouping);
+    let ends: Vec<BTreeMap<VertexId, Vec3>> = pieces
+        .iter()
+        .map(|piece| piece_ends(&original, piece, distance, &shape))
+        .collect();
+    // Build the rings first (where they go is set afterwards), following
+    // each piece's points to their copy in every ring through its
+    // polygons' corners, which keep their order. Pieces are followed
+    // apart: polygons extruded each on their own copy a shared point once
+    // for each.
+    let steps = shape.steps as usize;
+    let mut follow: Vec<Vec<BTreeMap<VertexId, VertexId>>> =
+        vec![Vec::with_capacity(steps); pieces.len()];
+    for _ in 0..steps {
+        let before: BTreeMap<FaceId, Vec<VertexId>> = faces
+            .iter()
+            .map(|f| (*f, mesh.face(*f).unwrap_or_default().to_vec()))
+            .collect();
+        extrude_polygons(mesh, &faces, 0.0, grouping);
+        for (piece, rings) in pieces.iter().zip(&mut follow) {
+            let mut step = BTreeMap::new();
+            for face in piece {
+                let old = before.get(face).map_or(&[][..], Vec::as_slice);
+                for (a, b) in old.iter().zip(mesh.face(*face).unwrap_or_default()) {
+                    step.insert(*a, *b);
+                }
+            }
+            rings.push(step);
+        }
+    }
+    for (rings, ends) in follow.iter().zip(&ends) {
+        for (v, end) in ends {
+            let Some(at) = original.position(*v) else {
+                continue;
+            };
+            let mut id = *v;
+            for (k, step) in rings.iter().enumerate() {
+                id = step.get(&id).copied().unwrap_or(id);
+                let share = (k + 1) as f32 / steps as f32;
+                mesh.set_position(id, at.lerp(*end, share));
+            }
+        }
+    }
+    outcome
+}
+
 /// Insets `faces` by `distance` (in the mesh's own units, inward; negative
 /// grows them outward), as one piece where they touch or each on its own
 /// (`grouping`). The polygons keep their ids and their plane; the ring
@@ -826,5 +1089,7 @@ pub fn extrude_bent(
     outcome
 }
 
+#[cfg(test)]
+mod shaped_tests;
 #[cfg(test)]
 mod tests;

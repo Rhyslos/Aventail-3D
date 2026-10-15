@@ -32,7 +32,23 @@ To move polygons without building new ones, use [Move](transforming.md) instead.
    - **Start the drag on another polygon** and that polygon becomes the selection first, so you can extrude it straight away without clicking it. Starting on a selected polygon, or on empty space, extrudes what is selected.
 5. Let go. The whole drag is one undo step.
 
-The polygons stay selected, so you can drag again straight away to extrude another step. Each drag is its own extrude.
+The polygons stay selected, so you can drag again straight away to extrude another step. Each drag is its own extrude. They also stay selected for **W**, **R** and **S**: after extruding, move, turn or scale the new end freely with the [gizmo](transforming.md) for any shape the settings below don't give.
+
+### Shape it: direction, end size, steps, flat end
+
+While Extrude is in use, the top of the Attributes panel has four rows that shape the next extrude (and the last one, under Last edit):
+
+![The Attributes panel while Extrude is in use: Keep together, Direction (Straight out), End size 100%, Steps 1 and Flat end, above the Bend rows](../screenshots/2026-10-15-extrude-shape.png)
+
+- **Direction:** which way the polygons go.
+  - **Straight out** (the standard): every point goes the same way, along the polygons' average facing. A patch on a curved or sloped part comes straight out of the model and keeps its shape, like Blender's E or 3ds Max's Group extrude.
+  - **Along normals:** each point goes along its own [facing](concepts.md#shading-and-normals) (the polygons around it), so the end follows the surface's curve at an even thickness. Good for puffing out a curved panel or thickening a surface evenly. This is how every extrude worked before; extrudes in older projects keep it, so they keep their shape.
+  - **Along X**, **Along Y**, **Along Z:** straight along that axis of the object, out the way the polygons face. Pull a sloped patch out level, or a side of a cylinder out square to the ground.
+- **End size:** how big the new end is compared with the start. 100% is the same; less tapers it in (0% meets in a point, like a pyramid); more flares it out. Handy for table legs, nozzles and bevelled steps in one go.
+- **Steps:** how many rows the new walls have, evenly along them. More rows give loops to bend or shape later. **Ctrl + mouse wheel** changes it while Extrude is in use.
+- **Flat end:** lays the new end flat, square to the way it went: a patch from a curved side ends in a flat face.
+
+With **Keep together** off, each polygon is shaped on its own: each goes its own way out (or along the chosen axis), with its own end size. The four rows are greyed out while a **bend** is set, because a bent extrude goes out its own way.
 
 ### Inset polygons
 
@@ -89,6 +105,7 @@ Right after an extrude or inset, the **Attributes panel** shows it at the top, u
 
 - **Distance**: type an exact value, drag the number, or use the arrows. The shape follows as you change it.
 - **Keep together**: switch it to change how neighbouring polygons were treated (see Settings below).
+- **Direction**, **End size**, **Steps** and **Flat end**: reshape it (see above). Changing them here also sets them for the next extrude.
 - **Angle**, **Direction**, **Bend radius**, **Segments** and **Rise per turn**: bend it, or coil it into a spiral (see above).
 
 This works until you make another edit on top. After that, the extrude is fixed in place, like any other edit.
@@ -105,11 +122,15 @@ This works until you make another edit on top. After that, the extrude is fixed 
 | Setting | What it does |
 |---|---|
 | **Keep together** (Attributes panel) | **On** (the standard): polygons that touch move as **one piece**, like a slab pulled out of a wall; the edges between them stay and no walls form between them. **Off**: **each polygon on its own**, so every one becomes a separate bump (extrude) or gets its own ring (inset). The switch shows at the top of the Attributes panel while Extrude or Inset is the tool in use, and on the last edit; changing it on the last edit also sets it for the next one. For edges, on means edges that meet at a point grow as one strip. |
+| **Direction** | **Straight out** (standard), **Along normals**, **Along X**, **Along Y** or **Along Z**. See [Shape it](#shape-it-direction-end-size-steps-flat-end). |
+| **End size** | 0% to 1000% (standard 100%): the new end's size compared with the start. |
+| **Steps** | 1 to 64 rows along the walls (standard 1). **Ctrl + wheel** changes it while Extrude is in use (the bend's Segments instead while a bend is set). |
+| **Flat end** | Off (standard). On: the new end lies flat, square to the way it went. |
 | **Distance** (Attributes panel, Last edit) | How far the polygons were pushed or shrunk, in the object's own size. Negative extrudes push inward. With a bend, how far it goes on straight after the turn. |
 | **Angle** | How far an extrude turns before going on: 0° is straight. With a Bend radius up to 3600° (past 360° it spirals); with none, up to 150°. |
 | **Direction** | Which way round the pipe it turns: 0° turns up (an upright pipe turns towards +X). |
 | **Bend radius** | From the middle of the turn to the middle of the pipe. 0 is a sharp mitre corner; more is a smooth elbow. Below the pipe's own radius, the inside of the turn folds over. |
-| **Segments** | How many rows a smooth turn has; for a spiral, how many each full turn has. **Ctrl + wheel** changes it while Extrude is in use. |
+| **Segments** | How many rows a smooth turn has; for a spiral, how many each full turn has. **Ctrl + wheel** changes it while Extrude is in use and a bend is set. |
 | **Rise per turn** | Extra room between a spiral's loops: how much further each full turn climbs. 0 leaves the loops just apart. Under one turn, it tilts the bend into a ramp. Needs a Bend radius. |
 
 ## Shortcuts
@@ -120,7 +141,7 @@ This works until you make another edit on top. After that, the extrude is fixed 
 | Inset | `I` |
 | Set the distance | Left drag anywhere in the viewport: Extrude the way the polygons face, Inset towards their middle |
 | Finer steps | Hold `Shift` while dragging |
-| A bend's segments | `Ctrl` + wheel (while Extrude is in use) |
+| Steps (or, with a bend, its segments) | `Ctrl` + wheel (while Extrude is in use) |
 | Cancel the drag | `Esc` or a right-click |
 | Back to selecting | `Q` |
 
@@ -140,6 +161,9 @@ This works until you make another edit on top. After that, the extrude is fixed 
 - **Problem:** after changing the cube's segments, the extrude went somewhere odd or the Attributes panel says an edit no longer fits. **Why:** edits find their polygons again by where they were ([Attributes: Edits](attributes.md)); a big change can leave nothing at that spot. **Fix:** go back to the earlier settings, or undo.
 - **Problem:** the extrude is too fast or too slow to control. **Why:** the polygons follow the mouse, so a small drag goes a long way when zoomed out. **Fix:** zoom in, hold Shift, or type the Distance.
 - **Problem:** neighbouring polygons came out as separate blocks with a gap between them, even with Keep together on. **Why:** Keep together joins polygons that share an edge. Polygons made by separate extrudes (or with Keep together off) sit side by side but each has its own copy of the points along the seam, so they aren't joined. **Fix:** for now, select the polygons together before the first extrude. Welding points back together arrives with Connect, bridge and weld later in Phase 4.
+
+- **Problem:** polygons on a curved or sloped part came out fanned or sheared, not straight. **Why:** the Direction is **Along normals**, which moves each point along its own facing (and is how extrudes made before this version work). **Fix:** pick **Straight out** under Last edit, or one of the axes.
+- **Problem:** Along Z pushed a side polygon up instead of out. **Why:** the axis is the way it goes, whatever the polygon faces; a side facing across Z goes the positive way. **Fix:** pick Straight out, or the axis the polygon faces along.
 
 ## Related
 
