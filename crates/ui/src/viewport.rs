@@ -546,6 +546,10 @@ pub const VIEW_KEYS: [(egui::Key, ViewKind); 4] = [
 /// The key that shows all four views at once.
 pub const FOUR_VIEWS_KEY: egui::Key = egui::Key::F5;
 
+/// The key that switches the active view between perspective and
+/// orthographic (the project lead's choice, [decision 0069](../../../docs/decisions/0069-orthographic-view.md)).
+pub(crate) const PROJECTION_KEY: egui::Key = egui::Key::P;
+
 /// Gap between the four views, in logical pixels: a thin dark line.
 const VIEW_GAP: f32 = 2.0;
 
@@ -576,6 +580,10 @@ struct View {
     hovered_handle: Option<tools::Handle>,
     /// A modelling tool's drag (extrude, inset) in progress, if any.
     tool_drag: Option<tool_drag::ToolDrag>,
+    /// Whether the pivot is a point on a surface you pointed at (rather
+    /// than a point in mid-air left by zooming over empty space), so an
+    /// orbit started over empty space may keep turning around it.
+    pivot_on_surface: bool,
 }
 
 impl View {
@@ -593,6 +601,7 @@ impl View {
             pressed_handle: None,
             hovered_handle: None,
             tool_drag: None,
+            pivot_on_surface: false,
         }
     }
 
@@ -602,6 +611,12 @@ impl View {
 
     fn kind(&self) -> ViewKind {
         self.navigator.kind()
+    }
+
+    /// Switches between perspective and orthographic, stopping a glide.
+    fn toggle_projection(&mut self) {
+        self.glide = None;
+        self.navigator = self.navigator.toggled_projection();
     }
 
     /// Goes back to the opening camera for this kind of view.
@@ -680,20 +695,59 @@ impl View {
     /// pivot); otherwise, or without an up-to-date answer, a point along
     /// the mouse's line of sight as far away as the pivot is now, so the
     /// zoom never leaps.
-    fn zoom_target(&self, at: egui::Pos2, rect: Rect) -> Vec3 {
+    /// Whether it is a point on a surface.
+    ///
+    /// The ground is used only when it is no farther than the pivot: a
+    /// far-off pivot makes every later zoom step, pan and orbit huge.
+    fn zoom_target(&self, at: egui::Pos2, rect: Rect) -> (Vec3, bool) {
         let size = Vec2::new(rect.width(), rect.height());
         let ray = self
             .camera()
             .ray_through(Vec2::new(at.x - rect.min.x, at.y - rect.min.y), size);
         let reach = self.navigator.distance();
         match self.answer_at(at) {
-            Some(Some(point)) => point,
+            Some(Some(point)) => (point, true),
             Some(None) => match ray.hit_ground(0.0) {
-                Some(distance) if distance <= reach * 4.0 => ray.at(distance),
-                _ => ray.at(reach),
+                Some(distance) if distance <= reach => (ray.at(distance), false),
+                _ => (ray.at(reach), false),
             },
-            None => ray.at(reach),
+            None => (ray.at(reach), false),
         }
+    }
+
+    /// The point to turn around (or pan at the depth of) when a drag
+    /// starts over empty space ([decision 0080](../../../docs/decisions/0080-navigation-feel.md)):
+    /// the first of these that is in front of the camera and on screen,
+    /// so the view never swings around something you can't see:
+    ///
+    /// 1. the pivot, if it is a surface point you pointed at before;
+    /// 2. the middle of the selection;
+    /// 3. the middle of everything shown;
+    ///
+    /// otherwise the middle of the view, at the pivot's depth.
+    fn pivot_over_empty_space(&mut self, size: Vec2, scene: Option<&SceneSummary>) {
+        let on_screen = |camera: &Camera, point: Vec3| {
+            camera
+                .project(point, size)
+                .is_some_and(|p| p.x >= 0.0 && p.y >= 0.0 && p.x <= size.x && p.y <= size.y)
+        };
+        let camera = *self.camera();
+        if self.pivot_on_surface && on_screen(&camera, self.navigator.pivot()) {
+            return;
+        }
+        let candidates = scene
+            .into_iter()
+            .flat_map(|s| [s.selected, s.all])
+            .flatten()
+            .map(|b| b.centre());
+        for point in candidates {
+            if on_screen(&camera, point) && self.navigator.set_pivot(point) {
+                self.pivot_on_surface = false;
+                return;
+            }
+        }
+        self.navigator.centre_pivot();
+        self.pivot_on_surface = false;
     }
 
     /// Moves the camera for this frame's mouse input over the image.
@@ -704,6 +758,7 @@ impl View {
         rect: Rect,
         settings: NavigationSettings,
         slide_gizmo: Option<tools::Gizmo>,
+        scene: Option<&SceneSummary>,
     ) {
         let size = Vec2::new(rect.width(), rect.height());
         // Alt + left drag on the Move gizmo slides points (decision 0055),
@@ -738,24 +793,37 @@ impl View {
             }
             if let (Some(kind), Some(at), true) = (self.drag, pressed_at, settings.around_cursor) {
                 match kind {
-                    // Turn around what was clicked; over the background,
-                    // keep turning around the last pivot.
-                    DragKind::Orbit => {
-                        if let Some(point) = self.surface_at(at) {
-                            self.navigator.set_pivot(point);
+                    // Turn around what was clicked, and pan at its depth so
+                    // it stays under the mouse; over empty space, around
+                    // something you can see.
+                    DragKind::Orbit | DragKind::Pan => match self.surface_at(at) {
+                        Some(point) if self.navigator.set_pivot(point) => {
+                            self.pivot_on_surface = true;
+                        }
+                        _ => self.pivot_over_empty_space(size, scene),
+                    },
+                    DragKind::Dolly => {
+                        let (target, on_surface) = self.zoom_target(at, rect);
+                        if self.navigator.set_pivot(target) {
+                            self.pivot_on_surface = on_surface;
                         }
                     }
-                    DragKind::Dolly => {
-                        let target = self.zoom_target(at, rect);
-                        self.navigator.set_pivot(target);
-                    }
-                    DragKind::Pan => {}
                 }
             }
         }
         if let Some(kind) = self.drag {
             if response.dragged() {
-                let delta = response.drag_delta();
+                // The drag only counts as one once the mouse has moved a
+                // few pixels; on its first frame, use the whole way from
+                // where the button went down, so no movement is lost.
+                let delta = match (
+                    response.drag_started(),
+                    ui.input(|i| i.pointer.press_origin()),
+                    response.interact_pointer_pos(),
+                ) {
+                    (true, Some(from), Some(to)) => to - from,
+                    _ => response.drag_delta(),
+                };
                 let delta = settings.movement(kind, Vec2::new(delta.x, delta.y));
                 self.navigator.drag(kind, delta, size);
                 ui.ctx().set_cursor_icon(cursor_for(kind));
@@ -779,8 +847,11 @@ impl View {
                     .filter(|_| settings.around_cursor && !busy)
                 {
                     Some(at) => {
-                        let target = self.zoom_target(at, rect);
+                        let (target, on_surface) = self.zoom_target(at, rect);
                         self.navigator.wheel_towards(scroll, target);
+                        if self.navigator.pivot() == target {
+                            self.pivot_on_surface = on_surface;
+                        }
                     }
                     None => {
                         if !settings.around_cursor {
@@ -1005,6 +1076,12 @@ impl ViewportPanel {
             None => self.set_kind(kind),
         }
         self.options.four_views = false;
+    }
+
+    /// Switches the active view between perspective and orthographic (key
+    /// P, or the Cameras menu), keeping where it looks.
+    pub fn toggle_projection(&mut self) {
+        self.active_view_mut().toggle_projection();
     }
 
     /// Goes back to the opening camera of the active view (View → Reset
@@ -1236,7 +1313,7 @@ impl ViewportPanel {
             let slide_gizmo = self
                 .gizmo
                 .filter(|g| matches!(g.tool, tools::GizmoTool::Move | tools::GizmoTool::All));
-            self.views[slot].navigate(ui, &response, rect, settings, slide_gizmo);
+            self.views[slot].navigate(ui, &response, rect, settings, slide_gizmo, Some(scene));
             let tool_busy = self.views[slot].capture_tool_drag(
                 ui,
                 &response,
@@ -1298,11 +1375,10 @@ impl ViewportPanel {
                 response.hover_pos(),
             );
             chrome::overlays(ui, rect, &self.views[slot], &self.options);
-            // The corner marker's letters turn a perspective view to look
-            // along their axis (flat views keep their direction).
-            if !self.views[slot].kind().is_flat()
-                && let Some(axis) = chrome::axis_clicks(ui, rect, slot, self.views[slot].camera())
-            {
+            // The corner marker's letters turn the view to look along
+            // their axis (a flat Top, Front or Right view becomes a free
+            // Orthographic one, as when orbited).
+            if let Some(axis) = chrome::axis_clicks(ui, rect, slot, self.views[slot].camera()) {
                 self.active = slot;
                 let now = ui.input(|i| i.time);
                 self.views[slot].start_look_along(axis, now);
@@ -1387,6 +1463,9 @@ impl ViewportPanel {
         }
         if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, FOUR_VIEWS_KEY)) {
             self.options.four_views = true;
+        }
+        if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, PROJECTION_KEY)) {
+            self.toggle_projection();
         }
     }
 
@@ -1792,9 +1871,65 @@ mod tests {
     #[test]
     fn without_an_answer_zooming_keeps_the_current_distance() {
         let it = perspective();
-        let target = it.zoom_target(pos2(500.0, 350.0), rect(640.0, 400.0));
+        let (target, on_surface) = it.zoom_target(pos2(500.0, 350.0), rect(640.0, 400.0));
         let distance = it.camera().position.distance(target);
         assert!((distance - it.navigator.distance()).abs() < 0.01);
+        assert!(!on_surface);
+    }
+
+    #[test]
+    fn zooming_over_empty_ground_never_moves_the_pivot_farther_away() {
+        let mut it = perspective();
+        let at = pos2(320.0, 300.0);
+        it.under_mouse = Some(UnderMouse {
+            at,
+            point: None,
+            camera: *it.camera(),
+        });
+        let (target, on_surface) = it.zoom_target(at, rect(640.0, 400.0));
+        assert!(!on_surface);
+        let distance = it.camera().position.distance(target);
+        assert!(distance <= it.navigator.distance() + 0.01, "{distance}");
+    }
+
+    /// A summary whose selection is a box around `centre`.
+    fn selected_at(centre: Vec3) -> SceneSummary {
+        let half = Vec3::splat(10.0);
+        SceneSummary {
+            selected: scene::Bounds::new(centre - half, centre + half),
+            all: scene::Bounds::new(Vec3::splat(-5000.0), Vec3::splat(5000.0)),
+            ..SceneSummary::default()
+        }
+    }
+
+    #[test]
+    fn over_empty_space_the_view_turns_around_something_you_can_see() {
+        let size = Vec2::new(640.0, 400.0);
+        let mut it = perspective();
+        // A pivot left in mid-air by zooming over nothing is let go of:
+        // the selection on screen is used instead.
+        it.navigator
+            .set_pivot(it.camera().position + it.camera().forward() * 5000.0);
+        it.pivot_on_surface = false;
+        let selection = tools::camera::DEFAULT_TARGET;
+        it.pivot_over_empty_space(size, Some(&selected_at(selection)));
+        assert!(it.navigator.pivot().distance(selection) < 1e-3);
+        // A surface point you pointed at, still on screen, is kept.
+        it.pivot_on_surface = true;
+        let kept = it.navigator.pivot();
+        it.pivot_over_empty_space(size, Some(&selected_at(Vec3::new(9e6, 0.0, 0.0))));
+        assert_eq!(it.navigator.pivot(), kept);
+        // Nothing on screen at all: the middle of the view.
+        it.pivot_on_surface = false;
+        let behind = it.camera().position - it.camera().forward() * 500.0;
+        let summary = SceneSummary {
+            selected: scene::Bounds::new(behind, behind + Vec3::ONE),
+            all: scene::Bounds::new(behind, behind + Vec3::ONE),
+            ..SceneSummary::default()
+        };
+        it.pivot_over_empty_space(size, Some(&summary));
+        let on = it.camera().project(it.navigator.pivot(), size).unwrap();
+        assert!((on - size / 2.0).length() < 0.5, "{on}");
     }
 
     #[test]
