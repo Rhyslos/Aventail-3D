@@ -112,18 +112,35 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
     });
     ui.menu_button("Cameras", |ui| {
         let active = panel.active_kind();
-        for kind in ViewKind::ALL {
-            let key = VIEW_KEYS
-                .iter()
-                .find(|(_, k)| *k == kind)
-                .map(|(key, _)| key.name())
-                .unwrap_or_default();
+        for kind in MENU_KINDS {
+            let key = if kind == ViewKind::Orthographic {
+                super::PROJECTION_KEY.name()
+            } else {
+                VIEW_KEYS
+                    .iter()
+                    .find(|(_, k)| *k == kind)
+                    .map(|(key, _)| key.name())
+                    .unwrap_or_default()
+            };
             if ui
                 .add(egui::Button::selectable(kind == active, kind.name()).shortcut_text(key))
                 .on_hover_text(camera_explanation(kind))
                 .clicked()
             {
-                panel.set_kind(kind);
+                // Between perspective and orthographic the view keeps
+                // looking where it looked (as P does); other kinds start
+                // at their opening camera.
+                let flat = panel.camera().is_flat();
+                let switch = match kind {
+                    ViewKind::Perspective => flat,
+                    ViewKind::Orthographic => !flat,
+                    _ => false,
+                };
+                if switch {
+                    panel.toggle_projection();
+                } else {
+                    panel.set_kind(kind);
+                }
                 ui.close();
             }
         }
@@ -167,6 +184,8 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
             super::picker::AROUND_CURSOR_LABEL,
         );
         ui.checkbox(&mut navigation.invert_orbit, "Invert orbit direction");
+        ui.checkbox(&mut navigation.show_pivot, SHOW_PIVOT_LABEL)
+            .on_hover_text(SHOW_PIVOT_HELP);
         ui.checkbox(
             &mut navigation.alt_everywhere,
             "Alt + mouse works in every scheme",
@@ -236,6 +255,15 @@ pub(crate) fn auto_hard_edges_entry(ui: &mut Ui, options: &mut ViewOptions) {
 /// The Display menu's switch for showing normals.
 pub(crate) const NORMALS_ENTRY: &str = "Normals";
 
+/// The kinds of view the Cameras menu offers, in order.
+const MENU_KINDS: [ViewKind; 5] = [
+    ViewKind::Perspective,
+    ViewKind::Orthographic,
+    ViewKind::Top,
+    ViewKind::Front,
+    ViewKind::Right,
+];
+
 /// What the Cameras menu's tooltip says about a kind of view.
 fn camera_explanation(kind: ViewKind) -> &'static str {
     match kind {
@@ -243,6 +271,9 @@ fn camera_explanation(kind: ViewKind) -> &'static str {
         ViewKind::Top => "A flat view looking straight down: no perspective, true sizes",
         ViewKind::Front => "A flat view from the front: no perspective, true sizes",
         ViewKind::Right => "A flat view from the right: no perspective, true sizes",
+        ViewKind::Orthographic => {
+            "No perspective, from any direction: orbit it freely; parallel lines stay parallel"
+        }
     }
 }
 
@@ -389,11 +420,24 @@ pub(super) fn overlays(ui: &Ui, rect: Rect, view: &View, options: &ViewOptions) 
     }
 }
 
-/// Whether the pivot marker shows: while orbiting or drag-zooming around
-/// the point under the mouse. Around the middle of the view it would just
-/// sit there, distracting, so it stays hidden.
+/// The name of the switch for the pivot marker, in the Options menu and
+/// Settings.
+pub(crate) const SHOW_PIVOT_LABEL: &str = "Show the turning point while orbiting";
+/// What it does.
+pub(crate) const SHOW_PIVOT_HELP: &str = "While you orbit, a small ring marks the point the view turns around \
+     (and, when zooming with a drag, the point it moves towards)";
+
+/// Whether the pivot marker shows (decision 0080): with its switch on,
+/// while orbiting, and while drag-zooming towards the point under the
+/// mouse.
 pub(super) fn shows_pivot_marker(drag: Option<DragKind>, options: &ViewOptions) -> bool {
-    options.navigation.around_cursor && matches!(drag, Some(DragKind::Orbit | DragKind::Dolly))
+    let navigation = options.navigation;
+    navigation.show_pivot
+        && match drag {
+            Some(DragKind::Orbit) => true,
+            Some(DragKind::Dolly) => navigation.around_cursor,
+            _ => false,
+        }
 }
 
 /// A small ring and dot on the point the view turns around or zooms
@@ -408,10 +452,11 @@ fn pivot_marker(ui: &Ui, painter: &egui::Painter, rect: Rect, view: &View) {
         return;
     }
     let accent = theme::accent(ui.ctx()).colors();
-    let shadow = Stroke::new(3.5, egui::Color32::from_black_alpha(110));
-    painter.circle_stroke(centre, 7.0, shadow);
-    painter.circle_stroke(centre, 7.0, Stroke::new(1.5, accent.light));
-    painter.circle_filled(centre, 2.0, accent.light);
+    let shadow = Stroke::new(4.5, egui::Color32::from_black_alpha(130));
+    painter.circle_stroke(centre, 9.0, shadow);
+    painter.circle_stroke(centre, 9.0, Stroke::new(2.0, accent.light));
+    painter.circle_filled(centre, 3.5, egui::Color32::from_black_alpha(130));
+    painter.circle_filled(centre, 2.5, accent.light);
 }
 
 /// Screen directions of the world axes as the camera sees them, `length`
@@ -547,17 +592,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_pivot_marker_shows_only_around_the_mouse() {
+    fn the_pivot_marker_shows_while_orbiting_unless_switched_off() {
         let mut options = ViewOptions::default();
         assert!(shows_pivot_marker(Some(DragKind::Orbit), &options));
         assert!(shows_pivot_marker(Some(DragKind::Dolly), &options));
         assert!(!shows_pivot_marker(Some(DragKind::Pan), &options));
         assert!(!shows_pivot_marker(None, &options));
+        // Around the middle of the view: still while orbiting, not when
+        // zooming (it would just sit in the middle).
         options.navigation.around_cursor = false;
-        assert!(
-            !shows_pivot_marker(Some(DragKind::Orbit), &options),
-            "hidden when turning around the middle of the view"
-        );
+        assert!(shows_pivot_marker(Some(DragKind::Orbit), &options));
+        assert!(!shows_pivot_marker(Some(DragKind::Dolly), &options));
+        // Switched off: never.
+        options.navigation.show_pivot = false;
+        assert!(!shows_pivot_marker(Some(DragKind::Orbit), &options));
     }
 
     #[test]
