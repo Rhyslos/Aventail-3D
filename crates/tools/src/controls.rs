@@ -151,6 +151,9 @@ pub struct NavigationSettings {
     /// Whether orbiting turns around, and zooming moves towards, the point
     /// under the mouse, instead of the middle of the view.
     pub around_cursor: bool,
+    /// Whether a marker shows the point the view turns around while
+    /// orbiting (decision 0080).
+    pub show_pivot: bool,
 }
 
 impl Default for NavigationSettings {
@@ -160,6 +163,7 @@ impl Default for NavigationSettings {
             alt_everywhere: true,
             invert_orbit: false,
             around_cursor: true,
+            show_pivot: true,
         }
     }
 }
@@ -345,6 +349,7 @@ mod tests {
             alt_everywhere: false,
             invert_orbit: true,
             around_cursor: false,
+            show_pivot: false,
         };
         let text = ron::to_string(&s).unwrap();
         assert_eq!(ron::from_str::<NavigationSettings>(&text).unwrap(), s);
