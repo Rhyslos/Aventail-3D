@@ -129,6 +129,14 @@ pub enum Command {
     /// Changes the project's units (decision 0068): how lengths are shown
     /// and typed. The shapes don't change.
     SetUnits(crate::Units),
+    /// Gives objects with a shape a collision shape for game engines
+    /// (decision 0078). Groups are left alone.
+    SetCollision {
+        /// The objects.
+        ids: Vec<ObjectId>,
+        /// The collision shape.
+        collision: crate::Collision,
+    },
     /// Changes the project's game project folder (decision 0076), or takes
     /// it away (`None`). A folder path that is empty, too long or has
     /// line breaks is refused.
@@ -228,6 +236,10 @@ impl Command {
             }
             Self::SetUnits(units) => format!("Change units to {}", units.name()),
             Self::SetMaterials { .. } => "Change materials".to_string(),
+            Self::SetCollision { collision, .. } => match collision {
+                crate::Collision::None => "Remove collision".to_string(),
+                c => format!("Collision: {}", c.name().to_lowercase()),
+            },
             Self::SetExportTarget(Some(_)) => "Change the game project folder".to_string(),
             Self::SetExportTarget(None) => "Clear the game project folder".to_string(),
             Self::MovePivots(changes) => match changes.len() {
@@ -694,6 +706,24 @@ impl Run<'_> {
                         id: *id,
                         before,
                         after,
+                    })?;
+                }
+                Ok(None)
+            }
+            Command::SetCollision { ids, collision } => {
+                for id in ids {
+                    let object = self
+                        .scene
+                        .object(*id)
+                        .ok_or(SceneError::UnknownObject(*id))?;
+                    if !object.kind.has_shape() || object.collision == *collision {
+                        continue;
+                    }
+                    let before = object.collision;
+                    self.edit(Edit::SetCollision {
+                        id: *id,
+                        before,
+                        after: *collision,
                     })?;
                 }
                 Ok(None)

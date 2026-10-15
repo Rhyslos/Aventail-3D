@@ -100,9 +100,36 @@ pub struct TargetRequest {
     pub options: ExportOptions,
 }
 
+/// A kit export the app is asked to make (decision 0078): each piece as
+/// its own file.
+#[derive(Debug, Clone, PartialEq)]
+pub struct KitRequest {
+    /// The pieces: the selected objects (not those inside another).
+    pub pieces: Vec<scene::ObjectId>,
+    /// The kind of file.
+    pub format: ExportFormat,
+    /// How (with the shading seen on screen).
+    pub options: ExportOptions,
+    /// Where: the game project folder, or ask when `None`.
+    pub folder: Option<PathBuf>,
+}
+
+/// How a kit export went: each piece's name and its file and what it
+/// held, or why not; or why nothing was exported.
+pub type KitOutcome = Result<Vec<(String, TargetOutcome)>, String>;
+
 /// How an export into the game project folder went: the file written and
 /// what it held, or why not.
 pub type TargetOutcome = Result<(PathBuf, ExportSummary), String>;
+
+/// "1 piece", "3 pieces".
+fn counted_pieces(n: usize) -> String {
+    if n == 1 {
+        "1 piece".to_string()
+    } else {
+        format!("{n} pieces")
+    }
+}
 
 /// The status bar's words for `outcome`.
 pub(crate) fn target_note(outcome: &TargetOutcome) -> String {
@@ -190,6 +217,23 @@ impl Workbench {
             actions.push(self.export_action(choice, Some(path)));
             ui.close();
         }
+        if ui
+            .button("Export kit…")
+            .on_hover_text(
+                "Export each selected object (with what's inside it) as a file of its own, \
+                 named after it, its pivot at the file's origin: modular pieces for a game \
+                 engine. Uses the Export window's settings",
+            )
+            .clicked()
+        {
+            match self.kit_request() {
+                Some(request) => actions.push(WorkbenchAction::ExportKit(Box::new(request))),
+                None => {
+                    self.note = Some("Export kit: select the pieces to export first.".into());
+                }
+            }
+            ui.close();
+        }
         let target = self.target_request(None);
         let response = ui
             .add_enabled(
@@ -274,6 +318,73 @@ impl Workbench {
         self.target_request(Some(path))
     }
 
+    /// The kit export of the selected objects (none inside another), with
+    /// the Export window's settings, into the game project folder if the
+    /// project has one; `None` with nothing selected.
+    pub fn kit_request(&mut self) -> Option<KitRequest> {
+        let selection = self.document.selection();
+        let scene = self.document.scene();
+        let pieces: Vec<scene::ObjectId> = selection
+            .iter()
+            .copied()
+            .filter(|id| {
+                !selection
+                    .iter()
+                    .any(|s| s != id && scene.is_inside(*id, *s))
+            })
+            .collect();
+        if pieces.is_empty() {
+            return None;
+        }
+        let folder = scene.export_target().map(|t| PathBuf::from(&t.folder));
+        let choice = self.exporting.choice;
+        let WorkbenchAction::Export(request) = self.export_action(choice, None) else {
+            return None;
+        };
+        Some(KitRequest {
+            pieces,
+            format: request.format,
+            options: ExportOptions {
+                what: ExportWhat::Everything,
+                ..request.options
+            },
+            folder,
+        })
+    }
+
+    /// The app made a kit export: says how it went.
+    pub fn kit_exported(&mut self, outcome: KitOutcome) {
+        self.note = Some(match outcome {
+            Err(why) => format!("Couldn't export the kit: {why}."),
+            Ok(pieces) => {
+                let done: Vec<&(String, TargetOutcome)> =
+                    pieces.iter().filter(|(_, r)| r.is_ok()).collect();
+                let place = done
+                    .first()
+                    .and_then(|(_, r)| r.as_ref().ok())
+                    .and_then(|(p, _)| p.parent())
+                    .map(file_name)
+                    .unwrap_or_default();
+                let mut note = match done.len() {
+                    0 => "No pieces exported.".to_string(),
+                    n if n == pieces.len() => {
+                        format!("Exported {} into {place}.", counted_pieces(n))
+                    }
+                    n => format!(
+                        "Exported {n} of {} into {place}.",
+                        counted_pieces(pieces.len())
+                    ),
+                };
+                for (name, result) in &pieces {
+                    if let Err(why) = result {
+                        note.push_str(&format!(" {name}: {why}."));
+                    }
+                }
+                note
+            }
+        });
+    }
+
     /// The app exported into the game project folder (File → Export to
     /// game project): says how it went.
     pub fn target_exported(&mut self, outcome: TargetOutcome) {
@@ -332,6 +443,7 @@ impl Workbench {
                 up: choice.up,
                 hardness,
                 triangulate: choice.triangulate,
+                godot_names: choice.preset == Some(ExportPreset::Godot),
             },
             path,
             suggested_name: format!("{stem}.{}", choice.format.extension()),

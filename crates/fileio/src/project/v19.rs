@@ -40,6 +40,15 @@ impl ProjectV19 {
 
     /// The document this file model describes, after checking every value.
     pub(crate) fn into_document(self) -> Result<Document, Problem> {
+        self.into_document_with(|_, _| Ok(()))
+    }
+
+    /// The same, giving each object to `attach` (with its id in the file)
+    /// as it is read, for later versions to add what they store.
+    pub(crate) fn into_document_with(
+        self,
+        attach: impl FnMut(u64, &mut scene::Object) -> Result<(), Problem>,
+    ) -> Result<Document, Problem> {
         let target = self.target.map(|t| ExportTarget {
             folder: t.folder,
             on_save: t.on_save,
@@ -47,6 +56,9 @@ impl ProjectV19 {
         if target.as_ref().is_some_and(|t| !t.is_valid()) {
             return Err("its game project folder is empty, too long or broken over lines".into());
         }
-        Ok(self.project.into_document()?.with_export_target(target))
+        Ok(self
+            .project
+            .into_document_with(attach)?
+            .with_export_target(target))
     }
 }

@@ -178,6 +178,57 @@ pub struct Object {
     /// into this list. Empty until one is added: every polygon then uses
     /// the standard material ([`Material::standard`]).
     pub materials: Vec<Material>,
+    /// The collision shape a game engine makes for it (decision 0078).
+    pub collision: Collision,
+}
+
+/// The collision shape a game engine makes for an object
+/// ([decision 0078](../../../docs/decisions/0078-kit-export.md)): Godot
+/// reads it from the exported names.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum Collision {
+    /// None (the standard).
+    #[default]
+    None,
+    /// The shape itself, exactly: accurate, for walls and floors that
+    /// don't move.
+    Mesh,
+    /// The shape wrapped tightly with no dents (its convex hull): cheap,
+    /// and it can move.
+    Convex,
+    /// A box around the shape: the cheapest.
+    Box,
+}
+
+impl Collision {
+    /// Every kind, in the order the Attributes panel lists them.
+    pub const ALL: [Self; 4] = [Self::None, Self::Mesh, Self::Convex, Self::Box];
+
+    /// Its name.
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::None => "None",
+            Self::Mesh => "The shape itself",
+            Self::Convex => "Wrapped (convex)",
+            Self::Box => "A box",
+        }
+    }
+
+    /// What it is for, in a sentence.
+    pub fn description(self) -> &'static str {
+        match self {
+            Self::None => "No collision: things pass through it",
+            Self::Mesh => {
+                "Collides exactly with the shape: accurate, for walls, floors and other parts \
+                 that don't move"
+            }
+            Self::Convex => {
+                "Collides with the shape wrapped tightly, dents filled in: cheaper, and it can \
+                 move"
+            }
+            Self::Box => "Collides with a box around the shape: the cheapest",
+        }
+    }
 }
 
 /// A material: a name game engines and Substance Painter know it by, and
@@ -219,6 +270,7 @@ impl Object {
             offset: Transform::default(),
             stack: Stack::default(),
             materials: Vec::new(),
+            collision: Collision::None,
         }
     }
 

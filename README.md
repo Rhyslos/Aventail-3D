@@ -137,7 +137,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Export presets for Godot and Substance Painter
 - [x] Engine export paths: save straight into a Godot, Unity or Unreal Engine project, exported again on every save
 - [x] Bake readiness check: what would spoil a bake, in plain words, with one-click fixes
-- [ ] Kit export: each piece as its own file, and Godot collision meshes
+- [x] Kit export: each piece as its own file, and Godot collision meshes
 - [ ] Splash screen while the app starts
 
 </details>
@@ -224,6 +224,7 @@ Newest first. One line per finished milestone or passed gate.
 | --- | --- |
 | 2026-10-15 | Consistent triangulation and MikkTSpace tangents: exports cut polygons the viewport's way; glTF carries tangents for shapes with UVs |
 | 2026-10-15 | glTF export: binary `.glb`, each object at its pivot, the Export window's standard |
+| 2026-10-15 | Kit export and collision: File → Export kit… (each selected piece its own file, pivot at the origin) and a Collision setting Godot reads; project files at format version 20 |
 | 2026-10-15 | Check for baking: what in the model would spoil a bake, in plain words, with Select and one-click fixes |
 | 2026-10-15 | Engine export paths: a game project folder per project (Godot, Unity or Unreal Engine, found from the folder), exported into on every save and from File → Export to game project; project files at format version 19 |
 | 2026-10-15 | Export presets: Made for Godot (glTF) or Substance Painter (OBJ, triangles) in the Export window |

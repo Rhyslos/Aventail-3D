@@ -1,7 +1,7 @@
 //! Tests for materials in the window: the Attributes panel's Materials
 //! section, Assign, and Select → Select by material (decision 0074).
 
-use super::modelling_tests::{H, cube, last_operation, note, press, ready, shape};
+use super::modelling_tests::{H, cube, last_operation, note, press, shape};
 use super::selection::SelectRequest;
 use super::tests::fresh;
 use super::*;
@@ -17,10 +17,36 @@ fn disabled(harness: &H, label: &str) -> bool {
     harness.get_by_label(label).accesskit_node().is_disabled()
 }
 
-/// The cube in the Polygons mode, its top selected, with a second
+/// The cube, made a plain mesh (so the panel is short enough to show
+/// every row), in the Polygons mode, its top selected, with a second
 /// material added from the panel.
 fn with_two_materials() -> H {
-    let mut harness = ready(Key::Q);
+    let mut harness = fresh();
+    let id = cube(&harness);
+    let doc = harness.state_mut().workbench.document_mut();
+    doc.execute(scene::Command::MakeEditable(vec![id])).unwrap();
+    doc.set_selection([id]);
+    harness.run();
+    press(&mut harness, Modifiers::NONE, Key::Num3);
+    let mesh = shape(&harness);
+    let top = mesh
+        .faces()
+        .map(|(f, _)| f)
+        .max_by(|a, b| mesh.face_normal(*a).z.total_cmp(&mesh.face_normal(*b).z))
+        .unwrap();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .select_elements(
+            [(
+                id,
+                scene::ElementSelection::of([scene::Element::Polygon(top)]),
+            )],
+            "Select",
+            None,
+        );
+    harness.run();
     harness.get_by_label("Add material").click();
     harness.run();
     harness
@@ -87,10 +113,10 @@ fn a_used_material_isnt_removed() {
     harness.run();
     assert_eq!(harness.state().workbench.document().undo_steps(), steps);
     assert_eq!(materials(&harness).len(), 2);
+    let note = harness.state().workbench.attributes.material_note();
     assert!(
-        harness
-            .query_by_label_contains("is used by 1 polygon")
-            .is_some()
+        note.is_some_and(|n| n.contains("is used by 1 polygon")),
+        "{note:?}"
     );
     // Once no polygon uses it, it goes.
     press(&mut harness, Modifiers::COMMAND, Key::Z);

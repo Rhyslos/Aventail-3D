@@ -268,8 +268,9 @@ fn tangents_go_into_the_file() {
         world: uv_grid(),
         local: uv_grid(),
         materials: vec![scene::Material::standard()],
+        collision: scene::Collision::None,
     };
-    let glb = write_glb(&[object], "Test App 1.0");
+    let glb = write_glb(&[object], "Test App 1.0", false);
     let (json, _) = parts(&glb);
     let attributes = &json["meshes"][0]["primitives"][0]["attributes"];
     let tangent = attributes["TANGENT"].as_u64().unwrap() as usize;
@@ -393,4 +394,76 @@ fn an_instance_uses_its_originals_materials() {
     let instance = objects.iter().find(|o| o.name == "Cube 2").unwrap();
     assert_eq!(instance.materials.len(), 3);
     assert!(instance.world.polygons.iter().any(|p| p.material == 1));
+}
+
+#[test]
+fn collision_names_and_boxes_go_out_for_godot() {
+    let mut doc = scene_of(&[
+        PrimitiveKind::Cube,
+        PrimitiveKind::Sphere,
+        PrimitiveKind::Cylinder,
+    ]);
+    let named = |doc: &Document, name: &str| {
+        doc.scene()
+            .walk()
+            .into_iter()
+            .map(|(id, _)| id)
+            .find(|id| doc.scene().object(*id).unwrap().name == name)
+            .unwrap()
+    };
+    for (name, collision) in [
+        ("Cube", scene::Collision::Mesh),
+        ("Sphere", scene::Collision::Convex),
+        ("Cylinder", scene::Collision::Box),
+    ] {
+        let id = named(&doc, name);
+        doc.execute(Command::SetCollision {
+            ids: vec![id],
+            collision,
+        })
+        .unwrap();
+    }
+    let names = |godot_names: bool| {
+        let options = ExportOptions {
+            godot_names,
+            ..ExportOptions::default()
+        };
+        let files = export_bytes(&doc, ExportFormat::Glb, &options, "T", "t.glb").unwrap();
+        if let Some(path) = std::env::var_os("GLB_COLLISION_SAMPLE").filter(|_| godot_names) {
+            std::fs::write(path, &files.main).unwrap();
+        }
+        let (json, _) = parts(&files.main);
+        let mut names: Vec<String> = json["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|n| n["name"].as_str().unwrap().to_string())
+            .collect();
+        names.sort();
+        (names, json)
+    };
+    let (godot, json) = names(true);
+    assert_eq!(
+        godot,
+        [
+            "Cube-col",
+            "Cylinder",
+            "Cylinder-convcolonly",
+            "Sphere-convcol"
+        ]
+    );
+    // The box has eight corners, around the cylinder, at its pivot.
+    let node = json["nodes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|n| n["name"] == "Cylinder-convcolonly")
+        .unwrap();
+    let mesh = &json["meshes"][node["mesh"].as_u64().unwrap() as usize];
+    let position = mesh["primitives"][0]["attributes"]["POSITION"]
+        .as_u64()
+        .unwrap() as usize;
+    assert_eq!(json["accessors"][position]["count"], 24, "a crisp box");
+    let (plain, _) = names(false);
+    assert_eq!(plain, ["Cube", "Cylinder", "Sphere"]);
 }

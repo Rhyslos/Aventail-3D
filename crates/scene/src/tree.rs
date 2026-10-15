@@ -122,6 +122,12 @@ pub(crate) enum Edit {
         before: Option<crate::ExportTarget>,
         after: Option<crate::ExportTarget>,
     },
+    /// Changes an object's collision shape.
+    SetCollision {
+        id: ObjectId,
+        before: crate::Collision,
+        after: crate::Collision,
+    },
     /// Changes an object's list of materials.
     SetMaterials {
         id: ObjectId,
@@ -185,6 +191,7 @@ impl Edit {
             Self::SetUnits { before, after } => before == after,
             Self::SetExportTarget { before, after } => before == after,
             Self::SetMaterials { before, after, .. } => before == after,
+            Self::SetCollision { before, after, .. } => before == after,
             Self::SetTransform { before, after, .. } | Self::SetOffset { before, after, .. } => {
                 before == after
             }
@@ -221,6 +228,11 @@ impl Edit {
                 after: before,
             },
             Self::SetExportTarget { before, after } => Self::SetExportTarget {
+                before: after,
+                after: before,
+            },
+            Self::SetCollision { id, before, after } => Self::SetCollision {
+                id,
                 before: after,
                 after: before,
             },
@@ -748,6 +760,17 @@ impl Scene {
                     return Err(SceneError::History("an object's place has changed"));
                 }
                 node.object.transform = *after;
+                Ok(())
+            }
+            Edit::SetCollision { id, before, after } => {
+                let node = self
+                    .nodes
+                    .get_mut(id)
+                    .ok_or(SceneError::UnknownObject(*id))?;
+                if node.object.collision != *before {
+                    return Err(SceneError::History("an object's collision has changed"));
+                }
+                node.object.collision = *after;
                 Ok(())
             }
             Edit::SetMaterials { id, before, after } => {

@@ -95,6 +95,46 @@ pub fn export_into(workbench: &Workbench, request: &ui::TargetRequest) -> ui::Ta
     .map_err(|e| e.to_string())
 }
 
+/// Exports each piece of `request` as its own file: into its folder, or
+/// one the user chooses (decision 0078). Reports back.
+pub fn export_kit(workbench: &mut Workbench, request: &ui::KitRequest) {
+    let folder = match &request.folder {
+        Some(folder) => folder.clone(),
+        None => {
+            let mut dialog = rfd::FileDialog::new().set_title("Export kit into");
+            if let Some(folder) = workbench.project_path().and_then(Path::parent) {
+                dialog = dialog.set_directory(folder);
+            }
+            match dialog.pick_folder() {
+                Some(folder) => folder,
+                None => return,
+            }
+        }
+    };
+    let outcome = kit_into(workbench, request, &folder);
+    workbench.kit_exported(outcome);
+}
+
+/// Exports each piece of `request` into `folder`.
+fn kit_into(workbench: &Workbench, request: &ui::KitRequest, folder: &Path) -> ui::KitOutcome {
+    fileio::engine::export_kit(
+        folder,
+        workbench.document(),
+        &request.pieces,
+        request.format,
+        &request.options,
+        &generator(),
+        APP_NAME,
+    )
+    .map(|pieces| {
+        pieces
+            .into_iter()
+            .map(|(name, result)| (name, result.map_err(|e| e.to_string())))
+            .collect()
+    })
+    .map_err(|e| e.to_string())
+}
+
 /// Asks which folder of a game project to export into, starting at
 /// `start`, and tells the workbench.
 pub fn choose_export_folder(workbench: &mut Workbench, start: Option<PathBuf>) {
@@ -336,6 +376,13 @@ mod tests {
             std::fs::read_to_string(game.join("models/barrel.glb")).unwrap(),
             "theirs"
         );
+
+        // A kit: each selected piece its own file, into the game folder.
+        let kit = first.kit_request().expect("the cube is selected");
+        assert_eq!(kit.folder.as_deref(), Some(game.join("models").as_path()));
+        let outcome = kit_into(&first, &kit, &game.join("models")).unwrap();
+        assert_eq!(outcome.len(), 1);
+        assert!(game.join("models/Cube.glb").exists());
 
         // Nothing to export: nothing written.
         let mut empty = workbench();

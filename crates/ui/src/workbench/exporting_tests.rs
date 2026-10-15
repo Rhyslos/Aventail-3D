@@ -339,3 +339,88 @@ fn a_failed_export_into_the_game_project_says_why() {
     );
     harness.run();
 }
+
+#[test]
+fn export_kit_asks_for_the_selected_pieces() {
+    let mut harness = fresh();
+    // Nothing selected: it says so.
+    file_entry(&mut harness, "Export kit…");
+    assert!(
+        harness
+            .state()
+            .workbench
+            .note
+            .as_deref()
+            .unwrap()
+            .contains("select the pieces")
+    );
+    let id = super::modelling_tests::cube(&harness);
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .set_selection([id]);
+    harness.run();
+    file_entry(&mut harness, "Export kit…");
+    let request = harness
+        .state()
+        .actions
+        .iter()
+        .find_map(|a| match a {
+            WorkbenchAction::ExportKit(r) => Some((**r).clone()),
+            _ => None,
+        })
+        .unwrap();
+    assert_eq!(request.pieces, vec![id]);
+    assert_eq!(request.folder, None, "no game project folder: the app asks");
+    assert_eq!(request.format, ExportFormat::Glb);
+    assert!(request.options.godot_names, "Godot is the standard preset");
+}
+
+#[test]
+fn kit_results_are_summed_up() {
+    let mut harness = fresh();
+    let summary = ExportSummary {
+        objects: 1,
+        triangles: 12,
+        materials: 1,
+    };
+    harness.state_mut().workbench.kit_exported(Ok(vec![
+        ("Wall".into(), Ok(("/kit/Wall.glb".into(), summary))),
+        ("Door".into(), Err("Door.glb is already there".into())),
+    ]));
+    assert_eq!(
+        harness.state().workbench.note.as_deref(),
+        Some("Exported 1 of 2 pieces into kit. Door: Door.glb is already there.")
+    );
+    harness
+        .state_mut()
+        .workbench
+        .kit_exported(Err("the folder isn't there".into()));
+    assert_eq!(
+        harness.state().workbench.note.as_deref(),
+        Some("Couldn't export the kit: the folder isn't there.")
+    );
+}
+
+#[test]
+fn the_attributes_panel_sets_a_shapes_collision() {
+    let mut harness = fresh();
+    let id = super::modelling_tests::cube(&harness);
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .set_selection([id]);
+    harness.run();
+    harness.get_by_label("Collision shape").click();
+    harness.run();
+    harness.get_by_label("A box").click();
+    harness.run();
+    let doc = harness.state().workbench.document();
+    assert_eq!(
+        doc.scene().object(id).unwrap().collision,
+        scene::Collision::Box
+    );
+    assert_eq!(doc.undo_label(), Some("Collision: a box"));
+}

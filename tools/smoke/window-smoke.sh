@@ -201,7 +201,7 @@ echo "Pixels changed by undoing (Ctrl+Z): $UNDO_CHANGE"
 
 # File > Quit with the mouse (there is no key for it, on purpose). QUIT_Y is
 # the middle of the Quit entry with the standard font.
-QUIT_Y="${QUIT_Y:-334}"
+QUIT_Y="${QUIT_Y:-360}"
 quit_from_menu() {
     xdotool mousemove 20 14 click 1
     sleep 1

@@ -29,7 +29,7 @@ pub use mesh::{
     Bounds, Combine, EdgeKey, Element, ElementKind, ElementSelection, FaceId, Mesh, Primitive,
     PrimitiveKind, VertexId,
 };
-pub use object::{Material, Object, ObjectId, ObjectKind, Transform};
+pub use object::{Collision, Material, Object, ObjectId, ObjectKind, Transform};
 pub use stack::{
     EDITS_LAYER, EditId, EditSettings, Entry, EvalContext, Evaluated, Layer, MAX_SHAPE_POLYGONS,
     Operation, Stack, StackWarning,
