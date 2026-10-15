@@ -159,6 +159,75 @@ impl ExportFormat {
     }
 }
 
+/// Ready-made export settings for where a model is going
+/// ([decision 0075](../../../docs/decisions/0075-export-presets.md)).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ExportPreset {
+    /// Godot: glTF, each object at its pivot (metres, Y up, triangles).
+    Godot,
+    /// Substance Painter: OBJ in metres, Y up, cut into triangles the
+    /// viewport's way, its materials becoming texture sets.
+    SubstancePainter,
+}
+
+/// The settings a preset chooses.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PresetSettings {
+    /// The kind of file.
+    pub format: ExportFormat,
+    /// The file's units.
+    pub units: FileUnits,
+    /// The file's up axis.
+    pub up: UpAxis,
+    /// Whether polygons are cut into triangles.
+    pub triangulate: bool,
+}
+
+impl ExportPreset {
+    /// Every preset, in the order the Export window lists them.
+    pub const ALL: [Self; 2] = [Self::Godot, Self::SubstancePainter];
+
+    /// Its name, as listed.
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Godot => "Godot",
+            Self::SubstancePainter => "Substance Painter",
+        }
+    }
+
+    /// What it is for and what it chooses, in a sentence.
+    pub fn description(self) -> &'static str {
+        match self {
+            Self::Godot => {
+                "glTF, each object at its pivot, in metres with Y up: drop it into the Godot \
+                 project and it imports by itself"
+            }
+            Self::SubstancePainter => {
+                "OBJ in metres with Y up, cut into the viewport's triangles so the bake \
+                 matches the game; each material becomes a texture set"
+            }
+        }
+    }
+
+    /// The settings it chooses.
+    pub fn settings(self) -> PresetSettings {
+        match self {
+            Self::Godot => PresetSettings {
+                format: ExportFormat::Glb,
+                units: FileUnits::Metres,
+                up: UpAxis::Y,
+                triangulate: true,
+            },
+            Self::SubstancePainter => PresetSettings {
+                format: ExportFormat::Obj,
+                units: FileUnits::Metres,
+                up: UpAxis::Y,
+                triangulate: true,
+            },
+        }
+    }
+}
+
 /// What an export wrote.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct ExportSummary {

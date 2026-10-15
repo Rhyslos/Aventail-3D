@@ -7,13 +7,17 @@
 use super::{Workbench, WorkbenchAction, file_name};
 use crate::theme;
 use egui::{RichText, Ui};
-use fileio::export::{ExportFormat, ExportOptions, ExportSummary, ExportWhat, FileUnits, UpAxis};
+use fileio::export::{
+    ExportFormat, ExportOptions, ExportPreset, ExportSummary, ExportWhat, FileUnits, UpAxis,
+};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 /// The Export window's choices.
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ExportChoice {
+    /// The preset the settings below follow, if any (decision 0075).
+    pub preset: Option<ExportPreset>,
     /// The kind of file.
     pub format: ExportFormat,
     /// Everything shown, or the selection.
@@ -24,6 +28,61 @@ pub struct ExportChoice {
     pub up: UpAxis,
     /// Whether polygons are cut into triangles.
     pub triangulate: bool,
+}
+
+impl Default for ExportChoice {
+    /// Godot's settings, everything shown.
+    fn default() -> Self {
+        Self::default_with(ExportWhat::Everything).with_preset(ExportPreset::Godot)
+    }
+}
+
+impl ExportChoice {
+    fn default_with(what: ExportWhat) -> Self {
+        Self {
+            preset: None,
+            format: ExportFormat::default(),
+            what,
+            units: FileUnits::default(),
+            up: UpAxis::default(),
+            triangulate: false,
+        }
+    }
+
+    /// These choices with `preset`'s settings (what is exported stays).
+    pub fn with_preset(self, preset: ExportPreset) -> Self {
+        let settings = preset.settings();
+        Self {
+            preset: Some(preset),
+            format: settings.format,
+            units: settings.units,
+            up: settings.up,
+            triangulate: settings.triangulate,
+            what: self.what,
+        }
+    }
+
+    /// Whether these choices write the file `preset` would (for glTF, the
+    /// format alone decides units, axes and triangles).
+    pub fn follows(&self, preset: ExportPreset) -> bool {
+        let options = |format: ExportFormat, units, up, triangulate| {
+            format.options(&ExportOptions {
+                units,
+                up,
+                triangulate,
+                ..ExportOptions::default()
+            })
+        };
+        let settings = preset.settings();
+        self.format == settings.format
+            && options(self.format, self.units, self.up, self.triangulate)
+                == options(
+                    settings.format,
+                    settings.units,
+                    settings.up,
+                    settings.triangulate,
+                )
+    }
 }
 
 /// The Export window and the last export.
@@ -40,6 +99,8 @@ pub(crate) struct Exporting {
 /// An export the app is asked to make.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ExportRequest {
+    /// The preset it follows, if any.
+    pub preset: Option<ExportPreset>,
     /// The kind of file.
     pub format: ExportFormat,
     /// How the scene is exported (with the shading seen on screen).
@@ -110,6 +171,7 @@ impl Workbench {
                 |s| s.to_string_lossy().into_owned(),
             );
         WorkbenchAction::Export(Box::new(ExportRequest {
+            preset: choice.preset,
             format: choice.format,
             options: ExportOptions {
                 what: choice.what,
@@ -147,6 +209,31 @@ impl Workbench {
                     ui.add_space(4.0);
                     ui.label(RichText::new(text).strong().color(theme::TEXT_STRONG));
                 };
+                heading(ui, "Made for");
+                ui.horizontal_wrapped(|ui| {
+                    for preset in ExportPreset::ALL {
+                        let response = ui
+                            .radio(choice.preset == Some(preset), preset.name())
+                            .on_hover_text(preset.description());
+                        if response.clicked() {
+                            choice = choice.with_preset(preset);
+                        }
+                    }
+                    if ui
+                        .radio(choice.preset.is_none(), "Your own settings")
+                        .on_hover_text("Choose the kind of file and how below")
+                        .clicked()
+                    {
+                        choice.preset = None;
+                    }
+                });
+                if let Some(preset) = choice.preset {
+                    ui.label(
+                        RichText::new(preset.description())
+                            .small()
+                            .color(theme::TEXT_WEAK),
+                    );
+                }
                 heading(ui, "Kind of file");
                 for format in ExportFormat::ALL {
                     ui.radio_value(&mut choice.format, format, format_label(format));
@@ -218,6 +305,12 @@ impl Workbench {
         if !selected && choice.what == ExportWhat::Selected {
             choice.what = ExportWhat::Everything;
         }
+        // Changing a setting by hand leaves the preset.
+        if let Some(preset) = choice.preset
+            && !choice.follows(preset)
+        {
+            choice.preset = None;
+        }
         self.exporting.choice = choice;
         if !open {
             self.exporting.open = false;
@@ -231,6 +324,7 @@ impl Workbench {
     /// The app exported to `path`, as asked by an export of `request`.
     pub fn exported(&mut self, request: &ExportRequest, path: PathBuf, summary: ExportSummary) {
         let choice = ExportChoice {
+            preset: request.preset,
             format: request.format,
             what: request.options.what,
             units: request.options.units,
@@ -241,8 +335,17 @@ impl Workbench {
             1 => "1 object".to_string(),
             n => format!("{n} objects"),
         };
+        let made_for = request
+            .preset
+            .map(|p| format!(" for {}", p.name()))
+            .unwrap_or_default();
+        let materials = match summary.materials {
+            0 | 1 => String::new(),
+            n => format!(", {n} materials"),
+        };
         self.note = Some(format!(
-            "Exported {objects} ({} triangles) to {}. File → Export again repeats it.",
+            "Exported {objects}{made_for} ({} triangles{materials}) to {}. File → Export again \
+             repeats it.",
             summary.triangles,
             file_name(&path)
         ));

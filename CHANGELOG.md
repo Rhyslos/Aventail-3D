@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Export presets.** The Export window starts with **Made for**: **Godot** (glTF, each object at its pivot, metres, Y up) or **Substance Painter** (OBJ in metres, Y up, cut into the viewport's triangles so bakes match), each in one click. Change a setting by hand and it becomes your own settings. The status bar says who the export was for.
 - **Materials.** Every shape now has a **Materials** list in the Attributes panel: add materials, name them and pick their colours, then in the Polygons mode select polygons and click a material's **Assign**. The viewport shows each material's colour, **Select → Select by material** finds its polygons, and extrudes and loop cuts keep them. Exports carry them by name: glTF holds one material per name, and an OBJ export writes a `.mtl` file beside it. OBJ import reads them back, colours included. Projects move to file format 18.
 - **Bake-ready exports.** glTF exports of shapes with UVs carry MikkTSpace tangents (the standard Substance Painter and game engines use), and exported triangles are always cut exactly the way the viewport cuts them, so a normal map baked in Substance Painter looks the same in the game.
 - **glTF export.** **File → Export…** now offers **glTF** (`.glb`), the standard: Godot's and Substance Painter's favourite, with each object placed at its pivot, in metres, Y up and triangles.
