@@ -229,3 +229,31 @@ fn the_bend_rows_stay_put_when_the_extrude_starts_bending() {
     let direction = harness.get_by_label("Extrude direction");
     assert!(direction.accesskit_node().is_disabled());
 }
+
+#[test]
+fn insets_and_straight_extrudes_on_a_stretched_object_record_its_stretch() {
+    // Decision 0082: every edit that measures across the shape.
+    let tall = glam::Vec3::new(0.75, 0.75, 1.5);
+    for key in [Key::I, Key::D] {
+        let mut harness = ready(key);
+        scale_cube(&mut harness, glam::Vec3::new(1.0, 1.0, 2.0));
+        drag(&mut harness, 30.0);
+        let op = last_operation(&harness).unwrap();
+        assert!(
+            matches!(
+                op,
+                Operation::InsetPolygons { .. } | Operation::ExtrudePolygons { .. }
+            ),
+            "{op:?}"
+        );
+        assert!((op.stretch() - tall).length() < 1e-4, "{op:?}");
+        // Scaled evenly afterwards, the next change of the edit takes the
+        // new (no) stretch.
+        scale_cube(&mut harness, glam::Vec3::splat(2.0));
+        let changed = op.with(scene::EditSettings {
+            distance: Some(1.0),
+            ..op.settings().unwrap()
+        });
+        assert_eq!(changed.stretch(), op.stretch(), "kept until changed here");
+    }
+}

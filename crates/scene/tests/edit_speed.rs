@@ -112,6 +112,7 @@ fn edit_speed_check() {
         grouping: Grouping::Together,
         shape: scene::ExtrudeShape::EARLIER,
         anchors: None,
+        stretch: glam::Vec3::ONE,
     };
     let prop = sphere(64, 48);
     let history: Vec<Operation> = (0..200)

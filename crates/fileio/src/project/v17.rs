@@ -77,6 +77,7 @@ impl ExtrudeV17 {
             grouping,
             shape,
             anchors,
+            ..
         } = op
         else {
             return None;
@@ -138,6 +139,7 @@ impl ExtrudeV17 {
             }
             .clamped(),
             anchors: anchors.map(anchors_from_file).transpose()?,
+            stretch: glam::Vec3::ONE,
         })
     }
 }
@@ -224,6 +226,7 @@ mod tests {
             grouping: Grouping::Together,
             shape: ExtrudeShape::EARLIER,
             anchors: None,
+            stretch: glam::Vec3::ONE,
         };
         assert!(matches!(
             OperationV17::to_file(&op),
@@ -235,6 +238,7 @@ mod tests {
             grouping: Grouping::Together,
             shape: ExtrudeShape::default(),
             anchors: None,
+            stretch: glam::Vec3::ONE,
         };
         assert!(matches!(
             OperationV17::to_file(&new),

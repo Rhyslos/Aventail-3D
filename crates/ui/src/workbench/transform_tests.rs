@@ -475,6 +475,7 @@ fn the_attributes_panel_says_when_an_edit_was_too_large() {
                 profile: 1.0,
             },
             anchors: None,
+            stretch: glam::Vec3::ONE,
         },
     })
     .unwrap();

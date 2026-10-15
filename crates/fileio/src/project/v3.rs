@@ -138,6 +138,7 @@ impl FileOperation for OperationV3 {
                 grouping: grouping(separate),
                 shape: scene::ExtrudeShape::EARLIER,
                 anchors: anchors(a)?,
+                stretch: glam::Vec3::ONE,
             }),
             Self::InsetPolygons {
                 faces: f,
@@ -149,6 +150,7 @@ impl FileOperation for OperationV3 {
                 distance: distance(d, "inset")?,
                 grouping: grouping(separate),
                 anchors: anchors(a)?,
+                stretch: glam::Vec3::ONE,
             }),
             Self::ExtrudeEdges {
                 edges,
@@ -169,6 +171,7 @@ impl FileOperation for OperationV3 {
                 distance: distance(d, "extrude")?,
                 grouping: grouping(separate),
                 anchors: anchors(a)?,
+                stretch: glam::Vec3::ONE,
             }),
         }
     }
