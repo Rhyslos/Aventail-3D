@@ -157,6 +157,11 @@ pub(crate) fn edit(edit: &Edit) -> usize {
             | Edit::SetTransform { .. }
             | Edit::SetOffset { .. }
             | Edit::SetUnits { .. } => 0,
+            Edit::SetExportTarget { before, after } => [before, after]
+                .iter()
+                .filter_map(|t| t.as_ref())
+                .map(|t| t.folder.len())
+                .sum(),
             Edit::SetMaterials { before, after, .. } => {
                 (before.len() + after.len()) * size_of::<crate::Material>()
                     + before

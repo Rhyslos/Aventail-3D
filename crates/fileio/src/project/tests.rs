@@ -9,11 +9,24 @@ use mesh::{CubeParams, PrimitiveKind, VertexId};
 use scene::{Command, Object, ObjectKind, Operation, Place, Primitive, Transform};
 
 /// A document using everything the current version of the format can
-/// hold: all of [`rich_document_v17`], plus what version 18 adds
-/// (materials on the cube and on an instance, polygons given a slot, on
-/// their own and with symmetry on; the version 18 sample holds exactly
+/// hold: all of [`rich_document_v18`], plus what version 19 adds (a game
+/// project folder, exporting on save; the version 19 sample holds exactly
 /// this).
 fn rich_document() -> Document {
+    let mut doc = rich_document_v18();
+    doc.execute(Command::SetExportTarget(Some(scene::ExportTarget {
+        folder: "/home/someone/Games/Crate Run/models".into(),
+        on_save: true,
+    })))
+    .unwrap();
+    doc
+}
+
+/// A document using everything version 18 of the format can hold: all
+/// of [`rich_document_v17`], plus what version 18 adds (materials on the
+/// cube and on an instance, polygons given a slot, on their own and with
+/// symmetry on; the version 18 sample holds exactly this).
+fn rich_document_v18() -> Document {
     let mut doc = rich_document_v17();
     let find = |doc: &Document, name: &str| {
         doc.scene()
@@ -1138,14 +1151,14 @@ fn a_cut_short_or_padded_body_is_damaged() {
 #[test]
 fn an_uncompressed_body_can_be_read() {
     let doc = rich_document();
-    let body = postcard::to_stdvec(&v18::ProjectV18::from_document(&doc)).unwrap();
-    let mut bytes = header(18, 0, body.len() as u64);
+    let body = postcard::to_stdvec(&v19::ProjectV19::from_document(&doc)).unwrap();
+    let mut bytes = header(19, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     assert_same(&doc, &from_bytes(&bytes).unwrap());
     // Data after the scene is refused.
     let mut longer = body.clone();
     longer.push(0);
-    let mut bytes = header(18, 0, longer.len() as u64);
+    let mut bytes = header(19, 0, longer.len() as u64);
     bytes.extend_from_slice(&longer);
     assert!(refused(&bytes).to_string().contains("unexpected data"));
 }
@@ -2199,7 +2212,7 @@ const SAMPLE_V18: &[u8] = include_bytes!("../../tests/data/sample-v18.avtl");
 #[test]
 fn a_file_saved_by_format_version_18_still_opens() {
     let doc = from_bytes(SAMPLE_V18).expect("the version 18 sample opens");
-    assert_same(&rich_document(), &doc);
+    assert_same(&rich_document_v18(), &doc);
     let model = v18::ProjectV18::from_document(&doc);
     assert_same(&doc, &from_bytes(&file_of_v18(&model)).unwrap());
 }
@@ -2254,6 +2267,51 @@ fn damaged_materials_are_refused() {
     for (bad, words) in cases {
         let text = refused(&file_of_v18(&bad)).to_string();
         assert!(text.contains(words), "{words}: {text}");
+    }
+}
+
+/// The bytes of a version 19 file holding `model`, uncompressed.
+fn file_of_v19(model: &v19::ProjectV19) -> Vec<u8> {
+    let body = postcard::to_stdvec(model).unwrap();
+    let mut bytes = header(19, 0, body.len() as u64);
+    bytes.extend_from_slice(&body);
+    bytes
+}
+
+/// A project saved by version 19 of the format, kept in the repository.
+const SAMPLE_V19: &[u8] = include_bytes!("../../tests/data/sample-v19.avtl");
+
+#[test]
+fn a_file_saved_by_format_version_19_still_opens() {
+    let doc = from_bytes(SAMPLE_V19).expect("the version 19 sample opens");
+    assert_same(&rich_document(), &doc);
+    let target = doc.scene().export_target().unwrap();
+    assert_eq!(target.folder, "/home/someone/Games/Crate Run/models");
+    assert!(target.on_save);
+    let model = v19::ProjectV19::from_document(&doc);
+    assert_same(&doc, &from_bytes(&file_of_v19(&model)).unwrap());
+    // Older files have none.
+    assert!(
+        from_bytes(SAMPLE_V18)
+            .unwrap()
+            .scene()
+            .export_target()
+            .is_none()
+    );
+}
+
+#[test]
+fn damaged_game_project_folders_are_refused() {
+    let good = v19::ProjectV19::from_document(&rich_document());
+    for (folder, words) in [
+        ("   ".to_string(), "folder"),
+        ("a\nb".to_string(), "folder"),
+        ("x".repeat(scene::units::MAX_FOLDER_LEN + 1), "folder"),
+    ] {
+        let mut bad = good.clone();
+        bad.target.as_mut().unwrap().folder = folder;
+        let text = refused(&file_of_v19(&bad)).to_string();
+        assert!(text.contains(words), "{text}");
     }
 }
 

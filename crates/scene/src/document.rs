@@ -54,6 +54,14 @@ impl Document {
         self
     }
 
+    /// The same document exporting to `target`, for a project being
+    /// opened (not a step to undo: use [`Command::SetExportTarget`]).
+    #[must_use]
+    pub fn with_export_target(mut self, target: Option<crate::ExportTarget>) -> Self {
+        self.scene = std::mem::take(&mut self.scene).with_export_target(target);
+        self
+    }
+
     /// The scene, for reading.
     pub fn scene(&self) -> &Scene {
         &self.scene

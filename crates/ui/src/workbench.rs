@@ -103,6 +103,15 @@ pub enum WorkbenchAction {
     /// no path. Report back with [`Workbench::exported`] or
     /// [`Workbench::export_failed`].
     Export(Box<ExportRequest>),
+    /// Ask which folder of a game project to export into (decision 0076).
+    /// Report back with [`Workbench::export_folder_chosen`].
+    ChooseExportFolder {
+        /// Where the folder picker starts, if anywhere.
+        start: Option<PathBuf>,
+    },
+    /// Export into the project's game project folder as `request` says.
+    /// Report back with [`Workbench::target_exported`].
+    ExportToTarget(Box<TargetRequest>),
     /// Import the file at `path`, or ask which first when `None`. Report
     /// back with [`Workbench::imported`] or [`Workbench::import_failed`].
     Import {
@@ -572,7 +581,19 @@ impl Workbench {
     /// The app saved the document to `path`. Carries on with whatever was
     /// waiting for the save (a new project, opening another, closing).
     pub fn saved(&mut self, path: PathBuf) {
-        self.note = Some(format!("Saved {}.", file_name(&path)));
+        self.saved_with_export(path, None);
+    }
+
+    /// The app saved the project to `path`, and then exported it into its
+    /// game project folder (decision 0076), with this outcome: the
+    /// file written and what it held, or why not.
+    pub fn saved_with_export(&mut self, path: PathBuf, export: Option<TargetOutcome>) {
+        let mut note = format!("Saved {}.", file_name(&path));
+        if let Some(outcome) = export {
+            note.push(' ');
+            note.push_str(&exporting::target_note(&outcome));
+        }
+        self.note = Some(note);
         self.file.saved_revision = self.document.revision();
         self.file.remember(&path);
         self.file.path = Some(path);
@@ -2018,7 +2039,7 @@ mod loop_cut_tests;
 #[cfg(test)]
 mod material_tests;
 mod materials;
-pub use exporting::{ExportChoice, ExportRequest};
+pub use exporting::{ExportChoice, ExportRequest, TargetOutcome, TargetRequest};
 mod modelling;
 #[cfg(test)]
 mod modelling_tests;

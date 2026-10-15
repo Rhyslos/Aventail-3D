@@ -62,5 +62,5 @@ pub use viewport::{
 };
 pub use workbench::{
     AppInfo, DISCARD_SHORTCUT, DOUBLE_CLICK_SECONDS, ExportChoice, ExportRequest, MODE_KEYS,
-    Workbench, WorkbenchAction, navigation_hint,
+    TargetOutcome, TargetRequest, Workbench, WorkbenchAction, navigation_hint,
 };

@@ -86,6 +86,13 @@ impl eframe::App for App {
                 WorkbenchAction::DiscardBackups { folder } => self.backups.discard(&folder),
                 WorkbenchAction::Export(request) => project::export(&mut self.workbench, &request),
                 WorkbenchAction::Import { path } => project::import(&mut self.workbench, path),
+                WorkbenchAction::ChooseExportFolder { start } => {
+                    project::choose_export_folder(&mut self.workbench, start);
+                }
+                WorkbenchAction::ExportToTarget(request) => {
+                    let outcome = project::export_into(&self.workbench, &request);
+                    self.workbench.target_exported(outcome);
+                }
             }
         }
         self.backups.update(&mut self.workbench);

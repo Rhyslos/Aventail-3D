@@ -129,6 +129,10 @@ pub enum Command {
     /// Changes the project's units (decision 0068): how lengths are shown
     /// and typed. The shapes don't change.
     SetUnits(crate::Units),
+    /// Changes the project's game project folder (decision 0076), or takes
+    /// it away (`None`). A folder path that is empty, too long or has
+    /// line breaks is refused.
+    SetExportTarget(Option<crate::ExportTarget>),
     /// Gives an object a new list of materials (decision 0074): names
     /// trimmed, at most `mesh::material::MAX_SLOTS`. A list with an empty
     /// name or a colour outside 0 to 1 is refused.
@@ -224,6 +228,8 @@ impl Command {
             }
             Self::SetUnits(units) => format!("Change units to {}", units.name()),
             Self::SetMaterials { .. } => "Change materials".to_string(),
+            Self::SetExportTarget(Some(_)) => "Change the game project folder".to_string(),
+            Self::SetExportTarget(None) => "Clear the game project folder".to_string(),
             Self::MovePivots(changes) => match changes.len() {
                 1 => "Move pivot".to_string(),
                 n => format!("Move {n} pivots"),
@@ -688,6 +694,19 @@ impl Run<'_> {
                         id: *id,
                         before,
                         after,
+                    })?;
+                }
+                Ok(None)
+            }
+            Command::SetExportTarget(target) => {
+                if target.as_ref().is_some_and(|t| !t.is_valid()) {
+                    return Err(SceneError::EmptyName);
+                }
+                let before = self.scene.export_target().cloned();
+                if before != *target {
+                    self.edit(Edit::SetExportTarget {
+                        before,
+                        after: target.clone(),
                     })?;
                 }
                 Ok(None)

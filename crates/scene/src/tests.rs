@@ -1601,3 +1601,34 @@ fn an_instances_material_list_is_its_originals() {
             .is_empty()
     );
 }
+
+#[test]
+fn the_game_project_folder_is_an_undo_step_and_checked() {
+    let (mut doc, _) = with_a_cube();
+    assert!(doc.scene().export_target().is_none());
+    let target = ExportTarget {
+        folder: "/games/crate/models".into(),
+        on_save: true,
+    };
+    doc.execute(Command::SetExportTarget(Some(target.clone())))
+        .unwrap();
+    assert_eq!(doc.undo_label(), Some("Change the game project folder"));
+    assert_eq!(doc.scene().export_target(), Some(&target));
+    // The same again changes nothing.
+    let steps = doc.undo_steps();
+    doc.execute(Command::SetExportTarget(Some(target.clone())))
+        .unwrap();
+    assert_eq!(doc.undo_steps(), steps);
+    for folder in ["", "  ", "a\nb"] {
+        let bad = ExportTarget {
+            folder: folder.into(),
+            on_save: false,
+        };
+        assert!(doc.execute(Command::SetExportTarget(Some(bad))).is_err());
+    }
+    doc.execute(Command::SetExportTarget(None)).unwrap();
+    assert_eq!(doc.undo_label(), Some("Clear the game project folder"));
+    check_round_trip(&mut doc);
+    doc.undo().unwrap();
+    assert_eq!(doc.scene().export_target(), Some(&target));
+}

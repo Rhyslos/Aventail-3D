@@ -117,6 +117,11 @@ pub(crate) enum Edit {
     },
     /// Changes the project's units.
     SetUnits { before: Units, after: Units },
+    /// Changes the project's game project folder.
+    SetExportTarget {
+        before: Option<crate::ExportTarget>,
+        after: Option<crate::ExportTarget>,
+    },
     /// Changes an object's list of materials.
     SetMaterials {
         id: ObjectId,
@@ -178,6 +183,7 @@ impl Edit {
             Self::SetVisible { before, after, .. } => before == after,
             Self::SetKind { before, after, .. } => before == after,
             Self::SetUnits { before, after } => before == after,
+            Self::SetExportTarget { before, after } => before == after,
             Self::SetMaterials { before, after, .. } => before == after,
             Self::SetTransform { before, after, .. } | Self::SetOffset { before, after, .. } => {
                 before == after
@@ -211,6 +217,10 @@ impl Edit {
                 after: before,
             },
             Self::SetUnits { before, after } => Self::SetUnits {
+                before: after,
+                after: before,
+            },
+            Self::SetExportTarget { before, after } => Self::SetExportTarget {
                 before: after,
                 after: before,
             },
@@ -282,6 +292,8 @@ pub struct Scene {
     next_id: u64,
     /// The project's units (decision 0068).
     units: Units,
+    /// The project's game project folder, if any (decision 0076).
+    export_target: Option<crate::ExportTarget>,
     /// Each object's evaluated shape, layer by layer (not part of what the
     /// scene is: copies start empty, and it never affects equality).
     cache: SharedCache,
@@ -367,6 +379,19 @@ impl Scene {
     #[must_use]
     pub fn with_units(mut self, units: Units) -> Self {
         self.units = units;
+        self
+    }
+
+    /// The project's game project folder, if any (decision 0076).
+    pub fn export_target(&self) -> Option<&crate::ExportTarget> {
+        self.export_target.as_ref()
+    }
+
+    /// The same scene exporting to `target`, for a project being opened
+    /// (not a step to undo: use [`crate::Command::SetExportTarget`]).
+    #[must_use]
+    pub fn with_export_target(mut self, target: Option<crate::ExportTarget>) -> Self {
+        self.export_target = target;
         self
     }
 
@@ -734,6 +759,15 @@ impl Scene {
                     return Err(SceneError::History("an object's materials have changed"));
                 }
                 node.object.materials.clone_from(after);
+                Ok(())
+            }
+            Edit::SetExportTarget { before, after } => {
+                if self.export_target != *before {
+                    return Err(SceneError::History(
+                        "the project's game project folder has changed",
+                    ));
+                }
+                self.export_target.clone_from(after);
                 Ok(())
             }
             Edit::SetUnits { before, after } => {
