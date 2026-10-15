@@ -93,6 +93,7 @@ Every key is listed in the **Keys** window: click **Keys** on the menu bar, afte
 | Connect / Bridge / Weld (Weld onto a point) / Fill hole | `A` / `C` / `M` (`Ctrl + M`) / `J` |
 | Straight back to the Model mode, tool put away | `Tab` |
 | Perspective, top, right, front view; all four | `F1`, `F2`, `F3`, `F4`; `F5` |
+| Perspective or orthographic | `P` |
 | Orbit, pan, zoom the view | Depends on your navigation controls; as standard right drag to orbit, middle drag to pan and the mouse wheel to zoom (`Alt` + left, middle or right drag work too). See [Navigating the view](navigating-the-view.md) |
 
 ## Tips and common problems
