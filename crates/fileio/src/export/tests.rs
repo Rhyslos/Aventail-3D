@@ -226,3 +226,39 @@ fn uvs_go_with_their_corners() {
         .collect();
     assert_eq!(uvs[2], Vec2::new(0.5, 0.5));
 }
+
+#[test]
+fn a_dented_polygon_is_cut_exactly_as_the_viewport_cuts_it() {
+    // An L-shaped polygon: a fan from its first corner would cut outside.
+    let mut shape = Mesh::new();
+    let ids: Vec<_> = [
+        (0.0, 0.0),
+        (2.0, 0.0),
+        (2.0, 1.0),
+        (1.0, 1.0),
+        (1.0, 2.0),
+        (0.0, 2.0),
+    ]
+    .iter()
+    .map(|(x, y)| shape.add_vertex(Vec3::new(*x, *y, 0.0)).unwrap())
+    .collect();
+    shape.add_face(&ids).unwrap();
+    let options = ExportOptions {
+        triangulate: true,
+        up: UpAxis::Z,
+        units: FileUnits::Centimetres,
+        ..ExportOptions::default()
+    };
+    let out = export_mesh(&shape, Mat4::IDENTITY, &options);
+    let exported: Vec<[Vec3; 3]> = out
+        .polygons
+        .iter()
+        .map(|p| [0, 1, 2].map(|i| out.points[p.corners[i].point as usize]))
+        .collect();
+    let viewport: Vec<[Vec3; 3]> = mesh::shaded_triangles(&shape)
+        .iter()
+        .map(|t| t.positions)
+        .collect();
+    assert_eq!(exported, viewport);
+    assert_eq!(exported.len(), 4);
+}

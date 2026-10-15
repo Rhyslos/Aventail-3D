@@ -59,6 +59,7 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0049](0049-slit.md) | Slit: a line of points over the shape, cut as seen (or through); file format version 7 | Accepted |
 | [0050](0050-pipe-bends.md) | Pipe bends: an extrude that turns a corner and keeps its size (smooth elbow or mitre joint); file format version 8 | Accepted |
 | [0051](0051-connect-bridge-weld.md) | Connect (J), Bridge (C or drag) and Weld (M, Ctrl + M); file format version 9 | Accepted |
+| [0073](0073-mikktspace-tangents.md) | Exports cut polygons the viewport's way; MikkTSpace tangents in glTF for shapes with UVs (`bevy_mikktspace`) | Accepted |
 | [0072](0072-gltf-export.md) | glTF export: binary `.glb`, each object a node at its pivot, metres, Y up, triangles; `serde_json` | Accepted |
 | [0071](0071-obj-export-and-import.md) | OBJ export and import: File menu entries, shading as seen, exports prepared once for every format | Accepted |
 | [0070](0070-extrude-freedom.md) | Extrude straight out as standard, with direction, end size, steps and a flat end; the Scale squares scale equally; file format version 17 | Accepted |
