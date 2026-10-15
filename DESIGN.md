@@ -330,7 +330,7 @@ Also: dense wireframes fade out from afar (and aren't drawn when too dense to se
 - Shell (thickness), and curves and splines (sweep, lathe)
 - Our own smoothing modifier (subdivision, with creases)
 - Weighted normals
-- Improved bevel (clamping, mitre patterns)
+- Improved bevel (mitre patterns, rounded corners; clamping, even width, skew and welding come earlier, with Groove, [0083](docs/decisions/0083-groove-and-bevel-control.md))
 - **Game bevel** (**W15**): for the mid-poly workflow, where a model is bevelled and shaded well instead of baked. One step bevels the chosen edges, sets weighted normals, and marks the hard edges and seams that go with them.
 - **Modular kit helpers** (**W16**): pieces sized to the grid, pivot presets (base centre, a corner, a snapping edge), and checking that pieces line up.
 - Array, mirror and other non-destructive generators. The mirror generator brings a **live weld** for symmetry: the halves joined only while their points are within the weld distance, coming apart again when moved away, replacing Weld the middle now ([0059](docs/decisions/0059-symmetry-for-every-edit.md), the project lead's choice)
@@ -453,6 +453,12 @@ Each phase ends with something runnable. The user tests the *feel* at the end of
 - **Engine export paths**: presets for Godot, Unity and Unreal Engine that save straight into the engine's project folder and export again on every save. *Built* ([0076](docs/decisions/0076-engine-export-paths.md)): a game project folder per project, the engine found from it, Export on every save, File → Export to game project. Godot and Unreal re-import by themselves. Unity reads glTF through its glTFast package (our own FBX writer would be extra work, and the Autodesk FBX SDK is ruled out). A live-link plugin per engine may come later
 - A **splash screen** while the app starts (the app's name and version, and what it is loading), at the project lead's request. *Built* ([0079](docs/decisions/0079-splash-screen.md))
 - **Done when:** a prop exports into Godot and Substance Painter and looks right (shape, hard edges, scale) with no fixes in other software.
+
+### Next — Bevel control and Groove (the project lead's request, before Phase 6)
+Planned in [0083](docs/decisions/0083-groove-and-bevel-control.md); to be built once the open pull requests are merged. Two pull requests:
+- **Bevel control:** Weld overlapping points (on by default), Skew (−100% to +100%, with Flip side), Even width (measured straight across the edge) and Stop at overlaps
+- **Groove** (K): edges turned into a thin strip and pushed in (a groove, a panel line) or out (a ridge) in one step; Width, Depth, straight or sloped Sides, neat ends
+- **Done when:** the project lead can bevel a prop's edges evenly and cut its panel lines without a separate bevel and extrude.
 
 ### Phase 6 — 3ds Max sprinkles
 - **Stable element names** first (review A3, [0044](docs/decisions/0044-edits-that-hold.md)): edits keep their exact elements even when an earlier edit renumbers them, which the edit list makes common
@@ -741,3 +747,4 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-15 — **Splash screen** ([0079](docs/decisions/0079-splash-screen.md)), the last Phase 5 milestone: the main window's first frames show the app's cube icon in the accent colour, its name and version, a progress bar and the step under way (starting the graphics, getting the workbench ready, opening the project given at start, checking for unsaved work), one step done between frames while its name shows; at least 0.6 s so a quick start doesn't flash. Every Phase 5 milestone is built; the gate (a prop into Godot and Substance Painter looking right) waits for the project lead's test.
 - 2026-10-15 — **Bends keep their shape on stretched objects** ([0081](docs/decisions/0081-bends-keep-their-shape-on-stretched-objects.md)), after the project lead found a bend widening a pipe on a prop: a bent extrude records how the object is stretched (its scale on each axis over their average) when it is made or its settings change, and is worked out as seen, so the pipe stays round. Polygons bent each on their own now keep their size. File format 21.
 - 2026-10-15 — **Extrudes, insets and bevels keep their shape on stretched objects** ([0082](docs/decisions/0082-edits-keep-their-shape-on-stretched-objects.md)), after the project lead saw a bevel come out uneven: any edit that measures across the shape records the object's stretch and is worked out as seen (`mesh::stretch::as_seen`), as bends are since 0081. File format 22.
+- 2026-10-15 — **Groove and bevel control, planned** ([0083](docs/decisions/0083-groove-and-bevel-control.md)), with the project lead's choices: a new tool **Groove** (not "Crease", which means a smoothing crease in other programs) on **K**, turning edges into a thin strip pushed in or out in one step; Bevel gains **Weld overlapping points** (on by default), **Skew** with Flip side, Even width and Stop at overlaps. Built next, as its own milestone, once the open pull requests are merged.
