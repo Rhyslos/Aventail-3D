@@ -131,6 +131,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Changing a finished extrude's bend **Angle** from 0 no longer makes the Attributes panel jump: the extrude's Direction, End size, Steps and Flat end rows stay in place, greyed out, instead of disappearing.
 - **A bend no longer stretches the pipe on a stretched object.** On an object scaled more along one axis than another, a bent extrude used to widen as it turned and end in an oval; it now keeps the pipe's shape as you see it. Older bends are fixed by changing any of their settings. Projects move to file format 21.
 - Bending several polygons with **Keep together** off no longer grows and pulls most of them out of shape: each keeps its own size.
 - Double-clicking to select a loop works every time with the Move, Rotate and Scale tools on. Before, the first click moved the gizmo under the mouse and the second click landed on it instead.

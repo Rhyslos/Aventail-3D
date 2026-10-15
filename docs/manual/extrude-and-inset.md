@@ -48,7 +48,7 @@ While Extrude is in use, the top of the Attributes panel has four rows that shap
 - **Steps:** how many rows the new walls have, evenly along them. More rows give loops to bend or shape later. **Ctrl + mouse wheel** changes it while Extrude is in use.
 - **Flat end:** lays the new end flat, square to the way it went: a patch from a curved side ends in a flat face.
 
-With **Keep together** off, each polygon is shaped on its own: each goes its own way out (or along the chosen axis), with its own end size. The four rows are greyed out while a **bend** is set, because a bent extrude goes out its own way.
+With **Keep together** off, each polygon is shaped on its own: each goes its own way out (or along the chosen axis), with its own end size. The four rows are greyed out while a **bend** is set, because a bent extrude goes out its own way. They stay in their place (under Last edit too), so the bend's rows below them never move while you change the Angle; set the Angle back to 0 and the extrude goes straight again with these settings.
 
 ### Inset polygons
 
