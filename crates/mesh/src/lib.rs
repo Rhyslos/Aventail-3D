@@ -27,6 +27,7 @@ pub mod selection;
 pub mod shading;
 pub mod slide;
 pub mod slit;
+pub mod stretch;
 pub mod symmetry;
 pub mod topology;
 pub mod triangulate;

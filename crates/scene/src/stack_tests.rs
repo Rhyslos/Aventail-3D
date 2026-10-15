@@ -652,6 +652,7 @@ fn extrude_top(doc: &Document, id: ObjectId, distance: f32, anchored: bool) -> O
         anchors: anchored
             .then(|| mesh::Anchors::record(&mesh, ElementKind::Polygons, &corners))
             .flatten(),
+        stretch: glam::Vec3::ONE,
     }
 }
 
@@ -778,6 +779,7 @@ fn inset_and_edge_extrude_are_recorded_too() {
             distance: 10.0,
             grouping: Grouping::Together,
             anchors: None,
+            stretch: glam::Vec3::ONE,
         },
     );
     assert_eq!(doc.undo_label(), Some("Inset 1 polygon"));
@@ -792,6 +794,7 @@ fn inset_and_edge_extrude_are_recorded_too() {
             distance: 10.0,
             grouping: Grouping::Together,
             anchors: None,
+            stretch: glam::Vec3::ONE,
         },
     );
     assert_eq!(doc.undo_label(), Some("Extrude 1 edge"));
@@ -841,6 +844,7 @@ fn bevel_top(doc: &Document, id: ObjectId, width: f32, segments: u32) -> Operati
             profile: 1.0,
         },
         anchors: mesh::Anchors::record(&mesh, ElementKind::Edges, &ends),
+        stretch: glam::Vec3::ONE,
     }
 }
 
@@ -898,6 +902,7 @@ fn a_point_bevel_is_recorded() {
             points: vec![VertexId::from_raw(0)],
             width: 10.0,
             anchors: None,
+            stretch: glam::Vec3::ONE,
         },
     );
     assert_eq!(doc.undo_label(), Some("Bevel 1 point"));
@@ -1142,6 +1147,7 @@ fn a_straight_extrude_given_a_bend_becomes_a_bent_one() {
         grouping: Grouping::Together,
         shape: crate::ExtrudeShape::EARLIER,
         anchors: None,
+        stretch: glam::Vec3::ONE,
     };
     record(&mut doc, id, straight.clone());
     // A straight extrude shows a bend that doesn't turn.
@@ -1217,6 +1223,7 @@ fn a_bend_keeps_the_stretch_it_is_given() {
         grouping: Grouping::Together,
         shape: crate::ExtrudeShape::default(),
         anchors: None,
+        stretch: glam::Vec3::ONE,
     };
     let turn = Bend {
         angle: 90.0,
@@ -1468,6 +1475,7 @@ fn edits_holding_numbers_that_arent_real_are_refused() {
             points: vec![VertexId::from_raw(0)],
             width: f32::NAN,
             anchors: None,
+            stretch: glam::Vec3::ONE,
         },
     ] {
         assert!(!operation.numbers_are_real());
@@ -1766,6 +1774,7 @@ fn changing_an_earlier_edit_keeps_later_edits_on_their_points() {
         grouping: Grouping::Together,
         shape: crate::ExtrudeShape::EARLIER,
         anchors: None,
+        stretch: glam::Vec3::ONE,
     };
     record(&mut doc, id, extrude(50.0));
     record(&mut doc, id, extrude(50.0));
@@ -1822,6 +1831,7 @@ fn an_edit_that_would_make_the_shape_too_large_is_skipped_with_a_warning() {
                 profile: 1.0,
             },
             anchors: None,
+            stretch: glam::Vec3::ONE,
         },
     );
     let after = doc.scene().evaluated(id).unwrap();
@@ -1896,4 +1906,166 @@ fn hard_and_soft_edges_are_recorded() {
     let shape = doc.scene().evaluated(id).unwrap();
     assert!(shape.warnings.is_empty());
     assert_eq!(shape.mesh.hard_edge_count(), 12);
+}
+
+#[test]
+fn an_inset_on_a_stretched_object_is_even_as_seen() {
+    // The cube stretched to twice its width along X (decision 0082): an
+    // inset of 10 leaves a border 10 wide on every side as seen, not 20
+    // along X and 10 along Y.
+    let (mut doc, id) = with_a_cube();
+    let mesh = doc.scene().evaluated(id).unwrap().mesh;
+    let top = mesh
+        .faces()
+        .map(|(f, _)| f)
+        .find(|f| mesh.face_normal(*f).z > 0.9)
+        .unwrap();
+    let stretch = Vec3::new(2.0, 1.0, 1.0) / (4.0 / 3.0);
+    record(
+        &mut doc,
+        id,
+        Operation::InsetPolygons {
+            faces: vec![top],
+            distance: 10.0,
+            grouping: Grouping::Together,
+            stretch,
+            anchors: None,
+        },
+    );
+    let shape = doc.scene().evaluated(id).unwrap().mesh;
+    let across = |m: &Mesh, f: FaceId| {
+        let seen: Vec<Vec3> = m
+            .face(f)
+            .unwrap()
+            .iter()
+            .map(|v| m.position(*v).unwrap() * stretch)
+            .collect();
+        let size = |pick: fn(Vec3) -> f32| {
+            let most = seen.iter().map(|p| pick(*p)).fold(f32::MIN, f32::max);
+            let least = seen.iter().map(|p| pick(*p)).fold(f32::MAX, f32::min);
+            most - least
+        };
+        (size(|p| p.x), size(|p| p.y))
+    };
+    let (outer_x, outer_y) = across(&mesh, top);
+    let (inner_x, inner_y) = across(&shape, top);
+    assert!(
+        (outer_x - inner_x - 20.0).abs() < 1e-2,
+        "{outer_x} {inner_x}"
+    );
+    assert!(
+        (outer_y - inner_y - 20.0).abs() < 1e-2,
+        "{outer_y} {inner_y}"
+    );
+}
+
+#[test]
+fn a_bevelled_corner_on_a_stretched_object_is_even_as_seen() {
+    let (mut doc, id) = with_a_cube();
+    let mesh = doc.scene().evaluated(id).unwrap().mesh;
+    let (corner, at) = mesh
+        .vertices()
+        .max_by(|a, b| (a.1.x + a.1.y + a.1.z).total_cmp(&(b.1.x + b.1.y + b.1.z)))
+        .unwrap();
+    let stretch = Vec3::new(0.5, 1.0, 1.5);
+    record(
+        &mut doc,
+        id,
+        Operation::BevelPoints {
+            points: vec![corner],
+            width: 8.0,
+            stretch,
+            anchors: None,
+        },
+    );
+    let shape = doc.scene().evaluated(id).unwrap().mesh;
+    // The new points sit 8 from the corner as seen, one along each edge.
+    let seen_corner = at * stretch;
+    let near: Vec<f32> = shape
+        .vertices()
+        .map(|(_, p)| (p * stretch).distance(seen_corner))
+        .filter(|d| *d < 30.0 && *d > 1e-3)
+        .collect();
+    assert_eq!(near.len(), 3, "{near:?}");
+    for d in near {
+        assert!((d - 8.0).abs() < 1e-2, "{d}");
+    }
+}
+
+#[test]
+fn every_measuring_edit_keeps_a_stretch_and_others_dont() {
+    let s = Vec3::new(0.5, 1.0, 1.5);
+    let face = FaceId::from_raw(0);
+    let inset = Operation::InsetPolygons {
+        faces: vec![face],
+        distance: 1.0,
+        grouping: Grouping::Together,
+        stretch: Vec3::ONE,
+        anchors: None,
+    };
+    assert!(inset.keeps_stretch());
+    let stretched = inset.with_stretch(s);
+    assert_eq!(stretched.stretch(), s);
+    assert_eq!(stretched.settings().unwrap().stretch, Some(s));
+    // Changing a setting keeps it, unless a new one comes with it.
+    let wider = stretched.with(EditSettings {
+        distance: Some(3.0),
+        stretch: None,
+        ..EditSettings::default()
+    });
+    assert_eq!(wider.stretch(), s);
+    let fresh = stretched.with(EditSettings {
+        stretch: Some(Vec3::ONE),
+        ..EditSettings::default()
+    });
+    assert_eq!(fresh.stretch(), Vec3::ONE);
+    // A broken stretch counts as none; a mirrored edit keeps its edit's.
+    assert_eq!(
+        inset.with_stretch(Vec3::new(f32::NAN, 1.0, 1.0)).stretch(),
+        Vec3::ONE
+    );
+    let mirrored = Operation::Mirrored {
+        op: Box::new(stretched.clone()),
+        mirror: mesh::symmetry::Mirror {
+            axes: [true, false, false],
+            centre: Vec3::ZERO,
+            clip: false,
+        },
+    };
+    assert_eq!(mirrored.stretch(), s);
+    assert_eq!(mirrored.with_stretch(Vec3::ONE).stretch(), Vec3::ONE);
+    // A straight extrude bent and straightened again keeps it.
+    let straight = Operation::ExtrudePolygons {
+        faces: vec![face],
+        distance: 5.0,
+        grouping: Grouping::Together,
+        shape: crate::ExtrudeShape::default(),
+        stretch: s,
+        anchors: None,
+    };
+    let bent = straight.with(EditSettings {
+        bend: Some(Bend {
+            angle: 30.0,
+            ..Bend::default()
+        }),
+        ..straight.settings().unwrap()
+    });
+    assert!(matches!(bent, Operation::ExtrudeBent { stretch, .. } if stretch == s));
+    let back = bent.with(EditSettings {
+        bend: Some(Bend::default()),
+        ..bent.settings().unwrap()
+    });
+    assert!(matches!(back, Operation::ExtrudePolygons { stretch, .. } if stretch == s));
+    // Moves, cuts and the rest don't keep one.
+    for other in [lift(&[0], 1.0), Operation::FixFacing] {
+        assert!(!other.keeps_stretch());
+        assert_eq!(other.with_stretch(s), other);
+        assert_eq!(other.stretch(), Vec3::ONE);
+    }
+    // A stretch that isn't a real number makes the edit refused.
+    let mut broken = stretched;
+    if let Operation::InsetPolygons { stretch, .. } = &mut broken {
+        *stretch = Vec3::new(f32::INFINITY, 1.0, 1.0);
+    }
+    assert!(!broken.numbers_are_real());
 }

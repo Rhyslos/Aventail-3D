@@ -765,6 +765,7 @@ fn random_commands_keep_the_tree_whole_and_undo_exactly() {
                                         profile: 1.0,
                                     },
                                     anchors: None,
+                                    stretch: glam::Vec3::ONE,
                                 }
                             } else if rng.next(2) == 0 {
                                 Operation::ExtrudePolygons {
@@ -773,6 +774,7 @@ fn random_commands_keep_the_tree_whole_and_undo_exactly() {
                                     grouping,
                                     shape: crate::ExtrudeShape::EARLIER,
                                     anchors: None,
+                                    stretch: glam::Vec3::ONE,
                                 }
                             } else {
                                 Operation::InsetPolygons {
@@ -780,6 +782,7 @@ fn random_commands_keep_the_tree_whole_and_undo_exactly() {
                                     distance: distance.abs() / 4.0,
                                     grouping,
                                     anchors: None,
+                                    stretch: glam::Vec3::ONE,
                                 }
                             },
                         }

@@ -85,6 +85,7 @@ fn an_extrude_is_made_on_both_sides_together() {
         grouping: Grouping::Together,
         shape: crate::ExtrudeShape::EARLIER,
         anchors: None,
+        stretch: glam::Vec3::ONE,
     };
     let one = after(op.clone());
     assert!(!symmetrical(&one));
@@ -118,6 +119,7 @@ fn a_selection_crossing_the_middle_moves_as_one_piece() {
         grouping: Grouping::Together,
         shape: crate::ExtrudeShape::EARLIER,
         anchors: None,
+        stretch: glam::Vec3::ONE,
     };
     let both = after(mirrored(op));
     let by_hand = after(Operation::ExtrudePolygons {
@@ -126,6 +128,7 @@ fn a_selection_crossing_the_middle_moves_as_one_piece() {
         grouping: Grouping::Together,
         shape: crate::ExtrudeShape::EARLIER,
         anchors: None,
+        stretch: glam::Vec3::ONE,
     });
     assert_eq!(both.face_count(), by_hand.face_count());
     assert!(symmetrical(&both));
@@ -293,6 +296,7 @@ fn delete_dissolve_flip_and_hard_edges_cover_both_sides() {
             distance: 5.0,
             grouping: Grouping::Together,
             anchors: None,
+            stretch: glam::Vec3::ONE,
         },
     ] {
         let both = after(mirrored(op.clone()));
@@ -317,6 +321,7 @@ fn settings_change_both_sides_and_the_name_says_so() {
         grouping: Grouping::Together,
         shape: crate::ExtrudeShape::EARLIER,
         anchors: None,
+        stretch: glam::Vec3::ONE,
     });
     assert_eq!(op.describe(), "Extrude 1 polygon, mirrored");
     assert_eq!(op.settings().unwrap().distance, Some(30.0));

@@ -4,7 +4,7 @@
 
 use super::modelling_tests::{H, ctrl_wheel, cube, drag, last_operation, on_screen, ready, shape};
 use super::*;
-use egui_kittest::kittest::Queryable;
+use egui_kittest::kittest::{NodeT, Queryable};
 use scene::{ExtrudeDirection, ExtrudeShape, Operation};
 
 fn last_shape(harness: &H) -> ExtrudeShape {
@@ -177,4 +177,83 @@ fn an_evenly_scaled_object_bends_with_no_stretch() {
     harness.run();
     drag(&mut harness, 40.0);
     assert_eq!(last_stretch(&harness), glam::Vec3::ONE);
+}
+
+/// Where the Last edit's bend Segments field is, top to bottom.
+fn segments_top(harness: &H) -> f32 {
+    harness
+        .get_all_by_label("Bend segments")
+        .map(|n| n.rect().min.y)
+        .fold(f32::INFINITY, f32::min)
+}
+
+#[test]
+fn the_bend_rows_stay_put_when_the_extrude_starts_bending() {
+    // Regression: when the Angle left 0, the shape rows above the bend
+    // vanished and the bend rows jumped up under the mouse.
+    let mut harness = ready(Key::D);
+    drag(&mut harness, 60.0);
+    let straight = segments_top(&harness);
+    assert!(straight.is_finite());
+    let op = last_operation(&harness).unwrap();
+    let bent = op.with(scene::EditSettings {
+        bend: Some(scene::Bend {
+            angle: 1.0,
+            ..scene::Bend::default()
+        }),
+        ..op.settings().unwrap()
+    });
+    assert!(matches!(bent, Operation::ExtrudeBent { .. }));
+    let id = cube(&harness);
+    let doc = harness.state_mut().workbench.document_mut();
+    let layer = doc.scene().object(id).unwrap().stack.layers().len() - 1;
+    let index = doc.scene().object(id).unwrap().stack.layers()[layer]
+        .entries
+        .len()
+        - 1;
+    doc.execute(scene::Command::ReplaceOperation {
+        id,
+        layer,
+        index,
+        operation: bent,
+    })
+    .unwrap();
+    harness.run();
+    assert!(
+        harness
+            .query_by_label_contains("Last edit: Extrude 1 polygon with a bend")
+            .is_some()
+    );
+    assert!((segments_top(&harness) - straight).abs() < 0.5);
+    // The shape rows are still there, greyed out.
+    let direction = harness.get_by_label("Extrude direction");
+    assert!(direction.accesskit_node().is_disabled());
+}
+
+#[test]
+fn insets_and_straight_extrudes_on_a_stretched_object_record_its_stretch() {
+    // Decision 0082: every edit that measures across the shape.
+    let tall = glam::Vec3::new(0.75, 0.75, 1.5);
+    for key in [Key::I, Key::D] {
+        let mut harness = ready(key);
+        scale_cube(&mut harness, glam::Vec3::new(1.0, 1.0, 2.0));
+        drag(&mut harness, 30.0);
+        let op = last_operation(&harness).unwrap();
+        assert!(
+            matches!(
+                op,
+                Operation::InsetPolygons { .. } | Operation::ExtrudePolygons { .. }
+            ),
+            "{op:?}"
+        );
+        assert!((op.stretch() - tall).length() < 1e-4, "{op:?}");
+        // Scaled evenly afterwards, the next change of the edit takes the
+        // new (no) stretch.
+        scale_cube(&mut harness, glam::Vec3::splat(2.0));
+        let changed = op.with(scene::EditSettings {
+            distance: Some(1.0),
+            ..op.settings().unwrap()
+        });
+        assert_eq!(changed.stretch(), op.stretch(), "kept until changed here");
+    }
 }

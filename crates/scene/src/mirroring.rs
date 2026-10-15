@@ -154,6 +154,7 @@ pub(crate) fn both_sides(op: &Operation, mesh: &Mesh, mirror: &Mirror) -> Both {
             distance,
             grouping,
             shape,
+            stretch,
             anchors,
         } => together(Operation::ExtrudePolygons {
             faces: all_faces(faces),
@@ -162,46 +163,55 @@ pub(crate) fn both_sides(op: &Operation, mesh: &Mesh, mirror: &Mirror) -> Both {
             // Along an axis, each side goes out the way it faces, so the
             // mirrored side goes the mirrored way.
             shape: *shape,
+            stretch: *stretch,
             anchors: joined(anchors),
         }),
         Operation::InsetPolygons {
             faces,
             distance,
             grouping,
+            stretch,
             anchors,
         } => together(Operation::InsetPolygons {
             faces: all_faces(faces),
             distance: *distance,
             grouping: *grouping,
+            stretch: *stretch,
             anchors: joined(anchors),
         }),
         Operation::ExtrudeEdges {
             edges,
             distance,
             grouping,
+            stretch,
             anchors,
         } => together(Operation::ExtrudeEdges {
             edges: all_edges(edges),
             distance: *distance,
             grouping: *grouping,
+            stretch: *stretch,
             anchors: joined(anchors),
         }),
         Operation::BevelEdges {
             edges,
             shape,
+            stretch,
             anchors,
         } => together(Operation::BevelEdges {
             edges: all_edges(edges),
             shape: *shape,
+            stretch: *stretch,
             anchors: joined(anchors),
         }),
         Operation::BevelPoints {
             points,
             width,
+            stretch,
             anchors,
         } => together(Operation::BevelPoints {
             points: all_points(points),
             width: *width,
+            stretch: *stretch,
             anchors: joined(anchors),
         }),
         Operation::DeleteElements {
@@ -265,7 +275,7 @@ pub(crate) fn both_sides(op: &Operation, mesh: &Mesh, mirror: &Mirror) -> Both {
             let stretch = *stretch;
             let facing = faces
                 .iter()
-                .map(|f| mesh.face_normal(*f) / mesh::extrude::usable_stretch(stretch))
+                .map(|f| mesh.face_normal(*f) / mesh::stretch::usable(stretch))
                 .sum::<glam::Vec3>()
                 .try_normalize();
             Both::Copies(

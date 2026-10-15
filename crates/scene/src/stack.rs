@@ -75,6 +75,10 @@ pub enum Operation {
         /// is flat (decision 0070). Extrudes saved before file format 17
         /// have `ExtrudeShape::EARLIER`.
         shape: ExtrudeShape,
+        /// How much the object was stretched along its own axes when the
+        /// edit was made or last changed, so it keeps its shape as seen
+        /// (decision 0082); `Vec3::ONE` for none.
+        stretch: Vec3,
         /// Where the polygons were, to find them again (decision 0032).
         anchors: Option<Anchors>,
     },
@@ -108,6 +112,10 @@ pub enum Operation {
         distance: f32,
         /// Neighbours as one piece, or each on its own.
         grouping: Grouping,
+        /// How much the object was stretched along its own axes when the
+        /// edit was made or last changed, so it keeps its shape as seen
+        /// (decision 0082); `Vec3::ONE` for none.
+        stretch: Vec3,
         /// Where the polygons were, to find them again (decision 0032).
         anchors: Option<Anchors>,
     },
@@ -120,6 +128,10 @@ pub enum Operation {
         distance: f32,
         /// Edges joined at a point as one piece, or each on its own.
         grouping: Grouping,
+        /// How much the object was stretched along its own axes when the
+        /// edit was made or last changed, so it keeps its shape as seen
+        /// (decision 0082); `Vec3::ONE` for none.
+        stretch: Vec3,
         /// Where the edges were, to find them again (decision 0032).
         anchors: Option<Anchors>,
     },
@@ -131,6 +143,10 @@ pub enum Operation {
         /// Its width (in the object's own space, centimetres), rows and
         /// profile.
         shape: BevelShape,
+        /// How much the object was stretched along its own axes when the
+        /// edit was made or last changed, so it keeps its shape as seen
+        /// (decision 0082); `Vec3::ONE` for none.
+        stretch: Vec3,
         /// Where the edges were, to find them again (decision 0032).
         anchors: Option<Anchors>,
     },
@@ -142,6 +158,10 @@ pub enum Operation {
         /// How far along each edge the cut goes, in the object's own
         /// space (centimetres).
         width: f32,
+        /// How much the object was stretched along its own axes when the
+        /// edit was made or last changed, so it keeps its shape as seen
+        /// (decision 0082); `Vec3::ONE` for none.
+        stretch: Vec3,
         /// Where the points were, to find them again (decision 0032).
         anchors: Option<Anchors>,
     },
@@ -372,8 +392,9 @@ pub struct EditSettings {
     /// A straight extrude's way, end size, steps and flat end (decision
     /// 0070); none for a bent extrude or other edits.
     pub extrude: Option<ExtrudeShape>,
-    /// How much the object is stretched along each of its axes, for a
-    /// bent extrude (decision 0081); none to keep what it has.
+    /// How much the object is stretched along each of its axes, for an
+    /// extrude, inset or bevel (decisions 0081 and 0082); none to keep
+    /// what it has.
     pub stretch: Option<Vec3>,
 }
 
@@ -476,6 +497,15 @@ impl Operation {
         if let Self::Mirrored { op, .. } = self {
             return op.settings();
         }
+        let stretch = self.keeps_stretch().then(|| self.stretch());
+        self.own_settings().map(|settings| EditSettings {
+            stretch,
+            ..settings
+        })
+    }
+
+    /// The settings, without the stretch.
+    fn own_settings(&self) -> Option<EditSettings> {
         let plain = |distance: f32, grouping: Grouping| EditSettings {
             distance: Some(distance),
             grouping: Some(grouping),
@@ -496,11 +526,9 @@ impl Operation {
                 distance,
                 grouping,
                 bend,
-                stretch,
                 ..
             } => Some(EditSettings {
                 bend: Some(*bend),
-                stretch: Some(*stretch),
                 ..plain(*distance, *grouping)
             }),
             Self::InsetPolygons {
@@ -575,6 +603,7 @@ impl Operation {
                 faces,
                 distance,
                 grouping,
+                stretch,
                 anchors,
                 ..
             },
@@ -587,7 +616,7 @@ impl Operation {
                 distance: *distance,
                 grouping: *grouping,
                 bend,
-                stretch: Vec3::ONE,
+                stretch: *stretch,
                 anchors: anchors.clone(),
             };
             return bent.with(settings);
@@ -598,7 +627,6 @@ impl Operation {
                 distance,
                 grouping,
                 bend,
-                stretch,
                 ..
             } => {
                 if let Some(d) = settings.distance {
@@ -609,9 +637,6 @@ impl Operation {
                 }
                 if let Some(b) = settings.bend {
                     *bend = b;
-                }
-                if let Some(s) = settings.stretch {
-                    *stretch = mesh::extrude::usable_stretch(s);
                 }
             }
             Self::ExtrudePolygons {
@@ -704,6 +729,11 @@ impl Operation {
             | Self::Mirrored { .. }
             | Self::WeldMiddle { .. } => {}
         }
+        if let Some(s) = settings.stretch
+            && let Some(stretch) = changed.stretch_mut()
+        {
+            *stretch = mesh::stretch::usable(s);
+        }
         // A bend taken back to nothing makes a straight extrude again,
         // shaped as asked (straight out as standard, decision 0070).
         if let Self::ExtrudeBent {
@@ -711,8 +741,8 @@ impl Operation {
             distance,
             grouping,
             bend,
+            stretch,
             anchors,
-            ..
         } = &changed
             && !bend.bends()
             && settings.bend.is_some()
@@ -722,8 +752,66 @@ impl Operation {
                 distance: *distance,
                 grouping: *grouping,
                 shape: settings.extrude.unwrap_or_default().clamped(),
+                stretch: *stretch,
                 anchors: anchors.clone(),
             };
+        }
+        changed
+    }
+
+    /// Whether the edit is worked out as the object is seen, keeping the
+    /// object's stretch (decisions 0081 and 0082): extrudes, insets and
+    /// bevels, which measure across the shape. Moves and turns of points
+    /// are already in the object's own space, and cuts don't measure.
+    pub fn keeps_stretch(&self) -> bool {
+        matches!(
+            self.inner(),
+            Self::ExtrudePolygons { .. }
+                | Self::ExtrudeBent { .. }
+                | Self::InsetPolygons { .. }
+                | Self::ExtrudeEdges { .. }
+                | Self::BevelEdges { .. }
+                | Self::BevelPoints { .. }
+        )
+    }
+
+    /// How much the object was stretched along its own axes when the edit
+    /// was made or last changed; `Vec3::ONE` for none, and for edits that
+    /// don't keep one ([`Self::keeps_stretch`]).
+    pub fn stretch(&self) -> Vec3 {
+        match self.inner() {
+            Self::ExtrudePolygons { stretch, .. }
+            | Self::ExtrudeBent { stretch, .. }
+            | Self::InsetPolygons { stretch, .. }
+            | Self::ExtrudeEdges { stretch, .. }
+            | Self::BevelEdges { stretch, .. }
+            | Self::BevelPoints { stretch, .. } => *stretch,
+            _ => Vec3::ONE,
+        }
+    }
+
+    /// The edit's stretch, to change, if it keeps one.
+    fn stretch_mut(&mut self) -> Option<&mut Vec3> {
+        match self {
+            Self::Mirrored { op, .. } => op.stretch_mut(),
+            Self::ExtrudePolygons { stretch, .. }
+            | Self::ExtrudeBent { stretch, .. }
+            | Self::InsetPolygons { stretch, .. }
+            | Self::ExtrudeEdges { stretch, .. }
+            | Self::BevelEdges { stretch, .. }
+            | Self::BevelPoints { stretch, .. } => Some(stretch),
+            _ => None,
+        }
+    }
+
+    /// The same edit with `stretch` (made usable, see
+    /// [`mesh::stretch::usable`]); an edit that doesn't keep one is
+    /// unchanged.
+    #[must_use]
+    pub fn with_stretch(&self, stretch: Vec3) -> Self {
+        let mut changed = self.clone();
+        if let Some(s) = changed.stretch_mut() {
+            *s = mesh::stretch::usable(stretch);
         }
         changed
     }
@@ -765,14 +853,8 @@ impl Operation {
             | Self::FixFacing => true,
             Self::SlidePoints { slides, .. } => slides.iter().all(|s| s.amount.is_finite()),
             Self::HardEdgesByAngle { angle } => angle.is_finite(),
-            Self::ExtrudeBent {
-                distance,
-                bend,
-                stretch,
-                ..
-            } => {
+            Self::ExtrudeBent { distance, bend, .. } => {
                 distance.is_finite()
-                    && stretch.is_finite()
                     && [bend.angle, bend.direction, bend.radius, bend.rise]
                         .iter()
                         .all(|x| x.is_finite())
@@ -789,7 +871,7 @@ impl Operation {
                 mirror.centre.is_finite() && distance.is_finite()
             }
         };
-        own && anchors_ok
+        own && anchors_ok && self.stretch().is_finite()
     }
 
     /// Where the operation's elements were, if it keeps that.
@@ -946,6 +1028,7 @@ impl Operation {
                 distance,
                 grouping,
                 shape,
+                stretch,
                 ..
             } => {
                 let faces = refound
@@ -956,7 +1039,9 @@ impl Operation {
                 if too_big(corner_count(mesh, &faces).saturating_mul(rows)) {
                     return skipped;
                 }
-                edit::extrude_shaped(mesh, &faces, *distance, *grouping, *shape)
+                mesh::stretch::as_seen(mesh, *stretch, |mesh| {
+                    edit::extrude_shaped(mesh, &faces, *distance, *grouping, *shape)
+                })
             }
             Self::ExtrudeBent {
                 faces,
@@ -974,12 +1059,15 @@ impl Operation {
                 if too_big(corner_count(mesh, &faces).saturating_mul(rings)) {
                     return skipped;
                 }
-                edit::extrude_bent_stretched(mesh, &faces, *distance, *grouping, *bend, *stretch)
+                mesh::stretch::as_seen(mesh, *stretch, |mesh| {
+                    edit::extrude_bent(mesh, &faces, *distance, *grouping, *bend)
+                })
             }
             Self::InsetPolygons {
                 faces,
                 distance,
                 grouping,
+                stretch,
                 ..
             } => {
                 let faces = refound
@@ -988,12 +1076,15 @@ impl Operation {
                 if too_big(corner_count(mesh, &faces)) {
                     return skipped;
                 }
-                edit::inset_polygons(mesh, &faces, *distance, *grouping)
+                mesh::stretch::as_seen(mesh, *stretch, |mesh| {
+                    edit::inset_polygons(mesh, &faces, *distance, *grouping)
+                })
             }
             Self::ExtrudeEdges {
                 edges,
                 distance,
                 grouping,
+                stretch,
                 ..
             } => {
                 let edges = refound
@@ -1002,9 +1093,16 @@ impl Operation {
                 if too_big(edges.len()) {
                     return skipped;
                 }
-                edit::extrude_edges(mesh, &edges, *distance, *grouping)
+                mesh::stretch::as_seen(mesh, *stretch, |mesh| {
+                    edit::extrude_edges(mesh, &edges, *distance, *grouping)
+                })
             }
-            Self::BevelEdges { edges, shape, .. } => {
+            Self::BevelEdges {
+                edges,
+                shape,
+                stretch,
+                ..
+            } => {
                 let edges = refound
                     .as_ref()
                     .map_or_else(|| edges.clone(), |r| edges_within(mesh, &r.0));
@@ -1013,15 +1111,24 @@ impl Operation {
                 if too_big(edges.len().saturating_mul(rows + 2)) {
                     return skipped;
                 }
-                edit::bevel_edges(mesh, &edges, *shape)
+                mesh::stretch::as_seen(mesh, *stretch, |mesh| {
+                    edit::bevel_edges(mesh, &edges, *shape)
+                })
             }
-            Self::BevelPoints { points, width, .. } => {
+            Self::BevelPoints {
+                points,
+                width,
+                stretch,
+                ..
+            } => {
                 let points = refound.as_ref().map_or(points.as_slice(), |r| &r.0);
                 // One corner polygon per point.
                 if too_big(points.len()) {
                     return skipped;
                 }
-                edit::bevel_points(mesh, points, *width)
+                mesh::stretch::as_seen(mesh, *stretch, |mesh| {
+                    edit::bevel_points(mesh, points, *width)
+                })
             }
             Self::LoopCut {
                 edge,
