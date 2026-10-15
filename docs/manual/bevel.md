@@ -49,6 +49,10 @@ With 2 or more segments, the **Profile** decides which way the bevel curves. At 
 
 ![The same cube with its edges bevelled at Profile -100%: each edge is scooped inward, so the top overhangs a hollow groove.](../screenshots/2026-10-13-bevel-hollow.png)
 
+### On a stretched object
+
+On an object stretched in the Object mode (scaled more along one axis than another), a bevel's **Width** is measured as you see it, so a chamfer is equally wide on every edge, whichever way the edge runs. The bevel remembers the stretch the object had when you made it or last changed it; see [Extrude and inset: on a stretched object](extrude-and-inset.md#on-a-stretched-object) for what happens if you stretch the object again later.
+
 ## Settings
 
 | Setting | What it does |
@@ -77,6 +81,7 @@ With 2 or more segments, the **Profile** decides which way the bevel curves. At 
 - **Problem:** pressing V does nothing but the status bar talks about modes. **Why:** Bevel works in the Edges and Points modes. **Fix:** press **2** (or **1**) and try again.
 - **Problem:** the drag does nothing. **Why:** you started away from the edges and pulled towards them, or nothing is selected. **Fix:** start near the edges and pull away.
 - **Problem:** an edge on a plane's border wasn't bevelled. **Why:** a bevel needs a polygon on each side of the edge. Border edges are skipped.
+- **Problem:** a bevel made before this version is wider on some edges than others on a stretched object. **Why:** older bevels ignored the object's stretch. **Fix:** change its Width (or Segments) under Last edit, and it is worked out again as the object is seen.
 - **Problem:** a wide bevel folds over itself. **Why:** it reached further than the polygons next to it are wide. **Fix:** lower the Width in the Attributes panel. Keeping bevels from overlapping automatically comes with the improved bevel.
 
 ## Related

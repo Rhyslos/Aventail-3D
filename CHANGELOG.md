@@ -131,6 +131,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **Extrudes, insets and bevels keep their shape on a stretched object too.** On an object scaled more along one axis than another, an inset's border and a bevel's width are now even all round as you see them, and "Straight out" goes straight out from the surface you see. Older edits are fixed by changing any of their settings. Projects move to file format 22.
 - Changing a finished extrude's bend **Angle** from 0 no longer makes the Attributes panel jump: the extrude's Direction, End size, Steps and Flat end rows stay in place, greyed out, instead of disappearing.
 - **A bend no longer stretches the pipe on a stretched object.** On an object scaled more along one axis than another, a bent extrude used to widen as it turned and end in an oval; it now keeps the pipe's shape as you see it. Older bends are fixed by changing any of their settings. Projects move to file format 21.
 - Bending several polygons with **Keep together** off no longer grows and pulls most of them out of shape: each keeps its own size.

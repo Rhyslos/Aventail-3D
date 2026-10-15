@@ -1,6 +1,6 @@
 # 0081. Bends keep their shape on stretched objects
 
-- **Status:** Accepted
+- **Status:** Accepted, extended to extrudes, insets and bevels by [0082](0082-edits-keep-their-shape-on-stretched-objects.md)
 - **Date:** 2026-10-15
 - **Follows:** [0050](0050-pipe-bends.md) (pipe bends) and [0062](0062-spirals.md) (spirals)
 

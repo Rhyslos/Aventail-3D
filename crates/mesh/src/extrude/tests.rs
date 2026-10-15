@@ -1074,14 +1074,14 @@ fn no_stretch_or_a_broken_one_is_the_plain_bend() {
         Vec3::new(0.0, 1.0, 1.0),
         Vec3::new(-1.0, 1.0, 1.0),
         Vec3::new(1.0, f32::INFINITY, 1.0),
-        Vec3::new(1.0, 1.0, MAX_STRETCH * 2.0),
+        Vec3::new(1.0, 1.0, crate::stretch::MAX_STRETCH * 2.0),
     ] {
         let mut mesh = before.clone();
         extrude_bent_stretched(&mut mesh, &[top], 30.0, Grouping::Together, b, stretch);
         assert_eq!(mesh, plain, "{stretch}");
     }
     assert_eq!(
-        usable_stretch(Vec3::new(0.5, 1.0, 1.5)),
+        crate::stretch::usable(Vec3::new(0.5, 1.0, 1.5)),
         Vec3::new(0.5, 1.0, 1.5)
     );
 }

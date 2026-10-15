@@ -170,6 +170,7 @@ impl ModellingSession {
                 distance: local,
                 grouping: self.grouping,
                 anchors,
+                stretch: part.stretch,
             },
             (Elements::Polygons(faces), _) if self.bend.bends() => Operation::ExtrudeBent {
                 faces: faces.clone(),
@@ -186,6 +187,7 @@ impl ModellingSession {
                 grouping: self.grouping,
                 shape: self.extrude,
                 anchors,
+                stretch: part.stretch,
             },
             (Elements::Edges(edges), Tool::Bevel) => Operation::BevelEdges {
                 edges: edges.clone(),
@@ -195,17 +197,20 @@ impl ModellingSession {
                     profile: self.bevel.profile,
                 },
                 anchors,
+                stretch: part.stretch,
             },
             (Elements::Points(points), _) => Operation::BevelPoints {
                 points: points.clone(),
                 width: local,
                 anchors,
+                stretch: part.stretch,
             },
             (Elements::Edges(edges), _) => Operation::ExtrudeEdges {
                 edges: edges.clone(),
                 distance: local,
                 grouping: self.grouping,
                 anchors,
+                stretch: part.stretch,
             },
         }
     }
@@ -493,35 +498,37 @@ impl Workbench {
             && count_of(&op).is_some_and(|c| c != count)
         {
             let settings = op.settings().unwrap_or_default();
-            let operation = op.with(match self.tool {
-                Tool::Bevel => scene::EditSettings {
-                    segments: Some(count),
-                    ..settings
-                },
-                Tool::Extrude if bends => scene::EditSettings {
-                    bend: settings.bend.map(|b| scene::Bend {
-                        segments: count,
-                        ..b
-                    }),
-                    // Bent as the object is stretched now (decision 0081).
-                    stretch: Some(scene::stretch_of(self.document.scene().shape_matrix(id))),
-                    ..settings
-                },
-                Tool::Extrude => scene::EditSettings {
-                    extrude: settings
-                        .extrude
-                        .map(|e| scene::ExtrudeShape { steps: count, ..e }),
-                    ..settings
-                },
-                Tool::Bridge => scene::EditSettings {
-                    bridge: settings.bridge.map(|(_, t)| (count, t)),
-                    ..settings
-                },
-                _ => scene::EditSettings {
-                    cuts: Some(count),
-                    ..settings
-                },
-            });
+            let operation = op
+                .with(match self.tool {
+                    Tool::Bevel => scene::EditSettings {
+                        segments: Some(count),
+                        ..settings
+                    },
+                    Tool::Extrude if bends => scene::EditSettings {
+                        bend: settings.bend.map(|b| scene::Bend {
+                            segments: count,
+                            ..b
+                        }),
+                        ..settings
+                    },
+                    Tool::Extrude => scene::EditSettings {
+                        extrude: settings
+                            .extrude
+                            .map(|e| scene::ExtrudeShape { steps: count, ..e }),
+                        ..settings
+                    },
+                    Tool::Bridge => scene::EditSettings {
+                        bridge: settings.bridge.map(|(_, t)| (count, t)),
+                        ..settings
+                    },
+                    _ => scene::EditSettings {
+                        cuts: Some(count),
+                        ..settings
+                    },
+                })
+                // Worked out as the object is stretched now (decisions 0081
+                // and 0082).
+                .with_stretch(scene::stretch_of(self.document.scene().shape_matrix(id)));
             let command = Command::ReplaceOperation {
                 id,
                 layer,

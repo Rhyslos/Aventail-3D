@@ -9,10 +9,84 @@ use mesh::{CubeParams, PrimitiveKind, VertexId};
 use scene::{Command, Object, ObjectKind, Operation, Place, Primitive, Transform};
 
 /// A document using everything the current version of the format can
-/// hold: all of [`rich_document_v20`], plus what version 21 adds (a bend
-/// made on a stretched object, on its own and mirrored; the version 21
-/// sample holds exactly this).
+/// hold: all of [`rich_document_v21`], plus what version 22 adds (an
+/// extrude, an inset and a bevel made on a stretched object, the extrude
+/// mirrored too; the version 22 sample holds exactly this).
 fn rich_document() -> Document {
+    let mut doc = rich_document_v21();
+    let sphere = doc
+        .scene()
+        .walk()
+        .into_iter()
+        .map(|(id, _)| id)
+        .find(|id| doc.scene().object(*id).unwrap().name == "Sphere")
+        .unwrap();
+    let shape = doc.scene().evaluated(sphere).unwrap().mesh;
+    let towards = |d: Vec3| {
+        shape
+            .faces()
+            .map(|(f, _)| f)
+            .max_by(|a, b| {
+                shape
+                    .face_normal(*a)
+                    .dot(d)
+                    .total_cmp(&shape.face_normal(*b).dot(d))
+            })
+            .unwrap()
+    };
+    let stretch = Vec3::new(1.4, 0.8, 0.8);
+    let extrude = Operation::ExtrudePolygons {
+        faces: vec![towards(Vec3::X)],
+        distance: 6.0,
+        grouping: scene::Grouping::Together,
+        shape: scene::ExtrudeShape {
+            end_size: 0.75,
+            ..scene::ExtrudeShape::default()
+        },
+        stretch,
+        anchors: None,
+    };
+    let inset = Operation::InsetPolygons {
+        faces: vec![towards(Vec3::Y)],
+        distance: 2.0,
+        grouping: scene::Grouping::Separate,
+        stretch,
+        anchors: None,
+    };
+    let corner = shape.vertices().next().unwrap().0;
+    let bevel = Operation::BevelPoints {
+        points: vec![corner],
+        width: 1.5,
+        stretch,
+        anchors: None,
+    };
+    for operation in [
+        extrude.clone(),
+        Operation::Mirrored {
+            op: Box::new(extrude),
+            mirror: mesh::symmetry::Mirror {
+                axes: [true, false, false],
+                centre: Vec3::ZERO,
+                clip: false,
+            },
+        },
+        inset,
+        bevel,
+    ] {
+        doc.execute(Command::Record {
+            id: sphere,
+            operation,
+        })
+        .unwrap();
+    }
+    doc
+}
+
+/// A document using everything version 21 of the format can hold: all
+/// of [`rich_document_v20`], plus what version 21 adds (a bend made on a
+/// stretched object, on its own and mirrored; the version 21 sample holds
+/// exactly this).
+fn rich_document_v21() -> Document {
     let mut doc = rich_document_v20();
     let cylinder = doc
         .scene()
@@ -219,6 +293,7 @@ fn rich_document_v17() -> Document {
             flat_end: false,
         },
         anchors: None,
+        stretch: glam::Vec3::ONE,
     };
     let level = Operation::ExtrudePolygons {
         faces: vec![side],
@@ -231,6 +306,7 @@ fn rich_document_v17() -> Document {
             flat_end: true,
         },
         anchors: None,
+        stretch: glam::Vec3::ONE,
     };
     for operation in [
         tapered.clone(),
@@ -842,11 +918,13 @@ fn rich_document_v4() -> Document {
                 profile: 0.75,
             },
             anchors,
+            stretch: glam::Vec3::ONE,
         },
         Operation::BevelPoints {
             points: vec![VertexId::from_raw(5)],
             width: 1.5,
             anchors: None,
+            stretch: glam::Vec3::ONE,
         },
     ] {
         doc.execute(Command::Record {
@@ -879,6 +957,7 @@ fn rich_document_v3() -> Document {
             distance: 7.5,
             grouping: scene::Grouping::Separate,
             anchors: anchors.clone(),
+            stretch: glam::Vec3::ONE,
         },
         Operation::ExtrudePolygons {
             faces: vec![face],
@@ -886,6 +965,7 @@ fn rich_document_v3() -> Document {
             grouping: scene::Grouping::Together,
             shape: scene::ExtrudeShape::EARLIER,
             anchors,
+            stretch: glam::Vec3::ONE,
         },
         Operation::ExtrudeEdges {
             edges: vec![mesh::EdgeKey::new(
@@ -895,6 +975,7 @@ fn rich_document_v3() -> Document {
             distance: 3.0,
             grouping: scene::Grouping::Together,
             anchors: None,
+            stretch: glam::Vec3::ONE,
         },
     ] {
         doc.execute(Command::Record {
@@ -1233,14 +1314,14 @@ fn a_cut_short_or_padded_body_is_damaged() {
 #[test]
 fn an_uncompressed_body_can_be_read() {
     let doc = rich_document();
-    let body = postcard::to_stdvec(&v21::ProjectV21::from_document(&doc)).unwrap();
-    let mut bytes = header(21, 0, body.len() as u64);
+    let body = postcard::to_stdvec(&v22::ProjectV22::from_document(&doc)).unwrap();
+    let mut bytes = header(22, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     assert_same(&doc, &from_bytes(&bytes).unwrap());
     // Data after the scene is refused.
     let mut longer = body.clone();
     longer.push(0);
-    let mut bytes = header(21, 0, longer.len() as u64);
+    let mut bytes = header(22, 0, longer.len() as u64);
     bytes.extend_from_slice(&longer);
     assert!(refused(&bytes).to_string().contains("unexpected data"));
 }
@@ -2455,14 +2536,14 @@ const SAMPLE_V21: &[u8] = include_bytes!("../../tests/data/sample-v21.avtl");
 #[test]
 fn a_file_saved_by_format_version_21_still_opens() {
     let doc = from_bytes(SAMPLE_V21).expect("the version 21 sample opens");
-    assert_same(&rich_document(), &doc);
+    assert_same(&rich_document_v21(), &doc);
     let model = v21::ProjectV21::from_document(&doc);
     assert_same(&doc, &from_bytes(&file_of_v21(&model)).unwrap());
 }
 
 #[test]
 fn stretched_bends_come_back_and_older_files_have_none() {
-    let doc = from_bytes(&to_bytes(&rich_document()).unwrap()).unwrap();
+    let doc = from_bytes(&to_bytes(&rich_document_v21()).unwrap()).unwrap();
     let text = format!("{:?}", v21::ProjectV21::from_document(&doc));
     assert_eq!(text.matches("StretchedBent {").count(), 2, "{text}");
     assert_eq!(text.matches("MirroredStretchedBent").count(), 1);
@@ -2491,7 +2572,7 @@ fn stretched_bends_come_back_and_older_files_have_none() {
 
 #[test]
 fn a_damaged_stretch_is_refused() {
-    let mut model = v21::ProjectV21::from_document(&rich_document());
+    let mut model = v21::ProjectV21::from_document(&rich_document_v21());
     let text = format!("{model:?}");
     assert!(text.contains("StretchedBent"));
     let mut broke = false;
@@ -2508,6 +2589,81 @@ fn a_damaged_stretch_is_refused() {
     assert!(broke);
     assert!(
         refused(&file_of_v21(&model))
+            .to_string()
+            .contains("stretch")
+    );
+}
+
+/// The bytes of a version 22 file holding `model`, uncompressed.
+fn file_of_v22(model: &v22::ProjectV22) -> Vec<u8> {
+    let body = postcard::to_stdvec(model).unwrap();
+    let mut bytes = header(22, 0, body.len() as u64);
+    bytes.extend_from_slice(&body);
+    bytes
+}
+
+/// A project saved by version 22 of the format, kept in the repository.
+const SAMPLE_V22: &[u8] = include_bytes!("../../tests/data/sample-v22.avtl");
+
+#[test]
+fn a_file_saved_by_format_version_22_still_opens() {
+    let doc = from_bytes(SAMPLE_V22).expect("the version 22 sample opens");
+    assert_same(&rich_document(), &doc);
+    let model = v22::ProjectV22::from_document(&doc);
+    assert_same(&doc, &from_bytes(&file_of_v22(&model)).unwrap());
+}
+
+/// Every recorded edit's stretch, in order.
+fn stretches(doc: &Document) -> Vec<Vec3> {
+    doc.scene()
+        .walk()
+        .iter()
+        .flat_map(|(id, _)| doc.scene().object(*id).unwrap().stack.layers().to_vec())
+        .flat_map(|layer| layer.entries.clone())
+        .filter(|entry| entry.operation.keeps_stretch())
+        .map(|entry| entry.operation.stretch())
+        .collect()
+}
+
+#[test]
+fn stretched_edits_come_back_and_older_files_keep_only_their_bends() {
+    let doc = from_bytes(&to_bytes(&rich_document()).unwrap()).unwrap();
+    let text = format!("{:?}", v22::ProjectV22::from_document(&doc));
+    // The two bends of version 21 and the four new edits.
+    assert_eq!(text.matches("Stretched {").count(), 6, "{text}");
+    let now = stretches(&doc);
+    assert_eq!(
+        now.iter().filter(|s| **s != Vec3::ONE).count(),
+        6,
+        "{now:?}"
+    );
+    // A version 21 file's stretched bends keep their stretch.
+    let v21 = from_bytes(SAMPLE_V21).unwrap();
+    assert_eq!(
+        stretches(&v21).iter().filter(|s| **s != Vec3::ONE).count(),
+        2
+    );
+    let old = from_bytes(SAMPLE_V20).unwrap();
+    assert!(stretches(&old).iter().all(|s| *s == Vec3::ONE));
+}
+
+#[test]
+fn a_damaged_edit_stretch_is_refused() {
+    let mut model = v22::ProjectV22::from_document(&rich_document());
+    let mut broke = false;
+    for object in &mut model.project.project.places.project.project.objects.0 {
+        for layer in &mut object.layers.0 {
+            for entry in &mut layer.operations.0 {
+                if let v22::OperationV22::Stretched { stretch, .. } = &mut entry.operation {
+                    stretch[0] = f32::NAN;
+                    broke = true;
+                }
+            }
+        }
+    }
+    assert!(broke);
+    assert!(
+        refused(&file_of_v22(&model))
             .to_string()
             .contains("stretch")
     );

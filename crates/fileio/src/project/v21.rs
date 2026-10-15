@@ -11,15 +11,16 @@ use super::v1::{FileOperation, Problem};
 use super::v5::EntryWith;
 use super::v15::ExtrudeBentV15;
 use super::v18::OperationV18;
-use super::v20::ProjectV20;
 use glam::Vec3;
 use mesh::symmetry::Mirror;
 use scene::Operation;
 use serde::{Deserialize, Serialize};
 
 /// Version 21 of the file: version 20's, its edits stored as version
-/// 21's.
-pub(crate) type ProjectV21 = ProjectV20<EntryV21>;
+/// 21's. (Read through `decode_collisions` with [`EntryV21`]; the name
+/// is for tests.)
+#[cfg(test)]
+pub(crate) type ProjectV21 = super::v20::ProjectV20<EntryV21>;
 
 /// A recorded edit in version 21.
 pub(crate) type EntryV21 = EntryWith<OperationV21>;
@@ -66,7 +67,7 @@ fn stretched_bent(op: &Operation) -> Option<(ExtrudeBentV15, [f32; 3])> {
 /// The bent extrude `op` with `stretch`, after checking it.
 fn with_stretch(op: ExtrudeBentV15, stretch: [f32; 3]) -> Result<Operation, Problem> {
     let stretch = Vec3::from_array(stretch);
-    if mesh::extrude::usable_stretch(stretch) != stretch {
+    if mesh::stretch::usable(stretch) != stretch {
         return Err(
             "a bend's stretch isn't a real number, or is out of range (above 0, at most 1000)"
                 .into(),

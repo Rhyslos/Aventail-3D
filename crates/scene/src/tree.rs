@@ -922,7 +922,7 @@ pub fn stretch_of(world: Mat4) -> Vec3 {
     if !(average.is_finite() && average > 1e-6) {
         return Vec3::ONE;
     }
-    let stretch = mesh::extrude::usable_stretch(scale / average);
+    let stretch = mesh::stretch::usable(scale / average);
     // An even scale is no stretch at all, not one off by rounding.
     if (stretch - Vec3::ONE).abs().max_element() < 1e-5 {
         Vec3::ONE

@@ -102,6 +102,7 @@ impl FileOperation for OperationV4 {
                     profile: number(profile, "profile")?.clamp(-1.0, 1.0),
                 },
                 anchors: anchors(a)?,
+                stretch: glam::Vec3::ONE,
             }),
             Self::BevelPoints {
                 points,
@@ -111,6 +112,7 @@ impl FileOperation for OperationV4 {
                 points: points.into_iter().map(VertexId::from_raw).collect(),
                 width: number(width, "width")?.max(0.0),
                 anchors: anchors(a)?,
+                stretch: glam::Vec3::ONE,
             }),
         }
     }

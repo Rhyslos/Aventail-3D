@@ -1095,24 +1095,6 @@ pub fn extrude_bent(
     outcome
 }
 
-/// The most an object's stretch may be along one axis compared with the
-/// others' average, for [`extrude_bent_stretched`]: beyond it a stretch
-/// is taken as none.
-pub const MAX_STRETCH: f32 = 1000.0;
-
-/// `stretch` if it is a real, usable stretch (each axis above
-/// 1 / [`MAX_STRETCH`] and below [`MAX_STRETCH`]), otherwise none
-/// ([`Vec3::ONE`]).
-#[must_use]
-pub fn usable_stretch(stretch: Vec3) -> Vec3 {
-    let fine = |x: f32| x.is_finite() && x > 1.0 / MAX_STRETCH && x < MAX_STRETCH;
-    if stretch.to_array().into_iter().all(fine) {
-        stretch
-    } else {
-        Vec3::ONE
-    }
-}
-
 /// [`extrude_bent`] on an object that is stretched unevenly
 /// ([decision 0081](../../../docs/decisions/0081-bends-keep-their-shape-on-stretched-objects.md)):
 /// `stretch` is how much the object is stretched along its own X, Y and
@@ -1123,7 +1105,7 @@ pub fn usable_stretch(stretch: Vec3) -> Vec3 {
 /// seen at the average scale.
 ///
 /// With no stretch ([`Vec3::ONE`], or one that isn't usable, see
-/// [`usable_stretch`]) this is exactly [`extrude_bent`]. Points the bend
+/// [`crate::stretch::usable`]) this is exactly [`extrude_bent`]. Points the bend
 /// doesn't move keep exactly where they were.
 pub fn extrude_bent_stretched(
     mesh: &mut Mesh,
@@ -1133,25 +1115,9 @@ pub fn extrude_bent_stretched(
     bend: Bend,
     stretch: Vec3,
 ) -> Outcome {
-    let stretch = usable_stretch(stretch);
-    if stretch == Vec3::ONE {
-        return extrude_bent(mesh, faces, distance, grouping, bend);
-    }
-    let before: BTreeMap<VertexId, Vec3> = mesh.vertices().collect();
-    for (v, p) in &before {
-        mesh.set_position(*v, *p * stretch);
-    }
-    let outcome = extrude_bent(mesh, faces, distance, grouping, bend);
-    let after: Vec<(VertexId, Vec3)> = mesh.vertices().collect();
-    for (v, p) in after {
-        let back = match before.get(&v) {
-            // Not moved by the bend: exactly as it was.
-            Some(old) if *old * stretch == p => *old,
-            _ => p / stretch,
-        };
-        mesh.set_position(v, back);
-    }
-    outcome
+    crate::stretch::as_seen(mesh, stretch, |mesh| {
+        extrude_bent(mesh, faces, distance, grouping, bend)
+    })
 }
 
 #[cfg(test)]

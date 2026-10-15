@@ -664,9 +664,6 @@ impl AttributesPanel {
                         }
                         if touched.changed {
                             edited.bend = Some(bend);
-                            // Bent as the object is stretched now, so it
-                            // keeps its shape as seen (decision 0081).
-                            edited.stretch = Some(stretch);
                             // The rest carries on to the next extrude, but
                             // not the turn: that starts straight.
                             self.bend = scene::Bend { angle: 0.0, ..bend };
@@ -699,6 +696,9 @@ impl AttributesPanel {
                     }
                 });
         });
+        // Any change is worked out as the object is stretched now, so the
+        // edit keeps its shape as seen (decisions 0081 and 0082).
+        edited.stretch = Some(stretch);
         let after = operation.with(edited);
         if changed && after != *operation {
             out.push(DocRequest::RunMerging(
