@@ -174,6 +174,38 @@ pub struct Object {
     /// The edits recorded on top of its base, in layers. Always empty for
     /// a group. Changed only through commands.
     pub stack: Stack,
+    /// Its materials (decision 0074): its polygons' slot numbers point
+    /// into this list. Empty until one is added: every polygon then uses
+    /// the standard material ([`Material::standard`]).
+    pub materials: Vec<Material>,
+}
+
+/// A material: a name game engines and Substance Painter know it by, and
+/// a colour to show it with (real materials arrive with texturing).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Material {
+    /// Its name. Materials of the same name are one material in an
+    /// export, across objects.
+    pub name: String,
+    /// Its colour (red, green, blue, 0 to 1).
+    pub color: [f32; 3],
+}
+
+impl Material {
+    /// The material every polygon uses until the object has others: the
+    /// viewport's grey, called "Default".
+    pub fn standard() -> Self {
+        Self {
+            name: "Default".to_string(),
+            color: [0.735, 0.735, 0.74],
+        }
+    }
+
+    /// Whether its colour is real numbers from 0 to 1 and its name isn't
+    /// empty.
+    pub fn is_valid(&self) -> bool {
+        !self.name.trim().is_empty() && self.color.iter().all(|c| (0.0..=1.0).contains(c))
+    }
 }
 
 impl Object {
@@ -186,6 +218,17 @@ impl Object {
             transform: Transform::default(),
             offset: Transform::default(),
             stack: Stack::default(),
+            materials: Vec::new(),
+        }
+    }
+
+    /// Its materials as its polygons see them: its own list, or just the
+    /// standard material while it has none.
+    pub fn material_list(&self) -> Vec<Material> {
+        if self.materials.is_empty() {
+            vec![Material::standard()]
+        } else {
+            self.materials.clone()
         }
     }
 }

@@ -130,6 +130,7 @@ fn mesh_draws(scene: &SceneDrawing, accent: [f32; 3], shading: Shading) -> Vec<M
                 } else {
                     least
                 },
+                palette: render::palette(&item.colors),
             }
         })
         .collect()
@@ -528,6 +529,7 @@ mod tests {
             shown: Arc::new(mesh::PrimitiveKind::Cube.standard().mesh()),
             transform: glam::Mat4::from_translation(Vec3::X * id as f32),
             selected,
+            colors: Vec::new(),
         }
     }
 
@@ -613,6 +615,7 @@ mod tests {
                 shown: Arc::clone(&ball),
                 transform: glam::Mat4::IDENTITY,
                 selected,
+                colors: Vec::new(),
             }],
             editing: true,
             points: true,

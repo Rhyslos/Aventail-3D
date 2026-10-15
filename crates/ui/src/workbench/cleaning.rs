@@ -50,11 +50,11 @@ pub(crate) const SIMILAR_FACING_ANGLE: f32 = 30.0;
 
 /// The selected elements of one object in the current mode, with the
 /// anchors that find them again.
-struct Chosen {
-    points: Vec<VertexId>,
-    edges: Vec<EdgeKey>,
-    faces: Vec<FaceId>,
-    anchors: Option<Anchors>,
+pub(super) struct Chosen {
+    pub(super) points: Vec<VertexId>,
+    pub(super) edges: Vec<EdgeKey>,
+    pub(super) faces: Vec<FaceId>,
+    pub(super) anchors: Option<Anchors>,
 }
 
 impl Chosen {
@@ -64,7 +64,7 @@ impl Chosen {
 }
 
 /// The mode's selected elements of `selected` on `mesh`.
-fn chosen(mode: Mode, selected: &scene::ElementSelection, mesh: &scene::Mesh) -> Chosen {
+pub(super) fn chosen(mode: Mode, selected: &scene::ElementSelection, mesh: &scene::Mesh) -> Chosen {
     let mut out = Chosen {
         points: Vec::new(),
         edges: Vec::new(),

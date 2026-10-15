@@ -9,11 +9,98 @@ use mesh::{CubeParams, PrimitiveKind, VertexId};
 use scene::{Command, Object, ObjectKind, Operation, Place, Primitive, Transform};
 
 /// A document using everything the current version of the format can
+/// hold: all of [`rich_document_v17`], plus what version 18 adds
+/// (materials on the cube and on an instance, polygons given a slot, on
+/// their own and with symmetry on; the version 18 sample holds exactly
+/// this).
+fn rich_document() -> Document {
+    let mut doc = rich_document_v17();
+    let find = |doc: &Document, name: &str| {
+        doc.scene()
+            .walk()
+            .into_iter()
+            .map(|(id, _)| id)
+            .find(|id| doc.scene().object(*id).unwrap().name == name)
+            .unwrap()
+    };
+    let cube = find(&doc, "Cube");
+    let materials = vec![
+        scene::Material::standard(),
+        scene::Material {
+            name: "Trim".into(),
+            color: [0.9, 0.4, 0.1],
+        },
+        scene::Material {
+            name: "Glass".into(),
+            color: [0.2, 0.5, 1.0],
+        },
+    ];
+    doc.execute(Command::SetMaterials {
+        id: cube,
+        materials: materials.clone(),
+    })
+    .unwrap();
+    let instance = doc
+        .scene()
+        .walk()
+        .into_iter()
+        .map(|(id, _)| id)
+        .find(|id| {
+            matches!(
+                doc.scene().object(*id).unwrap().kind,
+                ObjectKind::Instance(_)
+            )
+        })
+        .unwrap();
+    doc.execute(Command::SetMaterials {
+        id: instance,
+        materials: materials[1..].to_vec(),
+    })
+    .unwrap();
+    let faces: Vec<mesh::FaceId> = doc
+        .scene()
+        .evaluated(cube)
+        .unwrap()
+        .mesh
+        .faces()
+        .map(|(f, _)| f)
+        .take(3)
+        .collect();
+    for operation in [
+        Operation::SetMaterial {
+            faces: faces[..2].to_vec(),
+            slot: 1,
+            anchors: None,
+        },
+        Operation::Mirrored {
+            op: Box::new(Operation::SetMaterial {
+                faces: faces[2..].to_vec(),
+                slot: 2,
+                anchors: None,
+            }),
+            mirror: mesh::symmetry::Mirror {
+                axes: [true, false, false],
+                centre: glam::Vec3::ZERO,
+                clip: false,
+            },
+        },
+    ] {
+        doc.execute(Command::Record {
+            id: cube,
+            operation,
+        })
+        .unwrap();
+    }
+    doc.set_selection([cube]);
+    doc
+}
+
+/// A document using everything version 17 of the format can
 /// hold: all of [`rich_document_v16`], plus what version 17 adds (shaped
 /// extrudes: straight out with a smaller end and steps, along Z with a
 /// flat end, and one made with symmetry on; the version 17 sample holds
 /// exactly this).
-fn rich_document() -> Document {
+fn rich_document_v17() -> Document {
     let mut doc = rich_document_v16();
     let cube = doc
         .scene()
@@ -1051,14 +1138,14 @@ fn a_cut_short_or_padded_body_is_damaged() {
 #[test]
 fn an_uncompressed_body_can_be_read() {
     let doc = rich_document();
-    let body = postcard::to_stdvec(&v17::ProjectV17::from_document(&doc)).unwrap();
-    let mut bytes = header(17, 0, body.len() as u64);
+    let body = postcard::to_stdvec(&v18::ProjectV18::from_document(&doc)).unwrap();
+    let mut bytes = header(18, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     assert_same(&doc, &from_bytes(&bytes).unwrap());
     // Data after the scene is refused.
     let mut longer = body.clone();
     longer.push(0);
-    let mut bytes = header(17, 0, longer.len() as u64);
+    let mut bytes = header(18, 0, longer.len() as u64);
     bytes.extend_from_slice(&longer);
     assert!(refused(&bytes).to_string().contains("unexpected data"));
 }
@@ -2069,14 +2156,14 @@ const SAMPLE_V17: &[u8] = include_bytes!("../../tests/data/sample-v17.avtl");
 #[test]
 fn a_file_saved_by_format_version_17_still_opens() {
     let doc = from_bytes(SAMPLE_V17).expect("the version 17 sample opens");
-    assert_same(&rich_document(), &doc);
+    assert_same(&rich_document_v17(), &doc);
     let model = v17::ProjectV17::from_document(&doc);
     assert_same(&doc, &from_bytes(&file_of_v17(&model)).unwrap());
 }
 
 #[test]
 fn shaped_extrudes_keep_their_shape_and_older_ones_the_first_way() {
-    let doc = from_bytes(&to_bytes(&rich_document()).unwrap()).unwrap();
+    let doc = from_bytes(&to_bytes(&rich_document_v17()).unwrap()).unwrap();
     let text = format!("{:?}", v17::ProjectV17::from_document(&doc));
     assert_eq!(text.matches("Extrude(").count(), 2, "{text}");
     assert_eq!(text.matches("MirroredExtrude").count(), 1);
@@ -2096,6 +2183,78 @@ fn shaped_extrudes_keep_their_shape_and_older_ones_the_first_way() {
         }
     }
     assert!(extrudes > 0);
+}
+
+/// The bytes of a version 18 file holding `model`, uncompressed.
+fn file_of_v18(model: &v18::ProjectV18) -> Vec<u8> {
+    let body = postcard::to_stdvec(model).unwrap();
+    let mut bytes = header(18, 0, body.len() as u64);
+    bytes.extend_from_slice(&body);
+    bytes
+}
+
+/// A project saved by version 18 of the format, kept in the repository.
+const SAMPLE_V18: &[u8] = include_bytes!("../../tests/data/sample-v18.avtl");
+
+#[test]
+fn a_file_saved_by_format_version_18_still_opens() {
+    let doc = from_bytes(SAMPLE_V18).expect("the version 18 sample opens");
+    assert_same(&rich_document(), &doc);
+    let model = v18::ProjectV18::from_document(&doc);
+    assert_same(&doc, &from_bytes(&file_of_v18(&model)).unwrap());
+}
+
+#[test]
+fn materials_and_slots_come_back_and_older_files_have_none() {
+    let doc = from_bytes(&to_bytes(&rich_document()).unwrap()).unwrap();
+    let model = v18::ProjectV18::from_document(&doc);
+    // Only the two objects with materials store a list.
+    assert_eq!(model.materials.len(), 2);
+    let text = format!("{model:?}");
+    assert_eq!(text.matches("SetMaterial(").count(), 1, "{text}");
+    assert_eq!(text.matches("MirroredSetMaterial").count(), 1);
+    let old = from_bytes(SAMPLE_V17).unwrap();
+    for (id, _) in old.scene().walk() {
+        assert!(old.scene().object(id).unwrap().materials.is_empty());
+    }
+}
+
+#[test]
+fn damaged_materials_are_refused() {
+    let good = v18::ProjectV18::from_document(&rich_document());
+    let cases: Vec<(v18::ProjectV18, &str)> = vec![
+        {
+            let mut bad = good.clone();
+            let first = bad.materials[0].clone();
+            bad.materials.push(first);
+            (bad, "stored twice")
+        },
+        {
+            let mut bad = good.clone();
+            bad.materials[0].object = 999_999;
+            (bad, "isn't there")
+        },
+        {
+            let mut bad = good.clone();
+            bad.materials[0].list[0].name = " ".into();
+            (bad, "no name")
+        },
+        {
+            let mut bad = good.clone();
+            bad.materials[0].list[0].color[1] = f32::NAN;
+            (bad, "colour")
+        },
+        {
+            let mut bad = good.clone();
+            let first = bad.materials[0].list[0].clone();
+            bad.materials[0].list = vec![first; mesh::material::MAX_SLOTS as usize + 1].into();
+            (bad, "more than")
+        },
+    ];
+    for (bad, words) in cases {
+        let text = refused(&file_of_v18(&bad)).to_string();
+        assert!(text.contains(words), "{words}: {text}");
+    }
 }
 
 /// Writes the current version's sample. Run only by hand, when a new

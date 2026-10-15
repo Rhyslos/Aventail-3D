@@ -12,6 +12,7 @@
 use bytemuck::{Pod, Zeroable};
 use glam::{Mat3, Mat4, Vec3};
 use mesh::{Mesh, VertexId};
+use std::collections::HashMap;
 use std::ops::Range;
 
 /// One vertex of a mesh on the GPU, in the mesh's own space.
@@ -22,6 +23,9 @@ pub struct MeshVertex {
     pub position: [f32; 3],
     /// The shading direction; unit length.
     pub normal: [f32; 3],
+    /// The material slot of the polygons it belongs to: its colour comes
+    /// from the object's palette ([`MeshDraw::palette`]).
+    pub material: u32,
 }
 
 impl MeshVertex {
@@ -29,7 +33,7 @@ impl MeshVertex {
     pub(crate) const LAYOUT: wgpu::VertexBufferLayout<'static> = wgpu::VertexBufferLayout {
         array_stride: std::mem::size_of::<MeshVertex>() as wgpu::BufferAddress,
         step_mode: wgpu::VertexStepMode::Vertex,
-        attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3],
+        attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3, 2 => Uint32],
     };
 
     /// The same vertices read once per drawn point (each a small square).
@@ -58,6 +62,10 @@ pub struct MeshGeometry {
     corner_vertex: Vec<u32>,
     /// One vertex at each point, by point id number (`u32::MAX` for none).
     point_vertex: Vec<u32>,
+    /// The further vertices of smooth groups that span polygons of more
+    /// than one material (one vertex per material), by the group's first
+    /// corner. Usually empty.
+    split_vertices: HashMap<u32, Vec<u32>>,
     /// What decided where the shading breaks.
     hardness: mesh::Hardness,
 }
@@ -91,25 +99,55 @@ impl MeshGeometry {
     pub fn shaded(mesh: &Mesh, hardness: mesh::Hardness) -> Self {
         let (groups, normals) = mesh::corner_shading_with(mesh, hardness);
         let (starts, corners) = mesh.face_layout();
+        let has_materials = mesh.attributes().any(|(name, domain, _)| {
+            name == mesh::material::MATERIAL && domain == mesh::Domain::Face
+        });
         let mut vertices = Vec::new();
-        // The vertex made for each group's first corner.
+        // The vertex made for each group's first corner, and its material.
         let mut group_vertex = vec![u32::MAX; corners.len()];
+        let mut group_material = vec![0u32; corners.len()];
+        // A group's vertices for its other materials.
+        let mut split: HashMap<(u32, u32), u32> = HashMap::new();
+        let mut split_vertices: HashMap<u32, Vec<u32>> = HashMap::new();
         let mut corner_vertex = vec![0u32; corners.len()];
         let mut point_vertex = vec![u32::MAX; mesh.point_slot_count()];
-        for k in 0..corners.len() {
-            let rep = groups[k] as usize;
-            if group_vertex[rep] == u32::MAX {
-                group_vertex[rep] = vertices.len() as u32;
-                let position = mesh.position(corners[k]).unwrap_or(Vec3::ZERO);
-                vertices.push(MeshVertex {
-                    position: position.to_array(),
-                    normal: normals[k].to_array(),
-                });
-            }
-            corner_vertex[k] = group_vertex[rep];
-            let slot = &mut point_vertex[corners[k].get() as usize];
-            if *slot == u32::MAX {
-                *slot = group_vertex[rep];
+        for (f, pair) in starts.windows(2).enumerate() {
+            let material = if has_materials {
+                mesh::material::slot_of(mesh, mesh::FaceId::from_raw(f as u32))
+            } else {
+                0
+            };
+            for k in pair[0] as usize..pair[1] as usize {
+                let rep = groups[k] as usize;
+                let make = |vertices: &mut Vec<MeshVertex>| {
+                    let position = mesh.position(corners[k]).unwrap_or(Vec3::ZERO);
+                    vertices.push(MeshVertex {
+                        position: position.to_array(),
+                        normal: normals[k].to_array(),
+                        material,
+                    });
+                    vertices.len() as u32 - 1
+                };
+                let vertex = if group_vertex[rep] == u32::MAX {
+                    group_vertex[rep] = make(&mut vertices);
+                    group_material[rep] = material;
+                    group_vertex[rep]
+                } else if group_material[rep] == material {
+                    group_vertex[rep]
+                } else {
+                    // Where materials meet on a soft edge: the same
+                    // shading, a vertex for each material.
+                    *split.entry((rep as u32, material)).or_insert_with(|| {
+                        let vertex = make(&mut vertices);
+                        split_vertices.entry(rep as u32).or_default().push(vertex);
+                        vertex
+                    })
+                };
+                corner_vertex[k] = vertex;
+                let slot = &mut point_vertex[corners[k].get() as usize];
+                if *slot == u32::MAX {
+                    *slot = vertex;
+                }
             }
         }
         // Points no face uses still get a vertex, so they can be shown.
@@ -120,6 +158,7 @@ impl MeshGeometry {
                 vertices.push(MeshVertex {
                     position: p.to_array(),
                     normal: [0.0, 0.0, 1.0],
+                    material: 0,
                 });
             }
         }
@@ -161,6 +200,7 @@ impl MeshGeometry {
             groups,
             corner_vertex,
             point_vertex,
+            split_vertices,
             hardness,
         }
     }
@@ -174,6 +214,10 @@ impl MeshGeometry {
                 let vertex = self.corner_vertex[rep as usize];
                 self.vertices[vertex as usize].normal = normal.to_array();
                 touched.push(vertex);
+                for vertex in self.split_vertices.get(&rep).into_iter().flatten() {
+                    self.vertices[*vertex as usize].normal = normal.to_array();
+                    touched.push(*vertex);
+                }
             }
         }
         touched
@@ -263,6 +307,33 @@ pub struct MeshDraw {
     /// How faint a dense wireframe may fade, seen from afar (0: away
     /// entirely; a selected object keeps a little of its colour).
     pub faintest: f32,
+    /// Its materials' colours by slot ([`palette`]): all 0 for the
+    /// standard surface colour.
+    pub palette: Palette,
+}
+
+/// How many material slots an object's palette holds
+/// ([`mesh::material::MAX_SLOTS`]).
+pub const PALETTE_SIZE: usize = mesh::material::MAX_SLOTS as usize;
+
+/// An object's material colours by slot, each as sRGB bytes (red in the
+/// lowest byte, then green, blue and 255): small enough to send with
+/// every drawn object. 0 means the standard surface colour.
+pub type Palette = [u32; PALETTE_SIZE];
+
+/// The palette for materials of `colors` (sRGB, 0 to 1, by slot). Slots
+/// past the last use the first colour, as an export does. No colours:
+/// the standard surface colour everywhere.
+pub fn palette(colors: &[[f32; 3]]) -> Palette {
+    let byte = |c: f32| (c.clamp(0.0, 1.0) * 255.0).round() as u32;
+    let pack = |[r, g, b]: [f32; 3]| byte(r) | byte(g) << 8 | byte(b) << 16 | 255 << 24;
+    let mut out = [0; PALETTE_SIZE];
+    if let Some(first) = colors.first() {
+        for (i, slot) in out.iter_mut().enumerate() {
+            *slot = pack(*colors.get(i).unwrap_or(first));
+        }
+    }
+    out
 }
 
 /// What the shaders read about one drawn object.
@@ -279,6 +350,8 @@ pub(crate) struct ObjectUniforms {
     /// length in the world (for fading dense wireframes); w: how faint
     /// they may fade.
     options: [f32; 4],
+    /// The material colours, four slots to a row.
+    materials: [[u32; 4]; PALETTE_SIZE / 4],
 }
 
 impl ObjectUniforms {
@@ -304,6 +377,9 @@ impl ObjectUniforms {
                 edge_length * scale,
                 draw.faintest,
             ],
+            materials: std::array::from_fn(|row| {
+                std::array::from_fn(|i| draw.palette[row * 4 + i])
+            }),
         }
     }
 }
@@ -447,6 +523,96 @@ mod tests {
     }
 
     #[test]
+    fn materials_split_vertices_where_they_meet_and_keep_shading() {
+        let mut sphere = PrimitiveKind::Sphere.standard().mesh();
+        let plain = MeshGeometry::new(&sphere);
+        assert!(plain.vertices.iter().all(|v| v.material == 0));
+        // The top half another material: the vertices along the middle
+        // are doubled, one for each material, with the same normal.
+        let bounds = sphere.bounds().unwrap();
+        let middle = (bounds.min.z + bounds.max.z) / 2.0;
+        let top: Vec<mesh::FaceId> = sphere
+            .faces()
+            .map(|(f, _)| f)
+            .filter(|f| {
+                let points = sphere.face(*f).unwrap();
+                let z = points
+                    .iter()
+                    .map(|v| sphere.position(*v).unwrap().z)
+                    .sum::<f32>();
+                z / points.len() as f32 > middle
+            })
+            .collect();
+        let outcome = mesh::material::set_material(&mut sphere, &top, 3);
+        let split = MeshGeometry::new(&sphere);
+        assert_eq!(outcome.matched, top.len());
+        assert!(split.vertices.len() > plain.vertices.len());
+        assert_eq!(split.triangles.len(), plain.triangles.len());
+        let of = |material| {
+            split
+                .vertices
+                .iter()
+                .filter(|v| v.material == material)
+                .count()
+        };
+        assert!(of(3) > 0 && of(0) > 0);
+        for pair in split.triangles.chunks(3) {
+            let materials: Vec<u32> = pair
+                .iter()
+                .map(|i| split.vertices[*i as usize].material)
+                .collect();
+            assert!(
+                materials.windows(2).all(|w| w[0] == w[1]),
+                "one material each"
+            );
+        }
+        // Moving a point on the seam reshades both its vertices.
+        let mut geometry = split.clone();
+        let seam = sphere
+            .vertices()
+            .find(|(_, p)| (p.z - middle).abs() < 1e-3)
+            .unwrap()
+            .0;
+        let mut after = sphere.clone();
+        let p = after.position(seam).unwrap();
+        after.set_position(seam, p * 1.2);
+        let moved = after.moved_since(&sphere).unwrap();
+        geometry.moved(&after, &moved);
+        let fresh = MeshGeometry::new(&after);
+        let at = |g: &MeshGeometry| {
+            let mut found: Vec<[i32; 7]> = g
+                .vertices
+                .iter()
+                .map(|v| {
+                    let q = |x: f32| (x * 1000.0).round() as i32;
+                    [
+                        q(v.position[0]),
+                        q(v.position[1]),
+                        q(v.position[2]),
+                        q(v.normal[0]),
+                        q(v.normal[1]),
+                        q(v.normal[2]),
+                        v.material as i32,
+                    ]
+                })
+                .collect();
+            found.sort_unstable();
+            found
+        };
+        assert_eq!(at(&geometry), at(&fresh));
+    }
+
+    #[test]
+    fn palettes_pack_colours_and_fill_past_the_last() {
+        assert_eq!(palette(&[]), [0; PALETTE_SIZE]);
+        let p = palette(&[[1.0, 0.0, 0.0], [0.0, 0.5, 1.0]]);
+        assert_eq!(p[0], 0xFF00_00FF);
+        assert_eq!(p[1], 0xFFFF_8000);
+        assert_eq!(p[2], p[0], "past the last: the first colour");
+        assert_eq!(p[PALETTE_SIZE - 1], p[0]);
+    }
+
+    #[test]
     fn ranges_join_close_vertices() {
         assert_eq!(ranges_of(vec![5, 3, 4, 200, 3]), vec![3..6, 200..201]);
         assert_eq!(ranges_of(vec![1, 60]), vec![1..61]);
@@ -462,6 +628,7 @@ mod tests {
             edges: true,
             points: Some(([1.0; 4], 6.0)),
             faintest: 0.25,
+            palette: [0; PALETTE_SIZE],
         };
         let plain = ObjectUniforms::new(&draw(Mat4::IDENTITY), 10.0);
         assert_eq!(plain.options, [6.0, 1.0, 10.0, 0.25]);

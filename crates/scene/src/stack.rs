@@ -230,6 +230,15 @@ pub enum Operation {
     },
     /// Turns every polygon facing the wrong way round (decision 0052).
     FixFacing,
+    /// Gives polygons a material slot (decision 0074).
+    SetMaterial {
+        /// The polygons.
+        faces: Vec<FaceId>,
+        /// The slot, in the object's list of materials.
+        slot: u32,
+        /// Where they were, to find them again (decision 0032).
+        anchors: Option<Anchors>,
+    },
     /// Marks edges hard (a crisp break in the shading) or soft (smooth
     /// shading across) (decision 0053).
     SetHardEdges {
@@ -421,6 +430,9 @@ impl Operation {
             Self::FillHoles { points, .. } if points.is_empty() => "Fill every hole".to_string(),
             Self::FillHoles { .. } => "Fill hole".to_string(),
             Self::FlipPolygons { faces, .. } => counted("Flip", faces.len(), "polygon"),
+            Self::SetMaterial { faces, .. } => {
+                counted("Set the material of", faces.len(), "polygon")
+            }
             Self::FixFacing => "Fix normals".to_string(),
             Self::SetHardEdges { edges, hard, .. } => {
                 let verb = if *hard { "Harden" } else { "Soften" };
@@ -525,6 +537,7 @@ impl Operation {
             | Self::Dissolve { .. }
             | Self::FillHoles { .. }
             | Self::FlipPolygons { .. }
+            | Self::SetMaterial { .. }
             | Self::SetHardEdges { .. }
             | Self::SlidePoints { .. }
             | Self::FixFacing => None,
@@ -666,6 +679,7 @@ impl Operation {
             | Self::Dissolve { .. }
             | Self::FillHoles { .. }
             | Self::FlipPolygons { .. }
+            | Self::SetMaterial { .. }
             | Self::SetHardEdges { .. }
             | Self::SlidePoints { .. }
             | Self::FixFacing => {}
@@ -729,6 +743,7 @@ impl Operation {
             | Self::Dissolve { .. }
             | Self::FillHoles { .. }
             | Self::FlipPolygons { .. }
+            | Self::SetMaterial { .. }
             | Self::SetHardEdges { .. }
             | Self::FixFacing => true,
             Self::SlidePoints { slides, .. } => slides.iter().all(|s| s.amount.is_finite()),
@@ -773,6 +788,7 @@ impl Operation {
             | Self::Dissolve { anchors, .. }
             | Self::FillHoles { anchors, .. }
             | Self::FlipPolygons { anchors, .. }
+            | Self::SetMaterial { anchors, .. }
             | Self::SetHardEdges { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_ref(),
             Self::FixFacing | Self::HardEdgesByAngle { .. } => None,
@@ -802,6 +818,7 @@ impl Operation {
             | Self::Dissolve { anchors, .. }
             | Self::FillHoles { anchors, .. }
             | Self::FlipPolygons { anchors, .. }
+            | Self::SetMaterial { anchors, .. }
             | Self::SetHardEdges { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_mut(),
             Self::FixFacing | Self::HardEdgesByAngle { .. } => None,
@@ -1119,6 +1136,12 @@ impl Operation {
                     .as_ref()
                     .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
                 edit::flip_faces(mesh, &faces)
+            }
+            Self::SetMaterial { faces, slot, .. } => {
+                let faces = refound
+                    .as_ref()
+                    .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
+                edit::set_material(mesh, &faces, *slot)
             }
             Self::FixFacing => edit::fix_facing(mesh),
             Self::SetHardEdges { edges, hard, .. } => {

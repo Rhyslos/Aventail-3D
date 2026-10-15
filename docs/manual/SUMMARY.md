@@ -40,6 +40,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - *Pages are added here as UV tools are built.*
 
 ## Export
+- [Materials: give parts of a model their own material, for texture sets and engine surfaces](materials.md)
 - [Export and import: glTF and OBJ files for game engines and Substance Painter](export-and-import.md)
 
 ## Reference

@@ -15,10 +15,15 @@
 //! **Points stay shared.** Each object's points are listed once, and each
 //! polygon corner names its point, its normal and its UV (if the shape
 //! has UVs), so a smooth surface stays one connected piece in the file.
+//!
+//! **Materials** ([decision 0074](../../../docs/decisions/0074-material-slots.md)).
+//! Each polygon carries its object's material slot; each object carries
+//! its list of materials (an instance its original's). In a file,
+//! materials of the same name are one material ([`file_materials`]).
 
 use glam::{Mat4, Vec2, Vec3};
 use mesh::{AttributeElement, FaceId, Hardness, Mesh, Value};
-use scene::{Document, ObjectId};
+use scene::{Document, Material, ObjectId};
 use std::collections::HashMap;
 
 /// The units an exported file's lengths are in.
@@ -161,6 +166,20 @@ pub struct ExportSummary {
     pub objects: usize,
     /// How many triangles they make in a game engine.
     pub triangles: usize,
+    /// How many materials (by name) they use.
+    pub materials: usize,
+}
+
+/// The files an export makes: the one asked for, and any that go beside
+/// it (an OBJ's `.mtl` file of materials).
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct ExportFiles {
+    /// The file asked for.
+    pub main: Vec<u8>,
+    /// Files beside it: each one's name and bytes.
+    pub beside: Vec<(String, Vec<u8>)>,
+    /// What they hold.
+    pub summary: ExportSummary,
 }
 
 /// Why an export didn't happen, in plain words.
@@ -185,14 +204,16 @@ impl std::fmt::Display for ExportError {
 
 impl std::error::Error for ExportError {}
 
-/// The file `document` exports to in `format` with `options`, and what it
-/// holds. `generator` names the app in the file.
+/// The files `document` exports to in `format` with `options`, and what
+/// they hold. `file_name` is the name of the file asked for (an OBJ names
+/// its `.mtl` file after it); `generator` names the app in the file.
 pub fn export_bytes(
     document: &Document,
     format: ExportFormat,
     options: &ExportOptions,
     generator: &str,
-) -> Result<(Vec<u8>, ExportSummary), ExportError> {
+    file_name: &str,
+) -> Result<ExportFiles, ExportError> {
     let options = &format.options(options);
     let objects = prepare(document, options);
     if objects.is_empty() {
@@ -201,16 +222,34 @@ pub fn export_bytes(
     let summary = ExportSummary {
         objects: objects.len(),
         triangles: objects.iter().map(|o| o.world.triangle_count()).sum(),
+        materials: file_materials(&objects).len(),
     };
-    let bytes = match format {
-        ExportFormat::Glb => crate::gltf::write_glb(&objects, generator),
-        ExportFormat::Obj => crate::obj::write_obj(&objects, options, generator).into_bytes(),
+    let files = match format {
+        ExportFormat::Glb => ExportFiles {
+            main: crate::gltf::write_glb(&objects, generator),
+            beside: Vec::new(),
+            summary,
+        },
+        ExportFormat::Obj => {
+            let stem = std::path::Path::new(file_name)
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .filter(|s| !s.is_empty())
+                .unwrap_or("materials");
+            let mtl = format!("{stem}.mtl");
+            ExportFiles {
+                main: crate::obj::write_obj(&objects, options, generator, Some(&mtl)).into_bytes(),
+                beside: vec![(mtl, crate::obj::write_mtl(&objects, generator).into_bytes())],
+                summary,
+            }
+        }
     };
-    Ok((bytes, summary))
+    Ok(files)
 }
 
-/// Exports `document` to the file at `path` (written safely, never half
-/// done; see [`crate::project::safe_write`]).
+/// Exports `document` to the file at `path`, and any files that go
+/// beside it (each written safely, never half done; see
+/// [`crate::project::safe_write`]).
 pub fn export_to(
     path: &std::path::Path,
     document: &Document,
@@ -218,9 +257,46 @@ pub fn export_to(
     options: &ExportOptions,
     generator: &str,
 ) -> Result<ExportSummary, ExportError> {
-    let (bytes, summary) = export_bytes(document, format, options, generator)?;
-    crate::project::safe_write(path, &bytes).map_err(ExportError::Io)?;
-    Ok(summary)
+    let name = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or_default();
+    let files = export_bytes(document, format, options, generator, name)?;
+    for (name, bytes) in &files.beside {
+        crate::project::safe_write(&path.with_file_name(name), bytes).map_err(ExportError::Io)?;
+    }
+    crate::project::safe_write(path, &files.main).map_err(ExportError::Io)?;
+    Ok(files.summary)
+}
+
+/// The materials `objects` use, each name once, in the order they are
+/// first used. Two materials of the same name are one material in a file
+/// (the first one's colour wins).
+pub fn file_materials(objects: &[ExportedObject]) -> Vec<Material> {
+    let mut out: Vec<Material> = Vec::new();
+    for object in objects {
+        let mut used = vec![false; object.materials.len()];
+        for polygon in &object.world.polygons {
+            if let Some(u) = used.get_mut(polygon.material as usize) {
+                *u = true;
+            }
+        }
+        for (material, used) in object.materials.iter().zip(used) {
+            if used && !out.iter().any(|m| m.name == material.name) {
+                out.push(material.clone());
+            }
+        }
+    }
+    out
+}
+
+/// The index in [`file_materials`] of `polygon`'s material, of `object`.
+pub fn file_material(files: &[Material], object: &ExportedObject, polygon: &ExportPolygon) -> u32 {
+    object
+        .materials
+        .get(polygon.material as usize)
+        .and_then(|m| files.iter().position(|f| f.name == m.name))
+        .unwrap_or(0) as u32
 }
 
 /// One corner of an exported polygon: indices into its object's lists.
@@ -239,7 +315,8 @@ pub struct ExportCorner {
 pub struct ExportPolygon {
     /// Its corners, counter-clockwise seen from outside.
     pub corners: Vec<ExportCorner>,
-    /// Its material slot (0 until material slots arrive).
+    /// Its material slot: an index into its object's
+    /// [`ExportedObject::materials`].
     pub material: u32,
 }
 
@@ -280,6 +357,9 @@ pub struct ExportedObject {
     /// Its shape around its pivot, in the file's units and axes (for
     /// formats that keep each object's place apart: glTF).
     pub local: ExportMesh,
+    /// Its materials, which its polygons' slots point into (never
+    /// empty: the standard material when it has none of its own).
+    pub materials: Vec<Material>,
 }
 
 /// The objects of `document` to export with `options`, in the Objects
@@ -306,12 +386,23 @@ pub fn prepare(document: &Document, options: &ExportOptions) -> Vec<ExportedObje
             let pivot = to_file * scene.world_matrix(id) * from_file;
             let world = to_file * scene.shape_matrix(id);
             let local = to_file * object.offset.matrix();
+            // An instance shows its original's materials.
+            let materials = scene.material_list(id);
+            let mut world = export_mesh(&shape, world, options);
+            let mut local = export_mesh(&shape, local, options);
+            // A slot with no material in the list uses the first.
+            for p in world.polygons.iter_mut().chain(local.polygons.iter_mut()) {
+                if p.material as usize >= materials.len() {
+                    p.material = 0;
+                }
+            }
             Some(ExportedObject {
                 id,
                 name: object.name.clone(),
                 pivot,
-                world: export_mesh(&shape, world, options),
-                local: export_mesh(&shape, local, options),
+                world,
+                local,
+                materials,
             })
         })
         .collect()
@@ -386,14 +477,12 @@ pub fn export_mesh(mesh: &Mesh, matrix: Mat4, options: &ExportOptions) -> Export
         if all.len() != b - a {
             continue;
         }
+        let material = mesh::material::slot_of(mesh, face);
         let mut push = |mut corners: Vec<ExportCorner>| {
             if flipped {
                 corners.reverse();
             }
-            out.polygons.push(ExportPolygon {
-                corners,
-                material: 0,
-            });
+            out.polygons.push(ExportPolygon { corners, material });
         };
         if options.triangulate && all.len() > 3 {
             mesh::face_triangles(mesh, &corners[a..b], |[i, j, k]| {

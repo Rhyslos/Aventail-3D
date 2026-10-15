@@ -1387,3 +1387,217 @@ fn insert_many_adds_objects_at_the_end_as_one_step() {
     nameless.name = " ".into();
     assert!(doc.execute(Command::InsertMany(vec![nameless])).is_err());
 }
+
+/// A red and a blue material.
+fn red_and_blue() -> Vec<Material> {
+    vec![
+        Material {
+            name: "Red".into(),
+            color: [1.0, 0.0, 0.0],
+        },
+        Material {
+            name: "Blue".into(),
+            color: [0.0, 0.0, 1.0],
+        },
+    ]
+}
+
+#[test]
+fn an_object_gets_a_list_of_materials_as_one_undo_step() {
+    let (mut doc, id) = with_a_cube();
+    assert_eq!(
+        doc.scene().object(id).unwrap().material_list(),
+        vec![Material::standard()]
+    );
+    let mut padded = red_and_blue();
+    padded[0].name = "  Red ".into();
+    doc.execute(Command::SetMaterials {
+        id,
+        materials: padded,
+    })
+    .unwrap();
+    assert_eq!(doc.undo_label(), Some("Change materials"));
+    assert_eq!(doc.scene().object(id).unwrap().materials, red_and_blue());
+    // The same list again changes nothing.
+    let steps = doc.undo_steps();
+    doc.execute(Command::SetMaterials {
+        id,
+        materials: red_and_blue(),
+    })
+    .unwrap();
+    assert_eq!(doc.undo_steps(), steps);
+    check_round_trip(&mut doc);
+    doc.undo().unwrap();
+    assert!(doc.scene().object(id).unwrap().materials.is_empty());
+}
+
+#[test]
+fn bad_material_lists_are_refused() {
+    let (mut doc, id) = with_a_cube();
+    let mut nameless = red_and_blue();
+    nameless[1].name = "   ".into();
+    assert_eq!(
+        doc.execute(Command::SetMaterials {
+            id,
+            materials: nameless
+        }),
+        Err(SceneError::EmptyName)
+    );
+    let mut too_bright = red_and_blue();
+    too_bright[0].color = [2.0, 0.0, 0.0];
+    assert!(
+        doc.execute(Command::SetMaterials {
+            id,
+            materials: too_bright
+        })
+        .is_err()
+    );
+    let mut not_a_number = red_and_blue();
+    not_a_number[0].color = [f32::NAN, 0.0, 0.0];
+    assert!(
+        doc.execute(Command::SetMaterials {
+            id,
+            materials: not_a_number
+        })
+        .is_err()
+    );
+    let many = vec![Material::standard(); mesh::material::MAX_SLOTS as usize + 1];
+    assert_eq!(
+        doc.execute(Command::SetMaterials {
+            id,
+            materials: many
+        }),
+        Err(SceneError::TooManyMaterials)
+    );
+    assert_eq!(
+        doc.execute(Command::SetMaterials {
+            id: ObjectId::from_raw(999),
+            materials: red_and_blue()
+        }),
+        Err(SceneError::UnknownObject(ObjectId::from_raw(999)))
+    );
+}
+
+#[test]
+fn polygons_get_a_material_slot_through_a_recorded_operation() {
+    let (mut doc, id) = with_a_cube();
+    let faces: Vec<mesh::FaceId> = (0..2).map(mesh::FaceId::from_raw).collect();
+    doc.execute(Command::Record {
+        id,
+        operation: Operation::SetMaterial {
+            faces: faces.clone(),
+            slot: 1,
+            anchors: None,
+        },
+    })
+    .unwrap();
+    assert_eq!(doc.undo_label(), Some("Set the material of 2 polygons"));
+    let shape = doc.scene().evaluated(id).unwrap().mesh;
+    assert_eq!(mesh::material::faces_with_slot(&shape, 1), faces);
+    assert_eq!(mesh::material::faces_with_slot(&shape, 0).len(), 4);
+    doc.undo().unwrap();
+    let shape = doc.scene().evaluated(id).unwrap().mesh;
+    assert!(mesh::material::faces_with_slot(&shape, 1).is_empty());
+}
+
+#[test]
+fn joining_merges_materials_by_name() {
+    let (mut doc, id) = with_a_cube();
+    doc.execute(Command::Duplicate {
+        ids: vec![id],
+        instances: false,
+    })
+    .unwrap();
+    let copy = doc.selection()[0];
+    // The first has Red; the copy has Blue then Red, all its polygons Red.
+    doc.execute(Command::SetMaterials {
+        id,
+        materials: vec![red_and_blue()[0].clone()],
+    })
+    .unwrap();
+    doc.execute(Command::SetMaterials {
+        id: copy,
+        materials: vec![red_and_blue()[1].clone(), red_and_blue()[0].clone()],
+    })
+    .unwrap();
+    let all: Vec<mesh::FaceId> = (0..6).map(mesh::FaceId::from_raw).collect();
+    doc.execute(Command::Record {
+        id: copy,
+        operation: Operation::SetMaterial {
+            faces: all,
+            slot: 1,
+            anchors: None,
+        },
+    })
+    .unwrap();
+    doc.execute(Command::Join(vec![id, copy])).unwrap();
+    let object = doc.scene().object(id).unwrap();
+    assert_eq!(
+        object.materials,
+        vec![red_and_blue()[0].clone(), red_and_blue()[1].clone()]
+    );
+    // Every polygon is Red (slot 0): the copy's slot 1 became 0.
+    let shape = doc.scene().evaluated(id).unwrap().mesh;
+    assert_eq!(mesh::material::faces_with_slot(&shape, 0).len(), 12);
+    check_round_trip(&mut doc);
+}
+
+#[test]
+fn joining_objects_without_materials_leaves_the_list_empty() {
+    let (mut doc, id) = with_a_cube();
+    doc.execute(Command::Duplicate {
+        ids: vec![id],
+        instances: false,
+    })
+    .unwrap();
+    let copy = doc.selection()[0];
+    doc.execute(Command::Join(vec![id, copy])).unwrap();
+    assert!(doc.scene().object(id).unwrap().materials.is_empty());
+}
+
+#[test]
+fn an_instance_made_editable_keeps_its_originals_materials() {
+    let (mut doc, id) = with_a_cube();
+    doc.execute(Command::SetMaterials {
+        id,
+        materials: red_and_blue(),
+    })
+    .unwrap();
+    doc.execute(Command::Duplicate {
+        ids: vec![id],
+        instances: true,
+    })
+    .unwrap();
+    let instance = doc.selection()[0];
+    assert_eq!(
+        doc.scene().object(instance).unwrap().materials,
+        red_and_blue()
+    );
+    doc.execute(Command::MakeEditable(vec![instance])).unwrap();
+    assert_eq!(
+        doc.scene().object(instance).unwrap().materials,
+        red_and_blue()
+    );
+}
+
+#[test]
+fn an_instances_material_list_is_its_originals() {
+    let (mut doc, id) = with_a_cube();
+    doc.execute(Command::Duplicate {
+        ids: vec![id],
+        instances: true,
+    })
+    .unwrap();
+    let instance = doc.selection()[0];
+    doc.execute(Command::SetMaterials {
+        id,
+        materials: red_and_blue(),
+    })
+    .unwrap();
+    assert_eq!(doc.scene().material_list(instance), red_and_blue());
+    assert!(
+        doc.scene()
+            .material_list(ObjectId::from_raw(999))
+            .is_empty()
+    );
+}

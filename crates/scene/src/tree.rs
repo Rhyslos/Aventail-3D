@@ -27,6 +27,8 @@ pub enum SceneError {
     Instance,
     /// A position, turn or size that isn't a number.
     NotANumber,
+    /// More materials than an object can have.
+    TooManyMaterials,
 }
 
 impl std::fmt::Display for SceneError {
@@ -49,6 +51,11 @@ impl std::fmt::Display for SceneError {
                 "it's an instance: edit its original, or make it editable to give it its own shape",
             ),
             Self::NotANumber => f.write_str("a value isn't a number"),
+            Self::TooManyMaterials => write!(
+                f,
+                "an object can have at most {} materials",
+                mesh::material::MAX_SLOTS
+            ),
         }
     }
 }
@@ -110,6 +117,12 @@ pub(crate) enum Edit {
     },
     /// Changes the project's units.
     SetUnits { before: Units, after: Units },
+    /// Changes an object's list of materials.
+    SetMaterials {
+        id: ObjectId,
+        before: Vec<crate::Material>,
+        after: Vec<crate::Material>,
+    },
     /// Moves an object's shape relative to its pivot (its offset).
     SetOffset {
         id: ObjectId,
@@ -165,6 +178,7 @@ impl Edit {
             Self::SetVisible { before, after, .. } => before == after,
             Self::SetKind { before, after, .. } => before == after,
             Self::SetUnits { before, after } => before == after,
+            Self::SetMaterials { before, after, .. } => before == after,
             Self::SetTransform { before, after, .. } | Self::SetOffset { before, after, .. } => {
                 before == after
             }
@@ -197,6 +211,11 @@ impl Edit {
                 after: before,
             },
             Self::SetUnits { before, after } => Self::SetUnits {
+                before: after,
+                after: before,
+            },
+            Self::SetMaterials { id, before, after } => Self::SetMaterials {
+                id,
                 before: after,
                 after: before,
             },
@@ -369,6 +388,21 @@ impl Scene {
     /// The object with this id, if it exists.
     pub fn object(&self, id: ObjectId) -> Option<&Object> {
         self.nodes.get(&id).map(|n| &n.object)
+    }
+
+    /// The materials `id`'s polygons use (decision 0074): its own list,
+    /// an instance's original's, or the standard material while there are
+    /// none. Empty for an unknown id.
+    pub fn material_list(&self, id: ObjectId) -> Vec<crate::Material> {
+        let Some(object) = self.object(id) else {
+            return Vec::new();
+        };
+        match object.kind {
+            crate::ObjectKind::Instance(source) => self
+                .object(source)
+                .map_or_else(|| object.material_list(), crate::Object::material_list),
+            _ => object.material_list(),
+        }
     }
 
     /// The object's final shape: its base with every recorded edit
@@ -689,6 +723,17 @@ impl Scene {
                     return Err(SceneError::History("an object's place has changed"));
                 }
                 node.object.transform = *after;
+                Ok(())
+            }
+            Edit::SetMaterials { id, before, after } => {
+                let node = self
+                    .nodes
+                    .get_mut(id)
+                    .ok_or(SceneError::UnknownObject(*id))?;
+                if node.object.materials != *before {
+                    return Err(SceneError::History("an object's materials have changed"));
+                }
+                node.object.materials.clone_from(after);
                 Ok(())
             }
             Edit::SetUnits { before, after } => {

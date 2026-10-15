@@ -51,9 +51,10 @@ fn glb_of(doc: &Document) -> Vec<u8> {
         ExportFormat::Glb,
         &ExportOptions::default(),
         "Test App 1.0",
+        "test.glb",
     )
     .unwrap()
-    .0
+    .main
 }
 
 #[test]
@@ -266,6 +267,7 @@ fn tangents_go_into_the_file() {
         pivot: glam::Mat4::IDENTITY,
         world: uv_grid(),
         local: uv_grid(),
+        materials: vec![scene::Material::standard()],
     };
     let glb = write_glb(&[object], "Test App 1.0");
     let (json, _) = parts(&glb);
@@ -276,4 +278,119 @@ fn tangents_go_into_the_file() {
     if let Some(path) = std::env::var_os("GLB_UV_SAMPLE") {
         std::fs::write(path, &glb).unwrap();
     }
+}
+
+/// A cube with three materials (one used by no polygon) and two polygons
+/// given the second, and a plane whose only material shares the cube's
+/// second's name.
+fn scene_with_materials() -> Document {
+    let mut doc = scene_of(&[PrimitiveKind::Cube, PrimitiveKind::Plane]);
+    let named = |doc: &Document, name: &str| {
+        doc.scene()
+            .walk()
+            .into_iter()
+            .map(|(id, _)| id)
+            .find(|id| doc.scene().object(*id).unwrap().name == name)
+            .unwrap()
+    };
+    let ids = [named(&doc, "Cube"), named(&doc, "Plane")];
+    let paint = scene::Material {
+        name: "Paint".into(),
+        color: [1.0, 0.0, 0.0],
+    };
+    doc.execute(Command::SetMaterials {
+        id: ids[0],
+        materials: vec![
+            scene::Material::standard(),
+            paint.clone(),
+            scene::Material {
+                name: "Unused".into(),
+                color: [0.0, 1.0, 0.0],
+            },
+        ],
+    })
+    .unwrap();
+    doc.execute(Command::Record {
+        id: ids[0],
+        operation: scene::Operation::SetMaterial {
+            faces: (0..2).map(mesh::FaceId::from_raw).collect(),
+            slot: 1,
+            anchors: None,
+        },
+    })
+    .unwrap();
+    doc.execute(Command::SetMaterials {
+        id: ids[1],
+        materials: vec![scene::Material {
+            color: [0.0, 0.0, 1.0],
+            ..paint
+        }],
+    })
+    .unwrap();
+    doc
+}
+
+#[test]
+fn materials_go_into_the_file_once_each_by_name() {
+    let glb = glb_of(&scene_with_materials());
+    if let Some(path) = std::env::var_os("GLB_MATERIAL_SAMPLE") {
+        std::fs::write(path, &glb).unwrap();
+    }
+    let (json, _) = parts(&glb);
+    let materials = json["materials"].as_array().unwrap();
+    let names: Vec<&str> = materials
+        .iter()
+        .map(|m| m["name"].as_str().unwrap())
+        .collect();
+    // "Unused" is used by no polygon; "Paint" is one material, in the
+    // order first used (the plane comes first in the Objects panel), its
+    // colour the plane's.
+    assert_eq!(names, ["Paint", "Default"]);
+    let blue = &materials[0]["pbrMetallicRoughness"]["baseColorFactor"];
+    assert_eq!(blue[0].as_f64(), Some(0.0));
+    assert_eq!(blue[2].as_f64(), Some(1.0));
+    // The grey (the viewport's) is converted to linear light.
+    let grey = materials[1]["pbrMetallicRoughness"]["baseColorFactor"][0]
+        .as_f64()
+        .unwrap();
+    assert!((grey - 0.5).abs() < 0.01, "{grey}");
+    // The cube has one primitive per material; the plane uses Paint.
+    let mesh_named = |name: &str| {
+        json["meshes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|m| m["name"] == name)
+            .unwrap()
+            .clone()
+    };
+    let cube = mesh_named("Cube");
+    let cube = cube["primitives"].as_array().unwrap();
+    let used: Vec<u64> = cube
+        .iter()
+        .map(|p| p["material"].as_u64().unwrap())
+        .collect();
+    assert_eq!(used, [1, 0]);
+    assert_eq!(mesh_named("Plane")["primitives"][0]["material"], 0);
+}
+
+#[test]
+fn an_instance_uses_its_originals_materials() {
+    let mut doc = scene_with_materials();
+    let cube = doc
+        .scene()
+        .walk()
+        .into_iter()
+        .map(|(id, _)| id)
+        .find(|id| doc.scene().object(*id).unwrap().name == "Cube")
+        .unwrap();
+    doc.execute(Command::Duplicate {
+        ids: vec![cube],
+        instances: true,
+    })
+    .unwrap();
+    let objects = prepare(&doc, &ExportOptions::default());
+    let instance = objects.iter().find(|o| o.name == "Cube 2").unwrap();
+    assert_eq!(instance.materials.len(), 3);
+    assert!(instance.world.polygons.iter().any(|p| p.material == 1));
 }

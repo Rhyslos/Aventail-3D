@@ -80,6 +80,15 @@ impl<E: FileOperation> ProjectWithPlaces<E> {
 
     /// The document this file model describes, after checking every value.
     pub(crate) fn into_document(self) -> Result<Document, Problem> {
+        self.into_document_with(|_, _| Ok(()))
+    }
+
+    /// The same, giving each object to `attach` (with its id in the file)
+    /// as it is read, for later versions to add what they store.
+    pub(crate) fn into_document_with(
+        self,
+        mut attach: impl FnMut(u64, &mut scene::Object) -> Result<(), Problem>,
+    ) -> Result<Document, Problem> {
         let mut offsets: BTreeMap<u64, TransformV1> = BTreeMap::new();
         for entry in self.offsets {
             if offsets.insert(entry.object, entry.offset).is_some() {
@@ -87,6 +96,7 @@ impl<E: FileOperation> ProjectWithPlaces<E> {
             }
         }
         let document = self.project.into_document_with(|id, object| {
+            attach(id, object)?;
             let Some(offset) = offsets.remove(&id) else {
                 return Ok(());
             };

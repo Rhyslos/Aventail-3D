@@ -27,7 +27,7 @@ pub use geometry::{
     AXIS_SEGMENT, CUBE_COLOR, EDGE_COLOR, FaceVertex, LineVertex, MeshInstance, Overlay, Shape,
     Sprite, TEST_CUBE_SIZE, X_AXIS_COLOR, Y_AXIS_COLOR, Z_AXIS_COLOR, Z_AXIS_HEIGHT, ground_axes,
 };
-pub use mesh_draw::{MeshDraw, MeshGeometry, MeshVertex};
+pub use mesh_draw::{MeshDraw, MeshGeometry, MeshVertex, PALETTE_SIZE, Palette, palette};
 pub use pick::{PickRequest, PickResult};
 pub use readback::read_pixels;
 pub use renderer::{

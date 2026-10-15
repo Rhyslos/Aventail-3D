@@ -14,7 +14,7 @@ use scene::ElementKind;
 
 /// A selection command from a key or the Select menu, carried out once
 /// the frame's scene drawing is known.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) enum SelectRequest {
     /// Select everything.
     All,
@@ -30,6 +30,8 @@ pub(super) enum SelectRequest {
     SimilarFacing,
     /// Select the hard edges.
     HardEdges,
+    /// Select the polygons using the material of this name.
+    Material(String),
 }
 
 /// The Select menu's tooltip for the visible-only switch, and the mode
@@ -172,6 +174,7 @@ impl Workbench {
             self.select_requests.push(SelectRequest::HardEdges);
             ui.close();
         }
+        self.material_entries(ui);
         ui.add_enabled(false, egui::Button::new("Loop and ring: double-click"))
             .on_disabled_hover_text(
                 "Double-click an edge for its loop; Alt + double-click for its ring",
@@ -192,6 +195,41 @@ impl Workbench {
         let options = self.viewport.options_mut();
         ui.checkbox(&mut options.select_visible_only, "Select only visible")
             .on_hover_text(VISIBLE_ONLY_HELP);
+    }
+
+    /// Select by material: a list of the selected objects' materials;
+    /// choosing one selects the polygons using it, in the Polygons mode.
+    fn material_entries(&mut self, ui: &mut Ui) {
+        let scene = self.document.scene();
+        let mut names: Vec<String> = Vec::new();
+        for id in self.document.selection() {
+            if scene.evaluated(id).is_none() {
+                continue;
+            }
+            for material in scene.material_list(id) {
+                if !names.contains(&material.name) {
+                    names.push(material.name);
+                }
+            }
+        }
+        const HELP: &str = "Select the polygons of the selected objects that use a material. \
+             Shows the Polygons mode.";
+        if names.is_empty() {
+            ui.add_enabled(false, egui::Button::new("Select by material"))
+                .on_disabled_hover_text("Select an object first: its materials are listed here");
+            return;
+        }
+        ui.menu_button("Select by material", |ui| {
+            for name in names {
+                if ui.button(&name).on_hover_text(HELP).clicked() {
+                    self.mode = Mode::Polygons;
+                    self.select_requests.push(SelectRequest::Material(name));
+                    ui.close();
+                }
+            }
+        })
+        .response
+        .on_hover_text(HELP);
     }
 
     /// Carries out the selection gestures and requests of this frame,
@@ -224,6 +262,7 @@ impl Workbench {
                 }
                 SelectRequest::Flipped => selector.select_flipped(),
                 SelectRequest::HardEdges => selector.select_hard_edges(),
+                SelectRequest::Material(name) => selector.select_by_material(&name),
                 SelectRequest::SimilarFacing => {
                     selector.select_similar_facing(super::cleaning::SIMILAR_FACING_ANGLE)
                 }

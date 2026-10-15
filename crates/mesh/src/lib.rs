@@ -16,6 +16,7 @@ pub mod extrude;
 pub mod hardness;
 pub mod join;
 pub mod loopcut;
+pub mod material;
 pub mod parallel;
 pub mod parts;
 pub mod polygon;

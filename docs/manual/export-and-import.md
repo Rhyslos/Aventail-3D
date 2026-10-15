@@ -26,11 +26,13 @@ Ready-made settings for Godot and Substance Painter arrive in the next updates o
    - **Metres** for Godot, Unity and Substance Painter; **Centimetres** for Unreal Engine.
    - **Y up** for nearly every program. The app is Z up, so it turns the model on the way out and it arrives standing upright. **Z up** keeps the app's own axes.
 5. Tick **Cut polygons into triangles** if the model will be baked in Substance Painter: the file then holds exactly the triangles the game will draw, cut the same way the viewport cuts them, so the bake matches. Game engines cut polygons themselves otherwise, not always the same way.
-6. Click **Export…**, choose where to save, and the status bar says how many objects and triangles went out.
+6. Click **Export…**, choose where to save, and the status bar says how many objects and triangles went out (and for an OBJ, the `.mtl` file is written beside it).
 
 **File → Export again** repeats the last export, to the same file, the same way: handy while you go back and forth between the app and the engine.
 
 **Shading goes out as you see it.** With **Automatic hard edges** on (Mesh menu, the standard), edges sharper than 30° go out crisp and the rest smooth; with it off, the edges you marked [hard](hard-and-soft-edges.md). Each corner gets the [normal](concepts.md#shading-and-normals) the viewport shows, so a model shades the same in the engine.
+
+**Materials go out by name.** Each [material](materials.md) some polygon uses goes out once, by its name, with its colour: materials of the same name on different objects are one. glTF holds them in the file; an OBJ export also writes a **`.mtl` file** with the same name beside it (`crate.obj` and `crate.mtl`), which other programs read for the colours. Keep the two files together. In an OBJ, spaces in a name become underscores.
 
 Each object's points stay joined in the file: a smooth surface is one connected piece, as Substance Painter wants for baking. Every edit and setting is applied; the file holds the shape as it is now.
 
@@ -44,7 +46,7 @@ Each object's points stay joined in the file: a smooth surface is one connected 
 1. Choose **File → Import…** and pick an OBJ file.
 2. Each object in the file (named by its `o` lines, or `g` lines if it has none) becomes a plain mesh at the top of the Objects panel, selected, and the view frames it. One **Ctrl + Z** takes the whole import back.
 
-The app reads an OBJ as metres with Y up, the usual way, and turns it to centimetres with Z up; a file this app exported says how it was written, and is read back that way. Where the file gives two polygons different normals along an edge they share, that edge is made **hard**, so a model shaded crisp elsewhere stays crisp. UVs come along too, ready for the UV tools in Phase 8. Lines the app doesn't use (curves, material files) are skipped, and broken polygons are left out and counted in the status bar.
+The app reads an OBJ as metres with Y up, the usual way, and turns it to centimetres with Z up; a file this app exported says how it was written, and is read back that way. Where the file gives two polygons different normals along an edge they share, that edge is made **hard**, so a model shaded crisp elsewhere stays crisp. UVs come along too, ready for the UV tools in Phase 8. Each material the file names (`usemtl`) becomes one of the object's [materials](materials.md), its polygons given it, coloured from the `.mtl` file when it is beside the OBJ (otherwise grey). Lines the app doesn't use (curves, groups of settings) are skipped, and broken polygons are left out and counted in the status bar.
 
 ## Settings
 
@@ -70,10 +72,12 @@ None yet: use the File menu.
 - **Problem:** the model is 100 times too big or too small. **Why:** metres and centimetres were mixed up. **Fix:** Godot, Unity and Substance Painter want **Metres**; Unreal Engine wants **Centimetres**.
 - **Problem:** the status bar says there is nothing to export. **Why:** everything is hidden, or *The selected objects* was chosen with only groups selected. **Fix:** show the objects, or choose Everything shown.
 - **Problem:** an imported model looks faceted all over. **Why:** the file had no normals, so the app couldn't tell which edges were meant to be hard. **Fix:** keep **Automatic hard edges** on (Mesh menu), or mark edges with [Hard and soft edges](hard-and-soft-edges.md).
+- **Problem:** an OBJ's colours are missing in the other program. **Why:** the `.mtl` file was left behind. **Fix:** copy or move the `.obj` and `.mtl` files together.
 - **Tip:** an imported object is a plain mesh: there are no settings to change, but every modelling tool works on it.
 
 ## Related
 
+- [Materials](materials.md)
 - [Hard and soft edges, and normals](hard-and-soft-edges.md)
 - [Pivots and the Object mode](pivots.md) (the units of the project)
 - [Concepts: triangulation, glTF and the game-asset pipeline](concepts.md#the-game-asset-pipeline)

@@ -7,6 +7,7 @@
 //! commands are merged into one undo step per drag (or per value typed).
 
 mod fields;
+mod materials;
 pub(crate) mod stepper;
 
 use crate::objects::{DocRequest, kind_icon};
@@ -58,6 +59,15 @@ pub(crate) struct AttributesPanel {
     pub(crate) join: JoinLook,
     /// Hard edges by angle's angle, for its next use (decision 0053).
     pub(crate) hard_angle: HardAngle,
+    /// The Materials section's names being typed and its message.
+    materials: materials::MaterialsState,
+    /// How many polygons of the shown object are selected, in the
+    /// Polygons mode (set by the workbench each frame); `None` in other
+    /// modes. Assign needs some.
+    pub(crate) polygons_selected: Option<usize>,
+    /// The material slot whose Assign button was clicked, for the
+    /// workbench to give the selected polygons (decision 0074).
+    pub(crate) assign: Option<u32>,
 }
 
 impl AttributesPanel {
@@ -397,6 +407,9 @@ impl AttributesPanel {
                 if let ObjectKind::Primitive(primitive) = &object.kind {
                     section(ui, "Shape");
                     self.shape_rows(ui, id, *primitive, units, out);
+                }
+                if object.kind.has_shape() {
+                    self.materials_section(ui, doc, id, out);
                 }
                 if let Some(shape) = doc.scene().evaluated(id) {
                     let (report, current) = self.checker.report(id, &shape.mesh, ui.ctx());

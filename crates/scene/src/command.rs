@@ -129,6 +129,15 @@ pub enum Command {
     /// Changes the project's units (decision 0068): how lengths are shown
     /// and typed. The shapes don't change.
     SetUnits(crate::Units),
+    /// Gives an object a new list of materials (decision 0074): names
+    /// trimmed, at most `mesh::material::MAX_SLOTS`. A list with an empty
+    /// name or a colour outside 0 to 1 is refused.
+    SetMaterials {
+        /// The object.
+        id: ObjectId,
+        /// Its materials.
+        materials: Vec<crate::Material>,
+    },
     /// Bakes each shape's base and recorded edits into a plain mesh, which
     /// becomes its new base (its settings are gone; its edits are part of
     /// the mesh). Groups, and meshes with nothing recorded, are left alone.
@@ -214,6 +223,7 @@ impl Command {
                 format!("Transform {}", objects(count(&ids)))
             }
             Self::SetUnits(units) => format!("Change units to {}", units.name()),
+            Self::SetMaterials { .. } => "Change materials".to_string(),
             Self::MovePivots(changes) => match changes.len() {
                 1 => "Move pivot".to_string(),
                 n => format!("Move {n} pivots"),
@@ -653,6 +663,35 @@ impl Run<'_> {
                 }
                 Ok(None)
             }
+            Command::SetMaterials { id, materials } => {
+                let before = self
+                    .scene
+                    .object(*id)
+                    .ok_or(SceneError::UnknownObject(*id))?
+                    .materials
+                    .clone();
+                let after: Vec<crate::Material> = materials
+                    .iter()
+                    .map(|m| crate::Material {
+                        name: m.name.trim().to_string(),
+                        color: m.color,
+                    })
+                    .collect();
+                if after.len() > mesh::material::MAX_SLOTS as usize {
+                    return Err(SceneError::TooManyMaterials);
+                }
+                if !after.iter().all(crate::Material::is_valid) {
+                    return Err(SceneError::EmptyName);
+                }
+                if before != after {
+                    self.edit(Edit::SetMaterials {
+                        id: *id,
+                        before,
+                        after,
+                    })?;
+                }
+                Ok(None)
+            }
             Command::SetUnits(units) => {
                 let before = self.scene.units();
                 if before != *units {
@@ -735,13 +774,66 @@ impl Run<'_> {
                     return Ok(None);
                 }
                 let into = self.scene.shape_matrix(target).inverse();
+                // Materials join by name: each part's slots are renumbered
+                // into the target's list, which gains the names it lacks
+                // (decision 0074).
+                let list = |id: ObjectId| {
+                    self.scene
+                        .object(id)
+                        .map(crate::Object::material_list)
+                        .unwrap_or_default()
+                };
+                let any_materials = shapes.iter().any(|id| {
+                    self.scene
+                        .object(*id)
+                        .is_some_and(|o| !o.materials.is_empty())
+                });
+                let mut merged = list(target);
                 let meshes: Vec<(Arc<mesh::Mesh>, glam::Mat4)> = shapes
                     .iter()
                     .filter_map(|id| {
                         let shape = self.scene.evaluated(*id)?;
-                        Some((shape.mesh, into * self.scene.shape_matrix(*id)))
+                        let mut part = shape.mesh;
+                        if any_materials && *id != target {
+                            let own = list(*id);
+                            let renumber: Vec<u32> = own
+                                .iter()
+                                .map(|m| {
+                                    let at = merged.iter().position(|n| n.name == m.name);
+                                    at.unwrap_or_else(|| {
+                                        merged.push(m.clone());
+                                        merged.len() - 1
+                                    }) as u32
+                                })
+                                .collect();
+                            let mut changed = (*part).clone();
+                            for (old, new) in renumber.iter().enumerate() {
+                                if old as u32 != *new {
+                                    let faces = mesh::material::faces_with_slot(&part, old as u32);
+                                    mesh::material::set_material(&mut changed, &faces, *new);
+                                }
+                            }
+                            part = Arc::new(changed);
+                        }
+                        Some((part, into * self.scene.shape_matrix(*id)))
                     })
                     .collect();
+                if any_materials {
+                    merged.truncate(mesh::material::MAX_SLOTS as usize);
+                    let before = self
+                        .scene
+                        .object(target)
+                        .ok_or(SceneError::UnknownObject(target))?
+                        .materials
+                        .clone();
+                    if before != merged {
+                        self.edit(Edit::SetMaterials {
+                            id: target,
+                            before,
+                            after: merged,
+                        })?;
+                    }
+                }
                 let parts: Vec<(&mesh::Mesh, glam::Mat4)> =
                     meshes.iter().map(|(m, x)| (m.as_ref(), *x)).collect();
                 let joined = mesh::parts::combine(&parts);
@@ -874,17 +966,34 @@ impl Run<'_> {
             let Some(shape) = self.scene.evaluated(*id) else {
                 continue;
             };
-            let before = self
+            let object = self
                 .scene
                 .object(*id)
-                .ok_or(SceneError::UnknownObject(*id))?
-                .kind
-                .clone();
+                .ok_or(SceneError::UnknownObject(*id))?;
+            let before = object.kind.clone();
+            let own_materials = object.materials.clone();
+            // An instance shows its original's materials; its own copy
+            // keeps them (decision 0074).
+            let source_materials = match &before {
+                ObjectKind::Instance(source) => self
+                    .scene
+                    .object(*source)
+                    .map(|o| o.materials.clone())
+                    .unwrap_or_default(),
+                _ => own_materials.clone(),
+            };
             self.edit(Edit::SetKind {
                 id: *id,
                 before,
                 after: ObjectKind::Mesh(Arc::clone(&shape.mesh)),
             })?;
+            if own_materials != source_materials {
+                self.edit(Edit::SetMaterials {
+                    id: *id,
+                    before: own_materials,
+                    after: source_materials,
+                })?;
+            }
         }
         Ok(())
     }

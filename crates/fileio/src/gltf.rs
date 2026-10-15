@@ -280,6 +280,7 @@ fn matrix(m: glam::Mat4) -> [f32; 16] {
 /// The bytes of a binary glTF file holding `objects` (made with metres,
 /// Y up and triangles), naming `generator` as the program that made it.
 pub fn write_glb(objects: &[ExportedObject], generator: &str) -> Vec<u8> {
+    let materials = crate::export::file_materials(objects);
     let mut b = Builder::default();
     let mut nodes = Vec::new();
     let mut meshes = Vec::new();
@@ -296,7 +297,12 @@ pub fn write_glb(objects: &[ExportedObject], generator: &str) -> Vec<u8> {
             .triangles
             .iter()
             .filter(|(_, corners)| !corners.is_empty())
-            .map(|(_, corners)| {
+            .map(|(slot, corners)| {
+                let material = object
+                    .materials
+                    .get(*slot as usize)
+                    .and_then(|m| materials.iter().position(|f| f.name == m.name))
+                    .unwrap_or(0);
                 let indices = b.indices(corners);
                 let mut attributes = json!({ "POSITION": position, "NORMAL": normal });
                 if let Some(uv) = uv {
@@ -308,7 +314,7 @@ pub fn write_glb(objects: &[ExportedObject], generator: &str) -> Vec<u8> {
                 json!({
                     "attributes": attributes,
                     "indices": indices,
-                    "material": 0,
+                    "material": material,
                     "mode": TRIANGLES,
                 })
             })
@@ -326,14 +332,7 @@ pub fn write_glb(objects: &[ExportedObject], generator: &str) -> Vec<u8> {
         "scenes": [{ "nodes": (0..nodes.len()).collect::<Vec<_>>() }],
         "nodes": nodes,
         "meshes": meshes,
-        "materials": [{
-            "name": "Default",
-            "pbrMetallicRoughness": {
-                "baseColorFactor": [0.8, 0.8, 0.8, 1.0],
-                "metallicFactor": 0.0,
-                "roughnessFactor": 0.8,
-            },
-        }],
+        "materials": gltf_materials(&materials),
         "buffers": [{ "byteLength": b.bin.len() }],
     });
     if !b.views.is_empty() {
@@ -341,6 +340,42 @@ pub fn write_glb(objects: &[ExportedObject], generator: &str) -> Vec<u8> {
         document["accessors"] = json!(b.accessors);
     }
     glb(&document, b.bin)
+}
+
+/// The file's materials: each one's name and colour (a plain, matte,
+/// non-metal surface). glTF colours are linear, so the colour picked
+/// (sRGB, as seen on screen) is converted. Without any, the standard one.
+fn gltf_materials(materials: &[scene::Material]) -> Json {
+    let standard = [scene::Material::standard()];
+    let list = if materials.is_empty() {
+        &standard[..]
+    } else {
+        materials
+    };
+    Json::Array(
+        list.iter()
+            .map(|m| {
+                let [r, g, b] = m.color.map(linear);
+                json!({
+                    "name": m.name,
+                    "pbrMetallicRoughness": {
+                        "baseColorFactor": [r, g, b, 1.0],
+                        "metallicFactor": 0.0,
+                        "roughnessFactor": 0.8,
+                    },
+                })
+            })
+            .collect(),
+    )
+}
+
+/// An sRGB colour channel (0 to 1) as linear light.
+fn linear(c: f32) -> f32 {
+    if c <= 0.04045 {
+        c / 12.92
+    } else {
+        ((c + 0.055) / 1.055).powf(2.4)
+    }
 }
 
 /// The binary container: header, JSON part (padded with spaces) and

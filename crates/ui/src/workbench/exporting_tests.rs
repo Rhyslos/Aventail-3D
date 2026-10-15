@@ -95,6 +95,7 @@ fn export_again_repeats_the_last_export_to_the_same_file() {
         ExportSummary {
             objects: 1,
             triangles: 12,
+            materials: 1,
         },
     );
     assert!(

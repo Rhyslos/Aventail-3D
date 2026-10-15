@@ -14,7 +14,7 @@ fn scene_of(kinds: &[PrimitiveKind]) -> Document {
 }
 
 fn written(doc: &Document, options: &ExportOptions) -> String {
-    write_obj(&prepare(doc, options), options, "Test App 1.0")
+    write_obj(&prepare(doc, options), options, "Test App 1.0", None)
 }
 
 fn read(text: &str) -> ObjImport {
@@ -188,14 +188,146 @@ fn the_apps_own_units_note_is_followed() {
 fn export_bytes_says_what_it_wrote_and_refuses_nothing() {
     use crate::export::{ExportError, ExportFormat, export_bytes};
     let doc = scene_of(&[PrimitiveKind::Cube, PrimitiveKind::Plane]);
-    let (bytes, summary) =
-        export_bytes(&doc, ExportFormat::Obj, &ExportOptions::default(), "T").unwrap();
+    let files = export_bytes(
+        &doc,
+        ExportFormat::Obj,
+        &ExportOptions::default(),
+        "T",
+        "crate.obj",
+    )
+    .unwrap();
+    let summary = files.summary;
     assert_eq!(summary.objects, 2);
     assert_eq!(summary.triangles, 12 + 2);
-    assert!(String::from_utf8(bytes).unwrap().contains("o Plane"));
+    assert_eq!(summary.materials, 1);
+    let text = String::from_utf8(files.main).unwrap();
+    assert!(text.contains("o Plane"));
+    assert!(text.contains("mtllib crate.mtl"));
+    assert_eq!(files.beside.len(), 1);
+    assert_eq!(files.beside[0].0, "crate.mtl");
     let empty = Document::new();
     assert!(matches!(
-        export_bytes(&empty, ExportFormat::Obj, &ExportOptions::default(), "T"),
+        export_bytes(
+            &empty,
+            ExportFormat::Obj,
+            &ExportOptions::default(),
+            "T",
+            "e.obj"
+        ),
         Err(ExportError::Nothing)
     ));
+}
+
+#[test]
+fn materials_are_named_on_usemtl_lines_and_described_in_the_mtl_file() {
+    let mut doc = scene_of(&[PrimitiveKind::Cube]);
+    let id = doc.scene().children(None)[0];
+    doc.execute(scene::Command::SetMaterials {
+        id,
+        materials: vec![
+            scene::Material::standard(),
+            scene::Material {
+                name: "Rusty metal".into(),
+                color: [0.5, 0.25, 0.0],
+            },
+        ],
+    })
+    .unwrap();
+    doc.execute(scene::Command::Record {
+        id,
+        operation: scene::Operation::SetMaterial {
+            faces: vec![mesh::FaceId::from_raw(5)],
+            slot: 1,
+            anchors: None,
+        },
+    })
+    .unwrap();
+    let options = ExportOptions::default();
+    let objects = prepare(&doc, &options);
+    let text = write_obj(&objects, &options, "T", Some("crate.mtl"));
+    assert!(text.contains("mtllib crate.mtl\n"));
+    // One line for each change of material; names are one word.
+    assert_eq!(text.matches("usemtl Default\n").count(), 1, "{text}");
+    assert_eq!(text.matches("usemtl Rusty_metal\n").count(), 1);
+    let mtl = write_mtl(&objects, "T");
+    assert!(mtl.contains("newmtl Default\n"));
+    assert!(mtl.contains("newmtl Rusty_metal\nKa 0 0 0\nKd 0.5 0.25 0\n"));
+    // Reading it back gives the slots and, with the .mtl file, colours.
+    let mut back = read_obj(&text, FileUnits::Metres, UpAxis::Y).unwrap();
+    assert_eq!(back.material_files, ["crate.mtl"]);
+    back.colour_materials(&read_mtl(&mtl));
+    let object = &back.objects[0];
+    let names: Vec<&str> = object.materials.iter().map(|m| m.name.as_str()).collect();
+    assert_eq!(names, ["Default", "Rusty_metal"]);
+    assert_eq!(object.materials[1].color, [0.5, 0.25, 0.0]);
+    assert_eq!(mesh::material::faces_with_slot(&object.mesh, 1).len(), 1);
+}
+
+#[test]
+fn a_file_without_materials_imports_without_any() {
+    let back = read_obj(
+        "v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n",
+        FileUnits::Metres,
+        UpAxis::Y,
+    )
+    .unwrap();
+    assert!(back.objects[0].materials.is_empty());
+    assert!(back.material_files.is_empty());
+}
+
+#[test]
+fn mtl_files_are_read_carefully() {
+    let colours =
+        read_mtl("newmtl A\nKd 2 -1 0.5\nnewmtl B\nKd nan 0 0\nKd 1\nfoo bar\nKd 0 0 0\n");
+    // Held to 0 to 1; numbers that aren't real are passed over.
+    assert_eq!(colours["A"], [1.0, 0.0, 0.5]);
+    assert_eq!(colours["B"], [0.0, 0.0, 0.0]);
+    // A colour before any material belongs to none.
+    assert!(read_mtl("Kd 1 1 1\n").is_empty());
+}
+
+#[test]
+fn material_files_are_found_beside_the_obj_only() {
+    let folder = std::env::temp_dir().join(format!("obj-mtl-{}", std::process::id()));
+    std::fs::create_dir_all(&folder).unwrap();
+    std::fs::write(folder.join("crate.mtl"), "newmtl Wood\nKd 0.4 0.2 0.1\n").unwrap();
+    let text = "mtllib ../../crate.mtl\nv 0 0 0\nv 1 0 0\nv 0 1 0\nusemtl Wood\nf 1 2 3\n";
+    let mut back = read_obj(text, FileUnits::Metres, UpAxis::Y).unwrap();
+    back.colour_from_files(&folder);
+    // The path in the file is cut to its name, found in the OBJ's folder.
+    assert_eq!(back.objects[0].materials[0].color, [0.4, 0.2, 0.1]);
+    // A missing file leaves the material grey.
+    let mut missing = read_obj(
+        &text.replace("crate.mtl", "gone.mtl"),
+        FileUnits::Metres,
+        UpAxis::Y,
+    )
+    .unwrap();
+    missing.colour_from_files(&folder);
+    assert_eq!(
+        missing.objects[0].materials[0],
+        scene::Material {
+            name: "Wood".into(),
+            ..scene::Material::standard()
+        }
+    );
+    std::fs::remove_dir_all(&folder).unwrap();
+}
+
+#[test]
+fn many_materials_in_one_object_share_the_last_slot() {
+    let mut text = String::new();
+    let n = mesh::material::MAX_SLOTS as usize + 3;
+    for i in 0..n {
+        let x = i * 2;
+        text.push_str(&format!(
+            "v {x} 0 0\nv {} 0 0\nv {x} 1 0\nusemtl M{i}\nf -3 -2 -1\n",
+            x + 1
+        ));
+    }
+    let back = read_obj(&text, FileUnits::Metres, UpAxis::Y).unwrap();
+    let object = &back.objects[0];
+    assert_eq!(object.materials.len(), mesh::material::MAX_SLOTS as usize);
+    let last = mesh::material::MAX_SLOTS - 1;
+    assert_eq!(mesh::material::faces_with_slot(&object.mesh, last).len(), 4);
 }
