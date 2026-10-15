@@ -198,6 +198,7 @@ impl Workbench {
     /// given what is drawn.
     pub(super) fn carry_out_selection(&mut self, drawing: &SceneDrawing) {
         let gestures = self.viewport.take_gestures();
+        let gestures = self.take_pivot_target_click(gestures, drawing);
         let requests = std::mem::take(&mut self.select_requests);
         if gestures.is_empty() && requests.is_empty() {
             return;

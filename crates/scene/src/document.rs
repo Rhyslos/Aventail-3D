@@ -46,6 +46,14 @@ impl Document {
         document
     }
 
+    /// The same document measured in `units`, for a project being opened
+    /// (not a step to undo: use [`Command::SetUnits`] for that).
+    #[must_use]
+    pub fn with_units(mut self, units: crate::Units) -> Self {
+        self.scene = std::mem::take(&mut self.scene).with_units(units);
+        self
+    }
+
     /// The scene, for reading.
     pub fn scene(&self) -> &Scene {
         &self.scene

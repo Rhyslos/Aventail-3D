@@ -8,6 +8,8 @@
 //!   and bank.
 //! - **Several objects:** the middle of their axes, and the size of the
 //!   box around them all. No rotation.
+//! - **Object mode:** the same, for the pivots; no size, because a pivot
+//!   has none (decision 0068).
 //! - **Points, edges or polygons:** the middle of the box around their
 //!   points, and its size. No rotation.
 //!
@@ -48,7 +50,8 @@ impl CoordinatesView {
                     .map_or(Vec3::ZERO, |b| b.size());
                 Self {
                     position: Some(target.pivot),
-                    size: Some(own * start.transform.scale.abs()),
+                    // A pivot has no size (Object mode).
+                    size: (!target.pivots).then(|| own * start.transform.scale.abs()),
                     rotation: Some(Vec3::new(
                         start.transform.rotation.x.to_degrees(),
                         start.transform.rotation.y.to_degrees(),
@@ -58,7 +61,7 @@ impl CoordinatesView {
             }
             _ => Self {
                 position: Some(target.pivot),
-                size: Some(target.bounds.size()),
+                size: (!target.pivots).then(|| target.bounds.size()),
                 rotation: None,
             },
         }
@@ -185,7 +188,8 @@ fn field_widget(
         let response = ui.add_enabled(false, egui::Button::new("—").min_size(size));
         response.widget_info(|| WidgetInfo::labeled(WidgetType::DragValue, false, label));
         response.on_disabled_hover_text(match field {
-            Field::Rotation(_) => "Rotation shows for one object in the Model mode",
+            Field::Rotation(_) => "Rotation shows for one object in the Model and Object modes",
+            Field::Size(_) => "Size shows for a selection; a pivot (Object mode) has none",
             _ => "Select something to see and type its coordinates",
         });
         return;

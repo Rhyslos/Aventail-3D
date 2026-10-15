@@ -83,7 +83,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Undo history** — The list of changes you've made, kept so they can be taken back (undo, `Ctrl + Z`) and done again (redo, `Ctrl + Y`). This app keeps steps while it's open, up to a memory limit (2 GB as standard, set in **Edit → Settings… → Undo**), then forgets the oldest first. There's no limit on the *number* of steps. See [Objects](objects.md).
 
-**Pivot (axis / origin)** — The point an object rotates and scales around. In Godot, it's also the point the asset is placed and snapped by, so where you put it matters. The [gizmo](transforming.md) sits on it.
+**Pivot (axis / origin)** — The point an object rotates and scales around. In Godot, it's also the point the asset is placed and snapped by, so where you put it matters: on the hinge of a door, at the bottom corner of a wall piece. The [gizmo](transforming.md) sits on it. In the Object mode you can move and turn it without moving the shape; see [Pivots and the Object mode](pivots.md).
 
 **Gizmo** — The handle drawn on what's selected while moving, rotating or scaling: arrows, rings and boxes in the axis colours. Dragging one part changes the selection in that direction only. See [Move, rotate and scale](transforming.md).
 
@@ -94,6 +94,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 **Axes (X, Y, Z)** — The three directions of 3D space, always coloured X red, Y blue, Z green. (Most 3D programs colour Y green and Z blue; this app swaps them, so blue is the second ground direction. The letters are always shown too.) In this app **Z points up**, and X and Y lie flat on the ground; a green line rising from the origin marks Z. Some 3D programs, Godot and the glTF file format use Y for up instead; the app converts when it exports, so models arrive standing upright.
 
 **Origin and grid** — The origin is the point where X, Y and Z are all zero: the centre of the world, where the red and blue axis lines cross. The grid on the ground helps you judge sizes: in this app its lines are 1 m apart, and you can add fainter lines every 50 cm (cutting each square into four) or every 10 cm when you need them. It's drawn around the point you're looking at and fades out at its edges, so it reads as a work surface rather than an endless floor. Lengths are shown in metres as standard, or centimetres if you prefer; 1 m is 100 cm.
+
+**Units** — What a project's lengths are measured in: metres or centimetres, saved with the project. Game engines differ: Godot and Unity count 1 unit as 1 metre, Unreal as 1 centimetre. The shapes are the same either way; only the numbers you read and type change. See [Units](pivots.md#units-metres-or-centimetres).
 
 **Local vs. world space** — *World* directions are the same for the whole scene. *Local* directions follow the object's own rotation.
 

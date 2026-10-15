@@ -17,6 +17,7 @@ pub mod mirroring;
 pub mod object;
 pub mod stack;
 pub mod tree;
+pub mod units;
 
 pub use command::Command;
 pub use document::Document;
@@ -32,11 +33,14 @@ pub use stack::{
     Operation, Stack, StackWarning,
 };
 pub use tree::{Place, Scene, SceneError};
+pub use units::Units;
 
 #[cfg(test)]
 mod history_tests;
 #[cfg(test)]
 mod mirroring_tests;
+#[cfg(test)]
+mod pivot_tests;
 #[cfg(test)]
 mod selection_tests;
 #[cfg(test)]

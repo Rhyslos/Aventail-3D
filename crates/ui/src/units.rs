@@ -1,5 +1,9 @@
 //! The unit lengths are shown and typed in: metres or centimetres. The
 //! scene always stores centimetres; this only changes how they read.
+//!
+//! Each project keeps its own units, saved with it (`scene::Units`,
+//! decision 0068); this is the interface's side of them, with the user's
+//! choice for new projects remembered between sessions.
 
 use serde::{Deserialize, Serialize};
 
@@ -87,9 +91,35 @@ impl Units {
     }
 }
 
+impl From<scene::Units> for Units {
+    fn from(units: scene::Units) -> Self {
+        match units {
+            scene::Units::Metres => Self::Metres,
+            scene::Units::Centimetres => Self::Centimetres,
+        }
+    }
+}
+
+impl From<Units> for scene::Units {
+    fn from(units: Units) -> Self {
+        match units {
+            Units::Metres => Self::Metres,
+            Units::Centimetres => Self::Centimetres,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn units_match_the_projects_both_ways() {
+        for units in Units::ALL {
+            assert_eq!(Units::from(scene::Units::from(units)), units);
+        }
+        assert_eq!(Units::from(scene::Units::default()), Units::default());
+    }
 
     #[test]
     fn metres_are_the_standard() {

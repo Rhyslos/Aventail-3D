@@ -5,12 +5,11 @@
 //! further each turn rises; on its own or mirrored. Version 14's
 //! operations are stored inside version 15's as they were
 //! (`OperationV15::V14`). The file around them is version 12's, with its
-//! instances.
+//! instances. Version 16 keeps these operations as they are.
 
 use super::v1::{FileOperation, Problem};
 use super::v2::{AnchorsV2, anchors_from_file, anchors_to_file};
 use super::v5::EntryWith;
-use super::v12::ProjectWithInstances;
 use super::v14::OperationV14;
 use crate::limits::Bounded;
 use glam::Vec3;
@@ -20,7 +19,8 @@ use scene::{Bend, Grouping, Operation};
 use serde::{Deserialize, Serialize};
 
 /// Version 15 of the file.
-pub(crate) type ProjectV15 = ProjectWithInstances<EntryV15>;
+#[cfg(test)]
+pub(crate) type ProjectV15 = super::v12::ProjectWithInstances<EntryV15>;
 
 /// A recorded edit in version 15.
 pub(crate) type EntryV15 = EntryWith<OperationV15>;

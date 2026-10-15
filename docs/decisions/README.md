@@ -60,6 +60,7 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0050](0050-pipe-bends.md) | Pipe bends: an extrude that turns a corner and keeps its size (smooth elbow or mitre joint); file format version 8 | Accepted |
 | [0051](0051-connect-bridge-weld.md) | Connect (J), Bridge (C or drag) and Weld (M, Ctrl + M); file format version 9 | Accepted |
 | [0069](0069-orthographic-view.md) | An orthographic view that orbits, on P; flat views orbit into it | Accepted |
+| [0068](0068-pivot-editing-and-scene-units.md) | Pivot editing in the Object mode (an offset between pivot and shape; Pivot to centre, world origin, object; Object to world origin) and units saved with the project; file format version 16 | Accepted |
 | [0067](0067-clearer-names.md) | Clearer names (Fix normals, Isolate, Duplicate as instance, Select same facing) and a README introduction for game developers | Accepted |
 | [0066](0066-clickable-axes.md) | Clickable corner axes: click X, Y or Z to look along it (again: the other side); Cavity beside Hard edges in the Display menu; heavy shapes reshaded in the background while dragging | Accepted |
 | [0065](0065-cavity.md) | Cavity: ridges brightened and creases darkened from the surfaces' facing on screen, on as standard; Automatic hard edges moved to the Mesh menu | Accepted |

@@ -197,6 +197,25 @@ impl Workbench {
             }
         }
         ui.separator();
+        // Placing pivots (decision 0068).
+        for command in [
+            CommandId::PivotToCentre,
+            CommandId::PivotToOrigin,
+            CommandId::PivotToObject,
+            CommandId::ObjectToOrigin,
+        ] {
+            let ready = !self.document.selection().is_empty();
+            if ui
+                .add_enabled(ready, egui::Button::new(command.name()))
+                .on_hover_text(command.info().help)
+                .on_disabled_hover_text("Select one or more objects first")
+                .clicked()
+            {
+                self.run_command(command, ui.ctx(), &mut Vec::new());
+                ui.close();
+            }
+        }
+        ui.separator();
         let locked = self.viewport.options().locked;
         for (keys, axis) in LOCK_KEYS {
             let label = format!("Lock {}", ["X", "Y", "Z"][axis]);
@@ -413,6 +432,10 @@ fn coordinates_change(
                 return Ok(());
             }
             let factor = value / start;
+            if target.pivots {
+                // A pivot has no size.
+                return Ok(());
+            }
             match single {
                 Some(object) => {
                     let mut t = object.transform;
@@ -436,10 +459,15 @@ fn coordinates_change(
             };
             let mut t = object.transform;
             t.rotation[i] = value.to_radians();
+            let label = if target.pivots {
+                format!("Rotate {}'s pivot", object.name)
+            } else {
+                format!("Rotate {}", object.name)
+            };
             session.show_commands(
                 document,
-                vec![Command::SetTransforms(vec![(object.id, t)])],
-                &format!("Rotate {}", object.name),
+                vec![target.objects_command(vec![(object.id, t)])],
+                &label,
             )
         }
     }

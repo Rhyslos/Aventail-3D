@@ -9,7 +9,7 @@
 Whenever you want to change how the app behaves for you, rather than something in your scene. Your choices are remembered the next time you open the app.
 
 A few of these settings also have a quick switch where you use them while working. They show and change the same value as Settings, so use whichever is closer:
-- The **Units** menu in the [Attributes panel](attributes.md) (metres or centimetres).
+- The **Units** menu in the [Attributes panel](attributes.md) (this project's units: metres or centimetres).
 - The **navigation controls** button in the viewport's bottom-right corner (see [Navigating the view](navigating-the-view.md)).
 - The **grid button** at the bottom of the left palette.
 
@@ -31,7 +31,8 @@ A few of these settings also have a quick switch where you use them while workin
 | Interface → Radial menu | **Show keys around the ring** | On (standard): each tool's key sits just outside its button. Off: the key shows in the middle, with the tool's name. |
 | Interface → Radial menu | **Tap E to open** | On (standard): a tap opens the menu and keeps it open. Off: it shows only while you hold E. |
 | Interface → Warnings | **Ask before dissolving across a sharp corner** | On (standard): [Dissolve](clean-up.md#dissolving-across-a-sharp-corner) asks first when it would merge polygons meeting more sharply than 30° into one bent polygon. Off: it goes ahead. Also switched off by **Don't warn me again** in the question. |
-| Interface | **Lengths** | Show and type sizes in **metres** (standard) or **centimetres**. Only the display changes, never the shapes. |
+| Interface → Units | **This project** | Show and type this project's sizes in **metres** (standard) or **centimetres**. Saved with the project, not as a preference; changing it is an undo step. Only the display changes, never the shapes. See [Units](pivots.md#units-metres-or-centimetres). |
+| Interface → Units | **… for new projects** | The units a new project starts with: **Metres for new projects** (standard) or **Centimetres for new projects**. Remembered between sessions. |
 | Viewport | **Navigation controls** | Which mouse buttons orbit, pan and zoom. **Mouse only** is the standard; see [Navigating the view](navigating-the-view.md) for each scheme. |
 | Viewport | **Alt + mouse works in every scheme** | Keeps the Alt + mouse moves working whichever controls you pick. |
 | Viewport | **Orbit and zoom around the point under the mouse** | On (standard): turn around, and zoom towards, whatever is under the mouse. Off: the middle of the view. |

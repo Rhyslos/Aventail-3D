@@ -90,6 +90,38 @@ fn units_change_here_and_beside_the_shape_title_alike() {
     harness.get_by_label("Centimetres (cm)").click();
     harness.run();
     assert_eq!(harness.state().workbench.units(), crate::Units::Centimetres);
+    // The project's units changed, as a step; new projects are unchanged.
+    let workbench = &harness.state().workbench;
+    assert_eq!(
+        workbench.document().undo_label(),
+        Some("Change units to centimetres")
+    );
+    assert_eq!(workbench.new_project_units(), crate::Units::Metres);
+}
+
+#[test]
+fn units_for_new_projects_are_a_preference_and_undo_brings_the_old_units_back() {
+    let mut harness = fresh();
+    open(&mut harness);
+    harness.get_by_label("Centimetres for new projects").click();
+    harness.run();
+    let workbench = &harness.state().workbench;
+    assert_eq!(workbench.new_project_units(), crate::Units::Centimetres);
+    assert_eq!(
+        workbench.units(),
+        crate::Units::Metres,
+        "this project's stay"
+    );
+    harness.get_by_label("Centimetres (cm)").click();
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::Z);
+    harness.run();
+    harness.run();
+    assert_eq!(
+        harness.state().workbench.units(),
+        crate::Units::Metres,
+        "undo isn't undone by the units shown"
+    );
 }
 
 #[test]
@@ -153,7 +185,10 @@ fn restore_standard_puts_everything_back() {
     harness.run();
     let workbench = &harness.state().workbench;
     assert_eq!(workbench.accent(), crate::theme::Accent::Red);
-    assert_eq!(workbench.units(), crate::Units::Metres);
+    // The project's own units are part of the project; new projects go
+    // back to metres.
+    assert_eq!(workbench.units(), crate::Units::Centimetres);
+    assert_eq!(workbench.new_project_units(), crate::Units::Metres);
     assert_eq!(workbench.undo_memory(), crate::UndoMemory::Gb2);
     assert_eq!(
         workbench.document().history_limit(),

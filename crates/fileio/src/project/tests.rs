@@ -9,10 +9,51 @@ use mesh::{CubeParams, PrimitiveKind, VertexId};
 use scene::{Command, Object, ObjectKind, Operation, Place, Primitive, Transform};
 
 /// A document using everything the current version of the format can
-/// hold: all of [`rich_document_v14`], plus the edits version 15 adds
-/// (a spiral, on its own and mirrored; the version 15 sample holds
-/// exactly this).
+/// hold: all of [`rich_document_v15`], plus what version 16 adds (a
+/// pivot moved and turned apart from its shape, a group's pivot moved
+/// with an object inside, and the project in centimetres; the version
+/// 16 sample holds exactly this).
 fn rich_document() -> Document {
+    let mut doc = rich_document_v15();
+    let find = |doc: &Document, name: &str| {
+        doc.scene()
+            .walk()
+            .into_iter()
+            .map(|(id, _)| id)
+            .find(|id| doc.scene().object(*id).unwrap().name == name)
+    };
+    let cube = find(&doc, "Cube").unwrap();
+    let mut pivot = doc.scene().object(cube).unwrap().transform;
+    pivot.position += Vec3::new(12.5, -3.0, 40.0);
+    pivot.rotation.x += 0.75;
+    doc.execute(Command::MovePivots(vec![(cube, pivot)]))
+        .unwrap();
+    // Every group with something inside has its pivot moved too.
+    let groups: Vec<_> = doc
+        .scene()
+        .walk()
+        .into_iter()
+        .map(|(id, _)| id)
+        .filter(|id| {
+            matches!(doc.scene().object(*id).unwrap().kind, ObjectKind::Group)
+                && !doc.scene().children(Some(*id)).is_empty()
+        })
+        .collect();
+    for group in groups {
+        let mut t = doc.scene().object(group).unwrap().transform;
+        t.position.z -= 25.0;
+        doc.execute(Command::MovePivots(vec![(group, t)])).unwrap();
+    }
+    doc.execute(Command::SetUnits(scene::Units::Centimetres))
+        .unwrap();
+    doc.set_selection([cube]);
+    doc
+}
+
+/// A document using everything version 15 of the format can hold: all
+/// of [`rich_document_v14`], plus the edits version 15 adds (a spiral, on
+/// its own and mirrored; the version 15 sample holds exactly this).
+fn rich_document_v15() -> Document {
     let mut doc = rich_document_v14();
     let cube = doc
         .scene()
@@ -877,14 +918,14 @@ fn a_cut_short_or_padded_body_is_damaged() {
 #[test]
 fn an_uncompressed_body_can_be_read() {
     let doc = rich_document();
-    let body = postcard::to_stdvec(&v15::ProjectV15::from_document(&doc)).unwrap();
-    let mut bytes = header(15, 0, body.len() as u64);
+    let body = postcard::to_stdvec(&v16::ProjectV16::from_document(&doc)).unwrap();
+    let mut bytes = header(16, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     assert_same(&doc, &from_bytes(&bytes).unwrap());
     // Data after the scene is refused.
     let mut longer = body.clone();
     longer.push(0);
-    let mut bytes = header(15, 0, longer.len() as u64);
+    let mut bytes = header(16, 0, longer.len() as u64);
     bytes.extend_from_slice(&longer);
     assert!(refused(&bytes).to_string().contains("unexpected data"));
 }
@@ -1784,7 +1825,12 @@ const SAMPLE_V15: &[u8] = include_bytes!("../../tests/data/sample-v15.avtl");
 #[test]
 fn a_file_saved_by_format_version_15_still_opens() {
     let doc = from_bytes(SAMPLE_V15).expect("the version 15 sample opens");
-    assert_same(&rich_document(), &doc);
+    assert_same(&rich_document_v15(), &doc);
+    // Every shape sits on its pivot, in metres.
+    assert_eq!(doc.scene().units(), scene::Units::Metres);
+    for (id, _) in doc.scene().walk() {
+        assert_eq!(doc.scene().object(id).unwrap().offset, Transform::default());
+    }
     // And reads back the same through its own model.
     let model = v15::ProjectV15::from_document(&doc);
     assert_same(&doc, &from_bytes(&file_of_v15(&model)).unwrap());
@@ -1792,12 +1838,88 @@ fn a_file_saved_by_format_version_15_still_opens() {
 
 #[test]
 fn a_spiral_keeps_its_rise_and_way_round() {
-    let doc = from_bytes(&to_bytes(&rich_document()).unwrap()).unwrap();
+    let doc = from_bytes(&to_bytes(&rich_document_v15()).unwrap()).unwrap();
     let text = format!("{:?}", v15::ProjectV15::from_document(&doc));
     // Both spirals, on its own and mirrored, keep the bend's every number.
     assert_eq!(text.matches("angle: 900.0").count(), 2, "{text}");
     assert_eq!(text.matches("rise: 7.5, mirrored: true").count(), 2);
     assert_eq!(text.matches("MirroredBent").count(), 1);
+}
+
+/// The bytes of a version 16 file holding `model`, uncompressed.
+fn file_of_v16(model: &v16::ProjectV16) -> Vec<u8> {
+    let body = postcard::to_stdvec(model).unwrap();
+    let mut bytes = header(16, 0, body.len() as u64);
+    bytes.extend_from_slice(&body);
+    bytes
+}
+
+/// A project saved by version 16 of the format, kept in the repository.
+const SAMPLE_V16: &[u8] = include_bytes!("../../tests/data/sample-v16.avtl");
+
+#[test]
+fn a_file_saved_by_format_version_16_still_opens() {
+    let doc = from_bytes(SAMPLE_V16).expect("the version 16 sample opens");
+    assert_same(&rich_document(), &doc);
+    let model = v16::ProjectV16::from_document(&doc);
+    assert_same(&doc, &from_bytes(&file_of_v16(&model)).unwrap());
+}
+
+#[test]
+fn moved_pivots_and_the_units_come_back() {
+    let doc = rich_document();
+    let opened = from_bytes(&to_bytes(&doc).unwrap()).unwrap();
+    assert_eq!(opened.scene().units(), scene::Units::Centimetres);
+    let moved: Vec<_> = opened
+        .scene()
+        .walk()
+        .into_iter()
+        .filter(|(id, _)| opened.scene().object(*id).unwrap().offset != Transform::default())
+        .collect();
+    assert!(moved.len() >= 2, "{moved:?}");
+    for (id, _) in opened.scene().walk() {
+        assert!(
+            opened
+                .scene()
+                .shape_matrix(id)
+                .abs_diff_eq(doc.scene().shape_matrix(id), 1e-4)
+        );
+    }
+    // Only moved pivots are stored.
+    let model = v16::ProjectV16::from_document(&doc);
+    assert_eq!(model.offsets.len(), moved.len());
+}
+
+#[test]
+fn damaged_shape_places_are_refused() {
+    let good = v16::ProjectV16::from_document(&rich_document());
+    let first = good.offsets[0];
+    let cases: Vec<(v16::ProjectV16, &str)> = vec![
+        {
+            let mut bad = good.clone();
+            bad.offsets.push(first);
+            (bad, "placed twice")
+        },
+        {
+            let mut bad = good.clone();
+            bad.offsets[0].object = 999_999;
+            (bad, "isn't there")
+        },
+        {
+            let mut bad = good.clone();
+            bad.offsets[0].offset.position[2] = f32::NAN;
+            (bad, "real number")
+        },
+        {
+            let mut bad = good.clone();
+            bad.offsets[0].offset.scale = [1.0, 0.0, 1.0];
+            (bad, "squashed flat")
+        },
+    ];
+    for (bad, words) in cases {
+        let text = refused(&file_of_v16(&bad)).to_string();
+        assert!(text.contains(words), "{words}: {text}");
+    }
 }
 
 /// Writes the current version's sample. Run only by hand, when a new

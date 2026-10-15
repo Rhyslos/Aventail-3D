@@ -98,7 +98,7 @@ impl eframe::App for App {
         eframe::set_value(storage, LAYOUT_KEY, self.workbench.layout());
         eframe::set_value(storage, VIEW_KEY, &self.workbench.view_options());
         eframe::set_value(storage, ACCENT_KEY, &self.workbench.accent());
-        eframe::set_value(storage, UNITS_KEY, &self.workbench.units());
+        eframe::set_value(storage, UNITS_KEY, &self.workbench.new_project_units());
         eframe::set_value(storage, UNDO_MEMORY_KEY, &self.workbench.undo_memory());
         eframe::set_value(storage, RECENT_KEY, &self.workbench.recent_projects());
         eframe::set_value(storage, AUTOSAVE_KEY, &self.workbench.autosave_settings());

@@ -44,7 +44,7 @@ You can also open a project by giving it to the app when it starts (for example,
 
 ## Settings
 
-None of its own. Your preferences (accent colour, units, navigation and so on) are not part of a project: they belong to you, not the scene, and are kept in [Settings](settings.md).
+None of its own. Your preferences (accent colour, navigation and so on) are not part of a project: they belong to you, not the scene, and are kept in [Settings](settings.md). Two things that are part of the model are saved with it: the project's **units** (metres or centimetres) and where every object's **pivot** sits ([Pivots and the Object mode](pivots.md)). A new project starts in the units chosen in Settings.
 
 ## Shortcuts
 
