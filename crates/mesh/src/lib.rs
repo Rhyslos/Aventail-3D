@@ -6,6 +6,7 @@
 
 pub mod anchors;
 pub mod attributes;
+pub mod bake;
 pub mod bevel;
 pub mod bounds;
 pub mod builder;

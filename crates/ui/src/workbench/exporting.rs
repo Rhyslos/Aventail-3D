@@ -387,6 +387,17 @@ impl Workbench {
                             .color(theme::TEXT_WEAK),
                     );
                 }
+                if choice.preset == Some(ExportPreset::SubstancePainter)
+                    && ui
+                        .button("Check for baking…")
+                        .on_hover_text(
+                            "List what would spoil the bake, in plain words, with one-click \
+                             fixes",
+                        )
+                        .clicked()
+                {
+                    self.baking.open = true;
+                }
                 heading(ui, "Kind of file");
                 for format in ExportFormat::ALL {
                     ui.radio_value(&mut choice.format, format, format_label(format));

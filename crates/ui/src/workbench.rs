@@ -247,6 +247,8 @@ pub struct Workbench {
     pivot_target: bool,
     /// The Export window and the last export (decision 0071).
     exporting: exporting::Exporting,
+    /// The bake check window (decision 0077).
+    baking: baking::Baking,
     /// The question asked before dissolving across a sharp corner.
     dissolve_question: Option<cleaning::DissolveQuestion>,
     /// The change the gizmo drag last showed, so an unchanged frame does
@@ -313,6 +315,7 @@ impl Workbench {
             pair_session: None,
             pivot_target: false,
             exporting: exporting::Exporting::default(),
+            baking: baking::Baking::default(),
             dissolve_question: None,
             gizmo_shown: None,
             coordinates_session: None,
@@ -1097,6 +1100,7 @@ impl Workbench {
 
         self.settings_window(ui.ctx());
         self.export_window(ui.ctx(), &mut actions);
+        self.bake_window(ui.ctx());
         self.keep_units(units_shown);
         // While Pivot to object waits for its click, the pointer says so.
         if self.pivot_target {
@@ -1557,6 +1561,7 @@ impl Workbench {
             }
             ui.separator();
             self.export_entries(ui, actions);
+            self.bake_entry(ui);
             ui.separator();
             // No key for Quit, on purpose: Ctrl and Q are both used all the
             // time, and a slip shouldn't close the app.
@@ -2015,6 +2020,9 @@ impl TabViewer for PanelViewer<'_> {
 
 #[cfg(test)]
 mod attribute_tests;
+mod baking;
+#[cfg(test)]
+mod baking_tests;
 #[cfg(test)]
 mod basics_tests;
 mod cleaning;

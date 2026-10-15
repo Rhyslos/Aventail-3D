@@ -145,6 +145,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Baking** — Transferring detail into textures, e.g. from a high-poly model into a normal map for a low-poly one. Substance Painter does this; clean UVs and correct hard edges are what make bakes come out right.
 
+**Bake check** — A list of what in a model would spoil a bake (polygons facing the wrong way, points on the same spot, bent n-gons and so on), with fixes. See [Check for baking](bake-check.md).
+
 **Normal map** — A texture that fakes surface detail by bending the normals, making a low-poly model look more detailed.
 
 **Tangent space** — The coordinate system normal maps are stored in. The standard one is MikkTSpace, which Substance Painter and Godot both use; when the bake and the engine agree on it, normal maps look the same in both.

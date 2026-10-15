@@ -59,6 +59,7 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0049](0049-slit.md) | Slit: a line of points over the shape, cut as seen (or through); file format version 7 | Accepted |
 | [0050](0050-pipe-bends.md) | Pipe bends: an extrude that turns a corner and keeps its size (smooth elbow or mitre joint); file format version 8 | Accepted |
 | [0051](0051-connect-bridge-weld.md) | Connect (J), Bridge (C or drag) and Weld (M, Ctrl + M); file format version 9 | Accepted |
+| [0077](0077-bake-check.md) | The bake check (model part): File → Check for baking…, problems in plain words with Select and one-click fixes; `mesh::bake` | Accepted |
 | [0076](0076-engine-export-paths.md) | Engine export paths: a game project folder per project, the engine found from it, Export on every save; only the app's own files replaced; file format version 19 | Accepted |
 | [0075](0075-export-presets.md) | Export presets: Made for Godot (glTF) or Substance Painter (OBJ, metres, Y up, triangles) in the Export window | Accepted |
 | [0074](0074-material-slots.md) | Material slots: a slot number per polygon, a named, coloured list per object; Assign in the Attributes panel, Select by material; colours in the viewport; OBJ `.mtl` and glTF materials; file format version 18 | Accepted |
