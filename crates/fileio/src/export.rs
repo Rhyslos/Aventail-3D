@@ -80,6 +80,9 @@ pub struct ExportOptions {
     /// Whether polygons are cut into triangles, the same way the viewport
     /// cuts them, so a bake matches the game.
     pub triangulate: bool,
+    /// Whether objects' names carry Godot's collision hints (`-col`,
+    /// `-convcol`, and a `-convcolonly` box; decision 0078). glTF only.
+    pub godot_names: bool,
 }
 
 impl Default for ExportOptions {
@@ -90,6 +93,7 @@ impl Default for ExportOptions {
             up: UpAxis::Y,
             hardness: Hardness::Marked,
             triangulate: false,
+            godot_names: false,
         }
     }
 }
@@ -185,6 +189,8 @@ pub struct PresetSettings {
     pub up: UpAxis,
     /// Whether polygons are cut into triangles.
     pub triangulate: bool,
+    /// Whether names carry Godot's collision hints.
+    pub godot_names: bool,
 }
 
 impl ExportPreset {
@@ -236,12 +242,14 @@ impl ExportPreset {
                 units: FileUnits::Metres,
                 up: UpAxis::Y,
                 triangulate: true,
+                godot_names: self == Self::Godot,
             },
             Self::SubstancePainter => PresetSettings {
                 format: ExportFormat::Obj,
                 units: FileUnits::Metres,
                 up: UpAxis::Y,
                 triangulate: true,
+                godot_names: false,
             },
         }
     }
@@ -304,17 +312,29 @@ pub fn export_bytes(
 ) -> Result<ExportFiles, ExportError> {
     let options = &format.options(options);
     let objects = prepare(document, options);
+    write_files(&objects, format, options, generator, file_name)
+}
+
+/// The files `objects` (made with `options`) export to in `format`: the
+/// one asked for, called `file_name`, and any beside it.
+pub fn write_files(
+    objects: &[ExportedObject],
+    format: ExportFormat,
+    options: &ExportOptions,
+    generator: &str,
+    file_name: &str,
+) -> Result<ExportFiles, ExportError> {
     if objects.is_empty() {
         return Err(ExportError::Nothing);
     }
     let summary = ExportSummary {
         objects: objects.len(),
         triangles: objects.iter().map(|o| o.world.triangle_count()).sum(),
-        materials: file_materials(&objects).len(),
+        materials: file_materials(objects).len(),
     };
     let files = match format {
         ExportFormat::Glb => ExportFiles {
-            main: crate::gltf::write_glb(&objects, generator),
+            main: crate::gltf::write_glb(objects, generator, options.godot_names),
             beside: Vec::new(),
             summary,
         },
@@ -326,8 +346,8 @@ pub fn export_bytes(
                 .unwrap_or("materials");
             let mtl = format!("{stem}.mtl");
             ExportFiles {
-                main: crate::obj::write_obj(&objects, options, generator, Some(&mtl)).into_bytes(),
-                beside: vec![(mtl, crate::obj::write_mtl(&objects, generator).into_bytes())],
+                main: crate::obj::write_obj(objects, options, generator, Some(&mtl)).into_bytes(),
+                beside: vec![(mtl, crate::obj::write_mtl(objects, generator).into_bytes())],
                 summary,
             }
         }
@@ -448,6 +468,8 @@ pub struct ExportedObject {
     /// Its materials, which its polygons' slots point into (never
     /// empty: the standard material when it has none of its own).
     pub materials: Vec<Material>,
+    /// The collision shape a game engine makes for it (decision 0078).
+    pub collision: scene::Collision,
 }
 
 /// The objects of `document` to export with `options`, in the Objects
@@ -456,8 +478,6 @@ pub struct ExportedObject {
 pub fn prepare(document: &Document, options: &ExportOptions) -> Vec<ExportedObject> {
     let scene = document.scene();
     let selection = document.selection();
-    let to_file = options.to_file();
-    let from_file = to_file.inverse();
     scene
         .walk()
         .into_iter()
@@ -468,32 +488,64 @@ pub fn prepare(document: &Document, options: &ExportOptions) -> Vec<ExportedObje
                 .iter()
                 .any(|s| *s == *id || scene.is_inside(*id, *s)),
         })
-        .filter_map(|(id, _)| {
-            let object = scene.object(id)?;
-            let shape = scene.evaluated(id)?.mesh;
-            let pivot = to_file * scene.world_matrix(id) * from_file;
-            let world = to_file * scene.shape_matrix(id);
-            let local = to_file * object.offset.matrix();
-            // An instance shows its original's materials.
-            let materials = scene.material_list(id);
-            let mut world = export_mesh(&shape, world, options);
-            let mut local = export_mesh(&shape, local, options);
-            // A slot with no material in the list uses the first.
-            for p in world.polygons.iter_mut().chain(local.polygons.iter_mut()) {
-                if p.material as usize >= materials.len() {
-                    p.material = 0;
-                }
-            }
-            Some(ExportedObject {
-                id,
-                name: object.name.clone(),
-                pivot,
-                world,
-                local,
-                materials,
-            })
-        })
+        .filter_map(|(id, _)| exported(scene, id, Mat4::IDENTITY, options))
         .collect()
+}
+
+/// The objects of one kit piece ([decision 0078](../../../docs/decisions/0078-kit-export.md)):
+/// `root` and the shown objects inside it, moved so `root`'s pivot is at
+/// the file's origin (turned and sized as in the scene).
+pub fn prepare_piece(
+    document: &Document,
+    root: ObjectId,
+    options: &ExportOptions,
+) -> Vec<ExportedObject> {
+    let scene = document.scene();
+    let at = scene.world_matrix(root).w_axis.truncate();
+    let shift = Mat4::from_translation(-at);
+    scene
+        .walk()
+        .into_iter()
+        .filter(|(id, _)| *id == root || scene.is_inside(*id, root))
+        .filter(|(id, _)| scene.is_shown(*id))
+        .filter_map(|(id, _)| exported(scene, id, shift, options))
+        .collect()
+}
+
+/// Object `id` ready to write, its place in the world moved by `shift`
+/// first; `None` without a shape.
+fn exported(
+    scene: &scene::Scene,
+    id: ObjectId,
+    shift: Mat4,
+    options: &ExportOptions,
+) -> Option<ExportedObject> {
+    let to_file = options.to_file();
+    let from_file = to_file.inverse();
+    let object = scene.object(id)?;
+    let shape = scene.evaluated(id)?.mesh;
+    let pivot = to_file * shift * scene.world_matrix(id) * from_file;
+    let world = to_file * shift * scene.shape_matrix(id);
+    let local = to_file * object.offset.matrix();
+    // An instance shows its original's materials.
+    let materials = scene.material_list(id);
+    let mut world = export_mesh(&shape, world, options);
+    let mut local = export_mesh(&shape, local, options);
+    // A slot with no material in the list uses the first.
+    for p in world.polygons.iter_mut().chain(local.polygons.iter_mut()) {
+        if p.material as usize >= materials.len() {
+            p.material = 0;
+        }
+    }
+    Some(ExportedObject {
+        id,
+        name: object.name.clone(),
+        pivot,
+        world,
+        local,
+        materials,
+        collision: object.collision,
+    })
 }
 
 /// Bits of a number, so equal normals and UVs are listed once.

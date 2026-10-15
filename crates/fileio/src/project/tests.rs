@@ -9,10 +9,38 @@ use mesh::{CubeParams, PrimitiveKind, VertexId};
 use scene::{Command, Object, ObjectKind, Operation, Place, Primitive, Transform};
 
 /// A document using everything the current version of the format can
-/// hold: all of [`rich_document_v18`], plus what version 19 adds (a game
-/// project folder, exporting on save; the version 19 sample holds exactly
-/// this).
+/// hold: all of [`rich_document_v19`], plus what version 20 adds (each
+/// kind of collision shape on a shape; the version 20 sample holds
+/// exactly this).
 fn rich_document() -> Document {
+    let mut doc = rich_document_v19();
+    let named = |doc: &Document, name: &str| {
+        doc.scene()
+            .walk()
+            .into_iter()
+            .map(|(id, _)| id)
+            .find(|id| doc.scene().object(*id).unwrap().name == name)
+            .unwrap()
+    };
+    for (name, collision) in [
+        ("Cube", scene::Collision::Mesh),
+        ("Sphere", scene::Collision::Convex),
+        ("Cylinder", scene::Collision::Box),
+    ] {
+        let id = named(&doc, name);
+        doc.execute(Command::SetCollision {
+            ids: vec![id],
+            collision,
+        })
+        .unwrap();
+    }
+    doc
+}
+
+/// A document using everything version 19 of the format can hold: all
+/// of [`rich_document_v18`], plus what version 19 adds (a game project
+/// folder, exporting on save; the version 19 sample holds exactly this).
+fn rich_document_v19() -> Document {
     let mut doc = rich_document_v18();
     doc.execute(Command::SetExportTarget(Some(scene::ExportTarget {
         folder: "/home/someone/Games/Crate Run/models".into(),
@@ -1151,14 +1179,14 @@ fn a_cut_short_or_padded_body_is_damaged() {
 #[test]
 fn an_uncompressed_body_can_be_read() {
     let doc = rich_document();
-    let body = postcard::to_stdvec(&v19::ProjectV19::from_document(&doc)).unwrap();
-    let mut bytes = header(19, 0, body.len() as u64);
+    let body = postcard::to_stdvec(&v20::ProjectV20::from_document(&doc)).unwrap();
+    let mut bytes = header(20, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     assert_same(&doc, &from_bytes(&bytes).unwrap());
     // Data after the scene is refused.
     let mut longer = body.clone();
     longer.push(0);
-    let mut bytes = header(19, 0, longer.len() as u64);
+    let mut bytes = header(20, 0, longer.len() as u64);
     bytes.extend_from_slice(&longer);
     assert!(refused(&bytes).to_string().contains("unexpected data"));
 }
@@ -2284,7 +2312,7 @@ const SAMPLE_V19: &[u8] = include_bytes!("../../tests/data/sample-v19.avtl");
 #[test]
 fn a_file_saved_by_format_version_19_still_opens() {
     let doc = from_bytes(SAMPLE_V19).expect("the version 19 sample opens");
-    assert_same(&rich_document(), &doc);
+    assert_same(&rich_document_v19(), &doc);
     let target = doc.scene().export_target().unwrap();
     assert_eq!(target.folder, "/home/someone/Games/Crate Run/models");
     assert!(target.on_save);
@@ -2313,6 +2341,50 @@ fn damaged_game_project_folders_are_refused() {
         let text = refused(&file_of_v19(&bad)).to_string();
         assert!(text.contains(words), "{text}");
     }
+}
+
+/// The bytes of a version 20 file holding `model`, uncompressed.
+fn file_of_v20(model: &v20::ProjectV20) -> Vec<u8> {
+    let body = postcard::to_stdvec(model).unwrap();
+    let mut bytes = header(20, 0, body.len() as u64);
+    bytes.extend_from_slice(&body);
+    bytes
+}
+
+/// A project saved by version 20 of the format, kept in the repository.
+const SAMPLE_V20: &[u8] = include_bytes!("../../tests/data/sample-v20.avtl");
+
+#[test]
+fn a_file_saved_by_format_version_20_still_opens() {
+    let doc = from_bytes(SAMPLE_V20).expect("the version 20 sample opens");
+    assert_same(&rich_document(), &doc);
+    let model = v20::ProjectV20::from_document(&doc);
+    assert_eq!(model.collisions.len(), 3);
+    assert_same(&doc, &from_bytes(&file_of_v20(&model)).unwrap());
+    // Older files have none.
+    let old = from_bytes(SAMPLE_V19).unwrap();
+    assert!(
+        old.scene()
+            .walk()
+            .iter()
+            .all(|(id, _)| old.scene().object(*id).unwrap().collision == scene::Collision::None)
+    );
+}
+
+#[test]
+fn damaged_collisions_are_refused() {
+    let good = v20::ProjectV20::from_document(&rich_document());
+    let mut twice = good.clone();
+    let first = twice.collisions[0];
+    twice.collisions.push(first);
+    assert!(refused(&file_of_v20(&twice)).to_string().contains("twice"));
+    let mut missing = good.clone();
+    missing.collisions[0].object = 999_999;
+    assert!(
+        refused(&file_of_v20(&missing))
+            .to_string()
+            .contains("isn't there")
+    );
 }
 
 /// Writes the current version's sample. Run only by hand, when a new

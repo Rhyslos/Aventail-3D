@@ -43,6 +43,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Materials: give parts of a model their own material, for texture sets and engine surfaces](materials.md)
 - [Export and import: glTF and OBJ files for game engines and Substance Painter](export-and-import.md)
 - [Check for baking: what would spoil a bake, with one-click fixes](bake-check.md)
+- [Kit export and collision: each piece its own file, and Godot collision shapes](kit-export.md)
 
 ## Reference
 - *Keyboard shortcuts* — a full list arrives once there are more than a few; for now see each page's Shortcuts section

@@ -10,7 +10,8 @@
 //! left alone and the export says why.
 
 use crate::export::{
-    ExportError, ExportFormat, ExportOptions, ExportPreset, ExportSummary, export_bytes,
+    ExportError, ExportFiles, ExportFormat, ExportOptions, ExportPreset, ExportSummary,
+    export_bytes,
 };
 use scene::Document;
 use std::io::Read;
@@ -168,13 +169,26 @@ pub fn export_into(
         units: settings.units,
         up: settings.up,
         triangulate: settings.triangulate,
+        godot_names: settings.godot_names,
         ..*options
     };
     let format: ExportFormat = settings.format;
     let file_name = format!("{name}.{}", format.extension());
-    let path = folder.join(&file_name);
     let files = export_bytes(document, format, &options, generator, &file_name)
         .map_err(TargetError::Export)?;
+    let path = write_checked(folder, &file_name, &files, app_name)?;
+    Ok((path, files.summary))
+}
+
+/// Writes `files` into `folder`, the main one as `file_name`, after
+/// checking each may be replaced; nothing is written if one may not.
+fn write_checked(
+    folder: &Path,
+    file_name: &str,
+    files: &ExportFiles,
+    app_name: &str,
+) -> Result<PathBuf, TargetError> {
+    let path = folder.join(file_name);
     let mut all = vec![(path.clone(), files.main.as_slice())];
     for (beside, bytes) in &files.beside {
         all.push((folder.join(beside), bytes.as_slice()));
@@ -186,7 +200,78 @@ pub fn export_into(
         crate::project::safe_write(p, bytes)
             .map_err(|e| TargetError::Export(ExportError::Io(e)))?;
     }
-    Ok((path, files.summary))
+    Ok(path)
+}
+
+/// A file name (without its extension) for an object called `name`:
+/// characters some computers can't have in a file name become `_`, and
+/// an empty one is "Object".
+pub fn file_stem_for(name: &str) -> String {
+    let cleaned: String = name
+        .trim()
+        .chars()
+        .map(|c| {
+            let bad =
+                c.is_control() || matches!(c, '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|');
+            if bad { '_' } else { c }
+        })
+        .collect();
+    let cleaned = cleaned.trim_matches(|c: char| c == '.' || c.is_whitespace());
+    if cleaned.is_empty() {
+        "Object".to_string()
+    } else {
+        cleaned.chars().take(120).collect()
+    }
+}
+
+/// How one piece of a kit export went: its name, and the file written
+/// and what it held, or why not.
+pub type PieceOutcome = (String, Result<(PathBuf, ExportSummary), TargetError>);
+
+/// Exports each of `pieces` (with the objects inside it) into `folder` as
+/// a file of its own, named after it, its pivot at the file's origin
+/// ([decision 0078](../../../docs/decisions/0078-kit-export.md)), in
+/// `format` with `options`. Each file is written as [`export_into`]
+/// writes: only replacing the app's own files. Pieces of the same name
+/// get a number.
+pub fn export_kit(
+    folder: &Path,
+    document: &Document,
+    pieces: &[scene::ObjectId],
+    format: ExportFormat,
+    options: &ExportOptions,
+    generator: &str,
+    app_name: &str,
+) -> Result<Vec<PieceOutcome>, TargetError> {
+    if !folder.is_dir() {
+        return Err(TargetError::NoFolder(folder.to_path_buf()));
+    }
+    let options = format.options(options);
+    let mut used: Vec<String> = Vec::new();
+    let mut out = Vec::new();
+    for root in pieces {
+        let Some(object) = document.scene().object(*root) else {
+            continue;
+        };
+        let name = object.name.clone();
+        let base = file_stem_for(&name);
+        let mut stem = base.clone();
+        let mut n = 2;
+        while used.iter().any(|u| u.eq_ignore_ascii_case(&stem)) {
+            stem = format!("{base} {n}");
+            n += 1;
+        }
+        used.push(stem.clone());
+        let file_name = format!("{stem}.{}", format.extension());
+        let objects = crate::export::prepare_piece(document, *root, &options);
+        let result = crate::export::write_files(&objects, format, &options, generator, &file_name)
+            .map_err(TargetError::Export)
+            .and_then(|files| {
+                write_checked(folder, &file_name, &files, app_name).map(|p| (p, files.summary))
+            });
+        out.push((name, result));
+    }
+    Ok(out)
 }
 
 #[cfg(test)]
@@ -332,6 +417,102 @@ mod tests {
         // A damaged glTF is left alone.
         std::fs::write(dir.join("c.glb"), b"glTF\x02\0\0\0\xff\xff\xff\xffJSON").unwrap();
         assert!(!may_replace(&dir.join("c.glb"), "Test App"));
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn file_names_hold_only_what_every_computer_allows() {
+        assert_eq!(file_stem_for("Wall: corner/left"), "Wall_ corner_left");
+        assert_eq!(file_stem_for("  ..  "), "Object");
+        assert_eq!(file_stem_for("Æblekasse"), "Æblekasse");
+        assert_eq!(file_stem_for(&"x".repeat(500)).len(), 120);
+    }
+
+    #[test]
+    fn each_piece_goes_to_its_own_file_at_the_origin() {
+        let dir = folder("kit");
+        let mut doc = Document::new();
+        for (name, x) in [("Wall", 0.0), ("Wall", 400.0), ("Door/frame", 800.0)] {
+            doc.execute(Command::Create(ObjectKind::Primitive(
+                PrimitiveKind::Cube.standard(),
+            )))
+            .unwrap();
+            let id = doc.selection()[0];
+            doc.execute(Command::Rename {
+                id,
+                name: name.into(),
+            })
+            .unwrap();
+            doc.execute(Command::SetTransforms(vec![(
+                id,
+                scene::Transform {
+                    position: glam::Vec3::new(x, 0.0, 0.0),
+                    ..scene::Transform::default()
+                },
+            )]))
+            .unwrap();
+        }
+        let pieces: Vec<scene::ObjectId> = doc.scene().children(None).to_vec();
+        let results = export_kit(
+            &dir,
+            &doc,
+            &pieces,
+            ExportFormat::Glb,
+            &ExportOptions::default(),
+            "Test App 1.0",
+            "Test App",
+        )
+        .unwrap();
+        assert_eq!(results.len(), 3);
+        let mut files: Vec<String> = results
+            .iter()
+            .map(|(_, r)| {
+                let (path, _) = r.as_ref().unwrap();
+                path.file_name().unwrap().to_string_lossy().into_owned()
+            })
+            .collect();
+        files.sort();
+        assert!(files.iter().any(|f| f == "Door_frame.glb"), "{files:?}");
+        let walls = files.iter().filter(|f| f.starts_with("Wall")).count();
+        assert_eq!(walls, 2, "{files:?}");
+        // Each piece's pivot is at the file's origin: no node matrix.
+        for (_, result) in &results {
+            let bytes = std::fs::read(&result.as_ref().unwrap().0).unwrap();
+            let length = u32::from_le_bytes(bytes[12..16].try_into().unwrap()) as usize;
+            let json: serde_json::Value = serde_json::from_slice(&bytes[20..20 + length]).unwrap();
+            assert!(
+                json["nodes"][0].get("matrix").is_none(),
+                "{}",
+                json["nodes"]
+            );
+        }
+        // Someone else's file is left alone; the rest still go.
+        let theirs = dir.join("Door_frame.glb");
+        std::fs::write(&theirs, "theirs").unwrap();
+        let again = export_kit(
+            &dir,
+            &doc,
+            &pieces,
+            ExportFormat::Glb,
+            &ExportOptions::default(),
+            "Test App 1.0",
+            "Test App",
+        )
+        .unwrap();
+        assert_eq!(again.iter().filter(|(_, r)| r.is_ok()).count(), 2);
+        assert_eq!(std::fs::read_to_string(&theirs).unwrap(), "theirs");
+        assert!(matches!(
+            export_kit(
+                &dir.join("missing"),
+                &doc,
+                &pieces,
+                ExportFormat::Glb,
+                &ExportOptions::default(),
+                "T",
+                "T"
+            ),
+            Err(TargetError::NoFolder(_))
+        ));
         std::fs::remove_dir_all(&dir).unwrap();
     }
 }

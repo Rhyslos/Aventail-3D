@@ -277,14 +277,92 @@ fn matrix(m: glam::Mat4) -> [f32; 16] {
         .map(|x| if x.abs() < 1e-6 { 0.0 } else { x })
 }
 
+/// The name an object's node gets: with `godot_names`, its collision as
+/// Godot reads it from the name (decision 0078): `-col` for the shape
+/// itself, `-convcol` for it wrapped.
+fn node_name(object: &ExportedObject, godot_names: bool) -> String {
+    match (godot_names, object.collision) {
+        (true, scene::Collision::Mesh) => format!("{}-col", object.name),
+        (true, scene::Collision::Convex) => format!("{}-convcol", object.name),
+        _ => object.name.clone(),
+    }
+}
+
+/// A box around `shape`'s points, as a shape of six sides facing out.
+fn box_around(shape: &crate::export::ExportMesh) -> crate::export::ExportMesh {
+    use crate::export::{ExportCorner, ExportMesh, ExportPolygon};
+    let (min, max) = shape.points.iter().fold(
+        (glam::Vec3::splat(f32::MAX), glam::Vec3::splat(f32::MIN)),
+        |(lo, hi), p| (lo.min(*p), hi.max(*p)),
+    );
+    let corner = |i: usize| {
+        glam::Vec3::new(
+            if i & 1 == 0 { min.x } else { max.x },
+            if i & 2 == 0 { min.y } else { max.y },
+            if i & 4 == 0 { min.z } else { max.z },
+        )
+    };
+    // Each side: its corners counter-clockwise seen from outside, and the
+    // way it faces.
+    let sides: [([u32; 4], glam::Vec3); 6] = [
+        ([0, 2, 6, 4], -glam::Vec3::X),
+        ([1, 5, 7, 3], glam::Vec3::X),
+        ([0, 4, 5, 1], -glam::Vec3::Y),
+        ([2, 3, 7, 6], glam::Vec3::Y),
+        ([0, 1, 3, 2], -glam::Vec3::Z),
+        ([4, 6, 7, 5], glam::Vec3::Z),
+    ];
+    ExportMesh {
+        points: (0..8).map(corner).collect(),
+        normals: sides.iter().map(|(_, n)| *n).collect(),
+        uvs: Vec::new(),
+        polygons: sides
+            .iter()
+            .enumerate()
+            .map(|(n, (c, _))| ExportPolygon {
+                corners: c
+                    .iter()
+                    .map(|p| ExportCorner {
+                        point: *p,
+                        normal: n as u32,
+                        uv: None,
+                    })
+                    .collect(),
+                material: 0,
+            })
+            .collect(),
+    }
+}
+
 /// The bytes of a binary glTF file holding `objects` (made with metres,
 /// Y up and triangles), naming `generator` as the program that made it.
-pub fn write_glb(objects: &[ExportedObject], generator: &str) -> Vec<u8> {
+/// With `godot_names`, objects' names carry their collision for Godot,
+/// and an object that collides as a box gets a box beside it called
+/// `name-convcolonly` (decision 0078).
+pub fn write_glb(objects: &[ExportedObject], generator: &str, godot_names: bool) -> Vec<u8> {
     let materials = crate::export::file_materials(objects);
+    let boxes: Vec<ExportedObject> = if godot_names {
+        objects
+            .iter()
+            .filter(|o| o.collision == scene::Collision::Box && !o.local.points.is_empty())
+            .map(|o| {
+                let shape = box_around(&o.local);
+                ExportedObject {
+                    name: format!("{}-convcolonly", o.name),
+                    world: shape.clone(),
+                    local: shape,
+                    collision: scene::Collision::None,
+                    ..o.clone()
+                }
+            })
+            .collect()
+    } else {
+        Vec::new()
+    };
     let mut b = Builder::default();
     let mut nodes = Vec::new();
     let mut meshes = Vec::new();
-    for object in objects {
+    for object in objects.iter().chain(&boxes) {
         let vertices = vertices(&object.local);
         if vertices.positions.is_empty() {
             continue;
@@ -319,8 +397,9 @@ pub fn write_glb(objects: &[ExportedObject], generator: &str) -> Vec<u8> {
                 })
             })
             .collect();
-        meshes.push(json!({ "name": object.name, "primitives": primitives }));
-        let mut node = json!({ "name": object.name, "mesh": meshes.len() - 1 });
+        let name = node_name(object, godot_names);
+        meshes.push(json!({ "name": name, "primitives": primitives }));
+        let mut node = json!({ "name": name, "mesh": meshes.len() - 1 });
         if !object.pivot.abs_diff_eq(glam::Mat4::IDENTITY, 1e-6) {
             node["matrix"] = json!(matrix(object.pivot));
         }

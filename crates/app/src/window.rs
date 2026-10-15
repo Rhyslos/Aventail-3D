@@ -89,6 +89,9 @@ impl eframe::App for App {
                 WorkbenchAction::ChooseExportFolder { start } => {
                     project::choose_export_folder(&mut self.workbench, start);
                 }
+                WorkbenchAction::ExportKit(request) => {
+                    project::export_kit(&mut self.workbench, &request);
+                }
                 WorkbenchAction::ExportToTarget(request) => {
                     let outcome = project::export_into(&self.workbench, &request);
                     self.workbench.target_exported(outcome);

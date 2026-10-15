@@ -387,6 +387,9 @@ impl AttributesPanel {
                             }));
                         }
                         ui.end_row();
+                        if object.kind.has_shape() {
+                            collision_row(ui, id, object.collision, out);
+                        }
                     });
                 if let ObjectKind::Instance(source) = &object.kind {
                     section(ui, "Instance");
@@ -1456,6 +1459,39 @@ fn kind_label(kind: &ObjectKind) -> String {
         ObjectKind::Instance(_) => "(instance)".to_string(),
         _ => "(group)".to_string(),
     }
+}
+
+/// The Collision row (decision 0078): the collision shape a game engine
+/// makes for the object, as Godot reads it from an export made for it.
+fn collision_row(ui: &mut Ui, id: ObjectId, current: scene::Collision, out: &mut Vec<DocRequest>) {
+    label(
+        ui,
+        "Collision",
+        "The collision shape Godot makes for it when you export for Godot: what the player \
+         bumps into",
+    );
+    let mut chosen = current;
+    let response = egui::ComboBox::from_id_salt(("collision", id))
+        .selected_text(current.name())
+        .width(FIELD_WIDTH)
+        .show_ui(ui, |ui| {
+            for kind in scene::Collision::ALL {
+                ui.selectable_value(&mut chosen, kind, kind.name())
+                    .on_hover_text(kind.description());
+            }
+        })
+        .response
+        .on_hover_text(current.description());
+    response.widget_info(|| {
+        egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, true, "Collision shape")
+    });
+    if chosen != current {
+        out.push(DocRequest::Run(Command::SetCollision {
+            ids: vec![id],
+            collision: chosen,
+        }));
+    }
+    ui.end_row();
 }
 
 /// A section title with a thin line under it.

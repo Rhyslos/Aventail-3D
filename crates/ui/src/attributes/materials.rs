@@ -67,6 +67,13 @@ fn from_bytes(c: [u8; 3]) -> [f32; 3] {
 }
 
 impl AttributesPanel {
+    /// The message under the Materials list (why Remove last didn't), if
+    /// any.
+    #[cfg(test)]
+    pub(crate) fn material_note(&self) -> Option<&str> {
+        self.materials.note.as_ref().map(|(_, n)| n.as_str())
+    }
+
     /// The Materials section for object `id`.
     pub(super) fn materials_section(
         &mut self,

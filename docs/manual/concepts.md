@@ -165,4 +165,6 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **LOD (level of detail)** — Simpler versions of a model that the engine swaps in when it's far away.
 
-**Collision mesh** — A simple, invisible shape the physics engine uses instead of the detailed visual model.
+**Collision mesh** — A simple, invisible shape the physics engine uses instead of the detailed visual model. In this app, each object's **Collision** setting tells Godot which to make. See [Kit export and collision](kit-export.md).
+
+**Modular kit** — A set of pieces (walls, floors, doors) built to fit together and placed again and again to make a level. Each piece is exported as its own file with its pivot where it snaps. See [Kit export and collision](kit-export.md).

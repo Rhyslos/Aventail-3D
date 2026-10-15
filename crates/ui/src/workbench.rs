@@ -112,6 +112,10 @@ pub enum WorkbenchAction {
     /// Export into the project's game project folder as `request` says.
     /// Report back with [`Workbench::target_exported`].
     ExportToTarget(Box<TargetRequest>),
+    /// Export each piece as its own file as `request` says, asking for a
+    /// folder first when it has none (decision 0078). Report back with
+    /// [`Workbench::kit_exported`].
+    ExportKit(Box<KitRequest>),
     /// Import the file at `path`, or ask which first when `None`. Report
     /// back with [`Workbench::imported`] or [`Workbench::import_failed`].
     Import {
@@ -2047,7 +2051,9 @@ mod loop_cut_tests;
 #[cfg(test)]
 mod material_tests;
 mod materials;
-pub use exporting::{ExportChoice, ExportRequest, TargetOutcome, TargetRequest};
+pub use exporting::{
+    ExportChoice, ExportRequest, KitOutcome, KitRequest, TargetOutcome, TargetRequest,
+};
 mod modelling;
 #[cfg(test)]
 mod modelling_tests;

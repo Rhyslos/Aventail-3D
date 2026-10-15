@@ -1632,3 +1632,42 @@ fn the_game_project_folder_is_an_undo_step_and_checked() {
     doc.undo().unwrap();
     assert_eq!(doc.scene().export_target(), Some(&target));
 }
+
+#[test]
+fn shapes_get_a_collision_shape_and_groups_are_left_alone() {
+    let (mut doc, ids) = with_groups(&["Group"]);
+    doc.execute(Command::Create(ObjectKind::Primitive(Primitive::Cube(
+        Default::default(),
+    ))))
+    .unwrap();
+    let cube = doc.selection()[0];
+    assert_eq!(doc.scene().object(cube).unwrap().collision, Collision::None);
+    doc.execute(Command::SetCollision {
+        ids: vec![ids[0], cube],
+        collision: Collision::Box,
+    })
+    .unwrap();
+    assert_eq!(doc.undo_label(), Some("Collision: a box"));
+    assert_eq!(doc.scene().object(cube).unwrap().collision, Collision::Box);
+    assert_eq!(
+        doc.scene().object(ids[0]).unwrap().collision,
+        Collision::None
+    );
+    // The same again changes nothing.
+    let steps = doc.undo_steps();
+    doc.execute(Command::SetCollision {
+        ids: vec![cube],
+        collision: Collision::Box,
+    })
+    .unwrap();
+    assert_eq!(doc.undo_steps(), steps);
+    check_round_trip(&mut doc);
+    assert!(
+        doc.execute(Command::SetCollision {
+            ids: vec![ObjectId::from_raw(999)],
+            collision: Collision::Mesh,
+        })
+        .is_err()
+    );
+    assert!(Collision::ALL.iter().all(|c| !c.description().is_empty()));
+}

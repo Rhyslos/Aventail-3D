@@ -46,7 +46,7 @@ Each object's points stay joined in the file: a smooth surface is one connected 
 
 | Made for | What it chooses | Why |
 |---|---|---|
-| **Godot** (standard) | glTF, metres, Y up, triangles | glTF is Godot's favourite: each object arrives at its [pivot](pivots.md) with its [materials](materials.md), and Godot re-imports the file by itself whenever you export again into its project folder. |
+| **Godot** (standard) | glTF, metres, Y up, triangles | glTF is Godot's favourite: each object arrives at its [pivot](pivots.md) with its [materials](materials.md) and its [collision](kit-export.md), and Godot re-imports the file by itself whenever you export again into its project folder. |
 | **Unity** | glTF, metres, Y up, triangles | The same file; Unity reads it once its *glTFast* package is installed. |
 | **Unreal Engine** | glTF, metres, Y up, triangles | The same file; Unreal Engine 5 reads it and turns it into its own centimetres and Z up. |
 | **Substance Painter** | OBJ, metres, Y up, cut into triangles | The usual way into Substance Painter; its **Check for baking…** button runs the [bake check](bake-check.md). Each [material](materials.md) becomes a texture set, and the triangles are the viewport's, the same ones the glTF for the game holds, so the bake matches. |
@@ -120,6 +120,7 @@ None yet: use the File menu.
 
 - [Materials](materials.md)
 - [Check for baking](bake-check.md)
+- [Kit export and collision](kit-export.md): each piece its own file, and Godot collision
 - [Saving and opening projects](saving-and-opening.md) (Export on every save)
 - [Hard and soft edges, and normals](hard-and-soft-edges.md)
 - [Pivots and the Object mode](pivots.md) (the units of the project)
