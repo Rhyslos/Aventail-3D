@@ -263,6 +263,7 @@ mod tests {
         .unwrap();
         first.opened(doc, folder.join("crate.avtl"));
         let request = ui::ExportRequest {
+            preset: None,
             format: fileio::export::ExportFormat::Obj,
             options: fileio::export::ExportOptions::default(),
             path: None,
@@ -272,6 +273,9 @@ mod tests {
         export_to(&mut first, &request, path.clone());
         let text = std::fs::read_to_string(&path).unwrap();
         assert!(text.starts_with(&format!("# {APP_NAME} ")));
+        // Its materials beside it.
+        assert!(text.contains("mtllib crate.mtl"));
+        assert!(folder.join("crate.mtl").exists());
         assert_eq!(with_file_extension(folder.join("crate"), "obj"), path);
 
         let mut second = workbench();

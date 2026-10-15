@@ -262,3 +262,36 @@ fn a_dented_polygon_is_cut_exactly_as_the_viewport_cuts_it() {
     assert_eq!(exported, viewport);
     assert_eq!(exported.len(), 4);
 }
+
+#[test]
+fn presets_write_what_their_programs_want() {
+    let godot = ExportPreset::Godot.settings();
+    assert_eq!(godot.format, ExportFormat::Glb);
+    let painter = ExportPreset::SubstancePainter.settings();
+    assert_eq!(painter.format, ExportFormat::Obj);
+    assert_eq!((painter.units, painter.up), (FileUnits::Metres, UpAxis::Y));
+    assert!(painter.triangulate);
+    // A Substance Painter export is all triangles, with its materials.
+    let mut doc = Document::new();
+    doc.execute(scene::Command::Create(scene::ObjectKind::Primitive(
+        scene::PrimitiveKind::Cylinder.standard(),
+    )))
+    .unwrap();
+    let options = ExportOptions {
+        units: painter.units,
+        up: painter.up,
+        triangulate: painter.triangulate,
+        ..ExportOptions::default()
+    };
+    let files = export_bytes(&doc, painter.format, &options, "T", "prop.obj").unwrap();
+    let text = String::from_utf8(files.main).unwrap();
+    assert!(text.contains("mtllib prop.mtl"));
+    for line in text.lines().filter(|l| l.starts_with("f ")) {
+        assert_eq!(line.split_whitespace().count(), 4, "{line}");
+    }
+    assert!(
+        ExportPreset::ALL
+            .iter()
+            .all(|p| !p.description().is_empty())
+    );
+}
