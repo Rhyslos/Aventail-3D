@@ -466,6 +466,7 @@ Planned in [0083](docs/decisions/0083-groove-and-bevel-control.md); to be built 
 - **One calm look for windows and menus** (the project lead: the Export window works but is hard to look at). A shared set of parts in `ui` that every window uses, starting with Export, then Export kit, Check for baking, Settings, Navigation controls and the smaller dialogs:
   - a header (title, one short line saying what the window is for);
   - in Export, **Made for** is one drop-down (the project lead's choice over big tiles): Godot, Unity, Unreal Engine and Substance Painter, each with its file type beside it, then **Custom settings** for any other program, which opens the file settings;
+  - later features add one box each to the same window, in this order, built only when the feature exists (no greyed-out boxes before): What to export, Materials and textures, Mesh extras (tangents, UVs, high and low for baking, LODs), Skeleton (bones only), Rig and skinning, Animations (clips, frame rate, baked keyframes), Game project; presets fill each in for their engine;
   - settings grouped in cards, each with a small heading;
   - two columns, the name on the left at a fixed width and its control on the right, as in the Attributes panel;
   - **segmented buttons** for two to four choices (Metres | Centimetres) instead of rows of radio buttons, a drop-down list for longer ones;
