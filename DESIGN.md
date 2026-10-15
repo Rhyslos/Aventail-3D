@@ -460,6 +460,10 @@ Planned in [0083](docs/decisions/0083-groove-and-bevel-control.md); to be built 
 - **Groove** (K): edges turned into a thin strip and pushed in (a groove, a panel line) or out (a ridge) in one step; Width, Depth, straight or sloped Sides, neat ends
 - **Done when:** the project lead can bevel a prop's edges evenly and cut its panel lines without a separate bevel and extrude.
 
+### Next — Feedback from testing the Phase 5 stack (the project lead's choices, 2026-10-15)
+- **View dice** (replaces the clickable X/Y/Z arrows, bottom-left of each view; behaviour like 3ds Max's ViewCube, nothing of its look): click a face, edge or corner to look from there (26 views); **Ctrl + click** looks from the opposite side; **Display → Switch to orthographic when clicking the dice**, and with it on, orbiting away goes back to perspective; **hold Ctrl while orbiting** to snap to the nearest dice view. Its own pull request, after the navigation work (#75).
+- **Live mirror replaces Symmetry** (pulls Phase 7's mirror generator forward): the mirror stands at the **world centre** unless moved, so moving an object to one side moves its mirror image the other way; the mirrored half is **part of the same object**, live, welded where the halves meet, and exports as one mesh; today's "every edit made twice" Symmetry goes (old projects keep their mirrored edits); the mirror is shown as a **faint see-through red plane** with a clearer red line where it crosses the ground, a line in Top, Front and Right. Its own milestone and decision record when built.
+
 ### Phase 6 — 3ds Max sprinkles
 - **Stable element names** first (review A3, [0044](docs/decisions/0044-edits-that-hold.md)): edits keep their exact elements even when an earlier edit renumbers them, which the edit list makes common
 - **The modifiers palette** (§5.1) between the viewport and the right column, starting with Edit Layers
