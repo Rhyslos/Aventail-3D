@@ -11,11 +11,12 @@
 //! turns and snaps it by the pivot set in the app), holding a **mesh**
 //! of its shape around that pivot. glTF is always metres with Y up, and
 //! always triangles: the export is made that way whatever the window
-//! says. A glTF vertex is one point with one normal and one UV, so
-//! points are split where their shading breaks, as every engine does.
+//! says. A glTF vertex is one point with one normal, one UV and (with
+//! UVs) one MikkTSpace tangent, so points are split where those break,
+//! as every engine does.
 
-use crate::export::{ExportMesh, ExportedObject};
-use glam::{Vec2, Vec3};
+use crate::export::{ExportCorner, ExportMesh, ExportedObject};
+use glam::{Vec2, Vec3, Vec4};
 use serde_json::{Value as Json, json};
 use std::collections::HashMap;
 
@@ -104,6 +105,23 @@ impl Builder {
         self.accessors.len() - 1
     }
 
+    /// Adds a list of 4-number vectors, and returns its accessor.
+    fn vec4s(&mut self, values: &[Vec4]) -> usize {
+        let bytes: Vec<u8> = values
+            .iter()
+            .flat_map(|v| v.to_array())
+            .flat_map(f32::to_le_bytes)
+            .collect();
+        let view = self.view(&bytes, ARRAY_BUFFER);
+        self.accessors.push(json!({
+            "bufferView": view,
+            "componentType": FLOAT,
+            "count": values.len(),
+            "type": "VEC4",
+        }));
+        self.accessors.len() - 1
+    }
+
     /// Adds triangle corners, and returns their accessor.
     fn indices(&mut self, values: &[u32]) -> usize {
         let bytes: Vec<u8> = values.iter().flat_map(|i| i.to_le_bytes()).collect();
@@ -118,8 +136,9 @@ impl Builder {
     }
 }
 
-/// A glTF vertex list: one vertex for each distinct point, normal and UV
-/// a shape's corners use, and the triangles over them, by material slot.
+/// A glTF vertex list: one vertex for each distinct point, normal, UV
+/// and tangent a shape's corners use, and the triangles over them, by
+/// material slot.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Vertices {
     /// Where each vertex is.
@@ -129,40 +148,122 @@ pub struct Vertices {
     /// Its UV (glTF's way up: V counts down from the top), when the shape
     /// has UVs.
     pub uvs: Option<Vec<Vec2>>,
+    /// Its MikkTSpace tangent and handedness (decision 0073), when the
+    /// shape has UVs: what a normal map baked in Substance Painter needs
+    /// to look the same in the engine.
+    pub tangents: Option<Vec<Vec4>>,
     /// Triangle corners for each material slot, in slot order.
     pub triangles: Vec<(u32, Vec<u32>)>,
 }
 
+/// A shape's triangles, for MikkTSpace to read and write back.
+struct Mikk<'a> {
+    shape: &'a ExportMesh,
+    triangles: &'a [(u32, [ExportCorner; 3])],
+    tangents: Vec<[Vec4; 3]>,
+}
+
+impl Mikk<'_> {
+    fn corner(&self, face: usize, vert: usize) -> ExportCorner {
+        self.triangles[face].1[vert]
+    }
+}
+
+impl bevy_mikktspace::Geometry for Mikk<'_> {
+    fn num_faces(&self) -> usize {
+        self.triangles.len()
+    }
+
+    fn num_vertices_of_face(&self, _face: usize) -> usize {
+        3
+    }
+
+    fn position(&self, face: usize, vert: usize) -> [f32; 3] {
+        self.shape.points[self.corner(face, vert).point as usize].to_array()
+    }
+
+    fn normal(&self, face: usize, vert: usize) -> [f32; 3] {
+        self.shape.normals[self.corner(face, vert).normal as usize].to_array()
+    }
+
+    fn tex_coord(&self, face: usize, vert: usize) -> [f32; 2] {
+        gltf_uv(self.shape, self.corner(face, vert)).to_array()
+    }
+
+    fn set_tangent(
+        &mut self,
+        tangent: Option<bevy_mikktspace::TangentSpace>,
+        face: usize,
+        vert: usize,
+    ) {
+        let t = tangent.unwrap_or_default().tangent_encoded();
+        self.tangents[face][vert] = Vec4::from_array(t);
+    }
+}
+
+/// A corner's UV the way glTF holds it: V counting down from the top.
+fn gltf_uv(shape: &ExportMesh, corner: ExportCorner) -> Vec2 {
+    let uv = corner.uv.map_or(Vec2::ZERO, |t| shape.uvs[t as usize]);
+    Vec2::new(uv.x, 1.0 - uv.y)
+}
+
 /// The glTF vertices and triangles of `shape` (its polygons must be
-/// triangles; others are cut as a fan).
+/// triangles; others are cut as a fan). With UVs, every corner gets its
+/// MikkTSpace tangent, worked out on the UVs as the file holds them, so a
+/// program that works them out again from the file gets the same.
 pub fn vertices(shape: &ExportMesh) -> Vertices {
+    let triangles: Vec<(u32, [ExportCorner; 3])> = shape
+        .polygons
+        .iter()
+        .flat_map(|p| {
+            let c = &p.corners;
+            (1..c.len().saturating_sub(1)).map(move |i| (p.material, [c[0], c[i], c[i + 1]]))
+        })
+        .collect();
+    let has_uvs = !shape.uvs.is_empty();
+    let tangents = if has_uvs {
+        let mut mikk = Mikk {
+            shape,
+            triangles: &triangles,
+            tangents: vec![[Vec4::new(1.0, 0.0, 0.0, 1.0); 3]; triangles.len()],
+        };
+        // Never fails: its error type has no values.
+        let _ = bevy_mikktspace::generate_tangents(&mut mikk);
+        Some(mikk.tangents)
+    } else {
+        None
+    };
     let mut out = Vertices {
-        uvs: (!shape.uvs.is_empty()).then(Vec::new),
+        uvs: has_uvs.then(Vec::new),
+        tangents: has_uvs.then(Vec::new),
         ..Vertices::default()
     };
-    let mut index: HashMap<(u32, u32, Option<u32>), u32> = HashMap::new();
+    type Key = (u32, u32, Option<u32>, Option<[u32; 4]>);
+    let mut index: HashMap<Key, u32> = HashMap::new();
     let mut by_slot: std::collections::BTreeMap<u32, Vec<u32>> = std::collections::BTreeMap::new();
-    for polygon in &shape.polygons {
-        let ids: Vec<u32> = polygon
-            .corners
-            .iter()
-            .map(|c| {
-                let next = out.positions.len() as u32;
-                let id = *index.entry((c.point, c.normal, c.uv)).or_insert(next);
-                if id == next {
-                    out.positions.push(shape.points[c.point as usize]);
-                    out.normals.push(shape.normals[c.normal as usize]);
-                    if let Some(uvs) = &mut out.uvs {
-                        let uv = c.uv.map_or(Vec2::ZERO, |t| shape.uvs[t as usize]);
-                        uvs.push(Vec2::new(uv.x, 1.0 - uv.y));
-                    }
+    for (t, (material, corners)) in triangles.iter().enumerate() {
+        let list = by_slot.entry(*material).or_default();
+        for (k, c) in corners.iter().enumerate() {
+            let tangent = tangents.as_ref().map(|all| all[t][k]);
+            let key = (
+                c.point,
+                c.normal,
+                c.uv,
+                tangent.map(|v| v.to_array().map(f32::to_bits)),
+            );
+            let next = out.positions.len() as u32;
+            let id = *index.entry(key).or_insert(next);
+            if id == next {
+                out.positions.push(shape.points[c.point as usize]);
+                out.normals.push(shape.normals[c.normal as usize]);
+                if let Some(uvs) = &mut out.uvs {
+                    uvs.push(gltf_uv(shape, *c));
                 }
-                id
-            })
-            .collect();
-        let list = by_slot.entry(polygon.material).or_default();
-        for i in 1..ids.len().saturating_sub(1) {
-            list.extend([ids[0], ids[i], ids[i + 1]]);
+                if let (Some(list), Some(tangent)) = (&mut out.tangents, tangent) {
+                    list.push(tangent);
+                }
+            }
+            list.push(id);
         }
     }
     out.triangles = by_slot.into_iter().collect();
@@ -190,6 +291,7 @@ pub fn write_glb(objects: &[ExportedObject], generator: &str) -> Vec<u8> {
         let position = b.vec3s(&vertices.positions, true);
         let normal = b.vec3s(&vertices.normals, false);
         let uv = vertices.uvs.as_ref().map(|uvs| b.vec2s(uvs));
+        let tangent = vertices.tangents.as_ref().map(|t| b.vec4s(t));
         let primitives: Vec<Json> = vertices
             .triangles
             .iter()
@@ -199,6 +301,9 @@ pub fn write_glb(objects: &[ExportedObject], generator: &str) -> Vec<u8> {
                 let mut attributes = json!({ "POSITION": position, "NORMAL": normal });
                 if let Some(uv) = uv {
                     attributes["TEXCOORD_0"] = json!(uv);
+                }
+                if let Some(tangent) = tangent {
+                    attributes["TANGENT"] = json!(tangent);
                 }
                 json!({
                     "attributes": attributes,

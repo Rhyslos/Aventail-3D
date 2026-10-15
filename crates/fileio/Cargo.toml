@@ -22,6 +22,7 @@ serde.workspace = true
 postcard.workspace = true
 zstd.workspace = true
 serde_json.workspace = true
+bevy_mikktspace.workspace = true
 
 [dev-dependencies]
 

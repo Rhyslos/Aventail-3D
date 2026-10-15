@@ -199,3 +199,81 @@ fn several_objects_and_the_same_bytes_every_time() {
         std::fs::write(path, &first).unwrap();
     }
 }
+
+/// A flat grid lying on the ground with UVs following X and Y, as an
+/// exported shape.
+fn uv_grid() -> ExportMesh {
+    let mut shape = mesh::Primitive::Plane(mesh::PlaneParams {
+        segments: [2, 2],
+        ..Default::default()
+    })
+    .mesh();
+    shape
+        .add_attribute(
+            mesh::attributes::UV,
+            mesh::Domain::Corner,
+            mesh::Value::Vec2(Vec2::ZERO),
+        )
+        .unwrap();
+    let faces: Vec<(mesh::FaceId, Vec<mesh::VertexId>)> =
+        shape.faces().map(|(f, c)| (f, c.to_vec())).collect();
+    for (face, corners) in faces {
+        for (i, v) in corners.iter().enumerate() {
+            let p = shape.position(*v).unwrap();
+            shape
+                .set_attribute(
+                    mesh::attributes::UV,
+                    mesh::AttributeElement::Corner(face, i),
+                    mesh::Value::Vec2(Vec2::new(p.x / 100.0 + 0.5, p.y / 100.0 + 0.5)),
+                )
+                .unwrap();
+        }
+    }
+    crate::export::export_mesh(
+        &shape,
+        ExportOptions::default().to_file(),
+        &ExportFormat::Glb.options(&ExportOptions::default()),
+    )
+}
+
+#[test]
+fn shapes_with_uvs_get_mikktspace_tangents() {
+    let v = vertices(&uv_grid());
+    let tangents = v.tangents.as_ref().expect("tangents with UVs");
+    assert_eq!(tangents.len(), v.positions.len());
+    for (t, n) in tangents.iter().zip(&v.normals) {
+        let dir = t.truncate();
+        assert!((dir.length() - 1.0).abs() < 1e-4, "{t}");
+        assert!(dir.dot(*n).abs() < 1e-4, "square to the normal");
+        assert!(t.w == 1.0 || t.w == -1.0);
+        // U runs along X, in the app and in the file.
+        assert!(dir.dot(Vec3::X) > 0.999, "{dir}");
+    }
+    // Every corner of a flat grid has the same tangent: shared vertices
+    // stay shared.
+    assert_eq!(v.positions.len(), 9);
+    assert!(tangents.windows(2).all(|w| w[0] == w[1]));
+    // And the file lists them.
+    let doc = ExportMesh::default();
+    assert!(vertices(&doc).tangents.is_none());
+}
+
+#[test]
+fn tangents_go_into_the_file() {
+    let object = crate::export::ExportedObject {
+        id: scene::ObjectId::from_raw(1),
+        name: "Grid".into(),
+        pivot: glam::Mat4::IDENTITY,
+        world: uv_grid(),
+        local: uv_grid(),
+    };
+    let glb = write_glb(&[object], "Test App 1.0");
+    let (json, _) = parts(&glb);
+    let attributes = &json["meshes"][0]["primitives"][0]["attributes"];
+    let tangent = attributes["TANGENT"].as_u64().unwrap() as usize;
+    assert_eq!(json["accessors"][tangent]["type"], "VEC4");
+    assert!(attributes.get("TEXCOORD_0").is_some());
+    if let Some(path) = std::env::var_os("GLB_UV_SAMPLE") {
+        std::fs::write(path, &glb).unwrap();
+    }
+}
