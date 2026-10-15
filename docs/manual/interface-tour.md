@@ -8,6 +8,12 @@
 
 Start here if you're opening the app for the first time, or if you've moved panels around and want to know how to get the standard layout back.
 
+## Starting the app
+
+While the app starts, the window shows a **splash screen**: the app's name and version, a progress bar, and what it is doing right now (*Starting the graphics…*, *Opening crate.avtl…*, *Checking for unsaved work from last time…*). It goes as soon as everything is ready, and if your last session ended in a crash, the offer to bring your work back follows straight after (see [Backup copies](autosave.md)).
+
+![The splash screen: the app's cube icon, its name and version, a progress bar and what it is doing](../screenshots/2026-10-15-splash.png)
+
 ## The areas of the window
 
 From top to bottom, left to right:

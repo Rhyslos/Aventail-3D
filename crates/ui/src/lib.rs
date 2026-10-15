@@ -24,6 +24,7 @@ mod project;
 mod selecting;
 mod settings;
 mod shape_picker;
+pub mod splash;
 pub mod theme;
 mod tool_menu;
 mod transforming;

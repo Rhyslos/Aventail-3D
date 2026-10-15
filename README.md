@@ -4,7 +4,7 @@
 
 Aventail 3D is a free, open-source modelling and UV unwrapping tool for **hard-surface game assets**, written in Rust. Model it, unwrap it, and export it to Substance Painter and Godot, all in one app.
 
-> **Status: pre-alpha.** Every Phase 4 modelling tool is in: primitives you can keep changing, points, edges and polygons to edit, extrude and inset, bevel, loop cut, slit, connect, bridge and weld, clean-up, hard and soft edges, symmetry, pipe bends and spirals, with undo for everything and projects that save and reopen. Heavy shapes of millions of polygons stay quick, and backup copies bring your work back after a crash. Phase 5, export, has begun: pivots can be placed and each project keeps its units. Click **Keys** on the menu bar for every key, and see the [user manual](docs/manual/SUMMARY.md) for how everything works. Follow the progress tracker below.
+> **Status: pre-alpha.** Every Phase 4 modelling tool is in: primitives you can keep changing, points, edges and polygons to edit, extrude and inset, bevel, loop cut, slit, connect, bridge and weld, clean-up, hard and soft edges, symmetry, pipe bends and spirals, with undo for everything and projects that save and reopen. Heavy shapes of millions of polygons stay quick, and backup copies bring your work back after a crash. Every Phase 5 milestone is in too: pivots and project units, glTF and OBJ export (and OBJ import) with materials, presets for Godot, Unity, Unreal Engine and Substance Painter, exporting straight into a game project on every save, a check for what would spoil a bake, kit export with Godot collision, and a splash screen; the phase gate waits for the project lead's test in Godot and Substance Painter. Click **Keys** on the menu bar for every key, and see the [user manual](docs/manual/SUMMARY.md) for how everything works. Follow the progress tracker below.
 
 Created by **Rhyslos**, built with AI assistance (Claude by Anthropic). Part of the **Rhylib** family of tools, alongside [Halberd](https://github.com/Rhyslos/halberd).
 
@@ -122,9 +122,9 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** a simple hard-surface prop (a crate, a sci-fi panel) can be modelled from start to finish, and the heavy-mesh check passes. From here on, every gate includes the heavy-mesh check.
 
-### Phase 5 · Export pipeline — 4 of 10
+### Phase 5 · Export pipeline — 10 of 10
 
-`█████░░░░░░░░` 40%
+`█████████████` 100%
 
 <details>
 <summary>Milestones</summary>
@@ -138,7 +138,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Engine export paths: save straight into a Godot, Unity or Unreal Engine project, exported again on every save
 - [x] Bake readiness check: what would spoil a bake, in plain words, with one-click fixes
 - [x] Kit export: each piece as its own file, and Godot collision meshes
-- [ ] Splash screen while the app starts
+- [x] Splash screen while the app starts
 
 </details>
 
@@ -224,6 +224,7 @@ Newest first. One line per finished milestone or passed gate.
 | --- | --- |
 | 2026-10-15 | Consistent triangulation and MikkTSpace tangents: exports cut polygons the viewport's way; glTF carries tangents for shapes with UVs |
 | 2026-10-15 | glTF export: binary `.glb`, each object at its pivot, the Export window's standard |
+| 2026-10-15 | Splash screen while the app starts: name, version and what it is doing. Every Phase 5 milestone built; the heavy-mesh check run for the gate |
 | 2026-10-15 | Kit export and collision: File → Export kit… (each selected piece its own file, pivot at the origin) and a Collision setting Godot reads; project files at format version 20 |
 | 2026-10-15 | Check for baking: what in the model would spoil a bake, in plain words, with Select and one-click fixes |
 | 2026-10-15 | Engine export paths: a game project folder per project (Godot, Unity or Unreal Engine, found from the folder), exported into on every save and from File → Export to game project; project files at format version 19 |
