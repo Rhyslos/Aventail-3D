@@ -99,6 +99,16 @@ pub enum WorkbenchAction {
         /// The project it belongs to.
         project: Option<PathBuf>,
     },
+    /// Export the scene as `request` says, asking where first when it has
+    /// no path. Report back with [`Workbench::exported`] or
+    /// [`Workbench::export_failed`].
+    Export(Box<ExportRequest>),
+    /// Import the file at `path`, or ask which first when `None`. Report
+    /// back with [`Workbench::imported`] or [`Workbench::import_failed`].
+    Import {
+        /// Which file, if already known.
+        path: Option<PathBuf>,
+    },
     /// Delete the backups `folder` left by a crash.
     DiscardBackups {
         /// The leftover backups.
@@ -226,6 +236,8 @@ pub struct Workbench {
     /// Pivot to object is waiting for a click on the target (decision
     /// 0068).
     pivot_target: bool,
+    /// The Export window and the last export (decision 0071).
+    exporting: exporting::Exporting,
     /// The question asked before dissolving across a sharp corner.
     dissolve_question: Option<cleaning::DissolveQuestion>,
     /// The change the gizmo drag last showed, so an unchanged frame does
@@ -291,6 +303,7 @@ impl Workbench {
             slit_session: None,
             pair_session: None,
             pivot_target: false,
+            exporting: exporting::Exporting::default(),
             dissolve_question: None,
             gizmo_shown: None,
             coordinates_session: None,
@@ -1058,6 +1071,7 @@ impl Workbench {
         self.about_open = about_open;
 
         self.settings_window(ui.ctx());
+        self.export_window(ui.ctx(), &mut actions);
         self.keep_units(units_shown);
         // While Pivot to object waits for its click, the pointer says so.
         if self.pivot_target {
@@ -1517,8 +1531,7 @@ impl Workbench {
                 ui.close();
             }
             ui.separator();
-            ui.add_enabled(false, egui::Button::new("Export…"))
-                .on_disabled_hover_text("Export arrives in Phase 5");
+            self.export_entries(ui, actions);
             ui.separator();
             // No key for Quit, on purpose: Ctrl and Q are both used all the
             // time, and a slip shouldn't close the app.
@@ -1984,6 +1997,9 @@ mod cleaning;
 mod cleaning_tests;
 mod command;
 mod copying;
+mod exporting;
+#[cfg(test)]
+mod exporting_tests;
 #[cfg(test)]
 mod extrude_tests;
 mod hardness;
@@ -1995,6 +2011,7 @@ mod joining_tests;
 mod loop_cut;
 #[cfg(test)]
 mod loop_cut_tests;
+pub use exporting::{ExportChoice, ExportRequest};
 mod modelling;
 #[cfg(test)]
 mod modelling_tests;

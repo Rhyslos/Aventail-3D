@@ -283,6 +283,11 @@ impl From<Column> for AttributeValues {
 /// The name of the built-in edge layer marking hard edges.
 pub const HARD: &str = "hard";
 
+/// The name of the corner layer holding UV coordinates (two numbers per
+/// polygon corner), when a mesh has them: from an imported file now, from
+/// the UV tools later.
+pub const UV: &str = "uv";
+
 /// A typed list of values.
 #[derive(Debug, Clone, PartialEq)]
 enum Column {

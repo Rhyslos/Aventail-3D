@@ -94,6 +94,104 @@ pub fn open_from(workbench: &mut Workbench, path: PathBuf) {
     }
 }
 
+/// The name the app writes into exported files: "Aventail 3D 0.0.1".
+fn generator() -> String {
+    format!("{APP_NAME} {}", env!("CARGO_PKG_VERSION"))
+}
+
+/// `path` ending in `.extension`: added if the name typed left it out.
+fn with_file_extension(path: PathBuf, extension: &str) -> PathBuf {
+    if path
+        .extension()
+        .is_some_and(|e| e.eq_ignore_ascii_case(extension))
+    {
+        return path;
+    }
+    let mut name = path.file_name().unwrap_or_default().to_os_string();
+    name.push(".");
+    name.push(extension);
+    path.with_file_name(name)
+}
+
+/// Exports the workbench's document as `request` says (asking where
+/// first when it has no path) and reports back.
+pub fn export(workbench: &mut Workbench, request: &ui::ExportRequest) {
+    let extension = request.format.extension();
+    let path = match &request.path {
+        Some(path) => path.clone(),
+        None => {
+            let mut dialog = rfd::FileDialog::new()
+                .set_title("Export")
+                .add_filter(request.format.name(), &[extension])
+                .set_file_name(&request.suggested_name);
+            if let Some(folder) = workbench.project_path().and_then(Path::parent) {
+                dialog = dialog.set_directory(folder);
+            }
+            match dialog.save_file() {
+                Some(path) => with_file_extension(path, extension),
+                None => return,
+            }
+        }
+    };
+    export_to(workbench, request, path);
+}
+
+/// Exports the workbench's document to `path` and reports back.
+pub fn export_to(workbench: &mut Workbench, request: &ui::ExportRequest, path: PathBuf) {
+    match fileio::export::export_to(
+        &path,
+        workbench.document(),
+        request.format,
+        &request.options,
+        &generator(),
+    ) {
+        Ok(summary) => workbench.exported(request, path, summary),
+        Err(error) => workbench.export_failed(&error.to_string()),
+    }
+}
+
+/// Imports a file into the workbench's scene: `path`, or the one the user
+/// chooses.
+pub fn import(workbench: &mut Workbench, path: Option<PathBuf>) {
+    let path = match path {
+        Some(path) => path,
+        None => {
+            let mut dialog = rfd::FileDialog::new()
+                .set_title("Import")
+                .add_filter("OBJ", &["obj"]);
+            if let Some(folder) = workbench.project_path().and_then(Path::parent) {
+                dialog = dialog.set_directory(folder);
+            }
+            match dialog.pick_file() {
+                Some(path) => path,
+                None => return,
+            }
+        }
+    };
+    import_from(workbench, &path);
+}
+
+/// Imports the OBJ file at `path` and reports back. Too large a file is
+/// refused before it is read.
+pub fn import_from(workbench: &mut Workbench, path: &Path) {
+    let size = std::fs::metadata(path).map(|m| m.len()).unwrap_or(0);
+    if size > fileio::limits::MAX_UNPACKED {
+        return workbench.import_failed(path, fileio::limits::TOO_MUCH);
+    }
+    let text = match std::fs::read(path) {
+        Ok(bytes) => String::from_utf8_lossy(&bytes).into_owned(),
+        Err(error) => return workbench.import_failed(path, &error.to_string()),
+    };
+    match fileio::obj::read_obj(
+        &text,
+        fileio::export::FileUnits::Metres,
+        fileio::export::UpAxis::Y,
+    ) {
+        Ok(import) => workbench.imported(path, import),
+        Err(error) => workbench.import_failed(path, &error.to_string()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -147,6 +245,42 @@ mod tests {
         let mut fourth = workbench();
         save_to(&mut fourth, folder.join("no such folder").join("x.avtl"));
         assert_eq!(fourth.project_path(), None, "a failed save changes nothing");
+        let _ = std::fs::remove_dir_all(&folder);
+    }
+
+    #[test]
+    fn exporting_and_importing_go_through_the_workbench() {
+        let folder = std::env::temp_dir().join(format!("app-export-{}", std::process::id()));
+        std::fs::create_dir_all(&folder).unwrap();
+        let mut first = workbench();
+        let mut doc = scene::Document::new();
+        doc.execute(scene::Command::Create(scene::ObjectKind::Primitive(
+            scene::PrimitiveKind::Cube.standard(),
+        )))
+        .unwrap();
+        first.opened(doc, folder.join("crate.avtl"));
+        let request = ui::ExportRequest {
+            format: fileio::export::ExportFormat::Obj,
+            options: fileio::export::ExportOptions::default(),
+            path: None,
+            suggested_name: "Untitled.obj".into(),
+        };
+        let path = folder.join("crate.obj");
+        export_to(&mut first, &request, path.clone());
+        let text = std::fs::read_to_string(&path).unwrap();
+        assert!(text.starts_with(&format!("# {APP_NAME} ")));
+        assert_eq!(with_file_extension(folder.join("crate"), "obj"), path);
+
+        let mut second = workbench();
+        import_from(&mut second, &path);
+        assert_eq!(second.document().scene().children(None).len(), 1);
+        import_from(&mut second, &folder.join("missing.obj"));
+        assert_eq!(second.document().scene().children(None).len(), 1);
+
+        // Nothing to export: nothing written.
+        let mut empty = workbench();
+        export_to(&mut empty, &request, folder.join("empty.obj"));
+        assert!(!folder.join("empty.obj").exists());
         let _ = std::fs::remove_dir_all(&folder);
     }
 }

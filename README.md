@@ -122,15 +122,15 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** a simple hard-surface prop (a crate, a sci-fi panel) can be modelled from start to finish, and the heavy-mesh check passes. From here on, every gate includes the heavy-mesh check.
 
-### Phase 5 · Export pipeline — 1 of 10
+### Phase 5 · Export pipeline — 2 of 10
 
-`█░░░░░░░░░░░░` 10%
+`███░░░░░░░░░░` 20%
 
 <details>
 <summary>Milestones</summary>
 
 - [x] Pivot editing and scene units: the Object mode moves and turns pivots, with ready-made places; each project saves its units
-- [ ] OBJ export and import
+- [x] OBJ export and import
 - [ ] glTF export
 - [ ] Consistent triangulation and MikkTSpace tangents
 - [ ] Simple material slots: polygons assigned to a named material with a colour, so engines get their parts
@@ -222,6 +222,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-15 | OBJ export and import: File → Export… (metres or centimetres, Y or Z up, triangles), Export again, and Import… |
 | 2026-10-15 | Extrude freedom: straight out as standard, with Direction, End size, Steps and Flat end; the Scale squares scale equally; project files at format version 17 |
 | 2026-10-15 | Pivot editing and scene units: the Object mode moves and turns pivots (Pivot to centre, world origin, another object; Object to world origin), and each project saves its units; project files at format version 16 |
 | 2026-10-14 | Clickable corner axes: click X, Y or Z to look along it, again for the other side; Cavity moved beside Hard edges in the Display menu. Every Phase 4 milestone built again; heavy-mesh check run (one background step a little over its target on the test machine) |

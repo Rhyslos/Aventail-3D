@@ -153,6 +153,10 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **glTF** — An open 3D file format ("the JPEG of 3D") that both Godot and Substance Painter read.
 
+**OBJ** — An old, plain-text 3D file format that almost every 3D program reads: points, polygons, normals and UVs, but no pivots or animation. See [Export and import](export-and-import.md).
+
+**Export and import** — Writing your models into a file another program reads (export), and reading one in (import). The project file keeps everything the app needs to keep working; an export holds just the finished shapes. See [Export and import](export-and-import.md).
+
 **Material slot / texture set** — Groups of polygons that get their own material. Each one becomes a separate texture set in Substance Painter.
 
 **LOD (level of detail)** — Simpler versions of a model that the engine swaps in when it's far away.

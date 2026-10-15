@@ -54,7 +54,7 @@ thread_local! {
 }
 
 /// The plain message for a read that ran out of budget.
-pub(crate) const TOO_MUCH: &str = "it holds more than the app can open (a limit was reached; it may be damaged or made to \
+pub const TOO_MUCH: &str = "it holds more than the app can open (a limit was reached; it may be damaged or made to \
      cause trouble)";
 
 /// Whether the last limited read on this thread ran out of budget.

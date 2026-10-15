@@ -21,6 +21,10 @@ pub enum Command {
         /// Where it goes.
         place: Place,
     },
+    /// Adds ready-made objects at the end of the top level, in order, as
+    /// one step (importing a file, decision 0071). A name already taken
+    /// gets a number. They become the selection.
+    InsertMany(Vec<Object>),
     /// Renames an object. Spaces around the name are trimmed; an empty
     /// name is refused.
     Rename {
@@ -174,6 +178,10 @@ impl Command {
         match self {
             Self::Create(kind) => format!("Create {}", kind.name().to_lowercase()),
             Self::Insert { object, .. } => format!("Add {}", object.name),
+            Self::InsertMany(list) => match list.as_slice() {
+                [one] => format!("Add {}", one.name),
+                many => format!("Add {} objects", many.len()),
+            },
             Self::Rename { .. } => "Rename".into(),
             Self::SetVisible { ids, visible } => {
                 let verb = if *visible { "Show" } else { "Hide" };
@@ -422,6 +430,23 @@ impl Run<'_> {
                 }
                 let id = self.insert(object.clone(), *place)?;
                 Ok(Some(vec![id]))
+            }
+            Command::InsertMany(objects) => {
+                let mut ids = Vec::with_capacity(objects.len());
+                for object in objects {
+                    let mut object = object.clone();
+                    let base = object.name.trim().to_string();
+                    if base.is_empty() {
+                        return Err(SceneError::EmptyName);
+                    }
+                    object.name = self.scene.unused_name(&base);
+                    let place = Place {
+                        parent: None,
+                        index: self.scene.children(None).len(),
+                    };
+                    ids.push(self.insert(object, place)?);
+                }
+                Ok(Some(ids))
             }
             Command::Rename { id, name } => {
                 let name = name.trim();
