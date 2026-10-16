@@ -4,7 +4,7 @@
 
 use super::automation::*;
 use super::modelling_tests::H;
-use super::tests::{fresh, main_menu};
+use super::tests::{fresh, uv_group};
 use super::unwrapping::{PackQuality, SeamHiding, UvSettings};
 use crate::commands::CommandId;
 use egui_kittest::kittest::Queryable;
@@ -45,8 +45,7 @@ fn last_operation(harness: &H, id: scene::ObjectId) -> Option<scene::Operation> 
 }
 
 fn open_submenu(harness: &mut H, label: &str) {
-    main_menu(harness, "UV").click();
-    harness.run();
+    uv_group(harness, super::UV_SETTINGS_MENU);
     harness.get_by_label_contains(label).hover();
     harness.run();
 }

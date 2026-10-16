@@ -2,7 +2,7 @@
 //! window, and the tool menu's groups (decision 0109).
 
 use super::modelling_tests::{H, note, press};
-use super::tests::{fresh, main_menu};
+use super::tests::fresh;
 use super::unwrapping::{UnwrapWay, UvSettings};
 use super::*;
 use crate::commands::CommandId;
@@ -154,21 +154,22 @@ fn pinned_points_stay_put_when_unwrapping_every_way() {
 fn the_uv_menu_offers_methods_one_way_unfolds_and_pins() {
     let mut harness = fresh();
     let id = plane(&mut harness);
-    main_menu(&harness, "UV").click();
+    super::tests::uv_group(&mut harness, super::UV_PIECES_MENU);
+    for label in ["Pin", "Unpin"] {
+        assert!(harness.query_by_label(label).is_some(), "{label}");
+    }
+    harness.key_press(egui::Key::Escape);
     harness.run();
-    assert!(
-        harness
-            .query_by_label_contains(super::automation::UNWRAP_SETTINGS_LABEL)
-            .is_some()
-    );
+    super::tests::uv_group(&mut harness, super::UV_LAY_OUT_MENU);
     for label in [
         super::unwrapping::UNFOLD_ACROSS_LABEL,
         super::unwrapping::UNFOLD_UP_LABEL,
-        "Pin",
-        "Unpin",
     ] {
         assert!(harness.query_by_label(label).is_some(), "{label}");
     }
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    super::tests::uv_group(&mut harness, super::UV_SETTINGS_MENU);
     harness
         .get_by_label_contains(super::automation::UNWRAP_SETTINGS_LABEL)
         .hover();
@@ -183,8 +184,7 @@ fn the_uv_menu_offers_methods_one_way_unfolds_and_pins() {
         UnwrapWay::KeepSizes
     );
     // Unfold across only: an unwrap that keeps every point's V.
-    main_menu(&harness, "UV").click();
-    harness.run();
+    super::tests::uv_group(&mut harness, super::UV_LAY_OUT_MENU);
     harness
         .get_by_label(super::unwrapping::UNFOLD_ACROSS_LABEL)
         .click();

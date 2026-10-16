@@ -16,7 +16,7 @@ For hard-surface game assets, the usual rule is: **a seam on every hard edge**, 
 
 Every shape in the app comes with seams already, where its [ready-made UVs](primitives.md#ready-made-uvs) are cut. Change them when you've modelled further.
 
-**The UVs follow as you mark seams:** the pieces either side are [unwrapped](unwrapping.md) again at once (switch **UV → Unwrapping → Unwrap as seams change** off to only change the marks).
+**The UVs follow as you mark seams:** the pieces either side are [unwrapped](unwrapping.md) again at once (switch **UV → Settings → Unwrapping → Unwrap as seams change** off to only change the marks).
 
 ## How to use it
 
@@ -24,26 +24,26 @@ Seams show in **orange**: in the UV Editor, in the viewport in the UV mode, and 
 
 **Mark or clear seams by hand:**
 1. Press **2** for the Edges mode and select edges. To paint along edges, use the **Paint select** brush (press **Q** until it's chosen).
-2. Choose **UV → Mark seams**, or press **E** with the mouse over the UV Editor and pick **Mark seams**. **Clear seams** takes them off.
+2. Choose **UV → Seams → Mark seams**, or press **E** with the mouse over the UV Editor and pick **Mark seams**. **Clear seams** takes them off.
 
 With **polygons** selected (Polygons or UV mode), **Mark seams** marks the edges **around** the selection: select a region and it's cut out as its own piece. **Clear seams** clears every edge of the selected polygons. In the Points mode, it uses the edges between selected points.
 
-**Seams from hard edges:** select objects and choose **UV → Seams from hard edges**. Every edge shading hard becomes a seam (the hard edges as shown: by angle while Automatic hard edges is on).
+**Seams from hard edges:** select objects and choose **UV → Seams → Seams from hard edges**. Every edge shading hard becomes a seam (the hard edges as shown: by angle while Automatic hard edges is on).
 
-**Suggest seams:** select objects and choose **UV → Suggest seams**. The app replaces their seams with suggested ones:
+**Suggest seams:** select objects and choose **UV → Seams → Suggest seams**. The app replaces their seams with suggested ones:
 1. along hard edges and sharp corners (more than 66°);
 2. then whatever each piece still needs to lie flat: a tube's side gets one cut along its length, a ball one cut from bottom to top;
 3. those extra cuts go where they're least seen: facing down or to the back (away from the Front view), and in corners rather than across flat stretches.
 
 All of these are one undo step each, the unwrapping included (**Ctrl + Z**), are saved with the project, and are recorded on the object's [edit list](edit-list.md), so they're made again if you change the shape's settings before them.
 
-**Select seams:** **Select → Select seams** (or **UV → Select seams**) selects every seam, in the Edges mode, to check or change them.
+**Select seams:** **Select → Select seams** (or **UV → Seams → Select seams**) selects every seam, in the Edges mode, to check or change them.
 
-**Guide the automatic seams.** Mark edges **Prefer seams here** or **Never seams here** (UV menu), and give pieces a **stretch budget**: Suggest seams and Unwrap follow them. See [Seam preferences and stretch budgets](seam-preferences.md).
+**Guide the automatic seams.** Mark edges **Prefer seams here** or **Never seams here** (**UV → Seams**), and give pieces a **stretch budget**: Suggest seams and Unwrap follow them. See [Seam preferences and stretch budgets](seam-preferences.md).
 
 ## Settings
 
-In **UV → Seam suggestions** (remembered between sessions):
+In **UV → Settings → Seam suggestions** (remembered between sessions):
 
 | Setting | What it does |
 |---|---|
@@ -59,8 +59,8 @@ The same shape and settings always give exactly the same seams. "Underneath" and
 | Action | Shortcut |
 |---|---|
 | Mark seams, Clear seams | **E** over the UV Editor (or in the UV mode), or the UV menu |
-| Seams from hard edges, Suggest seams, Select seams | UV menu |
-| Suggest seams' settings | **UV → Seam suggestions** |
+| Seams from hard edges, Suggest seams, Select seams | **UV → Seams** |
+| Suggest seams' settings | **UV → Settings → Seam suggestions** |
 | Edges mode | **2** |
 | Paint select (to paint along edges) | **Q** until it's chosen |
 
@@ -68,7 +68,7 @@ No keys of their own, as chosen for seams; ask if you'd like some.
 
 ## Tips and common problems
 
-- **Problem:** I marked seams but the UV Editor looks the same apart from orange lines. **Why:** **Unwrap as seams change** is off (**UV → Unwrapping**), or the piece was flat anyway: a flat piece cut in two comes back just where it was. **Fix:** switch it on, or choose Unwrap.
+- **Problem:** I marked seams but the UV Editor looks the same apart from orange lines. **Why:** **Unwrap as seams change** is off (**UV → Settings → Unwrapping**), or the piece was flat anyway: a flat piece cut in two comes back just where it was. **Fix:** switch it on, or choose Unwrap.
 - **Tip:** seams survive modelling: bevel an edge that is a seam and the seam stays, along one side of the bevel; an extrude's new walls get seams of their own. See [UVs while you keep modelling](uvs-and-modelling.md).
 - **Problem:** Mark seams says the edges are seams already. **Why:** they are, or they're open edges (the side of a hole), which are cut already.
 - **Problem:** Suggest seams changed seams I had placed by hand. **Why:** it replaces all seams of the selected objects. **Fix:** Ctrl + Z, then use Seams from hard edges and Mark seams instead, or select only the objects to suggest for.

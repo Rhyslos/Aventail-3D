@@ -97,6 +97,16 @@ fn harness_built(
     )
 }
 
+/// Opens the UV menu and points at its group `group` (decision 0113), so
+/// the group's entries show.
+pub(super) fn uv_group(harness: &mut Harness<'static, State>, group: &str) {
+    main_menu(harness, "UV").click();
+    harness.run();
+    harness.get_by_label_contains(group).hover();
+    // The submenu may still be opening: a few frames, not until still.
+    harness.run_steps(8);
+}
+
 /// A menu on the main menu bar (the panels and the viewport have menus
 /// with some of the same names, lower down).
 pub(super) fn main_menu<'h>(

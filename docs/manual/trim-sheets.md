@@ -26,7 +26,7 @@ Big unique surfaces still get their own texture, [unwrapped](unwrapping.md) and 
 
    The rows show as faint bands across the UV Editor's square, with their names. They repeat past its right side. The rows are saved with the project, and each change is one undo step.
 2. **Choose what to lay.** Select the strip: in the UV mode, click its piece (in the UV Editor or on the model). Or select polygons in it. With nothing selected inside an object, all of it is laid.
-3. **Lay it.** Choose **UV → Put on trim row**, then the row. Each piece:
+3. **Lay it.** Choose **UV → Lay out → Put on trim row**, then the row. Each piece:
    - comes out as a straight grid if it's a strip of square-cornered quads (others keep the shape they had);
    - lies the right way round, its long side along the row;
    - is scaled so its height fills the row exactly;
@@ -53,7 +53,7 @@ The pixels are the project's texture size (**Texture** menu). Rows are kept as p
 
 | Action | Shortcut |
 |---|---|
-| Put on trim row | **UV → Put on trim row** |
+| Put on trim row | **UV → Lay out → Put on trim row** |
 | Slide along the row | **W** in the UV Editor, then drag the red arrow |
 | Undo | **Ctrl + Z** |
 

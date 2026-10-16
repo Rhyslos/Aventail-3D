@@ -2,7 +2,7 @@
 
 > Every choice the automatic UV tools make is a setting you can change, and the same model and settings always give exactly the same result.
 
-![The UV menu, its last section "Settings of the automatic tools" listing Seam suggestions, Unwrapping, Relaxing, Packing and Mending, with Unwrapping open: the four methods, Straighten strips when unwrapping, Strip corners within 25° of square, and Unwrap as seams change.](../screenshots/2026-10-16-uv-settings.png)
+![The UV menu, grouped into Seams, Turn and flip, Lay out and Pieces, then Texture, Trim sheet and Check for baking, then Settings. Settings is open, listing Seam suggestions, Unwrapping, Relaxing, Packing and Mending, with Unwrapping open: the four methods, Straighten strips when unwrapping, Strip corners within 25° of square, and Unwrap as seams change.](../screenshots/2026-10-16-uv-settings.png)
 
 ## When to use it
 
@@ -20,7 +20,7 @@ Change these settings when an automatic result is close to what you want but not
 
 ## How to use it
 
-1. Open the **UV** menu. Its last section, **Settings of the automatic tools**, holds five submenus.
+1. Open **UV → Settings**: it holds five submenus, one for each automatic tool.
 2. Point at one to see its settings, and change them. Each is explained when you point at it.
 3. Run the tool again (or Ctrl + Z and run it again) to see the difference.
 
@@ -42,7 +42,7 @@ The first four are remembered by the app between sessions. Mending is saved with
 
 ## Shortcuts
 
-None: the settings are in the **UV** menu.
+None: the settings are in **UV → Settings**.
 
 ## Tips and common problems
 

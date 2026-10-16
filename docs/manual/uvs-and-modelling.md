@@ -32,7 +32,7 @@ It's part of each edit: **Ctrl + Z** takes back the edit and its UVs together. C
 
 ## Settings
 
-In **UV → Mending**, saved with the project (so everyone opening it sees the same UVs):
+In **UV → Settings → Mending**, saved with the project (so everyone opening it sees the same UVs):
 
 | Setting | What it does |
 |---|---|

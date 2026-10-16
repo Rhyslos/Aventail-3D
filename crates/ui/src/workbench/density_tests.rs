@@ -2,7 +2,7 @@
 //! (decision 0100).
 
 use super::modelling_tests::{H, cube, note};
-use super::tests::{fresh, main_menu, quick_harness};
+use super::tests::{fresh, quick_harness};
 use super::*;
 use egui_kittest::kittest::Queryable;
 use scene::{FaceId, TextureSettings};
@@ -112,9 +112,10 @@ fn the_texture_menu_changes_the_size_as_one_undo_step() {
         harness.state().workbench.document().scene().texture(),
         TextureSettings::default()
     );
-    // The UV menu lists the density commands.
-    main_menu(&harness, "UV").click();
+    // UV → Lay out lists the density commands.
+    harness.key_press(egui::Key::Escape);
     harness.run();
+    super::tests::uv_group(&mut harness, super::UV_LAY_OUT_MENU);
     for label in [
         super::unwrapping::SET_DENSITY_LABEL,
         super::unwrapping::MATCH_DENSITY_LABEL,
