@@ -19,7 +19,9 @@ use egui::{RichText, Ui, vec2};
 use fields::{Value, fields};
 use mesh::MeshReport;
 use mesh::primitives::MAX_SIZE;
-use scene::{Command, Document, Grouping, Mesh, ObjectId, ObjectKind, Operation, Primitive, Stack};
+use scene::{
+    Command, Document, EditId, Grouping, Mesh, ObjectId, ObjectKind, Operation, Primitive, Stack,
+};
 use std::sync::Arc;
 
 /// Width of the column of setting names, so both sections line up.
@@ -70,6 +72,47 @@ pub(crate) struct AttributesPanel {
     /// The material slot whose Assign button was clicked, for the
     /// workbench to give the selected polygons (decision 0074).
     pub(crate) assign: Option<u32>,
+    /// The edit opened from the edit list (decision 0092), shown in place
+    /// of the Last edit while its object is the one selected.
+    pub(crate) opened: Option<OpenedEdit>,
+}
+
+/// An edit opened from the edit list (decision 0092).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct OpenedEdit {
+    /// Its object.
+    pub(crate) object: ObjectId,
+    /// The edit.
+    pub(crate) edit: EditId,
+    /// The id the object's next edit would get when it was opened: once a
+    /// new edit is made, the panel goes back to showing the last edit.
+    newest: EditId,
+}
+
+impl OpenedEdit {
+    /// Whether this is edit `edit` of object `object`, still open (no new
+    /// edit made since).
+    pub(crate) fn is(&self, doc: &Document, object: ObjectId, edit: EditId) -> bool {
+        self.object == object
+            && self.edit == edit
+            && doc
+                .scene()
+                .object(object)
+                .is_some_and(|o| o.stack.next_edit_id() == self.newest)
+    }
+
+    /// Edit `edit` of object `object`, opened now.
+    pub(crate) fn new(doc: &Document, object: ObjectId, edit: EditId) -> Self {
+        let newest = doc
+            .scene()
+            .object(object)
+            .map_or(edit, |o| o.stack.next_edit_id());
+        Self {
+            object,
+            edit,
+            newest,
+        }
+    }
 }
 
 impl AttributesPanel {
@@ -342,7 +385,12 @@ impl AttributesPanel {
         let selection = doc.selection();
         // Extrude's and Inset's switch, unless the last edit shows its own
         // (which sets the tool's too, so there is only one to think about).
+        let opened = match selection.as_slice() {
+            [one] => self.opened_edit(doc, *one),
+            _ => None,
+        };
         let last_shown = match selection.as_slice() {
+            _ if opened.is_some() => true,
             [one] => doc
                 .scene()
                 .object(*one)
@@ -384,7 +432,19 @@ impl AttributesPanel {
                 // The last extrude or inset first: it is what was just done.
                 if !own_tool_shown {
                     let stretch = scene::stretch_of(doc.scene().shape_matrix(id));
-                    self.last_edit_section(ui, id, &object.stack, units, stretch, out);
+                    match opened {
+                        Some(edit) => self.opened_edit_section(
+                            ui,
+                            doc,
+                            id,
+                            edit,
+                            &object.stack,
+                            units,
+                            stretch,
+                            out,
+                        ),
+                        None => self.last_edit_section(ui, id, &object.stack, units, stretch, out),
+                    }
                 }
                 section(ui, "Basic");
                 egui::Grid::new("attributes_basic")
@@ -538,10 +598,198 @@ impl AttributesPanel {
         let Some((layer, index, operation)) = last_edit(stack) else {
             return;
         };
+        if operation.settings().is_none() {
+            return;
+        }
+        section(ui, &format!("Last edit: {}", operation.describe()));
+        self.edit_settings(ui, id, (layer, index), operation, units, stretch, out);
+    }
+
+    /// The edit opened from the edit list on object `id`, if it is still
+    /// there.
+    pub(crate) fn opened_edit(&self, doc: &Document, id: ObjectId) -> Option<EditId> {
+        let opened = self.opened?;
+        let stack = &doc.scene().object(id)?.stack;
+        (opened.object == id
+            && stack.entry(opened.edit).is_some()
+            && stack.next_edit_id() == opened.newest)
+            .then_some(opened.edit)
+    }
+
+    /// An edit opened from the edit list (decision 0092): its switches,
+    /// its settings (if it has any), and Freeze up to here and Delete edit.
+    #[allow(clippy::too_many_arguments)]
+    fn opened_edit_section(
+        &mut self,
+        ui: &mut Ui,
+        doc: &Document,
+        id: ObjectId,
+        edit: EditId,
+        stack: &Stack,
+        units: Units,
+        stretch: glam::Vec3,
+        out: &mut Vec<DocRequest>,
+    ) {
+        let Some((layer, index, entry)) = stack.entry(edit) else {
+            return;
+        };
+        let entry = entry.clone();
+        ui.add_space(6.0);
+        ui.horizontal(|ui| {
+            ui.label(RichText::new(format!("Edit: {}", entry.operation.describe())).strong());
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if ui
+                    .small_button(CLOSE_EDIT_LABEL)
+                    .on_hover_text("Go back to showing the last edit")
+                    .clicked()
+                {
+                    self.opened = None;
+                }
+            });
+        });
+        ui.separator();
+        let layer_name = stack.layers()[layer].name.clone();
+        let total = stack.layers()[layer].entries.len();
+        ui.label(
+            RichText::new(format!(
+                "Edit {} of {total} in {layer_name}. Change it and the edits after it are made \
+                 again on the new shape.",
+                index + 1
+            ))
+            .small()
+            .color(theme::TEXT_WEAK),
+        );
+        if let Some(problem) = doc
+            .scene()
+            .evaluated(id)
+            .and_then(|e| edit_warning(&e.warnings, layer, index))
+        {
+            ui.label(RichText::new(problem).color(theme::WARNING));
+        }
+        ui.push_id("opened_edit_switches", |ui| {
+            egui::Grid::new("attributes_opened_edit")
+                .num_columns(2)
+                .min_col_width(LABEL_WIDTH)
+                .spacing(vec2(12.0, 6.0))
+                .show(ui, |ui| {
+                    label(
+                        ui,
+                        "On",
+                        "Off: the shape is made as if this edit wasn't there. Nothing is lost.",
+                    );
+                    let mut on = entry.enabled;
+                    let switch = ui.checkbox(&mut on, "");
+                    switch.widget_info(|| {
+                        egui::WidgetInfo::selected(egui::WidgetType::Checkbox, true, on, "Edit on")
+                    });
+                    if switch.changed() {
+                        out.push(DocRequest::Run(Command::SetEditEnabled {
+                            id,
+                            edit,
+                            enabled: on,
+                        }));
+                    }
+                    ui.end_row();
+                    label(
+                        ui,
+                        "Keep editable",
+                        "Keep this edit changeable: Freeze never bakes it, so its settings stay \
+                         open for good",
+                    );
+                    let mut kept = entry.pinned;
+                    let switch = ui.checkbox(&mut kept, "");
+                    switch.widget_info(|| {
+                        egui::WidgetInfo::selected(
+                            egui::WidgetType::Checkbox,
+                            true,
+                            kept,
+                            KEEP_EDITABLE_SWITCH,
+                        )
+                    });
+                    if switch.changed() {
+                        out.push(DocRequest::Run(Command::SetEditPinned {
+                            id,
+                            edit,
+                            pinned: kept,
+                        }));
+                    }
+                    ui.end_row();
+                });
+        });
+        if entry.operation.settings().is_some() {
+            self.edit_settings(
+                ui,
+                id,
+                (layer, index),
+                &entry.operation,
+                units,
+                stretch,
+                out,
+            );
+        } else {
+            ui.label(
+                RichText::new("This kind of edit has no settings to change.")
+                    .small()
+                    .color(theme::TEXT_WEAK),
+            );
+        }
+        ui.add_space(4.0);
+        ui.horizontal(|ui| {
+            let problem = stack.freeze_problem(edit);
+            let count = scene::frozen_count(stack, edit);
+            let help = match problem {
+                Some(why) => format!("Can't freeze: {why}."),
+                None => format!(
+                    "Bake the shape's settings and the {} up to and including this one into \
+                     the shape, so they no longer have to be made again: big models stay quick. \
+                     The shape doesn't change, but those edits can't be changed any more.",
+                    if count == 1 {
+                        "edit".to_string()
+                    } else {
+                        format!("{count} edits")
+                    }
+                ),
+            };
+            if ui
+                .add_enabled(problem.is_none(), egui::Button::new(FREEZE_LABEL))
+                .on_hover_text(&help)
+                .on_disabled_hover_text(&help)
+                .clicked()
+            {
+                out.push(DocRequest::Run(Command::Freeze { id, edit }));
+                self.opened = None;
+            }
+            if ui
+                .button(DELETE_EDIT_LABEL)
+                .on_hover_text(
+                    "Take this edit out. The edits after it are made again without it \
+                     (Ctrl + Z brings it back).",
+                )
+                .clicked()
+            {
+                out.push(DocRequest::Run(Command::DeleteEdit { id, edit }));
+                self.opened = None;
+            }
+        });
+    }
+
+    /// The settings rows of the edit at `at` (layer, place), changed in
+    /// place with [`Command::ReplaceOperation`]: the Last edit section's,
+    /// and an edit opened from the edit list's (decision 0092).
+    #[allow(clippy::too_many_arguments)]
+    fn edit_settings(
+        &mut self,
+        ui: &mut Ui,
+        id: ObjectId,
+        (layer, index): (usize, usize),
+        operation: &Operation,
+        units: Units,
+        stretch: glam::Vec3,
+        out: &mut Vec<DocRequest>,
+    ) {
         let Some(settings) = operation.settings() else {
             return;
         };
-        section(ui, &format!("Last edit: {}", operation.describe()));
         let mut edited = settings;
         let mut changed = false;
         // A mirrored edit shows the edit's own settings.
@@ -1008,6 +1256,41 @@ fn mesh_section(ui: &mut Ui, report: Option<&MeshReport>, current: bool, plain_m
             .small()
             .color(theme::TEXT_WEAK),
         );
+    }
+}
+
+/// The button that closes an opened edit.
+pub(crate) const CLOSE_EDIT_LABEL: &str = "Close";
+/// The opened edit's Keep editable switch, for screen readers and tests.
+pub(crate) const KEEP_EDITABLE_SWITCH: &str = "Keep this edit editable";
+/// Freezes the edits up to the opened one (decision 0092).
+pub(crate) const FREEZE_LABEL: &str = "Freeze up to here";
+/// Deletes the opened edit.
+pub(crate) const DELETE_EDIT_LABEL: &str = "Delete edit";
+
+/// What is wrong with edit `index` of layer `layer`, in plain words, if
+/// anything truly is: points it can't find, or skipped as too big. (An
+/// edit that found its points again by place is fine.)
+pub(crate) fn edit_warning(
+    warnings: &[scene::StackWarning],
+    layer: usize,
+    index: usize,
+) -> Option<String> {
+    let warning = warnings
+        .iter()
+        .find(|w| w.layer == layer && w.operation == index)?;
+    if warning.too_big {
+        Some("Skipped: it would make the shape too large.".into())
+    } else if warning.missing > 0 {
+        Some(match warning.missing {
+            1 => "1 of its parts can't be found on the shape any more; it applies to the rest."
+                .into(),
+            n => format!(
+                "{n} of its parts can't be found on the shape any more; it applies to the rest."
+            ),
+        })
+    } else {
+        None
     }
 }
 
