@@ -306,6 +306,20 @@ pub const SEAM_PREFERENCE: &str = "seam_preference";
 /// own; decision 0111).
 pub const UV_BUDGET: &str = "uv_budget";
 
+/// The name of the polygon layer marking locked UVs: polygons whose UVs
+/// no automatic tool changes (decision 0112).
+pub const UV_LOCK: &str = "uv_lock";
+
+/// The names of the polygon layers holding a piece's own unwrap settings
+/// (decision 0112): its way of laying flat (0: the app's), whether it is
+/// straightened as a strip (0: the app's, 1: yes, 2: no), and its texel
+/// density in texture widths per scene unit (0: the app's).
+pub const UV_METHOD: &str = "uv_method";
+/// See [`UV_METHOD`].
+pub const UV_STRIPS: &str = "uv_strips";
+/// See [`UV_METHOD`].
+pub const UV_DENSITY: &str = "uv_density";
+
 /// A typed list of values.
 #[derive(Debug, Clone, PartialEq)]
 enum Column {

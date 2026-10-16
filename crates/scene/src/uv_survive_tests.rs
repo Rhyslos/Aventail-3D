@@ -240,3 +240,27 @@ fn stricter_limits_mend_at_least_as_much() {
     }
     assert!(results[1] <= results[0] + 1e-3, "{results:?}");
 }
+
+#[test]
+fn mending_leaves_locked_pieces_as_edits_make_them() {
+    for lock in [false, true] {
+        let (mut doc, id) = with_a_cube();
+        let cube = mesh_of(&doc, id);
+        let faces: Vec<FaceId> = cube.faces().map(|(f, _)| f).collect();
+        if lock {
+            record(
+                &mut doc,
+                id,
+                Operation::SetUvLock {
+                    faces,
+                    lock: true,
+                    anchors: None,
+                },
+            );
+        }
+        let cube = mesh_of(&doc, id);
+        record(&mut doc, id, extrude_top(&cube, 50.0));
+        // The walls take their polygons' lock with them, and aren't mended.
+        assert_eq!(some_without_room(&mesh_of(&doc, id)), lock, "lock {lock}");
+    }
+}

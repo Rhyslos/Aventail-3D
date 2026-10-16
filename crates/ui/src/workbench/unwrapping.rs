@@ -60,6 +60,14 @@ pub struct UvSettings {
     pub budget: f32,
     /// The budget the Stretch budget submenu gives the selection.
     pub piece_budget: f32,
+    /// What the Piece settings submenu gives the selection (decision
+    /// 0112): a way of laying flat, straightening, and a texel density in
+    /// pixels per metre; `None` is "the app's".
+    pub piece_method: Option<UnwrapWay>,
+    /// See `piece_method`.
+    pub piece_strips: Option<bool>,
+    /// See `piece_method`.
+    pub piece_density: Option<f32>,
 }
 
 /// Where cuts that make pieces lie flat are hidden (decision 0110).
@@ -262,6 +270,9 @@ impl Default for UvSettings {
             budget_on: false,
             budget: 2.0,
             piece_budget: 1.5,
+            piece_method: None,
+            piece_strips: None,
+            piece_density: None,
         }
     }
 }
@@ -601,6 +612,7 @@ impl Workbench {
             std::collections::BTreeMap::new();
         let mut meshes = std::collections::HashMap::new();
         let mut on_trim = 0;
+        let mut locked = 0;
         for (id, mesh) in shapes {
             if !mesh::uvs::has_uvs(&mesh) {
                 continue;
@@ -613,6 +625,11 @@ impl Workbench {
             // Pieces on the trim sheet stay on their rows.
             let rows = super::baking::trim_rows(self.document.scene());
             for island in uv::pack::islands_of(&mesh, &faces) {
+                // Locked pieces stay where they are (decision 0112).
+                if mesh::uvs::any_locked(&mesh, &island) {
+                    locked += 1;
+                    continue;
+                }
                 if super::baking::on_trim(&mesh, &island, &rows) {
                     on_trim += 1;
                     continue;
@@ -641,7 +658,9 @@ impl Workbench {
             }
         }
         if by_object.is_empty() {
-            self.note = Some(if on_trim > 0 {
+            self.note = Some(if locked > 0 && on_trim == 0 {
+                "Pack: every selected piece is locked, and stays where it is.".into()
+            } else if on_trim > 0 {
                 "Pack: every selected piece is on the trim sheet, and stays on its row.".into()
             } else {
                 "Pack: the selection has no UVs with any area to pack.".into()
@@ -656,8 +675,17 @@ impl Workbench {
         let key = key.unwrap_or_else(|| self.new_step_key());
         let done = self.record_each_in(&label, ops, key);
         if done {
+            let kept = if locked > 0 {
+                format!(
+                    " {} stayed where {}.",
+                    counted("", locked, "locked piece").trim_start(),
+                    if locked == 1 { "it was" } else { "they were" }
+                )
+            } else {
+                String::new()
+            };
             self.note = Some(format!(
-                "{label}, {padding_px} px apart. Ctrl + Z takes it back."
+                "{label}, {padding_px} px apart. Ctrl + Z takes it back.{kept}"
             ));
         }
         done

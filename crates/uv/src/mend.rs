@@ -532,9 +532,15 @@ pub fn mend_with(before: &Mesh, mesh: &mut Mesh, options: &MendOptions) -> usize
     let Some(uvs) = Uvs::of(mesh) else {
         return 0;
     };
+    // Locked polygons are left as the edit made them (decision 0112).
+    let lock = mesh::uvs::locked(mesh);
+    let is_locked = |f: FaceId| {
+        lock.as_ref()
+            .is_some_and(|l| l.get(f.get() as usize).copied().unwrap_or(false))
+    };
     let changed: BTreeSet<FaceId> = mesh
         .faces()
-        .filter(|(f, list)| before.face(*f) != Some(*list))
+        .filter(|(f, list)| before.face(*f) != Some(*list) && !is_locked(*f))
         .map(|(f, _)| f)
         .collect();
     if changed.is_empty() {

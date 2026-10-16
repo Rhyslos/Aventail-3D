@@ -69,6 +69,8 @@ pub fn mirrors(op: &Operation) -> bool {
         | Operation::RelaxUvs { .. }
         | Operation::SetTexelDensity { .. }
         | Operation::SetStretchBudget { .. }
+        | Operation::SetUvLock { .. }
+        | Operation::SetPieceSettings { .. }
         | Operation::PlaceOnTrim { .. }
         | Operation::PackUvs { .. }
         | Operation::SlidePoints { .. }

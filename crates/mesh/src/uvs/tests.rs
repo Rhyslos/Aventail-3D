@@ -406,3 +406,39 @@ fn stretch_budgets_are_set_read_and_cleared() {
     assert!(budgets(&mesh).is_none());
     assert!(mesh.attribute_values(UV_BUDGET).is_none());
 }
+
+#[test]
+fn locks_and_piece_values_are_set_read_and_cleared() {
+    let mut mesh = Primitive::Cube(Default::default()).mesh();
+    let faces: Vec<FaceId> = mesh.faces().map(|(f, _)| f).collect();
+    assert!(locked(&mesh).is_none() && !any_locked(&mesh, &faces));
+    assert_eq!(set_locked(&mut mesh, &faces[..2], true).matched, 2);
+    assert!(any_locked(&mesh, &faces[1..3]) && !any_locked(&mesh, &faces[2..]));
+    assert_eq!(
+        set_locked(&mut mesh, &faces[..1], true).matched,
+        0,
+        "already"
+    );
+    set_locked(&mut mesh, &faces, false);
+    assert!(locked(&mesh).is_none());
+    assert!(mesh.attribute_values(UV_LOCK).is_none());
+    // Piece values: the first polygon (by id) with each wins.
+    let values = PieceValues {
+        method: 3,
+        strips: 2,
+        density: 0.04,
+    };
+    assert_eq!(set_piece_values(&mut mesh, &faces[2..4], values).matched, 2);
+    assert_eq!(piece_values(&mesh, &faces), values);
+    assert_eq!(piece_values(&mesh, &faces[..2]), PieceValues::default());
+    let bad = PieceValues {
+        method: 9,
+        ..values
+    };
+    assert_eq!(set_piece_values(&mut mesh, &faces, bad).matched, 0);
+    set_piece_values(&mut mesh, &faces, PieceValues::default());
+    for name in [UV_METHOD, UV_STRIPS, UV_DENSITY] {
+        assert!(mesh.attribute_values(name).is_none(), "{name}");
+    }
+    assert!(PieceValues::default().is_empty());
+}

@@ -26,6 +26,8 @@ Change these settings when an automatic result is close to what you want but not
 
 Edits you've already made keep the settings they were made with, so changing a setting never changes your earlier work. The one exception is **Mending**, which belongs to the project and applies to every edit in it.
 
+A piece can also have settings of its own (method, straightening, texel density) that win over these, or be locked so no automatic tool changes it: see [Locking pieces and piece settings](locked-pieces.md).
+
 ## Settings
 
 | Submenu | Settings | Where explained |

@@ -2178,6 +2178,24 @@ impl Workbench {
             self.run_command(command, ui.ctx(), requests);
             ui.close();
         }
+        for (label, help, lock) in [
+            (piece_settings::LOCK_LABEL, piece_settings::LOCK_HELP, true),
+            (
+                piece_settings::UNLOCK_LABEL,
+                piece_settings::UNLOCK_HELP,
+                false,
+            ),
+        ] {
+            if ui.button(label).on_hover_text(help).clicked() {
+                self.run_lock(lock);
+                ui.close();
+            }
+        }
+        ui.menu_button(piece_settings::PIECE_SETTINGS_LABEL, |ui| {
+            self.piece_settings_menu(ui);
+        })
+        .response
+        .on_hover_text("Give the selected pieces their own unwrap settings");
         ui.separator();
         for (label, help, to_aim) in [
             (
@@ -2448,6 +2466,9 @@ pub use unwrapping::{UnwrapWay, UvSettings};
 mod density_tests;
 #[cfg(test)]
 mod pack_tests;
+mod piece_settings;
+#[cfg(test)]
+mod piece_settings_tests;
 #[cfg(test)]
 mod pinning_tests;
 #[cfg(test)]

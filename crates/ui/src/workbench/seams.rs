@@ -239,6 +239,23 @@ impl Workbench {
                     .collect();
             total += suggested.len();
             let now: BTreeSet<EdgeKey> = mesh::uvs::seams(&mesh).into_iter().collect();
+            // Edges of locked pieces stay as they are (decision 0112).
+            let suggested: BTreeSet<EdgeKey> = match mesh::uvs::locked(&mesh) {
+                Some(lock) => {
+                    let topology = mesh.topology();
+                    let touches_lock = |e: &EdgeKey| {
+                        topology
+                            .edge_faces(*e)
+                            .any(|f| lock.get(f.get() as usize).copied().unwrap_or(false))
+                    };
+                    suggested
+                        .into_iter()
+                        .filter(|e| !touches_lock(e))
+                        .chain(now.iter().copied().filter(|e| touches_lock(e)))
+                        .collect()
+                }
+                None => suggested,
+            };
             let clear: Vec<EdgeKey> = changing(&mesh, now.difference(&suggested).copied(), false);
             let mark: Vec<EdgeKey> = changing(&mesh, suggested.iter().copied(), true);
             changed += clear.len() + mark.len();
