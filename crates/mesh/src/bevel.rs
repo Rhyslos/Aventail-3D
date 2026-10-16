@@ -786,8 +786,16 @@ pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Out
     for edge in &chosen {
         let (lo, hi) = edge.ends();
         let hard = original.is_hard(lo, hi);
+        let seam = crate::uvs::is_seam(&original, *edge);
         // The bevelled edge is gone, and its values with it.
         build.clear_edge(*edge);
+        // A seam moves to the strip's far border, so the pieces on either
+        // side stay apart and the strip joins the first one's
+        // (decision 0104).
+        if seam && let (Some(a), Some(b)) = (rows.get(&(*edge, lo)), rows.get(&(*edge, hi))) {
+            let n = a.len() - 1;
+            crate::uvs::set_seams(build.mesh(), &[EdgeKey::new(a[n], b[n])], true);
+        }
         if !hard {
             continue;
         }
@@ -946,6 +954,8 @@ pub fn bevel_points(mesh: &mut Mesh, points: &[VertexId], width: f32) -> Outcome
     let mut out = original.clone();
     let mut build = Builder::new(&original, &mut out);
     let mut cut: BTreeMap<(VertexId, VertexId), VertexId> = BTreeMap::new();
+    // How far along each edge its cut is, for the corners' values.
+    let mut share: BTreeMap<(VertexId, VertexId), f32> = BTreeMap::new();
     for (v, (wedges, _)) in &fans {
         let pv = original.position(*v).unwrap_or_default();
         let neighbours: BTreeSet<VertexId> =
@@ -956,6 +966,7 @@ pub fn bevel_points(mesh: &mut Mesh, points: &[VertexId], width: f32) -> Outcome
             let along = width.min(length * MAX_SLIDE);
             let p = pv + (pf - pv).normalize_or_zero() * along;
             let t = if length > 0.0 { along / length } else { 0.0 };
+            share.insert((*v, far), if t.is_finite() { t } else { 0.0 });
             cut.insert(
                 (*v, far),
                 build.point(
@@ -981,8 +992,19 @@ pub fn bevel_points(mesh: &mut Mesh, points: &[VertexId], width: f32) -> Outcome
             if fans.contains_key(c) {
                 let before = old[(i + n - 1) % n];
                 let after = old[(i + 1) % n];
-                new.push((cut[&(*c, before)], from));
-                new.push((cut[&(*c, after)], from));
+                // The corners blend along their edges (UVs slide with the
+                // cut, so the polygon's texture isn't squashed).
+                let along = |far: VertexId| {
+                    CornerFrom::Between(
+                        face,
+                        *c,
+                        face,
+                        far,
+                        share.get(&(*c, far)).copied().unwrap_or(0.0),
+                    )
+                };
+                new.push((cut[&(*c, before)], along(before)));
+                new.push((cut[&(*c, after)], along(after)));
             } else {
                 new.push((*c, from));
             }

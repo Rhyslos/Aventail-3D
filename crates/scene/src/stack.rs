@@ -1151,11 +1151,67 @@ impl Operation {
         }
     }
 
+    /// Whether the operation reshapes polygons (adds, removes or rewires
+    /// them), so UVs it leaves without room are mended afterwards
+    /// ([decision 0104](../../../docs/decisions/0104-uvs-that-survive-modelling.md)).
+    /// Moving points, flipping polygons and UV, seam, hardness and
+    /// material edits don't: their results are what was asked for.
+    pub fn mends_uvs(&self) -> bool {
+        match self {
+            Self::ExtrudePolygons { .. }
+            | Self::ExtrudeBent { .. }
+            | Self::InsetPolygons { .. }
+            | Self::ExtrudeEdges { .. }
+            | Self::BevelEdges { .. }
+            | Self::Groove { .. }
+            | Self::BevelPoints { .. }
+            | Self::LoopCut { .. }
+            | Self::Connect { .. }
+            | Self::Bridge { .. }
+            | Self::Weld { .. }
+            | Self::DeleteElements { .. }
+            | Self::Dissolve { .. }
+            | Self::FillHoles { .. }
+            | Self::Slit { .. }
+            | Self::WeldMiddle { .. } => true,
+            Self::MovePoints { .. }
+            | Self::TransformPoints { .. }
+            | Self::SlidePoints { .. }
+            | Self::FlipPolygons { .. }
+            | Self::FixFacing
+            | Self::PlaceShape { .. }
+            | Self::SetMaterial { .. }
+            | Self::TransformUvs { .. }
+            | Self::Unwrap { .. }
+            | Self::StraightenUvs { .. }
+            | Self::RelaxUvs { .. }
+            | Self::PackUvs { .. }
+            | Self::SetTexelDensity { .. }
+            | Self::SetSeams { .. }
+            | Self::SetHardEdges { .. }
+            | Self::HardEdgesByAngle { .. } => false,
+            // Each side mends as it is applied.
+            Self::Mirrored { .. } => false,
+        }
+    }
+
+    /// Applies the operation to `mesh`, then mends the UVs it left without
+    /// room (see [`Self::mends_uvs`]).
+    fn apply(&self, mesh: &mut Mesh) -> Applied {
+        let before = (self.mends_uvs() && mesh.attribute_values(mesh::attributes::UV).is_some())
+            .then(|| mesh.clone());
+        let applied = self.apply_plain(mesh);
+        if let Some(before) = before {
+            uv::mend(&before, mesh);
+        }
+        applied
+    }
+
     /// Applies the operation to `mesh`. Its ids are used as they are when
     /// the shape has the structure the edit was made on (decision 0044), or
     /// its anchored places still fit. Otherwise (a primitive given more
     /// segments, say) its elements are found again by their anchors.
-    fn apply(&self, mesh: &mut Mesh) -> Applied {
+    fn apply_plain(&self, mesh: &mut Mesh) -> Applied {
         // With symmetry: on both sides, together or as copies.
         if let Self::Mirrored { op, mirror } = self {
             // Clipping needs the points as they were, to keep them on

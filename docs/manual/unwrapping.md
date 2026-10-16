@@ -8,7 +8,7 @@
 
 **Unwrapping** is flattening the surface along its [seams](seams.md), like unfolding a cardboard box, so a texture can be painted on it. The app does it the way most UV tools do (least squares conformal maps): every little triangle keeps its shape as well as it can, so a checker texture's squares stay square, at the cost of some change in size across very curved pieces.
 
-- **Unwrap** after you change the shape (extrude, bevel, cut) and the UVs look squashed, or to lay a piece out fresh.
+- **Unwrap** to lay a piece out fresh, or after moving points stretched it. (Polygons that extrudes, bevels and other edits make get fitting UVs by themselves: see [UVs while you keep modelling](uvs-and-modelling.md).)
 - You often don't need to: **marking seams unwraps the pieces around them at once** (the switch **UV → Unwrap as seams change**, on as standard).
 - **Relax** evens out UVs you've pulled about by hand, or a piece that stretches.
 - **Straighten** lays a piece made of quads out as a perfectly straight grid: the cleanest result for strips and panels in hard-surface work.
@@ -63,6 +63,7 @@ No keys of their own; ask if you'd like some.
 ## Related
 
 - [Seams](seams.md)
+- [UVs while you keep modelling](uvs-and-modelling.md)
 - [Texture size and texel density](texture-and-density.md)
 - [Checker and Stretch views](checker-and-stretch.md): see where to Relax or add seams
 - [The UV Editor and the UV mode](uv-editor.md)

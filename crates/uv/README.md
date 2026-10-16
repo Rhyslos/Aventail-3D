@@ -30,4 +30,12 @@ Turns a mesh's surface into flat UV islands and arranges them in the texture squ
 
 - **Stretch** (`stretch`, [decision 0102](../../docs/decisions/0102-checker-and-stretch.md)): `stretch_of` measures each polygon (`Stretch`: how unevenly it lies, how much room it gets against the shape's density, mirrored, no room), `off` (how far off, as a power of two) and `explain` (the problem and its fix in plain words); `SOME` (1.5) and `FAR` (2). Tests in the module.
 
+- **Mending** (`mend`, [decision 0104](../../docs/decisions/0104-uvs-that-survive-modelling.md)): `mend(before, after)` after a modelling edit. It finds the changed polygons with broken UVs (squashed, mirrored, `UNEVEN`, `SIZE_OFF`, judged against up to `NEARBY` polygons around them) and marks seams where changed, unbroken polygons meet with different UVs. It solves each cluster of broken polygons around the kept ones next to it (`unwrap::conformal_pinned`, the kept corners held; the kept group with the longest shared border, found by `kept_groups`' search that stops as soon as it can tell, others parted by seams). Clusters with nothing kept next to them, or still broken, go to `unwrap::lay_out` at the shape's usual density and are slid inside the square (`keep_inside`). Nothing past `MEND_UP_TO`. Tests in `mend/tests.rs` cover:
+  - extrude, inset, fill, bevel (edge and point) and loop cut;
+  - a hand-turned piece and a mirrored one;
+  - no UVs, and no seam marks;
+  - every tool on every primitive.
+
+  An ignored benchmark (`mend_benchmark`) is included.
+
 The basics every part of the app reads (UVs per corner, islands, seam marks, moving UVs) are in `mesh::uvs`, and the primitives' ready-made UVs in `mesh::primitives`.

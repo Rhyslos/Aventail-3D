@@ -278,13 +278,16 @@ fn bevelling_blends_corners_across_the_strip() {
     let before = mesh.clone();
     bevel_edges(&mut mesh, &[edge], shape);
     nothing_left_at_the_default(&mesh);
-    // The bevelled edge is gone, and its seam with it: no edge is a seam.
+    // The bevelled edge is gone; its seam moved to one border of the
+    // strip (decision 0104), so the pieces either side stay apart.
     let edges: Vec<EdgeKey> = mesh.topology().edges().collect();
-    assert!(
-        edges
-            .iter()
-            .all(|e| value(&mesh, "seam", AttributeElement::Edge(*e)) == Value::Bool(false))
-    );
+    let seams: Vec<&EdgeKey> = edges
+        .iter()
+        .filter(|e| value(&mesh, "seam", AttributeElement::Edge(**e)) == Value::Bool(true))
+        .collect();
+    assert_eq!(seams.len(), 1);
+    assert!(!seams.contains(&&edge));
+    assert_eq!(mesh.topology().edge_uses(*seams[0]).len(), 2);
     assert_eq!(mesh.face_count() - before.face_count(), 2, "two rows");
 }
 
