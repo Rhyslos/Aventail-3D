@@ -118,7 +118,10 @@ fn unwrap_lays_a_turned_plane_straight_again_as_one_step() {
     assert!(lined_up(&shape(&harness)));
     assert!(matches!(
         last_operation(&harness),
-        Some(scene::Operation::Unwrap { strips: true, .. })
+        Some(scene::Operation::Unwrap {
+            options: scene::UnwrapOptions { strips: true, .. },
+            ..
+        })
     ));
     assert!(note(&harness).contains("Ctrl + Z"));
 }
@@ -217,10 +220,15 @@ fn the_uv_menu_has_the_tools_and_remembered_switches() {
     plane(&mut harness);
     main_menu(&harness, "UV").click();
     harness.run();
+    for label in ["Unwrap", "Relax", "Straighten"] {
+        assert!(harness.query_by_label(label).is_some(), "{label}");
+    }
+    // The switches are in UV → Unwrapping (decision 0110).
+    harness
+        .get_by_label_contains(super::automation::UNWRAP_SETTINGS_LABEL)
+        .hover();
+    harness.run();
     for label in [
-        "Unwrap",
-        "Relax",
-        "Straighten",
         super::unwrapping::LIVE_UNWRAP_LABEL,
         super::unwrapping::STRAIGHT_STRIPS_LABEL,
     ] {

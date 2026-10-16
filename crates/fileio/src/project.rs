@@ -48,6 +48,7 @@ mod v31;
 mod v32;
 mod v33;
 mod v34;
+mod v35;
 mod v4;
 mod v5;
 mod v6;
@@ -63,7 +64,7 @@ use std::path::{Path, PathBuf};
 /// The signature every project file starts with.
 pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// The format version this app writes.
-pub const FORMAT_VERSION: u32 = 34;
+pub const FORMAT_VERSION: u32 = 35;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -165,8 +166,9 @@ fn edit_counts(document: &Document) -> usize {
 
 /// The project file's bytes for `document`, unchecked.
 fn encode(document: &Document) -> Result<Vec<u8>, ProjectError> {
-    let model = v33::ProjectV33::<v34::EntryV34>::from_document(document);
+    let model = v35::ProjectV35::<v35::EntryV35>::from_document(document);
     let stored: usize = model
+        .project
         .project
         .project
         .project
@@ -274,7 +276,8 @@ pub fn from_bytes(bytes: &[u8]) -> Result<Document, ProjectError> {
         31 => decode_texture::<v31::EntryV31>(encoded),
         32 => decode_texture::<v32::EntryV32>(encoded),
         33 => decode_trim::<v33::EntryV33>(encoded),
-        _ => decode_trim::<v34::EntryV34>(encoded),
+        34 => decode_trim::<v34::EntryV34>(encoded),
+        _ => decode_mending::<v35::EntryV35>(encoded),
     }
 }
 
@@ -452,6 +455,35 @@ where
         ));
     }
     model
+        .project
+        .project
+        .project
+        .project
+        .project
+        .project
+        .places
+        .project
+        .project
+        .check_limits()
+        .map_err(ProjectError::Damaged)?;
+    model.into_document().map_err(ProjectError::Damaged)
+}
+
+/// Reads version 35 and later: version 33's model with edits stored as
+/// `E`, and the mending settings.
+fn decode_mending<E>(encoded: &[u8]) -> Result<Document, ProjectError>
+where
+    E: v1::FileOperation + serde::de::DeserializeOwned,
+{
+    let (model, rest): (v35::ProjectV35<E>, &[u8]) =
+        crate::limits::within_budget(|| postcard::take_from_bytes(encoded)).map_err(unreadable)?;
+    if !rest.is_empty() {
+        return Err(ProjectError::Damaged(
+            "there is unexpected data after the scene".into(),
+        ));
+    }
+    model
+        .project
         .project
         .project
         .project

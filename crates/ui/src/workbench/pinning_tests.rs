@@ -138,9 +138,9 @@ fn pinned_points_stay_put_when_unwrapping_every_way() {
         let before = spots(&harness);
         run(&mut harness, CommandId::Unwrap);
         match last_operation(&harness, id) {
-            Some(scene::Operation::Unwrap { method, only, .. }) => {
-                assert_eq!(method, way.method());
-                assert_eq!(only, None);
+            Some(scene::Operation::Unwrap { options, .. }) => {
+                assert_eq!(options.method, way.method());
+                assert_eq!(options.only, None);
             }
             other => panic!("{other:?}"),
         }
@@ -158,7 +158,7 @@ fn the_uv_menu_offers_methods_one_way_unfolds_and_pins() {
     harness.run();
     assert!(
         harness
-            .query_by_label_contains(super::unwrapping::METHOD_LABEL)
+            .query_by_label_contains(super::automation::UNWRAP_SETTINGS_LABEL)
             .is_some()
     );
     for label in [
@@ -170,7 +170,7 @@ fn the_uv_menu_offers_methods_one_way_unfolds_and_pins() {
         assert!(harness.query_by_label(label).is_some(), "{label}");
     }
     harness
-        .get_by_label_contains(super::unwrapping::METHOD_LABEL)
+        .get_by_label_contains(super::automation::UNWRAP_SETTINGS_LABEL)
         .hover();
     harness.run();
     for way in UnwrapWay::ALL {
@@ -192,8 +192,11 @@ fn the_uv_menu_offers_methods_one_way_unfolds_and_pins() {
     assert!(matches!(
         last_operation(&harness, id),
         Some(scene::Operation::Unwrap {
-            method: scene::UnwrapMethod::SizeKeeping,
-            only: Some(scene::UnfoldAxis::Across),
+            options: scene::UnwrapOptions {
+                method: scene::UnwrapMethod::SizeKeeping,
+                only: Some(scene::UnfoldAxis::Across),
+                ..
+            },
             ..
         })
     ));

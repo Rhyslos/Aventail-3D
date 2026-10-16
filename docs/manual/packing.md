@@ -26,7 +26,7 @@ Pack last, once seams and unwrapping are done: changing seams afterwards unwraps
 
 ## Settings
 
-In **UV → Packing** (remembered between sessions):
+In **UV → Packing**, in the menu's settings section (remembered between sessions):
 
 | Setting | What it does |
 |---|---|
@@ -35,6 +35,7 @@ In **UV → Packing** (remembered between sessions):
 | **Stack identical pieces** | Off (standard). On: identical pieces share pixels. |
 | **A texture per material** | On (standard): each material packs into its own square. |
 | **A texture per object** | Off (standard). On: each object packs into its own square. |
+| **Fit** | How finely pieces are fitted together. **Standard**: on a grid as fine as half the padding. **Fast**: a coarser grid, quicker, a little looser. **Best**: the finest grid, the tightest fit, slowest. The same pieces and settings always pack exactly the same way. |
 
 The texture size the padding is measured in is in the UV Editor's **Texture** menu ([Texture size and texel density](texture-and-density.md)).
 

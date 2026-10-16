@@ -47,12 +47,48 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
 pub const MEND_UP_TO: usize = 20_000;
 
 /// From how many times more stretched one way than the other a polygon
-/// the edit changed counts as broken.
-const UNEVEN: f32 = 3.0;
+/// the edit changed counts as broken: the standard for
+/// [`MendOptions::uneven`].
+pub const UNEVEN: f32 = 3.0;
 
 /// From how many times bigger or smaller (in length) than the polygons
-/// around it a polygon the edit changed counts as broken.
-const SIZE_OFF: f32 = 3.0;
+/// around it a polygon the edit changed counts as broken: the standard
+/// for [`MendOptions::size_off`].
+pub const SIZE_OFF: f32 = 3.0;
+
+/// The range both of [`MendOptions`]'s limits may take.
+pub const LIMITS: std::ops::RangeInclusive<f32> = 1.5..=20.0;
+
+/// How mending works, for the whole project
+/// ([decision 0110](../../../docs/decisions/0110-controllable-automation.md)).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct MendOptions {
+    /// Whether edits mend the UVs they break at all.
+    pub on: bool,
+    /// From how many times more stretched one way than the other a changed
+    /// polygon counts as broken.
+    pub uneven: f32,
+    /// From how many times bigger or smaller than the polygons around it a
+    /// changed polygon counts as broken.
+    pub size_off: f32,
+}
+
+impl Default for MendOptions {
+    fn default() -> Self {
+        Self {
+            on: true,
+            uneven: UNEVEN,
+            size_off: SIZE_OFF,
+        }
+    }
+}
+
+impl MendOptions {
+    /// Whether both limits are real and in [`LIMITS`].
+    pub fn is_real(&self) -> bool {
+        LIMITS.contains(&self.uneven) && LIMITS.contains(&self.size_off)
+    }
+}
 
 /// How many polygons around a cluster of changed ones are measured to tell
 /// their usual room and facing.
@@ -213,7 +249,12 @@ impl Shape<'_> {
 
 /// The polygons of `changed` whose UVs are broken (see the module notes),
 /// each judged against the polygons around it.
-fn broken_among(shape: &Shape, changed: &BTreeSet<FaceId>) -> BTreeSet<FaceId> {
+fn broken_among(
+    shape: &Shape,
+    changed: &BTreeSet<FaceId>,
+    options: &MendOptions,
+) -> BTreeSet<FaceId> {
+    let (uneven, size_off) = (options.uneven, options.size_off);
     // Below this a polygon has no room at all.
     let none = shape.usual_room() * 1e-3;
     let mut broken = BTreeSet::new();
@@ -243,8 +284,8 @@ fn broken_among(shape: &Shape, changed: &BTreeSet<FaceId>) -> BTreeSet<FaceId> {
                 continue;
             }
             let empty = l.room <= none || none <= 0.0;
-            let off_size = usual.is_some_and(|u| l.room > u * SIZE_OFF || l.room * SIZE_OFF < u);
-            if empty || off_size || l.uneven >= UNEVEN || l.mirrored != mostly_mirrored {
+            let off_size = usual.is_some_and(|u| l.room > u * size_off || l.room * size_off < u);
+            if empty || off_size || l.uneven >= uneven || l.mirrored != mostly_mirrored {
                 broken.insert(*f);
             }
         }
@@ -479,6 +520,15 @@ fn solve_around(
 /// `mesh` after it. Returns how many polygons were laid out again. A shape
 /// without UVs, or whose polygons the edit didn't change, is left alone.
 pub fn mend(before: &Mesh, mesh: &mut Mesh) -> usize {
+    mend_with(before, mesh, &MendOptions::default())
+}
+
+/// [`mend`], as `options` say: nothing when mending is off, else with
+/// their limits for what counts as broken.
+pub fn mend_with(before: &Mesh, mesh: &mut Mesh, options: &MendOptions) -> usize {
+    if !options.on {
+        return 0;
+    }
     let Some(uvs) = Uvs::of(mesh) else {
         return 0;
     };
@@ -496,7 +546,7 @@ pub fn mend(before: &Mesh, mesh: &mut Mesh) -> usize {
         uvs: &uvs,
         cuts: &cuts,
     };
-    let broken = broken_among(&shape, &changed);
+    let broken = broken_among(&shape, &changed, options);
     if broken.is_empty() || broken.len() > MEND_UP_TO {
         return 0;
     }
@@ -566,7 +616,7 @@ pub fn mend(before: &Mesh, mesh: &mut Mesh) -> usize {
         uvs: &now,
         cuts: &cuts,
     };
-    alone.extend(broken_among(&shape, &solved));
+    alone.extend(broken_among(&shape, &solved, options));
     if alone.is_empty() {
         return broken.len();
     }

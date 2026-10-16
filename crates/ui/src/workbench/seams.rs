@@ -229,7 +229,9 @@ impl Workbench {
         for (id, mesh) in self.own_shapes() {
             let hard = self.shown_hard_edges(&mesh);
             let suggested: BTreeSet<EdgeKey> =
-                uv::seams::suggest(&mesh, &hard).into_iter().collect();
+                uv::seams::suggest_with(&mesh, &hard, self.suggest_options())
+                    .into_iter()
+                    .collect();
             total += suggested.len();
             let now: BTreeSet<EdgeKey> = mesh::uvs::seams(&mesh).into_iter().collect();
             let clear: Vec<EdgeKey> = changing(&mesh, now.difference(&suggested).copied(), false);

@@ -32,6 +32,9 @@ pub mod stretch;
 pub mod trim;
 pub mod unwrap;
 
+#[cfg(test)]
+mod automation_tests;
 pub use mend::mend;
 pub use methods::UnwrapMethod;
+pub use seams::{HideSeams, SuggestOptions};
 pub use unwrap::{UnfoldAxis, UnwrapOptions, relax, straighten, unwrap, unwrap_with};

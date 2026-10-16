@@ -318,12 +318,9 @@ pub enum Operation {
     Unwrap {
         /// Polygons of the pieces to unwrap.
         faces: Vec<FaceId>,
-        /// Whether strips of square quads come out as straight grids.
-        strips: bool,
-        /// The way pieces are laid flat.
-        method: uv::UnwrapMethod,
-        /// Unfold one way only (`None`: both ways).
-        only: Option<uv::UnfoldAxis>,
+        /// Every choice the unwrap makes (decisions 0109 and 0110), so it
+        /// replays the same however the app's settings change.
+        options: uv::UnwrapOptions,
         /// Where the polygons were, to find them again (decision 0032).
         anchors: Option<Anchors>,
     },
@@ -370,6 +367,9 @@ pub enum Operation {
     RelaxUvs {
         /// The polygons whose corners move.
         faces: Vec<FaceId>,
+        /// How many steps of evening out (decision 0110; the standard is
+        /// `uv::unwrap::RELAX_STEPS`).
+        steps: u32,
         /// Where the polygons were, to find them again.
         anchors: Option<Anchors>,
     },
@@ -1063,10 +1063,10 @@ impl Operation {
             | Self::SetHardEdges { .. }
             | Self::SetSeams { .. }
             | Self::SetUvPins { .. }
-            | Self::Unwrap { .. }
             | Self::StraightenUvs { .. }
-            | Self::RelaxUvs { .. }
             | Self::FixFacing => true,
+            Self::Unwrap { options, .. } => options.is_real(),
+            Self::RelaxUvs { steps, .. } => *steps <= uv::unwrap::MAX_RELAX_STEPS,
             Self::SetTexelDensity { density, .. } => density.is_finite() && *density > 0.0,
             Self::PlaceOnTrim { bottom, top, .. } => {
                 bottom.is_finite()
@@ -1264,12 +1264,14 @@ impl Operation {
 
     /// Applies the operation to `mesh`, then mends the UVs it left without
     /// room (see [`Self::mends_uvs`]).
-    fn apply(&self, mesh: &mut Mesh) -> Applied {
-        let before = (self.mends_uvs() && mesh.attribute_values(mesh::attributes::UV).is_some())
-            .then(|| mesh.clone());
-        let applied = self.apply_plain(mesh);
+    fn apply(&self, mesh: &mut Mesh, context: &EvalContext) -> Applied {
+        let before = (self.mends_uvs()
+            && context.mending.on
+            && mesh.attribute_values(mesh::attributes::UV).is_some())
+        .then(|| mesh.clone());
+        let applied = self.apply_plain(mesh, context);
         if let Some(before) = before {
-            uv::mend(&before, mesh);
+            uv::mend::mend_with(&before, mesh, &context.mending);
         }
         applied
     }
@@ -1278,18 +1280,18 @@ impl Operation {
     /// the shape has the structure the edit was made on (decision 0044), or
     /// its anchored places still fit. Otherwise (a primitive given more
     /// segments, say) its elements are found again by their anchors.
-    fn apply_plain(&self, mesh: &mut Mesh) -> Applied {
+    fn apply_plain(&self, mesh: &mut Mesh, context: &EvalContext) -> Applied {
         // With symmetry: on both sides, together or as copies.
         if let Self::Mirrored { op, mirror } = self {
             // Clipping needs the points as they were, to keep them on
             // their side.
             let before = mirror.clip.then(|| mesh.clone());
             let applied = match crate::mirroring::both_sides(op, mesh, mirror) {
-                crate::mirroring::Both::Together(all) => all.apply(mesh),
+                crate::mirroring::Both::Together(all) => all.apply(mesh, context),
                 crate::mirroring::Both::Copies(copies) => {
-                    let mut applied = op.apply(mesh);
+                    let mut applied = op.apply(mesh, context);
                     for copy in copies {
-                        let more = copy.apply(mesh);
+                        let more = copy.apply(mesh, context);
                         applied.missing += more.missing;
                         applied.found_again |= more.found_again;
                         applied.too_big |= more.too_big;
@@ -1621,22 +1623,11 @@ impl Operation {
                 };
                 mesh::uvs::set_pins(mesh, &faces, &points, *pin)
             }
-            Self::Unwrap {
-                faces,
-                strips,
-                method,
-                only,
-                ..
-            } => {
+            Self::Unwrap { faces, options, .. } => {
                 let faces = refound
                     .as_ref()
                     .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
-                let options = uv::UnwrapOptions {
-                    strips: *strips,
-                    method: *method,
-                    only: *only,
-                };
-                uv::unwrap_with(mesh, &faces, options)
+                uv::unwrap_with(mesh, &faces, *options)
             }
             Self::StraightenUvs { faces, .. } => {
                 let faces = refound
@@ -1644,11 +1635,15 @@ impl Operation {
                     .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
                 uv::straighten(mesh, &faces)
             }
-            Self::RelaxUvs { faces, .. } => {
+            Self::RelaxUvs { faces, steps, .. } => {
                 let faces = refound
                     .as_ref()
                     .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
-                uv::relax(mesh, &faces, uv::unwrap::RELAX_STEPS)
+                uv::relax(
+                    mesh,
+                    &faces,
+                    (*steps).min(uv::unwrap::MAX_RELAX_STEPS) as usize,
+                )
             }
             Self::PackUvs { islands } => uv::pack::place(mesh, islands),
             Self::SetTexelDensity { faces, density, .. } => {
@@ -2032,15 +2027,23 @@ impl LayerChange {
 /// The shape `stack` gives on `base`, worked out from scratch (not
 /// cached): for freezing part of a stack (decision 0092). `None` for a
 /// kind without a shape.
-pub(crate) fn evaluate_once(base: &ObjectKind, stack: &Stack) -> Option<Evaluated> {
-    StackCache::default().evaluate(ObjectId::from_raw(0), base, stack, &EvalContext::default())
+pub(crate) fn evaluate_once(
+    base: &ObjectKind,
+    stack: &Stack,
+    context: &EvalContext,
+) -> Option<Evaluated> {
+    StackCache::default().evaluate(ObjectId::from_raw(0), base, stack, context)
 }
 
-/// What evaluation can depend on besides the object itself. Empty for
-/// now; a point in time joins it with animation, without every function
-/// that evaluates having to change (DESIGN.md §4.5).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct EvalContext {}
+/// What evaluation can depend on besides the object itself: the project's
+/// mending settings (decision 0110). A point in time joins it with
+/// animation, without every function that evaluates having to change
+/// (DESIGN.md §4.5).
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct EvalContext {
+    /// How edits mend the UVs they break.
+    pub mending: crate::MendOptions,
+}
 
 /// A recorded operation that no longer fully matches the shape under it:
 /// some of the elements it names are gone (a cube was given fewer
@@ -2106,6 +2109,7 @@ fn apply_from(
     entries: &[Entry],
     from: usize,
     warnings: &mut Vec<StackWarning>,
+    context: &EvalContext,
 ) -> (Arc<Mesh>, Option<Arc<Mesh>>) {
     if from >= entries.len() {
         return (Arc::clone(start), None);
@@ -2123,7 +2127,7 @@ fn apply_from(
         }
         // The elements it makes are named after it (decision 0090).
         mesh.begin_naming(entry.id.get());
-        let applied = entry.operation.apply(&mut mesh);
+        let applied = entry.operation.apply(&mut mesh, context);
         mesh.end_naming();
         if applied.missing > 0 || applied.found_again || applied.too_big {
             warnings.push(StackWarning {
@@ -2146,6 +2150,7 @@ fn evaluate_layer(
     index: usize,
     layer: &Layer,
     cached: Option<CachedLayer>,
+    context: &EvalContext,
 ) -> (CachedLayer, usize) {
     if !layer.enabled || layer.entries.is_empty() {
         let cached = CachedLayer {
@@ -2191,7 +2196,7 @@ fn evaluate_layer(
         }
         _ => (Arc::clone(below), 0, None, Vec::new()),
     };
-    let (mesh, previous) = apply_from(&start, index, &layer.entries, from, &mut warnings);
+    let (mesh, previous) = apply_from(&start, index, &layer.entries, from, &mut warnings, context);
     let applied = layer.entries.len() - from;
     // Nothing new applied: the checkpoint is still the one it had, if the
     // layer is as long as before (after an undo it isn't known).
@@ -2221,13 +2226,14 @@ fn evaluate_layers(
     from: usize,
     mut first: Option<CachedLayer>,
     out: &mut Vec<CachedLayer>,
+    context: &EvalContext,
 ) -> usize {
     let mut below = out
         .last()
         .map_or_else(|| Arc::clone(input), |l| Arc::clone(&l.mesh));
     let mut applied = 0;
     for (index, layer) in layers.iter().enumerate().skip(from) {
-        let (cached, count) = evaluate_layer(&below, index, layer, first.take());
+        let (cached, count) = evaluate_layer(&below, index, layer, first.take(), context);
         applied += count;
         below = Arc::clone(&cached.mesh);
         out.push(cached);
@@ -2264,6 +2270,8 @@ struct CachedLayer {
 #[derive(Debug, Clone)]
 struct CachedObject {
     base: ObjectKind,
+    /// What it was worked out with: a change works it all out again.
+    context: EvalContext,
     base_mesh: Arc<Mesh>,
     layers: Vec<CachedLayer>,
     last: Rebuilt,
@@ -2300,10 +2308,11 @@ impl StackCache {
         id: ObjectId,
         base: &ObjectKind,
         stack: &Stack,
-        _context: &EvalContext,
+        context: &EvalContext,
     ) -> Option<Evaluated> {
         if let Some(entry) = self.entries.get_mut(&id)
             && same_base(&entry.base, base)
+            && entry.context == *context
         {
             // The first layer that changed (or is new), if any.
             let first_changed = stack
@@ -2325,6 +2334,7 @@ impl StackCache {
                 first_changed,
                 old.next(),
                 &mut entry.layers,
+                context,
             );
             entry.last = Rebuilt::From {
                 layer: first_changed,
@@ -2334,9 +2344,10 @@ impl StackCache {
         }
         let base_mesh = base_mesh(base)?;
         let mut layers = Vec::new();
-        evaluate_layers(&base_mesh, &stack.layers, 0, None, &mut layers);
+        evaluate_layers(&base_mesh, &stack.layers, 0, None, &mut layers, context);
         let entry = CachedObject {
             base: base.clone(),
+            context: *context,
             base_mesh,
             layers,
             last: Rebuilt::Everything,
