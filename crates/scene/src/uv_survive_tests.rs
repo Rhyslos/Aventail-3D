@@ -170,3 +170,73 @@ fn moving_points_leaves_the_uvs_alone() {
     let moved = mesh_of(&doc, id);
     assert_eq!(uvs_of(&moved, &up), uvs_of(&cube, &up));
 }
+
+/// Whether some polygon of `mesh` has no room on the texture.
+fn some_without_room(mesh: &Mesh) -> bool {
+    uv::stretch::stretch_of(mesh)
+        .unwrap()
+        .iter()
+        .any(|(_, s)| s.empty)
+}
+
+#[test]
+fn mending_follows_the_projects_settings_and_undoes() {
+    let (mut doc, id) = with_a_cube();
+    let cube = mesh_of(&doc, id);
+    record(&mut doc, id, extrude_top(&cube, 50.0));
+    let mended = mesh_of(&doc, id);
+    all_have_room(&mended);
+    // Off: every shape is worked out again, the extrude's walls unmended.
+    let off = MendOptions {
+        on: false,
+        ..MendOptions::default()
+    };
+    doc.execute(Command::SetMending(off)).unwrap();
+    assert_eq!(doc.scene().mending(), off);
+    assert!(some_without_room(&mesh_of(&doc, id)));
+    // Undo brings mending back, and the mended UVs with it.
+    doc.undo().unwrap();
+    assert_eq!(doc.scene().mending(), MendOptions::default());
+    assert_eq!(mesh_of(&doc, id), mended);
+    doc.redo().unwrap();
+    assert!(some_without_room(&mesh_of(&doc, id)));
+    // Nonsense limits are refused; the same settings are no step.
+    let steps = doc.undo_steps();
+    for (uneven, size_off) in [(0.0, 3.0), (3.0, f32::NAN), (100.0, 3.0)] {
+        let bad = MendOptions {
+            on: true,
+            uneven,
+            size_off,
+        };
+        assert!(doc.execute(Command::SetMending(bad)).is_err());
+    }
+    doc.execute(Command::SetMending(off)).unwrap();
+    assert_eq!(doc.undo_steps(), steps);
+}
+
+#[test]
+fn stricter_limits_mend_at_least_as_much() {
+    // A side pulled out a long way: its UVs stretch. The standard limits
+    // may let it be; the strictest mend it.
+    let strict = MendOptions {
+        on: true,
+        uneven: *uv::mend::LIMITS.start(),
+        size_off: *uv::mend::LIMITS.start(),
+    };
+    let mut results = Vec::new();
+    for options in [MendOptions::default(), strict] {
+        let (mut doc, id) = with_a_cube();
+        doc.execute(Command::SetMending(options)).unwrap();
+        let cube = mesh_of(&doc, id);
+        record(&mut doc, id, extrude_top(&cube, 400.0));
+        let mesh = mesh_of(&doc, id);
+        all_have_room(&mesh);
+        let worst = uv::stretch::stretch_of(&mesh)
+            .unwrap()
+            .iter()
+            .map(|(_, s)| s.uneven)
+            .fold(1.0f32, f32::max);
+        results.push(worst);
+    }
+    assert!(results[1] <= results[0] + 1e-3, "{results:?}");
+}

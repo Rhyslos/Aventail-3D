@@ -32,7 +32,15 @@ It's part of each edit: **Ctrl + Z** takes back the edit and its UVs together. C
 
 ## Settings
 
-None. Only polygons an edit made or changed are touched, so nothing you did on purpose elsewhere changes. (Past 20,000 broken polygons in one edit, they're left for you to [Unwrap](unwrapping.md), so the edit isn't held up.)
+In **UV → Mending**, saved with the project (so everyone opening it sees the same UVs):
+
+| Setting | What it does |
+|---|---|
+| **Mend UVs after each edit** | On (standard): each modelling edit lays out again the UVs it broke. Off: edits leave UVs as they come out, for you to [Unwrap](unwrapping.md) when you're ready. |
+| **Mend when stretched** | A polygon an edit changed counts as broken when it's stretched this many times more one way than the other: 3× standard (1.5× to 20×). Lower mends more. |
+| **Mend when sized off** | A polygon an edit changed counts as broken when its texture is this many times bigger or smaller than its neighbours': 3× standard. Lower mends more. |
+
+Changing these is one undo step, and every shape in the project is worked out again with them. Only polygons an edit made or changed are touched, so nothing you did on purpose elsewhere changes. (Past 20,000 broken polygons in one edit, they're left for you to [Unwrap](unwrapping.md), so the edit isn't held up.)
 
 ## Shortcuts
 

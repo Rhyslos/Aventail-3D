@@ -54,23 +54,26 @@ fn faces(ids: Bounded<u32>) -> Vec<FaceId> {
 impl FileOperation for OperationV30 {
     fn to_file(op: &Operation) -> Option<Self> {
         Some(match op {
-            // Only the plain way: version 34 stores the others.
+            // Only the plain way: versions 34 and 35 store the others.
             Operation::Unwrap {
                 faces,
-                strips,
-                method: scene::UnwrapMethod::Conformal,
-                only: None,
+                options,
                 anchors,
-            } => Self::Unwrap {
+            } if options.is_plain() => Self::Unwrap {
                 faces: ids(faces),
-                strips: *strips,
+                strips: options.strips,
                 anchors: anchors.as_ref().map(anchors_to_file),
             },
             Operation::StraightenUvs { faces, anchors } => Self::StraightenUvs {
                 faces: ids(faces),
                 anchors: anchors.as_ref().map(anchors_to_file),
             },
-            Operation::RelaxUvs { faces, anchors } => Self::RelaxUvs {
+            // Only the standard steps: version 35 stores the others.
+            Operation::RelaxUvs {
+                faces,
+                steps,
+                anchors,
+            } if *steps as usize == scene::RELAX_STEPS => Self::RelaxUvs {
                 faces: ids(faces),
                 anchors: anchors.as_ref().map(anchors_to_file),
             },
@@ -87,9 +90,7 @@ impl FileOperation for OperationV30 {
                 anchors,
             } => Operation::Unwrap {
                 faces: faces(list),
-                strips,
-                method: scene::UnwrapMethod::Conformal,
-                only: None,
+                options: scene::UnwrapOptions::plain(strips),
                 anchors: anchors.map(anchors_from_file).transpose()?,
             },
             Self::StraightenUvs {
@@ -104,6 +105,7 @@ impl FileOperation for OperationV30 {
                 anchors,
             } => Operation::RelaxUvs {
                 faces: faces(list),
+                steps: scene::RELAX_STEPS as u32,
                 anchors: anchors.map(anchors_from_file).transpose()?,
             },
         })
@@ -120,16 +122,12 @@ mod tests {
         for op in [
             Operation::Unwrap {
                 faces: some.clone(),
-                strips: true,
-                method: scene::UnwrapMethod::Conformal,
-                only: None,
+                options: scene::UnwrapOptions::plain(true),
                 anchors: None,
             },
             Operation::Unwrap {
                 faces: some.clone(),
-                strips: false,
-                method: scene::UnwrapMethod::Conformal,
-                only: None,
+                options: scene::UnwrapOptions::plain(false),
                 anchors: None,
             },
             Operation::StraightenUvs {
@@ -138,6 +136,7 @@ mod tests {
             },
             Operation::RelaxUvs {
                 faces: some.clone(),
+                steps: scene::RELAX_STEPS as u32,
                 anchors: None,
             },
         ] {

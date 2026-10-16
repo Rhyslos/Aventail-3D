@@ -2124,12 +2124,6 @@ impl Workbench {
             self.run_command(command, ui.ctx(), requests);
             ui.close();
         }
-        ui.menu_button(unwrapping::METHOD_LABEL, |ui| {
-            for way in unwrapping::UnwrapWay::ALL {
-                ui.radio_value(&mut self.uv_settings.unwrap_method, way, way.name())
-                    .on_hover_text(way.help());
-            }
-        });
         for (label, help, axis) in [
             (
                 unwrapping::UNFOLD_ACROSS_LABEL,
@@ -2180,9 +2174,6 @@ impl Workbench {
         ui.menu_button("Texture", |ui| {
             crate::uv_editor::texture_menu(ui, &mut self.document);
         });
-        ui.menu_button("Packing", |ui| {
-            self.packing_menu(ui);
-        });
         ui.menu_button("Trim sheet", |ui| {
             crate::uv_editor::trim_menu(ui, &mut self.document);
         });
@@ -2191,16 +2182,7 @@ impl Workbench {
         });
         self.bake_entry(ui);
         ui.separator();
-        ui.checkbox(
-            &mut self.uv_settings.live_unwrap,
-            unwrapping::LIVE_UNWRAP_LABEL,
-        )
-        .on_hover_text(unwrapping::LIVE_UNWRAP_HELP);
-        ui.checkbox(
-            &mut self.uv_settings.straighten_strips,
-            unwrapping::STRAIGHT_STRIPS_LABEL,
-        )
-        .on_hover_text(unwrapping::STRAIGHT_STRIPS_HELP);
+        self.automation_menus(ui);
     }
 }
 
@@ -2396,6 +2378,9 @@ impl TabViewer for PanelViewer<'_> {
 
 #[cfg(test)]
 mod attribute_tests;
+mod automation;
+#[cfg(test)]
+mod automation_tests;
 mod baking;
 #[cfg(test)]
 mod baking_tests;

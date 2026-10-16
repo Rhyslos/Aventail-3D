@@ -15,8 +15,10 @@ use scene::{EdgeKey, ElementKind, FaceId, ObjectId, ObjectKind, Operation, Verte
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
-/// How UV tools behave, chosen in the UV menu and remembered.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+/// How UV tools behave, chosen in the UV menu and remembered. Every
+/// choice the automatic tools make is here (decision 0110), except
+/// mending, which is saved with the project.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UvSettings {
     /// Whether the pieces around changed seams are unwrapped again at
@@ -37,6 +39,130 @@ pub struct UvSettings {
     pub per_object: bool,
     /// The way Unwrap lays pieces flat (decision 0109).
     pub unwrap_method: UnwrapWay,
+    /// How far (degrees) a quad's corners may be from square for its
+    /// piece to unwrap as a straight strip.
+    pub strip_angle: f32,
+    /// Suggest seams: corners sharper than this (degrees) are cut.
+    pub seam_corner_angle: f32,
+    /// Suggest seams: whether hard edges are cut.
+    pub seam_hard_edges: bool,
+    /// Where the cuts that make pieces lie flat are hidden (Suggest seams
+    /// and Unwrap).
+    pub seam_hiding: SeamHiding,
+    /// How many steps Relax takes.
+    pub relax_steps: u32,
+    /// How finely Pack fits pieces.
+    pub pack_quality: PackQuality,
+}
+
+/// Where cuts that make pieces lie flat are hidden (decision 0110).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum SeamHiding {
+    /// Underneath and at the back: the standard.
+    #[default]
+    BelowAndBehind,
+    /// Underneath only.
+    Below,
+    /// At the back only.
+    Behind,
+    /// Nowhere in particular: the shortest cuts.
+    Shortest,
+}
+
+impl SeamHiding {
+    /// Every choice, in menu order.
+    pub const ALL: [Self; 4] = [
+        Self::BelowAndBehind,
+        Self::Below,
+        Self::Behind,
+        Self::Shortest,
+    ];
+
+    /// Its name in the menu.
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::BelowAndBehind => "Underneath and at the back",
+            Self::Below => "Underneath",
+            Self::Behind => "At the back",
+            Self::Shortest => "Anywhere (shortest cuts)",
+        }
+    }
+
+    /// What it does.
+    pub fn help(self) -> &'static str {
+        match self {
+            Self::BelowAndBehind => {
+                "Cuts go where a prop is least seen: facing down, or away from the Front view"
+            }
+            Self::Below => "Cuts go on the parts facing down, wherever they face round the sides",
+            Self::Behind => {
+                "Cuts go on the parts facing away from the Front view, top or bottom alike"
+            }
+            Self::Shortest => {
+                "Cuts are as short as can be, wherever they fall: for shapes seen from all round"
+            }
+        }
+    }
+
+    /// The `uv` crate's name for it.
+    pub(crate) fn hide(self) -> scene::HideSeams {
+        match self {
+            Self::BelowAndBehind => scene::HideSeams::BelowAndBehind,
+            Self::Below => scene::HideSeams::Below,
+            Self::Behind => scene::HideSeams::Behind,
+            Self::Shortest => scene::HideSeams::Shortest,
+        }
+    }
+}
+
+/// How finely Pack fits pieces (decision 0110).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum PackQuality {
+    /// A coarser grid: quick, a little looser.
+    Fast,
+    /// A grid as fine as half the padding (at most 512 cells across): the
+    /// standard.
+    #[default]
+    Standard,
+    /// The finest grid (1,024 cells across): the tightest fit, slowest.
+    Best,
+}
+
+impl PackQuality {
+    /// Every choice, in menu order.
+    pub const ALL: [Self; 3] = [Self::Fast, Self::Standard, Self::Best];
+
+    /// Its name in the menu.
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Fast => "Fast",
+            Self::Standard => "Standard",
+            Self::Best => "Best",
+        }
+    }
+
+    /// What it does.
+    pub fn help(self) -> &'static str {
+        match self {
+            Self::Fast => {
+                "Pieces are fitted on a coarse grid: quick, with a little more space lost"
+            }
+            Self::Standard => "Pieces are fitted on a grid as fine as half the padding",
+            Self::Best => "Pieces are fitted on the finest grid: the tightest fit, and the slowest",
+        }
+    }
+
+    /// How many cells across the packing grid is, for a texture of `size`
+    /// pixels with `padding` pixels between pieces.
+    pub(crate) fn cells(self, size: u32, padding: u32) -> usize {
+        let cell_px = (padding / 2).max(1);
+        let standard = (size / cell_px).clamp(128, 512) as usize;
+        match self {
+            Self::Fast => (standard / 2).max(64),
+            Self::Standard => standard,
+            Self::Best => uv::pack::MAX_CELLS,
+        }
+    }
 }
 
 /// The way Unwrap lays pieces flat, chosen in UV → Unwrap method and
@@ -120,6 +246,12 @@ impl Default for UvSettings {
             per_material: true,
             per_object: false,
             unwrap_method: UnwrapWay::KeepShapes,
+            strip_angle: uv::unwrap::SQUARE_WITHIN,
+            seam_corner_angle: uv::seams::CORNER_ANGLE,
+            seam_hard_edges: true,
+            seam_hiding: SeamHiding::BelowAndBehind,
+            relax_steps: uv::unwrap::RELAX_STEPS as u32,
+            pack_quality: PackQuality::Standard,
         }
     }
 }
@@ -162,8 +294,6 @@ pub(crate) const UNFOLD_ACROSS_HELP: &str = "Unwrap, but move the UVs only acros
 pub(crate) const UNFOLD_UP_LABEL: &str = "Unfold up only";
 pub(crate) const UNFOLD_UP_HELP: &str = "Unwrap, but move the UVs only up and down (V): every \
      point keeps its place across the texture";
-/// The UV menu's name for the unwrap method submenu.
-pub(crate) const METHOD_LABEL: &str = "Unwrap method";
 
 /// One of the UV tools.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -252,6 +382,29 @@ impl Workbench {
             .collect()
     }
 
+    /// Every choice an unwrap makes, from the UV settings, unfolding one
+    /// way when `only` says so.
+    pub(crate) fn unwrap_options(&self, only: Option<scene::UnfoldAxis>) -> scene::UnwrapOptions {
+        let s = &self.uv_settings;
+        scene::UnwrapOptions {
+            strips: s.straighten_strips,
+            strip_angle: s.strip_angle.clamp(0.0, uv::unwrap::MAX_STRIP_ANGLE),
+            method: s.unwrap_method.method(),
+            only,
+            hide: s.seam_hiding.hide(),
+        }
+    }
+
+    /// How Suggest seams works, from the UV settings.
+    pub(crate) fn suggest_options(&self) -> uv::SuggestOptions {
+        let s = &self.uv_settings;
+        uv::SuggestOptions {
+            corner_angle: s.seam_corner_angle.clamp(0.0, 180.0),
+            hard_edges: s.seam_hard_edges,
+            hide: s.seam_hiding.hide(),
+        }
+    }
+
     /// The operation `tool` makes on `faces` of `mesh`.
     pub(super) fn uv_tool_op(
         &self,
@@ -263,15 +416,20 @@ impl Workbench {
         match tool {
             UvTool::Unwrap | UvTool::Unfold(_) => Operation::Unwrap {
                 faces,
-                strips: self.uv_settings.straighten_strips,
-                method: self.uv_settings.unwrap_method.method(),
-                only: match tool {
+                options: self.unwrap_options(match tool {
                     UvTool::Unfold(axis) => Some(axis),
                     _ => None,
-                },
+                }),
                 anchors,
             },
-            UvTool::Relax => Operation::RelaxUvs { faces, anchors },
+            UvTool::Relax => Operation::RelaxUvs {
+                faces,
+                steps: self
+                    .uv_settings
+                    .relax_steps
+                    .clamp(1, uv::unwrap::MAX_RELAX_STEPS),
+                anchors,
+            },
             UvTool::Straighten => Operation::StraightenUvs { faces, anchors },
         }
     }
@@ -411,12 +569,11 @@ impl Workbench {
         let settings = self.uv_settings;
         let texture = self.document.scene().texture();
         let padding_px = settings.padding.min(MAX_PADDING);
-        let cell_px = (padding_px / 2).max(1);
         let options = uv::pack::PackOptions {
             padding: padding_px as f32 / texture.size as f32,
             rotate: settings.rotate,
             stack: settings.stack,
-            cells: (texture.size / cell_px).clamp(128, 512) as usize,
+            cells: settings.pack_quality.cells(texture.size, padding_px),
         };
         // Islands, grouped by the texture they go on.
         let mut groups: std::collections::BTreeMap<TextureGroup, Vec<(ObjectId, Vec<FaceId>)>> =
@@ -612,6 +769,8 @@ impl Workbench {
             );
         ui.checkbox(&mut s.per_object, "A texture per object")
             .on_hover_text("Each object's pieces fill a square of their own");
+        ui.separator();
+        self.pack_quality_entries(ui);
     }
 
     /// With live unwrapping on, the Unwrap that follows marking or clearing

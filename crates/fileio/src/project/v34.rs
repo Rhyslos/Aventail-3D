@@ -12,7 +12,7 @@ use super::v2::{AnchorsV2, anchors_from_file, anchors_to_file};
 use super::v5::EntryWith;
 use super::v33::OperationV33;
 use crate::limits::Bounded;
-use scene::{FaceId, Operation, UnfoldAxis, UnwrapMethod, VertexId};
+use scene::{FaceId, Operation, UnfoldAxis, UnwrapMethod, UnwrapOptions, VertexId};
 use serde::{Deserialize, Serialize};
 
 /// A recorded edit in version 34.
@@ -56,7 +56,7 @@ pub(crate) enum OperationV34 {
     },
 }
 
-fn method_to_file(method: UnwrapMethod) -> MethodV34 {
+pub(crate) fn method_to_file(method: UnwrapMethod) -> MethodV34 {
     match method {
         UnwrapMethod::Conformal => MethodV34::Conformal,
         UnwrapMethod::AngleBased => MethodV34::AngleBased,
@@ -65,7 +65,7 @@ fn method_to_file(method: UnwrapMethod) -> MethodV34 {
     }
 }
 
-fn method_from_file(method: MethodV34) -> UnwrapMethod {
+pub(crate) fn method_from_file(method: MethodV34) -> UnwrapMethod {
     match method {
         MethodV34::Conformal => UnwrapMethod::Conformal,
         MethodV34::AngleBased => UnwrapMethod::AngleBased,
@@ -74,14 +74,14 @@ fn method_from_file(method: MethodV34) -> UnwrapMethod {
     }
 }
 
-fn axis_to_file(axis: UnfoldAxis) -> AxisV34 {
+pub(crate) fn axis_to_file(axis: UnfoldAxis) -> AxisV34 {
     match axis {
         UnfoldAxis::Across => AxisV34::Across,
         UnfoldAxis::Up => AxisV34::Up,
     }
 }
 
-fn axis_from_file(axis: AxisV34) -> UnfoldAxis {
+pub(crate) fn axis_from_file(axis: AxisV34) -> UnfoldAxis {
     match axis {
         AxisV34::Across => UnfoldAxis::Across,
         AxisV34::Up => UnfoldAxis::Up,
@@ -102,19 +102,28 @@ impl FileOperation for OperationV34 {
                 pin: *pin,
                 anchors: anchors.as_ref().map(anchors_to_file),
             }),
+            // A way or one-way unfold, everything else standard: version
+            // 35 stores the rest.
             Operation::Unwrap {
                 faces,
-                strips,
-                method,
-                only,
+                options,
                 anchors,
-            } if *method != UnwrapMethod::Conformal || only.is_some() => Some(Self::Unwrap {
-                faces: faces.iter().map(|f| f.get()).collect(),
-                strips: *strips,
-                method: method_to_file(*method),
-                only: only.map(axis_to_file),
-                anchors: anchors.as_ref().map(anchors_to_file),
-            }),
+            } if !options.is_plain()
+                && *options
+                    == (UnwrapOptions {
+                        method: options.method,
+                        only: options.only,
+                        ..UnwrapOptions::plain(options.strips)
+                    }) =>
+            {
+                Some(Self::Unwrap {
+                    faces: faces.iter().map(|f| f.get()).collect(),
+                    strips: options.strips,
+                    method: method_to_file(options.method),
+                    only: options.only.map(axis_to_file),
+                    anchors: anchors.as_ref().map(anchors_to_file),
+                })
+            }
             _ => Some(Self::V33(OperationV33::to_file(op)?)),
         }
     }
@@ -141,9 +150,11 @@ impl FileOperation for OperationV34 {
                 anchors,
             } => Operation::Unwrap {
                 faces: faces.into_iter().map(FaceId::from_raw).collect(),
-                strips,
-                method: method_from_file(method),
-                only: only.map(axis_from_file),
+                options: UnwrapOptions {
+                    method: method_from_file(method),
+                    only: only.map(axis_from_file),
+                    ..UnwrapOptions::plain(strips)
+                },
                 anchors: anchors.map(anchors_from_file).transpose()?,
             },
         })
@@ -179,9 +190,11 @@ mod tests {
                 }
                 ops.push(Operation::Unwrap {
                     faces: some.clone(),
-                    strips: true,
-                    method,
-                    only,
+                    options: UnwrapOptions {
+                        method,
+                        only,
+                        ..UnwrapOptions::plain(true)
+                    },
                     anchors: None,
                 });
             }
@@ -198,9 +211,7 @@ mod tests {
     fn a_plain_unwrap_is_stored_the_old_way() {
         let op = Operation::Unwrap {
             faces: vec![FaceId::from_raw(1)],
-            strips: false,
-            method: UnwrapMethod::Conformal,
-            only: None,
+            options: UnwrapOptions::plain(false),
             anchors: None,
         };
         let file = OperationV34::to_file(&op).unwrap();

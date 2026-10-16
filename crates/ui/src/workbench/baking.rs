@@ -794,7 +794,7 @@ impl Workbench {
             Fix::Record(ops) => ops,
             Fix::FirstUvs => {
                 let hard = self.shown_hard_edges(mesh);
-                let seams = uv::seams::suggest(mesh, &hard);
+                let seams = uv::seams::suggest_with(mesh, &hard, self.suggest_options());
                 let mut ops = Vec::new();
                 if !seams.is_empty() {
                     ops.push(super::seams::seams_op(mesh, seams, true));

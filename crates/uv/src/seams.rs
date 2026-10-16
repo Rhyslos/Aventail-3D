@@ -22,6 +22,12 @@
 //! "Hidden" means facing down or to the back (away from the Front view),
 //! in a concave corner, or on a corner rather than across a flat stretch:
 //! the places a viewer least looks at.
+//!
+//! Every choice is the user's to change ([`SuggestOptions`], [decision
+//! 0110](../../../docs/decisions/0110-controllable-automation.md)): the
+//! corner angle, whether hard edges are cut, and where cuts hide
+//! ([`HideSeams`]). The same shape and options always give the same
+//! seams: every tie is settled by element ids, never by chance.
 
 use crate::chart::Sets;
 use glam::Vec3;
@@ -31,8 +37,55 @@ use std::collections::{BTreeMap, BTreeSet, BinaryHeap, HashMap};
 
 /// Corners sharper than this (degrees between the two polygons' facings)
 /// are cut as well as hard edges: a piece bent further than this round
-/// one edge stretches badly when laid flat.
+/// one edge stretches badly when laid flat. The standard for
+/// [`SuggestOptions::corner_angle`].
 pub const CORNER_ANGLE: f32 = 66.0;
+
+/// Where cuts that only make a piece lie flat are hidden.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum HideSeams {
+    /// Underneath and at the back (away from the Front view): where a
+    /// prop is least seen. The standard.
+    #[default]
+    BelowAndBehind,
+    /// Underneath only.
+    Below,
+    /// At the back only.
+    Behind,
+    /// Nowhere in particular: the shortest cuts.
+    Shortest,
+}
+
+impl HideSeams {
+    /// Every choice, in the order offered.
+    pub const ALL: [Self; 4] = [
+        Self::BelowAndBehind,
+        Self::Below,
+        Self::Behind,
+        Self::Shortest,
+    ];
+}
+
+/// How [`suggest_with`] picks seams.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct SuggestOptions {
+    /// Corners sharper than this (degrees) are cut; 180 cuts none.
+    pub corner_angle: f32,
+    /// Whether hard edges are cut.
+    pub hard_edges: bool,
+    /// Where the cuts that make pieces lie flat are hidden.
+    pub hide: HideSeams,
+}
+
+impl Default for SuggestOptions {
+    fn default() -> Self {
+        Self {
+            corner_angle: CORNER_ANGLE,
+            hard_edges: true,
+            hide: HideSeams::BelowAndBehind,
+        }
+    }
+}
 
 /// The edges shared by exactly two polygons: the only edges a seam can be
 /// on (an open edge is cut already; an edge of three or more polygons
@@ -170,27 +223,36 @@ fn middle(mesh: &Mesh, f: FaceId) -> Vec3 {
 /// How much `edge` is seen: higher for edges facing up or to the front,
 /// across flat stretches and on outward corners; lower facing down or to
 /// the back (+Y, away from the Front view), in concave corners and on
-/// sharp ones. Cuts go where this is low.
-fn visibility(mesh: &Mesh, edge: EdgeKey) -> f32 {
+/// sharp ones, as `hide` weighs them. Cuts go where this is low.
+fn visibility(mesh: &Mesh, edge: EdgeKey, hide: HideSeams) -> f32 {
     let Some((f, g)) = sides(mesh, edge) else {
         return 0.0;
     };
+    if hide == HideSeams::Shortest {
+        return 2.0;
+    }
     let (nf, ng) = (mesh.face_normal(f), mesh.face_normal(g));
     let facing = (nf + ng).normalize_or_zero();
     let flat = nf.dot(ng).clamp(-1.0, 1.0);
     let concave = nf.dot(middle(mesh, g) - middle(mesh, f)) > 1e-6;
     // The front view looks along +Y: the back faces +Y.
-    2.0 + facing.z - 0.5 * facing.y + 0.5 * flat - if concave { 1.0 } else { 0.0 }
+    let (up, back) = match hide {
+        HideSeams::BelowAndBehind => (1.0, 0.5),
+        HideSeams::Below => (1.0, 0.0),
+        HideSeams::Behind => (0.0, 1.0),
+        HideSeams::Shortest => (0.0, 0.0),
+    };
+    2.0 + up * facing.z - back * facing.y + 0.5 * flat - if concave { 1.0 } else { 0.0 }
 }
 
 /// A path's cost along `edge`: its length, more where it is seen.
-fn path_cost(mesh: &Mesh, edge: EdgeKey) -> f32 {
+fn path_cost(mesh: &Mesh, edge: EdgeKey, hide: HideSeams) -> f32 {
     let (a, b) = edge.ends();
     let length = match (mesh.position(a), mesh.position(b)) {
         (Some(p), Some(q)) => p.distance(q),
         _ => 1.0,
     };
-    length.max(1e-6) * (visibility(mesh, edge) + 2.0).max(0.1)
+    length.max(1e-6) * (visibility(mesh, edge, hide) + 2.0).max(0.1)
 }
 
 /// An entry of the path search's queue (smallest cost first).
@@ -212,11 +274,17 @@ impl Ord for Step {
 }
 
 /// The cheapest path from `from` to `to` along `edges`, as edges.
-fn hidden_path(mesh: &Mesh, edges: &[EdgeKey], from: VertexId, to: VertexId) -> Vec<EdgeKey> {
+fn hidden_path(
+    mesh: &Mesh,
+    edges: &[EdgeKey],
+    from: VertexId,
+    to: VertexId,
+    hide: HideSeams,
+) -> Vec<EdgeKey> {
     let mut next: HashMap<VertexId, Vec<(VertexId, EdgeKey, f32)>> = HashMap::new();
     for e in edges {
         let (a, b) = e.ends();
-        let cost = path_cost(mesh, *e);
+        let cost = path_cost(mesh, *e, hide);
         next.entry(a).or_default().push((b, *e, cost));
         next.entry(b).or_default().push((a, *e, cost));
     }
@@ -254,11 +322,13 @@ fn hidden_path(mesh: &Mesh, edges: &[EdgeKey], from: VertexId, to: VertexId) -> 
 /// The cuts that make `piece` a disk, given what is cut already: none for
 /// a disk; for a piece with no border, a hidden path from its lowest
 /// point to its highest first; then what a spanning tree of its polygons
-/// (most visible edges kept joined) leaves, trimmed back.
+/// (most visible edges kept joined) leaves, trimmed back. Hidden as
+/// `hide` says.
 pub(crate) fn disk_cuts(
     mesh: &Mesh,
     piece: &[FaceId],
     cuts: &BTreeSet<EdgeKey>,
+    hide: HideSeams,
 ) -> BTreeSet<EdgeKey> {
     let mut added = BTreeSet::new();
     if is_disk(mesh, piece, cuts) {
@@ -307,14 +377,15 @@ pub(crate) fn disk_cuts(
             .copied()
             .max_by(|a, b| height(a).total_cmp(&height(b)).then(b.cmp(a)));
         let mut path = match (low, high) {
-            (Some(l), Some(h)) if l != h => hidden_path(mesh, &joined, l, h),
+            (Some(l), Some(h)) if l != h => hidden_path(mesh, &joined, l, h, hide),
             _ => Vec::new(),
         };
         if path.is_empty()
-            && let Some(e) = joined
-                .iter()
-                .copied()
-                .min_by(|a, b| visibility(mesh, *a).total_cmp(&visibility(mesh, *b)))
+            && let Some(e) = joined.iter().copied().min_by(|a, b| {
+                visibility(mesh, *a, hide)
+                    .total_cmp(&visibility(mesh, *b, hide))
+                    .then(a.cmp(b))
+            })
         {
             path.push(e);
         }
@@ -326,8 +397,10 @@ pub(crate) fn disk_cuts(
     }
     // Keep the most visible edges joined: a spanning tree of the polygons.
     let slot: HashMap<FaceId, usize> = piece.iter().enumerate().map(|(i, f)| (*f, i)).collect();
-    let mut order: Vec<(f32, EdgeKey)> =
-        joined.iter().map(|e| (visibility(mesh, *e), *e)).collect();
+    let mut order: Vec<(f32, EdgeKey)> = joined
+        .iter()
+        .map(|e| (visibility(mesh, *e, hide), *e))
+        .collect();
     order.sort_by(|a, b| b.0.total_cmp(&a.0).then(a.1.cmp(&b.1)));
     let mut sets = Sets::new(piece.len());
     let mut open: BTreeSet<EdgeKey> = BTreeSet::new();
@@ -378,15 +451,28 @@ pub(crate) fn disk_cuts(
 /// sharper than [`CORNER_ANGLE`], then whatever each piece needs to lie
 /// flat, in hidden places. Inner edges only, in order.
 pub fn suggest(mesh: &Mesh, hard: &[EdgeKey]) -> Vec<EdgeKey> {
+    suggest_with(mesh, hard, SuggestOptions::default())
+}
+
+/// [`suggest`], as `options` say: hard edges cut or not, corners sharper
+/// than `options.corner_angle` cut (none at 180°), the rest hidden as
+/// `options.hide` says.
+pub fn suggest_with(mesh: &Mesh, hard: &[EdgeKey], options: SuggestOptions) -> Vec<EdgeKey> {
     let inner: BTreeSet<EdgeKey> = inner_edges(mesh).into_iter().collect();
+    let hard = if options.hard_edges { hard } else { &[] };
+    let corners = if options.corner_angle < 180.0 {
+        mesh::hardness::sharp_edges(mesh, options.corner_angle.max(0.0))
+    } else {
+        Vec::new()
+    };
     let mut cuts: BTreeSet<EdgeKey> = hard
         .iter()
         .copied()
-        .chain(mesh::hardness::sharp_edges(mesh, CORNER_ANGLE))
+        .chain(corners)
         .filter(|e| inner.contains(e))
         .collect();
     for piece in pieces(mesh, &cuts) {
-        let more = disk_cuts(mesh, &piece, &cuts);
+        let more = disk_cuts(mesh, &piece, &cuts, options.hide);
         cuts.extend(more);
     }
     cuts.into_iter().filter(|e| inner.contains(e)).collect()

@@ -29,7 +29,7 @@ Pinning a point pins it in every piece it touches at that spot: the UVs that sit
 
 ## Settings
 
-None of their own. The **Unwrap method** (UV menu) decides how the rest of the piece is laid out around the pins; see [Unwrap, Relax and Straighten](unwrapping.md#settings).
+None of their own. **UV → Unwrapping → Method** decides how the rest of the piece is laid out around the pins; see [Unwrap, Relax and Straighten](unwrapping.md#settings).
 
 ## Shortcuts
 
