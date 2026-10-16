@@ -222,6 +222,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-16 | View dice: click a face, edge or corner to look from there, Ctrl + click the opposite side; Ctrl while orbiting snaps to its views |
 | 2026-10-15 | Consistent triangulation and MikkTSpace tangents: exports cut polygons the viewport's way; glTF carries tangents for shapes with UVs |
 | 2026-10-15 | glTF export: binary `.glb`, each object at its pivot, the Export window's standard |
 | 2026-10-15 | Splash screen while the app starts: name, version and what it is doing. Every Phase 5 milestone built; the heavy-mesh check run for the gate |

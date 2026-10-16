@@ -1,6 +1,6 @@
 # 0066. Clickable corner axes, and Cavity beside Hard edges
 
-- **Status:** Accepted
+- **Status:** Replaced by [0084](0084-view-dice.md) for the clickable axes
 - **Date:** 2026-10-14
 - **Follows:** [0063](0063-wireframe.md) (the project lead's choice: swing to look along an axis, again for the other side), [0065](0065-cavity.md)
 

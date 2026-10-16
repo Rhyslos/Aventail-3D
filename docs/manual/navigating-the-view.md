@@ -28,17 +28,34 @@ The Alt + mouse moves work too, unless you switch them off (see [Settings](#sett
 
 **Framing: fit things in the view.** Press **H** (*frame all*) to fit the whole scene in the view, or **Z** (*frame selected*) to fit what you've selected. The view keeps looking the same way and glides forwards or back until everything fits, with a little room around it, so you never lose your bearings. Both are also in the **View** menus. With nothing selected, Z frames everything too. (Frame selected used to be **F**; F is [Loop cut](loop-cut.md) now.) Hidden objects are left out; with nothing shown at all, both go back to the middle of the scene. The keys work anywhere in the app, except while you're typing in a field.
 
-## Look along an axis
+## The view dice
 
-The small **X**, **Y** and **Z** arrows in the bottom-left corner of a view show which way the [axes](concepts.md#objects-and-scenes) point. In the perspective view, their round letters are buttons:
+The small cube in the bottom-left corner of each view is the **view dice**. It turns as the scene turns, so it always shows which way you're looking. Its faces are tinted in the [axis](concepts.md#objects-and-scenes) colours and named: **Top** and **Bottom** (Z), **Front** and **Back** (Y; the front is the −Y side, as the Front view sees it), **Right** and **Left** (X).
 
-- **Click a letter** and the view swings round to look straight along that axis, towards the point you're turning around, from that axis's side, at the same distance. **Z** looks straight down from above, **X** looks from the right (the +X side), and **Y** from the back (the +Y side).
-- **Click the same letter again** to look from the other side: Z again looks up from below.
-- Looking straight down or up, the view lines up like the Top view: X to the right, Y up the screen.
+Click any part of it and the view swings round to look from there, towards the point you're turning around, at the same distance:
 
-It's a quick way to check a shape square-on without switching to a flat view. You can orbit away again at once. Pointing at a letter rings it, so you know what you'll click. The letters work in flat views too, and the view stays flat: from the Top view, clicking X turns it into the Right view.
+- **A face** (the big middle of a side): straight on, like the Top or Front view, but you can keep orbiting.
+- **An edge** (the strips along a face's sides): from 45° between two faces, such as the front and the right.
+- **A corner** (the small squares in a face's corners): a three-quarter view from above or below, such as the top front right.
 
-![After clicking Z: the view looks straight down at a crate, with X to the right and Y up.](../screenshots/2026-10-14-look-along.png)
+That's 26 views in all, as on 3ds Max's view cube. Pointing at a part lights it up, on every face it shows on, and says which view it gives.
+
+- **Ctrl + click** looks from the **opposite** side: Ctrl + click the top for the bottom, the front right edge for the back left one.
+- **Looking straight at a face**, its neighbours can't be seen, so four small arrows appear around the dice: click one to roll the view to the face on that side.
+
+![Pointing at the dice's front face lights it up and tells you what a click does.](../screenshots/2026-10-16-view-dice.png)
+
+![Straight from the front: the arrows lead to the top, bottom, left and right faces.](../screenshots/2026-10-16-view-dice-front.png)
+
+The dice works in flat views too, and the view stays flat: from the Top view, the arrow to the right turns it into the Right view.
+
+### Snap while orbiting
+
+Hold **Ctrl** while you orbit (with whichever [controls](#navigation-controls) you use) and the view jumps to the nearest of the dice's 26 views and stays on it as you move, until the next one is nearer. Let go of Ctrl and you carry on turning freely from there. It's the quickest way to land exactly on a straight or 45° view without aiming for the dice. You can press and release Ctrl during the orbit as often as you like.
+
+### Flat when clicking the dice
+
+**Display → Switch to orthographic when clicking the dice** (off as standard) makes the view [orthographic](#orthographic-no-perspective-from-any-direction) whenever you click the dice or snap to it with Ctrl: flat, so edges line up and sizes read true. As soon as you orbit away freely, the view goes back to perspective by itself. A view you made orthographic yourself with **P** stays orthographic. Your choice is remembered.
 
 ## Views and the four-view layout
 
@@ -80,15 +97,16 @@ Whatever you pick, **a plain left drag never moves the view**: it's kept free fo
 
 ## Settings
 
-Every setting here is also in **Edit → Settings… → Viewport** (see [Settings](settings.md)), next to the app's other preferences.
+Every setting here except the dice's switch (in the viewport's **Display** menu) is also in **Edit → Settings… → Viewport** (see [Settings](settings.md)), next to the app's other preferences.
 
 | Setting | What it does |
 |---|---|
 | **Orbit and zoom around the point under the mouse** (in the controls list, or **Options**; on by standard) | Orbiting turns around, and zooming moves towards, whatever is under the mouse. Off: they work around the middle of the view, exactly as the app's original rotation did. |
 | **Alt + mouse works in every scheme** (in the controls list, on by standard) | Keeps the Alt + mouse moves working whichever controls you pick, unless those controls use the same keys for something else. Useful while you get used to new controls. |
 | **Invert orbit direction** (in the controls list, or **Options**) | Orbiting turns the other way: the model moves against your hand instead of with it. |
+| **Switch to orthographic when clicking the dice** (Display menu; off as standard) | Clicking the view dice, or snapping to it with Ctrl while orbiting, also makes the view orthographic; orbiting away freely makes it perspective again. Remembered next time. |
 | **Show the turning point while orbiting** (in the controls list, or **Options**; on by standard) | While you orbit, a small ring marks the point the view turns around (and, when zooming with a drag, the point it moves towards). Remembered next time. |
-| **Grid lines** (the grid button at the bottom of the left palette, **Display → Grid lines**, or **View → Grid lines** on the main menu bar) | Three levels. **Every 1 m** (standard): a line every metre, plus stronger 10 m lines further out, for a calm ground. **Every 50 cm (quarters)**: each metre square is cut into four by fainter lines, handy for halves and quarters of a metre. **Every 10 cm (fine)**: thin lines every 10 cm, for placing things precisely up close. Each click on the grid button moves to the next level, and from the finest back to the calmest; the menus let you pick one directly. The bottom-left corner of the view shows the spacing, above the axis arrows. Remembered next time. |
+| **Grid lines** (the grid button at the bottom of the left palette, **Display → Grid lines**, or **View → Grid lines** on the main menu bar) | Three levels. **Every 1 m** (standard): a line every metre, plus stronger 10 m lines further out, for a calm ground. **Every 50 cm (quarters)**: each metre square is cut into four by fainter lines, handy for halves and quarters of a metre. **Every 10 cm (fine)**: thin lines every 10 cm, for placing things precisely up close. Each click on the grid button moves to the next level, and from the finest back to the calmest; the menus let you pick one directly. The bottom-left corner of the view shows the spacing, above the view dice. Remembered next time. |
 | **Display → Hard edges**, **Display → Normals** | Mark hard edges in light cyan while editing points, edges or polygons (on by standard), and show which way each polygon of the selected objects faces. See [Hard and soft edges](hard-and-soft-edges.md#seeing-them). Remembered next time. |
 | **View → Frame all** (`H`), **Frame selected** (`Z`) | Fit everything shown, or the selected objects, in the view, keeping the direction you're looking in. |
 | **View → Reset view** | Puts the active view's camera back where it starts when the app opens. |
@@ -110,7 +128,9 @@ As standard (Mouse only controls, with Alt + mouse switched on):
 | Switch between perspective and orthographic | `P` |
 | All four views | `F5` |
 | Switch between one view and four | Middle click on a view |
-| Look along X, Y or Z (again: from the other side) | Click its letter in the bottom-left corner (perspective view) |
+| Look from a face, edge or corner | Click it on the view dice, bottom-left corner |
+| Look from the opposite side | `Ctrl` + click on the view dice |
+| Snap to the nearest dice view while orbiting | Hold `Ctrl` while orbiting |
 
 On macOS, Alt is the `Option` key. The other controls are in the table above.
 
@@ -120,6 +140,8 @@ On macOS, Alt is the `Option` key. The other controls are in the table above.
 - **Problem:** on Linux, Alt + drag moves the whole window instead of the view. **Why:** some Linux desktops use Alt + drag for moving windows. **Fix:** use the standard **Mouse only** controls (right drag orbits, middle drag pans), or in your desktop's window settings change that key (often called the "window action key" or "modifier key") to Super, the Windows-logo key.
 - **Problem:** the view went inside the model. **Why:** zooming in close keeps going, through surfaces. **Fix:** zoom out (wheel towards you), or press **Z** to frame the selection.
 - **Problem:** orbiting swings the model off screen. **Why:** the ring shows what it turns around; you started the orbit on something far behind. **Fix:** start the orbit with the mouse on the part you're looking at.
+- **Problem:** looking straight down, I can't click the Front face. **Why:** looking straight at a face, the faces around it are edge-on. **Fix:** click the small arrow below the dice, or the dice's bottom edge strip, which looks from 45° between the top and the front.
+- **Problem:** the view went flat when I clicked the dice. **Why:** **Display → Switch to orthographic when clicking the dice** is on. **Fix:** orbit away and it's perspective again, or switch the setting off.
 - **Problem:** I orbited the Top view and now it says *Orthographic*. **Why:** orbiting a flat view frees it, as in Blender. **Fix:** press **F2** for the exact Top view again (F3 Right, F4 Front).
 - **Problem:** far things don't look smaller, and the view feels odd. **Why:** the view is orthographic (its name says so). **Fix:** press **P** for perspective.
 - **Problem:** a function key does something else, like changing the screen brightness. **Why:** on many laptops the F keys control the hardware unless you hold **Fn**. **Fix:** hold **Fn** with the key, or use the square button on the viewport's menu line, a middle click, or the **Panel** and **Cameras** menus.

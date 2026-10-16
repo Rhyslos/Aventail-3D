@@ -5,11 +5,11 @@
 
 use super::{FOUR_VIEWS_KEY, VIEW_KEYS, View, ViewOptions, ViewportPanel, cursor_for};
 use crate::icons::{self, Icon};
-use crate::theme::{self, backdrop, tint};
+use crate::theme::{self, backdrop};
 use egui::{
     Align, Align2, CursorIcon, FontId, Layout, Rect, Sense, Stroke, Ui, UiBuilder, pos2, vec2,
 };
-use glam::{Vec2, Vec3};
+use glam::Vec2;
 use tools::{DragKind, ViewKind};
 
 /// Height of the viewport's menu line, in logical pixels.
@@ -168,6 +168,9 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
                 "Show which way each polygon of the selected objects faces, as a short line \
                  from its middle. Lines pointing into a shape show flipped polygons.",
             );
+        ui.separator();
+        ui.checkbox(&mut panel.options.flat_from_dice, FLAT_FROM_DICE_ENTRY)
+            .on_hover_text(FLAT_FROM_DICE_HELP);
     });
     ui.menu_button("Options", |ui| {
         if ui
@@ -221,6 +224,14 @@ pub(crate) const CAVITY_ENTRY: &str = "Cavity";
 pub(crate) const CAVITY_EXPLANATION: &str = "Brighten ridges and darken creases on the \
      surfaces, so edges and the shape's form read clearly at a glance. Only how it looks: \
      nothing about the shape changes.";
+
+/// The name of the view dice's orthographic switch, in the Display menu
+/// (decision 0084).
+pub(crate) const FLAT_FROM_DICE_ENTRY: &str = "Switch to orthographic when clicking the dice";
+/// What it does.
+const FLAT_FROM_DICE_HELP: &str = "Clicking the view dice in the bottom-left corner (or snapping to it with Ctrl while \
+     orbiting) also makes the view flat, with no perspective, so lines line up. Orbit away \
+     and it goes back to perspective.";
 
 /// The Cavity switch, in the Display menu.
 pub(crate) fn cavity_entry(ui: &mut Ui, options: &mut ViewOptions) {
@@ -380,12 +391,9 @@ pub(super) fn preparing(ui: &mut Ui, rect: Rect) {
     );
 }
 
-/// Where the axis marker's middle sits, from a view's bottom-left corner:
-/// in the corner, beside the look row ([decision 0063](../../../../docs/decisions/0063-wireframe.md)).
-pub(super) const AXIS_MARKER_AT: egui::Vec2 = vec2(40.0, -40.0);
-
-/// Quiet labels over a view's image: its name, the camera, an axis
-/// marker in the bottom-left corner, and the grid spacing above it.
+/// Quiet labels over a view's image: its name, the camera, and the grid
+/// spacing in the bottom-left corner, above the view dice (which the
+/// viewport draws and listens to itself, decision 0084).
 pub(super) fn overlays(ui: &Ui, rect: Rect, view: &View, options: &ViewOptions) {
     let painter = ui.painter_at(rect);
     let small = FontId::proportional(12.0);
@@ -408,13 +416,12 @@ pub(super) fn overlays(ui: &Ui, rect: Rect, view: &View, options: &ViewOptions) 
     }
     let spacing = options.grid_detail.spacing_text();
     painter.text(
-        rect.left_bottom() + vec2(10.0, -82.0),
+        rect.left_bottom() + vec2(10.0, -96.0),
         Align2::LEFT_BOTTOM,
         format!("Grid spacing: {spacing}"),
         small,
         theme::TEXT_WEAK,
     );
-    axis_marker(&painter, rect.left_bottom() + AXIS_MARKER_AT, view.camera());
     if shows_pivot_marker(view.drag, options) {
         pivot_marker(ui, &painter, rect, view);
     }
@@ -459,134 +466,6 @@ fn pivot_marker(ui: &Ui, painter: &egui::Painter, rect: Rect, view: &View) {
     painter.circle_filled(centre, 2.5, accent.light);
 }
 
-/// Screen directions of the world axes as the camera sees them, `length`
-/// long, farthest first so nearer axes are drawn on top.
-pub(super) fn axis_directions(
-    camera: &tools::Camera,
-    length: f32,
-) -> Vec<(&'static str, egui::Color32, egui::Vec2)> {
-    let (right, up, forward) = (camera.right(), camera.up(), camera.forward());
-    let mut axes: Vec<_> = [
-        ("X", tint::AXIS_X, Vec3::X),
-        ("Y", tint::AXIS_Y, Vec3::Y),
-        ("Z", tint::AXIS_Z, Vec3::Z),
-    ]
-    .into_iter()
-    .map(|(name, color, dir)| {
-        let screen = vec2(dir.dot(right), -dir.dot(up)) * length;
-        (name, color, screen, dir.dot(forward))
-    })
-    .collect();
-    axes.sort_by(|a, b| b.3.total_cmp(&a.3));
-    axes.into_iter()
-        .map(|(name, color, screen, _)| (name, color, screen))
-        .collect()
-}
-
-/// The marker's axis letters: each axis's name, its direction in the world,
-/// and where its letter sits, for a marker around `centre`. Farthest first,
-/// as drawn, so nearer letters are on top.
-pub(super) fn axis_letters(
-    camera: &tools::Camera,
-    centre: egui::Pos2,
-) -> Vec<(&'static str, Vec3, egui::Pos2)> {
-    axis_directions(camera, AXIS_LENGTH)
-        .into_iter()
-        .map(|(name, _, dir)| {
-            let axis = match name {
-                "X" => Vec3::X,
-                "Y" => Vec3::Y,
-                _ => Vec3::Z,
-            };
-            (name, axis, centre + dir + letter_offset(dir))
-        })
-        .collect()
-}
-
-/// How far an axis letter sits past its line's end: a little further
-/// along it, or on the centre for an axis pointing straight at or away
-/// from the view.
-fn letter_offset(dir: egui::Vec2) -> egui::Vec2 {
-    if dir.length() > 1.0 {
-        dir.normalized() * LETTER_RADIUS
-    } else {
-        egui::Vec2::ZERO
-    }
-}
-
-/// The radius of the round button each axis letter sits in, in points.
-const LETTER_RADIUS: f32 = 8.0;
-
-/// How long the marker's axis lines are, in points.
-const AXIS_LENGTH: f32 = 22.0;
-
-/// Accessible name of an axis letter on the marker, which turns the view
-/// to look along it when clicked (decision 0066).
-pub(crate) fn look_along_label(axis: &str) -> String {
-    format!("Look along {axis}")
-}
-
-/// The marker's letters as buttons, in a perspective view: returns the
-/// axis clicked, if any. A hovered letter gets a ring.
-pub(super) fn axis_clicks(
-    ui: &Ui,
-    rect: Rect,
-    slot: usize,
-    camera: &tools::Camera,
-) -> Option<Vec3> {
-    let mut clicked = None;
-    for (name, axis, at) in axis_letters(camera, rect.left_bottom() + AXIS_MARKER_AT) {
-        let hit = Rect::from_center_size(at, vec2(LETTER_RADIUS, LETTER_RADIUS) * 2.0);
-        let response = ui.interact(
-            hit,
-            ui.id().with(("look_along", slot, name)),
-            Sense::click(),
-        );
-        response.widget_info(|| {
-            egui::WidgetInfo::labeled(egui::WidgetType::Button, true, look_along_label(name))
-        });
-        if response.hovered() {
-            ui.painter()
-                .circle_stroke(at, LETTER_RADIUS, Stroke::new(1.2, theme::TEXT_STRONG));
-            ui.ctx().set_cursor_icon(CursorIcon::PointingHand);
-        }
-        if response
-            .on_hover_text(format!(
-                "Look at the scene from the {name} side (click again: from the other side)"
-            ))
-            .clicked()
-        {
-            clicked = Some(axis);
-        }
-    }
-    clicked
-}
-
-/// A small marker showing which way X, Y and Z point from this view.
-fn axis_marker(painter: &egui::Painter, centre: egui::Pos2, camera: &tools::Camera) {
-    for (name, color, dir) in axis_directions(camera, AXIS_LENGTH) {
-        painter.line_segment([centre, centre + dir], Stroke::new(1.6, color));
-        // An axis pointing straight at or away from you is just a dot;
-        // its letter then sits on the centre.
-        let label_at = centre + dir + letter_offset(dir);
-        // Each letter in a soft round button of its colour: click it to
-        // look along the axis (perspective views, decision 0066).
-        painter.circle_filled(label_at, LETTER_RADIUS, color.gamma_multiply(0.22));
-        painter.circle_stroke(
-            label_at,
-            LETTER_RADIUS,
-            Stroke::new(1.0, color.gamma_multiply(0.6)),
-        );
-        painter.text(
-            label_at,
-            Align2::CENTER_CENTER,
-            name,
-            FontId::proportional(11.0),
-            color,
-        );
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -606,26 +485,5 @@ mod tests {
         // Switched off: never.
         options.navigation.show_pivot = false;
         assert!(!shows_pivot_marker(Some(DragKind::Orbit), &options));
-    }
-
-    #[test]
-    fn the_axis_marker_matches_the_opening_view() {
-        let axes = axis_directions(&tools::Camera::default(), 10.0);
-        let get = |n| axes.iter().find(|(name, _, _)| *name == n).unwrap().2;
-        assert!(get("X").x > 0.0, "X points right");
-        assert!(get("Z").y < 0.0, "Z points up the screen");
-        assert!(get("Z").x.abs() < 0.01, "Z stays upright");
-        for (_, _, d) in &axes {
-            assert!(d.length() <= 10.0 + 1e-3);
-        }
-    }
-
-    #[test]
-    fn the_axis_marker_draws_far_axes_first() {
-        // Looking along +Y, the Y axis points away and is drawn first.
-        let camera = tools::Camera::looking_at(Vec3::new(0.0, -500.0, 0.0), Vec3::ZERO);
-        let axes = axis_directions(&camera, 10.0);
-        assert_eq!(axes[0].0, "Y");
-        assert!(axes[0].2.length() < 0.01, "pointing straight away: a dot");
     }
 }
