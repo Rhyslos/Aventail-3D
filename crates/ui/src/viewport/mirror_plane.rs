@@ -10,7 +10,7 @@ use glam::Vec3;
 use tools::Camera;
 
 /// The sheet's colour: the X axis's red, very faint.
-const SHEET: Color32 = Color32::from_rgba_premultiplied(40, 10, 9, 40);
+const SHEET: Color32 = Color32::from_rgba_premultiplied(16, 4, 4, 16);
 /// Its edge and the line on the ground: the same red, clearer.
 const LINE: Color32 = Color32::from_rgba_premultiplied(150, 45, 40, 170);
 

@@ -89,7 +89,7 @@ With a **Bend radius**, the **Angle** can go past 360°, up to 3600° (ten full 
 - **Segments** counts the rows in **each full turn** once a bend goes past one turn, so a spiral stays as smooth as one loop of it. A whole spiral has at most 256 rows, so changing it stays quick: very long spirals get a little fewer per turn.
 - **Under one turn nothing changes**: an elbow stays exactly as it was.
 - The spiral climbs along the line the turn goes round: sideways, across the way it turns. For an upright pipe turning up towards +X (Direction 0°), the loops stand upright and climb along Y. **Direction** turns the whole spiral round the pipe.
-- With **Symmetry** on, the copy on the other side is the spiral's true mirror image: it winds the other way round, as a mirrored spring would.
+- On an object with a live mirror ([Symmetry](symmetry.md)), the twin's spiral is its true mirror image: it winds the other way round, as a mirrored spring would.
 
 Big angles are easiest to type: click the Angle number and type 1080, rather than dragging.
 

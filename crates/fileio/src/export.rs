@@ -512,7 +512,7 @@ pub fn summary(document: &Document, options: &ExportOptions) -> ExportSummary {
         {
             continue;
         }
-        let Some(shape) = scene.evaluated(id).map(|e| e.mesh) else {
+        let Some(shape) = scene.shown_shape(id) else {
             continue;
         };
         objects += 1;
