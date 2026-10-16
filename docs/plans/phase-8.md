@@ -19,9 +19,10 @@ Each milestone is one pull request, stacked on the one before. None is merged ye
 | 2 | Fully controllable automation | `uv/controllable-automation` | #106 | [0110](../decisions/0110-controllable-automation.md) | 35 |
 | 3 | Seam preferences and stretch budgets | `uv/seam-preferences` | #107 | [0111](../decisions/0111-seam-preferences-and-stretch-budget.md) | 36 |
 | 4 | Locked pieces and piece settings | `uv/locked-pieces` | #108 | [0112](../decisions/0112-locked-pieces-and-piece-settings.md) | 37 |
-| – | The UV menu in groups (not a milestone) | `uv/menu-groups` | see the PR list | [0113](../decisions/0113-uv-menu-in-groups.md) | – |
+| – | The UV menu in groups (not a milestone) | `uv/menu-groups` | #109 | [0113](../decisions/0113-uv-menu-in-groups.md) | – |
+| 18 | Layout snapshots | `uv/snapshots` | see the PR list | [0114](../decisions/0114-layout-snapshots.md) | 38 |
 
-**Next:** the project lead asked for six milestones in least-work order, each stacked on the last: 18 (layout snapshots), 15 (seeing and checking), 23 ("Why is this here?") and 9 (precise placement). **Milestones 14 (lightmaps) and 20 (recipes) are skipped for now** at his request; don't build them until he asks. Branch the next one from the newest branch in the table. The next decision is 0114 and the next file format 38.
+**Next:** the project lead asked for six milestones in least-work order, each stacked on the last: 18 (layout snapshots, built), 15 (seeing and checking), 23 ("Why is this here?") and 9 (precise placement). **Milestones 14 (lightmaps) and 20 (recipes) are skipped for now** at his request; don't build them until he asks. Branch the next one from the newest branch in the table. Next up: 15, then 23, then 9. The next decision is 0115 and the next file format 39.
 
 ## How the work is done (notes for the next session)
 
@@ -218,15 +219,9 @@ Each entry gives the aim, a design, the main code, and what to ask the project l
   - **Mipmap preview:** draw the texture at a chosen mip level.
 - **Code:** `render`, `uv_editor`, `fileio` (image import and layout export).
 
-### 18. Layout snapshots
+### 18. Layout snapshots (built)
 
-- **Aim:** named versions of a layout to switch between, compared before and after.
-- **Design:**
-  - A snapshot stores every corner's UV (and seams) of the chosen objects under a name, in the project.
-  - **Restore** records one `SetUvs` (and `SetSeams`).
-  - **Compare** draws one snapshot faintly under the current layout in the UV Editor.
-  - In the UV Editor's menu (chosen).
-- **Code:** `scene` (snapshot list in the project), `fileio`, `uv_editor`.
+Built as planned ([decision 0114](../decisions/0114-layout-snapshots.md)): the UV Editor's Snapshots menu; `scene::snapshot`, `Command::SetSnapshots` and `Operation::RestoreUvs`; file format 38. A snapshot holds each object's `mesh::uvs::UvLayout` (polygons' corner UVs and seams), not one `SetUvs`/`SetSeams` pair. Later UV sets (milestone 13) can add the set to `UvLayout`.
 
 ### 19. Explained auto-unwrap
 

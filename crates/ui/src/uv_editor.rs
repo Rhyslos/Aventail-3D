@@ -171,6 +171,7 @@ impl UvShape {
 }
 
 pub(crate) mod gizmo;
+pub(crate) mod snapshots;
 
 /// What a click in the editor found.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -221,6 +222,11 @@ pub(crate) struct UvEditor {
     /// The numbered checker image shown behind the UVs, and the colours
     /// it was made in (decision 0107).
     grid: Option<([[u8; 3]; 2], GridTexture)>,
+    /// The layout snapshot drawn faintly under the UVs, by name
+    /// (decision 0114).
+    compare: Option<String>,
+    /// What the Snapshots menu last did, to say in it.
+    note: Option<String>,
 }
 
 /// The numbered checker's texture in egui.
@@ -249,6 +255,8 @@ impl Default for UvEditor {
             sessions: 0,
             under_mouse: None,
             grid: None,
+            compare: None,
+            note: None,
         }
     }
 }
@@ -452,6 +460,7 @@ impl UvEditor {
         let grid = cx.grid.map(|colors| self.grid_texture(ui.ctx(), colors));
         self.paint_square(&painter, rect, doc.scene().texture().size, grid);
         self.paint_trim(&painter, rect, doc.scene().trim());
+        self.paint_compared(&painter, rect, doc);
         let accent = theme::accent(ui.ctx()).colors();
         let kind = element_kind(cx.mode);
         let own = response

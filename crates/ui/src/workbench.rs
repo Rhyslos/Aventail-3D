@@ -2369,6 +2369,23 @@ impl TabViewer for PanelViewer<'_> {
                     crate::dialog::menu(ui, "Trim", |ui| {
                         crate::uv_editor::trim_menu(ui, self.document);
                     });
+                    // Stays open while snapshots are taken and put back, so
+                    // what each did can be read in it.
+                    egui::containers::menu::MenuButton::new(
+                        crate::uv_editor::snapshots::SNAPSHOTS_MENU,
+                    )
+                    .config(
+                        crate::dialog::menu_config()
+                            .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside),
+                    )
+                    .ui(ui, |ui| {
+                        ui.set_min_width(crate::dialog::MENU_WIDTH);
+                        crate::uv_editor::snapshots::snapshots_menu(
+                            ui,
+                            self.document,
+                            self.uv_editor,
+                        );
+                    });
                     crate::dialog::menu(ui, "View", |ui| {
                         for what in [
                             crate::uv_editor::UvFrame::Square,
@@ -2513,6 +2530,8 @@ mod piece_settings;
 mod piece_settings_tests;
 #[cfg(test)]
 mod pinning_tests;
+#[cfg(test)]
+mod snapshot_tests;
 #[cfg(test)]
 mod trim_tests;
 #[cfg(test)]

@@ -391,6 +391,9 @@ pub fn uv_centre(mesh: &Mesh, faces: &[FaceId], points: &[VertexId]) -> Option<V
     uv_bounds(mesh, faces, points).map(|(min, max)| (min + max) / 2.0)
 }
 
+mod layout;
+pub use layout::{UvLayout, restore_layout};
+
 #[cfg(test)]
 mod tests;
 

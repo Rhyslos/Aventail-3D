@@ -363,6 +363,13 @@ pub enum Operation {
         /// Each island's polygons and move.
         islands: Vec<(Vec<FaceId>, glam::Affine2)>,
     },
+    /// Puts a saved UV layout back (decision 0114): the UVs of the
+    /// polygons it knows and the seams between them, as a layout snapshot
+    /// held them. See `mesh::uvs::restore_layout`.
+    RestoreUvs {
+        /// The layout (shared with the snapshot it came from).
+        layout: std::sync::Arc<mesh::uvs::UvLayout>,
+    },
     /// Evens out the UVs of these polygons (decision 0099).
     RelaxUvs {
         /// The polygons whose corners move.
@@ -659,6 +666,9 @@ impl Operation {
                 counted("Set the texel density of", faces.len(), "polygon")
             }
             Self::PackUvs { islands } => counted("Pack", islands.len(), "island"),
+            Self::RestoreUvs { layout } => {
+                counted("Restore the UVs of", layout.polygon_count(), "polygon")
+            }
             Self::PlaceOnTrim { faces, .. } => {
                 counted("Put on the trim sheet", faces.len(), "polygon")
             }
@@ -838,6 +848,7 @@ impl Operation {
             | Self::SetPieceSettings { .. }
             | Self::PlaceOnTrim { .. }
             | Self::PackUvs { .. }
+            | Self::RestoreUvs { .. }
             | Self::SetHardEdges { .. }
             | Self::SetSeams { .. }
             | Self::SetSeamPreference { .. }
@@ -1010,6 +1021,7 @@ impl Operation {
             | Self::SetPieceSettings { .. }
             | Self::PlaceOnTrim { .. }
             | Self::PackUvs { .. }
+            | Self::RestoreUvs { .. }
             | Self::SetHardEdges { .. }
             | Self::SetSeams { .. }
             | Self::SetSeamPreference { .. }
@@ -1167,6 +1179,7 @@ impl Operation {
                     && *top <= 1.0
             }
             Self::PackUvs { islands } => islands.iter().all(|(_, t)| t.is_finite()),
+            Self::RestoreUvs { layout } => layout.is_real(),
             Self::TransformUvs { transform, .. } => transform.is_finite(),
             Self::PlaceShape { matrix } => matrix.is_finite() && matrix.determinant().abs() > 1e-12,
             Self::SlidePoints { slides, .. } => slides.iter().all(|s| s.amount.is_finite()),
@@ -1228,7 +1241,7 @@ impl Operation {
             | Self::SetSeamPreference { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_ref(),
             Self::FixFacing | Self::PlaceShape { .. } | Self::HardEdgesByAngle { .. } => None,
-            Self::Slit { .. } | Self::PackUvs { .. } => None,
+            Self::Slit { .. } | Self::PackUvs { .. } | Self::RestoreUvs { .. } => None,
             Self::Mirrored { op, .. } => op.anchors(),
             Self::WeldMiddle { .. } => None,
         }
@@ -1271,7 +1284,7 @@ impl Operation {
             | Self::SetSeamPreference { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_mut(),
             Self::FixFacing | Self::PlaceShape { .. } | Self::HardEdgesByAngle { .. } => None,
-            Self::Slit { .. } | Self::PackUvs { .. } => None,
+            Self::Slit { .. } | Self::PackUvs { .. } | Self::RestoreUvs { .. } => None,
             Self::Mirrored { op, .. } => op.anchors_mut(),
             Self::WeldMiddle { .. } => None,
         }
@@ -1351,6 +1364,7 @@ impl Operation {
             | Self::StraightenUvs { .. }
             | Self::RelaxUvs { .. }
             | Self::PackUvs { .. }
+            | Self::RestoreUvs { .. }
             | Self::SetTexelDensity { .. }
             | Self::SetStretchBudget { .. }
             | Self::SetUvLock { .. }
@@ -1749,6 +1763,7 @@ impl Operation {
                 )
             }
             Self::PackUvs { islands } => uv::pack::place(mesh, islands),
+            Self::RestoreUvs { layout } => mesh::uvs::restore_layout(mesh, layout),
             Self::SetTexelDensity { faces, density, .. } => {
                 let faces = refound
                     .as_ref()

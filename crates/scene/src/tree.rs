@@ -137,6 +137,11 @@ pub(crate) enum Edit {
         before: crate::TrimSheet,
         after: crate::TrimSheet,
     },
+    /// Changes the project's layout snapshots.
+    SetSnapshots {
+        before: Vec<crate::UvSnapshot>,
+        after: Vec<crate::UvSnapshot>,
+    },
     /// Changes an object's live mirror.
     SetMirror {
         id: ObjectId,
@@ -214,6 +219,7 @@ impl Edit {
             Self::SetTexture { before, after } => before == after,
             Self::SetMending { before, after } => before == after,
             Self::SetTrim { before, after } => before == after,
+            Self::SetSnapshots { before, after } => before == after,
             Self::SetMaterials { before, after, .. } => before == after,
             Self::SetCollision { before, after, .. } => before == after,
             Self::SetMirror { before, after, .. } => before == after,
@@ -261,6 +267,10 @@ impl Edit {
                 after: before,
             },
             Self::SetTrim { before, after } => Self::SetTrim {
+                before: after,
+                after: before,
+            },
+            Self::SetSnapshots { before, after } => Self::SetSnapshots {
                 before: after,
                 after: before,
             },
@@ -354,6 +364,8 @@ pub struct Scene {
     trim: crate::TrimSheet,
     /// How the project's edits mend UVs (decision 0110).
     mending: crate::MendOptions,
+    /// The project's layout snapshots (decision 0114).
+    snapshots: Vec<crate::UvSnapshot>,
     /// Each object's evaluated shape, layer by layer (not part of what the
     /// scene is: copies start empty, and it never affects equality).
     cache: SharedCache,
@@ -478,6 +490,20 @@ impl Scene {
         EvalContext {
             mending: self.mending,
         }
+    }
+
+    /// The project's layout snapshots (decision 0114), oldest first.
+    pub fn snapshots(&self) -> &[crate::UvSnapshot] {
+        &self.snapshots
+    }
+
+    /// The same scene with layout snapshots `snapshots`, for a project
+    /// being opened (not a step to undo: use
+    /// [`crate::Command::SetSnapshots`]).
+    #[must_use]
+    pub fn with_snapshots(mut self, snapshots: Vec<crate::UvSnapshot>) -> Self {
+        self.snapshots = snapshots;
+        self
     }
 
     /// The project's trim sheet (decision 0106).
@@ -969,6 +995,15 @@ impl Scene {
                     ));
                 }
                 self.mending = *after;
+                Ok(())
+            }
+            Edit::SetSnapshots { before, after } => {
+                if self.snapshots != *before {
+                    return Err(SceneError::History(
+                        "the project's layout snapshots have changed",
+                    ));
+                }
+                self.snapshots.clone_from(after);
                 Ok(())
             }
             Edit::SetTrim { before, after } => {

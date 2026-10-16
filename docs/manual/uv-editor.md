@@ -44,6 +44,8 @@ In the UV mode the viewport shows the **seams** in orange, where the surface is 
 | Setting | What it does |
 |---|---|
 | **Texture** (the editor's menu) | The texture size and texel density aimed for, saved with the project. See [Texture size and texel density](texture-and-density.md). |
+| **Trim** (the editor's menu) | The rows of the project's trim sheet. See [Trim sheets](trim-sheets.md). |
+| **Snapshots** (the editor's menu) | Named versions of the UV layout, to put back or compare with. See [Layout snapshots](layout-snapshots.md). |
 | **UV Edit** (menu bar) | The layout for UV work: viewport and UV Editor side by side, in the UV mode. |
 | **Window → UV Editor** | Shows the editor beside the viewport in the layout you're in, or puts it away. |
 | **Display → Seams** (viewport) | Marks seams in orange while editing points, edges or polygons. Always on in the UV mode. Off as standard. |
