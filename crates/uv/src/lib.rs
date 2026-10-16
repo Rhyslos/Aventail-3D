@@ -6,11 +6,13 @@
 //! - [`seams`]: where to cut a surface open so it lies flat: suggested
 //!   seams, and telling whether a piece lies flat in one go (a disk).
 //! - [`density`]: texel density: measuring it and setting it.
+//! - [`pack`]: fitting pieces into the texture square.
 //! - [`mod@unwrap`]: laying it flat: unwrapping (LSCM, and straight grids for
 //!   strips), straightening and relaxing.
 
 mod chart;
 pub mod density;
+pub mod pack;
 pub mod seams;
 mod solve;
 pub mod unwrap;

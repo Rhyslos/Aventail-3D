@@ -114,6 +114,10 @@ pub(crate) fn operation_size(op: &Operation) -> usize {
                 + std::mem::size_of_val(points.as_slice())
                 + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
         }
+        Operation::PackUvs { islands } => islands
+            .iter()
+            .map(|(faces, _)| std::mem::size_of_val(faces.as_slice()) + size_of::<glam::Affine2>())
+            .sum(),
         Operation::FixFacing
         | Operation::PlaceShape { .. }
         | Operation::HardEdgesByAngle { .. } => 0,

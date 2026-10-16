@@ -25,6 +25,16 @@ pub struct UvSettings {
     /// Whether strips of square quads come out as straight grids when
     /// unwrapped.
     pub straighten_strips: bool,
+    /// Packing (decision 0101): the gap between pieces, in texture pixels.
+    pub padding: u32,
+    /// Whether packing may turn pieces.
+    pub rotate: bool,
+    /// Whether packing stacks identical pieces on one another.
+    pub stack: bool,
+    /// Whether each material gets a texture of its own (packed apart).
+    pub per_material: bool,
+    /// Whether each object gets a texture of its own (packed apart).
+    pub per_object: bool,
 }
 
 impl Default for UvSettings {
@@ -32,9 +42,17 @@ impl Default for UvSettings {
         Self {
             live_unwrap: true,
             straighten_strips: true,
+            padding: 8,
+            rotate: true,
+            stack: false,
+            per_material: true,
+            per_object: false,
         }
     }
 }
+
+/// The most padding packing takes, in pixels.
+pub(crate) const MAX_PADDING: u32 = 256;
 
 /// The UV menu's names for the two switches, and what they do.
 pub(crate) const LIVE_UNWRAP_LABEL: &str = "Unwrap as seams change";
@@ -43,6 +61,13 @@ pub(crate) const LIVE_UNWRAP_HELP: &str = "When on, marking or clearing seams la
 pub(crate) const STRAIGHT_STRIPS_LABEL: &str = "Straighten strips when unwrapping";
 pub(crate) const STRAIGHT_STRIPS_HELP: &str = "When on, a piece made only of square-cornered quads \
      (a cylinder's side, a bevel's strip) unwraps as a perfectly straight grid";
+
+/// Which texture a packed island goes on: the object's (when each gets
+/// its own) and the material's name (when each gets its own).
+type TextureGroup = (Option<ObjectId>, String);
+
+/// The label of the packing padding field.
+pub(crate) const PADDING_LABEL: &str = "Padding";
 
 /// The UV menu's names for setting and matching texel density, and what
 /// they do (decision 0100).
@@ -257,6 +282,121 @@ impl Workbench {
                 texture.pixels_per_metre(density)
             ));
         }
+    }
+
+    /// Pack: fits the islands holding the selection (or whole objects)
+    /// into the texture square, as one undo step: all together, or each
+    /// material's (and each object's) on a texture of their own.
+    pub(crate) fn run_pack(&mut self) {
+        let shapes = self.own_shapes();
+        if shapes.is_empty() {
+            self.note = Some("Pack: select the objects first.".into());
+            return;
+        }
+        let settings = self.uv_settings;
+        let texture = self.document.scene().texture();
+        let padding_px = settings.padding.min(MAX_PADDING);
+        let cell_px = (padding_px / 2).max(1);
+        let options = uv::pack::PackOptions {
+            padding: padding_px as f32 / texture.size as f32,
+            rotate: settings.rotate,
+            stack: settings.stack,
+            cells: (texture.size / cell_px).clamp(128, 512) as usize,
+        };
+        // Islands, grouped by the texture they go on.
+        let mut groups: std::collections::BTreeMap<TextureGroup, Vec<(ObjectId, Vec<FaceId>)>> =
+            std::collections::BTreeMap::new();
+        let mut meshes = std::collections::HashMap::new();
+        for (id, mesh) in shapes {
+            if !mesh::uvs::has_uvs(&mesh) {
+                continue;
+            }
+            let faces = targets(&mesh, self.document.elements(id), self.mode);
+            let materials = self
+                .document
+                .scene()
+                .object(id)
+                .map(|o| o.materials.clone())
+                .unwrap_or_default();
+            for island in uv::pack::islands_of(&mesh, &faces) {
+                let material = if settings.per_material {
+                    let slot = island
+                        .first()
+                        .map_or(0, |f| mesh::material::slot_of(&mesh, *f));
+                    materials
+                        .get(slot as usize)
+                        .map_or_else(String::new, |m| m.name.clone())
+                } else {
+                    String::new()
+                };
+                let object = settings.per_object.then_some(id);
+                groups
+                    .entry((object, material))
+                    .or_default()
+                    .push((id, island));
+            }
+            meshes.insert(id, mesh);
+        }
+        let mut by_object: std::collections::BTreeMap<ObjectId, Vec<(Vec<FaceId>, glam::Affine2)>> =
+            std::collections::BTreeMap::new();
+        let mut islands = 0;
+        for (_, members) in groups {
+            let pieces: Vec<uv::pack::Piece> = members
+                .iter()
+                .map(|(id, faces)| uv::pack::piece_of(&meshes[id], faces))
+                .collect();
+            let Some(moves) = uv::pack::pack(&pieces, &options) else {
+                continue;
+            };
+            for ((id, faces), t) in members.into_iter().zip(moves) {
+                islands += 1;
+                by_object.entry(id).or_default().push((faces, t));
+            }
+        }
+        if by_object.is_empty() {
+            self.note = Some("Pack: the selection has no UVs with any area to pack.".into());
+            return;
+        }
+        let ops: Vec<(ObjectId, Operation)> = by_object
+            .into_iter()
+            .map(|(id, islands)| (id, Operation::PackUvs { islands }))
+            .collect();
+        let label = counted("Pack", islands, "island");
+        if self.record_each(&label, ops) {
+            self.note = Some(format!(
+                "{label}, {padding_px} px apart. Ctrl + Z takes it back."
+            ));
+        }
+    }
+
+    /// The UV menu's Packing entries: the padding and the switches.
+    pub(crate) fn packing_menu(&mut self, ui: &mut egui::Ui) {
+        let s = &mut self.uv_settings;
+        ui.horizontal(|ui| {
+            ui.label(PADDING_LABEL);
+            ui.add(
+                egui::DragValue::new(&mut s.padding)
+                    .range(0..=MAX_PADDING)
+                    .suffix(" px"),
+            )
+            .on_hover_text(
+                "The gap between pieces, in texture pixels (half of it to the square's edges). \
+                 Keeps colours from bleeding between pieces when the texture is shrunk; 8 px \
+                 suits a 2048 texture.",
+            );
+        });
+        ui.checkbox(&mut s.rotate, "Turn pieces to fit")
+            .on_hover_text(
+                "Pieces may be turned (lined up with the square, and a quarter turn) to fit better",
+            );
+        ui.checkbox(&mut s.stack, "Stack identical pieces")
+            .on_hover_text("Pieces of exactly the same shape share the same texture space");
+        ui.checkbox(&mut s.per_material, "A texture per material")
+            .on_hover_text(
+                "Each material's pieces fill a square of their own, as separate texture sets",
+            );
+        ui.checkbox(&mut s.per_object, "A texture per object")
+            .on_hover_text("Each object's pieces fill a square of their own");
     }
 
     /// With live unwrapping on, the Unwrap that follows marking or clearing

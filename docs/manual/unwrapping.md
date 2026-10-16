@@ -24,7 +24,7 @@ What **Unwrap** does with each piece holding the selection:
 - a piece of **square-cornered quads** (a cylinder's side, a bevel's strip, a flat panel) comes out as a **straight grid**, when **Straighten strips when unwrapping** is on;
 - turns it so its sides line up with the square, keeping the way it lay before (a quarter turn at a time);
 - sizes it to match the rest of the object, so every piece keeps its **real size** against the others (the same [texel density](texture-and-density.md));
-- puts it where it was. Pieces may overlap until packing arrives.
+- puts it where it was. Pieces may overlap; [Pack](packing.md) arranges them.
 
 **Relax** moves only the corners of the selected polygons: each side is pulled towards its real length, so bunched or stretched UVs even out. The other corners stay where they are, so you can relax one area of a piece.
 
@@ -53,7 +53,7 @@ No keys of their own; ask if you'd like some.
 
 ## Tips and common problems
 
-- **Problem:** after unwrapping, pieces overlap. **Why:** each piece is put back where it was, and a fresh piece can be bigger. **Fix:** move them apart with **W** in the UV Editor for now; packing arrives in a later update.
+- **Problem:** after unwrapping, pieces overlap. **Why:** each piece is put back where it was, and a fresh piece can be bigger. **Fix:** [Pack](packing.md) them, or move them apart with **W** in the UV Editor.
 - **Problem:** a ball or rounded piece looks bigger in the middle than at the edges. **Why:** a curved surface can't lie flat without some change in size; unwrapping keeps the shapes and lets the size vary. **Fix:** add a seam or two to split it (Suggest seams helps), then Unwrap.
 - **Problem:** a strip came out curved. **Why:** some of its corners aren't square (more than 25° off), or it has a triangle, so it isn't treated as a strip. **Fix:** choose Straighten, or fix the polygons.
 - **Problem:** Unwrap marked a seam I didn't place. **Why:** the piece couldn't lie flat in one go (a tube, a closed shape), so it was cut open where it shows least. **Fix:** Ctrl + Z and place the seam where you want it, or keep it.

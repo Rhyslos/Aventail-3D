@@ -281,18 +281,18 @@ fn tools_from_the_menu_change_the_scene_like_their_keys() {
 }
 
 #[test]
-fn the_uv_mode_has_the_uv_ring_with_tools_still_to_come_greyed() {
+fn the_uv_mode_has_the_uv_ring_with_every_tool_built() {
     let mut harness = fresh();
     harness.state_mut().workbench.mode = Mode::Uv;
     open(&mut harness);
     let entries = harness.state().workbench.tool_menu_entries();
     let commands: Vec<CommandId> = entries.iter().map(|e| e.slot.command).collect();
     assert_eq!(commands, crate::commands::UV_RING.to_vec());
-    let pack = entries
-        .iter()
-        .find(|e| e.slot.command == CommandId::Pack)
-        .unwrap();
-    assert!(matches!(pack.ready, crate::tool_menu::Ready::Later(_)));
+    assert!(
+        entries
+            .iter()
+            .all(|e| !matches!(e.ready, crate::tool_menu::Ready::Later(_)))
+    );
 }
 
 #[test]

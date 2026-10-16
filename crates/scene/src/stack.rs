@@ -327,6 +327,13 @@ pub enum Operation {
         /// Where the polygons were, to find them again.
         anchors: Option<Anchors>,
     },
+    /// Moves whole UV islands to where packing put them (decision 0101):
+    /// each island's polygons and its move (turn, scale and place), in
+    /// the texture's units. Exactly those polygons' corners move.
+    PackUvs {
+        /// Each island's polygons and move.
+        islands: Vec<(Vec<FaceId>, glam::Affine2)>,
+    },
     /// Evens out the UVs of these polygons (decision 0099).
     RelaxUvs {
         /// The polygons whose corners move.
@@ -564,6 +571,7 @@ impl Operation {
             Self::SetTexelDensity { faces, .. } => {
                 counted("Set the texel density of", faces.len(), "polygon")
             }
+            Self::PackUvs { islands } => counted("Pack", islands.len(), "island"),
             Self::FixFacing => "Fix normals".to_string(),
             Self::PlaceShape { .. } => "Apply the placement".to_string(),
             Self::SetSeams { edges, seam, .. } => {
@@ -698,6 +706,7 @@ impl Operation {
             | Self::StraightenUvs { .. }
             | Self::RelaxUvs { .. }
             | Self::SetTexelDensity { .. }
+            | Self::PackUvs { .. }
             | Self::SetHardEdges { .. }
             | Self::SetSeams { .. }
             | Self::SlidePoints { .. }
@@ -863,6 +872,7 @@ impl Operation {
             | Self::StraightenUvs { .. }
             | Self::RelaxUvs { .. }
             | Self::SetTexelDensity { .. }
+            | Self::PackUvs { .. }
             | Self::SetHardEdges { .. }
             | Self::SetSeams { .. }
             | Self::SlidePoints { .. }
@@ -1004,6 +1014,7 @@ impl Operation {
             | Self::RelaxUvs { .. }
             | Self::FixFacing => true,
             Self::SetTexelDensity { density, .. } => density.is_finite() && *density > 0.0,
+            Self::PackUvs { islands } => islands.iter().all(|(_, t)| t.is_finite()),
             Self::TransformUvs { transform, .. } => transform.is_finite(),
             Self::PlaceShape { matrix } => matrix.is_finite() && matrix.determinant().abs() > 1e-12,
             Self::SlidePoints { slides, .. } => slides.iter().all(|s| s.amount.is_finite()),
@@ -1059,7 +1070,7 @@ impl Operation {
             | Self::SetSeams { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_ref(),
             Self::FixFacing | Self::PlaceShape { .. } | Self::HardEdgesByAngle { .. } => None,
-            Self::Slit { .. } => None,
+            Self::Slit { .. } | Self::PackUvs { .. } => None,
             Self::Mirrored { op, .. } => op.anchors(),
             Self::WeldMiddle { .. } => None,
         }
@@ -1096,7 +1107,7 @@ impl Operation {
             | Self::SetSeams { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_mut(),
             Self::FixFacing | Self::PlaceShape { .. } | Self::HardEdgesByAngle { .. } => None,
-            Self::Slit { .. } => None,
+            Self::Slit { .. } | Self::PackUvs { .. } => None,
             Self::Mirrored { op, .. } => op.anchors_mut(),
             Self::WeldMiddle { .. } => None,
         }
@@ -1494,6 +1505,7 @@ impl Operation {
                     .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
                 uv::relax(mesh, &faces, uv::unwrap::RELAX_STEPS)
             }
+            Self::PackUvs { islands } => uv::pack::place(mesh, islands),
             Self::SetTexelDensity { faces, density, .. } => {
                 let faces = refound
                     .as_ref()

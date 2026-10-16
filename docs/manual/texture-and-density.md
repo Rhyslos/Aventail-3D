@@ -41,7 +41,7 @@ None of their own; everything is in the UV Editor's **Texture** menu and the **U
 ## Tips and common problems
 
 - **Problem:** the density shown changed when I changed the texture size. **Why:** density is in pixels, and a bigger texture has more pixels on the same piece. **Fix:** that's expected; Set texel density to bring pieces back to the aim at the new size.
-- **Problem:** Set texel density made pieces overlap. **Why:** each piece grows or shrinks about its own middle. **Fix:** move them apart for now; packing (coming) lays them out.
+- **Problem:** Set texel density made pieces overlap. **Why:** each piece grows or shrinks about its own middle. **Fix:** [Pack](packing.md) them.
 - **Problem:** "the selection has no UVs to measure". **Why:** the polygons have no area in the texture (squashed flat, as an extrude's new walls are). **Fix:** [Unwrap](unwrapping.md) them first.
 - **Tip:** for a set of props that sit together in a game, use the same aim for all of them and Set texel density on each.
 

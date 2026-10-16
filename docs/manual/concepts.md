@@ -153,7 +153,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Stretching (distortion)** — When an island's shape on the UV map doesn't match its real shape, textures look squashed or stretched. A checker texture makes it easy to spot.
 
-**Packing** — Arranging all islands to fill the UV square as efficiently as possible, with a gap (**padding**) between them so textures don't bleed into each other.
+**Packing** — Arranging all islands to fill the UV square as efficiently as possible, with a gap (**padding**) between them so textures don't bleed into each other ([Packing](packing.md)).
 
 **Texel density** — How many texture pixels cover a given real-world size, e.g. 512 pixels per metre. Keeping it consistent across an asset (and across a game) makes everything look equally sharp. See [Texture size and texel density](texture-and-density.md).
 

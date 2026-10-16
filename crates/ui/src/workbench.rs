@@ -2143,6 +2143,9 @@ impl Workbench {
         ui.menu_button("Texture", |ui| {
             crate::uv_editor::texture_menu(ui, &mut self.document);
         });
+        ui.menu_button("Packing", |ui| {
+            self.packing_menu(ui);
+        });
         ui.separator();
         ui.checkbox(
             &mut self.uv_settings.live_unwrap,
@@ -2374,6 +2377,8 @@ mod unwrapping;
 pub use unwrapping::UvSettings;
 #[cfg(test)]
 mod density_tests;
+#[cfg(test)]
+mod pack_tests;
 #[cfg(test)]
 mod unwrapping_tests;
 pub use exporting::{

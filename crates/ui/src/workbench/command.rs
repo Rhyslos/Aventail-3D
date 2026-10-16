@@ -233,8 +233,7 @@ impl Workbench {
             CommandId::Unwrap => self.run_uv_tool(super::unwrapping::UvTool::Unwrap),
             CommandId::Relax => self.run_uv_tool(super::unwrapping::UvTool::Relax),
             CommandId::Straighten => self.run_uv_tool(super::unwrapping::UvTool::Straighten),
-            // Not built yet: readiness stops it above.
-            CommandId::Pack => {}
+            CommandId::Pack => self.run_pack(),
             CommandId::PivotToCentre => self.run_placement(super::pivots::Placement::PivotToCentre),
             CommandId::PivotToOrigin => self.run_placement(super::pivots::Placement::PivotToOrigin),
             CommandId::ObjectToOrigin => {

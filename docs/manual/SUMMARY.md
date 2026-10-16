@@ -48,6 +48,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Seams: mark, clear, from hard edges, suggested](seams.md)
 - [Unwrap, Relax and Straighten: lay pieces flat](unwrapping.md)
 - [Texture size and texel density](texture-and-density.md)
+- [Packing: fit pieces into the texture](packing.md)
 - *More pages are added here as UV tools are built.*
 
 ## Export
