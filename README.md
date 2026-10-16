@@ -232,7 +232,28 @@ The detailed plan for the remaining milestones, with the controls already chosen
 
 **Gate:** a modular kit is unwrapped, packed and baked in Aventail 3D and looks right in Godot; changing a model afterwards keeps its UVs and their intents.
 
-### Phase 9 · Advanced hard-surface — 0 of 9
+### Phase 9 · Language support — 0 of 7
+
+`░░░░░░░░░░░░░` 0%
+
+At the project lead's request (2026-10-17): the whole app in other languages. Planned in detail when the UV phase is done; the languages come first.
+
+<details>
+<summary>Milestones</summary>
+
+- [ ] Groundwork: every text the app shows goes through one translation layer, English as the source, and a check that catches text that skips it
+- [ ] All existing text moved over (menus, tooltips, notes, dialogs, warnings), as whole sentences that each language can word its own way
+- [ ] Choosing a language in Edit → Settings, following the computer's language at first, switching without a restart
+- [ ] Numbers and units written the language's way (a decimal comma where usual), either way accepted when typing
+- [ ] Fonts for other alphabets, loaded only when needed
+- [ ] The first translations, in the languages the project lead chooses
+- [ ] From then on, new text in every pull request goes through the translation layer
+
+</details>
+
+**Gate:** switching to the first translated language shows the whole app in it, numbers read the local way, and everything works exactly as before.
+
+### Phase 10 · Advanced hard-surface — 0 of 9
 
 `░░░░░░░░░░░░░` 0%
 
@@ -258,8 +279,8 @@ Friends join as testers around here, once there are enough tools to build someth
 In this order, each planned in detail when its time comes:
 
 1. **Texturing and a material builder** (to be planned): a built-in texture painter shaped by game work, so no Substance Painter subscription is needed. Hand-painted, stylised art first (painting in the 3D and UV views at once, palettes, a light-and-shadow helper, a toon preview and outlines for cartoon looks), realism after (PBR layers and smart masks for wear and dirt). Then a node-based material builder.
-2. **Scripting in Lua** (Phase 10): people add their own tools, as undoable commands.
-3. **Rigging, skinning and animation** (Phase 11): for game developers, first and third person, exporting cleanly to engines.
+2. **Scripting in Lua** (Phase 11): people add their own tools, as undoable commands.
+3. **Rigging, skinning and animation** (Phase 12): for game developers, first and third person, exporting cleanly to engines.
 
 The official release comes when the app is finished, after texturing. Also wanted, not yet scheduled: glTF import, screenshots and turntable GIFs from the viewport, interface size scaling, a first-start welcome with sample projects, and custom hotkeys (added along the way).
 
@@ -269,6 +290,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-17 | Planned: Phase 9, language support (the whole app in other languages), right after the UVs; advanced hard-surface moves to Phase 10, scripting to 11, rigging to 12 |
 | 2026-10-17 | "Why is this here?": with View → Explain choices on, every seam and piece in the UV Editor explains itself and how to change it |
 | 2026-10-17 | Seeing and checking UVs: overlapping and mirrored pieces always tinted, numbers on pieces, measuring in pixels and centimetres |
 | 2026-10-16 | Layout snapshots: named versions of the UV layout, put back in one step or compared faintly under the current one |

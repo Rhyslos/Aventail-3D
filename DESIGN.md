@@ -22,8 +22,9 @@ Aventail 3D (model + UV)  ──glTF/OBJ──►  Substance Painter (bake + tex
 - Clean export for Substance Painter and Godot
 
 ### Planned much later
-- Scripting in Lua, so people can add their own tools and automate work (Phase 10, §4.7).
-- Rigging, skinning and animation for game assets (Phase 11). Modelling and UV work always take precedence unless something urgent comes up.
+- The whole app in other languages (Phase 9, right after the UVs).
+- Scripting in Lua, so people can add their own tools and automate work (Phase 11, §4.7).
+- Rigging, skinning and animation for game assets (Phase 12). Modelling and UV work always take precedence unless something urgent comes up.
 
 ### Out of scope (for now)
 - Rendering beyond a good-looking viewport
@@ -102,7 +103,7 @@ Aventail-3D/
 │  ├─ scene/       # layer 1: objects, operation stacks, evaluation, commands, undo
 │  ├─ config/      # layer 1: settings, hotkeys, defaults
 │  ├─ fileio/      # layer 2: .avtl projects, OBJ, glTF (FBX later), settings file
-│  ├─ script/      # layer 2 (Phase 10): Lua scripting through commands
+│  ├─ script/      # layer 2 (Phase 11): Lua scripting through commands
 │  ├─ render/      # layer 3: wgpu viewport renderer, picking
 │  ├─ tools/       # layer 3: camera, selection, gizmos, modelling and UV tools
 │  ├─ ui/          # layer 3: egui panels, menus, palettes, theme
@@ -171,7 +172,7 @@ A tool implements a common trait:
 Tools never mutate the mesh directly; they produce operations, which keeps undo and the stack consistent.
 
 ### 4.5 Keeping the door open for rigging and animation
-Nothing animation-related is built before Phase 11, but these rules avoid a rewrite later:
+Nothing animation-related is built before Phase 12, but these rules avoid a rewrite later:
 - **Generic attribute layers.** Mesh attributes are stored as named, typed layers, so per-vertex **skin weights** (bone index + weight) can be added later as just another layer.
 - **Extensible object types.** The scene graph's object kinds are an enum/trait that can gain `Joint`/`Bone` and other node types without restructuring.
 - **Clean transforms.** Each object has a local transform relative to its parent, and world transforms are always derived from it. No code may assume world-space transforms are stored.
@@ -184,7 +185,7 @@ Nothing animation-related is built before Phase 11, but these rules avoid a rewr
 - **GPU picking** (ID buffer) for vertices/edges/faces, and **depth readback** for cursor-point navigation.
 - Only meshes that changed are re-uploaded. *To improve (§4.8):* within a mesh, only the part that changed, so moving a few points of a huge mesh doesn't re-upload all of it.
 
-### 4.7 Scripting (Phase 10)
+### 4.7 Scripting (Phase 11)
 Let people code their own functionality: custom tools, batch jobs, generators, export helpers. Blender, 3ds Max and Cinema 4D all have this, and a free tool gains a lot when its users can extend it.
 
 **Language: Lua** ([decision 0011](docs/decisions/0011-lua-scripting.md)), using the **Luau** dialect through the `mlua` crate (both MIT):
@@ -325,7 +326,7 @@ Also: dense wireframes fade out from afar (and aren't drawn when too dense to se
 - A keyboard shortcut viewer (built: Keys on the menu bar)
 - Wireframe (built: Shaded, Shaded with wires, Wireframe), cavity (built, [0065](docs/decisions/0065-cavity.md)), clickable corner axes (built, [0066](docs/decisions/0066-clickable-axes.md)), automatic hard edges (built, [0064](docs/decisions/0064-automatic-hard-edges.md))
 
-**Tools — Phase 9 (advanced hard-surface):**
+**Tools — Phase 10 (advanced hard-surface):**
 - Booleans (union/subtract/intersect) via manifold
 - Shell (thickness), and curves and splines (sweep, lathe)
 - Our own smoothing modifier (subdivision, with creases)
@@ -555,7 +556,18 @@ At the project lead's request (2026-10-16; [decision 0108](docs/decisions/0108-u
 - Bakes for the pipeline: to vertex colours, a whole kit at once, stacked and mirrored pieces moved aside for the bake, and straight into a Godot material (normal map and an ORM texture)
 - **Done when:** a modular kit is unwrapped, packed and baked in Aventail 3D and looks right in Godot, and changing a model afterwards keeps its UVs and their intents.
 
-### Phase 9 — Advanced hard-surface
+### Phase 9 — Language support
+At the project lead's request (2026-10-17), the first phase after the UVs: the whole app in other languages, so people can work in their own. Planned in detail ([0117](docs/decisions/0117-language-support.md)) when Phase 8 is done; the languages, and whether the manual is translated too, are asked first.
+- **Groundwork:** every piece of text the app shows goes through one translation layer, with English as the source text (Project Fluent's `fluent` crates are the likely choice: Apache-2.0/MIT, made for plurals and word order). A check fails CI when new text skips it. Nothing visible changes.
+- **Moving the text:** menus, tooltips, notes, dialogs, warnings and errors, the status bar, panel by panel. Text built from pieces ("Pack 3 islands") becomes whole sentences with numbers in them, so each language can order and pluralise them its own way.
+- **Choosing a language:** Edit → Settings → Language, following the computer's language on first start, switching at once without restarting; text not yet translated falls back to English.
+- **Numbers and units** written the language's way (a decimal comma where that is usual), and either way accepted when typing. Project files and exports don't change.
+- **Fonts** for other alphabets (Noto, OFL), loaded only when a language needs them, so the app stays small.
+- **The first translations**, in the languages the project lead chooses, drafted by Claude and checked by native speakers where possible.
+- **From then on**, every pull request adding text adds its English source; translations can follow.
+- **Done when:** switching to the first translated language shows the whole app in it (a script finds no English left), numbers read the local way, and everything works exactly as before.
+
+### Phase 10 — Advanced hard-surface
 - Every tool here carries UVs and seams along from the start (the builder, decision 0043)
 - Booleans, weighted normals, better bevel, generators (array, mirror)
 - Shell, curves and splines, and our own smoothing modifier
@@ -563,7 +575,7 @@ At the project lead's request (2026-10-16; [decision 0108](docs/decisions/0108-u
 - Game bevel and modular kit helpers (§6; **W15**, **W16**)
 - Generators, booleans, weighted normals and the game bevel are added to the modifiers palette (§5.1)
 
-### Phase 10 — Scripting
+### Phase 11 — Scripting
 Lua scripting so people can add their own tools and automate work. Full design in §4.7.
 - Script runner with the sandbox, time limit and permissions
 - The scripting API: scene, selection, operations and commands (undoable like any edit)
@@ -572,7 +584,7 @@ Lua scripting so people can add their own tools and automate work. Full design i
 - API reference and a "your first script" page in the manual; example scripts
 - **Done when:** a user can write a short script (say, "bevel every hard edge of the selection by 2 mm") that shows up as a command, can be undone, and can't harm files outside what it was allowed.
 
-### Phase 11 — Rigging, skinning and animation (far future)
+### Phase 12 — Rigging, skinning and animation (far future)
 Starts only once modelling and UVs are mature. Rough contents, to be designed properly when the time comes:
 - **Aim (project lead, 2026-10-13):** every animation tool is for game developers, helping them animate for games in both first and third person: first-person arms and weapons, third-person characters, and loops and clips that export cleanly to engines.
 - Joints/bones in the Objects panel hierarchy; bone display and editing
@@ -580,7 +592,7 @@ Starts only once modelling and UVs are mature. Rough contents, to be designed pr
 - Animation: keyframes on transforms, timeline and dope sheet, curve editor, playback in the viewport
 - Export skinned and animated meshes to glTF for Godot
 
-### To be designed: Texturing and a material builder (after Phase 9)
+### To be designed: Texturing and a material builder (after Phase 10)
 At the project lead's request (2026-10-13): a built-in texture painter, so no Substance Painter subscription is needed, and a material builder after it. Both still need a planning talk before they get phases and milestones. Rough parts:
 - the maps baked in Phase 8 (normal, AO, curvature, thickness, position, ID) as its starting point;
 - a layer stack with fill and paint layers and masks;
@@ -857,3 +869,4 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-16 — **Layout snapshots** ([0114](docs/decisions/0114-layout-snapshots.md)), Phase 8's milestone 18, the first of the six the project lead asked for in least-work order (lightmaps and recipes skipped for now). In the UV Editor's own Snapshots menu, no keys (his choice). A snapshot is a name and, per object, every polygon's corner UVs and the seams (`mesh::uvs::UvLayout`), kept in the scene (`Command::SetSnapshots`, an undoable step); Restore records `Operation::RestoreUvs` on each object as one undo step, so it replays like any UV edit: polygons made since, or with other corners, keep their UVs, and only seams between restored polygons change. Compare draws one faintly under the current layout. File format 38.
 - 2026-10-17 — **Seeing and checking** ([0115](docs/decisions/0115-seeing-and-checking.md)), Phase 8's milestone 15. Warnings always on: overlapping pieces and folded polygons tinted red, mirrored pieces purple, counted top right (`uv::warnings`, the bake check's overlap test on a 256-cell grid, per texture as packing groups pieces; stacked and trim pieces left out). View → Numbers on pieces (pixel size, px/m, worst stretch). View → Measure then drag (`uv::measure`: the line walked in 256 steps over the shapes' triangles, world distance added within pieces); Esc stops. Nothing new is saved.
 - 2026-10-17 — **"Why is this here?"** ([0116](docs/decisions/0116-why-is-this-here.md)), Phase 8's milestone 23. Only while View → Explain choices is ticked (his choice). Reasons are worked out on demand rather than kept from the last run, so they explain seams in any project, opened or not: `uv::seams::suggest_explained` gives each suggested seam's `SeamReason` (hard edge, sharp corner with its angle, to lie flat, preferred, stretch budget), and a seam it wouldn't make is explained as made by hand or another tool. Fixes are named menu commands, not buttons in the box (no new clicks). Pieces are explained from their state. Nothing saved.
+- 2026-10-17 — **Language support** ([0117](docs/decisions/0117-language-support.md)) added as Phase 9, the first phase after the UVs, at the project lead's request ("huge thing we need to fix"). Advanced hard-surface becomes Phase 10, scripting Phase 11, rigging Phase 12. Every text through one translation layer, a language setting, local numbers, fonts for other alphabets, then translations. Which languages, and whether the manual is translated, are asked before it starts.
