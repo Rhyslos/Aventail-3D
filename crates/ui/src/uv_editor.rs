@@ -171,6 +171,7 @@ impl UvShape {
 }
 
 pub(crate) mod checking;
+pub(crate) mod explain;
 pub(crate) mod gizmo;
 pub(crate) mod snapshots;
 
@@ -234,6 +235,12 @@ pub(crate) struct UvEditor {
     measure: Option<checking::Measuring>,
     /// The always-on warnings, for the document as it was last drawn.
     warnings: Option<checking::WarningCache>,
+    /// Whether choices are explained while pointing (decision 0116).
+    explain: bool,
+    /// Why Suggest seams would put each shape's seams where it would.
+    reasons: HashMap<ObjectId, explain::SeamReasons>,
+    /// What was pointed at and its explanation, while explaining.
+    pointed: Option<(explain::Pointed, String)>,
 }
 
 /// The numbered checker's texture in egui.
@@ -267,6 +274,9 @@ impl Default for UvEditor {
             numbers: false,
             measure: None,
             warnings: None,
+            explain: false,
+            reasons: HashMap::new(),
+            pointed: None,
         }
     }
 }
@@ -318,6 +328,8 @@ pub(crate) struct UvContext<'a> {
     pub(crate) grid: Option<[[u8; 3]; 2]>,
     /// How pieces are grouped onto textures, for the overlap warnings.
     pub(crate) texture_groups: checking::TextureGroups,
+    /// What explaining choices needs (decision 0116).
+    pub(crate) explain: explain::ExplainContext,
 }
 
 /// The objects whose UVs are shown: the selected ones with a shape, in
@@ -632,6 +644,20 @@ impl UvEditor {
             FontId::proportional(12.0),
             theme::TEXT_WEAK,
         );
+        // Why what the mouse points at is there (decision 0116), on top.
+        self.pointed = None;
+        if self.explain
+            && self.drag.is_none()
+            && let Some(at) = response.hover_pos()
+        {
+            let pointed = self.point_at(rect, &shapes, at);
+            if let Some(pointed) = pointed
+                && let Some(text) = self.explanation(&pointed, &shapes, doc, &warnings, cx.explain)
+            {
+                self.pointed = Some((pointed, text));
+                self.paint_explanation(&painter, rect, &shapes, at);
+            }
+        }
     }
 
     fn frame_from_request(&mut self, rect: Rect, shapes: &[(ObjectId, UvShape)], doc: &Document) {

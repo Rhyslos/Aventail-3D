@@ -1139,6 +1139,9 @@ impl Workbench {
         // What the viewport has under the mouse, for the UV Editor to
         // light up (decision 0103).
         let viewport_hover = self.viewport.pointer().and(self.components.hovered());
+        // What explaining choices in the UV Editor needs (decision 0116).
+        let explain_suggest = self.suggest_options();
+        let explain_hard_angle = view_options.auto_hard_angle();
         let style = theme::dock_style(ui.style().as_ref(), self.accent);
         theme::dock_frame().show(ui, |ui| {
             DockArea::new(&mut self.dock)
@@ -1166,6 +1169,10 @@ impl Workbench {
                         tool: self.tool,
                         snap: view_options.snap,
                         surface: view_options.surface,
+                        explain: crate::uv_editor::explain::ExplainContext {
+                            suggest: explain_suggest,
+                            hard_angle: explain_hard_angle,
+                        },
                         texture_groups: crate::uv_editor::checking::TextureGroups {
                             per_material: self.uv_settings.per_material,
                             per_object: self.uv_settings.per_object,
@@ -2310,6 +2317,8 @@ struct PanelViewer<'a> {
     surface: crate::viewport::Surface,
     /// How pieces are grouped onto textures (the packing settings).
     texture_groups: crate::uv_editor::checking::TextureGroups,
+    /// What explaining choices in the UV Editor needs.
+    explain: crate::uv_editor::explain::ExplainContext,
     viewport_hover: Option<(scene::ObjectId, scene::Element)>,
     attributes: &'a mut AttributesPanel,
     units: &'a mut Units,
@@ -2417,6 +2426,17 @@ impl TabViewer for PanelViewer<'_> {
                         }
                         ui.separator();
                         let mut numbers = self.uv_editor.piece_numbers();
+                        let mut explain = self.uv_editor.explaining();
+                        if ui
+                            .checkbox(&mut explain, crate::uv_editor::explain::EXPLAIN_CHOICES)
+                            .on_hover_text(
+                                "Point at a seam or a piece to see why it's there and how to \
+                                 change it",
+                            )
+                            .changed()
+                        {
+                            self.uv_editor.set_explaining(explain);
+                        }
                         if ui
                             .checkbox(&mut numbers, crate::uv_editor::checking::PIECE_NUMBERS)
                             .on_hover_text(
@@ -2456,6 +2476,7 @@ impl TabViewer for PanelViewer<'_> {
                     grid: (self.surface == crate::viewport::Surface::NumberedChecker)
                         .then(|| theme::grid_colors(theme::accent(ui.ctx()))),
                     texture_groups: self.texture_groups,
+                    explain: self.explain,
                 };
                 self.uv_editor.show(ui, self.document, &cx);
                 return;

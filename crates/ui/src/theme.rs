@@ -533,6 +533,9 @@ pub const UV_OVERLAP: Color32 = Color32::from_rgba_premultiplied(0x70, 0x14, 0x1
 pub const UV_MIRRORED: Color32 = Color32::from_rgba_premultiplied(0x4a, 0x1c, 0x6e, 0x70);
 /// The UV Editor's warning summary, top right.
 pub const UV_WARNING_TEXT: Color32 = Color32::from_rgb(0xff, 0x8a, 0x80);
+/// What is explained in the UV Editor (decision 0116), and its box's
+/// border: a soft green.
+pub const UV_EXPLAIN: Color32 = Color32::from_rgb(0x8f, 0xe3, 0x9a);
 /// A measured line in the UV Editor (decision 0115): a clear yellow.
 pub const UV_MEASURE: Color32 = Color32::from_rgb(0xff, 0xe0, 0x4a);
 /// Pinned UVs in the UV Editor (decision 0109): a bright magenta, apart
