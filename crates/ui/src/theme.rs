@@ -463,6 +463,11 @@ pub const UV_GRID: Color32 = Color32::from_rgba_premultiplied(0x18, 0x18, 0x18, 
 pub const UV_EDGE: Color32 = Color32::from_rgba_premultiplied(0x9a, 0x9a, 0x9a, 0xb4);
 /// An island's border (a seam or the shape's open edge): brighter.
 pub const UV_BORDER: Color32 = Color32::from_rgb(0xe6, 0xe6, 0xe6);
+/// A trim sheet row's band in the UV Editor (decision 0106): a faint
+/// blue, every other row a little stronger so neighbours read apart.
+pub const TRIM_ROW: Color32 = Color32::from_rgba_premultiplied(0x0b, 0x14, 0x1e, 0x1e);
+/// The edges of a trim sheet row, and its name.
+pub const TRIM_ROW_EDGE: Color32 = Color32::from_rgb(0x5a, 0x86, 0xb0);
 /// Seams in the UV Editor: the viewport's seam orange (decision 0098).
 pub const UV_SEAM: Color32 = Color32::from_rgb(0xff, 0x5c, 0x0d);
 /// The stretch view's colours (decision 0102), as the viewport's: a

@@ -157,6 +157,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Texel density** — How many texture pixels cover a given real-world size, e.g. 512 pixels per metre. Keeping it consistent across an asset (and across a game) makes everything look equally sharp. See [Texture size and texel density](texture-and-density.md).
 
+**Trim sheet** — A texture made of horizontal rows that repeat left to right (bolts, panel edges, seals). Long thin parts of many models are laid along its rows instead of getting texture of their own, so props share one texture and stay sharp. See [Trim sheets](trim-sheets.md).
+
 **Mipmaps** — Smaller copies of a texture (half, a quarter, an eighth… the size) that a game shows when a surface is far away, so it doesn't shimmer. In a smaller copy each pixel covers several of the original's, so pieces that lie close together on the UV map blur into each other there. That's why packing leaves a gap of several pixels ([Check for baking](bake-check.md)).
 
 ## The game-asset pipeline

@@ -127,6 +127,11 @@ pub(crate) enum Edit {
         before: crate::TextureSettings,
         after: crate::TextureSettings,
     },
+    /// Changes the project's trim sheet.
+    SetTrim {
+        before: crate::TrimSheet,
+        after: crate::TrimSheet,
+    },
     /// Changes an object's live mirror.
     SetMirror {
         id: ObjectId,
@@ -202,6 +207,7 @@ impl Edit {
             Self::SetUnits { before, after } => before == after,
             Self::SetExportTarget { before, after } => before == after,
             Self::SetTexture { before, after } => before == after,
+            Self::SetTrim { before, after } => before == after,
             Self::SetMaterials { before, after, .. } => before == after,
             Self::SetCollision { before, after, .. } => before == after,
             Self::SetMirror { before, after, .. } => before == after,
@@ -245,6 +251,10 @@ impl Edit {
                 after: before,
             },
             Self::SetTexture { before, after } => Self::SetTexture {
+                before: after,
+                after: before,
+            },
+            Self::SetTrim { before, after } => Self::SetTrim {
                 before: after,
                 after: before,
             },
@@ -330,6 +340,8 @@ pub struct Scene {
     export_target: Option<crate::ExportTarget>,
     /// The project's texture settings (decision 0100).
     texture: crate::TextureSettings,
+    /// The project's trim sheet (decision 0106).
+    trim: crate::TrimSheet,
     /// Each object's evaluated shape, layer by layer (not part of what the
     /// scene is: copies start empty, and it never affects equality).
     cache: SharedCache,
@@ -433,6 +445,19 @@ impl Scene {
     #[must_use]
     pub fn with_texture(mut self, texture: crate::TextureSettings) -> Self {
         self.texture = texture;
+        self
+    }
+
+    /// The project's trim sheet (decision 0106).
+    pub fn trim(&self) -> &crate::TrimSheet {
+        &self.trim
+    }
+
+    /// The same scene with trim sheet `trim`, for a project being opened
+    /// (not a step to undo: use [`crate::Command::SetTrim`]).
+    #[must_use]
+    pub fn with_trim(mut self, trim: crate::TrimSheet) -> Self {
+        self.trim = trim;
         self
     }
 
@@ -903,6 +928,13 @@ impl Scene {
                     ));
                 }
                 self.texture = *after;
+                Ok(())
+            }
+            Edit::SetTrim { before, after } => {
+                if self.trim != *before {
+                    return Err(SceneError::History("the project's trim sheet has changed"));
+                }
+                self.trim.clone_from(after);
                 Ok(())
             }
             Edit::SetExportTarget { before, after } => {

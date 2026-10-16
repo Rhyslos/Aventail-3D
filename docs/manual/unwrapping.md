@@ -63,6 +63,7 @@ No keys of their own; ask if you'd like some.
 ## Related
 
 - [Seams](seams.md)
+- [Trim sheets](trim-sheets.md): lay strips along a shared texture's rows instead
 - [UVs while you keep modelling](uvs-and-modelling.md)
 - [Texture size and texel density](texture-and-density.md)
 - [Checker and Stretch views](checker-and-stretch.md): see where to Relax or add seams

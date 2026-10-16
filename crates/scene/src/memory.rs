@@ -100,7 +100,8 @@ pub(crate) fn operation_size(op: &Operation) -> usize {
         | Operation::Unwrap { faces, anchors, .. }
         | Operation::StraightenUvs { faces, anchors }
         | Operation::RelaxUvs { faces, anchors }
-        | Operation::SetTexelDensity { faces, anchors, .. } => {
+        | Operation::SetTexelDensity { faces, anchors, .. }
+        | Operation::PlaceOnTrim { faces, anchors, .. } => {
             std::mem::size_of_val(faces.as_slice())
                 + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
         }
@@ -186,6 +187,11 @@ pub(crate) fn edit(edit: &Edit) -> usize {
                 .iter()
                 .filter_map(|t| t.as_ref())
                 .map(|t| t.folder.len())
+                .sum(),
+            Edit::SetTrim { before, after } => [before, after]
+                .iter()
+                .flat_map(|t| t.rows.iter())
+                .map(|r| r.name.len() + std::mem::size_of::<crate::TrimRow>())
                 .sum(),
             Edit::SetMaterials { before, after, .. } => {
                 (before.len() + after.len()) * size_of::<crate::Material>()

@@ -55,7 +55,7 @@ fn area_3d(mesh: &Mesh, chart: &Chart, t: [usize; 3]) -> f32 {
     (p(t[1]) - p(t[0])).cross(p(t[2]) - p(t[0])).length() / 2.0
 }
 
-fn signed_area(at: &[Vec2], t: [usize; 3]) -> f32 {
+pub(crate) fn signed_area(at: &[Vec2], t: [usize; 3]) -> f32 {
     (at[t[1]] - at[t[0]]).perp_dot(at[t[2]] - at[t[0]]) / 2.0
 }
 
@@ -76,7 +76,7 @@ fn far_pair(mesh: &Mesh, chart: &Chart) -> Option<(usize, usize)> {
 
 /// The chart laid flat by least squares conformal maps, if it can be.
 /// `guess` (a rough layout, such as the old UVs) only speeds it up.
-fn conformal(mesh: &Mesh, chart: &Chart, guess: &[Vec2]) -> Option<Vec<Vec2>> {
+pub(crate) fn conformal(mesh: &Mesh, chart: &Chart, guess: &[Vec2]) -> Option<Vec<Vec2>> {
     let n = chart.len();
     if !(3..=SOLVE_UP_TO).contains(&n) {
         return None;
@@ -214,7 +214,7 @@ pub(crate) fn conformal_pinned(
 
 /// The chart projected flat on the plane it faces most: the fallback when
 /// it can't be solved.
-fn projected(mesh: &Mesh, chart: &Chart) -> Vec<Vec2> {
+pub(crate) fn projected(mesh: &Mesh, chart: &Chart) -> Vec<Vec2> {
     let facing: Vec3 = chart.faces.iter().map(|f| mesh.face_normal(*f)).sum();
     let normal = facing.try_normalize().unwrap_or(Vec3::Z);
     let x = normal.any_orthonormal_vector();
@@ -250,7 +250,7 @@ fn all_square_quads(mesh: &Mesh, chart: &Chart) -> bool {
 /// The chart's quads laid out as a straight grid, following each quad
 /// from its neighbour (each side as long as it is on the shape), if every
 /// polygon is a quad and every one is reached.
-fn grid(mesh: &Mesh, chart: &Chart) -> Option<Vec<Vec2>> {
+pub(crate) fn grid(mesh: &Mesh, chart: &Chart) -> Option<Vec<Vec2>> {
     if chart.corners.iter().any(|c| c.len() != 4) || chart.faces.is_empty() {
         return None;
     }
@@ -337,7 +337,7 @@ fn grid(mesh: &Mesh, chart: &Chart) -> Option<Vec<Vec2>> {
 
 /// Whether the chart's old UVs make a fair starting guess: none of its
 /// triangles squashed flat or folded over.
-fn usable_guess(mesh: &Mesh, chart: &Chart, uvs: &Uvs) -> bool {
+pub(crate) fn usable_guess(mesh: &Mesh, chart: &Chart, uvs: &Uvs) -> bool {
     let old: Vec<Vec2> = old_spots(mesh, chart, uvs)
         .into_iter()
         .map(|v| v.unwrap_or(Vec2::ZERO))
@@ -428,7 +428,7 @@ struct Before {
 
 /// The chart's old UVs: one per wedge (the first corner's), if the shape
 /// had UVs.
-fn old_spots(mesh: &Mesh, chart: &Chart, uvs: &Uvs) -> Vec<Option<Vec2>> {
+pub(crate) fn old_spots(mesh: &Mesh, chart: &Chart, uvs: &Uvs) -> Vec<Option<Vec2>> {
     let (starts, _) = mesh.face_layout();
     let mut out = vec![None; chart.len()];
     for (f, wedges) in chart.faces.iter().zip(&chart.corners) {
@@ -559,7 +559,7 @@ fn total_3d(mesh: &Mesh, faces: &[FaceId]) -> f32 {
 
 /// The pieces (by the shape's cuts) holding any of `faces`, and how many
 /// of `faces` the shape has.
-fn chosen_pieces(
+pub(crate) fn chosen_pieces(
     mesh: &Mesh,
     faces: &[FaceId],
     cuts: &BTreeSet<EdgeKey>,
@@ -599,7 +599,7 @@ fn density_for(mesh: &Mesh, chosen: &[FaceId], uvs: Option<&Uvs>) -> f32 {
 }
 
 /// Writes each chart's layout into the shape's UVs.
-fn write(mesh: &mut Mesh, laid: &[(Chart, Vec<Vec2>)]) -> bool {
+pub(crate) fn write(mesh: &mut Mesh, laid: &[(Chart, Vec<Vec2>)]) -> bool {
     let count = mesh.face_layout().1.len();
     let mut values = match Uvs::of(mesh) {
         Some(uvs) => uvs.into_values(count),
@@ -618,7 +618,7 @@ fn write(mesh: &mut Mesh, laid: &[(Chart, Vec<Vec2>)]) -> bool {
     mesh::uvs::set_uvs(mesh, values)
 }
 
-fn outcome(asked: usize, found: usize, changed: bool) -> Outcome {
+pub(crate) fn outcome(asked: usize, found: usize, changed: bool) -> Outcome {
     Outcome {
         matched: if changed { found } else { 0 },
         missing: asked - found,
