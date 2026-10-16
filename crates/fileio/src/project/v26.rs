@@ -8,14 +8,15 @@
 use super::v1::{FileOperation, Problem};
 use super::v5::EntryWith;
 use super::v24::OperationV24;
-use super::v25::ProjectV25;
+
 use glam::Mat4;
 use scene::Operation;
 use serde::{Deserialize, Serialize};
 
 /// Version 26 of the file: version 25's, its edits stored as version
 /// 26's.
-pub(crate) type ProjectV26 = ProjectV25<EntryV26>;
+#[cfg(test)]
+pub(crate) type ProjectV26 = super::v25::ProjectV25<EntryV26>;
 
 /// A recorded edit in version 26.
 pub(crate) type EntryV26 = EntryWith<OperationV26>;

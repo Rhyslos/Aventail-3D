@@ -1255,6 +1255,10 @@ fn rich_document_v1() -> Document {
 /// whose sines and cosines may differ in the last bit (macOS on Arm and
 /// Linux on x86 do), which a turned pivot carries into its numbers.
 fn assert_same(a: &Document, b: &Document) {
+    // Stable names (decision 0090) are compared on their own: older files
+    // have none, and a document's edits find their points by place alone
+    // without them.
+    let (a, b) = (&without_names(a), &without_names(b));
     if a.scene() != b.scene() {
         assert_eq!(
             rounded(&format!("{:?}", a.scene())),
@@ -1273,6 +1277,14 @@ fn assert_same(a: &Document, b: &Document) {
             );
         }
     }
+}
+
+/// `doc` with its edits' stable names left out, as a file before version
+/// 27 holds it.
+fn without_names(doc: &Document) -> Document {
+    let mut out = v26::ProjectV26::from_document(doc).into_document().unwrap();
+    out.set_selection(doc.selection());
+    out
 }
 
 /// `text` with every number that has a decimal point rounded to 4
@@ -1472,14 +1484,14 @@ fn a_cut_short_or_padded_body_is_damaged() {
 #[test]
 fn an_uncompressed_body_can_be_read() {
     let doc = rich_document();
-    let body = postcard::to_stdvec(&v26::ProjectV26::from_document(&doc)).unwrap();
-    let mut bytes = header(26, 0, body.len() as u64);
+    let body = postcard::to_stdvec(&v27::ProjectV27::from_document(&doc)).unwrap();
+    let mut bytes = header(27, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     assert_same(&doc, &from_bytes(&bytes).unwrap());
     // Data after the scene is refused.
     let mut longer = body.clone();
     longer.push(0);
-    let mut bytes = header(26, 0, longer.len() as u64);
+    let mut bytes = header(27, 0, longer.len() as u64);
     bytes.extend_from_slice(&longer);
     assert!(refused(&bytes).to_string().contains("unexpected data"));
 }
@@ -2933,6 +2945,79 @@ fn a_file_saved_by_format_version_26_still_opens_with_its_applied_placement() {
     assert_same(&rich_document(), &doc);
     let text = format!("{:?}", v26::ProjectV26::from_document(&doc));
     assert_eq!(text.matches("PlaceShape").count(), 1, "{text}");
+}
+
+/// Every recorded edit's anchored points' names, object by object.
+fn all_names(doc: &Document) -> Vec<Option<Vec<u64>>> {
+    doc.scene()
+        .walk()
+        .iter()
+        .flat_map(|(id, _)| doc.scene().object(*id).unwrap().stack.layers().to_vec())
+        .flat_map(|layer| layer.entries.clone())
+        .map(|entry| entry.operation.anchors().and_then(|a| a.names.clone()))
+        .collect()
+}
+
+/// A project saved by version 27 of the format, kept in the repository.
+const SAMPLE_V27: &[u8] = include_bytes!("../../tests/data/sample-v27.avtl");
+
+#[test]
+fn stable_names_are_saved_and_come_back() {
+    let doc = rich_document();
+    let names = all_names(&doc);
+    assert!(names.iter().flatten().count() > 3, "{names:?}");
+    let back = from_bytes(&to_bytes(&doc).unwrap()).unwrap();
+    assert_eq!(all_names(&back), names);
+    // The same shapes, names and all.
+    for (id, _) in doc.scene().walk() {
+        assert_eq!(doc.scene().evaluated(id), back.scene().evaluated(id));
+    }
+    let sample = from_bytes(SAMPLE_V27).expect("the version 27 sample opens");
+    assert_eq!(all_names(&sample), names);
+    // Older files have none.
+    assert!(
+        all_names(&from_bytes(SAMPLE_V26).unwrap())
+            .iter()
+            .all(Option::is_none)
+    );
+}
+
+#[test]
+fn broken_names_are_refused() {
+    let doc = rich_document();
+    let good = v27::ProjectV27::from_document(&doc);
+    let first = good.names.iter().next().cloned().unwrap();
+    let cases = [
+        // Twice.
+        vec![first.clone(), first.clone()],
+        // Too few for the edit's points.
+        vec![v27::NamesV27 {
+            names: first.names.iter().skip(1).copied().collect(),
+            ..first.clone()
+        }],
+        // A zero.
+        vec![v27::NamesV27 {
+            names: first.names.iter().map(|_| 0).collect(),
+            ..first.clone()
+        }],
+        // An edit that isn't there.
+        vec![v27::NamesV27 {
+            edit: 9999,
+            ..first.clone()
+        }],
+        // An object that isn't there.
+        vec![v27::NamesV27 {
+            object: 9999,
+            ..first.clone()
+        }],
+    ];
+    for names in cases {
+        let model = v27::ProjectV27 {
+            names: names.into_iter().collect(),
+            ..good.clone()
+        };
+        assert!(model.into_document().is_err());
+    }
 }
 
 /// Writes the current version's sample. Run only by hand, when a new

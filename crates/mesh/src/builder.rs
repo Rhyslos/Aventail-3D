@@ -24,6 +24,7 @@
 //! original, as it was before the tool started.
 
 use crate::attributes::{Domain, Value};
+use crate::names::Origin;
 use crate::{EdgeKey, FaceId, Mesh, MeshError, VertexId};
 use glam::Vec3;
 use std::collections::BTreeMap;
@@ -148,6 +149,18 @@ impl<'a> Builder<'a> {
     /// Adds a point at `position`, with values from `from`.
     pub fn point(&mut self, position: Vec3, from: PointFrom) -> VertexId {
         let id = self.mesh.push_vertex(position);
+        if self.mesh.names.naming() {
+            let name = |v: VertexId| self.original.point_name(v).unwrap_or(0);
+            let origin = match from {
+                PointFrom::Nothing => Origin::Plain,
+                PointFrom::Copy(v) => Origin::Copy(name(v)),
+                PointFrom::Between(a, b, t) => Origin::Between(name(a), name(b), t),
+                PointFrom::Inside(face, spot) => {
+                    Origin::Inside(self.original.face_name(face).unwrap_or(0), spot)
+                }
+            };
+            self.mesh.name_new_point(id, origin);
+        }
         if from == PointFrom::Nothing {
             return id;
         }

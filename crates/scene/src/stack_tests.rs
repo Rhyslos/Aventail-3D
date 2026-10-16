@@ -2128,3 +2128,100 @@ fn a_groove_is_recorded_named_and_changed_afterwards() {
     }
     assert!(!broken.numbers_are_real());
 }
+
+// ------------------------------------------------- stable element names ---
+
+#[test]
+fn points_on_the_same_spot_are_told_apart_by_their_names() {
+    // A cube; a bevel along a bottom edge; the top pushed out by nothing
+    // (a cap right on top of the old top); then the cap's points lifted.
+    let (mut doc, id) = with_a_cube();
+    let shape = |doc: &Document| doc.scene().evaluated(id).unwrap().mesh;
+    let mesh = shape(&doc);
+    let bottom: Vec<VertexId> = mesh
+        .edges()
+        .iter()
+        .find(|e| {
+            let (a, b) = e.ends();
+            let (pa, pb) = (mesh.position(a).unwrap(), mesh.position(b).unwrap());
+            pa.z < 1.0 && pb.z < 1.0 && pa.y < -49.0 && pb.y < -49.0
+        })
+        .map(|e| vec![e.ends().0, e.ends().1])
+        .unwrap();
+    let bevel = |segments| Operation::BevelEdges {
+        edges: vec![EdgeKey::new(bottom[0], bottom[1])],
+        shape: BevelShape {
+            width: 10.0,
+            segments,
+            profile: 0.0,
+            options: mesh::edit::BevelOptions::EARLIER,
+        },
+        anchors: mesh::Anchors::record(&mesh, ElementKind::Edges, std::slice::from_ref(&bottom)),
+        stretch: Vec3::ONE,
+    };
+    record(&mut doc, id, bevel(1));
+    let mesh = shape(&doc);
+    let top = mesh
+        .faces()
+        .find(|(f, _)| mesh.face_normal(*f).z > 0.9)
+        .map(|(f, c)| (f, c.to_vec()))
+        .unwrap();
+    record(
+        &mut doc,
+        id,
+        Operation::ExtrudePolygons {
+            faces: vec![top.0],
+            distance: 0.0,
+            grouping: Grouping::Together,
+            shape: crate::ExtrudeShape::EARLIER,
+            anchors: mesh::Anchors::record(
+                &mesh,
+                ElementKind::Polygons,
+                std::slice::from_ref(&top.1),
+            ),
+            stretch: Vec3::ONE,
+        },
+    );
+    // The cap: the top polygon, now on the extrude's new points.
+    let mesh = shape(&doc);
+    let cap: Vec<VertexId> = mesh.face(top.0).unwrap().to_vec();
+    assert!(cap.iter().all(|v| !top.1.contains(v)), "new points");
+    assert!(cap.iter().all(|v| mesh.trusted_point_name(*v).is_some()));
+    let places: Vec<Vec<VertexId>> = cap.iter().map(|v| vec![*v]).collect();
+    record(
+        &mut doc,
+        id,
+        Operation::MovePoints {
+            points: cap.clone(),
+            offset: Vec3::Z * 50.0,
+            anchors: mesh::Anchors::record(&mesh, ElementKind::Points, &places),
+        },
+    );
+    let lifted_right = |doc: &Document| {
+        let mesh = shape(doc);
+        // The top polygon is lifted, and the old top's points stay put:
+        // still four points at the old height.
+        let lifted = mesh
+            .face(top.0)
+            .unwrap()
+            .iter()
+            .all(|v| (mesh.position(*v).unwrap().z - 150.0).abs() < 1e-3);
+        let stayed = mesh
+            .vertices()
+            .filter(|(_, p)| (p.z - 100.0).abs() < 1e-3)
+            .count();
+        lifted && stayed == 4
+    };
+    assert!(lifted_right(&doc));
+    // More bevel rows renumber every point made after the bevel: the
+    // lift finds its points again by place, where two points sit on each
+    // spot, and its names tell which.
+    doc.execute(Command::ReplaceOperation {
+        id,
+        layer: 0,
+        index: 0,
+        operation: bevel(3),
+    })
+    .unwrap();
+    assert!(lifted_right(&doc), "the cap is lifted, not the old top");
+}

@@ -1063,6 +1063,8 @@ impl Operation {
         // The points at the anchored places, when the ids can't be trusted.
         let refound = match self.anchors() {
             Some(anchors) if same || anchors.still_fit(mesh) => None,
+            // By place, points on the same spot told apart by their stable
+            // names (decision 0090).
             Some(anchors) => Some(anchors.find(mesh, mesh.topology())),
             None => None,
         };
@@ -1642,7 +1644,13 @@ pub struct Evaluated {
 fn base_mesh(base: &ObjectKind) -> Option<Arc<Mesh>> {
     match base {
         ObjectKind::Group | ObjectKind::Instance(_) => None,
-        ObjectKind::Primitive(p) => Some(Arc::new(p.mesh())),
+        // Named for the edits on top (decision 0090).
+        ObjectKind::Primitive(p) => {
+            let mut mesh = p.mesh();
+            mesh.name_base();
+            Some(Arc::new(mesh))
+        }
+        // A plain mesh's ids never change: they name its points.
         ObjectKind::Mesh(mesh) => Some(Arc::clone(mesh)),
     }
 }
@@ -1682,7 +1690,10 @@ fn apply_from(
         if !entry.enabled {
             continue;
         }
+        // The elements it makes are named after it (decision 0090).
+        mesh.begin_naming(entry.id.get());
         let applied = entry.operation.apply(&mut mesh);
+        mesh.end_naming();
         if applied.missing > 0 || applied.found_again || applied.too_big {
             warnings.push(StackWarning {
                 layer,

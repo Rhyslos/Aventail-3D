@@ -27,8 +27,10 @@ use crate::{Bounds, ElementKind, FaceId, Mesh, VertexId};
 use glam::{Vec2, Vec3};
 use std::collections::{BTreeSet, HashMap, HashSet};
 
-/// Where an edit's elements were, in the shape it was made on.
-#[derive(Debug, Clone, PartialEq)]
+/// Where an edit's elements were, in the shape it was made on. Two
+/// anchors are equal when they hold the same places, whatever names they
+/// carry: names are worked out again from the edits, like a mesh's.
+#[derive(Debug, Clone)]
 pub struct Anchors {
     /// The box around that shape.
     pub bounds: Bounds,
@@ -39,6 +41,20 @@ pub struct Anchors {
     /// The structure of the shape the edit was made on
     /// ([`Mesh::structure_fingerprint`]); `None` in older files.
     pub structure: Option<u64>,
+    /// The stable names of `points`, in the same order
+    /// ([decision 0090](../../../docs/decisions/0090-stable-element-names.md)),
+    /// when every one had a trusted name; `None` otherwise, and in older
+    /// files.
+    pub names: Option<Vec<u64>>,
+}
+
+impl PartialEq for Anchors {
+    fn eq(&self, other: &Self) -> bool {
+        self.bounds == other.bounds
+            && self.points == other.points
+            && self.shape == other.shape
+            && self.structure == other.structure
+    }
 }
 
 /// The elements an edit was made on, by position.
@@ -88,12 +104,25 @@ impl Anchors {
                     .collect(),
             ),
         };
+        let names = points
+            .iter()
+            .map(|(v, _)| mesh.trusted_point_name(*v))
+            .collect();
         Some(Self {
             bounds,
             points,
             shape,
             structure: Some(mesh.structure_fingerprint()),
+            names,
         })
+    }
+
+    /// The stable name of the anchored point that was at `place`, if
+    /// known.
+    fn name_at(&self, place: Vec3) -> Option<u64> {
+        let names = self.names.as_ref()?;
+        let i = self.points.iter().position(|(_, p)| *p == place)?;
+        names.get(i).copied()
     }
 
     /// The anchors of the same elements' mirrors across `reflect` of
@@ -125,6 +154,8 @@ impl Anchors {
                 ),
             },
             structure: self.structure,
+            // Mirrored points have names of their own, not known here.
+            names: None,
         }
     }
 
@@ -134,9 +165,17 @@ impl Anchors {
     #[must_use]
     pub fn joined(&self, other: &Self) -> Self {
         let mut out = self.clone();
-        for (v, p) in &other.points {
+        let other_names = other.names.as_deref();
+        for (i, (v, p)) in other.points.iter().enumerate() {
             if !out.points.iter().any(|(w, _)| w == v) {
                 out.points.push((*v, *p));
+                out.names = match (out.names.take(), other_names.and_then(|n| n.get(i))) {
+                    (Some(mut names), Some(name)) => {
+                        names.push(*name);
+                        Some(names)
+                    }
+                    _ => None,
+                };
             }
         }
         match (&mut out.shape, &other.shape) {
@@ -206,13 +245,23 @@ impl Anchors {
         let mut missing = 0;
         match &self.shape {
             AnchorShape::Points(places) => {
-                for place in places {
-                    let place = self.moved(*place, &now);
+                for anchored in places {
+                    // Of points on the same spot, the one with the
+                    // anchored point's stable name (decision 0090).
+                    let name = self.name_at(*anchored);
+                    let place = self.moved(*anchored, &now);
                     let nearest = grid
                         .near(mesh, place, place, tolerance)
                         .map(|(v, p)| (v, p.distance(place)))
                         .filter(|(_, d)| *d <= tolerance)
-                        .min_by(|a, b| a.1.total_cmp(&b.1).then(a.0.cmp(&b.0)));
+                        .min_by(|a, b| {
+                            let other =
+                                |v: VertexId| name.is_some() && mesh.trusted_point_name(v) != name;
+                            other(a.0)
+                                .cmp(&other(b.0))
+                                .then(a.1.total_cmp(&b.1))
+                                .then(a.0.cmp(&b.0))
+                        });
                     match nearest {
                         Some((v, _)) => {
                             found.insert(v);

@@ -113,6 +113,8 @@ pub(crate) fn anchors_from_file(a: AnchorsV2) -> Result<Anchors, Problem> {
         shape,
         // Kept from format version 5 on.
         structure: None,
+        // Kept from format version 27 on.
+        names: None,
     })
 }
 
