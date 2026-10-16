@@ -512,6 +512,9 @@ pub const TRIM_ROW_EDGE: Color32 = Color32::from_rgb(0x5a, 0x86, 0xb0);
 pub const UV_GRID_IMAGE_TINT: Color32 = Color32::from_gray(150);
 /// Seams in the UV Editor: the viewport's seam orange (decision 0098).
 pub const UV_SEAM: Color32 = Color32::from_rgb(0xff, 0x5c, 0x0d);
+/// Pinned UVs in the UV Editor (decision 0109): a bright magenta, apart
+/// from the seams' orange and every accent's selection.
+pub const UV_PIN: Color32 = Color32::from_rgb(0xff, 0x3d, 0xc8);
 /// The stretch view's colours (decision 0102), as the viewport's: a
 /// polygon lying evenly on the texture.
 pub const STRETCH_EVEN: Color32 = Color32::from_rgb(0x7c, 0xc2, 0x9b);

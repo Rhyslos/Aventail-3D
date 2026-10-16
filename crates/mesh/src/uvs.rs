@@ -14,7 +14,7 @@
 //! The tools that make UVs (unwrapping, relaxing, packing) are in the `uv`
 //! crate; this module is what every part of the app needs to read them.
 
-use crate::attributes::{AttributeValues, Domain, SEAM, UV, Value};
+use crate::attributes::{AttributeValues, Domain, SEAM, UV, UV_PIN, Value};
 use crate::{AttributeElement, EdgeKey, FaceId, Mesh, VertexId};
 use glam::Vec2;
 
@@ -389,3 +389,72 @@ pub fn uv_centre(mesh: &Mesh, faces: &[FaceId], points: &[VertexId]) -> Option<V
 
 #[cfg(test)]
 mod tests;
+
+/// Which corners are pinned (decision 0109), one per corner in the mesh's
+/// corner order; `None` when nothing is.
+pub fn pins(mesh: &Mesh) -> Option<Vec<bool>> {
+    let count = mesh.face_layout().1.len();
+    match mesh.attribute_values(UV_PIN) {
+        Some((Domain::Corner, _, AttributeValues::Bool(mut list))) => {
+            list.resize(count, false);
+            list.iter().any(|p| *p).then_some(list)
+        }
+        _ => None,
+    }
+}
+
+/// Pins (or, with `pin` false, unpins) the UVs of `faces` and `points`
+/// and the corners sharing their spots (see [`corners_moved`]), so they
+/// stay where they are when their piece is unwrapped or relaxed. Adds the
+/// pin layer when needed and takes it away when nothing is left pinned.
+/// A mesh without UVs changes nothing.
+pub fn set_pins(
+    mesh: &mut Mesh,
+    faces: &[FaceId],
+    points: &[VertexId],
+    pin: bool,
+) -> crate::edit::Outcome {
+    let missing = faces.iter().filter(|f| mesh.face(**f).is_none()).count()
+        + points
+            .iter()
+            .filter(|v| mesh.position(**v).is_none())
+            .count();
+    let asked = faces.len() + points.len();
+    let mut outcome = crate::edit::Outcome {
+        matched: 0,
+        missing,
+        skipped: asked - missing,
+    };
+    let Some(uvs) = Uvs::of(mesh) else {
+        return outcome;
+    };
+    let count = mesh.face_layout().1.len();
+    let mut list = pins(mesh).unwrap_or_else(|| vec![false; count]);
+    let mut changed = false;
+    for k in corners_moved(mesh, &uvs, faces, points) {
+        if list[k] != pin {
+            list[k] = pin;
+            changed = true;
+        }
+    }
+    if !changed {
+        return outcome;
+    }
+    let ok = if list.iter().any(|p| *p) {
+        mesh.set_attribute_values(
+            UV_PIN,
+            Domain::Corner,
+            Value::Bool(false),
+            AttributeValues::Bool(list),
+        )
+        .is_ok()
+    } else {
+        mesh.remove_attribute(UV_PIN);
+        true
+    };
+    if ok {
+        outcome.matched = asked - missing;
+        outcome.skipped = 0;
+    }
+    outcome
+}

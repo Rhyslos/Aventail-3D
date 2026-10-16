@@ -66,9 +66,9 @@ pub use viewport::{
     VIEW_COUNT, VIEW_KEYS, VIEWPORT_LABEL, ViewOptions, ViewportPanel, ViewportRenderer,
     ViewportView, checker_squares, grid_image,
 };
-pub use workbench::UvSettings;
 pub use workbench::{
     AppInfo, DISCARD_SHORTCUT, DOUBLE_CLICK_SECONDS, ExportChoice, ExportRequest, KitOutcome,
     KitRequest, MODE_KEYS, TargetOutcome, TargetRequest, Workbench, WorkbenchAction,
     navigation_hint,
 };
+pub use workbench::{UnwrapWay, UvSettings};

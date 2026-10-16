@@ -47,6 +47,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Editing UVs by hand: move, turn, scale and flip pieces](editing-uvs.md)
 - [Seams: mark, clear, from hard edges, suggested](seams.md)
 - [Unwrap, Relax and Straighten: lay pieces flat](unwrapping.md)
+- [Pinning UVs: hold some UVs while the rest is laid out](pins.md)
 - [Texture size and texel density](texture-and-density.md)
 - [Packing: fit pieces into the texture](packing.md)
 - [Checker and Stretch views: check UVs on the model](checker-and-stretch.md)

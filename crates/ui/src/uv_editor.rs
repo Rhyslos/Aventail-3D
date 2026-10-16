@@ -72,6 +72,8 @@ struct UvShape {
     /// How evenly each polygon lies, in the order of `polygons`
     /// (decision 0102).
     stretch: Vec<uv::stretch::Stretch>,
+    /// The spots of pinned UVs, each once (decision 0109).
+    pins: Vec<Vec2>,
 }
 
 impl UvShape {
@@ -129,6 +131,15 @@ impl UvShape {
             .iter()
             .map(|(face, _)| uv::density::areas(&mesh, &[*face], &uvs))
             .collect();
+        let mut pins: Vec<Vec2> = Vec::new();
+        if let Some(pinned) = mesh::uvs::pins(&mesh) {
+            for (k, pinned) in pinned.iter().enumerate() {
+                let spot = uvs.at(k);
+                if *pinned && !pins.iter().any(|p| p.distance(spot) <= mesh::uvs::SAME_UV) {
+                    pins.push(spot);
+                }
+            }
+        }
         Some(Self {
             mesh,
             polygons,
@@ -138,6 +149,7 @@ impl UvShape {
             seams,
             areas,
             stretch,
+            pins,
         })
     }
 }
@@ -992,6 +1004,14 @@ impl UvEditor {
                 }
             }
             _ => {}
+        }
+        // Pinned UVs, in every mode: a dark ring with a bright middle.
+        for pin in &shape.pins {
+            let at = screen(*pin);
+            if rect.expand(6.0).contains(at) {
+                add_dot(&mut marks, at, 5.0, theme::PANEL);
+                add_dot(&mut marks, at, 3.5, theme::UV_PIN);
+            }
         }
         painter.add(egui::Shape::mesh(marks));
     }
