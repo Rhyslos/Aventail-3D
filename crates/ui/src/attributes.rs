@@ -1576,10 +1576,15 @@ fn keep_together(ui: &mut Ui, together: &mut bool) -> bool {
 fn edits_section(ui: &mut Ui, doc: &Document, id: ObjectId, stack: &Stack) {
     section(ui, "Edits");
     let count = stack.operation_count();
-    let text = match count {
+    let mut text = match count {
         1 => "1 edit recorded on top of the shape".to_string(),
         n => format!("{n} edits recorded on top of the shape"),
     };
+    // Several layers: the Edit layers panel lists them (decision 0091).
+    let layers = stack.layers().len();
+    if layers > 1 {
+        text.push_str(&format!(", in {layers} layers"));
+    }
     ui.label(text).on_hover_text(
         "Edits are kept apart from the shape's settings, so the settings stay \
          editable: change them and the edits are made again on the new shape.",

@@ -16,6 +16,7 @@ mod dialog;
 mod drawing;
 pub mod icons;
 mod keyboard;
+mod layers;
 pub mod layout;
 mod objects;
 pub mod palette;

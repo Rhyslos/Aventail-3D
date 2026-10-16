@@ -226,7 +226,7 @@ impl Workbench {
     /// `W`, `R`, `S`, `T` pick a tool; Shift+`X`, `Y`, `Z` lock axes; `L`
     /// switches world and object axes. Not while typing.
     pub(super) fn transform_keys(&mut self, ui: &Ui) {
-        if ui.ctx().memory(|m| m.focused().is_some()) || self.objects.is_renaming() {
+        if ui.ctx().memory(|m| m.focused().is_some()) || self.renaming() {
             return;
         }
         for (key, tool) in TOOL_KEYS {

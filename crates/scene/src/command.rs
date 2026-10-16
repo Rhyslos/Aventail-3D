@@ -1,7 +1,7 @@
 //! Commands: every change a user can make to the scene, each one undoable.
 
 use crate::object::{Object, ObjectId, ObjectKind, Transform};
-use crate::stack::{EDITS_LAYER, EditId, Entry, Layer, Operation};
+use crate::stack::{EditId, Entry, Layer, LayerChange, Operation};
 use crate::tree::{Edit, Place, Scene, SceneError};
 use mesh::Primitive;
 use std::sync::Arc;
@@ -141,6 +141,20 @@ pub enum Command {
         /// What to apply.
         parts: crate::ApplyParts,
     },
+    /// Adds an empty edit layer on top of each object with a shape of its
+    /// own (decision 0091), named "Edits 2" and so on. New edits go into
+    /// it. Groups and instances are left alone.
+    AddLayer(Vec<ObjectId>),
+    /// Changes edit layer `index` (from the bottom, 0) of object `id`
+    /// (decision 0091).
+    ChangeLayer {
+        /// The object.
+        id: ObjectId,
+        /// Which layer, from the bottom (0).
+        index: usize,
+        /// What to change.
+        change: crate::LayerChange,
+    },
     /// Gives objects with a shape a live mirror (decision 0088), changes
     /// it, or takes it away (`None`). Groups are left alone; a mirror
     /// with no axis or numbers out of range is refused.
@@ -258,6 +272,8 @@ impl Command {
             Self::SetUnits(units) => format!("Change units to {}", units.name()),
             Self::SetMaterials { .. } => "Change materials".to_string(),
             Self::ApplyTransforms { parts, .. } => format!("Apply {}", parts.name()),
+            Self::AddLayer(_) => "Add edit layer".to_string(),
+            Self::ChangeLayer { change, .. } => change.describe().to_string(),
             Self::SetMirror { mirror: None, .. } => "Mirror off".to_string(),
             Self::SetMirror { .. } => "Mirror".to_string(),
             Self::SetCollision { collision, .. } => match collision {
@@ -384,6 +400,82 @@ impl Run<'_> {
         self.swap_entry(id, layer, index, before, after)
     }
 
+    /// Changes layer `index` of object `id` (decision 0091). A change
+    /// that changes nothing records nothing.
+    fn change_layer(
+        &mut self,
+        id: ObjectId,
+        index: usize,
+        change: &LayerChange,
+    ) -> Result<(), SceneError> {
+        let object = self.scene.object(id).ok_or(SceneError::UnknownObject(id))?;
+        let layers = object.stack.layers().to_vec();
+        let layer = layers
+            .get(index)
+            .cloned()
+            .ok_or(SceneError::History("that layer no longer exists"))?;
+        let remove = |index: usize, layer: Layer| Edit::RemoveLayer { id, index, layer };
+        let insert = |index: usize, layer: Layer| Edit::InsertLayer { id, index, layer };
+        match change {
+            LayerChange::SetEnabled(enabled) => {
+                if layer.enabled != *enabled {
+                    let after = Layer {
+                        enabled: *enabled,
+                        ..layer.clone()
+                    };
+                    self.edit(remove(index, layer))?;
+                    self.edit(insert(index, after))?;
+                }
+            }
+            LayerChange::Rename(name) => {
+                let name = name.trim();
+                if name.is_empty() {
+                    return Err(SceneError::EmptyName);
+                }
+                if layer.name != name {
+                    let after = Layer {
+                        name: name.to_string(),
+                        ..layer.clone()
+                    };
+                    self.edit(remove(index, layer))?;
+                    self.edit(insert(index, after))?;
+                }
+            }
+            LayerChange::Move { up } => {
+                let to = if *up {
+                    index + 1
+                } else {
+                    index
+                        .checked_sub(1)
+                        .ok_or(SceneError::History("the layer is already at the bottom"))?
+                };
+                if to >= layers.len() {
+                    return Err(SceneError::History("the layer is already at the top"));
+                }
+                self.edit(remove(index, layer.clone()))?;
+                self.edit(insert(to, layer))?;
+            }
+            LayerChange::MergeDown => {
+                let below_index = index
+                    .checked_sub(1)
+                    .ok_or(SceneError::History("there is no layer below to merge into"))?;
+                let below = layers[below_index].clone();
+                if !layer.enabled || !below.enabled {
+                    return Err(SceneError::History(
+                        "switch both layers on before merging them",
+                    ));
+                }
+                let mut merged = below.clone();
+                merged.entries.extend(layer.entries.iter().cloned());
+                self.edit(remove(index, layer))?;
+                self.edit(remove(below_index, below))?;
+                self.edit(insert(below_index, merged))?;
+            }
+            LayerChange::Delete => self.edit(remove(index, layer))?,
+        }
+        Ok(())
+    }
+
     /// Undoes the edits made so far.
     fn roll_back(&mut self) {
         while let Some(edit) = self.edits.pop() {
@@ -392,9 +484,6 @@ impl Run<'_> {
         }
     }
 
-    /// Gives `id` the transform `after`, its pivot moving there on its
-    /// own: its shape's offset and its children's transforms change the
-    /// opposite way, so nothing moves in the world.
     /// Applies `parts` of `id`'s placement (decision 0089).
     fn apply_transform(
         &mut self,
@@ -463,6 +552,9 @@ impl Run<'_> {
         Ok(())
     }
 
+    /// Gives `id` the transform `after`, its pivot moving there on its
+    /// own: its shape's offset and its children's transforms change the
+    /// opposite way, so nothing moves in the world.
     fn move_pivot(&mut self, id: ObjectId, after: Transform) -> Result<(), SceneError> {
         if !after.is_finite() {
             return Err(SceneError::NotANumber);
@@ -693,16 +785,21 @@ impl Run<'_> {
                 if matches!(object.kind, ObjectKind::Instance(_)) {
                     return Err(SceneError::Instance);
                 }
-                let mut layers = object.stack.layers().len();
-                if layers == 0 {
-                    self.edit(Edit::InsertLayer {
-                        id: *id,
-                        index: 0,
-                        layer: Layer::new(EDITS_LAYER),
-                    })?;
-                    layers = 1;
-                }
-                let layer = layers - 1;
+                // The top switched-on layer, or a new one on top
+                // (decision 0091).
+                let layer = match object.stack.recording_layer() {
+                    Some(layer) => layer,
+                    None => {
+                        let index = object.stack.layers().len();
+                        let layer = Layer::new(object.stack.next_layer_name());
+                        self.edit(Edit::InsertLayer {
+                            id: *id,
+                            index,
+                            layer,
+                        })?;
+                        index
+                    }
+                };
                 let stack = self.scene.object(*id).map(|o| &o.stack);
                 let index = stack.map_or(0, |s| s.layers()[layer].entries.len());
                 let edit = stack.map_or(EditId::from_raw(1), crate::stack::Stack::next_edit_id);
@@ -743,6 +840,29 @@ impl Run<'_> {
                     ..before.clone()
                 };
                 self.swap_entry(*id, *layer, *index, before, after)?;
+                Ok(None)
+            }
+            Command::AddLayer(ids) => {
+                for id in ids {
+                    let object = self
+                        .scene
+                        .object(*id)
+                        .ok_or(SceneError::UnknownObject(*id))?;
+                    if !object.kind.has_shape() || matches!(object.kind, ObjectKind::Instance(_)) {
+                        continue;
+                    }
+                    let index = object.stack.layers().len();
+                    let layer = Layer::new(object.stack.next_layer_name());
+                    self.edit(Edit::InsertLayer {
+                        id: *id,
+                        index,
+                        layer,
+                    })?;
+                }
+                Ok(None)
+            }
+            Command::ChangeLayer { id, index, change } => {
+                self.change_layer(*id, *index, change)?;
                 Ok(None)
             }
             Command::SetEditEnabled { id, edit, enabled } => {

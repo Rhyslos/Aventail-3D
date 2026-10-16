@@ -43,7 +43,7 @@ impl Workbench {
     /// `Q` steps through the select tools; Ctrl + A selects all and
     /// Ctrl + I inverts. Not while typing.
     pub(super) fn select_keys(&mut self, ui: &Ui) {
-        if ui.ctx().memory(|m| m.focused().is_some()) || self.objects.is_renaming() {
+        if ui.ctx().memory(|m| m.focused().is_some()) || self.renaming() {
             return;
         }
         let (next, all, invert) = ui.input_mut(|i| {

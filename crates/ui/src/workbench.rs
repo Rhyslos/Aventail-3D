@@ -177,6 +177,8 @@ pub struct Workbench {
     /// The scene being worked on, with its undo history and selection.
     document: Document,
     objects: ObjectManager,
+    /// The Edit layers panel (decision 0091).
+    layers: crate::layers::LayersPanel,
     attributes: AttributesPanel,
     /// The project's units (decision 0068), for every length shown or
     /// typed this frame: read from the document as the frame starts; a
@@ -280,6 +282,7 @@ impl Workbench {
             mode: Mode::default(),
             document: Document::new(),
             objects: ObjectManager::default(),
+            layers: crate::layers::LayersPanel::default(),
             attributes: AttributesPanel::default(),
             units: Units::default(),
             new_units: Units::default(),
@@ -473,6 +476,18 @@ impl Workbench {
     #[cfg(test)]
     pub(crate) fn object_manager(&self) -> &ObjectManager {
         &self.objects
+    }
+
+    /// Whether a name (an object's or a layer's) is being typed, so keys
+    /// go to the text box.
+    pub(crate) fn renaming(&self) -> bool {
+        self.objects.is_renaming() || self.layers.is_renaming()
+    }
+
+    /// The Edit layers panel, for tests.
+    #[cfg(test)]
+    pub(crate) fn layers_panel(&self) -> &crate::layers::LayersPanel {
+        &self.layers
     }
 
     /// The 3D viewport panel.
@@ -1003,6 +1018,7 @@ impl Workbench {
         self.attributes.tool = self.tool;
         self.attributes.polygons_selected = self.polygons_selected_for_attributes();
         hide_viewport_tab(&mut self.dock);
+        let mut modifier_pick = None;
         let style = theme::dock_style(ui.style().as_ref(), self.accent);
         theme::dock_frame().show(ui, |ui| {
             DockArea::new(&mut self.dock)
@@ -1021,6 +1037,8 @@ impl Workbench {
                         summary: &summary,
                         document: &mut self.document,
                         objects: &mut self.objects,
+                        layers: &mut self.layers,
+                        modifier_pick: &mut modifier_pick,
                         attributes: &mut self.attributes,
                         units: &mut self.units,
                         requests: &mut requests,
@@ -1029,6 +1047,9 @@ impl Workbench {
                     },
                 );
         });
+        if let Some(crate::layers::ModifierPick::AddLayer) = modifier_pick {
+            self.add_edit_layer(&mut requests);
+        }
         if let Some(slot) = self.attributes.assign.take() {
             self.assign_material(slot);
         }
@@ -1284,6 +1305,21 @@ impl Workbench {
                 self.undo_memory.short()
             ));
         }
+    }
+
+    /// Adds an edit layer to the selected objects that can take one, and
+    /// brings the Edit layers panel to the front (decision 0091).
+    fn add_edit_layer(&mut self, requests: &mut Vec<DocRequest>) {
+        let targets = crate::layers::layer_targets(&self.document);
+        if targets.is_empty() {
+            self.note = Some(
+                "Select an object with a shape first: groups and instances have no edit layers."
+                    .into(),
+            );
+            return;
+        }
+        requests.push(DocRequest::Run(Command::AddLayer(targets)));
+        crate::layout::show_tab(&mut self.dock, Panel::EditLayers);
     }
 
     /// Whether a selected object has a shape to edit (for the Points,
@@ -1572,6 +1608,18 @@ impl Workbench {
                         ui.close();
                     }
                     objects::apply_entries(ui, &self.document, requests);
+                    let layer_targets = crate::layers::layer_targets(&self.document);
+                    if ui
+                        .add_enabled(
+                            !layer_targets.is_empty(),
+                            egui::Button::new(crate::layers::ADD_LAYER_LABEL),
+                        )
+                        .on_hover_text(crate::layers::ADD_LAYER_HELP)
+                        .clicked()
+                    {
+                        self.add_edit_layer(requests);
+                        ui.close();
+                    }
                     ui.separator();
                     crate::viewport::chrome::auto_hard_edges_entry(ui, self.viewport.options_mut());
                     if ui
@@ -1839,6 +1887,9 @@ struct PanelViewer<'a> {
     summary: &'a SceneSummary,
     document: &'a mut Document,
     objects: &'a mut ObjectManager,
+    layers: &'a mut crate::layers::LayersPanel,
+    /// What was picked on the modifiers palette this frame.
+    modifier_pick: &'a mut Option<crate::layers::ModifierPick>,
     attributes: &'a mut AttributesPanel,
     units: &'a mut Units,
     requests: &'a mut Vec<DocRequest>,
@@ -1860,8 +1911,31 @@ impl TabViewer for PanelViewer<'_> {
 
     fn ui(&mut self, ui: &mut Ui, tab: &mut Panel) {
         if *tab == Panel::Viewport {
-            // Edge to edge, with no padding.
-            self.viewport.show(ui, self.renderer, self.summary);
+            // Edge to edge, with no padding, and the modifiers palette on
+            // its right, beside the panels (decision 0091).
+            let full = ui.max_rect();
+            let split = full.right() - crate::layers::MODIFIERS_WIDTH;
+            let strip = egui::Rect::from_min_max(egui::pos2(split, full.top()), full.max);
+            let view = egui::Rect::from_min_max(full.min, egui::pos2(split, full.bottom()));
+            let mut strip_ui = ui.new_child(
+                egui::UiBuilder::new()
+                    .id_salt("modifiers palette")
+                    .max_rect(strip)
+                    .layout(egui::Layout::top_down(egui::Align::Center)),
+            );
+            strip_ui.painter().rect_filled(strip, 0.0, theme::PALETTE);
+            strip_ui.painter().vline(
+                strip.left() + 0.5,
+                strip.y_range(),
+                egui::Stroke::new(1.0, theme::BORDER),
+            );
+            if let Some(pick) = crate::layers::modifiers_palette(&mut strip_ui, self.document) {
+                *self.modifier_pick = Some(pick);
+            }
+            let mut view_ui = ui.new_child(egui::UiBuilder::new().max_rect(view));
+            self.viewport
+                .show(&mut view_ui, self.renderer, self.summary);
+            ui.advance_cursor_after_rect(full);
             return;
         }
         match tab {
@@ -1876,6 +1950,9 @@ impl TabViewer for PanelViewer<'_> {
             Panel::Objects => menu_line_with(ui, |ui| {
                 objects::menus(ui, self.document, self.objects, self.requests);
             }),
+            Panel::EditLayers => menu_line_with(ui, |ui| {
+                self.layers.menus(ui, self.document, self.requests);
+            }),
             Panel::Viewport | Panel::Coordinates => {}
         }
         egui::Frame::new()
@@ -1887,6 +1964,7 @@ impl TabViewer for PanelViewer<'_> {
                         .show(ui, self.document, *self.units, self.requests);
                 }
                 Panel::Objects => self.objects.show(ui, self.document, self.requests),
+                Panel::EditLayers => self.layers.show(ui, self.document, self.requests),
                 Panel::Coordinates => {
                     *self.coordinates_done =
                         crate::coordinates::show(ui, *self.units, &self.coordinates);
@@ -1958,6 +2036,8 @@ mod materials;
 pub use exporting::{
     ExportChoice, ExportRequest, KitOutcome, KitRequest, TargetOutcome, TargetRequest,
 };
+#[cfg(test)]
+mod layer_tests;
 mod modelling;
 #[cfg(test)]
 mod modelling_tests;

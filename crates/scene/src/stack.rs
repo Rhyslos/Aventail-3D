@@ -1603,6 +1603,61 @@ impl Stack {
             .map(|e| e.id)
             .find(|id| !seen.insert(*id))
     }
+
+    /// The layer new edits go into (decision 0091): the top one that is
+    /// switched on, or `None` if there is none (a new layer is added).
+    pub fn recording_layer(&self) -> Option<usize> {
+        self.layers.iter().rposition(|l| l.enabled)
+    }
+
+    /// A name for a new layer that no layer has: "Edits" for the first,
+    /// then "Edits 2", "Edits 3" and so on.
+    pub fn next_layer_name(&self) -> String {
+        let taken = |name: &str| self.layers.iter().any(|l| l.name == name);
+        if !taken(EDITS_LAYER) {
+            return EDITS_LAYER.to_string();
+        }
+        (2..)
+            .map(|n| format!("{EDITS_LAYER} {n}"))
+            .find(|name| !taken(name))
+            .unwrap_or_else(|| EDITS_LAYER.to_string())
+    }
+}
+
+/// A change to one edit layer (decision 0091), for
+/// [`crate::Command::ChangeLayer`].
+#[derive(Debug, Clone, PartialEq)]
+pub enum LayerChange {
+    /// Switches the layer on or off. A switched-off layer passes the shape
+    /// below it through unchanged.
+    SetEnabled(bool),
+    /// Gives the layer another name (not empty).
+    Rename(String),
+    /// Moves the layer one place up (applied later) or down (earlier).
+    Move {
+        /// Up, towards the top of the list.
+        up: bool,
+    },
+    /// Moves the layer's edits to the end of the layer below, and removes
+    /// it. Both layers must be switched on.
+    MergeDown,
+    /// Removes the layer and its edits.
+    Delete,
+}
+
+impl LayerChange {
+    /// A short description for the Edit menu.
+    pub fn describe(&self) -> &'static str {
+        match self {
+            Self::SetEnabled(true) => "Switch layer on",
+            Self::SetEnabled(false) => "Switch layer off",
+            Self::Rename(_) => "Rename layer",
+            Self::Move { up: true } => "Move layer up",
+            Self::Move { up: false } => "Move layer down",
+            Self::MergeDown => "Merge layer down",
+            Self::Delete => "Delete layer",
+        }
+    }
 }
 
 /// What evaluation can depend on besides the object itself. Empty for

@@ -36,7 +36,7 @@ impl Workbench {
     /// Ctrl + C, Ctrl + V, Alt + C and Alt + V. Not while typing (text
     /// fields copy and paste text).
     pub(super) fn copying_keys(&mut self, ui: &Ui) {
-        if ui.ctx().memory(|m| m.focused().is_some()) || self.objects.is_renaming() {
+        if ui.ctx().memory(|m| m.focused().is_some()) || self.renaming() {
             return;
         }
         let (copy, paste, paste_instances) = ui.input_mut(|i| {
