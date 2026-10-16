@@ -134,6 +134,40 @@ pub fn uv_splits(mesh: &Mesh) -> Vec<EdgeKey> {
         .collect()
 }
 
+/// Marks `edges` as seams (or clears them, with `seam` false), adding
+/// the seam layer if needed (decision 0098). Edges not in the mesh are
+/// missing; edges already so, and open edges (an edge of a hole is cut
+/// already), are skipped. Only the marks change: the UVs follow when
+/// the shape is unwrapped.
+pub fn set_seams(mesh: &mut Mesh, edges: &[EdgeKey], seam: bool) -> crate::edit::Outcome {
+    let mut outcome = crate::edit::Outcome::default();
+    if seam
+        && mesh.attribute_values(SEAM).is_none()
+        && mesh
+            .add_attribute(SEAM, Domain::Edge, Value::Bool(false))
+            .is_err()
+    {
+        outcome.skipped = edges.len();
+        return outcome;
+    }
+    let topology = mesh.topology().clone();
+    for edge in edges {
+        if !topology.has_edge(*edge) {
+            outcome.missing += 1;
+        } else if topology.edge_uses(*edge).len() < 2 || is_seam(mesh, *edge) == seam {
+            outcome.skipped += 1;
+        } else if mesh
+            .set_attribute(SEAM, AttributeElement::Edge(*edge), Value::Bool(seam))
+            .is_ok()
+        {
+            outcome.matched += 1;
+        } else {
+            outcome.skipped += 1;
+        }
+    }
+    outcome
+}
+
 /// Marks every edge where the UVs split as a seam (and no other), adding
 /// the seam layer if needed: what a shape made with its own UVs (a
 /// primitive) starts with.

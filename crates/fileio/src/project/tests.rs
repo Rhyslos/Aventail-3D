@@ -9,9 +9,59 @@ use mesh::{CubeParams, PrimitiveKind, VertexId};
 use scene::{Command, Object, ObjectKind, Operation, Place, Primitive, Transform};
 
 /// A document using everything the current version of the format can
-/// hold: all of [`rich_document_v26`], plus UVs moved by hand (version 28;
-/// the version 28 sample holds exactly this).
+/// hold: all of [`rich_document_v28`], plus seams marked and cleared
+/// (version 29; the version 29 sample holds exactly this).
 fn rich_document() -> Document {
+    let mut doc = rich_document_v28();
+    let cube = doc
+        .scene()
+        .walk()
+        .into_iter()
+        .map(|(id, _)| id)
+        .find(|id| {
+            let o = doc.scene().object(*id).unwrap();
+            o.kind.has_shape()
+                && doc
+                    .scene()
+                    .evaluated(*id)
+                    .is_some_and(|e| e.mesh.topology().edges().count() > 4)
+        })
+        .unwrap();
+    let mesh = doc.scene().evaluated(cube).unwrap().mesh;
+    let inner: Vec<scene::EdgeKey> = mesh
+        .topology()
+        .edges()
+        .filter(|e| mesh.topology().edge_uses(*e).len() == 2)
+        .collect();
+    let marked = inner
+        .iter()
+        .copied()
+        .find(|e| !mesh::uvs::is_seam(&mesh, *e))
+        .unwrap();
+    let cleared = inner
+        .iter()
+        .copied()
+        .find(|e| mesh::uvs::is_seam(&mesh, *e))
+        .unwrap();
+    for (edge, seam) in [(marked, true), (cleared, false)] {
+        let (a, b) = edge.ends();
+        doc.execute(Command::Record {
+            id: cube,
+            operation: Operation::SetSeams {
+                edges: vec![edge],
+                seam,
+                anchors: mesh::Anchors::record(&mesh, mesh::ElementKind::Edges, &[vec![a, b]]),
+            },
+        })
+        .unwrap();
+    }
+    doc
+}
+
+/// A document using everything version 28 stores: all of
+/// [`rich_document_v26`], plus UVs moved by hand (the version 28 sample
+/// holds exactly this).
+fn rich_document_v28() -> Document {
     let mut doc = rich_document_v26();
     let plane = doc
         .scene()
@@ -1545,7 +1595,7 @@ fn a_cut_short_or_padded_body_is_damaged() {
 #[test]
 fn an_uncompressed_body_can_be_read() {
     let doc = rich_document();
-    let body = postcard::to_stdvec(&v28::ProjectV28::from_document(&doc)).unwrap();
+    let body = postcard::to_stdvec(&v29::ProjectV29::from_document(&doc)).unwrap();
     let mut bytes = header(FORMAT_VERSION, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     assert_same(&doc, &from_bytes(&bytes).unwrap());
@@ -3684,7 +3734,7 @@ const SAMPLE_V28: &[u8] = include_bytes!("../../tests/data/sample-v28.avtl");
 #[test]
 fn a_file_saved_by_format_version_28_still_opens_with_its_moved_uvs() {
     let doc = from_bytes(SAMPLE_V28).expect("the version 28 sample opens");
-    assert_same(&rich_document(), &doc);
+    assert_same(&rich_document_v28(), &doc);
     let text = format!("{:?}", v28::ProjectV28::from_document(&doc));
     assert_eq!(text.matches("TransformUvs").count(), 1, "{text}");
     // The plane's UVs are moved: half size, turned and shifted.
@@ -3700,4 +3750,14 @@ fn a_file_saved_by_format_version_28_still_opens_with_its_moved_uvs() {
     let (face, _) = mesh.faces().next().unwrap();
     let corner = uvs.corner(&mesh, face, 0).unwrap();
     assert!(corner.x > 0.09 && corner.x < 0.65, "{corner}");
+}
+
+const SAMPLE_V29: &[u8] = include_bytes!("../../tests/data/sample-v29.avtl");
+
+#[test]
+fn a_file_saved_by_format_version_29_still_opens_with_its_seams() {
+    let doc = from_bytes(SAMPLE_V29).expect("the version 29 sample opens");
+    assert_same(&rich_document(), &doc);
+    let text = format!("{:?}", v29::ProjectV29::from_document(&doc));
+    assert_eq!(text.matches("SetSeams").count(), 2, "{text}");
 }

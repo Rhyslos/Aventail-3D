@@ -30,6 +30,8 @@ pub(super) enum SelectRequest {
     SimilarFacing,
     /// Select the hard edges.
     HardEdges,
+    /// Select the seams (decision 0098).
+    Seams,
     /// Select the polygons using the material of this name.
     Material(String),
 }
@@ -174,6 +176,15 @@ impl Workbench {
             self.select_requests.push(SelectRequest::HardEdges);
             ui.close();
         }
+        if entry(
+            ui,
+            super::seams::SELECT_SEAMS_LABEL,
+            String::new(),
+            super::seams::SELECT_SEAMS_HELP,
+        ) {
+            self.run_select_seams();
+            ui.close();
+        }
         self.material_entries(ui);
         ui.add_enabled(false, egui::Button::new("Loop and ring: double-click"))
             .on_disabled_hover_text(
@@ -262,6 +273,7 @@ impl Workbench {
                 }
                 SelectRequest::Flipped => selector.select_flipped(),
                 SelectRequest::HardEdges => selector.select_hard_edges(),
+                SelectRequest::Seams => selector.select_seams(),
                 SelectRequest::Material(name) => selector.select_by_material(&name),
                 SelectRequest::SimilarFacing => {
                     selector.select_similar_facing(super::cleaning::SIMILAR_FACING_ANGLE)

@@ -118,6 +118,15 @@ impl Workbench {
             CommandId::Slit if !command.modes().contains(&self.mode) => Ready::NotNow(
                 "Slit works in the Points, Edges or Polygons mode: press 1, 2 or 3".into(),
             ),
+            CommandId::MarkSeam | CommandId::ClearSeam
+                if crate::uv_editor::element_kind(self.mode).is_none() =>
+            {
+                Ready::NotNow(format!(
+                    "{} works on selected edges or polygons: press 2 for the Edges mode, or 3 \
+                     for Polygons",
+                    command.name()
+                ))
+            }
             CommandId::UvTurnLeft
             | CommandId::UvTurnRight
             | CommandId::UvFlipU
@@ -219,13 +228,10 @@ impl Workbench {
             CommandId::UvTurnRight => self.change_uvs(UvChange::TurnRight),
             CommandId::UvFlipU => self.change_uvs(UvChange::FlipU),
             CommandId::UvFlipV => self.change_uvs(UvChange::FlipV),
+            CommandId::MarkSeam => self.run_seams(true),
+            CommandId::ClearSeam => self.run_seams(false),
             // Not built yet: readiness stops these above.
-            CommandId::MarkSeam
-            | CommandId::ClearSeam
-            | CommandId::Unwrap
-            | CommandId::Relax
-            | CommandId::Straighten
-            | CommandId::Pack => {}
+            CommandId::Unwrap | CommandId::Relax | CommandId::Straighten | CommandId::Pack => {}
             CommandId::PivotToCentre => self.run_placement(super::pivots::Placement::PivotToCentre),
             CommandId::PivotToOrigin => self.run_placement(super::pivots::Placement::PivotToOrigin),
             CommandId::ObjectToOrigin => {

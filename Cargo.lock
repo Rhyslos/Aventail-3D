@@ -3476,6 +3476,7 @@ dependencies = [
  "scene",
  "serde",
  "tools",
+ "uv",
 ]
 
 [[package]]
@@ -3534,6 +3535,10 @@ dependencies = [
 [[package]]
 name = "uv"
 version = "0.0.1"
+dependencies = [
+ "glam",
+ "mesh",
+]
 
 [[package]]
 name = "vello_common"

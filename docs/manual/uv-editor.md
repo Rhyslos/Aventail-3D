@@ -18,6 +18,7 @@ A shape's [UVs](concepts.md#uvs-and-texturing) say where each part of its surfac
 2. Select an object. Its UVs appear on the square:
    - every polygon's outline in grey;
    - the borders of each **island** (a piece laid flat in one go) brighter;
+   - [seams](seams.md) in orange;
    - the selection in the accent colour, and what's under the mouse lit up.
 3. Select:
    - In the **UV mode**, click an island (in the editor or on the model) to select all of it. **Ctrl + click** adds or takes away another.
@@ -68,5 +69,6 @@ The keys are the same as in the viewport: they work wherever the mouse is.
 
 - [Primitives: ready-made UVs](primitives.md#ready-made-uvs)
 - [Editing UVs by hand](editing-uvs.md)
+- [Seams](seams.md)
 - [Selecting](selecting.md)
 - [Concepts: UV map, seam, island, corner](concepts.md#uvs-and-texturing)

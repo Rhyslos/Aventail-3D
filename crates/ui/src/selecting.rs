@@ -483,6 +483,17 @@ impl Selector<'_> {
         )
     }
 
+    /// Selects the seams (Select or UV menu → Select seams).
+    pub(crate) fn select_seams(&mut self) -> Option<String> {
+        self.each_edited(ElementKind::Edges, "Select seams", |mesh, topology, _| {
+            mesh::uvs::seams(mesh)
+                .into_iter()
+                .filter(|e| topology.has_edge(*e))
+                .map(Element::Edge)
+                .collect()
+        })
+    }
+
     /// Adds the polygons facing within `angle` degrees of a selected
     /// polygon (Select menu → Select same facing).
     pub(crate) fn select_similar_facing(&mut self, angle: f32) -> Option<String> {

@@ -55,6 +55,7 @@ pub fn mirrors(op: &Operation) -> bool {
         | Operation::FlipPolygons { .. }
         | Operation::SetMaterial { .. }
         | Operation::SetHardEdges { .. }
+        | Operation::SetSeams { .. }
         | Operation::Slit { .. } => true,
         Operation::FillHoles { points, .. } => !points.is_empty(),
         Operation::MovePoints { .. }
@@ -266,6 +267,15 @@ pub(crate) fn both_sides(op: &Operation, mesh: &Mesh, mirror: &Mirror) -> Both {
         } => together(Operation::SetMaterial {
             faces: all_faces(faces),
             slot: *slot,
+            anchors: joined(anchors),
+        }),
+        Operation::SetSeams {
+            edges,
+            seam,
+            anchors,
+        } => together(Operation::SetSeams {
+            edges: all_edges(edges),
+            seam: *seam,
             anchors: joined(anchors),
         }),
         Operation::SetHardEdges {

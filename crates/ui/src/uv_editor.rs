@@ -60,6 +60,8 @@ struct UvShape {
     island_of: Vec<usize>,
     /// The polygons of each island.
     islands: Vec<Vec<FaceId>>,
+    /// The edges marked as seams, drawn orange (decision 0098).
+    seams: BTreeSet<EdgeKey>,
 }
 
 impl UvShape {
@@ -109,12 +111,14 @@ impl UvShape {
                 islands[i].push(*face);
             }
         }
+        let seams = mesh::uvs::seams(&mesh).into_iter().collect();
         Some(Self {
             mesh,
             polygons,
             edges,
             island_of,
             islands,
+            seams,
         })
     }
 }
@@ -722,12 +726,15 @@ impl UvEditor {
         // Every edge.
         let mut lines = egui::Mesh::default();
         let mut borders = egui::Mesh::default();
-        for (uvs, _, border) in &shape.edges {
+        let mut seams = egui::Mesh::default();
+        for (uvs, key, border) in &shape.edges {
             let (a, b) = (screen(uvs[0]), screen(uvs[1]));
             if !rect.expand(2.0).intersects(Rect::from_two_pos(a, b)) {
                 continue;
             }
-            if *border {
+            if shape.seams.contains(key) {
+                add_line(&mut seams, a, b, 2.0, theme::UV_SEAM);
+            } else if *border {
                 add_line(&mut borders, a, b, 1.6, theme::UV_BORDER);
             } else {
                 add_line(&mut lines, a, b, 1.0, theme::UV_EDGE);
@@ -735,6 +742,7 @@ impl UvEditor {
         }
         painter.add(egui::Shape::mesh(lines));
         painter.add(egui::Shape::mesh(borders));
+        painter.add(egui::Shape::mesh(seams));
         // Selected and hovered edges and points.
         let mut marks = egui::Mesh::default();
         match kind {
