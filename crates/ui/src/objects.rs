@@ -14,7 +14,7 @@ use egui::{
     Align2, Color32, CursorIcon, FontId, Key, KeyboardShortcut, Modifiers, Rect, Sense, Stroke, Ui,
     WidgetInfo, WidgetType, pos2, vec2,
 };
-use scene::{Command, Document, ObjectId, ObjectKind, PrimitiveKind};
+use scene::{ApplyParts, Command, Document, ObjectId, ObjectKind, PrimitiveKind};
 use std::collections::BTreeSet;
 
 /// Height of one row of the tree, in logical pixels.
@@ -657,6 +657,7 @@ pub(crate) fn object_entries(ui: &mut Ui, doc: &Document, out: &mut Vec<DocReque
         out.push(DocRequest::Run(Command::Ungroup(selection.clone())));
     }
     make_editable_entry(ui, doc, out);
+    apply_entries(ui, doc, out);
     ui.separator();
     for (label, visible) in [("Show", true), ("Hide", false)] {
         if entry(ui, label, None, any) {
@@ -666,6 +667,74 @@ pub(crate) fn object_entries(ui: &mut Ui, doc: &Document, out: &mut Vec<DocReque
             }));
         }
     }
+}
+
+/// The Apply transforms choices (decision 0089): their names, what they
+/// apply and what they do.
+pub(crate) const APPLY_CHOICES: [(&str, ApplyParts, &str); 5] = [
+    (
+        "Rotation and scale",
+        ApplyParts::ROTATION_AND_SCALE,
+        "Turn the objects back to 0° and 100%; they stay where they are and look the same",
+    ),
+    (
+        "Position",
+        ApplyParts {
+            position: true,
+            rotation: false,
+            scale: false,
+        },
+        "Put the objects' pivots at the world centre (their parent's); the shapes stay put",
+    ),
+    (
+        "Rotation",
+        ApplyParts {
+            position: false,
+            rotation: true,
+            scale: false,
+        },
+        "Turn the objects back to 0°; the shapes keep the turn",
+    ),
+    (
+        "Scale",
+        ApplyParts {
+            position: false,
+            rotation: false,
+            scale: true,
+        },
+        "Size the objects back to 100%; the shapes keep the size",
+    ),
+    (
+        "Position, rotation and scale",
+        ApplyParts::ALL,
+        "All three: the objects' placement back to none, the shapes where they were",
+    ),
+];
+
+/// The name of the Apply transforms menu.
+pub(crate) const APPLY_MENU: &str = "Apply transforms";
+
+/// The Apply transforms menu (decision 0089): the objects' placement
+/// goes back to none while they look the same, so edits measure as they
+/// look.
+pub(crate) fn apply_entries(ui: &mut Ui, doc: &Document, out: &mut Vec<DocRequest>) {
+    let selection = doc.selection();
+    let any = !selection.is_empty();
+    ui.add_enabled_ui(any, |ui| {
+        crate::dialog::menu(ui, APPLY_MENU, |ui| {
+            for (name, parts, help) in APPLY_CHOICES {
+                if ui.button(name).on_hover_text(help).clicked() {
+                    out.push(DocRequest::Run(Command::ApplyTransforms {
+                        ids: selection.clone(),
+                        parts,
+                    }));
+                    ui.close();
+                }
+            }
+        });
+    })
+    .response
+    .on_disabled_hover_text("Select the objects to apply first");
 }
 
 /// An object kind's icon and its colour, for the Objects panel and the

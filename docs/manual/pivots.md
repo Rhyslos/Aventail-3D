@@ -85,6 +85,7 @@ The Object mode has no key of its own yet.
 
 - [Move, rotate and scale](transforming.md)
 - [The tool menu](tool-menu.md)
+- [Apply transforms](apply-transforms.md): reset rotation and scale, the shape keeping its look
 - [Symmetry](symmetry.md)
 - [Settings](settings.md)
 - [Concepts: pivot, origin and units](concepts.md#objects-and-scenes)

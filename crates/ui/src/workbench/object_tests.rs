@@ -893,3 +893,50 @@ fn help_offers_a_heavy_test_shape_that_undoes_in_one_step() {
     workbench.document_mut().undo();
     assert!(workbench.document().scene().children(None).is_empty());
 }
+
+#[test]
+fn apply_transforms_from_the_menus_and_the_tool_menu() {
+    let mut harness = fresh();
+    let id = harness.state().workbench.document().scene().walk()[0].0;
+    let placed = scene::Transform {
+        position: glam::Vec3::new(50.0, 0.0, 0.0),
+        rotation: glam::Vec3::new(0.5, 0.0, 0.0),
+        scale: glam::Vec3::new(2.0, 1.0, 1.0),
+    };
+    let doc = harness.state_mut().workbench.document_mut();
+    doc.execute(scene::Command::SetTransforms(vec![(id, placed)]))
+        .unwrap();
+    doc.set_selection([id]);
+    harness.run();
+    // The Objects panel's Object → Apply transforms → Scale (the Mesh
+    // menu has it too).
+    harness.get_by_label("Object").click();
+    harness.run();
+    harness
+        .get_by_label_contains(crate::objects::APPLY_MENU)
+        .click();
+    harness.run();
+    // The submenu's Scale is the last one drawn (the palette has one too).
+    harness.get_all_by_label("Scale").last().unwrap().click();
+    harness.run();
+    let doc = harness.state().workbench.document();
+    let t = doc.scene().object(id).unwrap().transform;
+    assert_eq!(t.scale, glam::Vec3::ONE);
+    assert_eq!(t.rotation, placed.rotation);
+    assert_eq!(doc.undo_label(), Some("Apply scale"));
+    // The tool menu's command applies rotation and scale.
+    let ctx = harness.ctx.clone();
+    let mut requests = Vec::new();
+    harness.state_mut().workbench.run_command(
+        crate::commands::CommandId::ApplyTransforms,
+        &ctx,
+        &mut requests,
+    );
+    harness.state_mut().workbench.carry_out(requests);
+    harness.run();
+    let doc = harness.state().workbench.document();
+    let t = doc.scene().object(id).unwrap().transform;
+    assert_eq!(t.rotation, glam::Vec3::ZERO);
+    assert_eq!(t.position, placed.position);
+    assert_eq!(doc.undo_label(), Some("Apply rotation and scale"));
+}

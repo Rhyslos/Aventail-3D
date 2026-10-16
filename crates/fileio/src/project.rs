@@ -38,6 +38,7 @@ mod v22;
 mod v23;
 mod v24;
 mod v25;
+mod v26;
 mod v3;
 mod v4;
 mod v5;
@@ -54,7 +55,7 @@ use std::path::{Path, PathBuf};
 /// The signature every project file starts with.
 pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// The format version this app writes.
-pub const FORMAT_VERSION: u32 = 25;
+pub const FORMAT_VERSION: u32 = 26;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -156,7 +157,7 @@ fn edit_counts(document: &Document) -> usize {
 
 /// The project file's bytes for `document`, unchecked.
 fn encode(document: &Document) -> Result<Vec<u8>, ProjectError> {
-    let model = v25::ProjectV25::from_document(document);
+    let model = v26::ProjectV26::from_document(document);
     let stored: usize = model
         .project
         .project
@@ -253,7 +254,8 @@ pub fn from_bytes(bytes: &[u8]) -> Result<Document, ProjectError> {
         22 => decode_collisions::<v22::EntryV22>(encoded),
         23 => decode_collisions::<v23::EntryV23>(encoded),
         24 => decode_collisions::<v24::EntryV24>(encoded),
-        _ => decode_mirrors(encoded),
+        25 => decode_mirrors::<v24::EntryV24>(encoded),
+        _ => decode_mirrors::<v26::EntryV26>(encoded),
     }
 }
 
@@ -339,9 +341,13 @@ where
     model.into_document().map_err(ProjectError::Damaged)
 }
 
-/// The document a body of version 25 or later holds.
-fn decode_mirrors(encoded: &[u8]) -> Result<Document, ProjectError> {
-    let (model, rest): (v25::ProjectV25, &[u8]) =
+/// The document a body of version 25 or later holds, its recorded edits
+/// read as `E`.
+fn decode_mirrors<E>(encoded: &[u8]) -> Result<Document, ProjectError>
+where
+    E: v1::FileOperation + serde::de::DeserializeOwned,
+{
+    let (model, rest): (v25::ProjectV25<E>, &[u8]) =
         crate::limits::within_budget(|| postcard::take_from_bytes(encoded)).map_err(unreadable)?;
     if !rest.is_empty() {
         return Err(ProjectError::Damaged(

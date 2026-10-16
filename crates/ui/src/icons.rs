@@ -143,10 +143,12 @@ pub enum Icon {
     Instance,
     /// Join objects: two squares sharing a side, made one.
     Join,
+    /// Apply transforms: a turned, stretched box made square again.
+    ApplyTransforms,
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 65] = [
+pub const ALL: [Icon; 66] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -212,6 +214,7 @@ pub const ALL: [Icon; 65] = [
     Icon::PivotToOrigin,
     Icon::PivotToObject,
     Icon::ObjectToOrigin,
+    Icon::ApplyTransforms,
 ];
 
 /// Draws `icon` into `rect` in `color`.
@@ -1286,6 +1289,21 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
             );
             pen.stroke(&[(12.0, 7.0), (12.0, 17.0)], false, Ink::Dashed);
             pen.stroke(&[(9.0, 12.0), (15.0, 12.0)], false, Ink::Line);
+        }
+        Icon::ApplyTransforms => {
+            // A turned, stretched box (faint) and the same box squared up,
+            // with a tick of an arrow between them.
+            pen.stroke(
+                &[(3.0, 9.0), (13.0, 3.0), (17.0, 9.0), (7.0, 15.0)],
+                true,
+                Ink::Faint,
+            );
+            pen.stroke(
+                &[(11.0, 11.0), (21.0, 11.0), (21.0, 21.0), (11.0, 21.0)],
+                true,
+                Ink::Line,
+            );
+            pen.stroke(&[(8.0, 17.0), (8.0, 20.0), (5.0, 20.0)], false, Ink::Line);
         }
         Icon::PivotToCentre => {
             // A shape with its pivot moved from a corner to its middle.

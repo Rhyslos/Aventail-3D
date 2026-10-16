@@ -44,6 +44,8 @@ pub enum CommandId {
     Instance,
     /// Join the selected objects into one.
     Join,
+    /// Apply the selected objects' rotation and scale (decision 0089).
+    ApplyTransforms,
     // ------------------------------------------- pivots (the Object mode)
     /// Move the selected objects' pivots to the middle of their shapes.
     PivotToCentre,
@@ -212,6 +214,15 @@ impl CommandId {
                 None,
                 "Join the selected shapes into the first of them, as one plain mesh, each part \
                  staying where it was",
+                None,
+            ),
+            Self::ApplyTransforms => (
+                "Apply rotation and scale",
+                Icon::ApplyTransforms,
+                None,
+                "Turn the selected objects back to 0° and 100% while they look exactly the \
+                 same: their shapes take the rotation and scale, so edits measure as they look. \
+                 Mesh → Apply transforms has position too.",
                 None,
             ),
             Self::PivotToCentre => (
@@ -399,9 +410,12 @@ impl CommandId {
             | Self::FrameSelected => &[Model, Object],
             // A pivot has no size, and the Object mode's ring makes room
             // for the pivot commands.
-            Self::Scale | Self::MakeEditable | Self::Duplicate | Self::Instance | Self::Join => {
-                &[Model]
-            }
+            Self::Scale
+            | Self::MakeEditable
+            | Self::Duplicate
+            | Self::Instance
+            | Self::Join
+            | Self::ApplyTransforms => &[Model],
             Self::PivotToCentre
             | Self::PivotToOrigin
             | Self::PivotToObject
@@ -443,7 +457,7 @@ pub const OBJECT_RING: [Option<CommandId>; RING_PLACES] = [
     Some(CommandId::NewGroup),
     Some(CommandId::ShapeList),
     Some(CommandId::Join),
-    None,
+    Some(CommandId::ApplyTransforms),
 ];
 
 /// The tool menu's places in the Object mode, where the gizmos move pivots
@@ -525,7 +539,7 @@ pub fn menu_for(mode: Mode) -> Vec<Slot> {
 }
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 33] = [
+pub const ALL: [CommandId; 34] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -540,6 +554,7 @@ pub const ALL: [CommandId; 33] = [
     CommandId::Duplicate,
     CommandId::Instance,
     CommandId::Join,
+    CommandId::ApplyTransforms,
     CommandId::PivotToCentre,
     CommandId::PivotToOrigin,
     CommandId::PivotToObject,

@@ -129,6 +129,18 @@ pub enum Command {
     /// Changes the project's units (decision 0068): how lengths are shown
     /// and typed. The shapes don't change.
     SetUnits(crate::Units),
+    /// Applies objects' placement (decision 0089): their position,
+    /// rotation and/or scale go back to none (0, 0° and 100%) while they
+    /// look exactly as before. Their shapes take the change (a recorded
+    /// edit placing the whole shape), and the objects inside them stay
+    /// where they are. Instances are left alone: their shape is their
+    /// original's.
+    ApplyTransforms {
+        /// The objects.
+        ids: Vec<ObjectId>,
+        /// What to apply.
+        parts: crate::ApplyParts,
+    },
     /// Gives objects with a shape a live mirror (decision 0088), changes
     /// it, or takes it away (`None`). Groups are left alone; a mirror
     /// with no axis or numbers out of range is refused.
@@ -245,6 +257,7 @@ impl Command {
             }
             Self::SetUnits(units) => format!("Change units to {}", units.name()),
             Self::SetMaterials { .. } => "Change materials".to_string(),
+            Self::ApplyTransforms { parts, .. } => format!("Apply {}", parts.name()),
             Self::SetMirror { mirror: None, .. } => "Mirror off".to_string(),
             Self::SetMirror { .. } => "Mirror".to_string(),
             Self::SetCollision { collision, .. } => match collision {
@@ -382,6 +395,74 @@ impl Run<'_> {
     /// Gives `id` the transform `after`, its pivot moving there on its
     /// own: its shape's offset and its children's transforms change the
     /// opposite way, so nothing moves in the world.
+    /// Applies `parts` of `id`'s placement (decision 0089).
+    fn apply_transform(
+        &mut self,
+        id: ObjectId,
+        parts: crate::ApplyParts,
+    ) -> Result<(), SceneError> {
+        let object = self
+            .scene
+            .object(id)
+            .ok_or(SceneError::UnknownObject(id))?
+            .clone();
+        if matches!(object.kind, ObjectKind::Instance(_)) {
+            return Ok(());
+        }
+        let before = object.transform;
+        let after = parts.kept(before);
+        if after == before {
+            return Ok(());
+        }
+        let new = after.matrix();
+        if new.determinant().abs() < 1e-12 || !new.is_finite() {
+            return Err(SceneError::NotANumber);
+        }
+        // From the old placement's space into the new one's.
+        let shift = new.inverse() * before.matrix();
+        if object.kind.has_shape() {
+            let matrix = shift * object.offset.matrix();
+            if !matrix.abs_diff_eq(glam::Mat4::IDENTITY, 1e-6) {
+                self.command(&Command::Record {
+                    id,
+                    operation: Operation::PlaceShape { matrix },
+                })?;
+            }
+            if object.offset != Transform::default() {
+                self.edit(Edit::SetOffset {
+                    id,
+                    before: object.offset,
+                    after: Transform::default(),
+                })?;
+            }
+        }
+        let children: Vec<(ObjectId, Transform)> = self
+            .scene
+            .children(Some(id))
+            .iter()
+            .filter_map(|child| {
+                let t = self.scene.object(*child)?.transform;
+                Some((*child, Transform::from_matrix(shift * t.matrix())?))
+            })
+            .collect();
+        self.edit(Edit::SetTransform { id, before, after })?;
+        for (child, t) in children {
+            let before = self
+                .scene
+                .object(child)
+                .ok_or(SceneError::UnknownObject(child))?
+                .transform;
+            if before != t {
+                self.edit(Edit::SetTransform {
+                    id: child,
+                    before,
+                    after: t,
+                })?;
+            }
+        }
+        Ok(())
+    }
+
     fn move_pivot(&mut self, id: ObjectId, after: Transform) -> Result<(), SceneError> {
         if !after.is_finite() {
             return Err(SceneError::NotANumber);
@@ -718,6 +799,22 @@ impl Run<'_> {
                         before,
                         after,
                     })?;
+                }
+                Ok(None)
+            }
+            Command::ApplyTransforms { ids, parts } => {
+                let ids = existing(self.scene, ids)?;
+                // Parents first: their children are placed again as they
+                // go, then applied themselves.
+                let order: Vec<ObjectId> = self
+                    .scene
+                    .walk()
+                    .into_iter()
+                    .map(|(id, _)| id)
+                    .filter(|id| ids.contains(id))
+                    .collect();
+                for id in order {
+                    self.apply_transform(id, *parts)?;
                 }
                 Ok(None)
             }

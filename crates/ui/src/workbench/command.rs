@@ -49,6 +49,7 @@ impl Workbench {
             | CommandId::Duplicate
             | CommandId::Instance
             | CommandId::Join
+            | CommandId::ApplyTransforms
             | CommandId::PivotToCentre
             | CommandId::PivotToOrigin
             | CommandId::PivotToObject
@@ -176,6 +177,12 @@ impl Workbench {
                 } else {
                     requests.push(DocRequest::Run(Command::Join(selection)));
                 }
+            }
+            CommandId::ApplyTransforms => {
+                requests.push(DocRequest::Run(Command::ApplyTransforms {
+                    ids: selection,
+                    parts: scene::ApplyParts::ROTATION_AND_SCALE,
+                }));
             }
             CommandId::Duplicate | CommandId::Instance => {
                 requests.push(DocRequest::Run(Command::Duplicate {

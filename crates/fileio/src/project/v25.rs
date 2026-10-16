@@ -5,7 +5,7 @@
 //! (its axes, the point its planes go through and its weld distance).
 //! Older files open with none.
 
-use super::v1::Problem;
+use super::v1::{FileOperation, Problem};
 use super::v20::ProjectV20;
 use super::v24::EntryV24;
 use crate::limits::Bounded;
@@ -16,9 +16,9 @@ use std::collections::BTreeMap;
 
 /// Version 25 of the file.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub(crate) struct ProjectV25 {
-    /// Version 24's file.
-    pub(crate) project: ProjectV20<EntryV24>,
+pub(crate) struct ProjectV25<E = EntryV24> {
+    /// Version 24's file (its edits stored as `E`).
+    pub(crate) project: ProjectV20<E>,
     /// The objects' live mirrors (only objects with one).
     pub(crate) mirrors: Bounded<MirrorV25>,
 }
@@ -32,7 +32,7 @@ pub(crate) struct MirrorV25 {
     pub(crate) weld_distance: f32,
 }
 
-impl ProjectV25 {
+impl<E: FileOperation> ProjectV25<E> {
     /// The file model of a document.
     pub(crate) fn from_document(document: &Document) -> Self {
         let scene = document.scene();
@@ -118,7 +118,9 @@ mod tests {
     #[test]
     fn a_mirror_survives_the_trip() {
         let doc = mirrored();
-        let back = ProjectV25::from_document(&doc).into_document().unwrap();
+        let back = ProjectV25::<EntryV24>::from_document(&doc)
+            .into_document()
+            .unwrap();
         let id = back.scene().walk()[0].0;
         assert_eq!(
             back.scene().object(id).unwrap().mirror,
@@ -128,7 +130,7 @@ mod tests {
 
     #[test]
     fn broken_mirrors_are_refused() {
-        let good = ProjectV25::from_document(&mirrored());
+        let good = ProjectV25::<EntryV24>::from_document(&mirrored());
         let entry = good.mirrors.iter().next().copied().unwrap();
         for broken in [
             MirrorV25 {

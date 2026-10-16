@@ -222,6 +222,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-16 | Apply transforms: an object's rotation and scale (and position) back to none while it looks the same; project files at format version 26 |
 | 2026-10-16 | The live mirror replaces Symmetry: each object's mirrored twin across the world's planes, drawn and exported with it and welded at the seam, following every edit and move; project files at format version 25 |
 | 2026-10-16 | One look for every window: the Export window rebuilt (Made for in the title bar, General and Game project sections, what goes out), Settings, the bake check, About and the questions on the same parts; roomier menus |
 | 2026-10-16 | Groove (K): cut a panel line into a shape or raise a ridge along edges in one step; project files at format version 24 |

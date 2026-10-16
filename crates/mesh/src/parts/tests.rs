@@ -77,3 +77,39 @@ fn a_mirrored_part_still_faces_out_and_values_come_along() {
     // Nothing to combine: an empty shape.
     assert_eq!(combine(&[]).face_count(), 0);
 }
+
+#[test]
+fn placing_a_shape_moves_every_point_and_a_mirror_keeps_it_facing_out() {
+    use glam::Vec3;
+    let cube = Primitive::Cube(Default::default()).mesh();
+    let mut moved = cube.clone();
+    let matrix = Mat4::from_scale_rotation_translation(
+        Vec3::new(2.0, 1.0, 0.5),
+        glam::Quat::from_rotation_z(0.7),
+        Vec3::new(10.0, -5.0, 3.0),
+    );
+    let out = place(&mut moved, matrix);
+    assert_eq!(out.matched, cube.vertex_count());
+    for (v, p) in cube.vertices() {
+        assert!(
+            moved
+                .position(v)
+                .unwrap()
+                .distance(matrix.transform_point3(p))
+                < 1e-3
+        );
+    }
+    assert_eq!(moved.face_count(), cube.face_count());
+    // Mirrored: still closed and facing out.
+    let mut mirrored = cube.clone();
+    place(&mut mirrored, Mat4::from_scale(Vec3::new(-1.0, 1.0, 1.0)));
+    let report = MeshReport::new(&mirrored);
+    assert!(report.is_closed() && !report.has_problems(), "{report:?}");
+    assert!(crate::cleanup::faces_facing_wrong(&mirrored).is_empty());
+    // Flat or broken: nothing changes.
+    for broken in [Mat4::from_scale(Vec3::new(1.0, 0.0, 1.0)), Mat4::NAN] {
+        let mut same = cube.clone();
+        assert_eq!(place(&mut same, broken).skipped, 1);
+        assert_eq!(same, cube);
+    }
+}

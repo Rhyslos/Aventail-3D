@@ -26,6 +26,7 @@ pub use crate::join::{
 };
 pub use crate::loopcut::loop_cut;
 pub use crate::material::set_material;
+pub use crate::parts::place;
 pub use crate::slide::{Slide, slide_points, slides_for};
 pub use crate::slit::{Eye, SlitLine, slit};
 use crate::{Mesh, VertexId};
