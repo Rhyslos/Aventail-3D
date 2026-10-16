@@ -129,6 +129,8 @@ impl Default for LoopLook {
 pub(crate) struct BevelLook {
     pub(crate) segments: u32,
     pub(crate) profile: f32,
+    /// Skew, even width, stopping at overlaps and welding (decision 0085).
+    pub(crate) options: scene::BevelOptions,
 }
 
 impl Default for BevelLook {
@@ -136,6 +138,7 @@ impl Default for BevelLook {
         Self {
             segments: 1,
             profile: 1.0,
+            options: scene::BevelOptions::default(),
         }
     }
 }
@@ -456,6 +459,7 @@ impl AttributesPanel {
                         ui.end_row();
                         profile_row(ui, &mut look.profile);
                         ui.end_row();
+                        bevel_option_rows(ui, &mut look.options, units);
                         self.bevel = look;
                     } else {
                         let mut together = self.grouping == Grouping::Together;
@@ -693,6 +697,17 @@ impl AttributesPanel {
                             changed = true;
                         }
                         ui.end_row();
+                    }
+                    if let Some(mut options) = edited.bevel_options {
+                        let touched = bevel_option_rows(ui, &mut options, units);
+                        if touched.began {
+                            self.gesture += 1;
+                        }
+                        if touched.changed {
+                            edited.bevel_options = Some(options);
+                            self.bevel.options = options;
+                            changed = true;
+                        }
                     }
                 });
         });
@@ -1327,6 +1342,109 @@ fn position_row(ui: &mut Ui, position: &mut f32) -> stepper::Touched {
         changed: response.changed(),
         began: response.drag_started() || (response.changed() && !response.dragged()),
     }
+}
+
+/// A bevel's further settings (decision 0085), a row each: Skew with
+/// Flip side, Even width, Stop at overlaps, and Weld overlapping points
+/// with its distance.
+fn bevel_option_rows(
+    ui: &mut Ui,
+    options: &mut scene::BevelOptions,
+    units: Units,
+) -> stepper::Touched {
+    let mut out = stepper::Touched::default();
+    let mut add = |t: stepper::Touched| {
+        out.changed |= t.changed;
+        out.began |= t.began;
+    };
+    let clicked = stepper::Touched {
+        changed: true,
+        began: true,
+    };
+    label(
+        ui,
+        "Skew",
+        "Puts more of the bevel on one side of the edges than the other: 0% is even. Along a \
+         loop it stays on the same side all the way round. Flip side swaps the side.",
+    );
+    ui.horizontal(|ui| {
+        let mut percent = options.skew * 100.0;
+        let response = ui.add(
+            egui::Slider::new(&mut percent, -100.0..=100.0)
+                .suffix("%")
+                .show_value(true),
+        );
+        response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Slider, true, "Skew"));
+        if response.changed() {
+            options.skew = (percent / 100.0).clamp(-1.0, 1.0);
+        }
+        add(stepper::Touched {
+            changed: response.changed(),
+            began: response.drag_started() || (response.changed() && !response.dragged()),
+        });
+        let mut flip = options.flip_side;
+        let flip_button = ui
+            .toggle_value(&mut flip, "Flip side")
+            .on_hover_text("Swap which side of the edges the skew favours");
+        if flip_button.changed() {
+            options.flip_side = flip;
+            add(clicked);
+        }
+    });
+    ui.end_row();
+    let check = |ui: &mut Ui, value: &mut bool, name: &str, help: &str| {
+        label(ui, name, help);
+        let response = ui.checkbox(value, "");
+        response.widget_info(|| {
+            egui::WidgetInfo::selected(egui::WidgetType::Checkbox, true, *value, name)
+        });
+        ui.end_row();
+        response.changed()
+    };
+    if check(
+        ui,
+        &mut options.even,
+        "Even width",
+        "Make every bevelled edge's new polygon the same width, however sharp or flat the \
+         edge is (the width you set is what a right-angled edge gets)",
+    ) {
+        add(clicked);
+    }
+    if check(
+        ui,
+        &mut options.clamp,
+        "Stop at overlaps",
+        "Keep the bevel from crossing over itself: it gets only as wide as fits, so corners \
+         meet instead of passing each other",
+    ) {
+        add(clicked);
+    }
+    if check(
+        ui,
+        &mut options.weld,
+        "Weld points",
+        "Weld overlapping points: new points that land on top of each other (where bevels \
+         meet) become one, so there are no doubled points or tiny slivers",
+    ) {
+        add(clicked);
+    }
+    label(
+        ui,
+        "Weld distance",
+        "How close points must be to weld: those nearer than this become one",
+    );
+    ui.add_enabled_ui(options.weld, |ui| {
+        add(stepper::length(
+            ui,
+            &mut options.weld_distance,
+            (0.0, mesh::bevel::MAX_WELD_DISTANCE),
+            units,
+            "Weld distance",
+        ));
+    });
+    ui.end_row();
+    *options = options.clamped();
+    out
 }
 
 /// A bevel's profile as a percentage, with its label.

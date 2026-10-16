@@ -15,11 +15,14 @@ fn every_point_is_a_number(mesh: &Mesh) {
     }
 }
 
+/// A bevel as every bevel was before decision 0085 (none of the options),
+/// which the earlier tests check.
 fn shape(width: f32, segments: u32, profile: f32) -> BevelShape {
     BevelShape {
         width,
         segments,
         profile,
+        options: BevelOptions::EARLIER,
     }
 }
 
@@ -474,4 +477,322 @@ fn back_to_back_polygons_never_make_a_hard_edge_from_a_point_to_itself() {
         .collect();
     let rebuilt = Mesh::from_slots(slots, faces, mesh.hard_edges()).unwrap();
     assert_eq!(rebuilt.hard_edge_count(), mesh.hard_edge_count());
+}
+
+// ------------------------------------------- more control (decision 0085)
+
+fn with_options(width: f32, options: BevelOptions) -> BevelShape {
+    BevelShape {
+        width,
+        segments: 1,
+        profile: 0.0,
+        options,
+    }
+}
+
+/// The bevel's new polygons (those not in `before`), and how wide each is
+/// across: from the middle of one long side to the middle of the other.
+fn strip_widths(before: &Mesh, after: &Mesh) -> Vec<f32> {
+    after
+        .faces()
+        .filter(|(f, _)| before.face(*f).is_none())
+        .filter(|(_, c)| c.len() == 4)
+        .map(|(_, c)| {
+            let p: Vec<Vec3> = c.iter().map(|v| after.position(*v).unwrap()).collect();
+            ((p[0] + p[1]) * 0.5).distance((p[2] + p[3]) * 0.5)
+        })
+        .collect()
+}
+
+/// An 8-sided cylinder: its rim edges are right angles, its upright edges
+/// much flatter (135° between their polygons).
+fn octagon() -> Mesh {
+    Primitive::Cylinder(CylinderParams {
+        sides: 8,
+        ..Default::default()
+    })
+    .mesh()
+}
+
+fn rim_edge(mesh: &Mesh) -> EdgeKey {
+    *mesh
+        .edges()
+        .iter()
+        .find(|e| {
+            let (a, b) = e.ends();
+            mesh.position(a).unwrap().z > 99.0 && mesh.position(b).unwrap().z > 99.0
+        })
+        .unwrap()
+}
+
+fn upright_edge(mesh: &Mesh) -> EdgeKey {
+    *mesh
+        .edges()
+        .iter()
+        .find(|e| {
+            let (a, b) = e.ends();
+            (mesh.position(a).unwrap().z - mesh.position(b).unwrap().z).abs() > 99.0
+        })
+        .unwrap()
+}
+
+#[test]
+fn even_width_makes_flat_and_square_edges_the_same_width() {
+    let only_even = BevelOptions {
+        even: true,
+        ..BevelOptions::EARLIER
+    };
+    let width_of = |options: BevelOptions, pick: fn(&Mesh) -> EdgeKey| {
+        let before = octagon();
+        let mut mesh = before.clone();
+        bevel_edges(&mut mesh, &[pick(&before)], with_options(10.0, options));
+        closed_and_clean(&mesh);
+        let widths = strip_widths(&before, &mesh);
+        assert_eq!(widths.len(), 1, "{widths:?}");
+        widths[0]
+    };
+    // As before: the flatter edge's chamfer comes out much wider.
+    let (rim, upright) = (
+        width_of(BevelOptions::EARLIER, rim_edge),
+        width_of(BevelOptions::EARLIER, upright_edge),
+    );
+    assert!(upright > rim * 1.2, "{rim} {upright}");
+    // Even: the same, a right angle's width (10 √2).
+    let (rim, upright) = (
+        width_of(only_even, rim_edge),
+        width_of(only_even, upright_edge),
+    );
+    assert!((rim - upright).abs() < 0.05, "{rim} {upright}");
+    assert!(
+        (rim - 10.0 * std::f32::consts::SQRT_2).abs() < 0.05,
+        "{rim}"
+    );
+}
+
+#[test]
+fn skew_puts_more_on_one_side_and_flip_side_swaps_it() {
+    let reach = |options: BevelOptions| {
+        let mut mesh = cube();
+        let edge = top_front(&mesh);
+        bevel_edges(&mut mesh, &[edge], with_options(10.0, options));
+        closed_and_clean(&mesh);
+        // How far the bevel reaches down the front and back across the top.
+        let down = mesh
+            .vertices()
+            .filter(|(_, p)| (p.y + 50.0).abs() < 1e-3 && p.z < 99.9 && p.z > 1.0)
+            .map(|(_, p)| 100.0 - p.z)
+            .fold(0.0_f32, f32::max);
+        let back = mesh
+            .vertices()
+            .filter(|(_, p)| (p.z - 100.0).abs() < 1e-3 && p.y > -49.9 && p.y < 49.0)
+            .map(|(_, p)| p.y + 50.0)
+            .fold(0.0_f32, f32::max);
+        (down, back)
+    };
+    let even = reach(BevelOptions::EARLIER);
+    assert!(
+        (even.0 - 10.0).abs() < 1e-3 && (even.1 - 10.0).abs() < 1e-3,
+        "{even:?}"
+    );
+    let skewed = BevelOptions {
+        skew: 0.5,
+        ..BevelOptions::EARLIER
+    };
+    let (a, b) = reach(skewed);
+    let lean = 0.5 * SKEW_REACH;
+    let mut got = [a, b];
+    got.sort_by(f32::total_cmp);
+    assert!((got[0] - 10.0 * (1.0 - lean)).abs() < 1e-3, "{a} {b}");
+    assert!((got[1] - 10.0 * (1.0 + lean)).abs() < 1e-3, "{a} {b}");
+    let flipped = reach(BevelOptions {
+        flip_side: true,
+        ..skewed
+    });
+    assert!((flipped.0 - b).abs() < 1e-3 && (flipped.1 - a).abs() < 1e-3);
+    // Full skew either way never takes a side to nothing.
+    for skew in [-1.0, 1.0] {
+        let (a, b) = reach(BevelOptions {
+            skew,
+            ..BevelOptions::EARLIER
+        });
+        assert!(a > 0.5 && b > 0.5, "{a} {b}");
+    }
+}
+
+#[test]
+fn skew_stays_on_the_same_side_all_the_way_round_a_loop() {
+    let mut mesh = cube();
+    let ring = top_ring(&mesh);
+    let options = BevelOptions {
+        skew: 0.6,
+        ..BevelOptions::EARLIER
+    };
+    bevel_edges(&mut mesh, &ring, with_options(10.0, options));
+    closed_and_clean(&mesh);
+    // The top polygon is an even square inside, the same way in from all
+    // four sides.
+    let top: Vec<Vec3> = mesh
+        .vertices()
+        .filter(|(_, p)| (p.z - 100.0).abs() < 1e-3)
+        .map(|(_, p)| p)
+        .collect();
+    assert_eq!(top.len(), 4);
+    let inset = 50.0 - top[0].x.abs();
+    for p in &top {
+        assert!((50.0 - p.x.abs() - inset).abs() < 1e-3, "{p}");
+        assert!((50.0 - p.y.abs() - inset).abs() < 1e-3, "{p}");
+    }
+    let lean = 0.6 * SKEW_REACH;
+    assert!(
+        (inset - 10.0 * (1.0 + lean)).abs() < 1e-3 || (inset - 10.0 * (1.0 - lean)).abs() < 1e-3,
+        "{inset}"
+    );
+}
+
+#[test]
+fn stopping_at_overlaps_keeps_a_wide_bevel_from_crossing_over() {
+    // The top's four edges bevelled 60 wide on a 100 cube: the four
+    // corners would cross past the middle.
+    let before = cube();
+    let ring = top_ring(&before);
+    let crossed = {
+        let mut mesh = before.clone();
+        bevel_edges(&mut mesh, &ring, with_options(60.0, BevelOptions::EARLIER));
+        mesh
+    };
+    // Before: the top polygon turned inside out (facing down).
+    let top_facing = |m: &Mesh| {
+        m.faces()
+            .filter(|(f, _)| before.face(*f).is_some())
+            .map(|(f, _)| m.face_normal(f))
+            .find(|n| n.z.abs() > 0.9)
+    };
+    assert!(
+        top_facing(&crossed).is_some_and(|n| n.z < 0.0),
+        "crossed over"
+    );
+    // Stopping at overlaps, with welding: the corners meet in the middle
+    // and become one point, the top a neat point where four slopes meet.
+    let mut mesh = before.clone();
+    let options = BevelOptions {
+        clamp: true,
+        weld: true,
+        ..BevelOptions::EARLIER
+    };
+    bevel_edges(&mut mesh, &ring, with_options(60.0, options));
+    closed_and_clean(&mesh);
+    for (_, p) in mesh.vertices() {
+        assert!(p.x.abs() <= 50.0 + 1e-3 && p.y.abs() <= 50.0 + 1e-3, "{p}");
+    }
+    let apex: Vec<Vec3> = mesh
+        .vertices()
+        .filter(|(_, p)| (p.z - 100.0).abs() < 1e-3)
+        .map(|(_, p)| p)
+        .collect();
+    assert_eq!(apex.len(), 1, "{apex:?}");
+    assert!(apex[0].truncate().length() < 1e-3);
+    // Stopping without welding leaves the meeting points on top of each
+    // other.
+    let mut unwelded = before.clone();
+    bevel_edges(
+        &mut unwelded,
+        &ring,
+        with_options(
+            60.0,
+            BevelOptions {
+                clamp: true,
+                ..BevelOptions::EARLIER
+            },
+        ),
+    );
+    assert!(report(&unwelded).zero_length_edges > 0);
+    // A bevel that fits is not narrowed.
+    let mut small = before.clone();
+    bevel_edges(
+        &mut small,
+        &ring,
+        with_options(
+            10.0,
+            BevelOptions {
+                clamp: true,
+                ..BevelOptions::EARLIER
+            },
+        ),
+    );
+    let mut plain = before.clone();
+    bevel_edges(&mut plain, &ring, with_options(10.0, BevelOptions::EARLIER));
+    assert_eq!(small, plain);
+}
+
+#[test]
+fn the_new_standard_bevel_is_clean_where_strips_meet() {
+    // Every edge of a cube, wide: with the standard options the bevel
+    // fits, welds where it meets and leaves a clean shape.
+    let before = cube();
+    let all: Vec<EdgeKey> = before.edges().to_vec();
+    for width in [10.0, 49.0, 80.0] {
+        let mut mesh = before.clone();
+        let shape = BevelShape {
+            width,
+            ..BevelShape::default()
+        };
+        bevel_edges(&mut mesh, &all, shape);
+        closed_and_clean(&mesh);
+        for (_, p) in mesh.vertices() {
+            assert!(p.x.abs() <= 50.0 + 1e-3 && p.y.abs() <= 50.0 + 1e-3, "{p}");
+            assert!(p.z >= -1e-3 && p.z <= 100.0 + 1e-3, "{p}");
+        }
+    }
+}
+
+#[test]
+fn options_are_kept_in_range() {
+    let wild = BevelOptions {
+        skew: 7.0,
+        weld_distance: -3.0,
+        ..BevelOptions::default()
+    }
+    .clamped();
+    assert_eq!((wild.skew, wild.weld_distance), (1.0, 0.0));
+    let broken = BevelOptions {
+        skew: f32::NAN,
+        weld_distance: f32::INFINITY,
+        ..BevelOptions::default()
+    }
+    .clamped();
+    assert_eq!(broken.skew, 0.0);
+    assert_eq!(broken.weld_distance, WELD_DISTANCE);
+    let big = BevelOptions {
+        weld_distance: 1e9,
+        ..BevelOptions::default()
+    }
+    .clamped();
+    assert_eq!(big.weld_distance, MAX_WELD_DISTANCE);
+    // New bevels get the options; the earlier ones none.
+    let standard = BevelOptions::default();
+    assert!(standard.even && standard.clamp && standard.weld);
+    assert_ne!(standard, BevelOptions::EARLIER);
+}
+
+#[test]
+fn skewed_and_even_bevels_on_every_primitive_stay_clean() {
+    for kind in crate::PrimitiveKind::ALL {
+        let before = kind.standard().mesh();
+        let edges: Vec<EdgeKey> = before.edges().iter().copied().take(12).collect();
+        for skew in [-0.8, 0.0, 0.7] {
+            let mut mesh = before.clone();
+            let shape = BevelShape {
+                width: 3.0,
+                options: BevelOptions {
+                    skew,
+                    ..BevelOptions::default()
+                },
+                ..BevelShape::default()
+            };
+            bevel_edges(&mut mesh, &edges, shape);
+            every_point_is_a_number(&mesh);
+            let r = report(&mesh);
+            assert_eq!(r.non_manifold_edges, 0, "{kind:?} {skew} {r:?}");
+        }
+    }
 }

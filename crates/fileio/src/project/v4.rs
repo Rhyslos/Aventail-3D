@@ -53,19 +53,25 @@ impl FileOperation for OperationV4 {
     fn to_file(op: &Operation) -> Option<Self> {
         let anchors = op.anchors().map(anchors_to_file);
         Some(match op {
-            Operation::BevelEdges { edges, shape, .. } => Self::BevelEdges {
-                edges: edges
-                    .iter()
-                    .map(|e| {
-                        let (a, b) = e.ends();
-                        [a.get(), b.get()]
-                    })
-                    .collect(),
-                width: shape.width,
-                segments: shape.segments,
-                profile: shape.profile,
-                anchors,
-            },
+            // (A bevel with any of decision 0085's options needs version
+            // 23.)
+            Operation::BevelEdges { edges, shape, .. }
+                if shape.options == mesh::edit::BevelOptions::EARLIER =>
+            {
+                Self::BevelEdges {
+                    edges: edges
+                        .iter()
+                        .map(|e| {
+                            let (a, b) = e.ends();
+                            [a.get(), b.get()]
+                        })
+                        .collect(),
+                    width: shape.width,
+                    segments: shape.segments,
+                    profile: shape.profile,
+                    anchors,
+                }
+            }
             Operation::BevelPoints { points, width, .. } => Self::BevelPoints {
                 points: points.iter().map(|v| v.get()).collect(),
                 width: *width,
@@ -100,6 +106,7 @@ impl FileOperation for OperationV4 {
                     width: number(width, "width")?.max(0.0),
                     segments: segments.clamp(1, MAX_SEGMENTS),
                     profile: number(profile, "profile")?.clamp(-1.0, 1.0),
+                    options: mesh::edit::BevelOptions::EARLIER,
                 },
                 anchors: anchors(a)?,
                 stretch: glam::Vec3::ONE,

@@ -195,6 +195,7 @@ impl ModellingSession {
                     width: local,
                     segments: self.bevel.segments,
                     profile: self.bevel.profile,
+                    options: self.bevel.options,
                 },
                 anchors,
                 stretch: part.stretch,

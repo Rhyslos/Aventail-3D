@@ -473,6 +473,7 @@ fn the_attributes_panel_says_when_an_edit_was_too_large() {
                 width: 0.1,
                 segments: 64,
                 profile: 1.0,
+                options: scene::BevelOptions::EARLIER,
             },
             anchors: None,
             stretch: glam::Vec3::ONE,

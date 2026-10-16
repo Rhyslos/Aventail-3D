@@ -396,6 +396,9 @@ pub struct EditSettings {
     /// extrude, inset or bevel (decisions 0081 and 0082); none to keep
     /// what it has.
     pub stretch: Option<Vec3>,
+    /// A bevel of edges' skew, even width, stopping at overlaps and
+    /// welding (decision 0085); none for other edits.
+    pub bevel_options: Option<edit::BevelOptions>,
 }
 
 /// What applying an operation did.
@@ -541,6 +544,7 @@ impl Operation {
                 distance: Some(shape.width),
                 segments: Some(shape.segments),
                 profile: Some(shape.profile),
+                bevel_options: Some(shape.options),
                 ..EditSettings::default()
             }),
             Self::BevelPoints { width, .. } => Some(EditSettings {
@@ -677,6 +681,9 @@ impl Operation {
                 }
                 if let Some(p) = settings.profile {
                     shape.profile = p;
+                }
+                if let Some(o) = settings.bevel_options {
+                    shape.options = o.clamped();
                 }
             }
             Self::BevelPoints { width, .. } => {

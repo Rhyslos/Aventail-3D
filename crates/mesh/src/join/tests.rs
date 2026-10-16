@@ -468,3 +468,67 @@ fn a_bridge_between_boxes_has_crisp_corners() {
     bridge_edges(&mut tubes, &chosen, 1, 0);
     assert!(tubes.hard_edge_count() >= edges_before);
 }
+
+// ---------------------------------------------------------- weld close ---
+
+#[test]
+fn close_points_weld_and_far_ones_stay() {
+    // Pull one top corner of a cube to within 0.05 of its neighbour.
+    let mut mesh = cube();
+    let mut top: Vec<(VertexId, Vec3)> = mesh.vertices().filter(|(_, p)| p.z > 0.0).collect();
+    top.sort_by(|a, b| a.1.x.total_cmp(&b.1.x).then(a.1.y.total_cmp(&b.1.y)));
+    let (a, pa) = top[0];
+    let (b, _) = top[1];
+    mesh.set_position(b, pa + Vec3::new(0.0, 0.0, 0.05));
+    let all: Vec<VertexId> = mesh.vertices().map(|(v, _)| v).collect();
+    // Too small a distance: nothing.
+    let mut same = mesh.clone();
+    assert_eq!(weld_close(&mut same, &all, 0.01), 0);
+    assert_eq!(same, mesh);
+    let went = weld_close(&mut mesh, &all, 0.1);
+    assert_eq!(went, 1);
+    assert_eq!(mesh.vertex_count(), 7);
+    let kept = a.min(b);
+    assert!(mesh.position(a.max(b)).is_none());
+    assert!(
+        mesh.position(kept)
+            .unwrap()
+            .distance(pa + Vec3::new(0.0, 0.0, 0.025))
+            < 1e-4
+    );
+    // The polygon between them lost a corner; nothing is broken.
+    let r = report(&mesh);
+    assert_eq!(r.non_manifold_edges, 0, "{r:?}");
+    assert_eq!(r.zero_length_edges, 0, "{r:?}");
+}
+
+#[test]
+fn welding_close_follows_chains_and_only_the_points_given() {
+    let mut mesh = cube();
+    let pts: Vec<(VertexId, Vec3)> = mesh.vertices().collect();
+    let (a, pa) = pts[0];
+    // Two more points in a chain 0.08 apart, the far end 0.16 from a.
+    let near: Vec<VertexId> = pts[1..]
+        .iter()
+        .filter(|(_, p)| p.distance(pa) < 101.0)
+        .map(|(v, _)| *v)
+        .take(2)
+        .collect();
+    mesh.set_position(near[0], pa + Vec3::X * 0.08);
+    mesh.set_position(near[1], pa + Vec3::X * 0.16);
+    // Not given: not welded.
+    let mut only_two = mesh.clone();
+    assert_eq!(weld_close(&mut only_two, &[near[0], near[1]], 0.1), 1);
+    assert!(only_two.position(a).is_some());
+    // All three, chained: one point.
+    let went = weld_close(&mut mesh, &[a, near[0], near[1]], 0.1);
+    assert_eq!(went, 2);
+    // Bad distances weld nothing.
+    let before = mesh.clone();
+    for d in [f32::NAN, -1.0, f32::INFINITY] {
+        let mut m = before.clone();
+        let all: Vec<VertexId> = m.vertices().map(|(v, _)| v).collect();
+        assert_eq!(weld_close(&mut m, &all, d), 0, "{d}");
+    }
+    assert_eq!(weld_close(&mut mesh, &[], 1.0), 0);
+}

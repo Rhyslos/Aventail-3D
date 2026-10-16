@@ -19,7 +19,7 @@ use crate::builder::{Builder, CornerFrom, PointFrom};
 use crate::edit::Outcome;
 use crate::{EdgeKey, FaceId, Mesh, VertexId};
 use glam::Vec3;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 /// The most cuts Connect makes along each edge.
 pub const MAX_CONNECT_CUTS: u32 = 64;
@@ -605,16 +605,50 @@ pub fn weld(mesh: &mut Mesh, points: &[VertexId], target: Option<VertexId>) -> O
             sum / chosen.len() as f32
         }
     };
+    let group = Group {
+        points: chosen.iter().copied().collect(),
+        keep,
+        place,
+    };
+    if !weld_groups(mesh, &[group]) {
+        return skipped;
+    }
+    Outcome {
+        matched: chosen.len(),
+        missing,
+        skipped: 0,
+    }
+}
+
+/// Points to weld into one: all of them become `keep`, at `place`.
+struct Group {
+    points: Vec<VertexId>,
+    keep: VertexId,
+    place: Vec3,
+}
+
+/// Welds every group at once (they must not share points). Returns
+/// whether it could; the mesh is unchanged when not.
+fn weld_groups(mesh: &mut Mesh, groups: &[Group]) -> bool {
+    let mut into: BTreeMap<VertexId, VertexId> = BTreeMap::new();
+    for g in groups {
+        for v in &g.points {
+            into.insert(*v, g.keep);
+        }
+    }
     let original = mesh.clone();
     let mut rewrites: BTreeMap<FaceId, Vec<(VertexId, CornerFrom)>> = BTreeMap::new();
     let mut gone: Vec<FaceId> = Vec::new();
     for (face, corners) in original.faces() {
-        if !corners.iter().any(|v| chosen.contains(v) && *v != keep) {
+        if !corners
+            .iter()
+            .any(|v| into.get(v).is_some_and(|keep| keep != v))
+        {
             continue;
         }
         let mut out: Vec<(VertexId, CornerFrom)> = Vec::new();
         for v in corners {
-            let to = if chosen.contains(v) { keep } else { *v };
+            let to = into.get(v).copied().unwrap_or(*v);
             if out.last().is_some_and(|(last, _)| *last == to) {
                 continue;
             }
@@ -635,36 +669,122 @@ pub fn weld(mesh: &mut Mesh, points: &[VertexId], target: Option<VertexId>) -> O
     let mut build = Builder::new(&original, mesh);
     if build.rewrite_faces(&rewrites).is_err() {
         *mesh = original;
-        return skipped;
+        return false;
     }
-    // Edges that went to the kept point take their values with them.
-    let others: Vec<VertexId> = chosen.iter().copied().filter(|v| *v != keep).collect();
+    // Edges that went to a kept point take their values with them.
     let topology = original.topology();
-    for v in &others {
-        for e in topology.vertex_edges(*v) {
-            let (a, b) = e.ends();
-            let other = if a == *v { b } else { a };
-            if chosen.contains(&other) {
-                build.clear_edge(*e);
-            } else {
-                build.move_edge(*e, keep, other);
+    let mut unused = Vec::new();
+    for g in groups {
+        for v in g.points.iter().filter(|v| **v != g.keep) {
+            unused.push(*v);
+            for e in topology.vertex_edges(*v) {
+                let (a, b) = e.ends();
+                let other = if a == *v { b } else { a };
+                let other_to = into.get(&other).copied().unwrap_or(other);
+                if other_to == g.keep {
+                    build.clear_edge(*e);
+                } else {
+                    build.move_edge(*e, g.keep, other_to);
+                }
             }
         }
+        build.mesh().set_position(g.keep, g.place);
+        unused.push(g.keep);
     }
-    build.mesh().set_position(keep, place);
     // The points that went, and any left with no polygon by the polygons
     // that collapsed.
-    let mut unused = others.clone();
     for face in &gone {
         unused.extend(original.face(*face).unwrap_or_default());
     }
-    unused.push(keep);
     mesh.remove_unused_vertices(&unused);
-    Outcome {
-        matched: chosen.len(),
-        missing,
-        skipped: 0,
+    true
+}
+
+/// Welds those of `points` that lie within `distance` of each other
+/// (and so on, along a chain of close points) into one, at their middle,
+/// the lowest id staying. For cleaning up after edits that leave points
+/// on top of each other, such as bevels meeting
+/// ([decision 0085](../../../docs/decisions/0085-bevel-control.md)). Returns
+/// how many points went. A distance that isn't a number, or is below 0,
+/// welds nothing.
+pub fn weld_close(mesh: &mut Mesh, points: &[VertexId], distance: f32) -> usize {
+    if !(distance.is_finite() && distance >= 0.0) {
+        return 0;
     }
+    let placed: Vec<(VertexId, Vec3)> = points
+        .iter()
+        .copied()
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .filter_map(|v| Some((v, mesh.position(v)?)))
+        .filter(|(_, p)| p.is_finite())
+        .collect();
+    if placed.len() < 2 {
+        return 0;
+    }
+    // Points in cells `distance` wide: close points are in the same or
+    // neighbouring cells.
+    let cell = distance.max(1e-6);
+    let key = |p: Vec3| {
+        let k = (p / cell).floor();
+        (k.x as i64, k.y as i64, k.z as i64)
+    };
+    let mut cells: HashMap<(i64, i64, i64), Vec<usize>> = HashMap::new();
+    for (i, (_, p)) in placed.iter().enumerate() {
+        cells.entry(key(*p)).or_default().push(i);
+    }
+    // Joined into groups along chains of close points.
+    let mut parent: Vec<usize> = (0..placed.len()).collect();
+    fn root(parent: &mut [usize], mut i: usize) -> usize {
+        while parent[i] != i {
+            parent[i] = parent[parent[i]];
+            i = parent[i];
+        }
+        i
+    }
+    for (i, (_, p)) in placed.iter().enumerate() {
+        let (x, y, z) = key(*p);
+        for dx in -1..=1 {
+            for dy in -1..=1 {
+                for dz in -1..=1 {
+                    let Some(near) = cells.get(&(x + dx, y + dy, z + dz)) else {
+                        continue;
+                    };
+                    for &j in near {
+                        if j > i && placed[j].1.distance(*p) <= distance {
+                            let (a, b) = (root(&mut parent, i), root(&mut parent, j));
+                            if a != b {
+                                parent[a.max(b)] = a.min(b);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    let mut members: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
+    for i in 0..placed.len() {
+        let r = root(&mut parent, i);
+        members.entry(r).or_default().push(i);
+    }
+    let groups: Vec<Group> = members
+        .into_values()
+        .filter(|m| m.len() > 1)
+        .map(|m| {
+            let points: Vec<VertexId> = m.iter().map(|i| placed[*i].0).collect();
+            let place = m.iter().map(|i| placed[*i].1).sum::<Vec3>() / m.len() as f32;
+            Group {
+                keep: *points.iter().min().unwrap_or(&points[0]),
+                points,
+                place,
+            }
+        })
+        .collect();
+    let went: usize = groups.iter().map(|g| g.points.len() - 1).sum();
+    if groups.is_empty() || !weld_groups(mesh, &groups) {
+        return 0;
+    }
+    went
 }
 
 #[cfg(test)]

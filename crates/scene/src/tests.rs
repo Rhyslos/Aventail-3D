@@ -763,6 +763,7 @@ fn random_commands_keep_the_tree_whole_and_undo_exactly() {
                                         width: distance.abs() / 4.0,
                                         segments: rng.next(3) as u32 + 1,
                                         profile: 1.0,
+                                        options: mesh::edit::BevelOptions::EARLIER,
                                     },
                                     anchors: None,
                                     stretch: glam::Vec3::ONE,
