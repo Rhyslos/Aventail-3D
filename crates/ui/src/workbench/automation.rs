@@ -30,6 +30,7 @@ pub(crate) const SETTINGS_HEADING: &str = "Settings of the automatic tools";
 pub(crate) const CORNER_ANGLE_LABEL: &str = "Cut corners sharper than";
 pub(crate) const HARD_EDGES_LABEL: &str = "Cut along hard edges";
 pub(crate) const HIDING_LABEL: &str = "Hide cuts";
+pub(crate) const BUDGET_ON_LABEL: &str = "Stretch budget for every piece";
 pub(crate) const METHOD_LABEL: &str = "Method";
 pub(crate) const STRIP_ANGLE_LABEL: &str = "Strip corners within";
 pub(crate) const RELAX_STEPS_LABEL: &str = "Strength";
@@ -88,6 +89,21 @@ impl Workbench {
                 "Every hard edge gets a seam: a normal-map bake needs the UVs split wherever \
                  the shading breaks. Off: only corners and what pieces need to lie flat.",
             );
+        ui.horizontal(|ui| {
+            ui.checkbox(&mut s.budget_on, BUDGET_ON_LABEL).on_hover_text(
+                "When on, Suggest seams and Unwrap cut each piece further, a slit at a time from \
+                 its worst place to its border, until no polygon is more than this many times \
+                 off. Pieces given a budget of their own (UV → Stretch budget) keep theirs.",
+            );
+            ui.add_enabled(
+                s.budget_on,
+                egui::DragValue::new(&mut s.budget)
+                    .range(scene::BUDGET_RANGE)
+                    .speed(0.01)
+                    .max_decimals(2)
+                    .suffix("×"),
+            );
+        });
         ui.separator();
         ui.label(HIDING_LABEL).on_hover_text(
             "Where cuts go that only make a piece lie flat (Suggest seams, and Unwrap on a \
@@ -129,9 +145,11 @@ impl Workbench {
         ui.checkbox(&mut s.live_unwrap, LIVE_UNWRAP_LABEL)
             .on_hover_text(LIVE_UNWRAP_HELP);
         ui.label(
-            egui::RichText::new("Where closed pieces are cut open: Seam suggestions → Hide cuts.")
-                .small()
-                .color(crate::theme::TEXT_WEAK),
+            egui::RichText::new(
+                "Where closed pieces are cut open, and the stretch budget: Seam suggestions.",
+            )
+            .small()
+            .color(crate::theme::TEXT_WEAK),
         );
     }
 

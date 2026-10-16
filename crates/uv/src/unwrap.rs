@@ -50,7 +50,7 @@ pub const MAX_RELAX_STEPS: u32 = 1_000;
 
 /// What a chart is cut along: the seams, or, on a shape with no seam marks
 /// at all (imported, say), where its UVs split.
-pub(crate) fn cuts_of(mesh: &Mesh) -> BTreeSet<EdgeKey> {
+pub fn cuts_of(mesh: &Mesh) -> BTreeSet<EdgeKey> {
     if mesh.attribute_values(mesh::attributes::SEAM).is_some() {
         mesh::uvs::seams(mesh).into_iter().collect()
     } else {
@@ -548,6 +548,10 @@ pub struct UnwrapOptions {
     pub only: Option<UnfoldAxis>,
     /// Where a piece that can't lie flat in one go is cut open.
     pub hide: HideSeams,
+    /// The stretch budget for pieces without one of their own (`None`: no
+    /// budget): pieces over it are cut further, and the cuts marked as
+    /// seams ([decision 0111](../../../docs/decisions/0111-seam-preferences-and-stretch-budget.md)).
+    pub budget: Option<f32>,
 }
 
 impl Default for UnwrapOptions {
@@ -558,6 +562,7 @@ impl Default for UnwrapOptions {
             method: UnwrapMethod::Conformal,
             only: None,
             hide: HideSeams::BelowAndBehind,
+            budget: None,
         }
     }
 }
@@ -580,7 +585,11 @@ impl UnwrapOptions {
 
     /// Whether every number is real.
     pub fn is_real(&self) -> bool {
-        self.strip_angle.is_finite() && (0.0..=MAX_STRIP_ANGLE).contains(&self.strip_angle)
+        self.strip_angle.is_finite()
+            && (0.0..=MAX_STRIP_ANGLE).contains(&self.strip_angle)
+            && self
+                .budget
+                .is_none_or(|b| mesh::uvs::BUDGET_RANGE.contains(&b))
     }
 }
 
@@ -723,6 +732,21 @@ pub(crate) fn lay_out(
         extra.extend(crate::seams::disk_cuts(mesh, piece, &cuts, options.hide));
     }
     cuts.extend(extra.iter().copied());
+    // Pieces over their stretch budget are cut further.
+    let mut over = BTreeSet::new();
+    for piece in pieces {
+        if let Some(budget) = mesh::uvs::budget_of(mesh, piece).or(options.budget) {
+            over.extend(crate::seams::budget_cuts(
+                mesh,
+                piece,
+                &cuts,
+                budget,
+                options.hide,
+            ));
+        }
+    }
+    extra.extend(over.iter().copied());
+    cuts.extend(over);
     let mut laid = Vec::new();
     for piece in pieces {
         let chart = Chart::of(mesh, piece, &cuts);

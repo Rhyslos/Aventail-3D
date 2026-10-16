@@ -188,9 +188,9 @@ One big phase, aiming to be the best UV tools around. Brought forward before adv
 
 **Gate:** a prop is unwrapped and packed in Aventail 3D, with clean bakes in Substance Painter, and changing the model afterwards keeps its UVs.
 
-### Phase 8 · UV powerhouse and baking — 2 of 28
+### Phase 8 · UV powerhouse and baking — 3 of 28
 
-`░░░░░░░░░░░░░` 7%
+`█░░░░░░░░░░░░` 11%
 
 At the project lead's request (2026-10-16), before advanced hard-surface: everything the other 3D programs do well for UVs, full control over every automatic step, four ideas no other app has, and baking inside the app, so Substance Painter becomes optional for bakes. The aim: the best and most controllable UV tools there are.
 
@@ -199,7 +199,7 @@ At the project lead's request (2026-10-16), before advanced hard-surface: everyt
 
 - [x] Unwrapping: pins (E menu and UV menu, no key: the project lead's choice), unfolding one way only, and angle-based and size-keeping methods beside LSCM, the best picked for each piece
 - [x] Fully controllable automation: every automatic tool (suggest seams, unwrap, straighten, pack, mending) shows all its settings, and the same model and settings always give the same result, never a random one
-- [ ] Seam preferences ("prefer a seam here", "never a seam here") and a stretch budget per piece, obeyed by every automatic tool
+- [x] Seam preferences ("prefer a seam here", "never a seam here") and a stretch budget per piece, obeyed by every automatic tool
 - [ ] Lock a piece (nothing automatic changes it), and per-piece settings (method, straightening, density) kept for every re-unwrap
 - [ ] Straighten any quad piece by its edge flow, and the texture locked in place while moving points
 - [ ] Seams: a slider from fewer seams to less stretch, a seam brush, symmetric seams, seams along loops and rings
@@ -267,6 +267,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-16 | Seam preferences (prefer, never) and stretch budgets, obeyed by Suggest seams and Unwrap |
 | 2026-10-16 | Every setting of the automatic UV tools in the UV menu, kept with each edit; the same model and settings always give the same UVs |
 | 2026-10-16 | Pins, unfolding one way only, and four unwrap methods (keep shapes, keep shapes smoother, keep sizes, automatic); the E menu's turns and flips grouped |
 | 2026-10-16 | Planned: Phase 8, UV powerhouse and baking (UV tools from every 3D app, full control over every automatic step, four new ideas, an in-app baker), before advanced hard-surface (now Phase 9) |

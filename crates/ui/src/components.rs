@@ -461,6 +461,20 @@ fn guide_lines(
                     out.push(([world(a), world(b)], OverlayStyle::Seam));
                 }
             }
+            for (edge, preference) in mesh::uvs::seam_preferences(mesh) {
+                let style = match preference {
+                    scene::SeamPreference::Prefer => OverlayStyle::SeamPrefer,
+                    scene::SeamPreference::Never => OverlayStyle::SeamNever,
+                    scene::SeamPreference::Free => continue,
+                };
+                if !topology.has_edge(edge) || mesh::uvs::is_seam(mesh, edge) {
+                    continue;
+                }
+                let (a, b) = edge.ends();
+                if let (Some(a), Some(b)) = (mesh.position(a), mesh.position(b)) {
+                    out.push(([world(a), world(b)], style));
+                }
+            }
         }
         if guides.normals {
             for (_, corners) in mesh.faces() {

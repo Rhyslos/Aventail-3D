@@ -27,6 +27,7 @@ pub use mesh::edit::{
     Bend, BevelOptions, BevelShape, ExtrudeDirection, ExtrudeShape, Eye, GrooveShape, GrooveSides,
     Grouping, Slide, SlitLine,
 };
+pub use mesh::uvs::{BUDGET_RANGE, SeamPreference};
 pub use mesh::{
     Bounds, Combine, EdgeKey, Element, ElementKind, ElementSelection, FaceId, Mesh, Primitive,
     PrimitiveKind, VertexId,

@@ -79,7 +79,7 @@ pub(crate) enum HideV35 {
     Shortest,
 }
 
-fn hide_to_file(hide: HideSeams) -> HideV35 {
+pub(crate) fn hide_to_file(hide: HideSeams) -> HideV35 {
     match hide {
         HideSeams::BelowAndBehind => HideV35::BelowAndBehind,
         HideSeams::Below => HideV35::Below,
@@ -88,7 +88,7 @@ fn hide_to_file(hide: HideSeams) -> HideV35 {
     }
 }
 
-fn hide_from_file(hide: HideV35) -> HideSeams {
+pub(crate) fn hide_from_file(hide: HideV35) -> HideSeams {
     match hide {
         HideV35::BelowAndBehind => HideSeams::BelowAndBehind,
         HideV35::Below => HideSeams::Below,
@@ -126,11 +126,12 @@ impl FileOperation for OperationV35 {
             return Some(Self::V34(older));
         }
         match op {
+            // Without a stretch budget: version 36 stores the rest.
             Operation::Unwrap {
                 faces,
                 options,
                 anchors,
-            } => Some(Self::Unwrap {
+            } if options.budget.is_none() => Some(Self::Unwrap {
                 faces: faces.iter().map(|f| f.get()).collect(),
                 strips: options.strips,
                 strip_angle: options.strip_angle,
@@ -171,6 +172,7 @@ impl FileOperation for OperationV35 {
                     method: method_from_file(method),
                     only: only.map(axis_from_file),
                     hide: hide_from_file(hide),
+                    budget: None,
                 },
                 anchors: anchors.map(anchors_from_file).transpose()?,
             },
@@ -209,6 +211,7 @@ mod tests {
                     method: UnwrapMethod::Automatic,
                     only: Some(UnfoldAxis::Up),
                     hide,
+                    budget: None,
                 },
                 anchors: None,
             });

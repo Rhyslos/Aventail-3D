@@ -383,6 +383,27 @@ pub enum Operation {
         /// Where they were, to find them again (decision 0032).
         anchors: Option<Anchors>,
     },
+    /// Tells the automatic UV tools where seams should or shouldn't go
+    /// (decision 0111): see `mesh::uvs::set_seam_preference`.
+    SetSeamPreference {
+        /// The edges.
+        edges: Vec<EdgeKey>,
+        /// Prefer, never, or nothing (clears it).
+        preference: mesh::uvs::SeamPreference,
+        /// Where they were, to find them again (decision 0032).
+        anchors: Option<Anchors>,
+    },
+    /// Gives the pieces holding these polygons a stretch budget of their
+    /// own, or takes it away (decision 0111): see `mesh::uvs::set_budget`.
+    SetStretchBudget {
+        /// The polygons (the budget is set on these; a piece takes the
+        /// least of its polygons').
+        faces: Vec<FaceId>,
+        /// The budget, or `None` to clear it.
+        budget: Option<f32>,
+        /// Where the polygons were, to find them again.
+        anchors: Option<Anchors>,
+    },
     /// Marks edges hard (a crisp break in the shading) or soft (smooth
     /// shading across) (decision 0053).
     SetHardEdges {
@@ -631,6 +652,24 @@ impl Operation {
                 };
                 counted(verb, edges.len(), "edge")
             }
+            Self::SetSeamPreference {
+                edges, preference, ..
+            } => {
+                let verb = match preference {
+                    mesh::uvs::SeamPreference::Prefer => "Prefer seams on",
+                    mesh::uvs::SeamPreference::Never => "Allow no seams on",
+                    mesh::uvs::SeamPreference::Free => "Clear the seam preference of",
+                };
+                counted(verb, edges.len(), "edge")
+            }
+            Self::SetStretchBudget { faces, budget, .. } => {
+                let verb = if budget.is_some() {
+                    "Set the stretch budget of"
+                } else {
+                    "Clear the stretch budget of"
+                };
+                counted(verb, faces.len(), "polygon")
+            }
             Self::SetHardEdges { edges, hard, .. } => {
                 let verb = if *hard { "Harden" } else { "Soften" };
                 counted(verb, edges.len(), "edge")
@@ -756,10 +795,12 @@ impl Operation {
             | Self::StraightenUvs { .. }
             | Self::RelaxUvs { .. }
             | Self::SetTexelDensity { .. }
+            | Self::SetStretchBudget { .. }
             | Self::PlaceOnTrim { .. }
             | Self::PackUvs { .. }
             | Self::SetHardEdges { .. }
             | Self::SetSeams { .. }
+            | Self::SetSeamPreference { .. }
             | Self::SlidePoints { .. }
             | Self::FixFacing
             | Self::PlaceShape { .. } => None,
@@ -924,10 +965,12 @@ impl Operation {
             | Self::StraightenUvs { .. }
             | Self::RelaxUvs { .. }
             | Self::SetTexelDensity { .. }
+            | Self::SetStretchBudget { .. }
             | Self::PlaceOnTrim { .. }
             | Self::PackUvs { .. }
             | Self::SetHardEdges { .. }
             | Self::SetSeams { .. }
+            | Self::SetSeamPreference { .. }
             | Self::SlidePoints { .. }
             | Self::FixFacing
             | Self::PlaceShape { .. } => {}
@@ -1068,6 +1111,10 @@ impl Operation {
             Self::Unwrap { options, .. } => options.is_real(),
             Self::RelaxUvs { steps, .. } => *steps <= uv::unwrap::MAX_RELAX_STEPS,
             Self::SetTexelDensity { density, .. } => density.is_finite() && *density > 0.0,
+            Self::SetSeamPreference { .. } => true,
+            Self::SetStretchBudget { budget, .. } => {
+                budget.is_none_or(|b| mesh::uvs::BUDGET_RANGE.contains(&b))
+            }
             Self::PlaceOnTrim { bottom, top, .. } => {
                 bottom.is_finite()
                     && top.is_finite()
@@ -1128,9 +1175,11 @@ impl Operation {
             | Self::StraightenUvs { anchors, .. }
             | Self::RelaxUvs { anchors, .. }
             | Self::SetTexelDensity { anchors, .. }
+            | Self::SetStretchBudget { anchors, .. }
             | Self::PlaceOnTrim { anchors, .. }
             | Self::SetHardEdges { anchors, .. }
             | Self::SetSeams { anchors, .. }
+            | Self::SetSeamPreference { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_ref(),
             Self::FixFacing | Self::PlaceShape { .. } | Self::HardEdgesByAngle { .. } => None,
             Self::Slit { .. } | Self::PackUvs { .. } => None,
@@ -1167,9 +1216,11 @@ impl Operation {
             | Self::StraightenUvs { anchors, .. }
             | Self::RelaxUvs { anchors, .. }
             | Self::SetTexelDensity { anchors, .. }
+            | Self::SetStretchBudget { anchors, .. }
             | Self::PlaceOnTrim { anchors, .. }
             | Self::SetHardEdges { anchors, .. }
             | Self::SetSeams { anchors, .. }
+            | Self::SetSeamPreference { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_mut(),
             Self::FixFacing | Self::PlaceShape { .. } | Self::HardEdgesByAngle { .. } => None,
             Self::Slit { .. } | Self::PackUvs { .. } => None,
@@ -1253,8 +1304,10 @@ impl Operation {
             | Self::RelaxUvs { .. }
             | Self::PackUvs { .. }
             | Self::SetTexelDensity { .. }
+            | Self::SetStretchBudget { .. }
             | Self::PlaceOnTrim { .. }
             | Self::SetSeams { .. }
+            | Self::SetSeamPreference { .. }
             | Self::SetHardEdges { .. }
             | Self::HardEdgesByAngle { .. } => false,
             // Each side mends as it is applied.
@@ -1652,6 +1705,12 @@ impl Operation {
                     .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
                 uv::density::set_density(mesh, &faces, *density)
             }
+            Self::SetStretchBudget { faces, budget, .. } => {
+                let faces = refound
+                    .as_ref()
+                    .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
+                mesh::uvs::set_budget(mesh, &faces, *budget)
+            }
             Self::PlaceOnTrim {
                 faces, bottom, top, ..
             } => {
@@ -1667,6 +1726,14 @@ impl Operation {
                     .as_ref()
                     .map_or_else(|| edges.clone(), |r| edges_within(mesh, &r.0));
                 mesh::uvs::set_seams(mesh, &edges, *seam)
+            }
+            Self::SetSeamPreference {
+                edges, preference, ..
+            } => {
+                let edges = refound
+                    .as_ref()
+                    .map_or_else(|| edges.clone(), |r| edges_within(mesh, &r.0));
+                mesh::uvs::set_seam_preference(mesh, &edges, *preference)
             }
             Self::SetHardEdges { edges, hard, .. } => {
                 let edges = refound

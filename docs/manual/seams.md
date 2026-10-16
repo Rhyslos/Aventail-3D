@@ -39,6 +39,8 @@ All of these are one undo step each, the unwrapping included (**Ctrl + Z**), are
 
 **Select seams:** **Select → Select seams** (or **UV → Select seams**) selects every seam, in the Edges mode, to check or change them.
 
+**Guide the automatic seams.** Mark edges **Prefer seams here** or **Never seams here** (UV menu), and give pieces a **stretch budget**: Suggest seams and Unwrap follow them. See [Seam preferences and stretch budgets](seam-preferences.md).
+
 ## Settings
 
 In **UV → Seam suggestions** (remembered between sessions):
@@ -47,6 +49,7 @@ In **UV → Seam suggestions** (remembered between sessions):
 |---|---|
 | **Cut corners sharper than** | Edges where the surface bends more sharply than this get a seam: 66° standard. A piece bent far round one edge stretches when laid flat. Raise it for fewer, bigger pieces; 180° cuts no corners. |
 | **Cut along hard edges** | On (standard): every hard edge gets a seam, as a normal-map bake needs. Off: only corners, and what pieces need to lie flat. |
+| **Stretch budget for every piece** | Off (standard). On: pieces stretching more than this once laid flat get cut further ([Seam preferences and stretch budgets](seam-preferences.md)). |
 | **Hide cuts** | Where the extra cuts go that only make a piece lie flat (here, and when Unwrap cuts a closed piece open). **Underneath and at the back** (standard): where a prop is least seen. **Underneath**, or **At the back**, only. **Anywhere (shortest cuts)**: as short as can be, for shapes seen from all round. |
 
 The same shape and settings always give exactly the same seams. "Underneath" and "the back" are the object's own down (−Z) and back (+Y, away from the Front view): turn the object, not the world, to change which side counts as the back.
@@ -76,6 +79,7 @@ No keys of their own, as chosen for seams; ask if you'd like some.
 ## Related
 
 - [The UV Editor and the UV mode](uv-editor.md)
+- [Seam preferences and stretch budgets](seam-preferences.md)
 - [Unwrap, Relax and Straighten](unwrapping.md)
 - [Editing UVs by hand](editing-uvs.md)
 - [Hard and soft edges](hard-and-soft-edges.md)
