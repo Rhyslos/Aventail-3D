@@ -233,11 +233,8 @@ pub enum PaletteCommand {
     ToggleAxes,
     /// Turn snapping on or off.
     ToggleSnapping,
-    /// Turn symmetry on or off.
+    /// Turn the selected objects' live mirror on or off.
     ToggleSymmetry,
-    /// Join the selected shapes' halves at the middle, once (the
-    /// Symmetry menu's Weld the middle now).
-    WeldMiddle,
 }
 
 /// One command on the top palette: one that works, or one that is not
@@ -308,14 +305,14 @@ pub struct PaletteState {
     pub axes: Axes,
     /// Whether snapping is on.
     pub snapping: bool,
-    /// Whether symmetry is on.
+    /// Whether the selected objects have a live mirror.
     pub symmetry: bool,
 }
 
 /// What the Symmetry switch does, for its tooltips.
-pub(crate) const SYMMETRY_HELP: &str = "Model one half: every edit to points, edges or polygons (moving, \
-     extruding, cutting, welding, deleting...) is made on the other side too, and points on the \
-     middle stay there. The arrow beside it chooses X, Y or Z and where the mirror sits.";
+pub(crate) const SYMMETRY_HELP: &str = "Model one half: the selected objects get a live mirror, a copy \
+     of the shape on the other side of the world's centre that follows every edit and every move, \
+     joined to it at the middle. The arrow beside it chooses X, Y or Z and moves the mirror.";
 
 /// The accessible name of the arrow that opens the Symmetry menu.
 pub(crate) const SYMMETRY_MENU_LABEL: &str = "Symmetry settings";
@@ -458,9 +455,7 @@ pub fn command_palette(
                         active = state.symmetry;
                         (true, command.arrives.to_string())
                     }
-                    PaletteCommand::Lock(_)
-                    | PaletteCommand::ToggleAxes
-                    | PaletteCommand::WeldMiddle => {
+                    PaletteCommand::Lock(_) | PaletteCommand::ToggleAxes => {
                         (true, command.arrives.to_string())
                     }
                 };
@@ -475,9 +470,9 @@ pub fn command_palette(
                     clicked = Some(action);
                 }
                 if matches!(action, PaletteCommand::ToggleSymmetry)
-                    && symmetry_menu(ui, symmetry, units)
+                    && symmetry_menu(ui, symmetry, state.symmetry, units)
                 {
-                    clicked = Some(PaletteCommand::WeldMiddle);
+                    clicked = Some(PaletteCommand::ToggleSymmetry);
                 }
             }
             if index == 1 {
@@ -524,9 +519,15 @@ pub fn command_palette(
 }
 
 /// The small arrow beside the Symmetry switch, and the menu it opens:
-/// which axes to mirror across, where the mirror goes through, and how
-/// far it is moved from there ([decision 0059](../../../docs/decisions/0059-symmetry-for-every-edit.md)).
-fn symmetry_menu(ui: &mut Ui, symmetry: &mut crate::Symmetry, units: crate::units::Units) -> bool {
+/// which axes to mirror across, where the mirror is, and how near points
+/// weld at the seam ([decision 0088](../../../docs/decisions/0088-live-mirror.md)).
+/// Returns whether On was clicked.
+fn symmetry_menu(
+    ui: &mut Ui,
+    symmetry: &mut crate::Symmetry,
+    on: bool,
+    units: crate::units::Units,
+) -> bool {
     let (rect, response) = ui.allocate_exact_size(vec2(14.0, BUTTON_SIZE), Sense::click());
     response.widget_info(|| WidgetInfo::labeled(WidgetType::Button, true, SYMMETRY_MENU_LABEL));
     if response.hovered() {
@@ -548,28 +549,30 @@ fn symmetry_menu(ui: &mut Ui, symmetry: &mut crate::Symmetry, units: crate::unit
         .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
         .gap(4.0)
         .width(260.0)
-        .show(|ui| symmetry_settings(ui, symmetry, units))
+        .show(|ui| symmetry_settings(ui, symmetry, on, units))
         .is_some_and(|shown| shown.inner)
 }
 
-/// The Symmetry menu's Weld button.
-pub(crate) const WELD_MIDDLE_LABEL: &str = "Weld the middle now";
-
-/// The Symmetry menu's contents. Returns whether Weld the middle now was
+/// The Symmetry menu's contents: On (for the selected objects), the axes,
+/// where the mirror is and the weld distance. Returns whether On was
 /// clicked.
 pub(crate) fn symmetry_settings(
     ui: &mut Ui,
     symmetry: &mut crate::Symmetry,
+    on: bool,
     units: crate::units::Units,
 ) -> bool {
-    let mut weld = false;
     ui.set_width(260.0);
     let small = |ui: &mut Ui, text: &str| {
         ui.label(RichText::new(text).small().color(theme::TEXT_WEAK));
     };
     ui.label(RichText::new("Symmetry").strong().color(theme::TEXT_STRONG));
-    ui.checkbox(&mut symmetry.on, "On")
-        .on_hover_text(SYMMETRY_HELP);
+    let mut checked = on;
+    let toggled = ui
+        .checkbox(&mut checked, "On")
+        .on_hover_text(SYMMETRY_HELP)
+        .clicked();
+    small(ui, "For the selected objects: each keeps its own mirror.");
     ui.add_space(4.0);
     ui.label("Mirror across");
     ui.horizontal(|ui| {
@@ -587,53 +590,24 @@ pub(crate) fn symmetry_settings(
     });
     small(
         ui,
-        "The shape's own axes: X mirrors left and right, Y front and back, Z top and bottom.",
+        "The world's axes: X mirrors left and right, Y front and back, Z top and bottom, \
+         across the faint red planes in the viewport.",
     );
     if !symmetry.axes.contains(&true) {
         small(ui, "Pick an axis: with none, nothing is mirrored.");
     }
     ui.add_space(6.0);
-    ui.label("Mirror through");
-    for centre in crate::SymmetryCentre::ALL {
-        ui.radio_value(&mut symmetry.centre, centre, centre.name())
-            .on_hover_text(centre.explanation());
-    }
-    ui.add_space(6.0);
-    if ui
-        .button(WELD_MIDDLE_LABEL)
-        .on_hover_text(
-            "Joins the two halves of the selected shapes at the middle, once: points within the \
-             weld distance go onto the middle, and points meeting there become one. Ctrl + Z \
-             takes it back.",
-        )
-        .clicked()
-    {
-        weld = true;
-    }
-    ui.horizontal(|ui| {
-        ui.label("Weld distance");
-        crate::attributes::stepper::length(
-            ui,
-            &mut symmetry.weld_distance,
-            (0.0, 100.0),
-            units,
-            "Weld distance",
-        );
-    });
-    ui.checkbox(&mut symmetry.clip, "Don't cross the middle")
-        .on_hover_text(
-            "Points stop at the middle instead of passing through to the other side, where \
-             they would overlap their mirror.",
-        );
-    ui.add_space(6.0);
-    ui.label("Move the mirror by");
+    ui.label("Move the mirror to");
     for (axis, name) in ["X", "Y", "Z"].into_iter().enumerate() {
         ui.horizontal(|ui| {
             ui.label(name);
             crate::attributes::stepper::length(
                 ui,
                 &mut symmetry.offset[axis],
-                (-mesh::primitives::MAX_SIZE, mesh::primitives::MAX_SIZE),
+                (
+                    -scene::LiveMirror::MAX_CENTRE,
+                    scene::LiveMirror::MAX_CENTRE,
+                ),
                 units,
                 &format!("Symmetry offset {name}"),
             );
@@ -641,10 +615,25 @@ pub(crate) fn symmetry_settings(
     }
     small(
         ui,
-        "Shifts the mirror along each axis from where it goes through: in the object's own \
-         space, or the world's for World centre.",
+        "Where the mirror stands in the world: the centre (0) unless moved.",
     );
-    weld
+    ui.add_space(6.0);
+    ui.horizontal(|ui| {
+        ui.label("Weld distance");
+        crate::attributes::stepper::length(
+            ui,
+            &mut symmetry.weld_distance,
+            (0.0, scene::LiveMirror::MAX_WELD_DISTANCE),
+            units,
+            "Weld distance",
+        );
+    });
+    small(
+        ui,
+        "Points at the middle this close to their mirror become one, so the halves join into one \
+         surface. 0 keeps them apart.",
+    );
+    toggled
 }
 
 /// Accessible name of the world or object axes switch.

@@ -1,6 +1,6 @@
-//! Tests for symmetry with the modelling tools in the window: edits made
-//! with symmetry on are recorded mirrored, and the Last edit changes both
-//! sides.
+//! Tests for the live mirror with the modelling tools in the window
+//! (decision 0088): edits are made once, on the shape itself, and its
+//! mirrored twin follows.
 
 use super::modelling_tests::{H, cube, drag, last_operation, press, shape};
 use super::tests::fresh;
@@ -9,7 +9,7 @@ use egui_kittest::kittest::Queryable;
 use scene::{Element, ElementSelection, Operation};
 
 /// The cube cut in two each way, in the Polygons mode, with a polygon
-/// on its right (+X) side selected; symmetry on when `on`.
+/// on its right (+X) side selected; a live mirror on when `on`.
 fn ready(on: bool) -> H {
     let mut harness = fresh();
     let id = cube(&harness);
@@ -54,44 +54,32 @@ fn symmetrical(mesh: &scene::Mesh) -> bool {
     })
 }
 
+/// The cube's shape as shown, with its live mirror.
+fn shown(harness: &H) -> std::sync::Arc<scene::Mesh> {
+    let doc = harness.state().workbench.document();
+    doc.scene().shown_shape(cube(harness)).unwrap()
+}
+
 #[test]
-fn with_symmetry_an_extrude_is_made_on_both_sides() {
+fn with_a_mirror_an_extrude_is_made_once_and_shown_on_both_sides() {
     let mut harness = ready(true);
     press(&mut harness, Modifiers::NONE, Key::D);
     drag(&mut harness, 60.0);
     let op = last_operation(&harness).unwrap();
-    assert!(matches!(op, Operation::Mirrored { .. }), "{op:?}");
-    assert!(matches!(op.inner(), Operation::ExtrudePolygons { .. }));
-    assert!(symmetrical(&shape(&harness)));
-    // The Last edit says so, and changing it changes both sides.
+    assert!(matches!(op, Operation::ExtrudePolygons { .. }), "{op:?}");
+    // The shape itself has one extrude, on the right.
+    assert!(!symmetrical(&shape(&harness)));
+    // As shown (drawn and exported), both sides have it.
+    assert!(symmetrical(&shown(&harness)));
     assert!(
         harness
-            .query_by_label_contains("Last edit: Extrude 1 polygon, mirrored")
+            .query_by_label_contains("Last edit: Extrude 1 polygon")
             .is_some()
     );
-    let id = cube(&harness);
-    let longer = op.with(scene::EditSettings {
-        distance: Some(40.0),
-        ..op.settings().unwrap()
-    });
-    harness
-        .state_mut()
-        .workbench
-        .document_mut()
-        .execute(scene::Command::ReplaceOperation {
-            id,
-            layer: 0,
-            index: 0,
-            operation: longer,
-        })
-        .unwrap();
-    harness.run();
-    let bounds = shape(&harness).bounds().unwrap();
-    assert!((bounds.max.x - 90.0).abs() < 1e-2 && (bounds.min.x + 90.0).abs() < 1e-2);
 }
 
 #[test]
-fn without_symmetry_or_for_whole_shape_edits_nothing_is_mirrored() {
+fn without_a_mirror_nothing_is_mirrored() {
     let mut harness = ready(false);
     press(&mut harness, Modifiers::NONE, Key::D);
     drag(&mut harness, 60.0);
@@ -99,18 +87,20 @@ fn without_symmetry_or_for_whole_shape_edits_nothing_is_mirrored() {
         last_operation(&harness),
         Some(Operation::ExtrudePolygons { .. })
     ));
-    assert!(!symmetrical(&shape(&harness)));
+    assert!(!symmetrical(&shown(&harness)));
 }
 
 #[test]
-fn with_symmetry_delete_and_flip_take_both_sides() {
+fn with_a_mirror_delete_is_made_once_and_the_twin_follows() {
     let mut harness = ready(true);
     let faces = shape(&harness).face_count();
+    let shown_faces = shown(&harness).face_count();
     press(&mut harness, Modifiers::NONE, Key::Delete);
-    assert_eq!(shape(&harness).face_count(), faces - 2);
+    assert_eq!(shape(&harness).face_count(), faces - 1);
+    assert_eq!(shown(&harness).face_count(), shown_faces - 2);
     assert!(matches!(
         last_operation(&harness),
-        Some(Operation::Mirrored { .. })
+        Some(Operation::DeleteElements { .. })
     ));
     assert_eq!(
         harness.state().workbench.document().undo_label(),

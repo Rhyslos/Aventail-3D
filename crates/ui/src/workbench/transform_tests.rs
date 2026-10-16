@@ -497,7 +497,71 @@ fn shape(harness: &H) -> std::sync::Arc<scene::Mesh> {
 }
 
 #[test]
-fn with_symmetry_moving_a_point_moves_its_mirror() {
+fn the_symmetry_button_gives_the_selected_object_a_live_mirror() {
+    let mut harness = fresh();
+    let id = cube(&harness);
+    // Nothing selected: it says what to do.
+    harness.state_mut().workbench.toggle_symmetry();
+    assert!(
+        harness
+            .state()
+            .workbench
+            .note
+            .as_deref()
+            .unwrap()
+            .contains("select the objects")
+    );
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .set_selection([id]);
+    harness.run();
+    harness.get_by_label("Symmetry").click();
+    harness.run();
+    let workbench = &harness.state().workbench;
+    let doc = workbench.document();
+    assert_eq!(
+        doc.scene().object(id).unwrap().mirror,
+        Some(scene::LiveMirror::across_x())
+    );
+    assert_eq!(doc.undo_label(), Some("Mirror"));
+    assert!(
+        harness
+            .query_by_label_contains("Symmetry on, across X")
+            .is_some()
+    );
+    // Moved to the side, its twin stands on the other side of the world
+    // centre: drawn, and in the box around the scene.
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::SetTransforms(vec![(
+            id,
+            scene::Transform {
+                position: glam::Vec3::new(100.0, 0.0, 0.0),
+                ..Default::default()
+            },
+        )]))
+        .unwrap();
+    harness.run();
+    let workbench = &harness.state().workbench;
+    let doc = workbench.document();
+    let bounds = doc.scene().bounds().unwrap();
+    assert!((bounds.min.x + 150.0).abs() < 1e-3, "{bounds:?}");
+    let drawn = doc.scene().shown_shape(id).unwrap();
+    assert_eq!(drawn.face_count(), 2 * shape(&harness).face_count());
+    // Off again: one undo step.
+    harness.state_mut().workbench.toggle_symmetry();
+    harness.run();
+    let doc = harness.state().workbench.document();
+    assert_eq!(doc.scene().object(id).unwrap().mirror, None);
+    assert_eq!(doc.undo_label(), Some("Mirror off"));
+}
+
+#[test]
+fn the_symmetry_menu_changes_the_selected_objects_mirror() {
     let mut harness = fresh();
     let id = cube(&harness);
     harness
@@ -506,26 +570,68 @@ fn with_symmetry_moving_a_point_moves_its_mirror() {
         .document_mut()
         .set_selection([id]);
     harness.run();
-    // The palette switch turns it on, across X as standard.
-    harness.get_by_label("Symmetry").click();
-    harness.run();
-    assert!(harness.state().workbench.viewport().options().symmetry.on);
-    assert!(
-        harness
-            .query_by_label_contains("Symmetry on, across X")
-            .is_some()
-    );
-    press(&mut harness, Key::Num1);
-    // Its X, Y and Z switches are in the menu beside the switch.
-    assert!(harness.query_by_label("Symmetry X").is_none());
     harness
         .get_by_label(crate::palette::SYMMETRY_MENU_LABEL)
         .click();
     harness.run();
-    assert!(harness.query_by_label("Symmetry X").is_some());
-    harness.key_press(Key::Escape);
+    // On, from the menu, then across Y as well.
+    harness.get_by_label("On").click();
     harness.run();
-    // One top corner on the right.
+    assert!(
+        harness
+            .state()
+            .workbench
+            .document()
+            .scene()
+            .object(id)
+            .unwrap()
+            .mirror
+            .is_some()
+    );
+    harness.get_by_label("Symmetry Y").click();
+    harness.run();
+    let mirror = harness
+        .state()
+        .workbench
+        .document()
+        .scene()
+        .object(id)
+        .unwrap()
+        .mirror
+        .unwrap();
+    assert_eq!(mirror.axes, [true, true, false]);
+    // Kept for the next mirror too.
+    assert_eq!(
+        harness.state().workbench.viewport().options().symmetry.axes,
+        [true, true, false]
+    );
+    // Moving the mirror is the same kind of change, merged into one step.
+    let steps = harness.state().workbench.document().undo_steps();
+    let mut settings = harness.state().workbench.viewport().options().symmetry;
+    settings.offset = [20.0, 0.0, 0.0];
+    harness.state_mut().workbench.change_symmetry(settings);
+    settings.offset = [30.0, 0.0, 0.0];
+    harness.state_mut().workbench.change_symmetry(settings);
+    let doc = harness.state().workbench.document();
+    assert_eq!(doc.undo_steps(), steps);
+    assert_eq!(
+        doc.scene().object(id).unwrap().mirror.unwrap().centre,
+        glam::Vec3::new(30.0, 0.0, 0.0)
+    );
+}
+
+#[test]
+fn with_a_mirror_edits_are_made_once_and_the_twin_follows() {
+    let mut harness = fresh();
+    let id = cube(&harness);
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .set_selection([id]);
+    harness.run();
+    harness.state_mut().workbench.toggle_symmetry();
+    press(&mut harness, Key::Num1);
     let mesh = shape(&harness);
     let right = mesh
         .vertices()
@@ -551,23 +657,17 @@ fn with_symmetry_moving_a_point_moves_its_mirror() {
         .collect();
     drag_without_letting_go(&mut harness, start, &path);
     let_go(&mut harness, *path.last().unwrap());
-    let mesh = shape(&harness);
-    let moved = mesh.position(right).unwrap();
-    assert!(moved.x > 70.0, "{moved}");
-    // Its mirror went the other way, by as much.
-    let left = mesh
-        .vertices()
-        .find(|(v, p)| *v != right && p.y > 0.0 && p.z > 99.0 && p.x < -70.0)
-        .map(|(_, p)| p)
-        .expect("the mirror moved left");
-    assert!((left.x + moved.x).abs() < 1e-3, "{left} {moved}");
     let doc = harness.state().workbench.document();
-    assert_eq!(doc.undo_label(), Some("Move 2 points"), "one undo step");
-    // Off again (the Tools menu, or the palette, whose button shares its
-    // name with the panel's section now).
-    harness.state_mut().workbench.toggle_symmetry();
-    harness.run();
-    assert!(!harness.state().workbench.viewport().options().symmetry.on);
+    assert_eq!(doc.undo_label(), Some("Move 1 point"), "made once");
+    let moved = shape(&harness).position(right).unwrap();
+    assert!(moved.x > 70.0, "{moved}");
+    // The twin's copy of that point went the other way.
+    let drawn = doc.scene().shown_shape(id).unwrap();
+    assert!(
+        drawn
+            .vertices()
+            .any(|(_, p)| (p.x + moved.x).abs() < 1e-3 && p.y > 0.0 && p.z > 99.0)
+    );
 }
 
 // ------------------------------------------------------------- sliding ---
@@ -631,177 +731,4 @@ fn alt_dragging_the_move_gizmo_slides_points_along_their_edges() {
         harness.state().workbench.document().undo_label(),
         Some("Slide 4 points")
     );
-}
-
-#[test]
-fn the_symmetry_menu_sets_the_axes_and_where_the_mirror_goes() {
-    let mut harness = fresh();
-    let id = cube(&harness);
-    harness
-        .state_mut()
-        .workbench
-        .document_mut()
-        .set_selection([id]);
-    harness.run();
-    harness
-        .get_by_label(crate::palette::SYMMETRY_MENU_LABEL)
-        .click();
-    harness.run();
-    // Turned on, across Y as well, through the world centre.
-    harness.get_by_label("On").click();
-    harness.run();
-    harness.get_by_label("Symmetry Y").click();
-    harness.run();
-    harness.get_by_label("World centre").click();
-    harness.run();
-    let symmetry = harness.state().workbench.viewport().options().symmetry;
-    assert!(symmetry.on);
-    assert_eq!(symmetry.axes, [true, true, false]);
-    assert_eq!(symmetry.centre, crate::SymmetryCentre::World);
-    // Through the world centre, an object moved to x = 100 mirrors about
-    // its own x = -100.
-    harness
-        .state_mut()
-        .workbench
-        .document_mut()
-        .execute(scene::Command::SetTransforms(vec![(
-            id,
-            scene::Transform {
-                position: glam::Vec3::new(100.0, 0.0, 0.0),
-                ..Default::default()
-            },
-        )]))
-        .unwrap();
-    harness.run();
-    let mirror = harness.state().workbench.mirror_for(id).unwrap();
-    assert!(mirror.centre.distance(glam::Vec3::new(-100.0, 0.0, 0.0)) < 1e-3);
-    // Its middle: the box's centre, moved by the offset.
-    let options = harness.state_mut().workbench.viewport_mut().options_mut();
-    options.symmetry.centre = crate::SymmetryCentre::Middle;
-    options.symmetry.offset = [5.0, 0.0, 0.0];
-    let mirror = harness.state().workbench.mirror_for(id).unwrap();
-    assert!(mirror.centre.distance(glam::Vec3::new(5.0, 0.0, 50.0)) < 1e-3);
-    // Off: no mirror.
-    harness.state_mut().workbench.toggle_symmetry();
-    assert!(harness.state().workbench.mirror_for(id).is_none());
-}
-
-#[test]
-fn with_symmetry_points_can_be_kept_from_crossing_the_middle() {
-    let mut harness = fresh();
-    let id = cube(&harness);
-    let doc = harness.state_mut().workbench.document_mut();
-    doc.set_selection([id]);
-    doc.execute(scene::Command::SetPrimitive {
-        ids: vec![id],
-        primitive: scene::Primitive::Cube(mesh::CubeParams {
-            segments: [2, 1, 1],
-            ..Default::default()
-        }),
-    })
-    .unwrap();
-    harness.run();
-    harness.state_mut().workbench.toggle_symmetry();
-    harness
-        .state_mut()
-        .workbench
-        .viewport_mut()
-        .options_mut()
-        .symmetry
-        .clip = true;
-    press(&mut harness, Key::Num1);
-    let mesh = shape(&harness);
-    let right = mesh
-        .vertices()
-        .find(|(_, p)| p.x > 49.0 && p.y < -49.0 && p.z > 99.0)
-        .map(|(v, _)| v)
-        .unwrap();
-    harness
-        .state_mut()
-        .workbench
-        .document_mut()
-        .select_elements(
-            [(
-                id,
-                scene::ElementSelection::of([scene::Element::Point(right)]),
-            )],
-            "Select",
-            None,
-        );
-    press(&mut harness, Key::W);
-    // Dragged far to the left: it stops at the middle.
-    let start = x_arrow(&harness);
-    let path: Vec<Pos2> = (1..=8)
-        .map(|i| along_x(&harness, start, -(i as f32) * 20.0))
-        .collect();
-    drag_without_letting_go(&mut harness, start, &path);
-    let_go(&mut harness, *path.last().unwrap());
-    let moved = shape(&harness).position(right).unwrap();
-    assert!(moved.x.abs() < 1e-3, "{moved}");
-}
-
-#[test]
-fn weld_the_middle_now_joins_the_halves_once_when_asked() {
-    let mut harness = fresh();
-    let id = cube(&harness);
-    let doc = harness.state_mut().workbench.document_mut();
-    doc.set_selection([id]);
-    doc.execute(scene::Command::SetPrimitive {
-        ids: vec![id],
-        primitive: scene::Primitive::Cube(mesh::CubeParams {
-            segments: [2, 1, 1],
-            ..Default::default()
-        }),
-    })
-    .unwrap();
-    harness.run();
-    let middle = shape(&harness)
-        .vertices()
-        .find(|(_, p)| p.x.abs() < 1e-3)
-        .map(|(v, _)| v)
-        .unwrap();
-    harness
-        .state_mut()
-        .workbench
-        .document_mut()
-        .execute(scene::Command::Record {
-            id,
-            operation: scene::Operation::MovePoints {
-                points: vec![middle],
-                offset: glam::Vec3::new(0.05, 0.0, 0.0),
-                anchors: None,
-            },
-        })
-        .unwrap();
-    harness.run();
-    // Nothing joins by itself: the point stays off the middle.
-    assert!((shape(&harness).position(middle).unwrap().x - 0.05).abs() < 1e-5);
-    harness
-        .get_by_label(crate::palette::SYMMETRY_MENU_LABEL)
-        .click();
-    harness.run();
-    harness
-        .get_by_label(crate::palette::WELD_MIDDLE_LABEL)
-        .click();
-    harness.run();
-    assert_eq!(shape(&harness).position(middle).unwrap().x, 0.0);
-    assert_eq!(
-        harness.state().workbench.document().undo_label(),
-        Some("Weld the middle")
-    );
-    // Ctrl + Z takes it back; with nothing near the middle, nothing is
-    // recorded.
-    harness.state_mut().workbench.document_mut().undo();
-    harness.run();
-    assert!((shape(&harness).position(middle).unwrap().x - 0.05).abs() < 1e-5);
-    harness
-        .state_mut()
-        .workbench
-        .viewport_mut()
-        .options_mut()
-        .symmetry
-        .weld_distance = 0.01;
-    let steps = harness.state().workbench.document().undo_steps();
-    harness.state_mut().workbench.weld_middle_now();
-    assert_eq!(harness.state().workbench.document().undo_steps(), steps);
 }

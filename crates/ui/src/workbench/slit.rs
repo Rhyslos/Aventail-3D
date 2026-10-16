@@ -240,7 +240,7 @@ impl Workbench {
                 };
                 let command = Command::Record {
                     id,
-                    operation: super::with_mirror(Operation::Slit { line }, self.edit_mirror(id)),
+                    operation: Operation::Slit { line },
                 };
                 let label = if session.through {
                     "Slit through"

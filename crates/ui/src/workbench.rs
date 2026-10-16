@@ -138,21 +138,6 @@ pub const MODE_KEYS: [(Key, Mode); 3] = [
     (Key::Num3, Mode::Polygons),
 ];
 
-/// `op`, made on both sides of `mirror` when there is one and the edit can
-/// be mirrored ([decision 0059](../../../docs/decisions/0059-symmetry-for-every-edit.md)).
-pub(crate) fn with_mirror(
-    op: scene::Operation,
-    mirror: Option<mesh::symmetry::Mirror>,
-) -> scene::Operation {
-    match mirror {
-        Some(mirror) if scene::mirroring::mirrors(&op) => scene::Operation::Mirrored {
-            op: Box::new(op),
-            mirror,
-        },
-        _ => op,
-    }
-}
-
 /// Steps straight back to the Model mode from wherever editing has got to
 /// ([decision 0057](../../../docs/decisions/0057-after-phase-4-testing.md)):
 /// a Slit line is finished, a modelling tool is put away and the Points,
@@ -920,11 +905,14 @@ impl Workbench {
             locked: self.viewport.options().locked,
             axes: self.viewport.options().axes,
             snapping: self.viewport.options().snap.on,
-            symmetry: self.viewport.options().symmetry.on,
+            symmetry: self.selected_mirror().is_some(),
         };
-        // The Symmetry menu changes a copy, kept if it changed (the
-        // palette's switch changes the options directly).
-        let symmetry_before = self.viewport.options().symmetry;
+        // The Symmetry menu changes a copy of the selected objects' mirror
+        // settings (or those kept for the next mirror), kept if it
+        // changed.
+        let symmetry_before = self
+            .selected_mirror()
+            .map_or(self.viewport.options().symmetry, crate::Symmetry::of);
         let mut symmetry = symmetry_before;
         let units = self.units;
         egui::Panel::top("command_palette")
@@ -961,10 +949,6 @@ impl Workbench {
                             self.toggle_symmetry();
                             return;
                         }
-                        PaletteCommand::WeldMiddle => {
-                            self.weld_middle_now();
-                            return;
-                        }
                         PaletteCommand::Undo => DocRequest::Undo,
                         PaletteCommand::Redo => DocRequest::Redo,
                         PaletteCommand::CreateGroup => {
@@ -977,7 +961,7 @@ impl Workbench {
                 }
             });
         if symmetry != symmetry_before {
-            self.viewport.options_mut().symmetry = symmetry;
+            self.change_symmetry(symmetry);
         }
         egui::Panel::bottom("status_bar")
             .frame(theme::status_bar_frame())
@@ -1277,108 +1261,6 @@ impl Workbench {
                 "Undo memory is full ({}): the oldest steps are now forgotten as you work. \
                  Settings → Undo sets the limit.",
                 self.undo_memory.short()
-            ));
-        }
-    }
-
-    /// The mirror planes edits to `id`'s shape are made across: with
-    /// symmetry on, in the Points, Edges and Polygons modes
-    /// ([decision 0059](../../../docs/decisions/0059-symmetry-for-every-edit.md)).
-    pub(crate) fn edit_mirror(&self, id: scene::ObjectId) -> Option<mesh::symmetry::Mirror> {
-        components::kind_for(self.mode)?;
-        self.mirror_for(id)
-    }
-
-    /// With symmetry on, the mirror planes for `id`'s shape, in its own
-    /// space: across its own axes, through the chosen centre moved by the
-    /// offset.
-    pub(crate) fn mirror_for(&self, id: scene::ObjectId) -> Option<mesh::symmetry::Mirror> {
-        self.viewport.options().symmetry.active_axes()?;
-        self.mirror_planes(id)
-    }
-
-    /// The mirror planes the Symmetry menu describes for `id`'s shape,
-    /// whether symmetry is on or not (for Weld the middle now). `None`
-    /// with no axis chosen.
-    pub(crate) fn mirror_planes(&self, id: scene::ObjectId) -> Option<mesh::symmetry::Mirror> {
-        let symmetry = self.viewport.options().symmetry;
-        let axes = symmetry.axes;
-        if !axes.contains(&true) {
-            return None;
-        }
-        let offset = glam::Vec3::from_array(symmetry.offset);
-        let offset = if offset.is_finite() {
-            offset
-        } else {
-            glam::Vec3::ZERO
-        };
-        let scene = self.document.scene();
-        let centre = match symmetry.centre {
-            crate::SymmetryCentre::Pivot => offset,
-            crate::SymmetryCentre::Middle => {
-                let middle = scene
-                    .evaluated(id)
-                    .and_then(|shape| shape.mesh.bounds())
-                    .map_or(glam::Vec3::ZERO, |b| b.centre());
-                middle + offset
-            }
-            crate::SymmetryCentre::World => {
-                let inverse = scene.shape_matrix(id).inverse();
-                if inverse.is_finite() {
-                    inverse.transform_point3(offset)
-                } else {
-                    glam::Vec3::ZERO
-                }
-            }
-        };
-        Some(mesh::symmetry::Mirror {
-            axes,
-            centre,
-            clip: symmetry.clip,
-        })
-    }
-
-    /// The Symmetry menu's Weld the middle now: joins the halves of each
-    /// selected shape at the middle, once, as one undo step (decision
-    /// 0059). Points within the weld distance go onto the middle, and
-    /// points meeting there become one.
-    pub(crate) fn weld_middle_now(&mut self) {
-        let distance = self.viewport.options().symmetry.weld_distance;
-        let distance = if distance.is_finite() {
-            distance.max(0.0)
-        } else {
-            0.0
-        };
-        let mut ops = Vec::new();
-        let mut welded = 0;
-        for id in self.document.selection() {
-            let Some(shape) = self.document.scene().evaluated(id) else {
-                continue;
-            };
-            let Some(mirror) = self.mirror_planes(id) else {
-                self.note =
-                    Some("Weld the middle: pick X, Y or Z in the Symmetry menu first.".into());
-                return;
-            };
-            // Tried on a copy, so nothing is recorded when nothing joins.
-            let mut trial = (*shape.mesh).clone();
-            let n = mesh::symmetry::weld_middle(&mut trial, &mirror, distance);
-            if n > 0 {
-                welded += n;
-                ops.push((id, scene::Operation::WeldMiddle { mirror, distance }));
-            }
-        }
-        if ops.is_empty() {
-            self.note = Some(format!(
-                "Weld the middle: nothing within {} of the middle to join.",
-                self.units.format(distance)
-            ));
-            return;
-        }
-        if self.record_each("Weld the middle", ops) {
-            self.note = Some(format!(
-                "Welded the middle ({welded} point{}). Ctrl + Z takes it back.",
-                if welded == 1 { "" } else { "s" }
             ));
         }
     }

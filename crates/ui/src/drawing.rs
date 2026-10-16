@@ -18,8 +18,13 @@ pub struct DrawItem {
     /// Its shape, in its own space.
     pub mesh: Arc<Mesh>,
     /// What of it is shown: the same shape, or a copy without its hidden
-    /// polygons (decision 0055). What is drawn and picked.
+    /// polygons (decision 0055). What is picked and edited.
     pub shown: Arc<Mesh>,
+    /// What is drawn: `shown`, with the object's live mirror's copies
+    /// added (decision 0088), or `shown` itself without a mirror. The
+    /// copies come after `shown`'s own points and polygons, which keep
+    /// their ids.
+    pub drawn: Arc<Mesh>,
     /// Where it is in the world.
     pub transform: Mat4,
     /// Whether it is selected.
@@ -43,6 +48,50 @@ pub struct SceneDrawing {
     pub editing: bool,
     /// Whether the edited objects show every point (the Points mode).
     pub points: bool,
+    /// The live mirrors' planes to show (decision 0088), each once.
+    pub mirrors: Vec<MirrorPlane>,
+}
+
+/// A live mirror's plane, shown as a faint red sheet with a clearer line
+/// where it meets the ground (decision 0088).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct MirrorPlane {
+    /// Which world axis it mirrors across: 0 X, 1 Y, 2 Z. The plane is
+    /// square to that axis.
+    pub axis: usize,
+    /// Where it crosses that axis, in centimetres.
+    pub at: f32,
+    /// The box around the objects mirrored across it (with their twins),
+    /// so the sheet is drawn around them.
+    pub around: Bounds,
+}
+
+impl MirrorPlane {
+    /// The sheet's four corners in the world, a little larger than the
+    /// objects around it (at least 2 m across).
+    pub fn corners(&self) -> [Vec3; 4] {
+        let (u, v) = match self.axis {
+            0 => (1, 2),
+            1 => (0, 2),
+            _ => (0, 1),
+        };
+        let centre = self.around.centre();
+        let size = self.around.max - self.around.min;
+        let half = |a: usize| (size[a] * 0.65).max(100.0);
+        let corner = |su: f32, sv: f32| {
+            let mut p = Vec3::ZERO;
+            p[self.axis] = self.at;
+            p[u] = centre[u] + su * half(u);
+            p[v] = centre[v] + sv * half(v);
+            p
+        };
+        [
+            corner(-1.0, -1.0),
+            corner(1.0, -1.0),
+            corner(1.0, 1.0),
+            corner(-1.0, 1.0),
+        ]
+    }
 }
 
 /// How an element in the overlay is drawn.
@@ -192,14 +241,40 @@ impl DrawingCache {
             } else {
                 Vec::new()
             };
+            let shown = hidden.shown(id, &shape.mesh);
+            let drawn = scene
+                .with_mirror(id, &shown)
+                .map_or_else(|| Arc::clone(&shown), Arc::new);
             items.push(DrawItem {
                 id,
-                shown: hidden.shown(id, &shape.mesh),
+                drawn,
+                shown,
                 mesh: shape.mesh,
                 transform: scene.shape_matrix(id),
                 selected: document.is_selected(id),
                 colors,
             });
+        }
+        // Each live mirror's planes, once, around the objects that use
+        // them.
+        let mut mirrors: Vec<MirrorPlane> = Vec::new();
+        for item in &items {
+            let Some(mirror) = scene.object(item.id).and_then(|o| o.mirror) else {
+                continue;
+            };
+            let Some(around) = scene.bounds_of([item.id]) else {
+                continue;
+            };
+            for axis in (0..3).filter(|a| mirror.axes[*a]) {
+                let at = mirror.centre[axis];
+                match mirrors
+                    .iter_mut()
+                    .find(|m| m.axis == axis && (m.at - at).abs() < 1e-3)
+                {
+                    Some(plane) => plane.around = plane.around.union(around),
+                    None => mirrors.push(MirrorPlane { axis, at, around }),
+                }
+            }
         }
         let version = self.summary.drawing.version + 1;
         self.summary = SceneSummary {
@@ -208,6 +283,7 @@ impl DrawingCache {
                 items,
                 editing: editing.is_some(),
                 points: editing == Some(ElementKind::Points),
+                mirrors,
             }),
             all: scene.bounds(),
             selected: scene.bounds_of(key.1.iter().copied()),

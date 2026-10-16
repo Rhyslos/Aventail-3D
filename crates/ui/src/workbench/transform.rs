@@ -24,6 +24,10 @@ pub(super) struct CoordinatesSession {
 }
 use egui::{Modifiers, Ui};
 
+/// The undo key changes from the Symmetry menu share, so they merge into
+/// one step.
+const MIRROR_SETTINGS_KEY: u64 = (1 << 59) | 0x6d69_7272;
+
 impl Workbench {
     /// The tool in use.
     pub fn tool(&self) -> Tool {
@@ -119,35 +123,104 @@ impl Workbench {
         });
     }
 
-    /// Turns symmetry on or off (decision 0054).
+    /// The selected objects, and the objects inside them, that a live
+    /// mirror can go on (those with a shape).
+    fn mirrorable(&self) -> Vec<scene::ObjectId> {
+        let scene = self.document.scene();
+        let mut out = Vec::new();
+        for id in self.document.selection() {
+            for inner in scene.subtree(id) {
+                if !out.contains(&inner) && scene.object(inner).is_some_and(|o| o.kind.has_shape())
+                {
+                    out.push(inner);
+                }
+            }
+        }
+        out
+    }
+
+    /// The live mirror of the first selected object that has one
+    /// (decision 0088).
+    pub(crate) fn selected_mirror(&self) -> Option<scene::LiveMirror> {
+        let scene = self.document.scene();
+        self.mirrorable()
+            .into_iter()
+            .find_map(|id| scene.object(id).and_then(|o| o.mirror))
+    }
+
+    /// The Symmetry button (decision 0088): gives the selected objects a
+    /// live mirror with the Symmetry menu's settings, or takes theirs
+    /// away if any has one.
     pub(crate) fn toggle_symmetry(&mut self) {
-        let symmetry = &mut self.viewport.options_mut().symmetry;
-        symmetry.on = !symmetry.on;
-        let axes = symmetry.axes;
-        self.note = Some(if !symmetry.on {
-            "Symmetry off.".into()
-        } else if axes.contains(&true) {
+        let ids = self.mirrorable();
+        if ids.is_empty() {
+            self.note = Some("Symmetry: select the objects to mirror first.".into());
+            return;
+        }
+        let settings = self.viewport.options().symmetry;
+        let mirror = if self.selected_mirror().is_some() {
+            None
+        } else {
+            match settings.mirror() {
+                Some(mirror) => Some(mirror),
+                None => {
+                    self.note = Some(
+                        "Symmetry: pick X, Y or Z in its menu first (the arrow beside the \
+                         Symmetry button)."
+                            .into(),
+                    );
+                    return;
+                }
+            }
+        };
+        let on = mirror.is_some();
+        if let Err(why) = self.document.execute(Command::SetMirror { ids, mirror }) {
+            self.note = Some(format!("Couldn't change the mirror: {why}."));
+            return;
+        }
+        self.note = Some(if on {
             let names: Vec<&str> = ["X", "Y", "Z"]
                 .into_iter()
-                .zip(axes)
+                .zip(settings.axes)
                 .filter(|(_, on)| *on)
                 .map(|(name, _)| name)
                 .collect();
             format!(
-                "Symmetry on, across {}: moving points moves their mirrors too.",
+                "Symmetry on, across {}: the other side follows every edit and every move.",
                 names.join(" and ")
             )
         } else {
-            "Symmetry on, but no axis is chosen: pick X, Y or Z in its menu (the arrow beside the Symmetry button).".into()
+            "Symmetry off: the mirrored side is gone (Ctrl + Z brings it back).".into()
         });
     }
 
-    /// `target` with symmetry, when it is on (decision 0054).
-    pub(super) fn with_symmetry(&self, target: Target, drawing: &SceneDrawing) -> Target {
-        if self.viewport.options().symmetry.active_axes().is_none() {
-            return target;
+    /// The Symmetry menu changed its settings: they are kept for the next
+    /// mirror, and the selected objects' mirrors change to match, as one
+    /// undo step while the menu is used.
+    pub(crate) fn change_symmetry(&mut self, settings: crate::Symmetry) {
+        self.viewport.options_mut().symmetry = settings;
+        let Some(mirror) = settings.mirror() else {
+            return;
+        };
+        let scene = self.document.scene();
+        let ids: Vec<scene::ObjectId> = self
+            .mirrorable()
+            .into_iter()
+            .filter(|id| scene.object(*id).is_some_and(|o| o.mirror.is_some()))
+            .collect();
+        if ids.is_empty() {
+            return;
         }
-        target.mirrored(drawing, |id| self.mirror_for(id))
+        if let Err(why) = self.document.execute_labelled(
+            Command::SetMirror {
+                ids,
+                mirror: Some(mirror),
+            },
+            "Change the mirror",
+            Some(MIRROR_SETTINGS_KEY),
+        ) {
+            self.note = Some(format!("Couldn't change the mirror: {why}."));
+        }
     }
 
     /// `W`, `R`, `S`, `T` pick a tool; Shift+`X`, `Y`, `Z` lock axes; `L`
@@ -253,7 +326,7 @@ impl Workbench {
             self.toggle_snapping();
             ui.close();
         }
-        let symmetry = self.viewport.options().symmetry.on;
+        let symmetry = self.selected_mirror().is_some();
         if ui
             .add(egui::Button::selectable(symmetry, "Symmetry"))
             .on_hover_text(crate::palette::SYMMETRY_HELP)
@@ -310,7 +383,7 @@ impl Workbench {
                             );
                             target.sliding(drawing)
                         } else {
-                            self.with_symmetry(target, drawing)
+                            target
                         };
                         self.sessions += 1;
                         self.gizmo_session = Some(Session::new(target, self.sessions));
@@ -385,7 +458,6 @@ impl Workbench {
             if fresh {
                 self.coordinates_session =
                     Target::of(&self.document, drawing, self.mode, Axes::World).map(|target| {
-                        let target = self.with_symmetry(target, drawing);
                         self.sessions += 1;
                         let start = CoordinatesView::of(Some(&target), &self.document);
                         CoordinatesSession {
