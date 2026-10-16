@@ -9,6 +9,7 @@
 //! one below or deleted with its edits. Every change is an undoable
 //! command ([`scene::Command::AddLayer`], [`scene::Command::ChangeLayer`]).
 
+use crate::attributes::OpenedEdit;
 use crate::icons::{self, Icon};
 use crate::objects::DocRequest;
 use crate::palette::{ButtonState, icon_button};
@@ -33,8 +34,18 @@ pub(crate) const LAYER_MENU: &str = "Layer";
 /// The mark on the layer new edits go into.
 pub(crate) const NEW_EDITS_MARK: &str = "new edits";
 
+/// The mark on an edit kept editable (pinned).
+pub(crate) const KEPT_MARK: &str = "kept";
+/// The mark on an edit that can't find some of its parts.
+pub(crate) const MISSING_MARK: &str = "parts missing";
+/// The mark on an edit skipped as too big.
+pub(crate) const SKIPPED_MARK: &str = "skipped";
+
 const ROW_HEIGHT: f32 = 22.0;
-const EDIT_HEIGHT: f32 = 18.0;
+const EDIT_HEIGHT: f32 = 20.0;
+/// Where an edit's eye and name sit, from the row's left.
+const EDIT_EYE_X: f32 = 32.0;
+const EDIT_TEXT_INDENT: f32 = 46.0;
 
 /// What was picked on the modifiers palette.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -263,7 +274,13 @@ impl LayersPanel {
 
     /// The panel: the selected object's layers, top first, each with its
     /// edits.
-    pub(crate) fn show(&mut self, ui: &mut Ui, doc: &Document, out: &mut Vec<DocRequest>) {
+    pub(crate) fn show(
+        &mut self,
+        ui: &mut Ui,
+        doc: &Document,
+        opened: &mut Option<OpenedEdit>,
+        out: &mut Vec<DocRequest>,
+    ) {
         let id = match shown_object(doc) {
             Ok(id) => id,
             Err(why) => {
@@ -307,7 +324,7 @@ impl LayersPanel {
             .show(ui, |ui| {
                 for index in (0..layers.len()).rev() {
                     self.layer_row(ui, doc, id, index, recording == Some(index), out);
-                    self.edit_rows(ui, &layers[index]);
+                    self.edit_rows(ui, doc, id, index, &layers[index], opened, out);
                     ui.add_space(4.0);
                 }
                 if recording.is_none() {
@@ -320,7 +337,7 @@ impl LayersPanel {
                     );
                 }
                 ui.label(
-                    RichText::new("Right-click a layer to rename, move, merge or delete it.")
+                    RichText::new("Click an edit to open it in the Attributes panel. Right-click a layer or an edit for more.")
                         .small()
                         .color(theme::TEXT_WEAK),
                 );
@@ -487,36 +504,176 @@ impl LayersPanel {
         });
     }
 
-    /// A layer's edits, newest first, as the Edit menu names them.
-    fn edit_rows(&self, ui: &mut Ui, layer: &scene::Layer) {
-        let line = |ui: &mut Ui, text: &str, color: egui::Color32| {
+    /// A layer's edits, newest first, as the Edit menu names them (the
+    /// edit list, decision 0092). Click one to open it in the Attributes
+    /// panel; its eye switches it off; right-click for the rest.
+    #[allow(clippy::too_many_arguments)]
+    fn edit_rows(
+        &mut self,
+        ui: &mut Ui,
+        doc: &Document,
+        id: ObjectId,
+        index: usize,
+        layer: &scene::Layer,
+        opened: &mut Option<OpenedEdit>,
+        out: &mut Vec<DocRequest>,
+    ) {
+        if layer.entries.is_empty() {
             let (rect, response) =
                 ui.allocate_exact_size(vec2(ui.available_width(), EDIT_HEIGHT), Sense::hover());
-            response.widget_info(|| WidgetInfo::labeled(WidgetType::Label, true, text));
+            response.widget_info(|| WidgetInfo::labeled(WidgetType::Label, true, "No edits"));
             ui.painter_at(rect).text(
-                pos2(rect.left() + 28.0, rect.center().y),
+                pos2(rect.left() + EDIT_TEXT_INDENT, rect.center().y),
                 Align2::LEFT_CENTER,
-                text,
+                "No edits",
+                FontId::proportional(12.0),
+                theme::TEXT_WEAK.gamma_multiply(0.7),
+            );
+            return;
+        }
+        let warnings = doc
+            .scene()
+            .evaluated(id)
+            .map(|e| e.warnings)
+            .unwrap_or_default();
+        for (place, entry) in layer.entries.iter().enumerate().rev() {
+            let text = entry.operation.describe();
+            let (rect, _) =
+                ui.allocate_exact_size(vec2(ui.available_width(), EDIT_HEIGHT), Sense::hover());
+            let response = ui.interact(
+                rect,
+                ui.id().with(("edit row", id, entry.id)),
+                Sense::click(),
+            );
+            let is_open = opened.is_some_and(|o| o.is(doc, id, entry.id));
+            response.widget_info(|| {
+                WidgetInfo::selected(WidgetType::SelectableLabel, true, is_open, &text)
+            });
+            let painter = ui.painter_at(rect);
+            let accent = theme::accent(ui.ctx()).colors();
+            if is_open {
+                painter.rect_filled(rect, 3.0, accent.fill.gamma_multiply(0.55));
+            } else if response.hovered() {
+                painter.rect_filled(rect, 3.0, theme::HOVER.gamma_multiply(0.5));
+            }
+
+            // Its eye.
+            let eye = Rect::from_center_size(
+                pos2(rect.left() + EDIT_EYE_X, rect.center().y),
+                vec2(16.0, 16.0),
+            );
+            let eye_response = ui.interact(
+                eye,
+                ui.id().with(("edit eye", id, entry.id)),
+                Sense::click(),
+            );
+            let eye_label = if entry.enabled {
+                "Switch off"
+            } else {
+                "Switch on"
+            };
+            eye_response.widget_info(|| {
+                WidgetInfo::labeled(WidgetType::Button, true, format!("{eye_label} {text}"))
+            });
+            let eye_color = if eye_response.hovered() {
+                theme::TEXT_STRONG
+            } else if entry.enabled && layer.enabled {
+                theme::TEXT_WEAK.gamma_multiply(0.85)
+            } else {
+                theme::TEXT_WEAK.gamma_multiply(0.45)
+            };
+            icons::paint(
+                &painter,
+                Rect::from_center_size(eye.center(), vec2(12.0, 12.0)),
+                if entry.enabled {
+                    Icon::Shown
+                } else {
+                    Icon::Hidden
+                },
+                eye_color,
+            );
+            if eye_response
+                .on_hover_text(format!(
+                    "{eye_label} this edit: see the shape {} it",
+                    if entry.enabled { "without" } else { "with" }
+                ))
+                .clicked()
+            {
+                out.push(DocRequest::Run(Command::SetEditEnabled {
+                    id,
+                    edit: entry.id,
+                    enabled: !entry.enabled,
+                }));
+            }
+
+            // Marks on the right: kept editable, and a real problem.
+            let mut right = rect.right() - 6.0;
+            let mut mark = |word: &str, color: egui::Color32, help: String, key: &str| {
+                let at = painter.text(
+                    pos2(right, rect.center().y),
+                    Align2::RIGHT_CENTER,
+                    word,
+                    FontId::proportional(11.0),
+                    color,
+                );
+                let hover = ui.interact(at, ui.id().with((key, id, entry.id)), Sense::hover());
+                hover.widget_info(|| WidgetInfo::labeled(WidgetType::Label, true, word));
+                hover.on_hover_text(help);
+                right = at.left() - 8.0;
+            };
+            if let Some(problem) = crate::attributes::edit_warning(&warnings, index, place) {
+                let word = if problem.starts_with("Skipped") {
+                    SKIPPED_MARK
+                } else {
+                    MISSING_MARK
+                };
+                mark(word, theme::WARNING, problem, "edit problem");
+            }
+            if entry.pinned {
+                mark(
+                    KEPT_MARK,
+                    accent.light,
+                    "Kept editable: Freeze never bakes it".into(),
+                    "edit kept",
+                );
+            }
+
+            let mut color = if is_open {
+                theme::TEXT_STRONG
+            } else {
+                theme::TEXT
+            };
+            if !entry.enabled || !layer.enabled {
+                color = theme::TEXT_WEAK.gamma_multiply(0.6);
+            }
+            let shown = if entry.enabled {
+                text.clone()
+            } else {
+                format!("{text} (off)")
+            };
+            let text_rect = Rect::from_min_max(
+                pos2(rect.left() + EDIT_TEXT_INDENT, rect.top()),
+                pos2(
+                    right.max(rect.left() + EDIT_TEXT_INDENT + 20.0),
+                    rect.bottom(),
+                ),
+            );
+            ui.painter_at(text_rect).text(
+                pos2(text_rect.left(), rect.center().y),
+                Align2::LEFT_CENTER,
+                shown,
                 FontId::proportional(12.0),
                 color,
             );
-        };
-        if layer.entries.is_empty() {
-            line(ui, "No edits", theme::TEXT_WEAK.gamma_multiply(0.7));
-            return;
-        }
-        for entry in layer.entries.iter().rev() {
-            let mut text = entry.operation.describe();
-            let mut color = if layer.enabled {
-                theme::TEXT_WEAK
-            } else {
-                theme::TEXT_WEAK.gamma_multiply(0.6)
-            };
-            if !entry.enabled {
-                text.push_str(" (off)");
-                color = color.gamma_multiply(0.7);
+
+            if response.clicked() || response.secondary_clicked() {
+                *opened = Some(OpenedEdit::new(doc, id, entry.id));
+                self.chosen = Some((id, index));
             }
-            line(ui, &text, color);
+            response.context_menu(|ui| {
+                ui.set_min_width(crate::dialog::MENU_WIDTH);
+                edit_entries(ui, doc, id, entry, opened, out);
+            });
         }
     }
 
@@ -558,5 +715,96 @@ impl LayersPanel {
             }));
             self.renaming = None;
         }
+    }
+}
+
+/// The entries for one edit, in its right-click menu (decision 0092).
+fn edit_entries(
+    ui: &mut Ui,
+    doc: &Document,
+    id: ObjectId,
+    entry: &scene::Entry,
+    opened: &mut Option<OpenedEdit>,
+    out: &mut Vec<DocRequest>,
+) {
+    let edit = entry.id;
+    if ui
+        .button("Open in Attributes")
+        .on_hover_text("Show this edit's settings in the Attributes panel, to change them")
+        .clicked()
+    {
+        *opened = Some(OpenedEdit::new(doc, id, edit));
+        ui.close();
+    }
+    ui.separator();
+    let word = if entry.enabled {
+        "Switch off"
+    } else {
+        "Switch on"
+    };
+    if ui
+        .button(word)
+        .on_hover_text("Off: the shape is made as if this edit wasn't there")
+        .clicked()
+    {
+        out.push(DocRequest::Run(Command::SetEditEnabled {
+            id,
+            edit,
+            enabled: !entry.enabled,
+        }));
+        ui.close();
+    }
+    let word = if entry.pinned {
+        "Stop keeping editable"
+    } else {
+        "Keep editable"
+    };
+    if ui
+        .button(word)
+        .on_hover_text("A kept edit stays changeable: Freeze never bakes it")
+        .clicked()
+    {
+        out.push(DocRequest::Run(Command::SetEditPinned {
+            id,
+            edit,
+            pinned: !entry.pinned,
+        }));
+        ui.close();
+    }
+    ui.separator();
+    let problem = doc
+        .scene()
+        .object(id)
+        .and_then(|o| o.stack.freeze_problem(edit));
+    let help = problem.map_or_else(
+        || {
+            "Bake the shape's settings and every edit up to this one into the shape: the \
+             shape stays the same, big models stay quick, and those edits can't be changed \
+             any more"
+                .to_string()
+        },
+        |why| format!("Can't freeze: {why}"),
+    );
+    if ui
+        .add_enabled(
+            problem.is_none(),
+            egui::Button::new(crate::attributes::FREEZE_LABEL),
+        )
+        .on_hover_text(&help)
+        .on_disabled_hover_text(&help)
+        .clicked()
+    {
+        out.push(DocRequest::Run(Command::Freeze { id, edit }));
+        *opened = None;
+        ui.close();
+    }
+    if ui
+        .button(crate::attributes::DELETE_EDIT_LABEL)
+        .on_hover_text("Take this edit out; the edits after it are made again without it")
+        .clicked()
+    {
+        out.push(DocRequest::Run(Command::DeleteEdit { id, edit }));
+        *opened = None;
+        ui.close();
     }
 }

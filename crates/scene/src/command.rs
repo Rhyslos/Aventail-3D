@@ -1,7 +1,7 @@
 //! Commands: every change a user can make to the scene, each one undoable.
 
 use crate::object::{Object, ObjectId, ObjectKind, Transform};
-use crate::stack::{EditId, Entry, Layer, LayerChange, Operation};
+use crate::stack::{EditId, Entry, Layer, LayerChange, Operation, Stack};
 use crate::tree::{Edit, Place, Scene, SceneError};
 use mesh::Primitive;
 use std::sync::Arc;
@@ -155,6 +155,27 @@ pub enum Command {
         /// What to change.
         change: crate::LayerChange,
     },
+    /// Removes recorded edit `edit` from object `id` (decision 0092).
+    /// The edits after it are made again without it.
+    DeleteEdit {
+        /// The object.
+        id: ObjectId,
+        /// The edit.
+        edit: EditId,
+    },
+    /// Freezes object `id`'s edits up to and including `edit` (decision
+    /// 0092): the base and those edits are baked into a plain mesh, which
+    /// becomes the base, and they are removed, so later edits apply to it
+    /// as before and the shape doesn't change. The layers below `edit`'s
+    /// go (their edits are all frozen); its own layer keeps the edits after
+    /// it. Refused if any of them is kept editable (pinned) or switched
+    /// off, or a layer they are in is off.
+    Freeze {
+        /// The object.
+        id: ObjectId,
+        /// The last edit to freeze.
+        edit: EditId,
+    },
     /// Gives objects with a shape a live mirror (decision 0088), changes
     /// it, or takes it away (`None`). Groups are left alone; a mirror
     /// with no axis or numbers out of range is refused.
@@ -273,6 +294,22 @@ impl Command {
             Self::SetMaterials { .. } => "Change materials".to_string(),
             Self::ApplyTransforms { parts, .. } => format!("Apply {}", parts.name()),
             Self::AddLayer(_) => "Add edit layer".to_string(),
+            Self::DeleteEdit { id, edit } => scene
+                .object(*id)
+                .and_then(|o| o.stack.entry(*edit))
+                .map_or_else(
+                    || "Delete edit".to_string(),
+                    |(_, _, e)| format!("Delete {}", e.operation.describe().to_lowercase()),
+                ),
+            Self::Freeze { id, edit } => {
+                let n = scene
+                    .object(*id)
+                    .map_or(0, |o| crate::stack::frozen_count(&o.stack, *edit));
+                match n {
+                    1 => "Freeze 1 edit".to_string(),
+                    n => format!("Freeze {n} edits"),
+                }
+            }
             Self::ChangeLayer { change, .. } => change.describe().to_string(),
             Self::SetMirror { mirror: None, .. } => "Mirror off".to_string(),
             Self::SetMirror { .. } => "Mirror".to_string(),
@@ -398,6 +435,54 @@ impl Run<'_> {
             return Ok(());
         }
         self.swap_entry(id, layer, index, before, after)
+    }
+
+    /// Freezes `id`'s edits up to and including `edit` (decision 0092).
+    fn freeze(&mut self, id: ObjectId, edit: EditId) -> Result<(), SceneError> {
+        let object = self.scene.object(id).ok_or(SceneError::UnknownObject(id))?;
+        if matches!(object.kind, ObjectKind::Instance(_)) {
+            return Err(SceneError::Instance);
+        }
+        if !object.kind.has_shape() {
+            return Err(SceneError::NoShape);
+        }
+        let (layer, index, _) = object
+            .stack
+            .entry(edit)
+            .ok_or(SceneError::History("that edit no longer exists"))?;
+        let layers = object.stack.layers().to_vec();
+        let mut frozen: Vec<Layer> = layers[..layer].to_vec();
+        let mut last = layers[layer].clone();
+        last.entries.truncate(index + 1);
+        frozen.push(last);
+        if let Some(problem) = object.stack.freeze_problem(edit) {
+            return Err(SceneError::History(problem));
+        }
+        let shape = crate::stack::evaluate_once(&object.kind, &Stack::from_layers(frozen))
+            .ok_or(SceneError::NoShape)?;
+        let before = object.kind.clone();
+        // The frozen edits of `edit`'s own layer, first to last...
+        for entry in layers[layer].entries[..=index].iter().cloned() {
+            self.edit(Edit::RemoveEntry {
+                id,
+                layer,
+                index: 0,
+                entry,
+            })?;
+        }
+        // ...then the layers below it, now all frozen.
+        for removed in layers[..layer].iter().cloned() {
+            self.edit(Edit::RemoveLayer {
+                id,
+                index: 0,
+                layer: removed,
+            })?;
+        }
+        self.edit(Edit::SetKind {
+            id,
+            before,
+            after: ObjectKind::Mesh(shape.mesh),
+        })
     }
 
     /// Changes layer `index` of object `id` (decision 0091). A change
@@ -859,6 +944,28 @@ impl Run<'_> {
                         layer,
                     })?;
                 }
+                Ok(None)
+            }
+            Command::DeleteEdit { id, edit } => {
+                let object = self
+                    .scene
+                    .object(*id)
+                    .ok_or(SceneError::UnknownObject(*id))?;
+                let (layer, index, entry) = object
+                    .stack
+                    .entry(*edit)
+                    .ok_or(SceneError::History("that edit no longer exists"))?;
+                let entry = entry.clone();
+                self.edit(Edit::RemoveEntry {
+                    id: *id,
+                    layer,
+                    index,
+                    entry,
+                })?;
+                Ok(None)
+            }
+            Command::Freeze { id, edit } => {
+                self.freeze(*id, *edit)?;
                 Ok(None)
             }
             Command::ChangeLayer { id, index, change } => {

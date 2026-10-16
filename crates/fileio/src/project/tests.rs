@@ -3593,3 +3593,27 @@ fn edit_layers_keep_their_names_order_and_switches() {
         back.scene().evaluated(id).unwrap().mesh
     );
 }
+
+#[test]
+fn a_frozen_shape_and_the_edits_after_it_survive_saving() {
+    // Decision 0092: freezing makes the base a plain mesh, which files
+    // have always stored; later edits keep applying to it.
+    let mut doc = rich_document();
+    let found = doc.scene().walk().into_iter().find_map(|(id, _)| {
+        let stack = &doc.scene().object(id)?.stack;
+        let first = stack.layers().iter().find_map(|l| l.entries.first())?;
+        (stack.operation_count() > 1 && stack.freeze_problem(first.id).is_none())
+            .then_some((id, first.id))
+    });
+    let (id, edit) = found.expect("the rich document has an object with two edits");
+    let before = doc.scene().evaluated(id).unwrap().mesh;
+    doc.execute(scene::Command::Freeze { id, edit }).unwrap();
+    let back = from_bytes(&to_bytes(&doc).unwrap()).unwrap();
+    let after = back.scene().evaluated(id).unwrap().mesh;
+    let points = |m: &scene::Mesh| m.vertices().map(|(_, p)| p).collect::<Vec<_>>();
+    assert_eq!(points(&after), points(&before));
+    assert!(matches!(
+        back.scene().object(id).unwrap().kind,
+        scene::ObjectKind::Mesh(_)
+    ));
+}

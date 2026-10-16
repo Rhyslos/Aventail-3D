@@ -35,13 +35,15 @@ pub use object::{
 };
 pub use stack::{
     EDITS_LAYER, EditId, EditSettings, Entry, EvalContext, Evaluated, Layer, LayerChange,
-    MAX_SHAPE_POLYGONS, Operation, Stack, StackWarning,
+    MAX_SHAPE_POLYGONS, Operation, Stack, StackWarning, frozen_count,
 };
 pub use tree::{Place, Scene, SceneError, stretch_of};
 pub use units::{ExportTarget, Units};
 
 #[cfg(test)]
 mod apply_tests;
+#[cfg(test)]
+mod edit_list_tests;
 #[cfg(test)]
 mod history_tests;
 #[cfg(test)]

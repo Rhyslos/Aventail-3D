@@ -22,7 +22,7 @@ Every change you make to a shape's points, edges and polygons (an extrude, a bev
    - **double-click** its name to rename it;
    - **right-click** it (or click it, then open the panel's **Layer** menu) to **Rename**, **Switch off**, **Move up**, **Move down**, **Merge down** or **Delete layer**.
 
-The panel lists the selected object's layers with the top one first, as they stack: the bottom layer's edits are made first, and each layer works on the shape the layers below it made. Under each layer are its edits, newest first. Every change to a layer is one undo step (**Ctrl + Z**).
+The panel lists the selected object's layers with the top one first, as they stack: the bottom layer's edits are made first, and each layer works on the shape the layers below it made. Under each layer are its edits, newest first: click one to change it (see [The edit list](edit-list.md)). Every change to a layer is one undo step (**Ctrl + Z**).
 
 ## Settings
 
@@ -56,6 +56,7 @@ There are no keys for layers yet.
 ## Related
 
 - [Concepts: base and edits, edit layer](concepts.md#objects-and-scenes)
+- [The edit list](edit-list.md): open, change, switch off, keep, freeze or delete any edit
 - [The Attributes panel](attributes.md): the Last edit section changes the newest edit
 - [The Objects panel](objects.md)
 - [Interface tour](interface-tour.md)

@@ -36,6 +36,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Hard and soft edges, and normals: crisp corners, smooth curves](hard-and-soft-edges.md)
 - [Split off and join: polygons into an object of their own, objects into one](split-and-join.md)
 - [Edit layers: keep sets of edits apart, switch them off, move, merge and delete them](edit-layers.md)
+- [The edit list: change, switch off, keep, freeze or delete any edit you've made](edit-list.md)
 - [Heavy shapes: millions of polygons, and the heavy test shape](heavy-shapes.md)
 - *More pages are added here as tools are built.*
 

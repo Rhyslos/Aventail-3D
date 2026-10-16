@@ -1964,7 +1964,14 @@ impl TabViewer for PanelViewer<'_> {
                         .show(ui, self.document, *self.units, self.requests);
                 }
                 Panel::Objects => self.objects.show(ui, self.document, self.requests),
-                Panel::EditLayers => self.layers.show(ui, self.document, self.requests),
+                Panel::EditLayers => {
+                    self.layers.show(
+                        ui,
+                        self.document,
+                        &mut self.attributes.opened,
+                        self.requests,
+                    );
+                }
                 Panel::Coordinates => {
                     *self.coordinates_done =
                         crate::coordinates::show(ui, *self.units, &self.coordinates);

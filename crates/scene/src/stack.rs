@@ -1624,6 +1624,57 @@ impl Stack {
     }
 }
 
+impl Stack {
+    /// Why the edits up to `edit` can't be frozen (decision 0092), or
+    /// `None` if they can: one of them is kept editable or switched off,
+    /// or a layer they are in is off.
+    pub fn freeze_problem(&self, edit: EditId) -> Option<&'static str> {
+        let Some((layer, index, _)) = self.entry(edit) else {
+            return Some("that edit no longer exists");
+        };
+        for (l, each) in self.layers[..=layer].iter().enumerate() {
+            if !each.enabled {
+                return Some(
+                    "a layer with edits to freeze is switched off: switch it on or delete it first",
+                );
+            }
+            let upto = if l == layer {
+                index + 1
+            } else {
+                each.entries.len()
+            };
+            for e in &each.entries[..upto] {
+                if e.pinned {
+                    return Some(
+                        "an edit to freeze is kept editable: unpin it, or freeze only the edits \
+                         before it",
+                    );
+                }
+                if !e.enabled {
+                    return Some(
+                        "an edit to freeze is switched off: switch it on or delete it first",
+                    );
+                }
+            }
+        }
+        None
+    }
+}
+
+/// How many edits freezing up to `edit` would freeze: every edit in the
+/// layers below its layer, and those up to it in its own (0 if it isn't
+/// there).
+pub fn frozen_count(stack: &Stack, edit: EditId) -> usize {
+    stack.entry(edit).map_or(0, |(layer, index, _)| {
+        stack.layers[..layer]
+            .iter()
+            .map(|l| l.entries.len())
+            .sum::<usize>()
+            + index
+            + 1
+    })
+}
+
 /// A change to one edit layer (decision 0091), for
 /// [`crate::Command::ChangeLayer`].
 #[derive(Debug, Clone, PartialEq)]
@@ -1658,6 +1709,13 @@ impl LayerChange {
             Self::Delete => "Delete layer",
         }
     }
+}
+
+/// The shape `stack` gives on `base`, worked out from scratch (not
+/// cached): for freezing part of a stack (decision 0092). `None` for a
+/// kind without a shape.
+pub(crate) fn evaluate_once(base: &ObjectKind, stack: &Stack) -> Option<Evaluated> {
+    StackCache::default().evaluate(ObjectId::from_raw(0), base, stack, &EvalContext::default())
 }
 
 /// What evaluation can depend on besides the object itself. Empty for

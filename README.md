@@ -144,9 +144,9 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** a prop exports into Godot and Substance Painter and looks right (shape, hard edges, scale) with no fixes in other software. The full bake round trip comes with UVs (Phase 8).
 
-### Phase 6 · Workflow tools — 3 of 6
+### Phase 6 · Workflow tools — 4 of 6
 
-`███████░░░░░░` 50%
+`█████████░░░░` 67%
 
 <details>
 <summary>Milestones</summary>
@@ -154,7 +154,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Apply transforms: an object's rotation and scale (and position) made part of its shape while it looks the same
 - [x] Stable element names: edits keep their exact points, edges and polygons even when an earlier edit renumbers them
 - [x] Edit Layers: a stack of edit layers per object (inspired by 3ds Max's stack of edit modifiers), whose layers find their parts again when a layer below changes, added from a new modifiers palette between the viewport and the Attributes and Objects panels
-- [ ] Edit list: every recorded edit in order, each one changeable, pinned to stay changeable, frozen to keep big models quick, or switched off
+- [x] Edit list: every recorded edit in order, each one changeable, pinned to stay changeable, frozen to keep big models quick, or switched off
 - [ ] Snap to and align tools
 - [ ] Optional quad menu on right-click
 
@@ -223,6 +223,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-16 | The edit list: open and change any earlier edit in the Attributes panel, switch edits off, keep them editable, freeze old ones into the shape, delete one |
 | 2026-10-16 | Edit layers: add, switch off, rename, move, merge and delete layers of edits in a new Edit layers panel, with the first button of the modifiers palette beside the viewport |
 | 2026-10-16 | Stable element names (review A3): elements named after where they came from, kept by edits and saved; project files at format version 27 |
 | 2026-10-16 | Apply transforms: an object's rotation and scale (and position) back to none while it looks the same; project files at format version 26 |
