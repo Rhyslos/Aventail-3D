@@ -52,7 +52,7 @@ fn ends(edges: &[EdgeKey]) -> Vec<Vec<VertexId>> {
 }
 
 /// The operation marking (or clearing) `edges` on `mesh`.
-fn seams_op(mesh: &scene::Mesh, edges: Vec<EdgeKey>, seam: bool) -> Operation {
+pub(super) fn seams_op(mesh: &scene::Mesh, edges: Vec<EdgeKey>, seam: bool) -> Operation {
     let places = ends(&edges);
     Operation::SetSeams {
         edges,
@@ -168,7 +168,7 @@ impl Workbench {
 
     /// The edges of `mesh` shading hard, as shown: by angle while
     /// Automatic hard edges is on, otherwise those marked.
-    fn shown_hard_edges(&self, mesh: &scene::Mesh) -> Vec<EdgeKey> {
+    pub(super) fn shown_hard_edges(&self, mesh: &scene::Mesh) -> Vec<EdgeKey> {
         match self.viewport.options().auto_hard_angle() {
             Some(angle) => mesh::hardness::sharp_edges(mesh, angle),
             None => {

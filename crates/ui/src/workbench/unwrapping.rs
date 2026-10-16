@@ -64,7 +64,7 @@ pub(crate) const STRAIGHT_STRIPS_HELP: &str = "When on, a piece made only of squ
 
 /// Which texture a packed island goes on: the object's (when each gets
 /// its own) and the material's name (when each gets its own).
-type TextureGroup = (Option<ObjectId>, String);
+pub(crate) type TextureGroup = (Option<ObjectId>, String);
 
 /// The label of the packing padding field.
 pub(crate) const PADDING_LABEL: &str = "Padding";
@@ -125,7 +125,7 @@ fn targets(
 }
 
 /// Anchors for `faces` of `mesh`.
-fn anchors(mesh: &scene::Mesh, faces: &[FaceId]) -> Option<Anchors> {
+pub(super) fn anchors(mesh: &scene::Mesh, faces: &[FaceId]) -> Option<Anchors> {
     let places: Vec<Vec<VertexId>> = faces
         .iter()
         .filter_map(|f| mesh.face(*f).map(<[VertexId]>::to_vec))
@@ -162,7 +162,12 @@ impl Workbench {
     }
 
     /// The operation `tool` makes on `faces` of `mesh`.
-    fn uv_tool_op(&self, tool: UvTool, mesh: &scene::Mesh, faces: Vec<FaceId>) -> Operation {
+    pub(super) fn uv_tool_op(
+        &self,
+        tool: UvTool,
+        mesh: &scene::Mesh,
+        faces: Vec<FaceId>,
+    ) -> Operation {
         let anchors = anchors(mesh, &faces);
         match tool {
             UvTool::Unwrap => Operation::Unwrap {
@@ -293,6 +298,18 @@ impl Workbench {
             self.note = Some("Pack: select the objects first.".into());
             return;
         }
+        self.pack_shapes(shapes, false, None);
+    }
+
+    /// Packs `shapes`' pieces: all of each when `whole`, else those
+    /// holding the selection (whole objects without one); as part of the
+    /// undo step `key` if given, else as a step of its own.
+    pub(crate) fn pack_shapes(
+        &mut self,
+        shapes: Vec<(ObjectId, std::sync::Arc<scene::Mesh>)>,
+        whole: bool,
+        key: Option<u64>,
+    ) -> bool {
         let settings = self.uv_settings;
         let texture = self.document.scene().texture();
         let padding_px = settings.padding.min(MAX_PADDING);
@@ -311,27 +328,14 @@ impl Workbench {
             if !mesh::uvs::has_uvs(&mesh) {
                 continue;
             }
-            let faces = targets(&mesh, self.document.elements(id), self.mode);
-            let materials = self
-                .document
-                .scene()
-                .object(id)
-                .map(|o| o.materials.clone())
-                .unwrap_or_default();
+            let faces = if whole {
+                mesh.faces().map(|(f, _)| f).collect()
+            } else {
+                targets(&mesh, self.document.elements(id), self.mode)
+            };
             for island in uv::pack::islands_of(&mesh, &faces) {
-                let material = if settings.per_material {
-                    let slot = island
-                        .first()
-                        .map_or(0, |f| mesh::material::slot_of(&mesh, *f));
-                    materials
-                        .get(slot as usize)
-                        .map_or_else(String::new, |m| m.name.clone())
-                } else {
-                    String::new()
-                };
-                let object = settings.per_object.then_some(id);
                 groups
-                    .entry((object, material))
+                    .entry(self.texture_group(id, &mesh, &island))
                     .or_default()
                     .push((id, island));
             }
@@ -355,18 +359,46 @@ impl Workbench {
         }
         if by_object.is_empty() {
             self.note = Some("Pack: the selection has no UVs with any area to pack.".into());
-            return;
+            return false;
         }
         let ops: Vec<(ObjectId, Operation)> = by_object
             .into_iter()
             .map(|(id, islands)| (id, Operation::PackUvs { islands }))
             .collect();
         let label = counted("Pack", islands, "island");
-        if self.record_each(&label, ops) {
+        let key = key.unwrap_or_else(|| self.new_step_key());
+        let done = self.record_each_in(&label, ops, key);
+        if done {
             self.note = Some(format!(
                 "{label}, {padding_px} px apart. Ctrl + Z takes it back."
             ));
         }
+        done
+    }
+
+    /// Which texture each piece of `mesh` (object `id`) goes on, as Pack
+    /// groups them: the object's when each object gets its own, and its
+    /// material's name when each material does.
+    pub(crate) fn texture_group(
+        &self,
+        id: ObjectId,
+        mesh: &scene::Mesh,
+        piece: &[FaceId],
+    ) -> TextureGroup {
+        let settings = self.uv_settings;
+        let material = if settings.per_material {
+            let slot = piece
+                .first()
+                .map_or(0, |f| mesh::material::slot_of(mesh, *f));
+            self.document
+                .scene()
+                .object(id)
+                .and_then(|o| o.materials.get(slot as usize).map(|m| m.name.clone()))
+                .unwrap_or_default()
+        } else {
+            String::new()
+        };
+        (settings.per_object.then_some(id), material)
     }
 
     /// The UV menu's Packing entries: the padding and the switches.

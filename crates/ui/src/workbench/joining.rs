@@ -80,11 +80,27 @@ impl Workbench {
 
     /// Records one operation per object as one undo step called `label`.
     pub(super) fn record_each(&mut self, label: &str, ops: Vec<(ObjectId, Operation)>) -> bool {
+        let key = self.new_step_key();
+        self.record_each_in(label, ops, key)
+    }
+
+    /// A merge key for a new undo step made of several edits.
+    pub(super) fn new_step_key(&mut self) -> u64 {
+        self.sessions += 1;
+        (1 << 57) | self.sessions
+    }
+
+    /// Records each edit on its object as part of the undo step `key`
+    /// (edits recorded with the same key are taken back together).
+    pub(super) fn record_each_in(
+        &mut self,
+        label: &str,
+        ops: Vec<(ObjectId, Operation)>,
+        key: u64,
+    ) -> bool {
         if ops.is_empty() {
             return false;
         }
-        self.sessions += 1;
-        let key = (1 << 57) | self.sessions;
         for (id, operation) in ops {
             if let Err(why) =
                 self.document

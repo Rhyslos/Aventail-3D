@@ -157,11 +157,13 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Texel density** — How many texture pixels cover a given real-world size, e.g. 512 pixels per metre. Keeping it consistent across an asset (and across a game) makes everything look equally sharp. See [Texture size and texel density](texture-and-density.md).
 
+**Mipmaps** — Smaller copies of a texture (half, a quarter, an eighth… the size) that a game shows when a surface is far away, so it doesn't shimmer. In a smaller copy each pixel covers several of the original's, so pieces that lie close together on the UV map blur into each other there. That's why packing leaves a gap of several pixels ([Check for baking](bake-check.md)).
+
 ## The game-asset pipeline
 
 **Baking** — Transferring detail into textures, e.g. from a high-poly model into a normal map for a low-poly one. Substance Painter does this; clean UVs and correct hard edges are what make bakes come out right.
 
-**Bake check** — A list of what in a model would spoil a bake (polygons facing the wrong way, points on the same spot, bent n-gons and so on), with fixes. See [Check for baking](bake-check.md).
+**Bake check** — A list of what in a model and its UVs would spoil a bake (polygons facing the wrong way, points on the same spot, bent n-gons, hard edges that aren't UV seams, overlapping UVs and so on), with fixes. See [Check for baking](bake-check.md).
 
 **Normal map** — A texture that fakes surface detail by bending the normals, making a low-poly model look more detailed.
 

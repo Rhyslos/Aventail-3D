@@ -162,9 +162,9 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** stacking, toggling and editing earlier layers and edits feels right to the project lead.
 
-### Phase 7 · UVs — 10 of 12
+### Phase 7 · UVs — 11 of 12
 
-`██████████░░░` 83%
+`███████████░░` 92%
 
 One big phase, aiming to be the best UV tools around. Brought forward before advanced hard-surface at the project lead's request (2026-10-16): it needs nothing from that phase, and that phase's tools can then carry UVs from the start.
 
@@ -181,7 +181,7 @@ One big phase, aiming to be the best UV tools around. Brought forward before adv
 - [x] Checker texture, and a stretch heatmap with explained fixes
 - [x] UV editing directly on the model
 - [x] UVs that survive modelling: change the model, keep the UVs
-- [ ] Bake readiness for UVs: seams, overlaps, padding, texel density
+- [x] Bake readiness for UVs: seams, overlaps, padding, texel density
 - [ ] Trim sheets
 
 </details>
@@ -225,6 +225,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-16 | Check for baking covers UVs: hard edges without seams, overlaps, padding, folds and texel density, with one-click fixes |
 | 2026-10-16 | UVs survive modelling: new polygons from extrudes, bevels and other edits get fitting UVs, hand work kept |
 | 2026-10-16 | UV editing on the model: drag the texture on the shape with W, R and S; pieces light up in both views |
 | 2026-10-16 | Checker and Stretch views on the model and in the UV Editor, with each problem explained |

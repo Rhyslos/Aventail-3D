@@ -1,8 +1,13 @@
 //! The bake check ([decision 0077](../../../../docs/decisions/0077-bake-check.md)):
-//! File → Check for baking… lists, in plain words, what in the shown shapes
-//! would spoil a bake in Substance Painter, each with Select (to see it)
-//! and, where there is one, a one-click Fix. It checks again whenever the
-//! scene changes while it is open.
+//! File → Check for baking… (or UV → Check for baking…) lists, in plain
+//! words, what in the shown shapes would spoil a bake in Substance Painter,
+//! each with Select (to see it) and, where there is one, a one-click Fix.
+//! It checks again whenever the scene changes while it is open.
+//!
+//! The UV part ([decision 0105](../../../../docs/decisions/0105-bake-readiness-for-uvs.md))
+//! checks each shape's UVs ([`uv::check::UvReport`]) and the pieces
+//! sharing each texture ([`uv::check::check_sheet`]), grouped as Pack
+//! groups them.
 
 use super::Workbench;
 use super::joining::counted;
@@ -12,6 +17,7 @@ use crate::theme;
 use egui::{RichText, Ui};
 use mesh::bake::BakeReport;
 use scene::{Element, ElementSelection, ObjectId, ObjectKind, Operation};
+use std::collections::BTreeMap;
 
 /// The bake check window's title.
 pub(crate) const BAKE_TITLE: &str = "Check for baking";
@@ -21,8 +27,18 @@ pub(crate) const BAKE_TITLE: &str = "Check for baking";
 pub(crate) struct Baking {
     /// Whether the window is showing.
     pub(crate) open: bool,
-    /// The problems found, and the scene revision they were found for.
-    found: Option<(u64, Vec<Problem>)>,
+    /// The problems found, and what they were found for.
+    found: Option<(Checked, Vec<Problem>)>,
+}
+
+/// What a check depends on besides the scene: the scene's revision, the
+/// UV settings (padding, stacking, textures per material or object) and
+/// the hard-edge angle when hard edges go by angle.
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Checked {
+    revision: u64,
+    uv: super::unwrapping::UvSettings,
+    hard_angle: Option<f32>,
 }
 
 /// One kind of problem on one object.
@@ -56,6 +72,41 @@ pub(crate) enum Kind {
     /// A `_low` object without its `_high` partner, or the other way
     /// round: the name the partner should have.
     Unpaired(String),
+    /// No UVs at all.
+    NoUvs,
+    /// Hard edges where the UVs don't split.
+    HardJoined(Vec<scene::EdgeKey>),
+    /// Polygons folded over or squashed flat in the UVs.
+    Folded(Vec<scene::FaceId>),
+    /// Polygons of pieces outside the texture square.
+    Outside(Vec<scene::FaceId>),
+    /// Polygons of pieces lying over other pieces.
+    Overlapping(Vec<scene::FaceId>),
+    /// Polygons of pieces stacked on identical ones, and whether packing
+    /// stacks identical pieces on purpose (UV → Packing).
+    Stacked(Vec<scene::FaceId>, bool),
+    /// Polygons of pieces closer to others than the padding (pixels).
+    TooClose(Vec<scene::FaceId>, u32),
+    /// Polygons of pieces whose texel density is far from the object's
+    /// usual one (texture widths per unit of length).
+    Uneven(Vec<scene::FaceId>, f32),
+}
+
+/// A one-click fix.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) enum Fix {
+    /// Record these edits.
+    Record(Vec<Operation>),
+    /// Seams suggested for the whole shape, and the shape unwrapped.
+    FirstUvs,
+    /// These edges marked as seams, and the pieces around them unwrapped.
+    Seams(Vec<scene::EdgeKey>),
+    /// The pieces holding these polygons unwrapped.
+    Unwrap(Vec<scene::FaceId>),
+    /// The pieces on the object's textures packed.
+    Pack,
+    /// The pieces holding these polygons scaled to this texel density.
+    Density(Vec<scene::FaceId>, f32),
 }
 
 impl Kind {
@@ -79,6 +130,35 @@ impl Kind {
             ),
             Self::Loose(p) => format!("{} no polygon uses", counted("", p.len(), "point")),
             Self::Unpaired(partner) => format!("no partner called {partner}"),
+            Self::NoUvs => "no UVs".to_string(),
+            Self::HardJoined(e) => format!(
+                "{} that {} UV seams",
+                counted("", e.len(), "hard edge"),
+                if e.len() == 1 { "isn't" } else { "aren't" }
+            ),
+            Self::Folded(f) => format!(
+                "{} folded over or squashed flat in the UVs",
+                counted("", f.len(), "polygon")
+            ),
+            Self::Outside(f) => format!(
+                "{} outside the texture square",
+                counted("", f.len(), "polygon")
+            ),
+            Self::Overlapping(f) => {
+                format!("{} lying over other UVs", counted("", f.len(), "polygon"))
+            }
+            Self::Stacked(f, _) => format!(
+                "{} stacked on identical pieces",
+                counted("", f.len(), "polygon")
+            ),
+            Self::TooClose(f, padding) => format!(
+                "{} closer than {padding} px to other pieces",
+                counted("", f.len(), "polygon")
+            ),
+            Self::Uneven(f, _) => format!(
+                "{} with uneven texel density",
+                counted("", f.len(), "polygon")
+            ),
         }
         .trim_start()
         .to_string()
@@ -87,10 +167,19 @@ impl Kind {
     /// How many elements (or 1, for a name).
     fn count(&self) -> usize {
         match self {
-            Self::Flipped(f) | Self::Flat(f) | Self::Bent(f) | Self::Slivers(f) => f.len(),
-            Self::NonManifold(e) | Self::ShortEdges(e, _) => e.len(),
+            Self::Flipped(f)
+            | Self::Flat(f)
+            | Self::Bent(f)
+            | Self::Slivers(f)
+            | Self::Folded(f)
+            | Self::Outside(f)
+            | Self::Overlapping(f)
+            | Self::Stacked(f, _)
+            | Self::TooClose(f, _)
+            | Self::Uneven(f, _) => f.len(),
+            Self::NonManifold(e) | Self::ShortEdges(e, _) | Self::HardJoined(e) => e.len(),
             Self::Loose(p) => p.len(),
-            Self::Unpaired(_) => 1,
+            Self::Unpaired(_) | Self::NoUvs => 1,
         }
     }
 
@@ -129,20 +218,65 @@ impl Kind {
                 "Substance Painter matches a low-poly object with its high-poly one by name: \
                  crate_low with crate_high. Rename one, or make the missing partner."
             }
+            Self::NoUvs => {
+                "Without UVs there is nowhere on the texture for the bake to go. Fix places \
+                 seams where they show least, unwraps the shape and packs it with whatever \
+                 shares its texture (UV → Suggest seams, Unwrap, Pack)."
+            }
+            Self::HardJoined(_) => {
+                "A hard edge turns the shading sharply, and a normal map can only hold that \
+                 turn where the UVs are split too: otherwise the bake shows a dark or light \
+                 line along it. Fix marks them as seams and unwraps the pieces around them."
+            }
+            Self::Folded(_) => {
+                "Polygons folded over or squashed flat get no pixels of their own, so the \
+                 bake smears or comes out back to front there. Fix unwraps their pieces."
+            }
+            Self::Outside(_) => {
+                "A bake fills only the texture square: parts outside get nothing, or wrap \
+                 round onto other parts. Fix packs the pieces into the square (UV → Pack)."
+            }
+            Self::Overlapping(_) => {
+                "Pieces lying over each other share pixels, so one bakes over the other. Fix \
+                 packs them apart (UV → Pack)."
+            }
+            Self::Stacked(_, true) => {
+                "These pieces lie exactly on identical ones and share their pixels, to save \
+                 room (UV → Packing → Stack identical pieces is on). That is right for \
+                 identical parts, but shadow bakes (ambient occlusion) see only one of them. \
+                 To bake them apart, switch that off and Pack."
+            }
+            Self::Stacked(_, false) => {
+                "These pieces lie exactly on identical ones (two copies of a shape, say) and \
+                 share their pixels, so one bakes over the other. Fix packs them apart (UV → \
+                 Pack). To share pixels on purpose, switch on UV → Packing → Stack identical \
+                 pieces."
+            }
+            Self::TooClose(..) => {
+                "Pieces need a gap of empty pixels: the bake spreads each piece's colours \
+                 into it so seams don't show, and a game shows smaller copies of the texture \
+                 at a distance (mipmaps), where close pieces blur into each other. Fix packs \
+                 them with the gap set in UV → Packing."
+            }
+            Self::Uneven(..) => {
+                "These pieces get much more or much less texture than the rest of the \
+                 object, so they look sharper or blurrier. Fix scales them to the object's \
+                 usual texel density (UV → Match texel density does this for a selection)."
+            }
         }
     }
 
-    /// The one-click fix, if there is one: the edits to record.
-    fn fix(&self) -> Option<Vec<Operation>> {
+    /// The one-click fix, if there is one.
+    pub(crate) fn fix(&self) -> Option<Fix> {
         match self {
-            Self::Flipped(_) => Some(vec![Operation::FixFacing]),
-            Self::Loose(points) => Some(vec![Operation::DeleteElements {
+            Self::Flipped(_) => Some(Fix::Record(vec![Operation::FixFacing])),
+            Self::Loose(points) => Some(Fix::Record(vec![Operation::DeleteElements {
                 points: points.clone(),
                 edges: Vec::new(),
                 faces: Vec::new(),
                 anchors: None,
-            }]),
-            Self::ShortEdges(_, groups) => Some(
+            }])),
+            Self::ShortEdges(_, groups) => Some(Fix::Record(
                 groups
                     .iter()
                     .map(|points| Operation::Weld {
@@ -151,7 +285,13 @@ impl Kind {
                         anchors: None,
                     })
                     .collect(),
-            ),
+            )),
+            Self::NoUvs => Some(Fix::FirstUvs),
+            Self::HardJoined(edges) => Some(Fix::Seams(edges.clone())),
+            Self::Folded(faces) => Some(Fix::Unwrap(faces.clone())),
+            Self::Outside(_) | Self::Overlapping(_) | Self::TooClose(..) => Some(Fix::Pack),
+            Self::Stacked(_, false) => Some(Fix::Pack),
+            Self::Uneven(faces, density) => Some(Fix::Density(faces.clone(), *density)),
             _ => None,
         }
     }
@@ -162,12 +302,21 @@ impl Kind {
         let faces = |f: &[scene::FaceId]| f.iter().map(|f| Element::Polygon(*f)).collect();
         let edges = |e: &[scene::EdgeKey]| e.iter().map(|e| Element::Edge(*e)).collect();
         match self {
-            Self::Flipped(f) | Self::Flat(f) | Self::Bent(f) | Self::Slivers(f) => {
-                (Mode::Polygons, faces(f))
+            Self::Flipped(f)
+            | Self::Flat(f)
+            | Self::Bent(f)
+            | Self::Slivers(f)
+            | Self::Folded(f)
+            | Self::Outside(f)
+            | Self::Overlapping(f)
+            | Self::Stacked(f, _)
+            | Self::TooClose(f, _)
+            | Self::Uneven(f, _) => (Mode::Polygons, faces(f)),
+            Self::NonManifold(e) | Self::ShortEdges(e, _) | Self::HardJoined(e) => {
+                (Mode::Edges, edges(e))
             }
-            Self::NonManifold(e) | Self::ShortEdges(e, _) => (Mode::Edges, edges(e)),
             Self::Loose(p) => (Mode::Points, p.iter().map(|v| Element::Point(*v)).collect()),
-            Self::Unpaired(_) => (Mode::Model, Vec::new()),
+            Self::Unpaired(_) | Self::NoUvs => (Mode::Model, Vec::new()),
         }
     }
 }
@@ -184,6 +333,36 @@ pub(crate) fn problems_of(id: ObjectId, name: &str, report: BakeReport) -> Vec<P
         (!report.slivers.is_empty()).then_some(Kind::Slivers(report.slivers)),
         (!report.loose.is_empty()).then_some(Kind::Loose(report.loose)),
     ];
+    kinds
+        .into_iter()
+        .flatten()
+        .map(|kind| Problem {
+            id,
+            name: name.to_string(),
+            kind,
+        })
+        .collect()
+}
+
+/// The UV problems of one shape's `report` (`None`: it has no UVs), for
+/// object `id` called `name`.
+pub(crate) fn uv_problems_of(
+    id: ObjectId,
+    name: &str,
+    report: Option<uv::check::UvReport>,
+) -> Vec<Problem> {
+    let kinds = match report {
+        None => vec![Some(Kind::NoUvs)],
+        Some(r) => vec![
+            (!r.hard_joined.is_empty()).then_some(Kind::HardJoined(r.hard_joined)),
+            (!r.folded.is_empty()).then_some(Kind::Folded(r.folded)),
+            (!r.outside.is_empty()).then_some(Kind::Outside(r.outside)),
+            match (r.uneven.is_empty(), r.usual_density) {
+                (false, Some(d)) => Some(Kind::Uneven(r.uneven, d)),
+                _ => None,
+            },
+        ],
+    };
     kinds
         .into_iter()
         .flatten()
@@ -242,9 +421,13 @@ impl Workbench {
     /// The problems in the shown shapes, found again when the scene has
     /// changed.
     pub(crate) fn bake_problems(&mut self) -> Vec<Problem> {
-        let revision = self.document.revision();
+        let checked = Checked {
+            revision: self.document.revision(),
+            uv: self.uv_settings,
+            hard_angle: self.viewport.options().auto_hard_angle(),
+        };
         if let Some((at, found)) = &self.baking.found
-            && *at == revision
+            && *at == checked
         {
             return found.clone();
         }
@@ -252,6 +435,7 @@ impl Workbench {
         let mut found = Vec::new();
         let mut names = Vec::new();
         let mut ids = Vec::new();
+        let mut shapes = Vec::new();
         for (id, _) in scene.walk() {
             let Some(object) = scene.object(id) else {
                 continue;
@@ -267,8 +451,13 @@ impl Workbench {
             }
             if let Some(shape) = scene.evaluated(id) {
                 found.extend(problems_of(id, &object.name, BakeReport::new(&shape.mesh)));
+                let hard = self.shown_hard_edges(&shape.mesh);
+                let report = uv::check::UvReport::new(&shape.mesh, &hard);
+                found.extend(uv_problems_of(id, &object.name, report));
+                shapes.push((id, object.name.clone(), shape.mesh));
             }
         }
+        found.extend(self.sheet_problems(&shapes));
         for (i, partner) in unpaired(&names) {
             found.push(Problem {
                 id: ids[i],
@@ -276,8 +465,78 @@ impl Workbench {
                 kind: Kind::Unpaired(partner),
             });
         }
-        self.baking.found = Some((revision, found.clone()));
+        self.baking.found = Some((checked, found.clone()));
         found
+    }
+
+    /// The problems among the pieces sharing each texture (grouped as
+    /// Pack groups them) of `shapes`.
+    fn sheet_problems(
+        &self,
+        shapes: &[(ObjectId, String, std::sync::Arc<scene::Mesh>)],
+    ) -> Vec<Problem> {
+        let texture = self.document.scene().texture();
+        let padding = self.uv_settings.padding.min(super::unwrapping::MAX_PADDING);
+        // Each texture's pieces: which shape, and its polygons.
+        let mut sheets: BTreeMap<
+            super::unwrapping::TextureGroup,
+            Vec<(usize, Vec<scene::FaceId>)>,
+        > = BTreeMap::new();
+        for (k, (id, _, mesh)) in shapes.iter().enumerate() {
+            for island in mesh::uvs::islands(mesh) {
+                sheets
+                    .entry(self.texture_group(*id, mesh, &island))
+                    .or_default()
+                    .push((k, island));
+            }
+        }
+        // For each shape, the polygons with each problem.
+        let mut over: BTreeMap<usize, Vec<scene::FaceId>> = BTreeMap::new();
+        let mut stacked: BTreeMap<usize, Vec<scene::FaceId>> = BTreeMap::new();
+        let mut close: BTreeMap<usize, Vec<scene::FaceId>> = BTreeMap::new();
+        for members in sheets.values() {
+            let pieces: Vec<uv::check::SheetPiece> = members
+                .iter()
+                .map(|(k, faces)| uv::check::SheetPiece {
+                    mesh: &shapes[*k].2,
+                    faces: faces.clone(),
+                })
+                .collect();
+            let report = uv::check::check_sheet(&pieces, texture.size, padding);
+            for (set, into) in [
+                (&report.overlapping, &mut over),
+                (&report.stacked, &mut stacked),
+                (&report.too_close, &mut close),
+            ] {
+                for i in set {
+                    let (k, faces) = &members[*i];
+                    into.entry(*k).or_default().extend(faces.iter().copied());
+                }
+            }
+        }
+        let mut out = Vec::new();
+        for (k, (id, name, _)) in shapes.iter().enumerate() {
+            let mut add = |kind: Kind| {
+                out.push(Problem {
+                    id: *id,
+                    name: name.clone(),
+                    kind,
+                });
+            };
+            if let Some(mut f) = over.remove(&k) {
+                f.sort();
+                add(Kind::Overlapping(f));
+            }
+            if let Some(mut f) = stacked.remove(&k) {
+                f.sort();
+                add(Kind::Stacked(f, self.uv_settings.stack));
+            }
+            if let Some(mut f) = close.remove(&k) {
+                f.sort();
+                add(Kind::TooClose(f, padding));
+            }
+        }
+        out
     }
 
     /// Draws the bake check window, if open.
@@ -306,7 +565,10 @@ impl Workbench {
                         ui,
                         "Checked: polygons facing the wrong way, edges shared by three \
                          polygons, polygons with no area, points on the same spot, bent or \
-                         sliver many-sided polygons, loose points, and _low / _high names.",
+                         sliver many-sided polygons, loose points, _low / _high names; and \
+                         the UVs: hard edges that aren't seams, folded, overlapping or \
+                         stacked pieces, pieces outside the square or closer than the \
+                         padding, and uneven texel density.",
                     );
                     return;
                 }
@@ -397,23 +659,57 @@ impl Workbench {
 
     /// Fixes `problem`, as one undo step.
     pub(crate) fn fix_problem(&mut self, problem: &Problem) {
-        let Some(ops) = problem.kind.fix() else {
+        let Some(fix) = problem.kind.fix() else {
             return;
         };
         let label = format!("Fix {}", problem.kind.text());
-        let report = |this: &Self| {
-            this.document
-                .scene()
-                .evaluated(problem.id)
-                .map(|shape| problems_of(problem.id, &problem.name, BakeReport::new(&shape.mesh)))
-                .unwrap_or_default()
+        let mine = |this: &mut Self| -> Vec<Problem> {
+            this.bake_problems()
+                .into_iter()
+                .filter(|p| p.id == problem.id)
+                .collect()
         };
-        let before = report(self);
-        let ops = ops.into_iter().map(|op| (problem.id, op)).collect();
-        if self.record_each(&label, ops) {
+        let before = mine(self);
+        let key = self.new_step_key();
+        // Every shape sharing a texture with this one.
+        let sharing = |this: &Self| -> Vec<(ObjectId, std::sync::Arc<scene::Mesh>)> {
+            let ids = if this.uv_settings.per_object {
+                vec![problem.id]
+            } else {
+                this.bake_shapes()
+            };
+            ids.into_iter()
+                .filter_map(|id| Some((id, this.document.scene().evaluated(id)?.mesh)))
+                .collect()
+        };
+        let done = match fix {
+            Fix::Pack => {
+                let shapes = sharing(self);
+                self.pack_shapes(shapes, true, Some(key))
+            }
+            fix => {
+                let Some(mesh) = self.document.scene().evaluated(problem.id).map(|e| e.mesh) else {
+                    return;
+                };
+                let first_uvs = fix == Fix::FirstUvs;
+                let ops = self.fix_ops(&mesh, fix);
+                let ops = ops.into_iter().map(|op| (problem.id, op)).collect();
+                let done = self.record_each_in(&label, ops, key);
+                // New UVs start with every piece in the middle of the
+                // square: packed with what shares the texture, in the same
+                // step.
+                if done && first_uvs {
+                    let shapes = sharing(self);
+                    self.pack_shapes(shapes, true, Some(key));
+                }
+                done
+            }
+        };
+        if done {
             // A fix can make something else worse (welding can leave three
-            // polygons on an edge): say so rather than hide it.
-            let worse: Vec<String> = report(self)
+            // polygons on an edge, scaling pieces can make them overlap):
+            // say so rather than hide it.
+            let worse: Vec<String> = mine(self)
                 .into_iter()
                 .filter(|after| {
                     let count = |k: &Kind| k.count();
@@ -436,6 +732,59 @@ impl Workbench {
                 )
             });
         }
+    }
+
+    /// The edits a fix makes on `mesh`.
+    fn fix_ops(&self, mesh: &scene::Mesh, fix: Fix) -> Vec<Operation> {
+        use super::unwrapping::UvTool;
+        let all: Vec<scene::FaceId> = mesh.faces().map(|(f, _)| f).collect();
+        match fix {
+            Fix::Record(ops) => ops,
+            Fix::FirstUvs => {
+                let hard = self.shown_hard_edges(mesh);
+                let seams = uv::seams::suggest(mesh, &hard);
+                let mut ops = Vec::new();
+                if !seams.is_empty() {
+                    ops.push(super::seams::seams_op(mesh, seams, true));
+                }
+                ops.push(self.uv_tool_op(UvTool::Unwrap, mesh, all));
+                ops
+            }
+            Fix::Seams(edges) => {
+                let topology = mesh.topology();
+                let around: std::collections::BTreeSet<scene::FaceId> = edges
+                    .iter()
+                    .flat_map(|e| topology.edge_faces(*e).collect::<Vec<_>>())
+                    .collect();
+                vec![
+                    super::seams::seams_op(mesh, edges, true),
+                    self.uv_tool_op(UvTool::Unwrap, mesh, around.into_iter().collect()),
+                ]
+            }
+            Fix::Unwrap(faces) => vec![self.uv_tool_op(UvTool::Unwrap, mesh, faces)],
+            Fix::Density(faces, density) => vec![Operation::SetTexelDensity {
+                anchors: super::unwrapping::anchors(mesh, &faces),
+                faces,
+                density,
+            }],
+            Fix::Pack => Vec::new(),
+        }
+    }
+
+    /// The shown objects the bake check looks at.
+    fn bake_shapes(&self) -> Vec<ObjectId> {
+        let scene = self.document.scene();
+        scene
+            .walk()
+            .into_iter()
+            .map(|(id, _)| id)
+            .filter(|id| {
+                scene.is_shown(*id)
+                    && scene.object(*id).is_some_and(|o| {
+                        matches!(o.kind, ObjectKind::Primitive(_) | ObjectKind::Mesh(_))
+                    })
+            })
+            .collect()
     }
 }
 
@@ -469,6 +818,11 @@ mod tests {
         assert_eq!(problems[0].kind.text(), "1 polygon facing the wrong way");
         assert_eq!(problems[1].kind.text(), "2 points no polygon uses");
         assert!(problems.iter().all(|p| p.kind.fix().is_some()));
+        assert_eq!(Kind::Stacked(vec![], true).fix(), None);
+        assert_eq!(Kind::Stacked(vec![], false).fix(), Some(Fix::Pack));
+        assert_eq!(Kind::Overlapping(vec![]).fix(), Some(Fix::Pack));
+        assert_eq!(Kind::NoUvs.selection().0, Mode::Model);
+        assert_eq!(uv_problems_of(id, "Crate", None)[0].kind.text(), "no UVs");
         assert!(Kind::Bent(vec![]).fix().is_none());
         assert_eq!(
             Kind::Unpaired("crate_high".into()).selection().0,

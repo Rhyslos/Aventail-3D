@@ -2156,6 +2156,7 @@ impl Workbench {
         ui.menu_button("Packing", |ui| {
             self.packing_menu(ui);
         });
+        self.bake_entry(ui);
         ui.separator();
         ui.checkbox(
             &mut self.uv_settings.live_unwrap,
