@@ -16,7 +16,7 @@ Crate names are generic on purpose (no product name), so renaming the app never 
 
 Each crate's `README.md` states its purpose and what it **must never** do. Read it before changing the crate.
 
-Planned later: a booleans crate (layer 1, wrapping manifold), a `script` crate (layer 2, Lua scripting through the same commands as everything else; Phase 9, see [decision 0011](docs/decisions/0011-lua-scripting.md)), and animation support inside `scene` (Phase 10).
+Planned later: a booleans crate (layer 1, wrapping manifold), a `script` crate (layer 2, Lua scripting through the same commands as everything else; Phase 11, see [decision 0011](docs/decisions/0011-lua-scripting.md)), and animation support inside `scene` (Phase 12). Phase 9 (language support) adds a translation layer to `ui` ([decision 0117](docs/decisions/0117-language-support.md)).
 
 ## How a frame runs
 
@@ -125,7 +125,7 @@ Rendering sits behind the `ViewportRenderer` trait, so the panel runs in tests w
 | A primitive | A primitive kind in `scene` |
 | A panel | A panel registered with the dock in `ui` |
 | A file format | `fileio` |
-| A user's own tool or command (Phase 9) | A Lua script, through `script` |
+| A user's own tool or command (Phase 11) | A Lua script, through `script` |
 
 ## Security
 
