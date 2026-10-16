@@ -300,15 +300,15 @@ impl AttributesPanel {
         shared: &mut Shared<'_>,
         out: &mut Vec<DocRequest>,
     ) {
-        ui.menu_button("Mode", |ui| {
+        crate::dialog::menu(ui, "Mode", |ui| {
             let _ = ui.radio(true, "Object settings");
             ui.add_enabled(false, egui::RadioButton::new(false, "Tool settings"))
                 .on_disabled_hover_text("Arrives with the tools in Phase 3");
         });
-        ui.menu_button("Edit", |ui| {
+        crate::dialog::menu(ui, "Edit", |ui| {
             settings_entries(ui, doc, shared.clipboard, out)
         });
-        ui.menu_button("Units", |ui| unit_entries(ui, shared.units));
+        crate::dialog::menu(ui, "Units", |ui| unit_entries(ui, shared.units));
     }
 
     /// Draws the settings of the selection.

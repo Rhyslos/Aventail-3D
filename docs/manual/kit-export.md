@@ -37,14 +37,14 @@ Each piece:
 
 - is named after its object (`Wall corner.glb`). Characters a file name can't hold become `_`, and two pieces of the same name get a number;
 - holds the piece and everything inside it, with the piece's **pivot at the file's origin**, turned and sized as in the scene;
-- uses the Export window's settings (**Made for**, kind of file, and so on).
+- uses the Export window's settings (**Made for**, or with Custom settings the file type, units and so on).
 
 ## Settings
 
 | Setting | What it does |
 |---|---|
 | **Collision** (Attributes panel) | The collision shape Godot makes for the object: None, The shape itself, Wrapped (convex), or A box. Saved with the project. Only exports made for Godot carry it. |
-| **Export window settings** | Export kit uses them: Made for, kind of file, size and direction. |
+| **Export window settings** | Export kit uses them: Made for, or with Custom settings the file type, units, up axis and triangles. |
 
 ## Shortcuts
 

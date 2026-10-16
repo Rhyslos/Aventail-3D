@@ -7,6 +7,7 @@
 //! viewport's corner, the grid button); they show the same values here.
 
 use crate::autosave::{AutosaveSettings, COPIES, MINUTES};
+use crate::dialog::{self, Dialog};
 use crate::selecting::SelectKeys;
 use crate::theme::{self, Accent};
 use crate::tool_menu::{ToolMenuSettings, ToolMenuStyle};
@@ -89,65 +90,60 @@ pub(crate) struct SettingsWindow {
 }
 
 impl SettingsWindow {
-    /// Draws the window, if open.
+    /// Draws the window, if open (decision 0087): the sections in a side
+    /// list, Restore standard and Done in the footer. Changes apply at
+    /// once.
     pub(crate) fn show(&mut self, ctx: &egui::Context, values: &mut Values<'_>) {
         if !self.open {
             return;
         }
-        let mut open = true;
-        egui::Window::new(SETTINGS_TITLE)
-            .open(&mut open)
-            .collapsible(false)
-            .resizable(false)
-            .default_size(vec2(560.0, 420.0))
-            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
-            .show(ctx, |ui| {
-                ui.horizontal_top(|ui| {
-                    ui.vertical(|ui| {
-                        ui.set_width(120.0);
-                        for section in Section::ALL {
-                            let response =
-                                ui.selectable_label(self.section == section, section.name());
-                            response.widget_info(|| {
-                                egui::WidgetInfo::selected(
-                                    egui::WidgetType::SelectableLabel,
-                                    true,
-                                    self.section == section,
-                                    format!("Settings section: {}", section.name()),
-                                )
-                            });
-                            if response.clicked() {
-                                self.section = section;
-                            }
-                        }
-                        ui.set_min_height(360.0);
-                        ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
-                            if ui
-                                .button("Restore standard")
-                                .on_hover_text(
-                                    "Put every setting back as it was when the app was new \
-                                 (the panel layout is kept)",
-                                )
-                                .clicked()
-                            {
-                                restore_standard(values);
-                            }
-                        });
-                    });
-                    ui.separator();
-                    ui.vertical(|ui| {
-                        ui.set_width(400.0);
-                        ui.set_min_height(360.0);
-                        match self.section {
-                            Section::Interface => interface(ui, values),
-                            Section::Viewport => viewport(ui, values),
-                            Section::Undo => undo(ui, values),
-                            Section::Autosave => autosave(ui, values),
-                        }
-                    });
+        let sections: Vec<dialog::Section<'_, Section>> = Section::ALL
+            .into_iter()
+            .map(|section| dialog::Section {
+                id: section,
+                name: section.name(),
+                badge: None,
+                apart: false,
+                label: Some(format!("Settings section: {}", section.name())),
+            })
+            .collect();
+        let mut chosen = self.section;
+        let mut done = false;
+        let outcome = Dialog::new(SETTINGS_TITLE, 680.0)
+            .body_height(430.0)
+            .show(ctx, |d| {
+                d.header(true, |_| {});
+                d.sections(&mut chosen, &sections, None, |ui, shown| match shown {
+                    Section::Interface => interface(ui, values),
+                    Section::Viewport => viewport(ui, values),
+                    Section::Undo => undo(ui, values),
+                    Section::Autosave => autosave(ui, values),
                 });
+                d.footer_with(
+                    |ui| {
+                        if dialog::plain_button(ui, "Restore standard")
+                            .on_hover_text(
+                                "Put every setting back as it was when the app was new (the \
+                                 panel layout is kept)",
+                            )
+                            .clicked()
+                        {
+                            restore_standard(values);
+                        }
+                    },
+                    |ui| {
+                        if dialog::main_button(ui, "Done")
+                            .on_hover_text("Changes apply as you make them")
+                            .clicked()
+                        {
+                            done = true;
+                        }
+                    },
+                );
             });
-        if !open {
+        self.section = chosen;
+        let (enter, escape) = dialog::enter_or_escape(ctx);
+        if outcome.closed || done || enter || escape {
             self.open = false;
         }
     }
@@ -171,13 +167,12 @@ fn restore_standard(values: &mut Values<'_>) {
 
 /// A heading for a group of settings.
 fn heading(ui: &mut Ui, text: &str) {
-    ui.add_space(4.0);
-    ui.label(RichText::new(text).strong().color(theme::TEXT_STRONG));
+    dialog::heading(ui, text);
 }
 
 /// A short explanation under a heading.
 fn explain(ui: &mut Ui, text: &str) {
-    ui.label(RichText::new(text).small().color(theme::TEXT_WEAK));
+    dialog::help(ui, text);
     ui.add_space(2.0);
 }
 
@@ -206,32 +201,30 @@ fn interface(ui: &mut Ui, values: &mut Values<'_>) {
          only the display changes, never the shapes. Also switched in the Attributes \
          panel's Units menu.",
     );
-    ui.label("This project");
-    for units in Units::ALL {
-        if ui
-            .radio(
-                *values.units == units,
-                format!("{} ({})", units.name(), units.symbol()),
+    let choices: Vec<(Units, String)> = Units::ALL
+        .into_iter()
+        .map(|u| (u, format!("{} ({})", u.name(), u.symbol())))
+        .collect();
+    let named: Vec<(Units, &str, &str)> = choices
+        .iter()
+        .map(|(u, name)| {
+            (
+                *u,
+                name.as_str(),
+                "Changing them is a step Ctrl + Z can take back",
             )
-            .on_hover_text("Changing them is a step Ctrl + Z can take back")
-            .clicked()
-        {
-            *values.units = units;
-        }
-    }
-    ui.add_space(4.0);
-    for units in Units::ALL {
-        if ui
-            .radio(
-                *values.new_units == units,
-                format!("{} for new projects", units.name()),
-            )
-            .on_hover_text("The units a new project starts with")
-            .clicked()
-        {
-            *values.new_units = units;
-        }
-    }
+        })
+        .collect();
+    dialog::row(ui, "This project", |ui| {
+        dialog::segmented(ui, values.units, &named);
+    });
+    let new_named: Vec<(Units, &str, &str)> = Units::ALL
+        .into_iter()
+        .map(|u| (u, u.name(), "The units a new project starts with"))
+        .collect();
+    dialog::row(ui, "New projects", |ui| {
+        dialog::segmented(ui, values.new_units, &new_named);
+    });
     ui.add_space(8.0);
     heading(ui, "Warnings");
     explain(
@@ -250,26 +243,20 @@ fn interface(ui: &mut Ui, values: &mut Values<'_>) {
     {
         *values.dissolve_without_warning = !warn;
     }
-    ui.add_space(6.0);
-    ui.separator();
+    dialog::divider(ui);
     radial_menu(ui, values);
 }
 
 /// The Interface page's Radial menu section: how the tool menu (E) looks
 /// and opens.
 fn radial_menu(ui: &mut Ui, values: &mut Values<'_>) {
-    ui.label(
-        RichText::new("Radial menu")
-            .size(15.0)
-            .strong()
-            .color(theme::TEXT_STRONG),
-    );
+    dialog::heading(ui, "Radial menu");
     explain(
         ui,
         "Press E for the tools of what you're working on. Every look holds the same \
          tools in the same places.",
     );
-    heading(ui, "Look");
+    ui.label(RichText::new("Look").color(theme::TEXT_WEAK));
     for style in ToolMenuStyle::ALL {
         if ui
             .radio(values.tool_menu.style == style, style.name())

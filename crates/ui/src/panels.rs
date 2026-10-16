@@ -36,10 +36,12 @@ pub(crate) fn menu_line_with(ui: &mut Ui, add_menus: impl FnOnce(&mut Ui)) {
         Icon::Menu,
         theme::TEXT_WEAK,
     );
-    egui::MenuBar::new().ui(&mut line, |ui| {
-        ui.spacing_mut().item_spacing.x = 4.0;
-        add_menus(ui);
-    });
+    egui::MenuBar::new()
+        .config(crate::dialog::menu_config())
+        .ui(&mut line, |ui| {
+            ui.spacing_mut().item_spacing.x = 4.0;
+            add_menus(ui);
+        });
     line.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
         let (search, response) = ui.allocate_exact_size(egui::vec2(20.0, 20.0), Sense::hover());
         icons::paint(

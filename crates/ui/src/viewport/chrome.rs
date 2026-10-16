@@ -59,10 +59,12 @@ pub(super) fn header(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) {
     );
     // Inside a menu bar, so the menus look like plain words, as on the
     // main menu bar, rather than buttons.
-    egui::MenuBar::new().ui(&mut ui, |ui| {
-        ui.spacing_mut().item_spacing.x = 4.0;
-        menus(ui, panel);
-    });
+    egui::MenuBar::new()
+        .config(crate::dialog::menu_config())
+        .ui(&mut ui, |ui| {
+            ui.spacing_mut().item_spacing.x = 4.0;
+            menus(ui, panel);
+        });
     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
         ui.spacing_mut().item_spacing.x = 2.0;
         let four = panel.four_views();
@@ -98,7 +100,7 @@ pub(super) fn header(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) {
 
 /// The viewport's menus: View, Cameras, Display, Options and Panel.
 fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
-    ui.menu_button("View", |ui| {
+    crate::dialog::menu(ui, "View", |ui| {
         if ui
             .button("Reset view")
             .on_hover_text("Go back to the opening camera view")
@@ -110,7 +112,7 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
         ui.separator();
         frame_entries(ui, panel);
     });
-    ui.menu_button("Cameras", |ui| {
+    crate::dialog::menu(ui, "Cameras", |ui| {
         let active = panel.active_kind();
         for kind in MENU_KINDS {
             let key = if kind == ViewKind::Orthographic {
@@ -145,7 +147,7 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
             }
         }
     });
-    ui.menu_button("Display", |ui| {
+    crate::dialog::menu(ui, "Display", |ui| {
         super::look::choices(ui, &mut panel.options.shading);
         ui.separator();
         grid_entries(ui, &mut panel.options.grid_detail);
@@ -172,7 +174,7 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
         ui.checkbox(&mut panel.options.flat_from_dice, FLAT_FROM_DICE_ENTRY)
             .on_hover_text(FLAT_FROM_DICE_HELP);
     });
-    ui.menu_button("Options", |ui| {
+    crate::dialog::menu(ui, "Options", |ui| {
         if ui
             .button(format!("{}…", super::PICKER_LABEL))
             .on_hover_text("Choose which mouse buttons and keys move the view")
@@ -194,7 +196,7 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
             "Alt + mouse works in every scheme",
         );
     });
-    ui.menu_button("Panel", |ui| {
+    crate::dialog::menu(ui, "Panel", |ui| {
         let four = panel.four_views();
         if ui
             .add(

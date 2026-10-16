@@ -734,12 +734,12 @@ pub(crate) fn menus(
     manager: &mut ObjectManager,
     out: &mut Vec<DocRequest>,
 ) {
-    ui.menu_button("Edit", |ui| {
+    crate::dialog::menu(ui, "Edit", |ui| {
         undo_entries(ui, doc, out);
         ui.separator();
         selection_entries(ui, doc, manager, out);
     });
-    ui.menu_button("View", |ui| {
+    crate::dialog::menu(ui, "View", |ui| {
         if entry(ui, "Expand all", None, true) {
             manager.expand_all();
         }
@@ -747,5 +747,5 @@ pub(crate) fn menus(
             manager.collapse_all(doc);
         }
     });
-    ui.menu_button("Object", |ui| object_entries(ui, doc, out));
+    crate::dialog::menu(ui, "Object", |ui| object_entries(ui, doc, out));
 }

@@ -57,7 +57,7 @@ To change this project's units, use the **Units** menu of the [Attributes panel]
 | Setting | What it does |
 |---|---|
 | **Units** (this project) | Metres (standard) or centimetres, saved with the project. Attributes panel → Units, or Settings → Interface → Units. |
-| **Units for new projects** | What a new project starts in. Settings → Interface → Units. Remembered between sessions. |
+| **Units for new projects** | What a new project starts in. Settings → Interface → Units → New projects. Remembered between sessions. |
 
 ## Shortcuts
 
