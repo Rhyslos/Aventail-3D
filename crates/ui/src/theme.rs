@@ -518,6 +518,8 @@ pub const UV_SEAM_PREFER: Color32 = Color32::from_rgb(0xff, 0xc8, 0x5a);
 /// Edges where no seam may go (decision 0111): a clear blue, apart from
 /// every seam colour.
 pub const UV_SEAM_NEVER: Color32 = Color32::from_rgb(0x4d, 0xa6, 0xff);
+/// Locked pieces in the UV Editor (decision 0112): faint grey stripes.
+pub const UV_LOCKED: Color32 = Color32::from_rgba_premultiplied(0x30, 0x30, 0x34, 0x50);
 /// Pinned UVs in the UV Editor (decision 0109): a bright magenta, apart
 /// from the seams' orange and every accent's selection.
 pub const UV_PIN: Color32 = Color32::from_rgb(0xff, 0x3d, 0xc8);

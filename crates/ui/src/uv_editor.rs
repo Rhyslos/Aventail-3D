@@ -76,6 +76,9 @@ struct UvShape {
     pins: Vec<Vec2>,
     /// The edges with a seam preference (decision 0111).
     preferences: HashMap<EdgeKey, scene::SeamPreference>,
+    /// Whether each polygon, in the order of `polygons`, is locked
+    /// (decision 0112).
+    locked: Vec<bool>,
 }
 
 impl UvShape {
@@ -143,6 +146,14 @@ impl UvShape {
             }
         }
         let preferences = mesh::uvs::seam_preferences(&mesh).into_iter().collect();
+        let lock = mesh::uvs::locked(&mesh);
+        let locked = polygons
+            .iter()
+            .map(|(f, _)| {
+                lock.as_ref()
+                    .is_some_and(|l| l.get(f.get() as usize).copied().unwrap_or(false))
+            })
+            .collect();
         Some(Self {
             mesh,
             polygons,
@@ -154,6 +165,7 @@ impl UvShape {
             stretch,
             pins,
             preferences,
+            locked,
         })
     }
 }
@@ -938,6 +950,15 @@ impl UvEditor {
             _ => BTreeSet::new(),
         };
         let mut tint = egui::Mesh::default();
+        // Locked pieces: faint stripes across them.
+        let mut stripes = Vec::new();
+        for ((_, points), locked) in shape.polygons.iter().zip(&shape.locked) {
+            if *locked {
+                let corners: Vec<Pos2> = points.iter().map(|(_, uv)| screen(*uv)).collect();
+                add_polygon(&mut tint, &corners, theme::UV_LOCKED);
+                stripes.push(corners);
+            }
+        }
         if stretch {
             for ((_, points), s) in shape.polygons.iter().zip(&shape.stretch) {
                 let corners: Vec<Pos2> = points.iter().map(|(_, uv)| screen(*uv)).collect();
@@ -958,6 +979,24 @@ impl UvEditor {
             }
         }
         painter.add(egui::Shape::mesh(tint));
+        for corners in &stripes {
+            let (min, max) = corners.iter().fold(
+                (
+                    Pos2::new(f32::INFINITY, f32::INFINITY),
+                    Pos2::new(f32::NEG_INFINITY, f32::NEG_INFINITY),
+                ),
+                |(lo, hi), p| (lo.min(*p), hi.max(*p)),
+            );
+            let clip = painter.with_clip_rect(Rect::from_min_max(min, max).intersect(rect));
+            let mut x = min.x - (max.y - min.y);
+            while x < max.x {
+                clip.line_segment(
+                    [Pos2::new(x, max.y), Pos2::new(x + (max.y - min.y), min.y)],
+                    egui::Stroke::new(1.0, theme::UV_LOCKED.gamma_multiply(2.0)),
+                );
+                x += 8.0;
+            }
+        }
         // Every edge.
         let mut lines = egui::Mesh::default();
         let mut borders = egui::Mesh::default();

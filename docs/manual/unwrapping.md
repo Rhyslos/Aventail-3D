@@ -28,7 +28,7 @@ What **Unwrap** does with each piece holding the selection:
 - sizes it to match the rest of the object, so every piece keeps its **real size** against the others (the same [texel density](texture-and-density.md));
 - puts it where it was. Pieces may overlap; [Pack](packing.md) arranges them.
 
-A piece with [pinned UVs](pins.md) is different: with two or more pins it's laid out around them and keeps its place, size and turn; with one, it's laid out as above and moved so the pin is back. Pinned pieces aren't laid out as straight grids.
+[Locked pieces](locked-pieces.md) are left as they are, and a piece with [settings of its own](locked-pieces.md) (method, straightening, texel density) uses them instead of the app's. A piece with [pinned UVs](pins.md) is different: with two or more pins it's laid out around them and keeps its place, size and turn; with one, it's laid out as above and moved so the pin is back. Pinned pieces aren't laid out as straight grids.
 
 **Unfold across only** (or **up only**) unwraps the piece as above, fits the result over where the piece was (moved, turned and sized to lie on it as closely as it can), then gives every point back its old height (or its old place across). A piece with no UVs yet is simply unwrapped.
 
@@ -78,6 +78,7 @@ No keys of their own; ask if you'd like some.
 
 - [Pinning UVs](pins.md): hold some UVs still while the rest is laid out
 - [Settings of the automatic UV tools](uv-settings.md)
+- [Locking pieces and piece settings](locked-pieces.md)
 - [Seams](seams.md)
 - [Trim sheets](trim-sheets.md): lay strips along a shared texture's rows instead
 - [UVs while you keep modelling](uvs-and-modelling.md)

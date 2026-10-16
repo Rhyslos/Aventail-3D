@@ -404,6 +404,26 @@ pub enum Operation {
         /// Where the polygons were, to find them again.
         anchors: Option<Anchors>,
     },
+    /// Locks (or unlocks) the UVs of these polygons, so no automatic tool
+    /// changes them (decision 0112): see `mesh::uvs::set_locked`.
+    SetUvLock {
+        /// The polygons (whole pieces, as the tools choose them).
+        faces: Vec<FaceId>,
+        /// Lock, or unlock.
+        lock: bool,
+        /// Where the polygons were, to find them again.
+        anchors: Option<Anchors>,
+    },
+    /// Gives these polygons' pieces their own unwrap settings, or takes
+    /// them away (all `None`) (decision 0112): see `uv::PieceSettings`.
+    SetPieceSettings {
+        /// The polygons (whole pieces, as the tools choose them).
+        faces: Vec<FaceId>,
+        /// The settings.
+        settings: uv::PieceSettings,
+        /// Where the polygons were, to find them again.
+        anchors: Option<Anchors>,
+    },
     /// Marks edges hard (a crisp break in the shading) or soft (smooth
     /// shading across) (decision 0053).
     SetHardEdges {
@@ -670,6 +690,24 @@ impl Operation {
                 };
                 counted(verb, faces.len(), "polygon")
             }
+            Self::SetUvLock { faces, lock, .. } => {
+                let verb = if *lock {
+                    "Lock the UVs of"
+                } else {
+                    "Unlock the UVs of"
+                };
+                counted(verb, faces.len(), "polygon")
+            }
+            Self::SetPieceSettings {
+                faces, settings, ..
+            } => {
+                let verb = if settings.is_empty() {
+                    "Clear the piece settings of"
+                } else {
+                    "Set the piece settings of"
+                };
+                counted(verb, faces.len(), "polygon")
+            }
             Self::SetHardEdges { edges, hard, .. } => {
                 let verb = if *hard { "Harden" } else { "Soften" };
                 counted(verb, edges.len(), "edge")
@@ -796,6 +834,8 @@ impl Operation {
             | Self::RelaxUvs { .. }
             | Self::SetTexelDensity { .. }
             | Self::SetStretchBudget { .. }
+            | Self::SetUvLock { .. }
+            | Self::SetPieceSettings { .. }
             | Self::PlaceOnTrim { .. }
             | Self::PackUvs { .. }
             | Self::SetHardEdges { .. }
@@ -966,6 +1006,8 @@ impl Operation {
             | Self::RelaxUvs { .. }
             | Self::SetTexelDensity { .. }
             | Self::SetStretchBudget { .. }
+            | Self::SetUvLock { .. }
+            | Self::SetPieceSettings { .. }
             | Self::PlaceOnTrim { .. }
             | Self::PackUvs { .. }
             | Self::SetHardEdges { .. }
@@ -1115,6 +1157,8 @@ impl Operation {
             Self::SetStretchBudget { budget, .. } => {
                 budget.is_none_or(|b| mesh::uvs::BUDGET_RANGE.contains(&b))
             }
+            Self::SetUvLock { .. } => true,
+            Self::SetPieceSettings { settings, .. } => settings.is_real(),
             Self::PlaceOnTrim { bottom, top, .. } => {
                 bottom.is_finite()
                     && top.is_finite()
@@ -1176,6 +1220,8 @@ impl Operation {
             | Self::RelaxUvs { anchors, .. }
             | Self::SetTexelDensity { anchors, .. }
             | Self::SetStretchBudget { anchors, .. }
+            | Self::SetUvLock { anchors, .. }
+            | Self::SetPieceSettings { anchors, .. }
             | Self::PlaceOnTrim { anchors, .. }
             | Self::SetHardEdges { anchors, .. }
             | Self::SetSeams { anchors, .. }
@@ -1217,6 +1263,8 @@ impl Operation {
             | Self::RelaxUvs { anchors, .. }
             | Self::SetTexelDensity { anchors, .. }
             | Self::SetStretchBudget { anchors, .. }
+            | Self::SetUvLock { anchors, .. }
+            | Self::SetPieceSettings { anchors, .. }
             | Self::PlaceOnTrim { anchors, .. }
             | Self::SetHardEdges { anchors, .. }
             | Self::SetSeams { anchors, .. }
@@ -1305,6 +1353,8 @@ impl Operation {
             | Self::PackUvs { .. }
             | Self::SetTexelDensity { .. }
             | Self::SetStretchBudget { .. }
+            | Self::SetUvLock { .. }
+            | Self::SetPieceSettings { .. }
             | Self::PlaceOnTrim { .. }
             | Self::SetSeams { .. }
             | Self::SetSeamPreference { .. }
@@ -1710,6 +1760,20 @@ impl Operation {
                     .as_ref()
                     .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
                 mesh::uvs::set_budget(mesh, &faces, *budget)
+            }
+            Self::SetUvLock { faces, lock, .. } => {
+                let faces = refound
+                    .as_ref()
+                    .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
+                mesh::uvs::set_locked(mesh, &faces, *lock)
+            }
+            Self::SetPieceSettings {
+                faces, settings, ..
+            } => {
+                let faces = refound
+                    .as_ref()
+                    .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
+                mesh::uvs::set_piece_values(mesh, &faces, settings.values())
             }
             Self::PlaceOnTrim {
                 faces, bottom, top, ..

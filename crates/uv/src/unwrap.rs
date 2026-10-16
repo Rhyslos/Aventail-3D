@@ -453,7 +453,9 @@ fn total_3d(mesh: &Mesh, faces: &[FaceId]) -> f32 {
 }
 
 /// The pieces (by the shape's cuts) holding any of `faces`, and how many
-/// of `faces` the shape has.
+/// of `faces` the shape has. Locked pieces ([`mesh::uvs::locked`],
+/// [decision 0112](../../../docs/decisions/0112-locked-pieces-and-piece-settings.md))
+/// are left out: no automatic tool changes them.
 pub(crate) fn chosen_pieces(
     mesh: &Mesh,
     faces: &[FaceId],
@@ -467,6 +469,7 @@ pub(crate) fn chosen_pieces(
     let pieces = crate::seams::pieces(mesh, cuts)
         .into_iter()
         .filter(|p| p.iter().any(|f| wanted.contains(f)))
+        .filter(|p| !mesh::uvs::any_locked(mesh, p))
         .collect();
     (pieces, wanted.len())
 }
@@ -716,6 +719,84 @@ pub(crate) fn one_way(at: Vec<Vec2>, old: &[Option<Vec2>], axis: UnfoldAxis) -> 
         .collect()
 }
 
+/// A piece's own unwrap settings ([decision
+/// 0112](../../../docs/decisions/0112-locked-pieces-and-piece-settings.md)):
+/// each, when set, is used for the piece instead of the app's, by every
+/// unwrap of it.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct PieceSettings {
+    /// Its way of laying flat.
+    pub method: Option<UnwrapMethod>,
+    /// Whether it is straightened as a strip (when it is one).
+    pub strips: Option<bool>,
+    /// Its texel density, in texture widths per scene unit.
+    pub density: Option<f32>,
+}
+
+impl PieceSettings {
+    /// The settings stored on the piece made of `faces`.
+    pub fn of(mesh: &Mesh, faces: &[FaceId]) -> Self {
+        Self::from_values(mesh::uvs::piece_values(mesh, faces))
+    }
+
+    /// The settings `values` stand for.
+    pub fn from_values(values: mesh::uvs::PieceValues) -> Self {
+        Self {
+            method: match values.method {
+                1 => Some(UnwrapMethod::Conformal),
+                2 => Some(UnwrapMethod::AngleBased),
+                3 => Some(UnwrapMethod::SizeKeeping),
+                4 => Some(UnwrapMethod::Automatic),
+                _ => None,
+            },
+            strips: match values.strips {
+                1 => Some(true),
+                2 => Some(false),
+                _ => None,
+            },
+            density: (values.density.is_finite() && values.density > 0.0).then_some(values.density),
+        }
+    }
+
+    /// The values that store these settings.
+    pub fn values(&self) -> mesh::uvs::PieceValues {
+        mesh::uvs::PieceValues {
+            method: match self.method {
+                None => 0,
+                Some(UnwrapMethod::Conformal) => 1,
+                Some(UnwrapMethod::AngleBased) => 2,
+                Some(UnwrapMethod::SizeKeeping) => 3,
+                Some(UnwrapMethod::Automatic) => 4,
+            },
+            strips: match self.strips {
+                None => 0,
+                Some(true) => 1,
+                Some(false) => 2,
+            },
+            density: self.density.unwrap_or(0.0),
+        }
+    }
+
+    /// `options` with these settings put over them.
+    pub fn over(&self, options: UnwrapOptions) -> UnwrapOptions {
+        UnwrapOptions {
+            method: self.method.unwrap_or(options.method),
+            strips: self.strips.unwrap_or(options.strips),
+            ..options
+        }
+    }
+
+    /// Whether every setting is the app's.
+    pub fn is_empty(&self) -> bool {
+        *self == Self::default()
+    }
+
+    /// Whether every number is real (a density above 0).
+    pub fn is_real(&self) -> bool {
+        self.density.is_none_or(|d| d.is_finite() && d > 0.0)
+    }
+}
+
 /// Lays `pieces` (whole pieces by `cuts`) flat as [`unwrap_with`] does,
 /// at `density` (UV area per surface area); whether the UVs changed.
 pub(crate) fn lay_out(
@@ -749,6 +830,10 @@ pub(crate) fn lay_out(
     cuts.extend(over);
     let mut laid = Vec::new();
     for piece in pieces {
+        // The piece's own settings, over the app's (decision 0112).
+        let own = PieceSettings::of(mesh, piece);
+        let options = own.over(options);
+        let density = own.density.map_or(density, |d| d * d);
         let chart = Chart::of(mesh, piece, &cuts);
         let was = before(mesh, &chart, uvs.as_ref());
         let pins = pinned_spots(mesh, &chart, uvs.as_ref());
