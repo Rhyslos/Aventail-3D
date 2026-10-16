@@ -445,6 +445,11 @@ pub(crate) fn mouse() -> Vec<MouseLine> {
             "Alt + drag the Move gizmo",
             Editing,
         ),
+        line(
+            "The quad menu (switched on in Settings → Interface)",
+            "Right-click in the viewport",
+            Anywhere,
+        ),
         line("Cancel a drag", "Right-click (or Esc)", Dragging),
     ]
 }

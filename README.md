@@ -144,9 +144,9 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** a prop exports into Godot and Substance Painter and looks right (shape, hard edges, scale) with no fixes in other software. The full bake round trip comes with UVs (Phase 8).
 
-### Phase 6 · Workflow tools — 5 of 6
+### Phase 6 · Workflow tools — 6 of 6
 
-`███████████░░` 83%
+`█████████████` 100%
 
 <details>
 <summary>Milestones</summary>
@@ -156,7 +156,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 - [x] Edit Layers: a stack of edit layers per object (inspired by 3ds Max's stack of edit modifiers), whose layers find their parts again when a layer below changes, added from a new modifiers palette between the viewport and the Attributes and Objects panels
 - [x] Edit list: every recorded edit in order, each one changeable, pinned to stay changeable, frozen to keep big models quick, or switched off
 - [x] Snap to and align tools
-- [ ] Optional quad menu on right-click
+- [x] Optional quad menu on right-click
 
 </details>
 
@@ -223,6 +223,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-16 | Optional quad menu: a right-click in the viewport opens Show, Modes, Edit and Tools around the mouse (off as standard) |
 | 2026-10-16 | Snap to and Align: put objects onto another object's pivot, or line up their sides and middles along chosen axes, shown live |
 | 2026-10-16 | The edit list: open and change any earlier edit in the Attributes panel, switch edits off, keep them editable, freeze old ones into the shape, delete one |
 | 2026-10-16 | Edit layers: add, switch off, rename, move, merge and delete layers of edits in a new Edit layers panel, with the first button of the modifiers palette beside the viewport |
