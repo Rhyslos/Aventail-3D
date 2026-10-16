@@ -17,10 +17,12 @@ A few of these settings also have a quick switch where you use them while workin
 
 1. Open **Edit → Settings…** on the main menu bar, or press **Ctrl + ,** (Ctrl and the comma key).
 2. Pick a section on the left: **Interface**, **Viewport**, **Undo** or **Autosave**.
-3. Click a choice. It takes effect at once; there's no OK button to press.
-4. Close the window with the **×** in its corner, or press **Ctrl + ,** again.
+3. Click a choice. It takes effect at once: there is nothing to confirm.
+4. Close the window with **Done**, the **×** in its corner, **Enter** or **Esc**, or press **Ctrl + ,** again.
 
-**Restore standard** (bottom left) puts every setting back as it was when the app was new. Your panel layout is kept; to reset that, use **View → Reset panel layout**.
+![The Settings window: sections listed on the left, the Interface section's accent colours and units on the right, Restore standard and Done in the footer](../screenshots/2026-10-16-settings-window.png)
+
+**Restore standard** (bottom left of the footer) puts every setting back as it was when the app was new. Your panel layout is kept; to reset that, use **View → Reset panel layout**.
 
 ## Settings
 
@@ -32,7 +34,7 @@ A few of these settings also have a quick switch where you use them while workin
 | Interface → Radial menu | **Tap E to open** | On (standard): a tap opens the menu and keeps it open. Off: it shows only while you hold E. |
 | Interface → Warnings | **Ask before dissolving across a sharp corner** | On (standard): [Dissolve](clean-up.md#dissolving-across-a-sharp-corner) asks first when it would merge polygons meeting more sharply than 30° into one bent polygon. Off: it goes ahead. Also switched off by **Don't warn me again** in the question. |
 | Interface → Units | **This project** | Show and type this project's sizes in **metres** (standard) or **centimetres**. Saved with the project, not as a preference; changing it is an undo step. Only the display changes, never the shapes. See [Units](pivots.md#units-metres-or-centimetres). |
-| Interface → Units | **… for new projects** | The units a new project starts with: **Metres for new projects** (standard) or **Centimetres for new projects**. Remembered between sessions. |
+| Interface → Units | **New projects** | The units a new project starts with: **Metres** (standard) or **Centimetres**. Remembered between sessions. |
 | Viewport | **Navigation controls** | Which mouse buttons orbit, pan and zoom. **Mouse only** is the standard; see [Navigating the view](navigating-the-view.md) for each scheme. |
 | Viewport | **Alt + mouse works in every scheme** | Keeps the Alt + mouse moves working whichever controls you pick. |
 | Viewport | **Orbit and zoom around the point under the mouse** | On (standard): turn around, and zoom towards, whatever is under the mouse. Off: the middle of the view. |

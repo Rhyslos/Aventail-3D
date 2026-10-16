@@ -219,7 +219,7 @@ impl Workbench {
                 .on_disabled_hover_text("Select an object first: its materials are listed here");
             return;
         }
-        ui.menu_button("Select by material", |ui| {
+        crate::dialog::menu(ui, "Select by material", |ui| {
             for name in names {
                 if ui.button(&name).on_hover_text(HELP).clicked() {
                     self.mode = Mode::Polygons;

@@ -467,3 +467,34 @@ fn collision_names_and_boxes_go_out_for_godot() {
     let (plain, _) = names(false);
     assert_eq!(plain, ["Cube", "Cylinder", "Sphere"]);
 }
+
+#[test]
+fn the_summary_before_exporting_matches_the_export() {
+    use crate::export::{ExportFormat, ExportWhat, export_bytes, summary};
+    let mut doc = scene_with_materials();
+    for what in [ExportWhat::Everything, ExportWhat::Selected] {
+        let options = ExportOptions {
+            what,
+            ..ExportOptions::default()
+        };
+        let before = summary(&doc, &options);
+        let made = export_bytes(&doc, ExportFormat::Glb, &options, "T", "a.glb")
+            .unwrap()
+            .summary;
+        assert_eq!(before, made, "{what:?}");
+    }
+    // Two objects, Default and Paint used ("Unused" isn't), Paint once by
+    // name.
+    let all = summary(&doc, &ExportOptions::default());
+    assert_eq!((all.objects, all.materials), (2, 2));
+    // Nothing selected: nothing to export.
+    doc.set_selection([]);
+    let none = summary(
+        &doc,
+        &ExportOptions {
+            what: ExportWhat::Selected,
+            ..ExportOptions::default()
+        },
+    );
+    assert_eq!(none, crate::export::ExportSummary::default());
+}

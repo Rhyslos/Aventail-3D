@@ -6,11 +6,15 @@
 
 use super::Workbench;
 use super::joining::counted;
+use crate::dialog::{self, Dialog};
 use crate::palette::Mode;
 use crate::theme;
 use egui::{RichText, Ui};
 use mesh::bake::BakeReport;
 use scene::{Element, ElementSelection, ObjectId, ObjectKind, Operation};
+
+/// The bake check window's title.
+pub(crate) const BAKE_TITLE: &str = "Check for baking";
 
 /// The bake check window's state.
 #[derive(Debug, Clone, Default)]
@@ -282,36 +286,35 @@ impl Workbench {
             return;
         }
         let problems = self.bake_problems();
-        let mut open = true;
+        let mut done = false;
         let mut select = None;
         let mut fix = None;
-        egui::Window::new("Check for baking")
-            .open(&mut open)
-            .collapsible(false)
-            .resizable(false)
-            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
-            .show(ctx, |ui| {
-                ui.set_width(440.0);
+        let summary = if problems.is_empty() {
+            "Nothing found that would spoil a bake.".to_string()
+        } else {
+            format!(
+                "{} that would spoil a bake in Substance Painter.",
+                counted("", problems.len(), "thing").trim_start()
+            )
+        };
+        let outcome = Dialog::new(BAKE_TITLE, 560.0).show(ctx, |d| {
+            d.header(true, |_| {});
+            d.body(|ui| {
+                dialog::heading(ui, &summary);
                 if problems.is_empty() {
-                    ui.label(
-                        RichText::new("Nothing found that would spoil a bake.")
-                            .color(theme::TEXT_STRONG),
-                    );
-                    ui.label(
-                        RichText::new(
-                            "Checked: polygons facing the wrong way, edges shared by three \
-                             polygons, polygons with no area, points on the same spot, bent or \
-                             sliver many-sided polygons, loose points, and _low / _high names.",
-                        )
-                        .small()
-                        .color(theme::TEXT_WEAK),
+                    dialog::help(
+                        ui,
+                        "Checked: polygons facing the wrong way, edges shared by three \
+                         polygons, polygons with no area, points on the same spot, bent or \
+                         sliver many-sided polygons, loose points, and _low / _high names.",
                     );
                     return;
                 }
-                ui.label(format!(
-                    "{} that would spoil a bake in Substance Painter. Point at one for why.",
-                    counted("", problems.len(), "thing").trim_start()
-                ));
+                dialog::help(
+                    ui,
+                    "Point at one for why. Select shows where it is; Fix mends it as one step \
+                     Ctrl + Z can take back.",
+                );
                 ui.add_space(4.0);
                 egui::ScrollArea::vertical()
                     .max_height(420.0)
@@ -359,7 +362,14 @@ impl Workbench {
                             });
                     });
             });
-        if !open {
+            d.footer(None, |ui| {
+                if dialog::main_button(ui, "Done").clicked() {
+                    done = true;
+                }
+            });
+        });
+        let (enter, escape) = dialog::enter_or_escape(ctx);
+        if outcome.closed || done || enter || escape {
             self.baking.open = false;
         }
         if let Some(problem) = select.and_then(|i| problems.get(i)) {

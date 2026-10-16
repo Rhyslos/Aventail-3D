@@ -12,6 +12,7 @@ mod autosave;
 pub mod commands;
 mod components;
 mod coordinates;
+mod dialog;
 mod drawing;
 pub mod icons;
 mod keyboard;

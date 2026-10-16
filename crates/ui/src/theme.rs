@@ -186,6 +186,17 @@ pub const UNAVAILABLE_STRENGTH: f32 = 0.85;
 /// Name of the bolder font family, for headings.
 pub const SEMIBOLD: &str = "semibold";
 
+/// The semibold interface font at `size`, or the regular one where it
+/// isn't loaded (tests run without the app's fonts).
+pub fn semibold(ctx: &Context, size: f32) -> FontId {
+    let family = FontFamily::Name(SEMIBOLD.into());
+    if ctx.fonts(|f| f.definitions().families.contains_key(&family)) {
+        FontId::new(size, family)
+    } else {
+        FontId::proportional(size)
+    }
+}
+
 /// Inter, the interface font (SIL Open Font License 1.1; see licenses/fonts).
 const INTER_REGULAR: &[u8] = include_bytes!("../assets/fonts/Inter-Regular.ttf");
 const INTER_SEMIBOLD: &[u8] = include_bytes!("../assets/fonts/Inter-SemiBold.ttf");

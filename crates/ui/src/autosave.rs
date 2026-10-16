@@ -7,8 +7,7 @@
 //! hands the workbench what was left behind, and the workbench asks what
 //! to do with it.
 
-use crate::theme;
-use egui::{Key, Modifiers, RichText};
+use egui::{Key, Modifiers};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::time::SystemTime;
@@ -200,82 +199,75 @@ impl RecoveryQuestion {
         let offer = self.offers.first()?.clone();
         let now = SystemTime::now();
         let mut answer = None;
-        egui::Modal::new(egui::Id::new("recover_unsaved_work")).show(ctx, |ui| {
-            ui.set_width(420.0);
-            ui.label(
-                RichText::new(RECOVERY_TITLE)
-                    .strong()
-                    .color(theme::TEXT_STRONG),
-            );
-            ui.add_space(4.0);
-            let what = offer.project.as_ref().map_or_else(
-                || "an unsaved scene".to_string(),
-                |p| {
-                    p.file_name()
-                        .map_or_else(|| p.display().to_string(), |n| n.to_string_lossy().into())
-                },
-            );
-            ui.label(format!(
-                "The app closed without saving your work on {what}. Backup copies were kept:"
-            ));
-            ui.add_space(6.0);
-            for (i, copy) in offer.copies.iter().enumerate() {
-                let mut text = format!("Saved {}", ago(copy.saved, now));
-                if i == 0 {
-                    text.push_str(" (newest)");
-                }
-                if ui.radio(self.chosen == i, text).clicked() {
-                    self.chosen = i;
-                }
-            }
-            if offer.left_out {
-                ui.label(
-                    RichText::new(
-                        "One newer copy is left out: restoring it closed the app last time.",
-                    )
-                    .small()
-                    .color(theme::TEXT_WEAK),
-                );
-            }
-            ui.add_space(10.0);
-            ui.horizontal(|ui| {
-                if ui
-                    .button("Restore")
-                    .on_hover_text(
-                        "Bring the chosen copy back. It opens as unsaved work: save it to keep it.",
-                    )
-                    .clicked()
-                {
-                    answer = offer
-                        .copies
-                        .get(self.chosen)
-                        .map(|c| RecoveryAnswer::Restore(c.path.clone()));
-                }
-                if let Some(project) = &offer.project
-                    && ui
-                        .button("Open as saved")
+        let chosen = &mut self.chosen;
+        crate::dialog::Dialog::new(RECOVERY_TITLE, 480.0)
+            .id("recover_unsaved_work")
+            .modal()
+            .show(ctx, |d| {
+                d.header(false, |_| {});
+                d.body(|ui| {
+                    let what = offer.project.as_ref().map_or_else(
+                        || "an unsaved scene".to_string(),
+                        |p| {
+                            p.file_name().map_or_else(
+                                || p.display().to_string(),
+                                |n| n.to_string_lossy().into(),
+                            )
+                        },
+                    );
+                    ui.label(format!(
+                        "The app closed without saving your work on {what}. Backup copies were \
+                         kept:"
+                    ));
+                    ui.add_space(2.0);
+                    for (i, copy) in offer.copies.iter().enumerate() {
+                        let mut text = format!("Saved {}", ago(copy.saved, now));
+                        if i == 0 {
+                            text.push_str(" (newest)");
+                        }
+                        if ui.radio(*chosen == i, text).clicked() {
+                            *chosen = i;
+                        }
+                    }
+                    if offer.left_out {
+                        crate::dialog::help(
+                            ui,
+                            "One newer copy is left out: restoring it closed the app last time.",
+                        );
+                    }
+                    crate::dialog::help(ui, "Enter: restore the chosen copy");
+                });
+                d.footer(None, |ui| {
+                    if crate::dialog::main_button(ui, "Restore")
                         .on_hover_text(
-                            "Open the project as you last saved it, and delete the backup copies.",
+                            "Bring the chosen copy back. It opens as unsaved work: save it to \
+                             keep it.",
                         )
                         .clicked()
-                {
-                    answer = Some(RecoveryAnswer::OpenSaved(project.clone()));
-                }
-                if ui
-                    .button("Discard")
-                    .on_hover_text("Delete the backup copies for good and start afresh.")
-                    .clicked()
-                {
-                    answer = Some(RecoveryAnswer::Discard);
-                }
+                    {
+                        answer = offer
+                            .copies
+                            .get(*chosen)
+                            .map(|c| RecoveryAnswer::Restore(c.path.clone()));
+                    }
+                    if let Some(project) = &offer.project
+                        && crate::dialog::plain_button(ui, "Open as saved")
+                            .on_hover_text(
+                                "Open the project as you last saved it, and delete the backup \
+                                 copies.",
+                            )
+                            .clicked()
+                    {
+                        answer = Some(RecoveryAnswer::OpenSaved(project.clone()));
+                    }
+                    if crate::dialog::plain_button(ui, "Discard")
+                        .on_hover_text("Delete the backup copies for good and start afresh.")
+                        .clicked()
+                    {
+                        answer = Some(RecoveryAnswer::Discard);
+                    }
+                });
             });
-            ui.add_space(4.0);
-            ui.label(
-                RichText::new("Enter: restore the chosen copy")
-                    .small()
-                    .color(theme::TEXT_WEAK),
-            );
-        });
         if answer.is_none() && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Enter)) {
             answer = offer
                 .copies

@@ -10,10 +10,11 @@
 
 ## How to use it
 
-1. Choose **File → Check for baking…**. (With **Made for: Substance Painter** in the [Export window](export-and-import.md), there is a **Check for baking…** button there too.)
+1. Choose **File → Check for baking…**. (With **Made for: Substance Painter** in the [Export window](export-and-import.md), there is a **Check for baking…** button under its file settings too.)
 2. The window lists each problem as *Object: what is wrong*. Point at one to read why it spoils a bake and what to do.
 3. Click **Select** to see it: the object is selected and, in the right mode, the polygons, edges or points concerned.
 4. Click **Fix** where there is one. The fix is one undo step: **Ctrl + Z** takes it back.
+5. Close the window with **Done**, the **×**, **Enter** or **Esc**.
 5. The list updates as you work. When it says *Nothing found that would spoil a bake*, export.
 
 ## What it checks

@@ -492,6 +492,60 @@ pub fn prepare(document: &Document, options: &ExportOptions) -> Vec<ExportedObje
         .collect()
 }
 
+/// What an export of `document` with `options` would hold, worked out
+/// without making the file: the Export window shows it before exporting.
+/// The same numbers as [`ExportFiles::summary`] for the same export.
+pub fn summary(document: &Document, options: &ExportOptions) -> ExportSummary {
+    let scene = document.scene();
+    let selection = document.selection();
+    let mut objects = 0;
+    let mut triangles = 0;
+    let mut materials: Vec<String> = Vec::new();
+    for (id, _) in scene.walk() {
+        if !scene.is_shown(id) {
+            continue;
+        }
+        if options.what == ExportWhat::Selected
+            && !selection
+                .iter()
+                .any(|s| *s == id || scene.is_inside(id, *s))
+        {
+            continue;
+        }
+        let Some(shape) = scene.evaluated(id).map(|e| e.mesh) else {
+            continue;
+        };
+        objects += 1;
+        let list = scene.material_list(id);
+        let (starts, _) = shape.face_layout();
+        let mut used = vec![false; list.len()];
+        for (f, pair) in starts.windows(2).enumerate() {
+            let corners = (pair[1] - pair[0]) as usize;
+            let face = FaceId::from_raw(f as u32);
+            if corners < 3 || shape.face(face).is_none() {
+                continue;
+            }
+            triangles += corners - 2;
+            let slot = mesh::material::slot_of(&shape, face) as usize;
+            // A slot with no material in the list uses the first.
+            let slot = if slot < list.len() { slot } else { 0 };
+            if let Some(u) = used.get_mut(slot) {
+                *u = true;
+            }
+        }
+        for (material, used) in list.iter().zip(used) {
+            if used && !materials.contains(&material.name) {
+                materials.push(material.name.clone());
+            }
+        }
+    }
+    ExportSummary {
+        objects,
+        triangles,
+        materials: materials.len(),
+    }
+}
+
 /// The objects of one kit piece ([decision 0078](../../../docs/decisions/0078-kit-export.md)):
 /// `root` and the shown objects inside it, moved so `root`'s pivot is at
 /// the file's origin (turned and sized as in the scene).

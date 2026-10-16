@@ -27,7 +27,7 @@ use crate::transforming::Tool;
 use crate::undo_memory::UndoMemory;
 use crate::units::Units;
 use crate::viewport::{ViewOptions, ViewportPanel, ViewportRenderer};
-use egui::{Align2, Id, Key, KeyboardShortcut, Modifiers, Ui, WidgetText};
+use egui::{Id, Key, KeyboardShortcut, Modifiers, Ui, WidgetText};
 use egui_dock::{DockArea, DockState, TabViewer};
 use scene::{Command, Document, ObjectKind, PrimitiveKind};
 use selection::SelectRequest;
@@ -683,38 +683,32 @@ impl Workbench {
             return;
         };
         let mut answer = None;
-        egui::Modal::new(egui::Id::new("unsaved_changes")).show(ctx, |ui| {
-            ui.set_width(380.0);
-            ui.label(
-                egui::RichText::new(format!("Save changes to {}?", self.file.name()))
-                    .strong()
-                    .color(theme::TEXT_STRONG),
-            );
-            ui.add_space(4.0);
-            ui.label(format!(
-                "Your changes will be lost if you don't save them before {}.",
-                pending.before()
-            ));
-            ui.add_space(10.0);
-            ui.horizontal(|ui| {
-                if ui.button("Save").clicked() {
-                    answer = Some(UnsavedAnswer::Save);
-                }
-                if ui.button("Don't save").clicked() {
-                    answer = Some(UnsavedAnswer::Discard);
-                }
-                if ui.button("Cancel").clicked() {
-                    answer = Some(UnsavedAnswer::Cancel);
-                }
+        let discard = ctx.format_shortcut(&DISCARD_SHORTCUT);
+        let keys = format!("Enter: save · {discard}: don't save · Esc: cancel");
+        crate::dialog::Dialog::new(format!("Save changes to {}?", self.file.name()), 440.0)
+            .id("unsaved_changes")
+            .modal()
+            .show(ctx, |d| {
+                d.header(false, |_| {});
+                d.body(|ui| {
+                    ui.label(format!(
+                        "Your changes will be lost if you don't save them before {}.",
+                        pending.before()
+                    ));
+                    crate::dialog::help(ui, &keys);
+                });
+                d.footer(None, |ui| {
+                    if crate::dialog::main_button(ui, "Save").clicked() {
+                        answer = Some(UnsavedAnswer::Save);
+                    }
+                    if crate::dialog::plain_button(ui, "Cancel").clicked() {
+                        answer = Some(UnsavedAnswer::Cancel);
+                    }
+                    if crate::dialog::plain_button(ui, "Don't save").clicked() {
+                        answer = Some(UnsavedAnswer::Discard);
+                    }
+                });
             });
-            ui.add_space(4.0);
-            let discard = ui.ctx().format_shortcut(&DISCARD_SHORTCUT);
-            ui.label(
-                egui::RichText::new(format!("Enter: save · {discard}: don't save · Esc: cancel"))
-                    .small()
-                    .color(theme::TEXT_WEAK),
-            );
-        });
         let (save, discard, cancel) = ctx.input_mut(|i| {
             (
                 i.consume_key(Modifiers::NONE, Key::Enter),
@@ -895,7 +889,9 @@ impl Workbench {
         egui::Panel::top("menu_bar")
             .frame(theme::menu_bar_frame())
             .show(ui, |ui| {
-                egui::MenuBar::new().ui(ui, |ui| self.menu_bar(ui, &mut actions, &mut requests));
+                egui::MenuBar::new()
+                    .config(crate::dialog::menu_config())
+                    .ui(ui, |ui| self.menu_bar(ui, &mut actions, &mut requests));
             });
         let palette_state = PaletteState {
             undo: self.document.undo_label().map(str::to_string),
@@ -1077,18 +1073,28 @@ impl Workbench {
         }
 
         self.shortcut_window(ui.ctx());
-        let mut about_open = self.about_open;
-        egui::Window::new(format!("About {}", self.info.name))
-            .open(&mut about_open)
-            .collapsible(false)
-            .resizable(false)
-            .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
-            .show(ui.ctx(), |ui| about_contents(ui, &self.info));
-        self.about_open = about_open;
+        if self.about_open {
+            let mut done = false;
+            let outcome = crate::dialog::Dialog::new(format!("About {}", self.info.name), 460.0)
+                .id("about")
+                .show(ui.ctx(), |d| {
+                    d.header(true, |_| {});
+                    d.body(|ui| about_contents(ui, &self.info));
+                    d.footer(None, |ui| {
+                        done = crate::dialog::main_button(ui, "Close").clicked();
+                    });
+                });
+            let (enter, escape) = crate::dialog::enter_or_escape(ui.ctx());
+            if outcome.closed || done || enter || escape {
+                self.about_open = false;
+            }
+        }
 
+        // The bake check first: opened from the Export window, it sits on
+        // top of it, so Esc closes it first.
         self.settings_window(ui.ctx());
-        self.export_window(ui.ctx(), &mut actions);
         self.bake_window(ui.ctx());
+        self.export_window(ui.ctx(), &mut actions);
         self.keep_units(units_shown);
         // While Pivot to object waits for its click, the pointer says so.
         if self.pivot_target {
@@ -1129,6 +1135,17 @@ impl Workbench {
         if undo_memory != self.undo_memory {
             self.set_undo_memory(undo_memory);
         }
+    }
+
+    /// Whether one of the app's windows is open (Export, Check for baking,
+    /// Settings, the keys, About): Esc closes it rather than selecting
+    /// nothing.
+    fn window_open(&self) -> bool {
+        self.exporting.open
+            || self.baking.open
+            || self.settings.open
+            || self.shortcuts.open
+            || self.about_open
     }
 
     /// Keys that change the document: undo, redo, delete, deselect, group
@@ -1217,7 +1234,11 @@ impl Workbench {
         }
         // Esc closes an open menu first; otherwise it deselects: the
         // points, edges or polygons in those modes, else the objects.
-        if !popup_open && ui.input_mut(|i| i.consume_shortcut(&objects::DESELECT_SHORTCUT)) {
+        // With a window open, Esc closes it instead (decision 0087).
+        if !popup_open
+            && !self.window_open()
+            && ui.input_mut(|i| i.consume_shortcut(&objects::DESELECT_SHORTCUT))
+        {
             if components::kind_for(self.mode).is_some() {
                 self.select_requests.push(SelectRequest::Clear);
             } else {
@@ -1392,7 +1413,7 @@ impl Workbench {
         actions: &mut Vec<WorkbenchAction>,
         requests: &mut Vec<DocRequest>,
     ) {
-        ui.menu_button("File", |ui| {
+        crate::dialog::menu(ui, "File", |ui| {
             let entry = |ui: &mut Ui, label: &str, keys: &KeyboardShortcut, help: &str| {
                 let keys = ui.ctx().format_shortcut(keys);
                 ui.add(egui::Button::new(label).shortcut_text(keys))
@@ -1409,7 +1430,7 @@ impl Workbench {
             }
             let recent = self.file.recent.clone();
             ui.add_enabled_ui(!recent.is_empty(), |ui| {
-                ui.menu_button("Open recent", |ui| {
+                crate::dialog::menu(ui, "Open recent", |ui| {
                     for path in &recent {
                         if ui
                             .button(recent_label(path))
@@ -1456,7 +1477,7 @@ impl Workbench {
                 ui.close();
             }
         });
-        ui.menu_button("Edit", |ui| {
+        crate::dialog::menu(ui, "Edit", |ui| {
             objects::undo_entries(ui, &self.document, requests);
             ui.separator();
             objects::selection_entries(ui, &mut self.document, &mut self.objects, requests);
@@ -1475,7 +1496,7 @@ impl Workbench {
         });
         // Menu order as in DESIGN.md: File, Edit, Create, Modes, Select,
         // Tools, Mesh, UV, View, Window, Help.
-        ui.menu_button("Create", |ui| {
+        crate::dialog::menu(ui, "Create", |ui| {
             for kind in PrimitiveKind::ALL {
                 if ui
                     .button(kind.name())
@@ -1502,7 +1523,7 @@ impl Workbench {
                     .color(theme::TEXT_WEAK),
             );
         });
-        ui.menu_button("Modes", |ui| {
+        crate::dialog::menu(ui, "Modes", |ui| {
             for mode in Mode::ALL {
                 let mut entry = egui::Button::selectable(self.mode == mode, mode.name());
                 if let Some(key) = mode.key() {
@@ -1515,7 +1536,7 @@ impl Workbench {
             }
         });
         for (title, items) in COMING {
-            ui.menu_button(title, |ui| {
+            crate::dialog::menu(ui, title, |ui| {
                 if title == "Select" {
                     self.select_menu(ui);
                 }
@@ -1580,7 +1601,7 @@ impl Workbench {
                 coming_entries(ui, items);
             });
         }
-        ui.menu_button("View", |ui| {
+        crate::dialog::menu(ui, "View", |ui| {
             if ui
                 .button("Reset view")
                 .on_hover_text("Go back to the opening camera view")
@@ -1598,11 +1619,11 @@ impl Workbench {
                 ui.close();
             }
         });
-        ui.menu_button("Window", |ui| {
+        crate::dialog::menu(ui, "Window", |ui| {
             ui.add_enabled(false, egui::Button::new("UV Editor panel"))
                 .on_disabled_hover_text("Arrives in Phase 8");
         });
-        ui.menu_button("Help", |ui| {
+        crate::dialog::menu(ui, "Help", |ui| {
             if ui
                 .button("Add a heavy test shape")
                 .on_hover_text(

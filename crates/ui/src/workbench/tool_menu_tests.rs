@@ -346,6 +346,9 @@ fn settings_have_a_radial_menu_section_with_every_look_and_switch() {
     for style in ToolMenuStyle::ALL {
         assert!(harness.query_by_label(style.name()).is_some(), "{style:?}");
     }
+    // The section is further down the window: scroll to it.
+    harness.get_by_label("Tap E to open").scroll_to_me();
+    harness.run();
     harness.get_by_label("List").click();
     harness.run();
     assert_eq!(

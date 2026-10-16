@@ -2,7 +2,7 @@
 
 > Write your models to a glTF or OBJ file for a game engine or Substance Painter, and bring models in from OBJ files.
 
-![The Export window with Substance Painter chosen under Made for: OBJ, everything shown, metres, Y up, cut into triangles](../screenshots/2026-10-15-export-window.png)
+![The Export window: Made for Godot in the title bar, a side list with General and Game project, and the General section with Objects, Includes, the locked file settings line, where every save exports to, and what goes out: 3 objects, 600 triangles, 1 material](../screenshots/2026-10-16-export-window.png)
 
 ## When to use it
 
@@ -11,7 +11,7 @@ Your project file (`.avtl`) keeps everything the app needs to go on working: set
 - **glTF** (`.glb`, the standard): the open format Godot and Substance Painter read best, and Unity and Unreal Engine read too. Each object arrives as its own piece **placed at its [pivot](pivots.md)**, so the engine places, turns and snaps it by the pivot you set. It's always metres, Y up, and triangles, as the format requires.
 - **OBJ** (`.obj`): plain text, read by almost every 3D program, including Godot, Unity, Unreal Engine, Blender and Substance Painter. It holds the shapes (points, polygons, normals and UVs), not where each object's pivot is: every object is written where it stands in the scene.
 
-**Made for** at the top of the Export window picks the right settings for **Godot** or **Substance Painter** in one click.
+**Made for**, in the Export window's title bar, picks the right settings for **Godot**, **Unity**, **Unreal Engine** or **Substance Painter** in one click.
 
 **Import** does the reverse: it brings shapes in from an OBJ file made elsewhere, as plain meshes you can edit.
 
@@ -19,15 +19,26 @@ Your project file (`.avtl`) keeps everything the app needs to go on working: set
 
 ### Export
 
-1. Choose **File → Export…**. The Export window opens.
-2. Under **Made for**, pick where the model is going (see [Presets](#presets) below): **Godot** (the standard) or **Substance Painter** sets the kind of file and its size and direction for you: skip to step 4. Or pick **Your own settings** and carry on.
-3. Pick the **kind of file**: **glTF** or **OBJ**.
-4. Pick **What**: **Everything shown** (hidden objects stay out), or **The selected objects** (and what's inside them). Presets leave this as you set it.
-5. For OBJ, check **Size and direction** for where the file is going (glTF is always metres, Y up and triangles, so these are greyed out):
-   - **Metres** for Godot, Unity and Substance Painter; **Centimetres** for Unreal Engine.
-   - **Y up** for nearly every program. The app is Z up, so it turns the model on the way out and it arrives standing upright. **Z up** keeps the app's own axes.
-   - Tick **Cut polygons into triangles** if the model will be baked in Substance Painter: the file then holds exactly the triangles the game will draw, cut the same way the viewport cuts them, so the bake matches. Game engines cut polygons themselves otherwise, not always the same way.
-6. Click **Export…**, choose where to save, and the status bar says how many objects and triangles went out (and for an OBJ, the `.mtl` file is written beside it).
+The Export window has a **side list** on the left. **General** holds everything most exports need; **Game project** sets up exporting straight into a game engine's project. More sections (Materials, Mesh, Rig, Animations) join the list once the app has those features; until then they aren't shown, so there is nothing to hunt through.
+
+1. Choose **File → Export…**. The Export window opens on **General**.
+2. In the title bar, open **Made for** and pick where the model is going (see [Presets](#presets) below): **Godot** (the standard), **Unity**, **Unreal Engine** or **Substance Painter**. Each shows its kind of file on the right. The preset's file settings then show as one locked line, such as *glTF · metres · Y up · triangles*: skip to step 4. Or pick **Custom settings** at the bottom of the list and carry on.
+3. With **Custom settings**, the file settings appear as rows to choose from:
+   - **File type**: **glTF (.glb)** or **OBJ (.obj)**.
+   - **Units**: **Metres** for Godot, Unity and Substance Painter; **Centimetres** for Unreal Engine.
+   - **Up axis**: **Y up** for nearly every program. The app is Z up, so it turns the model on the way out and it arrives standing upright. **Z up** keeps the app's own axes.
+   - **Triangles**: tick **Cut polygons into triangles** if the model will be baked in Substance Painter: the file then holds exactly the triangles the game will draw, cut the same way the viewport cuts them, so the bake matches. Game engines cut polygons themselves otherwise, not always the same way.
+
+   glTF is always metres, Y up and triangles, so with glTF those three rows are greyed out.
+4. Pick the **Objects**: **Everything shown** (hidden objects stay out), or **Selected only** (the selected objects and what's inside them). Presets leave this as you set it.
+5. Check **What goes out** at the bottom: how many objects, triangles and materials the file will hold. If nothing would go out (everything hidden, say), the footer says so and **Export…** can't be pressed.
+6. Click **Export…** (or press **Enter**), choose where to save, and the status bar says how many objects and triangles went out (and for an OBJ, the `.mtl` file is written beside it). **Cancel**, the **×** or **Esc** closes the window without exporting.
+
+**Includes** shows what goes into the file: the mesh and its materials. They always go out; once the app has skeletons and animations, they will be listed here too, to leave out when you don't need them.
+
+The **Game project** part of General says whether every save also exports into your game project, and where the file goes, for example *crate-run (Godot) › models › crate.glb*. Click **Game project** in that sentence (or in the side list) to set it up or change it: see [Export into a game project](#export-into-a-game-project).
+
+![The Export window with Custom settings: the file type, units, up axis and triangles as rows to choose from](../screenshots/2026-10-16-export-custom.png)
 
 **File → Export again** repeats the last export, to the same file, the same way: handy while you go back and forth between the app and the engine.
 
@@ -49,18 +60,18 @@ Each object's points stay joined in the file: a smooth surface is one connected 
 | **Godot** (standard) | glTF, metres, Y up, triangles | glTF is Godot's favourite: each object arrives at its [pivot](pivots.md) with its [materials](materials.md) and its [collision](kit-export.md), and Godot re-imports the file by itself whenever you export again into its project folder. |
 | **Unity** | glTF, metres, Y up, triangles | The same file; Unity reads it once its *glTFast* package is installed. |
 | **Unreal Engine** | glTF, metres, Y up, triangles | The same file; Unreal Engine 5 reads it and turns it into its own centimetres and Z up. |
-| **Substance Painter** | OBJ, metres, Y up, cut into triangles | The usual way into Substance Painter; its **Check for baking…** button runs the [bake check](bake-check.md). Each [material](materials.md) becomes a texture set, and the triangles are the viewport's, the same ones the glTF for the game holds, so the bake matches. |
-| **Your own settings** | whatever you choose below | For anything else, such as an OBJ in centimetres for an older Unreal Engine. |
+| **Substance Painter** | OBJ, metres, Y up, cut into triangles | The usual way into Substance Painter; a **Check for baking…** button appears under the file settings and runs the [bake check](bake-check.md). Each [material](materials.md) becomes a texture set, and the triangles are the viewport's, the same ones the glTF for the game holds, so the bake matches. |
+| **Custom settings** | whatever you choose | For anything else, such as an OBJ in centimetres for an older Unreal Engine. It starts from the settings of the preset you had, so you only change what's different. |
 
-Change any setting under a preset and the window switches to **Your own settings**, so it never claims a preset it isn't following. The status bar names the preset after exporting: *Exported 3 objects for Godot (240 triangles, 2 materials) to crate.glb.*
+A preset's settings are locked, so the window never claims a preset it isn't following: to change one, pick **Custom settings**. The status bar names the preset after exporting: *Exported 3 objects for Godot (240 triangles, 2 materials) to crate.glb.*
 
 ### Export into a game project
 
 Instead of choosing where to save every time, tell the app which folder of your game project the model goes in. It then exports there in one click, and again **every time you save the project**, so the engine picks up each change.
 
-![The Export window's Game project folder section: the folder inside the Godot project Crate Run, Export on every save ticked, Choose folder… and Clear](../screenshots/2026-10-15-game-project-folder.png)
+![The Export window's Game project section: the folder inside the Godot project crate-run, the engine it found, Export on every save ticked, Choose folder… and Clear](../screenshots/2026-10-16-export-game-project.png)
 
-1. Choose **File → Export…**. Under **Game project folder**, click **Choose folder…** and pick the folder inside your game project the models go in (for example `models` in a Godot project, `Assets/Models` in Unity, `Content/Models` in Unreal Engine).
+1. Choose **File → Export…** and click **Game project** in the side list (its word on the right says **on** or **off**). Click **Choose folder…** and pick the folder inside your game project the models go in (for example `models` in a Godot project, `Assets/Models` in Unity, `Content/Models` in Unreal Engine).
 2. The window says which engine's project the folder is in, and **Made for** switches to that engine. **Export on every save** is ticked.
 3. Save the project (**Ctrl + S**). The status bar says *Saved crate.avtl. Exported crate.glb (240 triangles) into models.*
 
@@ -90,19 +101,25 @@ The app reads an OBJ as metres with Y up, the usual way, and turns it to centime
 
 | Setting | What it does |
 |---|---|
-| **Made for** | **Godot** (standard), **Unity**, **Unreal Engine** or **Substance Painter** choose the settings below for you; **Your own settings** lets you choose. |
-| **Kind of file** | **glTF** (`.glb`, standard): each object at its pivot; always metres, Y up, triangles. **OBJ** (`.obj`): plain shapes where they stand. |
-| **What** | Everything shown (standard), or the selected objects and what's inside them. Groups have no shape of their own; only shapes are exported. |
-| **Metres / Centimetres** | The file's units. 1 unit = 1 m for Godot, Unity and Substance Painter (standard); 1 cm for Unreal Engine. |
-| **Y up / Z up** | Y up (standard) turns the model so its height runs along Y, as nearly every program expects. Z up keeps the app's own axes. |
-| **Game project folder** | The folder in your game project this project exports into (saved with the project), with **Export on every save** (on once a folder is chosen). |
-| **Cut polygons into triangles** | Off: polygons go out as they are (an OBJ for most programs). On (the presets): every polygon is cut into triangles the same way the viewport cuts them. |
+| **Made for** (title bar) | **Godot** (standard), **Unity**, **Unreal Engine** or **Substance Painter** choose the file settings for you and lock them; **Custom settings** lets you choose. |
+| **Objects** | **Everything shown** (standard), or **Selected only**: the selected objects and what's inside them. Groups have no shape of their own; only shapes are exported. |
+| **Includes** | What goes into the file: the mesh and its materials, always. |
+| **File type** (Custom settings) | **glTF (.glb)**, standard: each object at its pivot; always metres, Y up, triangles. **OBJ (.obj)**: plain shapes where they stand. |
+| **Units** (Custom settings) | The file's units. **Metres**: 1 unit = 1 m, for Godot, Unity and Substance Painter (standard). **Centimetres**: 1 unit = 1 cm, for Unreal Engine. |
+| **Up axis** (Custom settings) | **Y up** (standard) turns the model so its height runs along Y, as nearly every program expects. **Z up** keeps the app's own axes. |
+| **Triangles** (Custom settings) | Off: polygons go out as they are (an OBJ for most programs). On (the presets): every polygon is cut into triangles the same way the viewport cuts them. |
+| **Game project** (side list) | The folder in your game project this project exports into (saved with the project), with **Export on every save** (on once a folder is chosen). |
 
 The Export window remembers its choices while the app is open.
 
 ## Shortcuts
 
-None yet: use the File menu.
+| Action | Shortcut |
+|---|---|
+| Export (in the Export window) | `Enter` |
+| Close the window without exporting | `Esc` |
+
+To open the window, use **File → Export…**.
 
 ## Tips and common problems
 
@@ -110,8 +127,9 @@ None yet: use the File menu.
 - **Tip:** glTF splits a point where its shading breaks into one per side, as every game engine does, so a crisp cube has 24 corners in the file, not 8. That's normal.
 - **Problem:** the model arrives lying on its back. **Why:** the file was written Z up, and the program expected Y up (or the other way round). **Fix:** export again with the other choice.
 - **Tip:** not sure which settings? Pick **Godot** or **Substance Painter** under **Made for**.
+- **Problem:** the file settings can't be changed. **Why:** a preset is chosen under Made for, and its settings are locked so the file is what that program expects. **Fix:** pick **Custom settings** in Made for.
 - **Problem:** the model is 100 times too big or too small. **Why:** metres and centimetres were mixed up. **Fix:** Godot, Unity and Substance Painter want **Metres**; Unreal Engine wants **Centimetres**.
-- **Problem:** the status bar says there is nothing to export. **Why:** everything is hidden, or *The selected objects* was chosen with only groups selected. **Fix:** show the objects, or choose Everything shown.
+- **Problem:** the footer says there is nothing to export, and Export… can't be pressed. **Why:** everything is hidden, or *Selected only* was chosen with only groups selected. **Fix:** show the objects, or choose Everything shown.
 - **Problem:** an imported model looks faceted all over. **Why:** the file had no normals, so the app couldn't tell which edges were meant to be hard. **Fix:** keep **Automatic hard edges** on (Mesh menu), or mark edges with [Hard and soft edges](hard-and-soft-edges.md).
 - **Problem:** an OBJ's colours are missing in the other program. **Why:** the `.mtl` file was left behind. **Fix:** copy or move the `.obj` and `.mtl` files together.
 - **Tip:** an imported object is a plain mesh: there are no settings to change, but every modelling tool works on it.
