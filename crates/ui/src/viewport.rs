@@ -11,6 +11,7 @@
 //! drawn, the panel shows the calm backdrop and says why.
 
 pub(crate) mod chrome;
+mod dice;
 mod gizmo;
 mod look;
 mod picker;
@@ -230,6 +231,10 @@ pub struct ViewOptions {
     /// The keyboard the Keys window draws, once picked there (`None`:
     /// guessed from the system language; decision 0061).
     pub keyboard: Option<crate::KeyboardLayout>,
+    /// Whether clicking the view dice (or snapping to it with Ctrl while
+    /// orbiting) turns a perspective view orthographic, until it is
+    /// orbited away (off as standard; decision 0084).
+    pub flat_from_dice: bool,
 }
 
 /// Symmetry while moving, rotating and scaling points, edges and polygons
@@ -520,6 +525,16 @@ impl Glide {
     }
 }
 
+#[cfg(test)]
+pub(crate) use dice::DICE_LABEL;
+
+/// Where to click on the view dice of the view at `rect` to look from
+/// `side`, if it shows. For tests.
+#[cfg(test)]
+pub(crate) fn dice_point(camera: &Camera, rect: Rect, side: glam::IVec3) -> Option<egui::Pos2> {
+    dice::point_for(camera, rect, side)
+}
+
 /// Accessible name of the 3D image, and the label tests look for.
 pub const VIEWPORT_LABEL: &str = "3D viewport";
 
@@ -584,6 +599,14 @@ struct View {
     /// than a point in mid-air left by zooming over empty space), so an
     /// orbit started over empty space may keep turning around it.
     pivot_on_surface: bool,
+    /// While orbiting with Ctrl held, the view as the orbit would leave it
+    /// without snapping; what is shown is it snapped to the nearest side
+    /// of the view dice (decision 0084).
+    free: Option<Navigator>,
+    /// Whether the view was turned flat by the view dice (or snapping)
+    /// with *Switch to orthographic when clicking the dice* on: orbiting
+    /// away freely turns it back into a perspective view (decision 0084).
+    auto_flat: bool,
 }
 
 impl View {
@@ -602,6 +625,8 @@ impl View {
             hovered_handle: None,
             tool_drag: None,
             pivot_on_surface: false,
+            free: None,
+            auto_flat: false,
         }
     }
 
@@ -616,6 +641,7 @@ impl View {
     /// Switches between perspective and orthographic, stopping a glide.
     fn toggle_projection(&mut self) {
         self.glide = None;
+        self.auto_flat = false;
         self.navigator = self.navigator.toggled_projection();
     }
 
@@ -643,22 +669,49 @@ impl View {
         self.drag = None;
     }
 
-    /// Starts gliding round the pivot to look along `axis`'s line, at time
-    /// `now`: from its own side (towards -axis), or from the other side
-    /// if the view already looks that way (decision 0066).
-    fn start_look_along(&mut self, axis: Vec3, now: f64) {
-        let looking = self.navigator.camera().forward();
-        let towards = if looking.dot(-axis) > 0.999 {
-            axis
-        } else {
-            -axis
-        };
+    /// Starts gliding round the pivot to look from `side` of the view
+    /// dice, at time `now` ([decision 0084](../../../docs/decisions/0084-view-dice.md)).
+    /// With `flat` (Display → Switch to orthographic when clicking the
+    /// dice), a perspective view ends up orthographic, and turns back into
+    /// perspective when orbited away.
+    fn start_look_from(&mut self, side: glam::IVec3, flat: bool, now: f64) {
+        let mut to = self.navigator.looking_from(side);
+        if flat && !to.camera().is_flat() {
+            to = to.toggled_projection();
+            self.auto_flat = true;
+        }
         self.glide = Some(Glide {
             from: self.navigator,
-            to: self.navigator.looking_along(towards),
+            to,
             start: now,
         });
         self.drag = None;
+    }
+
+    /// Orbits by `delta` (already scaled): with `snap` (Ctrl held), the
+    /// view shows the orbit snapped to the nearest side of the view dice,
+    /// turned flat if `flat`; without, a view the dice turned flat goes
+    /// back to perspective first (decision 0084).
+    fn orbit(&mut self, delta: Vec2, size: Vec2, snap: bool, flat: bool) {
+        if snap {
+            let free = self.free.get_or_insert(self.navigator);
+            free.drag(DragKind::Orbit, delta, size);
+            let mut shown = free.snapped();
+            if flat && !shown.camera().is_flat() {
+                shown = shown.toggled_projection();
+                self.auto_flat = true;
+            }
+            self.navigator = shown;
+            return;
+        }
+        self.free = None;
+        if self.auto_flat {
+            self.auto_flat = false;
+            if self.navigator.camera().is_flat() {
+                self.navigator = self.navigator.toggled_projection();
+            }
+        }
+        self.navigator.drag(DragKind::Orbit, delta, size);
     }
 
     /// Moves the camera along a glide in progress, at time `now`; returns
@@ -756,10 +809,12 @@ impl View {
         ui: &Ui,
         response: &Response,
         rect: Rect,
-        settings: NavigationSettings,
+        options: &ViewOptions,
         slide_gizmo: Option<tools::Gizmo>,
         scene: Option<&SceneSummary>,
     ) {
+        let settings = options.navigation;
+        let flat_from_dice = options.flat_from_dice;
         let size = Vec2::new(rect.width(), rect.height());
         // Alt + left drag on the Move gizmo slides points (decision 0055),
         // so it doesn't orbit there.
@@ -825,11 +880,18 @@ impl View {
                     _ => response.drag_delta(),
                 };
                 let delta = settings.movement(kind, Vec2::new(delta.x, delta.y));
-                self.navigator.drag(kind, delta, size);
+                if kind == DragKind::Orbit {
+                    // Ctrl while orbiting snaps to the dice's sides.
+                    let snap = ui.input(|i| i.modifiers.command);
+                    self.orbit(delta, size, snap, flat_from_dice);
+                } else {
+                    self.navigator.drag(kind, delta, size);
+                }
                 ui.ctx().set_cursor_icon(cursor_for(kind));
             }
             if response.drag_stopped() || !response.dragged() {
                 self.drag = None;
+                self.free = None;
             }
         }
         // Ctrl + wheel grows and shrinks the selection instead.
@@ -1309,11 +1371,10 @@ impl ViewportPanel {
                 self.active = slot;
                 toggle_layout = true;
             }
-            let settings = self.options.navigation;
             let slide_gizmo = self
                 .gizmo
                 .filter(|g| matches!(g.tool, tools::GizmoTool::Move | tools::GizmoTool::All));
-            self.views[slot].navigate(ui, &response, rect, settings, slide_gizmo, Some(scene));
+            self.views[slot].navigate(ui, &response, rect, &self.options, slide_gizmo, Some(scene));
             let tool_busy = self.views[slot].capture_tool_drag(
                 ui,
                 &response,
@@ -1375,13 +1436,14 @@ impl ViewportPanel {
                 response.hover_pos(),
             );
             chrome::overlays(ui, rect, &self.views[slot], &self.options);
-            // The corner marker's letters turn the view to look along
-            // their axis (a flat Top, Front or Right view becomes a free
-            // Orthographic one, as when orbited).
-            if let Some(axis) = chrome::axis_clicks(ui, rect, slot, self.views[slot].camera()) {
+            // The view dice turns the view to look from the side clicked
+            // (a flat Top, Front or Right view becomes a free Orthographic
+            // one, as when orbited).
+            if let Some(side) = dice::show(ui, rect, slot, self.views[slot].camera()) {
                 self.active = slot;
                 let now = ui.input(|i| i.time);
-                self.views[slot].start_look_along(axis, now);
+                let flat = self.options.flat_from_dice;
+                self.views[slot].start_look_from(side, flat, now);
             }
             if renderer.preparing() {
                 chrome::preparing(ui, rect);

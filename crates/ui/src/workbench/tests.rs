@@ -929,49 +929,177 @@ fn cavity_is_on_and_sits_with_hard_edges_in_the_display_menu() {
     assert!(!on(&harness));
 }
 
-#[test]
-fn clicking_an_axis_on_the_corner_marker_looks_along_it_and_again_from_the_other_side() {
-    use crate::viewport::chrome::look_along_label;
-    let mut harness = fresh();
-    let settle = |h: &mut egui_kittest::Harness<'static, State>| {
-        for _ in 0..4 {
-            h.run();
-        }
+/// Clicks the view dice's `side` in the single view, holding Ctrl if
+/// `ctrl`, and lets the glide finish.
+fn click_dice(harness: &mut Harness<'static, State>, side: glam::IVec3, ctrl: bool) {
+    let rect = harness.get_by_label(crate::VIEWPORT_LABEL).rect();
+    let at = crate::viewport::dice_point(&camera(harness), rect, side)
+        .unwrap_or_else(|| panic!("{side} shows, looking along {}", camera(harness).forward()));
+    let modifiers = if ctrl {
+        Modifiers::COMMAND
+    } else {
+        Modifiers::NONE
     };
-    let pivot_distance = |h: &egui_kittest::Harness<'static, State>| {
+    harness.event(egui::Event::ModifiersChanged(modifiers));
+    harness.event(egui::Event::PointerMoved(at));
+    harness.run();
+    for pressed in [true, false] {
+        harness.event(egui::Event::PointerButton {
+            pos: at,
+            button: egui::PointerButton::Primary,
+            pressed,
+            modifiers,
+        });
+        harness.run();
+    }
+    harness.event(egui::Event::ModifiersChanged(Modifiers::NONE));
+    for _ in 0..4 {
+        harness.run();
+    }
+}
+
+#[test]
+fn the_view_dice_looks_from_the_side_clicked_and_ctrl_from_the_opposite() {
+    use glam::IVec3;
+    let mut harness = fresh();
+    assert!(
+        harness
+            .query_by_label(crate::viewport::DICE_LABEL)
+            .is_some()
+    );
+    let pivot_distance = |h: &Harness<'static, State>| {
         let v = h.state().workbench.viewport();
         v.camera().position.distance(v.navigator().pivot())
     };
     let before = pivot_distance(&harness);
-    // Z: straight down from above.
-    harness.get_by_label(&look_along_label("Z")).click();
-    settle(&mut harness);
-    assert!(camera(&harness).forward().dot(-glam::Vec3::Z) > 0.999);
+    let looks = |h: &Harness<'static, State>, side: IVec3| {
+        camera(h).forward().dot(tools::dice::looking_from(side)) > 0.999
+    };
+    // A corner: the top front right.
+    let corner = IVec3::new(1, -1, 1);
+    click_dice(&mut harness, corner, false);
+    assert!(looks(&harness, corner));
     assert!(
         (pivot_distance(&harness) - before).abs() < 0.5,
         "same distance"
     );
-    // Again: up from below.
-    harness.get_by_label(&look_along_label("Z")).click();
-    settle(&mut harness);
-    assert!(camera(&harness).forward().dot(glam::Vec3::Z) > 0.999);
-    // X: from the right, looking towards -X.
-    harness.get_by_label(&look_along_label("X")).click();
-    settle(&mut harness);
-    assert!(camera(&harness).forward().dot(-glam::Vec3::X) > 0.999);
-    assert!(camera(&harness).position.x > 0.0);
-    // In a flat view the letters work too, and the view stays flat: from
-    // the Top view, X lands exactly on the Right view.
+    assert!(!camera(&harness).is_flat(), "the switch is off as standard");
+    // The top face, then Ctrl: from the bottom.
+    click_dice(&mut harness, IVec3::Z, false);
+    assert!(looks(&harness, IVec3::Z));
+    click_dice(&mut harness, IVec3::Z, true);
+    assert!(looks(&harness, IVec3::NEG_Z));
+    // From below, the bottom face's front edge, then from there the edge
+    // between the front and the right.
+    click_dice(&mut harness, IVec3::new(0, -1, -1), false);
+    assert!(looks(&harness, IVec3::new(0, -1, -1)));
+    click_dice(&mut harness, IVec3::new(1, -1, 0), false);
+    assert!(looks(&harness, IVec3::new(1, -1, 0)));
+    // In a flat view the dice works too and the view stays flat: from the
+    // Top view, the right face lands exactly on the Right view.
     harness.key_press(egui::Key::F2);
-    settle(&mut harness);
+    for _ in 0..4 {
+        harness.run();
+    }
     assert!(camera(&harness).is_flat());
-    harness.get_by_label(&look_along_label("X")).click();
-    settle(&mut harness);
+    click_dice(&mut harness, IVec3::X, false);
     assert!(camera(&harness).is_flat());
-    assert!(camera(&harness).forward().dot(-glam::Vec3::X) > 0.999);
     assert_eq!(
         harness.state().workbench.viewport().active_kind(),
         tools::ViewKind::Right
+    );
+}
+
+#[test]
+fn with_the_switch_on_the_dice_turns_the_view_flat_until_orbited_away() {
+    use glam::IVec3;
+    let mut harness = fresh();
+    harness
+        .state_mut()
+        .workbench
+        .viewport_mut()
+        .options_mut()
+        .flat_from_dice = true;
+    harness.run();
+    click_dice(&mut harness, IVec3::NEG_Y, false);
+    assert!(camera(&harness).is_flat());
+    // Straight from the front, flat: exactly the Front view.
+    assert_eq!(
+        harness.state().workbench.viewport().active_kind(),
+        tools::ViewKind::Front
+    );
+    // Orbiting away freely goes back to perspective.
+    drag_viewport(
+        &mut harness,
+        egui::PointerButton::Secondary,
+        Modifiers::NONE,
+        egui::vec2(40.0, 0.0),
+    );
+    assert!(!camera(&harness).is_flat());
+    // A view made flat with P stays flat when orbited.
+    harness.key_press(egui::Key::P);
+    harness.run();
+    assert!(camera(&harness).is_flat());
+    drag_viewport(
+        &mut harness,
+        egui::PointerButton::Secondary,
+        Modifiers::NONE,
+        egui::vec2(40.0, 0.0),
+    );
+    assert!(camera(&harness).is_flat());
+}
+
+#[test]
+fn holding_ctrl_while_orbiting_snaps_to_the_nearest_dice_side() {
+    let mut harness = fresh();
+    let start = viewport_spot(&harness);
+    let button = egui::PointerButton::Secondary;
+    harness.event(egui::Event::PointerMoved(start));
+    harness.step();
+    harness.event(egui::Event::PointerButton {
+        pos: start,
+        button,
+        pressed: true,
+        modifiers: Modifiers::NONE,
+    });
+    harness.step();
+    harness.event(egui::Event::ModifiersChanged(Modifiers::COMMAND));
+    for i in 1..=10 {
+        harness.event(egui::Event::PointerMoved(
+            start + egui::vec2(3.0 * i as f32, 0.0),
+        ));
+        harness.step();
+    }
+    // While Ctrl is held the view sits exactly on a side of the dice.
+    let forward = camera(&harness).forward();
+    let side = tools::dice::nearest(forward);
+    assert!(
+        forward.dot(tools::dice::looking_from(side)) > 0.9999,
+        "{forward}"
+    );
+    // Let go of Ctrl and the orbit carries on freely from there.
+    harness.event(egui::Event::ModifiersChanged(Modifiers::NONE));
+    for i in 11..=14 {
+        harness.event(egui::Event::PointerMoved(
+            start + egui::vec2(3.0 * i as f32, 0.0),
+        ));
+        harness.step();
+    }
+    harness.event(egui::Event::PointerButton {
+        pos: start + egui::vec2(42.0, 0.0),
+        button,
+        pressed: false,
+        modifiers: Modifiers::NONE,
+    });
+    harness.run();
+    let free = camera(&harness).forward();
+    assert!(
+        free.dot(tools::dice::looking_from(side)) < 0.9999,
+        "turned on freely"
+    );
+    assert!(
+        free.dot(tools::dice::looking_from(side)) > 0.95,
+        "from the snapped side"
     );
 }
 

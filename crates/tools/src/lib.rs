@@ -8,6 +8,7 @@ mod bvh;
 pub mod camera;
 pub mod components;
 pub mod controls;
+pub mod dice;
 pub mod gizmo;
 pub mod navigation;
 

@@ -316,6 +316,21 @@ impl Navigator {
         turned
     }
 
+    /// The same view looking from a side of the view dice (see
+    /// [`crate::dice`]), towards the pivot at the same distance
+    /// ([decision 0084](../../../docs/decisions/0084-view-dice.md)).
+    #[must_use]
+    pub fn looking_from(&self, side: glam::IVec3) -> Self {
+        self.looking_along(crate::dice::looking_from(side))
+    }
+
+    /// The same view turned to look from the nearest side of the view
+    /// dice: what holding Ctrl while orbiting shows (decision 0084).
+    #[must_use]
+    pub fn snapped(&self) -> Self {
+        self.looking_from(crate::dice::nearest(self.camera.forward()))
+    }
+
     /// The same view, moved so that `bounds` fits in a viewport of the
     /// given `aspect` (width / height), with a little room around it: the
     /// camera keeps its direction and steps forwards or back along it, and
@@ -581,6 +596,29 @@ mod tests {
 
     fn centred(navigator: &Navigator) -> bool {
         (on_screen(navigator, navigator.pivot()) - SIZE / 2.0).length() < 0.05
+    }
+
+    #[test]
+    fn looking_from_a_dice_side_and_snapping() {
+        use glam::IVec3;
+        let start = Navigator::default();
+        let corner = start.looking_from(IVec3::new(1, -1, 1));
+        let f = corner.camera().forward();
+        assert!(f.x < 0.0 && f.y > 0.0 && f.z < 0.0, "{f}");
+        assert_eq!(corner.pivot(), start.pivot());
+        assert!((corner.distance() - start.distance()).abs() < 1e-2);
+        // Snapping turns a view that is nearly looking from the front
+        // right edge exactly onto it, and an exact view stays put.
+        let mut near = start.looking_from(IVec3::new(1, -1, 0));
+        near.orbit(Vec2::new(12.0, -9.0));
+        let snapped = near.snapped();
+        let edge = crate::dice::looking_from(IVec3::new(1, -1, 0));
+        assert!(snapped.camera().forward().distance(edge) < 1e-4);
+        assert_eq!(snapped.pivot(), near.pivot());
+        assert!(snapped.snapped().camera().forward().distance(edge) < 1e-4);
+        // A flat view stays flat.
+        let flat = start.toggled_projection().snapped();
+        assert!(flat.camera().is_flat());
     }
 
     #[test]

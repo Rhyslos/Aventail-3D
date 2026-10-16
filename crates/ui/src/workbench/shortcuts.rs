@@ -270,6 +270,11 @@ pub(crate) fn bindings() -> Vec<Binding> {
         plain(transforming::AXES_KEY, "World or object axes", Anywhere),
         held(KeyId::Shift, "Ten times finer", Dragging),
         held(KeyId::Ctrl, "Snap (or not, when snapping is on)", Dragging),
+        held(
+            KeyId::Ctrl,
+            "While orbiting: snap to the view dice's sides",
+            Anywhere,
+        ),
         plain(Key::Escape, "Cancel the drag", Dragging),
         plain(Key::Escape, "Cancel Pivot to object", Model),
     ]);
@@ -417,6 +422,11 @@ pub(crate) fn mouse() -> Vec<MouseLine> {
             "Orbit, pan, zoom",
             "Your navigation controls (Options menu); as standard right drag, middle drag \
              and the wheel, and Alt + left, middle or right drag",
+            Anywhere,
+        ),
+        line(
+            "Look from a side of the view dice (bottom-left corner)",
+            "Click a face, edge or corner; Ctrl + click: the opposite side",
             Anywhere,
         ),
         line(
