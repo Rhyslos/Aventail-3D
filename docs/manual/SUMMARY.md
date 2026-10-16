@@ -52,6 +52,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Locking pieces and piece settings: keep a piece as it is, or give it its own unwrap settings](locked-pieces.md)
 - [Settings of the automatic UV tools: every choice, never random](uv-settings.md)
 - [Layout snapshots: named versions of a UV layout to put back or compare](layout-snapshots.md)
+- [Seeing and checking UVs: overlap and mirror warnings, numbers on pieces, measuring](seeing-and-checking.md)
 - [Texture size and texel density](texture-and-density.md)
 - [Packing: fit pieces into the texture](packing.md)
 - [Checker and Stretch views: check UVs on the model](checker-and-stretch.md)

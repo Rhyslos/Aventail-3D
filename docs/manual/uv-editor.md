@@ -45,6 +45,7 @@ In the UV mode the viewport shows the **seams** in orange, where the surface is 
 |---|---|
 | **Texture** (the editor's menu) | The texture size and texel density aimed for, saved with the project. See [Texture size and texel density](texture-and-density.md). |
 | **Trim** (the editor's menu) | The rows of the project's trim sheet. See [Trim sheets](trim-sheets.md). |
+| **View → Numbers on pieces**, **View → Measure** (the editor's menu) | Each piece's size, texel density and stretch written on it; measuring lines in pixels and centimetres. Overlapping and mirrored pieces are always tinted red and purple. See [Seeing and checking UVs](seeing-and-checking.md). |
 | **Snapshots** (the editor's menu) | Named versions of the UV layout, to put back or compare with. See [Layout snapshots](layout-snapshots.md). |
 | **UV Edit** (menu bar) | The layout for UV work: viewport and UV Editor side by side, in the UV mode. |
 | **Window → UV Editor** | Shows the editor beside the viewport in the layout you're in, or puts it away. |

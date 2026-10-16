@@ -1166,6 +1166,10 @@ impl Workbench {
                         tool: self.tool,
                         snap: view_options.snap,
                         surface: view_options.surface,
+                        texture_groups: crate::uv_editor::checking::TextureGroups {
+                            per_material: self.uv_settings.per_material,
+                            per_object: self.uv_settings.per_object,
+                        },
                         viewport_hover,
                         attributes: &mut self.attributes,
                         units: &mut self.units,
@@ -1333,6 +1337,13 @@ impl Workbench {
             if ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
                 self.viewport.cancel_tool_drag();
             }
+            return;
+        }
+        // While measuring in the UV Editor, Esc stops (decision 0115).
+        if self.uv_editor.measuring()
+            && ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape))
+        {
+            self.uv_editor.set_measuring(false);
             return;
         }
         // While a target click is awaited, Esc cancels it.
@@ -2297,6 +2308,8 @@ struct PanelViewer<'a> {
     tool: Tool,
     snap: crate::transforming::SnapSettings,
     surface: crate::viewport::Surface,
+    /// How pieces are grouped onto textures (the packing settings).
+    texture_groups: crate::uv_editor::checking::TextureGroups,
     viewport_hover: Option<(scene::ObjectId, scene::Element)>,
     attributes: &'a mut AttributesPanel,
     units: &'a mut Units,
@@ -2402,6 +2415,33 @@ impl TabViewer for PanelViewer<'_> {
                                 ui.close();
                             }
                         }
+                        ui.separator();
+                        let mut numbers = self.uv_editor.piece_numbers();
+                        if ui
+                            .checkbox(&mut numbers, crate::uv_editor::checking::PIECE_NUMBERS)
+                            .on_hover_text(
+                                "Write on each piece its size in texture pixels, its texel \
+                                 density and, if it's uneven, how stretched it is",
+                            )
+                            .changed()
+                        {
+                            self.uv_editor.set_piece_numbers(numbers);
+                        }
+                        let measuring = self.uv_editor.measuring();
+                        if ui
+                            .add(egui::Button::selectable(
+                                measuring,
+                                crate::uv_editor::checking::MEASURE,
+                            ))
+                            .on_hover_text(
+                                "Then drag in the editor: the line's length in texture pixels \
+                                 and on the surface, in centimetres. Esc stops.",
+                            )
+                            .clicked()
+                        {
+                            self.uv_editor.set_measuring(!measuring);
+                            ui.close();
+                        }
                     });
                 });
                 // Edge to edge, like the viewport.
@@ -2415,6 +2455,7 @@ impl TabViewer for PanelViewer<'_> {
                     outside_hover: self.viewport_hover,
                     grid: (self.surface == crate::viewport::Surface::NumberedChecker)
                         .then(|| theme::grid_colors(theme::accent(ui.ctx()))),
+                    texture_groups: self.texture_groups,
                 };
                 self.uv_editor.show(ui, self.document, &cx);
                 return;
@@ -2521,6 +2562,8 @@ mod uv_on_model;
 #[cfg(test)]
 mod uv_on_model_tests;
 pub use unwrapping::{UnwrapWay, UvSettings};
+#[cfg(test)]
+mod checking_tests;
 #[cfg(test)]
 mod density_tests;
 #[cfg(test)]

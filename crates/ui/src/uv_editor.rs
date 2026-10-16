@@ -170,6 +170,7 @@ impl UvShape {
     }
 }
 
+pub(crate) mod checking;
 pub(crate) mod gizmo;
 pub(crate) mod snapshots;
 
@@ -227,6 +228,12 @@ pub(crate) struct UvEditor {
     compare: Option<String>,
     /// What the Snapshots menu last did, to say in it.
     note: Option<String>,
+    /// Whether numbers are written on pieces (decision 0115).
+    numbers: bool,
+    /// Measuring, while it's on (decision 0115).
+    measure: Option<checking::Measuring>,
+    /// The always-on warnings, for the document as it was last drawn.
+    warnings: Option<checking::WarningCache>,
 }
 
 /// The numbered checker's texture in egui.
@@ -257,6 +264,9 @@ impl Default for UvEditor {
             grid: None,
             compare: None,
             note: None,
+            numbers: false,
+            measure: None,
+            warnings: None,
         }
     }
 }
@@ -306,6 +316,8 @@ pub(crate) struct UvContext<'a> {
     /// The numbered checker's colours while the viewport shows it
     /// (decision 0107): the editor shows it behind the UVs.
     pub(crate) grid: Option<[[u8; 3]; 2]>,
+    /// How pieces are grouped onto textures, for the overlap warnings.
+    pub(crate) texture_groups: checking::TextureGroups,
 }
 
 /// The objects whose UVs are shown: the selected ones with a shape, in
@@ -453,8 +465,14 @@ impl UvEditor {
         }
         let shapes = self.shapes(doc);
         self.frame_from_request(rect, &shapes, doc);
-        let lit = self.use_gizmo(ui, &response, rect, doc, cx);
         self.navigate(ui, &response, rect, cx.navigation);
+        // Measuring takes the left button from the gizmo and selecting.
+        let measuring = self.drag.is_none() && self.use_measure(ui, &response, rect, doc);
+        let lit = if measuring {
+            None
+        } else {
+            self.use_gizmo(ui, &response, rect, doc, cx)
+        };
         let painter = ui.painter_at(rect);
         painter.rect_filled(rect, 0.0, theme::UV_BACKGROUND);
         let grid = cx.grid.map(|colors| self.grid_texture(ui.ctx(), colors));
@@ -475,6 +493,12 @@ impl UvEditor {
                 .then_some(Hit { id, element })
         });
         let too_many = shown_objects(doc).len() > shapes.len();
+        let warnings = self.warnings(doc, &shapes, cx.texture_groups).clone();
+        for (id, shape) in &shapes {
+            if let Some(w) = warnings.get(id) {
+                self.paint_warnings(&painter, rect, shape, w);
+            }
+        }
         let mut polygons = 0;
         let mut islands = 0;
         for (id, shape) in &shapes {
@@ -497,7 +521,27 @@ impl UvEditor {
         if let Some((centre, lit)) = lit {
             gizmo::paint(&painter, self.to_screen(rect, centre), cx.tool, lit);
         }
-        self.select(ui, &response, rect, &shapes, doc, cx);
+        if self.numbers {
+            for (_, shape) in &shapes {
+                self.paint_numbers(&painter, rect, shape, doc.scene().texture());
+            }
+        }
+        self.paint_measure(&painter, rect, doc.scene().texture());
+        let (overlapping, mirrored) = warnings.values().fold((0, 0), |(o, m), w| {
+            (o + w.overlapping_pieces, m + w.mirrored_pieces)
+        });
+        if let Some(text) = checking::warning_text(overlapping, mirrored) {
+            painter.text(
+                rect.right_top() + vec2(-10.0, 10.0),
+                Align2::RIGHT_TOP,
+                text,
+                FontId::proportional(12.0),
+                theme::UV_WARNING_TEXT,
+            );
+        }
+        if !measuring {
+            self.select(ui, &response, rect, &shapes, doc, cx);
+        }
         if let Some(EditorDrag::Box { from, .. }) = self.drag
             && let Some(now) = ui.input(|i| i.pointer.latest_pos())
         {

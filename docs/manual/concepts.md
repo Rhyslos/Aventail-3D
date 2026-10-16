@@ -149,7 +149,11 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Stretch budget** — How much stretching a piece may have once laid flat (1.5× means nearly all of it within one and a half times of perfect). Pieces over budget get cut further. See [Seam preferences and stretch budgets](seam-preferences.md).
 
+**Overlapping pieces** — UV pieces lying over each other in one texture, so they share pixels: paint and bakes on one show on the other. The UV Editor tints them red. See [Seeing and checking UVs](seeing-and-checking.md).
+
 **Layout snapshot** — A named copy of the UV layout (every polygon's UVs and the seams) kept in the project, to put back in one step or see faintly under the current one. See [Layout snapshots](layout-snapshots.md).
+
+**Mirrored piece** — A UV piece lying flipped in the texture, so anything painted on it reads backwards on the model. The UV Editor tints it purple. See [Seeing and checking UVs](seeing-and-checking.md).
 
 **Locked piece** — A UV piece no automatic tool changes (Unwrap, Pack, mending and the rest); you can still move it by hand. See [Locking pieces and piece settings](locked-pieces.md).
 
