@@ -188,9 +188,9 @@ One big phase, aiming to be the best UV tools around. Brought forward before adv
 
 **Gate:** a prop is unwrapped and packed in Aventail 3D, with clean bakes in Substance Painter, and changing the model afterwards keeps its UVs.
 
-### Phase 8 · UV powerhouse and baking — 6 of 28
+### Phase 8 · UV powerhouse and baking — 7 of 28
 
-`███░░░░░░░░░░` 21%
+`███░░░░░░░░░░` 25%
 
 At the project lead's request (2026-10-16), before advanced hard-surface: everything the other 3D programs do well for UVs, full control over every automatic step, four ideas no other app has, and baking inside the app, so Substance Painter becomes optional for bakes. The aim: the best and most controllable UV tools there are.
 
@@ -219,7 +219,7 @@ At the project lead's request (2026-10-16), before advanced hard-surface: everyt
 - [ ] Unwrap recipes: unwrap a whole kit at once with saved steps
 - [ ] Player-view UVs (new): seams hidden and texture detail placed by how the player sees the asset, and a texels-per-screen-pixel view
 - [ ] UV intents (new): pieces keep what they were told to be (a strip, on a trim row, a mirror, a density, this way up) after any change
-- [ ] "Why is this here?" (new): every automatic seam, size and packing choice explains itself and can be changed
+- [x] "Why is this here?" (new): every automatic seam, size and packing choice explains itself and can be changed
 - [ ] Paint-aware detail and seam preview (new): more texture on edges and corners where wear gets painted, and bake seams shown before baking
 - [ ] The baker: normal (matching Godot's tangent space), ambient occlusion, curvature, thickness, colour ID, position and height
 - [ ] High to low: _low / _high pairing, exploded bakes, floating details, an automatic cage shown on the model with a push slider and cage painting
@@ -269,6 +269,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-17 | "Why is this here?": with View → Explain choices on, every seam and piece in the UV Editor explains itself and how to change it |
 | 2026-10-17 | Seeing and checking UVs: overlapping and mirrored pieces always tinted, numbers on pieces, measuring in pixels and centimetres |
 | 2026-10-16 | Layout snapshots: named versions of the UV layout, put back in one step or compared faintly under the current one |
 | 2026-10-16 | The UV menu tidied into groups: Seams, Turn and flip, Lay out, Pieces and Settings |

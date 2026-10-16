@@ -21,9 +21,10 @@ Each milestone is one pull request, stacked on the one before. None is merged ye
 | 4 | Locked pieces and piece settings | `uv/locked-pieces` | #108 | [0112](../decisions/0112-locked-pieces-and-piece-settings.md) | 37 |
 | – | The UV menu in groups (not a milestone) | `uv/menu-groups` | #109 | [0113](../decisions/0113-uv-menu-in-groups.md) | – |
 | 18 | Layout snapshots | `uv/snapshots` | #110 | [0114](../decisions/0114-layout-snapshots.md) | 38 |
-| 15 | Seeing and checking | `uv/seeing-and-checking` | see the PR list | [0115](../decisions/0115-seeing-and-checking.md) | – |
+| 15 | Seeing and checking | `uv/seeing-and-checking` | #111 | [0115](../decisions/0115-seeing-and-checking.md) | – |
+| 23 | "Why is this here?" | `uv/why-is-this-here` | see the PR list | [0116](../decisions/0116-why-is-this-here.md) | – |
 
-**Next:** the project lead asked for six milestones in least-work order, each stacked on the last: 18 (layout snapshots, built), 15 (seeing and checking, built), 23 ("Why is this here?") and 9 (precise placement). **Milestones 14 (lightmaps) and 20 (recipes) are skipped for now** at his request; don't build them until he asks. Branch the next one from the newest branch in the table. Next up: 23, then 9. The next decision is 0116 and the next file format 39.
+**Next:** the project lead asked for six milestones in least-work order, each stacked on the last: 18 (layout snapshots, built), 15 (seeing and checking, built), 23 ("Why is this here?", built) and 9 (precise placement). **Milestones 14 (lightmaps) and 20 (recipes) are skipped for now** at his request; don't build them until he asks. Branch the next one from the newest branch in the table. Next up: 9. The next decision is 0117 and the next file format 39.
 
 ## How the work is done (notes for the next session)
 
@@ -254,14 +255,9 @@ Built as planned ([decision 0114](../decisions/0114-layout-snapshots.md)): the U
   - The UV Editor shows a piece's intents on hover; they can be cleared.
 - **Code:** `uv::mend` (re-applying intents), `mesh::uvs` (an intent layer), and the tools that set intents.
 
-### 23. "Why is this here?" (new)
+### 23. "Why is this here?" (new, built)
 
-- **Aim:** every automatic seam, size and packing choice explains itself and can be changed.
-- **Design:**
-  - The tools return reasons with their results: each suggested seam's reason (hard edge, sharp corner N°, needed to lie flat, stretch budget slit, preferred) and each packed piece's scale and place.
-  - Keep the last run's reasons per object (not saved).
-  - Hovering a seam or piece in the UV Editor or viewport shows the reason with a fix button (clear this seam and prefer another; never here).
-- **Code:** `uv::seams::suggest_with` returning reasons, and the `uv_editor` hover.
+Built ([decision 0116](../decisions/0116-why-is-this-here.md)) only while the UV Editor's View → Explain choices is ticked (the project lead's choice). Changed from the plan: reasons are worked out on demand with the current settings (`uv::seams::suggest_explained`), not kept from the last run, so they work in opened projects too; fixes are named menu commands in the box rather than buttons (a hover box can't be clicked, and new clicks would need asking). Packing's scale and place are explained from the piece's density against the aim, not recorded. The viewport doesn't explain yet.
 
 ### 24. Paint-aware detail and seam preview (new)
 

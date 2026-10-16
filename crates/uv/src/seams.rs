@@ -494,6 +494,56 @@ pub fn suggest(mesh: &Mesh, hard: &[EdgeKey]) -> Vec<EdgeKey> {
 /// than `options.corner_angle` cut (none at 180°), the rest hidden as
 /// `options.hide` says.
 pub fn suggest_with(mesh: &Mesh, hard: &[EdgeKey], options: SuggestOptions) -> Vec<EdgeKey> {
+    suggest_explained(mesh, hard, options)
+        .into_iter()
+        .map(|(e, _)| e)
+        .collect()
+}
+
+/// Why Suggest seams puts a seam on an edge
+/// ([decision 0116](../../../docs/decisions/0116-why-is-this-here.md)).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum SeamReason {
+    /// The edge shades hard: a seam there keeps a normal map clean.
+    HardEdge,
+    /// The polygons meet at this sharp an angle (degrees), past the
+    /// corner setting.
+    SharpCorner(f32),
+    /// The piece couldn't lie flat in one go (a closed or looped piece),
+    /// so it was cut open here, the most hidden way.
+    ToLieFlat,
+    /// As [`Self::ToLieFlat`], along an edge you preferred.
+    Preferred,
+    /// The piece stretched past this budget once laid flat, so it was
+    /// slit here.
+    StretchBudget(f32),
+}
+
+/// The angle, in degrees, at which the two polygons of `edge` meet (0°
+/// flat), if it has two with a facing.
+pub fn edge_angle(mesh: &Mesh, edge: EdgeKey) -> Option<f32> {
+    let topology = mesh.topology();
+    match topology.edge_uses(edge) {
+        [one, two] => {
+            let (n1, n2) = (mesh.face_normal(one.face), mesh.face_normal(two.face));
+            (n1.length_squared() > 0.5 && n2.length_squared() > 0.5).then(|| {
+                n1.normalize()
+                    .dot(n2.normalize())
+                    .clamp(-1.0, 1.0)
+                    .acos()
+                    .to_degrees()
+            })
+        }
+        _ => None,
+    }
+}
+
+/// [`suggest_with`], with the reason for each seam, in edge order.
+pub fn suggest_explained(
+    mesh: &Mesh,
+    hard: &[EdgeKey],
+    options: SuggestOptions,
+) -> Vec<(EdgeKey, SeamReason)> {
     let inner: BTreeSet<EdgeKey> = inner_edges(mesh).into_iter().collect();
     let hard = if options.hard_edges { hard } else { &[] };
     let corners = if options.corner_angle < 180.0 {
@@ -506,22 +556,44 @@ pub fn suggest_with(mesh: &Mesh, hard: &[EdgeKey], options: SuggestOptions) -> V
         .filter(|(_, p)| *p == SeamPreference::Never)
         .map(|(e, _)| e)
         .collect();
-    let mut cuts: BTreeSet<EdgeKey> = hard
-        .iter()
-        .copied()
-        .chain(corners)
-        .filter(|e| inner.contains(e) && !never.contains(e))
-        .collect();
+    let usable = |e: &EdgeKey| inner.contains(e) && !never.contains(e);
+    let mut reasons: BTreeMap<EdgeKey, SeamReason> = BTreeMap::new();
+    for e in hard.iter().copied().filter(usable) {
+        reasons.insert(e, SeamReason::HardEdge);
+    }
+    for e in corners.into_iter().filter(usable) {
+        reasons
+            .entry(e)
+            .or_insert_with(|| SeamReason::SharpCorner(edge_angle(mesh, e).unwrap_or(180.0)));
+    }
+    let mut cuts: BTreeSet<EdgeKey> = reasons.keys().copied().collect();
     for piece in pieces(mesh, &cuts) {
         let more = disk_cuts(mesh, &piece, &cuts, options.hide);
+        for e in &more {
+            let preferred = mesh::uvs::seam_preference(mesh, *e) == SeamPreference::Prefer;
+            reasons.insert(
+                *e,
+                if preferred {
+                    SeamReason::Preferred
+                } else {
+                    SeamReason::ToLieFlat
+                },
+            );
+        }
         cuts.extend(more);
         let budget = mesh::uvs::budget_of(mesh, &piece).or(options.budget);
         if let Some(budget) = budget {
             let more = budget_cuts(mesh, &piece, &cuts, budget, options.hide);
+            for e in &more {
+                reasons.insert(*e, SeamReason::StretchBudget(budget));
+            }
             cuts.extend(more);
         }
     }
-    cuts.into_iter().filter(|e| inner.contains(e)).collect()
+    reasons
+        .into_iter()
+        .filter(|(e, _)| inner.contains(e))
+        .collect()
 }
 
 /// How far off nearly all of `piece` is once laid flat, cut along `cuts`

@@ -152,3 +152,62 @@ fn overlapping_and_mirrored_pieces_are_warned_about() {
     harness.run();
     assert_eq!(harness.state().workbench.uv_editor.warning_counts(), (0, 0));
 }
+
+#[test]
+fn explain_choices_says_why_a_seam_or_piece_is_there() {
+    use crate::uv_editor::explain::{EXPLAIN_CHOICES, Pointed};
+    let (mut harness, id) = uv_edit_with_the_cube();
+    let mesh = shape(&harness);
+    let islands = mesh::uvs::islands(&mesh);
+    let middle = mesh::uvs::uv_centre(&mesh, &islands[0], &[]).unwrap();
+    let at = harness
+        .state()
+        .workbench
+        .uv_editor
+        .screen_of(middle)
+        .unwrap();
+    // Off at first: pointing explains nothing.
+    harness.event(Event::PointerMoved(at));
+    harness.run();
+    assert!(harness.state().workbench.uv_editor.pointed().is_none());
+    editor_view_menu(&mut harness);
+    harness.get_by_label(EXPLAIN_CHOICES).click();
+    harness.run();
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    assert!(harness.state().workbench.uv_editor.explaining());
+    harness.event(Event::PointerMoved(at + egui::vec2(1.0, 0.0)));
+    harness.run();
+    let (pointed, text) = harness
+        .state()
+        .workbench
+        .uv_editor
+        .pointed()
+        .cloned()
+        .unwrap();
+    assert_eq!(pointed, Pointed::Piece(id, islands[0].clone()));
+    assert!(text.contains("px/m"), "{text}");
+    // A seam: the piece's bottom edge, half way along.
+    let (min, max) = mesh::uvs::uv_bounds(&mesh, &islands[0], &[]).unwrap();
+    let seam_at = harness
+        .state()
+        .workbench
+        .uv_editor
+        .screen_of(Vec2::new((min.x + max.x) / 2.0, min.y))
+        .unwrap();
+    harness.event(Event::PointerMoved(seam_at));
+    harness.run();
+    let (pointed, text) = harness
+        .state()
+        .workbench
+        .uv_editor
+        .pointed()
+        .cloned()
+        .unwrap();
+    assert!(
+        matches!(pointed, Pointed::Seam(o, _) if o == id),
+        "{pointed:?}"
+    );
+    assert!(text.starts_with("Seam"), "{text}");
+    assert!(text.contains("Clear seams"), "{text}");
+}
