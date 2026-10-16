@@ -188,7 +188,40 @@ One big phase, aiming to be the best UV tools around. Brought forward before adv
 
 **Gate:** a prop is unwrapped and packed in Aventail 3D, with clean bakes in Substance Painter, and changing the model afterwards keeps its UVs.
 
-### Phase 8 · Advanced hard-surface — 0 of 9
+### Phase 8 · UV powerhouse and baking — 0 of 19
+
+`░░░░░░░░░░░░░` 0%
+
+At the project lead's request (2026-10-16), before advanced hard-surface: everything the other 3D programs do well for UVs, four ideas no other app has, and baking inside the app, so Substance Painter becomes optional for bakes.
+
+<details>
+<summary>Milestones</summary>
+
+- [ ] Unwrapping: pins, unfolding one way only, and angle-based and size-keeping methods beside LSCM, the best picked for each piece
+- [ ] Straighten any quad piece by its edge flow, and the texture locked in place while moving points
+- [ ] Seams: a slider from fewer seams to less stretch, a seam brush, symmetric seams, seams along loops and rings
+- [ ] Projections: planar, box, cylindrical and spherical with an on-model gizmo, project from view, and world-aligned UVs for modular kits
+- [ ] Editing pieces: stitch and cut in the UV Editor, align and distribute, orient by an edge, snap to texture pixels, lattice warp
+- [ ] UV brushes in the UV Editor: grab, relax and pinch
+- [ ] Selection by overlap, mirror, stretch and similarity, grow and shrink in UV, shortest path; copying UVs between similar pieces and objects
+- [ ] Packing: locked pieces, packing into a region, keeping the grain's direction, texel density overrides per object, UDIM tiles
+- [ ] Lightmap UVs: a second UV set made for Godot's baked lighting
+- [ ] Seeing textures: a real texture behind the UVs and on the model, UV layout export (PNG, SVG), separate angle and size stretch views, a mipmap preview
+- [ ] Unwrap recipes: unwrap a whole kit at once with saved steps
+- [ ] Player-view UVs (new): seams hidden and texture detail placed by how the player sees the asset, and a texels-per-screen-pixel view
+- [ ] UV intents (new): pieces keep what they were told to be (a strip, on a trim row, a mirror, a density, this way up) after any change
+- [ ] "Why is this here?" (new): every automatic seam, size and packing choice explains itself and can be changed
+- [ ] Paint-aware detail and seam preview (new): more texture on edges and corners where wear gets painted, and bake seams shown before baking
+- [ ] The baker: normal (matching Godot's tangent space), ambient occlusion, curvature, thickness, colour ID, position and height
+- [ ] High to low: _low / _high pairing, exploded bakes, floating details, an automatic cage shown on the model with a push slider and cage painting
+- [ ] Live bake preview, and bake problems shown on the model (missed rays, wrong parts, skew), each explained with a fix
+- [ ] Bakes for the pipeline: to vertex colours, a whole kit at once, stacked and mirrored pieces moved aside for the bake, and straight into a Godot material (normal map and an ORM texture)
+
+</details>
+
+**Gate:** a modular kit is unwrapped, packed and baked in Aventail 3D and looks right in Godot; changing a model afterwards keeps its UVs and their intents.
+
+### Phase 9 · Advanced hard-surface — 0 of 9
 
 `░░░░░░░░░░░░░` 0%
 
@@ -214,8 +247,8 @@ Friends join as testers around here, once there are enough tools to build someth
 In this order, each planned in detail when its time comes:
 
 1. **Texturing and a material builder** (to be planned): a built-in texture painter shaped by game work, so no Substance Painter subscription is needed. Hand-painted, stylised art first (painting in the 3D and UV views at once, palettes, a light-and-shadow helper, a toon preview and outlines for cartoon looks), realism after (PBR layers and smart masks for wear and dirt). Then a node-based material builder.
-2. **Scripting in Lua** (Phase 9): people add their own tools, as undoable commands.
-3. **Rigging, skinning and animation** (Phase 10): for game developers, first and third person, exporting cleanly to engines.
+2. **Scripting in Lua** (Phase 10): people add their own tools, as undoable commands.
+3. **Rigging, skinning and animation** (Phase 11): for game developers, first and third person, exporting cleanly to engines.
 
 The official release comes when the app is finished, after texturing. Also wanted, not yet scheduled: glTF import, screenshots and turntable GIFs from the viewport, interface size scaling, a first-start welcome with sample projects, and custom hotkeys (added along the way).
 
@@ -225,6 +258,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-16 | Planned: Phase 8, UV powerhouse and baking (UV tools from every 3D app, four new ideas, an in-app baker), before advanced hard-surface (now Phase 9) |
 | 2026-10-16 | Numbered checker: labelled cells in the accent colour's gradient, on the model and in the UV Editor |
 | 2026-10-16 | Trim sheets: rows made in the UV Editor, strips laid straight along them; every Phase 7 milestone built, the gate waits for the project lead |
 | 2026-10-16 | Check for baking covers UVs: hard edges without seams, overlaps, padding, folds and texel density, with one-click fixes |
