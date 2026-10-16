@@ -18,7 +18,7 @@ Most things are symmetrical: a crate, a gun, a car, a face. With **Symmetry** on
 
 What happens with each kind of edit:
 - **Moving, rotating and scaling** move the mirror the mirrored way while you drag.
-- **Extrude, inset, bevel, delete, dissolve, fill hole, flip and hard or soft edges** work on your selection and its mirror together. Polygons that touch across the middle move as one piece, as if you had selected both sides yourself.
+- **Extrude, inset, bevel, groove, delete, dissolve, fill hole, flip and hard or soft edges** work on your selection and its mirror together. Polygons that touch across the middle move as one piece, as if you had selected both sides yourself.
 - **Loop cut, slit, connect, bridge, weld and bent extrudes** are made once on your side and once, mirrored, on the other. A loop cut whose loop already goes round through the middle (its own mirror) is made only once. A bend turns the mirrored way on the other side.
 - The edit's settings under **Last edit** belong to both sides: change the Distance or the Cuts and both sides follow. The edit's name ends in "mirrored".
 

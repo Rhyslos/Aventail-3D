@@ -222,6 +222,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-16 | Groove (K): cut a panel line into a shape or raise a ridge along edges in one step; project files at format version 24 |
 | 2026-10-16 | Bevel control: even width, skew with flip side, stop at overlaps and weld points; project files at format version 23 |
 | 2026-10-16 | View dice: click a face, edge or corner to look from there, Ctrl + click the opposite side; Ctrl while orbiting snaps to its views |
 | 2026-10-15 | Consistent triangulation and MikkTSpace tangents: exports cut polygons the viewport's way; glTF carries tangents for shapes with UVs |

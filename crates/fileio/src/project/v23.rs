@@ -9,7 +9,6 @@
 
 use super::v1::{FileOperation, Problem};
 use super::v5::EntryWith;
-use super::v20::ProjectV20;
 use super::v22::OperationV22;
 use mesh::edit::BevelOptions;
 use scene::{EditSettings, Operation};
@@ -17,7 +16,8 @@ use serde::{Deserialize, Serialize};
 
 /// Version 23 of the file: version 20's (to 22's), its edits stored as
 /// version 23's.
-pub(crate) type ProjectV23 = ProjectV20<EntryV23>;
+#[cfg(test)]
+pub(crate) type ProjectV23 = super::v20::ProjectV20<EntryV23>;
 
 /// A recorded edit in version 23.
 pub(crate) type EntryV23 = EntryWith<OperationV23>;

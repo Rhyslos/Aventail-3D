@@ -27,6 +27,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Symmetry: model one half, and the other follows](symmetry.md)
 - [Extrude and inset: push polygons out or in, and add rings and frames](extrude-and-inset.md)
 - [Bevel: chamfer or round edges, and cut corners off](bevel.md)
+- [Groove: cut a thin line into a shape, or raise one out of it](groove.md)
 - [Loop cut: add a new loop of edges all the way around a shape](loop-cut.md)
 - [Slit: cut new edges along a line you draw over a shape](slit.md)
 - [Connect, Bridge and Weld: join points, fill gaps between openings, melt points together](connect-bridge-weld.md)

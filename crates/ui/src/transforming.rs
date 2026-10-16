@@ -52,6 +52,9 @@ pub enum Tool {
     /// Bevel: drag away from the selected edges or points to cut them
     /// away (decision 0040).
     Bevel,
+    /// Groove: drag anywhere to cut a thin groove into the shape along the
+    /// selected edges, or raise a ridge out of it (decision 0086).
+    Groove,
     /// Loop cut: hover an edge to see the loop, click to cut it, drag to
     /// slide it (decision 0047).
     LoopCut,
@@ -96,6 +99,7 @@ impl Tool {
             Self::Extrude => "Extrude",
             Self::Inset => "Inset",
             Self::Bevel => "Bevel",
+            Self::Groove => "Groove",
             Self::LoopCut => "Loop cut",
             Self::Slit => "Slit",
             Self::Bridge => "Bridge",
@@ -105,7 +109,10 @@ impl Tool {
 
     /// Whether it is a modelling tool set by dragging anywhere in a view.
     pub fn drags_anywhere(self) -> bool {
-        matches!(self, Self::Extrude | Self::Inset | Self::Bevel)
+        matches!(
+            self,
+            Self::Extrude | Self::Inset | Self::Bevel | Self::Groove
+        )
     }
 
     /// Whether it is a modelling tool used by clicking (and dragging) on
@@ -142,6 +149,7 @@ impl Tool {
             | Self::Extrude
             | Self::Inset
             | Self::Bevel
+            | Self::Groove
             | Self::LoopCut
             | Self::Slit
             | Self::Bridge
