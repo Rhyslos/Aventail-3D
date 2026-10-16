@@ -61,6 +61,8 @@ pub enum CommandId {
     Inset,
     /// Cut corners off edges or points.
     Bevel,
+    /// Cut a thin groove along edges, or raise a ridge (decision 0086).
+    Groove,
     /// Build polygons between two open edges or holes.
     Bridge,
     /// Close a hole with a polygon.
@@ -268,6 +270,14 @@ impl CommandId {
                  segments and roundness",
                 None,
             ),
+            Self::Groove => (
+                "Groove",
+                Icon::Groove,
+                plain(Key::K),
+                "Cut a thin groove into the shape along the selected edges, like a panel \
+                 line, or raise a ridge out of it: drag in or out",
+                None,
+            ),
             Self::Bridge => (
                 "Bridge",
                 Icon::Bridge,
@@ -399,6 +409,7 @@ impl CommandId {
             Self::Extrude | Self::Bridge => &[Edges, Polygons],
             Self::Inset | Self::FlipNormals => &[Polygons],
             Self::Bevel | Self::Connect => &[Points, Edges],
+            Self::Groove => &[Edges],
             Self::FillHole => &[Edges, Polygons],
             Self::HardEdges | Self::SoftEdges => &[Edges, Polygons],
             Self::Weld => &[Points],
@@ -412,7 +423,7 @@ impl CommandId {
 /// How many places every ring of the tool menu has. Every mode's ring has
 /// the same places at the same size, so a button never moves or changes
 /// size between modes (the project lead's choice, 2026-10-12).
-pub const RING_PLACES: usize = 14;
+pub const RING_PLACES: usize = 15;
 
 /// The tool menu's places for whole objects (the Model mode), clockwise
 /// from the top; `None` is an empty place. Delete has the same place as
@@ -432,6 +443,7 @@ pub const OBJECT_RING: [Option<CommandId>; RING_PLACES] = [
     Some(CommandId::NewGroup),
     Some(CommandId::ShapeList),
     Some(CommandId::Join),
+    None,
 ];
 
 /// The tool menu's places in the Object mode, where the gizmos move pivots
@@ -453,13 +465,15 @@ pub const PIVOT_RING: [Option<CommandId>; RING_PLACES] = [
     Some(CommandId::NewGroup),
     Some(CommandId::ShapeList),
     Some(CommandId::ObjectToOrigin),
+    None,
 ];
 
 /// The tool menu's places for points, edges and polygons, clockwise from
 /// the top. Every command keeps its place in every mode, so a mode
 /// without it leaves a gap rather than moving the others: building at the
 /// top right, shading at the right, removing at the bottom, cutting and
-/// joining at the left.
+/// joining at the left, and Groove (a cut along edges) last, at the top
+/// left, so Delete keeps its place in every ring.
 pub const MODELLING_RING: [CommandId; RING_PLACES] = [
     CommandId::Extrude,
     CommandId::Inset,
@@ -475,6 +489,7 @@ pub const MODELLING_RING: [CommandId; RING_PLACES] = [
     CommandId::Connect,
     CommandId::Slit,
     CommandId::LoopCut,
+    CommandId::Groove,
 ];
 
 /// One entry of the tool menu: a command and its place on the ring.
@@ -510,7 +525,7 @@ pub fn menu_for(mode: Mode) -> Vec<Slot> {
 }
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 32] = [
+pub const ALL: [CommandId; 33] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -532,6 +547,7 @@ pub const ALL: [CommandId; 32] = [
     CommandId::Extrude,
     CommandId::Inset,
     CommandId::Bevel,
+    CommandId::Groove,
     CommandId::Bridge,
     CommandId::FillHole,
     CommandId::FlipNormals,

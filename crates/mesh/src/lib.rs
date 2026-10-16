@@ -14,6 +14,7 @@ pub mod check;
 pub mod cleanup;
 pub mod edit;
 pub mod extrude;
+pub mod groove;
 pub mod hardness;
 pub mod join;
 pub mod loopcut;

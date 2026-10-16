@@ -44,6 +44,7 @@ pub fn mirrors(op: &Operation) -> bool {
         | Operation::InsetPolygons { .. }
         | Operation::ExtrudeEdges { .. }
         | Operation::BevelEdges { .. }
+        | Operation::Groove { .. }
         | Operation::BevelPoints { .. }
         | Operation::LoopCut { .. }
         | Operation::Connect { .. }
@@ -198,6 +199,17 @@ pub(crate) fn both_sides(op: &Operation, mesh: &Mesh, mirror: &Mirror) -> Both {
             stretch,
             anchors,
         } => together(Operation::BevelEdges {
+            edges: all_edges(edges),
+            shape: *shape,
+            stretch: *stretch,
+            anchors: joined(anchors),
+        }),
+        Operation::Groove {
+            edges,
+            shape,
+            stretch,
+            anchors,
+        } => together(Operation::Groove {
             edges: all_edges(edges),
             shape: *shape,
             stretch: *stretch,

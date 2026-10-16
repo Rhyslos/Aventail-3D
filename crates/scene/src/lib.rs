@@ -23,7 +23,8 @@ pub use command::Command;
 pub use document::Document;
 pub use history::HistoryLimit;
 pub use mesh::edit::{
-    Bend, BevelOptions, BevelShape, ExtrudeDirection, ExtrudeShape, Eye, Grouping, Slide, SlitLine,
+    Bend, BevelOptions, BevelShape, ExtrudeDirection, ExtrudeShape, Eye, GrooveShape, GrooveSides,
+    Grouping, Slide, SlitLine,
 };
 pub use mesh::{
     Bounds, Combine, EdgeKey, Element, ElementKind, ElementSelection, FaceId, Mesh, Primitive,

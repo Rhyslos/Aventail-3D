@@ -150,6 +150,19 @@ pub enum Operation {
         /// Where the edges were, to find them again (decision 0032).
         anchors: Option<Anchors>,
     },
+    /// Cuts a groove into the shape (or raises a ridge) along edges, in
+    /// one step (decision 0086).
+    Groove {
+        /// The edges.
+        edges: Vec<EdgeKey>,
+        /// Its width, depth (negative in, positive out) and sides.
+        shape: edit::GrooveShape,
+        /// How much the object was stretched along its own axes when the
+        /// edit was made or last changed (decision 0082).
+        stretch: Vec3,
+        /// Where the edges were, to find them again (decision 0032).
+        anchors: Option<Anchors>,
+    },
     /// Cuts corners away, putting a polygon in their place (decision
     /// 0040).
     BevelPoints {
@@ -399,6 +412,9 @@ pub struct EditSettings {
     /// A bevel of edges' skew, even width, stopping at overlaps and
     /// welding (decision 0085); none for other edits.
     pub bevel_options: Option<edit::BevelOptions>,
+    /// A groove's width, depth and sides (decision 0086; its depth is
+    /// also `distance`); none for other edits.
+    pub groove: Option<edit::GrooveShape>,
 }
 
 /// What applying an operation did.
@@ -440,6 +456,10 @@ impl Operation {
             Self::InsetPolygons { faces, .. } => counted("Inset", faces.len(), "polygon"),
             Self::ExtrudeEdges { edges, .. } => counted("Extrude", edges.len(), "edge"),
             Self::BevelEdges { edges, .. } => counted("Bevel", edges.len(), "edge"),
+            Self::Groove { edges, shape, .. } => {
+                let what = if shape.depth > 0.0 { "Ridge" } else { "Groove" };
+                counted(&format!("{what} along"), edges.len(), "edge")
+            }
             Self::BevelPoints { points, .. } => counted("Bevel", points.len(), "point"),
             Self::LoopCut { cuts: 1, .. } => "Loop cut".to_string(),
             Self::LoopCut { cuts, .. } => format!("Loop cut ({cuts} cuts)"),
@@ -549,6 +569,11 @@ impl Operation {
             }),
             Self::BevelPoints { width, .. } => Some(EditSettings {
                 distance: Some(*width),
+                ..EditSettings::default()
+            }),
+            Self::Groove { shape, .. } => Some(EditSettings {
+                distance: Some(shape.depth),
+                groove: Some(*shape),
                 ..EditSettings::default()
             }),
             Self::LoopCut { cuts, position, .. } => Some(EditSettings {
@@ -691,6 +716,17 @@ impl Operation {
                     *width = w;
                 }
             }
+            Self::Groove { shape, .. } => {
+                if let Some(g) = settings.groove {
+                    *shape = g;
+                }
+                if let Some(d) = settings.distance {
+                    shape.depth = d;
+                }
+                if let Some(clamped) = shape.clamped() {
+                    *shape = clamped;
+                }
+            }
             Self::LoopCut { cuts, position, .. } => {
                 if let Some(n) = settings.cuts {
                     *cuts = n;
@@ -779,6 +815,7 @@ impl Operation {
                 | Self::ExtrudeEdges { .. }
                 | Self::BevelEdges { .. }
                 | Self::BevelPoints { .. }
+                | Self::Groove { .. }
         )
     }
 
@@ -792,7 +829,8 @@ impl Operation {
             | Self::InsetPolygons { stretch, .. }
             | Self::ExtrudeEdges { stretch, .. }
             | Self::BevelEdges { stretch, .. }
-            | Self::BevelPoints { stretch, .. } => *stretch,
+            | Self::BevelPoints { stretch, .. }
+            | Self::Groove { stretch, .. } => *stretch,
             _ => Vec3::ONE,
         }
     }
@@ -806,7 +844,8 @@ impl Operation {
             | Self::InsetPolygons { stretch, .. }
             | Self::ExtrudeEdges { stretch, .. }
             | Self::BevelEdges { stretch, .. }
-            | Self::BevelPoints { stretch, .. } => Some(stretch),
+            | Self::BevelPoints { stretch, .. }
+            | Self::Groove { stretch, .. } => Some(stretch),
             _ => None,
         }
     }
@@ -846,6 +885,7 @@ impl Operation {
             | Self::InsetPolygons { distance, .. }
             | Self::ExtrudeEdges { distance, .. } => distance.is_finite(),
             Self::BevelEdges { shape, .. } => shape.width.is_finite() && shape.profile.is_finite(),
+            Self::Groove { shape, .. } => shape.width.is_finite() && shape.depth.is_finite(),
             Self::BevelPoints { width, .. } => width.is_finite(),
             Self::LoopCut { position, .. } => position.is_finite(),
             Self::Connect { .. }
@@ -890,6 +930,7 @@ impl Operation {
             | Self::InsetPolygons { anchors, .. }
             | Self::ExtrudeEdges { anchors, .. }
             | Self::BevelEdges { anchors, .. }
+            | Self::Groove { anchors, .. }
             | Self::BevelPoints { anchors, .. }
             | Self::LoopCut { anchors, .. }
             | Self::ExtrudeBent { anchors, .. }
@@ -920,6 +961,7 @@ impl Operation {
             | Self::InsetPolygons { anchors, .. }
             | Self::ExtrudeEdges { anchors, .. }
             | Self::BevelEdges { anchors, .. }
+            | Self::Groove { anchors, .. }
             | Self::BevelPoints { anchors, .. }
             | Self::LoopCut { anchors, .. }
             | Self::ExtrudeBent { anchors, .. }
@@ -1120,6 +1162,23 @@ impl Operation {
                 }
                 mesh::stretch::as_seen(mesh, *stretch, |mesh| {
                     edit::bevel_edges(mesh, &edges, *shape)
+                })
+            }
+            Self::Groove {
+                edges,
+                shape,
+                stretch,
+                ..
+            } => {
+                let edges = refound
+                    .as_ref()
+                    .map_or_else(|| edges.clone(), |r| edges_within(mesh, &r.0));
+                // A strip and its walls per edge, and ends.
+                if too_big(edges.len().saturating_mul(8)) {
+                    return skipped;
+                }
+                mesh::stretch::as_seen(mesh, *stretch, |mesh| {
+                    edit::groove_edges(mesh, &edges, *shape)
                 })
             }
             Self::BevelPoints {

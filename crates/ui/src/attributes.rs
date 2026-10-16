@@ -46,6 +46,8 @@ pub(crate) struct AttributesPanel {
     pub(crate) grouping: Grouping,
     /// Bevel's rows and profile, for the next drag (decision 0040).
     pub(crate) bevel: BevelLook,
+    /// Groove's width and sides, for the next drag (decision 0086).
+    pub(crate) groove: GrooveLook,
     /// Loop cut's number of cuts, for the next cut (decision 0047).
     pub(crate) loop_cut: LoopLook,
     /// Whether Slit cuts through to the far side (decision 0049).
@@ -121,6 +123,24 @@ pub(crate) struct LoopLook {
 impl Default for LoopLook {
     fn default() -> Self {
         Self { cuts: 1 }
+    }
+}
+
+/// Groove's width (in world centimetres) and sides, set in the Attributes
+/// panel before a drag (decision 0086); the drag sets the depth.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct GrooveLook {
+    pub(crate) width: f32,
+    pub(crate) sides: scene::GrooveSides,
+}
+
+impl Default for GrooveLook {
+    /// A centimetre wide, straight sides.
+    fn default() -> Self {
+        Self {
+            width: 1.0,
+            sides: scene::GrooveSides::Straight,
+        }
     }
 }
 
@@ -461,6 +481,10 @@ impl AttributesPanel {
                         ui.end_row();
                         bevel_option_rows(ui, &mut look.options, units);
                         self.bevel = look;
+                    } else if self.tool == Tool::Groove {
+                        let mut look = self.groove;
+                        groove_rows(ui, &mut look.width, &mut look.sides, units);
+                        self.groove = look;
                     } else {
                         let mut together = self.grouping == Grouping::Together;
                         if keep_together(ui, &mut together) {
@@ -489,6 +513,8 @@ impl AttributesPanel {
             "Point at an edge to see the loop; click to cut, or drag along the edge to slide it."
         } else if self.tool == Tool::Bevel {
             "Drag away from the selected edges or points to widen. Hold Shift for fine steps."
+        } else if self.tool == Tool::Groove {
+            "Drag into the surface for a groove, out of it for a ridge. Hold Shift for fine steps."
         } else {
             "Drag anywhere in the viewport. Hold Shift for fine steps."
         };
@@ -525,7 +551,9 @@ impl AttributesPanel {
             Operation::BevelEdges { .. } | Operation::BevelPoints { .. }
         );
         let low = match kind {
-            Operation::ExtrudePolygons { .. } | Operation::ExtrudeEdges { .. } => -MAX_SIZE,
+            Operation::ExtrudePolygons { .. }
+            | Operation::ExtrudeEdges { .. }
+            | Operation::Groove { .. } => -MAX_SIZE,
             _ => 0.0,
         };
         // Its own id scope: its Width field mustn't share ids with the
@@ -598,11 +626,18 @@ impl AttributesPanel {
                     let Some(mut distance) = edited.distance else {
                         return;
                     };
+                    let groove = matches!(kind, Operation::Groove { .. });
                     let (name, help) = if bevel {
                         (
                             "Width",
                             "How far the bevel reaches into each polygon (in the object's own \
                          size). Change it and the shape follows.",
+                        )
+                    } else if groove {
+                        (
+                            "Depth",
+                            "How far the groove goes in (below 0) or the ridge comes out (above \
+                             0), in the object's own size. Change it and the shape follows.",
                         )
                     } else {
                         (
@@ -697,6 +732,17 @@ impl AttributesPanel {
                             changed = true;
                         }
                         ui.end_row();
+                    }
+                    if let Some(mut shape) = edited.groove {
+                        let touched = groove_rows(ui, &mut shape.width, &mut shape.sides, units);
+                        if touched.began {
+                            self.gesture += 1;
+                        }
+                        if touched.changed {
+                            edited.groove = Some(shape);
+                            self.groove.sides = shape.sides;
+                            changed = true;
+                        }
                     }
                     if let Some(mut options) = edited.bevel_options {
                         let touched = bevel_option_rows(ui, &mut options, units);
@@ -1008,6 +1054,7 @@ pub(crate) fn made_by(operation: &Operation, tool: Tool) -> bool {
                 Operation::BevelEdges { .. } | Operation::BevelPoints { .. },
                 Tool::Bevel
             )
+            | (Operation::Groove { .. }, Tool::Groove)
             | (Operation::LoopCut { .. }, Tool::LoopCut)
             | (Operation::Slit { .. }, Tool::Slit)
             | (Operation::Bridge { .. }, Tool::Bridge)
@@ -1342,6 +1389,48 @@ fn position_row(ui: &mut Ui, position: &mut f32) -> stepper::Touched {
         changed: response.changed(),
         began: response.drag_started() || (response.changed() && !response.dragged()),
     }
+}
+
+/// Groove's Width and Sides, a row each (decision 0086).
+fn groove_rows(
+    ui: &mut Ui,
+    width: &mut f32,
+    sides: &mut scene::GrooveSides,
+    units: Units,
+) -> stepper::Touched {
+    label(
+        ui,
+        "Groove width",
+        "How wide the groove (or ridge) is, across the line of edges",
+    );
+    let mut out = stepper::length(
+        ui,
+        width,
+        (0.0, mesh::groove::MAX_GROOVE_WIDTH),
+        units,
+        "Groove width",
+    );
+    ui.end_row();
+    label(
+        ui,
+        "Sides",
+        "Straight: walls square to the surface and a flat bottom, a crisp panel line. Sloped: \
+         the sides slope down to a fold along the middle, a V.",
+    );
+    ui.horizontal(|ui| {
+        for (choice, name) in [
+            (scene::GrooveSides::Straight, "Straight"),
+            (scene::GrooveSides::Sloped, "Sloped"),
+        ] {
+            if ui.selectable_label(*sides == choice, name).clicked() && *sides != choice {
+                *sides = choice;
+                out.changed = true;
+                out.began = true;
+            }
+        }
+    });
+    ui.end_row();
+    out
 }
 
 /// A bevel's further settings (decision 0085), a row each: Skew with

@@ -57,6 +57,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Bevel and chamfer** — Cutting a sharp edge away and putting a strip of polygons in its place. A *chamfer* is a single flat strip; a *bevel* with more segments is rounded. A *cove* is a bevel that curves inward instead, hollowing the edge out. Real objects rarely have perfectly sharp edges, so a small bevel catches the light and makes a model read as solid. See [Bevel](bevel.md).
 
+**Panel line (groove, ridge)** — A thin line cut into a surface (a groove) or raised out of it (a ridge): the seams between panels on a gun or a vehicle, slots, score lines, trims. They break up big flat areas so a model reads as built from parts, and they bake well into normal maps. See [Groove](groove.md).
+
 **Manifold** — A mesh that could exist as a real, solid object: every edge is shared by exactly two polygons. Non-manifold geometry (edges shared by three faces, loose edges, holes) often breaks booleans, bakes and some tools.
 
 ## Objects and scenes
@@ -85,7 +87,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Pivot (axis / origin)** — The point an object rotates and scales around. In Godot, it's also the point the asset is placed and snapped by, so where you put it matters: on the hinge of a door, at the bottom corner of a wall piece. The [gizmo](transforming.md) sits on it. In the Object mode you can move and turn it without moving the shape; see [Pivots and the Object mode](pivots.md).
 
-**Stretched object (uneven scale)** — An object scaled more along one of its axes than another in the Object mode, say twice as tall as it is wide. The shape itself isn't changed: the object is drawn stretched. Edits that measure across a shape (an inset's border, a bevel's width, which way is "straight out", a bend) have to know about the stretch, or they come out stretched too: a border wider on one side, a round pipe turning oval. Extrudes, insets, bevels and bends in this app take the object's stretch into account ([on a stretched object](extrude-and-inset.md#on-a-stretched-object)). Scaling the points in the Points mode instead changes the shape itself, with no stretch on the object; many modellers prefer it for that reason. (Other programs call fixing this "apply scale" or "freeze scale".)
+**Stretched object (uneven scale)** — An object scaled more along one of its axes than another in the Object mode, say twice as tall as it is wide. The shape itself isn't changed: the object is drawn stretched. Edits that measure across a shape (an inset's border, a bevel's width, which way is "straight out", a bend) have to know about the stretch, or they come out stretched too: a border wider on one side, a round pipe turning oval. Extrudes, insets, bevels, grooves and bends in this app take the object's stretch into account ([on a stretched object](extrude-and-inset.md#on-a-stretched-object)). Scaling the points in the Points mode instead changes the shape itself, with no stretch on the object; many modellers prefer it for that reason. (Other programs call fixing this "apply scale" or "freeze scale".)
 
 **Gizmo** — The handle drawn on what's selected while moving, rotating or scaling: arrows, rings and boxes in the axis colours. Dragging one part changes the selection in that direction only. See [Move, rotate and scale](transforming.md).
 

@@ -70,6 +70,8 @@ pub(super) struct ModellingSession {
     grouping: Grouping,
     /// Bevel's rows and profile.
     bevel: BevelLook,
+    /// Groove's width and sides (decision 0086).
+    groove: crate::attributes::GrooveLook,
     /// Extrude's bend (decision 0050).
     bend: scene::Bend,
     /// Extrude's way, end size, steps and flat end (decision 0070).
@@ -200,6 +202,16 @@ impl ModellingSession {
                 anchors,
                 stretch: part.stretch,
             },
+            (Elements::Edges(edges), Tool::Groove) => Operation::Groove {
+                edges: edges.clone(),
+                shape: scene::GrooveShape {
+                    width: self.groove.width / part.scale,
+                    depth: local,
+                    sides: self.groove.sides,
+                },
+                anchors,
+                stretch: part.stretch,
+            },
             (Elements::Points(points), _) => Operation::BevelPoints {
                 points: points.clone(),
                 width: local,
@@ -283,6 +295,7 @@ impl Workbench {
             CommandId::Extrude,
             CommandId::Inset,
             CommandId::Bevel,
+            CommandId::Groove,
             CommandId::LoopCut,
             CommandId::Slit,
             CommandId::Connect,
@@ -558,6 +571,9 @@ impl Workbench {
                     Tool::Inset => {
                         "Inset works on polygons: press 3 for the Polygons mode and select some."
                     }
+                    Tool::Groove => {
+                        "Groove works on edges: press 2 for the Edges mode and select some."
+                    }
                     _ => {
                         "Extrude works on polygons or edges: press 3 for the Polygons mode \
                          (or 2 for Edges) and select some."
@@ -609,7 +625,12 @@ impl Workbench {
             if corners.is_empty() {
                 continue;
             }
-            facing += world_facing(&item.mesh, item.transform, &elements);
+            facing += if tool == Tool::Groove {
+                // A groove goes into the surface the edges lie on.
+                surface_facing(&item.mesh, item.transform, &elements)
+            } else {
+                world_facing(&item.mesh, item.transform, &elements)
+            };
             if let Some(axis) = axis {
                 along += item.transform.transform_vector3(axis).normalize_or_zero();
             }
@@ -653,7 +674,7 @@ impl Workbench {
             key: MODELLING_KEYS | self.sessions,
             parts,
             pivot: bounds.centre(),
-            direction: (tool == Tool::Extrude)
+            direction: matches!(tool, Tool::Extrude | Tool::Groove)
                 .then(|| match (axis, along.try_normalize()) {
                     // Along an axis, out the way the polygons face (and so
                     // dragging that way on screen pushes them out).
@@ -669,6 +690,7 @@ impl Workbench {
                 .flatten(),
             grouping: self.grouping(),
             bevel: self.attributes.bevel,
+            groove: self.attributes.groove,
             bend: self.attributes.bend,
             extrude: self.attributes.extrude,
             reach,
@@ -778,6 +800,22 @@ fn outer_edges(mesh: &scene::Mesh, edges: &[EdgeKey]) -> Vec<EdgeKey> {
         .collect()
 }
 
+/// The way the surface around `elements` of `mesh` faces, summed and in
+/// the world: for edges, both polygons along each.
+fn surface_facing(mesh: &scene::Mesh, world: Mat4, elements: &Elements) -> Vec3 {
+    let normals = world.inverse().transpose();
+    let to_world = |v: Vec3| normals.transform_vector3(v).normalize_or_zero();
+    let Elements::Edges(edges) = elements else {
+        return world_facing(mesh, world, elements);
+    };
+    let topology = mesh.topology();
+    edges
+        .iter()
+        .flat_map(|e| topology.edge_uses(*e).iter().map(|u| u.face))
+        .map(|f| to_world(mesh.face_normal(f)))
+        .sum()
+}
+
 /// The way `elements` of `mesh` face, summed and in the world (`world` is
 /// the object's matrix): polygons by their facing, border edges by the way
 /// they grow.
@@ -814,7 +852,7 @@ fn world_facing(mesh: &scene::Mesh, world: Mat4, elements: &Elements) -> Vec3 {
 fn kind_for(mode: Mode, tool: Tool) -> Option<ElementKind> {
     match (mode, tool) {
         (Mode::Polygons, Tool::Extrude | Tool::Inset) => Some(ElementKind::Polygons),
-        (Mode::Edges, Tool::Extrude | Tool::Bevel) => Some(ElementKind::Edges),
+        (Mode::Edges, Tool::Extrude | Tool::Bevel | Tool::Groove) => Some(ElementKind::Edges),
         (Mode::Points, Tool::Bevel) => Some(ElementKind::Points),
         _ => None,
     }
