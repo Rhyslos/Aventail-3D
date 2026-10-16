@@ -294,6 +294,31 @@ impl Workbench {
             }
         }
         ui.separator();
+        // Snap to and Align (decision 0093).
+        let ready = !self.document.selection().is_empty();
+        for (label, help, what) in [
+            (
+                super::aligning::SNAP_TO_LABEL,
+                super::aligning::SNAP_TO_HELP,
+                super::aligning::TargetUse::SnapTo,
+            ),
+            (
+                super::aligning::ALIGN_LABEL,
+                super::aligning::ALIGN_HELP,
+                super::aligning::TargetUse::Align,
+            ),
+        ] {
+            if ui
+                .add_enabled(ready, egui::Button::new(label))
+                .on_hover_text(help)
+                .on_disabled_hover_text("Select one or more objects first")
+                .clicked()
+            {
+                self.start_target_pick(what);
+                ui.close();
+            }
+        }
+        ui.separator();
         let locked = self.viewport.options().locked;
         for (keys, axis) in LOCK_KEYS {
             let label = format!("Lock {}", ["X", "Y", "Z"][axis]);

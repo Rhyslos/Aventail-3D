@@ -233,9 +233,13 @@ pub struct Workbench {
     slit_session: Option<slit::SlitSession>,
     /// A Bridge or Weld drag in progress (decision 0051).
     pair_session: Option<joining::PairSession>,
-    /// Pivot to object is waiting for a click on the target (decision
-    /// 0068).
-    pivot_target: bool,
+    /// What the next click on an object is for, while one is awaited:
+    /// Pivot to object (decision 0068), Snap to or Align (decision 0093).
+    target_pick: Option<aligning::TargetUse>,
+    /// The Align window, while open (decision 0093).
+    align: Option<aligning::AlignSession>,
+    /// The Align window's choices, for the next time.
+    align_settings: aligning::AlignSettings,
     /// The Export window and the last export (decision 0071).
     exporting: exporting::Exporting,
     /// The bake check window (decision 0077).
@@ -305,7 +309,9 @@ impl Workbench {
             loop_cut_session: None,
             slit_session: None,
             pair_session: None,
-            pivot_target: false,
+            target_pick: None,
+            align: None,
+            align_settings: aligning::AlignSettings::default(),
             exporting: exporting::Exporting::default(),
             baking: baking::Baking::default(),
             dissolve_question: None,
@@ -1117,8 +1123,10 @@ impl Workbench {
         self.bake_window(ui.ctx());
         self.export_window(ui.ctx(), &mut actions);
         self.keep_units(units_shown);
-        // While Pivot to object waits for its click, the pointer says so.
-        if self.pivot_target {
+        self.align_window(ui.ctx());
+        // While Pivot to object, Snap to or Align waits for its click, the
+        // pointer says so.
+        if self.target_pick.is_some() {
             ui.ctx().set_cursor_icon(egui::CursorIcon::Crosshair);
         }
         self.dissolve_question_window(ui.ctx());
@@ -1167,6 +1175,7 @@ impl Workbench {
             || self.settings.open
             || self.shortcuts.open
             || self.about_open
+            || self.align.is_some()
     }
 
     /// Keys that change the document: undo, redo, delete, deselect, group
@@ -1192,9 +1201,11 @@ impl Workbench {
             }
             return;
         }
-        // While Pivot to object waits for a click, Esc cancels it.
-        if self.pivot_target && ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
-            self.cancel_pivot_target();
+        // While a target click is awaited, Esc cancels it.
+        if self.target_pick.is_some()
+            && ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape))
+        {
+            self.cancel_target_pick();
             return;
         }
         // While a slit's line is drawn, Esc and Enter finish it (and Esc
@@ -1391,7 +1402,7 @@ impl Workbench {
         }
         let menu = self.tool_menu.is_open();
         self.tool_menu.close();
-        self.pivot_target = false;
+        self.target_pick = None;
         let tool = self.tool.has_settings();
         if tool {
             // Finishes a Slit line too, keeping what it cut.
@@ -2043,6 +2054,9 @@ mod materials;
 pub use exporting::{
     ExportChoice, ExportRequest, KitOutcome, KitRequest, TargetOutcome, TargetRequest,
 };
+mod aligning;
+#[cfg(test)]
+mod aligning_tests;
 #[cfg(test)]
 mod layer_tests;
 mod modelling;
