@@ -178,14 +178,29 @@ fn automatic_picks_the_most_even_and_always_the_same() {
 }
 
 #[test]
-fn distortion_prices_a_turned_over_triangle() {
-    let mesh = plane(1);
+fn distortion_prices_a_turned_over_triangle_but_not_a_mirrored_layout() {
+    let mesh = plane(2);
     let chart = chart_of(&mesh, &all_faces(&mesh));
     let none = vec![None; chart.len()];
     let (triangles, real) = real_shapes(&mesh, &chart);
     let (at, _) = lay_flat(&mesh, &chart, UnwrapMethod::Conformal, &none, &[]).unwrap();
+    let even = distortion(&triangles, &real, &at);
+    // The whole layout mirrored is just as even (placing turns it back).
     let mirrored: Vec<Vec2> = at.iter().map(|v| Vec2::new(-v.x, v.y)).collect();
-    assert!(distortion(&triangles, &real, &mirrored) > distortion(&triangles, &real, &at) + 5.0);
+    assert!((distortion(&triangles, &real, &mirrored) - even).abs() < 1e-6);
+    // A corner folded over its triangle's far side is turned over.
+    let corner = (0..chart.len())
+        .min_by_key(|w| triangles.iter().filter(|t| t.contains(w)).count())
+        .unwrap();
+    let t = triangles.iter().find(|t| t.contains(&corner)).unwrap();
+    let others: Vec<usize> = t.iter().copied().filter(|w| *w != corner).collect();
+    let mut folded = at.clone();
+    folded[corner] = at[others[0]] + at[others[1]] - at[corner];
+    assert!(distortion(&triangles, &real, &folded) > even + 1.0);
+    let worst = stretch_each(&triangles, &real, &folded)
+        .into_iter()
+        .fold(1.0, f64::max);
+    assert!(worst.is_infinite());
 }
 
 /// A plane unwrapped, with points `pinned` pinned and then the shape bent

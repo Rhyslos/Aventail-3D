@@ -56,6 +56,7 @@ pub fn mirrors(op: &Operation) -> bool {
         | Operation::SetMaterial { .. }
         | Operation::SetHardEdges { .. }
         | Operation::SetSeams { .. }
+        | Operation::SetSeamPreference { .. }
         | Operation::Slit { .. } => true,
         Operation::FillHoles { points, .. } => !points.is_empty(),
         Operation::MovePoints { .. }
@@ -67,6 +68,7 @@ pub fn mirrors(op: &Operation) -> bool {
         | Operation::StraightenUvs { .. }
         | Operation::RelaxUvs { .. }
         | Operation::SetTexelDensity { .. }
+        | Operation::SetStretchBudget { .. }
         | Operation::PlaceOnTrim { .. }
         | Operation::PackUvs { .. }
         | Operation::SlidePoints { .. }
@@ -283,6 +285,15 @@ pub(crate) fn both_sides(op: &Operation, mesh: &Mesh, mirror: &Mirror) -> Both {
         } => together(Operation::SetSeams {
             edges: all_edges(edges),
             seam: *seam,
+            anchors: joined(anchors),
+        }),
+        Operation::SetSeamPreference {
+            edges,
+            preference,
+            anchors,
+        } => together(Operation::SetSeamPreference {
+            edges: all_edges(edges),
+            preference: *preference,
             anchors: joined(anchors),
         }),
         Operation::SetHardEdges {

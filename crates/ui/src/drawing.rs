@@ -108,6 +108,10 @@ pub enum OverlayStyle {
     Hard,
     /// A seam of an edited object (Display → Seams, and the UV mode).
     Seam,
+    /// An edge where seams are preferred (decision 0111), shown with seams.
+    SeamPrefer,
+    /// An edge where no seam may go (decision 0111), shown with seams.
+    SeamNever,
     /// A polygon's normal: a short line from its middle the way it faces
     /// (Display → Normals).
     Normal,

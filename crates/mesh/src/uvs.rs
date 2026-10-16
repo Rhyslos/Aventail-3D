@@ -14,7 +14,9 @@
 //! The tools that make UVs (unwrapping, relaxing, packing) are in the `uv`
 //! crate; this module is what every part of the app needs to read them.
 
-use crate::attributes::{AttributeValues, Domain, SEAM, UV, UV_PIN, Value};
+use crate::attributes::{
+    AttributeValues, Domain, SEAM, SEAM_PREFERENCE, UV, UV_BUDGET, UV_PIN, Value,
+};
 use crate::{AttributeElement, EdgeKey, FaceId, Mesh, VertexId};
 use glam::Vec2;
 
@@ -389,6 +391,188 @@ pub fn uv_centre(mesh: &Mesh, faces: &[FaceId], points: &[VertexId]) -> Option<V
 
 #[cfg(test)]
 mod tests;
+
+/// What the automatic UV tools are told about an edge (decision 0111).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum SeamPreference {
+    /// Nothing: the tools choose.
+    #[default]
+    Free,
+    /// When a cut is needed, put it here first.
+    Prefer,
+    /// Never cut here (unless a piece couldn't lie flat otherwise).
+    Never,
+}
+
+impl SeamPreference {
+    fn to_value(self) -> i32 {
+        match self {
+            Self::Free => 0,
+            Self::Prefer => 1,
+            Self::Never => -1,
+        }
+    }
+
+    fn from_value(value: i32) -> Self {
+        match value.signum() {
+            1 => Self::Prefer,
+            -1 => Self::Never,
+            _ => Self::Free,
+        }
+    }
+}
+
+/// Every edge with a seam preference, and which.
+pub fn seam_preferences(mesh: &Mesh) -> Vec<(EdgeKey, SeamPreference)> {
+    match mesh.attribute_values(SEAM_PREFERENCE) {
+        Some((Domain::Edge, _, AttributeValues::Edges(list))) => list
+            .into_iter()
+            .filter_map(|(e, v)| match v {
+                Value::Int(i) if i != 0 => Some((e, SeamPreference::from_value(i))),
+                _ => None,
+            })
+            .collect(),
+        _ => Vec::new(),
+    }
+}
+
+/// The seam preference of `edge`.
+pub fn seam_preference(mesh: &Mesh, edge: EdgeKey) -> SeamPreference {
+    match mesh.attribute(SEAM_PREFERENCE, AttributeElement::Edge(edge)) {
+        Some(Value::Int(i)) => SeamPreference::from_value(i),
+        _ => SeamPreference::Free,
+    }
+}
+
+/// Sets the seam preference of `edges` (decision 0111), adding the layer
+/// when needed and taking it away when no edge has one. Edges not in the
+/// mesh are missing; open edges (cut already) and edges already so are
+/// skipped.
+pub fn set_seam_preference(
+    mesh: &mut Mesh,
+    edges: &[EdgeKey],
+    preference: SeamPreference,
+) -> crate::edit::Outcome {
+    let mut outcome = crate::edit::Outcome::default();
+    let has_layer = mesh.attribute_values(SEAM_PREFERENCE).is_some();
+    if !has_layer
+        && preference != SeamPreference::Free
+        && mesh
+            .add_attribute(SEAM_PREFERENCE, Domain::Edge, Value::Int(0))
+            .is_err()
+    {
+        outcome.skipped = edges.len();
+        return outcome;
+    }
+    let topology = mesh.topology().clone();
+    for edge in edges {
+        if !topology.has_edge(*edge) {
+            outcome.missing += 1;
+        } else if topology.edge_uses(*edge).len() < 2
+            || seam_preference(mesh, *edge) == preference
+            || (preference == SeamPreference::Free && !has_layer)
+        {
+            outcome.skipped += 1;
+        } else if mesh
+            .set_attribute(
+                SEAM_PREFERENCE,
+                AttributeElement::Edge(*edge),
+                Value::Int(preference.to_value()),
+            )
+            .is_ok()
+        {
+            outcome.matched += 1;
+        } else {
+            outcome.skipped += 1;
+        }
+    }
+    if seam_preferences(mesh).is_empty() {
+        mesh.remove_attribute(SEAM_PREFERENCE);
+    }
+    outcome
+}
+
+/// Each polygon's stretch budget (decision 0111), by polygon id (0: none
+/// of its own); `None` when no polygon has one.
+pub fn budgets(mesh: &Mesh) -> Option<Vec<f32>> {
+    match mesh.attribute_values(UV_BUDGET) {
+        Some((Domain::Face, _, AttributeValues::Float(list))) => {
+            list.iter().any(|b| *b > 0.0).then_some(list)
+        }
+        _ => None,
+    }
+}
+
+/// The least stretch budget of `faces` that have one, if any does.
+pub fn budget_of(mesh: &Mesh, faces: &[FaceId]) -> Option<f32> {
+    let list = budgets(mesh)?;
+    faces
+        .iter()
+        .filter_map(|f| list.get(f.get() as usize).copied())
+        .filter(|b| *b > 0.0 && b.is_finite())
+        .min_by(f32::total_cmp)
+}
+
+/// The smallest and largest stretch budget a piece may be given: from no
+/// stretch to speak of (1.05 times) to a lot (10 times).
+pub const BUDGET_RANGE: std::ops::RangeInclusive<f32> = 1.05..=10.0;
+
+/// Gives `faces` the stretch budget `budget` (or none of their own, with
+/// `None`), adding the layer when needed and taking it away when no
+/// polygon has one. A budget outside [`BUDGET_RANGE`] changes nothing.
+pub fn set_budget(mesh: &mut Mesh, faces: &[FaceId], budget: Option<f32>) -> crate::edit::Outcome {
+    let present: Vec<FaceId> = faces
+        .iter()
+        .copied()
+        .filter(|f| mesh.face(*f).is_some())
+        .collect();
+    let missing = faces.len() - present.len();
+    let mut outcome = crate::edit::Outcome {
+        matched: 0,
+        missing,
+        skipped: present.len(),
+    };
+    let value = match budget {
+        Some(b) if BUDGET_RANGE.contains(&b) => b,
+        Some(_) => return outcome,
+        None => 0.0,
+    };
+    let has_layer = mesh.attribute_values(UV_BUDGET).is_some();
+    if !has_layer {
+        if value == 0.0 {
+            return outcome;
+        }
+        if mesh
+            .add_attribute(UV_BUDGET, Domain::Face, Value::Float(0.0))
+            .is_err()
+        {
+            return outcome;
+        }
+    }
+    let mut matched = 0;
+    for face in &present {
+        let now = mesh.attribute(UV_BUDGET, AttributeElement::Face(*face));
+        if now == Some(Value::Float(value)) {
+            continue;
+        }
+        if mesh
+            .set_attribute(
+                UV_BUDGET,
+                AttributeElement::Face(*face),
+                Value::Float(value),
+            )
+            .is_ok()
+        {
+            matched += 1;
+        }
+    }
+    if budgets(mesh).is_none() {
+        mesh.remove_attribute(UV_BUDGET);
+    }
+    outcome.matched = matched;
+    outcome.skipped = present.len() - matched;
+    outcome
+}
 
 /// Which corners are pinned (decision 0109), one per corner in the mesh's
 /// corner order; `None` when nothing is.

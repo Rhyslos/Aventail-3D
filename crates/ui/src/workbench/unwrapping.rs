@@ -53,6 +53,13 @@ pub struct UvSettings {
     pub relax_steps: u32,
     /// How finely Pack fits pieces.
     pub pack_quality: PackQuality,
+    /// Whether Suggest seams and Unwrap hold pieces to a stretch budget
+    /// (decision 0111).
+    pub budget_on: bool,
+    /// That budget: the most a piece's polygons may be off, as a factor.
+    pub budget: f32,
+    /// The budget the Stretch budget submenu gives the selection.
+    pub piece_budget: f32,
 }
 
 /// Where cuts that make pieces lie flat are hidden (decision 0110).
@@ -252,6 +259,9 @@ impl Default for UvSettings {
             seam_hiding: SeamHiding::BelowAndBehind,
             relax_steps: uv::unwrap::RELAX_STEPS as u32,
             pack_quality: PackQuality::Standard,
+            budget_on: false,
+            budget: 2.0,
+            piece_budget: 1.5,
         }
     }
 }
@@ -320,7 +330,7 @@ impl UvTool {
 /// The polygons `selected` (of `mesh`, in `mode`) points at: the selected
 /// polygons, or those around selected edges or points; every polygon when
 /// nothing is selected or outside the element modes.
-fn targets(
+pub(super) fn targets(
     mesh: &scene::Mesh,
     selected: Option<&scene::ElementSelection>,
     mode: Mode,
@@ -392,7 +402,17 @@ impl Workbench {
             method: s.unwrap_method.method(),
             only,
             hide: s.seam_hiding.hide(),
+            budget: self.budget(),
         }
+    }
+
+    /// The stretch budget for pieces without their own, if on.
+    fn budget(&self) -> Option<f32> {
+        let s = &self.uv_settings;
+        s.budget_on.then(|| {
+            s.budget
+                .clamp(*scene::BUDGET_RANGE.start(), *scene::BUDGET_RANGE.end())
+        })
     }
 
     /// How Suggest seams works, from the UV settings.
@@ -402,6 +422,7 @@ impl Workbench {
             corner_angle: s.seam_corner_angle.clamp(0.0, 180.0),
             hard_edges: s.seam_hard_edges,
             hide: s.seam_hiding.hide(),
+            budget: self.budget(),
         }
     }
 

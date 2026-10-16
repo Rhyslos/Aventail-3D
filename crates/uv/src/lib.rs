@@ -34,6 +34,8 @@ pub mod unwrap;
 
 #[cfg(test)]
 mod automation_tests;
+#[cfg(test)]
+mod preference_tests;
 pub use mend::mend;
 pub use methods::UnwrapMethod;
 pub use seams::{HideSeams, SuggestOptions};

@@ -32,7 +32,7 @@ pub(crate) const SELECT_SEAMS_HELP: &str =
 
 /// The edges marked (Polygons and UV modes): the border of the selected
 /// polygons, where a selected one meets one that isn't (or nothing).
-fn border_of(mesh: &scene::Mesh, faces: &BTreeSet<FaceId>) -> BTreeSet<EdgeKey> {
+pub(super) fn border_of(mesh: &scene::Mesh, faces: &BTreeSet<FaceId>) -> BTreeSet<EdgeKey> {
     let topology = mesh.topology();
     faces
         .iter()
@@ -41,7 +41,7 @@ fn border_of(mesh: &scene::Mesh, faces: &BTreeSet<FaceId>) -> BTreeSet<EdgeKey> 
         .collect()
 }
 
-fn ends(edges: &[EdgeKey]) -> Vec<Vec<VertexId>> {
+pub(super) fn ends(edges: &[EdgeKey]) -> Vec<Vec<VertexId>> {
     edges
         .iter()
         .map(|e| {
@@ -192,7 +192,12 @@ impl Workbench {
         let mut ops = Vec::new();
         let mut count = 0;
         for (id, mesh) in self.own_shapes() {
-            let edges = changing(&mesh, self.shown_hard_edges(&mesh), true);
+            // Never on an edge marked "never" (decision 0111).
+            let hard = self
+                .shown_hard_edges(&mesh)
+                .into_iter()
+                .filter(|e| mesh::uvs::seam_preference(&mesh, *e) != scene::SeamPreference::Never);
+            let edges = changing(&mesh, hard, true);
             if edges.is_empty() {
                 continue;
             }

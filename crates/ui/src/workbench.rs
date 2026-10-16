@@ -2106,6 +2106,31 @@ impl Workbench {
                 ui.close();
             }
         }
+        for (label, help, preference) in [
+            (
+                seam_preferences::PREFER_LABEL,
+                seam_preferences::PREFER_HELP,
+                scene::SeamPreference::Prefer,
+            ),
+            (
+                seam_preferences::NEVER_LABEL,
+                seam_preferences::NEVER_HELP,
+                scene::SeamPreference::Never,
+            ),
+            (
+                seam_preferences::CLEAR_PREFERENCE_LABEL,
+                seam_preferences::CLEAR_PREFERENCE_HELP,
+                scene::SeamPreference::Free,
+            ),
+        ] {
+            if ui.button(label).on_hover_text(help).clicked() {
+                self.run_seam_preference(preference);
+                ui.close();
+            }
+        }
+        ui.menu_button(seam_preferences::BUDGET_LABEL, |ui| self.budget_menu(ui))
+            .response
+            .on_hover_text("Give the selected pieces a stretch budget of their own");
         ui.separator();
         if let Some(command) = commands_entries(
             ui,
@@ -2408,6 +2433,9 @@ mod loop_cut_tests;
 #[cfg(test)]
 mod material_tests;
 mod materials;
+#[cfg(test)]
+mod seam_preference_tests;
+mod seam_preferences;
 mod seams;
 #[cfg(test)]
 mod seams_tests;

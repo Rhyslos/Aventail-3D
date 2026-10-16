@@ -143,3 +143,62 @@ fn pin_labels_read_well() {
     assert_eq!(unpin.describe(), "Unpin the UVs of 1 polygon");
     assert!(pin.numbers_are_real());
 }
+
+#[test]
+fn seam_preferences_and_budgets_are_recorded_edits() {
+    let (mut doc, id) = with_a_plane();
+    let mesh = mesh_of(&doc, id);
+    let faces: Vec<FaceId> = mesh.faces().map(|(f, _)| f).collect();
+    let topology = mesh.topology();
+    let edges: Vec<EdgeKey> = topology.edges().take(2).collect();
+    record(
+        &mut doc,
+        id,
+        Operation::SetSeamPreference {
+            edges: edges.clone(),
+            preference: SeamPreference::Never,
+            anchors: None,
+        },
+    );
+    record(
+        &mut doc,
+        id,
+        Operation::SetStretchBudget {
+            faces: faces.clone(),
+            budget: Some(1.5),
+            anchors: None,
+        },
+    );
+    let mesh = mesh_of(&doc, id);
+    assert_eq!(mesh::uvs::budget_of(&mesh, &faces), Some(1.5));
+    let open = edges
+        .iter()
+        .filter(|e| mesh.topology().edge_uses(**e).len() == 2)
+        .count();
+    assert_eq!(mesh::uvs::seam_preferences(&mesh).len(), open);
+    doc.undo().unwrap();
+    doc.undo().unwrap();
+    let mesh = mesh_of(&doc, id);
+    assert!(mesh::uvs::budgets(&mesh).is_none());
+    assert!(mesh::uvs::seam_preferences(&mesh).is_empty());
+    // Labels, and budgets out of range are refused.
+    let op = Operation::SetStretchBudget {
+        faces: faces.clone(),
+        budget: Some(50.0),
+        anchors: None,
+    };
+    assert!(!op.numbers_are_real());
+    assert!(doc.execute(Command::Record { id, operation: op }).is_err());
+    let clear = Operation::SetStretchBudget {
+        faces,
+        budget: None,
+        anchors: None,
+    };
+    assert_eq!(clear.describe(), "Clear the stretch budget of 1 polygon");
+    let never = Operation::SetSeamPreference {
+        edges,
+        preference: SeamPreference::Never,
+        anchors: None,
+    };
+    assert_eq!(never.describe(), "Allow no seams on 2 edges");
+}

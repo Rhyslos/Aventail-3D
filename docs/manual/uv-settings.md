@@ -30,7 +30,7 @@ Edits you've already made keep the settings they were made with, so changing a s
 
 | Submenu | Settings | Where explained |
 |---|---|---|
-| **Seam suggestions** | **Cut corners sharper than** (66°), **Cut along hard edges** (on), **Hide cuts** (underneath and at the back; underneath; at the back; anywhere, the shortest cuts) | [Seams](seams.md#settings) |
+| **Seam suggestions** | **Cut corners sharper than** (66°), **Cut along hard edges** (on), **Stretch budget for every piece** (off; 2×), **Hide cuts** (underneath and at the back; underneath; at the back; anywhere, the shortest cuts) | [Seams](seams.md#settings) |
 | **Unwrapping** | **Method** (keep shapes, keep shapes smoother, keep sizes, automatic), **Straighten strips when unwrapping** (on), **Strip corners within** (25° of square), **Unwrap as seams change** (on) | [Unwrap, Relax and Straighten](unwrapping.md#settings) |
 | **Relaxing** | **Strength** (60 steps) | [Unwrap, Relax and Straighten](unwrapping.md#settings) |
 | **Packing** | **Padding** (8 px), **Turn pieces to fit**, **Stack identical pieces**, **A texture per material**, **A texture per object**, **Fit** (fast, standard, best) | [Pack](packing.md#settings) |
@@ -56,3 +56,4 @@ None: the settings are in the **UV** menu.
 - [Pack](packing.md)
 - [UVs while you keep modelling](uvs-and-modelling.md)
 - [Pinning UVs](pins.md)
+- [Seam preferences and stretch budgets](seam-preferences.md)

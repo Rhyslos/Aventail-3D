@@ -357,3 +357,52 @@ fn pins_are_set_shared_and_cleared() {
     cube.remove_attribute(crate::attributes::UV);
     assert_eq!(set_pins(&mut cube, &[face], &[], true).matched, 0);
 }
+
+#[test]
+fn seam_preferences_are_set_read_and_cleared() {
+    let mut mesh = Primitive::Cube(Default::default()).mesh();
+    let topology = mesh.topology().clone();
+    let edges: Vec<EdgeKey> = topology.edges().take(3).collect();
+    assert!(seam_preferences(&mesh).is_empty());
+    let outcome = set_seam_preference(&mut mesh, &edges[..2], SeamPreference::Never);
+    assert_eq!(outcome.matched, 2);
+    let outcome = set_seam_preference(&mut mesh, &edges[2..], SeamPreference::Prefer);
+    assert_eq!(outcome.matched, 1);
+    assert_eq!(seam_preference(&mesh, edges[0]), SeamPreference::Never);
+    assert_eq!(seam_preference(&mesh, edges[2]), SeamPreference::Prefer);
+    assert_eq!(seam_preferences(&mesh).len(), 3);
+    // The same again is skipped; a gone edge is missing.
+    let again = set_seam_preference(&mut mesh, &edges[..1], SeamPreference::Never);
+    assert_eq!((again.matched, again.skipped), (0, 1));
+    let gone = EdgeKey::new(VertexId::from_raw(900), VertexId::from_raw(901));
+    assert_eq!(
+        set_seam_preference(&mut mesh, &[gone], SeamPreference::Prefer).missing,
+        1
+    );
+    // Clearing them all takes the layer away.
+    set_seam_preference(&mut mesh, &edges, SeamPreference::Free);
+    assert!(seam_preferences(&mesh).is_empty());
+    assert!(mesh.attribute_values(SEAM_PREFERENCE).is_none());
+    // Clearing on a mesh without any changes nothing.
+    let none = set_seam_preference(&mut mesh, &edges, SeamPreference::Free);
+    assert_eq!(none.matched, 0);
+}
+
+#[test]
+fn stretch_budgets_are_set_read_and_cleared() {
+    let mut mesh = Primitive::Cube(Default::default()).mesh();
+    let faces: Vec<FaceId> = mesh.faces().map(|(f, _)| f).collect();
+    assert_eq!(budget_of(&mesh, &faces), None);
+    assert_eq!(set_budget(&mut mesh, &faces[..2], Some(1.5)).matched, 2);
+    assert_eq!(set_budget(&mut mesh, &faces[1..3], Some(1.2)).matched, 2);
+    assert_eq!(budget_of(&mesh, &faces[..1]), Some(1.5));
+    assert_eq!(budget_of(&mesh, &faces), Some(1.2));
+    assert_eq!(budget_of(&mesh, &faces[4..]), None);
+    // Out of range or not a number: nothing.
+    for bad in [0.5, 20.0, f32::NAN] {
+        assert_eq!(set_budget(&mut mesh, &faces, Some(bad)).matched, 0);
+    }
+    set_budget(&mut mesh, &faces, None);
+    assert!(budgets(&mesh).is_none());
+    assert!(mesh.attribute_values(UV_BUDGET).is_none());
+}
