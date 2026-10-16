@@ -208,6 +208,12 @@ pub enum Command {
     /// that isn't valid (`TrimSheet::is_valid`) is refused. The UVs don't
     /// change.
     SetTrim(crate::TrimSheet),
+    /// Changes the project's layout snapshots (decision 0114): takes,
+    /// renames, replaces or removes them. A list that isn't valid
+    /// (`snapshot::snapshots_are_valid`) is refused. The UVs don't change:
+    /// putting a snapshot back is a recorded edit on each object
+    /// (`UvSnapshot::restore`).
+    SetSnapshots(Vec<crate::UvSnapshot>),
     /// Gives an object a new list of materials (decision 0074): names
     /// trimmed, at most `mesh::material::MAX_SLOTS`. A list with an empty
     /// name or a colour outside 0 to 1 is refused.
@@ -333,6 +339,7 @@ impl Command {
             Self::SetTexture(_) => "Change the texture settings".to_string(),
             Self::SetMending(_) => "Change how edits keep UVs".to_string(),
             Self::SetTrim(_) => "Change the trim sheet".to_string(),
+            Self::SetSnapshots(_) => "Change the layout snapshots".to_string(),
             Self::MovePivots(changes) => match changes.len() {
                 1 => "Move pivot".to_string(),
                 n => format!("Move {n} pivots"),
@@ -1135,6 +1142,19 @@ impl Run<'_> {
                     self.edit(Edit::SetMending {
                         before,
                         after: *mending,
+                    })?;
+                }
+                Ok(None)
+            }
+            Command::SetSnapshots(list) => {
+                if !crate::snapshot::snapshots_are_valid(list) {
+                    return Err(SceneError::NotANumber);
+                }
+                let before = self.scene.snapshots().to_vec();
+                if before != *list {
+                    self.edit(Edit::SetSnapshots {
+                        before,
+                        after: list.clone(),
                     })?;
                 }
                 Ok(None)

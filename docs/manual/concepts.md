@@ -149,6 +149,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Stretch budget** — How much stretching a piece may have once laid flat (1.5× means nearly all of it within one and a half times of perfect). Pieces over budget get cut further. See [Seam preferences and stretch budgets](seam-preferences.md).
 
+**Layout snapshot** — A named copy of the UV layout (every polygon's UVs and the seams) kept in the project, to put back in one step or see faintly under the current one. See [Layout snapshots](layout-snapshots.md).
+
 **Locked piece** — A UV piece no automatic tool changes (Unwrap, Pack, mending and the rest); you can still move it by hand. See [Locking pieces and piece settings](locked-pieces.md).
 
 **Pin (UV pin)** — A UV nailed to its spot on the texture: unwrapping lays the rest of its piece out around it, and relaxing leaves it where it is. See [Pinning UVs](pins.md).

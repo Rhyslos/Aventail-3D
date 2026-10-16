@@ -73,6 +73,7 @@ pub fn mirrors(op: &Operation) -> bool {
         | Operation::SetPieceSettings { .. }
         | Operation::PlaceOnTrim { .. }
         | Operation::PackUvs { .. }
+        | Operation::RestoreUvs { .. }
         | Operation::SlidePoints { .. }
         | Operation::FixFacing
         | Operation::PlaceShape { .. }

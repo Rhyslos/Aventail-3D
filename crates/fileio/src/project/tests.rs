@@ -9,10 +9,34 @@ use mesh::{CubeParams, PrimitiveKind, VertexId};
 use scene::{Command, Object, ObjectKind, Operation, Place, Primitive, Transform};
 
 /// A document using everything the current version of the format can
-/// hold: all of [`rich_document_v36`], plus a locked piece and a piece
-/// with settings of its own (version 37; the version 37 sample holds
-/// exactly this).
+/// hold: all of [`rich_document_v37`], plus two layout snapshots (one of
+/// two objects) and a snapshot put back (version 38; the version 38 sample
+/// holds exactly this).
 fn rich_document() -> Document {
+    let mut doc = rich_document_v37();
+    let named = |doc: &Document, name: &str| {
+        doc.scene()
+            .walk()
+            .into_iter()
+            .map(|(id, _)| id)
+            .find(|id| doc.scene().object(*id).unwrap().name == name)
+            .unwrap()
+    };
+    let (cube, sphere) = (named(&doc, "Cube"), named(&doc, "Sphere"));
+    let both = scene::UvSnapshot::take(doc.scene(), &[cube, sphere], "Both, unwrapped").unwrap();
+    let one = scene::UvSnapshot::take(doc.scene(), &[cube], "Cube only").unwrap();
+    doc.execute(Command::SetSnapshots(vec![both.clone(), one]))
+        .unwrap();
+    for (id, operation) in both.restore(doc.scene()) {
+        doc.execute(Command::Record { id, operation }).unwrap();
+    }
+    doc
+}
+
+/// A document using everything version 37 stores: all of
+/// [`rich_document_v36`], plus a locked piece and a piece with settings of
+/// its own (the version 37 sample holds exactly this).
+fn rich_document_v37() -> Document {
     let mut doc = rich_document_v36();
     let cube = doc
         .scene()
@@ -1931,7 +1955,7 @@ fn a_cut_short_or_padded_body_is_damaged() {
 #[test]
 fn an_uncompressed_body_can_be_read() {
     let doc = rich_document();
-    let body = postcard::to_stdvec(&v35::ProjectV35::<v37::EntryV37>::from_document(&doc)).unwrap();
+    let body = postcard::to_stdvec(&v38::ProjectV38::<v38::EntryV38>::from_document(&doc)).unwrap();
     let mut bytes = header(FORMAT_VERSION, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     assert_same(&doc, &from_bytes(&bytes).unwrap());
@@ -4139,12 +4163,51 @@ fn a_file_saved_by_format_version_33_opens_with_its_trim_sheet() {
     assert!(text.contains("PlaceOnTrim"));
 }
 
+const SAMPLE_V38: &[u8] = include_bytes!("../../tests/data/sample-v38.avtl");
+
+#[test]
+fn a_file_saved_by_format_version_38_opens_with_its_snapshots() {
+    let doc = from_bytes(SAMPLE_V38).expect("the version 38 sample opens");
+    assert_same(&rich_document(), &doc);
+    let names: Vec<&str> = doc
+        .scene()
+        .snapshots()
+        .iter()
+        .map(|s| s.name.as_str())
+        .collect();
+    assert_eq!(names, ["Both, unwrapped", "Cube only"]);
+    assert_eq!(doc.scene().snapshots()[0].objects.len(), 2);
+    let text = format!(
+        "{:?}",
+        v38::ProjectV38::<v38::EntryV38>::from_document(&doc)
+    );
+    assert!(text.contains("RestoreUvs"));
+}
+
+#[test]
+fn bad_snapshots_are_refused_in_plain_words() {
+    let doc = rich_document();
+    let mut model = v38::ProjectV38::<v38::EntryV38>::from_document(&doc);
+    model.snapshots[1].name = model.snapshots[0].name.clone();
+    let body = postcard::to_stdvec(&model).unwrap();
+    let mut bytes = header(FORMAT_VERSION, 0, body.len() as u64);
+    bytes.extend_from_slice(&body);
+    assert!(refused(&bytes).to_string().contains("snapshots"));
+    let mut model = v38::ProjectV38::<v38::EntryV38>::from_document(&doc);
+    model.snapshots[0].objects[0].layout.faces[0].uvs[0] = [f32::NAN, 0.0];
+    let body = postcard::to_stdvec(&model).unwrap();
+    let mut bytes = header(FORMAT_VERSION, 0, body.len() as u64);
+    bytes.extend_from_slice(&body);
+    assert!(refused(&bytes).to_string().contains("real number"));
+}
+
 const SAMPLE_V37: &[u8] = include_bytes!("../../tests/data/sample-v37.avtl");
 
 #[test]
 fn a_file_saved_by_format_version_37_opens_with_its_locks_and_piece_settings() {
     let doc = from_bytes(SAMPLE_V37).expect("the version 37 sample opens");
-    assert_same(&rich_document(), &doc);
+    assert_same(&rich_document_v37(), &doc);
+    assert!(doc.scene().snapshots().is_empty());
     let text = format!(
         "{:?}",
         v35::ProjectV35::<v37::EntryV37>::from_document(&doc)
