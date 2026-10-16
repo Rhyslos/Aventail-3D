@@ -27,7 +27,7 @@ In **Wireframe**, clicking still picks the shape you click inside, as if it were
 
 ## Checker and Stretch
 
-Under **Surface** in the **Display** menu, **Checker** and **Stretch** show how your UVs lie on the shapes instead of their colours. See [Checker and Stretch views](checker-and-stretch.md).
+Under **Surface** in the **Display** menu, **Checker**, **Numbered checker** and **Stretch** show how your UVs lie on the shapes instead of their colours. See [Checker and Stretch views](checker-and-stretch.md).
 
 ## Cavity
 
@@ -45,7 +45,7 @@ Cavity works in **Shaded** and **Shaded with wires**. **Wireframe** has no surfa
 
 | Setting | What it does |
 |---|---|
-| **Surface** (**Display** menu) | **Colours** (standard), **Checker** or **Stretch**: see [Checker and Stretch views](checker-and-stretch.md). Remembered. |
+| **Surface** (**Display** menu) | **Colours** (standard), **Checker**, **Numbered checker** or **Stretch**: see [Checker and Stretch views](checker-and-stretch.md). Remembered. |
 | **Cavity** (**Display** menu) | On (the standard): ridges brightened and creases darkened. Off: plain shading. Remembered. |
 | **Shading** (the bottom-left button, or **Display** menu) | **Shaded**: solid, softly lit surfaces with faint edges. **Shaded with wires**: solid surfaces with every edge drawn clearly in light grey. **Wireframe**: only the edges, seen through the shape. Remembered. |
 

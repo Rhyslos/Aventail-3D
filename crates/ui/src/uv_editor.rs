@@ -190,6 +190,19 @@ pub(crate) struct UvEditor {
     /// What was under the mouse here last frame, for the viewport to
     /// light up (decision 0103).
     under_mouse: Option<(ObjectId, Element)>,
+    /// The numbered checker image shown behind the UVs, and the colours
+    /// it was made in (decision 0107).
+    grid: Option<([[u8; 3]; 2], GridTexture)>,
+}
+
+/// The numbered checker's texture in egui.
+#[derive(Clone)]
+struct GridTexture(egui::TextureHandle);
+
+impl std::fmt::Debug for GridTexture {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("GridTexture").field(&self.0.id()).finish()
+    }
 }
 
 impl Default for UvEditor {
@@ -207,6 +220,7 @@ impl Default for UvEditor {
             pressed_on_gizmo: false,
             sessions: 0,
             under_mouse: None,
+            grid: None,
         }
     }
 }
@@ -253,6 +267,9 @@ pub(crate) struct UvContext<'a> {
     /// What is under the mouse in the viewport, lit up here too
     /// (decision 0103).
     pub(crate) outside_hover: Option<(ObjectId, Element)>,
+    /// The numbered checker's colours while the viewport shows it
+    /// (decision 0107): the editor shows it behind the UVs.
+    pub(crate) grid: Option<[[u8; 3]; 2]>,
 }
 
 /// The objects whose UVs are shown: the selected ones with a shape, in
@@ -404,7 +421,8 @@ impl UvEditor {
         self.navigate(ui, &response, rect, cx.navigation);
         let painter = ui.painter_at(rect);
         painter.rect_filled(rect, 0.0, theme::UV_BACKGROUND);
-        self.paint_square(&painter, rect, doc.scene().texture().size);
+        let grid = cx.grid.map(|colors| self.grid_texture(ui.ctx(), colors));
+        self.paint_square(&painter, rect, doc.scene().texture().size, grid);
         self.paint_trim(&painter, rect, doc.scene().trim());
         let accent = theme::accent(ui.ctx()).colors();
         let kind = element_kind(cx.mode);
@@ -721,8 +739,6 @@ impl UvEditor {
         }
     }
 
-    /// The texture square: a lighter tile, a grid every tenth and its
-    /// edges.
     /// The texture's pixels, when zoomed in far enough to see them
     /// (decision 0100): faint lines between them, over what is in view.
     fn paint_pixels(&self, painter: &egui::Painter, rect: Rect, square: Rect, size: u32) {
@@ -784,12 +800,55 @@ impl UvEditor {
         }
     }
 
-    fn paint_square(&self, painter: &egui::Painter, rect: Rect, texture_size: u32) {
+    /// The colours of the numbered checker image shown, if one has been.
+    #[cfg(test)]
+    pub(crate) fn grid_colors(&self) -> Option<[[u8; 3]; 2]> {
+        self.grid.as_ref().map(|(c, _)| *c)
+    }
+
+    /// The numbered checker image in `colors`, made again when they
+    /// change.
+    fn grid_texture(&mut self, ctx: &egui::Context, colors: [[u8; 3]; 2]) -> egui::TextureId {
+        if let Some((made, handle)) = &self.grid
+            && *made == colors
+        {
+            return handle.0.id();
+        }
+        let size = crate::viewport::GRID_IMAGE_SIZE;
+        let image = egui::ColorImage::from_rgba_unmultiplied(
+            [size, size],
+            &crate::viewport::grid_image(colors),
+        );
+        let handle = ctx.load_texture("numbered checker", image, egui::TextureOptions::LINEAR);
+        let id = handle.id();
+        self.grid = Some((colors, GridTexture(handle)));
+        id
+    }
+
+    /// The texture square: a lighter tile (or the numbered checker,
+    /// dimmed so the UVs stand out over it), a grid every tenth and its
+    /// edges.
+    fn paint_square(
+        &self,
+        painter: &egui::Painter,
+        rect: Rect,
+        texture_size: u32,
+        grid: Option<egui::TextureId>,
+    ) {
         let a = self.to_screen(rect, Vec2::ZERO);
         let b = self.to_screen(rect, Vec2::ONE);
         let square = Rect::from_two_pos(a, b);
         painter.rect_filled(square, 0.0, theme::UV_SQUARE);
-        for i in 1..10 {
+        if let Some(image) = grid {
+            // The image's first row is the top of the square.
+            painter.image(
+                image,
+                square,
+                Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
+                theme::UV_GRID_IMAGE_TINT,
+            );
+        }
+        for i in (1..10).filter(|_| grid.is_none()) {
             let t = i as f32 / 10.0;
             let color = if i == 5 {
                 theme::UV_GRID.gamma_multiply(1.8)

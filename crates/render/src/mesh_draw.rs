@@ -349,6 +349,9 @@ pub enum SurfaceDraw {
         /// What each spot's density is compared with.
         density: f32,
     },
+    /// The numbered checker image (decision 0107), laid on by the UVs:
+    /// the image given to `ViewportRenderer::set_grid_image`.
+    NumberedChecker,
 }
 
 impl SurfaceDraw {
@@ -357,6 +360,7 @@ impl SurfaceDraw {
             Self::Plain => [0.0; 4],
             Self::Checker { squares } => [1.0, squares, 0.0, 0.0],
             Self::Stretch { density } => [2.0, 0.0, density, 0.0],
+            Self::NumberedChecker => [3.0, 0.0, 0.0, 0.0],
         }
     }
 }
@@ -400,7 +404,8 @@ pub(crate) struct ObjectUniforms {
     /// they may fade.
     options: [f32; 4],
     /// What the surface shows (`SurfaceDraw`): x: 0 plain, 1 checker, 2
-    /// stretch; y: checker squares across; z: the density compared with.
+    /// stretch, 3 the numbered checker; y: checker squares across; z: the
+    /// density compared with.
     surface: [f32; 4],
     /// The material colours, four slots to a row.
     materials: [[u32; 4]; PALETTE_SIZE / 4],

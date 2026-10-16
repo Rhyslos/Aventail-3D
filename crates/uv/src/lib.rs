@@ -7,6 +7,7 @@
 //!   seams, and telling whether a piece lies flat in one go (a disk).
 //! - [`check`]: the UV part of the bake check: what in the UVs would
 //!   spoil a bake.
+//! - [`grid`]: the numbered checker image laid on shapes by their UVs.
 //! - [`density`]: texel density: measuring it and setting it.
 //! - [`mod@mend`]: keeping UVs whole through modelling: laying out again
 //!   what an edit left without room, around what it kept.
@@ -19,6 +20,7 @@
 mod chart;
 pub mod check;
 pub mod density;
+pub mod grid;
 pub mod mend;
 pub mod pack;
 pub mod seams;

@@ -188,6 +188,9 @@ pub struct ViewportRenderer {
     /// How cavity reads a target's facing image.
     cavity_layout: wgpu::BindGroupLayout,
     object_layout: wgpu::BindGroupLayout,
+    /// The numbered checker image (decision 0107) and how it is read.
+    grid_view: wgpu::TextureView,
+    grid_sampler: wgpu::Sampler,
     /// Bytes between objects' placements in the uniform buffer (the GPU's
     /// alignment for them).
     object_stride: u64,
@@ -243,18 +246,36 @@ impl ViewportRenderer {
         });
         let object_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("object layout"),
-            entries: &[wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: true,
-                    min_binding_size: wgpu::BufferSize::new(
-                        std::mem::size_of::<ObjectUniforms>() as u64
-                    ),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: true,
+                        min_binding_size: wgpu::BufferSize::new(
+                            std::mem::size_of::<ObjectUniforms>() as u64,
+                        ),
+                    },
+                    count: None,
                 },
-                count: None,
-            }],
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
         });
         let object_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -294,8 +315,21 @@ impl ViewportRenderer {
         let alignment = u64::from(device.limits().min_uniform_buffer_offset_alignment).max(1);
         let size = std::mem::size_of::<ObjectUniforms>() as u64;
         let object_stride = size.div_ceil(alignment) * alignment;
+        let grid_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            label: Some("numbered checker sampler"),
+            address_mode_u: wgpu::AddressMode::Repeat,
+            address_mode_v: wgpu::AddressMode::Repeat,
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Linear,
+            mipmap_filter: wgpu::MipmapFilterMode::Linear,
+            ..Default::default()
+        });
+        // Until an image is given: a black stand-in.
+        let grid_view = grid_texture(device, None, 1, &[0; 4]);
         let mut renderer = Self {
             sample_count,
+            grid_view,
+            grid_sampler,
             uniform_buffer,
             bind_group,
             sky_pipeline: pipeline(PipelineKind::Sky),
@@ -398,6 +432,59 @@ impl ViewportRenderer {
         self.meshes.len()
     }
 
+    /// The bind group of the objects' placements in `buffer`, with the
+    /// numbered checker image.
+    fn placements_bind_group(
+        &self,
+        device: &wgpu::Device,
+        buffer: &wgpu::Buffer,
+    ) -> wgpu::BindGroup {
+        device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("object placements"),
+            layout: &self.object_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                        buffer,
+                        offset: 0,
+                        size: wgpu::BufferSize::new(std::mem::size_of::<ObjectUniforms>() as u64),
+                    }),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::TextureView(&self.grid_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: wgpu::BindingResource::Sampler(&self.grid_sampler),
+                },
+            ],
+        })
+    }
+
+    /// The numbered checker image (decision 0107): `size` pixels square,
+    /// four bytes a pixel (sRGB), its first row the top of the texture
+    /// square. Smaller copies for far away are made from it.
+    pub fn set_grid_image(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        size: u32,
+        rgba: &[u8],
+    ) {
+        if size == 0 || rgba.len() != (size as usize).pow(2) * 4 {
+            return;
+        }
+        self.grid_view = grid_texture(device, Some(queue), size, rgba);
+        if let Some(placements) = &self.placements {
+            let bind_group = self.placements_bind_group(device, &placements.buffer);
+            if let Some(placements) = &mut self.placements {
+                placements.bind_group = bind_group;
+            }
+        }
+    }
+
     /// Which object meshes to draw from now on, where, and how.
     pub fn set_draws(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, draws: &[MeshDraw]) {
         let needed = draws.len().max(1);
@@ -409,18 +496,7 @@ impl ViewportRenderer {
                 usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
                 mapped_at_creation: false,
             });
-            let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: Some("object placements"),
-                layout: &self.object_layout,
-                entries: &[wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                        buffer: &buffer,
-                        offset: 0,
-                        size: wgpu::BufferSize::new(std::mem::size_of::<ObjectUniforms>() as u64),
-                    }),
-                }],
-            });
+            let bind_group = self.placements_bind_group(device, &buffer);
             self.placements = Some(Placements {
                 buffer,
                 bind_group,
@@ -825,4 +901,84 @@ fn draw_meshes(
             }
         }
     }
+}
+
+/// A texture of `size` square holding `rgba` (sRGB), with every smaller
+/// copy down to one pixel (each the average of four pixels of the one
+/// before); written through `queue`, or left black without one (the
+/// stand-in until an image is given).
+fn grid_texture(
+    device: &wgpu::Device,
+    queue: Option<&wgpu::Queue>,
+    size: u32,
+    rgba: &[u8],
+) -> wgpu::TextureView {
+    let levels = 32 - size.leading_zeros();
+    let texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("numbered checker"),
+        size: wgpu::Extent3d {
+            width: size,
+            height: size,
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: levels,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::Rgba8UnormSrgb,
+        usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+        view_formats: &[],
+    });
+    if let Some(queue) = queue {
+        let mut level = rgba.to_vec();
+        let mut side = size;
+        for mip in 0..levels {
+            queue.write_texture(
+                wgpu::TexelCopyTextureInfo {
+                    texture: &texture,
+                    mip_level: mip,
+                    origin: wgpu::Origin3d::ZERO,
+                    aspect: wgpu::TextureAspect::All,
+                },
+                &level,
+                wgpu::TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(side * 4),
+                    rows_per_image: Some(side),
+                },
+                wgpu::Extent3d {
+                    width: side,
+                    height: side,
+                    depth_or_array_layers: 1,
+                },
+            );
+            if side == 1 {
+                break;
+            }
+            level = halved(&level, side as usize);
+            side /= 2;
+        }
+    }
+    texture.create_view(&wgpu::TextureViewDescriptor::default())
+}
+
+/// An image of `side` square at half the size: each pixel the average of
+/// four.
+fn halved(rgba: &[u8], side: usize) -> Vec<u8> {
+    let half = (side / 2).max(1);
+    let mut out = vec![0u8; half * half * 4];
+    for y in 0..half {
+        for x in 0..half {
+            for c in 0..4 {
+                let at = |xx: usize, yy: usize| {
+                    u32::from(rgba[((yy.min(side - 1)) * side + xx.min(side - 1)) * 4 + c])
+                };
+                let sum = at(2 * x, 2 * y)
+                    + at(2 * x + 1, 2 * y)
+                    + at(2 * x, 2 * y + 1)
+                    + at(2 * x + 1, 2 * y + 1);
+                out[(y * half + x) * 4 + c] = ((sum + 2) / 4) as u8;
+            }
+        }
+    }
+    out
 }
