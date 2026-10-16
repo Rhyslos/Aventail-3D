@@ -158,7 +158,8 @@ pub(crate) fn edit(edit: &Edit) -> usize {
             | Edit::SetTransform { .. }
             | Edit::SetOffset { .. }
             | Edit::SetUnits { .. }
-            | Edit::SetCollision { .. } => 0,
+            | Edit::SetCollision { .. }
+            | Edit::SetMirror { .. } => 0,
             Edit::SetExportTarget { before, after } => [before, after]
                 .iter()
                 .filter_map(|t| t.as_ref())

@@ -129,6 +129,15 @@ pub enum Command {
     /// Changes the project's units (decision 0068): how lengths are shown
     /// and typed. The shapes don't change.
     SetUnits(crate::Units),
+    /// Gives objects with a shape a live mirror (decision 0088), changes
+    /// it, or takes it away (`None`). Groups are left alone; a mirror
+    /// with no axis or numbers out of range is refused.
+    SetMirror {
+        /// The objects.
+        ids: Vec<ObjectId>,
+        /// The mirror.
+        mirror: Option<crate::LiveMirror>,
+    },
     /// Gives objects with a shape a collision shape for game engines
     /// (decision 0078). Groups are left alone.
     SetCollision {
@@ -236,6 +245,8 @@ impl Command {
             }
             Self::SetUnits(units) => format!("Change units to {}", units.name()),
             Self::SetMaterials { .. } => "Change materials".to_string(),
+            Self::SetMirror { mirror: None, .. } => "Mirror off".to_string(),
+            Self::SetMirror { .. } => "Mirror".to_string(),
             Self::SetCollision { collision, .. } => match collision {
                 crate::Collision::None => "Remove collision".to_string(),
                 c => format!("Collision: {}", c.name().to_lowercase()),
@@ -706,6 +717,27 @@ impl Run<'_> {
                         id: *id,
                         before,
                         after,
+                    })?;
+                }
+                Ok(None)
+            }
+            Command::SetMirror { ids, mirror } => {
+                if mirror.is_some_and(|m| !m.is_valid()) {
+                    return Err(SceneError::NotANumber);
+                }
+                for id in ids {
+                    let object = self
+                        .scene
+                        .object(*id)
+                        .ok_or(SceneError::UnknownObject(*id))?;
+                    if !object.kind.has_shape() || object.mirror == *mirror {
+                        continue;
+                    }
+                    let before = object.mirror;
+                    self.edit(Edit::SetMirror {
+                        id: *id,
+                        before,
+                        after: *mirror,
                     })?;
                 }
                 Ok(None)

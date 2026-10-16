@@ -180,6 +180,52 @@ pub struct Object {
     pub materials: Vec<Material>,
     /// The collision shape a game engine makes for it (decision 0078).
     pub collision: Collision,
+    /// Its live mirror, if it has one (decision 0088): mirrored copies of
+    /// its shape, drawn and exported as part of it.
+    pub mirror: Option<LiveMirror>,
+}
+
+/// A live mirror ([decision 0088](../../../docs/decisions/0088-live-mirror.md)):
+/// the object's shape is shown and exported with mirrored copies of itself
+/// across planes of the world, welded where they meet. Its edits stay on
+/// the shape itself; the copies follow.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct LiveMirror {
+    /// Which world axes it mirrors across: X (left and right), Y (front
+    /// and back), Z (top and bottom). At least one.
+    pub axes: [bool; 3],
+    /// The point the mirror planes go through, in the world: its centre
+    /// unless moved.
+    pub centre: glam::Vec3,
+    /// Points this close to the seam and to each other become one, in
+    /// centimetres; 0 welds nothing.
+    pub weld_distance: f32,
+}
+
+impl LiveMirror {
+    /// The standard weld distance: 0.1 cm.
+    pub const WELD_DISTANCE: f32 = 0.1;
+    /// The largest weld distance: 10 cm.
+    pub const MAX_WELD_DISTANCE: f32 = 10.0;
+    /// The furthest the mirror may be moved from the world centre: 1 km.
+    pub const MAX_CENTRE: f32 = 100_000.0;
+
+    /// Across X, through the world centre, with the standard weld.
+    pub fn across_x() -> Self {
+        Self {
+            axes: [true, false, false],
+            centre: glam::Vec3::ZERO,
+            weld_distance: Self::WELD_DISTANCE,
+        }
+    }
+
+    /// Whether it makes sense: an axis on, real numbers in range.
+    pub fn is_valid(&self) -> bool {
+        self.axes.contains(&true)
+            && self.centre.is_finite()
+            && self.centre.abs().max_element() <= Self::MAX_CENTRE
+            && (0.0..=Self::MAX_WELD_DISTANCE).contains(&self.weld_distance)
+    }
 }
 
 /// The collision shape a game engine makes for an object
@@ -271,6 +317,7 @@ impl Object {
             stack: Stack::default(),
             materials: Vec::new(),
             collision: Collision::None,
+            mirror: None,
         }
     }
 

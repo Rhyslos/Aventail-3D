@@ -37,6 +37,7 @@ mod v21;
 mod v22;
 mod v23;
 mod v24;
+mod v25;
 mod v3;
 mod v4;
 mod v5;
@@ -53,7 +54,7 @@ use std::path::{Path, PathBuf};
 /// The signature every project file starts with.
 pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// The format version this app writes.
-pub const FORMAT_VERSION: u32 = 24;
+pub const FORMAT_VERSION: u32 = 25;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -155,8 +156,9 @@ fn edit_counts(document: &Document) -> usize {
 
 /// The project file's bytes for `document`, unchecked.
 fn encode(document: &Document) -> Result<Vec<u8>, ProjectError> {
-    let model = v24::ProjectV24::from_document(document);
+    let model = v25::ProjectV25::from_document(document);
     let stored: usize = model
+        .project
         .project
         .project
         .places
@@ -250,7 +252,8 @@ pub fn from_bytes(bytes: &[u8]) -> Result<Document, ProjectError> {
         21 => decode_collisions::<v21::EntryV21>(encoded),
         22 => decode_collisions::<v22::EntryV22>(encoded),
         23 => decode_collisions::<v23::EntryV23>(encoded),
-        _ => decode_collisions::<v24::EntryV24>(encoded),
+        24 => decode_collisions::<v24::EntryV24>(encoded),
+        _ => decode_mirrors(encoded),
     }
 }
 
@@ -326,6 +329,27 @@ where
         ));
     }
     model
+        .project
+        .project
+        .places
+        .project
+        .project
+        .check_limits()
+        .map_err(ProjectError::Damaged)?;
+    model.into_document().map_err(ProjectError::Damaged)
+}
+
+/// The document a body of version 25 or later holds.
+fn decode_mirrors(encoded: &[u8]) -> Result<Document, ProjectError> {
+    let (model, rest): (v25::ProjectV25, &[u8]) =
+        crate::limits::within_budget(|| postcard::take_from_bytes(encoded)).map_err(unreadable)?;
+    if !rest.is_empty() {
+        return Err(ProjectError::Damaged(
+            "there is unexpected data after the scene".into(),
+        ));
+    }
+    model
+        .project
         .project
         .project
         .places

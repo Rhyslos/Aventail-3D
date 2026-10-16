@@ -523,7 +523,8 @@ fn exported(
     let to_file = options.to_file();
     let from_file = to_file.inverse();
     let object = scene.object(id)?;
-    let shape = scene.evaluated(id)?.mesh;
+    // With its live mirror's copies (decision 0088): one mesh.
+    let shape = scene.shown_shape(id)?;
     let pivot = to_file * shift * scene.world_matrix(id) * from_file;
     let world = to_file * shift * scene.shape_matrix(id);
     let local = to_file * object.offset.matrix();

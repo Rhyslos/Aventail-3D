@@ -64,6 +64,15 @@ impl<E: FileOperation> ProjectV20<E> {
 
     /// The document this file model describes, after checking every value.
     pub(crate) fn into_document(self) -> Result<Document, Problem> {
+        self.into_document_with(|_, _| Ok(()))
+    }
+
+    /// The same, with `attach` giving each object (by its id in the file)
+    /// what later versions store beside this one.
+    pub(crate) fn into_document_with(
+        self,
+        mut attach: impl FnMut(u64, &mut scene::Object) -> Result<(), Problem>,
+    ) -> Result<Document, Problem> {
         let mut shapes: BTreeMap<u64, Collision> = BTreeMap::new();
         for entry in self.collisions {
             let shape = match entry.shape {
@@ -79,7 +88,7 @@ impl<E: FileOperation> ProjectV20<E> {
             if let Some(shape) = shapes.remove(&id) {
                 object.collision = shape;
             }
-            Ok(())
+            attach(id, object)
         })?;
         if let Some(id) = shapes.keys().next() {
             return Err(format!(
