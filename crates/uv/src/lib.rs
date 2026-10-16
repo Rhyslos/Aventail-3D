@@ -23,6 +23,7 @@ mod chart;
 pub mod check;
 pub mod density;
 pub mod grid;
+pub mod measure;
 pub mod mend;
 pub mod methods;
 pub mod pack;
@@ -31,6 +32,7 @@ mod solve;
 pub mod stretch;
 pub mod trim;
 pub mod unwrap;
+pub mod warnings;
 
 #[cfg(test)]
 mod automation_tests;

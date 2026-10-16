@@ -20,9 +20,10 @@ Each milestone is one pull request, stacked on the one before. None is merged ye
 | 3 | Seam preferences and stretch budgets | `uv/seam-preferences` | #107 | [0111](../decisions/0111-seam-preferences-and-stretch-budget.md) | 36 |
 | 4 | Locked pieces and piece settings | `uv/locked-pieces` | #108 | [0112](../decisions/0112-locked-pieces-and-piece-settings.md) | 37 |
 | – | The UV menu in groups (not a milestone) | `uv/menu-groups` | #109 | [0113](../decisions/0113-uv-menu-in-groups.md) | – |
-| 18 | Layout snapshots | `uv/snapshots` | see the PR list | [0114](../decisions/0114-layout-snapshots.md) | 38 |
+| 18 | Layout snapshots | `uv/snapshots` | #110 | [0114](../decisions/0114-layout-snapshots.md) | 38 |
+| 15 | Seeing and checking | `uv/seeing-and-checking` | see the PR list | [0115](../decisions/0115-seeing-and-checking.md) | – |
 
-**Next:** the project lead asked for six milestones in least-work order, each stacked on the last: 18 (layout snapshots, built), 15 (seeing and checking), 23 ("Why is this here?") and 9 (precise placement). **Milestones 14 (lightmaps) and 20 (recipes) are skipped for now** at his request; don't build them until he asks. Branch the next one from the newest branch in the table. Next up: 15, then 23, then 9. The next decision is 0115 and the next file format 39.
+**Next:** the project lead asked for six milestones in least-work order, each stacked on the last: 18 (layout snapshots, built), 15 (seeing and checking, built), 23 ("Why is this here?") and 9 (precise placement). **Milestones 14 (lightmaps) and 20 (recipes) are skipped for now** at his request; don't build them until he asks. Branch the next one from the newest branch in the table. Next up: 23, then 9. The next decision is 0116 and the next file format 39.
 
 ## How the work is done (notes for the next session)
 
@@ -185,17 +186,9 @@ Each entry gives the aim, a design, the main code, and what to ask the project l
   - Export it as `TEXCOORD_1` / UV2.
 - **Code:** builds on milestone 13. **Ask:** where the button goes (UV menu recommended).
 
-### 15. Seeing and checking
+### 15. Seeing and checking (built)
 
-- **Aim:**
-  - always-on warnings for overlapping and mirrored pieces in the UV Editor;
-  - stretch, pixel size and texel density shown on each piece;
-  - measuring in texture pixels and real centimetres.
-- **Design:**
-  - Warnings are drawn outlines (red for overlaps, purple for mirrored) from `uv::check`, worked out when the shape changes.
-  - Piece labels (a View menu switch) show each piece's density in px/m and its worst stretch at its middle.
-  - **Measure:** from the menu, then drag (controls chosen). It shows the length in pixels and in the real centimetres of the surface under it.
-- **Code:** `uv_editor` drawing, and a measure tool in the editor.
+Built as planned ([decision 0115](../decisions/0115-seeing-and-checking.md)): tints rather than outlines (red overlapping, also folded polygons; purple mirrored), a count top right, `uv::warnings` and `uv::measure`, View → Numbers on pieces and View → Measure (Esc stops). Milestone 23 can hook its explanations onto the warned pieces (`UvEditor::warnings`).
 
 ### 16. The numbered checker per object
 

@@ -525,6 +525,16 @@ pub const UV_LOCKED: Color32 = Color32::from_rgba_premultiplied(0x30, 0x30, 0x34
 pub const UV_SNAPSHOT: Color32 = Color32::from_rgba_premultiplied(0x2a, 0x6e, 0x5c, 0x80);
 /// The note saying which snapshot is compared.
 pub const UV_SNAPSHOT_TEXT: Color32 = Color32::from_rgb(0x6c, 0xc8, 0xaa);
+/// Polygons of overlapping pieces in the UV Editor (decision 0115): a
+/// red tint.
+pub const UV_OVERLAP: Color32 = Color32::from_rgba_premultiplied(0x70, 0x14, 0x14, 0x70);
+/// Polygons of mirrored pieces in the UV Editor (decision 0115): a
+/// purple tint.
+pub const UV_MIRRORED: Color32 = Color32::from_rgba_premultiplied(0x4a, 0x1c, 0x6e, 0x70);
+/// The UV Editor's warning summary, top right.
+pub const UV_WARNING_TEXT: Color32 = Color32::from_rgb(0xff, 0x8a, 0x80);
+/// A measured line in the UV Editor (decision 0115): a clear yellow.
+pub const UV_MEASURE: Color32 = Color32::from_rgb(0xff, 0xe0, 0x4a);
 /// Pinned UVs in the UV Editor (decision 0109): a bright magenta, apart
 /// from the seams' orange and every accent's selection.
 pub const UV_PIN: Color32 = Color32::from_rgb(0xff, 0x3d, 0xc8);

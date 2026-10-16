@@ -188,9 +188,9 @@ One big phase, aiming to be the best UV tools around. Brought forward before adv
 
 **Gate:** a prop is unwrapped and packed in Aventail 3D, with clean bakes in Substance Painter, and changing the model afterwards keeps its UVs.
 
-### Phase 8 · UV powerhouse and baking — 5 of 28
+### Phase 8 · UV powerhouse and baking — 6 of 28
 
-`██░░░░░░░░░░░` 18%
+`███░░░░░░░░░░` 21%
 
 At the project lead's request (2026-10-16), before advanced hard-surface: everything the other 3D programs do well for UVs, full control over every automatic step, four ideas no other app has, and baking inside the app, so Substance Painter becomes optional for bakes. The aim: the best and most controllable UV tools there are.
 
@@ -211,7 +211,7 @@ At the project lead's request (2026-10-16), before advanced hard-surface: everyt
 - [ ] Packing: packing groups (kept together, in order, with their own padding or region), locked pieces, packing into a region, keeping the grain's direction, texel density overrides per object, UDIM tiles
 - [ ] Several UV sets per object: add, name, copy and switch them, each with its own texture, for high-resolution texturing of big models
 - [ ] Lightmap UVs: a UV set made for Godot's baked lighting
-- [ ] Seeing and checking: always-on warnings for overlapping and mirrored pieces in the UV Editor, stretch, pixel size and texel density shown on each piece, and measuring in texture pixels and real centimetres
+- [x] Seeing and checking: always-on warnings for overlapping and mirrored pieces in the UV Editor, stretch, pixel size and texel density shown on each piece, and measuring in texture pixels and real centimetres
 - [ ] The numbered checker in each object's own colours (some red, some blue), to tell objects' UVs apart at a glance
 - [ ] Seeing textures: a real texture behind the UVs and on the model, UV layout export (PNG, SVG), separate angle and size stretch views, a mipmap preview
 - [x] Layout snapshots: named versions of a layout to switch between, compared before and after side by side
@@ -269,6 +269,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-17 | Seeing and checking UVs: overlapping and mirrored pieces always tinted, numbers on pieces, measuring in pixels and centimetres |
 | 2026-10-16 | Layout snapshots: named versions of the UV layout, put back in one step or compared faintly under the current one |
 | 2026-10-16 | The UV menu tidied into groups: Seams, Turn and flip, Lay out, Pieces and Settings |
 | 2026-10-16 | Locked pieces and per-piece unwrap settings; the rest of Phase 8 planned in detail ([docs/plans/phase-8.md](docs/plans/phase-8.md)) |
