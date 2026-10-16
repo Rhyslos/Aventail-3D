@@ -9,10 +9,43 @@ use mesh::{CubeParams, PrimitiveKind, VertexId};
 use scene::{Command, Object, ObjectKind, Operation, Place, Primitive, Transform};
 
 /// A document using everything the current version of the format can
-/// hold: all of [`rich_document_v23`], plus what version 24 adds (a groove
-/// on its own and a ridge mirrored, on a stretched object; the version 24
-/// sample holds exactly this).
+/// hold: all of [`rich_document_v26`], plus UVs moved by hand (version 28;
+/// the version 28 sample holds exactly this).
 fn rich_document() -> Document {
+    let mut doc = rich_document_v26();
+    let plane = doc
+        .scene()
+        .walk()
+        .into_iter()
+        .map(|(id, _)| id)
+        .find(|id| doc.scene().object(*id).unwrap().name == "Plane")
+        .unwrap();
+    let mesh = doc.scene().evaluated(plane).unwrap().mesh;
+    let faces: Vec<scene::FaceId> = mesh.faces().map(|(f, _)| f).collect();
+    let corners: Vec<Vec<VertexId>> = faces
+        .iter()
+        .map(|f| mesh.face(*f).unwrap().to_vec())
+        .collect();
+    doc.execute(Command::Record {
+        id: plane,
+        operation: Operation::TransformUvs {
+            faces,
+            points: Vec::new(),
+            transform: glam::Affine2::from_scale_angle_translation(
+                glam::Vec2::splat(0.5),
+                0.25,
+                glam::Vec2::new(0.1, 0.2),
+            ),
+            anchors: mesh::Anchors::record(&mesh, mesh::ElementKind::Polygons, &corners),
+        },
+    })
+    .unwrap();
+    doc
+}
+
+/// A document using everything versions 26 and 27 store: all of
+/// [`rich_document_v25`], plus an applied placement.
+fn rich_document_v26() -> Document {
     let mut doc = rich_document_v25();
     let cylinder = doc
         .scene()
@@ -1512,14 +1545,14 @@ fn a_cut_short_or_padded_body_is_damaged() {
 #[test]
 fn an_uncompressed_body_can_be_read() {
     let doc = rich_document();
-    let body = postcard::to_stdvec(&v27::ProjectV27::from_document(&doc)).unwrap();
-    let mut bytes = header(27, 0, body.len() as u64);
+    let body = postcard::to_stdvec(&v28::ProjectV28::from_document(&doc)).unwrap();
+    let mut bytes = header(FORMAT_VERSION, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     assert_same(&doc, &from_bytes(&bytes).unwrap());
     // Data after the scene is refused.
     let mut longer = body.clone();
     longer.push(0);
-    let mut bytes = header(27, 0, longer.len() as u64);
+    let mut bytes = header(FORMAT_VERSION, 0, longer.len() as u64);
     bytes.extend_from_slice(&longer);
     assert!(refused(&bytes).to_string().contains("unexpected data"));
 }
@@ -2970,7 +3003,7 @@ const SAMPLE_V26: &[u8] = include_bytes!("../../tests/data/sample-v26.avtl");
 #[test]
 fn a_file_saved_by_format_version_26_still_opens_with_its_applied_placement() {
     let doc = from_bytes(SAMPLE_V26).expect("the version 26 sample opens");
-    assert_same(&rich_document(), &doc);
+    assert_same(&rich_document_v26(), &doc);
     let text = format!("{:?}", v26::ProjectV26::from_document(&doc));
     assert_eq!(text.matches("PlaceShape").count(), 1, "{text}");
 }
@@ -2991,7 +3024,7 @@ const SAMPLE_V27: &[u8] = include_bytes!("../../tests/data/sample-v27.avtl");
 
 #[test]
 fn stable_names_are_saved_and_come_back() {
-    let doc = rich_document();
+    let doc = rich_document_v26();
     let names = all_names(&doc);
     assert!(names.iter().flatten().count() > 3, "{names:?}");
     let back = from_bytes(&to_bytes(&doc).unwrap()).unwrap();
@@ -3012,8 +3045,8 @@ fn stable_names_are_saved_and_come_back() {
 
 #[test]
 fn broken_names_are_refused() {
-    let doc = rich_document();
-    let good = v27::ProjectV27::from_document(&doc);
+    let doc = rich_document_v26();
+    let good = v27::ProjectV27::<v26::EntryV26>::from_document(&doc);
     let first = good.names.iter().next().cloned().unwrap();
     let cases = [
         // Twice.
@@ -3644,4 +3677,27 @@ fn a_frozen_shape_and_the_edits_after_it_survive_saving() {
         back.scene().object(id).unwrap().kind,
         scene::ObjectKind::Mesh(_)
     ));
+}
+
+const SAMPLE_V28: &[u8] = include_bytes!("../../tests/data/sample-v28.avtl");
+
+#[test]
+fn a_file_saved_by_format_version_28_still_opens_with_its_moved_uvs() {
+    let doc = from_bytes(SAMPLE_V28).expect("the version 28 sample opens");
+    assert_same(&rich_document(), &doc);
+    let text = format!("{:?}", v28::ProjectV28::from_document(&doc));
+    assert_eq!(text.matches("TransformUvs").count(), 1, "{text}");
+    // The plane's UVs are moved: half size, turned and shifted.
+    let plane = doc
+        .scene()
+        .walk()
+        .into_iter()
+        .map(|(id, _)| id)
+        .find(|id| doc.scene().object(*id).unwrap().name == "Plane")
+        .unwrap();
+    let mesh = doc.scene().evaluated(plane).unwrap().mesh;
+    let uvs = mesh::uvs::Uvs::of(&mesh).unwrap();
+    let (face, _) = mesh.faces().next().unwrap();
+    let corner = uvs.corner(&mesh, face, 0).unwrap();
+    assert!(corner.x > 0.09 && corner.x < 0.65, "{corner}");
 }

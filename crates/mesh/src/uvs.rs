@@ -15,7 +15,7 @@
 //! crate; this module is what every part of the app needs to read them.
 
 use crate::attributes::{AttributeValues, Domain, SEAM, UV, Value};
-use crate::{AttributeElement, EdgeKey, FaceId, Mesh};
+use crate::{AttributeElement, EdgeKey, FaceId, Mesh, VertexId};
 use glam::Vec2;
 
 /// How close two UVs must be to count as the same point of the texture.
@@ -40,6 +40,13 @@ impl Uvs {
             return None;
         };
         Some(Self { values, default })
+    }
+
+    /// Every corner's UV, in the mesh's corner order (as many as the mesh
+    /// has corners).
+    pub fn into_values(mut self, corners: usize) -> Vec<Vec2> {
+        self.values.resize(corners, self.default);
+        self.values
     }
 
     /// The UV at corner `index` of the mesh's corner list.
@@ -92,7 +99,7 @@ pub fn seams(mesh: &Mesh) -> Vec<EdgeKey> {
 
 /// Where, in the mesh's corner list, polygon `face`'s corner at point
 /// `v` is.
-fn corner_at(mesh: &Mesh, face: FaceId, v: crate::VertexId) -> Option<usize> {
+fn corner_at(mesh: &Mesh, face: FaceId, v: VertexId) -> Option<usize> {
     let (starts, corners) = mesh.face_layout();
     let start = *starts.get(face.get() as usize)? as usize;
     let end = *starts.get(face.get() as usize + 1)? as usize;
@@ -194,6 +201,113 @@ pub fn island_of_each(mesh: &Mesh) -> (Vec<usize>, usize) {
         }
     }
     (of, groups.len())
+}
+
+/// The corners (places in the mesh's corner list) a change to the UVs of
+/// `faces` and `points` moves: every corner of those polygons and points,
+/// and every other corner of the same points sitting at the same spot in
+/// the texture, so an island never tears where its polygons meet ("shared
+/// location", decision 0097). Corners of a point in another island, at
+/// another spot, are left alone.
+pub fn corners_moved(mesh: &Mesh, uvs: &Uvs, faces: &[FaceId], points: &[VertexId]) -> Vec<usize> {
+    let (starts, corners) = mesh.face_layout();
+    let topology = mesh.topology();
+    let mut chosen: std::collections::BTreeSet<usize> = Default::default();
+    for face in faces {
+        let i = face.get() as usize;
+        if mesh.face(*face).is_none() {
+            continue;
+        }
+        chosen.extend(starts[i] as usize..starts[i + 1] as usize);
+    }
+    for point in points {
+        if mesh.position(*point).is_none() {
+            continue;
+        }
+        for face in topology.vertex_faces(*point) {
+            if let Some(k) = corner_at(mesh, *face, *point) {
+                chosen.insert(k);
+            }
+        }
+    }
+    // The other corners at the same spot of the same points.
+    let mut spots: std::collections::BTreeMap<VertexId, Vec<Vec2>> = Default::default();
+    for k in &chosen {
+        spots.entry(corners[*k]).or_default().push(uvs.at(*k));
+    }
+    let mut out = chosen.clone();
+    for (point, at) in &spots {
+        for face in topology.vertex_faces(*point) {
+            if let Some(k) = corner_at(mesh, *face, *point)
+                && at.iter().any(|uv| uv.distance(uvs.at(k)) <= SAME_UV)
+            {
+                out.insert(k);
+            }
+        }
+    }
+    out.into_iter().collect()
+}
+
+/// Moves, turns or scales the UVs of `faces` and `points` (and the
+/// corners sharing their spots, see [`corners_moved`]) by `transform`, in
+/// the texture's own units (the square is 0 to 1). Missing elements are
+/// counted; a mesh without UVs, or a transform that isn't made of real
+/// numbers, changes nothing.
+pub fn transform_uvs(
+    mesh: &mut Mesh,
+    faces: &[FaceId],
+    points: &[VertexId],
+    transform: glam::Affine2,
+) -> crate::edit::Outcome {
+    let missing = faces.iter().filter(|f| mesh.face(**f).is_none()).count()
+        + points
+            .iter()
+            .filter(|v| mesh.position(**v).is_none())
+            .count();
+    let asked = faces.len() + points.len();
+    let unchanged = crate::edit::Outcome {
+        matched: 0,
+        missing,
+        skipped: asked - missing,
+    };
+    let Some(uvs) = Uvs::of(mesh) else {
+        return unchanged;
+    };
+    if !transform.is_finite() {
+        return unchanged;
+    }
+    let moved = corners_moved(mesh, &uvs, faces, points);
+    let count = mesh.face_layout().1.len();
+    let mut values = uvs.into_values(count);
+    for k in moved {
+        values[k] = transform.transform_point2(values[k]);
+    }
+    let changed = mesh
+        .set_attribute_values(
+            UV,
+            Domain::Corner,
+            Value::Vec2(Vec2::ZERO),
+            AttributeValues::Vec2(values),
+        )
+        .is_ok();
+    crate::edit::Outcome {
+        matched: if changed { asked - missing } else { 0 },
+        missing,
+        skipped: if changed { 0 } else { asked - missing },
+    }
+}
+
+/// The middle of the UVs of `faces` and `points` (the middle of the box
+/// around them), if they have any.
+pub fn uv_centre(mesh: &Mesh, faces: &[FaceId], points: &[VertexId]) -> Option<Vec2> {
+    let uvs = Uvs::of(mesh)?;
+    let mut min = Vec2::splat(f32::INFINITY);
+    let mut max = Vec2::splat(f32::NEG_INFINITY);
+    for k in corners_moved(mesh, &uvs, faces, points) {
+        min = min.min(uvs.at(k));
+        max = max.max(uvs.at(k));
+    }
+    min.is_finite().then(|| (min + max) / 2.0)
 }
 
 #[cfg(test)]

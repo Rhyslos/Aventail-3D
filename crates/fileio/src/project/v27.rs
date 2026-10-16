@@ -8,7 +8,7 @@
 //! the same after saving and opening. Older files open with no names, and
 //! their edits find their points by place, as they always did.
 
-use super::v1::Problem;
+use super::v1::{FileOperation, Problem};
 use super::v25::ProjectV25;
 use super::v26::EntryV26;
 use crate::limits::Bounded;
@@ -16,11 +16,12 @@ use scene::{Document, Stack};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-/// Version 27 of the file.
+/// Version 27 of the file (and, with their own edits `E`, the versions
+/// after it that change only the kinds of edit).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub(crate) struct ProjectV27 {
-    /// Version 26's file.
-    pub(crate) project: ProjectV25<EntryV26>,
+pub(crate) struct ProjectV27<E = EntryV26> {
+    /// Version 26's file (or a later one's edits).
+    pub(crate) project: ProjectV25<E>,
     /// The edits' anchored points' names (only edits with them).
     pub(crate) names: Bounded<NamesV27>,
 }
@@ -33,7 +34,7 @@ pub(crate) struct NamesV27 {
     pub(crate) names: Bounded<u64>,
 }
 
-impl ProjectV27 {
+impl<E: FileOperation> ProjectV27<E> {
     /// The file model of a document.
     pub(crate) fn from_document(document: &Document) -> Self {
         let scene = document.scene();

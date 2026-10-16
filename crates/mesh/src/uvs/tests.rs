@@ -178,3 +178,94 @@ fn uvs_ride_along_with_an_extrude() {
         assert!(uv.is_finite());
     }
 }
+
+// ------------------------------------------------------------ moving ---
+
+/// A plane cut in two each way: one island of four polygons.
+fn plane_2x2() -> Mesh {
+    Primitive::Plane(crate::PlaneParams {
+        segments: [2, 2],
+        ..Default::default()
+    })
+    .mesh()
+}
+
+#[test]
+fn moving_a_polygons_uvs_drags_its_neighbours_corners_along() {
+    let mut mesh = plane_2x2();
+    let before = every_uv(&mesh);
+    let (face, _) = mesh.faces().next().unwrap();
+    let shift = glam::Affine2::from_translation(Vec2::new(0.1, 0.0));
+    let outcome = transform_uvs(&mut mesh, &[face], &[], shift);
+    assert_eq!(outcome.matched, 1);
+    // Still one island: the corners its neighbours share moved too.
+    assert_eq!(islands(&mesh).len(), 1);
+    let after = every_uv(&mesh);
+    let moved = before
+        .iter()
+        .zip(&after)
+        .filter(|(a, b)| a.distance(**b) > 1e-6)
+        .count();
+    // Its 4 corners, and the 5 corners of neighbours on its 3 inner points.
+    assert_eq!(moved, 4 + 5);
+}
+
+#[test]
+fn a_cubes_corner_moves_in_one_island_only_when_its_uv_spot_is_chosen() {
+    // A point of a cube sits in three islands; moving the point moves all
+    // three of its spots, each with its own neighbours.
+    let mut mesh = Primitive::Cube(CubeParams::default()).mesh();
+    let v = crate::VertexId::from_raw(0);
+    let before = islands(&mesh).len();
+    transform_uvs(
+        &mut mesh,
+        &[],
+        &[v],
+        glam::Affine2::from_translation(Vec2::new(0.01, 0.01)),
+    );
+    assert_eq!(islands(&mesh).len(), before);
+    let uvs = Uvs::of(&mesh).unwrap();
+    let moved = corners_moved(&mesh, &uvs, &[], &[v]);
+    assert_eq!(moved.len(), 3);
+}
+
+#[test]
+fn turning_uvs_about_their_middle_keeps_the_middle() {
+    let mut mesh = Primitive::Plane(Default::default()).mesh();
+    let (face, _) = mesh.faces().next().unwrap();
+    let middle = uv_centre(&mesh, &[face], &[]).unwrap();
+    let turn = glam::Affine2::from_translation(middle)
+        * glam::Affine2::from_angle(std::f32::consts::FRAC_PI_2)
+        * glam::Affine2::from_translation(-middle);
+    transform_uvs(&mut mesh, &[face], &[], turn);
+    let after = uv_centre(&mesh, &[face], &[]).unwrap();
+    assert!(after.distance(middle) < 1e-5);
+}
+
+#[test]
+fn bad_transforms_and_meshes_without_uvs_change_nothing() {
+    let mut mesh = plane_2x2();
+    let before = every_uv(&mesh);
+    let (face, _) = mesh.faces().next().unwrap();
+    let nan = glam::Affine2::from_translation(Vec2::new(f32::NAN, 0.0));
+    let outcome = transform_uvs(&mut mesh, &[face], &[], nan);
+    assert_eq!(outcome.matched, 0);
+    assert_eq!(every_uv(&mesh), before);
+    // A missing polygon is counted, the rest still moves.
+    let gone = FaceId::from_raw(999);
+    let outcome = transform_uvs(
+        &mut mesh,
+        &[face, gone],
+        &[],
+        glam::Affine2::from_translation(Vec2::X * 0.1),
+    );
+    assert_eq!((outcome.matched, outcome.missing), (1, 1));
+    let mut bare = Mesh::new();
+    let a = bare.add_vertex(glam::Vec3::ZERO).unwrap();
+    let b = bare.add_vertex(glam::Vec3::X).unwrap();
+    let c = bare.add_vertex(glam::Vec3::Y).unwrap();
+    let f = bare.add_face(&[a, b, c]).unwrap();
+    let outcome = transform_uvs(&mut bare, &[f], &[], glam::Affine2::IDENTITY);
+    assert_eq!(outcome.matched, 0);
+    assert!(!has_uvs(&bare));
+}

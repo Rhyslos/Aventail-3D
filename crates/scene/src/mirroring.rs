@@ -59,6 +59,8 @@ pub fn mirrors(op: &Operation) -> bool {
         Operation::FillHoles { points, .. } => !points.is_empty(),
         Operation::MovePoints { .. }
         | Operation::TransformPoints { .. }
+        // UVs aren't mirrored in the texture: each half has its own.
+        | Operation::TransformUvs { .. }
         | Operation::SlidePoints { .. }
         | Operation::FixFacing
         | Operation::PlaceShape { .. }
