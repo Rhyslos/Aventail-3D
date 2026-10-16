@@ -94,7 +94,7 @@ In the Points, Edges and Polygons modes, hold **Alt** and drag the Move gizmo (a
 
 ### Symmetry
 
-With **Symmetry** on (the palette button at the right end, or **Tools → Symmetry**), moving, rotating or scaling points, edges or polygons also moves their mirror on the other side of the shape. See [Symmetry](symmetry.md).
+An object with a live mirror (the **Symmetry** button at the right end of the palette, or **Tools → Symmetry**) shows a mirrored twin. Moving, rotating or scaling its points, edges or polygons changes your half, and the twin follows; moving the whole object moves the twin the opposite way. See [Symmetry](symmetry.md).
 
 ### Typing exact values
 
@@ -121,7 +121,7 @@ What the fields show:
 | **Turns snap every / scaling every** | 15° and 10% as standard. |
 | **Lock X / Y / Z** | An axis that can't change. Remembered between sessions. |
 | **World or object axes** | Which way the gizmo's arrows point. Remembered. |
-| **Symmetry**, and its **X / Y / Z** | Mirror moves onto the other side of the shape. See [Symmetry](symmetry.md). |
+| **Symmetry**, and its **X / Y / Z** | Gives the selected objects a live mirror across the world's X, Y or Z: a twin that follows every change. See [Symmetry](symmetry.md). |
 
 ## Shortcuts
 

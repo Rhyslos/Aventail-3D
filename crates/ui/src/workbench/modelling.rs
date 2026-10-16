@@ -43,8 +43,6 @@ enum Elements {
 struct Part {
     id: ObjectId,
     elements: Elements,
-    /// With symmetry on, the planes the edit is mirrored across.
-    mirror: Option<mesh::symmetry::Mirror>,
     /// How many world centimetres one of the object's own is (its scale,
     /// averaged over the three axes).
     scale: f32,
@@ -266,7 +264,7 @@ impl ModellingSession {
         for part in &self.parts {
             let command = Command::Record {
                 id: part.id,
-                operation: super::with_mirror(self.operation(part, distance), part.mirror),
+                operation: self.operation(part, distance),
             };
             document
                 .execute_labelled(command, &label, Some(self.key))
@@ -653,7 +651,6 @@ impl Workbench {
             );
             parts.push(Part {
                 id: item.id,
-                mirror: self.edit_mirror(item.id),
                 elements,
                 scale: average_scale(item.transform),
                 stretch: scene::stretch_of(item.transform),

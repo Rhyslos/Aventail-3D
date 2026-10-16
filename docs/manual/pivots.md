@@ -78,7 +78,7 @@ The Object mode has no key of its own yet.
 - **Problem:** the pivot won't snap onto a corner. **Why:** snapping is off. **Fix:** hold **Ctrl** while dragging, or turn snapping on.
 - **Problem:** after Pivot to object…, clicking empty space does nothing. **Why:** it waits for a click on an object. **Fix:** click an object, or press **Esc** to stop.
 - **Problem:** a shape I turned the pivot of looks slightly squashed. **Why:** the object was stretched unevenly (scaled more along one axis than another) before its pivot was turned, and such a stretch can't be described exactly around a turned pivot. **Fix:** undo, and turn the pivot before stretching the object, or make it editable first so the stretch is part of the shape.
-- **Tip:** Symmetry's **Object's pivot** mirrors through the pivot, so moving the pivot moves the mirror. For a shape modelled around its middle, put the pivot back with **Pivot to centre**.
+- **Tip:** a live mirror ([Symmetry](symmetry.md)) stands in the world, not at the pivot: moving the pivot doesn't move the mirror.
 - **Tip:** a project opened from before this version shows every shape on its pivot, as before, in metres.
 
 ## Related

@@ -45,6 +45,17 @@ pub fn keep_only(mesh: &Mesh, faces: &[FaceId]) -> Mesh {
 pub fn combine(parts: &[(&Mesh, Mat4)]) -> Mesh {
     let mut out = Mesh::new();
     for (part, matrix) in parts {
+        append(&mut out, part, *matrix);
+    }
+    out
+}
+
+/// Adds a copy of `part`, placed by `matrix`, to `out`, which keeps its
+/// own points and polygons (and their ids) as they are; the copy's get
+/// new ids. Hard edges and other values come along, as in [`combine`],
+/// and a mirroring matrix turns the copy the right way round.
+pub fn append(out: &mut Mesh, part: &Mesh, matrix: Mat4) {
+    {
         let flip = matrix.determinant() < 0.0;
         let mut points: HashMap<VertexId, VertexId> = HashMap::new();
         for (v, p) in part.vertices() {
@@ -129,7 +140,6 @@ pub fn combine(parts: &[(&Mesh, Mat4)]) -> Mesh {
             }
         }
     }
-    out
 }
 
 #[cfg(test)]

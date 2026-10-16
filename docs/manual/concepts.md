@@ -105,7 +105,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Instance** — An object that shows another object's shape instead of having its own. Change the original and every instance changes too. See [Copies and instances](copies-and-instances.md).
 
-**Symmetry (mirror modelling)** — Working on one half of a shape while the other half copies every change, mirrored across a plane through the middle. See [Symmetry](symmetry.md).
+**Symmetry (mirror modelling)** — Working on one half of a shape while the other half copies every change, mirrored across a plane through the middle. In this app the other half is a *live mirror*: a copy drawn and exported with the object, joined to your half where they meet, that follows every edit (other programs call it a mirror modifier). See [Symmetry](symmetry.md).
 
 ## Viewing the scene
 

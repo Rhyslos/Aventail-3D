@@ -523,12 +523,14 @@ mod tests {
                 id: ObjectId::from_raw(7),
                 mesh: Arc::new(PrimitiveKind::Cube.standard().mesh()),
                 shown: Arc::new(PrimitiveKind::Cube.standard().mesh()),
+                drawn: Arc::new(PrimitiveKind::Cube.standard().mesh()),
                 transform: Mat4::IDENTITY,
                 selected,
                 colors: Vec::new(),
             }],
             editing: true,
             points: false,
+            mirrors: Vec::new(),
         }
     }
 
@@ -703,6 +705,7 @@ mod tests {
             items: vec![DrawItem {
                 id: ObjectId::from_raw(3),
                 shown: Arc::clone(&mesh),
+                drawn: Arc::clone(&mesh),
                 mesh,
                 transform: Mat4::IDENTITY,
                 selected: true,
@@ -710,6 +713,7 @@ mod tests {
             }],
             editing: true,
             points: false,
+            mirrors: Vec::new(),
         }
     }
 

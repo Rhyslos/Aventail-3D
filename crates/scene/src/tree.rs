@@ -122,6 +122,12 @@ pub(crate) enum Edit {
         before: Option<crate::ExportTarget>,
         after: Option<crate::ExportTarget>,
     },
+    /// Changes an object's live mirror.
+    SetMirror {
+        id: ObjectId,
+        before: Option<crate::LiveMirror>,
+        after: Option<crate::LiveMirror>,
+    },
     /// Changes an object's collision shape.
     SetCollision {
         id: ObjectId,
@@ -192,6 +198,7 @@ impl Edit {
             Self::SetExportTarget { before, after } => before == after,
             Self::SetMaterials { before, after, .. } => before == after,
             Self::SetCollision { before, after, .. } => before == after,
+            Self::SetMirror { before, after, .. } => before == after,
             Self::SetTransform { before, after, .. } | Self::SetOffset { before, after, .. } => {
                 before == after
             }
@@ -232,6 +239,11 @@ impl Edit {
                 after: before,
             },
             Self::SetCollision { id, before, after } => Self::SetCollision {
+                id,
+                before: after,
+                after: before,
+            },
+            Self::SetMirror { id, before, after } => Self::SetMirror {
                 id,
                 before: after,
                 after: before,
@@ -591,6 +603,64 @@ impl Scene {
         self.world_matrix(id) * offset
     }
 
+    /// The matrices that place an object's mirrored copies, in its shape's
+    /// own space (decision 0088): one per combination of its live mirror's
+    /// axes, reflecting across the world planes. Empty without a mirror,
+    /// or for a shape squashed flat (no way back from the world).
+    pub fn mirror_copies(&self, id: ObjectId) -> Vec<Mat4> {
+        let Some(mirror) = self.object(id).and_then(|o| o.mirror) else {
+            return Vec::new();
+        };
+        let shape = self.shape_matrix(id);
+        if shape.determinant().abs() < 1e-12 {
+            return Vec::new();
+        }
+        let back = shape.inverse();
+        mesh::mirror::combinations(mirror.axes)
+            .into_iter()
+            .map(|axes| back * mesh::mirror::reflection(axes, mirror.centre) * shape)
+            .collect()
+    }
+
+    /// The object's shape as it is shown and exported: its final shape
+    /// (as [`Scene::evaluated`]) with its live mirror's copies added and
+    /// welded at the seam (decision 0088). Without a mirror, the same
+    /// shape. Edits and selections work on [`Scene::evaluated`]'s shape,
+    /// whose points and polygons keep their ids here too.
+    pub fn shown_shape(&self, id: ObjectId) -> Option<std::sync::Arc<mesh::Mesh>> {
+        let shape = self.evaluated(id)?.mesh;
+        Some(
+            self.with_mirror(id, &shape)
+                .map_or(shape, std::sync::Arc::new),
+        )
+    }
+
+    /// `shape` (one of the object's own, such as with hidden polygons
+    /// left out) with the object's live mirror's copies added, or `None`
+    /// without a mirror.
+    pub fn with_mirror(&self, id: ObjectId, shape: &mesh::Mesh) -> Option<mesh::Mesh> {
+        let mirror = self.object(id)?.mirror?;
+        let copies = self.mirror_copies(id);
+        if copies.is_empty() {
+            return None;
+        }
+        let matrix = self.shape_matrix(id);
+        let distance = mirror.weld_distance;
+        let on_seam = |p: glam::Vec3| {
+            let world = matrix.transform_point3(p);
+            (0..3).any(|a| mirror.axes[a] && (world[a] - mirror.centre[a]).abs() <= distance)
+        };
+        // The weld distance is in the world; the shape's own space may be
+        // scaled, so the distance is measured there as the world sees it.
+        let scale = stretch_of(matrix).max_element().max(1e-6);
+        Some(mesh::mirror::with_copies(
+            shape,
+            &copies,
+            on_seam,
+            distance / scale,
+        ))
+    }
+
     /// The box around everything shown among `ids` and the objects inside
     /// them, in world space, or `None` if none of it has a shape.
     pub fn bounds_of(&self, ids: impl IntoIterator<Item = ObjectId>) -> Option<Bounds> {
@@ -604,9 +674,15 @@ impl Scene {
                     continue;
                 };
                 let matrix = self.shape_matrix(inner);
-                if let Some(world) =
-                    Bounds::around(corners(&local).map(|c| matrix.transform_point3(c)))
-                {
+                // A live mirror's copies are part of the object.
+                let mut placements = vec![matrix];
+                placements.extend(self.mirror_copies(inner).iter().map(|c| matrix * *c));
+                for matrix in placements {
+                    let Some(world) =
+                        Bounds::around(corners(&local).map(|c| matrix.transform_point3(c)))
+                    else {
+                        continue;
+                    };
                     total = Some(match total {
                         Some(t) => t.union(world),
                         None => world,
@@ -771,6 +847,17 @@ impl Scene {
                     return Err(SceneError::History("an object's collision has changed"));
                 }
                 node.object.collision = *after;
+                Ok(())
+            }
+            Edit::SetMirror { id, before, after } => {
+                let node = self
+                    .nodes
+                    .get_mut(id)
+                    .ok_or(SceneError::UnknownObject(*id))?;
+                if node.object.mirror != *before {
+                    return Err(SceneError::History("an object's mirror has changed"));
+                }
+                node.object.mirror = *after;
                 Ok(())
             }
             Edit::SetMaterials { id, before, after } => {

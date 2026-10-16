@@ -32,7 +32,7 @@ Every object starts with one material, **Default**, in the viewport's grey. Its 
 2. [Select](selecting.md) the polygons that should use the material. Loops (double-click an edge) and **Grow selection** help pick whole parts.
 3. Click the material's **Assign** button. The polygons take its colour in the viewport, and the polygon counts in the list change.
 
-**Ctrl + Z** takes an assignment back like any other edit. With [Symmetry](symmetry.md) on, the polygons on the other side get the material too.
+**Ctrl + Z** takes an assignment back like any other edit. On an object with a live mirror ([Symmetry](symmetry.md)), the mirrored half shows the same materials.
 
 Polygons you make from others keep their material: an [extrude](extrude-and-inset.md)'s walls get the material of the polygon they grew from, and a [loop cut](loop-cut.md) keeps the material of the polygons it cuts.
 

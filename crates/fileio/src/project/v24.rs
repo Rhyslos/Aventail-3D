@@ -9,7 +9,7 @@
 use super::v1::{FileOperation, Problem};
 use super::v2::{AnchorsV2, anchors_from_file, anchors_to_file};
 use super::v5::EntryWith;
-use super::v20::ProjectV20;
+
 use super::v23::OperationV23;
 use glam::Vec3;
 use mesh::edit::{GrooveShape, GrooveSides};
@@ -20,7 +20,8 @@ use serde::{Deserialize, Serialize};
 
 /// Version 24 of the file: version 20's (to 23's), its edits stored as
 /// version 24's.
-pub(crate) type ProjectV24 = ProjectV20<EntryV24>;
+#[cfg(test)]
+pub(crate) type ProjectV24 = super::v20::ProjectV20<EntryV24>;
 
 /// A recorded edit in version 24.
 pub(crate) type EntryV24 = EntryWith<OperationV24>;

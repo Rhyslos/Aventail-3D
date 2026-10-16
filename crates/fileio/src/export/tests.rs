@@ -295,3 +295,36 @@ fn presets_write_what_their_programs_want() {
             .all(|p| !p.description().is_empty())
     );
 }
+
+#[test]
+fn a_live_mirror_goes_out_as_part_of_its_object() {
+    let (mut doc, cube) = with(PrimitiveKind::Cube);
+    doc.execute(Command::SetTransforms(vec![(
+        cube,
+        Transform {
+            position: glam::Vec3::new(100.0, 0.0, 0.0),
+            ..Transform::default()
+        },
+    )]))
+    .unwrap();
+    let plain = one(&doc, &ExportOptions::default());
+    doc.execute(Command::SetMirror {
+        ids: vec![cube],
+        mirror: Some(scene::LiveMirror::across_x()),
+    })
+    .unwrap();
+    let mirrored = one(&doc, &ExportOptions::default());
+    assert_eq!(
+        mirrored.world.triangle_count(),
+        2 * plain.world.triangle_count()
+    );
+    // The twin is on the other side of the world centre (the file is in
+    // metres: from -1.5 to -0.5).
+    let lowest = mirrored
+        .world
+        .points
+        .iter()
+        .map(|p| p.x)
+        .fold(f32::MAX, f32::min);
+    assert!((lowest + 1.5).abs() < 1e-4, "{lowest}");
+}

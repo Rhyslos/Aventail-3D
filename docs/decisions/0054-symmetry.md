@@ -1,6 +1,6 @@
 # 0054. Symmetry: a live mirror while moving, rotating and scaling points
 
-- **Status:** Accepted; extended by [0059](0059-symmetry-for-every-edit.md) (every edit mirrored; the axes moved to the Symmetry menu)
+- **Status:** Accepted; extended by [0059](0059-symmetry-for-every-edit.md) (every edit mirrored; the axes moved to the Symmetry menu); replaced for new work by [0088](0088-live-mirror.md) (the live mirror)
 - **Date:** 2026-10-14
 - **Follows:** [0028](0028-ask-about-controls.md) (ask about controls), [0030](0030-transform-gizmos.md) (the gizmos), [0032](0032-edits-find-their-points-again.md) (anchors)
 

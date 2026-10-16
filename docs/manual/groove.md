@@ -47,7 +47,7 @@ Before you drag, the top of the **Attributes panel** shows the next groove's **G
 
 On a [stretched object](concepts.md#objects-and-scenes), the width and depth are measured as you see them, so a groove is as wide on the tall side as on the short side.
 
-With [Symmetry](symmetry.md) on, the groove is cut on both sides, and its settings under Last edit belong to both.
+On an object with a live mirror ([Symmetry](symmetry.md)), the mirrored half shows the groove too.
 
 ## Shortcuts
 

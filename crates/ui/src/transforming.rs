@@ -248,13 +248,6 @@ pub(crate) struct PointsStart {
     /// Where the selected elements are in the shape, so the edit can find
     /// them again if the shape's points are renumbered (decision 0032).
     pub(crate) anchors: Option<Anchors>,
-    /// With symmetry on, which points move how (each group with its
-    /// points' anchors), instead of `points` all moving alike
-    /// (decision 0054).
-    pub(crate) mirror: Option<Vec<(mesh::symmetry::MirrorGroup, Option<Anchors>)>>,
-    /// With symmetry's "don't cross the middle" on, how far the points
-    /// may move along each axis of the shape (least, most).
-    pub(crate) limits: Option<[(f32, f32); 3]>,
     /// While sliding (Alt + drag on the Move gizmo, decision 0055): the
     /// shape as it was, whose edges the points slide along.
     pub(crate) slide: Option<std::sync::Arc<scene::Mesh>>,
@@ -399,8 +392,6 @@ impl Target {
                         world: item.transform,
                         points,
                         anchors,
-                        mirror: None,
-                        limits: None,
                         slide: None,
                     });
                 }
@@ -415,45 +406,6 @@ impl Target {
                 })
             }
         }
-    }
-
-    /// The same target with symmetry across `axes` (the shapes' own X, Y
-    /// and Z): moving points moves their mirrors too, and points on a
-    /// mirror plane stay on it (decision 0054). Worked out once, when a
-    /// change begins. Objects are unchanged.
-    #[must_use]
-    pub(crate) fn mirrored(
-        mut self,
-        drawing: &SceneDrawing,
-        mirror_for: impl Fn(ObjectId) -> Option<mesh::symmetry::Mirror>,
-    ) -> Self {
-        if let Targets::Points(starts, _) = &mut self.targets {
-            for start in starts {
-                let Some(item) = drawing.items.iter().find(|i| i.id == start.id) else {
-                    continue;
-                };
-                let Some(mirror) = mirror_for(start.id) else {
-                    continue;
-                };
-                let plan = mesh::symmetry::mirror_plan(&item.mesh, &start.points, mirror);
-                start.limits = mirror
-                    .clip
-                    .then(|| mesh::symmetry::move_limits(&item.mesh, &start.points, &mirror));
-                let groups = plan
-                    .groups
-                    .into_iter()
-                    .filter(|g| !g.points.is_empty())
-                    .map(|g| {
-                        let places: Vec<Vec<VertexId>> =
-                            g.points.iter().map(|v| vec![*v]).collect();
-                        let anchors = Anchors::record(&item.mesh, ElementKind::Points, &places);
-                        (g, anchors)
-                    })
-                    .collect();
-                start.mirror = Some(groups);
-            }
-        }
-        self
     }
 
     /// The same target, sliding: a move slides the points along their
@@ -554,40 +506,6 @@ impl Target {
                             operation: Operation::SlidePoints { slides, anchors },
                         }];
                     }
-                    if let Some(groups) = &s.mirror {
-                        let local = inverse * m * s.world;
-                        return groups
-                            .iter()
-                            .map(|(group, anchors)| {
-                                // Kept from crossing the middle.
-                                let mut d = match change {
-                                    Change::Translate(d) => inverse.transform_vector3(*d),
-                                    _ => Vec3::ZERO,
-                                };
-                                if let Some(limits) = s.limits {
-                                    for a in 0..3 {
-                                        d[a] = d[a].clamp(limits[a].0, limits[a].1);
-                                    }
-                                }
-                                let operation = match change {
-                                    Change::Translate(_) => Operation::MovePoints {
-                                        points: group.points.clone(),
-                                        offset: group.offset(d),
-                                        anchors: anchors.clone(),
-                                    },
-                                    _ => Operation::TransformPoints {
-                                        points: group.points.clone(),
-                                        matrix: group.matrix(local),
-                                        anchors: anchors.clone(),
-                                    },
-                                };
-                                Command::Record {
-                                    id: s.id,
-                                    operation,
-                                }
-                            })
-                            .collect::<Vec<_>>();
-                    }
                     let operation = match change {
                         Change::Translate(d) => Operation::MovePoints {
                             points: s.points.clone(),
@@ -636,14 +554,7 @@ impl Target {
                 (many, true) => format!("{verb} {} pivots", many.len()),
             },
             Targets::Points(starts, _) => {
-                let n: usize = starts
-                    .iter()
-                    .map(|s| {
-                        s.mirror.as_ref().map_or(s.points.len(), |groups| {
-                            groups.iter().map(|(g, _)| g.points.len()).sum()
-                        })
-                    })
-                    .sum();
+                let n: usize = starts.iter().map(|s| s.points.len()).sum();
                 if n == 1 {
                     format!("{verb} 1 point")
                 } else {
@@ -676,13 +587,9 @@ impl Target {
         else {
             return false;
         };
-        starts.iter().any(|s| {
-            s.id == item.id
-                && match &s.mirror {
-                    Some(groups) => groups.iter().any(|(g, _)| g.points.contains(&point)),
-                    None => s.points.binary_search(&point).is_ok(),
-                }
-        })
+        starts
+            .iter()
+            .any(|s| s.id == item.id && s.points.binary_search(&point).is_ok())
     }
 }
 

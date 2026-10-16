@@ -171,7 +171,7 @@ fn leave_out_dense(draws: &mut [MeshDraw], view: &ViewportView, meshes: &HashMap
         let Some(uploaded) = meshes.get(&draw.key) else {
             continue;
         };
-        let Some(bounds) = item.shown.bounds() else {
+        let Some(bounds) = item.drawn.bounds() else {
             continue;
         };
         let scale = (draw.model.x_axis.truncate().length()
@@ -262,11 +262,11 @@ impl GpuViewport {
             let waiting = self
                 .preparing
                 .get(&key)
-                .is_some_and(|(mesh, _)| Arc::ptr_eq(mesh, &item.shown));
+                .is_some_and(|(mesh, _)| Arc::ptr_eq(mesh, &item.drawn));
             // Shading with another hardness (Automatic hard edges switched)
             // is built afresh.
             let same = |old: &Uploaded| old.geometry.hardness() == hardness;
-            let heavy = item.shown.face_count() >= BACKGROUND_FROM;
+            let heavy = item.drawn.face_count() >= BACKGROUND_FROM;
             // A background rebuild of the shape shown now that has finished
             // is swapped in below.
             let ready = waiting
@@ -275,33 +275,33 @@ impl GpuViewport {
                     .get(&key)
                     .is_some_and(|(_, handle)| handle.is_finished());
             match self.meshes.get_mut(&key) {
-                Some(old) if !ready && same(old) && Arc::ptr_eq(&old.mesh, &item.shown) => continue,
+                Some(old) if !ready && same(old) && Arc::ptr_eq(&old.mesh, &item.drawn) => continue,
                 Some(old)
                     if !ready
                         && same(old)
                         && !waiting
-                        && let Some(moved) = item.shown.moved_since(&old.mesh) =>
+                        && let Some(moved) = item.drawn.moved_since(&old.mesh) =>
                 {
                     // Shaded by angle, a move can turn edges sharp or soft.
                     // A light shape is then built afresh at once; a heavy
                     // one follows the move with the shading it had, and is
                     // rebuilt in the background (decision 0066).
-                    let follows = old.geometry.can_follow(&old.mesh, &item.shown, &moved);
+                    let follows = old.geometry.can_follow(&old.mesh, &item.drawn, &moved);
                     if follows || heavy {
-                        let ranges = old.geometry.moved(&item.shown, &moved);
+                        let ranges = old.geometry.moved(&item.drawn, &moved);
                         self.renderer
                             .update_mesh(queue, key, &old.geometry, &ranges);
-                        old.mesh = Arc::clone(&item.shown);
+                        old.mesh = Arc::clone(&item.drawn);
                         let idle = self
                             .preparing
                             .get(&key)
                             .is_none_or(|(_, handle)| handle.is_finished());
                         if !follows && idle {
-                            let mesh = Arc::clone(&item.shown);
+                            let mesh = Arc::clone(&item.drawn);
                             let handle =
                                 std::thread::spawn(move || MeshGeometry::shaded(&mesh, hardness));
                             self.preparing
-                                .insert(key, (Arc::clone(&item.shown), handle));
+                                .insert(key, (Arc::clone(&item.drawn), handle));
                         }
                         continue;
                     }
@@ -312,8 +312,8 @@ impl GpuViewport {
                 .preparing
                 .get(&key)
                 .is_some_and(|(_, handle)| handle.is_finished());
-            let geometry = if item.shown.face_count() < BACKGROUND_FROM {
-                Some(MeshGeometry::shaded(&item.shown, hardness))
+            let geometry = if item.drawn.face_count() < BACKGROUND_FROM {
+                Some(MeshGeometry::shaded(&item.drawn, hardness))
             } else if waiting && finished {
                 self.preparing
                     .remove(&key)
@@ -322,10 +322,10 @@ impl GpuViewport {
                 // A newer shape waits until the one being worked out is
                 // done, so changes in quick succession don't pile up work.
                 if !self.preparing.contains_key(&key) || finished {
-                    let mesh = Arc::clone(&item.shown);
+                    let mesh = Arc::clone(&item.drawn);
                     let handle = std::thread::spawn(move || MeshGeometry::shaded(&mesh, hardness));
                     self.preparing
-                        .insert(key, (Arc::clone(&item.shown), handle));
+                        .insert(key, (Arc::clone(&item.drawn), handle));
                 }
                 None
             };
@@ -335,7 +335,7 @@ impl GpuViewport {
                 self.meshes.insert(
                     key,
                     Uploaded {
-                        mesh: Arc::clone(&item.shown),
+                        mesh: Arc::clone(&item.drawn),
                         geometry,
                     },
                 );
@@ -527,6 +527,7 @@ mod tests {
             id: scene::ObjectId::from_raw(id),
             mesh: Arc::new(mesh::PrimitiveKind::Cube.standard().mesh()),
             shown: Arc::new(mesh::PrimitiveKind::Cube.standard().mesh()),
+            drawn: Arc::new(mesh::PrimitiveKind::Cube.standard().mesh()),
             transform: glam::Mat4::from_translation(Vec3::X * id as f32),
             selected,
             colors: Vec::new(),
@@ -540,6 +541,7 @@ mod tests {
             items: vec![item(1, true), item(2, false)],
             editing,
             points,
+            mirrors: Vec::new(),
         };
         let draws = mesh_draws(&scene(false, false), [1.0, 0.0, 0.0], Shading::Shaded);
         assert_eq!(draws.len(), 2);
@@ -566,6 +568,7 @@ mod tests {
             items: vec![item(1, true), item(2, false)],
             editing: false,
             points: false,
+            mirrors: Vec::new(),
         };
         let wires = mesh_draws(&scene, [1.0, 0.0, 0.0], Shading::ShadedWithWires);
         assert_eq!(wires[1].edge_color, WIRE_LINE);
@@ -613,12 +616,14 @@ mod tests {
                 id: scene::ObjectId::from_raw(1),
                 mesh: Arc::clone(&ball),
                 shown: Arc::clone(&ball),
+                drawn: Arc::clone(&ball),
                 transform: glam::Mat4::IDENTITY,
                 selected,
                 colors: Vec::new(),
             }],
             editing: true,
             points: true,
+            mirrors: Vec::new(),
         };
         let mut meshes = HashMap::new();
         meshes.insert(

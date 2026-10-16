@@ -1,6 +1,6 @@
 # 0059. Symmetry for every edit, and the Symmetry menu
 
-- **Status:** Accepted
+- **Status:** Accepted; replaced for new work by [0088](0088-live-mirror.md) (the live mirror)
 - **Date:** 2026-10-14
 
 ## Problem
