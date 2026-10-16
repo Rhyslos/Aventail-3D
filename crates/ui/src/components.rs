@@ -548,6 +548,7 @@ mod tests {
             editing: true,
             points: false,
             mirrors: Vec::new(),
+            texture_size: 2048,
         }
     }
 
@@ -732,6 +733,7 @@ mod tests {
             editing: true,
             points: false,
             mirrors: Vec::new(),
+            texture_size: 2048,
         }
     }
 

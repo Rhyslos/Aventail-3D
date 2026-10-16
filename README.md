@@ -162,9 +162,9 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** stacking, toggling and editing earlier layers and edits feels right to the project lead.
 
-### Phase 7 · UVs — 7 of 12
+### Phase 7 · UVs — 8 of 12
 
-`███████░░░░░░` 58%
+`████████░░░░░` 67%
 
 One big phase, aiming to be the best UV tools around. Brought forward before advanced hard-surface at the project lead's request (2026-10-16): it needs nothing from that phase, and that phase's tools can then carry UVs from the start.
 
@@ -178,7 +178,7 @@ One big phase, aiming to be the best UV tools around. Brought forward before adv
 - [x] Live unwrap, relax and straighten, with hard-surface strips straightened automatically
 - [x] Texture size and texel density as scene settings
 - [x] Packing: real-pixel padding, nesting, groups, texture sets, stacking identical parts
-- [ ] Checker texture, and a stretch heatmap with explained fixes
+- [x] Checker texture, and a stretch heatmap with explained fixes
 - [ ] UV editing directly on the model
 - [ ] UVs that survive modelling: change the model, keep the UVs
 - [ ] Bake readiness for UVs: seams, overlaps, padding, texel density
@@ -225,6 +225,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-16 | Checker and Stretch views on the model and in the UV Editor, with each problem explained |
 | 2026-10-16 | Pack: pieces fitted by shape into the texture square with pixel padding, texture sets per material, stacking |
 | 2026-10-16 | Texture size and texel density saved with the project; Set and Match texel density |
 | 2026-10-16 | Unwrap, live as seams change, with strips laid out straight; Relax and Straighten |

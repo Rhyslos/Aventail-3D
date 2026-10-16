@@ -26,6 +26,8 @@ pub struct MeshVertex {
     /// The material slot of the polygons it belongs to: its colour comes
     /// from the object's palette ([`MeshDraw::palette`]).
     pub material: u32,
+    /// Its UV (decision 0102): vertices split where the UVs do.
+    pub uv: [f32; 2],
 }
 
 impl MeshVertex {
@@ -33,7 +35,7 @@ impl MeshVertex {
     pub(crate) const LAYOUT: wgpu::VertexBufferLayout<'static> = wgpu::VertexBufferLayout {
         array_stride: std::mem::size_of::<MeshVertex>() as wgpu::BufferAddress,
         step_mode: wgpu::VertexStepMode::Vertex,
-        attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3, 2 => Uint32],
+        attributes: &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3, 2 => Uint32, 3 => Float32x2],
     };
 
     /// The same vertices read once per drawn point (each a small square).
@@ -68,6 +70,10 @@ pub struct MeshGeometry {
     split_vertices: HashMap<u32, Vec<u32>>,
     /// What decided where the shading breaks.
     hardness: mesh::Hardness,
+    /// The mesh's texel density as a length ratio (texture widths per
+    /// centimetre), 0 without UVs: what the Stretch view compares each
+    /// spot with.
+    pub uv_density: f32,
 }
 
 /// Merges sorted vertex numbers into ranges, joining ranges with small
@@ -102,12 +108,16 @@ impl MeshGeometry {
         let has_materials = mesh.attributes().any(|(name, domain, _)| {
             name == mesh::material::MATERIAL && domain == mesh::Domain::Face
         });
+        let uvs = mesh::uvs::Uvs::of(mesh);
+        let uv_at = |k: usize| uvs.as_ref().map_or([0.0; 2], |u| u.at(k).to_array());
         let mut vertices = Vec::new();
-        // The vertex made for each group's first corner, and its material.
+        // The vertex made for each group's first corner, its material and
+        // its UV.
         let mut group_vertex = vec![u32::MAX; corners.len()];
         let mut group_material = vec![0u32; corners.len()];
-        // A group's vertices for its other materials.
-        let mut split: HashMap<(u32, u32), u32> = HashMap::new();
+        let mut group_uv = vec![[0.0f32; 2]; corners.len()];
+        // A group's vertices for its other materials and UVs.
+        let mut split: HashMap<(u32, u32, [u32; 2]), u32> = HashMap::new();
         let mut split_vertices: HashMap<u32, Vec<u32>> = HashMap::new();
         let mut corner_vertex = vec![0u32; corners.len()];
         let mut point_vertex = vec![u32::MAX; mesh.point_slot_count()];
@@ -119,25 +129,29 @@ impl MeshGeometry {
             };
             for k in pair[0] as usize..pair[1] as usize {
                 let rep = groups[k] as usize;
+                let uv = uv_at(k);
                 let make = |vertices: &mut Vec<MeshVertex>| {
                     let position = mesh.position(corners[k]).unwrap_or(Vec3::ZERO);
                     vertices.push(MeshVertex {
                         position: position.to_array(),
                         normal: normals[k].to_array(),
                         material,
+                        uv,
                     });
                     vertices.len() as u32 - 1
                 };
                 let vertex = if group_vertex[rep] == u32::MAX {
                     group_vertex[rep] = make(&mut vertices);
                     group_material[rep] = material;
+                    group_uv[rep] = uv;
                     group_vertex[rep]
-                } else if group_material[rep] == material {
+                } else if group_material[rep] == material && group_uv[rep] == uv {
                     group_vertex[rep]
                 } else {
-                    // Where materials meet on a soft edge: the same
-                    // shading, a vertex for each material.
-                    *split.entry((rep as u32, material)).or_insert_with(|| {
+                    // Where materials or UVs meet on a soft edge: the same
+                    // shading, a vertex for each material and UV.
+                    let key = (rep as u32, material, uv.map(f32::to_bits));
+                    *split.entry(key).or_insert_with(|| {
                         let vertex = make(&mut vertices);
                         split_vertices.entry(rep as u32).or_default().push(vertex);
                         vertex
@@ -159,6 +173,7 @@ impl MeshGeometry {
                     position: p.to_array(),
                     normal: [0.0, 0.0, 1.0],
                     material: 0,
+                    uv: [0.0; 2],
                 });
             }
         }
@@ -202,6 +217,7 @@ impl MeshGeometry {
             point_vertex,
             split_vertices,
             hardness,
+            uv_density: mesh::uvs::average_density(mesh).unwrap_or(0.0),
         }
     }
 
@@ -310,6 +326,39 @@ pub struct MeshDraw {
     /// Its materials' colours by slot ([`palette`]): all 0 for the
     /// standard surface colour.
     pub palette: Palette,
+    /// What its surface shows (decision 0102).
+    pub surface: SurfaceDraw,
+}
+
+/// What a surface shows: its colours, a checker laid on by its UVs, or
+/// how much its UVs stretch (decision 0102).
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub enum SurfaceDraw {
+    /// Its materials' colours.
+    #[default]
+    Plain,
+    /// A checker of `squares` squares across the texture.
+    Checker {
+        /// How many squares across.
+        squares: f32,
+    },
+    /// Green where the UVs are even, through yellow to red where they
+    /// stretch one way or are twice too big or small against `density`
+    /// (the object's texel density, texture widths per centimetre).
+    Stretch {
+        /// What each spot's density is compared with.
+        density: f32,
+    },
+}
+
+impl SurfaceDraw {
+    fn uniform(self) -> [f32; 4] {
+        match self {
+            Self::Plain => [0.0; 4],
+            Self::Checker { squares } => [1.0, squares, 0.0, 0.0],
+            Self::Stretch { density } => [2.0, 0.0, density, 0.0],
+        }
+    }
 }
 
 /// How many material slots an object's palette holds
@@ -350,6 +399,9 @@ pub(crate) struct ObjectUniforms {
     /// length in the world (for fading dense wireframes); w: how faint
     /// they may fade.
     options: [f32; 4],
+    /// What the surface shows (`SurfaceDraw`): x: 0 plain, 1 checker, 2
+    /// stretch; y: checker squares across; z: the density compared with.
+    surface: [f32; 4],
     /// The material colours, four slots to a row.
     materials: [[u32; 4]; PALETTE_SIZE / 4],
 }
@@ -377,6 +429,14 @@ impl ObjectUniforms {
                 edge_length * scale,
                 draw.faintest,
             ],
+            surface: match draw.surface {
+                // The density in the world: the placement's scale spreads it.
+                SurfaceDraw::Stretch { density } => SurfaceDraw::Stretch {
+                    density: density / scale.max(1e-9),
+                }
+                .uniform(),
+                other => other.uniform(),
+            },
             materials: std::array::from_fn(|row| {
                 std::array::from_fn(|i| draw.palette[row * 4 + i])
             }),
@@ -411,6 +471,27 @@ mod tests {
             let n = Vec3::from(geometry.vertices[t[0] as usize].normal);
             assert!((face - n).length() < 1e-5);
         }
+    }
+
+    #[test]
+    fn vertices_split_where_the_uvs_do() {
+        // A sphere: smooth all over, but cut open along its seam and poles
+        // in the texture; every corner's vertex carries its own UV.
+        let sphere = PrimitiveKind::Sphere.standard().mesh();
+        let geometry = MeshGeometry::new(&sphere);
+        let uvs = mesh::uvs::Uvs::of(&sphere).unwrap();
+        let (_, corners) = sphere.face_layout();
+        for k in 0..corners.len() {
+            let v = geometry.corner_vertex[k] as usize;
+            assert_eq!(geometry.vertices[v].uv, uvs.at(k).to_array(), "corner {k}");
+        }
+        assert!(geometry.uv_density > 0.0);
+        // Without UVs, nothing more is split and the density is 0.
+        let mut bare = sphere.clone();
+        bare.remove_attribute(mesh::attributes::UV);
+        let plain = MeshGeometry::new(&bare);
+        assert!(plain.vertices.len() < geometry.vertices.len());
+        assert_eq!(plain.uv_density, 0.0);
     }
 
     #[test]
@@ -629,6 +710,7 @@ mod tests {
             points: Some(([1.0; 4], 6.0)),
             faintest: 0.25,
             palette: [0; PALETTE_SIZE],
+            surface: SurfaceDraw::Plain,
         };
         let plain = ObjectUniforms::new(&draw(Mat4::IDENTITY), 10.0);
         assert_eq!(plain.options, [6.0, 1.0, 10.0, 0.25]);

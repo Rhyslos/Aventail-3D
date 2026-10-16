@@ -137,3 +137,42 @@ fn the_uv_mode_selects_polygons() {
     assert_eq!(element_kind(Mode::Points), Some(ElementKind::Points));
     assert_eq!(element_kind(Mode::Model), None);
 }
+
+#[test]
+fn the_stretch_view_colours_and_explains_polygons() {
+    let mut mesh = PrimitiveKind::Plane.standard().mesh();
+    let faces: Vec<FaceId> = mesh.faces().map(|(f, _)| f).collect();
+    let even = UvShape::of(Arc::new(mesh.clone())).unwrap();
+    let id = ObjectId::from_raw(4);
+    let shapes = vec![(id, even)];
+    assert_eq!(
+        stretch_note(&shapes, None).unwrap(),
+        "Stretch: every polygon lies evenly."
+    );
+    assert_eq!(stretch_color(&shapes[0].1.stretch[0]), theme::STRETCH_EVEN);
+    // Squash one polygon's UVs to a third across: stretched, and said so
+    // when pointed at.
+    mesh::uvs::transform_uvs(
+        &mut mesh,
+        &faces[..1],
+        &[],
+        glam::Affine2::from_scale(Vec2::new(1.0 / 3.0, 1.0)),
+    );
+    let squashed = UvShape::of(Arc::new(mesh)).unwrap();
+    let shapes = vec![(id, squashed)];
+    let hover = Hit {
+        id,
+        element: Element::Polygon(faces[0]),
+    };
+    let note = stretch_note(&shapes, Some(hover)).unwrap();
+    assert!(note.starts_with("This polygon is stretched"), "{note}");
+    assert!(stretch_note(&shapes, None).unwrap().contains("1 polygon"));
+    assert_eq!(stretch_color(&shapes[0].1.stretch[0]), theme::STRETCH_FAR);
+    let empty = uv::stretch::Stretch {
+        uneven: 1.0,
+        size: 1.0,
+        flipped: false,
+        empty: true,
+    };
+    assert_eq!(stretch_color(&empty), theme::STRETCH_NO_ROOM);
+}

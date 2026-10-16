@@ -151,7 +151,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Unwrapping** — Flattening the mesh along its seams into islands ([Unwrap](unwrapping.md)). A piece can be laid flat in one go only if it is shaped like a **disk**: one piece, with one border all round (a cube's side, a sheet). A tube (two borders) or a ball (none) needs a cut first.
 
-**Stretching (distortion)** — When an island's shape on the UV map doesn't match its real shape, textures look squashed or stretched. A checker texture makes it easy to spot.
+**Stretching (distortion)** — When an island's shape on the UV map doesn't match its real shape, textures look squashed or stretched. A checker texture makes it easy to spot ([Checker and Stretch views](checker-and-stretch.md)).
 
 **Packing** — Arranging all islands to fill the UV square as efficiently as possible, with a gap (**padding**) between them so textures don't bleed into each other ([Packing](packing.md)).
 

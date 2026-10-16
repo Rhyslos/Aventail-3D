@@ -209,6 +209,8 @@ struct FaceOut {
     @location(0) normal: vec3<f32>,
     @location(1) color: vec4<f32>,
     @location(2) world: vec3<f32>,
+    // The UV, for the checker and stretch views (objects' meshes only).
+    @location(3) uv: vec2<f32>,
 };
 
 @vertex
@@ -218,6 +220,7 @@ fn face_vs(in: FaceIn) -> FaceOut {
     out.normal = in.normal;
     out.color = in.color;
     out.world = in.position;
+    out.uv = vec2<f32>(0.0);
     return out;
 }
 
@@ -369,6 +372,11 @@ struct Object {
     // z: the average edge length in the world; w: how faint a dense
     // wireframe may fade.
     options: vec4<f32>,
+    // What the surface shows (decision 0102): x: 0 its colours, 1 a
+    // checker, 2 how its UVs stretch; y: checker squares across the
+    // texture; z: the texel density (texture widths per world centimetre)
+    // the stretch view compares with.
+    surface: vec4<f32>,
     // The material colours by slot, four to a row, each sRGB bytes (red
     // lowest) with 255 above; 0 for the standard surface colour.
     materials: array<vec4<u32>, 16>,
@@ -383,6 +391,7 @@ struct MeshIn {
     @location(0) position: vec3<f32>,
     @location(1) normal: vec3<f32>,
     @location(2) material: u32,
+    @location(3) uv: vec2<f32>,
 };
 
 // An sRGB colour as linear light.
@@ -414,7 +423,77 @@ fn mesh_face_vs(in: MeshIn) -> FaceOut {
     out.normal = (object.normal * vec4<f32>(in.normal, 0.0)).xyz;
     out.color = material_color(in.material);
     out.world = world;
+    out.uv = in.uv;
     return out;
+}
+
+// The stretch view's colours: even, a little off, far off.
+const EVEN = vec3<f32>(0.20, 0.55, 0.36);
+const SOME = vec3<f32>(0.85, 0.70, 0.18);
+const FAR = vec3<f32>(0.80, 0.18, 0.16);
+// A surface with no room on the texture (no UVs, or squashed flat).
+const NO_ROOM = vec3<f32>(0.55, 0.25, 0.60);
+
+// The colour the surface shows (decision 0102): its own, a checker laid on
+// by its UVs (tinted across the square so turns and mirrors show), or how
+// much its UVs stretch here. The stretch is read from how the UV and the
+// world position change across the pixel: their ratio is the map from the
+// surface to the texture, whose two stretches (largest and smallest) say
+// how unevenly (their ratio) and how big (their product, against the
+// object's texel density) the texture lies.
+fn surface_color(in: FaceOut) -> vec4<f32> {
+    let dpx = dpdx(in.world);
+    let dpy = dpdy(in.world);
+    let dux = dpdx(in.uv);
+    let duy = dpdy(in.uv);
+    let mode = object.surface.x;
+    if mode < 0.5 {
+        return in.color;
+    }
+    if mode < 1.5 {
+        let squares = max(object.surface.y, 1.0);
+        let cell = vec2<i32>(floor(in.uv * squares));
+        let odd = ((cell.x + cell.y) % 2 + 2) % 2;
+        let light = select(0.82, 0.30, odd == 1);
+        let t = fract(in.uv);
+        let tint = vec3<f32>(0.62 + 0.38 * t.x, 0.62 + 0.38 * t.y, 0.78);
+        return vec4<f32>(tint * light, 1.0);
+    }
+    let across = cross(dpx, dpy);
+    if length(dpx) < 1e-12 || length(across) < 1e-20 {
+        return vec4<f32>(NO_ROOM, 1.0);
+    }
+    let t = normalize(dpx);
+    let b = normalize(cross(normalize(across), t));
+    let px = vec2<f32>(length(dpx), 0.0);
+    let py = vec2<f32>(dot(dpy, t), dot(dpy, b));
+    let det = px.x * py.y - py.x * px.y;
+    if abs(det) < 1e-20 {
+        return vec4<f32>(NO_ROOM, 1.0);
+    }
+    let inverse = mat2x2<f32>(vec2<f32>(py.y, -px.y), vec2<f32>(-py.x, px.x)) * (1.0 / det);
+    let j = mat2x2<f32>(dux, duy) * inverse;
+    let a = transpose(j) * j;
+    let trace = a[0][0] + a[1][1];
+    let d = a[0][0] * a[1][1] - a[0][1] * a[1][0];
+    let spread = sqrt(max(trace * trace / 4.0 - d, 0.0));
+    let most = sqrt(max(trace / 2.0 + spread, 0.0));
+    let least = sqrt(max(trace / 2.0 - spread, 0.0));
+    if most < 1e-12 {
+        return vec4<f32>(NO_ROOM, 1.0);
+    }
+    let uneven = log2(most / max(least, most * 1e-4));
+    let size = sqrt(most * least) / max(object.surface.z, 1e-20);
+    let off = max(uneven, abs(log2(max(size, 1e-6))));
+    // 1.5 times off is SOME; twice off is FAR.
+    let half = 0.585;
+    var c: vec3<f32>;
+    if off < half {
+        c = mix(EVEN, SOME, off / half);
+    } else {
+        c = mix(SOME, FAR, clamp((off - half) / (1.0 - half), 0.0, 1.0));
+    }
+    return vec4<f32>(c, 1.0);
 }
 
 // A mirrored placement turns the faces inside out: what the GPU sees as
@@ -422,8 +501,10 @@ fn mesh_face_vs(in: MeshIn) -> FaceOut {
 @fragment
 fn mesh_face_fs(in: FaceOut, @builtin(front_facing) front: bool) -> SceneOut {
     let outside = front == (object.options.y > 0.0);
+    var surface = in;
+    surface.color = surface_color(in);
     var out: SceneOut;
-    out.color = shade(in, outside);
+    out.color = shade(surface, outside);
     out.facing = screen_facing(select(-in.normal, in.normal, outside));
     return out;
 }

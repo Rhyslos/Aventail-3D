@@ -465,6 +465,15 @@ pub const UV_EDGE: Color32 = Color32::from_rgba_premultiplied(0x9a, 0x9a, 0x9a, 
 pub const UV_BORDER: Color32 = Color32::from_rgb(0xe6, 0xe6, 0xe6);
 /// Seams in the UV Editor: the viewport's seam orange (decision 0098).
 pub const UV_SEAM: Color32 = Color32::from_rgb(0xff, 0x5c, 0x0d);
+/// The stretch view's colours (decision 0102), as the viewport's: a
+/// polygon lying evenly on the texture.
+pub const STRETCH_EVEN: Color32 = Color32::from_rgb(0x7c, 0xc2, 0x9b);
+/// One 1.5 times off.
+pub const STRETCH_SOME: Color32 = Color32::from_rgb(0xee, 0xd8, 0x75);
+/// One twice off or more.
+pub const STRETCH_FAR: Color32 = Color32::from_rgb(0xe8, 0x76, 0x6e);
+/// One with no room on the texture.
+pub const STRETCH_NO_ROOM: Color32 = Color32::from_rgb(0xc2, 0x8a, 0xd0);
 
 #[cfg(test)]
 mod tests {

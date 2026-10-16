@@ -64,6 +64,7 @@ No keys of their own; ask if you'd like some.
 
 - [Seams](seams.md)
 - [Texture size and texel density](texture-and-density.md)
+- [Checker and Stretch views](checker-and-stretch.md): see where to Relax or add seams
 - [The UV Editor and the UV mode](uv-editor.md)
 - [Editing UVs by hand](editing-uvs.md)
 - [Concepts: unwrapping, stretching, texel density](concepts.md#uvs-and-texturing)

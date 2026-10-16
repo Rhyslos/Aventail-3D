@@ -69,6 +69,9 @@ struct UvShape {
     /// Each polygon's UV area and real area, in the order of `polygons`,
     /// for its texel density (decision 0100).
     areas: Vec<(f32, f32)>,
+    /// How evenly each polygon lies, in the order of `polygons`
+    /// (decision 0102).
+    stretch: Vec<uv::stretch::Stretch>,
 }
 
 impl UvShape {
@@ -119,6 +122,9 @@ impl UvShape {
             }
         }
         let seams = mesh::uvs::seams(&mesh).into_iter().collect();
+        let stretch = uv::stretch::stretch_of(&mesh)
+            .map(|list| list.into_iter().map(|(_, s)| s).collect())
+            .unwrap_or_default();
         let areas = polygons
             .iter()
             .map(|(face, _)| uv::density::areas(&mesh, &[*face], &uvs))
@@ -131,6 +137,7 @@ impl UvShape {
             islands,
             seams,
             areas,
+            stretch,
         })
     }
 }
@@ -236,6 +243,9 @@ pub(crate) struct UvContext<'a> {
     pub(crate) tool: Tool,
     /// How snapping works.
     pub(crate) snap: SnapSettings,
+    /// Whether polygons are coloured by how evenly they lie (the
+    /// viewport's Stretch view, decision 0102).
+    pub(crate) stretch: bool,
 }
 
 /// The objects whose UVs are shown: the selected ones with a shape, in
@@ -406,6 +416,7 @@ impl UvEditor {
                 accent.fill,
                 accent.light,
                 cx.mode,
+                cx.stretch,
             );
         }
         if let Some((centre, lit)) = lit {
@@ -425,6 +436,20 @@ impl UvEditor {
             );
         }
         // What is shown, bottom left; a hint when nothing is.
+        // With the stretch view, what is wrong with the polygon under the
+        // mouse (or how many are off), above the other notes, wrapped.
+        if let Some(text) = cx.stretch.then(|| stretch_note(&shapes, hover)).flatten() {
+            let galley = painter.layout(
+                text,
+                FontId::proportional(12.0),
+                theme::TEXT,
+                (rect.width() - 20.0).max(50.0),
+            );
+            let at = rect.left_bottom() + vec2(10.0, -28.0 - galley.size().y);
+            let behind = Rect::from_min_size(at, galley.size()).expand(4.0);
+            painter.rect_filled(behind, 3.0, theme::UV_BACKGROUND.gamma_multiply(0.92));
+            painter.galley(at, galley, theme::TEXT);
+        }
         let note = if shapes.is_empty() && !too_many {
             if shown_objects(doc).is_empty() {
                 "Select an object to see its UVs.".to_string()
@@ -769,6 +794,7 @@ impl UvEditor {
         fill: Color32,
         light: Color32,
         mode: Mode,
+        stretch: bool,
     ) {
         let screen = |uv: Vec2| self.to_screen(rect, uv);
         // Tinted polygons.
@@ -783,6 +809,12 @@ impl UvEditor {
             _ => BTreeSet::new(),
         };
         let mut tint = egui::Mesh::default();
+        if stretch {
+            for ((_, points), s) in shape.polygons.iter().zip(&shape.stretch) {
+                let corners: Vec<Pos2> = points.iter().map(|(_, uv)| screen(*uv)).collect();
+                add_polygon(&mut tint, &corners, stretch_color(s).gamma_multiply(0.55));
+            }
+        }
         if matches!(kind, Some(ElementKind::Polygons)) {
             for (face, points) in &shape.polygons {
                 let color = if selected.contains(Element::Polygon(*face)) {
@@ -1063,6 +1095,57 @@ pub(crate) fn texture_menu(ui: &mut Ui, doc: &mut Document) {
 
 /// The label of the texel density field.
 pub(crate) const TEXEL_DENSITY_LABEL: &str = "Texel density";
+
+/// The colour of a polygon in the stretch view.
+fn stretch_color(s: &uv::stretch::Stretch) -> Color32 {
+    let off = s.off();
+    if !off.is_finite() {
+        return theme::STRETCH_NO_ROOM;
+    }
+    let half = uv::stretch::SOME.log2();
+    let mix = |a: Color32, b: Color32, t: f32| {
+        let t = t.clamp(0.0, 1.0);
+        let c = |x: u8, y: u8| (f32::from(x) + (f32::from(y) - f32::from(x)) * t).round() as u8;
+        Color32::from_rgb(c(a.r(), b.r()), c(a.g(), b.g()), c(a.b(), b.b()))
+    };
+    if off < half {
+        mix(theme::STRETCH_EVEN, theme::STRETCH_SOME, off / half)
+    } else {
+        mix(
+            theme::STRETCH_SOME,
+            theme::STRETCH_FAR,
+            (off - half) / (1.0 - half),
+        )
+    }
+}
+
+/// The stretch view's note: what is wrong with the polygon under the
+/// mouse, or how many polygons are off.
+fn stretch_note(shapes: &[(ObjectId, UvShape)], hover: Option<Hit>) -> Option<String> {
+    if let Some(Hit {
+        id,
+        element: Element::Polygon(face),
+    }) = hover
+    {
+        let (_, shape) = shapes.iter().find(|(i, _)| *i == id)?;
+        let at = shape.polygons.iter().position(|(f, _)| *f == face)?;
+        let s = shape.stretch.get(at)?;
+        return Some(match s.explain() {
+            Some(why) => format!("This polygon {why}"),
+            None => "This polygon lies evenly on the texture.".to_string(),
+        });
+    }
+    let off = shapes
+        .iter()
+        .flat_map(|(_, s)| &s.stretch)
+        .filter(|s| s.off() >= uv::stretch::SOME.log2())
+        .count();
+    Some(match off {
+        0 => "Stretch: every polygon lies evenly.".to_string(),
+        1 => "Stretch: 1 polygon is 1.5 times off or more. Point at it to see why.".to_string(),
+        n => format!("Stretch: {n} polygons are 1.5 times off or more. Point at one to see why."),
+    })
+}
 
 /// The texture and texel density line: "2048 px · 498 px/m (aim 512)".
 pub(crate) fn density_text(

@@ -268,3 +268,19 @@ fn h_and_z_frame_in_the_editor_when_the_mouse_is_over_it() {
         camera_before
     );
 }
+
+#[test]
+fn the_display_menu_switches_the_surface_to_checker_and_stretch() {
+    let mut harness = fresh();
+    for (label, wanted) in [
+        ("Checker", crate::viewport::Surface::Checker),
+        ("Stretch", crate::viewport::Surface::Stretch),
+        ("Colours", crate::viewport::Surface::Plain),
+    ] {
+        harness.get_by_label("Display").click();
+        harness.run();
+        harness.get_by_label(label).click();
+        harness.run();
+        assert_eq!(harness.state().workbench.view_options().surface, wanted);
+    }
+}

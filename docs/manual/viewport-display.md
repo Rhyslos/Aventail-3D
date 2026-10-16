@@ -25,6 +25,10 @@ Selected objects' edges are drawn in the accent colour in every look, so the sel
 
 In **Wireframe**, clicking still picks the shape you click inside, as if it were solid: you don't have to hit an edge exactly. A very dense shape seen from far away keeps a faint outline instead of fading away completely, so it never vanishes.
 
+## Checker and Stretch
+
+Under **Surface** in the **Display** menu, **Checker** and **Stretch** show how your UVs lie on the shapes instead of their colours. See [Checker and Stretch views](checker-and-stretch.md).
+
 ## Cavity
 
 **Cavity** brightens ridges and darkens creases on the surfaces: a thin light line where a shape turns outward (a box's outer corner, the rim of a raised panel) and a soft shadow where it turns inward (the inside corner of a recess, a groove). It's like light catching the edges and dust settling in the cracks. It makes a shape's form easy to read at a glance, especially flat hard-surface parts in a single grey. It changes only how the shape looks, never the shape.
@@ -41,6 +45,7 @@ Cavity works in **Shaded** and **Shaded with wires**. **Wireframe** has no surfa
 
 | Setting | What it does |
 |---|---|
+| **Surface** (**Display** menu) | **Colours** (standard), **Checker** or **Stretch**: see [Checker and Stretch views](checker-and-stretch.md). Remembered. |
 | **Cavity** (**Display** menu) | On (the standard): ridges brightened and creases darkened. Off: plain shading. Remembered. |
 | **Shading** (the bottom-left button, or **Display** menu) | **Shaded**: solid, softly lit surfaces with faint edges. **Shaded with wires**: solid surfaces with every edge drawn clearly in light grey. **Wireframe**: only the edges, seen through the shape. Remembered. |
 

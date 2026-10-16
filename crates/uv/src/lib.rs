@@ -7,6 +7,7 @@
 //!   seams, and telling whether a piece lies flat in one go (a disk).
 //! - [`density`]: texel density: measuring it and setting it.
 //! - [`pack`]: fitting pieces into the texture square.
+//! - [`stretch`]: how evenly UVs lie, and what to do about it.
 //! - [`mod@unwrap`]: laying it flat: unwrapping (LSCM, and straight grids for
 //!   strips), straightening and relaxing.
 
@@ -15,6 +16,7 @@ pub mod density;
 pub mod pack;
 pub mod seams;
 mod solve;
+pub mod stretch;
 pub mod unwrap;
 
 pub use unwrap::{relax, straighten, unwrap};
