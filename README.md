@@ -188,25 +188,34 @@ One big phase, aiming to be the best UV tools around. Brought forward before adv
 
 **Gate:** a prop is unwrapped and packed in Aventail 3D, with clean bakes in Substance Painter, and changing the model afterwards keeps its UVs.
 
-### Phase 8 · UV powerhouse and baking — 0 of 19
+### Phase 8 · UV powerhouse and baking — 0 of 28
 
 `░░░░░░░░░░░░░` 0%
 
-At the project lead's request (2026-10-16), before advanced hard-surface: everything the other 3D programs do well for UVs, four ideas no other app has, and baking inside the app, so Substance Painter becomes optional for bakes.
+At the project lead's request (2026-10-16), before advanced hard-surface: everything the other 3D programs do well for UVs, full control over every automatic step, four ideas no other app has, and baking inside the app, so Substance Painter becomes optional for bakes. The aim: the best and most controllable UV tools there are.
 
 <details>
 <summary>Milestones</summary>
 
-- [ ] Unwrapping: pins, unfolding one way only, and angle-based and size-keeping methods beside LSCM, the best picked for each piece
+- [ ] Unwrapping: pins (E menu and UV menu, no key: the project lead's choice), unfolding one way only, and angle-based and size-keeping methods beside LSCM, the best picked for each piece
+- [ ] Fully controllable automation: every automatic tool (suggest seams, unwrap, straighten, pack, mending) shows all its settings, and the same model and settings always give the same result, never a random one
+- [ ] Seam preferences ("prefer a seam here", "never a seam here") and a stretch budget per piece, obeyed by every automatic tool
+- [ ] Lock a piece (nothing automatic changes it), and per-piece settings (method, straightening, density) kept for every re-unwrap
 - [ ] Straighten any quad piece by its edge flow, and the texture locked in place while moving points
 - [ ] Seams: a slider from fewer seams to less stretch, a seam brush, symmetric seams, seams along loops and rings
 - [ ] Projections: planar, box, cylindrical and spherical with an on-model gizmo, project from view, and world-aligned UVs for modular kits
-- [ ] Editing pieces: stitch and cut in the UV Editor, align and distribute, orient by an edge, snap to texture pixels, lattice warp
+- [ ] Editing pieces: stitch and cut in the UV Editor, align and distribute, orient by an edge, lattice warp
+- [ ] Precise placement: UV snapping (to texture pixels, other pieces' edges and corners, trim rows, a grid of your own), exact U, V, turn and size in the Coordinates panel, and transform pivots (the selection's middle, each piece's own, a corner, a point you place)
 - [ ] UV brushes in the UV Editor: grab, relax and pinch
-- [ ] Selection by overlap, mirror, stretch and similarity, grow and shrink in UV, shortest path; copying UVs between similar pieces and objects
-- [ ] Packing: locked pieces, packing into a region, keeping the grain's direction, texel density overrides per object, UDIM tiles
-- [ ] Lightmap UVs: a second UV set made for Godot's baked lighting
+- [ ] Selection by overlap, mirror, stretch and similarity, grow and shrink in UV, shortest path; isolate the selected pieces; the UV Editor following the viewport's selection or keeping its own; copying UVs between similar pieces and objects
+- [ ] Packing: packing groups (kept together, in order, with their own padding or region), locked pieces, packing into a region, keeping the grain's direction, texel density overrides per object, UDIM tiles
+- [ ] Several UV sets per object: add, name, copy and switch them, each with its own texture, for high-resolution texturing of big models
+- [ ] Lightmap UVs: a UV set made for Godot's baked lighting
+- [ ] Seeing and checking: always-on warnings for overlapping and mirrored pieces in the UV Editor, stretch, pixel size and texel density shown on each piece, and measuring in texture pixels and real centimetres
+- [ ] The numbered checker in each object's own colours (some red, some blue), to tell objects' UVs apart at a glance
 - [ ] Seeing textures: a real texture behind the UVs and on the model, UV layout export (PNG, SVG), separate angle and size stretch views, a mipmap preview
+- [ ] Layout snapshots: named versions of a layout to switch between, compared before and after side by side
+- [ ] Explained auto-unwrap: one button for seams, unwrap, straighten, density, pack and lightmap UVs, then every step listed to tweak or undo on its own
 - [ ] Unwrap recipes: unwrap a whole kit at once with saved steps
 - [ ] Player-view UVs (new): seams hidden and texture detail placed by how the player sees the asset, and a texels-per-screen-pixel view
 - [ ] UV intents (new): pieces keep what they were told to be (a strip, on a trim row, a mirror, a density, this way up) after any change
@@ -258,7 +267,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
-| 2026-10-16 | Planned: Phase 8, UV powerhouse and baking (UV tools from every 3D app, four new ideas, an in-app baker), before advanced hard-surface (now Phase 9) |
+| 2026-10-16 | Planned: Phase 8, UV powerhouse and baking (UV tools from every 3D app, full control over every automatic step, four new ideas, an in-app baker), before advanced hard-surface (now Phase 9) |
 | 2026-10-16 | Numbered checker: labelled cells in the accent colour's gradient, on the model and in the UV Editor |
 | 2026-10-16 | Trim sheets: rows made in the UV Editor, strips laid straight along them; every Phase 7 milestone built, the gate waits for the project lead |
 | 2026-10-16 | Check for baking covers UVs: hard edges without seams, overlaps, padding, folds and texel density, with one-click fixes |

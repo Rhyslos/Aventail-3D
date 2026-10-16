@@ -15,6 +15,13 @@ With the UV phase built, the project lead asked for more:
 He chose:
 
 - all of the first two;
+- more control ("the best, most controllable UV tool out there"), asked for at the same time:
+  - seam preferences, a stretch budget per piece, locked pieces, per-piece settings;
+  - UV snapping, exact numbers, transform pivots, packing groups;
+  - always-on warnings, numbers on pieces, layout snapshots, isolate and sync;
+  - several UV sets per object (for high-resolution texturing of big models), measuring in UVs, an explained auto-unwrap;
+  - the numbered checker in each object's own colours, to organise UVs;
+  - fully featured automatic tools whose results are never random;
 - all four new ideas offered;
 - baking inside the app rather than leaving it to Substance Painter;
 - all of it before advanced modelling.
@@ -31,9 +38,9 @@ He chose:
 
 ## Decision
 
-Phase 8 is "UV powerhouse and baking", with 19 milestones listed in DESIGN.md and the README. The order is:
+Phase 8 is "UV powerhouse and baking", with 28 milestones listed in DESIGN.md and the README. Pins are made from the E menu and the UV menu, with no key (the project lead's choice; P already switches the projection). The order is:
 
-1. the familiar UV tools;
+1. the familiar UV tools and the control features, starting with the ones others build on (pins and methods, settings for every automatic step, seam preferences, locks);
 2. the new ideas, which build on them (pins, projections, packing controls);
 3. the baker, which builds on both (live preview needs fast unwrapping; the seam preview, player views and paint-aware detail feed it).
 
@@ -43,5 +50,6 @@ Each milestone asks the project lead about its controls before it adds keys or m
 
 ## Consequences
 
+- **Never random:** every automatic tool already gives the same result for the same model and settings; from now on every one also shows all its settings, and tests check the sameness.
 - Advanced hard-surface waits one more phase. Its tools will carry UVs and work with UV intents from the start.
 - The baker is the largest new piece of the app (ray casting against high-poly meshes). It gets its own crate, kept free of the GPU so it can run in tests and on another thread.
