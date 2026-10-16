@@ -108,6 +108,19 @@ pub enum CommandId {
     Straighten,
     /// Fit every island into the texture square.
     Pack,
+    /// Pin the selected UVs, so unwrapping and relaxing leave them be
+    /// (decision 0109).
+    UvPin,
+    /// Unpin the selected UVs.
+    UvUnpin,
+    /// The group holding the turns and flips: choosing it shows them.
+    UvTurnFlip,
+    /// The group holding stitching and cutting: choosing it shows them.
+    UvStitchCut,
+    /// Join the selected UV edges to their partners.
+    UvStitch,
+    /// Split the selected UV edges apart.
+    UvCut,
 }
 
 /// Everything shown about a command.
@@ -472,6 +485,51 @@ impl CommandId {
                  square as large as they go, with padding between them (UV → Packing)",
                 None,
             ),
+            Self::UvPin => (
+                "Pin",
+                Icon::UvPin,
+                None,
+                "Pin the selected UVs where they are: unwrapping lays the rest out around them, \
+                 and relaxing leaves them alone",
+                None,
+            ),
+            Self::UvUnpin => (
+                "Unpin",
+                Icon::UvUnpin,
+                None,
+                "Unpin the selected UVs, so unwrapping and relaxing may move them again",
+                None,
+            ),
+            Self::UvTurnFlip => (
+                "Turn & flip",
+                Icon::UvTurnFlip,
+                None,
+                "Turn the selected UVs a quarter turn, or mirror them: choose this to see the \
+                 four",
+                None,
+            ),
+            Self::UvStitchCut => (
+                "Stitch & cut",
+                Icon::UvStitchCut,
+                None,
+                "Join UV edges to their partners, or split them apart: choose this to see both",
+                None,
+            ),
+            Self::UvStitch => (
+                "Stitch",
+                Icon::UvStitch,
+                plain(Key::C),
+                "Join the selected UV edges to their partners on the model, bringing the \
+                 smaller piece over to the bigger",
+                Some("Arrives in Phase 8, milestone 8"),
+            ),
+            Self::UvCut => (
+                "Cut",
+                Icon::UvCut,
+                plain(Key::X),
+                "Split the selected UV edges, so the pieces either side can move apart",
+                Some("Arrives in Phase 8, milestone 8"),
+            ),
         };
         CommandInfo {
             name,
@@ -485,6 +543,27 @@ impl CommandId {
     /// Its name.
     pub const fn name(self) -> &'static str {
         self.info().name
+    }
+
+    /// The commands a group holds (empty for a command that isn't a
+    /// group). Choosing a group in the tool menu shows its commands in
+    /// their place (decision 0109).
+    pub const fn members(self) -> &'static [CommandId] {
+        match self {
+            Self::UvTurnFlip => &[
+                Self::UvTurnLeft,
+                Self::UvTurnRight,
+                Self::UvFlipU,
+                Self::UvFlipV,
+            ],
+            Self::UvStitchCut => &[Self::UvStitch, Self::UvCut],
+            _ => &[],
+        }
+    }
+
+    /// Whether it is a group of commands.
+    pub const fn is_group(self) -> bool {
+        !self.members().is_empty()
     }
 
     /// Whether it is built.
@@ -534,7 +613,13 @@ impl CommandId {
             | Self::Unwrap
             | Self::Relax
             | Self::Straighten
-            | Self::Pack => &[Uv],
+            | Self::Pack
+            | Self::UvPin
+            | Self::UvUnpin
+            | Self::UvTurnFlip
+            | Self::UvStitchCut
+            | Self::UvStitch
+            | Self::UvCut => &[Uv],
         }
     }
 }
@@ -615,7 +700,9 @@ pub const MODELLING_RING: [CommandId; RING_PLACES] = [
 /// over the UV Editor in the Points, Edges and Polygons modes (the menu
 /// follows where you work, decision 0097). The gizmos and framing keep
 /// their places from the object ring; seams at the right, unwrapping at
-/// the bottom, packing and turning at the left.
+/// the bottom, packing, turning and pinning at the left. Turning and
+/// flipping share one place, as do stitching and cutting: choosing one
+/// shows what it holds (decision 0109).
 pub const UV_RING: [CommandId; RING_PLACES] = [
     CommandId::Move,
     CommandId::Rotate,
@@ -628,10 +715,10 @@ pub const UV_RING: [CommandId; RING_PLACES] = [
     CommandId::Relax,
     CommandId::Straighten,
     CommandId::Pack,
-    CommandId::UvTurnRight,
-    CommandId::UvTurnLeft,
-    CommandId::UvFlipU,
-    CommandId::UvFlipV,
+    CommandId::UvTurnFlip,
+    CommandId::UvPin,
+    CommandId::UvUnpin,
+    CommandId::UvStitchCut,
 ];
 
 /// One entry of the tool menu: a command and its place on the ring.
@@ -666,8 +753,29 @@ pub fn menu_for(mode: Mode) -> Vec<Slot> {
         .collect()
 }
 
+/// The tool menu's entries for `group`, opened in place of the ring that
+/// held it: its commands on the same ring, side by side around the
+/// group's own place, so the mouse is already near them.
+pub fn group_menu(group: CommandId, ring: &[Slot]) -> Vec<Slot> {
+    let members = group.members();
+    let centre = ring
+        .iter()
+        .find(|s| s.command == group)
+        .map_or(0, |s| s.place);
+    let n = members.len();
+    members
+        .iter()
+        .enumerate()
+        .map(|(k, command)| Slot {
+            command: *command,
+            place: (centre + RING_PLACES + k - (n - 1) / 2) % RING_PLACES,
+            places: RING_PLACES,
+        })
+        .collect()
+}
+
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 44] = [
+pub const ALL: [CommandId; 50] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -712,6 +820,12 @@ pub const ALL: [CommandId; 44] = [
     CommandId::Relax,
     CommandId::Straighten,
     CommandId::Pack,
+    CommandId::UvPin,
+    CommandId::UvUnpin,
+    CommandId::UvTurnFlip,
+    CommandId::UvStitchCut,
+    CommandId::UvStitch,
+    CommandId::UvCut,
 ];
 
 #[cfg(test)]
@@ -724,10 +838,12 @@ mod tests {
         let all: HashSet<_> = ALL.into_iter().collect();
         assert_eq!(all.len(), ALL.len());
         for command in ALL {
+            let in_group = UV_RING.iter().any(|g| g.members().contains(&command));
             let placed = OBJECT_RING.contains(&Some(command))
                 || PIVOT_RING.contains(&Some(command))
                 || MODELLING_RING.contains(&command)
-                || UV_RING.contains(&command);
+                || UV_RING.contains(&command)
+                || in_group;
             assert!(placed, "{command:?} has no place in the tool menu");
             assert!(!command.modes().is_empty(), "{command:?}");
         }
@@ -788,6 +904,34 @@ mod tests {
             plain(Key::Delete)
         );
         assert_eq!(CommandId::Dissolve.info().shortcut, plain(Key::Backspace));
+        // In the UV Editor: X cuts, C stitches (the project lead's choice).
+        assert_eq!(CommandId::UvCut.info().shortcut, plain(Key::X));
+        assert_eq!(CommandId::UvStitch.info().shortcut, plain(Key::C));
+        assert_eq!(CommandId::UvPin.info().shortcut, None);
+    }
+
+    #[test]
+    fn groups_open_their_commands_around_their_own_place() {
+        let ring = menu_for(Mode::Uv);
+        for group in [CommandId::UvTurnFlip, CommandId::UvStitchCut] {
+            assert!(group.is_group());
+            let place = ring.iter().find(|s| s.command == group).unwrap().place;
+            let inside = group_menu(group, &ring);
+            assert_eq!(
+                inside.iter().map(|s| s.command).collect::<Vec<_>>(),
+                group.members()
+            );
+            let places: HashSet<_> = inside.iter().map(|s| s.place).collect();
+            assert_eq!(places.len(), inside.len(), "{group:?}");
+            assert!(places.contains(&place), "{group:?}");
+            for slot in &inside {
+                assert!(!slot.command.is_group());
+                assert_eq!(slot.places, RING_PLACES);
+                let away = (slot.place + RING_PLACES - place) % RING_PLACES;
+                assert!(away <= 2 || away >= RING_PLACES - 2, "{slot:?}");
+            }
+        }
+        assert!(!CommandId::Unwrap.is_group());
     }
 
     #[test]
@@ -880,7 +1024,16 @@ mod tests {
         // Within one ring, every icon is different.
         let objects: Vec<_> = OBJECT_RING.iter().flatten().copied().collect();
         let pivots: Vec<_> = PIVOT_RING.iter().flatten().copied().collect();
-        for ring in [&objects[..], &pivots[..], &MODELLING_RING[..], &UV_RING[..]] {
+        let turns = CommandId::UvTurnFlip.members();
+        let stitches = CommandId::UvStitchCut.members();
+        for ring in [
+            &objects[..],
+            &pivots[..],
+            &MODELLING_RING[..],
+            &UV_RING[..],
+            turns,
+            stitches,
+        ] {
             let icons: HashSet<_> = ring.iter().map(|c| c.info().icon).collect();
             assert_eq!(icons.len(), ring.len());
         }

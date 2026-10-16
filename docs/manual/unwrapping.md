@@ -6,27 +6,33 @@
 
 ## When to use it
 
-**Unwrapping** is flattening the surface along its [seams](seams.md), like unfolding a cardboard box, so a texture can be painted on it. The app does it the way most UV tools do (least squares conformal maps): every little triangle keeps its shape as well as it can, so a checker texture's squares stay square, at the cost of some change in size across very curved pieces.
+**Unwrapping** is flattening the surface along its [seams](seams.md), like unfolding a cardboard box, so a texture can be painted on it. A curved surface can't lie flat perfectly, so something has to give: the shapes of its parts, or their sizes. The standard way (**Keep shapes**, what most UV tools do) keeps every little triangle's shape, so a checker texture's squares stay square, at the cost of some change in size across very curved pieces. **UV → Unwrap method** offers three more ways (see [Settings](#settings)).
 
 - **Unwrap** to lay a piece out fresh, or after moving points stretched it. (Polygons that extrudes, bevels and other edits make get fitting UVs by themselves: see [UVs while you keep modelling](uvs-and-modelling.md).)
 - You often don't need to: **marking seams unwraps the pieces around them at once** (the switch **UV → Unwrap as seams change**, on as standard).
 - **Relax** evens out UVs you've pulled about by hand, or a piece that stretches.
 - **Straighten** lays a piece made of quads out as a perfectly straight grid: the cleanest result for strips and panels in hard-surface work.
+- **Unfold across only** and **Unfold up only** unwrap, but move the UVs one way only: every point keeps its height (or its place across). Use them to even out a strip along its length without changing its height.
+- To hold some UVs still while the rest is laid out around them, [pin](pins.md) them first.
 
 ## How to use it
 
 1. Select an object. To work on part of it, pick the UV mode or press **1**, **2** or **3** and select the pieces (or polygons, edges or points in them). With nothing selected inside it, the whole object is used.
-2. Press **E** with the mouse over the UV Editor (or in the UV mode) and choose **Unwrap**, **Relax** or **Straighten**. They're in the **UV** menu too.
+2. Press **E** with the mouse over the UV Editor (or in the UV mode) and choose **Unwrap**, **Relax** or **Straighten**. They're in the **UV** menu too, with **Unfold across only** and **Unfold up only**.
 3. Each is one undo step (**Ctrl + Z**), saved with the project and recorded on the object's [edit list](edit-list.md).
 
 What **Unwrap** does with each piece holding the selection:
-- lays it flat along its seams. A piece that can't lie flat in one go (a tube, or a closed ball with no seam) is first cut open in a hidden place, and the cut is marked as a seam;
+- lays it flat along its seams, the way **UV → Unwrap method** says. A piece that can't lie flat in one go (a tube, or a closed ball with no seam) is first cut open in a hidden place, and the cut is marked as a seam;
 - a piece of **square-cornered quads** (a cylinder's side, a bevel's strip, a flat panel) comes out as a **straight grid**, when **Straighten strips when unwrapping** is on;
 - turns it so its sides line up with the square, keeping the way it lay before (a quarter turn at a time);
 - sizes it to match the rest of the object, so every piece keeps its **real size** against the others (the same [texel density](texture-and-density.md));
 - puts it where it was. Pieces may overlap; [Pack](packing.md) arranges them.
 
-**Relax** moves only the corners of the selected polygons: each side is pulled towards its real length, so bunched or stretched UVs even out. The other corners stay where they are, so you can relax one area of a piece.
+A piece with [pinned UVs](pins.md) is different: with two or more pins it's laid out around them and keeps its place, size and turn; with one, it's laid out as above and moved so the pin is back. Pinned pieces aren't laid out as straight grids.
+
+**Unfold across only** (or **up only**) unwraps the piece as above, fits the result over where the piece was (moved, turned and sized to lie on it as closely as it can), then gives every point back its old height (or its old place across). A piece with no UVs yet is simply unwrapped.
+
+**Relax** moves only the corners of the selected polygons: each side is pulled towards its real length, so bunched or stretched UVs even out. The other corners, and pinned ones, stay where they are, so you can relax one area of a piece.
 
 **Straighten** works on pieces made only of quads; others are left as they were (the status bar says so).
 
@@ -36,16 +42,18 @@ In the **UV** menu:
 
 | Setting | What it does |
 |---|---|
+| **Unwrap method** | How Unwrap (and unwrapping as seams change) lays pieces flat. **Keep shapes** (standard): every small part keeps its angles, so a texture's squares stay square; sizes may drift across a strongly curved piece. The fastest. **Keep shapes, smoother**: the same, but the angles are first evened out over the whole piece, so curved pieces (a head, a dome) drift less in size. A little slower. **Keep sizes**: every part keeps its real size, so the texture's pixels are the same size all over the piece, at the cost of a little bending of the squares. Best for game textures with fine detail. About six times slower than Keep shapes. **Automatic**: each piece is laid flat all three ways and keeps the one that lies most evenly; the same piece always gets the same choice. The slowest. |
 | **Unwrap as seams change** | On (standard): marking or clearing seams unwraps the pieces on either side at once, in the same undo step. Off: only the seams change until you choose Unwrap. |
 | **Straighten strips when unwrapping** | On (standard): pieces of square-cornered quads unwrap as straight grids. Off: they're unwrapped like any other piece (a little curved, if the shape is). |
 
-Both are remembered between sessions.
+All three are remembered between sessions.
 
 ## Shortcuts
 
 | Action | Shortcut |
 |---|---|
 | Unwrap, Relax, Straighten | **E** over the UV Editor (or in the UV mode), or the UV menu |
+| Unfold across only, Unfold up only, Unwrap method | the **UV** menu |
 | Select pieces | UV mode, then click (or **1**, **2**, **3** for parts) |
 | Undo | **Ctrl + Z** |
 
@@ -54,7 +62,8 @@ No keys of their own; ask if you'd like some.
 ## Tips and common problems
 
 - **Problem:** after unwrapping, pieces overlap. **Why:** each piece is put back where it was, and a fresh piece can be bigger. **Fix:** [Pack](packing.md) them, or move them apart with **W** in the UV Editor.
-- **Problem:** a ball or rounded piece looks bigger in the middle than at the edges. **Why:** a curved surface can't lie flat without some change in size; unwrapping keeps the shapes and lets the size vary. **Fix:** add a seam or two to split it (Suggest seams helps), then Unwrap.
+- **Problem:** a ball or rounded piece looks bigger in the middle than at the edges. **Why:** a curved surface can't lie flat without some change in size; Keep shapes keeps the shapes and lets the size vary. **Fix:** choose **UV → Unwrap method → Keep sizes** (or Keep shapes, smoother) and Unwrap again, or add a seam or two to split it (Suggest seams helps).
+- **Problem:** with Keep sizes, the checker's squares lean a little. **Why:** keeping every part's size means bending some angles. **Fix:** that's the trade; choose Keep shapes if square squares matter more, or Automatic to let each piece decide.
 - **Problem:** a strip came out curved. **Why:** some of its corners aren't square (more than 25° off), or it has a triangle, so it isn't treated as a strip. **Fix:** choose Straighten, or fix the polygons.
 - **Problem:** Unwrap marked a seam I didn't place. **Why:** the piece couldn't lie flat in one go (a tube, a closed shape), so it was cut open where it shows least. **Fix:** Ctrl + Z and place the seam where you want it, or keep it.
 - **Problem:** unwrapping a big piece takes a moment. **Why:** a piece of tens of thousands of polygons takes seconds to solve. **Fix:** add seams to split it into smaller pieces.
@@ -62,6 +71,7 @@ No keys of their own; ask if you'd like some.
 
 ## Related
 
+- [Pinning UVs](pins.md): hold some UVs still while the rest is laid out
 - [Seams](seams.md)
 - [Trim sheets](trim-sheets.md): lay strips along a shared texture's rows instead
 - [UVs while you keep modelling](uvs-and-modelling.md)
@@ -69,4 +79,4 @@ No keys of their own; ask if you'd like some.
 - [Checker and Stretch views](checker-and-stretch.md): see where to Relax or add seams
 - [The UV Editor and the UV mode](uv-editor.md)
 - [Editing UVs by hand](editing-uvs.md)
-- [Concepts: unwrapping, stretching, texel density](concepts.md#uvs-and-texturing)
+- [Concepts: unwrapping, pins, stretching, texel density](concepts.md#uvs-and-texturing)

@@ -35,7 +35,7 @@
 //! small edit on a big shape mends quickly.
 
 use crate::chart::{Chart, Sets};
-use crate::unwrap::{conformal_pinned, cuts_of, lay_out};
+use crate::unwrap::{UnwrapOptions, conformal_pinned, cuts_of, lay_out};
 use glam::{Vec2, Vec3};
 use mesh::uvs::Uvs;
 use mesh::{EdgeKey, FaceId, Mesh, VertexId};
@@ -595,7 +595,7 @@ pub fn mend(before: &Mesh, mesh: &mut Mesh) -> usize {
     .parts(&alone);
     let around: Vec<EdgeKey> = around.into_iter().collect();
     mesh::uvs::set_seams(mesh, &around, true);
-    lay_out(mesh, &pieces, cuts, density, true);
+    lay_out(mesh, &pieces, cuts, density, UnwrapOptions::plain(true));
     keep_inside(mesh, &pieces);
     broken.len()
 }

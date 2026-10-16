@@ -125,9 +125,27 @@ impl Workbench {
                 QuadAction::Align,
             )));
         }
+        // A group's commands are listed in its place (decision 0109).
         let tools = self
             .tool_menu_entries()
             .into_iter()
+            .flat_map(|entry| {
+                let members = entry.slot.command.members();
+                if members.is_empty() {
+                    vec![entry]
+                } else {
+                    members
+                        .iter()
+                        .map(|command| crate::tool_menu::Entry {
+                            slot: crate::commands::Slot {
+                                command: *command,
+                                ..entry.slot
+                            },
+                            ready: self.readiness(*command),
+                        })
+                        .collect()
+                }
+            })
             .map(|entry| {
                 let command = entry.slot.command;
                 QuadItem {

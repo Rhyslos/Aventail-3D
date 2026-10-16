@@ -41,6 +41,7 @@ pub use stack::{
 pub use tree::{Place, Scene, SceneError, stretch_of};
 pub use trim::{MAX_ROW_NAME, MAX_TRIM_ROWS, TrimRow, TrimSheet};
 pub use units::{ExportTarget, MAX_DENSITY, TEXTURE_SIZES, TextureSettings, Units};
+pub use uv::{UnfoldAxis, UnwrapMethod};
 
 #[cfg(test)]
 mod apply_tests;
@@ -62,5 +63,7 @@ mod selection_tests;
 mod stack_tests;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod uv_pin_tests;
 #[cfg(test)]
 mod uv_survive_tests;

@@ -21,6 +21,10 @@
 //! held: letting go over a tool uses it, anywhere else closes it. The tools
 //! come from the command list (`commands`); which can be used now is
 //! decided by the workbench.
+//!
+//! A place can hold a group of commands (Turn & flip, say): choosing it
+//! opens the group's commands on the same ring, around the group's place,
+//! so the mouse is already near them ([decision 0109](../../../docs/decisions/0109-pins-and-unwrap-methods.md)).
 
 use crate::commands::{CommandId, Slot};
 use crate::icons::{self, Icon};
@@ -183,6 +187,10 @@ pub(crate) enum KeyOutcome {
 #[derive(Debug, Clone, Default)]
 pub(crate) struct ToolMenu {
     open: Option<Open>,
+    /// The group whose commands show, while one is open (decision 0109).
+    group: Option<CommandId>,
+    /// Where the menu last opened, for a group to open in the same spot.
+    last_at: Pos2,
     /// How it looks and opens.
     pub(crate) settings: ToolMenuSettings,
 }
@@ -237,6 +245,26 @@ impl ToolMenu {
     /// Closes the menu.
     pub(crate) fn close(&mut self) {
         self.open = None;
+        self.group = None;
+    }
+
+    /// The group whose commands the open menu shows, if any.
+    pub(crate) fn group(&self) -> Option<CommandId> {
+        self.open.and(self.group)
+    }
+
+    /// Opens `group`'s commands where the menu last was, the one in the
+    /// group's own place highlighted (decision 0109). It stays open until
+    /// a command is chosen, like a tapped menu.
+    pub(crate) fn open_group(&mut self, group: CommandId) {
+        self.group = Some(group);
+        self.open = Some(Open {
+            at: self.last_at,
+            highlight: group.members().len().saturating_sub(1) / 2,
+            held: false,
+            pointed: false,
+            cancel: false,
+        });
     }
 
     /// Handles the menu's keys (not while typing).
@@ -264,6 +292,8 @@ impl ToolMenu {
             } else {
                 mouse + vec2(12.0, 12.0)
             };
+            self.group = None;
+            self.last_at = at;
             self.open = Some(Open {
                 at,
                 highlight: if back { count - 1 } else { 0 },

@@ -62,6 +62,7 @@ pub fn mirrors(op: &Operation) -> bool {
         | Operation::TransformPoints { .. }
         // UVs aren't mirrored in the texture: each half has its own.
         | Operation::TransformUvs { .. }
+        | Operation::SetUvPins { .. }
         | Operation::Unwrap { .. }
         | Operation::StraightenUvs { .. }
         | Operation::RelaxUvs { .. }
