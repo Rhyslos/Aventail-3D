@@ -41,6 +41,22 @@ The ends of cylinders and cones, and the disc, are **one face with many corners*
 - **Cap segments** (**Ring segments** on a disc) cuts each end into rings from the rim inwards, giving you edges to model with, such as an inset ring for a lid.
 - **Centre point** makes the middle of each end from triangles meeting at one point in the centre, like slices of a pie, instead of one n-gon.
 
+### Ready-made UVs
+
+Every shape comes already **unwrapped**: its surface is laid flat in the texture square ([UV map](concepts.md#uvs-and-texturing)), cut open along **seams** the way you'd do it by hand. So a texture or a checker pattern goes on straight away, and exports carry UVs from the start.
+
+| Shape | How it's laid flat |
+|---|---|
+| **Cube** | Each side on its own, six squares side by side. |
+| **Plane, disc** | As seen from above, in one piece. |
+| **Cylinder, tube** | The round side unrolled into a strip, cut open down the back (the −X side); each end on its own. A tube's inside is a strip of its own. |
+| **Cone** | The side unrolled into a fan around its tip; the base on its own. |
+| **Sphere** | Unrolled like a map of the world, cut open down the back. |
+
+The pieces keep their real sizes against each other, so the texture is equally sharp everywhere. The UVs follow your edits: an extrude stretches them up its new walls, a bevel across its strip. The UV tools to change them (the UV Editor, marking your own seams, unwrapping, packing) come in the next updates.
+
+![The ready-made UVs of every shape, laid out flat: a cone's fan and base, a cut cube, a plain cube's six squares, a cylinder's strip and two ends, a disc, a plane, a sphere's map, and a tube's two strips and two rings.](../screenshots/2026-10-16-primitive-uvs.png)
+
 Faces are drawn from both sides, so you can see the underside of a plane or look inside an open shape; from behind, a face is a little darker.
 
 ## Settings
@@ -75,6 +91,7 @@ The shape keys don't work while you're typing a name or a value, so a "b" you ty
 - **Tip:** a shape keeps its settings until you choose otherwise. To turn it into a plain mesh with no settings, select it and press **Ctrl + E** (*Make editable*; see [Objects](objects.md#make-editable)).
 - **Tip:** start with the fewest segments you need. Low-poly game assets stay light, and you can always add segments later.
 - **Problem:** a new shape seems to be missing. **Why:** it's inside another shape at the centre of the scene (a cube hides a cylinder, for example). **Fix:** hide the other shape with its eye in the Objects panel, or press **Z** with the new shape selected to frame it.
+- **Tip:** a seam down the back of a cylinder or sphere is where the texture's edges meet. Turn the shape so it faces away from where it will be seen.
 - **Problem:** a plane or disc vanishes when you look at it edge on. **Why:** it's perfectly flat, with no thickness. **Fix:** orbit a little higher or lower.
 
 ## Related

@@ -234,7 +234,7 @@ impl Workbench {
             Some(KeyOutcome::Chose(command)) => self.run_command(command, ui.ctx(), requests),
             Some(KeyOutcome::NoTools) => {
                 self.note = Some(match self.mode {
-                    Mode::Uv => "The UV mode has no tools yet: UV tools arrive in Phase 8.".into(),
+                    Mode::Uv => "The UV mode has no tools yet: UV tools arrive in Phase 7.".into(),
                     mode => format!("The {} mode has no tools yet.", mode.name()),
                 });
             }

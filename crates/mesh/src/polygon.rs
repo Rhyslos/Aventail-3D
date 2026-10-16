@@ -1297,6 +1297,9 @@ mod tests {
     #[test]
     fn a_mesh_rebuilt_from_its_slots_is_the_same_ids_and_all() {
         let mut mesh = crate::PrimitiveKind::Cylinder.standard().mesh();
+        // Only the shape: layers aren't part of the slots.
+        mesh.remove_attribute(crate::attributes::UV);
+        mesh.remove_attribute(crate::attributes::SEAM);
         // A deleted point slot (no face uses the last point of a fresh
         // vertex, so add one and leave it out of any face).
         let extra = mesh.add_vertex(Vec3::splat(9.0)).unwrap();

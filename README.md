@@ -142,7 +142,7 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 </details>
 
-**Gate:** a prop exports into Godot and Substance Painter and looks right (shape, hard edges, scale) with no fixes in other software. The full bake round trip comes with UVs (Phase 8).
+**Gate:** a prop exports into Godot and Substance Painter and looks right (shape, hard edges, scale) with no fixes in other software. The full bake round trip comes with UVs (Phase 7).
 
 ### Phase 6 · Workflow tools — 6 of 6
 
@@ -162,7 +162,32 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** stacking, toggling and editing earlier layers and edits feels right to the project lead.
 
-### Phase 7 · Advanced hard-surface — 0 of 9
+### Phase 7 · UVs — 1 of 11
+
+`█░░░░░░░░░░░░` 9%
+
+One big phase, aiming to be the best UV tools around. Brought forward before advanced hard-surface at the project lead's request (2026-10-16): it needs nothing from that phase, and that phase's tools can then carry UVs from the start.
+
+<details>
+<summary>Milestones</summary>
+
+- [x] Primitives come with ready-made UVs and seams
+- [ ] UV mode, the UV Editor panel and the UV Edit layout
+- [ ] Seams: marking, painting, from hard edges, and suggested seams in hidden places
+- [ ] Live unwrap, relax and straighten, with hard-surface strips straightened automatically
+- [ ] Texture size and texel density as scene settings
+- [ ] Packing: real-pixel padding, nesting, groups, texture sets, stacking identical parts
+- [ ] Checker texture, and a stretch heatmap with explained fixes
+- [ ] UV editing directly on the model
+- [ ] UVs that survive modelling: change the model, keep the UVs
+- [ ] Bake readiness for UVs: seams, overlaps, padding, texel density
+- [ ] Trim sheets
+
+</details>
+
+**Gate:** a prop is unwrapped and packed in Aventail 3D, with clean bakes in Substance Painter, and changing the model afterwards keeps its UVs.
+
+### Phase 8 · Advanced hard-surface — 0 of 9
 
 `░░░░░░░░░░░░░` 0%
 
@@ -182,30 +207,6 @@ Friends join as testers around here, once there are enough tools to build someth
 - [ ] Modular kit helpers: grid-sized pieces and pivot presets
 
 </details>
-
-### Phase 8 · UVs — 0 of 10
-
-`░░░░░░░░░░░░░` 0%
-
-UVs come after modelling, as one big phase, aiming to be the best UV tools around.
-
-<details>
-<summary>Milestones</summary>
-
-- [ ] UV mode, the UV Editor panel and the UV Edit layout
-- [ ] Seams: marking, painting, from hard edges, and suggested seams in hidden places
-- [ ] Live unwrap, relax and straighten, with hard-surface strips straightened automatically
-- [ ] Texture size and texel density as scene settings
-- [ ] Packing: real-pixel padding, nesting, groups, texture sets, stacking identical parts
-- [ ] Checker texture, and a stretch heatmap with explained fixes
-- [ ] UV editing directly on the model
-- [ ] UVs that survive modelling: change the model, keep the UVs
-- [ ] Bake readiness for UVs: seams, overlaps, padding, texel density
-- [ ] Trim sheets
-
-</details>
-
-**Gate:** a prop is unwrapped and packed in Aventail 3D, with clean bakes in Substance Painter, and changing the model afterwards keeps its UVs.
 
 ### Further ahead
 

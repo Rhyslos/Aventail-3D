@@ -1181,6 +1181,30 @@ fn rich_document_v2() -> Document {
 /// groups, every kind of primitive with changed settings, a plain mesh,
 /// recorded edits, a hidden object, a moved and turned object, and a
 /// selection. The version 1 sample file holds exactly this.
+/// `doc` with object `id`'s plain mesh stripped of its UVs and seams, as
+/// a primitive made editable before primitives had them (decision 0095).
+fn without_uvs_on(doc: Document, id: scene::ObjectId) -> Document {
+    let scene = doc.scene();
+    let objects: Vec<_> = scene
+        .walk()
+        .into_iter()
+        .map(|(o, _)| {
+            let mut object = scene.object(o).unwrap().clone();
+            if o == id
+                && let ObjectKind::Mesh(m) = &object.kind
+            {
+                let mut m = (**m).clone();
+                m.remove_attribute(mesh::attributes::UV);
+                m.remove_attribute(mesh::attributes::SEAM);
+                object.kind = ObjectKind::Mesh(std::sync::Arc::new(m));
+            }
+            (o, scene.parent(o), object)
+        })
+        .collect();
+    let rebuilt = scene::Scene::from_objects(objects, scene.next_object_id()).unwrap();
+    Document::from_scene(rebuilt, doc.selection())
+}
+
 fn rich_document_v1() -> Document {
     let mut doc = Document::new();
     for kind in PrimitiveKind::ALL {
@@ -1211,6 +1235,8 @@ fn rich_document_v1() -> Document {
     // The sphere becomes a plain mesh.
     let sphere = ids[3];
     doc.execute(Command::MakeEditable(vec![sphere])).unwrap();
+    // As made before primitives had UVs, which the files up to now hold.
+    let mut doc = without_uvs_on(doc, sphere);
     // Two groups, one inside the other, holding the plane.
     doc.execute(Command::Group(vec![ids[5]])).unwrap();
     let outer = doc.selection()[0];
@@ -1393,6 +1419,8 @@ fn compression_keeps_meshes_small() {
     .unwrap();
     let id = doc.selection()[0];
     doc.execute(Command::MakeEditable(vec![id])).unwrap();
+    // Version 1 can't hold UVs: compare the shape alone.
+    let doc = without_uvs_on(doc, id);
     let raw = postcard::to_stdvec(&v1::ProjectV1::from_document(&doc))
         .unwrap()
         .len();

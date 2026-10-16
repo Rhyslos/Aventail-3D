@@ -14,6 +14,7 @@ mod boxy;
 mod round;
 #[cfg(test)]
 mod tests;
+mod uvs;
 
 use crate::{Bounds, Mesh};
 use glam::Vec3;
@@ -453,8 +454,16 @@ impl Primitive {
         }
     }
 
-    /// Builds the shape (with its settings brought within limits first).
+    /// Builds the shape (with its settings brought within limits first),
+    /// with ready-made UVs and seams (decision 0095).
     pub fn mesh(&self) -> Mesh {
+        let mut mesh = self.shape();
+        uvs::add_uvs(&mut mesh, self.kind());
+        mesh
+    }
+
+    /// The shape alone, without UVs.
+    fn shape(&self) -> Mesh {
         match self.clamped() {
             Self::Cube(p) => boxy::cube(&p),
             Self::Plane(p) => boxy::plane(&p),
