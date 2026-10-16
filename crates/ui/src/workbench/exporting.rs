@@ -5,6 +5,7 @@
 //! which reports back.
 
 use super::{Workbench, WorkbenchAction, file_name};
+use crate::dialog::{self, Badge, Dialog, Section};
 use crate::theme;
 use egui::{RichText, Ui};
 use fileio::engine::Engine;
@@ -158,7 +159,37 @@ pub(crate) struct Exporting {
     /// The engine the game project folder belongs to, and that project's
     /// own folder, worked out for the folder named (only when it changes).
     detected: Option<(String, Option<(Engine, PathBuf)>)>,
+    /// The section the window shows.
+    pub(crate) section: ExportSection,
+    /// What the export would hold, and what it was worked out for.
+    summary: Option<(SummaryKey, ExportSummary)>,
 }
+
+/// The Export window's sections (decision 0087). Materials, Mesh, Rig and
+/// Animations join them as those features arrive.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub(crate) enum ExportSection {
+    /// Made for, what goes out and the file's settings.
+    #[default]
+    General,
+    /// The game project folder: exports into it, and on every save.
+    GameProject,
+}
+
+/// What an export summary was worked out for.
+#[derive(Debug, Clone, PartialEq)]
+struct SummaryKey {
+    revision: u64,
+    selection: Vec<scene::ObjectId>,
+    what: ExportWhat,
+}
+
+/// The Export window's title.
+pub(crate) const EXPORT_TITLE: &str = "Export";
+
+/// The note at the foot of the Export window's side list.
+const SECTIONS_NOTE: &str = "Only sections with something to set are listed. Materials, Mesh, \
+                             Rig and Animations arrive with their features.";
 
 /// An export the app is asked to make.
 #[derive(Debug, Clone, PartialEq)]
@@ -450,7 +481,36 @@ impl Workbench {
         }))
     }
 
-    /// Draws the Export window, if open.
+    /// What the export with the window's choices would hold (worked out
+    /// again only when the scene, the selection or what to export
+    /// changes).
+    fn export_summary(&mut self) -> ExportSummary {
+        let key = SummaryKey {
+            revision: self.document.revision(),
+            selection: self.document.selection(),
+            what: self.exporting.choice.what,
+        };
+        if let Some((known, summary)) = &self.exporting.summary
+            && *known == key
+        {
+            return *summary;
+        }
+        let summary = fileio::export::summary(
+            &self.document,
+            &ExportOptions {
+                what: key.what,
+                ..ExportOptions::default()
+            },
+        );
+        self.exporting.summary = Some((key, summary));
+        summary
+    }
+
+    /// Draws the Export window, if open
+    /// ([decision 0087](../../../../docs/decisions/0087-one-look-for-every-window.md)):
+    /// Made for in the title bar, a side list of sections (General and
+    /// Game project; Materials, Mesh, Rig and Animations join it with
+    /// their features), and Export… in the footer.
     pub(super) fn export_window(
         &mut self,
         ctx: &egui::Context,
@@ -459,127 +519,99 @@ impl Workbench {
         if !self.exporting.open {
             return;
         }
-        let mut open = true;
         let mut choice = self.exporting.choice;
-        let mut go = false;
+        let mut section = self.exporting.section;
         let selected = !self.document.selection().is_empty();
-        egui::Window::new("Export")
-            .open(&mut open)
-            .collapsible(false)
-            .resizable(false)
-            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
-            .show(ctx, |ui| {
-                ui.set_width(360.0);
-                let heading = |ui: &mut Ui, text: &str| {
-                    ui.add_space(4.0);
-                    ui.label(RichText::new(text).strong().color(theme::TEXT_STRONG));
-                };
-                heading(ui, "Made for");
-                ui.horizontal_wrapped(|ui| {
-                    for preset in ExportPreset::ALL {
-                        let response = ui
-                            .radio(choice.preset == Some(preset), preset.name())
-                            .on_hover_text(preset.description());
-                        if response.clicked() {
-                            choice = choice.with_preset(preset);
+        let summary = self.export_summary();
+        let target = self.document.scene().export_target().cloned();
+        let engine = self.detected_engine();
+        let into = self.target_request(None);
+        let nothing = summary.objects == 0;
+        let mut go = false;
+        let mut cancel = false;
+        let mut bake = false;
+        let mut target_change: Option<Option<scene::ExportTarget>> = None;
+        let mut choose_folder = false;
+        let mut go_to_game_project = false;
+        let sections = [
+            Section {
+                id: ExportSection::General,
+                name: "General",
+                badge: None,
+                apart: false,
+                label: None,
+            },
+            Section {
+                id: ExportSection::GameProject,
+                name: "Game project",
+                badge: Some(match &target {
+                    Some(t) if t.on_save => Badge::On,
+                    _ => Badge::Off,
+                }),
+                apart: true,
+                label: None,
+            },
+        ];
+        let outcome = Dialog::new(EXPORT_TITLE, 700.0)
+            .body_height(490.0)
+            .show(ctx, |d| {
+                d.header(true, |ui| {
+                    ui.label(RichText::new("Made for").color(theme::TEXT_WEAK));
+                    made_for(ui, &mut choice);
+                });
+                d.sections(
+                    &mut section,
+                    &sections,
+                    Some(SECTIONS_NOTE),
+                    |ui, shown| match shown {
+                        ExportSection::General => {
+                            let open_game_project = general(
+                                ui,
+                                &mut choice,
+                                selected,
+                                summary,
+                                GameProjectView {
+                                    target: target.as_ref(),
+                                    engine: engine.as_ref(),
+                                    into: into.as_ref(),
+                                },
+                                &mut bake,
+                            );
+                            go_to_game_project |= open_game_project;
                         }
-                    }
-                    if ui
-                        .radio(choice.preset.is_none(), "Your own settings")
-                        .on_hover_text("Choose the kind of file and how below")
-                        .clicked()
-                    {
-                        choice.preset = None;
-                    }
-                });
-                if let Some(preset) = choice.preset {
-                    ui.label(
-                        RichText::new(preset.description())
-                            .small()
-                            .color(theme::TEXT_WEAK),
-                    );
-                }
-                if choice.preset == Some(ExportPreset::SubstancePainter)
-                    && ui
-                        .button("Check for baking…")
-                        .on_hover_text(
-                            "List what would spoil the bake, in plain words, with one-click \
-                             fixes",
-                        )
-                        .clicked()
-                {
-                    self.baking.open = true;
-                }
-                heading(ui, "Kind of file");
-                for format in ExportFormat::ALL {
-                    ui.radio_value(&mut choice.format, format, format_label(format));
-                }
-                heading(ui, "What");
-                ui.radio_value(&mut choice.what, ExportWhat::Everything, "Everything shown");
-                ui.add_enabled_ui(selected, |ui| {
-                    ui.radio_value(
-                        &mut choice.what,
-                        ExportWhat::Selected,
-                        "The selected objects",
-                    )
-                    .on_disabled_hover_text("Select some objects first");
-                });
-                heading(ui, "Size and direction");
-                let fixed = choice.format.fixes_space();
-                if fixed {
-                    ui.label(
-                        RichText::new(
-                            "glTF is always metres, Y up and triangles: every program reads it \
-                             that way.",
-                        )
-                        .small()
-                        .color(theme::TEXT_WEAK),
-                    );
-                }
-                ui.add_enabled_ui(!fixed, |ui| {
-                    ui.horizontal(|ui| {
-                        ui.radio_value(&mut choice.units, FileUnits::Metres, "Metres")
-                            .on_hover_text(
-                                "1 unit in the file is 1 m: Godot, Unity, Substance Painter",
-                            );
-                        ui.radio_value(&mut choice.units, FileUnits::Centimetres, "Centimetres")
-                            .on_hover_text("1 unit in the file is 1 cm: Unreal Engine");
-                    });
-                    ui.horizontal(|ui| {
-                        ui.radio_value(&mut choice.up, UpAxis::Y, "Y up")
-                            .on_hover_text(
-                                "Godot, Unity, Unreal's OBJ import and Substance Painter",
-                            );
-                        ui.radio_value(&mut choice.up, UpAxis::Z, "Z up")
-                            .on_hover_text("As in this app; Blender and 3ds Max's own axes");
-                    });
-                    ui.checkbox(&mut choice.triangulate, "Cut polygons into triangles")
-                        .on_hover_text(
-                            "Cut every polygon into triangles the same way the viewport does, so a \
-                         bake in Substance Painter matches the game exactly",
-                        );
-                });
-                ui.add_space(6.0);
-                ui.label(
-                    RichText::new(
-                        "Shading is exported as you see it: with Automatic hard edges on (Mesh \
-                         menu), by angle; otherwise by the edges you marked hard.",
-                    )
-                    .small()
-                    .color(theme::TEXT_WEAK),
+                        ExportSection::GameProject => game_project(
+                            ui,
+                            target.as_ref(),
+                            engine.as_ref(),
+                            &mut target_change,
+                            &mut choose_folder,
+                        ),
+                    },
                 );
-                heading(ui, "Game project folder");
-                self.target_rows(ui, actions);
-                ui.add_space(8.0);
-                ui.horizontal(|ui| {
-                    if ui.button("Export…").clicked() {
-                        go = true;
-                    }
-                    if ui.button("Cancel").clicked() {
-                        self.exporting.open = false;
-                    }
-                });
+                d.footer(
+                    nothing.then_some("Nothing to export: nothing shown is a shape."),
+                    |ui| {
+                        let response =
+                            ui.add_enabled_ui(!nothing, |ui| dialog::main_button(ui, "Export…"));
+                        if response.inner.clicked() {
+                            go = true;
+                        }
+                        if dialog::plain_button(ui, "Cancel").clicked() {
+                            cancel = true;
+                        }
+                    },
+                );
             });
+        if go_to_game_project {
+            section = ExportSection::GameProject;
+        }
+        let (enter, escape) = dialog::enter_or_escape(ctx);
+        if enter && !nothing {
+            go = true;
+        }
+        if outcome.closed || escape {
+            cancel = true;
+        }
         if !selected && choice.what == ExportWhat::Selected {
             choice.what = ExportWhat::Everything;
         }
@@ -590,91 +622,33 @@ impl Workbench {
             choice.preset = None;
         }
         self.exporting.choice = choice;
-        if !open {
+        self.exporting.section = section;
+        if bake {
+            self.baking.open = true;
+        }
+        if let Some(change) = target_change {
+            self.run_target(change);
+        }
+        if choose_folder {
+            let start = target
+                .as_ref()
+                .map(|t| PathBuf::from(&t.folder))
+                .or_else(|| {
+                    self.file
+                        .path
+                        .as_deref()
+                        .and_then(Path::parent)
+                        .map(Path::to_path_buf)
+                });
+            actions.push(WorkbenchAction::ChooseExportFolder { start });
+        }
+        if cancel {
             self.exporting.open = false;
         }
         if go {
             self.exporting.open = false;
             actions.push(self.export_action(choice, None));
         }
-    }
-
-    /// The Export window's game project folder rows: the folder and its
-    /// engine, Export on every save, and choosing or clearing it.
-    fn target_rows(&mut self, ui: &mut Ui, actions: &mut Vec<WorkbenchAction>) {
-        let target = self.document.scene().export_target().cloned();
-        let weak = |ui: &mut Ui, text: String| {
-            ui.label(RichText::new(text).small().color(theme::TEXT_WEAK));
-        };
-        let start = target
-            .as_ref()
-            .map(|t| PathBuf::from(&t.folder))
-            .or_else(|| {
-                self.file
-                    .path
-                    .as_deref()
-                    .and_then(Path::parent)
-                    .map(Path::to_path_buf)
-            });
-        match &target {
-            None => weak(
-                ui,
-                "Export straight into a Godot, Unity or Unreal Engine project, and again on \
-                 every save."
-                    .to_string(),
-            ),
-            Some(target) => {
-                ui.label(&target.folder);
-                let engine = self.detected_engine();
-                weak(
-                    ui,
-                    match engine {
-                        Some((engine, project)) => format!(
-                            "In the {} project {}: exported as {} with its settings.",
-                            engine.name(),
-                            file_name(&project),
-                            engine.preset().settings().format.name()
-                        ),
-                        None => "Not inside a Godot, Unity or Unreal Engine project: exported \
-                                 with Godot's settings."
-                            .to_string(),
-                    },
-                );
-                let mut on_save = target.on_save;
-                if ui
-                    .checkbox(&mut on_save, "Export on every save")
-                    .on_hover_text(
-                        "Each time you save the project, export it into this folder too, named \
-                         after the project, so the engine picks up the change",
-                    )
-                    .changed()
-                {
-                    self.run_target(Some(scene::ExportTarget {
-                        on_save,
-                        ..target.clone()
-                    }));
-                }
-            }
-        }
-        ui.horizontal(|ui| {
-            if ui
-                .button("Choose folder…")
-                .on_hover_text("Pick the folder inside your game project the models go in")
-                .clicked()
-            {
-                actions.push(WorkbenchAction::ChooseExportFolder {
-                    start: start.clone(),
-                });
-            }
-            if target.is_some()
-                && ui
-                    .button("Clear")
-                    .on_hover_text("Stop exporting into a game project")
-                    .clicked()
-            {
-                self.run_target(None);
-            }
-        });
     }
 
     fn run_target(&mut self, target: Option<scene::ExportTarget>) {
@@ -768,12 +742,433 @@ impl Workbench {
     }
 }
 
-/// A format as the Export window lists it.
-fn format_label(format: ExportFormat) -> &'static str {
-    match format {
-        ExportFormat::Glb => {
-            "glTF (.glb): for Godot and Substance Painter, each object at its pivot"
+/// The Made for drop-down in the Export window's title bar: each preset,
+/// with its kind of file on the right, then Custom settings.
+fn made_for(ui: &mut Ui, choice: &mut ExportChoice) {
+    let (name, hint) = match choice.preset {
+        Some(preset) => (preset.name(), preset.settings().format.name()),
+        None => (CUSTOM_SETTINGS, choice.format.name()),
+    };
+    let response = dialog::drop_down(ui, "Made for", name, hint, 230.0, |ui| {
+        for preset in ExportPreset::ALL {
+            if dialog::drop_down_entry(
+                ui,
+                choice.preset == Some(preset),
+                preset.name(),
+                preset.settings().format.name(),
+            )
+            .on_hover_text(preset.description())
+            .clicked()
+            {
+                *choice = choice.with_preset(preset);
+            }
         }
-        ExportFormat::Obj => "OBJ (.obj): plain, read by almost every 3D program",
+        ui.separator();
+        if dialog::drop_down_entry(ui, choice.preset.is_none(), CUSTOM_SETTINGS, "any program")
+            .on_hover_text("Pick the kind of file and how it's set up yourself")
+            .clicked()
+        {
+            choice.preset = None;
+        }
+    });
+    response.on_hover_text("Where the file is going: this picks the right settings for it");
+}
+
+/// The name of the Made for choice without a preset.
+pub(crate) const CUSTOM_SETTINGS: &str = "Custom settings";
+
+/// What the General section shows about the game project folder.
+struct GameProjectView<'a> {
+    target: Option<&'a scene::ExportTarget>,
+    engine: Option<&'a (Engine, PathBuf)>,
+    into: Option<&'a TargetRequest>,
+}
+
+/// The Export window's General section: what goes out, the file's
+/// settings, a word on the game project folder, and the numbers. Gives
+/// back whether "Game project" was clicked to go there.
+fn general(
+    ui: &mut Ui,
+    choice: &mut ExportChoice,
+    selected: bool,
+    summary: ExportSummary,
+    game: GameProjectView<'_>,
+    bake: &mut bool,
+) -> bool {
+    dialog::heading(ui, "General");
+    dialog::help(
+        ui,
+        match choice.preset {
+            Some(preset) => format!("{}: {}.", preset.name(), preset.description()),
+            None => "Any program: pick the kind of file and how it's set up below.".to_string(),
+        },
+    );
+    ui.add_space(4.0);
+    dialog::row(ui, "Objects", |ui| {
+        let selected_help = if selected {
+            "The selected objects, with what's inside them"
+        } else {
+            "Select some objects first"
+        };
+        dialog::segmented(
+            ui,
+            &mut choice.what,
+            &[
+                (
+                    ExportWhat::Everything,
+                    "Everything shown",
+                    "Every object you can see in the viewport",
+                ),
+                (ExportWhat::Selected, "Selected only", selected_help),
+            ],
+        );
+    });
+    dialog::row(ui, "Includes", |ui| {
+        ui.add_enabled_ui(false, |ui| {
+            dialog::chip(ui, &mut true, "Mesh");
+            dialog::chip(ui, &mut true, "Materials");
+        })
+        .response
+        .on_disabled_hover_text(
+            "Shapes and their materials always go out. Skeletons and animations will be \
+             listed here once the app has them, to leave out when you don't need them.",
+        );
+    });
+    match choice.preset {
+        Some(preset) => {
+            dialog::row(ui, "File settings", |ui| {
+                dialog::locked(ui, &settings_line(preset))
+                    .on_hover_text("Set by Made for. Choose Custom settings to change them.");
+            });
+            if preset == ExportPreset::SubstancePainter {
+                dialog::row(ui, "Before baking", |ui| {
+                    if ui
+                        .button("Check for baking…")
+                        .on_hover_text(
+                            "List what would spoil the bake, in plain words, with one-click \
+                             fixes",
+                        )
+                        .clicked()
+                    {
+                        *bake = true;
+                    }
+                });
+            }
+        }
+        None => custom_settings(ui, choice),
     }
+    dialog::help(
+        ui,
+        "Shading goes out as you see it: with Automatic hard edges on (Mesh menu), by angle; \
+         otherwise by the edges you marked hard.",
+    );
+    dialog::divider(ui);
+    let go_there = game_project_note(ui, game);
+    dialog::divider(ui);
+    dialog::heading(ui, "What goes out");
+    ui.add_space(2.0);
+    dialog::tiles(
+        ui,
+        &[
+            (
+                thousands(summary.objects),
+                plural(summary.objects, "object", "objects"),
+            ),
+            (
+                thousands(summary.triangles),
+                plural(summary.triangles, "triangle", "triangles"),
+            ),
+            (
+                thousands(summary.materials),
+                plural(summary.materials, "material", "materials"),
+            ),
+        ],
+    );
+    go_there
+}
+
+/// A preset's file settings in one line: "glTF · metres · Y up ·
+/// triangles".
+pub(crate) fn settings_line(preset: ExportPreset) -> String {
+    let settings = preset.settings();
+    let options = settings.format.options(&ExportOptions {
+        units: settings.units,
+        up: settings.up,
+        triangulate: settings.triangulate,
+        ..ExportOptions::default()
+    });
+    format!(
+        "{} · {} · {} · {}",
+        settings.format.name(),
+        match options.units {
+            FileUnits::Metres => "metres",
+            FileUnits::Centimetres => "centimetres",
+        },
+        match options.up {
+            UpAxis::Y => "Y up",
+            UpAxis::Z => "Z up",
+        },
+        if options.triangulate {
+            "triangles"
+        } else {
+            "polygons kept"
+        }
+    )
+}
+
+/// The file's settings, to choose by hand (Custom settings).
+fn custom_settings(ui: &mut Ui, choice: &mut ExportChoice) {
+    dialog::row(ui, "File type", |ui| {
+        dialog::segmented(
+            ui,
+            &mut choice.format,
+            &[
+                (
+                    ExportFormat::Glb,
+                    "glTF (.glb)",
+                    "For Godot, Unity, Unreal Engine and Substance Painter: each object at its \
+                     pivot",
+                ),
+                (
+                    ExportFormat::Obj,
+                    "OBJ (.obj)",
+                    "Plain, read by almost every 3D program",
+                ),
+            ],
+        );
+    });
+    let fixed = choice.format.fixes_space();
+    ui.add_enabled_ui(!fixed, |ui| {
+        dialog::row(ui, "Units", |ui| {
+            dialog::segmented(
+                ui,
+                &mut choice.units,
+                &[
+                    (
+                        FileUnits::Metres,
+                        "Metres",
+                        "1 unit in the file is 1 m: Godot, Unity, Substance Painter",
+                    ),
+                    (
+                        FileUnits::Centimetres,
+                        "Centimetres",
+                        "1 unit in the file is 1 cm: Unreal Engine",
+                    ),
+                ],
+            );
+        });
+        dialog::row(ui, "Up axis", |ui| {
+            dialog::segmented(
+                ui,
+                &mut choice.up,
+                &[
+                    (
+                        UpAxis::Y,
+                        "Y up",
+                        "Godot, Unity, Unreal's OBJ import and Substance Painter",
+                    ),
+                    (
+                        UpAxis::Z,
+                        "Z up",
+                        "As in this app; Blender and 3ds Max's own axes",
+                    ),
+                ],
+            );
+        });
+        dialog::row(ui, "Triangles", |ui| {
+            ui.checkbox(&mut choice.triangulate, "Cut polygons into triangles")
+                .on_hover_text(
+                    "Cut every polygon into triangles the same way the viewport does, so a \
+                     bake in Substance Painter matches the game exactly",
+                );
+        });
+    });
+    if fixed {
+        dialog::help(
+            ui,
+            "glTF is always metres, Y up and triangles: every program reads it that way.",
+        );
+    }
+}
+
+/// The General section's word on the game project folder: whether every
+/// save exports into it, and where. Gives back whether "Game project" was
+/// clicked.
+fn game_project_note(ui: &mut Ui, game: GameProjectView<'_>) -> bool {
+    let on = game.target.is_some_and(|t| t.on_save);
+    dialog::heading_with_pill(ui, "Game project", on);
+    let engine_name = game.engine.map(|(engine, _)| engine.name());
+    match (game.target, game.into) {
+        (Some(target), Some(into)) => {
+            if target.on_save {
+                dialog::help(
+                    ui,
+                    format!(
+                        "Every time you save the project, the model is also exported into \
+                         your game project, so {} picks up the change by itself. It goes to:",
+                        engine_name.unwrap_or("the game engine")
+                    ),
+                );
+            } else {
+                dialog::help(
+                    ui,
+                    "Exporting on every save is off. File → Export to game project exports \
+                     into it when you choose. It goes to:",
+                );
+            }
+            let file = format!(
+                "{}.{}",
+                into.name,
+                into.preset.settings().format.extension()
+            );
+            let place = match game.engine {
+                Some((engine, project)) => {
+                    let inside = into
+                        .folder
+                        .strip_prefix(project)
+                        .ok()
+                        .map(|rest| {
+                            rest.components()
+                                .map(|c| c.as_os_str().to_string_lossy().into_owned())
+                                .collect::<Vec<_>>()
+                        })
+                        .unwrap_or_default();
+                    let mut parts = vec![format!("{} ({})", file_name(project), engine.name())];
+                    parts.extend(inside);
+                    parts.push(file);
+                    parts.join(" › ")
+                }
+                None => into.folder.join(file).display().to_string(),
+            };
+            dialog::place(ui, &place).on_hover_text(into.folder.display().to_string());
+        }
+        _ => {
+            dialog::help(
+                ui,
+                "Pick a folder inside your Godot, Unity or Unreal Engine project, and every \
+                 save exports the model into it too, so the engine picks up the change by \
+                 itself.",
+            );
+        }
+    }
+    let mut clicked = false;
+    ui.horizontal_wrapped(|ui| {
+        ui.spacing_mut().item_spacing.x = 0.0;
+        let words = if game.target.is_some() {
+            "Change the folder or switch it off under "
+        } else {
+            "Set it up under "
+        };
+        ui.label(
+            RichText::new(words)
+                .font(dialog::help_font())
+                .color(theme::TEXT_WEAK),
+        );
+        clicked = ui
+            .link(RichText::new("Game project").font(dialog::help_font()))
+            .clicked();
+        ui.label(
+            RichText::new(" in the list.")
+                .font(dialog::help_font())
+                .color(theme::TEXT_WEAK),
+        );
+    });
+    clicked
+}
+
+/// The Export window's Game project section: the folder and its engine,
+/// Export on every save, and choosing or clearing it. A change is put in
+/// `change`; `choose` asks for a folder.
+fn game_project(
+    ui: &mut Ui,
+    target: Option<&scene::ExportTarget>,
+    engine: Option<&(Engine, PathBuf)>,
+    change: &mut Option<Option<scene::ExportTarget>>,
+    choose: &mut bool,
+) {
+    dialog::heading_with_pill(ui, "Game project", target.is_some_and(|t| t.on_save));
+    dialog::help(
+        ui,
+        "Export straight into a Godot, Unity or Unreal Engine project: pick the folder inside \
+         it that your models go in. Every save then exports the model there too, named after \
+         the project, so the engine picks up the change by itself.",
+    );
+    ui.add_space(4.0);
+    match target {
+        None => {
+            dialog::row(ui, "Folder", |ui| {
+                ui.label(RichText::new("None chosen").color(theme::TEXT_WEAK));
+            });
+        }
+        Some(target) => {
+            dialog::row(ui, "Folder", |ui| {
+                dialog::place(ui, &target.folder);
+            });
+            dialog::row(ui, "Engine", |ui| {
+                ui.label(match engine {
+                    Some((engine, project)) => format!(
+                        "In the {} project {}: exported as {} with its settings.",
+                        engine.name(),
+                        file_name(project),
+                        engine.preset().settings().format.name()
+                    ),
+                    None => "Not inside a Godot, Unity or Unreal Engine project: exported \
+                             with Godot's settings."
+                        .to_string(),
+                });
+            });
+            dialog::row(ui, "On save", |ui| {
+                let mut on_save = target.on_save;
+                if ui
+                    .checkbox(&mut on_save, "Export on every save")
+                    .on_hover_text(
+                        "Each time you save the project, export it into this folder too, named \
+                         after the project, so the engine picks up the change",
+                    )
+                    .changed()
+                {
+                    *change = Some(Some(scene::ExportTarget {
+                        on_save,
+                        ..target.clone()
+                    }));
+                }
+            });
+        }
+    }
+    ui.add_space(4.0);
+    dialog::row(ui, "", |ui| {
+        if ui
+            .button("Choose folder…")
+            .on_hover_text("Pick the folder inside your game project the models go in")
+            .clicked()
+        {
+            *choose = true;
+        }
+        if target.is_some()
+            && ui
+                .button("Clear")
+                .on_hover_text("Stop exporting into a game project")
+                .clicked()
+        {
+            *change = Some(None);
+        }
+    });
+}
+
+/// `n` with a comma between each three digits from the right: "1,284".
+pub(crate) fn thousands(n: usize) -> String {
+    let digits = n.to_string();
+    let mut out = String::new();
+    for (i, c) in digits.chars().enumerate() {
+        if i > 0 && (digits.len() - i).is_multiple_of(3) {
+            out.push(',');
+        }
+        out.push(c);
+    }
+    out
+}
+
+/// `one` for 1, `many` otherwise.
+fn plural(n: usize, one: &'static str, many: &'static str) -> &'static str {
+    if n == 1 { one } else { many }
 }

@@ -466,6 +466,10 @@ fn another_key_pattern_can_be_chosen_in_settings() {
     harness.run();
     harness.get_by_label("Settings section: Viewport").click();
     harness.run();
+    harness
+        .get_by_label("Shift adds, Ctrl removes")
+        .scroll_to_me();
+    harness.run();
     harness.get_by_label("Shift adds, Ctrl removes").click();
     harness.run();
     assert_eq!(

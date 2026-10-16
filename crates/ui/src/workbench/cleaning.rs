@@ -19,8 +19,7 @@
 use super::Workbench;
 use super::joining::counted;
 use crate::palette::Mode;
-use crate::theme;
-use egui::{Key, Modifiers, RichText};
+use egui::{Key, Modifiers};
 use mesh::Anchors;
 use scene::{EdgeKey, ElementKind, FaceId, ObjectId, Operation, VertexId};
 use std::collections::BTreeSet;
@@ -204,44 +203,47 @@ impl Workbench {
             return;
         };
         let mut answer = None;
-        egui::Modal::new(egui::Id::new("dissolve_question")).show(ctx, |ui| {
-            ui.set_width(420.0);
-            ui.label(
-                RichText::new(DISSOLVE_QUESTION_TITLE)
-                    .strong()
-                    .color(theme::TEXT_STRONG),
-            );
-            ui.add_space(4.0);
-            ui.label(
-                "Dissolving here merges polygons that meet at a sharp corner into one bent \
-                 polygon. A bent polygon isn't flat, so it shades badly and can look torn or \
-                 creased.",
-            );
-            ui.add_space(4.0);
-            ui.label(
-                "To take the polygons away and leave a hole, use Delete instead. To keep the \
-                 surface but lose a corner, Weld or Bevel are usually what you want.",
-            );
-            ui.add_space(8.0);
-            ui.checkbox(&mut question.sure, "I know what I'm doing, proceed");
-            ui.checkbox(&mut question.dont_warn, "Don't warn me again")
-                .on_hover_text("You can switch the warning back on in Settings → Interface.");
-            ui.add_space(8.0);
-            ui.horizontal(|ui| {
-                if ui
-                    .add_enabled(question.sure, egui::Button::new("Dissolve"))
-                    .on_disabled_hover_text("Tick \"I know what I'm doing, proceed\" first.")
-                    .clicked()
-                {
-                    answer = Some(true);
-                }
-                if ui.button("Cancel").clicked() {
-                    answer = Some(false);
-                }
+        crate::dialog::Dialog::new(DISSOLVE_QUESTION_TITLE, 460.0)
+            .id("dissolve_question")
+            .modal()
+            .show(ctx, |d| {
+                d.header(false, |_| {});
+                d.body(|ui| {
+                    ui.label(
+                        "Dissolving here merges polygons that meet at a sharp corner into one \
+                         bent polygon. A bent polygon isn't flat, so it shades badly and can \
+                         look torn or creased.",
+                    );
+                    crate::dialog::help(
+                        ui,
+                        "To take the polygons away and leave a hole, use Delete instead. To \
+                         keep the surface but lose a corner, Weld or Bevel are usually what you \
+                         want.",
+                    );
+                    ui.add_space(4.0);
+                    ui.checkbox(&mut question.sure, "I know what I'm doing, proceed");
+                    ui.checkbox(&mut question.dont_warn, "Don't warn me again")
+                        .on_hover_text(
+                            "You can switch the warning back on in Settings → Interface.",
+                        );
+                    crate::dialog::help(ui, "Esc: cancel");
+                });
+                d.footer(None, |ui| {
+                    if ui
+                        .add_enabled_ui(question.sure, |ui| {
+                            crate::dialog::main_button(ui, "Dissolve")
+                        })
+                        .inner
+                        .on_disabled_hover_text("Tick \"I know what I'm doing, proceed\" first.")
+                        .clicked()
+                    {
+                        answer = Some(true);
+                    }
+                    if crate::dialog::plain_button(ui, "Cancel").clicked() {
+                        answer = Some(false);
+                    }
+                });
             });
-            ui.add_space(4.0);
-            ui.label(RichText::new("Esc: cancel").small().color(theme::TEXT_WEAK));
-        });
         if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
             answer = Some(false);
         }

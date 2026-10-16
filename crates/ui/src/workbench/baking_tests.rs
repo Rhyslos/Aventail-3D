@@ -135,6 +135,8 @@ fn the_substance_painter_preset_offers_the_check() {
     harness.get_by_label("Export…").click();
     harness.run();
     assert!(harness.query_by_label("Check for baking…").is_none());
+    harness.get_by_label_contains("Made for:").click();
+    harness.run();
     harness.get_by_label("Substance Painter").click();
     harness.run();
     harness.get_by_label("Check for baking…").click();

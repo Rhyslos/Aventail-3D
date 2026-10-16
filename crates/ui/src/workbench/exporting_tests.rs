@@ -3,11 +3,20 @@
 
 use super::tests::{fresh, main_menu};
 use super::*;
+use crate::workbench::exporting::ExportSection;
 use egui_kittest::kittest::{NodeT, Queryable};
 use fileio::export::{ExportFormat, ExportPreset, ExportSummary, ExportWhat, FileUnits, UpAxis};
 
 fn file_entry(harness: &mut super::modelling_tests::H, name: &str) {
     main_menu(harness, "File").click();
+    harness.run();
+    harness.get_by_label(name).click();
+    harness.run();
+}
+
+/// Picks `name` from the Export window's Made for list.
+fn made_for(harness: &mut super::modelling_tests::H, name: &str) {
+    harness.get_by_label_contains("Made for:").click();
     harness.run();
     harness.get_by_label(name).click();
     harness.run();
@@ -29,8 +38,16 @@ fn export_requests(harness: &super::modelling_tests::H) -> Vec<ExportRequest> {
 fn the_export_window_asks_the_app_to_export_as_chosen() {
     let mut harness = fresh();
     file_entry(&mut harness, "Export…");
-    assert!(harness.query_by_label("Kind of file").is_some());
-    harness.get_by_label_contains("OBJ (.obj)").click();
+    // A preset's settings are fixed; Custom settings shows them.
+    assert!(harness.query_by_label("File type").is_none());
+    assert!(
+        harness
+            .query_by_label("glTF · metres · Y up · triangles")
+            .is_some()
+    );
+    made_for(&mut harness, "Custom settings");
+    assert!(harness.query_by_label("File type").is_some());
+    harness.get_by_label("OBJ (.obj)").click();
     harness.run();
     harness.get_by_label("Centimetres").click();
     harness.run();
@@ -57,8 +74,8 @@ fn the_export_window_asks_the_app_to_export_as_chosen() {
     assert_eq!(options.what, ExportWhat::Everything);
     // Automatic hard edges is on as standard: shading by angle.
     assert!(matches!(options.hardness, mesh::Hardness::ByAngle(_)));
-    assert!(harness.query_by_label("Kind of file").is_none(), "closed");
-    // Changing the settings by hand left the Godot preset.
+    assert!(harness.query_by_label("File type").is_none(), "closed");
+    // Custom settings: no preset.
     assert_eq!(request.preset, None);
 }
 
@@ -71,20 +88,29 @@ fn presets_choose_the_settings_and_changing_one_leaves_them() {
         harness.state().workbench.exporting.choice.preset,
         Some(ExportPreset::Godot)
     );
-    harness.get_by_label("Substance Painter").click();
-    harness.run();
+    made_for(&mut harness, "Substance Painter");
     let choice = harness.state().workbench.exporting.choice;
     assert_eq!(choice.preset, Some(ExportPreset::SubstancePainter));
     assert_eq!(choice.format, ExportFormat::Obj);
     assert_eq!((choice.units, choice.up), (FileUnits::Metres, UpAxis::Y));
     assert!(choice.triangulate);
-    // Untick the triangles: your own settings now.
+    // Substance Painter offers the bake check.
+    harness.get_by_label("Check for baking…").click();
+    harness.run();
+    assert!(harness.state().workbench.baking.open);
+    harness.state_mut().workbench.baking.open = false;
+    harness.run();
+    // Custom settings keeps them, to change; unticking the triangles
+    // makes a file no preset makes.
+    made_for(&mut harness, "Custom settings");
+    let custom = harness.state().workbench.exporting.choice;
+    assert_eq!(custom.preset, None);
+    assert_eq!(custom.format, ExportFormat::Obj);
     harness.get_by_label("Cut polygons into triangles").click();
     harness.run();
-    assert_eq!(harness.state().workbench.exporting.choice.preset, None);
+    assert!(!harness.state().workbench.exporting.choice.triangulate);
     // Back to Godot: glTF.
-    harness.get_by_label("Godot").click();
-    harness.run();
+    made_for(&mut harness, "Godot");
     let choice = harness.state().workbench.exporting.choice;
     assert_eq!(choice.format, ExportFormat::Glb);
     harness.get_all_by_label("Export…").last().unwrap().click();
@@ -234,6 +260,17 @@ fn imported_objects_join_the_scene_as_one_step() {
 fn a_game_project_folder_is_chosen_used_and_cleared() {
     let mut harness = fresh();
     file_entry(&mut harness, "Export…");
+    // The General section says how to set it up, and the link goes there.
+    harness
+        .get_all_by_label("Game project")
+        .last()
+        .unwrap()
+        .click();
+    harness.run();
+    assert_eq!(
+        harness.state().workbench.exporting.section,
+        ExportSection::GameProject
+    );
     harness.get_by_label("Choose folder…").click();
     harness.run();
     assert!(
@@ -258,14 +295,19 @@ fn a_game_project_folder_is_chosen_used_and_cleared() {
     assert!(target.on_save, "on once a folder is chosen");
     assert_eq!(workbench.exporting.choice.preset, Some(ExportPreset::Unity));
     assert!(workbench.note.as_deref().unwrap().contains("Unity project"));
+    // The General section says where every save goes.
+    harness.get_by_label("General").click();
+    harness.run();
     assert!(
         harness
-            .query_by_label_contains("In the Unity project")
+            .query_by_label_contains("Every time you save the project")
             .is_some()
     );
     // File → Export to game project exports there, named after the project.
+    // (Esc closes the Export window.)
     harness.key_press(egui::Key::Escape);
     harness.run();
+    assert!(!harness.state().workbench.exporting.open);
     file_entry(&mut harness, "Export to game project");
     let request = harness
         .state()
@@ -301,8 +343,20 @@ fn a_game_project_folder_is_chosen_used_and_cleared() {
         harness.state().workbench.note.as_deref(),
         Some("Saved crate.avtl. Exported crate.glb (12 triangles) into Models.")
     );
-    // Switch Export on every save off (the window is still open): saving
+    // Switch Export on every save off, in the Game project section: saving
     // asks for nothing.
+    file_entry(&mut harness, "Export…");
+    harness
+        .get_all_by_label("Game project")
+        .next()
+        .unwrap()
+        .click();
+    harness.run();
+    assert!(
+        harness
+            .query_by_label_contains("In the Unity project")
+            .is_some()
+    );
     harness.get_by_label("Export on every save").click();
     harness.run();
     assert!(
@@ -423,4 +477,62 @@ fn the_attributes_panel_sets_a_shapes_collision() {
         scene::Collision::Box
     );
     assert_eq!(doc.undo_label(), Some("Collision: a box"));
+}
+
+#[test]
+fn numbers_and_preset_lines_read_well() {
+    use super::exporting::{settings_line, thousands};
+    assert_eq!(thousands(0), "0");
+    assert_eq!(thousands(999), "999");
+    assert_eq!(thousands(1284), "1,284");
+    assert_eq!(thousands(1_234_567), "1,234,567");
+    assert_eq!(
+        settings_line(ExportPreset::Godot),
+        "glTF · metres · Y up · triangles"
+    );
+    assert_eq!(
+        settings_line(ExportPreset::SubstancePainter),
+        "OBJ · metres · Y up · triangles"
+    );
+}
+
+#[test]
+fn what_goes_out_follows_the_scene_and_the_selection() {
+    let mut harness = fresh();
+    file_entry(&mut harness, "Export…");
+    // One cube: 12 triangles, one material.
+    assert!(harness.query_by_label("12").is_some());
+    assert!(harness.query_by_label("triangles").is_some());
+    // Selected only, with nothing selected, stays on everything shown.
+    harness.get_by_label("Selected only").click();
+    harness.run();
+    assert_eq!(
+        harness.state().workbench.exporting.choice.what,
+        ExportWhat::Everything
+    );
+    // Hide the cube: nothing to export, and Export… can't be pressed.
+    let id = harness.state().workbench.document().scene().walk()[0].0;
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::SetVisible {
+            ids: vec![id],
+            visible: false,
+        })
+        .unwrap();
+    harness.run();
+    assert!(
+        harness
+            .query_by_label_contains("Nothing to export")
+            .is_some()
+    );
+    assert!(
+        harness
+            .get_all_by_label("Export…")
+            .last()
+            .unwrap()
+            .accesskit_node()
+            .is_disabled()
+    );
 }

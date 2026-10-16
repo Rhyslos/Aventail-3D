@@ -26,7 +26,10 @@ fn ctrl_comma_and_the_edit_menu_open_settings() {
     let mut harness = fresh();
     assert!(!harness.state().workbench.is_settings_open());
     open(&mut harness);
-    assert!(harness.query_by_label("Settings").is_some(), "the title");
+    assert!(
+        harness.query_all_by_label("Settings").next().is_some(),
+        "the title"
+    );
     // Ctrl + , again closes it.
     harness.key_press_modifiers(Modifiers::COMMAND, Key::Comma);
     harness.run();
@@ -103,7 +106,7 @@ fn units_change_here_and_beside_the_shape_title_alike() {
 fn units_for_new_projects_are_a_preference_and_undo_brings_the_old_units_back() {
     let mut harness = fresh();
     open(&mut harness);
-    harness.get_by_label("Centimetres for new projects").click();
+    harness.get_by_label("Centimetres").click();
     harness.run();
     let workbench = &harness.state().workbench;
     assert_eq!(workbench.new_project_units(), crate::Units::Centimetres);
@@ -220,6 +223,10 @@ fn the_dissolve_warning_can_be_switched_back_on() {
         .dissolve_without_warning = true;
     open(&mut harness);
     section(&mut harness, "Interface");
+    harness
+        .get_by_label("Ask before dissolving across a sharp corner")
+        .scroll_to_me();
+    harness.run();
     harness
         .get_by_label("Ask before dissolving across a sharp corner")
         .click();

@@ -62,6 +62,21 @@ Attributes, Objects and Coordinates are **panels** you can rearrange around the 
 
 The viewport has no tab (its menu line takes that place), so it stays where it is while the others move around it. Panels can't be closed or pulled out into separate windows, so you can't lose one by accident. Your arrangement and the window size are remembered the next time you open the app.
 
+## Windows and menus
+
+Every window the app opens (Export, Settings, Check for baking, About, and the questions it asks) is built the same way, so once you know one you know them all:
+
+- **The title bar** names the window. Anything that decides the rest sits beside the name: Export's **Made for**. The **×** on the right closes it.
+- **A side list** on the left, in windows with more than one part (Export, Settings). Click a section to show it. A word on the right of a section tells you its state, such as **on** or **off**. Sections only appear once there is something in them.
+- **Settings in rows**: the name on the left, the control on the right, under small headings. Two to four choices sit side by side in one box (*Metres | Centimetres*): click the one you want. Longer lists open from a box with a small arrow. A setting with a small lock is fixed by another choice (an export preset); the window says where to change it.
+- **The footer** at the bottom: the main button on the right, filled in the accent colour (**Export…**, **Done**, **Save**), with **Cancel** beside it. **Enter** presses the main button and **Esc** cancels, unless you are typing in a box.
+
+A question (such as *Save changes?*) dims the rest of the app until you answer it, so nothing changes behind it.
+
+The menus on the menu bars have the same calm look: roomy rows, keys lined up on the right, and lines between groups of entries.
+
+![The File menu: New, Open… and Open recent, then Save and Save As…, the export entries and Check for baking…, and Quit, with their keys on the right](../screenshots/2026-10-16-file-menu.png)
+
 ## Accent colour
 
 One colour marks what's active: the current mode (and later the current tool), the chosen option in a list, the layout in use, and selected text. It's red unless you pick another: **Edit → Settings… → Interface** offers Red, Blue, Marine green, Plum, Olive and Petrol blue (see [Settings](settings.md)). The whole app changes at once, and your choice is remembered.
