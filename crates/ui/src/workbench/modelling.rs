@@ -327,7 +327,7 @@ impl Workbench {
         self.viewport
             .set_wheel_tool(self.tool.has_wheel_count() && editing);
         self.viewport
-            .set_drag_tool(self.tool.drags_anywhere() || pairing);
+            .set_drag_tool(self.tool.drags_anywhere() || pairing || self.edits_uvs_on_model());
         self.viewport.set_click_tool(clicks);
         self.components.set_quiet(clicks);
     }
@@ -343,6 +343,9 @@ impl Workbench {
         let steps = self.viewport.take_tool_steps();
         if steps != 0 {
             self.wheel_count(steps);
+        }
+        if self.edits_uvs_on_model() || self.uv_model_drag.is_some() {
+            return self.carry_out_uv_model_drag(drawing, keys.command);
         }
         if matches!(self.tool, Tool::Bridge | Tool::Weld) || self.pair_session.is_some() {
             return self.carry_out_pairing(drawing);

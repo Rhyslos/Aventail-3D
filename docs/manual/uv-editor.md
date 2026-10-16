@@ -20,7 +20,7 @@ A shape's [UVs](concepts.md#uvs-and-texturing) say where each part of its surfac
    - the borders of each **island** (a piece laid flat in one go) brighter;
    - [seams](seams.md) in orange;
    - with the viewport's **Display → Stretch**, each polygon coloured by how evenly it lies, and pointing at one explains its problem ([Checker and Stretch views](checker-and-stretch.md));
-   - the selection in the accent colour, and what's under the mouse lit up.
+   - the selection in the accent colour, and what's under the mouse lit up. What's under the mouse on the model lights up here too, and the other way round.
 3. Select:
    - In the **UV mode**, click an island (in the editor or on the model) to select all of it. **Ctrl + click** adds or takes away another.
    - In the **Points**, **Edges** or **Polygons** mode (keys **1**, **2**, **3**), click or drag a box in the editor to select those, just like in the viewport.
@@ -32,7 +32,7 @@ A shape's [UVs](concepts.md#uvs-and-texturing) say where each part of its surfac
    - the wheel zooms at the mouse.
 
    With the mouse over the editor, **H** fits the texture square and **Z** fits the selection.
-5. To change what you've selected, press **W**, **R**, **S** or **T** for the gizmo, or **E** over the editor for the UV tools. See [Editing UVs by hand](editing-uvs.md).
+5. To change what you've selected, press **W**, **R**, **S** or **T** for the gizmo, or **E** over the editor for the UV tools. See [Editing UVs by hand](editing-uvs.md), or drag on the model itself: [Editing UVs on the model](uvs-on-the-model.md).
 
 The bottom right shows the project's texture size and the [texel density](texture-and-density.md) of what's selected; the **Texture** menu changes them. Zoomed right in, the texture's pixels show as a fine grid.
 

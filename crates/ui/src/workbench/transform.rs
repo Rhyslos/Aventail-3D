@@ -80,6 +80,20 @@ impl Workbench {
             Tool::Inset => "Inset: drag left or right anywhere in the viewport to shrink the \
                  selected polygons inward. Shift for fine steps; Esc or a right click cancels."
                 .into(),
+            Tool::Move | Tool::Rotate | Tool::Scale | Tool::All
+                if self.mode == crate::palette::Mode::Uv =>
+            {
+                format!(
+                    "{}: drag in the UV Editor, or on the model to {} the texture there. Shift \
+                     for fine steps; Esc cancels.",
+                    tool.name(),
+                    match tool {
+                        Tool::Rotate => "turn",
+                        Tool::Scale => "scale",
+                        _ => "slide",
+                    }
+                )
+            }
             _ => format!(
                 "{}: drag the gizmo's handles. Hold Shift for fine steps; Esc or a right click cancels.",
                 tool.name()
