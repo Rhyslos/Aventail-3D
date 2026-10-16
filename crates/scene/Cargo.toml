@@ -16,6 +16,8 @@ layer = 1
 
 [dependencies]
 mesh.workspace = true
+# Unwrapping, relaxing and straightening UVs (same layer).
+uv.workspace = true
 glam.workspace = true
 
 [lints]

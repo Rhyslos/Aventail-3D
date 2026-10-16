@@ -9,9 +9,52 @@ use mesh::{CubeParams, PrimitiveKind, VertexId};
 use scene::{Command, Object, ObjectKind, Operation, Place, Primitive, Transform};
 
 /// A document using everything the current version of the format can
-/// hold: all of [`rich_document_v28`], plus seams marked and cleared
-/// (version 29; the version 29 sample holds exactly this).
+/// hold: all of [`rich_document_v29`], plus unwrapping, straightening and
+/// relaxing (version 30; the version 30 sample holds exactly this).
 fn rich_document() -> Document {
+    let mut doc = rich_document_v29();
+    let plane = doc
+        .scene()
+        .walk()
+        .into_iter()
+        .map(|(id, _)| id)
+        .find(|id| doc.scene().object(*id).unwrap().name == "Plane")
+        .unwrap();
+    let mesh = doc.scene().evaluated(plane).unwrap().mesh;
+    let faces: Vec<scene::FaceId> = mesh.faces().map(|(f, _)| f).collect();
+    let corners: Vec<Vec<VertexId>> = faces
+        .iter()
+        .map(|f| mesh.face(*f).unwrap().to_vec())
+        .collect();
+    let anchors = mesh::Anchors::record(&mesh, mesh::ElementKind::Polygons, &corners);
+    for operation in [
+        Operation::Unwrap {
+            faces: faces.clone(),
+            strips: false,
+            anchors: anchors.clone(),
+        },
+        Operation::RelaxUvs {
+            faces: faces.clone(),
+            anchors: anchors.clone(),
+        },
+        Operation::StraightenUvs {
+            faces: faces.clone(),
+            anchors: anchors.clone(),
+        },
+    ] {
+        doc.execute(Command::Record {
+            id: plane,
+            operation,
+        })
+        .unwrap();
+    }
+    doc
+}
+
+/// A document using everything version 29 stores: all of
+/// [`rich_document_v28`], plus seams marked and cleared (the version 29
+/// sample holds exactly this).
+fn rich_document_v29() -> Document {
     let mut doc = rich_document_v28();
     let cube = doc
         .scene()
@@ -1595,7 +1638,7 @@ fn a_cut_short_or_padded_body_is_damaged() {
 #[test]
 fn an_uncompressed_body_can_be_read() {
     let doc = rich_document();
-    let body = postcard::to_stdvec(&v29::ProjectV29::from_document(&doc)).unwrap();
+    let body = postcard::to_stdvec(&v30::ProjectV30::from_document(&doc)).unwrap();
     let mut bytes = header(FORMAT_VERSION, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     assert_same(&doc, &from_bytes(&bytes).unwrap());
@@ -3757,7 +3800,19 @@ const SAMPLE_V29: &[u8] = include_bytes!("../../tests/data/sample-v29.avtl");
 #[test]
 fn a_file_saved_by_format_version_29_still_opens_with_its_seams() {
     let doc = from_bytes(SAMPLE_V29).expect("the version 29 sample opens");
-    assert_same(&rich_document(), &doc);
+    assert_same(&rich_document_v29(), &doc);
     let text = format!("{:?}", v29::ProjectV29::from_document(&doc));
     assert_eq!(text.matches("SetSeams").count(), 2, "{text}");
+}
+
+const SAMPLE_V30: &[u8] = include_bytes!("../../tests/data/sample-v30.avtl");
+
+#[test]
+fn a_file_saved_by_format_version_30_still_opens_unwrapped() {
+    let doc = from_bytes(SAMPLE_V30).expect("the version 30 sample opens");
+    assert_same(&rich_document(), &doc);
+    let text = format!("{:?}", v30::ProjectV30::from_document(&doc));
+    for kind in ["Unwrap", "StraightenUvs", "RelaxUvs"] {
+        assert!(text.contains(kind), "{kind}");
+    }
 }

@@ -10,7 +10,7 @@ A shape's [UVs](concepts.md#uvs-and-texturing) say where each part of its surfac
 
 - To see how a shape is laid out on its texture: where its seams are, how big each piece is.
 - To find a part of the model on the texture, or a part of the texture on the model: select it in one, see it in the other.
-- To move, turn, scale and flip pieces by hand: see [Editing UVs by hand](editing-uvs.md). Unwrapping and packing come in the next updates.
+- To move, turn, scale and flip pieces by hand: see [Editing UVs by hand](editing-uvs.md). To lay them flat: [Unwrap](unwrapping.md). Packing comes in a later update.
 
 ## How to use it
 
@@ -61,7 +61,7 @@ The keys are the same as in the viewport: they work wherever the mouse is.
 ## Tips and common problems
 
 - **Problem:** the editor says "Select an object to see its UVs". **Why:** it shows only the selected objects. **Fix:** select one, in the viewport or the Objects panel.
-- **Problem:** the new walls of an extrude don't show in the editor. **Why:** they're there, but squashed flat along the old border: an extrude stretches the UVs it finds. **Fix:** unwrapping them properly comes with the UV tools in the next updates.
+- **Problem:** the new walls of an extrude don't show in the editor. **Why:** they're there, but squashed flat along the old border: an extrude stretches the UVs it finds. **Fix:** select them and choose [Unwrap](unwrapping.md) (E over the editor).
 - **Problem:** clicking in the editor does nothing in the Model mode. **Why:** the Model mode works on whole objects. **Fix:** switch to the UV mode, or press 1, 2 or 3.
 - **Tip:** a shape with more than 300,000 polygons doesn't draw its UVs, so the window stays quick. The editor says so.
 

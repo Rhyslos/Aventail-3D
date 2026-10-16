@@ -134,6 +134,22 @@ pub fn uv_splits(mesh: &Mesh) -> Vec<EdgeKey> {
         .collect()
 }
 
+/// Sets every corner's UV at once (in the mesh's corner order), adding
+/// the UV layer if needed. Returns whether it was set: the list must have
+/// one real UV per corner.
+pub fn set_uvs(mesh: &mut Mesh, values: Vec<Vec2>) -> bool {
+    if values.len() != mesh.face_layout().1.len() || !values.iter().all(|v| v.is_finite()) {
+        return false;
+    }
+    mesh.set_attribute_values(
+        UV,
+        Domain::Corner,
+        Value::Vec2(Vec2::ZERO),
+        AttributeValues::Vec2(values),
+    )
+    .is_ok()
+}
+
 /// Marks `edges` as seams (or clears them, with `seam` false), adding
 /// the seam layer if needed (decision 0098). Edges not in the mesh are
 /// missing; edges already so, and open edges (an edge of a hole is cut

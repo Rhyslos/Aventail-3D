@@ -299,6 +299,31 @@ pub enum Operation {
         /// them again (decision 0032).
         anchors: Option<Anchors>,
     },
+    /// Lays the pieces holding these polygons flat along their seams
+    /// (decision 0099): see `uv::unwrap`.
+    Unwrap {
+        /// Polygons of the pieces to unwrap.
+        faces: Vec<FaceId>,
+        /// Whether strips of square quads come out as straight grids.
+        strips: bool,
+        /// Where the polygons were, to find them again (decision 0032).
+        anchors: Option<Anchors>,
+    },
+    /// Lays the quad pieces holding these polygons out as straight grids
+    /// (decision 0099).
+    StraightenUvs {
+        /// Polygons of the pieces to straighten.
+        faces: Vec<FaceId>,
+        /// Where the polygons were, to find them again.
+        anchors: Option<Anchors>,
+    },
+    /// Evens out the UVs of these polygons (decision 0099).
+    RelaxUvs {
+        /// The polygons whose corners move.
+        faces: Vec<FaceId>,
+        /// Where the polygons were, to find them again.
+        anchors: Option<Anchors>,
+    },
     /// Marks edges as seams, where the surface is cut open to lie flat,
     /// or clears them (decision 0098).
     SetSeams {
@@ -521,6 +546,11 @@ impl Operation {
                 counted("Move the UVs of", points.len(), "point")
             }
             Self::TransformUvs { faces, .. } => counted("Move the UVs of", faces.len(), "polygon"),
+            Self::Unwrap { faces, .. } => counted("Unwrap", faces.len(), "polygon"),
+            Self::StraightenUvs { faces, .. } => {
+                counted("Straighten the UVs of", faces.len(), "polygon")
+            }
+            Self::RelaxUvs { faces, .. } => counted("Relax the UVs of", faces.len(), "polygon"),
             Self::FixFacing => "Fix normals".to_string(),
             Self::PlaceShape { .. } => "Apply the placement".to_string(),
             Self::SetSeams { edges, seam, .. } => {
@@ -651,6 +681,9 @@ impl Operation {
             | Self::FlipPolygons { .. }
             | Self::SetMaterial { .. }
             | Self::TransformUvs { .. }
+            | Self::Unwrap { .. }
+            | Self::StraightenUvs { .. }
+            | Self::RelaxUvs { .. }
             | Self::SetHardEdges { .. }
             | Self::SetSeams { .. }
             | Self::SlidePoints { .. }
@@ -812,6 +845,9 @@ impl Operation {
             | Self::FlipPolygons { .. }
             | Self::SetMaterial { .. }
             | Self::TransformUvs { .. }
+            | Self::Unwrap { .. }
+            | Self::StraightenUvs { .. }
+            | Self::RelaxUvs { .. }
             | Self::SetHardEdges { .. }
             | Self::SetSeams { .. }
             | Self::SlidePoints { .. }
@@ -948,6 +984,9 @@ impl Operation {
             | Self::SetMaterial { .. }
             | Self::SetHardEdges { .. }
             | Self::SetSeams { .. }
+            | Self::Unwrap { .. }
+            | Self::StraightenUvs { .. }
+            | Self::RelaxUvs { .. }
             | Self::FixFacing => true,
             Self::TransformUvs { transform, .. } => transform.is_finite(),
             Self::PlaceShape { matrix } => matrix.is_finite() && matrix.determinant().abs() > 1e-12,
@@ -996,6 +1035,9 @@ impl Operation {
             | Self::FlipPolygons { anchors, .. }
             | Self::SetMaterial { anchors, .. }
             | Self::TransformUvs { anchors, .. }
+            | Self::Unwrap { anchors, .. }
+            | Self::StraightenUvs { anchors, .. }
+            | Self::RelaxUvs { anchors, .. }
             | Self::SetHardEdges { anchors, .. }
             | Self::SetSeams { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_ref(),
@@ -1029,6 +1071,9 @@ impl Operation {
             | Self::FlipPolygons { anchors, .. }
             | Self::SetMaterial { anchors, .. }
             | Self::TransformUvs { anchors, .. }
+            | Self::Unwrap { anchors, .. }
+            | Self::StraightenUvs { anchors, .. }
+            | Self::RelaxUvs { anchors, .. }
             | Self::SetHardEdges { anchors, .. }
             | Self::SetSeams { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_mut(),
@@ -1412,6 +1457,24 @@ impl Operation {
                     (None, _) => (faces.clone(), points.clone()),
                 };
                 mesh::uvs::transform_uvs(mesh, &faces, &points, *transform)
+            }
+            Self::Unwrap { faces, strips, .. } => {
+                let faces = refound
+                    .as_ref()
+                    .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
+                uv::unwrap(mesh, &faces, *strips)
+            }
+            Self::StraightenUvs { faces, .. } => {
+                let faces = refound
+                    .as_ref()
+                    .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
+                uv::straighten(mesh, &faces)
+            }
+            Self::RelaxUvs { faces, .. } => {
+                let faces = refound
+                    .as_ref()
+                    .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
+                uv::relax(mesh, &faces, uv::unwrap::RELAX_STEPS)
             }
             Self::FixFacing => edit::fix_facing(mesh),
             Self::PlaceShape { matrix } => edit::place(mesh, *matrix),

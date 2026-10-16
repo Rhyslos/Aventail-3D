@@ -230,8 +230,11 @@ impl Workbench {
             CommandId::UvFlipV => self.change_uvs(UvChange::FlipV),
             CommandId::MarkSeam => self.run_seams(true),
             CommandId::ClearSeam => self.run_seams(false),
-            // Not built yet: readiness stops these above.
-            CommandId::Unwrap | CommandId::Relax | CommandId::Straighten | CommandId::Pack => {}
+            CommandId::Unwrap => self.run_uv_tool(super::unwrapping::UvTool::Unwrap),
+            CommandId::Relax => self.run_uv_tool(super::unwrapping::UvTool::Relax),
+            CommandId::Straighten => self.run_uv_tool(super::unwrapping::UvTool::Straighten),
+            // Not built yet: readiness stops it above.
+            CommandId::Pack => {}
             CommandId::PivotToCentre => self.run_placement(super::pivots::Placement::PivotToCentre),
             CommandId::PivotToOrigin => self.run_placement(super::pivots::Placement::PivotToOrigin),
             CommandId::ObjectToOrigin => {

@@ -193,6 +193,8 @@ pub struct Workbench {
     /// Whether the tool menu shows the UV ring: chosen when it opens, by
     /// whether the mouse is over the UV Editor (decision 0097).
     uv_menu: bool,
+    /// How the UV tools behave (decision 0099).
+    uv_settings: unwrapping::UvSettings,
     /// The standard layout still needs Coordinates fitted to its content,
     /// which can only happen once the panels' sizes are known.
     fit_pending: bool,
@@ -314,6 +316,7 @@ impl Workbench {
             layout_choice: LayoutChoice::Standard,
             uv_editor: crate::uv_editor::UvEditor::default(),
             uv_menu: false,
+            uv_settings: unwrapping::UvSettings::default(),
             fit_pending,
             mode: Mode::default(),
             document: Document::new(),
@@ -2119,6 +2122,17 @@ impl Workbench {
             self.run_command(command, ui.ctx(), requests);
             ui.close();
         }
+        ui.separator();
+        ui.checkbox(
+            &mut self.uv_settings.live_unwrap,
+            unwrapping::LIVE_UNWRAP_LABEL,
+        )
+        .on_hover_text(unwrapping::LIVE_UNWRAP_HELP);
+        ui.checkbox(
+            &mut self.uv_settings.straighten_strips,
+            unwrapping::STRAIGHT_STRIPS_LABEL,
+        )
+        .on_hover_text(unwrapping::STRAIGHT_STRIPS_HELP);
     }
 }
 
@@ -2332,6 +2346,10 @@ mod materials;
 mod seams;
 #[cfg(test)]
 mod seams_tests;
+mod unwrapping;
+pub use unwrapping::UvSettings;
+#[cfg(test)]
+mod unwrapping_tests;
 pub use exporting::{
     ExportChoice, ExportRequest, KitOutcome, KitRequest, TargetOutcome, TargetRequest,
 };

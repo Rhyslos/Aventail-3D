@@ -65,6 +65,7 @@ pub use viewport::{
     PICKER_LABEL, PickAsk, PickReply, Picked, Shading, Symmetry, VIEW_COUNT, VIEW_KEYS,
     VIEWPORT_LABEL, ViewOptions, ViewportPanel, ViewportRenderer, ViewportView,
 };
+pub use workbench::UvSettings;
 pub use workbench::{
     AppInfo, DISCARD_SHORTCUT, DOUBLE_CLICK_SECONDS, ExportChoice, ExportRequest, KitOutcome,
     KitRequest, MODE_KEYS, TargetOutcome, TargetRequest, Workbench, WorkbenchAction,

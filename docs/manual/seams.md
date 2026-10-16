@@ -16,7 +16,7 @@ For hard-surface game assets, the usual rule is: **a seam on every hard edge**, 
 
 Every shape in the app comes with seams already, where its [ready-made UVs](primitives.md#ready-made-uvs) are cut. Change them when you've modelled further.
 
-**Marking seams doesn't move the UVs yet.** It marks where to cut. Laying the pieces flat along the new seams (unwrapping), live as you mark them, comes in the next update.
+**The UVs follow as you mark seams:** the pieces either side are [unwrapped](unwrapping.md) again at once (switch **UV → Unwrap as seams change** off to only change the marks).
 
 ## How to use it
 
@@ -35,7 +35,7 @@ With **polygons** selected (Polygons or UV mode), **Mark seams** marks the edges
 2. then whatever each piece still needs to lie flat: a tube's side gets one cut along its length, a ball one cut from bottom to top;
 3. those extra cuts go where they're least seen: facing down or to the back (away from the Front view), and in corners rather than across flat stretches.
 
-All of these are one undo step each (**Ctrl + Z**), are saved with the project, and are recorded on the object's [edit list](edit-list.md), so they're made again if you change the shape's settings before them.
+All of these are one undo step each, the unwrapping included (**Ctrl + Z**), are saved with the project, and are recorded on the object's [edit list](edit-list.md), so they're made again if you change the shape's settings before them.
 
 **Select seams:** **Select → Select seams** (or **UV → Select seams**) selects every seam, in the Edges mode, to check or change them.
 
@@ -56,7 +56,7 @@ No keys of their own, as chosen for seams; ask if you'd like some.
 
 ## Tips and common problems
 
-- **Problem:** I marked seams but the UV Editor looks the same apart from orange lines. **Why:** marking only says where to cut; the UVs are laid out again when unwrapping arrives (the next update). **Fix:** nothing yet; your seams are kept for it.
+- **Problem:** I marked seams but the UV Editor looks the same apart from orange lines. **Why:** **Unwrap as seams change** is off (UV menu), or the piece was flat anyway: a flat piece cut in two comes back just where it was. **Fix:** switch it on, or choose Unwrap.
 - **Problem:** Mark seams says the edges are seams already. **Why:** they are, or they're open edges (the side of a hole), which are cut already.
 - **Problem:** Suggest seams changed seams I had placed by hand. **Why:** it replaces all seams of the selected objects. **Fix:** Ctrl + Z, then use Seams from hard edges and Mark seams instead, or select only the objects to suggest for.
 - **Problem:** nothing happens on an instance. **Why:** an instance has no edits of its own; it shows its original's seams. **Fix:** mark seams on the original.
@@ -66,6 +66,7 @@ No keys of their own, as chosen for seams; ask if you'd like some.
 ## Related
 
 - [The UV Editor and the UV mode](uv-editor.md)
+- [Unwrap, Relax and Straighten](unwrapping.md)
 - [Editing UVs by hand](editing-uvs.md)
 - [Hard and soft edges](hard-and-soft-edges.md)
 - [Selecting](selecting.md) (Paint select)

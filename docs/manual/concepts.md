@@ -149,7 +149,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Corner (of a polygon)** — A point as one polygon uses it. UVs belong to corners, not points: a point on a seam has one UV in each island it touches. Every shape in this app comes with UVs ([Primitives: ready-made UVs](primitives.md#ready-made-uvs)).
 
-**Unwrapping** — Flattening the mesh along its seams into islands. A piece can be laid flat in one go only if it is shaped like a **disk**: one piece, with one border all round (a cube's side, a sheet). A tube (two borders) or a ball (none) needs a cut first.
+**Unwrapping** — Flattening the mesh along its seams into islands ([Unwrap](unwrapping.md)). A piece can be laid flat in one go only if it is shaped like a **disk**: one piece, with one border all round (a cube's side, a sheet). A tube (two borders) or a ball (none) needs a cut first.
 
 **Stretching (distortion)** — When an island's shape on the UV map doesn't match its real shape, textures look squashed or stretched. A checker texture makes it easy to spot.
 

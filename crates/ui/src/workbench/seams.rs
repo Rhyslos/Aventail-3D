@@ -12,7 +12,7 @@ use super::Workbench;
 use super::joining::counted;
 use crate::palette::Mode;
 use mesh::Anchors;
-use scene::{EdgeKey, ElementKind, FaceId, ObjectKind, Operation, VertexId};
+use scene::{EdgeKey, ElementKind, FaceId, Operation, VertexId};
 use std::collections::BTreeSet;
 
 /// The UV menu's name for Seams from hard edges, and what it does.
@@ -75,23 +75,6 @@ fn changing(
 }
 
 impl Workbench {
-    /// The selected objects with a shape of their own, and their shapes
-    /// (whatever is selected inside them). Instances have no edits of
-    /// their own: their original's seams are theirs.
-    fn selected_shapes(&self) -> Vec<(scene::ObjectId, std::sync::Arc<scene::Mesh>)> {
-        let scene = self.document.scene();
-        self.document
-            .selection()
-            .into_iter()
-            .filter(|id| {
-                scene.object(*id).is_some_and(|o| {
-                    matches!(o.kind, ObjectKind::Primitive(_) | ObjectKind::Mesh(_))
-                })
-            })
-            .filter_map(|id| Some((id, scene.evaluated(id)?.mesh)))
-            .collect()
-    }
-
     /// Mark seams (`seam`) or Clear seams: on the selected edges, the
     /// edges between selected points, or, for polygons, the border of the
     /// selection (marking) or every edge of it (clearing).
@@ -133,7 +116,9 @@ impl Workbench {
                 continue;
             }
             count += edges.len();
+            let live = self.live_unwrap(&mesh, &edges);
             ops.push((id, seams_op(&mesh, edges, seam)));
+            ops.extend(live.map(|op| (id, op)));
         }
         if ops.is_empty() {
             self.note = Some(if any {
@@ -161,12 +146,23 @@ impl Workbench {
         }
     }
 
-    /// Where to see seams, when they aren't shown in the viewport now.
+    /// Where to see seams, when they aren't shown in the viewport now,
+    /// and whether the UVs followed.
     fn seams_hint(&self) -> &'static str {
-        if self.mode == Mode::Uv || self.viewport.options().show_seams {
-            ""
-        } else {
-            " Seams show in orange in the UV Editor and the UV mode, or with Display → Seams."
+        match (
+            self.mode == Mode::Uv || self.viewport.options().show_seams,
+            self.uv_settings.live_unwrap,
+        ) {
+            (true, true) => " The pieces around them are unwrapped again.",
+            (true, false) => " Unwrap to lay the pieces flat along them.",
+            (false, true) => {
+                " The pieces around them are unwrapped again. Seams show in orange in the UV \
+                 Editor and the UV mode, or with Display → Seams."
+            }
+            (false, false) => {
+                " Seams show in orange in the UV Editor and the UV mode, or with Display → \
+                 Seams."
+            }
         }
     }
 
@@ -195,13 +191,15 @@ impl Workbench {
         }
         let mut ops = Vec::new();
         let mut count = 0;
-        for (id, mesh) in self.selected_shapes() {
+        for (id, mesh) in self.own_shapes() {
             let edges = changing(&mesh, self.shown_hard_edges(&mesh), true);
             if edges.is_empty() {
                 continue;
             }
             count += edges.len();
+            let live = self.live_unwrap(&mesh, &edges);
             ops.push((id, seams_op(&mesh, edges, true)));
+            ops.extend(live.map(|op| (id, op)));
         }
         if ops.is_empty() {
             self.note = Some(format!(
@@ -228,7 +226,7 @@ impl Workbench {
         let mut ops = Vec::new();
         let mut total = 0;
         let mut changed = 0;
-        for (id, mesh) in self.selected_shapes() {
+        for (id, mesh) in self.own_shapes() {
             let hard = self.shown_hard_edges(&mesh);
             let suggested: BTreeSet<EdgeKey> =
                 uv::seams::suggest(&mesh, &hard).into_iter().collect();
@@ -237,12 +235,15 @@ impl Workbench {
             let clear: Vec<EdgeKey> = changing(&mesh, now.difference(&suggested).copied(), false);
             let mark: Vec<EdgeKey> = changing(&mesh, suggested.iter().copied(), true);
             changed += clear.len() + mark.len();
+            let both: Vec<EdgeKey> = clear.iter().chain(&mark).copied().collect();
+            let live = self.live_unwrap(&mesh, &both);
             if !clear.is_empty() {
                 ops.push((id, seams_op(&mesh, clear, false)));
             }
             if !mark.is_empty() {
                 ops.push((id, seams_op(&mesh, mark, true)));
             }
+            ops.extend(live.map(|op| (id, op)));
         }
         if ops.is_empty() {
             self.note = Some(format!(

@@ -311,3 +311,21 @@ fn clearing_seams_on_a_mesh_without_any_changes_nothing() {
     assert!(mesh.attribute_values(SEAM).is_none(), "no layer made");
     assert!(set_seams(&mut mesh, &[], true).matched == 0);
 }
+
+#[test]
+fn every_uv_can_be_set_at_once_but_only_whole_and_real() {
+    let mut mesh = plane_2x2();
+    let count = mesh.face_layout().1.len();
+    let values: Vec<Vec2> = (0..count).map(|i| Vec2::splat(i as f32 / 100.0)).collect();
+    assert!(set_uvs(&mut mesh, values.clone()));
+    assert_eq!(every_uv(&mesh), values);
+    assert!(!set_uvs(&mut mesh, values[1..].to_vec()), "one short");
+    let mut bad = values.clone();
+    bad[3] = Vec2::NAN;
+    assert!(!set_uvs(&mut mesh, bad));
+    assert_eq!(every_uv(&mesh), values, "unchanged");
+    // A mesh without UVs gets them.
+    mesh.remove_attribute(UV);
+    assert!(set_uvs(&mut mesh, values.clone()));
+    assert!(has_uvs(&mesh));
+}

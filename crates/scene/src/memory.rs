@@ -96,7 +96,10 @@ pub(crate) fn operation_size(op: &Operation) -> usize {
                 + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
         }
         Operation::FlipPolygons { faces, anchors }
-        | Operation::SetMaterial { faces, anchors, .. } => {
+        | Operation::SetMaterial { faces, anchors, .. }
+        | Operation::Unwrap { faces, anchors, .. }
+        | Operation::StraightenUvs { faces, anchors }
+        | Operation::RelaxUvs { faces, anchors } => {
             std::mem::size_of_val(faces.as_slice())
                 + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
         }
