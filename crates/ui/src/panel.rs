@@ -4,8 +4,9 @@ use serde::{Deserialize, Serialize};
 
 /// One dockable panel of the app window.
 ///
-/// Each panel appears exactly once in the layout. Panels can be moved and
-/// resized but not closed, so none can be lost by accident.
+/// Each panel appears once in a layout. Panels can be moved and resized
+/// but not closed, so none can be lost by accident; the UV Editor is
+/// shown and put away from the Window menu (decision 0096).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Panel {
     /// The 3D view of the scene.
@@ -18,10 +19,14 @@ pub enum Panel {
     Coordinates,
     /// The selected object's edit layers and their edits (decision 0091).
     EditLayers,
+    /// The selected objects' UVs, flat on the texture square (decision
+    /// 0096). In the UV Edit layout; in others when the Window menu shows
+    /// it.
+    UvEditor,
 }
 
 impl Panel {
-    /// Every panel, in reading order.
+    /// Every panel that is always in a layout, in reading order.
     pub const ALL: [Panel; 5] = [
         Self::Viewport,
         Self::Attributes,
@@ -34,6 +39,9 @@ impl Panel {
     /// gets them added beside Objects rather than being reset.
     pub const ADDED_LATER: [Panel; 1] = [Self::EditLayers];
 
+    /// Panels a layout may leave out: shown when wanted.
+    pub const OPTIONAL: [Panel; 1] = [Self::UvEditor];
+
     /// The name shown on the panel's tab.
     pub fn title(self) -> &'static str {
         match self {
@@ -42,6 +50,7 @@ impl Panel {
             Self::Objects => "Objects",
             Self::Coordinates => "Coordinates",
             Self::EditLayers => "Edit layers",
+            Self::UvEditor => "UV Editor",
         }
     }
 }

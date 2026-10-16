@@ -214,6 +214,9 @@ pub struct ViewOptions {
     /// Whether the selected objects show which way each polygon faces,
     /// as short lines (off as standard; decision 0053).
     pub show_normals: bool,
+    /// Whether seams are marked in the Points, Edges and Polygons modes
+    /// (off as standard; always in the UV mode; decision 0096).
+    pub show_seams: bool,
     /// The live mirror's settings, remembered for the next object
     /// mirrored (decision 0088).
     pub symmetry: Symmetry,

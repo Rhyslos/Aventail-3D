@@ -49,6 +49,66 @@ pub fn default_layout() -> DockState<Panel> {
     dock
 }
 
+/// The UV Edit layout (decision 0096): the viewport and the UV Editor side
+/// by side, Coordinates under them, and the right column as in the
+/// standard layout.
+///
+/// ```text
+/// ┌──────────────┬──────────────┬──────────────┐
+/// │              │              │  Attributes  │
+/// │   Viewport   │  UV Editor   ├──────────────┤
+/// │              │              │   Objects    │
+/// ├──────────────┴──────────────┤              │
+/// │         Coordinates         │              │
+/// └─────────────────────────────┴──────────────┘
+/// ```
+pub fn uv_edit_layout() -> DockState<Panel> {
+    let mut dock = DockState::new(vec![Panel::Viewport]);
+    let tree = dock.main_surface_mut();
+    let [main_area, right_column] =
+        tree.split_right(NodeIndex::root(), MAIN_AREA_WIDTH, vec![Panel::Attributes]);
+    tree.split_below(
+        right_column,
+        ATTRIBUTES_HEIGHT,
+        vec![Panel::Objects, Panel::EditLayers],
+    );
+    let [view, _] = tree.split_below(main_area, VIEWPORT_HEIGHT, vec![Panel::Coordinates]);
+    tree.split_right(view, 0.5, vec![Panel::UvEditor]);
+    dock
+}
+
+/// Shows the UV Editor beside the viewport, or puts it away. Returns
+/// whether it is shown now.
+pub fn toggle_uv_editor(dock: &mut DockState<Panel>) -> bool {
+    if let Some(path) = dock.find_tab(&Panel::UvEditor) {
+        dock.remove_tab(path);
+        return false;
+    }
+    let beside = dock
+        .find_main_surface_tab(&Panel::Viewport)
+        .map(|(node, _)| node)
+        .unwrap_or(NodeIndex::root());
+    dock.main_surface_mut()
+        .split_right(beside, 0.5, vec![Panel::UvEditor]);
+    true
+}
+
+/// Uses a saved UV Edit layout if it is complete and has the UV Editor,
+/// otherwise the standard UV Edit layout.
+pub fn restore_uv_layout(saved: Option<DockState<Panel>>) -> DockState<Panel> {
+    match saved {
+        Some(mut dock) if no_repeats(&dock) => {
+            add_later_panels(&mut dock);
+            if is_complete(&dock) && dock.find_tab(&Panel::UvEditor).is_some() {
+                dock
+            } else {
+                uv_edit_layout()
+            }
+        }
+        _ => uv_edit_layout(),
+    }
+}
+
 /// Adds the panels a saved layout from an earlier version doesn't have
 /// ([`Panel::ADDED_LATER`]) as tabs beside Objects (or beside the first
 /// panel found), leaving the tab that was showing in front. Returns
@@ -133,7 +193,8 @@ fn no_repeats(dock: &DockState<Panel>) -> bool {
     })
 }
 
-/// True if every panel appears exactly once.
+/// True if every panel always in a layout appears exactly once, and no
+/// panel appears twice (an optional one may be left out).
 ///
 /// A saved layout could be damaged or come from a version with different
 /// panels; such layouts are replaced by the default.

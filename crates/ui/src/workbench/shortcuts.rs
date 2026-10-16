@@ -354,8 +354,16 @@ pub(crate) fn bindings() -> Vec<Binding> {
     ]);
 
     // The view.
-    for frame in [viewport::Frame::All, viewport::Frame::Selected] {
-        all.push(plain(frame.key(), frame.label(), Anywhere));
+    // In the UV Editor too, while the mouse is over it (decision 0096).
+    for (frame, editor) in [
+        (viewport::Frame::All, "the texture square"),
+        (viewport::Frame::Selected, "the selection's UVs"),
+    ] {
+        all.push(plain(
+            frame.key(),
+            format!("{} (in the UV Editor: {editor})", frame.label()),
+            Anywhere,
+        ));
     }
     all.extend(
         viewport::VIEW_KEYS
@@ -1037,7 +1045,7 @@ mod tests {
         assert!(harness.query_by_label("Show everything").is_some());
         assert!(
             harness
-                .query_by_label(viewport::Frame::All.label())
+                .query_by_label_contains(viewport::Frame::All.label())
                 .is_some()
         );
         // Clicking it again lets go.

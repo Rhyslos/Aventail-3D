@@ -30,8 +30,10 @@ pub(crate) fn kind_for(mode: Mode) -> Option<ElementKind> {
     match mode {
         Mode::Points => Some(ElementKind::Points),
         Mode::Edges => Some(ElementKind::Edges),
-        Mode::Polygons => Some(ElementKind::Polygons),
-        Mode::Model | Mode::Object | Mode::Uv => None,
+        // The UV mode works on polygons, a whole UV island at a time
+        // (decision 0096).
+        Mode::Polygons | Mode::Uv => Some(ElementKind::Polygons),
+        Mode::Model | Mode::Object => None,
     }
 }
 
@@ -56,6 +58,8 @@ type BuiltFor = (
 pub(crate) struct Guides {
     /// Hard edges, in the Points, Edges and Polygons modes.
     pub(crate) hard_edges: bool,
+    /// Seams, in the same modes (decision 0096).
+    pub(crate) seams: bool,
     /// Which edges count as hard: those sharper than this angle in
     /// degrees, while Automatic hard edges is on (decision 0064), or the
     /// marked ones (`None`).
@@ -406,7 +410,8 @@ fn guide_lines(
 ) -> Vec<OverlayLine> {
     let mut out = Vec::new();
     let hard = guides.hard_edges && kind.is_some();
-    if !hard && !guides.normals {
+    let seams = guides.seams && kind.is_some();
+    if !hard && !guides.normals && !seams {
         return out;
     }
     for item in drawing.items.iter().filter(|i| i.selected) {
@@ -432,6 +437,18 @@ fn guide_lines(
                 let (a, b) = edge.ends();
                 if let (Some(a), Some(b)) = (mesh.position(a), mesh.position(b)) {
                     out.push(([world(a), world(b)], OverlayStyle::Hard));
+                }
+            }
+        }
+        if seams {
+            let topology = mesh.topology();
+            for edge in mesh::uvs::seams(mesh) {
+                if !topology.has_edge(edge) {
+                    continue;
+                }
+                let (a, b) = edge.ends();
+                if let (Some(a), Some(b)) = (mesh.position(a), mesh.position(b)) {
+                    out.push(([world(a), world(b)], OverlayStyle::Seam));
                 }
             }
         }
@@ -549,7 +566,8 @@ mod tests {
         assert_eq!(kind_for(Mode::Points), Some(ElementKind::Points));
         assert_eq!(kind_for(Mode::Edges), Some(ElementKind::Edges));
         assert_eq!(kind_for(Mode::Polygons), Some(ElementKind::Polygons));
-        for mode in [Mode::Model, Mode::Object, Mode::Uv] {
+        assert_eq!(kind_for(Mode::Uv), Some(ElementKind::Polygons));
+        for mode in [Mode::Model, Mode::Object] {
             assert_eq!(kind_for(mode), None);
         }
     }
@@ -841,12 +859,36 @@ mod tests {
     }
 
     #[test]
+    fn seams_show_while_editing_and_in_the_uv_mode() {
+        let mut tracker = ComponentTracker::default();
+        let seams = Guides {
+            seams: true,
+            ..Guides::default()
+        };
+        let count = |overlay: &ComponentOverlay| {
+            overlay
+                .lines
+                .iter()
+                .filter(|(_, s)| *s == OverlayStyle::Seam)
+                .count()
+        };
+        // A cube is cut open along all twelve edges (decision 0095).
+        for mode in [Mode::Edges, Mode::Uv] {
+            let overlay = tracker.update(mode, &drawing(true), &Document::new(), None, seams);
+            assert_eq!(count(&overlay), 12, "{mode:?}");
+        }
+        let overlay = tracker.update(Mode::Model, &drawing(true), &Document::new(), None, seams);
+        assert_eq!(count(&overlay), 0);
+    }
+
+    #[test]
     fn guides_show_hard_edges_while_editing_and_normals_always() {
         let mut tracker = ComponentTracker::default();
         let both = Guides {
             hard_edges: true,
             by_angle: None,
             normals: true,
+            seams: false,
         };
         let count = |overlay: &ComponentOverlay, style| {
             overlay.lines.iter().filter(|(_, s)| *s == style).count()

@@ -50,12 +50,31 @@ pub struct AppInfo {
     pub family: String,
 }
 
-/// Layouts shown on the right of the menu bar: the standard one, and
-/// arrangements for particular kinds of work that arrive later.
-const LAYOUTS: [(&str, Option<&str>); 3] = [
-    ("Standard", None),
-    ("Modelling", Some("A layout for modelling arrives later")),
-    ("UV Edit", Some("A layout for UV work arrives in Phase 7")),
+/// The layouts the tabs on the right of the menu bar switch between
+/// (decision 0096): each keeps its own arrangement.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum LayoutChoice {
+    /// The standard arrangement.
+    #[default]
+    Standard,
+    /// The viewport and the UV Editor side by side, in the UV mode.
+    UvEdit,
+}
+
+/// The layout tabs, left to right: a layout's name, the layout (or, for
+/// one not built yet, when it arrives) and what it is for.
+const LAYOUTS: [(&str, Result<LayoutChoice, &str>, &str); 3] = [
+    (
+        "Standard",
+        Ok(LayoutChoice::Standard),
+        "The standard layout",
+    ),
+    ("Modelling", Err("A layout for modelling arrives later"), ""),
+    (
+        "UV Edit",
+        Ok(LayoutChoice::UvEdit),
+        "The viewport and the UV Editor side by side, in the UV mode",
+    ),
 ];
 
 /// Something the user asked for that the program around the workbench
@@ -170,6 +189,12 @@ const COMING: [(&str, &[(&str, &str)]); 4] = [
 pub struct Workbench {
     info: AppInfo,
     dock: DockState<Panel>,
+    /// The layout not in use, kept as it was left (decision 0096).
+    other_dock: DockState<Panel>,
+    /// Which layout `dock` is.
+    layout_choice: LayoutChoice,
+    /// The UV Editor panel (decision 0096).
+    uv_editor: crate::uv_editor::UvEditor,
     /// The standard layout still needs Coordinates fitted to its content,
     /// which can only happen once the panels' sizes are known.
     fit_pending: bool,
@@ -287,6 +312,9 @@ impl Workbench {
         Self {
             info,
             dock,
+            other_dock: crate::layout::uv_edit_layout(),
+            layout_choice: LayoutChoice::Standard,
+            uv_editor: crate::uv_editor::UvEditor::default(),
             fit_pending,
             mode: Mode::default(),
             document: Document::new(),
@@ -436,9 +464,67 @@ impl Workbench {
         }
     }
 
-    /// The current panel layout, for saving between sessions.
+    /// The standard panel layout, for saving between sessions.
     pub fn layout(&self) -> &DockState<Panel> {
-        &self.dock
+        match self.layout_choice {
+            LayoutChoice::Standard => &self.dock,
+            LayoutChoice::UvEdit => &self.other_dock,
+        }
+    }
+
+    /// The UV Edit layout, for saving between sessions (decision 0096).
+    pub fn uv_layout(&self) -> &DockState<Panel> {
+        match self.layout_choice {
+            LayoutChoice::Standard => &self.other_dock,
+            LayoutChoice::UvEdit => &self.dock,
+        }
+    }
+
+    /// Gives the workbench the UV Edit layout saved last session, if any.
+    pub fn with_uv_layout(mut self, saved: Option<DockState<Panel>>) -> Self {
+        let restored = crate::layout::restore_uv_layout(saved);
+        match self.layout_choice {
+            LayoutChoice::Standard => self.other_dock = restored,
+            LayoutChoice::UvEdit => self.dock = restored,
+        }
+        self
+    }
+
+    /// The layout in use.
+    pub fn layout_choice(&self) -> LayoutChoice {
+        self.layout_choice
+    }
+
+    /// Switches to `choice`, each layout keeping its own arrangement. The
+    /// UV Edit layout works in the UV mode (unless editing points, edges
+    /// or polygons); leaving it leaves the UV mode.
+    pub fn switch_layout(&mut self, choice: LayoutChoice) {
+        if choice == self.layout_choice {
+            return;
+        }
+        std::mem::swap(&mut self.dock, &mut self.other_dock);
+        self.layout_choice = choice;
+        self.fit_pending = true;
+        match choice {
+            LayoutChoice::UvEdit if matches!(self.mode, Mode::Model | Mode::Object) => {
+                if self.tool.has_settings() {
+                    self.set_tool(Tool::Select);
+                }
+                self.mode = Mode::Uv;
+            }
+            LayoutChoice::Standard if self.mode == Mode::Uv => self.mode = Mode::Model,
+            _ => {}
+        }
+    }
+
+    /// Shows the UV Editor in this layout, or puts it away (Window menu).
+    pub fn toggle_uv_editor(&mut self) {
+        let shown = crate::layout::toggle_uv_editor(&mut self.dock);
+        self.note = Some(if shown {
+            "UV Editor shown beside the viewport. Window → UV Editor puts it away.".into()
+        } else {
+            "UV Editor put away. Window → UV Editor brings it back.".into()
+        });
     }
 
     /// The text for the window's title bar.
@@ -463,7 +549,10 @@ impl Workbench {
 
     /// Puts every panel back in its standard place (View → Reset panel layout).
     pub fn reset_layout(&mut self) {
-        self.dock = default_layout();
+        self.dock = match self.layout_choice {
+            LayoutChoice::Standard => default_layout(),
+            LayoutChoice::UvEdit => crate::layout::uv_edit_layout(),
+        };
         self.fit_pending = true;
         self.note = Some("Panel layout reset to the standard arrangement.".into());
     }
@@ -1031,8 +1120,12 @@ impl Workbench {
         self.attributes.tool = self.tool;
         self.attributes.polygons_selected = self.polygons_selected_for_attributes();
         self.note_right_press(ui.ctx());
+        // Over the UV Editor, H and Z frame there (keys stay the same,
+        // decision 0095).
+        self.uv_editor.take_keys(ui.ctx());
         hide_viewport_tab(&mut self.dock);
         let mut modifier_pick = None;
+        let view_options = self.viewport.options();
         let style = theme::dock_style(ui.style().as_ref(), self.accent);
         theme::dock_frame().show(ui, |ui| {
             DockArea::new(&mut self.dock)
@@ -1053,6 +1146,10 @@ impl Workbench {
                         objects: &mut self.objects,
                         layers: &mut self.layers,
                         modifier_pick: &mut modifier_pick,
+                        uv_editor: &mut self.uv_editor,
+                        mode: self.mode,
+                        navigation: view_options.navigation,
+                        select_keys: view_options.select_keys,
                         attributes: &mut self.attributes,
                         units: &mut self.units,
                         requests: &mut requests,
@@ -1087,6 +1184,7 @@ impl Workbench {
                 hard_edges: !options.hide_hard_edges,
                 by_angle: options.auto_hard_angle(),
                 normals: options.show_normals,
+                seams: options.show_seams || self.mode == Mode::Uv,
             },
         );
         if overlay.version != shown {
@@ -1453,7 +1551,7 @@ impl Workbench {
             ui.label(format!(
                 "{} mode: {}.{selected}{elements}{hidden}{under}",
                 self.mode.name(),
-                self.mode.description().to_lowercase()
+                lower_first(self.mode.description())
             ));
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 let note = match self.note.as_deref() {
@@ -1691,8 +1789,18 @@ impl Workbench {
             }
         });
         crate::dialog::menu(ui, "Window", |ui| {
-            ui.add_enabled(false, egui::Button::new("UV Editor panel"))
-                .on_disabled_hover_text("Arrives in Phase 7");
+            let shown = self.dock.find_tab(&Panel::UvEditor).is_some();
+            if ui
+                .add(egui::Button::selectable(shown, UV_EDITOR_ENTRY))
+                .on_hover_text(
+                    "Show the UV Editor beside the viewport, or put it away. The UV Edit layout \
+                     (top right) always has it.",
+                )
+                .clicked()
+            {
+                self.toggle_uv_editor();
+                ui.close();
+            }
         });
         crate::dialog::menu(ui, "Help", |ui| {
             if ui
@@ -1715,9 +1823,24 @@ impl Workbench {
         });
         self.keys_button(ui);
         let unsaved = self.has_unsaved_changes();
-        layout_tabs(ui, &self.file.name(), unsaved);
+        if let Some(choice) = layout_tabs(ui, &self.file.name(), unsaved, self.layout_choice) {
+            self.switch_layout(choice);
+        }
     }
 }
+
+/// `text` with its first letter small, for the middle of a sentence
+/// (names such as UV keep their capitals).
+fn lower_first(text: &str) -> String {
+    let mut chars = text.chars();
+    match chars.next() {
+        Some(first) => first.to_lowercase().chain(chars).collect(),
+        None => String::new(),
+    }
+}
+
+/// The Window menu's entry for the UV Editor.
+pub(crate) const UV_EDITOR_ENTRY: &str = "UV Editor";
 
 /// How many polygons Help → Add a heavy test shape makes.
 pub(crate) const HEAVY_TEST_POLYGONS: usize = 3_000_000;
@@ -1789,15 +1912,22 @@ pub fn navigation_hint(scheme: tools::Scheme) -> String {
 
 /// The layout tabs on the right of the menu bar. Only the standard layout
 /// exists so far; the others are shown greyed out with when they arrive.
-fn layout_tabs(ui: &mut Ui, project: &str, unsaved: bool) {
+fn layout_tabs(
+    ui: &mut Ui,
+    project: &str,
+    unsaved: bool,
+    current: LayoutChoice,
+) -> Option<LayoutChoice> {
     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
         ui.spacing_mut().item_spacing.x = 16.0;
         ui.add_space(6.0);
         let tabs = LAYOUTS.iter().rev().collect::<Vec<_>>();
-        layout_tab_labels(ui, &tabs);
+        let picked = layout_tab_labels(ui, &tabs, current);
         ui.add_space(12.0);
         project_badge(ui, project, unsaved);
-    });
+        picked
+    })
+    .inner
 }
 
 /// The project's name in the menu bar, with a badge in the accent colour
@@ -1840,15 +1970,21 @@ fn project_badge(ui: &mut Ui, project: &str, unsaved: bool) {
     .on_hover_text("The project open now");
 }
 
-/// The layout tabs themselves, right to left.
-fn layout_tab_labels(ui: &mut Ui, tabs: &[&(&str, Option<&str>)]) {
-    for (name, coming) in tabs.iter().copied() {
-        match coming {
-            None => {
+/// The layout tabs themselves, right to left. Returns the one clicked.
+fn layout_tab_labels(
+    ui: &mut Ui,
+    tabs: &[&(&str, Result<LayoutChoice, &str>, &str)],
+    current: LayoutChoice,
+) -> Option<LayoutChoice> {
+    let mut picked = None;
+    for (name, layout, help) in tabs.iter().copied() {
+        match layout {
+            Ok(choice) if *choice == current => {
                 let accent = theme::accent(ui.ctx()).colors();
                 let response = ui.add(
                     egui::Label::new(egui::RichText::new(*name).color(theme::TEXT_STRONG))
-                        .selectable(false),
+                        .selectable(false)
+                        .sense(egui::Sense::click()),
                 );
                 let rect = response.rect;
                 ui.painter().hline(
@@ -1856,14 +1992,32 @@ fn layout_tab_labels(ui: &mut Ui, tabs: &[&(&str, Option<&str>)]) {
                     rect.bottom() + 3.0,
                     egui::Stroke::new(2.0, accent.light),
                 );
-                response.on_hover_text("The layout in use");
+                response
+                    .on_hover_text(format!("{help} (in use)"))
+                    .widget_info(|| {
+                        egui::WidgetInfo::selected(egui::WidgetType::Button, true, true, *name)
+                    });
             }
-            Some(when) => {
+            Ok(choice) => {
+                let response = ui.add(
+                    egui::Label::new(egui::RichText::new(*name).color(theme::TEXT_WEAK))
+                        .selectable(false)
+                        .sense(egui::Sense::click()),
+                );
+                response.widget_info(|| {
+                    egui::WidgetInfo::selected(egui::WidgetType::Button, true, false, *name)
+                });
+                if response.on_hover_text(*help).clicked() {
+                    picked = Some(*choice);
+                }
+            }
+            Err(when) => {
                 ui.add_enabled(false, egui::Label::new(*name).selectable(false))
                     .on_disabled_hover_text(*when);
             }
         }
     }
+    picked
 }
 
 /// Menu entries for commands from the command list, each with its key;
@@ -1912,6 +2066,10 @@ struct PanelViewer<'a> {
     layers: &'a mut crate::layers::LayersPanel,
     /// What was picked on the modifiers palette this frame.
     modifier_pick: &'a mut Option<crate::layers::ModifierPick>,
+    uv_editor: &'a mut crate::uv_editor::UvEditor,
+    mode: Mode,
+    navigation: tools::NavigationSettings,
+    select_keys: crate::selecting::SelectKeys,
     attributes: &'a mut AttributesPanel,
     units: &'a mut Units,
     requests: &'a mut Vec<DocRequest>,
@@ -1975,6 +2133,35 @@ impl TabViewer for PanelViewer<'_> {
             Panel::EditLayers => menu_line_with(ui, |ui| {
                 self.layers.menus(ui, self.document, self.requests);
             }),
+            Panel::UvEditor => {
+                menu_line_with(ui, |ui| {
+                    crate::dialog::menu(ui, "View", |ui| {
+                        for what in [
+                            crate::uv_editor::UvFrame::Square,
+                            crate::uv_editor::UvFrame::Selected,
+                        ] {
+                            if ui
+                                .add(
+                                    egui::Button::new(what.label())
+                                        .shortcut_text(what.key().name()),
+                                )
+                                .clicked()
+                            {
+                                self.uv_editor.frame(what);
+                                ui.close();
+                            }
+                        }
+                    });
+                });
+                // Edge to edge, like the viewport.
+                let cx = crate::uv_editor::UvContext {
+                    mode: self.mode,
+                    navigation: &self.navigation,
+                    select_keys: self.select_keys,
+                };
+                self.uv_editor.show(ui, self.document, &cx);
+                return;
+            }
             Panel::Viewport | Panel::Coordinates => {}
         }
         egui::Frame::new()
@@ -1994,6 +2181,7 @@ impl TabViewer for PanelViewer<'_> {
                         self.requests,
                     );
                 }
+                Panel::UvEditor => {}
                 Panel::Coordinates => {
                     *self.coordinates_done =
                         crate::coordinates::show(ui, *self.units, &self.coordinates);
@@ -2019,13 +2207,13 @@ impl TabViewer for PanelViewer<'_> {
     }
 
     fn clear_background(&self, tab: &Panel) -> bool {
-        // The viewport paints its own background.
-        *tab != Panel::Viewport
+        // The viewport and the UV Editor paint their own backgrounds.
+        !matches!(tab, Panel::Viewport | Panel::UvEditor)
     }
 
     fn scroll_bars(&self, tab: &Panel) -> [bool; 2] {
-        // The viewport fills its panel exactly.
-        if *tab == Panel::Viewport {
+        // The viewport and the UV Editor fill their panels exactly.
+        if matches!(tab, Panel::Viewport | Panel::UvEditor) {
             [false, false]
         } else {
             [true, true]
@@ -2089,6 +2277,8 @@ mod slit_tests;
 #[cfg(test)]
 mod symmetry_tests;
 mod transform;
+#[cfg(test)]
+mod uv_editor_tests;
 
 #[cfg(test)]
 mod autosave_tests;

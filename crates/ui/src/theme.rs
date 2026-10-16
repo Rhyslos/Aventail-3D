@@ -449,6 +449,21 @@ pub fn contrast(a: Color32, b: Color32) -> f32 {
     (light + 0.05) / (dark + 0.05)
 }
 
+// ------------------------------------------------------------ UV Editor ---
+
+/// The UV Editor around the texture square (decision 0096).
+pub const UV_BACKGROUND: Color32 = Color32::from_rgb(0x26, 0x26, 0x26);
+/// The texture square itself: a little lighter, so it reads as the page.
+pub const UV_SQUARE: Color32 = Color32::from_rgb(0x31, 0x31, 0x31);
+/// The texture square's edge.
+pub const UV_SQUARE_EDGE: Color32 = Color32::from_rgb(0x6a, 0x6a, 0x6a);
+/// The grid inside the square, every tenth.
+pub const UV_GRID: Color32 = Color32::from_rgba_premultiplied(0x18, 0x18, 0x18, 0x18);
+/// A UV edge inside an island.
+pub const UV_EDGE: Color32 = Color32::from_rgba_premultiplied(0x9a, 0x9a, 0x9a, 0xb4);
+/// An island's border (a seam or the shape's open edge): brighter.
+pub const UV_BORDER: Color32 = Color32::from_rgb(0xe6, 0xe6, 0xe6);
+
 #[cfg(test)]
 mod tests {
     use super::*;

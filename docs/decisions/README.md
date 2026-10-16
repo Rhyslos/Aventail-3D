@@ -59,6 +59,7 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0049](0049-slit.md) | Slit: a line of points over the shape, cut as seen (or through); file format version 7 | Accepted |
 | [0050](0050-pipe-bends.md) | Pipe bends: an extrude that turns a corner and keeps its size (smooth elbow or mitre joint); file format version 8 | Accepted |
 | [0051](0051-connect-bridge-weld.md) | Connect (J), Bridge (C or drag) and Weld (M, Ctrl + M); file format version 9 | Accepted |
+| [0096](0096-uv-editor.md) | The UV Editor (selected objects' UVs, one selection with the viewport, H/Z where the mouse is), the UV mode (whole islands, no 3D gizmo), the UV Edit layout tab and Window → UV Editor, seams in orange | Accepted |
 | [0095](0095-uvs-before-advanced-modelling.md) | UVs (now Phase 7) before advanced hard-surface (now Phase 8); every primitive comes unwrapped with seams; the UV Editor uses the viewport's navigation and keys; keys the same everywhere and the E menu in every area, context-sensitive | Accepted |
 | [0094](0094-quad-menu.md) | An optional quad menu: a right-click in the viewport (off as standard, Settings → Interface) opens Show, Modes, Edit and the current mode's Tools around the mouse; never on a right-click that ends something | Accepted |
 | [0093](0093-snap-to-and-align.md) | Snap to (pivot onto a clicked object's pivot) and Align (a live window: world axes, Lowest / Middle / Pivot / Highest of each, turn to match); one way to pick a target for Pivot to object, Snap to and Align; in the Tools menu, no keys | Accepted |

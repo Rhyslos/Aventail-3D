@@ -50,6 +50,9 @@ const WIREFRAME_FAINTEST: f32 = 0.3;
 /// the plain edges, linear space.
 const HARD_LINE: [f32; 4] = [0.25, 0.75, 0.95, 1.0];
 const HARD_LINE_WIDTH: f32 = 2.5;
+/// Seams (Display → Seams, and the UV mode): orange, as thick as hard
+/// edges, drawn over them where both are, linear space.
+const SEAM_LINE: [f32; 4] = [1.0, 0.36, 0.05, 1.0];
 /// Normals (Display → Normals): light violet, thin.
 const NORMAL_LINE: [f32; 4] = [0.6, 0.5, 1.0, 1.0];
 const NORMAL_LINE_WIDTH: f32 = 1.5;
@@ -70,15 +73,17 @@ fn overlay_geometry(overlay: &ComponentOverlay, accent: [f32; 3]) -> Overlay {
             OverlayStyle::Selected => out.line(*a, *b2, SELECTED_LINE_WIDTH, selected),
             OverlayStyle::Hovered => out.line(*a, *b2, HOVERED_LINE_WIDTH, hovered),
             OverlayStyle::Hard => out.line(*a, *b2, HARD_LINE_WIDTH, HARD_LINE),
+            OverlayStyle::Seam => out.line(*a, *b2, HARD_LINE_WIDTH, SEAM_LINE),
             OverlayStyle::Normal => out.line(*a, *b2, NORMAL_LINE_WIDTH, NORMAL_LINE),
         }
     }
     for (triangle, style) in &overlay.tints {
         let color = match style {
             OverlayStyle::Hovered => [hovered[0], hovered[1], hovered[2], HOVERED_TINT],
-            OverlayStyle::Selected | OverlayStyle::Hard | OverlayStyle::Normal => {
-                [r, g, b, SELECTED_TINT]
-            }
+            OverlayStyle::Selected
+            | OverlayStyle::Hard
+            | OverlayStyle::Seam
+            | OverlayStyle::Normal => [r, g, b, SELECTED_TINT],
         };
         out.triangle(*triangle, color);
     }
@@ -87,6 +92,7 @@ fn overlay_geometry(overlay: &ComponentOverlay, accent: [f32; 3]) -> Overlay {
             OverlayStyle::Selected => out.point(*at, SELECTED_POINT_SIZE, selected),
             OverlayStyle::Hovered => out.point(*at, HOVERED_POINT_SIZE, hovered),
             OverlayStyle::Hard => out.point(*at, SELECTED_POINT_SIZE, HARD_LINE),
+            OverlayStyle::Seam => out.point(*at, SELECTED_POINT_SIZE, SEAM_LINE),
             OverlayStyle::Normal => out.point(*at, POINT_SIZE, NORMAL_LINE),
         }
     }

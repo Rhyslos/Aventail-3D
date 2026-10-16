@@ -381,6 +381,12 @@ impl Workbench {
 
     /// Places the gizmo for this frame.
     pub(super) fn place_gizmo(&mut self, drawing: &SceneDrawing) {
+        // The UV mode moves UVs, not the shape: its gizmo is the UV
+        // Editor's (the next milestone, decision 0096).
+        if self.mode == crate::palette::Mode::Uv {
+            self.viewport.set_gizmo(None);
+            return;
+        }
         let gizmo = self
             .tool
             .gizmo()
