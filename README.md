@@ -269,6 +269,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-16 | The UV menu tidied into groups: Seams, Turn and flip, Lay out, Pieces and Settings |
 | 2026-10-16 | Locked pieces and per-piece unwrap settings; the rest of Phase 8 planned in detail ([docs/plans/phase-8.md](docs/plans/phase-8.md)) |
 | 2026-10-16 | Seam preferences (prefer, never) and stretch budgets, obeyed by Suggest seams and Unwrap |
 | 2026-10-16 | Every setting of the automatic UV tools in the UV menu, kept with each edit; the same model and settings always give the same UVs |

@@ -22,7 +22,7 @@ These settings are saved with the project. Changing them doesn't move your UVs; 
 
 **Change density:**
 1. Select pieces (UV mode), polygons or whole objects.
-2. Choose **UV → Set texel density** to scale each piece to the aim, or **UV → Match texel density** to give them all the same density (the average of theirs). Each piece is scaled about its own middle.
+2. Choose **UV → Lay out → Set texel density** to scale each piece to the aim, or **UV → Lay out → Match texel density** to give them all the same density (the average of theirs). Each piece is scaled about its own middle.
 3. It's one undo step, and recorded on the object's edit list.
 
 Unwrapping already keeps an object's pieces at one density (see [Unwrap](unwrapping.md)); use these to bring a whole object, or several objects, to the aim.

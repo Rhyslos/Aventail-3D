@@ -2079,6 +2079,36 @@ impl Workbench {
     /// The UV menu: the seam tools, turns and flips, and what is coming,
     /// from the command list (decision 0098).
     fn uv_menu_entries(&mut self, ui: &mut Ui, requests: &mut Vec<DocRequest>) {
+        ui.menu_button(UV_SEAMS_MENU, |ui| self.uv_seams_entries(ui, requests))
+            .response
+            .on_hover_text("Mark, clear, suggest and select seams, and say where they may go");
+        ui.menu_button(UV_TURN_MENU, |ui| self.uv_turn_entries(ui, requests))
+            .response
+            .on_hover_text("Quarter turns and mirrors of the selected UVs");
+        ui.menu_button(UV_LAY_OUT_MENU, |ui| self.uv_lay_out_entries(ui, requests))
+            .response
+            .on_hover_text("Unwrap, relax, straighten, pack, texel density and trim rows");
+        ui.menu_button(UV_PIECES_MENU, |ui| self.uv_pieces_entries(ui, requests))
+            .response
+            .on_hover_text(
+                "Pin UVs, lock pieces, and give pieces settings and budgets of their own",
+            );
+        ui.separator();
+        ui.menu_button("Texture", |ui| {
+            crate::uv_editor::texture_menu(ui, &mut self.document);
+        });
+        ui.menu_button("Trim sheet", |ui| {
+            crate::uv_editor::trim_menu(ui, &mut self.document);
+        });
+        self.bake_entry(ui);
+        ui.separator();
+        ui.menu_button(UV_SETTINGS_MENU, |ui| self.automation_menus(ui))
+            .response
+            .on_hover_text("Every setting of the automatic UV tools");
+    }
+
+    /// UV → Seams.
+    fn uv_seams_entries(&mut self, ui: &mut Ui, requests: &mut Vec<DocRequest>) {
         use crate::commands::CommandId;
         if let Some(command) = commands_entries(ui, &[CommandId::MarkSeam, CommandId::ClearSeam]) {
             self.run_command(command, ui.ctx(), requests);
@@ -2106,6 +2136,7 @@ impl Workbench {
                 ui.close();
             }
         }
+        ui.separator();
         for (label, help, preference) in [
             (
                 seam_preferences::PREFER_LABEL,
@@ -2128,10 +2159,11 @@ impl Workbench {
                 ui.close();
             }
         }
-        ui.menu_button(seam_preferences::BUDGET_LABEL, |ui| self.budget_menu(ui))
-            .response
-            .on_hover_text("Give the selected pieces a stretch budget of their own");
-        ui.separator();
+    }
+
+    /// UV → Turn and flip.
+    fn uv_turn_entries(&mut self, ui: &mut Ui, requests: &mut Vec<DocRequest>) {
+        use crate::commands::CommandId;
         if let Some(command) = commands_entries(
             ui,
             &[
@@ -2144,7 +2176,11 @@ impl Workbench {
             self.run_command(command, ui.ctx(), requests);
             ui.close();
         }
-        ui.separator();
+    }
+
+    /// UV → Lay out.
+    fn uv_lay_out_entries(&mut self, ui: &mut Ui, requests: &mut Vec<DocRequest>) {
+        use crate::commands::CommandId;
         if let Some(command) = commands_entries(ui, &[CommandId::Unwrap]) {
             self.run_command(command, ui.ctx(), requests);
             ui.close();
@@ -2174,10 +2210,36 @@ impl Workbench {
             ui.close();
         }
         ui.separator();
+        for (label, help, to_aim) in [
+            (
+                unwrapping::SET_DENSITY_LABEL,
+                unwrapping::SET_DENSITY_HELP,
+                true,
+            ),
+            (
+                unwrapping::MATCH_DENSITY_LABEL,
+                unwrapping::MATCH_DENSITY_HELP,
+                false,
+            ),
+        ] {
+            if ui.button(label).on_hover_text(help).clicked() {
+                self.run_texel_density(to_aim);
+                ui.close();
+            }
+        }
+        ui.menu_button(unwrapping::PUT_ON_TRIM_LABEL, |ui| {
+            self.put_on_trim_menu(ui);
+        });
+    }
+
+    /// UV → Pieces.
+    fn uv_pieces_entries(&mut self, ui: &mut Ui, requests: &mut Vec<DocRequest>) {
+        use crate::commands::CommandId;
         if let Some(command) = commands_entries(ui, &[CommandId::UvPin, CommandId::UvUnpin]) {
             self.run_command(command, ui.ctx(), requests);
             ui.close();
         }
+        ui.separator();
         for (label, help, lock) in [
             (piece_settings::LOCK_LABEL, piece_settings::LOCK_HELP, true),
             (
@@ -2196,38 +2258,18 @@ impl Workbench {
         })
         .response
         .on_hover_text("Give the selected pieces their own unwrap settings");
-        ui.separator();
-        for (label, help, to_aim) in [
-            (
-                unwrapping::SET_DENSITY_LABEL,
-                unwrapping::SET_DENSITY_HELP,
-                true,
-            ),
-            (
-                unwrapping::MATCH_DENSITY_LABEL,
-                unwrapping::MATCH_DENSITY_HELP,
-                false,
-            ),
-        ] {
-            if ui.button(label).on_hover_text(help).clicked() {
-                self.run_texel_density(to_aim);
-                ui.close();
-            }
-        }
-        ui.menu_button("Texture", |ui| {
-            crate::uv_editor::texture_menu(ui, &mut self.document);
-        });
-        ui.menu_button("Trim sheet", |ui| {
-            crate::uv_editor::trim_menu(ui, &mut self.document);
-        });
-        ui.menu_button(unwrapping::PUT_ON_TRIM_LABEL, |ui| {
-            self.put_on_trim_menu(ui);
-        });
-        self.bake_entry(ui);
-        ui.separator();
-        self.automation_menus(ui);
+        ui.menu_button(seam_preferences::BUDGET_LABEL, |ui| self.budget_menu(ui))
+            .response
+            .on_hover_text("Give the selected pieces a stretch budget of their own");
     }
 }
+
+/// The UV menu's groups (the project lead's choice, decision 0113).
+pub(crate) const UV_SEAMS_MENU: &str = "Seams";
+pub(crate) const UV_TURN_MENU: &str = "Turn and flip";
+pub(crate) const UV_LAY_OUT_MENU: &str = "Lay out";
+pub(crate) const UV_PIECES_MENU: &str = "Pieces";
+pub(crate) const UV_SETTINGS_MENU: &str = "Settings";
 
 /// Menus whose commands are not built yet: each lists what is coming and
 /// when, greyed out.

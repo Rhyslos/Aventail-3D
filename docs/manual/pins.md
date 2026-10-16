@@ -17,7 +17,7 @@ If you just want a whole piece left alone, wait for **Lock a piece** (coming in 
 ## How to use it
 
 1. In the UV Editor, pick the **Points**, **Edges** or **Polygons** mode (press **1**, **2** or **3**) or the **UV** mode, and select the UVs to hold.
-2. Press **E** with the mouse over the UV Editor and choose **Pin** (or **UV → Pin**). The pinned UVs show as **magenta dots** in the UV Editor, in every mode.
+2. Press **E** with the mouse over the UV Editor and choose **Pin** (or **UV → Pieces → Pin**). The pinned UVs show as **magenta dots** in the UV Editor, in every mode.
 3. Unwrap, Relax or Straighten as usual (see [Unwrap, Relax and Straighten](unwrapping.md)):
    - **two or more pins:** Unwrap lays the piece out around them. The pins don't move, and the piece keeps its place, size and turn. A mirrored piece stays mirrored;
    - **one pin:** the piece is unwrapped as usual, then moved so the pin is back where it was;
@@ -29,13 +29,13 @@ Pinning a point pins it in every piece it touches at that spot: the UVs that sit
 
 ## Settings
 
-None of their own. **UV → Unwrapping → Method** decides how the rest of the piece is laid out around the pins; see [Unwrap, Relax and Straighten](unwrapping.md#settings).
+None of their own. **UV → Settings → Unwrapping → Method** decides how the rest of the piece is laid out around the pins; see [Unwrap, Relax and Straighten](unwrapping.md#settings).
 
 ## Shortcuts
 
 | Action | Shortcut |
 |---|---|
-| Pin, Unpin | **E** over the UV Editor (or in the UV mode), or the **UV** menu |
+| Pin, Unpin | **E** over the UV Editor (or in the UV mode), or **UV → Pieces** |
 | Select UVs | **1**, **2**, **3** or the UV mode, then click or drag in the UV Editor |
 | Undo | **Ctrl + Z** |
 
@@ -46,7 +46,7 @@ No keys of their own (the project lead's choice); ask if you'd like some.
 - **Problem:** Pin says "select some UVs first". **Why:** pins go on UVs, which you select in the Points, Edges, Polygons or UV mode. **Fix:** press 1, 2 or 3 (or pick the UV mode) and select in the UV Editor.
 - **Problem:** after unwrapping with pins, the piece looks squashed. **Why:** pins far from where the piece would naturally lie force it to bend to reach them. **Fix:** move the pins (W in the UV Editor) to where they'd sit on an even piece, or pin fewer points.
 - **Problem:** a strip with pins didn't come out straight. **Why:** the pins win over straightening. **Fix:** Unpin, or use Straighten, which keeps only the first pin.
-- **Tip:** pin the two ends of a long strip, then **UV → Unfold across only**: the strip evens out along its length while every point keeps its height.
+- **Tip:** pin the two ends of a long strip, then **UV → Lay out → Unfold across only**: the strip evens out along its length while every point keeps its height.
 
 ## Related
 

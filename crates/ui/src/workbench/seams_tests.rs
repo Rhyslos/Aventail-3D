@@ -218,17 +218,27 @@ fn select_seams_selects_them_in_the_edges_mode() {
 #[test]
 fn the_uv_menu_holds_the_seam_tools() {
     let mut harness = plane(Key::Num2, |m| vec![Element::Edge(inner(m)[1])]);
+    // The UV menu shows its groups (decision 0113).
     main_menu(&harness, "UV").click();
     harness.run();
+    for group in [
+        super::UV_SEAMS_MENU,
+        super::UV_TURN_MENU,
+        super::UV_LAY_OUT_MENU,
+        super::UV_PIECES_MENU,
+        super::UV_SETTINGS_MENU,
+    ] {
+        assert!(harness.query_by_label_contains(group).is_some(), "{group}");
+    }
+    harness.key_press(Key::Escape);
+    harness.run();
+    super::tests::uv_group(&mut harness, super::UV_SEAMS_MENU);
     for label in [
         "Mark seams",
         "Clear seams",
         super::seams::SEAMS_FROM_HARD_LABEL,
         super::seams::SUGGEST_SEAMS_LABEL,
         super::seams::SELECT_SEAMS_LABEL,
-        "Turn left 90°",
-        "Unwrap",
-        "Pack",
     ] {
         assert!(harness.query_by_label(label).is_some(), "{label}");
     }
