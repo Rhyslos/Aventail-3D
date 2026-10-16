@@ -14,7 +14,7 @@ Whenever you want a tool and don't remember its key, or it doesn't have one. The
 
 Each tool's key is shown next to its button, so the menu teaches you the keys as you go. Once you know a key, pressing it directly is quicker. The menu is there for everything else.
 
-The modelling tools arrive one by one during Phase 4; built so far are Extrude, Inset, Bevel, [Loop cut](loop-cut.md), [Slit](slit.md), [Connect, Bridge and Weld](connect-bridge-weld.md), the [clean-up](clean-up.md) commands (Delete, Dissolve, Fill hole, Flip normals), and [Hard and soft edges](hard-and-soft-edges.md): every modelling command in the ring. In the Model mode the ring also has [Duplicate and Duplicate as instance](copies-and-instances.md) and [Join objects](split-and-join.md). Until a tool is built, its icon is dimmed, and choosing it says when it arrives.
+The modelling tools arrive one by one during Phase 4; built so far are Extrude, Inset, Bevel, [Groove](groove.md), [Loop cut](loop-cut.md), [Slit](slit.md), [Connect, Bridge and Weld](connect-bridge-weld.md), the [clean-up](clean-up.md) commands (Delete, Dissolve, Fill hole, Flip normals), and [Hard and soft edges](hard-and-soft-edges.md): every modelling command in the ring. In the Model mode the ring also has [Duplicate and Duplicate as instance](copies-and-instances.md) and [Join objects](split-and-join.md). Until a tool is built, its icon is dimmed, and choosing it says when it arrives.
 
 ![The tool menu in Edges mode](../screenshots/2026-10-13-tool-menu-edges.png)
 
@@ -29,7 +29,7 @@ The modelling tools arrive one by one during Phase 4; built so far are Extrude, 
 
 **The buttons show only icons.** The middle of the ring names the tool you point at. If it can't be used right now (Ungroup with no group selected, say), the reason shows under the cancel sign, in yellow; for a tool still to come, it says when it arrives.
 
-**Every tool keeps its place, and the ring never changes size.** Every mode's ring has the same 14 places. A tool that doesn't apply in a mode leaves its place empty rather than moving the others, so Extrude is always at the top, and Delete sits in the same place in every mode. The modelling ring is grouped:
+**Every tool keeps its place, and the ring never changes size.** Every mode's ring has the same 15 places. A tool that doesn't apply in a mode leaves its place empty rather than moving the others, so Extrude is always at the top, and Delete sits in the same place in every mode. The modelling ring is grouped:
 
 | Where | What |
 |---|---|
@@ -37,6 +37,7 @@ The modelling tools arrive one by one during Phase 4; built so far are Extrude, 
 | Right | Shading: Flip normals, Hard and Soft edges |
 | Bottom | Removing: Delete, Dissolve, Weld |
 | Left | Cutting and joining: Connect, Slit, Loop cut |
+| Top left | Groove |
 
 **Hold only, if you prefer.** As standard a tap of E opens the menu and keeps it open, so you can step through it with E and choose with Enter. That helps anyone who finds holding a key awkward. If you'd rather the menu only show while you hold E, switch off **Tap E to open** in Settings. A tap of E then does nothing. Hold E, point towards a tool and let go to use it, or let go anywhere else to close the menu without doing anything.
 
@@ -66,6 +67,7 @@ In **Edit → Settings… → Interface → Radial menu**:
 | Transform (all three gizmos) | `T` |
 | [Extrude](extrude-and-inset.md) / [inset](extrude-and-inset.md) | `D` / `I` |
 | [Bevel](bevel.md) | `V` |
+| [Groove](groove.md) | `K` |
 
 ## Tips and common problems
 

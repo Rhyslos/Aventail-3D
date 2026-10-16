@@ -109,6 +109,8 @@ pub enum Icon {
     Inset,
     /// Bevel: a corner cut off.
     Bevel,
+    /// Groove: a thin line cut into a surface.
+    Groove,
     /// Bridge: two pieces joined by a span.
     Bridge,
     /// Fill hole: an outline filled in.
@@ -144,7 +146,7 @@ pub enum Icon {
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 64] = [
+pub const ALL: [Icon; 65] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -189,6 +191,7 @@ pub const ALL: [Icon; 64] = [
     Icon::Extrude,
     Icon::Inset,
     Icon::Bevel,
+    Icon::Groove,
     Icon::Bridge,
     Icon::FillHole,
     Icon::FlipNormals,
@@ -999,6 +1002,30 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
                 ],
                 false,
                 Ink::Faint,
+            );
+        }
+        Icon::Groove => {
+            // A slab seen from the side, a groove cut into its top.
+            pen.stroke(
+                &[
+                    (3.0, 9.0),
+                    (10.0, 9.0),
+                    (10.0, 14.5),
+                    (14.0, 14.5),
+                    (14.0, 9.0),
+                    (21.0, 9.0),
+                ],
+                false,
+                Ink::Line,
+            );
+            pen.stroke(
+                &[(3.0, 9.0), (3.0, 19.0), (21.0, 19.0), (21.0, 9.0)],
+                false,
+                Ink::Faint,
+            );
+            pen.shape(
+                &[(10.0, 9.0), (14.0, 9.0), (14.0, 14.5), (10.0, 14.5)],
+                Paint::Solid,
             );
         }
         Icon::Bridge => {

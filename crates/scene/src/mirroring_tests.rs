@@ -455,3 +455,31 @@ fn the_middle_is_welded_only_when_asked() {
     let shape = doc.scene().evaluated(id).unwrap();
     assert!((shape.mesh.position(middle).unwrap().x - 0.05).abs() < 1e-5);
 }
+
+#[test]
+fn a_groove_is_cut_on_both_sides() {
+    let base = cube();
+    // The right face's top edge, at x = 50, z = 100.
+    let edge = *base
+        .edges()
+        .iter()
+        .find(|e| {
+            let (a, b) = e.ends();
+            let (pa, pb) = (base.position(a).unwrap(), base.position(b).unwrap());
+            pa.x > 49.0 && pb.x > 49.0 && pa.z > 99.0 && pb.z > 99.0
+        })
+        .unwrap();
+    let groove = Operation::Groove {
+        edges: vec![edge],
+        shape: crate::GrooveShape::default(),
+        stretch: Vec3::ONE,
+        anchors: None,
+    };
+    let one = after(groove.clone());
+    let both = after(mirrored(groove));
+    assert!(symmetrical(&both));
+    assert_eq!(
+        both.face_count() - base.face_count(),
+        2 * (one.face_count() - base.face_count())
+    );
+}

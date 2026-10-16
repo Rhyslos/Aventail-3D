@@ -2071,3 +2071,60 @@ fn every_measuring_edit_keeps_a_stretch_and_others_dont() {
     }
     assert!(!broken.numbers_are_real());
 }
+
+#[test]
+fn a_groove_is_recorded_named_and_changed_afterwards() {
+    let (mut doc, id) = with_a_cube();
+    let mesh = doc.scene().evaluated(id).unwrap().mesh;
+    let top: Vec<mesh::EdgeKey> = mesh
+        .edges()
+        .iter()
+        .filter(|e| {
+            let (a, b) = e.ends();
+            mesh.position(a).unwrap().z > 99.0 && mesh.position(b).unwrap().z > 99.0
+        })
+        .copied()
+        .collect();
+    let groove = Operation::Groove {
+        edges: top,
+        shape: crate::GrooveShape {
+            width: 4.0,
+            depth: -2.0,
+            sides: crate::GrooveSides::Straight,
+        },
+        stretch: Vec3::ONE,
+        anchors: None,
+    };
+    assert_eq!(groove.describe(), "Groove along 4 edges");
+    assert!(groove.keeps_stretch());
+    record(&mut doc, id, groove.clone());
+    let shape = doc.scene().evaluated(id).unwrap().mesh;
+    let r = mesh::MeshReport::new(&shape);
+    assert!(r.is_closed() && !r.has_problems(), "{r:?}");
+    assert!(shape.face_count() > mesh.face_count());
+    // Its settings: the depth as the distance, and the whole shape.
+    let settings = groove.settings().unwrap();
+    assert_eq!(settings.distance, Some(-2.0));
+    let ridge = groove.with(EditSettings {
+        distance: Some(3.0),
+        ..settings
+    });
+    assert_eq!(ridge.describe(), "Ridge along 4 edges");
+    let sloped = ridge.with(EditSettings {
+        groove: Some(crate::GrooveShape {
+            sides: crate::GrooveSides::Sloped,
+            ..crate::GrooveShape::default()
+        }),
+        distance: None,
+        ..EditSettings::default()
+    });
+    let Operation::Groove { shape: s, .. } = &sloped else {
+        panic!("a groove");
+    };
+    assert_eq!(s.sides, crate::GrooveSides::Sloped);
+    let mut broken = sloped.clone();
+    if let Operation::Groove { shape, .. } = &mut broken {
+        shape.width = f32::NAN;
+    }
+    assert!(!broken.numbers_are_real());
+}

@@ -54,6 +54,11 @@ impl Workbench {
                  away; back towards them to narrow it. Segments and Profile are in the \
                  Attributes panel. Shift for fine steps; Esc or a right click cancels."
                 .into(),
+            Tool::Groove => {
+                "Groove: drag into the surface to cut a groove along the selected edges, \
+                 or out of it for a ridge. Esc or a right click cancels."
+                    .into()
+            }
             Tool::LoopCut => "Loop cut: point at an edge to see the new loop, click to cut \
                  it, or press and drag along the edge to slide it into place. Cuts is in the \
                  Attributes panel. Esc or a right click cancels a drag."

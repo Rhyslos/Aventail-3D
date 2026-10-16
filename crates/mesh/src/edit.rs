@@ -19,6 +19,7 @@ pub use crate::extrude::{
     Bend, ExtrudeDirection, ExtrudeShape, Grouping, MAX_END_SIZE, MAX_EXTRUDE_STEPS, extrude_bent,
     extrude_bent_stretched, extrude_edges, extrude_polygons, extrude_shaped, inset_polygons,
 };
+pub use crate::groove::{GrooveShape, GrooveSides, groove_edges};
 pub use crate::hardness::{hard_edges_by_angle, set_hard_edges, sharp_edges};
 pub use crate::join::{
     bridge_edges, bridge_faces, connect_edges, connect_points, weld, weld_close,

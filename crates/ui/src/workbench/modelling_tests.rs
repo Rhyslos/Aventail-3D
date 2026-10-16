@@ -1030,3 +1030,50 @@ fn bevels_get_skew_even_width_overlaps_and_welding() {
     let report = mesh::MeshReport::new(&shape(&harness));
     assert!(report.is_closed() && !report.has_problems(), "{report:?}");
 }
+
+#[test]
+fn k_picks_groove_and_a_drag_cuts_in_or_raises_out() {
+    // Decision 0086: K in the Edges mode, Width and Sides in the panel,
+    // the drag sets the depth: into the surface a groove, out a ridge.
+    let mut harness = bevel_ready(Key::Num2, top_right_edge);
+    press(&mut harness, Modifiers::NONE, Key::K);
+    assert_eq!(harness.state().workbench.tool(), Tool::Groove);
+    assert!(note(&harness).starts_with("Groove:"), "{}", note(&harness));
+    for name in ["Groove width", "Sides"] {
+        assert!(harness.query_all_by_label(name).count() >= 1, "{name}");
+    }
+    harness.state_mut().workbench.attributes.groove.width = 4.0;
+    harness.run();
+    let middle = edge_middle(&harness);
+    // Down the screen: into the cube's top edge.
+    drag_by(&mut harness, middle, egui::vec2(-20.0, 40.0));
+    let Some(Operation::Groove { shape: s, .. }) = last_operation(&harness) else {
+        panic!("a groove: {:?}", last_operation(&harness));
+    };
+    assert!(s.depth < 0.0, "{}", s.depth);
+    assert!((s.width - 4.0).abs() < 1e-4);
+    let report = mesh::MeshReport::new(&shape(&harness));
+    assert!(report.is_closed() && !report.has_problems(), "{report:?}");
+    assert!(
+        harness
+            .query_by_label_contains("Last edit: Groove along 1 edge")
+            .is_some()
+    );
+    // Under Last edit: Depth, Groove width and Sides.
+    assert!(harness.query_all_by_label("Depth").count() >= 1);
+    // Up and out instead: a ridge.
+    press(&mut harness, Modifiers::NONE, Key::Z);
+    harness.state_mut().workbench.document_mut().undo();
+    harness.run();
+    let middle = edge_middle(&harness);
+    drag_by(&mut harness, middle, egui::vec2(20.0, -40.0));
+    let Some(Operation::Groove { shape: s, .. }) = last_operation(&harness) else {
+        panic!("a ridge");
+    };
+    assert!(s.depth > 0.0, "{}", s.depth);
+    // Groove only works on edges.
+    press(&mut harness, Modifiers::NONE, Key::Q);
+    press(&mut harness, Modifiers::NONE, Key::Num3);
+    press(&mut harness, Modifiers::NONE, Key::K);
+    assert!(note(&harness).contains("Edges mode"), "{}", note(&harness));
+}
