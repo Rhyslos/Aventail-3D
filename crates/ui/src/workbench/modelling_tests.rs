@@ -972,3 +972,61 @@ fn inset_shows_its_own_settings_not_the_last_extrudes() {
     assert_eq!(harness.query_all_by_label("Bend radius").count(), 0);
     assert!(harness.query_by_label("Inset").is_some());
 }
+
+#[test]
+fn bevels_get_skew_even_width_overlaps_and_welding() {
+    // Decision 0085: the rows are there before and after, a new bevel gets
+    // the standard settings, and changing one under Last edit remakes it.
+    let mut harness = bevel_ready(Key::Num2, top_right_edge);
+    for name in [
+        "Skew",
+        "Flip side",
+        "Even width",
+        "Stop at overlaps",
+        "Weld points",
+        "Weld distance",
+    ] {
+        assert!(harness.query_all_by_label(name).count() >= 1, "{name}");
+    }
+    harness.state_mut().workbench.attributes.bevel.options.skew = 0.5;
+    harness.run();
+    let from = edge_middle(&harness);
+    drag_by(&mut harness, from, egui::vec2(0.0, -60.0));
+    let Some(Operation::BevelEdges { shape: s, .. }) = last_operation(&harness) else {
+        panic!("a bevel");
+    };
+    assert_eq!(
+        s.options,
+        scene::BevelOptions {
+            skew: 0.5,
+            ..scene::BevelOptions::default()
+        }
+    );
+    // Even width off, under Last edit: one more undo step.
+    let steps = harness.state().workbench.document().undo_steps();
+    // (The row's label and its box share the name: the box is last.)
+    harness
+        .get_all_by_label("Even width")
+        .last()
+        .unwrap()
+        .click();
+    harness.run();
+    let Some(Operation::BevelEdges { shape: s, .. }) = last_operation(&harness) else {
+        panic!("a bevel");
+    };
+    assert!(!s.options.even);
+    assert_eq!(harness.state().workbench.document().undo_steps(), steps + 1);
+    // Flip side, too.
+    harness
+        .get_all_by_label("Flip side")
+        .last()
+        .unwrap()
+        .click();
+    harness.run();
+    let Some(Operation::BevelEdges { shape: s, .. }) = last_operation(&harness) else {
+        panic!("a bevel");
+    };
+    assert!(s.options.flip_side);
+    let report = mesh::MeshReport::new(&shape(&harness));
+    assert!(report.is_closed() && !report.has_problems(), "{report:?}");
+}

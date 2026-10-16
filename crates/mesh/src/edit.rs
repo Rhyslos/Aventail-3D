@@ -10,7 +10,7 @@
 //! Extruding and insetting are in [`crate::extrude`]; they are re-exported
 //! here so every operation is found in one place.
 
-pub use crate::bevel::{BevelShape, bevel_edges, bevel_points};
+pub use crate::bevel::{BevelOptions, BevelShape, bevel_edges, bevel_points};
 pub use crate::cleanup::{
     delete_elements, dissolve_edges, dissolve_faces, dissolve_points, fill_holes, fix_facing,
     flip_faces,
@@ -20,7 +20,9 @@ pub use crate::extrude::{
     extrude_bent_stretched, extrude_edges, extrude_polygons, extrude_shaped, inset_polygons,
 };
 pub use crate::hardness::{hard_edges_by_angle, set_hard_edges, sharp_edges};
-pub use crate::join::{bridge_edges, bridge_faces, connect_edges, connect_points, weld};
+pub use crate::join::{
+    bridge_edges, bridge_faces, connect_edges, connect_points, weld, weld_close,
+};
 pub use crate::loopcut::loop_cut;
 pub use crate::material::set_material;
 pub use crate::slide::{Slide, slide_points, slides_for};

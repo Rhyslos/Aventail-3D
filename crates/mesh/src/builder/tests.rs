@@ -270,6 +270,7 @@ fn bevelling_blends_corners_across_the_strip() {
         width: 10.0,
         segments: 2,
         profile: 0.0,
+        options: crate::bevel::BevelOptions::EARLIER,
     };
     let before = mesh.clone();
     bevel_edges(&mut mesh, &[edge], shape);

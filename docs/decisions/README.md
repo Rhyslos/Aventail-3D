@@ -59,6 +59,7 @@ Short notes on major technical choices: the problem, the options, the choice and
 | [0049](0049-slit.md) | Slit: a line of points over the shape, cut as seen (or through); file format version 7 | Accepted |
 | [0050](0050-pipe-bends.md) | Pipe bends: an extrude that turns a corner and keeps its size (smooth elbow or mitre joint); file format version 8 | Accepted |
 | [0051](0051-connect-bridge-weld.md) | Connect (J), Bridge (C or drag) and Weld (M, Ctrl + M); file format version 9 | Accepted |
+| [0085](0085-bevel-control.md) | Bevel control: even width, skew with flip side (following each chain of edges), stop at overlaps, weld new points within a distance; file format version 23 | Accepted |
 | [0084](0084-view-dice.md) | The view dice (faces, edges, corners; Ctrl + click the opposite side) replaces the corner axes; Ctrl while orbiting snaps to its views; Display → Switch to orthographic when clicking the dice | Accepted |
 | [0083](0083-groove-and-bevel-control.md) | Groove (K) and more control over Bevel (weld overlapping points, skew, even width, stop at overlaps); planned for right after the open pull requests | Accepted (planned) |
 | [0082](0082-edits-keep-their-shape-on-stretched-objects.md) | Extrudes, insets and bevels keep their shape on stretched objects, through one way to work any edit out as seen; file format version 22 | Accepted |

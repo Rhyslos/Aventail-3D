@@ -28,9 +28,20 @@
 //! points and polygons take the next ids in a fixed order, and points no
 //! polygon uses any more are deleted. Edges need a polygon on each side
 //! and points a single fan of polygons around them; others are skipped
-//! and counted. Bevels wider than the polygons around them cross over
-//! (clamping comes with the improved bevel in Phase 7), but never make
-//! points that aren't numbers.
+//! and counted. Bevels never make points that aren't numbers.
+//!
+//! **More control** ([`BevelOptions`], [decision 0085](../../../docs/decisions/0085-bevel-control.md)):
+//! - **Even width** sizes each edge's bevel by the angle its polygons
+//!   meet at, so every bevelled edge's new polygon is as wide as on a
+//!   right-angled edge, however flat or sharp the edge is.
+//! - **Skew** puts more of the bevel on one side of the edges than the
+//!   other; the side follows each chain of edges round, and
+//!   [`BevelOptions::flip_side`] swaps it.
+//! - **Stop at overlaps** makes the whole bevel only as wide as fits:
+//!   no corner goes more than halfway along an edge towards another
+//!   bevelled point, or most of the way along any other edge.
+//! - **Weld overlapping points** welds the new points that end up within
+//!   [`BevelOptions::weld_distance`] of each other (where bevels meet).
 
 use crate::builder::{Builder, CornerFrom, PointFrom};
 use crate::edit::Outcome;
@@ -52,13 +63,16 @@ const MAX_SLIDE: f32 = 0.95;
 /// The shape of a bevel.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct BevelShape {
-    /// How far the bevel reaches into each polygon, in the mesh's units.
+    /// How far the bevel reaches into each polygon, in the mesh's units
+    /// (with [`BevelOptions::even`], on a right-angled edge).
     pub width: f32,
     /// How many rows the strip has (1: a flat chamfer).
     pub segments: u32,
     /// Round (1), flat (0) or hollow (-1, curving inward), or anything
     /// between.
     pub profile: f32,
+    /// Even width, skew, stopping at overlaps and welding.
+    pub options: BevelOptions,
 }
 
 impl Default for BevelShape {
@@ -67,20 +81,98 @@ impl Default for BevelShape {
             width: 10.0,
             segments: 1,
             profile: 1.0,
+            options: BevelOptions::default(),
         }
     }
 }
 
 impl BevelShape {
     /// The shape brought within limits: width not below 0, 1 to
-    /// [`MAX_SEGMENTS`] rows, profile -1 to 1. `None` if a value isn't a
-    /// number.
+    /// [`MAX_SEGMENTS`] rows, profile -1 to 1, the options in range.
+    /// `None` if a value isn't a number.
     pub fn clamped(self) -> Option<Self> {
         (self.width.is_finite() && self.profile.is_finite()).then(|| Self {
             width: self.width.max(0.0),
             segments: self.segments.clamp(1, MAX_SEGMENTS),
             profile: self.profile.clamp(-1.0, 1.0),
+            options: self.options.clamped(),
         })
+    }
+}
+
+/// The most skew does: at full skew one side of an edge gets this much
+/// more of the width, the other this much less, so neither side ever
+/// shrinks to nothing.
+pub const SKEW_REACH: f32 = 0.9;
+
+/// The standard weld distance after a bevel, in the mesh's units (1 mm).
+pub const WELD_DISTANCE: f32 = 0.1;
+
+/// The most a bevel's weld distance can be, in the mesh's units (10 cm).
+pub const MAX_WELD_DISTANCE: f32 = 10.0;
+
+/// The narrowest an edge's bevel may be made by [`BevelOptions::even`],
+/// as the cosine of half the angle between its polygons' facings: very
+/// sharp edges (over about 150°) are treated as that sharp.
+const MIN_EVEN_COS: f32 = 0.25;
+
+/// More control over a bevel ([decision 0085](../../../docs/decisions/0085-bevel-control.md)).
+/// [`Default`] is what new bevels get; [`BevelOptions::EARLIER`] is how
+/// every bevel worked before, which bevels saved before file format 23
+/// keep.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct BevelOptions {
+    /// More of the bevel on one side of the edges: -1 to 1, 0 even.
+    pub skew: f32,
+    /// Swaps which side of the edges the skew favours.
+    pub flip_side: bool,
+    /// Every bevelled edge's new polygon as wide as on a right-angled
+    /// edge, whatever angle its polygons meet at.
+    pub even: bool,
+    /// The bevel only as wide as fits, so it never crosses over itself.
+    pub clamp: bool,
+    /// New points within [`Self::weld_distance`] of each other welded.
+    pub weld: bool,
+    /// How close points must be to weld, in the mesh's units.
+    pub weld_distance: f32,
+}
+
+impl Default for BevelOptions {
+    /// Even, stopping at overlaps and welding (the project lead's choice
+    /// for welding), with no skew.
+    fn default() -> Self {
+        Self {
+            skew: 0.0,
+            flip_side: false,
+            even: true,
+            clamp: true,
+            weld: true,
+            weld_distance: WELD_DISTANCE,
+        }
+    }
+}
+
+impl BevelOptions {
+    /// How every bevel worked before decision 0085: none of the options.
+    pub const EARLIER: Self = Self {
+        skew: 0.0,
+        flip_side: false,
+        even: false,
+        clamp: false,
+        weld: false,
+        weld_distance: WELD_DISTANCE,
+    };
+
+    /// The options in range: skew -1 to 1, weld distance 0 to
+    /// [`MAX_WELD_DISTANCE`]; values that aren't numbers as standard.
+    #[must_use]
+    pub fn clamped(self) -> Self {
+        let real = |x: f32, or: f32| if x.is_finite() { x } else { or };
+        Self {
+            skew: real(self.skew, 0.0).clamp(-1.0, 1.0),
+            weld_distance: real(self.weld_distance, WELD_DISTANCE).clamp(0.0, MAX_WELD_DISTANCE),
+            ..self
+        }
     }
 }
 
@@ -293,65 +385,118 @@ pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Out
     let mut build = Builder::new(&original, &mut out);
     let bevelled = |a: VertexId, b: VertexId| chosen.contains(&EdgeKey::new(a, b));
 
-    // 1. Where each polygon corner at a bevelled point goes.
-    let mut spots: BTreeMap<VertexId, Vec<Vec<Spot>>> = BTreeMap::new();
-    let mut slides: BTreeMap<VertexId, Slides> = BTreeMap::new();
-    for (v, (wedges, _)) in &fans {
-        let pv = original.position(*v).unwrap_or_default();
-        let mut asks = Slides::default();
-        let mut per_wedge = Vec::new();
-        for w in wedges {
-            let normal = original.face_normal(w.face);
-            let d_in = towards(&original, *v, w.before);
-            let d_out = towards(&original, *v, w.after);
-            let perp_in = d_in.cross(normal).normalize_or_zero();
-            let perp_out = normal.cross(d_out).normalize_or_zero();
-            let width = shape.width;
-            let spot = match (bevelled(w.before, *v), bevelled(*v, w.after)) {
-                (true, true) => {
-                    let sin = d_in.dot(perp_out);
-                    let offset = if sin.abs() < MIN_SIN {
-                        (perp_in + perp_out).normalize_or_zero() * width
-                    } else {
-                        d_in * over_sin(width, sin) + d_out * over_sin(width, d_out.dot(perp_in))
-                    };
-                    vec![Spot::At(pv + offset)]
-                }
-                (true, false) => {
-                    asks.ask(w.after, slide_by(width, d_out.dot(perp_in)));
-                    vec![Spot::Slide(w.after)]
-                }
-                (false, true) => {
-                    asks.ask(w.before, slide_by(width, d_in.dot(perp_out)));
-                    vec![Spot::Slide(w.before)]
-                }
-                (false, false) => vec![Spot::Slide(w.before), Spot::Stay, Spot::Slide(w.after)],
+    // 1. Where each polygon corner at a bevelled point goes, each edge's
+    // bevel as wide as its options make it on each side; stopping at
+    // overlaps, all of it narrowed until it fits.
+    let options = shape.options;
+    let sides = chain_sides(topology, &chosen, options.flip_side);
+    let edge_width = |edge: EdgeKey, face: FaceId| -> f32 {
+        let mut width = shape.width;
+        if options.even {
+            width *= even_factor(&original, topology, edge);
+        }
+        if options.skew != 0.0 {
+            let lean = options.skew * SKEW_REACH;
+            width *= if sides.get(&edge) == Some(&face) {
+                1.0 + lean
+            } else {
+                1.0 - lean
             };
-            per_wedge.push(spot);
         }
-        // A plain wedge keeps only the slides that happen, and the point
-        // itself unless slides on both sides replace it.
-        for spot in &mut per_wedge {
-            if spot.len() == 3 {
-                let (first, last) = match (spot[0], spot[2]) {
-                    (Spot::Slide(a), Spot::Slide(b)) => (asks.has(a), asks.has(b)),
-                    _ => (false, false),
-                };
-                let mut kept = Vec::new();
-                if first {
-                    kept.push(spot[0]);
-                }
-                if !(first && last) {
-                    kept.push(Spot::Stay);
-                }
-                if last {
-                    kept.push(spot[2]);
-                }
-                *spot = kept;
+        width
+    };
+    let plan = |scale: f32| {
+        let mut spots: BTreeMap<VertexId, Vec<Vec<Spot>>> = BTreeMap::new();
+        let mut slides: BTreeMap<VertexId, Slides> = BTreeMap::new();
+        // How much narrower the bevel must be to fit (1: it fits).
+        let mut fits = 1.0_f32;
+        let mut must_fit = |along: f32, from: VertexId, far: VertexId| {
+            let length = original
+                .position(from)
+                .zip(original.position(far))
+                .map_or(0.0, |(a, b)| a.distance(b));
+            let share = if fans.contains_key(&far) {
+                0.5
+            } else {
+                MAX_SLIDE
+            };
+            if along.abs() > 1e-9 && along.is_finite() {
+                fits = fits.min(length * share / along.abs());
             }
+        };
+        for (v, (wedges, _)) in &fans {
+            let pv = original.position(*v).unwrap_or_default();
+            let mut asks = Slides::default();
+            let mut per_wedge = Vec::new();
+            for w in wedges {
+                let normal = original.face_normal(w.face);
+                let d_in = towards(&original, *v, w.before);
+                let d_out = towards(&original, *v, w.after);
+                let perp_in = d_in.cross(normal).normalize_or_zero();
+                let perp_out = normal.cross(d_out).normalize_or_zero();
+                let w_in = edge_width(EdgeKey::new(w.before, *v), w.face) * scale;
+                let w_out = edge_width(EdgeKey::new(*v, w.after), w.face) * scale;
+                let spot = match (bevelled(w.before, *v), bevelled(*v, w.after)) {
+                    (true, true) => {
+                        let sin = d_in.dot(perp_out);
+                        let offset = if sin.abs() < MIN_SIN {
+                            (perp_in + perp_out).normalize_or_zero() * (w_in + w_out) * 0.5
+                        } else {
+                            let along_in = over_sin(w_out, sin);
+                            let along_out = over_sin(w_in, d_out.dot(perp_in));
+                            must_fit(along_in, *v, w.before);
+                            must_fit(along_out, *v, w.after);
+                            d_in * along_in + d_out * along_out
+                        };
+                        vec![Spot::At(pv + offset)]
+                    }
+                    (true, false) => {
+                        let along = slide_by(w_in, d_out.dot(perp_in));
+                        must_fit(along, *v, w.after);
+                        asks.ask(w.after, along);
+                        vec![Spot::Slide(w.after)]
+                    }
+                    (false, true) => {
+                        let along = slide_by(w_out, d_in.dot(perp_out));
+                        must_fit(along, *v, w.before);
+                        asks.ask(w.before, along);
+                        vec![Spot::Slide(w.before)]
+                    }
+                    (false, false) => {
+                        vec![Spot::Slide(w.before), Spot::Stay, Spot::Slide(w.after)]
+                    }
+                };
+                per_wedge.push(spot);
+            }
+            // A plain wedge keeps only the slides that happen, and the
+            // point itself unless slides on both sides replace it.
+            for spot in &mut per_wedge {
+                if spot.len() == 3 {
+                    let (first, last) = match (spot[0], spot[2]) {
+                        (Spot::Slide(a), Spot::Slide(b)) => (asks.has(a), asks.has(b)),
+                        _ => (false, false),
+                    };
+                    let mut kept = Vec::new();
+                    if first {
+                        kept.push(spot[0]);
+                    }
+                    if !(first && last) {
+                        kept.push(Spot::Stay);
+                    }
+                    if last {
+                        kept.push(spot[2]);
+                    }
+                    *spot = kept;
+                }
+            }
+            spots.insert(*v, per_wedge);
+            slides.insert(*v, asks);
         }
-        spots.insert(*v, per_wedge);
-        slides.insert(*v, asks);
+        (spots, slides, fits)
+    };
+    let (mut spots, mut slides, fits) = plan(1.0);
+    if options.clamp && fits < 1.0 {
+        (spots, slides, _) = plan(fits.max(0.0));
     }
 
     // 2. New points: meeting corners, then slides, point by point.
@@ -682,8 +827,93 @@ pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Out
     build
         .mesh()
         .remove_unused_vertices(&corners.keys().copied().collect::<Vec<_>>());
+    // 9. New points on top of each other (where bevels meet) become one.
+    if options.weld {
+        let new: Vec<VertexId> = out
+            .vertices()
+            .map(|(v, _)| v)
+            .filter(|v| original.position(*v).is_none())
+            .collect();
+        crate::join::weld_close(&mut out, &new, options.weld_distance);
+    }
     *mesh = out;
     outcome
+}
+
+/// How much wider (or narrower) [`BevelOptions::even`] makes `edge`'s
+/// bevel: its polygons' facings at an angle θ make its new polygon
+/// `2 cos(θ / 2)` times as wide as the bevel reaches, so the reach is set
+/// to give the new polygon a right-angled edge's width.
+fn even_factor(mesh: &Mesh, topology: &Topology, edge: EdgeKey) -> f32 {
+    let uses = topology.edge_uses(edge);
+    let [a, b] = [0, 1].map(|i| uses.get(i).map(|u| mesh.face_normal(u.face)));
+    let (Some(a), Some(b)) = (a, b) else {
+        return 1.0;
+    };
+    let cos = a.dot(b).clamp(-1.0, 1.0);
+    let half = ((1.0 + cos) * 0.5).sqrt();
+    if !half.is_finite() {
+        return 1.0;
+    }
+    std::f32::consts::FRAC_1_SQRT_2 / half.max(MIN_EVEN_COS)
+}
+
+/// The polygon on each bevelled edge's skewed side: along each chain of
+/// edges (joined at their points) the edges are followed one way round,
+/// and the side is the polygon that runs along each edge that way, so a
+/// loop's skew stays on one side all the way round. `flip` takes the
+/// other polygon.
+fn chain_sides(
+    topology: &Topology,
+    chosen: &BTreeSet<EdgeKey>,
+    flip: bool,
+) -> BTreeMap<EdgeKey, FaceId> {
+    let mut at: BTreeMap<VertexId, Vec<EdgeKey>> = BTreeMap::new();
+    for edge in chosen {
+        let (a, b) = edge.ends();
+        at.entry(a).or_default().push(*edge);
+        at.entry(b).or_default().push(*edge);
+    }
+    let mut way: BTreeMap<EdgeKey, (VertexId, VertexId)> = BTreeMap::new();
+    for start in chosen {
+        if way.contains_key(start) {
+            continue;
+        }
+        let mut queue = std::collections::VecDeque::from([(*start, start.ends())]);
+        while let Some((edge, (from, to))) = queue.pop_front() {
+            if way.contains_key(&edge) {
+                continue;
+            }
+            way.insert(edge, (from, to));
+            // Carry on from where this edge ends, and back from where it
+            // starts.
+            for (point, onward) in [(to, true), (from, false)] {
+                for next in at.get(&point).into_iter().flatten() {
+                    if way.contains_key(next) {
+                        continue;
+                    }
+                    let (a, b) = next.ends();
+                    let other = if a == point { b } else { a };
+                    queue.push_back((
+                        *next,
+                        if onward {
+                            (point, other)
+                        } else {
+                            (other, point)
+                        },
+                    ));
+                }
+            }
+        }
+    }
+    way.into_iter()
+        .filter_map(|(edge, (from, _))| {
+            let forward = from == edge.ends().0;
+            let uses = topology.edge_uses(edge);
+            let face = uses.iter().find(|u| u.forward == (forward != flip))?.face;
+            Some((edge, face))
+        })
+        .collect()
 }
 
 /// Bevels `points` by `width`: each is cut away, a point put `width`

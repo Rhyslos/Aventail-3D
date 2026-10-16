@@ -12,7 +12,6 @@
 
 use super::v1::{FileOperation, Problem};
 use super::v5::EntryWith;
-use super::v20::ProjectV20;
 use super::v21::OperationV21;
 use glam::Vec3;
 use scene::Operation;
@@ -20,7 +19,8 @@ use serde::{Deserialize, Serialize};
 
 /// Version 22 of the file: version 20's (and 21's), its edits stored as
 /// version 22's.
-pub(crate) type ProjectV22 = ProjectV20<EntryV22>;
+#[cfg(test)]
+pub(crate) type ProjectV22 = super::v20::ProjectV20<EntryV22>;
 
 /// A recorded edit in version 22.
 pub(crate) type EntryV22 = EntryWith<OperationV22>;
@@ -125,6 +125,7 @@ mod tests {
                     width: 2.0,
                     segments: 3,
                     profile: 0.5,
+                    options: mesh::edit::BevelOptions::EARLIER,
                 },
                 stretch,
                 anchors: None,
