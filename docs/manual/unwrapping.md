@@ -23,7 +23,7 @@ What **Unwrap** does with each piece holding the selection:
 - lays it flat along its seams. A piece that can't lie flat in one go (a tube, or a closed ball with no seam) is first cut open in a hidden place, and the cut is marked as a seam;
 - a piece of **square-cornered quads** (a cylinder's side, a bevel's strip, a flat panel) comes out as a **straight grid**, when **Straighten strips when unwrapping** is on;
 - turns it so its sides line up with the square, keeping the way it lay before (a quarter turn at a time);
-- sizes it to match the rest of the object, so every piece keeps its **real size** against the others (the same [texel density](concepts.md#uvs-and-texturing));
+- sizes it to match the rest of the object, so every piece keeps its **real size** against the others (the same [texel density](texture-and-density.md));
 - puts it where it was. Pieces may overlap until packing arrives.
 
 **Relax** moves only the corners of the selected polygons: each side is pulled towards its real length, so bunched or stretched UVs even out. The other corners stay where they are, so you can relax one area of a piece.
@@ -63,6 +63,7 @@ No keys of their own; ask if you'd like some.
 ## Related
 
 - [Seams](seams.md)
+- [Texture size and texel density](texture-and-density.md)
 - [The UV Editor and the UV mode](uv-editor.md)
 - [Editing UVs by hand](editing-uvs.md)
 - [Concepts: unwrapping, stretching, texel density](concepts.md#uvs-and-texturing)

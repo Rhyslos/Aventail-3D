@@ -44,6 +44,15 @@ pub(crate) const STRAIGHT_STRIPS_LABEL: &str = "Straighten strips when unwrappin
 pub(crate) const STRAIGHT_STRIPS_HELP: &str = "When on, a piece made only of square-cornered quads \
      (a cylinder's side, a bevel's strip) unwraps as a perfectly straight grid";
 
+/// The UV menu's names for setting and matching texel density, and what
+/// they do (decision 0100).
+pub(crate) const SET_DENSITY_LABEL: &str = "Set texel density";
+pub(crate) const SET_DENSITY_HELP: &str = "Scale the selected pieces (or whole objects) so each \
+     has the project's texel density (UV → Texture), each about its own middle";
+pub(crate) const MATCH_DENSITY_LABEL: &str = "Match texel density";
+pub(crate) const MATCH_DENSITY_HELP: &str = "Scale the selected pieces (or whole objects) so they \
+     share one texel density: the average of theirs";
+
 /// One of the three tools.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum UvTool {
@@ -183,6 +192,70 @@ impl Workbench {
                 _ => "",
             };
             self.note = Some(format!("{label}. Ctrl + Z takes it back.{extra}"));
+        }
+    }
+
+    /// Set texel density (`to_aim`: to the project's) or Match texel
+    /// density (to the average of the pieces'), as one undo step.
+    pub(crate) fn run_texel_density(&mut self, to_aim: bool) {
+        let name = if to_aim {
+            SET_DENSITY_LABEL
+        } else {
+            MATCH_DENSITY_LABEL
+        };
+        let shapes = self.own_shapes();
+        if shapes.is_empty() {
+            self.note = Some(format!("{name}: select the objects first."));
+            return;
+        }
+        let texture = self.document.scene().texture();
+        let chosen: Vec<(ObjectId, std::sync::Arc<scene::Mesh>, Vec<FaceId>)> = shapes
+            .into_iter()
+            .map(|(id, mesh)| {
+                let faces = targets(&mesh, self.document.elements(id), self.mode);
+                (id, mesh, faces)
+            })
+            .filter(|(_, mesh, faces)| !faces.is_empty() && mesh::uvs::has_uvs(mesh))
+            .collect();
+        let (mut flat, mut real) = (0.0, 0.0);
+        for (_, mesh, faces) in &chosen {
+            if let Some(uvs) = mesh::uvs::Uvs::of(mesh) {
+                let (f, r) = uv::density::areas(mesh, faces, &uvs);
+                flat += f;
+                real += r;
+            }
+        }
+        if flat <= 1e-20 || real <= 1e-20 {
+            self.note = Some(format!("{name}: the selection has no UVs to measure."));
+            return;
+        }
+        let density = if to_aim {
+            texture.uv_per_unit()
+        } else {
+            (flat / real).sqrt()
+        };
+        let mut count = 0;
+        let ops: Vec<(ObjectId, Operation)> = chosen
+            .into_iter()
+            .map(|(id, mesh, faces)| {
+                count += faces.len();
+                let anchors = anchors(&mesh, &faces);
+                (
+                    id,
+                    Operation::SetTexelDensity {
+                        faces,
+                        density,
+                        anchors,
+                    },
+                )
+            })
+            .collect();
+        let label = counted("Set the texel density of", count, "polygon");
+        if self.record_each(&label, ops) {
+            self.note = Some(format!(
+                "{label}: {:.0} px/m. Ctrl + Z takes it back.",
+                texture.pixels_per_metre(density)
+            ));
         }
     }
 

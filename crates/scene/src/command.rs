@@ -197,6 +197,9 @@ pub enum Command {
     /// it away (`None`). A folder path that is empty, too long or has
     /// line breaks is refused.
     SetExportTarget(Option<crate::ExportTarget>),
+    /// Changes the project's texture settings (decision 0100): its size
+    /// and the texel density aimed for. The UVs don't change.
+    SetTexture(crate::TextureSettings),
     /// Gives an object a new list of materials (decision 0074): names
     /// trimmed, at most `mesh::material::MAX_SLOTS`. A list with an empty
     /// name or a colour outside 0 to 1 is refused.
@@ -319,6 +322,7 @@ impl Command {
             },
             Self::SetExportTarget(Some(_)) => "Change the game project folder".to_string(),
             Self::SetExportTarget(None) => "Clear the game project folder".to_string(),
+            Self::SetTexture(_) => "Change the texture settings".to_string(),
             Self::MovePivots(changes) => match changes.len() {
                 1 => "Move pivot".to_string(),
                 n => format!("Move {n} pivots"),
@@ -1093,6 +1097,19 @@ impl Run<'_> {
                     self.edit(Edit::SetExportTarget {
                         before,
                         after: target.clone(),
+                    })?;
+                }
+                Ok(None)
+            }
+            Command::SetTexture(texture) => {
+                if !texture.is_valid() {
+                    return Err(SceneError::NotANumber);
+                }
+                let before = self.scene.texture();
+                if before != *texture {
+                    self.edit(Edit::SetTexture {
+                        before,
+                        after: *texture,
                     })?;
                 }
                 Ok(None)

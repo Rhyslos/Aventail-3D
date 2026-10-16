@@ -162,9 +162,9 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** stacking, toggling and editing earlier layers and edits feels right to the project lead.
 
-### Phase 7 · UVs — 5 of 12
+### Phase 7 · UVs — 6 of 12
 
-`█████░░░░░░░░` 42%
+`██████░░░░░░░` 50%
 
 One big phase, aiming to be the best UV tools around. Brought forward before advanced hard-surface at the project lead's request (2026-10-16): it needs nothing from that phase, and that phase's tools can then carry UVs from the start.
 
@@ -176,7 +176,7 @@ One big phase, aiming to be the best UV tools around. Brought forward before adv
 - [x] Editing UVs by hand: move, rotate, scale, turn and flip, with the E menu's UV tools
 - [x] Seams: marking, painting, from hard edges, and suggested seams in hidden places
 - [x] Live unwrap, relax and straighten, with hard-surface strips straightened automatically
-- [ ] Texture size and texel density as scene settings
+- [x] Texture size and texel density as scene settings
 - [ ] Packing: real-pixel padding, nesting, groups, texture sets, stacking identical parts
 - [ ] Checker texture, and a stretch heatmap with explained fixes
 - [ ] UV editing directly on the model
@@ -225,6 +225,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-16 | Texture size and texel density saved with the project; Set and Match texel density |
 | 2026-10-16 | Unwrap, live as seams change, with strips laid out straight; Relax and Straighten |
 | 2026-10-16 | Seams: mark and clear them, seams from hard edges, suggested seams in hidden places, and Select seams |
 | 2026-10-16 | Editing UVs by hand: the move, rotate and scale gizmo in the UV Editor, quarter turns and flips, and the UV tools on E over the editor |

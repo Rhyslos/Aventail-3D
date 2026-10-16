@@ -44,6 +44,7 @@ mod v28;
 mod v29;
 mod v3;
 mod v30;
+mod v31;
 mod v4;
 mod v5;
 mod v6;
@@ -59,7 +60,7 @@ use std::path::{Path, PathBuf};
 /// The signature every project file starts with.
 pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// The format version this app writes.
-pub const FORMAT_VERSION: u32 = 30;
+pub const FORMAT_VERSION: u32 = 31;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -161,8 +162,9 @@ fn edit_counts(document: &Document) -> usize {
 
 /// The project file's bytes for `document`, unchecked.
 fn encode(document: &Document) -> Result<Vec<u8>, ProjectError> {
-    let model = v30::ProjectV30::from_document(document);
+    let model = v31::ProjectV31::<v31::EntryV31>::from_document(document);
     let stored: usize = model
+        .project
         .project
         .project
         .project
@@ -264,7 +266,8 @@ pub fn from_bytes(bytes: &[u8]) -> Result<Document, ProjectError> {
         27 => decode_names::<v26::EntryV26>(encoded),
         28 => decode_names::<v28::EntryV28>(encoded),
         29 => decode_names::<v29::EntryV29>(encoded),
-        _ => decode_names::<v30::EntryV30>(encoded),
+        30 => decode_names::<v30::EntryV30>(encoded),
+        _ => decode_texture(encoded),
     }
 }
 
@@ -389,6 +392,30 @@ where
         ));
     }
     model
+        .project
+        .project
+        .project
+        .project
+        .places
+        .project
+        .project
+        .check_limits()
+        .map_err(ProjectError::Damaged)?;
+    model.into_document().map_err(ProjectError::Damaged)
+}
+
+/// Reads version 31 and later: version 27's model with version 31's
+/// edits, and the texture settings.
+fn decode_texture(encoded: &[u8]) -> Result<Document, ProjectError> {
+    let (model, rest): (v31::ProjectV31<v31::EntryV31>, &[u8]) =
+        crate::limits::within_budget(|| postcard::take_from_bytes(encoded)).map_err(unreadable)?;
+    if !rest.is_empty() {
+        return Err(ProjectError::Damaged(
+            "there is unexpected data after the scene".into(),
+        ));
+    }
+    model
+        .project
         .project
         .project
         .project

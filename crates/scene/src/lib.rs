@@ -38,7 +38,7 @@ pub use stack::{
     MAX_SHAPE_POLYGONS, Operation, Stack, StackWarning, frozen_count,
 };
 pub use tree::{Place, Scene, SceneError, stretch_of};
-pub use units::{ExportTarget, Units};
+pub use units::{ExportTarget, MAX_DENSITY, TEXTURE_SIZES, TextureSettings, Units};
 
 #[cfg(test)]
 mod apply_tests;

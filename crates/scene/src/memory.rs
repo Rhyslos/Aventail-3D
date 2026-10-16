@@ -99,7 +99,8 @@ pub(crate) fn operation_size(op: &Operation) -> usize {
         | Operation::SetMaterial { faces, anchors, .. }
         | Operation::Unwrap { faces, anchors, .. }
         | Operation::StraightenUvs { faces, anchors }
-        | Operation::RelaxUvs { faces, anchors } => {
+        | Operation::RelaxUvs { faces, anchors }
+        | Operation::SetTexelDensity { faces, anchors, .. } => {
             std::mem::size_of_val(faces.as_slice())
                 + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
         }
@@ -174,6 +175,7 @@ pub(crate) fn edit(edit: &Edit) -> usize {
             | Edit::SetTransform { .. }
             | Edit::SetOffset { .. }
             | Edit::SetUnits { .. }
+            | Edit::SetTexture { .. }
             | Edit::SetCollision { .. }
             | Edit::SetMirror { .. } => 0,
             Edit::SetExportTarget { before, after } => [before, after]

@@ -9,9 +9,44 @@ use mesh::{CubeParams, PrimitiveKind, VertexId};
 use scene::{Command, Object, ObjectKind, Operation, Place, Primitive, Transform};
 
 /// A document using everything the current version of the format can
-/// hold: all of [`rich_document_v29`], plus unwrapping, straightening and
-/// relaxing (version 30; the version 30 sample holds exactly this).
+/// hold: all of [`rich_document_v30`], plus texture settings and a texel
+/// density set (version 31; the version 31 sample holds exactly this).
 fn rich_document() -> Document {
+    let mut doc = rich_document_v30();
+    doc.execute(Command::SetTexture(scene::TextureSettings {
+        size: 4096,
+        density: 1024.0,
+    }))
+    .unwrap();
+    let plane = doc
+        .scene()
+        .walk()
+        .into_iter()
+        .map(|(id, _)| id)
+        .find(|id| doc.scene().object(*id).unwrap().name == "Plane")
+        .unwrap();
+    let mesh = doc.scene().evaluated(plane).unwrap().mesh;
+    let faces: Vec<scene::FaceId> = mesh.faces().map(|(f, _)| f).take(1).collect();
+    let corners: Vec<Vec<VertexId>> = faces
+        .iter()
+        .map(|f| mesh.face(*f).unwrap().to_vec())
+        .collect();
+    doc.execute(Command::Record {
+        id: plane,
+        operation: Operation::SetTexelDensity {
+            faces,
+            density: 0.002,
+            anchors: mesh::Anchors::record(&mesh, mesh::ElementKind::Polygons, &corners),
+        },
+    })
+    .unwrap();
+    doc
+}
+
+/// A document using everything version 30 stores: all of
+/// [`rich_document_v29`], plus unwrapping, straightening and relaxing (the
+/// version 30 sample holds exactly this).
+fn rich_document_v30() -> Document {
     let mut doc = rich_document_v29();
     let plane = doc
         .scene()
@@ -1638,7 +1673,7 @@ fn a_cut_short_or_padded_body_is_damaged() {
 #[test]
 fn an_uncompressed_body_can_be_read() {
     let doc = rich_document();
-    let body = postcard::to_stdvec(&v30::ProjectV30::from_document(&doc)).unwrap();
+    let body = postcard::to_stdvec(&v31::ProjectV31::<v31::EntryV31>::from_document(&doc)).unwrap();
     let mut bytes = header(FORMAT_VERSION, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     assert_same(&doc, &from_bytes(&bytes).unwrap());
@@ -3810,9 +3845,30 @@ const SAMPLE_V30: &[u8] = include_bytes!("../../tests/data/sample-v30.avtl");
 #[test]
 fn a_file_saved_by_format_version_30_still_opens_unwrapped() {
     let doc = from_bytes(SAMPLE_V30).expect("the version 30 sample opens");
-    assert_same(&rich_document(), &doc);
+    assert_same(&rich_document_v30(), &doc);
+    assert_eq!(doc.scene().texture(), scene::TextureSettings::default());
     let text = format!("{:?}", v30::ProjectV30::from_document(&doc));
     for kind in ["Unwrap", "StraightenUvs", "RelaxUvs"] {
         assert!(text.contains(kind), "{kind}");
     }
+}
+
+const SAMPLE_V31: &[u8] = include_bytes!("../../tests/data/sample-v31.avtl");
+
+#[test]
+fn a_file_saved_by_format_version_31_still_opens_with_its_texture() {
+    let doc = from_bytes(SAMPLE_V31).expect("the version 31 sample opens");
+    assert_same(&rich_document(), &doc);
+    assert_eq!(
+        doc.scene().texture(),
+        scene::TextureSettings {
+            size: 4096,
+            density: 1024.0
+        }
+    );
+    let text = format!(
+        "{:?}",
+        v31::ProjectV31::<v31::EntryV31>::from_document(&doc)
+    );
+    assert!(text.contains("SetTexelDensity"));
 }

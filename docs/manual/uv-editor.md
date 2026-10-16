@@ -33,12 +33,15 @@ A shape's [UVs](concepts.md#uvs-and-texturing) say where each part of its surfac
    With the mouse over the editor, **H** fits the texture square and **Z** fits the selection.
 5. To change what you've selected, press **W**, **R**, **S** or **T** for the gizmo, or **E** over the editor for the UV tools. See [Editing UVs by hand](editing-uvs.md).
 
+The bottom right shows the project's texture size and the [texel density](texture-and-density.md) of what's selected; the **Texture** menu changes them. Zoomed right in, the texture's pixels show as a fine grid.
+
 In the UV mode the viewport shows the **seams** in orange, where the surface is cut open to lie flat. **Display → Seams** shows them while editing points, edges or polygons too.
 
 ## Settings
 
 | Setting | What it does |
 |---|---|
+| **Texture** (the editor's menu) | The texture size and texel density aimed for, saved with the project. See [Texture size and texel density](texture-and-density.md). |
 | **UV Edit** (menu bar) | The layout for UV work: viewport and UV Editor side by side, in the UV mode. |
 | **Window → UV Editor** | Shows the editor beside the viewport in the layout you're in, or puts it away. |
 | **Display → Seams** (viewport) | Marks seams in orange while editing points, edges or polygons. Always on in the UV mode. Off as standard. |

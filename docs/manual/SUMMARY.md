@@ -47,6 +47,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Editing UVs by hand: move, turn, scale and flip pieces](editing-uvs.md)
 - [Seams: mark, clear, from hard edges, suggested](seams.md)
 - [Unwrap, Relax and Straighten: lay pieces flat](unwrapping.md)
+- [Texture size and texel density](texture-and-density.md)
 - *More pages are added here as UV tools are built.*
 
 ## Export

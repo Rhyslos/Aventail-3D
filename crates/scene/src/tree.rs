@@ -122,6 +122,11 @@ pub(crate) enum Edit {
         before: Option<crate::ExportTarget>,
         after: Option<crate::ExportTarget>,
     },
+    /// Changes the project's texture settings.
+    SetTexture {
+        before: crate::TextureSettings,
+        after: crate::TextureSettings,
+    },
     /// Changes an object's live mirror.
     SetMirror {
         id: ObjectId,
@@ -196,6 +201,7 @@ impl Edit {
             Self::SetKind { before, after, .. } => before == after,
             Self::SetUnits { before, after } => before == after,
             Self::SetExportTarget { before, after } => before == after,
+            Self::SetTexture { before, after } => before == after,
             Self::SetMaterials { before, after, .. } => before == after,
             Self::SetCollision { before, after, .. } => before == after,
             Self::SetMirror { before, after, .. } => before == after,
@@ -235,6 +241,10 @@ impl Edit {
                 after: before,
             },
             Self::SetExportTarget { before, after } => Self::SetExportTarget {
+                before: after,
+                after: before,
+            },
+            Self::SetTexture { before, after } => Self::SetTexture {
                 before: after,
                 after: before,
             },
@@ -318,6 +328,8 @@ pub struct Scene {
     units: Units,
     /// The project's game project folder, if any (decision 0076).
     export_target: Option<crate::ExportTarget>,
+    /// The project's texture settings (decision 0100).
+    texture: crate::TextureSettings,
     /// Each object's evaluated shape, layer by layer (not part of what the
     /// scene is: copies start empty, and it never affects equality).
     cache: SharedCache,
@@ -409,6 +421,19 @@ impl Scene {
     /// The project's game project folder, if any (decision 0076).
     pub fn export_target(&self) -> Option<&crate::ExportTarget> {
         self.export_target.as_ref()
+    }
+
+    /// The project's texture settings (decision 0100).
+    pub fn texture(&self) -> crate::TextureSettings {
+        self.texture
+    }
+
+    /// The same scene with texture settings `texture`, for a project being
+    /// opened (not a step to undo: use [`crate::Command::SetTexture`]).
+    #[must_use]
+    pub fn with_texture(mut self, texture: crate::TextureSettings) -> Self {
+        self.texture = texture;
+        self
     }
 
     /// The same scene exporting to `target`, for a project being opened
@@ -869,6 +894,15 @@ impl Scene {
                     return Err(SceneError::History("an object's materials have changed"));
                 }
                 node.object.materials.clone_from(after);
+                Ok(())
+            }
+            Edit::SetTexture { before, after } => {
+                if self.texture != *before {
+                    return Err(SceneError::History(
+                        "the project's texture settings have changed",
+                    ));
+                }
+                self.texture = *after;
                 Ok(())
             }
             Edit::SetExportTarget { before, after } => {
