@@ -10,11 +10,13 @@
 //! navigation controls pan (a flat view has nothing to orbit), the wheel
 //! zooms at the mouse, H frames the texture square and Z the selection.
 //!
-//! Changing UVs by hand comes with the next milestone.
+//! With the Move, Rotate, Scale or all-gizmos tool, a flat gizmo moves,
+//! turns and scales the selected UVs (see [`gizmo`]).
 
 use crate::palette::Mode;
 use crate::selecting::SelectKeys;
 use crate::theme;
+use crate::transforming::{SnapSettings, Tool};
 use egui::{
     Align2, Color32, FontId, Key, Pos2, Rect, Response, Sense, Stroke, Ui, WidgetInfo, WidgetType,
     pos2, vec2,
@@ -117,6 +119,8 @@ impl UvShape {
     }
 }
 
+pub(crate) mod gizmo;
+
 /// What a click in the editor found.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Hit {
@@ -131,6 +135,8 @@ enum EditorDrag {
     Navigate(DragKind),
     /// A selection box, from where it started.
     Box { from: Pos2, how: Combine },
+    /// The gizmo (the drag itself is in `UvEditor::gizmo`).
+    Gizmo,
 }
 
 /// The UV Editor's view and state.
@@ -148,6 +154,16 @@ pub(crate) struct UvEditor {
     cache: HashMap<ObjectId, Option<UvShape>>,
     /// The frame asked for from the menu, for the next frame.
     frame_request: Option<UvFrame>,
+    /// The pass it was last drawn in: a panel not drawn lately isn't
+    /// under the mouse, wherever it was.
+    shown_pass: Option<u64>,
+    /// A drag of the gizmo, if one is going on.
+    gizmo: Option<gizmo::GizmoDrag>,
+    /// Whether the left button went down on the gizmo (so letting go
+    /// without moving selects nothing).
+    pressed_on_gizmo: bool,
+    /// Counts gizmo drags, for their undo merge keys.
+    sessions: u64,
 }
 
 impl Default for UvEditor {
@@ -160,6 +176,10 @@ impl Default for UvEditor {
             drag: None,
             cache: HashMap::new(),
             frame_request: None,
+            shown_pass: None,
+            gizmo: None,
+            pressed_on_gizmo: false,
+            sessions: 0,
         }
     }
 }
@@ -196,6 +216,10 @@ pub(crate) struct UvContext<'a> {
     pub(crate) mode: Mode,
     pub(crate) navigation: &'a NavigationSettings,
     pub(crate) select_keys: SelectKeys,
+    /// The tool in use: the move, rotate and scale tools show the gizmo.
+    pub(crate) tool: Tool,
+    /// How snapping works.
+    pub(crate) snap: SnapSettings,
 }
 
 /// The objects whose UVs are shown: the selected ones with a shape, in
@@ -214,6 +238,10 @@ pub(crate) fn shown_objects(doc: &Document) -> Vec<ObjectId> {
 impl UvEditor {
     /// Whether the mouse is over the editor (as drawn last frame).
     pub(crate) fn hovered(&self, ctx: &egui::Context) -> bool {
+        let pass = ctx.cumulative_pass_nr();
+        if self.shown_pass.is_none_or(|p| p + 1 < pass) {
+            return false;
+        }
         let pointer = ctx.input(|i| i.pointer.hover_pos());
         self.rect
             .zip(pointer)
@@ -224,6 +252,29 @@ impl UvEditor {
     #[cfg(test)]
     pub(crate) fn screen_of(&self, uv: Vec2) -> Option<Pos2> {
         Some(self.to_screen(self.rect?, uv))
+    }
+
+    /// Whether the gizmo is being dragged.
+    pub(crate) fn dragging_gizmo(&self) -> bool {
+        self.gizmo.is_some()
+    }
+
+    /// Cancels a drag of the gizmo, putting everything back (Esc).
+    pub(crate) fn cancel_gizmo(&mut self, doc: &mut Document) {
+        if let Some(mut drag) = self.gizmo.take() {
+            drag.cancel(doc);
+        }
+        if self.drag == Some(EditorDrag::Gizmo) {
+            self.drag = None;
+        }
+    }
+
+    /// Where the gizmo's middle is drawn last frame, if it is (for tests).
+    #[cfg(test)]
+    pub(crate) fn gizmo_centre(&self, doc: &Document, cx_mode: Mode) -> Option<Pos2> {
+        let (_, bounds) = gizmo::uv_targets(doc, cx_mode);
+        let (min, max) = bounds?;
+        Some(self.to_screen(self.rect?, (min + max) / 2.0))
     }
 
     /// Asks for a frame on the next frame (from a menu).
@@ -304,12 +355,14 @@ impl UvEditor {
         let (rect, response) = ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
         response.widget_info(|| WidgetInfo::labeled(WidgetType::Other, true, UV_EDITOR_LABEL));
         self.rect = Some(rect);
+        self.shown_pass = Some(ui.ctx().cumulative_pass_nr());
         if !self.fitted && rect.width() > 10.0 {
             self.fit(rect, Vec2::ZERO, Vec2::ONE);
             self.fitted = true;
         }
         let shapes = self.shapes(doc);
         self.frame_from_request(rect, &shapes, doc);
+        let lit = self.use_gizmo(ui, &response, rect, doc, cx);
         self.navigate(ui, &response, rect, cx.navigation);
         let painter = ui.painter_at(rect);
         painter.rect_filled(rect, 0.0, theme::UV_BACKGROUND);
@@ -338,6 +391,9 @@ impl UvEditor {
                 accent.light,
                 cx.mode,
             );
+        }
+        if let Some((centre, lit)) = lit {
+            gizmo::paint(&painter, self.to_screen(rect, centre), cx.tool, lit);
         }
         self.select(ui, &response, rect, &shapes, doc, cx);
         if let Some(EditorDrag::Box { from, .. }) = self.drag
@@ -429,6 +485,94 @@ impl UvEditor {
         }
     }
 
+    /// The gizmo: starts, follows, ends and cancels its drags. Returns
+    /// where to draw it (in UVs) and which handle to light, when it shows.
+    fn use_gizmo(
+        &mut self,
+        ui: &Ui,
+        response: &Response,
+        rect: Rect,
+        doc: &mut Document,
+        cx: &UvContext<'_>,
+    ) -> Option<(Vec2, Option<gizmo::UvHandle>)> {
+        if ui.input(|i| i.pointer.primary_pressed()) {
+            self.pressed_on_gizmo = false;
+        }
+        if !gizmo::has_gizmo(cx.tool) || element_kind(cx.mode).is_none() {
+            self.cancel_gizmo(doc);
+            return None;
+        }
+        let snap_now = |ui: &Ui| {
+            cx.snap
+                .active(ui.input(|i| i.modifiers.command))
+                .then_some(&cx.snap)
+        };
+        if let Some(mut drag) = self.gizmo.take() {
+            let (right, left_down, at, fine) = ui.input(|i| {
+                (
+                    i.pointer.secondary_pressed(),
+                    i.pointer.primary_down(),
+                    i.pointer.latest_pos(),
+                    i.modifiers.shift,
+                )
+            });
+            if right {
+                drag.cancel(doc);
+                self.drag = None;
+                return None;
+            }
+            let snap = snap_now(ui);
+            if let Some(at) = at {
+                let centre = self.to_screen(rect, drag.pivot);
+                drag.follow(at, centre, self.zoom, fine);
+                if !drag.show(doc, snap) {
+                    // Something else changed the scene meanwhile: keep it
+                    // all, and stop.
+                    self.drag = None;
+                    return None;
+                }
+            }
+            let shown = (drag.pivot_now(snap), Some(drag.handle));
+            if left_down {
+                self.gizmo = Some(drag);
+            } else {
+                self.drag = None;
+            }
+            return Some(shown);
+        }
+        let (targets, bounds) = gizmo::uv_targets(doc, cx.mode);
+        let (min, max) = bounds?;
+        let centre = (min + max) / 2.0;
+        let on_screen = self.to_screen(rect, centre);
+        if ui.input(|i| i.pointer.primary_pressed()) {
+            self.pressed_on_gizmo = ui.input(|i| i.pointer.press_origin()).is_some_and(|at| {
+                rect.contains(at) && gizmo::hit(on_screen, cx.tool, at).is_some()
+            });
+        }
+        if response.drag_started_by(egui::PointerButton::Primary)
+            && self.drag.is_none()
+            && let Some(from) = ui.input(|i| i.pointer.press_origin())
+            && let Some(handle) = gizmo::hit(on_screen, cx.tool, from)
+        {
+            self.sessions += 1;
+            let key = gizmo::UV_GIZMO_KEY | self.sessions;
+            let mut drag = gizmo::GizmoDrag::new(handle, centre, targets, from, key);
+            if let Some(at) = ui.input(|i| i.pointer.latest_pos()) {
+                drag.follow(at, on_screen, self.zoom, ui.input(|i| i.modifiers.shift));
+                drag.show(doc, snap_now(ui));
+            }
+            self.drag = Some(EditorDrag::Gizmo);
+            let shown = (drag.pivot_now(snap_now(ui)), Some(handle));
+            self.gizmo = Some(drag);
+            return Some(shown);
+        }
+        let hover = response
+            .hover_pos()
+            .filter(|_| self.drag.is_none())
+            .and_then(|at| gizmo::hit(on_screen, cx.tool, at));
+        Some((centre, hover))
+    }
+
     /// Panning and zooming, with the viewport's controls (orbiting pans).
     fn navigate(
         &mut self,
@@ -437,7 +581,7 @@ impl UvEditor {
         rect: Rect,
         settings: &NavigationSettings,
     ) {
-        if response.drag_started() {
+        if response.drag_started() && self.drag.is_none() {
             let keys = ui.input(|i| Modifiers {
                 alt: i.modifiers.alt,
                 shift: i.modifiers.shift,
@@ -743,6 +887,7 @@ impl UvEditor {
             return;
         }
         if response.clicked_by(egui::PointerButton::Primary)
+            && !self.pressed_on_gizmo
             && let Some(at) = response.interact_pointer_pos()
         {
             let how = cx.select_keys.combine(keys, true);

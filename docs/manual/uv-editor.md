@@ -1,6 +1,6 @@
 # The UV Editor and the UV mode
 
-> The UV Editor shows the selected objects' UVs laid flat on the texture square, and lets you select points, edges, polygons or whole islands there, the same selection as in the viewport.
+> The UV Editor shows the selected objects' UVs laid flat on the texture square, and lets you select points, edges, polygons or whole islands there, the same selection as in the viewport, and move, turn and scale them.
 
 A shape's [UVs](concepts.md#uvs-and-texturing) say where each part of its surface sits on a texture. The **UV Editor** shows them flat: the square is the texture, and every polygon is drawn where it sits on it. Seeing the two side by side, the 3D shape and its flat UVs, is how you check that a texture will land where it should. Every shape in this app comes with [ready-made UVs](primitives.md#ready-made-uvs), so there's something to see straight away.
 
@@ -10,7 +10,7 @@ A shape's [UVs](concepts.md#uvs-and-texturing) say where each part of its surfac
 
 - To see how a shape is laid out on its texture: where its seams are, how big each piece is.
 - To find a part of the model on the texture, or a part of the texture on the model: select it in one, see it in the other.
-- Changing UVs (moving and turning pieces, unwrapping, packing) comes in the next updates; this is where you'll do it.
+- To move, turn, scale and flip pieces by hand: see [Editing UVs by hand](editing-uvs.md). Unwrapping and packing come in the next updates.
 
 ## How to use it
 
@@ -30,6 +30,7 @@ A shape's [UVs](concepts.md#uvs-and-texturing) say where each part of its surfac
    - the wheel zooms at the mouse.
 
    With the mouse over the editor, **H** fits the texture square and **Z** fits the selection.
+5. To change what you've selected, press **W**, **R**, **S** or **T** for the gizmo, or **E** over the editor for the UV tools. See [Editing UVs by hand](editing-uvs.md).
 
 In the UV mode the viewport shows the **seams** in orange, where the surface is cut open to lie flat. **Display → Seams** shows them while editing points, edges or polygons too.
 
@@ -50,6 +51,8 @@ In the UV mode the viewport shows the **seams** in orange, where the surface is 
 | Points, Edges, Polygons modes | **1**, **2**, **3** |
 | Select / add or take away | Click / **Ctrl + click** (your selection keys) |
 | Box select | Drag |
+| Move, rotate, scale UVs | **W**, **R**, **S**, **T** ([Editing UVs by hand](editing-uvs.md)) |
+| UV tools | **E** (mouse over the editor) |
 | Pan, zoom | Your viewport navigation controls; the wheel zooms |
 
 The keys are the same as in the viewport: they work wherever the mouse is.
@@ -64,5 +67,6 @@ The keys are the same as in the viewport: they work wherever the mouse is.
 ## Related
 
 - [Primitives: ready-made UVs](primitives.md#ready-made-uvs)
+- [Editing UVs by hand](editing-uvs.md)
 - [Selecting](selecting.md)
 - [Concepts: UV map, seam, island, corner](concepts.md#uvs-and-texturing)

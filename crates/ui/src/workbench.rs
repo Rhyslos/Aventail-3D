@@ -195,6 +195,9 @@ pub struct Workbench {
     layout_choice: LayoutChoice,
     /// The UV Editor panel (decision 0096).
     uv_editor: crate::uv_editor::UvEditor,
+    /// Whether the tool menu shows the UV ring: chosen when it opens, by
+    /// whether the mouse is over the UV Editor (decision 0097).
+    uv_menu: bool,
     /// The standard layout still needs Coordinates fitted to its content,
     /// which can only happen once the panels' sizes are known.
     fit_pending: bool,
@@ -315,6 +318,7 @@ impl Workbench {
             other_dock: crate::layout::uv_edit_layout(),
             layout_choice: LayoutChoice::Standard,
             uv_editor: crate::uv_editor::UvEditor::default(),
+            uv_menu: false,
             fit_pending,
             mode: Mode::default(),
             document: Document::new(),
@@ -991,7 +995,12 @@ impl Workbench {
                 requests.push(create(kind));
             }
             // The tool menu next: while it is open, Esc closes it, and
-            // Enter or Space use its tool.
+            // Enter or Space use its tool. Over the UV Editor it holds the
+            // UV tools.
+            if !self.tool_menu.is_open() {
+                self.uv_menu = self.uv_editor.hovered(ui.ctx())
+                    && crate::uv_editor::element_kind(self.mode).is_some();
+            }
             let entries = self.tool_menu_entries();
             self.tool_menu_keys(ui, typing, &entries, &mut requests);
             self.showing_keys(ui);
@@ -1150,6 +1159,8 @@ impl Workbench {
                         mode: self.mode,
                         navigation: view_options.navigation,
                         select_keys: view_options.select_keys,
+                        tool: self.tool,
+                        snap: view_options.snap,
                         attributes: &mut self.attributes,
                         units: &mut self.units,
                         requests: &mut requests,
@@ -1297,6 +1308,12 @@ impl Workbench {
         }
         // While the gizmo is dragged, Esc cancels the drag, and nothing
         // else happens.
+        if self.uv_editor.dragging_gizmo() {
+            if ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
+                self.uv_editor.cancel_gizmo(&mut self.document);
+            }
+            return;
+        }
         if self.viewport.dragging_gizmo() {
             if ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
                 self.viewport.cancel_gizmo_drag();
@@ -2070,6 +2087,8 @@ struct PanelViewer<'a> {
     mode: Mode,
     navigation: tools::NavigationSettings,
     select_keys: crate::selecting::SelectKeys,
+    tool: Tool,
+    snap: crate::transforming::SnapSettings,
     attributes: &'a mut AttributesPanel,
     units: &'a mut Units,
     requests: &'a mut Vec<DocRequest>,
@@ -2158,6 +2177,8 @@ impl TabViewer for PanelViewer<'_> {
                     mode: self.mode,
                     navigation: &self.navigation,
                     select_keys: self.select_keys,
+                    tool: self.tool,
+                    snap: self.snap,
                 };
                 self.uv_editor.show(ui, self.document, &cx);
                 return;
@@ -2279,6 +2300,8 @@ mod symmetry_tests;
 mod transform;
 #[cfg(test)]
 mod uv_editor_tests;
+#[cfg(test)]
+mod uv_hand_tests;
 
 #[cfg(test)]
 mod autosave_tests;

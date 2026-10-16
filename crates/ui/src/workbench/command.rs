@@ -118,6 +118,18 @@ impl Workbench {
             CommandId::Slit if !command.modes().contains(&self.mode) => Ready::NotNow(
                 "Slit works in the Points, Edges or Polygons mode: press 1, 2 or 3".into(),
             ),
+            CommandId::UvTurnLeft
+            | CommandId::UvTurnRight
+            | CommandId::UvFlipU
+            | CommandId::UvFlipV
+                if crate::uv_editor::element_kind(self.mode).is_none() =>
+            {
+                Ready::NotNow(format!(
+                    "{} works on selected UVs: pick the UV mode, or press 1, 2 or 3 and select \
+                     in the UV Editor",
+                    command.name()
+                ))
+            }
             _ => Ready::Yes,
         }
     }
@@ -199,7 +211,21 @@ impl Workbench {
                     .unwrap_or_else(|| ctx.content_rect().center());
                 self.shape_picker.open_at(at + egui::vec2(12.0, 12.0));
             }
+            CommandId::FrameSelected if self.uv_menu => {
+                self.uv_editor.frame(crate::uv_editor::UvFrame::Selected);
+            }
             CommandId::FrameSelected => self.viewport.frame(crate::Frame::Selected),
+            CommandId::UvTurnLeft => self.change_uvs(UvChange::TurnLeft),
+            CommandId::UvTurnRight => self.change_uvs(UvChange::TurnRight),
+            CommandId::UvFlipU => self.change_uvs(UvChange::FlipU),
+            CommandId::UvFlipV => self.change_uvs(UvChange::FlipV),
+            // Not built yet: readiness stops these above.
+            CommandId::MarkSeam
+            | CommandId::ClearSeam
+            | CommandId::Unwrap
+            | CommandId::Relax
+            | CommandId::Straighten
+            | CommandId::Pack => {}
             CommandId::PivotToCentre => self.run_placement(super::pivots::Placement::PivotToCentre),
             CommandId::PivotToOrigin => self.run_placement(super::pivots::Placement::PivotToOrigin),
             CommandId::ObjectToOrigin => {
@@ -209,9 +235,38 @@ impl Workbench {
         }
     }
 
+    /// The mode whose ring the tool menu shows: the UV ring over the UV
+    /// Editor, otherwise the current mode's.
+    pub(crate) fn menu_mode(&self) -> Mode {
+        if self.uv_menu { Mode::Uv } else { self.mode }
+    }
+
+    /// Turns or flips the selected UVs about their middle, as one undo
+    /// step.
+    pub(crate) fn change_uvs(&mut self, change: UvChange) {
+        use crate::uv_editor::gizmo;
+        let (targets, bounds) = gizmo::uv_targets(&self.document, self.mode);
+        let Some((min, max)) = bounds else {
+            self.note = Some(format!(
+                "{}: select some UVs first.",
+                change.command().name()
+            ));
+            return;
+        };
+        let transform = gizmo::about((min + max) / 2.0, change.transform());
+        let ops = targets
+            .iter()
+            .map(|t| (t.id, t.operation(transform)))
+            .collect();
+        let label = change.command().name();
+        if self.record_each(label, ops) {
+            self.note = Some(format!("{label}. Ctrl + Z takes it back."));
+        }
+    }
+
     /// The tool menu's entries in the current mode.
     pub(crate) fn tool_menu_entries(&self) -> Vec<Entry> {
-        menu_for(self.mode)
+        menu_for(self.menu_mode())
             .into_iter()
             .map(|slot| Entry {
                 slot,
@@ -233,10 +288,7 @@ impl Workbench {
         match self.tool_menu.keys(ui, typing, entries) {
             Some(KeyOutcome::Chose(command)) => self.run_command(command, ui.ctx(), requests),
             Some(KeyOutcome::NoTools) => {
-                self.note = Some(match self.mode {
-                    Mode::Uv => "The UV mode has no tools yet: UV tools arrive in Phase 7.".into(),
-                    mode => format!("The {} mode has no tools yet.", mode.name()),
-                });
+                self.note = Some(format!("The {} mode has no tools yet.", self.mode.name()));
             }
             None => {}
         }
@@ -255,8 +307,41 @@ impl Workbench {
         entries: &[Entry],
         requests: &mut Vec<DocRequest>,
     ) {
-        if let Some(command) = self.tool_menu.show(ctx, self.mode, entries) {
+        if let Some(command) = self.tool_menu.show(ctx, self.menu_mode(), entries) {
             self.run_command(command, ctx, requests);
+        }
+    }
+}
+
+/// A quarter turn or a flip of the selected UVs.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum UvChange {
+    TurnLeft,
+    TurnRight,
+    FlipU,
+    FlipV,
+}
+
+impl UvChange {
+    /// The command that makes it.
+    pub(crate) fn command(self) -> CommandId {
+        match self {
+            Self::TurnLeft => CommandId::UvTurnLeft,
+            Self::TurnRight => CommandId::UvTurnRight,
+            Self::FlipU => CommandId::UvFlipU,
+            Self::FlipV => CommandId::UvFlipV,
+        }
+    }
+
+    /// The change about the origin (the texture's V points up, so left is
+    /// anticlockwise).
+    pub(crate) fn transform(self) -> glam::Affine2 {
+        use std::f32::consts::FRAC_PI_2;
+        match self {
+            Self::TurnLeft => glam::Affine2::from_angle(FRAC_PI_2),
+            Self::TurnRight => glam::Affine2::from_angle(-FRAC_PI_2),
+            Self::FlipU => glam::Affine2::from_scale(glam::Vec2::new(-1.0, 1.0)),
+            Self::FlipV => glam::Affine2::from_scale(glam::Vec2::new(1.0, -1.0)),
         }
     }
 }

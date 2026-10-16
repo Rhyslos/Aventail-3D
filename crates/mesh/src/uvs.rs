@@ -297,9 +297,10 @@ pub fn transform_uvs(
     }
 }
 
-/// The middle of the UVs of `faces` and `points` (the middle of the box
-/// around them), if they have any.
-pub fn uv_centre(mesh: &Mesh, faces: &[FaceId], points: &[VertexId]) -> Option<Vec2> {
+/// The box around the UVs of `faces` and `points` (and the corners
+/// sharing their spots), as its lowest and highest corner, if they have
+/// any.
+pub fn uv_bounds(mesh: &Mesh, faces: &[FaceId], points: &[VertexId]) -> Option<(Vec2, Vec2)> {
     let uvs = Uvs::of(mesh)?;
     let mut min = Vec2::splat(f32::INFINITY);
     let mut max = Vec2::splat(f32::NEG_INFINITY);
@@ -307,7 +308,13 @@ pub fn uv_centre(mesh: &Mesh, faces: &[FaceId], points: &[VertexId]) -> Option<V
         min = min.min(uvs.at(k));
         max = max.max(uvs.at(k));
     }
-    min.is_finite().then(|| (min + max) / 2.0)
+    min.is_finite().then_some((min, max))
+}
+
+/// The middle of the UVs of `faces` and `points` (the middle of the box
+/// around them), if they have any.
+pub fn uv_centre(mesh: &Mesh, faces: &[FaceId], points: &[VertexId]) -> Option<Vec2> {
+    uv_bounds(mesh, faces, points).map(|(min, max)| (min + max) / 2.0)
 }
 
 #[cfg(test)]

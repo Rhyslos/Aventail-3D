@@ -44,6 +44,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 
 ## UVs
 - [The UV Editor and the UV mode: see and select UVs on the texture square](uv-editor.md)
+- [Editing UVs by hand: move, turn, scale and flip pieces](editing-uvs.md)
 - *More pages are added here as UV tools are built.*
 
 ## Export

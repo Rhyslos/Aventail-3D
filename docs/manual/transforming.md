@@ -17,6 +17,7 @@ The **gizmo** is the handle that appears on what you've selected. Drag a part of
 What moves depends on the [mode](modes.md):
 - In **Model** mode, whole shapes move.
 - In **Points**, **Edges** and **Polygons** mode, the selected parts of the selected shapes move. Moving a polygon moves its corners, so the polygons around it stretch to follow.
+- In the **UV Editor**, the same keys move, turn and scale the selected UVs instead, with a flat gizmo. See [Editing UVs by hand](editing-uvs.md).
 
 Changes to points, edges and polygons are recorded on top of the shape's [base](concepts.md#objects-and-scenes). A primitive keeps its settings: change a cube's size or segments later and your moves are made again on the new cube. See [Changing settings after editing](#changing-settings-after-editing).
 
@@ -152,6 +153,7 @@ What the fields show:
 ## Related
 
 - [Selecting](selecting.md)
+- [Editing UVs by hand](editing-uvs.md): the same gizmo in the UV Editor
 - [Apply transforms](apply-transforms.md): reset an object's rotation and scale, keeping its look
 - [Symmetry](symmetry.md)
 - [Pivots and the Object mode](pivots.md)
