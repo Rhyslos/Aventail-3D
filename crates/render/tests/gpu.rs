@@ -686,6 +686,7 @@ fn place(model: glam::Mat4) -> render::MeshDraw {
         points: None,
         faintest: 0.0,
         palette: [0; render::PALETTE_SIZE],
+        surface: render::SurfaceDraw::Plain,
     }
 }
 
@@ -865,4 +866,60 @@ fn cavity_brightens_an_outer_edge_and_leaves_the_backdrop() {
     renderer.set_show_cavity(false);
     let wire_plain = render(&gpu, &renderer, &target, camera, NO_GRID);
     assert_eq!(wire.pixels, wire_plain.pixels);
+}
+
+#[test]
+fn the_checker_and_stretch_views_colour_the_surface_by_its_uvs() {
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, target) = setup(&gpu, [320, 200]);
+    let geometry = with_object_cube(&gpu, &mut renderer);
+    assert!(geometry.uv_density > 0.0, "the cube has UVs");
+    let camera = Camera::default();
+    let draw = |surface| render::MeshDraw {
+        surface,
+        ..place(glam::Mat4::IDENTITY)
+    };
+    // The front face, at two spots a quarter of the cube apart.
+    let a = Vec3::new(-25.0, -50.0, 40.0);
+    let b = Vec3::new(0.0, -50.0, 40.0);
+    renderer.set_draws(&gpu.device, &gpu.queue, &[draw(render::SurfaceDraw::Plain)]);
+    let plain = render(&gpu, &renderer, &target, camera, NO_GRID);
+    let shade = brightness;
+    assert!(
+        (shade(plain.at(a)) - shade(plain.at(b))).abs() < 25,
+        "an even grey"
+    );
+    // A checker of 16 squares across: neighbouring squares differ.
+    renderer.set_draws(
+        &gpu.device,
+        &gpu.queue,
+        &[draw(render::SurfaceDraw::Checker { squares: 16.0 })],
+    );
+    let checker = render(&gpu, &renderer, &target, camera, NO_GRID);
+    let spots: Vec<i32> = (0..8)
+        .map(|i| shade(checker.at(Vec3::new(-40.0 + i as f32 * 10.0, -50.0, 40.0))))
+        .collect();
+    let (low, high) = (spots.iter().min().unwrap(), spots.iter().max().unwrap());
+    assert!(high - low > 40, "light and dark squares: {spots:?}");
+    // The stretch view: the cube's UVs are even and at its own density:
+    // green.
+    renderer.set_draws(
+        &gpu.device,
+        &gpu.queue,
+        &[draw(render::SurfaceDraw::Stretch {
+            density: geometry.uv_density,
+        })],
+    );
+    let even = render(&gpu, &renderer, &target, camera, NO_GRID).at(a);
+    assert!(even[1] > even[0] + 20, "green: {even:?}");
+    // Compared with four times the density, it is far off: red.
+    renderer.set_draws(
+        &gpu.device,
+        &gpu.queue,
+        &[draw(render::SurfaceDraw::Stretch {
+            density: geometry.uv_density * 4.0,
+        })],
+    );
+    let off = render(&gpu, &renderer, &target, camera, NO_GRID).at(a);
+    assert!(off[0] > off[1] + 20, "red: {off:?}");
 }

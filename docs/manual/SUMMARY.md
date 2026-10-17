@@ -49,6 +49,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Unwrap, Relax and Straighten: lay pieces flat](unwrapping.md)
 - [Texture size and texel density](texture-and-density.md)
 - [Packing: fit pieces into the texture](packing.md)
+- [Checker and Stretch views: check UVs on the model](checker-and-stretch.md)
 - *More pages are added here as UV tools are built.*
 
 ## Export

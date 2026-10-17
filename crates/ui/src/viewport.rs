@@ -55,6 +55,56 @@ pub enum GridDetail {
     TenCentimetres,
 }
 
+/// What shapes' surfaces show ([decision 0102](../../../docs/decisions/0102-checker-and-stretch.md)).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum Surface {
+    /// Their materials' colours.
+    #[default]
+    Plain,
+    /// A checker laid on by their UVs, to see how a texture would sit.
+    Checker,
+    /// How much their UVs stretch: green where even, through yellow to
+    /// red.
+    Stretch,
+}
+
+impl Surface {
+    /// Every choice, in the order offered.
+    pub const ALL: [Surface; 3] = [Self::Plain, Self::Checker, Self::Stretch];
+
+    /// Its name in the Display menu.
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Plain => "Colours",
+            Self::Checker => "Checker",
+            Self::Stretch => "Stretch",
+        }
+    }
+
+    /// What it shows, for its tooltip.
+    pub fn explanation(self) -> &'static str {
+        match self {
+            Self::Plain => "Each surface in its material's colour",
+            Self::Checker => {
+                "A checker laid on by the UVs: where the squares stay square and even, a \
+                 texture will too. The tint runs red across and green up the texture, so a \
+                 piece turned or mirrored shows."
+            }
+            Self::Stretch => {
+                "How evenly the UVs lie: green where even, yellow where 1.5 times off, red \
+                 where twice off (stretched one way, or too big or small against the rest \
+                 of the object), purple where a polygon has no room on the texture"
+            }
+        }
+    }
+}
+
+/// How many checker squares go across the texture: one per 128 pixels,
+/// at least 4.
+pub fn checker_squares(texture_size: u32) -> f32 {
+    (texture_size as f32 / 128.0).max(4.0)
+}
+
 /// How shapes are drawn in the viewport ([decision 0063](../../../docs/decisions/0063-wireframe.md)).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum Shading {
@@ -225,6 +275,8 @@ pub struct ViewOptions {
     pub dissolve_without_warning: bool,
     /// How shapes are drawn: shaded, shaded with wires, or wireframe.
     pub shading: Shading,
+    /// What shapes' surfaces show: colours, a checker or the stretch.
+    pub surface: Surface,
     /// Whether Cavity is *off*: ridges not brightened and creases not
     /// darkened. Cavity is on as standard (decision 0065).
     pub hide_cavity: bool,
@@ -337,6 +389,8 @@ pub struct ViewportView {
     pub auto_hard_angle: Option<f32>,
     /// Whether ridges are brightened and creases darkened (Cavity).
     pub cavity: bool,
+    /// What the shapes' surfaces show.
+    pub surface: Surface,
 }
 
 /// A question for the renderer: what is under this pixel of the image?
@@ -940,6 +994,7 @@ impl View {
             shading: Shading::default(),
             auto_hard_angle: Some(AUTO_HARD_ANGLE),
             cavity: true,
+            surface: Surface::Plain,
         }
     }
 }
@@ -1404,6 +1459,7 @@ impl ViewportPanel {
             view.shading = self.options.shading;
             view.auto_hard_angle = self.options.auto_hard_angle();
             view.cavity = !self.options.hide_cavity;
+            view.surface = self.options.surface;
             match renderer.render(&view) {
                 Ok(texture) => {
                     let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0));

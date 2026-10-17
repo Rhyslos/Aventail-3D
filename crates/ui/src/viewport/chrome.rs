@@ -150,6 +150,21 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
     crate::dialog::menu(ui, "Display", |ui| {
         super::look::choices(ui, &mut panel.options.shading);
         ui.separator();
+        ui.label(egui::RichText::new("Surface").color(crate::theme::TEXT_WEAK));
+        for surface in super::Surface::ALL {
+            if ui
+                .add(egui::Button::selectable(
+                    panel.options.surface == surface,
+                    surface.label(),
+                ))
+                .on_hover_text(surface.explanation())
+                .clicked()
+            {
+                panel.options.surface = surface;
+                ui.close();
+            }
+        }
+        ui.separator();
         grid_entries(ui, &mut panel.options.grid_detail);
         ui.separator();
         // What is drawn over the surfaces: cavity, hard edges, normals.

@@ -102,7 +102,21 @@ fn overlay_geometry(overlay: &ComponentOverlay, accent: [f32; 3]) -> Overlay {
 /// How each object's mesh is drawn: where it is, its edges in the accent
 /// when selected (plain while its elements are being edited) and clearer
 /// in the wire looks, and every point shown in the Points mode.
+#[cfg(test)]
 fn mesh_draws(scene: &SceneDrawing, accent: [f32; 3], shading: Shading) -> Vec<MeshDraw> {
+    mesh_draws_showing(scene, accent, shading, ui::Surface::Plain, &HashMap::new())
+}
+
+/// The same, with surfaces showing `surface` (decision 0102); each
+/// object's texel density, for the stretch view, from its uploaded
+/// geometry in `densities` (by key).
+fn mesh_draws_showing(
+    scene: &SceneDrawing,
+    accent: [f32; 3],
+    shading: Shading,
+    surface: ui::Surface,
+    densities: &HashMap<u64, f32>,
+) -> Vec<MeshDraw> {
     let [r, g, b] = accent;
     let (plain, edited_line, least) = match shading {
         Shading::Shaded => (EDGE_COLOR, PLAIN_LINE, 0.0),
@@ -137,6 +151,15 @@ fn mesh_draws(scene: &SceneDrawing, accent: [f32; 3], shading: Shading) -> Vec<M
                     least
                 },
                 palette: render::palette(&item.colors),
+                surface: match surface {
+                    ui::Surface::Plain => render::SurfaceDraw::Plain,
+                    ui::Surface::Checker => render::SurfaceDraw::Checker {
+                        squares: ui::checker_squares(scene.texture_size),
+                    },
+                    ui::Surface::Stretch => render::SurfaceDraw::Stretch {
+                        density: densities.get(&item.id.get()).copied().unwrap_or(0.0),
+                    },
+                },
             }
         })
         .collect()
@@ -427,7 +450,13 @@ impl ViewportRenderer for GpuViewport {
         // Placed for each view, as what is too dense to see depends on
         // how close the view is.
         let accent = view.selection_color.map(render::srgb_to_linear);
-        let mut draws = mesh_draws(&view.scene, accent, view.shading);
+        let densities: HashMap<u64, f32> = self
+            .meshes
+            .iter()
+            .map(|(key, uploaded)| (*key, uploaded.geometry.uv_density))
+            .collect();
+        let mut draws =
+            mesh_draws_showing(&view.scene, accent, view.shading, view.surface, &densities);
         self.renderer.set_show_faces(view.shading.shows_faces());
         self.renderer.set_show_cavity(view.cavity);
         leave_out_dense(&mut draws, view, &self.meshes);
@@ -548,6 +577,7 @@ mod tests {
             editing,
             points,
             mirrors: Vec::new(),
+            texture_size: 2048,
         };
         let draws = mesh_draws(&scene(false, false), [1.0, 0.0, 0.0], Shading::Shaded);
         assert_eq!(draws.len(), 2);
@@ -575,6 +605,7 @@ mod tests {
             editing: false,
             points: false,
             mirrors: Vec::new(),
+            texture_size: 2048,
         };
         let wires = mesh_draws(&scene, [1.0, 0.0, 0.0], Shading::ShadedWithWires);
         assert_eq!(wires[1].edge_color, WIRE_LINE);
@@ -610,6 +641,7 @@ mod tests {
             shading: Shading::default(),
             auto_hard_angle: Some(ui::AUTO_HARD_ANGLE),
             cavity: true,
+            surface: ui::Surface::Plain,
         }
     }
 
@@ -630,6 +662,7 @@ mod tests {
             editing: true,
             points: true,
             mirrors: Vec::new(),
+            texture_size: 2048,
         };
         let mut meshes = HashMap::new();
         meshes.insert(

@@ -50,6 +50,9 @@ pub struct SceneDrawing {
     pub points: bool,
     /// The live mirrors' planes to show (decision 0088), each once.
     pub mirrors: Vec<MirrorPlane>,
+    /// The project's texture size in pixels (decision 0100), for the
+    /// checker's squares.
+    pub texture_size: u32,
 }
 
 /// A live mirror's plane, shown as a faint red sheet with a clearer line
@@ -286,6 +289,7 @@ impl DrawingCache {
                 editing: editing.is_some(),
                 points: editing == Some(ElementKind::Points),
                 mirrors,
+                texture_size: scene.texture().size,
             }),
             all: scene.bounds(),
             selected: scene.bounds_of(key.1.iter().copied()),

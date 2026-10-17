@@ -62,8 +62,8 @@ pub use undo_memory::{UndoMemory, format_bytes};
 pub use units::Units;
 pub use viewport::{
     AUTO_HARD_ANGLE, DEFAULT_FRAME, FOUR_VIEWS_KEY, Frame, GLIDE_SECONDS, GridDetail, NoRenderer,
-    PICKER_LABEL, PickAsk, PickReply, Picked, Shading, Symmetry, VIEW_COUNT, VIEW_KEYS,
-    VIEWPORT_LABEL, ViewOptions, ViewportPanel, ViewportRenderer, ViewportView,
+    PICKER_LABEL, PickAsk, PickReply, Picked, Shading, Surface, Symmetry, VIEW_COUNT, VIEW_KEYS,
+    VIEWPORT_LABEL, ViewOptions, ViewportPanel, ViewportRenderer, ViewportView, checker_squares,
 };
 pub use workbench::UvSettings;
 pub use workbench::{

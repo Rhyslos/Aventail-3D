@@ -134,6 +134,26 @@ pub fn uv_splits(mesh: &Mesh) -> Vec<EdgeKey> {
         .collect()
 }
 
+/// The texel density of the whole mesh, as a length ratio: texture widths
+/// per unit of length on the shape (the square root of its UV area over
+/// its real area), if it has UVs and some area.
+pub fn average_density(mesh: &Mesh) -> Option<f32> {
+    let uvs = Uvs::of(mesh)?;
+    let (starts, _) = mesh.face_layout();
+    let mut flat = 0.0f64;
+    let mut real = 0.0f64;
+    for (f, list) in mesh.faces() {
+        let start = starts[f.get() as usize] as usize;
+        crate::triangulate::face_triangles(mesh, list, |[a, b, c]| {
+            let (ua, ub, uc) = (uvs.at(start + a), uvs.at(start + b), uvs.at(start + c));
+            flat += f64::from(((ub - ua).perp_dot(uc - ua) / 2.0).abs());
+            let p = |i: usize| mesh.position(list[i]).unwrap_or_default();
+            real += f64::from((p(b) - p(a)).cross(p(c) - p(a)).length() / 2.0);
+        });
+    }
+    (flat > 1e-20 && real > 1e-20).then(|| (flat / real).sqrt() as f32)
+}
+
 /// Sets every corner's UV at once (in the mesh's corner order), adding
 /// the UV layer if needed. Returns whether it was set: the list must have
 /// one real UV per corner.

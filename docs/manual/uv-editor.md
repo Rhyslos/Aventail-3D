@@ -19,6 +19,7 @@ A shape's [UVs](concepts.md#uvs-and-texturing) say where each part of its surfac
    - every polygon's outline in grey;
    - the borders of each **island** (a piece laid flat in one go) brighter;
    - [seams](seams.md) in orange;
+   - with the viewport's **Display → Stretch**, each polygon coloured by how evenly it lies, and pointing at one explains its problem ([Checker and Stretch views](checker-and-stretch.md));
    - the selection in the accent colour, and what's under the mouse lit up.
 3. Select:
    - In the **UV mode**, click an island (in the editor or on the model) to select all of it. **Ctrl + click** adds or takes away another.

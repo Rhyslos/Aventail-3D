@@ -1159,6 +1159,7 @@ impl Workbench {
                         select_keys: view_options.select_keys,
                         tool: self.tool,
                         snap: view_options.snap,
+                        surface: view_options.surface,
                         attributes: &mut self.attributes,
                         units: &mut self.units,
                         requests: &mut requests,
@@ -2185,6 +2186,7 @@ struct PanelViewer<'a> {
     select_keys: crate::selecting::SelectKeys,
     tool: Tool,
     snap: crate::transforming::SnapSettings,
+    surface: crate::viewport::Surface,
     attributes: &'a mut AttributesPanel,
     units: &'a mut Units,
     requests: &'a mut Vec<DocRequest>,
@@ -2278,6 +2280,7 @@ impl TabViewer for PanelViewer<'_> {
                     select_keys: self.select_keys,
                     tool: self.tool,
                     snap: self.snap,
+                    stretch: self.surface == crate::viewport::Surface::Stretch,
                 };
                 self.uv_editor.show(ui, self.document, &cx);
                 return;
