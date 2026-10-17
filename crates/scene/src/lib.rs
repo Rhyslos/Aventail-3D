@@ -60,3 +60,5 @@ mod selection_tests;
 mod stack_tests;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod uv_survive_tests;

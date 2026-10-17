@@ -41,7 +41,7 @@ pub const RELAX_STEPS: usize = 60;
 
 /// What a chart is cut along: the seams, or, on a shape with no seam marks
 /// at all (imported, say), where its UVs split.
-fn cuts_of(mesh: &Mesh) -> BTreeSet<EdgeKey> {
+pub(crate) fn cuts_of(mesh: &Mesh) -> BTreeSet<EdgeKey> {
     if mesh.attribute_values(mesh::attributes::SEAM).is_some() {
         mesh::uvs::seams(mesh).into_iter().collect()
     } else {
@@ -83,15 +83,48 @@ fn conformal(mesh: &Mesh, chart: &Chart, guess: &[Vec2]) -> Option<Vec<Vec2>> {
     }
     let (pa, pb) = far_pair(mesh, chart)?;
     let p = |w: usize| mesh.position(chart.points[w]).unwrap_or(Vec3::ZERO);
-    let pinned = |w: usize| -> Option<[f64; 2]> {
-        if w == pa {
-            Some([0.0, 0.0])
-        } else if w == pb {
-            Some([f64::from(p(pa).distance(p(pb))), 0.0])
-        } else {
-            None
+    let mut pins = vec![None; n];
+    pins[pa] = Some(Vec2::ZERO);
+    pins[pb] = Some(Vec2::new(p(pa).distance(p(pb)), 0.0));
+    // Start from the guess, moved so its pinned wedges sit on the pins.
+    let mut start = Vec::new();
+    if guess.len() == n {
+        let (ga, gb) = (guess[pa], guess[pb]);
+        let to_b = Vec2::new(p(pa).distance(p(pb)), 0.0);
+        let from = gb - ga;
+        if from.length() > 1e-9 {
+            // The similarity taking ga to 0 and gb to to_b.
+            let k = to_b.length() / from.length();
+            let turn = -from.y.atan2(from.x);
+            let (sin, cos) = turn.sin_cos();
+            start = guess
+                .iter()
+                .map(|g| {
+                    let d = (*g - ga) * k;
+                    Vec2::new(cos * d.x - sin * d.y, sin * d.x + cos * d.y)
+                })
+                .collect();
         }
-    };
+    }
+    conformal_pinned(mesh, chart, &pins, &start)
+}
+
+/// The chart laid flat by least squares conformal maps with the wedges
+/// that have a spot in `pins` held there (at least two, apart), if it can
+/// be. `start` (one spot per wedge, or empty) is where solving starts.
+pub(crate) fn conformal_pinned(
+    mesh: &Mesh,
+    chart: &Chart,
+    pins: &[Option<Vec2>],
+    start: &[Vec2],
+) -> Option<Vec<Vec2>> {
+    let n = chart.len();
+    if !(3..=SOLVE_UP_TO).contains(&n) || pins.len() != n {
+        return None;
+    }
+    let p = |w: usize| mesh.position(chart.points[w]).unwrap_or(Vec3::ZERO);
+    let pinned =
+        |w: usize| -> Option<[f64; 2]> { pins[w].map(|v| [f64::from(v.x), f64::from(v.y)]) };
     // Unknowns: u then v of each wedge that isn't pinned.
     let mut slot = vec![usize::MAX; n];
     let mut count = 0;
@@ -153,25 +186,15 @@ fn conformal(mesh: &Mesh, chart: &Chart, guess: &[Vec2]) -> Option<Vec<Vec2>> {
     if !any {
         return None;
     }
-    // Start from the guess, moved so its pinned wedges sit on the pins.
+    if count == 0 {
+        return None;
+    }
     let mut x = vec![0.0f64; 2 * count];
-    if guess.len() == n {
-        let (ga, gb) = (guess[pa], guess[pb]);
-        let to_b = Vec2::new(p(pa).distance(p(pb)), 0.0);
-        let from = gb - ga;
-        if from.length() > 1e-9 {
-            // The similarity taking ga to 0 and gb to to_b.
-            let k = to_b.length() / from.length();
-            let turn = -from.y.atan2(from.x);
-            let (sin, cos) = turn.sin_cos();
-            for w in 0..n {
-                if slot[w] == usize::MAX {
-                    continue;
-                }
-                let d = (guess[w] - ga) * k;
-                let v = Vec2::new(cos * d.x - sin * d.y, sin * d.x + cos * d.y);
-                x[2 * slot[w]] = f64::from(v.x);
-                x[2 * slot[w] + 1] = f64::from(v.y);
+    if start.len() == n {
+        for w in 0..n {
+            if slot[w] != usize::MAX {
+                x[2 * slot[w]] = f64::from(start[w].x);
+                x[2 * slot[w] + 1] = f64::from(start[w].y);
             }
         }
     }
@@ -608,7 +631,7 @@ fn outcome(asked: usize, found: usize, changed: bool) -> Outcome {
 /// as a seam), straight as a grid when it's a strip of square quads and
 /// `strips` is on, at the object's texel density, where it was.
 pub fn unwrap(mesh: &mut Mesh, faces: &[FaceId], strips: bool) -> Outcome {
-    let mut cuts = cuts_of(mesh);
+    let cuts = cuts_of(mesh);
     let (pieces, found) = chosen_pieces(mesh, faces, &cuts);
     if pieces.is_empty() {
         return outcome(faces.len(), found, false);
@@ -616,14 +639,28 @@ pub fn unwrap(mesh: &mut Mesh, faces: &[FaceId], strips: bool) -> Outcome {
     let uvs = Uvs::of(mesh);
     let chosen: Vec<FaceId> = pieces.iter().flatten().copied().collect();
     let density = density_for(mesh, &chosen, uvs.as_ref());
+    let changed = lay_out(mesh, &pieces, cuts, density, strips);
+    outcome(faces.len(), found, changed)
+}
+
+/// Lays `pieces` (whole pieces by `cuts`) flat as [`unwrap`] does, at
+/// `density` (UV area per surface area); whether the UVs changed.
+pub(crate) fn lay_out(
+    mesh: &mut Mesh,
+    pieces: &[Vec<FaceId>],
+    mut cuts: BTreeSet<EdgeKey>,
+    density: f32,
+    strips: bool,
+) -> bool {
+    let uvs = Uvs::of(mesh);
     // Pieces that can't lie flat are cut open first; the cuts are seams.
     let mut extra = BTreeSet::new();
-    for piece in &pieces {
+    for piece in pieces {
         extra.extend(crate::seams::disk_cuts(mesh, piece, &cuts));
     }
     cuts.extend(extra.iter().copied());
     let mut laid = Vec::new();
-    for piece in &pieces {
+    for piece in pieces {
         let chart = Chart::of(mesh, piece, &cuts);
         let was = before(mesh, &chart, uvs.as_ref());
         let (at, align) = match strips
@@ -657,8 +694,7 @@ pub fn unwrap(mesh: &mut Mesh, faces: &[FaceId], strips: bool) -> Outcome {
         let extra: Vec<EdgeKey> = extra.into_iter().collect();
         mesh::uvs::set_seams(mesh, &extra, true);
     }
-    let changed = write(mesh, &laid);
-    outcome(faces.len(), found, changed)
+    write(mesh, &laid)
 }
 
 /// Straightens the pieces holding any of `faces` that are made only of

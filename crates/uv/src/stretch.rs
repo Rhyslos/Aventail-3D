@@ -90,7 +90,7 @@ impl Stretch {
 /// The two stretches of the map taking a triangle's corners `p` (on the
 /// surface) to `uv`, and whether it mirrors; `None` for a triangle with no
 /// area on the surface.
-fn stretches(p: [Vec3; 3], uv: [Vec2; 3]) -> Option<(f32, f32, bool)> {
+pub(crate) fn stretches(p: [Vec3; 3], uv: [Vec2; 3]) -> Option<(f32, f32, bool)> {
     let e1 = p[1] - p[0];
     let e2 = p[2] - p[0];
     let across = e1.cross(e2);

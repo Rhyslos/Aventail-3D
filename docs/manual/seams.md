@@ -57,6 +57,7 @@ No keys of their own, as chosen for seams; ask if you'd like some.
 ## Tips and common problems
 
 - **Problem:** I marked seams but the UV Editor looks the same apart from orange lines. **Why:** **Unwrap as seams change** is off (UV menu), or the piece was flat anyway: a flat piece cut in two comes back just where it was. **Fix:** switch it on, or choose Unwrap.
+- **Tip:** seams survive modelling: bevel an edge that is a seam and the seam stays, along one side of the bevel; an extrude's new walls get seams of their own. See [UVs while you keep modelling](uvs-and-modelling.md).
 - **Problem:** Mark seams says the edges are seams already. **Why:** they are, or they're open edges (the side of a hole), which are cut already.
 - **Problem:** Suggest seams changed seams I had placed by hand. **Why:** it replaces all seams of the selected objects. **Fix:** Ctrl + Z, then use Seams from hard edges and Mark seams instead, or select only the objects to suggest for.
 - **Problem:** nothing happens on an instance. **Why:** an instance has no edits of its own; it shows its original's seams. **Fix:** mark seams on the original.
