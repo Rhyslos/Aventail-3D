@@ -95,6 +95,9 @@ pub(crate) struct ComponentTracker {
     /// goes out of date), and nothing is looked up under the mouse.
     frozen: bool,
     hovered: Option<ObjectElement>,
+    /// What is under the mouse in the UV Editor, lit up here too while
+    /// the mouse isn't over a view (decision 0103).
+    outside: Option<ObjectElement>,
     /// Whether a tool that finds its own elements under the mouse is in
     /// use (Loop cut): the mode's element isn't looked up or highlighted.
     quiet: bool,
@@ -124,6 +127,7 @@ impl ComponentTracker {
             (Some(kind), Some(pointer)) if !self.frozen && !self.quiet => {
                 self.find(kind, drawing, pointer)
             }
+            (Some(kind), None) if !self.frozen => self.outside.filter(|(_, e)| e.kind() == kind),
             _ => None,
         };
         let wanted = (
@@ -170,6 +174,12 @@ impl ComponentTracker {
     /// use (see `quiet`).
     pub(crate) fn set_quiet(&mut self, quiet: bool) {
         self.quiet = quiet;
+    }
+
+    /// What is under the mouse in the UV Editor, to light up on the
+    /// shapes while the mouse isn't over a view (decision 0103).
+    pub(crate) fn set_outside_hover(&mut self, hovered: Option<ObjectElement>) {
+        self.outside = hovered;
     }
 
     /// The lines a tool shows over the shapes, in the world (none: `[]`).

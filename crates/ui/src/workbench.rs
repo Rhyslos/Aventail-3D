@@ -252,6 +252,8 @@ pub struct Workbench {
     gizmo_session: Option<crate::transforming::Session>,
     /// A modelling tool's drag (extrude, inset) in progress.
     modelling_session: Option<modelling::ModellingSession>,
+    /// A drag editing UVs on the model, if one is going on (decision 0103).
+    uv_model_drag: Option<uv_on_model::UvModelDrag>,
     /// A loop cut being placed (decision 0047).
     loop_cut_session: Option<loop_cut::LoopCutSession>,
     /// A slit's line being drawn (decision 0049).
@@ -341,6 +343,7 @@ impl Workbench {
             tool: Tool::default(),
             gizmo_session: None,
             modelling_session: None,
+            uv_model_drag: None,
             loop_cut_session: None,
             slit_session: None,
             pair_session: None,
@@ -1133,6 +1136,9 @@ impl Workbench {
         hide_viewport_tab(&mut self.dock);
         let mut modifier_pick = None;
         let view_options = self.viewport.options();
+        // What the viewport has under the mouse, for the UV Editor to
+        // light up (decision 0103).
+        let viewport_hover = self.viewport.pointer().and(self.components.hovered());
         let style = theme::dock_style(ui.style().as_ref(), self.accent);
         theme::dock_frame().show(ui, |ui| {
             DockArea::new(&mut self.dock)
@@ -1160,6 +1166,7 @@ impl Workbench {
                         tool: self.tool,
                         snap: view_options.snap,
                         surface: view_options.surface,
+                        viewport_hover,
                         attributes: &mut self.attributes,
                         units: &mut self.units,
                         requests: &mut requests,
@@ -1185,6 +1192,8 @@ impl Workbench {
         self.carry_out_coordinates(coordinates_done, &summary.drawing);
         let shown = summary.overlay.version;
         let options = self.viewport.options();
+        self.components
+            .set_outside_hover(self.uv_editor.under_mouse(ui.ctx()));
         let overlay = self.components.update(
             self.mode,
             &summary.drawing,
@@ -2187,6 +2196,7 @@ struct PanelViewer<'a> {
     tool: Tool,
     snap: crate::transforming::SnapSettings,
     surface: crate::viewport::Surface,
+    viewport_hover: Option<(scene::ObjectId, scene::Element)>,
     attributes: &'a mut AttributesPanel,
     units: &'a mut Units,
     requests: &'a mut Vec<DocRequest>,
@@ -2281,6 +2291,7 @@ impl TabViewer for PanelViewer<'_> {
                     tool: self.tool,
                     snap: self.snap,
                     stretch: self.surface == crate::viewport::Surface::Stretch,
+                    outside_hover: self.viewport_hover,
                 };
                 self.uv_editor.show(ui, self.document, &cx);
                 return;
@@ -2377,6 +2388,9 @@ mod seams;
 #[cfg(test)]
 mod seams_tests;
 mod unwrapping;
+mod uv_on_model;
+#[cfg(test)]
+mod uv_on_model_tests;
 pub use unwrapping::UvSettings;
 #[cfg(test)]
 mod density_tests;

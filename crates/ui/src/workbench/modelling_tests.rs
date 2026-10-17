@@ -128,7 +128,7 @@ pub(super) fn on_screen(harness: &H, world: glam::Vec3) -> Pos2 {
 }
 
 /// Drags from `from` by `by` points, in steps, and lets go.
-fn drag_by(harness: &mut H, from: Pos2, by: egui::Vec2) {
+pub(super) fn drag_by(harness: &mut H, from: Pos2, by: egui::Vec2) {
     harness.event(Event::PointerMoved(from));
     harness.run();
     button(harness, from, true, PointerButton::Primary, Modifiers::NONE);

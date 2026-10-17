@@ -187,6 +187,9 @@ pub(crate) struct UvEditor {
     pressed_on_gizmo: bool,
     /// Counts gizmo drags, for their undo merge keys.
     sessions: u64,
+    /// What was under the mouse here last frame, for the viewport to
+    /// light up (decision 0103).
+    under_mouse: Option<(ObjectId, Element)>,
 }
 
 impl Default for UvEditor {
@@ -203,6 +206,7 @@ impl Default for UvEditor {
             gizmo: None,
             pressed_on_gizmo: false,
             sessions: 0,
+            under_mouse: None,
         }
     }
 }
@@ -246,6 +250,9 @@ pub(crate) struct UvContext<'a> {
     /// Whether polygons are coloured by how evenly they lie (the
     /// viewport's Stretch view, decision 0102).
     pub(crate) stretch: bool,
+    /// What is under the mouse in the viewport, lit up here too
+    /// (decision 0103).
+    pub(crate) outside_hover: Option<(ObjectId, Element)>,
 }
 
 /// The objects whose UVs are shown: the selected ones with a shape, in
@@ -278,6 +285,11 @@ impl UvEditor {
     #[cfg(test)]
     pub(crate) fn screen_of(&self, uv: Vec2) -> Option<Pos2> {
         Some(self.to_screen(self.rect?, uv))
+    }
+
+    /// What is under the mouse in the editor, if the mouse is over it.
+    pub(crate) fn under_mouse(&self, ctx: &egui::Context) -> Option<(ObjectId, Element)> {
+        self.hovered(ctx).then_some(self.under_mouse).flatten()
     }
 
     /// Whether the gizmo is being dragged.
@@ -395,10 +407,17 @@ impl UvEditor {
         self.paint_square(&painter, rect, doc.scene().texture().size);
         let accent = theme::accent(ui.ctx()).colors();
         let kind = element_kind(cx.mode);
-        let hover = response
+        let own = response
             .hover_pos()
             .filter(|_| self.drag.is_none() && kind.is_some())
             .and_then(|at| self.pick(rect, &shapes, at, cx.mode));
+        self.under_mouse = own.map(|h| (h.id, h.element));
+        // What the viewport has under the mouse lights up here too.
+        let hover = own.or_else(|| {
+            let (id, element) = cx.outside_hover?;
+            (response.hover_pos().is_none() && Some(element.kind()) == kind)
+                .then_some(Hit { id, element })
+        });
         let too_many = shown_objects(doc).len() > shapes.len();
         let mut polygons = 0;
         let mut islands = 0;

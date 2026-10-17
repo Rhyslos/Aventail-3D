@@ -27,7 +27,7 @@ For laying pieces flat automatically, see [Unwrap, Relax and Straighten](unwrapp
    - **S** (Scale): drag the **red** or **blue box** to stretch in that direction only, or the **square in the middle** to scale evenly (drag right or up to grow).
    - **T**: all of them at once.
 
-   You see the change while you drag, on the texture square and in the numbers of the model's UVs. Each drag is **one undo step**: **Ctrl + Z** takes it back.
+   You see the change while you drag, on the texture square and in the numbers of the model's UVs. Each drag is **one undo step**: **Ctrl + Z** takes it back. In the UV mode you can also drag in the viewport to move the texture right on the shape: see [Editing UVs on the model](uvs-on-the-model.md).
 4. For an exact quarter turn or a mirror, press **E** with the mouse over the editor and choose **Turn left 90°**, **Turn right 90°**, **Flip left to right** or **Flip upside down**. They turn or mirror the selection about its middle.
 
 **Islands stay in one piece.** When you move a polygon, its neighbours in the same island keep their shared corners with it: the island bends rather than tearing. Corners on the other side of a [seam](concepts.md#uvs-and-texturing) belong to another island and stay where they are. (Other programs call this "sticky selection, shared location".)
@@ -72,6 +72,7 @@ The turn and flip commands have no keys yet; ask for them if you use them often.
 ## Related
 
 - [The UV Editor and the UV mode](uv-editor.md)
+- [Editing UVs on the model](uvs-on-the-model.md): the same changes by dragging the texture on the shape
 - [Move, rotate and scale](transforming.md) (the same gizmo in 3D)
 - [The tool menu (E)](tool-menu.md)
 - [Concepts: UV map, seam, island, corner](concepts.md#uvs-and-texturing)
