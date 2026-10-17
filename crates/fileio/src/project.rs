@@ -43,6 +43,7 @@ mod v27;
 mod v28;
 mod v29;
 mod v3;
+mod v30;
 mod v4;
 mod v5;
 mod v6;
@@ -58,7 +59,7 @@ use std::path::{Path, PathBuf};
 /// The signature every project file starts with.
 pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// The format version this app writes.
-pub const FORMAT_VERSION: u32 = 29;
+pub const FORMAT_VERSION: u32 = 30;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -160,7 +161,7 @@ fn edit_counts(document: &Document) -> usize {
 
 /// The project file's bytes for `document`, unchecked.
 fn encode(document: &Document) -> Result<Vec<u8>, ProjectError> {
-    let model = v29::ProjectV29::from_document(document);
+    let model = v30::ProjectV30::from_document(document);
     let stored: usize = model
         .project
         .project
@@ -262,7 +263,8 @@ pub fn from_bytes(bytes: &[u8]) -> Result<Document, ProjectError> {
         26 => decode_mirrors::<v26::EntryV26>(encoded),
         27 => decode_names::<v26::EntryV26>(encoded),
         28 => decode_names::<v28::EntryV28>(encoded),
-        _ => decode_names::<v29::EntryV29>(encoded),
+        29 => decode_names::<v29::EntryV29>(encoded),
+        _ => decode_names::<v30::EntryV30>(encoded),
     }
 }
 

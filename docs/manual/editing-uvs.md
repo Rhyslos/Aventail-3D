@@ -13,7 +13,7 @@ A shape's [UVs](concepts.md#uvs-and-texturing) decide where a texture lands on i
 - scale a piece up so it gets more texture pixels (more detail), or down so it takes less room;
 - flip a piece that shows its texture mirrored.
 
-Unwrapping, relaxing and packing islands automatically come in the next updates; this is the hands-on part they build on.
+For laying pieces flat automatically, see [Unwrap, Relax and Straighten](unwrapping.md); packing comes in a later update.
 
 ## How to use it
 
@@ -32,7 +32,7 @@ Unwrapping, relaxing and packing islands automatically come in the next updates;
 
 **Islands stay in one piece.** When you move a polygon, its neighbours in the same island keep their shared corners with it: the island bends rather than tearing. Corners on the other side of a [seam](concepts.md#uvs-and-texturing) belong to another island and stay where they are. (Other programs call this "sticky selection, shared location".)
 
-**The E menu follows the mouse.** With the mouse over the UV Editor, **E** shows the UV tools, in any of the Points, Edges, Polygons and UV modes; over the viewport, the modelling tools. In the UV mode it always shows the UV tools. [Mark seams and Clear seams](seams.md) are there too. The places for the tools still to come (Unwrap, Relax, Straighten and Pack) are dimmed, and pointing at one says when it arrives, so nothing moves as they're added. See [The tool menu](tool-menu.md).
+**The E menu follows the mouse.** With the mouse over the UV Editor, **E** shows the UV tools, in any of the Points, Edges, Polygons and UV modes; over the viewport, the modelling tools. In the UV mode it always shows the UV tools. [Mark seams and Clear seams](seams.md) and [Unwrap, Relax and Straighten](unwrapping.md) are there too. The place for Pack, still to come, is dimmed, and pointing at one says when it arrives, so nothing moves as they're added. See [The tool menu](tool-menu.md).
 
 **Your UV changes are edits.** Like moving points, a change to UVs is recorded on the object's [edit list](edit-list.md), saved with the project, and made again if you change the shape's settings before it.
 

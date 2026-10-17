@@ -34,6 +34,8 @@ const RECENT_KEY: &str = "recent_projects";
 const AUTOSAVE_KEY: &str = "autosave";
 /// Key under which the tool menu's look (radial or list) is remembered.
 const TOOL_MENU_KEY: &str = "tool_menu";
+/// Where the UV tools' settings are kept.
+const UV_SETTINGS_KEY: &str = "uv_tools";
 /// Window size on first launch, in logical pixels.
 const FIRST_SIZE: [f32; 2] = [1440.0, 900.0];
 /// The smallest the window may get while staying usable.
@@ -68,6 +70,7 @@ struct Remembered {
     undo_memory: ui::UndoMemory,
     autosave: ui::AutosaveSettings,
     tool_menu: ui::ToolMenuSettings,
+    uv: ui::UvSettings,
 }
 
 impl Remembered {
@@ -96,6 +99,9 @@ impl Remembered {
                 .unwrap_or_default(),
             tool_menu: storage
                 .and_then(|s| eframe::get_value(s, TOOL_MENU_KEY))
+                .unwrap_or_default(),
+            uv: storage
+                .and_then(|s| eframe::get_value(s, UV_SETTINGS_KEY))
                 .unwrap_or_default(),
         }
     }
@@ -179,7 +185,8 @@ impl Starting {
                     .with_undo_memory(r.undo_memory)
                     .with_recent_projects(r.recent)
                     .with_autosave(r.autosave)
-                    .with_tool_menu(r.tool_menu);
+                    .with_tool_menu(r.tool_menu)
+                    .with_uv_settings(r.uv);
                 // The Keys window draws the keyboard that goes with the
                 // system language, until one is picked there.
                 workbench.set_system_language(&sys_locale::get_locale().unwrap_or_default());
@@ -348,6 +355,7 @@ impl App {
         eframe::set_value(storage, RECENT_KEY, &self.workbench.recent_projects());
         eframe::set_value(storage, AUTOSAVE_KEY, &self.workbench.autosave_settings());
         eframe::set_value(storage, TOOL_MENU_KEY, &self.workbench.tool_menu_settings());
+        eframe::set_value(storage, UV_SETTINGS_KEY, &self.workbench.uv_settings());
     }
 
     /// A normal close: this run's backup copies are no longer needed.
@@ -487,5 +495,7 @@ mod tests {
         assert_ne!(AUTOSAVE_KEY, UNDO_MEMORY_KEY);
         assert!(!TOOL_MENU_KEY.contains(branding::APP_ID));
         assert_ne!(TOOL_MENU_KEY, AUTOSAVE_KEY);
+        assert!(!UV_SETTINGS_KEY.contains(branding::APP_ID));
+        assert_ne!(UV_SETTINGS_KEY, UV_LAYOUT_KEY);
     }
 }

@@ -18,6 +18,7 @@ use serde::{Deserialize, Serialize};
 pub(crate) type EntryV29 = EntryWith<OperationV29>;
 
 /// Version 29 of the file: version 27's, its edits stored as version 29's.
+#[cfg(test)]
 pub(crate) type ProjectV29 = super::v27::ProjectV27<EntryV29>;
 
 /// The recorded operations version 29 stores.

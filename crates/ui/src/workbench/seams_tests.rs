@@ -138,6 +138,8 @@ fn seams_need_an_editing_mode() {
 #[test]
 fn seams_from_hard_edges_puts_back_a_cubes_twelve() {
     let mut harness = fresh();
+    // Only the marks here: unwrapping a seamless cube would cut it.
+    harness.state_mut().workbench.uv_settings.live_unwrap = false;
     let id = cube(&harness);
     harness
         .state_mut()

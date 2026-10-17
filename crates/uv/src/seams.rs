@@ -23,6 +23,7 @@
 //! in a concave corner, or on a corner rather than across a flat stretch:
 //! the places a viewer least looks at.
 
+use crate::chart::Sets;
 use glam::Vec3;
 use mesh::{EdgeKey, FaceId, Mesh, VertexId};
 use std::cmp::Ordering;
@@ -32,37 +33,6 @@ use std::collections::{BTreeMap, BTreeSet, BinaryHeap, HashMap};
 /// are cut as well as hard edges: a piece bent further than this round
 /// one edge stretches badly when laid flat.
 pub const CORNER_ANGLE: f32 = 66.0;
-
-/// A simple union-find over `0..n`.
-struct Sets {
-    parent: Vec<usize>,
-}
-
-impl Sets {
-    fn new(n: usize) -> Self {
-        Self {
-            parent: (0..n).collect(),
-        }
-    }
-
-    fn find(&mut self, mut x: usize) -> usize {
-        while self.parent[x] != x {
-            self.parent[x] = self.parent[self.parent[x]];
-            x = self.parent[x];
-        }
-        x
-    }
-
-    /// Joins the sets of `a` and `b`; whether they were apart.
-    fn join(&mut self, a: usize, b: usize) -> bool {
-        let (a, b) = (self.find(a), self.find(b));
-        if a == b {
-            return false;
-        }
-        self.parent[a] = b;
-        true
-    }
-}
 
 /// The edges shared by exactly two polygons: the only edges a seam can be
 /// on (an open edge is cut already; an edge of three or more polygons
@@ -285,7 +255,11 @@ fn hidden_path(mesh: &Mesh, edges: &[EdgeKey], from: VertexId, to: VertexId) -> 
 /// a disk; for a piece with no border, a hidden path from its lowest
 /// point to its highest first; then what a spanning tree of its polygons
 /// (most visible edges kept joined) leaves, trimmed back.
-fn disk_cuts(mesh: &Mesh, piece: &[FaceId], cuts: &BTreeSet<EdgeKey>) -> BTreeSet<EdgeKey> {
+pub(crate) fn disk_cuts(
+    mesh: &Mesh,
+    piece: &[FaceId],
+    cuts: &BTreeSet<EdgeKey>,
+) -> BTreeSet<EdgeKey> {
     let mut added = BTreeSet::new();
     if is_disk(mesh, piece, cuts) {
         return added;

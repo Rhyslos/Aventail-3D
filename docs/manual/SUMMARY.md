@@ -46,6 +46,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [The UV Editor and the UV mode: see and select UVs on the texture square](uv-editor.md)
 - [Editing UVs by hand: move, turn, scale and flip pieces](editing-uvs.md)
 - [Seams: mark, clear, from hard edges, suggested](seams.md)
+- [Unwrap, Relax and Straighten: lay pieces flat](unwrapping.md)
 - *More pages are added here as UV tools are built.*
 
 ## Export

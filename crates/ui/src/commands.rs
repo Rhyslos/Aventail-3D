@@ -125,9 +125,6 @@ pub struct CommandInfo {
     pub arrives: Option<&'static str>,
 }
 
-/// When unwrapping tools arrive.
-const ARRIVES_WITH_UNWRAP: &str = "Arrives with live unwrapping, later in Phase 7";
-
 /// A key on its own.
 const fn plain(key: Key) -> Option<KeyboardShortcut> {
     Some(KeyboardShortcut::new(Modifiers::NONE, key))
@@ -449,23 +446,23 @@ impl CommandId {
                 "Unwrap",
                 Icon::Unwrap,
                 None,
-                "Lay the selected parts out flat again, cut along their seams, with as \
-                 little stretching as can be",
-                Some(ARRIVES_WITH_UNWRAP),
+                "Lay the pieces holding the selection (or whole objects) flat along their \
+                 seams, with as little stretching as can be, at the object's texel density",
+                None,
             ),
             Self::Relax => (
                 "Relax",
                 Icon::Relax,
                 None,
-                "Even out the selected UVs, so a texture stretches less over them",
-                Some(ARRIVES_WITH_UNWRAP),
+                "Even out the selected polygons' UVs, so a texture stretches less over them",
+                None,
             ),
             Self::Straighten => (
                 "Straighten",
                 Icon::Straighten,
                 None,
-                "Line the selected UVs up into a straight grid, for strips and panels",
-                Some(ARRIVES_WITH_UNWRAP),
+                "Line the pieces made of quads up into a straight grid, for strips and panels",
+                None,
             ),
             Self::Pack => (
                 "Pack",
