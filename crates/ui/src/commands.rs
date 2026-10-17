@@ -125,8 +125,6 @@ pub struct CommandInfo {
     pub arrives: Option<&'static str>,
 }
 
-/// When seam tools arrive.
-const ARRIVES_WITH_SEAMS: &str = "Arrives with seams, the next part of Phase 7";
 /// When unwrapping tools arrive.
 const ARRIVES_WITH_UNWRAP: &str = "Arrives with live unwrapping, later in Phase 7";
 
@@ -436,15 +434,16 @@ impl CommandId {
                 Icon::MarkSeam,
                 None,
                 "Mark the selected edges as seams: where the surface is cut open to lie \
-                 flat",
-                Some(ARRIVES_WITH_SEAMS),
+                 flat. With polygons selected, the edges around them.",
+                None,
             ),
             Self::ClearSeam => (
                 "Clear seams",
                 Icon::ClearSeam,
                 None,
-                "Take the seams off the selected edges, so the UVs join there again",
-                Some(ARRIVES_WITH_SEAMS),
+                "Take the seams off the selected edges (or the selected polygons' edges), so the \
+                 surface stays joined there when unwrapped",
+                None,
             ),
             Self::Unwrap => (
                 "Unwrap",

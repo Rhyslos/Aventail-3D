@@ -27,7 +27,7 @@ It changes only the shading, never the shape or its edits. The hard and soft edg
 
 ![The same bent pipe twice. Left, Automatic hard edges off: every ring of the bend is marked hard, so the pipe looks faceted. Right, on: the pipe is smooth and the end caps stay crisp.](../screenshots/2026-10-14-automatic-hard-edges.png)
 
-Switch it off when you want edges the angle wouldn't choose. For example, a soft edge between two polygons meeting at 45° on a rounded low-poly shape, or a hard edge across a gentle curve to mark a seam.
+Switch it off when you want edges the angle wouldn't choose. For example, a soft edge between two polygons meeting at 45° on a rounded low-poly shape, or a hard edge across a gentle curve where a texture seam will go ([Seams → Seams from hard edges](seams.md) turns hard edges into seams).
 
 ### By hand
 

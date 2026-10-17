@@ -143,13 +143,13 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **UV map** — A flattened copy of the mesh's surface, laid out on a square, telling the engine where each part of a texture goes. "U" and "V" are just the names of the 2D axes, like X and Y.
 
-**Seam** — An edge where the surface is "cut" so it can be flattened. Every UV island is bounded by seams. In hard-surface work, a good starting point is placing seams on hard edges. The ready-made shapes come with their seams marked where they're cut open.
+**Seam** — An edge where the surface is "cut" so it can be flattened. Every UV island is bounded by seams. In hard-surface work, a good starting point is placing seams on hard edges. The ready-made shapes come with their seams marked where they're cut open; see [Seams](seams.md) to mark your own or have them suggested.
 
 **UV island (shell)** — A connected piece of the flattened surface. In this app, polygons are in the same island when they share an edge whose UVs match on both sides.
 
 **Corner (of a polygon)** — A point as one polygon uses it. UVs belong to corners, not points: a point on a seam has one UV in each island it touches. Every shape in this app comes with UVs ([Primitives: ready-made UVs](primitives.md#ready-made-uvs)).
 
-**Unwrapping** — Flattening the mesh along its seams into islands.
+**Unwrapping** — Flattening the mesh along its seams into islands. A piece can be laid flat in one go only if it is shaped like a **disk**: one piece, with one border all round (a cube's side, a sheet). A tube (two borders) or a ball (none) needs a cut first.
 
 **Stretching (distortion)** — When an island's shape on the UV map doesn't match its real shape, textures look squashed or stretched. A checker texture makes it easy to spot.
 

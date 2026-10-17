@@ -176,13 +176,8 @@ const COMING: [(&str, &[(&str, &str)]); 4] = [
     ),
     // The Mesh menu lists the modelling tools from the command list.
     ("Mesh", &[]),
-    (
-        "UV",
-        &[
-            ("Seams, unwrap, relax", "Phase 7"),
-            ("Pack and texel density", "Phase 7"),
-        ],
-    ),
+    // The UV menu's entries come from the command list (see `uv_menu`).
+    ("UV", &[]),
 ];
 
 /// The whole interface around the scene.
@@ -1716,6 +1711,9 @@ impl Workbench {
                 if title == "Tools" {
                     self.tools_menu(ui);
                 }
+                if title == "UV" {
+                    self.uv_menu_entries(ui, requests);
+                }
                 if title == "Mesh" {
                     objects::make_editable_entry(ui, &self.document, requests);
                     ui.separator();
@@ -2064,6 +2062,66 @@ fn commands_entries(ui: &mut Ui, list: &[CommandId]) -> Option<CommandId> {
     chosen
 }
 
+impl Workbench {
+    /// The UV menu: the seam tools, turns and flips, and what is coming,
+    /// from the command list (decision 0098).
+    fn uv_menu_entries(&mut self, ui: &mut Ui, requests: &mut Vec<DocRequest>) {
+        use crate::commands::CommandId;
+        if let Some(command) = commands_entries(ui, &[CommandId::MarkSeam, CommandId::ClearSeam]) {
+            self.run_command(command, ui.ctx(), requests);
+            ui.close();
+        }
+        for (label, help, run) in [
+            (
+                seams::SEAMS_FROM_HARD_LABEL,
+                seams::SEAMS_FROM_HARD_HELP,
+                Self::run_seams_from_hard_edges as fn(&mut Self),
+            ),
+            (
+                seams::SUGGEST_SEAMS_LABEL,
+                seams::SUGGEST_SEAMS_HELP,
+                Self::run_suggest_seams,
+            ),
+            (
+                seams::SELECT_SEAMS_LABEL,
+                seams::SELECT_SEAMS_HELP,
+                Self::run_select_seams,
+            ),
+        ] {
+            if ui.button(label).on_hover_text(help).clicked() {
+                run(self);
+                ui.close();
+            }
+        }
+        ui.separator();
+        if let Some(command) = commands_entries(
+            ui,
+            &[
+                CommandId::UvTurnLeft,
+                CommandId::UvTurnRight,
+                CommandId::UvFlipU,
+                CommandId::UvFlipV,
+            ],
+        ) {
+            self.run_command(command, ui.ctx(), requests);
+            ui.close();
+        }
+        ui.separator();
+        if let Some(command) = commands_entries(
+            ui,
+            &[
+                CommandId::Unwrap,
+                CommandId::Relax,
+                CommandId::Straighten,
+                CommandId::Pack,
+            ],
+        ) {
+            self.run_command(command, ui.ctx(), requests);
+            ui.close();
+        }
+    }
+}
+
 /// Menus whose commands are not built yet: each lists what is coming and
 /// when, greyed out.
 fn coming_entries(ui: &mut Ui, items: &[(&str, &str)]) {
@@ -2271,6 +2329,9 @@ mod loop_cut_tests;
 #[cfg(test)]
 mod material_tests;
 mod materials;
+mod seams;
+#[cfg(test)]
+mod seams_tests;
 pub use exporting::{
     ExportChoice, ExportRequest, KitOutcome, KitRequest, TargetOutcome, TargetRequest,
 };

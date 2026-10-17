@@ -24,6 +24,8 @@ scene.workspace = true
 fileio.workspace = true
 # Primitive settings' limits and the mesh check (layer 0).
 mesh.workspace = true
+# Suggested seams (layer 1).
+uv.workspace = true
 glam.workspace = true
 egui.workspace = true
 egui_dock.workspace = true

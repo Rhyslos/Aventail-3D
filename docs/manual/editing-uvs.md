@@ -32,7 +32,7 @@ Unwrapping, relaxing and packing islands automatically come in the next updates;
 
 **Islands stay in one piece.** When you move a polygon, its neighbours in the same island keep their shared corners with it: the island bends rather than tearing. Corners on the other side of a [seam](concepts.md#uvs-and-texturing) belong to another island and stay where they are. (Other programs call this "sticky selection, shared location".)
 
-**The E menu follows the mouse.** With the mouse over the UV Editor, **E** shows the UV tools, in any of the Points, Edges, Polygons and UV modes; over the viewport, the modelling tools. In the UV mode it always shows the UV tools. The ring's places for the tools still to come (Mark seams, Clear seams, Unwrap, Relax, Straighten and Pack) are dimmed, and pointing at one says when it arrives, so nothing moves as they're added. See [The tool menu](tool-menu.md).
+**The E menu follows the mouse.** With the mouse over the UV Editor, **E** shows the UV tools, in any of the Points, Edges, Polygons and UV modes; over the viewport, the modelling tools. In the UV mode it always shows the UV tools. [Mark seams and Clear seams](seams.md) are there too. The places for the tools still to come (Unwrap, Relax, Straighten and Pack) are dimmed, and pointing at one says when it arrives, so nothing moves as they're added. See [The tool menu](tool-menu.md).
 
 **Your UV changes are edits.** Like moving points, a change to UVs is recorded on the object's [edit list](edit-list.md), saved with the project, and made again if you change the shape's settings before it.
 

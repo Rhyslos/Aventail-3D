@@ -269,3 +269,45 @@ fn bad_transforms_and_meshes_without_uvs_change_nothing() {
     assert_eq!(outcome.matched, 0);
     assert!(!has_uvs(&bare));
 }
+
+#[test]
+fn seams_are_marked_and_cleared_on_inner_edges_only() {
+    let mut mesh = plane_2x2();
+    mesh.remove_attribute(SEAM);
+    let topology = mesh.topology().clone();
+    let inner: Vec<EdgeKey> = topology
+        .edges()
+        .filter(|e| topology.edge_uses(*e).len() == 2)
+        .collect();
+    let border = topology
+        .edges()
+        .find(|e| topology.edge_uses(*e).len() == 1)
+        .unwrap();
+    let gone = EdgeKey::new(VertexId::from_raw(9000), VertexId::from_raw(9001));
+    // No seam layer yet: marking adds one.
+    let done = set_seams(&mut mesh, &[inner[0], inner[1], border, gone], true);
+    assert_eq!((done.matched, done.skipped, done.missing), (2, 1, 1));
+    assert!(is_seam(&mesh, inner[0]) && is_seam(&mesh, inner[1]));
+    assert!(!is_seam(&mesh, border), "an open edge is cut already");
+    // Again: nothing to do.
+    let again = set_seams(&mut mesh, &[inner[0]], true);
+    assert_eq!((again.matched, again.skipped), (0, 1));
+    // Cleared.
+    let cleared = set_seams(&mut mesh, &[inner[0]], false);
+    assert_eq!(cleared.matched, 1);
+    assert!(!is_seam(&mesh, inner[0]) && is_seam(&mesh, inner[1]));
+    assert_eq!(seams(&mesh), vec![inner[1]]);
+    // The UVs are left alone: only the marks change.
+    assert_eq!(uv_splits(&mesh), uv_splits(&plane_2x2()));
+}
+
+#[test]
+fn clearing_seams_on_a_mesh_without_any_changes_nothing() {
+    let mut mesh = plane_2x2();
+    mesh.remove_attribute(SEAM);
+    let edges: Vec<EdgeKey> = mesh.topology().edges().collect();
+    let done = set_seams(&mut mesh, &edges, false);
+    assert_eq!(done.matched, 0);
+    assert!(mesh.attribute_values(SEAM).is_none(), "no layer made");
+    assert!(set_seams(&mut mesh, &[], true).matched == 0);
+}

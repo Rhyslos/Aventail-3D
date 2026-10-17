@@ -299,6 +299,16 @@ pub enum Operation {
         /// them again (decision 0032).
         anchors: Option<Anchors>,
     },
+    /// Marks edges as seams, where the surface is cut open to lie flat,
+    /// or clears them (decision 0098).
+    SetSeams {
+        /// The edges.
+        edges: Vec<EdgeKey>,
+        /// Mark, or clear.
+        seam: bool,
+        /// Where they were, to find them again (decision 0032).
+        anchors: Option<Anchors>,
+    },
     /// Marks edges hard (a crisp break in the shading) or soft (smooth
     /// shading across) (decision 0053).
     SetHardEdges {
@@ -513,6 +523,14 @@ impl Operation {
             Self::TransformUvs { faces, .. } => counted("Move the UVs of", faces.len(), "polygon"),
             Self::FixFacing => "Fix normals".to_string(),
             Self::PlaceShape { .. } => "Apply the placement".to_string(),
+            Self::SetSeams { edges, seam, .. } => {
+                let verb = if *seam {
+                    "Mark as seams"
+                } else {
+                    "Clear the seams of"
+                };
+                counted(verb, edges.len(), "edge")
+            }
             Self::SetHardEdges { edges, hard, .. } => {
                 let verb = if *hard { "Harden" } else { "Soften" };
                 counted(verb, edges.len(), "edge")
@@ -634,6 +652,7 @@ impl Operation {
             | Self::SetMaterial { .. }
             | Self::TransformUvs { .. }
             | Self::SetHardEdges { .. }
+            | Self::SetSeams { .. }
             | Self::SlidePoints { .. }
             | Self::FixFacing
             | Self::PlaceShape { .. } => None,
@@ -794,6 +813,7 @@ impl Operation {
             | Self::SetMaterial { .. }
             | Self::TransformUvs { .. }
             | Self::SetHardEdges { .. }
+            | Self::SetSeams { .. }
             | Self::SlidePoints { .. }
             | Self::FixFacing
             | Self::PlaceShape { .. } => {}
@@ -927,6 +947,7 @@ impl Operation {
             | Self::FlipPolygons { .. }
             | Self::SetMaterial { .. }
             | Self::SetHardEdges { .. }
+            | Self::SetSeams { .. }
             | Self::FixFacing => true,
             Self::TransformUvs { transform, .. } => transform.is_finite(),
             Self::PlaceShape { matrix } => matrix.is_finite() && matrix.determinant().abs() > 1e-12,
@@ -976,6 +997,7 @@ impl Operation {
             | Self::SetMaterial { anchors, .. }
             | Self::TransformUvs { anchors, .. }
             | Self::SetHardEdges { anchors, .. }
+            | Self::SetSeams { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_ref(),
             Self::FixFacing | Self::PlaceShape { .. } | Self::HardEdgesByAngle { .. } => None,
             Self::Slit { .. } => None,
@@ -1008,6 +1030,7 @@ impl Operation {
             | Self::SetMaterial { anchors, .. }
             | Self::TransformUvs { anchors, .. }
             | Self::SetHardEdges { anchors, .. }
+            | Self::SetSeams { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_mut(),
             Self::FixFacing | Self::PlaceShape { .. } | Self::HardEdgesByAngle { .. } => None,
             Self::Slit { .. } => None,
@@ -1392,6 +1415,12 @@ impl Operation {
             }
             Self::FixFacing => edit::fix_facing(mesh),
             Self::PlaceShape { matrix } => edit::place(mesh, *matrix),
+            Self::SetSeams { edges, seam, .. } => {
+                let edges = refound
+                    .as_ref()
+                    .map_or_else(|| edges.clone(), |r| edges_within(mesh, &r.0));
+                mesh::uvs::set_seams(mesh, &edges, *seam)
+            }
             Self::SetHardEdges { edges, hard, .. } => {
                 let edges = refound
                     .as_ref()

@@ -95,6 +95,7 @@ A **double-click** selects a whole [loop](concepts.md#mesh-basics), the belt run
 - **Ctrl + A** selects everything: all shapes in Model mode, or all points, edges or polygons of the selected shapes.
 - **Ctrl + I** inverts: what was selected is unselected, and the rest selected.
 - **Esc** unselects the points, edges or polygons, but keeps the shape selected, so you can keep working on it. In Model mode, Esc unselects the shapes.
+- **Select → Select seams** selects every [seam](seams.md) of the shapes you're editing (the Edges mode shows), and **Select hard edges** every hard edge.
 - **Select → Select by material** lists the selected shapes' [materials](materials.md); pick one to select every polygon using it (the Polygons mode shows).
 
 ### Undo
