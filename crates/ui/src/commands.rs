@@ -87,6 +87,27 @@ pub enum CommandId {
     Slit,
     /// Cut a new loop of edges around a shape.
     LoopCut,
+    // ------------------------------------------- UVs (the UV Editor's ring)
+    /// Turn the selected UVs a quarter turn anticlockwise.
+    UvTurnLeft,
+    /// Turn the selected UVs a quarter turn clockwise.
+    UvTurnRight,
+    /// Mirror the selected UVs left to right.
+    UvFlipU,
+    /// Mirror the selected UVs upside down.
+    UvFlipV,
+    /// Mark the selected edges as seams.
+    MarkSeam,
+    /// Clear the seams from the selected edges.
+    ClearSeam,
+    /// Lay the selected parts out flat again along their seams.
+    Unwrap,
+    /// Even out the selected UVs.
+    Relax,
+    /// Straighten the selected UVs into a grid.
+    Straighten,
+    /// Fit every island into the texture square.
+    Pack,
 }
 
 /// Everything shown about a command.
@@ -103,6 +124,11 @@ pub struct CommandInfo {
     /// When it arrives, for a command not built yet (`None` once built).
     pub arrives: Option<&'static str>,
 }
+
+/// When seam tools arrive.
+const ARRIVES_WITH_SEAMS: &str = "Arrives with seams, the next part of Phase 7";
+/// When unwrapping tools arrive.
+const ARRIVES_WITH_UNWRAP: &str = "Arrives with live unwrapping, later in Phase 7";
 
 /// A key on its own.
 const fn plain(key: Key) -> Option<KeyboardShortcut> {
@@ -375,6 +401,80 @@ impl CommandId {
                  then click, or drag to slide it",
                 None,
             ),
+            Self::UvTurnLeft => (
+                "Turn left 90°",
+                Icon::UvTurnLeft,
+                None,
+                "Turn the selected UVs a quarter turn to the left (anticlockwise), about \
+                 their middle",
+                None,
+            ),
+            Self::UvTurnRight => (
+                "Turn right 90°",
+                Icon::UvTurnRight,
+                None,
+                "Turn the selected UVs a quarter turn to the right (clockwise), about their \
+                 middle",
+                None,
+            ),
+            Self::UvFlipU => (
+                "Flip left to right",
+                Icon::UvFlipU,
+                None,
+                "Mirror the selected UVs left to right, about their middle",
+                None,
+            ),
+            Self::UvFlipV => (
+                "Flip upside down",
+                Icon::UvFlipV,
+                None,
+                "Mirror the selected UVs top to bottom, about their middle",
+                None,
+            ),
+            Self::MarkSeam => (
+                "Mark seams",
+                Icon::MarkSeam,
+                None,
+                "Mark the selected edges as seams: where the surface is cut open to lie \
+                 flat",
+                Some(ARRIVES_WITH_SEAMS),
+            ),
+            Self::ClearSeam => (
+                "Clear seams",
+                Icon::ClearSeam,
+                None,
+                "Take the seams off the selected edges, so the UVs join there again",
+                Some(ARRIVES_WITH_SEAMS),
+            ),
+            Self::Unwrap => (
+                "Unwrap",
+                Icon::Unwrap,
+                None,
+                "Lay the selected parts out flat again, cut along their seams, with as \
+                 little stretching as can be",
+                Some(ARRIVES_WITH_UNWRAP),
+            ),
+            Self::Relax => (
+                "Relax",
+                Icon::Relax,
+                None,
+                "Even out the selected UVs, so a texture stretches less over them",
+                Some(ARRIVES_WITH_UNWRAP),
+            ),
+            Self::Straighten => (
+                "Straighten",
+                Icon::Straighten,
+                None,
+                "Line the selected UVs up into a straight grid, for strips and panels",
+                Some(ARRIVES_WITH_UNWRAP),
+            ),
+            Self::Pack => (
+                "Pack",
+                Icon::Pack,
+                None,
+                "Fit every island into the texture square, with room between them",
+                Some("Arrives with packing, later in Phase 7"),
+            ),
         };
         CommandInfo {
             name,
@@ -397,21 +497,19 @@ impl CommandId {
 
     /// The modes whose tool menu holds it.
     pub const fn modes(self) -> &'static [Mode] {
-        use Mode::{Edges, Model, Object, Points, Polygons};
+        use Mode::{Edges, Model, Object, Points, Polygons, Uv};
         match self {
-            Self::Move
-            | Self::Rotate
-            | Self::AllGizmos
-            | Self::Group
-            | Self::Ungroup
-            | Self::Delete
-            | Self::NewGroup
-            | Self::ShapeList
-            | Self::FrameSelected => &[Model, Object],
-            // A pivot has no size, and the Object mode's ring makes room
-            // for the pivot commands.
-            Self::Scale
-            | Self::MakeEditable
+            // The gizmos and framing work on UVs too, in the UV Editor.
+            Self::Move | Self::Rotate | Self::AllGizmos | Self::FrameSelected => {
+                &[Model, Object, Uv]
+            }
+            Self::Group | Self::Ungroup | Self::Delete | Self::NewGroup | Self::ShapeList => {
+                &[Model, Object]
+            }
+            // A pivot has no size.
+            Self::Scale => &[Model, Uv],
+            // The Object mode's ring makes room for the pivot commands.
+            Self::MakeEditable
             | Self::Duplicate
             | Self::Instance
             | Self::Join
@@ -430,6 +528,16 @@ impl CommandId {
             Self::DeleteElements | Self::Dissolve | Self::Slit | Self::LoopCut => {
                 &[Points, Edges, Polygons]
             }
+            Self::UvTurnLeft
+            | Self::UvTurnRight
+            | Self::UvFlipU
+            | Self::UvFlipV
+            | Self::MarkSeam
+            | Self::ClearSeam
+            | Self::Unwrap
+            | Self::Relax
+            | Self::Straighten
+            | Self::Pack => &[Uv],
         }
     }
 }
@@ -506,6 +614,29 @@ pub const MODELLING_RING: [CommandId; RING_PLACES] = [
     CommandId::Groove,
 ];
 
+/// The tool menu's places for UVs: in the UV mode, and with the mouse
+/// over the UV Editor in the Points, Edges and Polygons modes (the menu
+/// follows where you work, decision 0097). The gizmos and framing keep
+/// their places from the object ring; seams at the right, unwrapping at
+/// the bottom, packing and turning at the left.
+pub const UV_RING: [CommandId; RING_PLACES] = [
+    CommandId::Move,
+    CommandId::Rotate,
+    CommandId::Scale,
+    CommandId::AllGizmos,
+    CommandId::FrameSelected,
+    CommandId::MarkSeam,
+    CommandId::ClearSeam,
+    CommandId::Unwrap,
+    CommandId::Relax,
+    CommandId::Straighten,
+    CommandId::Pack,
+    CommandId::UvTurnRight,
+    CommandId::UvTurnLeft,
+    CommandId::UvFlipU,
+    CommandId::UvFlipV,
+];
+
 /// One entry of the tool menu: a command and its place on the ring.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Slot {
@@ -517,14 +648,14 @@ pub struct Slot {
     pub places: usize,
 }
 
-/// The tool menu's entries in `mode`, in order (empty when the mode has
-/// no tools yet, like UV).
+/// The tool menu's entries in `mode`, in order. `Mode::Uv` gives the UV
+/// ring, also used over the UV Editor in the other editing modes.
 pub fn menu_for(mode: Mode) -> Vec<Slot> {
     let ring: [Option<CommandId>; RING_PLACES] = match mode {
         Mode::Model => OBJECT_RING,
         Mode::Object => PIVOT_RING,
         Mode::Points | Mode::Edges | Mode::Polygons => MODELLING_RING.map(Some),
-        Mode::Uv => return Vec::new(),
+        Mode::Uv => UV_RING.map(Some),
     };
     ring.iter()
         .enumerate()
@@ -539,7 +670,7 @@ pub fn menu_for(mode: Mode) -> Vec<Slot> {
 }
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 34] = [
+pub const ALL: [CommandId; 44] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -574,6 +705,16 @@ pub const ALL: [CommandId; 34] = [
     CommandId::Connect,
     CommandId::Slit,
     CommandId::LoopCut,
+    CommandId::UvTurnLeft,
+    CommandId::UvTurnRight,
+    CommandId::UvFlipU,
+    CommandId::UvFlipV,
+    CommandId::MarkSeam,
+    CommandId::ClearSeam,
+    CommandId::Unwrap,
+    CommandId::Relax,
+    CommandId::Straighten,
+    CommandId::Pack,
 ];
 
 #[cfg(test)]
@@ -588,7 +729,8 @@ mod tests {
         for command in ALL {
             let placed = OBJECT_RING.contains(&Some(command))
                 || PIVOT_RING.contains(&Some(command))
-                || MODELLING_RING.contains(&command);
+                || MODELLING_RING.contains(&command)
+                || UV_RING.contains(&command);
             assert!(placed, "{command:?} has no place in the tool menu");
             assert!(!command.modes().is_empty(), "{command:?}");
         }
@@ -675,7 +817,13 @@ mod tests {
             delete(menu_for(Mode::Points))
         );
         assert_eq!(delete(menu_for(Mode::Model)), Some((8, RING_PLACES)));
-        assert!(menu_for(Mode::Uv).is_empty());
+        // The UV ring: every place filled, the gizmos where the object
+        // ring has them.
+        let uv: Vec<_> = menu_for(Mode::Uv).iter().map(|s| s.command).collect();
+        assert_eq!(uv, UV_RING.to_vec());
+        for (place, command) in UV_RING.iter().enumerate().take(5) {
+            assert_eq!(OBJECT_RING[place], Some(*command));
+        }
     }
 
     #[test]
@@ -735,7 +883,7 @@ mod tests {
         // Within one ring, every icon is different.
         let objects: Vec<_> = OBJECT_RING.iter().flatten().copied().collect();
         let pivots: Vec<_> = PIVOT_RING.iter().flatten().copied().collect();
-        for ring in [&objects[..], &pivots[..], &MODELLING_RING[..]] {
+        for ring in [&objects[..], &pivots[..], &MODELLING_RING[..], &UV_RING[..]] {
             let icons: HashSet<_> = ring.iter().map(|c| c.info().icon).collect();
             assert_eq!(icons.len(), ring.len());
         }

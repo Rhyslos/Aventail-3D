@@ -256,11 +256,13 @@ pub(crate) fn bindings() -> Vec<Binding> {
     ]);
 
     // Move, rotate and scale.
-    all.extend(
-        transforming::TOOL_KEYS
-            .iter()
-            .map(|(key, tool)| plain(*key, tool.name(), Anywhere)),
-    );
+    all.extend(transforming::TOOL_KEYS.iter().map(|(key, tool)| {
+        plain(
+            *key,
+            format!("{} (in the UV Editor too)", tool.name()),
+            Anywhere,
+        )
+    }));
     all.extend(
         transforming::LOCK_KEYS
             .iter()
@@ -282,7 +284,7 @@ pub(crate) fn bindings() -> Vec<Binding> {
     // Modelling.
     all.push(plain(
         crate::tool_menu::TOOL_MENU_KEY,
-        "Tool menu: every tool for the mode, at the mouse",
+        "Tool menu: every tool for the mode, at the mouse (over the UV Editor, the UV tools)",
         Anywhere,
     ));
     all.extend(

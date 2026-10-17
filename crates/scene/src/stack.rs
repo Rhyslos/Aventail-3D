@@ -285,6 +285,20 @@ pub enum Operation {
         /// Where they were, to find them again (decision 0032).
         anchors: Option<Anchors>,
     },
+    /// Moves, turns or scales UVs in the texture (decision 0097): those of
+    /// `faces` and `points`, and the corners sharing their spots, so
+    /// islands never tear (`mesh::uvs::transform_uvs`).
+    TransformUvs {
+        /// The polygons whose UVs change.
+        faces: Vec<FaceId>,
+        /// The points whose UVs change.
+        points: Vec<VertexId>,
+        /// The change, in the texture's units (the square is 0 to 1).
+        transform: glam::Affine2,
+        /// Where the polygons (or, with none, the points) were, to find
+        /// them again (decision 0032).
+        anchors: Option<Anchors>,
+    },
     /// Marks edges hard (a crisp break in the shading) or soft (smooth
     /// shading across) (decision 0053).
     SetHardEdges {
@@ -493,6 +507,10 @@ impl Operation {
             Self::SetMaterial { faces, .. } => {
                 counted("Set the material of", faces.len(), "polygon")
             }
+            Self::TransformUvs { faces, points, .. } if faces.is_empty() => {
+                counted("Move the UVs of", points.len(), "point")
+            }
+            Self::TransformUvs { faces, .. } => counted("Move the UVs of", faces.len(), "polygon"),
             Self::FixFacing => "Fix normals".to_string(),
             Self::PlaceShape { .. } => "Apply the placement".to_string(),
             Self::SetHardEdges { edges, hard, .. } => {
@@ -614,6 +632,7 @@ impl Operation {
             | Self::FillHoles { .. }
             | Self::FlipPolygons { .. }
             | Self::SetMaterial { .. }
+            | Self::TransformUvs { .. }
             | Self::SetHardEdges { .. }
             | Self::SlidePoints { .. }
             | Self::FixFacing
@@ -773,6 +792,7 @@ impl Operation {
             | Self::FillHoles { .. }
             | Self::FlipPolygons { .. }
             | Self::SetMaterial { .. }
+            | Self::TransformUvs { .. }
             | Self::SetHardEdges { .. }
             | Self::SlidePoints { .. }
             | Self::FixFacing
@@ -908,6 +928,7 @@ impl Operation {
             | Self::SetMaterial { .. }
             | Self::SetHardEdges { .. }
             | Self::FixFacing => true,
+            Self::TransformUvs { transform, .. } => transform.is_finite(),
             Self::PlaceShape { matrix } => matrix.is_finite() && matrix.determinant().abs() > 1e-12,
             Self::SlidePoints { slides, .. } => slides.iter().all(|s| s.amount.is_finite()),
             Self::HardEdgesByAngle { angle } => angle.is_finite(),
@@ -953,6 +974,7 @@ impl Operation {
             | Self::FillHoles { anchors, .. }
             | Self::FlipPolygons { anchors, .. }
             | Self::SetMaterial { anchors, .. }
+            | Self::TransformUvs { anchors, .. }
             | Self::SetHardEdges { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_ref(),
             Self::FixFacing | Self::PlaceShape { .. } | Self::HardEdgesByAngle { .. } => None,
@@ -984,6 +1006,7 @@ impl Operation {
             | Self::FillHoles { anchors, .. }
             | Self::FlipPolygons { anchors, .. }
             | Self::SetMaterial { anchors, .. }
+            | Self::TransformUvs { anchors, .. }
             | Self::SetHardEdges { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_mut(),
             Self::FixFacing | Self::PlaceShape { .. } | Self::HardEdgesByAngle { .. } => None,
@@ -1352,6 +1375,20 @@ impl Operation {
                     .as_ref()
                     .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
                 edit::set_material(mesh, &faces, *slot)
+            }
+            Self::TransformUvs {
+                faces,
+                points,
+                transform,
+                ..
+            } => {
+                // The anchors hold the polygons' corners, or the points.
+                let (faces, points) = match (&refound, faces.is_empty()) {
+                    (Some(r), false) => (faces_within(mesh, &r.0), Vec::new()),
+                    (Some(r), true) => (Vec::new(), r.0.clone()),
+                    (None, _) => (faces.clone(), points.clone()),
+                };
+                mesh::uvs::transform_uvs(mesh, &faces, &points, *transform)
             }
             Self::FixFacing => edit::fix_facing(mesh),
             Self::PlaceShape { matrix } => edit::place(mesh, *matrix),

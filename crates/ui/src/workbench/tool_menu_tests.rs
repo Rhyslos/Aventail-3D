@@ -281,13 +281,18 @@ fn tools_from_the_menu_change_the_scene_like_their_keys() {
 }
 
 #[test]
-fn the_uv_mode_has_no_tools_yet() {
+fn the_uv_mode_has_the_uv_ring_with_tools_still_to_come_greyed() {
     let mut harness = fresh();
     harness.state_mut().workbench.mode = Mode::Uv;
-    point(&mut harness, MIDDLE);
-    press(&mut harness, Modifiers::NONE, TOOL_MENU_KEY);
-    assert!(!harness.state().workbench.is_tool_menu_open());
-    assert!(note(&harness).contains("Phase 7"));
+    open(&mut harness);
+    let entries = harness.state().workbench.tool_menu_entries();
+    let commands: Vec<CommandId> = entries.iter().map(|e| e.slot.command).collect();
+    assert_eq!(commands, crate::commands::UV_RING.to_vec());
+    let pack = entries
+        .iter()
+        .find(|e| e.slot.command == CommandId::Pack)
+        .unwrap();
+    assert!(matches!(pack.ready, crate::tool_menu::Ready::Later(_)));
 }
 
 #[test]

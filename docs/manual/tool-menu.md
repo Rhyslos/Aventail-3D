@@ -11,6 +11,9 @@ Whenever you want a tool and don't remember its key, or it doesn't have one. The
 - **In Model mode** (whole objects): Move, Rotate, Scale, Transform (all three gizmos at once), Frame selected, Make editable, Delete, Ungroup, Group objects, New group, and Create a shape… (the shape list).
 - **In Object mode** (pivots): the same, except that Scale's place is empty (a pivot has no size) and the four pivot commands take the places of Duplicate, Make editable, Duplicate as instance and Join: **Pivot to centre**, **Pivot to world origin**, **Pivot to object…** and **Object to world origin**. See [Pivots and the Object mode](pivots.md).
 - **In Points, Edges and Polygons mode**: the modelling tools for that kind of element, such as Extrude, Inset, Bevel, Loop cut, Slit, Weld and so on. Move, rotate and scale aren't here, since they're always on the palette at the top.
+- **Over the UV Editor, and in the UV mode**: the UV tools. The gizmos and Frame selected keep their places from the object ring; then the seam tools (right), unwrapping (bottom), Pack, and the quarter turns and flips (left). See [Editing UVs by hand](editing-uvs.md).
+
+**The menu follows the mouse.** Press E with the mouse over the UV Editor and you get the UV tools; over the viewport, the tools for your mode. The ring is chosen when it opens, so moving the mouse afterwards doesn't change it.
 
 Each tool's key is shown next to its button, so the menu teaches you the keys as you go. Once you know a key, pressing it directly is quicker. The menu is there for everything else.
 
@@ -73,7 +76,7 @@ In **Edit → Settings… → Interface → Radial menu**:
 
 - **Tip:** the menu is also a list of what's coming. Point at a dimmed tool to see its name and when it arrives.
 - **Problem:** pressing E types a letter instead. **Why:** a text field has the keyboard, for example while renaming an object. **Fix:** press Enter or Esc to finish typing first.
-- **Problem:** E does nothing but the status bar mentions Phase 7. **Why:** you're in UV mode, whose tools aren't built yet.
+- **Problem:** E shows UV tools when I wanted Extrude. **Why:** the mouse was over the UV Editor. **Fix:** press Esc, point at the viewport and press E again.
 - **Problem:** E does nothing at all. **Why:** Tap E to open is off, so the menu only shows while E is held. **Fix:** hold E, or switch Tap E to open back on in Settings.
 - **Problem:** the menu closed and nothing happened. **Why:** the tool can't be used right now, for example Group with nothing selected. **Fix:** the status bar says why. Select what the tool needs and try again.
 - **Problem:** Ctrl + E made my shape editable instead of opening the menu. **Why:** that's intended: Ctrl + E is Make editable, and only E on its own opens the menu.

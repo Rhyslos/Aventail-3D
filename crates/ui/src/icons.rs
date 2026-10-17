@@ -147,10 +147,30 @@ pub enum Icon {
     ApplyTransforms,
     /// Add an edit layer: a stack of sheets with a new one on top.
     EditLayer,
+    /// Turn UVs left 90°: a tile with an arrow going anticlockwise.
+    UvTurnLeft,
+    /// Turn UVs right 90°: a tile with an arrow going clockwise.
+    UvTurnRight,
+    /// Flip UVs left to right: a shape and its mirror across a dashed line.
+    UvFlipU,
+    /// Flip UVs upside down: a shape and its mirror across a dashed line.
+    UvFlipV,
+    /// Mark seams: a line stitched across.
+    MarkSeam,
+    /// Clear seams: a dashed line with its stitches gone.
+    ClearSeam,
+    /// Unwrap: a box opened out flat.
+    Unwrap,
+    /// Relax: a tangled grid smoothed out.
+    Relax,
+    /// Straighten: a wobbly line made straight.
+    Straighten,
+    /// Pack: pieces fitted into a square.
+    Pack,
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 67] = [
+pub const ALL: [Icon; 77] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -218,6 +238,16 @@ pub const ALL: [Icon; 67] = [
     Icon::ObjectToOrigin,
     Icon::ApplyTransforms,
     Icon::EditLayer,
+    Icon::UvTurnLeft,
+    Icon::UvTurnRight,
+    Icon::UvFlipU,
+    Icon::UvFlipV,
+    Icon::MarkSeam,
+    Icon::ClearSeam,
+    Icon::Unwrap,
+    Icon::Relax,
+    Icon::Straighten,
+    Icon::Pack,
 ];
 
 /// Draws `icon` into `rect` in `color`.
@@ -1307,6 +1337,135 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
                 Ink::Line,
             );
             pen.stroke(&[(8.0, 17.0), (8.0, 20.0), (5.0, 20.0)], false, Ink::Line);
+        }
+        Icon::UvTurnLeft | Icon::UvTurnRight => {
+            // A tile with a marked corner, and a quarter-and-more arc
+            // around it ending in an arrowhead.
+            let left = icon == Icon::UvTurnLeft;
+            pen.shape(
+                &[(8.5, 8.5), (15.5, 8.5), (15.5, 15.5), (8.5, 15.5)],
+                Paint::Tone,
+            );
+            pen.dot(if left { 8.5 } else { 15.5 }, 8.5, 1.6);
+            let (from, to) = if left {
+                (0.6_f32, -3.6_f32)
+            } else {
+                (PI - 0.6, PI + 3.6)
+            };
+            let arc = pen.arc((12.0, 12.0), (8.5, 8.5), from, to);
+            pen.line(arc);
+            // The arrowhead at the end, along the way the arc turns.
+            let (c, sn) = (to.cos(), to.sin());
+            let end = (12.0 + 8.5 * c, 12.0 + 8.5 * sn);
+            let way = if left { (sn, -c) } else { (-sn, c) };
+            pen.shape(
+                &[
+                    (end.0 + way.0 * 3.0, end.1 + way.1 * 3.0),
+                    (end.0 + c * 2.6, end.1 + sn * 2.6),
+                    (end.0 - c * 2.6, end.1 - sn * 2.6),
+                ],
+                Paint::Solid,
+            );
+        }
+        Icon::UvFlipU => {
+            pen.stroke(&[(12.0, 3.0), (12.0, 21.0)], false, Ink::Dashed);
+            pen.shape(&[(10.0, 6.0), (10.0, 18.0), (3.5, 18.0)], Paint::Tone);
+            pen.stroke(&[(14.0, 6.0), (14.0, 18.0), (20.5, 18.0)], true, Ink::Line);
+        }
+        Icon::UvFlipV => {
+            pen.stroke(&[(3.0, 12.0), (21.0, 12.0)], false, Ink::Dashed);
+            pen.shape(&[(6.0, 10.0), (18.0, 10.0), (18.0, 3.5)], Paint::Tone);
+            pen.stroke(&[(6.0, 14.0), (18.0, 14.0), (18.0, 20.5)], true, Ink::Line);
+        }
+        Icon::MarkSeam | Icon::ClearSeam => {
+            // A line across, with stitches; cleared, both are dashed.
+            let ink = if icon == Icon::MarkSeam {
+                Ink::Line
+            } else {
+                Ink::Dashed
+            };
+            pen.stroke(&[(4.0, 20.0), (20.0, 4.0)], false, ink);
+            if icon == Icon::MarkSeam {
+                for t in [0.2_f32, 0.4, 0.6, 0.8] {
+                    let (x, y) = (4.0 + 16.0 * t, 20.0 - 16.0 * t);
+                    pen.stroke(&[(x - 2.5, y - 2.5), (x + 2.5, y + 2.5)], false, Ink::Line);
+                }
+            } else {
+                pen.stroke(&[(14.0, 18.0), (20.0, 18.0)], false, Ink::Line);
+            }
+        }
+        Icon::Unwrap => {
+            // A box's six sides laid out flat, as a cross.
+            pen.stroke(
+                &[
+                    (9.0, 3.0),
+                    (15.0, 3.0),
+                    (15.0, 9.0),
+                    (21.0, 9.0),
+                    (21.0, 15.0),
+                    (15.0, 15.0),
+                    (15.0, 21.0),
+                    (9.0, 21.0),
+                    (9.0, 15.0),
+                    (3.0, 15.0),
+                    (3.0, 9.0),
+                    (9.0, 9.0),
+                ],
+                true,
+                Ink::Line,
+            );
+            pen.shape(
+                &[(9.0, 9.0), (15.0, 9.0), (15.0, 15.0), (9.0, 15.0)],
+                Paint::Tone,
+            );
+        }
+        Icon::Relax => {
+            // A square whose inside lines are evened out: the bent ones
+            // faint, the even ones solid.
+            pen.stroke(
+                &[(4.0, 4.0), (20.0, 4.0), (20.0, 20.0), (4.0, 20.0)],
+                true,
+                Ink::Line,
+            );
+            pen.stroke(&[(9.0, 4.0), (6.5, 12.0), (10.0, 20.0)], false, Ink::Faint);
+            pen.stroke(&[(4.0, 9.5), (13.0, 7.0), (20.0, 10.0)], false, Ink::Faint);
+            pen.stroke(&[(14.0, 4.0), (14.0, 20.0)], false, Ink::Line);
+            pen.stroke(&[(4.0, 14.0), (20.0, 14.0)], false, Ink::Line);
+        }
+        Icon::Straighten => {
+            pen.stroke(
+                &[
+                    (3.0, 9.0),
+                    (7.5, 5.5),
+                    (12.0, 9.5),
+                    (16.5, 5.0),
+                    (21.0, 8.0),
+                ],
+                false,
+                Ink::Faint,
+            );
+            pen.stroke(&[(3.0, 16.0), (21.0, 16.0)], false, Ink::Line);
+            pen.dot(3.0, 16.0, 1.6);
+            pen.dot(21.0, 16.0, 1.6);
+        }
+        Icon::Pack => {
+            pen.stroke(
+                &[(3.0, 3.0), (21.0, 3.0), (21.0, 21.0), (3.0, 21.0)],
+                true,
+                Ink::Line,
+            );
+            pen.shape(
+                &[(5.0, 5.0), (13.0, 5.0), (13.0, 13.0), (5.0, 13.0)],
+                Paint::Tone,
+            );
+            pen.shape(
+                &[(15.0, 5.0), (19.0, 5.0), (19.0, 19.0), (15.0, 19.0)],
+                Paint::Tone,
+            );
+            pen.shape(
+                &[(5.0, 15.0), (13.0, 15.0), (13.0, 19.0), (5.0, 19.0)],
+                Paint::Tone,
+            );
         }
         Icon::EditLayer => {
             // Two sheets below (faint) and a new one on top, seen from

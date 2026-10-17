@@ -840,6 +840,7 @@ fn faint(color: Color32) -> Color32 {
 fn title(mode: Mode) -> String {
     match mode {
         Mode::Model | Mode::Object => "Tools for objects".to_string(),
+        Mode::Uv => "Tools for UVs".to_string(),
         _ => format!("Tools for {}", mode.name().to_lowercase()),
     }
 }
