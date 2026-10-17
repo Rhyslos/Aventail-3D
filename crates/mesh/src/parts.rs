@@ -142,5 +142,34 @@ pub fn append(out: &mut Mesh, part: &Mesh, matrix: Mat4) {
     }
 }
 
+/// Places the whole shape by `matrix`: every point moved, turned and
+/// sized by it, keeping its id. A mirroring matrix (one that turns the
+/// shape inside out) turns every polygon the right way round too, so the
+/// shape still faces out. A matrix that isn't usable (flattening the shape,
+/// or not numbers) changes nothing and counts the shape as skipped.
+pub fn place(mesh: &mut Mesh, matrix: Mat4) -> crate::edit::Outcome {
+    let det = matrix.determinant();
+    if !matrix.is_finite() || det.abs() < 1e-12 {
+        return crate::edit::Outcome {
+            matched: 0,
+            missing: 0,
+            skipped: 1,
+        };
+    }
+    let points: Vec<(VertexId, glam::Vec3)> = mesh.vertices().collect();
+    for (v, p) in &points {
+        mesh.set_position(*v, matrix.transform_point3(*p));
+    }
+    if det < 0.0 {
+        let faces: Vec<FaceId> = mesh.faces().map(|(f, _)| f).collect();
+        crate::cleanup::flip_faces(mesh, &faces);
+    }
+    crate::edit::Outcome {
+        matched: points.len(),
+        missing: 0,
+        skipped: 0,
+    }
+}
+
 #[cfg(test)]
 mod tests;

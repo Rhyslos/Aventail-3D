@@ -110,7 +110,7 @@ fn shift_e_and_the_arrow_keys_step_both_ways_and_space_uses() {
     press(&mut harness, Modifiers::SHIFT, TOOL_MENU_KEY);
     assert_eq!(
         highlighted(&harness),
-        Some(CommandId::Join),
+        Some(CommandId::ApplyTransforms),
         "opens at the last"
     );
     press(&mut harness, Modifiers::NONE, Key::ArrowRight);
@@ -118,6 +118,8 @@ fn shift_e_and_the_arrow_keys_step_both_ways_and_space_uses() {
     press(&mut harness, Modifiers::NONE, Key::ArrowDown);
     assert_eq!(highlighted(&harness), Some(CommandId::Rotate));
     press(&mut harness, Modifiers::NONE, Key::ArrowUp);
+    press(&mut harness, Modifiers::SHIFT, TOOL_MENU_KEY);
+    assert_eq!(highlighted(&harness), Some(CommandId::ApplyTransforms));
     press(&mut harness, Modifiers::SHIFT, TOOL_MENU_KEY);
     assert_eq!(highlighted(&harness), Some(CommandId::Join));
     press(&mut harness, Modifiers::SHIFT, TOOL_MENU_KEY);

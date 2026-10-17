@@ -61,6 +61,7 @@ pub fn mirrors(op: &Operation) -> bool {
         | Operation::TransformPoints { .. }
         | Operation::SlidePoints { .. }
         | Operation::FixFacing
+        | Operation::PlaceShape { .. }
         | Operation::HardEdgesByAngle { .. }
         | Operation::Mirrored { .. }
         | Operation::WeldMiddle { .. } => false,

@@ -269,6 +269,13 @@ pub enum Operation {
     },
     /// Turns every polygon facing the wrong way round (decision 0052).
     FixFacing,
+    /// Places the whole shape by a matrix: what applying an object's
+    /// position, rotation or scale records, so the object looks the same
+    /// while its own placement goes back to none (decision 0089).
+    PlaceShape {
+        /// Where every point goes, in the shape's own space.
+        matrix: Mat4,
+    },
     /// Gives polygons a material slot (decision 0074).
     SetMaterial {
         /// The polygons.
@@ -487,6 +494,7 @@ impl Operation {
                 counted("Set the material of", faces.len(), "polygon")
             }
             Self::FixFacing => "Fix normals".to_string(),
+            Self::PlaceShape { .. } => "Apply the placement".to_string(),
             Self::SetHardEdges { edges, hard, .. } => {
                 let verb = if *hard { "Harden" } else { "Soften" };
                 counted(verb, edges.len(), "edge")
@@ -608,7 +616,8 @@ impl Operation {
             | Self::SetMaterial { .. }
             | Self::SetHardEdges { .. }
             | Self::SlidePoints { .. }
-            | Self::FixFacing => None,
+            | Self::FixFacing
+            | Self::PlaceShape { .. } => None,
             Self::MovePoints { .. }
             | Self::TransformPoints { .. }
             | Self::Mirrored { .. }
@@ -766,7 +775,8 @@ impl Operation {
             | Self::SetMaterial { .. }
             | Self::SetHardEdges { .. }
             | Self::SlidePoints { .. }
-            | Self::FixFacing => {}
+            | Self::FixFacing
+            | Self::PlaceShape { .. } => {}
             Self::MovePoints { .. }
             | Self::TransformPoints { .. }
             | Self::Mirrored { .. }
@@ -898,6 +908,7 @@ impl Operation {
             | Self::SetMaterial { .. }
             | Self::SetHardEdges { .. }
             | Self::FixFacing => true,
+            Self::PlaceShape { matrix } => matrix.is_finite() && matrix.determinant().abs() > 1e-12,
             Self::SlidePoints { slides, .. } => slides.iter().all(|s| s.amount.is_finite()),
             Self::HardEdgesByAngle { angle } => angle.is_finite(),
             Self::ExtrudeBent { distance, bend, .. } => {
@@ -944,7 +955,7 @@ impl Operation {
             | Self::SetMaterial { anchors, .. }
             | Self::SetHardEdges { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_ref(),
-            Self::FixFacing | Self::HardEdgesByAngle { .. } => None,
+            Self::FixFacing | Self::PlaceShape { .. } | Self::HardEdgesByAngle { .. } => None,
             Self::Slit { .. } => None,
             Self::Mirrored { op, .. } => op.anchors(),
             Self::WeldMiddle { .. } => None,
@@ -975,7 +986,7 @@ impl Operation {
             | Self::SetMaterial { anchors, .. }
             | Self::SetHardEdges { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_mut(),
-            Self::FixFacing | Self::HardEdgesByAngle { .. } => None,
+            Self::FixFacing | Self::PlaceShape { .. } | Self::HardEdgesByAngle { .. } => None,
             Self::Slit { .. } => None,
             Self::Mirrored { op, .. } => op.anchors_mut(),
             Self::WeldMiddle { .. } => None,
@@ -1341,6 +1352,7 @@ impl Operation {
                 edit::set_material(mesh, &faces, *slot)
             }
             Self::FixFacing => edit::fix_facing(mesh),
+            Self::PlaceShape { matrix } => edit::place(mesh, *matrix),
             Self::SetHardEdges { edges, hard, .. } => {
                 let edges = refound
                     .as_ref()

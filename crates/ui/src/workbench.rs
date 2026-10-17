@@ -1571,6 +1571,7 @@ impl Workbench {
                         self.run_command(join, ui.ctx(), requests);
                         ui.close();
                     }
+                    objects::apply_entries(ui, &self.document, requests);
                     ui.separator();
                     crate::viewport::chrome::auto_hard_edges_entry(ui, self.viewport.options_mut());
                     if ui

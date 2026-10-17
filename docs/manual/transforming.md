@@ -152,6 +152,7 @@ What the fields show:
 ## Related
 
 - [Selecting](selecting.md)
+- [Apply transforms](apply-transforms.md): reset an object's rotation and scale, keeping its look
 - [Symmetry](symmetry.md)
 - [Pivots and the Object mode](pivots.md)
 - [Points, Edges and Polygons modes](modes.md)

@@ -30,7 +30,9 @@ pub use mesh::{
     Bounds, Combine, EdgeKey, Element, ElementKind, ElementSelection, FaceId, Mesh, Primitive,
     PrimitiveKind, VertexId,
 };
-pub use object::{Collision, LiveMirror, Material, Object, ObjectId, ObjectKind, Transform};
+pub use object::{
+    ApplyParts, Collision, LiveMirror, Material, Object, ObjectId, ObjectKind, Transform,
+};
 pub use stack::{
     EDITS_LAYER, EditId, EditSettings, Entry, EvalContext, Evaluated, Layer, MAX_SHAPE_POLYGONS,
     Operation, Stack, StackWarning,
@@ -38,6 +40,8 @@ pub use stack::{
 pub use tree::{Place, Scene, SceneError, stretch_of};
 pub use units::{ExportTarget, Units};
 
+#[cfg(test)]
+mod apply_tests;
 #[cfg(test)]
 mod history_tests;
 #[cfg(test)]

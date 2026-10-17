@@ -153,6 +153,77 @@ impl Transform {
     }
 }
 
+/// Which parts of an object's placement to apply (decision 0089).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct ApplyParts {
+    /// Its position: the pivot goes to its parent's centre (the world's,
+    /// at the top).
+    pub position: bool,
+    /// Its rotation: back to 0°.
+    pub rotation: bool,
+    /// Its scale: back to 100%.
+    pub scale: bool,
+}
+
+impl ApplyParts {
+    /// Rotation and scale: the usual choice, keeping the object where it
+    /// is.
+    pub const ROTATION_AND_SCALE: Self = Self {
+        position: false,
+        rotation: true,
+        scale: true,
+    };
+    /// Position, rotation and scale.
+    pub const ALL: Self = Self {
+        position: true,
+        rotation: true,
+        scale: true,
+    };
+
+    /// `transform` with these parts gone back to none.
+    pub fn kept(self, transform: Transform) -> Transform {
+        let standard = Transform::default();
+        Transform {
+            position: if self.position {
+                standard.position
+            } else {
+                transform.position
+            },
+            rotation: if self.rotation {
+                standard.rotation
+            } else {
+                transform.rotation
+            },
+            scale: if self.scale {
+                standard.scale
+            } else {
+                transform.scale
+            },
+        }
+    }
+
+    /// What is applied, in words: "scale", "rotation and scale",
+    /// "position, rotation and scale".
+    pub fn name(self) -> String {
+        let names: Vec<&str> = [
+            (self.position, "position"),
+            (self.rotation, "rotation"),
+            (self.scale, "scale"),
+        ]
+        .into_iter()
+        .filter(|(on, _)| *on)
+        .map(|(_, name)| name)
+        .collect();
+        match names.as_slice() {
+            [] => "nothing".to_string(),
+            [one] => (*one).to_string(),
+            [first, last] => format!("{first} and {last}"),
+            [a, b, c] => format!("{a}, {b} and {c}"),
+            _ => unreachable!("three parts at most"),
+        }
+    }
+}
+
 /// One object in the scene.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Object {
