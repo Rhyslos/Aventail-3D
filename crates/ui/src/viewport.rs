@@ -1005,6 +1005,10 @@ pub struct ViewportPanel {
     tool_path: Option<ToolPath>,
     /// Modelling tool drag events this frame, for the workbench.
     tool_events: Vec<ToolDragEvent>,
+    /// Where the right mouse button was clicked (pressed and let go
+    /// without dragging) in a view, if it was since last asked: the
+    /// quad menu (decision 0094).
+    right_click: Option<egui::Pos2>,
 }
 
 impl Default for ViewportPanel {
@@ -1032,6 +1036,7 @@ impl Default for ViewportPanel {
             tool_label: None,
             tool_path: None,
             tool_events: Vec::new(),
+            right_click: None,
         }
     }
 }
@@ -1249,6 +1254,12 @@ impl ViewportPanel {
         cancelled
     }
 
+    /// Where the right mouse button was clicked in a view since last
+    /// asked, if it was (decision 0094).
+    pub(crate) fn take_right_click(&mut self) -> Option<egui::Pos2> {
+        self.right_click.take()
+    }
+
     /// The selection gestures made since last asked.
     pub(crate) fn take_gestures(&mut self) -> Vec<Gesture> {
         std::mem::take(&mut self.gestures)
@@ -1362,6 +1373,12 @@ impl ViewportPanel {
                         out: &mut self.gizmo_events,
                     },
                 );
+            if !gizmo_busy
+                && response.clicked_by(egui::PointerButton::Secondary)
+                && let Some(at) = response.interact_pointer_pos()
+            {
+                self.right_click = Some(at);
+            }
             if !gizmo_busy {
                 self.views[slot].capture_selection(
                     ui,

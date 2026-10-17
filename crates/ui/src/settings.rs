@@ -278,7 +278,20 @@ fn radial_menu(ui: &mut Ui, values: &mut Values<'_>) {
              and Enter or Space to use a tool. Easier if holding a key is hard.\n\
              Off: the menu shows only while you hold E; let go over a tool to use it.",
         );
+    ui.add_space(8.0);
+    dialog::heading(ui, "Quad menu");
+    explain(
+        ui,
+        "A right-click in the viewport opens four short lists around the mouse: what to show \
+         and hide, the modes, undo and edit layers, and the tools of what you're working on. \
+         A right-click that ends a drag, or a right drag that turns the view, never opens it.",
+    );
+    ui.checkbox(&mut values.tool_menu.quad_menu, QUAD_MENU_SWITCH)
+        .on_hover_text("Off as standard: right-clicks in the viewport then do nothing");
 }
+
+/// The Settings switch for the quad menu (decision 0094).
+pub(crate) const QUAD_MENU_SWITCH: &str = "Right-click opens the quad menu";
 
 fn viewport(ui: &mut Ui, values: &mut Values<'_>) {
     heading(ui, "Navigation controls");

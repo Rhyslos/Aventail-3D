@@ -3541,3 +3541,79 @@ fn random_nonsense_inside_a_well_formed_file_is_refused_or_opened_never_a_crash(
     // Some damage is harmless and some isn't: both happen.
     assert!(opened > 0 && opened < 150, "{opened} opened");
 }
+
+#[test]
+fn edit_layers_keep_their_names_order_and_switches() {
+    // Decision 0091: layers made in the Edit layers panel need nothing new
+    // in the file; their names, order and switches were always saved.
+    let mut doc = rich_document();
+    let id = doc
+        .scene()
+        .walk()
+        .into_iter()
+        .map(|(id, _)| id)
+        .find(|id| doc.scene().object(*id).is_some_and(|o| !o.stack.is_empty()))
+        .expect("the rich document has edits");
+    doc.execute(scene::Command::AddLayer(vec![id])).unwrap();
+    doc.execute(scene::Command::AddLayer(vec![id])).unwrap();
+    let top = doc.scene().object(id).unwrap().stack.layers().len() - 1;
+    doc.execute(scene::Command::ChangeLayer {
+        id,
+        index: top,
+        change: scene::LayerChange::Rename("Details".into()),
+    })
+    .unwrap();
+    doc.execute(scene::Command::ChangeLayer {
+        id,
+        index: top,
+        change: scene::LayerChange::SetEnabled(false),
+    })
+    .unwrap();
+    doc.execute(scene::Command::ChangeLayer {
+        id,
+        index: top,
+        change: scene::LayerChange::Move { up: false },
+    })
+    .unwrap();
+    let back = from_bytes(&to_bytes(&doc).unwrap()).unwrap();
+    let layers = |d: &Document| -> Vec<(String, bool, usize)> {
+        d.scene()
+            .object(id)
+            .unwrap()
+            .stack
+            .layers()
+            .iter()
+            .map(|l| (l.name.clone(), l.enabled, l.entries.len()))
+            .collect()
+    };
+    assert_eq!(layers(&back), layers(&doc));
+    assert!(layers(&back).iter().any(|(n, on, _)| n == "Details" && !on));
+    assert_eq!(
+        doc.scene().evaluated(id).unwrap().mesh,
+        back.scene().evaluated(id).unwrap().mesh
+    );
+}
+
+#[test]
+fn a_frozen_shape_and_the_edits_after_it_survive_saving() {
+    // Decision 0092: freezing makes the base a plain mesh, which files
+    // have always stored; later edits keep applying to it.
+    let mut doc = rich_document();
+    let found = doc.scene().walk().into_iter().find_map(|(id, _)| {
+        let stack = &doc.scene().object(id)?.stack;
+        let first = stack.layers().iter().find_map(|l| l.entries.first())?;
+        (stack.operation_count() > 1 && stack.freeze_problem(first.id).is_none())
+            .then_some((id, first.id))
+    });
+    let (id, edit) = found.expect("the rich document has an object with two edits");
+    let before = doc.scene().evaluated(id).unwrap().mesh;
+    doc.execute(scene::Command::Freeze { id, edit }).unwrap();
+    let back = from_bytes(&to_bytes(&doc).unwrap()).unwrap();
+    let after = back.scene().evaluated(id).unwrap().mesh;
+    let points = |m: &scene::Mesh| m.vertices().map(|(_, p)| p).collect::<Vec<_>>();
+    assert_eq!(points(&after), points(&before));
+    assert!(matches!(
+        back.scene().object(id).unwrap().kind,
+        scene::ObjectKind::Mesh(_)
+    ));
+}

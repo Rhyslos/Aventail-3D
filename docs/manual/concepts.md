@@ -79,6 +79,12 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Base and edits** — A shape in this app is kept in two parts: its *base*, what it starts from (a primitive's settings, or a plain mesh), and the *edits* recorded on top of it, such as moving some points. The final shape is the base with the edits applied. Because the two are kept apart, a primitive's settings stay editable after you've modelled on it: change a cube's height and your edits are made again on the taller cube. Moving, rotating and scaling points, edges and polygons records edits like this ([Move, rotate and scale](transforming.md)). Each edit also remembers *where* its points were, so when new settings renumber the points (more segments, say), it finds them again by place ([Changing settings after editing](transforming.md#changing-settings-after-editing)).
 
+**Edit layer** — A set of edits kept together on an object. An object's edits are kept in layers, applied bottom first, each working on the shape the ones below it made; new edits go into the top layer that is switched on. A layer can be switched off to see the shape without its edits, moved, merged into the layer below or deleted with everything in it. 3ds Max users know the idea as a stack of Edit Poly modifiers. See [Edit layers](edit-layers.md).
+
+**Edit list, keeping and freezing** — The list of an object's edits in the Edit layers panel. Any edit in it can be opened and changed, and the edits after it are made again. *Keeping* an edit editable (pinning it) protects it; *freezing* bakes the old edits up to one into the shape, so they no longer have to be made again: the shape stays the same, but those edits can't be changed any more. See [The edit list](edit-list.md).
+
+**Modifiers palette** — The thin column of buttons on the right of the viewport, beside the panels, for things that change a shape without destroying it. Its first button adds an edit layer; more join it in later versions.
+
 **Editable mesh (Make editable)** — Turning a shape into a plain mesh with no settings: its base and edits are baked together, so what you see becomes the new starting point. Do it when you no longer need the settings, or before editing a mesh freely. Undo brings the settings back. See [Objects](objects.md#make-editable).
 
 **Hierarchy** — Objects can be children of other objects (sit *inside* them, in the Objects panel's tree). Moving a parent moves its children with it, and hiding it hides them too.

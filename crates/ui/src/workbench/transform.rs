@@ -226,7 +226,7 @@ impl Workbench {
     /// `W`, `R`, `S`, `T` pick a tool; Shift+`X`, `Y`, `Z` lock axes; `L`
     /// switches world and object axes. Not while typing.
     pub(super) fn transform_keys(&mut self, ui: &Ui) {
-        if ui.ctx().memory(|m| m.focused().is_some()) || self.objects.is_renaming() {
+        if ui.ctx().memory(|m| m.focused().is_some()) || self.renaming() {
             return;
         }
         for (key, tool) in TOOL_KEYS {
@@ -290,6 +290,31 @@ impl Workbench {
                 .clicked()
             {
                 self.run_command(command, ui.ctx(), &mut Vec::new());
+                ui.close();
+            }
+        }
+        ui.separator();
+        // Snap to and Align (decision 0093).
+        let ready = !self.document.selection().is_empty();
+        for (label, help, what) in [
+            (
+                super::aligning::SNAP_TO_LABEL,
+                super::aligning::SNAP_TO_HELP,
+                super::aligning::TargetUse::SnapTo,
+            ),
+            (
+                super::aligning::ALIGN_LABEL,
+                super::aligning::ALIGN_HELP,
+                super::aligning::TargetUse::Align,
+            ),
+        ] {
+            if ui
+                .add_enabled(ready, egui::Button::new(label))
+                .on_hover_text(help)
+                .on_disabled_hover_text("Select one or more objects first")
+                .clicked()
+            {
+                self.start_target_pick(what);
                 ui.close();
             }
         }

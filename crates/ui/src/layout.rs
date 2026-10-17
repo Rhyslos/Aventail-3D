@@ -33,14 +33,54 @@ pub const MIN_PANEL_SIZE: f32 = 60.0;
 /// │         Coordinates         │              │
 /// └─────────────────────────────┴──────────────┘
 /// ```
+///
+/// Edit layers is a tab beside Objects (decision 0091).
 pub fn default_layout() -> DockState<Panel> {
     let mut dock = DockState::new(vec![Panel::Viewport]);
     let tree = dock.main_surface_mut();
     let [main_area, right_column] =
         tree.split_right(NodeIndex::root(), MAIN_AREA_WIDTH, vec![Panel::Attributes]);
-    tree.split_below(right_column, ATTRIBUTES_HEIGHT, vec![Panel::Objects]);
+    tree.split_below(
+        right_column,
+        ATTRIBUTES_HEIGHT,
+        vec![Panel::Objects, Panel::EditLayers],
+    );
     tree.split_below(main_area, VIEWPORT_HEIGHT, vec![Panel::Coordinates]);
     dock
+}
+
+/// Adds the panels a saved layout from an earlier version doesn't have
+/// ([`Panel::ADDED_LATER`]) as tabs beside Objects (or beside the first
+/// panel found), leaving the tab that was showing in front. Returns
+/// whether any was added.
+pub fn add_later_panels(dock: &mut DockState<Panel>) -> bool {
+    let mut added = false;
+    for panel in Panel::ADDED_LATER {
+        if dock.find_tab(&panel).is_some() {
+            continue;
+        }
+        let beside = dock
+            .find_tab(&Panel::Objects)
+            .or_else(|| dock.find_tab_from(|p| *p != Panel::Viewport))
+            .or_else(|| dock.find_tab(&Panel::Viewport));
+        let Some(beside) = beside else {
+            continue;
+        };
+        if let Ok(leaf) = dock.leaf_mut(beside.node_path()) {
+            let showing = leaf.active;
+            leaf.append_tab(panel);
+            leaf.active = showing;
+            added = true;
+        }
+    }
+    added
+}
+
+/// Brings `panel`'s tab to the front of its group.
+pub fn show_tab(dock: &mut DockState<Panel>, panel: Panel) {
+    if let Some(path) = dock.find_tab(&panel) {
+        let _ = dock.set_active_tab(path);
+    }
 }
 
 /// Hides the viewport's tab, because the viewport's own menu line takes
@@ -83,6 +123,16 @@ pub fn fit_coordinates(dock: &mut DockState<Panel>) -> bool {
     true
 }
 
+/// True if no panel appears twice.
+fn no_repeats(dock: &DockState<Panel>) -> bool {
+    let mut seen = Vec::new();
+    dock.iter_all_tabs().all(|(_, panel)| {
+        let new = !seen.contains(panel);
+        seen.push(*panel);
+        new
+    })
+}
+
 /// True if every panel appears exactly once.
 ///
 /// A saved layout could be damaged or come from a version with different
@@ -103,7 +153,20 @@ pub fn is_complete(dock: &DockState<Panel>) -> bool {
 pub fn restore_or_default(saved: Option<DockState<Panel>>) -> (DockState<Panel>, Option<String>) {
     match saved {
         None => (default_layout(), None),
-        Some(dock) if is_complete(&dock) => (dock, None),
+        Some(mut dock) if no_repeats(&dock) => {
+            add_later_panels(&mut dock);
+            if is_complete(&dock) {
+                (dock, None)
+            } else {
+                (
+                    default_layout(),
+                    Some(
+                        "The saved panel layout was incomplete, so the standard layout is used."
+                            .into(),
+                    ),
+                )
+            }
+        }
         Some(_) => (
             default_layout(),
             Some("The saved panel layout was incomplete, so the standard layout is used.".into()),
@@ -137,7 +200,7 @@ mod tests {
             vec![
                 vec![Panel::Attributes],
                 vec![Panel::Coordinates],
-                vec![Panel::Objects],
+                vec![Panel::Objects, Panel::EditLayers],
                 vec![Panel::Viewport],
             ]
         );
@@ -227,11 +290,42 @@ mod tests {
         saved.main_surface_mut().split_left(
             NodeIndex::root(),
             0.3,
-            vec![Panel::Objects, Panel::Attributes],
+            vec![Panel::Objects, Panel::Attributes, Panel::EditLayers],
         );
         let (dock, note) = restore_or_default(Some(saved));
         assert!(note.is_none());
         assert_eq!(leaves(&dock).len(), 2);
+    }
+
+    #[test]
+    fn a_layout_saved_before_edit_layers_gets_it_beside_objects() {
+        // The standard layout as saved by an earlier version.
+        let mut saved = DockState::new(vec![Panel::Viewport]);
+        let tree = saved.main_surface_mut();
+        let [main_area, right] = tree.split_right(NodeIndex::root(), 0.75, vec![Panel::Attributes]);
+        tree.split_below(right, 0.6, vec![Panel::Objects]);
+        tree.split_below(main_area, 0.85, vec![Panel::Coordinates]);
+        let (dock, note) = restore_or_default(Some(saved));
+        assert!(note.is_none());
+        assert!(is_complete(&dock));
+        let (_, leaf) = dock
+            .iter_leaves()
+            .find(|(_, l)| l.tabs.contains(&Panel::Objects))
+            .unwrap();
+        assert_eq!(leaf.tabs, vec![Panel::Objects, Panel::EditLayers]);
+        // Objects stays in front.
+        assert_eq!(leaf.active.0, 0);
+    }
+
+    #[test]
+    fn show_tab_brings_a_panel_to_the_front() {
+        let mut dock = default_layout();
+        show_tab(&mut dock, Panel::EditLayers);
+        let (_, leaf) = dock
+            .iter_leaves()
+            .find(|(_, l)| l.tabs.contains(&Panel::EditLayers))
+            .unwrap();
+        assert_eq!(leaf.tabs[leaf.active.0], Panel::EditLayers);
     }
 
     #[test]
