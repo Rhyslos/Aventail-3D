@@ -162,9 +162,9 @@ Aventail 3D is built in phases. Each ends with a gate the project lead checks be
 
 **Gate:** stacking, toggling and editing earlier layers and edits feels right to the project lead.
 
-### Phase 7 · UVs — 1 of 11
+### Phase 7 · UVs — 2 of 11
 
-`█░░░░░░░░░░░░` 9%
+`██░░░░░░░░░░░` 18%
 
 One big phase, aiming to be the best UV tools around. Brought forward before advanced hard-surface at the project lead's request (2026-10-16): it needs nothing from that phase, and that phase's tools can then carry UVs from the start.
 
@@ -172,7 +172,7 @@ One big phase, aiming to be the best UV tools around. Brought forward before adv
 <summary>Milestones</summary>
 
 - [x] Primitives come with ready-made UVs and seams
-- [ ] UV mode, the UV Editor panel and the UV Edit layout
+- [x] UV mode, the UV Editor panel and the UV Edit layout
 - [ ] Seams: marking, painting, from hard edges, and suggested seams in hidden places
 - [ ] Live unwrap, relax and straighten, with hard-surface strips straightened automatically
 - [ ] Texture size and texel density as scene settings
@@ -224,6 +224,8 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-16 | The UV Editor: the UV Edit layout, UVs on the texture square, island selection in the UV mode, seams shown in orange |
+| 2026-10-16 | Every shape comes with ready-made UVs and seams; UVs become Phase 7 |
 | 2026-10-16 | Optional quad menu: a right-click in the viewport opens Show, Modes, Edit and Tools around the mouse (off as standard) |
 | 2026-10-16 | Snap to and Align: put objects onto another object's pivot, or line up their sides and middles along chosen axes, shown live |
 | 2026-10-16 | The edit list: open and change any earlier edit in the Attributes panel, switch edits off, keep them editable, freeze old ones into the shape, delete one |

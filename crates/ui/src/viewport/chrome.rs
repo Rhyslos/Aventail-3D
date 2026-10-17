@@ -165,6 +165,11 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
         {
             panel.options.hide_hard_edges = !hard;
         }
+        ui.checkbox(&mut panel.options.show_seams, SEAMS_ENTRY)
+            .on_hover_text(
+                "Mark seams, where the surface is cut open for its UVs, in orange while \
+                 editing points, edges or polygons (the UV mode always shows them)",
+            );
         ui.checkbox(&mut panel.options.show_normals, NORMALS_ENTRY)
             .on_hover_text(
                 "Show which way each polygon of the selected objects faces, as a short line \
@@ -267,6 +272,8 @@ pub(crate) fn auto_hard_edges_entry(ui: &mut Ui, options: &mut ViewOptions) {
 }
 /// The Display menu's switch for showing normals.
 pub(crate) const NORMALS_ENTRY: &str = "Normals";
+/// The Display menu's entry for seams (decision 0096).
+pub(crate) const SEAMS_ENTRY: &str = "Seams";
 
 /// The kinds of view the Cameras menu offers, in order.
 const MENU_KINDS: [ViewKind; 5] = [

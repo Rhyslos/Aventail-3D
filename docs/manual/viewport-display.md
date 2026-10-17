@@ -29,7 +29,7 @@ In **Wireframe**, clicking still picks the shape you click inside, as if it were
 
 **Cavity** brightens ridges and darkens creases on the surfaces: a thin light line where a shape turns outward (a box's outer corner, the rim of a raised panel) and a soft shadow where it turns inward (the inside corner of a recess, a groove). It's like light catching the edges and dust settling in the cracks. It makes a shape's form easy to read at a glance, especially flat hard-surface parts in a single grey. It changes only how the shape looks, never the shape.
 
-It's **on as standard**. Switch it with **Display → Cavity**, in the viewport's menu line, where it sits with **Hard edges** and **Normals**: the things drawn over the surfaces. Remembered.
+It's **on as standard**. Switch it with **Display → Cavity**, in the viewport's menu line, where it sits with **Hard edges**, **Seams** and **Normals**: the things drawn over the surfaces. **Seams** marks, in orange, where the surface is cut open for its UVs, while editing points, edges or polygons; the UV mode always shows them ([The UV Editor](uv-editor.md)). Remembered.
 
 ![The viewport's Display menu: the three looks, the grid lines, then Cavity, Hard edges and Normals.](../screenshots/2026-10-14-display-menu.png)
 

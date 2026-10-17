@@ -33,6 +33,7 @@ mod tool_menu;
 mod transforming;
 mod undo_memory;
 mod units;
+mod uv_editor;
 mod viewport;
 #[cfg(test)]
 pub(crate) use viewport::chrome as viewport_chrome;

@@ -1,0 +1,68 @@
+# The UV Editor and the UV mode
+
+> The UV Editor shows the selected objects' UVs laid flat on the texture square, and lets you select points, edges, polygons or whole islands there, the same selection as in the viewport.
+
+A shape's [UVs](concepts.md#uvs-and-texturing) say where each part of its surface sits on a texture. The **UV Editor** shows them flat: the square is the texture, and every polygon is drawn where it sits on it. Seeing the two side by side, the 3D shape and its flat UVs, is how you check that a texture will land where it should. Every shape in this app comes with [ready-made UVs](primitives.md#ready-made-uvs), so there's something to see straight away.
+
+![The UV Edit layout: a cylinder in the viewport, with its side selected (tinted), and the UV Editor beside it showing the side as a tinted strip and the two ends as circles, one lit up under the mouse.](../screenshots/2026-10-16-uv-editor.png)
+
+## When to use it
+
+- To see how a shape is laid out on its texture: where its seams are, how big each piece is.
+- To find a part of the model on the texture, or a part of the texture on the model: select it in one, see it in the other.
+- Changing UVs (moving and turning pieces, unwrapping, packing) comes in the next updates; this is where you'll do it.
+
+## How to use it
+
+1. Click **UV Edit** on the right of the menu bar. The viewport and the UV Editor sit side by side, and the app switches to the **UV mode**. (Click **Standard** to go back; each layout keeps its own arrangement.) Or keep your layout and choose **Window → UV Editor** to show the editor beside the viewport.
+2. Select an object. Its UVs appear on the square:
+   - every polygon's outline in grey;
+   - the borders of each **island** (a piece laid flat in one go) brighter;
+   - the selection in the accent colour, and what's under the mouse lit up.
+3. Select:
+   - In the **UV mode**, click an island (in the editor or on the model) to select all of it. **Ctrl + click** adds or takes away another.
+   - In the **Points**, **Edges** or **Polygons** mode (keys **1**, **2**, **3**), click or drag a box in the editor to select those, just like in the viewport.
+
+   Both show the same selection: what you pick in one lights up in the other.
+4. Move around the editor with your usual [navigation controls](navigating-the-view.md):
+   - the drags that pan or orbit the viewport both pan here (a flat view has nothing to orbit);
+   - the drags that zoom it zoom here;
+   - the wheel zooms at the mouse.
+
+   With the mouse over the editor, **H** fits the texture square and **Z** fits the selection.
+
+In the UV mode the viewport shows the **seams** in orange, where the surface is cut open to lie flat. **Display → Seams** shows them while editing points, edges or polygons too.
+
+## Settings
+
+| Setting | What it does |
+|---|---|
+| **UV Edit** (menu bar) | The layout for UV work: viewport and UV Editor side by side, in the UV mode. |
+| **Window → UV Editor** | Shows the editor beside the viewport in the layout you're in, or puts it away. |
+| **Display → Seams** (viewport) | Marks seams in orange while editing points, edges or polygons. Always on in the UV mode. Off as standard. |
+
+## Shortcuts
+
+| Action | Shortcut |
+|---|---|
+| Fit the texture square | **H** (mouse over the editor) |
+| Fit the selection's UVs | **Z** (mouse over the editor) |
+| Points, Edges, Polygons modes | **1**, **2**, **3** |
+| Select / add or take away | Click / **Ctrl + click** (your selection keys) |
+| Box select | Drag |
+| Pan, zoom | Your viewport navigation controls; the wheel zooms |
+
+The keys are the same as in the viewport: they work wherever the mouse is.
+
+## Tips and common problems
+
+- **Problem:** the editor says "Select an object to see its UVs". **Why:** it shows only the selected objects. **Fix:** select one, in the viewport or the Objects panel.
+- **Problem:** the new walls of an extrude don't show in the editor. **Why:** they're there, but squashed flat along the old border: an extrude stretches the UVs it finds. **Fix:** unwrapping them properly comes with the UV tools in the next updates.
+- **Problem:** clicking in the editor does nothing in the Model mode. **Why:** the Model mode works on whole objects. **Fix:** switch to the UV mode, or press 1, 2 or 3.
+- **Tip:** a shape with more than 300,000 polygons doesn't draw its UVs, so the window stays quick. The editor says so.
+
+## Related
+
+- [Primitives: ready-made UVs](primitives.md#ready-made-uvs)
+- [Selecting](selecting.md)
+- [Concepts: UV map, seam, island, corner](concepts.md#uvs-and-texturing)

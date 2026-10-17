@@ -39,9 +39,9 @@ The mode palette sets what you're working on. The button filled with the accent 
 | Points | The [vertices](concepts.md#mesh-basics) of a mesh |
 | Edges | The edges of a mesh |
 | Polygons | The faces of a mesh |
-| UV | The [UV map](concepts.md#uvs-and-texturing), in the UV Editor and on the model |
+| UV | The [UV map](concepts.md#uvs-and-texturing), in the UV Editor and on the model: a click selects a whole island ([The UV Editor](uv-editor.md)) |
 
-You can also switch modes from the **Modes** menu, or press **1**, **2** or **3** for Points, Edges or Polygons (the same key again goes back to Model). Press **E** in any mode for that mode's tools ([The tool menu](tool-menu.md)). Points, Edges and Polygons show the parts of the selected shapes; see [Points, Edges and Polygons modes](modes.md). In the Object mode, Move and Rotate move and turn the selected objects' pivots instead of the objects ([Pivots and the Object mode](pivots.md)). The UV mode only changes the status bar for now.
+You can also switch modes from the **Modes** menu, or press **1**, **2** or **3** for Points, Edges or Polygons (the same key again goes back to Model). Press **E** in any mode for that mode's tools ([The tool menu](tool-menu.md)). Points, Edges and Polygons show the parts of the selected shapes; see [Points, Edges and Polygons modes](modes.md). In the Object mode, Move and Rotate move and turn the selected objects' pivots instead of the objects ([Pivots and the Object mode](pivots.md)). In the UV mode, clicks select whole UV islands and seams show in orange ([The UV Editor and the UV mode](uv-editor.md)).
 
 ## Drags follow the pull
 
@@ -60,6 +60,7 @@ Attributes, Objects and Coordinates are **panels** you can rearrange around the 
 - **Move a panel:** drag it by its tab (the name at its top-left) and drop it where the highlight shows. Dropping it onto another panel's tab area stacks them as tabs.
 - **Resize:** drag the gap between two panels, including the gaps around the viewport. A panel can be made as small as its tab and a little room.
 - **Get the standard layout back:** **View → Reset panel layout** on the main menu bar.
+- **Layouts:** the tabs on the right of the menu bar switch between whole arrangements: **Standard**, and **UV Edit** (the viewport and the [UV Editor](uv-editor.md) side by side). Each keeps its own changes; Reset panel layout resets the one in use. **Window → UV Editor** adds the editor to the layout you're in, or puts it away.
 
 The viewport has no tab (its menu line takes that place), so it stays where it is while the others move around it. Panels can't be closed or pulled out into separate windows, so you can't lose one by accident. Your arrangement and the window size are remembered the next time you open the app.
 

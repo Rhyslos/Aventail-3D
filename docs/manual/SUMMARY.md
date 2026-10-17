@@ -43,7 +43,8 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - *More pages are added here as tools are built.*
 
 ## UVs
-- *Pages are added here as UV tools are built.*
+- [The UV Editor and the UV mode: see and select UVs on the texture square](uv-editor.md)
+- *More pages are added here as UV tools are built.*
 
 ## Export
 - [Materials: give parts of a model their own material, for texture sets and engine surfaces](materials.md)

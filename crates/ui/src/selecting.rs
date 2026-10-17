@@ -658,6 +658,23 @@ impl Selector<'_> {
         action: &str,
         merge_key: Option<u64>,
     ) {
+        // In the UV mode, whole islands (decision 0096).
+        let changes = if self.mode == crate::palette::Mode::Uv && kind == ElementKind::Polygons {
+            changes
+                .into_iter()
+                .map(|(id, after)| {
+                    let before = self.document.elements(id).cloned().unwrap_or_default();
+                    let whole = self
+                        .document
+                        .scene()
+                        .evaluated(id)
+                        .map_or_else(|| after.clone(), |e| to_islands(&e.mesh, &before, &after));
+                    (id, whole)
+                })
+                .collect()
+        } else {
+            changes
+        };
         let after: usize = self
             .drawing
             .items
@@ -727,6 +744,46 @@ fn nothing_to_edit(kind: ElementKind) -> String {
         "Select an object first: its {} can then be selected.",
         kind.plural()
     )
+}
+
+/// `after`, a new polygon selection of `mesh`, made of whole UV islands
+/// (decision 0096): an island that gained a polygon is selected whole, one
+/// that lost one is let go whole. Points and edges are left alone.
+pub(crate) fn to_islands(
+    mesh: &scene::Mesh,
+    before: &ElementSelection,
+    after: &ElementSelection,
+) -> ElementSelection {
+    let islands = mesh::uvs::islands(mesh);
+    if islands.is_empty() {
+        return after.clone();
+    }
+    let mut out = after.clone();
+    for island in &islands {
+        let had = island
+            .iter()
+            .filter(|f| before.contains(scene::Element::Polygon(**f)))
+            .count();
+        let has = island
+            .iter()
+            .filter(|f| after.contains(scene::Element::Polygon(**f)))
+            .count();
+        let whole = if has > had {
+            true
+        } else if has < had {
+            false
+        } else {
+            continue;
+        };
+        for f in island {
+            if whole {
+                out.insert(scene::Element::Polygon(*f));
+            } else {
+                out.remove(scene::Element::Polygon(*f));
+            }
+        }
+    }
+    out
 }
 
 #[cfg(test)]

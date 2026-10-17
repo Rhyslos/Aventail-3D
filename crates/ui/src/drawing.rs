@@ -103,6 +103,8 @@ pub enum OverlayStyle {
     Selected,
     /// A hard edge of an edited object (Display → Hard edges).
     Hard,
+    /// A seam of an edited object (Display → Seams, and the UV mode).
+    Seam,
     /// A polygon's normal: a short line from its middle the way it faces
     /// (Display → Normals).
     Normal,
