@@ -159,6 +159,7 @@ fn mesh_draws_showing(
                     ui::Surface::Stretch => render::SurfaceDraw::Stretch {
                         density: densities.get(&item.id.get()).copied().unwrap_or(0.0),
                     },
+                    ui::Surface::NumberedChecker => render::SurfaceDraw::NumberedChecker,
                 },
             }
         })
@@ -255,6 +256,9 @@ pub struct GpuViewport {
     preparing: HashMap<u64, (Arc<mesh::Mesh>, std::thread::JoinHandle<MeshGeometry>)>,
     /// The same for the overlay.
     uploaded_overlay: Option<(u64, [f32; 3])>,
+    /// The colours the numbered checker image on the GPU was made in, if
+    /// it has been made (decision 0107).
+    grid_for: Option<[[u8; 3]; 2]>,
 }
 
 impl GpuViewport {
@@ -273,6 +277,7 @@ impl GpuViewport {
             meshes: HashMap::new(),
             preparing: HashMap::new(),
             uploaded_overlay: None,
+            grid_for: None,
         }
     }
 
@@ -455,6 +460,18 @@ impl ViewportRenderer for GpuViewport {
             .iter()
             .map(|(key, uploaded)| (*key, uploaded.geometry.uv_density))
             .collect();
+        // The numbered checker is made when first shown, and again when
+        // the accent colour changes.
+        if view.surface == ui::Surface::NumberedChecker && self.grid_for != Some(view.grid_colors) {
+            let image = ui::grid_image(view.grid_colors);
+            self.renderer.set_grid_image(
+                &self.state.device,
+                &self.state.queue,
+                ui::GRID_IMAGE_SIZE as u32,
+                &image,
+            );
+            self.grid_for = Some(view.grid_colors);
+        }
         let mut draws =
             mesh_draws_showing(&view.scene, accent, view.shading, view.surface, &densities);
         self.renderer.set_show_faces(view.shading.shows_faces());
@@ -637,6 +654,7 @@ mod tests {
             grid_detail: ui::GridDetail::default(),
             scene: Arc::new(scene),
             selection_color: [1.0; 3],
+            grid_colors: [[200, 60, 60], [60, 60, 200]],
             overlay: Arc::new(ComponentOverlay::default()),
             shading: Shading::default(),
             auto_hard_angle: Some(ui::AUTO_HARD_ANGLE),

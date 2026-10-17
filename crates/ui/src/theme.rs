@@ -156,6 +156,45 @@ pub fn set_accent(ctx: &Context, accent: Accent) {
     ctx.set_style_of(egui::Theme::Light, style_with(accent));
 }
 
+/// The numbered checker's two colours (decision 0107) for `accent`: the
+/// accent itself at the top left, and a colour a third of the way back
+/// round the colour wheel at the bottom right (red runs through purple to
+/// blue, blue through teal to green), so the cells between are clear,
+/// different colours. sRGB.
+pub fn grid_colors(accent: Accent) -> [[u8; 3]; 2] {
+    let from = accent.colors().fill;
+    let mut hsva = egui::ecolor::Hsva::from(from);
+    hsva.h = (hsva.h - 120.0 / 360.0).rem_euclid(1.0);
+    let to = Color32::from(hsva);
+    [[from.r(), from.g(), from.b()], [to.r(), to.g(), to.b()]]
+}
+
+#[cfg(test)]
+mod grid_color_tests {
+    use super::*;
+
+    #[test]
+    fn each_accent_gives_its_own_two_clear_colours() {
+        let all = [
+            Accent::Red,
+            Accent::Blue,
+            Accent::MarineGreen,
+            Accent::Plum,
+            Accent::Olive,
+            Accent::PetrolBlue,
+        ];
+        let made: Vec<[[u8; 3]; 2]> = all.iter().map(|a| grid_colors(*a)).collect();
+        for (accent, [from, to]) in all.iter().zip(&made) {
+            let fill = accent.colors().fill;
+            assert_eq!(*from, [fill.r(), fill.g(), fill.b()]);
+            assert_ne!(from, to);
+        }
+        for (i, a) in made.iter().enumerate() {
+            assert!(made[i + 1..].iter().all(|b| b != a));
+        }
+    }
+}
+
 /// Icon and axis colours, following the approved mockups: icons are a
 /// soft white, except the shapes you can create, which are blue; the axes
 /// are X red, Y blue and Z green, the project lead's choice (most 3D
@@ -468,6 +507,9 @@ pub const UV_BORDER: Color32 = Color32::from_rgb(0xe6, 0xe6, 0xe6);
 pub const TRIM_ROW: Color32 = Color32::from_rgba_premultiplied(0x0b, 0x14, 0x1e, 0x1e);
 /// The edges of a trim sheet row, and its name.
 pub const TRIM_ROW_EDGE: Color32 = Color32::from_rgb(0x5a, 0x86, 0xb0);
+/// The numbered checker behind the UV Editor's UVs is drawn this much
+/// dimmer, so the UVs' outlines stand out over it (decision 0107).
+pub const UV_GRID_IMAGE_TINT: Color32 = Color32::from_gray(150);
 /// Seams in the UV Editor: the viewport's seam orange (decision 0098).
 pub const UV_SEAM: Color32 = Color32::from_rgb(0xff, 0x5c, 0x0d);
 /// The stretch view's colours (decision 0102), as the viewport's: a

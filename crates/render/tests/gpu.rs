@@ -922,4 +922,28 @@ fn the_checker_and_stretch_views_colour_the_surface_by_its_uvs() {
     );
     let off = render(&gpu, &renderer, &target, camera, NO_GRID).at(a);
     assert!(off[0] > off[1] + 20, "red: {off:?}");
+    // The numbered checker (decision 0107): the image given, here one
+    // plain blue, laid on by the UVs.
+    let blue: Vec<u8> = (0..64 * 64).flat_map(|_| [20u8, 60, 230, 255]).collect();
+    renderer.set_grid_image(&gpu.device, &gpu.queue, 64, &blue);
+    renderer.set_draws(
+        &gpu.device,
+        &gpu.queue,
+        &[draw(render::SurfaceDraw::NumberedChecker)],
+    );
+    let image = render(&gpu, &renderer, &target, camera, NO_GRID).at(a);
+    assert!(
+        image[2] > image[0] + 40 && image[2] > image[1] + 20,
+        "blue: {image:?}"
+    );
+    // A new image is used at once, with the draws already given.
+    let green: Vec<u8> = (0..64 * 64).flat_map(|_| [30u8, 220, 40, 255]).collect();
+    renderer.set_grid_image(&gpu.device, &gpu.queue, 64, &green);
+    let image = render(&gpu, &renderer, &target, camera, NO_GRID).at(a);
+    assert!(
+        image[1] > image[0] + 40 && image[1] > image[2] + 40,
+        "green: {image:?}"
+    );
+    // A wrongly sized image is ignored.
+    renderer.set_grid_image(&gpu.device, &gpu.queue, 64, &green[..100]);
 }

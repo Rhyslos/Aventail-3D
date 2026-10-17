@@ -2302,6 +2302,8 @@ impl TabViewer for PanelViewer<'_> {
                     snap: self.snap,
                     stretch: self.surface == crate::viewport::Surface::Stretch,
                     outside_hover: self.viewport_hover,
+                    grid: (self.surface == crate::viewport::Surface::NumberedChecker)
+                        .then(|| theme::grid_colors(theme::accent(ui.ctx()))),
                 };
                 self.uv_editor.show(ui, self.document, &cx);
                 return;

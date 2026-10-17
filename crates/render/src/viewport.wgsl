@@ -373,7 +373,8 @@ struct Object {
     // wireframe may fade.
     options: vec4<f32>,
     // What the surface shows (decision 0102): x: 0 its colours, 1 a
-    // checker, 2 how its UVs stretch; y: checker squares across the
+    // checker, 2 how its UVs stretch, 3 the numbered checker image
+    // (decision 0107); y: checker squares across the
     // texture; z: the texel density (texture widths per world centimetre)
     // the stretch view compares with.
     surface: vec4<f32>,
@@ -383,6 +384,11 @@ struct Object {
 };
 
 @group(1) @binding(0) var<uniform> object: Object;
+// The numbered checker image (decision 0107), its first row the top of
+// the texture square, and how it is read (repeating, smoothed, with
+// smaller copies for far away).
+@group(1) @binding(1) var grid_image: texture_2d<f32>;
+@group(1) @binding(2) var grid_sampler: sampler;
 
 // The shapes' surface colour, linear space (geometry.rs CUBE_COLOR).
 const SHAPE_COLOR = vec4<f32>(0.5, 0.5, 0.51, 1.0);
@@ -449,6 +455,13 @@ fn surface_color(in: FaceOut) -> vec4<f32> {
     let mode = object.surface.x;
     if mode < 0.5 {
         return in.color;
+    }
+    if mode > 2.5 {
+        // The image's first row is the top of the square (V = 1).
+        let flip = vec2<f32>(1.0, -1.0);
+        let at = vec2<f32>(in.uv.x, 1.0 - in.uv.y);
+        let c = textureSampleGrad(grid_image, grid_sampler, at, dux * flip, duy * flip);
+        return vec4<f32>(c.rgb, 1.0);
     }
     if mode < 1.5 {
         let squares = max(object.surface.y, 1.0);

@@ -66,11 +66,19 @@ pub enum Surface {
     /// How much their UVs stretch: green where even, through yellow to
     /// red.
     Stretch,
+    /// The numbered checker (decision 0107): cells labelled A1 to H8 in
+    /// a gradient of the app's accent colour, laid on by their UVs.
+    NumberedChecker,
 }
 
 impl Surface {
     /// Every choice, in the order offered.
-    pub const ALL: [Surface; 3] = [Self::Plain, Self::Checker, Self::Stretch];
+    pub const ALL: [Surface; 4] = [
+        Self::Plain,
+        Self::Checker,
+        Self::NumberedChecker,
+        Self::Stretch,
+    ];
 
     /// Its name in the Display menu.
     pub fn label(self) -> &'static str {
@@ -78,6 +86,7 @@ impl Surface {
             Self::Plain => "Colours",
             Self::Checker => "Checker",
             Self::Stretch => "Stretch",
+            Self::NumberedChecker => "Numbered checker",
         }
     }
 
@@ -89,6 +98,13 @@ impl Surface {
                 "A checker laid on by the UVs: where the squares stay square and even, a \
                  texture will too. The tint runs red across and green up the texture, so a \
                  piece turned or mirrored shows."
+            }
+            Self::NumberedChecker => {
+                "A checker of labelled cells laid on by the UVs, A1 at the top left of the \
+                 texture to H8 at the bottom right, in colours from the app's accent: see \
+                 at once which part of the texture each part of the shape uses, and which \
+                 way round it lies (the labels turn and mirror with it). The UV Editor shows \
+                 it behind the UVs too."
             }
             Self::Stretch => {
                 "How evenly the UVs lie: green where even, yellow where 1.5 times off, red \
@@ -103,6 +119,17 @@ impl Surface {
 /// at least 4.
 pub fn checker_squares(texture_size: u32) -> f32 {
     (texture_size as f32 / 128.0).max(4.0)
+}
+
+/// The numbered checker image's size in pixels (decision 0107): its
+/// labels stay sharp up close.
+pub const GRID_IMAGE_SIZE: usize = 1024;
+
+/// The numbered checker image in `colors` (`ViewportView::grid_colors`):
+/// [`GRID_IMAGE_SIZE`] pixels square, four bytes a pixel (sRGB), its first
+/// row the top of the texture square.
+pub fn grid_image(colors: [[u8; 3]; 2]) -> Vec<u8> {
+    uv::grid::numbered_checker(GRID_IMAGE_SIZE, colors[0], colors[1])
 }
 
 /// How shapes are drawn in the viewport ([decision 0063](../../../docs/decisions/0063-wireframe.md)).
@@ -379,6 +406,9 @@ pub struct ViewportView {
     /// The colour selected objects are outlined in (the accent colour),
     /// sRGB 0 to 1.
     pub selection_color: [f32; 3],
+    /// The numbered checker's two colours (decision 0107), from the
+    /// accent colour: the top left cell's and the bottom right's, sRGB.
+    pub grid_colors: [[u8; 3]; 2],
     /// What to draw over the edited objects in the Points, Edges and
     /// Polygons modes.
     pub overlay: Arc<ComponentOverlay>,
@@ -990,6 +1020,7 @@ impl View {
             grid_detail,
             scene: Arc::clone(scene),
             selection_color: rgb(theme::Accent::default().colors().light),
+            grid_colors: theme::grid_colors(theme::Accent::default()),
             overlay: Arc::default(),
             shading: Shading::default(),
             auto_hard_angle: Some(AUTO_HARD_ANGLE),
@@ -1455,6 +1486,7 @@ impl ViewportPanel {
             let mut view =
                 self.views[slot].view(slot, rect, ppp, self.options.grid_detail, &scene.drawing);
             view.selection_color = rgb(theme::accent(ui.ctx()).colors().light);
+            view.grid_colors = theme::grid_colors(theme::accent(ui.ctx()));
             view.overlay = Arc::clone(&scene.overlay);
             view.shading = self.options.shading;
             view.auto_hard_angle = self.options.auto_hard_angle();
