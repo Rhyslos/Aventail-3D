@@ -468,8 +468,9 @@ impl CommandId {
                 "Pack",
                 Icon::Pack,
                 None,
-                "Fit every island into the texture square, with room between them",
-                Some("Arrives with packing, later in Phase 7"),
+                "Fit the islands holding the selection (or whole objects) into the texture \
+                 square as large as they go, with padding between them (UV → Packing)",
+                None,
             ),
         };
         CommandInfo {

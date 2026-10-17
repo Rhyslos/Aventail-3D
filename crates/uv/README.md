@@ -26,4 +26,6 @@ Turns a mesh's surface into flat UV islands and arranges them in the texture squ
 
 - **Texel density** (`density`, [decision 0100](../../docs/decisions/0100-texture-size-and-texel-density.md)): `areas` (UV and real areas of polygons), `density` (texture widths per unit of length) and `set_density` (each piece holding the polygons scaled about its middle to a density). Tests in the module.
 
-The basics every part of the app reads (UVs per corner, islands, seam marks, moving UVs) are in `mesh::uvs`, and the primitives' ready-made UVs in `mesh::primitives`. Packing arrives in the next milestones of Phase 7.
+- **Packing** (`pack`, [decision 0101](../../docs/decisions/0101-packing.md)): `pack` places pieces by shape on a grid of cells (`Grid`: rows of bits; each piece drawn, its inside and every cell its sides cross, grown by half the padding), lowest then leftmost, turned to its smallest box and tried a quarter turn round, at the largest common scale (found by halving); `PackOptions` (padding, rotate, stack, cells); identical pieces stacked (a half turn allowed). `islands_of`, `piece_of`, `place`. Tests in `pack/tests.rs`: padding kept and the square filled, a small piece nesting in a frame's hole, stacking, turning, nothing to pack, exact placing; an ignored benchmark (`pack_benchmark`).
+
+The basics every part of the app reads (UVs per corner, islands, seam marks, moving UVs) are in `mesh::uvs`, and the primitives' ready-made UVs in `mesh::primitives`.

@@ -10,7 +10,7 @@ A shape's [UVs](concepts.md#uvs-and-texturing) say where each part of its surfac
 
 - To see how a shape is laid out on its texture: where its seams are, how big each piece is.
 - To find a part of the model on the texture, or a part of the texture on the model: select it in one, see it in the other.
-- To move, turn, scale and flip pieces by hand: see [Editing UVs by hand](editing-uvs.md). To lay them flat: [Unwrap](unwrapping.md). Packing comes in a later update.
+- To move, turn, scale and flip pieces by hand: see [Editing UVs by hand](editing-uvs.md). To lay them flat: [Unwrap](unwrapping.md). To arrange them: [Pack](packing.md).
 
 ## How to use it
 

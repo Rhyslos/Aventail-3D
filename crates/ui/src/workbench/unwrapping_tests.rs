@@ -237,6 +237,7 @@ fn the_uv_menu_has_the_tools_and_remembered_switches() {
     let back = Workbench::new(super::tests::info(), None).with_uv_settings(UvSettings {
         live_unwrap: false,
         straighten_strips: false,
+        ..UvSettings::default()
     });
     assert!(!back.uv_settings().straighten_strips);
 }

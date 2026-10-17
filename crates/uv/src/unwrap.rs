@@ -363,7 +363,7 @@ fn hull(points: &[Vec2]) -> Vec<Vec2> {
 
 /// The turn that makes the box around `points` smallest (one of its
 /// convex hull's sides lying flat).
-fn smallest_box_turn(points: &[Vec2]) -> f32 {
+pub(crate) fn smallest_box_turn(points: &[Vec2]) -> f32 {
     let h = hull(points);
     if h.len() < 3 {
         return 0.0;

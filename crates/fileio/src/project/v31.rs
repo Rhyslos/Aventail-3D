@@ -20,7 +20,7 @@ pub(crate) type EntryV31 = EntryWith<OperationV31>;
 
 /// Version 31 of the file.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub(crate) struct ProjectV31<E = EntryV31> {
+pub(crate) struct ProjectV31<E> {
     /// Version 27's file, its edits stored as `E`.
     pub(crate) project: ProjectV27<E>,
     /// The texture settings.
