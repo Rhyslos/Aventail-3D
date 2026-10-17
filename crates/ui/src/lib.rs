@@ -23,6 +23,7 @@ pub mod palette;
 mod panel;
 mod panels;
 mod project;
+mod quad_menu;
 mod selecting;
 mod settings;
 mod shape_picker;

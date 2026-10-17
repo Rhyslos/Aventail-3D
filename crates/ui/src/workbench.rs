@@ -240,6 +240,11 @@ pub struct Workbench {
     align: Option<aligning::AlignSession>,
     /// The Align window's choices, for the next time.
     align_settings: aligning::AlignSettings,
+    /// The quad menu (decision 0094).
+    quad_menu: crate::quad_menu::QuadMenu,
+    /// Whether the right button last went down while something was under
+    /// way (so letting it go doesn't open the quad menu).
+    right_press_busy: bool,
     /// The Export window and the last export (decision 0071).
     exporting: exporting::Exporting,
     /// The bake check window (decision 0077).
@@ -312,6 +317,8 @@ impl Workbench {
             target_pick: None,
             align: None,
             align_settings: aligning::AlignSettings::default(),
+            quad_menu: crate::quad_menu::QuadMenu::default(),
+            right_press_busy: false,
             exporting: exporting::Exporting::default(),
             baking: baking::Baking::default(),
             dissolve_question: None,
@@ -1023,6 +1030,7 @@ impl Workbench {
         let mut coordinates_done = Interaction::default();
         self.attributes.tool = self.tool;
         self.attributes.polygons_selected = self.polygons_selected_for_attributes();
+        self.note_right_press(ui.ctx());
         hide_viewport_tab(&mut self.dock);
         let mut modifier_pick = None;
         let style = theme::dock_style(ui.style().as_ref(), self.accent);
@@ -1094,6 +1102,8 @@ impl Workbench {
         }
         let entries = self.tool_menu_entries();
         self.tool_menu_show(ui.ctx(), &entries, &mut requests);
+        self.open_quad_menu();
+        self.quad_menu_show(ui.ctx(), &mut requests);
         if !requests.is_empty() {
             self.carry_out(requests);
             ui.ctx().request_repaint();
@@ -1176,6 +1186,7 @@ impl Workbench {
             || self.shortcuts.open
             || self.about_open
             || self.align.is_some()
+            || self.quad_menu.is_open()
     }
 
     /// Keys that change the document: undo, redo, delete, deselect, group
@@ -2066,6 +2077,9 @@ mod parts;
 mod pivots;
 #[cfg(test)]
 mod pivots_tests;
+mod quad;
+#[cfg(test)]
+mod quad_tests;
 mod selection;
 mod shortcuts;
 mod showing;

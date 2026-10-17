@@ -367,6 +367,7 @@ fn settings_have_a_radial_menu_section_with_every_look_and_switch() {
             style: ToolMenuStyle::InnerEdge,
             show_keys: false,
             tap_to_open: false,
+            quad_menu: false,
         }
     );
     harness.get_by_label("Restore standard").click();
