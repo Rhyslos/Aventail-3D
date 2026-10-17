@@ -2123,6 +2123,27 @@ impl Workbench {
             ui.close();
         }
         ui.separator();
+        for (label, help, to_aim) in [
+            (
+                unwrapping::SET_DENSITY_LABEL,
+                unwrapping::SET_DENSITY_HELP,
+                true,
+            ),
+            (
+                unwrapping::MATCH_DENSITY_LABEL,
+                unwrapping::MATCH_DENSITY_HELP,
+                false,
+            ),
+        ] {
+            if ui.button(label).on_hover_text(help).clicked() {
+                self.run_texel_density(to_aim);
+                ui.close();
+            }
+        }
+        ui.menu_button("Texture", |ui| {
+            crate::uv_editor::texture_menu(ui, &mut self.document);
+        });
+        ui.separator();
         ui.checkbox(
             &mut self.uv_settings.live_unwrap,
             unwrapping::LIVE_UNWRAP_LABEL,
@@ -2226,6 +2247,9 @@ impl TabViewer for PanelViewer<'_> {
             }),
             Panel::UvEditor => {
                 menu_line_with(ui, |ui| {
+                    crate::dialog::menu(ui, "Texture", |ui| {
+                        crate::uv_editor::texture_menu(ui, self.document);
+                    });
                     crate::dialog::menu(ui, "View", |ui| {
                         for what in [
                             crate::uv_editor::UvFrame::Square,
@@ -2348,6 +2372,8 @@ mod seams;
 mod seams_tests;
 mod unwrapping;
 pub use unwrapping::UvSettings;
+#[cfg(test)]
+mod density_tests;
 #[cfg(test)]
 mod unwrapping_tests;
 pub use exporting::{

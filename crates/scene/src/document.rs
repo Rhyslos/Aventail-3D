@@ -54,6 +54,14 @@ impl Document {
         self
     }
 
+    /// The same document with texture settings `texture`, for a project
+    /// being opened (not a step to undo: use [`Command::SetTexture`]).
+    #[must_use]
+    pub fn with_texture(mut self, texture: crate::TextureSettings) -> Self {
+        self.scene = std::mem::take(&mut self.scene).with_texture(texture);
+        self
+    }
+
     /// The same document exporting to `target`, for a project being
     /// opened (not a step to undo: use [`Command::SetExportTarget`]).
     #[must_use]

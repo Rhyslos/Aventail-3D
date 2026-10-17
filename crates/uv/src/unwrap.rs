@@ -515,21 +515,7 @@ fn place(
 /// The UV area per 3D area of `faces` (by their current UVs), if they
 /// have any.
 fn density_of(mesh: &Mesh, faces: &[FaceId], uvs: &Uvs) -> Option<f32> {
-    let (starts, _) = mesh.face_layout();
-    let mut flat = 0.0;
-    let mut real = 0.0;
-    for f in faces {
-        let Some(list) = mesh.face(*f) else {
-            continue;
-        };
-        let start = starts[f.get() as usize] as usize;
-        mesh::triangulate::face_triangles(mesh, list, |[a, b, c]| {
-            let (ua, ub, uc) = (uvs.at(start + a), uvs.at(start + b), uvs.at(start + c));
-            flat += ((ub - ua).perp_dot(uc - ua) / 2.0).abs();
-            let p = |i: usize| mesh.position(list[i]).unwrap_or(Vec3::ZERO);
-            real += (p(b) - p(a)).cross(p(c) - p(a)).length() / 2.0;
-        });
-    }
+    let (flat, real) = crate::density::areas(mesh, faces, uvs);
     (flat > 1e-12 && real > 1e-12).then(|| flat / real)
 }
 

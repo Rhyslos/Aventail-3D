@@ -317,6 +317,16 @@ pub enum Operation {
         /// Where the polygons were, to find them again.
         anchors: Option<Anchors>,
     },
+    /// Scales the pieces holding these polygons so each has this texel
+    /// density (decision 0100): texture widths per scene unit.
+    SetTexelDensity {
+        /// Polygons of the pieces to scale.
+        faces: Vec<FaceId>,
+        /// The density, in texture widths per scene unit.
+        density: f32,
+        /// Where the polygons were, to find them again.
+        anchors: Option<Anchors>,
+    },
     /// Evens out the UVs of these polygons (decision 0099).
     RelaxUvs {
         /// The polygons whose corners move.
@@ -551,6 +561,9 @@ impl Operation {
                 counted("Straighten the UVs of", faces.len(), "polygon")
             }
             Self::RelaxUvs { faces, .. } => counted("Relax the UVs of", faces.len(), "polygon"),
+            Self::SetTexelDensity { faces, .. } => {
+                counted("Set the texel density of", faces.len(), "polygon")
+            }
             Self::FixFacing => "Fix normals".to_string(),
             Self::PlaceShape { .. } => "Apply the placement".to_string(),
             Self::SetSeams { edges, seam, .. } => {
@@ -684,6 +697,7 @@ impl Operation {
             | Self::Unwrap { .. }
             | Self::StraightenUvs { .. }
             | Self::RelaxUvs { .. }
+            | Self::SetTexelDensity { .. }
             | Self::SetHardEdges { .. }
             | Self::SetSeams { .. }
             | Self::SlidePoints { .. }
@@ -848,6 +862,7 @@ impl Operation {
             | Self::Unwrap { .. }
             | Self::StraightenUvs { .. }
             | Self::RelaxUvs { .. }
+            | Self::SetTexelDensity { .. }
             | Self::SetHardEdges { .. }
             | Self::SetSeams { .. }
             | Self::SlidePoints { .. }
@@ -988,6 +1003,7 @@ impl Operation {
             | Self::StraightenUvs { .. }
             | Self::RelaxUvs { .. }
             | Self::FixFacing => true,
+            Self::SetTexelDensity { density, .. } => density.is_finite() && *density > 0.0,
             Self::TransformUvs { transform, .. } => transform.is_finite(),
             Self::PlaceShape { matrix } => matrix.is_finite() && matrix.determinant().abs() > 1e-12,
             Self::SlidePoints { slides, .. } => slides.iter().all(|s| s.amount.is_finite()),
@@ -1038,6 +1054,7 @@ impl Operation {
             | Self::Unwrap { anchors, .. }
             | Self::StraightenUvs { anchors, .. }
             | Self::RelaxUvs { anchors, .. }
+            | Self::SetTexelDensity { anchors, .. }
             | Self::SetHardEdges { anchors, .. }
             | Self::SetSeams { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_ref(),
@@ -1074,6 +1091,7 @@ impl Operation {
             | Self::Unwrap { anchors, .. }
             | Self::StraightenUvs { anchors, .. }
             | Self::RelaxUvs { anchors, .. }
+            | Self::SetTexelDensity { anchors, .. }
             | Self::SetHardEdges { anchors, .. }
             | Self::SetSeams { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_mut(),
@@ -1475,6 +1493,12 @@ impl Operation {
                     .as_ref()
                     .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
                 uv::relax(mesh, &faces, uv::unwrap::RELAX_STEPS)
+            }
+            Self::SetTexelDensity { faces, density, .. } => {
+                let faces = refound
+                    .as_ref()
+                    .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
+                uv::density::set_density(mesh, &faces, *density)
             }
             Self::FixFacing => edit::fix_facing(mesh),
             Self::PlaceShape { matrix } => edit::place(mesh, *matrix),

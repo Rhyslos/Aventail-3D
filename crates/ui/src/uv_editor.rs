@@ -42,6 +42,10 @@ pub(crate) const UV_POLYGONS_UP_TO: usize = 300_000;
 /// How close, in screen points, a click must be to a point or an edge.
 const PICK_DISTANCE: f32 = 9.0;
 
+/// How many screen points a texture pixel must cover before the pixels
+/// are drawn.
+const PIXELS_FROM: f32 = 8.0;
+
 /// Zoom limits, in screen points per texture width.
 const MIN_ZOOM: f32 = 20.0;
 const MAX_ZOOM: f32 = 200_000.0;
@@ -62,6 +66,9 @@ struct UvShape {
     islands: Vec<Vec<FaceId>>,
     /// The edges marked as seams, drawn orange (decision 0098).
     seams: BTreeSet<EdgeKey>,
+    /// Each polygon's UV area and real area, in the order of `polygons`,
+    /// for its texel density (decision 0100).
+    areas: Vec<(f32, f32)>,
 }
 
 impl UvShape {
@@ -112,6 +119,10 @@ impl UvShape {
             }
         }
         let seams = mesh::uvs::seams(&mesh).into_iter().collect();
+        let areas = polygons
+            .iter()
+            .map(|(face, _)| uv::density::areas(&mesh, &[*face], &uvs))
+            .collect();
         Some(Self {
             mesh,
             polygons,
@@ -119,6 +130,7 @@ impl UvShape {
             island_of,
             islands,
             seams,
+            areas,
         })
     }
 }
@@ -370,7 +382,7 @@ impl UvEditor {
         self.navigate(ui, &response, rect, cx.navigation);
         let painter = ui.painter_at(rect);
         painter.rect_filled(rect, 0.0, theme::UV_BACKGROUND);
-        self.paint_square(&painter, rect);
+        self.paint_square(&painter, rect, doc.scene().texture().size);
         let accent = theme::accent(ui.ctx()).colors();
         let kind = element_kind(cx.mode);
         let hover = response
@@ -439,6 +451,40 @@ impl UvEditor {
             rect.left_bottom() + vec2(10.0, -10.0),
             Align2::LEFT_BOTTOM,
             note,
+            FontId::proportional(12.0),
+            theme::TEXT_WEAK,
+        );
+        // The texture, and the texel density shown (of the selected
+        // polygons, or of everything shown), bottom right.
+        let texture = doc.scene().texture();
+        let mut flat = 0.0;
+        let mut real = 0.0;
+        let mut chosen = 0;
+        for (id, shape) in &shapes {
+            let selected = doc.elements(*id).cloned().unwrap_or_default();
+            for ((face, _), (f, r)) in shape.polygons.iter().zip(&shape.areas) {
+                if kind == Some(ElementKind::Polygons) && selected.contains(Element::Polygon(*face))
+                {
+                    if chosen == 0 {
+                        flat = 0.0;
+                        real = 0.0;
+                    }
+                    chosen += 1;
+                    flat += f;
+                    real += r;
+                } else if chosen == 0 {
+                    flat += f;
+                    real += r;
+                }
+            }
+        }
+        let density =
+            (flat > 1e-20 && real > 1e-20).then(|| texture.pixels_per_metre((flat / real).sqrt()));
+        let text = density_text(texture, density, chosen > 0);
+        painter.text(
+            rect.right_bottom() + vec2(-10.0, -10.0),
+            Align2::RIGHT_BOTTOM,
+            text,
             FontId::proportional(12.0),
             theme::TEXT_WEAK,
         );
@@ -632,7 +678,34 @@ impl UvEditor {
 
     /// The texture square: a lighter tile, a grid every tenth and its
     /// edges.
-    fn paint_square(&self, painter: &egui::Painter, rect: Rect) {
+    /// The texture's pixels, when zoomed in far enough to see them
+    /// (decision 0100): faint lines between them, over what is in view.
+    fn paint_pixels(&self, painter: &egui::Painter, rect: Rect, square: Rect, size: u32) {
+        let step = self.zoom / size as f32;
+        if step < PIXELS_FROM {
+            return;
+        }
+        let shown = square.intersect(rect);
+        if !shown.is_positive() {
+            return;
+        }
+        let low = self.to_uv(rect, shown.left_bottom());
+        let high = self.to_uv(rect, shown.right_top());
+        let n = size as f32;
+        let stroke = Stroke::new(1.0, theme::UV_GRID.gamma_multiply(0.6));
+        let first = |v: f32| (v * n).ceil() as i64;
+        let last = |v: f32| (v * n).floor() as i64;
+        for i in first(low.x)..=last(high.x) {
+            let x = self.to_screen(rect, Vec2::new(i as f32 / n, 0.0)).x;
+            painter.vline(x, shown.y_range(), stroke);
+        }
+        for j in first(low.y)..=last(high.y) {
+            let y = self.to_screen(rect, Vec2::new(0.0, j as f32 / n)).y;
+            painter.hline(shown.x_range(), y, stroke);
+        }
+    }
+
+    fn paint_square(&self, painter: &egui::Painter, rect: Rect, texture_size: u32) {
         let a = self.to_screen(rect, Vec2::ZERO);
         let b = self.to_screen(rect, Vec2::ONE);
         let square = Rect::from_two_pos(a, b);
@@ -649,6 +722,7 @@ impl UvEditor {
             painter.vline(x, square.y_range(), Stroke::new(1.0, color));
             painter.hline(square.x_range(), y, Stroke::new(1.0, color));
         }
+        self.paint_pixels(painter, rect, square, texture_size);
         painter.rect_stroke(
             square,
             0.0,
@@ -936,6 +1010,75 @@ impl UvEditor {
             }
         }
         out.into_iter().collect()
+    }
+}
+
+/// Marks texture setting changes apart from every other undo step, so a
+/// drag of the density field is one step.
+const TEXTURE_KEY: u64 = 0x5458_5452_0000_0001;
+
+/// The menu entries for the project's texture settings (decision 0100):
+/// its size, and the texel density aimed for.
+pub(crate) fn texture_menu(ui: &mut Ui, doc: &mut Document) {
+    let mut texture = doc.scene().texture();
+    let mut changed = false;
+    ui.label(egui::RichText::new("Texture size").strong());
+    for size in scene::TEXTURE_SIZES {
+        if ui
+            .add(egui::Button::selectable(
+                texture.size == size,
+                format!("{size} × {size} px"),
+            ))
+            .on_hover_text("The size of the texture this project's UVs are made for")
+            .clicked()
+        {
+            texture.size = size;
+            changed = true;
+        }
+    }
+    ui.separator();
+    ui.horizontal(|ui| {
+        ui.label(TEXEL_DENSITY_LABEL);
+        changed |= ui
+            .add(
+                egui::DragValue::new(&mut texture.density)
+                    .range(1.0..=scene::MAX_DENSITY)
+                    .speed(1.0)
+                    .suffix(" px/m"),
+            )
+            .on_hover_text(
+                "The texel density aimed for: texture pixels per metre of surface. 512 px/m \
+                 is common for props seen up close in third-person games.",
+            )
+            .changed();
+    });
+    if changed && texture.is_valid() {
+        let _ = doc.execute_labelled(
+            scene::Command::SetTexture(texture),
+            "Change the texture settings",
+            Some(TEXTURE_KEY),
+        );
+    }
+}
+
+/// The label of the texel density field.
+pub(crate) const TEXEL_DENSITY_LABEL: &str = "Texel density";
+
+/// The texture and texel density line: "2048 px · 498 px/m (aim 512)".
+pub(crate) fn density_text(
+    texture: scene::TextureSettings,
+    density: Option<f32>,
+    selected: bool,
+) -> String {
+    let aim = texture.density.round();
+    match density {
+        Some(d) => format!(
+            "{} px · {}{} px/m (aim {aim})",
+            texture.size,
+            if selected { "selected " } else { "" },
+            d.round()
+        ),
+        None => format!("{} px · aim {aim} px/m", texture.size),
     }
 }
 
