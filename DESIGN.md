@@ -22,8 +22,8 @@ Aventail 3D (model + UV)  ──glTF/OBJ──►  Substance Painter (bake + tex
 - Clean export for Substance Painter and Godot
 
 ### Planned much later
-- Scripting in Lua, so people can add their own tools and automate work (Phase 9, §4.7).
-- Rigging, skinning and animation for game assets (Phase 10). Modelling and UV work always take precedence unless something urgent comes up.
+- Scripting in Lua, so people can add their own tools and automate work (Phase 10, §4.7).
+- Rigging, skinning and animation for game assets (Phase 11). Modelling and UV work always take precedence unless something urgent comes up.
 
 ### Out of scope (for now)
 - Rendering beyond a good-looking viewport
@@ -102,7 +102,7 @@ Aventail-3D/
 │  ├─ scene/       # layer 1: objects, operation stacks, evaluation, commands, undo
 │  ├─ config/      # layer 1: settings, hotkeys, defaults
 │  ├─ fileio/      # layer 2: .avtl projects, OBJ, glTF (FBX later), settings file
-│  ├─ script/      # layer 2 (Phase 9): Lua scripting through commands
+│  ├─ script/      # layer 2 (Phase 10): Lua scripting through commands
 │  ├─ render/      # layer 3: wgpu viewport renderer, picking
 │  ├─ tools/       # layer 3: camera, selection, gizmos, modelling and UV tools
 │  ├─ ui/          # layer 3: egui panels, menus, palettes, theme
@@ -171,7 +171,7 @@ A tool implements a common trait:
 Tools never mutate the mesh directly; they produce operations, which keeps undo and the stack consistent.
 
 ### 4.5 Keeping the door open for rigging and animation
-Nothing animation-related is built before Phase 10, but these rules avoid a rewrite later:
+Nothing animation-related is built before Phase 11, but these rules avoid a rewrite later:
 - **Generic attribute layers.** Mesh attributes are stored as named, typed layers, so per-vertex **skin weights** (bone index + weight) can be added later as just another layer.
 - **Extensible object types.** The scene graph's object kinds are an enum/trait that can gain `Joint`/`Bone` and other node types without restructuring.
 - **Clean transforms.** Each object has a local transform relative to its parent, and world transforms are always derived from it. No code may assume world-space transforms are stored.
@@ -184,7 +184,7 @@ Nothing animation-related is built before Phase 10, but these rules avoid a rewr
 - **GPU picking** (ID buffer) for vertices/edges/faces, and **depth readback** for cursor-point navigation.
 - Only meshes that changed are re-uploaded. *To improve (§4.8):* within a mesh, only the part that changed, so moving a few points of a huge mesh doesn't re-upload all of it.
 
-### 4.7 Scripting (Phase 9)
+### 4.7 Scripting (Phase 10)
 Let people code their own functionality: custom tools, batch jobs, generators, export helpers. Blender, 3ds Max and Cinema 4D all have this, and a free tool gains a lot when its users can extend it.
 
 **Language: Lua** ([decision 0011](docs/decisions/0011-lua-scripting.md)), using the **Luau** dialect through the `mlua` crate (both MIT):
@@ -325,7 +325,7 @@ Also: dense wireframes fade out from afar (and aren't drawn when too dense to se
 - A keyboard shortcut viewer (built: Keys on the menu bar)
 - Wireframe (built: Shaded, Shaded with wires, Wireframe), cavity (built, [0065](docs/decisions/0065-cavity.md)), clickable corner axes (built, [0066](docs/decisions/0066-clickable-axes.md)), automatic hard edges (built, [0064](docs/decisions/0064-automatic-hard-edges.md))
 
-**Tools — Phase 8 (advanced hard-surface):**
+**Tools — Phase 9 (advanced hard-surface):**
 - Booleans (union/subtract/intersect) via manifold
 - Shell (thickness), and curves and splines (sweep, lathe)
 - Our own smoothing modifier (subdivision, with creases)
@@ -517,7 +517,45 @@ Everything in §7, as one phase after the core modelling and workflow phases ([d
 - Round-trip test: model → Substance Painter bake → Godot looks correct
 - **Done when:** a prop is unwrapped and packed in Aventail 3D with clean bakes in Substance Painter, and changing the model afterwards keeps its UVs.
 
-### Phase 8 — Advanced hard-surface
+### Phase 8 — UV powerhouse and baking
+At the project lead's request (2026-10-16; [decision 0108](docs/decisions/0108-uv-powerhouse-and-baking.md)), before advanced hard-surface. It covers everything the other 3D programs do well for UVs, full control over every automatic step, four ideas no other app has, and a baker inside the app.
+
+**UV tools and controls:** what the other programs do well (recreated in behaviour only), and full control over every automatic step (the project lead: the best, most controllable UV tool there is, never random):
+- Unwrapping: pins (E menu and UV menu, no key: the project lead's choice), unfolding one way only, and angle-based and size-keeping methods beside LSCM, the best picked for each piece
+- Fully controllable automation: every automatic tool (suggest seams, unwrap, straighten, pack, mending) shows all its settings, and the same model and settings always give the same result, never a random one
+- Seam preferences ("prefer a seam here", "never a seam here") and a stretch budget per piece, obeyed by every automatic tool
+- Lock a piece (nothing automatic changes it), and per-piece settings (method, straightening, density) kept for every re-unwrap
+- Straighten any quad piece by its edge flow, and the texture locked in place while moving points
+- Seams: a slider from fewer seams to less stretch, a seam brush, symmetric seams, seams along loops and rings
+- Projections: planar, box, cylindrical and spherical with an on-model gizmo, project from view, and world-aligned UVs for modular kits
+- Editing pieces: stitch and cut in the UV Editor, align and distribute, orient by an edge, lattice warp
+- Precise placement: UV snapping (to texture pixels, other pieces' edges and corners, trim rows, a grid of your own), exact U, V, turn and size in the Coordinates panel, and transform pivots (the selection's middle, each piece's own, a corner, a point you place)
+- UV brushes in the UV Editor: grab, relax and pinch
+- Selection by overlap, mirror, stretch and similarity, grow and shrink in UV, shortest path; isolate the selected pieces; the UV Editor following the viewport's selection or keeping its own; copying UVs between similar pieces and objects
+- Packing: packing groups (kept together, in order, with their own padding or region), locked pieces, packing into a region, keeping the grain's direction, texel density overrides per object, UDIM tiles
+- Several UV sets per object: add, name, copy and switch them, each with its own texture, for high-resolution texturing of big models
+- Lightmap UVs: a UV set made for Godot's baked lighting
+- Seeing and checking: always-on warnings for overlapping and mirrored pieces in the UV Editor, stretch, pixel size and texel density shown on each piece, and measuring in texture pixels and real centimetres
+- The numbered checker in each object's own colours (some red, some blue), to tell objects' UVs apart at a glance
+- Seeing textures: a real texture behind the UVs and on the model, UV layout export (PNG, SVG), separate angle and size stretch views, a mipmap preview
+- Layout snapshots: named versions of a layout to switch between, compared before and after side by side
+- Explained auto-unwrap: one button for seams, unwrap, straighten, density, pack and lightmap UVs, then every step listed to tweak or undo on its own
+- Unwrap recipes: unwrap a whole kit at once with saved steps
+
+**New ideas, in no other app:**
+- Player-view UVs: seams hidden and texture detail placed by how the player sees the asset, and a texels-per-screen-pixel view
+- UV intents: pieces keep what they were told to be (a strip, on a trim row, a mirror, a density, this way up) after any change
+- "Why is this here?": every automatic seam, size and packing choice explains itself and can be changed
+- Paint-aware detail and seam preview: more texture on edges and corners where wear gets painted, and bake seams shown before baking
+
+**Baking in the app** (it moves here from the texturing plan; the baked maps feed texturing's smart masks later):
+- The baker: normal (matching Godot's tangent space), ambient occlusion, curvature, thickness, colour ID, position and height
+- High to low: _low / _high pairing, exploded bakes, floating details, an automatic cage shown on the model with a push slider and cage painting
+- Live bake preview, and bake problems shown on the model (missed rays, wrong parts, skew), each explained with a fix
+- Bakes for the pipeline: to vertex colours, a whole kit at once, stacked and mirrored pieces moved aside for the bake, and straight into a Godot material (normal map and an ORM texture)
+- **Done when:** a modular kit is unwrapped, packed and baked in Aventail 3D and looks right in Godot, and changing a model afterwards keeps its UVs and their intents.
+
+### Phase 9 — Advanced hard-surface
 - Every tool here carries UVs and seams along from the start (the builder, decision 0043)
 - Booleans, weighted normals, better bevel, generators (array, mirror)
 - Shell, curves and splines, and our own smoothing modifier
@@ -525,7 +563,7 @@ Everything in §7, as one phase after the core modelling and workflow phases ([d
 - Game bevel and modular kit helpers (§6; **W15**, **W16**)
 - Generators, booleans, weighted normals and the game bevel are added to the modifiers palette (§5.1)
 
-### Phase 9 — Scripting
+### Phase 10 — Scripting
 Lua scripting so people can add their own tools and automate work. Full design in §4.7.
 - Script runner with the sandbox, time limit and permissions
 - The scripting API: scene, selection, operations and commands (undoable like any edit)
@@ -534,7 +572,7 @@ Lua scripting so people can add their own tools and automate work. Full design i
 - API reference and a "your first script" page in the manual; example scripts
 - **Done when:** a user can write a short script (say, "bevel every hard edge of the selection by 2 mm") that shows up as a command, can be undone, and can't harm files outside what it was allowed.
 
-### Phase 10 — Rigging, skinning and animation (far future)
+### Phase 11 — Rigging, skinning and animation (far future)
 Starts only once modelling and UVs are mature. Rough contents, to be designed properly when the time comes:
 - **Aim (project lead, 2026-10-13):** every animation tool is for game developers, helping them animate for games in both first and third person: first-person arms and weapons, third-person characters, and loops and clips that export cleanly to engines.
 - Joints/bones in the Objects panel hierarchy; bone display and editing
@@ -542,9 +580,9 @@ Starts only once modelling and UVs are mature. Rough contents, to be designed pr
 - Animation: keyframes on transforms, timeline and dope sheet, curve editor, playback in the viewport
 - Export skinned and animated meshes to glTF for Godot
 
-### To be designed: Texturing and a material builder (after Phase 8)
+### To be designed: Texturing and a material builder (after Phase 9)
 At the project lead's request (2026-10-13): a built-in texture painter, so no Substance Painter subscription is needed, and a material builder after it. Both still need a planning talk before they get phases and milestones. Rough parts:
-- baking: normal, AO, curvature, thickness, position, ID;
+- the maps baked in Phase 8 (normal, AO, curvature, thickness, position, ID) as its starting point;
 - a layer stack with fill and paint layers and masks;
 - smart masks driven by the baked maps;
 - 3D painting;
@@ -810,3 +848,4 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-16 — **Bake readiness for UVs** ([0105](docs/decisions/0105-bake-readiness-for-uvs.md)), eleventh UV milestone. The Check for baking window gains the UV part: `uv::check::UvReport` (hard edges as shaded where UVs don't split; polygons folded or squashed against their piece; pieces outside the square; pieces twice or half the shape's area-weighted usual density) and `check_sheet`. `check_sheet` takes the pieces sharing a texture, grouped as Pack groups them, and draws them into a grid of up to 1,024 cells: middles in two pieces mean an overlap, or stacked when the pieces are identical; spreads that meet within the padding (one cell's slack) mean too close. Fixes are one step each: no UVs → suggested seams, unwrap and pack; hard edges → seams and unwrap; folded → unwrap; outside, overlapping, too close and accidental stacking → pack the texture's objects; uneven → set to the usual density. The list is found again when the scene, UV settings or hard-edge angle change. No new keys, no file format change.
 - 2026-10-16 — **Trim sheets** ([0106](docs/decisions/0106-trim-sheets.md)), twelfth and last UV milestone. `scene::TrimSheet` holds full-width rows (name; bottom and top as shares of the height; at most 64; no overlaps), changed by `Command::SetTrim` and saved in file format 33. The UV Editor's Trim menu and UV → Trim sheet edit the rows: name, from top and height in pixels; Add a row; 2, 4, 8 or 16 even rows. The editor draws them as faint bands with names, fading past the right edge. UV → Put on trim row records `Operation::PlaceOnTrim` (the row kept as its band, so later sheet changes don't move pieces). `uv::trim::place` lays each piece: a straight grid for square-quad strips, the right way round, long side along the row, height filling it, end to end from the left. Pieces whose top and bottom lie on a row's edges (`uv::trim::on_row`) are left alone by Pack and by the per-texture bake checks. The bake check lists trim pieces sharing a texture with other pieces. Every UV milestone is now built; the phase gate waits for the project lead's bake test.
 - 2026-10-16 — **Numbered checker** ([0107](docs/decisions/0107-numbered-checker.md)), at the project lead's request (a UV checker map with coloured, labelled cells, as in Cinema 4D, in the app's own colours). It is a fourth Surface choice: `uv::grid::numbered_checker` makes 8 × 8 cells labelled A1 to H8 with the app's own pixel font, each a 4 × 4 two-shade checker, blended from the accent's fill to a colour 120° back round the wheel. The image is 1,024 px with mipmaps, read by the UVs in the shader (`SurfaceDraw::NumberedChecker`, `set_grid_image`) and drawn dimmed behind the UVs in the UV Editor. It is made again when the accent changes. No file format change.
+- 2026-10-16 — **Phase 8: UV powerhouse and baking** ([0108](docs/decisions/0108-uv-powerhouse-and-baking.md)), at the project lead's request. Every UV tool idea from the other 3D programs (recreated in behaviour only) and the project lead's control requests (seam preferences, stretch budgets, locked pieces, per-piece settings, snapping, exact numbers, pivots, packing groups, always-on warnings, numbers on pieces, snapshots, isolate and sync, several UV sets per object, measuring, explained auto-unwrap, the numbered checker per object, and no automatic step ever random), four new ideas (player-view UVs, UV intents, "why is this here?", paint-aware detail with a seam preview) and an in-app baker, all before advanced hard-surface, which becomes Phase 9 (scripting Phase 10, rigging Phase 11). Baking moves from the texturing plan to this phase. Each milestone asks about its controls first, as usual.
