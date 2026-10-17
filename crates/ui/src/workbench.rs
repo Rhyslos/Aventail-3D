@@ -2156,6 +2156,12 @@ impl Workbench {
         ui.menu_button("Packing", |ui| {
             self.packing_menu(ui);
         });
+        ui.menu_button("Trim sheet", |ui| {
+            crate::uv_editor::trim_menu(ui, &mut self.document);
+        });
+        ui.menu_button(unwrapping::PUT_ON_TRIM_LABEL, |ui| {
+            self.put_on_trim_menu(ui);
+        });
         self.bake_entry(ui);
         ui.separator();
         ui.checkbox(
@@ -2265,6 +2271,9 @@ impl TabViewer for PanelViewer<'_> {
                 menu_line_with(ui, |ui| {
                     crate::dialog::menu(ui, "Texture", |ui| {
                         crate::uv_editor::texture_menu(ui, self.document);
+                    });
+                    crate::dialog::menu(ui, "Trim", |ui| {
+                        crate::uv_editor::trim_menu(ui, self.document);
                     });
                     crate::dialog::menu(ui, "View", |ui| {
                         for what in [
@@ -2397,6 +2406,8 @@ pub use unwrapping::UvSettings;
 mod density_tests;
 #[cfg(test)]
 mod pack_tests;
+#[cfg(test)]
+mod trim_tests;
 #[cfg(test)]
 mod unwrapping_tests;
 pub use exporting::{

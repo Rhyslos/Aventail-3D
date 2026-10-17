@@ -11,6 +11,7 @@
 //! - [`mod@mend`]: keeping UVs whole through modelling: laying out again
 //!   what an edit left without room, around what it kept.
 //! - [`pack`]: fitting pieces into the texture square.
+//! - [`trim`]: laying strips straight onto a trim sheet's rows.
 //! - [`stretch`]: how evenly UVs lie, and what to do about it.
 //! - [`mod@unwrap`]: laying it flat: unwrapping (LSCM, and straight grids for
 //!   strips), straightening and relaxing.
@@ -23,6 +24,7 @@ pub mod pack;
 pub mod seams;
 mod solve;
 pub mod stretch;
+pub mod trim;
 pub mod unwrap;
 
 pub use mend::mend;

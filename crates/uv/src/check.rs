@@ -52,8 +52,11 @@ pub struct UvReport {
 
 impl UvReport {
     /// Checks `mesh`'s UVs, with `hard` its hard edges (as the export
-    /// will shade them); `None` if it has no UVs.
-    pub fn new(mesh: &Mesh, hard: &[EdgeKey]) -> Option<Self> {
+    /// will shade them); `None` if it has no UVs. Pieces lying on one of
+    /// the trim sheet's `rows` (bottom, top) run past the square and have
+    /// the row's density on purpose, so they aren't counted as outside or
+    /// uneven.
+    pub fn new(mesh: &Mesh, hard: &[EdgeKey], rows: &[(f32, f32)]) -> Option<Self> {
         let uvs = Uvs::of(mesh)?;
         let splits: BTreeSet<EdgeKey> = mesh::uvs::uv_splits(mesh).into_iter().collect();
         let topology = mesh.topology();
@@ -63,6 +66,10 @@ impl UvReport {
             .filter(|e| topology.edge_uses(*e).len() == 2 && !splits.contains(e))
             .collect();
         let islands = mesh::uvs::islands(mesh);
+        let on_trim = |island: &[FaceId]| {
+            rows.iter()
+                .any(|(bottom, top)| crate::trim::on_row(mesh, island, *bottom, *top))
+        };
         let stretch: std::collections::HashMap<FaceId, crate::stretch::Stretch> =
             crate::stretch::stretch_of(mesh)
                 .unwrap_or_default()
@@ -92,7 +99,7 @@ impl UvReport {
         }
         // Outside the square.
         let (starts, _) = mesh.face_layout();
-        for island in &islands {
+        for island in islands.iter().filter(|i| !on_trim(i)) {
             let out_of_square = island.iter().any(|f| {
                 let start = starts[f.get() as usize] as usize;
                 let n = mesh.face(*f).map_or(0, <[mesh::VertexId]>::len);
@@ -109,6 +116,7 @@ impl UvReport {
         let mut densities: Vec<(f32, f32, usize)> = islands
             .iter()
             .enumerate()
+            .filter(|(_, island)| !on_trim(island))
             .filter_map(|(i, island)| {
                 let d = crate::density::density(mesh, island)?;
                 let (_, real) = crate::density::areas(mesh, island, &uvs);

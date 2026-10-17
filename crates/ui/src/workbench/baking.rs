@@ -90,6 +90,9 @@ pub(crate) enum Kind {
     /// Polygons of pieces whose texel density is far from the object's
     /// usual one (texture widths per unit of length).
     Uneven(Vec<scene::FaceId>, f32),
+    /// Polygons on the trim sheet sharing a texture with pieces that
+    /// aren't.
+    TrimShared(Vec<scene::FaceId>),
 }
 
 /// A one-click fix.
@@ -159,6 +162,10 @@ impl Kind {
                 "{} with uneven texel density",
                 counted("", f.len(), "polygon")
             ),
+            Self::TrimShared(f) => format!(
+                "{} on the trim sheet sharing a texture with other pieces",
+                counted("", f.len(), "polygon")
+            ),
         }
         .trim_start()
         .to_string()
@@ -176,7 +183,8 @@ impl Kind {
             | Self::Overlapping(f)
             | Self::Stacked(f, _)
             | Self::TooClose(f, _)
-            | Self::Uneven(f, _) => f.len(),
+            | Self::Uneven(f, _)
+            | Self::TrimShared(f) => f.len(),
             Self::NonManifold(e) | Self::ShortEdges(e, _) | Self::HardJoined(e) => e.len(),
             Self::Loose(p) => p.len(),
             Self::Unpaired(_) | Self::NoUvs => 1,
@@ -258,6 +266,12 @@ impl Kind {
                  at a distance (mipmaps), where close pieces blur into each other. Fix packs \
                  them with the gap set in UV → Packing."
             }
+            Self::TrimShared(_) => {
+                "These polygons lie on the trim sheet, but share a material (and so a texture) \
+                 with pieces that don't: the trim texture would land on those too. Select \
+                 them and give them a material of their own (Materials, in the Attributes \
+                 panel), so the trim sheet is a texture set of its own."
+            }
             Self::Uneven(..) => {
                 "These pieces get much more or much less texture than the rest of the \
                  object, so they look sharper or blurrier. Fix scales them to the object's \
@@ -311,7 +325,8 @@ impl Kind {
             | Self::Overlapping(f)
             | Self::Stacked(f, _)
             | Self::TooClose(f, _)
-            | Self::Uneven(f, _) => (Mode::Polygons, faces(f)),
+            | Self::Uneven(f, _)
+            | Self::TrimShared(f) => (Mode::Polygons, faces(f)),
             Self::NonManifold(e) | Self::ShortEdges(e, _) | Self::HardJoined(e) => {
                 (Mode::Edges, edges(e))
             }
@@ -372,6 +387,22 @@ pub(crate) fn uv_problems_of(
             kind,
         })
         .collect()
+}
+
+/// The trim sheet's rows, as (bottom, top).
+pub(crate) fn trim_rows(scene: &scene::Scene) -> Vec<(f32, f32)> {
+    scene
+        .trim()
+        .rows
+        .iter()
+        .map(|r| (r.bottom, r.top))
+        .collect()
+}
+
+/// Whether `piece` lies on one of `rows`.
+pub(crate) fn on_trim(mesh: &scene::Mesh, piece: &[scene::FaceId], rows: &[(f32, f32)]) -> bool {
+    rows.iter()
+        .any(|(bottom, top)| uv::trim::on_row(mesh, piece, *bottom, *top))
 }
 
 /// The suffixes Substance Painter pairs objects by.
@@ -452,7 +483,7 @@ impl Workbench {
             if let Some(shape) = scene.evaluated(id) {
                 found.extend(problems_of(id, &object.name, BakeReport::new(&shape.mesh)));
                 let hard = self.shown_hard_edges(&shape.mesh);
-                let report = uv::check::UvReport::new(&shape.mesh, &hard);
+                let report = uv::check::UvReport::new(&shape.mesh, &hard, &trim_rows(scene));
                 found.extend(uv_problems_of(id, &object.name, report));
                 shapes.push((id, object.name.clone(), shape.mesh));
             }
@@ -482,12 +513,29 @@ impl Workbench {
             super::unwrapping::TextureGroup,
             Vec<(usize, Vec<scene::FaceId>)>,
         > = BTreeMap::new();
+        let rows = trim_rows(self.document.scene());
+        // Pieces on the trim sheet repeat and overlap on purpose: kept
+        // apart, per texture.
+        let mut trims: BTreeMap<super::unwrapping::TextureGroup, Vec<(usize, Vec<scene::FaceId>)>> =
+            BTreeMap::new();
         for (k, (id, _, mesh)) in shapes.iter().enumerate() {
             for island in mesh::uvs::islands(mesh) {
-                sheets
-                    .entry(self.texture_group(*id, mesh, &island))
-                    .or_default()
-                    .push((k, island));
+                let group = self.texture_group(*id, mesh, &island);
+                let into = if on_trim(mesh, &island, &rows) {
+                    &mut trims
+                } else {
+                    &mut sheets
+                };
+                into.entry(group).or_default().push((k, island));
+            }
+        }
+        // Trim pieces on a texture other pieces use.
+        let mut shared: BTreeMap<usize, Vec<scene::FaceId>> = BTreeMap::new();
+        for (group, members) in &trims {
+            if sheets.contains_key(group) {
+                for (k, faces) in members {
+                    shared.entry(*k).or_default().extend(faces.iter().copied());
+                }
             }
         }
         // For each shape, the polygons with each problem.
@@ -534,6 +582,10 @@ impl Workbench {
             if let Some(mut f) = close.remove(&k) {
                 f.sort();
                 add(Kind::TooClose(f, padding));
+            }
+            if let Some(mut f) = shared.remove(&k) {
+                f.sort();
+                add(Kind::TrimShared(f));
             }
         }
         out

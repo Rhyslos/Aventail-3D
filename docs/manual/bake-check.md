@@ -36,7 +36,7 @@ Only many-sided polygons (five or more corners) are checked for bends and sliver
 
 ### The UVs
 
-The bake is painted into the texture through the [UVs](concepts.md#uvs-and-texturing), so they're checked too. Pieces that share a texture are checked together: by standard, every object with the same material shares one, as [Pack](packing.md) arranges them.
+The bake is painted into the texture through the [UVs](concepts.md#uvs-and-texturing), so they're checked too. Pieces that share a texture are checked together: by standard, every object with the same material shares one, as [Pack](packing.md) arranges them. Pieces on a [trim sheet](trim-sheets.md)'s rows repeat and overlap on purpose, so they aren't checked for overlaps, gaps, the square's edges or texel density.
 
 | Problem | Why it spoils a bake | Fix |
 |---|---|---|
@@ -47,6 +47,7 @@ The bake is painted into the texture through the [UVs](concepts.md#uvs-and-textu
 | **Polygons lying over other UVs** | Pieces on top of each other share pixels, so one bakes over the other. | **Fix** packs them apart. |
 | **Polygons stacked on identical pieces** | Identical pieces lying exactly on each other share pixels. Right for identical parts if you meant it (**UV → Packing → Stack identical pieces**), but shadow bakes (ambient occlusion) see only one. | With stacking off, **Fix** packs them apart. With it on, it's listed so you know; there's no Fix. |
 | **Polygons closer than 8 px to other pieces** | Pieces need a gap of empty pixels. The baker spreads each piece's colours into it so seams don't show. A game also shows smaller copies of the texture at a distance ([mipmaps](concepts.md#uvs-and-texturing)), where close pieces blur into each other. | **Fix** packs them with the gap set in **UV → Packing**. |
+| **Polygons on the trim sheet sharing a texture with other pieces** | Pieces laid on a [trim sheet](trim-sheets.md)'s rows share a material (and so a texture) with pieces that aren't: the trim texture would land on those too. | Select them and give them a material of their own ([Materials](materials.md)). |
 | **Polygons with uneven texel density** | Pieces with twice (or half) the [texel density](texture-and-density.md) of the rest of the object look sharper or blurrier than the rest. | **Fix** scales them to the object's usual density. They may then overlap: Pack after. |
 
 ## Settings

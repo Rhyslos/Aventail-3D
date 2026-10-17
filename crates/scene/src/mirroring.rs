@@ -66,6 +66,7 @@ pub fn mirrors(op: &Operation) -> bool {
         | Operation::StraightenUvs { .. }
         | Operation::RelaxUvs { .. }
         | Operation::SetTexelDensity { .. }
+        | Operation::PlaceOnTrim { .. }
         | Operation::PackUvs { .. }
         | Operation::SlidePoints { .. }
         | Operation::FixFacing

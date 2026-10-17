@@ -405,6 +405,7 @@ impl UvEditor {
         let painter = ui.painter_at(rect);
         painter.rect_filled(rect, 0.0, theme::UV_BACKGROUND);
         self.paint_square(&painter, rect, doc.scene().texture().size);
+        self.paint_trim(&painter, rect, doc.scene().trim());
         let accent = theme::accent(ui.ctx()).colors();
         let kind = element_kind(cx.mode);
         let own = response
@@ -746,6 +747,40 @@ impl UvEditor {
         for j in first(low.y)..=last(high.y) {
             let y = self.to_screen(rect, Vec2::new(0.0, j as f32 / n)).y;
             painter.hline(shown.x_range(), y, stroke);
+        }
+    }
+
+    /// The trim sheet's rows (decision 0106): faint bands across the
+    /// square, every other one stronger, with their edges and names, and
+    /// a fainter continuation to the right, where the rows repeat.
+    fn paint_trim(&self, painter: &egui::Painter, rect: Rect, trim: &scene::TrimSheet) {
+        for (i, row) in trim.rows.iter().enumerate() {
+            let a = self.to_screen(rect, Vec2::new(0.0, row.bottom));
+            let b = self.to_screen(rect, Vec2::new(1.0, row.top));
+            let band = Rect::from_two_pos(a, b);
+            let fill = if i % 2 == 0 {
+                theme::TRIM_ROW
+            } else {
+                theme::TRIM_ROW.gamma_multiply(1.8)
+            };
+            painter.rect_filled(band, 0.0, fill);
+            let beyond = Rect::from_min_max(
+                pos2(band.right(), band.top()),
+                pos2(band.right() + band.width() * 0.5, band.bottom()),
+            );
+            painter.rect_filled(beyond, 0.0, fill.gamma_multiply(0.4));
+            let edge = Stroke::new(1.0, theme::TRIM_ROW_EDGE.gamma_multiply(0.7));
+            painter.hline(band.x_range(), band.top(), edge);
+            painter.hline(band.x_range(), band.bottom(), edge);
+            if band.height() >= 14.0 {
+                painter.text(
+                    band.left_top() + vec2(6.0, 3.0),
+                    Align2::LEFT_TOP,
+                    &row.name,
+                    FontId::proportional(11.0),
+                    theme::TRIM_ROW_EDGE,
+                );
+            }
         }
     }
 
@@ -1108,6 +1143,153 @@ pub(crate) fn texture_menu(ui: &mut Ui, doc: &mut Document) {
             scene::Command::SetTexture(texture),
             "Change the texture settings",
             Some(TEXTURE_KEY),
+        );
+    }
+}
+
+/// Marks trim sheet changes' undo merge keys, so a drag or a run of
+/// typing in the Trim menu is one undo step.
+const TRIM_KEY: u64 = 0x5452_494d_0000_0001;
+
+/// The UV Editor's Trim menu (decision 0106): the trim sheet's rows, top
+/// to bottom, each with its name, where it starts from the top of the
+/// texture and its height (in the texture's pixels, as an image editor
+/// shows them), to change or remove; quick even layouts; adding a row.
+pub(crate) fn trim_menu(ui: &mut Ui, doc: &mut Document) {
+    let size = doc.scene().texture().size as f32;
+    let mut sheet = doc.scene().trim().clone();
+    let mut changed = false;
+    ui.set_max_width(340.0);
+    ui.label(egui::RichText::new("Trim sheet").strong());
+    ui.label(egui::RichText::new("Rows of a shared texture, repeating left to right.").weak());
+    ui.label(egui::RichText::new("Lay strips on them: UV → Put on trim row.").weak());
+    ui.separator();
+    if sheet.rows.is_empty() {
+        ui.label("No rows yet.");
+    }
+    // Top to bottom, as the texture looks in an image editor.
+    let mut order: Vec<usize> = (0..sheet.rows.len()).collect();
+    order.sort_by(|a, b| sheet.rows[*b].top.total_cmp(&sheet.rows[*a].top));
+    let mut remove = None;
+    egui::Grid::new("trim_rows")
+        .num_columns(4)
+        .spacing([8.0, 4.0])
+        .show(ui, |ui| {
+            if !sheet.rows.is_empty() {
+                ui.label(egui::RichText::new("Name").weak());
+                ui.label(egui::RichText::new("From top").weak());
+                ui.label(egui::RichText::new("Height").weak());
+                ui.label("");
+                ui.end_row();
+            }
+            for i in order {
+                let row = &mut sheet.rows[i];
+                let mut name = row.name.clone();
+                if ui
+                    .add_sized([110.0, 20.0], egui::TextEdit::singleline(&mut name))
+                    .on_hover_text("What the row holds: bolts, a panel edge, a seal")
+                    .changed()
+                    && !name.trim().is_empty()
+                {
+                    name.truncate(scene::MAX_ROW_NAME);
+                    row.name = name;
+                    changed = true;
+                }
+                let mut from_top = ((1.0 - row.top) * size).round();
+                let mut height = (row.height() * size).round();
+                if ui
+                    .add(
+                        egui::DragValue::new(&mut from_top)
+                            .range(0.0..=size - 1.0)
+                            .speed(1.0)
+                            .suffix(" px"),
+                    )
+                    .on_hover_text("Where the row starts, in pixels from the top of the texture")
+                    .changed()
+                {
+                    let h = row.height();
+                    row.top = 1.0 - from_top / size;
+                    row.bottom = row.top - h;
+                    changed = true;
+                }
+                if ui
+                    .add(
+                        egui::DragValue::new(&mut height)
+                            .range(1.0..=size)
+                            .speed(1.0)
+                            .suffix(" px"),
+                    )
+                    .on_hover_text("How tall the row is, in pixels")
+                    .changed()
+                {
+                    row.bottom = row.top - height / size;
+                    changed = true;
+                }
+                if ui
+                    .small_button("×")
+                    .on_hover_text("Remove this row")
+                    .clicked()
+                {
+                    remove = Some(i);
+                }
+                ui.end_row();
+            }
+        });
+    if let Some(i) = remove {
+        sheet.rows.remove(i);
+        changed = true;
+    }
+    ui.separator();
+    // A new row below the lowest, as tall as it, if there is room.
+    let lowest = sheet
+        .rows
+        .iter()
+        .map(|r| (r.bottom, r.height()))
+        .min_by(|a, b| a.0.total_cmp(&b.0));
+    let (below, tall) = lowest.unwrap_or((1.0, 0.125));
+    let room = below >= tall - 1e-6 && sheet.rows.len() < scene::MAX_TRIM_ROWS;
+    if ui
+        .add_enabled(room, egui::Button::new("Add a row"))
+        .on_hover_text("A new row under the lowest one, as tall as it")
+        .on_disabled_hover_text("There's no room under the lowest row: make it shorter first")
+        .clicked()
+    {
+        sheet.rows.push(scene::TrimRow {
+            name: format!("Row {}", sheet.rows.len() + 1),
+            top: below,
+            bottom: (below - tall).max(0.0),
+        });
+        changed = true;
+    }
+    ui.horizontal(|ui| {
+        ui.label("Even rows:");
+        for n in [2, 4, 8, 16] {
+            if ui
+                .small_button(n.to_string())
+                .on_hover_text(format!("{n} rows of the same height, filling the texture"))
+                .clicked()
+            {
+                sheet = scene::TrimSheet::even(n);
+                changed = true;
+            }
+        }
+    });
+    if !sheet.rows.is_empty()
+        && ui
+            .button("Remove every row")
+            .on_hover_text("No trim sheet. Pieces already on its rows stay where they are.")
+            .clicked()
+    {
+        sheet.rows.clear();
+        changed = true;
+    }
+    // A change that would make rows overlap isn't made: the numbers spring
+    // back.
+    if changed && sheet.is_valid() {
+        let _ = doc.execute_labelled(
+            scene::Command::SetTrim(sheet),
+            "Change the trim sheet",
+            Some(TRIM_KEY),
         );
     }
 }

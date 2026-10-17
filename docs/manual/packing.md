@@ -48,6 +48,7 @@ No key of its own; ask if you'd like one.
 
 ## Tips and common problems
 
+- **Tip:** pieces on a [trim sheet](trim-sheets.md)'s rows stay where they are when you Pack.
 - **Problem:** two objects' pieces came out different sizes. **Why:** packing keeps each piece's texel density as it was; they started different. **Fix:** select both, **UV → Match texel density**, then Pack.
 - **Problem:** the pieces don't fill the whole square. **Why:** the largest piece decides how big everything can get (a long strip spans the width). **Fix:** cut the long piece with a seam, or turn off **Turn pieces to fit** and on again to let it lie the other way; some space is always left between shapes.
 - **Problem:** pieces from other objects overlap mine. **Why:** only the selected objects were packed together. **Fix:** select every object that shares the texture, then Pack.

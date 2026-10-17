@@ -54,7 +54,7 @@ fn packed(mesh: &Mesh, size: u32, padding: u32) -> Mesh {
 fn every_ready_made_shape_is_clean() {
     for kind in PrimitiveKind::ALL {
         let mesh = kind.standard().mesh();
-        let report = UvReport::new(&mesh, &hard(&mesh)).unwrap();
+        let report = UvReport::new(&mesh, &hard(&mesh), &[]).unwrap();
         assert!(report.is_clean(), "{kind:?}: {report:?}");
         // Packed with padding, nothing is too close or over another (a
         // small texture keeps the test quick).
@@ -68,7 +68,7 @@ fn every_ready_made_shape_is_clean() {
 fn a_shape_without_uvs_has_no_report() {
     let mut mesh = cube();
     mesh.remove_attribute(mesh::attributes::UV);
-    assert!(UvReport::new(&mesh, &[]).is_none());
+    assert!(UvReport::new(&mesh, &[], &[]).is_none());
 }
 
 #[test]
@@ -86,12 +86,12 @@ fn hard_edges_inside_a_piece_are_found() {
         .collect();
     assert_eq!(inner.len(), 1);
     plane.set_hard(inner[0].ends().0, inner[0].ends().1, true);
-    let report = UvReport::new(&plane, &inner).unwrap();
+    let report = UvReport::new(&plane, &inner, &[]).unwrap();
     assert_eq!(report.hard_joined, inner);
     // Open edges are never counted.
     let border = plane.topology().border_edges();
     assert!(
-        UvReport::new(&plane, &border)
+        UvReport::new(&plane, &border, &[])
             .unwrap()
             .hard_joined
             .is_empty()
@@ -109,7 +109,7 @@ fn folded_squashed_outside_and_uneven_pieces_are_found() {
         * Affine2::from_scale(Vec2::new(-1.0, 1.0))
         * Affine2::from_translation(-centre);
     mesh::uvs::transform_uvs(&mut mesh, &one, &[], mirror);
-    let report = UvReport::new(&mesh, &hard(&mesh)).unwrap();
+    let report = UvReport::new(&mesh, &hard(&mesh), &[]).unwrap();
     assert!(report.folded.is_empty(), "{report:?}");
     // Another side squashed flat: folded.
     let two = vec![faces[1]];
@@ -129,12 +129,34 @@ fn folded_squashed_outside_and_uneven_pieces_are_found() {
         * Affine2::from_scale(Vec2::splat(2.5))
         * Affine2::from_translation(-c4);
     mesh::uvs::transform_uvs(&mut mesh, &four, &[], grow);
-    let report = UvReport::new(&mesh, &hard(&mesh)).unwrap();
+    let report = UvReport::new(&mesh, &hard(&mesh), &[]).unwrap();
     assert_eq!(report.folded, two);
     assert!(report.outside.contains(&faces[2]), "{report:?}");
     assert!(report.uneven.contains(&faces[3]), "{report:?}");
     assert!(!report.uneven.contains(&faces[4]), "{report:?}");
     assert!(report.usual_density.is_some());
+}
+
+#[test]
+fn pieces_on_a_trim_row_are_neither_outside_nor_uneven() {
+    let mut mesh = cube();
+    let faces = all(&mesh);
+    // One side laid on a row, running past the square's right side.
+    crate::trim::place(&mut mesh, &faces[..1], 0.05, 0.95);
+    let one = vec![faces[0]];
+    mesh::uvs::transform_uvs(
+        &mut mesh,
+        &one,
+        &[],
+        Affine2::from_translation(Vec2::X * 0.9),
+    );
+    let report = UvReport::new(&mesh, &hard(&mesh), &[]).unwrap();
+    assert!(
+        !report.outside.is_empty() && !report.uneven.is_empty(),
+        "{report:?}"
+    );
+    let report = UvReport::new(&mesh, &hard(&mesh), &[(0.05, 0.95)]).unwrap();
+    assert!(report.is_clean(), "{report:?}");
 }
 
 #[test]
@@ -228,7 +250,7 @@ fn check_benchmark() {
         crate::unwrap(&mut cut, &every, true);
         let p = packed(&cut, 2048, 8);
         let start = std::time::Instant::now();
-        let report = UvReport::new(&p, &[]).unwrap();
+        let report = UvReport::new(&p, &[], &[]).unwrap();
         let sheet = check_sheet(&pieces_of(&p), 2048, 8);
         println!(
             "{} pieces: checked in {:?} ({} uneven, {} too close)",

@@ -62,6 +62,14 @@ impl Document {
         self
     }
 
+    /// The same document with trim sheet `trim`, for a project being
+    /// opened (not a step to undo: use [`Command::SetTrim`]).
+    #[must_use]
+    pub fn with_trim(mut self, trim: crate::TrimSheet) -> Self {
+        self.scene = std::mem::take(&mut self.scene).with_trim(trim);
+        self
+    }
+
     /// The same document exporting to `target`, for a project being
     /// opened (not a step to undo: use [`Command::SetExportTarget`]).
     #[must_use]

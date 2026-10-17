@@ -51,6 +51,9 @@ impl Default for UvSettings {
     }
 }
 
+/// The UV menu's name for laying strips on a trim row (decision 0106).
+pub(crate) const PUT_ON_TRIM_LABEL: &str = "Put on trim row";
+
 /// The most padding packing takes, in pixels.
 pub(crate) const MAX_PADDING: u32 = 256;
 
@@ -324,6 +327,7 @@ impl Workbench {
         let mut groups: std::collections::BTreeMap<TextureGroup, Vec<(ObjectId, Vec<FaceId>)>> =
             std::collections::BTreeMap::new();
         let mut meshes = std::collections::HashMap::new();
+        let mut on_trim = 0;
         for (id, mesh) in shapes {
             if !mesh::uvs::has_uvs(&mesh) {
                 continue;
@@ -333,7 +337,13 @@ impl Workbench {
             } else {
                 targets(&mesh, self.document.elements(id), self.mode)
             };
+            // Pieces on the trim sheet stay on their rows.
+            let rows = super::baking::trim_rows(self.document.scene());
             for island in uv::pack::islands_of(&mesh, &faces) {
+                if super::baking::on_trim(&mesh, &island, &rows) {
+                    on_trim += 1;
+                    continue;
+                }
                 groups
                     .entry(self.texture_group(id, &mesh, &island))
                     .or_default()
@@ -358,7 +368,11 @@ impl Workbench {
             }
         }
         if by_object.is_empty() {
-            self.note = Some("Pack: the selection has no UVs with any area to pack.".into());
+            self.note = Some(if on_trim > 0 {
+                "Pack: every selected piece is on the trim sheet, and stays on its row.".into()
+            } else {
+                "Pack: the selection has no UVs with any area to pack.".into()
+            });
             return false;
         }
         let ops: Vec<(ObjectId, Operation)> = by_object
@@ -374,6 +388,80 @@ impl Workbench {
             ));
         }
         done
+    }
+
+    /// UV → Put on trim row: the trim sheet's rows, top to bottom; each
+    /// lays the selection's pieces on it.
+    pub(crate) fn put_on_trim_menu(&mut self, ui: &mut egui::Ui) {
+        let sheet = self.document.scene().trim().clone();
+        if sheet.rows.is_empty() {
+            ui.add_enabled(false, egui::Button::new("No rows yet"))
+                .on_disabled_hover_text(
+                    "Make the trim sheet's rows first: the UV Editor's Trim menu, or UV → Trim \
+                     sheet",
+                );
+            return;
+        }
+        let mut order: Vec<usize> = (0..sheet.rows.len()).collect();
+        order.sort_by(|a, b| sheet.rows[*b].top.total_cmp(&sheet.rows[*a].top));
+        for i in order {
+            if ui
+                .button(&sheet.rows[i].name)
+                .on_hover_text(
+                    "Lay the selected pieces straight along this row, filling its height, from \
+                     its left end",
+                )
+                .clicked()
+            {
+                self.run_put_on_trim(i);
+                ui.close();
+            }
+        }
+    }
+
+    /// Lays the pieces holding the selection (whole objects without one)
+    /// on trim row `row`, as one undo step.
+    pub(crate) fn run_put_on_trim(&mut self, row: usize) {
+        let Some(row) = self.document.scene().trim().rows.get(row).cloned() else {
+            return;
+        };
+        let shapes = self.own_shapes();
+        if shapes.is_empty() {
+            self.note = Some(format!("{PUT_ON_TRIM_LABEL}: select the objects first."));
+            return;
+        }
+        let mut ops = Vec::new();
+        let mut pieces = 0;
+        for (id, mesh) in shapes {
+            if !mesh::uvs::has_uvs(&mesh) {
+                continue;
+            }
+            let faces = targets(&mesh, self.document.elements(id), self.mode);
+            pieces += uv::pack::islands_of(&mesh, &faces).len();
+            ops.push((
+                id,
+                Operation::PlaceOnTrim {
+                    anchors: anchors(&mesh, &faces),
+                    faces,
+                    bottom: row.bottom,
+                    top: row.top,
+                },
+            ));
+        }
+        if ops.is_empty() {
+            self.note = Some(format!(
+                "{PUT_ON_TRIM_LABEL}: the selection has no UVs. Unwrap it first."
+            ));
+            return;
+        }
+        let label = format!("Put on {}", row.name);
+        if self.record_each(&label, ops) {
+            self.note = Some(format!(
+                "{} on {}. Slide along it with W; Ctrl + Z takes it back.",
+                counted("Laid", pieces, "piece"),
+                row.name
+            ));
+        }
     }
 
     /// Which texture each piece of `mesh` (object `id`) goes on, as Pack

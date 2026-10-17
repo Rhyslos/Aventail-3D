@@ -327,6 +327,20 @@ pub enum Operation {
         /// Where the polygons were, to find them again.
         anchors: Option<Anchors>,
     },
+    /// Lays the pieces holding these polygons straight onto a trim
+    /// sheet's row (decision 0106): see `uv::trim::place`. The row is kept
+    /// as its band of the square, so changing the trim sheet later doesn't
+    /// move pieces already laid on it.
+    PlaceOnTrim {
+        /// Polygons of the pieces to lay on the row.
+        faces: Vec<FaceId>,
+        /// Where the row starts, from the bottom of the square (0 to 1).
+        bottom: f32,
+        /// Where it ends.
+        top: f32,
+        /// Where the polygons were, to find them again (decision 0032).
+        anchors: Option<Anchors>,
+    },
     /// Moves whole UV islands to where packing put them (decision 0101):
     /// each island's polygons and its move (turn, scale and place), in
     /// the texture's units. Exactly those polygons' corners move.
@@ -572,6 +586,9 @@ impl Operation {
                 counted("Set the texel density of", faces.len(), "polygon")
             }
             Self::PackUvs { islands } => counted("Pack", islands.len(), "island"),
+            Self::PlaceOnTrim { faces, .. } => {
+                counted("Put on the trim sheet", faces.len(), "polygon")
+            }
             Self::FixFacing => "Fix normals".to_string(),
             Self::PlaceShape { .. } => "Apply the placement".to_string(),
             Self::SetSeams { edges, seam, .. } => {
@@ -706,6 +723,7 @@ impl Operation {
             | Self::StraightenUvs { .. }
             | Self::RelaxUvs { .. }
             | Self::SetTexelDensity { .. }
+            | Self::PlaceOnTrim { .. }
             | Self::PackUvs { .. }
             | Self::SetHardEdges { .. }
             | Self::SetSeams { .. }
@@ -872,6 +890,7 @@ impl Operation {
             | Self::StraightenUvs { .. }
             | Self::RelaxUvs { .. }
             | Self::SetTexelDensity { .. }
+            | Self::PlaceOnTrim { .. }
             | Self::PackUvs { .. }
             | Self::SetHardEdges { .. }
             | Self::SetSeams { .. }
@@ -1014,6 +1033,13 @@ impl Operation {
             | Self::RelaxUvs { .. }
             | Self::FixFacing => true,
             Self::SetTexelDensity { density, .. } => density.is_finite() && *density > 0.0,
+            Self::PlaceOnTrim { bottom, top, .. } => {
+                bottom.is_finite()
+                    && top.is_finite()
+                    && *bottom >= 0.0
+                    && top > bottom
+                    && *top <= 1.0
+            }
             Self::PackUvs { islands } => islands.iter().all(|(_, t)| t.is_finite()),
             Self::TransformUvs { transform, .. } => transform.is_finite(),
             Self::PlaceShape { matrix } => matrix.is_finite() && matrix.determinant().abs() > 1e-12,
@@ -1066,6 +1092,7 @@ impl Operation {
             | Self::StraightenUvs { anchors, .. }
             | Self::RelaxUvs { anchors, .. }
             | Self::SetTexelDensity { anchors, .. }
+            | Self::PlaceOnTrim { anchors, .. }
             | Self::SetHardEdges { anchors, .. }
             | Self::SetSeams { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_ref(),
@@ -1103,6 +1130,7 @@ impl Operation {
             | Self::StraightenUvs { anchors, .. }
             | Self::RelaxUvs { anchors, .. }
             | Self::SetTexelDensity { anchors, .. }
+            | Self::PlaceOnTrim { anchors, .. }
             | Self::SetHardEdges { anchors, .. }
             | Self::SetSeams { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_mut(),
@@ -1187,6 +1215,7 @@ impl Operation {
             | Self::RelaxUvs { .. }
             | Self::PackUvs { .. }
             | Self::SetTexelDensity { .. }
+            | Self::PlaceOnTrim { .. }
             | Self::SetSeams { .. }
             | Self::SetHardEdges { .. }
             | Self::HardEdgesByAngle { .. } => false,
@@ -1567,6 +1596,14 @@ impl Operation {
                     .as_ref()
                     .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
                 uv::density::set_density(mesh, &faces, *density)
+            }
+            Self::PlaceOnTrim {
+                faces, bottom, top, ..
+            } => {
+                let faces = refound
+                    .as_ref()
+                    .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
+                uv::trim::place(mesh, &faces, *bottom, *top)
             }
             Self::FixFacing => edit::fix_facing(mesh),
             Self::PlaceShape { matrix } => edit::place(mesh, *matrix),

@@ -52,7 +52,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Checker and Stretch views: check UVs on the model](checker-and-stretch.md)
 - [Editing UVs on the model: drag the texture on the shape](uvs-on-the-model.md)
 - [UVs while you keep modelling](uvs-and-modelling.md)
-- *More pages are added here as UV tools are built.*
+- [Trim sheets: lay strips along a shared texture's rows](trim-sheets.md)
 
 ## Export
 - [Materials: give parts of a model their own material, for texture sets and engine surfaces](materials.md)

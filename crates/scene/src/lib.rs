@@ -17,6 +17,7 @@ pub mod mirroring;
 pub mod object;
 pub mod stack;
 pub mod tree;
+pub mod trim;
 pub mod units;
 
 pub use command::Command;
@@ -38,6 +39,7 @@ pub use stack::{
     MAX_SHAPE_POLYGONS, Operation, Stack, StackWarning, frozen_count,
 };
 pub use tree::{Place, Scene, SceneError, stretch_of};
+pub use trim::{MAX_ROW_NAME, MAX_TRIM_ROWS, TrimRow, TrimSheet};
 pub use units::{ExportTarget, MAX_DENSITY, TEXTURE_SIZES, TextureSettings, Units};
 
 #[cfg(test)]
