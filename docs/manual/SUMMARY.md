@@ -24,6 +24,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Selecting: click, box, lasso, brush, loops, grow and shrink](selecting.md)
 - [Move, rotate and scale: the gizmo, snapping, locks and typed values](transforming.md)
 - [Apply transforms: reset rotation and scale while keeping the look](apply-transforms.md)
+- [Snap to and Align: put objects exactly against another object](snap-to-and-align.md)
 - [Pivots and the Object mode: move an object's pivot, ready-made places, and the project's units](pivots.md)
 - [Symmetry: model one half, and the other follows](symmetry.md)
 - [Extrude and inset: push polygons out or in, and add rings and frames](extrude-and-inset.md)

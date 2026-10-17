@@ -83,6 +83,7 @@ The Object mode has no key of its own yet.
 
 ## Related
 
+- [Snap to and Align](snap-to-and-align.md): move whole objects onto another object's pivot, or line up their sides
 - [Move, rotate and scale](transforming.md)
 - [The tool menu](tool-menu.md)
 - [Apply transforms](apply-transforms.md): reset rotation and scale, the shape keeping its look
