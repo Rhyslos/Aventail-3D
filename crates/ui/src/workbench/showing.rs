@@ -40,7 +40,7 @@ impl Workbench {
     /// the viewport's H (frame all), which would otherwise take Shift + H
     /// and Alt + H too.
     pub(super) fn showing_keys(&mut self, ui: &Ui) {
-        if ui.ctx().memory(|m| m.focused().is_some()) || self.objects.is_renaming() {
+        if ui.ctx().memory(|m| m.focused().is_some()) || self.renaming() {
             return;
         }
         // Ctrl + H first, as the others would match it logically.

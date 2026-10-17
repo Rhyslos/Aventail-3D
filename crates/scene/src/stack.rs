@@ -1063,6 +1063,8 @@ impl Operation {
         // The points at the anchored places, when the ids can't be trusted.
         let refound = match self.anchors() {
             Some(anchors) if same || anchors.still_fit(mesh) => None,
+            // By place, points on the same spot told apart by their stable
+            // names (decision 0090).
             Some(anchors) => Some(anchors.find(mesh, mesh.topology())),
             None => None,
         };
@@ -1601,6 +1603,119 @@ impl Stack {
             .map(|e| e.id)
             .find(|id| !seen.insert(*id))
     }
+
+    /// The layer new edits go into (decision 0091): the top one that is
+    /// switched on, or `None` if there is none (a new layer is added).
+    pub fn recording_layer(&self) -> Option<usize> {
+        self.layers.iter().rposition(|l| l.enabled)
+    }
+
+    /// A name for a new layer that no layer has: "Edits" for the first,
+    /// then "Edits 2", "Edits 3" and so on.
+    pub fn next_layer_name(&self) -> String {
+        let taken = |name: &str| self.layers.iter().any(|l| l.name == name);
+        if !taken(EDITS_LAYER) {
+            return EDITS_LAYER.to_string();
+        }
+        (2..)
+            .map(|n| format!("{EDITS_LAYER} {n}"))
+            .find(|name| !taken(name))
+            .unwrap_or_else(|| EDITS_LAYER.to_string())
+    }
+}
+
+impl Stack {
+    /// Why the edits up to `edit` can't be frozen (decision 0092), or
+    /// `None` if they can: one of them is kept editable or switched off,
+    /// or a layer they are in is off.
+    pub fn freeze_problem(&self, edit: EditId) -> Option<&'static str> {
+        let Some((layer, index, _)) = self.entry(edit) else {
+            return Some("that edit no longer exists");
+        };
+        for (l, each) in self.layers[..=layer].iter().enumerate() {
+            if !each.enabled {
+                return Some(
+                    "a layer with edits to freeze is switched off: switch it on or delete it first",
+                );
+            }
+            let upto = if l == layer {
+                index + 1
+            } else {
+                each.entries.len()
+            };
+            for e in &each.entries[..upto] {
+                if e.pinned {
+                    return Some(
+                        "an edit to freeze is kept editable: unpin it, or freeze only the edits \
+                         before it",
+                    );
+                }
+                if !e.enabled {
+                    return Some(
+                        "an edit to freeze is switched off: switch it on or delete it first",
+                    );
+                }
+            }
+        }
+        None
+    }
+}
+
+/// How many edits freezing up to `edit` would freeze: every edit in the
+/// layers below its layer, and those up to it in its own (0 if it isn't
+/// there).
+pub fn frozen_count(stack: &Stack, edit: EditId) -> usize {
+    stack.entry(edit).map_or(0, |(layer, index, _)| {
+        stack.layers[..layer]
+            .iter()
+            .map(|l| l.entries.len())
+            .sum::<usize>()
+            + index
+            + 1
+    })
+}
+
+/// A change to one edit layer (decision 0091), for
+/// [`crate::Command::ChangeLayer`].
+#[derive(Debug, Clone, PartialEq)]
+pub enum LayerChange {
+    /// Switches the layer on or off. A switched-off layer passes the shape
+    /// below it through unchanged.
+    SetEnabled(bool),
+    /// Gives the layer another name (not empty).
+    Rename(String),
+    /// Moves the layer one place up (applied later) or down (earlier).
+    Move {
+        /// Up, towards the top of the list.
+        up: bool,
+    },
+    /// Moves the layer's edits to the end of the layer below, and removes
+    /// it. Both layers must be switched on.
+    MergeDown,
+    /// Removes the layer and its edits.
+    Delete,
+}
+
+impl LayerChange {
+    /// A short description for the Edit menu.
+    pub fn describe(&self) -> &'static str {
+        match self {
+            Self::SetEnabled(true) => "Switch layer on",
+            Self::SetEnabled(false) => "Switch layer off",
+            Self::Rename(_) => "Rename layer",
+            Self::Move { up: true } => "Move layer up",
+            Self::Move { up: false } => "Move layer down",
+            Self::MergeDown => "Merge layer down",
+            Self::Delete => "Delete layer",
+        }
+    }
+}
+
+/// The shape `stack` gives on `base`, worked out from scratch (not
+/// cached): for freezing part of a stack (decision 0092). `None` for a
+/// kind without a shape.
+pub(crate) fn evaluate_once(base: &ObjectKind, stack: &Stack) -> Option<Evaluated> {
+    StackCache::default().evaluate(ObjectId::from_raw(0), base, stack, &EvalContext::default())
 }
 
 /// What evaluation can depend on besides the object itself. Empty for
@@ -1642,7 +1757,13 @@ pub struct Evaluated {
 fn base_mesh(base: &ObjectKind) -> Option<Arc<Mesh>> {
     match base {
         ObjectKind::Group | ObjectKind::Instance(_) => None,
-        ObjectKind::Primitive(p) => Some(Arc::new(p.mesh())),
+        // Named for the edits on top (decision 0090).
+        ObjectKind::Primitive(p) => {
+            let mut mesh = p.mesh();
+            mesh.name_base();
+            Some(Arc::new(mesh))
+        }
+        // A plain mesh's ids never change: they name its points.
         ObjectKind::Mesh(mesh) => Some(Arc::clone(mesh)),
     }
 }
@@ -1682,7 +1803,10 @@ fn apply_from(
         if !entry.enabled {
             continue;
         }
+        // The elements it makes are named after it (decision 0090).
+        mesh.begin_naming(entry.id.get());
         let applied = entry.operation.apply(&mut mesh);
+        mesh.end_naming();
         if applied.missing > 0 || applied.found_again || applied.too_big {
             warnings.push(StackWarning {
                 layer,

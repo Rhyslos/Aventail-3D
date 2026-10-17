@@ -25,7 +25,7 @@ pub(crate) enum Placement {
 
 impl Workbench {
     /// The selected objects not inside another selected one: what moves.
-    fn top_selected(&self) -> Vec<ObjectId> {
+    pub(super) fn top_selected(&self) -> Vec<ObjectId> {
         let scene = self.document.scene();
         let selection = self.document.selection();
         selection
@@ -41,7 +41,7 @@ impl Workbench {
 
     /// `id`'s transform with its pivot moved to `world` (turn and size
     /// kept), or `None` when it is already there.
-    fn placed_at(&self, id: ObjectId, world: Vec3) -> Option<Transform> {
+    pub(super) fn placed_at(&self, id: ObjectId, world: Vec3) -> Option<Transform> {
         let scene = self.document.scene();
         let object = scene.object(id)?;
         let parent = scene
@@ -105,40 +105,28 @@ impl Workbench {
     /// Starts Pivot to object: the next click on an object moves the
     /// selected objects' pivots to that object's pivot.
     pub(super) fn start_pivot_to_object(&mut self) {
-        if self.top_selected().is_empty() {
-            self.note = Some("Select one or more objects first.".into());
-            return;
-        }
-        self.pivot_target = true;
-        self.note = Some(PIVOT_TARGET_NOTE.into());
+        self.start_target_pick(super::aligning::TargetUse::Pivot);
     }
 
     /// Whether Pivot to object is waiting for a click.
     pub fn is_picking_pivot_target(&self) -> bool {
-        self.pivot_target
+        self.target_pick == Some(super::aligning::TargetUse::Pivot)
     }
 
-    /// Stops Pivot to object without changing anything.
-    pub(super) fn cancel_pivot_target(&mut self) {
-        if self.pivot_target {
-            self.pivot_target = false;
-            self.note = Some("Pivot to object cancelled.".into());
-        }
-    }
-
-    /// While Pivot to object waits, takes this frame's clicks from
-    /// selecting: a click on an object finishes it, other gestures are
-    /// dropped. Returns the gestures left for selecting.
-    pub(super) fn take_pivot_target_click(
+    /// While a target is to be clicked (Pivot to object, Snap to, Align),
+    /// takes this frame's clicks from selecting: a click on an object
+    /// finishes it, other gestures are dropped. Returns the gestures left
+    /// for selecting.
+    pub(super) fn take_target_click(
         &mut self,
         gestures: Vec<Gesture>,
         drawing: &crate::drawing::SceneDrawing,
     ) -> Vec<Gesture> {
-        if !self.pivot_target {
+        let Some(what) = self.target_pick else {
             return gestures;
-        }
+        };
         if self.document.selection().is_empty() {
-            self.pivot_target = false;
+            self.target_pick = None;
             return gestures;
         }
         for gesture in gestures {
@@ -153,11 +141,11 @@ impl Workbench {
                 .map(|item| item.id);
             match target {
                 Some(target) => {
-                    self.pivot_target = false;
-                    self.pivot_to_object(target);
+                    self.target_pick = None;
+                    self.target_picked(what, target);
                     break;
                 }
-                None => self.note = Some(PIVOT_TARGET_NOTE.into()),
+                None => self.note = Some(what.note().into()),
             }
         }
         Vec::new()

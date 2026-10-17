@@ -117,6 +117,9 @@ pub struct ToolMenuSettings {
     /// A tap of `E` opens the menu and keeps it open (on as standard).
     /// Off: the menu shows only while `E` is held.
     pub tap_to_open: bool,
+    /// A right-click in the viewport opens the quad menu (off as
+    /// standard, decision 0094).
+    pub quad_menu: bool,
 }
 
 impl Default for ToolMenuSettings {
@@ -125,6 +128,7 @@ impl Default for ToolMenuSettings {
             style: ToolMenuStyle::ContinuousRing,
             show_keys: true,
             tap_to_open: true,
+            quad_menu: false,
         }
     }
 }

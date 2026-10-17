@@ -8,6 +8,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Interface tour: the window, the modes, and rearranging panels](interface-tour.md)
 - [Keyboard shortcuts: every key in one place (Keys on the menu bar)](keyboard-shortcuts.md)
 - [The tool menu (E): every tool for what you're working on, at the mouse](tool-menu.md)
+- [The quad menu: a right-click menu around the mouse, if you switch it on](quad-menu.md)
 - [Navigating the view: orbit, pan and zoom, and the grid](navigating-the-view.md)
 - [How shapes are drawn: shaded, shaded with wires, wireframe, and cavity](viewport-display.md)
 - [The Objects panel: select, rename, group, hide, delete, and undo](objects.md)
@@ -24,6 +25,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Selecting: click, box, lasso, brush, loops, grow and shrink](selecting.md)
 - [Move, rotate and scale: the gizmo, snapping, locks and typed values](transforming.md)
 - [Apply transforms: reset rotation and scale while keeping the look](apply-transforms.md)
+- [Snap to and Align: put objects exactly against another object](snap-to-and-align.md)
 - [Pivots and the Object mode: move an object's pivot, ready-made places, and the project's units](pivots.md)
 - [Symmetry: model one half, and the other follows](symmetry.md)
 - [Extrude and inset: push polygons out or in, and add rings and frames](extrude-and-inset.md)
@@ -35,6 +37,8 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Clean-up: delete, dissolve, fill holes, flip normals and fix facing](clean-up.md)
 - [Hard and soft edges, and normals: crisp corners, smooth curves](hard-and-soft-edges.md)
 - [Split off and join: polygons into an object of their own, objects into one](split-and-join.md)
+- [Edit layers: keep sets of edits apart, switch them off, move, merge and delete them](edit-layers.md)
+- [The edit list: change, switch off, keep, freeze or delete any edit you've made](edit-list.md)
 - [Heavy shapes: millions of polygons, and the heavy test shape](heavy-shapes.md)
 - *More pages are added here as tools are built.*
 

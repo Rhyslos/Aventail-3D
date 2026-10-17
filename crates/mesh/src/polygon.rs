@@ -135,6 +135,9 @@ pub struct Mesh {
     /// Named values per point, edge, polygon or corner, hard edges among
     /// them ([`crate::attributes`]).
     attributes: Attributes,
+    /// The points' and polygons' stable names ([`crate::names`]); not part
+    /// of what makes two meshes equal.
+    pub(crate) names: crate::names::Names,
 }
 
 /// Points per chunk of [`Points`].
@@ -400,6 +403,9 @@ impl Mesh {
         let id = u32::try_from(self.positions.len()).map_err(|_| MeshError::Full)?;
         self.positions.push(Some(position));
         self.live_points += 1;
+        if self.names.naming() {
+            self.name_new_point(VertexId(id), crate::names::Origin::Plain);
+        }
         Ok(VertexId(id))
     }
 
@@ -413,6 +419,9 @@ impl Mesh {
             return Err(MeshError::Full);
         }
         Arc::make_mut(&mut self.faces).push(Some(corners));
+        if self.names.naming() {
+            self.name_new_face(FaceId(id));
+        }
         Ok(FaceId(id))
     }
 
@@ -471,6 +480,7 @@ impl Mesh {
             live_points,
             faces: Arc::default(),
             attributes: Attributes::default(),
+            names: crate::names::Names::default(),
         };
         let mut table = Faces::default();
         for face in &faces {

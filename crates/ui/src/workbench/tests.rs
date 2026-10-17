@@ -263,7 +263,7 @@ fn reset_layout_restores_the_standard_arrangement() {
     harness.get_by_label("Reset panel layout").click();
     harness.run();
     let workbench = &harness.state().workbench;
-    assert_eq!(workbench.layout().iter_all_tabs().count(), 4);
+    assert_eq!(workbench.layout().iter_all_tabs().count(), Panel::ALL.len());
     assert!(workbench.note().is_some_and(|n| n.contains("reset")));
     let attributes = harness.get_by_label("Attributes").rect();
     let objects = harness.get_by_label("Objects").rect();

@@ -46,18 +46,18 @@ The `ui` crate's workbench owns everything inside the window:
 ┌──────────────────────────────────────────────────────────────┐
 │ Menu bar                                                     │
 │ Command palette (tools, primitives)                          │
-├──┬─────────────────────────────────────┬─────────────────────┤
-│M │ Viewport                            │ Attributes          │
-│o │                                     ├─────────────────────┤
-│d │                                     │ Objects             │
-│e ├─────────────────────────────────────┤                     │
+├──┬──────────────────────────────────┬──┬─────────────────────┤
+│M │ Viewport                         │Mo│ Attributes          │
+│o │                                  │di├─────────────────────┤
+│d │                                  │fs│ Objects, Edit layers│
+│e ├──────────────────────────────────┴──┤                     │
 │s │ Coordinates                         │                     │
 ├──┴─────────────────────────────────────┴─────────────────────┤
 │ Status bar                                                   │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-The four middle panels are dockable (egui_dock); the bars and palettes around them are fixed. Palette icons are drawn in code (`ui/src/icons.rs`). The workbench never touches the window or files itself: it returns actions for `app` to carry out.
+The five middle panels are dockable (egui_dock; Edit layers is a tab beside Objects); the bars and palettes around them are fixed. The modifiers palette is drawn inside the viewport's panel, on its right edge, so it always sits between the viewport and the panels beside it ([decision 0091](docs/decisions/0091-edit-layers.md)). Palette icons are drawn in code (`ui/src/icons.rs`). The workbench never touches the window or files itself: it returns actions for `app` to carry out.
 
 ## Viewport
 

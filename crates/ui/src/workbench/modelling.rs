@@ -279,7 +279,7 @@ impl Workbench {
     /// Slit, Connect, Bridge, Weld and Fill hole, from the command list,
     /// and Ctrl + M for welding onto a target. Not while typing.
     pub(super) fn modelling_keys(&mut self, ui: &Ui) {
-        if ui.ctx().memory(|m| m.focused().is_some()) || self.objects.is_renaming() {
+        if ui.ctx().memory(|m| m.focused().is_some()) || self.renaming() {
             return;
         }
         if ui.input_mut(|i| i.consume_shortcut(&WELD_TARGET_KEYS)) {

@@ -177,6 +177,8 @@ pub struct Workbench {
     /// The scene being worked on, with its undo history and selection.
     document: Document,
     objects: ObjectManager,
+    /// The Edit layers panel (decision 0091).
+    layers: crate::layers::LayersPanel,
     attributes: AttributesPanel,
     /// The project's units (decision 0068), for every length shown or
     /// typed this frame: read from the document as the frame starts; a
@@ -231,9 +233,18 @@ pub struct Workbench {
     slit_session: Option<slit::SlitSession>,
     /// A Bridge or Weld drag in progress (decision 0051).
     pair_session: Option<joining::PairSession>,
-    /// Pivot to object is waiting for a click on the target (decision
-    /// 0068).
-    pivot_target: bool,
+    /// What the next click on an object is for, while one is awaited:
+    /// Pivot to object (decision 0068), Snap to or Align (decision 0093).
+    target_pick: Option<aligning::TargetUse>,
+    /// The Align window, while open (decision 0093).
+    align: Option<aligning::AlignSession>,
+    /// The Align window's choices, for the next time.
+    align_settings: aligning::AlignSettings,
+    /// The quad menu (decision 0094).
+    quad_menu: crate::quad_menu::QuadMenu,
+    /// Whether the right button last went down while something was under
+    /// way (so letting it go doesn't open the quad menu).
+    right_press_busy: bool,
     /// The Export window and the last export (decision 0071).
     exporting: exporting::Exporting,
     /// The bake check window (decision 0077).
@@ -280,6 +291,7 @@ impl Workbench {
             mode: Mode::default(),
             document: Document::new(),
             objects: ObjectManager::default(),
+            layers: crate::layers::LayersPanel::default(),
             attributes: AttributesPanel::default(),
             units: Units::default(),
             new_units: Units::default(),
@@ -302,7 +314,11 @@ impl Workbench {
             loop_cut_session: None,
             slit_session: None,
             pair_session: None,
-            pivot_target: false,
+            target_pick: None,
+            align: None,
+            align_settings: aligning::AlignSettings::default(),
+            quad_menu: crate::quad_menu::QuadMenu::default(),
+            right_press_busy: false,
             exporting: exporting::Exporting::default(),
             baking: baking::Baking::default(),
             dissolve_question: None,
@@ -473,6 +489,18 @@ impl Workbench {
     #[cfg(test)]
     pub(crate) fn object_manager(&self) -> &ObjectManager {
         &self.objects
+    }
+
+    /// Whether a name (an object's or a layer's) is being typed, so keys
+    /// go to the text box.
+    pub(crate) fn renaming(&self) -> bool {
+        self.objects.is_renaming() || self.layers.is_renaming()
+    }
+
+    /// The Edit layers panel, for tests.
+    #[cfg(test)]
+    pub(crate) fn layers_panel(&self) -> &crate::layers::LayersPanel {
+        &self.layers
     }
 
     /// The 3D viewport panel.
@@ -1002,7 +1030,9 @@ impl Workbench {
         let mut coordinates_done = Interaction::default();
         self.attributes.tool = self.tool;
         self.attributes.polygons_selected = self.polygons_selected_for_attributes();
+        self.note_right_press(ui.ctx());
         hide_viewport_tab(&mut self.dock);
+        let mut modifier_pick = None;
         let style = theme::dock_style(ui.style().as_ref(), self.accent);
         theme::dock_frame().show(ui, |ui| {
             DockArea::new(&mut self.dock)
@@ -1021,6 +1051,8 @@ impl Workbench {
                         summary: &summary,
                         document: &mut self.document,
                         objects: &mut self.objects,
+                        layers: &mut self.layers,
+                        modifier_pick: &mut modifier_pick,
                         attributes: &mut self.attributes,
                         units: &mut self.units,
                         requests: &mut requests,
@@ -1029,6 +1061,9 @@ impl Workbench {
                     },
                 );
         });
+        if let Some(crate::layers::ModifierPick::AddLayer) = modifier_pick {
+            self.add_edit_layer(&mut requests);
+        }
         if let Some(slot) = self.attributes.assign.take() {
             self.assign_material(slot);
         }
@@ -1067,6 +1102,8 @@ impl Workbench {
         }
         let entries = self.tool_menu_entries();
         self.tool_menu_show(ui.ctx(), &entries, &mut requests);
+        self.open_quad_menu();
+        self.quad_menu_show(ui.ctx(), &mut requests);
         if !requests.is_empty() {
             self.carry_out(requests);
             ui.ctx().request_repaint();
@@ -1096,8 +1133,10 @@ impl Workbench {
         self.bake_window(ui.ctx());
         self.export_window(ui.ctx(), &mut actions);
         self.keep_units(units_shown);
-        // While Pivot to object waits for its click, the pointer says so.
-        if self.pivot_target {
+        self.align_window(ui.ctx());
+        // While Pivot to object, Snap to or Align waits for its click, the
+        // pointer says so.
+        if self.target_pick.is_some() {
             ui.ctx().set_cursor_icon(egui::CursorIcon::Crosshair);
         }
         self.dissolve_question_window(ui.ctx());
@@ -1146,6 +1185,8 @@ impl Workbench {
             || self.settings.open
             || self.shortcuts.open
             || self.about_open
+            || self.align.is_some()
+            || self.quad_menu.is_open()
     }
 
     /// Keys that change the document: undo, redo, delete, deselect, group
@@ -1171,9 +1212,11 @@ impl Workbench {
             }
             return;
         }
-        // While Pivot to object waits for a click, Esc cancels it.
-        if self.pivot_target && ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
-            self.cancel_pivot_target();
+        // While a target click is awaited, Esc cancels it.
+        if self.target_pick.is_some()
+            && ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape))
+        {
+            self.cancel_target_pick();
             return;
         }
         // While a slit's line is drawn, Esc and Enter finish it (and Esc
@@ -1286,6 +1329,21 @@ impl Workbench {
         }
     }
 
+    /// Adds an edit layer to the selected objects that can take one, and
+    /// brings the Edit layers panel to the front (decision 0091).
+    fn add_edit_layer(&mut self, requests: &mut Vec<DocRequest>) {
+        let targets = crate::layers::layer_targets(&self.document);
+        if targets.is_empty() {
+            self.note = Some(
+                "Select an object with a shape first: groups and instances have no edit layers."
+                    .into(),
+            );
+            return;
+        }
+        requests.push(DocRequest::Run(Command::AddLayer(targets)));
+        crate::layout::show_tab(&mut self.dock, Panel::EditLayers);
+    }
+
     /// Whether a selected object has a shape to edit (for the Points,
     /// Edges and Polygons modes).
     fn editing_anything(&self) -> bool {
@@ -1355,7 +1413,7 @@ impl Workbench {
         }
         let menu = self.tool_menu.is_open();
         self.tool_menu.close();
-        self.pivot_target = false;
+        self.target_pick = None;
         let tool = self.tool.has_settings();
         if tool {
             // Finishes a Slit line too, keeping what it cut.
@@ -1572,6 +1630,18 @@ impl Workbench {
                         ui.close();
                     }
                     objects::apply_entries(ui, &self.document, requests);
+                    let layer_targets = crate::layers::layer_targets(&self.document);
+                    if ui
+                        .add_enabled(
+                            !layer_targets.is_empty(),
+                            egui::Button::new(crate::layers::ADD_LAYER_LABEL),
+                        )
+                        .on_hover_text(crate::layers::ADD_LAYER_HELP)
+                        .clicked()
+                    {
+                        self.add_edit_layer(requests);
+                        ui.close();
+                    }
                     ui.separator();
                     crate::viewport::chrome::auto_hard_edges_entry(ui, self.viewport.options_mut());
                     if ui
@@ -1839,6 +1909,9 @@ struct PanelViewer<'a> {
     summary: &'a SceneSummary,
     document: &'a mut Document,
     objects: &'a mut ObjectManager,
+    layers: &'a mut crate::layers::LayersPanel,
+    /// What was picked on the modifiers palette this frame.
+    modifier_pick: &'a mut Option<crate::layers::ModifierPick>,
     attributes: &'a mut AttributesPanel,
     units: &'a mut Units,
     requests: &'a mut Vec<DocRequest>,
@@ -1860,8 +1933,31 @@ impl TabViewer for PanelViewer<'_> {
 
     fn ui(&mut self, ui: &mut Ui, tab: &mut Panel) {
         if *tab == Panel::Viewport {
-            // Edge to edge, with no padding.
-            self.viewport.show(ui, self.renderer, self.summary);
+            // Edge to edge, with no padding, and the modifiers palette on
+            // its right, beside the panels (decision 0091).
+            let full = ui.max_rect();
+            let split = full.right() - crate::layers::MODIFIERS_WIDTH;
+            let strip = egui::Rect::from_min_max(egui::pos2(split, full.top()), full.max);
+            let view = egui::Rect::from_min_max(full.min, egui::pos2(split, full.bottom()));
+            let mut strip_ui = ui.new_child(
+                egui::UiBuilder::new()
+                    .id_salt("modifiers palette")
+                    .max_rect(strip)
+                    .layout(egui::Layout::top_down(egui::Align::Center)),
+            );
+            strip_ui.painter().rect_filled(strip, 0.0, theme::PALETTE);
+            strip_ui.painter().vline(
+                strip.left() + 0.5,
+                strip.y_range(),
+                egui::Stroke::new(1.0, theme::BORDER),
+            );
+            if let Some(pick) = crate::layers::modifiers_palette(&mut strip_ui, self.document) {
+                *self.modifier_pick = Some(pick);
+            }
+            let mut view_ui = ui.new_child(egui::UiBuilder::new().max_rect(view));
+            self.viewport
+                .show(&mut view_ui, self.renderer, self.summary);
+            ui.advance_cursor_after_rect(full);
             return;
         }
         match tab {
@@ -1876,6 +1972,9 @@ impl TabViewer for PanelViewer<'_> {
             Panel::Objects => menu_line_with(ui, |ui| {
                 objects::menus(ui, self.document, self.objects, self.requests);
             }),
+            Panel::EditLayers => menu_line_with(ui, |ui| {
+                self.layers.menus(ui, self.document, self.requests);
+            }),
             Panel::Viewport | Panel::Coordinates => {}
         }
         egui::Frame::new()
@@ -1887,6 +1986,14 @@ impl TabViewer for PanelViewer<'_> {
                         .show(ui, self.document, *self.units, self.requests);
                 }
                 Panel::Objects => self.objects.show(ui, self.document, self.requests),
+                Panel::EditLayers => {
+                    self.layers.show(
+                        ui,
+                        self.document,
+                        &mut self.attributes.opened,
+                        self.requests,
+                    );
+                }
                 Panel::Coordinates => {
                     *self.coordinates_done =
                         crate::coordinates::show(ui, *self.units, &self.coordinates);
@@ -1958,6 +2065,11 @@ mod materials;
 pub use exporting::{
     ExportChoice, ExportRequest, KitOutcome, KitRequest, TargetOutcome, TargetRequest,
 };
+mod aligning;
+#[cfg(test)]
+mod aligning_tests;
+#[cfg(test)]
+mod layer_tests;
 mod modelling;
 #[cfg(test)]
 mod modelling_tests;
@@ -1965,6 +2077,9 @@ mod parts;
 mod pivots;
 #[cfg(test)]
 mod pivots_tests;
+mod quad;
+#[cfg(test)]
+mod quad_tests;
 mod selection;
 mod shortcuts;
 mod showing;

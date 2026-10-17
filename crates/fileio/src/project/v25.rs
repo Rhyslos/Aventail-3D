@@ -57,6 +57,15 @@ impl<E: FileOperation> ProjectV25<E> {
 
     /// The document this file model describes, after checking every value.
     pub(crate) fn into_document(self) -> Result<Document, Problem> {
+        self.into_document_with(|_, _| Ok(()))
+    }
+
+    /// The same, with `attach` giving each object (by its id in the file)
+    /// what later versions store beside this one.
+    pub(crate) fn into_document_with(
+        self,
+        mut attach: impl FnMut(u64, &mut scene::Object) -> Result<(), Problem>,
+    ) -> Result<Document, Problem> {
         let mut mirrors: BTreeMap<u64, LiveMirror> = BTreeMap::new();
         for entry in self.mirrors {
             let mirror = LiveMirror {
@@ -80,7 +89,7 @@ impl<E: FileOperation> ProjectV25<E> {
                 }
                 object.mirror = Some(mirror);
             }
-            Ok(())
+            attach(id, object)
         })?;
         if let Some(id) = mirrors.keys().next() {
             return Err(format!(

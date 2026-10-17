@@ -16,16 +16,23 @@ pub enum Panel {
     Objects,
     /// Typed position, size and rotation of the selection.
     Coordinates,
+    /// The selected object's edit layers and their edits (decision 0091).
+    EditLayers,
 }
 
 impl Panel {
     /// Every panel, in reading order.
-    pub const ALL: [Panel; 4] = [
+    pub const ALL: [Panel; 5] = [
         Self::Viewport,
         Self::Attributes,
         Self::Objects,
         Self::Coordinates,
+        Self::EditLayers,
     ];
+
+    /// Panels added after the first release: a saved layout without them
+    /// gets them added beside Objects rather than being reset.
+    pub const ADDED_LATER: [Panel; 1] = [Self::EditLayers];
 
     /// The name shown on the panel's tab.
     pub fn title(self) -> &'static str {
@@ -34,6 +41,7 @@ impl Panel {
             Self::Attributes => "Attributes",
             Self::Objects => "Objects",
             Self::Coordinates => "Coordinates",
+            Self::EditLayers => "Edit layers",
         }
     }
 }
@@ -45,7 +53,16 @@ mod tests {
     #[test]
     fn titles_are_unique_and_match_the_design() {
         let titles: Vec<_> = Panel::ALL.iter().map(|p| p.title()).collect();
-        assert_eq!(titles, ["Viewport", "Attributes", "Objects", "Coordinates"]);
+        assert_eq!(
+            titles,
+            [
+                "Viewport",
+                "Attributes",
+                "Objects",
+                "Coordinates",
+                "Edit layers"
+            ]
+        );
     }
 
     #[test]

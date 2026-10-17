@@ -145,10 +145,12 @@ pub enum Icon {
     Join,
     /// Apply transforms: a turned, stretched box made square again.
     ApplyTransforms,
+    /// Add an edit layer: a stack of sheets with a new one on top.
+    EditLayer,
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 66] = [
+pub const ALL: [Icon; 67] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -215,6 +217,7 @@ pub const ALL: [Icon; 66] = [
     Icon::PivotToObject,
     Icon::ObjectToOrigin,
     Icon::ApplyTransforms,
+    Icon::EditLayer,
 ];
 
 /// Draws `icon` into `rect` in `color`.
@@ -1304,6 +1307,25 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
                 Ink::Line,
             );
             pen.stroke(&[(8.0, 17.0), (8.0, 20.0), (5.0, 20.0)], false, Ink::Line);
+        }
+        Icon::EditLayer => {
+            // Two sheets below (faint) and a new one on top, seen from
+            // above at a slant.
+            pen.stroke(
+                &[(3.0, 13.0), (12.0, 17.0), (21.0, 13.0)],
+                false,
+                Ink::Faint,
+            );
+            pen.stroke(
+                &[(3.0, 17.0), (12.0, 21.0), (21.0, 17.0)],
+                false,
+                Ink::Faint,
+            );
+            pen.stroke(
+                &[(3.0, 9.0), (12.0, 5.0), (21.0, 9.0), (12.0, 13.0)],
+                true,
+                Ink::Line,
+            );
         }
         Icon::PivotToCentre => {
             // A shape with its pivot moved from a corner to its middle.

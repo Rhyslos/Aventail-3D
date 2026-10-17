@@ -20,6 +20,7 @@ pub mod join;
 pub mod loopcut;
 pub mod material;
 pub mod mirror;
+pub mod names;
 pub mod parallel;
 pub mod parts;
 pub mod polygon;

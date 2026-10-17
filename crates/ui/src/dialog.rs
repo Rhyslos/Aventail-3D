@@ -55,6 +55,8 @@ pub(crate) struct Dialog {
     width: f32,
     body_height: Option<f32>,
     modal: bool,
+    /// Where it sits in the app's window: the middle unless chosen.
+    anchor: (Align2, [f32; 2]),
 }
 
 /// What happened to a window this frame.
@@ -74,6 +76,7 @@ impl Dialog {
             width,
             body_height: None,
             modal: false,
+            anchor: (Align2::CENTER_CENTER, [0.0, 0.0]),
         }
     }
 
@@ -88,6 +91,14 @@ impl Dialog {
     /// contents scroll.
     pub(crate) fn body_height(mut self, height: f32) -> Self {
         self.body_height = Some(height);
+        self
+    }
+
+    /// Places it at `align` of the app's window, `offset` points from
+    /// there, instead of the middle: a window whose changes show live in
+    /// the viewport sits out of the way (Align, decision 0093).
+    pub(crate) fn anchor(mut self, align: Align2, offset: [f32; 2]) -> Self {
+        self.anchor = (align, offset);
         self
     }
 
@@ -133,7 +144,7 @@ impl Dialog {
                 .collapsible(false)
                 .resizable(false)
                 .frame(frame)
-                .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
+                .anchor(self.anchor.0, self.anchor.1)
                 .show(ctx, contents);
         }
         DialogOutcome { closed }
