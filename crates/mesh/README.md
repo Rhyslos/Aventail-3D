@@ -21,6 +21,9 @@ No other app crates. Outside libraries: `glam` (maths).
 
 ## Status
 
+- **UVs and seams** ([decision 0095](../../docs/decisions/0095-uvs-before-advanced-modelling.md)): the `uv` corner layer and the `seam` edge layer (`attributes::SEAM`); `uvs::Uvs` reads them once for many lookups; `islands`, `island_of_each`, `uv_splits`, `seams`, `seams_from_splits`. Every primitive gets ready-made UVs and seams (`primitives::uvs`: box, flat, round with cones unrolled into a fan, and ball styles; pieces at their real relative sizes, packed in rows).
+
+
 - **`Bounds`**: an upright bounding box (`new`, `around` points, `union`, `centre`, `size`, `radius`, `contains`), used for framing the view. Skips points that aren't real numbers.
 
 - **`Mesh`** (`polygon`): points and n-gon faces by id (`VertexId`, `FaceId`; ids count up and are never reused), and its attribute layers, hard edges (`EdgeKey`) among them. `add_face` refuses faces with fewer than three corners, unknown points or repeated points (`MeshError`, in plain words). `edges`, `bounds` and `face_normal` (Newell's method, so it is sensible for n-gons; straight up for a face with no area). Adjacency lives in `Topology`.

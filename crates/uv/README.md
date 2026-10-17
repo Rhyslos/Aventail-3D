@@ -20,4 +20,4 @@ Turns a mesh's surface into flat UV islands and arranges them in the texture squ
 
 ## Status
 
-Empty. UV tools arrive in Phase 8, after the modelling phases.
+Empty. UV tools arrive in Phase 7 (decision 0095). The basics every part of the app reads (UVs per corner, islands, seams) are in `mesh::uvs`, and the primitives' ready-made UVs in `mesh::primitives`.

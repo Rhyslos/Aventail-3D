@@ -55,7 +55,7 @@ pub struct AppInfo {
 const LAYOUTS: [(&str, Option<&str>); 3] = [
     ("Standard", None),
     ("Modelling", Some("A layout for modelling arrives later")),
-    ("UV Edit", Some("A layout for UV work arrives in Phase 8")),
+    ("UV Edit", Some("A layout for UV work arrives in Phase 7")),
 ];
 
 /// Something the user asked for that the program around the workbench
@@ -160,8 +160,8 @@ const COMING: [(&str, &[(&str, &str)]); 4] = [
     (
         "UV",
         &[
-            ("Seams, unwrap, relax", "Phase 8"),
-            ("Pack and texel density", "Phase 8"),
+            ("Seams, unwrap, relax", "Phase 7"),
+            ("Pack and texel density", "Phase 7"),
         ],
     ),
 ];
@@ -1692,7 +1692,7 @@ impl Workbench {
         });
         crate::dialog::menu(ui, "Window", |ui| {
             ui.add_enabled(false, egui::Button::new("UV Editor panel"))
-                .on_disabled_hover_text("Arrives in Phase 8");
+                .on_disabled_hover_text("Arrives in Phase 7");
         });
         crate::dialog::menu(ui, "Help", |ui| {
             if ui

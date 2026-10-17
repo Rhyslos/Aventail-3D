@@ -73,7 +73,7 @@ In **Edit → Settings… → Interface → Radial menu**:
 
 - **Tip:** the menu is also a list of what's coming. Point at a dimmed tool to see its name and when it arrives.
 - **Problem:** pressing E types a letter instead. **Why:** a text field has the keyboard, for example while renaming an object. **Fix:** press Enter or Esc to finish typing first.
-- **Problem:** E does nothing but the status bar mentions Phase 8. **Why:** you're in UV mode, whose tools aren't built yet.
+- **Problem:** E does nothing but the status bar mentions Phase 7. **Why:** you're in UV mode, whose tools aren't built yet.
 - **Problem:** E does nothing at all. **Why:** Tap E to open is off, so the menu only shows while E is held. **Fix:** hold E, or switch Tap E to open back on in Settings.
 - **Problem:** the menu closed and nothing happened. **Why:** the tool can't be used right now, for example Group with nothing selected. **Fix:** the status bar says why. Select what the tool needs and try again.
 - **Problem:** Ctrl + E made my shape editable instead of opening the menu. **Why:** that's intended: Ctrl + E is Make editable, and only E on its own opens the menu.

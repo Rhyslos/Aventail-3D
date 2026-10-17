@@ -92,10 +92,17 @@ fn smooth_shapes_share_their_vertices() {
     let doc = scene_of(&[PrimitiveKind::Sphere]);
     let objects = prepare(&doc, &ExportFormat::Glb.options(&ExportOptions::default()));
     let v = vertices(&objects[0].local);
-    let points = objects[0].local.points.len();
-    // A smooth sphere splits only where its UV-less shading breaks: not
-    // at all.
-    assert_eq!(v.positions.len(), points);
+    // A smooth sphere splits only where its UVs are cut (down the back
+    // and at the poles, decision 0095), never for its shading: one vertex
+    // for each point and UV that go together.
+    let pairs: std::collections::BTreeSet<(u32, Option<u32>)> = objects[0]
+        .local
+        .polygons
+        .iter()
+        .flat_map(|p| p.corners.iter().map(|c| (c.point, c.uv)))
+        .collect();
+    assert!(pairs.len() > objects[0].local.points.len());
+    assert_eq!(v.positions.len(), pairs.len());
     let triangles: usize = v.triangles.iter().map(|(_, c)| c.len() / 3).sum();
     assert_eq!(triangles, objects[0].local.triangle_count());
 }

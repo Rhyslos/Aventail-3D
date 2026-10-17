@@ -288,6 +288,10 @@ pub const HARD: &str = "hard";
 /// the UV tools later.
 pub const UV: &str = "uv";
 
+/// The name of the edge layer marking seams: edges the surface is cut open
+/// along when it is unwrapped flat (decision 0095).
+pub const SEAM: &str = "seam";
+
 /// A typed list of values.
 #[derive(Debug, Clone, PartialEq)]
 enum Column {

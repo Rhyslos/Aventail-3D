@@ -29,7 +29,13 @@ fn a_cube_writes_as_expected() {
     assert_eq!(text.lines().filter(|l| l.starts_with("v ")).count(), 8);
     assert_eq!(text.lines().filter(|l| l.starts_with("vn ")).count(), 6);
     assert_eq!(text.lines().filter(|l| l.starts_with("f ")).count(), 6);
-    assert!(text.lines().any(|l| l == "f 1//1 2//1 3//1 4//1") || text.contains("//"));
+    // With its UVs (decision 0095): point/UV/normal on every corner.
+    assert!(text.lines().filter(|l| l.starts_with("vt ")).count() > 0);
+    assert!(text.lines().filter(|l| l.starts_with("f ")).all(|l| {
+        l.split_whitespace()
+            .skip(1)
+            .all(|c| c.split('/').count() == 3 && !c.contains("//"))
+    }));
     // The same scene always writes the same text.
     assert_eq!(text, written(&doc, &ExportOptions::default()));
 }

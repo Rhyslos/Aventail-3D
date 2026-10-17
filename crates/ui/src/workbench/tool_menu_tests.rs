@@ -287,7 +287,7 @@ fn the_uv_mode_has_no_tools_yet() {
     point(&mut harness, MIDDLE);
     press(&mut harness, Modifiers::NONE, TOOL_MENU_KEY);
     assert!(!harness.state().workbench.is_tool_menu_open());
-    assert!(note(&harness).contains("Phase 8"));
+    assert!(note(&harness).contains("Phase 7"));
 }
 
 #[test]

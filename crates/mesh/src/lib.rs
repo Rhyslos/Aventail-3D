@@ -34,6 +34,7 @@ pub mod stretch;
 pub mod symmetry;
 pub mod topology;
 pub mod triangulate;
+pub mod uvs;
 
 pub use anchors::{AnchorShape, Anchors};
 pub use attributes::{

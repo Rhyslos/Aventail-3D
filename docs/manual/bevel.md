@@ -96,7 +96,7 @@ On an object stretched in the Object mode (scaled more along one axis than anoth
 - **Tip:** while Bevel is in use, Ctrl + wheel changes Segments instead of growing the selection. To grow or shrink the selection, use the **Select** menu, or press **Q** first.
 - **Tip:** a single-segment chamfer on every hard edge of a prop is the classic look of mid-poly game art: it shades nicely and costs few polygons.
 - **Tip:** the cube's hard edges carry over. A chamfered cube stays crisp; a rounded bevel's inner rows are smooth so it looks round.
-- **Where several bevelled edges meet** (a cube's corner), a corner polygon closes the gap. With several segments it is one polygon for now; a properly rounded corner comes with the improved bevel in Phase 7.
+- **Where several bevelled edges meet** (a cube's corner), a corner polygon closes the gap. With several segments it is one polygon for now; a properly rounded corner comes with the improved bevel in Phase 8.
 - **Problem:** pressing V does nothing but the status bar talks about modes. **Why:** Bevel works in the Edges and Points modes. **Fix:** press **2** (or **1**) and try again.
 - **Problem:** the drag does nothing. **Why:** you started away from the edges and pulled towards them, or nothing is selected. **Fix:** start near the edges and pull away.
 - **Problem:** an edge on a plane's border wasn't bevelled. **Why:** a bevel needs a polygon on each side of the edge. Border edges are skipped.

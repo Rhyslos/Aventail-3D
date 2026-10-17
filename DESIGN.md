@@ -54,14 +54,14 @@ Aventail 3D (model + UV)  ──glTF/OBJ──►  Substance Painter (bake + tex
 | W5 | **Edit Poly stack**: a layered history of Edit Poly modifiers on top of each other. *"By far the most important tool."* | Max | **Top** (architecture now, UI later) | 2 (foundation), 6 (UI) |
 | W6 | Zoom/orbit around the point under the mouse cursor | Max | High | 1 |
 | W7 | Snap to | Max | Medium | 6 |
-| W8 | Clean, powerful UV unwrapping like C4D, aiming to be **the best UV tools available** (§7) | C4D | Core | 8 |
+| W8 | Clean, powerful UV unwrapping like C4D, aiming to be **the best UV tools available** (§7) | C4D | Core | 7 |
 | W9 | Max-like breadth of modelling tools | Max | Core | 4, 7 |
 | W10 | Scripting, so people can code their own functionality | Blender, Max, C4D | Later | 9 |
 | W11 | Stays usable with a heavy imported mesh (2–3 million polygons in one object): a safeguard, not the expected use (§4.8) | Own | High (foundation now) | 4, checked at every phase gate |
 | W12 | Never lose work to a crash: autosave and recovery | Own | High | 4 |
 | W13 | **Bake readiness**: a live check that explains, in plain words, why a bake would go wrong (hard edge without a UV seam, overlapping UVs, missing high/low pair, flipped normals), each with a one-click fix | Own | High (sets the app apart) | 5, 8 |
 | W14 | **Edits that survive changes underneath**: every recorded edit finds its elements again when a base's settings or a lower layer change ([0032](docs/decisions/0032-edits-find-their-points-again.md)) | Own, from W4/W5 | High (sets the app apart) | 3 (moves), 4 (every tool), 6 (layers), 8 (UVs) |
-| W15 | **Game bevel** for the mid-poly workflow: bevel, weighted normals and hard edges and seams set in one step | Own | Medium (sets the app apart) | 7 |
+| W15 | **Game bevel** for the mid-poly workflow: bevel, weighted normals and hard edges and seams set in one step | Own | Medium (sets the app apart) | 8 |
 | W16 | **Trim sheets and modular kits**: UV strips laid onto rows of a shared texture; pieces on a grid with sensible pivots, Godot collision meshes, each piece exported as its own file | Own | Medium (sets the app apart) | 5, 7, 8 |
 | W17 | **Explains itself**: plain-language warnings and tooltips, a manual written for someone rusty, help one key away | Own | Ongoing | all |
 
@@ -325,7 +325,7 @@ Also: dense wireframes fade out from afar (and aren't drawn when too dense to se
 - A keyboard shortcut viewer (built: Keys on the menu bar)
 - Wireframe (built: Shaded, Shaded with wires, Wireframe), cavity (built, [0065](docs/decisions/0065-cavity.md)), clickable corner axes (built, [0066](docs/decisions/0066-clickable-axes.md)), automatic hard edges (built, [0064](docs/decisions/0064-automatic-hard-edges.md))
 
-**Tools — Phase 7 (advanced hard-surface):**
+**Tools — Phase 8 (advanced hard-surface):**
 - Booleans (union/subtract/intersect) via manifold
 - Shell (thickness), and curves and splines (sweep, lathe)
 - Our own smoothing modifier (subdivision, with creases)
@@ -338,7 +338,7 @@ Also: dense wireframes fade out from afar (and aren't drawn when too dense to se
 
 ---
 
-## 7. UV toolset (W8, Phase 8)
+## 7. UV toolset (W8, Phase 7)
 
 The aim is the best UV tools available for game assets. Unwrapping itself is a mature field (RizomUV is the specialists' choice), so the difference comes from the workflow around it: UVs that don't break when you keep modelling, seams that place themselves well, and a UV editor that knows the bake. UVs come after the modelling phases, as one large phase, so the project lead learns modelling first ([decision 0034](docs/decisions/0034-uv-phase-after-modelling.md)).
 
@@ -437,6 +437,7 @@ Each phase ends with something runnable. The user tests the *feel* at the end of
 ### Phase 4 — Core modelling tools
 - **Heavy meshes** first (**W11**, §4.8): flat connection lists, a spatial index for picking and snapping, partial updates, small undo steps, and the heavy-mesh check
 - **Autosave and crash recovery** (**W12**): a copy saved in the background every few minutes, offered back after a crash; never overwrites the project itself. *Built* ([0036](docs/decisions/0036-autosave.md)): every 5 minutes after a change and the newest 5 kept (both in Settings → Autosave), in the app's own folder (Local AppData on Windows), "Recover unsaved work?" asked after a crash. Copies before risky steps come with the first tool that needs them
+- **Same keys everywhere, and E in every area** (the project lead's rule, 2026-10-16, [0095](docs/decisions/0095-uvs-before-advanced-modelling.md)): a key does the same kind of job in every part of the app (the viewport, the UV Editor, later areas), and E opens the tool menu with the tools for where the mouse is and what is being worked on.
 - **The tool menu** (`E`): the tools of the current mode at the mouse, as a ring (standard) or a list (Settings), every tool in a fixed place, from one **command list** that every menu, the palette and the keys read from. *Built* ([0037](docs/decisions/0037-tool-menu-and-command-list.md)). Keys for tools to come: `D` extrude, `I` inset, `V` bevel
 - **Foundations** (between bevel and loop cut, from the whole-app review): saves that always reopen ([0041](docs/decisions/0041-saves-that-always-reopen.md)), fast edits ([0042](docs/decisions/0042-fast-edits.md)), attribute layers and the builder ([0043](docs/decisions/0043-attribute-layers-and-the-builder.md)), edits that hold ([0044](docs/decisions/0044-edits-that-hold.md)), limits for files ([0045](docs/decisions/0045-limits-for-files.md)), and our own names ([0046](docs/decisions/0046-our-own-names.md)). *Built.*
 - Tools from §6 Phase 4, in this order after loop cut: Slit (`X`); extrude with a bend (pipe bends); Connect, Bridge (`C`) and Weld; the clean-up tools; hard and soft edges with normals display; symmetry; the basics (hide and isolate, slide, duplicate and instances, split and join); and the keyboard shortcut viewer last. Each with live parameters and HUD, each recording anchors so it survives base changes (**W14**). *Extrude and inset built* ([0038](docs/decisions/0038-extrude-and-inset.md)): `D` and `I`, dragged anywhere in the view; polygons together or each on its own (Keep together); border edges extrude too; the last one changeable in the Attributes panel. *Bevel built* ([0040](docs/decisions/0040-bevel.md)): `V`, dragged away from the edges or points; width, segments and profile. *Loop cut built* ([0047](docs/decisions/0047-loop-cut.md)): `F`, point at an edge to see the loop, click to cut or drag to slide; Cuts and Position in the Attributes panel. *Slit built* ([0049](docs/decisions/0049-slit.md)): `X`, click points over the shape, cut as seen (or through), editable until Esc or Enter. *Pipe bends built* ([0050](docs/decisions/0050-pipe-bends.md)): an extrude turns a corner first, with Angle, Direction, Bend radius and Segments, a smooth elbow or a mitre joint, keeping its full width. *Connect, Bridge and Weld built* ([0051](docs/decisions/0051-connect-bridge-weld.md)): `J` (now `A`, [0057](docs/decisions/0057-after-phase-4-testing.md)), `C` (or drag edge to edge), `M` and `Ctrl + M`.
@@ -489,15 +490,9 @@ Merged without the project lead trying them on his computer (2026-10-16); to rec
 - Optional quad menu. *Built* ([0094](docs/decisions/0094-quad-menu.md)): off as standard; a right-click in the viewport opens Show, Modes, Edit and Tools around the mouse.
 - **Done when:** the user's Max workflow of stacking edit layers feels right.
 
-### Phase 7 — Advanced hard-surface
-- Booleans, weighted normals, better bevel, generators (array, mirror)
-- Shell, curves and splines, and our own smoothing modifier
-- Friends join as testers around this phase
-- Game bevel and modular kit helpers (§6; **W15**, **W16**)
-- Generators, booleans, weighted normals and the game bevel are added to the modifiers palette (§5.1)
-
-### Phase 8 — UVs
-Everything in §7, as one phase after the modelling phases ([decision 0034](docs/decisions/0034-uv-phase-after-modelling.md)):
+### Phase 7 — UVs
+Everything in §7, as one phase after the core modelling and workflow phases ([decision 0034](docs/decisions/0034-uv-phase-after-modelling.md)), brought before advanced hard-surface at the project lead's request ([decision 0095](docs/decisions/0095-uvs-before-advanced-modelling.md)):
+- Primitives come with ready-made UVs and seams. *Built* ([0095](docs/decisions/0095-uvs-before-advanced-modelling.md)).
 - UV mode, the UV Editor panel and the UV Edit layout (and a Modelling layout alongside it), switched from the layout tabs on the menu bar
 - Seams: marking, painting, from hard edges, and suggested seams
 - Live unwrap, relax and straighten; automatic straightening, axis alignment and mirrored halves
@@ -509,6 +504,14 @@ Everything in §7, as one phase after the modelling phases ([decision 0034](docs
 - Bake readiness for UVs, and trim sheets
 - Round-trip test: model → Substance Painter bake → Godot looks correct
 - **Done when:** a prop is unwrapped and packed in Aventail 3D with clean bakes in Substance Painter, and changing the model afterwards keeps its UVs.
+
+### Phase 8 — Advanced hard-surface
+- Every tool here carries UVs and seams along from the start (the builder, decision 0043)
+- Booleans, weighted normals, better bevel, generators (array, mirror)
+- Shell, curves and splines, and our own smoothing modifier
+- Friends join as testers around this phase
+- Game bevel and modular kit helpers (§6; **W15**, **W16**)
+- Generators, booleans, weighted normals and the game bevel are added to the modifiers palette (§5.1)
 
 ### Phase 9 — Scripting
 Lua scripting so people can add their own tools and automate work. Full design in §4.7.
@@ -782,3 +785,4 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-16 — **The edit list** ([0092](docs/decisions/0092-the-edit-list.md)), Phase 6, as asked on 2026-10-13: any edit in the Edit layers panel opens in the Attributes panel in the Last edit's place (On, Keep editable, its settings, Freeze up to here, Delete edit, Close; a new edit closes it). Freeze bakes the base and every edit up to the chosen one into a plain mesh, refused past a kept or switched-off edit or layer, so the shape stays the same and the edits after it still apply. Edit rows have eyes and marks only for real problems (parts missing, skipped). Finding by name first stays held back for the project lead's look. No new keys (he was asleep); no file format change.
 - 2026-10-16 — **Snap to and Align** ([0093](docs/decisions/0093-snap-to-and-align.md)), Phase 6 (W7): Tools → Snap to… moves the selected objects' pivots onto a clicked object's pivot (3ds Max's Quick Align, our name); Tools → Align… opens a window at the bottom left of the viewport (world axes; this object's and the target's Lowest, Middle, Pivot or Highest; Also turn them to match), shown live, one undo step, Cancel takes it back. Pivot to object, Snap to and Align share one way of picking the target. No keys (the project lead was asleep): the Tools menu only.
 - 2026-10-16 — **An optional quad menu** ([0094](docs/decisions/0094-quad-menu.md)), the last Phase 6 milestone: switched on in Settings → Interface (off as standard), a right-click in the viewport (not a right drag, and never one that ends something under way) opens four lists around the mouse, 3ds Max's layout with our contents: Show, Modes, Edit (undo, edit layers, Snap to, Align) and the current mode's Tools from the command list. The recommended controls were used (the project lead was asleep).
+- 2026-10-16 — **UVs before advanced hard-surface** ([0095](docs/decisions/0095-uvs-before-advanced-modelling.md)), at the project lead's request: the UV phase becomes Phase 7 and advanced hard-surface Phase 8 (it needs nothing from it; its tools will carry UVs from the start). Controls chosen by the project lead: the UV Editor navigates and uses keys exactly as the viewport (Q/W/R/S/T, 1/2/3), seams from the E menu and UV menu with live unwrapping. **Rule from now on: keys stay the same everywhere, and the E menu is in every area of the app with the tools for where the mouse is.** First milestone: every primitive comes unwrapped (box, flat, round with cones as fans, ball), cut along seams, pieces at their real relative sizes; the new `seam` edge layer.

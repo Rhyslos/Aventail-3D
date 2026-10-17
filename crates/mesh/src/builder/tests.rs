@@ -34,6 +34,9 @@ fn square() -> (Mesh, [VertexId; 4], FaceId) {
 /// one, every polygon's `material` is 7, every corner's `uv` its point's X
 /// and Y.
 fn with_layers(mesh: &mut Mesh) {
+    // The test's own UVs and seams, in place of a primitive's.
+    mesh.remove_attribute("uv");
+    mesh.remove_attribute("seam");
     mesh.add_attribute("w", Domain::Point, Value::Float(0.0))
         .unwrap();
     mesh.add_attribute("material", Domain::Face, Value::Int(0))

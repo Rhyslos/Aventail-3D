@@ -26,7 +26,8 @@ fn a_cube_exports_shared_points_and_one_normal_per_side() {
     assert_eq!(shape.points.len(), 8);
     assert_eq!(shape.polygons.len(), 6);
     assert_eq!(shape.normals.len(), 6, "crisp sides");
-    assert!(shape.uvs.is_empty());
+    // Primitives come with UVs (decision 0095): a corner each per side.
+    assert!(!shape.uvs.is_empty());
     assert_eq!(shape.triangle_count(), 12);
     // Every polygon's normal matches its winding.
     for polygon in &shape.polygons {

@@ -1,6 +1,6 @@
 # 0034. UVs as one phase after modelling, aiming to be the best UV tools
 
-- **Status:** Accepted
+- **Status:** Accepted; the order amended by [0095](0095-uvs-before-advanced-modelling.md) (UVs now come before advanced hard-surface)
 - **Date:** 2026-10-12
 
 ## Problem
