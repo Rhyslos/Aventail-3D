@@ -16,7 +16,7 @@ Crate names are generic on purpose (no product name), so renaming the app never 
 
 Each crate's `README.md` states its purpose and what it **must never** do. Read it before changing the crate.
 
-Planned later: a booleans crate (layer 1, wrapping manifold), a `script` crate (layer 2, Lua scripting through the same commands as everything else; Phase 11, see [decision 0011](docs/decisions/0011-lua-scripting.md)), and animation support inside `scene` (Phase 12). Phase 9 (language support) adds a translation layer to `ui` ([decision 0117](docs/decisions/0117-language-support.md)).
+Planned later: a booleans crate (layer 1, wrapping manifold), a `script` crate (layer 2, scripting (LustScript and Lua) through the same commands as everything else; Phase 16, see [decision 0011](docs/decisions/0011-lua-scripting.md) and [decision 0119](docs/decisions/0119-roadmap-after-the-uvs.md)), a renderer crate for Solis (layer 1 or 2, knowing nothing about the interface; Phase 11), and animation support inside `scene` (Phases 17 and 18). Phase 9 adds a translation layer to `ui`, with English as the one language package ([decision 0117](docs/decisions/0117-language-support.md), [decision 0119](docs/decisions/0119-roadmap-after-the-uvs.md)).
 
 ## How a frame runs
 
@@ -125,7 +125,7 @@ Rendering sits behind the `ViewportRenderer` trait, so the panel runs in tests w
 | A primitive | A primitive kind in `scene` |
 | A panel | A panel registered with the dock in `ui` |
 | A file format | `fileio` |
-| A user's own tool or command (Phase 11) | A Lua script, through `script` |
+| A user's own tool or command (Phase 16) | A Lua script, through `script` |
 
 ## Security
 
