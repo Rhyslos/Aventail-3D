@@ -94,6 +94,7 @@ A **double-click** selects a whole [loop](concepts.md#mesh-basics), the belt run
 - **Ctrl + mouse wheel up** grows the selection by one step: everything touching it is added. **Ctrl + wheel down** shrinks it by one step, taking away its outer rim. (With the brush active, Ctrl + wheel changes the brush's size instead, and with a tool that has a count, that count: [Bevel](bevel.md)'s segments, [Loop cut](loop-cut.md)'s cuts, Extrude's bend [segments](extrude-and-inset.md); use the Select menu to grow and shrink then.)
 - **Ctrl + A** selects everything: all shapes in Model mode, or all points, edges or polygons of the selected shapes.
 - **Ctrl + I** inverts: what was selected is unselected, and the rest selected.
+- **Alt + A** (or **Select → Select connected**) selects the whole **part** the selection is on: everything joined to it on the model, through its edges and polygons. Select one polygon of a bolt, press Alt + A, and you have the whole bolt, even when the shape holds other parts too. Seams don't stop it: in the UV mode, click one piece and press Alt + A to get every piece of that part (it's also in **UV → Pieces**). Works in the Points, Edges, Polygons and UV modes.
 - **Esc** unselects the points, edges or polygons, but keeps the shape selected, so you can keep working on it. In Model mode, Esc unselects the shapes.
 - **Select → Select seams** selects every [seam](seams.md) of the shapes you're editing (the Edges mode shows), and **Select hard edges** every hard edge.
 - **Select → Select by material** lists the selected shapes' [materials](materials.md); pick one to select every polygon using it (the Polygons mode shows).
@@ -126,6 +127,7 @@ Each mode remembers its own selection. Select some points, switch to Polygons mo
 | Brush size (with the brush active) | `Ctrl` + wheel |
 | Select all | `Ctrl + A` |
 | Invert the selection | `Ctrl + I` |
+| Select connected (the whole part) | `Alt + A` |
 | Unselect points, edges or polygons (Model mode: shapes) | `Esc` |
 | Undo / redo a selection | `Ctrl + Z` / `Ctrl + Y` |
 

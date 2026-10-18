@@ -531,6 +531,9 @@ pub const UV_OVERLAP: Color32 = Color32::from_rgba_premultiplied(0x70, 0x14, 0x1
 /// Polygons of mirrored pieces in the UV Editor (decision 0115): a
 /// purple tint.
 pub const UV_MIRRORED: Color32 = Color32::from_rgba_premultiplied(0x4a, 0x1c, 0x6e, 0x70);
+/// Polygons of pieces sticking out of the texture square (decision
+/// 0118): an amber tint, apart from the red and purple warnings.
+pub const UV_OUTSIDE: Color32 = Color32::from_rgba_premultiplied(0x6a, 0x4a, 0x08, 0x70);
 /// The UV Editor's warning summary, top right.
 pub const UV_WARNING_TEXT: Color32 = Color32::from_rgb(0xff, 0x8a, 0x80);
 /// What is explained in the UV Editor (decision 0116), and its box's

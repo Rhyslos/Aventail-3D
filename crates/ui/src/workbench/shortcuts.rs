@@ -242,6 +242,11 @@ pub(crate) fn bindings() -> Vec<Binding> {
         ),
         bind(selecting::SELECT_ALL_SHORTCUT, "Select all", Anywhere),
         bind(selecting::INVERT_SHORTCUT, "Invert the selection", Anywhere),
+        bind(
+            selecting::CONNECTED_SHORTCUT,
+            "Select connected: the whole part the selection is on",
+            Anywhere,
+        ),
         bind(objects::DESELECT_SHORTCUT, "Select nothing", Anywhere),
         held(
             KeyId::Ctrl,

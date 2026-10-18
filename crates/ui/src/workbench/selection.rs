@@ -7,7 +7,8 @@ use crate::components::kind_for;
 use crate::drawing::SceneDrawing;
 use crate::palette::Mode;
 use crate::selecting::{
-    INVERT_SHORTCUT, SELECT_ALL_SHORTCUT, SELECT_TOOL_KEY, SelectTool, Selector, count,
+    CONNECTED_SHORTCUT, INVERT_SHORTCUT, SELECT_ALL_SHORTCUT, SELECT_TOOL_KEY, SelectTool,
+    Selector, count,
 };
 use egui::{Modifiers, Ui};
 use scene::ElementKind;
@@ -24,6 +25,8 @@ pub(super) enum SelectRequest {
     Clear,
     /// Grow (positive) or shrink (negative) by this many steps.
     Grow(i32),
+    /// Select everything joined to the selection (decision 0118).
+    Connected,
     /// Select the polygons facing the wrong way.
     Flipped,
     /// Add the polygons facing like the selected ones.
@@ -35,6 +38,9 @@ pub(super) enum SelectRequest {
     /// Select the polygons using the material of this name.
     Material(String),
 }
+
+/// Select connected's name in the Select menu.
+pub(crate) const CONNECTED_LABEL: &str = "Select connected";
 
 /// The Select menu's tooltip for the visible-only switch, and the mode
 /// palette's.
@@ -48,13 +54,17 @@ impl Workbench {
         if ui.ctx().memory(|m| m.focused().is_some()) || self.renaming() {
             return;
         }
-        let (next, all, invert) = ui.input_mut(|i| {
+        let (next, all, invert, connected) = ui.input_mut(|i| {
             (
                 i.consume_key(Modifiers::NONE, SELECT_TOOL_KEY),
                 i.consume_shortcut(&SELECT_ALL_SHORTCUT),
                 i.consume_shortcut(&INVERT_SHORTCUT),
+                i.consume_shortcut(&CONNECTED_SHORTCUT),
             )
         });
+        if connected {
+            self.select_requests.push(SelectRequest::Connected);
+        }
         if next {
             if self.tool == crate::transforming::Tool::Select {
                 self.next_select_tool();
@@ -138,6 +148,17 @@ impl Workbench {
             "Take away the selection's outer rim",
         ) {
             self.select_requests.push(SelectRequest::Grow(-1));
+            ui.close();
+        }
+        let connected_keys = keys(ui, &CONNECTED_SHORTCUT);
+        if entry(
+            ui,
+            CONNECTED_LABEL,
+            connected_keys,
+            "Select the whole part the selection is on: everything joined to it, across seams. \
+             Select a little of a part first (in the UV mode, a piece).",
+        ) {
+            self.select_requests.push(SelectRequest::Connected);
             ui.close();
         }
         let polygons = |this: &mut Self, request| {
@@ -271,6 +292,7 @@ impl Workbench {
                 SelectRequest::Grow(steps) => {
                     selector.gesture(crate::selecting::Gesture::Grow(steps))
                 }
+                SelectRequest::Connected => selector.select_connected(),
                 SelectRequest::Flipped => selector.select_flipped(),
                 SelectRequest::HardEdges => selector.select_hard_edges(),
                 SelectRequest::Seams => selector.select_seams(),

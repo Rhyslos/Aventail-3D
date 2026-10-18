@@ -24,7 +24,7 @@ Each milestone is one pull request, stacked on the one before. None is merged ye
 | 15 | Seeing and checking | `uv/seeing-and-checking` | #111 | [0115](../decisions/0115-seeing-and-checking.md) | – |
 | 23 | "Why is this here?" | `uv/why-is-this-here` | see the PR list | [0116](../decisions/0116-why-is-this-here.md) | – |
 
-**Next:** the project lead asked for six milestones in least-work order, each stacked on the last: 18 (layout snapshots, built), 15 (seeing and checking, built), 23 ("Why is this here?", built) and 9 (precise placement). **Milestones 14 (lightmaps) and 20 (recipes) are skipped for now** at his request; don't build them until he asks. Branch the next one from the newest branch in the table. Next up: 9. The next decision is 0118 and the next file format 39. After Phase 8 comes Phase 9, language support (decision 0117): ask the project lead which languages first, and whether the manual is translated too, before planning it.
+**Next:** the project lead asked for six milestones in least-work order, each stacked on the last: 18 (layout snapshots, built), 15 (seeing and checking, built), 23 ("Why is this here?", built) and 9 (precise placement). **Milestones 14 (lightmaps) and 20 (recipes) are skipped for now** at his request; don't build them until he asks. Branch the next one from the newest branch in the table. Next up: 9. The next decision is 0119 and the next file format 39. After Phase 8 comes Phase 9, language support (decision 0117): ask the project lead which languages first, and whether the manual is translated too, before planning it.
 
 ## How the work is done (notes for the next session)
 
