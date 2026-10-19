@@ -42,6 +42,8 @@ In **UV → Mending**, saved with the project (so everyone opening it sees the s
 
 Changing these is one undo step, and every shape in the project is worked out again with them. Only polygons an edit made or changed are touched, so nothing you did on purpose elsewhere changes. (Past 20,000 broken polygons in one edit, they're left for you to [Unwrap](unwrapping.md), so the edit isn't held up.)
 
+**Locked pieces** are never mended: their polygons, and new ones an edit makes from them, keep what the edit gives them. See [Locking pieces and piece settings](locked-pieces.md).
+
 ## Shortcuts
 
 None of its own: it comes with every modelling tool.

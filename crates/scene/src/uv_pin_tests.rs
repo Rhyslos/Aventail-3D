@@ -202,3 +202,45 @@ fn seam_preferences_and_budgets_are_recorded_edits() {
     };
     assert_eq!(never.describe(), "Allow no seams on 2 edges");
 }
+
+#[test]
+fn locks_and_piece_settings_are_recorded_edits() {
+    let (mut doc, id) = with_a_plane();
+    let faces: Vec<FaceId> = mesh_of(&doc, id).faces().map(|(f, _)| f).collect();
+    let settings = PieceSettings {
+        method: Some(UnwrapMethod::AngleBased),
+        strips: None,
+        density: Some(0.1),
+    };
+    for operation in [
+        Operation::SetUvLock {
+            faces: faces.clone(),
+            lock: true,
+            anchors: None,
+        },
+        Operation::SetPieceSettings {
+            faces: faces.clone(),
+            settings,
+            anchors: None,
+        },
+    ] {
+        record(&mut doc, id, operation);
+    }
+    let mesh = mesh_of(&doc, id);
+    assert!(mesh::uvs::any_locked(&mesh, &faces));
+    assert_eq!(PieceSettings::of(&mesh, &faces), settings);
+    doc.undo().unwrap();
+    doc.undo().unwrap();
+    let mesh = mesh_of(&doc, id);
+    assert!(!mesh::uvs::any_locked(&mesh, &faces));
+    assert!(PieceSettings::of(&mesh, &faces).is_empty());
+    let bad = Operation::SetPieceSettings {
+        faces,
+        settings: PieceSettings {
+            density: Some(-1.0),
+            ..PieceSettings::default()
+        },
+        anchors: None,
+    };
+    assert!(doc.execute(Command::Record { id, operation: bad }).is_err());
+}

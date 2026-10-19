@@ -49,6 +49,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Unwrap, Relax and Straighten: lay pieces flat](unwrapping.md)
 - [Pinning UVs: hold some UVs while the rest is laid out](pins.md)
 - [Seam preferences and stretch budgets: where seams may go, how much stretch is allowed](seam-preferences.md)
+- [Locking pieces and piece settings: keep a piece as it is, or give it its own unwrap settings](locked-pieces.md)
 - [Settings of the automatic UV tools: every choice, never random](uv-settings.md)
 - [Texture size and texel density](texture-and-density.md)
 - [Packing: fit pieces into the texture](packing.md)

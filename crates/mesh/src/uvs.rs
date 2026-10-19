@@ -15,10 +15,12 @@
 //! crate; this module is what every part of the app needs to read them.
 
 use crate::attributes::{
-    AttributeValues, Domain, SEAM, SEAM_PREFERENCE, UV, UV_BUDGET, UV_PIN, Value,
+    AttributeValues, Domain, SEAM, SEAM_PREFERENCE, UV, UV_BUDGET, UV_DENSITY, UV_LOCK, UV_METHOD,
+    UV_PIN, UV_STRIPS, Value,
 };
 use crate::{AttributeElement, EdgeKey, FaceId, Mesh, VertexId};
 use glam::Vec2;
+use std::collections::BTreeSet;
 
 /// How close two UVs must be to count as the same point of the texture.
 pub const SAME_UV: f32 = 1e-5;
@@ -571,6 +573,189 @@ pub fn set_budget(mesh: &mut Mesh, faces: &[FaceId], budget: Option<f32>) -> cra
     }
     outcome.matched = matched;
     outcome.skipped = present.len() - matched;
+    outcome
+}
+
+/// Which polygons are locked (decision 0112), by polygon id; `None` when
+/// none is.
+pub fn locked(mesh: &Mesh) -> Option<Vec<bool>> {
+    match mesh.attribute_values(UV_LOCK) {
+        Some((Domain::Face, _, AttributeValues::Bool(list))) => {
+            list.iter().any(|l| *l).then_some(list)
+        }
+        _ => None,
+    }
+}
+
+/// Whether any of `faces` is locked.
+pub fn any_locked(mesh: &Mesh, faces: &[FaceId]) -> bool {
+    locked(mesh).is_some_and(|list| {
+        faces
+            .iter()
+            .any(|f| list.get(f.get() as usize).copied().unwrap_or(false))
+    })
+}
+
+/// Locks (or, with `lock` false, unlocks) the UVs of `faces`, so no
+/// automatic tool changes them, adding the layer when needed and taking it
+/// away when nothing is locked.
+pub fn set_locked(mesh: &mut Mesh, faces: &[FaceId], lock: bool) -> crate::edit::Outcome {
+    let present: Vec<FaceId> = faces
+        .iter()
+        .copied()
+        .filter(|f| mesh.face(*f).is_some())
+        .collect();
+    let mut outcome = crate::edit::Outcome {
+        matched: 0,
+        missing: faces.len() - present.len(),
+        skipped: present.len(),
+    };
+    if mesh.attribute_values(UV_LOCK).is_none()
+        && (!lock
+            || mesh
+                .add_attribute(UV_LOCK, Domain::Face, Value::Bool(false))
+                .is_err())
+    {
+        return outcome;
+    }
+    for face in &present {
+        let element = AttributeElement::Face(*face);
+        if mesh.attribute(UV_LOCK, element) != Some(Value::Bool(lock))
+            && mesh
+                .set_attribute(UV_LOCK, element, Value::Bool(lock))
+                .is_ok()
+        {
+            outcome.matched += 1;
+        }
+    }
+    outcome.skipped = present.len() - outcome.matched;
+    if locked(mesh).is_none() {
+        mesh.remove_attribute(UV_LOCK);
+    }
+    outcome
+}
+
+/// A piece's own unwrap settings as stored on its polygons (decision
+/// 0112); 0 means "the app's".
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct PieceValues {
+    /// Its way of laying flat: 1 keep shapes, 2 smoother, 3 keep sizes, 4
+    /// automatic.
+    pub method: i32,
+    /// Straightened as a strip: 1 yes, 2 no.
+    pub strips: i32,
+    /// Its texel density, in texture widths per scene unit.
+    pub density: f32,
+}
+
+impl PieceValues {
+    /// Whether nothing is its own.
+    pub fn is_empty(&self) -> bool {
+        self.method == 0 && self.strips == 0 && self.density == 0.0
+    }
+
+    /// Whether every value is one a piece can have.
+    pub fn is_real(&self) -> bool {
+        (0..=4).contains(&self.method)
+            && (0..=2).contains(&self.strips)
+            && self.density.is_finite()
+            && self.density >= 0.0
+    }
+}
+
+fn face_int(mesh: &Mesh, name: &str, f: FaceId) -> i32 {
+    match mesh.attribute(name, AttributeElement::Face(f)) {
+        Some(Value::Int(i)) => i,
+        _ => 0,
+    }
+}
+
+fn face_float(mesh: &Mesh, name: &str, f: FaceId) -> f32 {
+    match mesh.attribute(name, AttributeElement::Face(f)) {
+        Some(Value::Float(x)) if x.is_finite() => x,
+        _ => 0.0,
+    }
+}
+
+/// The unwrap settings of the piece made of `faces`: each one from the
+/// first of its polygons (by id) that has it.
+pub fn piece_values(mesh: &Mesh, faces: &[FaceId]) -> PieceValues {
+    let mut sorted: Vec<FaceId> = faces.to_vec();
+    sorted.sort();
+    let first_int = |name: &str| {
+        sorted
+            .iter()
+            .map(|f| face_int(mesh, name, *f))
+            .find(|v| *v != 0)
+            .unwrap_or(0)
+    };
+    PieceValues {
+        method: first_int(UV_METHOD),
+        strips: first_int(UV_STRIPS),
+        density: sorted
+            .iter()
+            .map(|f| face_float(mesh, UV_DENSITY, *f))
+            .find(|v| *v > 0.0)
+            .unwrap_or(0.0),
+    }
+}
+
+/// Gives `faces` the unwrap settings `values` (all 0: none of their own),
+/// adding layers when needed and taking each away when no polygon uses
+/// it. Values a piece can't have change nothing.
+pub fn set_piece_values(
+    mesh: &mut Mesh,
+    faces: &[FaceId],
+    values: PieceValues,
+) -> crate::edit::Outcome {
+    let present: Vec<FaceId> = faces
+        .iter()
+        .copied()
+        .filter(|f| mesh.face(*f).is_some())
+        .collect();
+    let mut outcome = crate::edit::Outcome {
+        matched: 0,
+        missing: faces.len() - present.len(),
+        skipped: present.len(),
+    };
+    if !values.is_real() {
+        return outcome;
+    }
+    let mut changed = BTreeSet::new();
+    for (name, value) in [
+        (UV_METHOD, Value::Int(values.method)),
+        (UV_STRIPS, Value::Int(values.strips)),
+        (UV_DENSITY, Value::Float(values.density)),
+    ] {
+        let zero = matches!(value, Value::Int(0)) || value == Value::Float(0.0);
+        if mesh.attribute_values(name).is_none() {
+            let default = match value {
+                Value::Int(_) => Value::Int(0),
+                _ => Value::Float(0.0),
+            };
+            if zero || mesh.add_attribute(name, Domain::Face, default).is_err() {
+                continue;
+            }
+        }
+        for face in &present {
+            let element = AttributeElement::Face(*face);
+            if mesh.attribute(name, element) != Some(value)
+                && mesh.set_attribute(name, element, value).is_ok()
+            {
+                changed.insert(*face);
+            }
+        }
+        let used = match mesh.attribute_values(name) {
+            Some((_, _, AttributeValues::Int(list))) => list.iter().any(|v| *v != 0),
+            Some((_, _, AttributeValues::Float(list))) => list.iter().any(|v| *v != 0.0),
+            _ => false,
+        };
+        if !used {
+            mesh.remove_attribute(name);
+        }
+    }
+    outcome.matched = changed.len();
+    outcome.skipped = present.len() - changed.len();
     outcome
 }
 

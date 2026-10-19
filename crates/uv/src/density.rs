@@ -41,7 +41,7 @@ pub fn density(mesh: &Mesh, faces: &[FaceId]) -> Option<f32> {
 
 /// Scales each piece holding any of `faces` about the middle of its box so
 /// its texel density becomes `target` (texture widths per unit of
-/// length). Pieces without area are skipped.
+/// length). Pieces without area, and locked pieces, are skipped.
 pub fn set_density(mesh: &mut Mesh, faces: &[FaceId], target: f32) -> Outcome {
     let found = faces.iter().filter(|f| mesh.face(**f).is_some()).count();
     let unchanged = Outcome {
@@ -61,9 +61,11 @@ pub fn set_density(mesh: &mut Mesh, faces: &[FaceId], target: f32) -> Outcome {
         mesh::uvs::uv_splits(mesh).into_iter().collect()
     };
     let wanted: BTreeSet<FaceId> = faces.iter().copied().collect();
+    // Locked pieces are left as they are (decision 0112).
     let pieces: Vec<Vec<FaceId>> = crate::seams::pieces(mesh, &cuts)
         .into_iter()
         .filter(|p| p.iter().any(|f| wanted.contains(f)))
+        .filter(|p| !mesh::uvs::any_locked(mesh, p))
         .collect();
     let (starts, _) = mesh.face_layout();
     let starts = starts.to_vec();

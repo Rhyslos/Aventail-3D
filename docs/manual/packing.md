@@ -24,6 +24,8 @@ Pack last, once seams and unwrapping are done: changing seams afterwards unwraps
 
 **Stacking:** with **Stack identical pieces** on, pieces of exactly the same shape (four identical bolts, say) share the same pixels, so each gets more of the texture. Leave it off when the copies need their own baked shading.
 
+**Locked pieces** ([Locking pieces and piece settings](locked-pieces.md)) stay where they are; the others are packed as if they weren't there, so check for overlaps, or move the locked piece aside first. (Packing around them comes later in this phase.)
+
 ## Settings
 
 In **UV → Packing**, in the menu's settings section (remembered between sessions):

@@ -35,8 +35,12 @@ pub mod unwrap;
 #[cfg(test)]
 mod automation_tests;
 #[cfg(test)]
+mod lock_tests;
+#[cfg(test)]
 mod preference_tests;
 pub use mend::mend;
 pub use methods::UnwrapMethod;
 pub use seams::{HideSeams, SuggestOptions};
-pub use unwrap::{UnfoldAxis, UnwrapOptions, relax, straighten, unwrap, unwrap_with};
+pub use unwrap::{
+    PieceSettings, UnfoldAxis, UnwrapOptions, relax, straighten, unwrap, unwrap_with,
+};
