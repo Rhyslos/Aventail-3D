@@ -138,3 +138,51 @@ fn a_shape_without_uvs_has_no_warnings() {
     assert!(mirrored_pieces(&mesh).is_empty());
     assert!(warnings(&[], |_, _| 0, &[]).is_empty());
 }
+
+#[test]
+fn pieces_sticking_out_of_the_square_are_warned_about() {
+    let mesh = PrimitiveKind::Cube.standard().mesh();
+    assert_eq!(one(&mesh).outside_pieces, 0);
+    let islands = mesh::uvs::islands(&mesh);
+    // Half out past the right side, and wholly out below.
+    let (min, max) = mesh::uvs::uv_bounds(&mesh, &islands[0], &[]).unwrap();
+    let half_out = moved(
+        &mesh,
+        &islands[0],
+        Affine2::from_translation(Vec2::new(1.0 - (min.x + max.x) / 2.0, 0.0)),
+    );
+    let both = moved(
+        &half_out,
+        &islands[1],
+        Affine2::from_translation(Vec2::new(0.0, -3.0)),
+    );
+    let w = one(&both);
+    assert_eq!(w.outside_pieces, 2, "{w:?}");
+    assert!(
+        islands[0]
+            .iter()
+            .chain(&islands[1])
+            .all(|f| w.outside.contains(f))
+    );
+    assert!(!w.is_clean());
+    // Exactly on the edge counts as inside.
+    let edge = moved(
+        &mesh,
+        &islands[0],
+        Affine2::from_translation(Vec2::new(1.0 - max.x, 0.0)),
+    );
+    assert_eq!(one(&edge).outside_pieces, 0);
+    // A trim piece runs past the sides on purpose.
+    let mut row = mesh.clone();
+    crate::trim::place(&mut row, &islands[0], 0.5, 0.75);
+    let row = moved(
+        &row,
+        &islands[0],
+        Affine2::from_translation(Vec2::new(0.9, 0.0)),
+    );
+    assert_eq!(
+        warnings(&[&row], |_, _| 0, &[(0.5, 0.75)])[0].outside_pieces,
+        0
+    );
+    assert_eq!(one(&row).outside_pieces, 1, "without the row it's outside");
+}

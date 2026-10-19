@@ -312,6 +312,54 @@ pub fn grown(
     out.into_iter().collect()
 }
 
+/// Every element of `kind` joined to a selected one, however far, through
+/// edges and polygons ([decision 0118](../../../docs/decisions/0118-select-connected-and-outside-warnings.md)):
+/// the whole part, or parts, of the shape the selection is on. Seams and
+/// UV splits don't part anything here: it's the shape that counts.
+pub fn connected(
+    mesh: &Mesh,
+    topology: &Topology,
+    selection: &ElementSelection,
+    kind: ElementKind,
+) -> Vec<Element> {
+    let selection = selection.valid_in(mesh, topology);
+    let mut seeds: Vec<VertexId> = Vec::new();
+    for element in selection.of_kind(kind) {
+        match element {
+            Element::Point(v) => seeds.push(v),
+            Element::Edge(e) => {
+                let (a, b) = e.ends();
+                seeds.extend([a, b]);
+            }
+            Element::Polygon(f) => seeds.extend(mesh.face(f).unwrap_or_default().iter().copied()),
+        }
+    }
+    let mut reached: BTreeSet<VertexId> = BTreeSet::new();
+    while let Some(v) = seeds.pop() {
+        if reached.insert(v) {
+            seeds.extend(
+                topology
+                    .vertex_neighbours(v)
+                    .into_iter()
+                    .filter(|w| !reached.contains(w)),
+            );
+        }
+    }
+    match kind {
+        ElementKind::Points => reached.into_iter().map(Element::Point).collect(),
+        ElementKind::Edges => topology
+            .edges()
+            .filter(|e| reached.contains(&e.ends().0))
+            .map(Element::Edge)
+            .collect(),
+        ElementKind::Polygons => mesh
+            .faces()
+            .filter(|(_, corners)| corners.first().is_some_and(|v| reached.contains(v)))
+            .map(|(f, _)| Element::Polygon(f))
+            .collect(),
+    }
+}
+
 /// The selection of `kind` shrunk by one step: every selected element
 /// touching an unselected one (sharing a point) is dropped, so the
 /// selection's rim goes.

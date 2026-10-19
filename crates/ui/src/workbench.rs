@@ -2253,6 +2253,25 @@ impl Workbench {
     /// UV → Pieces.
     fn uv_pieces_entries(&mut self, ui: &mut Ui, requests: &mut Vec<DocRequest>) {
         use crate::commands::CommandId;
+        // Also in the Select menu (decision 0118).
+        if ui
+            .add(
+                egui::Button::new(selection::CONNECTED_LABEL).shortcut_text(
+                    ui.ctx()
+                        .format_shortcut(&crate::selecting::CONNECTED_SHORTCUT),
+                ),
+            )
+            .on_hover_text(
+                "Select every piece joined to the selected ones on the model, across seams: \
+                 the whole part",
+            )
+            .clicked()
+        {
+            self.select_requests
+                .push(selection::SelectRequest::Connected);
+            ui.close();
+        }
+        ui.separator();
         if let Some(command) = commands_entries(ui, &[CommandId::UvPin, CommandId::UvUnpin]) {
             self.run_command(command, ui.ctx(), requests);
             ui.close();
@@ -2585,6 +2604,8 @@ mod uv_on_model_tests;
 pub use unwrapping::{UnwrapWay, UvSettings};
 #[cfg(test)]
 mod checking_tests;
+#[cfg(test)]
+mod connected_tests;
 #[cfg(test)]
 mod density_tests;
 #[cfg(test)]

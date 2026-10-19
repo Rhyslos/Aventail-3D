@@ -1,7 +1,8 @@
 //! The UV Editor's always-on warnings ([decision 0115](../../../docs/decisions/0115-seeing-and-checking.md)):
 //! pieces lying over other pieces, polygons folded over within their own
-//! piece, and pieces lying mirrored, so the texture would read backwards
-//! on them.
+//! piece, pieces lying mirrored, so the texture would read backwards on
+//! them, and pieces sticking out of the texture square
+//! ([decision 0118](../../../docs/decisions/0118-select-connected-and-outside-warnings.md)).
 //!
 //! Worked out whenever the shown shapes change, so it must be quick: the
 //! overlap test draws the pieces into a grid of [`WARNING_CELLS`] cells
@@ -30,14 +31,23 @@ pub struct Warnings {
     pub overlapping_pieces: usize,
     /// How many pieces lie mirrored.
     pub mirrored_pieces: usize,
+    /// Polygons of pieces sticking out of the texture square (decision
+    /// 0118): the part outside gets no texture of its own.
+    pub outside: BTreeSet<FaceId>,
+    /// How many pieces stick out of the square.
+    pub outside_pieces: usize,
 }
 
 impl Warnings {
     /// Whether nothing is wrong.
     pub fn is_clean(&self) -> bool {
-        self.overlapping.is_empty() && self.mirrored.is_empty()
+        self.overlapping.is_empty() && self.mirrored.is_empty() && self.outside.is_empty()
     }
 }
+
+/// How far past the texture square's sides a UV may lie and still count
+/// as inside (the bake check's slack).
+pub const OUTSIDE_SLACK: f32 = 1e-4;
 
 /// The pieces of `mesh` and, for each, the polygons lying mirrored on
 /// the texture: all of a piece mostly mirrored (by area), or those
@@ -102,6 +112,15 @@ pub fn warnings<G: Ord>(
             let on_trim = rows
                 .iter()
                 .any(|(bottom, top)| crate::trim::on_row(mesh, &island, *bottom, *top));
+            // Trim pieces run past the square's sides on purpose.
+            if !on_trim
+                && mesh::uvs::uv_bounds(mesh, &island, &[]).is_some_and(|(min, max)| {
+                    min.min_element() < -OUTSIDE_SLACK || max.max_element() > 1.0 + OUTSIDE_SLACK
+                })
+            {
+                out[m].outside.extend(island.iter().copied());
+                out[m].outside_pieces += 1;
+            }
             if !on_trim {
                 groups
                     .entry(group(m, &island))

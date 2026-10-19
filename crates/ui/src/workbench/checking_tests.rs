@@ -114,9 +114,11 @@ fn measuring_a_line_across_a_side_gives_its_real_length() {
 }
 
 #[test]
-fn overlapping_and_mirrored_pieces_are_warned_about() {
+fn overlapping_mirrored_and_outside_pieces_are_warned_about() {
+    use crate::uv_editor::checking::WarningCounts;
     let (mut harness, id) = uv_edit_with_the_cube();
-    assert_eq!(harness.state().workbench.uv_editor.warning_counts(), (0, 0));
+    let none = WarningCounts::default();
+    assert_eq!(harness.state().workbench.uv_editor.warning_counts(), none);
     let mesh = shape(&harness);
     let islands = mesh::uvs::islands(&mesh);
     let centre = |i: usize| mesh::uvs::uv_centre(&mesh, &islands[i], &[]).unwrap();
@@ -128,6 +130,11 @@ fn overlapping_and_mirrored_pieces_are_warned_about() {
     for (faces, transform) in [
         (islands[0].clone(), Affine2::from_translation(onto)),
         (islands[2].clone(), flip),
+        // Well clear of the square, to its right.
+        (
+            islands[3].clone(),
+            Affine2::from_translation(Vec2::new(2.0, 0.0)),
+        ),
     ] {
         harness
             .state_mut()
@@ -145,12 +152,20 @@ fn overlapping_and_mirrored_pieces_are_warned_about() {
             .unwrap();
     }
     harness.run();
-    assert_eq!(harness.state().workbench.uv_editor.warning_counts(), (2, 1));
+    assert_eq!(
+        harness.state().workbench.uv_editor.warning_counts(),
+        WarningCounts {
+            overlapping: 2,
+            mirrored: 1,
+            outside: 1
+        }
+    );
     // Undone, the warnings go.
-    harness.state_mut().workbench.document_mut().undo();
-    harness.state_mut().workbench.document_mut().undo();
+    for _ in 0..3 {
+        harness.state_mut().workbench.document_mut().undo();
+    }
     harness.run();
-    assert_eq!(harness.state().workbench.uv_editor.warning_counts(), (0, 0));
+    assert_eq!(harness.state().workbench.uv_editor.warning_counts(), none);
 }
 
 #[test]

@@ -133,16 +133,51 @@ pub(crate) fn measure_text(pixels: f32, centimetres: f32) -> String {
     }
 }
 
-/// The warnings' summary, top right: how many pieces overlap and how
-/// many lie mirrored.
-pub(crate) fn warning_text(overlapping: usize, mirrored: usize) -> Option<String> {
+/// How many pieces each warning is about.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub(crate) struct WarningCounts {
+    pub(crate) overlapping: usize,
+    pub(crate) mirrored: usize,
+    /// Sticking out of the texture square (decision 0118).
+    pub(crate) outside: usize,
+}
+
+impl WarningCounts {
+    /// The counts over every shown shape.
+    pub(crate) fn of<'a>(each: impl IntoIterator<Item = &'a uv::warnings::Warnings>) -> Self {
+        each.into_iter().fold(Self::default(), |c, w| Self {
+            overlapping: c.overlapping + w.overlapping_pieces,
+            mirrored: c.mirrored + w.mirrored_pieces,
+            outside: c.outside + w.outside_pieces,
+        })
+    }
+}
+
+/// The warnings' summary, top right: how many pieces overlap, lie
+/// mirrored and stick out of the square.
+pub(crate) fn warning_text(counts: WarningCounts) -> Option<String> {
     let mut parts = Vec::new();
     let pieces = |n: usize| if n == 1 { "piece" } else { "pieces" };
-    if overlapping > 0 {
-        parts.push(format!("{overlapping} {} overlapping", pieces(overlapping)));
+    if counts.overlapping > 0 {
+        parts.push(format!(
+            "{} {} overlapping",
+            counts.overlapping,
+            pieces(counts.overlapping)
+        ));
     }
-    if mirrored > 0 {
-        parts.push(format!("{mirrored} {} mirrored", pieces(mirrored)));
+    if counts.mirrored > 0 {
+        parts.push(format!(
+            "{} {} mirrored",
+            counts.mirrored,
+            pieces(counts.mirrored)
+        ));
+    }
+    if counts.outside > 0 {
+        parts.push(format!(
+            "{} {} outside the square",
+            counts.outside,
+            pieces(counts.outside)
+        ));
     }
     (!parts.is_empty()).then(|| parts.join(" · "))
 }
@@ -175,15 +210,14 @@ impl UvEditor {
         self.measure.as_ref()?.length
     }
 
-    /// How many pieces the warnings count as overlapping and as
-    /// mirrored, as last drawn (for tests).
+    /// How many pieces each warning is about, as last drawn (for tests).
     #[cfg(test)]
-    pub(crate) fn warning_counts(&self) -> (usize, usize) {
-        self.warnings.as_ref().map_or((0, 0), |w| {
-            w.each.values().fold((0, 0), |(o, m), w| {
-                (o + w.overlapping_pieces, m + w.mirrored_pieces)
+    pub(crate) fn warning_counts(&self) -> WarningCounts {
+        self.warnings
+            .as_ref()
+            .map_or_else(WarningCounts::default, |w| {
+                WarningCounts::of(w.each.values())
             })
-        })
     }
 
     /// The warnings for what is shown, worked out again if the document
@@ -233,7 +267,7 @@ impl UvEditor {
     }
 
     /// Tints the polygons warned about: red where pieces overlap, purple
-    /// where they lie mirrored.
+    /// where they lie mirrored, amber where they stick out of the square.
     pub(super) fn paint_warnings(
         &self,
         painter: &egui::Painter,
@@ -250,6 +284,8 @@ impl UvEditor {
                 theme::UV_OVERLAP
             } else if warnings.mirrored.contains(face) {
                 theme::UV_MIRRORED
+            } else if warnings.outside.contains(face) {
+                theme::UV_OUTSIDE
             } else {
                 continue;
             };
