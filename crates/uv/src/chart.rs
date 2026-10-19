@@ -143,6 +143,17 @@ impl Chart {
         out
     }
 
+    /// For each of its triangles (in the order of [`Self::triangles`]),
+    /// which of its polygons (an index into `faces`) it is part of.
+    pub(crate) fn triangle_owners(&self, mesh: &Mesh) -> Vec<usize> {
+        let mut out = Vec::new();
+        for (i, f) in self.faces.iter().enumerate() {
+            let list = mesh.face(*f).unwrap_or(&[]);
+            mesh::triangulate::face_triangles(mesh, list, |_| out.push(i));
+        }
+        out
+    }
+
     /// The sides of its polygons, as pairs of wedges, each once.
     pub(crate) fn sides(&self) -> Vec<(usize, usize)> {
         let mut out = BTreeSet::new();

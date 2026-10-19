@@ -145,6 +145,10 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Seam** — An edge where the surface is "cut" so it can be flattened. Every UV island is bounded by seams. In hard-surface work, a good starting point is placing seams on hard edges. The ready-made shapes come with their seams marked where they're cut open; see [Seams](seams.md) to mark your own or have them suggested.
 
+**Seam preference** — A note on an edge for the automatic UV tools: **prefer** (when a cut is needed, here first) or **never** (no cut here unless a piece couldn't lie flat otherwise). Not a seam itself. See [Seam preferences and stretch budgets](seam-preferences.md).
+
+**Stretch budget** — How much stretching a piece may have once laid flat (1.5× means nearly all of it within one and a half times of perfect). Pieces over budget get cut further. See [Seam preferences and stretch budgets](seam-preferences.md).
+
 **Pin (UV pin)** — A UV nailed to its spot on the texture: unwrapping lays the rest of its piece out around it, and relaxing leaves it where it is. See [Pinning UVs](pins.md).
 
 **UV island (shell)** — A connected piece of the flattened surface. In this app, polygons are in the same island when they share an edge whose UVs match on both sides.

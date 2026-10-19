@@ -74,6 +74,8 @@ struct UvShape {
     stretch: Vec<uv::stretch::Stretch>,
     /// The spots of pinned UVs, each once (decision 0109).
     pins: Vec<Vec2>,
+    /// The edges with a seam preference (decision 0111).
+    preferences: HashMap<EdgeKey, scene::SeamPreference>,
 }
 
 impl UvShape {
@@ -140,6 +142,7 @@ impl UvShape {
                 }
             }
         }
+        let preferences = mesh::uvs::seam_preferences(&mesh).into_iter().collect();
         Some(Self {
             mesh,
             polygons,
@@ -150,6 +153,7 @@ impl UvShape {
             areas,
             stretch,
             pins,
+            preferences,
         })
     }
 }
@@ -965,6 +969,18 @@ impl UvEditor {
             }
             if shape.seams.contains(key) {
                 add_line(&mut seams, a, b, 2.0, theme::UV_SEAM);
+            } else if let Some(preference) = shape.preferences.get(key) {
+                match preference {
+                    scene::SeamPreference::Prefer => {
+                        add_dashes(&mut seams, a, b, 2.0, theme::UV_SEAM_PREFER);
+                    }
+                    scene::SeamPreference::Never => {
+                        add_line(&mut seams, a, b, 2.0, theme::UV_SEAM_NEVER);
+                    }
+                    scene::SeamPreference::Free => {
+                        add_line(&mut lines, a, b, 1.0, theme::UV_EDGE);
+                    }
+                }
             } else if *border {
                 add_line(&mut borders, a, b, 1.6, theme::UV_BORDER);
             } else {
@@ -1597,6 +1613,22 @@ fn add_line(mesh: &mut egui::Mesh, a: Pos2, b: Pos2, width: f32, color: Color32)
 }
 
 /// Adds a round dot to `mesh`.
+/// Adds a dashed line from `a` to `b` to `mesh`: dashes of 6 points with
+/// gaps of 4.
+fn add_dashes(mesh: &mut egui::Mesh, a: Pos2, b: Pos2, width: f32, color: Color32) {
+    let length = a.distance(b);
+    if length < 1e-3 {
+        return;
+    }
+    let way = (b - a) / length;
+    let mut at = 0.0;
+    while at < length {
+        let end = (at + 6.0).min(length);
+        add_line(mesh, a + way * at, a + way * end, width, color);
+        at += 10.0;
+    }
+}
+
 fn add_dot(mesh: &mut egui::Mesh, at: Pos2, radius: f32, color: Color32) {
     let i = mesh.vertices.len() as u32;
     mesh.colored_vertex(at, color);

@@ -297,6 +297,15 @@ pub const SEAM: &str = "seam";
 /// 0109).
 pub const UV_PIN: &str = "uv_pin";
 
+/// The name of the edge layer holding seam preferences: 1 where a seam is
+/// preferred, -1 where none may go, 0 elsewhere (decision 0111).
+pub const SEAM_PREFERENCE: &str = "seam_preference";
+
+/// The name of the polygon layer holding stretch budgets: how stretched
+/// the piece holding the polygon may be laid flat (0: no budget of its
+/// own; decision 0111).
+pub const UV_BUDGET: &str = "uv_budget";
+
 /// A typed list of values.
 #[derive(Debug, Clone, PartialEq)]
 enum Column {

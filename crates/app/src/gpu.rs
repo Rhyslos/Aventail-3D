@@ -53,6 +53,10 @@ const HARD_LINE_WIDTH: f32 = 2.5;
 /// Seams (Display → Seams, and the UV mode): orange, as thick as hard
 /// edges, drawn over them where both are, linear space.
 const SEAM_LINE: [f32; 4] = [1.0, 0.36, 0.05, 1.0];
+/// Edges where seams are preferred, and where none may go (decision
+/// 0111): the UV Editor's pale orange and blue.
+const SEAM_PREFER_LINE: [f32; 4] = [1.0, 0.58, 0.1, 0.8];
+const SEAM_NEVER_LINE: [f32; 4] = [0.07, 0.38, 1.0, 1.0];
 /// Normals (Display → Normals): light violet, thin.
 const NORMAL_LINE: [f32; 4] = [0.6, 0.5, 1.0, 1.0];
 const NORMAL_LINE_WIDTH: f32 = 1.5;
@@ -74,6 +78,8 @@ fn overlay_geometry(overlay: &ComponentOverlay, accent: [f32; 3]) -> Overlay {
             OverlayStyle::Hovered => out.line(*a, *b2, HOVERED_LINE_WIDTH, hovered),
             OverlayStyle::Hard => out.line(*a, *b2, HARD_LINE_WIDTH, HARD_LINE),
             OverlayStyle::Seam => out.line(*a, *b2, HARD_LINE_WIDTH, SEAM_LINE),
+            OverlayStyle::SeamPrefer => out.line(*a, *b2, NORMAL_LINE_WIDTH, SEAM_PREFER_LINE),
+            OverlayStyle::SeamNever => out.line(*a, *b2, HARD_LINE_WIDTH, SEAM_NEVER_LINE),
             OverlayStyle::Normal => out.line(*a, *b2, NORMAL_LINE_WIDTH, NORMAL_LINE),
         }
     }
@@ -83,6 +89,8 @@ fn overlay_geometry(overlay: &ComponentOverlay, accent: [f32; 3]) -> Overlay {
             OverlayStyle::Selected
             | OverlayStyle::Hard
             | OverlayStyle::Seam
+            | OverlayStyle::SeamPrefer
+            | OverlayStyle::SeamNever
             | OverlayStyle::Normal => [r, g, b, SELECTED_TINT],
         };
         out.triangle(*triangle, color);
@@ -93,6 +101,8 @@ fn overlay_geometry(overlay: &ComponentOverlay, accent: [f32; 3]) -> Overlay {
             OverlayStyle::Hovered => out.point(*at, HOVERED_POINT_SIZE, hovered),
             OverlayStyle::Hard => out.point(*at, SELECTED_POINT_SIZE, HARD_LINE),
             OverlayStyle::Seam => out.point(*at, SELECTED_POINT_SIZE, SEAM_LINE),
+            OverlayStyle::SeamPrefer => out.point(*at, POINT_SIZE, SEAM_PREFER_LINE),
+            OverlayStyle::SeamNever => out.point(*at, POINT_SIZE, SEAM_NEVER_LINE),
             OverlayStyle::Normal => out.point(*at, POINT_SIZE, NORMAL_LINE),
         }
     }

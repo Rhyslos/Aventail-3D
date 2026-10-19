@@ -525,70 +525,97 @@ pub(crate) fn as_rigid_as_possible(
     Some(at)
 }
 
-/// How unevenly a layout lies over the triangles' shapes, area-weighted:
-/// how much each is stretched one way more than the other, plus how far
-/// its size is from the layout's own average, plus a heavy price for any
-/// triangle turned over. 0 is perfect.
-pub(crate) fn distortion(triangles: &[[usize; 3]], shapes: &[Option<Shape>], at: &[Vec2]) -> f64 {
-    let flat_area = |t: &[usize; 3]| {
-        let (a, b, c) = (at[t[0]], at[t[1]], at[t[2]]);
-        f64::from((b - a).perp_dot(c - a)) / 2.0
-    };
+/// Whether a layout lies mirrored as a whole (most of its area turned
+/// over): laying flat may give either; placing turns it back.
+fn mirrored(triangles: &[[usize; 3]], at: &[Vec2]) -> bool {
+    let signed: f64 = triangles
+        .iter()
+        .map(|t| {
+            let (a, b, c) = (at[t[0]], at[t[1]], at[t[2]]);
+            f64::from((b - a).perp_dot(c - a))
+        })
+        .sum();
+    signed < 0.0
+}
+
+/// How a triangle of real shape `q` is stretched where it lies (`t` of
+/// `at`): its most and least stretch (texture length per real length,
+/// along the two ways it stretches most and least), and whether it is
+/// turned over against the rest of the layout (`mirrored`: the layout as
+/// a whole is). `None` for a triangle with no area.
+fn stretch_of(q: &Shape, t: &[usize; 3], at: &[Vec2], mirrored: bool) -> Option<(f64, f64, bool)> {
+    let (q1, q2) = (
+        [q[1][0] - q[0][0], q[1][1] - q[0][1]],
+        [q[2][0] - q[0][0], q[2][1] - q[0][1]],
+    );
+    let det = q1[0] * q2[1] - q2[0] * q1[1];
+    if det.abs() < 1e-30 {
+        return None;
+    }
+    let (u1, u2) = (at[t[1]] - at[t[0]], at[t[2]] - at[t[0]]);
+    let (u1, u2) = (
+        [f64::from(u1.x), f64::from(u1.y)],
+        [f64::from(u2.x), f64::from(u2.y)],
+    );
+    let inv = [[q2[1] / det, -q2[0] / det], [-q1[1] / det, q1[0] / det]];
+    // J = U · Q⁻¹, columns j0 and j1.
+    let j0 = [
+        u1[0] * inv[0][0] + u2[0] * inv[1][0],
+        u1[1] * inv[0][0] + u2[1] * inv[1][0],
+    ];
+    let j1 = [
+        u1[0] * inv[0][1] + u2[0] * inv[1][1],
+        u1[1] * inv[0][1] + u2[1] * inv[1][1],
+    ];
+    let flipped = (j0[0] * j1[1] - j0[1] * j1[0] < 0.0) != mirrored;
+    let (aa, ab, bb) = (
+        j0[0] * j0[0] + j0[1] * j0[1],
+        j0[0] * j1[0] + j0[1] * j1[1],
+        j1[0] * j1[0] + j1[1] * j1[1],
+    );
+    let trace = aa + bb;
+    let d = (aa * bb - ab * ab).max(0.0);
+    let spread = (trace * trace / 4.0 - d).max(0.0).sqrt();
+    let most = (trace / 2.0 + spread).max(0.0).sqrt();
+    let least = (trace / 2.0 - spread).max(0.0).sqrt();
+    Some((most, least, flipped))
+}
+
+/// The layout's texture area per real area over the triangles with area.
+fn average_room(triangles: &[[usize; 3]], shapes: &[Option<Shape>], at: &[Vec2]) -> Option<f64> {
     let total_real: f64 = shapes.iter().flatten().map(|q| area(q).abs()).sum();
     let total_flat: f64 = triangles
         .iter()
         .zip(shapes)
         .filter(|(_, s)| s.is_some())
-        .map(|(t, _)| flat_area(t).abs())
+        .map(|(t, _)| {
+            let (a, b, c) = (at[t[0]], at[t[1]], at[t[2]]);
+            (f64::from((b - a).perp_dot(c - a)) / 2.0).abs()
+        })
         .sum();
-    if total_real <= 0.0 || total_flat <= 0.0 {
+    (total_real > 0.0 && total_flat > 0.0).then(|| total_flat / total_real)
+}
+
+/// How unevenly a layout lies over the triangles' shapes, area-weighted:
+/// how much each is stretched one way more than the other, plus how far
+/// its size is from the layout's own average, plus a heavy price for any
+/// triangle turned over. 0 is perfect.
+pub(crate) fn distortion(triangles: &[[usize; 3]], shapes: &[Option<Shape>], at: &[Vec2]) -> f64 {
+    let Some(average) = average_room(triangles, shapes, at) else {
         return f64::INFINITY;
-    }
-    let average = total_flat / total_real;
+    };
+    let total_real: f64 = shapes.iter().flatten().map(|q| area(q).abs()).sum();
+    let mirrored = mirrored(triangles, at);
     let mut sum = 0.0;
     for (t, s) in triangles.iter().zip(shapes) {
         let Some(q) = s else {
             continue;
         };
         let weight = area(q).abs();
-        if weight <= 0.0 {
+        let Some((most, least, flipped)) = stretch_of(q, t, at, mirrored).filter(|_| weight > 0.0)
+        else {
             continue;
-        }
-        // The map from the real triangle to the flat one.
-        let (q1, q2) = (
-            [q[1][0] - q[0][0], q[1][1] - q[0][1]],
-            [q[2][0] - q[0][0], q[2][1] - q[0][1]],
-        );
-        let det = q1[0] * q2[1] - q2[0] * q1[1];
-        if det.abs() < 1e-30 {
-            continue;
-        }
-        let (u1, u2) = (at[t[1]] - at[t[0]], at[t[2]] - at[t[0]]);
-        let (u1, u2) = (
-            [f64::from(u1.x), f64::from(u1.y)],
-            [f64::from(u2.x), f64::from(u2.y)],
-        );
-        let inv = [[q2[1] / det, -q2[0] / det], [-q1[1] / det, q1[0] / det]];
-        // J = U · Q⁻¹, columns j0 and j1.
-        let j0 = [
-            u1[0] * inv[0][0] + u2[0] * inv[1][0],
-            u1[1] * inv[0][0] + u2[1] * inv[1][0],
-        ];
-        let j1 = [
-            u1[0] * inv[0][1] + u2[0] * inv[1][1],
-            u1[1] * inv[0][1] + u2[1] * inv[1][1],
-        ];
-        let flipped = j0[0] * j1[1] - j0[1] * j1[0] < 0.0;
-        let (aa, ab, bb) = (
-            j0[0] * j0[0] + j0[1] * j0[1],
-            j0[0] * j1[0] + j0[1] * j1[1],
-            j1[0] * j1[0] + j1[1] * j1[1],
-        );
-        let trace = aa + bb;
-        let d = (aa * bb - ab * ab).max(0.0);
-        let spread = (trace * trace / 4.0 - d).max(0.0).sqrt();
-        let most = (trace / 2.0 + spread).max(0.0).sqrt();
-        let least = (trace / 2.0 - spread).max(0.0).sqrt();
+        };
         let uneven = if least > 1e-12 {
             (most / least).ln()
         } else {
@@ -603,6 +630,81 @@ pub(crate) fn distortion(triangles: &[[usize; 3]], shapes: &[Option<Shape>], at:
     }
     sum / total_real
 }
+
+/// How many times off each triangle is where it lies: the more of how
+/// much more it stretches one way than the other, and how much bigger or
+/// smaller (in length) it is than the layout's average (decision 0111).
+/// 1 is perfect; a turned-over triangle is infinitely off; one with no
+/// area, perfect.
+#[cfg(test)]
+pub(crate) fn stretch_each(
+    triangles: &[[usize; 3]],
+    shapes: &[Option<Shape>],
+    at: &[Vec2],
+) -> Vec<f64> {
+    stretch_parts(triangles, shapes, at)
+        .into_iter()
+        .map(|(uneven, size)| uneven.max(size).max(1.0 / size))
+        .collect()
+}
+
+/// For each triangle, how many times more it stretches one way than the
+/// other, and its size (in length) against the layout's average: (1, 1)
+/// is perfect; a turned-over triangle is infinitely uneven.
+pub(crate) fn stretch_parts(
+    triangles: &[[usize; 3]],
+    shapes: &[Option<Shape>],
+    at: &[Vec2],
+) -> Vec<(f64, f64)> {
+    let average = average_room(triangles, shapes, at);
+    let mirrored = mirrored(triangles, at);
+    triangles
+        .iter()
+        .zip(shapes)
+        .map(|(t, s)| {
+            let (Some(q), Some(average)) = (s, average) else {
+                return (1.0, 1.0);
+            };
+            let Some((most, least, flipped)) = stretch_of(q, t, at, mirrored) else {
+                return (1.0, 1.0);
+            };
+            if flipped || least <= 1e-12 {
+                return (f64::INFINITY, 1.0);
+            }
+            let size = ((most * least) / average).sqrt();
+            (most / least, size.max(1e-12))
+        })
+        .collect()
+}
+
+/// How far off nearly all of a piece is: the stretch (see
+/// [`stretch_each`]) that only the worst [`BUDGET_SPARE`] of its area is
+/// beyond. A slit's tip or a single sliver can't hold a whole piece over
+/// its budget this way (decision 0111).
+pub(crate) fn nearly_all(each: &[f64], shapes: &[Option<Shape>]) -> f64 {
+    let mut weighted: Vec<(f64, f64)> = each
+        .iter()
+        .zip(shapes)
+        .map(|(s, q)| (*s, q.as_ref().map_or(0.0, |q| area(q).abs())))
+        .collect();
+    let total: f64 = weighted.iter().map(|(_, a)| a).sum();
+    if total <= 0.0 {
+        return 1.0;
+    }
+    weighted.sort_by(|a, b| b.0.total_cmp(&a.0));
+    let mut beyond = 0.0;
+    for (s, a) in weighted {
+        beyond += a;
+        if beyond > total * BUDGET_SPARE {
+            return s;
+        }
+    }
+    1.0
+}
+
+/// The share of a piece's area a stretch budget doesn't count: its worst
+/// 5%.
+pub const BUDGET_SPARE: f64 = 0.05;
 
 /// The chart laid out by `method` (not `Automatic`), with `pins` held
 /// (each wedge's spot, or none), starting from `start`, with `scale`

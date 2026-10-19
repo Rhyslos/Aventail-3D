@@ -9,10 +9,64 @@ use mesh::{CubeParams, PrimitiveKind, VertexId};
 use scene::{Command, Object, ObjectKind, Operation, Place, Primitive, Transform};
 
 /// A document using everything the current version of the format can
-/// hold: all of [`rich_document_v34`], plus mending settings, an unwrap
-/// with every choice changed and a relax of its own length (version 35;
-/// the version 35 sample holds exactly this).
+/// hold: all of [`rich_document_v35`], plus seam preferences, a stretch
+/// budget and an unwrap with one (version 36; the version 36 sample holds
+/// exactly this).
 fn rich_document() -> Document {
+    let mut doc = rich_document_v35();
+    let sphere = doc
+        .scene()
+        .walk()
+        .into_iter()
+        .map(|(id, _)| id)
+        .find(|id| doc.scene().object(*id).unwrap().name == "Sphere")
+        .unwrap();
+    let mesh = doc.scene().evaluated(sphere).unwrap().mesh;
+    let faces: Vec<scene::FaceId> = mesh.faces().map(|(f, _)| f).collect();
+    let topology = mesh.topology();
+    let inner: Vec<scene::EdgeKey> = topology
+        .edges()
+        .filter(|e| topology.edge_uses(*e).len() == 2)
+        .collect();
+    for operation in [
+        Operation::SetSeamPreference {
+            edges: inner[..1].to_vec(),
+            preference: scene::SeamPreference::Never,
+            anchors: None,
+        },
+        Operation::SetSeamPreference {
+            edges: inner[1..2].to_vec(),
+            preference: scene::SeamPreference::Prefer,
+            anchors: None,
+        },
+        Operation::SetStretchBudget {
+            faces: faces[..1].to_vec(),
+            budget: Some(1.4),
+            anchors: None,
+        },
+        Operation::Unwrap {
+            faces,
+            options: scene::UnwrapOptions {
+                budget: Some(2.5),
+                ..scene::UnwrapOptions::plain(true)
+            },
+            anchors: None,
+        },
+    ] {
+        doc.execute(Command::Record {
+            id: sphere,
+            operation,
+        })
+        .unwrap();
+    }
+    doc
+}
+
+/// A document using everything version 35 stores: all of
+/// [`rich_document_v34`], plus mending settings, an unwrap with every
+/// choice changed and a relax of its own length (the version 35 sample
+/// holds exactly this).
+fn rich_document_v35() -> Document {
     let mut doc = rich_document_v34();
     doc.execute(Command::SetMending(scene::MendOptions {
         on: true,
@@ -38,6 +92,7 @@ fn rich_document() -> Document {
                 method: scene::UnwrapMethod::AngleBased,
                 only: None,
                 hide: scene::HideSeams::Behind,
+                budget: None,
             },
             anchors: None,
         },
@@ -1837,7 +1892,7 @@ fn a_cut_short_or_padded_body_is_damaged() {
 #[test]
 fn an_uncompressed_body_can_be_read() {
     let doc = rich_document();
-    let body = postcard::to_stdvec(&v35::ProjectV35::<v35::EntryV35>::from_document(&doc)).unwrap();
+    let body = postcard::to_stdvec(&v35::ProjectV35::<v36::EntryV36>::from_document(&doc)).unwrap();
     let mut bytes = header(FORMAT_VERSION, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     assert_same(&doc, &from_bytes(&bytes).unwrap());
@@ -4045,12 +4100,27 @@ fn a_file_saved_by_format_version_33_opens_with_its_trim_sheet() {
     assert!(text.contains("PlaceOnTrim"));
 }
 
+const SAMPLE_V36: &[u8] = include_bytes!("../../tests/data/sample-v36.avtl");
+
+#[test]
+fn a_file_saved_by_format_version_36_opens_with_its_preferences_and_budgets() {
+    let doc = from_bytes(SAMPLE_V36).expect("the version 36 sample opens");
+    assert_same(&rich_document(), &doc);
+    let text = format!(
+        "{:?}",
+        v35::ProjectV35::<v36::EntryV36>::from_document(&doc)
+    );
+    assert!(text.contains("SetSeamPreference"));
+    assert!(text.contains("SetStretchBudget"));
+    assert!(text.contains("budget: 2.5"));
+}
+
 const SAMPLE_V35: &[u8] = include_bytes!("../../tests/data/sample-v35.avtl");
 
 #[test]
 fn a_file_saved_by_format_version_35_opens_with_every_choice() {
     let doc = from_bytes(SAMPLE_V35).expect("the version 35 sample opens");
-    assert_same(&rich_document(), &doc);
+    assert_same(&rich_document_v35(), &doc);
     assert_eq!(doc.scene().mending().uneven, 4.5);
     let text = format!(
         "{:?}",

@@ -28,9 +28,25 @@
 //! corner angle, whether hard edges are cut, and where cuts hide
 //! ([`HideSeams`]). The same shape and options always give the same
 //! seams: every tie is settled by element ids, never by chance.
+//!
+//! The user can also say where seams should and shouldn't go, and how
+//! stretched a piece may be ([decision
+//! 0111](../../../docs/decisions/0111-seam-preferences-and-stretch-budget.md)):
+//!
+//! - an edge marked **prefer** is where a needed cut goes first;
+//! - an edge marked **never** is never cut by a tool: not as a hard edge
+//!   or corner, and not to make a piece lie flat unless it couldn't
+//!   otherwise;
+//! - a **stretch budget** (for the whole shape, or a piece's own) is the
+//!   most nearly all of a piece (all but its worst 5% by area) may be off
+//!   once laid flat: stretched one way more than the other, or bigger or
+//!   smaller than the rest. A piece over it is cut, a slit at a time, from
+//!   its worst place to its border along the most hidden way, until it is
+//!   within or nothing more helps ([`budget_cuts`]).
 
-use crate::chart::Sets;
+use crate::chart::{Chart, Sets};
 use glam::Vec3;
+use mesh::uvs::SeamPreference;
 use mesh::{EdgeKey, FaceId, Mesh, VertexId};
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet, BinaryHeap, HashMap};
@@ -75,6 +91,9 @@ pub struct SuggestOptions {
     pub hard_edges: bool,
     /// Where the cuts that make pieces lie flat are hidden.
     pub hide: HideSeams,
+    /// The stretch budget for pieces without one of their own (`None`: no
+    /// budget).
+    pub budget: Option<f32>,
 }
 
 impl Default for SuggestOptions {
@@ -83,9 +102,13 @@ impl Default for SuggestOptions {
             corner_angle: CORNER_ANGLE,
             hard_edges: true,
             hide: HideSeams::BelowAndBehind,
+            budget: None,
         }
     }
 }
+
+/// The most slits [`budget_cuts`] makes in one piece.
+pub const MAX_BUDGET_CUTS: usize = 24;
 
 /// The edges shared by exactly two polygons: the only edges a seam can be
 /// on (an open edge is cut already; an edge of three or more polygons
@@ -228,6 +251,11 @@ fn visibility(mesh: &Mesh, edge: EdgeKey, hide: HideSeams) -> f32 {
     let Some((f, g)) = sides(mesh, edge) else {
         return 0.0;
     };
+    match mesh::uvs::seam_preference(mesh, edge) {
+        SeamPreference::Prefer => return PREFERRED,
+        SeamPreference::Never => return NEVER,
+        SeamPreference::Free => {}
+    }
     if hide == HideSeams::Shortest {
         return 2.0;
     }
@@ -244,6 +272,14 @@ fn visibility(mesh: &Mesh, edge: EdgeKey, hide: HideSeams) -> f32 {
     };
     2.0 + up * facing.z - back * facing.y + 0.5 * flat - if concave { 1.0 } else { 0.0 }
 }
+
+/// How visible an edge marked "prefer" counts as: less than any other, so
+/// a needed cut goes there first.
+const PREFERRED: f32 = -10.0;
+
+/// How visible an edge marked "never" counts as: far more than any other,
+/// so it is cut only when nothing else would do.
+const NEVER: f32 = 1_000.0;
 
 /// A path's cost along `edge`: its length, more where it is seen.
 fn path_cost(mesh: &Mesh, edge: EdgeKey, hide: HideSeams) -> f32 {
@@ -465,17 +501,193 @@ pub fn suggest_with(mesh: &Mesh, hard: &[EdgeKey], options: SuggestOptions) -> V
     } else {
         Vec::new()
     };
+    let never: BTreeSet<EdgeKey> = mesh::uvs::seam_preferences(mesh)
+        .into_iter()
+        .filter(|(_, p)| *p == SeamPreference::Never)
+        .map(|(e, _)| e)
+        .collect();
     let mut cuts: BTreeSet<EdgeKey> = hard
         .iter()
         .copied()
         .chain(corners)
-        .filter(|e| inner.contains(e))
+        .filter(|e| inner.contains(e) && !never.contains(e))
         .collect();
     for piece in pieces(mesh, &cuts) {
         let more = disk_cuts(mesh, &piece, &cuts, options.hide);
         cuts.extend(more);
+        let budget = mesh::uvs::budget_of(mesh, &piece).or(options.budget);
+        if let Some(budget) = budget {
+            let more = budget_cuts(mesh, &piece, &cuts, budget, options.hide);
+            cuts.extend(more);
+        }
     }
     cuts.into_iter().filter(|e| inner.contains(e)).collect()
+}
+
+/// How far off nearly all of `piece` is once laid flat, cut along `cuts`
+/// (see [`crate::methods::nearly_all`]), and which polygon each of its
+/// triangles belongs to with how squeezed or uneven each is. `None` when
+/// it can't be laid out.
+fn worst_stretch(
+    mesh: &Mesh,
+    piece: &[FaceId],
+    cuts: &BTreeSet<EdgeKey>,
+) -> Option<(f64, Vec<(FaceId, f64)>)> {
+    let chart = Chart::of(mesh, piece, cuts);
+    let none = vec![None; chart.len()];
+    let (at, _) =
+        crate::methods::lay_flat(mesh, &chart, crate::UnwrapMethod::Conformal, &none, &[])?;
+    let (triangles, shapes) = crate::methods::real_shapes(mesh, &chart);
+    let parts = crate::methods::stretch_parts(&triangles, &shapes, &at);
+    let each: Vec<f64> = parts
+        .iter()
+        .map(|(uneven, size)| uneven.max(*size).max(1.0 / size))
+        .collect();
+    // Where to slit from: where the surface is squeezed (smaller than the
+    // rest) or stretched one way. A curved piece laid flat squeezes in
+    // its middle and spreads at its border; a slit from the squeeze lets
+    // it open out. Spreading at the border is the same strain seen from
+    // the other side.
+    let owners = chart.triangle_owners(mesh);
+    let by_face: Vec<(FaceId, f64)> = owners
+        .iter()
+        .zip(&parts)
+        .map(|(o, (uneven, size))| (chart.faces[*o], uneven.max(1.0 / size)))
+        .collect();
+    Some((crate::methods::nearly_all(&each, &shapes), by_face))
+}
+
+/// The slits that bring `piece` (cut along `cuts`, a disk) within
+/// `budget`: from the point inside the piece where it is most squeezed or
+/// stretched one way to the border along the most hidden way, a slit at a time, until
+/// nearly all of it is within the budget, nothing more can be cut, or
+/// [`MAX_BUDGET_CUTS`] slits are made. A slit that doesn't help is taken
+/// back and the search stops. Never edges are not cut.
+pub fn budget_cuts(
+    mesh: &Mesh,
+    piece: &[FaceId],
+    cuts: &BTreeSet<EdgeKey>,
+    budget: f32,
+    hide: HideSeams,
+) -> BTreeSet<EdgeKey> {
+    let mut added = BTreeSet::new();
+    if !budget.is_finite() || budget < 1.0 || piece.len() < 2 {
+        return added;
+    }
+    let budget = f64::from(budget);
+    let topology = mesh.topology();
+    let inside: BTreeSet<FaceId> = piece.iter().copied().collect();
+    let mut all = cuts.clone();
+    let Some((mut worst, mut by_face)) = worst_stretch(mesh, piece, &all) else {
+        return added;
+    };
+    for _ in 0..MAX_BUDGET_CUTS {
+        if worst <= budget {
+            break;
+        }
+        // The edges still joined inside the piece, and its border's points.
+        let mut joined: Vec<EdgeKey> = Vec::new();
+        let mut border: BTreeSet<VertexId> = BTreeSet::new();
+        let mut seen = BTreeSet::new();
+        for f in piece {
+            let points = mesh.face(*f).unwrap_or(&[]);
+            for (k, v) in points.iter().enumerate() {
+                let e = EdgeKey::new(*v, points[(k + 1) % points.len()]);
+                if !seen.insert(e) {
+                    continue;
+                }
+                let both_inside = topology
+                    .edge_faces(e)
+                    .filter(|g| inside.contains(g))
+                    .count()
+                    == 2;
+                if both_inside && topology.edge_uses(e).len() == 2 && !all.contains(&e) {
+                    if mesh::uvs::seam_preference(mesh, e) != SeamPreference::Never {
+                        joined.push(e);
+                    }
+                } else {
+                    let (a, b) = e.ends();
+                    border.insert(a);
+                    border.insert(b);
+                }
+            }
+        }
+        // How far each point is from the border, the most hidden way.
+        let mut next: BTreeMap<VertexId, Vec<(VertexId, EdgeKey, f32)>> = BTreeMap::new();
+        for e in &joined {
+            let (a, b) = e.ends();
+            let cost = path_cost(mesh, *e, hide);
+            next.entry(a).or_default().push((b, *e, cost));
+            next.entry(b).or_default().push((a, *e, cost));
+        }
+        let mut best: BTreeMap<VertexId, (f32, Option<(VertexId, EdgeKey)>)> = BTreeMap::new();
+        let mut queue = BinaryHeap::new();
+        for v in &border {
+            best.insert(*v, (0.0, None));
+            queue.push(Step(0.0, *v));
+        }
+        while let Some(Step(cost, v)) = queue.pop() {
+            if best.get(&v).is_some_and(|(c, _)| *c < cost) {
+                continue;
+            }
+            for (w, e, step) in next.get(&v).map(Vec::as_slice).unwrap_or(&[]) {
+                let total = cost + step;
+                if best.get(w).is_none_or(|(c, _)| total < *c) {
+                    best.insert(*w, (total, Some((v, *e))));
+                    queue.push(Step(total, *w));
+                }
+            }
+        }
+        // Each point inside the piece is as squeezed or uneven as the
+        // worst polygon round it; the slit starts from the worst such
+        // point (the one furthest inside, on a tie).
+        let mut off: BTreeMap<VertexId, f64> = BTreeMap::new();
+        for (f, s) in &by_face {
+            for v in mesh.face(*f).unwrap_or(&[]) {
+                let e = off.entry(*v).or_insert(1.0);
+                *e = e.max(*s);
+            }
+        }
+        let start = off
+            .iter()
+            .filter_map(|(v, s)| {
+                let d = best.get(v)?.0;
+                (d > 0.0).then_some((*v, *s, d))
+            })
+            .max_by(|a, b| {
+                a.1.total_cmp(&b.1)
+                    .then(a.2.total_cmp(&b.2))
+                    .then(b.0.cmp(&a.0))
+            })
+            .map(|(v, _, _)| v);
+        let Some(mut at) = start else {
+            break;
+        };
+        let mut slit = Vec::new();
+        while let Some((_, Some((back, e)))) = best.get(&at) {
+            slit.push(*e);
+            at = *back;
+            if slit.len() > joined.len() {
+                break;
+            }
+        }
+        if slit.is_empty() {
+            break;
+        }
+        let mut trial = all.clone();
+        trial.extend(slit.iter().copied());
+        let Some((now, now_by_face)) = worst_stretch(mesh, piece, &trial) else {
+            break;
+        };
+        if now >= worst - 1e-9 {
+            break;
+        }
+        added.extend(slit);
+        all = trial;
+        worst = now;
+        by_face = now_by_face;
+    }
+    added
 }
 
 #[cfg(test)]

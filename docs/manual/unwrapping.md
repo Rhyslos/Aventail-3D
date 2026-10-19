@@ -22,7 +22,7 @@
 3. Each is one undo step (**Ctrl + Z**), saved with the project and recorded on the object's [edit list](edit-list.md).
 
 What **Unwrap** does with each piece holding the selection:
-- lays it flat along its seams, the way **UV → Unwrapping → Method** says. A piece that can't lie flat in one go (a tube, or a closed ball with no seam) is first cut open in a hidden place (where **UV → Seam suggestions → Hide cuts** says), and the cut is marked as a seam;
+- lays it flat along its seams, the way **UV → Unwrapping → Method** says. A piece that can't lie flat in one go (a tube, or a closed ball with no seam) is first cut open in a hidden place (where **UV → Seam suggestions → Hide cuts** says, keeping off edges marked "never"), and the cut is marked as a seam; a piece over its [stretch budget](seam-preferences.md) is slit further, and those cuts are seams too;
 - a piece of **square-cornered quads** (a cylinder's side, a bevel's strip, a flat panel) comes out as a **straight grid**, when **Straighten strips when unwrapping** is on;
 - turns it so its sides line up with the square, keeping the way it lay before (a quarter turn at a time);
 - sizes it to match the rest of the object, so every piece keeps its **real size** against the others (the same [texel density](texture-and-density.md));

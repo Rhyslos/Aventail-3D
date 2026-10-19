@@ -101,6 +101,7 @@ pub(crate) fn operation_size(op: &Operation) -> usize {
         | Operation::StraightenUvs { faces, anchors }
         | Operation::RelaxUvs { faces, anchors, .. }
         | Operation::SetTexelDensity { faces, anchors, .. }
+        | Operation::SetStretchBudget { faces, anchors, .. }
         | Operation::PlaceOnTrim { faces, anchors, .. } => {
             std::mem::size_of_val(faces.as_slice())
                 + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
@@ -133,7 +134,8 @@ pub(crate) fn operation_size(op: &Operation) -> usize {
                 + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
         }
         Operation::SetHardEdges { edges, anchors, .. }
-        | Operation::SetSeams { edges, anchors, .. } => {
+        | Operation::SetSeams { edges, anchors, .. }
+        | Operation::SetSeamPreference { edges, anchors, .. } => {
             std::mem::size_of_val(edges.as_slice())
                 + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
         }
