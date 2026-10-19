@@ -200,6 +200,10 @@ pub enum Command {
     /// Changes the project's texture settings (decision 0100): its size
     /// and the texel density aimed for. The UVs don't change.
     SetTexture(crate::TextureSettings),
+    /// Changes how the project's edits mend the UVs they break (decision
+    /// 0110). Limits outside `uv::mend::LIMITS` are refused. Every shape
+    /// is worked out again with the new settings.
+    SetMending(crate::MendOptions),
     /// Changes the project's trim sheet (decision 0106): its rows. A sheet
     /// that isn't valid (`TrimSheet::is_valid`) is refused. The UVs don't
     /// change.
@@ -327,6 +331,7 @@ impl Command {
             Self::SetExportTarget(Some(_)) => "Change the game project folder".to_string(),
             Self::SetExportTarget(None) => "Clear the game project folder".to_string(),
             Self::SetTexture(_) => "Change the texture settings".to_string(),
+            Self::SetMending(_) => "Change how edits keep UVs".to_string(),
             Self::SetTrim(_) => "Change the trim sheet".to_string(),
             Self::MovePivots(changes) => match changes.len() {
                 1 => "Move pivot".to_string(),
@@ -467,8 +472,10 @@ impl Run<'_> {
         if let Some(problem) = object.stack.freeze_problem(edit) {
             return Err(SceneError::History(problem));
         }
-        let shape = crate::stack::evaluate_once(&object.kind, &Stack::from_layers(frozen))
-            .ok_or(SceneError::NoShape)?;
+        let context = self.scene.eval_context();
+        let shape =
+            crate::stack::evaluate_once(&object.kind, &Stack::from_layers(frozen), &context)
+                .ok_or(SceneError::NoShape)?;
         let before = object.kind.clone();
         // The frozen edits of `edit`'s own layer, first to last...
         for entry in layers[layer].entries[..=index].iter().cloned() {
@@ -1115,6 +1122,19 @@ impl Run<'_> {
                     self.edit(Edit::SetTexture {
                         before,
                         after: *texture,
+                    })?;
+                }
+                Ok(None)
+            }
+            Command::SetMending(mending) => {
+                if !mending.is_real() {
+                    return Err(SceneError::NotANumber);
+                }
+                let before = self.scene.mending();
+                if before != *mending {
+                    self.edit(Edit::SetMending {
+                        before,
+                        after: *mending,
                     })?;
                 }
                 Ok(None)

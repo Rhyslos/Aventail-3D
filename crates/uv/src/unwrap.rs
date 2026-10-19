@@ -21,6 +21,7 @@
 
 use crate::chart::Chart;
 use crate::methods::{UnwrapMethod, conformal_shapes, lay_flat, real_shapes};
+use crate::seams::HideSeams;
 use glam::{Vec2, Vec3};
 use mesh::edit::Outcome;
 use mesh::uvs::Uvs;
@@ -33,11 +34,19 @@ use std::collections::{BTreeSet, HashMap, VecDeque};
 pub const SOLVE_UP_TO: usize = 60_000;
 
 /// How far (degrees) a quad's corners may be from square for its chart to
-/// count as a strip and be straightened when unwrapping.
+/// count as a strip and be straightened when unwrapping: the standard for
+/// [`UnwrapOptions::strip_angle`].
 pub const SQUARE_WITHIN: f32 = 25.0;
 
-/// How many steps relaxing takes.
+/// The most a quad's corners may be from square, in degrees, for any
+/// choice of [`UnwrapOptions::strip_angle`].
+pub const MAX_STRIP_ANGLE: f32 = 60.0;
+
+/// How many steps relaxing takes: the standard.
 pub const RELAX_STEPS: usize = 60;
+
+/// The most steps relaxing may be asked to take.
+pub const MAX_RELAX_STEPS: u32 = 1_000;
 
 /// What a chart is cut along: the seams, or, on a shape with no seam marks
 /// at all (imported, say), where its UVs split.
@@ -116,9 +125,9 @@ pub(crate) fn projected(mesh: &Mesh, chart: &Chart) -> Vec<Vec2> {
 }
 
 /// Whether every polygon of the chart is a quad with corners within
-/// [`SQUARE_WITHIN`] of square.
-fn all_square_quads(mesh: &Mesh, chart: &Chart) -> bool {
-    let limit = SQUARE_WITHIN.to_radians().sin();
+/// `within` degrees of square.
+fn all_square_quads(mesh: &Mesh, chart: &Chart, within: f32) -> bool {
+    let limit = within.clamp(0.0, MAX_STRIP_ANGLE).to_radians().sin();
     chart.faces.iter().all(|f| {
         let Some(list) = mesh.face(*f) else {
             return false;
@@ -523,25 +532,55 @@ pub enum UnfoldAxis {
     Up,
 }
 
-/// How [`unwrap_with`] lays pieces flat.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+/// How [`unwrap_with`] lays pieces flat. Every choice an unwrap makes is
+/// here, so the same shape and options always give the same UVs
+/// ([decision 0110](../../../docs/decisions/0110-controllable-automation.md)).
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct UnwrapOptions {
     /// Strips of square quads come out as a straight grid.
     pub strips: bool,
+    /// How far (degrees) a quad's corners may be from square for its piece
+    /// to count as a strip (0 to [`MAX_STRIP_ANGLE`]).
+    pub strip_angle: f32,
     /// The way pieces are laid flat.
     pub method: UnwrapMethod,
     /// Unfold one way only (`None`: both ways).
     pub only: Option<UnfoldAxis>,
+    /// Where a piece that can't lie flat in one go is cut open.
+    pub hide: HideSeams,
+}
+
+impl Default for UnwrapOptions {
+    fn default() -> Self {
+        Self {
+            strips: false,
+            strip_angle: SQUARE_WITHIN,
+            method: UnwrapMethod::Conformal,
+            only: None,
+            hide: HideSeams::BelowAndBehind,
+        }
+    }
 }
 
 impl UnwrapOptions {
     /// The usual unwrap: shapes kept (LSCM), both ways, strips as grids
-    /// when `strips`.
+    /// when `strips`, everything else as standard.
     pub fn plain(strips: bool) -> Self {
         Self {
             strips,
             ..Self::default()
         }
+    }
+
+    /// Whether every choice but `strips` is the standard one (as unwraps
+    /// were before the choices existed).
+    pub fn is_plain(&self) -> bool {
+        *self == Self::plain(self.strips)
+    }
+
+    /// Whether every number is real.
+    pub fn is_real(&self) -> bool {
+        self.strip_angle.is_finite() && (0.0..=MAX_STRIP_ANGLE).contains(&self.strip_angle)
     }
 }
 
@@ -681,7 +720,7 @@ pub(crate) fn lay_out(
     // Pieces that can't lie flat are cut open first; the cuts are seams.
     let mut extra = BTreeSet::new();
     for piece in pieces {
-        extra.extend(crate::seams::disk_cuts(mesh, piece, &cuts));
+        extra.extend(crate::seams::disk_cuts(mesh, piece, &cuts, options.hide));
     }
     cuts.extend(extra.iter().copied());
     let mut laid = Vec::new();
@@ -703,7 +742,7 @@ pub(crate) fn lay_out(
             None => {
                 let as_grid = (options.strips && pins.iter().all(Option::is_none))
                     .then(|| {
-                        all_square_quads(mesh, &chart)
+                        all_square_quads(mesh, &chart, options.strip_angle)
                             .then(|| grid(mesh, &chart))
                             .flatten()
                     })

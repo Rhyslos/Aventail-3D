@@ -170,7 +170,8 @@ fn cuts_prefer_hidden_places() {
         .iter()
         .max_by(|a, b| height(a).total_cmp(&height(b)))
         .unwrap();
-    assert!(visibility(&cube, *bottom) < visibility(&cube, *top));
+    let hide = HideSeams::BelowAndBehind;
+    assert!(visibility(&cube, *bottom, hide) < visibility(&cube, *top, hide));
 }
 
 #[test]

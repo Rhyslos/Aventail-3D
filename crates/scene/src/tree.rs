@@ -127,6 +127,11 @@ pub(crate) enum Edit {
         before: crate::TextureSettings,
         after: crate::TextureSettings,
     },
+    /// Changes how the project's edits mend UVs.
+    SetMending {
+        before: crate::MendOptions,
+        after: crate::MendOptions,
+    },
     /// Changes the project's trim sheet.
     SetTrim {
         before: crate::TrimSheet,
@@ -207,6 +212,7 @@ impl Edit {
             Self::SetUnits { before, after } => before == after,
             Self::SetExportTarget { before, after } => before == after,
             Self::SetTexture { before, after } => before == after,
+            Self::SetMending { before, after } => before == after,
             Self::SetTrim { before, after } => before == after,
             Self::SetMaterials { before, after, .. } => before == after,
             Self::SetCollision { before, after, .. } => before == after,
@@ -255,6 +261,10 @@ impl Edit {
                 after: before,
             },
             Self::SetTrim { before, after } => Self::SetTrim {
+                before: after,
+                after: before,
+            },
+            Self::SetMending { before, after } => Self::SetMending {
                 before: after,
                 after: before,
             },
@@ -342,6 +352,8 @@ pub struct Scene {
     texture: crate::TextureSettings,
     /// The project's trim sheet (decision 0106).
     trim: crate::TrimSheet,
+    /// How the project's edits mend UVs (decision 0110).
+    mending: crate::MendOptions,
     /// Each object's evaluated shape, layer by layer (not part of what the
     /// scene is: copies start empty, and it never affects equality).
     cache: SharedCache,
@@ -448,6 +460,26 @@ impl Scene {
         self
     }
 
+    /// How the project's edits mend the UVs they break (decision 0110).
+    pub fn mending(&self) -> crate::MendOptions {
+        self.mending
+    }
+
+    /// The same scene with mending settings `mending`, for a project being
+    /// opened (not a step to undo: use [`crate::Command::SetMending`]).
+    #[must_use]
+    pub fn with_mending(mut self, mending: crate::MendOptions) -> Self {
+        self.mending = mending;
+        self
+    }
+
+    /// What every shape is worked out with.
+    pub(crate) fn eval_context(&self) -> EvalContext {
+        EvalContext {
+            mending: self.mending,
+        }
+    }
+
     /// The project's trim sheet (decision 0106).
     pub fn trim(&self) -> &crate::TrimSheet {
         &self.trim
@@ -518,7 +550,7 @@ impl Scene {
                 .and_then(|_| self.evaluated(source));
         }
         self.cache
-            .with(|cache| cache.evaluate(id, &object.kind, &object.stack, &EvalContext::default()))
+            .with(|cache| cache.evaluate(id, &object.kind, &object.stack, &self.eval_context()))
     }
 
     /// The box around the object's final shape, in its own space, or
@@ -928,6 +960,15 @@ impl Scene {
                     ));
                 }
                 self.texture = *after;
+                Ok(())
+            }
+            Edit::SetMending { before, after } => {
+                if self.mending != *before {
+                    return Err(SceneError::History(
+                        "the project's mending settings have changed",
+                    ));
+                }
+                self.mending = *after;
                 Ok(())
             }
             Edit::SetTrim { before, after } => {

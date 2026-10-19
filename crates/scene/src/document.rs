@@ -62,6 +62,14 @@ impl Document {
         self
     }
 
+    /// The same document with mending settings `mending`, for a project
+    /// being opened (not a step to undo: use [`Command::SetMending`]).
+    #[must_use]
+    pub fn with_mending(mut self, mending: crate::MendOptions) -> Self {
+        self.scene = std::mem::take(&mut self.scene).with_mending(mending);
+        self
+    }
+
     /// The same document with trim sheet `trim`, for a project being
     /// opened (not a step to undo: use [`Command::SetTrim`]).
     #[must_use]

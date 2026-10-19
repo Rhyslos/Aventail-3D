@@ -34,9 +34,11 @@ fn point_uv(mesh: &Mesh, v: VertexId) -> Vec2 {
 fn unwrap(faces: Vec<FaceId>, method: UnwrapMethod, only: Option<UnfoldAxis>) -> Operation {
     Operation::Unwrap {
         faces,
-        strips: false,
-        method,
-        only,
+        options: UnwrapOptions {
+            method,
+            only,
+            ..UnwrapOptions::plain(false)
+        },
         anchors: None,
     }
 }
