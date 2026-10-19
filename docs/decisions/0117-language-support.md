@@ -1,6 +1,6 @@
 # 0117. Language support as Phase 9
 
-- **Status:** Accepted
+- **Status:** Partly replaced by [0119](0119-roadmap-after-the-uvs.md): only English ships for now, built as a language package in Phase 9; the rest waits until other languages are wanted
 - **Date:** 2026-10-17
 - **Follows:** [0108](0108-uv-powerhouse-and-baking.md) (Phase 8, the UVs)
 
