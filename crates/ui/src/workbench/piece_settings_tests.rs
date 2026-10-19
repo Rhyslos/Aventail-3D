@@ -4,7 +4,7 @@
 
 use super::modelling_tests::{H, note};
 use super::piece_settings::*;
-use super::tests::{fresh, main_menu};
+use super::tests::fresh;
 use super::unwrapping::UnwrapWay;
 use crate::commands::CommandId;
 use egui_kittest::kittest::Queryable;
@@ -132,8 +132,7 @@ fn piece_settings_are_given_and_cleared_as_steps() {
 fn the_uv_menu_holds_locking_and_the_piece_settings() {
     let mut harness = fresh();
     cube(&mut harness);
-    main_menu(&harness, "UV").click();
-    harness.run();
+    super::tests::uv_group(&mut harness, super::UV_PIECES_MENU);
     for label in [LOCK_LABEL, UNLOCK_LABEL] {
         assert!(harness.query_by_label(label).is_some(), "{label}");
     }

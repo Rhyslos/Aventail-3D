@@ -4,7 +4,7 @@
 
 use super::modelling_tests::{H, note, press};
 use super::seam_preferences::*;
-use super::tests::{fresh, main_menu};
+use super::tests::fresh;
 use super::*;
 use egui_kittest::kittest::Queryable;
 use scene::{Element, ElementSelection, SeamPreference};
@@ -221,11 +221,13 @@ fn a_budget_goes_on_whole_pieces_and_reaches_the_tools() {
 fn the_uv_menu_holds_the_commands_and_the_budget_submenu() {
     let mut harness = fresh();
     sphere(&mut harness);
-    main_menu(&harness, "UV").click();
-    harness.run();
+    super::tests::uv_group(&mut harness, super::UV_SEAMS_MENU);
     for label in [PREFER_LABEL, NEVER_LABEL, CLEAR_PREFERENCE_LABEL] {
         assert!(harness.query_by_label(label).is_some(), "{label}");
     }
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    super::tests::uv_group(&mut harness, super::UV_PIECES_MENU);
     harness.get_by_label_contains(BUDGET_LABEL).hover();
     harness.run();
     for label in [SET_BUDGET_LABEL, CLEAR_BUDGET_LABEL, BUDGET_VALUE_LABEL] {

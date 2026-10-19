@@ -1,7 +1,7 @@
 //! Tests for packing in the window (decision 0101).
 
 use super::modelling_tests::{H, note};
-use super::tests::{fresh, main_menu};
+use super::tests::fresh;
 use crate::commands::CommandId;
 use egui_kittest::kittest::Queryable;
 use glam::Vec2;
@@ -116,8 +116,7 @@ fn a_texture_per_object_packs_each_on_its_own() {
 #[test]
 fn the_uv_menu_has_packing_settings() {
     let mut harness = fresh();
-    main_menu(&harness, "UV").click();
-    harness.run();
+    super::tests::uv_group(&mut harness, super::UV_SETTINGS_MENU);
     harness.get_by_label_contains("Packing").click();
     harness.run();
     for label in [

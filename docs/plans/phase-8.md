@@ -19,8 +19,9 @@ Each milestone is one pull request, stacked on the one before. None is merged ye
 | 2 | Fully controllable automation | `uv/controllable-automation` | #106 | [0110](../decisions/0110-controllable-automation.md) | 35 |
 | 3 | Seam preferences and stretch budgets | `uv/seam-preferences` | #107 | [0111](../decisions/0111-seam-preferences-and-stretch-budget.md) | 36 |
 | 4 | Locked pieces and piece settings | `uv/locked-pieces` | #108 | [0112](../decisions/0112-locked-pieces-and-piece-settings.md) | 37 |
+| – | The UV menu in groups (not a milestone) | `uv/menu-groups` | see the PR list | [0113](../decisions/0113-uv-menu-in-groups.md) | – |
 
-**Next:** milestone 5. Branch it from `uv/locked-pieces`. The next decision is 0113 and the next file format 38.
+**Next:** the project lead asked for six milestones in least-work order, each stacked on the last: 18 (layout snapshots), 15 (seeing and checking), 23 ("Why is this here?") and 9 (precise placement). **Milestones 14 (lightmaps) and 20 (recipes) are skipped for now** at his request; don't build them until he asks. Branch the next one from the newest branch in the table. The next decision is 0114 and the next file format 38.
 
 ## How the work is done (notes for the next session)
 
@@ -57,9 +58,7 @@ Each milestone is one pull request, stacked on the one before. None is merged ye
 **Interface pressure:**
 
 - **The E ring.** Its 15 UV places are full. New UV tools need a group (see decision 0109's Turn & flip) or a menu.
-- **The UV menu.** It now just fits a 900-pixel-high window.
-  - Milestone 5 should first fold it into submenus, for example **Seams** (mark, clear, from hard edges, suggest, select, preferences), **Pieces** (pin, unpin, lock, unlock, piece settings, stretch budget) and **Lay out** (unwrap, unfold, relax, straighten, pack, density, trim).
-  - Ask the project lead how he'd like it grouped before doing it.
+- **The UV menu.** It is grouped (decision 0113): Seams, Turn and flip, Lay out, Pieces, then Texture, Trim sheet and Check for baking, then Settings. Put new UV commands in the group they fit (a constant per group in `ui::workbench`); window tests open a group with `tests::uv_group`.
 
 ## Controls the project lead has chosen
 
@@ -73,6 +72,7 @@ These answers cover milestones still to come. Use them as given; ask only about 
 - **Lattice warp and measuring** (milestones 8 and 15): from the menus, then drag. No keys.
 - **Layout snapshots, isolate and sync** (milestones 11 and 18): in the UV Editor's menus. No keys.
 - **Pins** (built): the E menu and the UV menu, no key.
+- **"Why is this here?"** (milestone 23): only while **View → Explain choices** is ticked in the UV Editor.
 
 ## The plan, milestone by milestone
 

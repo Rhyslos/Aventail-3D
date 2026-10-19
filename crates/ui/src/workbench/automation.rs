@@ -51,6 +51,7 @@ impl Workbench {
                 .small()
                 .color(crate::theme::TEXT_WEAK),
         );
+        ui.separator();
         ui.menu_button(SEAMS_SETTINGS_LABEL, |ui| self.seams_settings(ui))
             .response
             .on_hover_text("How Suggest seams picks seams");

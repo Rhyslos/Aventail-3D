@@ -44,9 +44,9 @@ No key yet; ask if you'd like one.
 ## Tips and common problems
 
 - **Tip:** with the **Numbered checker**, read the labels on the model to find a piece in the UV Editor: a side showing C2 lies in cell C2 of the texture square. A label that reads backwards means the piece is mirrored; **Flip left to right** turns it back.
-- **Problem:** a ready-made sphere shows red at its top and bottom. **Why:** its ready-made UVs are laid out like a world map, squeezing the poles. **Fix:** **UV → Suggest seams** (which unwraps it in one piece), or keep it: it's often fine for small props.
+- **Problem:** a ready-made sphere shows red at its top and bottom. **Why:** its ready-made UVs are laid out like a world map, squeezing the poles. **Fix:** **UV → Seams → Suggest seams** (which unwraps it in one piece), or keep it: it's often fine for small props.
 - **Problem:** everything is purple. **Why:** the shape has no UVs, or they're all squashed flat. **Fix:** Unwrap it.
-- **Problem:** the checker's squares look the same everywhere but the Stretch view shows yellow. **Why:** the piece gets more or less texture than the rest of the object (its squares are bigger or smaller than elsewhere). **Fix:** Unwrap it, or **UV → Match texel density** across the object.
+- **Problem:** the checker's squares look the same everywhere but the Stretch view shows yellow. **Why:** the piece gets more or less texture than the rest of the object (its squares are bigger or smaller than elsewhere). **Fix:** Unwrap it, or **UV → Lay out → Match texel density** across the object.
 - **Tip:** a checker's tint changes from dark red at a texture's left to light red at its right, and from dark green at the bottom to light green at the top. Two neighbouring pieces whose tints run opposite ways are turned or mirrored against each other.
 
 ## Related

@@ -49,8 +49,7 @@ fn put_on_trim_row_lays_the_pieces_along_it() {
         .set_selection([id]);
     set_trim(&mut harness, scene::TrimSheet::even(4));
     let row = rows(&harness).rows[1].clone();
-    main_menu(&harness, "UV").click();
-    harness.run();
+    super::tests::uv_group(&mut harness, super::UV_LAY_OUT_MENU);
     harness.get_by_label_contains("Put on trim row").click();
     harness.run();
     harness.get_by_label("Row 2").click();
@@ -128,8 +127,7 @@ fn trim_pieces_sharing_a_texture_with_others_are_listed() {
 #[test]
 fn without_rows_the_menu_says_how_to_make_them() {
     let mut harness = fresh();
-    main_menu(&harness, "UV").click();
-    harness.run();
+    super::tests::uv_group(&mut harness, super::UV_LAY_OUT_MENU);
     harness.get_by_label_contains("Put on trim row").click();
     harness.run();
     assert!(harness.query_by_label("No rows yet").is_some());

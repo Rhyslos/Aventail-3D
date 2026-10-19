@@ -45,8 +45,8 @@ The bake is painted into the texture through the [UVs](concepts.md#uvs-and-textu
 | **Polygons folded over or squashed flat in the UVs** | They get no pixels of their own, so the bake smears or comes out back to front there. (A whole piece mirrored is fine.) | **Fix** unwraps their pieces. |
 | **Polygons outside the texture square** | A bake fills only the square: parts outside get nothing, or wrap round onto other parts. | **Fix** packs the pieces into the square. |
 | **Polygons lying over other UVs** | Pieces on top of each other share pixels, so one bakes over the other. | **Fix** packs them apart. |
-| **Polygons stacked on identical pieces** | Identical pieces lying exactly on each other share pixels. Right for identical parts if you meant it (**UV → Packing → Stack identical pieces**), but shadow bakes (ambient occlusion) see only one. | With stacking off, **Fix** packs them apart. With it on, it's listed so you know; there's no Fix. |
-| **Polygons closer than 8 px to other pieces** | Pieces need a gap of empty pixels. The baker spreads each piece's colours into it so seams don't show. A game also shows smaller copies of the texture at a distance ([mipmaps](concepts.md#uvs-and-texturing)), where close pieces blur into each other. | **Fix** packs them with the gap set in **UV → Packing**. |
+| **Polygons stacked on identical pieces** | Identical pieces lying exactly on each other share pixels. Right for identical parts if you meant it (**UV → Settings → Packing → Stack identical pieces**), but shadow bakes (ambient occlusion) see only one. | With stacking off, **Fix** packs them apart. With it on, it's listed so you know; there's no Fix. |
+| **Polygons closer than 8 px to other pieces** | Pieces need a gap of empty pixels. The baker spreads each piece's colours into it so seams don't show. A game also shows smaller copies of the texture at a distance ([mipmaps](concepts.md#uvs-and-texturing)), where close pieces blur into each other. | **Fix** packs them with the gap set in **UV → Settings → Packing**. |
 | **Polygons on the trim sheet sharing a texture with other pieces** | Pieces laid on a [trim sheet](trim-sheets.md)'s rows share a material (and so a texture) with pieces that aren't: the trim texture would land on those too. | Select them and give them a material of their own ([Materials](materials.md)). |
 | **Polygons with uneven texel density** | Pieces with twice (or half) the [texel density](texture-and-density.md) of the rest of the object look sharper or blurrier than the rest. | **Fix** scales them to the object's usual density. They may then overlap: Pack after. |
 
@@ -56,9 +56,9 @@ None of its own. Every shown shape is checked; an [instance](copies-and-instance
 
 | Setting | What it changes here |
 |---|---|
-| **UV → Packing → Padding** | The gap pieces need (8 px as standard). |
-| **UV → Packing → A texture per material / per object** | Which pieces share a texture, and so are checked together. |
-| **UV → Packing → Stack identical pieces** | Whether stacked identical pieces are on purpose (no Fix) or not. |
+| **UV → Settings → Packing → Padding** | The gap pieces need (8 px as standard). |
+| **UV → Settings → Packing → A texture per material / per object** | Which pieces share a texture, and so are checked together. |
+| **UV → Settings → Packing → Stack identical pieces** | Whether stacked identical pieces are on purpose (no Fix) or not. |
 | **UV → Texture** | The texture size the gap is measured in. |
 | **Automatic hard edges** (Mesh menu) | Which edges count as hard, as the export shades them. |
 
@@ -70,7 +70,7 @@ None: use the File or UV menu.
 
 - **Problem:** after **Fix**, the status bar says something else got worse (*but now: 3 edges shared by three or more polygons*). **Why:** welding points can squash polygons together. **Fix:** Ctrl + Z, then select the points and fix that spot by hand.
 - **Problem:** a problem keeps coming back after Fix. **Why:** an edit further down in the object's list of edits makes it again. **Fix:** Select it, then look at what you did there last.
-- **Problem:** two separate props are listed as lying over each other. **Why:** they have the same material, so they share one texture. **Fix:** give each its own material (for separate texture sets), switch on **UV → Packing → A texture per object**, or let Fix pack them together.
+- **Problem:** two separate props are listed as lying over each other. **Why:** they have the same material, so they share one texture. **Fix:** give each its own material (for separate texture sets), switch on **UV → Settings → Packing → A texture per object**, or let Fix pack them together.
 - **Problem:** after fixing uneven texel density, pieces overlap. **Why:** scaling makes pieces bigger or smaller where they lie. **Fix:** Fix the overlap too (it packs).
 - **Tip:** with the list empty, the UVs are ready to bake: no lines along hard edges, nothing painted twice, and gaps wide enough for the game's distant views.
 

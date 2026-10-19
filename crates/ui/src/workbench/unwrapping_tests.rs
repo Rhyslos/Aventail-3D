@@ -2,7 +2,7 @@
 //! live as seams change (decision 0099).
 
 use super::modelling_tests::{H, note, press};
-use super::tests::{fresh, main_menu};
+use super::tests::fresh;
 use super::unwrapping::UvSettings;
 use super::*;
 use crate::commands::CommandId;
@@ -218,12 +218,14 @@ fn nothing_selected_says_so() {
 fn the_uv_menu_has_the_tools_and_remembered_switches() {
     let mut harness = fresh();
     plane(&mut harness);
-    main_menu(&harness, "UV").click();
-    harness.run();
+    super::tests::uv_group(&mut harness, super::UV_LAY_OUT_MENU);
     for label in ["Unwrap", "Relax", "Straighten"] {
         assert!(harness.query_by_label(label).is_some(), "{label}");
     }
-    // The switches are in UV → Unwrapping (decision 0110).
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    // The switches are in UV → Settings → Unwrapping (decision 0110).
+    super::tests::uv_group(&mut harness, super::UV_SETTINGS_MENU);
     harness
         .get_by_label_contains(super::automation::UNWRAP_SETTINGS_LABEL)
         .hover();
