@@ -329,3 +329,31 @@ fn every_uv_can_be_set_at_once_but_only_whole_and_real() {
     assert!(set_uvs(&mut mesh, values.clone()));
     assert!(has_uvs(&mesh));
 }
+
+#[test]
+fn pins_are_set_shared_and_cleared() {
+    let mut cube = crate::Primitive::Cube(crate::CubeParams::default()).mesh();
+    assert!(pins(&cube).is_none());
+    let face = cube.faces().map(|(f, _)| f).next().unwrap();
+    let corner = cube.face(face).unwrap()[0];
+    // A point: its corner in each of the three sides meeting there.
+    let done = set_pins(&mut cube, &[], &[corner], true);
+    assert_eq!(done.matched, 1);
+    assert_eq!(pins(&cube).unwrap().iter().filter(|p| **p).count(), 3);
+    // A polygon: its four corners (one of them pinned already).
+    set_pins(&mut cube, &[face], &[], true);
+    assert_eq!(pins(&cube).unwrap().iter().filter(|p| **p).count(), 6);
+    // Pinning again changes nothing; unpinning everything takes the
+    // layer away.
+    assert_eq!(set_pins(&mut cube, &[face], &[], true).matched, 0);
+    set_pins(&mut cube, &[face], &[corner], false);
+    assert!(pins(&cube).is_none());
+    assert!(cube.attribute_values(crate::attributes::UV_PIN).is_none());
+    // Missing elements are counted; no UVs, no pins.
+    assert_eq!(
+        set_pins(&mut cube, &[FaceId::from_raw(99)], &[], true).missing,
+        1
+    );
+    cube.remove_attribute(crate::attributes::UV);
+    assert_eq!(set_pins(&mut cube, &[face], &[], true).matched, 0);
+}

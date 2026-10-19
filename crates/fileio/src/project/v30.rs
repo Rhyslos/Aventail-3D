@@ -54,9 +54,12 @@ fn faces(ids: Bounded<u32>) -> Vec<FaceId> {
 impl FileOperation for OperationV30 {
     fn to_file(op: &Operation) -> Option<Self> {
         Some(match op {
+            // Only the plain way: version 34 stores the others.
             Operation::Unwrap {
                 faces,
                 strips,
+                method: scene::UnwrapMethod::Conformal,
+                only: None,
                 anchors,
             } => Self::Unwrap {
                 faces: ids(faces),
@@ -85,6 +88,8 @@ impl FileOperation for OperationV30 {
             } => Operation::Unwrap {
                 faces: faces(list),
                 strips,
+                method: scene::UnwrapMethod::Conformal,
+                only: None,
                 anchors: anchors.map(anchors_from_file).transpose()?,
             },
             Self::StraightenUvs {
@@ -116,11 +121,15 @@ mod tests {
             Operation::Unwrap {
                 faces: some.clone(),
                 strips: true,
+                method: scene::UnwrapMethod::Conformal,
+                only: None,
                 anchors: None,
             },
             Operation::Unwrap {
                 faces: some.clone(),
                 strips: false,
+                method: scene::UnwrapMethod::Conformal,
+                only: None,
                 anchors: None,
             },
             Operation::StraightenUvs {

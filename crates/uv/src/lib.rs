@@ -11,6 +11,8 @@
 //! - [`density`]: texel density: measuring it and setting it.
 //! - [`mod@mend`]: keeping UVs whole through modelling: laying out again
 //!   what an edit left without room, around what it kept.
+//! - [`methods`]: the ways a piece is laid flat (keep shapes, angle-based,
+//!   keep sizes, automatic), with pinned points held.
 //! - [`pack`]: fitting pieces into the texture square.
 //! - [`trim`]: laying strips straight onto a trim sheet's rows.
 //! - [`stretch`]: how evenly UVs lie, and what to do about it.
@@ -22,6 +24,7 @@ pub mod check;
 pub mod density;
 pub mod grid;
 pub mod mend;
+pub mod methods;
 pub mod pack;
 pub mod seams;
 mod solve;
@@ -30,4 +33,5 @@ pub mod trim;
 pub mod unwrap;
 
 pub use mend::mend;
-pub use unwrap::{relax, straighten, unwrap};
+pub use methods::UnwrapMethod;
+pub use unwrap::{UnfoldAxis, UnwrapOptions, relax, straighten, unwrap, unwrap_with};

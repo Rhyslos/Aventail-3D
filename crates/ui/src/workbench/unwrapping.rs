@@ -35,6 +35,78 @@ pub struct UvSettings {
     pub per_material: bool,
     /// Whether each object gets a texture of its own (packed apart).
     pub per_object: bool,
+    /// The way Unwrap lays pieces flat (decision 0109).
+    pub unwrap_method: UnwrapWay,
+}
+
+/// The way Unwrap lays pieces flat, chosen in UV → Unwrap method and
+/// remembered (decision 0109).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum UnwrapWay {
+    /// Every small piece keeps its shape (least squares conformal maps):
+    /// fast, and what the app always did.
+    #[default]
+    KeepShapes,
+    /// Shapes kept, with the angles evened out over the whole piece first
+    /// (angle-based flattening): less drift on curved pieces.
+    AngleBased,
+    /// Every part keeps its size (as rigid as possible): pixels the same
+    /// size all over.
+    KeepSizes,
+    /// Each piece tries all three and keeps the one that lies most evenly.
+    Automatic,
+}
+
+impl UnwrapWay {
+    /// Every way, in menu order.
+    pub const ALL: [Self; 4] = [
+        Self::Automatic,
+        Self::KeepShapes,
+        Self::AngleBased,
+        Self::KeepSizes,
+    ];
+
+    /// Its name in the menu.
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::KeepShapes => "Keep shapes",
+            Self::AngleBased => "Keep shapes, smoother",
+            Self::KeepSizes => "Keep sizes",
+            Self::Automatic => "Automatic",
+        }
+    }
+
+    /// What it does, in plain words.
+    pub fn help(self) -> &'static str {
+        match self {
+            Self::KeepShapes => {
+                "Every small part keeps its angles, so a texture's squares stay square. Sizes \
+                 may drift across a strongly curved piece. Fast: the standard way."
+            }
+            Self::AngleBased => {
+                "Like Keep shapes, but the angles are first evened out over the whole piece, \
+                 so curved pieces (a head, a dome) drift less. A little slower."
+            }
+            Self::KeepSizes => {
+                "Every part keeps its real size, so the texture's pixels are the same size all \
+                 over the piece, at the cost of a little bending of angles. The slowest."
+            }
+            Self::Automatic => {
+                "Each piece is laid flat all three ways and keeps the one that lies most evenly. \
+                 Always the same choice for the same piece; slowest of all."
+            }
+        }
+    }
+
+    /// The `uv` crate's name for it.
+    pub(crate) fn method(self) -> scene::UnwrapMethod {
+        match self {
+            Self::KeepShapes => scene::UnwrapMethod::Conformal,
+            Self::AngleBased => scene::UnwrapMethod::AngleBased,
+            Self::KeepSizes => scene::UnwrapMethod::SizeKeeping,
+            Self::Automatic => scene::UnwrapMethod::Automatic,
+        }
+    }
 }
 
 impl Default for UvSettings {
@@ -47,6 +119,7 @@ impl Default for UvSettings {
             stack: false,
             per_material: true,
             per_object: false,
+            unwrap_method: UnwrapWay::KeepShapes,
         }
     }
 }
@@ -81,10 +154,23 @@ pub(crate) const MATCH_DENSITY_LABEL: &str = "Match texel density";
 pub(crate) const MATCH_DENSITY_HELP: &str = "Scale the selected pieces (or whole objects) so they \
      share one texel density: the average of theirs";
 
-/// One of the three tools.
+/// The UV menu's names for unwrapping one way only, and what they do
+/// (decision 0109).
+pub(crate) const UNFOLD_ACROSS_LABEL: &str = "Unfold across only";
+pub(crate) const UNFOLD_ACROSS_HELP: &str = "Unwrap, but move the UVs only across (U): every \
+     point keeps its height in the texture. For evening out a strip along its length.";
+pub(crate) const UNFOLD_UP_LABEL: &str = "Unfold up only";
+pub(crate) const UNFOLD_UP_HELP: &str = "Unwrap, but move the UVs only up and down (V): every \
+     point keeps its place across the texture";
+/// The UV menu's name for the unwrap method submenu.
+pub(crate) const METHOD_LABEL: &str = "Unwrap method";
+
+/// One of the UV tools.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum UvTool {
     Unwrap,
+    /// Unwrap, moving the UVs one way only.
+    Unfold(scene::UnfoldAxis),
     Relax,
     Straighten,
 }
@@ -93,6 +179,8 @@ impl UvTool {
     fn name(self) -> &'static str {
         match self {
             Self::Unwrap => "Unwrap",
+            Self::Unfold(scene::UnfoldAxis::Across) => UNFOLD_ACROSS_LABEL,
+            Self::Unfold(scene::UnfoldAxis::Up) => UNFOLD_UP_LABEL,
             Self::Relax => "Relax",
             Self::Straighten => "Straighten",
         }
@@ -173,9 +261,14 @@ impl Workbench {
     ) -> Operation {
         let anchors = anchors(mesh, &faces);
         match tool {
-            UvTool::Unwrap => Operation::Unwrap {
+            UvTool::Unwrap | UvTool::Unfold(_) => Operation::Unwrap {
                 faces,
                 strips: self.uv_settings.straighten_strips,
+                method: self.uv_settings.unwrap_method.method(),
+                only: match tool {
+                    UvTool::Unfold(axis) => Some(axis),
+                    _ => None,
+                },
                 anchors,
             },
             UvTool::Relax => Operation::RelaxUvs { faces, anchors },
@@ -213,6 +306,8 @@ impl Workbench {
         }
         let verb = match tool {
             UvTool::Unwrap => "Unwrap",
+            UvTool::Unfold(scene::UnfoldAxis::Across) => "Unfold across",
+            UvTool::Unfold(scene::UnfoldAxis::Up) => "Unfold up",
             UvTool::Relax => "Relax the UVs of",
             UvTool::Straighten => "Straighten the UVs of",
         };

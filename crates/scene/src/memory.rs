@@ -110,6 +110,12 @@ pub(crate) fn operation_size(op: &Operation) -> usize {
             points,
             anchors,
             ..
+        }
+        | Operation::SetUvPins {
+            faces,
+            points,
+            anchors,
+            ..
         } => {
             std::mem::size_of_val(faces.as_slice())
                 + std::mem::size_of_val(points.as_slice())

@@ -292,6 +292,11 @@ pub const UV: &str = "uv";
 /// along when it is unwrapped flat (decision 0095).
 pub const SEAM: &str = "seam";
 
+/// The name of the corner layer marking pinned UVs: corners that stay
+/// where they are when their piece is unwrapped or relaxed (decision
+/// 0109).
+pub const UV_PIN: &str = "uv_pin";
+
 /// A typed list of values.
 #[derive(Debug, Clone, PartialEq)]
 enum Column {

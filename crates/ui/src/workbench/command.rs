@@ -3,7 +3,7 @@
 //! the tool menu's keys and drawing ([decision 0037](../../../../docs/decisions/0037-tool-menu-and-command-list.md)).
 
 use super::Workbench;
-use crate::commands::{CommandId, menu_for};
+use crate::commands::{CommandId, group_menu, menu_for};
 use crate::objects::{self, DocRequest};
 use crate::palette::Mode;
 use crate::tool_menu::{Entry, KeyOutcome, Ready, ToolMenuSettings};
@@ -131,6 +131,8 @@ impl Workbench {
             | CommandId::UvTurnRight
             | CommandId::UvFlipU
             | CommandId::UvFlipV
+            | CommandId::UvPin
+            | CommandId::UvUnpin
                 if crate::uv_editor::element_kind(self.mode).is_none() =>
             {
                 Ready::NotNow(format!(
@@ -228,6 +230,11 @@ impl Workbench {
             CommandId::UvTurnRight => self.change_uvs(UvChange::TurnRight),
             CommandId::UvFlipU => self.change_uvs(UvChange::FlipU),
             CommandId::UvFlipV => self.change_uvs(UvChange::FlipV),
+            CommandId::UvTurnFlip | CommandId::UvStitchCut => self.tool_menu.open_group(command),
+            CommandId::UvPin => self.run_pins(true),
+            CommandId::UvUnpin => self.run_pins(false),
+            // Not built yet: readiness stops them above.
+            CommandId::UvStitch | CommandId::UvCut => {}
             CommandId::MarkSeam => self.run_seams(true),
             CommandId::ClearSeam => self.run_seams(false),
             CommandId::Unwrap => self.run_uv_tool(super::unwrapping::UvTool::Unwrap),
@@ -272,9 +279,67 @@ impl Workbench {
         }
     }
 
+    /// Pins (or unpins) the selected UVs, as one undo step (decision
+    /// 0109).
+    pub(crate) fn run_pins(&mut self, pin: bool) {
+        use crate::uv_editor::gizmo;
+        let command = if pin {
+            CommandId::UvPin
+        } else {
+            CommandId::UvUnpin
+        };
+        let (targets, _) = gizmo::uv_targets(&self.document, self.mode);
+        if targets.is_empty() {
+            self.note = Some(format!("{}: select some UVs first.", command.name()));
+            return;
+        }
+        let count: usize = targets
+            .iter()
+            .map(|t| t.faces.len().max(t.points.len()))
+            .sum();
+        let noun = if targets.iter().all(|t| t.faces.is_empty()) {
+            "point"
+        } else {
+            "polygon"
+        };
+        let ops = targets
+            .into_iter()
+            .map(|t| {
+                (
+                    t.id,
+                    scene::Operation::SetUvPins {
+                        faces: t.faces,
+                        points: t.points,
+                        pin,
+                        anchors: t.anchors,
+                    },
+                )
+            })
+            .collect();
+        let verb = if pin {
+            "Pin the UVs of"
+        } else {
+            "Unpin the UVs of"
+        };
+        let label = super::joining::counted(verb, count, noun);
+        if self.record_each(&label, ops) {
+            let why = if pin {
+                " Unwrapping lays the rest out around them; relaxing leaves them alone."
+            } else {
+                ""
+            };
+            self.note = Some(format!("{label}. Ctrl + Z takes it back.{why}"));
+        }
+    }
+
     /// The tool menu's entries in the current mode.
     pub(crate) fn tool_menu_entries(&self) -> Vec<Entry> {
-        menu_for(self.menu_mode())
+        let ring = menu_for(self.menu_mode());
+        let slots = match self.tool_menu.group() {
+            Some(group) => group_menu(group, &ring),
+            None => ring,
+        };
+        slots
             .into_iter()
             .map(|slot| Entry {
                 slot,

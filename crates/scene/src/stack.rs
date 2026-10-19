@@ -299,13 +299,31 @@ pub enum Operation {
         /// them again (decision 0032).
         anchors: Option<Anchors>,
     },
+    /// Pins (or unpins) the UVs of these polygons and points, so
+    /// unwrapping and relaxing leave them where they are (decision 0109):
+    /// see `mesh::uvs::set_pins`.
+    SetUvPins {
+        /// The polygons whose UVs are pinned.
+        faces: Vec<FaceId>,
+        /// The points whose UVs are pinned.
+        points: Vec<VertexId>,
+        /// Pin (`true`) or unpin.
+        pin: bool,
+        /// Where the polygons (or, with none, the points) were, to find
+        /// them again (decision 0032).
+        anchors: Option<Anchors>,
+    },
     /// Lays the pieces holding these polygons flat along their seams
-    /// (decision 0099): see `uv::unwrap`.
+    /// (decisions 0099 and 0109): see `uv::unwrap_with`.
     Unwrap {
         /// Polygons of the pieces to unwrap.
         faces: Vec<FaceId>,
         /// Whether strips of square quads come out as straight grids.
         strips: bool,
+        /// The way pieces are laid flat.
+        method: uv::UnwrapMethod,
+        /// Unfold one way only (`None`: both ways).
+        only: Option<uv::UnfoldAxis>,
         /// Where the polygons were, to find them again (decision 0032).
         anchors: Option<Anchors>,
     },
@@ -577,6 +595,20 @@ impl Operation {
                 counted("Move the UVs of", points.len(), "point")
             }
             Self::TransformUvs { faces, .. } => counted("Move the UVs of", faces.len(), "polygon"),
+            Self::SetUvPins {
+                faces, points, pin, ..
+            } => {
+                let verb = if *pin {
+                    "Pin the UVs of"
+                } else {
+                    "Unpin the UVs of"
+                };
+                if faces.is_empty() {
+                    counted(verb, points.len(), "point")
+                } else {
+                    counted(verb, faces.len(), "polygon")
+                }
+            }
             Self::Unwrap { faces, .. } => counted("Unwrap", faces.len(), "polygon"),
             Self::StraightenUvs { faces, .. } => {
                 counted("Straighten the UVs of", faces.len(), "polygon")
@@ -719,6 +751,7 @@ impl Operation {
             | Self::FlipPolygons { .. }
             | Self::SetMaterial { .. }
             | Self::TransformUvs { .. }
+            | Self::SetUvPins { .. }
             | Self::Unwrap { .. }
             | Self::StraightenUvs { .. }
             | Self::RelaxUvs { .. }
@@ -886,6 +919,7 @@ impl Operation {
             | Self::FlipPolygons { .. }
             | Self::SetMaterial { .. }
             | Self::TransformUvs { .. }
+            | Self::SetUvPins { .. }
             | Self::Unwrap { .. }
             | Self::StraightenUvs { .. }
             | Self::RelaxUvs { .. }
@@ -1028,6 +1062,7 @@ impl Operation {
             | Self::SetMaterial { .. }
             | Self::SetHardEdges { .. }
             | Self::SetSeams { .. }
+            | Self::SetUvPins { .. }
             | Self::Unwrap { .. }
             | Self::StraightenUvs { .. }
             | Self::RelaxUvs { .. }
@@ -1088,6 +1123,7 @@ impl Operation {
             | Self::FlipPolygons { anchors, .. }
             | Self::SetMaterial { anchors, .. }
             | Self::TransformUvs { anchors, .. }
+            | Self::SetUvPins { anchors, .. }
             | Self::Unwrap { anchors, .. }
             | Self::StraightenUvs { anchors, .. }
             | Self::RelaxUvs { anchors, .. }
@@ -1126,6 +1162,7 @@ impl Operation {
             | Self::FlipPolygons { anchors, .. }
             | Self::SetMaterial { anchors, .. }
             | Self::TransformUvs { anchors, .. }
+            | Self::SetUvPins { anchors, .. }
             | Self::Unwrap { anchors, .. }
             | Self::StraightenUvs { anchors, .. }
             | Self::RelaxUvs { anchors, .. }
@@ -1210,6 +1247,7 @@ impl Operation {
             | Self::PlaceShape { .. }
             | Self::SetMaterial { .. }
             | Self::TransformUvs { .. }
+            | Self::SetUvPins { .. }
             | Self::Unwrap { .. }
             | Self::StraightenUvs { .. }
             | Self::RelaxUvs { .. }
@@ -1572,11 +1610,33 @@ impl Operation {
                 };
                 mesh::uvs::transform_uvs(mesh, &faces, &points, *transform)
             }
-            Self::Unwrap { faces, strips, .. } => {
+            Self::SetUvPins {
+                faces, points, pin, ..
+            } => {
+                // The anchors hold the polygons' corners, or the points.
+                let (faces, points) = match (&refound, faces.is_empty()) {
+                    (Some(r), false) => (faces_within(mesh, &r.0), Vec::new()),
+                    (Some(r), true) => (Vec::new(), r.0.clone()),
+                    (None, _) => (faces.clone(), points.clone()),
+                };
+                mesh::uvs::set_pins(mesh, &faces, &points, *pin)
+            }
+            Self::Unwrap {
+                faces,
+                strips,
+                method,
+                only,
+                ..
+            } => {
                 let faces = refound
                     .as_ref()
                     .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
-                uv::unwrap(mesh, &faces, *strips)
+                let options = uv::UnwrapOptions {
+                    strips: *strips,
+                    method: *method,
+                    only: *only,
+                };
+                uv::unwrap_with(mesh, &faces, options)
             }
             Self::StraightenUvs { faces, .. } => {
                 let faces = refound

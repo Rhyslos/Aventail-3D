@@ -167,10 +167,22 @@ pub enum Icon {
     Straighten,
     /// Pack: pieces fitted into a square.
     Pack,
+    /// Pin UVs: a pin pushed into a point.
+    UvPin,
+    /// Unpin UVs: the pin pulled out, dashed.
+    UvUnpin,
+    /// The turn and flip group: a tile half turned and half mirrored.
+    UvTurnFlip,
+    /// The stitch and cut group: two edges, one joined, one split.
+    UvStitchCut,
+    /// Stitch UVs: two edges drawn together.
+    UvStitch,
+    /// Cut UVs: one edge split in two.
+    UvCut,
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 77] = [
+pub const ALL: [Icon; 83] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -248,6 +260,12 @@ pub const ALL: [Icon; 77] = [
     Icon::Relax,
     Icon::Straighten,
     Icon::Pack,
+    Icon::UvPin,
+    Icon::UvUnpin,
+    Icon::UvTurnFlip,
+    Icon::UvStitchCut,
+    Icon::UvStitch,
+    Icon::UvCut,
 ];
 
 /// Draws `icon` into `rect` in `color`.
@@ -1466,6 +1484,77 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
                 &[(5.0, 15.0), (13.0, 15.0), (13.0, 19.0), (5.0, 19.0)],
                 Paint::Tone,
             );
+        }
+        Icon::UvPin | Icon::UvUnpin => {
+            // A pin's head and needle over a point; unpinned, it is lifted
+            // off and dashed.
+            let pinned = icon == Icon::UvPin;
+            let lift = if pinned { 0.0 } else { -3.0 };
+            pen.dot(9.0, 19.0, 1.8);
+            let ink = if pinned { Ink::Line } else { Ink::Dashed };
+            pen.stroke(&[(9.0, 19.0 + lift), (13.5, 14.5 + lift)], false, ink);
+            let head = [
+                (12.0, 12.0 + lift),
+                (16.0, 16.0 + lift),
+                (21.0, 11.0 + lift),
+                (17.0, 7.0 + lift),
+                (19.0, 5.0 + lift),
+                (15.0, 3.0 + lift),
+                (13.0, 5.0 + lift),
+                (11.0, 7.0 + lift),
+            ];
+            if pinned {
+                pen.shape(&head, Paint::Tone);
+                pen.stroke(&head, true, Ink::Line);
+            } else {
+                pen.stroke(&head, true, Ink::Dashed);
+            }
+        }
+        Icon::UvTurnFlip => {
+            // A shape and its mirror across a dashed line, an arrow
+            // turning over them, and dots for "more inside".
+            pen.stroke(&[(12.0, 6.0), (12.0, 18.0)], false, Ink::Dashed);
+            pen.shape(&[(10.0, 9.0), (10.0, 17.0), (4.5, 17.0)], Paint::Tone);
+            pen.stroke(&[(14.0, 9.0), (14.0, 17.0), (19.5, 17.0)], true, Ink::Line);
+            let (from, to) = (-2.7_f32, -0.6_f32);
+            let arc = pen.arc((12.0, 10.0), (8.0, 7.0), from, to);
+            pen.line(arc);
+            let end = (12.0 + 8.0 * to.cos(), 10.0 + 7.0 * to.sin());
+            pen.shape(
+                &[
+                    (end.0 + 1.2, end.1 + 2.8),
+                    (end.0 - 2.4, end.1 - 0.6),
+                    (end.0 + 2.2, end.1 - 1.6),
+                ],
+                Paint::Solid,
+            );
+            for x in [8.0, 12.0, 16.0] {
+                pen.dot(x, 21.5, 1.3);
+            }
+        }
+        Icon::UvStitch | Icon::UvStitchCut => {
+            // Two edges, one either side, with arrows drawing them
+            // together; the group adds dots for "more inside".
+            pen.stroke(&[(4.0, 4.0), (4.0, 17.0)], false, Ink::Faint);
+            pen.stroke(&[(20.0, 4.0), (20.0, 17.0)], false, Ink::Faint);
+            pen.stroke(&[(12.0, 3.0), (12.0, 18.0)], false, Ink::Line);
+            for y in [7.0, 14.0] {
+                pen.stroke(&[(6.5, y), (10.0, y)], false, Ink::Line);
+                pen.stroke(&[(14.0, y), (17.5, y)], false, Ink::Line);
+            }
+            if icon == Icon::UvStitchCut {
+                for x in [8.0, 12.0, 16.0] {
+                    pen.dot(x, 21.5, 1.3);
+                }
+            }
+        }
+        Icon::UvCut => {
+            // One edge split in two, pulled apart, with a cut mark.
+            pen.stroke(&[(9.0, 4.0), (9.0, 20.0)], false, Ink::Line);
+            pen.stroke(&[(15.0, 4.0), (15.0, 20.0)], false, Ink::Line);
+            pen.stroke(&[(12.0, 2.5), (12.0, 21.5)], false, Ink::Dashed);
+            pen.stroke(&[(6.5, 12.0), (3.5, 12.0)], false, Ink::Line);
+            pen.stroke(&[(17.5, 12.0), (20.5, 12.0)], false, Ink::Line);
         }
         Icon::EditLayer => {
             // Two sheets below (faint) and a new one on top, seen from

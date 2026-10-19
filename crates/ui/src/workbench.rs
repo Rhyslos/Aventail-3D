@@ -2120,15 +2120,42 @@ impl Workbench {
             ui.close();
         }
         ui.separator();
+        if let Some(command) = commands_entries(ui, &[CommandId::Unwrap]) {
+            self.run_command(command, ui.ctx(), requests);
+            ui.close();
+        }
+        ui.menu_button(unwrapping::METHOD_LABEL, |ui| {
+            for way in unwrapping::UnwrapWay::ALL {
+                ui.radio_value(&mut self.uv_settings.unwrap_method, way, way.name())
+                    .on_hover_text(way.help());
+            }
+        });
+        for (label, help, axis) in [
+            (
+                unwrapping::UNFOLD_ACROSS_LABEL,
+                unwrapping::UNFOLD_ACROSS_HELP,
+                scene::UnfoldAxis::Across,
+            ),
+            (
+                unwrapping::UNFOLD_UP_LABEL,
+                unwrapping::UNFOLD_UP_HELP,
+                scene::UnfoldAxis::Up,
+            ),
+        ] {
+            if ui.button(label).on_hover_text(help).clicked() {
+                self.run_uv_tool(unwrapping::UvTool::Unfold(axis));
+                ui.close();
+            }
+        }
         if let Some(command) = commands_entries(
             ui,
-            &[
-                CommandId::Unwrap,
-                CommandId::Relax,
-                CommandId::Straighten,
-                CommandId::Pack,
-            ],
+            &[CommandId::Relax, CommandId::Straighten, CommandId::Pack],
         ) {
+            self.run_command(command, ui.ctx(), requests);
+            ui.close();
+        }
+        ui.separator();
+        if let Some(command) = commands_entries(ui, &[CommandId::UvPin, CommandId::UvUnpin]) {
             self.run_command(command, ui.ctx(), requests);
             ui.close();
         }
@@ -2403,11 +2430,13 @@ mod unwrapping;
 mod uv_on_model;
 #[cfg(test)]
 mod uv_on_model_tests;
-pub use unwrapping::UvSettings;
+pub use unwrapping::{UnwrapWay, UvSettings};
 #[cfg(test)]
 mod density_tests;
 #[cfg(test)]
 mod pack_tests;
+#[cfg(test)]
+mod pinning_tests;
 #[cfg(test)]
 mod trim_tests;
 #[cfg(test)]

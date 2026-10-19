@@ -9,10 +9,58 @@ use mesh::{CubeParams, PrimitiveKind, VertexId};
 use scene::{Command, Object, ObjectKind, Operation, Place, Primitive, Transform};
 
 /// A document using everything the current version of the format can
-/// hold: all of [`rich_document_v32`], plus a trim sheet and a piece laid
-/// on one of its rows (version 33; the version 33 sample holds exactly
-/// this).
+/// hold: all of [`rich_document_v33`], plus pinned UVs and an unwrap that
+/// keeps sizes and unfolds across only (version 34; the version 34 sample
+/// holds exactly this).
 fn rich_document() -> Document {
+    let mut doc = rich_document_v33();
+    let plane = doc
+        .scene()
+        .walk()
+        .into_iter()
+        .map(|(id, _)| id)
+        .find(|id| doc.scene().object(*id).unwrap().name == "Plane")
+        .unwrap();
+    let mesh = doc.scene().evaluated(plane).unwrap().mesh;
+    let points: Vec<VertexId> = mesh.vertices().map(|(v, _)| v).take(2).collect();
+    let faces: Vec<scene::FaceId> = mesh.faces().map(|(f, _)| f).collect();
+    let corners: Vec<Vec<VertexId>> = faces
+        .iter()
+        .map(|f| mesh.face(*f).unwrap().to_vec())
+        .collect();
+    let point_anchors = mesh::Anchors::record(
+        &mesh,
+        mesh::ElementKind::Points,
+        &points.iter().map(|v| vec![*v]).collect::<Vec<_>>(),
+    );
+    for operation in [
+        Operation::SetUvPins {
+            faces: Vec::new(),
+            points,
+            pin: true,
+            anchors: point_anchors,
+        },
+        Operation::Unwrap {
+            faces: faces.clone(),
+            strips: false,
+            method: scene::UnwrapMethod::SizeKeeping,
+            only: Some(scene::UnfoldAxis::Across),
+            anchors: mesh::Anchors::record(&mesh, mesh::ElementKind::Polygons, &corners),
+        },
+    ] {
+        doc.execute(Command::Record {
+            id: plane,
+            operation,
+        })
+        .unwrap();
+    }
+    doc
+}
+
+/// A document using everything version 33 stores: all of
+/// [`rich_document_v32`], plus a trim sheet and a piece laid on one of its
+/// rows (the version 33 sample holds exactly this).
+fn rich_document_v33() -> Document {
     let mut doc = rich_document_v32();
     let sheet = scene::TrimSheet::even(4);
     let row = sheet.rows[1].clone();
@@ -132,6 +180,8 @@ fn rich_document_v30() -> Document {
         Operation::Unwrap {
             faces: faces.clone(),
             strips: false,
+            method: scene::UnwrapMethod::Conformal,
+            only: None,
             anchors: anchors.clone(),
         },
         Operation::RelaxUvs {
@@ -1739,7 +1789,7 @@ fn a_cut_short_or_padded_body_is_damaged() {
 #[test]
 fn an_uncompressed_body_can_be_read() {
     let doc = rich_document();
-    let body = postcard::to_stdvec(&v33::ProjectV33::<v33::EntryV33>::from_document(&doc)).unwrap();
+    let body = postcard::to_stdvec(&v33::ProjectV33::<v34::EntryV34>::from_document(&doc)).unwrap();
     let mut bytes = header(FORMAT_VERSION, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     assert_same(&doc, &from_bytes(&bytes).unwrap());
@@ -3938,13 +3988,27 @@ const SAMPLE_V33: &[u8] = include_bytes!("../../tests/data/sample-v33.avtl");
 #[test]
 fn a_file_saved_by_format_version_33_opens_with_its_trim_sheet() {
     let doc = from_bytes(SAMPLE_V33).expect("the version 33 sample opens");
-    assert_same(&rich_document(), &doc);
+    assert_same(&rich_document_v33(), &doc);
     assert_eq!(doc.scene().trim(), &scene::TrimSheet::even(4));
     let text = format!(
         "{:?}",
         v33::ProjectV33::<v33::EntryV33>::from_document(&doc)
     );
     assert!(text.contains("PlaceOnTrim"));
+}
+
+const SAMPLE_V34: &[u8] = include_bytes!("../../tests/data/sample-v34.avtl");
+
+#[test]
+fn a_file_saved_by_format_version_34_opens_with_its_pins_and_unwrap_way() {
+    let doc = from_bytes(SAMPLE_V34).expect("the version 34 sample opens");
+    assert_same(&rich_document(), &doc);
+    let text = format!(
+        "{:?}",
+        v33::ProjectV33::<v34::EntryV34>::from_document(&doc)
+    );
+    assert!(text.contains("SetUvPins"));
+    assert!(text.contains("SizeKeeping"));
 }
 
 const SAMPLE_V31: &[u8] = include_bytes!("../../tests/data/sample-v31.avtl");

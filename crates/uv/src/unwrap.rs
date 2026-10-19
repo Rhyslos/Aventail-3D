@@ -20,7 +20,7 @@
 //! real length.
 
 use crate::chart::Chart;
-use crate::solve::Normal;
+use crate::methods::{UnwrapMethod, conformal_shapes, lay_flat, real_shapes};
 use glam::{Vec2, Vec3};
 use mesh::edit::Outcome;
 use mesh::uvs::Uvs;
@@ -60,7 +60,7 @@ pub(crate) fn signed_area(at: &[Vec2], t: [usize; 3]) -> f32 {
 }
 
 /// Two wedges far apart, to pin while solving.
-fn far_pair(mesh: &Mesh, chart: &Chart) -> Option<(usize, usize)> {
+pub(crate) fn far_pair(mesh: &Mesh, chart: &Chart) -> Option<(usize, usize)> {
     let p = |w: usize| mesh.position(chart.points[w]).unwrap_or(Vec3::ZERO);
     let farthest = |from: usize| {
         (0..chart.len()).max_by(|a, b| {
@@ -77,36 +77,8 @@ fn far_pair(mesh: &Mesh, chart: &Chart) -> Option<(usize, usize)> {
 /// The chart laid flat by least squares conformal maps, if it can be.
 /// `guess` (a rough layout, such as the old UVs) only speeds it up.
 pub(crate) fn conformal(mesh: &Mesh, chart: &Chart, guess: &[Vec2]) -> Option<Vec<Vec2>> {
-    let n = chart.len();
-    if !(3..=SOLVE_UP_TO).contains(&n) {
-        return None;
-    }
-    let (pa, pb) = far_pair(mesh, chart)?;
-    let p = |w: usize| mesh.position(chart.points[w]).unwrap_or(Vec3::ZERO);
-    let mut pins = vec![None; n];
-    pins[pa] = Some(Vec2::ZERO);
-    pins[pb] = Some(Vec2::new(p(pa).distance(p(pb)), 0.0));
-    // Start from the guess, moved so its pinned wedges sit on the pins.
-    let mut start = Vec::new();
-    if guess.len() == n {
-        let (ga, gb) = (guess[pa], guess[pb]);
-        let to_b = Vec2::new(p(pa).distance(p(pb)), 0.0);
-        let from = gb - ga;
-        if from.length() > 1e-9 {
-            // The similarity taking ga to 0 and gb to to_b.
-            let k = to_b.length() / from.length();
-            let turn = -from.y.atan2(from.x);
-            let (sin, cos) = turn.sin_cos();
-            start = guess
-                .iter()
-                .map(|g| {
-                    let d = (*g - ga) * k;
-                    Vec2::new(cos * d.x - sin * d.y, sin * d.x + cos * d.y)
-                })
-                .collect();
-        }
-    }
-    conformal_pinned(mesh, chart, &pins, &start)
+    let none = vec![None; chart.len()];
+    lay_flat(mesh, chart, UnwrapMethod::Conformal, &none, guess).map(|(at, _)| at)
 }
 
 /// The chart laid flat by least squares conformal maps with the wedges
@@ -119,97 +91,11 @@ pub(crate) fn conformal_pinned(
     start: &[Vec2],
 ) -> Option<Vec<Vec2>> {
     let n = chart.len();
-    if !(3..=SOLVE_UP_TO).contains(&n) || pins.len() != n {
+    if !(3..=SOLVE_UP_TO).contains(&n) {
         return None;
     }
-    let p = |w: usize| mesh.position(chart.points[w]).unwrap_or(Vec3::ZERO);
-    let pinned =
-        |w: usize| -> Option<[f64; 2]> { pins[w].map(|v| [f64::from(v.x), f64::from(v.y)]) };
-    // Unknowns: u then v of each wedge that isn't pinned.
-    let mut slot = vec![usize::MAX; n];
-    let mut count = 0;
-    for (w, s) in slot.iter_mut().enumerate() {
-        if pinned(w).is_none() {
-            *s = count;
-            count += 1;
-        }
-    }
-    let mut normal = Normal::new(2 * count);
-    let mut rhs = vec![0.0f64; 2 * count];
-    let mut any = false;
-    for t in chart.triangles(mesh) {
-        let (p0, p1, p2) = (p(t[0]), p(t[1]), p(t[2]));
-        let e1 = p1 - p0;
-        let e2 = p2 - p0;
-        let twice = e1.cross(e2).length();
-        if twice < 1e-12 || e1.length() < 1e-9 {
-            continue;
-        }
-        any = true;
-        let x = e1 / e1.length();
-        let y = e1.cross(e2).normalize().cross(x);
-        let q = [
-            [0.0f64, 0.0],
-            [f64::from(e1.length()), 0.0],
-            [f64::from(e2.dot(x)), f64::from(e2.dot(y))],
-        ];
-        let s = 1.0 / f64::from(twice).sqrt();
-        // W_j = q[j+2] - q[j+1], as complex numbers a + ib.
-        let w: Vec<(f64, f64)> = (0..3)
-            .map(|j| {
-                let (k, l) = ((j + 2) % 3, (j + 1) % 3);
-                ((q[k][0] - q[l][0]) * s, (q[k][1] - q[l][1]) * s)
-            })
-            .collect();
-        // Real and imaginary rows of sum W_j (u_j + i v_j).
-        for real in [true, false] {
-            let mut entries = Vec::with_capacity(6);
-            let mut constant = 0.0;
-            for j in 0..3 {
-                let (a, b) = w[j];
-                let (cu, cv) = if real { (a, -b) } else { (b, a) };
-                match pinned(t[j]) {
-                    Some([u, v]) => constant += cu * u + cv * v,
-                    None => {
-                        let k = slot[t[j]];
-                        entries.push((2 * k, cu));
-                        entries.push((2 * k + 1, cv));
-                    }
-                }
-            }
-            normal.add_row(&entries);
-            for (i, c) in &entries {
-                rhs[*i] -= c * constant;
-            }
-        }
-    }
-    if !any {
-        return None;
-    }
-    if count == 0 {
-        return None;
-    }
-    let mut x = vec![0.0f64; 2 * count];
-    if start.len() == n {
-        for w in 0..n {
-            if slot[w] != usize::MAX {
-                x[2 * slot[w]] = f64::from(start[w].x);
-                x[2 * slot[w] + 1] = f64::from(start[w].y);
-            }
-        }
-    }
-    let steps = (8 * count).clamp(400, 6_000);
-    normal.solve(&rhs, &mut x, steps);
-    let out: Vec<Vec2> = (0..n)
-        .map(|w| match pinned(w) {
-            Some([u, v]) => Vec2::new(u as f32, v as f32),
-            None => {
-                let k = slot[w];
-                Vec2::new(x[2 * k] as f32, x[2 * k + 1] as f32)
-            }
-        })
-        .collect();
-    out.iter().all(|v| v.is_finite()).then_some(out)
+    let (triangles, shapes) = real_shapes(mesh, chart);
+    conformal_shapes(n, &triangles, &shapes, pins, start)
 }
 
 /// The chart projected flat on the plane it faces most: the fallback when
@@ -626,11 +512,53 @@ pub(crate) fn outcome(asked: usize, found: usize, changed: bool) -> Outcome {
     }
 }
 
+/// Which way an unwrap may move the UVs: both ways (the usual), or only
+/// one, keeping the other as it was
+/// ([decision 0109](../../../docs/decisions/0109-pins-and-unwrap-methods.md)).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum UnfoldAxis {
+    /// Only across (U) changes; every point keeps its V.
+    Across,
+    /// Only up (V) changes; every point keeps its U.
+    Up,
+}
+
+/// How [`unwrap_with`] lays pieces flat.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct UnwrapOptions {
+    /// Strips of square quads come out as a straight grid.
+    pub strips: bool,
+    /// The way pieces are laid flat.
+    pub method: UnwrapMethod,
+    /// Unfold one way only (`None`: both ways).
+    pub only: Option<UnfoldAxis>,
+}
+
+impl UnwrapOptions {
+    /// The usual unwrap: shapes kept (LSCM), both ways, strips as grids
+    /// when `strips`.
+    pub fn plain(strips: bool) -> Self {
+        Self {
+            strips,
+            ..Self::default()
+        }
+    }
+}
+
 /// Unwraps the pieces holding any of `faces`: each laid flat along the
 /// seams (cut open first in a hidden place if it must be, marking the cut
 /// as a seam), straight as a grid when it's a strip of square quads and
 /// `strips` is on, at the object's texel density, where it was.
 pub fn unwrap(mesh: &mut Mesh, faces: &[FaceId], strips: bool) -> Outcome {
+    unwrap_with(mesh, faces, UnwrapOptions::plain(strips))
+}
+
+/// [`unwrap`], laying pieces flat as `options` say. Pinned points
+/// ([`mesh::uvs::pins`]) stay where they are: with two or more pinned
+/// points apart, the piece is solved around them and keeps its place,
+/// size and turn; with one, the piece is laid out as usual and moved so
+/// that point is back where it was.
+pub fn unwrap_with(mesh: &mut Mesh, faces: &[FaceId], options: UnwrapOptions) -> Outcome {
     let cuts = cuts_of(mesh);
     let (pieces, found) = chosen_pieces(mesh, faces, &cuts);
     if pieces.is_empty() {
@@ -639,18 +567,115 @@ pub fn unwrap(mesh: &mut Mesh, faces: &[FaceId], strips: bool) -> Outcome {
     let uvs = Uvs::of(mesh);
     let chosen: Vec<FaceId> = pieces.iter().flatten().copied().collect();
     let density = density_for(mesh, &chosen, uvs.as_ref());
-    let changed = lay_out(mesh, &pieces, cuts, density, strips);
+    let changed = lay_out(mesh, &pieces, cuts, density, options);
     outcome(faces.len(), found, changed)
 }
 
-/// Lays `pieces` (whole pieces by `cuts`) flat as [`unwrap`] does, at
-/// `density` (UV area per surface area); whether the UVs changed.
+/// Each wedge's pinned spot (its old UV), if any of its corners is pinned.
+pub(crate) fn pinned_spots(mesh: &Mesh, chart: &Chart, uvs: Option<&Uvs>) -> Vec<Option<Vec2>> {
+    let mut out = vec![None; chart.len()];
+    let (Some(pins), Some(uvs)) = (mesh::uvs::pins(mesh), uvs) else {
+        return out;
+    };
+    let (starts, _) = mesh.face_layout();
+    for (f, wedges) in chart.faces.iter().zip(&chart.corners) {
+        let start = starts[f.get() as usize] as usize;
+        for (k, w) in wedges.iter().enumerate() {
+            if pins.get(start + k).copied().unwrap_or(false) && out[*w].is_none() {
+                out[*w] = Some(uvs.at(start + k));
+            }
+        }
+    }
+    out
+}
+
+/// Whether the pinned spots are at least two, apart.
+pub(crate) fn held_apart(pins: &[Option<Vec2>]) -> bool {
+    let mut held = pins.iter().flatten();
+    let Some(first) = held.next() else {
+        return false;
+    };
+    held.any(|v| v.distance(*first) > 1e-7)
+}
+
+/// The chart laid flat around two or more pins, in the texture's own
+/// place; a piece that lay mirrored stays mirrored.
+fn around_pins(
+    mesh: &Mesh,
+    chart: &Chart,
+    method: UnwrapMethod,
+    pins: &[Option<Vec2>],
+    old: &[Vec2],
+) -> Option<Vec<Vec2>> {
+    // Laying flat never turns a piece over, so a mirrored piece is solved
+    // mirrored back, then turned over again.
+    let mirrored = old.len() == chart.len()
+        && chart
+            .triangles(mesh)
+            .iter()
+            .map(|t| signed_area(old, *t))
+            .sum::<f32>()
+            < 0.0;
+    let flip = |v: Vec2| if mirrored { Vec2::new(-v.x, v.y) } else { v };
+    let pins: Vec<Option<Vec2>> = pins.iter().map(|p| p.map(flip)).collect();
+    let guess: Vec<Vec2> = old.iter().map(|v| flip(*v)).collect();
+    let (at, _) = lay_flat(mesh, chart, method, &pins, &guess)?;
+    Some(at.into_iter().map(flip).collect())
+}
+
+/// `at` kept to one way: fitted to `old` (moved, turned and scaled to lie
+/// over it as well as it can), then each wedge given back its old V (for
+/// [`UnfoldAxis::Across`]) or old U (for [`UnfoldAxis::Up`]).
+pub(crate) fn one_way(at: Vec<Vec2>, old: &[Option<Vec2>], axis: UnfoldAxis) -> Vec<Vec2> {
+    let pairs: Vec<(Vec2, Vec2)> = at
+        .iter()
+        .zip(old)
+        .filter_map(|(a, o)| o.map(|o| (*a, o)))
+        .collect();
+    if pairs.len() < 2 {
+        return at;
+    }
+    // The best similarity z -> s z + t (s complex) from at to old.
+    let n = pairs.len() as f32;
+    let ma = pairs.iter().fold(Vec2::ZERO, |s, p| s + p.0) / n;
+    let mo = pairs.iter().fold(Vec2::ZERO, |s, p| s + p.1) / n;
+    let (mut re, mut im, mut norm) = (0.0f32, 0.0f32, 0.0f32);
+    for (a, o) in &pairs {
+        let (a, o) = (*a - ma, *o - mo);
+        re += a.x * o.x + a.y * o.y;
+        im += a.x * o.y - a.y * o.x;
+        norm += a.length_squared();
+    }
+    let s = if norm > 1e-20 {
+        Vec2::new(re, im) / norm
+    } else {
+        Vec2::X
+    };
+    let fit = |v: Vec2| {
+        let d = v - ma;
+        mo + Vec2::new(s.x * d.x - s.y * d.y, s.x * d.y + s.y * d.x)
+    };
+    at.into_iter()
+        .zip(old)
+        .map(|(v, o)| {
+            let f = fit(v);
+            match (o, axis) {
+                (Some(o), UnfoldAxis::Across) => Vec2::new(f.x, o.y),
+                (Some(o), UnfoldAxis::Up) => Vec2::new(o.x, f.y),
+                (None, _) => f,
+            }
+        })
+        .collect()
+}
+
+/// Lays `pieces` (whole pieces by `cuts`) flat as [`unwrap_with`] does,
+/// at `density` (UV area per surface area); whether the UVs changed.
 pub(crate) fn lay_out(
     mesh: &mut Mesh,
     pieces: &[Vec<FaceId>],
     mut cuts: BTreeSet<EdgeKey>,
     density: f32,
-    strips: bool,
+    options: UnwrapOptions,
 ) -> bool {
     let uvs = Uvs::of(mesh);
     // Pieces that can't lie flat are cut open first; the cuts are seams.
@@ -663,31 +688,59 @@ pub(crate) fn lay_out(
     for piece in pieces {
         let chart = Chart::of(mesh, piece, &cuts);
         let was = before(mesh, &chart, uvs.as_ref());
-        let (at, align) = match strips
-            .then(|| {
-                all_square_quads(mesh, &chart)
-                    .then(|| grid(mesh, &chart))
-                    .flatten()
-            })
-            .flatten()
-        {
-            Some(at) => (at, false),
+        let pins = pinned_spots(mesh, &chart, uvs.as_ref());
+        let old: Vec<Option<Vec2>> = match uvs.as_ref() {
+            Some(u) => old_spots(mesh, &chart, u),
+            None => vec![None; chart.len()],
+        };
+        let usable = uvs.as_ref().is_some_and(|u| usable_guess(mesh, &chart, u));
+        let old_or_zero: Vec<Vec2> = old.iter().map(|v| v.unwrap_or(Vec2::ZERO)).collect();
+        let around = held_apart(&pins)
+            .then(|| around_pins(mesh, &chart, options.method, &pins, &old_or_zero))
+            .flatten();
+        let at = match around {
+            Some(at) => at,
             None => {
-                let flat = projected(mesh, &chart);
-                let guess: Vec<Vec2> = match uvs.as_ref() {
-                    Some(u) if usable_guess(mesh, &chart, u) => old_spots(mesh, &chart, u)
-                        .into_iter()
-                        .map(|v| v.unwrap_or(Vec2::ZERO))
-                        .collect(),
-                    _ => flat.clone(),
+                let as_grid = (options.strips && pins.iter().all(Option::is_none))
+                    .then(|| {
+                        all_square_quads(mesh, &chart)
+                            .then(|| grid(mesh, &chart))
+                            .flatten()
+                    })
+                    .flatten();
+                let (at, align) = match as_grid {
+                    Some(at) => (at, false),
+                    None => {
+                        let flat = projected(mesh, &chart);
+                        let guess = if usable {
+                            old_or_zero.clone()
+                        } else {
+                            flat.clone()
+                        };
+                        let none = vec![None; chart.len()];
+                        match lay_flat(mesh, &chart, options.method, &none, &guess) {
+                            Some((at, _)) => (at, true),
+                            None => (flat, true),
+                        }
+                    }
                 };
-                match conformal(mesh, &chart, &guess) {
-                    Some(at) => (at, true),
-                    None => (flat, true),
+                let mut at = place(mesh, &chart, at, &was, density, align);
+                // One pin: the piece is moved so that point is back.
+                if let Some((w, spot)) =
+                    pins.iter().enumerate().find_map(|(w, p)| p.map(|p| (w, p)))
+                {
+                    let shift = spot - at[w];
+                    for v in &mut at {
+                        *v += shift;
+                    }
                 }
+                at
             }
         };
-        let at = place(mesh, &chart, at, &was, density, align);
+        let at = match options.only {
+            Some(axis) if old.iter().any(Option::is_some) => one_way(at, &old, axis),
+            _ => at,
+        };
         laid.push((chart, at));
     }
     if !extra.is_empty() {
@@ -698,8 +751,9 @@ pub(crate) fn lay_out(
 }
 
 /// Straightens the pieces holding any of `faces` that are made only of
-/// quads: laid out as a straight grid, at their own size, where they were.
-/// Pieces with other polygons are skipped.
+/// quads: laid out as a straight grid, at their own size, where they were
+/// (with a pinned point, moved so the first stays put). Pieces with other
+/// polygons are skipped.
 pub fn straighten(mesh: &mut Mesh, faces: &[FaceId]) -> Outcome {
     let cuts = cuts_of(mesh);
     let (pieces, found) = chosen_pieces(mesh, faces, &cuts);
@@ -715,7 +769,16 @@ pub fn straighten(mesh: &mut Mesh, faces: &[FaceId]) -> Outcome {
             .as_ref()
             .and_then(|u| density_of(mesh, piece, u))
             .unwrap_or_else(|| density_for(mesh, piece, uvs.as_ref()));
-        let at = place(mesh, &chart, at, &was, density, false);
+        let mut at = place(mesh, &chart, at, &was, density, false);
+        // A pinned point keeps its spot (the first, if there are more: a
+        // straight grid can't bend to meet them all).
+        let pins = pinned_spots(mesh, &chart, uvs.as_ref());
+        if let Some((w, spot)) = pins.iter().enumerate().find_map(|(w, p)| p.map(|p| (w, p))) {
+            let shift = spot - at[w];
+            for v in &mut at {
+                *v += shift;
+            }
+        }
         laid.push((chart, at));
     }
     if laid.is_empty() {
@@ -728,7 +791,7 @@ pub fn straighten(mesh: &mut Mesh, faces: &[FaceId]) -> Outcome {
 /// Relaxes the UVs of `faces`: their corners are pulled, step by step,
 /// towards spots where every side of their triangles is as long (for the
 /// piece's texel density) as it is on the shape. Corners of other
-/// polygons stay put. A shape without UVs is left alone.
+/// polygons, and pinned corners, stay put. A shape without UVs is left alone.
 pub fn relax(mesh: &mut Mesh, faces: &[FaceId], steps: usize) -> Outcome {
     let Some(uvs) = Uvs::of(mesh) else {
         let found = faces.iter().filter(|f| mesh.face(**f).is_some()).count();
@@ -748,6 +811,12 @@ pub fn relax(mesh: &mut Mesh, faces: &[FaceId], steps: usize) -> Outcome {
                 for w in wedges {
                     free[*w] = true;
                 }
+            }
+        }
+        // Pinned points stay put.
+        for (w, pin) in pinned_spots(mesh, &chart, Some(&uvs)).iter().enumerate() {
+            if pin.is_some() {
+                free[w] = false;
             }
         }
         let density = density_of(mesh, piece, &uvs).unwrap_or(1.0);
