@@ -520,6 +520,11 @@ pub const UV_SEAM_PREFER: Color32 = Color32::from_rgb(0xff, 0xc8, 0x5a);
 pub const UV_SEAM_NEVER: Color32 = Color32::from_rgb(0x4d, 0xa6, 0xff);
 /// Locked pieces in the UV Editor (decision 0112): faint grey stripes.
 pub const UV_LOCKED: Color32 = Color32::from_rgba_premultiplied(0x30, 0x30, 0x34, 0x50);
+/// A compared layout snapshot's outlines in the UV Editor (decision 0114):
+/// faint teal, under the current UVs and apart from every other colour.
+pub const UV_SNAPSHOT: Color32 = Color32::from_rgba_premultiplied(0x2a, 0x6e, 0x5c, 0x80);
+/// The note saying which snapshot is compared.
+pub const UV_SNAPSHOT_TEXT: Color32 = Color32::from_rgb(0x6c, 0xc8, 0xaa);
 /// Pinned UVs in the UV Editor (decision 0109): a bright magenta, apart
 /// from the seams' orange and every accent's selection.
 pub const UV_PIN: Color32 = Color32::from_rgb(0xff, 0x3d, 0xc8);

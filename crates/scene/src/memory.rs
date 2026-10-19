@@ -128,6 +128,7 @@ pub(crate) fn operation_size(op: &Operation) -> usize {
             .iter()
             .map(|(faces, _)| std::mem::size_of_val(faces.as_slice()) + size_of::<glam::Affine2>())
             .sum(),
+        Operation::RestoreUvs { layout } => layout.memory_size(),
         Operation::FixFacing
         | Operation::PlaceShape { .. }
         | Operation::HardEdgesByAngle { .. } => 0,
@@ -199,6 +200,27 @@ pub(crate) fn edit(edit: &Edit) -> usize {
                 .filter_map(|t| t.as_ref())
                 .map(|t| t.folder.len())
                 .sum(),
+            Edit::SetSnapshots { before, after } => {
+                // Layouts are shared: only those one side has cost memory.
+                let only = |a: &[crate::UvSnapshot], b: &[crate::UvSnapshot]| -> usize {
+                    a.iter()
+                        .flat_map(|s| s.objects.iter())
+                        .filter(|(_, l)| {
+                            !b.iter()
+                                .flat_map(|s| s.objects.iter())
+                                .any(|(_, m)| std::sync::Arc::ptr_eq(l, m))
+                        })
+                        .map(|(_, l)| l.memory_size())
+                        .sum()
+                };
+                [before, after]
+                    .iter()
+                    .flat_map(|list| list.iter())
+                    .map(|s| s.name.len() + s.objects.len() * size_of::<(crate::ObjectId, usize)>())
+                    .sum::<usize>()
+                    + only(before, after)
+                    + only(after, before)
+            }
             Edit::SetTrim { before, after } => [before, after]
                 .iter()
                 .flat_map(|t| t.rows.iter())

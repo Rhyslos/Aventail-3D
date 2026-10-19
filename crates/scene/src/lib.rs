@@ -15,6 +15,7 @@ mod history;
 mod memory;
 pub mod mirroring;
 pub mod object;
+pub mod snapshot;
 pub mod stack;
 pub mod tree;
 pub mod trim;
@@ -27,7 +28,7 @@ pub use mesh::edit::{
     Bend, BevelOptions, BevelShape, ExtrudeDirection, ExtrudeShape, Eye, GrooveShape, GrooveSides,
     Grouping, Slide, SlitLine,
 };
-pub use mesh::uvs::{BUDGET_RANGE, SeamPreference};
+pub use mesh::uvs::{BUDGET_RANGE, SeamPreference, UvLayout};
 pub use mesh::{
     Bounds, Combine, EdgeKey, Element, ElementKind, ElementSelection, FaceId, Mesh, Primitive,
     PrimitiveKind, VertexId,
@@ -35,6 +36,7 @@ pub use mesh::{
 pub use object::{
     ApplyParts, Collision, LiveMirror, Material, Object, ObjectId, ObjectKind, Transform,
 };
+pub use snapshot::{MAX_SNAPSHOT_NAME, MAX_SNAPSHOTS, UvSnapshot};
 pub use stack::{
     EDITS_LAYER, EditId, EditSettings, Entry, EvalContext, Evaluated, Layer, LayerChange,
     MAX_SHAPE_POLYGONS, Operation, Stack, StackWarning, frozen_count,
