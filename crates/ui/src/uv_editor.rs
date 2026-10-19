@@ -539,10 +539,7 @@ impl UvEditor {
             }
         }
         self.paint_measure(&painter, rect, doc.scene().texture());
-        let (overlapping, mirrored) = warnings.values().fold((0, 0), |(o, m), w| {
-            (o + w.overlapping_pieces, m + w.mirrored_pieces)
-        });
-        if let Some(text) = checking::warning_text(overlapping, mirrored) {
+        if let Some(text) = checking::warning_text(checking::WarningCounts::of(warnings.values())) {
             painter.text(
                 rect.right_top() + vec2(-10.0, 10.0),
                 Align2::RIGHT_TOP,

@@ -37,6 +37,9 @@ pub const SELECT_TOOL_KEY: Key = Key::Q;
 pub const SELECT_ALL_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::A);
 /// Invert the selection.
 pub const INVERT_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::I);
+/// Select connected: the whole part the selection is on (the project
+/// lead's choice, decision 0118).
+pub const CONNECTED_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::ALT, Key::A);
 
 /// The brush's radius as standard, in screen points.
 pub const BRUSH_RADIUS: f32 = 20.0;
@@ -481,6 +484,34 @@ impl Selector<'_> {
                     .collect()
             },
         )
+    }
+
+    /// Selects everything joined to the selection (Select → Select
+    /// connected, Alt + A), in the mode's kind.
+    pub(crate) fn select_connected(&mut self) -> Option<String> {
+        let Some(kind) = kind_for(self.mode) else {
+            return Some(
+                "Select connected works on points, edges or polygons: press 1, 2 or 3 \
+                         (or use the UV mode) and select a little of the part first."
+                    .into(),
+            );
+        };
+        let none = ElementSelection::new();
+        let anything = self
+            .drawing
+            .items
+            .iter()
+            .filter(|i| i.selected)
+            .any(|i| self.document.elements(i.id).unwrap_or(&none).count(kind) > 0);
+        if !anything {
+            return Some(format!(
+                "Select connected: select a {} of the part first.",
+                kind.singular()
+            ));
+        }
+        self.each_edited(kind, "Select connected", |mesh, topology, selected| {
+            ops::connected(mesh, topology, selected, kind)
+        })
     }
 
     /// Selects the seams (Select or UV menu → Select seams).

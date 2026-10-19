@@ -10,8 +10,9 @@
 
 - **Overlapping pieces** (tinted red): two pieces lying over each other share the same pixels, so whatever you paint on one shows on the other, and a bake writes both into one spot. A polygon folded over inside its own piece is the same problem in miniature, and is tinted red too.
 - **Mirrored pieces** (tinted purple): the piece lies flipped in the texture, so text and arrows painted on it read backwards on the model, and normal maps can light it the wrong way.
+- **Pieces outside the square** (tinted amber): part or all of the piece lies outside the texture square (0 to 1). A texture only covers the square, so what's outside repeats the texture from the other side, and a bake can't paint it.
 
-Pieces only overlap if they share a texture: pieces with different materials (when **Pack** gives each material its own texture, see [Pack](packing.md)) may lie in the same spot. Pieces stacked exactly on an identical piece on purpose (to share pixels), and pieces on a [trim sheet](trim-sheets.md)'s rows, aren't warned about. Mirroring a piece on purpose, for a symmetrical model whose halves share pixels, is fine, as long as nothing you paint there has to read the right way round.
+Pieces only overlap if they share a texture: pieces with different materials (when **Pack** gives each material its own texture, see [Pack](packing.md)) may lie in the same spot. Pieces stacked exactly on an identical piece on purpose (to share pixels), and pieces on a [trim sheet](trim-sheets.md)'s rows (which run past the square's sides on purpose), aren't warned about. Mirroring a piece on purpose, for a symmetrical model whose halves share pixels, is fine, as long as nothing you paint there has to read the right way round.
 
 **Numbers on pieces** help when you're judging a layout: is this piece as big as it should be, does it get the texture it needs, is anything stretched?
 
@@ -19,7 +20,7 @@ Pieces only overlap if they share a texture: pieces with different materials (wh
 
 ## How to use it
 
-**Warnings** need nothing: the red and purple tints, and a line top right saying how many pieces overlap and how many are mirrored, show whenever the UV Editor has something to warn about. Fix it with [Pack](packing.md) (moves pieces apart), **UV → Turn and flip** (flips a mirrored piece back), [Unwrap or Relax](unwrapping.md) (unfolds folded polygons), or by moving pieces by hand.
+**Warnings** need nothing: the red, purple and amber tints, and a line top right saying how many pieces overlap, are mirrored or stick out of the square, show whenever the UV Editor has something to warn about. Fix it with [Pack](packing.md) (moves pieces apart), **UV → Turn and flip** (flips a mirrored piece back), Pack (brings pieces back inside the square), [Unwrap or Relax](unwrapping.md) (unfolds folded polygons), or by moving pieces by hand.
 
 **Numbers on pieces:**
 

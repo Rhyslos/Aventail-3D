@@ -21,13 +21,18 @@ Aventail 3D (model + UV)  ──glTF/OBJ──►  Substance Painter (bake + tex
 - UV seams, unwrapping, a UV editor and packing
 - Clean export for Substance Painter and Godot
 
-### Planned much later
-- Scripting in Lua, so people can add their own tools and automate work (Phase 10, §4.7).
-- Rigging, skinning and animation for game assets (Phase 11). Modelling and UV work always take precedence unless something urgent comes up.
+### Planned later (in this order, §10)
+- Advanced modelling and modifiers (Phase 10).
+- Solis, the app's own renderer: real-time first (Phase 11), path tracing much later (Phase 20).
+- Texture painting and a material node editor (Phases 12 and 13).
+- An alpha release, then a long round of fixes and polish (Phases 14 and 15).
+- Scripting in LustScript, with plain Lua too (Phase 16, §4.7).
+- Rigging and skinning, then animation, for game assets (Phases 17 and 18).
+- Gauntlet, effects: physics, particles and simulations, baked for game engines (Phase 19).
+- Other languages, when wanted (English is built as a language package from Phase 9).
 
 ### Out of scope (for now)
-- Rendering beyond a good-looking viewport
-- Sculpting, texturing and materials beyond a preview/checker
+- Sculpting
 
 ### Guiding principles
 *Aim:* game development first, but good enough for a hobbyist generalist. If one hobbyist picks it up and enjoys it, the project has won.
@@ -102,7 +107,7 @@ Aventail-3D/
 │  ├─ scene/       # layer 1: objects, operation stacks, evaluation, commands, undo
 │  ├─ config/      # layer 1: settings, hotkeys, defaults
 │  ├─ fileio/      # layer 2: .avtl projects, OBJ, glTF (FBX later), settings file
-│  ├─ script/      # layer 2 (Phase 10): Lua scripting through commands
+│  ├─ script/      # layer 2 (Phase 16): scripting (LustScript and Lua) through commands
 │  ├─ render/      # layer 3: wgpu viewport renderer, picking
 │  ├─ tools/       # layer 3: camera, selection, gizmos, modelling and UV tools
 │  ├─ ui/          # layer 3: egui panels, menus, palettes, theme
@@ -171,7 +176,7 @@ A tool implements a common trait:
 Tools never mutate the mesh directly; they produce operations, which keeps undo and the stack consistent.
 
 ### 4.5 Keeping the door open for rigging and animation
-Nothing animation-related is built before Phase 11, but these rules avoid a rewrite later:
+Nothing animation-related is built before Phase 17, but these rules avoid a rewrite later:
 - **Generic attribute layers.** Mesh attributes are stored as named, typed layers, so per-vertex **skin weights** (bone index + weight) can be added later as just another layer.
 - **Extensible object types.** The scene graph's object kinds are an enum/trait that can gain `Joint`/`Bone` and other node types without restructuring.
 - **Clean transforms.** Each object has a local transform relative to its parent, and world transforms are always derived from it. No code may assume world-space transforms are stored.
@@ -184,7 +189,7 @@ Nothing animation-related is built before Phase 11, but these rules avoid a rewr
 - **GPU picking** (ID buffer) for vertices/edges/faces, and **depth readback** for cursor-point navigation.
 - Only meshes that changed are re-uploaded. *To improve (§4.8):* within a mesh, only the part that changed, so moving a few points of a huge mesh doesn't re-upload all of it.
 
-### 4.7 Scripting (Phase 10)
+### 4.7 Scripting (Phase 16)
 Let people code their own functionality: custom tools, batch jobs, generators, export helpers. Blender, 3ds Max and Cinema 4D all have this, and a free tool gains a lot when its users can extend it.
 
 **Language: Lua** ([decision 0011](docs/decisions/0011-lua-scripting.md)), using the **Luau** dialect through the `mlua` crate (both MIT):
@@ -325,7 +330,7 @@ Also: dense wireframes fade out from afar (and aren't drawn when too dense to se
 - A keyboard shortcut viewer (built: Keys on the menu bar)
 - Wireframe (built: Shaded, Shaded with wires, Wireframe), cavity (built, [0065](docs/decisions/0065-cavity.md)), clickable corner axes (built, [0066](docs/decisions/0066-clickable-axes.md)), automatic hard edges (built, [0064](docs/decisions/0064-automatic-hard-edges.md))
 
-**Tools — Phase 9 (advanced hard-surface):**
+**Tools — Phase 10 (advanced hard-surface):**
 - Booleans (union/subtract/intersect) via manifold
 - Shell (thickness), and curves and splines (sweep, lathe)
 - Our own smoothing modifier (subdivision, with creases)
@@ -555,16 +560,43 @@ At the project lead's request (2026-10-16; [decision 0108](docs/decisions/0108-u
 - Bakes for the pipeline: to vertex colours, a whole kit at once, stacked and mirrored pieces moved aside for the bake, and straight into a Godot material (normal map and an ORM texture)
 - **Done when:** a modular kit is unwrapped, packed and baked in Aventail 3D and looks right in Godot, and changing a model afterwards keeps its UVs and their intents.
 
-### Phase 9 — Advanced hard-surface
+### Phase 9 — First use, and English as a language package
+A brief phase between the UVs and advanced modelling ([0119](docs/decisions/0119-roadmap-after-the-uvs.md)), from the first testers' feedback (2026-10-18): the app felt overwhelming to people who weren't there from the first cube.
+- **A side palette that slides out** to show each button's name, not only its icon.
+- **High contrast:** a setting that makes edges, points and the selection stand out much more.
+- **The selection mode button shows it has choices:** a small dropdown arrow, so people see there are several kinds.
+- **Labels on everything:** every button and field says what it is (on hover at least, and in words where there's room).
+- **Tidier menus:** commands moved to where people look for them; nothing important hidden deep.
+- **English as the one language package:** every piece of text the app shows comes from one English package through one translation layer (Project Fluent's `fluent` crates are the likely choice: Apache-2.0/MIT), and a check fails CI when new text skips it. Only English ships, but adding a language later means adding a package, not reworking the app. From then on, new text goes into the English package. (The rest of [0117](docs/decisions/0117-language-support.md)'s plan, a language setting, local numbers, fonts and translations, waits until other languages are wanted.)
+- **Done when:** a tester new to the app finds the main tools without help, sees what is selected on any screen, and no text in the app skips the English package.
+
+### Phase 10 — Advanced hard-surface
 - Every tool here carries UVs and seams along from the start (the builder, decision 0043)
 - Booleans, weighted normals, better bevel, generators (array, mirror)
+- **Mirror as a modifier** that can be turned on per object (the project lead, 2026-10-18), separate from the live mirror (symmetry), which stays as it is: the modifier mirrors one object's shape; the live mirror makes edits work on both halves
 - Shell, curves and splines, and our own smoothing modifier
 - Friends join as testers around this phase
 - Game bevel and modular kit helpers (§6; **W15**, **W16**)
 - Generators, booleans, weighted normals and the game bevel are added to the modifiers palette (§5.1)
 
-### Phase 10 — Scripting
-Lua scripting so people can add their own tools and automate work. Full design in §4.7.
+### Phase 11 — Solis v1: real-time rendering
+**Solis** is the app's own renderer ([0119](docs/decisions/0119-roadmap-after-the-uvs.md)). It will have two modes, with a switch between them: a light, fast **real-time** renderer, and later a slow, accurate **path tracer** (Phase 20). Version 1 is the real-time one, and it lights the viewport too. To be planned in detail; the starting ideas:
+- **What makes it worth using:** it shows a game asset the way the game engine will. The same lighting model and tone mapping as Godot (and later Unity and Unreal), so what you see in the app is what you get in the game, and the textures painted in the app (Phases 12–13) look right before export. A stylised mode with toon shading and outlines (the texturing plan's "almost a priority") comes with it.
+- **Built on the GPU through `wgpu`**, as the viewport is, so it runs on Vulkan, Metal and DirectX 12.
+- **Its own crate**, `render` or similar, knowing nothing about the app's interface, so it could later be used elsewhere (see Phase 20 on a Blender add-on).
+- Turntables and stills straight from it, for showing assets off.
+
+### Phases 12 and 13 — Texture painting, then materials
+Texture painting (Phase 12), then materials with a node editor (Phase 13): see "Texturing and a material builder" below, which still needs its planning talk.
+
+### Phase 14 — Alpha release
+The app released for alpha testing on the project lead's website, and maybe on Steam: installers for Windows, macOS and Linux, updates, a way for testers to report problems, and the manual online.
+
+### Phase 15 — Bug fixes and polish
+A long phase of fixing what alpha testers find, and polishing what they use most.
+
+### Phase 16 — Scripting
+Scripting so people can add their own tools and automate work. **LustScript** (the project lead's own language, free and open source) is the default scripting language, and plain Lua works too, in LustScript files ([0119](docs/decisions/0119-roadmap-after-the-uvs.md)). The design in §4.7 (written for Luau, [0011](docs/decisions/0011-lua-scripting.md)) is revisited for LustScript when this phase is planned; LustScript's licence must be permissive (MIT or Apache-2.0, say) for the app to use it (§9).
 - Script runner with the sandbox, time limit and permissions
 - The scripting API: scene, selection, operations and commands (undoable like any edit)
 - Scripts as commands: in menus, the command search and hotkeys, with parameters in the Attributes panel
@@ -572,15 +604,26 @@ Lua scripting so people can add their own tools and automate work. Full design i
 - API reference and a "your first script" page in the manual; example scripts
 - **Done when:** a user can write a short script (say, "bevel every hard edge of the selection by 2 mm") that shows up as a command, can be undone, and can't harm files outside what it was allowed.
 
-### Phase 11 — Rigging, skinning and animation (far future)
-Starts only once modelling and UVs are mature. Rough contents, to be designed properly when the time comes:
+### Phases 17 and 18 — Rigging and skinning, then animation (far future)
+Rigging and skinning first (Phase 17), animation after (Phase 18). Rough contents, to be designed properly when the time comes:
 - **Aim (project lead, 2026-10-13):** every animation tool is for game developers, helping them animate for games in both first and third person: first-person arms and weapons, third-person characters, and loops and clips that export cleanly to engines.
 - Joints/bones in the Objects panel hierarchy; bone display and editing
 - Skinning: bind mesh to skeleton, weight painting, weight tools (normalize, mirror, smooth)
 - Animation: keyframes on transforms, timeline and dope sheet, curve editor, playback in the viewport
 - Export skinned and animated meshes to glTF for Godot
 
-### To be designed: Texturing and a material builder (after Phase 9)
+### Phase 19 — Gauntlet: effects
+**Gauntlet** is the app's effects system: physics, particles and simulations, to be planned when its time comes (the project lead is new to effects, so it starts with research into what game effects artists use). Two ideas from the start:
+- **Scripting at its heart:** effects driven and extended with LustScript.
+- **Baked for game engines:** effects made in the app export baked (as flipbook textures, vertex animation or animated meshes), so they cost little in the game.
+
+### Phase 20 — Solis, full: path tracing
+The second Solis mode: a path tracer for slow, accurate, high-quality images, using the GPU to the full (compute shaders; hardware ray tracing where `wgpu` supports it). Whether Solis also becomes a **Blender add-on** is decided here, once the real-time Solis has proved itself: Blender already has a strong path tracer (Cycles) and real-time renderer (EEVEE), so a Solis add-on is only worth making for what Solis does differently (the engine-matching look, the stylised mode), not as a general renderer.
+
+### Later: other languages
+Translations, a language setting, local numbers and fonts for other alphabets ([0117](docs/decisions/0117-language-support.md)), when other languages are wanted; Phase 9's English package makes this an addition, not a rework.
+
+### To be designed: Texturing and a material builder (Phases 12 and 13)
 At the project lead's request (2026-10-13): a built-in texture painter, so no Substance Painter subscription is needed, and a material builder after it. Both still need a planning talk before they get phases and milestones. Rough parts:
 - the maps baked in Phase 8 (normal, AO, curvature, thickness, position, ID) as its starting point;
 - a layer stack with fill and paint layers and masks;
@@ -589,7 +632,7 @@ At the project lead's request (2026-10-13): a built-in texture painter, so no Su
 - export to each engine's texture layout;
 - later, a node-based material builder.
 
-**Game-first, not a Painter copy.** The tools should be shaped by game work (texel density, trim sheets, texture sets, engine channel packing, mid-poly shading) and may well differ from Painter's. They still need to be good enough for a hobbyist generalist. Scripting and rigging move back to make room.
+**Game-first, not a Painter copy.** The tools should be shaped by game work (texel density, trim sheets, texture sets, engine channel packing, mid-poly shading) and may well differ from Painter's. They still need to be good enough for a hobbyist generalist.
 
 **Tied to the UV tools.** The project lead works in the 2D (UV) and 3D views side by side, and texturing should work the same way: paint in either view and see it in both. The UV phase's work should carry straight into texturing: texel density, trim sheets, texture sets and islands that survive modelling.
 
@@ -854,6 +897,9 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-16 — **Seam preferences and stretch budgets** ([0111](docs/decisions/0111-seam-preferences-and-stretch-budget.md)), Phase 8's third milestone. Menu commands only (no keys): UV → Prefer seams here, Never seams here, Clear seam preference, and a Stretch budget submenu; a budget for every piece in UV → Seam suggestions. "Prefer" is where needed cuts go first; "never" keeps every tool's cuts off an edge unless a piece couldn't lie flat otherwise. A budget is how far off nearly all of a piece (all but its worst 5% by area) may be, as laid flat by Keep shapes; pieces over it are slit, one at a time, from their most squeezed or one-way-stretched point to their border along the most hidden way, a slit kept only if it helps, at most 24. Preferences are an edge layer, piece budgets a polygon layer; `SetSeamPreference` and `SetStretchBudget` record them; unwraps record the budget for every piece; file format 36. The distortion measure stops pricing a layout mirrored as a whole.
 - 2026-10-16 — **Locked pieces and piece settings** ([0112](docs/decisions/0112-locked-pieces-and-piece-settings.md)), Phase 8's fourth milestone. Menu commands only: UV → Lock pieces, Unlock pieces and a Piece settings submenu, on whole pieces. Locks are a polygon layer (`uv_lock`) carried to polygons modelling makes from locked ones; every many-piece tool skips locked pieces (Unwrap, Relax, Straighten, density, trim, Pack, Suggest seams' changes, mending), hand edits still work. Piece settings (method, straightening, texel density in texture widths per unit) are polygon layers read by every unwrap through `uv::PieceSettings`. `SetUvLock`, `SetPieceSettings`; file format 37. The rest of Phase 8 is planned milestone by milestone in [docs/plans/phase-8.md](docs/plans/phase-8.md), at the project lead's request, so later sessions can pick it up.
 - 2026-10-16 — **The UV menu in groups** ([0113](docs/decisions/0113-uv-menu-in-groups.md)), before milestone 5, because the UV menu only just fit a 900-pixel window. The project lead chose grouped submenus from three mock-ups: Seams, Turn and flip, Lay out, Pieces, then Texture, Trim sheet and Check for baking, then Settings. No commands or keys changed; later UV tools go into the group they fit.
-- 2026-10-16 — **Layout snapshots** ([0114](docs/decisions/0114-layout-snapshots.md)), Phase 8's milestone 18, the first of the six the project lead asked for in least-work order (lightmaps and recipes skipped for now). In the UV Editor's own Snapshots menu, no keys (his choice). A snapshot is a name and, per object, every polygon's corner UVs and the seams (`mesh::uvs::UvLayout`), kept in the scene (`Command::SetSnapshots`, an undoable step); Restore records `Operation::RestoreUvs` on each object as one undo step, so it replays like any UV edit: polygons made since, or with other corners, keep their UVs, and only seams between restored polygons change. Compare draws one faintly under the current layout. File format 38.
+- 2026-10-16 — **Layout snapshots** ([0114](docs/decisions/0114-layout-snapshots.md)), Phase 8's milestone 18, the first of the six the project lead asked for in least-work order (lightmaps and recipes left for later in the phase, still planned). In the UV Editor's own Snapshots menu, no keys (his choice). A snapshot is a name and, per object, every polygon's corner UVs and the seams (`mesh::uvs::UvLayout`), kept in the scene (`Command::SetSnapshots`, an undoable step); Restore records `Operation::RestoreUvs` on each object as one undo step, so it replays like any UV edit: polygons made since, or with other corners, keep their UVs, and only seams between restored polygons change. Compare draws one faintly under the current layout. File format 38.
 - 2026-10-17 — **Seeing and checking** ([0115](docs/decisions/0115-seeing-and-checking.md)), Phase 8's milestone 15. Warnings always on: overlapping pieces and folded polygons tinted red, mirrored pieces purple, counted top right (`uv::warnings`, the bake check's overlap test on a 256-cell grid, per texture as packing groups pieces; stacked and trim pieces left out). View → Numbers on pieces (pixel size, px/m, worst stretch). View → Measure then drag (`uv::measure`: the line walked in 256 steps over the shapes' triangles, world distance added within pieces); Esc stops. Nothing new is saved.
 - 2026-10-17 — **"Why is this here?"** ([0116](docs/decisions/0116-why-is-this-here.md)), Phase 8's milestone 23. Only while View → Explain choices is ticked (his choice). Reasons are worked out on demand rather than kept from the last run, so they explain seams in any project, opened or not: `uv::seams::suggest_explained` gives each suggested seam's `SeamReason` (hard edge, sharp corner with its angle, to lie flat, preferred, stretch budget), and a seam it wouldn't make is explained as made by hand or another tool. Fixes are named menu commands, not buttons in the box (no new clicks). Pieces are explained from their state. Nothing saved.
+- 2026-10-17 — **Language support** ([0117](docs/decisions/0117-language-support.md)) added as Phase 9, the first phase after the UVs, at the project lead's request ("huge thing we need to fix"). Advanced hard-surface becomes Phase 10, scripting Phase 11, rigging Phase 12. Every text through one translation layer, a language setting, local numbers, fonts for other alphabets, then translations. Which languages, and whether the manual is translated, are asked before it starts.
+- 2026-10-18 — **Select connected and the outside warning** ([0118](docs/decisions/0118-select-connected-and-outside-warnings.md)), from the project lead's testing. **Alt + A** (his choice) selects everything joined to the selection on the model, across seams, in any element mode; also Select → Select connected and UV → Pieces. The UV Editor's always-on warnings now also tint pieces outside the texture square amber (trim pieces left out).
+- 2026-10-18 — **The roadmap after the UVs** ([0119](docs/decisions/0119-roadmap-after-the-uvs.md)), from the first testers' feedback and the project lead's new ideas, in his order. After the whole UV phase: a brief first-use phase (a sliding palette with names, high contrast, a dropdown on the selection mode, labels on everything, tidier menus) that also builds English as the one language package, so other languages can be added later without a rework (language support itself waits, replacing most of 0117); advanced modelling, with Mirror as a per-object modifier beside the live mirror; Solis v1, the app's own real-time renderer, made to show assets as the game engine will, in its own crate; texture painting; materials; an alpha release; polish; scripting with LustScript as the default and plain Lua too (its licence must be permissive); rigging; animation; Gauntlet (effects, baked for engines); Solis's path tracer, with a Blender add-on decided then.

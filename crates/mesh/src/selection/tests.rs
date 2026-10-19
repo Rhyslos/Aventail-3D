@@ -417,3 +417,67 @@ fn memory_size_grows_with_the_selection() {
     ]);
     assert!(some.memory_size() > 0);
 }
+
+/// Two cubes side by side in one shape, not touching.
+fn two_cubes() -> Mesh {
+    let cube = crate::Primitive::Cube(crate::CubeParams::default()).mesh();
+    crate::parts::combine(&[
+        (&cube, glam::Mat4::IDENTITY),
+        (&cube, glam::Mat4::from_translation(glam::Vec3::X * 500.0)),
+    ])
+}
+
+#[test]
+fn connected_takes_the_whole_part_and_nothing_else() {
+    let mesh = two_cubes();
+    let topology = Topology::new(&mesh);
+    let first = mesh.faces().next().unwrap().0;
+    let one = ElementSelection::of([Element::Polygon(first)]);
+    let polygons = connected(&mesh, &topology, &one, ElementKind::Polygons);
+    assert_eq!(polygons.len(), 6, "one cube's sides, across its seams");
+    assert!(polygons.contains(&Element::Polygon(first)));
+    // The same part in points and edges, from a point or an edge.
+    let corner = mesh.face(first).unwrap()[0];
+    let point = ElementSelection::of([Element::Point(corner)]);
+    assert_eq!(
+        connected(&mesh, &topology, &point, ElementKind::Points).len(),
+        8
+    );
+    let edge = topology.vertex_edges(corner)[0];
+    let edges = ElementSelection::of([Element::Edge(edge)]);
+    assert_eq!(
+        connected(&mesh, &topology, &edges, ElementKind::Edges).len(),
+        12
+    );
+    // Something on each cube: both whole.
+    let last = mesh.faces().last().unwrap().0;
+    let both = ElementSelection::of([Element::Polygon(first), Element::Polygon(last)]);
+    assert_eq!(
+        connected(&mesh, &topology, &both, ElementKind::Polygons).len(),
+        12
+    );
+}
+
+#[test]
+fn connected_with_nothing_selected_or_a_lone_point_stays_small() {
+    let mut mesh = two_cubes();
+    let lone = mesh.add_vertex(glam::Vec3::splat(9000.0)).unwrap();
+    let topology = Topology::new(&mesh);
+    let empty = ElementSelection::new();
+    for kind in [
+        ElementKind::Points,
+        ElementKind::Edges,
+        ElementKind::Polygons,
+    ] {
+        assert!(connected(&mesh, &topology, &empty, kind).is_empty());
+    }
+    let point = ElementSelection::of([Element::Point(lone)]);
+    assert_eq!(
+        connected(&mesh, &topology, &point, ElementKind::Points),
+        vec![Element::Point(lone)]
+    );
+    // A polygon of another kind's selection doesn't count.
+    let first = mesh.faces().next().unwrap().0;
+    let polygon = ElementSelection::of([Element::Polygon(first)]);
+    assert!(connected(&mesh, &topology, &polygon, ElementKind::Points).is_empty());
+}

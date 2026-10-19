@@ -62,11 +62,27 @@ fn measures_and_warnings_read_plainly() {
         "128 px · 12.3 cm on the surface"
     );
     assert_eq!(measure_text(40.0, 0.0), "40 px · not over a piece");
-    assert_eq!(warning_text(0, 0), None);
-    assert_eq!(warning_text(1, 0).unwrap(), "1 piece overlapping");
+    let counts = |overlapping, mirrored, outside| WarningCounts {
+        overlapping,
+        mirrored,
+        outside,
+    };
+    assert_eq!(warning_text(counts(0, 0, 0)), None);
     assert_eq!(
-        warning_text(2, 3).unwrap(),
+        warning_text(counts(1, 0, 0)).unwrap(),
+        "1 piece overlapping"
+    );
+    assert_eq!(
+        warning_text(counts(2, 3, 0)).unwrap(),
         "2 pieces overlapping · 3 pieces mirrored"
+    );
+    assert_eq!(
+        warning_text(counts(0, 0, 1)).unwrap(),
+        "1 piece outside the square"
+    );
+    assert_eq!(
+        warning_text(counts(1, 1, 2)).unwrap(),
+        "1 piece overlapping · 1 piece mirrored · 2 pieces outside the square"
     );
 }
 
