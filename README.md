@@ -232,7 +232,7 @@ The detailed plan for the remaining milestones, with the controls already chosen
 
 **Gate:** a modular kit is unwrapped, packed and baked in Aventail 3D and looks right in Godot; changing a model afterwards keeps its UVs and their intents.
 
-### Phase 9 · First use, and English as a language package — 0 of 6
+### Phase 9 · First use, and English as a language package — 0 of 8
 
 `░░░░░░░░░░░░░` 0%
 
@@ -246,6 +246,8 @@ A brief phase after the UVs, from the first testers' feedback (2026-10-18): the 
 - [ ] The selection mode button shows it has choices (a dropdown arrow)
 - [ ] Labels on everything
 - [ ] Tidier menus: commands where people look for them
+- [ ] The UV menu in the UV Editor too, and the UV settings in a panel of their own beside Attributes ([#115](https://github.com/Rhyslos/Aventail-3D/issues/115))
+- [ ] Hard edges explain themselves: a warning when marking them while automatic hard edges by angle is on ([#114](https://github.com/Rhyslos/Aventail-3D/issues/114))
 - [ ] English as the one language package, so other languages can be added later without reworking the app
 
 </details>
