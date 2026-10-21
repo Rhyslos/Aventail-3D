@@ -248,7 +248,7 @@ After a review of the whole app (2026-10-21, [decision 0121](docs/decisions/0121
 - [ ] Find and help: command search, a right-click menu by default, Help → User manual, Hide and Isolate in a menu
 - [ ] Five modes (an Edit pivot switch instead of Object mode), and the edit history shown simply
 - [ ] Hard edges and symmetry per object: smoothing by angle per object ([#114](https://github.com/Rhyslos/Aventail-3D/issues/114)), symmetry as a modifier at the object's centre
-- [ ] One word per idea, and every setting in one home, with the UV settings in their own panel and the UV menu in the UV Editor ([#115](https://github.com/Rhyslos/Aventail-3D/issues/115))
+- [ ] Tidier menus (each command where people look for it, the Mesh menu grouped, no doubles), one word per idea, and every setting in one home, with the UV settings in their own panel and the UV menu in the UV Editor ([#115](https://github.com/Rhyslos/Aventail-3D/issues/115))
 - [ ] Labels on everything: a side palette that slides out with names, a dropdown on the selection mode button
 - [ ] A key audit, asked first (Ctrl adds and Shift removes stays)
 - [ ] A safety net: workflow tests, reference images, export checks in CI, an emergency copy on a crash, a newcomer checklist per pull request

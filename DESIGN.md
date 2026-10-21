@@ -581,7 +581,8 @@ After a review of the whole app (2026-10-21, [0121](docs/decisions/0121-rework-b
 5. **Hard edges and symmetry per object:**
    - Smoothing by angle becomes a per-object setting that hand-marked hard edges add to ([issue #114](https://github.com/Rhyslos/Aventail-3D/issues/114)).
    - Symmetry becomes a modifier, one mirror per object, at the object's own centre by default (the project lead, 2026-10-21; it replaces the live mirror and the separate Mirror modifier planned for Phase 10).
-6. **One word per idea, and every setting in one home:**
+6. **Tidier menus, one word per idea, and every setting in one home:**
+   - Menus cleaned up: each command where people look for it (from the testers' feedback). The flat Mesh menu gets groups, Edit and Select stop doubling each other with different meanings, and File keeps to files. Nothing important sits deep or only on a key.
    - A glossary the tooltips link to.
    - Every setting with one home in Settings, menus linking to it.
    - The UV settings in a panel of their own beside Attributes, and the UV menu in the UV Editor too ([issue #115](https://github.com/Rhyslos/Aventail-3D/issues/115)).

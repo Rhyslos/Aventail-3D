@@ -35,7 +35,7 @@ The review is the project lead's doc *Aventail 3D design and quality review*.
 
 ## Decision
 
-- **Order:** Phase 8 pauses at 7 of 28. Phase 9 becomes "Rework and first use" and comes now, with ten milestones (DESIGN.md §10). Its gate is a newcomer test: 2–3 people new to the app finish a fixed task list without help. Then Phase 8 continues.
+- **Order:** Phase 8 pauses at 7 of 28. The testers' menu cleanup is part of milestone 6. Phase 9 becomes "Rework and first use" and comes now, with ten milestones (DESIGN.md §10). Its gate is a newcomer test: 2–3 people new to the app finish a fixed task list without help. Then Phase 8 continues.
 - **The project lead's answers:**
   - He runs the Phase 4–7 gate checks himself from a step-by-step list (the doc *Gate checks for Phases 4 to 7*).
   - "Why is this here?" stays a switch, so it isn't in the way.
