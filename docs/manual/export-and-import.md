@@ -11,7 +11,7 @@ Your project file (`.avtl`) keeps everything the app needs to go on working: set
 - **glTF** (`.glb`, the standard): the open format Godot and Substance Painter read best, and Unity and Unreal Engine read too. Each object arrives as its own piece **placed at its [pivot](pivots.md)**, so the engine places, turns and snaps it by the pivot you set. It's always metres, Y up, and triangles, as the format requires.
 - **OBJ** (`.obj`): plain text, read by almost every 3D program, including Godot, Unity, Unreal Engine, Blender and Substance Painter. It holds the shapes (points, polygons, normals and UVs), not where each object's pivot is: every object is written where it stands in the scene.
 
-**Made for**, in the Export window's title bar, picks the right settings for **Godot**, **Unity**, **Unreal Engine** or **Substance Painter** in one click.
+**Made for**, in the Export window's title bar, chooses a [preset](concepts.md#the-game-asset-pipeline), the right settings for **Godot**, **Unity**, **Unreal Engine**, **Solis** or **Substance Painter**, in one click. The app remembers the settings of your last export, so a new project (or the next time you open the app) starts the Export window with them.
 
 **Import** does the reverse: it brings shapes in from an OBJ file made elsewhere, as plain meshes you can edit.
 
@@ -22,7 +22,7 @@ Your project file (`.avtl`) keeps everything the app needs to go on working: set
 The Export window has a **side list** on the left. **General** holds everything most exports need; **Game project** sets up exporting straight into a game engine's project. More sections (Materials, Mesh, Rig, Animations) join the list once the app has those features; until then they aren't shown, so there is nothing to hunt through.
 
 1. Choose **File → Export…**. The Export window opens on **General**.
-2. In the title bar, open **Made for** and pick where the model is going (see [Presets](#presets) below): **Godot** (the standard), **Unity**, **Unreal Engine** or **Substance Painter**. Each shows its kind of file on the right. The preset's file settings then show as one locked line, such as *glTF · metres · Y up · triangles*: skip to step 4. Or pick **Custom settings** at the bottom of the list and carry on.
+2. In the title bar, open **Made for** and pick where the model is going (see [Presets](#presets) below): **Godot** (the standard on first use), **Unity**, **Unreal Engine**, **Solis** or **Substance Painter**. Each shows its kind of file on the right. The preset's file settings then show as one locked line, such as *glTF · metres · Y up · triangles*: skip to step 4. Or pick **Custom settings** at the bottom of the list and carry on.
 3. With **Custom settings**, the file settings appear as rows to choose from:
    - **File type**: **glTF (.glb)** or **OBJ (.obj)**.
    - **Units**: **Metres** for Godot, Unity and Substance Painter; **Centimetres** for Unreal Engine.
@@ -60,10 +60,13 @@ Each object's points stay joined in the file: a smooth surface is one connected 
 | **Godot** (standard) | glTF, metres, Y up, triangles | glTF is Godot's favourite: each object arrives at its [pivot](pivots.md) with its [materials](materials.md) and its [collision](kit-export.md), and Godot re-imports the file by itself whenever you export again into its project folder. |
 | **Unity** | glTF, metres, Y up, triangles | The same file; Unity reads it once its *glTFast* package is installed. |
 | **Unreal Engine** | glTF, metres, Y up, triangles | The same file; Unreal Engine 5 reads it and turns it into its own centimetres and Z up. |
+| **Solis** | glTF, metres, Y up, triangles | The same file, for Solis, the game engine being made beside this app. Objects keep their own names: Godot's [collision](kit-export.md) endings (`-col`) are left off, as they mean nothing to Solis. |
 | **Substance Painter** | OBJ, metres, Y up, cut into triangles | The usual way into Substance Painter; a **Check for baking…** button appears under the file settings and runs the [bake check](bake-check.md). Each [material](materials.md) becomes a texture set, and the triangles are the viewport's, the same ones the glTF for the game holds, so the bake matches. |
 | **Custom settings** | whatever you choose | For anything else, such as an OBJ in centimetres for an older Unreal Engine. It starts from the settings of the preset you had, so you only change what's different. |
 
 A preset's settings are locked, so the window never claims a preset it isn't following: to change one, pick **Custom settings**. The status bar names the preset after exporting: *Exported 3 objects for Godot (240 triangles, 2 materials) to crate.glb.*
+
+**Your last export is remembered.** Whenever you export (with Export…, Export again or Export kit…), the app keeps that export's Made for and file settings, also after you close it. New projects and the next launch start there, so if you always export for Solis, or with your own Custom settings, you set it up once. Only an export is remembered: changing Made for and then pressing Cancel leaves the remembered settings as they were. **Objects** isn't remembered and always starts at *Everything shown*, because what is selected belongs to the moment. The very first time, Made for starts at Godot.
 
 ### Export into a game project
 
@@ -80,7 +83,7 @@ Instead of choosing where to save every time, tell the app which folder of your 
 How it works:
 
 - **One file per project, named after it.** Saving `crate.avtl` exports `crate.glb`, with everything shown, using the engine's settings: glTF for all three engines, so pivots and materials come along.
-- **The engine is worked out from the folder.** A Godot project has a `project.godot` file, a Unity project `Assets` and `ProjectSettings` folders, an Unreal Engine project a `.uproject` file, in the folder or one above it. A folder in none of them gets Godot's settings.
+- **The engine is worked out from the folder.** A Godot project has a `project.godot` file, a Unity project `Assets` and `ProjectSettings` folders, an Unreal Engine project a `.uproject` file, in the folder or one above it. A folder in none of them (a Solis project, for now, since Solis projects have no project file yet) gets the settings of the engine chosen in **Made for**, or Godot's if Made for is set to Substance Painter or Custom settings. So for a Solis project, pick **Solis** in Made for.
 - **Unity** reads glTF once its *glTFast* package is installed (Window → Package Manager). **Unreal Engine 5** reads glTF and turns it into its own centimetres and Z up.
 - **The folder is saved with the project.** Untick **Export on every save** to stop exporting when you save, or click **Clear** to forget the folder. Each change is an undo step.
 
@@ -101,7 +104,7 @@ The app reads an OBJ as metres with Y up, the usual way, and turns it to centime
 
 | Setting | What it does |
 |---|---|
-| **Made for** (title bar) | **Godot** (standard), **Unity**, **Unreal Engine** or **Substance Painter** choose the file settings for you and lock them; **Custom settings** lets you choose. |
+| **Made for** (title bar) | **Godot** (standard on first use), **Unity**, **Unreal Engine**, **Solis** or **Substance Painter** choose the file settings for you and lock them; **Custom settings** lets you choose. The last export's choice is remembered between projects and launches. |
 | **Objects** | **Everything shown** (standard), or **Selected only**: the selected objects and what's inside them. Groups have no shape of their own; only shapes are exported. |
 | **Includes** | What goes into the file: the mesh and its materials, always. |
 | **File type** (Custom settings) | **glTF (.glb)**, standard: each object at its pivot; always metres, Y up, triangles. **OBJ (.obj)**: plain shapes where they stand. |
@@ -110,7 +113,7 @@ The app reads an OBJ as metres with Y up, the usual way, and turns it to centime
 | **Triangles** (Custom settings) | Off: polygons go out as they are (an OBJ for most programs). On (the presets): every polygon is cut into triangles the same way the viewport cuts them. |
 | **Game project** (side list) | The folder in your game project this project exports into (saved with the project), with **Export on every save** (on once a folder is chosen). |
 
-The Export window remembers its choices while the app is open.
+The Export window keeps its choices while the app is open, and the app remembers the last export's Made for and file settings for next time.
 
 ## Shortcuts
 
@@ -127,6 +130,8 @@ To open the window, use **File → Export…**.
 - **Tip:** glTF splits a point where its shading breaks into one per side, as every game engine does, so a crisp cube has 24 corners in the file, not 8. That's normal.
 - **Problem:** the model arrives lying on its back. **Why:** the file was written Z up, and the program expected Y up (or the other way round). **Fix:** export again with the other choice.
 - **Tip:** not sure which settings? Pick **Godot** or **Substance Painter** under **Made for**.
+- **Problem:** a new project's Export window doesn't start at Godot. **Why:** the app remembers your last export's settings. **Fix:** pick the one you want in Made for; it's remembered from your next export.
+- **Problem:** exports into a Solis project get Godot's settings. **Why:** the app can't recognise a Solis project folder yet, so it uses the engine in Made for, and Made for wasn't on an engine. **Fix:** pick **Solis** in Made for.
 - **Problem:** the file settings can't be changed. **Why:** a preset is chosen under Made for, and its settings are locked so the file is what that program expects. **Fix:** pick **Custom settings** in Made for.
 - **Problem:** the model is 100 times too big or too small. **Why:** metres and centimetres were mixed up. **Fix:** Godot, Unity and Substance Painter want **Metres**; Unreal Engine wants **Centimetres**.
 - **Problem:** the footer says there is nothing to export, and Export… can't be pressed. **Why:** everything is hidden, or *Selected only* was chosen with only groups selected. **Fix:** show the objects, or choose Everything shown.

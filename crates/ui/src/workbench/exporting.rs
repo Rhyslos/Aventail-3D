@@ -12,6 +12,7 @@ use fileio::engine::Engine;
 use fileio::export::{
     ExportFormat, ExportOptions, ExportPreset, ExportSummary, ExportWhat, FileUnits, UpAxis,
 };
+use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -87,6 +88,64 @@ impl ExportChoice {
     }
 }
 
+/// The export settings the app remembers between projects and launches
+/// ([decision 0122](../../../../docs/decisions/0122-solis-preset-and-remembered-export-settings.md)):
+/// the last export's Made for and file settings, so a new project exports
+/// the same way without setting it up again. What goes out (everything
+/// or the selection) isn't remembered: it belongs to the moment.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct ExportSettings {
+    /// The preset, if any.
+    pub preset: Option<ExportPreset>,
+    /// The kind of file (used without a preset).
+    pub format: ExportFormat,
+    /// The file's units (used without a preset).
+    pub units: FileUnits,
+    /// The file's up axis (used without a preset).
+    pub up: UpAxis,
+    /// Whether polygons are cut into triangles (used without a preset).
+    pub triangulate: bool,
+}
+
+impl Default for ExportSettings {
+    /// Godot's, as on the first launch.
+    fn default() -> Self {
+        Self::of(ExportChoice::default())
+    }
+}
+
+impl ExportSettings {
+    /// The settings of `choice`.
+    pub fn of(choice: ExportChoice) -> Self {
+        Self {
+            preset: choice.preset,
+            format: choice.format,
+            units: choice.units,
+            up: choice.up,
+            triangulate: choice.triangulate,
+        }
+    }
+
+    /// The Export window's choices with these settings, everything shown.
+    /// A preset's own settings win over the rest (a damaged settings file
+    /// can hold anything).
+    pub fn choice(self) -> ExportChoice {
+        let custom = ExportChoice {
+            preset: None,
+            format: self.format,
+            what: ExportWhat::Everything,
+            units: self.units,
+            up: self.up,
+            triangulate: self.triangulate,
+        };
+        match self.preset {
+            Some(preset) => custom.with_preset(preset),
+            None => custom,
+        }
+    }
+}
+
 /// An export into the project's game project folder the app is asked to
 /// make (decision 0076).
 #[derive(Debug, Clone, PartialEq)]
@@ -156,6 +215,8 @@ pub(crate) struct Exporting {
     pub(crate) choice: ExportChoice,
     /// The last export: where, and how (for Export again).
     pub(crate) last: Option<(PathBuf, ExportChoice)>,
+    /// The last export's settings, remembered by the app (decision 0122).
+    pub(crate) remembered: ExportSettings,
     /// The engine the game project folder belongs to, and that project's
     /// own folder, worked out for the folder named (only when it changes).
     detected: Option<(String, Option<(Engine, PathBuf)>)>,
@@ -312,15 +373,41 @@ impl Workbench {
         }
     }
 
+    /// The preset for a game project folder the app can't recognise (a
+    /// Solis project, for now, or any other engine's): the Export window's
+    /// Made for when it is a game engine, otherwise Godot's.
+    pub(crate) fn fallback_preset(&self) -> ExportPreset {
+        self.exporting
+            .choice
+            .preset
+            .filter(|p| p.is_engine())
+            .unwrap_or(ExportPreset::Godot)
+    }
+
+    /// The export settings the app remembers (decision 0122).
+    pub fn export_settings(&self) -> ExportSettings {
+        self.exporting.remembered
+    }
+
+    /// The workbench with remembered export settings: the Export window
+    /// starts with them.
+    #[must_use]
+    pub fn with_export_settings(mut self, settings: ExportSettings) -> Self {
+        self.exporting.remembered = settings;
+        self.exporting.choice = settings.choice();
+        self
+    }
+
     /// The export into the game project folder, if the project has one:
-    /// everything shown, with the engine's preset (Godot's when the folder
-    /// isn't in a known engine's project), named after the project saved
+    /// everything shown, with the engine's preset (when the folder isn't
+    /// in a project the app can recognise, [`Self::fallback_preset`]),
+    /// named after the project saved
     /// at `saving_to` (or the project's own file, or "Untitled").
     pub fn target_request(&mut self, saving_to: Option<&Path>) -> Option<TargetRequest> {
         let folder = PathBuf::from(&self.document.scene().export_target()?.folder);
         let preset = self
             .detected_engine()
-            .map_or(ExportPreset::Godot, |(engine, _)| engine.preset());
+            .map_or(self.fallback_preset(), |(engine, _)| engine.preset());
         let name = saving_to
             .or(self.file.path.as_deref())
             .and_then(Path::file_stem)
@@ -369,6 +456,7 @@ impl Workbench {
         }
         let folder = scene.export_target().map(|t| PathBuf::from(&t.folder));
         let choice = self.exporting.choice;
+        self.exporting.remembered = ExportSettings::of(choice);
         let WorkbenchAction::Export(request) = self.export_action(choice, None) else {
             return None;
         };
@@ -447,9 +535,12 @@ impl Workbench {
                 engine.name(),
                 file_name(&project)
             ),
-            None => "Game project folder set. It isn't inside a Godot, Unity or Unreal Engine \
-                     project, but exports still go there. Every save now exports there too."
-                .to_string(),
+            None => format!(
+                "Game project folder set. It isn't inside a Godot, Unity or Unreal Engine \
+                 project, so exports go there with {}'s settings. Every save now exports \
+                 there too.",
+                self.fallback_preset().name()
+            ),
         });
     }
 
@@ -526,6 +617,7 @@ impl Workbench {
         let target = self.document.scene().export_target().cloned();
         let engine = self.detected_engine();
         let into = self.target_request(None);
+        let fallback = self.fallback_preset();
         let nothing = summary.objects == 0;
         let mut go = false;
         let mut cancel = false;
@@ -583,6 +675,7 @@ impl Workbench {
                             ui,
                             target.as_ref(),
                             engine.as_ref(),
+                            fallback,
                             &mut target_change,
                             &mut choose_folder,
                         ),
@@ -689,6 +782,7 @@ impl Workbench {
             file_name(&path)
         ));
         self.exporting.last = Some((path, choice));
+        self.exporting.remembered = ExportSettings::of(choice);
     }
 
     /// Exporting failed: says why.
@@ -1083,6 +1177,7 @@ fn game_project(
     ui: &mut Ui,
     target: Option<&scene::ExportTarget>,
     engine: Option<&(Engine, PathBuf)>,
+    fallback: ExportPreset,
     change: &mut Option<Option<scene::ExportTarget>>,
     choose: &mut bool,
 ) {
@@ -1112,9 +1207,11 @@ fn game_project(
                         file_name(project),
                         engine.preset().settings().format.name()
                     ),
-                    None => "Not inside a Godot, Unity or Unreal Engine project: exported \
-                             with Godot's settings."
-                        .to_string(),
+                    None => format!(
+                        "Not inside a Godot, Unity or Unreal Engine project: exported with \
+                         {}'s settings (Made for picks which).",
+                        fallback.name()
+                    ),
                 });
             });
             dialog::row(ui, "On save", |ui| {

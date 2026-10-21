@@ -36,6 +36,8 @@ const AUTOSAVE_KEY: &str = "autosave";
 const TOOL_MENU_KEY: &str = "tool_menu";
 /// Where the UV tools' settings are kept.
 const UV_SETTINGS_KEY: &str = "uv_tools";
+/// Where the last export's settings are kept (decision 0122).
+const EXPORT_KEY: &str = "export_settings";
 /// Window size on first launch, in logical pixels.
 const FIRST_SIZE: [f32; 2] = [1440.0, 900.0];
 /// The smallest the window may get while staying usable.
@@ -71,6 +73,7 @@ struct Remembered {
     autosave: ui::AutosaveSettings,
     tool_menu: ui::ToolMenuSettings,
     uv: ui::UvSettings,
+    export: ui::ExportSettings,
 }
 
 impl Remembered {
@@ -102,6 +105,9 @@ impl Remembered {
                 .unwrap_or_default(),
             uv: storage
                 .and_then(|s| eframe::get_value(s, UV_SETTINGS_KEY))
+                .unwrap_or_default(),
+            export: storage
+                .and_then(|s| eframe::get_value(s, EXPORT_KEY))
                 .unwrap_or_default(),
         }
     }
@@ -186,7 +192,8 @@ impl Starting {
                     .with_recent_projects(r.recent)
                     .with_autosave(r.autosave)
                     .with_tool_menu(r.tool_menu)
-                    .with_uv_settings(r.uv);
+                    .with_uv_settings(r.uv)
+                    .with_export_settings(r.export);
                 // The Keys window draws the keyboard that goes with the
                 // system language, until one is picked there.
                 workbench.set_system_language(&sys_locale::get_locale().unwrap_or_default());
@@ -356,6 +363,7 @@ impl App {
         eframe::set_value(storage, AUTOSAVE_KEY, &self.workbench.autosave_settings());
         eframe::set_value(storage, TOOL_MENU_KEY, &self.workbench.tool_menu_settings());
         eframe::set_value(storage, UV_SETTINGS_KEY, &self.workbench.uv_settings());
+        eframe::set_value(storage, EXPORT_KEY, &self.workbench.export_settings());
     }
 
     /// A normal close: this run's backup copies are no longer needed.
@@ -497,5 +505,7 @@ mod tests {
         assert_ne!(TOOL_MENU_KEY, AUTOSAVE_KEY);
         assert!(!UV_SETTINGS_KEY.contains(branding::APP_ID));
         assert_ne!(UV_SETTINGS_KEY, UV_LAYOUT_KEY);
+        assert!(!EXPORT_KEY.contains(branding::APP_ID));
+        assert_ne!(EXPORT_KEY, UV_SETTINGS_KEY);
     }
 }

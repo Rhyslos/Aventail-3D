@@ -536,3 +536,194 @@ fn what_goes_out_follows_the_scene_and_the_selection() {
             .is_disabled()
     );
 }
+
+#[test]
+fn solis_is_in_made_for_and_gets_plain_gltf() {
+    // Decision 0122: Solis is one more preset; Godot stays the first.
+    let mut harness = fresh();
+    file_entry(&mut harness, "Export…");
+    assert_eq!(
+        harness.state().workbench.exporting.choice.preset,
+        Some(ExportPreset::Godot)
+    );
+    made_for(&mut harness, "Solis");
+    assert!(
+        harness
+            .query_by_label("glTF · metres · Y up · triangles")
+            .is_some()
+    );
+    harness.get_all_by_label("Export…").last().unwrap().click();
+    harness.run();
+    let request = export_requests(&harness).pop().unwrap();
+    assert_eq!(request.preset, Some(ExportPreset::Solis));
+    assert_eq!(request.format, ExportFormat::Glb);
+    assert!(!request.options.godot_names, "Godot's names are Godot's");
+}
+
+/// An export the app made of `preset`'s file.
+fn exported_for(harness: &mut super::modelling_tests::H, preset: Option<ExportPreset>) {
+    let format = preset.map_or(ExportFormat::Obj, |p| p.settings().format);
+    let request = ExportRequest {
+        preset,
+        format,
+        options: fileio::export::ExportOptions {
+            units: FileUnits::Centimetres,
+            up: UpAxis::Z,
+            triangulate: false,
+            ..fileio::export::ExportOptions::default()
+        },
+        path: None,
+        suggested_name: "Untitled.obj".into(),
+    };
+    harness.state_mut().workbench.exported(
+        &request,
+        "/work/crate.obj".into(),
+        ExportSummary::default(),
+    );
+}
+
+#[test]
+fn the_last_export_is_what_the_next_launch_starts_with() {
+    let mut harness = fresh();
+    exported_for(&mut harness, Some(ExportPreset::Solis));
+    let settings = harness.state().workbench.export_settings();
+    assert_eq!(settings.preset, Some(ExportPreset::Solis));
+    // The app keeps them as it keeps its other settings, and the next
+    // launch (or any new project in it) starts the Export window there.
+    let kept = ron::to_string(&settings).unwrap();
+    let back: ExportSettings = ron::from_str(&kept).unwrap();
+    assert_eq!(back, settings);
+    let mut harness = super::tests::harness_for(super::tests::with_a_cube(
+        Workbench::new(super::tests::info(), None).with_export_settings(back),
+    ));
+    harness.run();
+    file_entry(&mut harness, "Export…");
+    assert!(harness.query_by_label_contains("Made for: Solis").is_some());
+    harness.get_all_by_label("Export…").last().unwrap().click();
+    harness.run();
+    assert_eq!(
+        export_requests(&harness).pop().unwrap().preset,
+        Some(ExportPreset::Solis)
+    );
+}
+
+#[test]
+fn custom_settings_are_remembered_too() {
+    let mut harness = fresh();
+    exported_for(&mut harness, None);
+    let choice = harness.state().workbench.export_settings().choice();
+    assert_eq!(choice.preset, None);
+    assert_eq!(
+        (choice.format, choice.units, choice.up, choice.triangulate),
+        (ExportFormat::Obj, FileUnits::Centimetres, UpAxis::Z, false)
+    );
+    // What goes out belongs to the moment: it starts at everything.
+    assert_eq!(choice.what, ExportWhat::Everything);
+}
+
+#[test]
+fn choosing_without_exporting_changes_nothing_remembered() {
+    let mut harness = fresh();
+    file_entry(&mut harness, "Export…");
+    made_for(&mut harness, "Solis");
+    harness.get_by_label("Cancel").click();
+    harness.run();
+    assert_eq!(
+        harness.state().workbench.export_settings(),
+        ExportSettings::default()
+    );
+    assert_eq!(
+        ExportSettings::default().preset,
+        Some(ExportPreset::Godot),
+        "the first launch starts with Godot"
+    );
+}
+
+#[test]
+fn a_kit_export_is_remembered_like_any_other() {
+    let mut harness = fresh();
+    file_entry(&mut harness, "Export…");
+    made_for(&mut harness, "Solis");
+    harness.get_by_label("Cancel").click();
+    harness.run();
+    let id = super::modelling_tests::cube(&harness);
+    let workbench = &mut harness.state_mut().workbench;
+    workbench.document_mut().set_selection([id]);
+    assert!(workbench.kit_request().is_some());
+    assert_eq!(
+        workbench.export_settings().preset,
+        Some(ExportPreset::Solis)
+    );
+}
+
+#[test]
+fn damaged_remembered_settings_fall_back_safely() {
+    // Nothing, or a part, gives the standard for the rest.
+    let empty: ExportSettings = ron::from_str("()").unwrap();
+    assert_eq!(empty, ExportSettings::default());
+    let part: ExportSettings = ron::from_str("(preset: Some(Solis))").unwrap();
+    assert_eq!(part.choice().preset, Some(ExportPreset::Solis));
+    // A preset's own settings win over settings that disagree with it.
+    let mixed = ExportSettings {
+        preset: Some(ExportPreset::SubstancePainter),
+        format: ExportFormat::Glb,
+        units: FileUnits::Centimetres,
+        up: UpAxis::Z,
+        triangulate: false,
+    };
+    let choice = mixed.choice();
+    assert_eq!(choice.format, ExportFormat::Obj);
+    assert!(choice.follows(ExportPreset::SubstancePainter));
+    // A preset the app doesn't know is refused, so the app starts with
+    // the standard settings rather than a guess.
+    assert!(ron::from_str::<ExportSettings>("(preset: Some(Blender))").is_err());
+    // Anything at all is either read or refused, never a crash.
+    for text in [
+        "",
+        "(",
+        "((((",
+        "(format: 7)",
+        "(preset: None, up: X)",
+        "\u{0}",
+    ] {
+        let _ = ron::from_str::<ExportSettings>(text);
+    }
+}
+
+#[test]
+fn a_folder_no_engine_claims_uses_made_fors_engine() {
+    // A Solis project can't be recognised yet (it has no project file),
+    // so its folder gets the engine Made for names.
+    let root = std::env::temp_dir().join(format!("ui-solis-{}", std::process::id()));
+    std::fs::create_dir_all(&root).unwrap();
+    let mut harness = fresh();
+    file_entry(&mut harness, "Export…");
+    made_for(&mut harness, "Solis");
+    harness
+        .state_mut()
+        .workbench
+        .export_folder_chosen(root.clone());
+    harness.run();
+    let workbench = &mut harness.state_mut().workbench;
+    assert!(
+        workbench
+            .note
+            .as_deref()
+            .unwrap()
+            .contains("with Solis's settings")
+    );
+    assert_eq!(
+        workbench.target_request(None).unwrap().preset,
+        ExportPreset::Solis
+    );
+    // Made for a texturing program: the folder still gets an engine's.
+    workbench.exporting.choice = workbench
+        .exporting
+        .choice
+        .with_preset(ExportPreset::SubstancePainter);
+    assert_eq!(
+        workbench.target_request(None).unwrap().preset,
+        ExportPreset::Godot
+    );
+    let _ = std::fs::remove_dir_all(root);
+}
