@@ -23,16 +23,16 @@ Aventail 3D (model + UV)  ──glTF/OBJ──►  Substance Painter (bake + tex
 
 ### Planned later (in this order, §10)
 - Advanced modelling and modifiers (Phase 10).
-- Solis, the app's own renderer: real-time first (Phase 11), path tracing much later (Phase 20).
-- Texture painting and a material node editor (Phases 12 and 13).
-- An alpha release, then a long round of fixes and polish (Phases 14 and 15).
-- Scripting in LustScript, with plain Lua too (Phase 16, §4.7).
-- Rigging and skinning, then animation, for game assets (Phases 17 and 18).
-- Gauntlet, effects: physics, particles and simulations, baked for game engines (Phase 19).
+- Texture painting and a material node editor (Phases 11 and 12).
+- An alpha release, then a long round of fixes and polish (Phases 13 and 14).
+- Scripting in LustScript, with plain Lua too (Phase 15, §4.7).
+- Rigging and skinning, then animation, for game assets (Phases 16 and 17).
+- Gauntlet, effects: physics, particles and simulations, baked for game engines (Phase 18).
 - Other languages, when wanted (English is built as a language package from Phase 9).
 
 ### Out of scope (for now)
 - Sculpting
+- A renderer of the app's own, real-time or path traced, beyond the viewport and the texture painter's previews ([0123](docs/decisions/0123-no-renderer-for-now.md)). Solis, the project lead's game engine, is a separate program: models reach it by export.
 
 ### Guiding principles
 *Aim:* game development first, but good enough for a hobbyist generalist. If one hobbyist picks it up and enjoys it, the project has won.
@@ -107,7 +107,7 @@ Aventail-3D/
 │  ├─ scene/       # layer 1: objects, operation stacks, evaluation, commands, undo
 │  ├─ config/      # layer 1: settings, hotkeys, defaults
 │  ├─ fileio/      # layer 2: .avtl projects, OBJ, glTF (FBX later), settings file
-│  ├─ script/      # layer 2 (Phase 16): scripting (LustScript and Lua) through commands
+│  ├─ script/      # layer 2 (Phase 15): scripting (LustScript and Lua) through commands
 │  ├─ render/      # layer 3: wgpu viewport renderer, picking
 │  ├─ tools/       # layer 3: camera, selection, gizmos, modelling and UV tools
 │  ├─ ui/          # layer 3: egui panels, menus, palettes, theme
@@ -176,7 +176,7 @@ A tool implements a common trait:
 Tools never mutate the mesh directly; they produce operations, which keeps undo and the stack consistent.
 
 ### 4.5 Keeping the door open for rigging and animation
-Nothing animation-related is built before Phase 17, but these rules avoid a rewrite later:
+Nothing animation-related is built before Phase 16, but these rules avoid a rewrite later:
 - **Generic attribute layers.** Mesh attributes are stored as named, typed layers, so per-vertex **skin weights** (bone index + weight) can be added later as just another layer.
 - **Extensible object types.** The scene graph's object kinds are an enum/trait that can gain `Joint`/`Bone` and other node types without restructuring.
 - **Clean transforms.** Each object has a local transform relative to its parent, and world transforms are always derived from it. No code may assume world-space transforms are stored.
@@ -189,7 +189,7 @@ Nothing animation-related is built before Phase 17, but these rules avoid a rewr
 - **GPU picking** (ID buffer) for vertices/edges/faces, and **depth readback** for cursor-point navigation.
 - Only meshes that changed are re-uploaded. *To improve (§4.8):* within a mesh, only the part that changed, so moving a few points of a huge mesh doesn't re-upload all of it.
 
-### 4.7 Scripting (Phase 16)
+### 4.7 Scripting (Phase 15)
 Let people code their own functionality: custom tools, batch jobs, generators, export helpers. Blender, 3ds Max and Cinema 4D all have this, and a free tool gains a lot when its users can extend it.
 
 **Language: Lua** ([decision 0011](docs/decisions/0011-lua-scripting.md)), using the **Luau** dialect through the `mlua` crate (both MIT):
@@ -579,23 +579,16 @@ A brief phase between the UVs and advanced modelling ([0119](docs/decisions/0119
 - Game bevel and modular kit helpers (§6; **W15**, **W16**)
 - Generators, booleans, weighted normals and the game bevel are added to the modifiers palette (§5.1)
 
-### Phase 11 — Solis v1: real-time rendering
-**Solis** is the app's own renderer ([0119](docs/decisions/0119-roadmap-after-the-uvs.md)). It will have two modes, with a switch between them: a light, fast **real-time** renderer, and later a slow, accurate **path tracer** (Phase 20). Version 1 is the real-time one, and it lights the viewport too. To be planned in detail; the starting ideas:
-- **What makes it worth using:** it shows a game asset the way the game engine will. The same lighting model and tone mapping as Godot (and later Unity and Unreal), so what you see in the app is what you get in the game, and the textures painted in the app (Phases 12–13) look right before export. A stylised mode with toon shading and outlines (the texturing plan's "almost a priority") comes with it.
-- **Built on the GPU through `wgpu`**, as the viewport is, so it runs on Vulkan, Metal and DirectX 12.
-- **Its own crate**, `render` or similar, knowing nothing about the app's interface, so it could later be used elsewhere (see Phase 20 on a Blender add-on).
-- Turntables and stills straight from it, for showing assets off.
+### Phases 11 and 12 — Texture painting, then materials
+Texture painting (Phase 11), then materials with a node editor (Phase 12): see "Texturing and a material builder" below, which still needs its planning talk.
 
-### Phases 12 and 13 — Texture painting, then materials
-Texture painting (Phase 12), then materials with a node editor (Phase 13): see "Texturing and a material builder" below, which still needs its planning talk.
-
-### Phase 14 — Alpha release
+### Phase 13 — Alpha release
 The app released for alpha testing on the project lead's website, and maybe on Steam: installers for Windows, macOS and Linux, updates, a way for testers to report problems, and the manual online.
 
-### Phase 15 — Bug fixes and polish
+### Phase 14 — Bug fixes and polish
 A long phase of fixing what alpha testers find, and polishing what they use most.
 
-### Phase 16 — Scripting
+### Phase 15 — Scripting
 Scripting so people can add their own tools and automate work. **LustScript** (the project lead's own language, free and open source) is the default scripting language, and plain Lua works too, in LustScript files ([0119](docs/decisions/0119-roadmap-after-the-uvs.md)). The design in §4.7 (written for Luau, [0011](docs/decisions/0011-lua-scripting.md)) is revisited for LustScript when this phase is planned; LustScript's licence must be permissive (MIT or Apache-2.0, say) for the app to use it (§9).
 - Script runner with the sandbox, time limit and permissions
 - The scripting API: scene, selection, operations and commands (undoable like any edit)
@@ -604,26 +597,23 @@ Scripting so people can add their own tools and automate work. **LustScript** (t
 - API reference and a "your first script" page in the manual; example scripts
 - **Done when:** a user can write a short script (say, "bevel every hard edge of the selection by 2 mm") that shows up as a command, can be undone, and can't harm files outside what it was allowed.
 
-### Phases 17 and 18 — Rigging and skinning, then animation (far future)
-Rigging and skinning first (Phase 17), animation after (Phase 18). Rough contents, to be designed properly when the time comes:
+### Phases 16 and 17 — Rigging and skinning, then animation (far future)
+Rigging and skinning first (Phase 16), animation after (Phase 17). Rough contents, to be designed properly when the time comes:
 - **Aim (project lead, 2026-10-13):** every animation tool is for game developers, helping them animate for games in both first and third person: first-person arms and weapons, third-person characters, and loops and clips that export cleanly to engines.
 - Joints/bones in the Objects panel hierarchy; bone display and editing
 - Skinning: bind mesh to skeleton, weight painting, weight tools (normalize, mirror, smooth)
 - Animation: keyframes on transforms, timeline and dope sheet, curve editor, playback in the viewport
 - Export skinned and animated meshes to glTF for Godot
 
-### Phase 19 — Gauntlet: effects
+### Phase 18 — Gauntlet: effects
 **Gauntlet** is the app's effects system: physics, particles and simulations, to be planned when its time comes (the project lead is new to effects, so it starts with research into what game effects artists use). Two ideas from the start:
 - **Scripting at its heart:** effects driven and extended with LustScript.
 - **Baked for game engines:** effects made in the app export baked (as flipbook textures, vertex animation or animated meshes), so they cost little in the game.
 
-### Phase 20 — Solis, full: path tracing
-The second Solis mode: a path tracer for slow, accurate, high-quality images, using the GPU to the full (compute shaders; hardware ray tracing where `wgpu` supports it). Whether Solis also becomes a **Blender add-on** is decided here, once the real-time Solis has proved itself: Blender already has a strong path tracer (Cycles) and real-time renderer (EEVEE), so a Solis add-on is only worth making for what Solis does differently (the engine-matching look, the stylised mode), not as a general renderer.
-
 ### Later: other languages
 Translations, a language setting, local numbers and fonts for other alphabets ([0117](docs/decisions/0117-language-support.md)), when other languages are wanted; Phase 9's English package makes this an addition, not a rework.
 
-### To be designed: Texturing and a material builder (Phases 12 and 13)
+### To be designed: Texturing and a material builder (Phases 11 and 12)
 At the project lead's request (2026-10-13): a built-in texture painter, so no Substance Painter subscription is needed, and a material builder after it. Both still need a planning talk before they get phases and milestones. Rough parts:
 - the maps baked in Phase 8 (normal, AO, curvature, thickness, position, ID) as its starting point;
 - a layer stack with fill and paint layers and masks;
@@ -903,3 +893,4 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-17 — **Language support** ([0117](docs/decisions/0117-language-support.md)) added as Phase 9, the first phase after the UVs, at the project lead's request ("huge thing we need to fix"). Advanced hard-surface becomes Phase 10, scripting Phase 11, rigging Phase 12. Every text through one translation layer, a language setting, local numbers, fonts for other alphabets, then translations. Which languages, and whether the manual is translated, are asked before it starts.
 - 2026-10-18 — **Select connected and the outside warning** ([0118](docs/decisions/0118-select-connected-and-outside-warnings.md)), from the project lead's testing. **Alt + A** (his choice) selects everything joined to the selection on the model, across seams, in any element mode; also Select → Select connected and UV → Pieces. The UV Editor's always-on warnings now also tint pieces outside the texture square amber (trim pieces left out).
 - 2026-10-18 — **The roadmap after the UVs** ([0119](docs/decisions/0119-roadmap-after-the-uvs.md)), from the first testers' feedback and the project lead's new ideas, in his order. After the whole UV phase: a brief first-use phase (a sliding palette with names, high contrast, a dropdown on the selection mode, labels on everything, tidier menus) that also builds English as the one language package, so other languages can be added later without a rework (language support itself waits, replacing most of 0117); advanced modelling, with Mirror as a per-object modifier beside the live mirror; Solis v1, the app's own real-time renderer, made to show assets as the game engine will, in its own crate; texture painting; materials; an alpha release; polish; scripting with LustScript as the default and plain Lua too (its licence must be permissive); rigging; animation; Gauntlet (effects, baked for engines); Solis's path tracer, with a Blender add-on decided then.
+- 2026-10-21 — **No renderer of the app's own, for now** ([0123](docs/decisions/0123-no-renderer-for-now.md)), at the project lead's request. Solis v1 (Phase 11, a real-time renderer showing assets as the engine will) and Solis's path tracer (Phase 20) are cut. The idea was for the app's renderer and his game engine, Solis, to share one renderer, but a game engine's renderer is made for games and won't serve as a 3D program's renderer. Rendering beyond the viewport is out of scope again; the toon preview and outlines stay with texture painting. Phases 12 to 19 become 11 to 18.

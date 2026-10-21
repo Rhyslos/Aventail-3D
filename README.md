@@ -275,17 +275,15 @@ Friends join as testers around here, once there are enough tools to build someth
 
 ### Further ahead
 
-In this order, each planned in detail when its time comes ([decision 0119](docs/decisions/0119-roadmap-after-the-uvs.md)):
+In this order, each planned in detail when its time comes ([decision 0119](docs/decisions/0119-roadmap-after-the-uvs.md), [0123](docs/decisions/0123-no-renderer-for-now.md)):
 
-1. **Solis v1** (Phase 11): the app's own real-time renderer, lighting the viewport too, made to show assets the way the game engine will, with a stylised (toon) mode.
-2. **Texture painting** (Phase 12): a built-in texture painter shaped by game work, so no Substance Painter subscription is needed. Hand-painted, stylised art first (painting in the 3D and UV views at once, palettes, a light-and-shadow helper, a toon preview and outlines for cartoon looks), realism after (PBR layers and smart masks for wear and dirt).
-3. **Materials with a node editor** (Phase 13).
-4. **Alpha release** (Phase 14): on the project lead's website, and maybe Steam.
-5. **Bug fixes and polish** (Phase 15), from what alpha testers find.
-6. **Scripting** (Phase 16): LustScript as the default language, plain Lua too; people add their own tools, as undoable commands.
-7. **Rigging and skinning** (Phase 17), then **animation** (Phase 18): for game developers, first and third person, exporting cleanly to engines.
-8. **Gauntlet** (Phase 19): effects (physics, particles, simulations), driven by scripts and baked for game engines.
-9. **Solis, full** (Phase 20): a path tracer beside the real-time renderer.
+1. **Texture painting** (Phase 11): a built-in texture painter shaped by game work, so no Substance Painter subscription is needed. Hand-painted, stylised art first (painting in the 3D and UV views at once, palettes, a light-and-shadow helper, a toon preview and outlines for cartoon looks), realism after (PBR layers and smart masks for wear and dirt).
+2. **Materials with a node editor** (Phase 12).
+3. **Alpha release** (Phase 13): on the project lead's website, and maybe Steam.
+4. **Bug fixes and polish** (Phase 14), from what alpha testers find.
+5. **Scripting** (Phase 15): LustScript as the default language, plain Lua too; people add their own tools, as undoable commands.
+6. **Rigging and skinning** (Phase 16), then **animation** (Phase 17): for game developers, first and third person, exporting cleanly to engines.
+7. **Gauntlet** (Phase 18): effects (physics, particles, simulations), driven by scripts and baked for game engines.
 
 Other languages come when they're wanted: Phase 9 builds English as a language package so they can be added without a rework. Also wanted, not yet scheduled: glTF import, interface size scaling, a first-start welcome with sample projects, and custom hotkeys (added along the way).
 
@@ -295,6 +293,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-21 | Cut from the plan: the app's own renderer (Solis v1 and its path tracer). Solis is the project lead's game engine, a separate program; later phases move up one |
 | 2026-10-18 | Planned after the UVs, from the first testers' feedback and the project lead's ideas: a first-use phase (with English as a language package), advanced modelling, Solis (the app's own renderer), texture painting, materials, an alpha release, polish, scripting in LustScript, rigging, animation and Gauntlet (effects); other languages later |
 | 2026-10-18 | Select connected (Alt + A): the whole part the selection is on; pieces outside the UV square now warned about too |
 | 2026-10-17 | Planned: Phase 9, language support (the whole app in other languages), right after the UVs; advanced hard-surface moves to Phase 10, scripting to 11, rigging to 12 |
