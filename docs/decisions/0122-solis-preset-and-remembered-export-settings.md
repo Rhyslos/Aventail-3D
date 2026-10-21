@@ -30,5 +30,5 @@ The project lead has started Solis, a game engine of his own, in a separate repo
 
 - Solis reads the file through its own glTF import (Solis's Phase 1, milestone 2), so nothing in Aventail depends on Solis's code; the two stay separate (Solis's decision 0007).
 - When Solis has a project file, `fileio::engine::detect` can recognise it and `Engine::Solis` joins Godot, Unity and Unreal Engine. If Solis grows needs of its own (collision names, its own units), its preset changes then.
-- "Solis" is the engine's name in the preset list. Aventail's Phase 11 renderer is also called Solis, made to show assets the way the engine will. If Solis is renamed, the preset's name changes in `ExportPreset::name` and the manual.
+- "Solis" means only the game engine: the app's own renderer of that name was cut from the roadmap ([0123](0123-no-renderer-for-now.md)). If the engine is renamed, the preset's name changes in `ExportPreset::name` and the manual.
 - Other settings files from older versions open with Godot's settings, as before.
