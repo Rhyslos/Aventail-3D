@@ -374,8 +374,8 @@ impl Workbench {
     }
 
     /// The preset for a game project folder the app can't recognise (a
-    /// Solis project, for now, or any other engine's): the Export window's
-    /// Made for when it is a game engine, otherwise Godot's.
+    /// project of another engine): the Export window's Made for when it is
+    /// a game engine, otherwise Godot's.
     pub(crate) fn fallback_preset(&self) -> ExportPreset {
         self.exporting
             .choice
@@ -536,7 +536,7 @@ impl Workbench {
                 file_name(&project)
             ),
             None => format!(
-                "Game project folder set. It isn't inside a Godot, Unity or Unreal Engine \
+                "Game project folder set. It isn't inside a Godot, Unity, Unreal Engine or Solis \
                  project, so exports go there with {}'s settings. Every save now exports \
                  there too.",
                 self.fallback_preset().name()
@@ -1139,7 +1139,7 @@ fn game_project_note(ui: &mut Ui, game: GameProjectView<'_>) -> bool {
         _ => {
             dialog::help(
                 ui,
-                "Pick a folder inside your Godot, Unity or Unreal Engine project, and every \
+                "Pick a folder inside your Godot, Unity, Unreal Engine or Solis project, and every \
                  save exports the model into it too, so the engine picks up the change by \
                  itself.",
             );
@@ -1184,7 +1184,7 @@ fn game_project(
     dialog::heading_with_pill(ui, "Game project", target.is_some_and(|t| t.on_save));
     dialog::help(
         ui,
-        "Export straight into a Godot, Unity or Unreal Engine project: pick the folder inside \
+        "Export straight into a Godot, Unity, Unreal Engine or Solis project: pick the folder inside \
          it that your models go in. Every save then exports the model there too, named after \
          the project, so the engine picks up the change by itself.",
     );
@@ -1208,7 +1208,7 @@ fn game_project(
                         engine.preset().settings().format.name()
                     ),
                     None => format!(
-                        "Not inside a Godot, Unity or Unreal Engine project: exported with \
+                        "Not inside a Godot, Unity, Unreal Engine or Solis project: exported with \
                          {}'s settings (Made for picks which).",
                         fallback.name()
                     ),

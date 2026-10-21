@@ -74,7 +74,7 @@ Instead of choosing where to save every time, tell the app which folder of your 
 
 ![The Export window's Game project section: the folder inside the Godot project crate-run, the engine it found, Export on every save ticked, Choose folder… and Clear](../screenshots/2026-10-16-export-game-project.png)
 
-1. Choose **File → Export…** and click **Game project** in the side list (its word on the right says **on** or **off**). Click **Choose folder…** and pick the folder inside your game project the models go in (for example `models` in a Godot project, `Assets/Models` in Unity, `Content/Models` in Unreal Engine).
+1. Choose **File → Export…** and click **Game project** in the side list (its word on the right says **on** or **off**). Click **Choose folder…** and pick the folder inside your game project the models go in (for example `models` in a Godot or Solis project, `Assets/Models` in Unity, `Content/Models` in Unreal Engine).
 2. The window says which engine's project the folder is in, and **Made for** switches to that engine. **Export on every save** is ticked.
 3. Save the project (**Ctrl + S**). The status bar says *Saved crate.avtl. Exported crate.glb (240 triangles) into models.*
 
@@ -82,8 +82,8 @@ Instead of choosing where to save every time, tell the app which folder of your 
 
 How it works:
 
-- **One file per project, named after it.** Saving `crate.avtl` exports `crate.glb`, with everything shown, using the engine's settings: glTF for all three engines, so pivots and materials come along.
-- **The engine is worked out from the folder.** A Godot project has a `project.godot` file, a Unity project `Assets` and `ProjectSettings` folders, an Unreal Engine project a `.uproject` file, in the folder or one above it. A folder in none of them (a Solis project, for now, since Solis projects have no project file yet) gets the settings of the engine chosen in **Made for**, or Godot's if Made for is set to Substance Painter or Custom settings. So for a Solis project, pick **Solis** in Made for.
+- **One file per project, named after it.** Saving `crate.avtl` exports `crate.glb`, with everything shown, using the engine's settings: glTF for every engine, so pivots and materials come along.
+- **The engine is worked out from the folder.** A Godot project has a `project.godot` file, a Solis project a `project.solis` file, a Unity project `Assets` and `ProjectSettings` folders, an Unreal Engine project a `.uproject` file, in the folder or one above it. A folder in none of them gets the settings of the engine chosen in **Made for**, or Godot's if Made for is set to Substance Painter or Custom settings.
 - **Unity** reads glTF once its *glTFast* package is installed (Window → Package Manager). **Unreal Engine 5** reads glTF and turns it into its own centimetres and Z up.
 - **The folder is saved with the project.** Untick **Export on every save** to stop exporting when you save, or click **Clear** to forget the folder. Each change is an undo step.
 
@@ -131,7 +131,7 @@ To open the window, use **File → Export…**.
 - **Problem:** the model arrives lying on its back. **Why:** the file was written Z up, and the program expected Y up (or the other way round). **Fix:** export again with the other choice.
 - **Tip:** not sure which settings? Pick **Godot** or **Substance Painter** under **Made for**.
 - **Problem:** a new project's Export window doesn't start at Godot. **Why:** the app remembers your last export's settings. **Fix:** pick the one you want in Made for; it's remembered from your next export.
-- **Problem:** exports into a Solis project get Godot's settings. **Why:** the app can't recognise a Solis project folder yet, so it uses the engine in Made for, and Made for wasn't on an engine. **Fix:** pick **Solis** in Made for.
+- **Problem:** exports into a game project get Godot's settings. **Why:** the folder isn't inside a project the app recognises (it looks for `project.godot`, `project.solis`, a `.uproject` file, or Unity's `Assets` and `ProjectSettings`), so it uses the engine in Made for, and Made for wasn't on an engine. **Fix:** choose a folder inside the game project, or pick the engine in Made for.
 - **Problem:** the file settings can't be changed. **Why:** a preset is chosen under Made for, and its settings are locked so the file is what that program expects. **Fix:** pick **Custom settings** in Made for.
 - **Problem:** the model is 100 times too big or too small. **Why:** metres and centimetres were mixed up. **Fix:** Godot, Unity and Substance Painter want **Metres**; Unreal Engine wants **Centimetres**.
 - **Problem:** the footer says there is nothing to export, and Export… can't be pressed. **Why:** everything is hidden, or *Selected only* was chosen with only groups selected. **Fix:** show the objects, or choose Everything shown.

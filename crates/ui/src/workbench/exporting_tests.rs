@@ -692,8 +692,7 @@ fn damaged_remembered_settings_fall_back_safely() {
 
 #[test]
 fn a_folder_no_engine_claims_uses_made_fors_engine() {
-    // A Solis project can't be recognised yet (it has no project file),
-    // so its folder gets the engine Made for names.
+    // A plain folder, in no engine's project, gets the engine Made for names.
     let root = std::env::temp_dir().join(format!("ui-solis-{}", std::process::id()));
     std::fs::create_dir_all(&root).unwrap();
     let mut harness = fresh();
@@ -724,6 +723,36 @@ fn a_folder_no_engine_claims_uses_made_fors_engine() {
     assert_eq!(
         workbench.target_request(None).unwrap().preset,
         ExportPreset::Godot
+    );
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn a_solis_project_is_recognised_and_switches_made_for() {
+    let root = std::env::temp_dir().join(format!("ui-solis-project-{}", std::process::id()));
+    let models = root.join("models");
+    std::fs::create_dir_all(&models).unwrap();
+    std::fs::write(root.join("project.solis"), "").unwrap();
+    let mut harness = fresh();
+    file_entry(&mut harness, "Export…");
+    assert_eq!(
+        harness.state().workbench.exporting.choice.preset,
+        Some(ExportPreset::Godot)
+    );
+    harness
+        .state_mut()
+        .workbench
+        .export_folder_chosen(models.clone());
+    harness.run();
+    let workbench = &mut harness.state_mut().workbench;
+    let note = workbench.note.clone().unwrap();
+    assert!(note.contains("Solis project"), "{note}");
+    assert_eq!(workbench.exporting.choice.preset, Some(ExportPreset::Solis));
+    // The project's engine wins over Made for.
+    workbench.exporting.choice = workbench.exporting.choice.with_preset(ExportPreset::Unity);
+    assert_eq!(
+        workbench.target_request(None).unwrap().preset,
+        ExportPreset::Solis
     );
     let _ = std::fs::remove_dir_all(root);
 }
