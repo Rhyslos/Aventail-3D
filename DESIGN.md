@@ -560,22 +560,54 @@ At the project lead's request (2026-10-16; [decision 0108](docs/decisions/0108-u
 - Bakes for the pipeline: to vertex colours, a whole kit at once, stacked and mirrored pieces moved aside for the bake, and straight into a Godot material (normal map and an ORM texture)
 - **Done when:** a modular kit is unwrapped, packed and baked in Aventail 3D and looks right in Godot, and changing a model afterwards keeps its UVs and their intents.
 
-### Phase 9 — First use, and English as a language package
-A brief phase between the UVs and advanced modelling ([0119](docs/decisions/0119-roadmap-after-the-uvs.md)), from the first testers' feedback (2026-10-18): the app felt overwhelming to people who weren't there from the first cube.
-- **A side palette that slides out** to show each button's name, not only its icon.
-- **High contrast:** a setting that makes edges, points and the selection stand out much more.
-- **The selection mode button shows it has choices:** a small dropdown arrow, so people see there are several kinds.
-- **Labels on everything:** every button and field says what it is (on hover at least, and in words where there's room).
-- **Tidier menus:** commands moved to where people look for them; nothing important hidden deep.
-- **The UV menu in the UV Editor too** ([issue #115](https://github.com/Rhyslos/Aventail-3D/issues/115)): the same grouped menu beside Texture, Trim, Snapshots and View, so UV commands are where the work is; and **the UV settings in a panel of their own**, a tab beside Attributes, instead of UV → Settings.
-- **Hard edges explain themselves** ([issue #114](https://github.com/Rhyslos/Aventail-3D/issues/114)): marking or clearing hard edges while automatic hard edges by angle is on warns that the angle decides instead, and says where to turn it off.
-- **English as the one language package:** every piece of text the app shows comes from one English package through one translation layer (Project Fluent's `fluent` crates are the likely choice: Apache-2.0/MIT), and a check fails CI when new text skips it. Only English ships, but adding a language later means adding a package, not reworking the app. From then on, new text goes into the English package. (The rest of [0117](docs/decisions/0117-language-support.md)'s plan, a language setting, local numbers, fonts and translations, waits until other languages are wanted.)
-- **Done when:** a tester new to the app finds the main tools without help, sees what is selected on any screen, and no text in the app skips the English package.
+### Phase 9 — Rework and first use (now, before the rest of Phase 8)
+After a review of the whole app (2026-10-21, [0121](docs/decisions/0121-rework-before-the-rest-of-phase-8.md)), Phase 8 pauses after its seventh milestone and this phase comes first, holding the first-use work planned from the testers' feedback ([0119](docs/decisions/0119-roadmap-after-the-uvs.md)). The core (edit stack, UV engine, safe files) stays; what people see and name is reworked, and the quality checks are made to follow what people do.
+1. **Merge and check:** the project lead runs the open gate checks of Phases 4 to 7 (a crate modelled, exported to Godot and Substance Painter, edits changed, unwrapped and baked); what they find is fixed first.
+2. **Quick fixes:**
+   - The selection drawn more clearly than anything else, with a high-contrast setting.
+   - One meaning per label ("Delete objects", "Show hard edges"), menu paths in tooltips that exist, no stray text.
+   - Keys that don't bite: nothing thrown away on a letter key; Esc always cancels and closes; no tool ring over windows.
+3. **Find and help:**
+   - Command search.
+   - A right-click menu on by default.
+   - Help → User manual.
+   - Hide, Isolate and Show all in a menu.
+   - No "arrives later" placeholders.
+4. **Five modes, and the edit history shown simply:**
+   - Object mode goes: pivot editing becomes an "Edit pivot" switch on the gizmo.
+   - Fewer words for edits (one "Bake into shape", no "Keep editable").
+   - Drags in a row merge into one edit.
+   - The Edit layers tab stays out of the way until a layer is added.
+5. **Hard edges and symmetry per object:**
+   - Smoothing by angle becomes a per-object setting that hand-marked hard edges add to ([issue #114](https://github.com/Rhyslos/Aventail-3D/issues/114)).
+   - Symmetry becomes a modifier, one mirror per object, at the object's own centre by default (the project lead, 2026-10-21; it replaces the live mirror and the separate Mirror modifier planned for Phase 10).
+6. **One word per idea, and every setting in one home:**
+   - A glossary the tooltips link to.
+   - Every setting with one home in Settings, menus linking to it.
+   - The UV settings in a panel of their own beside Attributes, and the UV menu in the UV Editor too ([issue #115](https://github.com/Rhyslos/Aventail-3D/issues/115)).
+7. **Labels on everything:**
+   - A side palette that slides out to show names.
+   - Words with icons where there's room.
+   - A dropdown arrow on the selection mode button.
+   - X/Y/Z for rotation.
+8. **A key audit**, offered to the project lead before anything changes. Ctrl always adds to the selection and Shift always removes (fixed).
+9. **A safety net for quality:**
+   - Workflow tests written as user stories, plus random action sequences checked against rules.
+   - Reference images of the main panels and dialogs.
+   - The glTF validator and a Godot import in CI.
+   - A nightly heavy-mesh check.
+   - An emergency copy saved on a crash.
+   - A newcomer checklist in every pull request.
+10. **Tidy for growth:**
+    - The big interface code split up.
+    - A short "what exists now" spec and a one-page digest of the rules in force.
+    - English as the one language package (every text through one translation layer; other languages added later as packages; the rest of [0117](docs/decisions/0117-language-support.md) waits).
+- **Done when (the newcomer test):** 2–3 people who haven't used the app finish a fixed task list without help, see what is selected on any screen, and no text skips the English package. Then Phase 8 continues.
 
 ### Phase 10 — Advanced hard-surface
 - Every tool here carries UVs and seams along from the start (the builder, decision 0043)
 - Booleans, weighted normals, better bevel, generators (array, mirror)
-- **Mirror as a modifier** that can be turned on per object (the project lead, 2026-10-18), separate from the live mirror (symmetry), which stays as it is: the modifier mirrors one object's shape; the live mirror makes edits work on both halves
+- Mirror as a per-object modifier comes earlier, in Phase 9, where symmetry itself becomes that modifier (the project lead, 2026-10-21)
 - Shell, curves and splines, and our own smoothing modifier
 - Friends join as testers around this phase
 - Game bevel and modular kit helpers (§6; **W15**, **W16**)
@@ -906,3 +938,4 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-18 — **Select connected and the outside warning** ([0118](docs/decisions/0118-select-connected-and-outside-warnings.md)), from the project lead's testing. **Alt + A** (his choice) selects everything joined to the selection on the model, across seams, in any element mode; also Select → Select connected and UV → Pieces. The UV Editor's always-on warnings now also tint pieces outside the texture square amber (trim pieces left out).
 - 2026-10-18 — **The roadmap after the UVs** ([0119](docs/decisions/0119-roadmap-after-the-uvs.md)), from the first testers' feedback and the project lead's new ideas, in his order. After the whole UV phase: a brief first-use phase (a sliding palette with names, high contrast, a dropdown on the selection mode, labels on everything, tidier menus) that also builds English as the one language package, so other languages can be added later without a rework (language support itself waits, replacing most of 0117); advanced modelling, with Mirror as a per-object modifier beside the live mirror; Solis v1, the app's own real-time renderer, made to show assets as the game engine will, in its own crate; texture painting; materials; an alpha release; polish; scripting with LustScript as the default and plain Lua too (its licence must be permissive); rigging; animation; Gauntlet (effects, baked for engines); Solis's path tracer, with a Blender add-on decided then.
 - 2026-10-21 — Issues #114 (a warning when marking hard edges while automatic hard edges by angle is on) and #115 (the UV menu in the UV Editor too, the UV settings in a panel of their own) added to Phase 9, the first-use phase, at the project lead's request.
+- 2026-10-21 — **Rework before the rest of Phase 8** ([0121](docs/decisions/0121-rework-before-the-rest-of-phase-8.md)), after a review of the whole app (with the project lead). Phase 8 pauses at 7 of 28; Phase 9 becomes "Rework and first use" and comes now: the gate checks of Phases 4–7 by the project lead, clear selection, right words, safe keys, search and help, five modes (an Edit pivot switch instead of Object mode), the edit history shown simply, per-object smoothing and symmetry as a modifier, one word per idea and one home per setting, labels, a key audit (Ctrl adds, Shift removes stays), a quality safety net, tidying, and English as the one language package. Gate: a newcomer test. "Why is this here?" stays a switch.
