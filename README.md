@@ -252,7 +252,7 @@ After a review of the whole app (2026-10-21, [decision 0121](docs/decisions/0121
 - [ ] Labels on everything: a side palette that slides out with names, a dropdown on the selection mode button
 - [ ] A key audit, asked first (Ctrl adds and Shift removes stays)
 - [ ] A safety net: workflow tests, reference images, export checks in CI, an emergency copy on a crash, a newcomer checklist per pull request
-- [ ] Tidy for growth: the big interface code split up, a short spec, English as the one language package
+- [ ] Tidy for growth: the big interface code split up, a short spec, English as the one language package, one development file format until the alpha
 
 </details>
 

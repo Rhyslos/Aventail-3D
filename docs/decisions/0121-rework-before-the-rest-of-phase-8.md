@@ -42,7 +42,7 @@ The review is the project lead's doc *Aventail 3D design and quality review*.
   - Object mode goes. Pivot editing becomes an "Edit pivot" switch on the gizmo, leaving five modes. He agreed to change Object mode, and the switch was chosen over renaming it "Pivot" mode.
   - Symmetry becomes a modifier: one mirror per object, at the object's own centre by default. This replaces both the live mirror and the separate Mirror modifier planned in 0119.
   - A key audit is offered before any key changes. **Ctrl always adds to the selection and Shift always removes**: fixed.
-  - One development file format until the alpha was put to him; his answer is pending.
+  - One development file format until the alpha (his OK, 2026-10-21): the format simply grows during development, his existing projects are converted once, and versioning starts properly at the alpha. This is part of milestone 10.
 
 ## Consequences
 

@@ -602,6 +602,7 @@ After a review of the whole app (2026-10-21, [0121](docs/decisions/0121-rework-b
     - The big interface code split up.
     - A short "what exists now" spec and a one-page digest of the rules in force.
     - English as the one language package (every text through one translation layer; other languages added later as packages; the rest of [0117](docs/decisions/0117-language-support.md) waits).
+    - One development file format until the alpha: it grows as features arrive, the project lead's existing projects are converted once, and versioning starts properly at the alpha.
 - **Done when (the newcomer test):** 2–3 people who haven't used the app finish a fixed task list without help, see what is selected on any screen, and no text skips the English package. Then Phase 8 continues.
 
 ### Phase 10 — Advanced hard-surface
