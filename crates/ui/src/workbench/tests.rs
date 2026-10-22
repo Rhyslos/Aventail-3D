@@ -1188,7 +1188,7 @@ fn the_managers_have_their_own_menu_lines() {
 #[test]
 fn the_menu_bar_shows_the_layouts() {
     let harness = fresh();
-    for name in ["Standard", "Modelling", "UV Edit"] {
+    for name in ["Standard", "UV Edit"] {
         assert!(harness.query_by_label(name).is_some(), "{name}");
     }
     let help = harness.get_by_label("Help").rect();

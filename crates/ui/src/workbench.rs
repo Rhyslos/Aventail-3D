@@ -63,13 +63,12 @@ pub enum LayoutChoice {
 
 /// The layout tabs, left to right: a layout's name, the layout (or, for
 /// one not built yet, when it arrives) and what it is for.
-const LAYOUTS: [(&str, Result<LayoutChoice, &str>, &str); 3] = [
+const LAYOUTS: [(&str, Result<LayoutChoice, &str>, &str); 2] = [
     (
         "Standard",
         Ok(LayoutChoice::Standard),
         "The standard layout",
     ),
-    ("Modelling", Err("A layout for modelling arrives later"), ""),
     (
         "UV Edit",
         Ok(LayoutChoice::UvEdit),
