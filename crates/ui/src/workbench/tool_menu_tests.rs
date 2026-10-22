@@ -291,7 +291,14 @@ fn the_uv_mode_has_the_uv_ring_with_every_tool_built() {
     open(&mut harness);
     let entries = harness.state().workbench.tool_menu_entries();
     let commands: Vec<CommandId> = entries.iter().map(|e| e.slot.command).collect();
-    assert_eq!(commands, crate::commands::UV_RING.to_vec());
+    assert_eq!(
+        commands,
+        crate::commands::UV_RING
+            .iter()
+            .flatten()
+            .copied()
+            .collect::<Vec<_>>()
+    );
     assert!(
         entries
             .iter()

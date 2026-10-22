@@ -249,16 +249,13 @@ fn choosing_a_group_opens_its_tools_in_the_same_place() {
         .iter()
         .map(|e| e.slot.command)
         .collect();
-    assert_eq!(commands, crate::commands::UV_RING.to_vec());
-    // Stitch & cut holds two tools still to come, with their keys.
-    harness.get_by_label("Tool menu: Stitch & cut").click();
-    harness.run();
-    let entries = harness.state().workbench.tool_menu_entries();
-    assert_eq!(entries.len(), 2);
-    assert!(
-        entries
+    assert_eq!(
+        commands,
+        crate::commands::UV_RING
             .iter()
-            .all(|e| matches!(e.ready, crate::tool_menu::Ready::Later(_)))
+            .flatten()
+            .copied()
+            .collect::<Vec<_>>()
     );
 }
 
@@ -277,6 +274,6 @@ fn the_quad_menu_lists_a_groups_tools_in_its_place() {
         .collect();
     let has = |name: &str| names.iter().any(|n| n == name);
     assert!(has("Turn left 90°"), "{names:?}");
-    assert!(has("Stitch"), "{names:?}");
+    assert!(!has("Stitch"), "nothing not built yet: {names:?}");
     assert!(!has("Turn & flip"), "{names:?}");
 }

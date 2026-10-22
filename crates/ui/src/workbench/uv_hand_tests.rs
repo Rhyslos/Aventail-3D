@@ -293,7 +293,14 @@ fn e_over_the_editor_brings_the_uv_ring_in_every_editing_mode() {
         .iter()
         .map(|e| e.slot.command)
         .collect();
-    assert_eq!(commands, crate::commands::UV_RING.to_vec());
+    assert_eq!(
+        commands,
+        crate::commands::UV_RING
+            .iter()
+            .flatten()
+            .copied()
+            .collect::<Vec<_>>()
+    );
     press(&mut harness, Modifiers::NONE, Key::Escape);
     // Over the viewport, the modelling ring.
     let viewport = harness.get_by_label(crate::VIEWPORT_LABEL).rect().center();

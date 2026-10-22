@@ -171,7 +171,31 @@ fn points_can_be_dragged_added_and_removed() {
 }
 
 #[test]
-fn esc_finishes_the_line_and_keeps_the_selection() {
+fn esc_cancels_the_line_and_takes_its_cut_back() {
+    // Esc cancels everywhere, a slit too (decision 0126).
+    let mut harness = ready();
+    let id = cube(&harness);
+    let selected = harness.state().workbench.document().elements(id).cloned();
+    let steps = harness.state().workbench.document().undo_steps();
+    let faces = shape(&harness).face_count();
+    let (left, right) = ends(&harness);
+    click(&mut harness, left, Modifiers::NONE);
+    click(&mut harness, right, Modifiers::NONE);
+    assert!(shape(&harness).face_count() > faces, "cut while drawn");
+    press(&mut harness, Modifiers::NONE, Key::Escape);
+    assert_eq!(line_points(&harness), 0);
+    assert!(note(&harness).starts_with("Slit cancelled"));
+    assert_eq!(shape(&harness).face_count(), faces, "the cut is gone");
+    assert_eq!(harness.state().workbench.document().undo_steps(), steps);
+    assert_eq!(
+        harness.state().workbench.document().elements(id).cloned(),
+        selected,
+        "Esc on the line doesn't deselect"
+    );
+}
+
+#[test]
+fn enter_finishes_the_line_and_keeps_the_selection() {
     let mut harness = ready();
     let id = cube(&harness);
     let selected = harness.state().workbench.document().elements(id).cloned();
@@ -179,7 +203,7 @@ fn esc_finishes_the_line_and_keeps_the_selection() {
     click(&mut harness, left, Modifiers::NONE);
     click(&mut harness, right, Modifiers::NONE);
     let faces = shape(&harness).face_count();
-    press(&mut harness, Modifiers::NONE, Key::Escape);
+    press(&mut harness, Modifiers::NONE, Key::Enter);
     assert_eq!(line_points(&harness), 0);
     assert!(note(&harness).starts_with("Slit finished"));
     assert_eq!(shape(&harness).face_count(), faces, "the cut stays");

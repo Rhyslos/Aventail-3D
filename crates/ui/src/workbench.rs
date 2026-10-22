@@ -161,22 +161,9 @@ pub const MODE_KEYS: [(Key, Mode); 3] = [
 /// Edges or Polygons mode is left, so a click selects objects again.
 pub(crate) const BACK_KEY: Key = Key::Tab;
 
-/// Menu entries that exist in the design but not yet in the app, with the
-/// phase that brings them. (The Mesh menu's are listed below its working
-/// entries.)
-const COMING: [(&str, &[(&str, &str)]); 4] = [
-    // The Select menu's entries all work (see `selection`).
-    ("Select", &[]),
-    (
-        // The Tools menu's entries all work (see `transform`).
-        "Tools",
-        &[],
-    ),
-    // The Mesh menu lists the modelling tools from the command list.
-    ("Mesh", &[]),
-    // The UV menu's entries come from the command list (see `uv_menu`).
-    ("UV", &[]),
-];
+/// The menus between Modes and View, in order: Select, Tools, Mesh and
+/// UV, each filled from its own module.
+const MIDDLE_MENUS: [&str; 4] = ["Select", "Tools", "Mesh", "UV"];
 
 /// The whole interface around the scene.
 pub struct Workbench {
@@ -989,7 +976,11 @@ impl Workbench {
         // While "Save changes?" (or the dissolve question) is asked, keys
         // answer it, not the scene.
         if self.file.asking.is_none() && self.dissolve_question.is_none() {
-            let typing = ui.ctx().memory(|m| m.focused().is_some()) || self.objects.is_renaming();
+            // A window open (Settings, Keys, Export…) takes the keys too: the
+            // tool menu and shape list don't open over it (decision 0126).
+            let typing = ui.ctx().memory(|m| m.focused().is_some())
+                || self.objects.is_renaming()
+                || self.window_open();
             if let Some(kind) = self.shape_picker.keys(ui, typing) {
                 requests.push(create(kind));
             }
@@ -1361,16 +1352,18 @@ impl Workbench {
             self.cancel_target_pick();
             return;
         }
-        // While a slit's line is drawn, Esc and Enter finish it (and Esc
-        // deselects nothing).
-        if self.slit_session.is_some()
-            && ui.input_mut(|i| {
-                i.consume_key(Modifiers::NONE, Key::Escape)
-                    || i.consume_key(Modifiers::NONE, Key::Enter)
-            })
-        {
-            self.finish_slit();
-            return;
+        // While a slit's line is drawn, Enter finishes it and Esc cancels
+        // it, taking its cut back, as Esc cancels everywhere (decision
+        // 0126). Tab (back to the Model mode) finishes it too.
+        if self.slit_session.is_some() {
+            if ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Enter)) {
+                self.finish_slit();
+                return;
+            }
+            if ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
+                self.cancel_slit();
+                return;
+            }
         }
         let popup_open = egui::Popup::is_any_open(ui.ctx());
         let anything = !self.document.selection().is_empty();
@@ -1735,7 +1728,7 @@ impl Workbench {
                 }
             }
         });
-        for (title, items) in COMING {
+        for title in MIDDLE_MENUS {
             crate::dialog::menu(ui, title, |ui| {
                 if title == "Select" {
                     self.select_menu(ui);
@@ -1814,7 +1807,6 @@ impl Workbench {
                         ui.close();
                     }
                 }
-                coming_entries(ui, items);
             });
         }
         crate::dialog::menu(ui, "View", |ui| {
@@ -1937,7 +1929,7 @@ enum UnsavedAnswer {
 }
 
 /// "Don't save" in the "Save changes?" question, from the keyboard.
-pub const DISCARD_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::D);
+pub const DISCARD_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::ALT, Key::N);
 
 /// A path's file name, for messages.
 fn file_name(path: &Path) -> String {
@@ -2309,15 +2301,6 @@ pub(crate) const UV_TURN_MENU: &str = "Turn and flip";
 pub(crate) const UV_LAY_OUT_MENU: &str = "Lay out";
 pub(crate) const UV_PIECES_MENU: &str = "Pieces";
 pub(crate) const UV_SETTINGS_MENU: &str = "Settings";
-
-/// Menus whose commands are not built yet: each lists what is coming and
-/// when, greyed out.
-fn coming_entries(ui: &mut Ui, items: &[(&str, &str)]) {
-    for (item, phase) in items {
-        ui.add_enabled(false, egui::Button::new(*item))
-            .on_disabled_hover_text(format!("Arrives in {phase}"));
-    }
-}
 
 /// Draws each panel's contents.
 struct PanelViewer<'a> {

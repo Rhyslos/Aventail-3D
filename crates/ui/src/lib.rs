@@ -28,6 +28,8 @@ mod selecting;
 mod settings;
 mod shape_picker;
 pub mod splash;
+#[cfg(test)]
+mod text_checks;
 pub mod theme;
 mod tool_menu;
 mod transforming;
