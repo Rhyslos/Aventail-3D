@@ -295,6 +295,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-20 | Fixed: setting up the next extrude (or bevel, inset, loop cut) no longer changes the last one once something else is selected |
 | 2026-10-18 | Planned after the UVs, from the first testers' feedback and the project lead's ideas: a first-use phase (with English as a language package), advanced modelling, Solis (the app's own renderer), texture painting, materials, an alpha release, polish, scripting in LustScript, rigging, animation and Gauntlet (effects); other languages later |
 | 2026-10-18 | Select connected (Alt + A): the whole part the selection is on; pieces outside the UV square now warned about too |
 | 2026-10-17 | Planned: Phase 9, language support (the whole app in other languages), right after the UVs; advanced hard-surface moves to Phase 10, scripting to 11, rigging to 12 |
