@@ -360,6 +360,64 @@ pub fn connected(
     }
 }
 
+/// Every element of `kind` in a UV island (piece) the selection touches:
+/// the island picked out in the texture, parted at seams and UV splits,
+/// so overlapping islands can be told apart and moved away from each other
+/// ([decision 0124](../../../docs/decisions/0124-select-connected-in-the-uvs.md)).
+/// A selected polygon brings its own island; a point or edge brings every
+/// island its polygons are in (on a seam, the islands on both sides). A
+/// mesh without UVs has no islands, so it falls back to [`connected`].
+pub fn connected_in_uvs(
+    mesh: &Mesh,
+    topology: &Topology,
+    selection: &ElementSelection,
+    kind: ElementKind,
+) -> Vec<Element> {
+    if !crate::uvs::has_uvs(mesh) {
+        return connected(mesh, topology, selection, kind);
+    }
+    let selection = selection.valid_in(mesh, topology);
+    let (island_of, count) = crate::uvs::island_of_each(mesh);
+    let island = |f: FaceId| {
+        island_of
+            .get(f.get() as usize)
+            .copied()
+            .filter(|i| *i < count)
+    };
+    let mut chosen: BTreeSet<usize> = BTreeSet::new();
+    for element in selection.of_kind(kind) {
+        match element {
+            Element::Polygon(f) => chosen.extend(island(f)),
+            Element::Point(v) => {
+                chosen.extend(topology.vertex_faces(v).iter().filter_map(|f| island(*f)))
+            }
+            Element::Edge(e) => chosen.extend(topology.edge_faces(e).filter_map(island)),
+        }
+    }
+    let faces: Vec<FaceId> = mesh
+        .faces()
+        .map(|(f, _)| f)
+        .filter(|f| island(*f).is_some_and(|i| chosen.contains(&i)))
+        .collect();
+    match kind {
+        ElementKind::Polygons => faces.into_iter().map(Element::Polygon).collect(),
+        ElementKind::Points => faces
+            .iter()
+            .flat_map(|f| mesh.face(*f).unwrap_or_default().iter().copied())
+            .collect::<BTreeSet<VertexId>>()
+            .into_iter()
+            .map(Element::Point)
+            .collect(),
+        ElementKind::Edges => faces
+            .iter()
+            .flat_map(|f| topology.face_edges(*f).iter().copied())
+            .collect::<BTreeSet<EdgeKey>>()
+            .into_iter()
+            .map(Element::Edge)
+            .collect(),
+    }
+}
+
 /// The selection of `kind` shrunk by one step: every selected element
 /// touching an unselected one (sharing a point) is dropped, so the
 /// selection's rim goes.

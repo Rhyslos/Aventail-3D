@@ -63,6 +63,7 @@ In the UV mode the viewport shows the **seams** in orange, where the surface is 
 | Box select | Drag |
 | Move, rotate, scale UVs | **W**, **R**, **S**, **T** ([Editing UVs by hand](editing-uvs.md)) |
 | UV tools | **E** (mouse over the editor) |
+| Select whole pieces (from a little of each) | **Alt + A** (mouse over the editor) |
 | Pan, zoom | Your viewport navigation controls; the wheel zooms |
 
 The keys are the same as in the viewport: they work wherever the mouse is.
@@ -72,6 +73,7 @@ The keys are the same as in the viewport: they work wherever the mouse is.
 - **Problem:** the editor says "Select an object to see its UVs". **Why:** it shows only the selected objects. **Fix:** select one, in the viewport or the Objects panel.
 - **Problem:** the new walls of an extrude don't show in the editor. **Why:** they're there, but squashed flat along the old border: an extrude stretches the UVs it finds. **Fix:** select them and choose [Unwrap](unwrapping.md) (E over the editor).
 - **Problem:** clicking in the editor does nothing in the Model mode. **Why:** the Model mode works on whole objects. **Fix:** switch to the UV mode, or press 1, 2 or 3.
+- **Problem:** two pieces lie on top of each other and a click or box takes bits of both. **Why:** the click picks what's under the mouse, and both are. **Fix:** select a little of the piece you want (a polygon you can see is safest), press **Alt + A** with the mouse over the editor to get the whole piece, then move it away (W).
 - **Tip:** a shape with more than 300,000 polygons doesn't draw its UVs, so the window stays quick. The editor says so.
 
 ## Related

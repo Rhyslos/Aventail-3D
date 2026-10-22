@@ -94,7 +94,8 @@ A **double-click** selects a whole [loop](concepts.md#mesh-basics), the belt run
 - **Ctrl + mouse wheel up** grows the selection by one step: everything touching it is added. **Ctrl + wheel down** shrinks it by one step, taking away its outer rim. (With the brush active, Ctrl + wheel changes the brush's size instead, and with a tool that has a count, that count: [Bevel](bevel.md)'s segments, [Loop cut](loop-cut.md)'s cuts, Extrude's bend [segments](extrude-and-inset.md); use the Select menu to grow and shrink then.)
 - **Ctrl + A** selects everything: all shapes in Model mode, or all points, edges or polygons of the selected shapes.
 - **Ctrl + I** inverts: what was selected is unselected, and the rest selected.
-- **Alt + A** (or **Select → Select connected**) selects the whole **part** the selection is on: everything joined to it on the model, through its edges and polygons. Select one polygon of a bolt, press Alt + A, and you have the whole bolt, even when the shape holds other parts too. Seams don't stop it: in the UV mode, click one piece and press Alt + A to get every piece of that part (it's also in **UV → Pieces**). Works in the Points, Edges, Polygons and UV modes.
+- **Alt + A** (or **Select → Select connected**) selects the whole **part** the selection is on: everything joined to it on the model, through its edges and polygons. Select one polygon of a bolt, press Alt + A, and you have the whole bolt, even when the shape holds other parts too. Seams don't stop it here. Works in the Points, Edges and Polygons modes.
+- **Alt + A with the mouse over the UV Editor**, or anywhere in the UV mode, selects whole **UV pieces** instead: the pieces the selection is in, parted at [seams](seams.md). This is how you pick one of two pieces lying over each other: select a point or polygon you can see of one, press Alt + A, and move it away. A point or edge on a seam belongs to the pieces on both sides, so it brings both; select a polygon to get exactly one piece. **UV → Pieces → Select connected** does the same.
 - **Esc** unselects the points, edges or polygons, but keeps the shape selected, so you can keep working on it. In Model mode, Esc unselects the shapes.
 - **Select → Select seams** selects every [seam](seams.md) of the shapes you're editing (the Edges mode shows), and **Select hard edges** every hard edge.
 - **Select → Select by material** lists the selected shapes' [materials](materials.md); pick one to select every polygon using it (the Polygons mode shows).
@@ -127,7 +128,7 @@ Each mode remembers its own selection. Select some points, switch to Polygons mo
 | Brush size (with the brush active) | `Ctrl` + wheel |
 | Select all | `Ctrl + A` |
 | Invert the selection | `Ctrl + I` |
-| Select connected (the whole part) | `Alt + A` |
+| Select connected (the whole part; over the UV Editor or in the UV mode, whole pieces) | `Alt + A` |
 | Unselect points, edges or polygons (Model mode: shapes) | `Esc` |
 | Undo / redo a selection | `Ctrl + Z` / `Ctrl + Y` |
 
