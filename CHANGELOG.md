@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed
+
+- **Alt + A in the UV Editor selects whole pieces.** With the mouse over the UV Editor, or in the UV mode, Alt + A now selects the UV pieces the selection is in, parted at seams, instead of the whole part of the model. Select a little of one of two overlapping pieces, press Alt + A, and move it away. **UV → Pieces → Select connected** does the same. In the viewport, Alt + A still selects the whole part.
+
 ### Added
 
 - **Solis in Made for, and your last export remembered.** File → Export…'s **Made for** list has **Solis**, the game engine made beside this app (glTF, metres, Y up, triangles, each object keeping its own name), and a game project folder inside a Solis project (one with a `project.solis` file) is recognised like Godot's. The app now remembers your last export's Made for and file settings, also after closing it, so new projects export the same way without setting it up again. Godot is still where it starts the first time.

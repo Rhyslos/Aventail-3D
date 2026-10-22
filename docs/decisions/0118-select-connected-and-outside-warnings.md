@@ -1,6 +1,6 @@
 # 0118. Select connected (Alt + A) and the outside-the-square warning
 
-- **Status:** Accepted
+- **Status:** Accepted; Alt + A in the UVs replaced by [0124](0124-select-connected-in-the-uvs.md)
 - **Date:** 2026-10-18
 - **Follows:** [0029](0029-selection.md) (selection), [0115](0115-seeing-and-checking.md) (seeing and checking)
 

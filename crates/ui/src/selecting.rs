@@ -514,6 +514,35 @@ impl Selector<'_> {
         })
     }
 
+    /// Selects the whole UV pieces (islands) the selection is in, in the
+    /// mode's kind (decision 0124): Alt + A over the UV Editor or in the
+    /// UV mode, and UV → Pieces → Select connected.
+    pub(crate) fn select_connected_in_uvs(&mut self) -> Option<String> {
+        let Some(kind) = kind_for(self.mode) else {
+            return Some(
+                "Select connected works on points, edges or polygons: press 1, 2 or 3 \
+                 (or use the UV mode) and select a little of a piece first."
+                    .into(),
+            );
+        };
+        let none = ElementSelection::new();
+        let anything = self
+            .drawing
+            .items
+            .iter()
+            .filter(|i| i.selected)
+            .any(|i| self.document.elements(i.id).unwrap_or(&none).count(kind) > 0);
+        if !anything {
+            return Some(format!(
+                "Select connected: select a {} of the piece first.",
+                kind.singular()
+            ));
+        }
+        self.each_edited(kind, "Select whole pieces", |mesh, topology, selected| {
+            ops::connected_in_uvs(mesh, topology, selected, kind)
+        })
+    }
+
     /// Selects the seams (Select or UV menu → Select seams).
     pub(crate) fn select_seams(&mut self) -> Option<String> {
         self.each_edited(ElementKind::Edges, "Select seams", |mesh, topology, _| {
