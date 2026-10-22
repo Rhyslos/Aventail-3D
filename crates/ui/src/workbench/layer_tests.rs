@@ -234,6 +234,12 @@ fn double_clicking_a_layer_renames_it() {
 #[test]
 fn the_panel_explains_when_it_has_nothing_to_show() {
     let mut harness = fresh();
+    // Not in the layout until wanted (decision 0126): Window → Edit layers.
+    assert!(harness.query_by_label("Edit layers").is_none());
+    super::tests::main_menu(&harness, "Window").click();
+    harness.run();
+    harness.get_by_label(super::EDIT_LAYERS_ENTRY).click();
+    harness.run();
     harness.get_by_label("Edit layers").click();
     harness.run();
     assert!(
@@ -287,7 +293,7 @@ fn clicking_an_edit_opens_it_in_the_attributes_panel() {
 }
 
 #[test]
-fn an_opened_edit_can_be_switched_off_kept_and_deleted() {
+fn an_opened_edit_can_be_switched_off_and_deleted() {
     let mut harness = with_two_layers();
     open_edit(&mut harness, "Move 1 point");
     harness.get_by_label("Edit on").click();
@@ -295,19 +301,8 @@ fn an_opened_edit_can_be_switched_off_kept_and_deleted() {
     assert!(!first_edit(&harness).enabled);
     harness.get_by_label("Edit on").click();
     harness.run();
-    harness
-        .get_by_label(crate::attributes::KEEP_EDITABLE_SWITCH)
-        .click();
-    harness.run();
-    assert!(first_edit(&harness).pinned);
-    assert!(harness.query_by_label(crate::layers::KEPT_MARK).is_some());
-    // A kept edit is never frozen.
-    assert!(
-        harness
-            .get_by_label(crate::attributes::FREEZE_LABEL)
-            .accesskit_node()
-            .is_disabled()
-    );
+    // There's no Keep editable switch any more (decision 0126).
+    assert!(harness.query_by_label_contains("Keep").is_none());
     harness
         .get_by_label(crate::attributes::DELETE_EDIT_LABEL)
         .click();

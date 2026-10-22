@@ -542,7 +542,7 @@ impl AttributesPanel {
                     ui.label(format!("Shows the shape of: {original}"));
                     ui.label(
                         RichText::new(
-                            "Change the original and every instance follows. Make editable \
+                            "Change the original and every instance follows. Bake into shape \
                              (Ctrl + E) gives this one its own shape.",
                         )
                         .small()
@@ -780,30 +780,6 @@ impl AttributesPanel {
                         }));
                     }
                     ui.end_row();
-                    label(
-                        ui,
-                        "Keep editable",
-                        "Keep this edit changeable: Freeze never bakes it, so its settings stay \
-                         open for good",
-                    );
-                    let mut kept = entry.pinned;
-                    let switch = ui.checkbox(&mut kept, "");
-                    switch.widget_info(|| {
-                        egui::WidgetInfo::selected(
-                            egui::WidgetType::Checkbox,
-                            true,
-                            kept,
-                            KEEP_EDITABLE_SWITCH,
-                        )
-                    });
-                    if switch.changed() {
-                        out.push(DocRequest::Run(Command::SetEditPinned {
-                            id,
-                            edit,
-                            pinned: kept,
-                        }));
-                    }
-                    ui.end_row();
                 });
         });
         if entry.operation.settings().is_some() {
@@ -828,7 +804,7 @@ impl AttributesPanel {
             let problem = stack.freeze_problem(edit);
             let count = scene::frozen_count(stack, edit);
             let help = match problem {
-                Some(why) => format!("Can't freeze: {why}."),
+                Some(why) => format!("Can't bake into the shape: {why}."),
                 None => format!(
                     "Bake the shape's settings and the {} up to and including this one into \
                      the shape, so they no longer have to be made again: big models stay quick. \
@@ -1351,10 +1327,8 @@ fn mesh_section(ui: &mut Ui, report: Option<&MeshReport>, current: bool, plain_m
 
 /// The button that closes an opened edit.
 pub(crate) const CLOSE_EDIT_LABEL: &str = "Close";
-/// The opened edit's Keep editable switch, for screen readers and tests.
-pub(crate) const KEEP_EDITABLE_SWITCH: &str = "Keep this edit editable";
 /// Freezes the edits up to the opened one (decision 0092).
-pub(crate) const FREEZE_LABEL: &str = "Freeze up to here";
+pub(crate) const FREEZE_LABEL: &str = "Bake into shape up to here";
 /// Deletes the opened edit.
 pub(crate) const DELETE_EDIT_LABEL: &str = "Delete edit";
 

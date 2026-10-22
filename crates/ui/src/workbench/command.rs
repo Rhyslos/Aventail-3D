@@ -41,7 +41,8 @@ impl Workbench {
             CommandId::MakeEditable if selection.is_empty() => nothing(),
             CommandId::MakeEditable if !objects::can_make_editable(&self.document, &selection) => {
                 Ready::NotNow(
-                    "Nothing to make editable: groups and meshes have no settings to bake".into(),
+                    "Nothing to bake into the shape: groups and meshes have no settings to bake"
+                        .into(),
                 )
             }
             CommandId::Group

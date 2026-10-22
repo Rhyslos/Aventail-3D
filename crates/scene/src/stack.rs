@@ -2102,13 +2102,9 @@ impl Stack {
             } else {
                 each.entries.len()
             };
+            // Kept-editable (pinned) edits no longer hold a bake back: the
+            // switch is gone (decision 0126), and old projects may have it.
             for e in &each.entries[..upto] {
-                if e.pinned {
-                    return Some(
-                        "an edit to freeze is kept editable: unpin it, or freeze only the edits \
-                         before it",
-                    );
-                }
                 if !e.enabled {
                     return Some(
                         "an edit to freeze is switched off: switch it on or delete it first",

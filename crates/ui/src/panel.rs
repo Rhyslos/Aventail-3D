@@ -27,20 +27,20 @@ pub enum Panel {
 
 impl Panel {
     /// Every panel that is always in a layout, in reading order.
-    pub const ALL: [Panel; 5] = [
+    pub const ALL: [Panel; 4] = [
         Self::Viewport,
         Self::Attributes,
         Self::Objects,
         Self::Coordinates,
-        Self::EditLayers,
     ];
 
     /// Panels added after the first release: a saved layout without them
     /// gets them added beside Objects rather than being reset.
-    pub const ADDED_LATER: [Panel; 1] = [Self::EditLayers];
+    pub const ADDED_LATER: [Panel; 0] = [];
 
-    /// Panels a layout may leave out: shown when wanted.
-    pub const OPTIONAL: [Panel; 1] = [Self::UvEditor];
+    /// Panels a layout may leave out: shown when wanted. Edit layers
+    /// stays out of the way until a layer is added (decision 0126).
+    pub const OPTIONAL: [Panel; 2] = [Self::UvEditor, Self::EditLayers];
 
     /// The name shown on the panel's tab.
     pub fn title(self) -> &'static str {
@@ -64,13 +64,7 @@ mod tests {
         let titles: Vec<_> = Panel::ALL.iter().map(|p| p.title()).collect();
         assert_eq!(
             titles,
-            [
-                "Viewport",
-                "Attributes",
-                "Objects",
-                "Coordinates",
-                "Edit layers"
-            ]
+            ["Viewport", "Attributes", "Objects", "Coordinates",]
         );
     }
 

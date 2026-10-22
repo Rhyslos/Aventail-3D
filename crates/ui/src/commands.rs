@@ -170,7 +170,7 @@ impl CommandId {
                 None,
             ),
             Self::MakeEditable => (
-                "Make editable",
+                "Bake into shape",
                 Icon::MakeEditable,
                 Some(MAKE_EDITABLE_SHORTCUT),
                 "Turn the selected shapes into plain meshes, ready for editing points, \

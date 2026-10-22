@@ -34,17 +34,14 @@ pub const MIN_PANEL_SIZE: f32 = 60.0;
 /// └─────────────────────────────┴──────────────┘
 /// ```
 ///
-/// Edit layers is a tab beside Objects (decision 0091).
+/// Edit layers is a tab beside Objects once a layer is added (decisions
+/// 0091 and 0126).
 pub fn default_layout() -> DockState<Panel> {
     let mut dock = DockState::new(vec![Panel::Viewport]);
     let tree = dock.main_surface_mut();
     let [main_area, right_column] =
         tree.split_right(NodeIndex::root(), MAIN_AREA_WIDTH, vec![Panel::Attributes]);
-    tree.split_below(
-        right_column,
-        ATTRIBUTES_HEIGHT,
-        vec![Panel::Objects, Panel::EditLayers],
-    );
+    tree.split_below(right_column, ATTRIBUTES_HEIGHT, vec![Panel::Objects]);
     tree.split_below(main_area, VIEWPORT_HEIGHT, vec![Panel::Coordinates]);
     dock
 }
@@ -67,11 +64,7 @@ pub fn uv_edit_layout() -> DockState<Panel> {
     let tree = dock.main_surface_mut();
     let [main_area, right_column] =
         tree.split_right(NodeIndex::root(), MAIN_AREA_WIDTH, vec![Panel::Attributes]);
-    tree.split_below(
-        right_column,
-        ATTRIBUTES_HEIGHT,
-        vec![Panel::Objects, Panel::EditLayers],
-    );
+    tree.split_below(right_column, ATTRIBUTES_HEIGHT, vec![Panel::Objects]);
     let [view, _] = tree.split_below(main_area, VIEWPORT_HEIGHT, vec![Panel::Coordinates]);
     tree.split_right(view, 0.5, vec![Panel::UvEditor]);
     dock
@@ -136,10 +129,40 @@ pub fn add_later_panels(dock: &mut DockState<Panel>) -> bool {
     added
 }
 
-/// Brings `panel`'s tab to the front of its group.
+/// Brings `panel`'s tab to the front of its group, adding it beside
+/// Objects first if the layout doesn't have it (Edit layers, decision
+/// 0126).
 pub fn show_tab(dock: &mut DockState<Panel>, panel: Panel) {
+    if dock.find_tab(&panel).is_none() {
+        add_beside_objects(dock, panel);
+    }
     if let Some(path) = dock.find_tab(&panel) {
         let _ = dock.set_active_tab(path);
+    }
+}
+
+/// Adds `panel` as a tab beside Objects (or the first panel found),
+/// leaving the tab that was showing in front. Returns whether it was
+/// added.
+pub fn add_beside_objects(dock: &mut DockState<Panel>, panel: Panel) -> bool {
+    if dock.find_tab(&panel).is_some() {
+        return false;
+    }
+    let beside = dock
+        .find_tab(&Panel::Objects)
+        .or_else(|| dock.find_tab_from(|p| *p != Panel::Viewport))
+        .or_else(|| dock.find_tab(&Panel::Viewport));
+    let Some(beside) = beside else {
+        return false;
+    };
+    match dock.leaf_mut(beside.node_path()) {
+        Ok(leaf) => {
+            let showing = leaf.active;
+            leaf.append_tab(panel);
+            leaf.active = showing;
+            true
+        }
+        Err(_) => false,
     }
 }
 
@@ -261,7 +284,7 @@ mod tests {
             vec![
                 vec![Panel::Attributes],
                 vec![Panel::Coordinates],
-                vec![Panel::Objects, Panel::EditLayers],
+                vec![Panel::Objects],
                 vec![Panel::Viewport],
             ]
         );
@@ -359,7 +382,25 @@ mod tests {
     }
 
     #[test]
-    fn a_layout_saved_before_edit_layers_gets_it_beside_objects() {
+    fn edit_layers_stays_out_until_shown_then_sits_beside_objects() {
+        // Decision 0126: no Edit layers tab in the standard layout.
+        let mut dock = default_layout();
+        assert!(dock.find_tab(&Panel::EditLayers).is_none());
+        show_tab(&mut dock, Panel::EditLayers);
+        assert!(is_complete(&dock));
+        let (_, leaf) = dock
+            .iter_leaves()
+            .find(|(_, l)| l.tabs.contains(&Panel::Objects))
+            .unwrap();
+        assert_eq!(leaf.tabs, vec![Panel::Objects, Panel::EditLayers]);
+        // A saved layout that has it keeps it.
+        let (restored, note) = restore_or_default(Some(dock.clone()));
+        assert!(note.is_none());
+        assert!(restored.find_tab(&Panel::EditLayers).is_some());
+    }
+
+    #[test]
+    fn a_layout_saved_without_edit_layers_is_used_as_it_is() {
         // The standard layout as saved by an earlier version.
         let mut saved = DockState::new(vec![Panel::Viewport]);
         let tree = saved.main_surface_mut();
@@ -373,9 +414,7 @@ mod tests {
             .iter_leaves()
             .find(|(_, l)| l.tabs.contains(&Panel::Objects))
             .unwrap();
-        assert_eq!(leaf.tabs, vec![Panel::Objects, Panel::EditLayers]);
-        // Objects stays in front.
-        assert_eq!(leaf.active.0, 0);
+        assert_eq!(leaf.tabs, vec![Panel::Objects]);
     }
 
     #[test]

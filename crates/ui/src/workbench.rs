@@ -1225,6 +1225,19 @@ impl Workbench {
         if overlay.version != shown {
             ui.ctx().request_repaint();
         }
+        // Edit layers stays out of the way until an object with layers is
+        // selected (decision 0126).
+        if self.dock.find_tab(&Panel::EditLayers).is_none() {
+            let scene = self.document.scene();
+            let layered = self.document.selection().iter().any(|id| {
+                scene
+                    .object(*id)
+                    .is_some_and(|o| o.stack.layers().len() > 1)
+            });
+            if layered {
+                crate::layout::add_beside_objects(&mut self.dock, Panel::EditLayers);
+            }
+        }
         if self.fit_pending && fit_coordinates(&mut self.dock) {
             self.fit_pending = false;
             ui.ctx().request_repaint();
@@ -1894,6 +1907,23 @@ impl Workbench {
                 self.toggle_uv_editor();
                 ui.close();
             }
+            let layers_shown = self.dock.find_tab(&Panel::EditLayers).is_some();
+            if ui
+                .add(egui::Button::selectable(layers_shown, EDIT_LAYERS_ENTRY))
+                .on_hover_text(
+                    "Show the Edit layers panel beside Objects, or put it away. It shows by \
+                     itself once an object has more than one layer.",
+                )
+                .clicked()
+            {
+                match self.dock.find_tab(&Panel::EditLayers) {
+                    Some(path) => {
+                        self.dock.remove_tab(path);
+                    }
+                    None => crate::layout::show_tab(&mut self.dock, Panel::EditLayers),
+                }
+                ui.close();
+            }
         });
         crate::dialog::menu(ui, "Help", |ui| {
             if ui
@@ -1972,6 +2002,9 @@ pub(crate) const SEARCH_ENTRY: &str = "Search for a command";
 pub(crate) const DEVELOPER_MENU: &str = "Developer";
 /// View → Show and hide (decision 0126).
 pub(crate) const SHOW_HIDE_MENU: &str = "Show and hide";
+
+/// The Window menu's entry for the Edit layers panel.
+pub(crate) const EDIT_LAYERS_ENTRY: &str = "Edit layers";
 
 /// The Window menu's entry for the UV Editor.
 pub(crate) const UV_EDITOR_ENTRY: &str = "UV Editor";

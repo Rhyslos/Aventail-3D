@@ -80,7 +80,11 @@ fn e_opens_the_tools_for_objects_with_their_keys() {
     let mut harness = fresh();
     open(&mut harness);
     assert!(harness.query_by_label("Tool menu: Move").is_some());
-    assert!(harness.query_by_label("Tool menu: Make editable").is_some());
+    assert!(
+        harness
+            .query_by_label("Tool menu: Bake into shape")
+            .is_some()
+    );
     assert!(harness.query_by_label("Tool menu: Extrude").is_none());
     assert_eq!(highlighted(&harness), Some(CommandId::Move));
     // The middle says what the highlighted tool is.
@@ -254,7 +258,7 @@ fn a_tool_that_cant_be_used_now_says_why() {
 fn tools_from_the_menu_change_the_scene_like_their_keys() {
     let mut harness = cube_selected();
     open(&mut harness);
-    harness.get_by_label("Tool menu: Make editable").click();
+    harness.get_by_label("Tool menu: Bake into shape").click();
     harness.run();
     let doc = harness.state().workbench.document();
     let id = doc.selection()[0];
