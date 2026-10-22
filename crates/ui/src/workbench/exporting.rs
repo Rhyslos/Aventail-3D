@@ -400,7 +400,7 @@ impl Workbench {
 
     /// The export into the game project folder, if the project has one:
     /// everything shown, with the engine's preset (when the folder isn't
-    /// in a project the app can recognise, [`Self::fallback_preset`]),
+    /// in a project the app can recognise, Made for's engine, or Godot's),
     /// named after the project saved
     /// at `saving_to` (or the project's own file, or "Untitled").
     pub fn target_request(&mut self, saving_to: Option<&Path>) -> Option<TargetRequest> {
