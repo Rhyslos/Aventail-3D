@@ -78,7 +78,7 @@ echo "Viewport background at (300, 130): $R $G $B (expected a neutral mid grey)"
 diff_rb=$(( R > B ? R - B : B - R ))
 [ "$diff_rb" -le 15 ] || fail "viewport background is tinted: ($R, $G, $B)"
 xdotool windowfocus --sync "$WINDOW_ID" 2>/dev/null || true
-CUBE_BUTTON_X="${CUBE_BUTTON_X:-396}"
+CUBE_BUTTON_X="${CUBE_BUTTON_X:-430}"
 xdotool mousemove "$CUBE_BUTTON_X" 50 click 1
 sleep 2
 # Move the mouse away so the button's tooltip doesn't cover the view.
@@ -96,10 +96,10 @@ changed_pixels() {
 }
 
 # 2. Clicking a mode in the left palette selects it: the button lights up
-#    and the status bar changes. MODE_Y is the middle of the fifth button
+#    and the status bar changes. MODE_Y is the middle of the fourth button
 #    (Polygons) with the standard layout.
 xdotool windowfocus --sync "$WINDOW_ID" 2>/dev/null || true
-MODE_Y="${MODE_Y:-234}"
+MODE_Y="${MODE_Y:-209}"
 xdotool mousemove 22 "$MODE_Y" click 1
 sleep 1.5
 import -window root "$OUT/after-mode.png"
@@ -150,7 +150,7 @@ echo "Pixels changed by framing everything (H): $FRAME_CHANGE"
 #    through the grid levels: one click adds the 50 cm lines (each metre
 #    square cut into four), a second the fine 10 cm lines. GRID_Y is the
 #    middle of that button with the standard layout.
-GRID_Y="${GRID_Y:-415}"
+GRID_Y="${GRID_Y:-356}"
 xdotool mousemove 22 "$GRID_Y" click 1
 sleep 1.5
 import -window root "$OUT/after-grid-half.png"
@@ -201,7 +201,7 @@ echo "Pixels changed by undoing (Ctrl+Z): $UNDO_CHANGE"
 
 # File > Quit with the mouse (there is no key for it, on purpose). QUIT_Y is
 # the middle of the Quit entry with the standard font.
-QUIT_Y="${QUIT_Y:-329}"
+QUIT_Y="${QUIT_Y:-305}"
 quit_from_menu() {
     xdotool mousemove 20 14 click 1
     sleep 1
@@ -210,10 +210,10 @@ quit_from_menu() {
 }
 
 # 6. Quit with File > Quit. The scene has unsaved changes, so the app asks
-#    first; Ctrl+D answers "Don't save".
+#    first; Alt+N answers "Don't save".
 quit_from_menu
 import -window root "$OUT/unsaved-question.png"
-xdotool key --window "$WINDOW_ID" ctrl+d || true
+xdotool key --window "$WINDOW_ID" alt+n || true
 for _ in $(seq 1 15); do
     kill -0 "$PID" 2>/dev/null || break
     sleep 1
