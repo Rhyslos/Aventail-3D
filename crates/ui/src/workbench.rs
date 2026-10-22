@@ -46,6 +46,8 @@ pub struct AppInfo {
     pub name: String,
     /// Version, such as "0.0.1".
     pub version: String,
+    /// Where the user manual is read online (Help → User manual).
+    pub manual_url: String,
 }
 
 /// The layouts the tabs on the right of the menu bar switch between
@@ -215,6 +217,8 @@ pub struct Workbench {
     shape_picker: ShapePicker,
     /// The tool menu (E).
     tool_menu: ToolMenu,
+    /// Command search, opened with Space (decision 0126).
+    search: crate::command_search::CommandSearch,
     /// What the viewport draws, kept up to date with the document.
     drawing: DrawingCache,
     /// Polygons hidden from view (Shift + H, Ctrl + H; decision 0055).
@@ -319,6 +323,7 @@ impl Workbench {
             queued: Vec::new(),
             shape_picker: ShapePicker::default(),
             tool_menu: ToolMenu::default(),
+            search: crate::command_search::CommandSearch::default(),
             drawing: DrawingCache::default(),
             hidden: crate::drawing::Hidden::default(),
             copied: Vec::new(),
@@ -993,6 +998,7 @@ impl Workbench {
             }
             let entries = self.tool_menu_entries();
             self.tool_menu_keys(ui, typing, &entries, &mut requests);
+            self.search_keys(ui, typing);
             self.showing_keys(ui);
             self.copying_keys(ui);
             self.document_keys(ui, &mut requests);
@@ -1223,6 +1229,7 @@ impl Workbench {
         self.tool_menu_show(ui.ctx(), &entries, &mut requests);
         self.open_quad_menu();
         self.quad_menu_show(ui.ctx(), &mut requests);
+        self.search_window(ui.ctx(), &mut actions, &mut requests);
         if !requests.is_empty() {
             self.carry_out(requests);
             ui.ctx().request_repaint();
@@ -1307,6 +1314,7 @@ impl Workbench {
             || self.about_open
             || self.align.is_some()
             || self.quad_menu.is_open()
+            || self.search.open
     }
 
     /// Keys that change the document: undo, redo, delete, deselect, group
@@ -1820,6 +1828,42 @@ impl Workbench {
             }
             crate::viewport::chrome::frame_entries(ui, &mut self.viewport);
             ui.separator();
+            crate::dialog::menu(ui, SHOW_HIDE_MENU, |ui| {
+                let entry = |ui: &mut Ui, label: &str, keys: &KeyboardShortcut, help: &str| {
+                    let keys = ui.ctx().format_shortcut(keys);
+                    ui.add(egui::Button::new(label).shortcut_text(keys))
+                        .on_hover_text(help)
+                        .clicked()
+                };
+                if entry(
+                    ui,
+                    "Hide the selection",
+                    &showing::HIDE_KEYS,
+                    "Hide the selected objects (or the selected polygons while editing)",
+                ) {
+                    self.hide(showing::Hiding::Selection);
+                    ui.close();
+                }
+                if entry(
+                    ui,
+                    "Isolate the selection",
+                    &showing::ISOLATE_KEYS,
+                    "Hide everything except the selection",
+                ) {
+                    self.hide(showing::Hiding::Others);
+                    ui.close();
+                }
+                if entry(
+                    ui,
+                    "Show everything",
+                    &showing::SHOW_ALL_KEYS,
+                    "Show all that's hidden",
+                ) {
+                    self.show_everything();
+                    ui.close();
+                }
+            });
+            ui.separator();
             crate::viewport::chrome::grid_entries(ui, &mut self.viewport.options_mut().grid_detail);
             ui.separator();
             if ui.button("Reset panel layout").clicked() {
@@ -1843,17 +1887,49 @@ impl Workbench {
         });
         crate::dialog::menu(ui, "Help", |ui| {
             if ui
-                .button("Add a heavy test shape")
+                .button(MANUAL_ENTRY)
+                .on_hover_text("Open the user manual in your web browser")
+                .clicked()
+            {
+                self.open_manual(ui.ctx());
+                ui.close();
+            }
+            if ui
+                .add(
+                    egui::Button::new(SEARCH_ENTRY)
+                        .shortcut_text(crate::command_search::SEARCH_KEY.name()),
+                )
+                .on_hover_text("Find any command by typing part of its name")
+                .clicked()
+            {
+                self.search.open();
+                ui.close();
+            }
+            if ui
+                .button("Keys")
                 .on_hover_text(
-                    "Adds a bumpy ball of 3 million polygons, like a detailed model you \
-                     might import, to see how your computer copes with heavy shapes. Undo \
-                     takes it away again.",
+                    "Every key on a drawn keyboard (also the Keys button on the menu bar)",
                 )
                 .clicked()
             {
-                self.add_heavy_test_shape();
+                self.shortcuts.open = true;
                 ui.close();
             }
+            ui.separator();
+            crate::dialog::menu(ui, DEVELOPER_MENU, |ui| {
+                if ui
+                    .button("Add a heavy test shape")
+                    .on_hover_text(
+                        "Adds a bumpy ball of 3 million polygons, like a detailed model you \
+                         might import, to see how your computer copes with heavy shapes. Undo \
+                         takes it away again.",
+                    )
+                    .clicked()
+                {
+                    self.add_heavy_test_shape();
+                    ui.close();
+                }
+            });
             ui.separator();
             if ui.button(format!("About {}", self.info.name)).clicked() {
                 self.about_open = true;
@@ -1877,6 +1953,15 @@ fn lower_first(text: &str) -> String {
         None => String::new(),
     }
 }
+
+/// Help → User manual.
+pub(crate) const MANUAL_ENTRY: &str = "User manual";
+/// Help → Search for a command.
+pub(crate) const SEARCH_ENTRY: &str = "Search for a command";
+/// Help → Developer: tools for checking the app itself (decision 0126).
+pub(crate) const DEVELOPER_MENU: &str = "Developer";
+/// View → Show and hide (decision 0126).
+pub(crate) const SHOW_HIDE_MENU: &str = "Show and hide";
 
 /// The Window menu's entry for the UV Editor.
 pub(crate) const UV_EDITOR_ENTRY: &str = "UV Editor";
@@ -2630,9 +2715,10 @@ mod pivots_tests;
 mod quad;
 #[cfg(test)]
 mod quad_tests;
+mod searching;
 mod selection;
 mod shortcuts;
-mod showing;
+pub(crate) mod showing;
 mod slit;
 #[cfg(test)]
 mod slit_tests;

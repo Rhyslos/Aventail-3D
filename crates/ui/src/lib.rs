@@ -9,6 +9,7 @@
 
 mod attributes;
 mod autosave;
+mod command_search;
 pub mod commands;
 mod components;
 mod coordinates;

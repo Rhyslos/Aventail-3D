@@ -878,6 +878,13 @@ fn help_offers_a_heavy_test_shape_that_undoes_in_one_step() {
     let mut harness = empty();
     main_menu(&harness, "Help").click();
     harness.run();
+    // In Help → Developer (decision 0126).
+    harness
+        .get_all_by_label_contains(super::DEVELOPER_MENU)
+        .find(|n| n.accesskit_node().role() == egui::accesskit::Role::Button)
+        .unwrap()
+        .hover();
+    harness.run_steps(8);
     assert!(harness.query_by_label("Add a heavy test shape").is_some());
     // The menu entry makes three million polygons; the same with a few.
     let workbench = &mut harness.state_mut().workbench;

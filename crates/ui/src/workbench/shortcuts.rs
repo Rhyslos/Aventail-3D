@@ -214,6 +214,11 @@ pub(crate) fn bindings() -> Vec<Binding> {
         bind(objects::REDO_SHORTCUT, "Redo", Anywhere),
         bind(objects::REDO_SHORTCUT_2, "Redo", Anywhere),
         bind(settings::SETTINGS_SHORTCUT, "Settings", Anywhere),
+        plain(
+            crate::command_search::SEARCH_KEY,
+            "Search for a command by name",
+            Anywhere,
+        ),
     ];
 
     // Modes.

@@ -9,6 +9,7 @@ pub(super) fn info() -> AppInfo {
     AppInfo {
         name: "Test App".into(),
         version: "9.9.9".into(),
+        manual_url: "https://example.com/manual".into(),
     }
 }
 
