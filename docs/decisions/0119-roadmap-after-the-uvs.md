@@ -1,6 +1,6 @@
 # 0119. The roadmap after the UVs
 
-- **Status:** Accepted
+- **Status:** Accepted; Solis (Phases 11 and 20) replaced by [0123](0123-no-renderer-for-now.md)
 - **Date:** 2026-10-18
 - **Replaces part of:** [0117](0117-language-support.md) (language support as Phase 9)
 - **Follows:** [0011](0011-lua-scripting.md) (Lua scripting), [0108](0108-uv-powerhouse-and-baking.md) (Phase 8)
