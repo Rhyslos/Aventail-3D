@@ -6,12 +6,29 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Changed
+
+- **The selection is easy to see.** Selected points, edges and polygons are now drawn last, thickest and in your accent colour, on top of hard edges, seams and other guides, in the viewport and the UV Editor. **Edit → Settings → High contrast** makes them bigger still, with a dark rim. **Select only visible** is now on as standard, so a box drag takes only what you can see.
+- **Five modes.** Model, Points, Edges, Polygons and UV. The Object mode is gone: to move or turn an object's pivot without moving the shape, switch on **Edit pivot** (the button by the gizmo in the Model mode, or the Tools menu), then switch it off again.
+- **"Bake into shape" is the one word.** Make editable is now **Bake into shape** (Ctrl + E), and in the edit list Freeze up to here is **Bake into shape up to here**. **Keep editable** is gone: every edit stays changeable until you bake it. Dragging the same points several times in a row now makes one edit in the list, not one per drag.
+- **The Edit layers tab shows when it's wanted:** when an object with more than one layer is selected, or from **Window → Edit layers**.
+- **Smoothing belongs to each object** ([#114](https://github.com/Rhyslos/Aventail-3D/issues/114)). Automatic hard edges, one switch for the whole app, is replaced by **Object smoothed by angle** and its angle in each object's Attributes (30° as standard), or **Mesh → Shading → Smooth by angle**. Hard edges you mark are added to the angle's. Marking edges on an object smoothed by angle keeps its look: its angle's edges become marks, so you see your change at once. Export uses each object's own smoothing.
+- **Symmetry belongs to the object.** The mirror sits at the object's pivot and moves and turns with it.
+- **Tidier menus and words.** The Mesh menu is in groups (Build, Cut and join, Remove, Shading, Shape and object). Select all and Deselect live in Select only, Check for baking in UV only, and Show hard edges, seams and normals in **View → Show and hide**. Labels say one thing each ("Delete objects", "Delete points, edges or polygons", "Mark hard edges"), the UV tools say **pieces** instead of islands, and rotation reads **X, Y, Z** in the axes' colours.
+- **Keys that don't bite.** In "Save changes?", Don't save is now **Alt + N** (Ctrl + D duplicates in other programs). **Esc** cancels a slit (Enter finishes it) and closes the Keys window, and E doesn't open the tool ring while a window is open.
+- **The right-click menu is on as standard.** A right-click in the viewport opens the quad menu; switch it off in Edit → Settings → Interface.
+- **Projects save in file format 39**, the development format: until the alpha, new settings won't need a new file version. Older projects still open.
+
 ### Fixed
 
 - **Alt + A in the UV Editor selects whole pieces.** With the mouse over the UV Editor, or in the UV mode, Alt + A now selects the UV pieces the selection is in, parted at seams, instead of the whole part of the model. Select a little of one of two overlapping pieces, press Alt + A, and move it away. **UV → Pieces → Select connected** does the same. In the viewport, Alt + A still selects the whole part.
 
 ### Added
 
+- **Apply mirror.** Like Blender's Apply on a mirror: **Symmetry menu → Apply mirror** (also **Mesh → Shape and object** and command search) makes the mirrored half a real part of the shape and turns symmetry off, so each half can then be changed on its own. One undo step brings the mirror back.
+- **Command search (Space).** Press **Space** (or the search button on the palette, or **Help → Search for a command**), type part of a command's name, and press Enter to run it. Each result says which menu it lives in and its key, if it has one.
+- **Help menu.** **Help → User manual** opens this manual, **Words used in the app** explains the terms, and the heavy test shape moved to **Help → Developer**.
+- **The UV menu in the UV Editor, and a UV settings panel** ([#115](https://github.com/Rhyslos/Aventail-3D/issues/115)). The UV Editor's menu line starts with a **UV** button holding the whole UV menu, and the UV Edit layout has a **UV settings** panel beside Attributes with every automatic UV tool's settings.
 - **Solis in Made for, and your last export remembered.** File → Export…'s **Made for** list has **Solis**, the game engine made beside this app (glTF, metres, Y up, triangles, each object keeping its own name), and a game project folder inside a Solis project (one with a `project.solis` file) is recognised like Godot's. The app now remembers your last export's Made for and file settings, also after closing it, so new projects export the same way without setting it up again. Godot is still where it starts the first time.
 - **Select connected (Alt + A).** Select a little of a part (a polygon, an edge, a point, or a piece in the UV mode) and press **Alt + A**, or choose **Select → Select connected** or **UV → Pieces → Select connected**: everything joined to it on the model is selected, across seams, and nothing of the shape's other parts.
 - **Warning for pieces outside the UV square.** The UV Editor now also tints pieces sticking out of the texture square amber and counts them top right ("1 piece outside the square"). Trim sheet pieces are left out, as they run past the sides on purpose.
