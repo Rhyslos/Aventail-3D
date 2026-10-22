@@ -643,11 +643,9 @@ mod tests {
             "the selection is drawn last"
         );
         assert!(widths.iter().all(|w| *w <= SELECTED_LINE_WIDTH));
-        assert!(SELECTED_LINE_WIDTH > HARD_LINE_WIDTH * 2.0);
-        assert!(
-            HARD_LINE[3] < 1.0 && SEAM_LINE[3] < 1.0,
-            "marks are see-through"
-        );
+        const { assert!(SELECTED_LINE_WIDTH > HARD_LINE_WIDTH * 2.0) };
+        // Marks are see-through.
+        const { assert!(HARD_LINE[3] < 1.0 && SEAM_LINE[3] < 1.0) };
     }
 
     #[test]
