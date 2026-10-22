@@ -595,8 +595,33 @@ pub(crate) fn undo_entries(ui: &mut Ui, doc: &Document, out: &mut Vec<DocRequest
     }
 }
 
-/// Rename, Delete, Select all and Deselect.
+/// Rename, Delete, Select all and Deselect (the Objects panel's menus).
 pub(crate) fn selection_entries(
+    ui: &mut Ui,
+    doc: &mut Document,
+    manager: &mut ObjectManager,
+    out: &mut Vec<DocRequest>,
+) {
+    rename_delete_entries(ui, doc, manager, out);
+    let selection = doc.selection();
+    ui.separator();
+    if entry(ui, "Select all", None, !doc.scene().is_empty()) {
+        let all: Vec<ObjectId> = doc.scene().walk().into_iter().map(|(id, _)| id).collect();
+        doc.set_selection(all);
+    }
+    if entry(
+        ui,
+        "Deselect",
+        Some(&DESELECT_SHORTCUT),
+        !selection.is_empty(),
+    ) {
+        doc.clear_selection();
+    }
+}
+
+/// Rename and Delete objects (the main Edit menu: selecting is in the
+/// Select menu, decision 0126).
+pub(crate) fn rename_delete_entries(
     ui: &mut Ui,
     doc: &mut Document,
     manager: &mut ObjectManager,
@@ -617,19 +642,6 @@ pub(crate) fn selection_entries(
         !selection.is_empty(),
     ) {
         out.push(DocRequest::Run(Command::Delete(selection.clone())));
-    }
-    ui.separator();
-    if entry(ui, "Select all", None, !doc.scene().is_empty()) {
-        let all: Vec<ObjectId> = doc.scene().walk().into_iter().map(|(id, _)| id).collect();
-        doc.set_selection(all);
-    }
-    if entry(
-        ui,
-        "Deselect",
-        Some(&DESELECT_SHORTCUT),
-        !selection.is_empty(),
-    ) {
-        doc.clear_selection();
     }
 }
 

@@ -141,6 +141,7 @@ impl Workbench {
             MenuAction::Settings => self.settings.open = true,
             MenuAction::Keys => self.shortcuts.open = true,
             MenuAction::Manual => self.open_manual(ctx),
+            MenuAction::Glossary => self.open_glossary(ctx),
             MenuAction::Undo => requests.push(DocRequest::Undo),
             MenuAction::Redo => requests.push(DocRequest::Redo),
             MenuAction::SelectAll => self.select_requests.push(SelectRequest::All),
@@ -190,6 +191,17 @@ impl Workbench {
     pub(crate) fn open_manual(&mut self, ctx: &egui::Context) {
         ctx.open_url(egui::OpenUrl::new_tab(&self.info.manual_url));
         self.note = Some("The user manual opens in your web browser.".into());
+    }
+
+    /// Help → Words used in the app: the manual's glossary page, beside
+    /// its table of contents.
+    pub(crate) fn open_glossary(&mut self, ctx: &egui::Context) {
+        let url = match self.info.manual_url.rsplit_once('/') {
+            Some((folder, _)) => format!("{folder}/concepts.md"),
+            None => self.info.manual_url.clone(),
+        };
+        ctx.open_url(egui::OpenUrl::new_tab(url));
+        self.note = Some("The glossary opens in your web browser.".into());
     }
 
     /// Whether the search is open.

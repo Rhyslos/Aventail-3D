@@ -42,7 +42,7 @@ pub(crate) enum Pointed {
 pub(super) struct SeamReasons {
     mesh: Arc<Mesh>,
     options: uv::SuggestOptions,
-    hard_angle: Option<f32>,
+    hardness: mesh::Hardness,
     reasons: Option<Arc<BTreeMap<EdgeKey, SeamReason>>>,
 }
 
@@ -51,22 +51,6 @@ pub(super) struct SeamReasons {
 pub(crate) struct ExplainContext {
     /// The settings Suggest seams would use.
     pub(crate) suggest: uv::SuggestOptions,
-    /// The angle past which edges shade hard in the viewport, if it's
-    /// set; else the shape's own hard edges.
-    pub(crate) hard_angle: Option<f32>,
-}
-
-/// The edges shading hard on `mesh`, as the viewport shows them.
-fn hard_edges(mesh: &Mesh, hard_angle: Option<f32>) -> Vec<EdgeKey> {
-    match hard_angle {
-        Some(angle) => mesh::hardness::sharp_edges(mesh, angle),
-        None => {
-            let topology = mesh.topology();
-            mesh.hard_edges()
-                .filter(|e| topology.has_edge(*e))
-                .collect()
-        }
-    }
 }
 
 /// Why Suggest seams would put a seam on an edge, in plain words, with
@@ -294,15 +278,16 @@ impl UvEditor {
         id: ObjectId,
         shape: &UvShape,
         cx: ExplainContext,
+        hardness: mesh::Hardness,
     ) -> Option<Arc<BTreeMap<EdgeKey, SeamReason>>> {
         let fresh = self.reasons.get(&id).is_some_and(|r| {
-            Arc::ptr_eq(&r.mesh, &shape.mesh)
-                && r.options == cx.suggest
-                && r.hard_angle == cx.hard_angle
+            Arc::ptr_eq(&r.mesh, &shape.mesh) && r.options == cx.suggest && r.hardness == hardness
         });
         if !fresh {
             let reasons = (shape.mesh.face_count() <= EXPLAIN_SEAMS_UP_TO).then(|| {
-                let hard = hard_edges(&shape.mesh, cx.hard_angle);
+                // The edges shading hard on the shape, as the viewport
+                // shows them: by the object's own smoothing (decision 0126).
+                let hard = mesh::hardness::shading_hard_edges(&shape.mesh, hardness);
                 Arc::new(
                     uv::seams::suggest_explained(&shape.mesh, &hard, cx.suggest)
                         .into_iter()
@@ -314,7 +299,7 @@ impl UvEditor {
                 SeamReasons {
                     mesh: Arc::clone(&shape.mesh),
                     options: cx.suggest,
-                    hard_angle: cx.hard_angle,
+                    hardness,
                     reasons,
                 },
             );
@@ -334,7 +319,15 @@ impl UvEditor {
         match pointed {
             Pointed::Seam(id, edge) => {
                 let (_, shape) = shapes.iter().find(|(s, _)| s == id)?;
-                let reasons = self.seam_reasons(*id, shape, cx);
+                let own = match doc.scene().object(*id).map(|o| &o.kind) {
+                    Some(scene::ObjectKind::Instance(source)) => *source,
+                    _ => *id,
+                };
+                let hardness = doc
+                    .scene()
+                    .object(own)
+                    .map_or(mesh::Hardness::Marked, |o| o.hardness);
+                let reasons = self.seam_reasons(*id, shape, cx, hardness);
                 let reason = reasons.as_ref().and_then(|r| r.get(edge).copied());
                 Some(seam_text(
                     reason,

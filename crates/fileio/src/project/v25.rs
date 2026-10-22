@@ -121,6 +121,7 @@ mod tests {
                 axes: [true, false, true],
                 centre: Vec3::new(10.0, -5.0, 0.0),
                 weld_distance: 0.5,
+                on_object: false,
             }),
         })
         .unwrap();

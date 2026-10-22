@@ -89,6 +89,21 @@ pub fn set_hard_edges(mesh: &mut Mesh, edges: &[EdgeKey], hard: bool) -> Outcome
     outcome
 }
 
+/// The edges where `mesh`'s shading breaks under `hardness`: by angle,
+/// the sharp edges ([`sharp_edges`]); by the marks, the marked hard edges
+/// the shape still has (a mark left on a gone edge isn't listed).
+pub fn shading_hard_edges(mesh: &Mesh, hardness: crate::Hardness) -> Vec<EdgeKey> {
+    match hardness {
+        crate::Hardness::ByAngle(angle) => sharp_edges(mesh, angle),
+        crate::Hardness::Marked => {
+            let topology = mesh.topology();
+            mesh.hard_edges()
+                .filter(|e| topology.has_edge(*e))
+                .collect()
+        }
+    }
+}
+
 /// The edges whose polygons meet at more than `angle` degrees (how far
 /// one polygon's facing turns from the other's: 0° is flat), and every
 /// edge shared by three or more polygons. Border edges are never listed.

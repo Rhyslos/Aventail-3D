@@ -157,7 +157,7 @@ impl Workbench {
             })
             .collect();
         self.document
-            .select_elements(changes, "Select islands", None);
+            .select_elements(changes, "Select pieces", None);
     }
 
     /// The drag's start: what it moves, about where, and how screen

@@ -62,8 +62,11 @@ pub fn default_layout() -> DockState<Panel> {
 pub fn uv_edit_layout() -> DockState<Panel> {
     let mut dock = DockState::new(vec![Panel::Viewport]);
     let tree = dock.main_surface_mut();
-    let [main_area, right_column] =
-        tree.split_right(NodeIndex::root(), MAIN_AREA_WIDTH, vec![Panel::Attributes]);
+    let [main_area, right_column] = tree.split_right(
+        NodeIndex::root(),
+        MAIN_AREA_WIDTH,
+        vec![Panel::Attributes, Panel::UvSettings],
+    );
     tree.split_below(right_column, ATTRIBUTES_HEIGHT, vec![Panel::Objects]);
     let [view, _] = tree.split_below(main_area, VIEWPORT_HEIGHT, vec![Panel::Coordinates]);
     tree.split_right(view, 0.5, vec![Panel::UvEditor]);

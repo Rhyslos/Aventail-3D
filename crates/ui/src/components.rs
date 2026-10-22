@@ -60,10 +60,6 @@ pub(crate) struct Guides {
     pub(crate) hard_edges: bool,
     /// Seams, in the same modes (decision 0096).
     pub(crate) seams: bool,
-    /// Which edges count as hard: those sharper than this angle in
-    /// degrees, while Automatic hard edges is on (decision 0064), or the
-    /// marked ones (`None`).
-    pub(crate) by_angle: Option<f32>,
     /// Each polygon's normal, in every mode.
     pub(crate) normals: bool,
 }
@@ -432,17 +428,10 @@ fn guide_lines(
         }
         let world = |p: Vec3| item.transform.transform_point3(p);
         if hard {
-            // By angle, the edges that shade hard; otherwise the marked
-            // ones the shape still has (a mark left on a gone edge, from an
-            // older file, isn't drawn).
-            let topology = mesh.topology();
-            let edges: Vec<mesh::EdgeKey> = match guides.by_angle {
-                Some(angle) => mesh::hardness::sharp_edges(mesh, angle),
-                None => mesh
-                    .hard_edges()
-                    .filter(|e| topology.has_edge(*e))
-                    .collect(),
-            };
+            // The edges shading hard by the object's own smoothing
+            // (decision 0126): by angle, the sharp ones; otherwise the
+            // marked ones the shape still has.
+            let edges = mesh::hardness::shading_hard_edges(mesh, item.hardness);
             for edge in edges {
                 let (a, b) = edge.ends();
                 if let (Some(a), Some(b)) = (mesh.position(a), mesh.position(b)) {
@@ -568,6 +557,7 @@ mod tests {
                 transform: Mat4::IDENTITY,
                 selected,
                 colors: Vec::new(),
+                hardness: mesh::Hardness::Marked,
             }],
             editing: true,
             points: false,
@@ -753,6 +743,7 @@ mod tests {
                 transform: Mat4::IDENTITY,
                 selected: true,
                 colors: Vec::new(),
+                hardness: mesh::Hardness::Marked,
             }],
             editing: true,
             points: false,
@@ -912,7 +903,6 @@ mod tests {
         let mut tracker = ComponentTracker::default();
         let both = Guides {
             hard_edges: true,
-            by_angle: None,
             normals: true,
             seams: false,
         };
@@ -923,27 +913,17 @@ mod tests {
         let overlay = tracker.update(Mode::Edges, &drawing(true), &Document::new(), None, both);
         assert_eq!(count(&overlay, OverlayStyle::Hard), 12);
         assert_eq!(count(&overlay, OverlayStyle::Normal), 6);
-        // By angle, the edges that shade hard: a cube's 90° edges count
-        // from 30°, not from 100°.
-        let by = |angle| Guides {
-            by_angle: Some(angle),
-            ..both
+        // By the object's smoothing angle (decision 0126), the edges that
+        // shade hard: a cube's 90° edges count from 30°, not from 100°.
+        let by = |angle, version| {
+            let mut d = drawing(true);
+            d.version = version;
+            d.items[0].hardness = mesh::Hardness::ByAngle(angle);
+            d
         };
-        let overlay = tracker.update(
-            Mode::Edges,
-            &drawing(true),
-            &Document::new(),
-            None,
-            by(30.0),
-        );
+        let overlay = tracker.update(Mode::Edges, &by(30.0, 2), &Document::new(), None, both);
         assert_eq!(count(&overlay, OverlayStyle::Hard), 12);
-        let overlay = tracker.update(
-            Mode::Edges,
-            &drawing(true),
-            &Document::new(),
-            None,
-            by(100.0),
-        );
+        let overlay = tracker.update(Mode::Edges, &by(100.0, 3), &Document::new(), None, both);
         assert_eq!(count(&overlay, OverlayStyle::Hard), 0);
         // In the Model mode, only the normals.
         let overlay = tracker.update(Mode::Model, &drawing(true), &Document::new(), None, both);

@@ -23,6 +23,9 @@ pub enum Panel {
     /// 0096). In the UV Edit layout; in others when the Window menu shows
     /// it.
     UvEditor,
+    /// The automatic UV tools' settings (issue #115), beside Attributes in
+    /// the UV Edit layout; elsewhere when the Window menu shows it.
+    UvSettings,
 }
 
 impl Panel {
@@ -40,7 +43,7 @@ impl Panel {
 
     /// Panels a layout may leave out: shown when wanted. Edit layers
     /// stays out of the way until a layer is added (decision 0126).
-    pub const OPTIONAL: [Panel; 2] = [Self::UvEditor, Self::EditLayers];
+    pub const OPTIONAL: [Panel; 3] = [Self::UvEditor, Self::EditLayers, Self::UvSettings];
 
     /// The name shown on the panel's tab.
     pub fn title(self) -> &'static str {
@@ -51,6 +54,7 @@ impl Panel {
             Self::Coordinates => "Coordinates",
             Self::EditLayers => "Edit layers",
             Self::UvEditor => "UV Editor",
+            Self::UvSettings => "UV settings",
         }
     }
 }

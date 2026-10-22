@@ -158,26 +158,45 @@ fn the_display_menu_marks_hard_edges_and_shows_normals() {
 }
 
 #[test]
-fn automatic_hard_edges_is_on_in_the_mesh_menu_and_hand_edits_say_so() {
+fn smooth_by_angle_is_per_object_and_marking_edges_switches_to_the_marks() {
+    // Issue #114 and decision 0126: marking an edge on an object smoothed
+    // by angle keeps its look as marks and switches it to its marks, so
+    // the edge marked by hand shows.
     use crate::viewport::chrome::{AUTO_HARD_EDGES_ENTRY, HARD_EDGES_ENTRY};
     let mut harness = ready(Key::Num2, first_edge);
-    let options = |h: &H| h.state().workbench.viewport.options();
-    assert!(!options(&harness).hard_edges_by_hand, "on as standard");
+    let id = harness.state().workbench.document().selection()[0];
+    let hardness = |h: &H| {
+        h.state()
+            .workbench
+            .document()
+            .scene()
+            .object(id)
+            .unwrap()
+            .hardness
+    };
     assert_eq!(
-        options(&harness).auto_hard_angle(),
-        Some(crate::AUTO_HARD_ANGLE)
+        hardness(&harness),
+        mesh::Hardness::ByAngle(scene::STANDARD_SMOOTHING_ANGLE),
+        "new objects are smoothed by angle"
     );
-    // Softening an edge by hand is kept, and the note says the angle
-    // decides the shading for now.
+    let steps = harness.state().workbench.document().undo_steps();
     run(&mut harness, CommandId::SoftEdges);
     assert_eq!(shape(&harness).hard_edge_count(), 11);
+    assert_eq!(hardness(&harness), mesh::Hardness::Marked);
     assert!(
-        note(&harness).contains("Automatic hard edges is on"),
+        note(&harness).contains("marked edges"),
         "{}",
         note(&harness)
     );
-    // The switch is in the main Mesh menu, not the viewport's Display menu
-    // (moved there at the project lead's request, decision 0065).
+    // One undo step takes it all back.
+    assert_eq!(harness.state().workbench.document().undo_steps(), steps + 1);
+    harness.state_mut().workbench.document_mut().undo();
+    harness.run();
+    assert_eq!(
+        hardness(&harness),
+        mesh::Hardness::ByAngle(scene::STANDARD_SMOOTHING_ANGLE)
+    );
+    // The switch is in the main Mesh menu, not the viewport's Display menu.
     harness.get_by_label("Display").click();
     harness.run();
     assert!(harness.query_by_label(HARD_EDGES_ENTRY).is_some());
@@ -188,9 +207,12 @@ fn automatic_hard_edges_is_on_in_the_mesh_menu_and_hand_edits_say_so() {
     harness.run();
     harness.get_by_label(AUTO_HARD_EDGES_ENTRY).click();
     harness.run();
-    assert!(options(&harness).hard_edges_by_hand);
-    assert_eq!(options(&harness).auto_hard_angle(), None);
-    // Switched off, hand edits say nothing more.
+    assert_eq!(hardness(&harness), mesh::Hardness::Marked);
+    // On marked edges already: a hand edit says nothing about switching.
     run(&mut harness, CommandId::HardEdges);
-    assert!(!note(&harness).contains("Automatic"), "{}", note(&harness));
+    assert!(
+        !note(&harness).contains("smoothed by angle"),
+        "{}",
+        note(&harness)
+    );
 }

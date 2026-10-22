@@ -148,6 +148,12 @@ pub(crate) enum Edit {
         before: Option<crate::LiveMirror>,
         after: Option<crate::LiveMirror>,
     },
+    /// Changes where an object's shading breaks (decision 0126).
+    SetHardness {
+        id: ObjectId,
+        before: mesh::Hardness,
+        after: mesh::Hardness,
+    },
     /// Changes an object's collision shape.
     SetCollision {
         id: ObjectId,
@@ -222,6 +228,7 @@ impl Edit {
             Self::SetSnapshots { before, after } => before == after,
             Self::SetMaterials { before, after, .. } => before == after,
             Self::SetCollision { before, after, .. } => before == after,
+            Self::SetHardness { before, after, .. } => before == after,
             Self::SetMirror { before, after, .. } => before == after,
             Self::SetTransform { before, after, .. } | Self::SetOffset { before, after, .. } => {
                 before == after
@@ -279,6 +286,11 @@ impl Edit {
                 after: before,
             },
             Self::SetCollision { id, before, after } => Self::SetCollision {
+                id,
+                before: after,
+                after: before,
+            },
+            Self::SetHardness { id, before, after } => Self::SetHardness {
                 id,
                 before: after,
                 after: before,
@@ -504,6 +516,30 @@ impl Scene {
     pub fn with_snapshots(mut self, snapshots: Vec<crate::UvSnapshot>) -> Self {
         self.snapshots = snapshots;
         self
+    }
+
+    /// The same scene with object `id`'s smoothing and mirror space set,
+    /// for a project being opened (decision 0126; not a step to undo: use
+    /// [`crate::Command::SetHardness`] and [`crate::Command::SetMirror`]).
+    /// An unknown object or an invalid angle is refused.
+    pub fn with_object_settings(
+        mut self,
+        id: ObjectId,
+        hardness: mesh::Hardness,
+        mirror_on_object: bool,
+    ) -> Result<Self, &'static str> {
+        if !crate::object::hardness_is_valid(hardness) {
+            return Err("an object's smoothing angle isn't a real number from 0 to 180°");
+        }
+        let node = self
+            .nodes
+            .get_mut(&id)
+            .ok_or("its object settings name an object that isn't there")?;
+        node.object.hardness = hardness;
+        if let Some(mirror) = &mut node.object.mirror {
+            mirror.on_object = mirror_on_object;
+        }
+        Ok(self)
     }
 
     /// The project's trim sheet (decision 0106).
@@ -971,6 +1007,17 @@ impl Scene {
                     return Err(SceneError::History("an object's place has changed"));
                 }
                 node.object.transform = *after;
+                Ok(())
+            }
+            Edit::SetHardness { id, before, after } => {
+                let node = self
+                    .nodes
+                    .get_mut(id)
+                    .ok_or(SceneError::UnknownObject(*id))?;
+                if node.object.hardness != *before {
+                    return Err(SceneError::History("an object's smoothing has changed"));
+                }
+                node.object.hardness = *after;
                 Ok(())
             }
             Edit::SetCollision { id, before, after } => {

@@ -10,7 +10,7 @@ use super::Workbench;
 use super::joining::counted;
 use crate::palette::Mode;
 use mesh::Anchors;
-use scene::{EdgeKey, ElementKind, Operation, VertexId};
+use scene::{Command, EdgeKey, ElementKind, Operation, VertexId};
 use std::collections::BTreeSet;
 
 impl Workbench {
@@ -80,24 +80,112 @@ impl Workbench {
             return;
         }
         let label = counted(if hard { "Harden" } else { "Soften" }, count, "edge");
-        if self.record_each(&label, ops) {
-            self.note = Some(format!(
-                "{label}. Ctrl + Z takes it back.{}",
-                self.auto_hard_note()
-            ));
+        let key = self.new_step_key();
+        let ids: Vec<scene::ObjectId> = ops.iter().map(|(id, _)| *id).collect();
+        let switched = self.switch_to_marks(&ids, key, &label);
+        if self.record_each_in(&label, ops, key) {
+            self.note = Some(if switched > 0 {
+                format!(
+                    "{label}. {} smoothed by angle, so it now uses its marked edges: its look \
+                     was kept as marks, and yours show. Ctrl + Z takes it all back.",
+                    if switched == 1 {
+                        "The object was".to_string()
+                    } else {
+                        format!("{switched} objects were")
+                    }
+                )
+            } else {
+                format!("{label}. Ctrl + Z takes it back.")
+            });
         }
     }
 
-    /// What to add to a hard or soft edge command's note while Automatic
-    /// hard edges is on: the marks are kept, but the angle decides the
-    /// shading until it is switched off (decision 0064).
-    fn auto_hard_note(&self) -> &'static str {
-        if self.viewport.options().hard_edges_by_hand {
-            ""
-        } else {
-            " Automatic hard edges is on (Display menu), so the angle decides the shading \
-             for now; switch it off to see edges set by hand."
+    /// The Mesh menu's Smooth by angle switch (decision 0126): ticked when
+    /// every selected shape is smoothed by angle. Ticking smooths them by
+    /// the standard angle; unticking shades them by their marked edges.
+    pub(super) fn smoothing_entry(&mut self, ui: &mut egui::Ui) {
+        let scene = self.document.scene();
+        let ids: Vec<scene::ObjectId> = self
+            .document
+            .selection()
+            .into_iter()
+            .filter(|id| scene.object(*id).is_some_and(|o| o.kind.has_shape()))
+            .collect();
+        let mut on = !ids.is_empty()
+            && ids.iter().all(|id| {
+                scene
+                    .object(*id)
+                    .is_some_and(|o| matches!(o.hardness, mesh::Hardness::ByAngle(_)))
+            });
+        let response = ui
+            .add_enabled(
+                !ids.is_empty(),
+                egui::Checkbox::new(&mut on, crate::viewport::chrome::AUTO_HARD_EDGES_ENTRY),
+            )
+            .on_hover_text(format!(
+                "Shade the selected objects by angle: edges where polygons meet more sharply \
+                 than {}° are crisp, the rest smooth, after every change. Untick it to shade \
+                 them only by the hard edges you mark. Each object keeps its own (the \
+                 Attributes panel shows its angle).",
+                scene::STANDARD_SMOOTHING_ANGLE
+            ))
+            .on_disabled_hover_text("Select the objects to set how they're smoothed");
+        if response.changed() {
+            self.set_smoothing(
+                ids,
+                if on {
+                    mesh::Hardness::ByAngle(scene::STANDARD_SMOOTHING_ANGLE)
+                } else {
+                    mesh::Hardness::Marked
+                },
+            );
+            ui.close();
         }
+    }
+
+    /// Sets the objects' smoothing, as one undo step.
+    pub(crate) fn set_smoothing(&mut self, ids: Vec<scene::ObjectId>, hardness: mesh::Hardness) {
+        if let Err(why) = self
+            .document
+            .execute(scene::Command::SetHardness { ids, hardness })
+        {
+            self.note = Some(format!("Couldn't change the smoothing: {why}."));
+        }
+    }
+
+    /// Before marking edges on objects smoothed by angle (decision 0126,
+    /// issue #114): their current look is kept as marks (Hard edges by
+    /// angle at their angle), and they switch to their marked edges, so the
+    /// marks made next show. Part of the undo step `key`. Returns how many
+    /// objects switched.
+    fn switch_to_marks(&mut self, ids: &[scene::ObjectId], key: u64, label: &str) -> usize {
+        let scene = self.document.scene();
+        let by_angle: Vec<(scene::ObjectId, f32)> = ids
+            .iter()
+            .filter_map(|id| match scene.object(*id)?.hardness {
+                mesh::Hardness::ByAngle(angle) => Some((*id, angle)),
+                mesh::Hardness::Marked => None,
+            })
+            .collect();
+        for (id, angle) in &by_angle {
+            let _ = self.document.execute_labelled(
+                Command::Record {
+                    id: *id,
+                    operation: Operation::HardEdgesByAngle { angle: *angle },
+                },
+                label,
+                Some(key),
+            );
+            let _ = self.document.execute_labelled(
+                Command::SetHardness {
+                    ids: vec![*id],
+                    hardness: mesh::Hardness::Marked,
+                },
+                label,
+                Some(key),
+            );
+        }
+        by_angle.len()
     }
 
     /// Hard edges by angle: in each selected object, the edges sharper
@@ -119,9 +207,8 @@ impl Workbench {
         }
         if self.record_each("Hard edges by angle", ops) {
             self.note = Some(format!(
-                "Edges sharper than {angle:.0}° are hard, the rest soft. Change the Angle \
-                 under Last edit; Ctrl + Z takes it back.{}",
-                self.auto_hard_note()
+                "Edges sharper than {angle:.0}° are marked hard, the rest soft. Change the \
+                 Angle under Last edit; Ctrl + Z takes it back."
             ));
         }
     }

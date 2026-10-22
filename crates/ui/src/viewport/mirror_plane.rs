@@ -127,6 +127,7 @@ mod tests {
                 min: Vec3::new(-150.0, -50.0, 0.0),
                 max: Vec3::new(150.0, 50.0, 100.0),
             },
+            space: glam::Mat4::IDENTITY,
         }
     }
 

@@ -27,9 +27,8 @@ pub enum Hardness {
     #[default]
     Marked,
     /// Every edge where two polygons meet more sharply than this many
-    /// degrees, and every edge marked hard (decision 0126: the marks add
-    /// to the angle); an edge shared by more than two polygons too. Edges
-    /// between polygons with no area stay soft unless marked.
+    /// degrees, whatever it is marked; an edge shared by more than two
+    /// polygons too. Edges between polygons with no area stay soft.
     ByAngle(f32),
 }
 
@@ -211,11 +210,6 @@ pub fn smooth_groups_with(mesh: &Mesh, hardness: Hardness) -> Vec<u32> {
                 j: usize| match &by_angle {
         None => any_hard && mesh.is_hard(v, other),
         Some((cos, normals)) => {
-            // Hand-marked hard edges add to the angle (decision 0126):
-            // marking an edge hard always shows.
-            if any_hard && mesh.is_hard(v, other) {
-                return true;
-            }
             let sharing = local
                 .iter()
                 .filter(|(_, p, n, _)| *p == other || *n == other)

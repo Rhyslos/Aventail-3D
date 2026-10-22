@@ -32,6 +32,9 @@ pub struct DrawItem {
     /// Its materials' colours by slot (sRGB, 0 to 1); empty while it has
     /// no materials of its own, for the standard surface colour.
     pub colors: Vec<[f32; 3]>,
+    /// Where its shading breaks: its own smoothing (decision 0126; an
+    /// instance's is its original's).
+    pub hardness: mesh::Hardness,
 }
 
 /// Everything the viewport draws of the scene. `version` changes whenever
@@ -253,6 +256,9 @@ impl DrawingCache {
             } else {
                 Vec::new()
             };
+            let hardness = scene
+                .object(own)
+                .map_or(mesh::Hardness::Marked, |o| o.hardness);
             let shown = hidden.shown(id, &shape.mesh);
             let drawn = scene
                 .with_mirror(id, &shown)
@@ -265,6 +271,7 @@ impl DrawingCache {
                 transform: scene.shape_matrix(id),
                 selected: document.is_selected(id),
                 colors,
+                hardness,
             });
         }
         // Each live mirror's planes, once, around the objects that use
@@ -287,7 +294,8 @@ impl DrawingCache {
                 continue;
             }
             let back = space.inverse();
-            let Some(around) = Bounds::around(world_box.corners().map(|c| back.transform_point3(c)))
+            let Some(around) =
+                Bounds::around(world_box.corners().map(|c| back.transform_point3(c)))
             else {
                 continue;
             };

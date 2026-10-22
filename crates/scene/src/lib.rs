@@ -30,11 +30,12 @@ pub use mesh::edit::{
 };
 pub use mesh::uvs::{BUDGET_RANGE, SeamPreference, UvLayout};
 pub use mesh::{
-    Bounds, Combine, EdgeKey, Element, ElementKind, ElementSelection, FaceId, Mesh, Primitive,
-    PrimitiveKind, VertexId,
+    Bounds, Combine, EdgeKey, Element, ElementKind, ElementSelection, FaceId, Hardness, Mesh,
+    Primitive, PrimitiveKind, VertexId,
 };
 pub use object::{
-    ApplyParts, Collision, LiveMirror, Material, Object, ObjectId, ObjectKind, Transform,
+    ApplyParts, Collision, LiveMirror, Material, Object, ObjectId, ObjectKind,
+    STANDARD_SMOOTHING_ANGLE, Transform, hardness_is_valid,
 };
 pub use snapshot::{MAX_SNAPSHOT_NAME, MAX_SNAPSHOTS, UvSnapshot};
 pub use stack::{

@@ -1139,13 +1139,15 @@ impl Workbench {
         self.uv_editor.take_keys(ui.ctx());
         hide_viewport_tab(&mut self.dock);
         let mut modifier_pick = None;
+        // The UV Editor's own UV menu button (issue #115): its menu is the
+        // main UV menu, drawn here where the workbench can fill it.
+        let mut uv_menu_button: Option<egui::Response> = None;
         let view_options = self.viewport.options();
         // What the viewport has under the mouse, for the UV Editor to
         // light up (decision 0103).
         let viewport_hover = self.viewport.pointer().and(self.components.hovered());
         // What explaining choices in the UV Editor needs (decision 0116).
         let explain_suggest = self.suggest_options();
-        let explain_hard_angle = view_options.auto_hard_angle();
         let style = theme::dock_style(ui.style().as_ref(), self.accent);
         theme::dock_frame().show(ui, |ui| {
             DockArea::new(&mut self.dock)
@@ -1176,7 +1178,6 @@ impl Workbench {
                         high_contrast: view_options.high_contrast,
                         explain: crate::uv_editor::explain::ExplainContext {
                             suggest: explain_suggest,
-                            hard_angle: explain_hard_angle,
                         },
                         texture_groups: crate::uv_editor::checking::TextureGroups {
                             per_material: self.uv_settings.per_material,
@@ -1188,9 +1189,19 @@ impl Workbench {
                         requests: &mut requests,
                         coordinates,
                         coordinates_done: &mut coordinates_done,
+                        uv_menu_button: &mut uv_menu_button,
+                        uv_settings: &mut self.uv_settings,
                     },
                 );
         });
+        if let Some(button) = uv_menu_button {
+            egui::Popup::menu(&button)
+                .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
+                .show(|ui| {
+                    ui.set_min_width(crate::dialog::MENU_WIDTH);
+                    self.uv_menu_entries(ui, &mut requests);
+                });
+        }
         if let Some(crate::layers::ModifierPick::AddLayer) = modifier_pick {
             self.add_edit_layer(&mut requests);
         }
@@ -1217,7 +1228,6 @@ impl Workbench {
             self.viewport.pointer(),
             crate::components::Guides {
                 hard_edges: !options.hide_hard_edges,
-                by_angle: options.auto_hard_angle(),
                 normals: options.show_normals,
                 seams: options.show_seams || self.mode == Mode::Uv,
             },
@@ -1690,7 +1700,6 @@ impl Workbench {
             }
             ui.separator();
             self.export_entries(ui, actions);
-            self.bake_entry(ui);
             ui.separator();
             // No key for Quit, on purpose: Ctrl and Q are both used all the
             // time, and a slip shouldn't close the app.
@@ -1702,7 +1711,7 @@ impl Workbench {
         crate::dialog::menu(ui, "Edit", |ui| {
             objects::undo_entries(ui, &self.document, requests);
             ui.separator();
-            objects::selection_entries(ui, &mut self.document, &mut self.objects, requests);
+            objects::rename_delete_entries(ui, &mut self.document, &mut self.objects, requests);
             ui.separator();
             self.copy_entries(ui, requests);
             ui.separator();
@@ -1771,72 +1780,7 @@ impl Workbench {
                     self.uv_menu_entries(ui, requests);
                 }
                 if title == "Mesh" {
-                    objects::make_editable_entry(ui, &self.document, requests);
-                    ui.separator();
-                    if let Some(command) = commands_entries(ui, &crate::commands::MODELLING_RING) {
-                        self.run_command(command, ui.ctx(), requests);
-                        ui.close();
-                    }
-                    ui.separator();
-                    if ui
-                        .button("Split off")
-                        .on_hover_text(
-                            "Move the selected polygons into a new object of their own, in the \
-                             same place (Polygons mode)",
-                        )
-                        .clicked()
-                    {
-                        self.run_split_off();
-                        ui.close();
-                    }
-                    let join = crate::commands::CommandId::Join;
-                    if ui
-                        .button(join.name())
-                        .on_hover_text(join.info().help)
-                        .clicked()
-                    {
-                        self.run_command(join, ui.ctx(), requests);
-                        ui.close();
-                    }
-                    objects::apply_entries(ui, &self.document, requests);
-                    let layer_targets = crate::layers::layer_targets(&self.document);
-                    if ui
-                        .add_enabled(
-                            !layer_targets.is_empty(),
-                            egui::Button::new(crate::layers::ADD_LAYER_LABEL),
-                        )
-                        .on_hover_text(crate::layers::ADD_LAYER_HELP)
-                        .clicked()
-                    {
-                        self.add_edit_layer(requests);
-                        ui.close();
-                    }
-                    ui.separator();
-                    crate::viewport::chrome::auto_hard_edges_entry(ui, self.viewport.options_mut());
-                    if ui
-                        .button("Hard edges by angle")
-                        .on_hover_text(
-                            "In the selected objects, make every edge whose polygons meet more \
-                             sharply than an angle (30° to start with) hard, and the rest soft: \
-                             boxy corners crisp, curves smooth. Change the angle under Last edit.",
-                        )
-                        .clicked()
-                    {
-                        self.run_hard_by_angle();
-                        ui.close();
-                    }
-                    if ui
-                        .button("Fix normals")
-                        .on_hover_text(
-                            "Turn every polygon of the selected objects that faces the wrong \
-                             way round: inside out compared with its neighbours, or facing \
-                             into a closed shape. Select → Select flipped shows them first.",
-                        )
-                        .clicked()
-                    {
-                        self.run_fix_facing();
-                        ui.close();
-                    }
+                    self.mesh_menu(ui, requests);
                 }
             });
         }
@@ -1935,6 +1879,17 @@ impl Workbench {
                 ui.close();
             }
             if ui
+                .button(GLOSSARY_ENTRY)
+                .on_hover_text(
+                    "What the app's words mean: points, pieces, seams, pivots, smoothing and the \
+                     rest, each explained in plain words, in your web browser",
+                )
+                .clicked()
+            {
+                self.open_glossary(ui.ctx());
+                ui.close();
+            }
+            if ui
                 .add(
                     egui::Button::new(SEARCH_ENTRY)
                         .shortcut_text(crate::command_search::SEARCH_KEY.name()),
@@ -1994,14 +1949,150 @@ fn lower_first(text: &str) -> String {
     }
 }
 
+/// The Mesh menu's groups (decision 0126): what it holds was one long
+/// list.
+pub(crate) const MESH_BUILD_MENU: &str = "Build";
+pub(crate) const MESH_CUT_MENU: &str = "Cut and join";
+pub(crate) const MESH_REMOVE_MENU: &str = "Remove";
+pub(crate) const MESH_SHADING_MENU: &str = "Shading";
+pub(crate) const MESH_OBJECT_MENU: &str = "Shape and object";
+
 /// Help → User manual.
 pub(crate) const MANUAL_ENTRY: &str = "User manual";
+/// Help → Words used in the app: the manual's glossary (decision 0126).
+pub(crate) const GLOSSARY_ENTRY: &str = "Words used in the app";
 /// Help → Search for a command.
 pub(crate) const SEARCH_ENTRY: &str = "Search for a command";
 /// Help → Developer: tools for checking the app itself (decision 0126).
 pub(crate) const DEVELOPER_MENU: &str = "Developer";
 /// View → Show and hide (decision 0126).
 pub(crate) const SHOW_HIDE_MENU: &str = "Show and hide";
+
+impl Workbench {
+    /// The Mesh menu (decision 0126): the modelling tools in groups, each
+    /// a submenu one level down, so the menu is short and every command is
+    /// found where people look for it.
+    fn mesh_menu(&mut self, ui: &mut Ui, requests: &mut Vec<DocRequest>) {
+        use crate::commands::CommandId;
+        let groups: [(&str, &str, &[CommandId]); 3] = [
+            (
+                MESH_BUILD_MENU,
+                "Add to the shape: extrude, inset, bevel, groove, bridge, fill a hole",
+                &[
+                    CommandId::Extrude,
+                    CommandId::Inset,
+                    CommandId::Bevel,
+                    CommandId::Groove,
+                    CommandId::Bridge,
+                    CommandId::FillHole,
+                ],
+            ),
+            (
+                MESH_CUT_MENU,
+                "Cut new edges and join points: slit, loop cut, connect, weld",
+                &[
+                    CommandId::Slit,
+                    CommandId::LoopCut,
+                    CommandId::Connect,
+                    CommandId::Weld,
+                ],
+            ),
+            (
+                MESH_REMOVE_MENU,
+                "Take points, edges or polygons away",
+                &[CommandId::DeleteElements, CommandId::Dissolve],
+            ),
+        ];
+        for (title, help, commands) in groups {
+            crate::dialog::menu(ui, title, |ui| {
+                if let Some(command) = commands_entries(ui, commands) {
+                    self.run_command(command, ui.ctx(), requests);
+                    ui.close();
+                }
+            })
+            .response
+            .on_hover_text(help);
+        }
+        crate::dialog::menu(ui, MESH_SHADING_MENU, |ui| {
+            self.smoothing_entry(ui);
+            if let Some(command) =
+                commands_entries(ui, &[CommandId::HardEdges, CommandId::SoftEdges])
+            {
+                self.run_command(command, ui.ctx(), requests);
+                ui.close();
+            }
+            if ui
+                .button("Hard edges by angle")
+                .on_hover_text(
+                    "In the selected objects, mark every edge whose polygons meet more \
+                     sharply than an angle (30° to start with) hard, and the rest soft: \
+                     boxy corners crisp, curves smooth. Change the angle under Last edit.",
+                )
+                .clicked()
+            {
+                self.run_hard_by_angle();
+                ui.close();
+            }
+            ui.separator();
+            if let Some(command) = commands_entries(ui, &[CommandId::FlipNormals]) {
+                self.run_command(command, ui.ctx(), requests);
+                ui.close();
+            }
+            if ui
+                .button("Fix normals")
+                .on_hover_text(
+                    "Turn every polygon of the selected objects that faces the wrong \
+                     way round: inside out compared with its neighbours, or facing \
+                     into a closed shape. Select → Select flipped shows them first.",
+                )
+                .clicked()
+            {
+                self.run_fix_facing();
+                ui.close();
+            }
+        })
+        .response
+        .on_hover_text("How the shape is shaded: smoothing, hard and soft edges, normals");
+        crate::dialog::menu(ui, MESH_OBJECT_MENU, |ui| {
+            objects::make_editable_entry(ui, &self.document, requests);
+            if ui
+                .button("Split off")
+                .on_hover_text(
+                    "Move the selected polygons into a new object of their own, in the \
+                     same place (Polygons mode)",
+                )
+                .clicked()
+            {
+                self.run_split_off();
+                ui.close();
+            }
+            let join = CommandId::Join;
+            if ui
+                .button(join.name())
+                .on_hover_text(join.info().help)
+                .clicked()
+            {
+                self.run_command(join, ui.ctx(), requests);
+                ui.close();
+            }
+            objects::apply_entries(ui, &self.document, requests);
+            let layer_targets = crate::layers::layer_targets(&self.document);
+            if ui
+                .add_enabled(
+                    !layer_targets.is_empty(),
+                    egui::Button::new(crate::layers::ADD_LAYER_LABEL),
+                )
+                .on_hover_text(crate::layers::ADD_LAYER_HELP)
+                .clicked()
+            {
+                self.add_edit_layer(requests);
+                ui.close();
+            }
+        })
+        .response
+        .on_hover_text("Bake into shape, split off, join, apply transforms and edit layers");
+    }
+}
 
 /// The Window menu's entry for the Edit layers panel.
 pub(crate) const EDIT_LAYERS_ENTRY: &str = "Edit layers";
@@ -2440,6 +2531,9 @@ impl Workbench {
     }
 }
 
+/// The UV Editor's own UV menu (issue #115).
+pub(crate) const UV_EDITOR_UV_MENU: &str = "UV";
+
 /// The UV menu's groups (the project lead's choice, decision 0113).
 pub(crate) const UV_SEAMS_MENU: &str = "Seams";
 pub(crate) const UV_TURN_MENU: &str = "Turn and flip";
@@ -2474,6 +2568,11 @@ struct PanelViewer<'a> {
     attributes: &'a mut AttributesPanel,
     units: &'a mut Units,
     requests: &'a mut Vec<DocRequest>,
+    /// The UV Editor's UV menu button, if drawn (its menu is filled by the
+    /// workbench).
+    uv_menu_button: &'a mut Option<egui::Response>,
+    /// The automatic UV tools' settings, for the UV settings panel.
+    uv_settings: &'a mut unwrapping::UvSettings,
     /// What the Coordinates panel shows, and what was done in it.
     coordinates: CoordinatesView,
     coordinates_done: &'a mut Interaction,
@@ -2536,6 +2635,13 @@ impl TabViewer for PanelViewer<'_> {
             }),
             Panel::UvEditor => {
                 menu_line_with(ui, |ui| {
+                    // The main UV menu, here too (issue #115).
+                    let uv = ui
+                        .add(egui::Button::new(UV_EDITOR_UV_MENU).frame_when_inactive(false))
+                        .on_hover_text(
+                            "Every UV command and setting, as in the UV menu at the top",
+                        );
+                    *self.uv_menu_button = Some(uv);
                     crate::dialog::menu(ui, "Texture", |ui| {
                         crate::uv_editor::texture_menu(ui, self.document);
                     });
@@ -2633,7 +2739,7 @@ impl TabViewer for PanelViewer<'_> {
                 self.uv_editor.show(ui, self.document, &cx);
                 return;
             }
-            Panel::Viewport | Panel::Coordinates => {}
+            Panel::Viewport | Panel::Coordinates | Panel::UvSettings => {}
         }
         egui::Frame::new()
             .inner_margin(theme::panel_margin())
@@ -2653,6 +2759,13 @@ impl TabViewer for PanelViewer<'_> {
                     );
                 }
                 Panel::UvEditor => {}
+                Panel::UvSettings => {
+                    let mut view = automation::UvSettingsView {
+                        uv_settings: self.uv_settings,
+                        document: self.document,
+                    };
+                    view.panel(ui);
+                }
                 Panel::Coordinates => {
                     *self.coordinates_done =
                         crate::coordinates::show(ui, *self.units, &self.coordinates);

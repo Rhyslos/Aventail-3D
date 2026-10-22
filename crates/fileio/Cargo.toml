@@ -21,6 +21,7 @@ glam.workspace = true
 serde.workspace = true
 postcard.workspace = true
 zstd.workspace = true
+ciborium.workspace = true
 serde_json.workspace = true
 bevy_mikktspace.workspace = true
 

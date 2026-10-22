@@ -365,12 +365,10 @@ impl Workbench {
         }
     }
 
-    /// The shading exports use: as the viewport shows it.
-    fn export_hardness(&self) -> mesh::Hardness {
-        match self.viewport.options().auto_hard_angle() {
-            Some(angle) => mesh::Hardness::ByAngle(angle),
-            None => mesh::Hardness::Marked,
-        }
+    /// The shading exports use: each object's own smoothing, as the
+    /// viewport shows it (decision 0126).
+    fn export_hardness(&self) -> Option<mesh::Hardness> {
+        None
     }
 
     /// The preset for a game project folder the app can't recognise (a

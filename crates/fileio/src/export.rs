@@ -76,8 +76,10 @@ pub struct ExportOptions {
     pub units: FileUnits,
     /// The file's up axis.
     pub up: UpAxis,
-    /// Where the shading breaks: as the viewport shows it (decision 0071).
-    pub hardness: Hardness,
+    /// Where the shading breaks for every object, or (`None`, the
+    /// standard) each object's own smoothing, as the viewport shows it
+    /// (decisions 0071 and 0126).
+    pub hardness: Option<Hardness>,
     /// Whether polygons are cut into triangles, the same way the viewport
     /// cuts them, so a bake matches the game.
     pub triangulate: bool,
@@ -92,7 +94,7 @@ impl Default for ExportOptions {
             what: ExportWhat::Everything,
             units: FileUnits::Metres,
             up: UpAxis::Y,
-            hardness: Hardness::Marked,
+            hardness: None,
             triangulate: false,
             godot_names: false,
         }
@@ -599,8 +601,22 @@ fn exported(
     let local = to_file * object.offset.matrix();
     // An instance shows its original's materials.
     let materials = scene.material_list(id);
-    let mut world = export_mesh(&shape, world, options);
-    let mut local = export_mesh(&shape, local, options);
+    // Shaded by the object's own smoothing (an instance's original's),
+    // unless the options set one for every object.
+    let own = match &object.kind {
+        scene::ObjectKind::Instance(source) => *source,
+        _ => id,
+    };
+    let hardness = options
+        .hardness
+        .or_else(|| scene.object(own).map(|o| o.hardness))
+        .unwrap_or(Hardness::Marked);
+    let shading = ExportOptions {
+        hardness: Some(hardness),
+        ..*options
+    };
+    let mut world = export_mesh(&shape, world, &shading);
+    let mut local = export_mesh(&shape, local, &shading);
     // A slot with no material in the list uses the first.
     for p in world.polygons.iter_mut().chain(local.polygons.iter_mut()) {
         if p.material as usize >= materials.len() {
@@ -635,7 +651,8 @@ pub fn export_mesh(mesh: &Mesh, matrix: Mat4, options: &ExportOptions) -> Export
         point_index.insert(v.get(), out.points.len() as u32);
         out.points.push(matrix.transform_point3(p));
     }
-    let (_, corner_normals) = mesh::corner_shading_with(mesh, options.hardness);
+    let (_, corner_normals) =
+        mesh::corner_shading_with(mesh, options.hardness.unwrap_or(Hardness::Marked));
     let (starts, corners) = mesh.face_layout();
     let has_uv = mesh.attributes().any(|(name, domain, kind)| {
         name == mesh::attributes::UV

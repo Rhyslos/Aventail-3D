@@ -45,6 +45,7 @@ pub(crate) enum MenuAction {
     Settings,
     Keys,
     Manual,
+    Glossary,
     Undo,
     Redo,
     SelectAll,
@@ -67,7 +68,7 @@ pub(crate) enum MenuAction {
 }
 
 impl MenuAction {
-    pub(crate) const ALL: [MenuAction; 29] = [
+    pub(crate) const ALL: [MenuAction; 30] = [
         Self::New,
         Self::Open,
         Self::Save,
@@ -78,6 +79,7 @@ impl MenuAction {
         Self::Settings,
         Self::Keys,
         Self::Manual,
+        Self::Glossary,
         Self::Undo,
         Self::Redo,
         Self::SelectAll,
@@ -118,7 +120,7 @@ impl MenuAction {
             ),
             Self::CheckForBaking => (
                 "Check for baking…",
-                "File",
+                "UV",
                 "List what would spoil a bake: overlapping pieces, missing UVs and more",
             ),
             Self::Settings => (
@@ -131,6 +133,11 @@ impl MenuAction {
                 "User manual",
                 "Help",
                 "Open the user manual in your web browser",
+            ),
+            Self::Glossary => (
+                "Words used in the app",
+                "Help",
+                "What points, pieces, seams, pivots and the rest mean (glossary)",
             ),
             Self::Undo => ("Undo", "Edit", "Take back the last step"),
             Self::Redo => ("Redo", "Edit", "Do again what was taken back"),

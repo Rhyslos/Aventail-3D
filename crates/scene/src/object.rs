@@ -254,6 +254,24 @@ pub struct Object {
     /// Its live mirror, if it has one (decision 0088): mirrored copies of
     /// its shape, drawn and exported as part of it.
     pub mirror: Option<LiveMirror>,
+    /// Where its shading breaks (decision 0126): by angle (the standard,
+    /// [`STANDARD_SMOOTHING_ANGLE`]), with edges marked hard added to it,
+    /// or only where edges are marked hard.
+    pub hardness: mesh::Hardness,
+}
+
+/// The angle new objects are smoothed by: edges where polygons meet more
+/// sharply than this are hard (decision 0126, from decision 0064's
+/// automatic hard edges).
+pub const STANDARD_SMOOTHING_ANGLE: f32 = 30.0;
+
+/// Whether `hardness` makes sense: an angle that is a real number within
+/// 0–180°.
+pub fn hardness_is_valid(hardness: mesh::Hardness) -> bool {
+    match hardness {
+        mesh::Hardness::Marked => true,
+        mesh::Hardness::ByAngle(a) => a.is_finite() && (0.0..=180.0).contains(&a),
+    }
 }
 
 /// A live mirror ([decision 0088](../../../docs/decisions/0088-live-mirror.md)):
@@ -405,6 +423,7 @@ impl Object {
             materials: Vec::new(),
             collision: Collision::None,
             mirror: None,
+            hardness: mesh::Hardness::ByAngle(STANDARD_SMOOTHING_ANGLE),
         }
     }
 

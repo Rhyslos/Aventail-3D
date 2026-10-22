@@ -605,7 +605,7 @@ impl UvEditor {
             };
             format!(
                 "{islands} {} · {polygons} {}{hint}",
-                if islands == 1 { "island" } else { "islands" },
+                if islands == 1 { "piece" } else { "pieces" },
                 if polygons == 1 { "polygon" } else { "polygons" },
             )
         };
@@ -1646,7 +1646,7 @@ fn apply(
     }
     let count: usize = hits.len();
     let label = match (mode, count) {
-        (Mode::Uv, _) => "Select islands".to_string(),
+        (Mode::Uv, _) => "Select pieces".to_string(),
         (_, 0) => "Deselect".to_string(),
         _ => format!("Select {count} {}", kind_name(kind, count)),
     };

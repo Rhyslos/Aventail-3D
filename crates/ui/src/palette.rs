@@ -334,9 +334,10 @@ pub struct PaletteState {
 }
 
 /// What the Symmetry switch does, for its tooltips.
-pub(crate) const SYMMETRY_HELP: &str = "Model one half: the selected objects get a live mirror, a copy \
-     of the shape on the other side of the world's centre that follows every edit and every move, \
-     joined to it at the middle. The arrow beside it chooses X, Y or Z and moves the mirror.";
+pub(crate) const SYMMETRY_HELP: &str = "Model one half: each selected object gets a mirror of its own, \
+     a copy of its shape on the other side of its centre (its pivot) that follows every edit, \
+     joined to it at the middle. The mirror moves and turns with the object. The arrow beside it \
+     chooses X, Y or Z and moves the mirror.";
 
 /// The accessible name of the arrow that opens the Symmetry menu.
 pub(crate) const SYMMETRY_MENU_LABEL: &str = "Symmetry settings";
@@ -637,8 +638,8 @@ pub(crate) fn symmetry_settings(
     });
     small(
         ui,
-        "The world's axes: X mirrors left and right, Y front and back, Z top and bottom, \
-         across the faint red planes in the viewport.",
+        "The object's own axes: X mirrors left and right, Y front and back, Z top and \
+         bottom, across the faint red planes in the viewport.",
     );
     if !symmetry.axes.contains(&true) {
         small(ui, "Pick an axis: with none, nothing is mirrored.");
@@ -662,7 +663,7 @@ pub(crate) fn symmetry_settings(
     }
     small(
         ui,
-        "Where the mirror stands in the world: the centre (0) unless moved.",
+        "Where the mirror stands, from the object's centre (its pivot): 0 unless moved.",
     );
     ui.add_space(6.0);
     ui.horizontal(|ui| {

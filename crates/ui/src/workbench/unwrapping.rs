@@ -671,7 +671,7 @@ impl Workbench {
             .into_iter()
             .map(|(id, islands)| (id, Operation::PackUvs { islands }))
             .collect();
-        let label = counted("Pack", islands, "island");
+        let label = counted("Pack", islands, "piece");
         let key = key.unwrap_or_else(|| self.new_step_key());
         let done = self.record_each_in(&label, ops, key);
         if done {
@@ -788,38 +788,6 @@ impl Workbench {
             String::new()
         };
         (settings.per_object.then_some(id), material)
-    }
-
-    /// The UV menu's Packing entries: the padding and the switches.
-    pub(crate) fn packing_menu(&mut self, ui: &mut egui::Ui) {
-        let s = &mut self.uv_settings;
-        ui.horizontal(|ui| {
-            ui.label(PADDING_LABEL);
-            ui.add(
-                egui::DragValue::new(&mut s.padding)
-                    .range(0..=MAX_PADDING)
-                    .suffix(" px"),
-            )
-            .on_hover_text(
-                "The gap between pieces, in texture pixels (half of it to the square's edges). \
-                 Keeps colours from bleeding between pieces when the texture is shrunk; 8 px \
-                 suits a 2048 texture.",
-            );
-        });
-        ui.checkbox(&mut s.rotate, "Turn pieces to fit")
-            .on_hover_text(
-                "Pieces may be turned (lined up with the square, and a quarter turn) to fit better",
-            );
-        ui.checkbox(&mut s.stack, "Stack identical pieces")
-            .on_hover_text("Pieces of exactly the same shape share the same texture space");
-        ui.checkbox(&mut s.per_material, "A texture per material")
-            .on_hover_text(
-                "Each material's pieces fill a square of their own, as separate texture sets",
-            );
-        ui.checkbox(&mut s.per_object, "A texture per object")
-            .on_hover_text("Each object's pieces fill a square of their own");
-        ui.separator();
-        self.pack_quality_entries(ui);
     }
 
     /// With live unwrapping on, the Unwrap that follows marking or clearing

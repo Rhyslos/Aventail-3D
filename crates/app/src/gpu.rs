@@ -293,7 +293,7 @@ pub struct GpuViewport {
     images: [Option<SlotImage>; VIEW_COUNT],
     /// The version of the scene drawing, the selection colour and the
     /// shading's hardness the renderer's placements were made for, if any.
-    uploaded: Option<(u64, [f32; 3], mesh::Hardness)>,
+    uploaded: Option<(u64, [f32; 3])>,
     /// Each object's mesh on the GPU.
     meshes: HashMap<u64, Uploaded>,
     /// Heavy shapes' geometry being worked out in the background.
@@ -330,18 +330,20 @@ impl GpuViewport {
     /// updated around them, anything else is uploaded whole. A heavy new
     /// shape is worked out on another thread; until it is ready its
     /// object shows its previous shape, if it had one.
-    fn upload_meshes(&mut self, scene: &SceneDrawing, hardness: mesh::Hardness) {
+    fn upload_meshes(&mut self, scene: &SceneDrawing) {
         let device = &self.state.device;
         let queue = &self.state.queue;
         let mut keys = Vec::with_capacity(scene.items.len());
         for item in &scene.items {
             let key = item.id.get();
             keys.push(key);
+            // Each object's own smoothing (decision 0126).
+            let hardness = item.hardness;
             let waiting = self
                 .preparing
                 .get(&key)
                 .is_some_and(|(mesh, _)| Arc::ptr_eq(mesh, &item.drawn));
-            // Shading with another hardness (Automatic hard edges switched)
+            // Shading with another hardness (the object's smoothing changed)
             // is built afresh.
             let same = |old: &Uploaded| old.geometry.hardness() == hardness;
             let heavy = item.drawn.face_count() >= BACKGROUND_FROM;
@@ -488,12 +490,9 @@ impl ViewportRenderer for GpuViewport {
             flat_height: view.flat_height,
             grid_plane: view.grid_plane,
         };
-        let hardness = view
-            .auto_hard_angle
-            .map_or(mesh::Hardness::Marked, mesh::Hardness::ByAngle);
-        let wanted = (view.scene.version, view.selection_color, hardness);
+        let wanted = (view.scene.version, view.selection_color);
         if self.uploaded != Some(wanted) || !self.preparing.is_empty() {
-            self.upload_meshes(&view.scene, hardness);
+            self.upload_meshes(&view.scene);
             self.uploaded = Some(wanted);
         }
         // Placed for each view, as what is too dense to see depends on
@@ -689,6 +688,7 @@ mod tests {
             transform: glam::Mat4::from_translation(Vec3::X * id as f32),
             selected,
             colors: Vec::new(),
+            hardness: mesh::Hardness::Marked,
         }
     }
 
@@ -763,7 +763,6 @@ mod tests {
             grid_colors: [[200, 60, 60], [60, 60, 200]],
             overlay: Arc::new(ComponentOverlay::default()),
             shading: Shading::default(),
-            auto_hard_angle: Some(ui::AUTO_HARD_ANGLE),
             cavity: true,
             surface: ui::Surface::Plain,
             high_contrast: false,
@@ -783,6 +782,7 @@ mod tests {
                 transform: glam::Mat4::IDENTITY,
                 selected,
                 colors: Vec::new(),
+                hardness: mesh::Hardness::Marked,
             }],
             editing: true,
             points: true,

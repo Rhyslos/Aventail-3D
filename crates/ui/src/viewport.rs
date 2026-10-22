@@ -180,17 +180,11 @@ impl Shading {
     }
 }
 
-/// The angle from which edges shade hard while Automatic hard edges is on,
-/// in degrees: the same as Hard edges by angle starts at.
-pub const AUTO_HARD_ANGLE: f32 = mesh::hardness::DEFAULT_ANGLE;
+/// The angle new objects are smoothed by (decision 0126): the same as
+/// Hard edges by angle starts at.
+pub const AUTO_HARD_ANGLE: f32 = scene::STANDARD_SMOOTHING_ANGLE;
 
 impl ViewOptions {
-    /// The angle edges shade hard from, while Automatic hard edges is on
-    /// (`None`: by their marks).
-    pub fn auto_hard_angle(&self) -> Option<f32> {
-        (!self.hard_edges_by_hand).then_some(AUTO_HARD_ANGLE)
-    }
-
     /// These options with an old "fine grid lines on" setting turned into
     /// the finest grid level.
     #[must_use]
@@ -309,10 +303,6 @@ pub struct ViewOptions {
     /// Whether Cavity is *off*: ridges not brightened and creases not
     /// darkened. Cavity is on as standard (decision 0065).
     pub hide_cavity: bool,
-    /// Whether shapes are shaded by their marked hard edges, with
-    /// *Automatic hard edges* off. Off as standard: the angle decides
-    /// ([`AUTO_HARD_ANGLE`], decision 0064).
-    pub hard_edges_by_hand: bool,
     /// The keyboard the Keys window draws, once picked there (`None`:
     /// guessed from the system language; decision 0061).
     pub keyboard: Option<crate::KeyboardLayout>,
@@ -346,7 +336,6 @@ impl Default for ViewOptions {
             shading: Shading::default(),
             surface: Surface::default(),
             hide_cavity: false,
-            hard_edges_by_hand: false,
             keyboard: None,
             flat_from_dice: false,
             high_contrast: false,
@@ -451,9 +440,6 @@ pub struct ViewportView {
     pub overlay: Arc<ComponentOverlay>,
     /// How shapes are drawn.
     pub shading: Shading,
-    /// Shade by angle from this many degrees, whatever edges are marked
-    /// (Automatic hard edges), or by the marks (`None`).
-    pub auto_hard_angle: Option<f32>,
     /// Whether ridges are brightened and creases darkened (Cavity).
     pub cavity: bool,
     /// What the shapes' surfaces show.
@@ -1063,7 +1049,6 @@ impl View {
             grid_colors: theme::grid_colors(theme::Accent::default()),
             overlay: Arc::default(),
             shading: Shading::default(),
-            auto_hard_angle: Some(AUTO_HARD_ANGLE),
             cavity: true,
             surface: Surface::Plain,
             high_contrast: false,
@@ -1530,7 +1515,6 @@ impl ViewportPanel {
             view.grid_colors = theme::grid_colors(theme::accent(ui.ctx()));
             view.overlay = Arc::clone(&scene.overlay);
             view.shading = self.options.shading;
-            view.auto_hard_angle = self.options.auto_hard_angle();
             view.cavity = !self.options.hide_cavity;
             view.surface = self.options.surface;
             view.high_contrast = self.options.high_contrast;

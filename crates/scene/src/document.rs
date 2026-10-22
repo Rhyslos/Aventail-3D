@@ -78,6 +78,19 @@ impl Document {
         self
     }
 
+    /// The same document with object `id`'s smoothing and mirror space set,
+    /// for a project being opened (see [`crate::Scene::with_object_settings`]).
+    pub fn with_object_settings(
+        mut self,
+        id: ObjectId,
+        hardness: mesh::Hardness,
+        mirror_on_object: bool,
+    ) -> Result<Self, &'static str> {
+        self.scene =
+            std::mem::take(&mut self.scene).with_object_settings(id, hardness, mirror_on_object)?;
+        Ok(self)
+    }
+
     /// The same document with trim sheet `trim`, for a project being
     /// opened (not a step to undo: use [`Command::SetTrim`]).
     #[must_use]
