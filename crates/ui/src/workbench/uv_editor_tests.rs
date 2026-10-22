@@ -320,3 +320,35 @@ fn the_numbered_checker_shows_behind_the_uvs_in_the_accent_colours() {
         Some(crate::theme::grid_colors(crate::theme::Accent::Blue))
     );
 }
+
+#[test]
+fn the_uv_editor_has_the_uv_menu_and_uv_edit_has_the_uv_settings() {
+    // Issue #115: the whole UV menu from the UV Editor's own menu line, and
+    // the UV settings in a panel of the UV Edit layout.
+    let mut harness = fresh();
+    select_cube(&mut harness);
+    harness.get_by_label("UV Edit").click();
+    harness.run();
+    let editor = harness
+        .get_by_label(crate::uv_editor::UV_EDITOR_LABEL)
+        .rect();
+    let button = harness
+        .get_all_by_label(UV_EDITOR_UV_MENU)
+        .find(|node| editor.x_range().contains(node.rect().center().x))
+        .expect("a UV button over the UV Editor");
+    assert!(
+        button.rect().max.y <= editor.min.y + 1.0,
+        "in the editor's menu line"
+    );
+    let closed = harness.query_all_by_label_contains(UV_SEAMS_MENU).count();
+    button.click();
+    harness.run();
+    assert!(
+        harness.query_all_by_label_contains(UV_SEAMS_MENU).count() > closed,
+        "the UV menu opened"
+    );
+    assert!(harness.query_by_label_contains(UV_SETTINGS_MENU).is_some());
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    assert!(harness.query_by_label("UV settings").is_some());
+}
