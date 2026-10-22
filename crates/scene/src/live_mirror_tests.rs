@@ -314,3 +314,52 @@ fn smoothing_is_set_per_object_undone_and_checked() {
     .unwrap();
     assert_eq!(doc.undo_steps(), steps);
 }
+
+#[test]
+fn applying_a_mirror_keeps_both_halves_as_the_shape() {
+    // As Blender's Apply on a Mirror modifier (decision 0126).
+    let (mut doc, id) = cube_at(0.0);
+    mirror_on(
+        &mut doc,
+        id,
+        LiveMirror {
+            centre: Vec3::new(50.0, 0.0, 0.0),
+            ..LiveMirror::on_object_x()
+        },
+    );
+    let shown = doc.scene().shown_shape(id).unwrap();
+    let bounds = doc.scene().bounds().unwrap();
+    doc.execute(Command::ApplyMirror(vec![id])).unwrap();
+    assert_eq!(doc.undo_label(), Some("Apply mirror"));
+    let object = doc.scene().object(id).unwrap();
+    assert!(object.mirror.is_none(), "the mirror is gone");
+    assert!(matches!(object.kind, ObjectKind::Mesh(_)));
+    assert!(object.stack.is_empty(), "its edits are baked in");
+    // Both halves are the shape now, just as they were shown.
+    let now = doc.scene().evaluated(id).unwrap().mesh;
+    assert_eq!(now.face_count(), shown.face_count());
+    assert_eq!(now.vertex_count(), shown.vertex_count());
+    assert_eq!(doc.scene().bounds(), Some(bounds));
+    // One undo step brings the half and its mirror back.
+    doc.undo().unwrap();
+    let object = doc.scene().object(id).unwrap();
+    assert!(object.mirror.is_some());
+    assert!(matches!(object.kind, ObjectKind::Primitive(_)));
+}
+
+#[test]
+fn applying_without_a_mirror_changes_nothing() {
+    let (mut doc, id) = cube_at(0.0);
+    let steps = doc.undo_steps();
+    doc.execute(Command::ApplyMirror(vec![id])).unwrap();
+    assert_eq!(doc.undo_steps(), steps);
+    assert!(matches!(
+        doc.scene().object(id).unwrap().kind,
+        ObjectKind::Primitive(_)
+    ));
+    // An unknown object is refused.
+    assert!(
+        doc.execute(Command::ApplyMirror(vec![ObjectId::from_raw(9999)]))
+            .is_err()
+    );
+}

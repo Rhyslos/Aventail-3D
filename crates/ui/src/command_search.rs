@@ -64,11 +64,12 @@ pub(crate) enum MenuAction {
     ShowNormals,
     HighContrast,
     EditPivot,
+    ApplyMirror,
     Group,
 }
 
 impl MenuAction {
-    pub(crate) const ALL: [MenuAction; 30] = [
+    pub(crate) const ALL: [MenuAction; 31] = [
         Self::New,
         Self::Open,
         Self::Save,
@@ -98,6 +99,7 @@ impl MenuAction {
         Self::ShowNormals,
         Self::HighContrast,
         Self::EditPivot,
+        Self::ApplyMirror,
         Self::Group,
     ];
 
@@ -200,6 +202,11 @@ impl MenuAction {
                 "Edit pivot",
                 "Tools",
                 "Move and turn the selected objects' pivots, not their shapes",
+            ),
+            Self::ApplyMirror => (
+                "Apply mirror",
+                "Mesh",
+                "Make the mirrored half of a symmetrical object part of its shape (symmetry off)",
             ),
             Self::Group => (
                 "Group",

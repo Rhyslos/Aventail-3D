@@ -181,6 +181,7 @@ impl Workbench {
                 options.high_contrast = !options.high_contrast;
             }
             MenuAction::EditPivot => self.toggle_edit_pivot(),
+            MenuAction::ApplyMirror => self.apply_mirror(),
             MenuAction::Group => requests.push(DocRequest::Run(scene::Command::Create(
                 scene::ObjectKind::Group,
             ))),

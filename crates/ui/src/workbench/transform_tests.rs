@@ -733,3 +733,53 @@ fn alt_dragging_the_move_gizmo_slides_points_along_their_edges() {
         Some("Slide 4 points")
     );
 }
+
+#[test]
+fn apply_mirror_keeps_both_halves_and_turns_symmetry_off() {
+    // As Blender's Apply (decision 0126): turning symmetry off afterwards
+    // keeps the shape whole.
+    let mut harness = fresh();
+    let id = cube(&harness);
+    harness.state_mut().workbench.apply_mirror();
+    assert!(
+        harness
+            .state()
+            .workbench
+            .note
+            .as_deref()
+            .unwrap()
+            .contains("symmetry on first")
+    );
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .set_selection([id]);
+    harness.run();
+    harness.get_by_label("Symmetry").click();
+    harness.run();
+    let shown = harness
+        .state()
+        .workbench
+        .document()
+        .scene()
+        .shown_shape(id)
+        .unwrap()
+        .face_count();
+    // In the Symmetry menu (the arrow beside the button).
+    harness
+        .get_by_label(crate::palette::SYMMETRY_MENU_LABEL)
+        .click();
+    harness.run();
+    harness
+        .get_by_label(crate::palette::APPLY_MIRROR_LABEL)
+        .click();
+    harness.run();
+    let doc = harness.state().workbench.document();
+    let object = doc.scene().object(id).unwrap();
+    assert!(object.mirror.is_none());
+    assert_eq!(doc.scene().evaluated(id).unwrap().mesh.face_count(), shown);
+    assert_eq!(doc.undo_label(), Some("Apply mirror"));
+    // Symmetry is off, and the shape still has both halves.
+    assert!(harness.state().workbench.selected_mirror().is_none());
+}

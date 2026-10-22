@@ -1071,6 +1071,10 @@ impl Workbench {
                             self.toggle_edit_pivot();
                             return;
                         }
+                        PaletteCommand::ApplyMirror => {
+                            self.apply_mirror();
+                            return;
+                        }
                         PaletteCommand::Search => {
                             self.search.open();
                             return;
@@ -2076,6 +2080,22 @@ impl Workbench {
                 ui.close();
             }
             objects::apply_entries(ui, &self.document, requests);
+            let mirrored = self.selected_mirror().is_some();
+            if ui
+                .add_enabled(
+                    mirrored,
+                    egui::Button::new(crate::palette::APPLY_MIRROR_LABEL),
+                )
+                .on_hover_text(
+                    "Make the mirrored half part of the shape for real: symmetry goes off and \
+                     both halves stay",
+                )
+                .on_disabled_hover_text("Select an object with symmetry on")
+                .clicked()
+            {
+                self.apply_mirror();
+                ui.close();
+            }
             let layer_targets = crate::layers::layer_targets(&self.document);
             if ui
                 .add_enabled(

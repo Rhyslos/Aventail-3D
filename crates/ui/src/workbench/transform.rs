@@ -208,6 +208,40 @@ impl Workbench {
         });
     }
 
+    /// Apply mirror (decision 0126, as Blender's Apply): the selected
+    /// objects' mirrored halves become part of their shapes, and the
+    /// mirrors are gone, as one undo step.
+    pub(crate) fn apply_mirror(&mut self) {
+        let scene = self.document.scene();
+        let ids: Vec<scene::ObjectId> = self
+            .mirrorable()
+            .into_iter()
+            .filter(|id| scene.object(*id).is_some_and(|o| o.mirror.is_some()))
+            .collect();
+        if ids.is_empty() {
+            self.note = Some(
+                "Apply mirror: select an object with symmetry on first (the Symmetry button)."
+                    .into(),
+            );
+            return;
+        }
+        let n = ids.len();
+        match self.document.execute(Command::ApplyMirror(ids)) {
+            Ok(_) => {
+                self.note = Some(format!(
+                    "Mirror applied: both halves are part of {} now, and symmetry is off. \
+                     Ctrl + Z takes it back.",
+                    if n == 1 {
+                        "the shape".to_string()
+                    } else {
+                        format!("{n} shapes")
+                    }
+                ));
+            }
+            Err(why) => self.note = Some(format!("Couldn't apply the mirror: {why}.")),
+        }
+    }
+
     /// The Symmetry menu changed its settings: they are kept for the next
     /// mirror, and the selected objects' mirrors change to match, as one
     /// undo step while the menu is used.

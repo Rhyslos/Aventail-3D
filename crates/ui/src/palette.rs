@@ -250,6 +250,8 @@ pub enum PaletteCommand {
     ToggleSymmetry,
     /// Turn Edit pivot on or off (decision 0126).
     ToggleEditPivot,
+    /// Apply the selected objects' mirrors (decision 0126).
+    ApplyMirror,
     /// Open command search.
     Search,
 }
@@ -483,6 +485,7 @@ pub fn command_palette(
                     PaletteCommand::Lock(_)
                     | PaletteCommand::ToggleAxes
                     | PaletteCommand::ToggleEditPivot
+                    | PaletteCommand::ApplyMirror
                     | PaletteCommand::Search => (true, command.arrives.to_string()),
                 };
                 let button_state = if active {
@@ -495,10 +498,12 @@ pub fn command_palette(
                 if icon_button(ui, icon, label, &note, button_state).clicked() {
                     clicked = Some(action);
                 }
-                if matches!(action, PaletteCommand::ToggleSymmetry)
-                    && symmetry_menu(ui, symmetry, state.symmetry, units)
-                {
-                    clicked = Some(PaletteCommand::ToggleSymmetry);
+                if matches!(action, PaletteCommand::ToggleSymmetry) {
+                    match symmetry_menu(ui, symmetry, state.symmetry, units) {
+                        SymmetryClick::Toggle => clicked = Some(PaletteCommand::ToggleSymmetry),
+                        SymmetryClick::Apply => clicked = Some(PaletteCommand::ApplyMirror),
+                        SymmetryClick::Nothing => {}
+                    }
                 }
             }
             if index == 1 {
@@ -575,7 +580,7 @@ fn symmetry_menu(
     symmetry: &mut crate::Symmetry,
     on: bool,
     units: crate::units::Units,
-) -> bool {
+) -> SymmetryClick {
     let (rect, response) = ui.allocate_exact_size(vec2(14.0, BUTTON_SIZE), Sense::click());
     response.widget_info(|| WidgetInfo::labeled(WidgetType::Button, true, SYMMETRY_MENU_LABEL));
     if response.hovered() {
@@ -598,18 +603,31 @@ fn symmetry_menu(
         .gap(4.0)
         .width(260.0)
         .show(|ui| symmetry_settings(ui, symmetry, on, units))
-        .is_some_and(|shown| shown.inner)
+        .map_or(SymmetryClick::Nothing, |shown| shown.inner)
 }
 
+/// What was clicked in the Symmetry menu.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum SymmetryClick {
+    Nothing,
+    /// On: turn the selected objects' mirror on or off.
+    Toggle,
+    /// Apply: make the mirrored half part of the shape (decision 0126).
+    Apply,
+}
+
+/// The Symmetry menu's Apply button.
+pub(crate) const APPLY_MIRROR_LABEL: &str = "Apply mirror";
+
 /// The Symmetry menu's contents: On (for the selected objects), the axes,
-/// where the mirror is and the weld distance. Returns whether On was
-/// clicked.
+/// where the mirror is and the weld distance, and Apply mirror. Returns
+/// what was clicked.
 pub(crate) fn symmetry_settings(
     ui: &mut Ui,
     symmetry: &mut crate::Symmetry,
     on: bool,
     units: crate::units::Units,
-) -> bool {
+) -> SymmetryClick {
     ui.set_width(260.0);
     let small = |ui: &mut Ui, text: &str| {
         ui.label(RichText::new(text).small().color(theme::TEXT_WEAK));
@@ -621,6 +639,14 @@ pub(crate) fn symmetry_settings(
         .on_hover_text(SYMMETRY_HELP)
         .clicked();
     small(ui, "For the selected objects: each keeps its own mirror.");
+    let applied = ui
+        .add_enabled(on, egui::Button::new(APPLY_MIRROR_LABEL))
+        .on_hover_text(
+            "Make the mirrored half part of the shape for real, as Blender's Apply: the mirror \
+             is gone, both halves stay, and each half can be changed on its own from then on",
+        )
+        .on_disabled_hover_text("Turn symmetry on first: there's no mirror to apply")
+        .clicked();
     ui.add_space(4.0);
     ui.label("Mirror across");
     ui.horizontal(|ui| {
@@ -681,7 +707,13 @@ pub(crate) fn symmetry_settings(
         "Points at the middle this close to their mirror become one, so the halves join into one \
          surface. 0 keeps them apart.",
     );
-    toggled
+    if applied {
+        SymmetryClick::Apply
+    } else if toggled {
+        SymmetryClick::Toggle
+    } else {
+        SymmetryClick::Nothing
+    }
 }
 
 /// Accessible name of the world or object axes switch.
