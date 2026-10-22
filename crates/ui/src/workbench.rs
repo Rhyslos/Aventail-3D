@@ -2623,7 +2623,8 @@ mod trim_tests;
 #[cfg(test)]
 mod unwrapping_tests;
 pub use exporting::{
-    ExportChoice, ExportRequest, KitOutcome, KitRequest, TargetOutcome, TargetRequest,
+    ExportChoice, ExportRequest, ExportSettings, KitOutcome, KitRequest, TargetOutcome,
+    TargetRequest,
 };
 mod aligning;
 #[cfg(test)]

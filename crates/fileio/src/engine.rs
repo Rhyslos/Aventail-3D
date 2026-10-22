@@ -26,6 +26,8 @@ pub enum Engine {
     Unity,
     /// An Unreal Engine project: a folder with a `.uproject` file.
     UnrealEngine,
+    /// A Solis project: a folder with `project.solis` (decision 0122).
+    Solis,
 }
 
 impl Engine {
@@ -35,6 +37,7 @@ impl Engine {
             Self::Godot => "Godot",
             Self::Unity => "Unity",
             Self::UnrealEngine => "Unreal Engine",
+            Self::Solis => "Solis",
         }
     }
 
@@ -44,9 +47,14 @@ impl Engine {
             Self::Godot => ExportPreset::Godot,
             Self::Unity => ExportPreset::Unity,
             Self::UnrealEngine => ExportPreset::UnrealEngine,
+            Self::Solis => ExportPreset::Solis,
         }
     }
 }
+
+/// The file that marks a Solis project's folder, one per game, as
+/// `project.godot` marks Godot's.
+pub const SOLIS_PROJECT_FILE: &str = "project.solis";
 
 /// How far up from a folder [`detect`] looks for a game project.
 const MAX_DEPTH: usize = 32;
@@ -57,6 +65,9 @@ pub fn detect(folder: &Path) -> Option<(Engine, PathBuf)> {
     for dir in folder.ancestors().take(MAX_DEPTH) {
         if dir.join("project.godot").is_file() {
             return Some((Engine::Godot, dir.to_path_buf()));
+        }
+        if dir.join(SOLIS_PROJECT_FILE).is_file() {
+            return Some((Engine::Solis, dir.to_path_buf()));
         }
         if dir.join("Assets").is_dir() && dir.join("ProjectSettings").is_dir() {
             return Some((Engine::Unity, dir.to_path_buf()));
@@ -322,6 +333,33 @@ mod tests {
             Some(Engine::UnrealEngine)
         );
         assert_eq!(Engine::UnrealEngine.preset(), ExportPreset::UnrealEngine);
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
+    fn solis_projects_are_found_by_their_project_file() {
+        let root = folder("solis");
+        let game = root.join("game");
+        std::fs::create_dir_all(game.join("models/props")).unwrap();
+        assert_eq!(detect(&game.join("models/props")), None);
+        // A folder named like the file is not a project.
+        std::fs::create_dir_all(root.join("fake/project.solis")).unwrap();
+        assert_eq!(detect(&root.join("fake")), None);
+        // A scene file is not a project file either.
+        std::fs::write(game.join("level.solscene"), "").unwrap();
+        assert_eq!(detect(&game), None);
+        std::fs::write(game.join(SOLIS_PROJECT_FILE), "").unwrap();
+        assert_eq!(
+            detect(&game.join("models/props")),
+            Some((Engine::Solis, game.clone()))
+        );
+        assert_eq!(Engine::Solis.name(), "Solis");
+        assert_eq!(Engine::Solis.preset(), ExportPreset::Solis);
+        // The nearest project wins: a Godot project inside a Solis one.
+        let inner = game.join("tools/godot-viewer");
+        std::fs::create_dir_all(&inner).unwrap();
+        std::fs::write(inner.join("project.godot"), "").unwrap();
+        assert_eq!(detect(&inner).map(|d| d.0), Some(Engine::Godot));
         std::fs::remove_dir_all(&root).unwrap();
     }
 
