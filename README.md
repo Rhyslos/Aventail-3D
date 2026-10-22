@@ -188,11 +188,11 @@ One big phase, aiming to be the best UV tools around. Brought forward before adv
 
 **Gate:** a prop is unwrapped and packed in Aventail 3D, with clean bakes in Substance Painter, and changing the model afterwards keeps its UVs.
 
-### Phase 8 · UV powerhouse and baking — 7 of 28 (paused for Phase 9)
+### Phase 8 · UV powerhouse and baking — 7 of 28 (paused; resumes after Phase 10)
 
 `███░░░░░░░░░░` 25%
 
-Paused on 2026-10-21 for the rework (Phase 9); it continues once Phase 9's newcomer test passes.
+Paused on 2026-10-21 for the rework (Phase 9). On 2026-10-22 the project lead moved advanced modelling (Phase 10) ahead of the rest of it: unwrapping works well enough, and modelling comes first ([decision 0125](docs/decisions/0125-modelling-before-the-rest-of-the-uvs.md)). So the order is Phase 9, Phase 10, then the rest of Phase 8, then texture painting.
 
 At the project lead's request (2026-10-16), before advanced hard-surface: everything the other 3D programs do well for UVs, full control over every automatic step, four ideas no other app has, and baking inside the app, so Substance Painter becomes optional for bakes. The aim: the best and most controllable UV tools there are.
 
@@ -256,13 +256,13 @@ After a review of the whole app (2026-10-21, [decision 0121](docs/decisions/0121
 
 </details>
 
-**Gate:** 2–3 people new to the app finish a fixed task list without help, see what is selected on any screen, and no text skips the English package. Then Phase 8 continues.
+**Gate:** 2–3 people new to the app finish a fixed task list without help, see what is selected on any screen, and no text skips the English package. Then Phase 10, advanced modelling.
 
-### Phase 10 · Advanced hard-surface — 0 of 9
+### Phase 10 · Advanced hard-surface (after Phase 9, before the rest of Phase 8) — 0 of 9
 
 `░░░░░░░░░░░░░` 0%
 
-Friends join as testers around here, once there are enough tools to build something.
+Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/decisions/0125-modelling-before-the-rest-of-the-uvs.md)); Phase 8 continues once it's done. Friends join as testers around here, once there are enough tools to build something.
 
 <details>
 <summary>Milestones</summary>
@@ -299,6 +299,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-22 | Planned: advanced modelling (Phase 10) comes right after the rework, before the rest of the UV phase (Phase 8) |
 | 2026-10-21 | Cut from the plan: the app's own renderer (Solis v1 and its path tracer). Solis is the project lead's game engine, a separate program; later phases move up one |
 | 2026-10-21 | A review of the whole app: Phase 8 paused, Phase 9 becomes "Rework and first use", done now |
 | 2026-10-20 | Fixed: setting up the next extrude (or bevel, inset, loop cut) no longer changes the last one once something else is selected |
