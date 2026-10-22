@@ -21,6 +21,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **Double-clicking a loop is reliable.** A double-click sometimes selected only the edge, about 3 times in 10: when you'd clicked within the second before (say, a click on the edge and then a double-click on it), the clicks were counted as a triple-click, not a double. The app now counts double-clicks itself: two clicks in the same spot within half a second, whatever came before. A quick third click straight after no longer undoes the loop either.
 - **Double-click on a cylinder's rim.** A double-click on the top or bottom edge of a cylinder (any edge round an n-gon) now selects the whole rim, in the Edges and Points modes, without an inset first.
 - **Alt + A in the UV Editor right after a click.** Pressing Alt + A over the UV Editor without moving the mouse first could select the whole part instead of the UV pieces, because the window briefly lost track of the mouse when Alt was pressed. It now remembers where the mouse was. H, Z and E over the editor had the same slip and are fixed too.
 - **Alt + A in the UV Editor selects whole pieces.** With the mouse over the UV Editor, or in the UV mode, Alt + A now selects the UV pieces the selection is in, parted at seams, instead of the whole part of the model. Select a little of one of two overlapping pieces, press Alt + A, and move it away. **UV → Pieces → Select connected** does the same. In the viewport, Alt + A still selects the whole part.

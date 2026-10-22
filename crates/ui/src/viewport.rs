@@ -666,9 +666,14 @@ struct View {
     image_size: Vec2,
     /// A selection drag (box, lasso or brush) in progress, if any.
     select_drag: Option<select::SelectDrag>,
-    /// Where the last click was, so a double-click can be told from two
-    /// quick clicks in different places.
-    last_click: Option<egui::Pos2>,
+    /// Where and when the last single click was, so a double-click is
+    /// two clicks close in time and place, whatever came before (egui
+    /// counts a third quick click as a triple, not a double).
+    last_click: Option<(egui::Pos2, f64)>,
+    /// Where and when the last click of a double-click (or a quick click
+    /// straight after one) was: a further quick click there is part of the
+    /// same burst and is ignored, so it can't undo the loop just selected.
+    last_double: Option<(egui::Pos2, f64)>,
     /// A drag of the gizmo in progress, if any.
     gizmo_drag: Option<tools::Drag>,
     /// The gizmo handle the left button went down on, if any.
@@ -702,6 +707,7 @@ impl View {
             image_size: Vec2::ZERO,
             select_drag: None,
             last_click: None,
+            last_double: None,
             gizmo_drag: None,
             pressed_handle: None,
             hovered_handle: None,

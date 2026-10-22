@@ -146,8 +146,16 @@ impl View {
             // so the second click lands on the gizmo; it must still select
             // the loop.
             self.pressed_handle = None;
-            if response.double_clicked_by(PointerButton::Primary) {
-                return false;
+            let now = ui.input(|i| i.time);
+            if response.clicked_by(PointerButton::Primary)
+                && let Some(at) = response.interact_pointer_pos()
+            {
+                if self.click_kind(at, now) != super::select::ClickKind::Single {
+                    return false;
+                }
+                // A click on the gizmo (it sits on the selection) is still
+                // the first click of a possible double-click there.
+                self.last_click = Some((at, now));
             }
         }
         true
