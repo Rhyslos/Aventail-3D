@@ -352,3 +352,31 @@ fn the_uv_editor_has_the_uv_menu_and_uv_edit_has_the_uv_settings() {
     harness.run();
     assert!(harness.query_by_label("UV settings").is_some());
 }
+
+#[test]
+fn alt_a_over_the_editor_takes_the_piece_even_if_the_mouse_was_reported_gone() {
+    // The project lead's find: Alt + A right after a click in the UV
+    // Editor took the whole part until the mouse moved. With the mouse
+    // reported gone (as Windows can on Alt), the editor still counts as
+    // under it.
+    let mut harness = quick_harness();
+    select_cube(&mut harness);
+    harness
+        .state_mut()
+        .workbench
+        .switch_layout(LayoutChoice::UvEdit);
+    harness.run();
+    harness.run();
+    harness.key_press(Key::Num3);
+    harness.run();
+    let (_, uv) = middle_of(&harness, glam::Vec3::Z);
+    let at = harness.state().workbench.uv_editor.screen_of(uv).unwrap();
+    click_at(&mut harness, at, Modifiers::NONE);
+    assert_eq!(selected_polygons(&harness), 1);
+    harness.event(Event::PointerGone);
+    harness.step();
+    harness.key_press_modifiers(Modifiers::ALT, Key::A);
+    harness.run();
+    // A plain cube's top is a piece of its own, not the whole cube.
+    assert_eq!(selected_polygons(&harness), 1);
+}

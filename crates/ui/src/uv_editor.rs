@@ -216,6 +216,10 @@ pub(crate) struct UvEditor {
     /// The pass it was last drawn in: a panel not drawn lately isn't
     /// under the mouse, wherever it was.
     shown_pass: Option<u64>,
+    /// Where the mouse was last seen in the window. On Windows, pressing
+    /// Alt can make the window report the mouse gone until it moves again;
+    /// Alt + A over the editor must still mean the pieces then.
+    last_pointer: Option<Pos2>,
     /// A drag of the gizmo, if one is going on.
     gizmo: Option<gizmo::GizmoDrag>,
     /// Whether the left button went down on the gizmo (so letting go
@@ -269,6 +273,7 @@ impl Default for UvEditor {
             cache: HashMap::new(),
             frame_request: None,
             shown_pass: None,
+            last_pointer: None,
             gizmo: None,
             pressed_on_gizmo: false,
             sessions: 0,
@@ -360,7 +365,7 @@ impl UvEditor {
         if self.shown_pass.is_none_or(|p| p + 1 < pass) {
             return false;
         }
-        let pointer = ctx.input(|i| i.pointer.hover_pos());
+        let pointer = ctx.input(|i| i.pointer.hover_pos()).or(self.last_pointer);
         self.rect
             .zip(pointer)
             .is_some_and(|(rect, at)| rect.contains(at))
@@ -479,6 +484,9 @@ impl UvEditor {
         response.widget_info(|| WidgetInfo::labeled(WidgetType::Other, true, UV_EDITOR_LABEL));
         self.rect = Some(rect);
         self.shown_pass = Some(ui.ctx().cumulative_pass_nr());
+        if let Some(at) = ui.ctx().input(|i| i.pointer.hover_pos()) {
+            self.last_pointer = Some(at);
+        }
         if !self.fitted && rect.width() > 10.0 {
             self.fit(rect, Vec2::ZERO, Vec2::ONE);
             self.fitted = true;
