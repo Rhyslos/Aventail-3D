@@ -1,6 +1,6 @@
 # Settings
 
-> Every app-wide preference in one place: the accent colour, metres or centimetres, the tool menu's look, how the mouse moves the view, the grid, how much undo may keep, and backup copies.
+> Every app-wide preference in one place: the accent colour, how the selection is drawn, metres or centimetres, the tool menu's look, how the mouse moves the view, the grid, how much undo may keep, and backup copies.
 
 ![The Settings window, showing the Interface section](../screenshots/2026-10-11-settings.png)
 
@@ -29,10 +29,11 @@ A few of these settings also have a quick switch where you use them while workin
 | Section | Setting | What it does |
 |---|---|---|
 | Interface | **Accent colour** | The one colour that marks what's active: the current mode, the chosen option, the selection. Red as standard; Blue, Marine green, Plum, Olive or Petrol blue instead. |
+| Interface → Seeing the selection | **High contrast** | Off (standard): the selection is drawn thicker and brighter than anything else, on top. On: selected and hovered points, edges and polygons are drawn larger still, with a dark rim, in the viewport and the UV Editor, so they stand out on any colour. Handy on a busy model, a bright texture, or a screen that's hard to read. Also found by [command search](command-search.md). |
 | Interface → Radial menu | **Look** | How the tool menu (E) looks: **Continuous ring** (standard), **Inner edge**, **Outlined**, **Solid tiles**, or a **List** like the shape list. Same tools, same places, same keys. See [The tool menu](tool-menu.md). |
 | Interface → Radial menu | **Show keys around the ring** | On (standard): each tool's key sits just outside its button. Off: the key shows in the middle, with the tool's name. |
 | Interface → Radial menu | **Tap E to open** | On (standard): a tap opens the menu and keeps it open. Off: it shows only while you hold E. |
-| Interface → Quad menu | **Right-click opens the quad menu** | Off (standard). On: a right-click in the viewport opens four lists of commands around the mouse. See [The quad menu](quad-menu.md). |
+| Interface → Quad menu | **Right-click opens the quad menu** | On (standard): a right-click in the viewport opens four lists of commands around the mouse. Off: a right-click does nothing. See [The quad menu](quad-menu.md). |
 | Interface → Warnings | **Ask before dissolving across a sharp corner** | On (standard): [Dissolve](clean-up.md#dissolving-across-a-sharp-corner) asks first when it would merge polygons meeting more sharply than 30° into one bent polygon. Off: it goes ahead. Also switched off by **Don't warn me again** in the question. |
 | Interface → Units | **This project** | Show and type this project's sizes in **metres** (standard) or **centimetres**. Saved with the project, not as a preference; changing it is an undo step. Only the display changes, never the shapes. See [Units](pivots.md#units-metres-or-centimetres). |
 | Interface → Units | **New projects** | The units a new project starts with: **Metres** (standard) or **Centimetres**. Remembered between sessions. |
@@ -43,7 +44,7 @@ A few of these settings also have a quick switch where you use them while workin
 | Viewport | **Grid lines** | Every 1 m (standard), every 50 cm, or every 10 cm. |
 | Viewport | **Selection keys** | Which key adds to the selection and which takes away, for clicks, boxes, lassos, the brush and double-clicks alike: **Ctrl adds, Shift removes** (standard), **Shift adds, Ctrl removes**, **Ctrl flips**, or **Ctrl adds, Alt removes** (Alt + drag still moves the view while Alt + mouse works in every scheme). See [Selecting](selecting.md). |
 | Viewport | **Snapping** | Whether moves, turns and resizing snap; whether holding Ctrl while dragging flips it for that drag (standard) or only the button does; what moves snap to (points, edges, polygons, grid lines); and the steps for turning (15°) and scaling (10%). See [Move, rotate and scale](transforming.md#snapping). |
-| Viewport | **Select only visible** | Off (standard): the box, lasso and brush select through shapes, catching their far side too. On: only what you can see. Also the button above the grid button on the left palette. See [Selecting](selecting.md). |
+| Viewport | **Select only visible** | On (standard): the box, lasso and brush select only what you can see. Off: they select through shapes, catching their far side too. Also the button above the grid button on the left palette. See [Selecting](selecting.md). |
 | Undo | **Undo memory** | How much memory undo may use before it starts forgetting the oldest steps: 256 MB to 8 GB, or Unlimited. 2 GB is the standard. There's no limit on the *number* of steps, and the newest step is always kept. The line above the choices shows how much is in use now and how many steps that is. |
 | Autosave | **Backup copies** | Whether the app saves backup copies of your scene in the background (on as standard), how often (every 5 minutes as standard, 1 to 30), and how many it keeps (5 as standard, 1 to 20). Also shows the folder they go to. See [Backup copies and crash recovery](autosave.md). |
 

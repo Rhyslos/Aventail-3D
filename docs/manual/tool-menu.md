@@ -8,10 +8,10 @@
 
 Whenever you want a tool and don't remember its key, or it doesn't have one. The tool menu holds the tools that make sense for what you're doing now:
 
-- **In Model mode** (whole objects): Move, Rotate, Scale, Transform (all three gizmos at once), Frame selected, Make editable, Delete, Ungroup, Group objects, New group, and Create a shape… (the shape list).
-- **In Object mode** (pivots): the same, except that Scale's place is empty (a pivot has no size) and the four pivot commands take the places of Duplicate, Make editable, Duplicate as instance and Join: **Pivot to centre**, **Pivot to world origin**, **Pivot to object…** and **Object to world origin**. See [Pivots and the Object mode](pivots.md).
+- **In Model mode** (whole objects): Move, Rotate, Scale, Transform (all three gizmos at once), Frame selected, Bake into shape, Delete objects, Ungroup, Group objects, New group, and Create a shape… (the shape list).
+- **With Edit pivot on** (pivots, in the Model mode): the same, except that Scale's place is empty (a pivot has no size) and the four pivot commands take the places of Duplicate, Bake into shape, Duplicate as instance and Join: **Pivot to centre**, **Pivot to world origin**, **Pivot to object…** and **Object to world origin**. See [Pivots and Edit pivot](pivots.md).
 - **In Points, Edges and Polygons mode**: the modelling tools for that kind of element, such as Extrude, Inset, Bevel, Loop cut, Slit, Weld and so on. Move, rotate and scale aren't here, since they're always on the palette at the top.
-- **Over the UV Editor, and in the UV mode**: the UV tools. The gizmos and Frame selected keep their places from the object ring; then the seam tools (right, see [Seams](seams.md)), [Unwrap, Relax and Straighten](unwrapping.md) (bottom), [Pack](packing.md), **Turn & flip**, [Pin and Unpin](pins.md), and **Stitch & cut** (left). See [Editing UVs by hand](editing-uvs.md).
+- **Over the UV Editor, and in the UV mode**: the UV tools. The gizmos and Frame selected keep their places from the object ring; then the seam tools (right, see [Seams](seams.md)), [Unwrap, Relax and Straighten](unwrapping.md) (bottom), [Pack](packing.md), **Turn & flip**, and [Pin and Unpin](pins.md) (left); one place, at the top left, is empty. See [Editing UVs by hand](editing-uvs.md).
 
 **The menu follows the mouse.** Press E with the mouse over the UV Editor and you get the UV tools; over the viewport, the tools for your mode. The ring is chosen when it opens, so moving the mouse afterwards doesn't change it.
 
@@ -30,7 +30,7 @@ The modelling tools arrive one by one during Phase 4; built so far are Extrude, 
    - **Hold and flick:** hold **E**, move the mouse towards a tool, and let go. With practice this becomes muscle memory: "extrude is straight up".
 3. To close the menu without choosing, press **Esc**, or click anywhere away from the ring. Or point at the **cancel sign** in the middle (a circle with a line): it lights up, no tool is highlighted, and clicking, pressing Enter or letting go of E closes the menu without doing anything.
 
-**Some places hold a group.** A place with three small dots under its icon (**Turn & flip** and **Stitch & cut** in the UV ring) holds several tools. Choose it, any way you like, and its tools open on the same ring, side by side around the group's place, so the mouse is already next to them; then choose one as usual. **Esc** (or a click away) closes it, and the next **E** opens the whole ring again. The quad menu lists a group's tools in its place.
+**Some places hold a group.** A place with three small dots under its icon (**Turn & flip** in the UV ring) holds several tools. Choose it, any way you like, and its tools open on the same ring, side by side around the group's place, so the mouse is already next to them; then choose one as usual. **Esc** (or a click away) closes it, and the next **E** opens the whole ring again. The quad menu lists a group's tools in its place.
 
 **The buttons show only icons.** The middle of the ring names the tool you point at. If it can't be used right now (Ungroup with no group selected, say), the reason shows under the cancel sign, in yellow; for a tool still to come, it says when it arrives.
 
@@ -39,7 +39,7 @@ The modelling tools arrive one by one during Phase 4; built so far are Extrude, 
 | Where | What |
 |---|---|
 | Top right | Building: Extrude, Inset, Bevel, Bridge, Fill hole |
-| Right | Shading: Flip normals, Hard and Soft edges |
+| Right | Shading: Flip normals, Mark hard edges and Mark soft edges |
 | Bottom | Removing: Delete, Dissolve, Weld |
 | Left | Cutting and joining: Connect, Slit, Loop cut |
 | Top left | Groove |
@@ -81,7 +81,8 @@ In **Edit → Settings… → Interface → Radial menu**:
 - **Problem:** E shows UV tools when I wanted Extrude. **Why:** the mouse was over the UV Editor. **Fix:** press Esc, point at the viewport and press E again.
 - **Problem:** E does nothing at all. **Why:** Tap E to open is off, so the menu only shows while E is held. **Fix:** hold E, or switch Tap E to open back on in Settings.
 - **Problem:** the menu closed and nothing happened. **Why:** the tool can't be used right now, for example Group with nothing selected. **Fix:** the status bar says why. Select what the tool needs and try again.
-- **Problem:** Ctrl + E made my shape editable instead of opening the menu. **Why:** that's intended: Ctrl + E is Make editable, and only E on its own opens the menu.
+- **Problem:** Ctrl + E baked my shape into a plain mesh instead of opening the menu. **Why:** that's intended: Ctrl + E is Bake into shape, and only E on its own opens the menu. Ctrl + Z brings the settings back.
+- **Problem:** E does nothing while the Keys window or another window is open. **Why:** the tool menu doesn't open over a window. **Fix:** close the window first (Esc).
 
 ## Related
 

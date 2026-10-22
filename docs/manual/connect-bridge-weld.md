@@ -15,7 +15,7 @@ These are the tools for tidying up and joining. Connect splits polygons where yo
 ### Connect (A)
 
 1. In the **Points** mode, select two or more points on the same polygon. Or in the **Edges** mode, select two or more edges of the same polygons.
-2. Press **A** (or pick **Connect** from the [tool menu](tool-menu.md) **E**, or the **Mesh** menu).
+2. Press **A** (or pick **Connect** from the [tool menu](tool-menu.md) **E**, or **Mesh → Cut and join**).
 
 Points are joined straight across each polygon holding them. With three or more on one polygon, they're joined all the way round. Edges are cut in the middle and the cuts joined, so a ring of selected edges gets a loop through it. Under **Last edit**, **Cuts** makes more than one cut along each edge.
 

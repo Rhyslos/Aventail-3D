@@ -48,7 +48,7 @@ Choose **Select → Select by material** and pick a material: its polygons on th
 
 Each object has its own list. Two materials with the **same name** are **one material** when you export, even on different objects: name both *Metal* and Substance Painter gets one *Metal* texture set for both. **Join objects** merges the lists the same way, by name.
 
-An [instance](copies-and-instances.md) uses its original's materials; change them on the original. *Make editable* gives it its own copy.
+An [instance](copies-and-instances.md) uses its original's materials; change them on the original. *Bake into shape* gives it its own copy.
 
 ## Settings
 

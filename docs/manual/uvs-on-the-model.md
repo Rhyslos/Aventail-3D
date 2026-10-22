@@ -2,7 +2,7 @@
 
 > Slide, turn and scale a piece's texture by dragging right on the shape in the viewport, and see which piece is which in both views.
 
-![A cube with the Checker view in the UV mode: its top is selected and being dragged with W, the checker on top shifted along, "Move UVs" shown beside the mouse, and the UV Editor showing that island moved on the texture square.](../screenshots/2026-10-16-uvs-on-the-model.png)
+![A cube with the Checker view in the UV mode: its top is selected and being dragged with W, the checker on top shifted along, "Move UVs" shown beside the mouse, and the UV Editor showing that piece moved on the texture square.](../screenshots/2026-10-16-uvs-on-the-model.png)
 
 ## When to use it
 
@@ -53,7 +53,7 @@ These are the same keys as everywhere else; the drag on the model is new. They w
 ## Tips and common problems
 
 - **Problem:** the texture doesn't quite follow the mouse. **Why:** with pieces on several sides selected (all of a cube, say), the app works out one average direction for all of them, which fits the side facing you best. **Fix:** select just the piece you're looking at.
-- **Problem:** a drag says "Select the islands to move first". **Why:** nothing was selected and the press wasn't on a piece. **Fix:** start the drag on the piece, or click it first.
+- **Problem:** a drag says "Select the pieces to move first". **Why:** nothing was selected and the press wasn't on a piece. **Fix:** start the drag on the piece, or click it first.
 - **Problem:** the shape itself doesn't move with W. **Why:** that's intended: in the UV mode W, R and S work on UVs, so they never move the shape by accident. **Fix:** press **3** (Polygons) or go back to the Model mode to move the shape.
 - **Tip:** to line up a texture with an edge, hold **Shift** for the last bit of the drag.
 
@@ -62,4 +62,4 @@ These are the same keys as everywhere else; the drag on the model is new. They w
 - [Editing UVs by hand](editing-uvs.md): the same changes in the UV Editor, with a gizmo
 - [Checker and Stretch views](checker-and-stretch.md)
 - [The UV Editor and the UV mode](uv-editor.md)
-- [Concepts: UV map, island](concepts.md#uvs-and-texturing)
+- [Concepts: UV map, piece](concepts.md#uvs-and-texturing)

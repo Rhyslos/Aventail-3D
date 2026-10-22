@@ -14,7 +14,7 @@ How a model is cut into objects matters: each object can be hidden, moved, textu
 ### Split off
 
 1. Select the object, press **3** for the Polygons mode, and select the polygons.
-2. Pick **Mesh → Split off**.
+2. Pick **Mesh → Shape and object → Split off**.
 
 The polygons go into a new object, just below the original in the Objects panel, in exactly the same place, and it becomes the selection. They're deleted from the original, which keeps everything else, including its settings. One **Ctrl + Z** puts it all back.
 
@@ -23,7 +23,7 @@ To copy polygons out instead of moving them, duplicate the object first (**Ctrl 
 ### Join objects
 
 1. In the **Model** mode, select the shapes, the one to keep first.
-2. Press **E** and pick **Join objects** (or use **Mesh → Join objects**).
+2. Press **E** and pick **Join objects** (or use **Mesh → Shape and object → Join objects**).
 
 They become one plain mesh in the first object you selected, each part staying where it was. The others are deleted (anything inside them takes their place in the Objects panel). Hard edges come along.
 
@@ -35,8 +35,8 @@ None.
 
 | Action | Shortcut |
 |---|---|
-| Split off | Mesh menu (Polygons mode) |
-| Join objects | Tool menu `E` (Model mode), or the Mesh menu |
+| Split off | Mesh → Shape and object (Polygons mode) |
+| Join objects | Tool menu `E` (Model mode), or Mesh → Shape and object |
 
 ## Tips and common problems
 

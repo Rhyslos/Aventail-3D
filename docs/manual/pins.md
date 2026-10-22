@@ -53,4 +53,4 @@ No keys of their own (the project lead's choice); ask if you'd like some.
 - [Unwrap, Relax and Straighten](unwrapping.md)
 - [Editing UVs by hand](editing-uvs.md)
 - [The UV Editor and the UV mode](uv-editor.md)
-- [Concepts: pin, UV map, island](concepts.md#uvs-and-texturing)
+- [Concepts: pin, UV map, piece](concepts.md#uvs-and-texturing)

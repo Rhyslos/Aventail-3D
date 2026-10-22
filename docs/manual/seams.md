@@ -8,7 +8,7 @@
 
 To texture a shape, its surface is laid flat on the texture square, like unfolding a cardboard box. A [seam](concepts.md#uvs-and-texturing) is where it's cut so it can unfold. Where you put seams decides:
 
-- **how many pieces** ([islands](concepts.md#uvs-and-texturing)) the shape is laid out in;
+- **how many [pieces](concepts.md#uvs-and-texturing)** the shape is laid out in;
 - **how much the texture stretches**: a piece that can't lie flat (a whole ball, a tube) stretches a lot until it's cut;
 - **where the texture has a visible join**: a seam is where two parts of the texture meet, so you want them where nobody looks.
 
@@ -20,7 +20,7 @@ Every shape in the app comes with seams already, where its [ready-made UVs](prim
 
 ## How to use it
 
-Seams show in **orange**: in the UV Editor, in the viewport in the UV mode, and in the other modes with **Display → Seams**.
+Seams show in **orange**: in the UV Editor, in the viewport in the UV mode, and in the other modes with **Display → Show seams**.
 
 **Mark or clear seams by hand:**
 1. Press **2** for the Edges mode and select edges. To paint along edges, use the **Paint select** brush (press **Q** until it's chosen).
@@ -28,7 +28,7 @@ Seams show in **orange**: in the UV Editor, in the viewport in the UV mode, and 
 
 With **polygons** selected (Polygons or UV mode), **Mark seams** marks the edges **around** the selection: select a region and it's cut out as its own piece. **Clear seams** clears every edge of the selected polygons. In the Points mode, it uses the edges between selected points.
 
-**Seams from hard edges:** select objects and choose **UV → Seams → Seams from hard edges**. Every edge shading hard becomes a seam (the hard edges as shown: by angle while Automatic hard edges is on).
+**Seams from hard edges:** select objects and choose **UV → Seams → Seams from hard edges**. Every edge shading hard becomes a seam (the hard edges as shown: by angle on an object smoothed by angle, otherwise the marked ones).
 
 **Suggest seams:** select objects and choose **UV → Seams → Suggest seams**. The app replaces their seams with suggested ones:
 1. along hard edges and sharp corners (more than 66°);
@@ -84,4 +84,4 @@ No keys of their own, as chosen for seams; ask if you'd like some.
 - [Editing UVs by hand](editing-uvs.md)
 - [Hard and soft edges](hard-and-soft-edges.md)
 - [Selecting](selecting.md) (Paint select)
-- [Concepts: UV map, seam, island](concepts.md#uvs-and-texturing)
+- [Concepts: UV map, seam, piece](concepts.md#uvs-and-texturing)

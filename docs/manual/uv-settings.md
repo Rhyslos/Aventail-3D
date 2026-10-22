@@ -20,7 +20,7 @@ Change these settings when an automatic result is close to what you want but not
 
 ## How to use it
 
-1. Open **UV → Settings**: it holds five submenus, one for each automatic tool.
+1. Open **UV → Settings** (on the main menu bar, or under the **UV** button at the start of the [UV Editor](uv-editor.md)'s menu line): it holds five submenus, one for each automatic tool. Or, in the **UV Edit** layout, click the **UV settings** tab beside Attributes: the same five, as sections you can fold open, so they stay in view while you work.
 2. Point at one to see its settings, and change them. Each is explained when you point at it.
 3. Run the tool again (or Ctrl + Z and run it again) to see the difference.
 

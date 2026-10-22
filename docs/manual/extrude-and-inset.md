@@ -26,7 +26,7 @@ To move polygons without building new ones, use [Move](transforming.md) instead.
 
 1. Select a shape and press **3** for the [Polygons mode](modes.md).
 2. [Select](selecting.md) the polygons to extrude.
-3. Press **D** (or pick **Extrude** from the [tool menu](tool-menu.md) **E**, or the **Mesh** menu).
+3. Press **D** (or pick **Extrude** from the [tool menu](tool-menu.md) **E**, or **Mesh → Build**).
 4. Drag **anywhere in the viewport**, the way you want the polygons to go. Drag the way they face on screen and they come out, following the mouse; drag the other way and they sink in. A polygon on the left side comes out when you drag left, the top when you drag up. A label by the mouse says how far.
    - When the polygons face you straight on, there is no "way" on screen to follow, so drag **right** to bring them out and left to push them in.
    - **Start the drag on another polygon** and that polygon becomes the selection first, so you can extrude it straight away without clicking it. Starting on a selected polygon, or on empty space, extrudes what is selected.
@@ -53,7 +53,7 @@ With **Keep together** off, each polygon is shaped on its own: each goes its own
 ### Inset polygons
 
 1. In the Polygons mode, select the polygons.
-2. Press **I** (or pick **Inset** from the tool menu or the Mesh menu).
+2. Press **I** (or pick **Inset** from the tool menu or **Mesh → Build**).
 3. Drag anywhere in the viewport **towards the middle of the polygons**: they shrink inward, following the pull. Pulling away from the middle again lets them grow back; it never grows them past where they started.
    - It doesn't matter which side you start on: from the left of the polygons you pull right, from above you pull down.
    - If you start the drag right on their middle, there's no way to pull towards, so drag right to shrink them.
@@ -97,7 +97,7 @@ Big angles are easiest to type: click the Angle number and type 1080, rather tha
 
 You can also set the bend before dragging (at the top of the Attributes panel, while Extrude is in use), and the next drag bends. Once that extrude is done, or you pick another tool, **Angle goes back to 0**, so the extrude after it starts straight and nothing turns by surprise. The finished extrude keeps its bend, and you can still change it under Last edit. Direction, Bend radius and Segments stay as you set them. To build a pipe, extrude its end again and again, straight or bent.
 
-**On a stretched object** (one scaled more along one axis than another in Object mode), a bend keeps the pipe round as you see it, all the way round the corner. See [On a stretched object](#on-a-stretched-object) below.
+**On a stretched object** (one scaled more along one axis than another in the Model mode), a bend keeps the pipe round as you see it, all the way round the corner. See [On a stretched object](#on-a-stretched-object) below.
 
 Each bend setting is a number field, like the ones further down the panel: drag the number, click and type one, or click the small arrows beside it (with **Shift**, ten steps at a time). The bend rows sit under a small **Bend** heading, below the extrude's **Distance**.
 
@@ -114,7 +114,7 @@ This works until you make another edit on top. After that, the extrude is fixed 
 
 ### On a stretched object
 
-An object can be stretched in the Object mode: scaled more along one axis than another, such as a cylinder made twice as tall with its height box ([stretched objects](concepts.md#objects-and-scenes)). Extrudes, insets and bends on it are measured **as you see it**: an inset leaves an even border all round, "Straight out" goes straight out from the surface you see, and a bend keeps a pipe round. Without this, the stretch would be added on top of the edit afterwards: a border twice as wide along the stretched side, a pipe that widens as it turns.
+An object can be stretched in the Model mode: scaled more along one axis than another, such as a cylinder made twice as tall with its height box ([stretched objects](concepts.md#objects-and-scenes)). Extrudes, insets and bends on it are measured **as you see it**: an inset leaves an even border all round, "Straight out" goes straight out from the surface you see, and a bend keeps a pipe round. Without this, the stretch would be added on top of the edit afterwards: a border twice as wide along the stretched side, a pipe that widens as it turns.
 
 Each edit remembers how the object was stretched when you made it, or when you last changed it under Last edit (or with **Ctrl + wheel**). If you stretch the object differently afterwards, the edits made before stretch with it, as everything else on the object does. Change one of its settings and it is worked out again for the new stretch.
 

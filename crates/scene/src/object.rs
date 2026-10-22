@@ -255,8 +255,9 @@ pub struct Object {
     /// its shape, drawn and exported as part of it.
     pub mirror: Option<LiveMirror>,
     /// Where its shading breaks (decision 0126): by angle (the standard,
-    /// [`STANDARD_SMOOTHING_ANGLE`]), with edges marked hard added to it,
-    /// or only where edges are marked hard.
+    /// [`STANDARD_SMOOTHING_ANGLE`]), or only where edges are marked hard.
+    /// Marking edges on an object smoothed by angle switches it to its
+    /// marks, keeping the angle's edges as marks first.
     pub hardness: mesh::Hardness,
 }
 

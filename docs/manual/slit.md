@@ -18,9 +18,9 @@ For a loop all the way round, [Loop cut](loop-cut.md) is quicker.
 ## How to use it
 
 1. Select a shape and press **1**, **2** or **3** for the Points, Edges or Polygons [mode](modes.md). Slit works in all three.
-2. Press **X** (or pick **Slit** from the [tool menu](tool-menu.md) **E**, or the **Mesh** menu).
+2. Press **X** (or pick **Slit** from the [tool menu](tool-menu.md) **E**, or **Mesh → Cut and join**).
 3. **Click** where the line should start, then click the next point, and the next. Each point snaps to a point, an edge or a polygon under the mouse. Off the shape, it floats in space, which is handy for starting a cut beside the shape. The shape is cut along the line as it grows: wherever the line crosses a polygon, as you see it.
-4. Press **Esc** or **Enter** when the line is done. Or, with three or more points, **click the first point** again to close the line into a loop (see below).
+4. Press **Enter** (or **Tab**) when the line is done. Or, with three or more points, **click the first point** again to close the line into a loop (see below). Changed your mind? **Esc** cancels the line: its cut is taken back, as if you'd never started.
 
 The whole line is one undo step: **Ctrl + Z** takes the cut back.
 
@@ -52,7 +52,7 @@ A closed loop doesn't have to stay inside one polygon. Across several polygons i
 - Hold **Shift** while placing or dragging a point to keep the stretch to it at steps of 15° on screen: straight across, straight up, or at 45°.
 - **Right-click** or **Esc** while dragging a point puts it back where it was.
 
-The line also finishes by itself when you pick another tool, go back to Model mode, or undo.
+The line also finishes by itself when you pick another tool, go back to Model mode (Tab does both), or undo.
 
 ### Visible only, or through
 
@@ -74,7 +74,8 @@ As standard, Slit cuts only what you can see: polygons facing you that aren't hi
 | Add a point on the line | Click the line |
 | Remove a point | `Ctrl` + click it |
 | Keep to 15° steps | Hold `Shift` |
-| Finish the line | `Esc` or `Enter` |
+| Finish the line | `Enter` (or `Tab`, which also goes back to the Model mode) |
+| Cancel the line, taking its cut back | `Esc` |
 | Close the line into a loop (and finish it) | Click its first point (three or more points) |
 | Take the cut back | `Ctrl + Z` |
 | Back to selecting | `Q` |

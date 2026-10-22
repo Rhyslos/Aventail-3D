@@ -33,9 +33,9 @@ If several objects are selected and you drag one of them, they all move, keeping
 
 **Copy.** **Ctrl + C** and **Ctrl + V** paste copies of the selected objects; **Alt + V** pastes instances. See [Copies and instances](copies-and-instances.md).
 
-**Join and split.** **E → Join objects** makes the selected shapes one; **Mesh → Split off** moves selected polygons into an object of their own. See [Split off and join](split-and-join.md).
+**Join and split.** **E → Join objects** makes the selected shapes one; **Mesh → Shape and object → Split off** moves selected polygons into an object of their own. See [Split off and join](split-and-join.md).
 
-**Delete.** Press **Delete** or **Backspace** (or use **Edit → Delete**) to delete the selected objects, together with everything inside them. In the Points, Edges and Polygons modes, these keys delete or dissolve the selected elements instead: see [Clean-up](clean-up.md).
+**Delete.** Press **Delete** or **Backspace** (or use **Edit → Delete objects**) to delete the selected objects, together with everything inside them. In the Points, Edges and Polygons modes, these keys delete or dissolve the selected elements instead: see [Clean-up](clean-up.md).
 
 **Right-click** a row for the same commands in one menu. (Right-clicking a row that isn't selected selects it first.) For shapes, the menu also has **Copy settings** and **Paste … settings**: copy one shape's settings (size, segments and so on), then right-click another shape of the same kind, or a selection of them, and paste to make them match. See [The Attributes panel](attributes.md).
 
@@ -45,13 +45,13 @@ If several objects are selected and you drag one of them, they all move, keeping
 
 **Framing.** With objects selected, **Z** (*frame selected*) fits them in the view; with nothing selected it fits everything shown, like **H**. See [Navigating the view](navigating-the-view.md).
 
-### Make editable
+### Bake into shape
 
-![A cube made editable: the Attributes panel shows "Cube (mesh)" with its points and polygons](../screenshots/2026-10-11-make-editable.png)
+![A cube baked into its shape: the Attributes panel shows "Cube (mesh)" with its points and polygons](../screenshots/2026-10-11-make-editable.png)
 
-A primitive is built from its settings, so its shape can only change through them. **Make editable** turns it into a plain mesh: what you see becomes a fixed set of points and polygons, ready to be edited freely, and the settings are gone. (You can move, rotate and scale a primitive's points, edges and polygons without it: see [Base and edits](concepts.md#objects-and-scenes) for why you usually won't need this.)
+A primitive is built from its settings, so its shape can only change through them. **Bake into shape** turns it into a plain mesh: what you see becomes a fixed set of points and polygons, ready to be edited freely, and the settings are gone. (You can move, rotate and scale a primitive's points, edges and polygons without it: see [Base and edits](concepts.md#objects-and-scenes) for why you usually won't need this.)
 
-Select one or more shapes and press **Ctrl + E**, or use **Object → Make editable** in the Objects panel (also in the right-click menu) or **Mesh → Make editable** on the main menu bar. The objects keep their names and places; their icon becomes the polygon icon, and the [Attributes panel](attributes.md) shows "(mesh)" with how many points and polygons they have instead of their settings. Groups are left alone. **Ctrl + Z** brings the settings back.
+Select one or more shapes and press **Ctrl + E**, or use **Object → Bake into shape** in the Objects panel (also in the right-click menu) or **Mesh → Shape and object → Bake into shape** on the main menu bar. Any edits the shapes have are baked in too. The objects keep their names and places; their icon becomes the polygon icon, and the [Attributes panel](attributes.md) shows "(mesh)" with how many points and polygons they have instead of their settings. Groups are left alone. **Ctrl + Z** brings the settings back.
 
 ## Settings
 
@@ -59,9 +59,9 @@ The Objects panel has no settings of its own yet. Its menus:
 
 | Menu | Entries |
 |---|---|
-| **Edit** | Undo, Redo, Rename, Delete, Select all, Deselect |
+| **Edit** | Undo, Redo, Rename, Delete objects, Select all, Deselect |
 | **View** | Expand all, Collapse all |
-| **Object** | New group, Group objects, Ungroup, Make editable, Show, Hide |
+| **Object** | New group, Group objects, Ungroup, Bake into shape, Show, Hide |
 
 The main menu bar's **Edit** menu has the same entries as the panel's Edit menu, and **Create → Group** makes a group.
 
@@ -75,7 +75,7 @@ The main menu bar's **Edit** menu has the same entries as the panel's Edit menu,
 | Select nothing | `Esc` |
 | Put the selection in a new group | `Alt + G` |
 | Take the contents out of the selected groups | `Shift + G` |
-| Make the selected shapes editable (plain meshes) | `Ctrl + E` |
+| Bake the selected shapes into plain meshes (Bake into shape) | `Ctrl + E` |
 | Add to or take out of the selection | `Ctrl` + click |
 | Select a run of rows | `Shift` + click |
 | Rename | Double-click the name |
@@ -92,8 +92,8 @@ On macOS, use `Cmd` instead of `Ctrl` and `Option` instead of `Alt`. They don't 
 - **Problem:** Delete or Backspace does nothing. **Why:** nothing is selected, or you're typing a name. **Fix:** click the object first, or press Enter to finish the name.
 - **Problem:** you deleted something by mistake. **Fix:** press **Ctrl + Z**. Undo keeps your steps for as long as the app is open, up to the undo memory limit.
 - **Problem:** undo stops before you got back to where you wanted. **Why:** the oldest steps were forgotten to stay within the undo memory (the status bar said so when it started). **Fix:** for long sessions with large meshes, raise the limit in **Edit → Settings… → Undo**, if your computer has the memory to spare.
-- **Problem:** pressing **Ctrl + E** does nothing, and the status bar says "Nothing to make editable". **Why:** only shapes with settings (or with recorded edits) can be made editable; groups and meshes have nothing to bake. **Fix:** select the shapes themselves.
-- **Problem:** the Attributes panel no longer shows a shape's size and segments. **Why:** it was made editable, so it's a plain mesh now. **Fix:** press **Ctrl + Z** to get the settings back, if you need them.
+- **Problem:** pressing **Ctrl + E** does nothing, and the status bar says "Nothing to bake into the shape". **Why:** only shapes with settings (or with recorded edits) can be baked; groups and meshes have nothing to bake. **Fix:** select the shapes themselves.
+- **Problem:** the Attributes panel no longer shows a shape's size and segments. **Why:** it was baked into its shape, so it's a plain mesh now. **Fix:** press **Ctrl + Z** to get the settings back, if you need them.
 
 ## Related
 

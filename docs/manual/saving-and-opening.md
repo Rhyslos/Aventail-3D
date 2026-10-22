@@ -9,7 +9,8 @@
 Whenever you want to keep your work. A project file holds everything in your scene:
 - every object, its name, where it sits in the Objects panel, and whether it's hidden;
 - each shape's settings (so a cube is still a cube with editable size and segments when you open it again);
-- plain meshes made with Make editable;
+- plain meshes made with Bake into shape;
+- each object's smoothing (smoothed by angle, and its angle) and its symmetry;
 - edits recorded on top of shapes;
 - what was selected.
 
@@ -31,7 +32,7 @@ The project's name is shown on the right of the menu bar. When there are changes
 ![The question asked before unsaved changes would be lost](../screenshots/2026-10-11-save-changes.png)
 
 - **Save** (or **Enter**) saves, then carries on. If the project has never been saved, it asks where first; closing that window without choosing cancels everything.
-- **Don't save** (or **Ctrl + D**) throws the changes away and carries on.
+- **Don't save** (or **Alt + N**) throws the changes away and carries on.
 - **Cancel** (or **Esc**) goes back to your work.
 
 **Saving is safe.** The app writes the new file next to the old one, checks it arrived whole, and only then puts it in place. So a crash or a full disk while saving never leaves you with a damaged project. The previous save is kept as a backup beside it, named like `crate.avtl.bak`: if you ever need it, rename it to end in `.avtl` and open it.
@@ -46,7 +47,7 @@ You can also open a project by giving it to the app when it starts (for example,
 
 ## Settings
 
-None of its own. Your preferences (accent colour, navigation and so on) are not part of a project: they belong to you, not the scene, and are kept in [Settings](settings.md). A few things that are part of the model are saved with it: the project's **units** (metres or centimetres), where every object's **pivot** sits ([Pivots and the Object mode](pivots.md)), its [materials](materials.md), and its **game project folder** ([Export and import](export-and-import.md#export-into-a-game-project)). A new project starts in the units chosen in Settings.
+None of its own. Your preferences (accent colour, navigation and so on) are not part of a project: they belong to you, not the scene, and are kept in [Settings](settings.md). A few things that are part of the model are saved with it: the project's **units** (metres or centimetres), where every object's **pivot** sits ([Pivots and Edit pivot](pivots.md)), its [materials](materials.md), and its **game project folder** ([Export and import](export-and-import.md#export-into-a-game-project)). A new project starts in the units chosen in Settings.
 
 ## Shortcuts
 
@@ -56,7 +57,7 @@ None of its own. Your preferences (accent colour, navigation and so on) are not 
 | Open | `Ctrl + O` |
 | Save | `Ctrl + S` |
 | Save As | `Ctrl + Shift + S` |
-| In "Save changes?": save / don't save / cancel | `Enter` / `Ctrl + D` / `Esc` |
+| In "Save changes?": save / don't save / cancel | `Enter` / `Alt + N` / `Esc` |
 
 On macOS, use `Cmd` instead of `Ctrl`.
 
@@ -64,7 +65,7 @@ On macOS, use `Cmd` instead of `Ctrl`.
 
 - **Problem:** "Couldn't save … it wasn't saved, because the saved copy wouldn't open again". **Why:** a bug made the project into something the app couldn't read back, and the save was stopped before it could replace your previous save. **Fix:** your previous save is untouched, and your work is still open. Try undoing the last step and saving again, or use Save As under a new name. A copy of the unreadable save is kept beside the project (`name.avtl.unreadable`); please report the problem with it.
 - **Tip:** save often, and use Save As with a number (crate-01.avtl, crate-02.avtl) before big changes, so you can always go back.
-- **Problem:** "Couldn't open … it was saved by a newer version of the app". **Why:** the project was saved by a newer version, in a format this version doesn't know yet. **Fix:** update the app. Projects open in every newer version, but once saved by a newer version they may not open in an older one: this version saves in format 15, which can hold spirals. (Newer versions always open projects from older ones. Projects with extrudes, insets, bevels, loop cuts, slits, pipe bends, Connect, Bridge, Weld, clean-up edits, hard and soft edges, instances, slides, symmetry or spirals need a version from October 2026 on.)
+- **Problem:** "Couldn't open … it was saved by a newer version of the app". **Why:** the project was saved by a newer version, in a format this version doesn't know yet. **Fix:** update the app. Projects open in every newer version, but once saved by a newer version they may not open in an older one: this version saves in format 39, which holds each object's own smoothing and mirrors that belong to the object. (Newer versions always open projects from older ones. Projects with extrudes, insets, bevels, loop cuts, slits, pipe bends, Connect, Bridge, Weld, clean-up edits, hard and soft edges, instances, slides, symmetry or spirals need a version from October 2026 on.)
 - **Problem:** "Couldn't open … the file is damaged". **Why:** the file was cut short or changed by something else (an interrupted copy, a sync tool). **Fix:** open the backup: rename `name.avtl.bak` so it ends in `.avtl`, and open that.
 - **Problem:** "Couldn't open … it holds more than the app can open" (or too many objects, edits or polygons). **Why:** the app sets limits on what a project may ask of your computer, so a damaged file, or one made to cause trouble, can't freeze it or use up its memory. The limits are far above anything you can make in the app: up to 100,000 objects, 100,000 recorded edits, and about 30 million polygons in all. **Fix:** if it's your own project, open the backup (`name.avtl.bak`). If someone sent it, ask them to send it again; the copy may have been damaged on the way.
 - **Problem:** the app crashed, or the power went, before you saved. **Fix:** start the app again: it offers the backup copies it saved in the background ([Backup copies and crash recovery](autosave.md)).

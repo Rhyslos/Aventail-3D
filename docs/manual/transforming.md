@@ -46,9 +46,9 @@ Changes to points, edges and polygons are recorded on top of the shape's [base](
 Each drag is one undo step: **Ctrl + Z** takes it back in one go.
 
 **Where the gizmo sits:**
-- **One shape:** at its axis, its [pivot](concepts.md#objects-and-scenes). For a primitive, that's the middle of its base, until you move it (see [Pivots and the Object mode](pivots.md)).
+- **One shape:** at its axis, its [pivot](concepts.md#objects-and-scenes). For a primitive, that's the middle of its base, until you move it (see [Pivots and Edit pivot](pivots.md)).
 
-**In the Object mode**, Move and Rotate move and turn the **pivot** instead, and the shape stays where it is; see [Pivots and the Object mode](pivots.md).
+**With Edit pivot on** (a switch on the command palette, in the Model mode), Move and Rotate move and turn the **pivot** instead, and the shape stays where it is; see [Pivots and Edit pivot](pivots.md).
 - **Several shapes:** in the middle of their axes. They all turn and scale around that point.
 - **Points, edges and polygons:** in the middle of what's selected.
 
@@ -104,7 +104,7 @@ An object with a live mirror (the **Symmetry** button at the right end of the pa
 The **Coordinates** panel under the viewport shows the selection's **Position**, **Size** and **Rotation**. Click a number, type a new value and press **Enter**, or drag the number sideways.
 - Positions are in the world: where the shape's axis is, or the middle of the selected points.
 - Sizes and positions use the project's units (metres as standard; see [Units](pivots.md#units-metres-or-centimetres)).
-- Rotation is in degrees: **H** (heading) turns around Z, **P** (pitch) tilts, **B** (bank) rolls.
+- Rotation is in degrees, one row per axis it turns around, in the axes' colours: **Z** turns left and right, **X** tilts forwards and back, **Y** rolls sideways.
 
 Each typed value or drag is one undo step.
 
@@ -156,7 +156,7 @@ What the fields show:
 - [Editing UVs by hand](editing-uvs.md): the same gizmo in the UV Editor
 - [Apply transforms](apply-transforms.md): reset an object's rotation and scale, keeping its look
 - [Symmetry](symmetry.md)
-- [Pivots and the Object mode](pivots.md)
+- [Pivots and Edit pivot](pivots.md)
 - [Points, Edges and Polygons modes](modes.md)
 - [Concepts: pivot, axes and grid](concepts.md#objects-and-scenes), [base and edits](concepts.md#objects-and-scenes)
 - [Attributes](attributes.md) (the Edits section)

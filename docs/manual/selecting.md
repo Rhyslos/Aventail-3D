@@ -68,10 +68,10 @@ In every pattern, a click with the "adds" key on something already selected unse
 
 ### Selecting through, or only what you can see
 
-As standard, a box, lasso or brush **selects through the shape**: the points, edges and polygons on its far side are caught too. That's what you want for, say, selecting the whole top half of a model in one go.
+As standard, **Select only visible** is on: a box, lasso or brush takes only what you can see, the side facing you, so nothing on the back gets caught by surprise.
 
-Sometimes you only want the side facing you. Switch on **Select only visible**:
-- the button on the left palette, just above the grid button (a box with faint hidden edges, filled red when on);
+Sometimes you want to **select through the shape**, catching the points, edges and polygons on its far side too: say, the whole top half of a model in one go. Switch **Select only visible** off:
+- the button on the left palette, just above the grid button (a box with faint hidden edges, filled with the accent colour when on);
 - or **Select → Select only visible**;
 - or **Edit → Settings… → Viewport → Selecting**.
 
@@ -110,7 +110,7 @@ Each mode remembers its own selection. Select some points, switch to Polygons mo
 
 | Setting | What it does |
 |---|---|
-| **Select only visible** | Off (standard): the box, lasso and brush select through the shape, the far side too. On: only what you can see. Left palette, Select menu or Settings. |
+| **Select only visible** | On (standard): the box, lasso and brush select only what you can see. Off: they select through the shape, the far side too. Left palette, Select menu or Settings. |
 | **Selection keys** | Which key adds and which removes: Ctrl adds, Shift removes (standard); Shift adds, Ctrl removes; Ctrl flips; or Ctrl adds, Alt removes. In Settings → Viewport. |
 | **Brush size** | How big the Paint select brush is. Ctrl + mouse wheel while the brush is active. The circle around the mouse shows it. |
 
@@ -135,7 +135,8 @@ Each mode remembers its own selection. Select some points, switch to Polygons mo
 ## Tips and common problems
 
 - **Problem:** dragging a box selects nothing in Points mode. **Why:** no shape is selected, so there are no points to select (the status bar says so). **Fix:** press `1` again to go back to Model mode, click the shape, then press `1`.
-- **Problem:** a box selected points on the back I didn't want. **Why:** selecting through is the standard. **Fix:** switch on **Select only visible**, or Shift + drag over the unwanted ones.
+- **Problem:** a box selected points on the back I didn't want. **Why:** **Select only visible** is off, so the box selects through. **Fix:** switch it back on, or Shift + drag over the unwanted ones.
+- **Problem:** a box missed the points on the back. **Why:** **Select only visible** is on (the standard). **Fix:** switch it off on the left palette to select through.
 - **Problem:** a double-click only selects one edge. **Why:** the loop can't continue: it reached a corner where three edges meet (every corner of a plain cube), a triangle or an n-gon. **Fix:** this is normal; add segments, or select the rest with Ctrl + click.
 - **Problem:** dragging with the left button moves the view instead. **Why:** you're holding Alt, which navigates. **Fix:** let go of Alt. (With the **Ctrl adds, Alt removes** pattern, switch off **Alt + mouse works in every scheme** in Settings if you want Alt + drag to remove.)
 - **Problem:** a double-click selects only the edge, not the loop. **Why:** the clicks were too far apart in time (more than half a second) or place. **Fix:** double-click a little quicker, without moving the mouse in between.

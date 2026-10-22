@@ -66,6 +66,6 @@ There are no keys of their own yet.
 
 ## Related
 
-- [Pivots and the Object mode](pivots.md)
+- [Pivots and Edit pivot](pivots.md)
 - [Move, rotate and scale](transforming.md)
 - [Concepts: pivot, world axes](concepts.md#objects-and-scenes)
