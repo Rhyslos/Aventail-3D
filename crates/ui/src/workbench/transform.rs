@@ -289,6 +289,21 @@ impl Workbench {
             }
         }
         ui.separator();
+        // Edit pivot: the Object mode as a switch (decision 0126).
+        if ui
+            .add(egui::Button::selectable(
+                self.mode == crate::palette::Mode::Object,
+                crate::palette::EDIT_PIVOT_LABEL,
+            ))
+            .on_hover_text(
+                "Move and turn the selected objects' pivots (the point they turn and scale \
+                 around), not their shapes. Also on the top palette, by the axis switches.",
+            )
+            .clicked()
+        {
+            self.toggle_edit_pivot();
+            ui.close();
+        }
         // Placing pivots (decision 0068).
         for command in [
             CommandId::PivotToCentre,

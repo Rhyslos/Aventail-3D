@@ -44,7 +44,7 @@ impl Workbench {
                 action: SearchAction::Command(command),
             });
         }
-        for mode in Mode::ALL {
+        for mode in Mode::SHOWN {
             out.push(SearchEntry {
                 name: format!("{} mode", mode.name()),
                 place: "Modes".into(),
@@ -179,6 +179,7 @@ impl Workbench {
                 let options = self.viewport.options_mut();
                 options.high_contrast = !options.high_contrast;
             }
+            MenuAction::EditPivot => self.toggle_edit_pivot(),
             MenuAction::Group => requests.push(DocRequest::Run(scene::Command::Create(
                 scene::ObjectKind::Group,
             ))),

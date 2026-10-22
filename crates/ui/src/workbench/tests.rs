@@ -246,13 +246,44 @@ fn the_modes_menu_selects_a_mode_too() {
 }
 
 #[test]
-fn commands_that_are_not_built_yet_cannot_be_clicked() {
-    let harness = fresh();
-    let label = "Find a command";
+fn five_modes_and_edit_pivot_is_a_switch() {
+    // The Object mode is the Model mode with Edit pivot on (decision 0126).
+    let mut harness = fresh();
+    assert!(harness.query_by_label_contains("Object mode").is_none());
+    harness
+        .get_by_label(crate::palette::EDIT_PIVOT_LABEL)
+        .click();
+    harness.run();
+    assert_eq!(harness.state().workbench.mode(), Mode::Object);
+    // The Model mode shows as the one in use.
     assert!(
-        harness.get_by_label(label).accesskit_node().is_disabled(),
-        "{label} should be disabled until it is built"
+        harness
+            .get_by_label_contains("Model mode")
+            .accesskit_node()
+            .is_selected()
+            .unwrap_or(true)
     );
+    harness
+        .get_by_label(crate::palette::EDIT_PIVOT_LABEL)
+        .click();
+    harness.run();
+    assert_eq!(harness.state().workbench.mode(), Mode::Model);
+    // From the Points mode it goes to the Model mode with Edit pivot on.
+    harness.state_mut().workbench.mode = Mode::Points;
+    harness.run();
+    harness
+        .get_by_label(crate::palette::EDIT_PIVOT_LABEL)
+        .click();
+    harness.run();
+    assert_eq!(harness.state().workbench.mode(), Mode::Object);
+}
+
+#[test]
+fn the_palette_search_button_opens_command_search() {
+    let mut harness = fresh();
+    harness.get_by_label(crate::palette::SEARCH_LABEL).click();
+    harness.run();
+    assert!(harness.state().workbench.is_search_open());
 }
 
 #[test]

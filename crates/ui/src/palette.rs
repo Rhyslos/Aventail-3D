@@ -48,11 +48,22 @@ impl Mode {
         Self::Uv,
     ];
 
+    /// The five modes people see (decision 0126): the Object mode is the
+    /// Model mode with Edit pivot on, switched on the top palette and in
+    /// the Tools menu.
+    pub const SHOWN: [Mode; 5] = [
+        Self::Model,
+        Self::Points,
+        Self::Edges,
+        Self::Polygons,
+        Self::Uv,
+    ];
+
     /// The mode's name.
     pub fn name(self) -> &'static str {
         match self {
             Self::Model => "Model",
-            Self::Object => "Object",
+            Self::Object => "Model (Edit pivot)",
             Self::Points => "Points",
             Self::Edges => "Edges",
             Self::Polygons => "Polygons",
@@ -64,7 +75,9 @@ impl Mode {
     pub fn description(self) -> &'static str {
         match self {
             Self::Model => "Work on whole objects",
-            Self::Object => "Work on whole objects, including their axis (pivot)",
+            Self::Object => {
+                "Work on whole objects' pivots: the gizmo moves and turns the pivot, not the shape"
+            }
             Self::Points => "Work on points (vertices)",
             Self::Edges => "Work on edges",
             Self::Polygons => "Work on polygons (faces)",
@@ -235,7 +248,16 @@ pub enum PaletteCommand {
     ToggleSnapping,
     /// Turn the selected objects' live mirror on or off.
     ToggleSymmetry,
+    /// Turn Edit pivot on or off (decision 0126).
+    ToggleEditPivot,
+    /// Open command search.
+    Search,
 }
+
+/// The Edit pivot switch's name (decision 0126).
+pub const EDIT_PIVOT_LABEL: &str = "Edit pivot";
+/// The command palette's search button.
+pub const SEARCH_LABEL: &str = "Command search";
 
 /// One command on the top palette: one that works, or one that is not
 /// built yet (saying when it arrives).
@@ -307,6 +329,8 @@ pub struct PaletteState {
     pub snapping: bool,
     /// Whether the selected objects have a live mirror.
     pub symmetry: bool,
+    /// Whether Edit pivot is on (the Object mode).
+    pub edit_pivot: bool,
 }
 
 /// What the Symmetry switch does, for its tooltips.
@@ -455,9 +479,10 @@ pub fn command_palette(
                         active = state.symmetry;
                         (true, command.arrives.to_string())
                     }
-                    PaletteCommand::Lock(_) | PaletteCommand::ToggleAxes => {
-                        (true, command.arrives.to_string())
-                    }
+                    PaletteCommand::Lock(_)
+                    | PaletteCommand::ToggleAxes
+                    | PaletteCommand::ToggleEditPivot
+                    | PaletteCommand::Search => (true, command.arrives.to_string()),
                 };
                 let button_state = if active {
                     ButtonState::Active
@@ -503,16 +528,38 @@ pub fn command_palette(
                 if icon_button(ui, Icon::World, AXES_LABEL, axes_note, axes_state).clicked() {
                     clicked = Some(PaletteCommand::ToggleAxes);
                 }
+                let (pivot_state, pivot_note) = if state.edit_pivot {
+                    (
+                        ButtonState::Active,
+                        "Edit pivot is on: the gizmo moves and turns the selected objects' \
+                         pivots, not their shapes.\nClick to turn it off.",
+                    )
+                } else {
+                    (
+                        ButtonState::Normal,
+                        "Edit pivot: move and turn the selected objects' pivots (the point \
+                         they turn and scale around), not their shapes",
+                    )
+                };
+                if icon_button(ui, Icon::ObjectMode, EDIT_PIVOT_LABEL, pivot_note, pivot_state)
+                    .clicked()
+                {
+                    clicked = Some(PaletteCommand::ToggleEditPivot);
+                }
             }
         }
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            icon_button(
+            if icon_button(
                 ui,
                 Icon::Search,
-                "Find a command",
-                "Arrives later",
-                ButtonState::Unavailable,
-            );
+                SEARCH_LABEL,
+                "Find any command by typing part of its name (Space)",
+                ButtonState::Normal,
+            )
+            .clicked()
+            {
+                clicked = Some(PaletteCommand::Search);
+            }
         });
     });
     clicked
@@ -696,11 +743,17 @@ pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Op
     let mut picked = None;
     ui.vertical_centered(|ui| {
         ui.spacing_mut().item_spacing.y = 2.0;
-        for (index, mode) in Mode::ALL.into_iter().enumerate() {
-            if index == 2 {
+        for (index, mode) in Mode::SHOWN.into_iter().enumerate() {
+            if index == 1 {
                 divider(ui, false);
             }
-            let state = if mode == current {
+            // With Edit pivot on, the Model mode shows as the one in use.
+            let shown = if current == Mode::Object {
+                Mode::Model
+            } else {
+                current
+            };
+            let state = if mode == shown {
                 ButtonState::Active
             } else {
                 ButtonState::Normal
@@ -713,13 +766,6 @@ pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Op
             }
         }
         divider(ui, false);
-        icon_button(
-            ui,
-            Icon::Workplane,
-            "Workplane",
-            "Arrives later",
-            ButtonState::Unavailable,
-        );
         if icon_button(
             ui,
             Icon::Solo,
@@ -773,11 +819,8 @@ mod tests {
 
     #[test]
     fn modes_have_distinct_names_and_icons() {
-        let names: Vec<_> = Mode::ALL.iter().map(|m| m.name()).collect();
-        assert_eq!(
-            names,
-            ["Model", "Object", "Points", "Edges", "Polygons", "UV"]
-        );
+        let names: Vec<_> = Mode::SHOWN.iter().map(|m| m.name()).collect();
+        assert_eq!(names, ["Model", "Points", "Edges", "Polygons", "UV"]);
         for (i, a) in Mode::ALL.iter().enumerate() {
             for b in &Mode::ALL[i + 1..] {
                 assert_ne!(a.icon(), b.icon());

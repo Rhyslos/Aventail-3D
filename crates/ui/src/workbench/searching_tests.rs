@@ -93,7 +93,9 @@ fn help_has_the_manual_search_and_a_developer_menu_and_view_has_show_and_hide() 
     );
     super::super::tests::main_menu(&harness, "Help").click();
     harness.run();
-    harness.get_by_label_contains(super::super::SEARCH_ENTRY).click();
+    harness
+        .get_by_label_contains(super::super::SEARCH_ENTRY)
+        .click();
     harness.run();
     assert!(harness.state().workbench.is_search_open());
     harness.key_press(Key::Escape);

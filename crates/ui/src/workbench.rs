@@ -1024,6 +1024,7 @@ impl Workbench {
             axes: self.viewport.options().axes,
             snapping: self.viewport.options().snap.on,
             symmetry: self.selected_mirror().is_some(),
+            edit_pivot: self.mode == Mode::Object,
         };
         // The Symmetry menu changes a copy of the selected objects' mirror
         // settings (or those kept for the next mirror), kept if it
@@ -1065,6 +1066,14 @@ impl Workbench {
                         }
                         PaletteCommand::ToggleSymmetry => {
                             self.toggle_symmetry();
+                            return;
+                        }
+                        PaletteCommand::ToggleEditPivot => {
+                            self.toggle_edit_pivot();
+                            return;
+                        }
+                        PaletteCommand::Search => {
+                            self.search.open();
                             return;
                         }
                         PaletteCommand::Undo => DocRequest::Undo,
@@ -1725,8 +1734,10 @@ impl Workbench {
             );
         });
         crate::dialog::menu(ui, "Modes", |ui| {
-            for mode in Mode::ALL {
-                let mut entry = egui::Button::selectable(self.mode == mode, mode.name());
+            for mode in Mode::SHOWN {
+                let current =
+                    self.mode == mode || (mode == Mode::Model && self.mode == Mode::Object);
+                let mut entry = egui::Button::selectable(current, mode.name());
                 if let Some(key) = mode.key() {
                     entry = entry.shortcut_text(key.name());
                 }
@@ -1970,6 +1981,23 @@ pub(crate) const UV_EDITOR_ENTRY: &str = "UV Editor";
 pub(crate) const HEAVY_TEST_POLYGONS: usize = 3_000_000;
 
 impl Workbench {
+    /// Edit pivot on or off (decision 0126): the Object mode is the Model
+    /// mode with Edit pivot on. From an element mode, it goes to the Model
+    /// mode with Edit pivot on.
+    pub(crate) fn toggle_edit_pivot(&mut self) {
+        if self.mode == Mode::Object {
+            self.mode = Mode::Model;
+            self.note = Some("Edit pivot off: the gizmo moves the objects again.".into());
+        } else {
+            self.mode = Mode::Object;
+            self.note = Some(
+                "Edit pivot on: the gizmo moves and turns the pivots, not the shapes. \
+                 Click Edit pivot again (or press Tab) to stop."
+                    .into(),
+            );
+        }
+    }
+
     /// Adds a bumpy ball of [`HEAVY_TEST_POLYGONS`] polygons, 2 m tall, as
     /// one undo step: for trying how the app copes with heavy shapes
     /// (DESIGN.md §4.8).

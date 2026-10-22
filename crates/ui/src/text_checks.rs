@@ -69,7 +69,9 @@ fn no_arrives_later_placeholders_are_shown() {
                 continue;
             }
             let lower = line.to_lowercase();
-            if (lower.contains("\"arrives in") || lower.contains(" arrives in phase"))
+            if (lower.contains("\"arrives in")
+                || lower.contains(" arrives in phase")
+                || lower.contains("arrives later"))
                 && line.contains('"')
             {
                 found.push(format!("{}:{}: {}", path.display(), n + 1, code));

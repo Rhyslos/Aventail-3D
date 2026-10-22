@@ -17,7 +17,7 @@ pub(crate) const SEARCH_KEY: Key = Key::Space;
 pub(crate) const MAX_SHOWN: usize = 12;
 
 /// The search box's accessible name.
-pub(crate) const SEARCH_LABEL: &str = "Search for a command";
+pub(crate) const SEARCH_LABEL: &str = "Command search box";
 
 /// What a found entry does.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -62,11 +62,12 @@ pub(crate) enum MenuAction {
     ShowSeams,
     ShowNormals,
     HighContrast,
+    EditPivot,
     Group,
 }
 
 impl MenuAction {
-    pub(crate) const ALL: [MenuAction; 28] = [
+    pub(crate) const ALL: [MenuAction; 29] = [
         Self::New,
         Self::Open,
         Self::Save,
@@ -94,6 +95,7 @@ impl MenuAction {
         Self::ShowSeams,
         Self::ShowNormals,
         Self::HighContrast,
+        Self::EditPivot,
         Self::Group,
     ];
 
@@ -186,6 +188,11 @@ impl MenuAction {
                 "High contrast",
                 "Settings",
                 "Draw the selection larger, with a dark rim",
+            ),
+            Self::EditPivot => (
+                "Edit pivot",
+                "Tools",
+                "Move and turn the selected objects' pivots, not their shapes",
             ),
             Self::Group => (
                 "Group",
