@@ -61,9 +61,21 @@ enum Style {
 pub(super) fn add_uvs(mesh: &mut Mesh, kind: PrimitiveKind) {
     let style = match kind {
         PrimitiveKind::Cube => Style::Box,
-        PrimitiveKind::Plane | PrimitiveKind::Disc => Style::Flat,
+        PrimitiveKind::Plane | PrimitiveKind::Disc | PrimitiveKind::HexGrid => Style::Flat,
         PrimitiveKind::Cylinder | PrimitiveKind::Cone | PrimitiveKind::Tube => Style::Round,
-        PrimitiveKind::Sphere => Style::Ball,
+        PrimitiveKind::Sphere | PrimitiveKind::Icosphere | PrimitiveKind::HexSphere => Style::Ball,
+        // Built with their own UVs (decision 0129): only the seams to mark.
+        PrimitiveKind::Torus
+        | PrimitiveKind::Capsule
+        | PrimitiveKind::Dome
+        | PrimitiveKind::Elbow
+        | PrimitiveKind::Sector
+        | PrimitiveKind::Gear
+        | PrimitiveKind::Stairs
+        | PrimitiveKind::Arch => {
+            seams_from_splits(mesh);
+            return;
+        }
     };
     let charts = charts(mesh, style);
     let corner_count = mesh.face_layout().1.len();

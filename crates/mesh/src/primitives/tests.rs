@@ -344,14 +344,36 @@ fn every_kind_has_a_name() {
     assert_eq!(
         names,
         [
-            "Cube", "Plane", "Cylinder", "Sphere", "Disc", "Tube", "Cone"
+            "Cube",
+            "Plane",
+            "Cylinder",
+            "Sphere",
+            "Disc",
+            "Tube",
+            "Cone",
+            "Icosphere",
+            "Torus",
+            "Capsule",
+            "Dome",
+            "Pipe elbow",
+            "Pie sector",
+            "Gear",
+            "Hex grid",
+            "Hex sphere",
+            "Stairs",
+            "Arch",
         ]
     );
 }
 
 #[test]
 fn every_shape_is_a_metre_across_as_standard() {
-    for shape in Primitive::all() {
+    // The first seven; the newer kinds have sizes of their own (stairs
+    // deeper than wide, a capsule thinner than tall).
+    for shape in Primitive::all()
+        .into_iter()
+        .filter(|s| s.kind().in_first_files())
+    {
         let size = shape.bounds().size();
         assert_eq!(size.x, 100.0, "{shape:?}");
         assert_eq!(size.y, 100.0, "{shape:?}");
@@ -467,6 +489,33 @@ fn the_polygon_estimate_is_never_below_the_real_count() {
                         c.caps = round % 2 == 0;
                         c.top_radius = if round % 4 == 0 { 0.0 } else { 20.0 };
                     }
+                    Primitive::Icosphere(c) => c.subdivisions = next(5) - 1,
+                    Primitive::HexSphere(c) => c.subdivisions = next(5) - 1,
+                    Primitive::HexGrid(c) => c.rings = next(8) - 1,
+                    Primitive::Torus(c) => (c.sides, c.tube_sides) = (next(40), next(20)),
+                    Primitive::Capsule(c) => {
+                        (c.sides, c.cap_rings, c.height_segments) = (next(40), next(8), next(5));
+                    }
+                    Primitive::Dome(c) => {
+                        (c.sides, c.rings) = (next(40), next(10));
+                        c.base = round % 2 == 0;
+                    }
+                    Primitive::Elbow(c) => {
+                        (c.sides, c.segments) = (next(40), next(16));
+                        c.inner_radius = if round % 2 == 0 { 0.0 } else { 8.0 };
+                        c.angle = next(360) as f32;
+                    }
+                    Primitive::Sector(c) => {
+                        c.sides = next(40);
+                        c.inner_radius = if round % 2 == 0 { 0.0 } else { 20.0 };
+                        c.angle = next(360) as f32;
+                    }
+                    Primitive::Gear(c) => {
+                        c.teeth = next(40) + 2;
+                        c.hole_radius = if round % 2 == 0 { 0.0 } else { 10.0 };
+                    }
+                    Primitive::Stairs(c) => c.steps = next(30),
+                    Primitive::Arch(c) => c.segments = next(30) + 1,
                 }
             }
             let real = p.mesh().face_count();
