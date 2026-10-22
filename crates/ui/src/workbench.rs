@@ -1113,6 +1113,7 @@ impl Workbench {
                     Some(crate::palette::ModePick::Isolate) => {
                         self.hide(showing::Hiding::Others);
                     }
+                    Some(crate::palette::ModePick::EditPivot) => self.toggle_edit_pivot(),
                     None => {}
                 }
             });

@@ -263,6 +263,20 @@ fn five_modes_and_edit_pivot_is_a_switch() {
     // The Object mode is the Model mode with Edit pivot on (decision 0126).
     let mut harness = fresh();
     assert!(harness.query_by_label_contains("Object mode").is_none());
+    // The switch sits in the mode palette, right under the Model mode.
+    let model = harness.get_by_label("Model mode").rect();
+    let points = harness.get_by_label("Points mode").rect();
+    let pivot = harness
+        .get_by_label(crate::palette::EDIT_PIVOT_LABEL)
+        .rect();
+    assert!(
+        (pivot.center().x - model.center().x).abs() < 1.0,
+        "in the same column"
+    );
+    assert!(
+        pivot.min.y >= model.max.y && pivot.max.y <= points.min.y,
+        "between Model and Points"
+    );
     harness
         .get_by_label(crate::palette::EDIT_PIVOT_LABEL)
         .click();

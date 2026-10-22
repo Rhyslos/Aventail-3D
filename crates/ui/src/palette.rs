@@ -545,24 +545,6 @@ pub fn command_palette(
                 if icon_button(ui, Icon::World, AXES_LABEL, axes_note, axes_state).clicked() {
                     clicked = Some(PaletteCommand::ToggleAxes);
                 }
-                let (pivot_state, pivot_note) = if state.edit_pivot {
-                    (
-                        ButtonState::Active,
-                        "Edit pivot is on: the gizmo moves and turns the selected objects' \
-                         pivots, not their shapes.\nClick to turn it off.",
-                    )
-                } else {
-                    (
-                        ButtonState::Normal,
-                        "Edit pivot: move and turn the selected objects' pivots (the point \
-                         they turn and scale around), not their shapes",
-                    )
-                };
-                if icon_button(ui, Icon::ObjectMode, EDIT_PIVOT_LABEL, pivot_note, pivot_state)
-                    .clicked()
-                {
-                    clicked = Some(PaletteCommand::ToggleEditPivot);
-                }
             }
         }
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -775,6 +757,8 @@ pub enum ModePick {
     Mode(Mode),
     /// Isolate (as Ctrl + H does).
     Isolate,
+    /// Edit pivot switched on or off.
+    EditPivot,
 }
 
 /// Accessible name of the mode palette's isolate button.
@@ -807,6 +791,34 @@ pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Op
             let tint = tint::ICON;
             if tinted_button(ui, mode.icon(), tint, &label, &mode.tooltip(), state).clicked() {
                 picked = Some(ModePick::Mode(mode));
+            }
+            if mode == Mode::Model {
+                // Edit pivot sits under the Model mode it belongs to, where
+                // the Object mode was (the project lead's choice).
+                let (pivot_state, pivot_note) = if current == Mode::Object {
+                    (
+                        ButtonState::Active,
+                        "Edit pivot is on: the gizmo moves and turns the selected objects' \
+                         pivots, not their shapes.\nClick to turn it off.",
+                    )
+                } else {
+                    (
+                        ButtonState::Normal,
+                        "Edit pivot: move and turn the selected objects' pivots (the point \
+                         they turn and scale around), not their shapes",
+                    )
+                };
+                if icon_button(
+                    ui,
+                    Icon::ObjectMode,
+                    EDIT_PIVOT_LABEL,
+                    pivot_note,
+                    pivot_state,
+                )
+                .clicked()
+                {
+                    picked = Some(ModePick::EditPivot);
+                }
             }
         }
         divider(ui, false);

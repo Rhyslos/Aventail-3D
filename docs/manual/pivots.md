@@ -20,7 +20,7 @@ The **Edit pivot** switch is for exactly this. While it's on, the Move and Rotat
 ### Move or turn a pivot by hand
 
 1. **Select the object** (or several).
-2. **Switch Edit pivot on**: click the **Edit pivot** button on the top palette (three short arms, beside the World or object axes switch), or choose **Tools → Edit pivot**, or press **Space** and type *pivot* ([command search](command-search.md)). It has no key of its own. It belongs to the Model mode: switching it on from the Points, Edges or Polygons mode takes you to the Model mode first. The button stays lit, and the Model mode's button stays lit too, while it's on.
+2. **Switch Edit pivot on**: click the **Edit pivot** button in the mode palette on the left (three short arms, right under the Model mode), or choose **Tools → Edit pivot**, or press **Space** and type *pivot* ([command search](command-search.md)). It has no key of its own. It belongs to the Model mode: switching it on from the Points, Edges or Polygons mode takes you to the Model mode first. The button stays lit, and the Model mode's button stays lit too, while it's on.
 3. **Press W** for Move or **R** for Rotate, and drag the gizmo as usual (see [Move, rotate and scale](transforming.md)). The gizmo moves; the shape doesn't.
    - With **snapping** on (or Ctrl held), the pivot snaps to points, edges and polygons, including the object's own: drag the gizmo's middle onto a corner to put the pivot exactly there.
    - Turning the pivot changes which way the object's own axes point (press **L** for the object's axes to see them). Handy for a shape built at an angle.
@@ -74,7 +74,7 @@ Edit pivot has no key of its own.
 
 ## Tips and common problems
 
-- **Problem:** I moved the gizmo but the whole object moved. **Why:** Edit pivot is off. **Fix:** switch it on first; its button on the top palette is lit while it's on.
+- **Problem:** I moved the gizmo but the whole object moved. **Why:** Edit pivot is off. **Fix:** switch it on first; its button under the Model mode is lit while it's on.
 - **Problem:** the object won't move: only its gizmo does. **Why:** Edit pivot is still on. **Fix:** click the Edit pivot button again, or press **Tab**.
 - **Problem:** pressing S with Edit pivot on does nothing. **Why:** a pivot has no size. **Fix:** switch Edit pivot off to scale the object.
 - **Problem:** the pivot won't snap onto a corner. **Why:** snapping is off. **Fix:** hold **Ctrl** while dragging, or turn snapping on.
