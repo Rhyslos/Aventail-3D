@@ -236,6 +236,19 @@ fn b_and_alt_b_switch_between_the_lists() {
     press(&mut harness, Modifiers::ALT, SHAPE_LIST_KEY);
     assert_eq!(picker(&harness), Some(ShapeList::More));
     assert_eq!(highlighted(&harness), Some(ShapeList::More.kinds()[0]));
+    // Once More is open, B goes on down it (the project lead's find: it
+    // used to switch back to the basic list), and Shift + B back up.
+    let more = ShapeList::More.kinds();
+    press(&mut harness, Modifiers::NONE, SHAPE_LIST_KEY);
+    assert_eq!(picker(&harness), Some(ShapeList::More));
+    assert_eq!(highlighted(&harness), Some(more[1]));
+    press(&mut harness, Modifiers::NONE, SHAPE_LIST_KEY);
+    assert_eq!(highlighted(&harness), Some(more[2]));
+    press(&mut harness, Modifiers::SHIFT, SHAPE_LIST_KEY);
+    assert_eq!(highlighted(&harness), Some(more[1]));
+    press(&mut harness, Modifiers::NONE, Key::Enter);
+    assert_eq!(kinds(&harness), [more[1]]);
+    // After it closes, B opens the basic list again.
     press(&mut harness, Modifiers::NONE, SHAPE_LIST_KEY);
     assert_eq!(picker(&harness), Some(ShapeList::Basic));
     assert_eq!(highlighted(&harness), Some(basic()[0]));

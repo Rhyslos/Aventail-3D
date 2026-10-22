@@ -2,7 +2,8 @@
 //! by the mouse, press `B` again to move down it (`Shift + B` to move up,
 //! or the arrow keys), and `Enter` or `Space` to create the highlighted
 //! shape. `Alt + B` opens the list of the other shapes the same way
-//! (`Shift + Alt + B` to move up), so no shape is in both (decision 0130).
+//! (`Shift + Alt + B` to move up), so no shape is in both (decision 0130);
+//! once a list is open, `B` and `Shift + B` move through that list.
 //! `Esc` or a click elsewhere closes a list; clicking a shape creates it.
 
 use crate::icons;
@@ -47,9 +48,7 @@ impl ShapeList {
             Self::Basic => {
                 "B: next · Shift + B: back · Enter or Space: create · Alt + B: more shapes"
             }
-            Self::More => {
-                "Alt + B: next · Shift + Alt + B: back · Enter or Space: create · B: basic shapes"
-            }
+            Self::More => "B or Alt + B: next · Shift + B: back · Enter or Space: create",
         }
     }
 }
@@ -125,14 +124,18 @@ impl ShapePicker {
         let more = !more_back && pressed(ui, Modifiers::ALT, SHAPE_LIST_KEY);
         let back = pressed(ui, Modifiers::SHIFT, SHAPE_LIST_KEY);
         let forward = !back && pressed(ui, Modifiers::NONE, SHAPE_LIST_KEY);
+        // Alt + B means the More list; plain B means whichever list is
+        // open (the project lead's choice: Alt + B, then B, B, B goes down
+        // the More list), or opens the basic one.
         let (list, forward, back) = if more || more_back {
             (ShapeList::More, more, more_back)
         } else {
-            (ShapeList::Basic, forward, back)
+            let open = self.open.map_or(ShapeList::Basic, |o| o.list);
+            (open, forward, back)
         };
         let count = list.kinds().len();
-        // Opening, or switching to the other list: from its first shape
-        // (or its last, going back).
+        // Opening, or switching to the More list: from its first shape (or
+        // its last, going back).
         if (forward || back) && self.open.is_none_or(|o| o.list != list) {
             let at = self.open.map(|o| o.at).unwrap_or_else(|| {
                 ui.input(|i| i.pointer.latest_pos())

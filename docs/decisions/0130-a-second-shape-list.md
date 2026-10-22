@@ -11,7 +11,7 @@ With eighteen shapes, the B list got long, and the shapes used most were mixed i
 ## Decision
 
 - **B** opens the seven basic shapes (cube, plane, cylinder, sphere, disc, tube, cone) as before; **Shift + B** opens it at the bottom.
-- **Alt + B** opens the eleven others (icosphere to arch); **Shift + Alt + B** opens it at the bottom. Each key moves down its own list, and pressing the other list's key while one is open switches to it.
+- **Alt + B** opens the eleven others (icosphere to arch); **Shift + Alt + B** opens it at the bottom. Once a list is open, **B** and **Shift + B** move through that list (the project lead's choice, 2026-10-23: Alt + B, then B, B, B goes down the More list); Alt + B while the basic list is open switches to the More list.
 - The Create menu keeps every shape, with a line between the two groups.
 - Alt + B was free: Alt with the mouse turns the view, but Alt + B on its own wasn't bound.
 
