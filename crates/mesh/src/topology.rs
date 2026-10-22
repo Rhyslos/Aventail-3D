@@ -385,9 +385,10 @@ impl Topology {
 
     /// The edge loop through `edge`: the chain of edges running straight
     /// on through points where four quads meet (like a belt around the
-    /// mesh), or along the open border when `edge` is on one. It stops at
-    /// poles (points with more or fewer than four edges), n-gons,
-    /// triangles and borders. Starts with `edge`, then runs one way and,
+    /// mesh), along the open border when `edge` is on one, or round the
+    /// rim of the one n-gon it borders (a cylinder's cap) where it can't go
+    /// straight on. Otherwise it stops at poles (points with more or fewer
+    /// than four edges), n-gons, triangles and borders. Starts with `edge`, then runs one way and,
     /// if the loop isn't closed, the other way, each in walking order.
     /// Just `edge` when it can't continue; empty for an unknown edge.
     pub fn edge_loop(&self, edge: EdgeKey) -> Vec<EdgeKey> {
@@ -399,6 +400,7 @@ impl Topology {
                 self.next_along_border(from, at)
             } else {
                 self.next_through_quads(from, at)
+                    .or_else(|| self.next_around_n_gon(from, at))
             }
         };
         let (a, b) = edge.ends();
@@ -446,6 +448,29 @@ impl Topology {
             .filter(|e| **e != from && !self.edge_faces(**e).any(|f| beside.contains(&f)));
         let found = *candidates.next()?;
         candidates.next().is_none().then_some(found)
+    }
+
+    /// Round the rim of an n-gon (a polygon of five or more sides) `from`
+    /// lies on, where the loop can't go straight on through quads: the
+    /// n-gon's other edge at `at`. A cylinder's cap is one n-gon, so a
+    /// double-click on its rim selects the rim, as an open border's does.
+    /// Only when `from` borders exactly one n-gon.
+    fn next_around_n_gon(&self, from: EdgeKey, at: VertexId) -> Option<EdgeKey> {
+        let mut n_gons = self
+            .edge_faces(from)
+            .filter(|f| self.face_edges(*f).len() > 4);
+        let n_gon = n_gons.next()?;
+        if n_gons.next().is_some() {
+            return None;
+        }
+        let mut others = self.face_edges(n_gon).iter().filter(|e| {
+            **e != from && {
+                let (a, b) = e.ends();
+                a == at || b == at
+            }
+        });
+        let found = *others.next()?;
+        others.next().is_none().then_some(found)
     }
 
     /// Along the open border through `at`: the other border edge there,

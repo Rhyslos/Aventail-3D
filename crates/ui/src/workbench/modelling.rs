@@ -580,8 +580,8 @@ impl Workbench {
                         "Groove works on edges: press 2 for the Edges mode and select some."
                     }
                     _ => {
-                        "Extrude works on polygons or edges: press 3 for the Polygons mode \
-                         (or 2 for Edges) and select some."
+                        "Extrude works on polygons, edges or points: press 3 for the Polygons \
+                         mode (2 for Edges, 1 for Points) and select some."
                     }
                 }
                 .into());
@@ -616,7 +616,11 @@ impl Workbench {
                     (Elements::Points(points), corners)
                 }
                 ElementKind::Edges => {
-                    let edges: Vec<EdgeKey> = valid.edges().collect();
+                    let edges: Vec<EdgeKey> = if self.mode == Mode::Points {
+                        edges_between_points(&item.mesh, &valid)
+                    } else {
+                        valid.edges().collect()
+                    };
                     let corners = edges
                         .iter()
                         .map(|e| {
@@ -665,6 +669,15 @@ impl Workbench {
             });
         }
         let Some(bounds) = Bounds::around(points) else {
+            if self.mode == Mode::Points && tool == Tool::Extrude {
+                self.note = Some(
+                    "Extrude: select two or more points next to each other along an open \
+                     edge (the edge of a plane, or a hole), and the edges between them grow \
+                     new polygons."
+                        .into(),
+                );
+                return None;
+            }
             self.note = Some(format!(
                 "{}: select some {} first.",
                 tool.name(),
@@ -762,9 +775,19 @@ impl Workbench {
                 continue;
             };
             let mut selection = self.document.elements(part.id).cloned().unwrap_or_default();
-            selection.clear_kind(ElementKind::Edges);
-            for edge in outer_edges(&shape.mesh, edges) {
-                selection.insert(scene::Element::Edge(edge));
+            if self.mode == Mode::Points {
+                // Extruded from points: the new outer points, to press on.
+                selection.clear_kind(ElementKind::Points);
+                for edge in outer_edges(&shape.mesh, edges) {
+                    let (a, b) = edge.ends();
+                    selection.insert(scene::Element::Point(a));
+                    selection.insert(scene::Element::Point(b));
+                }
+            } else {
+                selection.clear_kind(ElementKind::Edges);
+                for edge in outer_edges(&shape.mesh, edges) {
+                    selection.insert(scene::Element::Edge(edge));
+                }
             }
             changes.push((part.id, selection));
         }
@@ -854,11 +877,30 @@ fn world_facing(mesh: &scene::Mesh, world: Mat4, elements: &Elements) -> Vec3 {
     }
 }
 
+/// The open-border edges whose two ends are both among the selected
+/// points: what Extrude grows from in the Points mode (decision 0127).
+/// Edges inside the shape (polygons on both sides) have no open side to
+/// grow from, so they're left out.
+fn edges_between_points(mesh: &scene::Mesh, selected: &scene::ElementSelection) -> Vec<EdgeKey> {
+    let topology = mesh.topology();
+    topology
+        .border_edges()
+        .into_iter()
+        .filter(|e| {
+            let (a, b) = e.ends();
+            selected.contains(scene::Element::Point(a))
+                && selected.contains(scene::Element::Point(b))
+        })
+        .collect()
+}
+
 /// What the modelling tool in use works on in `mode`, if anything.
 fn kind_for(mode: Mode, tool: Tool) -> Option<ElementKind> {
     match (mode, tool) {
         (Mode::Polygons, Tool::Extrude | Tool::Inset) => Some(ElementKind::Polygons),
         (Mode::Edges, Tool::Extrude | Tool::Bevel | Tool::Groove) => Some(ElementKind::Edges),
+        // Extruding points grows the open edges between them (decision 0127).
+        (Mode::Points, Tool::Extrude) => Some(ElementKind::Edges),
         (Mode::Points, Tool::Bevel) => Some(ElementKind::Points),
         _ => None,
     }

@@ -505,6 +505,148 @@ fn border_edges_extrude_and_the_selection_follows() {
 }
 
 #[test]
+fn points_along_an_open_edge_extrude_the_edges_between_them() {
+    // The project lead's ask (decision 0127): select points and extrude,
+    // and the open edges between them grow polygons, so a shape can be
+    // drawn out from points, as from the side in an orthographic view.
+    let mut harness = fresh();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::Create(scene::ObjectKind::Primitive(
+            scene::Primitive::Plane(Default::default()),
+        )))
+        .unwrap();
+    harness.run();
+    let plane = *harness
+        .state()
+        .workbench
+        .document()
+        .selection()
+        .first()
+        .unwrap();
+    press(&mut harness, Modifiers::NONE, Key::Num1);
+    let mesh = |h: &H| {
+        h.state()
+            .workbench
+            .document()
+            .scene()
+            .evaluated(plane)
+            .unwrap()
+            .mesh
+    };
+    // The two points on the plane's +X side.
+    let start = mesh(&harness);
+    let right: Vec<scene::VertexId> = start
+        .vertices()
+        .filter(|(_, p)| p.x > 49.0)
+        .map(|(v, _)| v)
+        .collect();
+    assert_eq!(right.len(), 2);
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .select_elements(
+            [(
+                plane,
+                ElementSelection::of(right.iter().map(|v| Element::Point(*v))),
+            )],
+            "Select",
+            None,
+        );
+    harness.run();
+    press(&mut harness, Modifiers::NONE, Key::D);
+    let way = screen_x(&harness, 80.0);
+    let from = empty_spot(&harness);
+    drag_by(&mut harness, from, way);
+    assert_eq!(mesh(&harness).face_count(), 2, "a new polygon");
+    assert_eq!(
+        harness.state().workbench.document().undo_label(),
+        Some("Extrude 1 edge")
+    );
+    assert!(mesh(&harness).bounds().unwrap().max.x > 51.0);
+    // The new outer points are selected, so the next drag carries on.
+    let selected = harness
+        .state()
+        .workbench
+        .document()
+        .elements(plane)
+        .unwrap()
+        .clone();
+    assert_eq!(selected.count(scene::ElementKind::Points), 2);
+    assert!(right.iter().all(|v| !selected.contains(Element::Point(*v))));
+    drag_by(&mut harness, from, way);
+    assert_eq!(mesh(&harness).face_count(), 3);
+}
+
+#[test]
+fn points_with_no_open_edge_between_them_say_what_to_do() {
+    // One point, or two across the plane (no edge joins them): nothing
+    // to grow, and the status bar says why.
+    let mut harness = fresh();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::Create(scene::ObjectKind::Primitive(
+            scene::Primitive::Plane(Default::default()),
+        )))
+        .unwrap();
+    harness.run();
+    let plane = *harness
+        .state()
+        .workbench
+        .document()
+        .selection()
+        .first()
+        .unwrap();
+    press(&mut harness, Modifiers::NONE, Key::Num1);
+    let start = harness
+        .state()
+        .workbench
+        .document()
+        .scene()
+        .evaluated(plane)
+        .unwrap()
+        .mesh;
+    let corners: Vec<(scene::VertexId, glam::Vec3)> = start.vertices().collect();
+    let (a, pa) = corners[0];
+    let (opposite, _) = *corners
+        .iter()
+        .max_by(|x, y| x.1.distance(pa).total_cmp(&y.1.distance(pa)))
+        .unwrap();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .select_elements(
+            [(
+                plane,
+                ElementSelection::of([Element::Point(a), Element::Point(opposite)]),
+            )],
+            "Select",
+            None,
+        );
+    harness.run();
+    press(&mut harness, Modifiers::NONE, Key::D);
+    let way = screen_x(&harness, 80.0);
+    let from = empty_spot(&harness);
+    drag_by(&mut harness, from, way);
+    let after = harness
+        .state()
+        .workbench
+        .document()
+        .scene()
+        .evaluated(plane)
+        .unwrap()
+        .mesh;
+    assert_eq!(after.face_count(), 1, "nothing grown");
+    assert!(note(&harness).contains("open"), "{}", note(&harness));
+}
+
+#[test]
 fn extrude_follows_the_way_the_polygon_faces_on_screen() {
     // The cube's +X side: dragging the way +X points on screen pushes it
     // out, the other way pushes it in, whichever way that is on screen.

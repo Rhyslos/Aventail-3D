@@ -290,7 +290,8 @@ impl CommandId {
                 Icon::Extrude,
                 plain(Key::D),
                 "Push the selected polygons or edges out, building new sides between \
-                 the old place and the new",
+                 the old place and the new. With points selected along an open edge, \
+                 the edges between them grow new polygons",
                 None,
             ),
             Self::Inset => (
@@ -565,7 +566,8 @@ impl CommandId {
             | Self::PivotToOrigin
             | Self::PivotToObject
             | Self::ObjectToOrigin => &[Object],
-            Self::Extrude | Self::Bridge => &[Edges, Polygons],
+            Self::Extrude => &[Points, Edges, Polygons],
+            Self::Bridge => &[Edges, Polygons],
             Self::Inset | Self::FlipNormals => &[Polygons],
             Self::Bevel | Self::Connect => &[Points, Edges],
             Self::Groove => &[Edges],

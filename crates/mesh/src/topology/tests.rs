@@ -431,3 +431,73 @@ fn the_other_end_of_an_edge() {
     assert_eq!(other_end(e(3, 7), v(3)), v(7));
     assert_eq!(other_end(e(3, 7), v(7)), v(3));
 }
+
+#[test]
+fn a_loop_on_a_caps_rim_runs_round_the_cap() {
+    // The project lead's find: a double-click on a cylinder's top edge
+    // selected one edge, as the rim's points aren't where four quads meet.
+    let params = CylinderParams {
+        sides: 12,
+        height_segments: 2,
+        ..CylinderParams::default()
+    };
+    let mesh = Primitive::Cylinder(params).mesh();
+    let topology = Topology::new(&mesh);
+    let cap = mesh
+        .faces()
+        .map(|(f, _)| f)
+        .find(|f| topology.face_edges(*f).len() == 12)
+        .expect("a 12-sided cap");
+    let rim: BTreeSet<EdgeKey> = topology.face_edges(cap).iter().copied().collect();
+    for start in &rim {
+        let found: BTreeSet<EdgeKey> = topology.edge_loop(*start).into_iter().collect();
+        assert_eq!(found, rim, "the whole rim, from any of its edges");
+    }
+    // An edge up the side still stops at the rims (poles of three edges):
+    // the side's two rows, nothing round the cap.
+    let up = topology
+        .edges()
+        .find(|e| {
+            !rim.contains(e)
+                && topology
+                    .edge_faces(*e)
+                    .all(|f| topology.face_edges(f).len() == 4)
+        })
+        .unwrap();
+    let side = topology.edge_loop(up);
+    assert!(side.iter().all(|e| !rim.contains(e)));
+    assert!(side.len() <= 2);
+}
+
+#[test]
+fn an_edge_between_two_n_gons_or_beside_none_stays_alone() {
+    // Two pentagons sharing an edge: the shared edge borders two n-gons,
+    // so there's no one rim to follow.
+    let mesh = build(
+        &[
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [1.5, 1.0, 0.0],
+            [0.5, 1.5, 0.0],
+            [-0.5, 1.0, 0.0],
+            [1.0, -1.0, 0.0],
+            [0.0, -1.0, 0.0],
+            [-0.5, -0.5, 0.0],
+        ],
+        &[&[0, 1, 2, 3, 4], &[1, 0, 7, 6, 5]],
+    );
+    let topology = Topology::new(&mesh);
+    assert_eq!(topology.edge_loop(e(0, 1)), vec![e(0, 1)]);
+    // A triangle's inner edge beside an n-gon-free fan: unchanged.
+    let fan = build(
+        &[
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [-1.0, 0.0, 0.0],
+        ],
+        &[&[0, 1, 2], &[0, 2, 3]],
+    );
+    let topology = Topology::new(&fan);
+    assert_eq!(topology.edge_loop(e(0, 2)), vec![e(0, 2)]);
+}
