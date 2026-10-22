@@ -422,10 +422,14 @@ impl Workbench {
         let dragging = self.modelling_session.is_some() || self.loop_cut_session.is_some();
         // The last edit the tool made, on the one selected object.
         let last = match self.document.selection().as_slice() {
-            [id] if !dragging => self.document.scene().object(*id).and_then(|o| {
-                let (layer, index, op) = crate::attributes::last_edit(&o.stack)?;
-                crate::attributes::made_by(op, self.tool).then(|| (*id, layer, index, op.clone()))
-            }),
+            // Not once something else is selected since (decision 0120).
+            [id] if !dragging && self.attributes.last_edit_is_live(&self.document, *id) => {
+                self.document.scene().object(*id).and_then(|o| {
+                    let (layer, index, op) = crate::attributes::last_edit(&o.stack)?;
+                    crate::attributes::made_by(op, self.tool)
+                        .then(|| (*id, layer, index, op.clone()))
+                })
+            }
             _ => None,
         };
         // Extrude's count is its bend's segments while it bends, and its
@@ -767,6 +771,8 @@ impl Workbench {
         if !changes.is_empty() {
             self.document
                 .select_elements(changes, session.label(), Some(session.key));
+            // The extrude stays the Last edit with its new edges selected.
+            self.attributes.keep_last_edit_live(&self.document);
         }
     }
 }

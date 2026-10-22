@@ -16,9 +16,6 @@ pub const APP_SHORT_NAME: &str = "Aventail";
 /// survive a rename unless there is a strong reason (see RENAMING.md).
 pub const APP_ID: &str = "aventail";
 
-/// The family of tools this app belongs to.
-pub const ORG_NAME: &str = "Rhylib";
-
 /// The project file extension, without the dot (decision 0010).
 ///
 /// Short for Aventail. It stays the same even if the app is renamed, so old
@@ -31,13 +28,7 @@ mod tests {
 
     #[test]
     fn names_are_not_empty() {
-        for value in [
-            APP_NAME,
-            APP_SHORT_NAME,
-            APP_ID,
-            ORG_NAME,
-            PROJECT_EXTENSION,
-        ] {
+        for value in [APP_NAME, APP_SHORT_NAME, APP_ID, PROJECT_EXTENSION] {
             assert!(!value.trim().is_empty());
         }
     }
