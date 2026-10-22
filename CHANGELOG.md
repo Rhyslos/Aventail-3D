@@ -27,7 +27,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
-- **Extrude from points.** In the Points mode, select points along an open edge (a plane's rim, or a hole's) and press **D**: the edges between them grow new polygons, and the new points are selected so you can carry on, or move them with W. Handy in a side or front view, where points are easier to pick than edges.
+- **Extrude from points.** In the Points mode, select points along an open edge (a plane's rim, or a hole's) and press **D**: the edges between them grow new polygons, and the new points are selected so you can carry on, or move them with W. If the points (or, in the Edges mode, the edges) go all the way round a polygon, such as a closed cap's rim, that polygon is pushed out instead. Handy in a side or front view, where points are easier to pick than edges.
 - **Apply mirror.** Like Blender's Apply on a mirror: **Symmetry menu → Apply mirror** (also **Mesh → Shape and object** and command search) makes the mirrored half a real part of the shape and turns symmetry off, so each half can then be changed on its own. One undo step brings the mirror back.
 - **Command search (Space).** Press **Space** (or the search button on the palette, or **Help → Search for a command**), type part of a command's name, and press Enter to run it. Each result says which menu it lives in and its key, if it has one.
 - **Help menu.** **Help → User manual** opens this manual, **Words used in the app** explains the terms, and the heavy test shape moved to **Help → Developer**.

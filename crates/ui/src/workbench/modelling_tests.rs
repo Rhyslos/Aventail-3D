@@ -582,6 +582,105 @@ fn points_along_an_open_edge_extrude_the_edges_between_them() {
 }
 
 #[test]
+fn a_closed_caps_rim_extrudes_the_cap_from_points_or_edges() {
+    // The project lead's find: with the cap closed, its rim has polygons
+    // on both sides, so nothing grew. Selecting all the way round a
+    // polygon now pushes that polygon out (decision 0127).
+    for (mode_key, kind) in [
+        (Key::Num1, scene::ElementKind::Points),
+        (Key::Num2, scene::ElementKind::Edges),
+    ] {
+        let mut harness = fresh();
+        harness
+            .state_mut()
+            .workbench
+            .document_mut()
+            .execute(scene::Command::Create(scene::ObjectKind::Primitive(
+                scene::Primitive::Cylinder(Default::default()),
+            )))
+            .unwrap();
+        harness.run();
+        let id = *harness
+            .state()
+            .workbench
+            .document()
+            .selection()
+            .first()
+            .unwrap();
+        press(&mut harness, Modifiers::NONE, mode_key);
+        let mesh = |h: &H| {
+            h.state()
+                .workbench
+                .document()
+                .scene()
+                .evaluated(id)
+                .unwrap()
+                .mesh
+        };
+        let start = mesh(&harness);
+        let cap = start
+            .faces()
+            .map(|(f, _)| f)
+            .max_by(|a, b| start.face_normal(*a).z.total_cmp(&start.face_normal(*b).z))
+            .unwrap();
+        let sides = start.face(cap).unwrap().len();
+        let rim: Vec<Element> = match kind {
+            scene::ElementKind::Points => start
+                .face(cap)
+                .unwrap()
+                .iter()
+                .map(|v| Element::Point(*v))
+                .collect(),
+            _ => start
+                .topology()
+                .face_edges(cap)
+                .iter()
+                .map(|e| Element::Edge(*e))
+                .collect(),
+        };
+        harness
+            .state_mut()
+            .workbench
+            .document_mut()
+            .select_elements([(id, ElementSelection::of(rim.clone()))], "Select", None);
+        harness.run();
+        let top = start.bounds().unwrap().max.z;
+        let faces = start.face_count();
+        press(&mut harness, Modifiers::NONE, Key::D);
+        let up = on_screen(&harness, glam::Vec3::Z * 100.0) - on_screen(&harness, glam::Vec3::ZERO);
+        let from = empty_spot(&harness);
+        drag_by(&mut harness, from, up.normalized() * 80.0);
+        let after = mesh(&harness);
+        assert_eq!(
+            after.face_count(),
+            faces + sides,
+            "{kind:?}: a new wall all round"
+        );
+        assert!(
+            after.bounds().unwrap().max.z > top + 1.0,
+            "{kind:?}: the cap went up"
+        );
+        assert_eq!(
+            harness.state().workbench.document().undo_label(),
+            Some("Extrude 1 polygon")
+        );
+        // The cap's new rim is selected, not the old one.
+        let selected = harness
+            .state()
+            .workbench
+            .document()
+            .elements(id)
+            .unwrap()
+            .clone();
+        assert_eq!(selected.count(kind), sides, "{kind:?}");
+        assert!(rim.iter().all(|e| !selected.contains(*e)), "{kind:?}");
+        // And a second drag carries on from there.
+        drag_by(&mut harness, from, up.normalized() * 80.0);
+        assert_eq!(mesh(&harness).face_count(), faces + 2 * sides, "{kind:?}");
+    }
+}
+
+#[test]
 fn points_with_no_open_edge_between_them_say_what_to_do() {
     // One point, or two across the plane (no edge joins them): nothing
     // to grow, and the status bar says why.

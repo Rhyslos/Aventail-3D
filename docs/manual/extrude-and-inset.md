@@ -67,7 +67,7 @@ With **Keep together** off, each polygon is shaped on its own: each goes its own
 
 Edges with polygons on both sides have nothing to grow from and are left alone; the status bar doesn't count them.
 
-### Extrude points along an open edge
+### Extrude from points, or from edges all the way round
 
 Points are often easier to pick than edges, especially in a side or front view, where edges seen end-on are hard to click. So Extrude works on points too:
 
@@ -75,7 +75,9 @@ Points are often easier to pick than edges, especially in a side or front view, 
 2. Press **D** and drag. Every open edge with both of its points selected grows a new polygon, exactly as in the Edges mode.
 3. The new outer points are selected, so you can drag again to keep going, or press **W** to move them into shape.
 
-A point on its own, or points with no open edge between them, have nothing to grow: the status bar says so. (A loose point can't become a lone edge: every edge in the app belongs to a polygon.)
+**All the way round a polygon:** if the points (or, in the Edges mode, the edges) go all the way round a polygon, that polygon is pushed out instead, exactly as in the Polygons mode. Select the rim of a cylinder's closed cap, press D and drag up: the cap rises with a new wall round it, and its new rim is selected for the next drag.
+
+A point on its own, or points with no open edge or whole polygon between them, have nothing to grow: the status bar says so. (A loose point can't become a lone edge: every edge in the app belongs to a polygon.)
 
 ### Bend it: pipes that turn a corner
 

@@ -26,9 +26,10 @@ For extruding points:
 
 - `Topology::edge_loop` runs round an n-gon's rim when the loop can't go straight on and the edge borders exactly one n-gon. It still stops where an edge borders two n-gons, and at triangles and poles away from an n-gon.
 - In the Points mode, Extrude (D) works on the open edges between selected points. A point on its own, or points with no open edge between them, grow nothing, and the status bar says why.
+- In the Points and Edges modes, when the selection goes all the way round polygons (every corner, or every edge), Extrude pushes those polygons out as the Polygons mode does, and selects their new rim. The project lead found this was needed straight away: a closed cap's rim has polygons on both sides, so it had nothing to grow from (the same rule as Blender's).
 
 ## Consequences
 
 - Double-clicking a cylinder's cap rim, in the Edges or Points mode, selects the whole rim.
 - A shape can be drawn out a strip at a time from points, then shaped with W.
-- Edges inside a shape (polygons on both sides) still don't extrude, from points or edges.
+- Edges inside a shape (polygons on both sides) that don't go all the way round a polygon still don't extrude. Growing them as a fin, as Blender can, is left out: it makes a shape that isn't closed.
