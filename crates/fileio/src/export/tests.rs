@@ -329,3 +329,53 @@ fn a_live_mirror_goes_out_as_part_of_its_object() {
         .fold(f32::MAX, f32::min);
     assert!((lowest + 1.5).abs() < 1e-4, "{lowest}");
 }
+
+#[test]
+fn the_solis_preset_is_godots_file_without_godots_names() {
+    // Decision 0122: Solis reads plain glTF, in metres with Y up, each
+    // object at its pivot. Godot's collision names mean nothing to it.
+    let solis = ExportPreset::Solis.settings();
+    let godot = ExportPreset::Godot.settings();
+    assert_eq!(
+        (solis.format, solis.units, solis.up, solis.triangulate),
+        (godot.format, godot.units, godot.up, godot.triangulate)
+    );
+    assert!(godot.godot_names);
+    assert!(!solis.godot_names);
+    assert!(ExportPreset::ALL.contains(&ExportPreset::Solis));
+    // Godot stays first, so it stays the one the app starts with.
+    assert_eq!(ExportPreset::ALL[0], ExportPreset::Godot);
+    assert!(ExportPreset::Solis.is_engine());
+    assert!(!ExportPreset::SubstancePainter.is_engine());
+    // A Solis export is a glTF file with each object's own name.
+    let (doc, _) = with(PrimitiveKind::Cube);
+    let options = ExportOptions {
+        godot_names: solis.godot_names,
+        ..ExportOptions::default()
+    };
+    let files = export_bytes(&doc, solis.format, &options, "T", "prop.glb").unwrap();
+    assert!(files.main.starts_with(b"glTF"));
+    assert_eq!(files.summary.objects, 1);
+}
+
+#[test]
+fn presets_and_file_settings_survive_being_remembered() {
+    for preset in ExportPreset::ALL {
+        let text = serde_json::to_string(&preset).unwrap();
+        assert_eq!(serde_json::from_str::<ExportPreset>(&text).unwrap(), preset);
+    }
+    let both = (
+        ExportFormat::Obj,
+        FileUnits::Centimetres,
+        UpAxis::Z,
+        ExportWhat::Selected,
+    );
+    let text = serde_json::to_string(&both).unwrap();
+    assert_eq!(
+        serde_json::from_str::<(ExportFormat, FileUnits, UpAxis, ExportWhat)>(&text).unwrap(),
+        both
+    );
+    // A name the app doesn't know (a damaged file, or a newer app's
+    // preset) is refused rather than guessed.
+    assert!(serde_json::from_str::<ExportPreset>("\"Blender\"").is_err());
+}

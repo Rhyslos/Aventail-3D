@@ -24,10 +24,11 @@
 use glam::{Mat4, Vec2, Vec3};
 use mesh::{AttributeElement, FaceId, Hardness, Mesh, Value};
 use scene::{Document, Material, ObjectId};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// The units an exported file's lengths are in.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash, Serialize, Deserialize)]
 pub enum FileUnits {
     /// Metres: what Godot, Unity, glTF and Substance Painter expect.
     #[default]
@@ -47,7 +48,7 @@ impl FileUnits {
 }
 
 /// Which way is up in an exported file.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash, Serialize, Deserialize)]
 pub enum UpAxis {
     /// Y up: Godot, Unity, glTF, Substance Painter and most OBJ readers.
     #[default]
@@ -57,7 +58,7 @@ pub enum UpAxis {
 }
 
 /// Which objects an export takes.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash, Serialize, Deserialize)]
 pub enum ExportWhat {
     /// Every shape that is shown.
     #[default]
@@ -111,7 +112,7 @@ impl ExportOptions {
 }
 
 /// The kinds of file the app exports to.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash, Serialize, Deserialize)]
 pub enum ExportFormat {
     /// Binary glTF (`.glb`): Godot's and Substance Painter's favourite,
     /// with each object at its pivot (decision 0072).
@@ -165,7 +166,7 @@ impl ExportFormat {
 
 /// Ready-made export settings for where a model is going
 /// ([decision 0075](../../../docs/decisions/0075-export-presets.md)).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ExportPreset {
     /// Godot: glTF, each object at its pivot (metres, Y up, triangles).
     Godot,
@@ -173,6 +174,9 @@ pub enum ExportPreset {
     Unity,
     /// Unreal Engine: glTF too (Unreal turns metres into its centimetres).
     UnrealEngine,
+    /// Solis, the game engine made beside this app: glTF, the way Godot
+    /// gets it but without Godot's collision names (decision 0122).
+    Solis,
     /// Substance Painter: OBJ in metres, Y up, cut into triangles the
     /// viewport's way, its materials becoming texture sets.
     SubstancePainter,
@@ -195,10 +199,11 @@ pub struct PresetSettings {
 
 impl ExportPreset {
     /// Every preset, in the order the Export window lists them.
-    pub const ALL: [Self; 4] = [
+    pub const ALL: [Self; 5] = [
         Self::Godot,
         Self::Unity,
         Self::UnrealEngine,
+        Self::Solis,
         Self::SubstancePainter,
     ];
 
@@ -208,6 +213,7 @@ impl ExportPreset {
             Self::Godot => "Godot",
             Self::Unity => "Unity",
             Self::UnrealEngine => "Unreal Engine",
+            Self::Solis => "Solis",
             Self::SubstancePainter => "Substance Painter",
         }
     }
@@ -227,6 +233,10 @@ impl ExportPreset {
                 "glTF, each object at its pivot, in metres with Y up: Unreal Engine 5 reads it \
                  and turns it into its centimetres and Z up"
             }
+            Self::Solis => {
+                "glTF, each object at its pivot, in metres with Y up: what the Solis game \
+                 engine imports"
+            }
             Self::SubstancePainter => {
                 "OBJ in metres with Y up, cut into the viewport's triangles so the bake \
                  matches the game; each material becomes a texture set"
@@ -234,10 +244,15 @@ impl ExportPreset {
         }
     }
 
+    /// Whether it is for a game engine (not for a texturing program).
+    pub fn is_engine(self) -> bool {
+        self != Self::SubstancePainter
+    }
+
     /// The settings it chooses.
     pub fn settings(self) -> PresetSettings {
         match self {
-            Self::Godot | Self::Unity | Self::UnrealEngine => PresetSettings {
+            Self::Godot | Self::Unity | Self::UnrealEngine | Self::Solis => PresetSettings {
                 format: ExportFormat::Glb,
                 units: FileUnits::Metres,
                 up: UpAxis::Y,

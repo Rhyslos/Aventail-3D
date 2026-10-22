@@ -189,6 +189,10 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **glTF** — An open 3D file format ("the JPEG of 3D") that both Godot and Substance Painter read.
 
+**Export preset** — A ready-made set of export settings for one program: the kind of file, its units, which way is up, and whether polygons are cut into triangles. Picking the program under **Made for** sets them all at once, so the model arrives the way that program expects. The app remembers the one you last exported with. See [Presets](export-and-import.md#presets).
+
+**Solis** — A game engine being made beside this app, by the same project. It reads glTF, so models go to it through the **Solis** export preset. See [Presets](export-and-import.md#presets).
+
 **OBJ** — An old, plain-text 3D file format that almost every 3D program reads: points, polygons, normals and UVs, but no pivots or animation. See [Export and import](export-and-import.md).
 
 **Export and import** — Writing your models into a file another program reads (export), and reading one in (import). The project file keeps everything the app needs to keep working; an export holds just the finished shapes. See [Export and import](export-and-import.md).

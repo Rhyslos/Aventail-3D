@@ -9,7 +9,6 @@ pub(super) fn info() -> AppInfo {
     AppInfo {
         name: "Test App".into(),
         version: "9.9.9".into(),
-        family: "Test Family".into(),
     }
 }
 
@@ -298,7 +297,6 @@ fn help_opens_the_about_box() {
     harness.run();
     assert!(harness.state().workbench.is_about_open());
     assert!(harness.query_by_label("Version 9.9.9").is_some());
-    assert!(harness.query_by_label_contains("Test Family").is_some());
 }
 
 #[test]

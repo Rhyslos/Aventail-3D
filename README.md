@@ -6,7 +6,7 @@ Aventail 3D is a free, open-source modelling and UV unwrapping tool for **hard-s
 
 > **Status: pre-alpha.** Every Phase 4 modelling tool is in: primitives you can keep changing, points, edges and polygons to edit, extrude and inset, bevel, loop cut, slit, connect, bridge and weld, clean-up, hard and soft edges, symmetry, pipe bends and spirals, with undo for everything and projects that save and reopen. Heavy shapes of millions of polygons stay quick, and backup copies bring your work back after a crash. Every Phase 5 milestone is in too: pivots and project units, glTF and OBJ export (and OBJ import) with materials, presets for Godot, Unity, Unreal Engine and Substance Painter, exporting straight into a game project on every save, a check for what would spoil a bake, kit export with Godot collision, and a splash screen; the phase gate waits for the project lead's test in Godot and Substance Painter. Phase 7, the UVs, is built as well: the UV Editor, seams placed by hand or suggested, unwrapping, packing, checker and stretch views, editing UVs on the model, UVs that survive later modelling, a bake check for UVs and trim sheets; its gate waits for the project lead's bake test. Click **Keys** on the menu bar for every key, and see the [user manual](docs/manual/SUMMARY.md) for how everything works. Follow the progress tracker below.
 
-Created by **Rhyslos**, built with AI assistance (Claude by Anthropic). Part of the **Rhylib** family of tools, alongside [Halberd](https://github.com/Rhyslos/halberd).
+Created by **Rhyslos**, built with AI assistance (Claude by Anthropic).
 
 ## Why
 
@@ -188,9 +188,11 @@ One big phase, aiming to be the best UV tools around. Brought forward before adv
 
 **Gate:** a prop is unwrapped and packed in Aventail 3D, with clean bakes in Substance Painter, and changing the model afterwards keeps its UVs.
 
-### Phase 8 · UV powerhouse and baking — 7 of 28
+### Phase 8 · UV powerhouse and baking — 7 of 28 (paused for Phase 9)
 
 `███░░░░░░░░░░` 25%
+
+Paused on 2026-10-21 for the rework (Phase 9); it continues once Phase 9's newcomer test passes.
 
 At the project lead's request (2026-10-16), before advanced hard-surface: everything the other 3D programs do well for UVs, full control over every automatic step, four ideas no other app has, and baking inside the app, so Substance Painter becomes optional for bakes. The aim: the best and most controllable UV tools there are.
 
@@ -232,25 +234,29 @@ The detailed plan for the remaining milestones, with the controls already chosen
 
 **Gate:** a modular kit is unwrapped, packed and baked in Aventail 3D and looks right in Godot; changing a model afterwards keeps its UVs and their intents.
 
-### Phase 9 · First use, and English as a language package — 0 of 6
+### Phase 9 · Rework and first use (now, before the rest of Phase 8) — 0 of 10
 
 `░░░░░░░░░░░░░` 0%
 
-A brief phase after the UVs, from the first testers' feedback (2026-10-18): the app should feel welcoming to someone new.
+After a review of the whole app (2026-10-21, [decision 0121](docs/decisions/0121-rework-before-the-rest-of-phase-8.md)), Phase 8 pauses and this comes first: the core stays, what people see and name is reworked, and the quality checks follow what people do.
 
 <details>
 <summary>Milestones</summary>
 
-- [ ] A side palette that slides out to show each button's name
-- [ ] High contrast: edges, points and the selection much easier to see
-- [ ] The selection mode button shows it has choices (a dropdown arrow)
-- [ ] Labels on everything
-- [ ] Tidier menus: commands where people look for them
-- [ ] English as the one language package, so other languages can be added later without reworking the app
+- [ ] Merge and check: the project lead runs the open gate checks of Phases 4 to 7, and what they find is fixed first
+- [ ] Quick fixes: the selection drawn clearly (with high contrast), one meaning per label, keys that don't bite
+- [ ] Find and help: command search, a right-click menu by default, Help → User manual, Hide and Isolate in a menu
+- [ ] Five modes (an Edit pivot switch instead of Object mode), and the edit history shown simply
+- [ ] Hard edges and symmetry per object: smoothing by angle per object ([#114](https://github.com/Rhyslos/Aventail-3D/issues/114)), symmetry as a modifier at the object's centre
+- [ ] Tidier menus (each command where people look for it, the Mesh menu grouped, no doubles), one word per idea, and every setting in one home, with the UV settings in their own panel and the UV menu in the UV Editor ([#115](https://github.com/Rhyslos/Aventail-3D/issues/115))
+- [ ] Labels on everything: a side palette that slides out with names, a dropdown on the selection mode button
+- [ ] A key audit, asked first (Ctrl adds and Shift removes stays)
+- [ ] A safety net: workflow tests, reference images, export checks in CI, an emergency copy on a crash, a newcomer checklist per pull request
+- [ ] Tidy for growth: the big interface code split up, a short spec, English as the one language package, one development file format until the alpha
 
 </details>
 
-**Gate:** a tester new to the app finds the main tools without help, sees what is selected on any screen, and no text skips the English package.
+**Gate:** 2–3 people new to the app finish a fixed task list without help, see what is selected on any screen, and no text skips the English package. Then Phase 8 continues.
 
 ### Phase 10 · Advanced hard-surface — 0 of 9
 
@@ -264,7 +270,7 @@ Friends join as testers around here, once there are enough tools to build someth
 - [ ] Booleans: union, subtract, intersect
 - [ ] Weighted normals
 - [ ] Improved bevel: rounded corners where bevels meet, and bevels that never overlap
-- [ ] Array and mirror generators (Mirror as a modifier per object, apart from the live mirror)
+- [ ] Array and mirror generators (symmetry becomes a per-object Mirror modifier earlier, in Phase 9)
 - [ ] Shell: give a surface thickness
 - [ ] Curves and splines: sweep and lathe, for pipes, cables and railings
 - [ ] Smoothing modifier (subdivision), with creases
@@ -294,6 +300,8 @@ Newest first. One line per finished milestone or passed gate.
 | Date | Event |
 | --- | --- |
 | 2026-10-21 | Cut from the plan: the app's own renderer (Solis v1 and its path tracer). Solis is the project lead's game engine, a separate program; later phases move up one |
+| 2026-10-21 | A review of the whole app: Phase 8 paused, Phase 9 becomes "Rework and first use", done now |
+| 2026-10-20 | Fixed: setting up the next extrude (or bevel, inset, loop cut) no longer changes the last one once something else is selected |
 | 2026-10-18 | Planned after the UVs, from the first testers' feedback and the project lead's ideas: a first-use phase (with English as a language package), advanced modelling, Solis (the app's own renderer), texture painting, materials, an alpha release, polish, scripting in LustScript, rigging, animation and Gauntlet (effects); other languages later |
 | 2026-10-18 | Select connected (Alt + A): the whole part the selection is on; pieces outside the UV square now warned about too |
 | 2026-10-17 | Planned: Phase 9, language support (the whole app in other languages), right after the UVs; advanced hard-surface moves to Phase 10, scripting to 11, rigging to 12 |

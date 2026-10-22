@@ -46,8 +46,6 @@ pub struct AppInfo {
     pub name: String,
     /// Version, such as "0.0.1".
     pub version: String,
-    /// The family of tools the app belongs to, such as "Rhylib".
-    pub family: String,
 }
 
 /// The layouts the tabs on the right of the menu bar switch between
@@ -1128,6 +1126,7 @@ impl Workbench {
         let coordinates = self.coordinates_view(&summary.drawing);
         let mut coordinates_done = Interaction::default();
         self.attributes.tool = self.tool;
+        self.attributes.track_last_edit(&self.document);
         self.attributes.polygons_selected = self.polygons_selected_for_attributes();
         self.note_right_press(ui.ctx());
         // Over the UV Editor, H and Z frame there (keys stay the same,
@@ -2585,6 +2584,8 @@ mod hardness_tests;
 mod joining;
 #[cfg(test)]
 mod joining_tests;
+#[cfg(test)]
+mod last_edit_tests;
 mod loop_cut;
 #[cfg(test)]
 mod loop_cut_tests;
@@ -2622,7 +2623,8 @@ mod trim_tests;
 #[cfg(test)]
 mod unwrapping_tests;
 pub use exporting::{
-    ExportChoice, ExportRequest, KitOutcome, KitRequest, TargetOutcome, TargetRequest,
+    ExportChoice, ExportRequest, ExportSettings, KitOutcome, KitRequest, TargetOutcome,
+    TargetRequest,
 };
 mod aligning;
 #[cfg(test)]

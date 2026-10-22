@@ -25,7 +25,7 @@ impl Units {
 }
 
 /// Where a project exports to in a game project (decision 0076): a
-/// folder inside a Godot, Unity or Unreal Engine project, and whether
+/// folder inside a Godot, Unity, Unreal Engine or Solis project, and whether
 /// every save exports there too. The scene only keeps the folder's path
 /// as text; reading and writing files is `fileio`'s and the app's work.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

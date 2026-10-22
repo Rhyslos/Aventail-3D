@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Solis in Made for, and your last export remembered.** File → Export…'s **Made for** list has **Solis**, the game engine made beside this app (glTF, metres, Y up, triangles, each object keeping its own name), and a game project folder inside a Solis project (one with a `project.solis` file) is recognised like Godot's. The app now remembers your last export's Made for and file settings, also after closing it, so new projects export the same way without setting it up again. Godot is still where it starts the first time.
 - **Select connected (Alt + A).** Select a little of a part (a polygon, an edge, a point, or a piece in the UV mode) and press **Alt + A**, or choose **Select → Select connected** or **UV → Pieces → Select connected**: everything joined to it on the model is selected, across seams, and nothing of the shape's other parts.
 - **Warning for pieces outside the UV square.** The UV Editor now also tints pieces sticking out of the texture square amber and counts them top right ("1 piece outside the square"). Trim sheet pieces are left out, as they run past the sides on purpose.
 - **"Why is this here?"** Tick **View → Explain choices** in the UV Editor and point at a seam or a piece. A seam says why it's there (a hard edge, a sharp corner, a cut so a closed piece can lie flat, an edge you preferred, a stretch budget slit, or made by hand) and how to change it. A piece says what decides its size and place (locked, on a trim row, pinned, its own settings, its texel density against the aim and why) and what's wrong with it, each with what to do. Nothing changes until you act.
@@ -114,6 +115,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **The About box no longer says the app is part of the Rhylib family of tools.**
 - **Edits hold on to the right points more often.** Every point and polygon now carries a name saying where it came from. When an earlier edit is changed and two points sit on the same spot (a cap pushed out by nothing, say), later edits use the names to pick the right one. Projects move to file format 27.
 - **Extrude goes straight out.** Polygons on a curved or sloped part now come straight out of the model together, instead of each point fanning out along its own facing; that look is still there as **Along normals**. Extrudes in older projects keep their shape.
 - **The Scale gizmo's squares scale both axes equally,** whichever way you drag, instead of mixing them by the drag's direction.
@@ -166,6 +168,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **Changing settings for your next extrude no longer changes the last one.** Right after an extrude (or inset, bevel, loop cut and the other tools with settings), the Attributes panel and **Ctrl + wheel** still change it. Once you select something else, they set the tool for its next use instead, and the earlier edit stays as it is. To change it after all, click **Change it** beside "Last edit" in the panel, or open it from the edit list.
 - **Extrudes, insets and bevels keep their shape on a stretched object too.** On an object scaled more along one axis than another, an inset's border and a bevel's width are now even all round as you see them, and "Straight out" goes straight out from the surface you see. Older edits are fixed by changing any of their settings. Projects move to file format 22.
 - Changing a finished extrude's bend **Angle** from 0 no longer makes the Attributes panel jump: the extrude's Direction, End size, Steps and Flat end rows stay in place, greyed out, instead of disappearing.
 - **A bend no longer stretches the pipe on a stretched object.** On an object scaled more along one axis than another, a bent extrude used to widen as it turned and end in an oval; it now keeps the pipe's shape as you see it. Older bends are fixed by changing any of their settings. Projects move to file format 21.

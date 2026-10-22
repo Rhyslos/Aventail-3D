@@ -36,7 +36,7 @@ The polygons stay selected, so you can drag again straight away to extrude anoth
 
 ### Shape it: direction, end size, steps, flat end
 
-While Extrude is in use, the top of the Attributes panel has four rows that shape the next extrude (and the last one, under Last edit):
+While Extrude is in use, the top of the Attributes panel has four rows that shape the next extrude (and the last one, under Last edit, until you select something else: see [Last edit](attributes.md)):
 
 ![The Attributes panel while Extrude is in use: Keep together, Direction (Straight out), End size 100%, Steps 1 and Flat end, above the Bend rows](../screenshots/2026-10-15-extrude-shape.png)
 

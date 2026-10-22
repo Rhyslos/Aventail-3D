@@ -22,7 +22,6 @@ pub fn app_info() -> ui::AppInfo {
     ui::AppInfo {
         name: branding::APP_NAME.to_string(),
         version: env!("CARGO_PKG_VERSION").to_string(),
-        family: branding::ORG_NAME.to_string(),
     }
 }
 
@@ -41,6 +40,5 @@ mod tests {
     fn app_info_comes_from_branding() {
         let info = app_info();
         assert_eq!(info.name, branding::APP_NAME);
-        assert_eq!(info.family, branding::ORG_NAME);
     }
 }

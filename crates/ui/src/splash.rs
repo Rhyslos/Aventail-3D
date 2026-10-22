@@ -85,7 +85,6 @@ mod tests {
         let info = AppInfo {
             name: "Test App".into(),
             version: "1.2.3".into(),
-            family: "Tests".into(),
         };
         let harness = Harness::builder().with_size([800.0, 600.0]).build_ui(|ui| {
             show(
