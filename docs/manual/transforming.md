@@ -48,7 +48,7 @@ Each drag is one undo step: **Ctrl + Z** takes it back in one go.
 **Where the gizmo sits:**
 - **One shape:** at its axis, its [pivot](concepts.md#objects-and-scenes). For a primitive, that's the middle of its base, until you move it (see [Pivots and Edit pivot](pivots.md)).
 
-**With Edit pivot on** (a switch on the command palette, in the Model mode), Move and Rotate move and turn the **pivot** instead, and the shape stays where it is; see [Pivots and Edit pivot](pivots.md).
+**With Edit pivot on** (a switch under the Model mode on the left), Move and Rotate move and turn the **pivot** instead, and the shape stays where it is; see [Pivots and Edit pivot](pivots.md).
 - **Several shapes:** in the middle of their axes. They all turn and scale around that point.
 - **Points, edges and polygons:** in the middle of what's selected.
 
