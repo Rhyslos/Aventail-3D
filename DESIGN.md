@@ -22,7 +22,7 @@ Aventail 3D (model + UV)  ──glTF/OBJ──►  Substance Painter (bake + tex
 - Clean export for Substance Painter and Godot
 
 ### Planned later (in this order, §10)
-- Advanced modelling and modifiers (Phase 10).
+- Advanced modelling and modifiers (Phase 10), right after the rework and before the rest of the UV phase.
 - Texture painting and a material node editor (Phases 11 and 12).
 - An alpha release, then a long round of fixes and polish (Phases 13 and 14).
 - Scripting in LustScript, with plain Lua too (Phase 15, §4.7).
@@ -523,7 +523,7 @@ Everything in §7, as one phase after the core modelling and workflow phases ([d
 - **Done when:** a prop is unwrapped and packed in Aventail 3D with clean bakes in Substance Painter, and changing the model afterwards keeps its UVs.
 
 ### Phase 8 — UV powerhouse and baking
-At the project lead's request (2026-10-16; [decision 0108](docs/decisions/0108-uv-powerhouse-and-baking.md)), before advanced hard-surface. It covers everything the other 3D programs do well for UVs, full control over every automatic step, four ideas no other app has, and a baker inside the app.
+At the project lead's request (2026-10-16; [decision 0108](docs/decisions/0108-uv-powerhouse-and-baking.md)). Paused at 7 of 28 for the rework (Phase 9) and then for advanced hard-surface (Phase 10, [0125](docs/decisions/0125-modelling-before-the-rest-of-the-uvs.md)); the rest comes after Phase 10. It covers everything the other 3D programs do well for UVs, full control over every automatic step, four ideas no other app has, and a baker inside the app.
 
 **UV tools and controls:** what the other programs do well (recreated in behaviour only), and full control over every automatic step (the project lead: the best, most controllable UV tool there is, never random):
 - Unwrapping: pins (E menu and UV menu, no key: the project lead's choice), unfolding one way only, and angle-based and size-keeping methods beside LSCM, the best picked for each piece. *Built* ([0109](docs/decisions/0109-pins-and-unwrap-methods.md)): Pin and Unpin (the `uv_pin` corner layer, recorded edits) held by Unwrap, Relax and Straighten; UV → Unfold across only / up only; UV → Unwrap method (Keep shapes, Keep shapes smoother by linear ABF, Keep sizes by ARAP, Automatic by the lowest distortion); the E ring's turns and flips grouped as Turn & flip, with Pin, Unpin and a Stitch & cut group (X and C, coming with milestone 8); file format 34.
@@ -604,9 +604,10 @@ After a review of the whole app (2026-10-21, [0121](docs/decisions/0121-rework-b
     - A short "what exists now" spec and a one-page digest of the rules in force.
     - English as the one language package (every text through one translation layer; other languages added later as packages; the rest of [0117](docs/decisions/0117-language-support.md) waits).
     - One development file format until the alpha: it grows as features arrive, the project lead's existing projects are converted once, and versioning starts properly at the alpha.
-- **Done when (the newcomer test):** 2–3 people who haven't used the app finish a fixed task list without help, see what is selected on any screen, and no text skips the English package. Then Phase 8 continues.
+- **Done when (the newcomer test):** 2–3 people who haven't used the app finish a fixed task list without help, see what is selected on any screen, and no text skips the English package. Then Phase 10, advanced modelling, and after it the rest of Phase 8 ([0125](docs/decisions/0125-modelling-before-the-rest-of-the-uvs.md)).
 
 ### Phase 10 — Advanced hard-surface
+Right after Phase 9, before the rest of Phase 8 ([0125](docs/decisions/0125-modelling-before-the-rest-of-the-uvs.md)): unwrapping already works well enough, and modelling comes first (the project lead, 2026-10-22). Phase 8 resumes after it, before texture painting.
 - Every tool here carries UVs and seams along from the start (the builder, decision 0043)
 - Booleans, weighted normals, better bevel, generators (array, mirror)
 - Mirror as a per-object modifier comes earlier, in Phase 9, where symmetry itself becomes that modifier (the project lead, 2026-10-21)
@@ -935,3 +936,4 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-21 — **A Solis export preset, and the last export remembered** ([0122](docs/decisions/0122-solis-preset-and-remembered-export-settings.md)), at the project lead's request. Solis, his game engine in its own repository, joins Made for after Unreal Engine (glTF like Godot's, without Godot's collision names); Godot stays first and the standard on first use (his choice). A Solis project is recognised by its `project.solis` file (named by him 2026-10-22); a game project folder no engine claims now gets Made for's engine. The app remembers the last export's Made for and file settings between projects and launches (his request); what goes out isn't remembered.
 - 2026-10-21 — **No renderer of the app's own, for now** ([0123](docs/decisions/0123-no-renderer-for-now.md)), at the project lead's request. Solis v1 (Phase 11, a real-time renderer showing assets as the engine will) and Solis's path tracer (Phase 20) are cut. The idea was for the app's renderer and his game engine, Solis, to share one renderer, but a game engine's renderer is made for games and won't serve as a 3D program's renderer. Rendering beyond the viewport is out of scope again; the toon preview and outlines stay with texture painting. Phases 12 to 19 become 11 to 18.
 - 2026-10-22 — **Select connected in the UVs** ([0124](docs/decisions/0124-select-connected-in-the-uvs.md)), from the project lead's testing ("a **big** issue"): Alt + A over the UV Editor or in the UV mode selects whole UV pieces, parted at seams, so overlapping pieces can be separated; elsewhere it still selects the whole part.
+- 2026-10-22 — **Modelling before the rest of the UVs** ([0125](docs/decisions/0125-modelling-before-the-rest-of-the-uvs.md)), at the project lead's request: unwrapping works well enough and modelling takes priority, so the order is Phase 9 (rework), Phase 10 (advanced hard-surface), the rest of Phase 8 (UVs and baking), then texture painting. Phase numbers don't change.
