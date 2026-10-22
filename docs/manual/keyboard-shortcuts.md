@@ -30,7 +30,7 @@ Keys that do something are lit; dark keys aren't used. The small coloured marks 
 | Purple | **Model mode**: with whole objects |
 | Orange | **Points, Edges, Polygons**: the element modes, where you edit a shape's [points, edges and polygons](concepts.md#mesh-basics) |
 | Green | **While dragging** a gizmo or a tool |
-| Yellow | **Menus and questions**: the shape list (B), the tool menu (E) and questions such as "Save changes?" |
+| Yellow | **Menus and questions**: the shape lists (B and Alt + B), the tool menu (E) and questions such as "Save changes?" |
 
 The chips at the top have the same colours. Click a chip to hide that situation's keys, for example to see only what works in the Model mode; click it again to bring them back.
 

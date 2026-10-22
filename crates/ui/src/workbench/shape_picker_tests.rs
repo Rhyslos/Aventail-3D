@@ -1,13 +1,20 @@
-//! Tests for the shape list: `B` opens it, `B` again moves down it, and
-//! `Enter` or `Space` creates the highlighted shape.
+//! Tests for the shape lists: `B` opens the basic shapes, `B` again moves
+//! down it, and `Enter` or `Space` creates the highlighted shape; `Alt +
+//! B` does the same for the other shapes (decision 0130).
 
 use super::tests::{State, empty};
 use super::*;
 use crate::SHAPE_LIST_KEY;
+use crate::shape_picker::ShapeList;
 use egui::{Event, PointerButton};
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
 use scene::{ObjectKind, PrimitiveKind};
+
+/// The basic shapes, the ones `B` lists.
+fn basic() -> Vec<PrimitiveKind> {
+    ShapeList::Basic.kinds()
+}
 
 fn press(harness: &mut Harness<'static, State>, modifiers: Modifiers, key: Key) {
     harness.key_press_modifiers(modifiers, key);
@@ -36,7 +43,7 @@ fn b_opens_the_list_on_the_first_shape() {
     let mut harness = empty();
     assert!(!harness.state().workbench.shape_picker().is_open());
     press(&mut harness, Modifiers::NONE, SHAPE_LIST_KEY);
-    assert_eq!(highlighted(&harness), Some(PrimitiveKind::ALL[0]));
+    assert_eq!(highlighted(&harness), Some(basic()[0]));
     assert!(harness.query_by_label("Create a shape").is_some());
     assert!(kinds(&harness).is_empty(), "opening creates nothing");
 }
@@ -45,26 +52,26 @@ fn b_opens_the_list_on_the_first_shape() {
 fn pressing_b_again_moves_down_the_list_and_round() {
     let mut harness = empty();
     press(&mut harness, Modifiers::NONE, SHAPE_LIST_KEY);
-    for expected in PrimitiveKind::ALL.into_iter().skip(1) {
+    for expected in basic().into_iter().skip(1) {
         press(&mut harness, Modifiers::NONE, SHAPE_LIST_KEY);
         assert_eq!(highlighted(&harness), Some(expected));
     }
     press(&mut harness, Modifiers::NONE, SHAPE_LIST_KEY);
-    assert_eq!(highlighted(&harness), Some(PrimitiveKind::ALL[0]), "round");
+    assert_eq!(highlighted(&harness), Some(basic()[0]), "round");
 }
 
 #[test]
 fn shift_b_and_the_arrow_keys_move_both_ways() {
     let mut harness = empty();
     press(&mut harness, Modifiers::SHIFT, SHAPE_LIST_KEY);
-    let last = *PrimitiveKind::ALL.last().unwrap();
+    let last = *basic().last().unwrap();
     assert_eq!(highlighted(&harness), Some(last), "opens at the bottom");
     press(&mut harness, Modifiers::NONE, Key::ArrowDown);
-    assert_eq!(highlighted(&harness), Some(PrimitiveKind::ALL[0]));
+    assert_eq!(highlighted(&harness), Some(basic()[0]));
     press(&mut harness, Modifiers::NONE, Key::ArrowUp);
     assert_eq!(highlighted(&harness), Some(last));
     press(&mut harness, Modifiers::SHIFT, SHAPE_LIST_KEY);
-    let before_last = PrimitiveKind::ALL[PrimitiveKind::ALL.len() - 2];
+    let before_last = basic()[basic().len() - 2];
     assert_eq!(highlighted(&harness), Some(before_last));
 }
 
@@ -73,7 +80,7 @@ fn enter_creates_the_highlighted_shape_selected_and_closes_the_list() {
     let mut harness = empty();
     press(&mut harness, Modifiers::NONE, SHAPE_LIST_KEY);
     press(&mut harness, Modifiers::NONE, SHAPE_LIST_KEY);
-    let chosen = PrimitiveKind::ALL[1];
+    let chosen = basic()[1];
     press(&mut harness, Modifiers::NONE, Key::Enter);
     assert_eq!(kinds(&harness), [chosen]);
     assert!(!harness.state().workbench.shape_picker().is_open());
@@ -175,5 +182,72 @@ fn the_create_menu_mentions_the_key() {
     let mut harness = empty();
     super::tests::main_menu(&harness, "Create").click();
     harness.run();
-    assert!(harness.query_by_label_contains("press B").is_some());
+    assert!(
+        harness
+            .query_by_label_contains("B for the basic shapes")
+            .is_some()
+    );
+    assert!(
+        harness
+            .query_by_label_contains("Alt + B for the rest")
+            .is_some()
+    );
+}
+
+#[test]
+fn the_two_lists_hold_every_shape_once() {
+    let (basic, more) = (ShapeList::Basic.kinds(), ShapeList::More.kinds());
+    assert_eq!(basic.len(), 7);
+    assert_eq!(more.len(), 11);
+    assert!(more.contains(&PrimitiveKind::Icosphere));
+    assert!(basic.iter().all(|k| !more.contains(k)), "no shape in both");
+    assert_eq!(basic.len() + more.len(), PrimitiveKind::ALL.len());
+}
+
+#[test]
+fn alt_b_opens_more_shapes_and_moves_down_it() {
+    let mut harness = empty();
+    press(&mut harness, Modifiers::ALT, SHAPE_LIST_KEY);
+    let more = ShapeList::More.kinds();
+    let picker = |h: &Harness<'static, State>| h.state().workbench.shape_picker().list();
+    assert_eq!(picker(&harness), Some(ShapeList::More));
+    assert_eq!(highlighted(&harness), Some(more[0]));
+    assert!(harness.query_by_label("More shapes").is_some());
+    press(&mut harness, Modifiers::ALT, SHAPE_LIST_KEY);
+    assert_eq!(highlighted(&harness), Some(more[1]));
+    // Shift + Alt + B goes back; Enter creates.
+    press(
+        &mut harness,
+        Modifiers::SHIFT | Modifiers::ALT,
+        SHAPE_LIST_KEY,
+    );
+    assert_eq!(highlighted(&harness), Some(more[0]));
+    press(&mut harness, Modifiers::NONE, Key::Enter);
+    assert_eq!(kinds(&harness), [more[0]]);
+    assert!(!harness.state().workbench.shape_picker().is_open());
+}
+
+#[test]
+fn b_and_alt_b_switch_between_the_lists() {
+    let mut harness = empty();
+    let picker = |h: &Harness<'static, State>| h.state().workbench.shape_picker().list();
+    press(&mut harness, Modifiers::NONE, SHAPE_LIST_KEY);
+    assert_eq!(picker(&harness), Some(ShapeList::Basic));
+    press(&mut harness, Modifiers::ALT, SHAPE_LIST_KEY);
+    assert_eq!(picker(&harness), Some(ShapeList::More));
+    assert_eq!(highlighted(&harness), Some(ShapeList::More.kinds()[0]));
+    press(&mut harness, Modifiers::NONE, SHAPE_LIST_KEY);
+    assert_eq!(picker(&harness), Some(ShapeList::Basic));
+    assert_eq!(highlighted(&harness), Some(basic()[0]));
+    // Shift + Alt + B opens More at its bottom.
+    press(&mut harness, Modifiers::NONE, Key::Escape);
+    press(
+        &mut harness,
+        Modifiers::SHIFT | Modifiers::ALT,
+        SHAPE_LIST_KEY,
+    );
+    assert_eq!(
+        highlighted(&harness),
+        ShapeList::More.kinds().last().copied()
+    );
 }

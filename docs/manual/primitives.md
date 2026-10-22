@@ -105,8 +105,10 @@ Change them in the [Attributes panel](attributes.md): select the shape, then dra
 
 | Action | Shortcut |
 |---|---|
-| Open the shape list, or move down it | `B` |
+| Open the basic shape list (the first seven), or move down it | `B` |
 | Move up the list (or open it at the bottom) | `Shift + B`, or the arrow keys |
+| Open the list of the other shapes (icosphere to arch), or move down it | `Alt + B` |
+| Move up that list (or open it at the bottom) | `Shift + Alt + B`, or the arrow keys |
 | Create the highlighted shape | `Enter` or `Space` |
 | Close the list without creating | `Esc`, or click elsewhere |
 

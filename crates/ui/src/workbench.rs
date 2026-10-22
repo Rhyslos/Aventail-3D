@@ -1734,6 +1734,10 @@ impl Workbench {
         // Tools, Mesh, UV, View, Window, Help.
         crate::dialog::menu(ui, "Create", |ui| {
             for kind in PrimitiveKind::ALL {
+                // The basic shapes (B), then the rest (Alt + B).
+                if kind == PrimitiveKind::Icosphere {
+                    ui.separator();
+                }
                 if ui
                     .button(kind.name())
                     .on_hover_text(kind.description())
@@ -1754,7 +1758,7 @@ impl Workbench {
             }
             ui.separator();
             ui.label(
-                egui::RichText::new("Tip: press B for the shape list")
+                egui::RichText::new("Tip: B for the basic shapes, Alt + B for the rest")
                     .small()
                     .color(theme::TEXT_WEAK),
             );

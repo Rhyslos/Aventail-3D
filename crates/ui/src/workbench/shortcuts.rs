@@ -347,6 +347,11 @@ pub(crate) fn bindings() -> Vec<Binding> {
             Anywhere,
         ),
         bind(
+            KeyboardShortcut::new(Modifiers::ALT, crate::shape_picker::SHAPE_LIST_KEY),
+            "More shapes (icosphere, torus, gear, stairs and the rest)",
+            Anywhere,
+        ),
+        bind(
             objects::DELETE_SHORTCUT,
             "Delete the selected objects",
             Model,
