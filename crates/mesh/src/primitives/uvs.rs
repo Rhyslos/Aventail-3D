@@ -169,6 +169,11 @@ fn charts(mesh: &Mesh, style: Style) -> Vec<Chart> {
     // long as its widest ring.
     let (mut outer, mut inner) = (0.0f32, f32::INFINITY);
     let ball_centre = mesh.bounds().map_or(Vec3::ZERO, |b| b.centre());
+    // How near the up axis a point is on it (a pole), for the ball's size.
+    let pole = mesh
+        .bounds()
+        .map_or(1e-6, |b| b.size().max_element() * 1e-6)
+        .max(1e-6);
     let cone = if style == Style::Round {
         Cone::of(mesh)
     } else {
@@ -257,13 +262,29 @@ fn charts(mesh: &Mesh, style: Style) -> Vec<Chart> {
                     charts[id].corners.push((i, Vec2::new(u, p.z * slant)));
                 }
             }
+            Style::Ball if goes_round_the_pole(&corners, ball_centre, pole) => {
+                // A face round the pole (a hex sphere's top pentagon) can't
+                // be unrolled like a map: it gets a piece of its own, seen
+                // from above (or below), like a cylinder's end.
+                let top = centre.z > ball_centre.z;
+                let id = chart(if top { 1 } else { 2 }, &mut charts);
+                for (i, p) in corners {
+                    let d = p - ball_centre;
+                    let flat = if top {
+                        Vec2::new(d.x, d.y)
+                    } else {
+                        Vec2::new(-d.x, d.y)
+                    };
+                    charts[id].corners.push((i, flat));
+                }
+            }
             Style::Ball => {
                 let middle = around(centre - ball_centre);
                 let id = chart(0, &mut charts);
                 for (i, p) in corners {
                     let d = p - ball_centre;
                     let r = d.truncate().length();
-                    let a = if r < 1e-6 {
+                    let a = if r < pole {
                         middle
                     } else {
                         unwrap(around(d), middle)
@@ -304,6 +325,26 @@ fn charts(mesh: &Mesh, style: Style) -> Vec<Chart> {
     }
     charts.retain(|c| !c.corners.is_empty());
     charts
+}
+
+/// Whether a face goes all the way round the up axis through
+/// `ball_centre` (its outline encloses the axis seen from above), with no
+/// corner on the axis itself: such a face can't be unrolled like a map.
+fn goes_round_the_pole(corners: &[(usize, Vec3)], ball_centre: Vec3, pole: f32) -> bool {
+    let flat: Vec<Vec2> = corners
+        .iter()
+        .map(|(_, p)| (*p - ball_centre).truncate())
+        .collect();
+    if flat.len() < 3 || flat.iter().any(|p| p.length() < pole) {
+        return false;
+    }
+    // The axis is inside when the outline turns a whole way round it.
+    let mut turned = 0.0f32;
+    for k in 0..flat.len() {
+        let (a, b) = (flat[k], flat[(k + 1) % flat.len()]);
+        turned += a.perp_dot(b).atan2(a.dot(b));
+    }
+    turned.abs() > PI
 }
 
 /// A tapering round side (a cone or a cut-off cone): unrolled flat, it is

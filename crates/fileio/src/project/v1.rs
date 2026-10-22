@@ -227,15 +227,21 @@ impl<Op: FileOperation> ProjectFile<Op> {
 
 fn kind_to_file(kind: &ObjectKind) -> KindV1 {
     match kind {
-        ObjectKind::Primitive(p) => KindV1::Primitive(primitive_to_file(p)),
+        // Newer kinds go into these older files as their mesh; their
+        // settings go into the development format's (decision 0129).
+        ObjectKind::Primitive(p) => match primitive_to_file(p) {
+            Some(file) => KindV1::Primitive(file),
+            None => KindV1::Mesh(mesh_to_file(&p.mesh())),
+        },
         ObjectKind::Mesh(mesh) => KindV1::Mesh(mesh_to_file(mesh)),
         // Every other kind is a group, or arrives with a new format version.
         _ => KindV1::Group,
     }
 }
 
-fn primitive_to_file(p: &Primitive) -> PrimitiveV1 {
-    match *p {
+/// The file form of `p`, if this file version knows its kind.
+fn primitive_to_file(p: &Primitive) -> Option<PrimitiveV1> {
+    Some(match *p {
         Primitive::Cube(c) => PrimitiveV1::Cube {
             size: c.size.to_array(),
             segments: c.segments,
@@ -283,7 +289,8 @@ fn primitive_to_file(p: &Primitive) -> PrimitiveV1 {
             cap_segments: c.cap_segments,
             cap_centre: c.cap_centre,
         },
-    }
+        _ => return None,
+    })
 }
 
 fn mesh_to_file(mesh: &Mesh) -> MeshV1 {

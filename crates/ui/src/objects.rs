@@ -544,6 +544,17 @@ pub(crate) fn shape_icon(kind: PrimitiveKind) -> Icon {
         PrimitiveKind::Disc => Icon::Disc,
         PrimitiveKind::Tube => Icon::Tube,
         PrimitiveKind::Cone => Icon::Cone,
+        PrimitiveKind::Icosphere => Icon::Icosphere,
+        PrimitiveKind::Torus => Icon::Torus,
+        PrimitiveKind::Capsule => Icon::Capsule,
+        PrimitiveKind::Dome => Icon::Dome,
+        PrimitiveKind::Elbow => Icon::Elbow,
+        PrimitiveKind::Sector => Icon::Sector,
+        PrimitiveKind::Gear => Icon::Gear,
+        PrimitiveKind::HexGrid => Icon::HexGrid,
+        PrimitiveKind::HexSphere => Icon::HexSphere,
+        PrimitiveKind::Stairs => Icon::Stairs,
+        PrimitiveKind::Arch => Icon::Arch,
     }
 }
 

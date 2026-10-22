@@ -21,7 +21,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Settings: accent colour, high contrast, units, navigation, grid, undo memory and autosave](settings.md)
 
 ## Modelling
-- [Primitives: cube, plane, cylinder, sphere, disc, tube and cone](primitives.md)
+- [Primitives: cube, plane, cylinder, sphere, disc, tube, cone, icosphere, torus, capsule, dome, pipe elbow, pie sector, gear, hex grid, hex sphere, stairs and arch](primitives.md)
 - [Points, Edges and Polygons modes: working on the parts of a mesh](modes.md)
 - [Selecting: click, box, lasso, brush, loops, grow and shrink](selecting.md)
 - [Move, rotate and scale: the gizmo, snapping, locks and typed values](transforming.md)

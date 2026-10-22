@@ -93,10 +93,11 @@ fn every_primitive_is_consistent_with_its_mesh() {
         // an open disc-like one, 0 for a tube.
         let euler =
             mesh.vertex_count() as i64 - topology.edge_count() as i64 + mesh.face_count() as i64;
-        let expected = match primitive.kind() {
-            PrimitiveKind::Plane | PrimitiveKind::Disc => 1,
+        let expected = match primitive {
+            Primitive::Plane(_) | Primitive::Disc(_) | Primitive::HexGrid(_) => 1,
             // Closed, with a hole through it, like a doughnut.
-            PrimitiveKind::Tube => 0,
+            Primitive::Tube(_) | Primitive::Torus(_) => 0,
+            Primitive::Gear(g) if g.hole_radius > 0.0 => 0,
             _ => 2,
         };
         assert_eq!(euler, expected, "{primitive:?}");

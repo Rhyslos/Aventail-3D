@@ -767,12 +767,22 @@ impl Primitive {
             Self::Dome(p) => n(p.sides) * n(p.rings) + 1,
             Self::Elbow(p) => {
                 let walls = if p.inner_radius > 0.0 { 2 } else { 1 };
-                n(p.sides) * (walls * n(p.segments) + 2)
+                // A whole ring is built with at least 3 segments.
+                let segments = if p.angle >= 360.0 {
+                    n(p.segments).max(3)
+                } else {
+                    n(p.segments)
+                };
+                n(p.sides) * (walls * segments + 2)
             }
-            Self::Sector(p) => 2 * n(p.sides) + 6,
-            Self::Gear(p) => n(p.teeth) * 16 + 2,
+            // Arcs are cut into pieces of at most 120°, so a whole turn
+            // has at least 3.
+            Self::Sector(p) => 4 * n(p.sides).max(3) + 4,
+            // 16 faces a tooth with a hole, 20 without.
+            Self::Gear(p) => n(p.teeth) * 20 + 2,
             Self::HexGrid(p) => 3 * n(p.rings) * (n(p.rings) + 1) + 1,
-            Self::Stairs(p) => 4 * n(p.steps) + 4,
+            // Two sides of n(n+1)/2 quads each, and 4n walls.
+            Self::Stairs(p) => n(p.steps) * (n(p.steps) + 5),
             Self::Arch(p) => 4 * (n(p.segments) + 2) + 2,
         }
     }

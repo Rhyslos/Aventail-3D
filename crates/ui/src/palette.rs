@@ -197,6 +197,17 @@ pub fn icon_tint(icon: Icon) -> Color32 {
         | Icon::Disc
         | Icon::Tube
         | Icon::Cone
+        | Icon::Icosphere
+        | Icon::Torus
+        | Icon::Capsule
+        | Icon::Dome
+        | Icon::Elbow
+        | Icon::Sector
+        | Icon::Gear
+        | Icon::HexGrid
+        | Icon::HexSphere
+        | Icon::Stairs
+        | Icon::Arch
         | Icon::ShapeList => tint::SHAPE,
         _ => tint::ICON,
     }

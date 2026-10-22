@@ -125,7 +125,8 @@ fn primitives_are_named_after_their_kind() {
         .unwrap();
     assert_eq!(
         outline(&doc),
-        "Cube 2 Cone Tube Disc Sphere Cylinder Plane Cube"
+        "Cube 2 Arch Stairs Hex sphere Hex grid Gear Pie sector Pipe elbow Dome Capsule Torus \
+         Icosphere Cone Tube Disc Sphere Cylinder Plane Cube"
     );
     assert_eq!(doc.undo_label(), Some("Create cube"));
 }

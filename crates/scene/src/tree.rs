@@ -542,6 +542,27 @@ impl Scene {
         Ok(self)
     }
 
+    /// The same scene with object `id`, stored as a plain mesh, given back
+    /// the primitive it was built from (decision 0129: shapes newer than
+    /// the oldest file versions are stored as their mesh plus their
+    /// settings). Refused for an object that isn't a plain mesh.
+    pub fn with_primitive(
+        mut self,
+        id: ObjectId,
+        primitive: crate::Primitive,
+    ) -> Result<Self, &'static str> {
+        let node = self
+            .nodes
+            .get_mut(&id)
+            .ok_or("a shape's settings name an object that isn't there")?;
+        if !matches!(node.object.kind, crate::ObjectKind::Mesh(_)) {
+            return Err("a shape's settings name an object that isn't a mesh");
+        }
+        node.object.kind = crate::ObjectKind::Primitive(primitive.clamped());
+        self.cache.get_mut().forget(id);
+        Ok(self)
+    }
+
     /// The project's trim sheet (decision 0106).
     pub fn trim(&self) -> &crate::TrimSheet {
         &self.trim

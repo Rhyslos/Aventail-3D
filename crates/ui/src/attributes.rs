@@ -1154,6 +1154,9 @@ impl AttributesPanel {
                         Value::Count(value, low, high) => {
                             stepper::count(ui, value, (low, high), field.label)
                         }
+                        Value::Angle(value, low, high) => {
+                            stepper::degrees(ui, value, (low, high), field.label)
+                        }
                         Value::Toggle(value) => {
                             let response = ui.checkbox(value, "");
                             response.widget_info(|| {
