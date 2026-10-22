@@ -21,11 +21,13 @@ use crate::{FaceId, Mesh};
 use glam::{Vec2, Vec3};
 use std::f32::consts::PI;
 
-/// A piece of the surface laid flat: which polygons, and each of their
-/// corners' place on it (in the shape's own units).
+/// A piece of the surface laid flat: each of its polygons' corners (by
+/// their place in the mesh's corner list, [`Mesh::face_layout`]) and
+/// where they lie on it, in the shape's own units (centimetres), so
+/// pieces keep their real sizes against each other.
 #[derive(Debug, Default)]
-struct Chart {
-    corners: Vec<(usize, Vec2)>,
+pub(super) struct Chart {
+    pub(super) corners: Vec<(usize, Vec2)>,
 }
 
 impl Chart {
@@ -98,8 +100,32 @@ pub(super) fn add_uvs(mesh: &mut Mesh, kind: PrimitiveKind) {
     }
 }
 
+/// Gives `mesh` UVs from `charts` laid out in the texture square at one
+/// scale with room between them (as every primitive's are), and marks
+/// seams where pieces part. For builders that cut their own pieces.
+pub(super) fn set_charts(mesh: &mut Mesh, charts: &[Chart]) {
+    let corner_count = mesh.face_layout().1.len();
+    let mut uvs = vec![Vec2::ZERO; corner_count];
+    for (index, uv) in layout(charts) {
+        if let Some(slot) = uvs.get_mut(index) {
+            *slot = uv;
+        }
+    }
+    if mesh
+        .set_attribute_values(
+            UV,
+            Domain::Corner,
+            Value::Vec2(Vec2::ZERO),
+            AttributeValues::Vec2(uvs),
+        )
+        .is_ok()
+    {
+        seams_from_splits(mesh);
+    }
+}
+
 /// The face's corners: their places in the corner list and positions.
-fn corners_of(mesh: &Mesh, face: FaceId) -> Vec<(usize, Vec3)> {
+pub(super) fn corners_of(mesh: &Mesh, face: FaceId) -> Vec<(usize, Vec3)> {
     let (starts, corners) = mesh.face_layout();
     let (a, b) = (
         starts[face.get() as usize] as usize,
