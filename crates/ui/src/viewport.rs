@@ -388,12 +388,15 @@ impl Default for Symmetry {
 impl Symmetry {
     /// The mirror these settings make, if any axis is chosen.
     pub fn mirror(&self) -> Option<scene::LiveMirror> {
+        // On the object (decision 0126): the offset is from its pivot,
+        // along its own axes.
         let mirror = scene::LiveMirror {
             axes: self.axes,
             centre: glam::Vec3::from_array(self.offset),
             weld_distance: self
                 .weld_distance
                 .clamp(0.0, scene::LiveMirror::MAX_WELD_DISTANCE),
+            on_object: true,
         };
         mirror.is_valid().then_some(mirror)
     }

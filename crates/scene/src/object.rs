@@ -262,15 +262,21 @@ pub struct Object {
 /// the shape itself; the copies follow.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct LiveMirror {
-    /// Which world axes it mirrors across: X (left and right), Y (front
-    /// and back), Z (top and bottom). At least one.
+    /// Which axes it mirrors across: X (left and right), Y (front and
+    /// back), Z (top and bottom). At least one. The object's own axes when
+    /// `on_object`, otherwise the world's.
     pub axes: [bool; 3],
-    /// The point the mirror planes go through, in the world: its centre
-    /// unless moved.
+    /// The point the mirror planes go through: in the object's own space
+    /// (from its pivot) when `on_object`, otherwise in the world.
     pub centre: glam::Vec3,
     /// Points this close to the seam and to each other become one, in
     /// centimetres; 0 welds nothing.
     pub weld_distance: f32,
+    /// Whether the mirror belongs to the object (decision 0126): its
+    /// planes go through the object's pivot (and `centre` from it) along
+    /// its own axes, so they move and turn with it. Mirrors made before
+    /// stay in the world.
+    pub on_object: bool,
 }
 
 impl LiveMirror {
@@ -287,6 +293,16 @@ impl LiveMirror {
             axes: [true, false, false],
             centre: glam::Vec3::ZERO,
             weld_distance: Self::WELD_DISTANCE,
+            on_object: false,
+        }
+    }
+
+    /// Across the object's own X, through its pivot, with the standard
+    /// weld: what the Symmetry button gives (decision 0126).
+    pub fn on_object_x() -> Self {
+        Self {
+            on_object: true,
+            ..Self::across_x()
         }
     }
 

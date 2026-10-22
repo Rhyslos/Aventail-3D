@@ -61,7 +61,9 @@ pub(super) fn paint(ui: &Ui, rect: Rect, camera: &Camera, planes: &[MirrorPlane]
         }
         // Where it meets the ground: a mirror across X or Y stands
         // upright, so it crosses the ground in a line.
-        if plane.axis < 2 {
+        // (Only for a plane in the world: one on a turned object needn't
+        // stand upright.)
+        if plane.axis < 2 && plane.space == glam::Mat4::IDENTITY {
             let other = 1 - plane.axis;
             let [p, q] = ground_line(plane, other);
             segment(&painter, &project, p, q);

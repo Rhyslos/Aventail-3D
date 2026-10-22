@@ -72,6 +72,9 @@ impl<E: FileOperation> ProjectV25<E> {
                 axes: entry.axes,
                 centre: Vec3::from_array(entry.centre),
                 weld_distance: entry.weld_distance,
+                // Version 25's mirrors are in the world; version 39 says
+                // which belong to their object.
+                on_object: false,
             };
             if !mirror.is_valid() {
                 return Err(

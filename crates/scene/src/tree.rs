@@ -724,10 +724,29 @@ impl Scene {
             return Vec::new();
         }
         let back = shape.inverse();
+        // A mirror on the object reflects in its pivot's space (decision
+        // 0126): along its own axes, through its pivot and the centre.
+        let space = self.mirror_space(id, mirror);
+        let Some(from_space) = (space.determinant().abs() >= 1e-12).then(|| space.inverse()) else {
+            return Vec::new();
+        };
         mesh::mirror::combinations(mirror.axes)
             .into_iter()
-            .map(|axes| back * mesh::mirror::reflection(axes, mirror.centre) * shape)
+            .map(|axes| {
+                back * space * mesh::mirror::reflection(axes, mirror.centre) * from_space * shape
+            })
             .collect()
+    }
+
+    /// The space a live mirror's planes are in: the object's pivot (its
+    /// place in the world) for a mirror on the object, the world's
+    /// otherwise.
+    fn mirror_space(&self, id: ObjectId, mirror: crate::LiveMirror) -> Mat4 {
+        if mirror.on_object {
+            self.world_matrix(id)
+        } else {
+            Mat4::IDENTITY
+        }
     }
 
     /// The object's shape as it is shown and exported: its final shape
@@ -754,9 +773,17 @@ impl Scene {
         }
         let matrix = self.shape_matrix(id);
         let distance = mirror.weld_distance;
+        // Where a point is in the mirror's own space (the world, or the
+        // pivot's for a mirror on the object), and how stretched that
+        // space is, so the weld distance stays in the world's centimetres.
+        let space = self.mirror_space(id, mirror);
+        let to_space = space.inverse() * matrix;
+        let space_scale = stretch_of(space).min_element().max(1e-6);
         let on_seam = |p: glam::Vec3| {
-            let world = matrix.transform_point3(p);
-            (0..3).any(|a| mirror.axes[a] && (world[a] - mirror.centre[a]).abs() <= distance)
+            let at = to_space.transform_point3(p);
+            (0..3).any(|a| {
+                mirror.axes[a] && (at[a] - mirror.centre[a]).abs() * space_scale <= distance
+            })
         };
         // The weld distance is in the world; the shape's own space may be
         // scaled, so the distance is measured there as the world sees it.
