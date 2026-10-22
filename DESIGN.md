@@ -1,6 +1,6 @@
 # Aventail 3D — Design Document
 
-> Part of the Rhylib family of tools, alongside Halberd. Short name in everyday use: **Aventail**. An aventail is the chainmail curtain on a helmet: a mesh of interlocking rings.
+> Short name in everyday use: **Aventail**. An aventail is the chainmail curtain on a helmet: a mesh of interlocking rings.
 >
 > **Renaming is designed to be cheap:** the name lives in one place in code (`crates/app/src/branding.rs`), and `RENAMING.md` lists every other place it appears.
 

@@ -114,6 +114,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **The About box no longer says the app is part of the Rhylib family of tools.**
 - **Edits hold on to the right points more often.** Every point and polygon now carries a name saying where it came from. When an earlier edit is changed and two points sit on the same spot (a cap pushed out by nothing, say), later edits use the names to pick the right one. Projects move to file format 27.
 - **Extrude goes straight out.** Polygons on a curved or sloped part now come straight out of the model together, instead of each point fanning out along its own facing; that look is still there as **Along normals**. Extrudes in older projects keep their shape.
 - **The Scale gizmo's squares scale both axes equally,** whichever way you drag, instead of mixing them by the drag's direction.

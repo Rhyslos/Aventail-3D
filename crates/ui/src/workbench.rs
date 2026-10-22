@@ -46,8 +46,6 @@ pub struct AppInfo {
     pub name: String,
     /// Version, such as "0.0.1".
     pub version: String,
-    /// The family of tools the app belongs to, such as "Rhylib".
-    pub family: String,
 }
 
 /// The layouts the tabs on the right of the menu bar switch between
