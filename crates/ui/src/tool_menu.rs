@@ -1049,12 +1049,19 @@ mod tests {
 
     #[test]
     fn gaps_are_skipped_when_pointing() {
-        // Points mode leaves Extrude's place (the top) empty.
+        // Points mode leaves some places empty (Inset's, for one):
+        // pointing at one picks a tool beside it, never the gap.
         let list = entries(Mode::Points);
-        assert!(list.iter().all(|e| e.slot.command != CommandId::Extrude));
-        let ring = Ring::new(pos2(500.0, 500.0), list[0].slot.places);
-        let aimed = ring.aimed(pos2(500.0, 300.0), &list).unwrap();
-        assert_ne!(list[aimed].slot.place, 0);
+        let places = list[0].slot.places;
+        let empty = (0..places)
+            .find(|p| list.iter().all(|e| e.slot.place != *p))
+            .expect("a gap in the Points ring");
+        let ring = Ring::new(pos2(500.0, 500.0), places);
+        let toward = ring.place(empty) - pos2(500.0, 500.0);
+        let aimed = ring
+            .aimed(pos2(500.0, 500.0) + toward * 1.5, &list)
+            .unwrap();
+        assert_ne!(list[aimed].slot.place, empty);
     }
 
     #[test]
