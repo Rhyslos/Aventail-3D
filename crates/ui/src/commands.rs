@@ -377,8 +377,9 @@ impl CommandId {
                 "Weld",
                 Icon::Weld,
                 plain(Key::M),
-                "Melt the selected points into one at their middle; Ctrl + M to drag a point \
-                 onto another",
+                "Melt the selected points into one at their middle (selected polygons: each \
+                 touching group at its middle, such as an inset cap into a fan of triangles); \
+                 Ctrl + M to drag a point or polygon onto a point",
                 None,
             ),
             Self::Connect => (
@@ -573,7 +574,7 @@ impl CommandId {
             Self::Groove => &[Edges],
             Self::FillHole => &[Edges, Polygons],
             Self::HardEdges | Self::SoftEdges => &[Edges, Polygons],
-            Self::Weld => &[Points],
+            Self::Weld => &[Points, Polygons],
             Self::DeleteElements | Self::Dissolve | Self::Slit | Self::LoopCut => {
                 &[Points, Edges, Polygons]
             }

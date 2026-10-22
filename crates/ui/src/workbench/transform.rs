@@ -74,8 +74,9 @@ impl Workbench {
             Tool::Bridge => "Bridge: drag from one open edge to another to join them. With two \
                  open borders (or two polygons) selected, C bridges them at once."
                 .into(),
-            Tool::Weld => "Weld: drag a point onto another to melt it there (the whole \
-                 selection, if you drag a selected point). M welds the selection at its middle."
+            Tool::Weld => "Weld: drag a point (or, in the Polygons mode, a polygon) onto a point \
+                 to melt it there (the whole selection, if you drag a selected one). M welds \
+                 the selection at its middle."
                 .into(),
             Tool::Inset => "Inset: drag left or right anywhere in the viewport to shrink the \
                  selected polygons inward. Shift for fine steps; Esc or a right click cancels."

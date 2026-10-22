@@ -629,7 +629,8 @@ impl AttributesPanel {
             "Drag from one open edge to another. With two borders or two polygons selected, C \
              bridges them at once."
         } else if self.tool == Tool::Weld {
-            "Drag a point onto another; a selected point brings the whole selection."
+            "Drag a point (or a polygon, in the Polygons mode) onto a point; a selected one \
+             brings the whole selection."
         } else if self.tool == Tool::Slit {
             "Click or drag points over the shape. Esc or Enter finishes the line; click the first point to close it into a loop."
         } else if self.tool == Tool::LoopCut {

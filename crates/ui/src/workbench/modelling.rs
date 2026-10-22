@@ -294,10 +294,17 @@ impl Workbench {
             return;
         }
         if ui.input_mut(|i| i.consume_shortcut(&WELD_TARGET_KEYS)) {
-            if self.mode == crate::palette::Mode::Points {
+            if matches!(
+                self.mode,
+                crate::palette::Mode::Points | crate::palette::Mode::Polygons
+            ) {
                 self.set_tool(Tool::Weld);
             } else {
-                self.note = Some("Weld works on points: press 1 for the Points mode.".into());
+                self.note = Some(
+                    "Weld works on points or polygons: press 1 for the Points mode or 3 for \
+                     Polygons."
+                        .into(),
+                );
             }
         }
         for command in [

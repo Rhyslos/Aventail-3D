@@ -243,3 +243,224 @@ fn a_click_selects_while_weld_or_bridge_is_in_use() {
         assert_eq!(harness.state().workbench.tool(), tool, "still in use");
     }
 }
+
+fn top_polygon(mesh: &scene::Mesh) -> Vec<Element> {
+    mesh.faces()
+        .map(|(f, _)| f)
+        .filter(|f| mesh.face_normal(*f).z > 0.99)
+        .map(Element::Polygon)
+        .collect()
+}
+
+#[test]
+fn m_welds_a_selected_polygon_into_a_point_at_its_middle() {
+    // The cube's top melts into one point at its middle: a pyramid's tip.
+    let mut harness = ready(Key::Num3, top_polygon);
+    press(&mut harness, Modifiers::NONE, Key::M);
+    let mesh = shape(&harness);
+    assert_eq!(mesh.vertex_count(), 5);
+    assert_eq!(mesh.face_count(), 5, "the bottom and four triangles");
+    assert!(
+        mesh.vertices()
+            .any(|(_, p)| p.distance(glam::Vec3::new(0.0, 0.0, 100.0)) < 1e-3)
+    );
+    assert_eq!(
+        harness.state().workbench.document().undo_label(),
+        Some("Weld 1 polygon")
+    );
+}
+
+#[test]
+fn an_inset_caps_middle_welds_into_a_fan_of_triangles() {
+    // The project lead's workflow: inset a cylinder's cap, select the new
+    // middle n-gon and press M: the cap becomes even triangles round one
+    // point.
+    let mut harness = fresh();
+    let doc = harness.state_mut().workbench.document_mut();
+    doc.execute(scene::Command::Create(scene::ObjectKind::Primitive(
+        scene::Primitive::Cylinder(Default::default()),
+    )))
+    .unwrap();
+    let id = doc.selection()[0];
+    harness.run();
+    press(&mut harness, Modifiers::NONE, Key::Num3);
+    let evaluated = |h: &H| {
+        h.state()
+            .workbench
+            .document()
+            .scene()
+            .evaluated(id)
+            .unwrap()
+            .mesh
+    };
+    let start = evaluated(&harness);
+    let top = |m: &scene::Mesh| {
+        m.faces()
+            .map(|(f, _)| f)
+            .filter(|f| m.face_normal(*f).z > 0.99)
+            .max_by_key(|f| m.face(*f).unwrap().len())
+            .unwrap()
+    };
+    let cap = top(&start);
+    let sides = start.face(cap).unwrap().len();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::Record {
+            id,
+            operation: Operation::InsetPolygons {
+                faces: vec![cap],
+                distance: 20.0,
+                grouping: scene::Grouping::Together,
+                stretch: glam::Vec3::ONE,
+                anchors: None,
+            },
+        })
+        .unwrap();
+    harness.run();
+    let inset = evaluated(&harness);
+    let middle = top(&inset);
+    assert_eq!(inset.face(middle).unwrap().len(), sides);
+    let height = inset.position(inset.face(middle).unwrap()[0]).unwrap().z;
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .select_elements(
+            [(id, ElementSelection::of([Element::Polygon(middle)]))],
+            "Select",
+            None,
+        );
+    harness.run();
+    press(&mut harness, Modifiers::NONE, Key::M);
+    let welded = evaluated(&harness);
+    let on_top: Vec<usize> = welded
+        .faces()
+        .filter(|(f, _)| welded.face_normal(*f).z > 0.99)
+        .map(|(_, c)| c.len())
+        .collect();
+    assert_eq!(on_top.len(), sides, "one triangle per side");
+    assert!(on_top.iter().all(|n| *n == 3), "{on_top:?}");
+    assert!(
+        welded
+            .vertices()
+            .any(|(_, p)| p.distance(glam::Vec3::new(0.0, 0.0, height)) < 1e-2),
+        "the point in the middle"
+    );
+}
+
+/// The middle of `face`'s corners.
+fn centre_of(mesh: &scene::Mesh, face: scene::FaceId) -> glam::Vec3 {
+    let corners = mesh.face(face).unwrap();
+    corners
+        .iter()
+        .map(|v| mesh.position(*v).unwrap())
+        .sum::<glam::Vec3>()
+        / corners.len() as f32
+}
+
+#[test]
+fn polygons_apart_each_weld_at_their_own_middle() {
+    // Two corner squares of a cube's top cut 3 by 3 share no point: each
+    // melts at its own middle, in one undo step.
+    let mut harness = fresh();
+    let id = cube(&harness);
+    let doc = harness.state_mut().workbench.document_mut();
+    doc.execute(scene::Command::SetPrimitive {
+        ids: vec![id],
+        primitive: mesh::Primitive::Cube(mesh::CubeParams {
+            segments: [3, 3, 3],
+            ..Default::default()
+        }),
+    })
+    .unwrap();
+    doc.set_selection([id]);
+    harness.run();
+    press(&mut harness, Modifiers::NONE, Key::Num3);
+    let mesh = shape(&harness);
+    let corner = |x: f32, y: f32| {
+        mesh.faces()
+            .map(|(f, _)| f)
+            .find(|f| {
+                let c = centre_of(&mesh, *f);
+                mesh.face_normal(*f).z > 0.99 && c.x * x > 30.0 && c.y * y > 30.0
+            })
+            .unwrap()
+    };
+    let (a, b) = (corner(1.0, 1.0), corner(-1.0, -1.0));
+    let (ca, cb) = (centre_of(&mesh, a), centre_of(&mesh, b));
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .select_elements(
+            [(
+                id,
+                ElementSelection::of([Element::Polygon(a), Element::Polygon(b)]),
+            )],
+            "Select",
+            None,
+        );
+    harness.run();
+    press(&mut harness, Modifiers::NONE, Key::M);
+    let after = shape(&harness);
+    assert_eq!(after.vertex_count(), mesh.vertex_count() - 6);
+    for centre in [ca, cb] {
+        assert!(after.vertices().any(|(_, p)| p.distance(centre) < 1e-2));
+    }
+    assert_eq!(
+        harness.state().workbench.document().undo_label(),
+        Some("Weld 2 polygons")
+    );
+    harness.state_mut().workbench.document_mut().undo();
+    assert_eq!(shape(&harness).vertex_count(), mesh.vertex_count());
+}
+
+#[test]
+fn ctrl_m_drags_a_polygon_onto_a_point() {
+    let mut harness = ready(Key::Num3, |_| Vec::new());
+    harness.event(Event::Key {
+        key: Key::M,
+        physical_key: None,
+        pressed: true,
+        repeat: false,
+        modifiers: Modifiers::COMMAND,
+    });
+    harness.run();
+    assert_eq!(harness.state().workbench.tool(), Tool::Weld);
+    // From the middle of the top onto its front left corner.
+    let from = on_screen(&harness, glam::Vec3::new(0.0, 0.0, 100.0));
+    let target = glam::Vec3::new(-50.0, -50.0, 100.0);
+    let to = on_screen(&harness, target);
+    harness.event(Event::PointerMoved(from));
+    harness.run();
+    button(
+        &mut harness,
+        from,
+        true,
+        PointerButton::Primary,
+        Modifiers::NONE,
+    );
+    for k in 1..=5 {
+        harness.event(Event::PointerMoved(from + (to - from) * (k as f32 / 5.0)));
+        harness.run();
+    }
+    button(
+        &mut harness,
+        to,
+        false,
+        PointerButton::Primary,
+        Modifiers::NONE,
+    );
+    let mesh = shape(&harness);
+    assert_eq!(mesh.vertex_count(), 5, "the top's four corners became one");
+    assert!(mesh.vertices().any(|(_, p)| p.distance(target) < 1e-3));
+    assert!(matches!(
+        last_operation(&harness),
+        Some(Operation::Weld {
+            target: Some(_),
+            ..
+        })
+    ));
+}
