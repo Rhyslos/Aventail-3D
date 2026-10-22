@@ -7,7 +7,8 @@ use egui_kittest::kittest::Queryable;
 use scene::Operation;
 
 fn open_check(harness: &mut H) {
-    main_menu(harness, "File").click();
+    // In the UV menu (its one home since decision 0126).
+    main_menu(harness, "UV").click();
     harness.run();
     harness.get_by_label("Check for baking…").click();
     harness.run();

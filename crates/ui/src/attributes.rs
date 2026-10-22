@@ -2127,7 +2127,7 @@ fn smoothing_row(ui: &mut Ui, id: ObjectId, current: mesh::Hardness, out: &mut V
 }
 
 /// The Smoothing row's switch and angle, for screen readers and tests.
-pub(crate) const SMOOTH_BY_ANGLE: &str = "Smooth by angle";
+pub(crate) const SMOOTH_BY_ANGLE: &str = "Object smoothed by angle";
 pub(crate) const SMOOTHING_ANGLE: &str = "Smoothing angle";
 /// Merge key for dragging an object's smoothing angle (one drag, one step).
 const SMOOTHING_KEY: u64 = 0x5300_0000_0000_0000;

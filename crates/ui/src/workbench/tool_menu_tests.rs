@@ -492,16 +492,26 @@ fn every_mode_uses_the_same_ring() {
 
 #[test]
 fn the_mesh_and_tools_menus_read_from_the_command_list() {
-    let mut harness = fresh();
-    main_menu(&harness, "Mesh").click();
-    harness.run();
+    // Every modelling command is in one of the Mesh menu's groups
+    // (decision 0126).
     for command in crate::commands::MODELLING_RING {
         let name = command.name();
-        assert!(
-            harness.query_all_by_label_contains(name).count() >= 1,
-            "{name}"
-        );
+        let found = [
+            super::MESH_BUILD_MENU,
+            super::MESH_CUT_MENU,
+            super::MESH_REMOVE_MENU,
+            super::MESH_SHADING_MENU,
+        ]
+        .into_iter()
+        .any(|group| {
+            let mut harness = fresh();
+            super::tests::mesh_group(&mut harness, group);
+            harness.query_all_by_label_contains(name).count() >= 1
+        });
+        assert!(found, "{name}");
     }
+    let mut harness = fresh();
+    super::tests::mesh_group(&mut harness, super::MESH_BUILD_MENU);
     let extrude = harness.get_by_label_contains("Extrude");
     assert!(!extrude.accesskit_node().is_disabled(), "built");
     let label = extrude.accesskit_node().label().unwrap_or_default();

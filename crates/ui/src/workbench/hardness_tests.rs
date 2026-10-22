@@ -203,8 +203,7 @@ fn smooth_by_angle_is_per_object_and_marking_edges_switches_to_the_marks() {
     assert!(harness.query_by_label(AUTO_HARD_EDGES_ENTRY).is_none());
     harness.key_press(egui::Key::Escape);
     harness.run();
-    crate::workbench::tests::main_menu(&harness, "Mesh").click();
-    harness.run();
+    crate::workbench::tests::mesh_group(&mut harness, crate::workbench::MESH_SHADING_MENU);
     harness.get_by_label(AUTO_HARD_EDGES_ENTRY).click();
     harness.run();
     assert_eq!(hardness(&harness), mesh::Hardness::Marked);

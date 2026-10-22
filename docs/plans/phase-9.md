@@ -29,3 +29,18 @@ The working plan for Phase 9 ([decision 0121](../decisions/0121-rework-before-th
 10. **Tidy for growth:** the big interface files split, a short "what exists now" spec and a digest of the rules in force, English as the one language package, one development file format until the alpha.
 
 **Gate (the newcomer test):** 2–3 people new to the app finish a fixed task list without help, see what is selected on any screen, and no text skips the English package. Then Phase 10 ([decision 0125](../decisions/0125-modelling-before-the-rest-of-the-uvs.md)).
+
+## Where the work stands (2026-10-22, end of the first session)
+
+Branch `rework/phase-9`, pushed; not merged and no pull request yet. All tests, clippy and fmt pass.
+
+**Built:**
+- Milestone 2: selection drawn clearest and on top, High contrast setting, Select only visible on as standard, one meaning per label, keys that don't bite (Alt + N for Don't save, Esc cancels a slit, Esc closes the Keys window, no ring over windows), a source check for stray backslashes and "arrives later" text.
+- Milestone 3: command search (Space, and the palette's search button), right-click menu on, Help → User manual / Words used in the app / Search / Keys / Developer, View → Show and hide, every placeholder gone.
+- Milestone 4: five modes with Edit pivot as a switch, drags in a row stay one edit, one "Bake into shape" verb, no Keep editable, Edit layers tab only when wanted.
+- Milestone 5: smoothing per object (Attributes → Smoothing; Mesh → Shading → Smooth by angle), marking edges on an object smoothed by angle keeps its look as marks and switches it to its marks (#114); symmetry belongs to the object (pivot, its axes). The development file format (version 39, CBOR, `project/v39.rs`) stores both.
+- Milestone 6 (menus): the Mesh menu in groups (Build, Cut and join, Remove, Shading, Shape and object), Edit without the selection doubles, File without Check for baking (it's in UV), the UV menu in the UV Editor, a UV settings panel beside Attributes in the UV Edit layout (#115), "pieces" everywhere instead of "islands".
+- Milestone 7 (started): rotation reads X, Y, Z in the axes' colours.
+- Milestone 8: the key audit document *Aventail 3D: key audit*, waiting for the project lead's ticks.
+
+**Left:** milestone 6's one home per setting and a slimmer Coordinates band; milestone 7's sliding palette with names, words with icons and the dropdown arrow on the selection mode button; milestone 9 (safety net); milestone 10 (split the big files, spec and rules digest, English language package, menu-path check in tooltips); the manual, changelog, decision 0126 and the test steps for everything above, then the pull request.

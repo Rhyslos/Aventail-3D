@@ -47,6 +47,8 @@ fn with_two_materials() -> H {
             None,
         );
     harness.run();
+    harness.get_by_label("Add material").scroll_to_me();
+    harness.run();
     harness.get_by_label("Add material").click();
     harness.run();
     harness
@@ -66,6 +68,8 @@ fn the_panel_lists_the_standard_material_until_one_is_added() {
     assert!(materials(&harness).is_empty());
     // In the Model mode there are no polygons to assign to.
     assert!(disabled(&harness, "Assign Default"));
+    harness.get_by_label("Add material").scroll_to_me();
+    harness.run();
     harness.get_by_label("Add material").click();
     harness.run();
     let list = materials(&harness);

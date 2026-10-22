@@ -344,9 +344,9 @@ fn typing_in_the_coordinates_panel_moves_and_scales() {
         Some("Move Cube")
     );
     // Rotation is in degrees.
-    harness.get_by_label("Rotation H").click();
+    harness.get_by_label("Rotation Z").click();
     harness.run();
-    harness.get_by_label("Rotation H").type_text("90");
+    harness.get_by_label("Rotation Z").type_text("90");
     harness.run();
     harness.key_press(Key::Enter);
     harness.run();
@@ -523,7 +523,7 @@ fn the_symmetry_button_gives_the_selected_object_a_live_mirror() {
     let doc = workbench.document();
     assert_eq!(
         doc.scene().object(id).unwrap().mirror,
-        Some(scene::LiveMirror::across_x())
+        Some(scene::LiveMirror::on_object_x())
     );
     assert_eq!(doc.undo_label(), Some("Mirror"));
     assert!(
@@ -531,8 +531,8 @@ fn the_symmetry_button_gives_the_selected_object_a_live_mirror() {
             .query_by_label_contains("Symmetry on, across X")
             .is_some()
     );
-    // Moved to the side, its twin stands on the other side of the world
-    // centre: drawn, and in the box around the scene.
+    // The mirror belongs to the object (decision 0126): moved to the
+    // side, its twin moves with it, mirrored across its own pivot.
     harness
         .state_mut()
         .workbench
@@ -549,7 +549,8 @@ fn the_symmetry_button_gives_the_selected_object_a_live_mirror() {
     let workbench = &harness.state().workbench;
     let doc = workbench.document();
     let bounds = doc.scene().bounds().unwrap();
-    assert!((bounds.min.x + 150.0).abs() < 1e-3, "{bounds:?}");
+    assert!((bounds.min.x - 50.0).abs() < 1e-3, "{bounds:?}");
+    assert!((bounds.max.x - 150.0).abs() < 1e-3, "{bounds:?}");
     let drawn = doc.scene().shown_shape(id).unwrap();
     assert_eq!(drawn.face_count(), 2 * shape(&harness).face_count());
     // Off again: one undo step.

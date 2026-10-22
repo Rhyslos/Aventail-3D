@@ -400,8 +400,7 @@ fn the_tools_keep_together_switch_sets_the_next_drag() {
 #[test]
 fn the_mesh_menu_and_tool_menu_pick_extrude() {
     let mut harness = ready(Key::Q);
-    super::tests::main_menu(&harness, "Mesh").click();
-    harness.run();
+    super::tests::mesh_group(&mut harness, super::MESH_BUILD_MENU);
     harness.get_by_label_contains("Extrude").click();
     harness.run();
     assert_eq!(harness.state().workbench.tool(), Tool::Extrude);

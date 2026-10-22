@@ -119,6 +119,19 @@ pub(super) fn main_menu<'h>(
         .unwrap_or_else(|| panic!("no menu {name}"))
 }
 
+/// Opens the Mesh menu and its group `group` (decision 0126).
+pub(super) fn mesh_group(harness: &mut Harness<'static, State>, group: &str) {
+    use egui_kittest::kittest::NodeT;
+    main_menu(harness, "Mesh").click();
+    harness.run();
+    harness
+        .get_all_by_label_contains(group)
+        .find(|n| n.accesskit_node().role() == egui::accesskit::Role::Button)
+        .unwrap_or_else(|| panic!("no Mesh group {group}"))
+        .hover();
+    harness.run_steps(8);
+}
+
 pub(super) fn fresh() -> Harness<'static, State> {
     let mut harness = harness_for(with_a_cube(Workbench::new(info(), None)));
     harness.run();
@@ -364,7 +377,7 @@ fn coordinates_fit_their_rows_with_no_empty_space_below() {
     harness.run();
     harness.run();
     let tab = harness.get_by_label("Coordinates").rect();
-    let last_row = harness.get_by_label("Rotation B").rect();
+    let last_row = harness.get_by_label("Rotation Z").rect();
     // The window is 900 high and the status bar 24: the Coordinates panel
     // ends at about 876, a few pixels below its last row.
     assert!(
@@ -390,7 +403,7 @@ fn coordinates_show_every_field_as_in_the_mockup() {
             assert!(harness.query_by_label(&format!("{group} {axis}")).is_some());
         }
     }
-    for axis in ["H", "P", "B"] {
+    for axis in ["X", "Y", "Z"] {
         assert!(
             harness
                 .query_by_label(&format!("Rotation {axis}"))

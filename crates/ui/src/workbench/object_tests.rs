@@ -849,8 +849,7 @@ fn the_object_menu_and_right_click_make_shapes_editable() {
 fn the_mesh_menu_makes_shapes_editable() {
     let mut harness = fresh();
     click_row(&mut harness, "Cube", Modifiers::NONE);
-    main_menu(&harness, "Mesh").click();
-    harness.run();
+    super::tests::mesh_group(&mut harness, super::MESH_OBJECT_MENU);
     harness.get_by_label_contains("Bake into shape").click();
     harness.run();
     assert!(is_mesh(&harness, "Cube"));
