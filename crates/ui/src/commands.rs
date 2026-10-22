@@ -199,7 +199,7 @@ impl CommandId {
                 None,
             ),
             Self::Delete => (
-                "Delete",
+                "Delete objects",
                 Icon::Delete,
                 Some(DELETE_SHORTCUT),
                 "Delete the selected objects (Backspace does it too)",
@@ -347,7 +347,7 @@ impl CommandId {
                 None,
             ),
             Self::HardEdges => (
-                "Hard edges",
+                "Mark hard edges",
                 Icon::HardEdges,
                 None,
                 "Shade the selected edges (or the selected polygons' edges) as crisp edges: \
@@ -355,7 +355,7 @@ impl CommandId {
                 None,
             ),
             Self::SoftEdges => (
-                "Soft edges",
+                "Mark soft edges",
                 Icon::SoftEdges,
                 None,
                 "Shade the selected edges (or the selected polygons' edges) smoothly: the light \
@@ -363,7 +363,7 @@ impl CommandId {
                 None,
             ),
             Self::DeleteElements => (
-                "Delete",
+                "Delete points, edges or polygons",
                 Icon::Delete,
                 plain(Key::Delete),
                 "Delete the selected points, edges or polygons, and the polygons using them, \

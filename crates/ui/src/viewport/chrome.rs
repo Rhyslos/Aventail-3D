@@ -236,7 +236,7 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
 }
 
 /// The Display menu's switch for marking hard edges.
-pub(crate) const HARD_EDGES_ENTRY: &str = "Hard edges";
+pub(crate) const HARD_EDGES_ENTRY: &str = "Show hard edges";
 /// The Mesh menu's switch for shading by angle (decisions 0064 and 0065:
 /// moved there from the Display menu).
 pub(crate) const AUTO_HARD_EDGES_ENTRY: &str = "Automatic hard edges";
@@ -286,9 +286,9 @@ pub(crate) fn auto_hard_edges_entry(ui: &mut Ui, options: &mut ViewOptions) {
     }
 }
 /// The Display menu's switch for showing normals.
-pub(crate) const NORMALS_ENTRY: &str = "Normals";
+pub(crate) const NORMALS_ENTRY: &str = "Show normals";
 /// The Display menu's entry for seams (decision 0096).
-pub(crate) const SEAMS_ENTRY: &str = "Seams";
+pub(crate) const SEAMS_ENTRY: &str = "Show seams";
 
 /// The kinds of view the Cameras menu offers, in order.
 const MENU_KINDS: [ViewKind; 5] = [

@@ -207,7 +207,11 @@ fn editing_shows_the_modelling_tools_in_their_places() {
     press(&mut harness, Modifiers::NONE, Key::Num2);
     open(&mut harness);
     assert!(harness.query_by_label("Tool menu: Extrude").is_some());
-    assert!(harness.query_by_label("Tool menu: Hard edges").is_some());
+    assert!(
+        harness
+            .query_by_label("Tool menu: Mark hard edges")
+            .is_some()
+    );
     // No moving or scaling here, and no polygon-only tools.
     assert!(harness.query_by_label("Tool menu: Move").is_none());
     assert!(harness.query_by_label("Tool menu: Inset").is_none());
@@ -224,9 +228,9 @@ fn editing_shows_the_modelling_tools_in_their_places() {
     assert!(!harness.state().workbench.is_tool_menu_open());
     // A tool with nothing to work on says so.
     open(&mut harness);
-    harness.get_by_label("Tool menu: Hard edges").click();
+    harness.get_by_label("Tool menu: Mark hard edges").click();
     harness.run();
-    assert_eq!(note(&harness), "Hard edges: select some edges first.");
+    assert_eq!(note(&harness), "Mark hard edges: select some edges first.");
 }
 
 #[test]
@@ -464,11 +468,13 @@ fn every_mode_uses_the_same_ring() {
     // the Model ring and the modelling ring.
     let mut harness = cube_selected();
     open(&mut harness);
-    let model = harness.get_by_label("Tool menu: Delete").rect();
+    let model = harness.get_by_label("Tool menu: Delete objects").rect();
     press(&mut harness, Modifiers::NONE, Key::Escape);
     press(&mut harness, Modifiers::NONE, Key::Num1);
     open(&mut harness);
-    let points = harness.get_by_label("Tool menu: Delete").rect();
+    let points = harness
+        .get_by_label("Tool menu: Delete points, edges or polygons")
+        .rect();
     assert!((model.center() - points.center()).length() < 0.5);
     assert!((model.size() - points.size()).length() < 0.5);
 }

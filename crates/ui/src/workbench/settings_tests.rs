@@ -90,6 +90,8 @@ fn the_accent_is_no_longer_in_the_window_menu() {
 fn units_change_here_and_beside_the_shape_title_alike() {
     let mut harness = fresh();
     open(&mut harness);
+    harness.get_by_label("Centimetres (cm)").scroll_to_me();
+    harness.run();
     harness.get_by_label("Centimetres (cm)").click();
     harness.run();
     assert_eq!(harness.state().workbench.units(), crate::Units::Centimetres);
@@ -106,6 +108,8 @@ fn units_change_here_and_beside_the_shape_title_alike() {
 fn units_for_new_projects_are_a_preference_and_undo_brings_the_old_units_back() {
     let mut harness = fresh();
     open(&mut harness);
+    harness.get_by_label("Centimetres").scroll_to_me();
+    harness.run();
     harness.get_by_label("Centimetres").click();
     harness.run();
     let workbench = &harness.state().workbench;
@@ -115,6 +119,8 @@ fn units_for_new_projects_are_a_preference_and_undo_brings_the_old_units_back() 
         crate::Units::Metres,
         "this project's stay"
     );
+    harness.get_by_label("Centimetres (cm)").scroll_to_me();
+    harness.run();
     harness.get_by_label("Centimetres (cm)").click();
     harness.run();
     harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::Z);

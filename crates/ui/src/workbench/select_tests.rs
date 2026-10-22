@@ -131,27 +131,33 @@ fn a_box_selects_shapes_and_shift_box_unselects() {
 }
 
 #[test]
-fn a_box_selects_points_through_the_shape_as_standard() {
+fn a_box_selects_only_what_shows_as_standard_and_through_when_switched() {
+    // Select only visible is on as standard (decision 0126), as a click is.
     let mut harness = points_mode();
+    assert!(harness.state().workbench.view_options().select_visible_only);
     box_over_everything(&mut harness, Modifiers::NONE);
-    assert_eq!(selected_points(&harness), 8, "the hidden corner too");
+    assert_eq!(
+        selected_points(&harness),
+        7,
+        "the hidden corner is left out"
+    );
     assert!(
         harness
-            .query_by_label_contains("8 points selected")
+            .query_by_label_contains("7 points selected")
             .is_some()
     );
     // The selected points are drawn in the selection style.
     let overlay = &harness.state().renderer.drawn.last().unwrap().overlay;
-    assert_eq!(overlay.points.len(), 8);
+    assert_eq!(overlay.points.len(), 7);
 
-    // With "select only visible" on, the hidden corner is left out.
+    // Switched off, the box selects through the shape.
     harness
         .get_by_label(crate::palette::VISIBLE_ONLY_LABEL)
         .click();
     harness.run();
-    assert!(harness.state().workbench.view_options().select_visible_only);
+    assert!(!harness.state().workbench.view_options().select_visible_only);
     box_over_everything(&mut harness, Modifiers::NONE);
-    assert_eq!(selected_points(&harness), 7);
+    assert_eq!(selected_points(&harness), 8, "the hidden corner too");
 }
 
 #[test]
@@ -451,11 +457,11 @@ fn shift_click_removes_with_the_standard_keys() {
     let mut harness = points_mode();
     let corner = on_screen(&harness, Vec3::new(50.0, -50.0, 100.0));
     box_over_everything(&mut harness, Modifiers::NONE);
-    assert_eq!(selected_points(&harness), 8);
+    let all = selected_points(&harness);
     click(&mut harness, corner, Modifiers::SHIFT);
-    assert_eq!(selected_points(&harness), 7);
+    assert_eq!(selected_points(&harness), all - 1);
     click(&mut harness, corner, Modifiers::COMMAND);
-    assert_eq!(selected_points(&harness), 8, "Ctrl + click adds it back");
+    assert_eq!(selected_points(&harness), all, "Ctrl + click adds it back");
 }
 
 #[test]
@@ -479,9 +485,10 @@ fn another_key_pattern_can_be_chosen_in_settings() {
     harness.key_press_modifiers(Modifiers::COMMAND, Key::Comma);
     harness.run();
     box_over_everything(&mut harness, Modifiers::NONE);
+    let before = selected_points(&harness);
     let corner = on_screen(&harness, Vec3::new(50.0, -50.0, 100.0));
     click(&mut harness, corner, Modifiers::COMMAND);
-    assert_eq!(selected_points(&harness), 7, "Ctrl removes now");
+    assert_eq!(selected_points(&harness), before - 1, "Ctrl removes now");
 }
 
 #[test]

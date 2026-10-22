@@ -60,7 +60,7 @@ fn soft_edges_softens_the_selected_edge_and_hard_edges_says_it_already_is() {
     assert_eq!(harness.state().workbench.document().undo_steps(), steps);
     assert_eq!(
         note(&harness),
-        "Hard edges: the selected edges are already hard."
+        "Mark hard edges: the selected edges are already hard."
     );
     run(&mut harness, CommandId::SoftEdges);
     assert_eq!(shape(&harness).hard_edge_count(), 11);
@@ -82,7 +82,7 @@ fn in_the_polygons_mode_the_polygons_edges_change() {
     // In the Points mode it says where it works.
     press(&mut harness, Modifiers::NONE, Key::Num1);
     run(&mut harness, CommandId::HardEdges);
-    assert!(note(&harness).starts_with("Hard edges works on edges or polygons"));
+    assert!(note(&harness).starts_with("Mark hard edges works on edges or polygons"));
 }
 
 #[test]
@@ -153,8 +153,8 @@ fn the_display_menu_marks_hard_edges_and_shows_normals() {
     // Both switches are in the viewport's Display menu.
     harness.get_by_label("Display").click();
     harness.run();
-    assert!(harness.query_by_label("Normals").is_some());
-    assert!(harness.query_by_label("Hard edges").is_some());
+    assert!(harness.query_by_label("Show normals").is_some());
+    assert!(harness.query_by_label("Show hard edges").is_some());
 }
 
 #[test]

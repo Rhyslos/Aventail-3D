@@ -257,7 +257,7 @@ impl GridDetail {
 
 /// How the viewport is shown and steered: choices the user can switch,
 /// which are remembered between sessions.
-#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ViewOptions {
     /// How detailed the grid is. Lines every metre as standard, for a calm
@@ -272,9 +272,11 @@ pub struct ViewOptions {
     /// Whether all four views (perspective, top, front, right) are shown
     /// at once, rather than one filling the viewport.
     pub four_views: bool,
-    /// Whether the box, lasso and brush only select what can be seen. Off
-    /// as standard: they select through the shape, catching its far side
-    /// too (decision 0029).
+    /// Whether the box, lasso and brush only select what can be seen, as
+    /// a click does. On as standard (decision 0126; before, off, decision
+    /// 0029): the saved name changed with it, so everyone starts with the
+    /// new standard once.
+    #[serde(rename = "select_visible")]
     pub select_visible_only: bool,
     /// Which keys add to and take from the selection.
     pub select_keys: SelectKeys,
@@ -318,6 +320,38 @@ pub struct ViewOptions {
     /// orbiting) turns a perspective view orthographic, until it is
     /// orbited away (off as standard; decision 0084).
     pub flat_from_dice: bool,
+    /// Whether the selection is drawn larger, with a dark rim, in the
+    /// viewport and the UV Editor (Settings → Interface → High contrast;
+    /// off as standard; decision 0126).
+    pub high_contrast: bool,
+}
+
+impl Default for ViewOptions {
+    fn default() -> Self {
+        Self {
+            grid_detail: GridDetail::default(),
+            legacy_fine_grid: false,
+            navigation: NavigationSettings::default(),
+            four_views: false,
+            select_visible_only: true,
+            select_keys: SelectKeys::default(),
+            snap: SnapSettings::default(),
+            locked: [false; 3],
+            axes: Axes::default(),
+            hide_hard_edges: false,
+            show_normals: false,
+            show_seams: false,
+            symmetry: Symmetry::default(),
+            dissolve_without_warning: false,
+            shading: Shading::default(),
+            surface: Surface::default(),
+            hide_cavity: false,
+            hard_edges_by_hand: false,
+            keyboard: None,
+            flat_from_dice: false,
+            high_contrast: false,
+        }
+    }
 }
 
 /// The live mirror's settings ([decision 0088](../../../docs/decisions/0088-live-mirror.md)):
@@ -421,6 +455,9 @@ pub struct ViewportView {
     pub cavity: bool,
     /// What the shapes' surfaces show.
     pub surface: Surface,
+    /// Whether the selection is drawn larger with a dark rim (Settings →
+    /// Interface → High contrast; decision 0126).
+    pub high_contrast: bool,
 }
 
 /// A question for the renderer: what is under this pixel of the image?
@@ -1026,6 +1063,7 @@ impl View {
             auto_hard_angle: Some(AUTO_HARD_ANGLE),
             cavity: true,
             surface: Surface::Plain,
+            high_contrast: false,
         }
     }
 }
@@ -1492,6 +1530,7 @@ impl ViewportPanel {
             view.auto_hard_angle = self.options.auto_hard_angle();
             view.cavity = !self.options.hide_cavity;
             view.surface = self.options.surface;
+            view.high_contrast = self.options.high_contrast;
             match renderer.render(&view) {
                 Ok(texture) => {
                     let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0));

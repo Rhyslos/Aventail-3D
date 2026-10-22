@@ -17,7 +17,11 @@ impl Workbench {
     /// Hard edges (`hard`) or Soft edges: marks the selected edges, or
     /// the selected polygons' edges.
     pub(super) fn run_hardness(&mut self, hard: bool) {
-        let name = if hard { "Hard edges" } else { "Soft edges" };
+        let name = if hard {
+            "Mark hard edges"
+        } else {
+            "Mark soft edges"
+        };
         let polygons = self.mode == Mode::Polygons;
         let mut ops = Vec::new();
         let mut count = 0;

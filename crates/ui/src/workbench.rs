@@ -1168,6 +1168,7 @@ impl Workbench {
                         tool: self.tool,
                         snap: view_options.snap,
                         surface: view_options.surface,
+                        high_contrast: view_options.high_contrast,
                         explain: crate::uv_editor::explain::ExplainContext {
                             suggest: explain_suggest,
                             hard_angle: explain_hard_angle,
@@ -1296,6 +1297,7 @@ impl Workbench {
             autosave_folder: self.autosave_folder.as_deref(),
             tool_menu: &mut self.tool_menu.settings,
             dissolve_without_warning: &mut options.dissolve_without_warning,
+            high_contrast: &mut options.high_contrast,
         };
         self.settings.show(ctx, &mut values);
         if undo_memory != self.undo_memory {
@@ -2334,6 +2336,8 @@ struct PanelViewer<'a> {
     tool: Tool,
     snap: crate::transforming::SnapSettings,
     surface: crate::viewport::Surface,
+    /// Whether the selection is drawn with high contrast (decision 0126).
+    high_contrast: bool,
     /// How pieces are grouped onto textures (the packing settings).
     texture_groups: crate::uv_editor::checking::TextureGroups,
     /// What explaining choices in the UV Editor needs.
@@ -2496,6 +2500,7 @@ impl TabViewer for PanelViewer<'_> {
                         .then(|| theme::grid_colors(theme::accent(ui.ctx()))),
                     texture_groups: self.texture_groups,
                     explain: self.explain,
+                    high_contrast: self.high_contrast,
                 };
                 self.uv_editor.show(ui, self.document, &cx);
                 return;
