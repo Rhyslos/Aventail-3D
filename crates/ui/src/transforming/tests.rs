@@ -700,3 +700,122 @@ fn a_pivot_snaps_to_its_own_shapes_corner() {
     };
     assert!(!d.abs_diff_eq(corner, 1e-2), "{d}");
 }
+
+// ------------------------------------------------- drags in a row (0126) ---
+
+fn corner_position(doc: &Document, cube: ObjectId, corner: VertexId) -> Vec3 {
+    doc.scene()
+        .evaluated(cube)
+        .unwrap()
+        .mesh
+        .position(corner)
+        .unwrap()
+}
+
+#[test]
+fn drags_in_a_row_on_the_same_points_stay_one_edit() {
+    let (mut doc, cube) = cube_document();
+    let corner = VertexId::from_raw(0);
+    doc.select_elements(
+        [(cube, ElementSelection::of([scene::Element::Point(corner)]))],
+        "Select",
+        None,
+    );
+    let start = corner_position(&doc, cube, corner);
+    let drag = |doc: &mut Document, key: u64, change: Change| {
+        let t = target(doc, Mode::Points, Axes::World).unwrap();
+        Session::new(t, key).show(doc, &change).unwrap();
+    };
+    drag(&mut doc, 1, Change::Translate(Vec3::new(10.0, 0.0, 0.0)));
+    drag(&mut doc, 2, Change::Translate(Vec3::new(0.0, 5.0, 0.0)));
+    let edits = |doc: &Document| doc.scene().object(cube).unwrap().stack.operation_count();
+    assert_eq!(edits(&doc), 1, "two drags, one edit");
+    assert!(
+        corner_position(&doc, cube, corner).abs_diff_eq(start + Vec3::new(10.0, 5.0, 0.0), 1e-3)
+    );
+    // A turn after a move joins them as one matrix.
+    drag(
+        &mut doc,
+        3,
+        Change::Rotate {
+            axis: Vec3::Z,
+            angle: 0.5,
+        },
+    );
+    assert_eq!(edits(&doc), 1);
+    // Each drag is still its own undo step.
+    doc.undo();
+    assert_eq!(edits(&doc), 1);
+    doc.undo();
+    assert!(
+        corner_position(&doc, cube, corner).abs_diff_eq(start + Vec3::new(10.0, 0.0, 0.0), 1e-3)
+    );
+    assert_eq!(edits(&doc), 1);
+    doc.undo();
+    assert_eq!(edits(&doc), 0);
+}
+
+#[test]
+fn selecting_something_else_starts_a_new_edit() {
+    let (mut doc, cube) = cube_document();
+    let select = |doc: &mut Document, v: u32| {
+        doc.select_elements(
+            [(
+                cube,
+                ElementSelection::of([scene::Element::Point(VertexId::from_raw(v))]),
+            )],
+            "Select",
+            None,
+        );
+    };
+    let drag = |doc: &mut Document, key: u64| {
+        let t = target(doc, Mode::Points, Axes::World).unwrap();
+        Session::new(t, key)
+            .show(doc, &Change::Translate(Vec3::X * 4.0))
+            .unwrap();
+    };
+    select(&mut doc, 0);
+    drag(&mut doc, 1);
+    select(&mut doc, 1);
+    drag(&mut doc, 2);
+    assert_eq!(doc.scene().object(cube).unwrap().stack.operation_count(), 2);
+    // The same points again, but after selecting something else in
+    // between: a new edit.
+    select(&mut doc, 2);
+    select(&mut doc, 1);
+    drag(&mut doc, 3);
+    assert_eq!(doc.scene().object(cube).unwrap().stack.operation_count(), 3);
+}
+
+#[test]
+fn combining_edits_keeps_the_points_and_anchors() {
+    let points = vec![VertexId::from_raw(2), VertexId::from_raw(3)];
+    let a = Operation::MovePoints {
+        points: points.clone(),
+        offset: Vec3::X,
+        anchors: None,
+    };
+    let b = Operation::MovePoints {
+        points: points.clone(),
+        offset: Vec3::Y,
+        anchors: None,
+    };
+    assert_eq!(
+        combined(&a, b),
+        Operation::MovePoints {
+            points: points.clone(),
+            offset: Vec3::new(1.0, 1.0, 0.0),
+            anchors: None,
+        }
+    );
+    let turn = Operation::TransformPoints {
+        points: points.clone(),
+        matrix: Mat4::from_rotation_z(1.0),
+        anchors: None,
+    };
+    let Operation::TransformPoints { matrix, .. } = combined(&a, turn) else {
+        panic!("a matrix");
+    };
+    let p = matrix.transform_point3(Vec3::ZERO);
+    assert!(p.abs_diff_eq(Mat4::from_rotation_z(1.0).transform_point3(Vec3::X), 1e-5));
+}

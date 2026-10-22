@@ -251,6 +251,93 @@ pub(crate) struct PointsStart {
     /// While sliding (Alt + drag on the Move gizmo, decision 0055): the
     /// shape as it was, whose edges the points slide along.
     pub(crate) slide: Option<std::sync::Arc<scene::Mesh>>,
+    /// The edit this drag continues (decision 0126): the object's last
+    /// edit, when it moved, turned or scaled these same points in the
+    /// drag just before, with nothing else done since. Its layer, its
+    /// place in the layer, and the edit; the drag changes it rather than
+    /// adding another, so drags in a row stay one entry in the edit list.
+    pub(crate) follows: Option<(usize, usize, Operation)>,
+}
+
+/// The edit a drag of `points` on `id` continues, if any (decision 0126):
+/// the object's last edit is a move, turn or scale of exactly these
+/// points, and the last undo step was that drag.
+fn follows(
+    document: &scene::Document,
+    id: ObjectId,
+    points: &[VertexId],
+) -> Option<(usize, usize, Operation)> {
+    let label = document.undo_label()?;
+    let dragged = ["Move ", "Rotate ", "Scale "]
+        .iter()
+        .any(|verb| label.starts_with(verb))
+        && (label.ends_with(" point") || label.ends_with(" points"));
+    if !dragged {
+        return None;
+    }
+    let layers = document.scene().object(id)?.stack.layers();
+    let layer = layers.len().checked_sub(1)?;
+    let entries = &layers[layer].entries;
+    let index = entries.len().checked_sub(1)?;
+    let entry = &entries[index];
+    if !entry.enabled {
+        return None;
+    }
+    let same = |ids: &[VertexId]| {
+        let mut ids = ids.to_vec();
+        ids.sort_unstable();
+        ids.dedup();
+        ids == points
+    };
+    match &entry.operation {
+        Operation::MovePoints { points: p, .. } | Operation::TransformPoints { points: p, .. }
+            if same(p) =>
+        {
+            Some((layer, index, entry.operation.clone()))
+        }
+        _ => None,
+    }
+}
+
+/// `before` and then `after` (both on the same points) as one edit: two
+/// moves add up; anything else becomes one matrix (decision 0126).
+pub(crate) fn combined(before: &Operation, after: Operation) -> Operation {
+    let matrix = |op: &Operation| match op {
+        Operation::MovePoints { offset, .. } => Some(Mat4::from_translation(*offset)),
+        Operation::TransformPoints { matrix, .. } => Some(*matrix),
+        _ => None,
+    };
+    match (before, &after) {
+        (
+            Operation::MovePoints {
+                points,
+                offset: a,
+                anchors,
+            },
+            Operation::MovePoints { offset: b, .. },
+        ) => Operation::MovePoints {
+            points: points.clone(),
+            offset: *a + *b,
+            anchors: anchors.clone(),
+        },
+        (
+            Operation::MovePoints {
+                points, anchors, ..
+            }
+            | Operation::TransformPoints {
+                points, anchors, ..
+            },
+            _,
+        ) => match (matrix(before), matrix(&after)) {
+            (Some(first), Some(second)) => Operation::TransformPoints {
+                points: points.clone(),
+                matrix: second * first,
+                anchors: anchors.clone(),
+            },
+            _ => after,
+        },
+        _ => after,
+    }
 }
 
 /// What a change works on.
@@ -387,12 +474,14 @@ impl Target {
                             .filter_map(|v| item.mesh.position(*v))
                             .map(|p| item.transform.transform_point3(p)),
                     );
+                    let follows = follows(document, item.id, &points);
                     starts.push(PointsStart {
                         id: item.id,
                         world: item.transform,
                         points,
                         anchors,
                         slide: None,
+                        follows,
                     });
                 }
                 let first = starts.first()?;
@@ -518,10 +607,20 @@ impl Target {
                             anchors: s.anchors.clone(),
                         },
                     };
-                    vec![Command::Record {
-                        id: s.id,
-                        operation,
-                    }]
+                    match &s.follows {
+                        // The drag just before moved these points: change
+                        // that edit instead of adding another.
+                        Some((layer, index, before)) => vec![Command::ReplaceOperation {
+                            id: s.id,
+                            layer: *layer,
+                            index: *index,
+                            operation: combined(before, operation),
+                        }],
+                        None => vec![Command::Record {
+                            id: s.id,
+                            operation,
+                        }],
+                    }
                 })
                 .collect(),
         }
