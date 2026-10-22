@@ -300,6 +300,7 @@ Newest first. One line per finished milestone or passed gate.
 | Date | Event |
 | --- | --- |
 | 2026-10-22 | Planned: advanced modelling (Phase 10) comes right after the rework, before the rest of the UV phase (Phase 8) |
+| 2026-10-22 | Fixed: Alt + A over the UV Editor selects whole UV pieces, so overlapping pieces can be separated |
 | 2026-10-21 | Cut from the plan: the app's own renderer (Solis v1 and its path tracer). Solis is the project lead's game engine, a separate program; later phases move up one |
 | 2026-10-21 | A review of the whole app: Phase 8 paused, Phase 9 becomes "Rework and first use", done now |
 | 2026-10-20 | Fixed: setting up the next extrude (or bevel, inset, loop cut) no longer changes the last one once something else is selected |

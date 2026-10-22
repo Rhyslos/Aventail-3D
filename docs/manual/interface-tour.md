@@ -103,7 +103,7 @@ Every key is listed in the **Keys** window: click **Keys** on the menu bar, afte
 | Loop / ring | Double-click / `Alt` + double-click |
 | Grow / shrink the selection | `Ctrl` + wheel (with a tool that has a count, like Bevel's segments, Loop cut's cuts or Extrude's bend segments: that count) |
 | Select all / invert | `Ctrl + A` / `Ctrl + I` |
-| Select connected (the whole part) | `Alt + A` |
+| Select connected (the whole part; over the UV Editor or in the UV mode, whole pieces) | `Alt + A` |
 | Delete the selection | `Delete` or `Backspace` (in the Points, Edges and Polygons modes, `Delete` deletes elements and `Backspace` dissolves them) |
 | Frame everything / the selection | `H` / `Z` |
 | Hide / isolate / show everything | `Shift + H` / `Ctrl + H` / `Alt + H` (see [Hide and isolate](hide-and-isolate.md)) |

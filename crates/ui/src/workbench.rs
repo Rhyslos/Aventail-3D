@@ -2261,13 +2261,14 @@ impl Workbench {
                 ),
             )
             .on_hover_text(
-                "Select every piece joined to the selected ones on the model, across seams: \
-                 the whole part",
+                "Select the whole pieces the selection is in: a little of a piece \
+                 (a point, an edge or a polygon) brings the whole piece, parted at seams. \
+                 Use it to pick one of two overlapping pieces and move it away.",
             )
             .clicked()
         {
             self.select_requests
-                .push(selection::SelectRequest::Connected);
+                .push(selection::SelectRequest::ConnectedInUvs);
             ui.close();
         }
         ui.separator();

@@ -481,3 +481,148 @@ fn connected_with_nothing_selected_or_a_lone_point_stays_small() {
     let polygon = ElementSelection::of([Element::Polygon(first)]);
     assert!(connected(&mesh, &topology, &polygon, ElementKind::Points).is_empty());
 }
+
+#[test]
+fn connected_in_uvs_takes_the_island_not_the_part() {
+    // A cube is one part but six islands (one per side).
+    let mesh = Primitive::Cube(CubeParams {
+        segments: [3, 2, 4],
+        ..Default::default()
+    })
+    .mesh();
+    let topology = Topology::new(&mesh);
+    let islands = crate::uvs::islands(&mesh);
+    assert_eq!(islands.len(), 6);
+    let side = &islands[0];
+    let one = ElementSelection::of([Element::Polygon(side[0])]);
+    let polygons = connected_in_uvs(&mesh, &topology, &one, ElementKind::Polygons);
+    assert_eq!(polygons.len(), side.len(), "only that side's polygons");
+    for f in side {
+        assert!(polygons.contains(&Element::Polygon(*f)));
+    }
+    // Two polygons of different sides: both sides, nothing else.
+    let other = &islands[3];
+    let two = ElementSelection::of([Element::Polygon(side[0]), Element::Polygon(other[0])]);
+    assert_eq!(
+        connected_in_uvs(&mesh, &topology, &two, ElementKind::Polygons).len(),
+        side.len() + other.len()
+    );
+    // The mesh connected selection is still the whole cube.
+    assert_eq!(
+        connected(&mesh, &topology, &one, ElementKind::Polygons).len(),
+        mesh.faces().count()
+    );
+}
+
+#[test]
+fn connected_in_uvs_from_points_and_edges() {
+    let mesh = Primitive::Cube(CubeParams {
+        segments: [3, 3, 3],
+        ..Default::default()
+    })
+    .mesh();
+    let topology = Topology::new(&mesh);
+    let (island_of, _) = crate::uvs::island_of_each(&mesh);
+    // A point inside one side (all its polygons in one island): that island.
+    let inner = mesh
+        .vertices()
+        .map(|(v, _)| v)
+        .find(|v| {
+            let faces = topology.vertex_faces(*v);
+            faces.len() == 4
+                && faces
+                    .iter()
+                    .all(|f| island_of[f.get() as usize] == island_of[faces[0].get() as usize])
+        })
+        .expect("a 3 × 3 side has inner points");
+    let island = island_of[topology.vertex_faces(inner)[0].get() as usize];
+    let island_faces: Vec<FaceId> = mesh
+        .faces()
+        .map(|(f, _)| f)
+        .filter(|f| island_of[f.get() as usize] == island)
+        .collect();
+    let points = connected_in_uvs(
+        &mesh,
+        &topology,
+        &ElementSelection::of([Element::Point(inner)]),
+        ElementKind::Points,
+    );
+    assert_eq!(points.len(), 16, "a 3 × 3 side has 4 × 4 points");
+    let edges = connected_in_uvs(
+        &mesh,
+        &topology,
+        &ElementSelection::of([Element::Edge(topology.vertex_edges(inner)[0])]),
+        ElementKind::Edges,
+    );
+    assert_eq!(edges.len(), 24, "a 3 × 3 side has 24 edges");
+    assert_eq!(island_faces.len(), 9);
+    // A corner of the cube sits on three sides: all three islands.
+    let corner = mesh
+        .vertices()
+        .map(|(v, _)| v)
+        .find(|v| topology.vertex_faces(*v).len() == 3)
+        .unwrap();
+    assert_eq!(
+        connected_in_uvs(
+            &mesh,
+            &topology,
+            &ElementSelection::of([Element::Point(corner)]),
+            ElementKind::Polygons
+        )
+        .len(),
+        0,
+        "a point selection is read in points, not polygons"
+    );
+    assert_eq!(
+        connected_in_uvs(
+            &mesh,
+            &topology,
+            &ElementSelection::of([Element::Point(corner)]),
+            ElementKind::Points
+        )
+        .len(),
+        3 * 16 - 3 * 4 + 1,
+        "three sides of 16 points, sharing three edges of 4 points and the corner"
+    );
+}
+
+#[test]
+fn connected_in_uvs_without_uvs_or_selection() {
+    let mut mesh = Mesh::new();
+    let a = mesh.add_vertex(Vec3::ZERO).unwrap();
+    let b = mesh.add_vertex(Vec3::X).unwrap();
+    let c = mesh.add_vertex(Vec3::Y).unwrap();
+    let d = mesh.add_vertex(Vec3::new(1.0, 1.0, 0.0)).unwrap();
+    let f = mesh.add_face(&[a, b, c]).unwrap();
+    mesh.add_face(&[b, d, c]).unwrap();
+    let topology = Topology::new(&mesh);
+    // No UVs: the same as Select connected.
+    let one = ElementSelection::of([Element::Polygon(f)]);
+    assert_eq!(
+        connected_in_uvs(&mesh, &topology, &one, ElementKind::Polygons),
+        connected(&mesh, &topology, &one, ElementKind::Polygons)
+    );
+    let cube = cube();
+    let topology = Topology::new(&cube);
+    for kind in [
+        ElementKind::Points,
+        ElementKind::Edges,
+        ElementKind::Polygons,
+    ] {
+        assert!(connected_in_uvs(&cube, &topology, &ElementSelection::new(), kind).is_empty());
+    }
+    // A removed polygon in the selection is ignored, not a crash.
+    let mut holed = cube.clone();
+    let gone = holed.faces().next().unwrap().0;
+    holed.delete_faces(&[gone]);
+    let topology = Topology::new(&holed);
+    assert!(
+        connected_in_uvs(
+            &holed,
+            &topology,
+            &ElementSelection::of([Element::Polygon(gone)]),
+            ElementKind::Polygons
+        )
+        .is_empty()
+    );
+}

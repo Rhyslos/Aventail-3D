@@ -27,6 +27,9 @@ pub(super) enum SelectRequest {
     Grow(i32),
     /// Select everything joined to the selection (decision 0118).
     Connected,
+    /// Select the whole UV pieces (islands) the selection is in
+    /// (decision 0124).
+    ConnectedInUvs,
     /// Select the polygons facing the wrong way.
     Flipped,
     /// Add the polygons facing like the selected ones.
@@ -63,7 +66,14 @@ impl Workbench {
             )
         });
         if connected {
-            self.select_requests.push(SelectRequest::Connected);
+            // Over the UV Editor, or in the UV mode, Alt + A means the
+            // pieces in the texture, not the whole part (decision 0124).
+            let in_uvs = self.mode == Mode::Uv || self.uv_editor.hovered(ui.ctx());
+            self.select_requests.push(if in_uvs {
+                SelectRequest::ConnectedInUvs
+            } else {
+                SelectRequest::Connected
+            });
         }
         if next {
             if self.tool == crate::transforming::Tool::Select {
@@ -156,7 +166,8 @@ impl Workbench {
             CONNECTED_LABEL,
             connected_keys,
             "Select the whole part the selection is on: everything joined to it, across seams. \
-             Select a little of a part first (in the UV mode, a piece).",
+             Select a little of a part first. Over the UV Editor, or in the UV mode, the key \
+             selects whole pieces instead.",
         ) {
             self.select_requests.push(SelectRequest::Connected);
             ui.close();
@@ -293,6 +304,7 @@ impl Workbench {
                     selector.gesture(crate::selecting::Gesture::Grow(steps))
                 }
                 SelectRequest::Connected => selector.select_connected(),
+                SelectRequest::ConnectedInUvs => selector.select_connected_in_uvs(),
                 SelectRequest::Flipped => selector.select_flipped(),
                 SelectRequest::HardEdges => selector.select_hard_edges(),
                 SelectRequest::Seams => selector.select_seams(),

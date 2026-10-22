@@ -244,7 +244,7 @@ pub(crate) fn bindings() -> Vec<Binding> {
         bind(selecting::INVERT_SHORTCUT, "Invert the selection", Anywhere),
         bind(
             selecting::CONNECTED_SHORTCUT,
-            "Select connected: the whole part the selection is on",
+            "Select connected: the whole part the selection is on (over the UV Editor or in the UV mode, the whole pieces)",
             Anywhere,
         ),
         bind(objects::DESELECT_SHORTCUT, "Select nothing", Anywhere),
