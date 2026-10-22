@@ -83,7 +83,6 @@ pub(crate) fn about_contents(ui: &mut Ui, info: &AppInfo) {
         ui.label(format!("Version {}", info.version));
         ui.add_space(8.0);
         ui.label("A calm, tool-rich 3D modeller for game assets.");
-        ui.label(format!("Part of the {} family of tools.", info.family));
         ui.add_space(8.0);
         ui.label("Created by Rhyslos, built with AI assistance (Claude by Anthropic).");
         ui.label("Free software under the GNU General Public License v3.0 or later.");
