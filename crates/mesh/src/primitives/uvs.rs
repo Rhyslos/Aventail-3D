@@ -21,11 +21,13 @@ use crate::{FaceId, Mesh};
 use glam::{Vec2, Vec3};
 use std::f32::consts::PI;
 
-/// A piece of the surface laid flat: which polygons, and each of their
-/// corners' place on it (in the shape's own units).
+/// A piece of the surface laid flat: each of its polygons' corners (by
+/// their place in the mesh's corner list, [`Mesh::face_layout`]) and
+/// where they lie on it, in the shape's own units (centimetres), so
+/// pieces keep their real sizes against each other.
 #[derive(Debug, Default)]
-struct Chart {
-    corners: Vec<(usize, Vec2)>,
+pub(super) struct Chart {
+    pub(super) corners: Vec<(usize, Vec2)>,
 }
 
 impl Chart {
@@ -61,9 +63,21 @@ enum Style {
 pub(super) fn add_uvs(mesh: &mut Mesh, kind: PrimitiveKind) {
     let style = match kind {
         PrimitiveKind::Cube => Style::Box,
-        PrimitiveKind::Plane | PrimitiveKind::Disc => Style::Flat,
+        PrimitiveKind::Plane | PrimitiveKind::Disc | PrimitiveKind::HexGrid => Style::Flat,
         PrimitiveKind::Cylinder | PrimitiveKind::Cone | PrimitiveKind::Tube => Style::Round,
-        PrimitiveKind::Sphere => Style::Ball,
+        PrimitiveKind::Sphere | PrimitiveKind::Icosphere | PrimitiveKind::HexSphere => Style::Ball,
+        // Built with their own UVs (decision 0129): only the seams to mark.
+        PrimitiveKind::Torus
+        | PrimitiveKind::Capsule
+        | PrimitiveKind::Dome
+        | PrimitiveKind::Elbow
+        | PrimitiveKind::Sector
+        | PrimitiveKind::Gear
+        | PrimitiveKind::Stairs
+        | PrimitiveKind::Arch => {
+            seams_from_splits(mesh);
+            return;
+        }
     };
     let charts = charts(mesh, style);
     let corner_count = mesh.face_layout().1.len();
@@ -86,8 +100,32 @@ pub(super) fn add_uvs(mesh: &mut Mesh, kind: PrimitiveKind) {
     }
 }
 
+/// Gives `mesh` UVs from `charts` laid out in the texture square at one
+/// scale with room between them (as every primitive's are), and marks
+/// seams where pieces part. For builders that cut their own pieces.
+pub(super) fn set_charts(mesh: &mut Mesh, charts: &[Chart]) {
+    let corner_count = mesh.face_layout().1.len();
+    let mut uvs = vec![Vec2::ZERO; corner_count];
+    for (index, uv) in layout(charts) {
+        if let Some(slot) = uvs.get_mut(index) {
+            *slot = uv;
+        }
+    }
+    if mesh
+        .set_attribute_values(
+            UV,
+            Domain::Corner,
+            Value::Vec2(Vec2::ZERO),
+            AttributeValues::Vec2(uvs),
+        )
+        .is_ok()
+    {
+        seams_from_splits(mesh);
+    }
+}
+
 /// The face's corners: their places in the corner list and positions.
-fn corners_of(mesh: &Mesh, face: FaceId) -> Vec<(usize, Vec3)> {
+pub(super) fn corners_of(mesh: &Mesh, face: FaceId) -> Vec<(usize, Vec3)> {
     let (starts, corners) = mesh.face_layout();
     let (a, b) = (
         starts[face.get() as usize] as usize,
@@ -131,6 +169,11 @@ fn charts(mesh: &Mesh, style: Style) -> Vec<Chart> {
     // long as its widest ring.
     let (mut outer, mut inner) = (0.0f32, f32::INFINITY);
     let ball_centre = mesh.bounds().map_or(Vec3::ZERO, |b| b.centre());
+    // How near the up axis a point is on it (a pole), for the ball's size.
+    let pole = mesh
+        .bounds()
+        .map_or(1e-6, |b| b.size().max_element() * 1e-6)
+        .max(1e-6);
     let cone = if style == Style::Round {
         Cone::of(mesh)
     } else {
@@ -219,13 +262,29 @@ fn charts(mesh: &Mesh, style: Style) -> Vec<Chart> {
                     charts[id].corners.push((i, Vec2::new(u, p.z * slant)));
                 }
             }
+            Style::Ball if goes_round_the_pole(&corners, ball_centre, pole) => {
+                // A face round the pole (a hex sphere's top pentagon) can't
+                // be unrolled like a map: it gets a piece of its own, seen
+                // from above (or below), like a cylinder's end.
+                let top = centre.z > ball_centre.z;
+                let id = chart(if top { 1 } else { 2 }, &mut charts);
+                for (i, p) in corners {
+                    let d = p - ball_centre;
+                    let flat = if top {
+                        Vec2::new(d.x, d.y)
+                    } else {
+                        Vec2::new(-d.x, d.y)
+                    };
+                    charts[id].corners.push((i, flat));
+                }
+            }
             Style::Ball => {
                 let middle = around(centre - ball_centre);
                 let id = chart(0, &mut charts);
                 for (i, p) in corners {
                     let d = p - ball_centre;
                     let r = d.truncate().length();
-                    let a = if r < 1e-6 {
+                    let a = if r < pole {
                         middle
                     } else {
                         unwrap(around(d), middle)
@@ -266,6 +325,26 @@ fn charts(mesh: &Mesh, style: Style) -> Vec<Chart> {
     }
     charts.retain(|c| !c.corners.is_empty());
     charts
+}
+
+/// Whether a face goes all the way round the up axis through
+/// `ball_centre` (its outline encloses the axis seen from above), with no
+/// corner on the axis itself: such a face can't be unrolled like a map.
+fn goes_round_the_pole(corners: &[(usize, Vec3)], ball_centre: Vec3, pole: f32) -> bool {
+    let flat: Vec<Vec2> = corners
+        .iter()
+        .map(|(_, p)| (*p - ball_centre).truncate())
+        .collect();
+    if flat.len() < 3 || flat.iter().any(|p| p.length() < pole) {
+        return false;
+    }
+    // The axis is inside when the outline turns a whole way round it.
+    let mut turned = 0.0f32;
+    for k in 0..flat.len() {
+        let (a, b) = (flat[k], flat[(k + 1) % flat.len()]);
+        turned += a.perp_dot(b).atan2(a.dot(b));
+    }
+    turned.abs() > PI
 }
 
 /// A tapering round side (a cone or a cut-off cone): unrolled flat, it is

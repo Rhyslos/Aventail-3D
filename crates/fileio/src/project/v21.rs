@@ -15,6 +15,7 @@ use glam::Vec3;
 use mesh::symmetry::Mirror;
 use scene::Operation;
 use serde::{Deserialize, Serialize};
+use words::tr;
 
 /// Version 21 of the file: version 20's, its edits stored as version
 /// 21's. (Read through `decode_collisions` with [`EntryV21`]; the name
@@ -68,10 +69,10 @@ fn stretched_bent(op: &Operation) -> Option<(ExtrudeBentV15, [f32; 3])> {
 fn with_stretch(op: ExtrudeBentV15, stretch: [f32; 3]) -> Result<Operation, Problem> {
     let stretch = Vec3::from_array(stretch);
     if mesh::stretch::usable(stretch) != stretch {
-        return Err(
-            "a bend's stretch isn't a real number, or is out of range (above 0, at most 1000)"
-                .into(),
-        );
+        return Err(tr(
+            "a bend's stretch isn't a real number, or is out of range (above 0, at most 1000)",
+        )
+        .into());
     }
     let mut operation = op.into_operation()?;
     if let Operation::ExtrudeBent { stretch: s, .. } = &mut operation {
@@ -112,10 +113,10 @@ impl FileOperation for OperationV21 {
             } => {
                 let centre = Vec3::from_array(centre);
                 if !centre.is_finite() {
-                    return Err("a mirror's middle isn't a real number".to_string());
+                    return Err(tr("a mirror's middle isn't a real number").to_string());
                 }
                 if !axes.contains(&true) {
-                    return Err("a mirrored edit mirrors across no axis".to_string());
+                    return Err(tr("a mirrored edit mirrors across no axis").to_string());
                 }
                 Ok(Operation::Mirrored {
                     op: Box::new(with_stretch(op, stretch)?),

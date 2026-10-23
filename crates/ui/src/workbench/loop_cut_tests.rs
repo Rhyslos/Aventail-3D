@@ -326,3 +326,113 @@ fn ctrl_and_the_wheel_change_the_last_cut() {
     assert_eq!(harness.state().workbench.document().undo_steps(), steps + 1);
     assert_eq!(harness.state().workbench.attributes.loop_cut.cuts, 2);
 }
+
+#[test]
+fn ctrl_snaps_one_cut_to_nine_places_with_the_fifth_in_the_middle() {
+    use super::loop_cut::snapped;
+    assert_eq!(snapped(0.5), 0.5);
+    assert_eq!(snapped(0.53), 0.5);
+    assert!((snapped(0.66) - 0.7).abs() < 1e-6);
+    // Never onto an end: the nearest are a tenth in.
+    assert!((snapped(0.0) - 0.1).abs() < 1e-6);
+    assert!((snapped(0.99) - 0.9).abs() < 1e-6);
+}
+
+/// Clicks at `at` with Ctrl held.
+fn ctrl_click(harness: &mut H, at: Pos2) {
+    harness.event(Event::ModifiersChanged(Modifiers::COMMAND));
+    hover(harness, at);
+    button(
+        harness,
+        at,
+        true,
+        PointerButton::Primary,
+        Modifiers::COMMAND,
+    );
+    button(
+        harness,
+        at,
+        false,
+        PointerButton::Primary,
+        Modifiers::COMMAND,
+    );
+    harness.event(Event::ModifiersChanged(Modifiers::NONE));
+    harness.run();
+}
+
+#[test]
+fn ctrl_click_cuts_dead_centre_from_near_the_middle() {
+    // 3 of the edge's 100 off the middle: without Ctrl the cut sits there,
+    // with Ctrl it lands exactly in the middle.
+    let mut harness = ready();
+    let near = on_screen(&harness, glam::Vec3::new(50.0, 3.0, 100.0));
+    click(&mut harness, near);
+    let (_, plain) = loop_cut(&harness);
+    assert!((plain - 0.5).abs() > 0.01, "{plain}");
+
+    let mut harness = ready();
+    ctrl_click(&mut harness, near);
+    let (cuts, position) = loop_cut(&harness);
+    assert_eq!(cuts, 1);
+    assert_eq!(position, 0.5);
+}
+
+#[test]
+fn ctrl_click_near_an_end_lands_a_tenth_in() {
+    let mut harness = ready();
+    let end = on_screen(&harness, glam::Vec3::new(50.0, 48.0, 100.0));
+    ctrl_click(&mut harness, end);
+    let (_, position) = loop_cut(&harness);
+    assert!(
+        (position - 0.9).abs() < 1e-6 || (position - 0.1).abs() < 1e-6,
+        "{position}"
+    );
+}
+
+#[test]
+fn ctrl_while_dragging_slides_in_tenths() {
+    let mut harness = ready();
+    let from = edge_middle(&harness);
+    let towards = on_screen(&harness, glam::Vec3::new(50.0, 23.0, 100.0)) - from;
+    hover(&mut harness, from);
+    button(
+        &mut harness,
+        from,
+        true,
+        PointerButton::Primary,
+        Modifiers::NONE,
+    );
+    harness.event(Event::ModifiersChanged(Modifiers::COMMAND));
+    let mut at = from;
+    for _ in 0..4 {
+        at += towards / 4.0;
+        harness.event(Event::PointerMoved(at));
+        harness.run();
+    }
+    button(
+        &mut harness,
+        at,
+        false,
+        PointerButton::Primary,
+        Modifiers::COMMAND,
+    );
+    harness.event(Event::ModifiersChanged(Modifiers::NONE));
+    harness.run();
+    // 23 of 100 from the middle: 73% or 27%, snapped to 70% or 30%.
+    let (_, position) = loop_cut(&harness);
+    assert!(
+        (position - 0.7).abs() < 1e-6 || (position - 0.3).abs() < 1e-6,
+        "{position}"
+    );
+}
+
+#[test]
+fn ctrl_leaves_several_cuts_spread_evenly() {
+    let mut harness = ready();
+    harness.state_mut().workbench.attributes.loop_cut.cuts = 2;
+    let near = on_screen(&harness, glam::Vec3::new(50.0, 13.0, 100.0));
+    ctrl_click(&mut harness, near);
+    let (cuts, position) = loop_cut(&harness);
+    assert_eq!(cuts, 2);
+    assert_eq!(position, 0.5);
+}

@@ -13,6 +13,7 @@ use crate::limits::Bounded;
 use mesh::FaceId;
 use scene::{Bend, Grouping, Operation};
 use serde::{Deserialize, Serialize};
+use words::tr;
 
 /// Version 8 of the file.
 #[cfg(test)]
@@ -87,7 +88,7 @@ impl FileOperation for OperationV8 {
                     .iter()
                     .all(|x| x.is_finite());
                 if !real {
-                    return Err("its bent extrude holds a number that isn't real".into());
+                    return Err(tr("its bent extrude holds a number that isn't real").into());
                 }
                 Ok(Operation::ExtrudeBent {
                     stretch: glam::Vec3::ONE,

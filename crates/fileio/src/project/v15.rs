@@ -17,6 +17,7 @@ use mesh::FaceId;
 use mesh::symmetry::Mirror;
 use scene::{Bend, Grouping, Operation};
 use serde::{Deserialize, Serialize};
+use words::tr;
 
 /// Version 15 of the file.
 #[cfg(test)]
@@ -114,7 +115,7 @@ impl ExtrudeBentV15 {
             .iter()
             .all(|x| x.is_finite());
         if !real {
-            return Err("its bent extrude holds a number that isn't real".into());
+            return Err(tr("its bent extrude holds a number that isn't real").into());
         }
         Ok(Operation::ExtrudeBent {
             stretch: Vec3::ONE,
@@ -169,10 +170,10 @@ impl FileOperation for OperationV15 {
             } => {
                 let centre = Vec3::from_array(centre);
                 if !centre.is_finite() {
-                    return Err("a mirror's middle isn't a real number".to_string());
+                    return Err(tr("a mirror's middle isn't a real number").to_string());
                 }
                 if !axes.contains(&true) {
-                    return Err("a mirrored edit mirrors across no axis".to_string());
+                    return Err(tr("a mirrored edit mirrors across no axis").to_string());
                 }
                 Ok(Operation::Mirrored {
                     op: Box::new(op.into_operation()?),

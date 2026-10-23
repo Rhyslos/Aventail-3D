@@ -8,6 +8,7 @@ use crate::commands::CommandId;
 use crate::objects::{DocRequest, REDO_SHORTCUT, UNDO_SHORTCUT};
 use crate::palette::Mode;
 use crate::quad_menu::{QuadAction, QuadItem, Quadrant};
+use crate::text::tr;
 use crate::tool_menu::Ready;
 
 impl Workbench {
@@ -59,7 +60,7 @@ impl Workbench {
         let nothing = self.document.selection().is_empty();
         let needs_selection = |mut item: QuadItem| {
             if nothing {
-                item.unavailable = Some("Nothing is selected".into());
+                item.unavailable = Some(tr("Nothing is selected").into());
             }
             item
         };
@@ -71,15 +72,15 @@ impl Workbench {
             },
             needs_selection(QuadItem {
                 shortcut: keys(&HIDE_KEYS),
-                ..QuadItem::new("Hide selected", QuadAction::HideSelection)
+                ..QuadItem::new(tr("Hide selected"), QuadAction::HideSelection)
             }),
             needs_selection(QuadItem {
                 shortcut: keys(&ISOLATE_KEYS),
-                ..QuadItem::new("Isolate", QuadAction::HideOthers)
+                ..QuadItem::new(tr("Isolate"), QuadAction::HideOthers)
             }),
             QuadItem {
                 shortcut: keys(&SHOW_ALL_KEYS),
-                ..QuadItem::new("Show all", QuadAction::ShowAll)
+                ..QuadItem::new(tr("Show all"), QuadAction::ShowAll)
             },
         ];
         let modes = [
@@ -100,28 +101,34 @@ impl Workbench {
         let mut edit = vec![
             QuadItem {
                 shortcut: keys(&UNDO_SHORTCUT),
-                unavailable: doc.undo_label().is_none().then(|| "Nothing to undo".into()),
-                ..QuadItem::new("Undo", QuadAction::Undo)
+                unavailable: doc
+                    .undo_label()
+                    .is_none()
+                    .then(|| tr("Nothing to undo").into()),
+                ..QuadItem::new(tr("Undo"), QuadAction::Undo)
             },
             QuadItem {
                 shortcut: keys(&REDO_SHORTCUT),
-                unavailable: doc.redo_label().is_none().then(|| "Nothing to redo".into()),
-                ..QuadItem::new("Redo", QuadAction::Redo)
+                unavailable: doc
+                    .redo_label()
+                    .is_none()
+                    .then(|| tr("Nothing to redo").into()),
+                ..QuadItem::new(tr("Redo"), QuadAction::Redo)
             },
             QuadItem {
                 unavailable: crate::layers::layer_targets(doc)
                     .is_empty()
-                    .then(|| "Select an object with a shape first".into()),
-                ..QuadItem::new(crate::layers::ADD_LAYER_LABEL, QuadAction::AddEditLayer)
+                    .then(|| tr("Select an object with a shape first").into()),
+                ..QuadItem::new(tr(crate::layers::ADD_LAYER_LABEL), QuadAction::AddEditLayer)
             },
         ];
         if matches!(self.mode, Mode::Model | Mode::Object) {
             edit.push(needs_selection(QuadItem::new(
-                super::aligning::SNAP_TO_LABEL,
+                tr(super::aligning::SNAP_TO_LABEL),
                 QuadAction::SnapTo,
             )));
             edit.push(needs_selection(QuadItem::new(
-                super::aligning::ALIGN_LABEL,
+                tr(super::aligning::ALIGN_LABEL),
                 QuadAction::Align,
             )));
         }
@@ -161,19 +168,19 @@ impl Workbench {
             .collect();
         [
             Quadrant {
-                title: "Show",
+                title: tr("Show"),
                 items: show,
             },
             Quadrant {
-                title: "Modes",
+                title: tr("Modes"),
                 items: modes,
             },
             Quadrant {
-                title: "Edit",
+                title: tr("Edit"),
                 items: edit,
             },
             Quadrant {
-                title: "Tools",
+                title: tr("Tools"),
                 items: tools,
             },
         ]

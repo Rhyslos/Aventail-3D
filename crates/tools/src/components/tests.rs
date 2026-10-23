@@ -274,16 +274,34 @@ fn every_primitive_can_be_picked_somewhere() {
         let mesh = primitive.mesh();
         let scene = scene_of(&[(&mesh, Mat4::IDENTITY, true)]);
         let centre = mesh.bounds().unwrap().centre();
-        // Somewhere near the middle of the shape, a polygon is found.
-        let found = (0..40).find_map(|i| {
-            let offset = Vec2::new((i % 8) as f32 * 6.0 - 21.0, (i / 8) as f32 * 6.0 - 12.0);
-            scene.under(
-                ElementKind::Polygons,
-                &camera,
-                SIZE,
-                screen(&camera, centre) + offset,
-            )
-        });
+        // Somewhere near the middle of the shape, a polygon is found; or,
+        // for a shape whose middle is open (an arch's doorway), at the
+        // middle of one of its polygons.
+        let found = (0..40)
+            .find_map(|i| {
+                let offset = Vec2::new((i % 8) as f32 * 6.0 - 21.0, (i / 8) as f32 * 6.0 - 12.0);
+                scene.under(
+                    ElementKind::Polygons,
+                    &camera,
+                    SIZE,
+                    screen(&camera, centre) + offset,
+                )
+            })
+            .or_else(|| {
+                mesh.faces().find_map(|(_, corners)| {
+                    let middle = corners
+                        .iter()
+                        .filter_map(|v| mesh.position(*v))
+                        .sum::<Vec3>()
+                        / corners.len() as f32;
+                    scene.under(
+                        ElementKind::Polygons,
+                        &camera,
+                        SIZE,
+                        screen(&camera, middle),
+                    )
+                })
+            });
         assert!(found.is_some(), "{primitive:?}");
     }
 }

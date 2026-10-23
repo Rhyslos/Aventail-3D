@@ -595,8 +595,12 @@ fn the_create_menu_makes_every_primitive() {
         assert_eq!(selected_names(&harness), [kind.name()], "new and selected");
     }
     let drawn = drawn_items(&mut harness);
-    assert_eq!(drawn.len(), 7, "every one is drawn");
-    assert_eq!(drawn[0], ("Cone".to_string(), true), "the newest, selected");
+    assert_eq!(
+        drawn.len(),
+        scene::PrimitiveKind::ALL.len(),
+        "every one is drawn"
+    );
+    assert_eq!(drawn[0], ("Arch".to_string(), true), "the newest, selected");
     assert!(drawn[1..].iter().all(|(_, selected)| !selected));
 }
 

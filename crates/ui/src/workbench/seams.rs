@@ -11,24 +11,29 @@
 use super::Workbench;
 use super::joining::counted;
 use crate::palette::Mode;
+use crate::text::tr;
 use mesh::Anchors;
 use scene::{EdgeKey, ElementKind, FaceId, Operation, VertexId};
 use std::collections::BTreeSet;
 
 /// The UV menu's name for Seams from hard edges, and what it does.
-pub(crate) const SEAMS_FROM_HARD_LABEL: &str = "Seams from hard edges";
-pub(crate) const SEAMS_FROM_HARD_HELP: &str = "Mark every hard edge of the selected objects as a seam \
+pub(crate) const SEAMS_FROM_HARD_LABEL: &str = crate::text!("Seams from hard edges");
+pub(crate) const SEAMS_FROM_HARD_HELP: &str = crate::text!(
+    "Mark every hard edge of the selected objects as a seam \
      (as shown: by angle while Automatic hard edges is on). A normal-map bake needs the UVs \
-     split wherever the shading breaks.";
+     split wherever the shading breaks."
+);
 /// The UV menu's name for Suggest seams, and what it does.
-pub(crate) const SUGGEST_SEAMS_LABEL: &str = "Suggest seams";
-pub(crate) const SUGGEST_SEAMS_HELP: &str = "Replace the selected objects' seams with suggested \
+pub(crate) const SUGGEST_SEAMS_LABEL: &str = crate::text!("Suggest seams");
+pub(crate) const SUGGEST_SEAMS_HELP: &str = crate::text!(
+    "Replace the selected objects' seams with suggested \
      ones: along hard edges and sharp corners, then where each piece needs cutting to lie flat, \
-     in hidden places (facing down, in corners)";
+     in hidden places (facing down, in corners)"
+);
 /// The name for Select seams, and what it does.
-pub(crate) const SELECT_SEAMS_LABEL: &str = "Select seams";
+pub(crate) const SELECT_SEAMS_LABEL: &str = crate::text!("Select seams");
 pub(crate) const SELECT_SEAMS_HELP: &str =
-    "Select every seam of the edited objects. Shows the Edges mode.";
+    crate::text!("Select every seam of the edited objects. Shows the Edges mode.");
 
 /// The edges marked (Polygons and UV modes): the border of the selected
 /// polygons, where a selected one meets one that isn't (or nothing).
@@ -79,7 +84,11 @@ impl Workbench {
     /// edges between selected points, or, for polygons, the border of the
     /// selection (marking) or every edge of it (clearing).
     pub(super) fn run_seams(&mut self, seam: bool) {
-        let name = if seam { "Mark seams" } else { "Clear seams" };
+        let name = if seam {
+            tr("Mark seams")
+        } else {
+            tr("Clear seams")
+        };
         let mut ops = Vec::new();
         let mut count = 0;
         let mut any = false;
@@ -123,24 +132,31 @@ impl Workbench {
         if ops.is_empty() {
             self.note = Some(if any {
                 if seam {
-                    format!("{name}: those edges are seams already (or open edges, cut already).")
+                    crate::trf!(
+                        "{}: those edges are seams already (or open edges, cut already).",
+                        name
+                    )
                 } else {
-                    format!("{name}: those edges aren't seams.")
+                    crate::trf!("{}: those edges aren't seams.", name)
                 }
             } else {
-                format!("{name}: select some edges first (or polygons, for the edges around them).")
+                crate::trf!(
+                    "{}: select some edges first (or polygons, for the edges around them).",
+                    name
+                )
             });
             return;
         }
         let verb = if seam {
-            "Mark as seams"
+            tr("Mark as seams")
         } else {
-            "Clear the seams of"
+            tr("Clear the seams of")
         };
-        let label = counted(verb, count, "edge");
+        let label = counted(verb, count, tr("edge"));
         if self.record_each(&label, ops) {
-            self.note = Some(format!(
-                "{label}. Ctrl + Z takes it back.{}",
+            self.note = Some(crate::trf!(
+                "{}. Ctrl + Z takes it back.{}",
+                label,
                 self.seams_hint()
             ));
         }
@@ -153,16 +169,16 @@ impl Workbench {
             self.mode == Mode::Uv || self.viewport.options().show_seams,
             self.uv_settings.live_unwrap,
         ) {
-            (true, true) => " The pieces around them are unwrapped again.",
-            (true, false) => " Unwrap to lay the pieces flat along them.",
-            (false, true) => {
+            (true, true) => tr(" The pieces around them are unwrapped again."),
+            (true, false) => tr(" Unwrap to lay the pieces flat along them."),
+            (false, true) => tr(
                 " The pieces around them are unwrapped again. Seams show in orange in the UV \
-                 Editor and the UV mode, or with Display → Seams."
-            }
-            (false, false) => {
+                 Editor and the UV mode, or with Display → Seams.",
+            ),
+            (false, false) => tr(
                 " Seams show in orange in the UV Editor and the UV mode, or with Display → \
-                 Seams."
-            }
+                 Seams.",
+            ),
         }
     }
 
@@ -188,8 +204,9 @@ impl Workbench {
     /// seams.
     pub(crate) fn run_seams_from_hard_edges(&mut self) {
         if self.document.selection().is_empty() {
-            self.note = Some(format!(
-                "{SEAMS_FROM_HARD_LABEL}: select the objects first."
+            self.note = Some(crate::trf!(
+                "{}: select the objects first.",
+                tr(SEAMS_FROM_HARD_LABEL)
             ));
             return;
         }
@@ -211,15 +228,17 @@ impl Workbench {
             ops.extend(live.map(|op| (id, op)));
         }
         if ops.is_empty() {
-            self.note = Some(format!(
-                "{SEAMS_FROM_HARD_LABEL}: every hard edge is a seam already."
+            self.note = Some(crate::trf!(
+                "{}: every hard edge is a seam already.",
+                tr(SEAMS_FROM_HARD_LABEL)
             ));
             return;
         }
-        let label = counted("Mark as seams", count, "hard edge");
+        let label = counted(tr("Mark as seams"), count, tr("hard edge"));
         if self.record_each(&label, ops) {
-            self.note = Some(format!(
-                "{label}. Ctrl + Z takes it back.{}",
+            self.note = Some(crate::trf!(
+                "{}. Ctrl + Z takes it back.{}",
+                label,
                 self.seams_hint()
             ));
         }
@@ -229,7 +248,10 @@ impl Workbench {
     /// `uv::seams::suggest`'s, as one undo step.
     pub(crate) fn run_suggest_seams(&mut self) {
         if self.document.selection().is_empty() {
-            self.note = Some(format!("{SUGGEST_SEAMS_LABEL}: select the objects first."));
+            self.note = Some(crate::trf!(
+                "{}: select the objects first.",
+                tr(SUGGEST_SEAMS_LABEL)
+            ));
             return;
         }
         let mut ops = Vec::new();
@@ -274,15 +296,17 @@ impl Workbench {
             ops.extend(live.map(|op| (id, op)));
         }
         if ops.is_empty() {
-            self.note = Some(format!(
-                "{SUGGEST_SEAMS_LABEL}: the seams are already where they'd be suggested."
+            self.note = Some(crate::trf!(
+                "{}: the seams are already where they'd be suggested.",
+                tr(SUGGEST_SEAMS_LABEL)
             ));
             return;
         }
-        if self.record_each(SUGGEST_SEAMS_LABEL, ops) {
-            self.note = Some(format!(
-                "{} suggested ({changed} changed). Ctrl + Z takes it back.{}",
-                counted("", total, "seam").trim_start(),
+        if self.record_each(tr(SUGGEST_SEAMS_LABEL), ops) {
+            self.note = Some(crate::trf!(
+                "{} suggested ({} changed). Ctrl + Z takes it back.{}",
+                counted("", total, tr("seam")).trim_start(),
+                changed,
                 self.seams_hint()
             ));
         }

@@ -49,7 +49,7 @@ pub fn show(ui: &mut Ui, view: &SplashView<'_>) {
     painter.text(
         middle + vec2(0.0, 12.0),
         Align2::CENTER_CENTER,
-        format!("Version {}", view.info.version),
+        crate::trf!("Version {}", view.info.version),
         FontId::proportional(14.0),
         theme::TEXT_WEAK,
     );

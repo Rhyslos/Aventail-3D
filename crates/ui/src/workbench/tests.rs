@@ -84,7 +84,28 @@ fn harness_built(
     workbench: Workbench,
     renderer: TestRenderer,
 ) -> Harness<'static, State> {
-    builder.with_size([1440.0, 900.0]).build_ui_state(
+    harness_built_sized(builder, workbench, renderer, [1440.0, 900.0])
+}
+
+/// A fresh window `width` points wide (900 tall), with a cube.
+pub(super) fn fresh_of_width(width: f32) -> Harness<'static, State> {
+    let mut harness = harness_built_sized(
+        Harness::builder(),
+        with_a_cube(Workbench::new(info(), None)),
+        TestRenderer::default(),
+        [width, 900.0],
+    );
+    harness.run();
+    harness
+}
+
+pub(super) fn harness_built_sized(
+    builder: egui_kittest::HarnessBuilder<State>,
+    workbench: Workbench,
+    renderer: TestRenderer,
+    size: [f32; 2],
+) -> Harness<'static, State> {
+    builder.with_size(size).build_ui_state(
         |ui, state: &mut State| {
             let actions = state.workbench.show(ui, &mut state.renderer);
             state.actions.extend(actions);
@@ -424,9 +445,24 @@ fn coordinates_show_every_field_as_in_the_mockup() {
                 .is_some()
         );
     }
-    // Fields fill most of their group's width, as in the mockup.
-    assert!(harness.get_by_label("Position X").rect().width() > 150.0);
-    assert!(harness.query_by_label("World").is_some());
+    // One slim line (decision 0126): every field on the same row, wide
+    // enough to read, and "World" still on screen at the end.
+    let first = harness.get_by_label("Position X").rect();
+    assert!(first.width() >= 44.0);
+    for label in ["Size Z", "Rotation Z"] {
+        let rect = harness.get_by_label(label).rect();
+        assert!((rect.center().y - first.center().y).abs() < 1.0, "{label}");
+    }
+    // ...before the panels on the right begin.
+    let world = harness.get_by_label("World").rect();
+    let right = harness
+        .query_all_by_label("Attributes")
+        .map(|n| n.rect().min.x)
+        .fold(f32::INFINITY, f32::min);
+    assert!(
+        world.max.x <= right,
+        "World fits: {world:?}, right panels at {right}"
+    );
 }
 
 /// A renderer that records what it was asked to draw.

@@ -7,6 +7,7 @@
 
 use crate::commands::CommandId;
 use crate::palette::Mode;
+use crate::text::tr;
 use egui::{Context, Key, KeyboardShortcut, Modifiers};
 use scene::PrimitiveKind;
 
@@ -17,7 +18,7 @@ pub(crate) const SEARCH_KEY: Key = Key::Space;
 pub(crate) const MAX_SHOWN: usize = 12;
 
 /// The search box's accessible name.
-pub(crate) const SEARCH_LABEL: &str = "Command search box";
+pub(crate) const SEARCH_LABEL: &str = crate::text!("Command search box");
 
 /// What a found entry does.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -106,112 +107,142 @@ impl MenuAction {
     /// Its name, where it lives, and what it does.
     pub(crate) fn info(self) -> (&'static str, &'static str, &'static str) {
         match self {
-            Self::New => ("New project", "File", "Start a new, empty project"),
-            Self::Open => ("Open…", "File", "Open a saved project"),
-            Self::Save => ("Save", "File", "Save the project"),
-            Self::SaveAs => (
-                "Save As…",
-                "File",
-                "Save the project under a new name or in another folder",
+            Self::New => (
+                tr("New project"),
+                tr("File"),
+                tr("Start a new, empty project"),
             ),
-            Self::Import => ("Import…", "File", "Bring in a model from an OBJ file"),
+            Self::Open => (tr("Open…"), tr("File"), tr("Open a saved project")),
+            Self::Save => (tr("Save"), tr("File"), tr("Save the project")),
+            Self::SaveAs => (
+                tr("Save As…"),
+                tr("File"),
+                tr("Save the project under a new name or in another folder"),
+            ),
+            Self::Import => (
+                tr("Import…"),
+                tr("File"),
+                tr("Bring in a model from an OBJ file"),
+            ),
             Self::Export => (
-                "Export…",
-                "File",
-                "Save the model for a game engine or a texturing program (glTF or OBJ)",
+                tr("Export…"),
+                tr("File"),
+                tr("Save the model for a game engine or a texturing program (glTF or OBJ)"),
             ),
             Self::CheckForBaking => (
-                "Check for baking…",
-                "UV",
-                "List what would spoil a bake: overlapping pieces, missing UVs and more",
+                tr("Check for baking…"),
+                tr("UV"),
+                tr("List what would spoil a bake: overlapping pieces, missing UVs and more"),
             ),
             Self::Settings => (
-                "Settings…",
-                "Edit",
-                "Every preference in one place: look, units, navigation, undo",
+                tr("Settings…"),
+                tr("Edit"),
+                tr("Every preference in one place: look, units, navigation, undo"),
             ),
-            Self::Keys => ("Keys", "Menu bar", "See every key on a drawn keyboard"),
+            Self::Keys => (
+                tr("Keys"),
+                tr("Menu bar"),
+                tr("See every key on a drawn keyboard"),
+            ),
             Self::Manual => (
-                "User manual",
-                "Help",
-                "Open the user manual in your web browser",
+                tr("User manual"),
+                tr("Help"),
+                tr("Open the user manual in your web browser"),
             ),
             Self::Glossary => (
-                "Words used in the app",
-                "Help",
-                "What points, pieces, seams, pivots and the rest mean (glossary)",
+                tr("Words used in the app"),
+                tr("Help"),
+                tr("What points, pieces, seams, pivots and the rest mean (glossary)"),
             ),
-            Self::Undo => ("Undo", "Edit", "Take back the last step"),
-            Self::Redo => ("Redo", "Edit", "Do again what was taken back"),
-            Self::SelectAll => ("Select all", "Select", "Select everything"),
-            Self::SelectNothing => ("Select nothing", "Select", "Clear the selection"),
+            Self::Undo => (tr("Undo"), tr("Edit"), tr("Take back the last step")),
+            Self::Redo => (tr("Redo"), tr("Edit"), tr("Do again what was taken back")),
+            Self::SelectAll => (tr("Select all"), tr("Select"), tr("Select everything")),
+            Self::SelectNothing => (
+                tr("Select nothing"),
+                tr("Select"),
+                tr("Clear the selection"),
+            ),
             Self::InvertSelection => (
-                "Invert the selection",
-                "Select",
-                "Select what isn't selected, and unselect what is",
+                tr("Invert the selection"),
+                tr("Select"),
+                tr("Select what isn't selected, and unselect what is"),
             ),
             Self::SelectConnected => (
-                "Select connected",
-                "Select",
-                "The whole part the selection is on",
+                tr("Select connected"),
+                tr("Select"),
+                tr("The whole part the selection is on"),
             ),
-            Self::SelectSeams => ("Select seams", "Select", "Every seam of the shapes"),
+            Self::SelectSeams => (
+                tr("Select seams"),
+                tr("Select"),
+                tr("Every seam of the shapes"),
+            ),
             Self::SelectHardEdges => (
-                "Select hard edges",
-                "Select",
-                "Every hard edge of the shapes",
+                tr("Select hard edges"),
+                tr("Select"),
+                tr("Every hard edge of the shapes"),
             ),
             Self::SelectFlipped => (
-                "Select flipped",
-                "Select",
-                "The polygons facing the wrong way",
+                tr("Select flipped"),
+                tr("Select"),
+                tr("The polygons facing the wrong way"),
             ),
-            Self::Hide => ("Hide the selection", "View", "Hide what is selected"),
+            Self::Hide => (
+                tr("Hide the selection"),
+                tr("View"),
+                tr("Hide what is selected"),
+            ),
             Self::Isolate => (
-                "Isolate the selection",
-                "View",
-                "Hide everything except what is selected",
+                tr("Isolate the selection"),
+                tr("View"),
+                tr("Hide everything except what is selected"),
             ),
-            Self::ShowAll => ("Show everything", "View", "Show everything hidden"),
+            Self::ShowAll => (
+                tr("Show everything"),
+                tr("View"),
+                tr("Show everything hidden"),
+            ),
             Self::UvEditor => (
-                "UV Editor",
-                "Window",
-                "Show the UV Editor beside the viewport, or put it away",
+                tr("UV Editor"),
+                tr("Window"),
+                tr("Show the UV Editor beside the viewport, or put it away"),
             ),
             Self::ShowHardEdges => (
-                "Show hard edges",
-                "Display",
-                "Mark hard edges while editing points, edges or polygons",
+                tr("Show hard edges"),
+                tr("Display"),
+                tr("Mark hard edges while editing points, edges or polygons"),
             ),
             Self::ShowSeams => (
-                "Show seams",
-                "Display",
-                "Mark seams while editing points, edges or polygons",
+                tr("Show seams"),
+                tr("Display"),
+                tr("Mark seams while editing points, edges or polygons"),
             ),
             Self::ShowNormals => (
-                "Show normals",
-                "Display",
-                "Show which way each polygon faces, as short lines",
+                tr("Show normals"),
+                tr("Display"),
+                tr("Show which way each polygon faces, as short lines"),
             ),
             Self::HighContrast => (
-                "High contrast",
-                "Settings",
-                "Draw the selection larger, with a dark rim",
+                tr("High contrast"),
+                tr("Settings"),
+                tr("Draw the selection larger, with a dark rim"),
             ),
             Self::EditPivot => (
-                "Edit pivot",
-                "Tools",
-                "Move and turn the selected objects' pivots, not their shapes",
+                tr("Edit pivot"),
+                tr("Tools"),
+                tr("Move and turn the selected objects' pivots, not their shapes"),
             ),
             Self::ApplyMirror => (
-                "Apply mirror",
-                "Mesh",
-                "Make the mirrored half of a symmetrical object part of its shape (symmetry off)",
+                tr("Apply mirror"),
+                tr("Mesh"),
+                tr(
+                    "Make the mirrored half of a symmetrical object part of its shape (symmetry off)",
+                ),
             ),
             Self::Group => (
-                "Group",
-                "Create",
-                "An empty object to hold and organise other objects",
+                tr("Group"),
+                tr("Create"),
+                tr("An empty object to hold and organise other objects"),
             ),
         }
     }
@@ -373,10 +404,10 @@ impl CommandSearch {
                 egui::Frame::popup(ui.style()).show(ui, |ui| {
                     ui.set_width(width);
                     let edit = egui::TextEdit::singleline(&mut self.query)
-                        .hint_text("Type a command, such as extrude or export")
+                        .hint_text(tr("Type a command, such as extrude or export"))
                         .desired_width(f32::INFINITY);
                     let response = ui.add(edit).labelled_by(
-                        ui.label(egui::RichText::new(SEARCH_LABEL).small().weak())
+                        ui.label(egui::RichText::new(tr(SEARCH_LABEL)).small().weak())
                             .id,
                     );
                     if self.focus_pending {
@@ -389,19 +420,22 @@ impl CommandSearch {
                     ui.add_space(4.0);
                     if found.is_empty() {
                         ui.label(
-                            egui::RichText::new("Nothing found. Try another word.")
+                            egui::RichText::new(tr("Nothing found. Try another word."))
                                 .color(crate::theme::TEXT_WEAK),
                         );
                     }
                     for (i, entry) in found.iter().enumerate() {
                         let text = match &entry.keys {
-                            Some(keys) => format!("{}    {keys}", entry.name),
+                            Some(keys) => crate::trf!("{}    {}", entry.name, keys),
                             None => entry.name.clone(),
                         };
                         let hint = match &entry.not_now {
-                            Some(why) => format!(
-                                "{} › {}\n{}\nNot now: {why}",
-                                entry.place, entry.name, entry.help
+                            Some(why) => crate::trf!(
+                                "{} › {}\n{}\nNot now: {}",
+                                entry.place,
+                                entry.name,
+                                entry.help,
+                                why
                             ),
                             None => format!("{} › {}\n{}", entry.place, entry.name, entry.help),
                         };
@@ -423,7 +457,7 @@ impl CommandSearch {
                     }
                     ui.add_space(2.0);
                     ui.label(
-                        egui::RichText::new("↑ ↓ choose · Enter run · Esc close")
+                        egui::RichText::new(tr("↑ ↓ choose · Enter run · Esc close"))
                             .small()
                             .color(crate::theme::TEXT_WEAK),
                     );

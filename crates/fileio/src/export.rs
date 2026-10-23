@@ -26,6 +26,7 @@ use mesh::{AttributeElement, FaceId, Hardness, Mesh, Value};
 use scene::{Document, Material, ObjectId};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use words::{text, tr, trf};
 
 /// The units an exported file's lengths are in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash, Serialize, Deserialize)]
@@ -211,39 +212,39 @@ impl ExportPreset {
 
     /// Its name, as listed.
     pub fn name(self) -> &'static str {
-        match self {
-            Self::Godot => "Godot",
-            Self::Unity => "Unity",
-            Self::UnrealEngine => "Unreal Engine",
-            Self::Solis => "Solis",
-            Self::SubstancePainter => "Substance Painter",
-        }
+        tr(match self {
+            Self::Godot => text!("Godot"),
+            Self::Unity => text!("Unity"),
+            Self::UnrealEngine => text!("Unreal Engine"),
+            Self::Solis => text!("Solis"),
+            Self::SubstancePainter => text!("Substance Painter"),
+        })
     }
 
     /// What it is for and what it chooses, in a sentence.
     pub fn description(self) -> &'static str {
-        match self {
-            Self::Godot => {
+        tr(match self {
+            Self::Godot => text!(
                 "glTF, each object at its pivot, in metres with Y up: drop it into the Godot \
                  project and it imports by itself"
-            }
-            Self::Unity => {
+            ),
+            Self::Unity => text!(
                 "glTF, each object at its pivot, in metres with Y up: Unity reads it once its \
                  glTFast package is installed"
-            }
-            Self::UnrealEngine => {
+            ),
+            Self::UnrealEngine => text!(
                 "glTF, each object at its pivot, in metres with Y up: Unreal Engine 5 reads it \
                  and turns it into its centimetres and Z up"
-            }
-            Self::Solis => {
+            ),
+            Self::Solis => text!(
                 "glTF, each object at its pivot, in metres with Y up: what the Solis game \
                  engine imports"
-            }
-            Self::SubstancePainter => {
+            ),
+            Self::SubstancePainter => text!(
                 "OBJ in metres with Y up, cut into the viewport's triangles so the bake \
                  matches the game; each material becomes a texture set"
-            }
-        }
+            ),
+        })
     }
 
     /// Whether it is for a game engine (not for a texturing program).
@@ -307,10 +308,10 @@ pub enum ExportError {
 impl std::fmt::Display for ExportError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Nothing => {
-                f.write_str("there is nothing to export: no shapes are shown or selected")
-            }
-            Self::Io(e) => write!(f, "the file couldn't be written ({e})"),
+            Self::Nothing => f.write_str(tr(
+                "there is nothing to export: no shapes are shown or selected",
+            )),
+            Self::Io(e) => f.write_str(&trf!("the file couldn't be written ({})", e)),
         }
     }
 }

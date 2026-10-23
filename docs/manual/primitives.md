@@ -1,6 +1,6 @@
 # Primitives
 
-> Ready-made shapes to start a model from: cube, plane, cylinder, sphere, disc, tube and cone.
+> Ready-made shapes to start a model from: the basic ones (cube, plane, cylinder, sphere, disc, tube, cone) and more (icosphere, torus, capsule, dome, pipe elbow, sector, gear, hex sphere, hex grid, stairs, arch).
 
 ![The seven primitives side by side: cube (selected, outlined in the accent colour), plane, cylinder, sphere, disc, tube and cone](../screenshots/2026-10-10-primitive-gallery.png)
 
@@ -33,6 +33,17 @@ New shapes all appear at the centre of the scene, so they overlap. Move them apa
 | **Disc** | A flat circle 1 m across on the ground, made of 24 straight pieces. | Flat. |
 | **Tube** | A pipe 1 m across and 1 m tall, with a 70 cm hole and 24 sides. | The inside and outside are soft; the four rims are hard. |
 | **Cone** | A cone 1 m across and 1 m tall, with 16 sides and a closed base. | The side is soft; the rim of the base is hard. |
+| **Icosphere** | A ball 1 m across made of even triangles (an icosahedron cut twice). Unlike the Sphere, it has no poles where thin triangles bunch up, so it subdivides and bends evenly. | All soft. |
+| **Torus** | A ring (a doughnut) lying on the ground, 1 m across and 20 cm thick. | All soft. |
+| **Capsule** | An upright cylinder with half-ball ends, 50 cm across and 1 m tall. A common collision shape for characters in game engines. | All soft. |
+| **Dome** | Half a ball 1 m across, standing on its closed flat base. | The curve is soft; the rim of the base is hard. |
+| **Pipe elbow** | A piece of pipe bent through 90°, lying on the ground. Solid with closed ends, or hollow with a hole radius above zero. | The pipe is soft; the end rims are hard. |
+| **Pie sector** | A quarter slice of a round slab, 10 cm thick. With an inner radius above zero it's a slice of a ring. | The curve is soft; every corner is hard. |
+| **Gear** | A gear 1 m across with 12 teeth, 10 cm thick, with a hole for an axle. | Every corner is hard. |
+| **Hex grid** | A flat honeycomb of hexagons on the ground: one in the middle and 3 rings round it. Handy for tiles and hex maps. | Flat. |
+| **Hex sphere** | A ball 1 m across made of hexagons and 12 pentagons, like a football. | All soft. |
+| **Stairs** | A solid flight of 6 straight steps, 1 m wide, 1 m high and 1.5 m deep, rising towards +Y. | Every step corner is hard. |
+| **Arch** | A doorway arch: two straight legs 1 m high and a half-round top over a 1 m opening, 20 cm thick and 30 cm deep. | The band is soft round its curve; its front, back and feet meet it at hard edges. |
 
 Every shape is **1 m across** as standard, a handy size to start from: it's easy to read and to scale (2 m is twice as big, 50 cm half).
 
@@ -51,9 +62,13 @@ Every shape comes already **unwrapped**: its surface is laid flat in the texture
 | **Plane, disc** | As seen from above, in one piece. |
 | **Cylinder, tube** | The round side unrolled into a strip, cut open down the back (the −X side); each end on its own. A tube's inside is a strip of its own. |
 | **Cone** | The side unrolled into a fan around its tip; the base on its own. |
-| **Sphere** | Unrolled like a map of the world, cut open down the back. |
+| **Sphere, icosphere, hex sphere** | Unrolled like a map of the world, cut open down the back. A polygon sitting right over the top or bottom (the hex sphere's pentagons) gets a small piece of its own, seen from above or below. |
+| **Hex grid** | As seen from above, in one piece. |
+| **Torus, pipe elbow** | The surface unrolled into a strip, cut open along the bottom and down the back; a hollow elbow's inside and each closed end on their own. |
+| **Capsule, dome** | The round surface unrolled from tip to tip (or rim to top), cut open down the back; the dome's base on its own. |
+| **Pie sector, gear, stairs, arch** | Each flat face (top and bottom, or front and back) on its own; the walls unrolled into strips, cut at sharp corners, so a gear's teeth or a stair's steps each get their own piece. |
 
-The pieces keep their real sizes against each other, so the texture is equally sharp everywhere. The UVs follow your edits: an extrude stretches them up its new walls, a bevel across its strip. The UV tools to change them (the UV Editor, marking your own seams, unwrapping, packing) come in the next updates.
+The pieces keep their real sizes against each other, so the texture is equally sharp everywhere. The UVs follow your edits: an extrude stretches them up its new walls, a bevel across its strip. To change them, use the [UV tools](uv-editor.md): the UV Editor, your own seams, unwrapping and packing.
 
 ![The ready-made UVs of every shape, laid out flat: a cone's fan and base, a cut cube, a plain cube's six squares, a cylinder's strip and two ends, a disc, a plane, a sphere's map, and a tube's two strips and two rings.](../screenshots/2026-10-16-primitive-uvs.png)
 
@@ -72,6 +87,17 @@ Each shape has its own settings, set to the standard values above when it's crea
 | Disc | Radius, hole radius, sides, ring segments, centre point (when there is no hole) |
 | Tube | Outer and inner radius, height, sides, height segments |
 | Cone | Bottom and top radius (a top above zero cuts the point off), height, sides, height segments, closed ends, cap segments, centre point |
+| Icosphere | Radius, subdivisions (0 is a 20-sided ball; each step four times the triangles, up to 6) |
+| Torus | Radius (to the middle of the tube), tube radius, sides round the ring, sides round the tube |
+| Capsule | Radius, height (end to end), sides, rings in each round end, height segments |
+| Dome | Radius, sides, rings from the rim to the top, closed base |
+| Pipe elbow | Bend radius, pipe radius, hole radius (zero for solid), angle (90° for a corner, 360° for a whole ring), sides round the pipe, segments along the bend |
+| Pie sector | Radius, inner radius (zero for a pie slice), angle, height, sides along the curve |
+| Gear | Radius (at the tips), tooth depth, teeth, height, hole radius (zero for none) |
+| Hex grid | Hexagon size (middle to corner), rings round the middle one |
+| Hex sphere | Radius, subdivisions (more gives more, smaller hexagons) |
+| Stairs | Width, height of the top step, depth, steps |
+| Arch | Opening width, leg height (zero for a half ring), thickness, depth, segments in the round top |
 
 Change them in the [Attributes panel](attributes.md): select the shape, then drag or type a value, or click the step arrows beside it. Sizes are kept between 1 mm and 10 km, and segments and sides between sensible limits, so a typing slip can never make a shape vanish or freeze the app.
 
@@ -79,8 +105,10 @@ Change them in the [Attributes panel](attributes.md): select the shape, then dra
 
 | Action | Shortcut |
 |---|---|
-| Open the shape list, or move down it | `B` |
+| Open the basic shape list (the first seven), or move down it | `B` |
 | Move up the list (or open it at the bottom) | `Shift + B`, or the arrow keys |
+| Open the list of the other shapes (icosphere to arch), or move down it | `Alt + B`; once it's open, plain `B` moves down it too |
+| Move up that list (or open it at the bottom) | `Shift + Alt + B` (or `Shift + B` once it's open), or the arrow keys |
 | Create the highlighted shape | `Enter` or `Space` |
 | Close the list without creating | `Esc`, or click elsewhere |
 

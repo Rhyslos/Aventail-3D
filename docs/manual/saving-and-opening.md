@@ -14,7 +14,7 @@ Whenever you want to keep your work. A project file holds everything in your sce
 - edits recorded on top of shapes;
 - what was selected.
 
-Project files are only for this app. To take a model into Substance Painter or Godot, you'll *export* it (Phase 5); the project file stays your working copy.
+Project files are only for this app. To take a model into Substance Painter or Godot, you *export* it (see [Export and import](export-and-import.md)); the project file stays your working copy.
 
 ## How to use it
 

@@ -9,6 +9,7 @@ use super::v1::{FileOperation, Problem};
 use super::v18::{EntryV18, ProjectV18};
 use scene::{Document, ExportTarget};
 use serde::{Deserialize, Serialize};
+use words::tr;
 
 /// Version 19 of the file.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -54,7 +55,9 @@ impl<E: FileOperation> ProjectV19<E> {
             on_save: t.on_save,
         });
         if target.as_ref().is_some_and(|t| !t.is_valid()) {
-            return Err("its game project folder is empty, too long or broken over lines".into());
+            return Err(
+                tr("its game project folder is empty, too long or broken over lines").into(),
+            );
         }
         Ok(self
             .project

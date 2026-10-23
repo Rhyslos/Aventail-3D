@@ -18,6 +18,7 @@ use scene::{
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use words::tr;
 
 /// A recorded edit in version 38.
 pub(crate) type EntryV38 = EntryWith<OperationV38>;
@@ -100,7 +101,7 @@ fn layout_from_file(layout: LayoutV38) -> Result<UvLayout, Problem> {
             .collect(),
     };
     if !layout.is_real() {
-        return Err("a saved UV layout holds a UV that isn't a real number".into());
+        return Err(tr("a saved UV layout holds a UV that isn't a real number").into());
     }
     Ok(layout)
 }
@@ -146,7 +147,7 @@ impl<E: FileOperation> ProjectV38<E> {
             });
         }
         if !snapshots_are_valid(&snapshots) {
-            return Err("its layout snapshots are too many, unnamed or share a name".into());
+            return Err(tr("its layout snapshots are too many, unnamed or share a name").into());
         }
         Ok(self.project.into_document()?.with_snapshots(snapshots))
     }

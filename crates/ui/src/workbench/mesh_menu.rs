@@ -1,0 +1,166 @@
+//! The Mesh menu: the modelling tools in groups, each a submenu one
+//! level down (decision 0126).
+
+use super::Workbench;
+use super::bars::commands_entries;
+use crate::objects::{self, DocRequest};
+use crate::text::tr;
+use egui::Ui;
+
+/// The Mesh menu's groups (decision 0126): what it holds was one long
+/// list.
+pub(crate) const MESH_BUILD_MENU: &str = crate::text!("Build");
+
+pub(crate) const MESH_CUT_MENU: &str = crate::text!("Cut and join");
+
+pub(crate) const MESH_REMOVE_MENU: &str = crate::text!("Remove");
+
+pub(crate) const MESH_SHADING_MENU: &str = crate::text!("Shading");
+
+pub(crate) const MESH_OBJECT_MENU: &str = crate::text!("Shape and object");
+
+impl Workbench {
+    /// The Mesh menu (decision 0126): the modelling tools in groups, each
+    /// a submenu one level down, so the menu is short and every command is
+    /// found where people look for it.
+    pub(super) fn mesh_menu(&mut self, ui: &mut Ui, requests: &mut Vec<DocRequest>) {
+        use crate::commands::CommandId;
+        let groups: [(&str, &str, &[CommandId]); 3] = [
+            (
+                tr(MESH_BUILD_MENU),
+                tr("Add to the shape: extrude, inset, bevel, groove, bridge, fill a hole"),
+                &[
+                    CommandId::Extrude,
+                    CommandId::Inset,
+                    CommandId::Bevel,
+                    CommandId::Groove,
+                    CommandId::Bridge,
+                    CommandId::FillHole,
+                ],
+            ),
+            (
+                tr(MESH_CUT_MENU),
+                tr("Cut new edges and join points: slit, loop cut, connect, weld"),
+                &[
+                    CommandId::Slit,
+                    CommandId::LoopCut,
+                    CommandId::Connect,
+                    CommandId::Weld,
+                ],
+            ),
+            (
+                tr(MESH_REMOVE_MENU),
+                tr("Take points, edges or polygons away"),
+                &[CommandId::DeleteElements, CommandId::Dissolve],
+            ),
+        ];
+        for (title, help, commands) in groups {
+            crate::dialog::menu(ui, title, |ui| {
+                if let Some(command) = commands_entries(ui, commands) {
+                    self.run_command(command, ui.ctx(), requests);
+                    ui.close();
+                }
+            })
+            .response
+            .on_hover_text(help);
+        }
+        crate::dialog::menu(ui, tr(MESH_SHADING_MENU), |ui| {
+            self.smoothing_entry(ui);
+            if let Some(command) =
+                commands_entries(ui, &[CommandId::HardEdges, CommandId::SoftEdges])
+            {
+                self.run_command(command, ui.ctx(), requests);
+                ui.close();
+            }
+            if ui
+                .button(tr("Hard edges by angle"))
+                .on_hover_text(tr(
+                    "In the selected objects, mark every edge whose polygons meet more \
+                     sharply than an angle (30° to start with) hard, and the rest soft: \
+                     boxy corners crisp, curves smooth. Change the angle under Last edit.",
+                ))
+                .clicked()
+            {
+                self.run_hard_by_angle();
+                ui.close();
+            }
+            ui.separator();
+            if let Some(command) = commands_entries(ui, &[CommandId::FlipNormals]) {
+                self.run_command(command, ui.ctx(), requests);
+                ui.close();
+            }
+            if ui
+                .button(tr("Fix normals"))
+                .on_hover_text(tr(
+                    "Turn every polygon of the selected objects that faces the wrong \
+                     way round: inside out compared with its neighbours, or facing \
+                     into a closed shape. Select → Select flipped shows them first.",
+                ))
+                .clicked()
+            {
+                self.run_fix_facing();
+                ui.close();
+            }
+        })
+        .response
+        .on_hover_text(tr(
+            "How the shape is shaded: smoothing, hard and soft edges, normals",
+        ));
+        crate::dialog::menu(ui, tr(MESH_OBJECT_MENU), |ui| {
+            objects::make_editable_entry(ui, &self.document, requests);
+            if ui
+                .button(tr("Split off"))
+                .on_hover_text(tr(
+                    "Move the selected polygons into a new object of their own, in the \
+                     same place (Polygons mode)",
+                ))
+                .clicked()
+            {
+                self.run_split_off();
+                ui.close();
+            }
+            let join = CommandId::Join;
+            if ui
+                .button(join.name())
+                .on_hover_text(join.info().help)
+                .clicked()
+            {
+                self.run_command(join, ui.ctx(), requests);
+                ui.close();
+            }
+            objects::apply_entries(ui, &self.document, requests);
+            let mirrored = self.selected_mirror().is_some();
+            if ui
+                .add_enabled(
+                    mirrored,
+                    egui::Button::new(tr(crate::palette::APPLY_MIRROR_LABEL)),
+                )
+                .on_hover_text(tr(
+                    "Make the mirrored half part of the shape for real: symmetry goes off and \
+                     both halves stay",
+                ))
+                .on_disabled_hover_text(tr("Select an object with symmetry on"))
+                .clicked()
+            {
+                self.apply_mirror();
+                ui.close();
+            }
+            let layer_targets = crate::layers::layer_targets(&self.document);
+            if ui
+                .add_enabled(
+                    !layer_targets.is_empty(),
+                    egui::Button::new(tr(crate::layers::ADD_LAYER_LABEL)),
+                )
+                .on_hover_text(tr(crate::layers::ADD_LAYER_HELP))
+                .clicked()
+            {
+                self.add_edit_layer(requests);
+                ui.close();
+            }
+        })
+        .response
+        .on_hover_text(tr(
+            "Bake into shape, split off, join, apply transforms and edit layers",
+        ));
+    }
+}

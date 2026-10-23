@@ -12,6 +12,7 @@
 //! and stretch on them. Nothing is saved.
 
 use super::{PICK_DISTANCE, UvEditor, UvShape, inside, segment_distance};
+use crate::text::tr;
 use crate::theme;
 use egui::{FontId, Pos2, Rect, vec2};
 use glam::Vec2;
@@ -21,7 +22,7 @@ use std::sync::Arc;
 use uv::SeamReason;
 
 /// The View menu's switch.
-pub(crate) const EXPLAIN_CHOICES: &str = "Explain choices";
+pub(crate) const EXPLAIN_CHOICES: &str = crate::text!("Explain choices");
 
 /// Shapes with more polygons than this aren't run through Suggest seams
 /// to explain a seam: it would take too long while pointing.
@@ -57,31 +58,40 @@ pub(crate) struct ExplainContext {
 /// the corner setting `corner` (degrees).
 pub(crate) fn reason_text(reason: SeamReason, corner: f32) -> String {
     match reason {
-        SeamReason::HardEdge => "It's a hard edge. A seam where the shading turns hard keeps \
-                                 the normal map clean there."
-            .into(),
-        SeamReason::SharpCorner(angle) => format!(
-            "The polygons meet at {angle:.0}°, sharper than the {corner:.0}° set in UV → \
-             Settings → Seam suggestions. Pieces fold apart best along sharp corners."
+        SeamReason::HardEdge => tr(
+            "It's a hard edge. A seam where the shading turns hard keeps \
+                                 the normal map clean there.",
+        )
+        .into(),
+        SeamReason::SharpCorner(angle) => crate::trf!(
+            "The polygons meet at {:.0}°, sharper than the {:.0}° set in UV → \
+             Settings → Seam suggestions. Pieces fold apart best along sharp corners.",
+            angle,
+            corner
         ),
-        SeamReason::ToLieFlat => "This piece is closed or loops round, so it can't lie flat \
+        SeamReason::ToLieFlat => tr("This piece is closed or loops round, so it can't lie flat \
                                   without a cut. This is the most hidden way to cut it, as UV → \
-                                  Settings → Seam suggestions → Hide cuts says."
-            .into(),
-        SeamReason::Preferred => "The piece needed a cut to lie flat, and you preferred a seam \
-                                  here (UV → Seams → Prefer seams here)."
-            .into(),
-        SeamReason::StretchBudget(budget) => format!(
-            "Laid flat, the piece stretched more than its budget of {budget:.2}×, so it was slit \
-             here, from where it was squeezed most."
+                                  Settings → Seam suggestions → Hide cuts says.")
+        .into(),
+        SeamReason::Preferred => tr(
+            "The piece needed a cut to lie flat, and you preferred a seam \
+                                  here (UV → Seams → Prefer seams here).",
+        )
+        .into(),
+        SeamReason::StretchBudget(budget) => crate::trf!(
+            "Laid flat, the piece stretched more than its budget of {:.2}×, so it was slit \
+             here, from where it was squeezed most.",
+            budget
         ),
     }
 }
 
 /// How to change a seam, the same for every seam.
-pub(crate) const SEAM_FIX: &str = "To change it: select the edge (Edges mode, 2) and choose UV → \
+pub(crate) const SEAM_FIX: &str = crate::text!(
+    "To change it: select the edge (Edges mode, 2) and choose UV → \
                                    Seams → Clear seams, or Never seams here so suggestions avoid \
-                                   it. Prefer seams here on other edges draws cuts there instead.";
+                                   it. Prefer seams here on other edges draws cuts there instead."
+);
 
 /// A seam's explanation: its reason, if Suggest seams would make it,
 /// else where it may have come from; whether it's hard or preferred.
@@ -93,19 +103,23 @@ pub(crate) fn seam_text(
 ) -> String {
     let why = match reason {
         Some(r) => reason_text(r, corner),
-        None if known => "Suggest seams wouldn't put one here with the current settings: it was \
+        None if known => tr(
+            "Suggest seams wouldn't put one here with the current settings: it was \
                           marked by hand, came with the ready-made shape, or was added by Seams \
-                          from hard edges or an unwrap cutting a closed piece open."
-            .into(),
-        None => "This shape is too big to work out Suggest seams' reasons while pointing.".into(),
+                          from hard edges or an unwrap cutting a closed piece open.",
+        )
+        .into(),
+        None => {
+            tr("This shape is too big to work out Suggest seams' reasons while pointing.").into()
+        }
     };
     let extra = match preference {
         scene::SeamPreference::Never => {
-            "\nIt's marked Never seams here, so suggestions won't put it back."
+            tr("\nIt's marked Never seams here, so suggestions won't put it back.")
         }
         _ => "",
     };
-    format!("Seam\n{why}{extra}\n{SEAM_FIX}")
+    crate::trf!("Seam\n{}{}\n{}", why, extra, tr(SEAM_FIX))
 }
 
 /// What is known about a piece, for its explanation.
@@ -129,45 +143,49 @@ pub(crate) struct PieceFacts {
 /// A piece's explanation, a line per fact, each with what to do about
 /// it.
 pub(crate) fn piece_text(f: &PieceFacts) -> String {
-    let mut lines = vec![format!(
+    let mut lines = vec![crate::trf!(
         "Piece of {} {}",
         f.polygons,
         if f.polygons == 1 {
-            "polygon"
+            tr("polygon")
         } else {
-            "polygons"
+            tr("polygons")
         }
     )];
     if f.locked {
         lines.push(
-            "Locked: no automatic tool changes it. UV → Pieces → Unlock pieces frees it.".into(),
+            tr("Locked: no automatic tool changes it. UV → Pieces → Unlock pieces frees it.")
+                .into(),
         );
     }
     if let Some(row) = &f.trim_row {
-        lines.push(format!(
-            "On the trim row “{row}”, laid along it by Put on trim row. Pack leaves it there."
+        lines.push(crate::trf!(
+            "On the trim row “{}”, laid along it by Put on trim row. Pack leaves it there.",
+            row
         ));
     }
     if f.pinned {
-        lines.push("Some of its UVs are pinned: Unwrap lays it out around them.".into());
+        lines.push(tr("Some of its UVs are pinned: Unwrap lays it out around them.").into());
     }
     if f.own_settings {
         lines.push(
-            "It has unwrap settings of its own (UV → Pieces → Piece settings), used instead of \
-             the app's."
-                .into(),
+            tr(
+                "It has unwrap settings of its own (UV → Pieces → Piece settings), used instead of \
+             the app's.",
+            )
+            .into(),
         );
     }
     if let Some(d) = f.density {
         let ratio = d / f.aim.max(1e-6);
         lines.push(if (0.95..=1.05).contains(&ratio) {
-            format!(
+            crate::trf!(
                 "Its size: {} px/m, the texel density aimed for (Texture menu). Unwrap sizes \
                  pieces to it.",
                 d.round()
             )
         } else if ratio < 1.0 {
-            format!(
+            crate::trf!(
                 "Its size: {} px/m, {:.2}× the aim of {}. Pack shrinks every piece by the same \
                  amount so all fit in the square. For more texture: a bigger texture size \
                  (Texture menu), less padding, or a texture per material.",
@@ -176,7 +194,7 @@ pub(crate) fn piece_text(f: &PieceFacts) -> String {
                 f.aim.round()
             )
         } else {
-            format!(
+            crate::trf!(
                 "Its size: {} px/m, {:.2}× the aim of {}: scaled up by hand, by Pack filling the \
                  square, or by a density of its own. UV → Lay out → Set texel density puts it \
                  back to the aim.",
@@ -188,24 +206,26 @@ pub(crate) fn piece_text(f: &PieceFacts) -> String {
     }
     if !f.locked && f.trim_row.is_none() {
         lines.push(
-            "Its place: where it was laid out, moved by hand, or where Pack put it (biggest \
-             pieces first, from the bottom left)."
-                .into(),
+            tr(
+                "Its place: where it was laid out, moved by hand, or where Pack put it (biggest \
+             pieces first, from the bottom left).",
+            )
+            .into(),
         );
     }
     if f.overlapping {
         lines.push(
-            "It overlaps another piece (red): UV → Lay out → Pack moves pieces apart.".into(),
+            tr("It overlaps another piece (red): UV → Lay out → Pack moves pieces apart.").into(),
         );
     }
     if f.mirrored {
         lines.push(
-            "It lies mirrored (purple): UV → Turn and flip → Flip left to right turns it back."
+            tr("It lies mirrored (purple): UV → Turn and flip → Flip left to right turns it back.")
                 .into(),
         );
     }
     if f.stretch > 1.05 {
-        lines.push(format!(
+        lines.push(crate::trf!(
             "Stretched up to {:.1}×: UV → Lay out → Relax evens it out; a stretch budget (UV → \
              Pieces → Stretch budget) cuts it where it's worst.",
             f.stretch

@@ -1,6 +1,7 @@
 //! How much memory the undo history may use: the choices offered in
 //! Edit → Undo memory, and how memory sizes are written.
 
+use crate::text::tr;
 use scene::HistoryLimit;
 use serde::{Deserialize, Serialize};
 
@@ -55,21 +56,21 @@ impl UndoMemory {
     /// The menu entry's name.
     pub fn label(self) -> &'static str {
         match self {
-            Self::Mb256 => "256 MB",
-            Self::Mb512 => "512 MB",
-            Self::Gb1 => "1 GB",
-            Self::Gb2 => "2 GB (standard)",
-            Self::Gb4 => "4 GB",
-            Self::Gb8 => "8 GB",
-            Self::Unlimited => "Unlimited",
+            Self::Mb256 => tr("256 MB"),
+            Self::Mb512 => tr("512 MB"),
+            Self::Gb1 => tr("1 GB"),
+            Self::Gb2 => tr("2 GB (standard)"),
+            Self::Gb4 => tr("4 GB"),
+            Self::Gb8 => tr("8 GB"),
+            Self::Unlimited => tr("Unlimited"),
         }
     }
 
     /// The limit, short, for sentences ("2 GB", "no limit").
     pub fn short(self) -> &'static str {
         match self {
-            Self::Gb2 => "2 GB",
-            Self::Unlimited => "no limit",
+            Self::Gb2 => tr("2 GB"),
+            Self::Unlimited => tr("no limit"),
             other => other.label(),
         }
     }
@@ -78,15 +79,17 @@ impl UndoMemory {
     pub fn explanation(self) -> &'static str {
         match self {
             Self::Mb256 | Self::Mb512 => {
-                "For a computer short of memory: fewer steps can be undone"
+                tr("For a computer short of memory: fewer steps can be undone")
             }
-            Self::Gb1 => "Enough for most sessions on a computer with 4 GB or more",
-            Self::Gb2 => "Enough for a long session on a computer with 8 GB or more",
-            Self::Gb4 | Self::Gb8 => "For very long sessions on a computer with plenty of memory",
-            Self::Unlimited => {
+            Self::Gb1 => tr("Enough for most sessions on a computer with 4 GB or more"),
+            Self::Gb2 => tr("Enough for a long session on a computer with 8 GB or more"),
+            Self::Gb4 | Self::Gb8 => {
+                tr("For very long sessions on a computer with plenty of memory")
+            }
+            Self::Unlimited => tr(
                 "Keep every step until the app closes. A very long session with large \
-                 meshes can then use a lot of memory"
-            }
+                 meshes can then use a lot of memory",
+            ),
         }
     }
 }
@@ -95,11 +98,11 @@ impl UndoMemory {
 pub fn format_bytes(bytes: usize) -> String {
     let b = bytes as f64;
     if bytes >= GB {
-        format!("{:.2} GB", b / GB as f64)
+        crate::trf!("{:.2} GB", b / GB as f64)
     } else if bytes >= MB {
-        format!("{:.1} MB", b / MB as f64)
+        crate::trf!("{:.1} MB", b / MB as f64)
     } else {
-        format!("{} KB", bytes.div_ceil(1024))
+        crate::trf!("{} KB", bytes.div_ceil(1024))
     }
 }
 

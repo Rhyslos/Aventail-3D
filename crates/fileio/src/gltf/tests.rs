@@ -505,3 +505,103 @@ fn the_summary_before_exporting_matches_the_export() {
     );
     assert_eq!(none, crate::export::ExportSummary::default());
 }
+
+/// Writes `.glb` files for checking by programs outside the app: the
+/// Khronos glTF Validator and a Godot import, run by CI (the `gltf-check`
+/// job in `.github/workflows/ci.yml`). Every primitive side by side, each
+/// primitive on its own, an edited shape with materials, and a scene with
+/// Godot's collision names:
+/// `GLB_CHECK_OUT=folder cargo test -p fileio files_for_outside_checkers -- --ignored`.
+/// Without `GLB_CHECK_OUT` it does nothing, so a plain `--ignored` run
+/// writes no files.
+#[test]
+#[ignore = "writes files for CI's glTF Validator and Godot import"]
+fn files_for_outside_checkers() {
+    let Some(out) = std::env::var_os("GLB_CHECK_OUT").map(std::path::PathBuf::from) else {
+        return;
+    };
+    std::fs::create_dir_all(&out).unwrap();
+    let write = |name: &str, doc: &Document, options: &ExportOptions| {
+        let files = export_bytes(doc, ExportFormat::Glb, options, "Test App 1.0", name).unwrap();
+        assert!(files.beside.is_empty(), "a .glb is one file");
+        std::fs::write(out.join(name), &files.main).unwrap();
+    };
+    let plain = ExportOptions::default();
+
+    // Every primitive side by side, turned and stretched a little so the
+    // nodes carry real matrices.
+    let mut all = scene_of(&PrimitiveKind::ALL);
+    let ids: Vec<_> = all.scene().walk().into_iter().map(|(id, _)| id).collect();
+    let placed = ids
+        .iter()
+        .enumerate()
+        .map(|(k, id)| {
+            let (col, row) = ((k % 6) as f32, (k / 6) as f32);
+            let transform = Transform {
+                position: glam::Vec3::new(col * 200.0 - 500.0, row * 200.0 - 200.0, 0.0),
+                rotation: glam::Vec3::new(k as f32 * 0.2, 0.0, 0.0),
+                scale: glam::Vec3::new(1.0, 1.0 + k as f32 * 0.05, 1.0),
+            };
+            (*id, transform)
+        })
+        .collect();
+    all.execute(Command::SetTransforms(placed)).unwrap();
+    write("every-shape.glb", &all, &plain);
+
+    // Each primitive on its own, so a problem names its shape.
+    for kind in PrimitiveKind::ALL {
+        let name = format!("shape-{}.glb", kind.name().to_lowercase().replace(' ', "-"));
+        write(&name, &scene_of(&[kind]), &plain);
+    }
+
+    // An edited shape with materials: the cube's top pushed out, two
+    // polygons painted, and a plane sharing a material's name.
+    let mut edited = scene_with_materials();
+    let cube = edited
+        .scene()
+        .walk()
+        .into_iter()
+        .map(|(id, _)| id)
+        .find(|id| edited.scene().object(*id).unwrap().name == "Cube")
+        .unwrap();
+    edited
+        .execute(Command::Record {
+            id: cube,
+            operation: scene::Operation::ExtrudePolygons {
+                faces: vec![mesh::FaceId::from_raw(4)],
+                distance: 40.0,
+                grouping: scene::Grouping::Together,
+                shape: scene::ExtrudeShape::EARLIER,
+                stretch: glam::Vec3::ONE,
+                anchors: None,
+            },
+        })
+        .unwrap();
+    write("edited-with-materials.glb", &edited, &plain);
+
+    // Godot's collision names and the box node, as the Godot preset
+    // writes them.
+    let mut godot = scene_of(&[
+        PrimitiveKind::Cube,
+        PrimitiveKind::Sphere,
+        PrimitiveKind::Cylinder,
+    ]);
+    let ids: Vec<_> = godot.scene().walk().into_iter().map(|(id, _)| id).collect();
+    for (id, collision) in ids.into_iter().zip([
+        scene::Collision::Mesh,
+        scene::Collision::Convex,
+        scene::Collision::Box,
+    ]) {
+        godot
+            .execute(Command::SetCollision {
+                ids: vec![id],
+                collision,
+            })
+            .unwrap();
+    }
+    let godot_options = ExportOptions {
+        godot_names: true,
+        ..ExportOptions::default()
+    };
+    write("godot-collision.glb", &godot, &godot_options);
+}

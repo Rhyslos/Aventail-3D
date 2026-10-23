@@ -15,6 +15,7 @@ use glam::{Mat4, Vec3};
 use mesh::{AnchorShape, Anchors, Bounds, VertexId};
 use scene::Operation;
 use serde::{Deserialize, Serialize};
+use words::{text, tr};
 
 /// Version 2 of the file (written by tests; the app reads version 2 files
 /// through `decode`).
@@ -84,9 +85,9 @@ pub(crate) fn anchors_to_file(a: &Anchors) -> AnchorsV2 {
 }
 
 pub(crate) fn anchors_from_file(a: AnchorsV2) -> Result<Anchors, Problem> {
-    let place = |p: [f32; 3]| finite(p, "recorded place");
+    let place = |p: [f32; 3]| finite(p, text!("recorded place"));
     let bounds = Bounds::new(place(a.bounds[0])?, place(a.bounds[1])?)
-        .ok_or_else(|| "its recorded box isn't a real box".to_string())?;
+        .ok_or_else(|| tr("its recorded box isn't a real box").to_string())?;
     let points = a
         .points
         .into_iter()
@@ -162,7 +163,7 @@ impl FileOperation for OperationV2 {
                 anchors: a,
             } => Ok(Operation::MovePoints {
                 points: ids(points),
-                offset: finite(offset, "recorded move")?,
+                offset: finite(offset, text!("recorded move"))?,
                 anchors: anchors(a)?,
             }),
             Self::TransformPoints {
@@ -173,7 +174,7 @@ impl FileOperation for OperationV2 {
                 let column = |i: usize| {
                     finite(
                         [matrix[i * 3], matrix[i * 3 + 1], matrix[i * 3 + 2]],
-                        "recorded turn or scale",
+                        text!("recorded turn or scale"),
                     )
                 };
                 let built = Mat4::from_cols(

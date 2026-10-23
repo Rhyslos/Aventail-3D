@@ -45,8 +45,9 @@ pub use builder::{Builder, CornerFrom, PointFrom};
 pub use check::MeshReport;
 pub use polygon::{EdgeKey, FaceId, Mesh, MeshError, VertexId};
 pub use primitives::{
-    ConeParams, CubeParams, CylinderParams, DiscParams, PlaneParams, Primitive, PrimitiveKind,
-    SphereParams, TubeParams,
+    ArchParams, CapsuleParams, ConeParams, CubeParams, CylinderParams, DiscParams, DomeParams,
+    ElbowParams, GearParams, HexGridParams, HexSphereParams, IcosphereParams, PlaneParams,
+    Primitive, PrimitiveKind, SectorParams, SphereParams, StairsParams, TorusParams, TubeParams,
 };
 pub use selection::{Combine, Element, ElementKind, ElementSelection};
 pub use shading::{

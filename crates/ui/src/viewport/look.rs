@@ -4,6 +4,7 @@
 //! ([decision 0063](../../../../docs/decisions/0063-wireframe.md)).
 
 use super::{Shading, ViewportPanel};
+use crate::text::tr;
 use crate::theme;
 use egui::{
     FontId, Frame, Margin, Popup, PopupCloseBehavior, Rect, RectAlign, Sense, Stroke, Ui,
@@ -12,7 +13,7 @@ use egui::{
 
 /// Accessible name of the shading button, and the heading of its list and
 /// of the Display menu's choices.
-pub(crate) const SHADING_LABEL: &str = "Shading";
+pub(crate) const SHADING_LABEL: &str = crate::text!("Shading");
 
 /// How far the row starts from the view's left edge: past the axis
 /// marker.
@@ -37,7 +38,7 @@ pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) {
         size,
     );
     let response = ui.interact(button, ui.id().with("shading_button"), Sense::click());
-    response.widget_info(|| WidgetInfo::labeled(WidgetType::Button, true, SHADING_LABEL));
+    response.widget_info(|| WidgetInfo::labeled(WidgetType::Button, true, tr(SHADING_LABEL)));
     let painter = ui.painter();
     let fill = if response.hovered() {
         theme::HOVER
@@ -66,7 +67,8 @@ pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) {
         vec![tip + vec2(-3.5, 3.0), tip, tip + vec2(3.5, 3.0)],
         Stroke::new(1.5, theme::TEXT_WEAK),
     );
-    let response = response.on_hover_text("How shapes are drawn: shaded, with wires, or wireframe");
+    let response =
+        response.on_hover_text(tr("How shapes are drawn: shaded, with wires, or wireframe"));
     Popup::from_toggle_button_response(&response)
         .close_behavior(PopupCloseBehavior::CloseOnClick)
         .align(RectAlign::TOP_START)
@@ -89,7 +91,7 @@ pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) {
 /// The shading choices, under a heading: in the button's list and the
 /// Display menu.
 pub(crate) fn choices(ui: &mut Ui, shading: &mut Shading) {
-    ui.label(egui::RichText::new(SHADING_LABEL).color(theme::TEXT_WEAK));
+    ui.label(egui::RichText::new(tr(SHADING_LABEL)).color(theme::TEXT_WEAK));
     for look in Shading::ALL {
         if ui
             .add(

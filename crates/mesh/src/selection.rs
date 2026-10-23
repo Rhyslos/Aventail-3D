@@ -11,6 +11,7 @@
 use crate::topology::Topology;
 use crate::{EdgeKey, FaceId, Mesh, VertexId};
 use std::collections::BTreeSet;
+use words::{text, tr};
 
 /// A kind of element.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -24,22 +25,24 @@ pub enum ElementKind {
 }
 
 impl ElementKind {
-    /// The plural name, for messages: "points", "edges", "polygons".
+    /// The plural name, for messages: "points", "edges", "polygons" (in
+    /// the language in use).
     pub fn plural(self) -> &'static str {
-        match self {
-            Self::Points => "points",
-            Self::Edges => "edges",
-            Self::Polygons => "polygons",
-        }
+        tr(match self {
+            Self::Points => text!("points"),
+            Self::Edges => text!("edges"),
+            Self::Polygons => text!("polygons"),
+        })
     }
 
-    /// The name of one, for messages: "point", "edge", "polygon".
+    /// The name of one, for messages: "point", "edge", "polygon" (in the
+    /// language in use).
     pub fn singular(self) -> &'static str {
-        match self {
-            Self::Points => "point",
-            Self::Edges => "edge",
-            Self::Polygons => "polygon",
-        }
+        tr(match self {
+            Self::Points => text!("point"),
+            Self::Edges => text!("edge"),
+            Self::Polygons => text!("polygon"),
+        })
     }
 }
 

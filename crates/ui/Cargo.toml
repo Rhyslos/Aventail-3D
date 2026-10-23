@@ -26,13 +26,17 @@ fileio.workspace = true
 mesh.workspace = true
 # Suggested seams (layer 1).
 uv.workspace = true
+# The language layer every text goes through (layer 0).
+words.workspace = true
 glam.workspace = true
 egui.workspace = true
 egui_dock.workspace = true
 serde.workspace = true
 
 [dev-dependencies]
-egui_kittest.workspace = true
+# With "snapshot" and "wgpu": reference images of the main panels and
+# windows, drawn on the GPU (decision 0126; the tests skip without one).
+egui_kittest = { workspace = true, features = ["snapshot", "wgpu"] }
 ron.workspace = true
 
 [lints]

@@ -19,6 +19,7 @@
 use super::Workbench;
 use super::joining::counted;
 use crate::palette::Mode;
+use crate::text::tr;
 use egui::{Key, Modifiers};
 use mesh::Anchors;
 use scene::{EdgeKey, ElementKind, FaceId, ObjectId, Operation, VertexId};
@@ -41,7 +42,7 @@ pub(super) struct DissolveQuestion {
 }
 
 /// The question window's title.
-pub(crate) const DISSOLVE_QUESTION_TITLE: &str = "Dissolve across a sharp corner?";
+pub(crate) const DISSOLVE_QUESTION_TITLE: &str = crate::text!("Dissolve across a sharp corner?");
 
 /// How far apart, in degrees, two polygons' facing may be for Select
 /// same facing to count them alike.
@@ -105,9 +106,9 @@ pub(super) fn chosen(mode: Mode, selected: &scene::ElementSelection, mesh: &scen
 /// The name of the current mode's elements, for messages.
 fn thing(mode: Mode) -> &'static str {
     match mode {
-        Mode::Points => "point",
-        Mode::Edges => "edge",
-        _ => "polygon",
+        Mode::Points => tr("point"),
+        Mode::Edges => tr("edge"),
+        _ => tr("polygon"),
     }
 }
 
@@ -126,7 +127,11 @@ impl Workbench {
 
     fn remove_elements(&mut self, dissolve: bool) {
         let mode = self.mode;
-        let verb = if dissolve { "Dissolve" } else { "Delete" };
+        let verb = if dissolve {
+            tr("Dissolve")
+        } else {
+            tr("Delete")
+        };
         let mut ops = Vec::new();
         let mut count = 0;
         let mut refused = 0;
@@ -168,12 +173,14 @@ impl Workbench {
         }
         if ops.is_empty() {
             self.note = Some(if refused > 0 {
-                "Dissolve: nothing here can go without opening a hole. Points and edges on \
+                tr(
+                    "Dissolve: nothing here can go without opening a hole. Points and edges on \
                  an open border stay, and so do polygons that wouldn't merge into one \
-                 (use Delete for those)."
-                    .into()
+                 (use Delete for those).",
+                )
+                .into()
             } else {
-                format!("{verb}: select some {}s first.", thing(mode))
+                crate::trf!("{}: select some {}s first.", verb, thing(mode))
             });
             return;
         }
@@ -186,13 +193,13 @@ impl Workbench {
                 dont_warn: false,
             });
             self.note = Some(
-                "Dissolve: this would merge polygons across a sharp corner. See the question."
+                tr("Dissolve: this would merge polygons across a sharp corner. See the question.")
                     .into(),
             );
             return;
         }
         if self.record_each(&label, ops) {
-            self.note = Some(format!("{label}. Ctrl + Z takes it back."));
+            self.note = Some(crate::trf!("{}. Ctrl + Z takes it back.", label));
         }
     }
 
@@ -203,43 +210,47 @@ impl Workbench {
             return;
         };
         let mut answer = None;
-        crate::dialog::Dialog::new(DISSOLVE_QUESTION_TITLE, 460.0)
+        crate::dialog::Dialog::new(tr(DISSOLVE_QUESTION_TITLE), 460.0)
             .id("dissolve_question")
             .modal()
             .show(ctx, |d| {
                 d.header(false, |_| {});
                 d.body(|ui| {
-                    ui.label(
+                    ui.label(tr(
                         "Dissolving here merges polygons that meet at a sharp corner into one \
                          bent polygon. A bent polygon isn't flat, so it shades badly and can \
                          look torn or creased.",
-                    );
+                    ));
                     crate::dialog::help(
                         ui,
-                        "To take the polygons away and leave a hole, use Delete instead. To \
+                        tr(
+                            "To take the polygons away and leave a hole, use Delete instead. To \
                          keep the surface but lose a corner, Weld or Bevel are usually what you \
                          want.",
+                        ),
                     );
                     ui.add_space(4.0);
-                    ui.checkbox(&mut question.sure, "I know what I'm doing, proceed");
-                    ui.checkbox(&mut question.dont_warn, "Don't warn me again")
-                        .on_hover_text(
+                    ui.checkbox(&mut question.sure, tr("I know what I'm doing, proceed"));
+                    ui.checkbox(&mut question.dont_warn, tr("Don't warn me again"))
+                        .on_hover_text(tr(
                             "You can switch the warning back on in Settings → Interface.",
-                        );
-                    crate::dialog::help(ui, "Esc: cancel");
+                        ));
+                    crate::dialog::help(ui, tr("Esc: cancel"));
                 });
                 d.footer(None, |ui| {
                     if ui
                         .add_enabled_ui(question.sure, |ui| {
-                            crate::dialog::main_button(ui, "Dissolve")
+                            crate::dialog::main_button(ui, tr("Dissolve"))
                         })
                         .inner
-                        .on_disabled_hover_text("Tick \"I know what I'm doing, proceed\" first.")
+                        .on_disabled_hover_text(tr(
+                            "Tick \"I know what I'm doing, proceed\" first.",
+                        ))
                         .clicked()
                     {
                         answer = Some(true);
                     }
-                    if crate::dialog::plain_button(ui, "Cancel").clicked() {
+                    if crate::dialog::plain_button(ui, tr("Cancel")).clicked() {
                         answer = Some(false);
                     }
                 });
@@ -254,14 +265,14 @@ impl Workbench {
             return;
         };
         if !answer {
-            self.note = Some("Dissolve cancelled: nothing changed.".into());
+            self.note = Some(tr("Dissolve cancelled: nothing changed.").into());
             return;
         }
         if question.dont_warn {
             self.viewport.options_mut().dissolve_without_warning = true;
         }
         if self.record_each(&question.label, question.ops) {
-            self.note = Some(format!("{}. Ctrl + Z takes it back.", question.label));
+            self.note = Some(crate::trf!("{}. Ctrl + Z takes it back.", question.label));
         }
     }
 
@@ -305,25 +316,26 @@ impl Workbench {
             ops.push((id, Operation::FillHoles { points, anchors }));
         }
         if ops.is_empty() {
-            self.note = Some(if missed {
-                "Fill hole: no hole touches the selection. Select an edge on its border, or \
-                 select nothing to fill every hole."
+            self.note =
+                Some(if missed {
+                    tr("Fill hole: no hole touches the selection. Select an edge on its border, or \
+                 select nothing to fill every hole.")
                     .into()
-            } else {
-                "Fill hole: the selected objects have no holes.".into()
-            });
+                } else {
+                    tr("Fill hole: the selected objects have no holes.").into()
+                });
             return;
         }
         let label = if ops.iter().all(|(_, op)| match op {
             Operation::FillHoles { points, .. } => points.is_empty(),
             _ => false,
         }) {
-            "Fill every hole"
+            tr("Fill every hole")
         } else {
-            "Fill hole"
+            tr("Fill hole")
         };
         if self.record_each(label, ops) {
-            self.note = Some(format!("{label}. Ctrl + Z takes it back."));
+            self.note = Some(crate::trf!("{}. Ctrl + Z takes it back.", label));
         }
     }
 
@@ -346,12 +358,12 @@ impl Workbench {
             ));
         }
         if ops.is_empty() {
-            self.note = Some("Flip normals: select some polygons first.".into());
+            self.note = Some(tr("Flip normals: select some polygons first.").into());
             return;
         }
-        let label = counted("Flip", count, "polygon");
+        let label = counted(tr("Flip"), count, tr("polygon"));
         if self.record_each(&label, ops) {
-            self.note = Some(format!("{label}. Ctrl + Z takes it back."));
+            self.note = Some(crate::trf!("{}. Ctrl + Z takes it back.", label));
         }
     }
 
@@ -359,7 +371,7 @@ impl Workbench {
     /// the wrong way round.
     pub(super) fn run_fix_facing(&mut self) {
         if self.document.selection().is_empty() {
-            self.note = Some("Fix normals: select the objects to fix first.".into());
+            self.note = Some(tr("Fix normals: select the objects to fix first.").into());
             return;
         }
         let mut ops = Vec::new();
@@ -372,13 +384,13 @@ impl Workbench {
             }
         }
         if ops.is_empty() {
-            self.note = Some("Fix normals: every polygon already faces the right way.".into());
+            self.note = Some(tr("Fix normals: every polygon already faces the right way.").into());
             return;
         }
-        if self.record_each("Fix normals", ops) {
-            self.note = Some(format!(
+        if self.record_each(tr("Fix normals"), ops) {
+            self.note = Some(crate::trf!(
                 "Turned {} the right way round. Ctrl + Z takes it back.",
-                counted("", count, "polygon").trim_start()
+                counted("", count, tr("polygon")).trim_start()
             ));
         }
     }

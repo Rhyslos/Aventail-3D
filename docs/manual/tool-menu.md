@@ -17,7 +17,7 @@ Whenever you want a tool and don't remember its key, or it doesn't have one. The
 
 Each tool's key is shown next to its button, so the menu teaches you the keys as you go. Once you know a key, pressing it directly is quicker. The menu is there for everything else.
 
-The modelling tools arrive one by one during Phase 4; built so far are Extrude, Inset, Bevel, [Groove](groove.md), [Loop cut](loop-cut.md), [Slit](slit.md), [Connect, Bridge and Weld](connect-bridge-weld.md), the [clean-up](clean-up.md) commands (Delete, Dissolve, Fill hole, Flip normals), and [Hard and soft edges](hard-and-soft-edges.md): every modelling command in the ring. In the Model mode the ring also has [Duplicate and Duplicate as instance](copies-and-instances.md), [Join objects](split-and-join.md) and [Apply rotation and scale](apply-transforms.md). Until a tool is built, its icon is dimmed, and choosing it says when it arrives.
+The ring holds every modelling tool: Extrude, Inset, Bevel, [Groove](groove.md), [Loop cut](loop-cut.md), [Slit](slit.md), [Connect, Bridge and Weld](connect-bridge-weld.md), the [clean-up](clean-up.md) commands (Delete, Dissolve, Fill hole, Flip normals), and [Hard and soft edges](hard-and-soft-edges.md). In the Model mode the ring also has [Duplicate and Duplicate as instance](copies-and-instances.md), [Join objects](split-and-join.md) and [Apply rotation and scale](apply-transforms.md).
 
 ![The tool menu in Edges mode](../screenshots/2026-10-13-tool-menu-edges.png)
 
@@ -32,7 +32,7 @@ The modelling tools arrive one by one during Phase 4; built so far are Extrude, 
 
 **Some places hold a group.** A place with three small dots under its icon (**Turn & flip** in the UV ring) holds several tools. Choose it, any way you like, and its tools open on the same ring, side by side around the group's place, so the mouse is already next to them; then choose one as usual. **Esc** (or a click away) closes it, and the next **E** opens the whole ring again. The quad menu lists a group's tools in its place.
 
-**The buttons show only icons.** The middle of the ring names the tool you point at. If it can't be used right now (Ungroup with no group selected, say), the reason shows under the cancel sign, in yellow; for a tool still to come, it says when it arrives.
+**The buttons show only icons.** The middle of the ring names the tool you point at. If it can't be used right now (Ungroup with no group selected, say), the reason shows under the cancel sign, in yellow.
 
 **Every tool keeps its place, and the ring never changes size.** Every mode's ring has the same 15 places. A tool that doesn't apply in a mode leaves its place empty rather than moving the others, so Extrude is always at the top, and Delete sits in the same place in every mode. The modelling ring is grouped:
 
@@ -76,7 +76,7 @@ In **Edit → Settings… → Interface → Radial menu**:
 
 ## Tips and common problems
 
-- **Tip:** the menu is also a list of what's coming. Point at a dimmed tool to see its name and when it arrives.
+- **Tip:** a dimmed tool can't be used on what's selected now. Point at it to see why.
 - **Problem:** pressing E types a letter instead. **Why:** a text field has the keyboard, for example while renaming an object. **Fix:** press Enter or Esc to finish typing first.
 - **Problem:** E shows UV tools when I wanted Extrude. **Why:** the mouse was over the UV Editor. **Fix:** press Esc, point at the viewport and press E again.
 - **Problem:** E does nothing at all. **Why:** Tap E to open is off, so the menu only shows while E is held. **Fix:** hold E, or switch Tap E to open back on in Settings.

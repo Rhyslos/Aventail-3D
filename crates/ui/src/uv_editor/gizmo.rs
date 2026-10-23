@@ -11,6 +11,7 @@
 //! click puts everything back.
 
 use crate::palette::Mode;
+use crate::text::tr;
 use crate::theme::tint;
 use crate::transforming::{SnapSettings, Tool};
 use egui::{Color32, Painter, Pos2, Stroke, vec2};
@@ -76,9 +77,9 @@ impl UvHandle {
     /// What a drag of it is called, as an undo step.
     fn label(self) -> &'static str {
         match self {
-            Self::MoveU | Self::MoveV | Self::MoveFree => "Move UVs",
-            Self::Turn => "Rotate UVs",
-            Self::ScaleU | Self::ScaleV | Self::ScaleAll => "Scale UVs",
+            Self::MoveU | Self::MoveV | Self::MoveFree => tr("Move UVs"),
+            Self::Turn => tr("Rotate UVs"),
+            Self::ScaleU | Self::ScaleV | Self::ScaleAll => tr("Scale UVs"),
         }
     }
 }

@@ -71,22 +71,22 @@ pixel() {
 #    colour-space setting shows up as near-black or washed-out background.
 #    The scene starts empty; the cube button on the command palette
 #    (CUBE_BUTTON_X, 50) creates a 2 m cube, which then fills the middle
-#    of the viewport (566, 416).
+#    of the viewport (548, 492; the slim Coordinates band leaves it tall).
 read -r R G B <<<"$(pixel 300 130 empty)"
 echo "Viewport background at (300, 130): $R $G $B (expected a neutral mid grey)"
 [ "$R" -ge 50 ] && [ "$R" -le 120 ] || fail "viewport background is not a mid grey: ($R, $G, $B)"
 diff_rb=$(( R > B ? R - B : B - R ))
 [ "$diff_rb" -le 15 ] || fail "viewport background is tinted: ($R, $G, $B)"
 xdotool windowfocus --sync "$WINDOW_ID" 2>/dev/null || true
-CUBE_BUTTON_X="${CUBE_BUTTON_X:-396}"
+CUBE_BUTTON_X="${CUBE_BUTTON_X:-633}"
 xdotool mousemove "$CUBE_BUTTON_X" 50 click 1
 sleep 2
 # Move the mouse away so the button's tooltip doesn't cover the view.
 xdotool mousemove 1300 860
 sleep 1.5
 import -window root "$OUT/window.png"
-read -r CR CG CB <<<"$(pixel 566 416)"
-echo "Viewport middle (the new cube) at (566, 416): $CR $CG $CB"
+read -r CR CG CB <<<"$(pixel 548 492)"
+echo "Viewport middle (the new cube) at (548, 492): $CR $CG $CB"
 [ $(( CR + CG + CB )) -gt $(( R + G + B + 90 )) ] || fail "no lit cube in the middle of the viewport: ($CR, $CG, $CB)"
 grep -q "can't be shown" "$OUT/app.log" && fail "the 3D view could not be shown"
 

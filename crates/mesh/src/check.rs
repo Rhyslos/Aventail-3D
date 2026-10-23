@@ -155,7 +155,10 @@ mod tests {
             assert!(!report.has_problems(), "{primitive:?}: {report:?}");
             let fan: usize = mesh.faces().map(|(_, c)| c.len() - 2).sum();
             assert_eq!(report.triangles, fan);
-            let open = matches!(primitive.kind(), PrimitiveKind::Plane | PrimitiveKind::Disc);
+            let open = matches!(
+                primitive.kind(),
+                PrimitiveKind::Plane | PrimitiveKind::Disc | PrimitiveKind::HexGrid
+            );
             assert_eq!(report.is_closed(), !open, "{primitive:?}");
         }
     }

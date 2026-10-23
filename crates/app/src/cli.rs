@@ -2,6 +2,7 @@
 
 use std::ffi::OsString;
 use std::path::PathBuf;
+use words::{tr, trf};
 
 /// What the program was asked to do.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -20,13 +21,14 @@ pub enum Command {
 
 /// The usage text for `--help`. `program` is the executable's name.
 pub fn usage(program: &str) -> String {
-    format!(
-        "Usage: {program} [option | project]\n\n\
+    trf!(
+        "Usage: {} [option | project]\n\n\
          Options:\n  \
          --version   Show the name and version, then exit\n  \
          --help      Show this text, then exit\n\n\
          With no option, the app window opens. Give a project file to open it\n\
-         (put -- before a file name that starts with -).\n"
+         (put -- before a file name that starts with -).\n",
+        program
     )
 }
 
@@ -43,9 +45,10 @@ pub fn parse(args: impl IntoIterator<Item = OsString>) -> Result<Command, String
             Some("--version" | "-V") => command = Command::Version,
             Some("--help" | "-h") => command = Command::Help,
             Some(other) if other.starts_with('-') => {
-                return Err(format!(
-                    "Unknown option \"{other}\". Use --help to see the options. To open a file \
-                     whose name starts with -, put -- before it."
+                return Err(trf!(
+                    "Unknown option \"{}\". Use --help to see the options. To open a file \
+                     whose name starts with -, put -- before it.",
+                    other
                 ));
             }
             // Anything else is a project to open (any text, as file names
@@ -53,7 +56,7 @@ pub fn parse(args: impl IntoIterator<Item = OsString>) -> Result<Command, String
             _ => match &mut command {
                 Command::Run { open: open @ None } => *open = Some(PathBuf::from(arg)),
                 Command::Run { open: Some(_) } => {
-                    return Err("Only one project can be opened at a time.".into());
+                    return Err(tr("Only one project can be opened at a time.").into());
                 }
                 _ => {}
             },

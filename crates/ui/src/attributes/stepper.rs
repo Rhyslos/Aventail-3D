@@ -2,6 +2,7 @@
 //! click the small arrows beside it to nudge it up or down a step (Shift
 //! for ten steps), for fine tuning.
 
+use crate::text::tr;
 use crate::theme;
 use crate::units::Units;
 use egui::{DragValue, Rect, Sense, Stroke, Ui, WidgetInfo, WidgetType, pos2, vec2};
@@ -179,10 +180,10 @@ fn arrows(ui: &mut Ui, label: &str) -> i32 {
     let shift = ui.input(|i| i.modifiers.shift);
     let size = if shift { 10 } else { 1 };
     let mut steps = 0;
-    for (area, sign, name) in [(up, 1, "Increase"), (down, -1, "Decrease")] {
+    for (area, sign, name) in [(up, 1, tr("Increase")), (down, -1, tr("Decrease"))] {
         let response = ui.interact(area, ui.id().with((label, name)), Sense::click());
         response.widget_info(|| {
-            WidgetInfo::labeled(WidgetType::Button, true, format!("{name} {label}"))
+            WidgetInfo::labeled(WidgetType::Button, true, crate::trf!("{} {}", name, label))
         });
         let color = if response.hovered() {
             theme::TEXT_STRONG
@@ -201,7 +202,7 @@ fn arrows(ui: &mut Ui, label: &str) -> i32 {
             Stroke::NONE,
         ));
         let clicked = response
-            .on_hover_text(format!("{name} by one step (Shift: ten steps)"))
+            .on_hover_text(crate::trf!("{} by one step (Shift: ten steps)", name))
             .clicked();
         if clicked {
             steps += sign * size;

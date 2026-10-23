@@ -1,5 +1,6 @@
 //! The panels the app window is made of.
 
+use crate::text::tr;
 use serde::{Deserialize, Serialize};
 
 /// One dockable panel of the app window.
@@ -48,13 +49,13 @@ impl Panel {
     /// The name shown on the panel's tab.
     pub fn title(self) -> &'static str {
         match self {
-            Self::Viewport => "Viewport",
-            Self::Attributes => "Attributes",
-            Self::Objects => "Objects",
-            Self::Coordinates => "Coordinates",
-            Self::EditLayers => "Edit layers",
-            Self::UvEditor => "UV Editor",
-            Self::UvSettings => "UV settings",
+            Self::Viewport => tr("Viewport"),
+            Self::Attributes => tr("Attributes"),
+            Self::Objects => tr("Objects"),
+            Self::Coordinates => tr("Coordinates"),
+            Self::EditLayers => tr("Edit layers"),
+            Self::UvEditor => tr("UV Editor"),
+            Self::UvSettings => tr("UV settings"),
         }
     }
 }

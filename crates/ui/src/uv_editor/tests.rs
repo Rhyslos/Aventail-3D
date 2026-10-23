@@ -1,8 +1,11 @@
 //! Tests for the UV Editor's workings (decision 0096): reading a shape's
 //! UVs, picking and whole islands.
 
+use super::painting::stretch_color;
+use super::picking::whole_islands;
 use super::*;
-use scene::PrimitiveKind;
+use egui::pos2;
+use scene::{ElementSelection, FaceId, Mesh, PrimitiveKind};
 
 fn shape(kind: PrimitiveKind) -> UvShape {
     UvShape::of(Arc::new(kind.standard().mesh())).unwrap()

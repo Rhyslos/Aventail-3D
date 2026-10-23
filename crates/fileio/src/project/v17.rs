@@ -17,6 +17,7 @@ use mesh::FaceId;
 use mesh::symmetry::Mirror;
 use scene::{ExtrudeDirection, ExtrudeShape, Grouping, Operation};
 use serde::{Deserialize, Serialize};
+use words::tr;
 
 /// Version 17 of the file.
 #[cfg(test)]
@@ -115,7 +116,7 @@ impl ExtrudeV17 {
             anchors,
         } = self;
         if !(distance.is_finite() && end_size.is_finite()) {
-            return Err("its extrude holds a number that isn't real".into());
+            return Err(tr("its extrude holds a number that isn't real").into());
         }
         Ok(Operation::ExtrudePolygons {
             faces: faces.into_iter().map(FaceId::from_raw).collect(),
@@ -174,10 +175,10 @@ impl FileOperation for OperationV17 {
             } => {
                 let centre = Vec3::from_array(centre);
                 if !centre.is_finite() {
-                    return Err("a mirror's middle isn't a real number".to_string());
+                    return Err(tr("a mirror's middle isn't a real number").to_string());
                 }
                 if !axes.contains(&true) {
-                    return Err("a mirrored edit mirrors across no axis".to_string());
+                    return Err(tr("a mirrored edit mirrors across no axis").to_string());
                 }
                 Ok(Operation::Mirrored {
                     op: Box::new(op.into_operation()?),

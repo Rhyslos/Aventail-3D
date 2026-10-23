@@ -21,6 +21,10 @@ A shape only bends, bevels and holds detail where it has edges. Loop cut is the 
 
 The cut and any sliding are one undo step: **Ctrl + Z** takes it back.
 
+### Dead centre, or any tenth
+
+With one cut, hold **Ctrl** while you point at the edge: the loop jumps between nine places, a tenth of the edge apart, and the fifth is **exactly the middle**. Click to cut there. *Why:* by eye you can only get close to the middle; with Ctrl it is exact, with no need to cut three loops and delete two. Ctrl works while you drag too: the cut slides from tenth to tenth. It never lands on the very end of the edge.
+
 ### Several cuts at once
 
 Before you cut, hold **Ctrl** and turn the **mouse wheel**: up for more cuts, down for fewer. The loops shown follow at once. You can also type the number in **Cuts** at the top of the **Attributes panel**. Several cuts are spread evenly across the polygons (two cuts at a third and two thirds), and dragging slides them together.
@@ -34,6 +38,7 @@ After a cut, the Attributes panel shows it under **Last edit**, with its **Cuts*
 ### While you drag
 
 - Hold **Shift** for ten times finer steps.
+- Hold **Ctrl** (one cut) to slide in tenths of the edge.
 - **Ctrl + wheel** changes the number of cuts on the cut you're placing.
 - Press **Esc** or **right-click** to cancel.
 - While Loop cut is in use, clicking never selects, and Ctrl + wheel changes the cuts instead of growing the selection. Press **Q** to go back to selecting.
@@ -61,6 +66,7 @@ Every edge the loop crosses is cut at the same share of its length, measured fro
 |---|---|
 | Loop cut | `F` |
 | Cut | Click an edge |
+| Cut dead centre (or at any tenth) | Hold `Ctrl`, then click (one cut) |
 | Slide, then cut | Left drag along the edge |
 | More or fewer cuts | `Ctrl` + wheel up / down |
 | Finer steps | Hold `Shift` while dragging |

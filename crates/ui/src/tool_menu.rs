@@ -29,6 +29,7 @@
 use crate::commands::{CommandId, Slot};
 use crate::icons::{self, Icon};
 use crate::palette::{Mode, icon_tint};
+use crate::text::tr;
 use crate::theme;
 use egui::{
     Align2, Color32, Context, Event, FontId, Key, Pos2, Rect, Sense, Stroke, Ui, Vec2, WidgetInfo,
@@ -41,7 +42,7 @@ use std::f32::consts::{PI, TAU};
 pub const TOOL_MENU_KEY: Key = Key::E;
 
 /// Accessible names of the menu's entries start with this.
-pub(crate) const ENTRY_PREFIX: &str = "Tool menu: ";
+pub(crate) const ENTRY_PREFIX: &str = crate::text!("Tool menu: ");
 
 /// How the tool menu looks: chosen in Settings → Interface → Radial menu
 /// (the project lead's picks from the icon mockup, 2026-10-13).
@@ -77,28 +78,28 @@ impl ToolMenuStyle {
     /// Its name.
     pub fn name(self) -> &'static str {
         match self {
-            Self::ContinuousRing => "Continuous ring",
-            Self::InnerEdge => "Inner edge",
-            Self::Outlined => "Outlined",
-            Self::SolidTiles => "Solid tiles",
-            Self::List => "List",
+            Self::ContinuousRing => tr("Continuous ring"),
+            Self::InnerEdge => tr("Inner edge"),
+            Self::Outlined => tr("Outlined"),
+            Self::SolidTiles => tr("Solid tiles"),
+            Self::List => tr("List"),
         }
     }
 
     /// What it looks like, in plain words.
     pub fn description(self) -> &'static str {
         match self {
-            Self::ContinuousRing => {
-                "One solid band split by thin lines, like a dial; the highlighted slice lights up"
-            }
-            Self::InnerEdge => {
-                "Dark tiles; the highlighted one gets an accent bar along the edge facing the middle"
-            }
-            Self::Outlined => "Dark tiles with a crisp edge; the highlighted one glows",
-            Self::SolidTiles => {
-                "Grey tiles with a white border; the highlighted one fills with the accent colour"
-            }
-            Self::List => "A list by the mouse, like the shape list (B)",
+            Self::ContinuousRing => tr(
+                "One solid band split by thin lines, like a dial; the highlighted slice lights up",
+            ),
+            Self::InnerEdge => tr(
+                "Dark tiles; the highlighted one gets an accent bar along the edge facing the middle",
+            ),
+            Self::Outlined => tr("Dark tiles with a crisp edge; the highlighted one glows"),
+            Self::SolidTiles => tr(
+                "Grey tiles with a white border; the highlighted one fills with the accent colour",
+            ),
+            Self::List => tr("A list by the mouse, like the shape list (B)"),
         }
     }
 
@@ -460,7 +461,7 @@ impl ToolMenu {
                             WidgetType::Button,
                             true,
                             lit,
-                            format!("{ENTRY_PREFIX}{}", info.name),
+                            format!("{}{}", tr(ENTRY_PREFIX), info.name),
                         )
                     });
                     ring.button(painter, entry.slot.place, style, lit, accent);
@@ -494,7 +495,7 @@ impl ToolMenu {
                     }
                     None => {
                         cancel_caption(ui, ring.centre);
-                        CANCEL_TEXT.to_string()
+                        tr(CANCEL_TEXT).to_string()
                     }
                 };
                 // The same in words for screen readers (and tests).
@@ -554,7 +555,7 @@ impl ToolMenu {
                                 WidgetType::SelectableLabel,
                                 true,
                                 lit,
-                                format!("{ENTRY_PREFIX}{}", info.name),
+                                format!("{}{}", tr(ENTRY_PREFIX), info.name),
                             )
                         });
                         let usable = entry.ready == Ready::Yes;
@@ -609,9 +610,9 @@ impl ToolMenu {
                     }
                     ui.add_space(2.0);
                     ui.label(
-                        egui::RichText::new(
+                        egui::RichText::new(tr(
                             "E: next · Shift + E: back · Enter or Space: use · Esc: close",
-                        )
+                        ))
                         .small()
                         .color(theme::TEXT_WEAK),
                     );
@@ -871,9 +872,9 @@ fn faint(color: Color32) -> Color32 {
 /// The menu's heading.
 fn title(mode: Mode) -> String {
     match mode {
-        Mode::Model | Mode::Object => "Tools for objects".to_string(),
-        Mode::Uv => "Tools for UVs".to_string(),
-        _ => format!("Tools for {}", mode.name().to_lowercase()),
+        Mode::Model | Mode::Object => tr("Tools for objects").to_string(),
+        Mode::Uv => tr("Tools for UVs").to_string(),
+        _ => crate::trf!("Tools for {}", mode.name().to_lowercase()),
     }
 }
 
@@ -932,13 +933,13 @@ fn backing(painter: &egui::Painter, text: Rect) {
 }
 
 /// What the middle of the ring says while the mouse is on the cancel sign.
-pub(crate) const CANCEL_TEXT: &str = "Cancel. Close the menu without choosing a tool";
+pub(crate) const CANCEL_TEXT: &str = crate::text!("Cancel. Close the menu without choosing a tool");
 
 /// The middle of the ring while the mouse is on the cancel sign.
 fn cancel_caption(ui: &Ui, centre: Pos2) {
     let painter = ui.painter();
     let name = painter.layout_no_wrap(
-        "Cancel".to_string(),
+        tr("Cancel").to_string(),
         FontId::proportional(15.0),
         theme::TEXT_STRONG,
     );
@@ -955,14 +956,14 @@ fn caption_text(ctx: &Context, entry: &Entry) -> String {
     let info = entry.slot.command.info();
     let mut text = info.name.to_string();
     if let Some(keys) = info.shortcut {
-        text.push_str(&format!(". Key: {}", ctx.format_shortcut(&keys)));
+        text.push_str(&crate::trf!(". Key: {}", ctx.format_shortcut(&keys)));
     }
     let status = match &entry.ready {
         Ready::Yes => info.help.to_string(),
         Ready::NotNow(why) => why.clone(),
         Ready::Later(when) => (*when).to_string(),
     };
-    format!("{text}. {status}")
+    crate::trf!("{}. {}", text, status)
 }
 
 /// The middle of the ring: the highlighted tool's name above the cancel
@@ -987,7 +988,7 @@ fn caption(ui: &Ui, centre: Pos2, entry: &Entry, with_key: bool) {
     let mut lines = Vec::new();
     if with_key && let Some(keys) = info.shortcut {
         lines.push((
-            format!("Key {}", ui.ctx().format_shortcut(&keys)),
+            crate::trf!("Key {}", ui.ctx().format_shortcut(&keys)),
             FontId::monospace(12.0),
             theme::TEXT,
         ));

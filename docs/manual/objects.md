@@ -79,7 +79,7 @@ The main menu bar's **Edit** menu has the same entries as the panel's Edit menu,
 | Add to or take out of the selection | `Ctrl` + click |
 | Select a run of rows | `Shift` + click |
 | Rename | Double-click the name |
-| Hide / isolate / show everything | `Shift + H` / `Ctrl + H` / `Alt + H` |
+| Hide / isolate / show everything | `Shift + H` / `Ctrl + H` / `Alt + H` or `Ctrl + Shift + H` |
 | Copy; paste copies; paste instances | `Ctrl + C`; `Ctrl + V`; `Alt + V` |
 
 On macOS, use `Cmd` instead of `Ctrl` and `Option` instead of `Alt`. They don't act while you're typing a name.

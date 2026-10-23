@@ -1,0 +1,2188 @@
+# The English package: every text the app shows, one per line.
+# Made by a test (UPDATE_LANG=1); a translation repeats each line
+# with " = " and the translation after it.
+\nIt's marked Never seams here, so suggestions won't put it back.
+\nstretched {:.1}×
+\n{} px/m
+ (newest)
+ (unsaved)
+ 1 object selected.
+ Ctrl + Z takes it back.
+ Every unwrap of these pieces uses them.
+ No automatic tool changes them; move them by hand as usual.
+ Only pieces made of quads are straightened; others are left as they were.
+ Seams show in orange in the UV Editor and the UV mode, or with Display → Seams.
+ Select an object to see its {}.
+ Suggest seams and Unwrap cut there first when they need to.
+ Suggest seams and Unwrap cut these pieces until no polygon is more than {:.2}× off.
+ Suggest seams and Unwrap won't cut there.
+ The pieces around them are unwrapped again.
+ The pieces around them are unwrapped again. Seams show in orange in the UV Editor and the UV mode, or with Display → Seams.
+ They follow the app's settings again.
+ Under the mouse: {}.
+ Unwrap to lay the pieces flat along them.
+ Unwrapping lays the rest out around them; relaxing leaves them alone.
+ and 
+ copies
+ copy
+ for {}
+ in the list.
+ minute
+ minutes
+ px
+ px/m
+ steps
+ was
+ {} broken polygon{} left out.
+ {} objects selected.
+ {} polygon{} hidden (Alt + H shows them).
+ {} selected.
+ {} stayed where {}.
+ {}: {}.
+ · press 1, 2, 3 or pick UV mode to select
+, in {} layers
+, {} materials
+. Key: {}
+1 GB
+1 edit
+1 edit found its points again on the changed shape
+1 edit no longer fully fits the shape
+1 edit recorded on top of the shape
+1 edit was skipped: the shape would be too large
+1 match
+1 object
+1 of its parts can't be found on the shape any more; it applies to the rest.
+1 piece
+1 polygon
+1 polygon using {} selected.
+1 unit in the file is 1 cm: Unreal Engine
+1 unit in the file is 1 m: Godot, Unity, Substance Painter
+1 {}
+10 cm
+2 GB
+2 GB (standard)
+256 MB
+3D viewport
+4 GB
+50 cm
+512 MB
+8 GB
+A 1 m box standing on the ground
+A bake fills only the texture square: parts outside get nothing, or wrap round onto other parts. Fix packs the pieces into the square (UV → Pack).
+A ball 1 m across made of even triangles, with no poles: subdivides and bends evenly
+A ball 1 m across, resting on the ground
+A ball made of hexagons and 12 pentagons, like a football
+A bent extrude goes out its own way: set the bend's Angle to 0 for these.
+A bent polygon with many corners shades unevenly across its triangles, and the bake shows it. Select them and cut them up with Connect (J) or Slit (X).
+A box
+A calm, tool-rich 3D modeller for game assets.
+A checker laid on by the UVs: where the squares stay square and even, a texture will too. The tint runs red across and green up the texture, so a piece turned or mirrored shows.
+A checker of labelled cells laid on by the UVs, A1 at the top left of the texture to H8 at the bottom right, in colours from the app's accent: see at once which part of the texture each part of the shape uses, and which way round it lies (the labels turn and mirror with it). The UV Editor shows it behind the UVs too.
+A cone 1 m across and 1 m tall
+A cylinder with round ends, 1 m tall
+A doorway arch: two legs and a round top
+A flat 1 m square lying on the ground
+A flat circle 1 m across, lying on the ground
+A flat honeycomb of hexagons, lying on the ground
+A flat view from the front: no perspective, true sizes
+A flat view from the right: no perspective, true sizes
+A flat view looking straight down: no perspective, true sizes
+A gear with 12 teeth and a hole for the axle
+A group has no shape of its own, so no edit layers.
+A hard edge turns the shading sharply, and a normal map can only hold that turn where the UVs are split too: otherwise the bake shows a dark or light line along it. Fix marks them as seams and unwraps the pieces around them.
+A heavy shape is checked in the background, so you can keep working. The numbers below are from before the last change until it finishes.
+A list by the mouse, like the shape list (B)
+A locked axis doesn't change while moving, rotating or scaling
+A new row under the lowest one, as tall as it
+A pie slice of a round slab, a quarter of a circle
+A piece of pipe bent through 90°, lying on the ground
+A pipe 1 m across and 1 m tall
+A plain mesh: it has no settings, so its shape changes only by editing its points, edges and polygons (press 1, 2 or 3).
+A point no polygon uses goes into the file for nothing and can confuse the baker. Fix deletes them.
+A polygon an edit changed counts as broken when it is stretched this many times more one way than the other (3× standard). Lower mends more.
+A polygon an edit changed counts as broken when its texture is this many times bigger or smaller than the polygons' around it (3× standard). Lower mends more.
+A polygon with no area has no direction, so it bakes as a black speck or a streak. Select them, then weld their points (M) or delete them.
+A project keeps at most {} snapshots: remove one first.
+A right-click in the viewport opens four short lists around the mouse: what to show and hide, the modes, undo and edit layers, and the tools of what you're working on. A right-click that ends a drag, or a right drag that turns the view, never opens it.
+A ring (doughnut) 1 m across, lying on the ground
+A ring instead of a loop, with a double-click
+A solid flight of 6 stairs, 1 m wide and 1 m high
+A texture per material
+A texture per object
+A tool's count (segments, cuts)
+About {}
+Accent colour
+Add a heavy test shape
+Add a material to the list, to assign to polygons
+Add a row
+Add an empty edit layer on top of each selected object. The edits you make from now on go into it, so you can switch them all off to compare, or delete them in one go. The Edit layers panel lists the layers.
+Add edit layer
+Add every element touching the selection
+Add every polygon facing within 30° of a selected polygon: the top of a shape, say, or every wall facing one way
+Add heavy test shape
+Add layer
+Add material
+Add to / take out of the selection
+Add to the selection, with a click or drag (the standard keys)
+Add to the shape: extrude, inset, bevel, groove, bridge, fill a hole
+Add {}
+Add {} objects
+Adds a bumpy ball of 3 million polygons, like a detailed model you might import, to see how your computer copes with heavy shapes. Undo takes it away again.
+Align
+Align cancelled: nothing moved.
+Align to {}
+Align...
+Align: click the object to line up with. Esc cancels.
+Align: pick an object other than the ones selected.
+Aligned to {}. Ctrl + Z takes it back.
+All four views
+All settings…
+All three: the objects' placement back to none, the shapes where they were
+Allow no seams on
+Along
+Along X
+Along Y
+Along Z
+Along normals
+Along {}
+Already in the Model mode: Tab steps back here from editing points, edges or polygons, or from a modelling tool.
+Also stepped through with the grid button on the left palette.
+Also switched with the button above the grid button on the left palette.
+Also turn them to match
+Alt
+Alt + left: orbit · Alt + middle: pan · Alt + right or wheel: zoom
+Alt + middle: orbit · Middle drag: pan · Wheel: zoom
+Alt + mouse
+Alt + mouse works in every scheme
+Alt Gr
+An empty object to hold and organise other objects
+An instance shows its original's shape and edits: select the original to see its layers.
+An instance uses its original's materials
+An instance uses its original's materials: change them on the original.
+An object can have at most {} materials
+An ordinary 3D view: far things look smaller
+An upright cylinder, 1 m across and 1 m tall
+Angle
+Any program: pick the kind of file and how it's set up below.
+Anywhere
+Anywhere (shortest cuts)
+Apply mirror
+Apply mirror: select an object with symmetry on first (the Symmetry button).
+Apply rotation and scale
+Apply the placement
+Apply this layer's edits after the layer above it
+Apply this layer's edits before the layer below it
+Apply transforms
+Apply {}
+Apply {} mirrors
+Arch
+Arrives with the tools in Phase 3
+As in this app; Blender and 3ds Max's own axes
+Ask before dissolving across a sharp corner
+Assign
+Assign {}
+Assign: select some polygons first.
+Assign: switch to the Polygons mode and select polygons first.
+At the back
+Attributes
+Automatic
+Autosave
+B or Alt + B: next · Shift + B: back · Enter or Space: create
+B: next · Shift + B: back · Enter or Space: create · Alt + B: more shapes
+Back
+Back in the Model mode: click an object to select it.
+Back in the shape list or tool menu
+Back in the tool menu
+Backspace
+Backup copies
+Bake into shape
+Bake into shape up to here
+Bake into shape, split off, join, apply transforms and edit layers
+Bake the shape's settings and every edit up to this one into the shape: the shape stays the same, big models stay quick, and those edits can't be changed any more
+Bake the shape's settings and the {} up to and including this one into the shape, so they no longer have to be made again: big models stay quick. The shape doesn't change, but those edits can't be changed any more.
+Basic
+Before baking
+Bend
+Bend radius
+Bend segments
+Best
+Bevel
+Bevel works on edges or points: press 2 for the Edges mode (or 1 for Points) and select some.
+Bevel works on edges or points: press 2 for the Edges mode, or 1 for Points
+Bevel: drag away from the selected edges (or points) to cut them away; back towards them to narrow it. Segments and Profile are in the Attributes panel. Shift for fine steps; Esc or a right click cancels.
+Blue
+Both ends sit on the same spot. Usually left over from moving points together.
+Bottom
+Bottom radius
+Box selection
+Box, lasso or brush select
+Bridge
+Bridge 2 borders
+Bridge 2 edges
+Bridge 2 edges. Ctrl + Z takes it back.
+Bridge 2 polygons
+Bridge joins open edges: edges with a polygon on one side only.
+Bridge segments
+Bridge works on edges or polygons: press 2 for the Edges mode, or 3 for Polygons
+Bridge: drag from one open edge to another to join them. With two open borders (or two polygons) selected, C bridges them at once.
+Bridge: press on an open edge of a selected object and drag to another.
+Brighten ridges and darken creases on the surfaces, so edges and the shape's form read clearly at a glance. Only how it looks: nothing about the shape changes.
+Bring in a model from an OBJ file
+Bring shapes in from an OBJ file, each object as a plain mesh, added to the scene
+Bring the chosen copy back. It opens as unsaved work: save it to keep it.
+Bring this layer's edits back
+Budget
+Build
+Build polygons between two open borders or two polygons; with nothing to bridge selected, drag from one open edge to another
+By angle
+Cameras
+Can't bake into the shape: {}
+Can't bake into the shape: {}.
+Cancel
+Cancel Pivot to object
+Cancel a drag
+Cancel a slit (takes its cut back)
+Cancel the drag
+Cancel. Close the menu without choosing a tool
+Cancelled.
+Cancelled: everything is back where it was.
+Cancelled: the UVs are back where they were.
+Cap rings
+Cap segments
+Caps
+Capsule
+Cavity
+Centimetres
+Centre point
+Change how edits keep UVs
+Change it
+Change materials
+Change the folder or switch it off under 
+Change the game project folder
+Change the layout snapshots
+Change the mirror
+Change the original and every instance follows. Bake into shape (Ctrl + E) gives this one its own shape.
+Change the texture settings
+Change the trim sheet
+Change units to {}
+Change {}
+Change {} settings
+Changes apply as you make them
+Changes since the last save. {} saves.
+Changing them is a step Ctrl + Z can take back
+Check for baking
+Check for baking…
+Checked for edges shared by three or more faces, faces facing the wrong way, edges with no length, faces with no area and loose points
+Checked: polygons facing the wrong way, edges shared by three polygons, polygons with no area, points on the same spot, bent or sliver many-sided polygons, loose points, _low / _high names; and the UVs: hard edges that aren't seams, folded, overlapping or stacked pieces, pieces outside the square or closer than the padding, and uneven texel density.
+Checker
+Checking for unsaved work from last time…
+Checking the mesh…
+Choose (shape list, tool menu)
+Choose (shape list, tool menu); Save ("Save changes?")
+Choose a game project folder in the Export window first; this then exports straight into it
+Choose folder…
+Choose which mouse buttons and keys move the view
+Clear
+Clear seam preference
+Clear seams
+Clear the game project folder
+Clear the list
+Clear the piece settings of
+Clear the seam preference of
+Clear the seams of
+Clear the selection
+Clear the selection's budget
+Clear the selection's settings
+Clear the stretch budget of
+Click
+Click a face, edge or corner; Ctrl + click: the opposite side
+Click a layer to change it
+Click an edit to open it in the Attributes panel. Right-click a layer or an edit for more.
+Click or drag points over the shape. Esc or Enter finishes the line; click the first point to close it into a loop.
+Click or press Shift+{} to lock it, so moving, rotating and scaling leave {} alone.
+Click to hide or show the keys for this situation
+Clicking the view dice in the bottom-left corner (or snapping to it with Ctrl while orbiting) also makes the view flat, with no perspective, so lines line up. Orbit away and it goes back to perspective.
+Close
+Close (Esc)
+Close the app
+Close the open holes touching the selection with a polygon each; with nothing selected, every hole
+Close the shape list, tool menu, question or window
+Close window
+Closed
+Closed base
+Closed ends
+Closed: no open borders, like a solid. Open: some edges have a face on one side only, as on a plane or an open pipe
+Cmd
+Collapse all
+Collides exactly with the shape: accurate, for walls, floors and other parts that don't move
+Collides with a box around the shape: the cheapest
+Collides with the shape wrapped tightly, dents filled in: cheaper, and it can move
+Collision
+Collision shape
+Collision: {}
+Colours
+Command search
+Command search box
+Compare
+Comparing with “{}” (faint)
+Cone
+Connect
+Connect works on points or edges: press 1 for the Points mode, or 2 for Edges
+Connect: select two or more {}s on the same polygon first.
+Continuous ring
+Coordinates
+Copied {} object{}: Ctrl + V pastes copies, Alt + V instances.
+Copy a shape's settings, then select shapes of the same kind
+Copy objects
+Copy objects (for instances)
+Copy settings
+Copy the selected objects, to paste as copies (Ctrl + V) or instances (Alt + V)
+Copy the selected objects, with their edits, right where they are. Or Ctrl + C, then Ctrl + V to paste copies.
+Copy the selected shape's settings
+Copy works on whole objects: go back to the Model mode (the top of the left palette) first.
+Copy: select the objects to copy first.
+Couldn't apply the mirror: {}.
+Couldn't change the game project folder: {}.
+Couldn't change the mirror: {}.
+Couldn't change the smoothing: {}.
+Couldn't change the units: {}.
+Couldn't do that: {}.
+Couldn't do {}: {}.
+Couldn't export into the game project: {}.
+Couldn't export the kit: {}.
+Couldn't export: {}.
+Couldn't hide that: {}.
+Couldn't import {}: {}.
+Couldn't import: {}.
+Couldn't move the pivot: {}.
+Couldn't open {}: {}.
+Couldn't paste: {}.
+Couldn't restore the backup copy: {}.
+Couldn't restore “{}”.
+Couldn't save a backup copy: {}.
+Couldn't save: {}.
+Couldn't show them: {}.
+Couldn't snap: {}.
+Couldn't split that off: {}.
+Couldn't take it: {}.
+Couldn't use that folder: {}.
+Couldn't {}: {}.
+Counted from the first change since the last copy.
+Create
+Create a shape
+Create a shape (a cube, sphere and so on) or a group from the Create menu or the shape buttons at the top.
+Create a shape…
+Create an empty group, to hold and organise other objects
+Create cube
+Create cylinder
+Create group
+Create plane
+Create sphere
+Create {}
+Created by Rhyslos, built with AI assistance (Claude by Anthropic).
+Ctrl
+Ctrl + click / Shift + click (the standard keys)
+Ctrl + click or drag adds; Alt + click removes. Ctrl + click on something selected unselects it. Alt + drag moves the view while "Alt + mouse works in every scheme" is on.
+Ctrl + click or drag adds; Shift + click or drag removes. Ctrl + click on something selected unselects it.
+Ctrl + click or drag flips: what was selected is unselected, and the rest selected.
+Ctrl + wheel
+Ctrl + wheel, while using the tool
+Ctrl adds, Alt removes
+Ctrl adds, Shift removes
+Ctrl flips
+Cube
+Custom settings
+Cut a new loop of edges all the way around a shape: point at an edge, then click, or drag to slide it
+Cut a thin groove into the shape along the selected edges, like a panel line, or raise a ridge out of it: drag in or out
+Cut along hard edges
+Cut and join
+Cut corners sharper than
+Cut every polygon into triangles the same way the viewport does, so a bake in Substance Painter matches the game exactly
+Cut new edges along a line: click or drag its points over the shape; Enter finishes, Esc cancels, or click the first point to close a loop
+Cut new edges and join points: slit, loop cut, connect, weld
+Cut out the middle: zero for a pie slice, more for a slice of a ring
+Cut polygons into triangles
+Cut the corner off the selected edges or points, with a width, segments and roundness
+Cut through
+Cuts
+Cuts are as short as can be, wherever they fall: for shapes seen from all round
+Cuts go on the parts facing away from the Front view, top or bottom alike
+Cuts go on the parts facing down, wherever they face round the sides
+Cuts go where a prop is least seen: facing down, or away from the Front view
+Cylinder
+Danish
+Dark tiles with a crisp edge; the highlighted one glows
+Dark tiles; the highlighted one gets an accent bar along the edge facing the middle
+Decrease
+Default
+Default camera
+Del
+Delete
+Delete edit
+Delete layer
+Delete objects
+Delete points, edges or polygons
+Delete the backup copies for good and start afresh.
+Delete the layer and every edit in it (Ctrl + Z brings them back)
+Delete the selected objects
+Delete the selected objects (Backspace does it too)
+Delete the selected points, edges or polygons, and the polygons using them, leaving a hole
+Delete {}
+Depth
+Deselect
+Deselect all
+Developer
+Direction
+Disc
+Discard
+Display
+Dissolve
+Dissolve across a sharp corner?
+Dissolve cancelled: nothing changed.
+Dissolve: nothing here can go without opening a hole. Points and edges on an open border stay, and so do polygons that wouldn't merge into one (use Delete for those).
+Dissolve: this would merge polygons across a sharp corner. See the question.
+Dissolving here merges polygons that meet at a sharp corner into one bent polygon. A bent polygon isn't flat, so it shades badly and can look torn or creased.
+Dissolving where polygons meet at more than 30° makes one bent polygon, which shades badly. Delete is usually what's wanted there.
+Distance
+Do again what was taken back
+Do the last undone change again
+Dome
+Don't save
+Don't save (in the "Save changes?" question)
+Don't straighten
+Don't warn me again
+Done
+Done. Ctrl + Z takes it back.
+Double-click / Alt + double-click
+Double-click an edge for its loop; Alt + double-click for its ring
+Drag
+Drag a point (or a polygon, in the Polygons mode) onto a point; a selected one brings the whole selection.
+Drag anywhere in the viewport. Hold Shift for fine steps.
+Drag away from the selected edges or points to widen. Hold Shift for fine steps.
+Drag from one open edge to another. With two borders or two polygons selected, C bridges them at once.
+Drag into the surface for a groove, out of it for a ridge. Hold Shift for fine steps.
+Drag to orbit the view
+Drag to pan the view
+Drag to zoom the view
+Draw the selection larger, with a dark rim
+Draw this layout faintly under the current one, to see what changed. Click again to stop.
+Duplicate
+Duplicate as instance
+Duplicate {}
+E: next · Shift + E: back · Enter or Space: use · Esc: close
+Each hexagon's size, from its middle to a corner
+Each material's pieces fill a square of their own, as separate texture sets
+Each metre square cut into four: lines every 50 cm
+Each object's pieces fill a square of their own
+Each piece is laid flat all three ways and keeps the one that lies most evenly. Always the same choice for the same piece; slowest of all.
+Each point goes along its own facing, so the end follows the surface's curve at an even thickness, like puffing it out.
+Each surface in its material's colour
+Each time you save the project, export it into this folder too, named after the project, so the engine picks up the change
+Edges
+Edges sharper than {:.0}° are marked hard, the rest soft. Change the Angle under Last edit; Ctrl + Z takes it back.
+Edges where polygons meet more sharply than this are crisp
+Edges where the surface bends more sharply than this get a seam (66° standard): a piece bent far round one edge stretches when laid flat. 180° cuts no corners.
+Edges whose polygons meet more sharply than this become hard (a crisp edge); the rest become soft (smooth). 0° is flat.
+Edit
+Edit layers
+Edit on
+Edit pivot
+Edit pivot is on: the gizmo moves and turns the selected objects' pivots, not their shapes.\nClick to turn it off.
+Edit pivot off: the gizmo moves the objects again.
+Edit pivot on: the gizmo moves and turns the pivots, not the shapes. Click Edit pivot again (or press Tab) to stop.
+Edit pivot: move and turn the selected objects' pivots (the point they turn and scale around), not their shapes
+Edit {} of {} in {}. Change it and the edits after it are made again on the new shape.
+Edit: {}
+Edits
+Edits are kept apart from the shape's settings, so the settings stay editable: change them and the edits are made again on the new shape.
+Empty space below the objects
+End
+End size
+Engine
+Enough for a long session on a computer with 8 GB or more
+Enough for most sessions on a computer with 4 GB or more
+Enter
+Enter: restore the chosen copy
+Enter: save · {}: don't save · Esc: cancel
+Esc
+Esc: cancel
+Even out the selected polygons' UVs, so a texture stretches less over them
+Even rows:
+Even width
+Every
+Every 1 m
+Every 10 cm (fine)
+Every 50 cm (quarters)
+Every UV command and setting, as in the UV menu at the top
+Every hard edge gets a seam: a normal-map bake needs the UVs split wherever the shading breaks. Off: only corners and what pieces need to lie flat.
+Every hard edge of the shapes
+Every key on a drawn keyboard (also the Keys button on the menu bar)
+Every keyboard shortcut and mouse action, on a drawn keyboard
+Every layer is off: the next edit makes a new layer on top.
+Every object you can see in the viewport
+Every part keeps its real size, so the texture's pixels are the same size all over the piece, at the cost of a little bending of angles. The slowest.
+Every point goes the same way: straight out along the polygons' average facing. The end keeps the polygons' shape.
+Every preference in one place: look, units, navigation, undo
+Every seam of the shapes
+Every setting of the automatic UV tools
+Every small part keeps its angles, so a texture's squares stay square. Sizes may drift across a strongly curved piece. Fast: the standard way.
+Every time you save the project, the model is also exported into your game project, so {} picks up the change by itself. It goes to:
+Everything else is already hidden.
+Everything shown
+Expand all
+Explain choices
+Export
+Export again
+Export each selected object (with what's inside it) as a file of its own, named after it, its pivot at the file's origin: modular pieces for a game engine. Uses the Export window's settings
+Export into {} now, named after the project
+Export kit into
+Export kit: select the pieces to export first.
+Export kit…
+Export on every save
+Export once first; this then repeats it
+Export straight into a Godot, Unity, Unreal Engine or Solis project: pick the folder inside it that your models go in. Every save then exports the model there too, named after the project, so the engine picks up the change by itself.
+Export to game project
+Export to {} again, the same way
+Exported {} ({} triangles) into {}.
+Exported {} into {}.
+Exported {} of {} into {}.
+Exported {}{} ({} triangles{}) to {}. File → Export again repeats it.
+Exporting on every save is off. File → Export to game project exports into it when you choose. It goes to:
+Export…
+Extra room between a spiral's loops: how much further each full turn climbs along the spiral's middle. Past one turn the loops already clear each other, so 0 leaves them just apart; under one turn it tilts the bend into a ramp. Needs a bend radius.
+Extrude
+Extrude direction
+Extrude steps
+Extrude works on polygons or edges: press 3 for the Polygons mode, or 2 for Edges
+Extrude works on polygons, edges or points: press 3 for the Polygons mode (2 for Edges, 1 for Points) and select some.
+Extrude: drag anywhere in the viewport, the way the selected polygons (or open border edges) should go. Shift for fine steps; Esc or a right click cancels.
+Extrude: select the points all the way round a polygon (a cap's rim) to push it out, or two or more points next to each other along an open edge (the edge of a plane, or a hole) to grow new polygons from it.
+Faces squashed flat to a line or a point: invisible, but they still count and can break tools.
+Fast
+File
+File settings
+File type
+Fill every hole
+Fill hole
+Fill hole works in the Edges or Polygons mode: press 2 or 3
+Fill hole: no hole touches the selection. Select an edge on its border, or select nothing to fill every hole.
+Fill hole: the selected objects have no holes.
+Find a key or action
+Find any command by typing part of its name
+Find any command by typing part of its name (Space)
+Finish a slit
+Fit
+Fit everything in the scene in the view
+Fit the islands holding the selection (or whole objects) into the texture square as large as they go, with padding between them (UV → Packing)
+Fit the selected objects in the view (everything, while nothing is selected)
+Fix
+Fix normals
+Fix normals: every polygon already faces the right way.
+Fix normals: select the objects to fix first.
+Fix {}
+Flat end
+Flip
+Flip left to right
+Flip normals
+Flip normals works on polygons: press 3 for the Polygons mode
+Flip normals: select some polygons first.
+Flip side
+Flip upside down
+Fold
+Folder
+For Godot, Unity, Unreal Engine and Substance Painter: each object at its pivot
+For a computer short of memory: fewer steps can be undone
+For the selected objects: each keeps its own mirror.
+For very long sessions on a computer with plenty of memory
+Four views
+Frame all
+Frame selected
+Frame the texture square
+Free software under the GNU General Public License v3.0 or later.
+Freeze 1 edit
+Freeze {} edits
+French (AZERTY)
+From end to end, the round ends included
+From the front of the first step to the back of the last (along Y)
+From the middle to the centre of the ring's tube
+From top
+Front
+Game project
+Game project folder
+Game project folder set. It isn't inside a Godot, Unity, Unreal Engine or Solis project, so exports go there with {}'s settings. Every save now exports there too.
+Game project folder set: {} project {}. Every save now exports there too.
+Gear
+General
+German (QWERTZ)
+Getting the workbench ready…
+Give
+Give the selected objects {}'s rotation
+Give the selected pieces a stretch budget of their own
+Give the selected pieces their own unwrap settings
+Give the selected polygons the material {}
+Give the selected shapes of the same kind the copied settings
+Give the selection these settings
+Give the selection this budget
+Go back to showing the last edit
+Go back to the opening camera view
+Godot
+Godot, Unity, Unreal's OBJ import and Substance Painter
+Graphics: {} ({}, {}× smoothing)
+Grey tiles with a white border; the highlighted one fills with the accent colour
+Grid lines
+Grid lines every metre: the calmest ground
+Grid spacing: {}
+Groove
+Groove along
+Groove width
+Groove works on edges: press 2 for the Edges mode
+Groove works on edges: press 2 for the Edges mode and select some.
+Groove: drag into the surface to cut a groove along the selected edges, or out of it for a ridge. Esc or a right click cancels.
+Group
+Group objects
+Group {}
+Grow
+Grow / shrink the selection
+Grow and shrink work on points, edges and polygons: press 1, 2 or 3 first.
+Grow selection
+Half a ball 1 m across, standing on its flat side
+Half the pipe's width
+Half the width
+Half the width at the bottom
+Half the width at the top: zero for a point, more to cut it off flat
+Half the width of a hole in the middle: zero for none
+Half the width of the hole
+Half the width of the hole for the axle: zero for none
+Half the width of the hole through the pipe: zero for a solid bend
+Half the width of the outside
+Half the width of the whole circle
+Half the width, at the tips of the teeth
+Hard edges by angle
+Hard edges by angle: select the objects first.
+Hard edges by angle: the selection has no shapes.
+Harden
+Heavy test shape
+Height
+Height segments
+Held with
+Help
+Hex grid
+Hex sphere
+Hexagon size
+Hid
+Hide
+Hide cuts
+Hide everything except the selection
+Hide everything except what is selected
+Hide selected
+Hide the selected objects (or the selected polygons while editing)
+Hide the selection
+Hide what is selected
+Hide {}
+Hide: select the objects to hide first.
+Hide: select the polygons (or their points or edges) to hide first.
+High contrast
+Highest
+Hold {}
+Holding Ctrl while dragging flips snapping for that drag
+Hole radius
+Home
+How Pack fits pieces into the square
+How Suggest seams picks seams
+How Unwrap lays pieces flat
+How big the new end is, compared with where it started: 100% the same, less tapers it in (0% to a point), more flares it out.
+How close points must be to weld: those nearer than this become one
+How deep each tooth is, from its tip to the gap between teeth
+How deep it is (along Y)
+How each piece is laid flat
+How evenly the UVs lie: green where even, yellow where 1.5 times off, red where twice off (stretched one way, or too big or small against the rest of the object), purple where a polygon has no room on the texture
+How far a quad's corners may be from square for its piece to count as a strip (25° standard). Raise it for strips round tight curves; lower it to straighten only truly square ones.
+How far it bends: 90° for a corner, 360° for a whole ring
+How far it was pushed (in the object's own size). Change it and the shape follows.
+How far the bevel reaches into each polygon (in the object's own size). Change it and the shape follows.
+How far the extrude turns before going on straight: 0° is straight, 90° a corner. The pipe keeps its full width through the turn. With a bend radius it can go past 360° into a spiral (up to 3600°, ten turns): each loop climbs just clear of the one before.
+How far the groove goes in (below 0) or the ridge comes out (above 0), in the object's own size. Change it and the shape follows.
+How far the pipe's middle is from the point it bends round
+How finely it is cut: each step gives about four times the hexagons
+How finely pieces are fitted together
+How high the straight sides go before the round top starts: zero for a half ring
+How high the top step is
+How many flat sides make up each round side
+How many flat sides make up the round side
+How many new loops are cut, spread evenly across the polygons
+How many pieces along the bend
+How many pieces along the curve
+How many pieces around
+How many pieces around (like lines of longitude)
+How many pieces around the pipe
+How many pieces around the ring
+How many pieces around the tube
+How many pieces each side is cut into along X
+How many pieces each side is cut into along Y
+How many pieces each side is cut into along Z
+How many pieces from top to bottom (like lines of latitude)
+How many pieces it is cut into along X
+How many pieces it is cut into along Y
+How many pieces the round top is cut into
+How many pieces the side is cut into from bottom to top
+How many pieces the sides are cut into from bottom to top
+How many pieces the straight middle is cut into
+How many rings each closed end is cut into, from the rim inwards
+How many rings each round end has, from its rim to its tip
+How many rings from the rim to the top
+How many rings it is cut into, from the rim inwards
+How many rings of hexagons round the middle one
+How many rows a smooth turn has (with a bend radius); for a spiral, how many each full turn has. Ctrl + wheel changes it.
+How many rows the bevel has: 1 is a flat cut (a chamfer), more make it round
+How many rows the bridge has: more make a longer bridge bend smoothly later. Ctrl + wheel changes it.
+How many rows the new walls have: more give loops to bend or shape later. Ctrl + wheel changes it.
+How many steps
+How many steps of evening out Relax takes (60 standard). More evens stretched UVs out further; a few just smooths them a little.
+How many straight pieces make up the circle
+How many teeth
+How many times each triangle is cut into four: 0 is a 20-sided ball, each step four times the triangles
+How modelling edits fix the UVs they break (saved with the project)
+How much Relax evens UVs out
+How much of a circle: 90° for a quarter
+How shapes are drawn: shaded, with wires, or wireframe
+How sizes are shown and typed. Each project keeps its own, saved with it; only the display changes, never the shapes. Also switched in the Attributes panel's Units menu.
+How tall the row is, in pixels
+How the automatic UV tools work: the same settings as UV → Settings.
+How the mouse moves the view. Also chosen from the button in the viewport's bottom-right corner.
+How the mouse moves the view. Try them, keep your favourite.
+How the shading breaks into crisp edges. By angle: wherever polygons meet more sharply than the angle, after every change. Unticked: only the edges you mark hard (Mesh → Mark hard edges). Marking edges switches it to that.
+How the shape is shaded: smoothing, hard and soft edges, normals
+How these pieces are laid flat, whatever UV → Unwrapping says
+How thick the arch is round the opening
+How thick the gear is
+How thick the ring is: half the tube's width
+How thick the slab is
+How wide the groove (or ridge) is, across the line of edges
+How wide the opening is
+How wide the turn is, from its middle to the middle of the pipe: 0 is a sharp corner (a mitre joint, up to 150°), more is a smooth elbow.
+I know what I'm doing, proceed
+Icosphere
+Import
+Import {}
+Imported {} from {}.
+Import…
+In the Polygons mode (3), select the polygons to give this material, then click Assign
+In the selected objects, mark every edge whose polygons meet more sharply than an angle (30° to start with) hard, and the rest soft: boxy corners crisp, curves smooth. Change the angle under Last edit.
+In the {} project {}: exported as {} with its settings.
+In use: {} of {} ({} {})
+Includes
+Increase
+Inner edge
+Inner radius
+Ins
+Inset
+Inset works on polygons: press 3 for the Polygons mode
+Inset works on polygons: press 3 for the Polygons mode and select some.
+Inset: drag left or right anywhere in the viewport to shrink the selected polygons inward. Shift for fine steps; Esc or a right click cancels.
+Instance
+Instance 1 object
+Instance {} objects
+Interface
+Invert
+Invert orbit direction
+Invert the selection
+Isolate
+Isolate the selection
+Isolate: hide every other object, or in the Points, Edges and Polygons modes every other polygon (Ctrl + H). Alt + H shows everything again.
+Isolate: select the objects to keep first.
+Isolate: select the polygons (or their points or edges) to keep first.
+Isolated: hid
+It has unwrap settings of its own (UV → Pieces → Piece settings), used instead of the app's.
+It lies mirrored (purple): UV → Turn and flip → Flip left to right turns it back.
+It overlaps another piece (red): UV → Lay out → Pack moves pieces apart.
+It's a hard edge. A seam where the shading turns hard keeps the normal map clean there.
+Its own texel density
+Its pivot
+Its place: where it was laid out, moved by hand, or where Pack put it (biggest pieces first, from the bottom left).
+Its size: {} px/m, the texel density aimed for (Texture menu). Unwrap sizes pieces to it.
+Its size: {} px/m, {:.2}× the aim of {}. Pack shrinks every piece by the same amount so all fit in the square. For more texture: a bigger texture size (Texture menu), less padding, or a texture per material.
+Its size: {} px/m, {:.2}× the aim of {}: scaled up by hand, by Pack filling the square, or by a density of its own. UV → Lay out → Set texel density puts it back to the aim.
+Join objects
+Join the selected points or edges with a new edge across their polygon
+Join the selected shapes into the first of them, as one plain mesh, each part staying where it was
+Join {}
+Join: select two or more shapes first.
+Keep every step until the app closes. A very long session with large meshes can then use a lot of memory
+Keep shapes
+Keep shapes, smoother
+Keep sizes
+Keep the UVs and seams of the objects shown in the UV Editor under a name, to go back to or compare with later
+Keep the bevel from crossing over itself: it gets only as wide as fits, so corners meet instead of passing each other
+Keep the newest
+Keep together
+Key {}
+Keyboard
+Keyboard shortcuts
+Keys
+Laid
+Laid flat, the piece stretched more than its budget of {:.2}×, so it was slit here, from where it was squeezed most.
+Lasso selection
+Last edit: {}
+Lay out
+Lay strips on them: UV → Put on trim row.
+Lay the new end flat, square to the way it went: a curved patch ends in a flat face.
+Lay the pieces holding the selection (or whole objects) flat along their seams, with as little stretching as can be, at the object's texel density
+Lay the selected pieces straight along this row, filling its height, from its left end
+Layer
+Layer name
+Layout snapshots
+Left
+Leg height
+Let go of the drag (or press Esc) first, then Tab.
+Let go on another one of the same object to join them.
+Let the automatic tools change the selected pieces again
+Let the automatic tools choose freely again on the selected edges (or polygons)
+Like Keep shapes, but the angles are first evened out over the whole piece, so curved pieces (a head, a dome) drift less. A little slower.
+Line the pieces made of quads up into a straight grid, for strips and panels
+Line the selected objects up with another object: click this, then click that object, and choose the sides or middles to line up in the window
+Line the selected objects up with {}. The change shows as you choose.
+Line up
+List
+List what in the shown shapes would spoil a bake in Substance Painter, in plain words, with one-click fixes
+List what would spoil a bake: overlapping pieces, missing UVs and more
+List what would spoil the bake, in plain words, with one-click fixes
+Lock pieces
+Lock the UVs of
+Lock the {} axis
+Lock {}
+Locked: no automatic tool changes it. UV → Pieces → Unlock pieces frees it.
+Look
+Look from a side of the view dice (bottom-left corner)
+Look from the {} (Ctrl + click: from the {})
+Loop and ring: double-click
+Loop cut
+Loop cut ({} cuts)
+Loop cut works in the Points, Edges or Polygons mode: press 1, 2 or 3
+Loop cut: point at an edge of a selected object, across four-sided polygons.
+Loop cut: point at an edge to see the new loop, click to cut it, or press and drag along the edge to slide it into place. Cuts is in the Attributes panel. Esc or a right click cancels a drag.
+Lowest
+Made for
+Make every bevelled edge's new polygon the same width, however sharp or flat the edge is (the width you set is what a right-angled edge gets)
+Make instances of the selected objects right where they are: they show the original's shape and follow its changes. Or Alt + C, then Alt + V.
+Make the mirrored half of a symmetrical object part of its shape (symmetry off)
+Make the mirrored half part of the shape for real, as Blender's Apply: the mirror is gone, both halves stay, and each half can be changed on its own from then on
+Make the mirrored half part of the shape for real: symmetry goes off and both halves stay
+Make the trim sheet's rows first: the UV Editor's Trim menu, or UV → Trim sheet
+Make {} editable
+Marine green
+Mark as seams
+Mark every hard edge of the selected objects as a seam (as shown: by angle while Automatic hard edges is on). A normal-map bake needs the UVs split wherever the shading breaks.
+Mark hard edges
+Mark hard edges while editing points, edges or polygons
+Mark hard edges, where the shading breaks into a crisp edge, in a colour of their own while editing points, edges or polygons
+Mark seams
+Mark seams while editing points, edges or polygons
+Mark seams, where the surface is cut open for its UVs, in orange while editing points, edges or polygons (the UV mode always shows them)
+Mark soft edges
+Mark the selected edges as seams: where the surface is cut open to lie flat. With polygons selected, the edges around them.
+Mark, clear, suggest and select seams, and say where they may go
+Match texel density
+Material {}
+Material {} name ({})
+Materials
+Materials are given to polygons: switch to the Polygons mode, select the polygons, then click a material's Assign button
+Maximise this view
+Measure
+Measuring: drag a line · Esc stops
+Melt the selected points into one at their middle (selected polygons: each touching group at its middle, such as an inset cap into a fan of triangles); Ctrl + M to drag a point or polygon onto a point
+Mend UVs after each edit
+Mend when sized off
+Mend when stretched
+Mending
+Menu bar
+Menus and questions
+Merge down
+Merge layer down
+Mesh
+Method
+Metres
+Middle
+Middle drag: orbit · Shift + middle: pan · Wheel: zoom
+Middle orbits
+Middle pans, Alt orbits
+Mirror
+Mirror across
+Mirror applied: both halves are part of {} now, and symmetry is off. Ctrl + Z takes it back.
+Mirror off
+Mirror the selected UVs left to right, about their middle
+Mirror the selected UVs top to bottom, about their middle
+Mode
+Model
+Model (Edit pivot)
+Model mode
+Model one half: each selected object gets a mirror of its own, a copy of its shape on the other side of its centre (its pivot) that follows every edit, joined to it at the middle. The mirror moves and turns with the object. The arrow beside it chooses X, Y or Z and moves the mirror.
+Modes
+More copies let you go further back after a crash. A heavy scene takes tens of MB per copy.
+More shapes
+More shapes (icosphere, torus, gear, stairs and the rest)
+Mouse
+Mouse only
+Mouse only, middle zooms
+Move
+Move 1 point
+Move UVs
+Move and turn the selected objects' pivots (the point they turn and scale around), not their shapes. Also on the top palette, by the axis switches.
+Move and turn the selected objects' pivots, not their shapes
+Move down
+Move layer down
+Move layer up
+Move pivot
+Move the UVs of
+Move the mirror to
+Move the selected objects so their pivots sit on another object's pivot: click this, then click that object
+Move the selected objects' pivots to the middle of their shapes; the shapes stay where they are
+Move the selected objects' pivots to the world origin, where the red and blue lines cross; the shapes stay where they are
+Move the selected objects, shape and pivot together, so their pivots sit at the world origin
+Move the selected polygons into a new object of their own, in the same place (Polygons mode)
+Move the selection: drag the gizmo's arrows, squares or centre
+Move up
+Move {}
+Move {} pivots
+Move {} points
+Move, rotate and scale at once: all three gizmos
+Moves snap to:
+Moving: {}
+Name
+Named versions of the UV layout, kept with the project.
+Navigation controls
+Never seams here
+New
+New group
+New name
+New project
+New project.
+New projects
+Next in the shape list or tool menu
+Next in the tool menu
+Next select tool (Box, Lasso, Paint select)
+No automatic tool changes the pieces holding the selection: Unwrap, Relax, Straighten, Pack, texel density, trim rows, Suggest seams and mending all leave them as they are. You can still move, turn and scale them by hand. Drawn hatched in the UV Editor.
+No collision: things pass through it
+No edit layers yet. The first edit you make goes into a layer called Edits. Add a layer to keep a set of edits apart: switch it off to compare, or delete it to take them all back.
+No edits
+No folder for backup copies could be found on this computer.
+No keys match.
+No objects yet
+No perspective, from any direction: orbit it freely; parallel lines stay parallel
+No pieces exported.
+No polygon faces the wrong way.
+No polygon uses {}.
+No problems found
+No real solid has these, and most tools can't work on them. They usually come from faces stacked on each other.
+No rows yet
+No rows yet.
+No snapshots yet.
+No trim sheet. Pieces already on its rows stay where they are.
+None
+None chosen
+Norwegian
+Not inside a Godot, Unity, Unreal Engine or Solis project: exported with {}'s settings (Made for picks which).
+Not used.
+Nothing found that would spoil a bake.
+Nothing found. Try another word.
+Nothing is hidden.
+Nothing is selected
+Nothing matches.
+Nothing selected
+Nothing to bake into the shape: groups and meshes have no settings to bake
+Nothing to export: nothing shown is a shape.
+Nothing to redo
+Nothing to redo.
+Nothing to undo
+Nothing to undo.
+Nothing to ungroup: only groups can be ungrouped
+Now: the gizmo follows the object's own axes.\nClick or press L for the world's axes.
+Now: the gizmo follows the world's axes.\nClick or press L for the object's own axes.
+Now: {}.\nClick for: {}.
+Numbered checker
+Numbers on pieces
+OBJ (.obj)
+OBJ in metres with Y up, cut into the viewport's triangles so the bake matches the game; each material becomes a texture set
+Object
+Object axes
+Object name
+Object settings
+Object smoothed by angle
+Object to world origin
+Objects
+Off
+Off as standard: right-clicks in the viewport then do nothing
+Off: only the button turns snapping on and off.
+Off: the shape is made as if this edit wasn't there
+Off: the shape is made as if this edit wasn't there. Nothing is lost.
+Olive
+On
+On save
+On the trim row “{}”, laid along it by Put on trim row. Pack leaves it there.
+On: a tap opens the menu and keeps it open; tap E again to step through it, and Enter or Space to use a tool. Easier if holding a key is hard.\nOff: the menu shows only while you hold E; let go over a tool to use it.
+On: each tool's key sits just outside its button.\nOff: the key shows in the middle, with the name of the tool you point at.
+On: everything under the line is cut, the far side too. Off: only what you can see.
+On: polygons that touch move as one piece, like a block pulled out of a wall. Off: each polygon on its own, a separate bump for each.
+On: the ends meet in a point in the middle, with triangles around it. Off: the middle of each end is one flat face with many corners (an n-gon).
+On: the gizmo follows the object's own axes. Off: the world's.
+One face on each of these edges points inwards (a flipped normal); it will shade and bake wrongly. Mesh → Fix normals turns them the right way.
+One newer copy is left out: restoring it closed the app last time.
+One solid band split by thin lines, like a dial; the highlighted slice lights up
+Only one project can be opened at a time.
+Only sections with something to set are listed. Materials, Mesh, Rig and Animations arrive with their features.
+Only the edges, seen through the shape: front and back at once. Clicking still picks the shape.
+Open ({})
+Open a project
+Open a saved project
+Open as saved
+Open in Attributes
+Open project
+Open recent
+Open the Settings window, where every setting has its home
+Open the project as you last saved it, and delete the backup copies.
+Open the shape list: a cube, sphere, cylinder and the rest
+Open the user manual in your web browser
+Opened {}.
+Opening width
+Opening {}…
+Open…
+Option
+Options
+Orbit and zoom around the point under the mouse
+Orbit, pan and zoom with a left, middle or right drag (standard navigation)
+Orbit, pan, zoom
+Orthographic
+Outer radius
+Outlined
+Pack
+Pack: every selected piece is locked, and stays where it is.
+Pack: every selected piece is on the trim sheet, and stays on its row.
+Pack: select the objects first.
+Pack: the selection has no UVs with any area to pack.
+Packing
+Padding
+Paint select
+Palette name: 
+Panel
+Panel layout reset to the standard arrangement.
+Paste copies
+Paste copies of the copied objects, each just after its original
+Paste instances
+Paste instances of the copied objects: they show the original's shape and follow its changes
+Paste settings
+Paste works on whole objects: go back to the Model mode (the top of the left palette) first.
+Paste {} settings
+Paste: copy some objects first (Ctrl + C, or Alt + C).
+Paste: the copied objects have been deleted.
+Pasted copies, on top of their originals: move them away with W.
+Pasted instances: they follow their originals' shape.
+Perspective
+Perspective or orthographic
+Petrol blue
+PgDn
+PgUp
+Pick a folder inside your Godot, Unity, Unreal Engine or Solis project, and every save exports the model into it too, so the engine picks up the change by itself.
+Pick an axis: with none, nothing is mirrored.
+Pick how a drag selects: box, lasso or paint (Q steps through them)
+Pick the folder inside your game project the models go in
+Pick the kind of file and how it's set up yourself
+Pie sector
+Piece of {} {}
+Piece settings
+Pieces
+Pieces are fitted on a coarse grid: quick, with a little more space lost
+Pieces are fitted on a grid as fine as half the padding
+Pieces are fitted on the finest grid: the tightest fit, and the slowest
+Pieces lying over each other share pixels, so one bakes over the other. Fix packs them apart (UV → Pack).
+Pieces may be turned (lined up with the square, and a quarter turn) to fit better
+Pieces need a gap of empty pixels: the bake spreads each piece's colours into it so seams don't show, and a game shows smaller copies of the texture at a distance (mipmaps), where close pieces blur into each other. Fix packs them with the gap set in UV → Packing.
+Pieces of exactly the same shape share the same texture space
+Pin
+Pin UVs, lock pieces, and give pieces settings and budgets of their own
+Pin edit
+Pin the UVs of
+Pin the selected UVs where they are: unwrapping lays the rest out around them, and relaxing leaves them alone
+Pipe elbow
+Pipe radius
+Pivot
+Pivot to centre
+Pivot to object
+Pivot to object: click the object whose pivot to use. Esc cancels.
+Pivot to object: the pivot is already at {}'s pivot.
+Pivot to object…
+Pivot to world origin
+Pivot to {}
+Plain, read by almost every 3D program
+Plane
+Plum
+Point at a key to see what it does. Click a key to keep it shown.
+Point at a seam or a piece to see why it's there and how to change it
+Point at an edge to see the loop; click to cut, or drag along the edge to slide it.
+Point at one for why. Select shows where it is; Fix mends it as one step Ctrl + Z can take back.
+Points
+Points at the middle this close to their mirror become one, so the halves join into one surface. 0 keeps them apart.
+Points on the same spot make polygons with no area and break the shading there. Fix welds each group into one point.
+Points that no face uses.
+Points, Edges, Polygons
+Polygons
+Polygons folded over or squashed flat get no pixels of their own, so the bake smears or comes out back to front there. Fix unwraps their pieces.
+Polygons mode (3): select polygons, then Assign.
+Position
+Position, rotation and scale
+Positions are in the world. Type a value and press Enter, or drag the number sideways. Each change is one undo step.
+Prefer seams here
+Prefer seams on
+Preparing a heavy shape for drawing…
+Press E for the tools of what you're working on. Every look holds the same tools in the same places.
+Profile
+Projects you save or open are listed here
+Push the selected polygons or edges out, building new sides between the old place and the new. With points selected along an open edge, the edges between them grow new polygons
+Put every setting back as it was when the app was new (the panel layout is kept)
+Put on the trim sheet
+Put on trim row
+Put on {}
+Put the objects' pivots at the world centre (their parent's); the shapes stay put
+Put the selected objects into a new group
+Put this layer's edits at the end of the layer below, making them one layer
+Put this layout back: the UVs and seams of {} {}, as one step to undo. Polygons made since keep theirs.
+Puts more of the bevel on one side of the edges than the other: 0% is even. Along a loop it stays on the same side all the way round. Flip side swaps the side.
+Quad menu
+Quarter turns and mirrors of the selected UVs
+Questions asked before an edit that is easy to get wrong. Each can also be switched off from the question itself.
+Quit
+Radial menu
+Radius
+Ready
+Recover unsaved work?
+Red
+Redo
+Redo: {}
+Redone: {}.
+Relax
+Relax the UVs of
+Relaxing
+Remove
+Remove a snapshot
+Remove collision
+Remove every row
+Remove last
+Remove the last material in the list, if no polygon uses it
+Remove this row
+Remove this snapshot (the UVs don't change)
+Rename
+Rename a snapshot
+Rename layer
+Replace it with the current layout of the objects shown
+Replace the selected objects' seams with suggested ones: along hard edges and sharp corners, then where each piece needs cutting to lie flat, in hidden places (facing down, in corners)
+Reset panel layout
+Reset view
+Restore
+Restore standard
+Restore the UVs of
+Restore the snapshot “{}”
+Restored your work from {}. Save it to keep it.
+Restored “{}”. Ctrl + Z takes it back.
+Ridge along
+Right
+Right drag: orbit · Middle drag: pan · Wheel: zoom
+Right drag: orbit · Middle drag: zoom · Shift + middle: pan
+Right-click (or Esc)
+Right-click in the viewport
+Right-click opens the quad menu
+Ring segments
+Rings
+Rise per turn
+Rotate
+Rotate UVs
+Rotate the selection: drag the gizmo's rings
+Rotate {}
+Rotate {}'s pivot
+Rotating: {:.1}°
+Rotation
+Rotation and scale
+Rotation shows for one object in the Model and Object modes
+Row {}
+Rows of a shared texture, repeating left to right.
+Save
+Save As…
+Save as
+Save backup copies in the background
+Save changes to {}?
+Save project
+Save the model for a game engine or a texturing program (glTF or OBJ)
+Save the project
+Save the project under a new name or in another folder
+Saved with the project; every edit is worked out again.
+Saved {}
+Saved {}.
+Scale
+Scale UVs
+Scale the selected pieces (or whole objects) so each has the project's texel density (UV → Texture), each about its own middle
+Scale the selected pieces (or whole objects) so they share one texel density: the average of theirs
+Scale the selection: drag the gizmo's boxes, or its centre for all axes
+Scale {}
+Scaling: {}
+Seam\n{}{}\n{}
+Seam suggestions
+Seams
+Seams from hard edges
+Search for a command
+Search for a command by name
+See every key on a drawn keyboard
+See the shape without this layer's edits. New edits go into the top layer that is on.
+Seeing the selection
+Segments
+Segments X
+Segments Y
+Segments Z
+Select
+Select 1 object
+Select 1 {}
+Select a loop / ring
+Select a shape (a group or a mesh has no settings to bake)
+Select all
+Select an object first: its materials are listed here
+Select an object first: its {} can then be selected.
+Select an object or pick a tool, and its settings show up here.
+Select an object to see its UVs.
+Select an object to see its edit layers.
+Select an object with a shape first
+Select an object with a shape first (not a group or an instance).
+Select an object with a shape first: groups and instances have no edit layers.
+Select an object with symmetry on
+Select by material
+Select connected
+Select connected works on points, edges or polygons: press 1, 2 or 3 (or use the UV mode) and select a little of a piece first.
+Select connected works on points, edges or polygons: press 1, 2 or 3 (or use the UV mode) and select a little of the part first.
+Select connected: select a {} of the part first.
+Select connected: select a {} of the piece first.
+Select connected: the whole part the selection is on (over the UV Editor or in the UV mode, the whole pieces)
+Select every hard edge: where the shading breaks into a crisp edge. Shows the Edges mode.
+Select every object, or in the Points, Edges and Polygons modes every element of the selected objects
+Select every seam of the edited objects. Shows the Edges mode.
+Select everything
+Select flipped
+Select from the bake check
+Select hard edges
+Select loop
+Select nothing
+Select objects with UVs first
+Select objects with UVs first: a snapshot keeps their layout.
+Select objects with UVs to update it from.
+Select one object to see its settings.
+Select one or more objects first
+Select one or more objects first.
+Select one shape to copy its settings
+Select only visible
+Select pieces
+Select ring
+Select same facing
+Select seams
+Select some objects first
+Select something to see and type its coordinates
+Select the islands to move first (click one on the model or in the UV Editor).
+Select the objects to apply first
+Select the objects to set how they're smoothed
+Select the polygons facing the wrong way round: inside out compared with their neighbours, or facing into a closed shape
+Select the polygons of the selected objects that use a material. Shows the Polygons mode.
+Select the whole part the selection is on: everything joined to it, across seams. Select a little of a part first. Over the UV Editor, or in the UV mode, the key selects whole pieces instead.
+Select the whole pieces the selection is in: a little of a piece (a point, an edge or a polygon) brings the whole piece, parted at seams. Use it to pick one of two overlapping pieces and move it away.
+Select them, to see where they are
+Select tool
+Select tools
+Select what isn't selected, and unselect what is
+Select whole pieces
+Select {}
+Select {} objects
+Select {} {}
+Select: {} (press Q again for the next way of selecting).
+Selected and hovered points, edges and polygons drawn larger with a dark rim, in the viewport and the UV Editor
+Selected only
+Selecting
+Selection keys: which key adds to the selection and which takes away, for clicks, boxes, lassos, the brush and double-clicks alike. A plain click or drag always starts a new selection; Alt + double-click selects a ring.
+Separate parts that don't touch
+Set by Made for. Choose Custom settings to change them.
+Set it up under 
+Set texel density
+Set the material of
+Set the piece settings of
+Set the stretch budget of
+Set the texel density of
+Settings
+Settings of the automatic tools
+Settings section: {}
+Settings…
+Shade the selected edges (or the selected polygons' edges) as crisp edges: the light breaks there
+Shade the selected edges (or the selected polygons' edges) smoothly: the light flows across, so a curve looks round
+Shade the selected objects by angle: edges where polygons meet more sharply than {}° are crisp, the rest smooth, after every change. Untick it to shade them only by the hard edges you mark. Each object keeps its own (the Attributes panel shows its angle).
+Shaded
+Shaded with wires
+Shading
+Shading goes out as you see it: with Automatic hard edges on (Mesh menu), by angle; otherwise by the edges you marked hard.
+Shape
+Shape and object
+Shape list, from the last shape
+Shape list: 
+Shapes and their materials always go out. Skeletons and animations will be listed here once the app has them, to leave out when you don't need them.
+Shift
+Shift + Alt + drag the Move gizmo
+Shift + click or drag adds; Ctrl + click or drag removes. Shift + click on something selected unselects it.
+Shift adds, Ctrl removes
+Show
+Show all
+Show all that's hidden
+Show and hide
+Show and type lengths in {}
+Show everything
+Show everything hidden
+Show four views
+Show hard edges
+Show keys around the ring
+Show normals
+Show only the active view (middle click)
+Show seams
+Show the Edit layers panel beside Objects, or put it away. It shows by itself once an object has more than one layer.
+Show the UV Editor beside the viewport, or put it away
+Show the UV Editor beside the viewport, or put it away. The UV Edit layout (top right) always has it.
+Show the perspective, top, front and right views at once (middle click)
+Show the perspective, top, front and right views at once; click again (or middle click a view) to show only the active one
+Show the turning point while orbiting
+Show this edit's settings in the Attributes panel, to change them
+Show which way each polygon faces, as short lines
+Show which way each polygon of the selected objects faces, as a short line from its middle. Lines pointing into a shape show flipped polygons.
+Show {}
+Showing {} hidden object{} again.
+Showing {} hidden object{} and {} polygon{} again.
+Showing {} hidden polygon{} again.
+Shows the shape of: {}
+Shrink
+Shrink selection
+Shrink the selected polygons inward, leaving a ring of new polygons around each
+Sides
+Size
+Size along X
+Size along Y
+Size along Z (up)
+Size shows for a selection; a pivot (Object mode) has none
+Size the objects back to 100%; the shapes keep the size
+Skew
+Skipped: it would make the shape too large.
+Slide
+Slide points along their edges
+Sliding along the edges (the drag: {})
+Sliding: the points move along their edges, staying on the surface.
+Slit
+Slit cancelled: nothing was cut.
+Slit closed: the loop is cut in. Ctrl + Z takes it back.
+Slit finished. Ctrl + Z takes it back.
+Slit through
+Slit works in the Points, Edges or Polygons mode: press 1, 2 or 3
+Slit: click points over the shape to cut along them. Drag a point to move it, Ctrl + click to remove it; Esc or Enter finishes, and clicking the first point closes the line into a loop.
+Slit: nothing was cut.
+Slit: select an object to cut first.
+Sloped
+Smooth by angle
+Smooth by angle ({:.0}°)
+Smooth by marked edges only
+Smoothing
+Smoothing angle
+Snap
+Snap (or not, when snapping is on)
+Snap moves to points, edges, polygons and the grid, turns to 15° and scaling to 10% steps. Hold Ctrl while dragging to flip it for that drag.
+Snap moves to points, edges, polygons and the grid. Settings → Viewport has the details.
+Snap to
+Snap to {}
+Snap to...
+Snap to: already on {}'s pivot.
+Snap to: click the object to snap to. Esc cancels.
+Snapping
+Snapping off.
+Snapping on
+Snapping on.
+Snapshot
+Snapshot {}
+Snapshots
+Soften
+Solid surfaces with every edge drawn clearly on top, to see how the shape is built
+Solid tiles
+Solid, softly lit surfaces with faint edges
+Solis
+Some of its UVs are pinned: Unwrap lays it out around them.
+Some of the points these edits move have no place on the shape now (for example after giving it fewer segments). The edits still apply to what remains; nothing else is lost, and going back to the earlier settings brings the rest back.
+Some selected objects have more than {} polygons: their UVs aren't drawn.
+Space
+Sphere
+Split off
+Split off 1 polygon
+Split off works on polygons: press 3 for the Polygons mode.
+Split off {} polygons
+Split off {} polygon{} into a new object. Ctrl + Z takes it back.
+Split off: select polygons on one object at a time.
+Split off: select some polygons first.
+Stack identical pieces
+Stairs
+Standard
+Start a new, empty project
+Starting the graphics…
+Step back to the Model mode (finishes a slit, puts a tool away)
+Steps
+Stop at overlaps
+Stop exporting into a game project
+Straight
+Straight along this axis of the object (its own axes), out the way the polygons face: pull a sloped patch out level, say.
+Straight out
+Straight: walls square to the surface and a flat bottom, a crisp panel line. Sloped: the sides slope down to a fold along the middle, a V.
+Straighten
+Straighten as a strip
+Straighten strips when unwrapping
+Straighten the UVs of
+Strength
+Stretch
+Stretch budget
+Stretch budget for every piece
+Stretch: 1 polygon is 1.5 times off or more. Point at it to see why.
+Stretch: every polygon lies evenly.
+Stretch: {} polygons are 1.5 times off or more. Point at one to see why.
+Stretched up to {:.1}×: UV → Lay out → Relax evens it out; a stretch budget (UV → Pieces → Stretch budget) cuts it where it's worst.
+Strip corners within
+Subdivisions
+Substance Painter
+Substance Painter matches a low-poly object with its high-poly one by name: crate_low with crate_high. Rename one, or make the missing partner.
+Suggest seams
+Suggest seams wouldn't put one here with the current settings: it was marked by hand, came with the ready-made shape, or was added by Seams from hard edges or an unwrap cutting a closed piece open.
+Suggest seams, Unwrap and Seams from hard edges never put a seam on the selected edges (or anywhere on the selected polygons), unless a piece couldn't lie flat otherwise. Drawn blue.
+Surface
+Swap which side of the edges the skew favours
+Swedish / Finnish
+Switch both layers on first
+Switch edit off
+Switch edit on
+Switch layer off
+Switch layer on
+Switch off
+Switch on
+Switch to orthographic when clicking the dice
+Symmetry
+Symmetry off: the mirrored side is gone (Ctrl + Z brings it back).
+Symmetry offset {}
+Symmetry on, across {}: the other side follows every edit and every move.
+Symmetry settings
+Symmetry settings: the axes to mirror across, and where the mirror sits
+Symmetry {}
+Symmetry: pick X, Y or Z in its menu first (the arrow beside the Symmetry button).
+Symmetry: select the objects to mirror first.
+Tab
+Take a snapshot
+Take away the selection's outer rim
+Take back the last change
+Take back the last step
+Take out of the selection, with a click or drag (the standard keys)
+Take points, edges or polygons away
+Take the seams off the selected edges (or the selected polygons' edges), so the surface stays joined there when unwrapped
+Take the selected groups' contents out, and remove the groups
+Take the selected points, edges or polygons away but keep the surface closed: the polygons around them merge into one
+Take the snapshot “{}”
+Take this edit out. The edits after it are made again without it (Ctrl + Z brings it back).
+Take this edit out; the edits after it are made again without it
+Tap E to open
+Teeth
+Ten times finer
+Texel density
+Texture
+Texture size
+The 3D view can't be shown: {}.
+The app closed without saving your work on {}. Backup copies were kept:
+The app's
+The app's own folder, so your project folders stay tidy. Copies are deleted when the app closes normally.
+The bake sees these from behind: the normal map comes out inverted or black there. Fix turns them the right way round (Mesh → Fix normals).
+The collision shape Godot makes for it when you export for Godot: what the player bumps into
+The corners the mesh is made of
+The edits you make now go into this layer: the top layer that is switched on
+The faces, with any number of corners
+The first material can't be removed
+The gap between pieces, in texture pixels (half of it to the square's edges). Keeps colours from bleeding between pieces when the texture is shrunk; 8 px suits a 2048 texture.
+The gizmo follows the object's own axes.
+The gizmo follows the world's axes.
+The glossary opens in your web browser.
+The highest point of the box around it along each axis (its right, front or top)
+The lines between the points
+The lines shown: every 1 m, 50 cm or 10 cm, as the grid button is set.
+The lowest point of the box around it along each axis (its left, back or bottom)
+The middle of the box around it
+The most any polygon of the piece may be off once laid flat: stretched this many times more one way than the other, or this many times bigger or smaller than the rest. 1.5× is strict; 2× (red in the Stretch view) is loose.
+The name shown in the Objects panel
+The object was
+The object's own axes: X mirrors left and right, Y front and back, Z top and bottom, across the faint red planes in the viewport.
+The objects it was taken of are gone
+The one colour that marks what's active: the current mode, the chosen option, the selection.
+The piece needed a cut to lie flat, and you preferred a seam here (UV → Seams → Prefer seams here).
+The pieces holding the selection (or whole objects) keep these settings for every unwrap
+The pieces holding the selection (or whole objects) keep this budget: Suggest seams and Unwrap cut them further until they are within it
+The pieces holding the selection follow the app's settings again
+The pieces holding the selection follow the budget in UV → Seam suggestions again
+The polygons facing the wrong way
+The polygons meet at {:.0}°, sharper than the {:.0}° set in UV → Settings → Seam suggestions. Pieces fold apart best along sharp corners.
+The project open now
+The quad menu (switched on in Settings → Interface)
+The saved panel layout was incomplete, so the standard layout is used.
+The select tool in use
+The selected objects have no UVs.
+The selected objects, with what's inside them
+The selection is always drawn larger and brighter than anything else. High contrast makes it larger still, with a dark rim, so it stands out on any colour.
+The shape across the bevel: 100% is round, 0% is flat, -100% curves inward (hollow, like a cove). Needs 2 or more segments to show.
+The shape itself
+The shape's points were renumbered (more or fewer segments, say), so these edits looked for the points, edges and polygons they were made on by where they are. A polygon split into smaller ones moves as a whole. Nothing to fix.
+The size of the texture this project's UVs are made for
+The snapshot's name. Each must differ.
+The standard layout
+The texel density aimed for: texture pixels per metre of surface. 512 px/m is common for props seen up close in third-person games.
+The triangles a game engine cuts the faces into: the usual measure of how heavy a model is
+The units a new project starts with
+The user manual opens in your web browser.
+The viewport and the UV Editor side by side, in the UV mode
+The whole part the selection is on
+The {} mode has no tools yet.
+Then click another object: the selected objects' pivots move to its pivot, and the shapes stay where they are. Esc cancels.
+Then drag in the editor: the line's length in texture pixels and on the surface, in centimetres. Esc stops.
+There is no layer below to merge into
+There's no room under the lowest row: make it shorter first
+These edits would have made the shape larger than {} million polygons, more than the app can work with safely, so they were left out. Undo them, or use fewer rows or a smaller selection.
+These pieces get much more or much less texture than the rest of the object, so they look sharper or blurrier. Fix scales them to the object's usual texel density (UV → Match texel density does this for a selection).
+These pieces lie exactly on identical ones (two copies of a shape, say) and share their pixels, so one bakes over the other. Fix packs them apart (UV → Pack). To share pixels on purpose, switch on UV → Packing → Stack identical pieces.
+These pieces lie exactly on identical ones and share their pixels, to save room (UV → Packing → Stack identical pieces is on). That is right for identical parts, but shadow bakes (ambient occlusion) see only one of them. To bake them apart, switch that off and Pack.
+These polygons lie on the trim sheet, but share a material (and so a texture) with pieces that don't: the trim texture would land on those too. Select them and give them a material of their own (Materials, in the Attributes panel), so the trim sheet is a texture set of its own.
+Thickness
+Thin lines every 10 cm, for placing things precisely
+This kind of edit has no settings to change.
+This piece is closed or loops round, so it can't lie flat without a cut. This is the most hidden way to cut it, as UV → Settings → Seam suggestions → Hide cuts says.
+This point
+This polygon lies evenly on the texture.
+This polygon {}
+This project
+This project is now in {}: lengths show and are typed in {}. Ctrl + Z takes it back.
+This shape is too big to work out Suggest seams' reasons while pointing.
+Three or more polygons on one edge can't be unfolded or baked cleanly. Select them and delete or split off the extra polygons.
+Tick "I know what I'm doing, proceed" first.
+Tip: B for the basic shapes, Alt + B for the rest
+Tip: press E for the tool menu
+To change it: select the edge (Edges mode, 2) and choose UV → Seams → Clear seams, or Never seams here so suggestions avoid it. Prefer seams here on other edges draws cuts there instead.
+To stand an object on another: Z only, this object's Lowest with the other's Highest.
+To take the polygons away and leave a hole, use Delete instead. To keep the surface but lose a corner, Weld or Bevel are usually what you want.
+Took “{}” of {} {}.
+Tool menu: 
+Tool menu: every tool for the mode, at the mouse (over the UV Editor, the UV tools)
+Tool settings
+Tools
+Tools for UVs
+Tools for objects
+Tools for {}
+Tooth depth
+Top
+Top radius
+Torus
+Transform
+Transform 1 point
+Transform {}
+Transform {} points
+Triangles
+Trim
+Trim sheet
+Tube
+Tube radius
+Tube sides
+Turn & flip
+Turn and flip
+Turn and zoom the view so the selection fills it
+Turn around, and zoom towards, whatever is under the mouse instead of the middle of the view
+Turn every polygon of the selected objects that faces the wrong way round: inside out compared with its neighbours, or facing into a closed shape. Select → Select flipped shows them first.
+Turn left 90°
+Turn pieces to fit
+Turn right 90°
+Turn symmetry on first: there's no mirror to apply
+Turn the objects back to 0° and 100%; they stay where they are and look the same
+Turn the objects back to 0°; the shapes keep the turn
+Turn the selected UVs a quarter turn to the left (anticlockwise), about their middle
+Turn the selected UVs a quarter turn to the right (clockwise), about their middle
+Turn the selected UVs a quarter turn, or mirror them: choose this to see the four
+Turn the selected objects back to 0° and 100% while they look exactly the same: their shapes take the rotation and scale, so edits measure as they look. Mesh → Apply transforms has position too.
+Turn the selected polygons inside out, for when they face the wrong way
+Turn the selected shapes into plain meshes, ready for editing points, edges and polygons. Their settings and recorded edits are baked in. Undo brings the settings back.
+Turned {} the right way round. Ctrl + Z takes it back.
+Turns a bridge between two closed loops round by whole steps, if the points pair up wrongly and the band twists.
+Turns snap every
+Twist
+Type a command, such as extrude or export
+Type a new name for the layer
+UK (QWERTY)
+US (QWERTY)
+UV
+UV Edit
+UV Editor
+UV Editor put away. Window → UV Editor brings it back.
+UV Editor shown beside the viewport. Window → UV Editor puts it away.
+UV Editor view
+UV settings
+UVs are moved by numbers that aren't real
+Underneath
+Underneath and at the back
+Undo
+Undo keeps steps until they fill this much memory, then forgets the oldest first. There is no limit on the number of steps, and the newest step is always kept.
+Undo memory
+Undo memory is full ({}): the oldest steps are now forgotten as you work. Settings → Undo sets the limit.
+Undo: {}
+Undone: {}.
+Unfold
+Unfold across
+Unfold across only
+Unfold up
+Unfold up only
+Ungroup
+Ungroup {} groups
+Units
+Unity
+Unknown option "{}". Use --help to see the options. To open a file whose name starts with -, put -- before it.
+Unlimited
+Unlock pieces
+Unlock the UVs of
+Unpin
+Unpin edit
+Unpin the UVs of
+Unpin the selected UVs, so unwrapping and relaxing may move them again
+Unreal Engine
+Unsaved
+Unsaved changes
+Unselect the points, edges or polygons; in the Model mode, the objects
+Untitled
+Untitled.{}
+Unwrap
+Unwrap as seams change
+Unwrap sizes these pieces to this texel density instead of matching the rest: more for a part seen up close (a face, a label), less for one hidden away
+Unwrap, but move the UVs only across (U): every point keeps its height in the texture. For evening out a strip along its length.
+Unwrap, but move the UVs only up and down (V): every point keeps its place across the texture
+Unwrap, relax, straighten, pack, texel density and trim rows
+Unwrapping
+Up axis
+Update
+Update a snapshot
+Usage: {} [option | project]\n\nOptions:\n  --version   Show the name and version, then exit\n  --help      Show this text, then exit\n\nWith no option, the app window opens. Give a project file to open it\n(put -- before a file name that starts with -).\n
+User manual
+Version {}
+Very thin triangles shade badly and leave streaks in a bake. Select them and cut them up with Connect (J) so the triangles are fuller.
+View
+View dice
+Viewport
+Viewport display
+Visible
+Warnings
+Weld
+Weld distance
+Weld onto a point
+Weld overlapping points: new points that land on top of each other (where bevels meet) become one, so there are no doubled points or tiny slivers
+Weld points
+Weld the middle
+Weld works on points or polygons: press 1 for the Points mode or 3 for Polygons.
+Weld works on points: press 1 for the Points mode
+Weld: drag a point (or, in the Polygons mode, a polygon) onto a point to melt it there (the whole selection, if you drag a selected one). M welds the selection at its middle.
+Weld: press on a point of a selected object and drag it onto another.
+Weld: press on a polygon of a selected object and drag it onto a point.
+Weld: select a polygon first (its points melt into one at its middle), or press Ctrl + M and drag a polygon onto a point.
+Weld: select two or more points first, or press Ctrl + M and drag a point onto another.
+What goes out
+What points, pieces, seams, pivots and the rest mean (glossary)
+What the app's words mean: points, pieces, seams, pivots, smoothing and the rest, each explained in plain words, in your web browser
+What the row holds: bolts, a panel edge, a seal
+What the viewport draws over your shapes. Also in the viewport's Display menu.
+Wheel down
+Wheel up
+When Suggest seams or Unwrap needs a cut, put it on the selected edges first (or around the selected polygons). Drawn dashed yellow.
+When on (standard), each modelling edit lays out again the UVs it broke (squashed, stretched, mirrored or far off in size), around the UVs it kept. Off: edits leave UVs as they come out, for you to unwrap.
+When on, Suggest seams and Unwrap cut each piece further, a slit at a time from its worst place to its border, until no polygon is more than this many times off. Pieces given a budget of their own (UV → Stretch budget) keep theirs.
+When on, a piece made only of square-cornered quads (a cylinder's side, a bevel's strip) unwraps as a perfectly straight grid
+When on, marking or clearing seams lays the pieces around them flat again at once. Off: only the seam marks change, until you Unwrap.
+When on, the box, lasso and brush only select what you can see. When off (the standard), they select through the shape, catching its far side too.
+Where closed pieces are cut open, and the stretch budget: Seam suggestions.
+Where cuts go that only make a piece lie flat (Suggest seams, and Unwrap on a closed piece)
+Where the cut sits across the polygons: 50% is the middle. With several cuts, it slides them all together.
+Where the file is going: this picks the right settings for it
+Where the mirror stands, from the object's centre (its pivot): 0 unless moved.
+Where the row starts, in pixels from the top of the texture
+Where they go
+Whether it is shown in the viewport
+Whether the ends are closed
+Whether the flat bottom is closed
+Whether these pieces, when they're strips of square quads, come out as straight grids
+Which keyboard to draw. Letters follow what is printed on your keys; the number row is always 1 to 0.
+Which way round it turns: 0° turns up (an upright pipe turns towards +X), and it goes round from there.
+Which way the polygons go. Straight out is the standard.
+While dragging
+While moving, rotating and scaling. The snapping button on the top palette turns it on and off.
+While orbiting: snap to the view dice's sides
+While you orbit, a small ring marks the point the view turns around (and, when zooming with a drag, the point it moves towards)
+While you work, the app saves a backup copy of your scene in the background, only when something changed. If the app ever closes without saving, it offers the copies the next time it starts. They never replace your project file: saving does that.
+Width
+Window
+Wireframe
+With Shift: slide points along their edges, dragging the Move gizmo
+With the wheel: a tool's count (segments, cuts) while using it; otherwise grow or shrink the selection
+With {}'s
+Without UVs there is nowhere on the texture for the bake to go. Fix places seams where they show least, unwraps the shape and packs it with whatever shares its texture (UV → Suggest seams, Unwrap, Pack).
+Without a hole: on, the middle is a point with triangles around it; off, one flat face with many corners (an n-gon).
+Words used in the app
+Work on UVs, in the UV Editor and on the model
+Work on edges
+Work on points (vertices)
+Work on polygons (faces)
+Work on whole objects
+Work on whole objects' pivots: the gizmo moves and turns the pivot, not the shape
+Works on objects in the Model mode: select some first
+World
+World axes
+World or object axes
+Wrapped (convex)
+Write on each piece its size in texture pixels, its texel density and, if it's uneven, how stretched it is
+Write the scene (or the selection) to a file for a game engine or Substance Painter: pick the kind of file and how
+Y up
+You can switch the warning back on in Settings → Interface.
+You've selected something else since, so the settings above are for your next use of the tool. Open this edit to change it.
+Your changes will be lost if you don't save them before {}.
+Your navigation controls (Options menu); as standard right drag, middle drag and the wheel, and Alt + left, middle or right drag
+Your unsaved work was saved as an emergency copy ({}). The next start offers it back.
+Z up
+[3D objects copied: paste them in the viewport]
+a backup copy
+a bend's stretch isn't a real number, or is out of range (above 0, at most 1000)
+a bevel is stored with its settings twice
+a bevel's skew or weld distance isn't a real number, or is out of range
+a collision is stored for object {}, which isn't there
+a face goes through point {} twice
+a face needs at least three corners
+a groove's stretch isn't a real number, or is out of range
+a groove's width or depth isn't a real number
+a group has no shape to edit
+a hard edge joins points {} and {}, which aren't both in the mesh
+a layer has changed
+a layer no longer exists
+a layer with edits to freeze is switched off: switch it on or delete it first
+a layer's place no longer exists
+a list
+a material has no name or a colour outside 0 to 1
+a mirror has no axis, or a number that isn't real or is out of range
+a mirror is stored for an object without a shape
+a mirror is stored for object {}, which isn't there
+a mirror's middle isn't a real number
+a mirrored edit mirrors across no axis
+a name can't be empty
+a piece's texel density isn't a real number above 0
+a point slides towards itself
+a saved UV layout holds a UV that isn't a real number
+a shape's place is stored for object {}, which isn't there
+a shape's settings name an object that isn't a mesh
+a shape's settings name an object that isn't there
+a slide's amount isn't a real number
+a stretch budget or unwrap setting is out of range
+a texel density isn't a real number above 0
+a trim row doesn't lie within the texture
+a value isn't a number
+a weld distance isn't a real distance
+an applied placement isn't made of real numbers, or flattens the shape
+an attribute called "{}" already exists
+an edit has changed
+an edit is stored with two stretches
+an edit of a kind this version can't store yet
+an edit that can't be mirrored is marked mirrored
+an edit to freeze is switched off: switch it on or delete it first
+an edit with that id already exists
+an edit's names are stored twice
+an edit's names don't fit its anchored points
+an edit's place no longer exists
+an edit's stretch isn't a real number, or is out of range (above 0, under 1000)
+an instance shows another instance
+an island is moved by numbers that aren't real
+an object
+an object can have at most {} materials
+an object can't go inside itself or one of its children
+an object is listed as an instance twice
+an object is not where it was
+an object with that id already exists
+an object's collision has changed
+an object's collision is stored twice
+an object's id is impossibly large
+an object's materials are stored twice
+an object's materials have changed
+an object's mesh layers are listed twice
+an object's mirror has changed
+an object's mirror is stored twice
+an object's name has changed
+an object's place has changed
+an object's place no longer exists
+an object's settings are listed twice
+an object's settings have changed
+an object's shape has moved
+an object's shape is placed twice
+an object's smoothing angle isn't a real number from 0 to 180°
+an object's smoothing has changed
+an object's visibility has changed
+an unsaved scene
+an unwrap's or relax's settings are out of range
+and scaling every
+any program
+aren't
+bend segments
+border edge
+bridged
+centimetres
+closing
+connected
+couldn't find a free temporary file name
+couldn't {} {}: {}
+cuts
+day
+drag a box around what to select
+draw a loop around what to select
+edge
+edge between faces facing opposite ways
+edge shared by three or more faces
+edge with no length
+edge {}–{} of {}
+edges
+edges between faces facing opposite ways
+edges shared by three or more faces
+edges with no length
+edit
+extrude
+face with no area
+faces with no area
+flags
+gets {:.1} times less texture for its size than the rest of the shape, so it looks blurrier. Fix: Unwrap its piece, or Set texel density.
+gets {:.1} times more texture for its size than the rest of the shape. Fix: Unwrap its piece (it keeps the shape's density), or Set texel density.
+glTF (.glb)
+glTF is always metres, Y up and triangles: every program reads it that way.
+glTF, each object at its pivot, in metres with Y up: Unity reads it once its glTFast package is installed
+glTF, each object at its pivot, in metres with Y up: Unreal Engine 5 reads it and turns it into its centimetres and Z up
+glTF, each object at its pivot, in metres with Y up: drop it into the Godot project and it imports by itself
+glTF, each object at its pivot, in metres with Y up: what the Solis game engine imports
+hard
+hard edge
+has no room on the texture: its UVs are squashed flat (an extrude's new walls start like this). Fix: select it and Unwrap.
+hour
+inset
+is stretched {:.1} times more one way than the other, so a texture's squares become long rectangles. Fix: Relax it; if its piece wraps round the shape, add a seam across it and Unwrap.
+island
+isn't
+it
+it has mesh layers but no mesh
+it holds more than the app can open (a limit was reached; it may be damaged or made to cause trouble)
+it holds no polygons
+it holds {} objects, and the app opens up to {}
+it holds {} recorded edits, and the app opens up to {}
+it is listed as an instance but stored as something else
+it isn't a project file
+it should hold {} bytes of scene but holds {}; it may be cut short
+it was
+it was saved by a newer version of the app (file format {}; this version reads up to {}). Update the app to open it
+it wasn't saved, because the saved copy wouldn't open again ({}). Your previous save is untouched; please report this so it can be fixed
+it's an instance: edit its original, or make it editable to give it its own shape
+its angle isn't a real number
+its bent extrude holds a number that isn't real
+its bevel {} isn't a real number
+its extrude holds a number that isn't real
+its format version is 0
+its game project folder is empty, too long or broken over lines
+its header is cut short ({})
+its layout snapshots are too many, unnamed or share a name
+its loop cut is across an edge joining a point to itself
+its loop cut's position isn't a real number
+its mending limits are out of range
+its mesh is damaged ({})
+its mesh layer "{}" is damaged ({})
+its object settings name an object that isn't there
+its recorded box isn't a real box
+its scene can't be read ({})
+its shape is squashed flat against its pivot
+its shapes have about {} polygons, and the app opens up to {}
+its slit has {} points (2 to {} can be stored)
+its slit's view isn't real numbers
+its texture size or texel density is out of range
+its trim sheet has rows that are unnamed, overlap or lie outside the texture
+its {} distance isn't a real number
+its {} isn't a real number
+just now
+keep a backup of
+length
+lies mirrored on the texture, so a texture shows back to front on it. Fix: Unwrap its piece, or flip it back.
+line {} holds a number that isn't real
+locked
+locked piece
+loose point
+loose points
+many-sided polygon
+material
+materials
+materials are stored for object {}, which isn't there
+mesh layers are stored for object {}, which isn't there
+metres
+minute
+names are stored for an edit without anchors
+names are stored for edit {}, which isn't there
+names are stored for object {}, which isn't there
+new edits
+no UVs
+no graphics device
+no limit
+no partner called {}
+nothing
+object
+object "{}": {}
+object {} has more than {} materials
+object {} is listed as an instance, but isn't there
+objects
+off
+off, selecting through
+on
+on, only what you can see
+one of a groove's edges joins a point to itself
+one of its bevelled edges joins a point to itself
+one of its edges joins a point to itself
+one of its extruded edges joins a point to itself
+one of its seam preferences joins a point to itself
+one of its seams joins a point to itself
+one of its slit's points isn't real numbers
+one of its {} edges joins a point to itself
+only an empty object can be taken out
+opening another project
+paint over what to select; Ctrl + wheel changes the brush size
+parts missing
+piece
+pieces
+point
+point {} has no real position
+point {} is not in the mesh
+point {} of {}
+points
+polygon
+polygon {} is not in the mesh
+polygon {} of {}
+polygon {} would get a different number of corners
+polygons
+polygons are given material {}, but an object has at most {}
+polygons kept
+position
+profile
+read
+recorded move
+recorded place
+recorded turn or scale
+rotation
+s were
+scale
+seam
+segments
+selected 
+selected edges
+selected polygons' edges
+shape's place
+shape's size
+shape's turn
+skipped
+slide
+soft
+starting a new project
+step
+steps
+switch both layers on before merging them
+that edit no longer exists
+that element isn't in the mesh
+that layer no longer exists
+the attribute holds values for each {}, not each {}
+the attribute holds {} values, not {}
+the backup folder {} can't be used ({})
+the backup stopped unexpectedly
+the emergency copy saved as the app crashed ({})
+the file couldn't be written ({})
+the file is damaged: it claims to be impossibly large
+the file is damaged: {}
+the game engine
+the game project folder {} isn't there; choose it again in the Export window
+the layer is already at the bottom
+the layer is already at the top
+the mesh is too large
+the project's game project folder has changed
+the project's layout snapshots have changed
+the project's mending settings have changed
+the project's texture settings have changed
+the project's trim sheet has changed
+the project's units have changed
+the saved file didn't read back the same; the disk may be failing
+the scene can't be read ({})
+the scene can't be unpacked ({})
+the scene couldn't be compressed ({})
+the scene couldn't be encoded ({})
+the selection's UVs
+the shape
+the texture square
+the value isn't a real number
+the viewport image could not be created
+the window has no GPU device
+the windowing system stopped unexpectedly
+them
+there is no attribute called "{}"
+there is no folder for backup copies
+there is no layer below to merge into
+there is no object {}
+there is nothing to export: no shapes are shown or selected
+there is unexpected data after the scene
+they were
+thing
+triangle
+triangles
+turn
+two objects have the same id
+two of an object's edits have the same id
+unlocked
+version
+width
+with
+without
+write
+{:.1} MB
+{:.2} GB
+{}\nNow: {}.
+{}    {}
+{}  ({})
+{} (held)
+{} (in the UV Editor too)
+{} (in the UV Editor: {})
+{} (in use)
+{} (off)
+{} ({} selected)
+{} ({})
+{} 1 {}
+{} KB
+{} On Linux, install the missing library with your package manager (for example libxkbcommon-x11-0 and mesa-vulkan-drivers on Ubuntu).
+{} across {}. Change Cuts and Position in the Attributes panel; Ctrl+Z takes it back.
+{} and {}
+{} at their middle. Ctrl + Z takes it back.
+{} bent out of flat
+{} by one step (Shift: ten steps)
+{} cancelled.
+{} closer than {} px to other pieces
+{} colour
+{} could not open its window: {}\n
+{} cut into sliver triangles
+{} edits
+{} edits found their points again on the changed shape
+{} edits no longer fully fit the shape
+{} edits recorded on top of the shape
+{} edits were skipped: the shape would be too large
+{} facing the wrong way
+{} folded over or squashed flat in the UVs
+{} into a point at the middle. Ctrl + Z takes it back.
+{} is already there and wasn't written by this app, so it was left alone; rename it, or the project
+{} is free again.
+{} is locked: moving, rotating and scaling leave it alone.
+{} is locked: moving, rotating and scaling leave it alone.\nClick or press Shift+{} to free it.
+{} is stored with a bevel's settings, which it can't have
+{} is stored with a stretch, which it can't have
+{} is used by {} polygon{}: assign {} another material first (Select → Select by material finds {}).
+{} lying over other UVs
+{} matches
+{} mode
+{} mode (again: back to Model; with a tool in use: selecting in it)
+{} mode: selecting ({} put away; its key brings it back).
+{} mode: {}.{}{}{}{}
+{} no polygon uses
+{} objects
+{} objects are selected: select one to see its edit layers. (Add edit layer still adds one to each.)
+{} objects selected
+{} objects were
+{} of its parts can't be found on the shape any more; it applies to the rest.
+{} on the trim sheet sharing a texture with other pieces
+{} on {}, but now: {}. Ctrl + Z takes it back.
+{} on {}. Ctrl + Z takes it back.
+{} on {}. Slide along it with W; Ctrl + Z takes it back.
+{} onto the point. Ctrl + Z takes it back.
+{} onto the target. Ctrl + Z takes it back.
+{} outside the texture square
+{} pieces
+{} polygons
+{} polygons using {} selected.
+{} polygon{} facing the wrong way selected: Flip normals turns {}, or Mesh → Fix normals turns every one.
+{} project
+{} px · aim {} px/m
+{} px · not over a piece
+{} px · {:.1} cm on the surface
+{} px · {}{} px/m (aim {})
+{} rows of the same height, filling the texture
+{} settings can only be given to a {}
+{} shapes
+{} shared by three or more polygons
+{} stacked on identical pieces
+{} suggested ({} changed). Ctrl + Z takes it back.{}
+{} that would spoil a bake in Substance Painter.
+{} that {} UV seams
+{} this edit: see the shape {} it
+{} view
+{} with a bend
+{} with a spiral
+{} with no area
+{} with no length
+{} with uneven texel density
+{} works in the Points, Edges or Polygons mode: press 1, 2 or 3
+{} works on edges or polygons: press 2 for the Edges mode, or 3 for Polygons
+{} works on selected UVs: pick the UV mode, or press 1, 2 or 3 and select in the UV Editor
+{} works on selected edges or polygons: press 2 for the Edges mode, or 3 for Polygons
+{} {}
+{} {}\n(It is hidden now because something it is inside is hidden.)
+{} {} in the viewport
+{} {} mirrored
+{} {} objects
+{} {} outside the square
+{} {} overlapping
+{} {} pivots
+{} {} point
+{} {} points
+{} {} {}. Alt + H shows everything again.
+{} {} {}s
+{} {} · {} {}{}
+{} {}'s pivot
+{} {}: see the shape {} its edits
+{} {}s
+{} {}{} ago
+{} × {} px
+{} › {}\n{}\nNot now: {}
+{}, mirrored
+{}, {} and {}
+{}, {} px apart. Ctrl + Z takes it back.{}
+{}. Ctrl + Z takes it back.
+{}. Ctrl + Z takes it back.{}
+{}. Segments and Twist are in the Attributes panel; Ctrl + Z takes it back.
+{}. Shift for fine steps; Esc or a right click cancels.
+{}. {}
+{}. {} smoothed by angle, so it now uses its marked edges: its look was kept as marks, and yours show. Ctrl + Z takes it all back.
+{}: already there.
+{}: drag in the UV Editor, or on the model to {} the texture there. Shift for fine steps; Esc cancels.
+{}: drag the gizmo's handles. Hold Shift for fine steps; Esc or a right click cancels.
+{}: every hard edge is a seam already.
+{}: nothing changed.
+{}: select some UVs first.
+{}: select some edges first (or polygons).
+{}: select some edges first (or polygons, for the edges around them).
+{}: select some {} first.
+{}: select some {}s first.
+{}: select the objects first.
+{}: the seams are already where they'd be suggested.
+{}: the selected objects have no polygons.
+{}: the selection has no UVs to measure.
+{}: the selection has no UVs. Unwrap it first.
+{}: the {} are already {}.
+{}: those edges are like that already (or open edges, cut already).
+{}: those edges are seams already (or open edges, cut already).
+{}: those edges aren't seams.
+{}: those pieces are {} already.
+{}: {:.0} px/m. Ctrl + Z takes it back.
+{}: {}
+{}: {} {} (Ctrl + wheel for more or fewer).
+{}: {}%
+{}: {}.\nClick or press Q for {}.
+{}{}{} — {} {}
+° of square
+↑ ↓ choose · Enter run · Esc close

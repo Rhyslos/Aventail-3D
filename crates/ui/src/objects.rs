@@ -9,6 +9,7 @@
 
 use crate::commands::CommandId;
 use crate::icons::{self, Icon};
+use crate::text::tr;
 use crate::theme::{self, tint};
 use egui::{
     Align2, Color32, CursorIcon, FontId, Key, KeyboardShortcut, Modifiers, Rect, Sense, Stroke, Ui,
@@ -166,8 +167,10 @@ impl ObjectManager {
         if scene.is_empty() {
             crate::panels::placeholder(
                 ui,
-                "No objects yet",
-                "Create a shape (a cube, sphere and so on) or a group from the Create menu or the shape buttons at the top.",
+                tr("No objects yet"),
+                tr(
+                    "Create a shape (a cube, sphere and so on) or a group from the Create menu or the shape buttons at the top.",
+                ),
             );
             return;
         }
@@ -186,7 +189,11 @@ impl ObjectManager {
                 let rest = ui.available_size().max(vec2(0.0, ROW_HEIGHT));
                 let (below, background) = ui.allocate_exact_size(rest, Sense::click());
                 background.widget_info(|| {
-                    WidgetInfo::labeled(WidgetType::Other, true, "Empty space below the objects")
+                    WidgetInfo::labeled(
+                        WidgetType::Other,
+                        true,
+                        tr("Empty space below the objects"),
+                    )
                 });
                 if background.clicked() {
                     doc.clear_selection();
@@ -237,9 +244,13 @@ impl ObjectManager {
         if has_children {
             let folded = self.folded.contains(&id);
             let toggle = ui.interact(arrow, ui.id().with(("fold", id)), Sense::click());
-            let label = if folded { "Unfold" } else { "Fold" };
+            let label = if folded { tr("Unfold") } else { tr("Fold") };
             toggle.widget_info(|| {
-                WidgetInfo::labeled(WidgetType::Button, true, format!("{label} {}", object.name))
+                WidgetInfo::labeled(
+                    WidgetType::Button,
+                    true,
+                    crate::trf!("{} {}", label, object.name),
+                )
             });
             let color = if toggle.hovered() {
                 theme::TEXT_STRONG
@@ -272,12 +283,16 @@ impl ObjectManager {
         let eye =
             Rect::from_center_size(pos2(rect.right() - 14.0, rect.center().y), vec2(20.0, 18.0));
         let eye_response = ui.interact(eye, ui.id().with(("eye", id)), Sense::click());
-        let eye_label = if object.visible { "Hide" } else { "Show" };
+        let eye_label = if object.visible {
+            tr("Hide")
+        } else {
+            tr("Show")
+        };
         eye_response.widget_info(|| {
             WidgetInfo::labeled(
                 WidgetType::Button,
                 true,
-                format!("{eye_label} {}", object.name),
+                crate::trf!("{} {}", eye_label, object.name),
             )
         });
         let eye_icon = if object.visible {
@@ -299,12 +314,13 @@ impl ObjectManager {
             eye_color,
         );
         let tip = if object.visible && !shown {
-            format!(
-                "{eye_label} {}\n(It is hidden now because something it is inside is hidden.)",
+            crate::trf!(
+                "{} {}\n(It is hidden now because something it is inside is hidden.)",
+                eye_label,
                 object.name
             )
         } else {
-            format!("{eye_label} {} in the viewport", object.name)
+            crate::trf!("{} {} in the viewport", eye_label, object.name)
         };
         let eye_clicked = eye_response.on_hover_text(tip).clicked();
         if eye_clicked {
@@ -412,7 +428,7 @@ impl ObjectManager {
             .margin(vec2(4.0, 1.0))
             .show(&mut child);
         let response = output.response;
-        response.widget_info(|| WidgetInfo::labeled(WidgetType::TextEdit, true, "New name"));
+        response.widget_info(|| WidgetInfo::labeled(WidgetType::TextEdit, true, tr("New name")));
         if ui.input(|i| i.key_pressed(Key::Escape)) {
             // Esc: keep the old name. (The box gives up the keyboard on
             // Esc, but only reports it a frame later.)
@@ -544,6 +560,17 @@ pub(crate) fn shape_icon(kind: PrimitiveKind) -> Icon {
         PrimitiveKind::Disc => Icon::Disc,
         PrimitiveKind::Tube => Icon::Tube,
         PrimitiveKind::Cone => Icon::Cone,
+        PrimitiveKind::Icosphere => Icon::Icosphere,
+        PrimitiveKind::Torus => Icon::Torus,
+        PrimitiveKind::Capsule => Icon::Capsule,
+        PrimitiveKind::Dome => Icon::Dome,
+        PrimitiveKind::Elbow => Icon::Elbow,
+        PrimitiveKind::Sector => Icon::Sector,
+        PrimitiveKind::Gear => Icon::Gear,
+        PrimitiveKind::HexGrid => Icon::HexGrid,
+        PrimitiveKind::HexSphere => Icon::HexSphere,
+        PrimitiveKind::Stairs => Icon::Stairs,
+        PrimitiveKind::Arch => Icon::Arch,
     }
 }
 
@@ -583,13 +610,13 @@ fn entry(ui: &mut Ui, label: &str, shortcut: Option<&KeyboardShortcut>, enabled:
 pub(crate) fn undo_entries(ui: &mut Ui, doc: &Document, out: &mut Vec<DocRequest>) {
     let undo = doc
         .undo_label()
-        .map_or("Undo".to_string(), |l| format!("Undo: {l}"));
+        .map_or(tr("Undo").to_string(), |l| crate::trf!("Undo: {}", l));
     if entry(ui, &undo, Some(&UNDO_SHORTCUT), doc.undo_label().is_some()) {
         out.push(DocRequest::Undo);
     }
     let redo = doc
         .redo_label()
-        .map_or("Redo".to_string(), |l| format!("Redo: {l}"));
+        .map_or(tr("Redo").to_string(), |l| crate::trf!("Redo: {}", l));
     if entry(ui, &redo, Some(&REDO_SHORTCUT), doc.redo_label().is_some()) {
         out.push(DocRequest::Redo);
     }
@@ -605,13 +632,13 @@ pub(crate) fn selection_entries(
     rename_delete_entries(ui, doc, manager, out);
     let selection = doc.selection();
     ui.separator();
-    if entry(ui, "Select all", None, !doc.scene().is_empty()) {
+    if entry(ui, tr("Select all"), None, !doc.scene().is_empty()) {
         let all: Vec<ObjectId> = doc.scene().walk().into_iter().map(|(id, _)| id).collect();
         doc.set_selection(all);
     }
     if entry(
         ui,
-        "Deselect",
+        tr("Deselect"),
         Some(&DESELECT_SHORTCUT),
         !selection.is_empty(),
     ) {
@@ -629,7 +656,7 @@ pub(crate) fn rename_delete_entries(
 ) {
     let selection = doc.selection();
     let single = (selection.len() == 1).then(|| selection[0]);
-    if entry(ui, "Rename", None, single.is_some())
+    if entry(ui, tr("Rename"), None, single.is_some())
         && let Some(id) = single
     {
         manager.start_rename(doc, id);
@@ -671,7 +698,7 @@ pub(crate) fn object_entries(ui: &mut Ui, doc: &Document, out: &mut Vec<DocReque
     make_editable_entry(ui, doc, out);
     apply_entries(ui, doc, out);
     ui.separator();
-    for (label, visible) in [("Show", true), ("Hide", false)] {
+    for (label, visible) in [(tr("Show"), true), (tr("Hide"), false)] {
         if entry(ui, label, None, any) {
             out.push(DocRequest::Run(Command::SetVisible {
                 ids: selection.clone(),
@@ -685,46 +712,50 @@ pub(crate) fn object_entries(ui: &mut Ui, doc: &Document, out: &mut Vec<DocReque
 /// apply and what they do.
 pub(crate) const APPLY_CHOICES: [(&str, ApplyParts, &str); 5] = [
     (
-        "Rotation and scale",
+        crate::text!("Rotation and scale"),
         ApplyParts::ROTATION_AND_SCALE,
-        "Turn the objects back to 0° and 100%; they stay where they are and look the same",
+        crate::text!(
+            "Turn the objects back to 0° and 100%; they stay where they are and look the same"
+        ),
     ),
     (
-        "Position",
+        crate::text!("Position"),
         ApplyParts {
             position: true,
             rotation: false,
             scale: false,
         },
-        "Put the objects' pivots at the world centre (their parent's); the shapes stay put",
+        crate::text!(
+            "Put the objects' pivots at the world centre (their parent's); the shapes stay put"
+        ),
     ),
     (
-        "Rotation",
+        crate::text!("Rotation"),
         ApplyParts {
             position: false,
             rotation: true,
             scale: false,
         },
-        "Turn the objects back to 0°; the shapes keep the turn",
+        crate::text!("Turn the objects back to 0°; the shapes keep the turn"),
     ),
     (
-        "Scale",
+        crate::text!("Scale"),
         ApplyParts {
             position: false,
             rotation: false,
             scale: true,
         },
-        "Size the objects back to 100%; the shapes keep the size",
+        crate::text!("Size the objects back to 100%; the shapes keep the size"),
     ),
     (
-        "Position, rotation and scale",
+        crate::text!("Position, rotation and scale"),
         ApplyParts::ALL,
-        "All three: the objects' placement back to none, the shapes where they were",
+        crate::text!("All three: the objects' placement back to none, the shapes where they were"),
     ),
 ];
 
 /// The name of the Apply transforms menu.
-pub(crate) const APPLY_MENU: &str = "Apply transforms";
+pub(crate) const APPLY_MENU: &str = crate::text!("Apply transforms");
 
 /// The Apply transforms menu (decision 0089): the objects' placement
 /// goes back to none while they look the same, so edits measure as they
@@ -733,9 +764,9 @@ pub(crate) fn apply_entries(ui: &mut Ui, doc: &Document, out: &mut Vec<DocReques
     let selection = doc.selection();
     let any = !selection.is_empty();
     ui.add_enabled_ui(any, |ui| {
-        crate::dialog::menu(ui, APPLY_MENU, |ui| {
+        crate::dialog::menu(ui, tr(APPLY_MENU), |ui| {
             for (name, parts, help) in APPLY_CHOICES {
-                if ui.button(name).on_hover_text(help).clicked() {
+                if ui.button(tr(name)).on_hover_text(tr(help)).clicked() {
                     out.push(DocRequest::Run(Command::ApplyTransforms {
                         ids: selection.clone(),
                         parts,
@@ -746,7 +777,7 @@ pub(crate) fn apply_entries(ui: &mut Ui, doc: &Document, out: &mut Vec<DocReques
         });
     })
     .response
-    .on_disabled_hover_text("Select the objects to apply first");
+    .on_disabled_hover_text(tr("Select the objects to apply first"));
 }
 
 /// An object kind's icon and its colour, for the Objects panel and the
@@ -773,7 +804,9 @@ pub(crate) fn make_editable_entry(ui: &mut Ui, doc: &Document, out: &mut Vec<Doc
     let response = ui
         .add_enabled(can, button)
         .on_hover_text(info.help)
-        .on_disabled_hover_text("Select a shape (a group or a mesh has no settings to bake)");
+        .on_disabled_hover_text(tr(
+            "Select a shape (a group or a mesh has no settings to bake)",
+        ));
     if response.clicked() {
         out.push(DocRequest::Run(Command::MakeEditable(selection)));
         ui.close();
@@ -815,18 +848,18 @@ pub(crate) fn menus(
     manager: &mut ObjectManager,
     out: &mut Vec<DocRequest>,
 ) {
-    crate::dialog::menu(ui, "Edit", |ui| {
+    crate::dialog::menu(ui, tr("Edit"), |ui| {
         undo_entries(ui, doc, out);
         ui.separator();
         selection_entries(ui, doc, manager, out);
     });
-    crate::dialog::menu(ui, "View", |ui| {
-        if entry(ui, "Expand all", None, true) {
+    crate::dialog::menu(ui, tr("View"), |ui| {
+        if entry(ui, tr("Expand all"), None, true) {
             manager.expand_all();
         }
-        if entry(ui, "Collapse all", None, true) {
+        if entry(ui, tr("Collapse all"), None, true) {
             manager.collapse_all(doc);
         }
     });
-    crate::dialog::menu(ui, "Object", |ui| object_entries(ui, doc, out));
+    crate::dialog::menu(ui, tr("Object"), |ui| object_entries(ui, doc, out));
 }

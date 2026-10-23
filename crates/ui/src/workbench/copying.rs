@@ -13,13 +13,15 @@
 use super::Workbench;
 use crate::components::kind_for;
 use crate::objects::DocRequest;
+use crate::text::tr;
 use egui::{Event, Key, KeyboardShortcut, Modifiers, Ui};
 use scene::{Command, ObjectId};
 
 /// What the system clipboard holds after copying objects. Pasting it in
 /// the viewport pastes the objects; anything else copied since is
 /// ignored there.
-pub(crate) const CLIPBOARD_NOTE: &str = "[3D objects copied: paste them in the viewport]";
+pub(crate) const CLIPBOARD_NOTE: &str =
+    crate::text!("[3D objects copied: paste them in the viewport]");
 
 /// Copy the selected objects, to paste as instances.
 pub(crate) const COPY_INSTANCES_KEYS: KeyboardShortcut =
@@ -52,7 +54,7 @@ impl Workbench {
                     copy = true;
                     false
                 }
-                Event::Paste(text) if text == CLIPBOARD_NOTE => {
+                Event::Paste(text) if text == tr(CLIPBOARD_NOTE) => {
                     paste = true;
                     false
                 }
@@ -77,23 +79,27 @@ impl Workbench {
         let keys = |ui: &Ui, k: &KeyboardShortcut| ui.ctx().format_shortcut(k);
         let entries: [(&str, KeyboardShortcut, bool, &str); 3] = [
             (
-                "Copy objects",
+                tr("Copy objects"),
                 COPY_KEYS,
                 anything,
-                "Copy the selected objects, to paste as copies (Ctrl + V) or instances (Alt + V)",
+                tr(
+                    "Copy the selected objects, to paste as copies (Ctrl + V) or instances (Alt + V)",
+                ),
             ),
             (
-                "Paste copies",
+                tr("Paste copies"),
                 PASTE_KEYS,
                 copied,
-                "Paste copies of the copied objects, each just after its original",
+                tr("Paste copies of the copied objects, each just after its original"),
             ),
             (
-                "Paste instances",
+                tr("Paste instances"),
                 PASTE_INSTANCES_KEYS,
                 copied,
-                "Paste instances of the copied objects: they show the original's shape and \
+                tr(
+                    "Paste instances of the copied objects: they show the original's shape and \
                  follow its changes",
+                ),
             ),
         ];
         for (index, (name, k, enabled, help)) in entries.into_iter().enumerate() {
@@ -101,7 +107,7 @@ impl Workbench {
             if ui
                 .add_enabled(enabled, egui::Button::new(name).shortcut_text(text))
                 .on_hover_text(help)
-                .on_disabled_hover_text("Works on objects in the Model mode: select some first")
+                .on_disabled_hover_text(tr("Works on objects in the Model mode: select some first"))
                 .clicked()
             {
                 match index {
@@ -120,7 +126,7 @@ impl Workbench {
             if ui
                 .add_enabled(anything, egui::Button::new(info.name))
                 .on_hover_text(info.help)
-                .on_disabled_hover_text("Works on objects in the Model mode: select some first")
+                .on_disabled_hover_text(tr("Works on objects in the Model mode: select some first"))
                 .clicked()
             {
                 self.run_command(command, ui.ctx(), out);
@@ -133,22 +139,25 @@ impl Workbench {
     pub(crate) fn copy_objects(&mut self, ctx: &egui::Context) {
         if kind_for(self.mode).is_some() {
             self.note = Some(
-                "Copy works on whole objects: go back to the Model mode (the top of the left \
-                 palette) first."
-                    .into(),
+                tr(
+                    "Copy works on whole objects: go back to the Model mode (the top of the left \
+                 palette) first.",
+                )
+                .into(),
             );
             return;
         }
         let selection = self.document.selection();
         if selection.is_empty() {
-            self.note = Some("Copy: select the objects to copy first.".into());
+            self.note = Some(tr("Copy: select the objects to copy first.").into());
             return;
         }
         let n = selection.len();
         self.copied = selection;
-        ctx.copy_text(CLIPBOARD_NOTE.to_string());
-        self.note = Some(format!(
-            "Copied {n} object{}: Ctrl + V pastes copies, Alt + V instances.",
+        ctx.copy_text(tr(CLIPBOARD_NOTE).to_string());
+        self.note = Some(crate::trf!(
+            "Copied {} object{}: Ctrl + V pastes copies, Alt + V instances.",
+            n,
             if n == 1 { "" } else { "s" }
         ));
     }
@@ -158,9 +167,11 @@ impl Workbench {
     pub(crate) fn paste_objects(&mut self, instances: bool) {
         if kind_for(self.mode).is_some() {
             self.note = Some(
-                "Paste works on whole objects: go back to the Model mode (the top of the left \
-                 palette) first."
-                    .into(),
+                tr(
+                    "Paste works on whole objects: go back to the Model mode (the top of the left \
+                 palette) first.",
+                )
+                .into(),
             );
             return;
         }
@@ -173,22 +184,22 @@ impl Workbench {
             .collect();
         if ids.is_empty() {
             self.note = Some(if self.copied.is_empty() {
-                "Paste: copy some objects first (Ctrl + C, or Alt + C).".into()
+                tr("Paste: copy some objects first (Ctrl + C, or Alt + C).").into()
             } else {
-                "Paste: the copied objects have been deleted.".into()
+                tr("Paste: the copied objects have been deleted.").into()
             });
             return;
         }
         // Run here rather than queued, so the status bar keeps saying what
         // happened.
         if let Err(why) = self.document.execute(Command::Duplicate { ids, instances }) {
-            self.note = Some(format!("Couldn't paste: {why}."));
+            self.note = Some(crate::trf!("Couldn't paste: {}.", why));
             return;
         }
         self.note = Some(if instances {
-            "Pasted instances: they follow their originals' shape.".into()
+            tr("Pasted instances: they follow their originals' shape.").into()
         } else {
-            "Pasted copies, on top of their originals: move them away with W.".into()
+            tr("Pasted copies, on top of their originals: move them away with W.").into()
         });
     }
 }

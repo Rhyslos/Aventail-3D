@@ -7,6 +7,7 @@ use super::Workbench;
 use super::cleaning::chosen;
 use super::joining::counted;
 use crate::palette::Mode;
+use crate::text::tr;
 use scene::{ElementKind, Operation};
 
 impl Workbench {
@@ -31,7 +32,7 @@ impl Workbench {
     pub(super) fn assign_material(&mut self, slot: u32) {
         if self.mode != Mode::Polygons {
             self.note =
-                Some("Assign: switch to the Polygons mode and select polygons first.".into());
+                Some(tr("Assign: switch to the Polygons mode and select polygons first.").into());
             return;
         }
         let mut ops = Vec::new();
@@ -56,12 +57,12 @@ impl Workbench {
             ));
         }
         if ops.is_empty() {
-            self.note = Some("Assign: select some polygons first.".into());
+            self.note = Some(tr("Assign: select some polygons first.").into());
             return;
         }
-        let label = format!("{} {name}", counted("Give", count, "polygon"));
+        let label = crate::trf!("{} {}", counted(tr("Give"), count, tr("polygon")), name);
         if self.record_each(&label, ops) {
-            self.note = Some(format!("{label}. Ctrl + Z takes it back."));
+            self.note = Some(crate::trf!("{}. Ctrl + Z takes it back.", label));
         }
     }
 }

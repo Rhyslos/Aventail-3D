@@ -8,6 +8,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **Slide is Shift + Alt + drag on the Move gizmo.** Alt + drag now always moves the view, even when it starts on the gizmo, so an orbit out of habit no longer slides points by mistake.
+- **Show everything has a second key, Ctrl + Shift + H,** beside Alt + H.
+- **On a Mac, the app's tips and notes say Cmd** wherever they said Ctrl, as the Keys window already did.
+- **A slimmer Coordinates band, and every setting in Settings.** Coordinates now shows Position, Size and Rotation side by side on one line, so the viewport is taller; an older saved layout's tall band is slimmed once. Settings has a new **Viewport display** section with Cavity, Show hard edges, Show seams, Show normals and the dice's orthographic switch, and the viewport's Display and Options menus end with **All settings…**.
+- **Labels on the palettes.** Rest the mouse on the mode palette on the left and its names slide out beside the icons; click a name to use it. When the window is wide enough, the top palette writes the select tool, Move, Scale, Rotate, Snap and Symmetry beside their icons, and a small arrow beside the select tool button lists Box, Lasso and Paint select.
+- **One numbered checker, in blue.** The numbered checker (Display → Surface) is now always the blue-to-green one that came with the blue accent, whatever accent colour you pick: it was the clearest.
 - **The selection is easy to see.** Selected points, edges and polygons are now drawn last, thickest and in your accent colour, on top of hard edges, seams and other guides, in the viewport and the UV Editor. **Edit → Settings → High contrast** makes them bigger still, with a dark rim. **Select only visible** is now on as standard, so a box drag takes only what you can see.
 - **Five modes.** Model, Points, Edges, Polygons and UV. The Object mode is gone: to move or turn an object's pivot without moving the shape, switch on **Edit pivot** (the button right under the Model mode on the left, or the Tools menu), then switch it off again.
 - **"Bake into shape" is the one word.** Make editable is now **Bake into shape** (Ctrl + E), and in the edit list Freeze up to here is **Bake into shape up to here**. **Keep editable** is gone: every edit stays changeable until you bake it. Dragging the same points several times in a row now makes one edit in the list, not one per drag.
@@ -21,6 +27,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **Undo and redo put the selection back.** Undoing a Delete brings the shapes back selected, and redoing a Create, Group, Duplicate or Join selects what it made, as it was the first time. Before, they came back unselected.
 - **Double-clicking a loop is reliable.** A double-click sometimes selected only the edge, about 3 times in 10: when you'd clicked within the second before (say, a click on the edge and then a double-click on it), the clicks were counted as a triple-click, not a double. The app now counts double-clicks itself: two clicks in the same spot within half a second, whatever came before. A quick third click straight after no longer undoes the loop either.
 - **Double-click on a cylinder's rim.** A double-click on the top or bottom edge of a cylinder (any edge round an n-gon) now selects the whole rim, in the Edges and Points modes, without an inset first.
 - **Alt + A in the UV Editor right after a click.** Pressing Alt + A over the UV Editor without moving the mouse first could select the whole part instead of the UV pieces, because the window briefly lost track of the mouse when Alt was pressed. It now remembers where the mouse was. H, Z and E over the editor had the same slip and are fixed too.
@@ -28,6 +35,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Loop cuts dead centre.** With one cut, hold Ctrl while pointing at an edge: the loop snaps to tenths of the edge, and the fifth is exactly the middle. It works while dragging too.
+- **An emergency copy when the app crashes.** If the app ever stops with an error, it now saves your unsaved work as it was a moment before, as one last backup copy, and offers it back the next time it starts, so a crash costs seconds of work instead of up to the five minutes since the last backup.
+- **Eleven new shapes.** **Create** now also makes an **Icosphere** (a ball of even triangles, no poles), **Torus**, **Capsule**, **Dome**, **Pipe elbow** (solid or hollow, any angle), **Pie sector**, **Gear**, **Hex grid**, **Hex sphere**, **Stairs** and **Arch**. **B** still lists the seven basic shapes; **Alt + B** lists the eleven new ones (once a list is open, B moves through it), so no shape is in both lists, and the Create menu has a line between the two groups. Each comes with its settings in the Attributes panel, ready-made UVs and seams, and crisp edges where it should have them, and is saved with the project like the others.
 - **Weld polygons.** In the Polygons mode, **M** melts a selected polygon's points into one at its middle (each touching group of selected polygons at its own middle), and **Ctrl + M** lets you drag a polygon onto a point. Inset a cylinder's cap, then weld the middle polygon, and the cap becomes even triangles round one point.
 - **Extrude from points.** In the Points mode, select points along an open edge (a plane's rim, or a hole's) and press **D**: the edges between them grow new polygons, and the new points are selected so you can carry on, or move them with W. If the points (or, in the Edges mode, the edges) go all the way round a polygon, such as a closed cap's rim, that polygon is pushed out instead. Handy in a side or front view, where points are easier to pick than edges.
 - **Apply mirror.** Like Blender's Apply on a mirror: **Symmetry menu → Apply mirror** (also **Mesh → Shape and object** and command search) makes the mirrored half a real part of the shape and turns symmetry off, so each half can then be changed on its own. One undo step brings the mirror back.

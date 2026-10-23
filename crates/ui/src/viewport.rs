@@ -13,26 +13,25 @@
 pub(crate) mod chrome;
 mod dice;
 mod gizmo;
+mod input;
 mod look;
 mod mirror_plane;
+mod options;
 mod picker;
+mod renderer;
 mod select;
 mod tool_drag;
+mod view;
 
-use egui::{Color32, CursorIcon, PointerButton, Rect, Response, Sense, Ui, pos2};
-use glam::{Mat4, Vec2, Vec3};
-use serde::{Deserialize, Serialize};
-use tools::{
-    Bounds, Camera, DragKind, Modifiers, MouseButton, NavigationSettings, Navigator, ViewKind,
-};
+use crate::text::tr;
+use egui::{Color32, PointerButton, Rect, Sense, Ui, pos2};
+use glam::Vec2;
+use tools::{Camera, DragKind, Navigator, ViewKind};
 
 use crate::components::ViewPointer;
-use crate::drawing::{ComponentOverlay, SceneDrawing, SceneSummary};
-use crate::selecting::{
-    BRUSH_MAX, BRUSH_MIN, BRUSH_RADIUS, BRUSH_STEP, Gesture, SelectKeys, SelectTool,
-};
+use crate::drawing::SceneSummary;
+use crate::selecting::{BRUSH_RADIUS, Gesture, SelectTool};
 use crate::theme;
-use crate::transforming::{Axes, SnapSettings};
 pub(crate) use gizmo::GizmoEvent;
 use std::sync::Arc;
 pub(crate) use tool_drag::{ToolDragEvent, ToolPath};
@@ -43,572 +42,16 @@ pub(crate) use look::SHADING_LABEL;
 pub(crate) use picker::AROUND_CURSOR_LABEL;
 pub use picker::PICKER_LABEL;
 
-/// How detailed the grid is: how far apart its finest lines are.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
-pub enum GridDetail {
-    /// Lines every metre (and stronger ones every 10 m): the calmest.
-    #[default]
-    Metre,
-    /// Each metre square cut into four: lines every 50 cm as well.
-    HalfMetre,
-    /// Thin lines every 10 cm as well: for placing things precisely.
-    TenCentimetres,
-}
-
-/// What shapes' surfaces show ([decision 0102](../../../docs/decisions/0102-checker-and-stretch.md)).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
-pub enum Surface {
-    /// Their materials' colours.
-    #[default]
-    Plain,
-    /// A checker laid on by their UVs, to see how a texture would sit.
-    Checker,
-    /// How much their UVs stretch: green where even, through yellow to
-    /// red.
-    Stretch,
-    /// The numbered checker (decision 0107): cells labelled A1 to H8 in
-    /// a gradient of the app's accent colour, laid on by their UVs.
-    NumberedChecker,
-}
-
-impl Surface {
-    /// Every choice, in the order offered.
-    pub const ALL: [Surface; 4] = [
-        Self::Plain,
-        Self::Checker,
-        Self::NumberedChecker,
-        Self::Stretch,
-    ];
-
-    /// Its name in the Display menu.
-    pub fn label(self) -> &'static str {
-        match self {
-            Self::Plain => "Colours",
-            Self::Checker => "Checker",
-            Self::Stretch => "Stretch",
-            Self::NumberedChecker => "Numbered checker",
-        }
-    }
-
-    /// What it shows, for its tooltip.
-    pub fn explanation(self) -> &'static str {
-        match self {
-            Self::Plain => "Each surface in its material's colour",
-            Self::Checker => {
-                "A checker laid on by the UVs: where the squares stay square and even, a \
-                 texture will too. The tint runs red across and green up the texture, so a \
-                 piece turned or mirrored shows."
-            }
-            Self::NumberedChecker => {
-                "A checker of labelled cells laid on by the UVs, A1 at the top left of the \
-                 texture to H8 at the bottom right, in colours from the app's accent: see \
-                 at once which part of the texture each part of the shape uses, and which \
-                 way round it lies (the labels turn and mirror with it). The UV Editor shows \
-                 it behind the UVs too."
-            }
-            Self::Stretch => {
-                "How evenly the UVs lie: green where even, yellow where 1.5 times off, red \
-                 where twice off (stretched one way, or too big or small against the rest \
-                 of the object), purple where a polygon has no room on the texture"
-            }
-        }
-    }
-}
-
-/// How many checker squares go across the texture: one per 128 pixels,
-/// at least 4.
-pub fn checker_squares(texture_size: u32) -> f32 {
-    (texture_size as f32 / 128.0).max(4.0)
-}
-
-/// The numbered checker image's size in pixels (decision 0107): its
-/// labels stay sharp up close.
-pub const GRID_IMAGE_SIZE: usize = 1024;
-
-/// The numbered checker image in `colors` (`ViewportView::grid_colors`):
-/// [`GRID_IMAGE_SIZE`] pixels square, four bytes a pixel (sRGB), its first
-/// row the top of the texture square.
-pub fn grid_image(colors: [[u8; 3]; 2]) -> Vec<u8> {
-    uv::grid::numbered_checker(GRID_IMAGE_SIZE, colors[0], colors[1])
-}
-
-/// How shapes are drawn in the viewport ([decision 0063](../../../docs/decisions/0063-wireframe.md)).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
-pub enum Shading {
-    /// Solid, softly lit surfaces with faint edges: the calmest.
-    #[default]
-    Shaded,
-    /// Solid surfaces with every edge drawn clearly on top, to see how a
-    /// shape is built while still seeing its form.
-    ShadedWithWires,
-    /// Only the edges, seen through the shape: every edge at once, front
-    /// and back.
-    Wireframe,
-}
-
-impl Shading {
-    /// Every look, in the order offered.
-    pub const ALL: [Shading; 3] = [Self::Shaded, Self::ShadedWithWires, Self::Wireframe];
-
-    /// Its name, in the menu and on the button.
-    pub fn label(self) -> &'static str {
-        match self {
-            Self::Shaded => "Shaded",
-            Self::ShadedWithWires => "Shaded with wires",
-            Self::Wireframe => "Wireframe",
-        }
-    }
-
-    /// What it shows, for its tooltip.
-    pub fn explanation(self) -> &'static str {
-        match self {
-            Self::Shaded => "Solid, softly lit surfaces with faint edges",
-            Self::ShadedWithWires => {
-                "Solid surfaces with every edge drawn clearly on top, to see how the shape \
-                 is built"
-            }
-            Self::Wireframe => {
-                "Only the edges, seen through the shape: front and back at once. Clicking \
-                 still picks the shape."
-            }
-        }
-    }
-
-    /// Whether surfaces are drawn.
-    pub fn shows_faces(self) -> bool {
-        self != Self::Wireframe
-    }
-}
-
-/// The angle new objects are smoothed by (decision 0126): the same as
-/// Hard edges by angle starts at.
-pub const AUTO_HARD_ANGLE: f32 = scene::STANDARD_SMOOTHING_ANGLE;
-
-impl ViewOptions {
-    /// These options with an old "fine grid lines on" setting turned into
-    /// the finest grid level.
-    #[must_use]
-    pub fn migrated(mut self) -> Self {
-        if self.legacy_fine_grid {
-            self.grid_detail = GridDetail::TenCentimetres;
-            self.legacy_fine_grid = false;
-        }
-        self
-    }
-}
-
-impl GridDetail {
-    /// Every level, from calm to detailed.
-    pub const ALL: [GridDetail; 3] = [Self::Metre, Self::HalfMetre, Self::TenCentimetres];
-
-    /// The menu entry's name.
-    pub fn label(self) -> &'static str {
-        match self {
-            Self::Metre => "Every 1 m",
-            Self::HalfMetre => "Every 50 cm (quarters)",
-            Self::TenCentimetres => "Every 10 cm (fine)",
-        }
-    }
-
-    /// The finest lines' spacing, as written in the viewport's corner.
-    pub fn spacing_text(self) -> &'static str {
-        match self {
-            Self::Metre => "1 m",
-            Self::HalfMetre => "50 cm",
-            Self::TenCentimetres => "10 cm",
-        }
-    }
-
-    /// The finest lines' spacing for the renderer, in centimetres, or
-    /// `None` for only the 1 m and 10 m lines.
-    pub fn fine_spacing(self) -> Option<f32> {
-        match self {
-            Self::Metre => None,
-            Self::HalfMetre => Some(50.0),
-            Self::TenCentimetres => Some(10.0),
-        }
-    }
-
-    /// The next level, round again after the finest (the palette button).
-    #[must_use]
-    pub fn next(self) -> Self {
-        match self {
-            Self::Metre => Self::HalfMetre,
-            Self::HalfMetre => Self::TenCentimetres,
-            Self::TenCentimetres => Self::Metre,
-        }
-    }
-
-    /// A plain-language description, for tooltips.
-    pub fn explanation(self) -> &'static str {
-        match self {
-            Self::Metre => "Grid lines every metre: the calmest ground",
-            Self::HalfMetre => "Each metre square cut into four: lines every 50 cm",
-            Self::TenCentimetres => "Thin lines every 10 cm, for placing things precisely",
-        }
-    }
-}
-
-/// How the viewport is shown and steered: choices the user can switch,
-/// which are remembered between sessions.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-#[serde(default)]
-pub struct ViewOptions {
-    /// How detailed the grid is. Lines every metre as standard, for a calm
-    /// ground.
-    pub grid_detail: GridDetail,
-    /// Settings saved before the grid had three levels said only whether
-    /// the 10 cm lines were on; read so that choice carries over.
-    #[serde(rename = "fine_grid", skip_serializing)]
-    pub legacy_fine_grid: bool,
-    /// Which mouse controls move the view.
-    pub navigation: NavigationSettings,
-    /// Whether all four views (perspective, top, front, right) are shown
-    /// at once, rather than one filling the viewport.
-    pub four_views: bool,
-    /// Whether the box, lasso and brush only select what can be seen, as
-    /// a click does. On as standard (decision 0126; before, off, decision
-    /// 0029): the saved name changed with it, so everyone starts with the
-    /// new standard once.
-    #[serde(rename = "select_visible")]
-    pub select_visible_only: bool,
-    /// Which keys add to and take from the selection.
-    pub select_keys: SelectKeys,
-    /// How the move, rotate and scale gizmos snap.
-    pub snap: SnapSettings,
-    /// Axes that can't change while moving, rotating or scaling (X, Y,
-    /// Z).
-    pub locked: [bool; 3],
-    /// Whether the gizmo follows the world's axes or the object's own.
-    pub axes: Axes,
-    /// Whether hard edges are *not* marked in the Points, Edges and
-    /// Polygons modes (they are as standard; decision 0053).
-    pub hide_hard_edges: bool,
-    /// Whether the selected objects show which way each polygon faces,
-    /// as short lines (off as standard; decision 0053).
-    pub show_normals: bool,
-    /// Whether seams are marked in the Points, Edges and Polygons modes
-    /// (off as standard; always in the UV mode; decision 0096).
-    pub show_seams: bool,
-    /// The live mirror's settings, remembered for the next object
-    /// mirrored (decision 0088).
-    pub symmetry: Symmetry,
-    /// Whether Dissolve goes ahead across a sharp corner without asking
-    /// first ("Don't warn me again"; it asks as standard, decision 0057).
-    pub dissolve_without_warning: bool,
-    /// How shapes are drawn: shaded, shaded with wires, or wireframe.
-    pub shading: Shading,
-    /// What shapes' surfaces show: colours, a checker or the stretch.
-    pub surface: Surface,
-    /// Whether Cavity is *off*: ridges not brightened and creases not
-    /// darkened. Cavity is on as standard (decision 0065).
-    pub hide_cavity: bool,
-    /// The keyboard the Keys window draws, once picked there (`None`:
-    /// guessed from the system language; decision 0061).
-    pub keyboard: Option<crate::KeyboardLayout>,
-    /// Whether clicking the view dice (or snapping to it with Ctrl while
-    /// orbiting) turns a perspective view orthographic, until it is
-    /// orbited away (off as standard; decision 0084).
-    pub flat_from_dice: bool,
-    /// Whether the selection is drawn larger, with a dark rim, in the
-    /// viewport and the UV Editor (Settings → Interface → High contrast;
-    /// off as standard; decision 0126).
-    pub high_contrast: bool,
-}
-
-impl Default for ViewOptions {
-    fn default() -> Self {
-        Self {
-            grid_detail: GridDetail::default(),
-            legacy_fine_grid: false,
-            navigation: NavigationSettings::default(),
-            four_views: false,
-            select_visible_only: true,
-            select_keys: SelectKeys::default(),
-            snap: SnapSettings::default(),
-            locked: [false; 3],
-            axes: Axes::default(),
-            hide_hard_edges: false,
-            show_normals: false,
-            show_seams: false,
-            symmetry: Symmetry::default(),
-            dissolve_without_warning: false,
-            shading: Shading::default(),
-            surface: Surface::default(),
-            hide_cavity: false,
-            keyboard: None,
-            flat_from_dice: false,
-            high_contrast: false,
-        }
-    }
-}
-
-/// The live mirror's settings ([decision 0088](../../../docs/decisions/0088-live-mirror.md)):
-/// what the Symmetry button gives the selected objects, and what its menu
-/// shows. Each object keeps its own mirror; these are remembered for the
-/// next one.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-#[serde(default)]
-pub struct Symmetry {
-    /// Across which of the world's axes, X, Y and Z (X as standard: left
-    /// and right).
-    pub axes: [bool; 3],
-    /// How far the mirror is moved from the world centre along X, Y and Z,
-    /// in centimetres.
-    pub offset: [f32; 3],
-    /// How near points at the seam must be to become one, in centimetres
-    /// (0.1 as standard).
-    pub weld_distance: f32,
-}
-
-/// The standard weld distance, in centimetres.
-pub(crate) const WELD_DISTANCE: f32 = scene::LiveMirror::WELD_DISTANCE;
-
-impl Default for Symmetry {
-    fn default() -> Self {
-        Self {
-            axes: [true, false, false],
-            offset: [0.0; 3],
-            weld_distance: WELD_DISTANCE,
-        }
-    }
-}
-
-impl Symmetry {
-    /// The mirror these settings make, if any axis is chosen.
-    pub fn mirror(&self) -> Option<scene::LiveMirror> {
-        // On the object (decision 0126): the offset is from its pivot,
-        // along its own axes.
-        let mirror = scene::LiveMirror {
-            axes: self.axes,
-            centre: glam::Vec3::from_array(self.offset),
-            weld_distance: self
-                .weld_distance
-                .clamp(0.0, scene::LiveMirror::MAX_WELD_DISTANCE),
-            on_object: true,
-        };
-        mirror.is_valid().then_some(mirror)
-    }
-
-    /// The settings of an object's `mirror`.
-    pub fn of(mirror: scene::LiveMirror) -> Self {
-        Self {
-            axes: mirror.axes,
-            offset: mirror.centre.to_array(),
-            weld_distance: mirror.weld_distance,
-        }
-    }
-}
-
-/// What a renderer needs to draw one viewport frame.
-#[derive(Debug, Clone, PartialEq)]
-pub struct ViewportView {
-    /// Which of the four views this is (0 to 3), so a renderer can keep a
-    /// separate image for each.
-    pub slot: usize,
-    /// Size of the image to draw, in physical pixels.
-    pub size_px: [u32; 2],
-    /// World-to-screen transform.
-    pub view_projection: Mat4,
-    /// Where the camera is.
-    pub camera_position: Vec3,
-    /// The point the camera looks at; the grid is drawn around it.
-    pub focus: Vec3,
-    /// For a flat (orthographic) view, the height it shows in centimetres;
-    /// `None` for perspective.
-    pub flat_height: Option<f32>,
-    /// The plane the grid lies in, as two directions across it.
-    pub grid_plane: [Vec3; 2],
-    /// The sky straight up, sRGB 0 to 1.
-    pub sky_top: [f32; 3],
-    /// The sky at the horizon, sRGB 0 to 1.
-    pub sky_horizon: [f32; 3],
-    /// The ground just below the horizon, sRGB 0 to 1.
-    pub ground: [f32; 3],
-    /// How detailed the grid is.
-    pub grid_detail: GridDetail,
-    /// The scene's objects to draw.
-    pub scene: Arc<SceneDrawing>,
-    /// The colour selected objects are outlined in (the accent colour),
-    /// sRGB 0 to 1.
-    pub selection_color: [f32; 3],
-    /// The numbered checker's two colours (decision 0107), from the
-    /// accent colour: the top left cell's and the bottom right's, sRGB.
-    pub grid_colors: [[u8; 3]; 2],
-    /// What to draw over the edited objects in the Points, Edges and
-    /// Polygons modes.
-    pub overlay: Arc<ComponentOverlay>,
-    /// How shapes are drawn.
-    pub shading: Shading,
-    /// Whether ridges are brightened and creases darkened (Cavity).
-    pub cavity: bool,
-    /// What the shapes' surfaces show.
-    pub surface: Surface,
-    /// Whether the selection is drawn larger with a dark rim (Settings →
-    /// Interface → High contrast; decision 0126).
-    pub high_contrast: bool,
-}
-
-/// A question for the renderer: what is under this pixel of the image?
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct PickAsk {
-    /// The camera's world-to-screen transform for the image.
-    pub view_projection: Mat4,
-    /// The pixel, in physical pixels from the image's top-left corner.
-    pub pixel: [f32; 2],
-    /// The image's size in physical pixels.
-    pub size_px: [u32; 2],
-}
-
-/// What the renderer found under a pixel it was asked about.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Picked {
-    /// The pixel that was asked about, in physical pixels.
-    pub pixel: [f32; 2],
-    /// The surface point there, or `None` for the background.
-    pub point: Option<Vec3>,
-}
-
-/// The renderer's reply about picking, each frame.
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
-pub struct PickReply {
-    /// An answer that has arrived since the last frame, if any.
-    pub answer: Option<Picked>,
-    /// Whether a question is still waiting for its answer (so the
-    /// interface should draw another frame soon to collect it).
-    pub waiting: bool,
-}
-
-/// Draws viewport images. The app implements this with the GPU; tests and
-/// machines without a usable GPU use [`NoRenderer`].
-pub trait ViewportRenderer {
-    /// Draws a frame and returns the egui texture showing it, or a
-    /// plain-language reason why it could not.
-    fn render(&mut self, view: &ViewportView) -> Result<egui::TextureId, String>;
-
-    /// Hands over any answer that has arrived about the point under the
-    /// mouse, and asks about `ask`'s pixel if given. Never waits. A renderer
-    /// that cannot pick answers nothing (the standard).
-    fn pick(&mut self, ask: Option<PickAsk>) -> PickReply {
-        let _ = ask;
-        PickReply::default()
-    }
-
-    /// Whether a heavy shape is still being made ready to draw in the
-    /// background (the viewport says so, and keeps drawing until it is).
-    fn preparing(&self) -> bool {
-        false
-    }
-}
-
-/// How close (in logical pixels) a picked answer must be to where the
-/// mouse is now to be used: the answer is usually a frame old.
-const PICK_TOLERANCE: f32 = 6.0;
-
-/// The latest answer about what is under the mouse.
-#[derive(Debug, Clone, Copy, PartialEq)]
-struct UnderMouse {
-    /// Where the mouse was, in logical screen coordinates.
-    at: egui::Pos2,
-    /// The surface point there, if any.
-    point: Option<Vec3>,
-    /// The camera the question was asked with: once the camera moves, the
-    /// answer no longer describes what is under the mouse.
-    camera: Camera,
-}
-
-/// A renderer that never draws, with a reason to show instead.
-#[derive(Debug, Clone)]
-pub struct NoRenderer {
-    /// Why there is no 3D view.
-    pub reason: String,
-}
-
-impl Default for NoRenderer {
-    fn default() -> Self {
-        Self {
-            reason: "no graphics device".to_string(),
-        }
-    }
-}
-
-impl ViewportRenderer for NoRenderer {
-    fn render(&mut self, _view: &ViewportView) -> Result<egui::TextureId, String> {
-        Err(self.reason.clone())
-    }
-}
-
-/// What framing fits when nothing shown has a shape: a 1 m box standing
-/// at the origin (the size of a standard shape), so the view goes back to
-/// the middle of the scene.
-pub const DEFAULT_FRAME: Bounds = Bounds {
-    min: Vec3::new(-50.0, -50.0, 0.0),
-    max: Vec3::new(50.0, 50.0, 100.0),
-};
-
-/// What to fit in the view.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Frame {
-    /// Everything in the scene (key `H`).
-    All,
-    /// The selection (key `F`); everything when nothing shown is selected.
-    Selected,
-}
-
-impl Frame {
-    /// The menu entry's name.
-    pub fn label(self) -> &'static str {
-        match self {
-            Self::All => "Frame all",
-            Self::Selected => "Frame selected",
-        }
-    }
-
-    /// The key that does it in the viewport.
-    pub fn key(self) -> egui::Key {
-        match self {
-            Self::All => egui::Key::H,
-            Self::Selected => egui::Key::Z,
-        }
-    }
-
-    /// What the menu entry's tooltip says.
-    pub fn explanation(self) -> &'static str {
-        match self {
-            Self::All => "Fit everything in the scene in the view",
-            Self::Selected => {
-                "Fit the selected objects in the view (everything, while nothing is selected)"
-            }
-        }
-    }
-}
-
-/// How long the view takes to glide into place when framing, in seconds:
-/// quick, but long enough to see where you went.
-pub const GLIDE_SECONDS: f64 = 0.2;
-
-/// A short, smooth move of the camera from one view to another.
-#[derive(Debug, Clone, Copy, PartialEq)]
-struct Glide {
-    from: Navigator,
-    to: Navigator,
-    /// When it started, in egui's clock (seconds).
-    start: f64,
-}
-
-impl Glide {
-    /// The view at time `now`, and whether the glide has finished. Eases
-    /// out: fast at first, settling gently.
-    fn at(&self, now: f64) -> (Navigator, bool) {
-        let t = ((now - self.start) / GLIDE_SECONDS).clamp(0.0, 1.0);
-        let t = if t.is_finite() { t } else { 1.0 };
-        let eased = 1.0 - (1.0 - t).powi(3);
-        (self.from.blend(&self.to, eased as f32), t >= 1.0)
-    }
-}
-
 #[cfg(test)]
 pub(crate) use dice::DICE_LABEL;
+use input::cursor_for;
+pub use options::{
+    AUTO_HARD_ANGLE, GRID_IMAGE_SIZE, GridDetail, Shading, Surface, Symmetry, ViewOptions,
+    checker_squares, grid_image,
+};
+pub use renderer::{NoRenderer, PickAsk, PickReply, Picked, ViewportRenderer, ViewportView};
+pub use view::{DEFAULT_FRAME, Frame, GLIDE_SECONDS};
+use view::{View, rgb, sane_scale};
 
 /// Where to click on the view dice of the view at `rect` to look from
 /// `side`, if it shows. For tests.
@@ -618,14 +61,7 @@ pub(crate) fn dice_point(camera: &Camera, rect: Rect, side: glam::IVec3) -> Opti
 }
 
 /// Accessible name of the 3D image, and the label tests look for.
-pub const VIEWPORT_LABEL: &str = "3D viewport";
-
-/// The mouse buttons navigation listens to, in egui's terms and ours.
-const BUTTONS: [(PointerButton, MouseButton); 3] = [
-    (PointerButton::Primary, MouseButton::Primary),
-    (PointerButton::Middle, MouseButton::Middle),
-    (PointerButton::Secondary, MouseButton::Secondary),
-];
+pub const VIEWPORT_LABEL: &str = crate::text!("3D viewport");
 
 /// How many views the viewport holds: perspective, top, front and right,
 /// shown one at a time or all four at once.
@@ -649,418 +85,6 @@ pub(crate) const PROJECTION_KEY: egui::Key = egui::Key::P;
 
 /// Gap between the four views, in logical pixels: a thin dark line.
 const VIEW_GAP: f32 = 2.0;
-
-/// One view: its camera and what the mouse is doing in it.
-#[derive(Debug, Clone, PartialEq)]
-struct View {
-    navigator: Navigator,
-    /// The navigation drag in progress, if any. Chosen when the drag
-    /// starts, so letting go of a key mid-drag does not stop it.
-    drag: Option<DragKind>,
-    /// What the renderer last found under the mouse in this view.
-    under_mouse: Option<UnderMouse>,
-    /// A framing move in progress.
-    glide: Option<Glide>,
-    /// The image's size last frame, in logical pixels (for framing from a
-    /// menu, before this frame's size is known).
-    image_size: Vec2,
-    /// A selection drag (box, lasso or brush) in progress, if any.
-    select_drag: Option<select::SelectDrag>,
-    /// Where and when the last single click was, so a double-click is
-    /// two clicks close in time and place, whatever came before (egui
-    /// counts a third quick click as a triple, not a double).
-    last_click: Option<(egui::Pos2, f64)>,
-    /// Where and when the last click of a double-click (or a quick click
-    /// straight after one) was: a further quick click there is part of the
-    /// same burst and is ignored, so it can't undo the loop just selected.
-    last_double: Option<(egui::Pos2, f64)>,
-    /// A drag of the gizmo in progress, if any.
-    gizmo_drag: Option<tools::Drag>,
-    /// The gizmo handle the left button went down on, if any.
-    pressed_handle: Option<tools::Handle>,
-    /// The gizmo handle under the mouse, to light up.
-    hovered_handle: Option<tools::Handle>,
-    /// A modelling tool's drag (extrude, inset) in progress, if any.
-    tool_drag: Option<tool_drag::ToolDrag>,
-    /// Whether the pivot is a point on a surface you pointed at (rather
-    /// than a point in mid-air left by zooming over empty space), so an
-    /// orbit started over empty space may keep turning around it.
-    pivot_on_surface: bool,
-    /// While orbiting with Ctrl held, the view as the orbit would leave it
-    /// without snapping; what is shown is it snapped to the nearest side
-    /// of the view dice (decision 0084).
-    free: Option<Navigator>,
-    /// Whether the view was turned flat by the view dice (or snapping)
-    /// with *Switch to orthographic when clicking the dice* on: orbiting
-    /// away freely turns it back into a perspective view (decision 0084).
-    auto_flat: bool,
-}
-
-impl View {
-    /// A view of the given kind, at its opening camera.
-    fn new(kind: ViewKind) -> Self {
-        Self {
-            navigator: Navigator::for_view(kind),
-            drag: None,
-            under_mouse: None,
-            glide: None,
-            image_size: Vec2::ZERO,
-            select_drag: None,
-            last_click: None,
-            last_double: None,
-            gizmo_drag: None,
-            pressed_handle: None,
-            hovered_handle: None,
-            tool_drag: None,
-            pivot_on_surface: false,
-            free: None,
-            auto_flat: false,
-        }
-    }
-
-    fn camera(&self) -> &Camera {
-        self.navigator.camera()
-    }
-
-    fn kind(&self) -> ViewKind {
-        self.navigator.kind()
-    }
-
-    /// Switches between perspective and orthographic, stopping a glide.
-    fn toggle_projection(&mut self) {
-        self.glide = None;
-        self.auto_flat = false;
-        self.navigator = self.navigator.toggled_projection();
-    }
-
-    /// Goes back to the opening camera for this kind of view.
-    fn reset(&mut self) {
-        *self = Self {
-            image_size: self.image_size,
-            ..Self::new(self.kind())
-        };
-    }
-
-    /// Starts gliding to fit `bounds` in the view, at time `now`.
-    fn start_frame(&mut self, bounds: Bounds, now: f64) {
-        let aspect = if self.image_size.y > 0.0 {
-            self.image_size.x / self.image_size.y
-        } else {
-            1.0
-        };
-        let to = self.navigator.framed(&bounds, aspect);
-        self.glide = Some(Glide {
-            from: self.navigator,
-            to,
-            start: now,
-        });
-        self.drag = None;
-    }
-
-    /// Starts gliding round the pivot to look from `side` of the view
-    /// dice, at time `now` ([decision 0084](../../../docs/decisions/0084-view-dice.md)).
-    /// With `flat` (Display → Switch to orthographic when clicking the
-    /// dice), a perspective view ends up orthographic, and turns back into
-    /// perspective when orbited away.
-    fn start_look_from(&mut self, side: glam::IVec3, flat: bool, now: f64) {
-        let mut to = self.navigator.looking_from(side);
-        if flat && !to.camera().is_flat() {
-            to = to.toggled_projection();
-            self.auto_flat = true;
-        }
-        self.glide = Some(Glide {
-            from: self.navigator,
-            to,
-            start: now,
-        });
-        self.drag = None;
-    }
-
-    /// Orbits by `delta` (already scaled): with `snap` (Ctrl held), the
-    /// view shows the orbit snapped to the nearest side of the view dice,
-    /// turned flat if `flat`; without, a view the dice turned flat goes
-    /// back to perspective first (decision 0084).
-    fn orbit(&mut self, delta: Vec2, size: Vec2, snap: bool, flat: bool) {
-        if snap {
-            let free = self.free.get_or_insert(self.navigator);
-            free.drag(DragKind::Orbit, delta, size);
-            let mut shown = free.snapped();
-            if flat && !shown.camera().is_flat() {
-                shown = shown.toggled_projection();
-                self.auto_flat = true;
-            }
-            self.navigator = shown;
-            return;
-        }
-        self.free = None;
-        if self.auto_flat {
-            self.auto_flat = false;
-            if self.navigator.camera().is_flat() {
-                self.navigator = self.navigator.toggled_projection();
-            }
-        }
-        self.navigator.drag(DragKind::Orbit, delta, size);
-    }
-
-    /// Moves the camera along a glide in progress, at time `now`; returns
-    /// whether it is still going.
-    fn follow_glide(&mut self, now: f64) -> bool {
-        let Some(glide) = self.glide else {
-            return false;
-        };
-        let (view, done) = glide.at(now);
-        self.navigator = view;
-        if done {
-            self.glide = None;
-        }
-        !done
-    }
-
-    /// The renderer's answer about `at` (logical screen coordinates):
-    /// `Some(Some(point))` for a surface, `Some(None)` for background, or
-    /// `None` when there is no up-to-date answer for that spot (the mouse
-    /// or the camera has moved since).
-    fn answer_at(&self, at: egui::Pos2) -> Option<Option<Vec3>> {
-        self.under_mouse
-            .filter(|u| u.at.distance(at) <= PICK_TOLERANCE && u.camera == *self.camera())
-            .map(|u| u.point)
-    }
-
-    /// The surface point under `at`, if an up-to-date answer says so.
-    fn surface_at(&self, at: egui::Pos2) -> Option<Vec3> {
-        self.answer_at(at).flatten()
-    }
-
-    /// The point to zoom towards for the mouse at `at`: the surface there;
-    /// over background, the ground under it (if not much farther than the
-    /// pivot); otherwise, or without an up-to-date answer, a point along
-    /// the mouse's line of sight as far away as the pivot is now, so the
-    /// zoom never leaps.
-    /// Whether it is a point on a surface.
-    ///
-    /// The ground is used only when it is no farther than the pivot: a
-    /// far-off pivot makes every later zoom step, pan and orbit huge.
-    fn zoom_target(&self, at: egui::Pos2, rect: Rect) -> (Vec3, bool) {
-        let size = Vec2::new(rect.width(), rect.height());
-        let ray = self
-            .camera()
-            .ray_through(Vec2::new(at.x - rect.min.x, at.y - rect.min.y), size);
-        let reach = self.navigator.distance();
-        match self.answer_at(at) {
-            Some(Some(point)) => (point, true),
-            Some(None) => match ray.hit_ground(0.0) {
-                Some(distance) if distance <= reach => (ray.at(distance), false),
-                _ => (ray.at(reach), false),
-            },
-            None => (ray.at(reach), false),
-        }
-    }
-
-    /// The point to turn around (or pan at the depth of) when a drag
-    /// starts over empty space ([decision 0080](../../../docs/decisions/0080-navigation-feel.md)):
-    /// the first of these that is in front of the camera and on screen,
-    /// so the view never swings around something you can't see:
-    ///
-    /// 1. the pivot, if it is a surface point you pointed at before;
-    /// 2. the middle of the selection;
-    /// 3. the middle of everything shown;
-    ///
-    /// otherwise the middle of the view, at the pivot's depth.
-    fn pivot_over_empty_space(&mut self, size: Vec2, scene: Option<&SceneSummary>) {
-        let on_screen = |camera: &Camera, point: Vec3| {
-            camera
-                .project(point, size)
-                .is_some_and(|p| p.x >= 0.0 && p.y >= 0.0 && p.x <= size.x && p.y <= size.y)
-        };
-        let camera = *self.camera();
-        if self.pivot_on_surface && on_screen(&camera, self.navigator.pivot()) {
-            return;
-        }
-        let candidates = scene
-            .into_iter()
-            .flat_map(|s| [s.selected, s.all])
-            .flatten()
-            .map(|b| b.centre());
-        for point in candidates {
-            if on_screen(&camera, point) && self.navigator.set_pivot(point) {
-                self.pivot_on_surface = false;
-                return;
-            }
-        }
-        self.navigator.centre_pivot();
-        self.pivot_on_surface = false;
-    }
-
-    /// Moves the camera for this frame's mouse input over the image.
-    fn navigate(
-        &mut self,
-        ui: &Ui,
-        response: &Response,
-        rect: Rect,
-        options: &ViewOptions,
-        slide_gizmo: Option<tools::Gizmo>,
-        scene: Option<&SceneSummary>,
-    ) {
-        let settings = options.navigation;
-        let flat_from_dice = options.flat_from_dice;
-        let size = Vec2::new(rect.width(), rect.height());
-        // Alt + left drag on the Move gizmo slides points (decision 0055),
-        // so it doesn't orbit there.
-        let sliding = response.drag_started_by(PointerButton::Primary)
-            && ui.input(|i| i.modifiers.alt)
-            && slide_gizmo.is_some_and(|gizmo| {
-                ui.input(|i| i.pointer.press_origin()).is_some_and(|at| {
-                    let local = Vec2::new(at.x - rect.min.x, at.y - rect.min.y);
-                    gizmo
-                        .handle_at(self.camera(), size, local, [false; 3])
-                        .is_some()
-                })
-            });
-        if response.drag_started() && !sliding {
-            // Taking hold of the view stops a framing glide where it is.
-            self.glide = None;
-            let keys = ui.input(|i| Modifiers {
-                alt: i.modifiers.alt,
-                shift: i.modifiers.shift,
-            });
-            self.drag = BUTTONS
-                .iter()
-                .find(|(egui_button, _)| response.drag_started_by(*egui_button))
-                .and_then(|(_, button)| settings.drag(*button, keys));
-            let pressed_at = ui.input(|i| i.pointer.press_origin());
-            if !settings.around_cursor
-                && matches!(self.drag, Some(DragKind::Orbit | DragKind::Dolly))
-            {
-                // Around the middle of the view, whatever was picked before.
-                self.navigator.centre_pivot();
-            }
-            if let (Some(kind), Some(at), true) = (self.drag, pressed_at, settings.around_cursor) {
-                match kind {
-                    // Turn around what was clicked, and pan at its depth so
-                    // it stays under the mouse; over empty space, around
-                    // something you can see.
-                    DragKind::Orbit | DragKind::Pan => match self.surface_at(at) {
-                        Some(point) if self.navigator.set_pivot(point) => {
-                            self.pivot_on_surface = true;
-                        }
-                        _ => self.pivot_over_empty_space(size, scene),
-                    },
-                    DragKind::Dolly => {
-                        let (target, on_surface) = self.zoom_target(at, rect);
-                        if self.navigator.set_pivot(target) {
-                            self.pivot_on_surface = on_surface;
-                        }
-                    }
-                }
-            }
-        }
-        if let Some(kind) = self.drag {
-            if response.dragged() {
-                // The drag only counts as one once the mouse has moved a
-                // few pixels; on its first frame, use the whole way from
-                // where the button went down, so no movement is lost.
-                let delta = match (
-                    response.drag_started(),
-                    ui.input(|i| i.pointer.press_origin()),
-                    response.interact_pointer_pos(),
-                ) {
-                    (true, Some(from), Some(to)) => to - from,
-                    _ => response.drag_delta(),
-                };
-                let delta = settings.movement(kind, Vec2::new(delta.x, delta.y));
-                if kind == DragKind::Orbit {
-                    // Ctrl while orbiting snaps to the dice's sides.
-                    let snap = ui.input(|i| i.modifiers.command);
-                    self.orbit(delta, size, snap, flat_from_dice);
-                } else {
-                    self.navigator.drag(kind, delta, size);
-                }
-                ui.ctx().set_cursor_icon(cursor_for(kind));
-            }
-            if response.drag_stopped() || !response.dragged() {
-                self.drag = None;
-                self.free = None;
-            }
-        }
-        // Ctrl + wheel grows and shrinks the selection instead.
-        if response.hovered() && !ui.input(|i| i.modifiers.command) {
-            let scroll = wheel_scroll(ui, rect.height());
-            if scroll != 0.0 {
-                self.glide = None;
-                // While a button is held (mid-orbit or mid-pan), the point
-                // under the mouse is not being looked up, so keep zooming
-                // towards the pivot already in use instead of jumping to a
-                // stale or guessed spot.
-                let busy = self.drag.is_some() || ui.input(|i| i.pointer.any_down());
-                match response
-                    .hover_pos()
-                    .filter(|_| settings.around_cursor && !busy)
-                {
-                    Some(at) => {
-                        let (target, on_surface) = self.zoom_target(at, rect);
-                        self.navigator.wheel_towards(scroll, target);
-                        if self.navigator.pivot() == target {
-                            self.pivot_on_surface = on_surface;
-                        }
-                    }
-                    None => {
-                        if !settings.around_cursor {
-                            self.navigator.centre_pivot();
-                        }
-                        self.navigator.wheel(scroll);
-                    }
-                }
-            }
-        }
-    }
-
-    /// Applies a drag on one of the menu line's navigation buttons.
-    fn button_drag(&mut self, kind: DragKind, delta: egui::Vec2, settings: NavigationSettings) {
-        self.glide = None;
-        if !settings.around_cursor {
-            self.navigator.centre_pivot();
-        }
-        let delta = settings.movement(kind, Vec2::new(delta.x, delta.y));
-        self.navigator.drag(kind, delta, self.image_size);
-    }
-
-    /// What to ask the renderer for, for this view's image at `rect`.
-    fn view(
-        &self,
-        slot: usize,
-        rect: Rect,
-        pixels_per_point: f32,
-        grid_detail: GridDetail,
-        scene: &Arc<SceneDrawing>,
-    ) -> ViewportView {
-        let ppp = sane_scale(pixels_per_point);
-        let px = |v: f32| (v * ppp).round().clamp(1.0, 16_384.0) as u32;
-        let size_px = [px(rect.width()), px(rect.height())];
-        let size = Vec2::new(size_px[0] as f32, size_px[1] as f32);
-        use crate::theme::backdrop;
-        ViewportView {
-            slot,
-            size_px,
-            view_projection: self.camera().view_projection(size),
-            camera_position: self.camera().position,
-            focus: self.navigator.pivot(),
-            flat_height: self.camera().ortho_height,
-            grid_plane: self.kind().grid_plane(),
-            sky_top: rgb(backdrop::SKY_TOP),
-            sky_horizon: rgb(backdrop::HORIZON),
-            ground: rgb(backdrop::GROUND),
-            grid_detail,
-            scene: Arc::clone(scene),
-            selection_color: rgb(theme::Accent::default().colors().light),
-            grid_colors: theme::grid_colors(theme::Accent::default()),
-            overlay: Arc::default(),
-            shading: Shading::default(),
-            cavity: true,
-            surface: Surface::Plain,
-            high_contrast: false,
-        }
-    }
-}
 
 /// The question about the point under the mouse that is waiting for its
 /// answer.
@@ -1088,6 +112,10 @@ pub struct ViewportPanel {
     /// Set by Options → Navigation controls, to open the picker once its
     /// button has been drawn this frame.
     open_picker: bool,
+    /// Set by the Display and Options menus' Settings entry, for the
+    /// workbench to open the Settings window (decision 0126: every setting
+    /// has its home there).
+    open_settings: bool,
     /// The question about the point under the mouse in flight, if any.
     asked: Option<Asked>,
     /// Whether the renderer is still working on a question.
@@ -1139,6 +167,7 @@ impl Default for ViewportPanel {
             active: 0,
             options: ViewOptions::default(),
             open_picker: false,
+            open_settings: false,
             asked: None,
             asking: false,
             frame_request: None,
@@ -1353,6 +382,12 @@ impl ViewportPanel {
     }
 
     /// The modelling tool drag events since last asked.
+    /// Whether a viewport menu asked for the Settings window, since last
+    /// asked.
+    pub(crate) fn take_open_settings(&mut self) -> bool {
+        std::mem::take(&mut self.open_settings)
+    }
+
     pub(crate) fn take_tool_events(&mut self) -> Vec<ToolDragEvent> {
         std::mem::take(&mut self.tool_events)
     }
@@ -1457,9 +492,13 @@ impl ViewportPanel {
                 Sense::click_and_drag(),
             );
             let label = if four {
-                format!("{VIEWPORT_LABEL} ({})", self.views[slot].kind().name())
+                crate::trf!(
+                    "{} ({})",
+                    tr(VIEWPORT_LABEL),
+                    self.views[slot].kind().name()
+                )
             } else {
-                VIEWPORT_LABEL.to_string()
+                tr(VIEWPORT_LABEL).to_string()
             };
             response
                 .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Other, true, &label));
@@ -1518,7 +557,7 @@ impl ViewportPanel {
             let mut view =
                 self.views[slot].view(slot, rect, ppp, self.options.grid_detail, &scene.drawing);
             view.selection_color = rgb(theme::accent(ui.ctx()).colors().light);
-            view.grid_colors = theme::grid_colors(theme::accent(ui.ctx()));
+            view.grid_colors = theme::grid_colors();
             view.overlay = Arc::clone(&scene.overlay);
             view.shading = self.options.shading;
             view.cavity = !self.options.hide_cavity;
@@ -1586,146 +625,6 @@ impl ViewportPanel {
         picker::show(ui, body, self);
         look::show(ui, body, self);
     }
-
-    /// Ctrl + wheel over a view: with the brush, changes its size;
-    /// otherwise grows or shrinks the selection, a step for each notch of
-    /// the wheel.
-    fn ctrl_wheel(&mut self, ui: &Ui) {
-        if !ui.input(|i| i.modifiers.command) {
-            self.ctrl_scroll = 0.0;
-            return;
-        }
-        let scroll = wheel_scroll(ui, 400.0);
-        if scroll == 0.0 {
-            return;
-        }
-        // One notch of a mouse wheel; touchpads send many small turns.
-        let notch = ui
-            .ctx()
-            .options(|o| o.input_options.line_scroll_speed)
-            .max(1.0);
-        self.ctrl_scroll += scroll;
-        let steps = (self.ctrl_scroll / notch).trunc();
-        if steps == 0.0 {
-            return;
-        }
-        self.ctrl_scroll -= steps * notch;
-        if self.wheel_tool {
-            // A tool with a count (Bevel's segments, Loop cut's cuts) takes
-            // the turns while it is in use (decision 0048).
-            self.tool_steps += steps as i32;
-        } else if self.select_tool == SelectTool::Brush {
-            self.brush_radius =
-                (self.brush_radius * BRUSH_STEP.powf(steps)).clamp(BRUSH_MIN, BRUSH_MAX);
-        } else {
-            self.gestures.push(Gesture::Grow(steps as i32));
-        }
-    }
-
-    /// Shows one view or four, for keys `F1` to `F5` (unless typing in a
-    /// field).
-    fn views_from_keys(&mut self, ui: &Ui) {
-        if ui.ctx().memory(|m| m.focused().is_some()) {
-            return;
-        }
-        for (key, kind) in VIEW_KEYS {
-            if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, key)) {
-                self.show_alone(kind);
-            }
-        }
-        if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, FOUR_VIEWS_KEY)) {
-            self.options.four_views = true;
-        }
-        if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, PROJECTION_KEY)) {
-            self.toggle_projection();
-        }
-    }
-
-    /// Collects the renderer's latest answer about the point under the
-    /// mouse, and asks again while the mouse is over a view, so an answer
-    /// is ready when an orbit or zoom starts. `hovered` is the view under
-    /// the mouse, if any: its slot, place, the mouse position and what was
-    /// drawn.
-    fn ask_what_is_under_the_mouse(
-        &mut self,
-        ui: &Ui,
-        hovered: Option<(usize, Rect, Option<egui::Pos2>, ViewportView)>,
-        renderer: &mut dyn ViewportRenderer,
-    ) {
-        let ppp = pixels_per_point(ui);
-        let around_cursor = self.options.navigation.around_cursor;
-        let mut ask = None;
-        if let Some((slot, rect, Some(at), view)) = hovered
-            && around_cursor
-        {
-            let it = &self.views[slot];
-            // One question at a time, and only when the mouse has moved
-            // since the last answer, so a resting mouse costs nothing.
-            let fresh_needed = it
-                .under_mouse
-                .is_none_or(|u| u.at.distance(at) > 0.5 || u.camera != *it.camera());
-            if it.drag.is_none() && !self.asking && fresh_needed {
-                ask = Some(PickAsk {
-                    view_projection: view.view_projection,
-                    pixel: [(at.x - rect.min.x) * ppp, (at.y - rect.min.y) * ppp],
-                    size_px: view.size_px,
-                });
-                self.asked = Some(Asked {
-                    slot,
-                    camera: *it.camera(),
-                    corner: rect.min,
-                });
-            }
-        }
-        let reply = renderer.pick(ask);
-        if let (Some(answer), Some(asked)) = (reply.answer, self.asked)
-            && let Some(view) = self.views.get_mut(asked.slot)
-        {
-            view.under_mouse = Some(UnderMouse {
-                at: asked.corner + egui::vec2(answer.pixel[0], answer.pixel[1]) / ppp,
-                point: answer.point,
-                camera: asked.camera,
-            });
-        }
-        self.asking = reply.waiting;
-        if reply.waiting {
-            ui.ctx().request_repaint();
-        }
-    }
-
-    /// Starts framing the active view for the `H` and `Z` keys (unless
-    /// typing in a field) or a menu entry, and moves every view along a
-    /// glide in progress.
-    fn frame_from_keys_and_menus(&mut self, ui: &Ui, scene: &SceneSummary) {
-        let typing = ui.ctx().memory(|m| m.focused().is_some());
-        let now = ui.input(|i| i.time);
-        let mut wanted = self.frame_request.take();
-        if !typing {
-            for what in [Frame::All, Frame::Selected] {
-                if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, what.key())) {
-                    wanted = Some(what);
-                }
-            }
-        }
-        if let Some(what) = wanted {
-            self.active_view_mut()
-                .start_frame(scene.bounds_for(what), now);
-        }
-        let mut gliding = false;
-        for view in &mut self.views {
-            gliding |= view.follow_glide(now);
-        }
-        if gliding {
-            ui.ctx().request_repaint();
-        }
-    }
-
-    /// Applies a drag on one of the menu line's navigation buttons to the
-    /// active view.
-    fn button_drag(&mut self, kind: DragKind, delta: egui::Vec2) {
-        let settings = self.options.navigation;
-        self.active_view_mut().button_drag(kind, delta, settings);
-    }
 }
 
 /// Physical pixels per logical pixel, never zero or broken.
@@ -1733,58 +632,13 @@ fn pixels_per_point(ui: &Ui) -> f32 {
     sane_scale(ui.ctx().pixels_per_point())
 }
 
-/// `scale` if it is a usable size factor, otherwise 1.
-fn sane_scale(scale: f32) -> f32 {
-    if scale.is_finite() && scale > 0.0 {
-        scale
-    } else {
-        1.0
-    }
-}
-
-/// The mouse pointer shown while navigating.
-fn cursor_for(kind: DragKind) -> CursorIcon {
-    match kind {
-        DragKind::Orbit => CursorIcon::Grabbing,
-        DragKind::Pan => CursorIcon::Move,
-        DragKind::Dolly => CursorIcon::ZoomIn,
-    }
-}
-
-/// How far the mouse wheel turned this frame, in points; positive when
-/// turned away from you. Read straight from the wheel events rather than
-/// egui's smoothed scrolling, so zooming responds at once (DESIGN.md §5.2).
-fn wheel_scroll(ui: &Ui, page_height: f32) -> f32 {
-    let line = ui.ctx().options(|o| o.input_options.line_scroll_speed);
-    ui.input(|input| {
-        input
-            .events
-            .iter()
-            .map(|event| match event {
-                egui::Event::MouseWheel { unit, delta, .. } => match unit {
-                    egui::MouseWheelUnit::Point => delta.y,
-                    egui::MouseWheelUnit::Line => delta.y * line,
-                    egui::MouseWheelUnit::Page => delta.y * page_height,
-                },
-                _ => 0.0,
-            })
-            .sum::<f32>()
-    })
-}
-
-/// An egui colour as sRGB 0 to 1.
-fn rgb(color: Color32) -> [f32; 3] {
-    [
-        f32::from(color.r()) / 255.0,
-        f32::from(color.g()) / 255.0,
-        f32::from(color.b()) / 255.0,
-    ]
-}
-
 #[cfg(test)]
 mod tests {
+    use super::view::{Glide, UnderMouse};
     use super::*;
     use crate::theme::backdrop;
+    use glam::Vec3;
+    use tools::NavigationSettings;
 
     fn rect(w: f32, h: f32) -> Rect {
         Rect::from_min_size(pos2(0.0, 0.0), egui::vec2(w, h))

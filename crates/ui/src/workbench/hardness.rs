@@ -9,6 +9,7 @@
 use super::Workbench;
 use super::joining::counted;
 use crate::palette::Mode;
+use crate::text::tr;
 use mesh::Anchors;
 use scene::{Command, EdgeKey, ElementKind, Operation, VertexId};
 use std::collections::BTreeSet;
@@ -18,9 +19,9 @@ impl Workbench {
     /// the selected polygons' edges.
     pub(super) fn run_hardness(&mut self, hard: bool) {
         let name = if hard {
-            "Mark hard edges"
+            tr("Mark hard edges")
         } else {
-            "Mark soft edges"
+            tr("Mark soft edges")
         };
         let polygons = self.mode == Mode::Polygons;
         let mut ops = Vec::new();
@@ -67,35 +68,40 @@ impl Workbench {
         }
         if ops.is_empty() {
             let (what, whose) = if polygons {
-                ("polygons", "selected polygons' edges")
+                (tr("polygons"), tr("selected polygons' edges"))
             } else {
-                ("edges", "selected edges")
+                (tr("edges"), tr("selected edges"))
             };
-            let state = if hard { "hard" } else { "soft" };
+            let state = if hard { tr("hard") } else { tr("soft") };
             self.note = Some(if already > 0 {
-                format!("{name}: the {whose} are already {state}.")
+                crate::trf!("{}: the {} are already {}.", name, whose, state)
             } else {
-                format!("{name}: select some {what} first.")
+                crate::trf!("{}: select some {} first.", name, what)
             });
             return;
         }
-        let label = counted(if hard { "Harden" } else { "Soften" }, count, "edge");
+        let label = counted(
+            if hard { tr("Harden") } else { tr("Soften") },
+            count,
+            tr("edge"),
+        );
         let key = self.new_step_key();
         let ids: Vec<scene::ObjectId> = ops.iter().map(|(id, _)| *id).collect();
         let switched = self.switch_to_marks(&ids, key, &label);
         if self.record_each_in(&label, ops, key) {
             self.note = Some(if switched > 0 {
-                format!(
-                    "{label}. {} smoothed by angle, so it now uses its marked edges: its look \
+                crate::trf!(
+                    "{}. {} smoothed by angle, so it now uses its marked edges: its look \
                      was kept as marks, and yours show. Ctrl + Z takes it all back.",
+                    label,
                     if switched == 1 {
-                        "The object was".to_string()
+                        tr("The object was").to_string()
                     } else {
-                        format!("{switched} objects were")
+                        crate::trf!("{} objects were", switched)
                     }
                 )
             } else {
-                format!("{label}. Ctrl + Z takes it back.")
+                crate::trf!("{}. Ctrl + Z takes it back.", label)
             });
         }
     }
@@ -120,16 +126,16 @@ impl Workbench {
         let response = ui
             .add_enabled(
                 !ids.is_empty(),
-                egui::Checkbox::new(&mut on, crate::viewport::chrome::AUTO_HARD_EDGES_ENTRY),
+                egui::Checkbox::new(&mut on, tr(crate::viewport::chrome::AUTO_HARD_EDGES_ENTRY)),
             )
-            .on_hover_text(format!(
+            .on_hover_text(crate::trf!(
                 "Shade the selected objects by angle: edges where polygons meet more sharply \
                  than {}° are crisp, the rest smooth, after every change. Untick it to shade \
                  them only by the hard edges you mark. Each object keeps its own (the \
                  Attributes panel shows its angle).",
                 scene::STANDARD_SMOOTHING_ANGLE
             ))
-            .on_disabled_hover_text("Select the objects to set how they're smoothed");
+            .on_disabled_hover_text(tr("Select the objects to set how they're smoothed"));
         if response.changed() {
             self.set_smoothing(
                 ids,
@@ -149,7 +155,7 @@ impl Workbench {
             .document
             .execute(scene::Command::SetHardness { ids, hardness })
         {
-            self.note = Some(format!("Couldn't change the smoothing: {why}."));
+            self.note = Some(crate::trf!("Couldn't change the smoothing: {}.", why));
         }
     }
 
@@ -192,7 +198,7 @@ impl Workbench {
     /// than the angle become hard and the rest soft.
     pub(super) fn run_hard_by_angle(&mut self) {
         if self.document.selection().is_empty() {
-            self.note = Some("Hard edges by angle: select the objects first.".into());
+            self.note = Some(tr("Hard edges by angle: select the objects first.").into());
             return;
         }
         let angle = self.attributes.hard_angle.0;
@@ -202,13 +208,14 @@ impl Workbench {
             .map(|(id, _, _)| (id, Operation::HardEdgesByAngle { angle }))
             .collect();
         if ops.is_empty() {
-            self.note = Some("Hard edges by angle: the selection has no shapes.".into());
+            self.note = Some(tr("Hard edges by angle: the selection has no shapes.").into());
             return;
         }
-        if self.record_each("Hard edges by angle", ops) {
-            self.note = Some(format!(
-                "Edges sharper than {angle:.0}° are marked hard, the rest soft. Change the \
-                 Angle under Last edit; Ctrl + Z takes it back."
+        if self.record_each(tr("Hard edges by angle"), ops) {
+            self.note = Some(crate::trf!(
+                "Edges sharper than {:.0}° are marked hard, the rest soft. Change the \
+                 Angle under Last edit; Ctrl + Z takes it back.",
+                angle
             ));
         }
     }

@@ -5,6 +5,7 @@
 
 use crate::backups::{self, Backups};
 use crate::branding;
+use crate::emergency::{Emergency, Snapshots};
 use crate::gpu::GpuViewport;
 use crate::project;
 use eframe::egui;
@@ -14,6 +15,7 @@ use ui::{
     AppInfo, DockState, NoRenderer, Panel, ViewOptions, ViewportRenderer, Workbench,
     WorkbenchAction,
 };
+use words::{tr, trf};
 
 /// Key under which the panel layout is remembered between sessions.
 const LAYOUT_KEY: &str = "panel_layout";
@@ -54,6 +56,8 @@ struct App {
     closing: bool,
     /// Backup copies in the background, and what a crash left behind.
     backups: Backups,
+    /// The snapshot the panic hook saves as an emergency copy.
+    snapshots: Snapshots,
 }
 
 /// The shortest time the splash screen shows, so a quick start doesn't
@@ -130,16 +134,16 @@ impl Step {
     /// What the splash screen says while it happens.
     pub(crate) fn doing(&self) -> String {
         match self {
-            Self::Graphics => "Starting the graphics…".to_string(),
-            Self::Workbench => "Getting the workbench ready…".to_string(),
-            Self::Open(path) => format!(
+            Self::Graphics => tr("Starting the graphics…").to_string(),
+            Self::Workbench => tr("Getting the workbench ready…").to_string(),
+            Self::Open(path) => trf!(
                 "Opening {}…",
                 path.file_name().map_or_else(
                     || path.display().to_string(),
                     |n| n.to_string_lossy().into_owned()
                 )
             ),
-            Self::Backups => "Checking for unsaved work from last time…".to_string(),
+            Self::Backups => tr("Checking for unsaved work from last time…").to_string(),
         }
     }
 }
@@ -167,6 +171,8 @@ struct Starting {
     renderer: Option<Box<dyn ViewportRenderer>>,
     workbench: Option<Workbench>,
     backups: Option<Backups>,
+    /// Shared with the panic hook (see [`crate::emergency`]).
+    emergency: Emergency,
 }
 
 impl Starting {
@@ -177,7 +183,7 @@ impl Starting {
                 self.renderer = Some(match frame.wgpu_render_state() {
                     Some(state) => Box::new(GpuViewport::new(state)),
                     None => Box::new(NoRenderer {
-                        reason: "the window has no GPU device".to_string(),
+                        reason: tr("the window has no GPU device").to_string(),
                     }),
                 });
             }
@@ -206,7 +212,11 @@ impl Starting {
             }
             Step::Backups => {
                 if let Some(workbench) = self.workbench.as_mut() {
-                    self.backups = Some(Backups::start(backups::folder().as_deref(), workbench));
+                    let backups = Backups::start(backups::folder().as_deref(), workbench);
+                    // A crash from now on saves an emergency copy here.
+                    self.emergency
+                        .set_folder(backups.folder().map(std::path::Path::to_path_buf));
+                    self.backups = Some(backups);
                 }
             }
         }
@@ -224,6 +234,7 @@ impl Starting {
             workbench: self.workbench.take()?,
             renderer: self.renderer.take()?,
             backups: self.backups.take()?,
+            snapshots: Snapshots::new(self.emergency.clone()),
         })
     }
 }
@@ -259,7 +270,7 @@ impl eframe::App for Shell {
         let doing = starting
             .steps
             .get(starting.next)
-            .map_or_else(|| "Ready".to_string(), Step::doing);
+            .map_or_else(|| tr("Ready").to_string(), Step::doing);
         ui::splash::show(
             ui,
             &ui::splash::SplashView {
@@ -284,6 +295,7 @@ impl eframe::App for Shell {
         match self {
             Self::Running(app) => app.on_exit(),
             Self::Starting(starting) => {
+                starting.emergency.forget();
                 if let Some(backups) = starting.backups.as_mut() {
                     backups.end();
                 }
@@ -345,6 +357,13 @@ impl App {
             }
         }
         self.backups.update(&mut self.workbench);
+        // The emergency copy's snapshot, taken between frames, when the
+        // document is whole.
+        let document = self.workbench.document();
+        let unsaved = self.workbench.has_unsaved_changes();
+        if let Some(wait) = self.snapshots.update(document, unsaved, Instant::now()) {
+            ctx.request_repaint_after(wait);
+        }
         let title = self.workbench.title();
         if title != self.title {
             ctx.send_viewport_cmd(egui::ViewportCommand::Title(title.clone()));
@@ -368,6 +387,7 @@ impl App {
 
     /// A normal close: this run's backup copies are no longer needed.
     fn on_exit(&mut self) {
+        self.snapshots.emergency().forget();
         self.backups.end();
     }
 }
@@ -388,6 +408,11 @@ pub fn run(info: AppInfo, open: Option<PathBuf>) -> Result<(), String> {
         renderer: eframe::Renderer::Wgpu,
         ..Default::default()
     };
+
+    // From here on, a crash saves the work as an emergency copy (once
+    // backups have started and there is something unsaved).
+    let emergency = Emergency::new();
+    emergency.install();
 
     // Some windowing libraries stop with a panic instead of an error when a
     // system library is missing (for example libxkbcommon-x11 on Linux).
@@ -415,6 +440,7 @@ pub fn run(info: AppInfo, open: Option<PathBuf>) -> Result<(), String> {
                     renderer: None,
                     workbench: None,
                     backups: None,
+                    emergency,
                 }))))
             }),
         )
@@ -432,11 +458,12 @@ fn explain_panic(payload: &(dyn std::any::Any + Send)) -> String {
         .downcast_ref::<String>()
         .map(String::as_str)
         .or_else(|| payload.downcast_ref::<&str>().copied())
-        .unwrap_or("the windowing system stopped unexpectedly");
+        .unwrap_or(tr("the windowing system stopped unexpectedly"));
     if message.contains(".so") && message.contains("could not be loaded") {
-        format!(
-            "{message} On Linux, install the missing library with your package manager \
-             (for example libxkbcommon-x11-0 and mesa-vulkan-drivers on Ubuntu)."
+        trf!(
+            "{} On Linux, install the missing library with your package manager \
+             (for example libxkbcommon-x11-0 and mesa-vulkan-drivers on Ubuntu).",
+            message
         )
     } else {
         message.to_string()

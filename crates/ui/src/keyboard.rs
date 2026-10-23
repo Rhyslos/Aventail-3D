@@ -8,6 +8,7 @@
 //! them. So each drawn key names the [`KeyId`] it gives, and a shortcut
 //! lights the keys that give its key.
 
+use crate::text::tr;
 use egui::Key;
 use serde::{Deserialize, Serialize};
 
@@ -58,13 +59,13 @@ impl KeyboardLayout {
     /// Its name, for the picker.
     pub fn name(self) -> &'static str {
         match self {
-            Self::Us => "US (QWERTY)",
-            Self::Uk => "UK (QWERTY)",
-            Self::Norwegian => "Norwegian",
-            Self::Danish => "Danish",
-            Self::SwedishFinnish => "Swedish / Finnish",
-            Self::German => "German (QWERTZ)",
-            Self::French => "French (AZERTY)",
+            Self::Us => tr("US (QWERTY)"),
+            Self::Uk => tr("UK (QWERTY)"),
+            Self::Norwegian => tr("Norwegian"),
+            Self::Danish => tr("Danish"),
+            Self::SwedishFinnish => tr("Swedish / Finnish"),
+            Self::German => tr("German (QWERTZ)"),
+            Self::French => tr("French (AZERTY)"),
         }
     }
 
@@ -268,7 +269,7 @@ pub(crate) fn caps(layout: KeyboardLayout) -> Vec<Cap> {
             x: 0.0,
             y: 0.0,
         };
-        row.key("Esc", k(Key::Escape), 1.0).gap(1.0);
+        row.key(tr("Esc"), k(Key::Escape), 1.0).gap(1.0);
         let f = [
             Key::F1,
             Key::F2,
@@ -304,7 +305,7 @@ pub(crate) fn caps(layout: KeyboardLayout) -> Vec<Cap> {
         }
         row.key(p.after_zero[0], None, 1.0)
             .key(p.after_zero[1], None, 1.0)
-            .key("Backspace", k(Key::Backspace), 2.0);
+            .key(tr("Backspace"), k(Key::Backspace), 2.0);
     }
     // The top letter row.
     {
@@ -313,7 +314,7 @@ pub(crate) fn caps(layout: KeyboardLayout) -> Vec<Cap> {
             x: 0.0,
             y: top + 1.0,
         };
-        row.key("Tab", k(Key::Tab), 1.5);
+        row.key(tr("Tab"), k(Key::Tab), 1.5);
         for label in p.top {
             let id = label
                 .chars()
@@ -329,7 +330,7 @@ pub(crate) fn caps(layout: KeyboardLayout) -> Vec<Cap> {
                 y: top + 1.0,
                 w: 1.25,
                 h: 2.0,
-                label: "Enter".into(),
+                label: tr("Enter").into(),
                 id: k(Key::Enter),
             });
         } else {
@@ -343,7 +344,7 @@ pub(crate) fn caps(layout: KeyboardLayout) -> Vec<Cap> {
             x: 0.0,
             y: top + 2.0,
         };
-        row.key("Caps", None, 1.75);
+        row.key(tr("Caps"), None, 1.75);
         let home = if layout.iso() {
             &p.home[..]
         } else {
@@ -358,7 +359,7 @@ pub(crate) fn caps(layout: KeyboardLayout) -> Vec<Cap> {
             row.key(label, id, 1.0);
         }
         if !layout.iso() {
-            row.key("Enter", k(Key::Enter), 2.25);
+            row.key(tr("Enter"), k(Key::Enter), 2.25);
         }
     }
     // The bottom row.
@@ -369,10 +370,10 @@ pub(crate) fn caps(layout: KeyboardLayout) -> Vec<Cap> {
             y: top + 3.0,
         };
         if layout.iso() {
-            row.key("Shift", Some(KeyId::Shift), 1.25)
+            row.key(tr("Shift"), Some(KeyId::Shift), 1.25)
                 .key(p.extra, None, 1.0);
         } else {
-            row.key("Shift", Some(KeyId::Shift), 2.25);
+            row.key(tr("Shift"), Some(KeyId::Shift), 2.25);
         }
         for label in p.bottom {
             let id = label
@@ -383,7 +384,7 @@ pub(crate) fn caps(layout: KeyboardLayout) -> Vec<Cap> {
                 .or_else(|| punctuation(label));
             row.key(label, id, 1.0);
         }
-        row.key("Shift", Some(KeyId::Shift), 2.75);
+        row.key(tr("Shift"), Some(KeyId::Shift), 2.75);
     }
     // The space row.
     {
@@ -392,13 +393,13 @@ pub(crate) fn caps(layout: KeyboardLayout) -> Vec<Cap> {
             x: 0.0,
             y: top + 4.0,
         };
-        row.key("Ctrl", Some(KeyId::Ctrl), 1.5)
+        row.key(tr("Ctrl"), Some(KeyId::Ctrl), 1.5)
             .key("", None, 1.25)
-            .key("Alt", Some(KeyId::Alt), 1.25)
-            .key("Space", k(Key::Space), 7.0)
-            .key("Alt Gr", None, 1.25)
+            .key(tr("Alt"), Some(KeyId::Alt), 1.25)
+            .key(tr("Space"), k(Key::Space), 7.0)
+            .key(tr("Alt Gr"), None, 1.25)
             .key("", None, 1.25)
-            .key("Ctrl", Some(KeyId::Ctrl), 1.5);
+            .key(tr("Ctrl"), Some(KeyId::Ctrl), 1.5);
     }
     // Delete's block and the arrows.
     {
@@ -408,17 +409,17 @@ pub(crate) fn caps(layout: KeyboardLayout) -> Vec<Cap> {
             x,
             y: top,
         };
-        row.key("Ins", None, 1.0)
-            .key("Home", None, 1.0)
-            .key("PgUp", None, 1.0);
+        row.key(tr("Ins"), None, 1.0)
+            .key(tr("Home"), None, 1.0)
+            .key(tr("PgUp"), None, 1.0);
         let mut row = Row {
             caps: &mut caps,
             x,
             y: top + 1.0,
         };
-        row.key("Del", k(Key::Delete), 1.0)
-            .key("End", None, 1.0)
-            .key("PgDn", None, 1.0);
+        row.key(tr("Del"), k(Key::Delete), 1.0)
+            .key(tr("End"), None, 1.0)
+            .key(tr("PgDn"), None, 1.0);
         let mut row = Row {
             caps: &mut caps,
             x: x + 1.0,

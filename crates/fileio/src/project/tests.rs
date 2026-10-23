@@ -1651,7 +1651,11 @@ fn without_uvs_on(doc: Document, id: scene::ObjectId) -> Document {
 
 fn rich_document_v1() -> Document {
     let mut doc = Document::new();
-    for kind in PrimitiveKind::ALL {
+    // The kinds version 1 knows (the newer ones come with version 39).
+    for kind in PrimitiveKind::ALL
+        .into_iter()
+        .filter(|k| k.in_first_files())
+    {
         doc.execute(Command::Create(ObjectKind::Primitive(kind.standard())))
             .unwrap();
     }
@@ -4404,4 +4408,104 @@ fn a_file_saved_by_format_version_31_still_opens_with_its_texture() {
         v31::ProjectV31::<v31::EntryV31>::from_document(&doc)
     );
     assert!(text.contains("SetTexelDensity"));
+}
+
+#[test]
+fn newer_shapes_reopen_as_shapes_with_their_settings() {
+    // Decision 0129: version 38's model holds a newer shape as its mesh,
+    // and version 39 its settings, so it reopens as the same editable
+    // shape, with edits recorded on it finding their points again.
+    let mut doc = Document::new();
+    let newer: Vec<PrimitiveKind> = PrimitiveKind::ALL
+        .into_iter()
+        .filter(|k| !k.in_first_files())
+        .collect();
+    assert_eq!(newer.len(), 11);
+    for kind in &newer {
+        doc.execute(Command::Create(ObjectKind::Primitive(kind.standard())))
+            .unwrap();
+    }
+    let ids = doc.scene().children(None).to_vec();
+    let of_kind = |doc: &Document, kind: PrimitiveKind| {
+        *ids.iter()
+            .find(|id| {
+                matches!(&doc.scene().object(**id).unwrap().kind,
+                    ObjectKind::Primitive(p) if p.kind() == kind)
+            })
+            .unwrap()
+    };
+    let (ball, ring) = (
+        of_kind(&doc, PrimitiveKind::Icosphere),
+        of_kind(&doc, PrimitiveKind::Torus),
+    );
+    // Changed settings on one, and an edit recorded on another.
+    doc.execute(Command::SetPrimitive {
+        ids: vec![ball],
+        primitive: Primitive::Icosphere(mesh::IcosphereParams {
+            radius: 30.0,
+            subdivisions: 3,
+        }),
+    })
+    .unwrap();
+    doc.execute(Command::Record {
+        id: ring,
+        operation: Operation::MovePoints {
+            points: vec![VertexId::from_raw(0)],
+            offset: Vec3::new(0.0, 0.0, 5.0),
+            anchors: None,
+        },
+    })
+    .unwrap();
+    let back = from_bytes(&to_bytes(&doc).unwrap()).unwrap();
+    for id in &ids {
+        let (before, after) = (
+            doc.scene().object(*id).unwrap(),
+            back.scene().object(*id).unwrap(),
+        );
+        assert_eq!(before.kind, after.kind, "{}", before.name);
+        assert_eq!(
+            doc.scene().evaluated(*id).unwrap().mesh,
+            back.scene().evaluated(*id).unwrap().mesh,
+            "{}: the same shape, edits included",
+            before.name
+        );
+    }
+}
+
+#[test]
+fn a_newer_shapes_settings_on_a_group_are_refused() {
+    let mut doc = Document::new();
+    doc.execute(Command::Create(ObjectKind::Group)).unwrap();
+    let mut model = v39::ProjectV39::from_document(&doc);
+    let mut object = model.objects.iter().next().unwrap().clone();
+    object.shape = v39::ShapeV39::of(&PrimitiveKind::Torus.standard());
+    model.objects = std::iter::once(object).collect();
+    assert!(model.into_document().is_err());
+}
+
+/// Writes a project with every shape side by side, for looking at them in
+/// the app: `SHAPES_OUT=path cargo test -p fileio every_shape_side_by_side -- --ignored`.
+#[test]
+#[ignore = "writes a file for looking at by hand"]
+fn every_shape_side_by_side() {
+    let Ok(out) = std::env::var("SHAPES_OUT") else {
+        return;
+    };
+    let mut doc = Document::new();
+    let mut placed = Vec::new();
+    for (k, kind) in PrimitiveKind::ALL.into_iter().enumerate() {
+        doc.execute(Command::Create(ObjectKind::Primitive(kind.standard())))
+            .unwrap();
+        let id = doc.selection()[0];
+        let (col, row) = ((k % 6) as f32, (k / 6) as f32);
+        placed.push((
+            id,
+            Transform {
+                position: Vec3::new(col * 200.0 - 500.0, row * 200.0 - 200.0, 0.0),
+                ..Transform::default()
+            },
+        ));
+    }
+    doc.execute(Command::SetTransforms(placed)).unwrap();
+    std::fs::write(out, to_bytes(&doc).unwrap()).unwrap();
 }

@@ -5,6 +5,7 @@
 
 use super::{FOUR_VIEWS_KEY, VIEW_KEYS, View, ViewOptions, ViewportPanel, cursor_for};
 use crate::icons::{self, Icon};
+use crate::text::tr;
 use crate::theme::{self, backdrop};
 use egui::{
     Align, Align2, CursorIcon, FontId, Layout, Rect, Sense, Stroke, Ui, UiBuilder, pos2, vec2,
@@ -16,20 +17,20 @@ use tools::{DragKind, ViewKind};
 pub(super) const HEADER_HEIGHT: f32 = 26.0;
 
 /// Accessible names of the menu line's navigation buttons.
-pub(crate) const PAN_BUTTON: &str = "Drag to pan the view";
+pub(crate) const PAN_BUTTON: &str = crate::text!("Drag to pan the view");
 /// See [`PAN_BUTTON`].
-pub(crate) const ZOOM_BUTTON: &str = "Drag to zoom the view";
+pub(crate) const ZOOM_BUTTON: &str = crate::text!("Drag to zoom the view");
 /// See [`PAN_BUTTON`].
-pub(crate) const ORBIT_BUTTON: &str = "Drag to orbit the view";
+pub(crate) const ORBIT_BUTTON: &str = crate::text!("Drag to orbit the view");
 
 /// Accessible name of the button that switches between one view and
 /// four, when one view is showing.
-pub(crate) const FOUR_VIEWS_BUTTON: &str = "Show four views";
+pub(crate) const FOUR_VIEWS_BUTTON: &str = crate::text!("Show four views");
 /// See [`FOUR_VIEWS_BUTTON`]; when four views are showing.
-pub(crate) const MAXIMISE_BUTTON: &str = "Maximise this view";
+pub(crate) const MAXIMISE_BUTTON: &str = crate::text!("Maximise this view");
 
 /// The name of the Panel menu's entry for the four-view layout.
-pub(crate) const FOUR_VIEWS_ENTRY: &str = "Four views";
+pub(crate) const FOUR_VIEWS_ENTRY: &str = crate::text!("Four views");
 
 /// The menu line along the top of the viewport: its menus on the left and
 /// the navigation buttons on the right, which act on the active view.
@@ -69,11 +70,14 @@ pub(super) fn header(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) {
         ui.spacing_mut().item_spacing.x = 2.0;
         let four = panel.four_views();
         let (label, explanation) = if four {
-            (MAXIMISE_BUTTON, "Show only the active view (middle click)")
+            (
+                tr(MAXIMISE_BUTTON),
+                tr("Show only the active view (middle click)"),
+            )
         } else {
             (
-                FOUR_VIEWS_BUTTON,
-                "Show the perspective, top, front and right views at once (middle click)",
+                tr(FOUR_VIEWS_BUTTON),
+                tr("Show the perspective, top, front and right views at once (middle click)"),
             )
         };
         let layout = icon_button(ui, Icon::Maximise, label, Sense::click());
@@ -82,9 +86,9 @@ pub(super) fn header(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) {
         }
         layout.on_hover_text(format!("{label}\n{explanation}"));
         for (icon, label, kind) in [
-            (Icon::Rotate, ORBIT_BUTTON, DragKind::Orbit),
-            (Icon::Dolly, ZOOM_BUTTON, DragKind::Dolly),
-            (Icon::Move, PAN_BUTTON, DragKind::Pan),
+            (Icon::Rotate, tr(ORBIT_BUTTON), DragKind::Orbit),
+            (Icon::Dolly, tr(ZOOM_BUTTON), DragKind::Dolly),
+            (Icon::Move, tr(PAN_BUTTON), DragKind::Pan),
         ] {
             let response = icon_button(ui, icon, label, Sense::drag());
             if response.dragged() {
@@ -100,10 +104,10 @@ pub(super) fn header(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) {
 
 /// The viewport's menus: View, Cameras, Display, Options and Panel.
 fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
-    crate::dialog::menu(ui, "View", |ui| {
+    crate::dialog::menu(ui, tr("View"), |ui| {
         if ui
-            .button("Reset view")
-            .on_hover_text("Go back to the opening camera view")
+            .button(tr("Reset view"))
+            .on_hover_text(tr("Go back to the opening camera view"))
             .clicked()
         {
             panel.reset_view();
@@ -112,7 +116,7 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
         ui.separator();
         frame_entries(ui, panel);
     });
-    crate::dialog::menu(ui, "Cameras", |ui| {
+    crate::dialog::menu(ui, tr("Cameras"), |ui| {
         let active = panel.active_kind();
         for kind in MENU_KINDS {
             let key = if kind == ViewKind::Orthographic {
@@ -147,10 +151,10 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
             }
         }
     });
-    crate::dialog::menu(ui, "Display", |ui| {
+    crate::dialog::menu(ui, tr("Display"), |ui| {
         super::look::choices(ui, &mut panel.options.shading);
         ui.separator();
-        ui.label(egui::RichText::new("Surface").color(crate::theme::TEXT_WEAK));
+        ui.label(egui::RichText::new(tr("Surface")).color(crate::theme::TEXT_WEAK));
         for surface in super::Surface::ALL {
             if ui
                 .add(egui::Button::selectable(
@@ -171,33 +175,34 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
         cavity_entry(ui, &mut panel.options);
         let mut hard = !panel.options.hide_hard_edges;
         if ui
-            .checkbox(&mut hard, HARD_EDGES_ENTRY)
-            .on_hover_text(
+            .checkbox(&mut hard, tr(HARD_EDGES_ENTRY))
+            .on_hover_text(tr(
                 "Mark hard edges, where the shading breaks into a crisp edge, in a colour of \
                  their own while editing points, edges or polygons",
-            )
+            ))
             .changed()
         {
             panel.options.hide_hard_edges = !hard;
         }
-        ui.checkbox(&mut panel.options.show_seams, SEAMS_ENTRY)
-            .on_hover_text(
+        ui.checkbox(&mut panel.options.show_seams, tr(SEAMS_ENTRY))
+            .on_hover_text(tr(
                 "Mark seams, where the surface is cut open for its UVs, in orange while \
                  editing points, edges or polygons (the UV mode always shows them)",
-            );
-        ui.checkbox(&mut panel.options.show_normals, NORMALS_ENTRY)
-            .on_hover_text(
+            ));
+        ui.checkbox(&mut panel.options.show_normals, tr(NORMALS_ENTRY))
+            .on_hover_text(tr(
                 "Show which way each polygon of the selected objects faces, as a short line \
                  from its middle. Lines pointing into a shape show flipped polygons.",
-            );
+            ));
         ui.separator();
-        ui.checkbox(&mut panel.options.flat_from_dice, FLAT_FROM_DICE_ENTRY)
-            .on_hover_text(FLAT_FROM_DICE_HELP);
+        ui.checkbox(&mut panel.options.flat_from_dice, tr(FLAT_FROM_DICE_ENTRY))
+            .on_hover_text(tr(FLAT_FROM_DICE_HELP));
+        settings_entry(ui, panel);
     });
-    crate::dialog::menu(ui, "Options", |ui| {
+    crate::dialog::menu(ui, tr("Options"), |ui| {
         if ui
-            .button(format!("{}…", super::PICKER_LABEL))
-            .on_hover_text("Choose which mouse buttons and keys move the view")
+            .button(format!("{}…", tr(super::PICKER_LABEL)))
+            .on_hover_text(tr("Choose which mouse buttons and keys move the view"))
             .clicked()
         {
             panel.open_picker = true;
@@ -206,27 +211,28 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
         let navigation = &mut panel.options.navigation;
         ui.checkbox(
             &mut navigation.around_cursor,
-            super::picker::AROUND_CURSOR_LABEL,
+            tr(super::picker::AROUND_CURSOR_LABEL),
         );
-        ui.checkbox(&mut navigation.invert_orbit, "Invert orbit direction");
-        ui.checkbox(&mut navigation.show_pivot, SHOW_PIVOT_LABEL)
-            .on_hover_text(SHOW_PIVOT_HELP);
+        ui.checkbox(&mut navigation.invert_orbit, tr("Invert orbit direction"));
+        ui.checkbox(&mut navigation.show_pivot, tr(SHOW_PIVOT_LABEL))
+            .on_hover_text(tr(SHOW_PIVOT_HELP));
         ui.checkbox(
             &mut navigation.alt_everywhere,
-            "Alt + mouse works in every scheme",
+            tr("Alt + mouse works in every scheme"),
         );
+        settings_entry(ui, panel);
     });
-    crate::dialog::menu(ui, "Panel", |ui| {
+    crate::dialog::menu(ui, tr("Panel"), |ui| {
         let four = panel.four_views();
         if ui
             .add(
-                egui::Button::selectable(four, FOUR_VIEWS_ENTRY)
+                egui::Button::selectable(four, tr(FOUR_VIEWS_ENTRY))
                     .shortcut_text(FOUR_VIEWS_KEY.name()),
             )
-            .on_hover_text(
+            .on_hover_text(tr(
                 "Show the perspective, top, front and right views at once; \
                  click again (or middle click a view) to show only the active one",
-            )
+            ))
             .clicked()
         {
             panel.set_four_views(!four);
@@ -235,32 +241,59 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
     });
 }
 
+/// The entry at the foot of the Display and Options menus that opens the
+/// Settings window, where every one of these settings also lives
+/// (decision 0126).
+pub(crate) const SETTINGS_ENTRY: &str = crate::text!("All settings…");
+
+fn settings_entry(ui: &mut Ui, panel: &mut ViewportPanel) {
+    ui.separator();
+    let keys = ui
+        .ctx()
+        .format_shortcut(&crate::settings::SETTINGS_SHORTCUT);
+    if ui
+        .add(egui::Button::new(tr(SETTINGS_ENTRY)).shortcut_text(keys))
+        .on_hover_text(tr(
+            "Open the Settings window, where every setting has its home",
+        ))
+        .clicked()
+    {
+        panel.open_settings = true;
+        ui.close();
+    }
+}
+
 /// The Display menu's switch for marking hard edges.
-pub(crate) const HARD_EDGES_ENTRY: &str = "Show hard edges";
+pub(crate) const HARD_EDGES_ENTRY: &str = crate::text!("Show hard edges");
 /// The Mesh menu's switch for the selected objects' smoothing by angle
 /// (decision 0126: once Automatic hard edges, for every shape).
-pub(crate) const AUTO_HARD_EDGES_ENTRY: &str = "Smooth by angle";
+pub(crate) const AUTO_HARD_EDGES_ENTRY: &str = crate::text!("Smooth by angle");
 /// The Display menu's and the look row's switch for cavity (decision 0065).
-pub(crate) const CAVITY_ENTRY: &str = "Cavity";
+pub(crate) const CAVITY_ENTRY: &str = crate::text!("Cavity");
 /// What cavity does, for its tooltips.
-pub(crate) const CAVITY_EXPLANATION: &str = "Brighten ridges and darken creases on the \
+pub(crate) const CAVITY_EXPLANATION: &str = crate::text!(
+    "Brighten ridges and darken creases on the \
      surfaces, so edges and the shape's form read clearly at a glance. Only how it looks: \
-     nothing about the shape changes.";
+     nothing about the shape changes."
+);
 
 /// The name of the view dice's orthographic switch, in the Display menu
 /// (decision 0084).
-pub(crate) const FLAT_FROM_DICE_ENTRY: &str = "Switch to orthographic when clicking the dice";
+pub(crate) const FLAT_FROM_DICE_ENTRY: &str =
+    crate::text!("Switch to orthographic when clicking the dice");
 /// What it does.
-const FLAT_FROM_DICE_HELP: &str = "Clicking the view dice in the bottom-left corner (or snapping to it with Ctrl while \
+const FLAT_FROM_DICE_HELP: &str = crate::text!(
+    "Clicking the view dice in the bottom-left corner (or snapping to it with Ctrl while \
      orbiting) also makes the view flat, with no perspective, so lines line up. Orbit away \
-     and it goes back to perspective.";
+     and it goes back to perspective."
+);
 
 /// The Cavity switch, in the Display menu.
 pub(crate) fn cavity_entry(ui: &mut Ui, options: &mut ViewOptions) {
     let mut cavity = !options.hide_cavity;
     if ui
-        .checkbox(&mut cavity, CAVITY_ENTRY)
-        .on_hover_text(CAVITY_EXPLANATION)
+        .checkbox(&mut cavity, tr(CAVITY_ENTRY))
+        .on_hover_text(tr(CAVITY_EXPLANATION))
         .changed()
     {
         options.hide_cavity = !cavity;
@@ -268,9 +301,9 @@ pub(crate) fn cavity_entry(ui: &mut Ui, options: &mut ViewOptions) {
 }
 
 /// The Display menu's switch for showing normals.
-pub(crate) const NORMALS_ENTRY: &str = "Show normals";
+pub(crate) const NORMALS_ENTRY: &str = crate::text!("Show normals");
 /// The Display menu's entry for seams (decision 0096).
-pub(crate) const SEAMS_ENTRY: &str = "Show seams";
+pub(crate) const SEAMS_ENTRY: &str = crate::text!("Show seams");
 
 /// The kinds of view the Cameras menu offers, in order.
 const MENU_KINDS: [ViewKind; 5] = [
@@ -284,12 +317,12 @@ const MENU_KINDS: [ViewKind; 5] = [
 /// What the Cameras menu's tooltip says about a kind of view.
 fn camera_explanation(kind: ViewKind) -> &'static str {
     match kind {
-        ViewKind::Perspective => "An ordinary 3D view: far things look smaller",
-        ViewKind::Top => "A flat view looking straight down: no perspective, true sizes",
-        ViewKind::Front => "A flat view from the front: no perspective, true sizes",
-        ViewKind::Right => "A flat view from the right: no perspective, true sizes",
+        ViewKind::Perspective => tr("An ordinary 3D view: far things look smaller"),
+        ViewKind::Top => tr("A flat view looking straight down: no perspective, true sizes"),
+        ViewKind::Front => tr("A flat view from the front: no perspective, true sizes"),
+        ViewKind::Right => tr("A flat view from the right: no perspective, true sizes"),
         ViewKind::Orthographic => {
-            "No perspective, from any direction: orbit it freely; parallel lines stay parallel"
+            tr("No perspective, from any direction: orbit it freely; parallel lines stay parallel")
         }
     }
 }
@@ -307,7 +340,7 @@ pub(super) fn active_border(ui: &Ui, rect: Rect) {
 
 /// The grid detail choices, under a "Grid lines" heading.
 pub(crate) fn grid_entries(ui: &mut Ui, detail: &mut super::GridDetail) {
-    ui.label(egui::RichText::new(crate::palette::GRID_DETAIL_LABEL).color(theme::TEXT_WEAK));
+    ui.label(egui::RichText::new(tr(crate::palette::GRID_DETAIL_LABEL)).color(theme::TEXT_WEAK));
     for level in super::GridDetail::ALL {
         if ui
             .radio(*detail == level, level.label())
@@ -375,7 +408,7 @@ pub(super) fn no_image(ui: &mut Ui, rect: Rect, reason: &str) {
     ui.put(
         Rect::from_center_size(rect.center(), vec2(rect.width(), 40.0)),
         egui::Label::new(
-            egui::RichText::new(format!("The 3D view can't be shown: {reason}."))
+            egui::RichText::new(crate::trf!("The 3D view can't be shown: {}.", reason))
                 .color(theme::TEXT),
         )
         .selectable(false),
@@ -391,7 +424,7 @@ pub(super) fn preparing(ui: &mut Ui, rect: Rect) {
             vec2(rect.width(), 20.0),
         ),
         egui::Label::new(
-            egui::RichText::new("Preparing a heavy shape for drawing…").color(theme::TEXT_WEAK),
+            egui::RichText::new(tr("Preparing a heavy shape for drawing…")).color(theme::TEXT_WEAK),
         )
         .selectable(false),
     );
@@ -415,7 +448,7 @@ pub(super) fn overlays(ui: &Ui, rect: Rect, view: &View, options: &ViewOptions) 
         painter.text(
             pos2(rect.center().x, rect.top() + 8.0),
             Align2::CENTER_TOP,
-            "Default camera",
+            tr("Default camera"),
             small.clone(),
             theme::TEXT_WEAK,
         );
@@ -424,7 +457,7 @@ pub(super) fn overlays(ui: &Ui, rect: Rect, view: &View, options: &ViewOptions) 
     painter.text(
         rect.left_bottom() + vec2(10.0, -96.0),
         Align2::LEFT_BOTTOM,
-        format!("Grid spacing: {spacing}"),
+        crate::trf!("Grid spacing: {}", spacing),
         small,
         theme::TEXT_WEAK,
     );
@@ -435,10 +468,12 @@ pub(super) fn overlays(ui: &Ui, rect: Rect, view: &View, options: &ViewOptions) 
 
 /// The name of the switch for the pivot marker, in the Options menu and
 /// Settings.
-pub(crate) const SHOW_PIVOT_LABEL: &str = "Show the turning point while orbiting";
+pub(crate) const SHOW_PIVOT_LABEL: &str = crate::text!("Show the turning point while orbiting");
 /// What it does.
-pub(crate) const SHOW_PIVOT_HELP: &str = "While you orbit, a small ring marks the point the view turns around \
-     (and, when zooming with a drag, the point it moves towards)";
+pub(crate) const SHOW_PIVOT_HELP: &str = crate::text!(
+    "While you orbit, a small ring marks the point the view turns around \
+     (and, when zooming with a drag, the point it moves towards)"
+);
 
 /// Whether the pivot marker shows (decision 0080): with its switch on,
 /// while orbiting, and while drag-zooming towards the point under the

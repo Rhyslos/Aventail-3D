@@ -17,6 +17,8 @@ layer = 2
 [dependencies]
 scene.workspace = true
 mesh.workspace = true
+# The language layer for text a person reads (layer 0).
+words.workspace = true
 glam.workspace = true
 serde.workspace = true
 postcard.workspace = true

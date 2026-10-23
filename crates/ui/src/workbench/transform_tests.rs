@@ -674,7 +674,7 @@ fn with_a_mirror_edits_are_made_once_and_the_twin_follows() {
 // ------------------------------------------------------------- sliding ---
 
 #[test]
-fn alt_dragging_the_move_gizmo_slides_points_along_their_edges() {
+fn shift_alt_dragging_the_move_gizmo_slides_points_along_their_edges() {
     let mut harness = fresh();
     let id = cube(&harness);
     let doc = harness.state_mut().workbench.document_mut();
@@ -705,7 +705,7 @@ fn alt_dragging_the_move_gizmo_slides_points_along_their_edges() {
             None,
         );
     press(&mut harness, Key::W);
-    // Alt + drag up the Z arrow.
+    // Shift + Alt + drag up the Z arrow (decision 0133).
     let rect = harness.get_by_label(crate::VIEWPORT_LABEL).rect();
     let size = Vec2::new(rect.width(), rect.height());
     let gizmo = harness.state().workbench.viewport().gizmo().unwrap();
@@ -713,7 +713,7 @@ fn alt_dragging_the_move_gizmo_slides_points_along_their_edges() {
     let start = on_screen(&harness, gizmo.origin + Vec3::Z * length * 0.8);
     let up = (on_screen(&harness, Vec3::Z * 100.0) - on_screen(&harness, Vec3::ZERO)).normalized();
     let camera_before = camera(&harness);
-    hold(&mut harness, Modifiers::ALT);
+    hold(&mut harness, Modifiers::ALT | Modifiers::SHIFT);
     let path: Vec<Pos2> = (1..=4).map(|i| start + up * (i as f32 * 8.0)).collect();
     drag_without_letting_go(&mut harness, start, &path);
     let_go(&mut harness, *path.last().unwrap());
@@ -732,6 +732,49 @@ fn alt_dragging_the_move_gizmo_slides_points_along_their_edges() {
         harness.state().workbench.document().undo_label(),
         Some("Slide 4 points")
     );
+}
+
+#[test]
+fn alt_dragging_over_the_move_gizmo_orbits_and_slides_nothing() {
+    // Decision 0133: Alt + drag is the view's, even starting on the gizmo.
+    let mut harness = fresh();
+    let id = cube(&harness);
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .set_selection([id]);
+    harness.run();
+    press(&mut harness, Key::Num1);
+    let points: Vec<scene::Element> = shape(&harness)
+        .vertices()
+        .filter(|(_, p)| p.z > 50.0)
+        .map(|(v, _)| scene::Element::Point(v))
+        .collect();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .select_elements([(id, scene::ElementSelection::of(points))], "Select", None);
+    press(&mut harness, Key::W);
+    let before = shape(&harness);
+    let steps = harness.state().workbench.document().undo_steps();
+    let rect = harness.get_by_label(crate::VIEWPORT_LABEL).rect();
+    let size = Vec2::new(rect.width(), rect.height());
+    let gizmo = harness.state().workbench.viewport().gizmo().unwrap();
+    let length = gizmo.length(&camera(&harness), size);
+    let start = on_screen(&harness, gizmo.origin + Vec3::Z * length * 0.8);
+    let camera_before = camera(&harness);
+    hold(&mut harness, Modifiers::ALT);
+    let path: Vec<Pos2> = (1..=4)
+        .map(|i| start + egui::vec2(i as f32 * 10.0, 0.0))
+        .collect();
+    drag_without_letting_go(&mut harness, start, &path);
+    let_go(&mut harness, *path.last().unwrap());
+    hold(&mut harness, Modifiers::NONE);
+    assert_ne!(camera(&harness), camera_before, "it orbited");
+    assert_eq!(shape(&harness), before, "nothing slid");
+    assert_eq!(harness.state().workbench.document().undo_steps(), steps);
 }
 
 #[test]

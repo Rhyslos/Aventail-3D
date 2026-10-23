@@ -23,6 +23,7 @@
 use crate::components::{ViewPointer, kind_for};
 use crate::drawing::SceneDrawing;
 use crate::palette::Mode;
+use crate::text::tr;
 use egui::{Key, KeyboardShortcut, Modifiers};
 use glam::Vec2;
 use mesh::{Topology, selection as ops};
@@ -69,18 +70,18 @@ impl SelectTool {
     /// Its name.
     pub fn name(self) -> &'static str {
         match self {
-            Self::Box => "Box selection",
-            Self::Lasso => "Lasso selection",
-            Self::Brush => "Paint select",
+            Self::Box => tr("Box selection"),
+            Self::Lasso => tr("Lasso selection"),
+            Self::Brush => tr("Paint select"),
         }
     }
 
     /// What it does, in plain words.
     pub fn description(self) -> &'static str {
         match self {
-            Self::Box => "drag a box around what to select",
-            Self::Lasso => "draw a loop around what to select",
-            Self::Brush => "paint over what to select; Ctrl + wheel changes the brush size",
+            Self::Box => tr("drag a box around what to select"),
+            Self::Lasso => tr("draw a loop around what to select"),
+            Self::Brush => tr("paint over what to select; Ctrl + wheel changes the brush size"),
         }
     }
 
@@ -123,10 +124,10 @@ impl SelectKeys {
     /// Its name.
     pub fn name(self) -> &'static str {
         match self {
-            Self::CtrlAddsShiftRemoves => "Ctrl adds, Shift removes",
-            Self::ShiftAddsCtrlRemoves => "Shift adds, Ctrl removes",
-            Self::CtrlFlips => "Ctrl flips",
-            Self::CtrlAddsAltRemoves => "Ctrl adds, Alt removes",
+            Self::CtrlAddsShiftRemoves => tr("Ctrl adds, Shift removes"),
+            Self::ShiftAddsCtrlRemoves => tr("Shift adds, Ctrl removes"),
+            Self::CtrlFlips => tr("Ctrl flips"),
+            Self::CtrlAddsAltRemoves => tr("Ctrl adds, Alt removes"),
         }
     }
 
@@ -134,22 +135,22 @@ impl SelectKeys {
     pub fn summary(self) -> &'static str {
         match self {
             Self::CtrlAddsShiftRemoves => {
-                "Ctrl + click or drag adds; Shift + click or drag removes. \
-                 Ctrl + click on something selected unselects it."
+                tr("Ctrl + click or drag adds; Shift + click or drag removes. \
+                 Ctrl + click on something selected unselects it.")
             }
             Self::ShiftAddsCtrlRemoves => {
-                "Shift + click or drag adds; Ctrl + click or drag removes. \
-                 Shift + click on something selected unselects it."
+                tr("Shift + click or drag adds; Ctrl + click or drag removes. \
+                 Shift + click on something selected unselects it.")
             }
-            Self::CtrlFlips => {
+            Self::CtrlFlips => tr(
                 "Ctrl + click or drag flips: what was selected is unselected, \
-                 and the rest selected."
-            }
-            Self::CtrlAddsAltRemoves => {
+                 and the rest selected.",
+            ),
+            Self::CtrlAddsAltRemoves => tr(
                 "Ctrl + click or drag adds; Alt + click removes. Ctrl + click on \
                  something selected unselects it. Alt + drag moves the view while \
-                 \"Alt + mouse works in every scheme\" is on."
-            }
+                 \"Alt + mouse works in every scheme\" is on.",
+            ),
         }
     }
 
@@ -306,7 +307,8 @@ impl Selector<'_> {
             }
             (None, Gesture::DoubleClick { .. }) => None,
             (None, Gesture::Grow(_)) => Some(
-                "Grow and shrink work on points, edges and polygons: press 1, 2 or 3 first.".into(),
+                tr("Grow and shrink work on points, edges and polygons: press 1, 2 or 3 first.")
+                    .into(),
             ),
             (Some(kind), Gesture::Click { pointer, how }) => {
                 let found = self
@@ -367,7 +369,7 @@ impl Selector<'_> {
                 self.document.set_selection(all);
                 None
             }
-            Some(kind) => self.each_edited(kind, "Select all", |mesh, topology, _| {
+            Some(kind) => self.each_edited(kind, tr("Select all"), |mesh, topology, _| {
                 ops::all(mesh, topology, kind)
             }),
         }
@@ -388,7 +390,7 @@ impl Selector<'_> {
                 self.document.set_selection(rest);
                 None
             }
-            Some(kind) => self.each_edited(kind, "Invert", |mesh, topology, selected| {
+            Some(kind) => self.each_edited(kind, tr("Invert"), |mesh, topology, selected| {
                 ops::inverted(mesh, topology, selected, kind)
             }),
         }
@@ -399,7 +401,7 @@ impl Selector<'_> {
     /// closed shape's polygons facing inward. Says how many it found.
     pub(crate) fn select_flipped(&mut self) -> Option<String> {
         let mut found = 0;
-        let note = self.each_edited(ElementKind::Polygons, "Select flipped", |mesh, _, _| {
+        let note = self.each_edited(ElementKind::Polygons, tr("Select flipped"), |mesh, _, _| {
             mesh::cleanup::faces_facing_wrong(mesh)
                 .into_iter()
                 .map(Element::Polygon)
@@ -412,13 +414,14 @@ impl Selector<'_> {
             found += mesh::cleanup::faces_facing_wrong(&item.mesh).len();
         }
         Some(if found == 0 {
-            "No polygon faces the wrong way.".into()
+            tr("No polygon faces the wrong way.").into()
         } else {
-            format!(
-                "{found} polygon{} facing the wrong way selected: Flip normals turns {}, \
+            crate::trf!(
+                "{} polygon{} facing the wrong way selected: Flip normals turns {}, \
                  or Mesh → Fix normals turns every one.",
+                found,
                 if found == 1 { "" } else { "s" },
-                if found == 1 { "it" } else { "them" }
+                if found == 1 { tr("it") } else { tr("them") }
             )
         })
     }
@@ -464,11 +467,16 @@ impl Selector<'_> {
         if changes.is_empty() {
             return Some(nothing_to_edit(ElementKind::Polygons));
         }
-        self.record(ElementKind::Polygons, changes, "Select by material", None);
+        self.record(
+            ElementKind::Polygons,
+            changes,
+            tr("Select by material"),
+            None,
+        );
         Some(match found {
-            0 => format!("No polygon uses {name}."),
-            1 => format!("1 polygon using {name} selected."),
-            n => format!("{n} polygons using {name} selected."),
+            0 => crate::trf!("No polygon uses {}.", name),
+            1 => crate::trf!("1 polygon using {} selected.", name),
+            n => crate::trf!("{} polygons using {} selected.", n, name),
         })
     }
 
@@ -476,7 +484,7 @@ impl Selector<'_> {
     pub(crate) fn select_hard_edges(&mut self) -> Option<String> {
         self.each_edited(
             ElementKind::Edges,
-            "Select hard edges",
+            tr("Select hard edges"),
             |mesh, topology, _| {
                 mesh.hard_edges()
                     .filter(|e| topology.has_edge(*e))
@@ -491,9 +499,11 @@ impl Selector<'_> {
     pub(crate) fn select_connected(&mut self) -> Option<String> {
         let Some(kind) = kind_for(self.mode) else {
             return Some(
-                "Select connected works on points, edges or polygons: press 1, 2 or 3 \
-                         (or use the UV mode) and select a little of the part first."
-                    .into(),
+                tr(
+                    "Select connected works on points, edges or polygons: press 1, 2 or 3 \
+                         (or use the UV mode) and select a little of the part first.",
+                )
+                .into(),
             );
         };
         let none = ElementSelection::new();
@@ -504,12 +514,12 @@ impl Selector<'_> {
             .filter(|i| i.selected)
             .any(|i| self.document.elements(i.id).unwrap_or(&none).count(kind) > 0);
         if !anything {
-            return Some(format!(
+            return Some(crate::trf!(
                 "Select connected: select a {} of the part first.",
                 kind.singular()
             ));
         }
-        self.each_edited(kind, "Select connected", |mesh, topology, selected| {
+        self.each_edited(kind, tr("Select connected"), |mesh, topology, selected| {
             ops::connected(mesh, topology, selected, kind)
         })
     }
@@ -520,9 +530,11 @@ impl Selector<'_> {
     pub(crate) fn select_connected_in_uvs(&mut self) -> Option<String> {
         let Some(kind) = kind_for(self.mode) else {
             return Some(
-                "Select connected works on points, edges or polygons: press 1, 2 or 3 \
-                 (or use the UV mode) and select a little of a piece first."
-                    .into(),
+                tr(
+                    "Select connected works on points, edges or polygons: press 1, 2 or 3 \
+                 (or use the UV mode) and select a little of a piece first.",
+                )
+                .into(),
             );
         };
         let none = ElementSelection::new();
@@ -533,25 +545,31 @@ impl Selector<'_> {
             .filter(|i| i.selected)
             .any(|i| self.document.elements(i.id).unwrap_or(&none).count(kind) > 0);
         if !anything {
-            return Some(format!(
+            return Some(crate::trf!(
                 "Select connected: select a {} of the piece first.",
                 kind.singular()
             ));
         }
-        self.each_edited(kind, "Select whole pieces", |mesh, topology, selected| {
-            ops::connected_in_uvs(mesh, topology, selected, kind)
-        })
+        self.each_edited(
+            kind,
+            tr("Select whole pieces"),
+            |mesh, topology, selected| ops::connected_in_uvs(mesh, topology, selected, kind),
+        )
     }
 
     /// Selects the seams (Select or UV menu → Select seams).
     pub(crate) fn select_seams(&mut self) -> Option<String> {
-        self.each_edited(ElementKind::Edges, "Select seams", |mesh, topology, _| {
-            mesh::uvs::seams(mesh)
-                .into_iter()
-                .filter(|e| topology.has_edge(*e))
-                .map(Element::Edge)
-                .collect()
-        })
+        self.each_edited(
+            ElementKind::Edges,
+            tr("Select seams"),
+            |mesh, topology, _| {
+                mesh::uvs::seams(mesh)
+                    .into_iter()
+                    .filter(|e| topology.has_edge(*e))
+                    .map(Element::Edge)
+                    .collect()
+            },
+        )
     }
 
     /// Adds the polygons facing within `angle` degrees of a selected
@@ -559,7 +577,7 @@ impl Selector<'_> {
     pub(crate) fn select_similar_facing(&mut self, angle: f32) -> Option<String> {
         self.each_edited(
             ElementKind::Polygons,
-            "Select same facing",
+            tr("Select same facing"),
             |mesh, _, selected| {
                 let mut out: std::collections::BTreeSet<scene::FaceId> =
                     selected.polygons().collect();
@@ -578,7 +596,7 @@ impl Selector<'_> {
         let Some(kind) = kind_for(self.mode) else {
             return false;
         };
-        self.each_edited(kind, "Deselect", |_, _, _| Vec::new());
+        self.each_edited(kind, tr("Deselect"), |_, _, _| Vec::new());
         true
     }
 
@@ -587,7 +605,7 @@ impl Selector<'_> {
         if steps == 0 {
             return None;
         }
-        let label = if steps > 0 { "Grow" } else { "Shrink" };
+        let label = if steps > 0 { tr("Grow") } else { tr("Shrink") };
         self.each_edited(kind, label, |mesh, topology, selected| {
             let mut current = selected.clone();
             for _ in 0..steps.unsigned_abs() {
@@ -666,8 +684,8 @@ impl Selector<'_> {
             changes.push((id, next));
         }
         let action = match how {
-            Combine::Remove => "Deselect",
-            _ => "Select",
+            Combine::Remove => tr("Deselect"),
+            _ => tr("Select"),
         };
         self.record(kind, changes, action, merge_key);
         None
@@ -715,7 +733,11 @@ impl Selector<'_> {
         };
         let mut next = self.document.elements(item.id).cloned().unwrap_or_default();
         next.combine(kind, elements, how);
-        let action = if ring { "Select ring" } else { "Select loop" };
+        let action = if ring {
+            tr("Select ring")
+        } else {
+            tr("Select loop")
+        };
         self.record(kind, vec![(item.id, next)], action, None);
         None
     }
@@ -760,7 +782,7 @@ impl Selector<'_> {
                     .map_or(0, |s| s.count(kind))
             })
             .sum();
-        let label = format!("{action} ({} selected)", count(after, kind));
+        let label = crate::trf!("{} ({} selected)", action, count(after, kind));
         self.document.select_elements(changes, label, merge_key);
     }
 
@@ -811,7 +833,7 @@ pub(crate) fn count(n: usize, kind: ElementKind) -> String {
 }
 
 fn nothing_to_edit(kind: ElementKind) -> String {
-    format!(
+    crate::trf!(
         "Select an object first: its {} can then be selected.",
         kind.plural()
     )

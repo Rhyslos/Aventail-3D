@@ -101,6 +101,11 @@ jobs:
       - run: cargo test --locked -p render --test gpu
         env:
           REQUIRE_GPU: "1"
+      # Reference images of the main panels and windows (decision 0126),
+      # drawn on the same software GPU they were made with.
+      - run: cargo test --locked -p ui --lib reference_
+        env:
+          REQUIRE_GPU: "1"
       # The window title is the app's name (APP_NAME in branding.rs);
       # listed in RENAMING.md.
       - run: xvfb-run -s "-screen 0 1440x900x24" tools/smoke/window-smoke.sh target/debug/aventail "Aventail 3D" smoke-output
@@ -108,7 +113,57 @@ jobs:
         if: always()
         with:
           name: window-screenshot
-          path: smoke-output/
+          # The smoke test's screenshots, and any reference image that
+          # differed (its new and diff pictures).
+          path: |
+            smoke-output/
+            crates/ui/tests/snapshots/*.new.png
+            crates/ui/tests/snapshots/*.diff.png
+          if-no-files-found: ignore
+          retention-days: 14
+
+  gltf-check:
+    name: Exported files (glTF Validator and Godot)
+    # Pull requests only: main got the same files through its pull request.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    env:
+      # Pinned versions; change them on purpose, never by accident.
+      # The Khronos glTF Validator (npm, Apache-2.0).
+      GLTF_VALIDATOR: gltf-validator@2.0.0-dev.3.10
+      # Godot (MIT), the Linux build from Godot's own releases, and its
+      # SHA-512 from the release's SHA512-SUMS.txt.
+      GODOT_VERSION: 4.7.2-stable
+      GODOT_SHA512: 9aa00f7a605200940bce3027a567b782f49bd8e940dd06ae9e987bd65aee1b1467edd56ed84fcdcbdd44354bf613bdbb4e5d2913e925850368e150c59ed54c65
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+      # Every primitive, each on its own, an edited shape with materials,
+      # and Godot's collision names, exported as .glb files
+      # (fileio's ignored test `files_for_outside_checkers`).
+      - name: Export the sample files
+        run: cargo test --locked -p fileio --lib files_for_outside_checkers -- --ignored
+        env:
+          GLB_CHECK_OUT: ${{ runner.temp }}/glb
+      - name: glTF Validator
+        run: |
+          npm install --no-audit --no-fund --prefix "$RUNNER_TEMP/validator" "$GLTF_VALIDATOR"
+          NODE_PATH="$RUNNER_TEMP/validator/node_modules" node tools/gltf-check/validate.cjs "$RUNNER_TEMP/glb"
+      - name: Godot import
+        run: |
+          cd "$RUNNER_TEMP"
+          curl -sSfL -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          echo "${GODOT_SHA512}  godot.zip" | sha512sum -c
+          unzip -q godot.zip -d godot
+          cd "$GITHUB_WORKSPACE"
+          tools/gltf-check/godot-import.sh "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}_linux.x86_64" "$RUNNER_TEMP/glb"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: always()
+        with:
+          name: exported-samples
+          path: ${{ runner.temp }}/glb/
           retention-days: 14
 
   deny:

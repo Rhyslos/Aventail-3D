@@ -21,6 +21,7 @@ use super::Workbench;
 use crate::components::ViewPointer;
 use crate::drawing::SceneDrawing;
 use crate::palette::Mode;
+use crate::text::tr;
 use crate::transforming::Tool;
 use crate::viewport::{ToolDragEvent, ToolPath};
 use glam::Vec3;
@@ -50,9 +51,9 @@ pub(super) struct PairSession {
 /// "Connect 3 points", "Weld 1 point".
 pub(super) fn counted(verb: &str, n: usize, thing: &str) -> String {
     if n == 1 {
-        format!("{verb} 1 {thing}")
+        crate::trf!("{} 1 {}", verb, thing)
     } else {
-        format!("{verb} {n} {thing}s")
+        crate::trf!("{} {} {}s", verb, n, thing)
     }
 }
 
@@ -106,7 +107,7 @@ impl Workbench {
                 self.document
                     .execute_labelled(Command::Record { id, operation }, label, Some(key))
             {
-                self.note = Some(format!("Couldn't do that: {why}."));
+                self.note = Some(crate::trf!("Couldn't do that: {}.", why));
                 return false;
             }
         }
@@ -159,16 +160,17 @@ impl Workbench {
                 ));
             }
         }
-        let thing = if edges_mode { "edge" } else { "point" };
+        let thing = if edges_mode { tr("edge") } else { tr("point") };
         if ops.is_empty() {
-            self.note = Some(format!(
-                "Connect: select two or more {thing}s on the same polygon first."
+            self.note = Some(crate::trf!(
+                "Connect: select two or more {}s on the same polygon first.",
+                thing
             ));
             return;
         }
-        let label = counted("Connect", count, thing);
+        let label = counted(tr("Connect"), count, thing);
         if self.record_each(&label, ops) {
-            self.note = Some(format!("{label}. Ctrl + Z takes it back."));
+            self.note = Some(crate::trf!("{}. Ctrl + Z takes it back.", label));
         }
     }
 
@@ -235,13 +237,14 @@ impl Workbench {
             return;
         }
         let label = if self.mode == Mode::Polygons {
-            "Bridge 2 polygons"
+            tr("Bridge 2 polygons")
         } else {
-            "Bridge 2 borders"
+            tr("Bridge 2 borders")
         };
         if self.record_each(label, ops) {
-            self.note = Some(format!(
-                "{label}. Segments and Twist are in the Attributes panel; Ctrl + Z takes it back."
+            self.note = Some(crate::trf!(
+                "{}. Segments and Twist are in the Attributes panel; Ctrl + Z takes it back.",
+                label
             ));
         }
     }
@@ -273,15 +276,20 @@ impl Workbench {
         }
         if ops.is_empty() {
             self.note = Some(
-                "Weld: select two or more points first, or press Ctrl + M and drag a point \
-                 onto another."
-                    .into(),
+                tr(
+                    "Weld: select two or more points first, or press Ctrl + M and drag a point \
+                 onto another.",
+                )
+                .into(),
             );
             return;
         }
-        let label = counted("Weld", count, "point");
+        let label = counted(tr("Weld"), count, tr("point"));
         if self.record_each(&label, ops) {
-            self.note = Some(format!("{label} at their middle. Ctrl + Z takes it back."));
+            self.note = Some(crate::trf!(
+                "{} at their middle. Ctrl + Z takes it back.",
+                label
+            ));
         }
     }
 
@@ -320,16 +328,19 @@ impl Workbench {
         }
         if ops.is_empty() {
             self.note = Some(
-                "Weld: select a polygon first (its points melt into one at its middle), or \
-                 press Ctrl + M and drag a polygon onto a point."
-                    .into(),
+                tr(
+                    "Weld: select a polygon first (its points melt into one at its middle), or \
+                 press Ctrl + M and drag a polygon onto a point.",
+                )
+                .into(),
             );
             return;
         }
-        let label = counted("Weld", polygons, "polygon");
+        let label = counted(tr("Weld"), polygons, tr("polygon"));
         if self.record_each(&label, ops) {
-            self.note = Some(format!(
-                "{label} into a point at the middle. Ctrl + Z takes it back."
+            self.note = Some(crate::trf!(
+                "{} into a point at the middle. Ctrl + Z takes it back.",
+                label
             ));
         }
     }
@@ -389,16 +400,20 @@ impl Workbench {
                     if self.pair_session.is_none() {
                         self.note = Some(match self.tool {
                             Tool::Weld if from_kind == ElementKind::Polygons => {
-                                "Weld: press on a polygon of a selected object and drag it \
-                                 onto a point."
-                                    .into()
+                                tr("Weld: press on a polygon of a selected object and drag it \
+                                 onto a point.")
+                                .into()
                             }
-                            Tool::Weld => "Weld: press on a point of a selected object and drag \
-                                           it onto another."
-                                .into(),
-                            _ => "Bridge: press on an open edge of a selected object and drag \
-                                  to another."
-                                .into(),
+                            Tool::Weld => {
+                                tr("Weld: press on a point of a selected object and drag \
+                                           it onto another.")
+                                .into()
+                            }
+                            _ => tr(
+                                "Bridge: press on an open edge of a selected object and drag \
+                                  to another.",
+                            )
+                            .into(),
                         });
                     }
                 }
@@ -425,7 +440,7 @@ impl Workbench {
                 }
                 ToolDragEvent::Cancel => {
                     self.pair_session = None;
-                    self.note = Some("Cancelled.".into());
+                    self.note = Some(tr("Cancelled.").into());
                 }
             }
         }
@@ -453,7 +468,7 @@ impl Workbench {
     /// Joins what a drag began on to what it ended on.
     fn finish_pair(&mut self, drawing: &SceneDrawing, from: Picked, onto: Option<Picked>) {
         let Some(onto) = onto.filter(|o| o.id == from.id && o.element != from.element) else {
-            self.note = Some("Let go on another one of the same object to join them.".into());
+            self.note = Some(tr("Let go on another one of the same object to join them.").into());
             return;
         };
         let Some(item) = drawing.items.iter().find(|i| i.id == from.id) else {
@@ -465,7 +480,8 @@ impl Workbench {
                 let topology = mesh.topology();
                 if !topology.is_border(a) || !topology.is_border(b) {
                     self.note = Some(
-                        "Bridge joins open edges: edges with a polygon on one side only.".into(),
+                        tr("Bridge joins open edges: edges with a polygon on one side only.")
+                            .into(),
                     );
                     return;
                 }
@@ -484,8 +500,8 @@ impl Workbench {
                     twist,
                     anchors: Anchors::record(&mesh, ElementKind::Edges, &ends),
                 };
-                if self.record_each("Bridge 2 edges", vec![(from.id, op)]) {
-                    self.note = Some("Bridge 2 edges. Ctrl + Z takes it back.".into());
+                if self.record_each(tr("Bridge 2 edges"), vec![(from.id, op)]) {
+                    self.note = Some(tr("Bridge 2 edges. Ctrl + Z takes it back.").into());
                 }
             }
             (Element::Point(v), Element::Point(target)) => {
@@ -502,14 +518,17 @@ impl Workbench {
                 };
                 let mut places: Vec<Vec<VertexId>> = points.iter().map(|p| vec![*p]).collect();
                 places.push(vec![target]);
-                let label = counted("Weld", points.len() + 1, "point");
+                let label = counted(tr("Weld"), points.len() + 1, tr("point"));
                 let op = Operation::Weld {
                     points,
                     target: Some(target),
                     anchors: Anchors::record(&mesh, ElementKind::Points, &places),
                 };
                 if self.record_each(&label, vec![(from.id, op)]) {
-                    self.note = Some(format!("{label} onto the target. Ctrl + Z takes it back."));
+                    self.note = Some(crate::trf!(
+                        "{} onto the target. Ctrl + Z takes it back.",
+                        label
+                    ));
                 }
             }
             (Element::Polygon(face), Element::Point(target)) => {
@@ -538,14 +557,17 @@ impl Workbench {
                 }
                 let mut places: Vec<Vec<VertexId>> = points.iter().map(|p| vec![*p]).collect();
                 places.push(vec![target]);
-                let label = counted("Weld", faces.len(), "polygon");
+                let label = counted(tr("Weld"), faces.len(), tr("polygon"));
                 let op = Operation::Weld {
                     points,
                     target: Some(target),
                     anchors: Anchors::record(&mesh, ElementKind::Points, &places),
                 };
                 if self.record_each(&label, vec![(from.id, op)]) {
-                    self.note = Some(format!("{label} onto the point. Ctrl + Z takes it back."));
+                    self.note = Some(crate::trf!(
+                        "{} onto the point. Ctrl + Z takes it back.",
+                        label
+                    ));
                 }
             }
             _ => {}

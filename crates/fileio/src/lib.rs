@@ -12,4 +12,10 @@ pub mod limits;
 pub mod obj;
 pub mod project;
 
+/// The name written into exported files (an OBJ's object, a game
+/// project's file) for an object with none: the same in every language,
+/// so a game project's files keep their names whatever language the app
+/// is in.
+pub(crate) const UNNAMED_IN_FILES: &str = "Object";
+
 pub use project::{FORMAT_VERSION, ProjectError, SIGNATURE};

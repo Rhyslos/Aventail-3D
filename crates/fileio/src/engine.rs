@@ -16,6 +16,7 @@ use crate::export::{
 use scene::Document;
 use std::io::Read;
 use std::path::{Path, PathBuf};
+use words::{text, tr, trf};
 
 /// The game engines a folder can belong to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -33,12 +34,12 @@ pub enum Engine {
 impl Engine {
     /// Its name.
     pub fn name(self) -> &'static str {
-        match self {
-            Self::Godot => "Godot",
-            Self::Unity => "Unity",
-            Self::UnrealEngine => "Unreal Engine",
-            Self::Solis => "Solis",
-        }
+        tr(match self {
+            Self::Godot => text!("Godot"),
+            Self::Unity => text!("Unity"),
+            Self::UnrealEngine => text!("Unreal Engine"),
+            Self::Solis => text!("Solis"),
+        })
     }
 
     /// The export preset for it.
@@ -101,17 +102,15 @@ pub enum TargetError {
 impl std::fmt::Display for TargetError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::NoFolder(path) => write!(
-                f,
+            Self::NoFolder(path) => f.write_str(&trf!(
                 "the game project folder {} isn't there; choose it again in the Export window",
                 path.display()
-            ),
-            Self::NotOurs(path) => write!(
-                f,
+            )),
+            Self::NotOurs(path) => f.write_str(&trf!(
                 "{} is already there and wasn't written by this app, so it was left alone; \
                  rename it, or the project",
                 path.display()
-            ),
+            )),
             Self::Export(e) => e.fmt(f),
         }
     }
@@ -229,7 +228,7 @@ pub fn file_stem_for(name: &str) -> String {
         .collect();
     let cleaned = cleaned.trim_matches(|c: char| c == '.' || c.is_whitespace());
     if cleaned.is_empty() {
-        "Object".to_string()
+        crate::UNNAMED_IN_FILES.to_string()
     } else {
         cleaned.chars().take(120).collect()
     }
@@ -269,7 +268,8 @@ pub fn export_kit(
         let mut stem = base.clone();
         let mut n = 2;
         while used.iter().any(|u| u.eq_ignore_ascii_case(&stem)) {
-            stem = format!("{base} {n}");
+            // A file name, the same in every language.
+            stem = format!("{} {}", base, n);
             n += 1;
         }
         used.push(stem.clone());

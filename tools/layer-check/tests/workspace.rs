@@ -25,7 +25,7 @@ fn every_planned_crate_exists() {
     let crates = layer_check::load_workspace(workspace_root()).unwrap();
     let names: Vec<&str> = crates.iter().map(|c| c.name.as_str()).collect();
     let expected = [
-        "app", "config", "fileio", "mesh", "render", "scene", "tools", "ui", "uv",
+        "app", "config", "fileio", "mesh", "render", "scene", "tools", "ui", "uv", "words",
     ];
     assert_eq!(names, expected);
 }
@@ -61,9 +61,13 @@ fn only_the_app_is_in_the_top_layer() {
 #[test]
 fn the_mesh_crate_stands_alone() {
     // The foundation depends on no other app crate, so it can be tested
-    // and reused on its own.
+    // and reused on its own; the one exception is the language layer
+    // (decision 0134), which depends on nothing at all.
     let crates = layer_check::load_workspace(workspace_root()).unwrap();
     let mesh = crates.iter().find(|c| c.name == "mesh").unwrap();
     assert_eq!(mesh.layer, Some(0));
-    assert!(mesh.internal_deps.is_empty());
+    assert_eq!(mesh.internal_deps, ["words"]);
+    let words = crates.iter().find(|c| c.name == "words").unwrap();
+    assert_eq!(words.layer, Some(0));
+    assert!(words.internal_deps.is_empty());
 }

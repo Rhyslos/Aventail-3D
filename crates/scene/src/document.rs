@@ -6,6 +6,7 @@ use crate::object::ObjectId;
 use crate::tree::{Scene, SceneError};
 use mesh::ElementSelection;
 use std::collections::{BTreeMap, BTreeSet};
+use words::{tr, trf};
 
 /// Everything about the scene being worked on. The scene only changes
 /// through [`Document::execute`], [`Document::undo`] and
@@ -91,6 +92,18 @@ impl Document {
         Ok(self)
     }
 
+    /// The same document with object `id` given back the primitive it was
+    /// built from (see [`Scene::with_primitive`]), for a project being
+    /// opened.
+    pub fn with_primitive(
+        mut self,
+        id: ObjectId,
+        primitive: crate::Primitive,
+    ) -> Result<Self, &'static str> {
+        self.scene = std::mem::take(&mut self.scene).with_primitive(id, primitive)?;
+        Ok(self)
+    }
+
     /// The same document with trim sheet `trim`, for a project being
     /// opened (not a step to undo: use [`Command::SetTrim`]).
     #[must_use]
@@ -150,6 +163,7 @@ impl Document {
         merge_key: Option<u64>,
     ) -> Result<(), SceneError> {
         let label = label.unwrap_or_else(|| command.describe(&self.scene));
+        let before: Vec<ObjectId> = self.selection.iter().copied().collect();
         let applied = command::apply(&mut self.scene, &command)?;
         if let Some(select) = applied.select {
             self.selection = select.into_iter().collect();
@@ -157,11 +171,16 @@ impl Document {
         self.drop_missing_from_selection();
         if !applied.edits.is_empty() {
             self.revision += 1;
+            // A step that changes the selection itself (Create, Delete,
+            // Group, Duplicate…) keeps the change, so undo and redo put
+            // the selection back as it was before and after.
+            let after: Vec<ObjectId> = self.selection.iter().copied().collect();
+            let objects = (after != before).then_some(ObjectsEdit { before, after });
             self.history.record(Step {
                 label,
                 edits: applied.edits,
                 selections: Vec::new(),
-                objects: None,
+                objects,
                 merge_key,
             });
         }
@@ -370,17 +389,17 @@ impl Document {
     /// objects" or "Deselect all".
     fn selection_label(&self) -> String {
         match self.selection.len() {
-            0 => "Deselect all".to_string(),
+            0 => tr("Deselect all").to_string(),
             1 => match self
                 .selection
                 .iter()
                 .next()
                 .and_then(|id| self.scene.object(*id))
             {
-                Some(object) => format!("Select {}", object.name),
-                None => "Select 1 object".to_string(),
+                Some(object) => trf!("Select {}", object.name),
+                None => tr("Select 1 object").to_string(),
             },
-            n => format!("Select {n} objects"),
+            n => trf!("Select {} objects", n),
         }
     }
 

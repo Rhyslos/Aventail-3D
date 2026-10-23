@@ -16,6 +16,7 @@
 //! A change to a field is carried out by the workbench as a move, a scale
 //! or a turn, one undo step per drag or typed value.
 
+use crate::text::tr;
 use crate::theme::{self, tint};
 use crate::transforming::{Target, Targets};
 use crate::units::Units;
@@ -108,12 +109,21 @@ type Group<'a> = (
     fn(usize) -> Field,
 );
 
-/// Width of one group (Position, Size or Rotation).
-const GROUP_WIDTH: f32 = 200.0;
+/// The narrowest a value field gets.
+const MIN_FIELD_WIDTH: f32 = 44.0;
+/// The widest a value field gets.
+const MAX_FIELD_WIDTH: f32 = 110.0;
 /// Height of a value field.
 const FIELD_HEIGHT: f32 = 22.0;
+/// Room for a group's name (Position, Size, Rotation) before its fields.
+const GROUP_NAME_WIDTH: f32 = 58.0;
+/// Room for an axis letter before its field.
+const LETTER_WIDTH: f32 = 12.0;
+/// Room kept for the word "World" at the right.
+const WORLD_WIDTH: f32 = 48.0;
 
-/// Draws the panel.
+/// Draws the panel: one slim line (decision 0126), Position, Size and
+/// Rotation side by side, each with its X, Y and Z fields in a row.
 pub(crate) fn show(ui: &mut Ui, units: Units, view: &CoordinatesView) -> Interaction {
     let mut out = Interaction::default();
     // Each row: its letter, colour, and which value it shows.
@@ -131,47 +141,56 @@ pub(crate) fn show(ui: &mut Ui, units: Units, view: &CoordinatesView) -> Interac
         ("Z", tint::AXIS_Z, 0),
     ];
     let groups: [Group; 3] = [
-        ("Position", position, view.position, Field::Position),
-        ("Size", position, view.size, Field::Size),
-        ("Rotation", rotation, view.rotation, Field::Rotation),
+        (tr("Position"), position, view.position, Field::Position),
+        (tr("Size"), position, view.size, Field::Size),
+        (tr("Rotation"), rotation, view.rotation, Field::Rotation),
     ];
-    ui.horizontal_top(|ui| {
-        ui.spacing_mut().item_spacing.x = 18.0;
+    const GROUP_GAP: f32 = 16.0;
+    const FIELD_GAP: f32 = 4.0;
+    // The fields share what's left once the names, letters and gaps have
+    // their room.
+    // Between every two things on the line there's a gap: per group its
+    // name, three letters and three fields (seven gaps with the one after),
+    // then the room between groups; and "World" at the end.
+    let fixed = 3.0 * (GROUP_NAME_WIDTH + 3.0 * LETTER_WIDTH + 7.0 * FIELD_GAP + GROUP_GAP)
+        + WORLD_WIDTH
+        + 16.0;
+    let field_width =
+        ((ui.available_width() - fixed) / 9.0).clamp(MIN_FIELD_WIDTH, MAX_FIELD_WIDTH);
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing.x = FIELD_GAP;
         for (title, axes, values, field_of) in groups {
-            ui.vertical(|ui| {
-                ui.set_width(GROUP_WIDTH);
-                ui.spacing_mut().item_spacing.y = 4.0;
-                ui.label(RichText::new(title).small().color(theme::TEXT_WEAK));
-                for (axis, color, index) in axes {
-                    ui.horizontal(|ui| {
-                        ui.spacing_mut().item_spacing.x = 6.0;
-                        let (letter, _) =
-                            ui.allocate_exact_size(egui::vec2(12.0, FIELD_HEIGHT), Sense::hover());
-                        ui.painter().text(
-                            letter.center(),
-                            Align2::CENTER_CENTER,
-                            axis,
-                            FontId::proportional(13.0),
-                            color,
-                        );
-                        let field = field_of(index);
-                        let label = format!("{title} {axis}");
-                        let value = values.map(|v| v[index]);
-                        field_widget(ui, &label, field, value, units, &mut out);
-                    });
-                }
-            });
+            let (name, _) =
+                ui.allocate_exact_size(egui::vec2(GROUP_NAME_WIDTH, FIELD_HEIGHT), Sense::hover());
+            ui.painter().text(
+                name.left_center(),
+                Align2::LEFT_CENTER,
+                title,
+                FontId::proportional(12.0),
+                theme::TEXT_WEAK,
+            );
+            for (axis, color, index) in axes {
+                let (letter, _) =
+                    ui.allocate_exact_size(egui::vec2(LETTER_WIDTH, FIELD_HEIGHT), Sense::hover());
+                ui.painter().text(
+                    letter.center(),
+                    Align2::CENTER_CENTER,
+                    axis,
+                    FontId::proportional(13.0),
+                    color,
+                );
+                let field = field_of(index);
+                let label = crate::trf!("{} {}", title, axis);
+                let value = values.map(|v| v[index]);
+                field_widget(ui, &label, field, value, units, field_width, &mut out);
+            }
+            ui.add_space(GROUP_GAP);
         }
-        ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
-            ui.vertical(|ui| {
-                ui.add_space(18.0);
-                ui.label(RichText::new("World").color(theme::TEXT_WEAK))
-                    .on_hover_text(
-                        "Positions are in the world. Type a value and press Enter, or drag \
-                         the number sideways. Each change is one undo step.",
-                    );
-            });
-        });
+        ui.label(RichText::new(tr("World")).color(theme::TEXT_WEAK))
+            .on_hover_text(tr(
+                "Positions are in the world. Type a value and press Enter, or drag \
+                 the number sideways. Each change is one undo step.",
+            ));
     });
     out
 }
@@ -184,17 +203,17 @@ fn field_widget(
     field: Field,
     value: Option<f32>,
     units: Units,
+    width: f32,
     out: &mut Interaction,
 ) {
-    let width = ui.available_width();
     let size = egui::vec2(width, FIELD_HEIGHT);
     let Some(value) = value.filter(|v| v.is_finite()) else {
         let response = ui.add_enabled(false, egui::Button::new("—").min_size(size));
         response.widget_info(|| WidgetInfo::labeled(WidgetType::DragValue, false, label));
         response.on_disabled_hover_text(match field {
-            Field::Rotation(_) => "Rotation shows for one object in the Model and Object modes",
-            Field::Size(_) => "Size shows for a selection; a pivot (Object mode) has none",
-            _ => "Select something to see and type its coordinates",
+            Field::Rotation(_) => tr("Rotation shows for one object in the Model and Object modes"),
+            Field::Size(_) => tr("Size shows for a selection; a pivot (Object mode) has none"),
+            _ => tr("Select something to see and type its coordinates"),
         });
         return;
     };

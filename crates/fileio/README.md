@@ -17,7 +17,7 @@ Reads and writes the outside world's files: the versioned `.avtl` project format
 
 ## Depends on
 
-`scene`, `mesh`; `uv` and `config` planned. Outside libraries: `serde`, `postcard` and `ciborium` (encoding), `zstd` (compression), `glam`.
+`scene`, `mesh`, `words` (the language layer: errors and warnings a person reads go through it, [decision 0134](../../docs/decisions/0134-shared-language-crate.md)); `uv` and `config` planned. Outside libraries: `serde`, `postcard` and `ciborium` (encoding), `zstd` (compression), `glam`.
 
 ## Status
 
@@ -43,8 +43,11 @@ Tests:
 - `Session::start` makes a `session-<time>-<process>-<n>` folder inside the autosave folder and keeps its `lock` file locked (`File::try_lock`) while the app runs; the system lets go of the lock when the process ends in any way, a crash included.
 - `Session::set_project` notes the open project in `project.txt`. `write`/`write_copy_in` write `copy-N.avtl` (written beside its name, synced, then renamed) and delete the oldest beyond the number kept (at least one). `adopt` copies a restored copy into the new session, keeping its time. `end` deletes the folder (a normal close).
 - `leftovers` lists the sessions whose lock can be taken (no longer running) with their copies, newest first, and tidies away dead sessions without copies; `discard` deletes one. A session folder without its lock file is left alone for its first minute (an app may be starting). Backup folders are made readable only by their owner on Linux and macOS.
+- `write_emergency_in` writes the *emergency copy* (the app's panic hook calls it): the next `copy-N.avtl`, deleting no older copy, and `emergency.txt` naming it; `leftovers` marks that copy `Copy::emergency`, so recovery can say what it was. A note naming a copy that's gone is ignored.
 - `mark_restoring` notes in a leftover's folder which copy is being restored, and `clear_restoring` removes the note once the restore finishes; a note still there at the next start leaves that copy out (`Leftover::left_out`), so a copy whose restore closed the app isn't offered again (decision 0045).
 
-Tests: numbering and keeping the newest, a running session versus a crashed one, order and the untitled case, tidying and ignoring other files, adopting (with its time) and two sessions side by side.
+Tests: numbering and keeping the newest, a running session versus a crashed one, order and the untitled case, tidying and ignoring other files, adopting (with its time) and two sessions side by side, the emergency copy (newest, nothing deleted, marked; a stale note; no folder).
+
+**Files for outside checkers:** `gltf/tests.rs` has an ignored test, `files_for_outside_checkers`, that writes sample `.glb` files into the folder named by `GLB_CHECK_OUT` (every primitive side by side and each on its own, an edited shape with materials, Godot's collision names) for CI's glTF Validator and Godot import (`tools/gltf-check`, ARCHITECTURE.md *Checks*). Without the variable it writes nothing.
 
 Export arrives in Phase 5.

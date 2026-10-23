@@ -8,24 +8,28 @@
 use super::Workbench;
 use super::joining::counted;
 use super::unwrapping::UnwrapWay;
+use crate::text::tr;
 use scene::{FaceId, ObjectId, Operation};
 use std::collections::BTreeSet;
 
 /// The UV menu's names for locking, and what it does.
-pub(crate) const LOCK_LABEL: &str = "Lock pieces";
-pub(crate) const LOCK_HELP: &str = "No automatic tool changes the pieces holding the selection: \
+pub(crate) const LOCK_LABEL: &str = crate::text!("Lock pieces");
+pub(crate) const LOCK_HELP: &str = crate::text!(
+    "No automatic tool changes the pieces holding the selection: \
      Unwrap, Relax, Straighten, Pack, texel density, trim rows, Suggest seams and mending all \
      leave them as they are. You can still move, turn and scale them by hand. Drawn hatched in \
-     the UV Editor.";
-pub(crate) const UNLOCK_LABEL: &str = "Unlock pieces";
-pub(crate) const UNLOCK_HELP: &str = "Let the automatic tools change the selected pieces again";
+     the UV Editor."
+);
+pub(crate) const UNLOCK_LABEL: &str = crate::text!("Unlock pieces");
+pub(crate) const UNLOCK_HELP: &str =
+    crate::text!("Let the automatic tools change the selected pieces again");
 
 /// The UV menu's name for the piece settings submenu, and its parts.
-pub(crate) const PIECE_SETTINGS_LABEL: &str = "Piece settings";
-pub(crate) const APPS_OWN: &str = "The app's";
-pub(crate) const SET_PIECE_LABEL: &str = "Give the selection these settings";
-pub(crate) const CLEAR_PIECE_LABEL: &str = "Clear the selection's settings";
-pub(crate) const OWN_DENSITY_LABEL: &str = "Its own texel density";
+pub(crate) const PIECE_SETTINGS_LABEL: &str = crate::text!("Piece settings");
+pub(crate) const APPS_OWN: &str = crate::text!("The app's");
+pub(crate) const SET_PIECE_LABEL: &str = crate::text!("Give the selection these settings");
+pub(crate) const CLEAR_PIECE_LABEL: &str = crate::text!("Clear the selection's settings");
+pub(crate) const OWN_DENSITY_LABEL: &str = crate::text!("Its own texel density");
 
 impl Workbench {
     /// The whole pieces (by the shape's cuts) holding the selection, per
@@ -52,9 +56,13 @@ impl Workbench {
 
     /// Lock pieces (`lock`) or Unlock pieces, as one undo step.
     pub(crate) fn run_lock(&mut self, lock: bool) {
-        let name = if lock { LOCK_LABEL } else { UNLOCK_LABEL };
+        let name = if lock {
+            tr(LOCK_LABEL)
+        } else {
+            tr(UNLOCK_LABEL)
+        };
         if self.document.selection().is_empty() {
-            self.note = Some(format!("{name}: select the objects first."));
+            self.note = Some(crate::trf!("{}: select the objects first.", name));
             return;
         }
         let mut ops = Vec::new();
@@ -82,23 +90,23 @@ impl Workbench {
             ));
         }
         if ops.is_empty() {
-            let how = if lock { "locked" } else { "unlocked" };
-            self.note = Some(format!("{name}: those pieces are {how} already."));
+            let how = if lock { tr("locked") } else { tr("unlocked") };
+            self.note = Some(crate::trf!("{}: those pieces are {} already.", name, how));
             return;
         }
         let verb = if lock {
-            "Lock the UVs of"
+            tr("Lock the UVs of")
         } else {
-            "Unlock the UVs of"
+            tr("Unlock the UVs of")
         };
-        let label = counted(verb, count, "polygon");
+        let label = counted(verb, count, tr("polygon"));
         if self.record_each(&label, ops) {
             let why = if lock {
-                " No automatic tool changes them; move them by hand as usual."
+                tr(" No automatic tool changes them; move them by hand as usual.")
             } else {
                 ""
             };
-            self.note = Some(format!("{label}. Ctrl + Z takes it back.{why}"));
+            self.note = Some(crate::trf!("{}. Ctrl + Z takes it back.{}", label, why));
         }
     }
 
@@ -120,7 +128,10 @@ impl Workbench {
     /// one undo step.
     pub(crate) fn run_piece_settings(&mut self, settings: scene::PieceSettings) {
         if self.document.selection().is_empty() {
-            self.note = Some(format!("{PIECE_SETTINGS_LABEL}: select the objects first."));
+            self.note = Some(crate::trf!(
+                "{}: select the objects first.",
+                tr(PIECE_SETTINGS_LABEL)
+            ));
             return;
         }
         let mut ops = Vec::new();
@@ -138,53 +149,55 @@ impl Workbench {
             ));
         }
         if ops.is_empty() {
-            self.note = Some(format!(
-                "{PIECE_SETTINGS_LABEL}: the selected objects have no polygons."
+            self.note = Some(crate::trf!(
+                "{}: the selected objects have no polygons.",
+                tr(PIECE_SETTINGS_LABEL)
             ));
             return;
         }
         let verb = if settings.is_empty() {
-            "Clear the piece settings of"
+            tr("Clear the piece settings of")
         } else {
-            "Set the piece settings of"
+            tr("Set the piece settings of")
         };
-        let label = counted(verb, count, "polygon");
+        let label = counted(verb, count, tr("polygon"));
         if self.record_each(&label, ops) {
             let why = if settings.is_empty() {
-                " They follow the app's settings again."
+                tr(" They follow the app's settings again.")
             } else {
-                " Every unwrap of these pieces uses them."
+                tr(" Every unwrap of these pieces uses them.")
             };
-            self.note = Some(format!("{label}. Ctrl + Z takes it back.{why}"));
+            self.note = Some(crate::trf!("{}. Ctrl + Z takes it back.{}", label, why));
         }
     }
 
     /// The UV menu's Piece settings submenu.
     pub(crate) fn piece_settings_menu(&mut self, ui: &mut egui::Ui) {
         let s = &mut self.uv_settings;
-        ui.label("Method")
-            .on_hover_text("How these pieces are laid flat, whatever UV → Unwrapping says");
-        ui.radio_value(&mut s.piece_method, None, APPS_OWN);
+        ui.label(tr("Method")).on_hover_text(tr(
+            "How these pieces are laid flat, whatever UV → Unwrapping says",
+        ));
+        ui.radio_value(&mut s.piece_method, None, tr(APPS_OWN));
         for way in UnwrapWay::ALL {
             ui.radio_value(&mut s.piece_method, Some(way), way.name())
                 .on_hover_text(way.help());
         }
         ui.separator();
-        ui.label("Straighten as a strip").on_hover_text(
+        ui.label(tr("Straighten as a strip")).on_hover_text(tr(
             "Whether these pieces, when they're strips of square quads, come out as straight grids",
-        );
-        ui.radio_value(&mut s.piece_strips, None, APPS_OWN);
-        ui.radio_value(&mut s.piece_strips, Some(true), "Straighten");
-        ui.radio_value(&mut s.piece_strips, Some(false), "Don't straighten");
+        ));
+        ui.radio_value(&mut s.piece_strips, None, tr(APPS_OWN));
+        ui.radio_value(&mut s.piece_strips, Some(true), tr("Straighten"));
+        ui.radio_value(&mut s.piece_strips, Some(false), tr("Don't straighten"));
         ui.separator();
         let mut own = s.piece_density.is_some();
         ui.horizontal(|ui| {
             if ui
-                .checkbox(&mut own, OWN_DENSITY_LABEL)
-                .on_hover_text(
+                .checkbox(&mut own, tr(OWN_DENSITY_LABEL))
+                .on_hover_text(tr(
                     "Unwrap sizes these pieces to this texel density instead of matching the rest: \
                      more for a part seen up close (a face, a label), less for one hidden away",
-                )
+                ))
                 .changed()
             {
                 s.piece_density = own.then_some(1024.0);
@@ -194,14 +207,14 @@ impl Workbench {
                     egui::DragValue::new(density)
                         .range(1.0..=scene::MAX_DENSITY)
                         .speed(1.0)
-                        .suffix(" px/m"),
+                        .suffix(tr(" px/m")),
                 );
             }
         });
         ui.separator();
         if ui
-            .button(SET_PIECE_LABEL)
-            .on_hover_text("The pieces holding the selection (or whole objects) keep these settings for every unwrap")
+            .button(tr(SET_PIECE_LABEL))
+            .on_hover_text(tr("The pieces holding the selection (or whole objects) keep these settings for every unwrap"))
             .clicked()
         {
             let settings = self.chosen_piece_settings();
@@ -209,8 +222,10 @@ impl Workbench {
             ui.close();
         }
         if ui
-            .button(CLEAR_PIECE_LABEL)
-            .on_hover_text("The pieces holding the selection follow the app's settings again")
+            .button(tr(CLEAR_PIECE_LABEL))
+            .on_hover_text(tr(
+                "The pieces holding the selection follow the app's settings again",
+            ))
             .clicked()
         {
             self.run_piece_settings(scene::PieceSettings::default());

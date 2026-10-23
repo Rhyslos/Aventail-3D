@@ -7,6 +7,7 @@
 //! hands the workbench what was left behind, and the workbench asks what
 //! to do with it.
 
+use crate::text::tr;
 use egui::{Key, Modifiers};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -162,12 +163,12 @@ pub struct RecoveryOffer {
 pub fn ago(saved: SystemTime, now: SystemTime) -> String {
     let seconds = now.duration_since(saved).map_or(0, |d| d.as_secs());
     let (n, unit) = match seconds {
-        0..60 => return "just now".to_string(),
-        60..3_600 => (seconds / 60, "minute"),
-        3_600..86_400 => (seconds / 3_600, "hour"),
-        _ => (seconds / 86_400, "day"),
+        0..60 => return tr("just now").to_string(),
+        60..3_600 => (seconds / 60, tr("minute")),
+        3_600..86_400 => (seconds / 3_600, tr("hour")),
+        _ => (seconds / 86_400, tr("day")),
     };
-    format!("{n} {unit}{} ago", if n == 1 { "" } else { "s" })
+    crate::trf!("{} {}{} ago", n, unit, if n == 1 { "" } else { "s" })
 }
 
 /// What the recovery question was answered with.
@@ -190,7 +191,7 @@ pub(crate) struct RecoveryQuestion {
 }
 
 /// The window's title (also how tests find it).
-pub(crate) const RECOVERY_TITLE: &str = "Recover unsaved work?";
+pub(crate) const RECOVERY_TITLE: &str = crate::text!("Recover unsaved work?");
 
 impl RecoveryQuestion {
     /// Asks about the first offer, if any. Returns the offer and the
@@ -200,14 +201,14 @@ impl RecoveryQuestion {
         let now = SystemTime::now();
         let mut answer = None;
         let chosen = &mut self.chosen;
-        crate::dialog::Dialog::new(RECOVERY_TITLE, 480.0)
+        crate::dialog::Dialog::new(tr(RECOVERY_TITLE), 480.0)
             .id("recover_unsaved_work")
             .modal()
             .show(ctx, |d| {
                 d.header(false, |_| {});
                 d.body(|ui| {
                     let what = offer.project.as_ref().map_or_else(
-                        || "an unsaved scene".to_string(),
+                        || tr("an unsaved scene").to_string(),
                         |p| {
                             p.file_name().map_or_else(
                                 || p.display().to_string(),
@@ -215,15 +216,13 @@ impl RecoveryQuestion {
                             )
                         },
                     );
-                    ui.label(format!(
-                        "The app closed without saving your work on {what}. Backup copies were \
-                         kept:"
-                    ));
+                    ui.label(crate::trf!("The app closed without saving your work on {}. Backup copies were \
+                         kept:", what));
                     ui.add_space(2.0);
                     for (i, copy) in offer.copies.iter().enumerate() {
-                        let mut text = format!("Saved {}", ago(copy.saved, now));
+                        let mut text = crate::trf!("Saved {}", ago(copy.saved, now));
                         if i == 0 {
-                            text.push_str(" (newest)");
+                            text.push_str(tr(" (newest)"));
                         }
                         if ui.radio(*chosen == i, text).clicked() {
                             *chosen = i;
@@ -232,16 +231,16 @@ impl RecoveryQuestion {
                     if offer.left_out {
                         crate::dialog::help(
                             ui,
-                            "One newer copy is left out: restoring it closed the app last time.",
+                            tr("One newer copy is left out: restoring it closed the app last time."),
                         );
                     }
-                    crate::dialog::help(ui, "Enter: restore the chosen copy");
+                    crate::dialog::help(ui, tr("Enter: restore the chosen copy"));
                 });
                 d.footer(None, |ui| {
-                    if crate::dialog::main_button(ui, "Restore")
+                    if crate::dialog::main_button(ui, tr("Restore"))
                         .on_hover_text(
-                            "Bring the chosen copy back. It opens as unsaved work: save it to \
-                             keep it.",
+                            tr("Bring the chosen copy back. It opens as unsaved work: save it to \
+                             keep it."),
                         )
                         .clicked()
                     {
@@ -251,17 +250,17 @@ impl RecoveryQuestion {
                             .map(|c| RecoveryAnswer::Restore(c.path.clone()));
                     }
                     if let Some(project) = &offer.project
-                        && crate::dialog::plain_button(ui, "Open as saved")
+                        && crate::dialog::plain_button(ui, tr("Open as saved"))
                             .on_hover_text(
-                                "Open the project as you last saved it, and delete the backup \
-                                 copies.",
+                                tr("Open the project as you last saved it, and delete the backup \
+                                 copies."),
                             )
                             .clicked()
                     {
                         answer = Some(RecoveryAnswer::OpenSaved(project.clone()));
                     }
-                    if crate::dialog::plain_button(ui, "Discard")
-                        .on_hover_text("Delete the backup copies for good and start afresh.")
+                    if crate::dialog::plain_button(ui, tr("Discard"))
+                        .on_hover_text(tr("Delete the backup copies for good and start afresh."))
                         .clicked()
                     {
                         answer = Some(RecoveryAnswer::Discard);

@@ -21,6 +21,7 @@
 use crate::components::kind_for;
 use crate::drawing::SceneDrawing;
 use crate::palette::Mode;
+use crate::text::tr;
 use crate::viewport::GridDetail;
 use egui::{Key, KeyboardShortcut, Modifiers};
 use glam::{Mat4, Quat, Vec2, Vec3};
@@ -91,19 +92,19 @@ impl Tool {
     /// Its name.
     pub fn name(self) -> &'static str {
         match self {
-            Self::Select => "Select",
-            Self::Move => "Move",
-            Self::Rotate => "Rotate",
-            Self::Scale => "Scale",
-            Self::All => "Transform",
-            Self::Extrude => "Extrude",
-            Self::Inset => "Inset",
-            Self::Bevel => "Bevel",
-            Self::Groove => "Groove",
-            Self::LoopCut => "Loop cut",
-            Self::Slit => "Slit",
-            Self::Bridge => "Bridge",
-            Self::Weld => "Weld",
+            Self::Select => tr("Select"),
+            Self::Move => tr("Move"),
+            Self::Rotate => tr("Rotate"),
+            Self::Scale => tr("Scale"),
+            Self::All => tr("Transform"),
+            Self::Extrude => tr("Extrude"),
+            Self::Inset => tr("Inset"),
+            Self::Bevel => tr("Bevel"),
+            Self::Groove => tr("Groove"),
+            Self::LoopCut => tr("Loop cut"),
+            Self::Slit => tr("Slit"),
+            Self::Bridge => tr("Bridge"),
+            Self::Weld => tr("Weld"),
         }
     }
 
@@ -248,7 +249,7 @@ pub(crate) struct PointsStart {
     /// Where the selected elements are in the shape, so the edit can find
     /// them again if the shape's points are renumbered (decision 0032).
     pub(crate) anchors: Option<Anchors>,
-    /// While sliding (Alt + drag on the Move gizmo, decision 0055): the
+    /// While sliding (Shift + Alt + drag on the Move gizmo, decisions 0055 and 0133): the
     /// shape as it was, whose edges the points slide along.
     pub(crate) slide: Option<std::sync::Arc<scene::Mesh>>,
     /// The edit this drag continues (decision 0126): the object's last
@@ -259,6 +260,28 @@ pub(crate) struct PointsStart {
     pub(crate) follows: Option<(usize, usize, Operation)>,
 }
 
+/// A drag of points' undo label, from its verb and count ("Move 1
+/// point", "Scale 8 points"): made by `Target::label`, read back
+/// by [`follows`].
+const ONE_POINT_DRAG: &str = crate::text!("{} {} point");
+/// A drag of more than one point's undo label; see [`ONE_POINT_DRAG`].
+const POINTS_DRAG: &str = crate::text!("{} {} points");
+
+/// Whether `label` is a drag of points moved, turned or scaled: the label
+/// [`Target::label`] gives them, with any count, in the language in use.
+fn is_points_drag(label: &str) -> bool {
+    [tr("Move"), tr("Rotate"), tr("Scale")].iter().any(|verb| {
+        [tr(ONE_POINT_DRAG), tr(POINTS_DRAG)]
+            .iter()
+            .any(|template| {
+                let count = '\u{1}';
+                crate::text::fill(template, &[verb, &count])
+                    .split_once(count)
+                    .is_some_and(|(start, end)| label.starts_with(start) && label.ends_with(end))
+            })
+    })
+}
+
 /// The edit a drag of `points` on `id` continues, if any (decision 0126):
 /// the object's last edit is a move, turn or scale of exactly these
 /// points, and the last undo step was that drag.
@@ -267,12 +290,7 @@ fn follows(
     id: ObjectId,
     points: &[VertexId],
 ) -> Option<(usize, usize, Operation)> {
-    let label = document.undo_label()?;
-    let dragged = ["Move ", "Rotate ", "Scale "]
-        .iter()
-        .any(|verb| label.starts_with(verb))
-        && (label.ends_with(" point") || label.ends_with(" points"));
-    if !dragged {
+    if !is_points_drag(document.undo_label()?) {
         return None;
     }
     let layers = document.scene().object(id)?.stack.layers();
@@ -640,25 +658,22 @@ impl Target {
     /// points"; for pivots, "Move Cube's pivot", "Rotate 2 pivots".
     pub(crate) fn label(&self, change: &Change) -> String {
         let verb = match change {
-            Change::Translate(_) if self.slides() => "Slide",
-            Change::Translate(_) => "Move",
-            Change::Rotate { .. } => "Rotate",
-            Change::Scale(_) => "Scale",
+            Change::Translate(_) if self.slides() => tr("Slide"),
+            Change::Translate(_) => tr("Move"),
+            Change::Rotate { .. } => tr("Rotate"),
+            Change::Scale(_) => tr("Scale"),
         };
         match &self.targets {
             Targets::Objects(starts) => match (starts.as_slice(), self.pivots) {
-                ([one], false) => format!("{verb} {}", one.name),
-                (many, false) => format!("{verb} {} objects", many.len()),
-                ([one], true) => format!("{verb} {}'s pivot", one.name),
-                (many, true) => format!("{verb} {} pivots", many.len()),
+                ([one], false) => crate::trf!("{} {}", verb, one.name),
+                (many, false) => crate::trf!("{} {} objects", verb, many.len()),
+                ([one], true) => crate::trf!("{} {}'s pivot", verb, one.name),
+                (many, true) => crate::trf!("{} {} pivots", verb, many.len()),
             },
             Targets::Points(starts, _) => {
                 let n: usize = starts.iter().map(|s| s.points.len()).sum();
-                if n == 1 {
-                    format!("{verb} 1 point")
-                } else {
-                    format!("{verb} {n} points")
-                }
+                let template = if n == 1 { ONE_POINT_DRAG } else { POINTS_DRAG };
+                crate::text::fill(tr(template), &[&verb, &n])
             }
         }
     }
@@ -872,22 +887,22 @@ pub(crate) fn describe(change: &Change, target: &Target, units: crate::units::Un
             let parts: Vec<String> = ["X", "Y", "Z"]
                 .iter()
                 .zip(target.axes)
-                .map(|(name, axis)| format!("{name} {}", units.format(d.dot(axis))))
+                .map(|(name, axis)| crate::trf!("{} {}", name, units.format(d.dot(axis))))
                 .collect();
             if target.slides() {
-                format!("Sliding along the edges (the drag: {})", parts.join(", "))
+                crate::trf!("Sliding along the edges (the drag: {})", parts.join(", "))
             } else {
-                format!("Moving: {}", parts.join(", "))
+                crate::trf!("Moving: {}", parts.join(", "))
             }
         }
-        Change::Rotate { angle, .. } => format!("Rotating: {:.1}°", angle.to_degrees()),
+        Change::Rotate { angle, .. } => crate::trf!("Rotating: {:.1}°", angle.to_degrees()),
         Change::Scale(f) => {
             let parts: Vec<String> = f
                 .to_array()
                 .iter()
                 .map(|v| format!("{:.0}%", v * 100.0))
                 .collect();
-            format!("Scaling: {}", parts.join(" × "))
+            crate::trf!("Scaling: {}", parts.join(" × "))
         }
     }
 }

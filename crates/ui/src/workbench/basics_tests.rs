@@ -61,6 +61,35 @@ fn shift_h_hides_objects_and_alt_h_shows_them() {
 }
 
 #[test]
+fn ctrl_shift_h_shows_everything_too_and_isolates_nothing() {
+    // The second key for Show everything (decision 0133).
+    let mut harness = selected_cube();
+    let id = cube(&harness);
+    keys(&mut harness, Modifiers::SHIFT, Key::H);
+    assert!(!visible(&harness, id));
+    keys(&mut harness, Modifiers::COMMAND | Modifiers::SHIFT, Key::H);
+    assert!(visible(&harness, id));
+    assert!(note(&harness).starts_with("Showing 1 hidden object"));
+    // With a second object, it doesn't isolate the cube (Ctrl + H) instead.
+    let doc = harness.state_mut().workbench.document_mut();
+    doc.execute(scene::Command::Create(ObjectKind::Group))
+        .unwrap();
+    doc.set_selection([id]);
+    harness.run();
+    let steps = harness.state().workbench.document().undo_steps();
+    keys(&mut harness, Modifiers::COMMAND | Modifiers::SHIFT, Key::H);
+    assert!(!note(&harness).starts_with("Isolated"));
+    let doc = harness.state().workbench.document();
+    assert!(
+        doc.scene()
+            .walk()
+            .into_iter()
+            .all(|(o, _)| doc.scene().object(o).unwrap().visible)
+    );
+    assert_eq!(doc.undo_steps(), steps);
+}
+
+#[test]
 fn ctrl_h_isolates_the_selected_object() {
     let mut harness = selected_cube();
     let id = cube(&harness);

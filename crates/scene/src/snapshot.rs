@@ -12,6 +12,7 @@
 use crate::{ObjectId, ObjectKind, Operation, Scene};
 use mesh::uvs::UvLayout;
 use std::sync::Arc;
+use words::{tr, trf};
 
 /// The most snapshots a project keeps.
 pub const MAX_SNAPSHOTS: usize = 32;
@@ -111,7 +112,7 @@ pub fn snapshots_are_valid(list: &[UvSnapshot]) -> bool {
 pub fn free_name(list: &[UvSnapshot], wanted: &str) -> String {
     let mut base = wanted.trim().to_string();
     if base.is_empty() {
-        base = "Snapshot".into();
+        base = tr("Snapshot").into();
     }
     // Room for a number after it.
     while base.len() > MAX_SNAPSHOT_NAME - 4 {
@@ -122,7 +123,7 @@ pub fn free_name(list: &[UvSnapshot], wanted: &str) -> String {
         return base;
     }
     (2..)
-        .map(|k| format!("{base} {k}"))
+        .map(|k| trf!("{} {}", base, k))
         .find(|n| !taken(n))
         .unwrap_or(base)
 }

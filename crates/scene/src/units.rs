@@ -4,6 +4,8 @@
 //! read), its game project folder ([decision 0076](../../../docs/decisions/0076-engine-export-paths.md))
 //! and its texture settings ([decision 0100](../../../docs/decisions/0100-texture-size-and-texel-density.md)).
 
+use words::{text, tr};
+
 /// The length a project is measured in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum Units {
@@ -15,12 +17,13 @@ pub enum Units {
 }
 
 impl Units {
-    /// The name, in lower case, for undo steps: "metres".
+    /// The name, in lower case, for undo steps: "metres" (in the
+    /// language in use).
     pub fn name(self) -> &'static str {
-        match self {
-            Self::Metres => "metres",
-            Self::Centimetres => "centimetres",
-        }
+        tr(match self {
+            Self::Metres => text!("metres"),
+            Self::Centimetres => text!("centimetres"),
+        })
     }
 }
 

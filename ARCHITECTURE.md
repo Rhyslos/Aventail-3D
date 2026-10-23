@@ -12,11 +12,11 @@ Crate names are generic on purpose (no product name), so renaming the app never 
 | 3 | Front end | `render`, `tools`, `ui` | Reads the scene; changes it only through commands. |
 | 2 | Services | `fileio` | Talks to the outside world: project files, OBJ, glTF, the settings file. |
 | 1 | Core | `scene`, `uv`, `config` | The scene document, UV mapping and settings. No files, GPU or UI. |
-| 0 | Geometry | `mesh` | The polygon mesh and its operations. Knows nothing about the app. |
+| 0 | Geometry | `mesh`, `words` | The polygon mesh and its operations, and the language layer every text goes through. Know nothing about the app; `words` depends on nothing at all, and `mesh` only on it. |
 
 Each crate's `README.md` states its purpose and what it **must never** do. Read it before changing the crate.
 
-Planned later: a booleans crate (layer 1, wrapping manifold), a `script` crate (layer 2, scripting (LustScript and Lua) through the same commands as everything else; Phase 15, see [decision 0011](docs/decisions/0011-lua-scripting.md) and [decision 0119](docs/decisions/0119-roadmap-after-the-uvs.md)), a renderer crate for Solis (layer 1 or 2, knowing nothing about the interface; Phase 11), and animation support inside `scene` (Phases 17 and 18). Phase 9 adds a translation layer to `ui`, with English as the one language package ([decision 0117](docs/decisions/0117-language-support.md), [decision 0119](docs/decisions/0119-roadmap-after-the-uvs.md)).
+Planned later: a booleans crate (layer 1, wrapping manifold), a `script` crate (layer 2, scripting (LustScript and Lua) through the same commands as everything else; Phase 15, see [decision 0011](docs/decisions/0011-lua-scripting.md) and [decision 0119](docs/decisions/0119-roadmap-after-the-uvs.md)), and animation support inside `scene` (Phases 17 and 18). Every text a person reads, in any crate, goes through one language layer, the `words` crate, with English as the one language package (`crates/words/lang/en.txt`) for now ([decision 0117](docs/decisions/0117-language-support.md), [decision 0132](docs/decisions/0132-one-language-layer.md), [decision 0134](docs/decisions/0134-shared-language-crate.md)).
 
 ## How a frame runs
 
@@ -57,7 +57,7 @@ The `ui` crate's workbench owns everything inside the window:
 └──────────────────────────────────────────────────────────────┘
 ```
 
-The five middle panels are dockable (egui_dock; Edit layers is a tab beside Objects); the bars and palettes around them are fixed. The modifiers palette is drawn inside the viewport's panel, on its right edge, so it always sits between the viewport and the panels beside it ([decision 0091](docs/decisions/0091-edit-layers.md)). Palette icons are drawn in code (`ui/src/icons.rs`). The workbench never touches the window or files itself: it returns actions for `app` to carry out.
+The five middle panels are dockable (egui_dock; Edit layers is a tab beside Objects); the bars and palettes around them are fixed. The modifiers palette is drawn inside the viewport's panel, on its right edge, so it always sits between the viewport and the panels beside it ([decision 0091](docs/decisions/0091-edit-layers.md)). Palette icons are drawn in code (`ui/src/icons.rs`, with one file per family of icons in `ui/src/icons/`). The workbench never touches the window or files itself: it returns actions for `app` to carry out.
 
 ## Viewport
 
@@ -98,7 +98,7 @@ Rendering sits behind the `ViewportRenderer` trait, so the panel runs in tests w
 - The single source of truth for an open project: the object hierarchy, each object's base and its operation stack. See [decision 0006](docs/decisions/0006-base-plus-operation-stack.md).
 - An object is a **base** (a parametric primitive, an imported mesh, or an editable mesh) plus a **stack of layers**, each holding recorded operations. Base parameters stay editable; the stack replays on top. Built so far ([decision 0021](docs/decisions/0021-object-stack-foundation.md)): the base is the object's kind (a primitive or a plain mesh), the stack a list of layers with one implicit *Edits* layer, and `Scene::evaluated` works out the final shape from a per-layer cache inside the scene, which also keeps each layer's shape before its last edit ([decision 0042](docs/decisions/0042-fast-edits.md)). Each recorded edit is an entry with an id and on/off and pinned switches; edits trust their ids while the structure below them is unchanged ([decision 0044](docs/decisions/0044-edits-that-hold.md)). The interface draws and frames evaluated shapes.
 - Every mesh element has a stable ID that is never reused. Operations create IDs deterministically, so replaying an unchanged history gives identical IDs.
-- The scene changes only through commands, which gives undo, redo and future scripting from one mechanism. Projects are saved and opened by `fileio` through a file model kept separate from the scene's types, so the scene can change without breaking old files ([decision 0024](docs/decisions/0024-saving-projects.md)); the interface asks the app to save or open, and the app shows the dialogs. While the app runs it also saves backup copies of the scene in the background: the workbench decides when (every interval while the scene changes, on its own clock separate from saving) and asks the app, which writes them on another thread into its own session folder, kept locked so the next start can tell a crash from a running app and offer the copies back ([decision 0036](docs/decisions/0036-autosave.md)). Undo history is bounded by a memory budget, not a step count: 2 GB as standard, oldest steps forgotten first, the newest always kept ([decision 0022](docs/decisions/0022-undo-memory-budget.md)).
+- The scene changes only through commands, which gives undo, redo and future scripting from one mechanism. Projects are saved and opened by `fileio` through a file model kept separate from the scene's types, so the scene can change without breaking old files ([decision 0024](docs/decisions/0024-saving-projects.md)); the interface asks the app to save or open, and the app shows the dialogs. While the app runs it also saves backup copies of the scene in the background: the workbench decides when (every interval while the scene changes, on its own clock separate from saving) and asks the app, which writes them on another thread into its own session folder, kept locked so the next start can tell a crash from a running app and offer the copies back ([decision 0036](docs/decisions/0036-autosave.md)). If the app panics, a panic hook (`app::emergency`) writes one more copy, the *emergency copy*, from a snapshot of the document the app keeps after each frame in which it changed (at most twice a second, behind a lock the hook only tries to take), so a crash loses at most a moment of work. Undo history is bounded by a memory budget, not a step count: 2 GB as standard, oldest steps forgotten first, the newest always kept ([decision 0022](docs/decisions/0022-undo-memory-budget.md)).
 - **Built so far** ([decision 0018](docs/decisions/0018-scene-document-and-undo.md)): `scene::Document` holds the `Scene` (a tree of objects with stable ids that are never reused), the undo history and the selection. `Document::execute` carries out a `Command` as small reversible edits (insert, remove, relocate, rename, show/hide) and records them as one step; `undo` applies their opposites in reverse order. The workbench owns the document: the Objects panel, menus and keys hand it commands, and the viewport reads a summary: the shown objects' meshes, world placements and selection (rebuilt only when the scene or selection changes), and the boxes to frame. An object's shape comes from its kind: a primitive's settings build a `mesh::Mesh` ([decision 0020](docs/decisions/0020-primitives.md)); the app turns the meshes into one GPU shape when the drawing's version changes.
 - Exports are prepared once (`fileio::export::prepare`: objects, polygons or triangles, normals as seen, UVs, in the file's units and up axis) and every format writer works from that ([decision 0071](docs/decisions/0071-obj-export-and-import.md)); polygons carry their material slot and objects their materials, joined by name across objects ([decision 0074](docs/decisions/0074-material-slots.md)). The workbench asks for an export or import with a `WorkbenchAction`; the app asks where (native dialogs), calls `fileio`, and reports back. A project's game project folder (`scene::ExportTarget`, only text in the scene) is exported into by the app after each successful save, through `fileio::engine::export_into`, which never creates folders and only replaces the app's own files ([decision 0076](docs/decisions/0076-engine-export-paths.md)).
 - Transforms are stored relative to the parent; world transforms are always derived. An object's transform places its pivot; its `offset` places its shape relative to the pivot, so the shape's place in the world is `Scene::shape_matrix` (pivot × offset). Anything that works with a shape in the world uses that, not `world_matrix` ([decision 0068](docs/decisions/0068-pivot-editing-and-scene-units.md)).
@@ -108,12 +108,12 @@ Rendering sits behind the `ViewportRenderer` trait, so the panel runs in tests w
 | Format | Read | Write |
 | --- | --- | --- |
 | `.avtl` (projects; versioned, compressed, crash-safe; see decisions [0007](docs/decisions/0007-rhy-project-format.md), [0010](docs/decisions/0010-avtl-file-extension.md) and [0024](docs/decisions/0024-saving-projects.md)) | Yes | Yes |
-| OBJ | Planned | Planned |
-| glTF / GLB | Later | Planned |
+| OBJ | Yes | Yes |
+| glTF / GLB | Yes | Yes |
 | FBX | No | Late, optional |
-| Settings file | Planned | Planned |
+| Settings file | Yes | Yes |
 | `app.ron` (window size and panel layout; written by eframe) | Yes | Yes |
-| Backup copies (`autosave/session-*/copy-N.avtl`, ordinary projects, in the app's own data folder) | Yes | Yes |
+| Backup copies (`autosave/session-*/copy-N.avtl`, ordinary projects, in the app's own data folder; `emergency.txt` names one saved as the app crashed) | Yes | Yes |
 
 ## Extension points
 
@@ -132,6 +132,23 @@ Rendering sits behind the `ViewportRenderer` trait, so the panel runs in tests w
 - Files from strangers are hostile: every reader checks sizes before allocating and has a fuzz test. Project files are held to one limits rulebook (`fileio::limits`, [decision 0045](docs/decisions/0045-limits-for-files.md)): a cap on the unpacked body, a memory budget every list is paid from while it is read (`Bounded`), and counts of objects, edits and polygons. Shapes can't grow past `scene::MAX_SHAPE_POLYGONS` through their edits.
 - No usernames or local paths are written into exported files. No telemetry.
 - Dependencies are audited for licenses and known vulnerabilities on every change (`cargo deny`).
+
+## Checks
+
+Automatic checks, in `.github/workflows/`:
+
+- **Every pull request and every change to main** (`ci.yml`): formatting, clippy, the tests on Windows, Linux and macOS, the API docs, the window and GPU tests on a virtual screen (`tools/smoke/window-smoke.sh`), licences and known vulnerabilities (`cargo deny`), release builds, and a changelog entry when code changes.
+- **Every pull request: exported files checked by other programs** (the `gltf-check` job in `ci.yml`). `fileio`'s ignored test `files_for_outside_checkers` writes sample `.glb` files (every primitive side by side, each on its own, an edited shape with materials, and Godot's collision names) into the folder in `GLB_CHECK_OUT`. The Khronos glTF Validator (`tools/gltf-check/validate.cjs`, the npm package `gltf-validator`, pinned) fails the job on any error and prints warnings; then a pinned Godot (downloaded from Godot's releases and checked against its SHA-512) imports them headless into a fresh project (`tools/gltf-check/godot-import.sh`), failing on any import error, and opens each imported scene to check it holds meshes and that the collision names became collision shapes (`check-scenes.gd`). The files are kept as an artifact.
+- **Every night, and by hand** (`heavy.yml`): the heavy-mesh check (`tools/heavy/heavy-check.sh`, [decision 0033](docs/decisions/0033-heavy-mesh-safeguard.md)) on main, its numbers on the run's summary page and kept as an artifact for 90 days. It still runs by hand at every phase gate.
+
+To run the export checks locally (Node.js and a Godot 4 program needed):
+
+```
+GLB_CHECK_OUT=/tmp/glb cargo test -p fileio --lib files_for_outside_checkers -- --ignored
+npm install --prefix /tmp/validator gltf-validator@2.0.0-dev.3.10
+NODE_PATH=/tmp/validator/node_modules node tools/gltf-check/validate.cjs /tmp/glb
+tools/gltf-check/godot-import.sh path/to/godot /tmp/glb
+```
 
 ## Decisions
 

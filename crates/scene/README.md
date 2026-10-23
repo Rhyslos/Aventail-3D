@@ -17,7 +17,7 @@ The single source of truth for an open project. Holds the object hierarchy (tran
 
 ## Depends on
 
-`mesh` (bounding boxes), `uv` (unwrapping, relaxing and straightening UVs, the same layer). Outside library: `glam` (maths).
+`mesh` (bounding boxes), `uv` (unwrapping, relaxing and straightening UVs, the same layer), `words` (the language layer: undo labels, messages and reasons go through it, [decision 0134](../../docs/decisions/0134-shared-language-crate.md)). Outside library: `glam` (maths).
 
 ## Status
 

@@ -10,6 +10,7 @@
 use super::Workbench;
 use super::joining::counted;
 use crate::palette::Mode;
+use crate::text::tr;
 use mesh::Anchors;
 use scene::{EdgeKey, ElementKind, FaceId, ObjectId, ObjectKind, Operation, VertexId};
 use serde::{Deserialize, Serialize};
@@ -96,10 +97,10 @@ impl SeamHiding {
     /// Its name in the menu.
     pub fn name(self) -> &'static str {
         match self {
-            Self::BelowAndBehind => "Underneath and at the back",
-            Self::Below => "Underneath",
-            Self::Behind => "At the back",
-            Self::Shortest => "Anywhere (shortest cuts)",
+            Self::BelowAndBehind => tr("Underneath and at the back"),
+            Self::Below => tr("Underneath"),
+            Self::Behind => tr("At the back"),
+            Self::Shortest => tr("Anywhere (shortest cuts)"),
         }
     }
 
@@ -107,15 +108,17 @@ impl SeamHiding {
     pub fn help(self) -> &'static str {
         match self {
             Self::BelowAndBehind => {
-                "Cuts go where a prop is least seen: facing down, or away from the Front view"
+                tr("Cuts go where a prop is least seen: facing down, or away from the Front view")
             }
-            Self::Below => "Cuts go on the parts facing down, wherever they face round the sides",
+            Self::Below => {
+                tr("Cuts go on the parts facing down, wherever they face round the sides")
+            }
             Self::Behind => {
-                "Cuts go on the parts facing away from the Front view, top or bottom alike"
+                tr("Cuts go on the parts facing away from the Front view, top or bottom alike")
             }
-            Self::Shortest => {
-                "Cuts are as short as can be, wherever they fall: for shapes seen from all round"
-            }
+            Self::Shortest => tr(
+                "Cuts are as short as can be, wherever they fall: for shapes seen from all round",
+            ),
         }
     }
 
@@ -150,9 +153,9 @@ impl PackQuality {
     /// Its name in the menu.
     pub fn name(self) -> &'static str {
         match self {
-            Self::Fast => "Fast",
-            Self::Standard => "Standard",
-            Self::Best => "Best",
+            Self::Fast => tr("Fast"),
+            Self::Standard => tr("Standard"),
+            Self::Best => tr("Best"),
         }
     }
 
@@ -160,10 +163,12 @@ impl PackQuality {
     pub fn help(self) -> &'static str {
         match self {
             Self::Fast => {
-                "Pieces are fitted on a coarse grid: quick, with a little more space lost"
+                tr("Pieces are fitted on a coarse grid: quick, with a little more space lost")
             }
-            Self::Standard => "Pieces are fitted on a grid as fine as half the padding",
-            Self::Best => "Pieces are fitted on the finest grid: the tightest fit, and the slowest",
+            Self::Standard => tr("Pieces are fitted on a grid as fine as half the padding"),
+            Self::Best => {
+                tr("Pieces are fitted on the finest grid: the tightest fit, and the slowest")
+            }
         }
     }
 
@@ -210,32 +215,32 @@ impl UnwrapWay {
     /// Its name in the menu.
     pub fn name(self) -> &'static str {
         match self {
-            Self::KeepShapes => "Keep shapes",
-            Self::AngleBased => "Keep shapes, smoother",
-            Self::KeepSizes => "Keep sizes",
-            Self::Automatic => "Automatic",
+            Self::KeepShapes => tr("Keep shapes"),
+            Self::AngleBased => tr("Keep shapes, smoother"),
+            Self::KeepSizes => tr("Keep sizes"),
+            Self::Automatic => tr("Automatic"),
         }
     }
 
     /// What it does, in plain words.
     pub fn help(self) -> &'static str {
         match self {
-            Self::KeepShapes => {
+            Self::KeepShapes => tr(
                 "Every small part keeps its angles, so a texture's squares stay square. Sizes \
-                 may drift across a strongly curved piece. Fast: the standard way."
-            }
-            Self::AngleBased => {
+                 may drift across a strongly curved piece. Fast: the standard way.",
+            ),
+            Self::AngleBased => tr(
                 "Like Keep shapes, but the angles are first evened out over the whole piece, \
-                 so curved pieces (a head, a dome) drift less. A little slower."
-            }
-            Self::KeepSizes => {
+                 so curved pieces (a head, a dome) drift less. A little slower.",
+            ),
+            Self::KeepSizes => tr(
                 "Every part keeps its real size, so the texture's pixels are the same size all \
-                 over the piece, at the cost of a little bending of angles. The slowest."
-            }
-            Self::Automatic => {
+                 over the piece, at the cost of a little bending of angles. The slowest.",
+            ),
+            Self::Automatic => tr(
                 "Each piece is laid flat all three ways and keeps the one that lies most evenly. \
-                 Always the same choice for the same piece; slowest of all."
-            }
+                 Always the same choice for the same piece; slowest of all.",
+            ),
         }
     }
 
@@ -278,43 +283,55 @@ impl Default for UvSettings {
 }
 
 /// The UV menu's name for laying strips on a trim row (decision 0106).
-pub(crate) const PUT_ON_TRIM_LABEL: &str = "Put on trim row";
+pub(crate) const PUT_ON_TRIM_LABEL: &str = crate::text!("Put on trim row");
 
 /// The most padding packing takes, in pixels.
 pub(crate) const MAX_PADDING: u32 = 256;
 
 /// The UV menu's names for the two switches, and what they do.
-pub(crate) const LIVE_UNWRAP_LABEL: &str = "Unwrap as seams change";
-pub(crate) const LIVE_UNWRAP_HELP: &str = "When on, marking or clearing seams lays the pieces \
-     around them flat again at once. Off: only the seam marks change, until you Unwrap.";
-pub(crate) const STRAIGHT_STRIPS_LABEL: &str = "Straighten strips when unwrapping";
-pub(crate) const STRAIGHT_STRIPS_HELP: &str = "When on, a piece made only of square-cornered quads \
-     (a cylinder's side, a bevel's strip) unwraps as a perfectly straight grid";
+pub(crate) const LIVE_UNWRAP_LABEL: &str = crate::text!("Unwrap as seams change");
+pub(crate) const LIVE_UNWRAP_HELP: &str = crate::text!(
+    "When on, marking or clearing seams lays the pieces \
+     around them flat again at once. Off: only the seam marks change, until you Unwrap."
+);
+pub(crate) const STRAIGHT_STRIPS_LABEL: &str = crate::text!("Straighten strips when unwrapping");
+pub(crate) const STRAIGHT_STRIPS_HELP: &str = crate::text!(
+    "When on, a piece made only of square-cornered quads \
+     (a cylinder's side, a bevel's strip) unwraps as a perfectly straight grid"
+);
 
 /// Which texture a packed island goes on: the object's (when each gets
 /// its own) and the material's name (when each gets its own).
 pub(crate) type TextureGroup = (Option<ObjectId>, String);
 
 /// The label of the packing padding field.
-pub(crate) const PADDING_LABEL: &str = "Padding";
+pub(crate) const PADDING_LABEL: &str = crate::text!("Padding");
 
 /// The UV menu's names for setting and matching texel density, and what
 /// they do (decision 0100).
-pub(crate) const SET_DENSITY_LABEL: &str = "Set texel density";
-pub(crate) const SET_DENSITY_HELP: &str = "Scale the selected pieces (or whole objects) so each \
-     has the project's texel density (UV → Texture), each about its own middle";
-pub(crate) const MATCH_DENSITY_LABEL: &str = "Match texel density";
-pub(crate) const MATCH_DENSITY_HELP: &str = "Scale the selected pieces (or whole objects) so they \
-     share one texel density: the average of theirs";
+pub(crate) const SET_DENSITY_LABEL: &str = crate::text!("Set texel density");
+pub(crate) const SET_DENSITY_HELP: &str = crate::text!(
+    "Scale the selected pieces (or whole objects) so each \
+     has the project's texel density (UV → Texture), each about its own middle"
+);
+pub(crate) const MATCH_DENSITY_LABEL: &str = crate::text!("Match texel density");
+pub(crate) const MATCH_DENSITY_HELP: &str = crate::text!(
+    "Scale the selected pieces (or whole objects) so they \
+     share one texel density: the average of theirs"
+);
 
 /// The UV menu's names for unwrapping one way only, and what they do
 /// (decision 0109).
-pub(crate) const UNFOLD_ACROSS_LABEL: &str = "Unfold across only";
-pub(crate) const UNFOLD_ACROSS_HELP: &str = "Unwrap, but move the UVs only across (U): every \
-     point keeps its height in the texture. For evening out a strip along its length.";
-pub(crate) const UNFOLD_UP_LABEL: &str = "Unfold up only";
-pub(crate) const UNFOLD_UP_HELP: &str = "Unwrap, but move the UVs only up and down (V): every \
-     point keeps its place across the texture";
+pub(crate) const UNFOLD_ACROSS_LABEL: &str = crate::text!("Unfold across only");
+pub(crate) const UNFOLD_ACROSS_HELP: &str = crate::text!(
+    "Unwrap, but move the UVs only across (U): every \
+     point keeps its height in the texture. For evening out a strip along its length."
+);
+pub(crate) const UNFOLD_UP_LABEL: &str = crate::text!("Unfold up only");
+pub(crate) const UNFOLD_UP_HELP: &str = crate::text!(
+    "Unwrap, but move the UVs only up and down (V): every \
+     point keeps its place across the texture"
+);
 
 /// One of the UV tools.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -329,11 +346,11 @@ pub(crate) enum UvTool {
 impl UvTool {
     fn name(self) -> &'static str {
         match self {
-            Self::Unwrap => "Unwrap",
-            Self::Unfold(scene::UnfoldAxis::Across) => UNFOLD_ACROSS_LABEL,
-            Self::Unfold(scene::UnfoldAxis::Up) => UNFOLD_UP_LABEL,
-            Self::Relax => "Relax",
-            Self::Straighten => "Straighten",
+            Self::Unwrap => tr("Unwrap"),
+            Self::Unfold(scene::UnfoldAxis::Across) => tr(UNFOLD_ACROSS_LABEL),
+            Self::Unfold(scene::UnfoldAxis::Up) => tr(UNFOLD_UP_LABEL),
+            Self::Relax => tr("Relax"),
+            Self::Straighten => tr("Straighten"),
         }
     }
 }
@@ -470,7 +487,7 @@ impl Workbench {
     pub(crate) fn run_uv_tool(&mut self, tool: UvTool) {
         let shapes = self.own_shapes();
         if shapes.is_empty() {
-            self.note = Some(format!("{}: select the objects first.", tool.name()));
+            self.note = Some(crate::trf!("{}: select the objects first.", tool.name()));
             return;
         }
         let mut ops = Vec::new();
@@ -488,28 +505,28 @@ impl Workbench {
             ops.push((id, self.uv_tool_op(tool, &mesh, faces)));
         }
         if ops.is_empty() {
-            self.note = Some(format!(
+            self.note = Some(crate::trf!(
                 "{}: the selected objects have no polygons.",
                 tool.name()
             ));
             return;
         }
         let verb = match tool {
-            UvTool::Unwrap => "Unwrap",
-            UvTool::Unfold(scene::UnfoldAxis::Across) => "Unfold across",
-            UvTool::Unfold(scene::UnfoldAxis::Up) => "Unfold up",
-            UvTool::Relax => "Relax the UVs of",
-            UvTool::Straighten => "Straighten the UVs of",
+            UvTool::Unwrap => tr("Unwrap"),
+            UvTool::Unfold(scene::UnfoldAxis::Across) => tr("Unfold across"),
+            UvTool::Unfold(scene::UnfoldAxis::Up) => tr("Unfold up"),
+            UvTool::Relax => tr("Relax the UVs of"),
+            UvTool::Straighten => tr("Straighten the UVs of"),
         };
-        let label = counted(verb, count, "polygon");
+        let label = counted(verb, count, tr("polygon"));
         if self.record_each(&label, ops) {
             let extra = match tool {
                 UvTool::Straighten if !quads_only => {
-                    " Only pieces made of quads are straightened; others are left as they were."
+                    tr(" Only pieces made of quads are straightened; others are left as they were.")
                 }
                 _ => "",
             };
-            self.note = Some(format!("{label}. Ctrl + Z takes it back.{extra}"));
+            self.note = Some(crate::trf!("{}. Ctrl + Z takes it back.{}", label, extra));
         }
     }
 
@@ -517,13 +534,13 @@ impl Workbench {
     /// density (to the average of the pieces'), as one undo step.
     pub(crate) fn run_texel_density(&mut self, to_aim: bool) {
         let name = if to_aim {
-            SET_DENSITY_LABEL
+            tr(SET_DENSITY_LABEL)
         } else {
-            MATCH_DENSITY_LABEL
+            tr(MATCH_DENSITY_LABEL)
         };
         let shapes = self.own_shapes();
         if shapes.is_empty() {
-            self.note = Some(format!("{name}: select the objects first."));
+            self.note = Some(crate::trf!("{}: select the objects first.", name));
             return;
         }
         let texture = self.document.scene().texture();
@@ -544,7 +561,10 @@ impl Workbench {
             }
         }
         if flat <= 1e-20 || real <= 1e-20 {
-            self.note = Some(format!("{name}: the selection has no UVs to measure."));
+            self.note = Some(crate::trf!(
+                "{}: the selection has no UVs to measure.",
+                name
+            ));
             return;
         }
         let density = if to_aim {
@@ -568,10 +588,11 @@ impl Workbench {
                 )
             })
             .collect();
-        let label = counted("Set the texel density of", count, "polygon");
+        let label = counted(tr("Set the texel density of"), count, tr("polygon"));
         if self.record_each(&label, ops) {
-            self.note = Some(format!(
-                "{label}: {:.0} px/m. Ctrl + Z takes it back.",
+            self.note = Some(crate::trf!(
+                "{}: {:.0} px/m. Ctrl + Z takes it back.",
+                label,
                 texture.pixels_per_metre(density)
             ));
         }
@@ -583,7 +604,7 @@ impl Workbench {
     pub(crate) fn run_pack(&mut self) {
         let shapes = self.own_shapes();
         if shapes.is_empty() {
-            self.note = Some("Pack: select the objects first.".into());
+            self.note = Some(tr("Pack: select the objects first.").into());
             return;
         }
         self.pack_shapes(shapes, false, None);
@@ -659,11 +680,11 @@ impl Workbench {
         }
         if by_object.is_empty() {
             self.note = Some(if locked > 0 && on_trim == 0 {
-                "Pack: every selected piece is locked, and stays where it is.".into()
+                tr("Pack: every selected piece is locked, and stays where it is.").into()
             } else if on_trim > 0 {
-                "Pack: every selected piece is on the trim sheet, and stays on its row.".into()
+                tr("Pack: every selected piece is on the trim sheet, and stays on its row.").into()
             } else {
-                "Pack: the selection has no UVs with any area to pack.".into()
+                tr("Pack: the selection has no UVs with any area to pack.").into()
             });
             return false;
         }
@@ -671,21 +692,28 @@ impl Workbench {
             .into_iter()
             .map(|(id, islands)| (id, Operation::PackUvs { islands }))
             .collect();
-        let label = counted("Pack", islands, "piece");
+        let label = counted(tr("Pack"), islands, tr("piece"));
         let key = key.unwrap_or_else(|| self.new_step_key());
         let done = self.record_each_in(&label, ops, key);
         if done {
             let kept = if locked > 0 {
-                format!(
+                crate::trf!(
                     " {} stayed where {}.",
-                    counted("", locked, "locked piece").trim_start(),
-                    if locked == 1 { "it was" } else { "they were" }
+                    counted("", locked, tr("locked piece")).trim_start(),
+                    if locked == 1 {
+                        tr("it was")
+                    } else {
+                        tr("they were")
+                    }
                 )
             } else {
                 String::new()
             };
-            self.note = Some(format!(
-                "{label}, {padding_px} px apart. Ctrl + Z takes it back.{kept}"
+            self.note = Some(crate::trf!(
+                "{}, {} px apart. Ctrl + Z takes it back.{}",
+                label,
+                padding_px,
+                kept
             ));
         }
         done
@@ -696,11 +724,11 @@ impl Workbench {
     pub(crate) fn put_on_trim_menu(&mut self, ui: &mut egui::Ui) {
         let sheet = self.document.scene().trim().clone();
         if sheet.rows.is_empty() {
-            ui.add_enabled(false, egui::Button::new("No rows yet"))
-                .on_disabled_hover_text(
+            ui.add_enabled(false, egui::Button::new(tr("No rows yet")))
+                .on_disabled_hover_text(tr(
                     "Make the trim sheet's rows first: the UV Editor's Trim menu, or UV → Trim \
                      sheet",
-                );
+                ));
             return;
         }
         let mut order: Vec<usize> = (0..sheet.rows.len()).collect();
@@ -708,10 +736,10 @@ impl Workbench {
         for i in order {
             if ui
                 .button(&sheet.rows[i].name)
-                .on_hover_text(
+                .on_hover_text(tr(
                     "Lay the selected pieces straight along this row, filling its height, from \
                      its left end",
-                )
+                ))
                 .clicked()
             {
                 self.run_put_on_trim(i);
@@ -728,7 +756,10 @@ impl Workbench {
         };
         let shapes = self.own_shapes();
         if shapes.is_empty() {
-            self.note = Some(format!("{PUT_ON_TRIM_LABEL}: select the objects first."));
+            self.note = Some(crate::trf!(
+                "{}: select the objects first.",
+                tr(PUT_ON_TRIM_LABEL)
+            ));
             return;
         }
         let mut ops = Vec::new();
@@ -750,16 +781,17 @@ impl Workbench {
             ));
         }
         if ops.is_empty() {
-            self.note = Some(format!(
-                "{PUT_ON_TRIM_LABEL}: the selection has no UVs. Unwrap it first."
+            self.note = Some(crate::trf!(
+                "{}: the selection has no UVs. Unwrap it first.",
+                tr(PUT_ON_TRIM_LABEL)
             ));
             return;
         }
-        let label = format!("Put on {}", row.name);
+        let label = crate::trf!("Put on {}", row.name);
         if self.record_each(&label, ops) {
-            self.note = Some(format!(
+            self.note = Some(crate::trf!(
                 "{} on {}. Slide along it with W; Ctrl + Z takes it back.",
-                counted("Laid", pieces, "piece"),
+                counted(tr("Laid"), pieces, tr("piece")),
                 row.name
             ));
         }

@@ -13,6 +13,7 @@ use crate::attributes::OpenedEdit;
 use crate::icons::{self, Icon};
 use crate::objects::DocRequest;
 use crate::palette::{ButtonState, icon_button};
+use crate::text::tr;
 use crate::theme;
 use egui::{Align2, FontId, Key, Rect, RichText, Sense, Ui, WidgetInfo, WidgetType, pos2, vec2};
 use scene::{Command, Document, LayerChange, ObjectId, ObjectKind};
@@ -21,23 +22,25 @@ use scene::{Command, Document, LayerChange, ObjectId, ObjectKind};
 pub(crate) const MODIFIERS_WIDTH: f32 = 44.0;
 
 /// The Edit layer button's name, also used in the Mesh menu.
-pub(crate) const ADD_LAYER_LABEL: &str = "Add edit layer";
+pub(crate) const ADD_LAYER_LABEL: &str = crate::text!("Add edit layer");
 
 /// What the Edit layer button does.
-pub(crate) const ADD_LAYER_HELP: &str = "Add an empty edit layer on top of each selected \
+pub(crate) const ADD_LAYER_HELP: &str = crate::text!(
+    "Add an empty edit layer on top of each selected \
      object. The edits you make from now on go into it, so you can switch them all off to \
-     compare, or delete them in one go. The Edit layers panel lists the layers.";
+     compare, or delete them in one go. The Edit layers panel lists the layers."
+);
 
 /// The Edit layers panel's menu.
-pub(crate) const LAYER_MENU: &str = "Layer";
+pub(crate) const LAYER_MENU: &str = crate::text!("Layer");
 
 /// The mark on the layer new edits go into.
-pub(crate) const NEW_EDITS_MARK: &str = "new edits";
+pub(crate) const NEW_EDITS_MARK: &str = crate::text!("new edits");
 
 /// The mark on an edit that can't find some of its parts.
-pub(crate) const MISSING_MARK: &str = "parts missing";
+pub(crate) const MISSING_MARK: &str = crate::text!("parts missing");
 /// The mark on an edit skipped as too big.
-pub(crate) const SKIPPED_MARK: &str = "skipped";
+pub(crate) const SKIPPED_MARK: &str = crate::text!("skipped");
 
 const ROW_HEIGHT: f32 = 22.0;
 const EDIT_HEIGHT: f32 = 20.0;
@@ -73,14 +76,14 @@ pub(crate) fn modifiers_palette(ui: &mut Ui, doc: &Document) -> Option<ModifierP
         ui.add_space(6.0);
         let any = !layer_targets(doc).is_empty();
         let (state, note) = if any {
-            (ButtonState::Normal, ADD_LAYER_HELP)
+            (ButtonState::Normal, tr(ADD_LAYER_HELP))
         } else {
             (
                 ButtonState::Unavailable,
-                "Select an object with a shape first (not a group or an instance).",
+                tr("Select an object with a shape first (not a group or an instance)."),
             )
         };
-        if icon_button(ui, Icon::EditLayer, ADD_LAYER_LABEL, note, state).clicked() {
+        if icon_button(ui, Icon::EditLayer, tr(ADD_LAYER_LABEL), note, state).clicked() {
             pick = Some(ModifierPick::AddLayer);
         }
     });
@@ -111,9 +114,9 @@ fn shown_object(doc: &Document) -> Result<ObjectId, String> {
     let selection = doc.selection();
     let [id] = selection.as_slice() else {
         return Err(if selection.is_empty() {
-            "Select an object to see its edit layers.".into()
+            tr("Select an object to see its edit layers.").into()
         } else {
-            format!(
+            crate::trf!(
                 "{} objects are selected: select one to see its edit layers. (Add edit layer \
                  still adds one to each.)",
                 selection.len()
@@ -123,14 +126,14 @@ fn shown_object(doc: &Document) -> Result<ObjectId, String> {
     let object = doc
         .scene()
         .object(*id)
-        .ok_or_else(|| "Select an object to see its edit layers.".to_string())?;
+        .ok_or_else(|| tr("Select an object to see its edit layers.").to_string())?;
     match object.kind {
-        ObjectKind::Group => Err("A group has no shape of its own, so no edit layers.".into()),
-        ObjectKind::Instance(_) => Err(
+        ObjectKind::Group => Err(tr("A group has no shape of its own, so no edit layers.").into()),
+        ObjectKind::Instance(_) => Err(tr(
             "An instance shows its original's shape and edits: select the original to see its \
-             layers."
-                .into(),
-        ),
+             layers.",
+        )
+        .into()),
         _ => Ok(*id),
     }
 }
@@ -146,11 +149,11 @@ impl LayersPanel {
 
     /// The panel's menu line: the Layer menu.
     pub(crate) fn menus(&mut self, ui: &mut Ui, doc: &Document, out: &mut Vec<DocRequest>) {
-        crate::dialog::menu(ui, LAYER_MENU, |ui| {
+        crate::dialog::menu(ui, tr(LAYER_MENU), |ui| {
             let targets = layer_targets(doc);
             if ui
-                .add_enabled(!targets.is_empty(), egui::Button::new(ADD_LAYER_LABEL))
-                .on_hover_text(ADD_LAYER_HELP)
+                .add_enabled(!targets.is_empty(), egui::Button::new(tr(ADD_LAYER_LABEL)))
+                .on_hover_text(tr(ADD_LAYER_HELP))
                 .clicked()
             {
                 out.push(DocRequest::Run(Command::AddLayer(targets)));
@@ -160,7 +163,9 @@ impl LayersPanel {
             match self.chosen_layer(doc) {
                 Some((id, index)) => self.layer_entries(ui, doc, id, index, out),
                 None => {
-                    ui.label(RichText::new("Click a layer to change it").color(theme::TEXT_WEAK));
+                    ui.label(
+                        RichText::new(tr("Click a layer to change it")).color(theme::TEXT_WEAK),
+                    );
                 }
             }
         });
@@ -191,18 +196,20 @@ impl LayersPanel {
                 .on_disabled_hover_text(help)
                 .clicked()
         };
-        if entry(ui, "Rename", true, "Type a new name for the layer") {
+        if entry(ui, tr("Rename"), true, tr("Type a new name for the layer")) {
             self.start_rename(id, index, &layer.name);
             ui.close();
         }
         let (word, help) = if layer.enabled {
             (
-                "Switch off",
-                "See the shape without this layer's edits. New edits go into the top layer \
+                tr("Switch off"),
+                tr(
+                    "See the shape without this layer's edits. New edits go into the top layer \
                  that is on.",
+                ),
             )
         } else {
-            ("Switch on", "Bring this layer's edits back")
+            (tr("Switch on"), tr("Bring this layer's edits back"))
         };
         if entry(ui, word, true, help) {
             out.push(change(LayerChange::SetEnabled(!layer.enabled)));
@@ -212,9 +219,9 @@ impl LayersPanel {
         let top = index + 1 == layers.len();
         if entry(
             ui,
-            "Move up",
+            tr("Move up"),
             !top,
-            "Apply this layer's edits after the layer above it",
+            tr("Apply this layer's edits after the layer above it"),
         ) {
             out.push(change(LayerChange::Move { up: true }));
             self.chosen = Some((id, index + 1));
@@ -222,9 +229,9 @@ impl LayersPanel {
         }
         if entry(
             ui,
-            "Move down",
+            tr("Move down"),
             index > 0,
-            "Apply this layer's edits before the layer below it",
+            tr("Apply this layer's edits before the layer below it"),
         ) {
             out.push(change(LayerChange::Move { up: false }));
             self.chosen = Some((id, index - 1));
@@ -232,13 +239,13 @@ impl LayersPanel {
         }
         let both_on = index > 0 && layer.enabled && layers[index - 1].enabled;
         let merge_help = if index == 0 {
-            "There is no layer below to merge into"
+            tr("There is no layer below to merge into")
         } else if both_on {
-            "Put this layer's edits at the end of the layer below, making them one layer"
+            tr("Put this layer's edits at the end of the layer below, making them one layer")
         } else {
-            "Switch both layers on first"
+            tr("Switch both layers on first")
         };
-        if entry(ui, "Merge down", both_on, merge_help) {
+        if entry(ui, tr("Merge down"), both_on, merge_help) {
             out.push(change(LayerChange::MergeDown));
             self.chosen = Some((id, index - 1));
             ui.close();
@@ -246,9 +253,9 @@ impl LayersPanel {
         ui.separator();
         if entry(
             ui,
-            "Delete layer",
+            tr("Delete layer"),
             true,
-            "Delete the layer and every edit in it (Ctrl + Z brings them back)",
+            tr("Delete the layer and every edit in it (Ctrl + Z brings them back)"),
         ) {
             out.push(change(LayerChange::Delete));
             self.chosen = None;
@@ -296,8 +303,8 @@ impl LayersPanel {
             ui.label(RichText::new(&object.name).color(theme::TEXT_STRONG));
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui
-                    .button("Add layer")
-                    .on_hover_text(ADD_LAYER_HELP)
+                    .button(tr("Add layer"))
+                    .on_hover_text(tr(ADD_LAYER_HELP))
                     .clicked()
                 {
                     out.push(DocRequest::Run(Command::AddLayer(vec![id])));
@@ -308,11 +315,11 @@ impl LayersPanel {
         ui.add_space(4.0);
         if layers.is_empty() {
             ui.label(
-                RichText::new(
+                RichText::new(tr(
                     "No edit layers yet. The first edit you make goes into a layer called \
                      Edits. Add a layer to keep a set of edits apart: switch it off to \
                      compare, or delete it to take them all back.",
-                )
+                ))
                 .color(theme::TEXT_WEAK),
             );
             return;
@@ -328,14 +335,14 @@ impl LayersPanel {
                 if recording.is_none() {
                     ui.label(
                         RichText::new(
-                            "Every layer is off: the next edit makes a new layer on top.",
+                            tr("Every layer is off: the next edit makes a new layer on top."),
                         )
                         .small()
                         .color(theme::TEXT_WEAK),
                     );
                 }
                 ui.label(
-                    RichText::new("Click an edit to open it in the Attributes panel. Right-click a layer or an edit for more.")
+                    RichText::new(tr("Click an edit to open it in the Attributes panel. Right-click a layer or an edit for more."))
                         .small()
                         .color(theme::TEXT_WEAK),
                 );
@@ -387,15 +394,15 @@ impl LayersPanel {
             Rect::from_center_size(pos2(rect.left() + 12.0, rect.center().y), vec2(20.0, 18.0));
         let eye_response = ui.interact(eye, ui.id().with(("layer eye", id, index)), Sense::click());
         let eye_label = if layer.enabled {
-            "Switch off"
+            tr("Switch off")
         } else {
-            "Switch on"
+            tr("Switch on")
         };
         eye_response.widget_info(|| {
             WidgetInfo::labeled(
                 WidgetType::Button,
                 true,
-                format!("{eye_label} {}", layer.name),
+                crate::trf!("{} {}", eye_label, layer.name),
             )
         });
         let eye_color = if eye_response.hovered() {
@@ -416,10 +423,15 @@ impl LayersPanel {
             eye_color,
         );
         if eye_response
-            .on_hover_text(format!(
-                "{eye_label} {}: see the shape {} its edits",
+            .on_hover_text(crate::trf!(
+                "{} {}: see the shape {} its edits",
+                eye_label,
                 layer.name,
-                if layer.enabled { "without" } else { "with" }
+                if layer.enabled {
+                    tr("without")
+                } else {
+                    tr("with")
+                }
             ))
             .clicked()
         {
@@ -432,8 +444,8 @@ impl LayersPanel {
 
         // On the right: how many edits, and the "new edits" mark.
         let count = match layer.entries.len() {
-            1 => "1 edit".to_string(),
-            n => format!("{n} edits"),
+            1 => tr("1 edit").to_string(),
+            n => crate::trf!("{} edits", n),
         };
         let mut right = rect.right() - 6.0;
         let count_rect = painter.text(
@@ -448,17 +460,17 @@ impl LayersPanel {
             let mark = painter.text(
                 pos2(right, rect.center().y),
                 Align2::RIGHT_CENTER,
-                NEW_EDITS_MARK,
+                tr(NEW_EDITS_MARK),
                 FontId::proportional(11.0),
                 theme::accent(ui.ctx()).colors().light,
             );
             let mark_response =
                 ui.interact(mark, ui.id().with(("new edits", id, index)), Sense::hover());
             mark_response
-                .widget_info(|| WidgetInfo::labeled(WidgetType::Label, true, NEW_EDITS_MARK));
-            mark_response.on_hover_text(
+                .widget_info(|| WidgetInfo::labeled(WidgetType::Label, true, tr(NEW_EDITS_MARK)));
+            mark_response.on_hover_text(tr(
                 "The edits you make now go into this layer: the top layer that is switched on",
-            );
+            ));
             right = mark.left() - 8.0;
         }
 
@@ -519,11 +531,11 @@ impl LayersPanel {
         if layer.entries.is_empty() {
             let (rect, response) =
                 ui.allocate_exact_size(vec2(ui.available_width(), EDIT_HEIGHT), Sense::hover());
-            response.widget_info(|| WidgetInfo::labeled(WidgetType::Label, true, "No edits"));
+            response.widget_info(|| WidgetInfo::labeled(WidgetType::Label, true, tr("No edits")));
             ui.painter_at(rect).text(
                 pos2(rect.left() + EDIT_TEXT_INDENT, rect.center().y),
                 Align2::LEFT_CENTER,
-                "No edits",
+                tr("No edits"),
                 FontId::proportional(12.0),
                 theme::TEXT_WEAK.gamma_multiply(0.7),
             );
@@ -566,12 +578,16 @@ impl LayersPanel {
                 Sense::click(),
             );
             let eye_label = if entry.enabled {
-                "Switch off"
+                tr("Switch off")
             } else {
-                "Switch on"
+                tr("Switch on")
             };
             eye_response.widget_info(|| {
-                WidgetInfo::labeled(WidgetType::Button, true, format!("{eye_label} {text}"))
+                WidgetInfo::labeled(
+                    WidgetType::Button,
+                    true,
+                    crate::trf!("{} {}", eye_label, text),
+                )
             });
             let eye_color = if eye_response.hovered() {
                 theme::TEXT_STRONG
@@ -591,9 +607,14 @@ impl LayersPanel {
                 eye_color,
             );
             if eye_response
-                .on_hover_text(format!(
-                    "{eye_label} this edit: see the shape {} it",
-                    if entry.enabled { "without" } else { "with" }
+                .on_hover_text(crate::trf!(
+                    "{} this edit: see the shape {} it",
+                    eye_label,
+                    if entry.enabled {
+                        tr("without")
+                    } else {
+                        tr("with")
+                    }
                 ))
                 .clicked()
             {
@@ -620,12 +641,15 @@ impl LayersPanel {
                 right = at.left() - 8.0;
             };
             if let Some(problem) = crate::attributes::edit_warning(&warnings, index, place) {
-                let word = if problem.starts_with("Skipped") {
-                    SKIPPED_MARK
+                let skipped = warnings
+                    .iter()
+                    .any(|w| w.layer == index && w.operation == place && w.too_big);
+                let word = if skipped {
+                    tr(SKIPPED_MARK)
                 } else {
-                    MISSING_MARK
+                    tr(MISSING_MARK)
                 };
-                mark(word, theme::WARNING, problem, "edit problem");
+                mark(word, theme::WARNING, problem, "edit_problem");
             }
 
             let mut color = if is_open {
@@ -639,7 +663,7 @@ impl LayersPanel {
             let shown = if entry.enabled {
                 text.clone()
             } else {
-                format!("{text} (off)")
+                crate::trf!("{} (off)", text)
             };
             let text_rect = Rect::from_min_max(
                 pos2(rect.left() + EDIT_TEXT_INDENT, rect.top()),
@@ -681,7 +705,7 @@ impl LayersPanel {
             .margin(vec2(4.0, 1.0))
             .show(&mut child);
         let response = output.response;
-        response.widget_info(|| WidgetInfo::labeled(WidgetType::TextEdit, true, "Layer name"));
+        response.widget_info(|| WidgetInfo::labeled(WidgetType::TextEdit, true, tr("Layer name")));
         if ui.input(|i| i.key_pressed(Key::Escape)) {
             self.renaming = None;
             ui.memory_mut(|m| m.surrender_focus(box_id));
@@ -719,8 +743,10 @@ fn edit_entries(
 ) {
     let edit = entry.id;
     if ui
-        .button("Open in Attributes")
-        .on_hover_text("Show this edit's settings in the Attributes panel, to change them")
+        .button(tr("Open in Attributes"))
+        .on_hover_text(tr(
+            "Show this edit's settings in the Attributes panel, to change them",
+        ))
         .clicked()
     {
         *opened = Some(OpenedEdit::new(doc, id, edit));
@@ -728,13 +754,13 @@ fn edit_entries(
     }
     ui.separator();
     let word = if entry.enabled {
-        "Switch off"
+        tr("Switch off")
     } else {
-        "Switch on"
+        tr("Switch on")
     };
     if ui
         .button(word)
-        .on_hover_text("Off: the shape is made as if this edit wasn't there")
+        .on_hover_text(tr("Off: the shape is made as if this edit wasn't there"))
         .clicked()
     {
         out.push(DocRequest::Run(Command::SetEditEnabled {
@@ -751,17 +777,19 @@ fn edit_entries(
         .and_then(|o| o.stack.freeze_problem(edit));
     let help = problem.map_or_else(
         || {
-            "Bake the shape's settings and every edit up to this one into the shape: the \
+            tr(
+                "Bake the shape's settings and every edit up to this one into the shape: the \
              shape stays the same, big models stay quick, and those edits can't be changed \
-             any more"
-                .to_string()
+             any more",
+            )
+            .to_string()
         },
-        |why| format!("Can't bake into the shape: {why}"),
+        |why| crate::trf!("Can't bake into the shape: {}", why),
     );
     if ui
         .add_enabled(
             problem.is_none(),
-            egui::Button::new(crate::attributes::FREEZE_LABEL),
+            egui::Button::new(tr(crate::attributes::FREEZE_LABEL)),
         )
         .on_hover_text(&help)
         .on_disabled_hover_text(&help)
@@ -772,8 +800,10 @@ fn edit_entries(
         ui.close();
     }
     if ui
-        .button(crate::attributes::DELETE_EDIT_LABEL)
-        .on_hover_text("Take this edit out; the edits after it are made again without it")
+        .button(tr(crate::attributes::DELETE_EDIT_LABEL))
+        .on_hover_text(tr(
+            "Take this edit out; the edits after it are made again without it",
+        ))
         .clicked()
     {
         out.push(DocRequest::Run(Command::DeleteEdit { id, edit }));

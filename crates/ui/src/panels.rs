@@ -2,6 +2,7 @@
 //! what will appear in them and when.
 
 use crate::icons::{self, Icon};
+use crate::text::tr;
 use crate::theme;
 use crate::workbench::AppInfo;
 use egui::{Color32, Mesh, Rect, RichText, Sense, Ui};
@@ -70,12 +71,16 @@ pub(crate) fn vertical_gradient(rect: Rect, top: Color32, bottom: Color32) -> Me
 pub(crate) fn about_contents(ui: &mut Ui, info: &AppInfo) {
     ui.vertical_centered(|ui| {
         ui.heading(&info.name);
-        ui.label(format!("Version {}", info.version));
+        ui.label(crate::trf!("Version {}", info.version));
         ui.add_space(8.0);
-        ui.label("A calm, tool-rich 3D modeller for game assets.");
+        ui.label(tr("A calm, tool-rich 3D modeller for game assets."));
         ui.add_space(8.0);
-        ui.label("Created by Rhyslos, built with AI assistance (Claude by Anthropic).");
-        ui.label("Free software under the GNU General Public License v3.0 or later.");
+        ui.label(tr(
+            "Created by Rhyslos, built with AI assistance (Claude by Anthropic).",
+        ));
+        ui.label(tr(
+            "Free software under the GNU General Public License v3.0 or later.",
+        ));
     });
 }
 

@@ -264,7 +264,7 @@ Also: dense wireframes fade out from afar (and aren't drawn when too dense to se
 └──────────────────────────────────────────────────────────────────┘
 ```
 - **Right column order:** Attributes panel on top, Objects panel below. This deliberately differs from C4D's default (user preference, 2026-10-10).
-- **Left palette:** mode switches (Model / Object / Points / Edges / Polygons / UV) and snapping, like C4D, with viewport display switches at the bottom (grid detail: fine 10 cm lines on or off).
+- **Left palette:** mode switches (Model, with the Edit pivot switch under it for the Object mode / Points / Edges / Polygons / UV) and snapping, like C4D, with viewport display switches at the bottom (grid detail: fine 10 cm lines on or off).
 - **Modifiers palette** (the project lead's choice, 2026-10-12): a thin column of icon buttons between the viewport and the right column, holding everything that changes a shape non-destructively: edit layers (Phase 6), mirror and array (Phase 7), booleans, subdivision, weighted normals and the game bevel. It sits right next to the Objects panel because that is where modifiers are applied and shown. C4D keeps its generators and deformers in a similar spot; we copy only the placement, with our own icons (drawn in code) and names. It appears with the first modifier (Edit Layers, Phase 6), not as an empty placeholder: a strip of buttons that do nothing would only confuse. How a click applies a modifier (to the selection, as a child or a parent, as a layer) is asked about before it is built ([0028](docs/decisions/0028-ask-about-controls.md)).
 - **Objects panel:** tree with drag-to-reparent, rename, visibility toggles, and later the Edit Layers stack shown as a sub-list. Built: click, Ctrl and Shift selection with names in the accent colour, double-click to rename, drag onto a row to nest or onto its edge to reorder, an eye per row, fold arrows, a right-click menu, and Edit, View and Object menus ([0018](docs/decisions/0018-scene-document-and-undo.md)).
 - **Attributes panel:** tabbed properties for the selection or active tool.
@@ -282,7 +282,7 @@ Also: dense wireframes fade out from afar (and aren't drawn when too dense to se
 - **We copy layout and behaviour, not assets.** No Maxon or Autodesk icons, names, logos or screenshots go into the repo.
 
 ### 5.3 Axes and navigation
-**Z is up** ([decision 0012](docs/decisions/0012-z-up-axes.md)), as in 3ds Max and Blender, unlike Cinema 4D: X and Y lie flat on the ground grid, Z is height. Right-handed; X red, Y blue, Z green (the project lead's choice; most programs swap the last two). Rotation in the Coordinates panel keeps C4D's H, P and B, with heading turning around Z. Export converts to Y-up for glTF and Godot automatically.
+**Z is up** ([decision 0012](docs/decisions/0012-z-up-axes.md)), as in 3ds Max and Blender, unlike Cinema 4D: X and Y lie flat on the ground grid, Z is height. Right-handed; X red, Y blue, Z green (the project lead's choice; most programs swap the last two). Rotation in the Coordinates panel reads X, Y and Z, the turn around each axis. Export converts to Y-up for glTF and Godot automatically.
 
 | Action | Default ("Mouse only" scheme, Alt + mouse also on) |
 |---|---|
@@ -305,7 +305,7 @@ Also: dense wireframes fade out from afar (and aren't drawn when too dense to se
 - Every action is a named command with a configurable hotkey (stored in a settings file).
 - **A modelling menu** (press a key, then a letter for the tool).
 - **Max-style quad menu** on right-click as an optional "sprinkle" (Phase 6).
-- Searchable **command palette** (Ctrl/Cmd+K or Shift+C, like C4D's Commander), reading from the command list ([0037](docs/decisions/0037-tool-menu-and-command-list.md)).
+- Searchable **command palette** (Space, like C4D's Commander; [0126](docs/decisions/0126-rework-and-first-use.md)), reading from the command list ([0037](docs/decisions/0037-tool-menu-and-command-list.md)).
 - **Tool menu** (`E`): the current mode's tools at the mouse, as a ring or a list ([0037](docs/decisions/0037-tool-menu-and-command-list.md)).
 
 ---
@@ -389,7 +389,7 @@ Export options: triangulation (deterministic, so the bake matches the game), Mik
 - **Header:** magic bytes `AVTL`, a format version number, and a flags field. The app can tell a `.avtl` file apart from anything else instantly, and refuses or upgrades old versions cleanly instead of crashing.
 - **Body:** the scene, objects, operation stacks and settings, serialized with `serde` and compressed with zstd (BSD).
 - **Optional sections:** undo history, and a small thumbnail image so file browsers and a future "recent files" screen can show previews.
-- **Versioning:** every format change bumps the version, and the loader keeps upgrade steps for older versions, so old projects always open.
+- **Versioning:** every format change bumps the version, and the loader keeps upgrade steps for older versions, so old projects always open. Until the alpha, a development format stands in, and older development files may not open ([0126](docs/decisions/0126-rework-and-first-use.md)).
 - **Safe saving:** write to a temporary file, then rename over the old one, so a crash mid-save never corrupts a project. Keep the previous save as a `.avtl.bak`.
 - **File association:** the installer registers `.avtl` so double-clicking a project opens the app.
 - **Extension:** `.avtl`, short for Aventail ([decision 0010](docs/decisions/0010-avtl-file-extension.md)). It was `.rhy` during planning; `.avt` was ruled out because CLO 3D and Marvelous Designer already use it for avatar files.
@@ -940,3 +940,9 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-22 — **The rework** ([0126](docs/decisions/0126-rework-and-first-use.md)), Phase 9 in one pull request at the project lead's request: the selection drawn last and clearest (High contrast setting), command search on Space, the right-click menu on as standard, five modes with Edit pivot as a switch, "Bake into shape" as the one verb and no Keep editable, smoothing per object (#114), symmetry on the object with Apply mirror, the Mesh menu grouped and the UV menu in the UV Editor (#115), Alt + N for Don't save, and one development file format (CBOR) until the alpha.
 - 2026-10-22 — **Extrude from points, and loops round an n-gon's rim** ([0127](docs/decisions/0127-extrude-points-and-n-gon-rim-loops.md)), from the project lead's testing: in the Points mode, Extrude (D) grows the open edges between selected points, then selects the new outer points, so a profile can be drawn out from a side view; a double-click on a cylinder cap's rim selects the whole rim.
 - 2026-10-22 — **Weld polygons** ([0128](docs/decisions/0128-weld-polygons.md)), at the project lead's request: in the Polygons mode M welds each touching group of selected polygons at its middle (an inset cap becomes a fan of triangles), and Ctrl + M drags a polygon onto a point.
+- 2026-10-22 — **Eleven more shapes** ([0129](docs/decisions/0129-more-shapes.md)), at the project lead's request: icosphere, torus, capsule, dome, pipe elbow, pie sector, gear, hex grid, hex sphere, stairs and arch, each with settings, UVs and hard edges; saved as their mesh plus their settings in the development file format.
+- 2026-10-23 — **A second shape list** ([0130](docs/decisions/0130-a-second-shape-list.md)), the project lead's choice: B lists the seven basic shapes, Alt + B the eleven newer ones, with no shape in both; the Create menu keeps all, with a line between the groups.
+- 2026-10-23 — **One numbered checker** ([0131](docs/decisions/0131-one-numbered-checker.md)), the project lead's choice: always the blue accent's colours, whatever the accent.
+- 2026-10-23 — **One language layer** ([0132](docs/decisions/0132-one-language-layer.md)): interface text goes through `tr`, `trf!` and `text!`, with English as the key and the one package (`crates/ui/lang/en.txt`); a test counts text not yet through it, file by file, and the count may only go down.
+- 2026-10-23 — **The key audit** ([0133](docs/decisions/0133-key-audit.md)): the project lead ticked three changes: Slide on Shift + Alt + drag (Alt + drag always moves the view), Ctrl + Shift + H as a second Show everything key, and Cmd for Ctrl in every text on a Mac. Frame selected (Z), Loop cut (F), Ctrl + wheel growing the selection and Ctrl + M stay. Holding Ctrl snaps one loop cut to the nearest tenth of the edge, the fifth being the middle.
+- 2026-10-23 — **One language crate** ([0134](docs/decisions/0134-shared-language-crate.md)): the language layer moves out of `ui` into its own small crate, `words` (layer 0, no dependencies), so undo labels, reasons and messages made in `scene`, `mesh`, `fileio`, `app`, `tools` and `uv` go through it too; the English package moves to `crates/words/lang/en.txt`, and no text in any crate skips it.

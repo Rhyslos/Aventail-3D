@@ -12,6 +12,7 @@ use crate::commands::CommandId;
 use crate::components::{self, ViewPointer};
 use crate::drawing::SceneDrawing;
 use crate::palette::Mode;
+use crate::text::tr;
 use crate::transforming::Tool;
 use crate::viewport::ToolDragEvent;
 use egui::Ui;
@@ -249,19 +250,19 @@ impl ModellingSession {
                 });
         let count = |n: usize, thing: &str| {
             if n == 1 {
-                format!("1 {thing}")
+                crate::trf!("1 {}", thing)
             } else {
-                format!("{n} {thing}s")
+                crate::trf!("{} {}s", n, thing)
             }
         };
         let what = if edges > 0 {
-            count(edges, "edge")
+            count(edges, tr("edge"))
         } else if points > 0 {
-            count(points, "point")
+            count(points, tr("point"))
         } else {
-            count(polygons, "polygon")
+            count(polygons, tr("polygon"))
         };
-        format!("{} {what}", self.tool.name())
+        crate::trf!("{} {}", self.tool.name(), what)
     }
 
     /// Makes the scene show the edit at `distance` (world centimetres),
@@ -301,9 +302,11 @@ impl Workbench {
                 self.set_tool(Tool::Weld);
             } else {
                 self.note = Some(
-                    "Weld works on points or polygons: press 1 for the Points mode or 3 for \
-                     Polygons."
-                        .into(),
+                    tr(
+                        "Weld works on points or polygons: press 1 for the Points mode or 3 for \
+                     Polygons.",
+                    )
+                    .into(),
                 );
             }
         }
@@ -372,7 +375,7 @@ impl Workbench {
             return self.carry_out_slit(drawing, keys);
         }
         if self.tool == Tool::LoopCut || self.loop_cut_session.is_some() {
-            return self.carry_out_loop_cut(drawing);
+            return self.carry_out_loop_cut(drawing, keys.command);
         }
         for event in self.viewport.take_tool_events() {
             match event {
@@ -401,9 +404,12 @@ impl Workbench {
                     let text = format!("{}: {}", session.label(), self.units.format(distance));
                     self.note = Some(match session.show(&mut self.document, distance) {
                         Ok(()) => {
-                            format!("{text}. Shift for fine steps; Esc or a right click cancels.")
+                            crate::trf!(
+                                "{}. Shift for fine steps; Esc or a right click cancels.",
+                                text
+                            )
                         }
-                        Err(why) => format!("Couldn't do that: {why}."),
+                        Err(why) => crate::trf!("Couldn't do that: {}.", why),
                     });
                     self.viewport.set_tool_label(Some(text));
                 }
@@ -422,7 +428,7 @@ impl Workbench {
                 ToolDragEvent::Cancel => {
                     if let Some(session) = self.modelling_session.take() {
                         session.show(&mut self.document, 0.0).ok();
-                        self.note = Some("Cancelled: everything is back where it was.".into());
+                        self.note = Some(tr("Cancelled: everything is back where it was.").into());
                     }
                     self.viewport.set_tool_label(None);
                 }
@@ -459,27 +465,27 @@ impl Workbench {
         };
         let (name, max, tool_count) = match self.tool {
             Tool::Bevel => (
-                "segments",
+                tr("segments"),
                 mesh::bevel::MAX_SEGMENTS,
                 self.attributes.bevel.segments,
             ),
             Tool::LoopCut => (
-                "cuts",
+                tr("cuts"),
                 mesh::loopcut::MAX_CUTS,
                 self.attributes.loop_cut.cuts,
             ),
             Tool::Extrude if bends => (
-                "bend segments",
+                tr("bend segments"),
                 mesh::extrude::MAX_BEND_SEGMENTS,
                 self.attributes.bend.segments,
             ),
             Tool::Extrude => (
-                "steps",
+                tr("steps"),
                 mesh::edit::MAX_EXTRUDE_STEPS,
                 self.attributes.extrude.steps,
             ),
             Tool::Bridge => (
-                "segments",
+                tr("segments"),
                 mesh::join::MAX_BRIDGE_SEGMENTS,
                 self.attributes.join.bridge.0,
             ),
@@ -512,9 +518,11 @@ impl Workbench {
             Tool::Bridge => self.attributes.join.bridge.0 = count,
             _ => self.attributes.loop_cut.cuts = count,
         }
-        self.note = Some(format!(
-            "{}: {count} {name} (Ctrl + wheel for more or fewer).",
-            self.tool.name()
+        self.note = Some(crate::trf!(
+            "{}: {} {} (Ctrl + wheel for more or fewer).",
+            self.tool.name(),
+            count,
+            name
         ));
         if let Some(session) = &mut self.modelling_session {
             session.bevel.segments = count;
@@ -573,7 +581,7 @@ impl Workbench {
                 operation,
             };
             if let Err(why) = self.document.execute(command) {
-                self.note = Some(format!("Couldn't do that: {why}."));
+                self.note = Some(crate::trf!("Couldn't do that: {}.", why));
             }
         }
     }
@@ -588,18 +596,18 @@ impl Workbench {
             None => {
                 self.note = Some(match tool {
                     Tool::Bevel => {
-                        "Bevel works on edges or points: press 2 for the Edges mode (or 1 for \
-                         Points) and select some."
+                        tr("Bevel works on edges or points: press 2 for the Edges mode (or 1 for \
+                         Points) and select some.")
                     }
                     Tool::Inset => {
-                        "Inset works on polygons: press 3 for the Polygons mode and select some."
+                        tr("Inset works on polygons: press 3 for the Polygons mode and select some.")
                     }
                     Tool::Groove => {
-                        "Groove works on edges: press 2 for the Edges mode and select some."
+                        tr("Groove works on edges: press 2 for the Edges mode and select some.")
                     }
                     _ => {
-                        "Extrude works on polygons, edges or points: press 3 for the Polygons \
-                         mode (2 for Edges, 1 for Points) and select some."
+                        tr("Extrude works on polygons, edges or points: press 3 for the Polygons \
+                         mode (2 for Edges, 1 for Points) and select some.")
                     }
                 }
                 .into());
@@ -704,14 +712,16 @@ impl Workbench {
         let Some(bounds) = Bounds::around(points) else {
             if self.mode == Mode::Points && tool == Tool::Extrude {
                 self.note = Some(
-                    "Extrude: select the points all the way round a polygon (a cap's rim) to \
+                    tr(
+                        "Extrude: select the points all the way round a polygon (a cap's rim) to \
                      push it out, or two or more points next to each other along an open \
-                     edge (the edge of a plane, or a hole) to grow new polygons from it."
-                        .into(),
+                     edge (the edge of a plane, or a hole) to grow new polygons from it.",
+                    )
+                    .into(),
                 );
                 return None;
             }
-            self.note = Some(format!(
+            self.note = Some(crate::trf!(
                 "{}: select some {} first.",
                 tool.name(),
                 kind.plural()
@@ -784,7 +794,7 @@ impl Workbench {
                 (object, selection)
             })
             .collect();
-        let label = format!("Select 1 {}", kind.singular());
+        let label = crate::trf!("Select 1 {}", kind.singular());
         self.document.select_elements(changes, label, None);
     }
 
@@ -793,7 +803,7 @@ impl Workbench {
     /// on from there (polygons keep their ids and stay selected anyway).
     fn finish_modelling(&mut self, session: &ModellingSession) {
         if session.shown.is_none_or(|d| d.abs() < 1e-4) {
-            self.note = Some(format!("{}: nothing changed.", session.tool.name()));
+            self.note = Some(crate::trf!("{}: nothing changed.", session.tool.name()));
             return;
         }
         if session.tool != Tool::Extrude {

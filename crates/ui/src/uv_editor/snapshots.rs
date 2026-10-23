@@ -9,15 +9,16 @@
 //! up to date (**Update**) or removed.
 
 use super::UvEditor;
+use crate::text::tr;
 use crate::theme;
 use egui::{Pos2, Rect, Ui};
 use scene::{Command, Document, ObjectId, UvSnapshot};
 
 /// The name of the UV Editor's menu.
-pub(crate) const SNAPSHOTS_MENU: &str = "Snapshots";
+pub(crate) const SNAPSHOTS_MENU: &str = crate::text!("Snapshots");
 
 /// The button that takes a snapshot.
-pub(crate) const TAKE_SNAPSHOT: &str = "Take a snapshot";
+pub(crate) const TAKE_SNAPSHOT: &str = crate::text!("Take a snapshot");
 
 /// Marks renaming's undo merge keys, so a run of typing in a name is one
 /// undo step.
@@ -37,27 +38,36 @@ fn shown(doc: &Document) -> Vec<ObjectId> {
 pub(crate) fn take(doc: &mut Document, name: Option<&str>) -> Result<String, String> {
     let mut list = doc.scene().snapshots().to_vec();
     if list.len() >= scene::MAX_SNAPSHOTS {
-        return Err(format!(
+        return Err(crate::trf!(
             "A project keeps at most {} snapshots: remove one first.",
             scene::MAX_SNAPSHOTS
         ));
     }
-    let wanted = name.map_or_else(|| format!("Snapshot {}", list.len() + 1), str::to_string);
+    let wanted = name.map_or_else(
+        || crate::trf!("Snapshot {}", list.len() + 1),
+        str::to_string,
+    );
     let name = scene::snapshot::free_name(&list, &wanted);
     let Some(snapshot) = UvSnapshot::take(doc.scene(), &shown(doc), &name) else {
-        return Err("Select objects with UVs first: a snapshot keeps their layout.".into());
+        return Err(tr("Select objects with UVs first: a snapshot keeps their layout.").into());
     };
     let objects = snapshot.objects.len();
     list.push(snapshot);
     doc.execute_labelled(
         Command::SetSnapshots(list),
-        format!("Take the snapshot “{name}”"),
+        crate::trf!("Take the snapshot “{}”", name),
         None,
     )
-    .map_err(|why| format!("Couldn't take it: {why}."))?;
-    Ok(format!(
-        "Took “{name}” of {objects} {}.",
-        if objects == 1 { "object" } else { "objects" }
+    .map_err(|why| crate::trf!("Couldn't take it: {}.", why))?;
+    Ok(crate::trf!(
+        "Took “{}” of {} {}.",
+        name,
+        objects,
+        if objects == 1 {
+            tr("object")
+        } else {
+            tr("objects")
+        }
     ))
 }
 
@@ -74,7 +84,7 @@ impl UvEditor {
         }
         self.sessions += 1;
         let key = RESTORE_KEY | self.sessions;
-        let label = format!("Restore the snapshot “{}”", snapshot.name);
+        let label = crate::trf!("Restore the snapshot “{}”", snapshot.name);
         for (id, operation) in ops {
             if doc
                 .execute_labelled(Command::Record { id, operation }, label.clone(), Some(key))
@@ -122,7 +132,7 @@ impl UvEditor {
         painter.text(
             rect.left_top() + egui::vec2(10.0, 10.0),
             egui::Align2::LEFT_TOP,
-            format!("Comparing with “{name}” (faint)"),
+            crate::trf!("Comparing with “{}” (faint)", name),
             egui::FontId::proportional(12.0),
             theme::UV_SNAPSHOT_TEXT,
         );
@@ -133,17 +143,22 @@ impl UvEditor {
 /// first, with its name to change, Restore, Compare, Update and remove.
 pub(crate) fn snapshots_menu(ui: &mut Ui, doc: &mut Document, editor: &mut UvEditor) {
     ui.set_max_width(420.0);
-    ui.label(egui::RichText::new("Layout snapshots").strong());
-    ui.label(egui::RichText::new("Named versions of the UV layout, kept with the project.").weak());
+    ui.label(egui::RichText::new(tr("Layout snapshots")).strong());
+    ui.label(
+        egui::RichText::new(tr(
+            "Named versions of the UV layout, kept with the project.",
+        ))
+        .weak(),
+    );
     ui.separator();
     let can_take = !shown(doc).is_empty();
     if ui
-        .add_enabled(can_take, egui::Button::new(TAKE_SNAPSHOT))
-        .on_hover_text(
+        .add_enabled(can_take, egui::Button::new(tr(TAKE_SNAPSHOT)))
+        .on_hover_text(tr(
             "Keep the UVs and seams of the objects shown in the UV Editor under a name, \
              to go back to or compare with later",
-        )
-        .on_disabled_hover_text("Select objects with UVs first")
+        ))
+        .on_disabled_hover_text(tr("Select objects with UVs first"))
         .clicked()
     {
         editor.note = Some(match take(doc, None) {
@@ -155,7 +170,7 @@ pub(crate) fn snapshots_menu(ui: &mut Ui, doc: &mut Document, editor: &mut UvEdi
     }
     let list = doc.scene().snapshots().to_vec();
     if list.is_empty() {
-        ui.label("No snapshots yet.");
+        ui.label(tr("No snapshots yet."));
         return;
     }
     ui.separator();
@@ -169,7 +184,7 @@ pub(crate) fn snapshots_menu(ui: &mut Ui, doc: &mut Document, editor: &mut UvEdi
                 let mut name = snapshot.name.clone();
                 if ui
                     .add_sized([130.0, 20.0], egui::TextEdit::singleline(&mut name))
-                    .on_hover_text("The snapshot's name. Each must differ.")
+                    .on_hover_text(tr("The snapshot's name. Each must differ."))
                     .changed()
                 {
                     let mut renamed = list.clone();
@@ -178,51 +193,61 @@ pub(crate) fn snapshots_menu(ui: &mut Ui, doc: &mut Document, editor: &mut UvEdi
                         if editor.compared() == Some(snapshot.name.as_str()) {
                             editor.compare = Some(name);
                         }
-                        changed = Some((renamed, "Rename a snapshot", Some(RENAME_KEY | i as u64)));
+                        changed = Some((
+                            renamed,
+                            tr("Rename a snapshot"),
+                            Some(RENAME_KEY | i as u64),
+                        ));
                     }
                 }
                 let objects = snapshot.restore(doc.scene()).len();
                 if ui
-                    .add_enabled(objects > 0, egui::Button::new("Restore"))
-                    .on_hover_text(format!(
+                    .add_enabled(objects > 0, egui::Button::new(tr("Restore")))
+                    .on_hover_text(crate::trf!(
                         "Put this layout back: the UVs and seams of {} {}, as one step to undo. \
                          Polygons made since keep theirs.",
                         objects,
-                        if objects == 1 { "object" } else { "objects" }
+                        if objects == 1 {
+                            tr("object")
+                        } else {
+                            tr("objects")
+                        }
                     ))
-                    .on_disabled_hover_text("The objects it was taken of are gone")
+                    .on_disabled_hover_text(tr("The objects it was taken of are gone"))
                     .clicked()
                 {
                     restore = Some(i);
                 }
                 let comparing = editor.compared() == Some(snapshot.name.as_str());
                 if ui
-                    .add(egui::Button::selectable(comparing, "Compare"))
-                    .on_hover_text(
+                    .add(egui::Button::selectable(comparing, tr("Compare")))
+                    .on_hover_text(tr(
                         "Draw this layout faintly under the current one, to see what changed. \
                          Click again to stop.",
-                    )
+                    ))
                     .clicked()
                 {
                     editor.compare = (!comparing).then(|| snapshot.name.clone());
                 }
                 if ui
-                    .button("Update")
-                    .on_hover_text("Replace it with the current layout of the objects shown")
+                    .button(tr("Update"))
+                    .on_hover_text(tr(
+                        "Replace it with the current layout of the objects shown",
+                    ))
                     .clicked()
                 {
                     if let Some(fresh) = UvSnapshot::take(doc.scene(), &shown(doc), &snapshot.name)
                     {
                         let mut updated = list.clone();
                         updated[i] = fresh;
-                        changed = Some((updated, "Update a snapshot", None));
+                        changed = Some((updated, tr("Update a snapshot"), None));
                     } else {
-                        editor.note = Some("Select objects with UVs to update it from.".into());
+                        editor.note = Some(tr("Select objects with UVs to update it from.").into());
                     }
                 }
                 if ui
                     .small_button("×")
-                    .on_hover_text("Remove this snapshot (the UVs don't change)")
+                    .on_hover_text(tr("Remove this snapshot (the UVs don't change)"))
                     .clicked()
                 {
                     let mut fewer = list.clone();
@@ -230,7 +255,7 @@ pub(crate) fn snapshots_menu(ui: &mut Ui, doc: &mut Document, editor: &mut UvEdi
                     if comparing {
                         editor.compare = None;
                     }
-                    changed = Some((fewer, "Remove a snapshot", None));
+                    changed = Some((fewer, tr("Remove a snapshot"), None));
                 }
                 ui.end_row();
             }
@@ -241,9 +266,9 @@ pub(crate) fn snapshots_menu(ui: &mut Ui, doc: &mut Document, editor: &mut UvEdi
     if let Some(i) = restore {
         let name = list[i].name.clone();
         editor.note = Some(if editor.restore_snapshot(doc, i) {
-            format!("Restored “{name}”. Ctrl + Z takes it back.")
+            crate::trf!("Restored “{}”. Ctrl + Z takes it back.", name)
         } else {
-            format!("Couldn't restore “{name}”.")
+            crate::trf!("Couldn't restore “{}”.", name)
         });
     }
 }

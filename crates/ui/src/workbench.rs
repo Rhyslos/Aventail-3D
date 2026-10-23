@@ -1,34 +1,29 @@
 //! The app window's contents: menu bar, palettes, docked panels, status
 //! bar and the About box.
 
-use crate::attributes::{AttributesPanel, Shared};
-use crate::autosave::{
-    AutosaveSettings, Autosaver, RecoveryAnswer, RecoveryOffer, RecoveryQuestion, Tick,
-};
-use crate::commands::CommandId;
+use crate::attributes::AttributesPanel;
+use crate::autosave::{Autosaver, RecoveryQuestion};
 use crate::components::{self, ComponentTracker};
-use crate::coordinates::{CoordinatesView, Interaction};
+use crate::coordinates::Interaction;
 use crate::drawing::{DrawingCache, SceneSummary};
-use crate::layout::{default_layout, fit_coordinates, hide_viewport_tab, restore_or_default};
-use crate::objects::{self, DocRequest, ObjectManager};
+use crate::layout::{hide_viewport_tab, restore_or_default};
+use crate::objects::{DocRequest, ObjectManager};
 use crate::palette::{Mode, PaletteCommand, PaletteState, command_palette, mode_palette};
 use crate::panel::Panel;
-use crate::panels::{about_contents, menu_line_with};
-use crate::project::{
-    NEW_SHORTCUT, OPEN_SHORTCUT, Pending, ProjectFile, SAVE_AS_SHORTCUT, SAVE_SHORTCUT,
-    recent_label,
-};
+use crate::panels::about_contents;
+use crate::project::ProjectFile;
 use crate::selecting::StrokeMemory;
-use crate::settings::{SETTINGS_SHORTCUT, SettingsWindow, Values};
+use crate::settings::{SETTINGS_SHORTCUT, SettingsWindow};
 use crate::shape_picker::ShapePicker;
+use crate::text::tr;
 use crate::theme::{self, Accent};
 use crate::tool_menu::ToolMenu;
 use crate::transforming::Tool;
 use crate::undo_memory::UndoMemory;
 use crate::units::Units;
 use crate::viewport::{ViewOptions, ViewportPanel, ViewportRenderer};
-use egui::{Id, Key, KeyboardShortcut, Modifiers, Ui, WidgetText};
-use egui_dock::{DockArea, DockState, TabViewer};
+use egui::{Key, Ui};
+use egui_dock::{DockArea, DockState};
 use scene::{Command, Document, ObjectKind, PrimitiveKind};
 use selection::SelectRequest;
 
@@ -36,7 +31,43 @@ use selection::SelectRequest;
 /// seconds: Windows' standard.
 pub const DOUBLE_CLICK_SECONDS: f64 = 0.5;
 pub(crate) use selection::VISIBLE_ONLY_HELP;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+mod autosaving;
+mod bars;
+mod files;
+mod heavy_shape;
+mod layouts;
+mod mesh_menu;
+mod preferences;
+mod requests;
+mod tabs;
+mod uv_menu;
+pub use bars::navigation_hint;
+pub use files::DISCARD_SHORTCUT;
+use files::file_name;
+pub(crate) use layouts::LayoutChoice;
+use tabs::PanelViewer;
+// The tests reach these through `super::`, as when they were defined or
+// imported here.
+#[cfg(test)]
+use crate::autosave::AutosaveSettings;
+#[cfg(test)]
+pub(crate) use bars::{
+    DEVELOPER_MENU, EDIT_LAYERS_ENTRY, MANUAL_ENTRY, SEARCH_ENTRY, SHOW_HIDE_MENU, UV_EDITOR_ENTRY,
+};
+#[cfg(test)]
+use egui::Modifiers;
+#[cfg(test)]
+pub(crate) use mesh_menu::{
+    MESH_BUILD_MENU, MESH_CUT_MENU, MESH_OBJECT_MENU, MESH_REMOVE_MENU, MESH_SHADING_MENU,
+};
+#[cfg(test)]
+use std::path::Path;
+#[cfg(test)]
+pub(crate) use uv_menu::{
+    UV_EDITOR_UV_MENU, UV_LAY_OUT_MENU, UV_PIECES_MENU, UV_SEAMS_MENU, UV_SETTINGS_MENU,
+    UV_TURN_MENU,
+};
 
 /// Facts about the program, shown in the window and the About box.
 /// The app passes these in from its branding, so this crate never names it.
@@ -49,32 +80,6 @@ pub struct AppInfo {
     /// Where the user manual is read online (Help → User manual).
     pub manual_url: String,
 }
-
-/// The layouts the tabs on the right of the menu bar switch between
-/// (decision 0096): each keeps its own arrangement.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum LayoutChoice {
-    /// The standard arrangement.
-    #[default]
-    Standard,
-    /// The viewport and the UV Editor side by side, in the UV mode.
-    UvEdit,
-}
-
-/// The layout tabs, left to right: a layout's name, the layout (or, for
-/// one not built yet, when it arrives) and what it is for.
-const LAYOUTS: [(&str, Result<LayoutChoice, &str>, &str); 2] = [
-    (
-        "Standard",
-        Ok(LayoutChoice::Standard),
-        "The standard layout",
-    ),
-    (
-        "UV Edit",
-        Ok(LayoutChoice::UvEdit),
-        "The viewport and the UV Editor side by side, in the UV mode",
-    ),
-];
 
 /// Something the user asked for that the program around the workbench
 /// must carry out (the workbench never touches files or the window itself).
@@ -164,7 +169,12 @@ pub(crate) const BACK_KEY: Key = Key::Tab;
 
 /// The menus between Modes and View, in order: Select, Tools, Mesh and
 /// UV, each filled from its own module.
-const MIDDLE_MENUS: [&str; 4] = ["Select", "Tools", "Mesh", "UV"];
+const MIDDLE_MENUS: [&str; 4] = [
+    crate::text!("Select"),
+    crate::text!("Tools"),
+    crate::text!("Mesh"),
+    crate::text!("UV"),
+];
 
 /// The whole interface around the scene.
 pub struct Workbench {
@@ -184,6 +194,16 @@ pub struct Workbench {
     /// The standard layout still needs Coordinates fitted to its content,
     /// which can only happen once the panels' sizes are known.
     fit_pending: bool,
+    /// Whether Coordinates has the height it was fitted to, so a change
+    /// of window size fits it again.
+    coordinates_fitted: bool,
+    /// Coordinates' height on the first frame it was known (a saved band
+    /// far taller than needed is slimmed then).
+    coordinates_checked: Option<f32>,
+    /// Coordinates' height last frame, to tell a drag from a resize.
+    coordinates_last: Option<f32>,
+    /// The window's size last frame.
+    last_screen: Option<egui::Vec2>,
     mode: Mode,
     /// The scene being worked on, with its undo history and selection.
     document: Document,
@@ -297,7 +317,9 @@ impl Workbench {
         let had_saved = saved_layout.is_some();
         let (dock, note) = restore_or_default(saved_layout);
         // A saved layout keeps the user's own sizes; a new or replaced one
-        // is fitted on its first frame.
+        // is fitted on its first frame. A saved band far taller than
+        // Coordinates needs (the three-row band before decision 0126's
+        // slim one) is slimmed once too: see `keep_coordinates_fitted`.
         let fit_pending = !had_saved || note.is_some();
         Self {
             info,
@@ -308,6 +330,10 @@ impl Workbench {
             uv_menu: false,
             uv_settings: unwrapping::UvSettings::default(),
             fit_pending,
+            coordinates_fitted: false,
+            coordinates_checked: None,
+            coordinates_last: None,
+            last_screen: None,
             mode: Mode::default(),
             document: Document::new(),
             objects: ObjectManager::default(),
@@ -359,168 +385,6 @@ impl Workbench {
         }
     }
 
-    /// The workbench with remembered autosave settings restored.
-    #[must_use]
-    pub fn with_autosave(mut self, settings: AutosaveSettings) -> Self {
-        self.autosaver.settings = settings.clamped();
-        self
-    }
-
-    /// The autosave settings, for remembering between sessions.
-    pub fn autosave_settings(&self) -> AutosaveSettings {
-        self.autosaver.settings
-    }
-
-    /// Where the app keeps backup copies, to show in Settings.
-    pub fn set_autosave_folder(&mut self, folder: Option<PathBuf>) {
-        self.autosave_folder = folder;
-    }
-
-    /// Work left behind by a crash: the workbench asks what to do with it
-    /// (one at a time, newest first).
-    pub fn offer_recovery(&mut self, offers: Vec<RecoveryOffer>) {
-        self.recovery
-            .offers
-            .extend(offers.into_iter().filter(|o| !o.copies.is_empty()));
-    }
-
-    /// Whether the question about work left by a crash is showing.
-    pub fn is_asking_to_recover(&self) -> bool {
-        !self.recovery.offers.is_empty()
-    }
-
-    /// The app wrote the backup copy it was asked for.
-    pub fn autosaved(&mut self) {
-        self.autosaver.finished(true);
-    }
-
-    /// Writing a backup copy failed: says why (once), and tries again
-    /// after the next interval.
-    pub fn autosave_failed(&mut self, reason: &str) {
-        self.autosaver.finished(false);
-        self.note = Some(format!("Couldn't save a backup copy: {reason}."));
-    }
-
-    /// The app brought back `document` from a backup copy, for the
-    /// project at `project` (if it had been saved): it replaces the
-    /// current scene as unsaved work, so saving keeps it.
-    pub fn recovered(&mut self, document: Document, project: Option<PathBuf>, when: &str) {
-        self.replace_document(document);
-        // Unsaved: the project file (if any) doesn't have this work.
-        self.file.saved_revision = u64::MAX;
-        self.file.path = project;
-        // The app already kept it as this run's newest backup copy, and
-        // the timer starts from it (`replace_document`).
-        self.note = Some(format!(
-            "Restored your work from {when}. Save it to keep it."
-        ));
-        self.viewport.frame(crate::Frame::All);
-    }
-
-    /// Restoring a backup copy failed: says why. The copies are kept.
-    pub fn recovery_failed(&mut self, reason: &str) {
-        self.note = Some(format!("Couldn't restore the backup copy: {reason}."));
-    }
-
-    /// Asks about work left by a crash, and when it is due, has a backup
-    /// copy made.
-    fn autosave_and_recovery(&mut self, ctx: &egui::Context, actions: &mut Vec<WorkbenchAction>) {
-        if let Some((offer, answer)) = self.recovery.show(ctx) {
-            let folder = offer.folder.clone();
-            match answer {
-                RecoveryAnswer::Restore(copy) => actions.push(WorkbenchAction::Restore {
-                    folder,
-                    copy,
-                    project: offer.project,
-                }),
-                RecoveryAnswer::OpenSaved(path) => {
-                    actions.push(WorkbenchAction::Open { path: Some(path) });
-                    actions.push(WorkbenchAction::DiscardBackups { folder });
-                }
-                RecoveryAnswer::Discard => actions.push(WorkbenchAction::DiscardBackups { folder }),
-            }
-        }
-        let now = ctx.input(|i| i.time);
-        let revision = self.document.revision();
-        match self.autosaver.tick(now, revision) {
-            Tick::Idle => {}
-            Tick::Wait(seconds) => {
-                ctx.request_repaint_after(std::time::Duration::from_secs_f64(seconds));
-            }
-            Tick::Save => {
-                self.autosaver.started(revision, now);
-                let scene = self.document.scene().clone();
-                actions.push(WorkbenchAction::Autosave {
-                    document: Box::new(Document::from_scene(scene, self.document.selection())),
-                    keep: self.autosaver.settings.copies as usize,
-                });
-            }
-        }
-    }
-
-    /// The standard panel layout, for saving between sessions.
-    pub fn layout(&self) -> &DockState<Panel> {
-        match self.layout_choice {
-            LayoutChoice::Standard => &self.dock,
-            LayoutChoice::UvEdit => &self.other_dock,
-        }
-    }
-
-    /// The UV Edit layout, for saving between sessions (decision 0096).
-    pub fn uv_layout(&self) -> &DockState<Panel> {
-        match self.layout_choice {
-            LayoutChoice::Standard => &self.other_dock,
-            LayoutChoice::UvEdit => &self.dock,
-        }
-    }
-
-    /// Gives the workbench the UV Edit layout saved last session, if any.
-    pub fn with_uv_layout(mut self, saved: Option<DockState<Panel>>) -> Self {
-        let restored = crate::layout::restore_uv_layout(saved);
-        match self.layout_choice {
-            LayoutChoice::Standard => self.other_dock = restored,
-            LayoutChoice::UvEdit => self.dock = restored,
-        }
-        self
-    }
-
-    /// The layout in use.
-    pub fn layout_choice(&self) -> LayoutChoice {
-        self.layout_choice
-    }
-
-    /// Switches to `choice`, each layout keeping its own arrangement. The
-    /// UV Edit layout works in the UV mode (unless editing points, edges
-    /// or polygons); leaving it leaves the UV mode.
-    pub fn switch_layout(&mut self, choice: LayoutChoice) {
-        if choice == self.layout_choice {
-            return;
-        }
-        std::mem::swap(&mut self.dock, &mut self.other_dock);
-        self.layout_choice = choice;
-        self.fit_pending = true;
-        match choice {
-            LayoutChoice::UvEdit if matches!(self.mode, Mode::Model | Mode::Object) => {
-                if self.tool.has_settings() {
-                    self.set_tool(Tool::Select);
-                }
-                self.mode = Mode::Uv;
-            }
-            LayoutChoice::Standard if self.mode == Mode::Uv => self.mode = Mode::Model,
-            _ => {}
-        }
-    }
-
-    /// Shows the UV Editor in this layout, or puts it away (Window menu).
-    pub fn toggle_uv_editor(&mut self) {
-        let shown = crate::layout::toggle_uv_editor(&mut self.dock);
-        self.note = Some(if shown {
-            "UV Editor shown beside the viewport. Window → UV Editor puts it away.".into()
-        } else {
-            "UV Editor put away. Window → UV Editor brings it back.".into()
-        });
-    }
-
     /// The text for the window's title bar.
     pub fn window_title(&self) -> String {
         format!("{} {}", self.info.name, self.info.version)
@@ -539,16 +403,6 @@ impl Workbench {
     /// Whether the About box is showing.
     pub fn is_about_open(&self) -> bool {
         self.about_open
-    }
-
-    /// Puts every panel back in its standard place (View → Reset panel layout).
-    pub fn reset_layout(&mut self) {
-        self.dock = match self.layout_choice {
-            LayoutChoice::Standard => default_layout(),
-            LayoutChoice::UvEdit => crate::layout::uv_edit_layout(),
-        };
-        self.fit_pending = true;
-        self.note = Some("Panel layout reset to the standard arrangement.".into());
     }
 
     /// The scene being worked on.
@@ -602,351 +456,7 @@ impl Workbench {
         self.viewport.options()
     }
 
-    /// The project's units: metres or centimetres.
-    pub fn units(&self) -> Units {
-        self.document.scene().units().into()
-    }
-
-    /// The units new projects start with, for saving between sessions.
-    pub fn new_project_units(&self) -> Units {
-        self.new_units
-    }
-
-    /// An empty document for a new project, in the units chosen for new
-    /// projects.
-    fn new_document(&self) -> Document {
-        Document::from_scene(scene::Scene::new().with_units(self.new_units.into()), [])
-    }
-
-    /// Makes a change of units made in the panels or Settings this frame
-    /// (from `shown`, what the frame started with) an undoable step.
-    fn keep_units(&mut self, shown: Units) {
-        if self.units == shown || self.units == self.units() {
-            return;
-        }
-        let units = self.units;
-        self.note = Some(
-            match self.document.execute(Command::SetUnits(units.into())) {
-                Ok(()) => format!(
-                    "This project is now in {}: lengths show and are typed in {}. Ctrl + Z \
-                     takes it back.",
-                    units.name().to_lowercase(),
-                    units.symbol()
-                ),
-                Err(why) => format!("Couldn't change the units: {why}."),
-            },
-        );
-    }
-
     // ------------------------------------------------- the project file ---
-
-    /// The window title: the project's name, then the app's name and
-    /// version. With unsaved changes, a dot goes in front and "(unsaved)"
-    /// after the name, so it shows at a glance even in the taskbar.
-    pub fn title(&self) -> String {
-        let (dot, changed) = if self.has_unsaved_changes() {
-            ("● ", " (unsaved)")
-        } else {
-            ("", "")
-        };
-        format!(
-            "{dot}{}{changed} — {} {}",
-            self.file.name(),
-            self.info.name,
-            self.info.version
-        )
-    }
-
-    /// Where the project is saved, if it has been.
-    pub fn project_path(&self) -> Option<&Path> {
-        self.file.path.as_deref()
-    }
-
-    /// Whether the scene has changed since it was last saved or opened.
-    pub fn has_unsaved_changes(&self) -> bool {
-        self.document.revision() != self.file.saved_revision
-    }
-
-    /// Recently saved or opened projects, newest first (for remembering
-    /// between sessions).
-    pub fn recent_projects(&self) -> &[PathBuf] {
-        &self.file.recent
-    }
-
-    /// The workbench with remembered recent projects restored.
-    #[must_use]
-    pub fn with_recent_projects(mut self, recent: Vec<PathBuf>) -> Self {
-        self.file.recent = recent;
-        self.file.recent.truncate(crate::project::RECENT_COUNT);
-        self
-    }
-
-    /// The app saved the document to `path`. Carries on with whatever was
-    /// waiting for the save (a new project, opening another, closing).
-    pub fn saved(&mut self, path: PathBuf) {
-        self.saved_with_export(path, None);
-    }
-
-    /// The app saved the project to `path`, and then exported it into its
-    /// game project folder (decision 0076), with this outcome: the
-    /// file written and what it held, or why not.
-    pub fn saved_with_export(&mut self, path: PathBuf, export: Option<TargetOutcome>) {
-        let mut note = format!("Saved {}.", file_name(&path));
-        if let Some(outcome) = export {
-            note.push(' ');
-            note.push_str(&exporting::target_note(&outcome));
-        }
-        self.note = Some(note);
-        self.file.saved_revision = self.document.revision();
-        self.file.remember(&path);
-        self.file.path = Some(path);
-        if let Some(next) = self.file.after_save.take() {
-            self.go_ahead(next);
-        }
-    }
-
-    /// Saving failed: says why, and stops whatever was waiting for it.
-    pub fn save_failed(&mut self, reason: &str) {
-        self.note = Some(format!("Couldn't save: {reason}."));
-        self.file.after_save = None;
-    }
-
-    /// The user closed the Save dialog without choosing: nothing is saved,
-    /// and whatever was waiting for the save doesn't happen.
-    pub fn save_cancelled(&mut self) {
-        self.file.after_save = None;
-    }
-
-    /// The app opened `document` from `path`: it replaces the current one
-    /// (whose unsaved changes were already dealt with), with a fresh undo
-    /// history, and the view frames it.
-    pub fn opened(&mut self, document: Document, path: PathBuf) {
-        self.replace_document(document);
-        self.note = Some(format!("Opened {}.", file_name(&path)));
-        self.file.remember(&path);
-        self.file.path = Some(path);
-        self.viewport.frame(crate::Frame::All);
-    }
-
-    /// Opening `path` failed: says why. A recent project that can no
-    /// longer be found is taken off the list.
-    pub fn open_failed(&mut self, path: &Path, reason: &str) {
-        self.note = Some(format!("Couldn't open {}: {reason}.", file_name(path)));
-        if !path.exists() {
-            self.file.recent.retain(|p| p != path);
-        }
-    }
-
-    /// The window's close button was pressed. Returns `true` if it may
-    /// close now; with unsaved changes it asks first and returns `false`
-    /// (a [`WorkbenchAction::Quit`] follows if the user agrees).
-    pub fn request_close(&mut self) -> bool {
-        if self.has_unsaved_changes() {
-            self.file.asking = Some(Pending::Quit);
-            false
-        } else {
-            true
-        }
-    }
-
-    /// Does `next` now, or first asks whether to save unsaved changes.
-    fn ask_then(&mut self, next: Pending, actions: &mut Vec<WorkbenchAction>) {
-        if self.has_unsaved_changes() {
-            self.file.asking = Some(next);
-        } else {
-            self.go_ahead(next);
-            actions.append(&mut self.queued);
-        }
-    }
-
-    /// Carries out `next`, unsaved changes being dealt with. A new project
-    /// starts at once; opening and closing are queued for the app (handed
-    /// over at once inside a frame, or on the next frame otherwise).
-    fn go_ahead(&mut self, next: Pending) {
-        match next {
-            Pending::New => {
-                self.replace_document(self.new_document());
-                self.file.path = None;
-                self.note = Some("New project.".into());
-            }
-            Pending::Open(path) => self.queued.push(WorkbenchAction::Open { path }),
-            Pending::Quit => self.queued.push(WorkbenchAction::Quit),
-        }
-    }
-
-    /// Puts `document` in place of the current one, keeping the undo
-    /// memory limit, and starts the view and panels afresh.
-    fn replace_document(&mut self, mut document: Document) {
-        document.set_history_limit(self.undo_memory.limit());
-        self.file.saved_revision = document.revision();
-        self.document = document;
-        self.autosaver.restart();
-        self.drawing.forget();
-        self.hidden.faces.clear();
-        self.hidden.revision += 1;
-        self.copied.clear();
-        self.forgotten_told = false;
-    }
-
-    /// The "Save changes before …?" question, while asked.
-    fn unsaved_question(&mut self, ctx: &egui::Context, actions: &mut Vec<WorkbenchAction>) {
-        let Some(pending) = self.file.asking.clone() else {
-            return;
-        };
-        let mut answer = None;
-        let discard = ctx.format_shortcut(&DISCARD_SHORTCUT);
-        let keys = format!("Enter: save · {discard}: don't save · Esc: cancel");
-        crate::dialog::Dialog::new(format!("Save changes to {}?", self.file.name()), 440.0)
-            .id("unsaved_changes")
-            .modal()
-            .show(ctx, |d| {
-                d.header(false, |_| {});
-                d.body(|ui| {
-                    ui.label(format!(
-                        "Your changes will be lost if you don't save them before {}.",
-                        pending.before()
-                    ));
-                    crate::dialog::help(ui, &keys);
-                });
-                d.footer(None, |ui| {
-                    if crate::dialog::main_button(ui, "Save").clicked() {
-                        answer = Some(UnsavedAnswer::Save);
-                    }
-                    if crate::dialog::plain_button(ui, "Cancel").clicked() {
-                        answer = Some(UnsavedAnswer::Cancel);
-                    }
-                    if crate::dialog::plain_button(ui, "Don't save").clicked() {
-                        answer = Some(UnsavedAnswer::Discard);
-                    }
-                });
-            });
-        let (save, discard, cancel) = ctx.input_mut(|i| {
-            (
-                i.consume_key(Modifiers::NONE, Key::Enter),
-                i.consume_shortcut(&DISCARD_SHORTCUT),
-                i.consume_key(Modifiers::NONE, Key::Escape),
-            )
-        });
-        if save {
-            answer = Some(UnsavedAnswer::Save);
-        } else if discard {
-            answer = Some(UnsavedAnswer::Discard);
-        } else if cancel {
-            answer = Some(UnsavedAnswer::Cancel);
-        }
-        match answer {
-            Some(UnsavedAnswer::Save) => {
-                self.file.asking = None;
-                self.file.after_save = Some(pending);
-                actions.push(WorkbenchAction::Save {
-                    path: self.file.path.clone(),
-                });
-            }
-            Some(UnsavedAnswer::Discard) => {
-                self.file.asking = None;
-                self.go_ahead(pending);
-                actions.append(&mut self.queued);
-            }
-            Some(UnsavedAnswer::Cancel) => self.file.asking = None,
-            None => {}
-        }
-    }
-
-    /// Whether the "Save changes?" question is showing.
-    pub fn is_asking_to_save(&self) -> bool {
-        self.file.asking.is_some()
-    }
-
-    /// The File menu's project entries and their keys.
-    fn file_keys(&mut self, ui: &Ui, actions: &mut Vec<WorkbenchAction>) {
-        let (new, open, save_as, save) = ui.input_mut(|i| {
-            (
-                i.consume_shortcut(&NEW_SHORTCUT),
-                i.consume_shortcut(&OPEN_SHORTCUT),
-                // Ctrl+Shift+S first: Ctrl+S would match it too.
-                i.consume_shortcut(&SAVE_AS_SHORTCUT),
-                i.consume_shortcut(&SAVE_SHORTCUT),
-            )
-        });
-        if new {
-            self.ask_then(Pending::New, actions);
-        }
-        if open {
-            self.ask_then(Pending::Open(None), actions);
-        }
-        if save_as {
-            actions.push(WorkbenchAction::Save { path: None });
-        } else if save {
-            actions.push(WorkbenchAction::Save {
-                path: self.file.path.clone(),
-            });
-        }
-    }
-
-    /// Whether the Settings window is open.
-    pub fn is_settings_open(&self) -> bool {
-        self.settings.open
-    }
-
-    /// Opens the Settings window.
-    pub fn open_settings(&mut self) {
-        self.settings.open = true;
-    }
-
-    /// How much memory the undo history may use.
-    pub fn undo_memory(&self) -> UndoMemory {
-        self.undo_memory
-    }
-
-    /// The workbench with a remembered undo memory choice restored.
-    #[must_use]
-    pub fn with_undo_memory(mut self, memory: UndoMemory) -> Self {
-        self.set_undo_memory(memory);
-        self
-    }
-
-    fn set_undo_memory(&mut self, memory: UndoMemory) {
-        self.undo_memory = memory;
-        self.document.set_history_limit(memory.limit());
-    }
-
-    /// The workbench with the remembered units for new projects
-    /// restored; the empty project it starts with gets them too.
-    #[must_use]
-    pub fn with_units(mut self, units: Units) -> Self {
-        self.new_units = units;
-        let untouched = self.document.scene().children(None).is_empty()
-            && self.document.undo_steps() == 0
-            && self.document.redo_steps() == 0;
-        if untouched {
-            self.replace_document(self.new_document());
-        }
-        self
-    }
-
-    /// The accent colour, for saving between sessions.
-    pub fn accent(&self) -> Accent {
-        self.accent
-    }
-
-    /// The workbench with a remembered accent colour restored.
-    #[must_use]
-    pub fn with_accent(mut self, accent: Accent) -> Self {
-        self.accent = accent;
-        self
-    }
-
-    /// Changes the accent colour (Window → Accent colour).
-    pub fn set_accent(&mut self, accent: Accent) {
-        self.accent = accent;
-    }
-
-    /// The workbench with remembered display choices restored.
-    #[must_use]
-    pub fn with_view_options(mut self, options: ViewOptions) -> Self {
-        *self.viewport.options_mut() = options.migrated();
-        self
-    }
 
     /// Draws the whole window and returns what the user asked for.
     /// `renderer` draws the 3D viewport.
@@ -956,6 +466,8 @@ impl Workbench {
         renderer: &mut dyn ViewportRenderer,
     ) -> Vec<WorkbenchAction> {
         let mut actions = Vec::new();
+        // On a Mac, texts say Cmd for Ctrl (decision 0133).
+        crate::text::use_mac_keys(ui.ctx().os() == egui::os::OperatingSystem::Mac);
         if theme::accent(ui.ctx()) != self.accent {
             theme::set_accent(ui.ctx(), self.accent);
         }
@@ -1039,6 +551,11 @@ impl Workbench {
             .show(ui, |ui| {
                 if let Some(command) = command_palette(ui, &palette_state, &mut symmetry, units) {
                     requests.push(match command {
+                        PaletteCommand::SetSelectTool(tool) => {
+                            self.set_tool(Tool::Select);
+                            self.set_select_tool(tool);
+                            return;
+                        }
                         PaletteCommand::NextSelectTool => {
                             if self.tool == Tool::Select {
                                 self.next_select_tool();
@@ -1207,6 +724,10 @@ impl Workbench {
                     self.uv_menu_entries(ui, &mut requests);
                 });
         }
+        // A viewport menu's "All settings…" (decision 0126).
+        if self.viewport.take_open_settings() {
+            self.settings.open = true;
+        }
         if let Some(crate::layers::ModifierPick::AddLayer) = modifier_pick {
             self.add_edit_layer(&mut requests);
         }
@@ -1219,7 +740,7 @@ impl Workbench {
         self.carry_out_gizmo(ui, &summary.drawing);
         let keys = ui.input(|i| i.modifiers);
         self.carry_out_tool_drag(&summary.drawing, keys);
-        self.show_loop_cut_preview(&summary.drawing);
+        self.show_loop_cut_preview(&summary.drawing, keys.command);
         self.show_slit(&summary.drawing);
         self.carry_out_coordinates(coordinates_done, &summary.drawing);
         let shown = summary.overlay.version;
@@ -1253,10 +774,7 @@ impl Workbench {
                 crate::layout::add_beside_objects(&mut self.dock, Panel::EditLayers);
             }
         }
-        if self.fit_pending && fit_coordinates(&mut self.dock) {
-            self.fit_pending = false;
-            ui.ctx().request_repaint();
-        }
+        self.keep_coordinates_fitted(ui.ctx());
 
         if let Some(kind) = self.shape_picker.show(ui.ctx()) {
             requests.push(create(kind));
@@ -1274,15 +792,16 @@ impl Workbench {
         self.shortcut_window(ui.ctx());
         if self.about_open {
             let mut done = false;
-            let outcome = crate::dialog::Dialog::new(format!("About {}", self.info.name), 460.0)
-                .id("about")
-                .show(ui.ctx(), |d| {
-                    d.header(true, |_| {});
-                    d.body(|ui| about_contents(ui, &self.info));
-                    d.footer(None, |ui| {
-                        done = crate::dialog::main_button(ui, "Close").clicked();
+            let outcome =
+                crate::dialog::Dialog::new(crate::trf!("About {}", self.info.name), 460.0)
+                    .id("about")
+                    .show(ui.ctx(), |d| {
+                        d.header(true, |_| {});
+                        d.body(|ui| about_contents(ui, &self.info));
+                        d.footer(None, |ui| {
+                            done = crate::dialog::main_button(ui, tr("Close")).clicked();
+                        });
                     });
-                });
             let (enter, escape) = crate::dialog::enter_or_escape(ui.ctx());
             if outcome.closed || done || enter || escape {
                 self.about_open = false;
@@ -1308,37 +827,6 @@ impl Workbench {
         actions
     }
 
-    /// Draws the Settings window, if open, and applies what changed.
-    fn settings_window(&mut self, ctx: &egui::Context) {
-        let mut undo_memory = self.undo_memory;
-        let history = (
-            self.document.history_memory(),
-            self.document.undo_steps() + self.document.redo_steps(),
-        );
-        let options = self.viewport.options_mut();
-        let mut values = Values {
-            accent: &mut self.accent,
-            units: &mut self.units,
-            new_units: &mut self.new_units,
-            navigation: &mut options.navigation,
-            grid: &mut options.grid_detail,
-            select_visible_only: &mut options.select_visible_only,
-            select_keys: &mut options.select_keys,
-            snap: &mut options.snap,
-            undo_memory: &mut undo_memory,
-            history,
-            autosave: &mut self.autosaver.settings,
-            autosave_folder: self.autosave_folder.as_deref(),
-            tool_menu: &mut self.tool_menu.settings,
-            dissolve_without_warning: &mut options.dissolve_without_warning,
-            high_contrast: &mut options.high_contrast,
-        };
-        self.settings.show(ctx, &mut values);
-        if undo_memory != self.undo_memory {
-            self.set_undo_memory(undo_memory);
-        }
-    }
-
     /// Whether one of the app's windows is open (Export, Check for baking,
     /// Settings, the keys, About): Esc closes it rather than selecting
     /// nothing.
@@ -1352,1478 +840,11 @@ impl Workbench {
             || self.quad_menu.is_open()
             || self.search.open
     }
-
-    /// Keys that change the document: undo, redo, delete, deselect, group
-    /// and ungroup. Ignored while typing in a text box, which has its own.
-    fn document_keys(&mut self, ui: &Ui, out: &mut Vec<DocRequest>) {
-        // (While a name is typed, Esc means "keep the old name", even on
-        // the frame egui has already taken the keyboard away.)
-        if ui.ctx().memory(|m| m.focused().is_some()) || self.objects.is_renaming() {
-            return;
-        }
-        // While the gizmo is dragged, Esc cancels the drag, and nothing
-        // else happens.
-        if self.uv_editor.dragging_gizmo() {
-            if ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
-                self.uv_editor.cancel_gizmo(&mut self.document);
-            }
-            return;
-        }
-        if self.viewport.dragging_gizmo() {
-            if ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
-                self.viewport.cancel_gizmo_drag();
-            }
-            return;
-        }
-        // The same for a modelling tool's drag.
-        if self.viewport.dragging_tool() {
-            if ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
-                self.viewport.cancel_tool_drag();
-            }
-            return;
-        }
-        // While measuring in the UV Editor, Esc stops (decision 0115).
-        if self.uv_editor.measuring()
-            && ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape))
-        {
-            self.uv_editor.set_measuring(false);
-            return;
-        }
-        // While a target click is awaited, Esc cancels it.
-        if self.target_pick.is_some()
-            && ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape))
-        {
-            self.cancel_target_pick();
-            return;
-        }
-        // While a slit's line is drawn, Enter finishes it and Esc cancels
-        // it, taking its cut back, as Esc cancels everywhere (decision
-        // 0126). Tab (back to the Model mode) finishes it too.
-        if self.slit_session.is_some() {
-            if ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Enter)) {
-                self.finish_slit();
-                return;
-            }
-            if ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
-                self.cancel_slit();
-                return;
-            }
-        }
-        let popup_open = egui::Popup::is_any_open(ui.ctx());
-        let anything = !self.document.selection().is_empty();
-        let mode = self.mode;
-        let mut commands = Vec::new();
-        ui.input_mut(|i| {
-            // Ctrl+Shift+Z first: Ctrl+Z would match it too.
-            if i.consume_shortcut(&objects::REDO_SHORTCUT_2)
-                || i.consume_shortcut(&objects::REDO_SHORTCUT)
-            {
-                out.push(DocRequest::Redo);
-            } else if i.consume_shortcut(&objects::UNDO_SHORTCUT) {
-                out.push(DocRequest::Undo);
-            }
-            // The object commands with keys, from the command list. In
-            // the Points, Edges and Polygons modes, Delete deletes the
-            // selected elements and Backspace dissolves them instead.
-            let editing = components::kind_for(mode).is_some();
-            let (delete, dissolve) = if editing {
-                (CommandId::DeleteElements, CommandId::Dissolve)
-            } else {
-                (CommandId::Delete, CommandId::Delete)
-            };
-            for command in [
-                CommandId::Ungroup,
-                CommandId::MakeEditable,
-                CommandId::Group,
-            ] {
-                let pressed = command
-                    .info()
-                    .shortcut
-                    .is_some_and(|keys| i.consume_shortcut(&keys));
-                if pressed && anything {
-                    commands.push(command);
-                }
-            }
-            if i.consume_key(Modifiers::NONE, Key::Delete) && anything {
-                commands.push(delete);
-            }
-            if i.consume_key(Modifiers::NONE, Key::Backspace) && anything {
-                commands.push(dissolve);
-            }
-        });
-        for command in commands {
-            self.run_command(command, ui.ctx(), out);
-        }
-        // Esc closes an open menu first; otherwise it deselects: the
-        // points, edges or polygons in those modes, else the objects.
-        // With a window open, Esc closes it instead (decision 0087).
-        if !popup_open
-            && !self.window_open()
-            && ui.input_mut(|i| i.consume_shortcut(&objects::DESELECT_SHORTCUT))
-        {
-            if components::kind_for(self.mode).is_some() {
-                self.select_requests.push(SelectRequest::Clear);
-            } else {
-                self.document.clear_selection();
-            }
-        }
-    }
-
-    /// Carries out what the menus, keys and panels asked for this frame,
-    /// saying in the status bar what happened when it isn't plain to see.
-    fn carry_out(&mut self, requests: Vec<DocRequest>) {
-        for request in requests {
-            self.note = match request {
-                DocRequest::Run(command) => {
-                    let what = command.describe(self.document.scene());
-                    match self.document.execute(command) {
-                        Ok(()) => None,
-                        Err(why) => Some(format!("Couldn't {}: {why}.", what.to_lowercase())),
-                    }
-                }
-                DocRequest::RunMerging(command, key) => {
-                    let what = command.describe(self.document.scene());
-                    match self.document.execute_merging(command, key) {
-                        Ok(()) => None,
-                        Err(why) => Some(format!("Couldn't {}: {why}.", what.to_lowercase())),
-                    }
-                }
-                DocRequest::Undo => Some(match self.document.undo() {
-                    Some(what) => format!("Undone: {what}."),
-                    None => "Nothing to undo.".into(),
-                }),
-                DocRequest::Redo => Some(match self.document.redo() {
-                    Some(what) => format!("Redone: {what}."),
-                    None => "Nothing to redo.".into(),
-                }),
-            };
-        }
-        if self.document.forgotten_steps() > 0 && !self.forgotten_told && self.note.is_none() {
-            self.forgotten_told = true;
-            self.note = Some(format!(
-                "Undo memory is full ({}): the oldest steps are now forgotten as you work. \
-                 Settings → Undo sets the limit.",
-                self.undo_memory.short()
-            ));
-        }
-    }
-
-    /// Adds an edit layer to the selected objects that can take one, and
-    /// brings the Edit layers panel to the front (decision 0091).
-    fn add_edit_layer(&mut self, requests: &mut Vec<DocRequest>) {
-        let targets = crate::layers::layer_targets(&self.document);
-        if targets.is_empty() {
-            self.note = Some(
-                "Select an object with a shape first: groups and instances have no edit layers."
-                    .into(),
-            );
-            return;
-        }
-        requests.push(DocRequest::Run(Command::AddLayer(targets)));
-        crate::layout::show_tab(&mut self.dock, Panel::EditLayers);
-    }
-
-    /// Whether a selected object has a shape to edit (for the Points,
-    /// Edges and Polygons modes).
-    fn editing_anything(&self) -> bool {
-        self.document.selection().iter().any(|id| {
-            self.document
-                .scene()
-                .object(*id)
-                .is_some_and(|o| o.kind.has_shape())
-        })
-    }
-
-    /// The mode keys: 1 Points, 2 Edges, 3 Polygons; the same key again
-    /// goes back to the Model mode. Tab steps straight back ([`BACK_KEY`]).
-    /// Not while typing (there Tab moves to the next field).
-    fn mode_keys(&mut self, ui: &Ui) {
-        if ui.ctx().memory(|m| m.focused().is_some()) || self.objects.is_renaming() {
-            return;
-        }
-        for (key, mode) in MODE_KEYS {
-            if ui.input_mut(|i| i.consume_key(Modifiers::NONE, key)) {
-                self.press_mode_key(mode);
-            }
-        }
-        if ui.input_mut(|i| i.consume_key(Modifiers::NONE, BACK_KEY)) {
-            // egui would also move the keyboard focus to the next button,
-            // which would then take every key: not here.
-            ui.ctx()
-                .memory_mut(|m| m.move_focus(egui::FocusDirection::None));
-            self.step_back();
-        }
-    }
-
-    /// 1, 2 or 3. With a modelling tool in use (Extrude, Slit, Weld...),
-    /// the key puts it away and selects in that mode, staying in it if
-    /// already there ([decision 0060](../../../docs/decisions/0060-mode-keys-put-tools-away.md)):
-    /// pressing the mode key is how the project lead goes back to
-    /// selecting. Otherwise the key switches to its mode, or back to the
-    /// Model mode when already in it.
-    pub(crate) fn press_mode_key(&mut self, mode: Mode) {
-        if self.tool.has_settings() {
-            let tool = self.tool.name();
-            // Finishes a Slit line too, keeping what it cut.
-            self.set_tool(Tool::Select);
-            self.mode = mode;
-            self.note = Some(format!(
-                "{} mode: selecting ({tool} put away; its key brings it back).",
-                mode.name()
-            ));
-            return;
-        }
-        self.mode = if self.mode == mode { Mode::Model } else { mode };
-    }
-
-    /// Tab: finishes whatever is going on and lands in the Model mode with
-    /// the Select tool (or the Move, Rotate or Scale tool in use, which
-    /// work on objects too), so a click selects objects again. A drag
-    /// under way is left alone: let go (or Esc) first.
-    pub(crate) fn step_back(&mut self) {
-        let dragging = self.gizmo_session.is_some()
-            || self.coordinates_session.is_some()
-            || self.modelling_session.is_some()
-            || self.loop_cut_session.is_some()
-            || self.pair_session.is_some();
-        if dragging {
-            self.note = Some("Let go of the drag (or press Esc) first, then Tab.".into());
-            return;
-        }
-        let menu = self.tool_menu.is_open();
-        self.tool_menu.close();
-        self.target_pick = None;
-        let tool = self.tool.has_settings();
-        if tool {
-            // Finishes a Slit line too, keeping what it cut.
-            self.set_tool(Tool::Select);
-        }
-        let mode = self.mode != Mode::Model;
-        self.mode = Mode::Model;
-        self.note = Some(if mode || tool || menu {
-            "Back in the Model mode: click an object to select it.".into()
-        } else {
-            "Already in the Model mode: Tab steps back here from editing points, edges or \
-             polygons, or from a modelling tool."
-                .into()
-        });
-    }
-
-    fn status_bar(&self, ui: &mut Ui) {
-        ui.horizontal_centered(|ui| {
-            let selected = match self.document.selection().len() {
-                0 => String::new(),
-                1 => " 1 object selected.".into(),
-                n => format!(" {n} objects selected."),
-            };
-            let under = match (components::kind_for(self.mode), self.components.hovered()) {
-                (Some(_), Some(element)) => format!(
-                    " Under the mouse: {}.",
-                    components::describe(&self.document, element)
-                ),
-                (Some(_), None) if !self.editing_anything() => format!(
-                    " Select an object to see its {}.",
-                    self.mode.name().to_lowercase()
-                ),
-                _ => String::new(),
-            };
-            let elements = self.selected_elements_text();
-            let hidden = self.hidden_text();
-            ui.label(format!(
-                "{} mode: {}.{selected}{elements}{hidden}{under}",
-                self.mode.name(),
-                lower_first(self.mode.description())
-            ));
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                let note = match self.note.as_deref() {
-                    Some(note) => note.to_string(),
-                    None => navigation_hint(self.viewport.options().navigation.scheme),
-                };
-                ui.label(egui::RichText::new(note).weak());
-            });
-        });
-    }
-
-    fn menu_bar(
-        &mut self,
-        ui: &mut Ui,
-        actions: &mut Vec<WorkbenchAction>,
-        requests: &mut Vec<DocRequest>,
-    ) {
-        crate::dialog::menu(ui, "File", |ui| {
-            let entry = |ui: &mut Ui, label: &str, keys: &KeyboardShortcut, help: &str| {
-                let keys = ui.ctx().format_shortcut(keys);
-                ui.add(egui::Button::new(label).shortcut_text(keys))
-                    .on_hover_text(help)
-                    .clicked()
-            };
-            if entry(ui, "New", &NEW_SHORTCUT, "Start a new, empty project") {
-                self.ask_then(Pending::New, actions);
-                ui.close();
-            }
-            if entry(ui, "Open…", &OPEN_SHORTCUT, "Open a saved project") {
-                self.ask_then(Pending::Open(None), actions);
-                ui.close();
-            }
-            let recent = self.file.recent.clone();
-            ui.add_enabled_ui(!recent.is_empty(), |ui| {
-                crate::dialog::menu(ui, "Open recent", |ui| {
-                    for path in &recent {
-                        if ui
-                            .button(recent_label(path))
-                            .on_hover_text(path.display().to_string())
-                            .clicked()
-                        {
-                            self.ask_then(Pending::Open(Some(path.clone())), actions);
-                            ui.close();
-                        }
-                    }
-                    ui.separator();
-                    if ui.button("Clear the list").clicked() {
-                        self.file.recent.clear();
-                        ui.close();
-                    }
-                })
-            })
-            .response
-            .on_disabled_hover_text("Projects you save or open are listed here");
-            ui.separator();
-            if entry(ui, "Save", &SAVE_SHORTCUT, "Save the project") {
-                actions.push(WorkbenchAction::Save {
-                    path: self.file.path.clone(),
-                });
-                ui.close();
-            }
-            if entry(
-                ui,
-                "Save As…",
-                &SAVE_AS_SHORTCUT,
-                "Save the project under a new name or in another folder",
-            ) {
-                actions.push(WorkbenchAction::Save { path: None });
-                ui.close();
-            }
-            ui.separator();
-            self.export_entries(ui, actions);
-            ui.separator();
-            // No key for Quit, on purpose: Ctrl and Q are both used all the
-            // time, and a slip shouldn't close the app.
-            if ui.button("Quit").on_hover_text("Close the app").clicked() {
-                self.ask_then(Pending::Quit, actions);
-                ui.close();
-            }
-        });
-        crate::dialog::menu(ui, "Edit", |ui| {
-            objects::undo_entries(ui, &self.document, requests);
-            ui.separator();
-            objects::rename_delete_entries(ui, &mut self.document, &mut self.objects, requests);
-            ui.separator();
-            self.copy_entries(ui, requests);
-            ui.separator();
-            let keys = ui.ctx().format_shortcut(&SETTINGS_SHORTCUT);
-            if ui
-                .add(egui::Button::new("Settings…").shortcut_text(keys))
-                .on_hover_text("Every preference in one place: look, units, navigation, undo")
-                .clicked()
-            {
-                self.settings.open = true;
-                ui.close();
-            }
-        });
-        // Menu order as in DESIGN.md: File, Edit, Create, Modes, Select,
-        // Tools, Mesh, UV, View, Window, Help.
-        crate::dialog::menu(ui, "Create", |ui| {
-            for kind in PrimitiveKind::ALL {
-                if ui
-                    .button(kind.name())
-                    .on_hover_text(kind.description())
-                    .clicked()
-                {
-                    requests.push(create(kind));
-                    ui.close();
-                }
-            }
-            ui.separator();
-            if ui
-                .button("Group")
-                .on_hover_text("An empty object to hold and organise other objects")
-                .clicked()
-            {
-                requests.push(DocRequest::Run(Command::Create(ObjectKind::Group)));
-                ui.close();
-            }
-            ui.separator();
-            ui.label(
-                egui::RichText::new("Tip: press B for the shape list")
-                    .small()
-                    .color(theme::TEXT_WEAK),
-            );
-        });
-        crate::dialog::menu(ui, "Modes", |ui| {
-            for mode in Mode::SHOWN {
-                let current =
-                    self.mode == mode || (mode == Mode::Model && self.mode == Mode::Object);
-                let mut entry = egui::Button::selectable(current, mode.name());
-                if let Some(key) = mode.key() {
-                    entry = entry.shortcut_text(key.name());
-                }
-                if ui.add(entry).on_hover_text(mode.description()).clicked() {
-                    self.mode = mode;
-                    ui.close();
-                }
-            }
-        });
-        for title in MIDDLE_MENUS {
-            crate::dialog::menu(ui, title, |ui| {
-                if title == "Select" {
-                    self.select_menu(ui);
-                }
-                if title == "Tools" {
-                    self.tools_menu(ui);
-                }
-                if title == "UV" {
-                    self.uv_menu_entries(ui, requests);
-                }
-                if title == "Mesh" {
-                    self.mesh_menu(ui, requests);
-                }
-            });
-        }
-        crate::dialog::menu(ui, "View", |ui| {
-            if ui
-                .button("Reset view")
-                .on_hover_text("Go back to the opening camera view")
-                .clicked()
-            {
-                self.viewport.reset_view();
-                ui.close();
-            }
-            crate::viewport::chrome::frame_entries(ui, &mut self.viewport);
-            ui.separator();
-            crate::dialog::menu(ui, SHOW_HIDE_MENU, |ui| {
-                let entry = |ui: &mut Ui, label: &str, keys: &KeyboardShortcut, help: &str| {
-                    let keys = ui.ctx().format_shortcut(keys);
-                    ui.add(egui::Button::new(label).shortcut_text(keys))
-                        .on_hover_text(help)
-                        .clicked()
-                };
-                if entry(
-                    ui,
-                    "Hide the selection",
-                    &showing::HIDE_KEYS,
-                    "Hide the selected objects (or the selected polygons while editing)",
-                ) {
-                    self.hide(showing::Hiding::Selection);
-                    ui.close();
-                }
-                if entry(
-                    ui,
-                    "Isolate the selection",
-                    &showing::ISOLATE_KEYS,
-                    "Hide everything except the selection",
-                ) {
-                    self.hide(showing::Hiding::Others);
-                    ui.close();
-                }
-                if entry(
-                    ui,
-                    "Show everything",
-                    &showing::SHOW_ALL_KEYS,
-                    "Show all that's hidden",
-                ) {
-                    self.show_everything();
-                    ui.close();
-                }
-            });
-            ui.separator();
-            crate::viewport::chrome::grid_entries(ui, &mut self.viewport.options_mut().grid_detail);
-            ui.separator();
-            if ui.button("Reset panel layout").clicked() {
-                self.reset_layout();
-                ui.close();
-            }
-        });
-        crate::dialog::menu(ui, "Window", |ui| {
-            let shown = self.dock.find_tab(&Panel::UvEditor).is_some();
-            if ui
-                .add(egui::Button::selectable(shown, UV_EDITOR_ENTRY))
-                .on_hover_text(
-                    "Show the UV Editor beside the viewport, or put it away. The UV Edit layout \
-                     (top right) always has it.",
-                )
-                .clicked()
-            {
-                self.toggle_uv_editor();
-                ui.close();
-            }
-            let layers_shown = self.dock.find_tab(&Panel::EditLayers).is_some();
-            if ui
-                .add(egui::Button::selectable(layers_shown, EDIT_LAYERS_ENTRY))
-                .on_hover_text(
-                    "Show the Edit layers panel beside Objects, or put it away. It shows by \
-                     itself once an object has more than one layer.",
-                )
-                .clicked()
-            {
-                match self.dock.find_tab(&Panel::EditLayers) {
-                    Some(path) => {
-                        self.dock.remove_tab(path);
-                    }
-                    None => crate::layout::show_tab(&mut self.dock, Panel::EditLayers),
-                }
-                ui.close();
-            }
-        });
-        crate::dialog::menu(ui, "Help", |ui| {
-            if ui
-                .button(MANUAL_ENTRY)
-                .on_hover_text("Open the user manual in your web browser")
-                .clicked()
-            {
-                self.open_manual(ui.ctx());
-                ui.close();
-            }
-            if ui
-                .button(GLOSSARY_ENTRY)
-                .on_hover_text(
-                    "What the app's words mean: points, pieces, seams, pivots, smoothing and the \
-                     rest, each explained in plain words, in your web browser",
-                )
-                .clicked()
-            {
-                self.open_glossary(ui.ctx());
-                ui.close();
-            }
-            if ui
-                .add(
-                    egui::Button::new(SEARCH_ENTRY)
-                        .shortcut_text(crate::command_search::SEARCH_KEY.name()),
-                )
-                .on_hover_text("Find any command by typing part of its name")
-                .clicked()
-            {
-                self.search.open();
-                ui.close();
-            }
-            if ui
-                .button("Keys")
-                .on_hover_text(
-                    "Every key on a drawn keyboard (also the Keys button on the menu bar)",
-                )
-                .clicked()
-            {
-                self.shortcuts.open = true;
-                ui.close();
-            }
-            ui.separator();
-            crate::dialog::menu(ui, DEVELOPER_MENU, |ui| {
-                if ui
-                    .button("Add a heavy test shape")
-                    .on_hover_text(
-                        "Adds a bumpy ball of 3 million polygons, like a detailed model you \
-                         might import, to see how your computer copes with heavy shapes. Undo \
-                         takes it away again.",
-                    )
-                    .clicked()
-                {
-                    self.add_heavy_test_shape();
-                    ui.close();
-                }
-            });
-            ui.separator();
-            if ui.button(format!("About {}", self.info.name)).clicked() {
-                self.about_open = true;
-                ui.close();
-            }
-        });
-        self.keys_button(ui);
-        let unsaved = self.has_unsaved_changes();
-        if let Some(choice) = layout_tabs(ui, &self.file.name(), unsaved, self.layout_choice) {
-            self.switch_layout(choice);
-        }
-    }
-}
-
-/// `text` with its first letter small, for the middle of a sentence
-/// (names such as UV keep their capitals).
-fn lower_first(text: &str) -> String {
-    let mut chars = text.chars();
-    match chars.next() {
-        Some(first) => first.to_lowercase().chain(chars).collect(),
-        None => String::new(),
-    }
-}
-
-/// The Mesh menu's groups (decision 0126): what it holds was one long
-/// list.
-pub(crate) const MESH_BUILD_MENU: &str = "Build";
-pub(crate) const MESH_CUT_MENU: &str = "Cut and join";
-pub(crate) const MESH_REMOVE_MENU: &str = "Remove";
-pub(crate) const MESH_SHADING_MENU: &str = "Shading";
-pub(crate) const MESH_OBJECT_MENU: &str = "Shape and object";
-
-/// Help → User manual.
-pub(crate) const MANUAL_ENTRY: &str = "User manual";
-/// Help → Words used in the app: the manual's glossary (decision 0126).
-pub(crate) const GLOSSARY_ENTRY: &str = "Words used in the app";
-/// Help → Search for a command.
-pub(crate) const SEARCH_ENTRY: &str = "Search for a command";
-/// Help → Developer: tools for checking the app itself (decision 0126).
-pub(crate) const DEVELOPER_MENU: &str = "Developer";
-/// View → Show and hide (decision 0126).
-pub(crate) const SHOW_HIDE_MENU: &str = "Show and hide";
-
-impl Workbench {
-    /// The Mesh menu (decision 0126): the modelling tools in groups, each
-    /// a submenu one level down, so the menu is short and every command is
-    /// found where people look for it.
-    fn mesh_menu(&mut self, ui: &mut Ui, requests: &mut Vec<DocRequest>) {
-        use crate::commands::CommandId;
-        let groups: [(&str, &str, &[CommandId]); 3] = [
-            (
-                MESH_BUILD_MENU,
-                "Add to the shape: extrude, inset, bevel, groove, bridge, fill a hole",
-                &[
-                    CommandId::Extrude,
-                    CommandId::Inset,
-                    CommandId::Bevel,
-                    CommandId::Groove,
-                    CommandId::Bridge,
-                    CommandId::FillHole,
-                ],
-            ),
-            (
-                MESH_CUT_MENU,
-                "Cut new edges and join points: slit, loop cut, connect, weld",
-                &[
-                    CommandId::Slit,
-                    CommandId::LoopCut,
-                    CommandId::Connect,
-                    CommandId::Weld,
-                ],
-            ),
-            (
-                MESH_REMOVE_MENU,
-                "Take points, edges or polygons away",
-                &[CommandId::DeleteElements, CommandId::Dissolve],
-            ),
-        ];
-        for (title, help, commands) in groups {
-            crate::dialog::menu(ui, title, |ui| {
-                if let Some(command) = commands_entries(ui, commands) {
-                    self.run_command(command, ui.ctx(), requests);
-                    ui.close();
-                }
-            })
-            .response
-            .on_hover_text(help);
-        }
-        crate::dialog::menu(ui, MESH_SHADING_MENU, |ui| {
-            self.smoothing_entry(ui);
-            if let Some(command) =
-                commands_entries(ui, &[CommandId::HardEdges, CommandId::SoftEdges])
-            {
-                self.run_command(command, ui.ctx(), requests);
-                ui.close();
-            }
-            if ui
-                .button("Hard edges by angle")
-                .on_hover_text(
-                    "In the selected objects, mark every edge whose polygons meet more \
-                     sharply than an angle (30° to start with) hard, and the rest soft: \
-                     boxy corners crisp, curves smooth. Change the angle under Last edit.",
-                )
-                .clicked()
-            {
-                self.run_hard_by_angle();
-                ui.close();
-            }
-            ui.separator();
-            if let Some(command) = commands_entries(ui, &[CommandId::FlipNormals]) {
-                self.run_command(command, ui.ctx(), requests);
-                ui.close();
-            }
-            if ui
-                .button("Fix normals")
-                .on_hover_text(
-                    "Turn every polygon of the selected objects that faces the wrong \
-                     way round: inside out compared with its neighbours, or facing \
-                     into a closed shape. Select → Select flipped shows them first.",
-                )
-                .clicked()
-            {
-                self.run_fix_facing();
-                ui.close();
-            }
-        })
-        .response
-        .on_hover_text("How the shape is shaded: smoothing, hard and soft edges, normals");
-        crate::dialog::menu(ui, MESH_OBJECT_MENU, |ui| {
-            objects::make_editable_entry(ui, &self.document, requests);
-            if ui
-                .button("Split off")
-                .on_hover_text(
-                    "Move the selected polygons into a new object of their own, in the \
-                     same place (Polygons mode)",
-                )
-                .clicked()
-            {
-                self.run_split_off();
-                ui.close();
-            }
-            let join = CommandId::Join;
-            if ui
-                .button(join.name())
-                .on_hover_text(join.info().help)
-                .clicked()
-            {
-                self.run_command(join, ui.ctx(), requests);
-                ui.close();
-            }
-            objects::apply_entries(ui, &self.document, requests);
-            let mirrored = self.selected_mirror().is_some();
-            if ui
-                .add_enabled(
-                    mirrored,
-                    egui::Button::new(crate::palette::APPLY_MIRROR_LABEL),
-                )
-                .on_hover_text(
-                    "Make the mirrored half part of the shape for real: symmetry goes off and \
-                     both halves stay",
-                )
-                .on_disabled_hover_text("Select an object with symmetry on")
-                .clicked()
-            {
-                self.apply_mirror();
-                ui.close();
-            }
-            let layer_targets = crate::layers::layer_targets(&self.document);
-            if ui
-                .add_enabled(
-                    !layer_targets.is_empty(),
-                    egui::Button::new(crate::layers::ADD_LAYER_LABEL),
-                )
-                .on_hover_text(crate::layers::ADD_LAYER_HELP)
-                .clicked()
-            {
-                self.add_edit_layer(requests);
-                ui.close();
-            }
-        })
-        .response
-        .on_hover_text("Bake into shape, split off, join, apply transforms and edit layers");
-    }
-}
-
-/// The Window menu's entry for the Edit layers panel.
-pub(crate) const EDIT_LAYERS_ENTRY: &str = "Edit layers";
-
-/// The Window menu's entry for the UV Editor.
-pub(crate) const UV_EDITOR_ENTRY: &str = "UV Editor";
-
-/// How many polygons Help → Add a heavy test shape makes.
-pub(crate) const HEAVY_TEST_POLYGONS: usize = 3_000_000;
-
-impl Workbench {
-    /// Edit pivot on or off (decision 0126): the Object mode is the Model
-    /// mode with Edit pivot on. From an element mode, it goes to the Model
-    /// mode with Edit pivot on.
-    pub(crate) fn toggle_edit_pivot(&mut self) {
-        if self.mode == Mode::Object {
-            self.mode = Mode::Model;
-            self.note = Some("Edit pivot off: the gizmo moves the objects again.".into());
-        } else {
-            self.mode = Mode::Object;
-            self.note = Some(
-                "Edit pivot on: the gizmo moves and turns the pivots, not the shapes. \
-                 Click Edit pivot again (or press Tab) to stop."
-                    .into(),
-            );
-        }
-    }
-
-    /// Adds a bumpy ball of [`HEAVY_TEST_POLYGONS`] polygons, 2 m tall, as
-    /// one undo step: for trying how the app copes with heavy shapes
-    /// (DESIGN.md §4.8).
-    pub(crate) fn add_heavy_test_shape(&mut self) {
-        self.add_test_shape(HEAVY_TEST_POLYGONS);
-    }
-
-    /// Adds a bumpy ball of about `polygons` polygons, as one undo step.
-    pub(crate) fn add_test_shape(&mut self, polygons: usize) {
-        /// Marks this step's merge key apart from every other.
-        const HEAVY_SHAPE_KEY: u64 = 0x4845_4156_0000_0000;
-        self.sessions += 1;
-        let key = Some(HEAVY_SHAPE_KEY | self.sessions);
-        let label = "Add heavy test shape";
-        let ball = mesh::samples::heavy_ball(polygons, 100.0);
-        let created = self.document.execute_labelled(
-            Command::Create(ObjectKind::Mesh(std::sync::Arc::new(ball))),
-            label,
-            key,
-        );
-        if created.is_ok()
-            && let Some(id) = self.document.selection().first().copied()
-        {
-            let _ = self.document.execute_labelled(
-                Command::Rename {
-                    id,
-                    name: "Heavy test shape".into(),
-                },
-                label,
-                key,
-            );
-        }
-    }
-}
-
-/// The answers to "Save changes?".
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum UnsavedAnswer {
-    Save,
-    Discard,
-    Cancel,
-}
-
-/// "Don't save" in the "Save changes?" question, from the keyboard.
-pub const DISCARD_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::ALT, Key::N);
-
-/// A path's file name, for messages.
-fn file_name(path: &Path) -> String {
-    path.file_name().map_or_else(
-        || path.display().to_string(),
-        |n| n.to_string_lossy().into_owned(),
-    )
 }
 
 /// The request that creates a primitive of `kind` with standard settings.
 fn create(kind: PrimitiveKind) -> DocRequest {
     DocRequest::Run(Command::Create(ObjectKind::Primitive(kind.standard())))
-}
-
-/// The status bar's standing hint: the navigation controls in use.
-pub fn navigation_hint(scheme: tools::Scheme) -> String {
-    format!("{}: {}", scheme.name(), scheme.summary())
-}
-
-/// The layout tabs on the right of the menu bar. Only the standard layout
-/// exists so far; the others are shown greyed out with when they arrive.
-fn layout_tabs(
-    ui: &mut Ui,
-    project: &str,
-    unsaved: bool,
-    current: LayoutChoice,
-) -> Option<LayoutChoice> {
-    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-        ui.spacing_mut().item_spacing.x = 16.0;
-        ui.add_space(6.0);
-        let tabs = LAYOUTS.iter().rev().collect::<Vec<_>>();
-        let picked = layout_tab_labels(ui, &tabs, current);
-        ui.add_space(12.0);
-        project_badge(ui, project, unsaved);
-        picked
-    })
-    .inner
-}
-
-/// The project's name in the menu bar, with a badge in the accent colour
-/// while there are unsaved changes: easier to see than a mark in the
-/// window's title, which the system draws.
-fn project_badge(ui: &mut Ui, project: &str, unsaved: bool) {
-    ui.spacing_mut().item_spacing.x = 6.0;
-    if unsaved {
-        let accent = theme::accent(ui.ctx()).colors();
-        let text = egui::RichText::new("Unsaved")
-            .small()
-            .strong()
-            .color(theme::TEXT_STRONG);
-        let galley = egui::WidgetText::from(text).into_galley(
-            ui,
-            Some(egui::TextWrapMode::Extend),
-            f32::INFINITY,
-            egui::TextStyle::Small,
-        );
-        let size = galley.size() + egui::vec2(12.0, 4.0);
-        let (rect, response) = ui.allocate_exact_size(size, egui::Sense::hover());
-        ui.painter().rect_filled(rect, size.y / 2.0, accent.fill);
-        ui.painter().galley(
-            rect.center() - galley.size() / 2.0,
-            galley,
-            theme::TEXT_STRONG,
-        );
-        response
-            .on_hover_text(format!(
-                "Changes since the last save. {} saves.",
-                ui.ctx().format_shortcut(&crate::SAVE_SHORTCUT)
-            ))
-            .widget_info(|| {
-                egui::WidgetInfo::labeled(egui::WidgetType::Label, true, "Unsaved changes")
-            });
-    }
-    ui.add(
-        egui::Label::new(egui::RichText::new(project).color(theme::TEXT_WEAK)).selectable(false),
-    )
-    .on_hover_text("The project open now");
-}
-
-/// The layout tabs themselves, right to left. Returns the one clicked.
-fn layout_tab_labels(
-    ui: &mut Ui,
-    tabs: &[&(&str, Result<LayoutChoice, &str>, &str)],
-    current: LayoutChoice,
-) -> Option<LayoutChoice> {
-    let mut picked = None;
-    for (name, layout, help) in tabs.iter().copied() {
-        match layout {
-            Ok(choice) if *choice == current => {
-                let accent = theme::accent(ui.ctx()).colors();
-                let response = ui.add(
-                    egui::Label::new(egui::RichText::new(*name).color(theme::TEXT_STRONG))
-                        .selectable(false)
-                        .sense(egui::Sense::click()),
-                );
-                let rect = response.rect;
-                ui.painter().hline(
-                    rect.x_range(),
-                    rect.bottom() + 3.0,
-                    egui::Stroke::new(2.0, accent.light),
-                );
-                response
-                    .on_hover_text(format!("{help} (in use)"))
-                    .widget_info(|| {
-                        egui::WidgetInfo::selected(egui::WidgetType::Button, true, true, *name)
-                    });
-            }
-            Ok(choice) => {
-                let response = ui.add(
-                    egui::Label::new(egui::RichText::new(*name).color(theme::TEXT_WEAK))
-                        .selectable(false)
-                        .sense(egui::Sense::click()),
-                );
-                response.widget_info(|| {
-                    egui::WidgetInfo::selected(egui::WidgetType::Button, true, false, *name)
-                });
-                if response.on_hover_text(*help).clicked() {
-                    picked = Some(*choice);
-                }
-            }
-            Err(when) => {
-                ui.add_enabled(false, egui::Label::new(*name).selectable(false))
-                    .on_disabled_hover_text(*when);
-            }
-        }
-    }
-    picked
-}
-
-/// Menu entries for commands from the command list, each with its key;
-/// one not built yet is greyed out, saying when it arrives. Returns the
-/// command clicked, if any.
-fn commands_entries(ui: &mut Ui, list: &[CommandId]) -> Option<CommandId> {
-    let mut chosen = None;
-    for command in list {
-        let info = command.info();
-        let mut button = egui::Button::new(info.name);
-        if let Some(keys) = info.shortcut {
-            button = button.shortcut_text(ui.ctx().format_shortcut(&keys));
-        }
-        let built = info.arrives.is_none();
-        let response = ui.add_enabled(built, button);
-        match info.arrives {
-            Some(when) => {
-                response.on_disabled_hover_text(format!("{}\n{when}", info.help));
-            }
-            None => {
-                if response.on_hover_text(info.help).clicked() {
-                    chosen = Some(*command);
-                }
-            }
-        }
-    }
-    chosen
-}
-
-impl Workbench {
-    /// The UV menu: the seam tools, turns and flips, and what is coming,
-    /// from the command list (decision 0098).
-    fn uv_menu_entries(&mut self, ui: &mut Ui, requests: &mut Vec<DocRequest>) {
-        ui.menu_button(UV_SEAMS_MENU, |ui| self.uv_seams_entries(ui, requests))
-            .response
-            .on_hover_text("Mark, clear, suggest and select seams, and say where they may go");
-        ui.menu_button(UV_TURN_MENU, |ui| self.uv_turn_entries(ui, requests))
-            .response
-            .on_hover_text("Quarter turns and mirrors of the selected UVs");
-        ui.menu_button(UV_LAY_OUT_MENU, |ui| self.uv_lay_out_entries(ui, requests))
-            .response
-            .on_hover_text("Unwrap, relax, straighten, pack, texel density and trim rows");
-        ui.menu_button(UV_PIECES_MENU, |ui| self.uv_pieces_entries(ui, requests))
-            .response
-            .on_hover_text(
-                "Pin UVs, lock pieces, and give pieces settings and budgets of their own",
-            );
-        ui.separator();
-        ui.menu_button("Texture", |ui| {
-            crate::uv_editor::texture_menu(ui, &mut self.document);
-        });
-        ui.menu_button("Trim sheet", |ui| {
-            crate::uv_editor::trim_menu(ui, &mut self.document);
-        });
-        self.bake_entry(ui);
-        ui.separator();
-        ui.menu_button(UV_SETTINGS_MENU, |ui| self.automation_menus(ui))
-            .response
-            .on_hover_text("Every setting of the automatic UV tools");
-    }
-
-    /// UV → Seams.
-    fn uv_seams_entries(&mut self, ui: &mut Ui, requests: &mut Vec<DocRequest>) {
-        use crate::commands::CommandId;
-        if let Some(command) = commands_entries(ui, &[CommandId::MarkSeam, CommandId::ClearSeam]) {
-            self.run_command(command, ui.ctx(), requests);
-            ui.close();
-        }
-        for (label, help, run) in [
-            (
-                seams::SEAMS_FROM_HARD_LABEL,
-                seams::SEAMS_FROM_HARD_HELP,
-                Self::run_seams_from_hard_edges as fn(&mut Self),
-            ),
-            (
-                seams::SUGGEST_SEAMS_LABEL,
-                seams::SUGGEST_SEAMS_HELP,
-                Self::run_suggest_seams,
-            ),
-            (
-                seams::SELECT_SEAMS_LABEL,
-                seams::SELECT_SEAMS_HELP,
-                Self::run_select_seams,
-            ),
-        ] {
-            if ui.button(label).on_hover_text(help).clicked() {
-                run(self);
-                ui.close();
-            }
-        }
-        ui.separator();
-        for (label, help, preference) in [
-            (
-                seam_preferences::PREFER_LABEL,
-                seam_preferences::PREFER_HELP,
-                scene::SeamPreference::Prefer,
-            ),
-            (
-                seam_preferences::NEVER_LABEL,
-                seam_preferences::NEVER_HELP,
-                scene::SeamPreference::Never,
-            ),
-            (
-                seam_preferences::CLEAR_PREFERENCE_LABEL,
-                seam_preferences::CLEAR_PREFERENCE_HELP,
-                scene::SeamPreference::Free,
-            ),
-        ] {
-            if ui.button(label).on_hover_text(help).clicked() {
-                self.run_seam_preference(preference);
-                ui.close();
-            }
-        }
-    }
-
-    /// UV → Turn and flip.
-    fn uv_turn_entries(&mut self, ui: &mut Ui, requests: &mut Vec<DocRequest>) {
-        use crate::commands::CommandId;
-        if let Some(command) = commands_entries(
-            ui,
-            &[
-                CommandId::UvTurnLeft,
-                CommandId::UvTurnRight,
-                CommandId::UvFlipU,
-                CommandId::UvFlipV,
-            ],
-        ) {
-            self.run_command(command, ui.ctx(), requests);
-            ui.close();
-        }
-    }
-
-    /// UV → Lay out.
-    fn uv_lay_out_entries(&mut self, ui: &mut Ui, requests: &mut Vec<DocRequest>) {
-        use crate::commands::CommandId;
-        if let Some(command) = commands_entries(ui, &[CommandId::Unwrap]) {
-            self.run_command(command, ui.ctx(), requests);
-            ui.close();
-        }
-        for (label, help, axis) in [
-            (
-                unwrapping::UNFOLD_ACROSS_LABEL,
-                unwrapping::UNFOLD_ACROSS_HELP,
-                scene::UnfoldAxis::Across,
-            ),
-            (
-                unwrapping::UNFOLD_UP_LABEL,
-                unwrapping::UNFOLD_UP_HELP,
-                scene::UnfoldAxis::Up,
-            ),
-        ] {
-            if ui.button(label).on_hover_text(help).clicked() {
-                self.run_uv_tool(unwrapping::UvTool::Unfold(axis));
-                ui.close();
-            }
-        }
-        if let Some(command) = commands_entries(
-            ui,
-            &[CommandId::Relax, CommandId::Straighten, CommandId::Pack],
-        ) {
-            self.run_command(command, ui.ctx(), requests);
-            ui.close();
-        }
-        ui.separator();
-        for (label, help, to_aim) in [
-            (
-                unwrapping::SET_DENSITY_LABEL,
-                unwrapping::SET_DENSITY_HELP,
-                true,
-            ),
-            (
-                unwrapping::MATCH_DENSITY_LABEL,
-                unwrapping::MATCH_DENSITY_HELP,
-                false,
-            ),
-        ] {
-            if ui.button(label).on_hover_text(help).clicked() {
-                self.run_texel_density(to_aim);
-                ui.close();
-            }
-        }
-        ui.menu_button(unwrapping::PUT_ON_TRIM_LABEL, |ui| {
-            self.put_on_trim_menu(ui);
-        });
-    }
-
-    /// UV → Pieces.
-    fn uv_pieces_entries(&mut self, ui: &mut Ui, requests: &mut Vec<DocRequest>) {
-        use crate::commands::CommandId;
-        // Also in the Select menu (decision 0118).
-        if ui
-            .add(
-                egui::Button::new(selection::CONNECTED_LABEL).shortcut_text(
-                    ui.ctx()
-                        .format_shortcut(&crate::selecting::CONNECTED_SHORTCUT),
-                ),
-            )
-            .on_hover_text(
-                "Select the whole pieces the selection is in: a little of a piece \
-                 (a point, an edge or a polygon) brings the whole piece, parted at seams. \
-                 Use it to pick one of two overlapping pieces and move it away.",
-            )
-            .clicked()
-        {
-            self.select_requests
-                .push(selection::SelectRequest::ConnectedInUvs);
-            ui.close();
-        }
-        ui.separator();
-        if let Some(command) = commands_entries(ui, &[CommandId::UvPin, CommandId::UvUnpin]) {
-            self.run_command(command, ui.ctx(), requests);
-            ui.close();
-        }
-        ui.separator();
-        for (label, help, lock) in [
-            (piece_settings::LOCK_LABEL, piece_settings::LOCK_HELP, true),
-            (
-                piece_settings::UNLOCK_LABEL,
-                piece_settings::UNLOCK_HELP,
-                false,
-            ),
-        ] {
-            if ui.button(label).on_hover_text(help).clicked() {
-                self.run_lock(lock);
-                ui.close();
-            }
-        }
-        ui.menu_button(piece_settings::PIECE_SETTINGS_LABEL, |ui| {
-            self.piece_settings_menu(ui);
-        })
-        .response
-        .on_hover_text("Give the selected pieces their own unwrap settings");
-        ui.menu_button(seam_preferences::BUDGET_LABEL, |ui| self.budget_menu(ui))
-            .response
-            .on_hover_text("Give the selected pieces a stretch budget of their own");
-    }
-}
-
-/// The UV Editor's own UV menu (issue #115).
-pub(crate) const UV_EDITOR_UV_MENU: &str = "UV";
-
-/// The UV menu's groups (the project lead's choice, decision 0113).
-pub(crate) const UV_SEAMS_MENU: &str = "Seams";
-pub(crate) const UV_TURN_MENU: &str = "Turn and flip";
-pub(crate) const UV_LAY_OUT_MENU: &str = "Lay out";
-pub(crate) const UV_PIECES_MENU: &str = "Pieces";
-pub(crate) const UV_SETTINGS_MENU: &str = "Settings";
-
-/// Draws each panel's contents.
-struct PanelViewer<'a> {
-    viewport: &'a mut ViewportPanel,
-    renderer: &'a mut dyn ViewportRenderer,
-    summary: &'a SceneSummary,
-    document: &'a mut Document,
-    objects: &'a mut ObjectManager,
-    layers: &'a mut crate::layers::LayersPanel,
-    /// What was picked on the modifiers palette this frame.
-    modifier_pick: &'a mut Option<crate::layers::ModifierPick>,
-    uv_editor: &'a mut crate::uv_editor::UvEditor,
-    mode: Mode,
-    navigation: tools::NavigationSettings,
-    select_keys: crate::selecting::SelectKeys,
-    tool: Tool,
-    snap: crate::transforming::SnapSettings,
-    surface: crate::viewport::Surface,
-    /// Whether the selection is drawn with high contrast (decision 0126).
-    high_contrast: bool,
-    /// How pieces are grouped onto textures (the packing settings).
-    texture_groups: crate::uv_editor::checking::TextureGroups,
-    /// What explaining choices in the UV Editor needs.
-    explain: crate::uv_editor::explain::ExplainContext,
-    viewport_hover: Option<(scene::ObjectId, scene::Element)>,
-    attributes: &'a mut AttributesPanel,
-    units: &'a mut Units,
-    requests: &'a mut Vec<DocRequest>,
-    /// The UV Editor's UV menu button, if drawn (its menu is filled by the
-    /// workbench).
-    uv_menu_button: &'a mut Option<egui::Response>,
-    /// The automatic UV tools' settings, for the UV settings panel.
-    uv_settings: &'a mut unwrapping::UvSettings,
-    /// What the Coordinates panel shows, and what was done in it.
-    coordinates: CoordinatesView,
-    coordinates_done: &'a mut Interaction,
-}
-
-impl TabViewer for PanelViewer<'_> {
-    type Tab = Panel;
-
-    fn id(&mut self, tab: &mut Panel) -> Id {
-        Id::new(("panel", *tab))
-    }
-
-    fn title(&mut self, tab: &mut Panel) -> WidgetText {
-        tab.title().into()
-    }
-
-    fn ui(&mut self, ui: &mut Ui, tab: &mut Panel) {
-        if *tab == Panel::Viewport {
-            // Edge to edge, with no padding, and the modifiers palette on
-            // its right, beside the panels (decision 0091).
-            let full = ui.max_rect();
-            let split = full.right() - crate::layers::MODIFIERS_WIDTH;
-            let strip = egui::Rect::from_min_max(egui::pos2(split, full.top()), full.max);
-            let view = egui::Rect::from_min_max(full.min, egui::pos2(split, full.bottom()));
-            let mut strip_ui = ui.new_child(
-                egui::UiBuilder::new()
-                    .id_salt("modifiers palette")
-                    .max_rect(strip)
-                    .layout(egui::Layout::top_down(egui::Align::Center)),
-            );
-            strip_ui.painter().rect_filled(strip, 0.0, theme::PALETTE);
-            strip_ui.painter().vline(
-                strip.left() + 0.5,
-                strip.y_range(),
-                egui::Stroke::new(1.0, theme::BORDER),
-            );
-            if let Some(pick) = crate::layers::modifiers_palette(&mut strip_ui, self.document) {
-                *self.modifier_pick = Some(pick);
-            }
-            let mut view_ui = ui.new_child(egui::UiBuilder::new().max_rect(view));
-            self.viewport
-                .show(&mut view_ui, self.renderer, self.summary);
-            ui.advance_cursor_after_rect(full);
-            return;
-        }
-        match tab {
-            Panel::Attributes => menu_line_with(ui, |ui| {
-                let mut shared = Shared {
-                    clipboard: &mut self.objects.clipboard,
-                    units: self.units,
-                };
-                self.attributes
-                    .menus(ui, self.document, &mut shared, self.requests);
-            }),
-            Panel::Objects => menu_line_with(ui, |ui| {
-                objects::menus(ui, self.document, self.objects, self.requests);
-            }),
-            Panel::EditLayers => menu_line_with(ui, |ui| {
-                self.layers.menus(ui, self.document, self.requests);
-            }),
-            Panel::UvEditor => {
-                menu_line_with(ui, |ui| {
-                    // The main UV menu, here too (issue #115).
-                    let uv = ui
-                        .add(egui::Button::new(UV_EDITOR_UV_MENU).frame_when_inactive(false))
-                        .on_hover_text(
-                            "Every UV command and setting, as in the UV menu at the top",
-                        );
-                    *self.uv_menu_button = Some(uv);
-                    crate::dialog::menu(ui, "Texture", |ui| {
-                        crate::uv_editor::texture_menu(ui, self.document);
-                    });
-                    crate::dialog::menu(ui, "Trim", |ui| {
-                        crate::uv_editor::trim_menu(ui, self.document);
-                    });
-                    // Stays open while snapshots are taken and put back, so
-                    // what each did can be read in it.
-                    egui::containers::menu::MenuButton::new(
-                        crate::uv_editor::snapshots::SNAPSHOTS_MENU,
-                    )
-                    .config(
-                        crate::dialog::menu_config()
-                            .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside),
-                    )
-                    .ui(ui, |ui| {
-                        ui.set_min_width(crate::dialog::MENU_WIDTH);
-                        crate::uv_editor::snapshots::snapshots_menu(
-                            ui,
-                            self.document,
-                            self.uv_editor,
-                        );
-                    });
-                    crate::dialog::menu(ui, "View", |ui| {
-                        for what in [
-                            crate::uv_editor::UvFrame::Square,
-                            crate::uv_editor::UvFrame::Selected,
-                        ] {
-                            if ui
-                                .add(
-                                    egui::Button::new(what.label())
-                                        .shortcut_text(what.key().name()),
-                                )
-                                .clicked()
-                            {
-                                self.uv_editor.frame(what);
-                                ui.close();
-                            }
-                        }
-                        ui.separator();
-                        let mut numbers = self.uv_editor.piece_numbers();
-                        let mut explain = self.uv_editor.explaining();
-                        if ui
-                            .checkbox(&mut explain, crate::uv_editor::explain::EXPLAIN_CHOICES)
-                            .on_hover_text(
-                                "Point at a seam or a piece to see why it's there and how to \
-                                 change it",
-                            )
-                            .changed()
-                        {
-                            self.uv_editor.set_explaining(explain);
-                        }
-                        if ui
-                            .checkbox(&mut numbers, crate::uv_editor::checking::PIECE_NUMBERS)
-                            .on_hover_text(
-                                "Write on each piece its size in texture pixels, its texel \
-                                 density and, if it's uneven, how stretched it is",
-                            )
-                            .changed()
-                        {
-                            self.uv_editor.set_piece_numbers(numbers);
-                        }
-                        let measuring = self.uv_editor.measuring();
-                        if ui
-                            .add(egui::Button::selectable(
-                                measuring,
-                                crate::uv_editor::checking::MEASURE,
-                            ))
-                            .on_hover_text(
-                                "Then drag in the editor: the line's length in texture pixels \
-                                 and on the surface, in centimetres. Esc stops.",
-                            )
-                            .clicked()
-                        {
-                            self.uv_editor.set_measuring(!measuring);
-                            ui.close();
-                        }
-                    });
-                });
-                // Edge to edge, like the viewport.
-                let cx = crate::uv_editor::UvContext {
-                    mode: self.mode,
-                    navigation: &self.navigation,
-                    select_keys: self.select_keys,
-                    tool: self.tool,
-                    snap: self.snap,
-                    stretch: self.surface == crate::viewport::Surface::Stretch,
-                    outside_hover: self.viewport_hover,
-                    grid: (self.surface == crate::viewport::Surface::NumberedChecker)
-                        .then(|| theme::grid_colors(theme::accent(ui.ctx()))),
-                    texture_groups: self.texture_groups,
-                    explain: self.explain,
-                    high_contrast: self.high_contrast,
-                };
-                self.uv_editor.show(ui, self.document, &cx);
-                return;
-            }
-            Panel::Viewport | Panel::Coordinates | Panel::UvSettings => {}
-        }
-        egui::Frame::new()
-            .inner_margin(theme::panel_margin())
-            .show(ui, |ui| match tab {
-                Panel::Viewport => {}
-                Panel::Attributes => {
-                    self.attributes
-                        .show(ui, self.document, *self.units, self.requests);
-                }
-                Panel::Objects => self.objects.show(ui, self.document, self.requests),
-                Panel::EditLayers => {
-                    self.layers.show(
-                        ui,
-                        self.document,
-                        &mut self.attributes.opened,
-                        self.requests,
-                    );
-                }
-                Panel::UvEditor => {}
-                Panel::UvSettings => {
-                    let mut view = automation::UvSettingsView {
-                        uv_settings: self.uv_settings,
-                        document: self.document,
-                    };
-                    view.panel(ui);
-                }
-                Panel::Coordinates => {
-                    *self.coordinates_done =
-                        crate::coordinates::show(ui, *self.units, &self.coordinates);
-                }
-            });
-    }
-
-    fn is_closeable(&self, _tab: &Panel) -> bool {
-        false
-    }
-
-    fn on_tab_button(&mut self, tab: &mut Panel, response: &egui::Response) {
-        // Name the tab for screen readers (and UI tests); egui_dock paints
-        // the title without labelling the button.
-        let title = tab.title();
-        response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, title));
-    }
-
-    fn allowed_in_windows(&self, _tab: &mut Panel) -> bool {
-        // Panels dock inside the main window only: a floating window could
-        // be closed and take its panel with it.
-        false
-    }
-
-    fn clear_background(&self, tab: &Panel) -> bool {
-        // The viewport and the UV Editor paint their own backgrounds.
-        !matches!(tab, Panel::Viewport | Panel::UvEditor)
-    }
-
-    fn scroll_bars(&self, tab: &Panel) -> [bool; 2] {
-        // The viewport and the UV Editor fill their panels exactly.
-        if matches!(tab, Panel::Viewport | Panel::UvEditor) {
-            [false, false]
-        } else {
-            [true, true]
-        }
-    }
 }
 
 #[cfg(test)]
@@ -2860,6 +881,10 @@ mod loop_cut_tests;
 #[cfg(test)]
 mod material_tests;
 mod materials;
+#[cfg(test)]
+mod palette_label_tests;
+#[cfg(test)]
+mod reference_images;
 #[cfg(test)]
 mod seam_preference_tests;
 mod seam_preferences;
@@ -2935,6 +960,8 @@ mod object_tests;
 #[cfg(test)]
 mod project_tests;
 #[cfg(test)]
+mod random_action_tests;
+#[cfg(test)]
 mod select_tests;
 #[cfg(test)]
 mod settings_tests;
@@ -2946,3 +973,5 @@ mod tests;
 mod tool_menu_tests;
 #[cfg(test)]
 mod transform_tests;
+#[cfg(test)]
+mod workflow_tests;
