@@ -17,7 +17,7 @@ The foundation everything else builds on: an n-gon mesh with full adjacency (ver
 
 ## Depends on
 
-No other app crates. Outside libraries: `glam` (maths).
+`words` (the language layer, the same layer: error messages and the primitives' names and descriptions go through it, [decision 0134](../../docs/decisions/0134-shared-language-crate.md)). Outside libraries: `glam` (maths).
 
 ## Status
 

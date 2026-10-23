@@ -41,9 +41,6 @@ fileio/src/project/v6.rs 2
 fileio/src/project/v7.rs 3
 fileio/src/project/v8.rs 1
 fileio/src/project/v9.rs 1
-mesh/src/attributes.rs 6
-mesh/src/polygon.rs 8
-mesh/src/primitives.rs 36
 scene/src/command.rs 61
 scene/src/document.rs 4
 scene/src/object.rs 14

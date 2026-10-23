@@ -67,21 +67,35 @@
 50 cm
 512 MB
 8 GB
+A 1 m box standing on the ground
 A bake fills only the texture square: parts outside get nothing, or wrap round onto other parts. Fix packs the pieces into the square (UV → Pack).
+A ball 1 m across made of even triangles, with no poles: subdivides and bends evenly
+A ball 1 m across, resting on the ground
+A ball made of hexagons and 12 pentagons, like a football
 A bent extrude goes out its own way: set the bend's Angle to 0 for these.
 A bent polygon with many corners shades unevenly across its triangles, and the bake shows it. Select them and cut them up with Connect (J) or Slit (X).
 A calm, tool-rich 3D modeller for game assets.
 A checker laid on by the UVs: where the squares stay square and even, a texture will too. The tint runs red across and green up the texture, so a piece turned or mirrored shows.
 A checker of labelled cells laid on by the UVs, A1 at the top left of the texture to H8 at the bottom right, in colours from the app's accent: see at once which part of the texture each part of the shape uses, and which way round it lies (the labels turn and mirror with it). The UV Editor shows it behind the UVs too.
+A cone 1 m across and 1 m tall
+A cylinder with round ends, 1 m tall
+A doorway arch: two legs and a round top
+A flat 1 m square lying on the ground
+A flat circle 1 m across, lying on the ground
+A flat honeycomb of hexagons, lying on the ground
 A flat view from the front: no perspective, true sizes
 A flat view from the right: no perspective, true sizes
 A flat view looking straight down: no perspective, true sizes
+A gear with 12 teeth and a hole for the axle
 A group has no shape of its own, so no edit layers.
 A hard edge turns the shading sharply, and a normal map can only hold that turn where the UVs are split too: otherwise the bake shows a dark or light line along it. Fix marks them as seams and unwraps the pieces around them.
 A heavy shape is checked in the background, so you can keep working. The numbers below are from before the last change until it finishes.
 A list by the mouse, like the shape list (B)
 A locked axis doesn't change while moving, rotating or scaling
 A new row under the lowest one, as tall as it
+A pie slice of a round slab, a quarter of a circle
+A piece of pipe bent through 90°, lying on the ground
+A pipe 1 m across and 1 m tall
 A plain mesh: it has no settings, so its shape changes only by editing its points, edges and polygons (press 1, 2 or 3).
 A point no polygon uses goes into the file for nothing and can confuse the baker. Fix deletes them.
 A polygon an edit changed counts as broken when it is stretched this many times more one way than the other (3× standard). Lower mends more.
@@ -89,7 +103,9 @@ A polygon an edit changed counts as broken when its texture is this many times b
 A polygon with no area has no direction, so it bakes as a black speck or a streak. Select them, then weld their points (M) or delete them.
 A project keeps at most {} snapshots: remove one first.
 A right-click in the viewport opens four short lists around the mouse: what to show and hide, the modes, undo and edit layers, and the tools of what you're working on. A right-click that ends a drag, or a right drag that turns the view, never opens it.
+A ring (doughnut) 1 m across, lying on the ground
 A ring instead of a loop, with a double-click
+A solid flight of 6 stairs, 1 m wide and 1 m high
 A texture per material
 A texture per object
 A tool's count (segments, cuts)
@@ -139,6 +155,7 @@ An instance uses its original's materials
 An instance uses its original's materials: change them on the original.
 An object can have at most {} materials
 An ordinary 3D view: far things look smaller
+An upright cylinder, 1 m across and 1 m tall
 Angle
 Any program: pick the kind of file and how it's set up below.
 Anywhere
@@ -149,6 +166,7 @@ Apply rotation and scale
 Apply this layer's edits after the layer above it
 Apply this layer's edits before the layer below it
 Apply transforms
+Arch
 Arrives with the tools in Phase 3
 As in this app; Blender and 3ds Max's own axes
 Ask before dissolving across a sharp corner
@@ -221,6 +239,7 @@ Cancelled: the UVs are back where they were.
 Cap rings
 Cap segments
 Caps
+Capsule
 Cavity
 Centimetres
 Centre point
@@ -283,6 +302,7 @@ Command search
 Command search box
 Compare
 Comparing with “{}” (faint)
+Cone
 Connect
 Connect works on points or edges: press 1 for the Points mode, or 2 for Edges
 Connect: select two or more {}s on the same polygon first.
@@ -346,6 +366,7 @@ Ctrl + wheel, while using the tool
 Ctrl adds, Alt removes
 Ctrl adds, Shift removes
 Ctrl flips
+Cube
 Custom settings
 Cut a new loop of edges all the way around a shape: point at an edge, then click, or drag to slide it
 Cut a thin groove into the shape along the selected edges, like a panel line, or raise a ridge out of it: drag in or out
@@ -364,6 +385,7 @@ Cuts are as short as can be, wherever they fall: for shapes seen from all round
 Cuts go on the parts facing away from the Front view, top or bottom alike
 Cuts go on the parts facing down, wherever they face round the sides
 Cuts go where a prop is least seen: facing down, or away from the Front view
+Cylinder
 Danish
 Dark tiles with a crisp edge; the highlighted one glows
 Dark tiles; the highlighted one gets an accent bar along the edge facing the middle
@@ -384,6 +406,7 @@ Depth
 Deselect
 Developer
 Direction
+Disc
 Discard
 Display
 Dissolve
@@ -396,6 +419,7 @@ Dissolving where polygons meet at more than 30° makes one bent polygon, which s
 Distance
 Do again what was taken back
 Do the last undone change again
+Dome
 Don't save
 Don't save (in the "Save changes?" question)
 Don't straighten
@@ -554,6 +578,7 @@ From top
 Game project
 Game project folder set. It isn't inside a Godot, Unity, Unreal Engine or Solis project, so exports go there with {}'s settings. Every save now exports there too.
 Game project folder set: {} project {}. Every save now exports there too.
+Gear
 General
 German (QWERTZ)
 Give
@@ -582,6 +607,7 @@ Grow
 Grow / shrink the selection
 Grow and shrink work on points, edges and polygons: press 1, 2 or 3 first.
 Grow selection
+Half a ball 1 m across, standing on its flat side
 Half the pipe's width
 Half the width
 Half the width at the bottom
@@ -602,6 +628,8 @@ Height
 Height segments
 Held with
 Help
+Hex grid
+Hex sphere
 Hexagon size
 Hid
 Hide
@@ -694,6 +722,7 @@ How wide the groove (or ridge) is, across the line of edges
 How wide the opening is
 How wide the turn is, from its middle to the middle of the pipe: 0 is a sharp corner (a mitre joint, up to 150°), more is a smooth elbow.
 I know what I'm doing, proceed
+Icosphere
 Import {}
 Imported {} from {}.
 Import…
@@ -987,6 +1016,7 @@ Pick an axis: with none, nothing is mirrored.
 Pick how a drag selects: box, lasso or paint (Q steps through them)
 Pick the folder inside your game project the models go in
 Pick the kind of file and how it's set up yourself
+Pie sector
 Piece of {} {}
 Piece settings
 Pieces
@@ -1001,6 +1031,7 @@ Pin
 Pin UVs, lock pieces, and give pieces settings and budgets of their own
 Pin the UVs of
 Pin the selected UVs where they are: unwrapping lays the rest out around them, and relaxing leaves them alone
+Pipe elbow
 Pipe radius
 Pivot
 Pivot to centre
@@ -1011,6 +1042,7 @@ Pivot to object…
 Pivot to world origin
 Pivot to {}
 Plain, read by almost every 3D program
+Plane
 Plum
 Point at a key to see what it does. Click a key to keep it shown.
 Point at a seam or a piece to see why it's there and how to change it
@@ -1290,12 +1322,14 @@ Some of its UVs are pinned: Unwrap lays it out around them.
 Some of the points these edits move have no place on the shape now (for example after giving it fewer segments). The edits still apply to what remains; nothing else is lost, and going back to the earlier settings brings the rest back.
 Some selected objects have more than {} polygons: their UVs aren't drawn.
 Space
+Sphere
 Split off
 Split off works on polygons: press 3 for the Polygons mode.
 Split off {} polygon{} into a new object. Ctrl + Z takes it back.
 Split off: select polygons on one object at a time.
 Split off: select some polygons first.
 Stack identical pieces
+Stairs
 Standard
 Start a new, empty project
 Step back to the Model mode (finishes a slit, puts a tool away)
@@ -1446,10 +1480,12 @@ Tools for objects
 Tools for {}
 Tooth depth
 Top radius
+Torus
 Transform
 Triangles
 Trim
 Trim sheet
+Tube
 Tube radius
 Tube sides
 Turn & flip
@@ -1600,6 +1636,10 @@ Your changes will be lost if you don't save them before {}.
 Your navigation controls (Options menu); as standard right drag, middle drag and the wheel, and Alt + left, middle or right drag
 Z up
 [3D objects copied: paste them in the viewport]
+a face goes through point {} twice
+a face needs at least three corners
+a hard edge joins points {} and {}, which aren't both in the mesh
+an attribute called "{}" already exists
 an object
 an unsaved scene
 and scaling every
@@ -1660,10 +1700,14 @@ parts missing
 piece
 pieces
 point
+point {} has no real position
+point {} is not in the mesh
 point {} of {}
 points
 polygon
+polygon {} is not in the mesh
 polygon {} of {}
+polygon {} would get a different number of corners
 polygons
 polygons kept
 s were
@@ -1679,11 +1723,17 @@ soft
 starting a new project
 step
 steps
+that element isn't in the mesh
+the attribute holds values for each {}, not each {}
+the attribute holds {} values, not {}
 the game engine
+the mesh is too large
 the selection's UVs
 the shape
 the texture square
+the value isn't a real number
 them
+there is no attribute called "{}"
 they were
 thing
 triangle

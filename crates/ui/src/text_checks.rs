@@ -490,11 +490,11 @@ fn is_interface_text(literal: &str, before: &str) -> bool {
 
 /// The text a person reads, file by file, in every crate that makes it
 /// ([`CRATES_WITH_TEXT`]): what goes through the language layer, and how
-/// much doesn't yet. Files are named from the `crates` folder
-/// (`scene/src/command.rs`).
+/// much doesn't yet (the texts themselves). Files are named from the
+/// `crates` folder (`scene/src/command.rs`).
 fn texts_by_file() -> (
     std::collections::BTreeSet<String>,
-    std::collections::BTreeMap<String, usize>,
+    std::collections::BTreeMap<String, Vec<String>>,
 ) {
     let mut through = std::collections::BTreeSet::new();
     let mut skipping = std::collections::BTreeMap::new();
@@ -516,16 +516,16 @@ fn texts_by_file() -> (
                 .to_string_lossy()
                 .replace('\\', "/")
         );
-        let mut count = 0;
+        let mut skipped = Vec::new();
         for (literal, before) in literals_in_context(&text) {
             if through_the_layer(&before) {
                 through.insert(literal);
             } else if is_interface_text(&literal, &before) {
-                count += 1;
+                skipped.push(literal);
             }
         }
-        if count > 0 {
-            skipping.insert(name, count);
+        if !skipped.is_empty() {
+            skipping.insert(name, skipped);
         }
     }
     (through, skipping)
@@ -556,7 +556,7 @@ fn the_english_package_lists_every_text_and_no_more_text_skips_it() {
     .collect();
     let counts: String = skipping
         .iter()
-        .map(|(file, n)| format!("{file} {n}\n"))
+        .map(|(file, texts)| format!("{file} {}\n", texts.len()))
         .collect();
     if std::env::var_os("UPDATE_LANG").is_some() {
         std::fs::create_dir_all(&lang).unwrap();
@@ -580,10 +580,11 @@ fn the_english_package_lists_every_text_and_no_more_text_skips_it() {
             .collect();
     let worse: Vec<String> = skipping
         .iter()
-        .filter(|(file, n)| **n > allowed.get(*file).copied().unwrap_or(0))
-        .map(|(file, n)| {
+        .filter(|(file, texts)| texts.len() > allowed.get(*file).copied().unwrap_or(0))
+        .map(|(file, texts)| {
             format!(
-                "{file}: {n} texts skip the language layer (allowed {})",
+                "{file}: {} texts skip the language layer (allowed {}): {texts:#?}",
+                texts.len(),
                 allowed.get(file).copied().unwrap_or(0)
             )
         })
@@ -593,7 +594,7 @@ fn the_english_package_lists_every_text_and_no_more_text_skips_it() {
         "put new text through tr(), trf!() or text!():\n{}",
         worse.join("\n")
     );
-    let total: usize = skipping.values().sum();
+    let total: usize = skipping.values().map(Vec::len).sum();
     let allowed_total: usize = allowed.values().sum();
     assert!(
         total == allowed_total,

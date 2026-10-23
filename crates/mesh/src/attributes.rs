@@ -31,6 +31,7 @@ use crate::{EdgeKey, FaceId, VertexId};
 use glam::{Vec2, Vec3, Vec4};
 use std::collections::BTreeMap;
 use std::sync::Arc;
+use words::{tr, trf};
 
 /// What an attribute layer holds one value for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -184,17 +185,22 @@ pub enum AttributeError {
 impl std::fmt::Display for AttributeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::NameTaken(name) => write!(f, "an attribute called \"{name}\" already exists"),
-            Self::Unknown(name) => write!(f, "there is no attribute called \"{name}\""),
-            Self::WrongDomain { layer, element } => write!(
-                f,
-                "the attribute holds values for each {layer:?}, not each {element:?}"
-            ),
-            Self::WrongKind { layer, value } => {
-                write!(f, "the attribute holds {layer:?} values, not {value:?}")
+            Self::NameTaken(name) => {
+                f.write_str(&trf!("an attribute called \"{}\" already exists", name))
             }
-            Self::NoSuchElement => write!(f, "that element isn't in the mesh"),
-            Self::NotANumber => write!(f, "the value isn't a real number"),
+            Self::Unknown(name) => f.write_str(&trf!("there is no attribute called \"{}\"", name)),
+            Self::WrongDomain { layer, element } => f.write_str(&trf!(
+                "the attribute holds values for each {}, not each {}",
+                format!("{layer:?}"),
+                format!("{element:?}")
+            )),
+            Self::WrongKind { layer, value } => f.write_str(&trf!(
+                "the attribute holds {} values, not {}",
+                format!("{layer:?}"),
+                format!("{value:?}")
+            )),
+            Self::NoSuchElement => f.write_str(tr("that element isn't in the mesh")),
+            Self::NotANumber => f.write_str(tr("the value isn't a real number")),
         }
     }
 }
