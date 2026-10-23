@@ -18,22 +18,24 @@ use super::{copying, modelling, showing};
 use crate::commands::{self, CommandId};
 use crate::keyboard::{self, Cap, KeyId, KeyboardLayout};
 use crate::palette::Mode;
+use crate::text::tr;
 use crate::{objects, project, selecting, settings, theme, transforming, viewport};
 use egui::{Color32, Context, Key, KeyboardShortcut, Modifiers, Ui};
 use std::collections::BTreeSet;
 
 /// The window's title, and the menu bar button's name.
-pub(crate) const VIEWER_TITLE: &str = "Keyboard shortcuts";
+pub(crate) const VIEWER_TITLE: &str = crate::text!("Keyboard shortcuts");
 /// The menu bar button that opens it.
-pub(crate) const KEYS_BUTTON: &str = "Keys";
+pub(crate) const KEYS_BUTTON: &str = crate::text!("Keys");
 /// The search field's hint.
-pub(crate) const FILTER_HINT: &str = "Find a key or action";
+pub(crate) const FILTER_HINT: &str = crate::text!("Find a key or action");
 /// The keyboard picker's label.
-pub(crate) const LAYOUT_LABEL: &str = "Keyboard";
+pub(crate) const LAYOUT_LABEL: &str = crate::text!("Keyboard");
 /// The heading over the mouse actions.
-pub(crate) const MOUSE_HEADING: &str = "Mouse";
+pub(crate) const MOUSE_HEADING: &str = crate::text!("Mouse");
 /// What the side panel says while no key is pointed at or searched for.
-const HINT: &str = "Point at a key to see what it does. Click a key to keep it shown.";
+const HINT: &str =
+    crate::text!("Point at a key to see what it does. Click a key to keep it shown.");
 /// How wide the side panel beside the keyboard is, in key widths.
 const DETAILS_KEYS: f32 = 7.5;
 /// The key width at which the window's text is its normal size: bigger
@@ -82,11 +84,11 @@ impl Situation {
     /// Its name, on its chip.
     pub(crate) fn name(self) -> &'static str {
         match self {
-            Self::Anywhere => "Anywhere",
-            Self::Model => "Model mode",
-            Self::Editing => "Points, Edges, Polygons",
-            Self::Dragging => "While dragging",
-            Self::Menus => "Menus and questions",
+            Self::Anywhere => tr("Anywhere"),
+            Self::Model => tr("Model mode"),
+            Self::Editing => tr("Points, Edges, Polygons"),
+            Self::Dragging => tr("While dragging"),
+            Self::Menus => tr("Menus and questions"),
         }
     }
 
@@ -118,7 +120,7 @@ impl Binding {
     pub(crate) fn keys(&self, ctx: &Context) -> String {
         match self.key {
             KeyId::Key(key) => ctx.format_shortcut(&KeyboardShortcut::new(self.modifiers, key)),
-            held => format!("Hold {}", modifier_name(ctx, held)),
+            held => crate::trf!("Hold {}", modifier_name(ctx, held)),
         }
     }
 
@@ -161,11 +163,11 @@ fn is_mac(ctx: &Context) -> bool {
 /// Shift, Ctrl or Alt as this system calls it.
 fn modifier_name(ctx: &Context, key: KeyId) -> &'static str {
     match (key, is_mac(ctx)) {
-        (KeyId::Shift, _) => "Shift",
-        (KeyId::Ctrl, false) => "Ctrl",
-        (KeyId::Ctrl, true) => "Cmd",
-        (KeyId::Alt, false) => "Alt",
-        (KeyId::Alt, true) => "Option",
+        (KeyId::Shift, _) => tr("Shift"),
+        (KeyId::Ctrl, false) => tr("Ctrl"),
+        (KeyId::Ctrl, true) => tr("Cmd"),
+        (KeyId::Alt, false) => tr("Alt"),
+        (KeyId::Alt, true) => tr("Option"),
         (KeyId::Key(_), _) => "",
     }
 }
@@ -206,17 +208,17 @@ fn command(id: CommandId, situation: Situation) -> Option<Binding> {
 pub(crate) fn bindings() -> Vec<Binding> {
     use Situation::*;
     let mut all = vec![
-        bind(project::NEW_SHORTCUT, "New project", Anywhere),
-        bind(project::OPEN_SHORTCUT, "Open a project", Anywhere),
-        bind(project::SAVE_SHORTCUT, "Save", Anywhere),
-        bind(project::SAVE_AS_SHORTCUT, "Save as", Anywhere),
-        bind(objects::UNDO_SHORTCUT, "Undo", Anywhere),
-        bind(objects::REDO_SHORTCUT, "Redo", Anywhere),
-        bind(objects::REDO_SHORTCUT_2, "Redo", Anywhere),
-        bind(settings::SETTINGS_SHORTCUT, "Settings", Anywhere),
+        bind(project::NEW_SHORTCUT, tr("New project"), Anywhere),
+        bind(project::OPEN_SHORTCUT, tr("Open a project"), Anywhere),
+        bind(project::SAVE_SHORTCUT, tr("Save"), Anywhere),
+        bind(project::SAVE_AS_SHORTCUT, tr("Save as"), Anywhere),
+        bind(objects::UNDO_SHORTCUT, tr("Undo"), Anywhere),
+        bind(objects::REDO_SHORTCUT, tr("Redo"), Anywhere),
+        bind(objects::REDO_SHORTCUT_2, tr("Redo"), Anywhere),
+        bind(settings::SETTINGS_SHORTCUT, tr("Settings"), Anywhere),
         plain(
             crate::command_search::SEARCH_KEY,
-            "Search for a command by name",
+            tr("Search for a command by name"),
             Anywhere,
         ),
     ];
@@ -225,7 +227,7 @@ pub(crate) fn bindings() -> Vec<Binding> {
     all.extend(Mode::ALL.into_iter().filter_map(|mode| {
         Some(plain(
             mode.key()?,
-            format!(
+            crate::trf!(
                 "{} mode (again: back to Model; with a tool in use: selecting in it)",
                 mode.name()
             ),
@@ -234,7 +236,7 @@ pub(crate) fn bindings() -> Vec<Binding> {
     }));
     all.push(plain(
         super::BACK_KEY,
-        "Step back to the Model mode (finishes a slit, puts a tool away)",
+        tr("Step back to the Model mode (finishes a slit, puts a tool away)"),
         Anywhere,
     ));
 
@@ -242,25 +244,25 @@ pub(crate) fn bindings() -> Vec<Binding> {
     all.extend([
         plain(
             selecting::SELECT_TOOL_KEY,
-            "Next select tool (Box, Lasso, Paint select)",
+            tr("Next select tool (Box, Lasso, Paint select)"),
             Anywhere,
         ),
-        bind(selecting::SELECT_ALL_SHORTCUT, "Select all", Anywhere),
-        bind(selecting::INVERT_SHORTCUT, "Invert the selection", Anywhere),
+        bind(selecting::SELECT_ALL_SHORTCUT, tr("Select all"), Anywhere),
+        bind(selecting::INVERT_SHORTCUT, tr("Invert the selection"), Anywhere),
         bind(
             selecting::CONNECTED_SHORTCUT,
-            "Select connected: the whole part the selection is on (over the UV Editor or in the UV mode, the whole pieces)",
+            tr("Select connected: the whole part the selection is on (over the UV Editor or in the UV mode, the whole pieces)"),
             Anywhere,
         ),
-        bind(objects::DESELECT_SHORTCUT, "Select nothing", Anywhere),
+        bind(objects::DESELECT_SHORTCUT, tr("Select nothing"), Anywhere),
         held(
             KeyId::Ctrl,
-            "Add to the selection, with a click or drag (the standard keys)",
+            tr("Add to the selection, with a click or drag (the standard keys)"),
             Anywhere,
         ),
         held(
             KeyId::Shift,
-            "Take out of the selection, with a click or drag (the standard keys)",
+            tr("Take out of the selection, with a click or drag (the standard keys)"),
             Anywhere,
         ),
     ]);
@@ -269,32 +271,38 @@ pub(crate) fn bindings() -> Vec<Binding> {
     all.extend(transforming::TOOL_KEYS.iter().map(|(key, tool)| {
         plain(
             *key,
-            format!("{} (in the UV Editor too)", tool.name()),
+            crate::trf!("{} (in the UV Editor too)", tool.name()),
             Anywhere,
         )
     }));
-    all.extend(
-        transforming::LOCK_KEYS
-            .iter()
-            .map(|(keys, axis)| bind(*keys, format!("Lock {}", ["X", "Y", "Z"][*axis]), Anywhere)),
-    );
+    all.extend(transforming::LOCK_KEYS.iter().map(|(keys, axis)| {
+        bind(
+            *keys,
+            crate::trf!("Lock {}", ["X", "Y", "Z"][*axis]),
+            Anywhere,
+        )
+    }));
     all.extend([
-        plain(transforming::AXES_KEY, "World or object axes", Anywhere),
-        held(KeyId::Shift, "Ten times finer", Dragging),
-        held(KeyId::Ctrl, "Snap (or not, when snapping is on)", Dragging),
+        plain(transforming::AXES_KEY, tr("World or object axes"), Anywhere),
+        held(KeyId::Shift, tr("Ten times finer"), Dragging),
         held(
             KeyId::Ctrl,
-            "While orbiting: snap to the view dice's sides",
+            tr("Snap (or not, when snapping is on)"),
+            Dragging,
+        ),
+        held(
+            KeyId::Ctrl,
+            tr("While orbiting: snap to the view dice's sides"),
             Anywhere,
         ),
-        plain(Key::Escape, "Cancel the drag", Dragging),
-        plain(Key::Escape, "Cancel Pivot to object", Model),
+        plain(Key::Escape, tr("Cancel the drag"), Dragging),
+        plain(Key::Escape, tr("Cancel Pivot to object"), Model),
     ]);
 
     // Modelling.
     all.push(plain(
         crate::tool_menu::TOOL_MENU_KEY,
-        "Tool menu: every tool for the mode, at the mouse (over the UV Editor, the UV tools)",
+        tr("Tool menu: every tool for the mode, at the mouse (over the UV Editor, the UV tools)"),
         Anywhere,
     ));
     all.extend(
@@ -308,23 +316,33 @@ pub(crate) fn bindings() -> Vec<Binding> {
             .filter_map(|c| command(c, Editing)),
     );
     all.extend([
-        bind(modelling::WELD_TARGET_KEYS, "Weld onto a point", Editing),
-        plain(Key::Escape, "Cancel a slit (takes its cut back)", Editing),
-        plain(Key::Enter, "Finish a slit", Editing),
+        bind(
+            modelling::WELD_TARGET_KEYS,
+            tr("Weld onto a point"),
+            Editing,
+        ),
+        plain(
+            Key::Escape,
+            tr("Cancel a slit (takes its cut back)"),
+            Editing,
+        ),
+        plain(Key::Enter, tr("Finish a slit"), Editing),
         held(
             KeyId::Ctrl,
-            "With the wheel: a tool's count (segments, cuts) while using it; \
+            tr(
+                "With the wheel: a tool's count (segments, cuts) while using it; \
              otherwise grow or shrink the selection",
+            ),
             Editing,
         ),
         held(
             KeyId::Alt,
-            "Slide points along their edges, dragging the Move gizmo",
+            tr("Slide points along their edges, dragging the Move gizmo"),
             Editing,
         ),
         held(
             KeyId::Alt,
-            "A ring instead of a loop, with a double-click",
+            tr("A ring instead of a loop, with a double-click"),
             Editing,
         ),
     ]);
@@ -343,60 +361,60 @@ pub(crate) fn bindings() -> Vec<Binding> {
     all.extend([
         bind(
             KeyboardShortcut::new(Modifiers::SHIFT, crate::shape_picker::SHAPE_LIST_KEY),
-            "Shape list, from the last shape",
+            tr("Shape list, from the last shape"),
             Anywhere,
         ),
         bind(
             KeyboardShortcut::new(Modifiers::ALT, crate::shape_picker::SHAPE_LIST_KEY),
-            "More shapes (icosphere, torus, gear, stairs and the rest)",
+            tr("More shapes (icosphere, torus, gear, stairs and the rest)"),
             Anywhere,
         ),
         bind(
             objects::DELETE_SHORTCUT,
-            "Delete the selected objects",
+            tr("Delete the selected objects"),
             Model,
         ),
-        plain(Key::Backspace, "Delete the selected objects", Model),
-        bind(copying::COPY_KEYS, "Copy objects", Model),
-        bind(copying::PASTE_KEYS, "Paste copies", Model),
+        plain(Key::Backspace, tr("Delete the selected objects"), Model),
+        bind(copying::COPY_KEYS, tr("Copy objects"), Model),
+        bind(copying::PASTE_KEYS, tr("Paste copies"), Model),
         bind(
             copying::COPY_INSTANCES_KEYS,
-            "Copy objects (for instances)",
+            tr("Copy objects (for instances)"),
             Model,
         ),
-        bind(copying::PASTE_INSTANCES_KEYS, "Paste instances", Model),
-        bind(showing::HIDE_KEYS, "Hide the selection", Anywhere),
-        bind(showing::ISOLATE_KEYS, "Isolate the selection", Anywhere),
-        bind(showing::SHOW_ALL_KEYS, "Show everything", Anywhere),
+        bind(copying::PASTE_INSTANCES_KEYS, tr("Paste instances"), Model),
+        bind(showing::HIDE_KEYS, tr("Hide the selection"), Anywhere),
+        bind(showing::ISOLATE_KEYS, tr("Isolate the selection"), Anywhere),
+        bind(showing::SHOW_ALL_KEYS, tr("Show everything"), Anywhere),
     ]);
 
     // The view.
     // In the UV Editor too, while the mouse is over it (decision 0096).
     for (frame, editor) in [
-        (viewport::Frame::All, "the texture square"),
-        (viewport::Frame::Selected, "the selection's UVs"),
+        (viewport::Frame::All, tr("the texture square")),
+        (viewport::Frame::Selected, tr("the selection's UVs")),
     ] {
         all.push(plain(
             frame.key(),
-            format!("{} (in the UV Editor: {editor})", frame.label()),
+            crate::trf!("{} (in the UV Editor: {})", frame.label(), editor),
             Anywhere,
         ));
     }
     all.extend(
         viewport::VIEW_KEYS
             .iter()
-            .map(|(key, kind)| plain(*key, format!("{} view", kind.name()), Anywhere)),
+            .map(|(key, kind)| plain(*key, crate::trf!("{} view", kind.name()), Anywhere)),
     );
     all.extend([
-        plain(viewport::FOUR_VIEWS_KEY, "All four views", Anywhere),
+        plain(viewport::FOUR_VIEWS_KEY, tr("All four views"), Anywhere),
         plain(
             viewport::PROJECTION_KEY,
-            "Perspective or orthographic",
+            tr("Perspective or orthographic"),
             Anywhere,
         ),
         held(
             KeyId::Alt,
-            "Orbit, pan and zoom with a left, middle or right drag (standard navigation)",
+            tr("Orbit, pan and zoom with a left, middle or right drag (standard navigation)"),
             Anywhere,
         ),
     ]);
@@ -405,22 +423,30 @@ pub(crate) fn bindings() -> Vec<Binding> {
     all.extend([
         plain(
             Key::Escape,
-            "Close the shape list, tool menu, question or window",
+            tr("Close the shape list, tool menu, question or window"),
             Menus,
         ),
         plain(
             Key::Enter,
-            "Choose (shape list, tool menu); Save (\"Save changes?\")",
+            tr("Choose (shape list, tool menu); Save (\"Save changes?\")"),
             Menus,
         ),
-        plain(Key::Space, "Choose (shape list, tool menu)", Menus),
-        plain(Key::ArrowDown, "Next in the shape list or tool menu", Menus),
-        plain(Key::ArrowUp, "Back in the shape list or tool menu", Menus),
-        plain(Key::ArrowRight, "Next in the tool menu", Menus),
-        plain(Key::ArrowLeft, "Back in the tool menu", Menus),
+        plain(Key::Space, tr("Choose (shape list, tool menu)"), Menus),
+        plain(
+            Key::ArrowDown,
+            tr("Next in the shape list or tool menu"),
+            Menus,
+        ),
+        plain(
+            Key::ArrowUp,
+            tr("Back in the shape list or tool menu"),
+            Menus,
+        ),
+        plain(Key::ArrowRight, tr("Next in the tool menu"), Menus),
+        plain(Key::ArrowLeft, tr("Back in the tool menu"), Menus),
         bind(
             super::DISCARD_SHORTCUT,
-            "Don't save (in the \"Save changes?\" question)",
+            tr("Don't save (in the \"Save changes?\" question)"),
             Menus,
         ),
     ]);
@@ -436,46 +462,52 @@ pub(crate) fn mouse() -> Vec<MouseLine> {
         situation,
     };
     vec![
-        line("Select", "Click", Anywhere),
+        line(tr("Select"), tr("Click"), Anywhere),
         line(
-            "Add to / take out of the selection",
-            "Ctrl + click / Shift + click (the standard keys)",
+            tr("Add to / take out of the selection"),
+            tr("Ctrl + click / Shift + click (the standard keys)"),
             Anywhere,
         ),
-        line("Box, lasso or brush select", "Drag", Anywhere),
+        line(tr("Box, lasso or brush select"), tr("Drag"), Anywhere),
         line(
-            "Orbit, pan, zoom",
-            "Your navigation controls (Options menu); as standard right drag, middle drag \
+            tr("Orbit, pan, zoom"),
+            tr(
+                "Your navigation controls (Options menu); as standard right drag, middle drag \
              and the wheel, and Alt + left, middle or right drag",
+            ),
             Anywhere,
         ),
         line(
-            "Look from a side of the view dice (bottom-left corner)",
-            "Click a face, edge or corner; Ctrl + click: the opposite side",
+            tr("Look from a side of the view dice (bottom-left corner)"),
+            tr("Click a face, edge or corner; Ctrl + click: the opposite side"),
             Anywhere,
         ),
         line(
-            "Select a loop / ring",
-            "Double-click / Alt + double-click",
-            Editing,
-        ),
-        line("Grow / shrink the selection", "Ctrl + wheel", Editing),
-        line(
-            "A tool's count (segments, cuts)",
-            "Ctrl + wheel, while using the tool",
+            tr("Select a loop / ring"),
+            tr("Double-click / Alt + double-click"),
             Editing,
         ),
         line(
-            "Slide points along their edges",
-            "Alt + drag the Move gizmo",
+            tr("Grow / shrink the selection"),
+            tr("Ctrl + wheel"),
             Editing,
         ),
         line(
-            "The quad menu (switched on in Settings → Interface)",
-            "Right-click in the viewport",
+            tr("A tool's count (segments, cuts)"),
+            tr("Ctrl + wheel, while using the tool"),
+            Editing,
+        ),
+        line(
+            tr("Slide points along their edges"),
+            tr("Alt + drag the Move gizmo"),
+            Editing,
+        ),
+        line(
+            tr("The quad menu (switched on in Settings → Interface)"),
+            tr("Right-click in the viewport"),
             Anywhere,
         ),
-        line("Cancel a drag", "Right-click (or Esc)", Dragging),
+        line(tr("Cancel a drag"), tr("Right-click (or Esc)"), Dragging),
     ]
 }
 
@@ -515,8 +547,13 @@ impl Workbench {
     /// The menu bar's Keys button: opens or closes the window.
     pub(super) fn keys_button(&mut self, ui: &mut Ui) {
         let response = ui
-            .add(egui::Button::selectable(self.shortcuts.open, KEYS_BUTTON))
-            .on_hover_text("Every keyboard shortcut and mouse action, on a drawn keyboard");
+            .add(egui::Button::selectable(
+                self.shortcuts.open,
+                tr(KEYS_BUTTON),
+            ))
+            .on_hover_text(tr(
+                "Every keyboard shortcut and mouse action, on a drawn keyboard",
+            ));
         if response.clicked() {
             self.shortcuts.open = !self.shortcuts.open;
         }
@@ -556,7 +593,7 @@ impl Workbench {
         let screen = ctx.content_rect();
         let height = screen.height() * SCREEN_SHARE;
         let width = (screen.width() * SCREEN_SHARE).min(height * WIDEST);
-        egui::Window::new(VIEWER_TITLE)
+        egui::Window::new(tr(VIEWER_TITLE))
             // Its own id, so a size remembered from before it grew is
             // forgotten.
             .id(egui::Id::new("keys window, drawn keyboard"))
@@ -637,10 +674,10 @@ fn header(ui: &mut Ui, viewer: &mut ShortcutViewer, layout: &mut KeyboardLayout)
     ui.horizontal_wrapped(|ui| {
         ui.add(
             egui::TextEdit::singleline(&mut viewer.filter)
-                .hint_text(FILTER_HINT)
+                .hint_text(tr(FILTER_HINT))
                 .desired_width((ui.spacing().text_edit_width * 0.8).round()),
         );
-        egui::ComboBox::from_label(LAYOUT_LABEL)
+        egui::ComboBox::from_label(tr(LAYOUT_LABEL))
             .selected_text(layout.name())
             .show_ui(ui, |ui| {
                 for choice in KeyboardLayout::ALL {
@@ -648,10 +685,10 @@ fn header(ui: &mut Ui, viewer: &mut ShortcutViewer, layout: &mut KeyboardLayout)
                 }
             })
             .response
-            .on_hover_text(
+            .on_hover_text(tr(
                 "Which keyboard to draw. Letters follow what is printed on your keys; \
                  the number row is always 1 to 0.",
-            );
+            ));
     });
     // The situations, each a chip with its colour: click one to hide or
     // show its keys.
@@ -681,7 +718,7 @@ fn header(ui: &mut Ui, viewer: &mut ShortcutViewer, layout: &mut KeyboardLayout)
             };
             let chip = ui
                 .add(chip.corner_radius(ui.spacing().interact_size.y * 0.5))
-                .on_hover_text("Click to hide or show the keys for this situation");
+                .on_hover_text(tr("Click to hide or show the keys for this situation"));
             if chip.clicked() {
                 if shown {
                     viewer.hidden.insert(situation);
@@ -750,7 +787,11 @@ fn draw_keyboard(
             };
             let response = ui.interact(rect, ui.id().with(("key", index)), sense);
             response.widget_info(|| {
-                egui::WidgetInfo::labeled(egui::WidgetType::Button, true, format!("Key {label}"))
+                egui::WidgetInfo::labeled(
+                    egui::WidgetType::Button,
+                    true,
+                    crate::trf!("Key {}", label),
+                )
             });
             if response.hovered() {
                 hovered = cap.id;
@@ -863,14 +904,14 @@ fn details(
             .filter(|b| b.held_with(id))
             .collect();
         if own.is_empty() && with.is_empty() {
-            ui.label(egui::RichText::new("Not used.").color(theme::TEXT_WEAK));
+            ui.label(egui::RichText::new(tr("Not used.")).color(theme::TEXT_WEAK));
         }
         for b in &own {
             job_row(ui, b);
         }
         if !with.is_empty() {
             ui.add_space(6.0);
-            ui.label(egui::RichText::new("Held with").strong());
+            ui.label(egui::RichText::new(tr("Held with")).strong());
             for b in &with {
                 job_row(ui, b);
             }
@@ -884,9 +925,9 @@ fn details(
         let n = found.len();
         ui.label(
             egui::RichText::new(match n {
-                0 => "No keys match.".to_string(),
-                1 => "1 match".to_string(),
-                n => format!("{n} matches"),
+                0 => tr("No keys match.").to_string(),
+                1 => tr("1 match").to_string(),
+                n => crate::trf!("{} matches", n),
             })
             .strong(),
         );
@@ -896,7 +937,7 @@ fn details(
         }
         return;
     }
-    ui.label(egui::RichText::new(HINT).color(theme::TEXT_WEAK));
+    ui.label(egui::RichText::new(tr(HINT)).color(theme::TEXT_WEAK));
 }
 
 /// The side panel's heading for a key: its name, and "(clicked)" when it
@@ -904,7 +945,7 @@ fn details(
 fn focus_title(caps: &[Cap], id: KeyId, ctx: &Context) -> String {
     let name = key_name(caps, id, ctx);
     match id {
-        KeyId::Shift | KeyId::Ctrl | KeyId::Alt => format!("{name} (held)"),
+        KeyId::Shift | KeyId::Ctrl | KeyId::Alt => crate::trf!("{} (held)", name),
         KeyId::Key(_) => name,
     }
 }
@@ -912,7 +953,7 @@ fn focus_title(caps: &[Cap], id: KeyId, ctx: &Context) -> String {
 /// The mouse actions under the keyboard, narrowed by the search and the
 /// chips.
 fn mouse_section(ui: &mut Ui, viewer: &ShortcutViewer) {
-    ui.label(egui::RichText::new(MOUSE_HEADING).strong());
+    ui.label(egui::RichText::new(tr(MOUSE_HEADING)).strong());
     ui.separator();
     let lines: Vec<MouseLine> = mouse()
         .into_iter()
@@ -920,7 +961,7 @@ fn mouse_section(ui: &mut Ui, viewer: &ShortcutViewer) {
         .filter(|l| matches(&format!("{} {}", l.action, l.how), &viewer.filter))
         .collect();
     if lines.is_empty() {
-        ui.label(egui::RichText::new("Nothing matches.").color(theme::TEXT_WEAK));
+        ui.label(egui::RichText::new(tr("Nothing matches.")).color(theme::TEXT_WEAK));
         return;
     }
     egui::Grid::new("mouse actions")

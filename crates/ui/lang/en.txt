@@ -1,5 +1,229 @@
 # The English package: every text in the interface, one per line.
 # Made by a test (UPDATE_LANG=1); a translation repeats each line
 # with " = " and the translation after it.
- (newest)
- Ctrl + Z takes it back.
+1 match
+A ring instead of a loop, with a double-click
+A tool's count (segments, cuts)
+Add to / take out of the selection
+Add to the selection, with a click or drag (the standard keys)
+All four views
+Alt
+Alt + drag the Move gizmo
+Alt Gr
+Angle
+Anywhere
+Back in the shape list or tool menu
+Back in the tool menu
+Backspace
+Bend radius
+Bottom radius
+Box, lasso or brush select
+Cancel Pivot to object
+Cancel a drag
+Cancel a slit (takes its cut back)
+Cancel the drag
+Cap rings
+Cap segments
+Caps
+Centre point
+Choose (shape list, tool menu)
+Choose (shape list, tool menu); Save ("Save changes?")
+Click
+Click a face, edge or corner; Ctrl + click: the opposite side
+Click to hide or show the keys for this situation
+Close the shape list, tool menu, question or window
+Closed base
+Closed ends
+Cmd
+Copy objects
+Copy objects (for instances)
+Ctrl
+Ctrl + click / Shift + click (the standard keys)
+Ctrl + wheel
+Ctrl + wheel, while using the tool
+Cut out the middle: zero for a pie slice, more for a slice of a ring
+Danish
+Del
+Delete the selected objects
+Depth
+Don't save (in the "Save changes?" question)
+Double-click / Alt + double-click
+Drag
+Each hexagon's size, from its middle to a corner
+End
+Enter
+Esc
+Every keyboard shortcut and mouse action, on a drawn keyboard
+Find a key or action
+Finish a slit
+French (AZERTY)
+From end to end, the round ends included
+From the front of the first step to the back of the last (along Y)
+From the middle to the centre of the ring's tube
+German (QWERTZ)
+Grow / shrink the selection
+Half the pipe's width
+Half the width
+Half the width at the bottom
+Half the width at the top: zero for a point, more to cut it off flat
+Half the width of a hole in the middle: zero for none
+Half the width of the hole
+Half the width of the hole for the axle: zero for none
+Half the width of the hole through the pipe: zero for a solid bend
+Half the width of the outside
+Half the width of the whole circle
+Half the width, at the tips of the teeth
+Height
+Height segments
+Held with
+Hexagon size
+Hide the selection
+Hold {}
+Hole radius
+Home
+How deep each tooth is, from its tip to the gap between teeth
+How deep it is (along Y)
+How far it bends: 90° for a corner, 360° for a whole ring
+How far the pipe's middle is from the point it bends round
+How finely it is cut: each step gives about four times the hexagons
+How high the straight sides go before the round top starts: zero for a half ring
+How high the top step is
+How many flat sides make up each round side
+How many flat sides make up the round side
+How many pieces along the bend
+How many pieces along the curve
+How many pieces around
+How many pieces around (like lines of longitude)
+How many pieces around the pipe
+How many pieces around the ring
+How many pieces around the tube
+How many pieces each side is cut into along X
+How many pieces each side is cut into along Y
+How many pieces each side is cut into along Z
+How many pieces from top to bottom (like lines of latitude)
+How many pieces it is cut into along X
+How many pieces it is cut into along Y
+How many pieces the round top is cut into
+How many pieces the side is cut into from bottom to top
+How many pieces the sides are cut into from bottom to top
+How many pieces the straight middle is cut into
+How many rings each closed end is cut into, from the rim inwards
+How many rings each round end has, from its rim to its tip
+How many rings from the rim to the top
+How many rings it is cut into, from the rim inwards
+How many rings of hexagons round the middle one
+How many steps
+How many straight pieces make up the circle
+How many teeth
+How many times each triangle is cut into four: 0 is a 20-sided ball, each step four times the triangles
+How much of a circle: 90° for a quarter
+How thick the arch is round the opening
+How thick the gear is
+How thick the ring is: half the tube's width
+How thick the slab is
+How wide the opening is
+Inner radius
+Ins
+Invert the selection
+Isolate the selection
+Key {}
+Keyboard
+Keyboard shortcuts
+Keys
+Leg height
+Lock {}
+Look from a side of the view dice (bottom-left corner)
+Menus and questions
+Model mode
+More shapes (icosphere, torus, gear, stairs and the rest)
+Mouse
+New project
+Next in the shape list or tool menu
+Next in the tool menu
+Next select tool (Box, Lasso, Paint select)
+No keys match.
+Norwegian
+Not used.
+Nothing matches.
+On: the ends meet in a point in the middle, with triangles around it. Off: the middle of each end is one flat face with many corners (an n-gon).
+Open a project
+Opening width
+Option
+Orbit, pan and zoom with a left, middle or right drag (standard navigation)
+Orbit, pan, zoom
+Outer radius
+Paste copies
+Paste instances
+Perspective or orthographic
+PgDn
+PgUp
+Pipe radius
+Point at a key to see what it does. Click a key to keep it shown.
+Points, Edges, Polygons
+Radius
+Redo
+Right-click (or Esc)
+Right-click in the viewport
+Ring segments
+Rings
+Save
+Save as
+Search for a command by name
+Segments
+Segments X
+Segments Y
+Segments Z
+Select
+Select a loop / ring
+Select all
+Select connected: the whole part the selection is on (over the UV Editor or in the UV mode, the whole pieces)
+Select nothing
+Settings
+Shape list, from the last shape
+Shift
+Show everything
+Sides
+Size along X
+Size along Y
+Size along Z (up)
+Slide points along their edges
+Slide points along their edges, dragging the Move gizmo
+Snap (or not, when snapping is on)
+Space
+Step back to the Model mode (finishes a slit, puts a tool away)
+Steps
+Subdivisions
+Swedish / Finnish
+Tab
+Take out of the selection, with a click or drag (the standard keys)
+Teeth
+Ten times finer
+The quad menu (switched on in Settings → Interface)
+Thickness
+Tool menu: every tool for the mode, at the mouse (over the UV Editor, the UV tools)
+Tooth depth
+Top radius
+Tube radius
+Tube sides
+UK (QWERTY)
+US (QWERTY)
+Undo
+Weld onto a point
+Whether the ends are closed
+Whether the flat bottom is closed
+Which keyboard to draw. Letters follow what is printed on your keys; the number row is always 1 to 0.
+While dragging
+While orbiting: snap to the view dice's sides
+Width
+With the wheel: a tool's count (segments, cuts) while using it; otherwise grow or shrink the selection
+Without a hole: on, the middle is a point with triangles around it; off, one flat face with many corners (an n-gon).
+World or object axes
+Your navigation controls (Options menu); as standard right drag, middle drag and the wheel, and Alt + left, middle or right drag
+the selection's UVs
+the texture square
+{} (held)
+{} (in the UV Editor too)
+{} (in the UV Editor: {})
+{} matches
+{} mode (again: back to Model; with a tool in use: selecting in it)
+{} view

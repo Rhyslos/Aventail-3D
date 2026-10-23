@@ -366,20 +366,34 @@ fn literals_in_context(text: &str) -> Vec<(String, String)> {
 /// Whether the code before a literal puts it through the language layer.
 fn through_the_layer(before: &str) -> bool {
     let b = before.trim_end();
-    b.ends_with("tr(") || b.ends_with("trf!(") || b.ends_with("text!(")
+    ["tr(", "trf!(", "text!("].iter().any(|call| {
+        // The call itself, not a longer name ending the same way
+        // (`push_str(`, `from_str(`).
+        b.strip_suffix(call).is_some_and(|rest| {
+            !rest
+                .chars()
+                .next_back()
+                .is_some_and(|c| c.is_alphanumeric() || c == '_')
+        })
+    })
 }
 
 /// Whether a literal is interface text at all: it has letters and reads as
 /// words (a space, or a capital first letter), and the code before it isn't
 /// an id, a key, a file name or a message for programmers.
 fn is_interface_text(literal: &str, before: &str) -> bool {
-    let words = literal.chars().any(|c| c.is_alphabetic())
+    // Fewer than two letters isn't words: a key's cap ("Q", "é 2", "F{}")
+    // or an axis ("X"), the same in every language.
+    let letters = literal.chars().filter(|c| c.is_alphabetic()).count();
+    let words = letters >= 2
         && (literal.contains(' ') || literal.chars().next().is_some_and(char::is_uppercase));
     if !words {
         return false;
     }
-    const NOT_TEXT: [&str; 22] = [
+    const NOT_TEXT: [&str; 23] = [
         "Id::new(",
+        // A grid's id, not shown.
+        "Grid::new(",
         "id_salt(",
         ".id(",
         "panic!(",
