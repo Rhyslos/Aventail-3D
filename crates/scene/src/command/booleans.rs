@@ -102,6 +102,36 @@ impl Run<'_> {
         Ok(())
     }
 
+    /// Takes out of `id`'s booleans every cutter that isn't a shape in the
+    /// scene or would make a loop (and every boolean of a group or an
+    /// instance): for an object put in from elsewhere.
+    pub(super) fn keep_usable_cutters(&mut self, id: ObjectId) -> Result<(), SceneError> {
+        let before = self.scene.booleans(id).to_vec();
+        if before.is_empty() {
+            return Ok(());
+        }
+        let mut after = before.clone();
+        if self.scene.check_booleans(id, &after).is_err() {
+            for boolean in &mut after {
+                boolean.cutters.retain(|c| {
+                    let one = [Boolean {
+                        kind: boolean.kind,
+                        cutters: vec![*c],
+                    }];
+                    self.scene.check_booleans(id, &one).is_ok()
+                });
+            }
+            after.retain(|b| !b.cutters.is_empty());
+            if self.scene.check_booleans(id, &after).is_err() {
+                after.clear();
+            }
+        }
+        if after != before {
+            self.edit(Edit::SetBooleans { id, before, after })?;
+        }
+        Ok(())
+    }
+
     /// The object's cut shape, if it has booleans and they work.
     pub(super) fn cut_result(&self, id: ObjectId) -> Option<Arc<Mesh>> {
         if self.scene.booleans(id).is_empty() {

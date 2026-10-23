@@ -1493,8 +1493,9 @@ impl Run<'_> {
                     let Some(shape) = self.scene.evaluated(id) else {
                         continue;
                     };
-                    // Booleans that work are baked in too (decision 0135).
-                    let cut = self.cut_result(id);
+                    // Booleans that work are baked in too, and an instance
+                    // of a cut shape keeps the cut (decision 0135).
+                    let cut = self.scene.cut_shape(id).and_then(Result::ok);
                     let object = self.scene.object(id).ok_or(SceneError::UnknownObject(id))?;
                     let before = object.kind.clone();
                     let layers = object.stack.layers().to_vec();
@@ -1632,6 +1633,10 @@ impl Run<'_> {
     fn insert(&mut self, object: Object, place: Place) -> Result<ObjectId, SceneError> {
         let id = self.scene.next_id();
         self.edit(Edit::Insert { id, object, place })?;
+        // Booleans naming objects that aren't (or can't be) its cutters
+        // here lose them, so the scene always saves and opens again
+        // (decision 0135).
+        self.keep_usable_cutters(id)?;
         Ok(id)
     }
 

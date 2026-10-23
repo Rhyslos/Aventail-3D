@@ -21,7 +21,8 @@
 //! - no object's position, turn or size, and no point of any shape, is
 //!   "not a number" or infinite;
 //! - every shape is well formed: each polygon has at least three corners,
-//!   all of them points that exist, none visited twice;
+//!   all of them points that exist, none visited twice (shown shapes too,
+//!   cut by their booleans);
 //! - the mode is one of the app's modes;
 //! - after Esc, at most one menu, list or window is still open;
 //! - and every few actions: Ctrl + Z then Ctrl + Y brings back exactly the
@@ -287,6 +288,17 @@ fn act(harness: &mut H, rng: &mut Lcg) -> (String, bool) {
                 settle(harness);
             }
             (format!("palette {label} (found: {found})"), false)
+        }
+        19 => {
+            // A boolean on whatever is selected (decision 0135): the first
+            // selected kept, the others cutting it.
+            let label = rng.pick(&["Union", "Subtract", "Intersect"]);
+            let found = harness.query_all_by_label(label).next().is_some();
+            if found {
+                harness.query_all_by_label(label).next().unwrap().click();
+                settle(harness);
+            }
+            (format!("boolean {label} (found: {found})"), false)
         }
         20 | 21 => {
             // Aimed at a shape, so selections and edits happen often.

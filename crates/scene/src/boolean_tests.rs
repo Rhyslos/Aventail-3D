@@ -499,3 +499,66 @@ fn a_cut_can_be_worked_out_elsewhere_and_handed_back() {
     ));
     assert!(doc.scene().cut_state(cutter).is_none(), "no booleans");
 }
+
+#[test]
+fn an_object_put_in_with_booleans_it_cant_use_loses_them() {
+    let (mut doc, kept, cutter) = notched();
+    let mut copy = doc.scene().object(kept).unwrap().clone();
+    copy.name = "Copy".into();
+    // Its cutter is there: it keeps cutting the copy.
+    doc.execute(Command::Insert {
+        object: copy.clone(),
+        place: Place {
+            parent: None,
+            index: 0,
+        },
+    })
+    .unwrap();
+    let first = doc.selection()[0];
+    assert_eq!(doc.scene().booleans(first)[0].cutters, [cutter]);
+    // Once it's gone, a copy put in names nothing that's there.
+    doc.execute(Command::Delete(vec![cutter])).unwrap();
+    doc.execute(Command::Insert {
+        object: copy,
+        place: Place {
+            parent: None,
+            index: 0,
+        },
+    })
+    .unwrap();
+    let second = doc.selection()[0];
+    assert!(doc.scene().booleans(second).is_empty());
+    // The scene still rebuilds as a file would.
+    let objects: Vec<_> = doc
+        .scene()
+        .walk()
+        .into_iter()
+        .map(|(id, _)| {
+            (
+                id,
+                doc.scene().parent(id),
+                doc.scene().object(id).unwrap().clone(),
+            )
+        })
+        .collect();
+    assert!(Scene::from_objects(objects, doc.scene().next_object_id()).is_ok());
+}
+
+#[test]
+fn baking_an_instance_of_a_cut_shape_keeps_the_cut() {
+    let (mut doc, kept, _) = notched();
+    doc.execute(Command::Duplicate {
+        ids: vec![kept],
+        instances: true,
+    })
+    .unwrap();
+    let instance = doc.selection()[0];
+    doc.execute(Command::MakeEditable(vec![instance])).unwrap();
+    let shape = doc.scene().evaluated(instance).unwrap().mesh;
+    assert!((volume(&shape) - 875_000.0).abs() < 10.0);
+    assert_eq!(
+        doc.scene().booleans(kept).len(),
+        1,
+        "the original keeps its own"
+    );
+}
