@@ -32,6 +32,9 @@ pub enum SceneError {
     TooManyMaterials,
     /// Booleans that can't be set up (decision 0135).
     Boolean(crate::BooleanRefusal),
+    /// A curve change that can't be made (decision 0138), with the reason,
+    /// marked with `text!` where it is made.
+    Curve(&'static str),
 }
 
 impl std::fmt::Display for SceneError {
@@ -59,6 +62,7 @@ impl std::fmt::Display for SceneError {
                 mesh::material::MAX_SLOTS
             )),
             Self::Boolean(why) => write!(f, "{why}"),
+            Self::Curve(why) => f.write_str(tr(why)),
         }
     }
 }
@@ -428,6 +432,9 @@ impl Scene {
             if matches!(object.kind, ObjectKind::Instance(_)) && !object.stack.is_empty() {
                 return Err(SceneError::Instance);
             }
+            if matches!(object.kind, ObjectKind::Curve(_)) && !object.stack.is_empty() {
+                return Err(SceneError::Curve(crate::curve::RECORD_ON_CURVE));
+            }
             if object.stack.repeated_edit_id().is_some() {
                 return Err(SceneError::History(text!(
                     "two of an object's edits have the same id"
@@ -469,6 +476,8 @@ impl Scene {
                 }
             }
         }
+        // Every curve's cross-section is another curve (decision 0138).
+        scene.check_profiles()?;
         // Every boolean's cutters are shapes in the scene, with no loops
         // (decision 0135).
         for (id, _) in scene.walk() {
@@ -679,8 +688,75 @@ impl Scene {
                 .filter(|o| !matches!(o.kind, ObjectKind::Instance(_)))
                 .and_then(|_| self.evaluated(source));
         }
-        self.cache
-            .with(|cache| cache.evaluate(id, &object.kind, &object.stack, &self.eval_context()))
+        let profile = self.profile_curve(id);
+        self.cache.with(|cache| {
+            cache.evaluate_with(
+                id,
+                &object.kind,
+                &object.stack,
+                &self.eval_context(),
+                profile.as_ref(),
+            )
+        })
+    }
+
+    /// The curve a curve object's sweep takes its cross-section from, when
+    /// it takes another curve object's (decision 0138): that object's
+    /// curve, in its own space.
+    pub fn profile_curve(&self, id: ObjectId) -> Option<mesh::curve::Curve> {
+        let profile = self.object(id)?.kind.curve()?.solid.profile_object()?;
+        Some(self.object(profile)?.kind.curve()?.shape.curve())
+    }
+
+    /// Checks that `solid`, for curve object `id`, takes its cross-section
+    /// (if from another curve) from a curve object that isn't itself.
+    pub fn check_profile(&self, id: ObjectId, solid: &crate::CurveSolid) -> Result<(), SceneError> {
+        let Some(profile) = solid.profile_object() else {
+            return Ok(());
+        };
+        if profile == id {
+            return Err(SceneError::Curve(crate::curve::PROFILE_ITSELF));
+        }
+        match self.object(profile).map(|o| &o.kind) {
+            Some(ObjectKind::Curve(_)) => Ok(()),
+            Some(_) => Err(SceneError::Curve(crate::curve::PROFILE_NOT_A_CURVE)),
+            None => Err(SceneError::UnknownObject(profile)),
+        }
+    }
+
+    /// The same scene with object `id` (stored as an empty group) given
+    /// back its curve (decision 0138: older parts of the file hold a curve
+    /// as a group), for a project being opened. Refused for an object that
+    /// isn't an empty group with no edits.
+    pub fn with_curve(
+        mut self,
+        id: ObjectId,
+        curve: crate::CurveObject,
+    ) -> Result<Self, &'static str> {
+        let node = self
+            .nodes
+            .get_mut(&id)
+            .ok_or_else(|| tr("a curve names an object that isn't there"))?;
+        if node.object.kind != ObjectKind::Group || !node.object.stack.is_empty() {
+            return Err(tr("a curve names an object that isn't stored as one"));
+        }
+        node.object.kind = ObjectKind::Curve(crate::CurveObject {
+            solid: curve.solid.clamped(),
+            ..curve
+        });
+        self.cache.get_mut().forget(id);
+        Ok(self)
+    }
+
+    /// Checks every curve's cross-section names a curve object (for a
+    /// scene being opened, once all its curves are in).
+    pub fn check_profiles(&self) -> Result<(), SceneError> {
+        for id in self.nodes.keys() {
+            if let Some(curve) = self.object(*id).and_then(|o| o.kind.curve()) {
+                self.check_profile(*id, &curve.solid)?;
+            }
+        }
+        Ok(())
     }
 
     /// The box around the object's final shape, in its own space, or
@@ -691,6 +767,15 @@ impl Scene {
         match &object.kind {
             ObjectKind::Primitive(p) if object.stack.is_empty() => Some(p.bounds()),
             ObjectKind::Group => None,
+            // A curve's line counts too, with its solid if it has one.
+            ObjectKind::Curve(c) => {
+                let line = c.shape.curve().bounds();
+                let solid = self.evaluated(id).and_then(|e| e.mesh.bounds());
+                match (line, solid) {
+                    (Some(a), Some(b)) => Some(a.union(b)),
+                    (a, b) => a.or(b),
+                }
+            }
             _ => self.evaluated(id)?.mesh.bounds(),
         }
     }
@@ -700,10 +785,12 @@ impl Scene {
     /// edits recorded on it or booleans. Not a group, or a mesh with
     /// nothing recorded.
     pub fn can_make_editable(&self, id: ObjectId) -> bool {
-        self.object(id).is_some_and(|o| match o.kind {
+        self.object(id).is_some_and(|o| match &o.kind {
             ObjectKind::Primitive(_) | ObjectKind::Instance(_) => true,
             ObjectKind::Mesh(_) => !o.stack.is_empty() || !o.booleans.is_empty(),
             ObjectKind::Group => false,
+            // A curve with a solid bakes into it; a line has nothing to bake.
+            ObjectKind::Curve(c) => c.solid != crate::CurveSolid::Line,
         })
     }
 

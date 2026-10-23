@@ -11,6 +11,7 @@
 
 pub mod boolean;
 pub mod command;
+pub mod curve;
 pub mod document;
 mod history;
 mod memory;
@@ -27,8 +28,13 @@ pub use boolean::{
     CutState, MAX_CUTTERS,
 };
 pub use command::Command;
+pub use curve::{CurveObject, CurveShape, CurveSolid, Sweep, SweepProfile};
 pub use document::Document;
 pub use history::HistoryLimit;
+pub use mesh::curve::{
+    Curve, CurveEdit, CurvePart, CurvePointId, Detail, LatheAxis, LatheShape, PartKind, ReadyCurve,
+    ReadyCurveKind,
+};
 pub use mesh::edit::{
     Bend, BevelOptions, BevelShape, ExtrudeDirection, ExtrudeShape, Eye, GrooveShape, GrooveSides,
     Grouping, Slide, SlitLine,
@@ -58,6 +64,8 @@ pub use uv::{HideSeams, PieceSettings, UnfoldAxis, UnwrapMethod, UnwrapOptions};
 mod apply_tests;
 #[cfg(test)]
 mod boolean_tests;
+#[cfg(test)]
+mod curve_tests;
 #[cfg(test)]
 mod edit_list_tests;
 #[cfg(test)]

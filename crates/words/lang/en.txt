@@ -79,6 +79,7 @@ A calm, tool-rich 3D modeller for game assets.
 A checker laid on by the UVs: where the squares stay square and even, a texture will too. The tint runs red across and green up the texture, so a piece turned or mirrored shows.
 A checker of labelled cells laid on by the UVs, A1 at the top left of the texture to H8 at the bottom right, in colours from the app's accent: see at once which part of the texture each part of the shape uses, and which way round it lies (the labels turn and mirror with it). The UV Editor shows it behind the UVs too.
 A cone 1 m across and 1 m tall
+A curve climbing 1 m in three turns, like a spring
 A cutter is drawn as an outline and left out of exports: the shape it cuts carries the result. Hidden, it still cuts.
 A cylinder with round ends, 1 m tall
 A doorway arch: two legs and a round top
@@ -105,12 +106,15 @@ A polygon an edit changed counts as broken when it is stretched this many times 
 A polygon an edit changed counts as broken when its texture is this many times bigger or smaller than the polygons' around it (3× standard). Lower mends more.
 A polygon with no area has no direction, so it bakes as a black speck or a streak. Select them, then weld their points (M) or delete them.
 A project keeps at most {} snapshots: remove one first.
+A quarter of a circle 1 m across, lying on the ground
 A right-click in the viewport opens four short lists around the mouse: what to show and hide, the modes, undo and edit layers, and the tools of what you're working on. A right-click that ends a drag, or a right drag that turns the view, never opens it.
 A ring (doughnut) 1 m across, lying on the ground
 A ring instead of a loop, with a double-click
+A round curve 1 m across, lying on the ground
 A shape can have at most 64 cutters
 A shape can't cut itself
 A solid flight of 6 stairs, 1 m wide and 1 m high
+A straight curve 1 m long, lying on the ground
 A texture per material
 A texture per object
 A tool's count (segments, cuts)
@@ -168,6 +172,7 @@ An object can have at most {} materials
 An ordinary 3D view: far things look smaller
 An upright cylinder, 1 m across and 1 m tall
 Angle
+Another curve
 Any program: pick the kind of file and how it's set up below.
 Anywhere
 Anywhere (shortest cuts)
@@ -180,6 +185,7 @@ Apply this layer's edits before the layer below it
 Apply transforms
 Apply {}
 Apply {} mirrors
+Arc
 Arch
 Arrives with the tools in Phase 3
 As in this app; Blender and 3ds Max's own axes
@@ -290,6 +296,7 @@ Choose (shape list, tool menu); Save ("Save changes?")
 Choose a game project folder in the Export window first; this then exports straight into it
 Choose folder…
 Choose which mouse buttons and keys move the view
+Circle
 Clear
 Clear seam preference
 Clear seams
@@ -312,6 +319,7 @@ Click to hide or show the keys for this situation
 Clicking the view dice in the bottom-left corner (or snapping to it with Ctrl while orbiting) also makes the view flat, with no perspective, so lines line up. Orbit away and it goes back to perspective.
 Close
 Close (Esc)
+Close curve
 Close the app
 Close the open holes touching the selection with a polygon each; with nothing selected, every hole
 Close the shape list, tool menu, question or window
@@ -400,6 +408,8 @@ Ctrl adds, Alt removes
 Ctrl adds, Shift removes
 Ctrl flips
 Cube
+Curve
+Curve as a line only
 Custom settings
 Cut a new loop of edges all the way around a shape: point at an edge, then click, or drag to slide it
 Cut a thin groove into the shape along the selected edges, like a panel line, or raise a ridge out of it: drag in or out
@@ -429,6 +439,7 @@ Default
 Default camera
 Del
 Delete
+Delete curve points
 Delete edit
 Delete layer
 Delete objects
@@ -836,6 +847,7 @@ Laid
 Laid flat, the piece stretched more than its budget of {:.2}×, so it was slit here, from where it was squeezed most.
 Lasso selection
 Last edit: {}
+Lathe
 Lay out
 Lay strips on them: UV → Put on trim row.
 Lay the new end flat, square to the way it went: a curved patch ends in a flat face.
@@ -851,6 +863,8 @@ Let go on another one of the same object to join them.
 Let the automatic tools change the selected pieces again
 Let the automatic tools choose freely again on the selected edges (or polygons)
 Like Keep shapes, but the angles are first evened out over the whole piece, so curved pieces (a head, a dome) drift less. A little slower.
+Line
+Line only
 Line the pieces made of quads up into a straight grid, for strips and panels
 Line the selected objects up with another object: click this, then click that object, and choose the sides or middles to line up in the window
 Line the selected objects up with {}. The change shows as you choose.
@@ -877,6 +891,8 @@ Lowest
 Made for
 Make every bevelled edge's new polygon the same width, however sharp or flat the edge is (the width you set is what a right-angled edge gets)
 Make instances of the selected objects right where they are: they show the original's shape and follow its changes. Or Alt + C, then Alt + V.
+Make points sharp
+Make points smooth
 Make the mirrored half of a symmetrical object part of its shape (symmetry off)
 Make the mirrored half part of the shape for real, as Blender's Apply: the mirror is gone, both halves stay, and each half can be changed on its own from then on
 Make the mirrored half part of the shape for real: symmetry goes off and both halves stay
@@ -941,6 +957,7 @@ Move 1 point
 Move UVs
 Move and turn the selected objects' pivots (the point they turn and scale around), not their shapes. Also on the top palette, by the axis switches.
 Move and turn the selected objects' pivots, not their shapes
+Move curve points
 Move down
 Move layer down
 Move layer up
@@ -1048,6 +1065,7 @@ Open ({})
 Open a project
 Open a saved project
 Open as saved
+Open curve
 Open in Attributes
 Open project
 Open recent
@@ -1167,6 +1185,7 @@ Radial menu
 Radius
 Ready
 Recover unsaved work?
+Rectangle
 Red
 Redo
 Redo: {}
@@ -1428,6 +1447,7 @@ Some of the points these edits move have no place on the shape now (for example 
 Some selected objects have more than {} polygons: their UVs aren't drawn.
 Space
 Sphere
+Spiral
 Split off
 Split off 1 polygon
 Split off works on polygons: press 3 for the Polygons mode.
@@ -1435,6 +1455,7 @@ Split off {} polygons
 Split off {} polygon{} into a new object. Ctrl + Z takes it back.
 Split off: select polygons on one object at a time.
 Split off: select some polygons first.
+Square
 Stack identical pieces
 Stairs
 Standard
@@ -1472,6 +1493,7 @@ Suggest seams, Unwrap and Seams from hard edges never put a seam on the selected
 Surface
 Swap which side of the edges the skew favours
 Swedish / Finnish
+Sweep
 Switch both layers on first
 Switch edit off
 Switch edit on
@@ -1784,6 +1806,14 @@ a bevel is stored with its settings twice
 a bevel's skew or weld distance isn't a real number, or is out of range
 a boolean can't be used: {}
 a collision is stored for object {}, which isn't there
+a curve can have at most 4096 points
+a curve can't be its own cross-section
+a curve names an object that isn't stored as one
+a curve names an object that isn't there
+a curve needs at least two points: delete the whole object instead
+a curve point isn't a number, or is more than 10 km away
+a curve's points have repeated or impossible ids
+a curve's shape comes from its points: use Bake into shape to edit it as a mesh
 a cutter is squashed flat (scaled to nothing)
 a cutter isn't a closed solid: it has holes in its surface, or edges shared by more than two polygons
 a face goes through point {} twice
@@ -1916,6 +1946,7 @@ it holds no polygons
 it holds {} objects, and the app opens up to {}
 it holds {} recorded edits, and the app opens up to {}
 it is listed as an instance but stored as something else
+it isn't a curve
 it isn't a project file
 it should hold {} bytes of scene but holds {}; it may be cut short
 it was
@@ -1994,6 +2025,7 @@ only an empty object can be taken out
 opening another project
 paint over what to select; Ctrl + wheel changes the brush size
 parts missing
+pick a curve for the cross-section
 piece
 pieces
 point
@@ -2041,6 +2073,9 @@ the attribute holds {} values, not {}
 the backup folder {} can't be used ({})
 the backup stopped unexpectedly
 the boolean library stopped
+the cross-section curve's points are all on one spot
+the cross-section has to be another curve object
+the curve's points are all on one spot
 the cutter is already cut by this shape (or shows it), so each would wait for the other
 the emergency copy saved as the app crashed ({})
 the file couldn't be written ({})
@@ -2069,6 +2104,7 @@ the shape isn't a closed solid: it has holes in its surface, or edges shared by 
 the texture square
 the value isn't a real number
 the viewport image could not be created
+the whole curve lies on the axis it spins round
 the window has no GPU device
 the windowing system stopped unexpectedly
 them

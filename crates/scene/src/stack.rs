@@ -2265,9 +2265,13 @@ pub struct Evaluated {
     pub warnings: Vec<StackWarning>,
 }
 
-/// The shape a base gives on its own, or `None` for a kind without one.
-fn base_mesh(base: &ObjectKind) -> Option<Arc<Mesh>> {
+/// The shape a base gives on its own, or `None` for a kind without one
+/// (or a curve that is only a line). `profile` is the curve a sweep takes
+/// its cross-section from, when it takes another curve's (decision 0138).
+fn base_mesh(base: &ObjectKind, profile: Option<&mesh::curve::Curve>) -> Option<Arc<Mesh>> {
     match base {
+        // A curve takes no edits, so its shape needs no names.
+        ObjectKind::Curve(c) => c.mesh(profile).map(Arc::new),
         ObjectKind::Group | ObjectKind::Instance(_) => None,
         // Named for the edits on top (decision 0090).
         ObjectKind::Primitive(p) => {
@@ -2461,6 +2465,8 @@ struct CachedLayer {
 #[derive(Debug, Clone)]
 struct CachedObject {
     base: ObjectKind,
+    /// The cross-section curve its sweep used, if another curve's.
+    profile: Option<mesh::curve::Curve>,
     /// What it was worked out with: a change works it all out again.
     context: EvalContext,
     base_mesh: Arc<Mesh>,
@@ -2501,8 +2507,23 @@ impl StackCache {
         stack: &Stack,
         context: &EvalContext,
     ) -> Option<Evaluated> {
+        self.evaluate_with(id, base, stack, context, None)
+    }
+
+    /// The same, for a curve whose sweep takes its cross-section from
+    /// `profile`, another curve (decision 0138): a change to that curve
+    /// works the shape out again.
+    pub(crate) fn evaluate_with(
+        &mut self,
+        id: ObjectId,
+        base: &ObjectKind,
+        stack: &Stack,
+        context: &EvalContext,
+        profile: Option<&mesh::curve::Curve>,
+    ) -> Option<Evaluated> {
         if let Some(entry) = self.entries.get_mut(&id)
             && same_base(&entry.base, base)
+            && entry.profile.as_ref() == profile
             && entry.context == *context
         {
             // The first layer that changed (or is new), if any.
@@ -2533,11 +2554,16 @@ impl StackCache {
             };
             return Some(entry.result());
         }
-        let base_mesh = base_mesh(base)?;
+        let Some(base_mesh) = base_mesh(base, profile) else {
+            // Nothing kept for a kind without a shape.
+            self.entries.remove(&id);
+            return None;
+        };
         let mut layers = Vec::new();
         evaluate_layers(&base_mesh, &stack.layers, 0, None, &mut layers, context);
         let entry = CachedObject {
             base: base.clone(),
+            profile: profile.cloned(),
             context: *context,
             base_mesh,
             layers,

@@ -52,6 +52,11 @@ pub enum ObjectKind {
     /// (decision 0055). Changing the original changes every instance. It
     /// has no edits of its own; making it editable gives it its own copy.
     Instance(ObjectId),
+    /// A curve (decision 0138): ready-made or drawn points, drawn as a
+    /// line, and the solid it makes (a sweep or a lathe), if any. It has
+    /// no recorded edits: its points are edited directly, through
+    /// commands; Bake into shape turns its solid into a plain mesh.
+    Curve(crate::CurveObject),
 }
 
 impl ObjectKind {
@@ -62,6 +67,7 @@ impl ObjectKind {
             Self::Primitive(p) => p.name(),
             Self::Mesh(_) => tr("Mesh"),
             Self::Instance(_) => tr("Instance"),
+            Self::Curve(c) => c.shape.name(),
         }
     }
 
@@ -78,6 +84,14 @@ impl ObjectKind {
             Self::Group | Self::Instance(_) => None,
             Self::Primitive(p) => Some(p.bounds()),
             Self::Mesh(mesh) => mesh.bounds(),
+            Self::Curve(c) => {
+                let line = c.shape.curve().bounds();
+                let solid = c.mesh(None).and_then(|m| m.bounds());
+                match (line, solid) {
+                    (Some(a), Some(b)) => Some(a.union(b)),
+                    (a, b) => a.or(b),
+                }
+            }
         }
     }
 
@@ -89,6 +103,17 @@ impl ObjectKind {
             Self::Group | Self::Instance(_) => None,
             Self::Primitive(p) => Some(p.mesh()),
             Self::Mesh(mesh) => Some((**mesh).clone()),
+            // Without the scene, a sweep along another curve's cross-section
+            // can't be made: ask the scene for the final shape.
+            Self::Curve(c) => c.mesh(None),
+        }
+    }
+
+    /// The curve, for a curve object (decision 0138).
+    pub fn curve(&self) -> Option<&crate::CurveObject> {
+        match self {
+            Self::Curve(c) => Some(c),
+            _ => None,
         }
     }
 }
