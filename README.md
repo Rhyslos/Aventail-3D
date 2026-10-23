@@ -234,9 +234,9 @@ The detailed plan for the remaining milestones, with the controls already chosen
 
 **Gate:** a modular kit is unwrapped, packed and baked in Aventail 3D and looks right in Godot; changing a model afterwards keeps its UVs and their intents.
 
-### Phase 9 · Rework and first use (now, before the rest of Phase 8) — 7 of 10
+### Phase 9 · Rework and first use (now, before the rest of Phase 8) — 8 of 10
 
-`█████████░░░░` 70%
+`██████████░░░` 80%
 
 After a review of the whole app (2026-10-21, [decision 0121](docs/decisions/0121-rework-before-the-rest-of-phase-8.md)), Phase 8 pauses and this comes first: the core stays, what people see and name is reworked, and the quality checks follow what people do.
 
@@ -252,7 +252,7 @@ After a review of the whole app (2026-10-21, [decision 0121](docs/decisions/0121
 - [x] Labels on everything: a side palette that slides out with names, a dropdown on the selection mode button
 - [ ] A key audit, asked first (Ctrl adds and Shift removes stays) *(the document is written, waiting for the project lead's ticks)*
 - [x] A safety net: workflow tests, reference images, export checks in CI, an emergency copy on a crash, a newcomer checklist per pull request
-- [ ] Tidy for growth: the big interface code split up, a short spec, English as the one language package, one development file format until the alpha
+- [x] Tidy for growth: the big interface code split up, a short spec, English as the one language package, one development file format until the alpha
 
 </details>
 
@@ -299,6 +299,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-23 | Tidy for growth: the big interface files split up, a short spec and a one-page digest of the rules, and every interface text through one language layer with English as its package |
 | 2026-10-23 | Rework: every setting in one home and a slim one-line Coordinates band; the palette names its buttons on hover; a safety net of workflow tests, random action runs, reference images, export checks in Godot and the glTF Validator, and an emergency copy on a crash |
 | 2026-10-22 | Rework, first half: the selection drawn clearest, command search (Space), five modes with Edit pivot, one "Bake into shape", smoothing and symmetry per object with Apply mirror, grouped menus, the UV menu in the UV Editor |
 | 2026-10-22 | Planned: advanced modelling (Phase 10) comes right after the rework, before the rest of the UV phase (Phase 8) |
