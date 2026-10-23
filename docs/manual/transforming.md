@@ -101,7 +101,7 @@ An object with a live mirror (the **Symmetry** button at the right end of the pa
 
 ![The Coordinates panel](../screenshots/2026-10-11-coordinates.png)
 
-The **Coordinates** panel under the viewport shows the selection's **Position**, **Size** and **Rotation**. Click a number, type a new value and press **Enter**, or drag the number sideways.
+The **Coordinates** panel under the viewport shows the selection's **Position**, **Size** and **Rotation** on one slim line, each with its X, Y and Z, so the viewport keeps as much room as possible. Click a number, type a new value and press **Enter**, or drag the number sideways.
 - Positions are in the world: where the shape's axis is, or the middle of the selected points.
 - Sizes and positions use the project's units (metres as standard; see [Units](pivots.md#units-metres-or-centimetres)).
 - Rotation is in degrees, one row per axis it turns around, in the axes' colours: **Z** turns left and right, **X** tilts forwards and back, **Y** rolls sideways.

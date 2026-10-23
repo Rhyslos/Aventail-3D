@@ -82,6 +82,20 @@ pub(crate) struct Values<'a> {
     pub(crate) dissolve_without_warning: &'a mut bool,
     /// Whether the selection is drawn with high contrast (decision 0126).
     pub(crate) high_contrast: &'a mut bool,
+    /// What the viewport draws over the surfaces, and the view dice's
+    /// orthographic switch (also in the viewport's Display menu).
+    pub(crate) display: DisplayValues<'a>,
+}
+
+/// The viewport's display switches, in Settings too (decision 0126).
+pub(crate) struct DisplayValues<'a> {
+    /// Cavity off.
+    pub(crate) hide_cavity: &'a mut bool,
+    /// Hard edges not marked.
+    pub(crate) hide_hard_edges: &'a mut bool,
+    pub(crate) show_seams: &'a mut bool,
+    pub(crate) show_normals: &'a mut bool,
+    pub(crate) flat_from_dice: &'a mut bool,
 }
 
 /// The High contrast setting's name.
@@ -360,6 +374,34 @@ fn viewport(ui: &mut Ui, values: &mut Values<'_>) {
             *values.grid = level;
         }
     }
+    ui.add_space(8.0);
+    heading(ui, "Viewport display");
+    explain(
+        ui,
+        "What the viewport draws over your shapes. Also in the viewport's Display menu.",
+    );
+    let display = &mut values.display;
+    let mut cavity = !*display.hide_cavity;
+    if ui
+        .checkbox(&mut cavity, crate::viewport::chrome::CAVITY_ENTRY)
+        .on_hover_text(crate::viewport::chrome::CAVITY_EXPLANATION)
+        .changed()
+    {
+        *display.hide_cavity = !cavity;
+    }
+    let mut hard = !*display.hide_hard_edges;
+    if ui
+        .checkbox(&mut hard, crate::viewport::chrome::HARD_EDGES_ENTRY)
+        .changed()
+    {
+        *display.hide_hard_edges = !hard;
+    }
+    ui.checkbox(display.show_seams, crate::viewport::chrome::SEAMS_ENTRY);
+    ui.checkbox(display.show_normals, crate::viewport::chrome::NORMALS_ENTRY);
+    ui.checkbox(
+        display.flat_from_dice,
+        crate::viewport::chrome::FLAT_FROM_DICE_ENTRY,
+    );
     ui.add_space(8.0);
     heading(ui, "Selecting");
     explain(

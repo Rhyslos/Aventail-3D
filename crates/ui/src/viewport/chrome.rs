@@ -193,6 +193,7 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
         ui.separator();
         ui.checkbox(&mut panel.options.flat_from_dice, FLAT_FROM_DICE_ENTRY)
             .on_hover_text(FLAT_FROM_DICE_HELP);
+        settings_entry(ui, panel);
     });
     crate::dialog::menu(ui, "Options", |ui| {
         if ui
@@ -215,6 +216,7 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
             &mut navigation.alt_everywhere,
             "Alt + mouse works in every scheme",
         );
+        settings_entry(ui, panel);
     });
     crate::dialog::menu(ui, "Panel", |ui| {
         let four = panel.four_views();
@@ -233,6 +235,26 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
             ui.close();
         }
     });
+}
+
+/// The entry at the foot of the Display and Options menus that opens the
+/// Settings window, where every one of these settings also lives
+/// (decision 0126).
+pub(crate) const SETTINGS_ENTRY: &str = "All settings…";
+
+fn settings_entry(ui: &mut Ui, panel: &mut ViewportPanel) {
+    ui.separator();
+    let keys = ui
+        .ctx()
+        .format_shortcut(&crate::settings::SETTINGS_SHORTCUT);
+    if ui
+        .add(egui::Button::new(SETTINGS_ENTRY).shortcut_text(keys))
+        .on_hover_text("Open the Settings window, where every setting has its home")
+        .clicked()
+    {
+        panel.open_settings = true;
+        ui.close();
+    }
 }
 
 /// The Display menu's switch for marking hard edges.

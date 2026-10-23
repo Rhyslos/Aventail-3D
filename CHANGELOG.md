@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **A slimmer Coordinates band, and every setting in Settings.** Coordinates now shows Position, Size and Rotation side by side on one line, so the viewport is taller; an older saved layout's tall band is slimmed once. Settings has a new **Viewport display** section with Cavity, Show hard edges, Show seams, Show normals and the dice's orthographic switch, and the viewport's Display and Options menus end with **All settings…**.
 - **Labels on the palettes.** Rest the mouse on the mode palette on the left and its names slide out beside the icons; click a name to use it. When the window is wide enough, the top palette writes the select tool, Move, Scale, Rotate, Snap and Symmetry beside their icons, and a small arrow beside the select tool button lists Box, Lasso and Paint select.
 - **One numbered checker, in blue.** The numbered checker (Display → Surface) is now always the blue-to-green one that came with the blue accent, whatever accent colour you pick: it was the clearest.
 - **The selection is easy to see.** Selected points, edges and polygons are now drawn last, thickest and in your accent colour, on top of hard edges, seams and other guides, in the viewport and the UV Editor. **Edit → Settings → High contrast** makes them bigger still, with a dark rim. **Select only visible** is now on as standard, so a box drag takes only what you can see.

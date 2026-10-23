@@ -15,6 +15,8 @@ A few of these settings also have a quick switch where you use them while workin
 
 ## How to use it
 
+Every setting has its home here. Menus that hold settings too (the viewport's **Display** and **Options** menus) end with **All settings…**, which opens this window.
+
 1. Open **Edit → Settings…** on the main menu bar, or press **Ctrl + ,** (Ctrl and the comma key).
 2. Pick a section on the left: **Interface**, **Viewport**, **Undo** or **Autosave**.
 3. Click a choice. It takes effect at once: there is nothing to confirm.
@@ -42,6 +44,7 @@ A few of these settings also have a quick switch where you use them while workin
 | Viewport | **Orbit and zoom around the point under the mouse** | On (standard): turn around, and zoom towards, whatever is under the mouse. Off: the middle of the view. |
 | Viewport | **Invert orbit direction** | Orbiting turns the other way. |
 | Viewport | **Grid lines** | Every 1 m (standard), every 50 cm, or every 10 cm. |
+| Viewport → Viewport display | **Cavity**, **Show hard edges**, **Show seams**, **Show normals**, **Switch to orthographic when clicking the dice** | What the viewport draws over your shapes, and whether clicking the view dice also makes the view flat. The same switches as in the viewport's **Display** menu; see [How shapes are drawn](viewport-display.md). |
 | Viewport | **Selection keys** | Which key adds to the selection and which takes away, for clicks, boxes, lassos, the brush and double-clicks alike: **Ctrl adds, Shift removes** (standard), **Shift adds, Ctrl removes**, **Ctrl flips**, or **Ctrl adds, Alt removes** (Alt + drag still moves the view while Alt + mouse works in every scheme). See [Selecting](selecting.md). |
 | Viewport | **Snapping** | Whether moves, turns and resizing snap; whether holding Ctrl while dragging flips it for that drag (standard) or only the button does; what moves snap to (points, edges, polygons, grid lines); and the steps for turning (15°) and scaling (10%). See [Move, rotate and scale](transforming.md#snapping). |
 | Viewport | **Select only visible** | On (standard): the box, lasso and brush select only what you can see. Off: they select through shapes, catching their far side too. Also the button above the grid button on the left palette. See [Selecting](selecting.md). |

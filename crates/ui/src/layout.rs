@@ -15,7 +15,7 @@ const VIEWPORT_HEIGHT: f32 = 0.85;
 /// The height Coordinates needs to show all its rows, tab bar included, in
 /// logical pixels. The standard layout gives it exactly this, so no empty
 /// space is left under the last row.
-pub const COORDINATES_HEIGHT: f32 = 140.0;
+pub const COORDINATES_HEIGHT: f32 = 64.0;
 
 /// The smallest a panel can be dragged to, in logical pixels: a tab bar
 /// and a little room.
@@ -188,17 +188,7 @@ pub fn hide_viewport_tab(dock: &mut DockState<Panel>) {
 /// Coordinates is elsewhere (the user's own arrangement is left alone) or
 /// the sizes are not known yet.
 pub fn fit_coordinates(dock: &mut DockState<Panel>) -> bool {
-    let Some(path) = dock.find_tab(&Panel::Coordinates) else {
-        return false;
-    };
-    let node = path.node_path();
-    if node.surface != SurfaceIndex::main() || !node.node.is_right() {
-        return false;
-    }
-    let Some(parent) = node.node.parent() else {
-        return false;
-    };
-    let Node::Vertical(split) = &mut dock.main_surface_mut()[parent] else {
+    let Some(split) = coordinates_split_mut(dock) else {
         return false;
     };
     let height = split.rect.height();
@@ -207,6 +197,30 @@ pub fn fit_coordinates(dock: &mut DockState<Panel>) -> bool {
     }
     split.fraction = 1.0 - COORDINATES_HEIGHT / height;
     true
+}
+
+/// How tall Coordinates is now, when it sits directly below another
+/// panel and the sizes are known.
+pub fn coordinates_height(dock: &mut DockState<Panel>) -> Option<f32> {
+    let split = coordinates_split_mut(dock)?;
+    let height = split.rect.height();
+    let now = height * (1.0 - split.fraction);
+    (height.is_finite() && now > 0.0).then_some(now)
+}
+
+/// The split that holds Coordinates under another panel, as in the
+/// standard layout; `None` when it's elsewhere.
+fn coordinates_split_mut(dock: &mut DockState<Panel>) -> Option<&mut egui_dock::SplitNode> {
+    let path = dock.find_tab(&Panel::Coordinates)?;
+    let node = path.node_path();
+    if node.surface != SurfaceIndex::main() || !node.node.is_right() {
+        return None;
+    }
+    let parent = node.node.parent()?;
+    let Node::Vertical(split) = &mut dock.main_surface_mut()[parent] else {
+        return None;
+    };
+    Some(split)
 }
 
 /// True if no panel appears twice.
@@ -317,8 +331,10 @@ mod tests {
     #[test]
     fn a_tiny_window_keeps_the_viewport_usable() {
         let mut dock = default_layout();
-        coordinates_split(&mut dock).rect =
-            egui::Rect::from_min_size(egui::pos2(0.0, 0.0), egui::vec2(1000.0, 150.0));
+        coordinates_split(&mut dock).rect = egui::Rect::from_min_size(
+            egui::pos2(0.0, 0.0),
+            egui::vec2(1000.0, COORDINATES_HEIGHT + MIN_PANEL_SIZE - 1.0),
+        );
         assert!(!fit_coordinates(&mut dock));
     }
 

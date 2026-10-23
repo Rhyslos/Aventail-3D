@@ -1088,6 +1088,10 @@ pub struct ViewportPanel {
     /// Set by Options → Navigation controls, to open the picker once its
     /// button has been drawn this frame.
     open_picker: bool,
+    /// Set by the Display and Options menus' Settings entry, for the
+    /// workbench to open the Settings window (decision 0126: every setting
+    /// has its home there).
+    open_settings: bool,
     /// The question about the point under the mouse in flight, if any.
     asked: Option<Asked>,
     /// Whether the renderer is still working on a question.
@@ -1139,6 +1143,7 @@ impl Default for ViewportPanel {
             active: 0,
             options: ViewOptions::default(),
             open_picker: false,
+            open_settings: false,
             asked: None,
             asking: false,
             frame_request: None,
@@ -1353,6 +1358,12 @@ impl ViewportPanel {
     }
 
     /// The modelling tool drag events since last asked.
+    /// Whether a viewport menu asked for the Settings window, since last
+    /// asked.
+    pub(crate) fn take_open_settings(&mut self) -> bool {
+        std::mem::take(&mut self.open_settings)
+    }
+
     pub(crate) fn take_tool_events(&mut self) -> Vec<ToolDragEvent> {
         std::mem::take(&mut self.tool_events)
     }

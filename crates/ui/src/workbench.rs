@@ -184,6 +184,16 @@ pub struct Workbench {
     /// The standard layout still needs Coordinates fitted to its content,
     /// which can only happen once the panels' sizes are known.
     fit_pending: bool,
+    /// Whether Coordinates has the height it was fitted to, so a change
+    /// of window size fits it again.
+    coordinates_fitted: bool,
+    /// Coordinates' height on the first frame it was known (a saved band
+    /// far taller than needed is slimmed then).
+    coordinates_checked: Option<f32>,
+    /// Coordinates' height last frame, to tell a drag from a resize.
+    coordinates_last: Option<f32>,
+    /// The window's size last frame.
+    last_screen: Option<egui::Vec2>,
     mode: Mode,
     /// The scene being worked on, with its undo history and selection.
     document: Document,
@@ -297,7 +307,9 @@ impl Workbench {
         let had_saved = saved_layout.is_some();
         let (dock, note) = restore_or_default(saved_layout);
         // A saved layout keeps the user's own sizes; a new or replaced one
-        // is fitted on its first frame.
+        // is fitted on its first frame. A saved band far taller than
+        // Coordinates needs (the three-row band before decision 0126's
+        // slim one) is slimmed once too: see `keep_coordinates_fitted`.
         let fit_pending = !had_saved || note.is_some();
         Self {
             info,
@@ -308,6 +320,10 @@ impl Workbench {
             uv_menu: false,
             uv_settings: unwrapping::UvSettings::default(),
             fit_pending,
+            coordinates_fitted: false,
+            coordinates_checked: None,
+            coordinates_last: None,
+            last_screen: None,
             mode: Mode::default(),
             document: Document::new(),
             objects: ObjectManager::default(),
@@ -1212,6 +1228,10 @@ impl Workbench {
                     self.uv_menu_entries(ui, &mut requests);
                 });
         }
+        // A viewport menu's "All settings…" (decision 0126).
+        if self.viewport.take_open_settings() {
+            self.settings.open = true;
+        }
         if let Some(crate::layers::ModifierPick::AddLayer) = modifier_pick {
             self.add_edit_layer(&mut requests);
         }
@@ -1258,10 +1278,7 @@ impl Workbench {
                 crate::layout::add_beside_objects(&mut self.dock, Panel::EditLayers);
             }
         }
-        if self.fit_pending && fit_coordinates(&mut self.dock) {
-            self.fit_pending = false;
-            ui.ctx().request_repaint();
-        }
+        self.keep_coordinates_fitted(ui.ctx());
 
         if let Some(kind) = self.shape_picker.show(ui.ctx()) {
             requests.push(create(kind));
@@ -1337,11 +1354,56 @@ impl Workbench {
             tool_menu: &mut self.tool_menu.settings,
             dissolve_without_warning: &mut options.dissolve_without_warning,
             high_contrast: &mut options.high_contrast,
+            display: crate::settings::DisplayValues {
+                hide_cavity: &mut options.hide_cavity,
+                hide_hard_edges: &mut options.hide_hard_edges,
+                show_seams: &mut options.show_seams,
+                show_normals: &mut options.show_normals,
+                flat_from_dice: &mut options.flat_from_dice,
+            },
         };
         self.settings.show(ctx, &mut values);
         if undo_memory != self.undo_memory {
             self.set_undo_memory(undo_memory);
         }
+    }
+
+    /// Gives Coordinates exactly the height it needs (decision 0126's slim
+    /// band): on a new layout's first frame; again whenever the window's
+    /// size changes, until the user drags the band to a size of their own;
+    /// and once at start for a saved band far taller than needed.
+    fn keep_coordinates_fitted(&mut self, ctx: &egui::Context) {
+        let now = crate::layout::coordinates_height(&mut self.dock);
+        let fitted = (self.coordinates_fitted)
+            && now.is_some_and(|h| (h - crate::layout::COORDINATES_HEIGHT).abs() > 0.5);
+        let too_tall = self.coordinates_checked.is_none()
+            && now.is_some_and(|h| h > crate::layout::COORDINATES_HEIGHT * 1.6);
+        if now.is_some() && self.coordinates_checked.is_none() {
+            self.coordinates_checked = now;
+        }
+        // Still the fitted size the user hasn't dragged away from?
+        let dragged = self.coordinates_fitted
+            && self
+                .coordinates_last
+                .zip(now)
+                .is_some_and(|(last, h)| (last - h).abs() > 0.5 && !self.window_resized(ctx));
+        if dragged {
+            self.coordinates_fitted = false;
+        }
+        if (self.fit_pending || too_tall || (fitted && !dragged)) && fit_coordinates(&mut self.dock)
+        {
+            self.fit_pending = false;
+            self.coordinates_fitted = true;
+            ctx.request_repaint();
+        }
+        self.coordinates_last = crate::layout::coordinates_height(&mut self.dock);
+        self.last_screen = Some(ctx.content_rect().size());
+    }
+
+    /// Whether the window's size changed since last frame.
+    fn window_resized(&self, ctx: &egui::Context) -> bool {
+        self.last_screen
+            .is_some_and(|size| size != ctx.content_rect().size())
     }
 
     /// Whether one of the app's windows is open (Export, Check for baking,

@@ -445,9 +445,24 @@ fn coordinates_show_every_field_as_in_the_mockup() {
                 .is_some()
         );
     }
-    // Fields fill most of their group's width, as in the mockup.
-    assert!(harness.get_by_label("Position X").rect().width() > 150.0);
-    assert!(harness.query_by_label("World").is_some());
+    // One slim line (decision 0126): every field on the same row, wide
+    // enough to read, and "World" still on screen at the end.
+    let first = harness.get_by_label("Position X").rect();
+    assert!(first.width() >= 44.0);
+    for label in ["Size Z", "Rotation Z"] {
+        let rect = harness.get_by_label(label).rect();
+        assert!((rect.center().y - first.center().y).abs() < 1.0, "{label}");
+    }
+    // ...before the panels on the right begin.
+    let world = harness.get_by_label("World").rect();
+    let right = harness
+        .query_all_by_label("Attributes")
+        .map(|n| n.rect().min.x)
+        .fold(f32::INFINITY, f32::min);
+    assert!(
+        world.max.x <= right,
+        "World fits: {world:?}, right panels at {right}"
+    );
 }
 
 /// A renderer that records what it was asked to draw.

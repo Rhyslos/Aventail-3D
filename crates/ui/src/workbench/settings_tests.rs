@@ -245,3 +245,52 @@ fn the_dissolve_warning_can_be_switched_back_on() {
             .dissolve_without_warning
     );
 }
+
+#[test]
+fn the_viewport_display_switches_have_their_home_in_settings() {
+    // Decision 0126: every setting has a home in Settings; the viewport's
+    // Display and Options menus link to it.
+    let mut harness = fresh();
+    crate::theme::apply(&harness.ctx);
+    harness.get_by_label("Display").click();
+    harness.run();
+    harness
+        .get_by_label_contains(crate::viewport::chrome::SETTINGS_ENTRY)
+        .click();
+    harness.run();
+    assert!(harness.state().workbench.is_settings_open());
+    section(&mut harness, "Viewport");
+    assert!(!harness.state().workbench.view_options().show_seams);
+    harness
+        .get_by_label(crate::viewport::chrome::SEAMS_ENTRY)
+        .scroll_to_me();
+    harness.run();
+    harness
+        .get_by_label(crate::viewport::chrome::SEAMS_ENTRY)
+        .click();
+    harness.run();
+    assert!(harness.state().workbench.view_options().show_seams);
+    // Cavity and hard edges read the right way round.
+    assert!(!harness.state().workbench.view_options().hide_cavity);
+    harness
+        .get_by_label(crate::viewport::chrome::CAVITY_ENTRY)
+        .scroll_to_me();
+    harness.run();
+    harness
+        .get_by_label(crate::viewport::chrome::CAVITY_ENTRY)
+        .click();
+    harness.run();
+    assert!(harness.state().workbench.view_options().hide_cavity);
+}
+
+#[test]
+fn the_options_menu_links_to_settings_too() {
+    let mut harness = fresh();
+    harness.get_by_label("Options").click();
+    harness.run();
+    harness
+        .get_by_label_contains(crate::viewport::chrome::SETTINGS_ENTRY)
+        .click();
+    harness.run();
+    assert!(harness.state().workbench.is_settings_open());
+}
