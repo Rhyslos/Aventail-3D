@@ -40,7 +40,9 @@ fn sources_of(krate: &Path) -> Vec<(PathBuf, String)> {
     let read: Vec<(PathBuf, String)> = files
         .into_iter()
         .map(|p| {
-            let text = std::fs::read_to_string(&p).unwrap();
+            // Windows checks files out with "\r\n" line ends; the text
+            // is the same, so read it as "\n".
+            let text = std::fs::read_to_string(&p).unwrap().replace("\r\n", "\n");
             (p, text)
         })
         .collect();
@@ -602,7 +604,9 @@ fn the_english_package_lists_every_text_and_no_more_text_skips_it() {
         std::fs::write(lang.join("skipping.txt"), &counts).unwrap();
         return;
     }
-    let kept = std::fs::read_to_string(lang.join("en.txt")).unwrap_or_default();
+    let kept = std::fs::read_to_string(lang.join("en.txt"))
+        .unwrap_or_default()
+        .replace("\r\n", "\n");
     assert!(
         kept == package,
         "words/lang/en.txt is out of date: run this test with UPDATE_LANG=1"
