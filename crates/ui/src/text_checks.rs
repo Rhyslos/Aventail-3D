@@ -11,8 +11,9 @@ fn sources() -> Vec<(PathBuf, String)> {
 }
 
 /// The crates whose text a person reads (decision 0134): the interface's,
-/// and the undo labels, messages and reasons made below it.
-const CRATES_WITH_TEXT: [&str; 4] = ["ui", "scene", "mesh", "fileio"];
+/// the undo labels, messages and reasons made below it, and the app's own
+/// (its dialogs, start-up and command line).
+const CRATES_WITH_TEXT: [&str; 5] = ["ui", "scene", "mesh", "fileio", "app"];
 
 /// The `crates` folder.
 fn crates_dir() -> PathBuf {
@@ -460,7 +461,7 @@ fn is_interface_text(literal: &str, before: &str) -> bool {
     {
         return false;
     }
-    const NOT_TEXT: [&str; 36] = [
+    const NOT_TEXT: [&str; 39] = [
         "Id::new(",
         "Id::new((",
         // A texture's name, for debugging.
@@ -509,6 +510,12 @@ fn is_interface_text(literal: &str, before: &str) -> bool {
         // same in every language, so a game project's files keep their
         // names whatever language the app is in (fileio).
         "UNNAMED_IN_FILES: &str =",
+        // The app's name (app/src/branding.rs): the same in every
+        // language; see RENAMING.md.
+        "APP_NAME: &str =",
+        "APP_SHORT_NAME: &str =",
+        // A system message looked for in what the window library said.
+        "contains(",
     ];
     let b = before.trim_end();
     !NOT_TEXT.iter().any(|n| b.ends_with(n))

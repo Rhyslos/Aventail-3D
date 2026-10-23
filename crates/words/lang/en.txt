@@ -270,6 +270,7 @@ Check for baking…
 Checked for edges shared by three or more faces, faces facing the wrong way, edges with no length, faces with no area and loose points
 Checked: polygons facing the wrong way, edges shared by three polygons, polygons with no area, points on the same spot, bent or sliver many-sided polygons, loose points, _low / _high names; and the UVs: hard edges that aren't seams, folded, overlapping or stacked pieces, pieces outside the square or closer than the padding, and uneven texel density.
 Checker
+Checking for unsaved work from last time…
 Checking the mesh…
 Choose (shape list, tool menu)
 Choose (shape list, tool menu); Save ("Save changes?")
@@ -529,6 +530,7 @@ Export
 Export again
 Export each selected object (with what's inside it) as a file of its own, named after it, its pivot at the file's origin: modular pieces for a game engine. Uses the Export window's settings
 Export into {} now, named after the project
+Export kit into
 Export kit: select the pieces to export first.
 Export kit…
 Export on every save
@@ -600,11 +602,13 @@ From the front of the first step to the back of the last (along Y)
 From the middle to the centre of the ring's tube
 From top
 Game project
+Game project folder
 Game project folder set. It isn't inside a Godot, Unity, Unreal Engine or Solis project, so exports go there with {}'s settings. Every save now exports there too.
 Game project folder set: {} project {}. Every save now exports there too.
 Gear
 General
 German (QWERTZ)
+Getting the workbench ready…
 Give
 Give the selected objects {}'s rotation
 Give the selected pieces a stretch budget of their own
@@ -617,6 +621,7 @@ Go back to showing the last edit
 Go back to the opening camera view
 Godot
 Godot, Unity, Unreal's OBJ import and Substance Painter
+Graphics: {} ({}, {}× smoothing)
 Grey tiles with a white border; the highlighted one fills with the accent colour
 Grid lines
 Grid lines every metre: the calmest ground
@@ -751,6 +756,7 @@ How wide the opening is
 How wide the turn is, from its middle to the middle of the pipe: 0 is a sharp corner (a mitre joint, up to 150°), more is a smooth elbow.
 I know what I'm doing, proceed
 Icosphere
+Import
 Import {}
 Imported {} from {}.
 Import…
@@ -1009,6 +1015,7 @@ On: the gizmo follows the object's own axes. Off: the world's.
 One face on each of these edges points inwards (a flipped normal); it will shade and bake wrongly. Mesh → Fix normals turns them the right way.
 One newer copy is left out: restoring it closed the app last time.
 One solid band split by thin lines, like a dial; the highlighted slice lights up
+Only one project can be opened at a time.
 Only sections with something to set are listed. Materials, Mesh, Rig and Animations arrive with their features.
 Only the edges, seen through the shape: front and back at once. Clicking still picks the shape.
 Open ({})
@@ -1016,6 +1023,7 @@ Open a project
 Open a saved project
 Open as saved
 Open in Attributes
+Open project
 Open recent
 Open the Settings window, where every setting has its home
 Open the project as you last saved it, and delete the backup copies.
@@ -1023,6 +1031,7 @@ Open the shape list: a cube, sphere, cylinder and the rest
 Open the user manual in your web browser
 Opened {}.
 Opening width
+Opening {}…
 Open…
 Option
 Options
@@ -1128,6 +1137,7 @@ Questions asked before an edit that is easy to get wrong. Each can also be switc
 Quit
 Radial menu
 Radius
+Ready
 Recover unsaved work?
 Red
 Redo
@@ -1180,6 +1190,7 @@ Save As…
 Save as
 Save backup copies in the background
 Save changes to {}?
+Save project
 Save the model for a game engine or a texturing program (glTF or OBJ)
 Save the project
 Save the project under a new name or in another folder
@@ -1394,6 +1405,7 @@ Stack identical pieces
 Stairs
 Standard
 Start a new, empty project
+Starting the graphics…
 Step back to the Model mode (finishes a slit, puts a tool away)
 Steps
 Stop at overlaps
@@ -1609,6 +1621,7 @@ Ungroup
 Ungroup {} groups
 Units
 Unity
+Unknown option "{}". Use --help to see the options. To open a file whose name starts with -, put -- before it.
 Unlimited
 Unlock pieces
 Unlock the UVs of
@@ -1621,6 +1634,7 @@ Unsaved
 Unsaved changes
 Unselect the points, edges or polygons; in the Model mode, the objects
 Untitled
+Untitled.{}
 Unwrap
 Unwrap as seams change
 Unwrap sizes these pieces to this texel density instead of matching the rest: more for a part seen up close (a face, a label), less for one hidden away
@@ -1631,6 +1645,7 @@ Unwrapping
 Up axis
 Update
 Update a snapshot
+Usage: {} [option | project]\n\nOptions:\n  --version   Show the name and version, then exit\n  --help      Show this text, then exit\n\nWith no option, the app window opens. Give a project file to open it\n(put -- before a file name that starts with -).\n
 User manual
 Version {}
 Very thin triangles shade badly and leave streaks in a bake. Select them and cut them up with Connect (J) so the triangles are fuller.
@@ -1712,8 +1727,10 @@ You can switch the warning back on in Settings → Interface.
 You've selected something else since, so the settings above are for your next use of the tool. Open this edit to change it.
 Your changes will be lost if you don't save them before {}.
 Your navigation controls (Options menu); as standard right drag, middle drag and the wheel, and Alt + left, middle or right drag
+Your unsaved work was saved as an emergency copy ({}). The next start offers it back.
 Z up
 [3D objects copied: paste them in the viewport]
+a backup copy
 a bend's stretch isn't a real number, or is out of range (above 0, at most 1000)
 a bevel is stored with its settings twice
 a bevel's skew or weld distance isn't a real number, or is out of range
@@ -1954,6 +1971,9 @@ that element isn't in the mesh
 that layer no longer exists
 the attribute holds values for each {}, not each {}
 the attribute holds {} values, not {}
+the backup folder {} can't be used ({})
+the backup stopped unexpectedly
+the emergency copy saved as the app crashed ({})
 the file couldn't be written ({})
 the file is damaged: it claims to be impossibly large
 the file is damaged: {}
@@ -1977,8 +1997,12 @@ the selection's UVs
 the shape
 the texture square
 the value isn't a real number
+the viewport image could not be created
+the window has no GPU device
+the windowing system stopped unexpectedly
 them
 there is no attribute called "{}"
+there is no folder for backup copies
 there is no layer below to merge into
 there is no object {}
 there is nothing to export: no shapes are shown or selected
@@ -2010,6 +2034,7 @@ write
 {} ({})
 {} 1 {}
 {} KB
+{} On Linux, install the missing library with your package manager (for example libxkbcommon-x11-0 and mesa-vulkan-drivers on Ubuntu).
 {} across {}. Change Cuts and Position in the Attributes panel; Ctrl+Z takes it back.
 {} and {}
 {} at their middle. Ctrl + Z takes it back.
@@ -2018,6 +2043,7 @@ write
 {} cancelled.
 {} closer than {} px to other pieces
 {} colour
+{} could not open its window: {}\n
 {} cut into sliver triangles
 {} edits
 {} edits found their points again on the changed shape
@@ -2057,6 +2083,7 @@ write
 {} polygons
 {} polygons using {} selected.
 {} polygon{} facing the wrong way selected: Flip normals turns {}, or Mesh → Fix normals turns every one.
+{} project
 {} px · aim {} px/m
 {} px · not over a piece
 {} px · {:.1} cm on the surface

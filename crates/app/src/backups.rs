@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
 use std::time::SystemTime;
 use ui::{RecoveryCopy, RecoveryOffer, Workbench};
+use words::{tr, trf};
 
 /// Where backup copies go: the app's own folder, so project folders stay
 /// tidy and unsaved scenes are covered too. On Windows that's the *local*
@@ -45,7 +46,7 @@ pub struct Backups {
 fn restored_from(copy: &autosave::Copy, now: SystemTime) -> String {
     let ago = ui::ago(copy.saved, now);
     if copy.emergency {
-        format!("the emergency copy saved as the app crashed ({ago})")
+        trf!("the emergency copy saved as the app crashed ({})", ago)
     } else {
         ago
     }
@@ -81,9 +82,10 @@ impl Backups {
         let session = match Session::start(folder) {
             Ok(session) => Some(session),
             Err(error) => {
-                workbench.autosave_failed(&format!(
-                    "the backup folder {} can't be used ({error})",
-                    folder.display()
+                workbench.autosave_failed(&trf!(
+                    "the backup folder {} can't be used ({})",
+                    folder.display(),
+                    error
                 ));
                 None
             }
@@ -106,7 +108,7 @@ impl Backups {
     /// newest `keep`.
     pub fn write(&mut self, document: scene::Document, keep: usize, workbench: &mut Workbench) {
         let Some(session) = &self.session else {
-            workbench.autosave_failed("there is no folder for backup copies");
+            workbench.autosave_failed(tr("there is no folder for backup copies"));
             return;
         };
         let folder = session.folder().to_path_buf();
@@ -125,7 +127,7 @@ impl Backups {
             match handle.join() {
                 Ok(Ok(_)) => workbench.autosaved(),
                 Ok(Err(error)) => workbench.autosave_failed(&error.to_string()),
-                Err(_) => workbench.autosave_failed("the backup stopped unexpectedly"),
+                Err(_) => workbench.autosave_failed(tr("the backup stopped unexpectedly")),
             }
         }
         let project = workbench.project_path().map(Path::to_path_buf);
@@ -158,7 +160,10 @@ impl Backups {
             Some(listed) => restored_from(listed, now),
             None => std::fs::metadata(copy)
                 .and_then(|m| m.modified())
-                .map_or_else(|_| "a backup copy".to_string(), |saved| ui::ago(saved, now)),
+                .map_or_else(
+                    |_| tr("a backup copy").to_string(),
+                    |saved| ui::ago(saved, now),
+                ),
         };
         // If opening the copy closes the app, the next start won't offer
         // it again (decision 0045).

@@ -5,6 +5,7 @@
 use crate::branding::{APP_NAME, PROJECT_EXTENSION};
 use std::path::{Path, PathBuf};
 use ui::Workbench;
+use words::{tr, trf};
 
 /// `path` ending in `.avtl`: added if the name typed in the Save dialog
 /// left it out (other dots in the name are kept).
@@ -24,17 +25,17 @@ pub fn with_extension(path: PathBuf) -> PathBuf {
 
 /// The dialogs' file type filter: "Aventail 3D project (*.avtl)".
 fn filter_name() -> String {
-    format!("{APP_NAME} project")
+    trf!("{} project", APP_NAME)
 }
 
 /// Asks where to save, starting in the project's folder with its name.
 fn ask_where_to_save(current: Option<&Path>) -> Option<PathBuf> {
     let name = current.and_then(Path::file_name).map_or_else(
-        || format!("Untitled.{PROJECT_EXTENSION}"),
+        || trf!("Untitled.{}", PROJECT_EXTENSION),
         |n| n.to_string_lossy().into_owned(),
     );
     let mut dialog = rfd::FileDialog::new()
-        .set_title("Save project")
+        .set_title(tr("Save project"))
         .add_filter(filter_name(), &[PROJECT_EXTENSION])
         .set_file_name(name);
     if let Some(folder) = current.and_then(Path::parent) {
@@ -46,7 +47,7 @@ fn ask_where_to_save(current: Option<&Path>) -> Option<PathBuf> {
 /// Asks which project to open.
 fn ask_which_to_open(current: Option<&Path>) -> Option<PathBuf> {
     let mut dialog = rfd::FileDialog::new()
-        .set_title("Open project")
+        .set_title(tr("Open project"))
         .add_filter(filter_name(), &[PROJECT_EXTENSION]);
     if let Some(folder) = current.and_then(Path::parent) {
         dialog = dialog.set_directory(folder);
@@ -101,7 +102,7 @@ pub fn export_kit(workbench: &mut Workbench, request: &ui::KitRequest) {
     let folder = match &request.folder {
         Some(folder) => folder.clone(),
         None => {
-            let mut dialog = rfd::FileDialog::new().set_title("Export kit into");
+            let mut dialog = rfd::FileDialog::new().set_title(tr("Export kit into"));
             if let Some(folder) = workbench.project_path().and_then(Path::parent) {
                 dialog = dialog.set_directory(folder);
             }
@@ -138,7 +139,7 @@ fn kit_into(workbench: &Workbench, request: &ui::KitRequest, folder: &Path) -> u
 /// Asks which folder of a game project to export into, starting at
 /// `start`, and tells the workbench.
 pub fn choose_export_folder(workbench: &mut Workbench, start: Option<PathBuf>) {
-    let mut dialog = rfd::FileDialog::new().set_title("Game project folder");
+    let mut dialog = rfd::FileDialog::new().set_title(tr("Game project folder"));
     if let Some(start) = start.filter(|s| s.is_dir()) {
         dialog = dialog.set_directory(start);
     }
@@ -169,7 +170,8 @@ pub fn open_from(workbench: &mut Workbench, path: PathBuf) {
 
 /// The name the app writes into exported files: "Aventail 3D 0.0.1".
 fn generator() -> String {
-    format!("{APP_NAME} {}", env!("CARGO_PKG_VERSION"))
+    // Written into files: the same in every language.
+    format!("{} {}", APP_NAME, env!("CARGO_PKG_VERSION"))
 }
 
 /// `path` ending in `.extension`: added if the name typed left it out.
@@ -194,7 +196,7 @@ pub fn export(workbench: &mut Workbench, request: &ui::ExportRequest) {
         Some(path) => path.clone(),
         None => {
             let mut dialog = rfd::FileDialog::new()
-                .set_title("Export")
+                .set_title(tr("Export"))
                 .add_filter(request.format.name(), &[extension])
                 .set_file_name(&request.suggested_name);
             if let Some(folder) = workbench.project_path().and_then(Path::parent) {
@@ -230,7 +232,7 @@ pub fn import(workbench: &mut Workbench, path: Option<PathBuf>) {
         Some(path) => path,
         None => {
             let mut dialog = rfd::FileDialog::new()
-                .set_title("Import")
+                .set_title(tr("Import"))
                 .add_filter("OBJ", &["obj"]);
             if let Some(folder) = workbench.project_path().and_then(Path::parent) {
                 dialog = dialog.set_directory(folder);
