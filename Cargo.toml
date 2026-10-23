@@ -17,6 +17,7 @@ publish = false
 # Which crate may depend on which is decided by layers (see ARCHITECTURE.md)
 # and enforced by the test in tools/layer-check.
 [workspace.dependencies]
+words = { path = "crates/words" }
 mesh = { path = "crates/mesh" }
 uv = { path = "crates/uv" }
 scene = { path = "crates/scene" }

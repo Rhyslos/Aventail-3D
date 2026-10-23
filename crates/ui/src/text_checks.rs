@@ -4,8 +4,23 @@
 
 use std::path::{Path, PathBuf};
 
-/// Every Rust file under `src`, leaving out tests and this file.
+/// Every Rust file under this crate's `src`, leaving out tests and this
+/// file.
 fn sources() -> Vec<(PathBuf, String)> {
+    sources_of(Path::new(env!("CARGO_MANIFEST_DIR")))
+}
+
+/// The crates whose text a person reads (decision 0134): the interface's,
+/// and the undo labels, messages and reasons made below it.
+const CRATES_WITH_TEXT: [&str; 4] = ["ui", "scene", "mesh", "fileio"];
+
+/// The `crates` folder.
+fn crates_dir() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("..")
+}
+
+/// Every Rust file under a crate's `src`, leaving out tests and this file.
+fn sources_of(krate: &Path) -> Vec<(PathBuf, String)> {
     fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
         for entry in std::fs::read_dir(dir).unwrap().flatten() {
             let path = entry.path();
@@ -17,10 +32,7 @@ fn sources() -> Vec<(PathBuf, String)> {
         }
     }
     let mut files = Vec::new();
-    walk(
-        &Path::new(env!("CARGO_MANIFEST_DIR")).join("src"),
-        &mut files,
-    );
+    walk(&krate.join("src"), &mut files);
     let read: Vec<(PathBuf, String)> = files
         .into_iter()
         .map(|p| {
@@ -476,24 +488,34 @@ fn is_interface_text(literal: &str, before: &str) -> bool {
     !NOT_TEXT.iter().any(|n| b.ends_with(n))
 }
 
-/// The interface's text, file by file: what goes through the language
-/// layer, and how much doesn't yet.
+/// The text a person reads, file by file, in every crate that makes it
+/// ([`CRATES_WITH_TEXT`]): what goes through the language layer, and how
+/// much doesn't yet. Files are named from the `crates` folder
+/// (`scene/src/command.rs`).
 fn texts_by_file() -> (
     std::collections::BTreeSet<String>,
     std::collections::BTreeMap<String, usize>,
 ) {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
     let mut through = std::collections::BTreeSet::new();
     let mut skipping = std::collections::BTreeMap::new();
-    for (path, text) in sources() {
-        if path.file_name().is_some_and(|n| n == "text.rs") {
+    let all = CRATES_WITH_TEXT.iter().flat_map(|krate| {
+        let dir = crates_dir().join(krate);
+        sources_of(&dir)
+            .into_iter()
+            .map(move |(path, text)| (krate, dir.clone(), path, text))
+    });
+    for (krate, dir, path, text) in all {
+        // The layer's own file in the interface: a re-export, no text.
+        if *krate == "ui" && path.file_name().is_some_and(|n| n == "text.rs") {
             continue;
         }
-        let name = path
-            .strip_prefix(&root)
-            .unwrap()
-            .to_string_lossy()
-            .replace('\\', "/");
+        let name = format!(
+            "{krate}/{}",
+            path.strip_prefix(&dir)
+                .unwrap()
+                .to_string_lossy()
+                .replace('\\', "/")
+        );
         let mut count = 0;
         for (literal, before) in literals_in_context(&text) {
             if through_the_layer(&before) {
@@ -511,15 +533,17 @@ fn texts_by_file() -> (
 
 #[test]
 fn the_english_package_lists_every_text_and_no_more_text_skips_it() {
-    // Decision 0132: every text on screen goes through one language layer
-    // (`tr`, `trf!`, `text!`). `lang/en.txt` lists them all, for
-    // translators; `lang/skipping.txt` counts, file by file, the text that
-    // doesn't go through it yet. That count may only go down. After moving
-    // text into the layer, run with UPDATE_LANG=1 to write both again.
-    let lang = Path::new(env!("CARGO_MANIFEST_DIR")).join("lang");
+    // Decisions 0132 and 0134: every text a person reads goes through one
+    // language layer (`tr`, `trf!`, `text!` from the `words` crate), in
+    // the interface and in the crates below it. `words/lang/en.txt` lists
+    // them all, for translators; `words/lang/skipping.txt` counts, file by
+    // file, the text that doesn't go through it yet. That count may only
+    // go down. After moving text into the layer, run with UPDATE_LANG=1 to
+    // write both again.
+    let lang = crates_dir().join("words").join("lang");
     let (through, skipping) = texts_by_file();
     let package: String = std::iter::once(
-        "# The English package: every text in the interface, one per line.\n\
+        "# The English package: every text the app shows, one per line.\n\
          # Made by a test (UPDATE_LANG=1); a translation repeats each line\n\
          # with \" = \" and the translation after it.\n"
             .to_string(),
@@ -543,7 +567,7 @@ fn the_english_package_lists_every_text_and_no_more_text_skips_it() {
     let kept = std::fs::read_to_string(lang.join("en.txt")).unwrap_or_default();
     assert!(
         kept == package,
-        "lang/en.txt is out of date: run this test with UPDATE_LANG=1"
+        "words/lang/en.txt is out of date: run this test with UPDATE_LANG=1"
     );
     let allowed: std::collections::BTreeMap<String, usize> =
         std::fs::read_to_string(lang.join("skipping.txt"))

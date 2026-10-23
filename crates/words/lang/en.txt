@@ -1,4 +1,4 @@
-# The English package: every text in the interface, one per line.
+# The English package: every text the app shows, one per line.
 # Made by a test (UPDATE_LANG=1); a translation repeats each line
 # with " = " and the translation after it.
 \nIt's marked Never seams here, so suggestions won't put it back.
