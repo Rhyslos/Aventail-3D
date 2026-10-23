@@ -57,7 +57,7 @@ The `ui` crate's workbench owns everything inside the window:
 └──────────────────────────────────────────────────────────────┘
 ```
 
-The five middle panels are dockable (egui_dock; Edit layers is a tab beside Objects); the bars and palettes around them are fixed. The modifiers palette is drawn inside the viewport's panel, on its right edge, so it always sits between the viewport and the panels beside it ([decision 0091](docs/decisions/0091-edit-layers.md)). Palette icons are drawn in code (`ui/src/icons.rs`). The workbench never touches the window or files itself: it returns actions for `app` to carry out.
+The five middle panels are dockable (egui_dock; Edit layers is a tab beside Objects); the bars and palettes around them are fixed. The modifiers palette is drawn inside the viewport's panel, on its right edge, so it always sits between the viewport and the panels beside it ([decision 0091](docs/decisions/0091-edit-layers.md)). Palette icons are drawn in code (`ui/src/icons.rs`, with one file per family of icons in `ui/src/icons/`). The workbench never touches the window or files itself: it returns actions for `app` to carry out.
 
 ## Viewport
 
