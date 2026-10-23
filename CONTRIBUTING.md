@@ -37,6 +37,8 @@ cargo build -p app
 xvfb-run -s "-screen 0 1440x900x24" tools/smoke/window-smoke.sh target/debug/aventail "Aventail 3D" smoke-output
 ```
 
+The exported-file checks (the glTF Validator and a Godot import, run by CI on every pull request) can be run locally too: see *Checks* in `ARCHITECTURE.md`.
+
 ## Third-party material
 
 Anything embedded in the program itself (fonts, icons, images) needs its license text in `licenses/`, listed in `licenses/README.md`; that folder ships with every build. Code libraries are covered by `cargo deny`, and must use a permissive license even though the app itself is GPL.

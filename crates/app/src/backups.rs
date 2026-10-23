@@ -41,6 +41,16 @@ pub struct Backups {
     project: Option<PathBuf>,
 }
 
+/// How restoring `copy` is described ("Restored your work from …").
+fn restored_from(copy: &autosave::Copy, now: SystemTime) -> String {
+    let ago = ui::ago(copy.saved, now);
+    if copy.emergency {
+        format!("the emergency copy saved as the app crashed ({ago})")
+    } else {
+        ago
+    }
+}
+
 /// What a leftover looks like to the workbench.
 fn offer(leftover: &Leftover) -> RecoveryOffer {
     RecoveryOffer {
@@ -84,6 +94,12 @@ impl Backups {
             writing: None,
             project: None,
         }
+    }
+
+    /// This run's backup folder, if backups are on (where an emergency
+    /// copy goes; see [`crate::emergency`]).
+    pub fn folder(&self) -> Option<&Path> {
+        self.session.as_ref().map(Session::folder)
     }
 
     /// Writes a backup copy of `document` on another thread, keeping the
@@ -132,12 +148,18 @@ impl Backups {
         keep: usize,
         workbench: &mut Workbench,
     ) {
-        let when = std::fs::metadata(copy)
-            .and_then(|m| m.modified())
-            .map_or_else(
-                |_| "a backup copy".to_string(),
-                |saved| ui::ago(saved, SystemTime::now()),
-            );
+        let now = SystemTime::now();
+        let listed = self
+            .leftovers
+            .iter()
+            .flat_map(|l| &l.copies)
+            .find(|c| c.path == copy);
+        let when = match listed {
+            Some(listed) => restored_from(listed, now),
+            None => std::fs::metadata(copy)
+                .and_then(|m| m.modified())
+                .map_or_else(|_| "a backup copy".to_string(), |saved| ui::ago(saved, now)),
+        };
         // If opening the copy closes the app, the next start won't offer
         // it again (decision 0045).
         let _ = autosave::mark_restoring(copy);
@@ -250,6 +272,55 @@ mod tests {
         second.end();
         assert!(!own.exists());
         let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn an_emergency_copy_is_restored_and_named_as_one() {
+        let root = temporary("emergency");
+        // First run: a crash, with an emergency copy of the cube.
+        let mut first_bench = workbench();
+        let first = Backups::start(Some(&root), &mut first_bench);
+        let emergency = crate::emergency::Emergency::new();
+        emergency.set_folder(first.folder().map(Path::to_path_buf));
+        let mut doc = scene::Document::new();
+        doc.execute(scene::Command::Create(scene::ObjectKind::Primitive(
+            scene::PrimitiveKind::Cube.standard(),
+        )))
+        .unwrap();
+        emergency.keep(Some(doc));
+        let copy = emergency
+            .write_now(crate::emergency::HOOK_WAIT)
+            .expect("written");
+        drop(first);
+
+        // Second run: offered, restored, and the note says what it was.
+        let mut bench = workbench();
+        let mut second = Backups::start(Some(&root), &mut bench);
+        assert!(bench.is_asking_to_recover());
+        let leftover = second.leftovers[0].clone();
+        assert!(leftover.copies[0].emergency);
+        second.restore(&leftover.folder, &copy, None, 5, &mut bench);
+        assert_eq!(bench.document().scene().children(None).len(), 1);
+        let note = bench.note().unwrap_or_default();
+        assert!(note.contains("emergency copy"), "{note}");
+        second.end();
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn restoring_says_how_old_the_copy_is() {
+        let now = SystemTime::now();
+        let mut copy = autosave::Copy {
+            path: PathBuf::from("copy-1.avtl"),
+            saved: now - std::time::Duration::from_secs(240),
+            emergency: false,
+        };
+        assert_eq!(restored_from(&copy, now), "4 minutes ago");
+        copy.emergency = true;
+        assert_eq!(
+            restored_from(&copy, now),
+            "the emergency copy saved as the app crashed (4 minutes ago)"
+        );
     }
 
     #[test]

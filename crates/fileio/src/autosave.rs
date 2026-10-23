@@ -10,7 +10,10 @@
 //! - `project.txt`: the project the session had open, if it was saved
 //!   somewhere (so recovery can say which project it is);
 //! - `copy-N.avtl`: the backup copies, ordinary project files, the
-//!   highest number the newest. Only the newest few are kept.
+//!   highest number the newest. Only the newest few are kept;
+//! - `emergency.txt`: written only when the app crashed, naming the copy
+//!   it saved as it went down (the *emergency copy*), so the next start can
+//!   say so.
 //!
 //! When the app closes normally it deletes its session folder: whatever
 //! was unsaved was either saved or deliberately thrown away. A folder
@@ -34,6 +37,9 @@ const COPY_EXTENSION: &str = "avtl";
 /// restoring that copy closed the app, so it isn't offered again
 /// ([decision 0045](../../../docs/decisions/0045-limits-for-files.md)).
 const RESTORING: &str = "restoring.txt";
+/// The note naming the emergency copy: the one written as the app
+/// crashed ([`write_emergency_in`]).
+const EMERGENCY: &str = "emergency.txt";
 /// How long a session folder may lack its lock file before it counts as
 /// left behind: a new app could be between making the folder and locking
 /// it.
@@ -54,6 +60,9 @@ pub struct Copy {
     pub path: PathBuf,
     /// When it was saved.
     pub saved: SystemTime,
+    /// Whether it is the emergency copy, saved as the app crashed
+    /// ([`write_emergency_in`]) rather than on the usual timer.
+    pub emergency: bool,
 }
 
 /// A session left behind by an app that didn't close normally, with its
@@ -192,6 +201,19 @@ pub fn write_copy_in(folder: &Path, bytes: &[u8], keep: usize) -> io::Result<Pat
     Ok(path)
 }
 
+/// Writes `bytes` as an *emergency copy* in a session's `folder`: the
+/// work as it was when the app crashed. It is the newest copy, no older
+/// copy is deleted to make room (this is no time to throw anything away),
+/// and a note names it so recovery can tell it apart. Called from the
+/// app's panic hook, so it only touches files.
+pub fn write_emergency_in(folder: &Path, bytes: &[u8]) -> io::Result<PathBuf> {
+    let path = write_copy_in(folder, bytes, usize::MAX)?;
+    if let Some(name) = path.file_name() {
+        crate::project::safe_write(&folder.join(EMERGENCY), name.to_string_lossy().as_bytes())?;
+    }
+    Ok(path)
+}
+
 /// The numbers of the copies in `folder`, lowest first.
 fn copy_numbers(folder: &Path) -> io::Result<Vec<u64>> {
     let mut numbers: Vec<u64> = std::fs::read_dir(folder)?
@@ -254,13 +276,21 @@ fn leftovers_at(root: &Path, now: SystemTime) -> Vec<Leftover> {
         let crashed = std::fs::read_to_string(folder.join(RESTORING))
             .ok()
             .map(|name| folder.join(name.trim()));
+        let emergency = std::fs::read_to_string(folder.join(EMERGENCY))
+            .ok()
+            .map(|name| folder.join(name.trim()));
         let copies: Vec<Copy> = numbers
             .iter()
             .rev()
             .filter_map(|n| {
                 let path = folder.join(format!("{COPY_PREFIX}{n}.{COPY_EXTENSION}"));
                 let saved = std::fs::metadata(&path).ok()?.modified().ok()?;
-                Some(Copy { path, saved })
+                let emergency = emergency.as_ref() == Some(&path);
+                Some(Copy {
+                    path,
+                    saved,
+                    emergency,
+                })
             })
             .filter(|c| crashed.as_ref() != Some(&c.path))
             .collect();
@@ -450,6 +480,43 @@ mod tests {
         // An hour later it was clearly left behind.
         let hour_later = SystemTime::now() + std::time::Duration::from_secs(3600);
         assert_eq!(leftovers_at(&root, hour_later).len(), 1);
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn an_emergency_copy_is_the_newest_keeps_the_rest_and_is_named() {
+        let root = root("emergency");
+        let session = Session::start(&root).unwrap();
+        for i in 0..3u8 {
+            session.write(&[i], 3).unwrap();
+        }
+        // The crash: the emergency copy goes on top, nothing is deleted.
+        let copy = write_emergency_in(session.folder(), b"crash").unwrap();
+        assert_eq!(copy_numbers(session.folder()).unwrap(), vec![1, 2, 3, 4]);
+        drop(session);
+        let found = leftovers(&root);
+        assert_eq!(found.len(), 1);
+        let copies = &found[0].copies;
+        assert_eq!(copies[0].path, copy);
+        assert!(copies[0].emergency, "the newest is the emergency copy");
+        assert!(copies[1..].iter().all(|c| !c.emergency));
+        assert_eq!(std::fs::read(&copies[0].path).unwrap(), b"crash");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn ordinary_copies_are_not_emergency_ones_and_a_stale_note_is_harmless() {
+        let root = root("not-emergency");
+        let session = Session::start(&root).unwrap();
+        session.write(b"a", 5).unwrap();
+        // A note naming a copy that is gone (kept copies moved on).
+        std::fs::write(session.folder().join(EMERGENCY), "copy-99.avtl").unwrap();
+        drop(session);
+        let found = leftovers(&root);
+        assert_eq!(found[0].copies.len(), 1);
+        assert!(!found[0].copies[0].emergency);
+        // No folder to write in: an error, not a crash.
+        assert!(write_emergency_in(&root.join("missing"), b"x").is_err());
         let _ = std::fs::remove_dir_all(&root);
     }
 

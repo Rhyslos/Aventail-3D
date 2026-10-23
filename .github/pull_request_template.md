@@ -35,6 +35,17 @@ Milestone:
 
 1.
 
+## Newcomer check (user-facing changes)
+
+<!-- The reviewer ticks these for anything a user would notice, trying it as someone new to the app
+     would. Leave the section out when nothing user-facing changed. -->
+
+- [ ] A newcomer would find this without help
+- [ ] Each label says one thing (one meaning per word, no doubles)
+- [ ] It's in command search (Space)
+- [ ] Its manual page exists (docs/manual)
+- [ ] The selection is still clear (on every screen it touches)
+
 ## Checklist
 
 - [ ] All CI checks are green

@@ -1,0 +1,62 @@
+# The heavy-mesh check (DESIGN.md §4.8, decision 0033), once a night and
+# by hand (Actions → Heavy-mesh check → Run workflow). It times what a
+# person does with one object of three million polygons against the
+# targets, and keeps its numbers as an artifact (heavy-check, 90 days), so
+# a slowdown shows up the next morning instead of at the phase gate.
+#
+# It doesn't run on pull requests: it takes a while, and the phase gate
+# and the project lead's requests still run it by hand as before.
+# Scheduled runs use main as it is (GitHub runs schedules on the default
+# branch only).
+name: Heavy-mesh check
+
+on:
+  schedule:
+    # 03:17 UTC every night (off the hour, when GitHub is less busy).
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+# Read-only: it only builds, runs and uploads its numbers.
+permissions:
+  contents: read
+
+concurrency:
+  group: heavy-check
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  heavy:
+    name: Heavy-mesh check
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+      # The numbers go to a file for the artifact, and to the run's
+      # summary page so they can be read without downloading anything.
+      - name: Run the check
+        run: |
+          mkdir heavy-output
+          set -o pipefail
+          tools/heavy/heavy-check.sh 2>&1 | tee heavy-output/heavy-check.txt
+      - name: Show the numbers on the summary page
+        if: always()
+        run: |
+          {
+            echo "## Heavy-mesh check"
+            echo
+            echo '```'
+            cat heavy-output/heavy-check.txt 2>/dev/null || echo "No numbers: the check didn't start."
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: always()
+        with:
+          name: heavy-check
+          path: heavy-output/
+          retention-days: 90
