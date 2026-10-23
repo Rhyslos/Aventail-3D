@@ -258,11 +258,11 @@ After a review of the whole app (2026-10-21, [decision 0121](docs/decisions/0121
 
 **Gate:** 2–3 people new to the app finish a fixed task list without help, see what is selected on any screen, and no text skips the English package. Then Phase 10, advanced modelling.
 
-### Phase 10 · Advanced hard-surface (after Phase 9, before the rest of Phase 8) — 1 of 9
+### Phase 10 · Advanced hard-surface (after Phase 9, before the rest of Phase 8) — 1 of 23
 
-`█░░░░░░░░░░░░` 11%
+`█░░░░░░░░░░░░` 4%
 
-Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/decisions/0125-modelling-before-the-rest-of-the-uvs.md)); Phase 8 continues once it's done. Friends join as testers around here, once there are enough tools to build something.
+Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/decisions/0125-modelling-before-the-rest-of-the-uvs.md)); Phase 8 continues once it's done. Friends join as testers around here, once there are enough tools to build something. On 24 October the project lead widened it with fourteen more modifiers ([decision 0136](docs/decisions/0136-more-modifiers.md)); each still asks about its controls before it's built.
 
 <details>
 <summary>Milestones</summary>
@@ -270,10 +270,24 @@ Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/d
 - [x] Booleans: union, subtract, intersect, with live cutters that stay editable ([decision 0135](docs/decisions/0135-live-booleans.md))
 - [ ] Weighted normals
 - [ ] Improved bevel: rounded corners where bevels meet, and bevels that never overlap
-- [ ] Array and mirror generators (symmetry becomes a per-object Mirror modifier earlier, in Phase 9)
+- [ ] Live bevel modifier: every edge sharper than an angle rounded, updating as you model
+- [ ] Array and mirror generators: in a line, a grid, or round a centre (radial: wheels, gears, pillars); symmetry is already a per-object mirror (Phase 9)
 - [ ] Shell: give a surface thickness
+- [ ] Wireframe: every edge made a strut, for grates, fences and cages
+- [ ] Bend, twist and taper
+- [ ] Lattice cage: a box of points that reshapes what's inside smoothly
 - [ ] Curves and splines: sweep and lathe, for pipes, cables and railings
+- [ ] Curve deform and shrinkwrap: bend a shape along a curve (belts, treads); press a shape onto a surface (decals, straps)
+- [ ] Displace and noise: ripple or roughen a surface, for rocks, terrain and damage
+- [ ] Scatter onto surface: copies of a shape on another's points or faces, for bolts, rivets and vents
 - [ ] Smoothing modifier (subdivision), with creases
+- [ ] Weld by distance: points sitting on top of each other merged
+- [ ] Quadify: triangles joined back into quads (after booleans, decimating or imports)
+- [ ] Remesh: messy geometry rebuilt into even polygons
+- [ ] Decimate: fewer polygons, the same shape
+- [ ] LOD generator: lower-polygon versions for distance, exported with Godot's LOD names
+- [ ] Collision hull: simple convex shapes for physics, made automatically
+- [ ] Triangulate preview: the triangles the engine will get, shown before export
 - [ ] Game bevel for mid-poly models: bevel, weighted normals, hard edges and seams in one step
 - [ ] Modular kit helpers: grid-sized pieces and pivot presets
 
@@ -299,6 +313,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-24 | Planned: Phase 10 grows to 23 milestones with fourteen more modifiers (live bevel, wireframe, scatter, radial array, bend, twist and taper, lattice, curve deform and shrinkwrap, displace, LODs, collision hulls, triangulate preview, weld, quadify, remesh, decimate) |
 | 2026-10-24 | Booleans: Union, Subtract and Intersect with live cutters drawn as outlines; move or edit a cutter and the cut follows; Bake into shape makes it permanent |
 | 2026-10-23 | Key audit: Slide on Shift + Alt + drag, Ctrl + Shift + H also shows everything, Cmd in Mac texts; and Ctrl snaps one loop cut to tenths of the edge, the middle included |
 | 2026-10-23 | Tidy for growth: the big interface files split up, a short spec and a one-page digest of the rules, and every interface text through one language layer with English as its package |
