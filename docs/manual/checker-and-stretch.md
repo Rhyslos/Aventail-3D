@@ -11,7 +11,7 @@
 Before you paint or bake, check the UVs on the model itself:
 
 - **Checker** shows how a texture would sit: where the squares stay square and the same size, a texture will too. Long rectangles mean stretching, small and big squares mean uneven density, and the tint (red across, green up the texture) shows when a piece is turned or mirrored against its neighbours.
-- **Numbered checker** lays on a texture of 8 × 8 labelled cells, **A1** at the top left of the texture square to **H8** at the bottom right. Each cell holds a checker of light and dark squares, and the cells run through a gradient of colours from your accent colour (**Edit → Settings…**). The labels tell you at a glance which part of the texture each part of the shape uses. They also show when a piece is turned or mirrored, because the text turns or reads backwards with it. While it's on, the [UV Editor](uv-editor.md) shows the same cells behind the UVs, so you can match the two views by their labels.
+- **Numbered checker** lays on a texture of 8 × 8 labelled cells, **A1** at the top left of the texture square to **H8** at the bottom right. Each cell holds a checker of light and dark squares, and the cells run through a gradient of colours from blue through teal to green, whatever accent colour you use. The labels tell you at a glance which part of the texture each part of the shape uses. They also show when a piece is turned or mirrored, because the text turns or reads backwards with it. While it's on, the [UV Editor](uv-editor.md) shows the same cells behind the UVs, so you can match the two views by their labels.
 - **Stretch** colours the problems directly: **green** where the UVs lie evenly, **yellow** where they're 1.5 times off, **red** where they're twice off or more, and **purple** where a polygon has no room on the texture at all. "Off" means stretched more one way than the other, or getting more or less texture for its size than the rest of the object.
 
 ## How to use it
@@ -29,9 +29,9 @@ Before you paint or bake, check the UVs on the model itself:
 
 | Setting | What it does |
 |---|---|
-| **Surface** (viewport **Display** menu) | **Colours** (standard): materials' colours. **Checker**: a checker by the UVs, one square per 128 texture pixels. **Numbered checker**: 8 × 8 labelled cells across the texture square, in your accent colour's gradient (shown in the UV Editor too). **Stretch**: green to red by how evenly the UVs lie. Remembered, for every view. |
+| **Surface** (viewport **Display** menu) | **Colours** (standard): materials' colours. **Checker**: a checker by the UVs, one square per 128 texture pixels. **Numbered checker**: 8 × 8 labelled cells across the texture square, in a gradient from blue to green (shown in the UV Editor too). **Stretch**: green to red by how evenly the UVs lie. Remembered, for every view. |
 
-The checker's squares follow the texture size in the UV Editor's **Texture** menu. The numbered checker always has 8 × 8 cells, whatever the texture size, and changes colour with the accent colour.
+The checker's squares follow the texture size in the UV Editor's **Texture** menu. The numbered checker always has 8 × 8 cells, whatever the texture size, and keeps the same blue-to-green colours whatever the accent colour.
 
 ## Shortcuts
 

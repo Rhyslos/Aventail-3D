@@ -290,7 +290,7 @@ fn the_display_menu_switches_the_surface_to_checker_and_stretch() {
 }
 
 #[test]
-fn the_numbered_checker_shows_behind_the_uvs_in_the_accent_colours() {
+fn the_numbered_checker_shows_behind_the_uvs_in_blue_whatever_the_accent() {
     let mut harness = fresh();
     harness
         .state_mut()
@@ -303,21 +303,22 @@ fn the_numbered_checker_shows_behind_the_uvs_in_the_accent_colours() {
     harness.get_by_label("Numbered checker").click();
     harness.run();
     harness.run();
-    let colors = crate::theme::grid_colors(crate::theme::Accent::default());
+    let colors = crate::theme::grid_colors();
     assert_eq!(
         harness.state().workbench.uv_editor.grid_colors(),
         Some(colors)
     );
-    // Another accent makes the image again in its colours.
+    // Another accent leaves it as it is: the blue checker everywhere
+    // (decision 0131).
     harness
         .state_mut()
         .workbench
-        .set_accent(crate::theme::Accent::Blue);
+        .set_accent(crate::theme::Accent::Plum);
     harness.run();
     harness.run();
     assert_eq!(
         harness.state().workbench.uv_editor.grid_colors(),
-        Some(crate::theme::grid_colors(crate::theme::Accent::Blue))
+        Some(colors)
     );
 }
 

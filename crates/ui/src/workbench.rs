@@ -2756,7 +2756,7 @@ impl TabViewer for PanelViewer<'_> {
                     stretch: self.surface == crate::viewport::Surface::Stretch,
                     outside_hover: self.viewport_hover,
                     grid: (self.surface == crate::viewport::Surface::NumberedChecker)
-                        .then(|| theme::grid_colors(theme::accent(ui.ctx()))),
+                        .then(theme::grid_colors),
                     texture_groups: self.texture_groups,
                     explain: self.explain,
                     high_contrast: self.high_contrast,

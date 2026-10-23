@@ -156,13 +156,14 @@ pub fn set_accent(ctx: &Context, accent: Accent) {
     ctx.set_style_of(egui::Theme::Light, style_with(accent));
 }
 
-/// The numbered checker's two colours (decision 0107) for `accent`: the
-/// accent itself at the top left, and a colour a third of the way back
-/// round the colour wheel at the bottom right (red runs through purple to
-/// blue, blue through teal to green), so the cells between are clear,
-/// different colours. sRGB.
-pub fn grid_colors(accent: Accent) -> [[u8; 3]; 2] {
-    let from = accent.colors().fill;
+/// The numbered checker's two colours (decision 0107): the blue accent at
+/// the top left, and a colour a third of the way back round the colour
+/// wheel (through teal to green) at the bottom right, so the cells between
+/// are clear, different colours. The same whatever the accent: the project
+/// lead found the blue one clearest and wanted it everywhere (decision
+/// 0131). sRGB.
+pub fn grid_colors() -> [[u8; 3]; 2] {
+    let from = Accent::Blue.colors().fill;
     let mut hsva = egui::ecolor::Hsva::from(from);
     hsva.h = (hsva.h - 120.0 / 360.0).rem_euclid(1.0);
     let to = Color32::from(hsva);
@@ -174,24 +175,11 @@ mod grid_color_tests {
     use super::*;
 
     #[test]
-    fn each_accent_gives_its_own_two_clear_colours() {
-        let all = [
-            Accent::Red,
-            Accent::Blue,
-            Accent::MarineGreen,
-            Accent::Plum,
-            Accent::Olive,
-            Accent::PetrolBlue,
-        ];
-        let made: Vec<[[u8; 3]; 2]> = all.iter().map(|a| grid_colors(*a)).collect();
-        for (accent, [from, to]) in all.iter().zip(&made) {
-            let fill = accent.colors().fill;
-            assert_eq!(*from, [fill.r(), fill.g(), fill.b()]);
-            assert_ne!(from, to);
-        }
-        for (i, a) in made.iter().enumerate() {
-            assert!(made[i + 1..].iter().all(|b| b != a));
-        }
+    fn the_checker_is_the_blue_one_whatever_the_accent() {
+        let [from, to] = grid_colors();
+        let blue = Accent::Blue.colors().fill;
+        assert_eq!(from, [blue.r(), blue.g(), blue.b()]);
+        assert_ne!(from, to, "two clear colours");
     }
 }
 

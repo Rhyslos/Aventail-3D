@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **One numbered checker, in blue.** The numbered checker (Display → Surface) is now always the blue-to-green one that came with the blue accent, whatever accent colour you pick: it was the clearest.
 - **The selection is easy to see.** Selected points, edges and polygons are now drawn last, thickest and in your accent colour, on top of hard edges, seams and other guides, in the viewport and the UV Editor. **Edit → Settings → High contrast** makes them bigger still, with a dark rim. **Select only visible** is now on as standard, so a box drag takes only what you can see.
 - **Five modes.** Model, Points, Edges, Polygons and UV. The Object mode is gone: to move or turn an object's pivot without moving the shape, switch on **Edit pivot** (the button right under the Model mode on the left, or the Tools menu), then switch it off again.
 - **"Bake into shape" is the one word.** Make editable is now **Bake into shape** (Ctrl + E), and in the edit list Freeze up to here is **Bake into shape up to here**. **Keep editable** is gone: every edit stays changeable until you bake it. Dragging the same points several times in a row now makes one edit in the list, not one per drag.

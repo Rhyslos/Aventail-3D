@@ -1052,7 +1052,7 @@ impl View {
             grid_detail,
             scene: Arc::clone(scene),
             selection_color: rgb(theme::Accent::default().colors().light),
-            grid_colors: theme::grid_colors(theme::Accent::default()),
+            grid_colors: theme::grid_colors(),
             overlay: Arc::default(),
             shading: Shading::default(),
             cavity: true,
@@ -1518,7 +1518,7 @@ impl ViewportPanel {
             let mut view =
                 self.views[slot].view(slot, rect, ppp, self.options.grid_detail, &scene.drawing);
             view.selection_color = rgb(theme::accent(ui.ctx()).colors().light);
-            view.grid_colors = theme::grid_colors(theme::accent(ui.ctx()));
+            view.grid_colors = theme::grid_colors();
             view.overlay = Arc::clone(&scene.overlay);
             view.shading = self.options.shading;
             view.cavity = !self.options.hide_cavity;
