@@ -18,14 +18,20 @@ use ui::{
 /// Every point of an edited object in the Points mode: small light dots,
 /// across in pixels.
 const POINT_SIZE: f32 = 6.0;
-/// Selected points: larger, in the accent colour.
-const SELECTED_POINT_SIZE: f32 = 9.0;
-/// The point under the mouse: larger still, in a lighter accent.
+/// Selected points: the largest dots, in the accent colour, so the
+/// selection is the clearest thing in the view (decision 0126).
+const SELECTED_POINT_SIZE: f32 = 11.0;
+/// The point under the mouse: nearly as large, in a lighter accent.
 const HOVERED_POINT_SIZE: f32 = 10.0;
-/// Selected edges.
-const SELECTED_LINE_WIDTH: f32 = 3.0;
+/// Selected edges: the thickest lines in the view.
+const SELECTED_LINE_WIDTH: f32 = 4.5;
 /// The edge under the mouse, or the polygon's outline.
-const HOVERED_LINE_WIDTH: f32 = 3.5;
+const HOVERED_LINE_WIDTH: f32 = 4.0;
+/// With High contrast on: the selection larger still, with a dark rim
+/// this many pixels wide around it, so it reads on any colour.
+const CONTRAST_GROWTH: f32 = 1.5;
+const CONTRAST_RIM: f32 = 3.0;
+const CONTRAST_RIM_COLOR: [f32; 4] = [0.0, 0.0, 0.0, 0.9];
 /// Light grey, linear space, for an edited object's points and edges.
 const PLAIN_POINT: [f32; 4] = [0.85, 0.85, 0.85, 0.95];
 const PLAIN_LINE: [f32; 4] = [0.9, 0.9, 0.9, 0.45];
@@ -37,6 +43,8 @@ const SELECTED_FAINTEST: f32 = 0.25;
 /// How see-through the tint on selected and hovered polygons is.
 const SELECTED_TINT: f32 = 0.45;
 const HOVERED_TINT: f32 = 0.3;
+/// With High contrast, selected polygons are tinted more strongly.
+const CONTRAST_TINT: f32 = 0.6;
 /// Plain edges in the Shaded with wires look: clear light lines on the
 /// grey surface, linear space.
 const WIRE_LINE: [f32; 4] = [0.95, 0.95, 0.97, 0.4];
@@ -46,65 +54,91 @@ const WIREFRAME_LINE: [f32; 4] = [0.85, 0.86, 0.9, 0.75];
 /// surface, a heavy shape seen from afar would otherwise vanish.
 const WIREFRAME_FAINTEST: f32 = 0.3;
 
-/// Hard edges (Display → Hard edges): light cyan, a little thicker than
-/// the plain edges, linear space.
-const HARD_LINE: [f32; 4] = [0.25, 0.75, 0.95, 1.0];
-const HARD_LINE_WIDTH: f32 = 2.5;
-/// Seams (Display → Seams, and the UV mode): orange, as thick as hard
+/// Hard edges (Display → Show hard edges): light cyan, thinner than the
+/// selection and a little see-through, so they never outshine it
+/// (decision 0126), linear space.
+const HARD_LINE: [f32; 4] = [0.25, 0.75, 0.95, 0.7];
+const HARD_LINE_WIDTH: f32 = 2.0;
+/// Seams (Display → Show seams, and the UV mode): orange, as thick as hard
 /// edges, drawn over them where both are, linear space.
-const SEAM_LINE: [f32; 4] = [1.0, 0.36, 0.05, 1.0];
+const SEAM_LINE: [f32; 4] = [1.0, 0.36, 0.05, 0.85];
 /// Edges where seams are preferred, and where none may go (decision
 /// 0111): the UV Editor's pale orange and blue.
-const SEAM_PREFER_LINE: [f32; 4] = [1.0, 0.58, 0.1, 0.8];
-const SEAM_NEVER_LINE: [f32; 4] = [0.07, 0.38, 1.0, 1.0];
-/// Normals (Display → Normals): light violet, thin.
+const SEAM_PREFER_LINE: [f32; 4] = [1.0, 0.58, 0.1, 0.7];
+const SEAM_NEVER_LINE: [f32; 4] = [0.07, 0.38, 1.0, 0.85];
+/// Normals (Display → Show normals): light violet, thin.
 const NORMAL_LINE: [f32; 4] = [0.6, 0.5, 1.0, 1.0];
 const NORMAL_LINE_WIDTH: f32 = 1.5;
 /// How far towards white the hovered colour is from the accent, so what
 /// is under the mouse stands out from what is selected.
 const HOVER_LIFT: f32 = 0.45;
 
+/// The order lines and points are drawn in: marks first, then what is
+/// under the mouse, the selection last so it lies on top of everything
+/// (decision 0126).
+fn layer(style: OverlayStyle) -> u8 {
+    match style {
+        OverlayStyle::Normal => 0,
+        OverlayStyle::SeamPrefer | OverlayStyle::SeamNever => 1,
+        OverlayStyle::Hard => 2,
+        OverlayStyle::Seam => 3,
+        OverlayStyle::Hovered => 4,
+        OverlayStyle::Selected => 5,
+    }
+}
+
 /// The renderer's overlay for the interface's description of it: selected
-/// elements in `accent` (linear colour), the hovered one lighter.
-fn overlay_geometry(overlay: &ComponentOverlay, accent: [f32; 3]) -> Overlay {
+/// elements in `accent` (linear colour), the hovered one lighter, the
+/// selection drawn last and largest. With `contrast` (Settings → Interface
+/// → High contrast), the selection is larger still, with a dark rim.
+fn overlay_geometry(overlay: &ComponentOverlay, accent: [f32; 3], contrast: bool) -> Overlay {
     let [r, g, b] = accent;
     let lift = |c: f32| c + (1.0 - c) * HOVER_LIFT;
     let selected = [r, g, b, 1.0];
     let hovered = [lift(r), lift(g), lift(b), 1.0];
+    let grow = if contrast { CONTRAST_GROWTH } else { 1.0 };
     let mut out = Overlay::default();
-    for ([a, b2], style) in &overlay.lines {
-        match style {
-            OverlayStyle::Selected => out.line(*a, *b2, SELECTED_LINE_WIDTH, selected),
-            OverlayStyle::Hovered => out.line(*a, *b2, HOVERED_LINE_WIDTH, hovered),
-            OverlayStyle::Hard => out.line(*a, *b2, HARD_LINE_WIDTH, HARD_LINE),
-            OverlayStyle::Seam => out.line(*a, *b2, HARD_LINE_WIDTH, SEAM_LINE),
-            OverlayStyle::SeamPrefer => out.line(*a, *b2, NORMAL_LINE_WIDTH, SEAM_PREFER_LINE),
-            OverlayStyle::SeamNever => out.line(*a, *b2, HARD_LINE_WIDTH, SEAM_NEVER_LINE),
-            OverlayStyle::Normal => out.line(*a, *b2, NORMAL_LINE_WIDTH, NORMAL_LINE),
-        }
-    }
     for (triangle, style) in &overlay.tints {
         let color = match style {
             OverlayStyle::Hovered => [hovered[0], hovered[1], hovered[2], HOVERED_TINT],
-            OverlayStyle::Selected
-            | OverlayStyle::Hard
-            | OverlayStyle::Seam
-            | OverlayStyle::SeamPrefer
-            | OverlayStyle::SeamNever
-            | OverlayStyle::Normal => [r, g, b, SELECTED_TINT],
+            _ if contrast => [r, g, b, CONTRAST_TINT],
+            _ => [r, g, b, SELECTED_TINT],
         };
         out.triangle(*triangle, color);
     }
-    for (at, style) in &overlay.points {
-        match style {
-            OverlayStyle::Selected => out.point(*at, SELECTED_POINT_SIZE, selected),
-            OverlayStyle::Hovered => out.point(*at, HOVERED_POINT_SIZE, hovered),
-            OverlayStyle::Hard => out.point(*at, SELECTED_POINT_SIZE, HARD_LINE),
-            OverlayStyle::Seam => out.point(*at, SELECTED_POINT_SIZE, SEAM_LINE),
-            OverlayStyle::SeamPrefer => out.point(*at, POINT_SIZE, SEAM_PREFER_LINE),
-            OverlayStyle::SeamNever => out.point(*at, POINT_SIZE, SEAM_NEVER_LINE),
-            OverlayStyle::Normal => out.point(*at, POINT_SIZE, NORMAL_LINE),
+    let mut lines: Vec<&([glam::Vec3; 2], OverlayStyle)> = overlay.lines.iter().collect();
+    lines.sort_by_key(|(_, style)| layer(*style));
+    for ([a, b2], style) in lines {
+        let (width, color) = match style {
+            OverlayStyle::Selected => (SELECTED_LINE_WIDTH * grow, selected),
+            OverlayStyle::Hovered => (HOVERED_LINE_WIDTH * grow, hovered),
+            OverlayStyle::Hard => (HARD_LINE_WIDTH, HARD_LINE),
+            OverlayStyle::Seam => (HARD_LINE_WIDTH, SEAM_LINE),
+            OverlayStyle::SeamPrefer => (NORMAL_LINE_WIDTH, SEAM_PREFER_LINE),
+            OverlayStyle::SeamNever => (HARD_LINE_WIDTH, SEAM_NEVER_LINE),
+            OverlayStyle::Normal => (NORMAL_LINE_WIDTH, NORMAL_LINE),
+        };
+        if contrast && matches!(style, OverlayStyle::Selected | OverlayStyle::Hovered) {
+            out.line(*a, *b2, width + CONTRAST_RIM * 2.0, CONTRAST_RIM_COLOR);
         }
+        out.line(*a, *b2, width, color);
+    }
+    let mut points: Vec<&(glam::Vec3, OverlayStyle)> = overlay.points.iter().collect();
+    points.sort_by_key(|(_, style)| layer(*style));
+    for (at, style) in points {
+        let (size, color) = match style {
+            OverlayStyle::Selected => (SELECTED_POINT_SIZE * grow, selected),
+            OverlayStyle::Hovered => (HOVERED_POINT_SIZE * grow, hovered),
+            OverlayStyle::Hard => (POINT_SIZE, HARD_LINE),
+            OverlayStyle::Seam => (POINT_SIZE, SEAM_LINE),
+            OverlayStyle::SeamPrefer => (POINT_SIZE, SEAM_PREFER_LINE),
+            OverlayStyle::SeamNever => (POINT_SIZE, SEAM_NEVER_LINE),
+            OverlayStyle::Normal => (POINT_SIZE, NORMAL_LINE),
+        };
+        if contrast && matches!(style, OverlayStyle::Selected | OverlayStyle::Hovered) {
+            out.point(*at, size + CONTRAST_RIM * 2.0, CONTRAST_RIM_COLOR);
+        }
+        out.point(*at, size, color);
     }
     out
 }
@@ -259,13 +293,13 @@ pub struct GpuViewport {
     images: [Option<SlotImage>; VIEW_COUNT],
     /// The version of the scene drawing, the selection colour and the
     /// shading's hardness the renderer's placements were made for, if any.
-    uploaded: Option<(u64, [f32; 3], mesh::Hardness)>,
+    uploaded: Option<(u64, [f32; 3])>,
     /// Each object's mesh on the GPU.
     meshes: HashMap<u64, Uploaded>,
     /// Heavy shapes' geometry being worked out in the background.
     preparing: HashMap<u64, (Arc<mesh::Mesh>, std::thread::JoinHandle<MeshGeometry>)>,
     /// The same for the overlay.
-    uploaded_overlay: Option<(u64, [f32; 3])>,
+    uploaded_overlay: Option<(u64, [f32; 3], bool)>,
     /// The colours the numbered checker image on the GPU was made in, if
     /// it has been made (decision 0107).
     grid_for: Option<[[u8; 3]; 2]>,
@@ -296,18 +330,20 @@ impl GpuViewport {
     /// updated around them, anything else is uploaded whole. A heavy new
     /// shape is worked out on another thread; until it is ready its
     /// object shows its previous shape, if it had one.
-    fn upload_meshes(&mut self, scene: &SceneDrawing, hardness: mesh::Hardness) {
+    fn upload_meshes(&mut self, scene: &SceneDrawing) {
         let device = &self.state.device;
         let queue = &self.state.queue;
         let mut keys = Vec::with_capacity(scene.items.len());
         for item in &scene.items {
             let key = item.id.get();
             keys.push(key);
+            // Each object's own smoothing (decision 0126).
+            let hardness = item.hardness;
             let waiting = self
                 .preparing
                 .get(&key)
                 .is_some_and(|(mesh, _)| Arc::ptr_eq(mesh, &item.drawn));
-            // Shading with another hardness (Automatic hard edges switched)
+            // Shading with another hardness (the object's smoothing changed)
             // is built afresh.
             let same = |old: &Uploaded| old.geometry.hardness() == hardness;
             let heavy = item.drawn.face_count() >= BACKGROUND_FROM;
@@ -454,12 +490,9 @@ impl ViewportRenderer for GpuViewport {
             flat_height: view.flat_height,
             grid_plane: view.grid_plane,
         };
-        let hardness = view
-            .auto_hard_angle
-            .map_or(mesh::Hardness::Marked, mesh::Hardness::ByAngle);
-        let wanted = (view.scene.version, view.selection_color, hardness);
+        let wanted = (view.scene.version, view.selection_color);
         if self.uploaded != Some(wanted) || !self.preparing.is_empty() {
-            self.upload_meshes(&view.scene, hardness);
+            self.upload_meshes(&view.scene);
             self.uploaded = Some(wanted);
         }
         // Placed for each view, as what is too dense to see depends on
@@ -489,10 +522,14 @@ impl ViewportRenderer for GpuViewport {
         leave_out_dense(&mut draws, view, &self.meshes);
         self.renderer
             .set_draws(&self.state.device, &self.state.queue, &draws);
-        let wanted = (view.overlay.version, view.selection_color);
+        let wanted = (
+            view.overlay.version,
+            view.selection_color,
+            view.high_contrast,
+        );
         if self.uploaded_overlay != Some(wanted) {
             let accent = view.selection_color.map(render::srgb_to_linear);
-            let overlay = overlay_geometry(&view.overlay, accent);
+            let overlay = overlay_geometry(&view.overlay, accent, view.high_contrast);
             self.renderer.set_overlay(&self.state.device, &overlay);
             self.uploaded_overlay = Some(wanted);
         }
@@ -554,14 +591,14 @@ mod tests {
         let overlay = ComponentOverlay {
             version: 1,
             points: vec![
-                (Vec3::X, OverlayStyle::Hovered),
                 (Vec3::Y, OverlayStyle::Selected),
+                (Vec3::X, OverlayStyle::Hovered),
             ],
             lines: vec![([Vec3::ZERO, Vec3::Y], OverlayStyle::Selected)],
             tints: vec![([Vec3::ZERO, Vec3::X, Vec3::Y], OverlayStyle::Selected)],
         };
-        let geometry = overlay_geometry(&overlay, [1.0, 0.0, 0.0]);
-        // Two points and one line; one tinted triangle.
+        let geometry = overlay_geometry(&overlay, [1.0, 0.0, 0.0], false);
+        // One line and two points; one tinted triangle.
         assert_eq!(geometry.sprites.len(), 3);
         assert_eq!(geometry.tints.len(), 3);
         assert!(
@@ -570,18 +607,76 @@ mod tests {
                 .iter()
                 .all(|v| v.color == [1.0, 0.0, 0.0, SELECTED_TINT])
         );
-        let hovered = &geometry.sprites[1..2];
-        assert!(hovered.iter().all(|v| v.width == HOVERED_POINT_SIZE));
+        // The hovered point comes before the selected one: the selection
+        // is drawn last, on top.
+        let hovered = &geometry.sprites[1];
+        assert_eq!(hovered.width, HOVERED_POINT_SIZE);
         // Lighter than the accent, so it stands out from the selection.
-        assert!(
-            hovered
-                .iter()
-                .all(|v| v.color[0] == 1.0 && v.color[1] > 0.3)
+        assert!(hovered.color[0] == 1.0 && hovered.color[1] > 0.3);
+        let selected = &geometry.sprites[2];
+        assert_eq!(selected.width, SELECTED_POINT_SIZE);
+        assert_eq!(selected.color, [1.0, 0.0, 0.0, 1.0]);
+        assert!(overlay_geometry(&ComponentOverlay::default(), [1.0; 3], false).is_empty());
+    }
+
+    #[test]
+    fn the_selection_outshines_hard_edges_and_seams_and_lies_on_top() {
+        // The review's finding: a selected edge looked thinner and duller
+        // than the hard edges and seams around it.
+        let overlay = ComponentOverlay {
+            version: 1,
+            points: Vec::new(),
+            lines: vec![
+                ([Vec3::ZERO, Vec3::X], OverlayStyle::Selected),
+                ([Vec3::ZERO, Vec3::Y], OverlayStyle::Hard),
+                ([Vec3::ZERO, Vec3::Z], OverlayStyle::Seam),
+                ([Vec3::X, Vec3::Y], OverlayStyle::Hovered),
+            ],
+            tints: Vec::new(),
+        };
+        let geometry = overlay_geometry(&overlay, [0.2, 0.5, 1.0], false);
+        let widths: Vec<f32> = geometry.sprites.iter().map(|s| s.width).collect();
+        let last = geometry.sprites.last().unwrap();
+        assert_eq!(
+            last.width, SELECTED_LINE_WIDTH,
+            "the selection is drawn last"
         );
-        let selected = &geometry.sprites[2..];
-        assert!(selected.iter().all(|v| v.width == SELECTED_POINT_SIZE));
-        assert!(selected.iter().all(|v| v.color == [1.0, 0.0, 0.0, 1.0]));
-        assert!(overlay_geometry(&ComponentOverlay::default(), [1.0; 3]).is_empty());
+        assert!(widths.iter().all(|w| *w <= SELECTED_LINE_WIDTH));
+        const { assert!(SELECTED_LINE_WIDTH > HARD_LINE_WIDTH * 2.0) };
+        // Marks are see-through.
+        const { assert!(HARD_LINE[3] < 1.0 && SEAM_LINE[3] < 1.0) };
+    }
+
+    #[test]
+    fn high_contrast_makes_the_selection_larger_with_a_dark_rim() {
+        let overlay = ComponentOverlay {
+            version: 1,
+            points: vec![(Vec3::Y, OverlayStyle::Selected)],
+            lines: vec![
+                ([Vec3::ZERO, Vec3::X], OverlayStyle::Selected),
+                ([Vec3::ZERO, Vec3::Y], OverlayStyle::Hard),
+            ],
+            tints: vec![([Vec3::ZERO, Vec3::X, Vec3::Y], OverlayStyle::Selected)],
+        };
+        let plain = overlay_geometry(&overlay, [1.0, 0.0, 0.0], false);
+        let contrast = overlay_geometry(&overlay, [1.0, 0.0, 0.0], true);
+        // A rim behind each selected line and point.
+        assert_eq!(contrast.sprites.len(), plain.sprites.len() + 2);
+        let rims: Vec<_> = contrast
+            .sprites
+            .iter()
+            .filter(|s| s.color == CONTRAST_RIM_COLOR)
+            .collect();
+        assert_eq!(rims.len(), 2);
+        let line = contrast
+            .sprites
+            .iter()
+            .find(|s| s.color == [1.0, 0.0, 0.0, 1.0] && s.a != s.b)
+            .unwrap();
+        assert!(line.width > SELECTED_LINE_WIDTH);
+        assert!(contrast.tints.iter().all(|v| v.color[3] == CONTRAST_TINT));
+        // Hard edges stay as they are.
+        assert!(contrast.sprites.iter().any(|s| s.width == HARD_LINE_WIDTH));
     }
 
     fn item(id: u64, selected: bool) -> ui::DrawItem {
@@ -593,6 +688,7 @@ mod tests {
             transform: glam::Mat4::from_translation(Vec3::X * id as f32),
             selected,
             colors: Vec::new(),
+            hardness: mesh::Hardness::Marked,
         }
     }
 
@@ -667,9 +763,9 @@ mod tests {
             grid_colors: [[200, 60, 60], [60, 60, 200]],
             overlay: Arc::new(ComponentOverlay::default()),
             shading: Shading::default(),
-            auto_hard_angle: Some(ui::AUTO_HARD_ANGLE),
             cavity: true,
             surface: ui::Surface::Plain,
+            high_contrast: false,
         }
     }
 
@@ -686,6 +782,7 @@ mod tests {
                 transform: glam::Mat4::IDENTITY,
                 selected,
                 colors: Vec::new(),
+                hardness: mesh::Hardness::Marked,
             }],
             editing: true,
             points: true,

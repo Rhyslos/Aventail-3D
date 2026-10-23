@@ -23,7 +23,7 @@ Modelling leaves bits to tidy: an edge you no longer need, a corner of points in
    - a dissolved **point** merges the polygons around it into one;
    - dissolved **polygons** merge into one where they touch.
 
-Both are also in the [tool menu](tool-menu.md) (**E**) and the **Mesh** menu. Points left in the middle of a straight line by a dissolve go too, so no needless corners are left. A [hard edge](hard-and-soft-edges.md) that is dissolved away loses its hard mark too, and two hard edges joined into one stay hard.
+Both are also in the [tool menu](tool-menu.md) (**E**) and **Mesh → Remove**. Points left in the middle of a straight line by a dissolve go too, so no needless corners are left. A [hard edge](hard-and-soft-edges.md) that is dissolved away loses its hard mark too, and two hard edges joined into one stay hard.
 
 #### Dissolving across a sharp corner
 
@@ -40,7 +40,7 @@ In the **Model** mode, Delete and Backspace delete the selected objects, as befo
 ### Fill hole
 
 1. In the **Edges** or **Polygons** mode, select an edge on the hole's rim (or a polygon beside it).
-2. Press **J**, or pick **Fill hole** from the tool menu (**E**) or the **Mesh** menu.
+2. Press **J**, or pick **Fill hole** from the tool menu (**E**) or **Mesh → Build**.
 
 One polygon closes each hole touching the selection. With nothing selected, every hole of the selected objects is filled. Where the new polygon meets the sides at a sharp corner (sharper than 30°), like the cap of an open cylinder, the rim comes out [hard](hard-and-soft-edges.md), so it looks crisp.
 
@@ -48,12 +48,12 @@ To close the two ends of an open tube, select their rims and press **J**: each e
 
 ### Flip normals
 
-In the **Polygons** mode, select polygons and pick **Flip normals** from the tool menu or the **Mesh** menu. They turn inside out.
+In the **Polygons** mode, select polygons and pick **Flip normals** from the tool menu or **Mesh → Shading**. They turn inside out.
 
 ### Fix normals and Select flipped
 
 - **Select → Select flipped** selects the polygons facing the wrong way, so you can see them first. It switches to the Polygons mode.
-- **Mesh → Fix normals** turns every one of them, in each selected object, the right way round.
+- **Mesh → Shading → Fix normals** turns every one of them, in each selected object, the right way round.
 
 "The wrong way" means against their neighbours, or, in a closed shape, facing inward instead of out.
 
@@ -72,9 +72,9 @@ None: each command applies at once and is one undo step (Ctrl + Z).
 | Delete the selected points, edges or polygons | `Delete` (Points, Edges or Polygons mode) |
 | Dissolve them | `Backspace` (Points, Edges or Polygons mode) |
 | Delete the selected objects | `Delete` or `Backspace` (Model mode) |
-| Fill hole | `J` (Edges or Polygons mode), the tool menu `E`, or the Mesh menu |
-| Flip normals | Tool menu `E`, or the Mesh menu |
-| Fix normals | Mesh menu |
+| Fill hole | `J` (Edges or Polygons mode), the tool menu `E`, or Mesh → Build |
+| Flip normals | Tool menu `E`, or Mesh → Shading |
+| Fix normals | Mesh → Shading |
 | Select flipped, Select same facing | Select menu |
 
 ## Tips and common problems

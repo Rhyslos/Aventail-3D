@@ -53,7 +53,7 @@ None: use the File menu and the Attributes panel.
 ## Tips and common problems
 
 - **Problem:** in Godot, the player walks through a piece. **Why:** its Collision is None, or the export wasn't made for Godot. **Fix:** set Collision, choose **Made for: Godot**, and export again.
-- **Problem:** a piece lands away from where you place it. **Why:** its pivot isn't where it should snap. **Fix:** move the pivot in the [Object mode](pivots.md) (Pivot to centre, or snap it to a corner), then export again.
+- **Problem:** a piece lands away from where you place it. **Why:** its pivot isn't where it should snap. **Fix:** move the pivot with [Edit pivot](pivots.md) (Pivot to centre, or snap it to a corner), then export again.
 - **Problem:** the status bar says a piece's file is already there. **Why:** another program wrote a file of that name; the app never replaces other programs' files. **Fix:** rename the piece, or move the other file.
 - **Tip:** a piece made of several parts? Group them (Ctrl + G), set the group's pivot, and select the group: the whole group goes into one file.
 - **Tip:** Unity and Unreal Engine get the pieces, but not the collision: set it up there.
@@ -61,5 +61,5 @@ None: use the File menu and the Attributes panel.
 ## Related
 
 - [Export and import](export-and-import.md): Made for, and game project folders.
-- [Pivots and the Object mode](pivots.md).
+- [Pivots and Edit pivot](pivots.md).
 - [The Attributes panel](attributes.md).

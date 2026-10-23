@@ -192,7 +192,7 @@ fn shading_by_angle_or_by_the_marks() {
     // Shaded by an angle wider than the cube's corners: smooth all round,
     // one normal at each point.
     let by_angle = ExportOptions {
-        hardness: Hardness::ByAngle(120.0),
+        hardness: Some(Hardness::ByAngle(120.0)),
         ..ExportOptions::default()
     };
     assert_eq!(one(&doc, &by_angle).world.normals.len(), 8);

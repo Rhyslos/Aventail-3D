@@ -246,8 +246,13 @@ impl Workbench {
         }
     }
 
-    /// M: welds the selected points at their middle.
+    /// M: welds the selected points at their middle; in the Polygons
+    /// mode, each touching group of selected polygons at its own middle.
     pub(super) fn run_weld(&mut self) {
+        if self.mode == crate::palette::Mode::Polygons {
+            self.run_weld_polygons();
+            return;
+        }
         let mut ops = Vec::new();
         let mut count = 0;
         for (id, selected, mesh) in self.selected_parts() {
@@ -280,6 +285,55 @@ impl Workbench {
         }
     }
 
+    /// M in the Polygons mode: the points of each group of selected
+    /// polygons (polygons sharing a point are one group) melt into one at
+    /// the group's middle. An inset cap's middle polygon becomes a point
+    /// with a fan of triangles round it.
+    fn run_weld_polygons(&mut self) {
+        let mut ops = Vec::new();
+        let mut polygons = 0;
+        for (id, selected, mesh) in self.selected_parts() {
+            let faces: Vec<scene::FaceId> = selected.polygons().collect();
+            for group in polygon_groups(&mesh, &faces) {
+                let points: Vec<VertexId> = group
+                    .iter()
+                    .filter_map(|f| mesh.face(*f))
+                    .flatten()
+                    .copied()
+                    .collect::<std::collections::BTreeSet<_>>()
+                    .into_iter()
+                    .collect();
+                if points.len() < 2 {
+                    continue;
+                }
+                polygons += group.len();
+                let places: Vec<Vec<VertexId>> = points.iter().map(|v| vec![*v]).collect();
+                ops.push((
+                    id,
+                    Operation::Weld {
+                        points,
+                        target: None,
+                        anchors: Anchors::record(&mesh, ElementKind::Points, &places),
+                    },
+                ));
+            }
+        }
+        if ops.is_empty() {
+            self.note = Some(
+                "Weld: select a polygon first (its points melt into one at its middle), or \
+                 press Ctrl + M and drag a polygon onto a point."
+                    .into(),
+            );
+            return;
+        }
+        let label = counted("Weld", polygons, "polygon");
+        if self.record_each(&label, ops) {
+            self.note = Some(format!(
+                "{label} into a point at the middle. Ctrl + Z takes it back."
+            ));
+        }
+    }
+
     /// The element of `kind` under `pointer` on a selected object.
     fn pick(
         &mut self,
@@ -295,7 +349,11 @@ impl Workbench {
                 let (a, b) = e.ends();
                 item.mesh.position(a)?.lerp(item.mesh.position(b)?, 0.5)
             }
-            Element::Polygon(_) => return None,
+            Element::Polygon(f) => {
+                let corners = item.mesh.face(f)?;
+                let sum: glam::Vec3 = corners.iter().filter_map(|v| item.mesh.position(*v)).sum();
+                sum / corners.len().max(1) as f32
+            }
         };
         Some(Picked {
             id,
@@ -312,16 +370,29 @@ impl Workbench {
         } else {
             ElementKind::Edges
         };
+        // Welding in the Polygons mode drags a polygon onto a point.
+        let from_kind = if self.tool == Tool::Weld && self.mode == crate::palette::Mode::Polygons {
+            ElementKind::Polygons
+        } else {
+            kind
+        };
         for event in self.viewport.take_tool_events() {
             match event {
                 ToolDragEvent::Begin { pointer } => {
-                    self.pair_session = self.pick(drawing, pointer, kind).map(|from| PairSession {
-                        from,
-                        pointer,
-                        onto: None,
-                    });
+                    self.pair_session =
+                        self.pick(drawing, pointer, from_kind)
+                            .map(|from| PairSession {
+                                from,
+                                pointer,
+                                onto: None,
+                            });
                     if self.pair_session.is_none() {
                         self.note = Some(match self.tool {
+                            Tool::Weld if from_kind == ElementKind::Polygons => {
+                                "Weld: press on a polygon of a selected object and drag it \
+                                 onto a point."
+                                    .into()
+                            }
                             Tool::Weld => "Weld: press on a point of a selected object and drag \
                                            it onto another."
                                 .into(),
@@ -441,7 +512,67 @@ impl Workbench {
                     self.note = Some(format!("{label} onto the target. Ctrl + Z takes it back."));
                 }
             }
+            (Element::Polygon(face), Element::Point(target)) => {
+                // A selected polygon brings every selected polygon with it.
+                let selected: Vec<scene::FaceId> = self
+                    .document
+                    .elements(from.id)
+                    .map(|s| s.polygons().collect())
+                    .unwrap_or_default();
+                let faces = if selected.contains(&face) {
+                    selected
+                } else {
+                    vec![face]
+                };
+                let points: Vec<VertexId> = faces
+                    .iter()
+                    .filter_map(|f| mesh.face(*f))
+                    .flatten()
+                    .copied()
+                    .filter(|v| *v != target)
+                    .collect::<std::collections::BTreeSet<_>>()
+                    .into_iter()
+                    .collect();
+                if points.is_empty() {
+                    return;
+                }
+                let mut places: Vec<Vec<VertexId>> = points.iter().map(|p| vec![*p]).collect();
+                places.push(vec![target]);
+                let label = counted("Weld", faces.len(), "polygon");
+                let op = Operation::Weld {
+                    points,
+                    target: Some(target),
+                    anchors: Anchors::record(&mesh, ElementKind::Points, &places),
+                };
+                if self.record_each(&label, vec![(from.id, op)]) {
+                    self.note = Some(format!("{label} onto the point. Ctrl + Z takes it back."));
+                }
+            }
             _ => {}
         }
     }
+}
+
+/// `faces` in groups that share a point: each group welds to its own
+/// middle (decision 0128).
+fn polygon_groups(mesh: &scene::Mesh, faces: &[scene::FaceId]) -> Vec<Vec<scene::FaceId>> {
+    let mut groups: Vec<(std::collections::BTreeSet<VertexId>, Vec<scene::FaceId>)> = Vec::new();
+    for face in faces {
+        let Some(corners) = mesh.face(*face) else {
+            continue;
+        };
+        let points: std::collections::BTreeSet<VertexId> = corners.iter().copied().collect();
+        // Every group this polygon touches joins into one with it.
+        let (touching, apart): (Vec<_>, Vec<_>) = groups
+            .into_iter()
+            .partition(|(shared, _)| !shared.is_disjoint(&points));
+        let mut joined = (points, vec![*face]);
+        for (shared, members) in touching {
+            joined.0.extend(shared);
+            joined.1.extend(members);
+        }
+        groups = apart;
+        groups.push(joined);
+    }
+    groups.into_iter().map(|(_, faces)| faces).collect()
 }

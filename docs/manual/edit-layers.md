@@ -15,12 +15,14 @@ Every change you make to a shape's points, edges and polygons (an extrude, a bev
 ## How to use it
 
 1. Select an object with a shape (in any mode).
-2. Click **Add edit layer** in the thin column on the right of the viewport (the stack of sheets), or choose **Mesh → Add edit layer**. Each selected object gets an empty layer on top, and the **Edit layers** panel (a tab beside Objects) comes to the front.
+2. Click **Add edit layer** in the thin column on the right of the viewport (the stack of sheets), or choose **Mesh → Shape and object → Add edit layer**. Each selected object gets an empty layer on top, and the **Edit layers** panel (a tab beside Objects) appears and comes to the front.
 3. Model as usual. Your edits go into the layer marked **new edits**.
 4. In the Edit layers panel:
    - click a layer's **eye** to switch it off or on;
    - **double-click** its name to rename it;
    - **right-click** it (or click it, then open the panel's **Layer** menu) to **Rename**, **Switch off**, **Move up**, **Move down**, **Merge down** or **Delete layer**.
+
+**Where the panel is.** The Edit layers tab stays out of the way until you need it: it appears beside Objects by itself when you select an object with more than one layer, and **Window → Edit layers** shows it (or puts it away) at any time. Once shown, it stays.
 
 The panel lists the selected object's layers with the top one first, as they stack: the bottom layer's edits are made first, and each layer works on the shape the layers below it made. Under each layer are its edits, newest first: click one to change it (see [The edit list](edit-list.md)). Every change to a layer is one undo step (**Ctrl + Z**).
 
@@ -39,7 +41,8 @@ The panel lists the selected object's layers with the top one first, as they sta
 
 | Action | Shortcut |
 |---|---|
-| Add an edit layer | **Add edit layer** beside the viewport, **Mesh → Add edit layer**, or **Add layer** in the panel |
+| Add an edit layer | **Add edit layer** beside the viewport, **Mesh → Shape and object → Add edit layer**, or **Add layer** in the panel |
+| Show or hide the Edit layers tab | **Window → Edit layers** |
 | Rename a layer | Double-click its name |
 | Every layer action | Right-click a layer, or the panel's **Layer** menu |
 
@@ -47,6 +50,7 @@ There are no keys for layers yet.
 
 ## Tips and common problems
 
+- **Problem:** there's no Edit layers tab beside Objects. **Why:** it's hidden until an object with more than one layer is selected, to keep the panels simple. **Fix:** choose **Window → Edit layers**, or add a layer.
 - **Problem:** my edit didn't go into the top layer. **Why:** the top layer is switched off, and new edits always go into the top layer that is *on*, so you can see them. **Fix:** switch the top layer back on first. If every layer is off, the next edit makes a new layer on top.
 - **Problem:** Merge down is greyed out. **Why:** it's the bottom layer, or one of the two layers is off. Merging would otherwise switch edits on or off by surprise. **Fix:** switch both on.
 - **Problem:** the panel says to select one object. **Why:** it shows one object's layers at a time. **Fix:** select just one. (**Add edit layer** still works on several at once.)
@@ -56,7 +60,7 @@ There are no keys for layers yet.
 ## Related
 
 - [Concepts: base and edits, edit layer](concepts.md#objects-and-scenes)
-- [The edit list](edit-list.md): open, change, switch off, keep, freeze or delete any edit
+- [The edit list](edit-list.md): open, change, switch off, bake into the shape or delete any edit
 - [The Attributes panel](attributes.md): the Last edit section changes the newest edit
 - [The Objects panel](objects.md)
 - [Interface tour](interface-tour.md)

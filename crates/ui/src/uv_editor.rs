@@ -41,6 +41,11 @@ pub(crate) const UV_POLYGONS_UP_TO: usize = 300_000;
 
 /// How close, in screen points, a click must be to a point or an edge.
 const PICK_DISTANCE: f32 = 9.0;
+/// Selected edges in the editor: thicker than seams (2) and borders (1.6),
+/// so the selection is the clearest thing drawn (decision 0126).
+const UV_SELECTED_WIDTH: f32 = 3.5;
+/// Selected points' radius.
+const UV_SELECTED_RADIUS: f32 = 4.5;
 
 /// How many screen points a texture pixel must cover before the pixels
 /// are drawn.
@@ -211,6 +216,10 @@ pub(crate) struct UvEditor {
     /// The pass it was last drawn in: a panel not drawn lately isn't
     /// under the mouse, wherever it was.
     shown_pass: Option<u64>,
+    /// Where the mouse was last seen in the window. On Windows, pressing
+    /// Alt can make the window report the mouse gone until it moves again;
+    /// Alt + A over the editor must still mean the pieces then.
+    last_pointer: Option<Pos2>,
     /// A drag of the gizmo, if one is going on.
     gizmo: Option<gizmo::GizmoDrag>,
     /// Whether the left button went down on the gizmo (so letting go
@@ -264,6 +273,7 @@ impl Default for UvEditor {
             cache: HashMap::new(),
             frame_request: None,
             shown_pass: None,
+            last_pointer: None,
             gizmo: None,
             pressed_on_gizmo: false,
             sessions: 0,
@@ -330,6 +340,9 @@ pub(crate) struct UvContext<'a> {
     pub(crate) texture_groups: checking::TextureGroups,
     /// What explaining choices needs (decision 0116).
     pub(crate) explain: explain::ExplainContext,
+    /// Whether the selection is drawn larger with a dark rim (decision
+    /// 0126).
+    pub(crate) high_contrast: bool,
 }
 
 /// The objects whose UVs are shown: the selected ones with a shape, in
@@ -352,7 +365,7 @@ impl UvEditor {
         if self.shown_pass.is_none_or(|p| p + 1 < pass) {
             return false;
         }
-        let pointer = ctx.input(|i| i.pointer.hover_pos());
+        let pointer = ctx.input(|i| i.pointer.hover_pos()).or(self.last_pointer);
         self.rect
             .zip(pointer)
             .is_some_and(|(rect, at)| rect.contains(at))
@@ -471,6 +484,9 @@ impl UvEditor {
         response.widget_info(|| WidgetInfo::labeled(WidgetType::Other, true, UV_EDITOR_LABEL));
         self.rect = Some(rect);
         self.shown_pass = Some(ui.ctx().cumulative_pass_nr());
+        if let Some(at) = ui.ctx().input(|i| i.pointer.hover_pos()) {
+            self.last_pointer = Some(at);
+        }
         if !self.fitted && rect.width() > 10.0 {
             self.fit(rect, Vec2::ZERO, Vec2::ONE);
             self.fitted = true;
@@ -528,6 +544,7 @@ impl UvEditor {
                 accent.light,
                 cx.mode,
                 cx.stretch,
+                cx.high_contrast,
             );
         }
         if let Some((centre, lit)) = lit {
@@ -596,7 +613,7 @@ impl UvEditor {
             };
             format!(
                 "{islands} {} · {polygons} {}{hint}",
-                if islands == 1 { "island" } else { "islands" },
+                if islands == 1 { "piece" } else { "pieces" },
                 if polygons == 1 { "polygon" } else { "polygons" },
             )
         };
@@ -1012,6 +1029,7 @@ impl UvEditor {
         light: Color32,
         mode: Mode,
         stretch: bool,
+        contrast: bool,
     ) {
         let screen = |uv: Vec2| self.to_screen(rect, uv);
         // Tinted polygons.
@@ -1105,32 +1123,51 @@ impl UvEditor {
         painter.add(egui::Shape::mesh(lines));
         painter.add(egui::Shape::mesh(borders));
         painter.add(egui::Shape::mesh(seams));
-        // Selected and hovered edges and points.
+        // Selected and hovered edges and points: thicker than seams and
+        // borders, the selection drawn last so it lies on top, with a dark
+        // rim under High contrast (decision 0126).
         let mut marks = egui::Mesh::default();
+        let grow = if contrast { 1.5 } else { 1.0 };
+        let rim = Color32::from_black_alpha(230);
         match kind {
             Some(ElementKind::Edges) => {
-                for (uvs, key, _) in &shape.edges {
-                    let color = if selected.contains(Element::Edge(*key)) {
-                        fill
-                    } else if hover == Some(Element::Edge(*key)) {
-                        light
-                    } else {
-                        continue;
-                    };
-                    add_line(&mut marks, screen(uvs[0]), screen(uvs[1]), 3.0, color);
+                // The hovered edge first, then the selected ones on top.
+                for pass in [false, true] {
+                    for (uvs, key, _) in &shape.edges {
+                        let is_selected = selected.contains(Element::Edge(*key));
+                        let color = if pass && is_selected {
+                            fill
+                        } else if !pass && !is_selected && hover == Some(Element::Edge(*key)) {
+                            light
+                        } else {
+                            continue;
+                        };
+                        let (a, b) = (screen(uvs[0]), screen(uvs[1]));
+                        let width = UV_SELECTED_WIDTH * grow;
+                        if contrast {
+                            add_line(&mut marks, a, b, width + 4.0, rim);
+                        }
+                        add_line(&mut marks, a, b, width, color);
+                    }
                 }
             }
             Some(ElementKind::Points) => {
-                for (_, points) in &shape.polygons {
-                    for (v, uv) in points {
-                        let (radius, color) = if selected.contains(Element::Point(*v)) {
-                            (3.5, fill)
-                        } else if hover == Some(Element::Point(*v)) {
-                            (4.5, light)
-                        } else {
-                            (2.0, theme::UV_EDGE)
-                        };
-                        add_dot(&mut marks, screen(*uv), radius, color);
+                for pass in 0..3 {
+                    for (_, points) in &shape.polygons {
+                        for (v, uv) in points {
+                            let is_selected = selected.contains(Element::Point(*v));
+                            let is_hovered = hover == Some(Element::Point(*v));
+                            let (radius, color) = match pass {
+                                0 if !is_selected && !is_hovered => (2.0, theme::UV_EDGE),
+                                1 if is_hovered && !is_selected => (4.5 * grow, light),
+                                2 if is_selected => (UV_SELECTED_RADIUS * grow, fill),
+                                _ => continue,
+                            };
+                            if contrast && pass > 0 {
+                                add_dot(&mut marks, screen(*uv), radius + 2.0, rim);
+                            }
+                            add_dot(&mut marks, screen(*uv), radius, color);
+                        }
                     }
                 }
             }
@@ -1617,7 +1654,7 @@ fn apply(
     }
     let count: usize = hits.len();
     let label = match (mode, count) {
-        (Mode::Uv, _) => "Select islands".to_string(),
+        (Mode::Uv, _) => "Select pieces".to_string(),
         (_, 0) => "Deselect".to_string(),
         _ => format!("Select {count} {}", kind_name(kind, count)),
     };

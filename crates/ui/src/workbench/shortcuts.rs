@@ -214,6 +214,11 @@ pub(crate) fn bindings() -> Vec<Binding> {
         bind(objects::REDO_SHORTCUT, "Redo", Anywhere),
         bind(objects::REDO_SHORTCUT_2, "Redo", Anywhere),
         bind(settings::SETTINGS_SHORTCUT, "Settings", Anywhere),
+        plain(
+            crate::command_search::SEARCH_KEY,
+            "Search for a command by name",
+            Anywhere,
+        ),
     ];
 
     // Modes.
@@ -304,7 +309,7 @@ pub(crate) fn bindings() -> Vec<Binding> {
     );
     all.extend([
         bind(modelling::WELD_TARGET_KEYS, "Weld onto a point", Editing),
-        plain(Key::Escape, "Finish a slit", Editing),
+        plain(Key::Escape, "Cancel a slit (takes its cut back)", Editing),
         plain(Key::Enter, "Finish a slit", Editing),
         held(
             KeyId::Ctrl,
@@ -395,7 +400,7 @@ pub(crate) fn bindings() -> Vec<Binding> {
     all.extend([
         plain(
             Key::Escape,
-            "Close the shape list, tool menu or question",
+            "Close the shape list, tool menu, question or window",
             Menus,
         ),
         plain(
@@ -535,7 +540,11 @@ impl Workbench {
         let mut layout = self.keyboard_layout();
         let picked = layout;
         let bindings = bindings();
-        let mut open = true;
+        // Esc closes it, as it closes every window (decision 0126), unless
+        // a text box (the search) has the keyboard.
+        let typing = ctx.memory(|m| m.focused().is_some());
+        let mut open =
+            typing || !ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Escape));
         let viewer = &mut self.shortcuts;
         // It opens as big as fits comfortably: most of the app's window,
         // but no wider than about twice its height.
@@ -1037,6 +1046,22 @@ mod tests {
         crate::workbench::tests::main_menu(&harness, KEYS_BUTTON).click();
         harness.run();
         assert!(!harness.state().workbench.shortcuts.open);
+    }
+
+    #[test]
+    fn esc_closes_the_keys_window_and_e_opens_no_ring_over_it() {
+        // Keys that bite (decision 0126).
+        let mut harness = open_window();
+        harness.key_press(Key::E);
+        harness.run();
+        assert!(!harness.state().workbench.tool_menu.is_open());
+        harness.key_press(Key::Escape);
+        harness.run();
+        assert!(!harness.state().workbench.shortcuts.open);
+        // With the window closed, E opens the ring again.
+        harness.key_press(Key::E);
+        harness.run();
+        assert!(harness.state().workbench.tool_menu.is_open());
     }
 
     #[test]

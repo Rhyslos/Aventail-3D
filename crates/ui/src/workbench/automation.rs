@@ -11,8 +11,8 @@
 
 use super::Workbench;
 use super::unwrapping::{
-    LIVE_UNWRAP_HELP, LIVE_UNWRAP_LABEL, PackQuality, STRAIGHT_STRIPS_HELP, STRAIGHT_STRIPS_LABEL,
-    SeamHiding, UnwrapWay,
+    LIVE_UNWRAP_HELP, LIVE_UNWRAP_LABEL, MAX_PADDING, PADDING_LABEL, PackQuality,
+    STRAIGHT_STRIPS_HELP, STRAIGHT_STRIPS_LABEL, SeamHiding, UnwrapWay,
 };
 use egui::Ui;
 
@@ -52,6 +52,50 @@ impl Workbench {
                 .color(crate::theme::TEXT_WEAK),
         );
         ui.separator();
+        let mut view = UvSettingsView {
+            uv_settings: &mut self.uv_settings,
+            document: &mut self.document,
+        };
+        view.menus(ui);
+    }
+}
+
+/// The automatic UV tools' settings, and the document whose mending
+/// settings they hold: what the UV menu's Settings submenus and the UV
+/// settings panel (issue #115) show and change.
+pub(crate) struct UvSettingsView<'a> {
+    pub(crate) uv_settings: &'a mut super::unwrapping::UvSettings,
+    pub(crate) document: &'a mut scene::Document,
+}
+
+impl UvSettingsView<'_> {
+    /// The UV settings panel (issue #115): the same five groups as the UV
+    /// menu's Settings, each a section that folds open.
+    pub(crate) fn panel(&mut self, ui: &mut Ui) {
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            ui.label(
+                egui::RichText::new(
+                    "How the automatic UV tools work: the same settings as UV → Settings.",
+                )
+                .small()
+                .color(crate::theme::TEXT_WEAK),
+            );
+            egui::CollapsingHeader::new(SEAMS_SETTINGS_LABEL)
+                .default_open(true)
+                .show(ui, |ui| self.seams_settings(ui));
+            egui::CollapsingHeader::new(UNWRAP_SETTINGS_LABEL)
+                .default_open(true)
+                .show(ui, |ui| self.unwrap_settings(ui));
+            egui::CollapsingHeader::new(RELAX_SETTINGS_LABEL)
+                .show(ui, |ui| self.relax_settings(ui));
+            egui::CollapsingHeader::new(PACK_SETTINGS_LABEL).show(ui, |ui| self.packing_menu(ui));
+            egui::CollapsingHeader::new(MEND_SETTINGS_LABEL)
+                .show(ui, |ui| self.mending_settings(ui));
+        });
+    }
+
+    /// The five settings submenus.
+    pub(crate) fn menus(&mut self, ui: &mut Ui) {
         ui.menu_button(SEAMS_SETTINGS_LABEL, |ui| self.seams_settings(ui))
             .response
             .on_hover_text("How Suggest seams picks seams");
@@ -69,7 +113,7 @@ impl Workbench {
             .on_hover_text("How modelling edits fix the UVs they break (saved with the project)");
     }
 
-    fn seams_settings(&mut self, ui: &mut Ui) {
+    pub(crate) fn seams_settings(&mut self, ui: &mut Ui) {
         let s = &mut self.uv_settings;
         ui.horizontal(|ui| {
             ui.label(CORNER_ANGLE_LABEL);
@@ -116,7 +160,7 @@ impl Workbench {
         }
     }
 
-    fn unwrap_settings(&mut self, ui: &mut Ui) {
+    pub(crate) fn unwrap_settings(&mut self, ui: &mut Ui) {
         let s = &mut self.uv_settings;
         ui.label(METHOD_LABEL)
             .on_hover_text("How each piece is laid flat");
@@ -154,7 +198,7 @@ impl Workbench {
         );
     }
 
-    fn relax_settings(&mut self, ui: &mut Ui) {
+    pub(crate) fn relax_settings(&mut self, ui: &mut Ui) {
         let s = &mut self.uv_settings;
         ui.horizontal(|ui| {
             ui.label(RELAX_STEPS_LABEL);
@@ -181,7 +225,7 @@ impl Workbench {
         }
     }
 
-    fn mending_settings(&mut self, ui: &mut Ui) {
+    pub(crate) fn mending_settings(&mut self, ui: &mut Ui) {
         let mut mending = self.document.scene().mending();
         let mut changed = ui
             .checkbox(&mut mending.on, MEND_LABEL)
@@ -234,5 +278,37 @@ impl Workbench {
                 Some(MENDING_KEY),
             );
         }
+    }
+
+    /// The UV menu's Packing entries: the padding and the switches.
+    pub(crate) fn packing_menu(&mut self, ui: &mut egui::Ui) {
+        let s = &mut self.uv_settings;
+        ui.horizontal(|ui| {
+            ui.label(PADDING_LABEL);
+            ui.add(
+                egui::DragValue::new(&mut s.padding)
+                    .range(0..=MAX_PADDING)
+                    .suffix(" px"),
+            )
+            .on_hover_text(
+                "The gap between pieces, in texture pixels (half of it to the square's edges). \
+                 Keeps colours from bleeding between pieces when the texture is shrunk; 8 px \
+                 suits a 2048 texture.",
+            );
+        });
+        ui.checkbox(&mut s.rotate, "Turn pieces to fit")
+            .on_hover_text(
+                "Pieces may be turned (lined up with the square, and a quarter turn) to fit better",
+            );
+        ui.checkbox(&mut s.stack, "Stack identical pieces")
+            .on_hover_text("Pieces of exactly the same shape share the same texture space");
+        ui.checkbox(&mut s.per_material, "A texture per material")
+            .on_hover_text(
+                "Each material's pieces fill a square of their own, as separate texture sets",
+            );
+        ui.checkbox(&mut s.per_object, "A texture per object")
+            .on_hover_text("Each object's pieces fill a square of their own");
+        ui.separator();
+        self.pack_quality_entries(ui);
     }
 }

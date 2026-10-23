@@ -80,7 +80,12 @@ pub(crate) struct Values<'a> {
     pub(crate) tool_menu: &'a mut ToolMenuSettings,
     /// Whether Dissolve goes ahead across a sharp corner without asking.
     pub(crate) dissolve_without_warning: &'a mut bool,
+    /// Whether the selection is drawn with high contrast (decision 0126).
+    pub(crate) high_contrast: &'a mut bool,
 }
+
+/// The High contrast setting's name.
+pub(crate) const HIGH_CONTRAST: &str = "High contrast";
 
 /// The Settings window's state.
 #[derive(Debug, Clone, Default)]
@@ -156,13 +161,14 @@ fn restore_standard(values: &mut Values<'_>) {
     *values.new_units = Units::default();
     *values.navigation = NavigationSettings::default();
     *values.grid = GridDetail::default();
-    *values.select_visible_only = false;
+    *values.select_visible_only = true;
     *values.select_keys = SelectKeys::default();
     *values.snap = SnapSettings::default();
     *values.undo_memory = UndoMemory::default();
     *values.autosave = AutosaveSettings::default();
     *values.tool_menu = ToolMenuSettings::default();
     *values.dissolve_without_warning = false;
+    *values.high_contrast = false;
 }
 
 /// A heading for a group of settings.
@@ -193,6 +199,18 @@ fn interface(ui: &mut Ui, values: &mut Values<'_>) {
             }
         });
     }
+    ui.add_space(8.0);
+    heading(ui, "Seeing the selection");
+    explain(
+        ui,
+        "The selection is always drawn larger and brighter than anything else. High contrast \
+         makes it larger still, with a dark rim, so it stands out on any colour.",
+    );
+    ui.checkbox(values.high_contrast, HIGH_CONTRAST)
+        .on_hover_text(
+            "Selected and hovered points, edges and polygons drawn larger with a dark rim, in \
+             the viewport and the UV Editor",
+        );
     ui.add_space(8.0);
     heading(ui, "Units");
     explain(

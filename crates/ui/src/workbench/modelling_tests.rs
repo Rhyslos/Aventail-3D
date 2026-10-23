@@ -400,8 +400,7 @@ fn the_tools_keep_together_switch_sets_the_next_drag() {
 #[test]
 fn the_mesh_menu_and_tool_menu_pick_extrude() {
     let mut harness = ready(Key::Q);
-    super::tests::main_menu(&harness, "Mesh").click();
-    harness.run();
+    super::tests::mesh_group(&mut harness, super::MESH_BUILD_MENU);
     harness.get_by_label_contains("Extrude").click();
     harness.run();
     assert_eq!(harness.state().workbench.tool(), Tool::Extrude);
@@ -503,6 +502,247 @@ fn border_edges_extrude_and_the_selection_follows() {
     // One undo takes back the second strip and its selection together.
     harness.state_mut().workbench.document_mut().undo();
     assert_eq!(faces(&harness), 2);
+}
+
+#[test]
+fn points_along_an_open_edge_extrude_the_edges_between_them() {
+    // The project lead's ask (decision 0127): select points and extrude,
+    // and the open edges between them grow polygons, so a shape can be
+    // drawn out from points, as from the side in an orthographic view.
+    let mut harness = fresh();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::Create(scene::ObjectKind::Primitive(
+            scene::Primitive::Plane(Default::default()),
+        )))
+        .unwrap();
+    harness.run();
+    let plane = *harness
+        .state()
+        .workbench
+        .document()
+        .selection()
+        .first()
+        .unwrap();
+    press(&mut harness, Modifiers::NONE, Key::Num1);
+    let mesh = |h: &H| {
+        h.state()
+            .workbench
+            .document()
+            .scene()
+            .evaluated(plane)
+            .unwrap()
+            .mesh
+    };
+    // The two points on the plane's +X side.
+    let start = mesh(&harness);
+    let right: Vec<scene::VertexId> = start
+        .vertices()
+        .filter(|(_, p)| p.x > 49.0)
+        .map(|(v, _)| v)
+        .collect();
+    assert_eq!(right.len(), 2);
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .select_elements(
+            [(
+                plane,
+                ElementSelection::of(right.iter().map(|v| Element::Point(*v))),
+            )],
+            "Select",
+            None,
+        );
+    harness.run();
+    press(&mut harness, Modifiers::NONE, Key::D);
+    let way = screen_x(&harness, 80.0);
+    let from = empty_spot(&harness);
+    drag_by(&mut harness, from, way);
+    assert_eq!(mesh(&harness).face_count(), 2, "a new polygon");
+    assert_eq!(
+        harness.state().workbench.document().undo_label(),
+        Some("Extrude 1 edge")
+    );
+    assert!(mesh(&harness).bounds().unwrap().max.x > 51.0);
+    // The new outer points are selected, so the next drag carries on.
+    let selected = harness
+        .state()
+        .workbench
+        .document()
+        .elements(plane)
+        .unwrap()
+        .clone();
+    assert_eq!(selected.count(scene::ElementKind::Points), 2);
+    assert!(right.iter().all(|v| !selected.contains(Element::Point(*v))));
+    drag_by(&mut harness, from, way);
+    assert_eq!(mesh(&harness).face_count(), 3);
+}
+
+#[test]
+fn a_closed_caps_rim_extrudes_the_cap_from_points_or_edges() {
+    // The project lead's find: with the cap closed, its rim has polygons
+    // on both sides, so nothing grew. Selecting all the way round a
+    // polygon now pushes that polygon out (decision 0127).
+    for (mode_key, kind) in [
+        (Key::Num1, scene::ElementKind::Points),
+        (Key::Num2, scene::ElementKind::Edges),
+    ] {
+        let mut harness = fresh();
+        harness
+            .state_mut()
+            .workbench
+            .document_mut()
+            .execute(scene::Command::Create(scene::ObjectKind::Primitive(
+                scene::Primitive::Cylinder(Default::default()),
+            )))
+            .unwrap();
+        harness.run();
+        let id = *harness
+            .state()
+            .workbench
+            .document()
+            .selection()
+            .first()
+            .unwrap();
+        press(&mut harness, Modifiers::NONE, mode_key);
+        let mesh = |h: &H| {
+            h.state()
+                .workbench
+                .document()
+                .scene()
+                .evaluated(id)
+                .unwrap()
+                .mesh
+        };
+        let start = mesh(&harness);
+        let cap = start
+            .faces()
+            .map(|(f, _)| f)
+            .max_by(|a, b| start.face_normal(*a).z.total_cmp(&start.face_normal(*b).z))
+            .unwrap();
+        let sides = start.face(cap).unwrap().len();
+        let rim: Vec<Element> = match kind {
+            scene::ElementKind::Points => start
+                .face(cap)
+                .unwrap()
+                .iter()
+                .map(|v| Element::Point(*v))
+                .collect(),
+            _ => start
+                .topology()
+                .face_edges(cap)
+                .iter()
+                .map(|e| Element::Edge(*e))
+                .collect(),
+        };
+        harness
+            .state_mut()
+            .workbench
+            .document_mut()
+            .select_elements([(id, ElementSelection::of(rim.clone()))], "Select", None);
+        harness.run();
+        let top = start.bounds().unwrap().max.z;
+        let faces = start.face_count();
+        press(&mut harness, Modifiers::NONE, Key::D);
+        let up = on_screen(&harness, glam::Vec3::Z * 100.0) - on_screen(&harness, glam::Vec3::ZERO);
+        let from = empty_spot(&harness);
+        drag_by(&mut harness, from, up.normalized() * 80.0);
+        let after = mesh(&harness);
+        assert_eq!(
+            after.face_count(),
+            faces + sides,
+            "{kind:?}: a new wall all round"
+        );
+        assert!(
+            after.bounds().unwrap().max.z > top + 1.0,
+            "{kind:?}: the cap went up"
+        );
+        assert_eq!(
+            harness.state().workbench.document().undo_label(),
+            Some("Extrude 1 polygon")
+        );
+        // The cap's new rim is selected, not the old one.
+        let selected = harness
+            .state()
+            .workbench
+            .document()
+            .elements(id)
+            .unwrap()
+            .clone();
+        assert_eq!(selected.count(kind), sides, "{kind:?}");
+        assert!(rim.iter().all(|e| !selected.contains(*e)), "{kind:?}");
+        // And a second drag carries on from there.
+        drag_by(&mut harness, from, up.normalized() * 80.0);
+        assert_eq!(mesh(&harness).face_count(), faces + 2 * sides, "{kind:?}");
+    }
+}
+
+#[test]
+fn points_with_no_open_edge_between_them_say_what_to_do() {
+    // One point, or two across the plane (no edge joins them): nothing
+    // to grow, and the status bar says why.
+    let mut harness = fresh();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::Create(scene::ObjectKind::Primitive(
+            scene::Primitive::Plane(Default::default()),
+        )))
+        .unwrap();
+    harness.run();
+    let plane = *harness
+        .state()
+        .workbench
+        .document()
+        .selection()
+        .first()
+        .unwrap();
+    press(&mut harness, Modifiers::NONE, Key::Num1);
+    let start = harness
+        .state()
+        .workbench
+        .document()
+        .scene()
+        .evaluated(plane)
+        .unwrap()
+        .mesh;
+    let corners: Vec<(scene::VertexId, glam::Vec3)> = start.vertices().collect();
+    let (a, pa) = corners[0];
+    let (opposite, _) = *corners
+        .iter()
+        .max_by(|x, y| x.1.distance(pa).total_cmp(&y.1.distance(pa)))
+        .unwrap();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .select_elements(
+            [(
+                plane,
+                ElementSelection::of([Element::Point(a), Element::Point(opposite)]),
+            )],
+            "Select",
+            None,
+        );
+    harness.run();
+    press(&mut harness, Modifiers::NONE, Key::D);
+    let way = screen_x(&harness, 80.0);
+    let from = empty_spot(&harness);
+    drag_by(&mut harness, from, way);
+    let after = harness
+        .state()
+        .workbench
+        .document()
+        .scene()
+        .evaluated(plane)
+        .unwrap()
+        .mesh;
+    assert_eq!(after.face_count(), 1, "nothing grown");
+    assert!(note(&harness).contains("open"), "{}", note(&harness));
 }
 
 #[test]

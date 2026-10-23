@@ -74,8 +74,9 @@ impl Workbench {
             Tool::Bridge => "Bridge: drag from one open edge to another to join them. With two \
                  open borders (or two polygons) selected, C bridges them at once."
                 .into(),
-            Tool::Weld => "Weld: drag a point onto another to melt it there (the whole \
-                 selection, if you drag a selected point). M welds the selection at its middle."
+            Tool::Weld => "Weld: drag a point (or, in the Polygons mode, a polygon) onto a point \
+                 to melt it there (the whole selection, if you drag a selected one). M welds \
+                 the selection at its middle."
                 .into(),
             Tool::Inset => "Inset: drag left or right anywhere in the viewport to shrink the \
                  selected polygons inward. Shift for fine steps; Esc or a right click cancels."
@@ -208,6 +209,40 @@ impl Workbench {
         });
     }
 
+    /// Apply mirror (decision 0126, as Blender's Apply): the selected
+    /// objects' mirrored halves become part of their shapes, and the
+    /// mirrors are gone, as one undo step.
+    pub(crate) fn apply_mirror(&mut self) {
+        let scene = self.document.scene();
+        let ids: Vec<scene::ObjectId> = self
+            .mirrorable()
+            .into_iter()
+            .filter(|id| scene.object(*id).is_some_and(|o| o.mirror.is_some()))
+            .collect();
+        if ids.is_empty() {
+            self.note = Some(
+                "Apply mirror: select an object with symmetry on first (the Symmetry button)."
+                    .into(),
+            );
+            return;
+        }
+        let n = ids.len();
+        match self.document.execute(Command::ApplyMirror(ids)) {
+            Ok(_) => {
+                self.note = Some(format!(
+                    "Mirror applied: both halves are part of {} now, and symmetry is off. \
+                     Ctrl + Z takes it back.",
+                    if n == 1 {
+                        "the shape".to_string()
+                    } else {
+                        format!("{n} shapes")
+                    }
+                ));
+            }
+            Err(why) => self.note = Some(format!("Couldn't apply the mirror: {why}.")),
+        }
+    }
+
     /// The Symmetry menu changed its settings: they are kept for the next
     /// mirror, and the selected objects' mirrors change to match, as one
     /// undo step while the menu is used.
@@ -289,6 +324,21 @@ impl Workbench {
             }
         }
         ui.separator();
+        // Edit pivot: the Object mode as a switch (decision 0126).
+        if ui
+            .add(egui::Button::selectable(
+                self.mode == crate::palette::Mode::Object,
+                crate::palette::EDIT_PIVOT_LABEL,
+            ))
+            .on_hover_text(
+                "Move and turn the selected objects' pivots (the point they turn and scale \
+                 around), not their shapes. Also on the top palette, by the axis switches.",
+            )
+            .clicked()
+        {
+            self.toggle_edit_pivot();
+            ui.close();
+        }
         // Placing pivots (decision 0068).
         for command in [
             CommandId::PivotToCentre,

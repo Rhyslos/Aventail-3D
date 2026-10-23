@@ -130,3 +130,18 @@ fn only_the_new_polygons_sharp_edges_are_marked() {
     assert_eq!(mesh.hard_edge_count(), 4);
     assert_eq!(harden_new_edges(&mut mesh, 0, DEFAULT_ANGLE), 8);
 }
+
+#[test]
+fn shading_hard_edges_follow_the_hardness() {
+    // A cube: every edge marked hard and every edge at 90°.
+    let cube = crate::Primitive::Cube(crate::CubeParams::default()).mesh();
+    assert_eq!(shading_hard_edges(&cube, crate::Hardness::Marked).len(), 12);
+    assert_eq!(
+        shading_hard_edges(&cube, crate::Hardness::ByAngle(30.0)).len(),
+        12
+    );
+    // Wider than the corners: none by angle, the marks unchanged.
+    assert!(shading_hard_edges(&cube, crate::Hardness::ByAngle(120.0)).is_empty());
+    // An empty mesh has none.
+    assert!(shading_hard_edges(&crate::Mesh::new(), crate::Hardness::Marked).is_empty());
+}

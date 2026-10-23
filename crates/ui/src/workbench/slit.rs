@@ -6,8 +6,9 @@
 //! mouse. The shape is cut as the line grows. The line stays editable until
 //! it is finished: drag a point to move it, click the line to add a point
 //! there, Ctrl + click a point to remove it, and hold Shift to keep a
-//! stretch at 15° steps on screen. Esc or Enter finishes the line, as does
-//! picking another tool or mode; Ctrl + Z takes the cut back.
+//! stretch at 15° steps on screen. Enter finishes the line, as do Tab and
+//! picking another tool or mode; Esc cancels it, taking its cut back
+//! (decision 0126); Ctrl + Z takes a finished cut back.
 //!
 //! Clicking the line's first point again (with three or more points)
 //! closes it into a loop and finishes it, as the project lead asked
@@ -268,6 +269,16 @@ impl Workbench {
             } else {
                 "Slit: nothing was cut.".into()
             });
+        }
+        self.viewport.set_tool_path(None);
+    }
+
+    /// Cancels the line being drawn: its cut is taken back and forgotten
+    /// (Esc, decision 0126).
+    pub(super) fn cancel_slit(&mut self) {
+        if let Some(session) = self.slit_session.take() {
+            self.document.abandon(session.key);
+            self.note = Some("Slit cancelled: nothing was cut.".into());
         }
         self.viewport.set_tool_path(None);
     }

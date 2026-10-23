@@ -72,8 +72,8 @@ fn the_export_window_asks_the_app_to_export_as_chosen() {
     // Godot's settings (the standard) cut triangles; the click unticked it.
     assert!(!options.triangulate);
     assert_eq!(options.what, ExportWhat::Everything);
-    // Automatic hard edges is on as standard: shading by angle.
-    assert!(matches!(options.hardness, mesh::Hardness::ByAngle(_)));
+    // Each object is shaded by its own smoothing (decision 0126).
+    assert_eq!(options.hardness, None);
     assert!(harness.query_by_label("File type").is_none(), "closed");
     // Custom settings: no preset.
     assert_eq!(request.preset, None);

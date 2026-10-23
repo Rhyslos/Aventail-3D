@@ -18,7 +18,7 @@ The app has a lot of keys, and it's easy to forget one, especially when coming b
 3. **Click a key** to keep its jobs listed while you move the mouse away. Click it again to let go.
 4. Point at or click **Shift**, **Ctrl** or **Alt** to see what holding it does (such as "Ten times finer" while dragging), and under **Held with**, every shortcut that uses it.
 5. To find a key by what it does, type in **Find a key or action**: "weld", "hide", "ctrl". The matching keys get a coloured outline, the rest go dark, and the matches are listed on the right.
-6. Click **Keys** again, or the window's ×, to close it.
+6. Click **Keys** again, press **Esc**, or click the window's ×, to close it. (While the window is open, **E** doesn't open the tool menu over it.)
 
 ### What the colours mean
 
@@ -58,14 +58,15 @@ Keys can't be changed yet; custom keys are planned.
 
 | Action | Shortcut |
 |---|---|
-| Open or close the window | Click **Keys** on the menu bar |
+| Open or close the window | Click **Keys** on the menu bar (or **Help → Keys**); `Esc` closes it |
 | See a key's jobs | Point at it on the drawing |
 | Keep a key's jobs shown | Click it on the drawing (again to let go) |
+| Find any command by name, with its key | `Space` ([Command search](command-search.md)) |
 
 ## Tips and common problems
 
 - **Tip:** the window opens big, sized to fit your screen (on a very wide monitor it stays about twice as wide as it is tall, so it doesn't stretch). Everything in it, keys and text alike, grows and shrinks with it: drag its corner to make it bigger or smaller, and move it by its title.
-- **Tip:** a key with several marks does several jobs: Esc, for example, deselects, cancels a drag, finishes a slit and closes menus. Point at it to see which is which.
+- **Tip:** a key with several marks does several jobs: Esc, for example, deselects, cancels a drag, cancels a slit and closes menus and windows. Point at it to see which is which.
 - **Problem:** typing in the search field does nothing in the viewport. **Why:** while you type there, keys go to the field, not the tools. **Fix:** click the viewport to use the keys again.
 - **Problem:** a key doesn't work in some mode. **Why:** many keys belong to a mode. **Fix:** check its coloured dot: orange keys work in the Points, Edges and Polygons modes, purple ones in the Model mode.
 - **Problem:** the drawn keyboard isn't mine. **Fix:** pick yours from the **Keyboard** list. If yours isn't there, pick the closest: the letters are what matter, and they're the same on most keyboards that use the same alphabet.
@@ -74,3 +75,4 @@ Keys can't be changed yet; custom keys are planned.
 
 - [Interface tour](interface-tour.md): the most used keys.
 - [The tool menu (E)](tool-menu.md): every tool for the mode, with its key.
+- [Command search (Space)](command-search.md): find a command by typing part of its name; its key is shown beside it.

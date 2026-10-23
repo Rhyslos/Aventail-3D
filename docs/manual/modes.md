@@ -24,7 +24,7 @@ In these modes you can see a shape's points and edges, see which one is under th
    - In **Points** mode, every point shows as a small white dot. The one nearest the mouse turns light red and grows.
    - In **Edges** mode, every edge is drawn as a thin white line. The one nearest the mouse turns light red and thick.
    - In **Polygons** mode, the face under the mouse is tinted light red, with an outline.
-   Selected ones are drawn in the full accent red, so you can tell them apart from the one under the mouse.
+   Selected ones are drawn in the full accent red, larger and thicker than anything else and on top of it, so you can tell them apart from the one under the mouse and they never hide behind seams or hard edges. If they're still hard to see, switch on **High contrast** in **Edit → Settings… → Interface**: a larger selection with a dark rim ([Settings](settings.md)).
    The status bar names what's under the mouse, for example *Under the mouse: point 4 of Cube*.
 4. **Click, drag or double-click to select** points, edges or polygons: see [Selecting](selecting.md).
 5. **Press the same key again** (or pick Model) to go back to working on whole objects.
@@ -58,5 +58,5 @@ The keys don't work while you're typing in a field, such as renaming an object; 
 
 - [Selecting](selecting.md)
 - [Interface tour: Modes](interface-tour.md#modes)
-- [Objects: selecting and Make editable](objects.md)
+- [Objects: selecting and Bake into shape](objects.md)
 - [Concepts: mesh basics](concepts.md#mesh-basics) (vertex, edge, polygon, element)

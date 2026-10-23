@@ -115,12 +115,6 @@ pub enum CommandId {
     UvUnpin,
     /// The group holding the turns and flips: choosing it shows them.
     UvTurnFlip,
-    /// The group holding stitching and cutting: choosing it shows them.
-    UvStitchCut,
-    /// Join the selected UV edges to their partners.
-    UvStitch,
-    /// Split the selected UV edges apart.
-    UvCut,
 }
 
 /// Everything shown about a command.
@@ -176,7 +170,7 @@ impl CommandId {
                 None,
             ),
             Self::MakeEditable => (
-                "Make editable",
+                "Bake into shape",
                 Icon::MakeEditable,
                 Some(MAKE_EDITABLE_SHORTCUT),
                 "Turn the selected shapes into plain meshes, ready for editing points, \
@@ -199,7 +193,7 @@ impl CommandId {
                 None,
             ),
             Self::Delete => (
-                "Delete",
+                "Delete objects",
                 Icon::Delete,
                 Some(DELETE_SHORTCUT),
                 "Delete the selected objects (Backspace does it too)",
@@ -296,7 +290,8 @@ impl CommandId {
                 Icon::Extrude,
                 plain(Key::D),
                 "Push the selected polygons or edges out, building new sides between \
-                 the old place and the new",
+                 the old place and the new. With points selected along an open edge, \
+                 the edges between them grow new polygons",
                 None,
             ),
             Self::Inset => (
@@ -347,7 +342,7 @@ impl CommandId {
                 None,
             ),
             Self::HardEdges => (
-                "Hard edges",
+                "Mark hard edges",
                 Icon::HardEdges,
                 None,
                 "Shade the selected edges (or the selected polygons' edges) as crisp edges: \
@@ -355,7 +350,7 @@ impl CommandId {
                 None,
             ),
             Self::SoftEdges => (
-                "Soft edges",
+                "Mark soft edges",
                 Icon::SoftEdges,
                 None,
                 "Shade the selected edges (or the selected polygons' edges) smoothly: the light \
@@ -363,7 +358,7 @@ impl CommandId {
                 None,
             ),
             Self::DeleteElements => (
-                "Delete",
+                "Delete points, edges or polygons",
                 Icon::Delete,
                 plain(Key::Delete),
                 "Delete the selected points, edges or polygons, and the polygons using them, \
@@ -382,8 +377,9 @@ impl CommandId {
                 "Weld",
                 Icon::Weld,
                 plain(Key::M),
-                "Melt the selected points into one at their middle; Ctrl + M to drag a point \
-                 onto another",
+                "Melt the selected points into one at their middle (selected polygons: each \
+                 touching group at its middle, such as an inset cap into a fan of triangles); \
+                 Ctrl + M to drag a point or polygon onto a point",
                 None,
             ),
             Self::Connect => (
@@ -398,7 +394,7 @@ impl CommandId {
                 Icon::Slit,
                 plain(Key::X),
                 "Cut new edges along a line: click or drag its points over the shape; \
-                 Esc or Enter finishes, or click the first point to close a loop",
+                 Enter finishes, Esc cancels, or click the first point to close a loop",
                 None,
             ),
             Self::LoopCut => (
@@ -508,28 +504,6 @@ impl CommandId {
                  four",
                 None,
             ),
-            Self::UvStitchCut => (
-                "Stitch & cut",
-                Icon::UvStitchCut,
-                None,
-                "Join UV edges to their partners, or split them apart: choose this to see both",
-                None,
-            ),
-            Self::UvStitch => (
-                "Stitch",
-                Icon::UvStitch,
-                plain(Key::C),
-                "Join the selected UV edges to their partners on the model, bringing the \
-                 smaller piece over to the bigger",
-                Some("Arrives in Phase 8, milestone 8"),
-            ),
-            Self::UvCut => (
-                "Cut",
-                Icon::UvCut,
-                plain(Key::X),
-                "Split the selected UV edges, so the pieces either side can move apart",
-                Some("Arrives in Phase 8, milestone 8"),
-            ),
         };
         CommandInfo {
             name,
@@ -556,7 +530,6 @@ impl CommandId {
                 Self::UvFlipU,
                 Self::UvFlipV,
             ],
-            Self::UvStitchCut => &[Self::UvStitch, Self::UvCut],
             _ => &[],
         }
     }
@@ -594,13 +567,14 @@ impl CommandId {
             | Self::PivotToOrigin
             | Self::PivotToObject
             | Self::ObjectToOrigin => &[Object],
-            Self::Extrude | Self::Bridge => &[Edges, Polygons],
+            Self::Extrude => &[Points, Edges, Polygons],
+            Self::Bridge => &[Edges, Polygons],
             Self::Inset | Self::FlipNormals => &[Polygons],
             Self::Bevel | Self::Connect => &[Points, Edges],
             Self::Groove => &[Edges],
             Self::FillHole => &[Edges, Polygons],
             Self::HardEdges | Self::SoftEdges => &[Edges, Polygons],
-            Self::Weld => &[Points],
+            Self::Weld => &[Points, Polygons],
             Self::DeleteElements | Self::Dissolve | Self::Slit | Self::LoopCut => {
                 &[Points, Edges, Polygons]
             }
@@ -616,10 +590,7 @@ impl CommandId {
             | Self::Pack
             | Self::UvPin
             | Self::UvUnpin
-            | Self::UvTurnFlip
-            | Self::UvStitchCut
-            | Self::UvStitch
-            | Self::UvCut => &[Uv],
+            | Self::UvTurnFlip => &[Uv],
         }
     }
 }
@@ -701,24 +672,26 @@ pub const MODELLING_RING: [CommandId; RING_PLACES] = [
 /// follows where you work, decision 0097). The gizmos and framing keep
 /// their places from the object ring; seams at the right, unwrapping at
 /// the bottom, packing, turning and pinning at the left. Turning and
-/// flipping share one place, as do stitching and cutting: choosing one
-/// shows what it holds (decision 0109).
-pub const UV_RING: [CommandId; RING_PLACES] = [
-    CommandId::Move,
-    CommandId::Rotate,
-    CommandId::Scale,
-    CommandId::AllGizmos,
-    CommandId::FrameSelected,
-    CommandId::MarkSeam,
-    CommandId::ClearSeam,
-    CommandId::Unwrap,
-    CommandId::Relax,
-    CommandId::Straighten,
-    CommandId::Pack,
-    CommandId::UvTurnFlip,
-    CommandId::UvPin,
-    CommandId::UvUnpin,
-    CommandId::UvStitchCut,
+/// flipping share one place: choosing it shows what it holds (decision
+/// 0109).
+pub const UV_RING: [Option<CommandId>; RING_PLACES] = [
+    Some(CommandId::Move),
+    Some(CommandId::Rotate),
+    Some(CommandId::Scale),
+    Some(CommandId::AllGizmos),
+    Some(CommandId::FrameSelected),
+    Some(CommandId::MarkSeam),
+    Some(CommandId::ClearSeam),
+    Some(CommandId::Unwrap),
+    Some(CommandId::Relax),
+    Some(CommandId::Straighten),
+    Some(CommandId::Pack),
+    Some(CommandId::UvTurnFlip),
+    Some(CommandId::UvPin),
+    Some(CommandId::UvUnpin),
+    // Stitch and cut take this place when they're built (Phase 8): no
+    // placeholder until then (decision 0126).
+    None,
 ];
 
 /// One entry of the tool menu: a command and its place on the ring.
@@ -739,7 +712,7 @@ pub fn menu_for(mode: Mode) -> Vec<Slot> {
         Mode::Model => OBJECT_RING,
         Mode::Object => PIVOT_RING,
         Mode::Points | Mode::Edges | Mode::Polygons => MODELLING_RING.map(Some),
-        Mode::Uv => UV_RING.map(Some),
+        Mode::Uv => UV_RING,
     };
     ring.iter()
         .enumerate()
@@ -775,7 +748,7 @@ pub fn group_menu(group: CommandId, ring: &[Slot]) -> Vec<Slot> {
 }
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 50] = [
+pub const ALL: [CommandId; 47] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -823,9 +796,6 @@ pub const ALL: [CommandId; 50] = [
     CommandId::UvPin,
     CommandId::UvUnpin,
     CommandId::UvTurnFlip,
-    CommandId::UvStitchCut,
-    CommandId::UvStitch,
-    CommandId::UvCut,
 ];
 
 #[cfg(test)]
@@ -838,11 +808,14 @@ mod tests {
         let all: HashSet<_> = ALL.into_iter().collect();
         assert_eq!(all.len(), ALL.len());
         for command in ALL {
-            let in_group = UV_RING.iter().any(|g| g.members().contains(&command));
+            let in_group = UV_RING
+                .iter()
+                .flatten()
+                .any(|g| g.members().contains(&command));
             let placed = OBJECT_RING.contains(&Some(command))
                 || PIVOT_RING.contains(&Some(command))
                 || MODELLING_RING.contains(&command)
-                || UV_RING.contains(&command)
+                || UV_RING.contains(&Some(command))
                 || in_group;
             assert!(placed, "{command:?} has no place in the tool menu");
             assert!(!command.modes().is_empty(), "{command:?}");
@@ -904,16 +877,13 @@ mod tests {
             plain(Key::Delete)
         );
         assert_eq!(CommandId::Dissolve.info().shortcut, plain(Key::Backspace));
-        // In the UV Editor: X cuts, C stitches (the project lead's choice).
-        assert_eq!(CommandId::UvCut.info().shortcut, plain(Key::X));
-        assert_eq!(CommandId::UvStitch.info().shortcut, plain(Key::C));
         assert_eq!(CommandId::UvPin.info().shortcut, None);
     }
 
     #[test]
     fn groups_open_their_commands_around_their_own_place() {
         let ring = menu_for(Mode::Uv);
-        for group in [CommandId::UvTurnFlip, CommandId::UvStitchCut] {
+        for group in [CommandId::UvTurnFlip] {
             assert!(group.is_group());
             let place = ring.iter().find(|s| s.command == group).unwrap().place;
             let inside = group_menu(group, &ring);
@@ -958,13 +928,14 @@ mod tests {
             delete(menu_for(Mode::Points))
         );
         assert_eq!(delete(menu_for(Mode::Model)), Some((8, RING_PLACES)));
-        // The UV ring: every place filled, the gizmos where the object
-        // ring has them.
+        // The UV ring: the gizmos where the object ring has them, and no
+        // placeholder for what isn't built (decision 0126).
         let uv: Vec<_> = menu_for(Mode::Uv).iter().map(|s| s.command).collect();
-        assert_eq!(uv, UV_RING.to_vec());
+        assert_eq!(uv, UV_RING.iter().flatten().copied().collect::<Vec<_>>());
         for (place, command) in UV_RING.iter().enumerate().take(5) {
-            assert_eq!(OBJECT_RING[place], Some(*command));
+            assert_eq!(OBJECT_RING[place], *command);
         }
+        assert!(ALL.iter().all(|c| c.is_built()));
     }
 
     #[test]
@@ -1025,14 +996,13 @@ mod tests {
         let objects: Vec<_> = OBJECT_RING.iter().flatten().copied().collect();
         let pivots: Vec<_> = PIVOT_RING.iter().flatten().copied().collect();
         let turns = CommandId::UvTurnFlip.members();
-        let stitches = CommandId::UvStitchCut.members();
+        let uv: Vec<_> = UV_RING.iter().flatten().copied().collect();
         for ring in [
             &objects[..],
             &pivots[..],
             &MODELLING_RING[..],
-            &UV_RING[..],
+            &uv[..],
             turns,
-            stitches,
         ] {
             let icons: HashSet<_> = ring.iter().map(|c| c.info().icon).collect();
             assert_eq!(icons.len(), ring.len());

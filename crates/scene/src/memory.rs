@@ -194,6 +194,7 @@ pub(crate) fn edit(edit: &Edit) -> usize {
             | Edit::SetTexture { .. }
             | Edit::SetMending { .. }
             | Edit::SetCollision { .. }
+            | Edit::SetHardness { .. }
             | Edit::SetMirror { .. } => 0,
             Edit::SetExportTarget { before, after } => [before, after]
                 .iter()

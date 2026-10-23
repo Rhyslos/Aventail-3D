@@ -9,6 +9,7 @@
 
 mod attributes;
 mod autosave;
+mod command_search;
 pub mod commands;
 mod components;
 mod coordinates;
@@ -28,6 +29,8 @@ mod selecting;
 mod settings;
 mod shape_picker;
 pub mod splash;
+#[cfg(test)]
+mod text_checks;
 pub mod theme;
 mod tool_menu;
 mod transforming;

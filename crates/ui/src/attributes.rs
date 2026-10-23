@@ -532,6 +532,11 @@ impl AttributesPanel {
                         if object.kind.has_shape() {
                             collision_row(ui, id, object.collision, out);
                         }
+                        if object.kind.has_shape()
+                            && !matches!(object.kind, ObjectKind::Instance(_))
+                        {
+                            smoothing_row(ui, id, object.hardness, out);
+                        }
                     });
                 if let ObjectKind::Instance(source) = &object.kind {
                     section(ui, "Instance");
@@ -542,7 +547,7 @@ impl AttributesPanel {
                     ui.label(format!("Shows the shape of: {original}"));
                     ui.label(
                         RichText::new(
-                            "Change the original and every instance follows. Make editable \
+                            "Change the original and every instance follows. Bake into shape \
                              (Ctrl + E) gives this one its own shape.",
                         )
                         .small()
@@ -624,7 +629,8 @@ impl AttributesPanel {
             "Drag from one open edge to another. With two borders or two polygons selected, C \
              bridges them at once."
         } else if self.tool == Tool::Weld {
-            "Drag a point onto another; a selected point brings the whole selection."
+            "Drag a point (or a polygon, in the Polygons mode) onto a point; a selected one \
+             brings the whole selection."
         } else if self.tool == Tool::Slit {
             "Click or drag points over the shape. Esc or Enter finishes the line; click the first point to close it into a loop."
         } else if self.tool == Tool::LoopCut {
@@ -780,30 +786,6 @@ impl AttributesPanel {
                         }));
                     }
                     ui.end_row();
-                    label(
-                        ui,
-                        "Keep editable",
-                        "Keep this edit changeable: Freeze never bakes it, so its settings stay \
-                         open for good",
-                    );
-                    let mut kept = entry.pinned;
-                    let switch = ui.checkbox(&mut kept, "");
-                    switch.widget_info(|| {
-                        egui::WidgetInfo::selected(
-                            egui::WidgetType::Checkbox,
-                            true,
-                            kept,
-                            KEEP_EDITABLE_SWITCH,
-                        )
-                    });
-                    if switch.changed() {
-                        out.push(DocRequest::Run(Command::SetEditPinned {
-                            id,
-                            edit,
-                            pinned: kept,
-                        }));
-                    }
-                    ui.end_row();
                 });
         });
         if entry.operation.settings().is_some() {
@@ -828,7 +810,7 @@ impl AttributesPanel {
             let problem = stack.freeze_problem(edit);
             let count = scene::frozen_count(stack, edit);
             let help = match problem {
-                Some(why) => format!("Can't freeze: {why}."),
+                Some(why) => format!("Can't bake into the shape: {why}."),
                 None => format!(
                     "Bake the shape's settings and the {} up to and including this one into \
                      the shape, so they no longer have to be made again: big models stay quick. \
@@ -1351,10 +1333,8 @@ fn mesh_section(ui: &mut Ui, report: Option<&MeshReport>, current: bool, plain_m
 
 /// The button that closes an opened edit.
 pub(crate) const CLOSE_EDIT_LABEL: &str = "Close";
-/// The opened edit's Keep editable switch, for screen readers and tests.
-pub(crate) const KEEP_EDITABLE_SWITCH: &str = "Keep this edit editable";
 /// Freezes the edits up to the opened one (decision 0092).
-pub(crate) const FREEZE_LABEL: &str = "Freeze up to here";
+pub(crate) const FREEZE_LABEL: &str = "Bake into shape up to here";
 /// Deletes the opened edit.
 pub(crate) const DELETE_EDIT_LABEL: &str = "Delete edit";
 
@@ -2092,6 +2072,66 @@ fn collision_row(ui: &mut Ui, id: ObjectId, current: scene::Collision, out: &mut
     }
     ui.end_row();
 }
+
+/// The Smoothing row (decision 0126): whether the object is smoothed by
+/// angle, and from what angle edges shade hard; unticked, only the edges
+/// marked hard do.
+fn smoothing_row(ui: &mut Ui, id: ObjectId, current: mesh::Hardness, out: &mut Vec<DocRequest>) {
+    label(
+        ui,
+        "Smoothing",
+        "How the shading breaks into crisp edges. By angle: wherever polygons meet more \
+         sharply than the angle, after every change. Unticked: only the edges you mark hard \
+         (Mesh → Mark hard edges). Marking edges switches it to that.",
+    );
+    ui.horizontal(|ui| {
+        let mut by_angle = matches!(current, mesh::Hardness::ByAngle(_));
+        let switch = ui.checkbox(&mut by_angle, "By angle");
+        switch.widget_info(|| {
+            egui::WidgetInfo::selected(egui::WidgetType::Checkbox, true, by_angle, SMOOTH_BY_ANGLE)
+        });
+        if switch.changed() {
+            out.push(DocRequest::Run(Command::SetHardness {
+                ids: vec![id],
+                hardness: if by_angle {
+                    mesh::Hardness::ByAngle(scene::STANDARD_SMOOTHING_ANGLE)
+                } else {
+                    mesh::Hardness::Marked
+                },
+            }));
+        }
+        if let mesh::Hardness::ByAngle(angle) = current {
+            let mut value = angle;
+            let response = ui
+                .add(
+                    egui::DragValue::new(&mut value)
+                        .range(0.0..=180.0)
+                        .speed(0.5)
+                        .suffix("°"),
+                )
+                .on_hover_text("Edges where polygons meet more sharply than this are crisp");
+            response.widget_info(|| {
+                egui::WidgetInfo::labeled(egui::WidgetType::DragValue, true, SMOOTHING_ANGLE)
+            });
+            if value != angle && value.is_finite() {
+                out.push(DocRequest::RunMerging(
+                    Command::SetHardness {
+                        ids: vec![id],
+                        hardness: mesh::Hardness::ByAngle(value.clamp(0.0, 180.0)),
+                    },
+                    SMOOTHING_KEY ^ id.get(),
+                ));
+            }
+        }
+    });
+    ui.end_row();
+}
+
+/// The Smoothing row's switch and angle, for screen readers and tests.
+pub(crate) const SMOOTH_BY_ANGLE: &str = "Object smoothed by angle";
+pub(crate) const SMOOTHING_ANGLE: &str = "Smoothing angle";
+/// Merge key for dragging an object's smoothing angle (one drag, one step).
+const SMOOTHING_KEY: u64 = 0x5300_0000_0000_0000;
 
 /// A section title with a thin line under it.
 fn section(ui: &mut Ui, title: &str) {

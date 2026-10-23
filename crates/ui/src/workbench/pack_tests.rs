@@ -88,7 +88,7 @@ fn pack_fits_two_objects_into_one_square_without_overlaps_in_one_step() {
         }
     }
     assert!(
-        note(&harness).contains("Pack 12 islands"),
+        note(&harness).contains("Pack 12 pieces"),
         "{}",
         note(&harness)
     );

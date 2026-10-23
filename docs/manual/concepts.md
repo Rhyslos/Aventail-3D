@@ -15,7 +15,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Element (component)** — A vertex, edge or polygon: one of the parts a mesh is made of. The Points, Edges and Polygons modes work on elements instead of whole objects (see [Modes](modes.md)).
 
-**Selecting through** — Selecting with a box, lasso or brush can take only what faces you (*visible only*), or everything inside the outline, including the far side of the shape hidden behind it (*through*). The app selects through unless you switch it off: see [Selecting](selecting.md).
+**Selecting through** — Selecting with a box, lasso or brush can take only what faces you (*visible only*), or everything inside the outline, including the far side of the shape hidden behind it (*through*). The app selects only what you can see unless you switch **Select only visible** off: see [Selecting](selecting.md).
 
 **Topology** — How the vertices, edges and polygons are connected, as opposed to where they sit. Two meshes can have the same shape but different topology.
 
@@ -81,19 +81,19 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Edit layer** — A set of edits kept together on an object. An object's edits are kept in layers, applied bottom first, each working on the shape the ones below it made; new edits go into the top layer that is switched on. A layer can be switched off to see the shape without its edits, moved, merged into the layer below or deleted with everything in it. 3ds Max users know the idea as a stack of Edit Poly modifiers. See [Edit layers](edit-layers.md).
 
-**Edit list, keeping and freezing** — The list of an object's edits in the Edit layers panel. Any edit in it can be opened and changed, and the edits after it are made again. *Keeping* an edit editable (pinning it) protects it; *freezing* bakes the old edits up to one into the shape, so they no longer have to be made again: the shape stays the same, but those edits can't be changed any more. See [The edit list](edit-list.md).
+**Edit list** — The list of an object's edits in the Edit layers panel. Any edit in it can be opened and changed, and the edits after it are made again. *Bake into shape up to here* bakes the old edits up to one into the shape, so they no longer have to be made again: the shape stays the same, but those edits can't be changed any more. See [The edit list](edit-list.md).
 
 **Modifiers palette** — The thin column of buttons on the right of the viewport, beside the panels, for things that change a shape without destroying it. Its first button adds an edit layer; more join it in later versions.
 
-**Editable mesh (Make editable)** — Turning a shape into a plain mesh with no settings: its base and edits are baked together, so what you see becomes the new starting point. Do it when you no longer need the settings, or before editing a mesh freely. Undo brings the settings back. See [Objects](objects.md#make-editable).
+**Bake into shape** — Turning a shape into a plain mesh with no settings: its base and edits are baked together, so what you see becomes the new starting point. Do it when you no longer need the settings, or before editing a mesh freely. Undo brings the settings back. (Other programs call it *make editable*, *convert to editable poly* or *collapse*.) See [Objects](objects.md#bake-into-shape).
 
 **Hierarchy** — Objects can be children of other objects (sit *inside* them, in the Objects panel's tree). Moving a parent moves its children with it, and hiding it hides them too.
 
 **Undo history** — The list of changes you've made, kept so they can be taken back (undo, `Ctrl + Z`) and done again (redo, `Ctrl + Y`). This app keeps steps while it's open, up to a memory limit (2 GB as standard, set in **Edit → Settings… → Undo**), then forgets the oldest first. There's no limit on the *number* of steps. See [Objects](objects.md).
 
-**Pivot (axis / origin)** — The point an object rotates and scales around. In Godot, it's also the point the asset is placed and snapped by, so where you put it matters: on the hinge of a door, at the bottom corner of a wall piece. The [gizmo](transforming.md) sits on it. In the Object mode you can move and turn it without moving the shape; see [Pivots and the Object mode](pivots.md).
+**Pivot (axis / origin)** — The point an object rotates and scales around. In Godot, it's also the point the asset is placed and snapped by, so where you put it matters: on the hinge of a door, at the bottom corner of a wall piece. The [gizmo](transforming.md) sits on it. With **Edit pivot** on you can move and turn it without moving the shape; see [Pivots and Edit pivot](pivots.md).
 
-**Stretched object (uneven scale)** — An object scaled more along one of its axes than another in the Object mode, say twice as tall as it is wide. The shape itself isn't changed: the object is drawn stretched. Edits that measure across a shape (an inset's border, a bevel's width, which way is "straight out", a bend) have to know about the stretch, or they come out stretched too: a border wider on one side, a round pipe turning oval. Extrudes, insets, bevels, grooves and bends in this app take the object's stretch into account ([on a stretched object](extrude-and-inset.md#on-a-stretched-object)). Scaling the points in the Points mode instead changes the shape itself, with no stretch on the object; many modellers prefer it for that reason. To fix the stretch for good, [apply the scale](apply-transforms.md): the shape takes it, and the object goes back to 100%.
+**Stretched object (uneven scale)** — An object scaled more along one of its axes than another in the Model mode, say twice as tall as it is wide. The shape itself isn't changed: the object is drawn stretched. Edits that measure across a shape (an inset's border, a bevel's width, which way is "straight out", a bend) have to know about the stretch, or they come out stretched too: a border wider on one side, a round pipe turning oval. Extrudes, insets, bevels, grooves and bends in this app take the object's stretch into account ([on a stretched object](extrude-and-inset.md#on-a-stretched-object)). Scaling the points in the Points mode instead changes the shape itself, with no stretch on the object; many modellers prefer it for that reason. To fix the stretch for good, [apply the scale](apply-transforms.md): the shape takes it, and the object goes back to 100%.
 
 **Applying transforms (freezing)** — Making an object's placement part of its shape: its rotation goes back to 0° and its scale to 100% (its position to the centre, if you choose), while it looks the same, because its points move to where they were seen. Afterwards edits and game engines see a plain, unturned, unscaled object. Other programs call it *apply*, *freeze transformations* or *reset XForm*. See [Apply transforms](apply-transforms.md).
 
@@ -113,7 +113,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Instance** — An object that shows another object's shape instead of having its own. Change the original and every instance changes too. See [Copies and instances](copies-and-instances.md).
 
-**Symmetry (mirror modelling)** — Working on one half of a shape while the other half copies every change, mirrored across a plane through the middle. In this app the other half is a *live mirror*: a copy drawn and exported with the object, joined to your half where they meet, that follows every edit (other programs call it a mirror modifier). See [Symmetry](symmetry.md).
+**Symmetry (mirror modelling)** — Working on one half of a shape while the other half copies every change, mirrored across a plane through the middle. In this app the other half is a *live mirror*: a copy drawn and exported with the object, joined to your half where they meet, that follows every edit (other programs call it a mirror modifier). The mirror belongs to the object: its plane goes through the object's pivot and moves and turns with it. *Applying* the mirror makes the other half real geometry and switches symmetry off. See [Symmetry](symmetry.md).
 
 ## Viewing the scene
 
@@ -135,7 +135,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Hard and soft edges (smoothing)** — A *soft* edge blends the shading of the two faces next to it, so they look like one smooth surface. A *hard* edge keeps a sharp light/dark break. Hard-surface models need the right edges marked hard, or curved and flat areas shade wrongly. Other programs may call this *smoothing groups* or *Phong* breaks. See [Hard and soft edges](hard-and-soft-edges.md).
 
-**Auto-smooth (hard edges by angle)** — Marking every edge hard where its polygons meet more sharply than an angle, and the rest soft, instead of choosing edge by edge. This app does it for every shape after every change while **Automatic hard edges** is on (the standard; Mesh menu). See [Hard and soft edges](hard-and-soft-edges.md#automatic-hard-edges).
+**Smoothing by angle (auto-smooth)** — Shading an edge hard wherever its polygons meet more sharply than an angle, and soft everywhere else, instead of choosing edge by edge. In this app each object has its own smoothing: *smoothed by angle* (the standard, at 30°), worked out again after every change, or shaded only by the edges you mark hard. Change it on the object's Smoothing row in the Attributes panel, or with **Mesh → Shading → Smooth by angle**. See [Hard and soft edges](hard-and-soft-edges.md#smoothed-by-angle).
 
 **Weighted normals** — A trick that makes large flat faces shade perfectly flat on low-poly bevelled models, without baking a normal map.
 
@@ -143,7 +143,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **UV map** — A flattened copy of the mesh's surface, laid out on a square, telling the engine where each part of a texture goes. "U" and "V" are just the names of the 2D axes, like X and Y.
 
-**Seam** — An edge where the surface is "cut" so it can be flattened. Every UV island is bounded by seams. In hard-surface work, a good starting point is placing seams on hard edges. The ready-made shapes come with their seams marked where they're cut open; see [Seams](seams.md) to mark your own or have them suggested.
+**Seam** — An edge where the surface is "cut" so it can be flattened. Every UV piece is bounded by seams. In hard-surface work, a good starting point is placing seams on hard edges. The ready-made shapes come with their seams marked where they're cut open; see [Seams](seams.md) to mark your own or have them suggested.
 
 **Seam preference** — A note on an edge for the automatic UV tools: **prefer** (when a cut is needed, here first) or **never** (no cut here unless a piece couldn't lie flat otherwise). Not a seam itself. See [Seam preferences and stretch budgets](seam-preferences.md).
 
@@ -159,15 +159,15 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Pin (UV pin)** — A UV nailed to its spot on the texture: unwrapping lays the rest of its piece out around it, and relaxing leaves it where it is. See [Pinning UVs](pins.md).
 
-**UV island (shell)** — A connected piece of the flattened surface. In this app, polygons are in the same island when they share an edge whose UVs match on both sides.
+**UV piece (island, shell)** — A connected piece of the flattened surface. Other programs call it an *island* or a *shell*; this app says *piece*. Polygons are in the same piece when they share an edge whose UVs match on both sides.
 
-**Corner (of a polygon)** — A point as one polygon uses it. UVs belong to corners, not points: a point on a seam has one UV in each island it touches. Every shape in this app comes with UVs ([Primitives: ready-made UVs](primitives.md#ready-made-uvs)).
+**Corner (of a polygon)** — A point as one polygon uses it. UVs belong to corners, not points: a point on a seam has one UV in each piece it touches. Every shape in this app comes with UVs ([Primitives: ready-made UVs](primitives.md#ready-made-uvs)).
 
-**Unwrapping** — Flattening the mesh along its seams into islands ([Unwrap](unwrapping.md)). A piece can be laid flat in one go only if it is shaped like a **disk**: one piece, with one border all round (a cube's side, a sheet). A tube (two borders) or a ball (none) needs a cut first. A curved piece can't lie flat perfectly: an unwrap keeps either the shapes of its parts (squares stay square) or their sizes (pixels stay the same size), or a balance of the two (see **Unwrap method** in [Unwrap](unwrapping.md#settings)).
+**Unwrapping** — Flattening the mesh along its seams into pieces ([Unwrap](unwrapping.md)). A piece can be laid flat in one go only if it is shaped like a **disk**: one piece, with one border all round (a cube's side, a sheet). A tube (two borders) or a ball (none) needs a cut first. A curved piece can't lie flat perfectly: an unwrap keeps either the shapes of its parts (squares stay square) or their sizes (pixels stay the same size), or a balance of the two (see **Unwrap method** in [Unwrap](unwrapping.md#settings)).
 
-**Stretching (distortion)** — When an island's shape on the UV map doesn't match its real shape, textures look squashed or stretched. A checker texture makes it easy to spot ([Checker and Stretch views](checker-and-stretch.md)).
+**Stretching (distortion)** — When a piece's shape on the UV map doesn't match its real shape, textures look squashed or stretched. A checker texture makes it easy to spot ([Checker and Stretch views](checker-and-stretch.md)).
 
-**Packing** — Arranging all islands to fill the UV square as efficiently as possible, with a gap (**padding**) between them so textures don't bleed into each other ([Packing](packing.md)).
+**Packing** — Arranging all pieces to fill the UV square as efficiently as possible, with a gap (**padding**) between them so textures don't bleed into each other ([Packing](packing.md)).
 
 **Texel density** — How many texture pixels cover a given real-world size, e.g. 512 pixels per metre. Keeping it consistent across an asset (and across a game) makes everything look equally sharp. See [Texture size and texel density](texture-and-density.md).
 

@@ -26,6 +26,8 @@ Whenever you want to change *what* an object is rather than where it is: make a 
 
 **Collision.** Under Visible, shapes have a **Collision** row: what a game engine makes the player bump into (None, The shape itself, Wrapped, A box). Exports made for Godot carry it. See [Kit export and collision](kit-export.md).
 
+**Smoothing.** Under Collision, shapes have a **Smoothing** row: how the object's shading breaks into crisp edges. With **By angle** ticked (the standard), wherever its polygons meet more sharply than the angle beside it (**30°** as standard; drag or type it), worked out again after every change. Unticked, only the edges marked hard. Each object has its own. Instances follow their original, so they don't show the row. See [Hard and soft edges](hard-and-soft-edges.md#smoothed-by-angle).
+
 **Materials.** Every shape has a **Materials** section: its materials, each with a colour, a name, how many polygons use it and an **Assign** button that gives the selected polygons that material (in the Polygons mode). **Add material** and **Remove last** change the list. See [Materials](materials.md).
 
 **Mesh.** Every shape has a **Mesh** section (scroll down to it below the settings). It says what the shape is made of right now, settings and edits included:
@@ -40,13 +42,13 @@ On a [heavy shape](heavy-shapes.md) (from about 50 000 polygons), the check runs
 
 ![The Mesh section of a cube: 8 points, 12 edges, 6 polygons, 12 triangles, closed, no problems](../screenshots/2026-10-11-mesh-section.png)
 
-**Meshes.** An object that has been [made editable](objects.md#make-editable) has no settings: the panel shows "(mesh)" after its name, and the Mesh section.
+**Meshes.** An object that has been [baked into its shape](objects.md#bake-into-shape) has no settings: the panel shows "(mesh)" after its name, and the Mesh section.
 
 **Last edit.** Right after an [extrude or inset](extrude-and-inset.md), a **Last edit** section at the top shows its **Distance** and **Keep together** switch; after a [bevel](bevel.md), its **Width**, **Segments** and **Profile** (from 100% round through 0% flat to -100% hollow); after a [loop cut](loop-cut.md), its **Cuts** and **Position**. Change either and the shape follows; each change is one undo step. Once you make another edit on top, the section moves on to the new edit; to change an older one, click it in the [edit list](edit-list.md).
 
 **Selecting something else ends it.** The Last edit can be changed only while the selection it was made with is still selected. Select other polygons (or edges or points) and the panel shows the tool's own settings instead, for your next use of it, so setting up the next extrude never changes the one before. A small line, **Last edit: Extrude 1 polygon** with a **Change it** button, opens the earlier edit if you do want to change it. **Ctrl + wheel** follows the same rule. While Extrude or Inset is the tool in use and there is no such last edit, the top of the panel shows the tool's own **Keep together** switch instead, for the next drag (for Bevel, its **Segments** and **Profile**; for Loop cut, its **Cuts**).
 
-**An opened edit.** Click an edit in the [Edit layers panel's edit list](edit-list.md) and it takes the Last edit's place: **Edit: Extrude 1 polygon**, say, with **On**, **Keep editable**, its settings, and **Freeze up to here** and **Delete edit**. **Close** goes back to the last edit, and so does making a new edit.
+**An opened edit.** Click an edit in the [Edit layers panel's edit list](edit-list.md) and it takes the Last edit's place: **Edit: Extrude 1 polygon**, say, with **On**, its settings, and **Bake into shape up to here** and **Delete edit**. **Close** goes back to the last edit, and so does making a new edit.
 
 **Edits.** Moving, rotating and scaling points, edges and polygons ([Move, rotate and scale](transforming.md)), and extruding and insetting, record your edits on top of a shape instead of changing its settings (see [Base and edits](concepts.md#objects-and-scenes)). When a shape has edits, an **Edits** section says how many, and the settings above stay editable: change them and the edits are made again on the new shape.
 - Changing segments renumbers a shape's points. Edits remember where their points, edges and polygons were and find them there again, and a quiet line says so (*1 edit found its points again on the changed shape*; hover over it for why). Nothing needs doing.
@@ -69,6 +71,8 @@ What each shape offers is listed on the [Primitives](primitives.md#settings) pag
 | **Closed ends** | Whether a cylinder or cone has flat ends. Open ends are handy for pipes and lamp shades. |
 | **Cap segments** (cylinder, cone) and **Ring segments** (disc) | How many rings each flat end is cut into, from the rim inwards. One ring is a single face. More rings give you edges to model with, such as an inset ring for a lid. |
 | **Centre point** | How the middle of each end is made. Off (standard): the middle is one face with many corners (an [n-gon](concepts.md#mesh-basics)), which stays clean to model on. On: the middle is cut into triangles that meet at one point in the centre, like slices of a pie, which some game engines and sculpting steps prefer. |
+
+| **Smoothing: By angle**, and its angle | Every shape. Ticked (standard): edges sharper than the angle (30° as standard, 0° to 180°) are crisp, the rest smooth, after every change. Unticked: only the edges marked hard. Marking edges hard or soft on an object smoothed by angle unticks it for you, keeping its look. See [Hard and soft edges](hard-and-soft-edges.md). |
 
 Values are kept within limits (sizes from 1 mm to 10 km; up to 256 segments and 512 sides; holes always smaller than the shape), so dragging too far simply stops at the limit.
 

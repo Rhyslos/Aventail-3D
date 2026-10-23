@@ -61,4 +61,4 @@ None of its own: it comes with every modelling tool.
 - [Seams](seams.md)
 - [Checker and Stretch views](checker-and-stretch.md)
 - [The edit list](edit-list.md)
-- [Concepts: UV map, island, seam](concepts.md#uvs-and-texturing)
+- [Concepts: UV map, piece, seam](concepts.md#uvs-and-texturing)

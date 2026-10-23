@@ -344,9 +344,9 @@ fn typing_in_the_coordinates_panel_moves_and_scales() {
         Some("Move Cube")
     );
     // Rotation is in degrees.
-    harness.get_by_label("Rotation H").click();
+    harness.get_by_label("Rotation Z").click();
     harness.run();
-    harness.get_by_label("Rotation H").type_text("90");
+    harness.get_by_label("Rotation Z").type_text("90");
     harness.run();
     harness.key_press(Key::Enter);
     harness.run();
@@ -523,7 +523,7 @@ fn the_symmetry_button_gives_the_selected_object_a_live_mirror() {
     let doc = workbench.document();
     assert_eq!(
         doc.scene().object(id).unwrap().mirror,
-        Some(scene::LiveMirror::across_x())
+        Some(scene::LiveMirror::on_object_x())
     );
     assert_eq!(doc.undo_label(), Some("Mirror"));
     assert!(
@@ -531,8 +531,8 @@ fn the_symmetry_button_gives_the_selected_object_a_live_mirror() {
             .query_by_label_contains("Symmetry on, across X")
             .is_some()
     );
-    // Moved to the side, its twin stands on the other side of the world
-    // centre: drawn, and in the box around the scene.
+    // The mirror belongs to the object (decision 0126): moved to the
+    // side, its twin moves with it, mirrored across its own pivot.
     harness
         .state_mut()
         .workbench
@@ -549,7 +549,8 @@ fn the_symmetry_button_gives_the_selected_object_a_live_mirror() {
     let workbench = &harness.state().workbench;
     let doc = workbench.document();
     let bounds = doc.scene().bounds().unwrap();
-    assert!((bounds.min.x + 150.0).abs() < 1e-3, "{bounds:?}");
+    assert!((bounds.min.x - 50.0).abs() < 1e-3, "{bounds:?}");
+    assert!((bounds.max.x - 150.0).abs() < 1e-3, "{bounds:?}");
     let drawn = doc.scene().shown_shape(id).unwrap();
     assert_eq!(drawn.face_count(), 2 * shape(&harness).face_count());
     // Off again: one undo step.
@@ -731,4 +732,54 @@ fn alt_dragging_the_move_gizmo_slides_points_along_their_edges() {
         harness.state().workbench.document().undo_label(),
         Some("Slide 4 points")
     );
+}
+
+#[test]
+fn apply_mirror_keeps_both_halves_and_turns_symmetry_off() {
+    // As Blender's Apply (decision 0126): turning symmetry off afterwards
+    // keeps the shape whole.
+    let mut harness = fresh();
+    let id = cube(&harness);
+    harness.state_mut().workbench.apply_mirror();
+    assert!(
+        harness
+            .state()
+            .workbench
+            .note
+            .as_deref()
+            .unwrap()
+            .contains("symmetry on first")
+    );
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .set_selection([id]);
+    harness.run();
+    harness.get_by_label("Symmetry").click();
+    harness.run();
+    let shown = harness
+        .state()
+        .workbench
+        .document()
+        .scene()
+        .shown_shape(id)
+        .unwrap()
+        .face_count();
+    // In the Symmetry menu (the arrow beside the button).
+    harness
+        .get_by_label(crate::palette::SYMMETRY_MENU_LABEL)
+        .click();
+    harness.run();
+    harness
+        .get_by_label(crate::palette::APPLY_MIRROR_LABEL)
+        .click();
+    harness.run();
+    let doc = harness.state().workbench.document();
+    let object = doc.scene().object(id).unwrap();
+    assert!(object.mirror.is_none());
+    assert_eq!(doc.scene().evaluated(id).unwrap().mesh.face_count(), shown);
+    assert_eq!(doc.undo_label(), Some("Apply mirror"));
+    // Symmetry is off, and the shape still has both halves.
+    assert!(harness.state().workbench.selected_mirror().is_none());
 }

@@ -38,6 +38,17 @@ enum Elements {
     Points(Vec<VertexId>),
 }
 
+impl Elements {
+    /// The kind of element these are.
+    fn kind(&self) -> ElementKind {
+        match self {
+            Self::Polygons(_) => ElementKind::Polygons,
+            Self::Edges(_) => ElementKind::Edges,
+            Self::Points(_) => ElementKind::Points,
+        }
+    }
+}
+
 /// One object's part in a drag, as it was when the drag began.
 #[derive(Debug, Clone, PartialEq)]
 struct Part {
@@ -283,10 +294,17 @@ impl Workbench {
             return;
         }
         if ui.input_mut(|i| i.consume_shortcut(&WELD_TARGET_KEYS)) {
-            if self.mode == crate::palette::Mode::Points {
+            if matches!(
+                self.mode,
+                crate::palette::Mode::Points | crate::palette::Mode::Polygons
+            ) {
                 self.set_tool(Tool::Weld);
             } else {
-                self.note = Some("Weld works on points: press 1 for the Points mode.".into());
+                self.note = Some(
+                    "Weld works on points or polygons: press 1 for the Points mode or 3 for \
+                     Polygons."
+                        .into(),
+                );
             }
         }
         for command in [
@@ -580,8 +598,8 @@ impl Workbench {
                         "Groove works on edges: press 2 for the Edges mode and select some."
                     }
                     _ => {
-                        "Extrude works on polygons or edges: press 3 for the Polygons mode \
-                         (or 2 for Edges) and select some."
+                        "Extrude works on polygons, edges or points: press 3 for the Polygons \
+                         mode (2 for Edges, 1 for Points) and select some."
                     }
                 }
                 .into());
@@ -615,8 +633,26 @@ impl Workbench {
                     let corners = points.iter().map(|v| vec![*v]).collect();
                     (Elements::Points(points), corners)
                 }
+                ElementKind::Edges
+                    if tool == Tool::Extrude
+                        && let enclosed = enclosed_polygons(&item.mesh, &valid, self.mode)
+                        && !enclosed.is_empty() =>
+                {
+                    // Points or edges all the way round polygons: those
+                    // polygons are pushed out, as in the Polygons mode
+                    // (decision 0127), like a closed cap from its rim.
+                    let corners = enclosed
+                        .iter()
+                        .filter_map(|f| Some(item.mesh.face(*f)?.to_vec()))
+                        .collect();
+                    (Elements::Polygons(enclosed), corners)
+                }
                 ElementKind::Edges => {
-                    let edges: Vec<EdgeKey> = valid.edges().collect();
+                    let edges: Vec<EdgeKey> = if self.mode == Mode::Points {
+                        edges_between_points(&item.mesh, &valid)
+                    } else {
+                        valid.edges().collect()
+                    };
                     let corners = edges
                         .iter()
                         .map(|e| {
@@ -656,15 +692,25 @@ impl Workbench {
                     .filter_map(|v| item.mesh.position(*v))
                     .map(|p| item.transform.transform_point3(p)),
             );
+            let anchors = Anchors::record(&item.mesh, elements.kind(), &corners);
             parts.push(Part {
                 id: item.id,
                 elements,
                 scale: average_scale(item.transform),
                 stretch: scene::stretch_of(item.transform),
-                anchors: Anchors::record(&item.mesh, kind, &corners),
+                anchors,
             });
         }
         let Some(bounds) = Bounds::around(points) else {
+            if self.mode == Mode::Points && tool == Tool::Extrude {
+                self.note = Some(
+                    "Extrude: select the points all the way round a polygon (a cap's rim) to \
+                     push it out, or two or more points next to each other along an open \
+                     edge (the edge of a plane, or a hole) to grow new polygons from it."
+                        .into(),
+                );
+                return None;
+            }
             self.note = Some(format!(
                 "{}: select some {} first.",
                 tool.name(),
@@ -755,6 +801,40 @@ impl Workbench {
         }
         let mut changes = Vec::new();
         for part in &session.parts {
+            if let Elements::Polygons(faces) = &part.elements
+                && matches!(self.mode, Mode::Points | Mode::Edges)
+            {
+                // A polygon pushed out from its points or edges: its new
+                // rim, so the next drag carries on from there.
+                let Some(shape) = self.document.scene().evaluated(part.id) else {
+                    continue;
+                };
+                let mesh = &shape.mesh;
+                let topology = mesh.topology();
+                let mut selection = self.document.elements(part.id).cloned().unwrap_or_default();
+                let kind = if self.mode == Mode::Points {
+                    ElementKind::Points
+                } else {
+                    ElementKind::Edges
+                };
+                selection.clear_kind(kind);
+                for face in faces {
+                    let Some(corners) = mesh.face(*face) else {
+                        continue;
+                    };
+                    if kind == ElementKind::Points {
+                        for v in corners {
+                            selection.insert(scene::Element::Point(*v));
+                        }
+                    } else {
+                        for e in topology.face_edges(*face) {
+                            selection.insert(scene::Element::Edge(*e));
+                        }
+                    }
+                }
+                changes.push((part.id, selection));
+                continue;
+            }
             let Elements::Edges(edges) = &part.elements else {
                 continue;
             };
@@ -762,9 +842,19 @@ impl Workbench {
                 continue;
             };
             let mut selection = self.document.elements(part.id).cloned().unwrap_or_default();
-            selection.clear_kind(ElementKind::Edges);
-            for edge in outer_edges(&shape.mesh, edges) {
-                selection.insert(scene::Element::Edge(edge));
+            if self.mode == Mode::Points {
+                // Extruded from points: the new outer points, to press on.
+                selection.clear_kind(ElementKind::Points);
+                for edge in outer_edges(&shape.mesh, edges) {
+                    let (a, b) = edge.ends();
+                    selection.insert(scene::Element::Point(a));
+                    selection.insert(scene::Element::Point(b));
+                }
+            } else {
+                selection.clear_kind(ElementKind::Edges);
+                for edge in outer_edges(&shape.mesh, edges) {
+                    selection.insert(scene::Element::Edge(edge));
+                }
             }
             changes.push((part.id, selection));
         }
@@ -854,11 +944,54 @@ fn world_facing(mesh: &scene::Mesh, world: Mat4, elements: &Elements) -> Vec3 {
     }
 }
 
+/// The polygons the selection goes all the way round: every corner
+/// selected in the Points mode, every edge in the Edges mode. Extrude
+/// pushes these out (decision 0127), as a closed cap from its rim.
+fn enclosed_polygons(
+    mesh: &scene::Mesh,
+    selected: &scene::ElementSelection,
+    mode: Mode,
+) -> Vec<FaceId> {
+    let topology = mesh.topology();
+    mesh.faces()
+        .filter(|(f, corners)| match mode {
+            Mode::Points => corners
+                .iter()
+                .all(|v| selected.contains(scene::Element::Point(*v))),
+            Mode::Edges => topology
+                .face_edges(*f)
+                .iter()
+                .all(|e| selected.contains(scene::Element::Edge(*e))),
+            _ => false,
+        })
+        .map(|(f, _)| f)
+        .collect()
+}
+
+/// The open-border edges whose two ends are both among the selected
+/// points: what Extrude grows from in the Points mode (decision 0127).
+/// Edges inside the shape (polygons on both sides) have no open side to
+/// grow from, so they're left out.
+fn edges_between_points(mesh: &scene::Mesh, selected: &scene::ElementSelection) -> Vec<EdgeKey> {
+    let topology = mesh.topology();
+    topology
+        .border_edges()
+        .into_iter()
+        .filter(|e| {
+            let (a, b) = e.ends();
+            selected.contains(scene::Element::Point(a))
+                && selected.contains(scene::Element::Point(b))
+        })
+        .collect()
+}
+
 /// What the modelling tool in use works on in `mode`, if anything.
 fn kind_for(mode: Mode, tool: Tool) -> Option<ElementKind> {
     match (mode, tool) {
         (Mode::Polygons, Tool::Extrude | Tool::Inset) => Some(ElementKind::Polygons),
         (Mode::Edges, Tool::Extrude | Tool::Bevel | Tool::Groove) => Some(ElementKind::Edges),
+        // Extruding points grows the open edges between them (decision 0127).
+        (Mode::Points, Tool::Extrude) => Some(ElementKind::Edges),
         (Mode::Points, Tool::Bevel) => Some(ElementKind::Points),
         _ => None,
     }

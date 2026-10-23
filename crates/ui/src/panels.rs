@@ -42,16 +42,6 @@ pub(crate) fn menu_line_with(ui: &mut Ui, add_menus: impl FnOnce(&mut Ui)) {
             ui.spacing_mut().item_spacing.x = 4.0;
             add_menus(ui);
         });
-    line.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-        let (search, response) = ui.allocate_exact_size(egui::vec2(20.0, 20.0), Sense::hover());
-        icons::paint(
-            ui.painter(),
-            Rect::from_center_size(search.center(), egui::vec2(13.0, 13.0)),
-            Icon::Search,
-            theme::TEXT_WEAK,
-        );
-        response.on_hover_text("Search arrives in Phase 2");
-    });
 }
 
 /// A heading and an explanation, centred, for panels with nothing in them.

@@ -131,27 +131,33 @@ fn a_box_selects_shapes_and_shift_box_unselects() {
 }
 
 #[test]
-fn a_box_selects_points_through_the_shape_as_standard() {
+fn a_box_selects_only_what_shows_as_standard_and_through_when_switched() {
+    // Select only visible is on as standard (decision 0126), as a click is.
     let mut harness = points_mode();
+    assert!(harness.state().workbench.view_options().select_visible_only);
     box_over_everything(&mut harness, Modifiers::NONE);
-    assert_eq!(selected_points(&harness), 8, "the hidden corner too");
+    assert_eq!(
+        selected_points(&harness),
+        7,
+        "the hidden corner is left out"
+    );
     assert!(
         harness
-            .query_by_label_contains("8 points selected")
+            .query_by_label_contains("7 points selected")
             .is_some()
     );
     // The selected points are drawn in the selection style.
     let overlay = &harness.state().renderer.drawn.last().unwrap().overlay;
-    assert_eq!(overlay.points.len(), 8);
+    assert_eq!(overlay.points.len(), 7);
 
-    // With "select only visible" on, the hidden corner is left out.
+    // Switched off, the box selects through the shape.
     harness
         .get_by_label(crate::palette::VISIBLE_ONLY_LABEL)
         .click();
     harness.run();
-    assert!(harness.state().workbench.view_options().select_visible_only);
+    assert!(!harness.state().workbench.view_options().select_visible_only);
     box_over_everything(&mut harness, Modifiers::NONE);
-    assert_eq!(selected_points(&harness), 7);
+    assert_eq!(selected_points(&harness), 8, "the hidden corner too");
 }
 
 #[test]
@@ -451,11 +457,11 @@ fn shift_click_removes_with_the_standard_keys() {
     let mut harness = points_mode();
     let corner = on_screen(&harness, Vec3::new(50.0, -50.0, 100.0));
     box_over_everything(&mut harness, Modifiers::NONE);
-    assert_eq!(selected_points(&harness), 8);
+    let all = selected_points(&harness);
     click(&mut harness, corner, Modifiers::SHIFT);
-    assert_eq!(selected_points(&harness), 7);
+    assert_eq!(selected_points(&harness), all - 1);
     click(&mut harness, corner, Modifiers::COMMAND);
-    assert_eq!(selected_points(&harness), 8, "Ctrl + click adds it back");
+    assert_eq!(selected_points(&harness), all, "Ctrl + click adds it back");
 }
 
 #[test]
@@ -479,9 +485,10 @@ fn another_key_pattern_can_be_chosen_in_settings() {
     harness.key_press_modifiers(Modifiers::COMMAND, Key::Comma);
     harness.run();
     box_over_everything(&mut harness, Modifiers::NONE);
+    let before = selected_points(&harness);
     let corner = on_screen(&harness, Vec3::new(50.0, -50.0, 100.0));
     click(&mut harness, corner, Modifiers::COMMAND);
-    assert_eq!(selected_points(&harness), 7, "Ctrl removes now");
+    assert_eq!(selected_points(&harness), before - 1, "Ctrl removes now");
 }
 
 #[test]
@@ -539,4 +546,77 @@ fn double_clicks_are_as_forgiving_as_windows() {
         .ctx
         .options(|o| o.input_options.max_double_click_delay);
     assert_eq!(delay, crate::DOUBLE_CLICK_SECONDS);
+}
+
+/// Lets `seconds` of time pass, as between a person's clicks.
+fn wait(harness: &mut H, seconds: f64) {
+    let start = harness.ctx.input(|i| i.time);
+    while harness.ctx.input(|i| i.time) - start < seconds {
+        harness.run();
+    }
+}
+
+#[test]
+fn a_click_then_a_double_click_still_selects_the_loop() {
+    // The project lead's find (about 3 in 10 double-clicks missed): egui
+    // calls a click a triple, not a double, when any click came in the
+    // second before, so a click and then a double-click on the same edge
+    // missed the loop until the clicking stopped for a while.
+    for tool in [Key::Q, Key::W] {
+        let mut harness = quick_harness();
+        let id = cube_id(&harness);
+        let params = mesh::CubeParams {
+            segments: [2, 2, 2],
+            ..Default::default()
+        };
+        let doc = harness.state_mut().workbench.document_mut();
+        doc.execute(Command::SetPrimitive {
+            ids: vec![id],
+            primitive: mesh::Primitive::Cube(params),
+        })
+        .unwrap();
+        doc.set_selection([id]);
+        press(&mut harness, Key::Num2);
+        press(&mut harness, tool);
+        let at = on_screen(&harness, Vec3::new(25.0, -50.0, 50.0));
+        harness.event(Event::PointerMoved(at));
+        harness.run();
+        let edges = |h: &H| {
+            h.state()
+                .workbench
+                .document()
+                .elements(id)
+                .map_or(0, |s| s.count(ElementKind::Edges))
+        };
+        let click = |h: &mut H| {
+            button(h, at, true, Modifiers::NONE);
+            button(h, at, false, Modifiers::NONE);
+        };
+        // A click selects the edge (with W, the gizmo jumps onto it).
+        click(&mut harness);
+        assert_eq!(edges(&harness), 1, "{tool:?}");
+        // A moment later, a double-click on it: the loop.
+        wait(&mut harness, 0.7);
+        click(&mut harness);
+        click(&mut harness);
+        assert_eq!(edges(&harness), 8, "{tool:?}: click, pause, double-click");
+        if tool == Key::Q {
+            // A click after a pause is a click again: back to the one edge.
+            // (With W it would land on the gizmo, which leaves the
+            // selection alone.)
+            wait(&mut harness, 0.7);
+            click(&mut harness);
+            assert_eq!(edges(&harness), 1, "{tool:?}");
+        } else {
+            let doc = harness.state_mut().workbench.document_mut();
+            doc.select_elements([(id, scene::ElementSelection::new())], "Select", None);
+            harness.run();
+        }
+        // Three quick clicks: the loop, and the third doesn't undo it.
+        wait(&mut harness, 0.7);
+        click(&mut harness);
+        click(&mut harness);
+        click(&mut harness);
+        assert_eq!(edges(&harness), 8, "{tool:?}: three quick clicks");
+    }
 }

@@ -193,3 +193,173 @@ fn a_cube_across_the_middle_welds_and_turned_objects_mirror_in_the_world() {
         &scene.evaluated(id).unwrap().mesh
     ));
 }
+
+// ------------------------------------- mirrors on the object (0126) ---
+
+#[test]
+fn a_mirror_on_the_object_stands_at_its_pivot_and_moves_with_it() {
+    // A cube at x = 100, mirrored across its own X, offset 50 from its
+    // pivot: the twin lands beside it, at x = 200, wherever it is.
+    let (mut doc, id) = cube_at(100.0);
+    mirror_on(
+        &mut doc,
+        id,
+        LiveMirror {
+            centre: Vec3::new(50.0, 0.0, 0.0),
+            ..LiveMirror::on_object_x()
+        },
+    );
+    let bounds = doc.scene().bounds().unwrap();
+    assert!((bounds.min.x - 50.0).abs() < 1e-3, "{bounds:?}");
+    assert!((bounds.max.x - 250.0).abs() < 1e-3, "{bounds:?}");
+    // Moved 1 m along X, the mirror goes with it (a mirror in the world
+    // would stay put and squeeze the twin).
+    doc.execute(Command::SetTransforms(vec![(
+        id,
+        Transform {
+            position: Vec3::new(200.0, 0.0, 0.0),
+            ..Transform::default()
+        },
+    )]))
+    .unwrap();
+    let bounds = doc.scene().bounds().unwrap();
+    assert!((bounds.min.x - 150.0).abs() < 1e-3, "{bounds:?}");
+    assert!((bounds.max.x - 350.0).abs() < 1e-3, "{bounds:?}");
+    // The shown shape is welded where the halves meet: still one part.
+    let shown = doc.scene().shown_shape(id).unwrap();
+    assert_eq!(shown.face_count(), 12);
+}
+
+#[test]
+fn a_mirror_on_the_object_turns_with_it() {
+    // Turned a quarter round Z, the object's X points along the world's
+    // Y: the twin lands along Y.
+    let (mut doc, id) = cube_at(0.0);
+    doc.execute(Command::SetTransforms(vec![(
+        id,
+        Transform {
+            rotation: Vec3::new(std::f32::consts::FRAC_PI_2, 0.0, 0.0),
+            ..Transform::default()
+        },
+    )]))
+    .unwrap();
+    mirror_on(
+        &mut doc,
+        id,
+        LiveMirror {
+            centre: Vec3::new(50.0, 0.0, 0.0),
+            ..LiveMirror::on_object_x()
+        },
+    );
+    let bounds = doc.scene().bounds().unwrap();
+    assert!((bounds.max.y - 150.0).abs() < 1e-2, "{bounds:?}");
+    assert!((bounds.max.x - 50.0).abs() < 1e-2, "{bounds:?}");
+}
+
+#[test]
+fn a_mirror_in_the_world_stays_where_it_was() {
+    // Mirrors made before (in the world) keep working as they did.
+    let (mut doc, id) = cube_at(100.0);
+    mirror_on(
+        &mut doc,
+        id,
+        LiveMirror {
+            centre: Vec3::new(150.0, 0.0, 0.0),
+            ..LiveMirror::across_x()
+        },
+    );
+    assert!(!doc.scene().object(id).unwrap().mirror.unwrap().on_object);
+    let bounds = doc.scene().bounds().unwrap();
+    assert!((bounds.max.x - 250.0).abs() < 1e-3, "{bounds:?}");
+}
+
+#[test]
+fn smoothing_is_set_per_object_undone_and_checked() {
+    let (mut doc, id) = cube_at(0.0);
+    assert_eq!(
+        doc.scene().object(id).unwrap().hardness,
+        mesh::Hardness::ByAngle(STANDARD_SMOOTHING_ANGLE)
+    );
+    doc.execute(Command::SetHardness {
+        ids: vec![id],
+        hardness: mesh::Hardness::Marked,
+    })
+    .unwrap();
+    assert_eq!(doc.undo_label(), Some("Smooth by marked edges only"));
+    assert_eq!(
+        doc.scene().object(id).unwrap().hardness,
+        mesh::Hardness::Marked
+    );
+    doc.undo().unwrap();
+    assert_eq!(
+        doc.scene().object(id).unwrap().hardness,
+        mesh::Hardness::ByAngle(STANDARD_SMOOTHING_ANGLE)
+    );
+    for bad in [f32::NAN, -1.0, 181.0, f32::INFINITY] {
+        assert!(
+            doc.execute(Command::SetHardness {
+                ids: vec![id],
+                hardness: mesh::Hardness::ByAngle(bad),
+            })
+            .is_err(),
+            "{bad}"
+        );
+    }
+    // The same smoothing again changes nothing.
+    let steps = doc.undo_steps();
+    doc.execute(Command::SetHardness {
+        ids: vec![id],
+        hardness: mesh::Hardness::ByAngle(STANDARD_SMOOTHING_ANGLE),
+    })
+    .unwrap();
+    assert_eq!(doc.undo_steps(), steps);
+}
+
+#[test]
+fn applying_a_mirror_keeps_both_halves_as_the_shape() {
+    // As Blender's Apply on a Mirror modifier (decision 0126).
+    let (mut doc, id) = cube_at(0.0);
+    mirror_on(
+        &mut doc,
+        id,
+        LiveMirror {
+            centre: Vec3::new(50.0, 0.0, 0.0),
+            ..LiveMirror::on_object_x()
+        },
+    );
+    let shown = doc.scene().shown_shape(id).unwrap();
+    let bounds = doc.scene().bounds().unwrap();
+    doc.execute(Command::ApplyMirror(vec![id])).unwrap();
+    assert_eq!(doc.undo_label(), Some("Apply mirror"));
+    let object = doc.scene().object(id).unwrap();
+    assert!(object.mirror.is_none(), "the mirror is gone");
+    assert!(matches!(object.kind, ObjectKind::Mesh(_)));
+    assert!(object.stack.is_empty(), "its edits are baked in");
+    // Both halves are the shape now, just as they were shown.
+    let now = doc.scene().evaluated(id).unwrap().mesh;
+    assert_eq!(now.face_count(), shown.face_count());
+    assert_eq!(now.vertex_count(), shown.vertex_count());
+    assert_eq!(doc.scene().bounds(), Some(bounds));
+    // One undo step brings the half and its mirror back.
+    doc.undo().unwrap();
+    let object = doc.scene().object(id).unwrap();
+    assert!(object.mirror.is_some());
+    assert!(matches!(object.kind, ObjectKind::Primitive(_)));
+}
+
+#[test]
+fn applying_without_a_mirror_changes_nothing() {
+    let (mut doc, id) = cube_at(0.0);
+    let steps = doc.undo_steps();
+    doc.execute(Command::ApplyMirror(vec![id])).unwrap();
+    assert_eq!(doc.undo_steps(), steps);
+    assert!(matches!(
+        doc.scene().object(id).unwrap().kind,
+        ObjectKind::Primitive(_)
+    ));
+    // An unknown object is refused.
+    assert!(
+        doc.execute(Command::ApplyMirror(vec![ObjectId::from_raw(9999)]))
+            .is_err()
+    );
+}

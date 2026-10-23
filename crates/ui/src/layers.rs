@@ -34,8 +34,6 @@ pub(crate) const LAYER_MENU: &str = "Layer";
 /// The mark on the layer new edits go into.
 pub(crate) const NEW_EDITS_MARK: &str = "new edits";
 
-/// The mark on an edit kept editable (pinned).
-pub(crate) const KEPT_MARK: &str = "kept";
 /// The mark on an edit that can't find some of its parts.
 pub(crate) const MISSING_MARK: &str = "parts missing";
 /// The mark on an edit skipped as too big.
@@ -629,14 +627,6 @@ impl LayersPanel {
                 };
                 mark(word, theme::WARNING, problem, "edit problem");
             }
-            if entry.pinned {
-                mark(
-                    KEPT_MARK,
-                    accent.light,
-                    "Kept editable: Freeze never bakes it".into(),
-                    "edit kept",
-                );
-            }
 
             let mut color = if is_open {
                 theme::TEXT_STRONG
@@ -754,23 +744,6 @@ fn edit_entries(
         }));
         ui.close();
     }
-    let word = if entry.pinned {
-        "Stop keeping editable"
-    } else {
-        "Keep editable"
-    };
-    if ui
-        .button(word)
-        .on_hover_text("A kept edit stays changeable: Freeze never bakes it")
-        .clicked()
-    {
-        out.push(DocRequest::Run(Command::SetEditPinned {
-            id,
-            edit,
-            pinned: !entry.pinned,
-        }));
-        ui.close();
-    }
     ui.separator();
     let problem = doc
         .scene()
@@ -783,7 +756,7 @@ fn edit_entries(
              any more"
                 .to_string()
         },
-        |why| format!("Can't freeze: {why}"),
+        |why| format!("Can't bake into the shape: {why}"),
     );
     if ui
         .add_enabled(

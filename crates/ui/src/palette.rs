@@ -48,11 +48,22 @@ impl Mode {
         Self::Uv,
     ];
 
+    /// The five modes people see (decision 0126): the Object mode is the
+    /// Model mode with Edit pivot on, switched on the top palette and in
+    /// the Tools menu.
+    pub const SHOWN: [Mode; 5] = [
+        Self::Model,
+        Self::Points,
+        Self::Edges,
+        Self::Polygons,
+        Self::Uv,
+    ];
+
     /// The mode's name.
     pub fn name(self) -> &'static str {
         match self {
             Self::Model => "Model",
-            Self::Object => "Object",
+            Self::Object => "Model (Edit pivot)",
             Self::Points => "Points",
             Self::Edges => "Edges",
             Self::Polygons => "Polygons",
@@ -64,7 +75,9 @@ impl Mode {
     pub fn description(self) -> &'static str {
         match self {
             Self::Model => "Work on whole objects",
-            Self::Object => "Work on whole objects, including their axis (pivot)",
+            Self::Object => {
+                "Work on whole objects' pivots: the gizmo moves and turns the pivot, not the shape"
+            }
             Self::Points => "Work on points (vertices)",
             Self::Edges => "Work on edges",
             Self::Polygons => "Work on polygons (faces)",
@@ -235,7 +248,18 @@ pub enum PaletteCommand {
     ToggleSnapping,
     /// Turn the selected objects' live mirror on or off.
     ToggleSymmetry,
+    /// Turn Edit pivot on or off (decision 0126).
+    ToggleEditPivot,
+    /// Apply the selected objects' mirrors (decision 0126).
+    ApplyMirror,
+    /// Open command search.
+    Search,
 }
+
+/// The Edit pivot switch's name (decision 0126).
+pub const EDIT_PIVOT_LABEL: &str = "Edit pivot";
+/// The command palette's search button.
+pub const SEARCH_LABEL: &str = "Command search";
 
 /// One command on the top palette: one that works, or one that is not
 /// built yet (saying when it arrives).
@@ -307,12 +331,15 @@ pub struct PaletteState {
     pub snapping: bool,
     /// Whether the selected objects have a live mirror.
     pub symmetry: bool,
+    /// Whether Edit pivot is on (the Object mode).
+    pub edit_pivot: bool,
 }
 
 /// What the Symmetry switch does, for its tooltips.
-pub(crate) const SYMMETRY_HELP: &str = "Model one half: the selected objects get a live mirror, a copy \
-     of the shape on the other side of the world's centre that follows every edit and every move, \
-     joined to it at the middle. The arrow beside it chooses X, Y or Z and moves the mirror.";
+pub(crate) const SYMMETRY_HELP: &str = "Model one half: each selected object gets a mirror of its own, \
+     a copy of its shape on the other side of its centre (its pivot) that follows every edit, \
+     joined to it at the middle. The mirror moves and turns with the object. The arrow beside it \
+     chooses X, Y or Z and moves the mirror.";
 
 /// The accessible name of the arrow that opens the Symmetry menu.
 pub(crate) const SYMMETRY_MENU_LABEL: &str = "Symmetry settings";
@@ -455,9 +482,11 @@ pub fn command_palette(
                         active = state.symmetry;
                         (true, command.arrives.to_string())
                     }
-                    PaletteCommand::Lock(_) | PaletteCommand::ToggleAxes => {
-                        (true, command.arrives.to_string())
-                    }
+                    PaletteCommand::Lock(_)
+                    | PaletteCommand::ToggleAxes
+                    | PaletteCommand::ToggleEditPivot
+                    | PaletteCommand::ApplyMirror
+                    | PaletteCommand::Search => (true, command.arrives.to_string()),
                 };
                 let button_state = if active {
                     ButtonState::Active
@@ -469,10 +498,12 @@ pub fn command_palette(
                 if icon_button(ui, icon, label, &note, button_state).clicked() {
                     clicked = Some(action);
                 }
-                if matches!(action, PaletteCommand::ToggleSymmetry)
-                    && symmetry_menu(ui, symmetry, state.symmetry, units)
-                {
-                    clicked = Some(PaletteCommand::ToggleSymmetry);
+                if matches!(action, PaletteCommand::ToggleSymmetry) {
+                    match symmetry_menu(ui, symmetry, state.symmetry, units) {
+                        SymmetryClick::Toggle => clicked = Some(PaletteCommand::ToggleSymmetry),
+                        SymmetryClick::Apply => clicked = Some(PaletteCommand::ApplyMirror),
+                        SymmetryClick::Nothing => {}
+                    }
                 }
             }
             if index == 1 {
@@ -506,13 +537,17 @@ pub fn command_palette(
             }
         }
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            icon_button(
+            if icon_button(
                 ui,
                 Icon::Search,
-                "Find a command",
-                "Arrives later",
-                ButtonState::Unavailable,
-            );
+                SEARCH_LABEL,
+                "Find any command by typing part of its name (Space)",
+                ButtonState::Normal,
+            )
+            .clicked()
+            {
+                clicked = Some(PaletteCommand::Search);
+            }
         });
     });
     clicked
@@ -527,7 +562,7 @@ fn symmetry_menu(
     symmetry: &mut crate::Symmetry,
     on: bool,
     units: crate::units::Units,
-) -> bool {
+) -> SymmetryClick {
     let (rect, response) = ui.allocate_exact_size(vec2(14.0, BUTTON_SIZE), Sense::click());
     response.widget_info(|| WidgetInfo::labeled(WidgetType::Button, true, SYMMETRY_MENU_LABEL));
     if response.hovered() {
@@ -550,18 +585,31 @@ fn symmetry_menu(
         .gap(4.0)
         .width(260.0)
         .show(|ui| symmetry_settings(ui, symmetry, on, units))
-        .is_some_and(|shown| shown.inner)
+        .map_or(SymmetryClick::Nothing, |shown| shown.inner)
 }
 
+/// What was clicked in the Symmetry menu.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum SymmetryClick {
+    Nothing,
+    /// On: turn the selected objects' mirror on or off.
+    Toggle,
+    /// Apply: make the mirrored half part of the shape (decision 0126).
+    Apply,
+}
+
+/// The Symmetry menu's Apply button.
+pub(crate) const APPLY_MIRROR_LABEL: &str = "Apply mirror";
+
 /// The Symmetry menu's contents: On (for the selected objects), the axes,
-/// where the mirror is and the weld distance. Returns whether On was
-/// clicked.
+/// where the mirror is and the weld distance, and Apply mirror. Returns
+/// what was clicked.
 pub(crate) fn symmetry_settings(
     ui: &mut Ui,
     symmetry: &mut crate::Symmetry,
     on: bool,
     units: crate::units::Units,
-) -> bool {
+) -> SymmetryClick {
     ui.set_width(260.0);
     let small = |ui: &mut Ui, text: &str| {
         ui.label(RichText::new(text).small().color(theme::TEXT_WEAK));
@@ -573,6 +621,14 @@ pub(crate) fn symmetry_settings(
         .on_hover_text(SYMMETRY_HELP)
         .clicked();
     small(ui, "For the selected objects: each keeps its own mirror.");
+    let applied = ui
+        .add_enabled(on, egui::Button::new(APPLY_MIRROR_LABEL))
+        .on_hover_text(
+            "Make the mirrored half part of the shape for real, as Blender's Apply: the mirror \
+             is gone, both halves stay, and each half can be changed on its own from then on",
+        )
+        .on_disabled_hover_text("Turn symmetry on first: there's no mirror to apply")
+        .clicked();
     ui.add_space(4.0);
     ui.label("Mirror across");
     ui.horizontal(|ui| {
@@ -590,8 +646,8 @@ pub(crate) fn symmetry_settings(
     });
     small(
         ui,
-        "The world's axes: X mirrors left and right, Y front and back, Z top and bottom, \
-         across the faint red planes in the viewport.",
+        "The object's own axes: X mirrors left and right, Y front and back, Z top and \
+         bottom, across the faint red planes in the viewport.",
     );
     if !symmetry.axes.contains(&true) {
         small(ui, "Pick an axis: with none, nothing is mirrored.");
@@ -615,7 +671,7 @@ pub(crate) fn symmetry_settings(
     }
     small(
         ui,
-        "Where the mirror stands in the world: the centre (0) unless moved.",
+        "Where the mirror stands, from the object's centre (its pivot): 0 unless moved.",
     );
     ui.add_space(6.0);
     ui.horizontal(|ui| {
@@ -633,7 +689,13 @@ pub(crate) fn symmetry_settings(
         "Points at the middle this close to their mirror become one, so the halves join into one \
          surface. 0 keeps them apart.",
     );
-    toggled
+    if applied {
+        SymmetryClick::Apply
+    } else if toggled {
+        SymmetryClick::Toggle
+    } else {
+        SymmetryClick::Nothing
+    }
 }
 
 /// Accessible name of the world or object axes switch.
@@ -684,6 +746,8 @@ pub enum ModePick {
     Mode(Mode),
     /// Isolate (as Ctrl + H does).
     Isolate,
+    /// Edit pivot switched on or off.
+    EditPivot,
 }
 
 /// Accessible name of the mode palette's isolate button.
@@ -696,11 +760,17 @@ pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Op
     let mut picked = None;
     ui.vertical_centered(|ui| {
         ui.spacing_mut().item_spacing.y = 2.0;
-        for (index, mode) in Mode::ALL.into_iter().enumerate() {
-            if index == 2 {
+        for (index, mode) in Mode::SHOWN.into_iter().enumerate() {
+            if index == 1 {
                 divider(ui, false);
             }
-            let state = if mode == current {
+            // With Edit pivot on, the Model mode shows as the one in use.
+            let shown = if current == Mode::Object {
+                Mode::Model
+            } else {
+                current
+            };
+            let state = if mode == shown {
                 ButtonState::Active
             } else {
                 ButtonState::Normal
@@ -711,15 +781,36 @@ pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Op
             if tinted_button(ui, mode.icon(), tint, &label, &mode.tooltip(), state).clicked() {
                 picked = Some(ModePick::Mode(mode));
             }
+            if mode == Mode::Model {
+                // Edit pivot sits under the Model mode it belongs to, where
+                // the Object mode was (the project lead's choice).
+                let (pivot_state, pivot_note) = if current == Mode::Object {
+                    (
+                        ButtonState::Active,
+                        "Edit pivot is on: the gizmo moves and turns the selected objects' \
+                         pivots, not their shapes.\nClick to turn it off.",
+                    )
+                } else {
+                    (
+                        ButtonState::Normal,
+                        "Edit pivot: move and turn the selected objects' pivots (the point \
+                         they turn and scale around), not their shapes",
+                    )
+                };
+                if icon_button(
+                    ui,
+                    Icon::ObjectMode,
+                    EDIT_PIVOT_LABEL,
+                    pivot_note,
+                    pivot_state,
+                )
+                .clicked()
+                {
+                    picked = Some(ModePick::EditPivot);
+                }
+            }
         }
         divider(ui, false);
-        icon_button(
-            ui,
-            Icon::Workplane,
-            "Workplane",
-            "Arrives later",
-            ButtonState::Unavailable,
-        );
         if icon_button(
             ui,
             Icon::Solo,
@@ -773,11 +864,8 @@ mod tests {
 
     #[test]
     fn modes_have_distinct_names_and_icons() {
-        let names: Vec<_> = Mode::ALL.iter().map(|m| m.name()).collect();
-        assert_eq!(
-            names,
-            ["Model", "Object", "Points", "Edges", "Polygons", "UV"]
-        );
+        let names: Vec<_> = Mode::SHOWN.iter().map(|m| m.name()).collect();
+        assert_eq!(names, ["Model", "Points", "Edges", "Polygons", "UV"]);
         for (i, a) in Mode::ALL.iter().enumerate() {
             for b in &Mode::ALL[i + 1..] {
                 assert_ne!(a.icon(), b.icon());

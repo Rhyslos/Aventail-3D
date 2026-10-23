@@ -121,8 +121,10 @@ pub struct ToolMenuSettings {
     /// A tap of `E` opens the menu and keeps it open (on as standard).
     /// Off: the menu shows only while `E` is held.
     pub tap_to_open: bool,
-    /// A right-click in the viewport opens the quad menu (off as
-    /// standard, decision 0094).
+    /// A right-click in the viewport opens the quad menu: on as standard
+    /// (decision 0126; it was off, decision 0094). Saved under a new name,
+    /// so everyone gets the new standard once.
+    #[serde(rename = "right_click_menu")]
     pub quad_menu: bool,
 }
 
@@ -132,7 +134,7 @@ impl Default for ToolMenuSettings {
             style: ToolMenuStyle::ContinuousRing,
             show_keys: true,
             tap_to_open: true,
-            quad_menu: false,
+            quad_menu: true,
         }
     }
 }
@@ -1047,12 +1049,19 @@ mod tests {
 
     #[test]
     fn gaps_are_skipped_when_pointing() {
-        // Points mode leaves Extrude's place (the top) empty.
+        // Points mode leaves some places empty (Inset's, for one):
+        // pointing at one picks a tool beside it, never the gap.
         let list = entries(Mode::Points);
-        assert!(list.iter().all(|e| e.slot.command != CommandId::Extrude));
-        let ring = Ring::new(pos2(500.0, 500.0), list[0].slot.places);
-        let aimed = ring.aimed(pos2(500.0, 300.0), &list).unwrap();
-        assert_ne!(list[aimed].slot.place, 0);
+        let places = list[0].slot.places;
+        let empty = (0..places)
+            .find(|p| list.iter().all(|e| e.slot.place != *p))
+            .expect("a gap in the Points ring");
+        let ring = Ring::new(pos2(500.0, 500.0), places);
+        let toward = ring.place(empty) - pos2(500.0, 500.0);
+        let aimed = ring
+            .aimed(pos2(500.0, 500.0) + toward * 1.5, &list)
+            .unwrap();
+        assert_ne!(list[aimed].slot.place, empty);
     }
 
     #[test]

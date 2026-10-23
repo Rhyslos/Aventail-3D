@@ -9,6 +9,7 @@ pub(super) fn info() -> AppInfo {
     AppInfo {
         name: "Test App".into(),
         version: "9.9.9".into(),
+        manual_url: "https://example.com/manual".into(),
     }
 }
 
@@ -116,6 +117,19 @@ pub(super) fn main_menu<'h>(
         .get_all_by_label(name)
         .min_by(|a, b| a.rect().min.y.total_cmp(&b.rect().min.y))
         .unwrap_or_else(|| panic!("no menu {name}"))
+}
+
+/// Opens the Mesh menu and its group `group` (decision 0126).
+pub(super) fn mesh_group(harness: &mut Harness<'static, State>, group: &str) {
+    use egui_kittest::kittest::NodeT;
+    main_menu(harness, "Mesh").click();
+    harness.run();
+    harness
+        .get_all_by_label_contains(group)
+        .find(|n| n.accesskit_node().role() == egui::accesskit::Role::Button)
+        .unwrap_or_else(|| panic!("no Mesh group {group}"))
+        .hover();
+    harness.run_steps(8);
 }
 
 pub(super) fn fresh() -> Harness<'static, State> {
@@ -245,13 +259,58 @@ fn the_modes_menu_selects_a_mode_too() {
 }
 
 #[test]
-fn commands_that_are_not_built_yet_cannot_be_clicked() {
-    let harness = fresh();
-    let label = "Find a command";
+fn five_modes_and_edit_pivot_is_a_switch() {
+    // The Object mode is the Model mode with Edit pivot on (decision 0126).
+    let mut harness = fresh();
+    assert!(harness.query_by_label_contains("Object mode").is_none());
+    // The switch sits in the mode palette, right under the Model mode.
+    let model = harness.get_by_label("Model mode").rect();
+    let points = harness.get_by_label("Points mode").rect();
+    let pivot = harness
+        .get_by_label(crate::palette::EDIT_PIVOT_LABEL)
+        .rect();
     assert!(
-        harness.get_by_label(label).accesskit_node().is_disabled(),
-        "{label} should be disabled until it is built"
+        (pivot.center().x - model.center().x).abs() < 1.0,
+        "in the same column"
     );
+    assert!(
+        pivot.min.y >= model.max.y && pivot.max.y <= points.min.y,
+        "between Model and Points"
+    );
+    harness
+        .get_by_label(crate::palette::EDIT_PIVOT_LABEL)
+        .click();
+    harness.run();
+    assert_eq!(harness.state().workbench.mode(), Mode::Object);
+    // The Model mode shows as the one in use.
+    assert!(
+        harness
+            .get_by_label_contains("Model mode")
+            .accesskit_node()
+            .is_selected()
+            .unwrap_or(true)
+    );
+    harness
+        .get_by_label(crate::palette::EDIT_PIVOT_LABEL)
+        .click();
+    harness.run();
+    assert_eq!(harness.state().workbench.mode(), Mode::Model);
+    // From the Points mode it goes to the Model mode with Edit pivot on.
+    harness.state_mut().workbench.mode = Mode::Points;
+    harness.run();
+    harness
+        .get_by_label(crate::palette::EDIT_PIVOT_LABEL)
+        .click();
+    harness.run();
+    assert_eq!(harness.state().workbench.mode(), Mode::Object);
+}
+
+#[test]
+fn the_palette_search_button_opens_command_search() {
+    let mut harness = fresh();
+    harness.get_by_label(crate::palette::SEARCH_LABEL).click();
+    harness.run();
+    assert!(harness.state().workbench.is_search_open());
 }
 
 #[test]
@@ -332,7 +391,7 @@ fn coordinates_fit_their_rows_with_no_empty_space_below() {
     harness.run();
     harness.run();
     let tab = harness.get_by_label("Coordinates").rect();
-    let last_row = harness.get_by_label("Rotation B").rect();
+    let last_row = harness.get_by_label("Rotation Z").rect();
     // The window is 900 high and the status bar 24: the Coordinates panel
     // ends at about 876, a few pixels below its last row.
     assert!(
@@ -358,7 +417,7 @@ fn coordinates_show_every_field_as_in_the_mockup() {
             assert!(harness.query_by_label(&format!("{group} {axis}")).is_some());
         }
     }
-    for axis in ["H", "P", "B"] {
+    for axis in ["X", "Y", "Z"] {
         assert!(
             harness
                 .query_by_label(&format!("Rotation {axis}"))
@@ -1156,7 +1215,7 @@ fn the_managers_have_their_own_menu_lines() {
 #[test]
 fn the_menu_bar_shows_the_layouts() {
     let harness = fresh();
-    for name in ["Standard", "Modelling", "UV Edit"] {
+    for name in ["Standard", "UV Edit"] {
         assert!(harness.query_by_label(name).is_some(), "{name}");
     }
     let help = harness.get_by_label("Help").rect();

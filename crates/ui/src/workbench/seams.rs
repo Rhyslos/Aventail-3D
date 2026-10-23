@@ -166,18 +166,22 @@ impl Workbench {
         }
     }
 
-    /// The edges of `mesh` shading hard, as shown: by angle while
-    /// Automatic hard edges is on, otherwise those marked.
-    pub(super) fn shown_hard_edges(&self, mesh: &scene::Mesh) -> Vec<EdgeKey> {
-        match self.viewport.options().auto_hard_angle() {
-            Some(angle) => mesh::hardness::sharp_edges(mesh, angle),
-            None => {
-                let topology = mesh.topology();
-                mesh.hard_edges()
-                    .filter(|e| topology.has_edge(*e))
-                    .collect()
-            }
-        }
+    /// The edges of object `id`'s `mesh` shading hard, as shown: by its
+    /// own smoothing (decision 0126; an instance's original's).
+    pub(super) fn shown_hard_edges(&self, id: scene::ObjectId, mesh: &scene::Mesh) -> Vec<EdgeKey> {
+        mesh::hardness::shading_hard_edges(mesh, self.smoothing_of(id))
+    }
+
+    /// Object `id`'s smoothing (an instance's is its original's).
+    pub(crate) fn smoothing_of(&self, id: scene::ObjectId) -> mesh::Hardness {
+        let scene = self.document.scene();
+        let own = match scene.object(id).map(|o| &o.kind) {
+            Some(scene::ObjectKind::Instance(source)) => *source,
+            _ => id,
+        };
+        scene
+            .object(own)
+            .map_or(mesh::Hardness::Marked, |o| o.hardness)
     }
 
     /// Seams from hard edges: marks the selected objects' hard edges as
@@ -194,7 +198,7 @@ impl Workbench {
         for (id, mesh) in self.own_shapes() {
             // Never on an edge marked "never" (decision 0111).
             let hard = self
-                .shown_hard_edges(&mesh)
+                .shown_hard_edges(id, &mesh)
                 .into_iter()
                 .filter(|e| mesh::uvs::seam_preference(&mesh, *e) != scene::SeamPreference::Never);
             let edges = changing(&mesh, hard, true);
@@ -232,7 +236,7 @@ impl Workbench {
         let mut total = 0;
         let mut changed = 0;
         for (id, mesh) in self.own_shapes() {
-            let hard = self.shown_hard_edges(&mesh);
+            let hard = self.shown_hard_edges(id, &mesh);
             let suggested: BTreeSet<EdgeKey> =
                 uv::seams::suggest_with(&mesh, &hard, self.suggest_options())
                     .into_iter()

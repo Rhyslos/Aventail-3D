@@ -236,10 +236,10 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
 }
 
 /// The Display menu's switch for marking hard edges.
-pub(crate) const HARD_EDGES_ENTRY: &str = "Hard edges";
-/// The Mesh menu's switch for shading by angle (decisions 0064 and 0065:
-/// moved there from the Display menu).
-pub(crate) const AUTO_HARD_EDGES_ENTRY: &str = "Automatic hard edges";
+pub(crate) const HARD_EDGES_ENTRY: &str = "Show hard edges";
+/// The Mesh menu's switch for the selected objects' smoothing by angle
+/// (decision 0126: once Automatic hard edges, for every shape).
+pub(crate) const AUTO_HARD_EDGES_ENTRY: &str = "Smooth by angle";
 /// The Display menu's and the look row's switch for cavity (decision 0065).
 pub(crate) const CAVITY_ENTRY: &str = "Cavity";
 /// What cavity does, for its tooltips.
@@ -267,28 +267,10 @@ pub(crate) fn cavity_entry(ui: &mut Ui, options: &mut ViewOptions) {
     }
 }
 
-/// The Automatic hard edges switch, in the main Mesh menu: shade every
-/// shape by angle after every change (decision 0064).
-pub(crate) fn auto_hard_edges_entry(ui: &mut Ui, options: &mut ViewOptions) {
-    let mut auto = !options.hard_edges_by_hand;
-    if ui
-        .checkbox(&mut auto, AUTO_HARD_EDGES_ENTRY)
-        .on_hover_text(format!(
-            "Shade every shape by angle: edges where polygons meet more sharply than {}° are \
-             crisp, the rest smooth, after every change. A cylinder's sides stay smooth and \
-             its caps crisp, however you extrude it. Switch it off to shade by the hard and \
-             soft edges you set yourself.",
-            super::AUTO_HARD_ANGLE
-        ))
-        .changed()
-    {
-        options.hard_edges_by_hand = !auto;
-    }
-}
 /// The Display menu's switch for showing normals.
-pub(crate) const NORMALS_ENTRY: &str = "Normals";
+pub(crate) const NORMALS_ENTRY: &str = "Show normals";
 /// The Display menu's entry for seams (decision 0096).
-pub(crate) const SEAMS_ENTRY: &str = "Seams";
+pub(crate) const SEAMS_ENTRY: &str = "Show seams";
 
 /// The kinds of view the Cameras menu offers, in order.
 const MENU_KINDS: [ViewKind; 5] = [

@@ -18,7 +18,7 @@ For a wide recess or a step, use [Extrude and inset](extrude-and-inset.md) on po
 
 1. Select a shape and press **2** for the [Edges mode](modes.md).
 2. [Select](selecting.md) the edges the line should follow. **Double-click** selects a whole loop, and **Ctrl + click** adds edges one at a time. The edges need a polygon on each side; edges on an open border are skipped, as Bevel skips them.
-3. Press **K** (or pick **Groove** from the [tool menu](tool-menu.md) **E**, or the **Mesh** menu).
+3. Press **K** (or pick **Groove** from the [tool menu](tool-menu.md) **E**, or **Mesh → Build**).
 4. Drag anywhere in the viewport **into the surface** to cut a groove, or **out of it** to raise a ridge. The further you drag, the deeper (or higher) it goes, and a label by the mouse says how far. It follows the app's rule that [drags follow the pull](interface-tour.md#drags-follow-the-pull).
 5. Let go. The whole drag is one undo step.
 

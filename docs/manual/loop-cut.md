@@ -15,7 +15,7 @@ A shape only bends, bevels and holds detail where it has edges. Loop cut is the 
 ## How to use it
 
 1. Select a shape and press **1**, **2** or **3** for the Points, Edges or Polygons [mode](modes.md). Loop cut works in all three.
-2. Press **F** (or pick **Loop cut** from the [tool menu](tool-menu.md) **E**, or the **Mesh** menu).
+2. Press **F** (or pick **Loop cut** from the [tool menu](tool-menu.md) **E**, or **Mesh → Cut and join**).
 3. **Point at an edge.** The new loop shows across every polygon it will cut, running at right angles to the edge you point at. Move along the edge and the loop follows the mouse.
 4. **Click** to cut it there. Or **press and drag** along the edge to slide it into place, then let go.
 

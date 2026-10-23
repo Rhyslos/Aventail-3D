@@ -180,17 +180,11 @@ impl Shading {
     }
 }
 
-/// The angle from which edges shade hard while Automatic hard edges is on,
-/// in degrees: the same as Hard edges by angle starts at.
-pub const AUTO_HARD_ANGLE: f32 = mesh::hardness::DEFAULT_ANGLE;
+/// The angle new objects are smoothed by (decision 0126): the same as
+/// Hard edges by angle starts at.
+pub const AUTO_HARD_ANGLE: f32 = scene::STANDARD_SMOOTHING_ANGLE;
 
 impl ViewOptions {
-    /// The angle edges shade hard from, while Automatic hard edges is on
-    /// (`None`: by their marks).
-    pub fn auto_hard_angle(&self) -> Option<f32> {
-        (!self.hard_edges_by_hand).then_some(AUTO_HARD_ANGLE)
-    }
-
     /// These options with an old "fine grid lines on" setting turned into
     /// the finest grid level.
     #[must_use]
@@ -257,7 +251,7 @@ impl GridDetail {
 
 /// How the viewport is shown and steered: choices the user can switch,
 /// which are remembered between sessions.
-#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ViewOptions {
     /// How detailed the grid is. Lines every metre as standard, for a calm
@@ -272,9 +266,11 @@ pub struct ViewOptions {
     /// Whether all four views (perspective, top, front, right) are shown
     /// at once, rather than one filling the viewport.
     pub four_views: bool,
-    /// Whether the box, lasso and brush only select what can be seen. Off
-    /// as standard: they select through the shape, catching its far side
-    /// too (decision 0029).
+    /// Whether the box, lasso and brush only select what can be seen, as
+    /// a click does. On as standard (decision 0126; before, off, decision
+    /// 0029): the saved name changed with it, so everyone starts with the
+    /// new standard once.
+    #[serde(rename = "select_visible")]
     pub select_visible_only: bool,
     /// Which keys add to and take from the selection.
     pub select_keys: SelectKeys,
@@ -307,10 +303,6 @@ pub struct ViewOptions {
     /// Whether Cavity is *off*: ridges not brightened and creases not
     /// darkened. Cavity is on as standard (decision 0065).
     pub hide_cavity: bool,
-    /// Whether shapes are shaded by their marked hard edges, with
-    /// *Automatic hard edges* off. Off as standard: the angle decides
-    /// ([`AUTO_HARD_ANGLE`], decision 0064).
-    pub hard_edges_by_hand: bool,
     /// The keyboard the Keys window draws, once picked there (`None`:
     /// guessed from the system language; decision 0061).
     pub keyboard: Option<crate::KeyboardLayout>,
@@ -318,6 +310,37 @@ pub struct ViewOptions {
     /// orbiting) turns a perspective view orthographic, until it is
     /// orbited away (off as standard; decision 0084).
     pub flat_from_dice: bool,
+    /// Whether the selection is drawn larger, with a dark rim, in the
+    /// viewport and the UV Editor (Settings → Interface → High contrast;
+    /// off as standard; decision 0126).
+    pub high_contrast: bool,
+}
+
+impl Default for ViewOptions {
+    fn default() -> Self {
+        Self {
+            grid_detail: GridDetail::default(),
+            legacy_fine_grid: false,
+            navigation: NavigationSettings::default(),
+            four_views: false,
+            select_visible_only: true,
+            select_keys: SelectKeys::default(),
+            snap: SnapSettings::default(),
+            locked: [false; 3],
+            axes: Axes::default(),
+            hide_hard_edges: false,
+            show_normals: false,
+            show_seams: false,
+            symmetry: Symmetry::default(),
+            dissolve_without_warning: false,
+            shading: Shading::default(),
+            surface: Surface::default(),
+            hide_cavity: false,
+            keyboard: None,
+            flat_from_dice: false,
+            high_contrast: false,
+        }
+    }
 }
 
 /// The live mirror's settings ([decision 0088](../../../docs/decisions/0088-live-mirror.md)):
@@ -354,12 +377,15 @@ impl Default for Symmetry {
 impl Symmetry {
     /// The mirror these settings make, if any axis is chosen.
     pub fn mirror(&self) -> Option<scene::LiveMirror> {
+        // On the object (decision 0126): the offset is from its pivot,
+        // along its own axes.
         let mirror = scene::LiveMirror {
             axes: self.axes,
             centre: glam::Vec3::from_array(self.offset),
             weld_distance: self
                 .weld_distance
                 .clamp(0.0, scene::LiveMirror::MAX_WELD_DISTANCE),
+            on_object: true,
         };
         mirror.is_valid().then_some(mirror)
     }
@@ -414,13 +440,13 @@ pub struct ViewportView {
     pub overlay: Arc<ComponentOverlay>,
     /// How shapes are drawn.
     pub shading: Shading,
-    /// Shade by angle from this many degrees, whatever edges are marked
-    /// (Automatic hard edges), or by the marks (`None`).
-    pub auto_hard_angle: Option<f32>,
     /// Whether ridges are brightened and creases darkened (Cavity).
     pub cavity: bool,
     /// What the shapes' surfaces show.
     pub surface: Surface,
+    /// Whether the selection is drawn larger with a dark rim (Settings →
+    /// Interface → High contrast; decision 0126).
+    pub high_contrast: bool,
 }
 
 /// A question for the renderer: what is under this pixel of the image?
@@ -640,9 +666,14 @@ struct View {
     image_size: Vec2,
     /// A selection drag (box, lasso or brush) in progress, if any.
     select_drag: Option<select::SelectDrag>,
-    /// Where the last click was, so a double-click can be told from two
-    /// quick clicks in different places.
-    last_click: Option<egui::Pos2>,
+    /// Where and when the last single click was, so a double-click is
+    /// two clicks close in time and place, whatever came before (egui
+    /// counts a third quick click as a triple, not a double).
+    last_click: Option<(egui::Pos2, f64)>,
+    /// Where and when the last click of a double-click (or a quick click
+    /// straight after one) was: a further quick click there is part of the
+    /// same burst and is ignored, so it can't undo the loop just selected.
+    last_double: Option<(egui::Pos2, f64)>,
     /// A drag of the gizmo in progress, if any.
     gizmo_drag: Option<tools::Drag>,
     /// The gizmo handle the left button went down on, if any.
@@ -676,6 +707,7 @@ impl View {
             image_size: Vec2::ZERO,
             select_drag: None,
             last_click: None,
+            last_double: None,
             gizmo_drag: None,
             pressed_handle: None,
             hovered_handle: None,
@@ -1023,9 +1055,9 @@ impl View {
             grid_colors: theme::grid_colors(theme::Accent::default()),
             overlay: Arc::default(),
             shading: Shading::default(),
-            auto_hard_angle: Some(AUTO_HARD_ANGLE),
             cavity: true,
             surface: Surface::Plain,
+            high_contrast: false,
         }
     }
 }
@@ -1489,9 +1521,9 @@ impl ViewportPanel {
             view.grid_colors = theme::grid_colors(theme::accent(ui.ctx()));
             view.overlay = Arc::clone(&scene.overlay);
             view.shading = self.options.shading;
-            view.auto_hard_angle = self.options.auto_hard_angle();
             view.cavity = !self.options.hide_cavity;
             view.surface = self.options.surface;
+            view.high_contrast = self.options.high_contrast;
             match renderer.render(&view) {
                 Ok(texture) => {
                     let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0));

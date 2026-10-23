@@ -38,7 +38,6 @@ pub(crate) struct Baking {
 struct Checked {
     revision: u64,
     uv: super::unwrapping::UvSettings,
-    hard_angle: Option<f32>,
 }
 
 /// One kind of problem on one object.
@@ -434,7 +433,8 @@ pub(crate) fn unpaired(names: &[String]) -> Vec<(usize, String)> {
 }
 
 impl Workbench {
-    /// File → Check for baking…
+    /// UV → Check for baking… (its one home since decision 0126; it was in
+    /// File too).
     pub(super) fn bake_entry(&mut self, ui: &mut Ui) {
         if ui
             .button("Check for baking…")
@@ -455,7 +455,6 @@ impl Workbench {
         let checked = Checked {
             revision: self.document.revision(),
             uv: self.uv_settings,
-            hard_angle: self.viewport.options().auto_hard_angle(),
         };
         if let Some((at, found)) = &self.baking.found
             && *at == checked
@@ -482,7 +481,7 @@ impl Workbench {
             }
             if let Some(shape) = scene.evaluated(id) {
                 found.extend(problems_of(id, &object.name, BakeReport::new(&shape.mesh)));
-                let hard = self.shown_hard_edges(&shape.mesh);
+                let hard = self.shown_hard_edges(id, &shape.mesh);
                 let report = uv::check::UvReport::new(&shape.mesh, &hard, &trim_rows(scene));
                 found.extend(uv_problems_of(id, &object.name, report));
                 shapes.push((id, object.name.clone(), shape.mesh));
@@ -744,7 +743,7 @@ impl Workbench {
                     return;
                 };
                 let first_uvs = fix == Fix::FirstUvs;
-                let ops = self.fix_ops(&mesh, fix);
+                let ops = self.fix_ops(problem.id, &mesh, fix);
                 let ops = ops.into_iter().map(|op| (problem.id, op)).collect();
                 let done = self.record_each_in(&label, ops, key);
                 // New UVs start with every piece in the middle of the
@@ -787,13 +786,13 @@ impl Workbench {
     }
 
     /// The edits a fix makes on `mesh`.
-    fn fix_ops(&self, mesh: &scene::Mesh, fix: Fix) -> Vec<Operation> {
+    fn fix_ops(&self, id: scene::ObjectId, mesh: &scene::Mesh, fix: Fix) -> Vec<Operation> {
         use super::unwrapping::UvTool;
         let all: Vec<scene::FaceId> = mesh.faces().map(|(f, _)| f).collect();
         match fix {
             Fix::Record(ops) => ops,
             Fix::FirstUvs => {
-                let hard = self.shown_hard_edges(mesh);
+                let hard = self.shown_hard_edges(id, mesh);
                 let seams = uv::seams::suggest_with(mesh, &hard, self.suggest_options());
                 let mut ops = Vec::new();
                 if !seams.is_empty() {

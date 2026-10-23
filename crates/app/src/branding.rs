@@ -22,6 +22,11 @@ pub const APP_ID: &str = "aventail";
 /// projects keep opening and double-clicking keeps working (RENAMING.md).
 pub const PROJECT_EXTENSION: &str = "avtl";
 
+/// Where the user manual is read online (Help → User manual): its table
+/// of contents in the repository.
+pub const MANUAL_URL: &str =
+    "https://github.com/Rhyslos/Aventail-3D/blob/main/docs/manual/SUMMARY.md";
+
 #[cfg(test)]
 mod tests {
     use super::*;

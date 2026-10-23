@@ -68,10 +68,10 @@ In every pattern, a click with the "adds" key on something already selected unse
 
 ### Selecting through, or only what you can see
 
-As standard, a box, lasso or brush **selects through the shape**: the points, edges and polygons on its far side are caught too. That's what you want for, say, selecting the whole top half of a model in one go.
+As standard, **Select only visible** is on: a box, lasso or brush takes only what you can see, the side facing you, so nothing on the back gets caught by surprise.
 
-Sometimes you only want the side facing you. Switch on **Select only visible**:
-- the button on the left palette, just above the grid button (a box with faint hidden edges, filled red when on);
+Sometimes you want to **select through the shape**, catching the points, edges and polygons on its far side too: say, the whole top half of a model in one go. Switch **Select only visible** off:
+- the button on the left palette, just above the grid button (a box with faint hidden edges, filled with the accent colour when on);
 - or **Select → Select only visible**;
 - or **Edit → Settings… → Viewport → Selecting**.
 
@@ -87,7 +87,7 @@ A **double-click** selects a whole [loop](concepts.md#mesh-basics), the belt run
 - **Points mode:** double-click on an edge between two points; you get the points along its loop.
 - **Polygons mode:** double-click inside a polygon, near the edge the band should cross. The loop is the band of polygons running across that edge; the ring runs the other way.
 
-**Ctrl + double-click** adds the loop (Ctrl + Alt + double-click the ring) to what's already selected, and **Shift + double-click** takes it away. Two clicks only count as a double-click when they land in the same spot within half a second; two quick clicks on different things are two clicks. Double-clicks work with the Move, Rotate and Scale tools too, even though the first click moves the gizmo right under the mouse. Loops stop where the mesh isn't made of four-sided polygons, or at a corner where three or five edges meet. That's how loops work everywhere, so on a plain cube a loop is just one edge. Give the cube more segments to see them go around.
+**Ctrl + double-click** adds the loop (Ctrl + Alt + double-click the ring) to what's already selected, and **Shift + double-click** takes it away. Two clicks only count as a double-click when they land in the same spot within half a second; two quick clicks on different things are two clicks. It doesn't matter what you clicked just before: click an edge, then double-click it, and you get the loop. A third quick click on the same spot right after a double-click is ignored, so it can't undo the loop. Double-clicks work with the Move, Rotate and Scale tools too, even though the first click moves the gizmo right under the mouse. An edge on the rim of an [n-gon](concepts.md#mesh-basics), like the top or bottom of a cylinder, selects the whole rim, just as an edge on an open border selects the whole border. Otherwise loops stop where the mesh isn't made of four-sided polygons, or at a corner where three or five edges meet. That's how loops work everywhere, so on a plain cube a loop is just one edge. Give the cube more segments to see them go around.
 
 ### Grow, shrink, all, invert
 
@@ -110,7 +110,7 @@ Each mode remembers its own selection. Select some points, switch to Polygons mo
 
 | Setting | What it does |
 |---|---|
-| **Select only visible** | Off (standard): the box, lasso and brush select through the shape, the far side too. On: only what you can see. Left palette, Select menu or Settings. |
+| **Select only visible** | On (standard): the box, lasso and brush select only what you can see. Off: they select through the shape, the far side too. Left palette, Select menu or Settings. |
 | **Selection keys** | Which key adds and which removes: Ctrl adds, Shift removes (standard); Shift adds, Ctrl removes; Ctrl flips; or Ctrl adds, Alt removes. In Settings → Viewport. |
 | **Brush size** | How big the Paint select brush is. Ctrl + mouse wheel while the brush is active. The circle around the mouse shows it. |
 
@@ -135,8 +135,9 @@ Each mode remembers its own selection. Select some points, switch to Polygons mo
 ## Tips and common problems
 
 - **Problem:** dragging a box selects nothing in Points mode. **Why:** no shape is selected, so there are no points to select (the status bar says so). **Fix:** press `1` again to go back to Model mode, click the shape, then press `1`.
-- **Problem:** a box selected points on the back I didn't want. **Why:** selecting through is the standard. **Fix:** switch on **Select only visible**, or Shift + drag over the unwanted ones.
-- **Problem:** a double-click only selects one edge. **Why:** the loop can't continue: it reached a corner where three edges meet (every corner of a plain cube), a triangle or an n-gon. **Fix:** this is normal; add segments, or select the rest with Ctrl + click.
+- **Problem:** a box selected points on the back I didn't want. **Why:** **Select only visible** is off, so the box selects through. **Fix:** switch it back on, or Shift + drag over the unwanted ones.
+- **Problem:** a box missed the points on the back. **Why:** **Select only visible** is on (the standard). **Fix:** switch it off on the left palette to select through.
+- **Problem:** a double-click only selects one edge. **Why:** the loop can't continue: it reached a corner where three edges meet (every corner of a plain cube), a triangle, or an n-gon it doesn't run round. **Fix:** this is normal; add segments, or select the rest with Ctrl + click.
 - **Problem:** dragging with the left button moves the view instead. **Why:** you're holding Alt, which navigates. **Fix:** let go of Alt. (With the **Ctrl adds, Alt removes** pattern, switch off **Alt + mouse works in every scheme** in Settings if you want Alt + drag to remove.)
 - **Problem:** a double-click selects only the edge, not the loop. **Why:** the clicks were too far apart in time (more than half a second) or place. **Fix:** double-click a little quicker, without moving the mouse in between.
 - **Tip:** to select one side of a model cleanly, use a flat view (`F2`, `F3`, `F4`) and a box: in a flat view, a box through the model takes the front and back alike.

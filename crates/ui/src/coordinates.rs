@@ -103,7 +103,7 @@ pub(crate) struct Interaction {
 /// values, and which field each row is.
 type Group<'a> = (
     &'a str,
-    [(&'a str, egui::Color32); 3],
+    [(&'a str, egui::Color32, usize); 3],
     Option<Vec3>,
     fn(usize) -> Field,
 );
@@ -116,15 +116,19 @@ const FIELD_HEIGHT: f32 = 22.0;
 /// Draws the panel.
 pub(crate) fn show(ui: &mut Ui, units: Units, view: &CoordinatesView) -> Interaction {
     let mut out = Interaction::default();
+    // Each row: its letter, colour, and which value it shows.
     let position = [
-        ("X", tint::AXIS_X),
-        ("Y", tint::AXIS_Y),
-        ("Z", tint::AXIS_Z),
+        ("X", tint::AXIS_X, 0),
+        ("Y", tint::AXIS_Y, 1),
+        ("Z", tint::AXIS_Z, 2),
     ];
+    // Rotation named by the axis it turns around, X, Y and Z, in the
+    // axes' colours (decision 0126; it read H, P and B). The values are
+    // stored as heading (around Z), pitch (around X) and bank (around Y).
     let rotation = [
-        ("H", theme::TEXT_WEAK),
-        ("P", theme::TEXT_WEAK),
-        ("B", theme::TEXT_WEAK),
+        ("X", tint::AXIS_X, 1),
+        ("Y", tint::AXIS_Y, 2),
+        ("Z", tint::AXIS_Z, 0),
     ];
     let groups: [Group; 3] = [
         ("Position", position, view.position, Field::Position),
@@ -138,7 +142,7 @@ pub(crate) fn show(ui: &mut Ui, units: Units, view: &CoordinatesView) -> Interac
                 ui.set_width(GROUP_WIDTH);
                 ui.spacing_mut().item_spacing.y = 4.0;
                 ui.label(RichText::new(title).small().color(theme::TEXT_WEAK));
-                for (index, (axis, color)) in axes.into_iter().enumerate() {
+                for (axis, color, index) in axes {
                     ui.horizontal(|ui| {
                         ui.spacing_mut().item_spacing.x = 6.0;
                         let (letter, _) =

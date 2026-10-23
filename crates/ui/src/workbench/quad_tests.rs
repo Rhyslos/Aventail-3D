@@ -50,9 +50,14 @@ fn switched_on() -> H {
 }
 
 #[test]
-fn it_is_off_as_standard() {
+fn it_is_on_as_standard_and_can_be_switched_off() {
+    // On as standard since decision 0126.
     let mut harness = fresh();
     let at = viewport_spot(&harness);
+    right_click(&mut harness, at);
+    assert!(harness.state().workbench.is_quad_menu_open());
+    let mut harness = fresh();
+    harness.state_mut().workbench.tool_menu.settings.quad_menu = false;
     right_click(&mut harness, at);
     assert!(!harness.state().workbench.is_quad_menu_open());
 }
@@ -168,5 +173,5 @@ fn the_setting_is_in_the_settings_window() {
         .get_by_label(crate::settings::QUAD_MENU_SWITCH)
         .click();
     harness.run();
-    assert!(harness.state().workbench.tool_menu_settings().quad_menu);
+    assert!(!harness.state().workbench.tool_menu_settings().quad_menu);
 }

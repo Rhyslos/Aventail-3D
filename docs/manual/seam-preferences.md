@@ -25,7 +25,7 @@ A **stretch budget** says how much stretching a piece may have. "Off" here means
    - **Prefer seams here**: around the selected polygons, or on the selected edges;
    - **Never seams here**: on every edge of the selected polygons, or on the selected edges;
    - **Clear seam preference**: back to free.
-3. **Look for** the marks: in the UV Editor, and on the model in the UV mode (or with **Display → Seams**). "Never" edges are blue; "prefer" edges are pale orange, dashed in the UV Editor.
+3. **Look for** the marks: in the UV Editor, and on the model in the UV mode (or with **Display → Show seams**). "Never" edges are blue; "prefer" edges are pale orange, dashed in the UV Editor.
 4. Run **UV → Seams → Suggest seams** (or Unwrap) to see the tools follow them.
 
 **Stretch budget for some pieces:**

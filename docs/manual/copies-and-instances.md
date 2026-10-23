@@ -27,7 +27,7 @@ Pasting copies the objects as they are when you paste, not when you copied. If t
 
 - An instance has a white icon in the Objects panel, and the Attributes panel says which object it shows.
 - It can be moved, turned and scaled on its own, but its shape can't be edited: edit the original instead.
-- **Make editable** (Ctrl + E) turns an instance into a plain mesh of its own, no longer linked.
+- **Bake into shape** (Ctrl + E) turns an instance into a plain mesh of its own, no longer linked.
 - Deleting an original turns its instances into plain meshes, so they don't disappear.
 - An instance of an instance shows the same original.
 

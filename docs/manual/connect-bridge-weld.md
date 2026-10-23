@@ -15,7 +15,7 @@ These are the tools for tidying up and joining. Connect splits polygons where yo
 ### Connect (A)
 
 1. In the **Points** mode, select two or more points on the same polygon. Or in the **Edges** mode, select two or more edges of the same polygons.
-2. Press **A** (or pick **Connect** from the [tool menu](tool-menu.md) **E**, or the **Mesh** menu).
+2. Press **A** (or pick **Connect** from the [tool menu](tool-menu.md) **E**, or **Mesh → Cut and join**).
 
 Points are joined straight across each polygon holding them. With three or more on one polygon, they're joined all the way round. Edges are cut in the middle and the cuts joined, so a ring of selected edges gets a loop through it. Under **Last edit**, **Cuts** makes more than one cut along each edge.
 
@@ -34,7 +34,10 @@ Where the band turns a sharp corner (sharper than 30°), its new edges come out 
 ### Weld (M, Ctrl + M)
 
 - In the **Points** mode, select two or more points and press **M**: they melt into one at their middle.
-- Press **Ctrl + M** to make Weld the tool. Then drag a point onto another: as you get close, the line **snaps onto the point** under the mouse and rings it, so you see exactly where it will go. Let go and it melts into that one, which stays where it is. Drag one of the selected points and the whole selection goes there.
+- In the **Polygons** mode, select a polygon and press **M**: all its points melt into one at its middle, and the polygons around it close in to meet there. Select several polygons and each touching group melts at its own middle.
+- Press **Ctrl + M** to make Weld the tool. Then drag a point onto another: as you get close, the line **snaps onto the point** under the mouse and rings it, so you see exactly where it will go. Let go and it melts into that one, which stays where it is. Drag one of the selected points and the whole selection goes there. In the Polygons mode, drag a polygon onto a point the same way: all its points melt onto that point.
+
+**Even triangles on a cap.** A cylinder's cap is one many-sided polygon (an [n-gon](concepts.md#mesh-basics)), which some engines and bakers triangulate unevenly. To turn it into a neat fan of triangles: select the cap, [inset](extrude-and-inset.md) it (I), keep the new middle polygon selected and press **M**. The middle melts into one point, and the ring the inset made becomes even triangles round it. Without the inset, M on the cap pulls the cylinder's top edge into a point, making a cone.
 
 While Bridge or Weld is the tool, a **click still selects**, with the usual light-red highlight under the mouse, and a drag from empty space still draws a selection box. Only a drag that starts on a point (Weld) or an open edge (Bridge) is the tool's. **Tab** puts the tool away.
 
@@ -60,7 +63,8 @@ Polygons squeezed to fewer than three corners disappear.
 | Select while Bridge or Weld is the tool | Click, or drag from empty space |
 | Put the tool away, back to the Model mode | `Tab` |
 | Weld at the middle | `M` |
-| Weld onto a point | `Ctrl + M`, then drag a point onto another |
+| Weld a polygon at its middle | `M` in the Polygons mode |
+| Weld onto a point | `Ctrl + M`, then drag a point (or, in the Polygons mode, a polygon) onto a point |
 | Bridge's segments | `Ctrl` + wheel (Bridge tool) |
 
 ## Tips and common problems

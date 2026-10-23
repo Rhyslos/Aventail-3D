@@ -133,7 +133,7 @@ impl Workbench {
     pub(crate) fn copy_objects(&mut self, ctx: &egui::Context) {
         if kind_for(self.mode).is_some() {
             self.note = Some(
-                "Copy works on whole objects: go back to the Model mode (the top of the left \\
+                "Copy works on whole objects: go back to the Model mode (the top of the left \
                  palette) first."
                     .into(),
             );
@@ -158,7 +158,7 @@ impl Workbench {
     pub(crate) fn paste_objects(&mut self, instances: bool) {
         if kind_for(self.mode).is_some() {
             self.note = Some(
-                "Paste works on whole objects: go back to the Model mode (the top of the left \\
+                "Paste works on whole objects: go back to the Model mode (the top of the left \
                  palette) first."
                     .into(),
             );

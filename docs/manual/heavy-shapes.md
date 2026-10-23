@@ -18,7 +18,7 @@ Bringing in models from other programs (import) arrives with export in Phase 5. 
 
 ### Try the heavy test shape
 
-1. Choose **Help → Add a heavy test shape**. A bumpy ball of 3 million polygons appears at the middle of the scene, named *Heavy test shape*, and is selected.
+1. Choose **Help → Developer → Add a heavy test shape**. A bumpy ball of 3 million polygons appears at the middle of the scene, named *Heavy test shape*, and is selected.
 2. For a moment the view says **Preparing a heavy shape for drawing…**, and the Attributes panel says **Checking the mesh…**. This work happens in the background: you can keep orbiting and working meanwhile. On a typical computer it takes a second or two.
 3. Try what you'd normally do:
    - orbit around it;
@@ -44,7 +44,7 @@ None. The app decides on its own what to do in the background (anything from abo
 
 | Action | Shortcut |
 |---|---|
-| Add a heavy test shape | **Help → Add a heavy test shape** (no key) |
+| Add a heavy test shape | **Help → Developer → Add a heavy test shape** (no key) |
 | Take it away again | `Ctrl + Z` |
 
 ## Tips and common problems

@@ -320,3 +320,63 @@ fn the_numbered_checker_shows_behind_the_uvs_in_the_accent_colours() {
         Some(crate::theme::grid_colors(crate::theme::Accent::Blue))
     );
 }
+
+#[test]
+fn the_uv_editor_has_the_uv_menu_and_uv_edit_has_the_uv_settings() {
+    // Issue #115: the whole UV menu from the UV Editor's own menu line, and
+    // the UV settings in a panel of the UV Edit layout.
+    let mut harness = fresh();
+    select_cube(&mut harness);
+    harness.get_by_label("UV Edit").click();
+    harness.run();
+    let editor = harness
+        .get_by_label(crate::uv_editor::UV_EDITOR_LABEL)
+        .rect();
+    let button = harness
+        .get_all_by_label(UV_EDITOR_UV_MENU)
+        .find(|node| editor.x_range().contains(node.rect().center().x))
+        .expect("a UV button over the UV Editor");
+    assert!(
+        button.rect().max.y <= editor.min.y + 1.0,
+        "in the editor's menu line"
+    );
+    let closed = harness.query_all_by_label_contains(UV_SEAMS_MENU).count();
+    button.click();
+    harness.run();
+    assert!(
+        harness.query_all_by_label_contains(UV_SEAMS_MENU).count() > closed,
+        "the UV menu opened"
+    );
+    assert!(harness.query_by_label_contains(UV_SETTINGS_MENU).is_some());
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    assert!(harness.query_by_label("UV settings").is_some());
+}
+
+#[test]
+fn alt_a_over_the_editor_takes_the_piece_even_if_the_mouse_was_reported_gone() {
+    // The project lead's find: Alt + A right after a click in the UV
+    // Editor took the whole part until the mouse moved. With the mouse
+    // reported gone (as Windows can on Alt), the editor still counts as
+    // under it.
+    let mut harness = quick_harness();
+    select_cube(&mut harness);
+    harness
+        .state_mut()
+        .workbench
+        .switch_layout(LayoutChoice::UvEdit);
+    harness.run();
+    harness.run();
+    harness.key_press(Key::Num3);
+    harness.run();
+    let (_, uv) = middle_of(&harness, glam::Vec3::Z);
+    let at = harness.state().workbench.uv_editor.screen_of(uv).unwrap();
+    click_at(&mut harness, at, Modifiers::NONE);
+    assert_eq!(selected_polygons(&harness), 1);
+    harness.event(Event::PointerGone);
+    harness.step();
+    harness.key_press_modifiers(Modifiers::ALT, Key::A);
+    harness.run();
+    // A plain cube's top is a piece of its own, not the whole cube.
+    assert_eq!(selected_polygons(&harness), 1);
+}

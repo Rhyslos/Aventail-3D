@@ -19,6 +19,18 @@ use tools::Region;
 /// double-click.
 const DOUBLE_CLICK_DISTANCE: f32 = 6.0;
 
+/// What a click is, counted by the viewport itself (see
+/// [`Viewport::click_kind`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum ClickKind {
+    /// A click of its own.
+    Single,
+    /// The second click of a double-click.
+    Double,
+    /// A quick click straight after a double-click, on the same spot.
+    AfterDouble,
+}
+
 /// How far apart (in screen points) the lasso's outline points are kept.
 const LASSO_SPACING: f32 = 3.0;
 
@@ -152,13 +164,24 @@ impl View {
         let clicked_at = response
             .interact_pointer_pos()
             .or_else(|| ui.input(|i| i.pointer.interact_pos()));
-        // Two quick clicks in different places are two clicks, not a
-        // double-click (egui only checks the time between them).
-        let double = response.double_clicked_by(PointerButton::Primary)
-            && clicked_at
-                .zip(self.last_click)
-                .is_some_and(|(a, b)| a.distance(b) <= DOUBLE_CLICK_DISTANCE);
-        if double {
+        let now = ui.input(|i| i.time);
+        let clicked = response.clicked_by(PointerButton::Primary);
+        // A double-click is this click and the single click before it,
+        // close in time and place. Counted here rather than by egui, which
+        // calls a click a triple (not a double) when any click came in the
+        // second before: a click, then a double-click, missed the loop.
+        let kind = match clicked_at {
+            Some(at) if clicked => self.click_kind(at, now),
+            _ => ClickKind::Single,
+        };
+        if kind == ClickKind::AfterDouble {
+            // A third quick click on a double-click's spot: part of the same
+            // burst, so the loop just selected stays.
+            self.last_double = clicked_at.map(|at| (at, now));
+        } else if kind == ClickKind::Double {
+            // The next click starts afresh.
+            self.last_click = None;
+            self.last_double = clicked_at.map(|at| (at, now));
             if let Some(at) = clicked_at {
                 capture.out.push(Gesture::DoubleClick {
                     pointer: pointer_at(at),
@@ -166,14 +189,31 @@ impl View {
                     how: capture.keys.combine_loop(keys),
                 });
             }
-        } else if response.clicked_by(PointerButton::Primary)
-            && let Some(at) = clicked_at
-        {
-            self.last_click = Some(at);
+        } else if clicked && let Some(at) = clicked_at {
+            self.last_click = Some((at, now));
             capture.out.push(Gesture::Click {
                 pointer: pointer_at(at),
                 how: capture.keys.combine(keys, true),
             });
+        }
+    }
+
+    /// What a click at `at`, at time `now` (seconds), is: the second
+    /// click of a double-click with the single click before it, a quick
+    /// click straight after a double-click on the same spot, or a click of
+    /// its own.
+    pub(super) fn click_kind(&self, at: Pos2, now: f64) -> ClickKind {
+        let close = |(before, then): (Pos2, f64)| {
+            now >= then
+                && now - then <= crate::DOUBLE_CLICK_SECONDS
+                && at.distance(before) <= DOUBLE_CLICK_DISTANCE
+        };
+        if self.last_double.is_some_and(close) {
+            ClickKind::AfterDouble
+        } else if self.last_click.is_some_and(close) {
+            ClickKind::Double
+        } else {
+            ClickKind::Single
         }
     }
 

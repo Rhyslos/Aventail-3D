@@ -80,7 +80,11 @@ fn e_opens_the_tools_for_objects_with_their_keys() {
     let mut harness = fresh();
     open(&mut harness);
     assert!(harness.query_by_label("Tool menu: Move").is_some());
-    assert!(harness.query_by_label("Tool menu: Make editable").is_some());
+    assert!(
+        harness
+            .query_by_label("Tool menu: Bake into shape")
+            .is_some()
+    );
     assert!(harness.query_by_label("Tool menu: Extrude").is_none());
     assert_eq!(highlighted(&harness), Some(CommandId::Move));
     // The middle says what the highlighted tool is.
@@ -207,7 +211,11 @@ fn editing_shows_the_modelling_tools_in_their_places() {
     press(&mut harness, Modifiers::NONE, Key::Num2);
     open(&mut harness);
     assert!(harness.query_by_label("Tool menu: Extrude").is_some());
-    assert!(harness.query_by_label("Tool menu: Hard edges").is_some());
+    assert!(
+        harness
+            .query_by_label("Tool menu: Mark hard edges")
+            .is_some()
+    );
     // No moving or scaling here, and no polygon-only tools.
     assert!(harness.query_by_label("Tool menu: Move").is_none());
     assert!(harness.query_by_label("Tool menu: Inset").is_none());
@@ -224,9 +232,9 @@ fn editing_shows_the_modelling_tools_in_their_places() {
     assert!(!harness.state().workbench.is_tool_menu_open());
     // A tool with nothing to work on says so.
     open(&mut harness);
-    harness.get_by_label("Tool menu: Hard edges").click();
+    harness.get_by_label("Tool menu: Mark hard edges").click();
     harness.run();
-    assert_eq!(note(&harness), "Hard edges: select some edges first.");
+    assert_eq!(note(&harness), "Mark hard edges: select some edges first.");
 }
 
 #[test]
@@ -250,7 +258,7 @@ fn a_tool_that_cant_be_used_now_says_why() {
 fn tools_from_the_menu_change_the_scene_like_their_keys() {
     let mut harness = cube_selected();
     open(&mut harness);
-    harness.get_by_label("Tool menu: Make editable").click();
+    harness.get_by_label("Tool menu: Bake into shape").click();
     harness.run();
     let doc = harness.state().workbench.document();
     let id = doc.selection()[0];
@@ -287,7 +295,14 @@ fn the_uv_mode_has_the_uv_ring_with_every_tool_built() {
     open(&mut harness);
     let entries = harness.state().workbench.tool_menu_entries();
     let commands: Vec<CommandId> = entries.iter().map(|e| e.slot.command).collect();
-    assert_eq!(commands, crate::commands::UV_RING.to_vec());
+    assert_eq!(
+        commands,
+        crate::commands::UV_RING
+            .iter()
+            .flatten()
+            .copied()
+            .collect::<Vec<_>>()
+    );
     assert!(
         entries
             .iter()
@@ -372,7 +387,7 @@ fn settings_have_a_radial_menu_section_with_every_look_and_switch() {
             style: ToolMenuStyle::InnerEdge,
             show_keys: false,
             tap_to_open: false,
-            quad_menu: false,
+            quad_menu: true,
         }
     );
     harness.get_by_label("Restore standard").click();
@@ -464,27 +479,39 @@ fn every_mode_uses_the_same_ring() {
     // the Model ring and the modelling ring.
     let mut harness = cube_selected();
     open(&mut harness);
-    let model = harness.get_by_label("Tool menu: Delete").rect();
+    let model = harness.get_by_label("Tool menu: Delete objects").rect();
     press(&mut harness, Modifiers::NONE, Key::Escape);
     press(&mut harness, Modifiers::NONE, Key::Num1);
     open(&mut harness);
-    let points = harness.get_by_label("Tool menu: Delete").rect();
+    let points = harness
+        .get_by_label("Tool menu: Delete points, edges or polygons")
+        .rect();
     assert!((model.center() - points.center()).length() < 0.5);
     assert!((model.size() - points.size()).length() < 0.5);
 }
 
 #[test]
 fn the_mesh_and_tools_menus_read_from_the_command_list() {
-    let mut harness = fresh();
-    main_menu(&harness, "Mesh").click();
-    harness.run();
+    // Every modelling command is in one of the Mesh menu's groups
+    // (decision 0126).
     for command in crate::commands::MODELLING_RING {
         let name = command.name();
-        assert!(
-            harness.query_all_by_label_contains(name).count() >= 1,
-            "{name}"
-        );
+        let found = [
+            super::MESH_BUILD_MENU,
+            super::MESH_CUT_MENU,
+            super::MESH_REMOVE_MENU,
+            super::MESH_SHADING_MENU,
+        ]
+        .into_iter()
+        .any(|group| {
+            let mut harness = fresh();
+            super::tests::mesh_group(&mut harness, group);
+            harness.query_all_by_label_contains(name).count() >= 1
+        });
+        assert!(found, "{name}");
     }
+    let mut harness = fresh();
+    super::tests::mesh_group(&mut harness, super::MESH_BUILD_MENU);
     let extrude = harness.get_by_label_contains("Extrude");
     assert!(!extrude.accesskit_node().is_disabled(), "built");
     let label = extrude.accesskit_node().label().unwrap_or_default();

@@ -99,7 +99,7 @@ changed_pixels() {
 #    and the status bar changes. MODE_Y is the middle of the fifth button
 #    (Polygons) with the standard layout.
 xdotool windowfocus --sync "$WINDOW_ID" 2>/dev/null || true
-MODE_Y="${MODE_Y:-234}"
+MODE_Y="${MODE_Y:-243}"
 xdotool mousemove 22 "$MODE_Y" click 1
 sleep 1.5
 import -window root "$OUT/after-mode.png"
@@ -150,7 +150,7 @@ echo "Pixels changed by framing everything (H): $FRAME_CHANGE"
 #    through the grid levels: one click adds the 50 cm lines (each metre
 #    square cut into four), a second the fine 10 cm lines. GRID_Y is the
 #    middle of that button with the standard layout.
-GRID_Y="${GRID_Y:-415}"
+GRID_Y="${GRID_Y:-390}"
 xdotool mousemove 22 "$GRID_Y" click 1
 sleep 1.5
 import -window root "$OUT/after-grid-half.png"
@@ -201,7 +201,7 @@ echo "Pixels changed by undoing (Ctrl+Z): $UNDO_CHANGE"
 
 # File > Quit with the mouse (there is no key for it, on purpose). QUIT_Y is
 # the middle of the Quit entry with the standard font.
-QUIT_Y="${QUIT_Y:-329}"
+QUIT_Y="${QUIT_Y:-305}"
 quit_from_menu() {
     xdotool mousemove 20 14 click 1
     sleep 1
@@ -210,10 +210,10 @@ quit_from_menu() {
 }
 
 # 6. Quit with File > Quit. The scene has unsaved changes, so the app asks
-#    first; Ctrl+D answers "Don't save".
+#    first; Alt+N answers "Don't save".
 quit_from_menu
 import -window root "$OUT/unsaved-question.png"
-xdotool key --window "$WINDOW_ID" ctrl+d || true
+xdotool key --window "$WINDOW_ID" alt+n || true
 for _ in $(seq 1 15); do
     kill -0 "$PID" 2>/dev/null || break
     sleep 1

@@ -71,11 +71,37 @@ impl Bounds {
     pub fn contains(&self, point: Vec3) -> bool {
         point.cmpge(self.min).all() && point.cmple(self.max).all()
     }
+
+    /// The box's eight corners.
+    pub fn corners(&self) -> [Vec3; 8] {
+        let (a, b) = (self.min, self.max);
+        [
+            Vec3::new(a.x, a.y, a.z),
+            Vec3::new(b.x, a.y, a.z),
+            Vec3::new(a.x, b.y, a.z),
+            Vec3::new(b.x, b.y, a.z),
+            Vec3::new(a.x, a.y, b.z),
+            Vec3::new(b.x, a.y, b.z),
+            Vec3::new(a.x, b.y, b.z),
+            Vec3::new(b.x, b.y, b.z),
+        ]
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn corners_are_the_eight_ends_and_rebuild_the_box() {
+        let b = Bounds::new(Vec3::new(-1.0, 2.0, 0.0), Vec3::new(3.0, 5.0, 4.0)).unwrap();
+        let corners = b.corners();
+        assert!(corners.iter().all(|c| b.contains(*c)));
+        assert_eq!(Bounds::around(corners), Some(b));
+        // A point box has eight corners in one place.
+        let p = Bounds::new(Vec3::ONE, Vec3::ONE).unwrap();
+        assert!(p.corners().iter().all(|c| *c == Vec3::ONE));
+    }
 
     #[test]
     fn corners_can_come_in_any_order() {

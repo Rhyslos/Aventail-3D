@@ -46,6 +46,8 @@ pub struct AppInfo {
     pub name: String,
     /// Version, such as "0.0.1".
     pub version: String,
+    /// Where the user manual is read online (Help → User manual).
+    pub manual_url: String,
 }
 
 /// The layouts the tabs on the right of the menu bar switch between
@@ -61,13 +63,12 @@ pub enum LayoutChoice {
 
 /// The layout tabs, left to right: a layout's name, the layout (or, for
 /// one not built yet, when it arrives) and what it is for.
-const LAYOUTS: [(&str, Result<LayoutChoice, &str>, &str); 3] = [
+const LAYOUTS: [(&str, Result<LayoutChoice, &str>, &str); 2] = [
     (
         "Standard",
         Ok(LayoutChoice::Standard),
         "The standard layout",
     ),
-    ("Modelling", Err("A layout for modelling arrives later"), ""),
     (
         "UV Edit",
         Ok(LayoutChoice::UvEdit),
@@ -161,22 +162,9 @@ pub const MODE_KEYS: [(Key, Mode); 3] = [
 /// Edges or Polygons mode is left, so a click selects objects again.
 pub(crate) const BACK_KEY: Key = Key::Tab;
 
-/// Menu entries that exist in the design but not yet in the app, with the
-/// phase that brings them. (The Mesh menu's are listed below its working
-/// entries.)
-const COMING: [(&str, &[(&str, &str)]); 4] = [
-    // The Select menu's entries all work (see `selection`).
-    ("Select", &[]),
-    (
-        // The Tools menu's entries all work (see `transform`).
-        "Tools",
-        &[],
-    ),
-    // The Mesh menu lists the modelling tools from the command list.
-    ("Mesh", &[]),
-    // The UV menu's entries come from the command list (see `uv_menu`).
-    ("UV", &[]),
-];
+/// The menus between Modes and View, in order: Select, Tools, Mesh and
+/// UV, each filled from its own module.
+const MIDDLE_MENUS: [&str; 4] = ["Select", "Tools", "Mesh", "UV"];
 
 /// The whole interface around the scene.
 pub struct Workbench {
@@ -228,6 +216,8 @@ pub struct Workbench {
     shape_picker: ShapePicker,
     /// The tool menu (E).
     tool_menu: ToolMenu,
+    /// Command search, opened with Space (decision 0126).
+    search: crate::command_search::CommandSearch,
     /// What the viewport draws, kept up to date with the document.
     drawing: DrawingCache,
     /// Polygons hidden from view (Shift + H, Ctrl + H; decision 0055).
@@ -332,6 +322,7 @@ impl Workbench {
             queued: Vec::new(),
             shape_picker: ShapePicker::default(),
             tool_menu: ToolMenu::default(),
+            search: crate::command_search::CommandSearch::default(),
             drawing: DrawingCache::default(),
             hidden: crate::drawing::Hidden::default(),
             copied: Vec::new(),
@@ -989,7 +980,11 @@ impl Workbench {
         // While "Save changes?" (or the dissolve question) is asked, keys
         // answer it, not the scene.
         if self.file.asking.is_none() && self.dissolve_question.is_none() {
-            let typing = ui.ctx().memory(|m| m.focused().is_some()) || self.objects.is_renaming();
+            // A window open (Settings, Keys, Export…) takes the keys too: the
+            // tool menu and shape list don't open over it (decision 0126).
+            let typing = ui.ctx().memory(|m| m.focused().is_some())
+                || self.objects.is_renaming()
+                || self.window_open();
             if let Some(kind) = self.shape_picker.keys(ui, typing) {
                 requests.push(create(kind));
             }
@@ -1002,6 +997,7 @@ impl Workbench {
             }
             let entries = self.tool_menu_entries();
             self.tool_menu_keys(ui, typing, &entries, &mut requests);
+            self.search_keys(ui, typing);
             self.showing_keys(ui);
             self.copying_keys(ui);
             self.document_keys(ui, &mut requests);
@@ -1027,6 +1023,7 @@ impl Workbench {
             axes: self.viewport.options().axes,
             snapping: self.viewport.options().snap.on,
             symmetry: self.selected_mirror().is_some(),
+            edit_pivot: self.mode == Mode::Object,
         };
         // The Symmetry menu changes a copy of the selected objects' mirror
         // settings (or those kept for the next mirror), kept if it
@@ -1070,6 +1067,18 @@ impl Workbench {
                             self.toggle_symmetry();
                             return;
                         }
+                        PaletteCommand::ToggleEditPivot => {
+                            self.toggle_edit_pivot();
+                            return;
+                        }
+                        PaletteCommand::ApplyMirror => {
+                            self.apply_mirror();
+                            return;
+                        }
+                        PaletteCommand::Search => {
+                            self.search.open();
+                            return;
+                        }
                         PaletteCommand::Undo => DocRequest::Undo,
                         PaletteCommand::Redo => DocRequest::Redo,
                         PaletteCommand::CreateGroup => {
@@ -1104,6 +1113,7 @@ impl Workbench {
                     Some(crate::palette::ModePick::Isolate) => {
                         self.hide(showing::Hiding::Others);
                     }
+                    Some(crate::palette::ModePick::EditPivot) => self.toggle_edit_pivot(),
                     None => {}
                 }
             });
@@ -1134,13 +1144,15 @@ impl Workbench {
         self.uv_editor.take_keys(ui.ctx());
         hide_viewport_tab(&mut self.dock);
         let mut modifier_pick = None;
+        // The UV Editor's own UV menu button (issue #115): its menu is the
+        // main UV menu, drawn here where the workbench can fill it.
+        let mut uv_menu_button: Option<egui::Response> = None;
         let view_options = self.viewport.options();
         // What the viewport has under the mouse, for the UV Editor to
         // light up (decision 0103).
         let viewport_hover = self.viewport.pointer().and(self.components.hovered());
         // What explaining choices in the UV Editor needs (decision 0116).
         let explain_suggest = self.suggest_options();
-        let explain_hard_angle = view_options.auto_hard_angle();
         let style = theme::dock_style(ui.style().as_ref(), self.accent);
         theme::dock_frame().show(ui, |ui| {
             DockArea::new(&mut self.dock)
@@ -1168,9 +1180,9 @@ impl Workbench {
                         tool: self.tool,
                         snap: view_options.snap,
                         surface: view_options.surface,
+                        high_contrast: view_options.high_contrast,
                         explain: crate::uv_editor::explain::ExplainContext {
                             suggest: explain_suggest,
-                            hard_angle: explain_hard_angle,
                         },
                         texture_groups: crate::uv_editor::checking::TextureGroups {
                             per_material: self.uv_settings.per_material,
@@ -1182,9 +1194,19 @@ impl Workbench {
                         requests: &mut requests,
                         coordinates,
                         coordinates_done: &mut coordinates_done,
+                        uv_menu_button: &mut uv_menu_button,
+                        uv_settings: &mut self.uv_settings,
                     },
                 );
         });
+        if let Some(button) = uv_menu_button {
+            egui::Popup::menu(&button)
+                .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
+                .show(|ui| {
+                    ui.set_min_width(crate::dialog::MENU_WIDTH);
+                    self.uv_menu_entries(ui, &mut requests);
+                });
+        }
         if let Some(crate::layers::ModifierPick::AddLayer) = modifier_pick {
             self.add_edit_layer(&mut requests);
         }
@@ -1211,13 +1233,25 @@ impl Workbench {
             self.viewport.pointer(),
             crate::components::Guides {
                 hard_edges: !options.hide_hard_edges,
-                by_angle: options.auto_hard_angle(),
                 normals: options.show_normals,
                 seams: options.show_seams || self.mode == Mode::Uv,
             },
         );
         if overlay.version != shown {
             ui.ctx().request_repaint();
+        }
+        // Edit layers stays out of the way until an object with layers is
+        // selected (decision 0126).
+        if self.dock.find_tab(&Panel::EditLayers).is_none() {
+            let scene = self.document.scene();
+            let layered = self.document.selection().iter().any(|id| {
+                scene
+                    .object(*id)
+                    .is_some_and(|o| o.stack.layers().len() > 1)
+            });
+            if layered {
+                crate::layout::add_beside_objects(&mut self.dock, Panel::EditLayers);
+            }
         }
         if self.fit_pending && fit_coordinates(&mut self.dock) {
             self.fit_pending = false;
@@ -1231,6 +1265,7 @@ impl Workbench {
         self.tool_menu_show(ui.ctx(), &entries, &mut requests);
         self.open_quad_menu();
         self.quad_menu_show(ui.ctx(), &mut requests);
+        self.search_window(ui.ctx(), &mut actions, &mut requests);
         if !requests.is_empty() {
             self.carry_out(requests);
             ui.ctx().request_repaint();
@@ -1296,6 +1331,7 @@ impl Workbench {
             autosave_folder: self.autosave_folder.as_deref(),
             tool_menu: &mut self.tool_menu.settings,
             dissolve_without_warning: &mut options.dissolve_without_warning,
+            high_contrast: &mut options.high_contrast,
         };
         self.settings.show(ctx, &mut values);
         if undo_memory != self.undo_memory {
@@ -1314,6 +1350,7 @@ impl Workbench {
             || self.about_open
             || self.align.is_some()
             || self.quad_menu.is_open()
+            || self.search.open
     }
 
     /// Keys that change the document: undo, redo, delete, deselect, group
@@ -1359,16 +1396,18 @@ impl Workbench {
             self.cancel_target_pick();
             return;
         }
-        // While a slit's line is drawn, Esc and Enter finish it (and Esc
-        // deselects nothing).
-        if self.slit_session.is_some()
-            && ui.input_mut(|i| {
-                i.consume_key(Modifiers::NONE, Key::Escape)
-                    || i.consume_key(Modifiers::NONE, Key::Enter)
-            })
-        {
-            self.finish_slit();
-            return;
+        // While a slit's line is drawn, Enter finishes it and Esc cancels
+        // it, taking its cut back, as Esc cancels everywhere (decision
+        // 0126). Tab (back to the Model mode) finishes it too.
+        if self.slit_session.is_some() {
+            if ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Enter)) {
+                self.finish_slit();
+                return;
+            }
+            if ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
+                self.cancel_slit();
+                return;
+            }
         }
         let popup_open = egui::Popup::is_any_open(ui.ctx());
         let anything = !self.document.selection().is_empty();
@@ -1666,7 +1705,6 @@ impl Workbench {
             }
             ui.separator();
             self.export_entries(ui, actions);
-            self.bake_entry(ui);
             ui.separator();
             // No key for Quit, on purpose: Ctrl and Q are both used all the
             // time, and a slip shouldn't close the app.
@@ -1678,7 +1716,7 @@ impl Workbench {
         crate::dialog::menu(ui, "Edit", |ui| {
             objects::undo_entries(ui, &self.document, requests);
             ui.separator();
-            objects::selection_entries(ui, &mut self.document, &mut self.objects, requests);
+            objects::rename_delete_entries(ui, &mut self.document, &mut self.objects, requests);
             ui.separator();
             self.copy_entries(ui, requests);
             ui.separator();
@@ -1722,8 +1760,10 @@ impl Workbench {
             );
         });
         crate::dialog::menu(ui, "Modes", |ui| {
-            for mode in Mode::ALL {
-                let mut entry = egui::Button::selectable(self.mode == mode, mode.name());
+            for mode in Mode::SHOWN {
+                let current =
+                    self.mode == mode || (mode == Mode::Model && self.mode == Mode::Object);
+                let mut entry = egui::Button::selectable(current, mode.name());
                 if let Some(key) = mode.key() {
                     entry = entry.shortcut_text(key.name());
                 }
@@ -1733,7 +1773,7 @@ impl Workbench {
                 }
             }
         });
-        for (title, items) in COMING {
+        for title in MIDDLE_MENUS {
             crate::dialog::menu(ui, title, |ui| {
                 if title == "Select" {
                     self.select_menu(ui);
@@ -1745,74 +1785,8 @@ impl Workbench {
                     self.uv_menu_entries(ui, requests);
                 }
                 if title == "Mesh" {
-                    objects::make_editable_entry(ui, &self.document, requests);
-                    ui.separator();
-                    if let Some(command) = commands_entries(ui, &crate::commands::MODELLING_RING) {
-                        self.run_command(command, ui.ctx(), requests);
-                        ui.close();
-                    }
-                    ui.separator();
-                    if ui
-                        .button("Split off")
-                        .on_hover_text(
-                            "Move the selected polygons into a new object of their own, in the \
-                             same place (Polygons mode)",
-                        )
-                        .clicked()
-                    {
-                        self.run_split_off();
-                        ui.close();
-                    }
-                    let join = crate::commands::CommandId::Join;
-                    if ui
-                        .button(join.name())
-                        .on_hover_text(join.info().help)
-                        .clicked()
-                    {
-                        self.run_command(join, ui.ctx(), requests);
-                        ui.close();
-                    }
-                    objects::apply_entries(ui, &self.document, requests);
-                    let layer_targets = crate::layers::layer_targets(&self.document);
-                    if ui
-                        .add_enabled(
-                            !layer_targets.is_empty(),
-                            egui::Button::new(crate::layers::ADD_LAYER_LABEL),
-                        )
-                        .on_hover_text(crate::layers::ADD_LAYER_HELP)
-                        .clicked()
-                    {
-                        self.add_edit_layer(requests);
-                        ui.close();
-                    }
-                    ui.separator();
-                    crate::viewport::chrome::auto_hard_edges_entry(ui, self.viewport.options_mut());
-                    if ui
-                        .button("Hard edges by angle")
-                        .on_hover_text(
-                            "In the selected objects, make every edge whose polygons meet more \
-                             sharply than an angle (30° to start with) hard, and the rest soft: \
-                             boxy corners crisp, curves smooth. Change the angle under Last edit.",
-                        )
-                        .clicked()
-                    {
-                        self.run_hard_by_angle();
-                        ui.close();
-                    }
-                    if ui
-                        .button("Fix normals")
-                        .on_hover_text(
-                            "Turn every polygon of the selected objects that faces the wrong \
-                             way round: inside out compared with its neighbours, or facing \
-                             into a closed shape. Select → Select flipped shows them first.",
-                        )
-                        .clicked()
-                    {
-                        self.run_fix_facing();
-                        ui.close();
-                    }
+                    self.mesh_menu(ui, requests);
                 }
-                coming_entries(ui, items);
             });
         }
         crate::dialog::menu(ui, "View", |ui| {
@@ -1825,6 +1799,42 @@ impl Workbench {
                 ui.close();
             }
             crate::viewport::chrome::frame_entries(ui, &mut self.viewport);
+            ui.separator();
+            crate::dialog::menu(ui, SHOW_HIDE_MENU, |ui| {
+                let entry = |ui: &mut Ui, label: &str, keys: &KeyboardShortcut, help: &str| {
+                    let keys = ui.ctx().format_shortcut(keys);
+                    ui.add(egui::Button::new(label).shortcut_text(keys))
+                        .on_hover_text(help)
+                        .clicked()
+                };
+                if entry(
+                    ui,
+                    "Hide the selection",
+                    &showing::HIDE_KEYS,
+                    "Hide the selected objects (or the selected polygons while editing)",
+                ) {
+                    self.hide(showing::Hiding::Selection);
+                    ui.close();
+                }
+                if entry(
+                    ui,
+                    "Isolate the selection",
+                    &showing::ISOLATE_KEYS,
+                    "Hide everything except the selection",
+                ) {
+                    self.hide(showing::Hiding::Others);
+                    ui.close();
+                }
+                if entry(
+                    ui,
+                    "Show everything",
+                    &showing::SHOW_ALL_KEYS,
+                    "Show all that's hidden",
+                ) {
+                    self.show_everything();
+                    ui.close();
+                }
+            });
             ui.separator();
             crate::viewport::chrome::grid_entries(ui, &mut self.viewport.options_mut().grid_detail);
             ui.separator();
@@ -1846,20 +1856,80 @@ impl Workbench {
                 self.toggle_uv_editor();
                 ui.close();
             }
-        });
-        crate::dialog::menu(ui, "Help", |ui| {
+            let layers_shown = self.dock.find_tab(&Panel::EditLayers).is_some();
             if ui
-                .button("Add a heavy test shape")
+                .add(egui::Button::selectable(layers_shown, EDIT_LAYERS_ENTRY))
                 .on_hover_text(
-                    "Adds a bumpy ball of 3 million polygons, like a detailed model you \
-                     might import, to see how your computer copes with heavy shapes. Undo \
-                     takes it away again.",
+                    "Show the Edit layers panel beside Objects, or put it away. It shows by \
+                     itself once an object has more than one layer.",
                 )
                 .clicked()
             {
-                self.add_heavy_test_shape();
+                match self.dock.find_tab(&Panel::EditLayers) {
+                    Some(path) => {
+                        self.dock.remove_tab(path);
+                    }
+                    None => crate::layout::show_tab(&mut self.dock, Panel::EditLayers),
+                }
                 ui.close();
             }
+        });
+        crate::dialog::menu(ui, "Help", |ui| {
+            if ui
+                .button(MANUAL_ENTRY)
+                .on_hover_text("Open the user manual in your web browser")
+                .clicked()
+            {
+                self.open_manual(ui.ctx());
+                ui.close();
+            }
+            if ui
+                .button(GLOSSARY_ENTRY)
+                .on_hover_text(
+                    "What the app's words mean: points, pieces, seams, pivots, smoothing and the \
+                     rest, each explained in plain words, in your web browser",
+                )
+                .clicked()
+            {
+                self.open_glossary(ui.ctx());
+                ui.close();
+            }
+            if ui
+                .add(
+                    egui::Button::new(SEARCH_ENTRY)
+                        .shortcut_text(crate::command_search::SEARCH_KEY.name()),
+                )
+                .on_hover_text("Find any command by typing part of its name")
+                .clicked()
+            {
+                self.search.open();
+                ui.close();
+            }
+            if ui
+                .button("Keys")
+                .on_hover_text(
+                    "Every key on a drawn keyboard (also the Keys button on the menu bar)",
+                )
+                .clicked()
+            {
+                self.shortcuts.open = true;
+                ui.close();
+            }
+            ui.separator();
+            crate::dialog::menu(ui, DEVELOPER_MENU, |ui| {
+                if ui
+                    .button("Add a heavy test shape")
+                    .on_hover_text(
+                        "Adds a bumpy ball of 3 million polygons, like a detailed model you \
+                         might import, to see how your computer copes with heavy shapes. Undo \
+                         takes it away again.",
+                    )
+                    .clicked()
+                {
+                    self.add_heavy_test_shape();
+                    ui.close();
+                }
+            });
             ui.separator();
             if ui.button(format!("About {}", self.info.name)).clicked() {
                 self.about_open = true;
@@ -1884,6 +1954,170 @@ fn lower_first(text: &str) -> String {
     }
 }
 
+/// The Mesh menu's groups (decision 0126): what it holds was one long
+/// list.
+pub(crate) const MESH_BUILD_MENU: &str = "Build";
+pub(crate) const MESH_CUT_MENU: &str = "Cut and join";
+pub(crate) const MESH_REMOVE_MENU: &str = "Remove";
+pub(crate) const MESH_SHADING_MENU: &str = "Shading";
+pub(crate) const MESH_OBJECT_MENU: &str = "Shape and object";
+
+/// Help → User manual.
+pub(crate) const MANUAL_ENTRY: &str = "User manual";
+/// Help → Words used in the app: the manual's glossary (decision 0126).
+pub(crate) const GLOSSARY_ENTRY: &str = "Words used in the app";
+/// Help → Search for a command.
+pub(crate) const SEARCH_ENTRY: &str = "Search for a command";
+/// Help → Developer: tools for checking the app itself (decision 0126).
+pub(crate) const DEVELOPER_MENU: &str = "Developer";
+/// View → Show and hide (decision 0126).
+pub(crate) const SHOW_HIDE_MENU: &str = "Show and hide";
+
+impl Workbench {
+    /// The Mesh menu (decision 0126): the modelling tools in groups, each
+    /// a submenu one level down, so the menu is short and every command is
+    /// found where people look for it.
+    fn mesh_menu(&mut self, ui: &mut Ui, requests: &mut Vec<DocRequest>) {
+        use crate::commands::CommandId;
+        let groups: [(&str, &str, &[CommandId]); 3] = [
+            (
+                MESH_BUILD_MENU,
+                "Add to the shape: extrude, inset, bevel, groove, bridge, fill a hole",
+                &[
+                    CommandId::Extrude,
+                    CommandId::Inset,
+                    CommandId::Bevel,
+                    CommandId::Groove,
+                    CommandId::Bridge,
+                    CommandId::FillHole,
+                ],
+            ),
+            (
+                MESH_CUT_MENU,
+                "Cut new edges and join points: slit, loop cut, connect, weld",
+                &[
+                    CommandId::Slit,
+                    CommandId::LoopCut,
+                    CommandId::Connect,
+                    CommandId::Weld,
+                ],
+            ),
+            (
+                MESH_REMOVE_MENU,
+                "Take points, edges or polygons away",
+                &[CommandId::DeleteElements, CommandId::Dissolve],
+            ),
+        ];
+        for (title, help, commands) in groups {
+            crate::dialog::menu(ui, title, |ui| {
+                if let Some(command) = commands_entries(ui, commands) {
+                    self.run_command(command, ui.ctx(), requests);
+                    ui.close();
+                }
+            })
+            .response
+            .on_hover_text(help);
+        }
+        crate::dialog::menu(ui, MESH_SHADING_MENU, |ui| {
+            self.smoothing_entry(ui);
+            if let Some(command) =
+                commands_entries(ui, &[CommandId::HardEdges, CommandId::SoftEdges])
+            {
+                self.run_command(command, ui.ctx(), requests);
+                ui.close();
+            }
+            if ui
+                .button("Hard edges by angle")
+                .on_hover_text(
+                    "In the selected objects, mark every edge whose polygons meet more \
+                     sharply than an angle (30° to start with) hard, and the rest soft: \
+                     boxy corners crisp, curves smooth. Change the angle under Last edit.",
+                )
+                .clicked()
+            {
+                self.run_hard_by_angle();
+                ui.close();
+            }
+            ui.separator();
+            if let Some(command) = commands_entries(ui, &[CommandId::FlipNormals]) {
+                self.run_command(command, ui.ctx(), requests);
+                ui.close();
+            }
+            if ui
+                .button("Fix normals")
+                .on_hover_text(
+                    "Turn every polygon of the selected objects that faces the wrong \
+                     way round: inside out compared with its neighbours, or facing \
+                     into a closed shape. Select → Select flipped shows them first.",
+                )
+                .clicked()
+            {
+                self.run_fix_facing();
+                ui.close();
+            }
+        })
+        .response
+        .on_hover_text("How the shape is shaded: smoothing, hard and soft edges, normals");
+        crate::dialog::menu(ui, MESH_OBJECT_MENU, |ui| {
+            objects::make_editable_entry(ui, &self.document, requests);
+            if ui
+                .button("Split off")
+                .on_hover_text(
+                    "Move the selected polygons into a new object of their own, in the \
+                     same place (Polygons mode)",
+                )
+                .clicked()
+            {
+                self.run_split_off();
+                ui.close();
+            }
+            let join = CommandId::Join;
+            if ui
+                .button(join.name())
+                .on_hover_text(join.info().help)
+                .clicked()
+            {
+                self.run_command(join, ui.ctx(), requests);
+                ui.close();
+            }
+            objects::apply_entries(ui, &self.document, requests);
+            let mirrored = self.selected_mirror().is_some();
+            if ui
+                .add_enabled(
+                    mirrored,
+                    egui::Button::new(crate::palette::APPLY_MIRROR_LABEL),
+                )
+                .on_hover_text(
+                    "Make the mirrored half part of the shape for real: symmetry goes off and \
+                     both halves stay",
+                )
+                .on_disabled_hover_text("Select an object with symmetry on")
+                .clicked()
+            {
+                self.apply_mirror();
+                ui.close();
+            }
+            let layer_targets = crate::layers::layer_targets(&self.document);
+            if ui
+                .add_enabled(
+                    !layer_targets.is_empty(),
+                    egui::Button::new(crate::layers::ADD_LAYER_LABEL),
+                )
+                .on_hover_text(crate::layers::ADD_LAYER_HELP)
+                .clicked()
+            {
+                self.add_edit_layer(requests);
+                ui.close();
+            }
+        })
+        .response
+        .on_hover_text("Bake into shape, split off, join, apply transforms and edit layers");
+    }
+}
+
+/// The Window menu's entry for the Edit layers panel.
+pub(crate) const EDIT_LAYERS_ENTRY: &str = "Edit layers";
+
 /// The Window menu's entry for the UV Editor.
 pub(crate) const UV_EDITOR_ENTRY: &str = "UV Editor";
 
@@ -1891,6 +2125,23 @@ pub(crate) const UV_EDITOR_ENTRY: &str = "UV Editor";
 pub(crate) const HEAVY_TEST_POLYGONS: usize = 3_000_000;
 
 impl Workbench {
+    /// Edit pivot on or off (decision 0126): the Object mode is the Model
+    /// mode with Edit pivot on. From an element mode, it goes to the Model
+    /// mode with Edit pivot on.
+    pub(crate) fn toggle_edit_pivot(&mut self) {
+        if self.mode == Mode::Object {
+            self.mode = Mode::Model;
+            self.note = Some("Edit pivot off: the gizmo moves the objects again.".into());
+        } else {
+            self.mode = Mode::Object;
+            self.note = Some(
+                "Edit pivot on: the gizmo moves and turns the pivots, not the shapes. \
+                 Click Edit pivot again (or press Tab) to stop."
+                    .into(),
+            );
+        }
+    }
+
     /// Adds a bumpy ball of [`HEAVY_TEST_POLYGONS`] polygons, 2 m tall, as
     /// one undo step: for trying how the app copes with heavy shapes
     /// (DESIGN.md §4.8).
@@ -1935,7 +2186,7 @@ enum UnsavedAnswer {
 }
 
 /// "Don't save" in the "Save changes?" question, from the keyboard.
-pub const DISCARD_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::D);
+pub const DISCARD_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::ALT, Key::N);
 
 /// A path's file name, for messages.
 fn file_name(path: &Path) -> String {
@@ -2301,21 +2552,15 @@ impl Workbench {
     }
 }
 
+/// The UV Editor's own UV menu (issue #115).
+pub(crate) const UV_EDITOR_UV_MENU: &str = "UV";
+
 /// The UV menu's groups (the project lead's choice, decision 0113).
 pub(crate) const UV_SEAMS_MENU: &str = "Seams";
 pub(crate) const UV_TURN_MENU: &str = "Turn and flip";
 pub(crate) const UV_LAY_OUT_MENU: &str = "Lay out";
 pub(crate) const UV_PIECES_MENU: &str = "Pieces";
 pub(crate) const UV_SETTINGS_MENU: &str = "Settings";
-
-/// Menus whose commands are not built yet: each lists what is coming and
-/// when, greyed out.
-fn coming_entries(ui: &mut Ui, items: &[(&str, &str)]) {
-    for (item, phase) in items {
-        ui.add_enabled(false, egui::Button::new(*item))
-            .on_disabled_hover_text(format!("Arrives in {phase}"));
-    }
-}
 
 /// Draws each panel's contents.
 struct PanelViewer<'a> {
@@ -2334,6 +2579,8 @@ struct PanelViewer<'a> {
     tool: Tool,
     snap: crate::transforming::SnapSettings,
     surface: crate::viewport::Surface,
+    /// Whether the selection is drawn with high contrast (decision 0126).
+    high_contrast: bool,
     /// How pieces are grouped onto textures (the packing settings).
     texture_groups: crate::uv_editor::checking::TextureGroups,
     /// What explaining choices in the UV Editor needs.
@@ -2342,6 +2589,11 @@ struct PanelViewer<'a> {
     attributes: &'a mut AttributesPanel,
     units: &'a mut Units,
     requests: &'a mut Vec<DocRequest>,
+    /// The UV Editor's UV menu button, if drawn (its menu is filled by the
+    /// workbench).
+    uv_menu_button: &'a mut Option<egui::Response>,
+    /// The automatic UV tools' settings, for the UV settings panel.
+    uv_settings: &'a mut unwrapping::UvSettings,
     /// What the Coordinates panel shows, and what was done in it.
     coordinates: CoordinatesView,
     coordinates_done: &'a mut Interaction,
@@ -2404,6 +2656,13 @@ impl TabViewer for PanelViewer<'_> {
             }),
             Panel::UvEditor => {
                 menu_line_with(ui, |ui| {
+                    // The main UV menu, here too (issue #115).
+                    let uv = ui
+                        .add(egui::Button::new(UV_EDITOR_UV_MENU).frame_when_inactive(false))
+                        .on_hover_text(
+                            "Every UV command and setting, as in the UV menu at the top",
+                        );
+                    *self.uv_menu_button = Some(uv);
                     crate::dialog::menu(ui, "Texture", |ui| {
                         crate::uv_editor::texture_menu(ui, self.document);
                     });
@@ -2496,11 +2755,12 @@ impl TabViewer for PanelViewer<'_> {
                         .then(|| theme::grid_colors(theme::accent(ui.ctx()))),
                     texture_groups: self.texture_groups,
                     explain: self.explain,
+                    high_contrast: self.high_contrast,
                 };
                 self.uv_editor.show(ui, self.document, &cx);
                 return;
             }
-            Panel::Viewport | Panel::Coordinates => {}
+            Panel::Viewport | Panel::Coordinates | Panel::UvSettings => {}
         }
         egui::Frame::new()
             .inner_margin(theme::panel_margin())
@@ -2520,6 +2780,13 @@ impl TabViewer for PanelViewer<'_> {
                     );
                 }
                 Panel::UvEditor => {}
+                Panel::UvSettings => {
+                    let mut view = automation::UvSettingsView {
+                        uv_settings: self.uv_settings,
+                        document: self.document,
+                    };
+                    view.panel(ui);
+                }
                 Panel::Coordinates => {
                     *self.coordinates_done =
                         crate::coordinates::show(ui, *self.units, &self.coordinates);
@@ -2642,9 +2909,10 @@ mod pivots_tests;
 mod quad;
 #[cfg(test)]
 mod quad_tests;
+mod searching;
 mod selection;
 mod shortcuts;
-mod showing;
+pub(crate) mod showing;
 mod slit;
 #[cfg(test)]
 mod slit_tests;

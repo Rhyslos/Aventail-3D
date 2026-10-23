@@ -176,7 +176,7 @@ fn quitting_with_unsaved_changes_asks_first() {
 fn ctrl_d_answers_dont_save() {
     let mut harness = fresh();
     quit(&mut harness);
-    press(&mut harness, Modifiers::COMMAND, Key::D);
+    press(&mut harness, Modifiers::ALT, Key::N);
     assert_eq!(actions(&mut harness), [WorkbenchAction::Quit]);
 }
 
@@ -221,7 +221,7 @@ fn the_close_button_asks_only_with_unsaved_changes() {
             .query_by_label("Save changes to Untitled?")
             .is_some()
     );
-    press(&mut harness, Modifiers::COMMAND, Key::D);
+    press(&mut harness, Modifiers::ALT, Key::N);
     assert_eq!(actions(&mut harness), [WorkbenchAction::Quit]);
 }
 
@@ -297,7 +297,7 @@ fn open_asks_the_app_once_changes_are_dealt_with() {
             .query_by_label_contains("before opening another project")
             .is_some()
     );
-    press(&mut harness, Modifiers::COMMAND, Key::D);
+    press(&mut harness, Modifiers::ALT, Key::N);
     assert_eq!(
         actions(&mut harness),
         [WorkbenchAction::Open { path: None }]

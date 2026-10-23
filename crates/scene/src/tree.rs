@@ -148,6 +148,12 @@ pub(crate) enum Edit {
         before: Option<crate::LiveMirror>,
         after: Option<crate::LiveMirror>,
     },
+    /// Changes where an object's shading breaks (decision 0126).
+    SetHardness {
+        id: ObjectId,
+        before: mesh::Hardness,
+        after: mesh::Hardness,
+    },
     /// Changes an object's collision shape.
     SetCollision {
         id: ObjectId,
@@ -222,6 +228,7 @@ impl Edit {
             Self::SetSnapshots { before, after } => before == after,
             Self::SetMaterials { before, after, .. } => before == after,
             Self::SetCollision { before, after, .. } => before == after,
+            Self::SetHardness { before, after, .. } => before == after,
             Self::SetMirror { before, after, .. } => before == after,
             Self::SetTransform { before, after, .. } | Self::SetOffset { before, after, .. } => {
                 before == after
@@ -279,6 +286,11 @@ impl Edit {
                 after: before,
             },
             Self::SetCollision { id, before, after } => Self::SetCollision {
+                id,
+                before: after,
+                after: before,
+            },
+            Self::SetHardness { id, before, after } => Self::SetHardness {
                 id,
                 before: after,
                 after: before,
@@ -506,6 +518,30 @@ impl Scene {
         self
     }
 
+    /// The same scene with object `id`'s smoothing and mirror space set,
+    /// for a project being opened (decision 0126; not a step to undo: use
+    /// [`crate::Command::SetHardness`] and [`crate::Command::SetMirror`]).
+    /// An unknown object or an invalid angle is refused.
+    pub fn with_object_settings(
+        mut self,
+        id: ObjectId,
+        hardness: mesh::Hardness,
+        mirror_on_object: bool,
+    ) -> Result<Self, &'static str> {
+        if !crate::object::hardness_is_valid(hardness) {
+            return Err("an object's smoothing angle isn't a real number from 0 to 180°");
+        }
+        let node = self
+            .nodes
+            .get_mut(&id)
+            .ok_or("its object settings name an object that isn't there")?;
+        node.object.hardness = hardness;
+        if let Some(mirror) = &mut node.object.mirror {
+            mirror.on_object = mirror_on_object;
+        }
+        Ok(self)
+    }
+
     /// The project's trim sheet (decision 0106).
     pub fn trim(&self) -> &crate::TrimSheet {
         &self.trim
@@ -724,10 +760,29 @@ impl Scene {
             return Vec::new();
         }
         let back = shape.inverse();
+        // A mirror on the object reflects in its pivot's space (decision
+        // 0126): along its own axes, through its pivot and the centre.
+        let space = self.mirror_space(id, mirror);
+        let Some(from_space) = (space.determinant().abs() >= 1e-12).then(|| space.inverse()) else {
+            return Vec::new();
+        };
         mesh::mirror::combinations(mirror.axes)
             .into_iter()
-            .map(|axes| back * mesh::mirror::reflection(axes, mirror.centre) * shape)
+            .map(|axes| {
+                back * space * mesh::mirror::reflection(axes, mirror.centre) * from_space * shape
+            })
             .collect()
+    }
+
+    /// The space a live mirror's planes are in: the object's pivot (its
+    /// place in the world) for a mirror on the object, the world's
+    /// otherwise.
+    fn mirror_space(&self, id: ObjectId, mirror: crate::LiveMirror) -> Mat4 {
+        if mirror.on_object {
+            self.world_matrix(id)
+        } else {
+            Mat4::IDENTITY
+        }
     }
 
     /// The object's shape as it is shown and exported: its final shape
@@ -754,9 +809,17 @@ impl Scene {
         }
         let matrix = self.shape_matrix(id);
         let distance = mirror.weld_distance;
+        // Where a point is in the mirror's own space (the world, or the
+        // pivot's for a mirror on the object), and how stretched that
+        // space is, so the weld distance stays in the world's centimetres.
+        let space = self.mirror_space(id, mirror);
+        let to_space = space.inverse() * matrix;
+        let space_scale = stretch_of(space).min_element().max(1e-6);
         let on_seam = |p: glam::Vec3| {
-            let world = matrix.transform_point3(p);
-            (0..3).any(|a| mirror.axes[a] && (world[a] - mirror.centre[a]).abs() <= distance)
+            let at = to_space.transform_point3(p);
+            (0..3).any(|a| {
+                mirror.axes[a] && (at[a] - mirror.centre[a]).abs() * space_scale <= distance
+            })
         };
         // The weld distance is in the world; the shape's own space may be
         // scaled, so the distance is measured there as the world sees it.
@@ -944,6 +1007,17 @@ impl Scene {
                     return Err(SceneError::History("an object's place has changed"));
                 }
                 node.object.transform = *after;
+                Ok(())
+            }
+            Edit::SetHardness { id, before, after } => {
+                let node = self
+                    .nodes
+                    .get_mut(id)
+                    .ok_or(SceneError::UnknownObject(*id))?;
+                if node.object.hardness != *before {
+                    return Err(SceneError::History("an object's smoothing has changed"));
+                }
+                node.object.hardness = *after;
                 Ok(())
             }
             Edit::SetCollision { id, before, after } => {

@@ -821,7 +821,7 @@ fn ctrl_e_on_a_group_explains_instead_of_doing_nothing_silently() {
     assert_eq!(harness.state().workbench.document().undo_steps(), steps);
     assert!(
         harness
-            .query_by_label_contains("Nothing to make editable")
+            .query_by_label_contains("Nothing to bake into the shape")
             .is_some()
     );
 }
@@ -831,7 +831,7 @@ fn the_object_menu_and_right_click_make_shapes_editable() {
     let mut harness = fresh();
     let at = row(&harness, "Cube").center();
     click_at(&mut harness, at, PointerButton::Secondary, Modifiers::NONE);
-    harness.get_by_label_contains("Make editable").click();
+    harness.get_by_label_contains("Bake into shape").click();
     harness.run();
     assert!(is_mesh(&harness, "Cube"));
     // Now there is nothing left to bake: the entry is greyed out.
@@ -839,7 +839,7 @@ fn the_object_menu_and_right_click_make_shapes_editable() {
     harness.run();
     assert!(
         harness
-            .get_by_label_contains("Make editable")
+            .get_by_label_contains("Bake into shape")
             .accesskit_node()
             .is_disabled()
     );
@@ -849,9 +849,8 @@ fn the_object_menu_and_right_click_make_shapes_editable() {
 fn the_mesh_menu_makes_shapes_editable() {
     let mut harness = fresh();
     click_row(&mut harness, "Cube", Modifiers::NONE);
-    main_menu(&harness, "Mesh").click();
-    harness.run();
-    harness.get_by_label_contains("Make editable").click();
+    super::tests::mesh_group(&mut harness, super::MESH_OBJECT_MENU);
+    harness.get_by_label_contains("Bake into shape").click();
     harness.run();
     assert!(is_mesh(&harness, "Cube"));
 }
@@ -878,6 +877,13 @@ fn help_offers_a_heavy_test_shape_that_undoes_in_one_step() {
     let mut harness = empty();
     main_menu(&harness, "Help").click();
     harness.run();
+    // In Help → Developer (decision 0126).
+    harness
+        .get_all_by_label_contains(super::DEVELOPER_MENU)
+        .find(|n| n.accesskit_node().role() == egui::accesskit::Role::Button)
+        .unwrap()
+        .hover();
+    harness.run_steps(8);
     assert!(harness.query_by_label("Add a heavy test shape").is_some());
     // The menu entry makes three million polygons; the same with a few.
     let workbench = &mut harness.state_mut().workbench;

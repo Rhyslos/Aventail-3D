@@ -41,7 +41,8 @@ impl Workbench {
             CommandId::MakeEditable if selection.is_empty() => nothing(),
             CommandId::MakeEditable if !objects::can_make_editable(&self.document, &selection) => {
                 Ready::NotNow(
-                    "Nothing to make editable: groups and meshes have no settings to bake".into(),
+                    "Nothing to bake into the shape: groups and meshes have no settings to bake"
+                        .into(),
                 )
             }
             CommandId::Group
@@ -230,11 +231,9 @@ impl Workbench {
             CommandId::UvTurnRight => self.change_uvs(UvChange::TurnRight),
             CommandId::UvFlipU => self.change_uvs(UvChange::FlipU),
             CommandId::UvFlipV => self.change_uvs(UvChange::FlipV),
-            CommandId::UvTurnFlip | CommandId::UvStitchCut => self.tool_menu.open_group(command),
+            CommandId::UvTurnFlip => self.tool_menu.open_group(command),
             CommandId::UvPin => self.run_pins(true),
             CommandId::UvUnpin => self.run_pins(false),
-            // Not built yet: readiness stops them above.
-            CommandId::UvStitch | CommandId::UvCut => {}
             CommandId::MarkSeam => self.run_seams(true),
             CommandId::ClearSeam => self.run_seams(false),
             CommandId::Unwrap => self.run_uv_tool(super::unwrapping::UvTool::Unwrap),

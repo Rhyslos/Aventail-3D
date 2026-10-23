@@ -12,7 +12,7 @@
 
 ## How to use it
 
-1. Choose **File → Check for baking…** or **UV → Check for baking…**. (With **Made for: Substance Painter** in the [Export window](export-and-import.md), there is a **Check for baking…** button under its file settings too.)
+1. Choose **UV → Check for baking…** (or press **Space** and type *baking*). (With **Made for: Substance Painter** in the [Export window](export-and-import.md), there is a **Check for baking…** button under its file settings too.)
 2. The window lists each problem as *Object: what is wrong*. Point at one to read why it spoils a bake and what to do.
 3. Click **Select** to see it: the object is selected and, in the right mode, the polygons, edges or points concerned.
 4. Click **Fix** where there is one. The fix is one undo step: **Ctrl + Z** takes it back.
@@ -23,7 +23,7 @@
 
 | Problem | Why it spoils a bake | Fix |
 |---|---|---|
-| **Polygons facing the wrong way** | The baker sees them from behind: the normal map comes out inverted or black there. | **Fix** turns them round (as Mesh → Fix normals). |
+| **Polygons facing the wrong way** | The baker sees them from behind: the normal map comes out inverted or black there. | **Fix** turns them round (as Mesh → Shading → Fix normals). |
 | **Edges shared by three or more polygons** ([non-manifold](concepts.md#mesh-basics)) | They can't be unfolded or baked cleanly. | Select them, then delete or [split off](split-and-join.md) the extra polygons. |
 | **Polygons with no area** | No direction to bake along: a black speck or a streak. | Select them, then [weld](connect-bridge-weld.md) their points (M) or delete them. |
 | **Edges with no length** (points on the same spot) | They make polygons with no area and break the shading. | **Fix** welds each group of points into one. |
@@ -60,11 +60,11 @@ None of its own. Every shown shape is checked; an [instance](copies-and-instance
 | **UV → Settings → Packing → A texture per material / per object** | Which pieces share a texture, and so are checked together. |
 | **UV → Settings → Packing → Stack identical pieces** | Whether stacked identical pieces are on purpose (no Fix) or not. |
 | **UV → Texture** | The texture size the gap is measured in. |
-| **Automatic hard edges** (Mesh menu) | Which edges count as hard, as the export shades them. |
+| Each object's **Smoothing** (Attributes panel; Mesh → Shading → Smooth by angle) | Which edges count as hard, as the export shades them: by the object's angle, or by its marked edges. |
 
 ## Shortcuts
 
-None: use the File or UV menu.
+None: use the UV menu, or `Space` and type *baking* ([command search](command-search.md)).
 
 ## Tips and common problems
 

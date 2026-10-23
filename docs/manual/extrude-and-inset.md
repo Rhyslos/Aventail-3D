@@ -16,7 +16,8 @@ These two are the bread and butter of hard-surface modelling. Almost every panel
 - **Pull something out of a shape**, like a handle, a vent box or a pipe stub: extrude its polygons outward.
 - **Push something in**, like a recess, a screen or a slot: extrude inward (drag the other way).
 - **Make a frame or a lip** around a polygon before extruding it: inset first.
-- **Grow a flat sheet at its edge**, like extending a plane: extrude its [border edges](concepts.md#mesh-basics) in Edges mode.
+- **Grow a flat sheet at its edge**, like extending a plane: extrude its [border edges](concepts.md#mesh-basics) in Edges mode, or the points along them in Points mode.
+- **Draw a profile out from the side**: in a side or front view, select points along an open edge and extrude them, again and again, then move the new points into shape.
 
 To move polygons without building new ones, use [Move](transforming.md) instead.
 
@@ -26,7 +27,7 @@ To move polygons without building new ones, use [Move](transforming.md) instead.
 
 1. Select a shape and press **3** for the [Polygons mode](modes.md).
 2. [Select](selecting.md) the polygons to extrude.
-3. Press **D** (or pick **Extrude** from the [tool menu](tool-menu.md) **E**, or the **Mesh** menu).
+3. Press **D** (or pick **Extrude** from the [tool menu](tool-menu.md) **E**, or **Mesh → Build**).
 4. Drag **anywhere in the viewport**, the way you want the polygons to go. Drag the way they face on screen and they come out, following the mouse; drag the other way and they sink in. A polygon on the left side comes out when you drag left, the top when you drag up. A label by the mouse says how far.
    - When the polygons face you straight on, there is no "way" on screen to follow, so drag **right** to bring them out and left to push them in.
    - **Start the drag on another polygon** and that polygon becomes the selection first, so you can extrude it straight away without clicking it. Starting on a selected polygon, or on empty space, extrudes what is selected.
@@ -53,7 +54,7 @@ With **Keep together** off, each polygon is shaped on its own: each goes its own
 ### Inset polygons
 
 1. In the Polygons mode, select the polygons.
-2. Press **I** (or pick **Inset** from the tool menu or the Mesh menu).
+2. Press **I** (or pick **Inset** from the tool menu or **Mesh → Build**).
 3. Drag anywhere in the viewport **towards the middle of the polygons**: they shrink inward, following the pull. Pulling away from the middle again lets them grow back; it never grows them past where they started.
    - It doesn't matter which side you start on: from the left of the polygons you pull right, from above you pull down.
    - If you start the drag right on their middle, there's no way to pull towards, so drag right to shrink them.
@@ -65,6 +66,18 @@ With **Keep together** off, each polygon is shaped on its own: each goes its own
 3. The selection moves to the new outer edges, so you can drag again to keep growing.
 
 Edges with polygons on both sides have nothing to grow from and are left alone; the status bar doesn't count them.
+
+### Extrude from points, or from edges all the way round
+
+Points are often easier to pick than edges, especially in a side or front view, where edges seen end-on are hard to click. So Extrude works on points too:
+
+1. Press **1** for the Points mode and select two or more points next to each other along an **open border** (the rim of a plane, or the edge of a hole). A box drag in a side view is quick.
+2. Press **D** and drag. Every open edge with both of its points selected grows a new polygon, exactly as in the Edges mode.
+3. The new outer points are selected, so you can drag again to keep going, or press **W** to move them into shape.
+
+**All the way round a polygon:** if the points (or, in the Edges mode, the edges) go all the way round a polygon, that polygon is pushed out instead, exactly as in the Polygons mode. Select the rim of a cylinder's closed cap, press D and drag up: the cap rises with a new wall round it, and its new rim is selected for the next drag.
+
+A point on its own, or points with no open edge or whole polygon between them, have nothing to grow: the status bar says so. (A loose point can't become a lone edge: every edge in the app belongs to a polygon.)
 
 ### Bend it: pipes that turn a corner
 
@@ -97,7 +110,7 @@ Big angles are easiest to type: click the Angle number and type 1080, rather tha
 
 You can also set the bend before dragging (at the top of the Attributes panel, while Extrude is in use), and the next drag bends. Once that extrude is done, or you pick another tool, **Angle goes back to 0**, so the extrude after it starts straight and nothing turns by surprise. The finished extrude keeps its bend, and you can still change it under Last edit. Direction, Bend radius and Segments stay as you set them. To build a pipe, extrude its end again and again, straight or bent.
 
-**On a stretched object** (one scaled more along one axis than another in Object mode), a bend keeps the pipe round as you see it, all the way round the corner. See [On a stretched object](#on-a-stretched-object) below.
+**On a stretched object** (one scaled more along one axis than another in the Model mode), a bend keeps the pipe round as you see it, all the way round the corner. See [On a stretched object](#on-a-stretched-object) below.
 
 Each bend setting is a number field, like the ones further down the panel: drag the number, click and type one, or click the small arrows beside it (with **Shift**, ten steps at a time). The bend rows sit under a small **Bend** heading, below the extrude's **Distance**.
 
@@ -114,7 +127,7 @@ This works until you make another edit on top. After that, the extrude is fixed 
 
 ### On a stretched object
 
-An object can be stretched in the Object mode: scaled more along one axis than another, such as a cylinder made twice as tall with its height box ([stretched objects](concepts.md#objects-and-scenes)). Extrudes, insets and bends on it are measured **as you see it**: an inset leaves an even border all round, "Straight out" goes straight out from the surface you see, and a bend keeps a pipe round. Without this, the stretch would be added on top of the edit afterwards: a border twice as wide along the stretched side, a pipe that widens as it turns.
+An object can be stretched in the Model mode: scaled more along one axis than another, such as a cylinder made twice as tall with its height box ([stretched objects](concepts.md#objects-and-scenes)). Extrudes, insets and bends on it are measured **as you see it**: an inset leaves an even border all round, "Straight out" goes straight out from the surface you see, and a bend keeps a pipe round. Without this, the stretch would be added on top of the edit afterwards: a border twice as wide along the stretched side, a pipe that widens as it turns.
 
 Each edit remembers how the object was stretched when you made it, or when you last changed it under Last edit (or with **Ctrl + wheel**). If you stretch the object differently afterwards, the edits made before stretch with it, as everything else on the object does. Change one of its settings and it is worked out again for the new stretch.
 
@@ -164,7 +177,7 @@ Each edit remembers how the object was stretched when you made it, or when you l
 - **Tip:** to push several separate panels in at once, select them all with **Keep together** off; with it on, touching polygons go in as one big panel.
 - **Tip:** the cube's hard edges carry over: an extruded block on a cube has crisp edges, and one on a sphere stays smooth. To change them, see [Hard and soft edges](hard-and-soft-edges.md).
 - **Problem:** I switched from Extrude to Inset and the extrude's rows are gone from the Attributes panel. **Why:** while a tool is in use, the panel shows that tool's own settings, and the last edit only when the same tool made it. **Fix:** press **D** again (or **Tab** to put the tool away) and the extrude shows under Last edit again.
-- **Problem:** pressing D or I does nothing but the status bar talks about modes. **Why:** Extrude works in the Polygons and Edges modes, Inset only in Polygons. **Fix:** press **3** (or **2** for edges) and try again.
+- **Problem:** pressing D or I does nothing but the status bar talks about modes. **Why:** Extrude works in the Polygons, Edges and Points modes, Inset only in Polygons. **Fix:** press **3** (or **2** for edges, **1** for points) and try again.
 - **Problem:** the drag does nothing. **Why:** nothing of the right kind is selected; the status bar says so. **Fix:** select polygons (or border edges) first.
 - **Problem:** extruding edges does nothing. **Why:** the edges aren't on an open border; a cube has none. **Fix:** use a plane, or extrude polygons instead.
 - **Problem:** an inset crossed over itself and looks folded. **Why:** it went further than the polygon is wide. **Fix:** undo, or lower the Distance in the Attributes panel.

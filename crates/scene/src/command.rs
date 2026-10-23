@@ -185,6 +185,15 @@ pub enum Command {
         /// The mirror.
         mirror: Option<crate::LiveMirror>,
     },
+    /// Sets where objects' shading breaks (decision 0126): by angle, with
+    /// marked hard edges added, or only by the marks. Groups are left
+    /// alone; an angle that isn't a real number within 0–180° is refused.
+    SetHardness {
+        /// The objects.
+        ids: Vec<ObjectId>,
+        /// How their shading breaks.
+        hardness: mesh::Hardness,
+    },
     /// Gives objects with a shape a collision shape for game engines
     /// (decision 0078). Groups are left alone.
     SetCollision {
@@ -228,6 +237,13 @@ pub enum Command {
     /// the mesh). Groups, and meshes with nothing recorded, are left alone.
     /// An instance gets its own copy of its original's shape.
     MakeEditable(Vec<ObjectId>),
+    /// Applies each object's live mirror (decision 0126, as Blender's
+    /// Apply on a Mirror modifier): the mirrored copies, welded at the
+    /// middle, become part of a plain mesh that is its new base (its
+    /// edits are baked in too), and the mirror is taken away, so turning
+    /// symmetry off later keeps both halves. Objects without a mirror are
+    /// left alone.
+    ApplyMirror(Vec<ObjectId>),
     /// Copies objects, with everything inside them, each copy placed just
     /// after its original and named like it (decision 0055). With
     /// `instances`, each shape's copy is an instance of it instead: it
@@ -330,6 +346,14 @@ impl Command {
             Self::ChangeLayer { change, .. } => change.describe().to_string(),
             Self::SetMirror { mirror: None, .. } => "Mirror off".to_string(),
             Self::SetMirror { .. } => "Mirror".to_string(),
+            Self::SetHardness {
+                hardness: mesh::Hardness::Marked,
+                ..
+            } => "Smooth by marked edges only".to_string(),
+            Self::SetHardness {
+                hardness: mesh::Hardness::ByAngle(a),
+                ..
+            } => format!("Smooth by angle ({a:.0}°)"),
             Self::SetCollision { collision, .. } => match collision {
                 crate::Collision::None => "Remove collision".to_string(),
                 c => format!("Collision: {}", c.name().to_lowercase()),
@@ -357,6 +381,17 @@ impl Command {
                 n => format!("Split off {n} polygons"),
             },
             Self::Join(ids) => format!("Join {}", objects(count(ids))),
+            Self::ApplyMirror(ids) => {
+                let n = ids
+                    .iter()
+                    .filter(|id| scene.object(**id).is_some_and(|o| o.mirror.is_some()))
+                    .count();
+                if n > 1 {
+                    format!("Apply {n} mirrors")
+                } else {
+                    "Apply mirror".to_string()
+                }
+            }
             Self::MakeEditable(ids) => {
                 let n = ids
                     .iter()
@@ -1089,6 +1124,27 @@ impl Run<'_> {
                 }
                 Ok(None)
             }
+            Command::SetHardness { ids, hardness } => {
+                if !crate::object::hardness_is_valid(*hardness) {
+                    return Err(SceneError::NotANumber);
+                }
+                for id in ids {
+                    let object = self
+                        .scene
+                        .object(*id)
+                        .ok_or(SceneError::UnknownObject(*id))?;
+                    if !object.kind.has_shape() || object.hardness == *hardness {
+                        continue;
+                    }
+                    let before = object.hardness;
+                    self.edit(Edit::SetHardness {
+                        id: *id,
+                        before,
+                        after: *hardness,
+                    })?;
+                }
+                Ok(None)
+            }
             Command::SetCollision { ids, collision } => {
                 for id in ids {
                     let object = self
@@ -1349,6 +1405,39 @@ impl Run<'_> {
                     self.command(&Command::Delete(vec![*other]))?;
                 }
                 Ok(Some(vec![target]))
+            }
+            Command::ApplyMirror(ids) => {
+                for id in existing(self.scene, ids)? {
+                    let object = self.scene.object(id).ok_or(SceneError::UnknownObject(id))?;
+                    let Some(mirror) = object.mirror else {
+                        continue;
+                    };
+                    if !object.kind.has_shape() {
+                        continue;
+                    }
+                    // The shape as shown: its edits, and the mirrored
+                    // copies welded on.
+                    let Some(shown) = self.scene.shown_shape(id) else {
+                        continue;
+                    };
+                    let object = self.scene.object(id).ok_or(SceneError::UnknownObject(id))?;
+                    let before = object.kind.clone();
+                    let layers = object.stack.layers().to_vec();
+                    for (index, layer) in layers.into_iter().enumerate().rev() {
+                        self.edit(Edit::RemoveLayer { id, index, layer })?;
+                    }
+                    self.edit(Edit::SetKind {
+                        id,
+                        before,
+                        after: ObjectKind::Mesh(shown),
+                    })?;
+                    self.edit(Edit::SetMirror {
+                        id,
+                        before: Some(mirror),
+                        after: None,
+                    })?;
+                }
+                Ok(None)
             }
             Command::MakeEditable(ids) => {
                 for id in existing(self.scene, ids)? {

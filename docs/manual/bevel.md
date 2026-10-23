@@ -21,7 +21,7 @@ To push polygons out or make frames, use [Extrude and inset](extrude-and-inset.m
 
 1. Select a shape and press **2** for the [Edges mode](modes.md).
 2. [Select](selecting.md) the edges to bevel. Double-click selects a whole loop, and **Ctrl + A** selects every edge.
-3. Press **V** (or pick **Bevel** from the [tool menu](tool-menu.md) **E**, or the **Mesh** menu).
+3. Press **V** (or pick **Bevel** from the [tool menu](tool-menu.md) **E**, or **Mesh → Build**).
 4. Drag **away from the selected edges** anywhere in the viewport: the further you pull away from the nearest one, the wider the bevel. Pull back towards them to narrow it. A label by the mouse says how wide. This follows the app's rule that [drags follow the pull](interface-tour.md#drags-follow-the-pull).
 5. Let go. The whole drag is one undo step.
 
@@ -64,7 +64,7 @@ Bevels made before this version keep their old look, with none of these on; swit
 
 ### On a stretched object
 
-On an object stretched in the Object mode (scaled more along one axis than another), a bevel's **Width** is measured as you see it, so a chamfer is equally wide on every edge, whichever way the edge runs. The bevel remembers the stretch the object had when you made it or last changed it; see [Extrude and inset: on a stretched object](extrude-and-inset.md#on-a-stretched-object) for what happens if you stretch the object again later.
+On an object stretched in the Model mode (scaled more along one axis than another), a bevel's **Width** is measured as you see it, so a chamfer is equally wide on every edge, whichever way the edge runs. The bevel remembers the stretch the object had when you made it or last changed it; see [Extrude and inset: on a stretched object](extrude-and-inset.md#on-a-stretched-object) for what happens if you stretch the object again later.
 
 ## Settings
 

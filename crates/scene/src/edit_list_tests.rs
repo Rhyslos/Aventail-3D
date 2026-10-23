@@ -166,7 +166,7 @@ fn freezing_the_last_edit_of_a_layer_leaves_it_empty() {
 }
 
 #[test]
-fn kept_or_switched_off_edits_are_never_frozen() {
+fn switched_off_edits_are_never_frozen_and_kept_ones_no_longer_hold_it_back() {
     let (mut doc, id) = with_a_cube();
     let first = record(&mut doc, id, lift(0, 10.0));
     let second = record(&mut doc, id, lift(1, 10.0));
@@ -176,13 +176,22 @@ fn kept_or_switched_off_edits_are_never_frozen() {
         assert!(matches!(result, Err(SceneError::History(_))), "{result:?}");
         assert_eq!(*doc.scene().object(id).unwrap(), before);
     };
+    // A kept (pinned) edit from an older project no longer stops it
+    // (decision 0126: the switch is gone).
     doc.execute(Command::SetEditPinned {
         id,
         edit: first,
         pinned: true,
     })
     .unwrap();
-    refused(&mut doc);
+    assert!(
+        doc.scene()
+            .object(id)
+            .unwrap()
+            .stack
+            .freeze_problem(second)
+            .is_none()
+    );
     doc.undo().unwrap();
     doc.execute(Command::SetEditEnabled {
         id,

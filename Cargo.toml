@@ -44,6 +44,10 @@ egui_dock = { version = "0.21", features = ["serde"] }
 # zstd compression; see docs/decisions/0024-saving-projects.md.
 postcard = { version = "1.1", default-features = false, features = ["use-std"] }
 zstd = { version = "0.14", default-features = false }
+# The development project format (version 39 on): self-describing, so it
+# can grow until the alpha without new versions; see
+# docs/decisions/0126-rework-and-first-use.md.
+ciborium = "0.2"
 # The JSON part of glTF exports; see docs/decisions/0072-gltf-export.md.
 serde_json = "1.0"
 # MikkTSpace tangents for exports, the standard Substance Painter and

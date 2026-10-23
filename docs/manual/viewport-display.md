@@ -21,7 +21,7 @@ The same three choices are at the top of the viewport's **Display** menu. Your c
 
 ![The same spiral as Shaded with wires: solid, with every edge drawn clearly on top.](../screenshots/2026-10-14-shaded-with-wires.png)
 
-Selected objects' edges are drawn in the accent colour in every look, so the selection always shows. In the Points, Edges and Polygons modes, points, selected elements and hard edges are drawn over the shape as usual.
+Selected objects' edges are drawn in the accent colour in every look, so the selection always shows. The selection is drawn thickest and brightest, on top of everything else; for it to stand out even more, switch on **High contrast** in **Edit → Settings… → Interface** (larger, with a dark rim; see [Settings](settings.md)). In the Points, Edges and Polygons modes, points, selected elements and hard edges are drawn over the shape as usual.
 
 In **Wireframe**, clicking still picks the shape you click inside, as if it were solid: you don't have to hit an edge exactly. A very dense shape seen from far away keeps a faint outline instead of fading away completely, so it never vanishes.
 
@@ -33,9 +33,9 @@ Under **Surface** in the **Display** menu, **Checker**, **Numbered checker** and
 
 **Cavity** brightens ridges and darkens creases on the surfaces: a thin light line where a shape turns outward (a box's outer corner, the rim of a raised panel) and a soft shadow where it turns inward (the inside corner of a recess, a groove). It's like light catching the edges and dust settling in the cracks. It makes a shape's form easy to read at a glance, especially flat hard-surface parts in a single grey. It changes only how the shape looks, never the shape.
 
-It's **on as standard**. Switch it with **Display → Cavity**, in the viewport's menu line, where it sits with **Hard edges**, **Seams** and **Normals**: the things drawn over the surfaces. **Seams** marks, in orange, where the surface is cut open for its UVs, while editing points, edges or polygons; the UV mode always shows them ([The UV Editor](uv-editor.md)). Remembered.
+It's **on as standard**. Switch it with **Display → Cavity**, in the viewport's menu line, where it sits with **Show hard edges**, **Show seams** and **Show normals**: the things drawn over the surfaces. **Show seams** marks, in orange, where the surface is cut open for its UVs, while editing points, edges or polygons; the UV mode always shows them ([The UV Editor](uv-editor.md)). Remembered.
 
-![The viewport's Display menu: the three looks, the grid lines, then Cavity, Hard edges and Normals.](../screenshots/2026-10-14-display-menu.png)
+![The viewport's Display menu: the three looks, the grid lines, then Cavity and the switches for showing hard edges and normals.](../screenshots/2026-10-14-display-menu.png)
 
 ![A cube with recessed and raised panels. Left, Cavity off. Right, on: the outer edges catch a light line and the inner corners of the recesses darken.](../screenshots/2026-10-14-cavity.png)
 

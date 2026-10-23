@@ -497,6 +497,7 @@ fn rich_document_v25() -> Document {
             axes: [true, false, false],
             centre: Vec3::new(-20.0, 0.0, 0.0),
             weld_distance: 0.25,
+            on_object: false,
         }),
     })
     .unwrap();
@@ -1955,7 +1956,7 @@ fn a_cut_short_or_padded_body_is_damaged() {
 #[test]
 fn an_uncompressed_body_can_be_read() {
     let doc = rich_document();
-    let body = postcard::to_stdvec(&v38::ProjectV38::<v38::EntryV38>::from_document(&doc)).unwrap();
+    let body = v39::encode(&v39::ProjectV39::from_document(&doc)).unwrap();
     let mut bytes = header(FORMAT_VERSION, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     assert_same(&doc, &from_bytes(&bytes).unwrap());
@@ -4163,6 +4164,130 @@ fn a_file_saved_by_format_version_33_opens_with_its_trim_sheet() {
     assert!(text.contains("PlaceOnTrim"));
 }
 
+// ------------------------------------- the development format (0126) ---
+
+/// The rich document with development settings: the cube smoothed by
+/// marked edges only, the other by 45°, and the cube's mirror on it.
+fn rich_document_v39() -> Document {
+    let mut doc = rich_document();
+    let ids: Vec<scene::ObjectId> = doc
+        .scene()
+        .walk()
+        .into_iter()
+        .map(|(id, _)| id)
+        .filter(|id| doc.scene().object(*id).is_some_and(|o| o.kind.has_shape()))
+        .collect();
+    doc.execute(Command::SetHardness {
+        ids: vec![ids[0]],
+        hardness: scene::Hardness::Marked,
+    })
+    .unwrap();
+    doc.execute(Command::SetHardness {
+        ids: ids[1..].to_vec(),
+        hardness: scene::Hardness::ByAngle(45.0),
+    })
+    .unwrap();
+    doc.execute(Command::SetMirror {
+        ids: vec![ids[0]],
+        mirror: Some(scene::LiveMirror::on_object_x()),
+    })
+    .unwrap();
+    doc
+}
+
+#[test]
+fn the_development_format_keeps_smoothing_and_mirrors_on_their_objects() {
+    let doc = rich_document_v39();
+    let back = from_bytes(&to_bytes(&doc).unwrap()).unwrap();
+    assert_same(&doc, &back);
+    for (id, _) in doc.scene().walk() {
+        let (a, b) = (
+            doc.scene().object(id).unwrap(),
+            back.scene().object(id).unwrap(),
+        );
+        assert_eq!(a.hardness, b.hardness);
+        assert_eq!(a.mirror, b.mirror);
+    }
+    assert!(
+        back.scene()
+            .walk()
+            .iter()
+            .any(|(id, _)| back.scene().object(*id).unwrap().hardness == scene::Hardness::Marked)
+    );
+}
+
+#[test]
+fn development_files_without_the_newer_settings_get_the_standard_ones() {
+    // A development file written before a setting existed simply lacks it:
+    // here, every object's settings are left out.
+    let doc = rich_document();
+    let mut model = v39::ProjectV39::from_document(&doc);
+    model.objects = Default::default();
+    let body = v39::encode(&model).unwrap();
+    let mut bytes = header(FORMAT_VERSION, 0, body.len() as u64);
+    bytes.extend_from_slice(&body);
+    let back = from_bytes(&bytes).unwrap();
+    for (id, _) in back.scene().walk() {
+        assert_eq!(
+            back.scene().object(id).unwrap().hardness,
+            scene::Hardness::ByAngle(scene::STANDARD_SMOOTHING_ANGLE)
+        );
+    }
+}
+
+#[test]
+fn bad_development_settings_are_refused_in_plain_words() {
+    let doc = rich_document();
+    let file = |model: &v39::ProjectV39| {
+        let body = v39::encode(model).unwrap();
+        let mut bytes = header(FORMAT_VERSION, 0, body.len() as u64);
+        bytes.extend_from_slice(&body);
+        bytes
+    };
+    let mut model = v39::ProjectV39::from_document(&doc);
+    model.objects[0].smoothing = Some(f32::NAN);
+    assert!(refused(&file(&model)).to_string().contains("smoothing"));
+    let mut model = v39::ProjectV39::from_document(&doc);
+    model.objects[0].smoothing = Some(400.0);
+    assert!(refused(&file(&model)).to_string().contains("smoothing"));
+    let mut model = v39::ProjectV39::from_document(&doc);
+    model.objects[0].id = 999_999;
+    assert!(refused(&file(&model)).to_string().contains("isn't there"));
+    let mut model = v39::ProjectV39::from_document(&doc);
+    let again = model.objects[0].clone();
+    model.objects.push(again);
+    assert!(refused(&file(&model)).to_string().contains("twice"));
+}
+
+#[test]
+fn random_development_bodies_never_panic() {
+    let mut seed = 0x2545_f491_4f6c_dd1du64;
+    let doc = rich_document_v39();
+    let good = v39::encode(&v39::ProjectV39::from_document(&doc)).unwrap();
+    for round in 0..300 {
+        seed ^= seed << 13;
+        seed ^= seed >> 7;
+        seed ^= seed << 17;
+        let mut body = good.clone();
+        let at = (seed as usize) % body.len();
+        body[at] ^= (seed >> 32) as u8 | 1;
+        if round % 3 == 0 {
+            body.truncate(at);
+        }
+        let mut bytes = header(FORMAT_VERSION, 0, body.len() as u64);
+        bytes.extend_from_slice(&body);
+        let _ = from_bytes(&bytes);
+    }
+}
+
+const SAMPLE_V39: &[u8] = include_bytes!("../../tests/data/sample-v39.avtl");
+
+#[test]
+fn a_file_saved_by_format_version_39_opens_with_its_settings() {
+    let doc = from_bytes(SAMPLE_V39).expect("the version 39 sample opens");
+    assert_same(&rich_document_v39(), &doc);
+}
+
 const SAMPLE_V38: &[u8] = include_bytes!("../../tests/data/sample-v38.avtl");
 
 #[test]
@@ -4190,13 +4315,13 @@ fn bad_snapshots_are_refused_in_plain_words() {
     let mut model = v38::ProjectV38::<v38::EntryV38>::from_document(&doc);
     model.snapshots[1].name = model.snapshots[0].name.clone();
     let body = postcard::to_stdvec(&model).unwrap();
-    let mut bytes = header(FORMAT_VERSION, 0, body.len() as u64);
+    let mut bytes = header(38, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     assert!(refused(&bytes).to_string().contains("snapshots"));
     let mut model = v38::ProjectV38::<v38::EntryV38>::from_document(&doc);
     model.snapshots[0].objects[0].layout.faces[0].uvs[0] = [f32::NAN, 0.0];
     let body = postcard::to_stdvec(&model).unwrap();
-    let mut bytes = header(FORMAT_VERSION, 0, body.len() as u64);
+    let mut bytes = header(38, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     assert!(refused(&bytes).to_string().contains("real number"));
 }

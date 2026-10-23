@@ -42,7 +42,7 @@ The **Game project** part of General says whether every save also exports into y
 
 **File → Export again** repeats the last export, to the same file, the same way: handy while you go back and forth between the app and the engine.
 
-**Shading goes out as you see it.** With **Automatic hard edges** on (Mesh menu, the standard), edges sharper than 30° go out crisp and the rest smooth; with it off, the edges you marked [hard](hard-and-soft-edges.md). Each corner gets the [normal](concepts.md#shading-and-normals) the viewport shows, so a model shades the same in the engine.
+**Shading goes out as you see it.** Each object goes out with its own [smoothing](hard-and-soft-edges.md#smoothed-by-angle): smoothed by angle (the standard), edges sharper than its angle (30° unless changed) go out crisp and the rest smooth; shaded by its marks, the edges you marked [hard](hard-and-soft-edges.md). Each corner gets the [normal](concepts.md#shading-and-normals) the viewport shows, so a model shades the same in the engine.
 
 **Materials go out by name.** Each [material](materials.md) some polygon uses goes out once, by its name, with its colour: materials of the same name on different objects are one. glTF holds them in the file; an OBJ export also writes a **`.mtl` file** with the same name beside it (`crate.obj` and `crate.mtl`), which other programs read for the colours. Keep the two files together. In an OBJ, spaces in a name become underscores.
 
@@ -126,7 +126,7 @@ To open the window, use **File → Export…**.
 
 ## Tips and common problems
 
-- **Problem:** in Godot, an object turns around the wrong point. **Why:** its pivot is where the app has it. **Fix:** move the pivot in the [Object mode](pivots.md) and export again (glTF keeps pivots; OBJ doesn't).
+- **Problem:** in Godot, an object turns around the wrong point. **Why:** its pivot is where the app has it. **Fix:** move the pivot with [Edit pivot](pivots.md) and export again (glTF keeps pivots; OBJ doesn't).
 - **Tip:** glTF splits a point where its shading breaks into one per side, as every game engine does, so a crisp cube has 24 corners in the file, not 8. That's normal.
 - **Problem:** the model arrives lying on its back. **Why:** the file was written Z up, and the program expected Y up (or the other way round). **Fix:** export again with the other choice.
 - **Tip:** not sure which settings? Pick **Godot** or **Substance Painter** under **Made for**.
@@ -135,7 +135,7 @@ To open the window, use **File → Export…**.
 - **Problem:** the file settings can't be changed. **Why:** a preset is chosen under Made for, and its settings are locked so the file is what that program expects. **Fix:** pick **Custom settings** in Made for.
 - **Problem:** the model is 100 times too big or too small. **Why:** metres and centimetres were mixed up. **Fix:** Godot, Unity and Substance Painter want **Metres**; Unreal Engine wants **Centimetres**.
 - **Problem:** the footer says there is nothing to export, and Export… can't be pressed. **Why:** everything is hidden, or *Selected only* was chosen with only groups selected. **Fix:** show the objects, or choose Everything shown.
-- **Problem:** an imported model looks faceted all over. **Why:** the file had no normals, so the app couldn't tell which edges were meant to be hard. **Fix:** keep **Automatic hard edges** on (Mesh menu), or mark edges with [Hard and soft edges](hard-and-soft-edges.md).
+- **Problem:** an imported model looks faceted all over. **Why:** the file had no normals, so the app couldn't tell which edges were meant to be hard. **Fix:** tick **By angle** on the object's Smoothing row in the [Attributes panel](attributes.md) (or **Mesh → Shading → Smooth by angle**), or mark edges with [Hard and soft edges](hard-and-soft-edges.md).
 - **Problem:** an OBJ's colours are missing in the other program. **Why:** the `.mtl` file was left behind. **Fix:** copy or move the `.obj` and `.mtl` files together.
 - **Tip:** an imported object is a plain mesh: there are no settings to change, but every modelling tool works on it.
 
@@ -146,6 +146,6 @@ To open the window, use **File → Export…**.
 - [Kit export and collision](kit-export.md): each piece its own file, and Godot collision
 - [Saving and opening projects](saving-and-opening.md) (Export on every save)
 - [Hard and soft edges, and normals](hard-and-soft-edges.md)
-- [Pivots and the Object mode](pivots.md) (the units of the project)
+- [Pivots and Edit pivot](pivots.md) (the units of the project)
 - [Concepts: triangulation, glTF and the game-asset pipeline](concepts.md#the-game-asset-pipeline)
 - [Saving and opening projects](saving-and-opening.md)
