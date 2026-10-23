@@ -329,6 +329,7 @@ impl AttributesPanel {
                     self.shape_rows(ui, id, *primitive, units, out);
                 }
                 if object.kind.has_shape() {
+                    crate::booleans::attributes_section(ui, doc, id, out);
                     self.materials_section(ui, doc, id, out);
                 }
                 if let Some(shape) = doc.scene().evaluated(id) {
@@ -357,7 +358,7 @@ pub(crate) struct Shared<'a> {
 }
 
 /// A section title with a thin line under it.
-fn section(ui: &mut Ui, title: &str) {
+pub(crate) fn section(ui: &mut Ui, title: &str) {
     ui.add_space(6.0);
     ui.label(RichText::new(title).strong());
     ui.separator();

@@ -270,9 +270,13 @@ impl Selector<'_> {
     pub(crate) fn gesture(&mut self, gesture: Gesture) -> Option<String> {
         match (kind_for(self.mode), gesture) {
             (None, Gesture::Click { pointer, how }) => {
+                // A cutter, drawn as an outline, is picked only where no
+                // other shape is under the mouse (decision 0135).
+                let items = &self.drawing.items;
+                let solid = |i: usize| items.get(i).is_some_and(|item| !item.outline);
                 let found = self
                     .scene
-                    .object_under(&pointer.camera, pointer.size, pointer.at)
+                    .object_under_preferring(&pointer.camera, pointer.size, pointer.at, &solid)
                     .and_then(|i| self.drawing.items.get(i))
                     .map(|item| item.id);
                 self.combine_objects(found, how);

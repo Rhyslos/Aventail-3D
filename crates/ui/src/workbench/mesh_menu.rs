@@ -19,6 +19,8 @@ pub(crate) const MESH_SHADING_MENU: &str = crate::text!("Shading");
 
 pub(crate) const MESH_OBJECT_MENU: &str = crate::text!("Shape and object");
 
+pub(crate) const MESH_BOOLEANS_MENU: &str = crate::text!("Booleans");
+
 impl Workbench {
     /// The Mesh menu (decision 0126): the modelling tools in groups, each
     /// a submenu one level down, so the menu is short and every command is
@@ -64,6 +66,29 @@ impl Workbench {
             .response
             .on_hover_text(help);
         }
+        crate::dialog::menu(ui, tr(MESH_BOOLEANS_MENU), |ui| {
+            for command in crate::booleans::COMMANDS {
+                let info = command.info();
+                let why = match self.readiness(command) {
+                    crate::tool_menu::Ready::NotNow(why) => Some(why),
+                    _ => None,
+                };
+                let response = ui.add_enabled(why.is_none(), egui::Button::new(info.name));
+                let response = match &why {
+                    Some(why) => response.on_disabled_hover_text(format!("{}\n{why}.", info.help)),
+                    None => response.on_hover_text(info.help),
+                };
+                if response.clicked() {
+                    self.run_command(command, ui.ctx(), requests);
+                    ui.close();
+                }
+            }
+        })
+        .response
+        .on_hover_text(tr(
+            "Union, subtract or intersect: select the shape to keep, then Ctrl + click the \
+             shapes that cut it",
+        ));
         crate::dialog::menu(ui, tr(MESH_SHADING_MENU), |ui| {
             self.smoothing_entry(ui);
             if let Some(command) =

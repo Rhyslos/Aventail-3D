@@ -30,7 +30,7 @@ The Export window has a **side list** on the left. **General** holds everything 
    - **Triangles**: tick **Cut polygons into triangles** if the model will be baked in Substance Painter: the file then holds exactly the triangles the game will draw, cut the same way the viewport cuts them, so the bake matches. Game engines cut polygons themselves otherwise, not always the same way.
 
    glTF is always metres, Y up and triangles, so with glTF those three rows are greyed out.
-4. Pick the **Objects**: **Everything shown** (hidden objects stay out), or **Selected only** (the selected objects and what's inside them). Presets leave this as you set it.
+4. Pick the **Objects**: **Everything shown** (hidden objects stay out), or **Selected only** (the selected objects and what's inside them). Presets leave this as you set it. Shapes go out as you see them: cut by their [booleans](booleans.md), with the cutters left out.
 5. Check **What goes out** at the bottom: how many objects, triangles and materials the file will hold. If nothing would go out (everything hidden, say), the footer says so and **Export…** can't be pressed.
 6. Click **Export…** (or press **Enter**), choose where to save, and the status bar says how many objects and triangles went out (and for an OBJ, the `.mtl` file is written beside it). **Cancel**, the **×** or **Esc** closes the window without exporting.
 

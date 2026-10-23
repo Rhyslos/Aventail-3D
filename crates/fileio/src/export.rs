@@ -496,10 +496,12 @@ pub struct ExportedObject {
 pub fn prepare(document: &Document, options: &ExportOptions) -> Vec<ExportedObject> {
     let scene = document.scene();
     let selection = document.selection();
+    // Cutters go out as part of what they cut (decision 0135).
+    let cutters = scene.cutters();
     scene
         .walk()
         .into_iter()
-        .filter(|(id, _)| scene.is_shown(*id))
+        .filter(|(id, _)| scene.is_shown(*id) && !cutters.contains(id))
         .filter(|(id, _)| match options.what {
             ExportWhat::Everything => true,
             ExportWhat::Selected => selection
@@ -519,8 +521,9 @@ pub fn summary(document: &Document, options: &ExportOptions) -> ExportSummary {
     let mut objects = 0;
     let mut triangles = 0;
     let mut materials: Vec<String> = Vec::new();
+    let cutters = scene.cutters();
     for (id, _) in scene.walk() {
-        if !scene.is_shown(id) {
+        if !scene.is_shown(id) || cutters.contains(&id) {
             continue;
         }
         if options.what == ExportWhat::Selected
@@ -575,11 +578,12 @@ pub fn prepare_piece(
     let scene = document.scene();
     let at = scene.world_matrix(root).w_axis.truncate();
     let shift = Mat4::from_translation(-at);
+    let cutters = scene.cutters();
     scene
         .walk()
         .into_iter()
         .filter(|(id, _)| *id == root || scene.is_inside(*id, root))
-        .filter(|(id, _)| scene.is_shown(*id))
+        .filter(|(id, _)| scene.is_shown(*id) && !cutters.contains(id))
         .filter_map(|(id, _)| exported(scene, id, shift, options))
         .collect()
 }

@@ -14,8 +14,8 @@ fn sources() -> Vec<(PathBuf, String)> {
 /// the undo labels, messages and reasons made below it, and the app's own
 /// (its dialogs, start-up and command line). Not `render`: its texts are
 /// names for GPU debuggers, never shown.
-const CRATES_WITH_TEXT: [&str; 8] = [
-    "ui", "scene", "mesh", "fileio", "app", "tools", "uv", "config",
+const CRATES_WITH_TEXT: [&str; 9] = [
+    "ui", "scene", "mesh", "fileio", "app", "tools", "uv", "config", "booleans",
 ];
 
 /// The `crates` folder.
@@ -466,7 +466,9 @@ fn is_interface_text(literal: &str, before: &str) -> bool {
     {
         return false;
     }
-    const NOT_TEXT: [&str; 40] = [
+    const NOT_TEXT: [&str; 41] = [
+        // A function serde calls for a missing field's value.
+        "#[serde(default =",
         "Id::new(",
         "Id::new((",
         // A texture's name, for debugging.

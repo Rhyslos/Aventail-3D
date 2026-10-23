@@ -53,6 +53,8 @@ A primitive is built from its settings, so its shape can only change through the
 
 Select one or more shapes and press **Ctrl + E**, or use **Object → Bake into shape** in the Objects panel (also in the right-click menu) or **Mesh → Shape and object → Bake into shape** on the main menu bar. Any edits the shapes have are baked in too. The objects keep their names and places; their icon becomes the polygon icon, and the [Attributes panel](attributes.md) shows "(mesh)" with how many points and polygons they have instead of their settings. Groups are left alone. **Ctrl + Z** brings the settings back.
 
+A shape cut by [booleans](booleans.md) is baked with its cut: the cut becomes part of the mesh, the booleans go, and the cutters are hidden (not deleted), so they don't sit on top of the result as solid shapes. A plain mesh with booleans can be baked too.
+
 ## Settings
 
 The Objects panel has no settings of its own yet. Its menus:

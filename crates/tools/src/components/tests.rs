@@ -471,6 +471,22 @@ fn whole_objects_are_found_under_the_mouse_and_in_regions() {
     let middle = screen(&camera, Vec3::new(0.0, 0.0, 50.0));
     assert_eq!(scene.object_under(&camera, SIZE, middle), Some(0));
     assert_eq!(scene.object_under(&camera, SIZE, Vec2::new(3.0, 3.0)), None);
+    // With the front one an outline (a cutter, decision 0135), the one
+    // behind is picked; with nothing else there, the outline still is.
+    let not_front = |i: usize| i != 0;
+    assert_eq!(
+        scene.object_under_preferring(&camera, SIZE, middle, &not_front),
+        Some(1)
+    );
+    let neither = |_: usize| false;
+    assert_eq!(
+        scene.object_under_preferring(&camera, SIZE, middle, &neither),
+        Some(0)
+    );
+    assert_eq!(
+        scene.object_under_preferring(&camera, SIZE, Vec2::new(3.0, 3.0), &not_front),
+        None
+    );
 
     // A small box in the middle of the front cube: the cube behind it is
     // only caught when selecting through.

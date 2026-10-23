@@ -640,6 +640,11 @@ impl Workbench {
             .drawing
             .update(&self.document, editing, &self.hidden)
             .clone();
+        if self.drawing.cutting() {
+            // A heavy boolean is being worked out: look again shortly.
+            ui.ctx()
+                .request_repaint_after(std::time::Duration::from_millis(50));
+        }
         summary.overlay = self.components.overlay();
         self.components.freeze(
             self.gizmo_session.is_some()
@@ -728,8 +733,12 @@ impl Workbench {
         if self.viewport.take_open_settings() {
             self.settings.open = true;
         }
-        if let Some(crate::layers::ModifierPick::AddLayer) = modifier_pick {
-            self.add_edit_layer(&mut requests);
+        match modifier_pick {
+            Some(crate::layers::ModifierPick::AddLayer) => self.add_edit_layer(&mut requests),
+            Some(crate::layers::ModifierPick::Boolean(kind)) => {
+                self.run_boolean(kind, &mut requests);
+            }
+            None => {}
         }
         if let Some(slot) = self.attributes.assign.take() {
             self.assign_material(slot);
@@ -857,6 +866,8 @@ mod baking;
 mod baking_tests;
 #[cfg(test)]
 mod basics_tests;
+#[cfg(test)]
+mod boolean_tests;
 mod cleaning;
 #[cfg(test)]
 mod cleaning_tests;

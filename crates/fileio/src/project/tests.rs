@@ -12,7 +12,7 @@ use scene::{Command, Object, ObjectKind, Operation, Place, Primitive, Transform}
 /// hold: all of [`rich_document_v37`], plus two layout snapshots (one of
 /// two objects) and a snapshot put back (version 38; the version 38 sample
 /// holds exactly this).
-fn rich_document() -> Document {
+pub(super) fn rich_document() -> Document {
     let mut doc = rich_document_v37();
     let named = |doc: &Document, name: &str| {
         doc.scene()
@@ -1728,7 +1728,7 @@ fn rich_document_v1() -> Document {
 /// computer is compared with a document worked out again on another,
 /// whose sines and cosines may differ in the last bit (macOS on Arm and
 /// Linux on x86 do), which a turned pivot carries into its numbers.
-fn assert_same(a: &Document, b: &Document) {
+pub(super) fn assert_same(a: &Document, b: &Document) {
     // Stable names (decision 0090) are compared on their own: older files
     // have none, and a document's edits find their points by place alone
     // without them.
@@ -1880,7 +1880,7 @@ fn compression_keeps_meshes_small() {
 
 // ------------------------------------------------------ files refused ---
 
-fn header(version: u32, flags: u32, length: u64) -> Vec<u8> {
+pub(super) fn header(version: u32, flags: u32, length: u64) -> Vec<u8> {
     let mut bytes = b"AVTL".to_vec();
     bytes.extend_from_slice(&version.to_le_bytes());
     bytes.extend_from_slice(&flags.to_le_bytes());
@@ -1888,7 +1888,7 @@ fn header(version: u32, flags: u32, length: u64) -> Vec<u8> {
     bytes
 }
 
-fn refused(bytes: &[u8]) -> ProjectError {
+pub(super) fn refused(bytes: &[u8]) -> ProjectError {
     match from_bytes(bytes) {
         Ok(_) => panic!("opened a broken file"),
         Err(e) => e,
@@ -1960,7 +1960,7 @@ fn a_cut_short_or_padded_body_is_damaged() {
 #[test]
 fn an_uncompressed_body_can_be_read() {
     let doc = rich_document();
-    let body = v39::encode(&v39::ProjectV39::from_document(&doc)).unwrap();
+    let body = v40::encode(&v40::ProjectV40::from_document(&doc)).unwrap();
     let mut bytes = header(FORMAT_VERSION, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     assert_same(&doc, &from_bytes(&bytes).unwrap());
@@ -3505,7 +3505,8 @@ fn write_the_sample() {
         let name = format!("tests/data/sample-v{FORMAT_VERSION}.avtl");
         let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(name);
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-        std::fs::write(path, to_bytes(&rich_document()).unwrap()).unwrap();
+        let doc = super::v40_tests::rich_document_v40();
+        std::fs::write(path, to_bytes(&doc).unwrap()).unwrap();
     }
 }
 
@@ -4172,7 +4173,7 @@ fn a_file_saved_by_format_version_33_opens_with_its_trim_sheet() {
 
 /// The rich document with development settings: the cube smoothed by
 /// marked edges only, the other by 45°, and the cube's mirror on it.
-fn rich_document_v39() -> Document {
+pub(super) fn rich_document_v39() -> Document {
     let mut doc = rich_document();
     let ids: Vec<scene::ObjectId> = doc
         .scene()
@@ -4228,7 +4229,7 @@ fn development_files_without_the_newer_settings_get_the_standard_ones() {
     let mut model = v39::ProjectV39::from_document(&doc);
     model.objects = Default::default();
     let body = v39::encode(&model).unwrap();
-    let mut bytes = header(FORMAT_VERSION, 0, body.len() as u64);
+    let mut bytes = header(39, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     let back = from_bytes(&bytes).unwrap();
     for (id, _) in back.scene().walk() {
@@ -4244,7 +4245,7 @@ fn bad_development_settings_are_refused_in_plain_words() {
     let doc = rich_document();
     let file = |model: &v39::ProjectV39| {
         let body = v39::encode(model).unwrap();
-        let mut bytes = header(FORMAT_VERSION, 0, body.len() as u64);
+        let mut bytes = header(39, 0, body.len() as u64);
         bytes.extend_from_slice(&body);
         bytes
     };
@@ -4278,7 +4279,7 @@ fn random_development_bodies_never_panic() {
         if round % 3 == 0 {
             body.truncate(at);
         }
-        let mut bytes = header(FORMAT_VERSION, 0, body.len() as u64);
+        let mut bytes = header(39, 0, body.len() as u64);
         bytes.extend_from_slice(&body);
         let _ = from_bytes(&bytes);
     }

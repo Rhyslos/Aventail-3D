@@ -9,6 +9,7 @@
 
 mod attributes;
 mod autosave;
+mod booleans;
 mod command_search;
 pub mod commands;
 mod components;

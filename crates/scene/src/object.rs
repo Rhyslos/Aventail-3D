@@ -260,6 +260,9 @@ pub struct Object {
     /// Marking edges on an object smoothed by angle switches it to its
     /// marks, keeping the angle's edges as marks first.
     pub hardness: mesh::Hardness,
+    /// Its booleans (decision 0135): other objects that cut it, in
+    /// order. Empty for most objects.
+    pub booleans: Vec<crate::Boolean>,
 }
 
 /// The angle new objects are smoothed by: edges where polygons meet more
@@ -426,6 +429,7 @@ impl Object {
             collision: Collision::None,
             mirror: None,
             hardness: mesh::Hardness::ByAngle(STANDARD_SMOOTHING_ANGLE),
+            booleans: Vec::new(),
         }
     }
 

@@ -880,7 +880,7 @@ fn draw_meshes(
         pass.set_bind_group(1, &placements.bind_group, &[*offset]);
         match part {
             MeshPart::Faces => {
-                if let Some(triangles) = &mesh.triangles {
+                if let Some(triangles) = mesh.triangles.as_ref().filter(|_| draw.faces) {
                     pass.set_vertex_buffer(0, mesh.vertices.slice(..));
                     pass.set_index_buffer(triangles.buffer.slice(..), wgpu::IndexFormat::Uint32);
                     pass.draw_indexed(0..triangles.count, 0, 0..1);

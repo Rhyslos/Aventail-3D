@@ -16,6 +16,10 @@ pub struct Document {
     scene: Scene,
     history: History,
     selection: BTreeSet<ObjectId>,
+    /// The selected objects in the order they were selected (decision
+    /// 0135): what stays selected keeps its place, what is added goes at
+    /// the end.
+    order: Vec<ObjectId>,
     /// Each object's selected points, edges and polygons (decision 0029).
     /// Objects with nothing selected have no entry.
     elements: BTreeMap<ObjectId, ElementSelection>,
@@ -40,10 +44,11 @@ impl Document {
             ..Self::default()
         };
         let scene = &document.scene;
-        document.selection = selection
+        let chosen: Vec<ObjectId> = selection
             .into_iter()
             .filter(|id| scene.contains(*id))
             .collect();
+        document.put_selection(chosen);
         document
     }
 
@@ -89,6 +94,17 @@ impl Document {
     ) -> Result<Self, &'static str> {
         self.scene =
             std::mem::take(&mut self.scene).with_object_settings(id, hardness, mirror_on_object)?;
+        Ok(self)
+    }
+
+    /// The same document with object `id`'s booleans set (see
+    /// [`Scene::with_booleans`]), for a project being opened.
+    pub fn with_booleans(
+        mut self,
+        id: ObjectId,
+        booleans: Vec<crate::Boolean>,
+    ) -> Result<Self, crate::BooleanRefusal> {
+        self.scene = std::mem::take(&mut self.scene).with_booleans(id, booleans)?;
         Ok(self)
     }
 
@@ -163,10 +179,10 @@ impl Document {
         merge_key: Option<u64>,
     ) -> Result<(), SceneError> {
         let label = label.unwrap_or_else(|| command.describe(&self.scene));
-        let before: Vec<ObjectId> = self.selection.iter().copied().collect();
+        let before: Vec<ObjectId> = self.order.clone();
         let applied = command::apply(&mut self.scene, &command)?;
         if let Some(select) = applied.select {
-            self.selection = select.into_iter().collect();
+            self.put_selection(select);
         }
         self.drop_missing_from_selection();
         if !applied.edits.is_empty() {
@@ -174,7 +190,7 @@ impl Document {
             // A step that changes the selection itself (Create, Delete,
             // Group, Duplicate…) keeps the change, so undo and redo put
             // the selection back as it was before and after.
-            let after: Vec<ObjectId> = self.selection.iter().copied().collect();
+            let after: Vec<ObjectId> = self.order.clone();
             let objects = (after != before).then_some(ObjectsEdit { before, after });
             self.history.record(Step {
                 label,
@@ -220,7 +236,8 @@ impl Document {
             self.put_elements(change.id, change.before.clone());
         }
         if let Some(change) = &step.objects {
-            self.selection = change.before.iter().copied().collect();
+            self.order.clear();
+            self.put_selection(change.before.clone());
         }
         self.drop_missing_from_selection();
         if !step.edits.is_empty() {
@@ -262,7 +279,8 @@ impl Document {
             self.put_elements(change.id, change.after.clone());
         }
         if let Some(change) = &step.objects {
-            self.selection = change.after.iter().copied().collect();
+            self.order.clear();
+            self.put_selection(change.after.clone());
         }
         self.drop_missing_from_selection();
         if !step.edits.is_empty() {
@@ -342,6 +360,28 @@ impl Document {
             .collect()
     }
 
+    /// The selected objects in the order they were selected: the one
+    /// selected first comes first (decision 0135). Objects selected
+    /// together (by a box, say) come in the order they were given.
+    pub fn selection_order(&self) -> &[ObjectId] {
+        &self.order
+    }
+
+    /// Selects `ids`: those already selected keep their place in the
+    /// order, new ones go at the end in the order given.
+    fn put_selection(&mut self, ids: impl IntoIterator<Item = ObjectId>) {
+        let ids: Vec<ObjectId> = ids.into_iter().collect();
+        self.selection = ids.iter().copied().collect();
+        let selection = &self.selection;
+        self.order.retain(|id| selection.contains(id));
+        let mut placed: BTreeSet<ObjectId> = self.order.iter().copied().collect();
+        for id in ids {
+            if placed.insert(id) {
+                self.order.push(id);
+            }
+        }
+    }
+
     /// Whether the object is selected.
     pub fn is_selected(&self, id: ObjectId) -> bool {
         self.selection.contains(&id)
@@ -362,15 +402,16 @@ impl Document {
         ids: impl IntoIterator<Item = ObjectId>,
         merge_key: Option<u64>,
     ) -> bool {
-        let after: BTreeSet<ObjectId> = ids
+        let wanted: Vec<ObjectId> = ids
             .into_iter()
             .filter(|id| self.scene.contains(*id))
             .collect();
+        let after: BTreeSet<ObjectId> = wanted.iter().copied().collect();
         if after == self.selection {
             return false;
         }
-        let before: Vec<ObjectId> = self.selection.iter().copied().collect();
-        self.selection = after;
+        let before: Vec<ObjectId> = self.order.clone();
+        self.put_selection(wanted);
         let label = self.selection_label();
         self.history.record(Step {
             label,
@@ -378,7 +419,7 @@ impl Document {
             selections: Vec::new(),
             objects: Some(ObjectsEdit {
                 before,
-                after: self.selection.iter().copied().collect(),
+                after: self.order.clone(),
             }),
             merge_key,
         });
@@ -479,6 +520,7 @@ impl Document {
     fn drop_missing_from_selection(&mut self) {
         let scene = &self.scene;
         self.selection.retain(|id| scene.contains(*id));
+        self.order.retain(|id| scene.contains(*id));
         let before = self.elements.len();
         self.elements.retain(|id, _| scene.contains(*id));
         if self.elements.len() != before {

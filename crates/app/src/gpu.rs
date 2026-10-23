@@ -182,15 +182,23 @@ fn mesh_draws_showing(
                 key: item.id.get(),
                 model: item.transform,
                 edges: true,
+                // A cutter is an outline only (decision 0135).
+                faces: !item.outline,
                 edge_color: if edited {
                     edited_line
                 } else if item.selected {
                     [r, g, b, SELECTED_EDGE_ALPHA]
+                } else if item.outline {
+                    WIREFRAME_LINE
                 } else {
                     plain
                 },
                 points: (edited && scene.points).then_some((PLAIN_POINT, POINT_SIZE)),
-                faintest: if item.selected && !edited {
+                faintest: if item.outline {
+                    // An outline never fades away entirely: it is all
+                    // there is of a cutter.
+                    WIREFRAME_FAINTEST.max(least)
+                } else if item.selected && !edited {
                     SELECTED_FAINTEST.max(least)
                 } else {
                     least
@@ -691,6 +699,7 @@ mod tests {
             selected,
             colors: Vec::new(),
             hardness: mesh::Hardness::Marked,
+            outline: false,
         }
     }
 
@@ -785,6 +794,7 @@ mod tests {
                 selected,
                 colors: Vec::new(),
                 hardness: mesh::Hardness::Marked,
+                outline: false,
             }],
             editing: true,
             points: true,

@@ -18,6 +18,8 @@ layer = 1
 mesh.workspace = true
 # Unwrapping, relaxing and straightening UVs (same layer).
 uv.workspace = true
+# Booleans between shapes (same layer; decision 0135).
+booleans.workspace = true
 # The language layer for text a person reads (layer 0).
 words.workspace = true
 glam.workspace = true

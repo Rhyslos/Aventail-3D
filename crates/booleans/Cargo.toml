@@ -1,0 +1,27 @@
+[package]
+name = "booleans"
+description = "Booleans (union, subtract, intersect) between closed shapes, wrapping Manifold"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+# Architecture layer, checked by tools/layer-check:
+# a crate may only depend on crates in its own layer or below.
+[package.metadata.architecture]
+layer = 1
+
+[dependencies]
+mesh.workspace = true
+# The language layer for text a person reads (layer 0, decision 0134).
+words.workspace = true
+glam.workspace = true
+# The boolean kernel: a pure-Rust port of Manifold (Apache-2.0); see
+# docs/decisions/0135-live-booleans.md.
+manifold-rust.workspace = true
+
+[lints]
+workspace = true

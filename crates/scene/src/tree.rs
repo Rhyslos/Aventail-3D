@@ -30,6 +30,8 @@ pub enum SceneError {
     NotANumber,
     /// More materials than an object can have.
     TooManyMaterials,
+    /// Booleans that can't be set up (decision 0135).
+    Boolean(crate::BooleanRefusal),
 }
 
 impl std::fmt::Display for SceneError {
@@ -56,6 +58,7 @@ impl std::fmt::Display for SceneError {
                 "an object can have at most {} materials",
                 mesh::material::MAX_SLOTS
             )),
+            Self::Boolean(why) => write!(f, "{why}"),
         }
     }
 }
@@ -148,6 +151,12 @@ pub(crate) enum Edit {
         before: Option<crate::LiveMirror>,
         after: Option<crate::LiveMirror>,
     },
+    /// Changes an object's booleans (decision 0135).
+    SetBooleans {
+        id: ObjectId,
+        before: Vec<crate::Boolean>,
+        after: Vec<crate::Boolean>,
+    },
     /// Changes where an object's shading breaks (decision 0126).
     SetHardness {
         id: ObjectId,
@@ -230,6 +239,7 @@ impl Edit {
             Self::SetCollision { before, after, .. } => before == after,
             Self::SetHardness { before, after, .. } => before == after,
             Self::SetMirror { before, after, .. } => before == after,
+            Self::SetBooleans { before, after, .. } => before == after,
             Self::SetTransform { before, after, .. } | Self::SetOffset { before, after, .. } => {
                 before == after
             }
@@ -296,6 +306,11 @@ impl Edit {
                 after: before,
             },
             Self::SetMirror { id, before, after } => Self::SetMirror {
+                id,
+                before: after,
+                after: before,
+            },
+            Self::SetBooleans { id, before, after } => Self::SetBooleans {
                 id,
                 before: after,
                 after: before,
@@ -381,6 +396,8 @@ pub struct Scene {
     /// Each object's evaluated shape, layer by layer (not part of what the
     /// scene is: copies start empty, and it never affects equality).
     cache: SharedCache,
+    /// Each kept object's booleans' result (decision 0135), the same way.
+    pub(crate) cuts: crate::boolean::CutCache,
 }
 
 impl Scene {
@@ -451,6 +468,14 @@ impl Scene {
                     Some(_) => {}
                 }
             }
+        }
+        // Every boolean's cutters are shapes in the scene, with no loops
+        // (decision 0135).
+        for (id, _) in scene.walk() {
+            let booleans = scene.booleans(id).to_vec();
+            scene
+                .check_booleans(id, &booleans)
+                .map_err(SceneError::Boolean)?;
         }
         scene.next_id = scene.next_id.max(next_id.min(MAX_OBJECT_ID));
         Ok(scene)
@@ -544,6 +569,22 @@ impl Scene {
         node.object.hardness = hardness;
         if let Some(mirror) = &mut node.object.mirror {
             mirror.on_object = mirror_on_object;
+        }
+        Ok(self)
+    }
+
+    /// The same scene with object `id`'s booleans set (decision 0135), for
+    /// a project being opened (not a step to undo: use
+    /// [`crate::Command::SetBooleans`]). Booleans that don't make sense
+    /// ([`Scene::check_booleans`]) are refused.
+    pub fn with_booleans(
+        mut self,
+        id: ObjectId,
+        booleans: Vec<crate::Boolean>,
+    ) -> Result<Self, crate::BooleanRefusal> {
+        self.check_booleans(id, &booleans)?;
+        if let Some(node) = self.nodes.get_mut(&id) {
+            node.object.booleans = booleans;
         }
         Ok(self)
     }
@@ -656,11 +697,12 @@ impl Scene {
 
     /// Whether [`crate::Command::MakeEditable`] would change `id`: a
     /// primitive (whose settings become a plain mesh), or a mesh with
-    /// edits recorded on it. Not a group, or a mesh with nothing recorded.
+    /// edits recorded on it or booleans. Not a group, or a mesh with
+    /// nothing recorded.
     pub fn can_make_editable(&self, id: ObjectId) -> bool {
         self.object(id).is_some_and(|o| match o.kind {
             ObjectKind::Primitive(_) | ObjectKind::Instance(_) => true,
-            ObjectKind::Mesh(_) => !o.stack.is_empty(),
+            ObjectKind::Mesh(_) => !o.stack.is_empty() || !o.booleans.is_empty(),
             ObjectKind::Group => false,
         })
     }
@@ -813,12 +855,17 @@ impl Scene {
     }
 
     /// The object's shape as it is shown and exported: its final shape
-    /// (as [`Scene::evaluated`]) with its live mirror's copies added and
-    /// welded at the seam (decision 0088). Without a mirror, the same
+    /// (as [`Scene::evaluated`]), cut by its booleans ([`Scene::cut_shape`],
+    /// decision 0135), with its live mirror's copies added and welded at
+    /// the seam (decision 0088). Without booleans or a mirror, the same
     /// shape. Edits and selections work on [`Scene::evaluated`]'s shape,
-    /// whose points and polygons keep their ids here too.
+    /// whose points and polygons keep their ids here too unless booleans
+    /// cut it.
     pub fn shown_shape(&self, id: ObjectId) -> Option<std::sync::Arc<mesh::Mesh>> {
-        let shape = self.evaluated(id)?.mesh;
+        let shape = match self.cut_shape(id) {
+            Some(Ok(cut)) => cut,
+            _ => self.evaluated(id)?.mesh,
+        };
         Some(
             self.with_mirror(id, &shape)
                 .map_or(shape, std::sync::Arc::new),
@@ -978,6 +1025,7 @@ impl Scene {
                 self.siblings_mut(place.parent)?.remove(place.index);
                 self.nodes.remove(id);
                 self.cache.get_mut().forget(*id);
+                self.cuts.forget(*id);
                 Ok(())
             }
             Edit::Relocate { id, from, to } => {
@@ -1085,6 +1133,19 @@ impl Scene {
                     return Err(SceneError::History(text!("an object's mirror has changed")));
                 }
                 node.object.mirror = *after;
+                Ok(())
+            }
+            Edit::SetBooleans { id, before, after } => {
+                let node = self
+                    .nodes
+                    .get_mut(id)
+                    .ok_or(SceneError::UnknownObject(*id))?;
+                if node.object.booleans != *before {
+                    return Err(SceneError::History(text!(
+                        "an object's booleans have changed"
+                    )));
+                }
+                node.object.booleans.clone_from(after);
                 Ok(())
             }
             Edit::SetMaterials { id, before, after } => {

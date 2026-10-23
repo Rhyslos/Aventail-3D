@@ -79,6 +79,7 @@ A calm, tool-rich 3D modeller for game assets.
 A checker laid on by the UVs: where the squares stay square and even, a texture will too. The tint runs red across and green up the texture, so a piece turned or mirrored shows.
 A checker of labelled cells laid on by the UVs, A1 at the top left of the texture to H8 at the bottom right, in colours from the app's accent: see at once which part of the texture each part of the shape uses, and which way round it lies (the labels turn and mirror with it). The UV Editor shows it behind the UVs too.
 A cone 1 m across and 1 m tall
+A cutter is drawn as an outline and left out of exports: the shape it cuts carries the result. Hidden, it still cuts.
 A cylinder with round ends, 1 m tall
 A doorway arch: two legs and a round top
 A flat 1 m square lying on the ground
@@ -89,6 +90,7 @@ A flat view from the right: no perspective, true sizes
 A flat view looking straight down: no perspective, true sizes
 A gear with 12 teeth and a hole for the axle
 A group has no shape of its own, so no edit layers.
+A group has no shape: select shapes only
 A hard edge turns the shading sharply, and a normal map can only hold that turn where the UVs are split too: otherwise the bake shows a dark or light line along it. Fix marks them as seams and unwraps the pieces around them.
 A heavy shape is checked in the background, so you can keep working. The numbers below are from before the last change until it finishes.
 A list by the mouse, like the shape list (B)
@@ -106,6 +108,8 @@ A project keeps at most {} snapshots: remove one first.
 A right-click in the viewport opens four short lists around the mouse: what to show and hide, the modes, undo and edit layers, and the tools of what you're working on. A right-click that ends a drag, or a right drag that turns the view, never opens it.
 A ring (doughnut) 1 m across, lying on the ground
 A ring instead of a loop, with a double-click
+A shape can have at most 64 cutters
+A shape can't cut itself
 A solid flight of 6 stairs, 1 m wide and 1 m high
 A texture per material
 A texture per object
@@ -122,6 +126,7 @@ Add every polygon facing within 30° of a selected polygon: the top of a shape, 
 Add heavy test shape
 Add layer
 Add material
+Add the other selected shapes to the one selected first, as one solid.                  They stay shapes of their own, drawn as outlines: move or edit one and the                  result follows.
 Add to / take out of the selection
 Add to the selection, with a click or drag (the standard keys)
 Add to the shape: extrude, inset, bevel, groove, bridge, fill a hole
@@ -211,6 +216,8 @@ Bevel works on edges or points: press 2 for the Edges mode (or 1 for Points) and
 Bevel works on edges or points: press 2 for the Edges mode, or 1 for Points
 Bevel: drag away from the selected edges (or points) to cut them away; back towards them to narrow it. Segments and Profile are in the Attributes panel. Shift for fine steps; Esc or a right click cancels.
 Blue
+Boolean kind
+Booleans
 Both ends sit on the same spot. Usually left over from moving points together.
 Bottom
 Bottom radius
@@ -254,6 +261,7 @@ Capsule
 Cavity
 Centimetres
 Centre point
+Change booleans
 Change how edits keep UVs
 Change it
 Change materials
@@ -382,6 +390,7 @@ Create {}
 Created by Rhyslos, built with AI assistance (Claude by Anthropic).
 Ctrl
 Ctrl + click / Shift + click (the standard keys)
+Ctrl + click one or more shapes to cut with: the shape selected first is kept
 Ctrl + click or drag adds; Alt + click removes. Ctrl + click on something selected unselects it. Alt + drag moves the view while "Alt + mouse works in every scheme" is on.
 Ctrl + click or drag adds; Shift + click or drag removes. Ctrl + click on something selected unselects it.
 Ctrl + click or drag flips: what was selected is unselected, and the rest selected.
@@ -403,12 +412,14 @@ Cut new edges and join points: slit, loop cut, connect, weld
 Cut out the middle: zero for a pie slice, more for a slice of a ring
 Cut polygons into triangles
 Cut the corner off the selected edges or points, with a width, segments and roundness
+Cut the other selected shapes out of the one selected first, like a hole                  or a notch. The cutters stay shapes of their own, drawn as outlines: move or                  edit one and the cut follows.
 Cut through
 Cuts
 Cuts are as short as can be, wherever they fall: for shapes seen from all round
 Cuts go on the parts facing away from the Front view, top or bottom alike
 Cuts go on the parts facing down, wherever they face round the sides
 Cuts go where a prop is least seen: facing down, or away from the Front view
+Cuts: {}
 Cylinder
 Danish
 Dark tiles with a crisp edge; the highlighted one glows
@@ -783,6 +794,7 @@ Instance
 Instance 1 object
 Instance {} objects
 Interface
+Intersect
 Invert
 Invert orbit direction
 Invert the selection
@@ -808,6 +820,7 @@ Join the selected shapes into the first of them, as one plain mesh, each part st
 Join {}
 Join: select two or more shapes first.
 Keep every step until the app closes. A very long session with large meshes can then use a lot of memory
+Keep only where the shape selected first and the other selected shapes                  overlap. They stay shapes of their own, drawn as outlines: move or edit one                  and the result follows.
 Keep shapes
 Keep shapes, smoother
 Keep sizes
@@ -945,6 +958,7 @@ Move {}
 Move {} pivots
 Move {} points
 Move, rotate and scale at once: all three gizmos
+Move, turn, scale or edit a cutter and the cut follows. Bake into shape (Ctrl + E) makes it part of the shape for good.
 Moves snap to:
 Moving: {}
 Name
@@ -1284,9 +1298,11 @@ Select the objects to apply first
 Select the objects to set how they're smoothed
 Select the polygons facing the wrong way round: inside out compared with their neighbours, or facing into a closed shape
 Select the polygons of the selected objects that use a material. Shows the Polygons mode.
+Select the shape to keep first, then Ctrl + click the shapes that cut it
 Select the whole part the selection is on: everything joined to it, across seams. Select a little of a part first. Over the UV Editor, or in the UV mode, the key selects whole pieces instead.
 Select the whole pieces the selection is in: a little of a piece (a point, an edge or a polygon) brings the whole piece, parted at seams. Use it to pick one of two overlapping pieces and move it away.
 Select them, to see where they are
+Select this cutter, to move or edit it
 Select tool
 Select tools
 Select what isn't selected, and unselect what is
@@ -1353,6 +1369,7 @@ Show {}
 Showing {} hidden object{} again.
 Showing {} hidden object{} and {} polygon{} again.
 Showing {} hidden polygon{} again.
+Shown uncut: {}. Booleans need closed solids.
 Shows the shape of: {}
 Shrink
 Shrink selection
@@ -1427,6 +1444,7 @@ Step back to the Model mode (finishes a slit, puts a tool away)
 Steps
 Stop at overlaps
 Stop exporting into a game project
+Stop this shape cutting: it becomes an ordinary shape
 Straight
 Straight along this axis of the object (its own axes), out the way the polygons face: pull a sloped patch out level, say.
 Straight out
@@ -1447,6 +1465,7 @@ Strip corners within
 Subdivisions
 Substance Painter
 Substance Painter matches a low-poly object with its high-poly one by name: crate_low with crate_high. Rename one, or make the missing partner.
+Subtract
 Suggest seams
 Suggest seams wouldn't put one here with the current settings: it was marked by hand, came with the ready-made shape, or was added by Seams from hard edges or an unwrap cutting a closed piece open.
 Suggest seams, Unwrap and Seams from hard edges never put a seam on the selected edges (or anywhere on the selected polygons), unless a piece couldn't lie flat otherwise. Drawn blue.
@@ -1475,12 +1494,14 @@ Take a snapshot
 Take away the selection's outer rim
 Take back the last change
 Take back the last step
+Take out
 Take out of the selection, with a click or drag (the standard keys)
 Take points, edges or polygons away
 Take the seams off the selected edges (or the selected polygons' edges), so the surface stays joined there when unwrapped
 Take the selected groups' contents out, and remove the groups
 Take the selected points, edges or polygons away but keep the surface closed: the polygons around them merge into one
 Take the snapshot “{}”
+Take this boolean away: the shape is whole again, and its cutters are ordinary shapes
 Take this edit out. The edits after it are made again without it (Ctrl + Z brings it back).
 Take this edit out; the edits after it are made again without it
 Tap E to open
@@ -1496,9 +1517,13 @@ The app's own folder, so your project folders stay tidy. Copies are deleted when
 The bake sees these from behind: the normal map comes out inverted or black there. Fix turns them the right way round (Mesh → Fix normals).
 The collision shape Godot makes for it when you export for Godot: what the player bumps into
 The corners the mesh is made of
+The cutter {} can't be used: {}
+The cutter {} is squashed flat
+The cutter {} isn't a closed solid: it has holes in its surface, or edges shared by more than two polygons
 The edits you make now go into this layer: the top layer that is switched on
 The faces, with any number of corners
 The first material can't be removed
+The first selected is an instance: select its original, or bake it into a shape first
 The gap between pieces, in texture pixels (half of it to the square's edges). Keeps colours from bleeding between pieces when the texture is shrunk; 8 px suits a 2048 texture.
 The gizmo follows the object's own axes.
 The gizmo follows the world's axes.
@@ -1530,7 +1555,9 @@ The selected objects, with what's inside them
 The selection is always drawn larger and brighter than anything else. High contrast makes it larger still, with a dark rim, so it stands out on any colour.
 The shape across the bevel: 100% is round, 0% is flat, -100% curves inward (hollow, like a cove). Needs 2 or more segments to show.
 The shape itself
+The shape to keep already cuts one of the others (or is shown by it): each would wait for the other
 The shape's points were renumbered (more or fewer segments, say), so these edits looked for the points, edges and polygons they were made on by where they are. A polygon split into smaller ones moves as a whole. Nothing to fix.
+The shapes cut each other in a loop
 The size of the texture this project's UVs are made for
 The snapshot's name. Each must differ.
 The standard layout
@@ -1637,6 +1664,8 @@ Unfold up
 Unfold up only
 Ungroup
 Ungroup {} groups
+Union
+Union, subtract or intersect: select the shape to keep, then Ctrl + click the shapes that cut it
 Units
 Unity
 Unknown option "{}". Use --help to see the options. To open a file whose name starts with -, put -- before it.
@@ -1689,6 +1718,7 @@ Weld: select two or more points first, or press Ctrl + M and drag a point onto a
 What goes out
 What points, pieces, seams, pivots and the rest mean (glossary)
 What the app's words mean: points, pieces, seams, pivots, smoothing and the rest, each explained in plain words, in your web browser
+What the cutters do to this shape
 What the row holds: bolts, a panel edge, a seal
 What the viewport draws over your shapes. Also in the viewport's Display menu.
 Wheel down
@@ -1752,12 +1782,16 @@ a backup copy
 a bend's stretch isn't a real number, or is out of range (above 0, at most 1000)
 a bevel is stored with its settings twice
 a bevel's skew or weld distance isn't a real number, or is out of range
+a boolean can't be used: {}
 a collision is stored for object {}, which isn't there
+a cutter is squashed flat (scaled to nothing)
+a cutter isn't a closed solid: it has holes in its surface, or edges shared by more than two polygons
 a face goes through point {} twice
 a face needs at least three corners
 a groove's stretch isn't a real number, or is out of range
 a groove's width or depth isn't a real number
 a group has no shape to edit
+a group has no shape: pick shapes
 a hard edge joins points {} and {}, which aren't both in the mesh
 a layer has changed
 a layer no longer exists
@@ -1773,13 +1807,17 @@ a mirrored edit mirrors across no axis
 a name can't be empty
 a piece's texel density isn't a real number above 0
 a point slides towards itself
+a point's position isn't a number
 a saved UV layout holds a UV that isn't a real number
+a shape can have at most 64 cutters
+a shape can't cut itself
 a shape's place is stored for object {}, which isn't there
 a shape's settings name an object that isn't a mesh
 a shape's settings name an object that isn't there
 a slide's amount isn't a real number
 a stretch budget or unwrap setting is out of range
 a texel density isn't a real number above 0
+a triangle names a point that isn't there
 a trim row doesn't lie within the texture
 a value isn't a number
 a weld distance isn't a real distance
@@ -1803,6 +1841,8 @@ an object can't go inside itself or one of its children
 an object is listed as an instance twice
 an object is not where it was
 an object with that id already exists
+an object's booleans are listed twice
+an object's booleans have changed
 an object's collision has changed
 an object's collision is stored twice
 an object's id is impossibly large
@@ -1869,6 +1909,7 @@ is stretched {:.1} times more one way than the other, so a texture's squares bec
 island
 isn't
 it
+it couldn't be worked out ({})
 it has mesh layers but no mesh
 it holds more than the app can open (a limit was reached; it may be damaged or made to cause trouble)
 it holds no polygons
@@ -1881,9 +1922,11 @@ it was
 it was saved by a newer version of the app (file format {}; this version reads up to {}). Update the app to open it
 it wasn't saved, because the saved copy wouldn't open again ({}). Your previous save is untouched; please report this so it can be fixed
 it's an instance: edit its original, or make it editable to give it its own shape
+it's an instance: give its original the boolean, or bake it into a shape first
 its angle isn't a real number
 its bent extrude holds a number that isn't real
 its bevel {} isn't a real number
+its booleans name an object that isn't there
 its extrude holds a number that isn't real
 its format version is 0
 its game project folder is empty, too long or broken over lines
@@ -1976,6 +2019,7 @@ s were
 scale
 seam
 segments
+select the shape to keep, then Ctrl + click the cutters
 selected 
 selected edges
 selected polygons' edges
@@ -1996,6 +2040,8 @@ the attribute holds values for each {}, not each {}
 the attribute holds {} values, not {}
 the backup folder {} can't be used ({})
 the backup stopped unexpectedly
+the boolean library stopped
+the cutter is already cut by this shape (or shows it), so each would wait for the other
 the emergency copy saved as the app crashed ({})
 the file couldn't be written ({})
 the file is damaged: it claims to be impossibly large
@@ -2011,6 +2057,7 @@ the project's mending settings have changed
 the project's texture settings have changed
 the project's trim sheet has changed
 the project's units have changed
+the result would have too many polygons
 the saved file didn't read back the same; the disk may be failing
 the scene can't be read ({})
 the scene can't be unpacked ({})
@@ -2018,6 +2065,7 @@ the scene couldn't be compressed ({})
 the scene couldn't be encoded ({})
 the selection's UVs
 the shape
+the shape isn't a closed solid: it has holes in its surface, or edges shared by more than two polygons
 the texture square
 the value isn't a real number
 the viewport image could not be created

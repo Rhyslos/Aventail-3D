@@ -61,6 +61,12 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Manifold** — A mesh that could exist as a real, solid object: every edge is shared by exactly two polygons. Non-manifold geometry (edges shared by three faces, loose edges, holes) often breaks booleans, bakes and some tools.
 
+**Closed solid (watertight)** — A shape whose surface closes all the way round, with no holes, so it has a clear inside and outside, like a sealed box. It is [manifold](#mesh-basics) and has no [borders](#mesh-basics). Booleans, 3D printing and some bakes need closed solids. A plane, or a cylinder without caps, isn't one.
+
+**Boolean** — Combining shapes as if they were solid blocks: **Union** joins them into one, **Subtract** cuts one out of another, **Intersect** keeps only where they overlap. The name comes from the logic words *or*, *and not* and *and*. See [Booleans](booleans.md).
+
+**Cutter** — In a boolean, a shape that cuts (or is added to, or intersected with) the shape you keep. In this app cutters stay objects of their own, drawn as outlines, and the cut follows when you move or edit them. See [Booleans](booleans.md).
+
 ## Objects and scenes
 
 **Object** — Anything listed in the Objects panel: a mesh, a primitive, a group. See [The Objects panel](objects.md).
@@ -85,7 +91,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Edit list** — The list of an object's edits in the Edit layers panel. Any edit in it can be opened and changed, and the edits after it are made again. *Bake into shape up to here* bakes the old edits up to one into the shape, so they no longer have to be made again: the shape stays the same, but those edits can't be changed any more. See [The edit list](edit-list.md).
 
-**Modifiers palette** — The thin column of buttons on the right of the viewport, beside the panels, for things that change a shape without destroying it. Its first button adds an edit layer; more join it in later versions.
+**Modifiers palette** — The thin column of buttons on the right of the viewport, beside the panels, for things that change a shape without destroying it. Its first button adds an edit layer; then come the [booleans](booleans.md) (Union, Subtract, Intersect). More join it in later versions.
 
 **Bake into shape** — Turning a shape into a plain mesh with no settings: its base and edits are baked together, so what you see becomes the new starting point. Do it when you no longer need the settings, or before editing a mesh freely. Undo brings the settings back. (Other programs call it *make editable*, *convert to editable poly* or *collapse*.) See [Objects](objects.md#bake-into-shape).
 

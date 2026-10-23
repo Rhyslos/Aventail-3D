@@ -61,6 +61,8 @@ pub(crate) enum DocRequest {
     Undo,
     /// Do the last undone step again.
     Redo,
+    /// Select exactly these objects (an undo step, as a click would be).
+    Select(Vec<ObjectId>),
 }
 
 /// A name being typed in place of an object's name.

@@ -384,7 +384,9 @@ impl ProjectV39 {
     }
 }
 
-/// The CBOR bytes of `model`.
+/// The CBOR bytes of `model` (version 40 is written now; tests still
+/// write version 39 files).
+#[cfg(test)]
 pub(crate) fn encode(model: &ProjectV39) -> Result<Vec<u8>, String> {
     let mut bytes = Vec::new();
     ciborium::into_writer(model, &mut bytes).map_err(|e| e.to_string())?;

@@ -25,7 +25,8 @@ fn every_planned_crate_exists() {
     let crates = layer_check::load_workspace(workspace_root()).unwrap();
     let names: Vec<&str> = crates.iter().map(|c| c.name.as_str()).collect();
     let expected = [
-        "app", "config", "fileio", "mesh", "render", "scene", "tools", "ui", "uv", "words",
+        "app", "booleans", "config", "fileio", "mesh", "render", "scene", "tools", "ui", "uv",
+        "words",
     ];
     assert_eq!(names, expected);
 }

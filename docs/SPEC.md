@@ -90,6 +90,7 @@ In the Points, Edges and Polygons modes. Every tool is also in the tool menu (**
 - **Last edit:** the newest edit's settings stay changeable in the Attributes panel.
 - **Split off** (Mesh → Shape and object) and **Join objects** (E in Model mode, or Mesh) ([split and join](manual/split-and-join.md)).
 - **Copies and instances:** Ctrl + C, Ctrl + V paste copies, Alt + V paste instances; Duplicate and Duplicate as instance in E ([copies and instances](manual/copies-and-instances.md)).
+- **Booleans** (Mesh → Booleans, the modifiers palette, or command search; no keys): select the shape to keep, Ctrl + click the cutters, then **Union**, **Subtract** or **Intersect**. Cutters stay objects, drawn as outlines; move or edit one and the cut follows; hidden ones still cut; Attributes → **Booleans** changes the kind or takes a cutter out; **Bake into shape** makes it permanent and hides the cutters. Closed solids only: anything else is left uncut with the reason shown ([booleans](manual/booleans.md)).
 - **Heavy shapes:** a 3-million-polygon object stays usable; **Help → Developer → Add a heavy test shape** to try it ([heavy shapes](manual/heavy-shapes.md)).
 
 ## The edit history and edit layers
@@ -143,7 +144,7 @@ The UV tools are in the **UV** menu (main menu bar, and the **UV** button on the
 - **Projects** (`.avtl`): File → New (Ctrl + N), Open… (Ctrl + O), Open recent, Save (Ctrl + S), Save As… (Ctrl + Shift + S), Quit (no key) ([saving and opening](manual/saving-and-opening.md)).
 - **Safe saving:** written beside the old file, checked to open again, then swapped in; the previous save kept as `.avtl.bak`.
 - **"Save changes?"** before work is lost: Enter saves, Alt + N doesn't save, Esc cancels.
-- **File format 39**, the development format, until the alpha; older projects still open ([decision 0126](decisions/0126-rework-and-first-use.md)).
+- **File format 40**, the development format with booleans, until the alpha; older projects still open ([decisions 0126](decisions/0126-rework-and-first-use.md) and [0135](decisions/0135-live-booleans.md)).
 - **Damaged or hostile files** are refused with a message, never a crash.
 - **Backup copies:** every 5 minutes when something changed, newest 5 kept, offered back after a crash (Settings → Autosave) ([backup copies](manual/autosave.md)).
 - **Emergency copy:** if the app itself crashes, it saves the work as it was a moment before, offered first at the next start.
@@ -156,7 +157,7 @@ The UV tools are in the **UV** menu (main menu bar, and the **UV** button on the
 - **Export again** (File) repeats the last export.
 - **Export into a game project:** a folder in a Godot, Unity, Unreal Engine or Solis project, exported into on every save and from **File → Export to game project**.
 - **Export kit…** (File): each selected piece its own file, pivot at the origin; **Collision** (Attributes) for Godot ([kit export](manual/kit-export.md)).
-- **What goes out:** each object at its pivot (glTF), its own smoothing, the viewport's triangles, MikkTSpace tangents for shapes with UVs, materials by name.
+- **What goes out:** shapes as they're shown, cut by their booleans, with cutters left out; each object at its pivot (glTF), its own smoothing, the viewport's triangles, MikkTSpace tangents for shapes with UVs, materials by name.
 - **Check for baking…** (UV menu, command search, or the Substance Painter preset's button): problems in the model and its UVs, with Select and one-click fixes ([check for baking](manual/bake-check.md)).
 - **Import…** (File): OBJ files, as plain meshes.
 
@@ -184,7 +185,7 @@ The UV tools are in the **UV** menu (main menu bar, and the **UV** button on the
 The big things planned and not built. The order is the rework (Phase 9), then advanced modelling (Phase 10), then the rest of the UVs and baking (Phase 8), then texture painting ([decision 0125](decisions/0125-modelling-before-the-rest-of-the-uvs.md)).
 
 - **The rest of Phase 9:** the key audit's changes (written, waiting for the project lead's ticks); English as the one language package; the big interface files split; the gate checks of Phases 4 to 7; the newcomer test.
-- **Phase 10, advanced hard-surface:** booleans, weighted normals, a better bevel, array and mirror generators, shell, curves and splines (sweep, lathe), a smoothing (subdivision) modifier with creases, a game bevel, modular kit helpers.
+- **Phase 10, advanced hard-surface:** weighted normals, a better bevel, array and mirror generators, shell, curves and splines (sweep, lathe), a smoothing (subdivision) modifier with creases, a game bevel, modular kit helpers.
 - **The rest of Phase 8, UVs and baking:** straighten by edge flow, a seam slider and brush, projections, stitch and cut, UV snapping and exact placement, UV brushes, more selection tools, packing groups and UDIM tiles, several UV sets, lightmap UVs, real textures behind the UVs and UV layout export, explained auto-unwrap, unwrap recipes, player-view UVs, UV intents, paint-aware detail, and the in-app baker (normal, AO, curvature and more, high to low, cages).
 - **Later phases:** texture painting (11), a material node editor (12), alpha release (13), polish (14), scripting in LustScript and Lua (15), rigging (16), animation (17), effects (18).
 - **Wanted, not scheduled:** glTF import, custom hotkeys, other languages, interface size scaling, a first-start welcome with sample projects, FBX export, an installer and file association.

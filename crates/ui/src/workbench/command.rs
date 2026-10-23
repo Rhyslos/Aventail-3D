@@ -120,6 +120,14 @@ impl Workbench {
                 Ready::NotNow(crate::trf!("{} works on selected edges or polygons: press 2 for the Edges mode, or 3 \
                      for Polygons", command.name()))
             }
+            CommandId::Union | CommandId::Subtract | CommandId::Intersect => {
+                match crate::booleans::kind_of(command)
+                    .map(|kind| crate::booleans::plan(&self.document, kind))
+                {
+                    Some(Err(why)) => Ready::NotNow(why.into()),
+                    _ => Ready::Yes,
+                }
+            }
             CommandId::UvTurnLeft
             | CommandId::UvTurnRight
             | CommandId::UvFlipU
@@ -235,6 +243,21 @@ impl Workbench {
                 self.run_placement(super::pivots::Placement::ObjectToOrigin);
             }
             CommandId::PivotToObject => self.start_pivot_to_object(),
+            CommandId::Union | CommandId::Subtract | CommandId::Intersect => {
+                if let Some(kind) = crate::booleans::kind_of(command) {
+                    self.run_boolean(kind, requests);
+                }
+            }
+        }
+    }
+
+    /// Sets up a boolean of `kind` on the selection (decision 0135): the
+    /// object selected first is kept, the others cut it. Says why in the
+    /// status bar when it can't.
+    pub(super) fn run_boolean(&mut self, kind: scene::BooleanKind, requests: &mut Vec<DocRequest>) {
+        match crate::booleans::command(&self.document, kind) {
+            Ok(command) => requests.push(DocRequest::Run(command)),
+            Err(why) => self.note = Some(format!("{why}.")),
         }
     }
 
