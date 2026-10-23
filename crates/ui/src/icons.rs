@@ -5,6 +5,7 @@
 //! designed on a 24 × 24 grid and scaled into the rectangle it is given.
 //! These are original drawings; no icons are copied from other software.
 
+mod booleans;
 mod general;
 mod modelling;
 mod pen;
@@ -175,6 +176,12 @@ pub enum Icon {
     ApplyTransforms,
     /// Add an edit layer: a stack of sheets with a new one on top.
     EditLayer,
+    /// Union: a square and a circle made one solid.
+    Union,
+    /// Subtract: a square with a round bite taken out by a dashed circle.
+    Subtract,
+    /// Intersect: only where a square and a circle overlap is left.
+    Intersect,
     /// Turn UVs left 90°: a tile with an arrow going anticlockwise.
     UvTurnLeft,
     /// Turn UVs right 90°: a tile with an arrow going clockwise.
@@ -210,7 +217,7 @@ pub enum Icon {
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 94] = [
+pub const ALL: [Icon; 97] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -289,6 +296,9 @@ pub const ALL: [Icon; 94] = [
     Icon::ObjectToOrigin,
     Icon::ApplyTransforms,
     Icon::EditLayer,
+    Icon::Union,
+    Icon::Subtract,
+    Icon::Intersect,
     Icon::UvTurnLeft,
     Icon::UvTurnRight,
     Icon::UvFlipU,
@@ -394,6 +404,7 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         | Icon::Join
         | Icon::ApplyTransforms
         | Icon::EditLayer => modelling::draw(&mut pen, icon),
+        Icon::Union | Icon::Subtract | Icon::Intersect => booleans::draw(&mut pen, icon),
         Icon::UvTurnLeft
         | Icon::UvTurnRight
         | Icon::UvFlipU

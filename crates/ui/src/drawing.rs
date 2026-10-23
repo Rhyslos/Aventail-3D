@@ -20,10 +20,11 @@ pub struct DrawItem {
     /// What of it is shown: the same shape, or a copy without its hidden
     /// polygons (decision 0055). What is picked and edited.
     pub shown: Arc<Mesh>,
-    /// What is drawn: `shown`, with the object's live mirror's copies
-    /// added (decision 0088), or `shown` itself without a mirror. The
-    /// copies come after `shown`'s own points and polygons, which keep
-    /// their ids.
+    /// What is drawn: `shown`, cut by the object's booleans (decision
+    /// 0135: then worked out from its whole shape, hidden polygons and
+    /// all, and its points and polygons are new), with the object's live
+    /// mirror's copies added (decision 0088), or `shown` itself without
+    /// either. The copies come after the shape's own points and polygons.
     pub drawn: Arc<Mesh>,
     /// Where it is in the world.
     pub transform: Mat4,
@@ -35,6 +36,10 @@ pub struct DrawItem {
     /// Where its shading breaks: its own smoothing (decision 0126; an
     /// instance's is its original's).
     pub hardness: mesh::Hardness,
+    /// Whether it is drawn as an outline only: a cutter, whose shape cuts
+    /// another object (decision 0135). Its faces aren't drawn, and a click
+    /// picks it only where no other object is under the mouse.
+    pub outline: bool,
 }
 
 /// Everything the viewport draws of the scene. `version` changes whenever
@@ -238,6 +243,7 @@ impl DrawingCache {
             return &self.summary;
         }
         let scene = document.scene();
+        let cutters = scene.cutters();
         let mut items = Vec::new();
         for (id, _) in scene.walk() {
             if !scene.is_shown(id) {
@@ -260,9 +266,14 @@ impl DrawingCache {
                 .object(own)
                 .map_or(mesh::Hardness::Marked, |o| o.hardness);
             let shown = hidden.shown(id, &shape.mesh);
+            // Cut by its booleans, if they work (decision 0135).
+            let cut = match scene.cut_shape(id) {
+                Some(Ok(cut)) => cut,
+                _ => Arc::clone(&shown),
+            };
             let drawn = scene
-                .with_mirror(id, &shown)
-                .map_or_else(|| Arc::clone(&shown), Arc::new);
+                .with_mirror(id, &cut)
+                .map_or_else(|| Arc::clone(&cut), Arc::new);
             items.push(DrawItem {
                 id,
                 drawn,
@@ -272,6 +283,7 @@ impl DrawingCache {
                 selected: document.is_selected(id),
                 colors,
                 hardness,
+                outline: cutters.contains(&id),
             });
         }
         // Each live mirror's planes, once, around the objects that use

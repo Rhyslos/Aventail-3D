@@ -53,6 +53,9 @@ const EDIT_TEXT_INDENT: f32 = 46.0;
 pub(crate) enum ModifierPick {
     /// Add an edit layer to the selected objects.
     AddLayer,
+    /// A boolean on the selection: the first selected kept, the others
+    /// cutting it (decision 0135).
+    Boolean(scene::BooleanKind),
 }
 
 /// The selected objects that can take an edit layer: those with a shape
@@ -69,7 +72,8 @@ pub(crate) fn layer_targets(doc: &Document) -> Vec<ObjectId> {
 }
 
 /// The modifiers palette: a thin column of buttons for what changes a
-/// shape without destroying it. Edit layers is the first.
+/// shape without destroying it. Edit layers is the first, then the
+/// booleans (decision 0135).
 pub(crate) fn modifiers_palette(ui: &mut Ui, doc: &Document) -> Option<ModifierPick> {
     let mut pick = None;
     ui.vertical_centered(|ui| {
@@ -85,6 +89,10 @@ pub(crate) fn modifiers_palette(ui: &mut Ui, doc: &Document) -> Option<ModifierP
         };
         if icon_button(ui, Icon::EditLayer, tr(ADD_LAYER_LABEL), note, state).clicked() {
             pick = Some(ModifierPick::AddLayer);
+        }
+        ui.add_space(6.0);
+        if let Some(kind) = crate::booleans::palette_buttons(ui, doc) {
+            pick = Some(ModifierPick::Boolean(kind));
         }
     });
     pick

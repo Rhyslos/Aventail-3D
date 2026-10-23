@@ -47,6 +47,13 @@ pub enum CommandId {
     Join,
     /// Apply the selected objects' rotation and scale (decision 0089).
     ApplyTransforms,
+    // ------------------------------------- booleans (the modifiers palette)
+    /// Add the other selected shapes to the first (decision 0135).
+    Union,
+    /// Cut the other selected shapes out of the first.
+    Subtract,
+    /// Keep only where the first selected shape and the others overlap.
+    Intersect,
     // ------------------------------------------- pivots (the Object mode)
     /// Move the selected objects' pivots to the middle of their shapes.
     PivotToCentre,
@@ -261,6 +268,33 @@ impl CommandId {
                     "Turn the selected objects back to 0° and 100% while they look exactly the \
                  same: their shapes take the rotation and scale, so edits measure as they look. \
                  Mesh → Apply transforms has position too.",
+                ),
+                None,
+            ),
+            Self::Union => (
+                tr("Union"),
+                Icon::Union,
+                None,
+                tr(
+                    "Add the other selected shapes to the one selected first, as one solid.                  They stay shapes of their own, drawn as outlines: move or edit one and the                  result follows.",
+                ),
+                None,
+            ),
+            Self::Subtract => (
+                tr("Subtract"),
+                Icon::Subtract,
+                None,
+                tr(
+                    "Cut the other selected shapes out of the one selected first, like a hole                  or a notch. The cutters stay shapes of their own, drawn as outlines: move or                  edit one and the cut follows.",
+                ),
+                None,
+            ),
+            Self::Intersect => (
+                tr("Intersect"),
+                Icon::Intersect,
+                None,
+                tr(
+                    "Keep only where the shape selected first and the other selected shapes                  overlap. They stay shapes of their own, drawn as outlines: move or edit one                  and the result follows.",
                 ),
                 None,
             ),
@@ -628,6 +662,12 @@ impl CommandId {
             | Self::PivotToOrigin
             | Self::PivotToObject
             | Self::ObjectToOrigin => &[Object],
+            // Booleans work on whole objects whatever the mode; they live
+            // in the modifiers palette and the Mesh menu, not the tool
+            // menu (decision 0135).
+            Self::Union | Self::Subtract | Self::Intersect => {
+                &[Model, Object, Points, Edges, Polygons]
+            }
             Self::Extrude => &[Points, Edges, Polygons],
             Self::Bridge => &[Edges, Polygons],
             Self::Inset | Self::FlipNormals => &[Polygons],
@@ -808,8 +848,14 @@ pub fn group_menu(group: CommandId, ring: &[Slot]) -> Vec<Slot> {
         .collect()
 }
 
+/// The commands with no place on the tool menu: the booleans, found in
+/// the modifiers palette, the Mesh menu and command search (decision
+/// 0135).
+pub const OFF_THE_RING: [CommandId; 3] =
+    [CommandId::Union, CommandId::Subtract, CommandId::Intersect];
+
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 47] = [
+pub const ALL: [CommandId; 50] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -825,6 +871,9 @@ pub const ALL: [CommandId; 47] = [
     CommandId::Instance,
     CommandId::Join,
     CommandId::ApplyTransforms,
+    CommandId::Union,
+    CommandId::Subtract,
+    CommandId::Intersect,
     CommandId::PivotToCentre,
     CommandId::PivotToOrigin,
     CommandId::PivotToObject,
@@ -877,6 +926,7 @@ mod tests {
                 || PIVOT_RING.contains(&Some(command))
                 || MODELLING_RING.contains(&command)
                 || UV_RING.contains(&Some(command))
+                || OFF_THE_RING.contains(&command)
                 || in_group;
             assert!(placed, "{command:?} has no place in the tool menu");
             assert!(!command.modes().is_empty(), "{command:?}");

@@ -317,6 +317,9 @@ pub struct MeshDraw {
     /// Whether to draw its edges at all (they can be left out when they
     /// would be too dense to see).
     pub edges: bool,
+    /// Whether to draw its faces (and find them under the mouse). Off for
+    /// a cutter, drawn as an outline only (decision 0135).
+    pub faces: bool,
     /// Whether to show every point as a small dot, and how: colour (linear,
     /// with alpha) and size in pixels.
     pub points: Option<([f32; 4], f32)>,
@@ -712,6 +715,7 @@ mod tests {
             model,
             edge_color: [1.0; 4],
             edges: true,
+            faces: true,
             points: Some(([1.0; 4], 6.0)),
             faintest: 0.25,
             palette: [0; PALETTE_SIZE],

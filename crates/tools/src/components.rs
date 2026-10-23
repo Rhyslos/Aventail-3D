@@ -506,6 +506,22 @@ impl PickScene {
             .map(|(_, object, _)| object)
     }
 
+    /// The object under the mouse among those `wanted` lets through, or
+    /// failing that any object under it: an outline-only cutter is picked
+    /// only where nothing else is (decision 0135).
+    pub fn object_under_preferring(
+        &self,
+        camera: &Camera,
+        size: Vec2,
+        mouse: Vec2,
+        wanted: &dyn Fn(usize) -> bool,
+    ) -> Option<usize> {
+        let ray = camera.ray_through(mouse, size);
+        self.first_hit_where(&ray, &|object, _| wanted(object))
+            .or_else(|| self.first_hit(&ray))
+            .map(|(_, object, _)| object)
+    }
+
     /// The visible edge of an editable object passing nearest the mouse,
     /// within `radius` screen points: for double-clicking a loop in the
     /// Points mode, where the mouse sits between two points.

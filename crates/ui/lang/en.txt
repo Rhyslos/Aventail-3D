@@ -73,10 +73,12 @@ A bent polygon with many corners shades unevenly across its triangles, and the b
 A calm, tool-rich 3D modeller for game assets.
 A checker laid on by the UVs: where the squares stay square and even, a texture will too. The tint runs red across and green up the texture, so a piece turned or mirrored shows.
 A checker of labelled cells laid on by the UVs, A1 at the top left of the texture to H8 at the bottom right, in colours from the app's accent: see at once which part of the texture each part of the shape uses, and which way round it lies (the labels turn and mirror with it). The UV Editor shows it behind the UVs too.
+A cutter is drawn as an outline and left out of exports: the shape it cuts carries the result. Hidden, it still cuts.
 A flat view from the front: no perspective, true sizes
 A flat view from the right: no perspective, true sizes
 A flat view looking straight down: no perspective, true sizes
 A group has no shape of its own, so no edit layers.
+A group has no shape: select shapes only
 A hard edge turns the shading sharply, and a normal map can only hold that turn where the UVs are split too: otherwise the bake shows a dark or light line along it. Fix marks them as seams and unwraps the pieces around them.
 A heavy shape is checked in the background, so you can keep working. The numbers below are from before the last change until it finishes.
 A list by the mouse, like the shape list (B)
@@ -90,6 +92,8 @@ A polygon with no area has no direction, so it bakes as a black speck or a strea
 A project keeps at most {} snapshots: remove one first.
 A right-click in the viewport opens four short lists around the mouse: what to show and hide, the modes, undo and edit layers, and the tools of what you're working on. A right-click that ends a drag, or a right drag that turns the view, never opens it.
 A ring instead of a loop, with a double-click
+A shape can have at most 64 cutters
+A shape can't cut itself
 A texture per material
 A texture per object
 A tool's count (segments, cuts)
@@ -105,6 +109,7 @@ Add every polygon facing within 30° of a selected polygon: the top of a shape, 
 Add heavy test shape
 Add layer
 Add material
+Add the other selected shapes to the one selected first, as one solid.                  They stay shapes of their own, drawn as outlines: move or edit one and the                  result follows.
 Add to / take out of the selection
 Add to the selection, with a click or drag (the standard keys)
 Add to the shape: extrude, inset, bevel, groove, bridge, fill a hole
@@ -183,6 +188,8 @@ Bevel works on edges or points: press 2 for the Edges mode (or 1 for Points) and
 Bevel works on edges or points: press 2 for the Edges mode, or 1 for Points
 Bevel: drag away from the selected edges (or points) to cut them away; back towards them to narrow it. Segments and Profile are in the Attributes panel. Shift for fine steps; Esc or a right click cancels.
 Blue
+Boolean kind
+Booleans
 Both ends sit on the same spot. Usually left over from moving points together.
 Bottom radius
 Box selection
@@ -338,6 +345,7 @@ Create sphere
 Created by Rhyslos, built with AI assistance (Claude by Anthropic).
 Ctrl
 Ctrl + click / Shift + click (the standard keys)
+Ctrl + click one or more shapes to cut with: the shape selected first is kept
 Ctrl + click or drag adds; Alt + click removes. Ctrl + click on something selected unselects it. Alt + drag moves the view while "Alt + mouse works in every scheme" is on.
 Ctrl + click or drag adds; Shift + click or drag removes. Ctrl + click on something selected unselects it.
 Ctrl + click or drag flips: what was selected is unselected, and the rest selected.
@@ -358,12 +366,14 @@ Cut new edges and join points: slit, loop cut, connect, weld
 Cut out the middle: zero for a pie slice, more for a slice of a ring
 Cut polygons into triangles
 Cut the corner off the selected edges or points, with a width, segments and roundness
+Cut the other selected shapes out of the one selected first, like a hole                  or a notch. The cutters stay shapes of their own, drawn as outlines: move or                  edit one and the cut follows.
 Cut through
 Cuts
 Cuts are as short as can be, wherever they fall: for shapes seen from all round
 Cuts go on the parts facing away from the Front view, top or bottom alike
 Cuts go on the parts facing down, wherever they face round the sides
 Cuts go where a prop is least seen: facing down, or away from the Front view
+Cuts: {}
 Danish
 Dark tiles with a crisp edge; the highlighted one glows
 Dark tiles; the highlighted one gets an accent bar along the edge facing the middle
@@ -712,6 +722,7 @@ Inset works on polygons: press 3 for the Polygons mode and select some.
 Inset: drag left or right anywhere in the viewport to shrink the selected polygons inward. Shift for fine steps; Esc or a right click cancels.
 Instance
 Interface
+Intersect
 Invert
 Invert orbit direction
 Invert the selection
@@ -736,6 +747,7 @@ Join the selected points or edges with a new edge across their polygon
 Join the selected shapes into the first of them, as one plain mesh, each part staying where it was
 Join: select two or more shapes first.
 Keep every step until the app closes. A very long session with large meshes can then use a lot of memory
+Keep only where the shape selected first and the other selected shapes                  overlap. They stay shapes of their own, drawn as outlines: move or edit one                  and the result follows.
 Keep shapes
 Keep shapes, smoother
 Keep sizes
@@ -855,6 +867,7 @@ Move the selected polygons into a new object of their own, in the same place (Po
 Move the selection: drag the gizmo's arrows, squares or centre
 Move up
 Move, rotate and scale at once: all three gizmos
+Move, turn, scale or edit a cutter and the cut follows. Bake into shape (Ctrl + E) makes it part of the shape for good.
 Moves snap to:
 Moving: {}
 Name
@@ -1171,9 +1184,11 @@ Select the objects to apply first
 Select the objects to set how they're smoothed
 Select the polygons facing the wrong way round: inside out compared with their neighbours, or facing into a closed shape
 Select the polygons of the selected objects that use a material. Shows the Polygons mode.
+Select the shape to keep first, then Ctrl + click the shapes that cut it
 Select the whole part the selection is on: everything joined to it, across seams. Select a little of a part first. Over the UV Editor, or in the UV mode, the key selects whole pieces instead.
 Select the whole pieces the selection is in: a little of a piece (a point, an edge or a polygon) brings the whole piece, parted at seams. Use it to pick one of two overlapping pieces and move it away.
 Select them, to see where they are
+Select this cutter, to move or edit it
 Select tool
 Select tools
 Select what isn't selected, and unselect what is
@@ -1237,6 +1252,7 @@ Show which way each polygon of the selected objects faces, as a short line from 
 Showing {} hidden object{} again.
 Showing {} hidden object{} and {} polygon{} again.
 Showing {} hidden polygon{} again.
+Shown uncut: {}. Booleans need closed solids.
 Shows the shape of: {}
 Shrink
 Shrink selection
@@ -1302,6 +1318,7 @@ Step back to the Model mode (finishes a slit, puts a tool away)
 Steps
 Stop at overlaps
 Stop exporting into a game project
+Stop this shape cutting: it becomes an ordinary shape
 Straight
 Straight along this axis of the object (its own axes), out the way the polygons face: pull a sloped patch out level, say.
 Straight out
@@ -1321,6 +1338,7 @@ Stretched up to {:.1}×: UV → Lay out → Relax evens it out; a stretch budget
 Strip corners within
 Subdivisions
 Substance Painter matches a low-poly object with its high-poly one by name: crate_low with crate_high. Rename one, or make the missing partner.
+Subtract
 Suggest seams
 Suggest seams wouldn't put one here with the current settings: it was marked by hand, came with the ready-made shape, or was added by Seams from hard edges or an unwrap cutting a closed piece open.
 Suggest seams, Unwrap and Seams from hard edges never put a seam on the selected edges (or anywhere on the selected polygons), unless a piece couldn't lie flat otherwise. Drawn blue.
@@ -1345,12 +1363,14 @@ Take a snapshot
 Take away the selection's outer rim
 Take back the last change
 Take back the last step
+Take out
 Take out of the selection, with a click or drag (the standard keys)
 Take points, edges or polygons away
 Take the seams off the selected edges (or the selected polygons' edges), so the surface stays joined there when unwrapped
 Take the selected groups' contents out, and remove the groups
 Take the selected points, edges or polygons away but keep the surface closed: the polygons around them merge into one
 Take the snapshot “{}”
+Take this boolean away: the shape is whole again, and its cutters are ordinary shapes
 Take this edit out. The edits after it are made again without it (Ctrl + Z brings it back).
 Take this edit out; the edits after it are made again without it
 Tap E to open
@@ -1369,6 +1389,7 @@ The corners the mesh is made of
 The edits you make now go into this layer: the top layer that is switched on
 The faces, with any number of corners
 The first material can't be removed
+The first selected is an instance: select its original, or bake it into a shape first
 The gap between pieces, in texture pixels (half of it to the square's edges). Keeps colours from bleeding between pieces when the texture is shrunk; 8 px suits a 2048 texture.
 The gizmo follows the object's own axes.
 The gizmo follows the world's axes.
@@ -1399,6 +1420,7 @@ The selected objects have no UVs.
 The selected objects, with what's inside them
 The selection is always drawn larger and brighter than anything else. High contrast makes it larger still, with a dark rim, so it stands out on any colour.
 The shape across the bevel: 100% is round, 0% is flat, -100% curves inward (hollow, like a cove). Needs 2 or more segments to show.
+The shape to keep already cuts one of the others (or is shown by it): each would wait for the other
 The shape's points were renumbered (more or fewer segments, say), so these edits looked for the points, edges and polygons they were made on by where they are. A polygon split into smaller ones moves as a whole. Nothing to fix.
 The size of the texture this project's UVs are made for
 The snapshot's name. Each must differ.
@@ -1498,6 +1520,8 @@ Unfold across only
 Unfold up
 Unfold up only
 Ungroup
+Union
+Union, subtract or intersect: select the shape to keep, then Ctrl + click the shapes that cut it
 Units
 Unlimited
 Unlock pieces
@@ -1543,6 +1567,7 @@ Weld: select two or more points first, or press Ctrl + M and drag a point onto a
 What goes out
 What points, pieces, seams, pivots and the rest mean (glossary)
 What the app's words mean: points, pieces, seams, pivots, smoothing and the rest, each explained in plain words, in your web browser
+What the cutters do to this shape
 What the row holds: bolts, a panel edge, a seal
 What the viewport draws over your shapes. Also in the viewport's Display menu.
 Wheel down

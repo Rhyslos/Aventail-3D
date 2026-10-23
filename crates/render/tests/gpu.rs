@@ -683,6 +683,7 @@ fn place(model: glam::Mat4) -> render::MeshDraw {
         model,
         edge_color: [1.0, 0.0, 0.0, 1.0],
         edges: true,
+        faces: true,
         points: None,
         faintest: 0.0,
         palette: [0; render::PALETTE_SIZE],
@@ -727,6 +728,37 @@ fn object_meshes_are_drawn_and_picked_where_they_are_placed() {
     assert_eq!(renderer.mesh_count(), 0);
     let gone = render(&gpu, &renderer, &target, camera, NO_GRID);
     assert!(brightness(gone.at(middle + Vec3::X * 150.0)) < brightness(empty.at(middle)) + 20);
+}
+
+#[test]
+fn an_outline_only_mesh_shows_no_faces_and_is_not_picked() {
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, target) = setup(&gpu, [320, 200]);
+    with_object_cube(&gpu, &mut renderer);
+    let camera = Camera::default();
+    let size = Vec2::new(320.0, 200.0);
+    let empty = render(&gpu, &renderer, &target, camera, NO_GRID);
+    let outline = render::MeshDraw {
+        faces: false,
+        ..place(glam::Mat4::IDENTITY)
+    };
+    renderer.set_draws(&gpu.device, &gpu.queue, &[outline]);
+    let shot = render(&gpu, &renderer, &target, camera, NO_GRID);
+    // The middle of the front face stays the background: no surface.
+    let middle = Vec3::new(0.0, -50.0, 50.0);
+    assert!(brightness(shot.at(middle)).abs_diff(brightness(empty.at(middle))) < 20);
+    // Its edges still show (the red outline at a front corner's edge).
+    let edge = Vec3::new(0.0, -50.0, 100.0);
+    assert!(shot.at(edge) != empty.at(edge), "the outline is drawn");
+    let pixel = camera.project(middle, size).unwrap();
+    let picked = renderer
+        .pick_now(
+            &gpu.device,
+            &gpu.queue,
+            pick_request(&camera, pixel, [320, 200]),
+        )
+        .and_then(|r| r.point);
+    assert!(picked.is_none(), "nothing to pick: {picked:?}");
 }
 
 #[test]

@@ -158,6 +158,10 @@ impl Workbench {
                     Some(what) => crate::trf!("Redone: {}.", what),
                     None => tr("Nothing to redo.").into(),
                 }),
+                DocRequest::Select(ids) => {
+                    self.document.set_selection(ids);
+                    None
+                }
             };
         }
         if self.document.forgotten_steps() > 0 && !self.forgotten_told && self.note.is_none() {
