@@ -8,6 +8,7 @@ use crate::commands::CommandId;
 use crate::objects::{DocRequest, REDO_SHORTCUT, UNDO_SHORTCUT};
 use crate::palette::Mode;
 use crate::quad_menu::{QuadAction, QuadItem, Quadrant};
+use crate::text::tr;
 use crate::tool_menu::Ready;
 
 impl Workbench {
@@ -112,7 +113,7 @@ impl Workbench {
                 unavailable: crate::layers::layer_targets(doc)
                     .is_empty()
                     .then(|| "Select an object with a shape first".into()),
-                ..QuadItem::new(crate::layers::ADD_LAYER_LABEL, QuadAction::AddEditLayer)
+                ..QuadItem::new(tr(crate::layers::ADD_LAYER_LABEL), QuadAction::AddEditLayer)
             },
         ];
         if matches!(self.mode, Mode::Model | Mode::Object) {

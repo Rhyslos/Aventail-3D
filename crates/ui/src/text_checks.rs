@@ -390,10 +390,18 @@ fn is_interface_text(literal: &str, before: &str) -> bool {
     if !words {
         return false;
     }
-    const NOT_TEXT: [&str; 23] = [
+    const NOT_TEXT: [&str; 27] = [
         "Id::new(",
         // A grid's id, not shown.
         "Grid::new(",
+        // An id made from a salt: `ui.id().with(("layer row", index))`.
+        ".with((",
+        // Comparisons, never shown: with an English key (a menu's title
+        // from its constant), or with text made outside the interface
+        // (an undo label from `scene`, a line of /proc).
+        "==",
+        "starts_with(",
+        "ends_with(",
         "id_salt(",
         ".id(",
         "panic!(",

@@ -13,6 +13,7 @@ use crate::project::{
     NEW_SHORTCUT, OPEN_SHORTCUT, Pending, SAVE_AS_SHORTCUT, SAVE_SHORTCUT, recent_label,
 };
 use crate::settings::SETTINGS_SHORTCUT;
+use crate::text::tr;
 use crate::theme;
 use egui::{KeyboardShortcut, Ui};
 use scene::{Command, ObjectKind, PrimitiveKind};
@@ -22,15 +23,15 @@ impl Workbench {
         ui.horizontal_centered(|ui| {
             let selected = match self.document.selection().len() {
                 0 => String::new(),
-                1 => " 1 object selected.".into(),
-                n => format!(" {n} objects selected."),
+                1 => tr(" 1 object selected.").into(),
+                n => crate::trf!(" {} objects selected.", n),
             };
             let under = match (components::kind_for(self.mode), self.components.hovered()) {
-                (Some(_), Some(element)) => format!(
+                (Some(_), Some(element)) => crate::trf!(
                     " Under the mouse: {}.",
                     components::describe(&self.document, element)
                 ),
-                (Some(_), None) if !self.editing_anything() => format!(
+                (Some(_), None) if !self.editing_anything() => crate::trf!(
                     " Select an object to see its {}.",
                     self.mode.name().to_lowercase()
                 ),
@@ -38,10 +39,14 @@ impl Workbench {
             };
             let elements = self.selected_elements_text();
             let hidden = self.hidden_text();
-            ui.label(format!(
-                "{} mode: {}.{selected}{elements}{hidden}{under}",
+            ui.label(crate::trf!(
+                "{} mode: {}.{}{}{}{}",
                 self.mode.name(),
-                lower_first(self.mode.description())
+                lower_first(self.mode.description()),
+                selected,
+                elements,
+                hidden,
+                under
             ));
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 let note = match self.note.as_deref() {
@@ -59,24 +64,29 @@ impl Workbench {
         actions: &mut Vec<WorkbenchAction>,
         requests: &mut Vec<DocRequest>,
     ) {
-        crate::dialog::menu(ui, "File", |ui| {
+        crate::dialog::menu(ui, tr("File"), |ui| {
             let entry = |ui: &mut Ui, label: &str, keys: &KeyboardShortcut, help: &str| {
                 let keys = ui.ctx().format_shortcut(keys);
                 ui.add(egui::Button::new(label).shortcut_text(keys))
                     .on_hover_text(help)
                     .clicked()
             };
-            if entry(ui, "New", &NEW_SHORTCUT, "Start a new, empty project") {
+            if entry(
+                ui,
+                tr("New"),
+                &NEW_SHORTCUT,
+                tr("Start a new, empty project"),
+            ) {
                 self.ask_then(Pending::New, actions);
                 ui.close();
             }
-            if entry(ui, "Open…", &OPEN_SHORTCUT, "Open a saved project") {
+            if entry(ui, tr("Open…"), &OPEN_SHORTCUT, tr("Open a saved project")) {
                 self.ask_then(Pending::Open(None), actions);
                 ui.close();
             }
             let recent = self.file.recent.clone();
             ui.add_enabled_ui(!recent.is_empty(), |ui| {
-                crate::dialog::menu(ui, "Open recent", |ui| {
+                crate::dialog::menu(ui, tr("Open recent"), |ui| {
                     for path in &recent {
                         if ui
                             .button(recent_label(path))
@@ -88,16 +98,16 @@ impl Workbench {
                         }
                     }
                     ui.separator();
-                    if ui.button("Clear the list").clicked() {
+                    if ui.button(tr("Clear the list")).clicked() {
                         self.file.recent.clear();
                         ui.close();
                     }
                 })
             })
             .response
-            .on_disabled_hover_text("Projects you save or open are listed here");
+            .on_disabled_hover_text(tr("Projects you save or open are listed here"));
             ui.separator();
-            if entry(ui, "Save", &SAVE_SHORTCUT, "Save the project") {
+            if entry(ui, tr("Save"), &SAVE_SHORTCUT, tr("Save the project")) {
                 actions.push(WorkbenchAction::Save {
                     path: self.file.path.clone(),
                 });
@@ -105,9 +115,9 @@ impl Workbench {
             }
             if entry(
                 ui,
-                "Save As…",
+                tr("Save As…"),
                 &SAVE_AS_SHORTCUT,
-                "Save the project under a new name or in another folder",
+                tr("Save the project under a new name or in another folder"),
             ) {
                 actions.push(WorkbenchAction::Save { path: None });
                 ui.close();
@@ -117,12 +127,16 @@ impl Workbench {
             ui.separator();
             // No key for Quit, on purpose: Ctrl and Q are both used all the
             // time, and a slip shouldn't close the app.
-            if ui.button("Quit").on_hover_text("Close the app").clicked() {
+            if ui
+                .button(tr("Quit"))
+                .on_hover_text(tr("Close the app"))
+                .clicked()
+            {
                 self.ask_then(Pending::Quit, actions);
                 ui.close();
             }
         });
-        crate::dialog::menu(ui, "Edit", |ui| {
+        crate::dialog::menu(ui, tr("Edit"), |ui| {
             objects::undo_entries(ui, &self.document, requests);
             ui.separator();
             objects::rename_delete_entries(ui, &mut self.document, &mut self.objects, requests);
@@ -131,8 +145,10 @@ impl Workbench {
             ui.separator();
             let keys = ui.ctx().format_shortcut(&SETTINGS_SHORTCUT);
             if ui
-                .add(egui::Button::new("Settings…").shortcut_text(keys))
-                .on_hover_text("Every preference in one place: look, units, navigation, undo")
+                .add(egui::Button::new(tr("Settings…")).shortcut_text(keys))
+                .on_hover_text(tr(
+                    "Every preference in one place: look, units, navigation, undo",
+                ))
                 .clicked()
             {
                 self.settings.open = true;
@@ -141,7 +157,7 @@ impl Workbench {
         });
         // Menu order as in DESIGN.md: File, Edit, Create, Modes, Select,
         // Tools, Mesh, UV, View, Window, Help.
-        crate::dialog::menu(ui, "Create", |ui| {
+        crate::dialog::menu(ui, tr("Create"), |ui| {
             for kind in PrimitiveKind::ALL {
                 // The basic shapes (B), then the rest (Alt + B).
                 if kind == PrimitiveKind::Icosphere {
@@ -158,8 +174,8 @@ impl Workbench {
             }
             ui.separator();
             if ui
-                .button("Group")
-                .on_hover_text("An empty object to hold and organise other objects")
+                .button(tr("Group"))
+                .on_hover_text(tr("An empty object to hold and organise other objects"))
                 .clicked()
             {
                 requests.push(DocRequest::Run(Command::Create(ObjectKind::Group)));
@@ -167,12 +183,12 @@ impl Workbench {
             }
             ui.separator();
             ui.label(
-                egui::RichText::new("Tip: B for the basic shapes, Alt + B for the rest")
+                egui::RichText::new(tr("Tip: B for the basic shapes, Alt + B for the rest"))
                     .small()
                     .color(theme::TEXT_WEAK),
             );
         });
-        crate::dialog::menu(ui, "Modes", |ui| {
+        crate::dialog::menu(ui, tr("Modes"), |ui| {
             for mode in Mode::SHOWN {
                 let current =
                     self.mode == mode || (mode == Mode::Model && self.mode == Mode::Object);
@@ -187,7 +203,7 @@ impl Workbench {
             }
         });
         for title in MIDDLE_MENUS {
-            crate::dialog::menu(ui, title, |ui| {
+            crate::dialog::menu(ui, tr(title), |ui| {
                 if title == "Select" {
                     self.select_menu(ui);
                 }
@@ -202,10 +218,10 @@ impl Workbench {
                 }
             });
         }
-        crate::dialog::menu(ui, "View", |ui| {
+        crate::dialog::menu(ui, tr("View"), |ui| {
             if ui
-                .button("Reset view")
-                .on_hover_text("Go back to the opening camera view")
+                .button(tr("Reset view"))
+                .on_hover_text(tr("Go back to the opening camera view"))
                 .clicked()
             {
                 self.viewport.reset_view();
@@ -213,7 +229,7 @@ impl Workbench {
             }
             crate::viewport::chrome::frame_entries(ui, &mut self.viewport);
             ui.separator();
-            crate::dialog::menu(ui, SHOW_HIDE_MENU, |ui| {
+            crate::dialog::menu(ui, tr(SHOW_HIDE_MENU), |ui| {
                 let entry = |ui: &mut Ui, label: &str, keys: &KeyboardShortcut, help: &str| {
                     let keys = ui.ctx().format_shortcut(keys);
                     ui.add(egui::Button::new(label).shortcut_text(keys))
@@ -222,27 +238,27 @@ impl Workbench {
                 };
                 if entry(
                     ui,
-                    "Hide the selection",
+                    tr("Hide the selection"),
                     &showing::HIDE_KEYS,
-                    "Hide the selected objects (or the selected polygons while editing)",
+                    tr("Hide the selected objects (or the selected polygons while editing)"),
                 ) {
                     self.hide(showing::Hiding::Selection);
                     ui.close();
                 }
                 if entry(
                     ui,
-                    "Isolate the selection",
+                    tr("Isolate the selection"),
                     &showing::ISOLATE_KEYS,
-                    "Hide everything except the selection",
+                    tr("Hide everything except the selection"),
                 ) {
                     self.hide(showing::Hiding::Others);
                     ui.close();
                 }
                 if entry(
                     ui,
-                    "Show everything",
+                    tr("Show everything"),
                     &showing::SHOW_ALL_KEYS,
-                    "Show all that's hidden",
+                    tr("Show all that's hidden"),
                 ) {
                     self.show_everything();
                     ui.close();
@@ -251,19 +267,19 @@ impl Workbench {
             ui.separator();
             crate::viewport::chrome::grid_entries(ui, &mut self.viewport.options_mut().grid_detail);
             ui.separator();
-            if ui.button("Reset panel layout").clicked() {
+            if ui.button(tr("Reset panel layout")).clicked() {
                 self.reset_layout();
                 ui.close();
             }
         });
-        crate::dialog::menu(ui, "Window", |ui| {
+        crate::dialog::menu(ui, tr("Window"), |ui| {
             let shown = self.dock.find_tab(&Panel::UvEditor).is_some();
             if ui
-                .add(egui::Button::selectable(shown, UV_EDITOR_ENTRY))
-                .on_hover_text(
+                .add(egui::Button::selectable(shown, tr(UV_EDITOR_ENTRY)))
+                .on_hover_text(tr(
                     "Show the UV Editor beside the viewport, or put it away. The UV Edit layout \
                      (top right) always has it.",
-                )
+                ))
                 .clicked()
             {
                 self.toggle_uv_editor();
@@ -271,11 +287,14 @@ impl Workbench {
             }
             let layers_shown = self.dock.find_tab(&Panel::EditLayers).is_some();
             if ui
-                .add(egui::Button::selectable(layers_shown, EDIT_LAYERS_ENTRY))
-                .on_hover_text(
+                .add(egui::Button::selectable(
+                    layers_shown,
+                    tr(EDIT_LAYERS_ENTRY),
+                ))
+                .on_hover_text(tr(
                     "Show the Edit layers panel beside Objects, or put it away. It shows by \
                      itself once an object has more than one layer.",
-                )
+                ))
                 .clicked()
             {
                 match self.dock.find_tab(&Panel::EditLayers) {
@@ -287,21 +306,21 @@ impl Workbench {
                 ui.close();
             }
         });
-        crate::dialog::menu(ui, "Help", |ui| {
+        crate::dialog::menu(ui, tr("Help"), |ui| {
             if ui
-                .button(MANUAL_ENTRY)
-                .on_hover_text("Open the user manual in your web browser")
+                .button(tr(MANUAL_ENTRY))
+                .on_hover_text(tr("Open the user manual in your web browser"))
                 .clicked()
             {
                 self.open_manual(ui.ctx());
                 ui.close();
             }
             if ui
-                .button(GLOSSARY_ENTRY)
-                .on_hover_text(
+                .button(tr(GLOSSARY_ENTRY))
+                .on_hover_text(tr(
                     "What the app's words mean: points, pieces, seams, pivots, smoothing and the \
                      rest, each explained in plain words, in your web browser",
-                )
+                ))
                 .clicked()
             {
                 self.open_glossary(ui.ctx());
@@ -309,34 +328,34 @@ impl Workbench {
             }
             if ui
                 .add(
-                    egui::Button::new(SEARCH_ENTRY)
+                    egui::Button::new(tr(SEARCH_ENTRY))
                         .shortcut_text(crate::command_search::SEARCH_KEY.name()),
                 )
-                .on_hover_text("Find any command by typing part of its name")
+                .on_hover_text(tr("Find any command by typing part of its name"))
                 .clicked()
             {
                 self.search.open();
                 ui.close();
             }
             if ui
-                .button("Keys")
-                .on_hover_text(
+                .button(tr("Keys"))
+                .on_hover_text(tr(
                     "Every key on a drawn keyboard (also the Keys button on the menu bar)",
-                )
+                ))
                 .clicked()
             {
                 self.shortcuts.open = true;
                 ui.close();
             }
             ui.separator();
-            crate::dialog::menu(ui, DEVELOPER_MENU, |ui| {
+            crate::dialog::menu(ui, tr(DEVELOPER_MENU), |ui| {
                 if ui
-                    .button("Add a heavy test shape")
-                    .on_hover_text(
+                    .button(tr("Add a heavy test shape"))
+                    .on_hover_text(tr(
                         "Adds a bumpy ball of 3 million polygons, like a detailed model you \
                          might import, to see how your computer copes with heavy shapes. Undo \
                          takes it away again.",
-                    )
+                    ))
                     .clicked()
                 {
                     self.add_heavy_test_shape();
@@ -344,7 +363,7 @@ impl Workbench {
                 }
             });
             ui.separator();
-            if ui.button(format!("About {}", self.info.name)).clicked() {
+            if ui.button(crate::trf!("About {}", self.info.name)).clicked() {
                 self.about_open = true;
                 ui.close();
             }
@@ -368,25 +387,25 @@ fn lower_first(text: &str) -> String {
 }
 
 /// Help → User manual.
-pub(crate) const MANUAL_ENTRY: &str = "User manual";
+pub(crate) const MANUAL_ENTRY: &str = crate::text!("User manual");
 
 /// Help → Words used in the app: the manual's glossary (decision 0126).
-pub(crate) const GLOSSARY_ENTRY: &str = "Words used in the app";
+pub(crate) const GLOSSARY_ENTRY: &str = crate::text!("Words used in the app");
 
 /// Help → Search for a command.
-pub(crate) const SEARCH_ENTRY: &str = "Search for a command";
+pub(crate) const SEARCH_ENTRY: &str = crate::text!("Search for a command");
 
 /// Help → Developer: tools for checking the app itself (decision 0126).
-pub(crate) const DEVELOPER_MENU: &str = "Developer";
+pub(crate) const DEVELOPER_MENU: &str = crate::text!("Developer");
 
 /// View → Show and hide (decision 0126).
-pub(crate) const SHOW_HIDE_MENU: &str = "Show and hide";
+pub(crate) const SHOW_HIDE_MENU: &str = crate::text!("Show and hide");
 
 /// The Window menu's entry for the Edit layers panel.
-pub(crate) const EDIT_LAYERS_ENTRY: &str = "Edit layers";
+pub(crate) const EDIT_LAYERS_ENTRY: &str = crate::text!("Edit layers");
 
 /// The Window menu's entry for the UV Editor.
-pub(crate) const UV_EDITOR_ENTRY: &str = "UV Editor";
+pub(crate) const UV_EDITOR_ENTRY: &str = crate::text!("UV Editor");
 
 /// The status bar's standing hint: the navigation controls in use.
 pub fn navigation_hint(scheme: tools::Scheme) -> String {

@@ -10,7 +10,6 @@ autosave.rs 15
 components.rs 4
 coordinates.rs 9
 dialog.rs 5
-layers.rs 63
 layout.rs 2
 objects.rs 39
 panel.rs 7
@@ -22,7 +21,7 @@ shape_picker.rs 5
 splash.rs 1
 theme.rs 7
 tool_menu.rs 20
-transforming.rs 33
+transforming.rs 31
 undo_memory.rs 17
 units.rs 2
 uv_editor.rs 6
@@ -42,19 +41,16 @@ viewport/options.rs 22
 viewport/picker.rs 7
 viewport/renderer.rs 1
 viewport/view.rs 4
-workbench.rs 6
 workbench/aligning.rs 41
 workbench/automation.rs 49
 workbench/autosaving.rs 3
-workbench/baking.rs 55
-workbench/bars.rs 60
 workbench/cleaning.rs 30
 workbench/command.rs 27
 workbench/copying.rs 18
 workbench/exporting.rs 46
 workbench/files.rs 13
 workbench/hardness.rs 19
-workbench/heavy_check.rs 29
+workbench/heavy_check.rs 28
 workbench/heavy_shape.rs 2
 workbench/joining.rs 27
 workbench/layouts.rs 12
@@ -76,6 +72,5 @@ workbench/selection.rs 30
 workbench/showing.rs 20
 workbench/slit.rs 8
 workbench/tabs.rs 7
-workbench/transform.rs 48
 workbench/uv_menu.rs 16
 workbench/uv_on_model.rs 8

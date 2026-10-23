@@ -15,6 +15,7 @@ use crate::project::ProjectFile;
 use crate::selecting::StrokeMemory;
 use crate::settings::{SETTINGS_SHORTCUT, SettingsWindow};
 use crate::shape_picker::ShapePicker;
+use crate::text::tr;
 use crate::theme::{self, Accent};
 use crate::tool_menu::ToolMenu;
 use crate::transforming::Tool;
@@ -168,7 +169,12 @@ pub(crate) const BACK_KEY: Key = Key::Tab;
 
 /// The menus between Modes and View, in order: Select, Tools, Mesh and
 /// UV, each filled from its own module.
-const MIDDLE_MENUS: [&str; 4] = ["Select", "Tools", "Mesh", "UV"];
+const MIDDLE_MENUS: [&str; 4] = [
+    crate::text!("Select"),
+    crate::text!("Tools"),
+    crate::text!("Mesh"),
+    crate::text!("UV"),
+];
 
 /// The whole interface around the scene.
 pub struct Workbench {
@@ -784,15 +790,16 @@ impl Workbench {
         self.shortcut_window(ui.ctx());
         if self.about_open {
             let mut done = false;
-            let outcome = crate::dialog::Dialog::new(format!("About {}", self.info.name), 460.0)
-                .id("about")
-                .show(ui.ctx(), |d| {
-                    d.header(true, |_| {});
-                    d.body(|ui| about_contents(ui, &self.info));
-                    d.footer(None, |ui| {
-                        done = crate::dialog::main_button(ui, "Close").clicked();
+            let outcome =
+                crate::dialog::Dialog::new(crate::trf!("About {}", self.info.name), 460.0)
+                    .id("about")
+                    .show(ui.ctx(), |d| {
+                        d.header(true, |_| {});
+                        d.body(|ui| about_contents(ui, &self.info));
+                        d.footer(None, |ui| {
+                            done = crate::dialog::main_button(ui, tr("Close")).clicked();
+                        });
                     });
-                });
             let (enter, escape) = crate::dialog::enter_or_escape(ui.ctx());
             if outcome.closed || done || enter || escape {
                 self.about_open = false;

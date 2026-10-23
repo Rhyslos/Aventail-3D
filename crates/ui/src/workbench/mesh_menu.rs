@@ -147,9 +147,9 @@ impl Workbench {
             if ui
                 .add_enabled(
                     !layer_targets.is_empty(),
-                    egui::Button::new(crate::layers::ADD_LAYER_LABEL),
+                    egui::Button::new(tr(crate::layers::ADD_LAYER_LABEL)),
                 )
-                .on_hover_text(crate::layers::ADD_LAYER_HELP)
+                .on_hover_text(tr(crate::layers::ADD_LAYER_HELP))
                 .clicked()
             {
                 self.add_edit_layer(requests);

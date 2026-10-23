@@ -13,6 +13,7 @@ use super::Workbench;
 use super::joining::counted;
 use crate::dialog::{self, Dialog};
 use crate::palette::Mode;
+use crate::text::tr;
 use crate::theme;
 use egui::{RichText, Ui};
 use mesh::bake::BakeReport;
@@ -20,7 +21,7 @@ use scene::{Element, ElementSelection, ObjectId, ObjectKind, Operation};
 use std::collections::BTreeMap;
 
 /// The bake check window's title.
-pub(crate) const BAKE_TITLE: &str = "Check for baking";
+pub(crate) const BAKE_TITLE: &str = crate::text!("Check for baking");
 
 /// The bake check window's state.
 #[derive(Debug, Clone, Default)]
@@ -115,53 +116,58 @@ impl Kind {
     /// What is wrong, in a few words.
     pub(crate) fn text(&self) -> String {
         match self {
-            Self::Flipped(f) => format!("{} facing the wrong way", counted("", f.len(), "polygon")),
-            Self::NonManifold(e) => format!(
+            Self::Flipped(f) => {
+                crate::trf!("{} facing the wrong way", counted("", f.len(), "polygon"))
+            }
+            Self::NonManifold(e) => crate::trf!(
                 "{} shared by three or more polygons",
                 counted("", e.len(), "edge")
             ),
-            Self::Flat(f) => format!("{} with no area", counted("", f.len(), "polygon")),
-            Self::ShortEdges(e, _) => format!("{} with no length", counted("", e.len(), "edge")),
-            Self::Bent(f) => format!(
+            Self::Flat(f) => crate::trf!("{} with no area", counted("", f.len(), "polygon")),
+            Self::ShortEdges(e, _) => {
+                crate::trf!("{} with no length", counted("", e.len(), "edge"))
+            }
+            Self::Bent(f) => crate::trf!(
                 "{} bent out of flat",
-                counted("", f.len(), "many-sided polygon")
+                counted("", f.len(), tr("many-sided polygon"))
             ),
-            Self::Slivers(f) => format!(
+            Self::Slivers(f) => crate::trf!(
                 "{} cut into sliver triangles",
-                counted("", f.len(), "many-sided polygon")
+                counted("", f.len(), tr("many-sided polygon"))
             ),
-            Self::Loose(p) => format!("{} no polygon uses", counted("", p.len(), "point")),
-            Self::Unpaired(partner) => format!("no partner called {partner}"),
-            Self::NoUvs => "no UVs".to_string(),
-            Self::HardJoined(e) => format!(
+            Self::Loose(p) => crate::trf!("{} no polygon uses", counted("", p.len(), "point")),
+            Self::Unpaired(partner) => crate::trf!("no partner called {}", partner),
+            Self::NoUvs => tr("no UVs").to_string(),
+            Self::HardJoined(e) => crate::trf!(
                 "{} that {} UV seams",
-                counted("", e.len(), "hard edge"),
+                counted("", e.len(), tr("hard edge")),
                 if e.len() == 1 { "isn't" } else { "aren't" }
             ),
-            Self::Folded(f) => format!(
+            Self::Folded(f) => crate::trf!(
                 "{} folded over or squashed flat in the UVs",
                 counted("", f.len(), "polygon")
             ),
-            Self::Outside(f) => format!(
+            Self::Outside(f) => crate::trf!(
                 "{} outside the texture square",
                 counted("", f.len(), "polygon")
             ),
             Self::Overlapping(f) => {
-                format!("{} lying over other UVs", counted("", f.len(), "polygon"))
+                crate::trf!("{} lying over other UVs", counted("", f.len(), "polygon"))
             }
-            Self::Stacked(f, _) => format!(
+            Self::Stacked(f, _) => crate::trf!(
                 "{} stacked on identical pieces",
                 counted("", f.len(), "polygon")
             ),
-            Self::TooClose(f, padding) => format!(
-                "{} closer than {padding} px to other pieces",
-                counted("", f.len(), "polygon")
+            Self::TooClose(f, padding) => crate::trf!(
+                "{} closer than {} px to other pieces",
+                counted("", f.len(), "polygon"),
+                padding
             ),
-            Self::Uneven(f, _) => format!(
+            Self::Uneven(f, _) => crate::trf!(
                 "{} with uneven texel density",
                 counted("", f.len(), "polygon")
             ),
-            Self::TrimShared(f) => format!(
+            Self::TrimShared(f) => crate::trf!(
                 "{} on the trim sheet sharing a texture with other pieces",
                 counted("", f.len(), "polygon")
             ),
@@ -193,89 +199,89 @@ impl Kind {
     /// Why it spoils a bake, and what to do.
     pub(crate) fn help(&self) -> &'static str {
         match self {
-            Self::Flipped(_) => {
+            Self::Flipped(_) => tr(
                 "The bake sees these from behind: the normal map comes out inverted or black \
-                 there. Fix turns them the right way round (Mesh → Fix normals)."
-            }
-            Self::NonManifold(_) => {
+                 there. Fix turns them the right way round (Mesh → Fix normals).",
+            ),
+            Self::NonManifold(_) => tr(
                 "Three or more polygons on one edge can't be unfolded or baked cleanly. Select \
-                 them and delete or split off the extra polygons."
-            }
-            Self::Flat(_) => {
+                 them and delete or split off the extra polygons.",
+            ),
+            Self::Flat(_) => tr(
                 "A polygon with no area has no direction, so it bakes as a black speck or a \
-                 streak. Select them, then weld their points (M) or delete them."
-            }
-            Self::ShortEdges(..) => {
+                 streak. Select them, then weld their points (M) or delete them.",
+            ),
+            Self::ShortEdges(..) => tr(
                 "Points on the same spot make polygons with no area and break the shading \
-                 there. Fix welds each group into one point."
-            }
-            Self::Bent(_) => {
+                 there. Fix welds each group into one point.",
+            ),
+            Self::Bent(_) => tr(
                 "A bent polygon with many corners shades unevenly across its triangles, and the \
-                 bake shows it. Select them and cut them up with Connect (J) or Slit (X)."
-            }
-            Self::Slivers(_) => {
+                 bake shows it. Select them and cut them up with Connect (J) or Slit (X).",
+            ),
+            Self::Slivers(_) => tr(
                 "Very thin triangles shade badly and leave streaks in a bake. Select them and \
-                 cut them up with Connect (J) so the triangles are fuller."
-            }
-            Self::Loose(_) => {
+                 cut them up with Connect (J) so the triangles are fuller.",
+            ),
+            Self::Loose(_) => tr(
                 "A point no polygon uses goes into the file for nothing and can confuse the \
-                 baker. Fix deletes them."
-            }
-            Self::Unpaired(_) => {
+                 baker. Fix deletes them.",
+            ),
+            Self::Unpaired(_) => tr(
                 "Substance Painter matches a low-poly object with its high-poly one by name: \
-                 crate_low with crate_high. Rename one, or make the missing partner."
-            }
-            Self::NoUvs => {
+                 crate_low with crate_high. Rename one, or make the missing partner.",
+            ),
+            Self::NoUvs => tr(
                 "Without UVs there is nowhere on the texture for the bake to go. Fix places \
                  seams where they show least, unwraps the shape and packs it with whatever \
-                 shares its texture (UV → Suggest seams, Unwrap, Pack)."
-            }
-            Self::HardJoined(_) => {
+                 shares its texture (UV → Suggest seams, Unwrap, Pack).",
+            ),
+            Self::HardJoined(_) => tr(
                 "A hard edge turns the shading sharply, and a normal map can only hold that \
                  turn where the UVs are split too: otherwise the bake shows a dark or light \
-                 line along it. Fix marks them as seams and unwraps the pieces around them."
-            }
-            Self::Folded(_) => {
+                 line along it. Fix marks them as seams and unwraps the pieces around them.",
+            ),
+            Self::Folded(_) => tr(
                 "Polygons folded over or squashed flat get no pixels of their own, so the \
-                 bake smears or comes out back to front there. Fix unwraps their pieces."
-            }
-            Self::Outside(_) => {
+                 bake smears or comes out back to front there. Fix unwraps their pieces.",
+            ),
+            Self::Outside(_) => tr(
                 "A bake fills only the texture square: parts outside get nothing, or wrap \
-                 round onto other parts. Fix packs the pieces into the square (UV → Pack)."
-            }
-            Self::Overlapping(_) => {
+                 round onto other parts. Fix packs the pieces into the square (UV → Pack).",
+            ),
+            Self::Overlapping(_) => tr(
                 "Pieces lying over each other share pixels, so one bakes over the other. Fix \
-                 packs them apart (UV → Pack)."
-            }
-            Self::Stacked(_, true) => {
+                 packs them apart (UV → Pack).",
+            ),
+            Self::Stacked(_, true) => tr(
                 "These pieces lie exactly on identical ones and share their pixels, to save \
                  room (UV → Packing → Stack identical pieces is on). That is right for \
                  identical parts, but shadow bakes (ambient occlusion) see only one of them. \
-                 To bake them apart, switch that off and Pack."
-            }
-            Self::Stacked(_, false) => {
+                 To bake them apart, switch that off and Pack.",
+            ),
+            Self::Stacked(_, false) => tr(
                 "These pieces lie exactly on identical ones (two copies of a shape, say) and \
                  share their pixels, so one bakes over the other. Fix packs them apart (UV → \
                  Pack). To share pixels on purpose, switch on UV → Packing → Stack identical \
-                 pieces."
-            }
-            Self::TooClose(..) => {
+                 pieces.",
+            ),
+            Self::TooClose(..) => tr(
                 "Pieces need a gap of empty pixels: the bake spreads each piece's colours \
                  into it so seams don't show, and a game shows smaller copies of the texture \
                  at a distance (mipmaps), where close pieces blur into each other. Fix packs \
-                 them with the gap set in UV → Packing."
-            }
-            Self::TrimShared(_) => {
+                 them with the gap set in UV → Packing.",
+            ),
+            Self::TrimShared(_) => tr(
                 "These polygons lie on the trim sheet, but share a material (and so a texture) \
                  with pieces that don't: the trim texture would land on those too. Select \
                  them and give them a material of their own (Materials, in the Attributes \
-                 panel), so the trim sheet is a texture set of its own."
-            }
-            Self::Uneven(..) => {
+                 panel), so the trim sheet is a texture set of its own.",
+            ),
+            Self::Uneven(..) => tr(
                 "These pieces get much more or much less texture than the rest of the \
                  object, so they look sharper or blurrier. Fix scales them to the object's \
-                 usual texel density (UV → Match texel density does this for a selection)."
-            }
+                 usual texel density (UV → Match texel density does this for a selection).",
+            ),
         }
     }
 
@@ -437,11 +443,11 @@ impl Workbench {
     /// File too).
     pub(super) fn bake_entry(&mut self, ui: &mut Ui) {
         if ui
-            .button("Check for baking…")
-            .on_hover_text(
+            .button(tr("Check for baking…"))
+            .on_hover_text(tr(
                 "List what in the shown shapes would spoil a bake in Substance Painter, in \
                  plain words, with one-click fixes",
-            )
+            ))
             .clicked()
         {
             self.baking.open = true;
@@ -600,33 +606,34 @@ impl Workbench {
         let mut select = None;
         let mut fix = None;
         let summary = if problems.is_empty() {
-            "Nothing found that would spoil a bake.".to_string()
+            tr("Nothing found that would spoil a bake.").to_string()
         } else {
-            format!(
+            crate::trf!(
                 "{} that would spoil a bake in Substance Painter.",
                 counted("", problems.len(), "thing").trim_start()
             )
         };
-        let outcome = Dialog::new(BAKE_TITLE, 560.0).show(ctx, |d| {
-            d.header(true, |_| {});
-            d.body(|ui| {
+        let outcome =
+            Dialog::new(tr(BAKE_TITLE), 560.0).show(ctx, |d| {
+                d.header(true, |_| {});
+                d.body(|ui| {
                 dialog::heading(ui, &summary);
                 if problems.is_empty() {
                     dialog::help(
                         ui,
-                        "Checked: polygons facing the wrong way, edges shared by three \
+                        tr("Checked: polygons facing the wrong way, edges shared by three \
                          polygons, polygons with no area, points on the same spot, bent or \
                          sliver many-sided polygons, loose points, _low / _high names; and \
                          the UVs: hard edges that aren't seams, folded, overlapping or \
                          stacked pieces, pieces outside the square or closer than the \
-                         padding, and uneven texel density.",
+                         padding, and uneven texel density."),
                     );
                     return;
                 }
                 dialog::help(
                     ui,
-                    "Point at one for why. Select shows where it is; Fix mends it as one step \
-                     Ctrl + Z can take back.",
+                    tr("Point at one for why. Select shows where it is; Fix mends it as one step \
+                     Ctrl + Z can take back."),
                 );
                 ui.add_space(4.0);
                 egui::ScrollArea::vertical()
@@ -641,13 +648,13 @@ impl Workbench {
                                     ui.label(RichText::new(&what).color(theme::WARNING))
                                         .on_hover_text(problem.kind.help());
                                     let button = ui
-                                        .small_button("Select")
-                                        .on_hover_text("Select them, to see where they are");
+                                        .small_button(tr("Select"))
+                                        .on_hover_text(tr("Select them, to see where they are"));
                                     button.widget_info(|| {
                                         egui::WidgetInfo::labeled(
                                             egui::WidgetType::Button,
                                             true,
-                                            format!("Select {what}"),
+                                            crate::trf!("Select {}", what),
                                         )
                                     });
                                     if button.clicked() {
@@ -655,13 +662,13 @@ impl Workbench {
                                     }
                                     if problem.kind.fix().is_some() {
                                         let button = ui
-                                            .small_button("Fix")
+                                            .small_button(tr("Fix"))
                                             .on_hover_text(problem.kind.help());
                                         button.widget_info(|| {
                                             egui::WidgetInfo::labeled(
                                                 egui::WidgetType::Button,
                                                 true,
-                                                format!("Fix {what}"),
+                                                crate::trf!("Fix {}", what),
                                             )
                                         });
                                         if button.clicked() {
@@ -675,12 +682,12 @@ impl Workbench {
                             });
                     });
             });
-            d.footer(None, |ui| {
-                if dialog::main_button(ui, "Done").clicked() {
-                    done = true;
-                }
+                d.footer(None, |ui| {
+                    if dialog::main_button(ui, tr("Done")).clicked() {
+                        done = true;
+                    }
+                });
             });
-        });
         let (enter, escape) = dialog::enter_or_escape(ctx);
         if outcome.closed || done || enter || escape {
             self.baking.open = false;
@@ -701,7 +708,7 @@ impl Workbench {
         if !elements.is_empty() {
             self.document.select_elements(
                 [(problem.id, ElementSelection::of(elements))],
-                "Select from the bake check",
+                tr("Select from the bake check"),
                 None,
             );
         }
@@ -713,7 +720,7 @@ impl Workbench {
         let Some(fix) = problem.kind.fix() else {
             return;
         };
-        let label = format!("Fix {}", problem.kind.text());
+        let label = crate::trf!("Fix {}", problem.kind.text());
         let mine = |this: &mut Self| -> Vec<Problem> {
             this.bake_problems()
                 .into_iter()
@@ -774,10 +781,11 @@ impl Workbench {
                 .map(|p| p.kind.text())
                 .collect();
             self.note = Some(if worse.is_empty() {
-                format!("{label} on {}. Ctrl + Z takes it back.", problem.name)
+                crate::trf!("{} on {}. Ctrl + Z takes it back.", label, problem.name)
             } else {
-                format!(
-                    "{label} on {}, but now: {}. Ctrl + Z takes it back.",
+                crate::trf!(
+                    "{} on {}, but now: {}. Ctrl + Z takes it back.",
+                    label,
                     problem.name,
                     worse.join(", ")
                 )

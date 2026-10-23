@@ -47,45 +47,59 @@ impl Workbench {
         }
         self.tool = tool;
         self.note = Some(match tool {
-            Tool::Select => format!(
+            Tool::Select => crate::trf!(
                 "Select: {} (press Q again for the next way of selecting).",
                 self.viewport.select_tool().name().to_lowercase()
             ),
-            Tool::Extrude => "Extrude: drag anywhere in the viewport, the way the selected \
+            Tool::Extrude => tr(
+                "Extrude: drag anywhere in the viewport, the way the selected \
                  polygons (or open border edges) should go. Shift for fine steps; Esc or a \
-                 right click cancels."
-                .into(),
-            Tool::Bevel => "Bevel: drag away from the selected edges (or points) to cut them \
+                 right click cancels.",
+            )
+            .into(),
+            Tool::Bevel => tr(
+                "Bevel: drag away from the selected edges (or points) to cut them \
                  away; back towards them to narrow it. Segments and Profile are in the \
-                 Attributes panel. Shift for fine steps; Esc or a right click cancels."
-                .into(),
-            Tool::Groove => {
+                 Attributes panel. Shift for fine steps; Esc or a right click cancels.",
+            )
+            .into(),
+            Tool::Groove => tr(
                 "Groove: drag into the surface to cut a groove along the selected edges, \
-                 or out of it for a ridge. Esc or a right click cancels."
-                    .into()
-            }
-            Tool::LoopCut => "Loop cut: point at an edge to see the new loop, click to cut \
+                 or out of it for a ridge. Esc or a right click cancels.",
+            )
+            .into(),
+            Tool::LoopCut => tr(
+                "Loop cut: point at an edge to see the new loop, click to cut \
                  it, or press and drag along the edge to slide it into place. Cuts is in the \
-                 Attributes panel. Esc or a right click cancels a drag."
-                .into(),
-            Tool::Slit => "Slit: click points over the shape to cut along them. Drag a point to \
+                 Attributes panel. Esc or a right click cancels a drag.",
+            )
+            .into(),
+            Tool::Slit => tr(
+                "Slit: click points over the shape to cut along them. Drag a point to \
                  move it, Ctrl + click to remove it; Esc or Enter finishes, and clicking the \
-                 first point closes the line into a loop."
-                .into(),
-            Tool::Bridge => "Bridge: drag from one open edge to another to join them. With two \
-                 open borders (or two polygons) selected, C bridges them at once."
-                .into(),
-            Tool::Weld => "Weld: drag a point (or, in the Polygons mode, a polygon) onto a point \
+                 first point closes the line into a loop.",
+            )
+            .into(),
+            Tool::Bridge => tr(
+                "Bridge: drag from one open edge to another to join them. With two \
+                 open borders (or two polygons) selected, C bridges them at once.",
+            )
+            .into(),
+            Tool::Weld => tr(
+                "Weld: drag a point (or, in the Polygons mode, a polygon) onto a point \
                  to melt it there (the whole selection, if you drag a selected one). M welds \
-                 the selection at its middle."
-                .into(),
-            Tool::Inset => "Inset: drag left or right anywhere in the viewport to shrink the \
-                 selected polygons inward. Shift for fine steps; Esc or a right click cancels."
-                .into(),
+                 the selection at its middle.",
+            )
+            .into(),
+            Tool::Inset => tr(
+                "Inset: drag left or right anywhere in the viewport to shrink the \
+                 selected polygons inward. Shift for fine steps; Esc or a right click cancels.",
+            )
+            .into(),
             Tool::Move | Tool::Rotate | Tool::Scale | Tool::All
                 if self.mode == crate::palette::Mode::Uv =>
             {
-                format!(
+                crate::trf!(
                     "{}: drag in the UV Editor, or on the model to {} the texture there. Shift \
                      for fine steps; Esc cancels.",
                     tool.name(),
@@ -96,7 +110,7 @@ impl Workbench {
                     }
                 )
             }
-            _ => format!(
+            _ => crate::trf!(
                 "{}: drag the gizmo's handles. Hold Shift for fine steps; Esc or a right click cancels.",
                 tool.name()
             ),
@@ -109,9 +123,12 @@ impl Workbench {
         locked[axis] = !locked[axis];
         let name = ["X", "Y", "Z"][axis];
         self.note = Some(if locked[axis] {
-            format!("{name} is locked: moving, rotating and scaling leave it alone.")
+            crate::trf!(
+                "{} is locked: moving, rotating and scaling leave it alone.",
+                name
+            )
         } else {
-            format!("{name} is free again.")
+            crate::trf!("{} is free again.", name)
         });
     }
 
@@ -123,8 +140,8 @@ impl Workbench {
             Axes::Object => Axes::World,
         };
         self.note = Some(match axes {
-            Axes::World => "The gizmo follows the world's axes.".into(),
-            Axes::Object => "The gizmo follows the object's own axes.".into(),
+            Axes::World => tr("The gizmo follows the world's axes.").into(),
+            Axes::Object => tr("The gizmo follows the object's own axes.").into(),
         });
     }
 
@@ -133,9 +150,9 @@ impl Workbench {
         let snap = &mut self.viewport.options_mut().snap;
         snap.on = !snap.on;
         self.note = Some(if snap.on {
-            "Snapping on.".into()
+            tr("Snapping on.").into()
         } else {
-            "Snapping off.".into()
+            tr("Snapping off.").into()
         });
     }
 
@@ -170,7 +187,7 @@ impl Workbench {
     pub(crate) fn toggle_symmetry(&mut self) {
         let ids = self.mirrorable();
         if ids.is_empty() {
-            self.note = Some("Symmetry: select the objects to mirror first.".into());
+            self.note = Some(tr("Symmetry: select the objects to mirror first.").into());
             return;
         }
         let settings = self.viewport.options().symmetry;
@@ -181,9 +198,11 @@ impl Workbench {
                 Some(mirror) => Some(mirror),
                 None => {
                     self.note = Some(
-                        "Symmetry: pick X, Y or Z in its menu first (the arrow beside the \
-                         Symmetry button)."
-                            .into(),
+                        tr(
+                            "Symmetry: pick X, Y or Z in its menu first (the arrow beside the \
+                         Symmetry button).",
+                        )
+                        .into(),
                     );
                     return;
                 }
@@ -191,7 +210,7 @@ impl Workbench {
         };
         let on = mirror.is_some();
         if let Err(why) = self.document.execute(Command::SetMirror { ids, mirror }) {
-            self.note = Some(format!("Couldn't change the mirror: {why}."));
+            self.note = Some(crate::trf!("Couldn't change the mirror: {}.", why));
             return;
         }
         self.note = Some(if on {
@@ -201,12 +220,12 @@ impl Workbench {
                 .filter(|(_, on)| *on)
                 .map(|(name, _)| name)
                 .collect();
-            format!(
+            crate::trf!(
                 "Symmetry on, across {}: the other side follows every edit and every move.",
-                names.join(" and ")
+                names.join(tr(" and "))
             )
         } else {
-            "Symmetry off: the mirrored side is gone (Ctrl + Z brings it back).".into()
+            tr("Symmetry off: the mirrored side is gone (Ctrl + Z brings it back).").into()
         });
     }
 
@@ -222,7 +241,7 @@ impl Workbench {
             .collect();
         if ids.is_empty() {
             self.note = Some(
-                "Apply mirror: select an object with symmetry on first (the Symmetry button)."
+                tr("Apply mirror: select an object with symmetry on first (the Symmetry button).")
                     .into(),
             );
             return;
@@ -230,17 +249,17 @@ impl Workbench {
         let n = ids.len();
         match self.document.execute(Command::ApplyMirror(ids)) {
             Ok(_) => {
-                self.note = Some(format!(
+                self.note = Some(crate::trf!(
                     "Mirror applied: both halves are part of {} now, and symmetry is off. \
                      Ctrl + Z takes it back.",
                     if n == 1 {
-                        "the shape".to_string()
+                        tr("the shape").to_string()
                     } else {
-                        format!("{n} shapes")
+                        crate::trf!("{} shapes", n)
                     }
                 ));
             }
-            Err(why) => self.note = Some(format!("Couldn't apply the mirror: {why}.")),
+            Err(why) => self.note = Some(crate::trf!("Couldn't apply the mirror: {}.", why)),
         }
     }
 
@@ -266,10 +285,10 @@ impl Workbench {
                 ids,
                 mirror: Some(mirror),
             },
-            "Change the mirror",
+            tr("Change the mirror"),
             Some(MIRROR_SETTINGS_KEY),
         ) {
-            self.note = Some(format!("Couldn't change the mirror: {why}."));
+            self.note = Some(crate::trf!("Couldn't change the mirror: {}.", why));
         }
     }
 
@@ -331,10 +350,10 @@ impl Workbench {
                 self.mode == crate::palette::Mode::Object,
                 tr(crate::palette::EDIT_PIVOT_LABEL),
             ))
-            .on_hover_text(
+            .on_hover_text(tr(
                 "Move and turn the selected objects' pivots (the point they turn and scale \
                  around), not their shapes. Also on the top palette, by the axis switches.",
-            )
+            ))
             .clicked()
         {
             self.toggle_edit_pivot();
@@ -351,7 +370,7 @@ impl Workbench {
             if ui
                 .add_enabled(ready, egui::Button::new(command.name()))
                 .on_hover_text(command.info().help)
-                .on_disabled_hover_text("Select one or more objects first")
+                .on_disabled_hover_text(tr("Select one or more objects first"))
                 .clicked()
             {
                 self.run_command(command, ui.ctx(), &mut Vec::new());
@@ -376,7 +395,7 @@ impl Workbench {
             if ui
                 .add_enabled(ready, egui::Button::new(label))
                 .on_hover_text(help)
-                .on_disabled_hover_text("Select one or more objects first")
+                .on_disabled_hover_text(tr("Select one or more objects first"))
                 .clicked()
             {
                 self.start_target_pick(what);
@@ -386,11 +405,13 @@ impl Workbench {
         ui.separator();
         let locked = self.viewport.options().locked;
         for (keys, axis) in LOCK_KEYS {
-            let label = format!("Lock {}", ["X", "Y", "Z"][axis]);
+            let label = crate::trf!("Lock {}", ["X", "Y", "Z"][axis]);
             let keys = ui.ctx().format_shortcut(&keys);
             if ui
                 .add(egui::Button::selectable(locked[axis], label).shortcut_text(keys))
-                .on_hover_text("A locked axis doesn't change while moving, rotating or scaling")
+                .on_hover_text(tr(
+                    "A locked axis doesn't change while moving, rotating or scaling",
+                ))
                 .clicked()
             {
                 self.toggle_lock(axis);
@@ -399,8 +420,10 @@ impl Workbench {
         }
         let object = self.viewport.options().axes == Axes::Object;
         if ui
-            .add(egui::Button::selectable(object, "Object axes").shortcut_text(AXES_KEY.name()))
-            .on_hover_text("On: the gizmo follows the object's own axes. Off: the world's.")
+            .add(egui::Button::selectable(object, tr("Object axes")).shortcut_text(AXES_KEY.name()))
+            .on_hover_text(tr(
+                "On: the gizmo follows the object's own axes. Off: the world's.",
+            ))
             .clicked()
         {
             self.toggle_axes();
@@ -409,8 +432,8 @@ impl Workbench {
         ui.separator();
         let snapping = self.viewport.options().snap.on;
         if ui
-            .add(egui::Button::selectable(snapping, "Snapping"))
-            .on_hover_text("Snap moves to points, edges, polygons and the grid. Settings → Viewport has the details.")
+            .add(egui::Button::selectable(snapping, tr("Snapping")))
+            .on_hover_text(tr("Snap moves to points, edges, polygons and the grid. Settings → Viewport has the details."))
             .clicked()
         {
             self.toggle_snapping();
@@ -418,7 +441,7 @@ impl Workbench {
         }
         let symmetry = self.selected_mirror().is_some();
         if ui
-            .add(egui::Button::selectable(symmetry, "Symmetry"))
+            .add(egui::Button::selectable(symmetry, tr("Symmetry")))
             .on_hover_text(tr(crate::palette::SYMMETRY_HELP))
             .clicked()
         {
@@ -427,7 +450,7 @@ impl Workbench {
         }
         ui.separator();
         ui.label(
-            egui::RichText::new("Tip: press E for the tool menu")
+            egui::RichText::new(tr("Tip: press E for the tool menu"))
                 .small()
                 .color(crate::theme::TEXT_WEAK),
         );
@@ -471,16 +494,17 @@ impl Workbench {
                         let slide = slide
                             && matches!(self.tool, Tool::Move | Tool::All)
                             && crate::components::kind_for(self.mode).is_some();
-                        let target = if slide {
-                            self.note = Some(
-                                "Sliding: the points move along their edges, staying on the \
-                                 surface."
+                        let target =
+                            if slide {
+                                self.note = Some(
+                                tr("Sliding: the points move along their edges, staying on the \
+                                 surface.")
                                     .into(),
                             );
-                            target.sliding(drawing)
-                        } else {
-                            target
-                        };
+                                target.sliding(drawing)
+                            } else {
+                                target
+                            };
                         self.sessions += 1;
                         self.gizmo_session = Some(Session::new(target, self.sessions));
                         self.gizmo_shown = None;
@@ -519,7 +543,7 @@ impl Workbench {
                     let session = session.clone();
                     self.note = Some(match session.show(&mut self.document, &change) {
                         Ok(_) => describe(&change, &session.target, self.units),
-                        Err(why) => format!("Couldn't do that: {why}."),
+                        Err(why) => crate::trf!("Couldn't do that: {}.", why),
                     });
                 }
                 GizmoEvent::End => {
@@ -530,7 +554,7 @@ impl Workbench {
                 GizmoEvent::Cancel => {
                     if let Some(session) = self.gizmo_session.take() {
                         session.cancel(&mut self.document);
-                        self.note = Some("Cancelled: everything is back where it was.".into());
+                        self.note = Some(tr("Cancelled: everything is back where it was.").into());
                     }
                 }
             }
@@ -566,7 +590,7 @@ impl Workbench {
             if let Some(active) = self.coordinates_session.clone()
                 && let Err(why) = coordinates_change(&active, edit.value, &mut self.document)
             {
-                self.note = Some(format!("Couldn't do that: {why}."));
+                self.note = Some(crate::trf!("Couldn't do that: {}.", why));
             }
         }
         if done.active.is_none() {
@@ -616,7 +640,7 @@ fn coordinates_change(
                     session.show_commands(
                         document,
                         vec![Command::SetTransforms(vec![(object.id, t)])],
-                        &format!("Scale {}", object.name),
+                        &crate::trf!("Scale {}", object.name),
                     )
                 }
                 None => {
@@ -633,9 +657,9 @@ fn coordinates_change(
             let mut t = object.transform;
             t.rotation[i] = value.to_radians();
             let label = if target.pivots {
-                format!("Rotate {}'s pivot", object.name)
+                crate::trf!("Rotate {}'s pivot", object.name)
             } else {
-                format!("Rotate {}", object.name)
+                crate::trf!("Rotate {}", object.name)
             };
             session.show_commands(
                 document,
