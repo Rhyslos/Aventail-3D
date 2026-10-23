@@ -127,6 +127,45 @@ fn only_shown_shapes_go_and_selected_takes_the_selection() {
 }
 
 #[test]
+fn cutters_stay_out_and_the_shape_they_cut_goes_cut() {
+    let (mut doc, cube) = with(PrimitiveKind::Cube);
+    doc.execute(Command::Create(ObjectKind::Primitive(
+        PrimitiveKind::Cube.standard(),
+    )))
+    .unwrap();
+    let cutter = doc.selection()[0];
+    doc.execute(Command::SetTransforms(vec![(
+        cutter,
+        Transform {
+            position: Vec3::splat(50.0),
+            ..Transform::default()
+        },
+    )]))
+    .unwrap();
+    doc.execute(Command::AddBoolean {
+        kept: cube,
+        cutters: vec![cutter],
+        kind: scene::BooleanKind::Subtract,
+    })
+    .unwrap();
+    let out = prepare(&doc, &ExportOptions::default());
+    assert_eq!(out.iter().map(|o| o.id).collect::<Vec<_>>(), vec![cube]);
+    // The notched cube: nine polygons (24 triangles), not the plain one's
+    // six (12).
+    let polygons = out[0].world.polygons.len();
+    assert!(matches!(polygons, 9 | 24), "{polygons}");
+    let summary = summary(&doc, &ExportOptions::default());
+    assert_eq!(summary.objects, 1);
+    // Selected on its own, a cutter still stays out.
+    doc.set_selection([cutter]);
+    let selected = ExportOptions {
+        what: ExportWhat::Selected,
+        ..ExportOptions::default()
+    };
+    assert!(prepare(&doc, &selected).is_empty());
+}
+
+#[test]
 fn a_moved_pivot_keeps_the_shape_and_places_the_local_one_around_it() {
     let (mut doc, cube) = with(PrimitiveKind::Cube);
     doc.execute(Command::MovePivots(vec![(

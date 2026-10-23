@@ -9,7 +9,7 @@
 //! takes more memory than the budget allows.
 
 use crate::history::Step;
-use crate::object::{Object, ObjectKind};
+use crate::object::{Object, ObjectId, ObjectKind};
 use crate::stack::{Entry, Layer, Operation, Stack};
 use crate::tree::Edit;
 use std::mem::{size_of, size_of_val};
@@ -196,6 +196,11 @@ pub(crate) fn edit(edit: &Edit) -> usize {
             | Edit::SetCollision { .. }
             | Edit::SetHardness { .. }
             | Edit::SetMirror { .. } => 0,
+            Edit::SetBooleans { before, after, .. } => [before, after]
+                .iter()
+                .flat_map(|list| list.iter())
+                .map(|b| 16 + b.cutters.len() * std::mem::size_of::<ObjectId>())
+                .sum(),
             Edit::SetExportTarget { before, after } => [before, after]
                 .iter()
                 .filter_map(|t| t.as_ref())

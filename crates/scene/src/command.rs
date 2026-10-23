@@ -6,6 +6,8 @@ use crate::tree::{Edit, Place, Scene, SceneError};
 use mesh::Primitive;
 use std::sync::Arc;
 
+mod booleans;
+
 /// A change to the scene. Every change goes through one, so it can be
 /// undone and redone.
 #[derive(Debug, Clone, PartialEq)]
@@ -267,6 +269,30 @@ pub enum Command {
         /// Where they were, to find them again (decision 0032).
         anchors: Option<mesh::Anchors>,
     },
+    /// Cuts `kept` with `cutters` (decision 0135): a live boolean, worked
+    /// out whenever the shape is shown, so moving or editing a cutter
+    /// moves the cut. Added to the kept object's last boolean if that is
+    /// of the same `kind`, else as a new one. Refused (with a reason) for
+    /// a group or an instance, a shape cutting itself, a loop (a cutter
+    /// that is cut by the kept shape), or no cutter. The kept object
+    /// becomes the selection.
+    AddBoolean {
+        /// The object cut.
+        kept: ObjectId,
+        /// The cutters, in order.
+        cutters: Vec<ObjectId>,
+        /// What they do.
+        kind: crate::BooleanKind,
+    },
+    /// Replaces an object's booleans (decision 0135): to change a kind, or
+    /// take a boolean or a cutter away. Checked as [`Command::AddBoolean`]
+    /// is; booleans without cutters are left out.
+    SetBooleans {
+        /// The object cut.
+        id: ObjectId,
+        /// Its booleans.
+        booleans: Vec<crate::Boolean>,
+    },
     /// Joins shapes into the first of them, which becomes a plain mesh
     /// holding them all where they were; the others are deleted (anything
     /// inside them takes their place) (decision 0055). Groups listed are
@@ -381,6 +407,8 @@ impl Command {
                 n => format!("Split off {n} polygons"),
             },
             Self::Join(ids) => format!("Join {}", objects(count(ids))),
+            Self::AddBoolean { kind, .. } => kind.name().to_string(),
+            Self::SetBooleans { .. } => "Change booleans".to_string(),
             Self::ApplyMirror(ids) => {
                 let n = ids
                     .iter()
@@ -860,6 +888,8 @@ impl Run<'_> {
                     })
                     .collect();
                 self.bake_instances(&orphans)?;
+                // Deleted cutters stop cutting (decision 0135).
+                self.forget_cutters(&going)?;
                 for id in top {
                     // Empty the object first, last child first, so every
                     // removal is of an object with nothing inside.
@@ -1246,6 +1276,7 @@ impl Run<'_> {
             }
             Command::Duplicate { ids, instances } => {
                 let mut copies = Vec::new();
+                let mut copied = Vec::new();
                 for id in top_level(self.scene, &existing(self.scene, ids)?) {
                     let place = self.place_of(id)?;
                     let copy = self.copy_tree(
@@ -1255,9 +1286,11 @@ impl Run<'_> {
                             index: place.index + 1,
                         },
                         *instances,
+                        &mut copied,
                     )?;
                     copies.push(copy);
                 }
+                self.follow_copied_cutters(&copied)?;
                 Ok(Some(copies))
             }
             Command::SplitOff { id, faces, anchors } => {
@@ -1297,6 +1330,15 @@ impl Run<'_> {
                     },
                 )?;
                 Ok(Some(vec![new]))
+            }
+            Command::AddBoolean {
+                kept,
+                cutters,
+                kind,
+            } => self.add_boolean(*kept, cutters, *kind),
+            Command::SetBooleans { id, booleans } => {
+                self.set_booleans(*id, booleans.clone())?;
+                Ok(None)
             }
             Command::Join(ids) => {
                 let shapes: Vec<ObjectId> = existing(self.scene, ids)?
@@ -1415,8 +1457,9 @@ impl Run<'_> {
                     if !object.kind.has_shape() {
                         continue;
                     }
-                    // The shape as shown: its edits, and the mirrored
-                    // copies welded on.
+                    // The shape as shown: its edits, cut by its booleans,
+                    // and the mirrored copies welded on.
+                    let cut = self.cut_result(id).is_some();
                     let Some(shown) = self.scene.shown_shape(id) else {
                         continue;
                     };
@@ -1436,6 +1479,9 @@ impl Run<'_> {
                         before: Some(mirror),
                         after: None,
                     })?;
+                    if cut {
+                        self.end_booleans(id)?;
+                    }
                 }
                 Ok(None)
             }
@@ -1447,6 +1493,8 @@ impl Run<'_> {
                     let Some(shape) = self.scene.evaluated(id) else {
                         continue;
                     };
+                    // Booleans that work are baked in too (decision 0135).
+                    let cut = self.cut_result(id);
                     let object = self.scene.object(id).ok_or(SceneError::UnknownObject(id))?;
                     let before = object.kind.clone();
                     let layers = object.stack.layers().to_vec();
@@ -1454,11 +1502,15 @@ impl Run<'_> {
                     for (index, layer) in layers.into_iter().enumerate().rev() {
                         self.edit(Edit::RemoveLayer { id, index, layer })?;
                     }
+                    let baked = cut.is_some();
                     self.edit(Edit::SetKind {
                         id,
                         before,
-                        after: ObjectKind::Mesh(Arc::clone(&shape.mesh)),
+                        after: ObjectKind::Mesh(cut.unwrap_or_else(|| Arc::clone(&shape.mesh))),
                     })?;
+                    if baked {
+                        self.end_booleans(id)?;
+                    }
                 }
                 Ok(None)
             }
@@ -1496,6 +1548,7 @@ impl Run<'_> {
         id: ObjectId,
         place: Place,
         instances: bool,
+        copied: &mut Vec<(ObjectId, ObjectId)>,
     ) -> Result<ObjectId, SceneError> {
         let original = self
             .scene
@@ -1512,8 +1565,11 @@ impl Run<'_> {
             };
             copy.kind = ObjectKind::Instance(source);
             copy.stack = crate::stack::Stack::default();
+            // An instance shows its original's cut shape (decision 0135).
+            copy.booleans.clear();
         }
         let new = self.insert(copy, place)?;
+        copied.push((id, new));
         let children = self.scene.children(Some(id)).to_vec();
         for (index, child) in children.into_iter().enumerate() {
             self.copy_tree(
@@ -1523,6 +1579,7 @@ impl Run<'_> {
                     index,
                 },
                 instances,
+                copied,
             )?;
         }
         Ok(new)
@@ -1534,6 +1591,11 @@ impl Run<'_> {
         for id in ids {
             let Some(shape) = self.scene.evaluated(*id) else {
                 continue;
+            };
+            // An instance of a cut shape keeps the cut (decision 0135).
+            let shape = match self.scene.cut_shape(*id) {
+                Some(Ok(cut)) => cut,
+                _ => shape.mesh,
             };
             let object = self
                 .scene
@@ -1554,7 +1616,7 @@ impl Run<'_> {
             self.edit(Edit::SetKind {
                 id: *id,
                 before,
-                after: ObjectKind::Mesh(Arc::clone(&shape.mesh)),
+                after: ObjectKind::Mesh(shape),
             })?;
             if own_materials != source_materials {
                 self.edit(Edit::SetMaterials {

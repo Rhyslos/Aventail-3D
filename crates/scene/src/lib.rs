@@ -9,6 +9,7 @@
 //! edits, so [`Document::undo`] and [`Document::redo`] can take it back
 //! and do it again exactly, with the same object ids.
 
+pub mod boolean;
 pub mod command;
 pub mod document;
 mod history;
@@ -21,6 +22,7 @@ pub mod tree;
 pub mod trim;
 pub mod units;
 
+pub use boolean::{Boolean, BooleanKind, BooleanProblem, BooleanRefusal, MAX_CUTTERS};
 pub use command::Command;
 pub use document::Document;
 pub use history::HistoryLimit;
@@ -51,6 +53,8 @@ pub use uv::{HideSeams, PieceSettings, UnfoldAxis, UnwrapMethod, UnwrapOptions};
 
 #[cfg(test)]
 mod apply_tests;
+#[cfg(test)]
+mod boolean_tests;
 #[cfg(test)]
 mod edit_list_tests;
 #[cfg(test)]

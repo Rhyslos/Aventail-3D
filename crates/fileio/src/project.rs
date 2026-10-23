@@ -54,6 +54,7 @@ mod v37;
 mod v38;
 mod v39;
 mod v4;
+mod v40;
 mod v5;
 mod v6;
 mod v7;
@@ -68,7 +69,7 @@ use std::path::{Path, PathBuf};
 /// The signature every project file starts with.
 pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// The format version this app writes.
-pub const FORMAT_VERSION: u32 = 39;
+pub const FORMAT_VERSION: u32 = 40;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -170,8 +171,9 @@ fn edit_counts(document: &Document) -> usize {
 
 /// The project file's bytes for `document`, unchecked.
 fn encode(document: &Document) -> Result<Vec<u8>, ProjectError> {
-    let model = v39::ProjectV39::from_document(document);
+    let model = v40::ProjectV40::from_document(document);
     let stored: usize = model
+        .project
         .project
         .project
         .project
@@ -194,7 +196,7 @@ fn encode(document: &Document) -> Result<Vec<u8>, ProjectError> {
             "an edit of a kind this version can't store yet".into(),
         ));
     }
-    let encoded = v39::encode(&model)
+    let encoded = v40::encode(&model)
         .map_err(|e| ProjectError::Damaged(format!("the scene couldn't be encoded ({e})")))?;
     let body = zstd::bulk::compress(&encoded, ZSTD_LEVEL)
         .map_err(|e| ProjectError::Damaged(format!("the scene couldn't be compressed ({e})")))?;
@@ -287,7 +289,8 @@ pub fn from_bytes(bytes: &[u8]) -> Result<Document, ProjectError> {
         36 => decode_mending::<v36::EntryV36>(encoded),
         37 => decode_mending::<v37::EntryV37>(encoded),
         38 => decode_snapshots::<v38::EntryV38>(encoded),
-        _ => decode_development(encoded),
+        39 => decode_development(encoded),
+        _ => decode_booleans(encoded),
     }
 }
 
@@ -297,6 +300,30 @@ fn decode_development(encoded: &[u8]) -> Result<Document, ProjectError> {
     let model = crate::limits::within_budget(|| v39::decode(encoded))
         .map_err(|e| ProjectError::Damaged(format!("its scene can't be read ({e})")))?;
     model
+        .project
+        .project
+        .project
+        .project
+        .project
+        .project
+        .project
+        .project
+        .project
+        .places
+        .project
+        .project
+        .check_limits()
+        .map_err(ProjectError::Damaged)?;
+    model.into_document().map_err(ProjectError::Damaged)
+}
+
+/// The document a body of version 40 (the development format with
+/// booleans, decision 0135) holds.
+fn decode_booleans(encoded: &[u8]) -> Result<Document, ProjectError> {
+    let model = crate::limits::within_budget(|| v40::decode(encoded))
+        .map_err(|e| ProjectError::Damaged(format!("its scene can't be read ({e})")))?;
+    model
+        .project
         .project
         .project
         .project
@@ -791,3 +818,5 @@ pub fn open(path: &Path) -> Result<Document, ProjectError> {
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod v40_tests;
