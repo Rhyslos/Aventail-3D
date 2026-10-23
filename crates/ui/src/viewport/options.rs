@@ -19,7 +19,7 @@ pub enum GridDetail {
     TenCentimetres,
 }
 
-/// What shapes' surfaces show ([decision 0102](../../../docs/decisions/0102-checker-and-stretch.md)).
+/// What shapes' surfaces show ([decision 0102](../../../../docs/decisions/0102-checker-and-stretch.md)).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum Surface {
     /// Their materials' colours.
@@ -96,7 +96,7 @@ pub fn grid_image(colors: [[u8; 3]; 2]) -> Vec<u8> {
     uv::grid::numbered_checker(GRID_IMAGE_SIZE, colors[0], colors[1])
 }
 
-/// How shapes are drawn in the viewport ([decision 0063](../../../docs/decisions/0063-wireframe.md)).
+/// How shapes are drawn in the viewport ([decision 0063](../../../../docs/decisions/0063-wireframe.md)).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum Shading {
     /// Solid, softly lit surfaces with faint edges: the calmest.
@@ -307,7 +307,7 @@ impl Default for ViewOptions {
     }
 }
 
-/// The live mirror's settings ([decision 0088](../../../docs/decisions/0088-live-mirror.md)):
+/// The live mirror's settings ([decision 0088](../../../../docs/decisions/0088-live-mirror.md)):
 /// what the Symmetry button gives the selected objects, and what its menu
 /// shows. Each object keeps its own mirror; these are remembered for the
 /// next one.

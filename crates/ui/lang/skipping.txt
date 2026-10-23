@@ -58,7 +58,8 @@ workbench/bars.rs 60
 workbench/cleaning.rs 30
 workbench/command.rs 27
 workbench/copying.rs 18
-workbench/exporting.rs 121
+workbench/exporting.rs 45
+workbench/exporting/window.rs 76
 workbench/files.rs 13
 workbench/hardness.rs 19
 workbench/heavy_check.rs 29

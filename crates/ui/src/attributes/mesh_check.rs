@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 /// Below this many polygons the mesh check is quick enough to run at
 /// once; above, it runs in the background so the window never stalls
-/// ([decision 0035](../../../docs/decisions/0035-heavy-meshes.md)).
+/// ([decision 0035](../../../../docs/decisions/0035-heavy-meshes.md)).
 const CHECK_IN_BACKGROUND_FROM: usize = 50_000;
 
 /// Checks objects' meshes, keeping the last report.

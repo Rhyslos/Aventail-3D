@@ -215,7 +215,7 @@ impl View {
     }
 
     /// Starts gliding round the pivot to look from `side` of the view
-    /// dice, at time `now` ([decision 0084](../../../docs/decisions/0084-view-dice.md)).
+    /// dice, at time `now` ([decision 0084](../../../../docs/decisions/0084-view-dice.md)).
     /// With `flat` (Display → Switch to orthographic when clicking the
     /// dice), a perspective view ends up orthographic, and turns back into
     /// perspective when orbited away.
@@ -314,7 +314,7 @@ impl View {
     }
 
     /// The point to turn around (or pan at the depth of) when a drag
-    /// starts over empty space ([decision 0080](../../../docs/decisions/0080-navigation-feel.md)):
+    /// starts over empty space ([decision 0080](../../../../docs/decisions/0080-navigation-feel.md)):
     /// the first of these that is in front of the camera and on screen,
     /// so the view never swings around something you can't see:
     ///

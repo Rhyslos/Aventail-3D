@@ -218,7 +218,7 @@ impl Workbench {
 
     /// 1, 2 or 3. With a modelling tool in use (Extrude, Slit, Weld...),
     /// the key puts it away and selects in that mode, staying in it if
-    /// already there ([decision 0060](../../../docs/decisions/0060-mode-keys-put-tools-away.md)):
+    /// already there ([decision 0060](../../../../docs/decisions/0060-mode-keys-put-tools-away.md)):
     /// pressing the mode key is how the project lead goes back to
     /// selecting. Otherwise the key switches to its mode, or back to the
     /// Model mode when already in it.
