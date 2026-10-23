@@ -22,9 +22,12 @@ use mesh::edit::{self, Bend, BevelShape, ExtrudeShape, Grouping, Outcome, SlitLi
 use mesh::{Anchors, EdgeKey, FaceId, Mesh, VertexId};
 use std::collections::{BTreeSet, HashMap};
 use std::sync::{Arc, Mutex};
+use words::{text, tr, trf};
 
 /// The name of the layer edits go into until layers can be managed.
-pub const EDITS_LAYER: &str = "Edits";
+/// English, the key of its translation: new layers are named with
+/// [`Stack::next_layer_name`], in the language in use.
+pub const EDITS_LAYER: &str = text!("Edits");
 
 /// The most polygons a shape may grow to through its edits. An edit that
 /// would make the shape larger is skipped, with a warning, so neither a
@@ -588,151 +591,190 @@ impl Operation {
     pub fn describe(&self) -> String {
         match self {
             Self::MovePoints { points, .. } => match points.len() {
-                1 => "Move 1 point".to_string(),
-                n => format!("Move {n} points"),
+                1 => tr("Move 1 point").to_string(),
+                n => trf!("Move {} points", n),
             },
             Self::TransformPoints { points, .. } => match points.len() {
-                1 => "Transform 1 point".to_string(),
-                n => format!("Transform {n} points"),
+                1 => tr("Transform 1 point").to_string(),
+                n => trf!("Transform {} points", n),
             },
-            Self::ExtrudePolygons { faces, .. } => counted("Extrude", faces.len(), "polygon"),
+            Self::ExtrudePolygons { faces, .. } => {
+                counted(text!("Extrude"), faces.len(), text!("polygon"))
+            }
             Self::ExtrudeBent { faces, bend, .. } if bend.spirals() => {
-                format!(
+                trf!(
                     "{} with a spiral",
-                    counted("Extrude", faces.len(), "polygon")
+                    counted(text!("Extrude"), faces.len(), text!("polygon"))
                 )
             }
             Self::ExtrudeBent { faces, bend, .. } if bend.bends() => {
-                format!("{} with a bend", counted("Extrude", faces.len(), "polygon"))
+                trf!(
+                    "{} with a bend",
+                    counted(text!("Extrude"), faces.len(), text!("polygon"))
+                )
             }
-            Self::ExtrudeBent { faces, .. } => counted("Extrude", faces.len(), "polygon"),
-            Self::InsetPolygons { faces, .. } => counted("Inset", faces.len(), "polygon"),
-            Self::ExtrudeEdges { edges, .. } => counted("Extrude", edges.len(), "edge"),
-            Self::BevelEdges { edges, .. } => counted("Bevel", edges.len(), "edge"),
+            Self::ExtrudeBent { faces, .. } => {
+                counted(text!("Extrude"), faces.len(), text!("polygon"))
+            }
+            Self::InsetPolygons { faces, .. } => {
+                counted(text!("Inset"), faces.len(), text!("polygon"))
+            }
+            Self::ExtrudeEdges { edges, .. } => {
+                counted(text!("Extrude"), edges.len(), text!("edge"))
+            }
+            Self::BevelEdges { edges, .. } => counted(text!("Bevel"), edges.len(), text!("edge")),
             Self::Groove { edges, shape, .. } => {
-                let what = if shape.depth > 0.0 { "Ridge" } else { "Groove" };
-                counted(&format!("{what} along"), edges.len(), "edge")
+                let what = if shape.depth > 0.0 {
+                    text!("Ridge along")
+                } else {
+                    text!("Groove along")
+                };
+                counted(what, edges.len(), text!("edge"))
             }
-            Self::BevelPoints { points, .. } => counted("Bevel", points.len(), "point"),
-            Self::LoopCut { cuts: 1, .. } => "Loop cut".to_string(),
-            Self::LoopCut { cuts, .. } => format!("Loop cut ({cuts} cuts)"),
+            Self::BevelPoints { points, .. } => {
+                counted(text!("Bevel"), points.len(), text!("point"))
+            }
+            Self::LoopCut { cuts: 1, .. } => tr("Loop cut").to_string(),
+            Self::LoopCut { cuts, .. } => trf!("Loop cut ({} cuts)", cuts),
             Self::Connect { points, edges, .. } if edges.is_empty() => {
-                counted("Connect", points.len(), "point")
+                counted(text!("Connect"), points.len(), text!("point"))
             }
-            Self::Connect { edges, .. } => counted("Connect", edges.len(), "edge"),
-            Self::Bridge { faces, .. } if !faces.is_empty() => "Bridge 2 polygons".to_string(),
+            Self::Connect { edges, .. } => counted(text!("Connect"), edges.len(), text!("edge")),
+            Self::Bridge { faces, .. } if !faces.is_empty() => tr("Bridge 2 polygons").to_string(),
             Self::DeleteElements {
                 points,
                 edges,
                 faces,
                 ..
-            } => elements("Delete", points, edges, faces),
+            } => elements(text!("Delete"), points, edges, faces),
             Self::Dissolve {
                 points,
                 edges,
                 faces,
                 ..
-            } => elements("Dissolve", points, edges, faces),
-            Self::FillHoles { points, .. } if points.is_empty() => "Fill every hole".to_string(),
-            Self::FillHoles { .. } => "Fill hole".to_string(),
-            Self::FlipPolygons { faces, .. } => counted("Flip", faces.len(), "polygon"),
+            } => elements(text!("Dissolve"), points, edges, faces),
+            Self::FillHoles { points, .. } if points.is_empty() => {
+                tr("Fill every hole").to_string()
+            }
+            Self::FillHoles { .. } => tr("Fill hole").to_string(),
+            Self::FlipPolygons { faces, .. } => {
+                counted(text!("Flip"), faces.len(), text!("polygon"))
+            }
             Self::SetMaterial { faces, .. } => {
-                counted("Set the material of", faces.len(), "polygon")
+                counted(text!("Set the material of"), faces.len(), text!("polygon"))
             }
             Self::TransformUvs { faces, points, .. } if faces.is_empty() => {
-                counted("Move the UVs of", points.len(), "point")
+                counted(text!("Move the UVs of"), points.len(), text!("point"))
             }
-            Self::TransformUvs { faces, .. } => counted("Move the UVs of", faces.len(), "polygon"),
+            Self::TransformUvs { faces, .. } => {
+                counted(text!("Move the UVs of"), faces.len(), text!("polygon"))
+            }
             Self::SetUvPins {
                 faces, points, pin, ..
             } => {
                 let verb = if *pin {
-                    "Pin the UVs of"
+                    text!("Pin the UVs of")
                 } else {
-                    "Unpin the UVs of"
+                    text!("Unpin the UVs of")
                 };
                 if faces.is_empty() {
-                    counted(verb, points.len(), "point")
+                    counted(verb, points.len(), text!("point"))
                 } else {
-                    counted(verb, faces.len(), "polygon")
+                    counted(verb, faces.len(), text!("polygon"))
                 }
             }
-            Self::Unwrap { faces, .. } => counted("Unwrap", faces.len(), "polygon"),
-            Self::StraightenUvs { faces, .. } => {
-                counted("Straighten the UVs of", faces.len(), "polygon")
+            Self::Unwrap { faces, .. } => counted(text!("Unwrap"), faces.len(), text!("polygon")),
+            Self::StraightenUvs { faces, .. } => counted(
+                text!("Straighten the UVs of"),
+                faces.len(),
+                text!("polygon"),
+            ),
+            Self::RelaxUvs { faces, .. } => {
+                counted(text!("Relax the UVs of"), faces.len(), text!("polygon"))
             }
-            Self::RelaxUvs { faces, .. } => counted("Relax the UVs of", faces.len(), "polygon"),
-            Self::SetTexelDensity { faces, .. } => {
-                counted("Set the texel density of", faces.len(), "polygon")
-            }
-            Self::PackUvs { islands } => counted("Pack", islands.len(), "island"),
-            Self::RestoreUvs { layout } => {
-                counted("Restore the UVs of", layout.polygon_count(), "polygon")
-            }
-            Self::PlaceOnTrim { faces, .. } => {
-                counted("Put on the trim sheet", faces.len(), "polygon")
-            }
-            Self::FixFacing => "Fix normals".to_string(),
-            Self::PlaceShape { .. } => "Apply the placement".to_string(),
+            Self::SetTexelDensity { faces, .. } => counted(
+                text!("Set the texel density of"),
+                faces.len(),
+                text!("polygon"),
+            ),
+            Self::PackUvs { islands } => counted(text!("Pack"), islands.len(), text!("island")),
+            Self::RestoreUvs { layout } => counted(
+                text!("Restore the UVs of"),
+                layout.polygon_count(),
+                text!("polygon"),
+            ),
+            Self::PlaceOnTrim { faces, .. } => counted(
+                text!("Put on the trim sheet"),
+                faces.len(),
+                text!("polygon"),
+            ),
+            Self::FixFacing => tr("Fix normals").to_string(),
+            Self::PlaceShape { .. } => tr("Apply the placement").to_string(),
             Self::SetSeams { edges, seam, .. } => {
                 let verb = if *seam {
-                    "Mark as seams"
+                    text!("Mark as seams")
                 } else {
-                    "Clear the seams of"
+                    text!("Clear the seams of")
                 };
-                counted(verb, edges.len(), "edge")
+                counted(verb, edges.len(), text!("edge"))
             }
             Self::SetSeamPreference {
                 edges, preference, ..
             } => {
                 let verb = match preference {
-                    mesh::uvs::SeamPreference::Prefer => "Prefer seams on",
-                    mesh::uvs::SeamPreference::Never => "Allow no seams on",
-                    mesh::uvs::SeamPreference::Free => "Clear the seam preference of",
+                    mesh::uvs::SeamPreference::Prefer => text!("Prefer seams on"),
+                    mesh::uvs::SeamPreference::Never => text!("Allow no seams on"),
+                    mesh::uvs::SeamPreference::Free => text!("Clear the seam preference of"),
                 };
-                counted(verb, edges.len(), "edge")
+                counted(verb, edges.len(), text!("edge"))
             }
             Self::SetStretchBudget { faces, budget, .. } => {
                 let verb = if budget.is_some() {
-                    "Set the stretch budget of"
+                    text!("Set the stretch budget of")
                 } else {
-                    "Clear the stretch budget of"
+                    text!("Clear the stretch budget of")
                 };
-                counted(verb, faces.len(), "polygon")
+                counted(verb, faces.len(), text!("polygon"))
             }
             Self::SetUvLock { faces, lock, .. } => {
                 let verb = if *lock {
-                    "Lock the UVs of"
+                    text!("Lock the UVs of")
                 } else {
-                    "Unlock the UVs of"
+                    text!("Unlock the UVs of")
                 };
-                counted(verb, faces.len(), "polygon")
+                counted(verb, faces.len(), text!("polygon"))
             }
             Self::SetPieceSettings {
                 faces, settings, ..
             } => {
                 let verb = if settings.is_empty() {
-                    "Clear the piece settings of"
+                    text!("Clear the piece settings of")
                 } else {
-                    "Set the piece settings of"
+                    text!("Set the piece settings of")
                 };
-                counted(verb, faces.len(), "polygon")
+                counted(verb, faces.len(), text!("polygon"))
             }
             Self::SetHardEdges { edges, hard, .. } => {
-                let verb = if *hard { "Harden" } else { "Soften" };
-                counted(verb, edges.len(), "edge")
+                let verb = if *hard {
+                    text!("Harden")
+                } else {
+                    text!("Soften")
+                };
+                counted(verb, edges.len(), text!("edge"))
             }
-            Self::HardEdgesByAngle { .. } => "Hard edges by angle".to_string(),
-            Self::SlidePoints { slides, .. } => counted("Slide", slides.len(), "point"),
-            Self::Bridge { edges, .. } => counted("Bridge", edges.len(), "edge"),
+            Self::HardEdgesByAngle { .. } => tr("Hard edges by angle").to_string(),
+            Self::SlidePoints { slides, .. } => {
+                counted(text!("Slide"), slides.len(), text!("point"))
+            }
+            Self::Bridge { edges, .. } => counted(text!("Bridge"), edges.len(), text!("edge")),
             Self::Weld { points, target, .. } => {
                 let n = points.len() + usize::from(target.is_some_and(|t| !points.contains(&t)));
-                counted("Weld", n, "point")
+                counted(text!("Weld"), n, text!("point"))
             }
-            Self::Slit { line } if line.through => "Slit through".to_string(),
-            Self::Slit { .. } => "Slit".to_string(),
-            Self::Mirrored { op, .. } => format!("{}, mirrored", op.describe()),
-            Self::WeldMiddle { .. } => "Weld the middle".to_string(),
+            Self::Slit { line } if line.through => tr("Slit through").to_string(),
+            Self::Slit { .. } => tr("Slit").to_string(),
+            Self::Mirrored { op, .. } => trf!("{}, mirrored", op.describe()),
+            Self::WeldMiddle { .. } => tr("Weld the middle").to_string(),
         }
     }
 
@@ -1912,13 +1954,18 @@ fn facing(mesh: &Mesh, edge: EdgeKey, anchors: Option<&Anchors>, position: f32) 
 }
 
 /// "Delete 3 polygons", "Dissolve 1 edge": by the kind of element named.
-fn elements(verb: &str, points: &[VertexId], edges: &[EdgeKey], faces: &[FaceId]) -> String {
+fn elements(
+    verb: &'static str,
+    points: &[VertexId],
+    edges: &[EdgeKey],
+    faces: &[FaceId],
+) -> String {
     if !faces.is_empty() {
-        counted(verb, faces.len(), "polygon")
+        counted(verb, faces.len(), text!("polygon"))
     } else if !edges.is_empty() {
-        counted(verb, edges.len(), "edge")
+        counted(verb, edges.len(), text!("edge"))
     } else {
-        counted(verb, points.len(), "point")
+        counted(verb, points.len(), text!("point"))
     }
 }
 
@@ -1945,12 +1992,13 @@ fn elements_in(
     }
 }
 
-/// "Extrude 1 polygon", "Inset 4 polygons".
-fn counted(verb: &str, n: usize, thing: &str) -> String {
+/// "Extrude 1 polygon", "Inset 4 polygons", in the language in use:
+/// `verb` and `thing` are English texts marked with `text!`.
+fn counted(verb: &'static str, n: usize, thing: &'static str) -> String {
     if n == 1 {
-        format!("{verb} 1 {thing}")
+        trf!("{} 1 {}", tr(verb), tr(thing))
     } else {
-        format!("{verb} {n} {thing}s")
+        trf!("{} {} {}s", tr(verb), n, tr(thing))
     }
 }
 
@@ -2073,13 +2121,14 @@ impl Stack {
     /// then "Edits 2", "Edits 3" and so on.
     pub fn next_layer_name(&self) -> String {
         let taken = |name: &str| self.layers.iter().any(|l| l.name == name);
-        if !taken(EDITS_LAYER) {
-            return EDITS_LAYER.to_string();
+        let base = tr(EDITS_LAYER);
+        if !taken(base) {
+            return base.to_string();
         }
         (2..)
-            .map(|n| format!("{EDITS_LAYER} {n}"))
+            .map(|n| trf!("{} {}", base, n))
             .find(|name| !taken(name))
-            .unwrap_or_else(|| EDITS_LAYER.to_string())
+            .unwrap_or_else(|| base.to_string())
     }
 }
 
@@ -2089,13 +2138,13 @@ impl Stack {
     /// or a layer they are in is off.
     pub fn freeze_problem(&self, edit: EditId) -> Option<&'static str> {
         let Some((layer, index, _)) = self.entry(edit) else {
-            return Some("that edit no longer exists");
+            return Some(tr("that edit no longer exists"));
         };
         for (l, each) in self.layers[..=layer].iter().enumerate() {
             if !each.enabled {
-                return Some(
+                return Some(tr(
                     "a layer with edits to freeze is switched off: switch it on or delete it first",
-                );
+                ));
             }
             let upto = if l == layer {
                 index + 1
@@ -2106,9 +2155,9 @@ impl Stack {
             // switch is gone (decision 0126), and old projects may have it.
             for e in &each.entries[..upto] {
                 if !e.enabled {
-                    return Some(
+                    return Some(tr(
                         "an edit to freeze is switched off: switch it on or delete it first",
-                    );
+                    ));
                 }
             }
         }
@@ -2152,17 +2201,17 @@ pub enum LayerChange {
 }
 
 impl LayerChange {
-    /// A short description for the Edit menu.
+    /// A short description for the Edit menu, in the language in use.
     pub fn describe(&self) -> &'static str {
-        match self {
-            Self::SetEnabled(true) => "Switch layer on",
-            Self::SetEnabled(false) => "Switch layer off",
-            Self::Rename(_) => "Rename layer",
-            Self::Move { up: true } => "Move layer up",
-            Self::Move { up: false } => "Move layer down",
-            Self::MergeDown => "Merge layer down",
-            Self::Delete => "Delete layer",
-        }
+        tr(match self {
+            Self::SetEnabled(true) => text!("Switch layer on"),
+            Self::SetEnabled(false) => text!("Switch layer off"),
+            Self::Rename(_) => text!("Rename layer"),
+            Self::Move { up: true } => text!("Move layer up"),
+            Self::Move { up: false } => text!("Move layer down"),
+            Self::MergeDown => text!("Merge layer down"),
+            Self::Delete => text!("Delete layer"),
+        })
     }
 }
 
@@ -2551,6 +2600,6 @@ impl PartialEq for SharedCache {
 
 impl std::fmt::Debug for SharedCache {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("SharedCache")
+        f.debug_struct("SharedCache").finish_non_exhaustive()
     }
 }

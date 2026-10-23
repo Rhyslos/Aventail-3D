@@ -3046,6 +3046,7 @@ dependencies = [
  "glam",
  "mesh",
  "uv",
+ "words",
 ]
 
 [[package]]

@@ -6,6 +6,7 @@ use crate::object::ObjectId;
 use crate::tree::{Scene, SceneError};
 use mesh::ElementSelection;
 use std::collections::{BTreeMap, BTreeSet};
+use words::{tr, trf};
 
 /// Everything about the scene being worked on. The scene only changes
 /// through [`Document::execute`], [`Document::undo`] and
@@ -388,17 +389,17 @@ impl Document {
     /// objects" or "Deselect all".
     fn selection_label(&self) -> String {
         match self.selection.len() {
-            0 => "Deselect all".to_string(),
+            0 => tr("Deselect all").to_string(),
             1 => match self
                 .selection
                 .iter()
                 .next()
                 .and_then(|id| self.scene.object(*id))
             {
-                Some(object) => format!("Select {}", object.name),
-                None => "Select 1 object".to_string(),
+                Some(object) => trf!("Select {}", object.name),
+                None => tr("Select 1 object").to_string(),
             },
-            n => format!("Select {n} objects"),
+            n => trf!("Select {} objects", n),
         }
     }
 

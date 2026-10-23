@@ -4,6 +4,7 @@ use crate::stack::Stack;
 use glam::{Mat4, Vec3};
 use mesh::{Bounds, Mesh, Primitive};
 use std::sync::Arc;
+use words::{tr, trf};
 
 /// An object's identity. Stable for the object's whole life, never reused
 /// for another object (even after it is deleted), and handed out in order,
@@ -57,10 +58,10 @@ impl ObjectKind {
     /// The kind's name, used for new objects ("Group", "Cube").
     pub fn name(&self) -> &'static str {
         match self {
-            Self::Group => "Group",
+            Self::Group => tr("Group"),
             Self::Primitive(p) => p.name(),
-            Self::Mesh(_) => "Mesh",
-            Self::Instance(_) => "Instance",
+            Self::Mesh(_) => tr("Mesh"),
+            Self::Instance(_) => tr("Instance"),
         }
     }
 
@@ -206,19 +207,19 @@ impl ApplyParts {
     /// "position, rotation and scale".
     pub fn name(self) -> String {
         let names: Vec<&str> = [
-            (self.position, "position"),
-            (self.rotation, "rotation"),
-            (self.scale, "scale"),
+            (self.position, tr("position")),
+            (self.rotation, tr("rotation")),
+            (self.scale, tr("scale")),
         ]
         .into_iter()
         .filter(|(on, _)| *on)
         .map(|(_, name)| name)
         .collect();
         match names.as_slice() {
-            [] => "nothing".to_string(),
+            [] => tr("nothing").to_string(),
             [one] => (*one).to_string(),
-            [first, last] => format!("{first} and {last}"),
-            [a, b, c] => format!("{a}, {b} and {c}"),
+            [first, last] => trf!("{} and {}", first, last),
+            [a, b, c] => trf!("{}, {} and {}", a, b, c),
             _ => unreachable!("three parts at most"),
         }
     }
@@ -359,26 +360,26 @@ impl Collision {
     /// Its name.
     pub fn name(self) -> &'static str {
         match self {
-            Self::None => "None",
-            Self::Mesh => "The shape itself",
-            Self::Convex => "Wrapped (convex)",
-            Self::Box => "A box",
+            Self::None => tr("None"),
+            Self::Mesh => tr("The shape itself"),
+            Self::Convex => tr("Wrapped (convex)"),
+            Self::Box => tr("A box"),
         }
     }
 
     /// What it is for, in a sentence.
     pub fn description(self) -> &'static str {
         match self {
-            Self::None => "No collision: things pass through it",
-            Self::Mesh => {
+            Self::None => tr("No collision: things pass through it"),
+            Self::Mesh => tr(
                 "Collides exactly with the shape: accurate, for walls, floors and other parts \
-                 that don't move"
-            }
-            Self::Convex => {
+                 that don't move",
+            ),
+            Self::Convex => tr(
                 "Collides with the shape wrapped tightly, dents filled in: cheaper, and it can \
-                 move"
-            }
-            Self::Box => "Collides with a box around the shape: the cheapest",
+                 move",
+            ),
+            Self::Box => tr("Collides with a box around the shape: the cheapest"),
         }
     }
 }
@@ -396,10 +397,10 @@ pub struct Material {
 
 impl Material {
     /// The material every polygon uses until the object has others: the
-    /// viewport's grey, called "Default".
+    /// viewport's grey, called "Default" (in the language in use).
     pub fn standard() -> Self {
         Self {
-            name: "Default".to_string(),
+            name: tr("Default").to_string(),
             color: [0.735, 0.735, 0.74],
         }
     }

@@ -18,6 +18,8 @@ layer = 1
 mesh.workspace = true
 # Unwrapping, relaxing and straightening UVs (same layer).
 uv.workspace = true
+# The language layer for text a person reads (layer 0).
+words.workspace = true
 glam.workspace = true
 
 [lints]
