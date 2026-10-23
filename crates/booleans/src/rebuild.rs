@@ -58,10 +58,14 @@ pub(crate) fn rebuild(joined: &Joined, gl: &MeshGL64, options: &Options) -> Resu
                     from: *from,
                     corners,
                 }),
-                None => pieces.extend(component.iter().map(|t| Piece {
-                    from: *from,
-                    corners: tris[*t].to_vec(),
-                })),
+                None => pieces.extend(
+                    convex_pieces(&tris, &positions, &component)
+                        .into_iter()
+                        .map(|corners| Piece {
+                            from: *from,
+                            corners,
+                        }),
+                ),
             }
         }
     }
@@ -146,6 +150,122 @@ fn outline(tris: &[[usize; 3]], component: &[usize]) -> Option<Vec<usize>> {
         at = *next.get(&at)?;
     }
     (corners.len() == next.len() && corners.len() >= 3).then_some(corners)
+}
+
+/// A piece that isn't a disc (a ring round a hole) as few convex
+/// polygons: its triangles joined across their shared edges, longest
+/// first, wherever the joined polygon stays convex (straight corners
+/// allowed: points along an edge are shared with the polygon beside it).
+fn convex_pieces(tris: &[[usize; 3]], positions: &[Vec3], component: &[usize]) -> Vec<Vec<usize>> {
+    let at = |i: usize| positions[i];
+    // The piece's facing, from its triangles (all from one flat polygon).
+    let normal = component
+        .iter()
+        .map(|t| {
+            let [a, b, c] = tris[*t].map(at);
+            (b - a).cross(c - a)
+        })
+        .sum::<Vec3>()
+        .normalize_or_zero();
+    let mut polygons: Vec<Option<Vec<usize>>> =
+        component.iter().map(|t| Some(tris[*t].to_vec())).collect();
+    // Each inner edge, with the two triangles beside it, longest first.
+    let mut beside: HashMap<(usize, usize), Vec<usize>> = HashMap::new();
+    for (k, t) in component.iter().enumerate() {
+        let tri = tris[*t];
+        for i in 0..3 {
+            let (a, b) = (tri[i], tri[(i + 1) % 3]);
+            beside.entry((a.min(b), a.max(b))).or_default().push(k);
+        }
+    }
+    let mut inner: Vec<((usize, usize), usize, usize)> = beside
+        .into_iter()
+        .filter_map(|(edge, ks)| match ks[..] {
+            [x, y] => Some((edge, x, y)),
+            _ => None,
+        })
+        .collect();
+    inner.sort_by(|p, q| {
+        let length = |(a, b): (usize, usize)| at(a).distance_squared(at(b));
+        length(q.0).total_cmp(&length(p.0)).then(p.0.cmp(&q.0))
+    });
+    // Which polygon each triangle is now part of.
+    let mut owner: Vec<usize> = (0..component.len()).collect();
+    for ((a, b), x, y) in inner {
+        let (p, q) = (owner[x], owner[y]);
+        if p == q {
+            continue;
+        }
+        let (Some(one), Some(two)) = (&polygons[p], &polygons[q]) else {
+            continue;
+        };
+        let Some(joined) = join_across(one, two, a, b) else {
+            continue;
+        };
+        if !is_convex(&joined, positions, normal) {
+            continue;
+        }
+        polygons[p] = Some(joined);
+        polygons[q] = None;
+        for o in owner.iter_mut().filter(|o| **o == q) {
+            *o = p;
+        }
+    }
+    polygons.into_iter().flatten().collect()
+}
+
+/// Polygons `one` and `two` joined across their shared edge `a`–`b`, if
+/// they share nothing else.
+fn join_across(one: &[usize], two: &[usize], a: usize, b: usize) -> Option<Vec<usize>> {
+    // `one` runs a → b somewhere; start it at b so it ends at a.
+    let (i, j) = (
+        one.iter().position(|v| *v == a)?,
+        one.iter().position(|v| *v == b)?,
+    );
+    let (from, to) = if (i + 1) % one.len() == j {
+        (a, b)
+    } else if (j + 1) % one.len() == i {
+        (b, a)
+    } else {
+        return None;
+    };
+    let start = one.iter().position(|v| *v == to)?;
+    let mut joined: Vec<usize> = (0..one.len())
+        .map(|k| one[(start + k) % one.len()])
+        .collect();
+    // `two` runs to → from; walk it from `from` round to just before `to`.
+    let at = two.iter().position(|v| *v == from)?;
+    if two[(at + 1) % two.len()] == to {
+        return None;
+    }
+    let mut k = (at + 1) % two.len();
+    while two[k] != to {
+        if joined.contains(&two[k]) {
+            return None;
+        }
+        joined.push(two[k]);
+        k = (k + 1) % two.len();
+    }
+    Some(joined)
+}
+
+/// Whether the polygon through `corners` turns the same way at every
+/// corner, seen along `normal` (straight corners allowed).
+fn is_convex(corners: &[usize], positions: &[Vec3], normal: Vec3) -> bool {
+    let n = corners.len();
+    let size = corners
+        .iter()
+        .map(|c| positions[*c].distance_squared(positions[corners[0]]))
+        .fold(0.0_f32, f32::max);
+    let slack = size * 1e-6;
+    (0..n).all(|i| {
+        let (a, b, c) = (
+            positions[corners[i]],
+            positions[corners[(i + 1) % n]],
+            positions[corners[(i + 2) % n]],
+        );
+        (b - a).cross(c - b).dot(normal) >= -slack
+    })
 }
 
 /// Builds the mesh from `pieces`, carrying values from `original`.

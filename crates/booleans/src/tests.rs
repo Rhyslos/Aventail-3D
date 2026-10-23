@@ -137,6 +137,25 @@ fn a_cylinder_through_a_cube_leaves_a_round_hole() {
     // The four sides stay quads; the hole's 16 walls are quads too.
     let quads = result.faces().filter(|(_, c)| c.len() == 4).count();
     assert!(quads >= 4 + 16, "{quads}");
+    // The top and bottom, rings round the hole, are convex polygons
+    // (triangles joined where they stay convex), fewer than the 20
+    // triangles Manifold makes of each.
+    assert!(
+        result.face_count() <= 4 + 16 + 2 * 16,
+        "{}",
+        result.face_count()
+    );
+    for (face, corners) in result.faces() {
+        let n = result.face_normal(face);
+        let p: Vec<Vec3> = corners
+            .iter()
+            .map(|v| result.position(*v).unwrap())
+            .collect();
+        for i in 0..p.len() {
+            let (a, b, c) = (p[i], p[(i + 1) % p.len()], p[(i + 2) % p.len()]);
+            assert!((b - a).cross(c - b).dot(n) > -1e-2, "convex");
+        }
+    }
 }
 
 #[test]

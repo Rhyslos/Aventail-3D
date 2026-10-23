@@ -89,7 +89,7 @@ Aventail 3D (model + UV)  ──glTF/OBJ──►  Substance Painter (bake + tex
 | UV auto-unwrap + packing | xatlas (vendored C++, own thin bindings) | MIT |
 | Linear solver (LSCM / relax) | `faer` (sparse) | MIT |
 | Tangents | MikkTSpace port | Zlib-style (verify crate) |
-| Booleans (later) | manifold3d via `manifold-csg`, or `manifold-rust` (pure Rust) | Apache-2.0 / MIT |
+| Booleans | `manifold-rust` (pure Rust port of Manifold; decision 0135) | Apache-2.0 |
 | UI font | Inter | SIL OFL 1.1 |
 | Icons | Own SVGs, or Lucide (ISC) / Tabler (MIT) as a base | ISC / MIT |
 
@@ -104,6 +104,7 @@ Aventail-3D/
 ├─ crates/
 │  ├─ mesh/        # layer 0: mesh data structure, topology ops, geometry algorithms
 │  ├─ uv/          # layer 1: seams, unwrapping, relax, packing (wraps xatlas/faer)
+│  ├─ booleans/    # layer 1: union, subtract, intersect (wraps manifold-rust)
 │  ├─ scene/       # layer 1: objects, operation stacks, evaluation, commands, undo
 │  ├─ config/      # layer 1: settings, hotkeys, defaults
 │  ├─ fileio/      # layer 2: .avtl projects, OBJ, glTF (FBX later), settings file
@@ -945,3 +946,4 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-23 — **One numbered checker** ([0131](docs/decisions/0131-one-numbered-checker.md)), the project lead's choice: always the blue accent's colours, whatever the accent.
 - 2026-10-23 — **One language layer** ([0132](docs/decisions/0132-one-language-layer.md)): interface text goes through `tr`, `trf!` and `text!`, with English as the key and the one package (`crates/ui/lang/en.txt`); a test counts text not yet through it, file by file, and the count may only go down.
 - 2026-10-23 — **The key audit** ([0133](docs/decisions/0133-key-audit.md)): the project lead ticked three changes: Slide on Shift + Alt + drag (Alt + drag always moves the view), Ctrl + Shift + H as a second Show everything key, and Cmd for Ctrl in every text on a Mac. Frame selected (Z), Loop cut (F), Ctrl + wheel growing the selection and Ctrl + M stay. Holding Ctrl snaps one loop cut to the nearest tenth of the edge, the fifth being the middle.
+- 2026-10-23 — **Live booleans** ([0135](docs/decisions/0135-live-booleans.md)), Phase 10's first milestone, the project lead's choices: Union, Subtract and Intersect from Mesh → Booleans, the modifiers palette or command search, with no new keys; the object selected first is kept (the selection now remembers its order) and the others cut it. Cutters stay objects of their own, drawn as outlines; moving or editing one moves the cut, and Bake into shape makes it permanent (the cutters are then hidden, not deleted). Built on manifold-rust (pure Rust, Apache-2.0); the result is rebuilt into clean polygons with UVs, materials and hard edges; shapes that aren't closed solids are left uncut with the reason shown; heavy cuts are worked out on another thread. Development file format version 40.

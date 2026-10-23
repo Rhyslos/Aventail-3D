@@ -38,6 +38,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Clean-up: delete, dissolve, fill holes, flip normals and fix facing](clean-up.md)
 - [Hard and soft edges, and normals: each object's smoothing, crisp corners, smooth curves](hard-and-soft-edges.md)
 - [Split off and join: polygons into an object of their own, objects into one](split-and-join.md)
+- [Booleans: union, subtract and intersect, with cutters you can keep moving](booleans.md)
 - [Edit layers: keep sets of edits apart, switch them off, move, merge and delete them](edit-layers.md)
 - [The edit list: change, switch off, bake into the shape or delete any edit you've made](edit-list.md)
 - [Heavy shapes: millions of polygons, and the heavy test shape](heavy-shapes.md)

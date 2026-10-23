@@ -28,6 +28,8 @@ Whenever you want to change *what* an object is rather than where it is: make a 
 
 **Smoothing.** Under Collision, shapes have a **Smoothing** row: how the object's shading breaks into crisp edges. With **By angle** ticked (the standard), wherever its polygons meet more sharply than the angle beside it (**30°** as standard; drag or type it), worked out again after every change. Unticked, only the edges marked hard. Each object has its own. Instances follow their original, so they don't show the row. See [Hard and soft edges](hard-and-soft-edges.md#smoothed-by-angle).
 
+**Booleans.** A shape cut by [booleans](booleans.md) has a **Booleans** section: each boolean's kind (Union, Subtract or Intersect, changeable from the list), its cutters by name (click one to select it; **Take out** stops it cutting) and **Remove**. If the cut can't be made (a shape isn't a closed solid), it says why in amber, and the shape is shown uncut. A cutter's own panel says which shapes it **Cuts**.
+
 **Materials.** Every shape has a **Materials** section: its materials, each with a colour, a name, how many polygons use it and an **Assign** button that gives the selected polygons that material (in the Polygons mode). **Add material** and **Remove last** change the list. See [Materials](materials.md).
 
 **Mesh.** Every shape has a **Mesh** section (scroll down to it below the settings). It says what the shape is made of right now, settings and edits included:
