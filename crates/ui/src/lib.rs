@@ -29,6 +29,7 @@ mod selecting;
 mod settings;
 mod shape_picker;
 pub mod splash;
+pub mod text;
 #[cfg(test)]
 mod text_checks;
 pub mod theme;

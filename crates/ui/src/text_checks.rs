@@ -282,3 +282,227 @@ fn menu_paths_are_read_apart_and_end_at_punctuation() {
         ]
     );
 }
+
+/// Every string literal in `text` (outside its tests) with the code just
+/// before it, to tell interface text from ids, keys and messages for
+/// programmers.
+fn literals_in_context(text: &str) -> Vec<(String, String)> {
+    let code = without_tests(text);
+    let mut out = Vec::new();
+    let bytes: Vec<char> = code.chars().collect();
+    let mut i = 0;
+    let mut in_comment = false;
+    while i < bytes.len() {
+        let c = bytes[i];
+        if in_comment {
+            if c == '\n' {
+                in_comment = false;
+            }
+            i += 1;
+            continue;
+        }
+        if c == '/' && bytes.get(i + 1) == Some(&'/') {
+            in_comment = true;
+            i += 1;
+            continue;
+        }
+        // A raw string r"…" or r#"…"#: skipped (none hold interface text).
+        if c == 'r'
+            && matches!(bytes.get(i + 1), Some('"') | Some('#'))
+            && i > 0
+            && !bytes[i - 1].is_alphanumeric()
+        {
+            let mut j = i + 1;
+            let mut hashes = 0;
+            while bytes.get(j) == Some(&'#') {
+                hashes += 1;
+                j += 1;
+            }
+            if bytes.get(j) == Some(&'"') {
+                j += 1;
+                'raw: while j < bytes.len() {
+                    if bytes[j] == '"' && (0..hashes).all(|k| bytes.get(j + 1 + k) == Some(&'#')) {
+                        j += 1 + hashes;
+                        break 'raw;
+                    }
+                    j += 1;
+                }
+                i = j;
+                continue;
+            }
+        }
+        if c == '"' && !(i > 0 && bytes[i - 1] == '\'') {
+            let start = i.saturating_sub(40);
+            let before: String = bytes[start..i].iter().collect();
+            let mut s = String::new();
+            i += 1;
+            while i < bytes.len() {
+                match bytes[i] {
+                    '\\' => {
+                        i += 1;
+                        match bytes.get(i) {
+                            Some('\n') => {
+                                while bytes.get(i + 1).is_some_and(|c| c.is_whitespace()) {
+                                    i += 1;
+                                }
+                            }
+                            Some('n') => s.push('\n'),
+                            Some(other) => s.push(*other),
+                            None => {}
+                        }
+                    }
+                    '"' => break,
+                    other => s.push(other),
+                }
+                i += 1;
+            }
+            out.push((s, before));
+        }
+        i += 1;
+    }
+    out
+}
+
+/// Whether the code before a literal puts it through the language layer.
+fn through_the_layer(before: &str) -> bool {
+    let b = before.trim_end();
+    b.ends_with("tr(") || b.ends_with("trf!(") || b.ends_with("text!(")
+}
+
+/// Whether a literal is interface text at all: it has letters and reads as
+/// words (a space, or a capital first letter), and the code before it isn't
+/// an id, a key, a file name or a message for programmers.
+fn is_interface_text(literal: &str, before: &str) -> bool {
+    let words = literal.chars().any(|c| c.is_alphabetic())
+        && (literal.contains(' ') || literal.chars().next().is_some_and(char::is_uppercase));
+    if !words {
+        return false;
+    }
+    const NOT_TEXT: [&str; 22] = [
+        "Id::new(",
+        "id_salt(",
+        ".id(",
+        "panic!(",
+        "expect(",
+        "unreachable!(",
+        "assert!(",
+        "assert_eq!(",
+        "assert_ne!(",
+        "debug_assert!(",
+        "eprintln!(",
+        "println!(",
+        "#[path = ",
+        "#[expect(",
+        "#[allow(",
+        "env!(",
+        "include_str!(",
+        "rename = ",
+        "alias = ",
+        "std::env::var(",
+        "with_extension(",
+        "reason = ",
+    ];
+    let b = before.trim_end();
+    !NOT_TEXT.iter().any(|n| b.ends_with(n))
+}
+
+/// The interface's text, file by file: what goes through the language
+/// layer, and how much doesn't yet.
+fn texts_by_file() -> (
+    std::collections::BTreeSet<String>,
+    std::collections::BTreeMap<String, usize>,
+) {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let mut through = std::collections::BTreeSet::new();
+    let mut skipping = std::collections::BTreeMap::new();
+    for (path, text) in sources() {
+        if path.file_name().is_some_and(|n| n == "text.rs") {
+            continue;
+        }
+        let name = path
+            .strip_prefix(&root)
+            .unwrap()
+            .to_string_lossy()
+            .replace('\\', "/");
+        let mut count = 0;
+        for (literal, before) in literals_in_context(&text) {
+            if through_the_layer(&before) {
+                through.insert(literal);
+            } else if is_interface_text(&literal, &before) {
+                count += 1;
+            }
+        }
+        if count > 0 {
+            skipping.insert(name, count);
+        }
+    }
+    (through, skipping)
+}
+
+#[test]
+fn the_english_package_lists_every_text_and_no_more_text_skips_it() {
+    // Decision 0132: every text on screen goes through one language layer
+    // (`tr`, `trf!`, `text!`). `lang/en.txt` lists them all, for
+    // translators; `lang/skipping.txt` counts, file by file, the text that
+    // doesn't go through it yet. That count may only go down. After moving
+    // text into the layer, run with UPDATE_LANG=1 to write both again.
+    let lang = Path::new(env!("CARGO_MANIFEST_DIR")).join("lang");
+    let (through, skipping) = texts_by_file();
+    let package: String = std::iter::once(
+        "# The English package: every text in the interface, one per line.\n\
+         # Made by a test (UPDATE_LANG=1); a translation repeats each line\n\
+         # with \" = \" and the translation after it.\n"
+            .to_string(),
+    )
+    .chain(
+        through
+            .iter()
+            .map(|t| format!("{}\n", crate::text::escape(t))),
+    )
+    .collect();
+    let counts: String = skipping
+        .iter()
+        .map(|(file, n)| format!("{file} {n}\n"))
+        .collect();
+    if std::env::var_os("UPDATE_LANG").is_some() {
+        std::fs::create_dir_all(&lang).unwrap();
+        std::fs::write(lang.join("en.txt"), &package).unwrap();
+        std::fs::write(lang.join("skipping.txt"), &counts).unwrap();
+        return;
+    }
+    let kept = std::fs::read_to_string(lang.join("en.txt")).unwrap_or_default();
+    assert!(
+        kept == package,
+        "lang/en.txt is out of date: run this test with UPDATE_LANG=1"
+    );
+    let allowed: std::collections::BTreeMap<String, usize> =
+        std::fs::read_to_string(lang.join("skipping.txt"))
+            .unwrap_or_default()
+            .lines()
+            .filter_map(|l| {
+                let (file, n) = l.rsplit_once(' ')?;
+                Some((file.to_string(), n.parse().ok()?))
+            })
+            .collect();
+    let worse: Vec<String> = skipping
+        .iter()
+        .filter(|(file, n)| **n > allowed.get(*file).copied().unwrap_or(0))
+        .map(|(file, n)| {
+            format!(
+                "{file}: {n} texts skip the language layer (allowed {})",
+                allowed.get(file).copied().unwrap_or(0)
+            )
+        })
+        .collect();
+    assert!(
+        worse.is_empty(),
+        "put new text through tr(), trf!() or text!():\n{}",
+        worse.join("\n")
+    );
+    let total: usize = skipping.values().sum();
+    let allowed_total: usize = allowed.values().sum();
+    assert!(
+        total == allowed_total,
+        "less text skips the layer now ({total}, was {allowed_total}): run with UPDATE_LANG=1"
+    );
+}

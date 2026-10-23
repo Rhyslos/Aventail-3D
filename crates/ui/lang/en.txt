@@ -1,0 +1,5 @@
+# The English package: every text in the interface, one per line.
+# Made by a test (UPDATE_LANG=1); a translation repeats each line
+# with " = " and the translation after it.
+ (newest)
+ Ctrl + Z takes it back.
