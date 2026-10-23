@@ -60,7 +60,7 @@ impl Workbench {
             self.note = Some(tr("Assign: select some polygons first.").into());
             return;
         }
-        let label = crate::trf!("{} {}", counted(tr("Give"), count, "polygon"), name);
+        let label = crate::trf!("{} {}", counted(tr("Give"), count, tr("polygon")), name);
         if self.record_each(&label, ops) {
             self.note = Some(crate::trf!("{}. Ctrl + Z takes it back.", label));
         }

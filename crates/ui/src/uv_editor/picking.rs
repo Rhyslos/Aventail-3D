@@ -273,11 +273,11 @@ pub(super) fn whole_islands(
 
 fn kind_name(kind: ElementKind, n: usize) -> &'static str {
     match (kind, n == 1) {
-        (ElementKind::Points, true) => "point",
-        (ElementKind::Points, false) => "points",
-        (ElementKind::Edges, true) => "edge",
-        (ElementKind::Edges, false) => "edges",
-        (ElementKind::Polygons, true) => "polygon",
-        (ElementKind::Polygons, false) => "polygons",
+        (ElementKind::Points, true) => tr("point"),
+        (ElementKind::Points, false) => tr("points"),
+        (ElementKind::Edges, true) => tr("edge"),
+        (ElementKind::Edges, false) => tr("edges"),
+        (ElementKind::Polygons, true) => tr("polygon"),
+        (ElementKind::Polygons, false) => tr("polygons"),
     }
 }

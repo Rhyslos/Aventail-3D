@@ -455,8 +455,8 @@ fn side_entry<S>(ui: &mut Ui, section: &Section<'_, S>, chosen: bool) -> Respons
     );
     if let Some(badge) = &section.badge {
         let (word, color) = match badge {
-            Badge::On => ("on", ON),
-            Badge::Off => ("off", theme::TEXT_WEAK),
+            Badge::On => (tr("on"), ON),
+            Badge::Off => (tr("off"), theme::TEXT_WEAK),
         };
         painter.text(
             rect.right_center() - vec2(10.0, 0.0),

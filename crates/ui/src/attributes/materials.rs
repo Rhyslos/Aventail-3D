@@ -269,8 +269,8 @@ impl AttributesPanel {
                                 list[last].name,
                                 used,
                                 if used == 1 { "" } else { "s" },
-                                if used == 1 { "it" } else { "them" },
-                                if used == 1 { "it" } else { "them" }
+                                if used == 1 { tr("it") } else { tr("them") },
+                                if used == 1 { tr("it") } else { tr("them") }
                             ),
                         ));
                     } else {

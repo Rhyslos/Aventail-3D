@@ -83,7 +83,7 @@ impl Workbench {
         let label = counted(
             if hard { tr("Harden") } else { tr("Soften") },
             count,
-            "edge",
+            tr("edge"),
         );
         let key = self.new_step_key();
         let ids: Vec<scene::ObjectId> = ops.iter().map(|(id, _)| *id).collect();

@@ -116,7 +116,7 @@ impl Workbench {
             SeamPreference::Never => tr("Allow no seams on"),
             SeamPreference::Free => tr("Clear the seam preference of"),
         };
-        let label = counted(verb, count, "edge");
+        let label = counted(verb, count, tr("edge"));
         if self.record_each(&label, ops) {
             let why = match preference {
                 SeamPreference::Prefer => {
@@ -181,7 +181,7 @@ impl Workbench {
         } else {
             tr("Clear the stretch budget of")
         };
-        let label = counted(verb, count, "polygon");
+        let label = counted(verb, count, tr("polygon"));
         if self.record_each(&label, ops) {
             let why = match budget {
                 Some(b) => crate::trf!(

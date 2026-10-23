@@ -178,7 +178,7 @@ impl AttributesPanel {
                      the shape, so they no longer have to be made again: big models stay quick. \
                      The shape doesn't change, but those edits can't be changed any more.",
                     if count == 1 {
-                        "edit".to_string()
+                        tr("edit").to_string()
                     } else {
                         crate::trf!("{} edits", count)
                     }

@@ -305,15 +305,15 @@ fn general(
         &[
             (
                 thousands(summary.objects),
-                plural(summary.objects, "object", "objects"),
+                plural(summary.objects, tr("object"), tr("objects")),
             ),
             (
                 thousands(summary.triangles),
-                plural(summary.triangles, "triangle", "triangles"),
+                plural(summary.triangles, tr("triangle"), tr("triangles")),
             ),
             (
                 thousands(summary.materials),
-                plural(summary.materials, "material", "materials"),
+                plural(summary.materials, tr("material"), tr("materials")),
             ),
         ],
     );
@@ -334,15 +334,15 @@ pub(crate) fn settings_line(preset: ExportPreset) -> String {
         "{} · {} · {} · {}",
         settings.format.name(),
         match options.units {
-            FileUnits::Metres => "metres",
-            FileUnits::Centimetres => "centimetres",
+            FileUnits::Metres => tr("metres"),
+            FileUnits::Centimetres => tr("centimetres"),
         },
         match options.up {
             UpAxis::Y => tr("Y up"),
             UpAxis::Z => tr("Z up"),
         },
         if options.triangulate {
-            "triangles"
+            tr("triangles")
         } else {
             tr("polygons kept")
         }

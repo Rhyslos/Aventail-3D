@@ -421,7 +421,7 @@ impl Selector<'_> {
                  or Mesh → Fix normals turns every one.",
                 found,
                 if found == 1 { "" } else { "s" },
-                if found == 1 { "it" } else { "them" }
+                if found == 1 { tr("it") } else { tr("them") }
             )
         })
     }

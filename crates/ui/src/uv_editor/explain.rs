@@ -147,9 +147,9 @@ pub(crate) fn piece_text(f: &PieceFacts) -> String {
         "Piece of {} {}",
         f.polygons,
         if f.polygons == 1 {
-            "polygon"
+            tr("polygon")
         } else {
-            "polygons"
+            tr("polygons")
         }
     )];
     if f.locked {

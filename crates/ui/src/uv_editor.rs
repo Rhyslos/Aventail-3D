@@ -397,9 +397,17 @@ impl UvEditor {
             crate::trf!(
                 "{} {} · {} {}{}",
                 islands,
-                if islands == 1 { "piece" } else { "pieces" },
+                if islands == 1 {
+                    tr("piece")
+                } else {
+                    tr("pieces")
+                },
                 polygons,
-                if polygons == 1 { "polygon" } else { "polygons" },
+                if polygons == 1 {
+                    tr("polygon")
+                } else {
+                    tr("polygons")
+                },
                 hint
             )
         };

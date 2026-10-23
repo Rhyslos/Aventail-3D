@@ -286,9 +286,9 @@ impl Workbench {
             .map(|t| t.faces.len().max(t.points.len()))
             .sum();
         let noun = if targets.iter().all(|t| t.faces.is_empty()) {
-            "point"
+            tr("point")
         } else {
-            "polygon"
+            tr("polygon")
         };
         let ops = targets
             .into_iter()

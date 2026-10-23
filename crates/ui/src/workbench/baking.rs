@@ -117,15 +117,18 @@ impl Kind {
     pub(crate) fn text(&self) -> String {
         match self {
             Self::Flipped(f) => {
-                crate::trf!("{} facing the wrong way", counted("", f.len(), "polygon"))
+                crate::trf!(
+                    "{} facing the wrong way",
+                    counted("", f.len(), tr("polygon"))
+                )
             }
             Self::NonManifold(e) => crate::trf!(
                 "{} shared by three or more polygons",
-                counted("", e.len(), "edge")
+                counted("", e.len(), tr("edge"))
             ),
-            Self::Flat(f) => crate::trf!("{} with no area", counted("", f.len(), "polygon")),
+            Self::Flat(f) => crate::trf!("{} with no area", counted("", f.len(), tr("polygon"))),
             Self::ShortEdges(e, _) => {
-                crate::trf!("{} with no length", counted("", e.len(), "edge"))
+                crate::trf!("{} with no length", counted("", e.len(), tr("edge")))
             }
             Self::Bent(f) => crate::trf!(
                 "{} bent out of flat",
@@ -135,41 +138,48 @@ impl Kind {
                 "{} cut into sliver triangles",
                 counted("", f.len(), tr("many-sided polygon"))
             ),
-            Self::Loose(p) => crate::trf!("{} no polygon uses", counted("", p.len(), "point")),
+            Self::Loose(p) => crate::trf!("{} no polygon uses", counted("", p.len(), tr("point"))),
             Self::Unpaired(partner) => crate::trf!("no partner called {}", partner),
             Self::NoUvs => tr("no UVs").to_string(),
             Self::HardJoined(e) => crate::trf!(
                 "{} that {} UV seams",
                 counted("", e.len(), tr("hard edge")),
-                if e.len() == 1 { "isn't" } else { "aren't" }
+                if e.len() == 1 {
+                    tr("isn't")
+                } else {
+                    tr("aren't")
+                }
             ),
             Self::Folded(f) => crate::trf!(
                 "{} folded over or squashed flat in the UVs",
-                counted("", f.len(), "polygon")
+                counted("", f.len(), tr("polygon"))
             ),
             Self::Outside(f) => crate::trf!(
                 "{} outside the texture square",
-                counted("", f.len(), "polygon")
+                counted("", f.len(), tr("polygon"))
             ),
             Self::Overlapping(f) => {
-                crate::trf!("{} lying over other UVs", counted("", f.len(), "polygon"))
+                crate::trf!(
+                    "{} lying over other UVs",
+                    counted("", f.len(), tr("polygon"))
+                )
             }
             Self::Stacked(f, _) => crate::trf!(
                 "{} stacked on identical pieces",
-                counted("", f.len(), "polygon")
+                counted("", f.len(), tr("polygon"))
             ),
             Self::TooClose(f, padding) => crate::trf!(
                 "{} closer than {} px to other pieces",
-                counted("", f.len(), "polygon"),
+                counted("", f.len(), tr("polygon")),
                 padding
             ),
             Self::Uneven(f, _) => crate::trf!(
                 "{} with uneven texel density",
-                counted("", f.len(), "polygon")
+                counted("", f.len(), tr("polygon"))
             ),
             Self::TrimShared(f) => crate::trf!(
                 "{} on the trim sheet sharing a texture with other pieces",
-                counted("", f.len(), "polygon")
+                counted("", f.len(), tr("polygon"))
             ),
         }
         .trim_start()
@@ -610,7 +620,7 @@ impl Workbench {
         } else {
             crate::trf!(
                 "{} that would spoil a bake in Substance Painter.",
-                counted("", problems.len(), "thing").trim_start()
+                counted("", problems.len(), tr("thing")).trim_start()
             )
         };
         let outcome =

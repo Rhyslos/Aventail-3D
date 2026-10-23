@@ -113,7 +113,7 @@ impl Workbench {
             self.note = Some(crate::trf!("Couldn't hide that: {}.", why));
             return;
         }
-        let things = if n == 1 { "object" } else { "objects" };
+        let things = if n == 1 { tr("object") } else { tr("objects") };
         self.note = Some(crate::trf!(
             "{} {} {}. Alt + H shows everything again.",
             if what == Hiding::Selection {
@@ -188,9 +188,9 @@ impl Workbench {
         };
         self.document.select_elements(selections, label, None);
         let things = if hidden_now == 1 {
-            "polygon"
+            tr("polygon")
         } else {
-            "polygons"
+            tr("polygons")
         };
         self.note = Some(crate::trf!(
             "{} {} {}. Alt + H shows everything again.",

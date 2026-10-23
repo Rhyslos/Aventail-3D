@@ -104,9 +104,9 @@ impl Workbench {
                      for fine steps; Esc cancels.",
                     tool.name(),
                     match tool {
-                        Tool::Rotate => "turn",
-                        Tool::Scale => "scale",
-                        _ => "slide",
+                        Tool::Rotate => tr("turn"),
+                        Tool::Scale => tr("scale"),
+                        _ => tr("slide"),
                     }
                 )
             }

@@ -106,9 +106,9 @@ pub(super) fn chosen(mode: Mode, selected: &scene::ElementSelection, mesh: &scen
 /// The name of the current mode's elements, for messages.
 fn thing(mode: Mode) -> &'static str {
     match mode {
-        Mode::Points => "point",
-        Mode::Edges => "edge",
-        _ => "polygon",
+        Mode::Points => tr("point"),
+        Mode::Edges => tr("edge"),
+        _ => tr("polygon"),
     }
 }
 
@@ -361,7 +361,7 @@ impl Workbench {
             self.note = Some(tr("Flip normals: select some polygons first.").into());
             return;
         }
-        let label = counted(tr("Flip"), count, "polygon");
+        let label = counted(tr("Flip"), count, tr("polygon"));
         if self.record_each(&label, ops) {
             self.note = Some(crate::trf!("{}. Ctrl + Z takes it back.", label));
         }
@@ -390,7 +390,7 @@ impl Workbench {
         if self.record_each(tr("Fix normals"), ops) {
             self.note = Some(crate::trf!(
                 "Turned {} the right way round. Ctrl + Z takes it back.",
-                counted("", count, "polygon").trim_start()
+                counted("", count, tr("polygon")).trim_start()
             ));
         }
     }

@@ -1604,10 +1604,16 @@ an object
 an unsaved scene
 and scaling every
 any program
+aren't
 bend segments
 border edge
+centimetres
+closing
+cuts
+day
 drag a box around what to select
 draw a loop around what to select
+edge
 edge between faces facing opposite ways
 edge shared by three or more faces
 edge with no length
@@ -1616,44 +1622,74 @@ edges
 edges between faces facing opposite ways
 edges shared by three or more faces
 edges with no length
+edit
 face with no area
 faces with no area
 glTF (.glb)
 glTF is always metres, Y up and triangles: every program reads it that way.
 hard
 hard edge
+hour
+isn't
+it
 it was
 just now
+locked
 locked piece
 loose point
 loose points
 many-sided polygon
+material
+materials
+metres
+minute
 new edits
 no UVs
 no graphics device
 no limit
 no partner called {}
+object
+objects
+off
 off, selecting through
+on
 on, only what you can see
 opening another project
 paint over what to select; Ctrl + wheel changes the brush size
 parts missing
+piece
+pieces
+point
 point {} of {}
+points
+polygon
 polygon {} of {}
 polygons
 polygons kept
 s were
+scale
+seam
+segments
 selected 
 selected edges
 selected polygons' edges
 skipped
+slide
 soft
 starting a new project
+step
+steps
 the game engine
 the selection's UVs
 the shape
 the texture square
+them
 they were
+thing
+triangle
+triangles
+turn
+unlocked
 with
 without
 {:.1} MB

@@ -164,9 +164,9 @@ pub fn ago(saved: SystemTime, now: SystemTime) -> String {
     let seconds = now.duration_since(saved).map_or(0, |d| d.as_secs());
     let (n, unit) = match seconds {
         0..60 => return tr("just now").to_string(),
-        60..3_600 => (seconds / 60, "minute"),
-        3_600..86_400 => (seconds / 3_600, "hour"),
-        _ => (seconds / 86_400, "day"),
+        60..3_600 => (seconds / 60, tr("minute")),
+        3_600..86_400 => (seconds / 3_600, tr("hour")),
+        _ => (seconds / 86_400, tr("day")),
     };
     crate::trf!("{} {}{} ago", n, unit, if n == 1 { "" } else { "s" })
 }

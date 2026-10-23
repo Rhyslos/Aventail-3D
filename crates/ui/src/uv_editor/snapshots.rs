@@ -63,7 +63,11 @@ pub(crate) fn take(doc: &mut Document, name: Option<&str>) -> Result<String, Str
         "Took “{}” of {} {}.",
         name,
         objects,
-        if objects == 1 { "object" } else { "objects" }
+        if objects == 1 {
+            tr("object")
+        } else {
+            tr("objects")
+        }
     ))
 }
 
@@ -203,7 +207,11 @@ pub(crate) fn snapshots_menu(ui: &mut Ui, doc: &mut Document, editor: &mut UvEdi
                         "Put this layout back: the UVs and seams of {} {}, as one step to undo. \
                          Polygons made since keep theirs.",
                         objects,
-                        if objects == 1 { "object" } else { "objects" }
+                        if objects == 1 {
+                            tr("object")
+                        } else {
+                            tr("objects")
+                        }
                     ))
                     .on_disabled_hover_text(tr("The objects it was taken of are gone"))
                     .clicked()

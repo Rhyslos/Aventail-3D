@@ -152,7 +152,7 @@ impl Workbench {
         } else {
             tr("Clear the seams of")
         };
-        let label = counted(verb, count, "edge");
+        let label = counted(verb, count, tr("edge"));
         if self.record_each(&label, ops) {
             self.note = Some(crate::trf!(
                 "{}. Ctrl + Z takes it back.{}",
@@ -305,7 +305,7 @@ impl Workbench {
         if self.record_each(tr(SUGGEST_SEAMS_LABEL), ops) {
             self.note = Some(crate::trf!(
                 "{} suggested ({} changed). Ctrl + Z takes it back.{}",
-                counted("", total, "seam").trim_start(),
+                counted("", total, tr("seam")).trim_start(),
                 changed,
                 self.seams_hint()
             ));

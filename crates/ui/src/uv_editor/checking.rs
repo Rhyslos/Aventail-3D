@@ -161,7 +161,7 @@ impl WarningCounts {
 /// mirrored and stick out of the square.
 pub(crate) fn warning_text(counts: WarningCounts) -> Option<String> {
     let mut parts = Vec::new();
-    let pieces = |n: usize| if n == 1 { "piece" } else { "pieces" };
+    let pieces = |n: usize| if n == 1 { tr("piece") } else { tr("pieces") };
     if counts.overlapping > 0 {
         parts.push(crate::trf!(
             "{} {} overlapping",

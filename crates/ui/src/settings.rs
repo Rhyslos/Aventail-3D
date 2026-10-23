@@ -515,7 +515,7 @@ fn undo(ui: &mut Ui, values: &mut Values<'_>) {
         format_bytes(bytes),
         values.undo_memory.short(),
         steps,
-        if steps == 1 { "step" } else { "steps" }
+        if steps == 1 { tr("step") } else { tr("steps") }
     ));
     ui.add_space(4.0);
     for choice in UndoMemory::ALL {

@@ -256,11 +256,11 @@ impl ModellingSession {
             }
         };
         let what = if edges > 0 {
-            count(edges, "edge")
+            count(edges, tr("edge"))
         } else if points > 0 {
-            count(points, "point")
+            count(points, tr("point"))
         } else {
-            count(polygons, "polygon")
+            count(polygons, tr("polygon"))
         };
         crate::trf!("{} {}", self.tool.name(), what)
     }
@@ -465,12 +465,12 @@ impl Workbench {
         };
         let (name, max, tool_count) = match self.tool {
             Tool::Bevel => (
-                "segments",
+                tr("segments"),
                 mesh::bevel::MAX_SEGMENTS,
                 self.attributes.bevel.segments,
             ),
             Tool::LoopCut => (
-                "cuts",
+                tr("cuts"),
                 mesh::loopcut::MAX_CUTS,
                 self.attributes.loop_cut.cuts,
             ),
@@ -480,12 +480,12 @@ impl Workbench {
                 self.attributes.bend.segments,
             ),
             Tool::Extrude => (
-                "steps",
+                tr("steps"),
                 mesh::edit::MAX_EXTRUDE_STEPS,
                 self.attributes.extrude.steps,
             ),
             Tool::Bridge => (
-                "segments",
+                tr("segments"),
                 mesh::join::MAX_BRIDGE_SEGMENTS,
                 self.attributes.join.bridge.0,
             ),

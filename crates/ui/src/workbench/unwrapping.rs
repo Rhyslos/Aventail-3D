@@ -518,7 +518,7 @@ impl Workbench {
             UvTool::Relax => tr("Relax the UVs of"),
             UvTool::Straighten => tr("Straighten the UVs of"),
         };
-        let label = counted(verb, count, "polygon");
+        let label = counted(verb, count, tr("polygon"));
         if self.record_each(&label, ops) {
             let extra = match tool {
                 UvTool::Straighten if !quads_only => {
@@ -588,7 +588,7 @@ impl Workbench {
                 )
             })
             .collect();
-        let label = counted(tr("Set the texel density of"), count, "polygon");
+        let label = counted(tr("Set the texel density of"), count, tr("polygon"));
         if self.record_each(&label, ops) {
             self.note = Some(crate::trf!(
                 "{}: {:.0} px/m. Ctrl + Z takes it back.",
@@ -692,7 +692,7 @@ impl Workbench {
             .into_iter()
             .map(|(id, islands)| (id, Operation::PackUvs { islands }))
             .collect();
-        let label = counted(tr("Pack"), islands, "piece");
+        let label = counted(tr("Pack"), islands, tr("piece"));
         let key = key.unwrap_or_else(|| self.new_step_key());
         let done = self.record_each_in(&label, ops, key);
         if done {
@@ -791,7 +791,7 @@ impl Workbench {
         if self.record_each(&label, ops) {
             self.note = Some(crate::trf!(
                 "{} on {}. Slide along it with W; Ctrl + Z takes it back.",
-                counted(tr("Laid"), pieces, "piece"),
+                counted(tr("Laid"), pieces, tr("piece")),
                 row.name
             ));
         }

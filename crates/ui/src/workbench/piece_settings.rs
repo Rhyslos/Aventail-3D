@@ -90,7 +90,7 @@ impl Workbench {
             ));
         }
         if ops.is_empty() {
-            let how = if lock { "locked" } else { "unlocked" };
+            let how = if lock { tr("locked") } else { tr("unlocked") };
             self.note = Some(crate::trf!("{}: those pieces are {} already.", name, how));
             return;
         }
@@ -99,7 +99,7 @@ impl Workbench {
         } else {
             tr("Unlock the UVs of")
         };
-        let label = counted(verb, count, "polygon");
+        let label = counted(verb, count, tr("polygon"));
         if self.record_each(&label, ops) {
             let why = if lock {
                 tr(" No automatic tool changes them; move them by hand as usual.")
@@ -160,7 +160,7 @@ impl Workbench {
         } else {
             tr("Set the piece settings of")
         };
-        let label = counted(verb, count, "polygon");
+        let label = counted(verb, count, tr("polygon"));
         if self.record_each(&label, ops) {
             let why = if settings.is_empty() {
                 tr(" They follow the app's settings again.")

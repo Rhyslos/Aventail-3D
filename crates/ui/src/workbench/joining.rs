@@ -160,7 +160,7 @@ impl Workbench {
                 ));
             }
         }
-        let thing = if edges_mode { "edge" } else { "point" };
+        let thing = if edges_mode { tr("edge") } else { tr("point") };
         if ops.is_empty() {
             self.note = Some(crate::trf!(
                 "Connect: select two or more {}s on the same polygon first.",
@@ -284,7 +284,7 @@ impl Workbench {
             );
             return;
         }
-        let label = counted(tr("Weld"), count, "point");
+        let label = counted(tr("Weld"), count, tr("point"));
         if self.record_each(&label, ops) {
             self.note = Some(crate::trf!(
                 "{} at their middle. Ctrl + Z takes it back.",
@@ -336,7 +336,7 @@ impl Workbench {
             );
             return;
         }
-        let label = counted(tr("Weld"), polygons, "polygon");
+        let label = counted(tr("Weld"), polygons, tr("polygon"));
         if self.record_each(&label, ops) {
             self.note = Some(crate::trf!(
                 "{} into a point at the middle. Ctrl + Z takes it back.",
@@ -518,7 +518,7 @@ impl Workbench {
                 };
                 let mut places: Vec<Vec<VertexId>> = points.iter().map(|p| vec![*p]).collect();
                 places.push(vec![target]);
-                let label = counted(tr("Weld"), points.len() + 1, "point");
+                let label = counted(tr("Weld"), points.len() + 1, tr("point"));
                 let op = Operation::Weld {
                     points,
                     target: Some(target),
@@ -557,7 +557,7 @@ impl Workbench {
                 }
                 let mut places: Vec<Vec<VertexId>> = points.iter().map(|p| vec![*p]).collect();
                 places.push(vec![target]);
-                let label = counted(tr("Weld"), faces.len(), "polygon");
+                let label = counted(tr("Weld"), faces.len(), tr("polygon"));
                 let op = Operation::Weld {
                     points,
                     target: Some(target),

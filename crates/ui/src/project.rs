@@ -40,7 +40,7 @@ impl Pending {
         match self {
             Self::New => tr("starting a new project"),
             Self::Open(_) => tr("opening another project"),
-            Self::Quit => "closing",
+            Self::Quit => tr("closing"),
         }
     }
 }
