@@ -32,10 +32,14 @@ tool_menu.rs 20
 transforming.rs 36
 undo_memory.rs 17
 units.rs 2
-uv_editor.rs 50
+uv_editor.rs 6
 uv_editor/checking.rs 11
 uv_editor/explain.rs 23
 uv_editor/gizmo.rs 3
+uv_editor/menus.rs 32
+uv_editor/navigation.rs 2
+uv_editor/painting.rs 7
+uv_editor/picking.rs 3
 uv_editor/snapshots.rs 30
 viewport.rs 2
 viewport/chrome.rs 44
