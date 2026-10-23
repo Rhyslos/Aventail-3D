@@ -13,6 +13,7 @@ use glam::Vec3;
 use mesh::symmetry::Mirror;
 use scene::{EdgeKey, Operation, VertexId};
 use serde::{Deserialize, Serialize};
+use words::tr;
 
 /// A recorded edit in version 29.
 pub(crate) type EntryV29 = EntryWith<OperationV29>;
@@ -77,7 +78,7 @@ impl SeamsV29 {
             .into_iter()
             .map(|[a, b]| {
                 if a == b {
-                    Err("one of its seams joins a point to itself".to_string())
+                    Err(tr("one of its seams joins a point to itself").to_string())
                 } else {
                     Ok(EdgeKey::new(VertexId::from_raw(a), VertexId::from_raw(b)))
                 }
@@ -121,10 +122,10 @@ impl FileOperation for OperationV29 {
             } => {
                 let centre = Vec3::from_array(centre);
                 if !centre.is_finite() {
-                    return Err("a mirror's middle isn't a real number".to_string());
+                    return Err(tr("a mirror's middle isn't a real number").to_string());
                 }
                 if !axes.contains(&true) {
-                    return Err("a mirrored edit mirrors across no axis".to_string());
+                    return Err(tr("a mirrored edit mirrors across no axis").to_string());
                 }
                 Ok(Operation::Mirrored {
                     op: Box::new(op.into_operation()?),

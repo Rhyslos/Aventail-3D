@@ -14,6 +14,7 @@ use super::v30::OperationV30;
 use crate::limits::Bounded;
 use scene::{Document, FaceId, Operation, TextureSettings};
 use serde::{Deserialize, Serialize};
+use words::tr;
 
 /// A recorded edit in version 31.
 pub(crate) type EntryV31 = EntryWith<OperationV31>;
@@ -55,7 +56,7 @@ impl<E: FileOperation> ProjectV31<E> {
             density: self.texture.density,
         };
         if !texture.is_valid() {
-            return Err("its texture size or texel density is out of range".into());
+            return Err(tr("its texture size or texel density is out of range").into());
         }
         Ok(self.project.into_document()?.with_texture(texture))
     }
@@ -105,7 +106,7 @@ impl FileOperation for OperationV31 {
                     anchors: anchors.map(anchors_from_file).transpose()?,
                 };
                 if !operation.numbers_are_real() {
-                    return Err("a texel density isn't a real number above 0".into());
+                    return Err(tr("a texel density isn't a real number above 0").into());
                 }
                 Ok(operation)
             }

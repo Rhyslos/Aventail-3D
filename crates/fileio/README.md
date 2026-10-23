@@ -17,7 +17,7 @@ Reads and writes the outside world's files: the versioned `.avtl` project format
 
 ## Depends on
 
-`scene`, `mesh`; `uv` and `config` planned. Outside libraries: `serde`, `postcard` and `ciborium` (encoding), `zstd` (compression), `glam`.
+`scene`, `mesh`, `words` (the language layer: errors and warnings a person reads go through it, [decision 0134](../../docs/decisions/0134-shared-language-crate.md)); `uv` and `config` planned. Outside libraries: `serde`, `postcard` and `ciborium` (encoding), `zstd` (compression), `glam`.
 
 ## Status
 

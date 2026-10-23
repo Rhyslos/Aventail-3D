@@ -16,6 +16,7 @@ use super::v35::{HideV35, OperationV35, hide_from_file, hide_to_file};
 use crate::limits::Bounded;
 use scene::{FaceId, Operation, SeamPreference, UnwrapOptions};
 use serde::{Deserialize, Serialize};
+use words::tr;
 
 /// A recorded edit in version 36.
 pub(crate) type EntryV36 = EntryWith<OperationV36>;
@@ -134,7 +135,8 @@ impl FileOperation for OperationV36 {
                     .into_iter()
                     .map(|[a, b]| {
                         if a == b {
-                            Err("one of its seam preferences joins a point to itself".to_string())
+                            Err(tr("one of its seam preferences joins a point to itself")
+                                .to_string())
                         } else {
                             Ok(scene::EdgeKey::new(
                                 scene::VertexId::from_raw(a),
@@ -178,7 +180,7 @@ impl FileOperation for OperationV36 {
             },
         };
         if !operation.numbers_are_real() {
-            return Err("a stretch budget or unwrap setting is out of range".into());
+            return Err(tr("a stretch budget or unwrap setting is out of range").into());
         }
         Ok(operation)
     }

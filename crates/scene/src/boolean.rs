@@ -15,6 +15,7 @@ use glam::Mat4;
 use mesh::Mesh;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use words::{text, tr, trf};
 
 pub use booleans::Kind as BooleanKind;
 
@@ -52,19 +53,20 @@ pub enum BooleanRefusal {
 
 impl std::fmt::Display for BooleanRefusal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(match self {
-            Self::NoCutter => "select the shape to keep, then Ctrl + click the cutters",
-            Self::CutsItself => "a shape can't cut itself",
-            Self::Loop => {
+        let why = match self {
+            Self::NoCutter => text!("select the shape to keep, then Ctrl + click the cutters"),
+            Self::CutsItself => text!("a shape can't cut itself"),
+            Self::Loop => text!(
                 "the cutter is already cut by this shape (or shows it), so each would wait for \
                  the other"
-            }
-            Self::NotAShape => "a group has no shape: pick shapes",
-            Self::Instance => {
+            ),
+            Self::NotAShape => text!("a group has no shape: pick shapes"),
+            Self::Instance => text!(
                 "it's an instance: give its original the boolean, or bake it into a shape first"
-            }
-            Self::TooMany => "a shape can have at most 64 cutters",
-        })
+            ),
+            Self::TooMany => text!("a shape can have at most 64 cutters"),
+        };
+        f.write_str(tr(why))
     }
 }
 
@@ -118,7 +120,7 @@ impl PartialEq for CutCache {
 
 impl std::fmt::Debug for CutCache {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("CutCache")
+        f.debug_struct("CutCache").finish_non_exhaustive()
     }
 }
 
@@ -399,18 +401,22 @@ impl Scene {
             Ok(_) => None,
             Err(BooleanProblem::Kept(problem)) => Some(capitalised(&problem.to_string())),
             Err(BooleanProblem::Cutter(cutter, problem)) => {
-                let reason = match problem {
-                    booleans::Problem::CutterNotClosed(_) => {
-                        "isn't a closed solid: it has holes in its surface, or edges shared by \
-                         more than two polygons"
-                            .to_string()
+                let cutter = name(cutter);
+                Some(match problem {
+                    booleans::Problem::CutterNotClosed(_) => trf!(
+                        "The cutter {} isn't a closed solid: it has holes in its surface, or \
+                         edges shared by more than two polygons",
+                        cutter
+                    ),
+                    booleans::Problem::CutterFlat(_) => {
+                        trf!("The cutter {} is squashed flat", cutter)
                     }
-                    booleans::Problem::CutterFlat(_) => "is squashed flat".to_string(),
-                    other => format!("can't be used: {other}"),
-                };
-                Some(format!("The cutter {} {reason}", name(cutter)))
+                    other => trf!("The cutter {} can't be used: {}", cutter, other),
+                })
             }
-            Err(BooleanProblem::Loop) => Some("The shapes cut each other in a loop".to_string()),
+            Err(BooleanProblem::Loop) => {
+                Some(tr("The shapes cut each other in a loop").to_string())
+            }
         }
     }
 

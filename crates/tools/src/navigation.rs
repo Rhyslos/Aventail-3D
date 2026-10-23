@@ -18,6 +18,7 @@ use crate::camera::{Camera, DEFAULT_TARGET, MAX_PITCH};
 use glam::{Vec2, Vec3};
 use mesh::Bounds;
 use serde::{Deserialize, Serialize};
+use words::{text, tr};
 
 /// How far the view turns per unit of mouse movement while orbiting, in
 /// radians (0.3° per pixel: a drag across a typical viewport turns the
@@ -83,13 +84,13 @@ impl ViewKind {
 
     /// The view's name, as shown in its corner.
     pub fn name(self) -> &'static str {
-        match self {
-            Self::Perspective => "Perspective",
-            Self::Top => "Top",
-            Self::Front => "Front",
-            Self::Right => "Right",
-            Self::Orthographic => "Orthographic",
-        }
+        tr(match self {
+            Self::Perspective => text!("Perspective"),
+            Self::Top => text!("Top"),
+            Self::Front => text!("Front"),
+            Self::Right => text!("Right"),
+            Self::Orthographic => text!("Orthographic"),
+        })
     }
 
     /// Whether the view is flat (orthographic).

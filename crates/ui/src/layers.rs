@@ -649,7 +649,10 @@ impl LayersPanel {
                 right = at.left() - 8.0;
             };
             if let Some(problem) = crate::attributes::edit_warning(&warnings, index, place) {
-                let word = if problem.starts_with("Skipped") {
+                let skipped = warnings
+                    .iter()
+                    .any(|w| w.layer == index && w.operation == place && w.too_big);
+                let word = if skipped {
                     tr(SKIPPED_MARK)
                 } else {
                     tr(MISSING_MARK)

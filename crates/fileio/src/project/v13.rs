@@ -13,6 +13,7 @@ use crate::limits::Bounded;
 use mesh::VertexId;
 use scene::{Operation, Slide};
 use serde::{Deserialize, Serialize};
+use words::tr;
 
 /// Version 13 of the file.
 #[cfg(test)]
@@ -55,10 +56,10 @@ impl FileOperation for OperationV13 {
                     .into_iter()
                     .map(|(point, towards, amount)| {
                         if !amount.is_finite() {
-                            return Err("a slide's amount isn't a real number".to_string());
+                            return Err(tr("a slide's amount isn't a real number").to_string());
                         }
                         if point == towards {
-                            return Err("a point slides towards itself".to_string());
+                            return Err(tr("a point slides towards itself").to_string());
                         }
                         Ok(Slide {
                             point: VertexId::from_raw(point),

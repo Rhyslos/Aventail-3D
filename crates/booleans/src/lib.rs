@@ -34,6 +34,7 @@ mod solid;
 
 use glam::Mat4;
 use mesh::Mesh;
+use words::{tr, trf};
 
 /// What a cutter does to the shape it cuts.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -54,9 +55,9 @@ impl Kind {
     /// Its name, as menus show it.
     pub fn name(self) -> &'static str {
         match self {
-            Self::Union => "Union",
-            Self::Subtract => "Subtract",
-            Self::Intersect => "Intersect",
+            Self::Union => tr("Union"),
+            Self::Subtract => tr("Subtract"),
+            Self::Intersect => tr("Intersect"),
         }
     }
 }
@@ -112,18 +113,18 @@ pub enum Problem {
 impl std::fmt::Display for Problem {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::KeptNotClosed => f.write_str(
+            Self::KeptNotClosed => f.write_str(tr(
                 "the shape isn't a closed solid: it has holes in its surface, or edges shared \
                  by more than two polygons",
-            ),
-            Self::CutterNotClosed(_) => f.write_str(
+            )),
+            Self::CutterNotClosed(_) => f.write_str(tr(
                 "a cutter isn't a closed solid: it has holes in its surface, or edges shared by \
                  more than two polygons",
-            ),
-            Self::CutterFlat(_) => f.write_str("a cutter is squashed flat (scaled to nothing)"),
-            Self::NotANumber => f.write_str("a point's position isn't a number"),
-            Self::TooBig => f.write_str("the result would have too many polygons"),
-            Self::Failed(why) => write!(f, "it couldn't be worked out ({why})"),
+            )),
+            Self::CutterFlat(_) => f.write_str(tr("a cutter is squashed flat (scaled to nothing)")),
+            Self::NotANumber => f.write_str(tr("a point's position isn't a number")),
+            Self::TooBig => f.write_str(tr("the result would have too many polygons")),
+            Self::Failed(why) => f.write_str(&trf!("it couldn't be worked out ({})", why)),
         }
     }
 }
@@ -148,7 +149,7 @@ pub fn apply(kept: &Mesh, cutters: &[Cutter], options: &Options) -> Result<Mesh,
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         solid::combine(&solids, cutters)
     }))
-    .map_err(|_| Problem::Failed("the boolean library stopped".to_string()))??;
+    .map_err(|_| Problem::Failed(tr("the boolean library stopped").to_string()))??;
     rebuild::rebuild(&joined, &result, options)
 }
 

@@ -71,8 +71,10 @@ impl Joined {
             // Points at the same place along open edges are one point:
             // shapes made of separate pieces that meet still close up.
             gl.merge();
-            let solid = std::panic::catch_unwind(|| Manifold::from_mesh_gl64(&gl))
-                .map_err(|_| Problem::Failed("the boolean library stopped".to_string()))?;
+            let solid =
+                std::panic::catch_unwind(|| Manifold::from_mesh_gl64(&gl)).map_err(|_| {
+                    Problem::Failed(words::tr("the boolean library stopped").to_string())
+                })?;
             match solid.status() {
                 Error::NoError => solids.push(solid),
                 Error::NotManifold if i == 0 => return Err(Problem::KeptNotClosed),

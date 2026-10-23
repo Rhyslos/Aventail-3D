@@ -7,6 +7,7 @@ use crate::units::Units;
 use glam::{Mat4, Vec3};
 use mesh::Bounds;
 use std::collections::BTreeMap;
+use words::{text, tr, trf};
 
 /// Something that went wrong changing the scene, in plain words.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -36,28 +37,27 @@ pub enum SceneError {
 impl std::fmt::Display for SceneError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::UnknownObject(id) => write!(f, "there is no object {id}"),
-            Self::NestedInItself => {
-                f.write_str("an object can't go inside itself or one of its children")
-            }
-            Self::EmptyName => f.write_str("a name can't be empty"),
-            Self::History(why) => f.write_str(why),
-            Self::WrongKind(kind) => write!(
-                f,
+            Self::UnknownObject(id) => f.write_str(&trf!("there is no object {}", id)),
+            Self::NestedInItself => f.write_str(tr(
+                "an object can't go inside itself or one of its children",
+            )),
+            Self::EmptyName => f.write_str(tr("a name can't be empty")),
+            // Its reasons are marked with `text!` where they're made.
+            Self::History(why) => f.write_str(tr(why)),
+            Self::WrongKind(kind) => f.write_str(&trf!(
                 "{} settings can only be given to a {}",
                 kind,
                 kind.to_lowercase()
-            ),
-            Self::NoShape => f.write_str("a group has no shape to edit"),
-            Self::Instance => f.write_str(
+            )),
+            Self::NoShape => f.write_str(tr("a group has no shape to edit")),
+            Self::Instance => f.write_str(tr(
                 "it's an instance: edit its original, or make it editable to give it its own shape",
-            ),
-            Self::NotANumber => f.write_str("a value isn't a number"),
-            Self::TooManyMaterials => write!(
-                f,
+            )),
+            Self::NotANumber => f.write_str(tr("a value isn't a number")),
+            Self::TooManyMaterials => f.write_str(&trf!(
                 "an object can have at most {} materials",
                 mesh::material::MAX_SLOTS
-            ),
+            )),
             Self::Boolean(why) => write!(f, "{why}"),
         }
     }
@@ -429,15 +429,17 @@ impl Scene {
                 return Err(SceneError::Instance);
             }
             if object.stack.repeated_edit_id().is_some() {
-                return Err(SceneError::History(
-                    "two of an object's edits have the same id",
-                ));
+                return Err(SceneError::History(text!(
+                    "two of an object's edits have the same id"
+                )));
             }
             if scene.contains(id) {
-                return Err(SceneError::History("two objects have the same id"));
+                return Err(SceneError::History(text!("two objects have the same id")));
             }
             if id.0 >= MAX_OBJECT_ID {
-                return Err(SceneError::History("an object's id is impossibly large"));
+                return Err(SceneError::History(text!(
+                    "an object's id is impossibly large"
+                )));
             }
             if let Some(p) = parent
                 && !scene.contains(p)
@@ -458,7 +460,9 @@ impl Scene {
                 match scene.object(*source).map(|o| &o.kind) {
                     None => return Err(SceneError::UnknownObject(*source)),
                     Some(ObjectKind::Instance(_)) => {
-                        return Err(SceneError::History("an instance shows another instance"));
+                        return Err(SceneError::History(text!(
+                            "an instance shows another instance"
+                        )));
                     }
                     Some(kind) if !kind.has_shape() => return Err(SceneError::NoShape),
                     Some(_) => {}
@@ -554,12 +558,14 @@ impl Scene {
         mirror_on_object: bool,
     ) -> Result<Self, &'static str> {
         if !crate::object::hardness_is_valid(hardness) {
-            return Err("an object's smoothing angle isn't a real number from 0 to 180°");
+            return Err(tr(
+                "an object's smoothing angle isn't a real number from 0 to 180°",
+            ));
         }
         let node = self
             .nodes
             .get_mut(&id)
-            .ok_or("its object settings name an object that isn't there")?;
+            .ok_or_else(|| tr("its object settings name an object that isn't there"))?;
         node.object.hardness = hardness;
         if let Some(mirror) = &mut node.object.mirror {
             mirror.on_object = mirror_on_object;
@@ -595,9 +601,9 @@ impl Scene {
         let node = self
             .nodes
             .get_mut(&id)
-            .ok_or("a shape's settings name an object that isn't there")?;
+            .ok_or_else(|| tr("a shape's settings name an object that isn't there"))?;
         if !matches!(node.object.kind, crate::ObjectKind::Mesh(_)) {
-            return Err("a shape's settings name an object that isn't a mesh");
+            return Err(tr("a shape's settings name an object that isn't a mesh"));
         }
         node.object.kind = crate::ObjectKind::Primitive(primitive.clamped());
         self.cache.get_mut().forget(id);
@@ -965,7 +971,9 @@ impl Scene {
             return base.to_string();
         }
         (2..)
-            .map(|n| format!("{base} {n}"))
+            // A name and its number ("Cube 2"), through the language
+            // layer so a language can write it its own way.
+            .map(|n| trf!("{} {}", base, n))
             .find(|name| !taken(name))
             .unwrap_or_else(|| base.to_string())
     }
@@ -981,12 +989,16 @@ impl Scene {
         match edit {
             Edit::Insert { id, object, place } => {
                 if self.nodes.contains_key(id) {
-                    return Err(SceneError::History("an object with that id already exists"));
+                    return Err(SceneError::History(text!(
+                        "an object with that id already exists"
+                    )));
                 }
                 self.check_parent(place.parent)?;
                 let siblings = self.children(place.parent).len();
                 if place.index > siblings {
-                    return Err(SceneError::History("an object's place no longer exists"));
+                    return Err(SceneError::History(text!(
+                        "an object's place no longer exists"
+                    )));
                 }
                 self.nodes.insert(
                     *id,
@@ -1003,10 +1015,12 @@ impl Scene {
             Edit::Remove { id, place, .. } => {
                 let node = self.nodes.get(id).ok_or(SceneError::UnknownObject(*id))?;
                 if !node.children.is_empty() {
-                    return Err(SceneError::History("only an empty object can be taken out"));
+                    return Err(SceneError::History(text!(
+                        "only an empty object can be taken out"
+                    )));
                 }
                 if self.place(*id) != Some(*place) {
-                    return Err(SceneError::History("an object is not where it was"));
+                    return Err(SceneError::History(text!("an object is not where it was")));
                 }
                 self.siblings_mut(place.parent)?.remove(place.index);
                 self.nodes.remove(id);
@@ -1016,7 +1030,7 @@ impl Scene {
             }
             Edit::Relocate { id, from, to } => {
                 if self.place(*id) != Some(*from) {
-                    return Err(SceneError::History("an object is not where it was"));
+                    return Err(SceneError::History(text!("an object is not where it was")));
                 }
                 self.check_parent(to.parent)?;
                 if to.parent.is_some_and(|p| self.is_inside(p, *id)) {
@@ -1025,7 +1039,9 @@ impl Scene {
                 let len_after =
                     self.children(to.parent).len() - usize::from(to.parent == from.parent);
                 if to.index > len_after {
-                    return Err(SceneError::History("an object's place no longer exists"));
+                    return Err(SceneError::History(text!(
+                        "an object's place no longer exists"
+                    )));
                 }
                 self.siblings_mut(from.parent)?.remove(from.index);
                 self.siblings_mut(to.parent)?.insert(to.index, *id);
@@ -1040,7 +1056,7 @@ impl Scene {
                     .get_mut(id)
                     .ok_or(SceneError::UnknownObject(*id))?;
                 if node.object.name != *before {
-                    return Err(SceneError::History("an object's name has changed"));
+                    return Err(SceneError::History(text!("an object's name has changed")));
                 }
                 node.object.name.clone_from(after);
                 Ok(())
@@ -1051,7 +1067,9 @@ impl Scene {
                     .get_mut(id)
                     .ok_or(SceneError::UnknownObject(*id))?;
                 if node.object.visible != *before {
-                    return Err(SceneError::History("an object's visibility has changed"));
+                    return Err(SceneError::History(text!(
+                        "an object's visibility has changed"
+                    )));
                 }
                 node.object.visible = *after;
                 Ok(())
@@ -1062,7 +1080,9 @@ impl Scene {
                     .get_mut(id)
                     .ok_or(SceneError::UnknownObject(*id))?;
                 if node.object.kind != *before {
-                    return Err(SceneError::History("an object's settings have changed"));
+                    return Err(SceneError::History(text!(
+                        "an object's settings have changed"
+                    )));
                 }
                 node.object.kind = after.clone();
                 Ok(())
@@ -1073,7 +1093,7 @@ impl Scene {
                     .get_mut(id)
                     .ok_or(SceneError::UnknownObject(*id))?;
                 if node.object.transform != *before {
-                    return Err(SceneError::History("an object's place has changed"));
+                    return Err(SceneError::History(text!("an object's place has changed")));
                 }
                 node.object.transform = *after;
                 Ok(())
@@ -1084,7 +1104,9 @@ impl Scene {
                     .get_mut(id)
                     .ok_or(SceneError::UnknownObject(*id))?;
                 if node.object.hardness != *before {
-                    return Err(SceneError::History("an object's smoothing has changed"));
+                    return Err(SceneError::History(text!(
+                        "an object's smoothing has changed"
+                    )));
                 }
                 node.object.hardness = *after;
                 Ok(())
@@ -1095,7 +1117,9 @@ impl Scene {
                     .get_mut(id)
                     .ok_or(SceneError::UnknownObject(*id))?;
                 if node.object.collision != *before {
-                    return Err(SceneError::History("an object's collision has changed"));
+                    return Err(SceneError::History(text!(
+                        "an object's collision has changed"
+                    )));
                 }
                 node.object.collision = *after;
                 Ok(())
@@ -1106,7 +1130,7 @@ impl Scene {
                     .get_mut(id)
                     .ok_or(SceneError::UnknownObject(*id))?;
                 if node.object.mirror != *before {
-                    return Err(SceneError::History("an object's mirror has changed"));
+                    return Err(SceneError::History(text!("an object's mirror has changed")));
                 }
                 node.object.mirror = *after;
                 Ok(())
@@ -1117,7 +1141,9 @@ impl Scene {
                     .get_mut(id)
                     .ok_or(SceneError::UnknownObject(*id))?;
                 if node.object.booleans != *before {
-                    return Err(SceneError::History("an object's booleans have changed"));
+                    return Err(SceneError::History(text!(
+                        "an object's booleans have changed"
+                    )));
                 }
                 node.object.booleans.clone_from(after);
                 Ok(())
@@ -1128,57 +1154,63 @@ impl Scene {
                     .get_mut(id)
                     .ok_or(SceneError::UnknownObject(*id))?;
                 if node.object.materials != *before {
-                    return Err(SceneError::History("an object's materials have changed"));
+                    return Err(SceneError::History(text!(
+                        "an object's materials have changed"
+                    )));
                 }
                 node.object.materials.clone_from(after);
                 Ok(())
             }
             Edit::SetTexture { before, after } => {
                 if self.texture != *before {
-                    return Err(SceneError::History(
-                        "the project's texture settings have changed",
-                    ));
+                    return Err(SceneError::History(text!(
+                        "the project's texture settings have changed"
+                    )));
                 }
                 self.texture = *after;
                 Ok(())
             }
             Edit::SetMending { before, after } => {
                 if self.mending != *before {
-                    return Err(SceneError::History(
-                        "the project's mending settings have changed",
-                    ));
+                    return Err(SceneError::History(text!(
+                        "the project's mending settings have changed"
+                    )));
                 }
                 self.mending = *after;
                 Ok(())
             }
             Edit::SetSnapshots { before, after } => {
                 if self.snapshots != *before {
-                    return Err(SceneError::History(
-                        "the project's layout snapshots have changed",
-                    ));
+                    return Err(SceneError::History(text!(
+                        "the project's layout snapshots have changed"
+                    )));
                 }
                 self.snapshots.clone_from(after);
                 Ok(())
             }
             Edit::SetTrim { before, after } => {
                 if self.trim != *before {
-                    return Err(SceneError::History("the project's trim sheet has changed"));
+                    return Err(SceneError::History(text!(
+                        "the project's trim sheet has changed"
+                    )));
                 }
                 self.trim.clone_from(after);
                 Ok(())
             }
             Edit::SetExportTarget { before, after } => {
                 if self.export_target != *before {
-                    return Err(SceneError::History(
-                        "the project's game project folder has changed",
-                    ));
+                    return Err(SceneError::History(text!(
+                        "the project's game project folder has changed"
+                    )));
                 }
                 self.export_target.clone_from(after);
                 Ok(())
             }
             Edit::SetUnits { before, after } => {
                 if self.units != *before {
-                    return Err(SceneError::History("the project's units have changed"));
+                    return Err(SceneError::History(text!(
+                        "the project's units have changed"
+                    )));
                 }
                 self.units = *after;
                 Ok(())
@@ -1189,7 +1221,7 @@ impl Scene {
                     .get_mut(id)
                     .ok_or(SceneError::UnknownObject(*id))?;
                 if node.object.offset != *before {
-                    return Err(SceneError::History("an object's shape has moved"));
+                    return Err(SceneError::History(text!("an object's shape has moved")));
                 }
                 node.object.offset = *after;
                 Ok(())
@@ -1197,7 +1229,9 @@ impl Scene {
             Edit::InsertLayer { id, index, layer } => {
                 let object = self.shaped_mut(*id)?;
                 if *index > object.stack.layers.len() {
-                    return Err(SceneError::History("a layer's place no longer exists"));
+                    return Err(SceneError::History(text!(
+                        "a layer's place no longer exists"
+                    )));
                 }
                 object.stack.layers.insert(*index, layer.clone());
                 Ok(())
@@ -1205,7 +1239,7 @@ impl Scene {
             Edit::RemoveLayer { id, index, layer } => {
                 let object = self.shaped_mut(*id)?;
                 if object.stack.layers.get(*index) != Some(layer) {
-                    return Err(SceneError::History("a layer has changed"));
+                    return Err(SceneError::History(text!("a layer has changed")));
                 }
                 object.stack.layers.remove(*index);
                 Ok(())
@@ -1218,13 +1252,17 @@ impl Scene {
             } => {
                 let object = self.shaped_mut(*id)?;
                 if object.stack.entry(entry.id).is_some() {
-                    return Err(SceneError::History("an edit with that id already exists"));
+                    return Err(SceneError::History(text!(
+                        "an edit with that id already exists"
+                    )));
                 }
                 let Some(layer) = object.stack.layers.get_mut(*layer) else {
-                    return Err(SceneError::History("a layer no longer exists"));
+                    return Err(SceneError::History(text!("a layer no longer exists")));
                 };
                 if *index > layer.entries.len() {
-                    return Err(SceneError::History("an edit's place no longer exists"));
+                    return Err(SceneError::History(text!(
+                        "an edit's place no longer exists"
+                    )));
                 }
                 layer.entries.insert(*index, entry.clone());
                 Ok(())
@@ -1237,10 +1275,10 @@ impl Scene {
             } => {
                 let object = self.shaped_mut(*id)?;
                 let Some(layer) = object.stack.layers.get_mut(*layer) else {
-                    return Err(SceneError::History("a layer no longer exists"));
+                    return Err(SceneError::History(text!("a layer no longer exists")));
                 };
                 if layer.entries.get(*index) != Some(entry) {
-                    return Err(SceneError::History("an edit has changed"));
+                    return Err(SceneError::History(text!("an edit has changed")));
                 }
                 layer.entries.remove(*index);
                 Ok(())

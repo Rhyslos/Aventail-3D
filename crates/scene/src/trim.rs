@@ -4,6 +4,8 @@
 //! square and repeating left to right. Strips of a model are laid
 //! straight onto a row rather than unwrapped into a texture of their own.
 
+use words::trf;
+
 /// The most rows a trim sheet keeps.
 pub const MAX_TRIM_ROWS: usize = 64;
 
@@ -46,7 +48,7 @@ impl TrimSheet {
         Self {
             rows: (0..n)
                 .map(|i| TrimRow {
-                    name: format!("Row {}", i + 1),
+                    name: trf!("Row {}", i + 1),
                     top: 1.0 - h * i as f32,
                     bottom: (1.0 - h * (i + 1) as f32).max(0.0),
                 })

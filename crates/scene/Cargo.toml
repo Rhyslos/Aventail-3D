@@ -20,6 +20,8 @@ mesh.workspace = true
 uv.workspace = true
 # Booleans between shapes (same layer; decision 0135).
 booleans.workspace = true
+# The language layer for text a person reads (layer 0).
+words.workspace = true
 glam.workspace = true
 
 [lints]

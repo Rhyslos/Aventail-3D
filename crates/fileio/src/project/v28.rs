@@ -12,6 +12,7 @@ use super::v26::OperationV26;
 use crate::limits::Bounded;
 use scene::{FaceId, Operation, VertexId};
 use serde::{Deserialize, Serialize};
+use words::tr;
 
 /// A recorded edit in version 28.
 pub(crate) type EntryV28 = EntryWith<OperationV28>;
@@ -70,7 +71,7 @@ impl FileOperation for OperationV28 {
                     anchors: anchors.map(anchors_from_file).transpose()?,
                 };
                 if !operation.numbers_are_real() {
-                    return Err("UVs are moved by numbers that aren't real".into());
+                    return Err(tr("UVs are moved by numbers that aren't real").into());
                 }
                 Ok(operation)
             }

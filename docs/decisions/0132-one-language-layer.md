@@ -25,4 +25,5 @@ Phase 9 asks for "English as the one language package: every text through one tr
 
 - Phase 9's gate ("no text skips the English package") is met when `skipping.txt` is empty and the other crates' text is through a layer too.
 - Translations need no code changes: a package file and a setting.
-- The `ui` crate's part is done (Phase 9 milestone 10): `skipping.txt` is empty and `en.txt` lists about 1,800 texts. Some sentences are still put together in code (a count with an "s" added for more than one, "it" or "them"), so a language with other plural rules will need those reworked, or Fluent (option 3), with its first translation.
+- The `ui` crate's part is done (Phase 9 milestone 10): `skipping.txt` is empty and `en.txt` lists about 1,800 texts.
+- Finished by [0134](0134-shared-language-crate.md): the layer moved into its own crate, `words`, which `scene`, `mesh`, `fileio` and the other crates use too; the package is now `crates/words/lang/en.txt`, and no text in any crate skips it. Some sentences are still put together in code (a count with an "s" added for more than one, "it" or "them"), so a language with other plural rules will need those reworked, or Fluent (option 3), with its first translation.

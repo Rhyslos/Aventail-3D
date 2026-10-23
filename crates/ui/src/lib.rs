@@ -31,6 +31,8 @@ mod settings;
 mod shape_picker;
 pub mod splash;
 pub mod text;
+// The language layer's macros, as `crate::trf!` and `crate::text!`.
+pub use words::{text, trf};
 #[cfg(test)]
 mod text_checks;
 pub mod theme;

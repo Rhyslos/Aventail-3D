@@ -18,6 +18,7 @@ use crate::{Bounds, Topology};
 use glam::Vec3;
 use std::collections::BTreeSet;
 use std::sync::{Arc, OnceLock};
+use words::{tr, trf};
 
 /// A point's id.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -94,22 +95,23 @@ pub enum MeshError {
 impl std::fmt::Display for MeshError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::TooFewCorners => f.write_str("a face needs at least three corners"),
-            Self::UnknownVertex(v) => write!(f, "point {} is not in the mesh", v.0),
-            Self::RepeatedVertex(v) => write!(f, "a face goes through point {} twice", v.0),
-            Self::Full => f.write_str("the mesh is too large"),
-            Self::NotFinite(v) => write!(f, "point {} has no real position", v.0),
-            Self::UnknownEdge(e) => write!(
-                f,
+            Self::TooFewCorners => f.write_str(tr("a face needs at least three corners")),
+            Self::UnknownVertex(v) => f.write_str(&trf!("point {} is not in the mesh", v.0)),
+            Self::RepeatedVertex(v) => {
+                f.write_str(&trf!("a face goes through point {} twice", v.0))
+            }
+            Self::Full => f.write_str(tr("the mesh is too large")),
+            Self::NotFinite(v) => f.write_str(&trf!("point {} has no real position", v.0)),
+            Self::UnknownEdge(e) => f.write_str(&trf!(
                 "a hard edge joins points {} and {}, which aren't both in the mesh",
-                e.0.0, e.1.0
-            ),
-            Self::UnknownFace(id) => write!(f, "polygon {} is not in the mesh", id.0),
-            Self::CornerCountChanged(id) => write!(
-                f,
+                e.0.0,
+                e.1.0
+            )),
+            Self::UnknownFace(id) => f.write_str(&trf!("polygon {} is not in the mesh", id.0)),
+            Self::CornerCountChanged(id) => f.write_str(&trf!(
                 "polygon {} would get a different number of corners",
                 id.0
-            ),
+            )),
         }
     }
 }

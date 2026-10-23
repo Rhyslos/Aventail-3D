@@ -15,6 +15,7 @@ use crate::limits::Bounded;
 use scene::{Document, Transform, Units};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use words::{text, tr, trf};
 
 /// Version 16 of the file.
 #[cfg(test)]
@@ -92,7 +93,7 @@ impl<E: FileOperation> ProjectWithPlaces<E> {
         let mut offsets: BTreeMap<u64, TransformV1> = BTreeMap::new();
         for entry in self.offsets {
             if offsets.insert(entry.object, entry.offset).is_some() {
-                return Err("an object's shape is placed twice".into());
+                return Err(tr("an object's shape is placed twice").into());
             }
         }
         let document = self.project.into_document_with(|id, object| {
@@ -101,19 +102,20 @@ impl<E: FileOperation> ProjectWithPlaces<E> {
                 return Ok(());
             };
             let offset = Transform {
-                position: finite(offset.position, "shape's place")?,
-                rotation: finite(offset.rotation, "shape's turn")?,
-                scale: finite(offset.scale, "shape's size")?,
+                position: finite(offset.position, text!("shape's place"))?,
+                rotation: finite(offset.rotation, text!("shape's turn"))?,
+                scale: finite(offset.scale, text!("shape's size"))?,
             };
             if offset.matrix().determinant().abs() < 1e-12 {
-                return Err("its shape is squashed flat against its pivot".into());
+                return Err(tr("its shape is squashed flat against its pivot").into());
             }
             object.offset = offset;
             Ok(())
         })?;
         if let Some(id) = offsets.keys().next() {
-            return Err(format!(
-                "a shape's place is stored for object {id}, which isn't there"
+            return Err(trf!(
+                "a shape's place is stored for object {}, which isn't there",
+                id
             ));
         }
         Ok(document.with_units(match self.units {

@@ -15,6 +15,7 @@ use ui::{
     AppInfo, DockState, NoRenderer, Panel, ViewOptions, ViewportRenderer, Workbench,
     WorkbenchAction,
 };
+use words::{tr, trf};
 
 /// Key under which the panel layout is remembered between sessions.
 const LAYOUT_KEY: &str = "panel_layout";
@@ -133,16 +134,16 @@ impl Step {
     /// What the splash screen says while it happens.
     pub(crate) fn doing(&self) -> String {
         match self {
-            Self::Graphics => "Starting the graphics…".to_string(),
-            Self::Workbench => "Getting the workbench ready…".to_string(),
-            Self::Open(path) => format!(
+            Self::Graphics => tr("Starting the graphics…").to_string(),
+            Self::Workbench => tr("Getting the workbench ready…").to_string(),
+            Self::Open(path) => trf!(
                 "Opening {}…",
                 path.file_name().map_or_else(
                     || path.display().to_string(),
                     |n| n.to_string_lossy().into_owned()
                 )
             ),
-            Self::Backups => "Checking for unsaved work from last time…".to_string(),
+            Self::Backups => tr("Checking for unsaved work from last time…").to_string(),
         }
     }
 }
@@ -182,7 +183,7 @@ impl Starting {
                 self.renderer = Some(match frame.wgpu_render_state() {
                     Some(state) => Box::new(GpuViewport::new(state)),
                     None => Box::new(NoRenderer {
-                        reason: "the window has no GPU device".to_string(),
+                        reason: tr("the window has no GPU device").to_string(),
                     }),
                 });
             }
@@ -269,7 +270,7 @@ impl eframe::App for Shell {
         let doing = starting
             .steps
             .get(starting.next)
-            .map_or_else(|| "Ready".to_string(), Step::doing);
+            .map_or_else(|| tr("Ready").to_string(), Step::doing);
         ui::splash::show(
             ui,
             &ui::splash::SplashView {
@@ -457,11 +458,12 @@ fn explain_panic(payload: &(dyn std::any::Any + Send)) -> String {
         .downcast_ref::<String>()
         .map(String::as_str)
         .or_else(|| payload.downcast_ref::<&str>().copied())
-        .unwrap_or("the windowing system stopped unexpectedly");
+        .unwrap_or(tr("the windowing system stopped unexpectedly"));
     if message.contains(".so") && message.contains("could not be loaded") {
-        format!(
-            "{message} On Linux, install the missing library with your package manager \
-             (for example libxkbcommon-x11-0 and mesa-vulkan-drivers on Ubuntu)."
+        trf!(
+            "{} On Linux, install the missing library with your package manager \
+             (for example libxkbcommon-x11-0 and mesa-vulkan-drivers on Ubuntu).",
+            message
         )
     } else {
         message.to_string()

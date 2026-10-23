@@ -15,6 +15,7 @@ use super::v39::ProjectV39;
 use crate::limits::Bounded;
 use scene::{Boolean, BooleanKind, Document, ObjectId};
 use serde::{Deserialize, Serialize};
+use words::{tr, trf};
 
 /// Version 40 of the file.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -102,11 +103,11 @@ impl ProjectV40 {
         let mut seen = std::collections::BTreeSet::new();
         for entry in self.booleans {
             if !seen.insert(entry.id) {
-                return Err("an object's booleans are listed twice".into());
+                return Err(tr("an object's booleans are listed twice").into());
             }
             let id = ObjectId::from_raw(entry.id);
             if !document.scene().contains(id) {
-                return Err("its booleans name an object that isn't there".into());
+                return Err(tr("its booleans name an object that isn't there").into());
             }
             let list: Vec<Boolean> = entry
                 .list
@@ -119,7 +120,7 @@ impl ProjectV40 {
                 .collect();
             document = document
                 .with_booleans(id, list)
-                .map_err(|why| Problem::from(format!("a boolean can't be used: {why}")))?;
+                .map_err(|why| Problem::from(trf!("a boolean can't be used: {}", why)))?;
         }
         Ok(document)
     }
@@ -137,7 +138,7 @@ pub(crate) fn decode(bytes: &[u8]) -> Result<ProjectV40, String> {
     let mut reader = std::io::Cursor::new(bytes);
     let model = ciborium::from_reader(&mut reader).map_err(|e| e.to_string())?;
     if reader.position() as usize != bytes.len() {
-        return Err("there is unexpected data after the scene".into());
+        return Err(tr("there is unexpected data after the scene").into());
     }
     Ok(model)
 }

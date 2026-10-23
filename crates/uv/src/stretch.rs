@@ -11,6 +11,7 @@
 use glam::{Vec2, Vec3};
 use mesh::uvs::Uvs;
 use mesh::{FaceId, Mesh};
+use words::{tr, trf};
 
 /// From this far off (1.5 times) a polygon counts as stretched.
 pub const SOME: f32 = 1.5;
@@ -49,20 +50,24 @@ impl Stretch {
     pub fn explain(&self) -> Option<String> {
         if self.empty {
             return Some(
-                "has no room on the texture: its UVs are squashed flat (an extrude's new walls \
-                 start like this). Fix: select it and Unwrap."
-                    .into(),
+                tr(
+                    "has no room on the texture: its UVs are squashed flat (an extrude's new walls \
+                 start like this). Fix: select it and Unwrap.",
+                )
+                .into(),
             );
         }
         if self.flipped {
             return Some(
-                "lies mirrored on the texture, so a texture shows back to front on it. Fix: \
-                 Unwrap its piece, or flip it back."
-                    .into(),
+                tr(
+                    "lies mirrored on the texture, so a texture shows back to front on it. Fix: \
+                 Unwrap its piece, or flip it back.",
+                )
+                .into(),
             );
         }
         if self.uneven >= SOME && self.uneven.log2() >= self.size.log2().abs() {
-            return Some(format!(
+            return Some(trf!(
                 "is stretched {:.1} times more one way than the other, so a texture's squares \
                  become long rectangles. Fix: Relax it; if its piece wraps round the shape, \
                  add a seam across it and Unwrap.",
@@ -70,14 +75,14 @@ impl Stretch {
             ));
         }
         if self.size >= SOME {
-            return Some(format!(
+            return Some(trf!(
                 "gets {:.1} times more texture for its size than the rest of the shape. Fix: \
                  Unwrap its piece (it keeps the shape's density), or Set texel density.",
                 self.size
             ));
         }
         if self.size <= 1.0 / SOME {
-            return Some(format!(
+            return Some(trf!(
                 "gets {:.1} times less texture for its size than the rest of the shape, so it \
                  looks blurrier. Fix: Unwrap its piece, or Set texel density.",
                 1.0 / self.size

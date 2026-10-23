@@ -14,6 +14,7 @@ use super::v36::OperationV36;
 use crate::limits::Bounded;
 use scene::{FaceId, Operation, PieceSettings};
 use serde::{Deserialize, Serialize};
+use words::tr;
 
 /// A recorded edit in version 37.
 pub(crate) type EntryV37 = EntryWith<OperationV37>;
@@ -95,7 +96,7 @@ impl FileOperation for OperationV37 {
             },
         };
         if !operation.numbers_are_real() {
-            return Err("a piece's texel density isn't a real number above 0".into());
+            return Err(tr("a piece's texel density isn't a real number above 0").into());
         }
         Ok(operation)
     }

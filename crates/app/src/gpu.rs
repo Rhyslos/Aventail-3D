@@ -14,6 +14,7 @@ use ui::{
     ComponentOverlay, OverlayStyle, PickAsk, PickReply, Picked, SceneDrawing, Shading, VIEW_COUNT,
     ViewportRenderer, ViewportView,
 };
+use words::{text, tr, trf};
 
 /// Every point of an edited object in the Points mode: small light dots,
 /// across in pixels.
@@ -437,10 +438,10 @@ impl GpuViewport {
     /// A short description of the GPU, for the status bar.
     pub fn describe(&self) -> String {
         let info = self.state.adapter.get_info();
-        format!(
-            "Graphics: {} ({:?}, {}× smoothing)",
+        trf!(
+            "Graphics: {} ({}, {}× smoothing)",
             info.name,
-            info.backend,
+            format!("{:?}", info.backend),
             self.renderer.sample_count()
         )
     }
@@ -541,13 +542,14 @@ impl ViewportRenderer for GpuViewport {
             self.renderer.set_overlay(&self.state.device, &overlay);
             self.uploaded_overlay = Some(wanted);
         }
-        const FAILED: &str = "the viewport image could not be created";
-        self.prepare_image(view.slot, view.size_px).ok_or(FAILED)?;
+        const FAILED: &str = text!("the viewport image could not be created");
+        self.prepare_image(view.slot, view.size_px)
+            .ok_or_else(|| tr(FAILED))?;
         let image = self
             .images
             .get(view.slot)
             .and_then(Option::as_ref)
-            .ok_or(FAILED)?;
+            .ok_or_else(|| tr(FAILED))?;
         // Each render writes its own settings and submits its own work,
         // so drawing several views in one frame keeps them apart.
         self.renderer.render(

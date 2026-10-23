@@ -215,6 +215,7 @@ dependencies = [
  "tools",
  "ui",
  "windows-sys 0.61.2",
+ "words",
 ]
 
 [[package]]
@@ -518,6 +519,7 @@ dependencies = [
  "glam",
  "manifold-rust",
  "mesh",
+ "words",
 ]
 
 [[package]]
@@ -1298,6 +1300,7 @@ dependencies = [
  "scene",
  "serde",
  "serde_json",
+ "words",
  "zstd",
 ]
 
@@ -2081,6 +2084,7 @@ name = "mesh"
 version = "0.0.1"
 dependencies = [
  "glam",
+ "words",
 ]
 
 [[package]]
@@ -3115,6 +3119,7 @@ dependencies = [
  "glam",
  "mesh",
  "uv",
+ "words",
 ]
 
 [[package]]
@@ -3615,6 +3620,7 @@ dependencies = [
  "mesh",
  "ron",
  "serde",
+ "words",
 ]
 
 [[package]]
@@ -3696,6 +3702,7 @@ dependencies = [
  "serde",
  "tools",
  "uv",
+ "words",
 ]
 
 [[package]]
@@ -3757,6 +3764,7 @@ version = "0.0.1"
 dependencies = [
  "glam",
  "mesh",
+ "words",
 ]
 
 [[package]]
@@ -4577,6 +4585,10 @@ name = "wit-bindgen"
 version = "0.57.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1ebf944e87a7c253233ad6766e082e3cd714b5d03812acc24c318f549614536e"
+
+[[package]]
+name = "words"
+version = "0.0.1"
 
 [[package]]
 name = "writeable"

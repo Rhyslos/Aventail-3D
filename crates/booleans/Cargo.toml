@@ -16,6 +16,8 @@ layer = 1
 
 [dependencies]
 mesh.workspace = true
+# The language layer for text a person reads (layer 0, decision 0134).
+words.workspace = true
 glam.workspace = true
 # The boolean kernel: a pure-Rust port of Manifold (Apache-2.0); see
 # docs/decisions/0135-live-booleans.md.

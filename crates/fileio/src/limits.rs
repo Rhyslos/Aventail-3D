@@ -32,6 +32,7 @@ use std::cell::Cell;
 use std::fmt;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
+use words::{text, tr};
 
 /// The largest a project's body may be once unpacked: 512 MB.
 pub const MAX_UNPACKED: u64 = 512 << 20;
@@ -53,9 +54,12 @@ thread_local! {
     static HIT: Cell<bool> = const { Cell::new(false) };
 }
 
-/// The plain message for a read that ran out of budget.
-pub const TOO_MUCH: &str = "it holds more than the app can open (a limit was reached; it may be damaged or made to \
-     cause trouble)";
+/// The plain message for a read that ran out of budget (English: show it
+/// with `tr`).
+pub const TOO_MUCH: &str = text!(
+    "it holds more than the app can open (a limit was reached; it may be damaged or made to \
+     cause trouble)"
+);
 
 /// Whether the last limited read on this thread ran out of budget.
 pub(crate) fn limit_hit() -> bool {
@@ -166,12 +170,12 @@ impl<'de, T: Deserialize<'de>> Deserialize<'de> for Bounded<T> {
             type Value = Bounded<T>;
 
             fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                f.write_str("a list")
+                f.write_str(tr("a list"))
             }
 
             fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
                 let each = size_of::<T>().max(1);
-                let too_much = || serde::de::Error::custom(TOO_MUCH);
+                let too_much = || serde::de::Error::custom(tr(TOO_MUCH));
                 // Pay for what the list says it holds before making room.
                 let claimed = seq.size_hint().unwrap_or(0);
                 if !spend(claimed.saturating_mul(each)) {

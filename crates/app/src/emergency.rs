@@ -25,6 +25,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, TryLockError};
 use std::time::{Duration, Instant};
+use words::trf;
 
 /// The shortest time between two snapshots of a document that keeps
 /// changing (a drag changes it every frame). A crash loses at most about
@@ -131,9 +132,12 @@ impl Emergency {
             // Ignored if the error output is gone: nothing more to do.
             let _ = writeln!(
                 std::io::stderr(),
-                "Your unsaved work was saved as an emergency copy ({}). The next start offers \
-                 it back.",
-                path.display()
+                "{}",
+                trf!(
+                    "Your unsaved work was saved as an emergency copy ({}). The next start \
+                     offers it back.",
+                    path.display()
+                )
             );
         }
     }
@@ -170,7 +174,8 @@ impl Emergency {
         let (send, receive) = std::sync::mpsc::channel();
         let shared = Arc::clone(&self.shared);
         let started = std::thread::Builder::new()
-            .name("emergency copy".into())
+            // A name for debuggers, not shown in the app.
+            .name("emergency-copy".into())
             .spawn(move || {
                 // Done once written, or if the writing panics.
                 let done = Done(&shared.writing);

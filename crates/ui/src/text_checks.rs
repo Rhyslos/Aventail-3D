@@ -4,8 +4,27 @@
 
 use std::path::{Path, PathBuf};
 
-/// Every Rust file under `src`, leaving out tests and this file.
+/// Every Rust file under this crate's `src`, leaving out tests and this
+/// file.
 fn sources() -> Vec<(PathBuf, String)> {
+    sources_of(Path::new(env!("CARGO_MANIFEST_DIR")))
+}
+
+/// The crates whose text a person reads (decision 0134): the interface's,
+/// the undo labels, messages and reasons made below it, and the app's own
+/// (its dialogs, start-up and command line). Not `render`: its texts are
+/// names for GPU debuggers, never shown.
+const CRATES_WITH_TEXT: [&str; 9] = [
+    "ui", "scene", "mesh", "fileio", "app", "tools", "uv", "config", "booleans",
+];
+
+/// The `crates` folder.
+fn crates_dir() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("..")
+}
+
+/// Every Rust file under a crate's `src`, leaving out tests and this file.
+fn sources_of(krate: &Path) -> Vec<(PathBuf, String)> {
     fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
         for entry in std::fs::read_dir(dir).unwrap().flatten() {
             let path = entry.path();
@@ -17,10 +36,7 @@ fn sources() -> Vec<(PathBuf, String)> {
         }
     }
     let mut files = Vec::new();
-    walk(
-        &Path::new(env!("CARGO_MANIFEST_DIR")).join("src"),
-        &mut files,
-    );
+    walk(&krate.join("src"), &mut files);
     let read: Vec<(PathBuf, String)> = files
         .into_iter()
         .map(|p| {
@@ -374,6 +390,11 @@ fn literals_in_context(text: &str) -> Vec<(String, String)> {
             }
         }
         if c == '"' && !(i > 0 && bytes[i - 1] == '\'') {
+            // A byte string b"…" holds bytes for a file (b"JSON"), not
+            // text: read past it like any other, but leave it out.
+            let byte_string = i > 0
+                && bytes[i - 1] == 'b'
+                && !(i > 1 && (bytes[i - 2].is_alphanumeric() || bytes[i - 2] == '_'));
             let start = i.saturating_sub(40);
             let before: String = bytes[start..i].iter().collect();
             let mut s = String::new();
@@ -398,7 +419,9 @@ fn literals_in_context(text: &str) -> Vec<(String, String)> {
                 }
                 i += 1;
             }
-            out.push((s, before));
+            if !byte_string {
+                out.push((s, before));
+            }
         }
         i += 1;
     }
@@ -432,7 +455,18 @@ fn is_interface_text(literal: &str, before: &str) -> bool {
     if !words {
         return false;
     }
-    const NOT_TEXT: [&str; 31] = [
+    // One word in capitals (and digits), no spaces: a code or a format's
+    // name, the same in every language ("OBJ", "VEC3", "TEXCOORD_0").
+    if !literal.contains(' ')
+        && literal
+            .chars()
+            .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == '_')
+    {
+        return false;
+    }
+    const NOT_TEXT: [&str; 41] = [
+        // A function serde calls for a missing field's value.
+        "#[serde(default =",
         "Id::new(",
         "Id::new((",
         // A texture's name, for debugging.
@@ -471,39 +505,67 @@ fn is_interface_text(literal: &str, before: &str) -> bool {
         "std::env::var(",
         "with_extension(",
         "reason = ",
+        // A test left out, and why (`#[ignore = "…"]`).
+        "#[ignore =",
+        // A folder or file name in a path (a Unity project's "Assets").
+        ".join(",
+        // Lines written into an OBJ or MTL file, and read back from one.
+        "writeln!(text,",
+        "write!(text,",
+        "strip_prefix(",
+        // A name written into exported files when an object has none: the
+        // same in every language, so a game project's files keep their
+        // names whatever language the app is in (fileio).
+        "UNNAMED_IN_FILES: &str =",
+        // The app's name (app/src/branding.rs): the same in every
+        // language; see RENAMING.md.
+        "APP_NAME: &str =",
+        "APP_SHORT_NAME: &str =",
+        // A system message looked for in what the window library said.
+        "contains(",
     ];
     let b = before.trim_end();
     !NOT_TEXT.iter().any(|n| b.ends_with(n))
 }
 
-/// The interface's text, file by file: what goes through the language
-/// layer, and how much doesn't yet.
+/// The text a person reads, file by file, in every crate that makes it
+/// ([`CRATES_WITH_TEXT`]): what goes through the language layer, and how
+/// much doesn't yet (the texts themselves). Files are named from the
+/// `crates` folder (`scene/src/command.rs`).
 fn texts_by_file() -> (
     std::collections::BTreeSet<String>,
-    std::collections::BTreeMap<String, usize>,
+    std::collections::BTreeMap<String, Vec<String>>,
 ) {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
     let mut through = std::collections::BTreeSet::new();
     let mut skipping = std::collections::BTreeMap::new();
-    for (path, text) in sources() {
-        if path.file_name().is_some_and(|n| n == "text.rs") {
+    let all = CRATES_WITH_TEXT.iter().flat_map(|krate| {
+        let dir = crates_dir().join(krate);
+        sources_of(&dir)
+            .into_iter()
+            .map(move |(path, text)| (krate, dir.clone(), path, text))
+    });
+    for (krate, dir, path, text) in all {
+        // The layer's own file in the interface: a re-export, no text.
+        if *krate == "ui" && path.file_name().is_some_and(|n| n == "text.rs") {
             continue;
         }
-        let name = path
-            .strip_prefix(&root)
-            .unwrap()
-            .to_string_lossy()
-            .replace('\\', "/");
-        let mut count = 0;
+        let name = format!(
+            "{krate}/{}",
+            path.strip_prefix(&dir)
+                .unwrap()
+                .to_string_lossy()
+                .replace('\\', "/")
+        );
+        let mut skipped = Vec::new();
         for (literal, before) in literals_in_context(&text) {
             if through_the_layer(&before) {
                 through.insert(literal);
             } else if is_interface_text(&literal, &before) {
-                count += 1;
+                skipped.push(literal);
             }
         }
-        if count > 0 {
-            skipping.insert(name, count);
+        if !skipped.is_empty() {
+            skipping.insert(name, skipped);
         }
     }
     (through, skipping)
@@ -511,15 +573,17 @@ fn texts_by_file() -> (
 
 #[test]
 fn the_english_package_lists_every_text_and_no_more_text_skips_it() {
-    // Decision 0132: every text on screen goes through one language layer
-    // (`tr`, `trf!`, `text!`). `lang/en.txt` lists them all, for
-    // translators; `lang/skipping.txt` counts, file by file, the text that
-    // doesn't go through it yet. That count may only go down. After moving
-    // text into the layer, run with UPDATE_LANG=1 to write both again.
-    let lang = Path::new(env!("CARGO_MANIFEST_DIR")).join("lang");
+    // Decisions 0132 and 0134: every text a person reads goes through one
+    // language layer (`tr`, `trf!`, `text!` from the `words` crate), in
+    // the interface and in the crates below it. `words/lang/en.txt` lists
+    // them all, for translators; `words/lang/skipping.txt` counts, file by
+    // file, the text that doesn't go through it yet. That count may only
+    // go down. After moving text into the layer, run with UPDATE_LANG=1 to
+    // write both again.
+    let lang = crates_dir().join("words").join("lang");
     let (through, skipping) = texts_by_file();
     let package: String = std::iter::once(
-        "# The English package: every text in the interface, one per line.\n\
+        "# The English package: every text the app shows, one per line.\n\
          # Made by a test (UPDATE_LANG=1); a translation repeats each line\n\
          # with \" = \" and the translation after it.\n"
             .to_string(),
@@ -532,7 +596,7 @@ fn the_english_package_lists_every_text_and_no_more_text_skips_it() {
     .collect();
     let counts: String = skipping
         .iter()
-        .map(|(file, n)| format!("{file} {n}\n"))
+        .map(|(file, texts)| format!("{file} {}\n", texts.len()))
         .collect();
     if std::env::var_os("UPDATE_LANG").is_some() {
         std::fs::create_dir_all(&lang).unwrap();
@@ -543,7 +607,7 @@ fn the_english_package_lists_every_text_and_no_more_text_skips_it() {
     let kept = std::fs::read_to_string(lang.join("en.txt")).unwrap_or_default();
     assert!(
         kept == package,
-        "lang/en.txt is out of date: run this test with UPDATE_LANG=1"
+        "words/lang/en.txt is out of date: run this test with UPDATE_LANG=1"
     );
     let allowed: std::collections::BTreeMap<String, usize> =
         std::fs::read_to_string(lang.join("skipping.txt"))
@@ -556,10 +620,11 @@ fn the_english_package_lists_every_text_and_no_more_text_skips_it() {
             .collect();
     let worse: Vec<String> = skipping
         .iter()
-        .filter(|(file, n)| **n > allowed.get(*file).copied().unwrap_or(0))
-        .map(|(file, n)| {
+        .filter(|(file, texts)| texts.len() > allowed.get(*file).copied().unwrap_or(0))
+        .map(|(file, texts)| {
             format!(
-                "{file}: {n} texts skip the language layer (allowed {})",
+                "{file}: {} texts skip the language layer (allowed {}): {texts:#?}",
+                texts.len(),
                 allowed.get(file).copied().unwrap_or(0)
             )
         })
@@ -569,7 +634,7 @@ fn the_english_package_lists_every_text_and_no_more_text_skips_it() {
         "put new text through tr(), trf!() or text!():\n{}",
         worse.join("\n")
     );
-    let total: usize = skipping.values().sum();
+    let total: usize = skipping.values().map(Vec::len).sum();
     let allowed_total: usize = allowed.values().sum();
     assert!(
         total == allowed_total,

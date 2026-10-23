@@ -22,6 +22,7 @@ use scene::{
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use words::{text, tr, trf};
 
 /// A whole project, with recorded operations of type `Op`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -170,7 +171,7 @@ impl FileOperation for OperationV1 {
         match self {
             Self::MovePoints { points, offset } => Ok(Operation::MovePoints {
                 points: points.into_iter().map(VertexId::from_raw).collect(),
-                offset: finite(offset, "recorded move")?,
+                offset: finite(offset, text!("recorded move"))?,
                 anchors: None,
             }),
         }
@@ -331,8 +332,10 @@ impl<Op> ProjectFile<Op> {
         use crate::limits::{MAX_EDITS, MAX_OBJECTS, MAX_POLYGONS};
         let objects = self.objects.len();
         if objects > MAX_OBJECTS {
-            return Err(format!(
-                "it holds {objects} objects, and the app opens up to {MAX_OBJECTS}"
+            return Err(trf!(
+                "it holds {} objects, and the app opens up to {}",
+                objects,
+                MAX_OBJECTS
             ));
         }
         let edits: usize = self
@@ -342,8 +345,10 @@ impl<Op> ProjectFile<Op> {
             .map(|l| l.operations.len())
             .sum();
         if edits > MAX_EDITS {
-            return Err(format!(
-                "it holds {edits} recorded edits, and the app opens up to {MAX_EDITS}"
+            return Err(trf!(
+                "it holds {} recorded edits, and the app opens up to {}",
+                edits,
+                MAX_EDITS
             ));
         }
         let polygons = self.objects.iter().fold(0usize, |sum, o| {
@@ -354,9 +359,11 @@ impl<Op> ProjectFile<Op> {
             })
         });
         if polygons > MAX_POLYGONS {
-            return Err(format!(
-                "its shapes have about {polygons} polygons, and the app opens up to \
-                 {MAX_POLYGONS}"
+            return Err(trf!(
+                "its shapes have about {} polygons, and the app opens up to \
+                 {}",
+                polygons,
+                MAX_POLYGONS
             ));
         }
         Ok(())
@@ -385,7 +392,7 @@ impl<Op: FileOperation> ProjectFile<Op> {
             let id = object.id;
             let built = object_from_file(object)
                 .and_then(|mut o| attach(id, &mut o.2).map(|()| o))
-                .map_err(|why| format!("object \"{name}\": {why}"))?;
+                .map_err(|why| trf!("object \"{}\": {}", name, why))?;
             objects.push(built);
         }
         let scene = Scene::from_objects(objects, self.next_id).map_err(|e| e.to_string())?;
@@ -394,12 +401,12 @@ impl<Op: FileOperation> ProjectFile<Op> {
     }
 }
 
-pub(crate) fn finite(values: [f32; 3], what: &str) -> Result<Vec3, Problem> {
+pub(crate) fn finite(values: [f32; 3], what: &'static str) -> Result<Vec3, Problem> {
     let v = Vec3::from_array(values);
     if v.is_finite() {
         Ok(v)
     } else {
-        Err(format!("its {what} isn't a real number"))
+        Err(trf!("its {} isn't a real number", tr(what)))
     }
 }
 
@@ -407,9 +414,9 @@ fn object_from_file<Op: FileOperation>(
     object: ObjectFile<Op>,
 ) -> Result<(ObjectId, Option<ObjectId>, Object), Problem> {
     let transform = Transform {
-        position: finite(object.transform.position, "position")?,
-        rotation: finite(object.transform.rotation, "rotation")?,
-        scale: finite(object.transform.scale, "scale")?,
+        position: finite(object.transform.position, text!("position"))?,
+        rotation: finite(object.transform.rotation, text!("rotation"))?,
+        scale: finite(object.transform.scale, text!("scale"))?,
     };
     let kind = match object.kind {
         KindV1::Group => ObjectKind::Group,
@@ -540,7 +547,7 @@ fn mesh_from_file(mesh: MeshV1) -> Result<Mesh, Problem> {
         .hard
         .into_iter()
         .map(|[a, b]| EdgeKey::new(VertexId::from_raw(a), VertexId::from_raw(b)));
-    Mesh::from_slots(points, faces, hard).map_err(|e| format!("its mesh is damaged ({e})"))
+    Mesh::from_slots(points, faces, hard).map_err(|e| trf!("its mesh is damaged ({})", e))
 }
 
 fn layer_from_file<Op: FileOperation>(

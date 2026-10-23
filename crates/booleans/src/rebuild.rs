@@ -33,7 +33,7 @@ pub(crate) fn rebuild(joined: &Joined, gl: &MeshGL64, options: &Options) -> Resu
         let tri = [t[0], t[1], t[2]].map(|i| usize::try_from(i).unwrap_or(usize::MAX));
         if tri.iter().any(|i| *i >= positions.len()) {
             return Err(Problem::Failed(
-                "a triangle names a point that isn't there".into(),
+                words::tr("a triangle names a point that isn't there").into(),
             ));
         }
         tris.push(tri);

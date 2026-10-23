@@ -5,6 +5,7 @@ use crate::stack::{EditId, Entry, Layer, LayerChange, Operation, Stack};
 use crate::tree::{Edit, Place, Scene, SceneError};
 use mesh::Primitive;
 use std::sync::Arc;
+use words::{text, tr, trf};
 
 mod booleans;
 
@@ -306,118 +307,121 @@ impl Command {
         let count = |ids: &[ObjectId]| top_level(scene, ids).len();
         let objects = |n: usize| {
             if n == 1 {
-                "object".to_string()
+                tr("object").to_string()
             } else {
-                format!("{n} objects")
+                trf!("{} objects", n)
             }
         };
         match self {
-            Self::Create(kind) => format!("Create {}", kind.name().to_lowercase()),
-            Self::Insert { object, .. } => format!("Add {}", object.name),
+            Self::Create(kind) => trf!("Create {}", kind.name().to_lowercase()),
+            Self::Insert { object, .. } => trf!("Add {}", object.name),
             Self::InsertMany(list) => match list.as_slice() {
-                [one] => format!("Add {}", one.name),
-                many => format!("Add {} objects", many.len()),
+                [one] => trf!("Add {}", one.name),
+                many => trf!("Add {} objects", many.len()),
             },
-            Self::Rename { .. } => "Rename".into(),
+            Self::Rename { .. } => tr("Rename").into(),
             Self::SetVisible { ids, visible } => {
-                let verb = if *visible { "Show" } else { "Hide" };
-                format!("{verb} {}", objects(count(ids)))
+                if *visible {
+                    trf!("Show {}", objects(count(ids)))
+                } else {
+                    trf!("Hide {}", objects(count(ids)))
+                }
             }
-            Self::Move { ids, .. } => format!("Move {}", objects(count(ids))),
-            Self::Delete(ids) => format!("Delete {}", objects(count(ids))),
-            Self::Group(ids) => format!("Group {}", objects(count(ids))),
+            Self::Move { ids, .. } => trf!("Move {}", objects(count(ids))),
+            Self::Delete(ids) => trf!("Delete {}", objects(count(ids))),
+            Self::Group(ids) => trf!("Group {}", objects(count(ids))),
             Self::SetPrimitive { primitive, .. } => {
-                format!("Change {} settings", primitive.name().to_lowercase())
+                trf!("Change {} settings", primitive.name().to_lowercase())
             }
             Self::Record { operation, .. } => operation.describe(),
-            Self::ReplaceOperation { operation, .. } => format!("Change {}", operation.describe()),
+            Self::ReplaceOperation { operation, .. } => trf!("Change {}", operation.describe()),
             Self::SetEditEnabled { enabled, .. } => {
                 if *enabled {
-                    "Switch edit on".into()
+                    tr("Switch edit on").into()
                 } else {
-                    "Switch edit off".into()
+                    tr("Switch edit off").into()
                 }
             }
             Self::SetEditPinned { pinned, .. } => {
                 if *pinned {
-                    "Pin edit".into()
+                    tr("Pin edit").into()
                 } else {
-                    "Unpin edit".into()
+                    tr("Unpin edit").into()
                 }
             }
             Self::SetTransforms(changes) => {
                 let ids: Vec<ObjectId> = changes.iter().map(|(id, _)| *id).collect();
-                format!("Transform {}", objects(count(&ids)))
+                trf!("Transform {}", objects(count(&ids)))
             }
-            Self::SetUnits(units) => format!("Change units to {}", units.name()),
-            Self::SetMaterials { .. } => "Change materials".to_string(),
-            Self::ApplyTransforms { parts, .. } => format!("Apply {}", parts.name()),
-            Self::AddLayer(_) => "Add edit layer".to_string(),
+            Self::SetUnits(units) => trf!("Change units to {}", units.name()),
+            Self::SetMaterials { .. } => tr("Change materials").to_string(),
+            Self::ApplyTransforms { parts, .. } => trf!("Apply {}", parts.name()),
+            Self::AddLayer(_) => tr("Add edit layer").to_string(),
             Self::DeleteEdit { id, edit } => scene
                 .object(*id)
                 .and_then(|o| o.stack.entry(*edit))
                 .map_or_else(
-                    || "Delete edit".to_string(),
-                    |(_, _, e)| format!("Delete {}", e.operation.describe().to_lowercase()),
+                    || tr("Delete edit").to_string(),
+                    |(_, _, e)| trf!("Delete {}", e.operation.describe().to_lowercase()),
                 ),
             Self::Freeze { id, edit } => {
                 let n = scene
                     .object(*id)
                     .map_or(0, |o| crate::stack::frozen_count(&o.stack, *edit));
                 match n {
-                    1 => "Freeze 1 edit".to_string(),
-                    n => format!("Freeze {n} edits"),
+                    1 => tr("Freeze 1 edit").to_string(),
+                    n => trf!("Freeze {} edits", n),
                 }
             }
             Self::ChangeLayer { change, .. } => change.describe().to_string(),
-            Self::SetMirror { mirror: None, .. } => "Mirror off".to_string(),
-            Self::SetMirror { .. } => "Mirror".to_string(),
+            Self::SetMirror { mirror: None, .. } => tr("Mirror off").to_string(),
+            Self::SetMirror { .. } => tr("Mirror").to_string(),
             Self::SetHardness {
                 hardness: mesh::Hardness::Marked,
                 ..
-            } => "Smooth by marked edges only".to_string(),
+            } => tr("Smooth by marked edges only").to_string(),
             Self::SetHardness {
                 hardness: mesh::Hardness::ByAngle(a),
                 ..
-            } => format!("Smooth by angle ({a:.0}°)"),
+            } => trf!("Smooth by angle ({:.0}°)", a),
             Self::SetCollision { collision, .. } => match collision {
-                crate::Collision::None => "Remove collision".to_string(),
-                c => format!("Collision: {}", c.name().to_lowercase()),
+                crate::Collision::None => tr("Remove collision").to_string(),
+                c => trf!("Collision: {}", c.name().to_lowercase()),
             },
-            Self::SetExportTarget(Some(_)) => "Change the game project folder".to_string(),
-            Self::SetExportTarget(None) => "Clear the game project folder".to_string(),
-            Self::SetTexture(_) => "Change the texture settings".to_string(),
-            Self::SetMending(_) => "Change how edits keep UVs".to_string(),
-            Self::SetTrim(_) => "Change the trim sheet".to_string(),
-            Self::SetSnapshots(_) => "Change the layout snapshots".to_string(),
+            Self::SetExportTarget(Some(_)) => tr("Change the game project folder").to_string(),
+            Self::SetExportTarget(None) => tr("Clear the game project folder").to_string(),
+            Self::SetTexture(_) => tr("Change the texture settings").to_string(),
+            Self::SetMending(_) => tr("Change how edits keep UVs").to_string(),
+            Self::SetTrim(_) => tr("Change the trim sheet").to_string(),
+            Self::SetSnapshots(_) => tr("Change the layout snapshots").to_string(),
             Self::MovePivots(changes) => match changes.len() {
-                1 => "Move pivot".to_string(),
-                n => format!("Move {n} pivots"),
+                1 => tr("Move pivot").to_string(),
+                n => trf!("Move {} pivots", n),
             },
             Self::Duplicate { ids, instances } => {
                 let n = count(ids);
                 match (instances, n) {
-                    (false, _) => format!("Duplicate {}", objects(n)),
-                    (true, 1) => "Instance 1 object".into(),
-                    (true, n) => format!("Instance {n} objects"),
+                    (false, _) => trf!("Duplicate {}", objects(n)),
+                    (true, 1) => tr("Instance 1 object").into(),
+                    (true, n) => trf!("Instance {} objects", n),
                 }
             }
             Self::SplitOff { faces, .. } => match faces.len() {
-                1 => "Split off 1 polygon".into(),
-                n => format!("Split off {n} polygons"),
+                1 => tr("Split off 1 polygon").into(),
+                n => trf!("Split off {} polygons", n),
             },
-            Self::Join(ids) => format!("Join {}", objects(count(ids))),
+            Self::Join(ids) => trf!("Join {}", objects(count(ids))),
             Self::AddBoolean { kind, .. } => kind.name().to_string(),
-            Self::SetBooleans { .. } => "Change booleans".to_string(),
+            Self::SetBooleans { .. } => tr("Change booleans").to_string(),
             Self::ApplyMirror(ids) => {
                 let n = ids
                     .iter()
                     .filter(|id| scene.object(**id).is_some_and(|o| o.mirror.is_some()))
                     .count();
                 if n > 1 {
-                    format!("Apply {n} mirrors")
+                    trf!("Apply {} mirrors", n)
                 } else {
-                    "Apply mirror".to_string()
+                    tr("Apply mirror").to_string()
                 }
             }
             Self::MakeEditable(ids) => {
@@ -425,11 +429,11 @@ impl Command {
                     .iter()
                     .filter(|id| scene.can_make_editable(**id))
                     .count();
-                format!("Make {} editable", objects(n.max(1)))
+                trf!("Make {} editable", objects(n.max(1)))
             }
             Self::Ungroup(ids) => match groups_among(scene, ids).len() {
-                1 => "Ungroup".into(),
-                n => format!("Ungroup {n} groups"),
+                1 => tr("Ungroup").into(),
+                n => trf!("Ungroup {} groups", n),
             },
         }
     }
@@ -511,7 +515,7 @@ impl Run<'_> {
         let (layer, index, before) = object
             .stack
             .entry(edit)
-            .ok_or(SceneError::History("that edit no longer exists"))?;
+            .ok_or(SceneError::History(text!("that edit no longer exists")))?;
         let before = before.clone();
         let mut after = before.clone();
         change(&mut after);
@@ -533,7 +537,7 @@ impl Run<'_> {
         let (layer, index, _) = object
             .stack
             .entry(edit)
-            .ok_or(SceneError::History("that edit no longer exists"))?;
+            .ok_or(SceneError::History(text!("that edit no longer exists")))?;
         let layers = object.stack.layers().to_vec();
         let mut frozen: Vec<Layer> = layers[..layer].to_vec();
         let mut last = layers[layer].clone();
@@ -584,7 +588,7 @@ impl Run<'_> {
         let layer = layers
             .get(index)
             .cloned()
-            .ok_or(SceneError::History("that layer no longer exists"))?;
+            .ok_or(SceneError::History(text!("that layer no longer exists")))?;
         let remove = |index: usize, layer: Layer| Edit::RemoveLayer { id, index, layer };
         let insert = |index: usize, layer: Layer| Edit::InsertLayer { id, index, layer };
         match change {
@@ -616,25 +620,27 @@ impl Run<'_> {
                 let to = if *up {
                     index + 1
                 } else {
-                    index
-                        .checked_sub(1)
-                        .ok_or(SceneError::History("the layer is already at the bottom"))?
+                    index.checked_sub(1).ok_or(SceneError::History(text!(
+                        "the layer is already at the bottom"
+                    )))?
                 };
                 if to >= layers.len() {
-                    return Err(SceneError::History("the layer is already at the top"));
+                    return Err(SceneError::History(text!(
+                        "the layer is already at the top"
+                    )));
                 }
                 self.edit(remove(index, layer.clone()))?;
                 self.edit(insert(to, layer))?;
             }
             LayerChange::MergeDown => {
-                let below_index = index
-                    .checked_sub(1)
-                    .ok_or(SceneError::History("there is no layer below to merge into"))?;
+                let below_index = index.checked_sub(1).ok_or(SceneError::History(text!(
+                    "there is no layer below to merge into"
+                )))?;
                 let below = layers[below_index].clone();
                 if !layer.enabled || !below.enabled {
-                    return Err(SceneError::History(
-                        "switch both layers on before merging them",
-                    ));
+                    return Err(SceneError::History(text!(
+                        "switch both layers on before merging them"
+                    )));
                 }
                 let mut merged = below.clone();
                 merged.entries.extend(layer.entries.iter().cloned());
@@ -1003,7 +1009,7 @@ impl Run<'_> {
                     .get(*layer)
                     .and_then(|l| l.entries.get(*index))
                     .cloned()
-                    .ok_or(SceneError::History("that edit no longer exists"))?;
+                    .ok_or(SceneError::History(text!("that edit no longer exists")))?;
                 if before.operation == *operation {
                     return Ok(None);
                 }
@@ -1042,7 +1048,7 @@ impl Run<'_> {
                 let (layer, index, entry) = object
                     .stack
                     .entry(*edit)
-                    .ok_or(SceneError::History("that edit no longer exists"))?;
+                    .ok_or(SceneError::History(text!("that edit no longer exists")))?;
                 let entry = entry.clone();
                 self.edit(Edit::RemoveEntry {
                     id: *id,

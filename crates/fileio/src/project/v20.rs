@@ -11,6 +11,7 @@ use crate::limits::Bounded;
 use scene::{Collision, Document};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use words::{tr, trf};
 
 /// Version 20 of the file.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -81,7 +82,7 @@ impl<E: FileOperation> ProjectV20<E> {
                 ShapeV20::Box => Collision::Box,
             };
             if shapes.insert(entry.object, shape).is_some() {
-                return Err("an object's collision is stored twice".into());
+                return Err(tr("an object's collision is stored twice").into());
             }
         }
         let document = self.project.into_document_with(|id, object| {
@@ -91,8 +92,9 @@ impl<E: FileOperation> ProjectV20<E> {
             attach(id, object)
         })?;
         if let Some(id) = shapes.keys().next() {
-            return Err(format!(
-                "a collision is stored for object {id}, which isn't there"
+            return Err(trf!(
+                "a collision is stored for object {}, which isn't there",
+                id
             ));
         }
         Ok(document)

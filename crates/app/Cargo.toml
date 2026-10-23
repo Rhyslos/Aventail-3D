@@ -27,6 +27,8 @@ glam.workspace = true
 fileio.workspace = true
 # Backup copies are written from a copy of the document.
 scene.workspace = true
+# The language layer for the app's own text (dialogs, start-up).
+words.workspace = true
 rfd.workspace = true
 # The system language, to guess the keyboard the Keys window draws.
 sys-locale.workspace = true

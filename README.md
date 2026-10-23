@@ -258,16 +258,16 @@ After a review of the whole app (2026-10-21, [decision 0121](docs/decisions/0121
 
 **Gate:** 2–3 people new to the app finish a fixed task list without help, see what is selected on any screen, and no text skips the English package. Then Phase 10, advanced modelling.
 
-### Phase 10 · Advanced hard-surface (after Phase 9, before the rest of Phase 8) — 0 of 9
+### Phase 10 · Advanced hard-surface (after Phase 9, before the rest of Phase 8) — 1 of 9
 
-`░░░░░░░░░░░░░` 0%
+`█░░░░░░░░░░░░` 11%
 
 Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/decisions/0125-modelling-before-the-rest-of-the-uvs.md)); Phase 8 continues once it's done. Friends join as testers around here, once there are enough tools to build something.
 
 <details>
 <summary>Milestones</summary>
 
-- [ ] Booleans: union, subtract, intersect
+- [x] Booleans: union, subtract, intersect, with live cutters that stay editable ([decision 0135](docs/decisions/0135-live-booleans.md))
 - [ ] Weighted normals
 - [ ] Improved bevel: rounded corners where bevels meet, and bevels that never overlap
 - [ ] Array and mirror generators (symmetry becomes a per-object Mirror modifier earlier, in Phase 9)
@@ -299,6 +299,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-24 | Booleans: Union, Subtract and Intersect with live cutters drawn as outlines; move or edit a cutter and the cut follows; Bake into shape makes it permanent |
 | 2026-10-23 | Key audit: Slide on Shift + Alt + drag, Ctrl + Shift + H also shows everything, Cmd in Mac texts; and Ctrl snaps one loop cut to tenths of the edge, the middle included |
 | 2026-10-23 | Tidy for growth: the big interface files split up, a short spec and a one-page digest of the rules, and every interface text through one language layer with English as its package |
 | 2026-10-23 | Rework: every setting in one home and a slim one-line Coordinates band; the palette names its buttons on hover; a safety net of workflow tests, random action runs, reference images, export checks in Godot and the glTF Validator, and an emergency copy on a crash |

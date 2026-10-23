@@ -15,6 +15,7 @@ use crate::limits::Bounded;
 use scene::{Document, Stack};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use words::{tr, trf};
 
 /// Version 27 of the file (and, with their own edits `E`, the versions
 /// after it that change only the kinds of edit).
@@ -70,7 +71,7 @@ impl<E: FileOperation> ProjectV27<E> {
                 .insert(entry.edit, entry.names.into_iter().collect())
                 .is_some()
             {
-                return Err("an edit's names are stored twice".into());
+                return Err(tr("an edit's names are stored twice").into());
             }
         }
         let document = self.project.into_document_with(|id, object| {
@@ -84,25 +85,27 @@ impl<E: FileOperation> ProjectV27<E> {
                         continue;
                     };
                     let Some(anchors) = entry.operation.anchors_mut() else {
-                        return Err("names are stored for an edit without anchors".into());
+                        return Err(tr("names are stored for an edit without anchors").into());
                     };
                     if names.len() != anchors.points.len() || names.contains(&0) {
-                        return Err("an edit's names don't fit its anchored points".into());
+                        return Err(tr("an edit's names don't fit its anchored points").into());
                     }
                     anchors.names = Some(names);
                 }
             }
             if let Some(edit) = edits.keys().next() {
-                return Err(format!(
-                    "names are stored for edit {edit}, which isn't there"
+                return Err(trf!(
+                    "names are stored for edit {}, which isn't there",
+                    edit
                 ));
             }
             object.stack = Stack::from_layers(layers);
             Ok(())
         })?;
         if let Some(id) = by_object.keys().next() {
-            return Err(format!(
-                "names are stored for object {id}, which isn't there"
+            return Err(trf!(
+                "names are stored for object {}, which isn't there",
+                id
             ));
         }
         Ok(document)

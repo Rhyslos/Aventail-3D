@@ -23,6 +23,7 @@ mod uvs;
 
 use crate::{Bounds, Mesh};
 use glam::Vec3;
+use words::{text, tr};
 
 /// The smallest size anything can have, in centimetres (1 mm).
 pub const MIN_SIZE: f32 = 0.1;
@@ -585,54 +586,56 @@ impl PrimitiveKind {
         )
     }
 
-    /// The kind's name, as used for new objects ("Cube").
-    pub const fn name(self) -> &'static str {
-        match self {
-            Self::Cube => "Cube",
-            Self::Plane => "Plane",
-            Self::Cylinder => "Cylinder",
-            Self::Sphere => "Sphere",
-            Self::Disc => "Disc",
-            Self::Tube => "Tube",
-            Self::Cone => "Cone",
-            Self::Icosphere => "Icosphere",
-            Self::Torus => "Torus",
-            Self::Capsule => "Capsule",
-            Self::Dome => "Dome",
-            Self::Elbow => "Pipe elbow",
-            Self::Sector => "Pie sector",
-            Self::Gear => "Gear",
-            Self::HexGrid => "Hex grid",
-            Self::HexSphere => "Hex sphere",
-            Self::Stairs => "Stairs",
-            Self::Arch => "Arch",
-        }
+    /// The kind's name, as used for new objects ("Cube"), in the language
+    /// in use.
+    pub fn name(self) -> &'static str {
+        tr(match self {
+            Self::Cube => text!("Cube"),
+            Self::Plane => text!("Plane"),
+            Self::Cylinder => text!("Cylinder"),
+            Self::Sphere => text!("Sphere"),
+            Self::Disc => text!("Disc"),
+            Self::Tube => text!("Tube"),
+            Self::Cone => text!("Cone"),
+            Self::Icosphere => text!("Icosphere"),
+            Self::Torus => text!("Torus"),
+            Self::Capsule => text!("Capsule"),
+            Self::Dome => text!("Dome"),
+            Self::Elbow => text!("Pipe elbow"),
+            Self::Sector => text!("Pie sector"),
+            Self::Gear => text!("Gear"),
+            Self::HexGrid => text!("Hex grid"),
+            Self::HexSphere => text!("Hex sphere"),
+            Self::Stairs => text!("Stairs"),
+            Self::Arch => text!("Arch"),
+        })
     }
 
-    /// A plain-language description, for menus and tooltips.
-    pub const fn description(self) -> &'static str {
-        match self {
-            Self::Cube => "A 1 m box standing on the ground",
-            Self::Plane => "A flat 1 m square lying on the ground",
-            Self::Cylinder => "An upright cylinder, 1 m across and 1 m tall",
-            Self::Sphere => "A ball 1 m across, resting on the ground",
-            Self::Disc => "A flat circle 1 m across, lying on the ground",
-            Self::Tube => "A pipe 1 m across and 1 m tall",
-            Self::Cone => "A cone 1 m across and 1 m tall",
-            Self::Icosphere => {
+    /// A plain-language description, for menus and tooltips, in the
+    /// language in use.
+    pub fn description(self) -> &'static str {
+        tr(match self {
+            Self::Cube => text!("A 1 m box standing on the ground"),
+            Self::Plane => text!("A flat 1 m square lying on the ground"),
+            Self::Cylinder => text!("An upright cylinder, 1 m across and 1 m tall"),
+            Self::Sphere => text!("A ball 1 m across, resting on the ground"),
+            Self::Disc => text!("A flat circle 1 m across, lying on the ground"),
+            Self::Tube => text!("A pipe 1 m across and 1 m tall"),
+            Self::Cone => text!("A cone 1 m across and 1 m tall"),
+            Self::Icosphere => text!(
                 "A ball 1 m across made of even triangles, with no poles: subdivides and bends evenly"
-            }
-            Self::Torus => "A ring (doughnut) 1 m across, lying on the ground",
-            Self::Capsule => "A cylinder with round ends, 1 m tall",
-            Self::Dome => "Half a ball 1 m across, standing on its flat side",
-            Self::Elbow => "A piece of pipe bent through 90°, lying on the ground",
-            Self::Sector => "A pie slice of a round slab, a quarter of a circle",
-            Self::Gear => "A gear with 12 teeth and a hole for the axle",
-            Self::HexGrid => "A flat honeycomb of hexagons, lying on the ground",
-            Self::HexSphere => "A ball made of hexagons and 12 pentagons, like a football",
-            Self::Stairs => "A solid flight of 6 stairs, 1 m wide and 1 m high",
-            Self::Arch => "A doorway arch: two legs and a round top",
-        }
+            ),
+            Self::Torus => text!("A ring (doughnut) 1 m across, lying on the ground"),
+            Self::Capsule => text!("A cylinder with round ends, 1 m tall"),
+            Self::Dome => text!("Half a ball 1 m across, standing on its flat side"),
+            Self::Elbow => text!("A piece of pipe bent through 90°, lying on the ground"),
+            Self::Sector => text!("A pie slice of a round slab, a quarter of a circle"),
+            Self::Gear => text!("A gear with 12 teeth and a hole for the axle"),
+            Self::HexGrid => text!("A flat honeycomb of hexagons, lying on the ground"),
+            Self::HexSphere => text!("A ball made of hexagons and 12 pentagons, like a football"),
+            Self::Stairs => text!("A solid flight of 6 stairs, 1 m wide and 1 m high"),
+            Self::Arch => text!("A doorway arch: two legs and a round top"),
+        })
     }
 
     /// This kind with its standard settings.

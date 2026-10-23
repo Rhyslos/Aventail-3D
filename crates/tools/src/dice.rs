@@ -13,6 +13,7 @@
 //! asks the [`crate::Navigator`] to look from a side.
 
 use glam::{IVec3, Vec3};
+use words::tr;
 
 /// Every side of the dice: the 6 faces first, then the 12 edges, then the
 /// 8 corners.
@@ -84,12 +85,12 @@ pub fn name(side: IVec3) -> String {
 /// for an edge or a corner.
 pub fn face_label(side: IVec3) -> Option<&'static str> {
     match (side.x, side.y, side.z) {
-        (0, 0, 1) => Some("Top"),
-        (0, 0, -1) => Some("Bottom"),
-        (0, -1, 0) => Some("Front"),
-        (0, 1, 0) => Some("Back"),
-        (1, 0, 0) => Some("Right"),
-        (-1, 0, 0) => Some("Left"),
+        (0, 0, 1) => Some(tr("Top")),
+        (0, 0, -1) => Some(tr("Bottom")),
+        (0, -1, 0) => Some(tr("Front")),
+        (0, 1, 0) => Some(tr("Back")),
+        (1, 0, 0) => Some(tr("Right")),
+        (-1, 0, 0) => Some(tr("Left")),
         _ => None,
     }
 }

@@ -13,6 +13,7 @@ use glam::Vec3;
 use mesh::slit::MAX_LINE_POINTS;
 use scene::{Eye, Operation, SlitLine};
 use serde::{Deserialize, Serialize};
+use words::{tr, trf};
 
 /// Version 7 of the file.
 #[cfg(test)]
@@ -66,9 +67,10 @@ impl FileOperation for OperationV7 {
                 through,
             } => {
                 if points.len() < 2 || points.len() > MAX_LINE_POINTS {
-                    return Err(format!(
-                        "its slit has {} points (2 to {MAX_LINE_POINTS} can be stored)",
-                        points.len()
+                    return Err(trf!(
+                        "its slit has {} points (2 to {} can be stored)",
+                        points.len(),
+                        MAX_LINE_POINTS
                     ));
                 }
                 let real = |p: [f32; 3]| p.iter().all(|x| x.is_finite());
@@ -77,10 +79,10 @@ impl FileOperation for OperationV7 {
                     EyeV7::Along(d) if real(d) && Vec3::from_array(d).length() > 1e-6 => {
                         Eye::Along(Vec3::from_array(d))
                     }
-                    _ => return Err("its slit's view isn't real numbers".into()),
+                    _ => return Err(tr("its slit's view isn't real numbers").into()),
                 };
                 if !points.iter().all(|p| real(*p)) {
-                    return Err("one of its slit's points isn't real numbers".into());
+                    return Err(tr("one of its slit's points isn't real numbers").into());
                 }
                 Ok(Operation::Slit {
                     line: SlitLine {

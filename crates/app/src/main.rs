@@ -4,6 +4,7 @@
 use app::cli::{self, Command};
 use std::io::Write;
 use std::process::ExitCode;
+use words::trf;
 
 /// Writes text to standard output or standard error; `false` if it failed.
 fn say(text: &str, to_error: bool) -> bool {
@@ -33,9 +34,10 @@ fn main() -> ExitCode {
             Ok(()) => ExitCode::SUCCESS,
             Err(reason) => {
                 say(
-                    &format!(
-                        "{} could not open its window: {reason}\n",
-                        app::branding::APP_NAME
+                    &trf!(
+                        "{} could not open its window: {}\n",
+                        app::branding::APP_NAME,
+                        reason
                     ),
                     true,
                 );

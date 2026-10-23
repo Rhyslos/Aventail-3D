@@ -8,6 +8,7 @@
 use super::v1::{FileOperation, Problem};
 use super::v5::EntryWith;
 use super::v24::OperationV24;
+use words::tr;
 
 use glam::Mat4;
 use scene::Operation;
@@ -49,10 +50,10 @@ impl FileOperation for OperationV26 {
                     matrix: Mat4::from_cols_array(&matrix),
                 };
                 if !operation.numbers_are_real() {
-                    return Err(
-                        "an applied placement isn't made of real numbers, or flattens the shape"
-                            .into(),
-                    );
+                    return Err(tr(
+                        "an applied placement isn't made of real numbers, or flattens the shape",
+                    )
+                    .into());
                 }
                 Ok(operation)
             }

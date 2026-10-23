@@ -20,6 +20,7 @@ use mesh::symmetry::Mirror;
 use scene::{Document, Material, Operation};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use words::{tr, trf};
 
 /// Version 18 of the file.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -93,9 +94,10 @@ impl SetMaterialV18 {
 
     fn into_operation(self) -> Result<Operation, Problem> {
         if self.slot >= MAX_SLOTS {
-            return Err(format!(
-                "polygons are given material {}, but an object has at most {MAX_SLOTS}",
-                self.slot + 1
+            return Err(trf!(
+                "polygons are given material {}, but an object has at most {}",
+                self.slot + 1,
+                MAX_SLOTS
             ));
         }
         Ok(Operation::SetMaterial {
@@ -136,10 +138,10 @@ impl FileOperation for OperationV18 {
             } => {
                 let centre = Vec3::from_array(centre);
                 if !centre.is_finite() {
-                    return Err("a mirror's middle isn't a real number".to_string());
+                    return Err(tr("a mirror's middle isn't a real number").to_string());
                 }
                 if !axes.contains(&true) {
-                    return Err("a mirrored edit mirrors across no axis".to_string());
+                    return Err(tr("a mirrored edit mirrors across no axis").to_string());
                 }
                 Ok(Operation::Mirrored {
                     op: Box::new(op.into_operation()?),
@@ -192,9 +194,10 @@ impl<E: FileOperation> ProjectV18<E> {
         let mut lists: BTreeMap<u64, Vec<Material>> = BTreeMap::new();
         for entry in self.materials {
             if entry.list.len() > MAX_SLOTS as usize {
-                return Err(format!(
-                    "object {} has more than {MAX_SLOTS} materials",
-                    entry.object
+                return Err(trf!(
+                    "object {} has more than {} materials",
+                    entry.object,
+                    MAX_SLOTS
                 ));
             }
             let list: Vec<Material> = entry
@@ -206,10 +209,10 @@ impl<E: FileOperation> ProjectV18<E> {
                 })
                 .collect();
             if !list.iter().all(Material::is_valid) {
-                return Err("a material has no name or a colour outside 0 to 1".into());
+                return Err(tr("a material has no name or a colour outside 0 to 1").into());
             }
             if lists.insert(entry.object, list).is_some() {
-                return Err("an object's materials are stored twice".into());
+                return Err(tr("an object's materials are stored twice").into());
             }
         }
         let document = self.places.into_document_with(|id, object| {
@@ -222,8 +225,9 @@ impl<E: FileOperation> ProjectV18<E> {
             Ok(())
         })?;
         if let Some(id) = lists.keys().next() {
-            return Err(format!(
-                "materials are stored for object {id}, which isn't there"
+            return Err(trf!(
+                "materials are stored for object {}, which isn't there",
+                id
             ));
         }
         Ok(document)
