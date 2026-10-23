@@ -264,7 +264,7 @@ Also: dense wireframes fade out from afar (and aren't drawn when too dense to se
 └──────────────────────────────────────────────────────────────────┘
 ```
 - **Right column order:** Attributes panel on top, Objects panel below. This deliberately differs from C4D's default (user preference, 2026-10-10).
-- **Left palette:** mode switches (Model / Object / Points / Edges / Polygons / UV) and snapping, like C4D, with viewport display switches at the bottom (grid detail: fine 10 cm lines on or off).
+- **Left palette:** mode switches (Model, with the Edit pivot switch under it for the Object mode / Points / Edges / Polygons / UV) and snapping, like C4D, with viewport display switches at the bottom (grid detail: fine 10 cm lines on or off).
 - **Modifiers palette** (the project lead's choice, 2026-10-12): a thin column of icon buttons between the viewport and the right column, holding everything that changes a shape non-destructively: edit layers (Phase 6), mirror and array (Phase 7), booleans, subdivision, weighted normals and the game bevel. It sits right next to the Objects panel because that is where modifiers are applied and shown. C4D keeps its generators and deformers in a similar spot; we copy only the placement, with our own icons (drawn in code) and names. It appears with the first modifier (Edit Layers, Phase 6), not as an empty placeholder: a strip of buttons that do nothing would only confuse. How a click applies a modifier (to the selection, as a child or a parent, as a layer) is asked about before it is built ([0028](docs/decisions/0028-ask-about-controls.md)).
 - **Objects panel:** tree with drag-to-reparent, rename, visibility toggles, and later the Edit Layers stack shown as a sub-list. Built: click, Ctrl and Shift selection with names in the accent colour, double-click to rename, drag onto a row to nest or onto its edge to reorder, an eye per row, fold arrows, a right-click menu, and Edit, View and Object menus ([0018](docs/decisions/0018-scene-document-and-undo.md)).
 - **Attributes panel:** tabbed properties for the selection or active tool.
@@ -282,7 +282,7 @@ Also: dense wireframes fade out from afar (and aren't drawn when too dense to se
 - **We copy layout and behaviour, not assets.** No Maxon or Autodesk icons, names, logos or screenshots go into the repo.
 
 ### 5.3 Axes and navigation
-**Z is up** ([decision 0012](docs/decisions/0012-z-up-axes.md)), as in 3ds Max and Blender, unlike Cinema 4D: X and Y lie flat on the ground grid, Z is height. Right-handed; X red, Y blue, Z green (the project lead's choice; most programs swap the last two). Rotation in the Coordinates panel keeps C4D's H, P and B, with heading turning around Z. Export converts to Y-up for glTF and Godot automatically.
+**Z is up** ([decision 0012](docs/decisions/0012-z-up-axes.md)), as in 3ds Max and Blender, unlike Cinema 4D: X and Y lie flat on the ground grid, Z is height. Right-handed; X red, Y blue, Z green (the project lead's choice; most programs swap the last two). Rotation in the Coordinates panel reads X, Y and Z, the turn around each axis. Export converts to Y-up for glTF and Godot automatically.
 
 | Action | Default ("Mouse only" scheme, Alt + mouse also on) |
 |---|---|
@@ -305,7 +305,7 @@ Also: dense wireframes fade out from afar (and aren't drawn when too dense to se
 - Every action is a named command with a configurable hotkey (stored in a settings file).
 - **A modelling menu** (press a key, then a letter for the tool).
 - **Max-style quad menu** on right-click as an optional "sprinkle" (Phase 6).
-- Searchable **command palette** (Ctrl/Cmd+K or Shift+C, like C4D's Commander), reading from the command list ([0037](docs/decisions/0037-tool-menu-and-command-list.md)).
+- Searchable **command palette** (Space, like C4D's Commander; [0126](docs/decisions/0126-rework-and-first-use.md)), reading from the command list ([0037](docs/decisions/0037-tool-menu-and-command-list.md)).
 - **Tool menu** (`E`): the current mode's tools at the mouse, as a ring or a list ([0037](docs/decisions/0037-tool-menu-and-command-list.md)).
 
 ---
@@ -389,7 +389,7 @@ Export options: triangulation (deterministic, so the bake matches the game), Mik
 - **Header:** magic bytes `AVTL`, a format version number, and a flags field. The app can tell a `.avtl` file apart from anything else instantly, and refuses or upgrades old versions cleanly instead of crashing.
 - **Body:** the scene, objects, operation stacks and settings, serialized with `serde` and compressed with zstd (BSD).
 - **Optional sections:** undo history, and a small thumbnail image so file browsers and a future "recent files" screen can show previews.
-- **Versioning:** every format change bumps the version, and the loader keeps upgrade steps for older versions, so old projects always open.
+- **Versioning:** every format change bumps the version, and the loader keeps upgrade steps for older versions, so old projects always open. Until the alpha, a development format stands in, and older development files may not open ([0126](docs/decisions/0126-rework-and-first-use.md)).
 - **Safe saving:** write to a temporary file, then rename over the old one, so a crash mid-save never corrupts a project. Keep the previous save as a `.avtl.bak`.
 - **File association:** the installer registers `.avtl` so double-clicking a project opens the app.
 - **Extension:** `.avtl`, short for Aventail ([decision 0010](docs/decisions/0010-avtl-file-extension.md)). It was `.rhy` during planning; `.avt` was ruled out because CLO 3D and Marvelous Designer already use it for avatar files.

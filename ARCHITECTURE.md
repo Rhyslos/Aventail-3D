@@ -16,7 +16,7 @@ Crate names are generic on purpose (no product name), so renaming the app never 
 
 Each crate's `README.md` states its purpose and what it **must never** do. Read it before changing the crate.
 
-Planned later: a booleans crate (layer 1, wrapping manifold), a `script` crate (layer 2, scripting (LustScript and Lua) through the same commands as everything else; Phase 15, see [decision 0011](docs/decisions/0011-lua-scripting.md) and [decision 0119](docs/decisions/0119-roadmap-after-the-uvs.md)), a renderer crate for Solis (layer 1 or 2, knowing nothing about the interface; Phase 11), and animation support inside `scene` (Phases 17 and 18). Phase 9 adds a translation layer to `ui`, with English as the one language package ([decision 0117](docs/decisions/0117-language-support.md), [decision 0119](docs/decisions/0119-roadmap-after-the-uvs.md)).
+Planned later: a booleans crate (layer 1, wrapping manifold), a `script` crate (layer 2, scripting (LustScript and Lua) through the same commands as everything else; Phase 15, see [decision 0011](docs/decisions/0011-lua-scripting.md) and [decision 0119](docs/decisions/0119-roadmap-after-the-uvs.md)), and animation support inside `scene` (Phases 17 and 18). Phase 9 adds a translation layer to `ui`, with English as the one language package ([decision 0117](docs/decisions/0117-language-support.md), [decision 0119](docs/decisions/0119-roadmap-after-the-uvs.md)).
 
 ## How a frame runs
 
@@ -108,10 +108,10 @@ Rendering sits behind the `ViewportRenderer` trait, so the panel runs in tests w
 | Format | Read | Write |
 | --- | --- | --- |
 | `.avtl` (projects; versioned, compressed, crash-safe; see decisions [0007](docs/decisions/0007-rhy-project-format.md), [0010](docs/decisions/0010-avtl-file-extension.md) and [0024](docs/decisions/0024-saving-projects.md)) | Yes | Yes |
-| OBJ | Planned | Planned |
-| glTF / GLB | Later | Planned |
+| OBJ | Yes | Yes |
+| glTF / GLB | Yes | Yes |
 | FBX | No | Late, optional |
-| Settings file | Planned | Planned |
+| Settings file | Yes | Yes |
 | `app.ron` (window size and panel layout; written by eframe) | Yes | Yes |
 | Backup copies (`autosave/session-*/copy-N.avtl`, ordinary projects, in the app's own data folder; `emergency.txt` names one saved as the app crashed) | Yes | Yes |
 

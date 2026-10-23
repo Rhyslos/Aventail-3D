@@ -1,6 +1,6 @@
 # Primitives
 
-> Ready-made shapes to start a model from: cube, plane, cylinder, sphere, disc, tube and cone.
+> Ready-made shapes to start a model from: the basic ones (cube, plane, cylinder, sphere, disc, tube, cone) and more (icosphere, torus, capsule, dome, pipe elbow, sector, gear, hex sphere, hex grid, stairs, arch).
 
 ![The seven primitives side by side: cube (selected, outlined in the accent colour), plane, cylinder, sphere, disc, tube and cone](../screenshots/2026-10-10-primitive-gallery.png)
 
@@ -68,7 +68,7 @@ Every shape comes already **unwrapped**: its surface is laid flat in the texture
 | **Capsule, dome** | The round surface unrolled from tip to tip (or rim to top), cut open down the back; the dome's base on its own. |
 | **Pie sector, gear, stairs, arch** | Each flat face (top and bottom, or front and back) on its own; the walls unrolled into strips, cut at sharp corners, so a gear's teeth or a stair's steps each get their own piece. |
 
-The pieces keep their real sizes against each other, so the texture is equally sharp everywhere. The UVs follow your edits: an extrude stretches them up its new walls, a bevel across its strip. The UV tools to change them (the UV Editor, marking your own seams, unwrapping, packing) come in the next updates.
+The pieces keep their real sizes against each other, so the texture is equally sharp everywhere. The UVs follow your edits: an extrude stretches them up its new walls, a bevel across its strip. To change them, use the [UV tools](uv-editor.md): the UV Editor, your own seams, unwrapping and packing.
 
 ![The ready-made UVs of every shape, laid out flat: a cone's fan and base, a cut cube, a plain cube's six squares, a cylinder's strip and two ends, a disc, a plane, a sphere's map, and a tube's two strips and two rings.](../screenshots/2026-10-16-primitive-uvs.png)
 

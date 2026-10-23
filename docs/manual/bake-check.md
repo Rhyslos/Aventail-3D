@@ -27,8 +27,8 @@
 | **Edges shared by three or more polygons** ([non-manifold](concepts.md#mesh-basics)) | They can't be unfolded or baked cleanly. | Select them, then delete or [split off](split-and-join.md) the extra polygons. |
 | **Polygons with no area** | No direction to bake along: a black speck or a streak. | Select them, then [weld](connect-bridge-weld.md) their points (M) or delete them. |
 | **Edges with no length** (points on the same spot) | They make polygons with no area and break the shading. | **Fix** welds each group of points into one. |
-| **Many-sided polygons bent out of flat** | An [n-gon](concepts.md#mesh-basics) with a corner lifted shades unevenly across its triangles. | Select them and cut them up with [Connect](connect-bridge-weld.md) (J) or [Slit](slit.md) (X). |
-| **Many-sided polygons cut into sliver triangles** | Very thin triangles shade badly and leave streaks. | Select them and cut them up with Connect (J) so the triangles are fuller. |
+| **Many-sided polygons bent out of flat** | An [n-gon](concepts.md#mesh-basics) with a corner lifted shades unevenly across its triangles. | Select them and cut them up with [Connect](connect-bridge-weld.md) (A) or [Slit](slit.md) (X). |
+| **Many-sided polygons cut into sliver triangles** | Very thin triangles shade badly and leave streaks. | Select them and cut them up with Connect (A) so the triangles are fuller. |
 | **Points no polygon uses** | They go into the file for nothing and can confuse the baker. | **Fix** deletes them. |
 | **A `_low` object without its `_high`** (or the other way round) | Substance Painter pairs a low-poly object with its [high-poly](concepts.md#mesh-basics) one by name: `crate_low` with `crate_high`. | Rename one, or make the missing partner. |
 
