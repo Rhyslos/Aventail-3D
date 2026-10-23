@@ -470,6 +470,7 @@ The first build downloads dependencies and takes a few minutes. Ready-made build
 - [CONTRIBUTING.md](CONTRIBUTING.md): how it is built and tested, and the ground rules
 - [CHANGELOG.md](CHANGELOG.md): what changed
 - [docs/decisions](docs/decisions): why major choices were made
+- [docs/SPEC.md](docs/SPEC.md) and [docs/RULES.md](docs/RULES.md): what the app does now, in short, and a one-page digest of the rules in force
 - [SECURITY.md](SECURITY.md): how to report a vulnerability
 
 ## Contributing

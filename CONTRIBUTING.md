@@ -93,6 +93,7 @@ A change is not done until its documentation is.
 | `CHANGELOG.md` | Any change a user would notice |
 | README progress tracker | A milestone or gate is completed |
 | `RENAMING.md` | The app's name appears somewhere new |
+| `docs/SPEC.md` and `docs/RULES.md` | Something a user would notice is added or changed (SPEC), or a rule changes (RULES) |
 
 ## Testing: two sign-offs per pull request
 
