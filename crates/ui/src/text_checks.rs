@@ -21,23 +21,65 @@ fn sources() -> Vec<(PathBuf, String)> {
         &Path::new(env!("CARGO_MANIFEST_DIR")).join("src"),
         &mut files,
     );
-    files
+    let read: Vec<(PathBuf, String)> = files
         .into_iter()
-        .filter(|p| {
-            let name = p.file_name().unwrap().to_string_lossy();
-            !name.contains("tests") && name != "text_checks.rs"
-        })
         .map(|p| {
             let text = std::fs::read_to_string(&p).unwrap();
             (p, text)
         })
+        .collect();
+    // Files that are test modules of their own (`#[cfg(test)] mod
+    // heavy_check;`), whatever their name.
+    let mut test_files = Vec::new();
+    for (path, text) in &read {
+        let stem = path.file_stem().unwrap().to_string_lossy();
+        let dir = if stem == "lib" || stem == "mod" {
+            path.parent().unwrap().to_path_buf()
+        } else {
+            path.with_extension("")
+        };
+        for (at, _) in text.match_indices("#[cfg(test)]\nmod ") {
+            let rest = &text[at + "#[cfg(test)]\nmod ".len()..];
+            if let Some(name) = rest.split_once(';').map(|(n, _)| n)
+                && !name.contains(char::is_whitespace)
+            {
+                test_files.push(dir.join(format!("{name}.rs")));
+            }
+        }
+    }
+    read.into_iter()
+        .filter(|(p, _)| {
+            let name = p.file_name().unwrap().to_string_lossy();
+            !name.contains("tests") && name != "text_checks.rs" && !test_files.contains(p)
+        })
         .collect()
 }
 
-/// The part of `text` before its `#[cfg(test)]` module, if any.
-fn without_tests(text: &str) -> &str {
-    text.find("#[cfg(test)]\nmod tests")
-        .map_or(text, |at| &text[..at])
+/// `text` with its `#[cfg(test)]` modules blanked out (their lines kept
+/// empty, so line numbers still match the file).
+fn without_tests(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut in_tests = false;
+    let mut lines = text.split_inclusive('\n').peekable();
+    while let Some(line) = lines.next() {
+        if !in_tests
+            && line.trim_end() == "#[cfg(test)]"
+            && lines
+                .peek()
+                .is_some_and(|next| next.starts_with("mod ") && next.trim_end().ends_with('{'))
+        {
+            in_tests = true;
+        }
+        if in_tests {
+            out.push_str(if line.ends_with('\n') { "\n" } else { "" });
+            if line.trim_end() == "}" {
+                in_tests = false;
+            }
+        } else {
+            out.push_str(line);
+        }
+    }
+    out
 }
 
 #[test]
@@ -390,10 +432,13 @@ fn is_interface_text(literal: &str, before: &str) -> bool {
     if !words {
         return false;
     }
-    const NOT_TEXT: [&str; 27] = [
+    const NOT_TEXT: [&str; 29] = [
         "Id::new(",
         // A grid's id, not shown.
         "Grid::new(",
+        // Debug output, for programmers.
+        "debug_struct(",
+        "debug_tuple(",
         // An id made from a salt: `ui.id().with(("layer row", index))`.
         ".with((",
         // Comparisons, never shown: with an English key (a menu's title

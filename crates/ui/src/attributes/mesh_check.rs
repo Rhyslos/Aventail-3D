@@ -2,6 +2,7 @@
 //! anything is wrong with it, checked in the background for heavy meshes.
 
 use super::{LABEL_WIDTH, label, section};
+use crate::text::tr;
 use crate::theme;
 use egui::{RichText, Ui, vec2};
 use mesh::MeshReport;
@@ -98,13 +99,13 @@ pub(super) fn mesh_section(
     current: bool,
     plain_mesh: bool,
 ) {
-    section(ui, "Mesh");
+    section(ui, tr("Mesh"));
     if !current {
-        ui.label(RichText::new("Checking the mesh…").color(theme::TEXT_WEAK))
-            .on_hover_text(
+        ui.label(RichText::new(tr("Checking the mesh…")).color(theme::TEXT_WEAK))
+            .on_hover_text(tr(
                 "A heavy shape is checked in the background, so you can keep working. The \
                  numbers below are from before the last change until it finishes.",
-            );
+            ));
     }
     let Some(report) = report else {
         return;
@@ -115,22 +116,36 @@ pub(super) fn mesh_section(
         .spacing(vec2(12.0, 6.0))
         .show(ui, |ui| {
             let mut rows = vec![
-                ("Points", report.points, "The corners the mesh is made of"),
-                ("Edges", report.edges, "The lines between the points"),
                 (
-                    "Polygons",
-                    report.faces,
-                    "The faces, with any number of corners",
+                    tr("Points"),
+                    report.points,
+                    tr("The corners the mesh is made of"),
                 ),
                 (
-                    "Triangles",
+                    tr("Edges"),
+                    report.edges,
+                    tr("The lines between the points"),
+                ),
+                (
+                    tr("Polygons"),
+                    report.faces,
+                    tr("The faces, with any number of corners"),
+                ),
+                (
+                    tr("Triangles"),
                     report.triangles,
-                    "The triangles a game engine cuts the faces into: the usual measure of \
+                    tr(
+                        "The triangles a game engine cuts the faces into: the usual measure of \
                      how heavy a model is",
+                    ),
                 ),
             ];
             if report.pieces > 1 {
-                rows.push(("Pieces", report.pieces, "Separate parts that don't touch"));
+                rows.push((
+                    tr("Pieces"),
+                    report.pieces,
+                    tr("Separate parts that don't touch"),
+                ));
             }
             for (name, count, help) in rows {
                 label(ui, name, help);
@@ -138,21 +153,23 @@ pub(super) fn mesh_section(
                     egui::WidgetInfo::labeled(
                         egui::WidgetType::Label,
                         true,
-                        format!("{name}: {count}"),
+                        crate::trf!("{}: {}", name, count),
                     )
                 });
                 ui.end_row();
             }
             label(
                 ui,
-                "Surface",
-                "Closed: no open borders, like a solid. Open: some edges have a face on \
+                tr("Surface"),
+                tr(
+                    "Closed: no open borders, like a solid. Open: some edges have a face on \
                  one side only, as on a plane or an open pipe",
+                ),
             );
             let surface = if report.is_closed() {
-                "Closed".to_string()
+                tr("Closed").to_string()
             } else {
-                format!("Open ({})", count(report.border_edges, "border edge"))
+                crate::trf!("Open ({})", count(report.border_edges, tr("border edge")))
             };
             ui.label(surface);
             ui.end_row();
@@ -160,36 +177,42 @@ pub(super) fn mesh_section(
     let problems = [
         (
             report.non_manifold_edges,
-            "edge shared by three or more faces",
-            "edges shared by three or more faces",
-            "No real solid has these, and most tools can't work on them. They usually come \
+            tr("edge shared by three or more faces"),
+            tr("edges shared by three or more faces"),
+            tr(
+                "No real solid has these, and most tools can't work on them. They usually come \
              from faces stacked on each other.",
+            ),
         ),
         (
             report.flipped_edges,
-            "edge between faces facing opposite ways",
-            "edges between faces facing opposite ways",
-            "One face on each of these edges points inwards (a flipped normal); it will \
+            tr("edge between faces facing opposite ways"),
+            tr("edges between faces facing opposite ways"),
+            tr(
+                "One face on each of these edges points inwards (a flipped normal); it will \
              shade and bake wrongly. Mesh → Fix normals turns them the right way.",
+            ),
         ),
         (
             report.zero_length_edges,
-            "edge with no length",
-            "edges with no length",
-            "Both ends sit on the same spot. Usually left over from moving points together.",
+            tr("edge with no length"),
+            tr("edges with no length"),
+            tr("Both ends sit on the same spot. Usually left over from moving points together."),
         ),
         (
             report.flat_faces,
-            "face with no area",
-            "faces with no area",
-            "Faces squashed flat to a line or a point: invisible, but they still count and \
+            tr("face with no area"),
+            tr("faces with no area"),
+            tr(
+                "Faces squashed flat to a line or a point: invisible, but they still count and \
              can break tools.",
+            ),
         ),
         (
             report.loose_points,
-            "loose point",
-            "loose points",
-            "Points that no face uses.",
+            tr("loose point"),
+            tr("loose points"),
+            tr("Points that no face uses."),
         ),
     ];
     let mut any = false;
@@ -197,28 +220,28 @@ pub(super) fn mesh_section(
         if n > 0 {
             any = true;
             let text = if n == 1 {
-                format!("1 {one}")
+                crate::trf!("1 {}", one)
             } else {
-                format!("{n} {many}")
+                crate::trf!("{} {}", n, many)
             };
             ui.label(RichText::new(text).color(theme::WARNING))
                 .on_hover_text(help);
         }
     }
     if !any {
-        ui.label(RichText::new("No problems found").color(theme::TEXT_WEAK))
-            .on_hover_text(
+        ui.label(RichText::new(tr("No problems found")).color(theme::TEXT_WEAK))
+            .on_hover_text(tr(
                 "Checked for edges shared by three or more faces, faces facing the wrong \
                  way, edges with no length, faces with no area and loose points",
-            );
+            ));
     }
     if plain_mesh {
         ui.add_space(4.0);
         ui.label(
-            RichText::new(
+            RichText::new(tr(
                 "A plain mesh: it has no settings, so its shape changes only by editing \
                  its points, edges and polygons (press 1, 2 or 3).",
-            )
+            ))
             .small()
             .color(theme::TEXT_WEAK),
         );
@@ -228,9 +251,9 @@ pub(super) fn mesh_section(
 /// "1 border edge", "4 border edges".
 pub(super) fn count(n: usize, thing: &str) -> String {
     if n == 1 {
-        format!("1 {thing}")
+        crate::trf!("1 {}", thing)
     } else {
-        format!("{n} {thing}s")
+        crate::trf!("{} {}s", n, thing)
     }
 }
 

@@ -118,11 +118,11 @@ impl Workbench {
         ];
         if matches!(self.mode, Mode::Model | Mode::Object) {
             edit.push(needs_selection(QuadItem::new(
-                super::aligning::SNAP_TO_LABEL,
+                tr(super::aligning::SNAP_TO_LABEL),
                 QuadAction::SnapTo,
             )));
             edit.push(needs_selection(QuadItem::new(
-                super::aligning::ALIGN_LABEL,
+                tr(super::aligning::ALIGN_LABEL),
                 QuadAction::Align,
             )));
         }

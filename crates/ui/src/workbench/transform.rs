@@ -382,13 +382,13 @@ impl Workbench {
         let ready = !self.document.selection().is_empty();
         for (label, help, what) in [
             (
-                super::aligning::SNAP_TO_LABEL,
-                super::aligning::SNAP_TO_HELP,
+                tr(super::aligning::SNAP_TO_LABEL),
+                tr(super::aligning::SNAP_TO_HELP),
                 super::aligning::TargetUse::SnapTo,
             ),
             (
-                super::aligning::ALIGN_LABEL,
-                super::aligning::ALIGN_HELP,
+                tr(super::aligning::ALIGN_LABEL),
+                tr(super::aligning::ALIGN_HELP),
                 super::aligning::TargetUse::Align,
             ),
         ] {

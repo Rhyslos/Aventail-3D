@@ -5,6 +5,7 @@
 //! which reports back.
 
 use super::{Workbench, WorkbenchAction, file_name};
+use crate::text::tr;
 use egui::Ui;
 use fileio::engine::Engine;
 use fileio::export::{
@@ -190,9 +191,9 @@ pub type TargetOutcome = Result<(PathBuf, ExportSummary), String>;
 /// "1 piece", "3 pieces".
 fn counted_pieces(n: usize) -> String {
     if n == 1 {
-        "1 piece".to_string()
+        tr("1 piece").to_string()
     } else {
-        format!("{n} pieces")
+        crate::trf!("{} pieces", n)
     }
 }
 
@@ -201,13 +202,14 @@ pub(crate) fn target_note(outcome: &TargetOutcome) -> String {
     match outcome {
         Ok((path, summary)) => {
             let place = path.parent().map(file_name).unwrap_or_default();
-            format!(
-                "Exported {} ({} triangles) into {place}.",
+            crate::trf!(
+                "Exported {} ({} triangles) into {}.",
                 file_name(path),
-                summary.triangles
+                summary.triangles,
+                place
             )
         }
-        Err(why) => format!("Couldn't export into the game project: {why}."),
+        Err(why) => crate::trf!("Couldn't export into the game project: {}.", why),
     }
 }
 
@@ -251,11 +253,13 @@ struct SummaryKey {
 }
 
 /// The Export window's title.
-pub(crate) const EXPORT_TITLE: &str = "Export";
+pub(crate) const EXPORT_TITLE: &str = crate::text!("Export");
 
 /// The note at the foot of the Export window's side list.
-const SECTIONS_NOTE: &str = "Only sections with something to set are listed. Materials, Mesh, \
-                             Rig and Animations arrive with their features.";
+const SECTIONS_NOTE: &str = crate::text!(
+    "Only sections with something to set are listed. Materials, Mesh, \
+                             Rig and Animations arrive with their features."
+);
 
 /// An export the app is asked to make.
 #[derive(Debug, Clone, PartialEq)]
@@ -277,22 +281,22 @@ impl Workbench {
     /// File → Import…, Export… and Export again.
     pub(super) fn export_entries(&mut self, ui: &mut Ui, actions: &mut Vec<WorkbenchAction>) {
         if ui
-            .button("Import…")
-            .on_hover_text(
+            .button(tr("Import…"))
+            .on_hover_text(tr(
                 "Bring shapes in from an OBJ file, each object as a plain mesh, added to the \
                  scene",
-            )
+            ))
             .clicked()
         {
             actions.push(WorkbenchAction::Import { path: None });
             ui.close();
         }
         if ui
-            .button("Export…")
-            .on_hover_text(
+            .button(tr("Export…"))
+            .on_hover_text(tr(
                 "Write the scene (or the selection) to a file for a game engine or Substance \
                  Painter: pick the kind of file and how",
-            )
+            ))
             .clicked()
         {
             self.exporting.open = true;
@@ -300,12 +304,13 @@ impl Workbench {
         }
         let again = self.exporting.last.clone();
         let response = ui
-            .add_enabled(again.is_some(), egui::Button::new("Export again"))
-            .on_disabled_hover_text("Export once first; this then repeats it");
+            .add_enabled(again.is_some(), egui::Button::new(tr("Export again")))
+            .on_disabled_hover_text(tr("Export once first; this then repeats it"));
         let response = match &again {
-            Some((path, _)) => {
-                response.on_hover_text(format!("Export to {} again, the same way", path.display()))
-            }
+            Some((path, _)) => response.on_hover_text(crate::trf!(
+                "Export to {} again, the same way",
+                path.display()
+            )),
             None => response,
         };
         if response.clicked()
@@ -315,18 +320,18 @@ impl Workbench {
             ui.close();
         }
         if ui
-            .button("Export kit…")
-            .on_hover_text(
+            .button(tr("Export kit…"))
+            .on_hover_text(tr(
                 "Export each selected object (with what's inside it) as a file of its own, \
                  named after it, its pivot at the file's origin: modular pieces for a game \
                  engine. Uses the Export window's settings",
-            )
+            ))
             .clicked()
         {
             match self.kit_request() {
                 Some(request) => actions.push(WorkbenchAction::ExportKit(Box::new(request))),
                 None => {
-                    self.note = Some("Export kit: select the pieces to export first.".into());
+                    self.note = Some(tr("Export kit: select the pieces to export first.").into());
                 }
             }
             ui.close();
@@ -335,14 +340,14 @@ impl Workbench {
         let response = ui
             .add_enabled(
                 target.is_some(),
-                egui::Button::new("Export to game project"),
+                egui::Button::new(tr("Export to game project")),
             )
-            .on_disabled_hover_text(
+            .on_disabled_hover_text(tr(
                 "Choose a game project folder in the Export window first; this then exports \
                  straight into it",
-            );
+            ));
         let response = match &target {
-            Some(request) => response.on_hover_text(format!(
+            Some(request) => response.on_hover_text(crate::trf!(
                 "Export into {} now, named after the project",
                 request.folder.display()
             )),
@@ -415,7 +420,7 @@ impl Workbench {
             .or(self.file.path.as_deref())
             .and_then(Path::file_stem)
             .map_or_else(
-                || "Untitled".to_string(),
+                || tr("Untitled").to_string(),
                 |s| s.to_string_lossy().into_owned(),
             );
         Some(TargetRequest {
@@ -477,7 +482,7 @@ impl Workbench {
     /// The app made a kit export: says how it went.
     pub fn kit_exported(&mut self, outcome: KitOutcome) {
         self.note = Some(match outcome {
-            Err(why) => format!("Couldn't export the kit: {why}."),
+            Err(why) => crate::trf!("Couldn't export the kit: {}.", why),
             Ok(pieces) => {
                 let done: Vec<&(String, TargetOutcome)> =
                     pieces.iter().filter(|(_, r)| r.is_ok()).collect();
@@ -488,18 +493,20 @@ impl Workbench {
                     .map(file_name)
                     .unwrap_or_default();
                 let mut note = match done.len() {
-                    0 => "No pieces exported.".to_string(),
+                    0 => tr("No pieces exported.").to_string(),
                     n if n == pieces.len() => {
-                        format!("Exported {} into {place}.", counted_pieces(n))
+                        crate::trf!("Exported {} into {}.", counted_pieces(n), place)
                     }
-                    n => format!(
-                        "Exported {n} of {} into {place}.",
-                        counted_pieces(pieces.len())
+                    n => crate::trf!(
+                        "Exported {} of {} into {}.",
+                        n,
+                        counted_pieces(pieces.len()),
+                        place
                     ),
                 };
                 for (name, result) in &pieces {
                     if let Err(why) = result {
-                        note.push_str(&format!(" {name}: {why}."));
+                        note.push_str(&crate::trf!(" {}: {}.", name, why));
                     }
                 }
                 note
@@ -525,7 +532,7 @@ impl Workbench {
             .document
             .execute(scene::Command::SetExportTarget(Some(target)))
         {
-            self.note = Some(format!("Couldn't use that folder: {why}."));
+            self.note = Some(crate::trf!("Couldn't use that folder: {}.", why));
             return;
         }
         let engine = self.detected_engine();
@@ -533,12 +540,12 @@ impl Workbench {
             self.exporting.choice = self.exporting.choice.with_preset(engine.preset());
         }
         self.note = Some(match engine {
-            Some((engine, project)) => format!(
+            Some((engine, project)) => crate::trf!(
                 "Game project folder set: {} project {}. Every save now exports there too.",
                 engine.name(),
                 file_name(&project)
             ),
-            None => format!(
+            None => crate::trf!(
                 "Game project folder set. It isn't inside a Godot, Unity, Unreal Engine or Solis \
                  project, so exports go there with {}'s settings. Every save now exports \
                  there too.",
@@ -556,7 +563,7 @@ impl Workbench {
             .as_deref()
             .and_then(Path::file_stem)
             .map_or_else(
-                || "Untitled".to_string(),
+                || tr("Untitled").to_string(),
                 |s| s.to_string_lossy().into_owned(),
             );
         WorkbenchAction::Export(Box::new(ExportRequest {
@@ -605,7 +612,10 @@ impl Workbench {
             .document
             .execute(scene::Command::SetExportTarget(target))
         {
-            self.note = Some(format!("Couldn't change the game project folder: {why}."));
+            self.note = Some(crate::trf!(
+                "Couldn't change the game project folder: {}.",
+                why
+            ));
         }
     }
 
@@ -620,21 +630,24 @@ impl Workbench {
             triangulate: request.options.triangulate,
         };
         let objects = match summary.objects {
-            1 => "1 object".to_string(),
-            n => format!("{n} objects"),
+            1 => tr("1 object").to_string(),
+            n => crate::trf!("{} objects", n),
         };
         let made_for = request
             .preset
-            .map(|p| format!(" for {}", p.name()))
+            .map(|p| crate::trf!(" for {}", p.name()))
             .unwrap_or_default();
         let materials = match summary.materials {
             0 | 1 => String::new(),
-            n => format!(", {n} materials"),
+            n => crate::trf!(", {} materials", n),
         };
-        self.note = Some(format!(
-            "Exported {objects}{made_for} ({} triangles{materials}) to {}. File → Export again \
+        self.note = Some(crate::trf!(
+            "Exported {}{} ({} triangles{}) to {}. File → Export again \
              repeats it.",
+            objects,
+            made_for,
             summary.triangles,
+            materials,
             file_name(&path)
         ));
         self.exporting.last = Some((path, choice));
@@ -643,7 +656,7 @@ impl Workbench {
 
     /// Exporting failed: says why.
     pub fn export_failed(&mut self, reason: &str) {
-        self.note = Some(format!("Couldn't export: {reason}."));
+        self.note = Some(crate::trf!("Couldn't export: {}.", reason));
     }
 
     /// The app read `objects` from the file at `path`: they are added to
@@ -660,35 +673,44 @@ impl Workbench {
             })
             .collect();
         let count = objects.len();
-        let label = format!("Import {}", file_name(path));
+        let label = crate::trf!("Import {}", file_name(path));
         match self
             .document
             .execute_labelled(scene::Command::InsertMany(objects), label, None)
         {
             Ok(()) => {
                 let objects = match count {
-                    1 => "1 object".to_string(),
-                    n => format!("{n} objects"),
+                    1 => tr("1 object").to_string(),
+                    n => crate::trf!("{} objects", n),
                 };
-                let mut note = format!("Imported {objects} from {}.", file_name(path));
+                let mut note = crate::trf!("Imported {} from {}.", objects, file_name(path));
                 let left_out = import.skipped_polygons;
                 if left_out > 0 {
-                    note.push_str(&format!(
-                        " {left_out} broken polygon{} left out.",
-                        if left_out == 1 { " was" } else { "s were" }
+                    note.push_str(&crate::trf!(
+                        " {} broken polygon{} left out.",
+                        left_out,
+                        if left_out == 1 {
+                            tr(" was")
+                        } else {
+                            tr("s were")
+                        }
                     ));
                 }
-                note.push_str(" Ctrl + Z takes it back.");
+                note.push_str(tr(" Ctrl + Z takes it back."));
                 self.note = Some(note);
                 self.viewport.frame(crate::Frame::Selected);
             }
-            Err(why) => self.note = Some(format!("Couldn't import: {why}.")),
+            Err(why) => self.note = Some(crate::trf!("Couldn't import: {}.", why)),
         }
     }
 
     /// Importing failed: says why.
     pub fn import_failed(&mut self, path: &Path, reason: &str) {
-        self.note = Some(format!("Couldn't import {}: {reason}.", file_name(path)));
+        self.note = Some(crate::trf!(
+            "Couldn't import {}: {}.",
+            file_name(path),
+            reason
+        ));
     }
 }
 

@@ -64,7 +64,7 @@ impl Workbench {
                 label: None,
             },
         ];
-        let outcome = Dialog::new(EXPORT_TITLE, 700.0)
+        let outcome = Dialog::new(tr(EXPORT_TITLE), 700.0)
             .body_height(490.0)
             .show(ctx, |d| {
                 d.header(true, |ui| {
@@ -74,7 +74,7 @@ impl Workbench {
                 d.sections(
                     &mut section,
                     &sections,
-                    Some(SECTIONS_NOTE),
+                    Some(tr(SECTIONS_NOTE)),
                     |ui, shown| match shown {
                         ExportSection::General => {
                             let open_game_project = general(

@@ -14,6 +14,7 @@
 
 use super::Workbench;
 use crate::dialog;
+use crate::text::tr;
 use glam::{Mat4, Quat, Vec3};
 use scene::{Command, ObjectId, Transform};
 
@@ -33,34 +34,38 @@ impl TargetUse {
     pub(crate) fn note(self) -> &'static str {
         match self {
             Self::Pivot => super::pivots::PIVOT_TARGET_NOTE,
-            Self::SnapTo => SNAP_TO_NOTE,
-            Self::Align => ALIGN_NOTE,
+            Self::SnapTo => tr(SNAP_TO_NOTE),
+            Self::Align => tr(ALIGN_NOTE),
         }
     }
 
     fn name(self) -> &'static str {
         match self {
-            Self::Pivot => "Pivot to object",
-            Self::SnapTo => "Snap to",
-            Self::Align => "Align",
+            Self::Pivot => tr("Pivot to object"),
+            Self::SnapTo => tr("Snap to"),
+            Self::Align => tr("Align"),
         }
     }
 }
 
 /// Snap to's name in the menus.
-pub(crate) const SNAP_TO_LABEL: &str = "Snap to...";
+pub(crate) const SNAP_TO_LABEL: &str = crate::text!("Snap to...");
 /// What Snap to does.
-pub(crate) const SNAP_TO_HELP: &str = "Move the selected objects so their pivots sit on \
-     another object's pivot: click this, then click that object";
+pub(crate) const SNAP_TO_HELP: &str = crate::text!(
+    "Move the selected objects so their pivots sit on \
+     another object's pivot: click this, then click that object"
+);
 /// Align's name in the menus.
-pub(crate) const ALIGN_LABEL: &str = "Align...";
+pub(crate) const ALIGN_LABEL: &str = crate::text!("Align...");
 /// What Align does.
-pub(crate) const ALIGN_HELP: &str = "Line the selected objects up with another object: click \
-     this, then click that object, and choose the sides or middles to line up in the window";
+pub(crate) const ALIGN_HELP: &str = crate::text!(
+    "Line the selected objects up with another object: click \
+     this, then click that object, and choose the sides or middles to line up in the window"
+);
 /// The Align window's title.
-pub(crate) const ALIGN_TITLE: &str = "Align";
-const SNAP_TO_NOTE: &str = "Snap to: click the object to snap to. Esc cancels.";
-const ALIGN_NOTE: &str = "Align: click the object to line up with. Esc cancels.";
+pub(crate) const ALIGN_TITLE: &str = crate::text!("Align");
+const SNAP_TO_NOTE: &str = crate::text!("Snap to: click the object to snap to. Esc cancels.");
+const ALIGN_NOTE: &str = crate::text!("Align: click the object to line up with. Esc cancels.");
 
 /// A point of an object along one axis, to line up.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -75,24 +80,27 @@ pub(crate) enum AlignPoint {
     Highest,
 }
 
-const POINTS: [(AlignPoint, &str, &str); 4] = [
-    (
-        AlignPoint::Lowest,
-        "Lowest",
-        "The lowest point of the box around it along each axis (its left, back or bottom)",
-    ),
-    (
-        AlignPoint::Middle,
-        "Middle",
-        "The middle of the box around it",
-    ),
-    (AlignPoint::Pivot, "Pivot", "Its pivot"),
-    (
-        AlignPoint::Highest,
-        "Highest",
-        "The highest point of the box around it along each axis (its right, front or top)",
-    ),
-];
+/// The points a box can be lined up by, with their names and help.
+fn points() -> [(AlignPoint, &'static str, &'static str); 4] {
+    [
+        (
+            AlignPoint::Lowest,
+            tr("Lowest"),
+            tr("The lowest point of the box around it along each axis (its left, back or bottom)"),
+        ),
+        (
+            AlignPoint::Middle,
+            tr("Middle"),
+            tr("The middle of the box around it"),
+        ),
+        (AlignPoint::Pivot, tr("Pivot"), tr("Its pivot")),
+        (
+            AlignPoint::Highest,
+            tr("Highest"),
+            tr("The highest point of the box around it along each axis (its right, front or top)"),
+        ),
+    ]
+}
 
 /// The Align window's choices, remembered for the next time.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -145,7 +153,7 @@ impl Workbench {
     /// Starts waiting for the click on a target, for `what`.
     pub(super) fn start_target_pick(&mut self, what: TargetUse) {
         if self.top_selected().is_empty() {
-            self.note = Some("Select one or more objects first.".into());
+            self.note = Some(tr("Select one or more objects first.").into());
             return;
         }
         self.target_pick = Some(what);
@@ -155,7 +163,7 @@ impl Workbench {
     /// Stops waiting for a target without changing anything.
     pub(super) fn cancel_target_pick(&mut self) {
         if let Some(what) = self.target_pick.take() {
-            self.note = Some(format!("{} cancelled.", what.name()));
+            self.note = Some(crate::trf!("{} cancelled.", what.name()));
         }
     }
 
@@ -192,18 +200,18 @@ impl Workbench {
             .filter_map(|id| Some((id, self.placed_at(id, at)?)))
             .collect();
         if changes.is_empty() {
-            self.note = Some(format!("Snap to: already on {name}'s pivot."));
+            self.note = Some(crate::trf!("Snap to: already on {}'s pivot.", name));
             return;
         }
-        let label = format!("Snap to {name}");
+        let label = crate::trf!("Snap to {}", name);
         self.note = Some(
             match self.document.execute_labelled(
                 Command::SetTransforms(changes),
                 label.clone(),
                 None,
             ) {
-                Ok(()) => format!("{label}. Ctrl + Z takes it back."),
-                Err(why) => format!("Couldn't snap: {why}."),
+                Ok(()) => crate::trf!("{}. Ctrl + Z takes it back.", label),
+                Err(why) => crate::trf!("Couldn't snap: {}.", why),
             },
         );
     }
@@ -211,7 +219,7 @@ impl Workbench {
     /// Opens the Align window on `target`, showing the remembered settings.
     pub(crate) fn open_align(&mut self, target: ObjectId) {
         if self.movers(target).is_empty() {
-            self.note = Some("Align: pick an object other than the ones selected.".into());
+            self.note = Some(tr("Align: pick an object other than the ones selected.").into());
             return;
         }
         self.sessions += 1;
@@ -250,7 +258,7 @@ impl Workbench {
             .scene()
             .object(session.target)
             .map_or_else(String::new, |o| o.name.clone());
-        let label = format!("Align to {name}");
+        let label = crate::trf!("Align to {}", name);
         let ids = self.movers(session.target);
         let steps = self.document.undo_steps();
         if settings.turn {
@@ -331,7 +339,7 @@ impl Workbench {
         let mut settings = self.align_settings;
         let mut answer = None;
         // Bottom left of the viewport, out of the way of what moves.
-        let outcome = dialog::Dialog::new(ALIGN_TITLE, 420.0)
+        let outcome = dialog::Dialog::new(tr(ALIGN_TITLE), 420.0)
             .id("align")
             .anchor(egui::Align2::LEFT_BOTTOM, [70.0, -190.0])
             .show(ctx, |d| {
@@ -339,13 +347,14 @@ impl Workbench {
                 d.body(|ui| {
                     dialog::help(
                         ui,
-                        format!(
-                            "Line the selected objects up with {target}. The change shows as \
-                             you choose."
+                        crate::trf!(
+                            "Line the selected objects up with {}. The change shows as \
+                             you choose.",
+                            target
                         ),
                     );
-                    dialog::heading(ui, "Along");
-                    dialog::row(ui, "World axes", |ui| {
+                    dialog::heading(ui, tr("Along"));
+                    dialog::row(ui, tr("World axes"), |ui| {
                         ui.horizontal(|ui| {
                             for (axis, name) in ["X", "Y", "Z"].into_iter().enumerate() {
                                 let on = settings.axes[axis];
@@ -354,33 +363,38 @@ impl Workbench {
                                         egui::WidgetType::Checkbox,
                                         true,
                                         on,
-                                        format!("Along {name}"),
+                                        crate::trf!("Along {}", name),
                                     )
                                 });
                             }
                         });
                     });
-                    dialog::heading(ui, "Line up");
-                    dialog::row(ui, "This point", |ui| {
-                        dialog::segmented(ui, &mut settings.from, &POINTS);
+                    dialog::heading(ui, tr("Line up"));
+                    dialog::row(ui, tr("This point"), |ui| {
+                        dialog::segmented(ui, &mut settings.from, &points());
                     });
-                    dialog::row(ui, &format!("With {target}'s"), |ui| {
-                        dialog::segmented(ui, &mut settings.to, &POINTS);
+                    dialog::row(ui, &crate::trf!("With {}'s", target), |ui| {
+                        dialog::segmented(ui, &mut settings.to, &points());
                     });
                     dialog::help(
                         ui,
-                        "To stand an object on another: Z only, this object's Lowest with \
+                        tr(
+                            "To stand an object on another: Z only, this object's Lowest with \
                          the other's Highest.",
+                        ),
                     );
                     dialog::divider(ui);
-                    ui.checkbox(&mut settings.turn, "Also turn them to match")
-                        .on_hover_text(format!("Give the selected objects {target}'s rotation"));
+                    ui.checkbox(&mut settings.turn, tr("Also turn them to match"))
+                        .on_hover_text(crate::trf!(
+                            "Give the selected objects {}'s rotation",
+                            target
+                        ));
                 });
-                d.footer(Some("Esc: cancel"), |ui| {
-                    if dialog::main_button(ui, "Align").clicked() {
+                d.footer(Some(tr("Esc: cancel")), |ui| {
+                    if dialog::main_button(ui, tr("Align")).clicked() {
                         answer = Some(true);
                     }
-                    if dialog::plain_button(ui, "Cancel").clicked() {
+                    if dialog::plain_button(ui, tr("Cancel")).clicked() {
                         answer = Some(false);
                     }
                 });
@@ -399,7 +413,10 @@ impl Workbench {
         match answer {
             Some(true) => {
                 self.align = None;
-                self.note = Some(format!("Aligned to {target}. Ctrl + Z takes it back."));
+                self.note = Some(crate::trf!(
+                    "Aligned to {}. Ctrl + Z takes it back.",
+                    target
+                ));
             }
             Some(false) => {
                 if let Some(session) = self.align.take()
@@ -407,7 +424,7 @@ impl Workbench {
                 {
                     self.document.abandon(session.key);
                 }
-                self.note = Some("Align cancelled: nothing moved.".into());
+                self.note = Some(tr("Align cancelled: nothing moved.").into());
             }
             None => {}
         }

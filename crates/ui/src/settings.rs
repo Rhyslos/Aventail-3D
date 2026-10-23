@@ -374,9 +374,9 @@ fn viewport(ui: &mut Ui, values: &mut Values<'_>) {
     );
     ui.checkbox(
         &mut values.navigation.show_pivot,
-        crate::viewport::chrome::SHOW_PIVOT_LABEL,
+        tr(crate::viewport::chrome::SHOW_PIVOT_LABEL),
     )
-    .on_hover_text(crate::viewport::chrome::SHOW_PIVOT_HELP);
+    .on_hover_text(tr(crate::viewport::chrome::SHOW_PIVOT_HELP));
     ui.add_space(8.0);
     heading(ui, tr("Grid lines"));
     explain(
@@ -401,24 +401,27 @@ fn viewport(ui: &mut Ui, values: &mut Values<'_>) {
     let display = &mut values.display;
     let mut cavity = !*display.hide_cavity;
     if ui
-        .checkbox(&mut cavity, crate::viewport::chrome::CAVITY_ENTRY)
-        .on_hover_text(crate::viewport::chrome::CAVITY_EXPLANATION)
+        .checkbox(&mut cavity, tr(crate::viewport::chrome::CAVITY_ENTRY))
+        .on_hover_text(tr(crate::viewport::chrome::CAVITY_EXPLANATION))
         .changed()
     {
         *display.hide_cavity = !cavity;
     }
     let mut hard = !*display.hide_hard_edges;
     if ui
-        .checkbox(&mut hard, crate::viewport::chrome::HARD_EDGES_ENTRY)
+        .checkbox(&mut hard, tr(crate::viewport::chrome::HARD_EDGES_ENTRY))
         .changed()
     {
         *display.hide_hard_edges = !hard;
     }
-    ui.checkbox(display.show_seams, crate::viewport::chrome::SEAMS_ENTRY);
-    ui.checkbox(display.show_normals, crate::viewport::chrome::NORMALS_ENTRY);
+    ui.checkbox(display.show_seams, tr(crate::viewport::chrome::SEAMS_ENTRY));
+    ui.checkbox(
+        display.show_normals,
+        tr(crate::viewport::chrome::NORMALS_ENTRY),
+    );
     ui.checkbox(
         display.flat_from_dice,
-        crate::viewport::chrome::FLAT_FROM_DICE_ENTRY,
+        tr(crate::viewport::chrome::FLAT_FROM_DICE_ENTRY),
     );
     ui.add_space(8.0);
     heading(ui, tr("Selecting"));

@@ -9,6 +9,7 @@
 use super::Workbench;
 use super::joining::counted;
 use crate::palette::Mode;
+use crate::text::tr;
 use mesh::Anchors;
 use scene::{Command, EdgeKey, ElementKind, Operation, VertexId};
 use std::collections::BTreeSet;
@@ -120,7 +121,7 @@ impl Workbench {
         let response = ui
             .add_enabled(
                 !ids.is_empty(),
-                egui::Checkbox::new(&mut on, crate::viewport::chrome::AUTO_HARD_EDGES_ENTRY),
+                egui::Checkbox::new(&mut on, tr(crate::viewport::chrome::AUTO_HARD_EDGES_ENTRY)),
             )
             .on_hover_text(format!(
                 "Shade the selected objects by angle: edges where polygons meet more sharply \
