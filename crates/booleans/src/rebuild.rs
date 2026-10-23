@@ -5,7 +5,7 @@ use crate::solid::Joined;
 use crate::{Options, Problem};
 use glam::Vec3;
 use manifold_rust::types::MeshGL64;
-use mesh::attributes::{HARD, UV};
+use mesh::attributes::{Domain, HARD, UV};
 use mesh::{Builder, CornerFrom, EdgeKey, FaceId, Mesh, PointFrom, VertexId};
 use std::collections::{BTreeMap, HashMap, HashSet};
 
@@ -167,6 +167,10 @@ fn build(
         }
     }
     let mut source: HashMap<FaceId, FaceId> = HashMap::new();
+    // Points only need blending when the shapes have values on points.
+    let point_values = original
+        .attributes()
+        .any(|(_, domain, _)| domain == Domain::Point);
     {
         let mut build = Builder::new(original, &mut out);
         let mut points: Vec<Option<VertexId>> = vec![None; positions.len()];
@@ -177,9 +181,10 @@ fn build(
                 let id = match points[*i] {
                     Some(id) => id,
                     None => {
-                        let from = piece
-                            .from
-                            .map_or(PointFrom::Nothing, |f| PointFrom::Inside(f, spot));
+                        let from = match piece.from {
+                            Some(f) if point_values => PointFrom::Inside(f, spot),
+                            _ => PointFrom::Nothing,
+                        };
                         let id = build.point(spot, from);
                         points[*i] = Some(id);
                         id

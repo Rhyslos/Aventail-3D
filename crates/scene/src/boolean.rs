@@ -122,6 +122,106 @@ impl std::fmt::Debug for CutCache {
     }
 }
 
+/// From this many polygons (the kept shape's and its cutters' together),
+/// the interface works a cut out on another thread, showing the last
+/// result meanwhile (decision 0135, as decision 0035 for heavy shapes).
+pub const CUT_IN_BACKGROUND_FROM: usize = 5_000;
+
+/// Whether an object's cut is ready.
+#[derive(Debug, Clone)]
+pub enum CutState {
+    /// Worked out for its shapes and places as they are now.
+    Ready(Result<Arc<Mesh>, BooleanProblem>),
+    /// Still to be worked out: [`CutJob::run`] does it, on any thread.
+    Needed(CutJob),
+}
+
+/// Everything a cut is worked out from, gathered from the scene so it can
+/// be worked out on another thread (it holds only shared shapes).
+#[derive(Debug, Clone)]
+pub struct CutJob {
+    id: ObjectId,
+    kept: Arc<Mesh>,
+    cutters: Vec<(BooleanKind, Arc<Mesh>, Mat4)>,
+    /// The object each cutter belongs to, to name it in a problem.
+    owners: Vec<ObjectId>,
+    seam_angle: f32,
+}
+
+/// A cut worked out: hand it back with [`Scene::store_cut`].
+#[derive(Debug, Clone)]
+pub struct CutDone {
+    job: CutJob,
+    result: Result<Arc<Mesh>, booleans::Problem>,
+}
+
+impl CutJob {
+    /// The object cut.
+    pub fn object(&self) -> ObjectId {
+        self.id
+    }
+
+    /// How many polygons go into it: the kept shape's and its cutters'.
+    pub fn polygons(&self) -> usize {
+        self.kept.face_count() + self.cutters.iter().map(|c| c.1.face_count()).sum::<usize>()
+    }
+
+    /// Works the cut out. Slow for heavy shapes: run it away from the
+    /// interface thread.
+    pub fn run(self) -> CutDone {
+        let list: Vec<booleans::Cutter> = self
+            .cutters
+            .iter()
+            .map(|(kind, mesh, matrix)| booleans::Cutter {
+                kind: *kind,
+                mesh,
+                matrix: *matrix,
+            })
+            .collect();
+        let options = booleans::Options {
+            seam_angle: self.seam_angle,
+            max_polygons: crate::MAX_SHAPE_POLYGONS,
+        };
+        let result = booleans::apply(&self.kept, &list, &options).map(Arc::new);
+        CutDone { job: self, result }
+    }
+
+    /// The problem as the scene names it: a cutter by its object.
+    fn problem_of(
+        &self,
+        result: Result<Arc<Mesh>, booleans::Problem>,
+    ) -> Result<Arc<Mesh>, BooleanProblem> {
+        result.map_err(|problem| match problem {
+            booleans::Problem::CutterNotClosed(i) | booleans::Problem::CutterFlat(i) => {
+                let cutter = self.owners.get(i).copied().unwrap_or(self.id);
+                BooleanProblem::Cutter(cutter, problem)
+            }
+            other => BooleanProblem::Kept(other),
+        })
+    }
+}
+
+impl CutDone {
+    /// The object cut.
+    pub fn object(&self) -> ObjectId {
+        self.job.id
+    }
+
+    /// The cut, or why it couldn't be made.
+    pub fn result(&self) -> Result<Arc<Mesh>, BooleanProblem> {
+        self.job.problem_of(self.result.clone())
+    }
+
+    fn into_cut(self) -> Cut {
+        Cut {
+            kept: self.job.kept,
+            cutters: self.job.cutters,
+            seam_angle: self.job.seam_angle,
+            result: self.result,
+        }
+    }
+}
+
 /// Whether two shapes are the same: the same one, or equal.
 fn same(a: &Arc<Mesh>, b: &Arc<Mesh>) -> bool {
     Arc::ptr_eq(a, b) || **a == **b
@@ -254,20 +354,48 @@ impl Scene {
     /// The object's cut shape, in its own space: its final shape
     /// ([`Scene::evaluated`]) with its booleans applied, or why that
     /// couldn't be done. `None` for an object without booleans (an
-    /// instance has its original's). Worked out again only when the
-    /// shapes, places or kinds involved change.
+    /// instance has its original's). Worked out again (here, on this
+    /// thread) only when the shapes, places or kinds involved change; the
+    /// interface works out heavy ones on another thread instead, with
+    /// [`Scene::cut_state`].
     pub fn cut_shape(&self, id: ObjectId) -> Option<Result<Arc<Mesh>, BooleanProblem>> {
         self.cut_shape_from(id, &mut Vec::new())
     }
 
+    /// Whether the object's cut is ready (worked out for its shapes and
+    /// places as they are now), or the work still to do. `None` for an
+    /// object without booleans.
+    pub fn cut_state(&self, id: ObjectId) -> Option<CutState> {
+        self.cut_state_from(id, &mut Vec::new())
+    }
+
+    /// Keeps a cut worked out elsewhere ([`CutJob::run`]), for
+    /// [`Scene::cut_state`] and [`Scene::cut_shape`] to find while its
+    /// shapes and places stay as they were.
+    pub fn store_cut(&self, done: CutDone) {
+        self.cuts
+            .0
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .insert(done.job.id, done.into_cut());
+    }
+
     /// Why the object's booleans can't be worked out, in plain words,
-    /// naming the cutter; `None` when they can (or it has none).
+    /// naming the cutter; `None` when they can (or it has none, or a heavy
+    /// cut is still being worked out on another thread).
     pub fn boolean_problem(&self, id: ObjectId) -> Option<String> {
         let name = |id: ObjectId| {
             self.object(id)
                 .map_or_else(|| id.to_string(), |o| o.name.clone())
         };
-        match self.cut_shape(id)? {
+        let result = match self.cut_state(id)? {
+            CutState::Ready(result) => result,
+            CutState::Needed(job) if job.polygons() < CUT_IN_BACKGROUND_FROM => {
+                self.cut_shape(id)?
+            }
+            CutState::Needed(_) => return None,
+        };
+        match result {
             Ok(_) => None,
             Err(BooleanProblem::Kept(problem)) => Some(capitalised(&problem.to_string())),
             Err(BooleanProblem::Cutter(cutter, problem)) => {
@@ -302,37 +430,51 @@ impl Scene {
         id: ObjectId,
         visiting: &mut Vec<ObjectId>,
     ) -> Option<Result<Arc<Mesh>, BooleanProblem>> {
+        match self.cut_state_from(id, visiting)? {
+            CutState::Ready(result) => Some(result),
+            CutState::Needed(job) => {
+                let done = job.run();
+                let result = done.result();
+                self.store_cut(done);
+                Some(result)
+            }
+        }
+    }
+
+    fn cut_state_from(&self, id: ObjectId, visiting: &mut Vec<ObjectId>) -> Option<CutState> {
         let object = self.object(id)?;
         if let ObjectKind::Instance(source) = object.kind {
             return self
                 .object(source)
                 .filter(|o| !matches!(o.kind, ObjectKind::Instance(_)))
-                .and_then(|_| self.cut_shape_from(source, visiting));
+                .and_then(|_| self.cut_state_from(source, visiting));
         }
         if object.booleans.is_empty() {
             return None;
         }
         if visiting.contains(&id) {
-            return Some(Err(BooleanProblem::Loop));
+            return Some(CutState::Ready(Err(BooleanProblem::Loop)));
         }
         let kept = self.evaluated(id)?.mesh;
         visiting.push(id);
         let into = self.shape_matrix(id);
         let back = (into.determinant().abs() >= 1e-12).then(|| into.inverse());
         let names = self.material_list(id);
-        let mut cutters: Vec<(BooleanKind, Arc<Mesh>, Mat4, ObjectId)> = Vec::new();
+        let mut cutters = Vec::new();
+        let mut owners = Vec::new();
         for boolean in &object.booleans {
             for cutter in &boolean.cutters {
                 if visiting.contains(cutter) {
                     visiting.pop();
-                    return Some(Err(BooleanProblem::Loop));
+                    return Some(CutState::Ready(Err(BooleanProblem::Loop)));
                 }
                 let Some(shape) = self.cutting_shape(*cutter, visiting) else {
                     continue;
                 };
                 let shape = self.with_materials_of(&names, *cutter, shape);
                 let matrix = back.unwrap_or(Mat4::IDENTITY) * self.shape_matrix(*cutter);
-                cutters.push((boolean.kind, shape, matrix, *cutter));
+                cutters.push((boolean.kind, shape, matrix));
+                owners.push(*cutter);
             }
         }
         visiting.pop();
@@ -340,64 +482,27 @@ impl Scene {
             mesh::Hardness::ByAngle(angle) => angle,
             mesh::Hardness::Marked => crate::STANDARD_SMOOTHING_ANGLE,
         };
-        let result = self.cut_cached(id, &kept, &cutters, seam_angle);
-        Some(result.map_err(|problem| match problem {
-            booleans::Problem::CutterNotClosed(i) | booleans::Problem::CutterFlat(i) => {
-                let cutter = cutters.get(i).map_or(id, |c| c.3);
-                BooleanProblem::Cutter(cutter, problem)
-            }
-            other => BooleanProblem::Kept(other),
-        }))
-    }
-
-    /// The boolean worked out, or taken from the cache when nothing it
-    /// depends on has changed.
-    fn cut_cached(
-        &self,
-        id: ObjectId,
-        kept: &Arc<Mesh>,
-        cutters: &[(BooleanKind, Arc<Mesh>, Mat4, ObjectId)],
-        seam_angle: f32,
-    ) -> Result<Arc<Mesh>, booleans::Problem> {
-        let key: Vec<(BooleanKind, Arc<Mesh>, Mat4)> = cutters
-            .iter()
-            .map(|(k, m, t, _)| (*k, Arc::clone(m), *t))
-            .collect();
-        let cache = &self.cuts.0;
-        if let Some(cut) = cache
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .get(&id)
-            .filter(|c| c.made_from(kept, &key, seam_angle))
-        {
-            return cut.result.clone();
-        }
-        let list: Vec<booleans::Cutter> = key
-            .iter()
-            .map(|(kind, mesh, matrix)| booleans::Cutter {
-                kind: *kind,
-                mesh,
-                matrix: *matrix,
-            })
-            .collect();
-        let options = booleans::Options {
+        let job = CutJob {
+            id,
+            kept,
+            cutters,
+            owners,
             seam_angle,
-            max_polygons: crate::MAX_SHAPE_POLYGONS,
         };
-        let result = booleans::apply(kept, &list, &options).map(Arc::new);
-        cache
+        let cache = self
+            .cuts
+            .0
             .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .insert(
-                id,
-                Cut {
-                    kept: Arc::clone(kept),
-                    cutters: key,
-                    seam_angle,
-                    result: result.clone(),
-                },
-            );
-        result
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        Some(
+            match cache
+                .get(&id)
+                .filter(|c| c.made_from(&job.kept, &job.cutters, seam_angle))
+            {
+                Some(cut) => CutState::Ready(job.problem_of(cut.result.clone())),
+                None => CutState::Needed(job),
+            },
+        )
     }
 
     /// `shape` (the cutter's) with its material slots renumbered into the

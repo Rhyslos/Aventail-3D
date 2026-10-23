@@ -22,7 +22,10 @@ pub mod tree;
 pub mod trim;
 pub mod units;
 
-pub use boolean::{Boolean, BooleanKind, BooleanProblem, BooleanRefusal, MAX_CUTTERS};
+pub use boolean::{
+    Boolean, BooleanKind, BooleanProblem, BooleanRefusal, CUT_IN_BACKGROUND_FROM, CutDone, CutJob,
+    CutState, MAX_CUTTERS,
+};
 pub use command::Command;
 pub use document::Document;
 pub use history::HistoryLimit;

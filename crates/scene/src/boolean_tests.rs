@@ -473,3 +473,29 @@ fn the_selection_remembers_its_order() {
     doc.execute(Command::Delete(vec![c])).unwrap();
     assert!(!doc.selection_order().contains(&c));
 }
+
+#[test]
+fn a_cut_can_be_worked_out_elsewhere_and_handed_back() {
+    let (mut doc, kept, cutter) = notched();
+    move_to(&mut doc, cutter, Vec3::splat(40.0));
+    let Some(CutState::Needed(job)) = doc.scene().cut_state(kept) else {
+        panic!("not worked out yet");
+    };
+    assert_eq!(job.object(), kept);
+    assert_eq!(job.polygons(), 12);
+    let done = std::thread::spawn(move || job.run()).join().unwrap();
+    assert_eq!(done.object(), kept);
+    let made = done.result().unwrap();
+    doc.scene().store_cut(done);
+    match doc.scene().cut_state(kept) {
+        Some(CutState::Ready(Ok(ready))) => assert!(Arc::ptr_eq(&ready, &made)),
+        other => panic!("not kept: {other:?}"),
+    }
+    // A cut for older places isn't taken for the new ones.
+    move_to(&mut doc, cutter, Vec3::splat(30.0));
+    assert!(matches!(
+        doc.scene().cut_state(kept),
+        Some(CutState::Needed(_))
+    ));
+    assert!(doc.scene().cut_state(cutter).is_none(), "no booleans");
+}

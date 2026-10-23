@@ -640,6 +640,11 @@ impl Workbench {
             .drawing
             .update(&self.document, editing, &self.hidden)
             .clone();
+        if self.drawing.cutting() {
+            // A heavy boolean is being worked out: look again shortly.
+            ui.ctx()
+                .request_repaint_after(std::time::Duration::from_millis(50));
+        }
         summary.overlay = self.components.overlay();
         self.components.freeze(
             self.gizmo_session.is_some()

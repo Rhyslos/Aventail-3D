@@ -213,6 +213,11 @@ pub(crate) struct DrawingCache {
     /// summary was built for.
     built_for: Option<(u64, Vec<ObjectId>, Option<ElementKind>, u64)>,
     summary: SceneSummary,
+    /// Heavy cuts being worked out on other threads (decision 0135).
+    cutting: std::collections::HashMap<ObjectId, std::thread::JoinHandle<scene::CutDone>>,
+    /// Each kept object's last cut shown, to show while a newer one is
+    /// worked out.
+    last_cut: std::collections::HashMap<ObjectId, Arc<Mesh>>,
 }
 
 impl DrawingCache {
@@ -222,6 +227,9 @@ impl DrawingCache {
     /// scene for one it already drew.
     pub(crate) fn forget(&mut self) {
         self.built_for = None;
+        // Cuts of the old document's objects aren't this one's.
+        self.last_cut.clear();
+        self.cutting.clear();
     }
 
     /// The summary of `document`, with the selected objects' `editing`
@@ -233,6 +241,10 @@ impl DrawingCache {
         editing: Option<ElementKind>,
         hidden: &Hidden,
     ) -> &SceneSummary {
+        // A heavy cut worked out since: kept by the scene, and drawn.
+        if self.collect_cuts(document.scene()) {
+            self.built_for = None;
+        }
         let key = (
             document.revision(),
             document.selection(),
@@ -267,10 +279,7 @@ impl DrawingCache {
                 .map_or(mesh::Hardness::Marked, |o| o.hardness);
             let shown = hidden.shown(id, &shape.mesh);
             // Cut by its booleans, if they work (decision 0135).
-            let cut = match scene.cut_shape(id) {
-                Some(Ok(cut)) => cut,
-                _ => Arc::clone(&shown),
-            };
+            let cut = self.cut_of(scene, id).unwrap_or_else(|| Arc::clone(&shown));
             let drawn = scene
                 .with_mirror(id, &cut)
                 .map_or_else(|| Arc::clone(&cut), Arc::new);
@@ -342,6 +351,56 @@ impl DrawingCache {
         };
         self.built_for = Some(key);
         &self.summary
+    }
+
+    /// Whether heavy cuts are being worked out on other threads (the
+    /// window keeps drawing until they are in).
+    pub(crate) fn cutting(&self) -> bool {
+        !self.cutting.is_empty()
+    }
+
+    /// Hands every finished cut to the scene; whether any was.
+    fn collect_cuts(&mut self, scene: &scene::Scene) -> bool {
+        let done: Vec<ObjectId> = self
+            .cutting
+            .iter()
+            .filter(|(_, job)| job.is_finished())
+            .map(|(id, _)| *id)
+            .collect();
+        for id in &done {
+            if let Some(job) = self.cutting.remove(id)
+                && let Ok(cut) = job.join()
+            {
+                scene.store_cut(cut);
+            }
+        }
+        !done.is_empty()
+    }
+
+    /// The object's cut shape, if it has booleans that work: ready, or
+    /// worked out now when light. A heavy one is worked out on another
+    /// thread ([`scene::CUT_IN_BACKGROUND_FROM`]), and its last cut (or
+    /// nothing, so the uncut shape) is shown meanwhile.
+    fn cut_of(&mut self, scene: &scene::Scene, id: ObjectId) -> Option<Arc<Mesh>> {
+        let cut = match scene.cut_state(id)? {
+            scene::CutState::Ready(result) => result.ok(),
+            scene::CutState::Needed(job) if job.polygons() < scene::CUT_IN_BACKGROUND_FROM => {
+                scene.cut_shape(id).and_then(Result::ok)
+            }
+            scene::CutState::Needed(job) => {
+                // One at a time per object: a newer cut waits until the one
+                // under way is in, so a drag doesn't pile up work.
+                self.cutting
+                    .entry(id)
+                    .or_insert_with(|| std::thread::spawn(move || job.run()));
+                return self.last_cut.get(&id).cloned();
+            }
+        };
+        match &cut {
+            Some(mesh) => self.last_cut.insert(id, Arc::clone(mesh)),
+            None => self.last_cut.remove(&id),
+        };
+        cut
     }
 }
 

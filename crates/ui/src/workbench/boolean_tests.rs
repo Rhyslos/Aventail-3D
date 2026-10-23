@@ -217,3 +217,55 @@ fn a_cutter_is_drawn_as_an_outline_and_the_kept_shape_cut() {
     assert_eq!(item(kept).shown.face_count(), 6, "edited uncut");
     assert_eq!(item(kept).drawn.face_count(), 9, "drawn cut");
 }
+
+#[test]
+fn a_heavy_cut_is_worked_out_in_the_background_and_then_shown() {
+    let (mut harness, _, cutter) = two_cubes();
+    // A ball of 6 000 polygons, over the background limit.
+    let heavy = scene::Primitive::Sphere(mesh::primitives::SphereParams {
+        radius: 60.0,
+        sides: 100,
+        rings: 60,
+    });
+    assert!(heavy.mesh().face_count() >= scene::CUT_IN_BACKGROUND_FROM);
+    let doc = harness.state_mut().workbench.document_mut();
+    doc.execute(Command::Create(ObjectKind::Primitive(heavy)))
+        .unwrap();
+    let kept = doc.selection()[0];
+    pick_in_order(&mut harness, kept, cutter);
+    let mut requests = Vec::new();
+    harness
+        .state_mut()
+        .workbench
+        .run_boolean(BooleanKind::Subtract, &mut requests);
+    harness.state_mut().workbench.carry_out(requests);
+    // The window keeps drawing while the cut is worked out.
+    harness.run_steps(1);
+    let drawn = |harness: &H| {
+        let view = harness.state().renderer.drawn.last().unwrap().clone();
+        let item = view
+            .scene
+            .items
+            .iter()
+            .find(|i| i.id == kept)
+            .unwrap()
+            .clone();
+        (item.shown.face_count(), item.drawn.face_count())
+    };
+    // The window didn't wait: the uncut ball shows while the cut is made.
+    if harness.state().workbench.drawing.cutting() {
+        let (shown, now) = drawn(&harness);
+        assert_eq!(shown, now, "uncut meanwhile");
+    }
+    for _ in 0..600 {
+        if !harness.state().workbench.drawing.cutting() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        harness.run_steps(1);
+    }
+    harness.run_steps(1);
+    assert!(!harness.state().workbench.drawing.cutting());
+    let (shown, now) = drawn(&harness);
+    assert_ne!(shown, now, "the cut shows once it is in");
+}
