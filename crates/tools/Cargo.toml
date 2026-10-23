@@ -19,6 +19,8 @@ layer = 3
 mesh.workspace = true
 glam.workspace = true
 serde.workspace = true
+# The language layer for text a person reads (layer 0).
+words.workspace = true
 
 [dev-dependencies]
 ron.workspace = true

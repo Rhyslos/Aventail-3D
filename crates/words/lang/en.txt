@@ -150,6 +150,9 @@ Also stepped through with the grid button on the left palette.
 Also switched with the button above the grid button on the left palette.
 Also turn them to match
 Alt
+Alt + left: orbit · Alt + middle: pan · Alt + right or wheel: zoom
+Alt + middle: orbit · Middle drag: pan · Wheel: zoom
+Alt + mouse
 Alt + mouse works in every scheme
 Alt Gr
 An empty object to hold and organise other objects
@@ -186,6 +189,7 @@ Automatic
 Autosave
 B or Alt + B: next · Shift + B: back · Enter or Space: create
 B: next · Shift + B: back · Enter or Space: create · Alt + B: more shapes
+Back
 Back in the Model mode: click an object to select it.
 Back in the shape list or tool menu
 Back in the tool menu
@@ -208,6 +212,7 @@ Bevel works on edges or points: press 2 for the Edges mode, or 1 for Points
 Bevel: drag away from the selected edges (or points) to cut them away; back towards them to narrow it. Segments and Profile are in the Attributes panel. Shift for fine steps; Esc or a right click cancels.
 Blue
 Both ends sit on the same spot. Usually left over from moving points together.
+Bottom
 Bottom radius
 Box selection
 Box, lasso or brush select
@@ -601,6 +606,7 @@ From end to end, the round ends included
 From the front of the first step to the back of the last (along Y)
 From the middle to the centre of the ring's tube
 From top
+Front
 Game project
 Game project folder
 Game project folder set. It isn't inside a Godot, Unity, Unreal Engine or Solis project, so exports go there with {}'s settings. Every save now exports there too.
@@ -825,6 +831,7 @@ Lay the selected pieces straight along this row, filling its height, from its le
 Layer
 Layer name
 Layout snapshots
+Left
 Leg height
 Let go of the drag (or press Esc) first, then Tab.
 Let go on another one of the same object to join them.
@@ -895,6 +902,9 @@ Mesh
 Method
 Metres
 Middle
+Middle drag: orbit · Shift + middle: pan · Wheel: zoom
+Middle orbits
+Middle pans, Alt orbits
 Mirror
 Mirror across
 Mirror applied: both halves are part of {} now, and symmetry is off. Ctrl + Z takes it back.
@@ -911,6 +921,8 @@ More copies let you go further back after a crash. A heavy scene takes tens of M
 More shapes
 More shapes (icosphere, torus, gear, stairs and the rest)
 Mouse
+Mouse only
+Mouse only, middle zooms
 Move
 Move 1 point
 Move UVs
@@ -1038,6 +1050,7 @@ Options
 Orbit and zoom around the point under the mouse
 Orbit, pan and zoom with a left, middle or right drag (standard navigation)
 Orbit, pan, zoom
+Orthographic
 Outer radius
 Outlined
 Pack
@@ -1062,6 +1075,7 @@ Paste: copy some objects first (Ctrl + C, or Alt + C).
 Paste: the copied objects have been deleted.
 Pasted copies, on top of their originals: move them away with W.
 Pasted instances: they follow their originals' shape.
+Perspective
 Perspective or orthographic
 Petrol blue
 PgDn
@@ -1168,6 +1182,9 @@ Restore the snapshot “{}”
 Restored your work from {}. Save it to keep it.
 Restored “{}”. Ctrl + Z takes it back.
 Ridge along
+Right
+Right drag: orbit · Middle drag: pan · Wheel: zoom
+Right drag: orbit · Middle drag: zoom · Shift + middle: pan
 Right-click (or Esc)
 Right-click in the viewport
 Right-click opens the quad menu
@@ -1559,6 +1576,7 @@ Tools for UVs
 Tools for objects
 Tools for {}
 Tooth depth
+Top
 Top radius
 Torus
 Transform
@@ -1834,6 +1852,8 @@ extrude
 face with no area
 faces with no area
 flags
+gets {:.1} times less texture for its size than the rest of the shape, so it looks blurrier. Fix: Unwrap its piece, or Set texel density.
+gets {:.1} times more texture for its size than the rest of the shape. Fix: Unwrap its piece (it keeps the shape's density), or Set texel density.
 glTF (.glb)
 glTF is always metres, Y up and triangles: every program reads it that way.
 glTF, each object at its pivot, in metres with Y up: Unity reads it once its glTFast package is installed
@@ -1842,8 +1862,10 @@ glTF, each object at its pivot, in metres with Y up: drop it into the Godot proj
 glTF, each object at its pivot, in metres with Y up: what the Solis game engine imports
 hard
 hard edge
+has no room on the texture: its UVs are squashed flat (an extrude's new walls start like this). Fix: select it and Unwrap.
 hour
 inset
+is stretched {:.1} times more one way than the other, so a texture's squares become long rectangles. Fix: Relax it; if its piece wraps round the shape, add a seam across it and Unwrap.
 island
 isn't
 it
@@ -1886,6 +1908,7 @@ its {} isn't a real number
 just now
 keep a backup of
 length
+lies mirrored on the texture, so a texture shows back to front on it. Fix: Unwrap its piece, or flip it back.
 line {} holds a number that isn't real
 locked
 locked piece

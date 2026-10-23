@@ -12,8 +12,11 @@ fn sources() -> Vec<(PathBuf, String)> {
 
 /// The crates whose text a person reads (decision 0134): the interface's,
 /// the undo labels, messages and reasons made below it, and the app's own
-/// (its dialogs, start-up and command line).
-const CRATES_WITH_TEXT: [&str; 5] = ["ui", "scene", "mesh", "fileio", "app"];
+/// (its dialogs, start-up and command line). Not `render`: its texts are
+/// names for GPU debuggers, never shown.
+const CRATES_WITH_TEXT: [&str; 8] = [
+    "ui", "scene", "mesh", "fileio", "app", "tools", "uv", "config",
+];
 
 /// The `crates` folder.
 fn crates_dir() -> PathBuf {
@@ -461,7 +464,7 @@ fn is_interface_text(literal: &str, before: &str) -> bool {
     {
         return false;
     }
-    const NOT_TEXT: [&str; 39] = [
+    const NOT_TEXT: [&str; 40] = [
         "Id::new(",
         "Id::new((",
         // A texture's name, for debugging.
@@ -500,6 +503,8 @@ fn is_interface_text(literal: &str, before: &str) -> bool {
         "std::env::var(",
         "with_extension(",
         "reason = ",
+        // A test left out, and why (`#[ignore = "…"]`).
+        "#[ignore =",
         // A folder or file name in a path (a Unity project's "Assets").
         ".join(",
         // Lines written into an OBJ or MTL file, and read back from one.

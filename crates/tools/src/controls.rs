@@ -21,6 +21,7 @@
 use crate::navigation::{DragKind, MouseButton};
 use glam::Vec2;
 use serde::{Deserialize, Serialize};
+use words::{text, tr};
 
 /// Keys held while a drag starts, as far as navigation cares.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -78,26 +79,30 @@ impl Scheme {
 
     /// The scheme's name, as the picker shows it.
     pub fn name(self) -> &'static str {
-        match self {
-            Self::AltMouse => "Alt + mouse",
-            Self::MouseOnly => "Mouse only",
-            Self::MouseOnlyMiddleZooms => "Mouse only, middle zooms",
-            Self::MiddlePansAltOrbits => "Middle pans, Alt orbits",
-            Self::MiddleOrbits => "Middle orbits",
-        }
+        tr(match self {
+            Self::AltMouse => text!("Alt + mouse"),
+            Self::MouseOnly => text!("Mouse only"),
+            Self::MouseOnlyMiddleZooms => text!("Mouse only, middle zooms"),
+            Self::MiddlePansAltOrbits => text!("Middle pans, Alt orbits"),
+            Self::MiddleOrbits => text!("Middle orbits"),
+        })
     }
 
     /// The controls in one short line, for the picker and the status bar.
     pub fn summary(self) -> &'static str {
-        match self {
-            Self::AltMouse => "Alt + left: orbit · Alt + middle: pan · Alt + right or wheel: zoom",
-            Self::MouseOnly => "Right drag: orbit · Middle drag: pan · Wheel: zoom",
-            Self::MouseOnlyMiddleZooms => {
-                "Right drag: orbit · Middle drag: zoom · Shift + middle: pan"
+        tr(match self {
+            Self::AltMouse => {
+                text!("Alt + left: orbit · Alt + middle: pan · Alt + right or wheel: zoom")
             }
-            Self::MiddlePansAltOrbits => "Alt + middle: orbit · Middle drag: pan · Wheel: zoom",
-            Self::MiddleOrbits => "Middle drag: orbit · Shift + middle: pan · Wheel: zoom",
-        }
+            Self::MouseOnly => text!("Right drag: orbit · Middle drag: pan · Wheel: zoom"),
+            Self::MouseOnlyMiddleZooms => {
+                text!("Right drag: orbit · Middle drag: zoom · Shift + middle: pan")
+            }
+            Self::MiddlePansAltOrbits => {
+                text!("Alt + middle: orbit · Middle drag: pan · Wheel: zoom")
+            }
+            Self::MiddleOrbits => text!("Middle drag: orbit · Shift + middle: pan · Wheel: zoom"),
+        })
     }
 
     /// What a drag with `button` and `keys` does in this scheme alone.

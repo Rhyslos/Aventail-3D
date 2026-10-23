@@ -215,6 +215,7 @@ dependencies = [
  "tools",
  "ui",
  "windows-sys 0.61.2",
+ "words",
 ]
 
 [[package]]
@@ -3548,6 +3549,7 @@ dependencies = [
  "mesh",
  "ron",
  "serde",
+ "words",
 ]
 
 [[package]]
@@ -3691,6 +3693,7 @@ version = "0.0.1"
 dependencies = [
  "glam",
  "mesh",
+ "words",
 ]
 
 [[package]]
