@@ -15,7 +15,7 @@ Turns plain input (mouse, keys, what is under the cursor) into intentions: the v
 
 ## Depends on
 
-`mesh` (bounding boxes; `scene`, `uv`, `config` planned). Outside libraries: `glam` (maths), `serde` (saving the camera).
+`mesh` (bounding boxes; `scene`, `uv`, `config` planned), `words` (the language layer: navigation schemes' and views' names go through it, [decision 0134](../../docs/decisions/0134-shared-language-crate.md)). Outside libraries: `glam` (maths), `serde` (saving the camera).
 
 ## Status
 

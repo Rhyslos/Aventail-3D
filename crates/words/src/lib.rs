@@ -3,9 +3,9 @@
 //! added later as packages without touching the code that shows text.
 //!
 //! Every crate that makes text a person reads uses this one: the interface
-//! (`ui`), and the undo labels, messages and reasons made in `scene`,
-//! `mesh` and `fileio`. It has no dependencies, so it sits below them all
-//! (layer 0).
+//! (`ui`), the undo labels, messages and reasons made in `scene`, `mesh`
+//! and `fileio`, and the texts of `app`, `tools` and `uv`. It has no
+//! dependencies, so it sits below them all (layer 0).
 //!
 //! The English text stays where it's used, so the code reads plainly:
 //!

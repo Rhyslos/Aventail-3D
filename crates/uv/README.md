@@ -16,7 +16,7 @@ Turns a mesh's surface into flat UV islands and arranges them in the texture squ
 
 ## Depends on
 
-`mesh`, `glam`.
+`mesh`, `words` (the language layer: stretch explanations go through it, [decision 0134](../../docs/decisions/0134-shared-language-crate.md)), `glam`.
 
 ## Status
 
