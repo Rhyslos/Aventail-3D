@@ -48,18 +48,18 @@ impl Workbench {
         }
         for (label, help, run) in [
             (
-                seams::SEAMS_FROM_HARD_LABEL,
-                seams::SEAMS_FROM_HARD_HELP,
+                tr(seams::SEAMS_FROM_HARD_LABEL),
+                tr(seams::SEAMS_FROM_HARD_HELP),
                 Self::run_seams_from_hard_edges as fn(&mut Self),
             ),
             (
-                seams::SUGGEST_SEAMS_LABEL,
-                seams::SUGGEST_SEAMS_HELP,
+                tr(seams::SUGGEST_SEAMS_LABEL),
+                tr(seams::SUGGEST_SEAMS_HELP),
                 Self::run_suggest_seams,
             ),
             (
-                seams::SELECT_SEAMS_LABEL,
-                seams::SELECT_SEAMS_HELP,
+                tr(seams::SELECT_SEAMS_LABEL),
+                tr(seams::SELECT_SEAMS_HELP),
                 Self::run_select_seams,
             ),
         ] {
@@ -71,18 +71,18 @@ impl Workbench {
         ui.separator();
         for (label, help, preference) in [
             (
-                seam_preferences::PREFER_LABEL,
-                seam_preferences::PREFER_HELP,
+                tr(seam_preferences::PREFER_LABEL),
+                tr(seam_preferences::PREFER_HELP),
                 scene::SeamPreference::Prefer,
             ),
             (
-                seam_preferences::NEVER_LABEL,
-                seam_preferences::NEVER_HELP,
+                tr(seam_preferences::NEVER_LABEL),
+                tr(seam_preferences::NEVER_HELP),
                 scene::SeamPreference::Never,
             ),
             (
-                seam_preferences::CLEAR_PREFERENCE_LABEL,
-                seam_preferences::CLEAR_PREFERENCE_HELP,
+                tr(seam_preferences::CLEAR_PREFERENCE_LABEL),
+                tr(seam_preferences::CLEAR_PREFERENCE_HELP),
                 scene::SeamPreference::Free,
             ),
         ] {
@@ -214,9 +214,11 @@ impl Workbench {
         })
         .response
         .on_hover_text("Give the selected pieces their own unwrap settings");
-        ui.menu_button(seam_preferences::BUDGET_LABEL, |ui| self.budget_menu(ui))
-            .response
-            .on_hover_text("Give the selected pieces a stretch budget of their own");
+        ui.menu_button(tr(seam_preferences::BUDGET_LABEL), |ui| {
+            self.budget_menu(ui)
+        })
+        .response
+        .on_hover_text("Give the selected pieces a stretch budget of their own");
     }
 }
 

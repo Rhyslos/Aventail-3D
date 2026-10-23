@@ -18,6 +18,7 @@ mod tool_section;
 
 use crate::objects::DocRequest;
 use crate::panels::placeholder;
+use crate::text::tr;
 use crate::theme;
 use crate::transforming::Tool;
 use crate::units::Units;
@@ -108,7 +109,7 @@ pub(crate) fn unit_entries(ui: &mut Ui, units: &mut Units) {
     for choice in Units::ALL {
         if ui
             .radio(*units == choice, choice.name())
-            .on_hover_text(format!(
+            .on_hover_text(crate::trf!(
                 "Show and type lengths in {}",
                 choice.name().to_lowercase()
             ))
@@ -135,9 +136,9 @@ pub(crate) fn settings_entries(
         _ => None,
     };
     if ui
-        .add_enabled(single.is_some(), egui::Button::new("Copy settings"))
-        .on_hover_text("Copy the selected shape's settings")
-        .on_disabled_hover_text("Select one shape to copy its settings")
+        .add_enabled(single.is_some(), egui::Button::new(tr("Copy settings")))
+        .on_hover_text(tr("Copy the selected shape's settings"))
+        .on_disabled_hover_text(tr("Select one shape to copy its settings"))
         .clicked()
     {
         *clipboard = single;
@@ -152,13 +153,17 @@ pub(crate) fn settings_entries(
         None => Vec::new(),
     };
     let paste = match clipboard {
-        Some(copied) => format!("Paste {} settings", copied.name().to_lowercase()),
-        None => "Paste settings".to_string(),
+        Some(copied) => crate::trf!("Paste {} settings", copied.name().to_lowercase()),
+        None => tr("Paste settings").to_string(),
     };
     if ui
         .add_enabled(!targets.is_empty(), egui::Button::new(paste))
-        .on_hover_text("Give the selected shapes of the same kind the copied settings")
-        .on_disabled_hover_text("Copy a shape's settings, then select shapes of the same kind")
+        .on_hover_text(tr(
+            "Give the selected shapes of the same kind the copied settings",
+        ))
+        .on_disabled_hover_text(tr(
+            "Copy a shape's settings, then select shapes of the same kind",
+        ))
         .clicked()
         && let Some(primitive) = *clipboard
     {
@@ -179,15 +184,15 @@ impl AttributesPanel {
         shared: &mut Shared<'_>,
         out: &mut Vec<DocRequest>,
     ) {
-        crate::dialog::menu(ui, "Mode", |ui| {
-            let _ = ui.radio(true, "Object settings");
-            ui.add_enabled(false, egui::RadioButton::new(false, "Tool settings"))
-                .on_disabled_hover_text("Arrives with the tools in Phase 3");
+        crate::dialog::menu(ui, tr("Mode"), |ui| {
+            let _ = ui.radio(true, tr("Object settings"));
+            ui.add_enabled(false, egui::RadioButton::new(false, tr("Tool settings")))
+                .on_disabled_hover_text(tr("Arrives with the tools in Phase 3"));
         });
-        crate::dialog::menu(ui, "Edit", |ui| {
+        crate::dialog::menu(ui, tr("Edit"), |ui| {
             settings_entries(ui, doc, shared.clipboard, out)
         });
-        crate::dialog::menu(ui, "Units", |ui| unit_entries(ui, shared.units));
+        crate::dialog::menu(ui, tr("Units"), |ui| unit_entries(ui, shared.units));
     }
 
     /// Draws the settings of the selection.
@@ -225,16 +230,16 @@ impl AttributesPanel {
             [] => {
                 return placeholder(
                     ui,
-                    "Nothing selected",
-                    "Select an object or pick a tool, and its settings show up here.",
+                    tr("Nothing selected"),
+                    tr("Select an object or pick a tool, and its settings show up here."),
                 );
             }
             [one] => *one,
             many => {
                 return placeholder(
                     ui,
-                    &format!("{} objects selected", many.len()),
-                    "Select one object to see its settings.",
+                    &crate::trf!("{} objects selected", many.len()),
+                    tr("Select one object to see its settings."),
                 );
             }
         };
@@ -269,14 +274,14 @@ impl AttributesPanel {
                     // use; the edit before them can still be opened.
                     self.left_edit_line(ui, doc, id, &object.stack);
                 }
-                section(ui, "Basic");
+                section(ui, tr("Basic"));
                 egui::Grid::new("attributes_basic")
                     .num_columns(2)
                     .min_col_width(LABEL_WIDTH)
                     .spacing(vec2(12.0, 6.0))
                     .show(ui, |ui| {
                         self.name_row(ui, id, &object.name, out);
-                        label(ui, "Visible", "Whether it is shown in the viewport");
+                        label(ui, tr("Visible"), tr("Whether it is shown in the viewport"));
                         let mut visible = object.visible;
                         let switch = ui.checkbox(&mut visible, "");
                         switch.widget_info(|| {
@@ -284,7 +289,7 @@ impl AttributesPanel {
                                 egui::WidgetType::Checkbox,
                                 true,
                                 visible,
-                                "Visible",
+                                tr("Visible"),
                             )
                         });
                         if switch.changed() {
@@ -304,23 +309,23 @@ impl AttributesPanel {
                         }
                     });
                 if let ObjectKind::Instance(source) = &object.kind {
-                    section(ui, "Instance");
+                    section(ui, tr("Instance"));
                     let original = doc
                         .scene()
                         .object(*source)
                         .map_or_else(|| "(gone)".to_string(), |o| o.name.clone());
-                    ui.label(format!("Shows the shape of: {original}"));
+                    ui.label(crate::trf!("Shows the shape of: {}", original));
                     ui.label(
-                        RichText::new(
+                        RichText::new(tr(
                             "Change the original and every instance follows. Bake into shape \
                              (Ctrl + E) gives this one its own shape.",
-                        )
+                        ))
                         .small()
                         .color(theme::TEXT_WEAK),
                     );
                 }
                 if let ObjectKind::Primitive(primitive) = &object.kind {
-                    section(ui, "Shape");
+                    section(ui, tr("Shape"));
                     self.shape_rows(ui, id, *primitive, units, out);
                 }
                 if object.kind.has_shape() {

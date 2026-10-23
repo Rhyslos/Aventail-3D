@@ -223,9 +223,9 @@ impl Workbench {
         }
         if entry(
             ui,
-            super::seams::SELECT_SEAMS_LABEL,
+            tr(super::seams::SELECT_SEAMS_LABEL),
             String::new(),
-            super::seams::SELECT_SEAMS_HELP,
+            tr(super::seams::SELECT_SEAMS_HELP),
         ) {
             self.run_select_seams();
             ui.close();

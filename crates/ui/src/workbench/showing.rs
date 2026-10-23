@@ -15,6 +15,7 @@
 
 use super::Workbench;
 use crate::components::kind_for;
+use crate::text::tr;
 use egui::{Key, KeyboardShortcut, Modifiers, Ui};
 use scene::{Command, ElementKind, FaceId, ObjectId};
 use std::collections::BTreeSet;
@@ -73,8 +74,8 @@ impl Workbench {
         let selection = self.document.selection();
         if selection.is_empty() {
             self.note = Some(match what {
-                Hiding::Selection => "Hide: select the objects to hide first.".into(),
-                Hiding::Others => "Isolate: select the objects to keep first.".into(),
+                Hiding::Selection => tr("Hide: select the objects to hide first.").into(),
+                Hiding::Others => tr("Isolate: select the objects to keep first.").into(),
             });
             return;
         }
@@ -96,7 +97,7 @@ impl Workbench {
                 .collect(),
         };
         if ids.is_empty() {
-            self.note = Some("Everything else is already hidden.".into());
+            self.note = Some(tr("Everything else is already hidden.").into());
             return;
         }
         let n = ids.len();
@@ -109,17 +110,19 @@ impl Workbench {
             ids,
             visible: false,
         }) {
-            self.note = Some(format!("Couldn't hide that: {why}."));
+            self.note = Some(crate::trf!("Couldn't hide that: {}.", why));
             return;
         }
         let things = if n == 1 { "object" } else { "objects" };
-        self.note = Some(format!(
-            "{} {n} {things}. Alt + H shows everything again.",
+        self.note = Some(crate::trf!(
+            "{} {} {}. Alt + H shows everything again.",
             if what == Hiding::Selection {
-                "Hid"
+                tr("Hid")
             } else {
-                "Isolated: hid"
-            }
+                tr("Isolated: hid")
+            },
+            n,
+            things
         ));
     }
 
@@ -168,10 +171,10 @@ impl Workbench {
         if hidden_now == 0 {
             let what_for = match what {
                 Hiding::Selection => {
-                    "Hide: select the polygons (or their points or edges) to hide first."
+                    tr("Hide: select the polygons (or their points or edges) to hide first.")
                 }
                 Hiding::Others => {
-                    "Isolate: select the polygons (or their points or edges) to keep first."
+                    tr("Isolate: select the polygons (or their points or edges) to keep first.")
                 }
             };
             self.note = Some(what_for.into());
@@ -179,9 +182,9 @@ impl Workbench {
         }
         self.hidden.revision += 1;
         let label = if what == Hiding::Selection {
-            "Hide"
+            tr("Hide")
         } else {
-            "Isolate"
+            tr("Isolate")
         };
         self.document.select_elements(selections, label, None);
         let things = if hidden_now == 1 {
@@ -189,13 +192,15 @@ impl Workbench {
         } else {
             "polygons"
         };
-        self.note = Some(format!(
-            "{} {hidden_now} {things}. Alt + H shows everything again.",
+        self.note = Some(crate::trf!(
+            "{} {} {}. Alt + H shows everything again.",
             if what == Hiding::Selection {
-                "Hid"
+                tr("Hid")
             } else {
-                "Isolated: hid"
-            }
+                tr("Isolated: hid")
+            },
+            hidden_now,
+            things
         ));
     }
 
@@ -222,17 +227,19 @@ impl Workbench {
                     .document
                     .execute(Command::SetVisible { ids, visible: true })
             {
-                self.note = Some(format!("Couldn't show them: {why}."));
+                self.note = Some(crate::trf!("Couldn't show them: {}.", why));
                 return;
             }
         }
         self.note = Some(match (objects, polygons) {
-            (0, 0) => "Nothing is hidden.".into(),
-            (0, p) => format!("Showing {p} hidden polygon{} again.", plural(p)),
-            (o, 0) => format!("Showing {o} hidden object{} again.", plural(o)),
-            (o, p) => format!(
-                "Showing {o} hidden object{} and {p} polygon{} again.",
+            (0, 0) => tr("Nothing is hidden.").into(),
+            (0, p) => crate::trf!("Showing {} hidden polygon{} again.", p, plural(p)),
+            (o, 0) => crate::trf!("Showing {} hidden object{} again.", o, plural(o)),
+            (o, p) => crate::trf!(
+                "Showing {} hidden object{} and {} polygon{} again.",
+                o,
                 plural(o),
+                p,
                 plural(p)
             ),
         });
@@ -244,7 +251,7 @@ impl Workbench {
         if n == 0 {
             String::new()
         } else {
-            format!(" {n} polygon{} hidden (Alt + H shows them).", plural(n))
+            crate::trf!(" {} polygon{} hidden (Alt + H shows them).", n, plural(n))
         }
     }
 }

@@ -164,7 +164,7 @@ impl TabViewer for PanelViewer<'_> {
                         let mut numbers = self.uv_editor.piece_numbers();
                         let mut explain = self.uv_editor.explaining();
                         if ui
-                            .checkbox(&mut explain, crate::uv_editor::explain::EXPLAIN_CHOICES)
+                            .checkbox(&mut explain, tr(crate::uv_editor::explain::EXPLAIN_CHOICES))
                             .on_hover_text(
                                 "Point at a seam or a piece to see why it's there and how to \
                                  change it",

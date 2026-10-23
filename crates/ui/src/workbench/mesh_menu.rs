@@ -9,15 +9,15 @@ use egui::Ui;
 
 /// The Mesh menu's groups (decision 0126): what it holds was one long
 /// list.
-pub(crate) const MESH_BUILD_MENU: &str = "Build";
+pub(crate) const MESH_BUILD_MENU: &str = crate::text!("Build");
 
-pub(crate) const MESH_CUT_MENU: &str = "Cut and join";
+pub(crate) const MESH_CUT_MENU: &str = crate::text!("Cut and join");
 
-pub(crate) const MESH_REMOVE_MENU: &str = "Remove";
+pub(crate) const MESH_REMOVE_MENU: &str = crate::text!("Remove");
 
-pub(crate) const MESH_SHADING_MENU: &str = "Shading";
+pub(crate) const MESH_SHADING_MENU: &str = crate::text!("Shading");
 
-pub(crate) const MESH_OBJECT_MENU: &str = "Shape and object";
+pub(crate) const MESH_OBJECT_MENU: &str = crate::text!("Shape and object");
 
 impl Workbench {
     /// The Mesh menu (decision 0126): the modelling tools in groups, each
@@ -27,8 +27,8 @@ impl Workbench {
         use crate::commands::CommandId;
         let groups: [(&str, &str, &[CommandId]); 3] = [
             (
-                MESH_BUILD_MENU,
-                "Add to the shape: extrude, inset, bevel, groove, bridge, fill a hole",
+                tr(MESH_BUILD_MENU),
+                tr("Add to the shape: extrude, inset, bevel, groove, bridge, fill a hole"),
                 &[
                     CommandId::Extrude,
                     CommandId::Inset,
@@ -39,8 +39,8 @@ impl Workbench {
                 ],
             ),
             (
-                MESH_CUT_MENU,
-                "Cut new edges and join points: slit, loop cut, connect, weld",
+                tr(MESH_CUT_MENU),
+                tr("Cut new edges and join points: slit, loop cut, connect, weld"),
                 &[
                     CommandId::Slit,
                     CommandId::LoopCut,
@@ -49,8 +49,8 @@ impl Workbench {
                 ],
             ),
             (
-                MESH_REMOVE_MENU,
-                "Take points, edges or polygons away",
+                tr(MESH_REMOVE_MENU),
+                tr("Take points, edges or polygons away"),
                 &[CommandId::DeleteElements, CommandId::Dissolve],
             ),
         ];
@@ -64,7 +64,7 @@ impl Workbench {
             .response
             .on_hover_text(help);
         }
-        crate::dialog::menu(ui, MESH_SHADING_MENU, |ui| {
+        crate::dialog::menu(ui, tr(MESH_SHADING_MENU), |ui| {
             self.smoothing_entry(ui);
             if let Some(command) =
                 commands_entries(ui, &[CommandId::HardEdges, CommandId::SoftEdges])
@@ -73,12 +73,12 @@ impl Workbench {
                 ui.close();
             }
             if ui
-                .button("Hard edges by angle")
-                .on_hover_text(
+                .button(tr("Hard edges by angle"))
+                .on_hover_text(tr(
                     "In the selected objects, mark every edge whose polygons meet more \
                      sharply than an angle (30° to start with) hard, and the rest soft: \
                      boxy corners crisp, curves smooth. Change the angle under Last edit.",
-                )
+                ))
                 .clicked()
             {
                 self.run_hard_by_angle();
@@ -90,12 +90,12 @@ impl Workbench {
                 ui.close();
             }
             if ui
-                .button("Fix normals")
-                .on_hover_text(
+                .button(tr("Fix normals"))
+                .on_hover_text(tr(
                     "Turn every polygon of the selected objects that faces the wrong \
                      way round: inside out compared with its neighbours, or facing \
                      into a closed shape. Select → Select flipped shows them first.",
-                )
+                ))
                 .clicked()
             {
                 self.run_fix_facing();
@@ -103,15 +103,17 @@ impl Workbench {
             }
         })
         .response
-        .on_hover_text("How the shape is shaded: smoothing, hard and soft edges, normals");
-        crate::dialog::menu(ui, MESH_OBJECT_MENU, |ui| {
+        .on_hover_text(tr(
+            "How the shape is shaded: smoothing, hard and soft edges, normals",
+        ));
+        crate::dialog::menu(ui, tr(MESH_OBJECT_MENU), |ui| {
             objects::make_editable_entry(ui, &self.document, requests);
             if ui
-                .button("Split off")
-                .on_hover_text(
+                .button(tr("Split off"))
+                .on_hover_text(tr(
                     "Move the selected polygons into a new object of their own, in the \
                      same place (Polygons mode)",
-                )
+                ))
                 .clicked()
             {
                 self.run_split_off();
@@ -133,11 +135,11 @@ impl Workbench {
                     mirrored,
                     egui::Button::new(tr(crate::palette::APPLY_MIRROR_LABEL)),
                 )
-                .on_hover_text(
+                .on_hover_text(tr(
                     "Make the mirrored half part of the shape for real: symmetry goes off and \
                      both halves stay",
-                )
-                .on_disabled_hover_text("Select an object with symmetry on")
+                ))
+                .on_disabled_hover_text(tr("Select an object with symmetry on"))
                 .clicked()
             {
                 self.apply_mirror();
@@ -157,6 +159,8 @@ impl Workbench {
             }
         })
         .response
-        .on_hover_text("Bake into shape, split off, join, apply transforms and edit layers");
+        .on_hover_text(tr(
+            "Bake into shape, split off, join, apply transforms and edit layers",
+        ));
     }
 }

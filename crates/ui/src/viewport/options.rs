@@ -3,6 +3,7 @@
 //! the grid and checker images the renderer draws with.
 
 use crate::selecting::SelectKeys;
+use crate::text::tr;
 use crate::transforming::{Axes, SnapSettings};
 use serde::{Deserialize, Serialize};
 use tools::NavigationSettings;
@@ -47,34 +48,34 @@ impl Surface {
     /// Its name in the Display menu.
     pub fn label(self) -> &'static str {
         match self {
-            Self::Plain => "Colours",
-            Self::Checker => "Checker",
-            Self::Stretch => "Stretch",
-            Self::NumberedChecker => "Numbered checker",
+            Self::Plain => tr("Colours"),
+            Self::Checker => tr("Checker"),
+            Self::Stretch => tr("Stretch"),
+            Self::NumberedChecker => tr("Numbered checker"),
         }
     }
 
     /// What it shows, for its tooltip.
     pub fn explanation(self) -> &'static str {
         match self {
-            Self::Plain => "Each surface in its material's colour",
-            Self::Checker => {
+            Self::Plain => tr("Each surface in its material's colour"),
+            Self::Checker => tr(
                 "A checker laid on by the UVs: where the squares stay square and even, a \
                  texture will too. The tint runs red across and green up the texture, so a \
-                 piece turned or mirrored shows."
-            }
-            Self::NumberedChecker => {
+                 piece turned or mirrored shows.",
+            ),
+            Self::NumberedChecker => tr(
                 "A checker of labelled cells laid on by the UVs, A1 at the top left of the \
                  texture to H8 at the bottom right, in colours from the app's accent: see \
                  at once which part of the texture each part of the shape uses, and which \
                  way round it lies (the labels turn and mirror with it). The UV Editor shows \
-                 it behind the UVs too."
-            }
-            Self::Stretch => {
+                 it behind the UVs too.",
+            ),
+            Self::Stretch => tr(
                 "How evenly the UVs lie: green where even, yellow where 1.5 times off, red \
                  where twice off (stretched one way, or too big or small against the rest \
-                 of the object), purple where a polygon has no room on the texture"
-            }
+                 of the object), purple where a polygon has no room on the texture",
+            ),
         }
     }
 }
@@ -117,24 +118,24 @@ impl Shading {
     /// Its name, in the menu and on the button.
     pub fn label(self) -> &'static str {
         match self {
-            Self::Shaded => "Shaded",
-            Self::ShadedWithWires => "Shaded with wires",
-            Self::Wireframe => "Wireframe",
+            Self::Shaded => tr("Shaded"),
+            Self::ShadedWithWires => tr("Shaded with wires"),
+            Self::Wireframe => tr("Wireframe"),
         }
     }
 
     /// What it shows, for its tooltip.
     pub fn explanation(self) -> &'static str {
         match self {
-            Self::Shaded => "Solid, softly lit surfaces with faint edges",
-            Self::ShadedWithWires => {
+            Self::Shaded => tr("Solid, softly lit surfaces with faint edges"),
+            Self::ShadedWithWires => tr(
                 "Solid surfaces with every edge drawn clearly on top, to see how the shape \
-                 is built"
-            }
-            Self::Wireframe => {
+                 is built",
+            ),
+            Self::Wireframe => tr(
                 "Only the edges, seen through the shape: front and back at once. Clicking \
-                 still picks the shape."
-            }
+                 still picks the shape.",
+            ),
         }
     }
 
@@ -168,9 +169,9 @@ impl GridDetail {
     /// The menu entry's name.
     pub fn label(self) -> &'static str {
         match self {
-            Self::Metre => "Every 1 m",
-            Self::HalfMetre => "Every 50 cm (quarters)",
-            Self::TenCentimetres => "Every 10 cm (fine)",
+            Self::Metre => tr("Every 1 m"),
+            Self::HalfMetre => tr("Every 50 cm (quarters)"),
+            Self::TenCentimetres => tr("Every 10 cm (fine)"),
         }
     }
 
@@ -178,8 +179,8 @@ impl GridDetail {
     pub fn spacing_text(self) -> &'static str {
         match self {
             Self::Metre => "1 m",
-            Self::HalfMetre => "50 cm",
-            Self::TenCentimetres => "10 cm",
+            Self::HalfMetre => tr("50 cm"),
+            Self::TenCentimetres => tr("10 cm"),
         }
     }
 
@@ -206,9 +207,9 @@ impl GridDetail {
     /// A plain-language description, for tooltips.
     pub fn explanation(self) -> &'static str {
         match self {
-            Self::Metre => "Grid lines every metre: the calmest ground",
-            Self::HalfMetre => "Each metre square cut into four: lines every 50 cm",
-            Self::TenCentimetres => "Thin lines every 10 cm, for placing things precisely",
+            Self::Metre => tr("Grid lines every metre: the calmest ground"),
+            Self::HalfMetre => tr("Each metre square cut into four: lines every 50 cm"),
+            Self::TenCentimetres => tr("Thin lines every 10 cm, for placing things precisely"),
         }
     }
 }

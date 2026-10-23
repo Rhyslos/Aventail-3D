@@ -10,6 +10,7 @@
 
 use super::{AttributesPanel, label, section};
 use crate::objects::DocRequest;
+use crate::text::tr;
 use crate::theme;
 use egui::{RichText, Ui, vec2};
 use scene::{Command, Document, Material, ObjectId, ObjectKind};
@@ -47,7 +48,7 @@ pub(crate) struct MaterialsState {
 /// "Material 2", "Material 3" and so on.
 pub(crate) fn new_name(list: &[Material]) -> String {
     (2..)
-        .map(|n| format!("Material {n}"))
+        .map(|n| crate::trf!("Material {}", n))
         .find(|name| !list.iter().any(|m| m.name == *name))
         .unwrap_or_default()
 }
@@ -87,12 +88,12 @@ impl AttributesPanel {
         };
         let instance = matches!(object.kind, ObjectKind::Instance(_));
         let list = doc.scene().material_list(id);
-        section(ui, "Materials");
+        section(ui, tr("Materials"));
         if instance {
             ui.label(
-                RichText::new(
+                RichText::new(tr(
                     "An instance uses its original's materials: change them on the original.",
-                )
+                ))
                 .small()
                 .color(theme::TEXT_WEAK),
             );
@@ -135,7 +136,7 @@ impl AttributesPanel {
                         egui::WidgetInfo::labeled(
                             egui::WidgetType::ColorButton,
                             !instance,
-                            format!("{name} colour"),
+                            crate::trf!("{} colour", name),
                         )
                     });
                     if swatch.clicked() {
@@ -164,7 +165,7 @@ impl AttributesPanel {
                             egui::WidgetInfo::labeled(
                                 egui::WidgetType::TextEdit,
                                 !instance,
-                                format!("Material {} name ({label_name})", slot + 1),
+                                crate::trf!("Material {} name ({})", slot + 1, label_name),
                             )
                         });
                         if response.lost_focus() {
@@ -185,8 +186,8 @@ impl AttributesPanel {
                     match counts.as_ref().and_then(|c| c.get(slot)) {
                         Some(n) => ui.label(
                             RichText::new(match n {
-                                1 => "1 polygon".to_string(),
-                                n => format!("{n} polygons"),
+                                1 => tr("1 polygon").to_string(),
+                                n => crate::trf!("{} polygons", n),
                             })
                             .small()
                             .color(theme::TEXT_WEAK),
@@ -197,25 +198,27 @@ impl AttributesPanel {
                     let assign = ui
                         .add_enabled(
                             !instance && selected > 0,
-                            egui::Button::new("Assign").small(),
+                            egui::Button::new(tr("Assign")).small(),
                         )
-                        .on_hover_text(format!(
+                        .on_hover_text(crate::trf!(
                             "Give the selected polygons the material {}",
                             material.name
                         ))
                         .on_disabled_hover_text(if instance {
-                            "An instance uses its original's materials".to_string()
+                            tr("An instance uses its original's materials").to_string()
                         } else {
-                            "In the Polygons mode (3), select the polygons to give this \
-                             material, then click Assign"
-                                .to_string()
+                            tr(
+                                "In the Polygons mode (3), select the polygons to give this \
+                             material, then click Assign",
+                            )
+                            .to_string()
                         });
                     let name = material.name.clone();
                     assign.widget_info(|| {
                         egui::WidgetInfo::labeled(
                             egui::WidgetType::Button,
                             !instance && selected > 0,
-                            format!("Assign {name}"),
+                            crate::trf!("Assign {}", name),
                         )
                     });
                     if assign.clicked() {
@@ -228,9 +231,9 @@ impl AttributesPanel {
             ui.horizontal(|ui| {
                 let full = list.len() >= mesh::material::MAX_SLOTS as usize;
                 if ui
-                    .add_enabled(!full, egui::Button::new("Add material"))
-                    .on_hover_text("Add a material to the list, to assign to polygons")
-                    .on_disabled_hover_text(format!(
+                    .add_enabled(!full, egui::Button::new(tr("Add material")))
+                    .on_hover_text(tr("Add a material to the list, to assign to polygons"))
+                    .on_disabled_hover_text(crate::trf!(
                         "An object can have at most {} materials",
                         mesh::material::MAX_SLOTS
                     ))
@@ -246,9 +249,11 @@ impl AttributesPanel {
                 }
                 let can_remove = list.len() > 1;
                 if ui
-                    .add_enabled(can_remove, egui::Button::new("Remove last"))
-                    .on_hover_text("Remove the last material in the list, if no polygon uses it")
-                    .on_disabled_hover_text("The first material can't be removed")
+                    .add_enabled(can_remove, egui::Button::new(tr("Remove last")))
+                    .on_hover_text(tr(
+                        "Remove the last material in the list, if no polygon uses it",
+                    ))
+                    .on_disabled_hover_text(tr("The first material can't be removed"))
                     .clicked()
                 {
                     let last = list.len() - 1;
@@ -258,13 +263,14 @@ impl AttributesPanel {
                     if used > 0 {
                         self.materials.note = Some((
                             id,
-                            format!(
-                                "{} is used by {used} polygon{}: assign {} another material \
+                            crate::trf!(
+                                "{} is used by {} polygon{}: assign {} another material \
                                  first (Select → Select by material finds {}).",
                                 list[last].name,
+                                used,
                                 if used == 1 { "" } else { "s" },
                                 if used == 1 { "it" } else { "them" },
-                                if used == 1 { "it" } else { "them" },
+                                if used == 1 { "it" } else { "them" }
                             ),
                         ));
                     } else {
@@ -282,9 +288,11 @@ impl AttributesPanel {
         if self.polygons_selected.is_none() && !instance {
             label(
                 ui,
-                "Polygons mode (3): select polygons, then Assign.",
-                "Materials are given to polygons: switch to the Polygons mode, select the \
+                tr("Polygons mode (3): select polygons, then Assign."),
+                tr(
+                    "Materials are given to polygons: switch to the Polygons mode, select the \
                  polygons, then click a material's Assign button",
+                ),
             );
         }
         if let Some((materials, merging)) = changed {

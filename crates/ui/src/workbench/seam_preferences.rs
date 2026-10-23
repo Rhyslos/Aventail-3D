@@ -11,37 +11,42 @@ use super::Workbench;
 use super::joining::counted;
 use super::seams::{border_of, ends};
 use crate::palette::Mode;
+use crate::text::tr;
 use mesh::Anchors;
 use scene::{EdgeKey, ElementKind, FaceId, Operation, SeamPreference, VertexId};
 use std::collections::BTreeSet;
 
 /// The UV menu's names for the three preference commands, and what they
 /// do.
-pub(crate) const PREFER_LABEL: &str = "Prefer seams here";
-pub(crate) const PREFER_HELP: &str = "When Suggest seams or Unwrap needs a cut, put it on the \
-     selected edges first (or around the selected polygons). Drawn dashed yellow.";
-pub(crate) const NEVER_LABEL: &str = "Never seams here";
-pub(crate) const NEVER_HELP: &str = "Suggest seams, Unwrap and Seams from hard edges never put a \
+pub(crate) const PREFER_LABEL: &str = crate::text!("Prefer seams here");
+pub(crate) const PREFER_HELP: &str = crate::text!(
+    "When Suggest seams or Unwrap needs a cut, put it on the \
+     selected edges first (or around the selected polygons). Drawn dashed yellow."
+);
+pub(crate) const NEVER_LABEL: &str = crate::text!("Never seams here");
+pub(crate) const NEVER_HELP: &str = crate::text!(
+    "Suggest seams, Unwrap and Seams from hard edges never put a \
      seam on the selected edges (or anywhere on the selected polygons), unless a piece couldn't \
-     lie flat otherwise. Drawn blue.";
-pub(crate) const CLEAR_PREFERENCE_LABEL: &str = "Clear seam preference";
+     lie flat otherwise. Drawn blue."
+);
+pub(crate) const CLEAR_PREFERENCE_LABEL: &str = crate::text!("Clear seam preference");
 pub(crate) const CLEAR_PREFERENCE_HELP: &str =
-    "Let the automatic tools choose freely again on the selected edges (or polygons)";
+    crate::text!("Let the automatic tools choose freely again on the selected edges (or polygons)");
 
 /// The UV menu's name for the stretch budget submenu, and its parts.
-pub(crate) const BUDGET_LABEL: &str = "Stretch budget";
-pub(crate) const BUDGET_VALUE_LABEL: &str = "Budget";
-pub(crate) const SET_BUDGET_LABEL: &str = "Give the selection this budget";
-pub(crate) const CLEAR_BUDGET_LABEL: &str = "Clear the selection's budget";
+pub(crate) const BUDGET_LABEL: &str = crate::text!("Stretch budget");
+pub(crate) const BUDGET_VALUE_LABEL: &str = crate::text!("Budget");
+pub(crate) const SET_BUDGET_LABEL: &str = crate::text!("Give the selection this budget");
+pub(crate) const CLEAR_BUDGET_LABEL: &str = crate::text!("Clear the selection's budget");
 
 impl Workbench {
     /// Gives the selected edges (or polygons' edges) `preference`, as one
     /// undo step.
     pub(crate) fn run_seam_preference(&mut self, preference: SeamPreference) {
         let name = match preference {
-            SeamPreference::Prefer => PREFER_LABEL,
-            SeamPreference::Never => NEVER_LABEL,
-            SeamPreference::Free => CLEAR_PREFERENCE_LABEL,
+            SeamPreference::Prefer => tr(PREFER_LABEL),
+            SeamPreference::Never => tr(NEVER_LABEL),
+            SeamPreference::Free => tr(CLEAR_PREFERENCE_LABEL),
         };
         let mut ops = Vec::new();
         let mut count = 0;
@@ -97,27 +102,30 @@ impl Workbench {
         }
         if ops.is_empty() {
             self.note = Some(if any {
-                format!("{name}: those edges are like that already (or open edges, cut already).")
+                crate::trf!(
+                    "{}: those edges are like that already (or open edges, cut already).",
+                    name
+                )
             } else {
-                format!("{name}: select some edges first (or polygons).")
+                crate::trf!("{}: select some edges first (or polygons).", name)
             });
             return;
         }
         let verb = match preference {
-            SeamPreference::Prefer => "Prefer seams on",
-            SeamPreference::Never => "Allow no seams on",
-            SeamPreference::Free => "Clear the seam preference of",
+            SeamPreference::Prefer => tr("Prefer seams on"),
+            SeamPreference::Never => tr("Allow no seams on"),
+            SeamPreference::Free => tr("Clear the seam preference of"),
         };
         let label = counted(verb, count, "edge");
         if self.record_each(&label, ops) {
             let why = match preference {
                 SeamPreference::Prefer => {
-                    " Suggest seams and Unwrap cut there first when they need to."
+                    tr(" Suggest seams and Unwrap cut there first when they need to.")
                 }
-                SeamPreference::Never => " Suggest seams and Unwrap won't cut there.",
+                SeamPreference::Never => tr(" Suggest seams and Unwrap won't cut there."),
                 SeamPreference::Free => "",
             };
-            self.note = Some(format!("{label}. Ctrl + Z takes it back.{why}"));
+            self.note = Some(crate::trf!("{}. Ctrl + Z takes it back.{}", label, why));
         }
     }
 
@@ -127,7 +135,10 @@ impl Workbench {
     pub(crate) fn run_stretch_budget(&mut self, budget: Option<f32>) {
         let shapes = self.own_shapes();
         if shapes.is_empty() {
-            self.note = Some(format!("{BUDGET_LABEL}: select the objects first."));
+            self.note = Some(crate::trf!(
+                "{}: select the objects first.",
+                tr(BUDGET_LABEL)
+            ));
             return;
         }
         let budget =
@@ -159,33 +170,35 @@ impl Workbench {
             ));
         }
         if ops.is_empty() {
-            self.note = Some(format!(
-                "{BUDGET_LABEL}: the selected objects have no polygons."
+            self.note = Some(crate::trf!(
+                "{}: the selected objects have no polygons.",
+                tr(BUDGET_LABEL)
             ));
             return;
         }
         let verb = if budget.is_some() {
-            "Set the stretch budget of"
+            tr("Set the stretch budget of")
         } else {
-            "Clear the stretch budget of"
+            tr("Clear the stretch budget of")
         };
         let label = counted(verb, count, "polygon");
         if self.record_each(&label, ops) {
             let why = match budget {
-                Some(b) => format!(
+                Some(b) => crate::trf!(
                     " Suggest seams and Unwrap cut these pieces until no polygon is more than \
-                     {b:.2}× off."
+                     {:.2}× off.",
+                    b
                 ),
                 None => String::new(),
             };
-            self.note = Some(format!("{label}. Ctrl + Z takes it back.{why}"));
+            self.note = Some(crate::trf!("{}. Ctrl + Z takes it back.{}", label, why));
         }
     }
 
     /// The UV menu's Stretch budget submenu.
     pub(crate) fn budget_menu(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
-            ui.label(BUDGET_VALUE_LABEL);
+            ui.label(tr(BUDGET_VALUE_LABEL));
             ui.add(
                 egui::DragValue::new(&mut self.uv_settings.piece_budget)
                     .range(scene::BUDGET_RANGE)
@@ -193,18 +206,18 @@ impl Workbench {
                     .max_decimals(2)
                     .suffix("×"),
             )
-            .on_hover_text(
+            .on_hover_text(tr(
                 "The most any polygon of the piece may be off once laid flat: stretched this \
                  many times more one way than the other, or this many times bigger or smaller \
                  than the rest. 1.5× is strict; 2× (red in the Stretch view) is loose.",
-            );
+            ));
         });
         if ui
-            .button(SET_BUDGET_LABEL)
-            .on_hover_text(
+            .button(tr(SET_BUDGET_LABEL))
+            .on_hover_text(tr(
                 "The pieces holding the selection (or whole objects) keep this budget: Suggest \
                  seams and Unwrap cut them further until they are within it",
-            )
+            ))
             .clicked()
         {
             let budget = self.uv_settings.piece_budget;
@@ -212,10 +225,10 @@ impl Workbench {
             ui.close();
         }
         if ui
-            .button(CLEAR_BUDGET_LABEL)
-            .on_hover_text(
+            .button(tr(CLEAR_BUDGET_LABEL))
+            .on_hover_text(tr(
                 "The pieces holding the selection follow the budget in UV → Seam suggestions again",
-            )
+            ))
             .clicked()
         {
             self.run_stretch_budget(None);
