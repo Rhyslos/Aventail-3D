@@ -290,7 +290,7 @@ fn follows(
     id: ObjectId,
     points: &[VertexId],
 ) -> Option<(usize, usize, Operation)> {
-    if !is_points_drag(&document.undo_label()?) {
+    if !is_points_drag(document.undo_label()?) {
         return None;
     }
     let layers = document.scene().object(id)?.stack.layers();
