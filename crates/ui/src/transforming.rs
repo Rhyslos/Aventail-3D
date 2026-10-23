@@ -249,7 +249,7 @@ pub(crate) struct PointsStart {
     /// Where the selected elements are in the shape, so the edit can find
     /// them again if the shape's points are renumbered (decision 0032).
     pub(crate) anchors: Option<Anchors>,
-    /// While sliding (Alt + drag on the Move gizmo, decision 0055): the
+    /// While sliding (Shift + Alt + drag on the Move gizmo, decisions 0055 and 0133): the
     /// shape as it was, whose edges the points slide along.
     pub(crate) slide: Option<std::sync::Arc<scene::Mesh>>,
     /// The edit this drag continues (decision 0126): the object's last

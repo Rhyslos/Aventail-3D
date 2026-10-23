@@ -8,7 +8,7 @@ When a model gets busy, parts of it hide what you want to work on: the inside of
 
 - **Hide (Shift + H):** a part is in the way. Hide it, work behind it, show it again.
 - **Isolate (Ctrl + H):** work on one object, or one part of a shape, without the rest around it.
-- **Show everything (Alt + H):** bring it all back.
+- **Show everything (Alt + H, or Ctrl + Shift + H):** bring it all back. Two keys, so you can keep Alt for moving the view if you like.
 
 ## How to use it
 
@@ -35,7 +35,7 @@ None.
 |---|---|
 | Hide the selection | `Shift + H` |
 | Isolate the selection (hide everything else) | `Ctrl + H`, or the Isolate button |
-| Show everything | `Alt + H` |
+| Show everything | `Alt + H` or `Ctrl + Shift + H` |
 
 ## Tips and common problems
 

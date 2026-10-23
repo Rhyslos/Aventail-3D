@@ -9,6 +9,10 @@
 //! panel (the mouse wheel is the view's zoom, and the middle button its
 //! pan).
 //!
+//! Holding Ctrl with one cut snaps it to nine places along the edge, a
+//! tenth apart, so the fifth is dead centre (asked for by the project
+//! lead, 2026-10-23).
+//!
 //! A cut is one undo step, as with the other tools: each frame of a drag
 //! takes back the frame before (`Document::abandon`) and records the cut
 //! again at the new place.
@@ -26,6 +30,16 @@ use std::sync::Arc;
 
 /// Merge keys for loop cuts: kept apart from other merge keys.
 const LOOP_CUT_KEYS: u64 = 1 << 59;
+
+/// How many equal parts Ctrl snaps one cut between: the cut lands on one
+/// of the nine places between them, the fifth being the edge's middle.
+const SNAP_PARTS: f32 = 10.0;
+
+/// `position` (0 to 1 along the edge) moved to the nearest of the nine
+/// snap places, 0.1 to 0.9.
+pub(super) fn snapped(position: f32) -> f32 {
+    ((position * SNAP_PARTS).round() / SNAP_PARTS).clamp(1.0 / SNAP_PARTS, 1.0 - 1.0 / SNAP_PARTS)
+}
 
 /// An edge a loop cut would go across, and where along it.
 #[derive(Debug, Clone, PartialEq)]
@@ -134,7 +148,13 @@ impl Workbench {
     /// The edge of a selected object under `pointer`, with where a cut
     /// there would sit. `None` when there is none, or the edge has no
     /// four-sided polygon to cut.
-    fn loop_target(&mut self, drawing: &SceneDrawing, pointer: ViewPointer) -> Option<LoopTarget> {
+    /// With `snap` (Ctrl held) one cut lands on the nearest tenth.
+    fn loop_target(
+        &mut self,
+        drawing: &SceneDrawing,
+        pointer: ViewPointer,
+        snap: bool,
+    ) -> Option<LoopTarget> {
         let (id, element) = self.components.find(ElementKind::Edges, drawing, pointer)?;
         let Element::Edge(edge) = element else {
             return None;
@@ -153,19 +173,22 @@ impl Workbench {
         // One cut sits under the mouse; several are spread evenly.
         if self.attributes.loop_cut.cuts == 1 {
             target.position = target.share_at(&pointer, pointer.at).unwrap_or(0.5);
+            if snap {
+                target.position = snapped(target.position);
+            }
         }
         Some(target)
     }
 
     /// While Loop cut is in use and nothing is being cut: shows the loop
-    /// the edge under the mouse would get.
-    pub(super) fn show_loop_cut_preview(&mut self, drawing: &SceneDrawing) {
+    /// the edge under the mouse would get. `snap`: Ctrl is held.
+    pub(super) fn show_loop_cut_preview(&mut self, drawing: &SceneDrawing, snap: bool) {
         let hovering = self.tool == Tool::LoopCut
             && self.loop_cut_session.is_none()
             && components::kind_for(self.mode).is_some();
         let lines = match self.viewport.pointer() {
             Some(pointer) if hovering => self
-                .loop_target(drawing, pointer)
+                .loop_target(drawing, pointer, snap)
                 .map(|t| t.preview(self.attributes.loop_cut.cuts))
                 .unwrap_or_default(),
             _ => Vec::new(),
@@ -173,12 +196,13 @@ impl Workbench {
         self.components.set_tool_lines(lines);
     }
 
-    /// Carries out this frame's Loop cut presses, drags and clicks.
-    pub(super) fn carry_out_loop_cut(&mut self, drawing: &SceneDrawing) {
+    /// Carries out this frame's Loop cut presses, drags and clicks. `snap`:
+    /// Ctrl is held, so one cut lands on the nearest tenth of the edge.
+    pub(super) fn carry_out_loop_cut(&mut self, drawing: &SceneDrawing, snap: bool) {
         for event in self.viewport.take_tool_events() {
             match event {
                 ToolDragEvent::Begin { pointer } => {
-                    self.loop_cut_session = self.begin_loop_cut(drawing, pointer);
+                    self.loop_cut_session = self.begin_loop_cut(drawing, pointer, snap);
                 }
                 ToolDragEvent::Update { drag, pointer } => {
                     let Some(session) = &mut self.loop_cut_session else {
@@ -188,8 +212,11 @@ impl Workbench {
                     let Some(share) = session.target.share_at(&pointer, at) else {
                         continue;
                     };
-                    let position =
+                    let mut position =
                         (session.start_position + (share - session.start_share)).clamp(0.0, 1.0);
+                    if snap && session.cuts == 1 {
+                        position = snapped(position);
+                    }
                     if position == session.target.position {
                         continue;
                     }
@@ -228,8 +255,9 @@ impl Workbench {
         &mut self,
         drawing: &SceneDrawing,
         pointer: ViewPointer,
+        snap: bool,
     ) -> Option<LoopCutSession> {
-        let Some(target) = self.loop_target(drawing, pointer) else {
+        let Some(target) = self.loop_target(drawing, pointer, snap) else {
             self.note = Some(
                 tr("Loop cut: point at an edge of a selected object, across four-sided polygons.")
                     .into(),

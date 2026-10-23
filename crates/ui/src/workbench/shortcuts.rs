@@ -337,7 +337,7 @@ pub(crate) fn bindings() -> Vec<Binding> {
         ),
         held(
             KeyId::Alt,
-            tr("Slide points along their edges, dragging the Move gizmo"),
+            tr("With Shift: slide points along their edges, dragging the Move gizmo"),
             Editing,
         ),
         held(
@@ -386,6 +386,7 @@ pub(crate) fn bindings() -> Vec<Binding> {
         bind(showing::HIDE_KEYS, tr("Hide the selection"), Anywhere),
         bind(showing::ISOLATE_KEYS, tr("Isolate the selection"), Anywhere),
         bind(showing::SHOW_ALL_KEYS, tr("Show everything"), Anywhere),
+        bind(showing::SHOW_ALL_KEYS_TOO, tr("Show everything"), Anywhere),
     ]);
 
     // The view.
@@ -499,7 +500,7 @@ pub(crate) fn mouse() -> Vec<MouseLine> {
         ),
         line(
             tr("Slide points along their edges"),
-            tr("Alt + drag the Move gizmo"),
+            tr("Shift + Alt + drag the Move gizmo"),
             Editing,
         ),
         line(
@@ -1120,7 +1121,8 @@ mod tests {
             Some(KeyId::Key(Key::H))
         );
         assert!(harness.query_by_label("Hide the selection").is_some());
-        assert!(harness.query_by_label("Show everything").is_some());
+        // Show everything has two keys on H: Alt + H and Ctrl + Shift + H.
+        assert_eq!(harness.query_all_by_label("Show everything").count(), 2);
         assert!(
             harness
                 .query_by_label_contains(viewport::Frame::All.label())

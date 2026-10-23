@@ -131,7 +131,6 @@ Also stepped through with the grid button on the left palette.
 Also switched with the button above the grid button on the left palette.
 Also turn them to match
 Alt
-Alt + drag the Move gizmo
 Alt + mouse works in every scheme
 Alt Gr
 An empty object to hold and organise other objects
@@ -1210,6 +1209,7 @@ Shape list, from the last shape
 Shape list: 
 Shapes and their materials always go out. Skeletons and animations will be listed here once the app has them, to leave out when you don't need them.
 Shift
+Shift + Alt + drag the Move gizmo
 Shift + click or drag adds; Ctrl + click or drag removes. Shift + click on something selected unselects it.
 Shift adds, Ctrl removes
 Show
@@ -1252,7 +1252,6 @@ Skew
 Skipped: it would make the shape too large.
 Slide
 Slide points along their edges
-Slide points along their edges, dragging the Move gizmo
 Sliding along the edges (the drag: {})
 Sliding: the points move along their edges, staying on the surface.
 Slit
@@ -1576,6 +1575,7 @@ While you work, the app saves a backup copy of your scene in the background, onl
 Width
 Window
 Wireframe
+With Shift: slide points along their edges, dragging the Move gizmo
 With the wheel: a tool's count (segments, cuts) while using it; otherwise grow or shrink the selection
 With {}'s
 Without UVs there is nowhere on the texture for the bake to go. Fix places seams where they show least, unwraps the shape and packs it with whatever shares its texture (UV → Suggest seams, Unwrap, Pack).

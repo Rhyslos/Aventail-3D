@@ -42,7 +42,7 @@ Why it matters: the app reads letter keys **by what is printed on them**. On a G
 
 Every key the app uses exists on every one of these keyboards, so nothing is out of reach.
 
-The keys are written the way your system writes them: **Ctrl** on Windows and Linux, **⌘** (Cmd) on a Mac, where the drawing's Ctrl and Alt keys read **Cmd** and **Option**. The list always matches what the keys really do: it comes from the same place the app reads them from.
+The keys are written the way your system writes them: **Ctrl** on Windows and Linux, **⌘** (Cmd) on a Mac, where the drawing's Ctrl and Alt keys read **Cmd** and **Option**. The list always matches what the keys really do: it comes from the same place the app reads them from. On a Mac, the tips and notes in the app say **Cmd** wherever this manual says Ctrl.
 
 ![The Keyboard shortcuts window on a Norwegian keyboard: the used keys lit with coloured marks, H clicked and its four jobs listed on the right (Shift+H hide, Ctrl+H isolate, Alt+H show everything, H frame all), and the mouse actions underneath.](../screenshots/2026-10-14-keys.png)
 

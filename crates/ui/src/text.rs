@@ -17,9 +17,14 @@
 //! when the package has none). The English package (`lang/en.txt`) lists
 //! every text, so translators know what to translate; a test keeps it
 //! complete.
+//!
+//! On a Mac, every text says "Cmd" where it says "Ctrl" (decision 0133):
+//! the app's keys use Cmd there, and the texts are written once, with
+//! Ctrl.
 
 use std::collections::HashMap;
 use std::fmt::{Display, Write as _};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{OnceLock, RwLock};
 
 /// Marks a constant's text as interface text, part of the English
@@ -155,13 +160,45 @@ pub fn use_package(package: Package) {
     }
 }
 
+/// Whether texts name Cmd for Ctrl (on a Mac).
+static MAC_KEYS: AtomicBool = AtomicBool::new(false);
+
+/// Says whether this computer is a Mac, where texts name Cmd for Ctrl.
+/// The workbench sets it from egui's idea of the system.
+pub fn use_mac_keys(on: bool) {
+    MAC_KEYS.store(on, Ordering::Relaxed);
+}
+
 /// `english`, in the language in use.
 pub fn tr(english: &'static str) -> &'static str {
-    current()
+    let text = current()
         .read()
         .ok()
         .and_then(|p| p.words.get(english).copied())
-        .unwrap_or(english)
+        .unwrap_or(english);
+    if MAC_KEYS.load(Ordering::Relaxed) {
+        with_mac_keys(text)
+    } else {
+        text
+    }
+}
+
+/// `text` with "Ctrl" said as "Cmd". Each text is changed once and kept,
+/// so there are at most as many as the interface has texts.
+fn with_mac_keys(text: &'static str) -> &'static str {
+    if !text.contains("Ctrl") {
+        return text;
+    }
+    static CHANGED: OnceLock<RwLock<HashMap<&'static str, &'static str>>> = OnceLock::new();
+    let changed = CHANGED.get_or_init(|| RwLock::new(HashMap::new()));
+    if let Some(done) = changed.read().ok().and_then(|c| c.get(text).copied()) {
+        return done;
+    }
+    let done: &'static str = Box::leak(text.replace("Ctrl", "Cmd").into_boxed_str());
+    if let Ok(mut changed) = changed.write() {
+        changed.insert(text, done);
+    }
+    done
 }
 
 /// `template` with `values` put in, in order: `{}` takes the next value's
@@ -246,6 +283,20 @@ mod tests {
         assert_eq!(package.words["Two\nlines"], "To\nlinjer");
         assert_eq!(package.words["a = b"], "a = b");
         assert_eq!(escape("a = b\nc\\d"), "a \\= b\\nc\\\\d");
+    }
+
+    #[test]
+    fn a_mac_says_cmd_for_ctrl() {
+        // The change itself; the switch is global, so other tests would
+        // see it if this test turned it on.
+        assert_eq!(
+            with_mac_keys("Ctrl + Z takes it back; Ctrl + wheel for more."),
+            "Cmd + Z takes it back; Cmd + wheel for more."
+        );
+        assert_eq!(with_mac_keys("Shift + H"), "Shift + H");
+        // Kept, not made again.
+        let a = with_mac_keys("Ctrl + A");
+        assert!(std::ptr::eq(a, with_mac_keys("Ctrl + A")));
     }
 
     #[test]

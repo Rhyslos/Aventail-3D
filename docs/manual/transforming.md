@@ -89,9 +89,9 @@ The **magnet button** on the top palette (and **Tools → Snapping**) turns snap
 
 ### Slide
 
-In the Points, Edges and Polygons modes, hold **Alt** and drag the Move gizmo (an arrow, a square or the middle): the points **slide along their edges** instead of moving freely, so they stay on the surface. A selected loop slides along the edges crossing it, which is how to move a loop cut after making it. Each point stops when it reaches the next point. (Alt + drag anywhere else still turns the view.)
+In the Points, Edges and Polygons modes, hold **Shift + Alt** and drag the Move gizmo (an arrow, a square or the middle): the points **slide along their edges** instead of moving freely, so they stay on the surface. A selected loop slides along the edges crossing it, which is how to move a loop cut after making it. Each point stops when it reaches the next point. (Plain Alt + drag always turns the view, even when it starts on the gizmo.)
 
-![A loop of edges half way up a box, slid up along the sides with Alt + drag: it stays on the box's sides.](../screenshots/2026-10-14-slide.png)
+![A loop of edges half way up a box, slid up along the sides with Shift + Alt + drag: it stays on the box's sides.](../screenshots/2026-10-14-slide.png)
 
 ### Symmetry
 
@@ -134,7 +134,7 @@ What the fields show:
 | Ten times slower | Hold `Shift` while dragging |
 | Snap for this drag (or not, if snapping is on) | Hold `Ctrl` while dragging |
 | Cancel a drag | `Esc` or right-click, while still dragging |
-| Slide points along their edges | Hold `Alt` and drag the Move gizmo (Points, Edges, Polygons modes) |
+| Slide points along their edges | Hold `Shift + Alt` and drag the Move gizmo (Points, Edges, Polygons modes) |
 | Lock or free X / Y / Z | `Shift + X` / `Shift + Y` / `Shift + Z` |
 | World or object axes | `L` |
 | Undo a move | `Ctrl + Z` |

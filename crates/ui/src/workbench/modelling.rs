@@ -375,7 +375,7 @@ impl Workbench {
             return self.carry_out_slit(drawing, keys);
         }
         if self.tool == Tool::LoopCut || self.loop_cut_session.is_some() {
-            return self.carry_out_loop_cut(drawing);
+            return self.carry_out_loop_cut(drawing, keys.command);
         }
         for event in self.viewport.take_tool_events() {
             match event {

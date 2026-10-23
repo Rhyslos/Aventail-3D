@@ -466,6 +466,8 @@ impl Workbench {
         renderer: &mut dyn ViewportRenderer,
     ) -> Vec<WorkbenchAction> {
         let mut actions = Vec::new();
+        // On a Mac, texts say Cmd for Ctrl (decision 0133).
+        crate::text::use_mac_keys(ui.ctx().os() == egui::os::OperatingSystem::Mac);
         if theme::accent(ui.ctx()) != self.accent {
             theme::set_accent(ui.ctx(), self.accent);
         }
@@ -738,7 +740,7 @@ impl Workbench {
         self.carry_out_gizmo(ui, &summary.drawing);
         let keys = ui.input(|i| i.modifiers);
         self.carry_out_tool_drag(&summary.drawing, keys);
-        self.show_loop_cut_preview(&summary.drawing);
+        self.show_loop_cut_preview(&summary.drawing, keys.command);
         self.show_slit(&summary.drawing);
         self.carry_out_coordinates(coordinates_done, &summary.drawing);
         let shown = summary.overlay.version;

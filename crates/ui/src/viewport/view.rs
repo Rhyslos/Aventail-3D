@@ -362,10 +362,11 @@ impl View {
         let settings = options.navigation;
         let flat_from_dice = options.flat_from_dice;
         let size = Vec2::new(rect.width(), rect.height());
-        // Alt + left drag on the Move gizmo slides points (decision 0055),
-        // so it doesn't orbit there.
+        // Shift + Alt + left drag on the Move gizmo slides points
+        // (decisions 0055 and 0133), so it doesn't orbit there. Plain
+        // Alt + drag orbits, even over the gizmo.
         let sliding = response.drag_started_by(PointerButton::Primary)
-            && ui.input(|i| i.modifiers.alt)
+            && ui.input(|i| i.modifiers.alt && i.modifiers.shift)
             && slide_gizmo.is_some_and(|gizmo| {
                 ui.input(|i| i.pointer.press_origin()).is_some_and(|at| {
                     let local = Vec2::new(at.x - rect.min.x, at.y - rect.min.y);

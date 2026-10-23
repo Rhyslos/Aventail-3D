@@ -26,6 +26,10 @@ pub(crate) const HIDE_KEYS: KeyboardShortcut = KeyboardShortcut::new(Modifiers::
 pub(crate) const ISOLATE_KEYS: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::H);
 /// Show everything again.
 pub(crate) const SHOW_ALL_KEYS: KeyboardShortcut = KeyboardShortcut::new(Modifiers::ALT, Key::H);
+/// Show everything again, the second key (decision 0133): for people who
+/// keep Alt for moving the view.
+pub(crate) const SHOW_ALL_KEYS_TOO: KeyboardShortcut =
+    KeyboardShortcut::new(Modifiers::COMMAND.plus(Modifiers::SHIFT), Key::H);
 
 /// What to hide.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -37,17 +41,19 @@ pub(crate) enum Hiding {
 }
 
 impl Workbench {
-    /// Shift + H, Ctrl + H and Alt + H. Not while typing. They come before
+    /// Shift + H, Ctrl + H, and Alt + H or Ctrl + Shift + H. Not while typing. They come before
     /// the viewport's H (frame all), which would otherwise take Shift + H
     /// and Alt + H too.
     pub(super) fn showing_keys(&mut self, ui: &Ui) {
         if ui.ctx().memory(|m| m.focused().is_some()) || self.renaming() {
             return;
         }
-        // Ctrl + H first, as the others would match it logically.
+        // Ctrl + Shift + H first, then Ctrl + H, as the others would
+        // match them logically.
         let (isolate, hide, show) = ui.input_mut(|i| {
+            let show_too = i.consume_shortcut(&SHOW_ALL_KEYS_TOO);
             let isolate = i.consume_shortcut(&ISOLATE_KEYS);
-            let show = i.consume_shortcut(&SHOW_ALL_KEYS);
+            let show = i.consume_shortcut(&SHOW_ALL_KEYS) || show_too;
             let hide = i.consume_shortcut(&HIDE_KEYS);
             (isolate, hide, show)
         });

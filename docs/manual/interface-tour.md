@@ -106,7 +106,7 @@ Every key is listed in the **Keys** window: click **Keys** on the menu bar, afte
 | Select connected (the whole part; over the UV Editor or in the UV mode, whole pieces) | `Alt + A` |
 | Delete the selection | `Delete` or `Backspace` (in the Points, Edges and Polygons modes, `Delete` deletes elements and `Backspace` dissolves them) |
 | Frame everything / the selection | `H` / `Z` |
-| Hide / isolate / show everything | `Shift + H` / `Ctrl + H` / `Alt + H` (see [Hide and isolate](hide-and-isolate.md)) |
+| Hide / isolate / show everything | `Shift + H` / `Ctrl + H` / `Alt + H` or `Ctrl + Shift + H` (see [Hide and isolate](hide-and-isolate.md)) |
 | Copy; paste copies; paste instances | `Ctrl + C`; `Ctrl + V`; `Alt + V` (see [Copies and instances](copies-and-instances.md)) |
 | Connect / Bridge / Weld (Weld onto a point) / Fill hole | `A` / `C` / `M` (`Ctrl + M`) / `J` |
 | Straight back to the Model mode, tool put away, Edit pivot off | `Tab` |

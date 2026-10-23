@@ -489,7 +489,7 @@ impl Workbench {
             match event {
                 GizmoEvent::Begin { slide, .. } => {
                     if let Some(target) = self.target(drawing) {
-                        // Alt + drag on the Move gizmo slides points along
+                        // Shift + Alt + drag on the Move gizmo slides points along
                         // their edges (not with symmetry, which mirrors moves).
                         let slide = slide
                             && matches!(self.tool, Tool::Move | Tool::All)
