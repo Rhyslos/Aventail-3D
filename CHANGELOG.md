@@ -24,6 +24,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **Undo and redo put the selection back.** Undoing a Delete brings the shapes back selected, and redoing a Create, Group, Duplicate or Join selects what it made, as it was the first time. Before, they came back unselected.
 - **Double-clicking a loop is reliable.** A double-click sometimes selected only the edge, about 3 times in 10: when you'd clicked within the second before (say, a click on the edge and then a double-click on it), the clicks were counted as a triple-click, not a double. The app now counts double-clicks itself: two clicks in the same spot within half a second, whatever came before. A quick third click straight after no longer undoes the loop either.
 - **Double-click on a cylinder's rim.** A double-click on the top or bottom edge of a cylinder (any edge round an n-gon) now selects the whole rim, in the Edges and Points modes, without an inset first.
 - **Alt + A in the UV Editor right after a click.** Pressing Alt + A over the UV Editor without moving the mouse first could select the whole part instead of the UV pieces, because the window briefly lost track of the mouse when Alt was pressed. It now remembers where the mouse was. H, Z and E over the editor had the same slip and are fixed too.

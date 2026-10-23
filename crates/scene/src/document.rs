@@ -162,6 +162,7 @@ impl Document {
         merge_key: Option<u64>,
     ) -> Result<(), SceneError> {
         let label = label.unwrap_or_else(|| command.describe(&self.scene));
+        let before: Vec<ObjectId> = self.selection.iter().copied().collect();
         let applied = command::apply(&mut self.scene, &command)?;
         if let Some(select) = applied.select {
             self.selection = select.into_iter().collect();
@@ -169,11 +170,16 @@ impl Document {
         self.drop_missing_from_selection();
         if !applied.edits.is_empty() {
             self.revision += 1;
+            // A step that changes the selection itself (Create, Delete,
+            // Group, Duplicate…) keeps the change, so undo and redo put
+            // the selection back as it was before and after.
+            let after: Vec<ObjectId> = self.selection.iter().copied().collect();
+            let objects = (after != before).then_some(ObjectsEdit { before, after });
             self.history.record(Step {
                 label,
                 edits: applied.edits,
                 selections: Vec::new(),
-                objects: None,
+                objects,
                 merge_key,
             });
         }

@@ -3010,6 +3010,8 @@ mod object_tests;
 #[cfg(test)]
 mod project_tests;
 #[cfg(test)]
+mod random_action_tests;
+#[cfg(test)]
 mod select_tests;
 #[cfg(test)]
 mod settings_tests;
@@ -3021,3 +3023,5 @@ mod tests;
 mod tool_menu_tests;
 #[cfg(test)]
 mod transform_tests;
+#[cfg(test)]
+mod workflow_tests;

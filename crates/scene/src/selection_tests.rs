@@ -298,3 +298,24 @@ fn a_transform_round_trips_through_its_matrix() {
         None
     );
 }
+
+#[test]
+fn undo_and_redo_of_a_create_or_delete_put_the_selection_back() {
+    // Regression: steps that choose the selection themselves didn't
+    // record it, so undo and redo left it wrong.
+    let (mut doc, id) = cube_document();
+    doc.clear_selection();
+    doc.undo();
+    assert_eq!(doc.selection(), vec![id]);
+    doc.undo();
+    assert!(doc.selection().is_empty());
+    doc.redo();
+    assert_eq!(doc.selection(), vec![id], "redo of Create selects it again");
+
+    doc.execute(Command::Delete(vec![id])).unwrap();
+    assert!(doc.selection().is_empty());
+    doc.undo();
+    assert_eq!(doc.selection(), vec![id], "undo of Delete selects it again");
+    doc.redo();
+    assert!(doc.selection().is_empty());
+}
