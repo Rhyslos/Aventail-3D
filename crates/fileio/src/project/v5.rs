@@ -26,6 +26,7 @@ use mesh::{AttributeValues, Domain, EdgeKey, Mesh, Value, VertexId};
 use scene::{Document, EditId, Entry, ObjectKind, Operation};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use words::{tr, trf};
 
 /// Version 5 of the file.
 #[cfg(test)]
@@ -285,7 +286,7 @@ impl<E: FileOperation> ProjectWith<E> {
             std::collections::BTreeMap::new();
         for mesh in self.layers {
             if layers.insert(mesh.object, mesh.layers.0).is_some() {
-                return Err("an object's mesh layers are listed twice".into());
+                return Err(tr("an object's mesh layers are listed twice").into());
             }
         }
         let document = self.project.into_document_with(|id, object| {
@@ -294,7 +295,7 @@ impl<E: FileOperation> ProjectWith<E> {
                 return Ok(());
             };
             let ObjectKind::Mesh(mesh) = &mut object.kind else {
-                return Err("it has mesh layers but no mesh".into());
+                return Err(tr("it has mesh layers but no mesh").into());
             };
             let mesh = Arc::make_mut(mesh);
             for layer in list {
@@ -305,13 +306,14 @@ impl<E: FileOperation> ProjectWith<E> {
                     value_from_file(layer.default),
                     values_from_file(layer.values),
                 )
-                .map_err(|e| format!("its mesh layer \"{name}\" is damaged ({e})"))?;
+                .map_err(|e| trf!("its mesh layer \"{}\" is damaged ({})", name, e))?;
             }
             Ok(())
         })?;
         if let Some(id) = layers.keys().next() {
-            return Err(format!(
-                "mesh layers are stored for object {id}, which isn't there"
+            return Err(trf!(
+                "mesh layers are stored for object {}, which isn't there",
+                id
             ));
         }
         Ok(document)

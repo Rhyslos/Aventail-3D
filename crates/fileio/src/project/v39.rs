@@ -18,6 +18,7 @@ use super::v38::{EntryV38, ProjectV38};
 use crate::limits::Bounded;
 use scene::{Document, Hardness, ObjectId, ObjectKind, Primitive};
 use serde::{Deserialize, Serialize};
+use words::tr;
 
 /// Version 39 of the file.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -363,7 +364,7 @@ impl ProjectV39 {
         let mut seen = std::collections::BTreeSet::new();
         for object in self.objects {
             if !seen.insert(object.id) {
-                return Err("an object's settings are listed twice".into());
+                return Err(tr("an object's settings are listed twice").into());
             }
             let hardness = object.smoothing.map_or(Hardness::Marked, Hardness::ByAngle);
             document = document
@@ -395,7 +396,7 @@ pub(crate) fn decode(bytes: &[u8]) -> Result<ProjectV39, String> {
     let mut reader = std::io::Cursor::new(bytes);
     let model = ciborium::from_reader(&mut reader).map_err(|e| e.to_string())?;
     if reader.position() as usize != bytes.len() {
-        return Err("there is unexpected data after the scene".into());
+        return Err(tr("there is unexpected data after the scene").into());
     }
     Ok(model)
 }

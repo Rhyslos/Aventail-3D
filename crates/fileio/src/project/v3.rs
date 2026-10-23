@@ -16,6 +16,7 @@ use crate::limits::Bounded;
 use mesh::{EdgeKey, FaceId, VertexId};
 use scene::{Grouping, Operation};
 use serde::{Deserialize, Serialize};
+use words::{text, tr, trf};
 
 /// Version 3 of the file (written by tests; the app reads version 3
 /// files through `decode`).
@@ -63,11 +64,11 @@ fn grouping(separate: bool) -> Grouping {
     }
 }
 
-fn distance(value: f32, what: &str) -> Result<f32, Problem> {
+fn distance(value: f32, what: &'static str) -> Result<f32, Problem> {
     if value.is_finite() {
         Ok(value)
     } else {
-        Err(format!("its {what} distance isn't a real number"))
+        Err(trf!("its {} distance isn't a real number", tr(what)))
     }
 }
 
@@ -134,7 +135,7 @@ impl FileOperation for OperationV3 {
                 anchors: a,
             } => Ok(Operation::ExtrudePolygons {
                 faces: faces(f),
-                distance: distance(d, "extrude")?,
+                distance: distance(d, text!("extrude"))?,
                 grouping: grouping(separate),
                 shape: scene::ExtrudeShape::EARLIER,
                 anchors: anchors(a)?,
@@ -147,7 +148,7 @@ impl FileOperation for OperationV3 {
                 anchors: a,
             } => Ok(Operation::InsetPolygons {
                 faces: faces(f),
-                distance: distance(d, "inset")?,
+                distance: distance(d, text!("inset"))?,
                 grouping: grouping(separate),
                 anchors: anchors(a)?,
                 stretch: glam::Vec3::ONE,
@@ -162,13 +163,13 @@ impl FileOperation for OperationV3 {
                     .into_iter()
                     .map(|[a, b]| {
                         if a == b {
-                            Err("one of its extruded edges joins a point to itself".to_string())
+                            Err(tr("one of its extruded edges joins a point to itself").to_string())
                         } else {
                             Ok(EdgeKey::new(VertexId::from_raw(a), VertexId::from_raw(b)))
                         }
                     })
                     .collect::<Result<_, _>>()?,
-                distance: distance(d, "extrude")?,
+                distance: distance(d, text!("extrude"))?,
                 grouping: grouping(separate),
                 anchors: anchors(a)?,
                 stretch: glam::Vec3::ONE,

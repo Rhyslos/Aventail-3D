@@ -15,6 +15,7 @@ use mesh::bevel::MAX_SEGMENTS;
 use mesh::{EdgeKey, VertexId};
 use scene::{BevelShape, Operation};
 use serde::{Deserialize, Serialize};
+use words::{text, tr, trf};
 
 /// Version 4 of the file.
 #[cfg(test)]
@@ -41,11 +42,11 @@ pub(crate) enum OperationV4 {
     },
 }
 
-fn number(value: f32, what: &str) -> Result<f32, Problem> {
+fn number(value: f32, what: &'static str) -> Result<f32, Problem> {
     if value.is_finite() {
         Ok(value)
     } else {
-        Err(format!("its bevel {what} isn't a real number"))
+        Err(trf!("its bevel {} isn't a real number", tr(what)))
     }
 }
 
@@ -96,16 +97,16 @@ impl FileOperation for OperationV4 {
                     .into_iter()
                     .map(|[a, b]| {
                         if a == b {
-                            Err("one of its bevelled edges joins a point to itself".to_string())
+                            Err(tr("one of its bevelled edges joins a point to itself").to_string())
                         } else {
                             Ok(EdgeKey::new(VertexId::from_raw(a), VertexId::from_raw(b)))
                         }
                     })
                     .collect::<Result<_, _>>()?,
                 shape: BevelShape {
-                    width: number(width, "width")?.max(0.0),
+                    width: number(width, text!("width"))?.max(0.0),
                     segments: segments.clamp(1, MAX_SEGMENTS),
-                    profile: number(profile, "profile")?.clamp(-1.0, 1.0),
+                    profile: number(profile, text!("profile"))?.clamp(-1.0, 1.0),
                     options: mesh::edit::BevelOptions::EARLIER,
                 },
                 anchors: anchors(a)?,
@@ -117,7 +118,7 @@ impl FileOperation for OperationV4 {
                 anchors: a,
             } => Ok(Operation::BevelPoints {
                 points: points.into_iter().map(VertexId::from_raw).collect(),
-                width: number(width, "width")?.max(0.0),
+                width: number(width, text!("width"))?.max(0.0),
                 anchors: anchors(a)?,
                 stretch: glam::Vec3::ONE,
             }),

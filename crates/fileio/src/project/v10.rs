@@ -13,6 +13,7 @@ use crate::limits::Bounded;
 use mesh::{EdgeKey, FaceId, VertexId};
 use scene::Operation;
 use serde::{Deserialize, Serialize};
+use words::tr;
 
 /// Version 10 of the file.
 #[cfg(test)]
@@ -75,7 +76,7 @@ fn from_file(e: ElementsV10) -> Result<Elements, Problem> {
         .into_iter()
         .map(|[a, b]| {
             if a == b {
-                Err("one of its edges joins a point to itself".to_string())
+                Err(tr("one of its edges joins a point to itself").to_string())
             } else {
                 Ok(EdgeKey::new(VertexId::from_raw(a), VertexId::from_raw(b)))
             }

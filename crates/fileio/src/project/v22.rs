@@ -16,6 +16,7 @@ use super::v21::OperationV21;
 use glam::Vec3;
 use scene::Operation;
 use serde::{Deserialize, Serialize};
+use words::{tr, trf};
 
 /// Version 22 of the file: version 20's (and 21's), its edits stored as
 /// version 22's.
@@ -54,19 +55,21 @@ impl FileOperation for OperationV22 {
             Self::Stretched { op, stretch } => {
                 let stretch = Vec3::from_array(stretch);
                 if mesh::stretch::usable(stretch) != stretch {
-                    return Err("an edit's stretch isn't a real number, or is out of range \
-                                (above 0, under 1000)"
-                        .into());
+                    return Err(
+                        tr("an edit's stretch isn't a real number, or is out of range \
+                                (above 0, under 1000)")
+                        .into(),
+                    );
                 }
                 let operation = op.into_operation()?;
                 if !operation.keeps_stretch() {
-                    return Err(format!(
+                    return Err(trf!(
                         "{} is stored with a stretch, which it can't have",
                         operation.describe()
                     ));
                 }
                 if operation.stretch() != Vec3::ONE {
-                    return Err("an edit is stored with two stretches".into());
+                    return Err(tr("an edit is stored with two stretches").into());
                 }
                 Ok(operation.with_stretch(stretch))
             }

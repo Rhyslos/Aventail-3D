@@ -15,6 +15,7 @@ use super::v32::OperationV32;
 use crate::limits::Bounded;
 use scene::{Document, FaceId, Operation, TrimRow, TrimSheet};
 use serde::{Deserialize, Serialize};
+use words::tr;
 
 /// A recorded edit in version 33.
 pub(crate) type EntryV33 = EntryWith<OperationV33>;
@@ -70,10 +71,10 @@ impl<E: FileOperation> ProjectV33<E> {
                 .collect(),
         };
         if !trim.is_valid() {
-            return Err(
-                "its trim sheet has rows that are unnamed, overlap or lie outside the texture"
-                    .into(),
-            );
+            return Err(tr(
+                "its trim sheet has rows that are unnamed, overlap or lie outside the texture",
+            )
+            .into());
         }
         Ok(self.project.into_document()?.with_trim(trim))
     }
@@ -128,7 +129,7 @@ impl FileOperation for OperationV33 {
                     anchors: anchors.map(anchors_from_file).transpose()?,
                 };
                 if !operation.numbers_are_real() {
-                    return Err("a trim row doesn't lie within the texture".into());
+                    return Err(tr("a trim row doesn't lie within the texture").into());
                 }
                 Ok(operation)
             }

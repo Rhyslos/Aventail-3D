@@ -13,6 +13,7 @@ use crate::limits::Bounded;
 use scene::{Document, ObjectId, ObjectKind, Operation};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use words::{tr, trf};
 
 /// Version 12 of the file.
 #[cfg(test)]
@@ -96,7 +97,7 @@ impl<E: FileOperation> ProjectWithInstances<E> {
         let mut instances: BTreeMap<u64, u64> = BTreeMap::new();
         for instance in self.instances {
             if instances.insert(instance.object, instance.source).is_some() {
-                return Err("an object is listed as an instance twice".into());
+                return Err(tr("an object is listed as an instance twice").into());
             }
         }
         let document = ProjectWith {
@@ -109,14 +110,15 @@ impl<E: FileOperation> ProjectWithInstances<E> {
                 return Ok(());
             };
             if object.kind != ObjectKind::Group || !object.stack.is_empty() {
-                return Err("it is listed as an instance but stored as something else".into());
+                return Err(tr("it is listed as an instance but stored as something else").into());
             }
             object.kind = ObjectKind::Instance(ObjectId::from_raw(source));
             Ok(())
         })?;
         if let Some(id) = instances.keys().next() {
-            return Err(format!(
-                "object {id} is listed as an instance, but isn't there"
+            return Err(trf!(
+                "object {} is listed as an instance, but isn't there",
+                id
             ));
         }
         Ok(document)

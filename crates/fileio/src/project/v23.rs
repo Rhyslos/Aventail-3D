@@ -13,6 +13,7 @@ use super::v22::OperationV22;
 use mesh::edit::BevelOptions;
 use scene::{EditSettings, Operation};
 use serde::{Deserialize, Serialize};
+use words::{tr, trf};
 
 /// Version 23 of the file: version 20's (to 22's), its edits stored as
 /// version 23's.
@@ -99,17 +100,17 @@ impl FileOperation for OperationV23 {
                 };
                 // NaN never equals itself, so this refuses those too.
                 if options.clamped() != options {
-                    return Err(
+                    return Err(tr(
                         "a bevel's skew or weld distance isn't a real number, or is out \
-                                of range"
-                            .into(),
-                    );
+                                of range",
+                    )
+                    .into());
                 }
                 let operation = op.into_operation()?;
                 match options_of(&operation) {
                     Some(BevelOptions::EARLIER) => Ok(with_options(&operation, options)),
-                    Some(_) => Err("a bevel is stored with its settings twice".into()),
-                    None => Err(format!(
+                    Some(_) => Err(tr("a bevel is stored with its settings twice").into()),
+                    None => Err(trf!(
                         "{} is stored with a bevel's settings, which it can't have",
                         operation.describe()
                     )),

@@ -249,7 +249,7 @@ pub fn import(workbench: &mut Workbench, path: Option<PathBuf>) {
 pub fn import_from(workbench: &mut Workbench, path: &Path) {
     let size = std::fs::metadata(path).map(|m| m.len()).unwrap_or(0);
     if size > fileio::limits::MAX_UNPACKED {
-        return workbench.import_failed(path, fileio::limits::TOO_MUCH);
+        return workbench.import_failed(path, ui::text::tr(fileio::limits::TOO_MUCH));
     }
     let text = match std::fs::read(path) {
         Ok(bytes) => String::from_utf8_lossy(&bytes).into_owned(),

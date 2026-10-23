@@ -30,6 +30,7 @@ use glam::{Mat4, Vec2, Vec3};
 use mesh::{AttributeElement, Domain, EdgeKey, FaceId, Mesh, Value, VertexId};
 use std::collections::{BTreeMap, HashMap};
 use std::fmt::Write;
+use words::{tr, trf};
 
 /// A number as OBJ writes it: the shortest form that reads back exactly,
 /// with no "-0".
@@ -50,7 +51,7 @@ fn clean_name(name: &str) -> String {
         .collect();
     let trimmed = one_line.trim();
     if trimmed.is_empty() {
-        "Object".to_string()
+        crate::UNNAMED_IN_FILES.to_string()
     } else {
         trimmed.to_string()
     }
@@ -229,7 +230,7 @@ pub fn read_mtl(text: &str) -> HashMap<String, [f32; 3]> {
         let tokens: Vec<&str> = content.split_whitespace().collect();
         match tokens.as_slice() {
             ["newmtl", name, ..] => current = Some(clean_name(name)),
-            ["Kd", r, g, b, ..] => {
+            [key, r, g, b, ..] if *key == "Kd" => {
                 let parsed: Option<Vec<f32>> = [r, g, b]
                     .iter()
                     .map(|t| t.parse::<f32>().ok().filter(|v| v.is_finite()))
@@ -271,9 +272,11 @@ pub enum ObjError {
 impl std::fmt::Display for ObjError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Empty => f.write_str("it holds no polygons"),
-            Self::BadNumber { line } => write!(f, "line {line} holds a number that isn't real"),
-            Self::TooLarge => f.write_str(crate::limits::TOO_MUCH),
+            Self::Empty => f.write_str(tr("it holds no polygons")),
+            Self::BadNumber { line } => {
+                f.write_str(&trf!("line {} holds a number that isn't real", line))
+            }
+            Self::TooLarge => f.write_str(tr(crate::limits::TOO_MUCH)),
         }
     }
 }
@@ -474,7 +477,7 @@ pub fn read_obj(text: &str, units: FileUnits, up: UpAxis) -> Result<ObjImport, O
             continue;
         }
         let name = if object.name.is_empty() {
-            "Object".to_string()
+            tr("Object").to_string()
         } else {
             object.name
         };

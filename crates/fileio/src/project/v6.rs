@@ -13,6 +13,7 @@ use mesh::loopcut::MAX_CUTS;
 use mesh::{EdgeKey, VertexId};
 use scene::Operation;
 use serde::{Deserialize, Serialize};
+use words::tr;
 
 /// Version 6 of the file.
 #[cfg(test)]
@@ -66,10 +67,12 @@ impl FileOperation for OperationV6 {
                 anchors,
             } => {
                 if a == b {
-                    return Err("its loop cut is across an edge joining a point to itself".into());
+                    return Err(
+                        tr("its loop cut is across an edge joining a point to itself").into(),
+                    );
                 }
                 if !position.is_finite() {
-                    return Err("its loop cut's position isn't a real number".into());
+                    return Err(tr("its loop cut's position isn't a real number").into());
                 }
                 Ok(Operation::LoopCut {
                     edge: EdgeKey::new(VertexId::from_raw(a), VertexId::from_raw(b)),

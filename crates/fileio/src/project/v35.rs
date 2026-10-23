@@ -20,6 +20,7 @@ use super::v34::{
 use crate::limits::Bounded;
 use scene::{Document, FaceId, HideSeams, MendOptions, Operation, UnwrapOptions};
 use serde::{Deserialize, Serialize};
+use words::tr;
 
 /// A recorded edit in version 35.
 pub(crate) type EntryV35 = EntryWith<OperationV35>;
@@ -64,7 +65,7 @@ impl<E: FileOperation> ProjectV35<E> {
             size_off: self.mending.size_off,
         };
         if !mending.is_real() {
-            return Err("its mending limits are out of range".into());
+            return Err(tr("its mending limits are out of range").into());
         }
         Ok(self.project.into_document()?.with_mending(mending))
     }
@@ -187,7 +188,7 @@ impl FileOperation for OperationV35 {
             },
         };
         if !operation.numbers_are_real() {
-            return Err("an unwrap's or relax's settings are out of range".into());
+            return Err(tr("an unwrap's or relax's settings are out of range").into());
         }
         Ok(operation)
     }

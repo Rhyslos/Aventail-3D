@@ -14,6 +14,7 @@ use mesh::join::{MAX_BRIDGE_SEGMENTS, MAX_CONNECT_CUTS};
 use mesh::{EdgeKey, FaceId, VertexId};
 use scene::Operation;
 use serde::{Deserialize, Serialize};
+use words::{text, tr, trf};
 
 /// Version 9 of the file.
 #[cfg(test)]
@@ -60,12 +61,15 @@ fn edges_to_file(edges: &[EdgeKey]) -> Bounded<[u32; 2]> {
         .collect()
 }
 
-fn edges_from_file(edges: Bounded<[u32; 2]>, what: &str) -> Result<Vec<EdgeKey>, Problem> {
+fn edges_from_file(edges: Bounded<[u32; 2]>, what: &'static str) -> Result<Vec<EdgeKey>, Problem> {
     edges
         .into_iter()
         .map(|[a, b]| {
             if a == b {
-                Err(format!("one of its {what} edges joins a point to itself"))
+                Err(trf!(
+                    "one of its {} edges joins a point to itself",
+                    tr(what)
+                ))
             } else {
                 Ok(EdgeKey::new(VertexId::from_raw(a), VertexId::from_raw(b)))
             }
@@ -121,7 +125,7 @@ impl FileOperation for OperationV9 {
                 anchors: a,
             } => Ok(Operation::Connect {
                 points: points.into_iter().map(VertexId::from_raw).collect(),
-                edges: edges_from_file(edges, "connected")?,
+                edges: edges_from_file(edges, text!("connected"))?,
                 cuts: cuts.clamp(1, MAX_CONNECT_CUTS),
                 anchors: anchors(a)?,
             }),
@@ -132,7 +136,7 @@ impl FileOperation for OperationV9 {
                 twist,
                 anchors: a,
             } => Ok(Operation::Bridge {
-                edges: edges_from_file(edges, "bridged")?,
+                edges: edges_from_file(edges, text!("bridged"))?,
                 faces: faces.into_iter().map(FaceId::from_raw).collect(),
                 segments: segments.clamp(1, MAX_BRIDGE_SEGMENTS),
                 twist: twist.clamp(-1_000_000, 1_000_000),

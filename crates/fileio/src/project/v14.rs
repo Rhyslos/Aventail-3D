@@ -13,6 +13,7 @@ use glam::Vec3;
 use mesh::symmetry::Mirror;
 use scene::Operation;
 use serde::{Deserialize, Serialize};
+use words::tr;
 
 /// Version 14 of the file.
 #[cfg(test)]
@@ -72,10 +73,10 @@ impl FileOperation for OperationV14 {
             } => {
                 let centre = Vec3::from_array(centre);
                 if !centre.is_finite() {
-                    return Err("a mirror's middle isn't a real number".to_string());
+                    return Err(tr("a mirror's middle isn't a real number").to_string());
                 }
                 if !distance.is_finite() || distance < 0.0 {
-                    return Err("a weld distance isn't a real distance".to_string());
+                    return Err(tr("a weld distance isn't a real distance").to_string());
                 }
                 Ok(Operation::WeldMiddle {
                     mirror: Mirror {
@@ -94,14 +95,14 @@ impl FileOperation for OperationV14 {
             } => {
                 let centre = Vec3::from_array(centre);
                 if !centre.is_finite() {
-                    return Err("a mirror's middle isn't a real number".to_string());
+                    return Err(tr("a mirror's middle isn't a real number").to_string());
                 }
                 if !axes.contains(&true) {
-                    return Err("a mirrored edit mirrors across no axis".to_string());
+                    return Err(tr("a mirrored edit mirrors across no axis").to_string());
                 }
                 let op = op.into_operation()?;
                 if !scene::mirroring::mirrors(&op) {
-                    return Err("an edit that can't be mirrored is marked mirrored".to_string());
+                    return Err(tr("an edit that can't be mirrored is marked mirrored").to_string());
                 }
                 Ok(Operation::Mirrored {
                     op: Box::new(op),

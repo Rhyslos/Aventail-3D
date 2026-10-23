@@ -9,6 +9,7 @@
 use super::v1::{FileOperation, Problem};
 use super::v2::{AnchorsV2, anchors_from_file, anchors_to_file};
 use super::v5::EntryWith;
+use words::tr;
 
 use super::v23::OperationV23;
 use glam::Vec3;
@@ -85,18 +86,18 @@ impl GrooveV24 {
 
     fn into_operation(self) -> Result<Operation, Problem> {
         if !(self.width.is_finite() && self.depth.is_finite()) {
-            return Err("a groove's width or depth isn't a real number".into());
+            return Err(tr("a groove's width or depth isn't a real number").into());
         }
         let stretch = Vec3::from_array(self.stretch);
         if mesh::stretch::usable(stretch) != stretch {
-            return Err("a groove's stretch isn't a real number, or is out of range".into());
+            return Err(tr("a groove's stretch isn't a real number, or is out of range").into());
         }
         let edges = self
             .edges
             .into_iter()
             .map(|[a, b]| {
                 if a == b {
-                    Err("one of a groove's edges joins a point to itself".to_string())
+                    Err(tr("one of a groove's edges joins a point to itself").to_string())
                 } else {
                     Ok(EdgeKey::new(VertexId::from_raw(a), VertexId::from_raw(b)))
                 }
@@ -112,7 +113,7 @@ impl GrooveV24 {
             },
         }
         .clamped()
-        .ok_or_else(|| "a groove's width or depth isn't a real number".to_string())?;
+        .ok_or_else(|| tr("a groove's width or depth isn't a real number").to_string())?;
         Ok(Operation::Groove {
             edges,
             shape,
@@ -152,10 +153,10 @@ impl FileOperation for OperationV24 {
             } => {
                 let centre = Vec3::from_array(centre);
                 if !centre.is_finite() {
-                    return Err("a mirror's middle isn't a real number".to_string());
+                    return Err(tr("a mirror's middle isn't a real number").to_string());
                 }
                 if !axes.contains(&true) {
-                    return Err("a mirrored edit mirrors across no axis".to_string());
+                    return Err(tr("a mirrored edit mirrors across no axis").to_string());
                 }
                 Ok(Operation::Mirrored {
                     op: Box::new(op.into_operation()?),

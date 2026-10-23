@@ -1248,6 +1248,7 @@ dependencies = [
  "scene",
  "serde",
  "serde_json",
+ "words",
  "zstd",
 ]
 

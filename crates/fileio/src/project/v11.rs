@@ -13,6 +13,7 @@ use crate::limits::Bounded;
 use mesh::{EdgeKey, VertexId};
 use scene::Operation;
 use serde::{Deserialize, Serialize};
+use words::tr;
 
 /// Version 11 of the file.
 #[cfg(test)]
@@ -67,7 +68,7 @@ impl FileOperation for OperationV11 {
                     .into_iter()
                     .map(|[a, b]| {
                         if a == b {
-                            Err("one of its edges joins a point to itself".to_string())
+                            Err(tr("one of its edges joins a point to itself").to_string())
                         } else {
                             Ok(EdgeKey::new(VertexId::from_raw(a), VertexId::from_raw(b)))
                         }
@@ -81,7 +82,7 @@ impl FileOperation for OperationV11 {
             }
             Self::HardEdgesByAngle { angle } => {
                 if !angle.is_finite() {
-                    return Err("its angle isn't a real number".to_string());
+                    return Err(tr("its angle isn't a real number").to_string());
                 }
                 Ok(Operation::HardEdgesByAngle {
                     angle: angle.clamp(0.0, mesh::hardness::MAX_ANGLE),

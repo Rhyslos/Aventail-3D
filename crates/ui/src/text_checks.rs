@@ -386,6 +386,11 @@ fn literals_in_context(text: &str) -> Vec<(String, String)> {
             }
         }
         if c == '"' && !(i > 0 && bytes[i - 1] == '\'') {
+            // A byte string b"…" holds bytes for a file (b"JSON"), not
+            // text: read past it like any other, but leave it out.
+            let byte_string = i > 0
+                && bytes[i - 1] == 'b'
+                && !(i > 1 && (bytes[i - 2].is_alphanumeric() || bytes[i - 2] == '_'));
             let start = i.saturating_sub(40);
             let before: String = bytes[start..i].iter().collect();
             let mut s = String::new();
@@ -410,7 +415,9 @@ fn literals_in_context(text: &str) -> Vec<(String, String)> {
                 }
                 i += 1;
             }
-            out.push((s, before));
+            if !byte_string {
+                out.push((s, before));
+            }
         }
         i += 1;
     }
@@ -444,7 +451,16 @@ fn is_interface_text(literal: &str, before: &str) -> bool {
     if !words {
         return false;
     }
-    const NOT_TEXT: [&str; 31] = [
+    // One word in capitals (and digits), no spaces: a code or a format's
+    // name, the same in every language ("OBJ", "VEC3", "TEXCOORD_0").
+    if !literal.contains(' ')
+        && literal
+            .chars()
+            .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == '_')
+    {
+        return false;
+    }
+    const NOT_TEXT: [&str; 36] = [
         "Id::new(",
         "Id::new((",
         // A texture's name, for debugging.
@@ -483,6 +499,16 @@ fn is_interface_text(literal: &str, before: &str) -> bool {
         "std::env::var(",
         "with_extension(",
         "reason = ",
+        // A folder or file name in a path (a Unity project's "Assets").
+        ".join(",
+        // Lines written into an OBJ or MTL file, and read back from one.
+        "writeln!(text,",
+        "write!(text,",
+        "strip_prefix(",
+        // A name written into exported files when an object has none: the
+        // same in every language, so a game project's files keep their
+        // names whatever language the app is in (fileio).
+        "UNNAMED_IN_FILES: &str =",
     ];
     let b = before.trim_end();
     !NOT_TEXT.iter().any(|n| b.ends_with(n))

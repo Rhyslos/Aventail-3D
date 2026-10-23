@@ -11,6 +11,7 @@ use super::v31::OperationV31;
 use crate::limits::Bounded;
 use scene::{FaceId, Operation};
 use serde::{Deserialize, Serialize};
+use words::tr;
 
 /// A recorded edit in version 32.
 pub(crate) type EntryV32 = EntryWith<OperationV32>;
@@ -64,7 +65,7 @@ impl FileOperation for OperationV32 {
                         .collect(),
                 };
                 if !operation.numbers_are_real() {
-                    return Err("an island is moved by numbers that aren't real".into());
+                    return Err(tr("an island is moved by numbers that aren't real").into());
                 }
                 Ok(operation)
             }

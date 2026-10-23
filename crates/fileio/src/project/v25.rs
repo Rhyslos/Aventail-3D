@@ -13,6 +13,7 @@ use glam::Vec3;
 use scene::{Document, LiveMirror};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use words::{tr, trf};
 
 /// Version 25 of the file.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -77,26 +78,28 @@ impl<E: FileOperation> ProjectV25<E> {
                 on_object: false,
             };
             if !mirror.is_valid() {
-                return Err(
-                    "a mirror has no axis, or a number that isn't real or is out of range".into(),
-                );
+                return Err(tr(
+                    "a mirror has no axis, or a number that isn't real or is out of range",
+                )
+                .into());
             }
             if mirrors.insert(entry.object, mirror).is_some() {
-                return Err("an object's mirror is stored twice".into());
+                return Err(tr("an object's mirror is stored twice").into());
             }
         }
         let document = self.project.into_document_with(|id, object| {
             if let Some(mirror) = mirrors.remove(&id) {
                 if !object.kind.has_shape() {
-                    return Err("a mirror is stored for an object without a shape".into());
+                    return Err(tr("a mirror is stored for an object without a shape").into());
                 }
                 object.mirror = Some(mirror);
             }
             attach(id, object)
         })?;
         if let Some(id) = mirrors.keys().next() {
-            return Err(format!(
-                "a mirror is stored for object {id}, which isn't there"
+            return Err(trf!(
+                "a mirror is stored for object {}, which isn't there",
+                id
             ));
         }
         Ok(document)

@@ -64,6 +64,7 @@ use scene::Document;
 use std::fmt;
 use std::io::Read;
 use std::path::{Path, PathBuf};
+use words::{text, tr, trf};
 
 /// The signature every project file starts with.
 pub const SIGNATURE: [u8; 4] = *b"AVTL";
@@ -103,7 +104,8 @@ pub enum ProjectError {
     WouldNotReopen(String),
     /// The file couldn't be read or written.
     Io {
-        /// What was being done ("read", "write").
+        /// What was being done ("read", "write"), in English: shown
+        /// through `tr`.
         action: &'static str,
         /// The file.
         path: PathBuf,
@@ -115,24 +117,32 @@ pub enum ProjectError {
 impl fmt::Display for ProjectError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::NotAProject => f.write_str("it isn't a project file"),
-            Self::TooNew { version } => write!(
-                f,
-                "it was saved by a newer version of the app (file format {version}; this version \
-                 reads up to {FORMAT_VERSION}). Update the app to open it"
-            ),
-            Self::Damaged(why) => write!(f, "the file is damaged: {why}"),
-            Self::TooLarge => f.write_str("the file is damaged: it claims to be impossibly large"),
-            Self::WouldNotReopen(why) => write!(
-                f,
-                "it wasn't saved, because the saved copy wouldn't open again ({why}). Your \
-                 previous save is untouched; please report this so it can be fixed"
-            ),
+            Self::NotAProject => f.write_str(tr("it isn't a project file")),
+            Self::TooNew { version } => f.write_str(&trf!(
+                "it was saved by a newer version of the app (file format {}; this version \
+                 reads up to {}). Update the app to open it",
+                version,
+                FORMAT_VERSION
+            )),
+            Self::Damaged(why) => f.write_str(&trf!("the file is damaged: {}", why)),
+            Self::TooLarge => {
+                f.write_str(tr("the file is damaged: it claims to be impossibly large"))
+            }
+            Self::WouldNotReopen(why) => f.write_str(&trf!(
+                "it wasn't saved, because the saved copy wouldn't open again ({}). Your \
+                 previous save is untouched; please report this so it can be fixed",
+                why
+            )),
             Self::Io {
                 action,
                 path,
                 source,
-            } => write!(f, "couldn't {action} {}: {source}", path.display()),
+            } => f.write_str(&trf!(
+                "couldn't {} {}: {}",
+                tr(action),
+                path.display(),
+                source
+            )),
         }
     }
 }
@@ -191,13 +201,13 @@ fn encode(document: &Document) -> Result<Vec<u8>, ProjectError> {
         .sum();
     if stored != edit_counts(document) {
         return Err(ProjectError::WouldNotReopen(
-            "an edit of a kind this version can't store yet".into(),
+            tr("an edit of a kind this version can't store yet").into(),
         ));
     }
     let encoded = v39::encode(&model)
-        .map_err(|e| ProjectError::Damaged(format!("the scene couldn't be encoded ({e})")))?;
+        .map_err(|e| ProjectError::Damaged(trf!("the scene couldn't be encoded ({})", e)))?;
     let body = zstd::bulk::compress(&encoded, ZSTD_LEVEL)
-        .map_err(|e| ProjectError::Damaged(format!("the scene couldn't be compressed ({e})")))?;
+        .map_err(|e| ProjectError::Damaged(trf!("the scene couldn't be compressed ({})", e)))?;
     let mut bytes = Vec::with_capacity(HEADER_LEN + body.len());
     bytes.extend_from_slice(&SIGNATURE);
     bytes.extend_from_slice(&FORMAT_VERSION.to_le_bytes());
@@ -217,12 +227,12 @@ pub fn from_bytes(bytes: &[u8]) -> Result<Document, ProjectError> {
     if bytes.len() < SIGNATURE.len() || bytes[..SIGNATURE.len()] != SIGNATURE {
         return Err(ProjectError::NotAProject);
     }
-    let header = |what| ProjectError::Damaged(format!("its header is cut short ({what})"));
-    let version = u32::from_le_bytes(number(bytes, 4).ok_or_else(|| header("version"))?);
-    let flags = u32::from_le_bytes(number(bytes, 8).ok_or_else(|| header("flags"))?);
-    let length = u64::from_le_bytes(number(bytes, 12).ok_or_else(|| header("length"))?);
+    let header = |what| ProjectError::Damaged(trf!("its header is cut short ({})", tr(what)));
+    let version = u32::from_le_bytes(number(bytes, 4).ok_or_else(|| header(text!("version")))?);
+    let flags = u32::from_le_bytes(number(bytes, 8).ok_or_else(|| header(text!("flags")))?);
+    let length = u64::from_le_bytes(number(bytes, 12).ok_or_else(|| header(text!("length")))?);
     match version {
-        0 => return Err(ProjectError::Damaged("its format version is 0".into())),
+        0 => return Err(ProjectError::Damaged(tr("its format version is 0").into())),
         1..=FORMAT_VERSION => {}
         newer => return Err(ProjectError::TooNew { version: newer }),
     }
@@ -235,8 +245,9 @@ pub fn from_bytes(bytes: &[u8]) -> Result<Document, ProjectError> {
     }
     let body = &bytes[HEADER_LEN.min(bytes.len())..];
     if body.len() as u64 != length {
-        return Err(ProjectError::Damaged(format!(
-            "it should hold {length} bytes of scene but holds {}; it may be cut short",
+        return Err(ProjectError::Damaged(trf!(
+            "it should hold {} bytes of scene but holds {}; it may be cut short",
+            length,
             body.len()
         )));
     }
@@ -295,7 +306,7 @@ pub fn from_bytes(bytes: &[u8]) -> Result<Document, ProjectError> {
 /// 0126) holds.
 fn decode_development(encoded: &[u8]) -> Result<Document, ProjectError> {
     let model = crate::limits::within_budget(|| v39::decode(encoded))
-        .map_err(|e| ProjectError::Damaged(format!("its scene can't be read ({e})")))?;
+        .map_err(|e| ProjectError::Damaged(trf!("its scene can't be read ({})", e)))?;
     model
         .project
         .project
@@ -320,7 +331,7 @@ fn decode_materials(encoded: &[u8]) -> Result<Document, ProjectError> {
         crate::limits::within_budget(|| postcard::take_from_bytes(encoded)).map_err(unreadable)?;
     if !rest.is_empty() {
         return Err(ProjectError::Damaged(
-            "there is unexpected data after the scene".into(),
+            tr("there is unexpected data after the scene").into(),
         ));
     }
     model
@@ -342,7 +353,7 @@ where
         crate::limits::within_budget(|| postcard::take_from_bytes(encoded)).map_err(unreadable)?;
     if !rest.is_empty() {
         return Err(ProjectError::Damaged(
-            "there is unexpected data after the scene".into(),
+            tr("there is unexpected data after the scene").into(),
         ));
     }
     model
@@ -359,7 +370,7 @@ fn decode_targets(encoded: &[u8]) -> Result<Document, ProjectError> {
         crate::limits::within_budget(|| postcard::take_from_bytes(encoded)).map_err(unreadable)?;
     if !rest.is_empty() {
         return Err(ProjectError::Damaged(
-            "there is unexpected data after the scene".into(),
+            tr("there is unexpected data after the scene").into(),
         ));
     }
     model
@@ -382,7 +393,7 @@ where
         crate::limits::within_budget(|| postcard::take_from_bytes(encoded)).map_err(unreadable)?;
     if !rest.is_empty() {
         return Err(ProjectError::Damaged(
-            "there is unexpected data after the scene".into(),
+            tr("there is unexpected data after the scene").into(),
         ));
     }
     model
@@ -406,7 +417,7 @@ where
         crate::limits::within_budget(|| postcard::take_from_bytes(encoded)).map_err(unreadable)?;
     if !rest.is_empty() {
         return Err(ProjectError::Damaged(
-            "there is unexpected data after the scene".into(),
+            tr("there is unexpected data after the scene").into(),
         ));
     }
     model
@@ -431,7 +442,7 @@ where
         crate::limits::within_budget(|| postcard::take_from_bytes(encoded)).map_err(unreadable)?;
     if !rest.is_empty() {
         return Err(ProjectError::Damaged(
-            "there is unexpected data after the scene".into(),
+            tr("there is unexpected data after the scene").into(),
         ));
     }
     model
@@ -457,7 +468,7 @@ where
         crate::limits::within_budget(|| postcard::take_from_bytes(encoded)).map_err(unreadable)?;
     if !rest.is_empty() {
         return Err(ProjectError::Damaged(
-            "there is unexpected data after the scene".into(),
+            tr("there is unexpected data after the scene").into(),
         ));
     }
     model
@@ -484,7 +495,7 @@ where
         crate::limits::within_budget(|| postcard::take_from_bytes(encoded)).map_err(unreadable)?;
     if !rest.is_empty() {
         return Err(ProjectError::Damaged(
-            "there is unexpected data after the scene".into(),
+            tr("there is unexpected data after the scene").into(),
         ));
     }
     model
@@ -512,7 +523,7 @@ where
         crate::limits::within_budget(|| postcard::take_from_bytes(encoded)).map_err(unreadable)?;
     if !rest.is_empty() {
         return Err(ProjectError::Damaged(
-            "there is unexpected data after the scene".into(),
+            tr("there is unexpected data after the scene").into(),
         ));
     }
     model
@@ -541,7 +552,7 @@ where
         crate::limits::within_budget(|| postcard::take_from_bytes(encoded)).map_err(unreadable)?;
     if !rest.is_empty() {
         return Err(ProjectError::Damaged(
-            "there is unexpected data after the scene".into(),
+            tr("there is unexpected data after the scene").into(),
         ));
     }
     model
@@ -564,9 +575,9 @@ where
 /// Why a body couldn't be read: a limit, or damage.
 fn unreadable(error: postcard::Error) -> ProjectError {
     if crate::limits::limit_hit() {
-        ProjectError::Damaged(crate::limits::TOO_MUCH.into())
+        ProjectError::Damaged(tr(crate::limits::TOO_MUCH).into())
     } else {
-        ProjectError::Damaged(format!("the scene can't be read ({error})"))
+        ProjectError::Damaged(trf!("the scene can't be read ({})", error))
     }
 }
 
@@ -580,7 +591,7 @@ where
         crate::limits::within_budget(|| postcard::take_from_bytes(encoded)).map_err(unreadable)?;
     if !rest.is_empty() {
         return Err(ProjectError::Damaged(
-            "there is unexpected data after the scene".into(),
+            tr("there is unexpected data after the scene").into(),
         ));
     }
     model
@@ -600,7 +611,7 @@ where
         crate::limits::within_budget(|| postcard::take_from_bytes(encoded)).map_err(unreadable)?;
     if !rest.is_empty() {
         return Err(ProjectError::Damaged(
-            "there is unexpected data after the scene".into(),
+            tr("there is unexpected data after the scene").into(),
         ));
     }
     model
@@ -620,7 +631,7 @@ where
         crate::limits::within_budget(|| postcard::take_from_bytes(encoded)).map_err(unreadable)?;
     if !rest.is_empty() {
         return Err(ProjectError::Damaged(
-            "there is unexpected data after the scene".into(),
+            tr("there is unexpected data after the scene").into(),
         ));
     }
     model.check_limits().map_err(ProjectError::Damaged)?;
@@ -636,12 +647,12 @@ fn unpack(body: &[u8]) -> Result<Vec<u8>, ProjectError> {
         return Err(ProjectError::TooLarge);
     }
     let decoder = zstd::stream::read::Decoder::new(body)
-        .map_err(|e| ProjectError::Damaged(format!("the scene can't be unpacked ({e})")))?;
+        .map_err(|e| ProjectError::Damaged(trf!("the scene can't be unpacked ({})", e)))?;
     let mut out = Vec::new();
     decoder
         .take(MAX_BODY + 1)
         .read_to_end(&mut out)
-        .map_err(|e| ProjectError::Damaged(format!("the scene can't be unpacked ({e})")))?;
+        .map_err(|e| ProjectError::Damaged(trf!("the scene can't be unpacked ({})", e)))?;
     if out.len() as u64 > MAX_BODY {
         return Err(ProjectError::TooLarge);
     }
@@ -695,10 +706,10 @@ pub fn save(path: &Path, document: &Document) -> Result<(), ProjectError> {
         Err(other) => return Err(other),
     };
     if path.exists() {
-        let previous = std::fs::read(path).map_err(io("keep a backup of", path))?;
-        safe_write(&backup_path(path), &previous).map_err(io("keep a backup of", path))?;
+        let previous = std::fs::read(path).map_err(io(text!("keep a backup of"), path))?;
+        safe_write(&backup_path(path), &previous).map_err(io(text!("keep a backup of"), path))?;
     }
-    safe_write(path, &bytes).map_err(io("write", path))
+    safe_write(path, &bytes).map_err(io(text!("write"), path))
 }
 
 /// Writes `bytes` to `path` without ever writing through a file or link
@@ -719,9 +730,9 @@ pub fn safe_write(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
             file.sync_all()?;
         }
         if std::fs::read(&temporary)? != bytes {
-            return Err(std::io::Error::other(
+            return Err(std::io::Error::other(tr(
                 "the saved file didn't read back the same; the disk may be failing",
-            ));
+            )));
         }
         std::fs::rename(&temporary, path)?;
         sync_folder(path);
@@ -747,9 +758,9 @@ fn unique_temporary(path: &Path) -> std::io::Result<PathBuf> {
             return Ok(candidate);
         }
     }
-    Err(std::io::Error::other(
+    Err(std::io::Error::other(tr(
         "couldn't find a free temporary file name",
-    ))
+    )))
 }
 
 /// Makes a rename in `path`'s folder reach the disk, where the system
@@ -773,7 +784,7 @@ fn sync_folder(path: &Path) {
 pub fn open(path: &Path) -> Result<Document, ProjectError> {
     let size = std::fs::metadata(path)
         .map_err(|source| ProjectError::Io {
-            action: "read",
+            action: text!("read"),
             path: path.to_path_buf(),
             source,
         })?
@@ -782,7 +793,7 @@ pub fn open(path: &Path) -> Result<Document, ProjectError> {
         return Err(ProjectError::TooLarge);
     }
     let bytes = std::fs::read(path).map_err(|source| ProjectError::Io {
-        action: "read",
+        action: text!("read"),
         path: path.to_path_buf(),
         source,
     })?;
