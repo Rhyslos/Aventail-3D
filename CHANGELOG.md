@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **Labels on the palettes.** Rest the mouse on the mode palette on the left and its names slide out beside the icons; click a name to use it. When the window is wide enough, the top palette writes the select tool, Move, Scale, Rotate, Snap and Symmetry beside their icons, and a small arrow beside the select tool button lists Box, Lasso and Paint select.
 - **One numbered checker, in blue.** The numbered checker (Display → Surface) is now always the blue-to-green one that came with the blue accent, whatever accent colour you pick: it was the clearest.
 - **The selection is easy to see.** Selected points, edges and polygons are now drawn last, thickest and in your accent colour, on top of hard edges, seams and other guides, in the viewport and the UV Editor. **Edit → Settings → High contrast** makes them bigger still, with a dark rim. **Select only visible** is now on as standard, so a box drag takes only what you can see.
 - **Five modes.** Model, Points, Edges, Polygons and UV. The Object mode is gone: to move or turn an object's pivot without moving the shape, switch on **Edit pivot** (the button right under the Model mode on the left, or the Tools menu), then switch it off again.
@@ -29,6 +30,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **An emergency copy when the app crashes.** If the app ever stops with an error, it now saves your unsaved work as it was a moment before, as one last backup copy, and offers it back the next time it starts, so a crash costs seconds of work instead of up to the five minutes since the last backup.
 - **Eleven new shapes.** **Create** now also makes an **Icosphere** (a ball of even triangles, no poles), **Torus**, **Capsule**, **Dome**, **Pipe elbow** (solid or hollow, any angle), **Pie sector**, **Gear**, **Hex grid**, **Hex sphere**, **Stairs** and **Arch**. **B** still lists the seven basic shapes; **Alt + B** lists the eleven new ones (once a list is open, B moves through it), so no shape is in both lists, and the Create menu has a line between the two groups. Each comes with its settings in the Attributes panel, ready-made UVs and seams, and crisp edges where it should have them, and is saved with the project like the others.
 - **Weld polygons.** In the Polygons mode, **M** melts a selected polygon's points into one at its middle (each touching group of selected polygons at its own middle), and **Ctrl + M** lets you drag a polygon onto a point. Inset a cylinder's cap, then weld the middle polygon, and the cap becomes even triangles round one point.
 - **Extrude from points.** In the Points mode, select points along an open edge (a plane's rim, or a hole's) and press **D**: the edges between them grow new polygons, and the new points are selected so you can carry on, or move them with W. If the points (or, in the Edges mode, the edges) go all the way round a polygon, such as a closed cap's rim, that polygon is pushed out instead. Handy in a side or front view, where points are easier to pick than edges.

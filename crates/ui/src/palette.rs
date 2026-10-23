@@ -149,13 +149,38 @@ pub fn tinted_button(
     note: &str,
     state: ButtonState,
 ) -> Response {
+    worded_button(ui, icon, tint, label, note, state, None)
+}
+
+/// The size of the words beside a palette icon (decision 0126).
+const WORD_SIZE: f32 = 13.0;
+
+/// An icon button with `word` written beside the icon, when given (the
+/// top palette's labels, where there's room; decision 0126).
+fn worded_button(
+    ui: &mut Ui,
+    icon: Icon,
+    tint: Color32,
+    label: &str,
+    note: &str,
+    state: ButtonState,
+    word: Option<&str>,
+) -> Response {
     let enabled = state != ButtonState::Unavailable;
     let sense = if enabled {
         Sense::click()
     } else {
         Sense::hover()
     };
-    let (rect, response) = ui.allocate_exact_size(Vec2::splat(BUTTON_SIZE), sense);
+    let galley = word.map(|w| {
+        ui.painter().layout_no_wrap(
+            w.to_string(),
+            egui::FontId::proportional(WORD_SIZE),
+            Color32::PLACEHOLDER,
+        )
+    });
+    let width = BUTTON_SIZE + galley.as_ref().map_or(0.0, |g| g.size().x + 8.0);
+    let (rect, response) = ui.allocate_exact_size(vec2(width, BUTTON_SIZE), sense);
     response.widget_info(|| WidgetInfo::labeled(WidgetType::Button, enabled, label));
     if ui.is_rect_visible(rect) {
         let visuals = ui.visuals();
@@ -175,8 +200,19 @@ pub fn tinted_button(
             ButtonState::Normal => tint,
             ButtonState::Unavailable => dimmed(tint),
         };
-        let icon_rect = egui::Rect::from_center_size(rect.center(), Vec2::splat(ICON_SIZE));
+        let square = egui::Rect::from_min_size(rect.min, Vec2::splat(BUTTON_SIZE));
+        let icon_rect = egui::Rect::from_center_size(square.center(), Vec2::splat(ICON_SIZE));
         icons::paint(painter, icon_rect, icon, color);
+        if let Some(galley) = galley {
+            let text = match state {
+                ButtonState::Active => Color32::WHITE,
+                ButtonState::Unavailable => dimmed(theme::TEXT),
+                ButtonState::Normal if response.hovered() => theme::TEXT_STRONG,
+                ButtonState::Normal => theme::TEXT,
+            };
+            let at = egui::pos2(square.max.x - 2.0, rect.center().y - galley.size().y / 2.0);
+            painter.galley(at, galley, text);
+        }
     }
     let tip = if note.is_empty() {
         label.to_string()
@@ -249,6 +285,8 @@ pub enum PaletteCommand {
     /// Switch to the next select tool (as `Q` does), or back to
     /// selecting from a transform tool.
     NextSelectTool,
+    /// Select with this tool (from the select tool list).
+    SetSelectTool(SelectTool),
     /// Use a transform tool (move, rotate or scale).
     Tool(Tool),
     /// Lock or free an axis (0 X, 1 Y, 2 Z).
@@ -355,6 +393,68 @@ pub(crate) const SYMMETRY_HELP: &str = "Model one half: each selected object get
 /// The accessible name of the arrow that opens the Symmetry menu.
 pub(crate) const SYMMETRY_MENU_LABEL: &str = "Symmetry settings";
 
+/// From this much room across, the top palette writes words beside its
+/// most used icons (decision 0126): the tools, Snap and Symmetry.
+pub(crate) const WORDS_FROM_WIDTH: f32 = 1150.0;
+
+/// The word beside a palette command's icon, when there's room.
+fn word_for(command: PaletteCommand, select_tool: SelectTool) -> Option<&'static str> {
+    Some(match command {
+        PaletteCommand::NextSelectTool => select_tool.name(),
+        PaletteCommand::Tool(Tool::Move) => "Move",
+        PaletteCommand::Tool(Tool::Rotate) => "Rotate",
+        PaletteCommand::Tool(Tool::Scale) => "Scale",
+        PaletteCommand::ToggleSnapping => "Snap",
+        PaletteCommand::ToggleSymmetry => "Symmetry",
+        _ => return None,
+    })
+}
+
+/// The accessible name of the arrow that opens the select tool list.
+pub(crate) const SELECT_TOOL_MENU_LABEL: &str = "Select tools";
+
+/// The small arrow beside the select tool button, and the list it opens
+/// (decision 0126): box, lasso and paint select, the one in use ticked.
+/// Returns the tool picked, if any.
+fn select_tool_menu(ui: &mut Ui, current: SelectTool, in_use: bool) -> Option<SelectTool> {
+    let (rect, response) = ui.allocate_exact_size(vec2(14.0, BUTTON_SIZE), Sense::click());
+    response.widget_info(|| WidgetInfo::labeled(WidgetType::Button, true, SELECT_TOOL_MENU_LABEL));
+    if response.hovered() {
+        ui.painter()
+            .rect_filled(rect, 4.0, ui.visuals().widgets.hovered.weak_bg_fill);
+    }
+    let c = rect.center();
+    ui.painter().line(
+        vec![
+            c + vec2(-3.5, -1.5),
+            c + vec2(0.0, 2.0),
+            c + vec2(3.5, -1.5),
+        ],
+        Stroke::new(1.5, theme::TEXT_WEAK),
+    );
+    let response = response
+        .on_hover_text("Pick how a drag selects: box, lasso or paint (Q steps through them)");
+    let mut picked = None;
+    egui::Popup::from_toggle_button_response(&response)
+        .gap(4.0)
+        .width(190.0)
+        .show(|ui| {
+            for tool in SelectTool::ALL {
+                let ticked = in_use && tool == current;
+                let text = if ticked {
+                    format!("✓ {}", tool.name())
+                } else {
+                    format!("   {}", tool.name())
+                };
+                if ui.button(text).on_hover_text(tool.description()).clicked() {
+                    picked = Some(tool);
+                    ui.close();
+                }
+            }
+        });
+    picked
+}
+
 /// The groups of the command palette, left to right.
 const COMMAND_GROUPS: [&[Planned]; 4] = [
     &[
@@ -429,6 +529,7 @@ pub fn command_palette(
     units: crate::units::Units,
 ) -> Option<PaletteCommand> {
     let mut clicked = None;
+    let words = ui.available_width() >= WORDS_FROM_WIDTH;
     ui.horizontal_centered(|ui| {
         ui.spacing_mut().item_spacing.x = 2.0;
         for (index, group) in COMMAND_GROUPS.iter().enumerate() {
@@ -497,6 +598,7 @@ pub fn command_palette(
                     | PaletteCommand::ToggleAxes
                     | PaletteCommand::ToggleEditPivot
                     | PaletteCommand::ApplyMirror
+                    | PaletteCommand::SetSelectTool(_)
                     | PaletteCommand::Search => (true, command.arrives.to_string()),
                 };
                 let button_state = if active {
@@ -506,8 +608,17 @@ pub fn command_palette(
                 } else {
                     ButtonState::Unavailable
                 };
-                if icon_button(ui, icon, label, &note, button_state).clicked() {
+                let word = words.then(|| word_for(action, state.select_tool)).flatten();
+                if worded_button(ui, icon, icon_tint(icon), label, &note, button_state, word)
+                    .clicked()
+                {
                     clicked = Some(action);
+                }
+                if matches!(action, PaletteCommand::NextSelectTool)
+                    && let Some(tool) =
+                        select_tool_menu(ui, state.select_tool, state.tool == Tool::Select)
+                {
+                    clicked = Some(PaletteCommand::SetSelectTool(tool));
                 }
                 if matches!(action, PaletteCommand::ToggleSymmetry) {
                     match symmetry_menu(ui, symmetry, state.symmetry, units) {
@@ -769,6 +880,15 @@ pub const ISOLATE_LABEL: &str = "Isolate";
 /// anything; toggles change `options` directly.
 pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Option<ModePick> {
     let mut picked = None;
+    let mut names: Vec<Named> = Vec::new();
+    let mut named = |response: &Response, name: String, active: bool, act: Act| {
+        names.push(Named {
+            rect: response.rect,
+            name,
+            active,
+            act,
+        });
+    };
     ui.vertical_centered(|ui| {
         ui.spacing_mut().item_spacing.y = 2.0;
         for (index, mode) in Mode::SHOWN.into_iter().enumerate() {
@@ -789,9 +909,16 @@ pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Op
             let label = format!("{} mode", mode.name());
             // Mode icons are always soft white, even Model's cube.
             let tint = tint::ICON;
-            if tinted_button(ui, mode.icon(), tint, &label, &mode.tooltip(), state).clicked() {
+            let response = tinted_button(ui, mode.icon(), tint, &label, &mode.tooltip(), state);
+            if response.clicked() {
                 picked = Some(ModePick::Mode(mode));
             }
+            named(
+                &response,
+                mode.name().to_string(),
+                state == ButtonState::Active,
+                Act::Pick(ModePick::Mode(mode)),
+            );
             if mode == Mode::Model {
                 // Edit pivot sits under the Model mode it belongs to, where
                 // the Object mode was (the project lead's choice).
@@ -808,32 +935,42 @@ pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Op
                          they turn and scale around), not their shapes",
                     )
                 };
-                if icon_button(
+                let response = icon_button(
                     ui,
                     Icon::ObjectMode,
                     EDIT_PIVOT_LABEL,
                     pivot_note,
                     pivot_state,
-                )
-                .clicked()
-                {
+                );
+                if response.clicked() {
                     picked = Some(ModePick::EditPivot);
                 }
+                named(
+                    &response,
+                    EDIT_PIVOT_LABEL.to_string(),
+                    pivot_state == ButtonState::Active,
+                    Act::Pick(ModePick::EditPivot),
+                );
             }
         }
         divider(ui, false);
-        if icon_button(
+        let response = icon_button(
             ui,
             Icon::Solo,
             ISOLATE_LABEL,
             "Isolate: hide every other object, or in the Points, Edges and \
              Polygons modes every other polygon (Ctrl + H). Alt + H shows everything again.",
             ButtonState::Normal,
-        )
-        .clicked()
-        {
+        );
+        if response.clicked() {
             picked = Some(ModePick::Isolate);
         }
+        named(
+            &response,
+            ISOLATE_LABEL.to_string(),
+            false,
+            Act::Pick(ModePick::Isolate),
+        );
         let visible = if options.select_visible_only {
             ButtonState::Active
         } else {
@@ -848,9 +985,16 @@ pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Op
                 "off, selecting through"
             }
         );
-        if icon_button(ui, Icon::VisibleOnly, VISIBLE_ONLY_LABEL, &note, visible).clicked() {
+        let response = icon_button(ui, Icon::VisibleOnly, VISIBLE_ONLY_LABEL, &note, visible);
+        if response.clicked() {
             options.select_visible_only = !options.select_visible_only;
         }
+        named(
+            &response,
+            VISIBLE_ONLY_LABEL.to_string(),
+            options.select_visible_only,
+            Act::VisibleOnly,
+        );
         let detail = options.grid_detail;
         let state = if detail == crate::viewport::GridDetail::Metre {
             ButtonState::Normal
@@ -862,11 +1006,141 @@ pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Op
             detail.explanation(),
             detail.next().explanation().to_lowercase()
         );
-        if icon_button(ui, Icon::GridDetail, GRID_DETAIL_LABEL, &note, state).clicked() {
+        let response = icon_button(ui, Icon::GridDetail, GRID_DETAIL_LABEL, &note, state);
+        if response.clicked() {
             options.grid_detail = detail.next();
         }
+        named(
+            &response,
+            GRID_DETAIL_LABEL.to_string(),
+            state == ButtonState::Active,
+            Act::GridDetail,
+        );
     });
+    // Any click on the palette (a mode, or a switch at the bottom).
+    let acted = ui.input(|i| i.pointer.any_click()) && ui.rect_contains_pointer(ui.max_rect());
+    match slide_out_names(ui, &names, acted) {
+        Some(Act::Pick(pick)) => picked = Some(pick),
+        Some(Act::VisibleOnly) => options.select_visible_only = !options.select_visible_only,
+        Some(Act::GridDetail) => options.grid_detail = options.grid_detail.next(),
+        None => {}
+    }
     picked
+}
+
+/// What a name in the slid-out strip does when clicked: the same as its
+/// button.
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Act {
+    Pick(ModePick),
+    VisibleOnly,
+    GridDetail,
+}
+
+/// A mode palette button, for the strip of names beside it.
+struct Named {
+    rect: egui::Rect,
+    name: String,
+    active: bool,
+    act: Act,
+}
+
+/// How long the mouse rests on the mode palette before its names slide
+/// out (decision 0126, the project lead's choice: on hover).
+pub(crate) const NAMES_AFTER: f64 = 0.4;
+/// How wide the strip of names is.
+const NAMES_WIDTH: f32 = 170.0;
+/// The accessible name of each name in the strip starts with this.
+pub(crate) const NAMES_PREFIX: &str = "Palette name: ";
+
+/// The strip that slides out beside the mode palette when the mouse rests
+/// on it, with each button's name level with its icon. Clicking a name does
+/// what its button does; the strip slides back when the mouse leaves both.
+/// After a click (`acted`) it stays away until the mouse has left and
+/// rests on the palette again, so it never covers the viewport you're about
+/// to drag in. Returns what was clicked.
+fn slide_out_names(ui: &Ui, names: &[Named], acted: bool) -> Option<Act> {
+    let ctx = ui.ctx();
+    let palette = ui.max_rect();
+    let id = egui::Id::new("mode_palette_names");
+    let now = ctx.input(|i| i.time);
+    let pointer = ctx.input(|i| i.pointer.hover_pos());
+    // Where the strip was last drawn, and since when the mouse has been
+    // over the palette or the strip.
+    let (strip, since, dismissed): (Option<egui::Rect>, Option<f64>, bool) =
+        ctx.data(|d| d.get_temp(id)).unwrap_or_default();
+    let over = pointer.is_some_and(|p| palette.contains(p) || strip.is_some_and(|s| s.contains(p)));
+    let since = if over { since.or(Some(now)) } else { None };
+    // A click puts the strip away until the mouse leaves.
+    let dismissed = over && (dismissed || acted);
+    let rested = !dismissed && since.is_some_and(|t| now - t >= NAMES_AFTER);
+    if over && !rested {
+        ctx.request_repaint_after(std::time::Duration::from_secs_f64(NAMES_AFTER));
+    }
+    let open = ctx.animate_bool_with_time(id.with("open"), rested, 0.12);
+    if open <= 0.0 {
+        ctx.data_mut(|d| d.insert_temp(id, (None::<egui::Rect>, since, dismissed)));
+        return None;
+    }
+    let width = NAMES_WIDTH * open;
+    let area = egui::Rect::from_min_size(
+        egui::pos2(palette.max.x, palette.min.y),
+        vec2(width, palette.height()),
+    );
+    let mut clicked = None;
+    egui::Area::new(id.with("strip"))
+        .order(egui::Order::Foreground)
+        .fixed_pos(area.min)
+        .show(ctx, |ui| {
+            let (strip_rect, _) = ui.allocate_exact_size(area.size(), Sense::hover());
+            let painter = ui.painter_at(strip_rect);
+            painter.rect_filled(strip_rect, 0.0, theme::PALETTE);
+            let accent = theme::accent(ctx).colors();
+            for (index, named) in names.iter().enumerate() {
+                let row = egui::Rect::from_min_max(
+                    egui::pos2(strip_rect.min.x, named.rect.min.y),
+                    egui::pos2(strip_rect.max.x, named.rect.max.y),
+                );
+                let response = ui.interact(row, id.with(("row", index)), Sense::click());
+                response.widget_info(|| {
+                    WidgetInfo::labeled(
+                        WidgetType::Button,
+                        true,
+                        format!("{NAMES_PREFIX}{}", named.name),
+                    )
+                });
+                let background = if named.active {
+                    Some(accent.fill)
+                } else if response.hovered() {
+                    Some(ui.visuals().widgets.hovered.weak_bg_fill)
+                } else {
+                    None
+                };
+                if let Some(fill) = background {
+                    painter.rect_filled(row.shrink2(vec2(2.0, 0.0)), 5.0, fill);
+                }
+                let colour = if named.active {
+                    Color32::WHITE
+                } else if response.hovered() {
+                    theme::TEXT_STRONG
+                } else {
+                    theme::TEXT
+                };
+                painter.text(
+                    row.left_center() + vec2(8.0, 0.0),
+                    egui::Align2::LEFT_CENTER,
+                    &named.name,
+                    egui::FontId::proportional(WORD_SIZE),
+                    colour,
+                );
+                if response.clicked() {
+                    clicked = Some(named.act);
+                }
+            }
+        });
+    let dismissed = dismissed || clicked.is_some();
+    ctx.data_mut(|d| d.insert_temp(id, (Some(area), since, dismissed)));
+    clicked
 }
 
 #[cfg(test)]

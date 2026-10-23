@@ -97,7 +97,7 @@ impl Workbench {
         self.set_select_tool(tool);
     }
 
-    fn set_select_tool(&mut self, tool: SelectTool) {
+    pub(super) fn set_select_tool(&mut self, tool: SelectTool) {
         self.viewport.set_select_tool(tool);
         self.note = Some(format!("{}: {}.", tool.name(), tool.description()));
     }

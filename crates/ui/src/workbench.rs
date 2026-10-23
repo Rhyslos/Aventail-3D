@@ -1039,6 +1039,11 @@ impl Workbench {
             .show(ui, |ui| {
                 if let Some(command) = command_palette(ui, &palette_state, &mut symmetry, units) {
                     requests.push(match command {
+                        PaletteCommand::SetSelectTool(tool) => {
+                            self.set_tool(Tool::Select);
+                            self.set_select_tool(tool);
+                            return;
+                        }
                         PaletteCommand::NextSelectTool => {
                             if self.tool == Tool::Select {
                                 self.next_select_tool();
@@ -2864,6 +2869,8 @@ mod loop_cut_tests;
 #[cfg(test)]
 mod material_tests;
 mod materials;
+#[cfg(test)]
+mod palette_label_tests;
 #[cfg(test)]
 mod seam_preference_tests;
 mod seam_preferences;
