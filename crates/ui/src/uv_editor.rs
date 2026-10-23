@@ -15,6 +15,7 @@
 
 use crate::palette::Mode;
 use crate::selecting::SelectKeys;
+use crate::text::tr;
 use crate::theme;
 use crate::transforming::{SnapSettings, Tool};
 use egui::{Align2, FontId, Pos2, Rect, Response, Sense, Stroke, Ui, WidgetInfo, WidgetType, vec2};
@@ -31,7 +32,7 @@ use std::sync::Arc;
 use tools::{DragKind, NavigationSettings};
 
 /// Accessible name of the UV Editor's drawing, and the label tests look for.
-pub(crate) const UV_EDITOR_LABEL: &str = "UV Editor view";
+pub(crate) const UV_EDITOR_LABEL: &str = crate::text!("UV Editor view");
 
 /// More polygons than this in the shown objects together, and their UVs
 /// aren't drawn (a heavy imported shape): drawing them would freeze the
@@ -263,7 +264,7 @@ impl UvEditor {
     /// viewport's.
     pub(crate) fn show(&mut self, ui: &mut Ui, doc: &mut Document, cx: &UvContext<'_>) {
         let (rect, response) = ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
-        response.widget_info(|| WidgetInfo::labeled(WidgetType::Other, true, UV_EDITOR_LABEL));
+        response.widget_info(|| WidgetInfo::labeled(WidgetType::Other, true, tr(UV_EDITOR_LABEL)));
         self.rect = Some(rect);
         self.shown_pass = Some(ui.ctx().cumulative_pass_nr());
         if let Some(at) = ui.ctx().input(|i| i.pointer.hover_pos()) {
@@ -379,24 +380,27 @@ impl UvEditor {
         }
         let note = if shapes.is_empty() && !too_many {
             if shown_objects(doc).is_empty() {
-                "Select an object to see its UVs.".to_string()
+                tr("Select an object to see its UVs.").to_string()
             } else {
-                "The selected objects have no UVs.".to_string()
+                tr("The selected objects have no UVs.").to_string()
             }
         } else if too_many {
-            format!(
+            crate::trf!(
                 "Some selected objects have more than {} polygons: their UVs aren't drawn.",
                 UV_POLYGONS_UP_TO
             )
         } else {
             let hint = match cx.mode {
-                Mode::Model | Mode::Object => " · press 1, 2, 3 or pick UV mode to select",
+                Mode::Model | Mode::Object => tr(" · press 1, 2, 3 or pick UV mode to select"),
                 _ => "",
             };
-            format!(
-                "{islands} {} · {polygons} {}{hint}",
+            crate::trf!(
+                "{} {} · {} {}{}",
+                islands,
                 if islands == 1 { "piece" } else { "pieces" },
+                polygons,
                 if polygons == 1 { "polygon" } else { "polygons" },
+                hint
             )
         };
         painter.text(

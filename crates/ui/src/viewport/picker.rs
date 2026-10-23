@@ -4,6 +4,7 @@
 
 use super::ViewportPanel;
 use crate::icons::{self, Icon};
+use crate::text::tr;
 use crate::theme;
 use egui::{
     FontId, Frame, Margin, Popup, PopupCloseBehavior, Rect, RectAlign, Sense, Stroke, Ui,
@@ -12,10 +13,11 @@ use egui::{
 use tools::{NavigationSettings, Scheme};
 
 /// Accessible name of the picker's button, and the title of its list.
-pub const PICKER_LABEL: &str = "Navigation controls";
+pub const PICKER_LABEL: &str = crate::text!("Navigation controls");
 
 /// The switch for orbiting and zooming around the point under the mouse.
-pub(crate) const AROUND_CURSOR_LABEL: &str = "Orbit and zoom around the point under the mouse";
+pub(crate) const AROUND_CURSOR_LABEL: &str =
+    crate::text!("Orbit and zoom around the point under the mouse");
 
 /// Width of the open list, in logical pixels.
 const LIST_WIDTH: f32 = 344.0;
@@ -31,7 +33,7 @@ pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) {
     let size = vec2(name.size().x + 46.0, 26.0);
     let button = Rect::from_min_size(rect.right_bottom() - size - vec2(10.0, 8.0), size);
     let response = ui.interact(button, ui.id().with("navigation_picker"), Sense::click());
-    response.widget_info(|| WidgetInfo::labeled(WidgetType::Button, true, PICKER_LABEL));
+    response.widget_info(|| WidgetInfo::labeled(WidgetType::Button, true, tr(PICKER_LABEL)));
 
     let painter = ui.painter();
     let fill = if response.hovered() {
@@ -66,7 +68,7 @@ pub(super) fn show(ui: &mut Ui, rect: Rect, panel: &mut ViewportPanel) {
         vec![tip + vec2(-3.5, 3.0), tip, tip + vec2(3.5, 3.0)],
         Stroke::new(1.5, theme::TEXT_WEAK),
     );
-    let response = response.on_hover_text("Choose which mouse buttons and keys move the view");
+    let response = response.on_hover_text(tr("Choose which mouse buttons and keys move the view"));
 
     if panel.open_picker {
         Popup::open_id(ui.ctx(), Popup::default_response_id(&response));
@@ -102,14 +104,16 @@ fn list(ui: &mut Ui, settings: &mut NavigationSettings) {
         .show(ui, |ui| {
             ui.spacing_mut().item_spacing.y = 2.0;
             ui.label(
-                egui::RichText::new(PICKER_LABEL)
+                egui::RichText::new(tr(PICKER_LABEL))
                     .color(theme::TEXT_STRONG)
                     .strong(),
             );
             ui.label(
-                egui::RichText::new("How the mouse moves the view. Try them, keep your favourite.")
-                    .small()
-                    .color(theme::TEXT_WEAK),
+                egui::RichText::new(tr(
+                    "How the mouse moves the view. Try them, keep your favourite.",
+                ))
+                .small()
+                .color(theme::TEXT_WEAK),
             );
         });
     for scheme in Scheme::ALL {
@@ -126,14 +130,14 @@ fn list(ui: &mut Ui, settings: &mut NavigationSettings) {
             ui.spacing_mut().item_spacing.y = 4.0;
             ui.checkbox(
                 &mut settings.alt_everywhere,
-                "Alt + mouse works in every scheme",
+                tr("Alt + mouse works in every scheme"),
             );
-            ui.checkbox(&mut settings.around_cursor, AROUND_CURSOR_LABEL)
-                .on_hover_text(
+            ui.checkbox(&mut settings.around_cursor, tr(AROUND_CURSOR_LABEL))
+                .on_hover_text(tr(
                     "Turn around, and zoom towards, whatever is under the mouse \
                      instead of the middle of the view",
-                );
-            ui.checkbox(&mut settings.invert_orbit, "Invert orbit direction");
+                ));
+            ui.checkbox(&mut settings.invert_orbit, tr("Invert orbit direction"));
         });
 }
 

@@ -9,6 +9,7 @@ use crate::components;
 use crate::objects::{self, DocRequest};
 use crate::palette::Mode;
 use crate::panel::Panel;
+use crate::text::tr;
 use crate::transforming::Tool;
 use egui::{Key, Modifiers, Ui};
 use scene::Command;
@@ -139,29 +140,29 @@ impl Workbench {
                     let what = command.describe(self.document.scene());
                     match self.document.execute(command) {
                         Ok(()) => None,
-                        Err(why) => Some(format!("Couldn't {}: {why}.", what.to_lowercase())),
+                        Err(why) => Some(crate::trf!("Couldn't {}: {}.", what.to_lowercase(), why)),
                     }
                 }
                 DocRequest::RunMerging(command, key) => {
                     let what = command.describe(self.document.scene());
                     match self.document.execute_merging(command, key) {
                         Ok(()) => None,
-                        Err(why) => Some(format!("Couldn't {}: {why}.", what.to_lowercase())),
+                        Err(why) => Some(crate::trf!("Couldn't {}: {}.", what.to_lowercase(), why)),
                     }
                 }
                 DocRequest::Undo => Some(match self.document.undo() {
-                    Some(what) => format!("Undone: {what}."),
-                    None => "Nothing to undo.".into(),
+                    Some(what) => crate::trf!("Undone: {}.", what),
+                    None => tr("Nothing to undo.").into(),
                 }),
                 DocRequest::Redo => Some(match self.document.redo() {
-                    Some(what) => format!("Redone: {what}."),
-                    None => "Nothing to redo.".into(),
+                    Some(what) => crate::trf!("Redone: {}.", what),
+                    None => tr("Nothing to redo.").into(),
                 }),
             };
         }
         if self.document.forgotten_steps() > 0 && !self.forgotten_told && self.note.is_none() {
             self.forgotten_told = true;
-            self.note = Some(format!(
+            self.note = Some(crate::trf!(
                 "Undo memory is full ({}): the oldest steps are now forgotten as you work. \
                  Settings → Undo sets the limit.",
                 self.undo_memory.short()
@@ -175,7 +176,7 @@ impl Workbench {
         let targets = crate::layers::layer_targets(&self.document);
         if targets.is_empty() {
             self.note = Some(
-                "Select an object with a shape first: groups and instances have no edit layers."
+                tr("Select an object with a shape first: groups and instances have no edit layers.")
                     .into(),
             );
             return;
@@ -228,9 +229,10 @@ impl Workbench {
             // Finishes a Slit line too, keeping what it cut.
             self.set_tool(Tool::Select);
             self.mode = mode;
-            self.note = Some(format!(
-                "{} mode: selecting ({tool} put away; its key brings it back).",
-                mode.name()
+            self.note = Some(crate::trf!(
+                "{} mode: selecting ({} put away; its key brings it back).",
+                mode.name(),
+                tool
             ));
             return;
         }
@@ -248,7 +250,7 @@ impl Workbench {
             || self.loop_cut_session.is_some()
             || self.pair_session.is_some();
         if dragging {
-            self.note = Some("Let go of the drag (or press Esc) first, then Tab.".into());
+            self.note = Some(tr("Let go of the drag (or press Esc) first, then Tab.").into());
             return;
         }
         let menu = self.tool_menu.is_open();
@@ -262,11 +264,13 @@ impl Workbench {
         let mode = self.mode != Mode::Model;
         self.mode = Mode::Model;
         self.note = Some(if mode || tool || menu {
-            "Back in the Model mode: click an object to select it.".into()
+            tr("Back in the Model mode: click an object to select it.").into()
         } else {
-            "Already in the Model mode: Tab steps back here from editing points, edges or \
-             polygons, or from a modelling tool."
-                .into()
+            tr(
+                "Already in the Model mode: Tab steps back here from editing points, edges or \
+             polygons, or from a modelling tool.",
+            )
+            .into()
         });
     }
 }
@@ -278,13 +282,15 @@ impl Workbench {
     pub(crate) fn toggle_edit_pivot(&mut self) {
         if self.mode == Mode::Object {
             self.mode = Mode::Model;
-            self.note = Some("Edit pivot off: the gizmo moves the objects again.".into());
+            self.note = Some(tr("Edit pivot off: the gizmo moves the objects again.").into());
         } else {
             self.mode = Mode::Object;
             self.note = Some(
-                "Edit pivot on: the gizmo moves and turns the pivots, not the shapes. \
-                 Click Edit pivot again (or press Tab) to stop."
-                    .into(),
+                tr(
+                    "Edit pivot on: the gizmo moves and turns the pivots, not the shapes. \
+                 Click Edit pivot again (or press Tab) to stop.",
+                )
+                .into(),
             );
         }
     }

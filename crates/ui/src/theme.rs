@@ -6,6 +6,7 @@
 //! readability by the tests at the bottom (WCAG contrast 4.5:1 for normal
 //! text).
 
+use crate::text::tr;
 use egui::{
     Color32, Context, CornerRadius, FontData, FontDefinitions, FontFamily, FontId, Frame, Id,
     Margin, Shadow, Stroke, Style, TextStyle, Visuals, vec2,
@@ -108,12 +109,12 @@ impl Accent {
     /// The accent's name, as the menu shows it.
     pub fn name(self) -> &'static str {
         match self {
-            Self::Red => "Red",
-            Self::Blue => "Blue",
-            Self::MarineGreen => "Marine green",
-            Self::Plum => "Plum",
-            Self::Olive => "Olive",
-            Self::PetrolBlue => "Petrol blue",
+            Self::Red => tr("Red"),
+            Self::Blue => tr("Blue"),
+            Self::MarineGreen => tr("Marine green"),
+            Self::Plum => tr("Plum"),
+            Self::Olive => tr("Olive"),
+            Self::PetrolBlue => tr("Petrol blue"),
         }
     }
 

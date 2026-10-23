@@ -6,6 +6,7 @@ use super::UvEditor;
 use super::picking::Hit;
 use super::shape::UvShape;
 use crate::palette::Mode;
+use crate::text::tr;
 use crate::theme;
 use egui::{Align2, Color32, FontId, Pos2, Rect, Stroke, pos2, vec2};
 use glam::Vec2;
@@ -398,8 +399,8 @@ pub(super) fn stretch_note(shapes: &[(ObjectId, UvShape)], hover: Option<Hit>) -
         let at = shape.polygons.iter().position(|(f, _)| *f == face)?;
         let s = shape.stretch.get(at)?;
         return Some(match s.explain() {
-            Some(why) => format!("This polygon {why}"),
-            None => "This polygon lies evenly on the texture.".to_string(),
+            Some(why) => crate::trf!("This polygon {}", why),
+            None => tr("This polygon lies evenly on the texture.").to_string(),
         });
     }
     let off = shapes
@@ -408,9 +409,12 @@ pub(super) fn stretch_note(shapes: &[(ObjectId, UvShape)], hover: Option<Hit>) -
         .filter(|s| s.off() >= uv::stretch::SOME.log2())
         .count();
     Some(match off {
-        0 => "Stretch: every polygon lies evenly.".to_string(),
-        1 => "Stretch: 1 polygon is 1.5 times off or more. Point at it to see why.".to_string(),
-        n => format!("Stretch: {n} polygons are 1.5 times off or more. Point at one to see why."),
+        0 => tr("Stretch: every polygon lies evenly.").to_string(),
+        1 => tr("Stretch: 1 polygon is 1.5 times off or more. Point at it to see why.").to_string(),
+        n => crate::trf!(
+            "Stretch: {} polygons are 1.5 times off or more. Point at one to see why.",
+            n
+        ),
     })
 }
 

@@ -4,6 +4,7 @@
 
 use super::Workbench;
 use crate::palette::Mode;
+use crate::text::tr;
 use mesh::Anchors;
 use scene::{Command, ElementKind, FaceId, VertexId};
 
@@ -12,7 +13,8 @@ impl Workbench {
     /// become an object of their own.
     pub(super) fn run_split_off(&mut self) {
         if self.mode != Mode::Polygons {
-            self.note = Some("Split off works on polygons: press 3 for the Polygons mode.".into());
+            self.note =
+                Some(tr("Split off works on polygons: press 3 for the Polygons mode.").into());
             return;
         }
         let parts: Vec<_> = self
@@ -22,9 +24,9 @@ impl Workbench {
             .collect();
         let [(id, selected, mesh)] = parts.as_slice() else {
             self.note = Some(if parts.is_empty() {
-                "Split off: select some polygons first.".into()
+                tr("Split off: select some polygons first.").into()
             } else {
-                "Split off: select polygons on one object at a time.".into()
+                tr("Split off: select polygons on one object at a time.").into()
             });
             return;
         };
@@ -41,12 +43,13 @@ impl Workbench {
             anchors,
         }) {
             Ok(()) => {
-                self.note = Some(format!(
-                    "Split off {n} polygon{} into a new object. Ctrl + Z takes it back.",
+                self.note = Some(crate::trf!(
+                    "Split off {} polygon{} into a new object. Ctrl + Z takes it back.",
+                    n,
                     if n == 1 { "" } else { "s" }
                 ));
             }
-            Err(why) => self.note = Some(format!("Couldn't split that off: {why}.")),
+            Err(why) => self.note = Some(crate::trf!("Couldn't split that off: {}.", why)),
         }
     }
 }

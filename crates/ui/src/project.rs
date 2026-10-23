@@ -6,6 +6,7 @@
 //! the app as [`crate::WorkbenchAction`]s, and the app reports back
 //! ([`crate::Workbench::saved`], [`crate::Workbench::opened`] and so on).
 
+use crate::text::tr;
 use egui::{Key, KeyboardShortcut, Modifiers};
 use std::path::{Path, PathBuf};
 
@@ -37,8 +38,8 @@ impl Pending {
     /// The end of "Save changes to … before …?".
     pub(crate) fn before(&self) -> &'static str {
         match self {
-            Self::New => "starting a new project",
-            Self::Open(_) => "opening another project",
+            Self::New => tr("starting a new project"),
+            Self::Open(_) => tr("opening another project"),
             Self::Quit => "closing",
         }
     }
@@ -64,7 +65,7 @@ impl ProjectFile {
     /// or "Untitled" before the first save.
     pub(crate) fn name(&self) -> String {
         self.path.as_deref().and_then(Path::file_name).map_or_else(
-            || "Untitled".to_string(),
+            || tr("Untitled").to_string(),
             |n| n.to_string_lossy().into_owned(),
         )
     }
@@ -84,7 +85,7 @@ pub(crate) fn recent_label(path: &Path) -> String {
         |n| n.to_string_lossy().into_owned(),
     );
     match path.parent().and_then(Path::file_name) {
-        Some(folder) => format!("{name}  ({})", folder.to_string_lossy()),
+        Some(folder) => crate::trf!("{}  ({})", name, folder.to_string_lossy()),
         None => name,
     }
 }

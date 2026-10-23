@@ -7,6 +7,7 @@ use super::options::{GridDetail, Shading, Surface, ViewOptions};
 use super::renderer::ViewportView;
 use super::{select, tool_drag};
 use crate::drawing::{SceneDrawing, SceneSummary};
+use crate::text::tr;
 use crate::theme;
 use egui::{Color32, PointerButton, Rect, Response, Ui};
 use glam::{Vec2, Vec3};
@@ -52,8 +53,8 @@ impl Frame {
     /// The menu entry's name.
     pub fn label(self) -> &'static str {
         match self {
-            Self::All => "Frame all",
-            Self::Selected => "Frame selected",
+            Self::All => tr("Frame all"),
+            Self::Selected => tr("Frame selected"),
         }
     }
 
@@ -68,9 +69,9 @@ impl Frame {
     /// What the menu entry's tooltip says.
     pub fn explanation(self) -> &'static str {
         match self {
-            Self::All => "Fit everything in the scene in the view",
+            Self::All => tr("Fit everything in the scene in the view"),
             Self::Selected => {
-                "Fit the selected objects in the view (everything, while nothing is selected)"
+                tr("Fit the selected objects in the view (everything, while nothing is selected)")
             }
         }
     }

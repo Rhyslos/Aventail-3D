@@ -8,6 +8,7 @@
 
 use crate::icons;
 use crate::objects::shape_icon;
+use crate::text::tr;
 use crate::theme::{self, tint};
 use egui::{Context, Key, Modifiers, Pos2, Sense, Ui, WidgetInfo, WidgetType, vec2};
 use scene::PrimitiveKind;
@@ -37,8 +38,8 @@ impl ShapeList {
     /// The list's heading.
     fn title(self) -> &'static str {
         match self {
-            Self::Basic => "Create a shape",
-            Self::More => "More shapes",
+            Self::Basic => tr("Create a shape"),
+            Self::More => tr("More shapes"),
         }
     }
 
@@ -46,15 +47,15 @@ impl ShapeList {
     fn hint(self) -> &'static str {
         match self {
             Self::Basic => {
-                "B: next · Shift + B: back · Enter or Space: create · Alt + B: more shapes"
+                tr("B: next · Shift + B: back · Enter or Space: create · Alt + B: more shapes")
             }
-            Self::More => "B or Alt + B: next · Shift + B: back · Enter or Space: create",
+            Self::More => tr("B or Alt + B: next · Shift + B: back · Enter or Space: create"),
         }
     }
 }
 
 /// Accessible name of the list's entries start with this.
-pub(crate) const ENTRY_PREFIX: &str = "Shape list: ";
+pub(crate) const ENTRY_PREFIX: &str = crate::text!("Shape list: ");
 
 /// The list while it is open.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -192,7 +193,7 @@ impl ShapePicker {
                                 WidgetType::SelectableLabel,
                                 true,
                                 index == open.highlight,
-                                format!("{ENTRY_PREFIX}{}", kind.name()),
+                                format!("{}{}", tr(ENTRY_PREFIX), kind.name()),
                             )
                         });
                         let lit = index == open.highlight;

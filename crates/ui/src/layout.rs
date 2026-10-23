@@ -1,6 +1,7 @@
 //! The arrangement of panels: the default, and checks on saved arrangements.
 
 use crate::panel::Panel;
+use crate::text::tr;
 use egui_dock::{DockState, Node, NodeIndex, SurfaceIndex};
 
 /// Share of the window width given to the viewport column (the right
@@ -262,7 +263,7 @@ pub fn restore_or_default(saved: Option<DockState<Panel>>) -> (DockState<Panel>,
                 (
                     default_layout(),
                     Some(
-                        "The saved panel layout was incomplete, so the standard layout is used."
+                        tr("The saved panel layout was incomplete, so the standard layout is used.")
                             .into(),
                     ),
                 )
@@ -270,7 +271,9 @@ pub fn restore_or_default(saved: Option<DockState<Panel>>) -> (DockState<Panel>,
         }
         Some(_) => (
             default_layout(),
-            Some("The saved panel layout was incomplete, so the standard layout is used.".into()),
+            Some(
+                tr("The saved panel layout was incomplete, so the standard layout is used.").into(),
+            ),
         ),
     }
 }

@@ -116,22 +116,22 @@ impl TabViewer for PanelViewer<'_> {
                 menu_line_with(ui, |ui| {
                     // The main UV menu, here too (issue #115).
                     let uv = ui
-                        .add(egui::Button::new(UV_EDITOR_UV_MENU).frame_when_inactive(false))
-                        .on_hover_text(
+                        .add(egui::Button::new(tr(UV_EDITOR_UV_MENU)).frame_when_inactive(false))
+                        .on_hover_text(tr(
                             "Every UV command and setting, as in the UV menu at the top",
-                        );
+                        ));
                     *self.uv_menu_button = Some(uv);
-                    crate::dialog::menu(ui, "Texture", |ui| {
+                    crate::dialog::menu(ui, tr("Texture"), |ui| {
                         crate::uv_editor::texture_menu(ui, self.document);
                     });
-                    crate::dialog::menu(ui, "Trim", |ui| {
+                    crate::dialog::menu(ui, tr("Trim"), |ui| {
                         crate::uv_editor::trim_menu(ui, self.document);
                     });
                     // Stays open while snapshots are taken and put back, so
                     // what each did can be read in it.
-                    egui::containers::menu::MenuButton::new(tr(
+                    egui::containers::menu::MenuButton::new(tr(tr(
                         crate::uv_editor::snapshots::SNAPSHOTS_MENU,
-                    ))
+                    )))
                     .config(
                         crate::dialog::menu_config()
                             .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside),
@@ -144,7 +144,7 @@ impl TabViewer for PanelViewer<'_> {
                             self.uv_editor,
                         );
                     });
-                    crate::dialog::menu(ui, "View", |ui| {
+                    crate::dialog::menu(ui, tr("View"), |ui| {
                         for what in [
                             crate::uv_editor::UvFrame::Square,
                             crate::uv_editor::UvFrame::Selected,
@@ -165,20 +165,20 @@ impl TabViewer for PanelViewer<'_> {
                         let mut explain = self.uv_editor.explaining();
                         if ui
                             .checkbox(&mut explain, tr(crate::uv_editor::explain::EXPLAIN_CHOICES))
-                            .on_hover_text(
+                            .on_hover_text(tr(
                                 "Point at a seam or a piece to see why it's there and how to \
                                  change it",
-                            )
+                            ))
                             .changed()
                         {
                             self.uv_editor.set_explaining(explain);
                         }
                         if ui
-                            .checkbox(&mut numbers, crate::uv_editor::checking::PIECE_NUMBERS)
-                            .on_hover_text(
+                            .checkbox(&mut numbers, tr(crate::uv_editor::checking::PIECE_NUMBERS))
+                            .on_hover_text(tr(
                                 "Write on each piece its size in texture pixels, its texel \
                                  density and, if it's uneven, how stretched it is",
-                            )
+                            ))
                             .changed()
                         {
                             self.uv_editor.set_piece_numbers(numbers);
@@ -187,12 +187,12 @@ impl TabViewer for PanelViewer<'_> {
                         if ui
                             .add(egui::Button::selectable(
                                 measuring,
-                                crate::uv_editor::checking::MEASURE,
+                                tr(crate::uv_editor::checking::MEASURE),
                             ))
-                            .on_hover_text(
+                            .on_hover_text(tr(
                                 "Then drag in the editor: the line's length in texture pixels \
                                  and on the surface, in centimetres. Esc stops.",
-                            )
+                            ))
                             .clicked()
                         {
                             self.uv_editor.set_measuring(!measuring);

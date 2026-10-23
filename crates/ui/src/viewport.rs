@@ -23,6 +23,7 @@ mod select;
 mod tool_drag;
 mod view;
 
+use crate::text::tr;
 use egui::{Color32, PointerButton, Rect, Sense, Ui, pos2};
 use glam::Vec2;
 use tools::{Camera, DragKind, Navigator, ViewKind};
@@ -60,7 +61,7 @@ pub(crate) fn dice_point(camera: &Camera, rect: Rect, side: glam::IVec3) -> Opti
 }
 
 /// Accessible name of the 3D image, and the label tests look for.
-pub const VIEWPORT_LABEL: &str = "3D viewport";
+pub const VIEWPORT_LABEL: &str = crate::text!("3D viewport");
 
 /// How many views the viewport holds: perspective, top, front and right,
 /// shown one at a time or all four at once.
@@ -491,9 +492,13 @@ impl ViewportPanel {
                 Sense::click_and_drag(),
             );
             let label = if four {
-                format!("{VIEWPORT_LABEL} ({})", self.views[slot].kind().name())
+                crate::trf!(
+                    "{} ({})",
+                    tr(VIEWPORT_LABEL),
+                    self.views[slot].kind().name()
+                )
             } else {
-                VIEWPORT_LABEL.to_string()
+                tr(VIEWPORT_LABEL).to_string()
             };
             response
                 .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Other, true, &label));

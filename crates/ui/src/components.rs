@@ -10,6 +10,7 @@
 
 use crate::drawing::{ComponentOverlay, DrawItem, OverlayStyle, SceneDrawing};
 use crate::palette::Mode;
+use crate::text::tr;
 use glam::{Vec2, Vec3};
 use scene::{Document, ElementSelection, ObjectId};
 use std::collections::HashMap;
@@ -529,14 +530,14 @@ pub(crate) fn describe(document: &Document, (id, element): ObjectElement) -> Str
     let name = document
         .scene()
         .object(id)
-        .map_or_else(|| "an object".to_string(), |o| o.name.clone());
+        .map_or_else(|| tr("an object").to_string(), |o| o.name.clone());
     match element {
-        Element::Point(v) => format!("point {} of {name}", v.get()),
+        Element::Point(v) => crate::trf!("point {} of {}", v.get(), name),
         Element::Edge(e) => {
             let (a, b) = e.ends();
-            format!("edge {}–{} of {name}", a.get(), b.get())
+            crate::trf!("edge {}–{} of {}", a.get(), b.get(), name)
         }
-        Element::Polygon(f) => format!("polygon {} of {name}", f.get()),
+        Element::Polygon(f) => crate::trf!("polygon {} of {}", f.get(), name),
     }
 }
 

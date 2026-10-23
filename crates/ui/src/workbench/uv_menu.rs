@@ -11,32 +11,40 @@ impl Workbench {
     /// The UV menu: the seam tools, turns and flips, and what is coming,
     /// from the command list (decision 0098).
     pub(super) fn uv_menu_entries(&mut self, ui: &mut Ui, requests: &mut Vec<DocRequest>) {
-        ui.menu_button(UV_SEAMS_MENU, |ui| self.uv_seams_entries(ui, requests))
+        ui.menu_button(tr(UV_SEAMS_MENU), |ui| self.uv_seams_entries(ui, requests))
             .response
-            .on_hover_text("Mark, clear, suggest and select seams, and say where they may go");
-        ui.menu_button(UV_TURN_MENU, |ui| self.uv_turn_entries(ui, requests))
+            .on_hover_text(tr(
+                "Mark, clear, suggest and select seams, and say where they may go",
+            ));
+        ui.menu_button(tr(UV_TURN_MENU), |ui| self.uv_turn_entries(ui, requests))
             .response
-            .on_hover_text("Quarter turns and mirrors of the selected UVs");
-        ui.menu_button(UV_LAY_OUT_MENU, |ui| self.uv_lay_out_entries(ui, requests))
-            .response
-            .on_hover_text("Unwrap, relax, straighten, pack, texel density and trim rows");
-        ui.menu_button(UV_PIECES_MENU, |ui| self.uv_pieces_entries(ui, requests))
-            .response
-            .on_hover_text(
-                "Pin UVs, lock pieces, and give pieces settings and budgets of their own",
-            );
+            .on_hover_text(tr("Quarter turns and mirrors of the selected UVs"));
+        ui.menu_button(tr(UV_LAY_OUT_MENU), |ui| {
+            self.uv_lay_out_entries(ui, requests)
+        })
+        .response
+        .on_hover_text(tr(
+            "Unwrap, relax, straighten, pack, texel density and trim rows",
+        ));
+        ui.menu_button(tr(UV_PIECES_MENU), |ui| {
+            self.uv_pieces_entries(ui, requests)
+        })
+        .response
+        .on_hover_text(tr(
+            "Pin UVs, lock pieces, and give pieces settings and budgets of their own",
+        ));
         ui.separator();
-        ui.menu_button("Texture", |ui| {
+        ui.menu_button(tr("Texture"), |ui| {
             crate::uv_editor::texture_menu(ui, &mut self.document);
         });
-        ui.menu_button("Trim sheet", |ui| {
+        ui.menu_button(tr("Trim sheet"), |ui| {
             crate::uv_editor::trim_menu(ui, &mut self.document);
         });
         self.bake_entry(ui);
         ui.separator();
-        ui.menu_button(UV_SETTINGS_MENU, |ui| self.automation_menus(ui))
+        ui.menu_button(tr(UV_SETTINGS_MENU), |ui| self.automation_menus(ui))
             .response
-            .on_hover_text("Every setting of the automatic UV tools");
+            .on_hover_text(tr("Every setting of the automatic UV tools"));
     }
 
     /// UV → Seams.
@@ -175,11 +183,11 @@ impl Workbench {
                         .format_shortcut(&crate::selecting::CONNECTED_SHORTCUT),
                 ),
             )
-            .on_hover_text(
+            .on_hover_text(tr(
                 "Select the whole pieces the selection is in: a little of a piece \
                  (a point, an edge or a polygon) brings the whole piece, parted at seams. \
                  Use it to pick one of two overlapping pieces and move it away.",
-            )
+            ))
             .clicked()
         {
             self.select_requests
@@ -213,25 +221,25 @@ impl Workbench {
             self.piece_settings_menu(ui);
         })
         .response
-        .on_hover_text("Give the selected pieces their own unwrap settings");
+        .on_hover_text(tr("Give the selected pieces their own unwrap settings"));
         ui.menu_button(tr(seam_preferences::BUDGET_LABEL), |ui| {
             self.budget_menu(ui)
         })
         .response
-        .on_hover_text("Give the selected pieces a stretch budget of their own");
+        .on_hover_text(tr("Give the selected pieces a stretch budget of their own"));
     }
 }
 
 /// The UV Editor's own UV menu (issue #115).
-pub(crate) const UV_EDITOR_UV_MENU: &str = "UV";
+pub(crate) const UV_EDITOR_UV_MENU: &str = crate::text!("UV");
 
 /// The UV menu's groups (the project lead's choice, decision 0113).
-pub(crate) const UV_SEAMS_MENU: &str = "Seams";
+pub(crate) const UV_SEAMS_MENU: &str = crate::text!("Seams");
 
-pub(crate) const UV_TURN_MENU: &str = "Turn and flip";
+pub(crate) const UV_TURN_MENU: &str = crate::text!("Turn and flip");
 
-pub(crate) const UV_LAY_OUT_MENU: &str = "Lay out";
+pub(crate) const UV_LAY_OUT_MENU: &str = crate::text!("Lay out");
 
-pub(crate) const UV_PIECES_MENU: &str = "Pieces";
+pub(crate) const UV_PIECES_MENU: &str = crate::text!("Pieces");
 
-pub(crate) const UV_SETTINGS_MENU: &str = "Settings";
+pub(crate) const UV_SETTINGS_MENU: &str = crate::text!("Settings");

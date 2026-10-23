@@ -7,6 +7,7 @@ use super::tool_rows::{
     profile_row, segments_row, through_row,
 };
 use super::{AttributesPanel, LABEL_WIDTH, section};
+use crate::text::tr;
 use crate::theme;
 use crate::transforming::Tool;
 use crate::units::Units;
@@ -147,21 +148,31 @@ impl AttributesPanel {
                 });
         });
         let hint = if self.tool == Tool::Bridge {
-            "Drag from one open edge to another. With two borders or two polygons selected, C \
-             bridges them at once."
+            tr(
+                "Drag from one open edge to another. With two borders or two polygons selected, C \
+             bridges them at once.",
+            )
         } else if self.tool == Tool::Weld {
-            "Drag a point (or a polygon, in the Polygons mode) onto a point; a selected one \
-             brings the whole selection."
+            tr(
+                "Drag a point (or a polygon, in the Polygons mode) onto a point; a selected one \
+             brings the whole selection.",
+            )
         } else if self.tool == Tool::Slit {
-            "Click or drag points over the shape. Esc or Enter finishes the line; click the first point to close it into a loop."
+            tr(
+                "Click or drag points over the shape. Esc or Enter finishes the line; click the first point to close it into a loop.",
+            )
         } else if self.tool == Tool::LoopCut {
-            "Point at an edge to see the loop; click to cut, or drag along the edge to slide it."
+            tr(
+                "Point at an edge to see the loop; click to cut, or drag along the edge to slide it.",
+            )
         } else if self.tool == Tool::Bevel {
-            "Drag away from the selected edges or points to widen. Hold Shift for fine steps."
+            tr("Drag away from the selected edges or points to widen. Hold Shift for fine steps.")
         } else if self.tool == Tool::Groove {
-            "Drag into the surface for a groove, out of it for a ridge. Hold Shift for fine steps."
+            tr(
+                "Drag into the surface for a groove, out of it for a ridge. Hold Shift for fine steps.",
+            )
         } else {
-            "Drag anywhere in the viewport. Hold Shift for fine steps."
+            tr("Drag anywhere in the viewport. Hold Shift for fine steps.")
         };
         ui.label(RichText::new(hint).small().color(theme::TEXT_WEAK));
     }

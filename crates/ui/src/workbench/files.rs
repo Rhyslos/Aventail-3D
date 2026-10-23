@@ -5,6 +5,7 @@
 use super::exporting::TargetOutcome;
 use super::{Workbench, WorkbenchAction, exporting};
 use crate::project::{NEW_SHORTCUT, OPEN_SHORTCUT, Pending, SAVE_AS_SHORTCUT, SAVE_SHORTCUT};
+use crate::text::tr;
 use egui::{Key, KeyboardShortcut, Modifiers, Ui};
 use scene::Document;
 use std::path::{Path, PathBuf};
@@ -15,13 +16,15 @@ impl Workbench {
     /// after the name, so it shows at a glance even in the taskbar.
     pub fn title(&self) -> String {
         let (dot, changed) = if self.has_unsaved_changes() {
-            ("● ", " (unsaved)")
+            ("● ", tr(" (unsaved)"))
         } else {
             ("", "")
         };
-        format!(
-            "{dot}{}{changed} — {} {}",
+        crate::trf!(
+            "{}{}{} — {} {}",
+            dot,
             self.file.name(),
+            changed,
             self.info.name,
             self.info.version
         )
@@ -61,7 +64,7 @@ impl Workbench {
     /// game project folder (decision 0076), with this outcome: the
     /// file written and what it held, or why not.
     pub fn saved_with_export(&mut self, path: PathBuf, export: Option<TargetOutcome>) {
-        let mut note = format!("Saved {}.", file_name(&path));
+        let mut note = crate::trf!("Saved {}.", file_name(&path));
         if let Some(outcome) = export {
             note.push(' ');
             note.push_str(&exporting::target_note(&outcome));
@@ -77,7 +80,7 @@ impl Workbench {
 
     /// Saving failed: says why, and stops whatever was waiting for it.
     pub fn save_failed(&mut self, reason: &str) {
-        self.note = Some(format!("Couldn't save: {reason}."));
+        self.note = Some(crate::trf!("Couldn't save: {}.", reason));
         self.file.after_save = None;
     }
 
@@ -92,7 +95,7 @@ impl Workbench {
     /// history, and the view frames it.
     pub fn opened(&mut self, document: Document, path: PathBuf) {
         self.replace_document(document);
-        self.note = Some(format!("Opened {}.", file_name(&path)));
+        self.note = Some(crate::trf!("Opened {}.", file_name(&path)));
         self.file.remember(&path);
         self.file.path = Some(path);
         self.viewport.frame(crate::Frame::All);
@@ -101,7 +104,11 @@ impl Workbench {
     /// Opening `path` failed: says why. A recent project that can no
     /// longer be found is taken off the list.
     pub fn open_failed(&mut self, path: &Path, reason: &str) {
-        self.note = Some(format!("Couldn't open {}: {reason}.", file_name(path)));
+        self.note = Some(crate::trf!(
+            "Couldn't open {}: {}.",
+            file_name(path),
+            reason
+        ));
         if !path.exists() {
             self.file.recent.retain(|p| p != path);
         }
@@ -137,7 +144,7 @@ impl Workbench {
             Pending::New => {
                 self.replace_document(self.new_document());
                 self.file.path = None;
-                self.note = Some("New project.".into());
+                self.note = Some(tr("New project.").into());
             }
             Pending::Open(path) => self.queued.push(WorkbenchAction::Open { path }),
             Pending::Quit => self.queued.push(WorkbenchAction::Quit),
@@ -169,27 +176,27 @@ impl Workbench {
         };
         let mut answer = None;
         let discard = ctx.format_shortcut(&DISCARD_SHORTCUT);
-        let keys = format!("Enter: save · {discard}: don't save · Esc: cancel");
-        crate::dialog::Dialog::new(format!("Save changes to {}?", self.file.name()), 440.0)
+        let keys = crate::trf!("Enter: save · {}: don't save · Esc: cancel", discard);
+        crate::dialog::Dialog::new(crate::trf!("Save changes to {}?", self.file.name()), 440.0)
             .id("unsaved_changes")
             .modal()
             .show(ctx, |d| {
                 d.header(false, |_| {});
                 d.body(|ui| {
-                    ui.label(format!(
+                    ui.label(crate::trf!(
                         "Your changes will be lost if you don't save them before {}.",
                         pending.before()
                     ));
                     crate::dialog::help(ui, &keys);
                 });
                 d.footer(None, |ui| {
-                    if crate::dialog::main_button(ui, "Save").clicked() {
+                    if crate::dialog::main_button(ui, tr("Save")).clicked() {
                         answer = Some(UnsavedAnswer::Save);
                     }
-                    if crate::dialog::plain_button(ui, "Cancel").clicked() {
+                    if crate::dialog::plain_button(ui, tr("Cancel")).clicked() {
                         answer = Some(UnsavedAnswer::Cancel);
                     }
-                    if crate::dialog::plain_button(ui, "Don't save").clicked() {
+                    if crate::dialog::plain_button(ui, tr("Don't save")).clicked() {
                         answer = Some(UnsavedAnswer::Discard);
                     }
                 });

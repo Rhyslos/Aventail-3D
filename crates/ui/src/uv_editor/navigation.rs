@@ -4,6 +4,7 @@
 
 use super::shape::UvShape;
 use super::{EditorDrag, UvEditor};
+use crate::text::tr;
 use egui::{Key, Pos2, Rect, Response, Ui, pos2};
 use glam::Vec2;
 use scene::{Document, Element, ObjectId};
@@ -27,8 +28,8 @@ impl UvFrame {
     /// The menu entry's name.
     pub(crate) fn label(self) -> &'static str {
         match self {
-            Self::Square => "Frame the texture square",
-            Self::Selected => "Frame selected",
+            Self::Square => tr("Frame the texture square"),
+            Self::Selected => tr("Frame selected"),
         }
     }
 

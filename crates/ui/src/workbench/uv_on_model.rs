@@ -17,6 +17,7 @@
 use super::Workbench;
 use crate::drawing::SceneDrawing;
 use crate::palette::Mode;
+use crate::text::tr;
 use crate::transforming::Tool;
 use crate::uv_editor::gizmo::{self, UvTarget};
 use crate::viewport::ToolDragEvent;
@@ -157,7 +158,7 @@ impl Workbench {
             })
             .collect();
         self.document
-            .select_elements(changes, "Select pieces", None);
+            .select_elements(changes, tr("Select pieces"), None);
     }
 
     /// The drag's start: what it moves, about where, and how screen
@@ -218,8 +219,8 @@ impl Workbench {
                     self.uv_model_drag = self.begin_uv_model_drag(drawing, &pointer);
                     if self.uv_model_drag.is_none() {
                         self.note = Some(
-                            "Select the islands to move first (click one on the model or in the \
-                             UV Editor)."
+                            tr("Select the islands to move first (click one on the model or in the \
+                             UV Editor).")
                                 .into(),
                         );
                     }
@@ -240,9 +241,9 @@ impl Workbench {
                     }
                     session.shown = None;
                     let label = match session.tool {
-                        Tool::Rotate => "Rotate UVs",
-                        Tool::Scale => "Scale UVs",
-                        _ => "Move UVs",
+                        Tool::Rotate => tr("Rotate UVs"),
+                        Tool::Scale => tr("Scale UVs"),
+                        _ => tr("Move UVs"),
                     };
                     if change != Affine2::IDENTITY {
                         match gizmo::record(
@@ -253,14 +254,14 @@ impl Workbench {
                             session.key,
                         ) {
                             Ok(()) => session.shown = Some(change),
-                            Err(why) => self.note = Some(format!("Couldn't do that: {why}.")),
+                            Err(why) => self.note = Some(crate::trf!("Couldn't do that: {}.", why)),
                         }
                     }
                     self.viewport.set_tool_label(Some(label.to_string()));
                 }
                 ToolDragEvent::End => {
                     if self.uv_model_drag.take().is_some_and(|s| s.shown.is_some()) {
-                        self.note = Some("Done. Ctrl + Z takes it back.".into());
+                        self.note = Some(tr("Done. Ctrl + Z takes it back.").into());
                     }
                     self.viewport.set_tool_label(None);
                 }
@@ -269,7 +270,7 @@ impl Workbench {
                         && session.shown.is_some()
                     {
                         self.document.abandon(session.key);
-                        self.note = Some("Cancelled: the UVs are back where they were.".into());
+                        self.note = Some(tr("Cancelled: the UVs are back where they were.").into());
                     }
                     self.viewport.set_tool_label(None);
                 }

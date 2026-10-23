@@ -7,6 +7,7 @@ use super::Workbench;
 use crate::layout::{default_layout, fit_coordinates};
 use crate::palette::Mode;
 use crate::panel::Panel;
+use crate::text::tr;
 use crate::theme;
 use crate::transforming::Tool;
 use egui::Ui;
@@ -25,18 +26,24 @@ pub enum LayoutChoice {
 
 /// The layout tabs, left to right: a layout's name, the layout (or, for
 /// one not built yet, when it arrives) and what it is for.
-const LAYOUTS: [(&str, Result<LayoutChoice, &str>, &str); 2] = [
-    (
-        "Standard",
-        Ok(LayoutChoice::Standard),
-        "The standard layout",
-    ),
-    (
-        "UV Edit",
-        Ok(LayoutChoice::UvEdit),
-        "The viewport and the UV Editor side by side, in the UV mode",
-    ),
-];
+fn layouts() -> [(
+    &'static str,
+    Result<LayoutChoice, &'static str>,
+    &'static str,
+); 2] {
+    [
+        (
+            tr("Standard"),
+            Ok(LayoutChoice::Standard),
+            tr("The standard layout"),
+        ),
+        (
+            tr("UV Edit"),
+            Ok(LayoutChoice::UvEdit),
+            tr("The viewport and the UV Editor side by side, in the UV mode"),
+        ),
+    ]
+}
 
 impl Workbench {
     /// The standard panel layout, for saving between sessions.
@@ -96,9 +103,9 @@ impl Workbench {
     pub fn toggle_uv_editor(&mut self) {
         let shown = crate::layout::toggle_uv_editor(&mut self.dock);
         self.note = Some(if shown {
-            "UV Editor shown beside the viewport. Window → UV Editor puts it away.".into()
+            tr("UV Editor shown beside the viewport. Window → UV Editor puts it away.").into()
         } else {
-            "UV Editor put away. Window → UV Editor brings it back.".into()
+            tr("UV Editor put away. Window → UV Editor brings it back.").into()
         });
     }
 
@@ -109,7 +116,7 @@ impl Workbench {
             LayoutChoice::UvEdit => crate::layout::uv_edit_layout(),
         };
         self.fit_pending = true;
-        self.note = Some("Panel layout reset to the standard arrangement.".into());
+        self.note = Some(tr("Panel layout reset to the standard arrangement.").into());
     }
 
     /// Gives Coordinates exactly the height it needs (decision 0126's slim
@@ -162,7 +169,8 @@ pub(super) fn layout_tabs(
     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
         ui.spacing_mut().item_spacing.x = 16.0;
         ui.add_space(6.0);
-        let tabs = LAYOUTS.iter().rev().collect::<Vec<_>>();
+        let all = layouts();
+        let tabs = all.iter().rev().collect::<Vec<_>>();
         let picked = layout_tab_labels(ui, &tabs, current);
         ui.add_space(12.0);
         project_badge(ui, project, unsaved);
@@ -178,7 +186,7 @@ fn project_badge(ui: &mut Ui, project: &str, unsaved: bool) {
     ui.spacing_mut().item_spacing.x = 6.0;
     if unsaved {
         let accent = theme::accent(ui.ctx()).colors();
-        let text = egui::RichText::new("Unsaved")
+        let text = egui::RichText::new(tr("Unsaved"))
             .small()
             .strong()
             .color(theme::TEXT_STRONG);
@@ -197,18 +205,18 @@ fn project_badge(ui: &mut Ui, project: &str, unsaved: bool) {
             theme::TEXT_STRONG,
         );
         response
-            .on_hover_text(format!(
+            .on_hover_text(crate::trf!(
                 "Changes since the last save. {} saves.",
                 ui.ctx().format_shortcut(&crate::SAVE_SHORTCUT)
             ))
             .widget_info(|| {
-                egui::WidgetInfo::labeled(egui::WidgetType::Label, true, "Unsaved changes")
+                egui::WidgetInfo::labeled(egui::WidgetType::Label, true, tr("Unsaved changes"))
             });
     }
     ui.add(
         egui::Label::new(egui::RichText::new(project).color(theme::TEXT_WEAK)).selectable(false),
     )
-    .on_hover_text("The project open now");
+    .on_hover_text(tr("The project open now"));
 }
 
 /// The layout tabs themselves, right to left. Returns the one clicked.
@@ -234,7 +242,7 @@ fn layout_tab_labels(
                     egui::Stroke::new(2.0, accent.light),
                 );
                 response
-                    .on_hover_text(format!("{help} (in use)"))
+                    .on_hover_text(crate::trf!("{} (in use)", help))
                     .widget_info(|| {
                         egui::WidgetInfo::selected(egui::WidgetType::Button, true, true, *name)
                     });

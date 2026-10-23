@@ -5,6 +5,7 @@
 
 use super::options::{GridDetail, Shading, Surface};
 use crate::drawing::{ComponentOverlay, SceneDrawing};
+use crate::text::tr;
 use glam::{Mat4, Vec3};
 use std::sync::Arc;
 
@@ -119,7 +120,7 @@ pub struct NoRenderer {
 impl Default for NoRenderer {
     fn default() -> Self {
         Self {
-            reason: "no graphics device".to_string(),
+            reason: tr("no graphics device").to_string(),
         }
     }
 }

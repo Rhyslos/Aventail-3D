@@ -9,6 +9,7 @@ use crate::commands::ALL;
 use crate::objects::DocRequest;
 use crate::palette::Mode;
 use crate::project::Pending;
+use crate::text::tr;
 use crate::tool_menu::Ready;
 use crate::workbench::WorkbenchAction;
 use egui::{Modifiers, Ui};
@@ -25,11 +26,11 @@ impl Workbench {
             }
             let info = command.info();
             let place = if command.modes().contains(&Mode::Uv) {
-                "UV"
+                tr("UV")
             } else if command.modes().contains(&Mode::Model) {
-                "Object"
+                tr("Object")
             } else {
-                "Mesh"
+                tr("Mesh")
             };
             out.push(SearchEntry {
                 name: info.name.to_string(),
@@ -46,8 +47,8 @@ impl Workbench {
         }
         for mode in Mode::SHOWN {
             out.push(SearchEntry {
-                name: format!("{} mode", mode.name()),
-                place: "Modes".into(),
+                name: crate::trf!("{} mode", mode.name()),
+                place: tr("Modes").into(),
                 help: mode.description().to_string(),
                 keys: mode.key().map(|k| k.name().to_string()),
                 not_now: None,
@@ -68,7 +69,7 @@ impl Workbench {
         for kind in PrimitiveKind::ALL {
             out.push(SearchEntry {
                 name: kind.name().to_string(),
-                place: "Create".into(),
+                place: tr("Create").into(),
                 help: kind.description().to_string(),
                 keys: None,
                 not_now: None,
@@ -191,7 +192,7 @@ impl Workbench {
     /// Help → User manual: opens the manual in the web browser.
     pub(crate) fn open_manual(&mut self, ctx: &egui::Context) {
         ctx.open_url(egui::OpenUrl::new_tab(&self.info.manual_url));
-        self.note = Some("The user manual opens in your web browser.".into());
+        self.note = Some(tr("The user manual opens in your web browser.").into());
     }
 
     /// Help → Words used in the app: the manual's glossary page, beside
@@ -202,7 +203,7 @@ impl Workbench {
             None => self.info.manual_url.clone(),
         };
         ctx.open_url(egui::OpenUrl::new_tab(url));
-        self.note = Some("The glossary opens in your web browser.".into());
+        self.note = Some(tr("The glossary opens in your web browser.").into());
     }
 
     /// Whether the search is open.

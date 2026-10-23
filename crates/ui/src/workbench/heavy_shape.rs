@@ -3,6 +3,7 @@
 //! (DESIGN.md §4.8).
 
 use super::Workbench;
+use crate::text::tr;
 use scene::{Command, ObjectKind};
 
 /// How many polygons Help → Add a heavy test shape makes.
@@ -22,7 +23,7 @@ impl Workbench {
         const HEAVY_SHAPE_KEY: u64 = 0x4845_4156_0000_0000;
         self.sessions += 1;
         let key = Some(HEAVY_SHAPE_KEY | self.sessions);
-        let label = "Add heavy test shape";
+        let label = tr("Add heavy test shape");
         let ball = mesh::samples::heavy_ball(polygons, 100.0);
         let created = self.document.execute_labelled(
             Command::Create(ObjectKind::Mesh(std::sync::Arc::new(ball))),
@@ -35,7 +36,7 @@ impl Workbench {
             let _ = self.document.execute_labelled(
                 Command::Rename {
                     id,
-                    name: "Heavy test shape".into(),
+                    name: tr("Heavy test shape").into(),
                 },
                 label,
                 key,

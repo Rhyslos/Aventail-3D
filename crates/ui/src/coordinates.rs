@@ -16,6 +16,7 @@
 //! A change to a field is carried out by the workbench as a move, a scale
 //! or a turn, one undo step per drag or typed value.
 
+use crate::text::tr;
 use crate::theme::{self, tint};
 use crate::transforming::{Target, Targets};
 use crate::units::Units;
@@ -140,9 +141,9 @@ pub(crate) fn show(ui: &mut Ui, units: Units, view: &CoordinatesView) -> Interac
         ("Z", tint::AXIS_Z, 0),
     ];
     let groups: [Group; 3] = [
-        ("Position", position, view.position, Field::Position),
-        ("Size", position, view.size, Field::Size),
-        ("Rotation", rotation, view.rotation, Field::Rotation),
+        (tr("Position"), position, view.position, Field::Position),
+        (tr("Size"), position, view.size, Field::Size),
+        (tr("Rotation"), rotation, view.rotation, Field::Rotation),
     ];
     const GROUP_GAP: f32 = 16.0;
     const FIELD_GAP: f32 = 4.0;
@@ -179,17 +180,17 @@ pub(crate) fn show(ui: &mut Ui, units: Units, view: &CoordinatesView) -> Interac
                     color,
                 );
                 let field = field_of(index);
-                let label = format!("{title} {axis}");
+                let label = crate::trf!("{} {}", title, axis);
                 let value = values.map(|v| v[index]);
                 field_widget(ui, &label, field, value, units, field_width, &mut out);
             }
             ui.add_space(GROUP_GAP);
         }
-        ui.label(RichText::new("World").color(theme::TEXT_WEAK))
-            .on_hover_text(
+        ui.label(RichText::new(tr("World")).color(theme::TEXT_WEAK))
+            .on_hover_text(tr(
                 "Positions are in the world. Type a value and press Enter, or drag \
                  the number sideways. Each change is one undo step.",
-            );
+            ));
     });
     out
 }
@@ -210,9 +211,9 @@ fn field_widget(
         let response = ui.add_enabled(false, egui::Button::new("—").min_size(size));
         response.widget_info(|| WidgetInfo::labeled(WidgetType::DragValue, false, label));
         response.on_disabled_hover_text(match field {
-            Field::Rotation(_) => "Rotation shows for one object in the Model and Object modes",
-            Field::Size(_) => "Size shows for a selection; a pivot (Object mode) has none",
-            _ => "Select something to see and type its coordinates",
+            Field::Rotation(_) => tr("Rotation shows for one object in the Model and Object modes"),
+            Field::Size(_) => tr("Size shows for a selection; a pivot (Object mode) has none"),
+            _ => tr("Select something to see and type its coordinates"),
         });
         return;
     };

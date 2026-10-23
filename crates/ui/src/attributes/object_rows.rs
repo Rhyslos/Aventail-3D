@@ -4,6 +4,7 @@
 use super::fields::{Value, fields};
 use super::{AttributesPanel, FIELD_WIDTH, LABEL_WIDTH, label, stepper};
 use crate::objects::{DocRequest, kind_icon};
+use crate::text::tr;
 use crate::theme;
 use crate::units::Units;
 use egui::{Ui, vec2};
@@ -20,7 +21,7 @@ impl AttributesPanel {
         name: &str,
         out: &mut Vec<DocRequest>,
     ) {
-        label(ui, "Name", "The name shown in the Objects panel");
+        label(ui, tr("Name"), tr("The name shown in the Objects panel"));
         if self
             .name_draft
             .as_ref()
@@ -33,7 +34,7 @@ impl AttributesPanel {
         };
         let response = ui.add(egui::TextEdit::singleline(draft).desired_width(FIELD_WIDTH));
         response.widget_info(|| {
-            egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, "Object name")
+            egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, tr("Object name"))
         });
         if response.lost_focus() {
             if ui.input(|i| i.key_pressed(egui::Key::Escape)) || draft.trim().is_empty() {
@@ -169,9 +170,11 @@ pub(super) fn collision_row(
 ) {
     label(
         ui,
-        "Collision",
-        "The collision shape Godot makes for it when you export for Godot: what the player \
+        tr("Collision"),
+        tr(
+            "The collision shape Godot makes for it when you export for Godot: what the player \
          bumps into",
+        ),
     );
     let mut chosen = current;
     let response = egui::ComboBox::from_id_salt(("collision", id))
@@ -186,7 +189,7 @@ pub(super) fn collision_row(
         .response
         .on_hover_text(current.description());
     response.widget_info(|| {
-        egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, true, "Collision shape")
+        egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, true, tr("Collision shape"))
     });
     if chosen != current {
         out.push(DocRequest::Run(Command::SetCollision {
@@ -208,16 +211,23 @@ pub(super) fn smoothing_row(
 ) {
     label(
         ui,
-        "Smoothing",
-        "How the shading breaks into crisp edges. By angle: wherever polygons meet more \
+        tr("Smoothing"),
+        tr(
+            "How the shading breaks into crisp edges. By angle: wherever polygons meet more \
          sharply than the angle, after every change. Unticked: only the edges you mark hard \
          (Mesh → Mark hard edges). Marking edges switches it to that.",
+        ),
     );
     ui.horizontal(|ui| {
         let mut by_angle = matches!(current, mesh::Hardness::ByAngle(_));
-        let switch = ui.checkbox(&mut by_angle, "By angle");
+        let switch = ui.checkbox(&mut by_angle, tr("By angle"));
         switch.widget_info(|| {
-            egui::WidgetInfo::selected(egui::WidgetType::Checkbox, true, by_angle, SMOOTH_BY_ANGLE)
+            egui::WidgetInfo::selected(
+                egui::WidgetType::Checkbox,
+                true,
+                by_angle,
+                tr(SMOOTH_BY_ANGLE),
+            )
         });
         if switch.changed() {
             out.push(DocRequest::Run(Command::SetHardness {
@@ -238,9 +248,11 @@ pub(super) fn smoothing_row(
                         .speed(0.5)
                         .suffix("°"),
                 )
-                .on_hover_text("Edges where polygons meet more sharply than this are crisp");
+                .on_hover_text(tr(
+                    "Edges where polygons meet more sharply than this are crisp",
+                ));
             response.widget_info(|| {
-                egui::WidgetInfo::labeled(egui::WidgetType::DragValue, true, SMOOTHING_ANGLE)
+                egui::WidgetInfo::labeled(egui::WidgetType::DragValue, true, tr(SMOOTHING_ANGLE))
             });
             if value != angle && value.is_finite() {
                 out.push(DocRequest::RunMerging(
@@ -257,9 +269,9 @@ pub(super) fn smoothing_row(
 }
 
 /// The Smoothing row's switch and angle, for screen readers and tests.
-pub(crate) const SMOOTH_BY_ANGLE: &str = "Object smoothed by angle";
+pub(crate) const SMOOTH_BY_ANGLE: &str = crate::text!("Object smoothed by angle");
 
-pub(crate) const SMOOTHING_ANGLE: &str = "Smoothing angle";
+pub(crate) const SMOOTHING_ANGLE: &str = crate::text!("Smoothing angle");
 
 /// Merge key for dragging an object's smoothing angle (one drag, one step).
 const SMOOTHING_KEY: u64 = 0x5300_0000_0000_0000;

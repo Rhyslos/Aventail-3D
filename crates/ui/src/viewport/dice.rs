@@ -9,6 +9,7 @@
 //! are the corners. The dice is drawn flat (no perspective) whatever the
 //! view, so its parts keep their shape.
 
+use crate::text::tr;
 use crate::theme::{self, tint};
 use egui::{Align2, Color32, CursorIcon, FontId, Pos2, Rect, Sense, Shape, Stroke, Ui, vec2};
 use glam::{IVec3, Vec3};
@@ -26,7 +27,7 @@ const HALF: f32 = 17.0;
 const INNER: f32 = 0.55;
 
 /// The accessible name of the dice.
-pub(crate) const DICE_LABEL: &str = "View dice";
+pub(crate) const DICE_LABEL: &str = crate::text!("View dice");
 
 /// One part of the dice as seen: which side it stands for, and its
 /// outline on screen.
@@ -199,7 +200,8 @@ pub(super) fn show(ui: &Ui, rect: Rect, slot: usize, camera: &tools::Camera) -> 
     let reach = HALF * 1.8;
     let area = Rect::from_center_size(centre, vec2(reach, reach) * 2.0);
     let response = ui.interact(area, ui.id().with(("view_dice", slot)), Sense::click());
-    response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, DICE_LABEL));
+    response
+        .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, tr(DICE_LABEL)));
     let hovered = response
         .hover_pos()
         .and_then(|p| side_at(camera, centre, p));
@@ -257,7 +259,7 @@ pub(super) fn show(ui: &Ui, rect: Rect, slot: usize, camera: &tools::Camera) -> 
     }
     let opposite = ui.input(|i| i.modifiers.command);
     let response = match hovered {
-        Some(side) => response.on_hover_text(format!(
+        Some(side) => response.on_hover_text(crate::trf!(
             "Look from the {} (Ctrl + click: from the {})",
             tools::dice::name(side),
             tools::dice::name(-side)

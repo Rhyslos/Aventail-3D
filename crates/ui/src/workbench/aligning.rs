@@ -33,7 +33,7 @@ impl TargetUse {
     /// The status bar while waiting for the click.
     pub(crate) fn note(self) -> &'static str {
         match self {
-            Self::Pivot => super::pivots::PIVOT_TARGET_NOTE,
+            Self::Pivot => tr(super::pivots::PIVOT_TARGET_NOTE),
             Self::SnapTo => tr(SNAP_TO_NOTE),
             Self::Align => tr(ALIGN_NOTE),
         }

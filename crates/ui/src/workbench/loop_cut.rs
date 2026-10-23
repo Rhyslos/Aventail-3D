@@ -16,6 +16,7 @@
 use super::Workbench;
 use crate::components::{self, ViewPointer};
 use crate::drawing::SceneDrawing;
+use crate::text::tr;
 use crate::transforming::Tool;
 use crate::viewport::ToolDragEvent;
 use glam::{Mat4, Vec2, Vec3};
@@ -123,9 +124,9 @@ impl LoopCutSession {
 /// The undo step's name: "Loop cut", "Loop cut (3 cuts)".
 fn label(cuts: u32) -> String {
     if cuts == 1 {
-        "Loop cut".into()
+        tr("Loop cut").into()
     } else {
-        format!("Loop cut ({cuts} cuts)")
+        crate::trf!("Loop cut ({} cuts)", cuts)
     }
 }
 
@@ -198,7 +199,7 @@ impl Workbench {
                 }
                 ToolDragEvent::End => {
                     if let Some(session) = self.loop_cut_session.take() {
-                        self.note = Some(format!(
+                        self.note = Some(crate::trf!(
                             "{} across {}. Change Cuts and Position in the Attributes panel; \
                              Ctrl+Z takes it back.",
                             label(session.cuts),
@@ -213,7 +214,7 @@ impl Workbench {
                 ToolDragEvent::Cancel => {
                     if let Some(session) = self.loop_cut_session.take() {
                         self.document.abandon(session.key);
-                        self.note = Some("Cancelled: everything is back where it was.".into());
+                        self.note = Some(tr("Cancelled: everything is back where it was.").into());
                     }
                     self.viewport.set_tool_label(None);
                 }
@@ -230,7 +231,7 @@ impl Workbench {
     ) -> Option<LoopCutSession> {
         let Some(target) = self.loop_target(drawing, pointer) else {
             self.note = Some(
-                "Loop cut: point at an edge of a selected object, across four-sided polygons."
+                tr("Loop cut: point at an edge of a selected object, across four-sided polygons.")
                     .into(),
             );
             return None;
@@ -251,10 +252,10 @@ impl Workbench {
     /// Shows the session's cut, saying where it is beside the mouse.
     pub(super) fn show_loop_cut(&mut self, session: &LoopCutSession) {
         let percent = (session.target.position * 100.0).round();
-        let text = format!("{}: {percent}%", label(session.cuts));
+        let text = crate::trf!("{}: {}%", label(session.cuts), percent);
         match session.show(&mut self.document) {
             Ok(()) => self.viewport.set_tool_label(Some(text)),
-            Err(why) => self.note = Some(format!("Couldn't do that: {why}.")),
+            Err(why) => self.note = Some(crate::trf!("Couldn't do that: {}.", why)),
         }
     }
 }
@@ -262,8 +263,8 @@ impl Workbench {
 /// "1 polygon", "4 polygons".
 fn polygons(n: usize) -> String {
     if n == 1 {
-        "1 polygon".into()
+        tr("1 polygon").into()
     } else {
-        format!("{n} polygons")
+        crate::trf!("{} polygons", n)
     }
 }

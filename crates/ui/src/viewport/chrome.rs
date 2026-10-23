@@ -201,7 +201,7 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
     });
     crate::dialog::menu(ui, tr("Options"), |ui| {
         if ui
-            .button(format!("{}…", super::PICKER_LABEL))
+            .button(format!("{}…", tr(super::PICKER_LABEL)))
             .on_hover_text(tr("Choose which mouse buttons and keys move the view"))
             .clicked()
         {
@@ -211,7 +211,7 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
         let navigation = &mut panel.options.navigation;
         ui.checkbox(
             &mut navigation.around_cursor,
-            super::picker::AROUND_CURSOR_LABEL,
+            tr(super::picker::AROUND_CURSOR_LABEL),
         );
         ui.checkbox(&mut navigation.invert_orbit, tr("Invert orbit direction"));
         ui.checkbox(&mut navigation.show_pivot, tr(SHOW_PIVOT_LABEL))

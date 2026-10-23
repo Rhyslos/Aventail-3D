@@ -35,13 +35,13 @@ impl Workbench {
         let units = self.units;
         self.note = Some(
             match self.document.execute(Command::SetUnits(units.into())) {
-                Ok(()) => format!(
+                Ok(()) => crate::trf!(
                     "This project is now in {}: lengths show and are typed in {}. Ctrl + Z \
                      takes it back.",
                     units.name().to_lowercase(),
                     units.symbol()
                 ),
-                Err(why) => format!("Couldn't change the units: {why}."),
+                Err(why) => crate::trf!("Couldn't change the units: {}.", why),
             },
         );
     }

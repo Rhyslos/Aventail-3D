@@ -47,7 +47,7 @@ impl Workbench {
     /// after the next interval.
     pub fn autosave_failed(&mut self, reason: &str) {
         self.autosaver.finished(false);
-        self.note = Some(format!("Couldn't save a backup copy: {reason}."));
+        self.note = Some(crate::trf!("Couldn't save a backup copy: {}.", reason));
     }
 
     /// The app brought back `document` from a backup copy, for the
@@ -60,15 +60,16 @@ impl Workbench {
         self.file.path = project;
         // The app already kept it as this run's newest backup copy, and
         // the timer starts from it (`replace_document`).
-        self.note = Some(format!(
-            "Restored your work from {when}. Save it to keep it."
+        self.note = Some(crate::trf!(
+            "Restored your work from {}. Save it to keep it.",
+            when
         ));
         self.viewport.frame(crate::Frame::All);
     }
 
     /// Restoring a backup copy failed: says why. The copies are kept.
     pub fn recovery_failed(&mut self, reason: &str) {
-        self.note = Some(format!("Couldn't restore the backup copy: {reason}."));
+        self.note = Some(crate::trf!("Couldn't restore the backup copy: {}.", reason));
     }
 
     /// Asks about work left by a crash, and when it is due, has a backup

@@ -432,8 +432,11 @@ fn is_interface_text(literal: &str, before: &str) -> bool {
     if !words {
         return false;
     }
-    const NOT_TEXT: [&str; 29] = [
+    const NOT_TEXT: [&str; 31] = [
         "Id::new(",
+        "Id::new((",
+        // A texture's name, for debugging.
+        "load_texture(",
         // A grid's id, not shown.
         "Grid::new(",
         // Debug output, for programmers.

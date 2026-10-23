@@ -5,6 +5,7 @@
 use super::shape::{UvShape, inside, polygon_area, segment_distance};
 use super::{EditorDrag, UvContext, UvEditor};
 use crate::palette::Mode;
+use crate::text::tr;
 use egui::{Pos2, Rect, Response, Ui};
 use glam::Vec2;
 use scene::{Combine, Document, Element, ElementKind, ElementSelection, ObjectId};
@@ -224,9 +225,9 @@ pub(super) fn apply(
     }
     let count: usize = hits.len();
     let label = match (mode, count) {
-        (Mode::Uv, _) => "Select pieces".to_string(),
-        (_, 0) => "Deselect".to_string(),
-        _ => format!("Select {count} {}", kind_name(kind, count)),
+        (Mode::Uv, _) => tr("Select pieces").to_string(),
+        (_, 0) => tr("Deselect").to_string(),
+        _ => crate::trf!("Select {} {}", count, kind_name(kind, count)),
     };
     doc.select_elements(changes, label, None);
 }

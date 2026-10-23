@@ -5,6 +5,7 @@
 //! decision 0068); this is the interface's side of them, with the user's
 //! choice for new projects remembered between sessions.
 
+use crate::text::tr;
 use serde::{Deserialize, Serialize};
 
 /// How lengths are shown and typed.
@@ -24,8 +25,8 @@ impl Units {
     /// The unit's name, for menus.
     pub fn name(self) -> &'static str {
         match self {
-            Self::Metres => "Metres",
-            Self::Centimetres => "Centimetres",
+            Self::Metres => tr("Metres"),
+            Self::Centimetres => tr("Centimetres"),
         }
     }
 

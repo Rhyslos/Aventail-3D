@@ -5,6 +5,7 @@
 use super::edits::OpenedEdit;
 use super::{AttributesPanel, section};
 use crate::objects::DocRequest;
+use crate::text::tr;
 use crate::theme;
 use crate::transforming::Tool;
 use crate::units::Units;
@@ -77,7 +78,7 @@ impl AttributesPanel {
         if operation.settings().is_none() {
             return;
         }
-        section(ui, &format!("Last edit: {}", operation.describe()));
+        section(ui, &crate::trf!("Last edit: {}", operation.describe()));
         self.edit_settings(ui, id, (layer, index), operation, units, stretch, out);
     }
 
@@ -102,16 +103,16 @@ impl AttributesPanel {
         ui.add_space(6.0);
         ui.horizontal(|ui| {
             ui.label(
-                RichText::new(format!("Last edit: {}", operation.describe()))
+                RichText::new(crate::trf!("Last edit: {}", operation.describe()))
                     .small()
                     .color(theme::TEXT_WEAK),
             );
             if ui
-                .small_button(CHANGE_LAST_EDIT_LABEL)
-                .on_hover_text(
+                .small_button(tr(CHANGE_LAST_EDIT_LABEL))
+                .on_hover_text(tr(
                     "You've selected something else since, so the settings above are for your \
                      next use of the tool. Open this edit to change it.",
-                )
+                ))
                 .clicked()
             {
                 self.opened = Some(OpenedEdit::new(doc, id, edit));
@@ -122,7 +123,7 @@ impl AttributesPanel {
 
 /// The button that opens the last edit once something else is selected
 /// (decision 0120).
-pub(crate) const CHANGE_LAST_EDIT_LABEL: &str = "Change it";
+pub(crate) const CHANGE_LAST_EDIT_LABEL: &str = crate::text!("Change it");
 
 /// The top edit of `stack` (where it is, and what), if any.
 pub(crate) fn last_edit(stack: &Stack) -> Option<(usize, usize, &Operation)> {

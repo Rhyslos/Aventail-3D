@@ -22,6 +22,7 @@
 use super::Workbench;
 use crate::components::{self, ViewPointer};
 use crate::drawing::SceneDrawing;
+use crate::text::tr;
 use crate::transforming::Tool;
 use crate::viewport::{ToolDragEvent, ToolPath};
 use glam::{Mat4, Vec2, Vec3};
@@ -244,15 +245,15 @@ impl Workbench {
                     operation: Operation::Slit { line },
                 };
                 let label = if session.through {
-                    "Slit through"
+                    tr("Slit through")
                 } else {
-                    "Slit"
+                    tr("Slit")
                 };
                 if let Err(why) = self
                     .document
                     .execute_labelled(command, label, Some(session.key))
                 {
-                    self.note = Some(format!("Couldn't do that: {why}."));
+                    self.note = Some(crate::trf!("Couldn't do that: {}.", why));
                 }
             }
         }
@@ -263,11 +264,11 @@ impl Workbench {
     pub(super) fn finish_slit(&mut self) {
         if let Some(session) = self.slit_session.take() {
             self.note = Some(if session.closed {
-                "Slit closed: the loop is cut in. Ctrl + Z takes it back.".into()
+                tr("Slit closed: the loop is cut in. Ctrl + Z takes it back.").into()
             } else if session.points.len() >= 2 {
-                "Slit finished. Ctrl + Z takes it back.".into()
+                tr("Slit finished. Ctrl + Z takes it back.").into()
             } else {
-                "Slit: nothing was cut.".into()
+                tr("Slit: nothing was cut.").into()
             });
         }
         self.viewport.set_tool_path(None);
@@ -278,7 +279,7 @@ impl Workbench {
     pub(super) fn cancel_slit(&mut self) {
         if let Some(session) = self.slit_session.take() {
             self.document.abandon(session.key);
-            self.note = Some("Slit cancelled: nothing was cut.".into());
+            self.note = Some(tr("Slit cancelled: nothing was cut.").into());
         }
         self.viewport.set_tool_path(None);
     }
@@ -421,7 +422,7 @@ impl Workbench {
                     .map(|i| (i.id, i.transform))
                     .collect();
                 if objects.is_empty() {
-                    self.note = Some("Slit: select an object to cut first.".into());
+                    self.note = Some(tr("Slit: select an object to cut first.").into());
                     return;
                 }
                 self.sessions += 1;

@@ -11,6 +11,7 @@
 //!   and on the surface, in centimetres (`uv::measure`).
 
 use super::{UvEditor, UvShape};
+use crate::text::tr;
 use crate::theme;
 use egui::{Align2, FontId, Pos2, Rect, Stroke, Ui, vec2};
 use glam::Vec2;
@@ -18,10 +19,10 @@ use scene::{Document, FaceId, ObjectId};
 use std::collections::HashMap;
 
 /// The View menu's switch for numbers on pieces.
-pub(crate) const PIECE_NUMBERS: &str = "Numbers on pieces";
+pub(crate) const PIECE_NUMBERS: &str = crate::text!("Numbers on pieces");
 
 /// The View menu's entry that starts measuring.
-pub(crate) const MEASURE: &str = "Measure";
+pub(crate) const MEASURE: &str = crate::text!("Measure");
 
 /// Pieces narrower than this on screen, in points, get no numbers.
 const NUMBERS_FROM: f32 = 70.0;
@@ -109,12 +110,15 @@ pub(super) fn piece_numbers(shape: &UvShape) -> Vec<PieceNumbers> {
 /// and, when it's uneven, its worst stretch.
 pub(super) fn numbers_text(numbers: &PieceNumbers, texture: scene::TextureSettings) -> String {
     let size = (numbers.max - numbers.min) * texture.size as f32;
-    let mut text = format!("{} × {} px", size.x.round(), size.y.round());
+    let mut text = crate::trf!("{} × {} px", size.x.round(), size.y.round());
     if let Some(d) = numbers.density {
-        text.push_str(&format!("\n{} px/m", texture.pixels_per_metre(d).round()));
+        text.push_str(&crate::trf!(
+            "\n{} px/m",
+            texture.pixels_per_metre(d).round()
+        ));
     }
     if numbers.stretch > 1.05 {
-        text.push_str(&format!("\nstretched {:.1}×", numbers.stretch));
+        text.push_str(&crate::trf!("\nstretched {:.1}×", numbers.stretch));
     }
     text
 }
@@ -123,13 +127,13 @@ pub(super) fn numbers_text(numbers: &PieceNumbers, texture: scene::TextureSettin
 /// surface in centimetres if it crosses any.
 pub(crate) fn measure_text(pixels: f32, centimetres: f32) -> String {
     if centimetres > 0.0 {
-        format!(
+        crate::trf!(
             "{} px · {:.1} cm on the surface",
             pixels.round(),
             centimetres
         )
     } else {
-        format!("{} px · not over a piece", pixels.round())
+        crate::trf!("{} px · not over a piece", pixels.round())
     }
 }
 
@@ -159,21 +163,21 @@ pub(crate) fn warning_text(counts: WarningCounts) -> Option<String> {
     let mut parts = Vec::new();
     let pieces = |n: usize| if n == 1 { "piece" } else { "pieces" };
     if counts.overlapping > 0 {
-        parts.push(format!(
+        parts.push(crate::trf!(
             "{} {} overlapping",
             counts.overlapping,
             pieces(counts.overlapping)
         ));
     }
     if counts.mirrored > 0 {
-        parts.push(format!(
+        parts.push(crate::trf!(
             "{} {} mirrored",
             counts.mirrored,
             pieces(counts.mirrored)
         ));
     }
     if counts.outside > 0 {
-        parts.push(format!(
+        parts.push(crate::trf!(
             "{} {} outside the square",
             counts.outside,
             pieces(counts.outside)
@@ -403,7 +407,7 @@ impl UvEditor {
             painter.text(
                 rect.center_top() + vec2(0.0, 10.0),
                 Align2::CENTER_TOP,
-                "Measuring: drag a line · Esc stops",
+                tr("Measuring: drag a line · Esc stops"),
                 FontId::proportional(12.0),
                 theme::UV_MEASURE,
             );

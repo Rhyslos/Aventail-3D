@@ -8,6 +8,7 @@
 
 use super::Workbench;
 use crate::selecting::Gesture;
+use crate::text::tr;
 use glam::Vec3;
 use scene::{Command, ObjectId, Transform};
 
@@ -70,7 +71,7 @@ impl Workbench {
     pub(super) fn run_placement(&mut self, placement: Placement) {
         let ids = self.top_selected();
         if ids.is_empty() {
-            self.note = Some("Select one or more objects first.".into());
+            self.note = Some(tr("Select one or more objects first.").into());
             return;
         }
         let changes: Vec<(ObjectId, Transform)> = ids
@@ -84,12 +85,12 @@ impl Workbench {
             })
             .collect();
         let name = match placement {
-            Placement::PivotToCentre => "Pivot to centre",
-            Placement::PivotToOrigin => "Pivot to world origin",
-            Placement::ObjectToOrigin => "Object to world origin",
+            Placement::PivotToCentre => tr("Pivot to centre"),
+            Placement::PivotToOrigin => tr("Pivot to world origin"),
+            Placement::ObjectToOrigin => tr("Object to world origin"),
         };
         if changes.is_empty() {
-            self.note = Some(format!("{name}: already there."));
+            self.note = Some(crate::trf!("{}: already there.", name));
             return;
         }
         let command = match placement {
@@ -97,8 +98,8 @@ impl Workbench {
             _ => Command::MovePivots(changes),
         };
         self.note = Some(match self.document.execute_labelled(command, name, None) {
-            Ok(()) => format!("{name}. Ctrl + Z takes it back."),
-            Err(why) => format!("Couldn't do {}: {why}.", name.to_lowercase()),
+            Ok(()) => crate::trf!("{}. Ctrl + Z takes it back.", name),
+            Err(why) => crate::trf!("Couldn't do {}: {}.", name.to_lowercase(), why),
         });
     }
 
@@ -165,19 +166,20 @@ impl Workbench {
             .filter_map(|id| Some((id, self.placed_at(id, at)?)))
             .collect();
         if changes.is_empty() {
-            self.note = Some(format!(
-                "Pivot to object: the pivot is already at {name}'s pivot."
+            self.note = Some(crate::trf!(
+                "Pivot to object: the pivot is already at {}'s pivot.",
+                name
             ));
             return;
         }
-        let label = format!("Pivot to {name}");
+        let label = crate::trf!("Pivot to {}", name);
         self.note = Some(
             match self
                 .document
                 .execute_labelled(Command::MovePivots(changes), label.clone(), None)
             {
-                Ok(()) => format!("{label}. Ctrl + Z takes it back."),
-                Err(why) => format!("Couldn't move the pivot: {why}."),
+                Ok(()) => crate::trf!("{}. Ctrl + Z takes it back.", label),
+                Err(why) => crate::trf!("Couldn't move the pivot: {}.", why),
             },
         );
     }
@@ -185,4 +187,4 @@ impl Workbench {
 
 /// The status bar while Pivot to object waits for a click.
 pub(crate) const PIVOT_TARGET_NOTE: &str =
-    "Pivot to object: click the object whose pivot to use. Esc cancels.";
+    crate::text!("Pivot to object: click the object whose pivot to use. Esc cancels.");

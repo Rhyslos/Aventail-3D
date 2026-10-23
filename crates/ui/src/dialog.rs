@@ -15,6 +15,7 @@
 //! [`DialogUi::body`] or [`DialogUi::sections`], then
 //! [`DialogUi::footer`].
 
+use crate::text::tr;
 use crate::theme;
 use egui::{
     Align, Align2, Color32, CornerRadius, FontId, Frame, Id, Layout, Margin, Rect, Response,
@@ -400,7 +401,7 @@ fn line(ui: &mut Ui) {
 /// The × in the title bar.
 fn close_button(ui: &mut Ui) -> Response {
     let (rect, response) = ui.allocate_exact_size(vec2(24.0, 24.0), Sense::click());
-    response.widget_info(|| WidgetInfo::labeled(WidgetType::Button, true, "Close window"));
+    response.widget_info(|| WidgetInfo::labeled(WidgetType::Button, true, tr("Close window")));
     let color = if response.hovered() {
         ui.painter().rect_filled(rect, 4.0, theme::HOVER);
         theme::TEXT_STRONG
@@ -414,7 +415,7 @@ fn close_button(ui: &mut Ui) -> Response {
         .line_segment([c + vec2(-r, -r), c + vec2(r, r)], stroke);
     ui.painter()
         .line_segment([c + vec2(-r, r), c + vec2(r, -r)], stroke);
-    response.on_hover_text("Close (Esc)")
+    response.on_hover_text(tr("Close (Esc)"))
 }
 
 /// One entry of a side list.
@@ -494,9 +495,9 @@ pub(crate) fn heading_with_pill(ui: &mut Ui, text: &str, on: bool) {
 /// "On" in green or "Off" in grey, in a small rounded box.
 pub(crate) fn pill(ui: &mut Ui, on: bool) -> Response {
     let (word, text, fill) = if on {
-        ("On", ON, Color32::from_rgb(0x1f, 0x3a, 0x2c))
+        (tr("On"), ON, Color32::from_rgb(0x1f, 0x3a, 0x2c))
     } else {
-        ("Off", theme::TEXT_WEAK, theme::FIELD)
+        (tr("Off"), theme::TEXT_WEAK, theme::FIELD)
     };
     Frame::new()
         .fill(fill)
@@ -639,7 +640,7 @@ pub(crate) fn drop_down(
         WidgetInfo::labeled(
             WidgetType::ComboBox,
             ui.is_enabled(),
-            format!("{label}: {chosen}"),
+            crate::trf!("{}: {}", label, chosen),
         )
     });
     let open = egui::Popup::is_id_open(ui.ctx(), egui::Popup::default_response_id(&response));
