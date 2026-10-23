@@ -31,11 +31,14 @@ uv_editor/checking.rs 11
 uv_editor/explain.rs 23
 uv_editor/gizmo.rs 3
 uv_editor/snapshots.rs 30
-viewport.rs 30
+viewport.rs 2
 viewport/chrome.rs 44
 viewport/dice.rs 2
 viewport/look.rs 2
+viewport/options.rs 23
 viewport/picker.rs 7
+viewport/renderer.rs 1
+viewport/view.rs 4
 workbench.rs 6
 workbench/aligning.rs 44
 workbench/automation.rs 49
