@@ -819,3 +819,22 @@ fn combining_edits_keeps_the_points_and_anchors() {
     let p = matrix.transform_point3(Vec3::ZERO);
     assert!(p.abs_diff_eq(Mat4::from_rotation_z(1.0).transform_point3(Vec3::X), 1e-5));
 }
+
+#[test]
+fn a_points_drag_is_known_by_its_label_and_nothing_else_is() {
+    // The labels `Target::label` gives a drag of points, read back through
+    // the same language-package templates (decision 0132).
+    for label in ["Move 1 point", "Rotate 2 points", "Scale 1200 points"] {
+        assert!(is_points_drag(label), "{label}");
+    }
+    for label in [
+        "Slide 3 points",
+        "Move Cube",
+        "Rotate 2 objects",
+        "Scale 2 pivots",
+        "Move Cube's pivot",
+        "",
+    ] {
+        assert!(!is_points_drag(label), "{label}");
+    }
+}

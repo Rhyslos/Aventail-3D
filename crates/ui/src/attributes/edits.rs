@@ -10,6 +10,7 @@ use super::tool_rows::{
 use super::tool_section::{HardAngle, grouping_of};
 use super::{AttributesPanel, LABEL_WIDTH, label, section, stepper};
 use crate::objects::DocRequest;
+use crate::text::tr;
 use crate::theme;
 use crate::units::Units;
 use egui::{RichText, Ui, vec2};
@@ -86,11 +87,11 @@ impl AttributesPanel {
         let entry = entry.clone();
         ui.add_space(6.0);
         ui.horizontal(|ui| {
-            ui.label(RichText::new(format!("Edit: {}", entry.operation.describe())).strong());
+            ui.label(RichText::new(crate::trf!("Edit: {}", entry.operation.describe())).strong());
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui
-                    .small_button(CLOSE_EDIT_LABEL)
-                    .on_hover_text("Go back to showing the last edit")
+                    .small_button(tr(CLOSE_EDIT_LABEL))
+                    .on_hover_text(tr("Go back to showing the last edit"))
                     .clicked()
                 {
                     self.opened = None;
@@ -101,10 +102,12 @@ impl AttributesPanel {
         let layer_name = stack.layers()[layer].name.clone();
         let total = stack.layers()[layer].entries.len();
         ui.label(
-            RichText::new(format!(
-                "Edit {} of {total} in {layer_name}. Change it and the edits after it are made \
+            RichText::new(crate::trf!(
+                "Edit {} of {} in {}. Change it and the edits after it are made \
                  again on the new shape.",
-                index + 1
+                index + 1,
+                total,
+                layer_name
             ))
             .small()
             .color(theme::TEXT_WEAK),
@@ -124,13 +127,18 @@ impl AttributesPanel {
                 .show(ui, |ui| {
                     label(
                         ui,
-                        "On",
-                        "Off: the shape is made as if this edit wasn't there. Nothing is lost.",
+                        tr("On"),
+                        tr("Off: the shape is made as if this edit wasn't there. Nothing is lost."),
                     );
                     let mut on = entry.enabled;
                     let switch = ui.checkbox(&mut on, "");
                     switch.widget_info(|| {
-                        egui::WidgetInfo::selected(egui::WidgetType::Checkbox, true, on, "Edit on")
+                        egui::WidgetInfo::selected(
+                            egui::WidgetType::Checkbox,
+                            true,
+                            on,
+                            tr("Edit on"),
+                        )
                     });
                     if switch.changed() {
                         out.push(DocRequest::Run(Command::SetEditEnabled {
@@ -154,7 +162,7 @@ impl AttributesPanel {
             );
         } else {
             ui.label(
-                RichText::new("This kind of edit has no settings to change.")
+                RichText::new(tr("This kind of edit has no settings to change."))
                     .small()
                     .color(theme::TEXT_WEAK),
             );
@@ -164,20 +172,20 @@ impl AttributesPanel {
             let problem = stack.freeze_problem(edit);
             let count = scene::frozen_count(stack, edit);
             let help = match problem {
-                Some(why) => format!("Can't bake into the shape: {why}."),
-                None => format!(
+                Some(why) => crate::trf!("Can't bake into the shape: {}.", why),
+                None => crate::trf!(
                     "Bake the shape's settings and the {} up to and including this one into \
                      the shape, so they no longer have to be made again: big models stay quick. \
                      The shape doesn't change, but those edits can't be changed any more.",
                     if count == 1 {
                         "edit".to_string()
                     } else {
-                        format!("{count} edits")
+                        crate::trf!("{} edits", count)
                     }
                 ),
             };
             if ui
-                .add_enabled(problem.is_none(), egui::Button::new(FREEZE_LABEL))
+                .add_enabled(problem.is_none(), egui::Button::new(tr(FREEZE_LABEL)))
                 .on_hover_text(&help)
                 .on_disabled_hover_text(&help)
                 .clicked()
@@ -186,11 +194,11 @@ impl AttributesPanel {
                 self.opened = None;
             }
             if ui
-                .button(DELETE_EDIT_LABEL)
-                .on_hover_text(
+                .button(tr(DELETE_EDIT_LABEL))
+                .on_hover_text(tr(
                     "Take this edit out. The edits after it are made again without it \
                      (Ctrl + Z brings it back).",
-                )
+                ))
                 .clicked()
             {
                 out.push(DocRequest::Run(Command::DeleteEdit { id, edit }));
@@ -303,21 +311,21 @@ impl AttributesPanel {
                     let groove = matches!(kind, Operation::Groove { .. });
                     let (name, help) = if bevel {
                         (
-                            "Width",
-                            "How far the bevel reaches into each polygon (in the object's own \
-                         size). Change it and the shape follows.",
+                            tr("Width"),
+                            tr("How far the bevel reaches into each polygon (in the object's own \
+                         size). Change it and the shape follows."),
                         )
                     } else if groove {
                         (
-                            "Depth",
-                            "How far the groove goes in (below 0) or the ridge comes out (above \
-                             0), in the object's own size. Change it and the shape follows.",
+                            tr("Depth"),
+                            tr("How far the groove goes in (below 0) or the ridge comes out (above \
+                             0), in the object's own size. Change it and the shape follows."),
                         )
                     } else {
                         (
-                            "Distance",
-                            "How far it was pushed (in the object's own size). Change it and the \
-                         shape follows.",
+                            tr("Distance"),
+                            tr("How far it was pushed (in the object's own size). Change it and the \
+                         shape follows."),
                         )
                     };
                     label(ui, name, help);
@@ -450,13 +458,13 @@ impl AttributesPanel {
 }
 
 /// The button that closes an opened edit.
-pub(crate) const CLOSE_EDIT_LABEL: &str = "Close";
+pub(crate) const CLOSE_EDIT_LABEL: &str = crate::text!("Close");
 
 /// Freezes the edits up to the opened one (decision 0092).
-pub(crate) const FREEZE_LABEL: &str = "Bake into shape up to here";
+pub(crate) const FREEZE_LABEL: &str = crate::text!("Bake into shape up to here");
 
 /// Deletes the opened edit.
-pub(crate) const DELETE_EDIT_LABEL: &str = "Delete edit";
+pub(crate) const DELETE_EDIT_LABEL: &str = crate::text!("Delete edit");
 
 /// What is wrong with edit `index` of layer `layer`, in plain words, if
 /// anything truly is: points it can't find, or skipped as too big. (An
@@ -470,13 +478,14 @@ pub(crate) fn edit_warning(
         .iter()
         .find(|w| w.layer == layer && w.operation == index)?;
     if warning.too_big {
-        Some("Skipped: it would make the shape too large.".into())
+        Some(tr("Skipped: it would make the shape too large.").into())
     } else if warning.missing > 0 {
         Some(match warning.missing {
-            1 => "1 of its parts can't be found on the shape any more; it applies to the rest."
+            1 => tr("1 of its parts can't be found on the shape any more; it applies to the rest.")
                 .into(),
-            n => format!(
-                "{n} of its parts can't be found on the shape any more; it applies to the rest."
+            n => crate::trf!(
+                "{} of its parts can't be found on the shape any more; it applies to the rest.",
+                n
             ),
         })
     } else {
@@ -487,21 +496,21 @@ pub(crate) fn edit_warning(
 /// What is recorded on top of the shape: how many edits, and any that no
 /// longer fully match it.
 pub(super) fn edits_section(ui: &mut Ui, doc: &Document, id: ObjectId, stack: &Stack) {
-    section(ui, "Edits");
+    section(ui, tr("Edits"));
     let count = stack.operation_count();
     let mut text = match count {
-        1 => "1 edit recorded on top of the shape".to_string(),
-        n => format!("{n} edits recorded on top of the shape"),
+        1 => tr("1 edit recorded on top of the shape").to_string(),
+        n => crate::trf!("{} edits recorded on top of the shape", n),
     };
     // Several layers: the Edit layers panel lists them (decision 0091).
     let layers = stack.layers().len();
     if layers > 1 {
-        text.push_str(&format!(", in {layers} layers"));
+        text.push_str(&crate::trf!(", in {} layers", layers));
     }
-    ui.label(text).on_hover_text(
+    ui.label(text).on_hover_text(tr(
         "Edits are kept apart from the shape's settings, so the settings stay \
          editable: change them and the edits are made again on the new shape.",
-    );
+    ));
     let warnings = doc
         .scene()
         .evaluated(id)
@@ -514,25 +523,25 @@ pub(super) fn edits_section(ui: &mut Ui, doc: &Document, id: ObjectId, stack: &S
         .count();
     if found_again > 0 {
         let text = match found_again {
-            1 => "1 edit found its points again on the changed shape".to_string(),
-            n => format!("{n} edits found their points again on the changed shape"),
+            1 => tr("1 edit found its points again on the changed shape").to_string(),
+            n => crate::trf!("{} edits found their points again on the changed shape", n),
         };
         ui.label(RichText::new(text).color(theme::TEXT_WEAK))
-            .on_hover_text(
+            .on_hover_text(tr(
                 "The shape's points were renumbered (more or fewer segments, say), \
                  so these edits looked for the points, edges and polygons they were \
                  made on by where they are. A polygon split into smaller ones moves \
                  as a whole. Nothing to fix.",
-            );
+            ));
     }
     let too_big = warnings.iter().filter(|w| w.too_big).count();
     if too_big > 0 {
         let text = match too_big {
-            1 => "1 edit was skipped: the shape would be too large".to_string(),
-            n => format!("{n} edits were skipped: the shape would be too large"),
+            1 => tr("1 edit was skipped: the shape would be too large").to_string(),
+            n => crate::trf!("{} edits were skipped: the shape would be too large", n),
         };
         ui.label(RichText::new(text).color(theme::WARNING))
-            .on_hover_text(format!(
+            .on_hover_text(crate::trf!(
                 "These edits would have made the shape larger than {} million polygons, \
                  more than the app can work with safely, so they were left out. Undo \
                  them, or use fewer rows or a smaller selection.",
@@ -541,15 +550,15 @@ pub(super) fn edits_section(ui: &mut Ui, doc: &Document, id: ObjectId, stack: &S
     }
     if not_fitting > 0 {
         let text = match not_fitting {
-            1 => "1 edit no longer fully fits the shape".to_string(),
-            n => format!("{n} edits no longer fully fit the shape"),
+            1 => tr("1 edit no longer fully fits the shape").to_string(),
+            n => crate::trf!("{} edits no longer fully fit the shape", n),
         };
         ui.label(RichText::new(text).color(theme::WARNING))
-            .on_hover_text(
+            .on_hover_text(tr(
                 "Some of the points these edits move have no place on the shape now \
                  (for example after giving it fewer segments). The edits still apply \
                  to what remains; nothing else is lost, and going back to the earlier \
                  settings brings the rest back.",
-            );
+            ));
     }
 }

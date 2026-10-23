@@ -1,5 +1,4 @@
 attributes.rs 26
-attributes/edits.rs 37
 attributes/last_edit.rs 4
 attributes/materials.rs 21
 attributes/object_rows.rs 12
@@ -10,7 +9,6 @@ components.rs 4
 coordinates.rs 9
 dialog.rs 5
 layout.rs 2
-objects.rs 39
 panel.rs 7
 panels.rs 4
 project.rs 4
@@ -19,14 +17,12 @@ shape_picker.rs 5
 splash.rs 1
 theme.rs 6
 tool_menu.rs 20
-transforming.rs 31
 undo_memory.rs 17
 units.rs 2
 uv_editor.rs 6
 uv_editor/checking.rs 11
 uv_editor/explain.rs 23
 uv_editor/gizmo.rs 3
-uv_editor/menus.rs 32
 uv_editor/navigation.rs 2
 uv_editor/painting.rs 6
 uv_editor/picking.rs 3
@@ -52,7 +48,6 @@ workbench/materials.rs 5
 workbench/mesh_menu.rs 18
 workbench/modelling.rs 18
 workbench/parts.rs 5
-workbench/piece_settings.rs 32
 workbench/pivots.rs 12
 workbench/preferences.rs 2
 workbench/quad.rs 13

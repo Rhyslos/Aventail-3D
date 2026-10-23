@@ -193,10 +193,14 @@ impl Workbench {
         }
         ui.separator();
         for (label, help, lock) in [
-            (piece_settings::LOCK_LABEL, piece_settings::LOCK_HELP, true),
             (
-                piece_settings::UNLOCK_LABEL,
-                piece_settings::UNLOCK_HELP,
+                tr(piece_settings::LOCK_LABEL),
+                tr(piece_settings::LOCK_HELP),
+                true,
+            ),
+            (
+                tr(piece_settings::UNLOCK_LABEL),
+                tr(piece_settings::UNLOCK_HELP),
                 false,
             ),
         ] {
@@ -205,7 +209,7 @@ impl Workbench {
                 ui.close();
             }
         }
-        ui.menu_button(piece_settings::PIECE_SETTINGS_LABEL, |ui| {
+        ui.menu_button(tr(piece_settings::PIECE_SETTINGS_LABEL), |ui| {
             self.piece_settings_menu(ui);
         })
         .response

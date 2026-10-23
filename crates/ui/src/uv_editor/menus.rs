@@ -1,6 +1,7 @@
 //! The UV Editor's Texture and Trim menus (decisions 0100 and 0106), and
 //! the texture and texel density line.
 
+use crate::text::tr;
 use egui::Ui;
 use scene::Document;
 
@@ -13,14 +14,16 @@ const TEXTURE_KEY: u64 = 0x5458_5452_0000_0001;
 pub(crate) fn texture_menu(ui: &mut Ui, doc: &mut Document) {
     let mut texture = doc.scene().texture();
     let mut changed = false;
-    ui.label(egui::RichText::new("Texture size").strong());
+    ui.label(egui::RichText::new(tr("Texture size")).strong());
     for size in scene::TEXTURE_SIZES {
         if ui
             .add(egui::Button::selectable(
                 texture.size == size,
-                format!("{size} × {size} px"),
+                crate::trf!("{} × {} px", size, size),
             ))
-            .on_hover_text("The size of the texture this project's UVs are made for")
+            .on_hover_text(tr(
+                "The size of the texture this project's UVs are made for",
+            ))
             .clicked()
         {
             texture.size = size;
@@ -29,24 +32,24 @@ pub(crate) fn texture_menu(ui: &mut Ui, doc: &mut Document) {
     }
     ui.separator();
     ui.horizontal(|ui| {
-        ui.label(TEXEL_DENSITY_LABEL);
+        ui.label(tr(TEXEL_DENSITY_LABEL));
         changed |= ui
             .add(
                 egui::DragValue::new(&mut texture.density)
                     .range(1.0..=scene::MAX_DENSITY)
                     .speed(1.0)
-                    .suffix(" px/m"),
+                    .suffix(tr(" px/m")),
             )
-            .on_hover_text(
+            .on_hover_text(tr(
                 "The texel density aimed for: texture pixels per metre of surface. 512 px/m \
                  is common for props seen up close in third-person games.",
-            )
+            ))
             .changed();
     });
     if changed && texture.is_valid() {
         let _ = doc.execute_labelled(
             scene::Command::SetTexture(texture),
-            "Change the texture settings",
+            tr("Change the texture settings"),
             Some(TEXTURE_KEY),
         );
     }
@@ -65,12 +68,12 @@ pub(crate) fn trim_menu(ui: &mut Ui, doc: &mut Document) {
     let mut sheet = doc.scene().trim().clone();
     let mut changed = false;
     ui.set_max_width(340.0);
-    ui.label(egui::RichText::new("Trim sheet").strong());
-    ui.label(egui::RichText::new("Rows of a shared texture, repeating left to right.").weak());
-    ui.label(egui::RichText::new("Lay strips on them: UV → Put on trim row.").weak());
+    ui.label(egui::RichText::new(tr("Trim sheet")).strong());
+    ui.label(egui::RichText::new(tr("Rows of a shared texture, repeating left to right.")).weak());
+    ui.label(egui::RichText::new(tr("Lay strips on them: UV → Put on trim row.")).weak());
     ui.separator();
     if sheet.rows.is_empty() {
-        ui.label("No rows yet.");
+        ui.label(tr("No rows yet."));
     }
     // Top to bottom, as the texture looks in an image editor.
     let mut order: Vec<usize> = (0..sheet.rows.len()).collect();
@@ -81,9 +84,9 @@ pub(crate) fn trim_menu(ui: &mut Ui, doc: &mut Document) {
         .spacing([8.0, 4.0])
         .show(ui, |ui| {
             if !sheet.rows.is_empty() {
-                ui.label(egui::RichText::new("Name").weak());
-                ui.label(egui::RichText::new("From top").weak());
-                ui.label(egui::RichText::new("Height").weak());
+                ui.label(egui::RichText::new(tr("Name")).weak());
+                ui.label(egui::RichText::new(tr("From top")).weak());
+                ui.label(egui::RichText::new(tr("Height")).weak());
                 ui.label("");
                 ui.end_row();
             }
@@ -92,7 +95,7 @@ pub(crate) fn trim_menu(ui: &mut Ui, doc: &mut Document) {
                 let mut name = row.name.clone();
                 if ui
                     .add_sized([110.0, 20.0], egui::TextEdit::singleline(&mut name))
-                    .on_hover_text("What the row holds: bolts, a panel edge, a seal")
+                    .on_hover_text(tr("What the row holds: bolts, a panel edge, a seal"))
                     .changed()
                     && !name.trim().is_empty()
                 {
@@ -107,9 +110,11 @@ pub(crate) fn trim_menu(ui: &mut Ui, doc: &mut Document) {
                         egui::DragValue::new(&mut from_top)
                             .range(0.0..=size - 1.0)
                             .speed(1.0)
-                            .suffix(" px"),
+                            .suffix(tr(" px")),
                     )
-                    .on_hover_text("Where the row starts, in pixels from the top of the texture")
+                    .on_hover_text(tr(
+                        "Where the row starts, in pixels from the top of the texture",
+                    ))
                     .changed()
                 {
                     let h = row.height();
@@ -122,9 +127,9 @@ pub(crate) fn trim_menu(ui: &mut Ui, doc: &mut Document) {
                         egui::DragValue::new(&mut height)
                             .range(1.0..=size)
                             .speed(1.0)
-                            .suffix(" px"),
+                            .suffix(tr(" px")),
                     )
-                    .on_hover_text("How tall the row is, in pixels")
+                    .on_hover_text(tr("How tall the row is, in pixels"))
                     .changed()
                 {
                     row.bottom = row.top - height / size;
@@ -132,7 +137,7 @@ pub(crate) fn trim_menu(ui: &mut Ui, doc: &mut Document) {
                 }
                 if ui
                     .small_button("×")
-                    .on_hover_text("Remove this row")
+                    .on_hover_text(tr("Remove this row"))
                     .clicked()
                 {
                     remove = Some(i);
@@ -154,24 +159,29 @@ pub(crate) fn trim_menu(ui: &mut Ui, doc: &mut Document) {
     let (below, tall) = lowest.unwrap_or((1.0, 0.125));
     let room = below >= tall - 1e-6 && sheet.rows.len() < scene::MAX_TRIM_ROWS;
     if ui
-        .add_enabled(room, egui::Button::new("Add a row"))
-        .on_hover_text("A new row under the lowest one, as tall as it")
-        .on_disabled_hover_text("There's no room under the lowest row: make it shorter first")
+        .add_enabled(room, egui::Button::new(tr("Add a row")))
+        .on_hover_text(tr("A new row under the lowest one, as tall as it"))
+        .on_disabled_hover_text(tr(
+            "There's no room under the lowest row: make it shorter first",
+        ))
         .clicked()
     {
         sheet.rows.push(scene::TrimRow {
-            name: format!("Row {}", sheet.rows.len() + 1),
+            name: crate::trf!("Row {}", sheet.rows.len() + 1),
             top: below,
             bottom: (below - tall).max(0.0),
         });
         changed = true;
     }
     ui.horizontal(|ui| {
-        ui.label("Even rows:");
+        ui.label(tr("Even rows:"));
         for n in [2, 4, 8, 16] {
             if ui
                 .small_button(n.to_string())
-                .on_hover_text(format!("{n} rows of the same height, filling the texture"))
+                .on_hover_text(crate::trf!(
+                    "{} rows of the same height, filling the texture",
+                    n
+                ))
                 .clicked()
             {
                 sheet = scene::TrimSheet::even(n);
@@ -181,8 +191,10 @@ pub(crate) fn trim_menu(ui: &mut Ui, doc: &mut Document) {
     });
     if !sheet.rows.is_empty()
         && ui
-            .button("Remove every row")
-            .on_hover_text("No trim sheet. Pieces already on its rows stay where they are.")
+            .button(tr("Remove every row"))
+            .on_hover_text(tr(
+                "No trim sheet. Pieces already on its rows stay where they are.",
+            ))
             .clicked()
     {
         sheet.rows.clear();
@@ -193,14 +205,14 @@ pub(crate) fn trim_menu(ui: &mut Ui, doc: &mut Document) {
     if changed && sheet.is_valid() {
         let _ = doc.execute_labelled(
             scene::Command::SetTrim(sheet),
-            "Change the trim sheet",
+            tr("Change the trim sheet"),
             Some(TRIM_KEY),
         );
     }
 }
 
 /// The label of the texel density field.
-pub(crate) const TEXEL_DENSITY_LABEL: &str = "Texel density";
+pub(crate) const TEXEL_DENSITY_LABEL: &str = crate::text!("Texel density");
 
 /// The texture and texel density line: "2048 px · 498 px/m (aim 512)".
 pub(crate) fn density_text(
@@ -210,12 +222,13 @@ pub(crate) fn density_text(
 ) -> String {
     let aim = texture.density.round();
     match density {
-        Some(d) => format!(
-            "{} px · {}{} px/m (aim {aim})",
+        Some(d) => crate::trf!(
+            "{} px · {}{} px/m (aim {})",
             texture.size,
-            if selected { "selected " } else { "" },
-            d.round()
+            if selected { tr("selected ") } else { "" },
+            d.round(),
+            aim
         ),
-        None => format!("{} px · aim {aim} px/m", texture.size),
+        None => crate::trf!("{} px · aim {} px/m", texture.size, aim),
     }
 }

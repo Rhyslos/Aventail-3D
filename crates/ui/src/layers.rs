@@ -786,7 +786,7 @@ fn edit_entries(
     if ui
         .add_enabled(
             problem.is_none(),
-            egui::Button::new(crate::attributes::FREEZE_LABEL),
+            egui::Button::new(tr(crate::attributes::FREEZE_LABEL)),
         )
         .on_hover_text(&help)
         .on_disabled_hover_text(&help)
@@ -797,7 +797,7 @@ fn edit_entries(
         ui.close();
     }
     if ui
-        .button(crate::attributes::DELETE_EDIT_LABEL)
+        .button(tr(crate::attributes::DELETE_EDIT_LABEL))
         .on_hover_text(tr(
             "Take this edit out; the edits after it are made again without it",
         ))
