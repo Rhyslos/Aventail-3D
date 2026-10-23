@@ -101,6 +101,11 @@ jobs:
       - run: cargo test --locked -p render --test gpu
         env:
           REQUIRE_GPU: "1"
+      # Reference images of the main panels and windows (decision 0126),
+      # drawn on the same software GPU they were made with.
+      - run: cargo test --locked -p ui --lib reference_
+        env:
+          REQUIRE_GPU: "1"
       # The window title is the app's name (APP_NAME in branding.rs);
       # listed in RENAMING.md.
       - run: xvfb-run -s "-screen 0 1440x900x24" tools/smoke/window-smoke.sh target/debug/aventail "Aventail 3D" smoke-output
@@ -108,7 +113,13 @@ jobs:
         if: always()
         with:
           name: window-screenshot
-          path: smoke-output/
+          # The smoke test's screenshots, and any reference image that
+          # differed (its new and diff pictures).
+          path: |
+            smoke-output/
+            crates/ui/tests/snapshots/*.new.png
+            crates/ui/tests/snapshots/*.diff.png
+          if-no-files-found: ignore
           retention-days: 14
 
   gltf-check:

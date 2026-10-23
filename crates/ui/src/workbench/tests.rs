@@ -99,7 +99,7 @@ pub(super) fn fresh_of_width(width: f32) -> Harness<'static, State> {
     harness
 }
 
-fn harness_built_sized(
+pub(super) fn harness_built_sized(
     builder: egui_kittest::HarnessBuilder<State>,
     workbench: Workbench,
     renderer: TestRenderer,

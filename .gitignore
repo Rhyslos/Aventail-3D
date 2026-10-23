@@ -12,3 +12,6 @@ Thumbs.db
 # Local test projects and backups
 *.avtl.bak
 /scratch/
+crates/ui/tests/snapshots/*.new.png
+crates/ui/tests/snapshots/*.diff.png
+crates/ui/tests/snapshots/*.old.png

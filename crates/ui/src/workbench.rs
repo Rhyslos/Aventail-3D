@@ -2934,6 +2934,8 @@ mod materials;
 #[cfg(test)]
 mod palette_label_tests;
 #[cfg(test)]
+mod reference_images;
+#[cfg(test)]
 mod seam_preference_tests;
 mod seam_preferences;
 mod seams;
