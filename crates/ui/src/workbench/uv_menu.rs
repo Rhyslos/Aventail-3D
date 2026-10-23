@@ -170,7 +170,7 @@ impl Workbench {
         // Also in the Select menu (decision 0118).
         if ui
             .add(
-                egui::Button::new(selection::CONNECTED_LABEL).shortcut_text(
+                egui::Button::new(tr(selection::CONNECTED_LABEL)).shortcut_text(
                     ui.ctx()
                         .format_shortcut(&crate::selecting::CONNECTED_SHORTCUT),
                 ),

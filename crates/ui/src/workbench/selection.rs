@@ -10,6 +10,7 @@ use crate::selecting::{
     CONNECTED_SHORTCUT, INVERT_SHORTCUT, SELECT_ALL_SHORTCUT, SELECT_TOOL_KEY, SelectTool,
     Selector, count,
 };
+use crate::text::tr;
 use egui::{Modifiers, Ui};
 use scene::ElementKind;
 
@@ -43,12 +44,14 @@ pub(super) enum SelectRequest {
 }
 
 /// Select connected's name in the Select menu.
-pub(crate) const CONNECTED_LABEL: &str = "Select connected";
+pub(crate) const CONNECTED_LABEL: &str = crate::text!("Select connected");
 
 /// The Select menu's tooltip for the visible-only switch, and the mode
 /// palette's.
-pub(crate) const VISIBLE_ONLY_HELP: &str = "When on, the box, lasso and brush only select what you can see. \
-     When off (the standard), they select through the shape, catching its far side too.";
+pub(crate) const VISIBLE_ONLY_HELP: &str = crate::text!(
+    "When on, the box, lasso and brush only select what you can see. \
+     When off (the standard), they select through the shape, catching its far side too."
+);
 
 impl Workbench {
     /// `Q` steps through the select tools; Ctrl + A selects all and
@@ -113,18 +116,20 @@ impl Workbench {
         let all_keys = keys(ui, &SELECT_ALL_SHORTCUT);
         if entry(
             ui,
-            "Select all",
+            tr("Select all"),
             all_keys,
-            "Select every object, or in the Points, Edges and Polygons modes every element of the selected objects",
+            tr(
+                "Select every object, or in the Points, Edges and Polygons modes every element of the selected objects",
+            ),
         ) {
             self.select_requests.push(SelectRequest::All);
             ui.close();
         }
         if entry(
             ui,
-            "Deselect",
-            "Esc".into(),
-            "Unselect the points, edges or polygons; in the Model mode, the objects",
+            tr("Deselect"),
+            tr("Esc").into(),
+            tr("Unselect the points, edges or polygons; in the Model mode, the objects"),
         ) {
             self.select_requests.push(SelectRequest::Clear);
             ui.close();
@@ -132,9 +137,9 @@ impl Workbench {
         let invert_keys = keys(ui, &INVERT_SHORTCUT);
         if entry(
             ui,
-            "Invert",
+            tr("Invert"),
             invert_keys,
-            "Select what isn't selected, and unselect what is",
+            tr("Select what isn't selected, and unselect what is"),
         ) {
             self.select_requests.push(SelectRequest::Invert);
             ui.close();
@@ -144,18 +149,18 @@ impl Workbench {
         let wheel = |direction: &str| format!("{modifier}{direction}");
         if entry(
             ui,
-            "Grow selection",
-            wheel("Wheel up"),
-            "Add every element touching the selection",
+            tr("Grow selection"),
+            wheel(tr("Wheel up")),
+            tr("Add every element touching the selection"),
         ) {
             self.select_requests.push(SelectRequest::Grow(1));
             ui.close();
         }
         if entry(
             ui,
-            "Shrink selection",
-            wheel("Wheel down"),
-            "Take away the selection's outer rim",
+            tr("Shrink selection"),
+            wheel(tr("Wheel down")),
+            tr("Take away the selection's outer rim"),
         ) {
             self.select_requests.push(SelectRequest::Grow(-1));
             ui.close();
@@ -163,11 +168,13 @@ impl Workbench {
         let connected_keys = keys(ui, &CONNECTED_SHORTCUT);
         if entry(
             ui,
-            CONNECTED_LABEL,
+            tr(CONNECTED_LABEL),
             connected_keys,
-            "Select the whole part the selection is on: everything joined to it, across seams. \
+            tr(
+                "Select the whole part the selection is on: everything joined to it, across seams. \
              Select a little of a part first. Over the UV Editor, or in the UV mode, the key \
              selects whole pieces instead.",
+            ),
         ) {
             self.select_requests.push(SelectRequest::Connected);
             ui.close();
@@ -179,30 +186,36 @@ impl Workbench {
         };
         if entry(
             ui,
-            "Select flipped",
+            tr("Select flipped"),
             String::new(),
-            "Select the polygons facing the wrong way round: inside out compared with \
+            tr(
+                "Select the polygons facing the wrong way round: inside out compared with \
              their neighbours, or facing into a closed shape",
+            ),
         ) {
             polygons(self, SelectRequest::Flipped);
             ui.close();
         }
         if entry(
             ui,
-            "Select same facing",
+            tr("Select same facing"),
             String::new(),
-            "Add every polygon facing within 30° of a selected polygon: the top of a shape, \
+            tr(
+                "Add every polygon facing within 30° of a selected polygon: the top of a shape, \
              say, or every wall facing one way",
+            ),
         ) {
             polygons(self, SelectRequest::SimilarFacing);
             ui.close();
         }
         if entry(
             ui,
-            "Select hard edges",
+            tr("Select hard edges"),
             String::new(),
-            "Select every hard edge: where the shading breaks into a crisp edge. Shows the \
+            tr(
+                "Select every hard edge: where the shading breaks into a crisp edge. Shows the \
              Edges mode.",
+            ),
         ) {
             self.mode = Mode::Edges;
             self.select_requests.push(SelectRequest::HardEdges);
@@ -218,10 +231,10 @@ impl Workbench {
             ui.close();
         }
         self.material_entries(ui);
-        ui.add_enabled(false, egui::Button::new("Loop and ring: double-click"))
-            .on_disabled_hover_text(
+        ui.add_enabled(false, egui::Button::new(tr("Loop and ring: double-click")))
+            .on_disabled_hover_text(tr(
                 "Double-click an edge for its loop; Alt + double-click for its ring",
-            );
+            ));
         ui.separator();
         let current = self.viewport.select_tool();
         for tool in SelectTool::ALL {
@@ -236,8 +249,8 @@ impl Workbench {
         }
         ui.separator();
         let options = self.viewport.options_mut();
-        ui.checkbox(&mut options.select_visible_only, "Select only visible")
-            .on_hover_text(VISIBLE_ONLY_HELP);
+        ui.checkbox(&mut options.select_visible_only, tr("Select only visible"))
+            .on_hover_text(tr(VISIBLE_ONLY_HELP));
     }
 
     /// Select by material: a list of the selected objects' materials;
@@ -255,16 +268,20 @@ impl Workbench {
                 }
             }
         }
-        const HELP: &str = "Select the polygons of the selected objects that use a material. \
-             Shows the Polygons mode.";
+        const HELP: &str = crate::text!(
+            "Select the polygons of the selected objects that use a material. \
+             Shows the Polygons mode."
+        );
         if names.is_empty() {
-            ui.add_enabled(false, egui::Button::new("Select by material"))
-                .on_disabled_hover_text("Select an object first: its materials are listed here");
+            ui.add_enabled(false, egui::Button::new(tr("Select by material")))
+                .on_disabled_hover_text(tr(
+                    "Select an object first: its materials are listed here",
+                ));
             return;
         }
-        crate::dialog::menu(ui, "Select by material", |ui| {
+        crate::dialog::menu(ui, tr("Select by material"), |ui| {
             for name in names {
-                if ui.button(&name).on_hover_text(HELP).clicked() {
+                if ui.button(&name).on_hover_text(tr(HELP)).clicked() {
                     self.mode = Mode::Polygons;
                     self.select_requests.push(SelectRequest::Material(name));
                     ui.close();
@@ -272,7 +289,7 @@ impl Workbench {
             }
         })
         .response
-        .on_hover_text(HELP);
+        .on_hover_text(tr(HELP));
     }
 
     /// Carries out the selection gestures and requests of this frame,
@@ -364,7 +381,7 @@ impl Workbench {
         if total == 0 {
             String::new()
         } else {
-            format!(" {} selected.", count(total, kind))
+            crate::trf!(" {} selected.", count(total, kind))
         }
     }
 }

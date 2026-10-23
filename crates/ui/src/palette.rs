@@ -1008,7 +1008,7 @@ pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Op
         };
         let note = crate::trf!(
             "{}\nNow: {}.",
-            crate::workbench::VISIBLE_ONLY_HELP,
+            tr(crate::workbench::VISIBLE_ONLY_HELP),
             if options.select_visible_only {
                 tr("on, only what you can see")
             } else {

@@ -430,7 +430,7 @@ fn viewport(ui: &mut Ui, values: &mut Values<'_>) {
         tr("Also switched with the button above the grid button on the left palette."),
     );
     ui.checkbox(values.select_visible_only, tr("Select only visible"))
-        .on_hover_text(crate::workbench::VISIBLE_ONLY_HELP);
+        .on_hover_text(tr(crate::workbench::VISIBLE_ONLY_HELP));
     ui.add_space(4.0);
     explain(
         ui,

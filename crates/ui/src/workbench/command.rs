@@ -6,6 +6,7 @@ use super::Workbench;
 use crate::commands::{CommandId, group_menu, menu_for};
 use crate::objects::{self, DocRequest};
 use crate::palette::Mode;
+use crate::text::tr;
 use crate::tool_menu::{Entry, KeyOutcome, Ready, ToolMenuSettings};
 use crate::transforming::Tool;
 use egui::Ui;
@@ -36,12 +37,12 @@ impl Workbench {
             return Ready::Later(when);
         }
         let selection = self.document.selection();
-        let nothing = || Ready::NotNow("Nothing is selected".into());
+        let nothing = || Ready::NotNow(tr("Nothing is selected").into());
         match command {
             CommandId::MakeEditable if selection.is_empty() => nothing(),
             CommandId::MakeEditable if !objects::can_make_editable(&self.document, &selection) => {
                 Ready::NotNow(
-                    "Nothing to bake into the shape: groups and meshes have no settings to bake"
+                    tr("Nothing to bake into the shape: groups and meshes have no settings to bake")
                         .into(),
                 )
             }
@@ -61,72 +62,63 @@ impl Workbench {
             }
             CommandId::Ungroup if selection.is_empty() => nothing(),
             CommandId::Ungroup if !objects::has_group(&self.document, &selection) => {
-                Ready::NotNow("Nothing to ungroup: only groups can be ungrouped".into())
+                Ready::NotNow(tr("Nothing to ungroup: only groups can be ungrouped").into())
             }
             CommandId::Extrude if !command.modes().contains(&self.mode) => Ready::NotNow(
-                "Extrude works on polygons or edges: press 3 for the Polygons mode, \
-                 or 2 for Edges"
+                tr("Extrude works on polygons or edges: press 3 for the Polygons mode, \
+                 or 2 for Edges")
                     .into(),
             ),
             CommandId::Inset if !command.modes().contains(&self.mode) => {
-                Ready::NotNow("Inset works on polygons: press 3 for the Polygons mode".into())
+                Ready::NotNow(tr("Inset works on polygons: press 3 for the Polygons mode").into())
             }
             CommandId::Bevel if !command.modes().contains(&self.mode) => Ready::NotNow(
-                "Bevel works on edges or points: press 2 for the Edges mode, or 1 for Points"
+                tr("Bevel works on edges or points: press 2 for the Edges mode, or 1 for Points")
                     .into(),
             ),
             CommandId::Groove if !command.modes().contains(&self.mode) => {
-                Ready::NotNow("Groove works on edges: press 2 for the Edges mode".into())
+                Ready::NotNow(tr("Groove works on edges: press 2 for the Edges mode").into())
             }
             CommandId::LoopCut if !command.modes().contains(&self.mode) => Ready::NotNow(
-                "Loop cut works in the Points, Edges or Polygons mode: press 1, 2 or 3".into(),
+                tr("Loop cut works in the Points, Edges or Polygons mode: press 1, 2 or 3").into(),
             ),
             CommandId::Connect if !command.modes().contains(&self.mode) => Ready::NotNow(
-                "Connect works on points or edges: press 1 for the Points mode, or 2 for Edges"
+                tr("Connect works on points or edges: press 1 for the Points mode, or 2 for Edges")
                     .into(),
             ),
             CommandId::Bridge if !command.modes().contains(&self.mode) => Ready::NotNow(
-                "Bridge works on edges or polygons: press 2 for the Edges mode, or 3 for \
-                 Polygons"
+                tr("Bridge works on edges or polygons: press 2 for the Edges mode, or 3 for \
+                 Polygons")
                     .into(),
             ),
             CommandId::Weld if !command.modes().contains(&self.mode) => {
-                Ready::NotNow("Weld works on points: press 1 for the Points mode".into())
+                Ready::NotNow(tr("Weld works on points: press 1 for the Points mode").into())
             }
             CommandId::DeleteElements | CommandId::Dissolve
                 if !command.modes().contains(&self.mode) =>
             {
-                Ready::NotNow(format!(
-                    "{} works in the Points, Edges or Polygons mode: press 1, 2 or 3",
-                    command.name()
-                ))
+                Ready::NotNow(crate::trf!("{} works in the Points, Edges or Polygons mode: press 1, 2 or 3", command.name()))
             }
             CommandId::FillHole if !command.modes().contains(&self.mode) => {
-                Ready::NotNow("Fill hole works in the Edges or Polygons mode: press 2 or 3".into())
+                Ready::NotNow(tr("Fill hole works in the Edges or Polygons mode: press 2 or 3").into())
             }
             CommandId::HardEdges | CommandId::SoftEdges
                 if !command.modes().contains(&self.mode) =>
             {
-                Ready::NotNow(format!(
-                    "{} works on edges or polygons: press 2 for the Edges mode, or 3 for \
-                     Polygons",
-                    command.name()
-                ))
+                Ready::NotNow(crate::trf!("{} works on edges or polygons: press 2 for the Edges mode, or 3 for \
+                     Polygons", command.name()))
             }
             CommandId::FlipNormals if !command.modes().contains(&self.mode) => Ready::NotNow(
-                "Flip normals works on polygons: press 3 for the Polygons mode".into(),
+                tr("Flip normals works on polygons: press 3 for the Polygons mode").into(),
             ),
             CommandId::Slit if !command.modes().contains(&self.mode) => Ready::NotNow(
-                "Slit works in the Points, Edges or Polygons mode: press 1, 2 or 3".into(),
+                tr("Slit works in the Points, Edges or Polygons mode: press 1, 2 or 3").into(),
             ),
             CommandId::MarkSeam | CommandId::ClearSeam
                 if crate::uv_editor::element_kind(self.mode).is_none() =>
             {
-                Ready::NotNow(format!(
-                    "{} works on selected edges or polygons: press 2 for the Edges mode, or 3 \
-                     for Polygons",
-                    command.name()
-                ))
+                Ready::NotNow(crate::trf!("{} works on selected edges or polygons: press 2 for the Edges mode, or 3 \
+                     for Polygons", command.name()))
             }
             CommandId::UvTurnLeft
             | CommandId::UvTurnRight
@@ -136,11 +128,8 @@ impl Workbench {
             | CommandId::UvUnpin
                 if crate::uv_editor::element_kind(self.mode).is_none() =>
             {
-                Ready::NotNow(format!(
-                    "{} works on selected UVs: pick the UV mode, or press 1, 2 or 3 and select \
-                     in the UV Editor",
-                    command.name()
-                ))
+                Ready::NotNow(crate::trf!("{} works on selected UVs: pick the UV mode, or press 1, 2 or 3 and select \
+                     in the UV Editor", command.name()))
             }
             _ => Ready::Yes,
         }
@@ -197,7 +186,7 @@ impl Workbench {
                     .filter(|id| self.document.scene().evaluated(**id).is_some())
                     .count();
                 if shapes < 2 {
-                    self.note = Some("Join: select two or more shapes first.".into());
+                    self.note = Some(tr("Join: select two or more shapes first.").into());
                 } else {
                     requests.push(DocRequest::Run(Command::Join(selection)));
                 }
@@ -261,7 +250,7 @@ impl Workbench {
         use crate::uv_editor::gizmo;
         let (targets, bounds) = gizmo::uv_targets(&self.document, self.mode);
         let Some((min, max)) = bounds else {
-            self.note = Some(format!(
+            self.note = Some(crate::trf!(
                 "{}: select some UVs first.",
                 change.command().name()
             ));
@@ -274,7 +263,7 @@ impl Workbench {
             .collect();
         let label = change.command().name();
         if self.record_each(label, ops) {
-            self.note = Some(format!("{label}. Ctrl + Z takes it back."));
+            self.note = Some(crate::trf!("{}. Ctrl + Z takes it back.", label));
         }
     }
 
@@ -289,7 +278,7 @@ impl Workbench {
         };
         let (targets, _) = gizmo::uv_targets(&self.document, self.mode);
         if targets.is_empty() {
-            self.note = Some(format!("{}: select some UVs first.", command.name()));
+            self.note = Some(crate::trf!("{}: select some UVs first.", command.name()));
             return;
         }
         let count: usize = targets
@@ -316,18 +305,18 @@ impl Workbench {
             })
             .collect();
         let verb = if pin {
-            "Pin the UVs of"
+            tr("Pin the UVs of")
         } else {
-            "Unpin the UVs of"
+            tr("Unpin the UVs of")
         };
         let label = super::joining::counted(verb, count, noun);
         if self.record_each(&label, ops) {
             let why = if pin {
-                " Unwrapping lays the rest out around them; relaxing leaves them alone."
+                tr(" Unwrapping lays the rest out around them; relaxing leaves them alone.")
             } else {
                 ""
             };
-            self.note = Some(format!("{label}. Ctrl + Z takes it back.{why}"));
+            self.note = Some(crate::trf!("{}. Ctrl + Z takes it back.{}", label, why));
         }
     }
 
@@ -360,7 +349,10 @@ impl Workbench {
         match self.tool_menu.keys(ui, typing, entries) {
             Some(KeyOutcome::Chose(command)) => self.run_command(command, ui.ctx(), requests),
             Some(KeyOutcome::NoTools) => {
-                self.note = Some(format!("The {} mode has no tools yet.", self.mode.name()));
+                self.note = Some(crate::trf!(
+                    "The {} mode has no tools yet.",
+                    self.mode.name()
+                ));
             }
             None => {}
         }

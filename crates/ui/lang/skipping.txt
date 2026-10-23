@@ -26,7 +26,6 @@ uv_editor/gizmo.rs 3
 uv_editor/navigation.rs 2
 uv_editor/painting.rs 6
 uv_editor/picking.rs 3
-uv_editor/snapshots.rs 30
 viewport.rs 2
 viewport/dice.rs 2
 viewport/look.rs 2
@@ -35,13 +34,10 @@ viewport/picker.rs 7
 viewport/renderer.rs 1
 viewport/view.rs 4
 workbench/autosaving.rs 3
-workbench/cleaning.rs 30
-workbench/command.rs 27
 workbench/copying.rs 18
 workbench/files.rs 13
 workbench/hardness.rs 19
 workbench/heavy_shape.rs 2
-workbench/joining.rs 27
 workbench/layouts.rs 12
 workbench/loop_cut.rs 9
 workbench/materials.rs 5
@@ -55,7 +51,6 @@ workbench/requests.rs 14
 workbench/seam_preferences.rs 27
 workbench/seams.rs 26
 workbench/searching.rs 8
-workbench/selection.rs 30
 workbench/showing.rs 20
 workbench/slit.rs 8
 workbench/tabs.rs 7

@@ -11,6 +11,7 @@ use crate::objects::{self, DocRequest, ObjectManager};
 use crate::palette::Mode;
 use crate::panel::Panel;
 use crate::panels::menu_line_with;
+use crate::text::tr;
 use crate::theme;
 use crate::transforming::Tool;
 use crate::units::Units;
@@ -128,9 +129,9 @@ impl TabViewer for PanelViewer<'_> {
                     });
                     // Stays open while snapshots are taken and put back, so
                     // what each did can be read in it.
-                    egui::containers::menu::MenuButton::new(
+                    egui::containers::menu::MenuButton::new(tr(
                         crate::uv_editor::snapshots::SNAPSHOTS_MENU,
-                    )
+                    ))
                     .config(
                         crate::dialog::menu_config()
                             .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside),
