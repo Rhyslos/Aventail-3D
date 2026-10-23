@@ -234,9 +234,9 @@ The detailed plan for the remaining milestones, with the controls already chosen
 
 **Gate:** a modular kit is unwrapped, packed and baked in Aventail 3D and looks right in Godot; changing a model afterwards keeps its UVs and their intents.
 
-### Phase 9 · Rework and first use (now, before the rest of Phase 8) — 8 of 10
+### Phase 9 · Rework and first use (now, before the rest of Phase 8) — 9 of 10
 
-`██████████░░░` 80%
+`████████████░` 90%
 
 After a review of the whole app (2026-10-21, [decision 0121](docs/decisions/0121-rework-before-the-rest-of-phase-8.md)), Phase 8 pauses and this comes first: the core stays, what people see and name is reworked, and the quality checks follow what people do.
 
@@ -250,7 +250,7 @@ After a review of the whole app (2026-10-21, [decision 0121](docs/decisions/0121
 - [x] Hard edges and symmetry per object: smoothing by angle per object ([#114](https://github.com/Rhyslos/Aventail-3D/issues/114)), symmetry as a modifier at the object's centre
 - [x] Tidier menus (each command where people look for it, the Mesh menu grouped, no doubles), one word per idea, and every setting in one home, with the UV settings in their own panel and the UV menu in the UV Editor ([#115](https://github.com/Rhyslos/Aventail-3D/issues/115))
 - [x] Labels on everything: a side palette that slides out with names, a dropdown on the selection mode button
-- [ ] A key audit, asked first (Ctrl adds and Shift removes stays) *(the document is written, waiting for the project lead's ticks)*
+- [x] A key audit, asked first (Ctrl adds and Shift removes stays): Slide on Shift + Alt + drag, a second Show everything key, Cmd in Mac texts ([decision 0133](docs/decisions/0133-key-audit.md))
 - [x] A safety net: workflow tests, reference images, export checks in CI, an emergency copy on a crash, a newcomer checklist per pull request
 - [x] Tidy for growth: the big interface code split up, a short spec, English as the one language package, one development file format until the alpha
 
@@ -299,6 +299,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-23 | Key audit: Slide on Shift + Alt + drag, Ctrl + Shift + H also shows everything, Cmd in Mac texts; and Ctrl snaps one loop cut to tenths of the edge, the middle included |
 | 2026-10-23 | Tidy for growth: the big interface files split up, a short spec and a one-page digest of the rules, and every interface text through one language layer with English as its package |
 | 2026-10-23 | Rework: every setting in one home and a slim one-line Coordinates band; the palette names its buttons on hover; a safety net of workflow tests, random action runs, reference images, export checks in Godot and the glTF Validator, and an emergency copy on a crash |
 | 2026-10-22 | Rework, first half: the selection drawn clearest, command search (Space), five modes with Edit pivot, one "Bake into shape", smoothing and symmetry per object with Apply mirror, grouped menus, the UV menu in the UV Editor |
