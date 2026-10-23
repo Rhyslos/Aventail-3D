@@ -4,6 +4,7 @@
 use super::Workbench;
 use super::bars::commands_entries;
 use crate::objects::{self, DocRequest};
+use crate::text::tr;
 use egui::Ui;
 
 /// The Mesh menu's groups (decision 0126): what it holds was one long
@@ -130,7 +131,7 @@ impl Workbench {
             if ui
                 .add_enabled(
                     mirrored,
-                    egui::Button::new(crate::palette::APPLY_MIRROR_LABEL),
+                    egui::Button::new(tr(crate::palette::APPLY_MIRROR_LABEL)),
                 )
                 .on_hover_text(
                     "Make the mirrored half part of the shape for real: symmetry goes off and \

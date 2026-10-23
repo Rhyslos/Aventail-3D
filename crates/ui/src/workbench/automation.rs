@@ -14,6 +14,7 @@ use super::unwrapping::{
     LIVE_UNWRAP_HELP, LIVE_UNWRAP_LABEL, MAX_PADDING, PADDING_LABEL, PackQuality,
     STRAIGHT_STRIPS_HELP, STRAIGHT_STRIPS_LABEL, SeamHiding, UnwrapWay,
 };
+use crate::text::tr;
 use egui::Ui;
 
 /// The UV menu's names for the five settings submenus.
@@ -169,8 +170,8 @@ impl UvSettingsView<'_> {
                 .on_hover_text(way.help());
         }
         ui.separator();
-        ui.checkbox(&mut s.straighten_strips, STRAIGHT_STRIPS_LABEL)
-            .on_hover_text(STRAIGHT_STRIPS_HELP);
+        ui.checkbox(&mut s.straighten_strips, tr(STRAIGHT_STRIPS_LABEL))
+            .on_hover_text(tr(STRAIGHT_STRIPS_HELP));
         ui.add_enabled_ui(s.straighten_strips, |ui| {
             ui.horizontal(|ui| {
                 ui.label(STRIP_ANGLE_LABEL);
@@ -187,8 +188,8 @@ impl UvSettingsView<'_> {
                 );
             });
         });
-        ui.checkbox(&mut s.live_unwrap, LIVE_UNWRAP_LABEL)
-            .on_hover_text(LIVE_UNWRAP_HELP);
+        ui.checkbox(&mut s.live_unwrap, tr(LIVE_UNWRAP_LABEL))
+            .on_hover_text(tr(LIVE_UNWRAP_HELP));
         ui.label(
             egui::RichText::new(
                 "Where closed pieces are cut open, and the stretch budget: Seam suggestions.",
@@ -284,7 +285,7 @@ impl UvSettingsView<'_> {
     pub(crate) fn packing_menu(&mut self, ui: &mut egui::Ui) {
         let s = &mut self.uv_settings;
         ui.horizontal(|ui| {
-            ui.label(PADDING_LABEL);
+            ui.label(tr(PADDING_LABEL));
             ui.add(
                 egui::DragValue::new(&mut s.padding)
                     .range(0..=MAX_PADDING)

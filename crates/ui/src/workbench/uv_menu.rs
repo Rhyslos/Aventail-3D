@@ -4,6 +4,7 @@
 use super::bars::commands_entries;
 use super::{Workbench, piece_settings, seam_preferences, seams, selection, unwrapping};
 use crate::objects::DocRequest;
+use crate::text::tr;
 use egui::Ui;
 
 impl Workbench {
@@ -118,13 +119,13 @@ impl Workbench {
         }
         for (label, help, axis) in [
             (
-                unwrapping::UNFOLD_ACROSS_LABEL,
-                unwrapping::UNFOLD_ACROSS_HELP,
+                tr(unwrapping::UNFOLD_ACROSS_LABEL),
+                tr(unwrapping::UNFOLD_ACROSS_HELP),
                 scene::UnfoldAxis::Across,
             ),
             (
-                unwrapping::UNFOLD_UP_LABEL,
-                unwrapping::UNFOLD_UP_HELP,
+                tr(unwrapping::UNFOLD_UP_LABEL),
+                tr(unwrapping::UNFOLD_UP_HELP),
                 scene::UnfoldAxis::Up,
             ),
         ] {
@@ -143,13 +144,13 @@ impl Workbench {
         ui.separator();
         for (label, help, to_aim) in [
             (
-                unwrapping::SET_DENSITY_LABEL,
-                unwrapping::SET_DENSITY_HELP,
+                tr(unwrapping::SET_DENSITY_LABEL),
+                tr(unwrapping::SET_DENSITY_HELP),
                 true,
             ),
             (
-                unwrapping::MATCH_DENSITY_LABEL,
-                unwrapping::MATCH_DENSITY_HELP,
+                tr(unwrapping::MATCH_DENSITY_LABEL),
+                tr(unwrapping::MATCH_DENSITY_HELP),
                 false,
             ),
         ] {
@@ -158,7 +159,7 @@ impl Workbench {
                 ui.close();
             }
         }
-        ui.menu_button(unwrapping::PUT_ON_TRIM_LABEL, |ui| {
+        ui.menu_button(tr(unwrapping::PUT_ON_TRIM_LABEL), |ui| {
             self.put_on_trim_menu(ui);
         });
     }

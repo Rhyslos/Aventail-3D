@@ -10,6 +10,7 @@
 use crate::icons::Icon;
 use crate::objects::{DELETE_SHORTCUT, GROUP_SHORTCUT, MAKE_EDITABLE_SHORTCUT, UNGROUP_SHORTCUT};
 use crate::palette::Mode;
+use crate::text::tr;
 use egui::{Key, KeyboardShortcut, Modifiers};
 
 /// A command the app offers.
@@ -139,369 +140,429 @@ const fn plain(key: Key) -> Option<KeyboardShortcut> {
 
 impl CommandId {
     /// Everything shown about the command.
-    pub const fn info(self) -> CommandInfo {
+    pub fn info(self) -> CommandInfo {
         let (name, icon, shortcut, help, arrives) = match self {
             Self::Move => (
-                "Move",
+                tr("Move"),
                 Icon::Move,
                 plain(Key::W),
-                "Move the selection: drag the gizmo's arrows, squares or centre",
+                tr("Move the selection: drag the gizmo's arrows, squares or centre"),
                 None,
             ),
             Self::Rotate => (
-                "Rotate",
+                tr("Rotate"),
                 Icon::Rotate,
                 plain(Key::R),
-                "Rotate the selection: drag the gizmo's rings",
+                tr("Rotate the selection: drag the gizmo's rings"),
                 None,
             ),
             Self::Scale => (
-                "Scale",
+                tr("Scale"),
                 Icon::Scale,
                 plain(Key::S),
-                "Scale the selection: drag the gizmo's boxes, or its centre for all axes",
+                tr("Scale the selection: drag the gizmo's boxes, or its centre for all axes"),
                 None,
             ),
             Self::AllGizmos => (
-                "Transform",
+                tr("Transform"),
                 Icon::AllGizmos,
                 plain(Key::T),
-                "Move, rotate and scale at once: all three gizmos",
+                tr("Move, rotate and scale at once: all three gizmos"),
                 None,
             ),
             Self::MakeEditable => (
-                "Bake into shape",
+                tr("Bake into shape"),
                 Icon::MakeEditable,
                 Some(MAKE_EDITABLE_SHORTCUT),
-                "Turn the selected shapes into plain meshes, ready for editing points, \
+                tr(
+                    "Turn the selected shapes into plain meshes, ready for editing points, \
                  edges and polygons. Their settings and recorded edits are baked in. \
                  Undo brings the settings back.",
+                ),
                 None,
             ),
             Self::Group => (
-                "Group objects",
+                tr("Group objects"),
                 Icon::Group,
                 Some(GROUP_SHORTCUT),
-                "Put the selected objects into a new group",
+                tr("Put the selected objects into a new group"),
                 None,
             ),
             Self::Ungroup => (
-                "Ungroup",
+                tr("Ungroup"),
                 Icon::Ungroup,
                 Some(UNGROUP_SHORTCUT),
-                "Take the selected groups' contents out, and remove the groups",
+                tr("Take the selected groups' contents out, and remove the groups"),
                 None,
             ),
             Self::Delete => (
-                "Delete objects",
+                tr("Delete objects"),
                 Icon::Delete,
                 Some(DELETE_SHORTCUT),
-                "Delete the selected objects (Backspace does it too)",
+                tr("Delete the selected objects (Backspace does it too)"),
                 None,
             ),
             Self::NewGroup => (
-                "New group",
+                tr("New group"),
                 Icon::NewGroup,
                 None,
-                "Create an empty group, to hold and organise other objects",
+                tr("Create an empty group, to hold and organise other objects"),
                 None,
             ),
             Self::ShapeList => (
-                "Create a shape…",
+                tr("Create a shape…"),
                 Icon::ShapeList,
                 plain(Key::B),
-                "Open the shape list: a cube, sphere, cylinder and the rest",
+                tr("Open the shape list: a cube, sphere, cylinder and the rest"),
                 None,
             ),
             Self::FrameSelected => (
-                "Frame selected",
+                tr("Frame selected"),
                 Icon::FrameSelected,
                 plain(Key::Z),
-                "Turn and zoom the view so the selection fills it",
+                tr("Turn and zoom the view so the selection fills it"),
                 None,
             ),
             Self::Duplicate => (
-                "Duplicate",
+                tr("Duplicate"),
                 Icon::Duplicate,
                 None,
-                "Copy the selected objects, with their edits, right where they are. Or Ctrl + C, \
+                tr(
+                    "Copy the selected objects, with their edits, right where they are. Or Ctrl + C, \
                  then Ctrl + V to paste copies.",
+                ),
                 None,
             ),
             Self::Instance => (
-                "Duplicate as instance",
+                tr("Duplicate as instance"),
                 Icon::Instance,
                 None,
-                "Make instances of the selected objects right where they are: they show the \
+                tr(
+                    "Make instances of the selected objects right where they are: they show the \
                  original's shape and follow its changes. Or Alt + C, then Alt + V.",
+                ),
                 None,
             ),
             Self::Join => (
-                "Join objects",
+                tr("Join objects"),
                 Icon::Join,
                 None,
-                "Join the selected shapes into the first of them, as one plain mesh, each part \
+                tr(
+                    "Join the selected shapes into the first of them, as one plain mesh, each part \
                  staying where it was",
+                ),
                 None,
             ),
             Self::ApplyTransforms => (
-                "Apply rotation and scale",
+                tr("Apply rotation and scale"),
                 Icon::ApplyTransforms,
                 None,
-                "Turn the selected objects back to 0° and 100% while they look exactly the \
+                tr(
+                    "Turn the selected objects back to 0° and 100% while they look exactly the \
                  same: their shapes take the rotation and scale, so edits measure as they look. \
                  Mesh → Apply transforms has position too.",
+                ),
                 None,
             ),
             Self::PivotToCentre => (
-                "Pivot to centre",
+                tr("Pivot to centre"),
                 Icon::PivotToCentre,
                 None,
-                "Move the selected objects' pivots to the middle of their shapes; the shapes \
+                tr(
+                    "Move the selected objects' pivots to the middle of their shapes; the shapes \
                  stay where they are",
+                ),
                 None,
             ),
             Self::PivotToOrigin => (
-                "Pivot to world origin",
+                tr("Pivot to world origin"),
                 Icon::PivotToOrigin,
                 None,
-                "Move the selected objects' pivots to the world origin, where the red and \
+                tr(
+                    "Move the selected objects' pivots to the world origin, where the red and \
                  blue lines cross; the shapes stay where they are",
+                ),
                 None,
             ),
             Self::PivotToObject => (
-                "Pivot to object…",
+                tr("Pivot to object…"),
                 Icon::PivotToObject,
                 None,
-                "Then click another object: the selected objects' pivots move to its pivot, \
+                tr(
+                    "Then click another object: the selected objects' pivots move to its pivot, \
                  and the shapes stay where they are. Esc cancels.",
+                ),
                 None,
             ),
             Self::ObjectToOrigin => (
-                "Object to world origin",
+                tr("Object to world origin"),
                 Icon::ObjectToOrigin,
                 None,
-                "Move the selected objects, shape and pivot together, so their pivots sit at \
+                tr(
+                    "Move the selected objects, shape and pivot together, so their pivots sit at \
                  the world origin",
+                ),
                 None,
             ),
             Self::Extrude => (
-                "Extrude",
+                tr("Extrude"),
                 Icon::Extrude,
                 plain(Key::D),
-                "Push the selected polygons or edges out, building new sides between \
+                tr(
+                    "Push the selected polygons or edges out, building new sides between \
                  the old place and the new. With points selected along an open edge, \
                  the edges between them grow new polygons",
+                ),
                 None,
             ),
             Self::Inset => (
-                "Inset",
+                tr("Inset"),
                 Icon::Inset,
                 plain(Key::I),
-                "Shrink the selected polygons inward, leaving a ring of new polygons \
+                tr(
+                    "Shrink the selected polygons inward, leaving a ring of new polygons \
                  around each",
+                ),
                 None,
             ),
             Self::Bevel => (
-                "Bevel",
+                tr("Bevel"),
                 Icon::Bevel,
                 plain(Key::V),
-                "Cut the corner off the selected edges or points, with a width, \
+                tr(
+                    "Cut the corner off the selected edges or points, with a width, \
                  segments and roundness",
+                ),
                 None,
             ),
             Self::Groove => (
-                "Groove",
+                tr("Groove"),
                 Icon::Groove,
                 plain(Key::K),
-                "Cut a thin groove into the shape along the selected edges, like a panel \
+                tr(
+                    "Cut a thin groove into the shape along the selected edges, like a panel \
                  line, or raise a ridge out of it: drag in or out",
+                ),
                 None,
             ),
             Self::Bridge => (
-                "Bridge",
+                tr("Bridge"),
                 Icon::Bridge,
                 plain(Key::C),
-                "Build polygons between two open borders or two polygons; with nothing to \
+                tr(
+                    "Build polygons between two open borders or two polygons; with nothing to \
                  bridge selected, drag from one open edge to another",
+                ),
                 None,
             ),
             Self::FillHole => (
-                "Fill hole",
+                tr("Fill hole"),
                 Icon::FillHole,
                 plain(Key::J),
-                "Close the open holes touching the selection with a polygon each; with \
+                tr(
+                    "Close the open holes touching the selection with a polygon each; with \
                  nothing selected, every hole",
+                ),
                 None,
             ),
             Self::FlipNormals => (
-                "Flip normals",
+                tr("Flip normals"),
                 Icon::FlipNormals,
                 None,
-                "Turn the selected polygons inside out, for when they face the wrong way",
+                tr("Turn the selected polygons inside out, for when they face the wrong way"),
                 None,
             ),
             Self::HardEdges => (
-                "Mark hard edges",
+                tr("Mark hard edges"),
                 Icon::HardEdges,
                 None,
-                "Shade the selected edges (or the selected polygons' edges) as crisp edges: \
+                tr(
+                    "Shade the selected edges (or the selected polygons' edges) as crisp edges: \
                  the light breaks there",
+                ),
                 None,
             ),
             Self::SoftEdges => (
-                "Mark soft edges",
+                tr("Mark soft edges"),
                 Icon::SoftEdges,
                 None,
-                "Shade the selected edges (or the selected polygons' edges) smoothly: the light \
+                tr(
+                    "Shade the selected edges (or the selected polygons' edges) smoothly: the light \
                  flows across, so a curve looks round",
+                ),
                 None,
             ),
             Self::DeleteElements => (
-                "Delete points, edges or polygons",
+                tr("Delete points, edges or polygons"),
                 Icon::Delete,
                 plain(Key::Delete),
-                "Delete the selected points, edges or polygons, and the polygons using them, \
+                tr(
+                    "Delete the selected points, edges or polygons, and the polygons using them, \
                  leaving a hole",
+                ),
                 None,
             ),
             Self::Dissolve => (
-                "Dissolve",
+                tr("Dissolve"),
                 Icon::Dissolve,
                 plain(Key::Backspace),
-                "Take the selected points, edges or polygons away but keep the surface \
+                tr(
+                    "Take the selected points, edges or polygons away but keep the surface \
                  closed: the polygons around them merge into one",
+                ),
                 None,
             ),
             Self::Weld => (
-                "Weld",
+                tr("Weld"),
                 Icon::Weld,
                 plain(Key::M),
-                "Melt the selected points into one at their middle (selected polygons: each \
+                tr(
+                    "Melt the selected points into one at their middle (selected polygons: each \
                  touching group at its middle, such as an inset cap into a fan of triangles); \
                  Ctrl + M to drag a point or polygon onto a point",
+                ),
                 None,
             ),
             Self::Connect => (
-                "Connect",
+                tr("Connect"),
                 Icon::Connect,
                 plain(Key::A),
-                "Join the selected points or edges with a new edge across their polygon",
+                tr("Join the selected points or edges with a new edge across their polygon"),
                 None,
             ),
             Self::Slit => (
-                "Slit",
+                tr("Slit"),
                 Icon::Slit,
                 plain(Key::X),
-                "Cut new edges along a line: click or drag its points over the shape; \
+                tr(
+                    "Cut new edges along a line: click or drag its points over the shape; \
                  Enter finishes, Esc cancels, or click the first point to close a loop",
+                ),
                 None,
             ),
             Self::LoopCut => (
-                "Loop cut",
+                tr("Loop cut"),
                 Icon::LoopCut,
                 plain(Key::F),
-                "Cut a new loop of edges all the way around a shape: point at an edge, \
+                tr(
+                    "Cut a new loop of edges all the way around a shape: point at an edge, \
                  then click, or drag to slide it",
+                ),
                 None,
             ),
             Self::UvTurnLeft => (
-                "Turn left 90°",
+                tr("Turn left 90°"),
                 Icon::UvTurnLeft,
                 None,
-                "Turn the selected UVs a quarter turn to the left (anticlockwise), about \
+                tr(
+                    "Turn the selected UVs a quarter turn to the left (anticlockwise), about \
                  their middle",
+                ),
                 None,
             ),
             Self::UvTurnRight => (
-                "Turn right 90°",
+                tr("Turn right 90°"),
                 Icon::UvTurnRight,
                 None,
-                "Turn the selected UVs a quarter turn to the right (clockwise), about their \
+                tr(
+                    "Turn the selected UVs a quarter turn to the right (clockwise), about their \
                  middle",
+                ),
                 None,
             ),
             Self::UvFlipU => (
-                "Flip left to right",
+                tr("Flip left to right"),
                 Icon::UvFlipU,
                 None,
-                "Mirror the selected UVs left to right, about their middle",
+                tr("Mirror the selected UVs left to right, about their middle"),
                 None,
             ),
             Self::UvFlipV => (
-                "Flip upside down",
+                tr("Flip upside down"),
                 Icon::UvFlipV,
                 None,
-                "Mirror the selected UVs top to bottom, about their middle",
+                tr("Mirror the selected UVs top to bottom, about their middle"),
                 None,
             ),
             Self::MarkSeam => (
-                "Mark seams",
+                tr("Mark seams"),
                 Icon::MarkSeam,
                 None,
-                "Mark the selected edges as seams: where the surface is cut open to lie \
+                tr(
+                    "Mark the selected edges as seams: where the surface is cut open to lie \
                  flat. With polygons selected, the edges around them.",
+                ),
                 None,
             ),
             Self::ClearSeam => (
-                "Clear seams",
+                tr("Clear seams"),
                 Icon::ClearSeam,
                 None,
-                "Take the seams off the selected edges (or the selected polygons' edges), so the \
+                tr(
+                    "Take the seams off the selected edges (or the selected polygons' edges), so the \
                  surface stays joined there when unwrapped",
+                ),
                 None,
             ),
             Self::Unwrap => (
-                "Unwrap",
+                tr("Unwrap"),
                 Icon::Unwrap,
                 None,
-                "Lay the pieces holding the selection (or whole objects) flat along their \
+                tr(
+                    "Lay the pieces holding the selection (or whole objects) flat along their \
                  seams, with as little stretching as can be, at the object's texel density",
+                ),
                 None,
             ),
             Self::Relax => (
-                "Relax",
+                tr("Relax"),
                 Icon::Relax,
                 None,
-                "Even out the selected polygons' UVs, so a texture stretches less over them",
+                tr("Even out the selected polygons' UVs, so a texture stretches less over them"),
                 None,
             ),
             Self::Straighten => (
-                "Straighten",
+                tr("Straighten"),
                 Icon::Straighten,
                 None,
-                "Line the pieces made of quads up into a straight grid, for strips and panels",
+                tr("Line the pieces made of quads up into a straight grid, for strips and panels"),
                 None,
             ),
             Self::Pack => (
-                "Pack",
+                tr("Pack"),
                 Icon::Pack,
                 None,
-                "Fit the islands holding the selection (or whole objects) into the texture \
+                tr(
+                    "Fit the islands holding the selection (or whole objects) into the texture \
                  square as large as they go, with padding between them (UV → Packing)",
+                ),
                 None,
             ),
             Self::UvPin => (
-                "Pin",
+                tr("Pin"),
                 Icon::UvPin,
                 None,
-                "Pin the selected UVs where they are: unwrapping lays the rest out around them, \
+                tr(
+                    "Pin the selected UVs where they are: unwrapping lays the rest out around them, \
                  and relaxing leaves them alone",
+                ),
                 None,
             ),
             Self::UvUnpin => (
-                "Unpin",
+                tr("Unpin"),
                 Icon::UvUnpin,
                 None,
-                "Unpin the selected UVs, so unwrapping and relaxing may move them again",
+                tr("Unpin the selected UVs, so unwrapping and relaxing may move them again"),
                 None,
             ),
             Self::UvTurnFlip => (
-                "Turn & flip",
+                tr("Turn & flip"),
                 Icon::UvTurnFlip,
                 None,
-                "Turn the selected UVs a quarter turn, or mirror them: choose this to see the \
+                tr(
+                    "Turn the selected UVs a quarter turn, or mirror them: choose this to see the \
                  four",
+                ),
                 None,
             ),
         };
@@ -515,7 +576,7 @@ impl CommandId {
     }
 
     /// Its name.
-    pub const fn name(self) -> &'static str {
+    pub fn name(self) -> &'static str {
         self.info().name
     }
 
@@ -540,7 +601,7 @@ impl CommandId {
     }
 
     /// Whether it is built.
-    pub const fn is_built(self) -> bool {
+    pub fn is_built(self) -> bool {
         self.info().arrives.is_none()
     }
 

@@ -8,6 +8,7 @@
 use crate::commands::CommandId;
 use crate::icons::{self, Icon};
 use crate::selecting::SelectTool;
+use crate::text::tr;
 use crate::theme::{self, tint};
 use crate::transforming::{Axes, Tool};
 use crate::viewport::ViewOptions;
@@ -62,26 +63,26 @@ impl Mode {
     /// The mode's name.
     pub fn name(self) -> &'static str {
         match self {
-            Self::Model => "Model",
-            Self::Object => "Model (Edit pivot)",
-            Self::Points => "Points",
-            Self::Edges => "Edges",
-            Self::Polygons => "Polygons",
-            Self::Uv => "UV",
+            Self::Model => tr("Model"),
+            Self::Object => tr("Model (Edit pivot)"),
+            Self::Points => tr("Points"),
+            Self::Edges => tr("Edges"),
+            Self::Polygons => tr("Polygons"),
+            Self::Uv => tr("UV"),
         }
     }
 
     /// What the mode is for, in plain words.
     pub fn description(self) -> &'static str {
         match self {
-            Self::Model => "Work on whole objects",
-            Self::Object => {
-                "Work on whole objects' pivots: the gizmo moves and turns the pivot, not the shape"
-            }
-            Self::Points => "Work on points (vertices)",
-            Self::Edges => "Work on edges",
-            Self::Polygons => "Work on polygons (faces)",
-            Self::Uv => "Work on UVs, in the UV Editor and on the model",
+            Self::Model => tr("Work on whole objects"),
+            Self::Object => tr(
+                "Work on whole objects' pivots: the gizmo moves and turns the pivot, not the shape",
+            ),
+            Self::Points => tr("Work on points (vertices)"),
+            Self::Edges => tr("Work on edges"),
+            Self::Polygons => tr("Work on polygons (faces)"),
+            Self::Uv => tr("Work on UVs, in the UV Editor and on the model"),
         }
     }
 
@@ -306,9 +307,9 @@ pub enum PaletteCommand {
 }
 
 /// The Edit pivot switch's name (decision 0126).
-pub const EDIT_PIVOT_LABEL: &str = "Edit pivot";
+pub const EDIT_PIVOT_LABEL: &str = crate::text!("Edit pivot");
 /// The command palette's search button.
-pub const SEARCH_LABEL: &str = "Command search";
+pub const SEARCH_LABEL: &str = crate::text!("Command search");
 
 /// One command on the top palette: one that works, or one that is not
 /// built yet (saying when it arrives).
@@ -323,7 +324,7 @@ struct Planned {
     listed: Option<CommandId>,
 }
 
-const fn working(
+fn working(
     icon: Icon,
     label: &'static str,
     note: &'static str,
@@ -340,7 +341,7 @@ const fn working(
 
 /// A palette button for a command from the command list: its icon, name
 /// and explanation come from there.
-const fn listed(id: CommandId, command: PaletteCommand) -> Planned {
+fn listed(id: CommandId, command: PaletteCommand) -> Planned {
     let info = id.info();
     Planned {
         icon: info.icon,
@@ -352,7 +353,7 @@ const fn listed(id: CommandId, command: PaletteCommand) -> Planned {
 }
 
 /// A palette button that creates a primitive, explained by its kind.
-const fn shape(icon: Icon, label: &'static str, kind: PrimitiveKind) -> Planned {
+fn shape(icon: Icon, label: &'static str, kind: PrimitiveKind) -> Planned {
     working(
         icon,
         label,
@@ -385,13 +386,15 @@ pub struct PaletteState {
 }
 
 /// What the Symmetry switch does, for its tooltips.
-pub(crate) const SYMMETRY_HELP: &str = "Model one half: each selected object gets a mirror of its own, \
+pub(crate) const SYMMETRY_HELP: &str = crate::text!(
+    "Model one half: each selected object gets a mirror of its own, \
      a copy of its shape on the other side of its centre (its pivot) that follows every edit, \
      joined to it at the middle. The mirror moves and turns with the object. The arrow beside it \
-     chooses X, Y or Z and moves the mirror.";
+     chooses X, Y or Z and moves the mirror."
+);
 
 /// The accessible name of the arrow that opens the Symmetry menu.
-pub(crate) const SYMMETRY_MENU_LABEL: &str = "Symmetry settings";
+pub(crate) const SYMMETRY_MENU_LABEL: &str = crate::text!("Symmetry settings");
 
 /// From this much room across, the top palette writes words beside its
 /// most used icons (decision 0126): the tools, Snap and Symmetry.
@@ -401,24 +404,25 @@ pub(crate) const WORDS_FROM_WIDTH: f32 = 1150.0;
 fn word_for(command: PaletteCommand, select_tool: SelectTool) -> Option<&'static str> {
     Some(match command {
         PaletteCommand::NextSelectTool => select_tool.name(),
-        PaletteCommand::Tool(Tool::Move) => "Move",
-        PaletteCommand::Tool(Tool::Rotate) => "Rotate",
-        PaletteCommand::Tool(Tool::Scale) => "Scale",
-        PaletteCommand::ToggleSnapping => "Snap",
-        PaletteCommand::ToggleSymmetry => "Symmetry",
+        PaletteCommand::Tool(Tool::Move) => tr("Move"),
+        PaletteCommand::Tool(Tool::Rotate) => tr("Rotate"),
+        PaletteCommand::Tool(Tool::Scale) => tr("Scale"),
+        PaletteCommand::ToggleSnapping => tr("Snap"),
+        PaletteCommand::ToggleSymmetry => tr("Symmetry"),
         _ => return None,
     })
 }
 
 /// The accessible name of the arrow that opens the select tool list.
-pub(crate) const SELECT_TOOL_MENU_LABEL: &str = "Select tools";
+pub(crate) const SELECT_TOOL_MENU_LABEL: &str = crate::text!("Select tools");
 
 /// The small arrow beside the select tool button, and the list it opens
 /// (decision 0126): box, lasso and paint select, the one in use ticked.
 /// Returns the tool picked, if any.
 fn select_tool_menu(ui: &mut Ui, current: SelectTool, in_use: bool) -> Option<SelectTool> {
     let (rect, response) = ui.allocate_exact_size(vec2(14.0, BUTTON_SIZE), Sense::click());
-    response.widget_info(|| WidgetInfo::labeled(WidgetType::Button, true, SELECT_TOOL_MENU_LABEL));
+    response
+        .widget_info(|| WidgetInfo::labeled(WidgetType::Button, true, tr(SELECT_TOOL_MENU_LABEL)));
     if response.hovered() {
         ui.painter()
             .rect_filled(rect, 4.0, ui.visuals().widgets.hovered.weak_bg_fill);
@@ -432,8 +436,9 @@ fn select_tool_menu(ui: &mut Ui, current: SelectTool, in_use: bool) -> Option<Se
         ],
         Stroke::new(1.5, theme::TEXT_WEAK),
     );
-    let response = response
-        .on_hover_text("Pick how a drag selects: box, lasso or paint (Q steps through them)");
+    let response = response.on_hover_text(tr(
+        "Pick how a drag selects: box, lasso or paint (Q steps through them)",
+    ));
     let mut picked = None;
     egui::Popup::from_toggle_button_response(&response)
         .gap(4.0)
@@ -456,59 +461,67 @@ fn select_tool_menu(ui: &mut Ui, current: SelectTool, in_use: bool) -> Option<Se
 }
 
 /// The groups of the command palette, left to right.
-const COMMAND_GROUPS: [&[Planned]; 4] = [
-    &[
-        working(
-            Icon::Undo,
-            "Undo",
-            "Take back the last change",
-            PaletteCommand::Undo,
-        ),
-        working(
-            Icon::Redo,
-            "Redo",
-            "Do the last undone change again",
-            PaletteCommand::Redo,
-        ),
-    ],
-    &[
-        working(
-            Icon::BoxSelection,
-            "Select tool",
-            "The select tool in use",
-            PaletteCommand::NextSelectTool,
-        ),
-        listed(CommandId::Move, PaletteCommand::Tool(Tool::Move)),
-        listed(CommandId::Scale, PaletteCommand::Tool(Tool::Scale)),
-        listed(CommandId::Rotate, PaletteCommand::Tool(Tool::Rotate)),
-    ],
-    &[
-        shape(Icon::Cube, "Create cube", PrimitiveKind::Cube),
-        shape(Icon::Cylinder, "Create cylinder", PrimitiveKind::Cylinder),
-        shape(Icon::Plane, "Create plane", PrimitiveKind::Plane),
-        shape(Icon::Sphere, "Create sphere", PrimitiveKind::Sphere),
-        working(
-            CommandId::NewGroup.info().icon,
-            "Create group",
-            "Create an empty group, to hold and organise other objects",
-            PaletteCommand::CreateGroup,
-        ),
-    ],
-    &[
-        working(
-            Icon::Snap,
-            "Snapping",
-            "Snap moves to points, edges, polygons and the grid, turns to 15° and scaling to 10% steps. Hold Ctrl while dragging to flip it for that drag.",
-            PaletteCommand::ToggleSnapping,
-        ),
-        working(
-            Icon::Symmetry,
-            "Symmetry",
-            SYMMETRY_HELP,
-            PaletteCommand::ToggleSymmetry,
-        ),
-    ],
-];
+fn command_groups() -> [Vec<Planned>; 4] {
+    [
+        vec![
+            working(
+                Icon::Undo,
+                tr("Undo"),
+                tr("Take back the last change"),
+                PaletteCommand::Undo,
+            ),
+            working(
+                Icon::Redo,
+                tr("Redo"),
+                tr("Do the last undone change again"),
+                PaletteCommand::Redo,
+            ),
+        ],
+        vec![
+            working(
+                Icon::BoxSelection,
+                tr("Select tool"),
+                tr("The select tool in use"),
+                PaletteCommand::NextSelectTool,
+            ),
+            listed(CommandId::Move, PaletteCommand::Tool(Tool::Move)),
+            listed(CommandId::Scale, PaletteCommand::Tool(Tool::Scale)),
+            listed(CommandId::Rotate, PaletteCommand::Tool(Tool::Rotate)),
+        ],
+        vec![
+            shape(Icon::Cube, tr("Create cube"), PrimitiveKind::Cube),
+            shape(
+                Icon::Cylinder,
+                tr("Create cylinder"),
+                PrimitiveKind::Cylinder,
+            ),
+            shape(Icon::Plane, tr("Create plane"), PrimitiveKind::Plane),
+            shape(Icon::Sphere, tr("Create sphere"), PrimitiveKind::Sphere),
+            working(
+                CommandId::NewGroup.info().icon,
+                tr("Create group"),
+                tr("Create an empty group, to hold and organise other objects"),
+                PaletteCommand::CreateGroup,
+            ),
+        ],
+        vec![
+            working(
+                Icon::Snap,
+                tr("Snapping"),
+                tr(
+                    "Snap moves to points, edges, polygons and the grid, turns to 15° and scaling to 10% steps. Hold Ctrl while dragging to flip it for that drag.",
+                ),
+                PaletteCommand::ToggleSnapping,
+            ),
+            working(
+                Icon::Symmetry,
+                tr("Symmetry"),
+                tr(SYMMETRY_HELP),
+                PaletteCommand::ToggleSymmetry,
+            ),
+        ],
+    ]
+}
 
 /// The icon for a select tool.
 pub fn select_tool_icon(tool: SelectTool) -> Icon {
@@ -532,11 +545,11 @@ pub fn command_palette(
     let words = ui.available_width() >= WORDS_FROM_WIDTH;
     ui.horizontal_centered(|ui| {
         ui.spacing_mut().item_spacing.x = 2.0;
-        for (index, group) in COMMAND_GROUPS.iter().enumerate() {
+        for (index, group) in command_groups().iter().enumerate() {
             if index > 0 {
                 divider(ui, true);
             }
-            for command in *group {
+            for command in group {
                 let Some(action) = command.command else {
                     icon_button(
                         ui,
@@ -558,21 +571,16 @@ pub fn command_palette(
                         active = state.tool == Tool::Select;
                         (
                             true,
-                            format!(
-                                "{}: {}.\nClick or press Q for {}.",
-                                tool.name(),
-                                tool.description(),
-                                tool.next().name().to_lowercase()
-                            ),
+                            crate::trf!("{}: {}.\nClick or press Q for {}.", tool.name(), tool.description(), tool.next().name().to_lowercase()),
                         )
                     }
                     PaletteCommand::Undo => match &state.undo {
-                        Some(what) => (true, format!("Undo: {what}")),
-                        None => (false, "Nothing to undo".to_string()),
+                        Some(what) => (true, crate::trf!("Undo: {}", what)),
+                        None => (false, tr("Nothing to undo").to_string()),
                     },
                     PaletteCommand::Redo => match &state.redo {
-                        Some(what) => (true, format!("Redo: {what}")),
-                        None => (false, "Nothing to redo".to_string()),
+                        Some(what) => (true, crate::trf!("Redo: {}", what)),
+                        None => (false, tr("Nothing to redo").to_string()),
                     },
                     PaletteCommand::CreateGroup | PaletteCommand::CreateShape(_) => {
                         (true, command.arrives.to_string())
@@ -646,14 +654,14 @@ pub fn command_palette(
                 let (axes_state, axes_note) = match state.axes {
                     Axes::World => (
                         ButtonState::Normal,
-                        "Now: the gizmo follows the world's axes.\nClick or press L for the object's own axes.",
+                        tr("Now: the gizmo follows the world's axes.\nClick or press L for the object's own axes."),
                     ),
                     Axes::Object => (
                         ButtonState::Active,
-                        "Now: the gizmo follows the object's own axes.\nClick or press L for the world's axes.",
+                        tr("Now: the gizmo follows the object's own axes.\nClick or press L for the world's axes."),
                     ),
                 };
-                if icon_button(ui, Icon::World, AXES_LABEL, axes_note, axes_state).clicked() {
+                if icon_button(ui, Icon::World, tr(AXES_LABEL), axes_note, axes_state).clicked() {
                     clicked = Some(PaletteCommand::ToggleAxes);
                 }
             }
@@ -662,8 +670,8 @@ pub fn command_palette(
             if icon_button(
                 ui,
                 Icon::Search,
-                SEARCH_LABEL,
-                "Find any command by typing part of its name (Space)",
+                tr(SEARCH_LABEL),
+                tr("Find any command by typing part of its name (Space)"),
                 ButtonState::Normal,
             )
             .clicked()
@@ -686,7 +694,7 @@ fn symmetry_menu(
     units: crate::units::Units,
 ) -> SymmetryClick {
     let (rect, response) = ui.allocate_exact_size(vec2(14.0, BUTTON_SIZE), Sense::click());
-    response.widget_info(|| WidgetInfo::labeled(WidgetType::Button, true, SYMMETRY_MENU_LABEL));
+    response.widget_info(|| WidgetInfo::labeled(WidgetType::Button, true, tr(SYMMETRY_MENU_LABEL)));
     if response.hovered() {
         ui.painter()
             .rect_filled(rect, 4.0, ui.visuals().widgets.hovered.weak_bg_fill);
@@ -700,8 +708,9 @@ fn symmetry_menu(
         ],
         Stroke::new(1.5, theme::TEXT_WEAK),
     );
-    let response = response
-        .on_hover_text("Symmetry settings: the axes to mirror across, and where the mirror sits");
+    let response = response.on_hover_text(tr(
+        "Symmetry settings: the axes to mirror across, and where the mirror sits",
+    ));
     egui::Popup::from_toggle_button_response(&response)
         .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
         .gap(4.0)
@@ -721,7 +730,7 @@ pub(crate) enum SymmetryClick {
 }
 
 /// The Symmetry menu's Apply button.
-pub(crate) const APPLY_MIRROR_LABEL: &str = "Apply mirror";
+pub(crate) const APPLY_MIRROR_LABEL: &str = crate::text!("Apply mirror");
 
 /// The Symmetry menu's contents: On (for the selected objects), the axes,
 /// where the mirror is and the weld distance, and Apply mirror. Returns
@@ -736,23 +745,30 @@ pub(crate) fn symmetry_settings(
     let small = |ui: &mut Ui, text: &str| {
         ui.label(RichText::new(text).small().color(theme::TEXT_WEAK));
     };
-    ui.label(RichText::new("Symmetry").strong().color(theme::TEXT_STRONG));
+    ui.label(
+        RichText::new(tr("Symmetry"))
+            .strong()
+            .color(theme::TEXT_STRONG),
+    );
     let mut checked = on;
     let toggled = ui
-        .checkbox(&mut checked, "On")
-        .on_hover_text(SYMMETRY_HELP)
+        .checkbox(&mut checked, tr("On"))
+        .on_hover_text(tr(SYMMETRY_HELP))
         .clicked();
-    small(ui, "For the selected objects: each keeps its own mirror.");
+    small(
+        ui,
+        tr("For the selected objects: each keeps its own mirror."),
+    );
     let applied = ui
-        .add_enabled(on, egui::Button::new(APPLY_MIRROR_LABEL))
-        .on_hover_text(
+        .add_enabled(on, egui::Button::new(tr(APPLY_MIRROR_LABEL)))
+        .on_hover_text(tr(
             "Make the mirrored half part of the shape for real, as Blender's Apply: the mirror \
              is gone, both halves stay, and each half can be changed on its own from then on",
-        )
-        .on_disabled_hover_text("Turn symmetry on first: there's no mirror to apply")
+        ))
+        .on_disabled_hover_text(tr("Turn symmetry on first: there's no mirror to apply"))
         .clicked();
     ui.add_space(4.0);
-    ui.label("Mirror across");
+    ui.label(tr("Mirror across"));
     ui.horizontal(|ui| {
         for (axis, name) in ["X", "Y", "Z"].into_iter().enumerate() {
             let response = ui.checkbox(&mut symmetry.axes[axis], name);
@@ -761,21 +777,23 @@ pub(crate) fn symmetry_settings(
                     WidgetType::Checkbox,
                     true,
                     symmetry.axes[axis],
-                    format!("Symmetry {name}"),
+                    crate::trf!("Symmetry {}", name),
                 )
             });
         }
     });
     small(
         ui,
-        "The object's own axes: X mirrors left and right, Y front and back, Z top and \
+        tr(
+            "The object's own axes: X mirrors left and right, Y front and back, Z top and \
          bottom, across the faint red planes in the viewport.",
+        ),
     );
     if !symmetry.axes.contains(&true) {
-        small(ui, "Pick an axis: with none, nothing is mirrored.");
+        small(ui, tr("Pick an axis: with none, nothing is mirrored."));
     }
     ui.add_space(6.0);
-    ui.label("Move the mirror to");
+    ui.label(tr("Move the mirror to"));
     for (axis, name) in ["X", "Y", "Z"].into_iter().enumerate() {
         ui.horizontal(|ui| {
             ui.label(name);
@@ -787,29 +805,31 @@ pub(crate) fn symmetry_settings(
                     scene::LiveMirror::MAX_CENTRE,
                 ),
                 units,
-                &format!("Symmetry offset {name}"),
+                &crate::trf!("Symmetry offset {}", name),
             );
         });
     }
     small(
         ui,
-        "Where the mirror stands, from the object's centre (its pivot): 0 unless moved.",
+        tr("Where the mirror stands, from the object's centre (its pivot): 0 unless moved."),
     );
     ui.add_space(6.0);
     ui.horizontal(|ui| {
-        ui.label("Weld distance");
+        ui.label(tr("Weld distance"));
         crate::attributes::stepper::length(
             ui,
             &mut symmetry.weld_distance,
             (0.0, scene::LiveMirror::MAX_WELD_DISTANCE),
             units,
-            "Weld distance",
+            tr("Weld distance"),
         );
     });
     small(
         ui,
-        "Points at the middle this close to their mirror become one, so the halves join into one \
+        tr(
+            "Points at the middle this close to their mirror become one, so the halves join into one \
          surface. 0 keeps them apart.",
+        ),
     );
     if applied {
         SymmetryClick::Apply
@@ -821,12 +841,12 @@ pub(crate) fn symmetry_settings(
 }
 
 /// Accessible name of the world or object axes switch.
-pub const AXES_LABEL: &str = "World or object axes";
+pub const AXES_LABEL: &str = crate::text!("World or object axes");
 
 /// An axis lock button (X, Y or Z): filled with the accent colour while
 /// the axis is locked.
 fn axis_lock(ui: &mut Ui, axis: &str, color: Color32, locked: bool) -> Response {
-    let label = format!("Lock the {axis} axis");
+    let label = crate::trf!("Lock the {} axis", axis);
     let (rect, response) = ui.allocate_exact_size(Vec2::splat(BUTTON_SIZE), Sense::click());
     response.widget_info(|| WidgetInfo::selected(WidgetType::Button, true, locked, &label));
     let painter = ui.painter();
@@ -843,12 +863,16 @@ fn axis_lock(ui: &mut Ui, axis: &str, color: Color32, locked: bool) -> Response 
         if locked { Color32::WHITE } else { color },
     );
     let note = if locked {
-        format!(
-            "{axis} is locked: moving, rotating and scaling leave it alone.\nClick or press Shift+{axis} to free it."
+        crate::trf!(
+            "{} is locked: moving, rotating and scaling leave it alone.\nClick or press Shift+{} to free it.",
+            axis,
+            axis
         )
     } else {
-        format!(
-            "Click or press Shift+{axis} to lock it, so moving, rotating and scaling leave {axis} alone."
+        crate::trf!(
+            "Click or press Shift+{} to lock it, so moving, rotating and scaling leave {} alone.",
+            axis,
+            axis
         )
     };
     response.on_hover_text(note)
@@ -856,10 +880,10 @@ fn axis_lock(ui: &mut Ui, axis: &str, color: Color32, locked: bool) -> Response 
 
 /// Accessible name of the "select only visible" switch on the mode
 /// palette.
-pub const VISIBLE_ONLY_LABEL: &str = "Select only visible";
+pub const VISIBLE_ONLY_LABEL: &str = crate::text!("Select only visible");
 
 /// Accessible name of the grid detail toggle on the mode palette.
-pub const GRID_DETAIL_LABEL: &str = "Grid lines";
+pub const GRID_DETAIL_LABEL: &str = crate::text!("Grid lines");
 
 /// What was clicked on the mode palette.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -873,7 +897,7 @@ pub enum ModePick {
 }
 
 /// Accessible name of the mode palette's isolate button.
-pub const ISOLATE_LABEL: &str = "Isolate";
+pub const ISOLATE_LABEL: &str = crate::text!("Isolate");
 
 /// The mode palette down the left side, with the viewport's display
 /// toggles at the bottom. Returns what was picked this frame, if
@@ -906,7 +930,7 @@ pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Op
             } else {
                 ButtonState::Normal
             };
-            let label = format!("{} mode", mode.name());
+            let label = crate::trf!("{} mode", mode.name());
             // Mode icons are always soft white, even Model's cube.
             let tint = tint::ICON;
             let response = tinted_button(ui, mode.icon(), tint, &label, &mode.tooltip(), state);
@@ -925,20 +949,24 @@ pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Op
                 let (pivot_state, pivot_note) = if current == Mode::Object {
                     (
                         ButtonState::Active,
-                        "Edit pivot is on: the gizmo moves and turns the selected objects' \
+                        tr(
+                            "Edit pivot is on: the gizmo moves and turns the selected objects' \
                          pivots, not their shapes.\nClick to turn it off.",
+                        ),
                     )
                 } else {
                     (
                         ButtonState::Normal,
-                        "Edit pivot: move and turn the selected objects' pivots (the point \
+                        tr(
+                            "Edit pivot: move and turn the selected objects' pivots (the point \
                          they turn and scale around), not their shapes",
+                        ),
                     )
                 };
                 let response = icon_button(
                     ui,
                     Icon::ObjectMode,
-                    EDIT_PIVOT_LABEL,
+                    tr(EDIT_PIVOT_LABEL),
                     pivot_note,
                     pivot_state,
                 );
@@ -947,7 +975,7 @@ pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Op
                 }
                 named(
                     &response,
-                    EDIT_PIVOT_LABEL.to_string(),
+                    tr(EDIT_PIVOT_LABEL).to_string(),
                     pivot_state == ButtonState::Active,
                     Act::Pick(ModePick::EditPivot),
                 );
@@ -957,9 +985,11 @@ pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Op
         let response = icon_button(
             ui,
             Icon::Solo,
-            ISOLATE_LABEL,
-            "Isolate: hide every other object, or in the Points, Edges and \
+            tr(ISOLATE_LABEL),
+            tr(
+                "Isolate: hide every other object, or in the Points, Edges and \
              Polygons modes every other polygon (Ctrl + H). Alt + H shows everything again.",
+            ),
             ButtonState::Normal,
         );
         if response.clicked() {
@@ -967,7 +997,7 @@ pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Op
         }
         named(
             &response,
-            ISOLATE_LABEL.to_string(),
+            tr(ISOLATE_LABEL).to_string(),
             false,
             Act::Pick(ModePick::Isolate),
         );
@@ -976,22 +1006,28 @@ pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Op
         } else {
             ButtonState::Normal
         };
-        let note = format!(
+        let note = crate::trf!(
             "{}\nNow: {}.",
             crate::workbench::VISIBLE_ONLY_HELP,
             if options.select_visible_only {
-                "on, only what you can see"
+                tr("on, only what you can see")
             } else {
-                "off, selecting through"
+                tr("off, selecting through")
             }
         );
-        let response = icon_button(ui, Icon::VisibleOnly, VISIBLE_ONLY_LABEL, &note, visible);
+        let response = icon_button(
+            ui,
+            Icon::VisibleOnly,
+            tr(VISIBLE_ONLY_LABEL),
+            &note,
+            visible,
+        );
         if response.clicked() {
             options.select_visible_only = !options.select_visible_only;
         }
         named(
             &response,
-            VISIBLE_ONLY_LABEL.to_string(),
+            tr(VISIBLE_ONLY_LABEL).to_string(),
             options.select_visible_only,
             Act::VisibleOnly,
         );
@@ -1001,18 +1037,18 @@ pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Op
         } else {
             ButtonState::Active
         };
-        let note = format!(
+        let note = crate::trf!(
             "Now: {}.\nClick for: {}.",
             detail.explanation(),
             detail.next().explanation().to_lowercase()
         );
-        let response = icon_button(ui, Icon::GridDetail, GRID_DETAIL_LABEL, &note, state);
+        let response = icon_button(ui, Icon::GridDetail, tr(GRID_DETAIL_LABEL), &note, state);
         if response.clicked() {
             options.grid_detail = detail.next();
         }
         named(
             &response,
-            GRID_DETAIL_LABEL.to_string(),
+            tr(GRID_DETAIL_LABEL).to_string(),
             state == ButtonState::Active,
             Act::GridDetail,
         );
@@ -1051,7 +1087,7 @@ pub(crate) const NAMES_AFTER: f64 = 0.4;
 /// How wide the strip of names is.
 const NAMES_WIDTH: f32 = 170.0;
 /// The accessible name of each name in the strip starts with this.
-pub(crate) const NAMES_PREFIX: &str = "Palette name: ";
+pub(crate) const NAMES_PREFIX: &str = crate::text!("Palette name: ");
 
 /// The strip that slides out beside the mode palette when the mouse rests
 /// on it, with each button's name level with its icon. Clicking a name does
@@ -1106,7 +1142,7 @@ fn slide_out_names(ui: &Ui, names: &[Named], acted: bool) -> Option<Act> {
                     WidgetInfo::labeled(
                         WidgetType::Button,
                         true,
-                        format!("{NAMES_PREFIX}{}", named.name),
+                        format!("{}{}", tr(NAMES_PREFIX), named.name),
                     )
                 });
                 let background = if named.active {
@@ -1178,7 +1214,8 @@ mod tests {
 
     #[test]
     fn every_planned_command_says_when_it_arrives() {
-        let planned = COMMAND_GROUPS
+        let groups = command_groups();
+        let planned = groups
             .iter()
             .flat_map(|g| g.iter())
             .filter(|c| c.command.is_none());

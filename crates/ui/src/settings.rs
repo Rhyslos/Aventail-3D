@@ -9,6 +9,7 @@
 use crate::autosave::{AutosaveSettings, COPIES, MINUTES};
 use crate::dialog::{self, Dialog};
 use crate::selecting::SelectKeys;
+use crate::text::tr;
 use crate::theme::{self, Accent};
 use crate::tool_menu::{ToolMenuSettings, ToolMenuStyle};
 use crate::transforming::SnapSettings;
@@ -23,7 +24,7 @@ pub const SETTINGS_SHORTCUT: KeyboardShortcut =
     KeyboardShortcut::new(Modifiers::COMMAND, Key::Comma);
 
 /// The window's title.
-pub(crate) const SETTINGS_TITLE: &str = "Settings";
+pub(crate) const SETTINGS_TITLE: &str = crate::text!("Settings");
 
 /// A part of the Settings window.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -45,10 +46,10 @@ impl Section {
 
     pub(crate) fn name(self) -> &'static str {
         match self {
-            Self::Interface => "Interface",
-            Self::Viewport => "Viewport",
-            Self::Undo => "Undo",
-            Self::Autosave => "Autosave",
+            Self::Interface => tr("Interface"),
+            Self::Viewport => tr("Viewport"),
+            Self::Undo => tr("Undo"),
+            Self::Autosave => tr("Autosave"),
         }
     }
 }
@@ -99,7 +100,7 @@ pub(crate) struct DisplayValues<'a> {
 }
 
 /// The High contrast setting's name.
-pub(crate) const HIGH_CONTRAST: &str = "High contrast";
+pub(crate) const HIGH_CONTRAST: &str = crate::text!("High contrast");
 
 /// The Settings window's state.
 #[derive(Debug, Clone, Default)]
@@ -123,12 +124,12 @@ impl SettingsWindow {
                 name: section.name(),
                 badge: None,
                 apart: false,
-                label: Some(format!("Settings section: {}", section.name())),
+                label: Some(crate::trf!("Settings section: {}", section.name())),
             })
             .collect();
         let mut chosen = self.section;
         let mut done = false;
-        let outcome = Dialog::new(SETTINGS_TITLE, 680.0)
+        let outcome = Dialog::new(tr(SETTINGS_TITLE), 680.0)
             .body_height(430.0)
             .show(ctx, |d| {
                 d.header(true, |_| {});
@@ -140,19 +141,19 @@ impl SettingsWindow {
                 });
                 d.footer_with(
                     |ui| {
-                        if dialog::plain_button(ui, "Restore standard")
-                            .on_hover_text(
+                        if dialog::plain_button(ui, tr("Restore standard"))
+                            .on_hover_text(tr(
                                 "Put every setting back as it was when the app was new (the \
                                  panel layout is kept)",
-                            )
+                            ))
                             .clicked()
                         {
                             restore_standard(values);
                         }
                     },
                     |ui| {
-                        if dialog::main_button(ui, "Done")
-                            .on_hover_text("Changes apply as you make them")
+                        if dialog::main_button(ui, tr("Done"))
+                            .on_hover_text(tr("Changes apply as you make them"))
                             .clicked()
                         {
                             done = true;
@@ -197,11 +198,13 @@ fn explain(ui: &mut Ui, text: &str) {
 }
 
 fn interface(ui: &mut Ui, values: &mut Values<'_>) {
-    heading(ui, "Accent colour");
+    heading(ui, tr("Accent colour"));
     explain(
         ui,
-        "The one colour that marks what's active: the current mode, the chosen option, \
+        tr(
+            "The one colour that marks what's active: the current mode, the chosen option, \
          the selection.",
+        ),
     );
     for accent in Accent::ALL {
         ui.horizontal(|ui| {
@@ -214,24 +217,28 @@ fn interface(ui: &mut Ui, values: &mut Values<'_>) {
         });
     }
     ui.add_space(8.0);
-    heading(ui, "Seeing the selection");
+    heading(ui, tr("Seeing the selection"));
     explain(
         ui,
-        "The selection is always drawn larger and brighter than anything else. High contrast \
+        tr(
+            "The selection is always drawn larger and brighter than anything else. High contrast \
          makes it larger still, with a dark rim, so it stands out on any colour.",
+        ),
     );
-    ui.checkbox(values.high_contrast, HIGH_CONTRAST)
-        .on_hover_text(
+    ui.checkbox(values.high_contrast, tr(HIGH_CONTRAST))
+        .on_hover_text(tr(
             "Selected and hovered points, edges and polygons drawn larger with a dark rim, in \
              the viewport and the UV Editor",
-        );
+        ));
     ui.add_space(8.0);
-    heading(ui, "Units");
+    heading(ui, tr("Units"));
     explain(
         ui,
-        "How sizes are shown and typed. Each project keeps its own, saved with it; \
+        tr(
+            "How sizes are shown and typed. Each project keeps its own, saved with it; \
          only the display changes, never the shapes. Also switched in the Attributes \
          panel's Units menu.",
+        ),
     );
     let choices: Vec<(Units, String)> = Units::ALL
         .into_iter()
@@ -243,34 +250,36 @@ fn interface(ui: &mut Ui, values: &mut Values<'_>) {
             (
                 *u,
                 name.as_str(),
-                "Changing them is a step Ctrl + Z can take back",
+                tr("Changing them is a step Ctrl + Z can take back"),
             )
         })
         .collect();
-    dialog::row(ui, "This project", |ui| {
+    dialog::row(ui, tr("This project"), |ui| {
         dialog::segmented(ui, values.units, &named);
     });
     let new_named: Vec<(Units, &str, &str)> = Units::ALL
         .into_iter()
-        .map(|u| (u, u.name(), "The units a new project starts with"))
+        .map(|u| (u, u.name(), tr("The units a new project starts with")))
         .collect();
-    dialog::row(ui, "New projects", |ui| {
+    dialog::row(ui, tr("New projects"), |ui| {
         dialog::segmented(ui, values.new_units, &new_named);
     });
     ui.add_space(8.0);
-    heading(ui, "Warnings");
+    heading(ui, tr("Warnings"));
     explain(
         ui,
-        "Questions asked before an edit that is easy to get wrong. Each can also be \
+        tr(
+            "Questions asked before an edit that is easy to get wrong. Each can also be \
          switched off from the question itself.",
+        ),
     );
     let mut warn = !*values.dissolve_without_warning;
     if ui
-        .checkbox(&mut warn, "Ask before dissolving across a sharp corner")
-        .on_hover_text(
+        .checkbox(&mut warn, tr("Ask before dissolving across a sharp corner"))
+        .on_hover_text(tr(
             "Dissolving where polygons meet at more than 30° makes one bent polygon, which \
              shades badly. Delete is usually what's wanted there.",
-        )
+        ))
         .changed()
     {
         *values.dissolve_without_warning = !warn;
@@ -282,13 +291,15 @@ fn interface(ui: &mut Ui, values: &mut Values<'_>) {
 /// The Interface page's Radial menu section: how the tool menu (E) looks
 /// and opens.
 fn radial_menu(ui: &mut Ui, values: &mut Values<'_>) {
-    dialog::heading(ui, "Radial menu");
+    dialog::heading(ui, tr("Radial menu"));
     explain(
         ui,
-        "Press E for the tools of what you're working on. Every look holds the same \
+        tr(
+            "Press E for the tools of what you're working on. Every look holds the same \
          tools in the same places.",
+        ),
     );
-    ui.label(RichText::new("Look").color(theme::TEXT_WEAK));
+    ui.label(RichText::new(tr("Look")).color(theme::TEXT_WEAK));
     for style in ToolMenuStyle::ALL {
         if ui
             .radio(values.tool_menu.style == style, style.name())
@@ -299,38 +310,45 @@ fn radial_menu(ui: &mut Ui, values: &mut Values<'_>) {
         }
     }
     ui.add_space(4.0);
-    ui.checkbox(&mut values.tool_menu.show_keys, "Show keys around the ring")
-        .on_hover_text(
-            "On: each tool's key sits just outside its button.\n\
-             Off: the key shows in the middle, with the name of the tool you point at.",
-        );
-    ui.checkbox(&mut values.tool_menu.tap_to_open, "Tap E to open")
-        .on_hover_text(
+    ui.checkbox(
+        &mut values.tool_menu.show_keys,
+        tr("Show keys around the ring"),
+    )
+    .on_hover_text(tr("On: each tool's key sits just outside its button.\n\
+             Off: the key shows in the middle, with the name of the tool you point at."));
+    ui.checkbox(&mut values.tool_menu.tap_to_open, tr("Tap E to open"))
+        .on_hover_text(tr(
             "On: a tap opens the menu and keeps it open; tap E again to step through it, \
              and Enter or Space to use a tool. Easier if holding a key is hard.\n\
              Off: the menu shows only while you hold E; let go over a tool to use it.",
-        );
+        ));
     ui.add_space(8.0);
-    dialog::heading(ui, "Quad menu");
+    dialog::heading(ui, tr("Quad menu"));
     explain(
         ui,
-        "A right-click in the viewport opens four short lists around the mouse: what to show \
+        tr(
+            "A right-click in the viewport opens four short lists around the mouse: what to show \
          and hide, the modes, undo and edit layers, and the tools of what you're working on. \
          A right-click that ends a drag, or a right drag that turns the view, never opens it.",
+        ),
     );
-    ui.checkbox(&mut values.tool_menu.quad_menu, QUAD_MENU_SWITCH)
-        .on_hover_text("Off as standard: right-clicks in the viewport then do nothing");
+    ui.checkbox(&mut values.tool_menu.quad_menu, tr(QUAD_MENU_SWITCH))
+        .on_hover_text(tr(
+            "Off as standard: right-clicks in the viewport then do nothing",
+        ));
 }
 
 /// The Settings switch for the quad menu (decision 0094).
-pub(crate) const QUAD_MENU_SWITCH: &str = "Right-click opens the quad menu";
+pub(crate) const QUAD_MENU_SWITCH: &str = crate::text!("Right-click opens the quad menu");
 
 fn viewport(ui: &mut Ui, values: &mut Values<'_>) {
-    heading(ui, "Navigation controls");
+    heading(ui, tr("Navigation controls"));
     explain(
         ui,
-        "How the mouse moves the view. Also chosen from the button in the viewport's \
+        tr(
+            "How the mouse moves the view. Also chosen from the button in the viewport's \
          bottom-right corner.",
+        ),
     );
     for scheme in Scheme::ALL {
         if ui
@@ -344,15 +362,15 @@ fn viewport(ui: &mut Ui, values: &mut Values<'_>) {
     ui.add_space(4.0);
     ui.checkbox(
         &mut values.navigation.alt_everywhere,
-        "Alt + mouse works in every scheme",
+        tr("Alt + mouse works in every scheme"),
     );
     ui.checkbox(
         &mut values.navigation.around_cursor,
-        "Orbit and zoom around the point under the mouse",
+        tr("Orbit and zoom around the point under the mouse"),
     );
     ui.checkbox(
         &mut values.navigation.invert_orbit,
-        "Invert orbit direction",
+        tr("Invert orbit direction"),
     );
     ui.checkbox(
         &mut values.navigation.show_pivot,
@@ -360,10 +378,10 @@ fn viewport(ui: &mut Ui, values: &mut Values<'_>) {
     )
     .on_hover_text(crate::viewport::chrome::SHOW_PIVOT_HELP);
     ui.add_space(8.0);
-    heading(ui, "Grid lines");
+    heading(ui, tr("Grid lines"));
     explain(
         ui,
-        "Also stepped through with the grid button on the left palette.",
+        tr("Also stepped through with the grid button on the left palette."),
     );
     for level in GridDetail::ALL {
         if ui
@@ -375,10 +393,10 @@ fn viewport(ui: &mut Ui, values: &mut Values<'_>) {
         }
     }
     ui.add_space(8.0);
-    heading(ui, "Viewport display");
+    heading(ui, tr("Viewport display"));
     explain(
         ui,
-        "What the viewport draws over your shapes. Also in the viewport's Display menu.",
+        tr("What the viewport draws over your shapes. Also in the viewport's Display menu."),
     );
     let display = &mut values.display;
     let mut cavity = !*display.hide_cavity;
@@ -403,19 +421,21 @@ fn viewport(ui: &mut Ui, values: &mut Values<'_>) {
         crate::viewport::chrome::FLAT_FROM_DICE_ENTRY,
     );
     ui.add_space(8.0);
-    heading(ui, "Selecting");
+    heading(ui, tr("Selecting"));
     explain(
         ui,
-        "Also switched with the button above the grid button on the left palette.",
+        tr("Also switched with the button above the grid button on the left palette."),
     );
-    ui.checkbox(values.select_visible_only, "Select only visible")
+    ui.checkbox(values.select_visible_only, tr("Select only visible"))
         .on_hover_text(crate::workbench::VISIBLE_ONLY_HELP);
     ui.add_space(4.0);
     explain(
         ui,
-        "Selection keys: which key adds to the selection and which takes away, \
+        tr(
+            "Selection keys: which key adds to the selection and which takes away, \
          for clicks, boxes, lassos, the brush and double-clicks alike. A plain \
          click or drag always starts a new selection; Alt + double-click selects a ring.",
+        ),
     );
     for keys in SelectKeys::ALL {
         if ui
@@ -428,37 +448,40 @@ fn viewport(ui: &mut Ui, values: &mut Values<'_>) {
     }
     explain(ui, values.select_keys.summary());
     ui.add_space(8.0);
-    heading(ui, "Snapping");
+    heading(ui, tr("Snapping"));
     explain(
         ui,
-        "While moving, rotating and scaling. The snapping button on the top palette \
+        tr(
+            "While moving, rotating and scaling. The snapping button on the top palette \
          turns it on and off.",
+        ),
     );
     let snap = &mut *values.snap;
-    ui.checkbox(&mut snap.on, "Snapping on");
+    ui.checkbox(&mut snap.on, tr("Snapping on"));
     ui.checkbox(
         &mut snap.ctrl_flips,
-        "Holding Ctrl while dragging flips snapping for that drag",
+        tr("Holding Ctrl while dragging flips snapping for that drag"),
     )
-    .on_hover_text("Off: only the button turns snapping on and off.");
-    ui.label("Moves snap to:");
+    .on_hover_text(tr("Off: only the button turns snapping on and off."));
+    ui.label(tr("Moves snap to:"));
     ui.horizontal(|ui| {
-        ui.checkbox(&mut snap.points, "Points");
-        ui.checkbox(&mut snap.edges, "Edges");
-        ui.checkbox(&mut snap.polygons, "Polygons");
-        ui.checkbox(&mut snap.grid, "Grid lines").on_hover_text(
-            "The lines shown: every 1 m, 50 cm or 10 cm, as the grid button is set.",
-        );
+        ui.checkbox(&mut snap.points, tr("Points"));
+        ui.checkbox(&mut snap.edges, tr("Edges"));
+        ui.checkbox(&mut snap.polygons, tr("Polygons"));
+        ui.checkbox(&mut snap.grid, tr("Grid lines"))
+            .on_hover_text(tr(
+                "The lines shown: every 1 m, 50 cm or 10 cm, as the grid button is set.",
+            ));
     });
     ui.horizontal(|ui| {
-        ui.label("Turns snap every");
+        ui.label(tr("Turns snap every"));
         ui.add(
             egui::DragValue::new(&mut snap.angle)
                 .range(1.0..=90.0)
                 .speed(0.5)
                 .suffix("°"),
         );
-        ui.label("and scaling every");
+        ui.label(tr("and scaling every"));
         let mut percent = snap.scale * 100.0;
         if ui
             .add(
@@ -475,14 +498,16 @@ fn viewport(ui: &mut Ui, values: &mut Values<'_>) {
 }
 
 fn undo(ui: &mut Ui, values: &mut Values<'_>) {
-    heading(ui, "Undo memory");
+    heading(ui, tr("Undo memory"));
     explain(
         ui,
-        "Undo keeps steps until they fill this much memory, then forgets the oldest first. \
+        tr(
+            "Undo keeps steps until they fill this much memory, then forgets the oldest first. \
          There is no limit on the number of steps, and the newest step is always kept.",
+        ),
     );
     let (bytes, steps) = values.history;
-    ui.label(format!(
+    ui.label(crate::trf!(
         "In use: {} of {} ({} {})",
         format_bytes(bytes),
         values.undo_memory.short(),
@@ -502,22 +527,24 @@ fn undo(ui: &mut Ui, values: &mut Values<'_>) {
 }
 
 fn autosave(ui: &mut Ui, values: &mut Values<'_>) {
-    heading(ui, "Backup copies");
+    heading(ui, tr("Backup copies"));
     explain(
         ui,
-        "While you work, the app saves a backup copy of your scene in the background, only \
+        tr(
+            "While you work, the app saves a backup copy of your scene in the background, only \
          when something changed. If the app ever closes without saving, it offers the copies \
          the next time it starts. They never replace your project file: saving does that.",
+        ),
     );
     let settings = &mut *values.autosave;
-    ui.checkbox(&mut settings.on, "Save backup copies in the background");
+    ui.checkbox(&mut settings.on, tr("Save backup copies in the background"));
     ui.add_enabled_ui(settings.on, |ui| {
         ui.horizontal(|ui| {
-            ui.label("Every");
+            ui.label(tr("Every"));
             let unit = if settings.minutes == 1 {
-                " minute"
+                tr(" minute")
             } else {
-                " minutes"
+                tr(" minutes")
             };
             ui.add(
                 egui::DragValue::new(&mut settings.minutes)
@@ -525,14 +552,14 @@ fn autosave(ui: &mut Ui, values: &mut Values<'_>) {
                     .speed(0.2)
                     .suffix(unit),
             )
-            .on_hover_text("Counted from the first change since the last copy.");
+            .on_hover_text(tr("Counted from the first change since the last copy."));
         });
         ui.horizontal(|ui| {
-            ui.label("Keep the newest");
+            ui.label(tr("Keep the newest"));
             let unit = if settings.copies == 1 {
-                " copy"
+                tr(" copy")
             } else {
-                " copies"
+                tr(" copies")
             };
             ui.add(
                 egui::DragValue::new(&mut settings.copies)
@@ -540,20 +567,22 @@ fn autosave(ui: &mut Ui, values: &mut Values<'_>) {
                     .speed(0.2)
                     .suffix(unit),
             )
-            .on_hover_text(
+            .on_hover_text(tr(
                 "More copies let you go further back after a crash. A heavy scene takes \
                  tens of MB per copy.",
-            );
+            ));
         });
     });
     ui.add_space(8.0);
-    heading(ui, "Where they go");
+    heading(ui, tr("Where they go"));
     match values.autosave_folder {
         Some(folder) => {
             explain(
                 ui,
-                "The app's own folder, so your project folders stay tidy. Copies are deleted \
+                tr(
+                    "The app's own folder, so your project folders stay tidy. Copies are deleted \
                  when the app closes normally.",
+                ),
             );
             ui.add(
                 egui::Label::new(RichText::new(folder.display().to_string()).monospace())
@@ -563,7 +592,7 @@ fn autosave(ui: &mut Ui, values: &mut Values<'_>) {
         None => {
             explain(
                 ui,
-                "No folder for backup copies could be found on this computer.",
+                tr("No folder for backup copies could be found on this computer."),
             );
         }
     }

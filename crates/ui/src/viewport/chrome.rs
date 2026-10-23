@@ -5,6 +5,7 @@
 
 use super::{FOUR_VIEWS_KEY, VIEW_KEYS, View, ViewOptions, ViewportPanel, cursor_for};
 use crate::icons::{self, Icon};
+use crate::text::tr;
 use crate::theme::{self, backdrop};
 use egui::{
     Align, Align2, CursorIcon, FontId, Layout, Rect, Sense, Stroke, Ui, UiBuilder, pos2, vec2,
@@ -329,7 +330,7 @@ pub(super) fn active_border(ui: &Ui, rect: Rect) {
 
 /// The grid detail choices, under a "Grid lines" heading.
 pub(crate) fn grid_entries(ui: &mut Ui, detail: &mut super::GridDetail) {
-    ui.label(egui::RichText::new(crate::palette::GRID_DETAIL_LABEL).color(theme::TEXT_WEAK));
+    ui.label(egui::RichText::new(tr(crate::palette::GRID_DETAIL_LABEL)).color(theme::TEXT_WEAK));
     for level in super::GridDetail::ALL {
         if ui
             .radio(*detail == level, level.label())

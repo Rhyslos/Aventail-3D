@@ -6,6 +6,7 @@ use super::Workbench;
 use crate::commands::CommandId;
 use crate::coordinates::{CoordinatesView, Field, Interaction};
 use crate::drawing::SceneDrawing;
+use crate::text::tr;
 use crate::transforming::{
     AXES_KEY, Axes, LOCK_KEYS, Session, Snapping, TOOL_KEYS, Target, Tool, describe,
 };
@@ -328,7 +329,7 @@ impl Workbench {
         if ui
             .add(egui::Button::selectable(
                 self.mode == crate::palette::Mode::Object,
-                crate::palette::EDIT_PIVOT_LABEL,
+                tr(crate::palette::EDIT_PIVOT_LABEL),
             ))
             .on_hover_text(
                 "Move and turn the selected objects' pivots (the point they turn and scale \
@@ -418,7 +419,7 @@ impl Workbench {
         let symmetry = self.selected_mirror().is_some();
         if ui
             .add(egui::Button::selectable(symmetry, "Symmetry"))
-            .on_hover_text(crate::palette::SYMMETRY_HELP)
+            .on_hover_text(tr(crate::palette::SYMMETRY_HELP))
             .clicked()
         {
             self.toggle_symmetry();

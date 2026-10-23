@@ -3,6 +3,7 @@
 //! cuts, position, groove, bevel options, profile and Keep together.
 
 use super::{FIELD_WIDTH, label, stepper};
+use crate::text::tr;
 use crate::theme;
 use crate::units::Units;
 use egui::{RichText, Ui};
@@ -12,21 +13,21 @@ use mesh::primitives::MAX_SIZE;
 pub(super) fn segments_row(ui: &mut Ui, segments: &mut u32) -> stepper::Touched {
     label(
         ui,
-        "Segments",
-        "How many rows the bevel has: 1 is a flat cut (a chamfer), more make it round",
+        tr("Segments"),
+        tr("How many rows the bevel has: 1 is a flat cut (a chamfer), more make it round"),
     );
-    stepper::count(ui, segments, (1, mesh::bevel::MAX_SEGMENTS), "Segments")
+    stepper::count(ui, segments, (1, mesh::bevel::MAX_SEGMENTS), tr("Segments"))
 }
 
 /// The name of an extrude's way, as listed.
 pub(crate) fn direction_name(direction: scene::ExtrudeDirection) -> &'static str {
     use scene::ExtrudeDirection as D;
     match direction {
-        D::Straight => "Straight out",
-        D::AlongNormals => "Along normals",
-        D::AlongX => "Along X",
-        D::AlongY => "Along Y",
-        D::AlongZ => "Along Z",
+        D::Straight => tr("Straight out"),
+        D::AlongNormals => tr("Along normals"),
+        D::AlongX => tr("Along X"),
+        D::AlongY => tr("Along Y"),
+        D::AlongZ => tr("Along Z"),
     }
 }
 
@@ -34,18 +35,18 @@ pub(crate) fn direction_name(direction: scene::ExtrudeDirection) -> &'static str
 fn direction_help(direction: scene::ExtrudeDirection) -> &'static str {
     use scene::ExtrudeDirection as D;
     match direction {
-        D::Straight => {
+        D::Straight => tr(
             "Every point goes the same way: straight out along the polygons' average facing. \
-             The end keeps the polygons' shape."
-        }
-        D::AlongNormals => {
+             The end keeps the polygons' shape.",
+        ),
+        D::AlongNormals => tr(
             "Each point goes along its own facing, so the end follows the surface's curve at \
-             an even thickness, like puffing it out."
-        }
-        D::AlongX | D::AlongY | D::AlongZ => {
+             an even thickness, like puffing it out.",
+        ),
+        D::AlongX | D::AlongY | D::AlongZ => tr(
             "Straight along this axis of the object (its own axes), out the way the polygons \
-             face: pull a sloped patch out level, say."
-        }
+             face: pull a sloped patch out level, say.",
+        ),
     }
 }
 
@@ -62,11 +63,11 @@ pub(super) fn extrude_rows(
         out.changed |= t.changed;
         out.began |= t.began;
     };
-    let why = "A bent extrude goes out its own way: set the bend's Angle to 0 for these.";
+    let why = tr("A bent extrude goes out its own way: set the bend's Angle to 0 for these.");
     label(
         ui,
-        "Direction",
-        "Which way the polygons go. Straight out is the standard.",
+        tr("Direction"),
+        tr("Which way the polygons go. Straight out is the standard."),
     );
     ui.add_enabled_ui(enabled, |ui| {
         let before = shape.direction;
@@ -83,7 +84,7 @@ pub(super) fn extrude_rows(
             .on_hover_text(direction_help(shape.direction))
             .on_disabled_hover_text(why);
         response.widget_info(|| {
-            egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, true, "Extrude direction")
+            egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, true, tr("Extrude direction"))
         });
         if shape.direction != before {
             add(stepper::Touched {
@@ -95,43 +96,52 @@ pub(super) fn extrude_rows(
     ui.end_row();
     label(
         ui,
-        "End size",
-        "How big the new end is, compared with where it started: 100% the same, less tapers \
+        tr("End size"),
+        tr(
+            "How big the new end is, compared with where it started: 100% the same, less tapers \
          it in (0% to a point), more flares it out.",
+        ),
     );
     ui.add_enabled_ui(enabled, |ui| {
         add(stepper::percent(
             ui,
             &mut shape.end_size,
             (0.0, mesh::edit::MAX_END_SIZE),
-            "End size",
+            tr("End size"),
         ));
     });
     ui.end_row();
     label(
         ui,
-        "Steps",
-        "How many rows the new walls have: more give loops to bend or shape later. Ctrl + \
+        tr("Steps"),
+        tr(
+            "How many rows the new walls have: more give loops to bend or shape later. Ctrl + \
          wheel changes it.",
+        ),
     );
     ui.add_enabled_ui(enabled, |ui| {
         add(stepper::count(
             ui,
             &mut shape.steps,
             (1, mesh::edit::MAX_EXTRUDE_STEPS),
-            "Extrude steps",
+            tr("Extrude steps"),
         ));
     });
     ui.end_row();
     label(
         ui,
-        "Flat end",
-        "Lay the new end flat, square to the way it went: a curved patch ends in a flat face.",
+        tr("Flat end"),
+        tr("Lay the new end flat, square to the way it went: a curved patch ends in a flat face."),
     );
     ui.add_enabled_ui(enabled, |ui| {
         let response = ui.checkbox(&mut shape.flat_end, "");
         response.widget_info(|| {
-            egui::WidgetInfo::selected(egui::WidgetType::Checkbox, true, shape.flat_end, "Flat end")
+            egui::WidgetInfo::selected(
+                egui::WidgetType::Checkbox,
+                true,
+                shape.flat_end,
+                tr("Flat end"),
+            )
         });
         if response.changed() {
             add(stepper::Touched {
@@ -150,7 +160,7 @@ pub(super) fn extrude_rows(
 pub(super) fn bend_rows(ui: &mut Ui, bend: &mut scene::Bend, units: Units) -> stepper::Touched {
     // A small heading, so the bend reads as its own group under the
     // extrude's Distance.
-    ui.label(RichText::new("Bend").small().color(theme::TEXT_WEAK));
+    ui.label(RichText::new(tr("Bend")).small().color(theme::TEXT_WEAK));
     ui.end_row();
     let mut out = stepper::Touched::default();
     let mut add = |t: stepper::Touched| {
@@ -172,56 +182,66 @@ pub(super) fn bend_rows(ui: &mut Ui, bend: &mut scene::Bend, units: Units) -> st
         ui,
         &mut bend.angle,
         most,
-        "Angle",
-        "How far the extrude turns before going on straight: 0° is straight, 90° a corner. \
+        tr("Angle"),
+        tr(
+            "How far the extrude turns before going on straight: 0° is straight, 90° a corner. \
          The pipe keeps its full width through the turn. With a bend radius it can go past \
          360° into a spiral (up to 3600°, ten turns): each loop climbs just clear of the one \
          before.",
+        ),
     ));
     add(degrees(
         ui,
         &mut bend.direction,
         360.0,
-        "Direction",
-        "Which way round it turns: 0° turns up (an upright pipe turns towards +X), and it \
+        tr("Direction"),
+        tr(
+            "Which way round it turns: 0° turns up (an upright pipe turns towards +X), and it \
          goes round from there.",
+        ),
     ));
     label(
         ui,
-        "Bend radius",
-        "How wide the turn is, from its middle to the middle of the pipe: 0 is a sharp \
+        tr("Bend radius"),
+        tr(
+            "How wide the turn is, from its middle to the middle of the pipe: 0 is a sharp \
          corner (a mitre joint, up to 150°), more is a smooth elbow.",
+        ),
     );
     add(stepper::length(
         ui,
         &mut bend.radius,
         (0.0, MAX_SIZE),
         units,
-        "Bend radius",
+        tr("Bend radius"),
     ));
     ui.end_row();
     label(
         ui,
-        "Segments",
-        "How many rows a smooth turn has (with a bend radius); for a spiral, how many each \
+        tr("Segments"),
+        tr(
+            "How many rows a smooth turn has (with a bend radius); for a spiral, how many each \
          full turn has. Ctrl + wheel changes it.",
+        ),
     );
     add(stepper::count(
         ui,
         &mut bend.segments,
         (1, mesh::extrude::MAX_BEND_SEGMENTS),
-        "Bend segments",
+        tr("Bend segments"),
     ));
     ui.end_row();
     // The rise only does something with a bend radius, so it's greyed out
     // without one.
     label(
         ui,
-        "Rise per turn",
-        "Extra room between a spiral's loops: how much further each full turn climbs \
+        tr("Rise per turn"),
+        tr(
+            "Extra room between a spiral's loops: how much further each full turn climbs \
          along the spiral's middle. Past one turn the loops already clear each other, so 0 \
          leaves them just apart; under one turn it tilts the bend into a ramp. Needs a bend \
          radius.",
+        ),
     );
     let rounded = bend.radius > 0.0;
     ui.add_enabled_ui(rounded, |ui| {
@@ -230,7 +250,7 @@ pub(super) fn bend_rows(ui: &mut Ui, bend: &mut scene::Bend, units: Units) -> st
             &mut bend.rise,
             (0.0, MAX_SIZE),
             units,
-            "Rise per turn",
+            tr("Rise per turn"),
         ));
     });
     ui.end_row();
@@ -242,25 +262,29 @@ pub(super) fn bend_rows(ui: &mut Ui, bend: &mut scene::Bend, units: Units) -> st
 pub(super) fn bridge_rows(ui: &mut Ui, (segments, twist): &mut (u32, i32)) -> stepper::Touched {
     label(
         ui,
-        "Segments",
-        "How many rows the bridge has: more make a longer bridge bend smoothly later. Ctrl + \
+        tr("Segments"),
+        tr(
+            "How many rows the bridge has: more make a longer bridge bend smoothly later. Ctrl + \
          wheel changes it.",
+        ),
     );
     let mut out = stepper::count(
         ui,
         segments,
         (1, mesh::join::MAX_BRIDGE_SEGMENTS),
-        "Bridge segments",
+        tr("Bridge segments"),
     );
     ui.end_row();
     label(
         ui,
-        "Twist",
-        "Turns a bridge between two closed loops round by whole steps, if the points pair up \
+        tr("Twist"),
+        tr(
+            "Turns a bridge between two closed loops round by whole steps, if the points pair up \
          wrongly and the band twists.",
+        ),
     );
     let mut steps = (*twist + 1000) as u32;
-    let t = stepper::count(ui, &mut steps, (0, 2000), "Twist");
+    let t = stepper::count(ui, &mut steps, (0, 2000), tr("Twist"));
     if t.changed {
         *twist = steps as i32 - 1000;
     }
@@ -274,13 +298,20 @@ pub(super) fn bridge_rows(ui: &mut Ui, (segments, twist): &mut (u32, i32)) -> st
 pub(super) fn through_row(ui: &mut Ui, through: &mut bool) -> bool {
     label(
         ui,
-        "Cut through",
-        "On: everything under the line is cut, the far side too. Off: only what you \
+        tr("Cut through"),
+        tr(
+            "On: everything under the line is cut, the far side too. Off: only what you \
          can see.",
+        ),
     );
     let response = ui.checkbox(through, "");
     response.widget_info(|| {
-        egui::WidgetInfo::selected(egui::WidgetType::Checkbox, true, *through, "Cut through")
+        egui::WidgetInfo::selected(
+            egui::WidgetType::Checkbox,
+            true,
+            *through,
+            tr("Cut through"),
+        )
     });
     response.changed()
 }
@@ -289,16 +320,18 @@ pub(super) fn through_row(ui: &mut Ui, through: &mut bool) -> bool {
 pub(super) fn angle_row(ui: &mut Ui, angle: &mut f32) -> stepper::Touched {
     label(
         ui,
-        "Angle",
-        "Edges whose polygons meet more sharply than this become hard (a crisp edge); the \
+        tr("Angle"),
+        tr(
+            "Edges whose polygons meet more sharply than this become hard (a crisp edge); the \
          rest become soft (smooth). 0° is flat.",
+        ),
     );
     let response = ui.add(
         egui::Slider::new(angle, 0.0..=mesh::hardness::MAX_ANGLE)
             .suffix("°")
             .custom_formatter(|v, _| format!("{v:.0}")),
     );
-    response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Slider, true, "Angle"));
+    response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Slider, true, tr("Angle")));
     stepper::Touched {
         changed: response.changed(),
         began: response.drag_started() || (response.changed() && !response.dragged()),
@@ -309,19 +342,21 @@ pub(super) fn angle_row(ui: &mut Ui, angle: &mut f32) -> stepper::Touched {
 pub(super) fn cuts_row(ui: &mut Ui, cuts: &mut u32) -> stepper::Touched {
     label(
         ui,
-        "Cuts",
-        "How many new loops are cut, spread evenly across the polygons",
+        tr("Cuts"),
+        tr("How many new loops are cut, spread evenly across the polygons"),
     );
-    stepper::count(ui, cuts, (1, mesh::loopcut::MAX_CUTS), "Cuts")
+    stepper::count(ui, cuts, (1, mesh::loopcut::MAX_CUTS), tr("Cuts"))
 }
 
 /// Where a loop cut sits across its edge, as a percentage, with its label.
 pub(super) fn position_row(ui: &mut Ui, position: &mut f32) -> stepper::Touched {
     label(
         ui,
-        "Position",
-        "Where the cut sits across the polygons: 50% is the middle. With several \
+        tr("Position"),
+        tr(
+            "Where the cut sits across the polygons: 50% is the middle. With several \
          cuts, it slides them all together.",
+        ),
     );
     let mut percent = *position * 100.0;
     let response = ui.add(
@@ -331,7 +366,8 @@ pub(super) fn position_row(ui: &mut Ui, position: &mut f32) -> stepper::Touched 
             // (that would change the cut as soon as it is shown).
             .custom_formatter(|v, _| format!("{v:.0}")),
     );
-    response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Slider, true, "Position"));
+    response
+        .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Slider, true, tr("Position")));
     if response.changed() {
         *position = (percent / 100.0).clamp(0.0, 1.0);
     }
@@ -350,27 +386,29 @@ pub(super) fn groove_rows(
 ) -> stepper::Touched {
     label(
         ui,
-        "Groove width",
-        "How wide the groove (or ridge) is, across the line of edges",
+        tr("Groove width"),
+        tr("How wide the groove (or ridge) is, across the line of edges"),
     );
     let mut out = stepper::length(
         ui,
         width,
         (0.0, mesh::groove::MAX_GROOVE_WIDTH),
         units,
-        "Groove width",
+        tr("Groove width"),
     );
     ui.end_row();
     label(
         ui,
-        "Sides",
-        "Straight: walls square to the surface and a flat bottom, a crisp panel line. Sloped: \
+        tr("Sides"),
+        tr(
+            "Straight: walls square to the surface and a flat bottom, a crisp panel line. Sloped: \
          the sides slope down to a fold along the middle, a V.",
+        ),
     );
     ui.horizontal(|ui| {
         for (choice, name) in [
-            (scene::GrooveSides::Straight, "Straight"),
-            (scene::GrooveSides::Sloped, "Sloped"),
+            (scene::GrooveSides::Straight, tr("Straight")),
+            (scene::GrooveSides::Sloped, tr("Sloped")),
         ] {
             if ui.selectable_label(*sides == choice, name).clicked() && *sides != choice {
                 *sides = choice;
@@ -402,9 +440,11 @@ pub(super) fn bevel_option_rows(
     };
     label(
         ui,
-        "Skew",
-        "Puts more of the bevel on one side of the edges than the other: 0% is even. Along a \
+        tr("Skew"),
+        tr(
+            "Puts more of the bevel on one side of the edges than the other: 0% is even. Along a \
          loop it stays on the same side all the way round. Flip side swaps the side.",
+        ),
     );
     ui.horizontal(|ui| {
         let mut percent = options.skew * 100.0;
@@ -413,7 +453,8 @@ pub(super) fn bevel_option_rows(
                 .suffix("%")
                 .show_value(true),
         );
-        response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Slider, true, "Skew"));
+        response
+            .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Slider, true, tr("Skew")));
         if response.changed() {
             options.skew = (percent / 100.0).clamp(-1.0, 1.0);
         }
@@ -423,8 +464,8 @@ pub(super) fn bevel_option_rows(
         });
         let mut flip = options.flip_side;
         let flip_button = ui
-            .toggle_value(&mut flip, "Flip side")
-            .on_hover_text("Swap which side of the edges the skew favours");
+            .toggle_value(&mut flip, tr("Flip side"))
+            .on_hover_text(tr("Swap which side of the edges the skew favours"));
         if flip_button.changed() {
             options.flip_side = flip;
             add(clicked);
@@ -443,34 +484,40 @@ pub(super) fn bevel_option_rows(
     if check(
         ui,
         &mut options.even,
-        "Even width",
-        "Make every bevelled edge's new polygon the same width, however sharp or flat the \
+        tr("Even width"),
+        tr(
+            "Make every bevelled edge's new polygon the same width, however sharp or flat the \
          edge is (the width you set is what a right-angled edge gets)",
+        ),
     ) {
         add(clicked);
     }
     if check(
         ui,
         &mut options.clamp,
-        "Stop at overlaps",
-        "Keep the bevel from crossing over itself: it gets only as wide as fits, so corners \
+        tr("Stop at overlaps"),
+        tr(
+            "Keep the bevel from crossing over itself: it gets only as wide as fits, so corners \
          meet instead of passing each other",
+        ),
     ) {
         add(clicked);
     }
     if check(
         ui,
         &mut options.weld,
-        "Weld points",
-        "Weld overlapping points: new points that land on top of each other (where bevels \
+        tr("Weld points"),
+        tr(
+            "Weld overlapping points: new points that land on top of each other (where bevels \
          meet) become one, so there are no doubled points or tiny slivers",
+        ),
     ) {
         add(clicked);
     }
     label(
         ui,
-        "Weld distance",
-        "How close points must be to weld: those nearer than this become one",
+        tr("Weld distance"),
+        tr("How close points must be to weld: those nearer than this become one"),
     );
     ui.add_enabled_ui(options.weld, |ui| {
         add(stepper::length(
@@ -478,7 +525,7 @@ pub(super) fn bevel_option_rows(
             &mut options.weld_distance,
             (0.0, mesh::bevel::MAX_WELD_DISTANCE),
             units,
-            "Weld distance",
+            tr("Weld distance"),
         ));
     });
     ui.end_row();
@@ -490,13 +537,16 @@ pub(super) fn bevel_option_rows(
 pub(super) fn profile_row(ui: &mut Ui, profile: &mut f32) -> stepper::Touched {
     label(
         ui,
-        "Profile",
-        "The shape across the bevel: 100% is round, 0% is flat, -100% curves inward \
+        tr("Profile"),
+        tr(
+            "The shape across the bevel: 100% is round, 0% is flat, -100% curves inward \
          (hollow, like a cove). Needs 2 or more segments to show.",
+        ),
     );
     let mut percent = *profile * 100.0;
     let response = ui.add(egui::Slider::new(&mut percent, -100.0..=100.0).suffix("%"));
-    response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Slider, true, "Profile"));
+    response
+        .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Slider, true, tr("Profile")));
     if response.changed() {
         *profile = (percent / 100.0).clamp(-1.0, 1.0);
     }
@@ -510,13 +560,20 @@ pub(super) fn profile_row(ui: &mut Ui, profile: &mut f32) -> stepper::Touched {
 pub(super) fn keep_together(ui: &mut Ui, together: &mut bool) -> bool {
     label(
         ui,
-        "Keep together",
-        "On: polygons that touch move as one piece, like a block pulled out of a \
+        tr("Keep together"),
+        tr(
+            "On: polygons that touch move as one piece, like a block pulled out of a \
          wall. Off: each polygon on its own, a separate bump for each.",
+        ),
     );
     let response = ui.checkbox(together, "");
     response.widget_info(|| {
-        egui::WidgetInfo::selected(egui::WidgetType::Checkbox, true, *together, "Keep together")
+        egui::WidgetInfo::selected(
+            egui::WidgetType::Checkbox,
+            true,
+            *together,
+            tr("Keep together"),
+        )
     });
     response.changed()
 }
