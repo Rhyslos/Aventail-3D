@@ -352,7 +352,7 @@ pub fn from_bytes(bytes: &[u8]) -> Result<Document, ProjectError> {
         body
     };
     // Older versions are read with their own model (decision 0031).
-    match version {
+    let document = match version {
         1 => decode::<v1::OperationV1>(encoded),
         2 => decode::<v2::OperationV2>(encoded),
         3 => decode::<v3::OperationV3>(encoded),
@@ -395,7 +395,14 @@ pub fn from_bytes(bytes: &[u8]) -> Result<Document, ProjectError> {
         40 => decode_booleans(encoded),
         41 | 42 => decode_curves(encoded),
         _ => decode_modifiers(encoded),
-    }
+    }?;
+    // Older parts of the file hold curves and cages as empty groups, and
+    // let what names one through until a later part gives it back: now
+    // that everything is in, check it all.
+    document
+        .check_opened()
+        .map_err(|why| ProjectError::Damaged(why.to_string()))?;
+    Ok(document)
 }
 
 /// The document a body of version 39 (the development format, decision
@@ -972,6 +979,8 @@ pub fn open(path: &Path) -> Result<Document, ProjectError> {
     from_bytes(&bytes)
 }
 
+#[cfg(test)]
+mod stand_in_tests;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]

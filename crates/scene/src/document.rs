@@ -181,6 +181,12 @@ impl Document {
         Ok(self)
     }
 
+    /// Checks a project being opened once every part of the file is in
+    /// (see [`Scene::check_opened`]).
+    pub fn check_opened(&self) -> Result<(), crate::tree::SceneError> {
+        self.scene.check_opened()
+    }
+
     /// Checks every curve's cross-section names a curve object (see
     /// [`Scene::check_profiles`]), once a project's curves are in.
     pub fn check_profiles(&self) -> Result<(), crate::tree::SceneError> {

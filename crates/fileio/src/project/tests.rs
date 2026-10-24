@@ -1889,6 +1889,14 @@ pub(super) fn header(version: u32, flags: u32, length: u64) -> Vec<u8> {
     bytes
 }
 
+/// A file of the current version holding `model`, uncompressed.
+pub(super) fn current_file(model: &v43::ProjectV43) -> Vec<u8> {
+    let body = v43::encode(model).unwrap();
+    let mut bytes = header(FORMAT_VERSION, 0, body.len() as u64);
+    bytes.extend_from_slice(&body);
+    bytes
+}
+
 pub(super) fn refused(bytes: &[u8]) -> ProjectError {
     match from_bytes(bytes) {
         Ok(_) => panic!("opened a broken file"),

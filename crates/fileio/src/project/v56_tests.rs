@@ -183,7 +183,12 @@ fn levels_on_for_an_object_with_no_shape_are_refused() {
         levels: vec![(0.5, 100.0)].into(),
         preview: 0,
     });
-    assert!(model.into_document().is_err());
+    // Refused once every part of the file is in (an empty group may stand
+    // in for a curve until then).
+    assert!(matches!(
+        from_bytes(&super::tests::current_file(&model)),
+        Err(ProjectError::Damaged(_))
+    ));
 }
 
 #[test]

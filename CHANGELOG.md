@@ -30,6 +30,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **Projects with a swept curve in more places save.** A project could refuse to save (and autosave) when a curve with a solid was an instance's original, a boolean's cutter or the shape it cuts, or had levels of detail or collision "Wrapped in parts". It now saves and opens as it was.
 - **Live bevels cut box corners cleanly after a boolean.** Where a boolean left a corner's faces split into a fan of thin triangles, the Live bevel kept the corner's point, and the corner folded round it into a small dark notch. The fan's edges now slide back with the bevel and the corner is cut away. (The Bevel tool's bevels in saved projects are unchanged.)
 - **Exported glTF files always pass the glTF Validator's tangent check.** A point whose polygons had no room in the UV layout (a thin bevel's corner) was exported with an empty tangent, which the validator calls an error; it now gets a proper one.
 - **Bevelling many edges across a UV seam is much faster:** every edge of a 32,000-polygon sphere now takes about a second instead of four.
