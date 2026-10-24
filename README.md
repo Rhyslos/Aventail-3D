@@ -268,7 +268,7 @@ Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/d
 <summary>Milestones</summary>
 
 - [x] Booleans: union, subtract, intersect, with live cutters that stay editable ([decision 0135](docs/decisions/0135-live-booleans.md))
-- [x] Curves and splines: sweep and lathe, for pipes, cables and railings ([decision 0138](docs/decisions/0138-curves-sweep-lathe.md))
+- [x] Curves and splines: sweep and lathe, for pipes, cables and railings ([decision 0138](docs/decisions/0138-curves-sweep-lathe.md)); spline editing: adding, joining, splitting, carrying on, handle types, round corners and even spacing ([decision 0139](docs/decisions/0139-spline-editing.md))
 - [ ] Improved bevel: rounded corners where bevels meet, and bevels that never overlap
 - [ ] Remesh: messy geometry rebuilt into even polygons
 - [ ] Smoothing modifier (subdivision), with creases
@@ -313,6 +313,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-24 | Phase 10: spline editing: add points on the line, join ends (M, A, Join objects), carry a curve on, split, reverse, handle types, round corners, even spacing |
 | 2026-10-24 | Phase 10: curves, drawn or ready-made (line, circle, arc, spiral), with a live sweep or lathe, for pipes, cables, rails and vases |
 | 2026-10-24 | Planned: Phase 10 is built biggest and hardest first (curves, improved bevel, remesh, smoothing...), unless one milestone builds on another |
 | 2026-10-24 | Planned: Phase 10 grows to 23 milestones with fourteen more modifiers (live bevel, wireframe, scatter, radial array, bend, twist and taper, lattice, curve deform and shrinkwrap, displace, LODs, collision hulls, triangulate preview, weld, quadify, remesh, decimate) |

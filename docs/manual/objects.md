@@ -33,7 +33,7 @@ If several objects are selected and you drag one of them, they all move, keeping
 
 **Copy.** **Ctrl + C** and **Ctrl + V** paste copies of the selected objects; **Alt + V** pastes instances. See [Copies and instances](copies-and-instances.md).
 
-**Join and split.** **E → Join objects** makes the selected shapes one; **Mesh → Shape and object → Split off** moves selected polygons into an object of their own. See [Split off and join](split-and-join.md).
+**Join and split.** **E → Join objects** makes the selected shapes one; **Mesh → Shape and object → Split off** moves selected polygons into an object of their own. See [Split off and join](split-and-join.md). Join objects on curves alone joins them end to end into one curve ([Curves](curves.md#joining-curves-and-closing-them)).
 
 **Delete.** Press **Delete** or **Backspace** (or use **Edit → Delete objects**) to delete the selected objects, together with everything inside them. In the Points, Edges and Polygons modes, these keys delete or dissolve the selected elements instead: see [Clean-up](clean-up.md).
 

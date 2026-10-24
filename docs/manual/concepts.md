@@ -79,6 +79,12 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Profile (cross-section)** — The shape a sweep carries along its curve: what you'd see if you sawed through the pipe or rail. A built-in circle, square or rectangle, or another curve you draw. See [Curves](curves.md).
 
+**Handle types** — How a curve point's two handles behave. *Sharp*: no handles, a corner. *Smooth*: the handles stay in one line, so dragging one swings the other round with it and the curve never kinks there. *Broken*: each handle moves on its own, for a kink with curved sides (a heart's top, a leaf's tip). *Auto*: the app works the handles out from the neighbouring points, so the curve stays smooth as they move; pulling an auto handle by hand makes the point smooth. (Other programs call these *corner*, *aligned* or *smooth*, *free* or *vector*, and *automatic*.) See [Curves](curves.md#handle-types).
+
+**Fillet (round corner)** — A sharp corner replaced by a small arc of a chosen radius, as a woodworker rounds a table's corner or an engineer rounds a bracket's: softer to look at, catches light, and in a sweep makes a smooth bend in the pipe instead of a mitred one. The app's command is **Round corners**. See [Curves](curves.md#rounding-corners).
+
+**Resample (even spacing)** — Putting a curve's points again at equal distances along it, keeping its shape: a drawn curve's points often bunch up in some places and spread out in others, which makes its sweep's detail and twist uneven. The app's command is **Even spacing**. See [Curves](curves.md#spacing-points-evenly).
+
 ## Objects and scenes
 
 **Object** — Anything listed in the Objects panel: a mesh, a primitive, a group. See [The Objects panel](objects.md).
