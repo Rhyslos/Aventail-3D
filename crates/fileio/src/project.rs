@@ -63,6 +63,7 @@ mod v50;
 mod v51;
 mod v52;
 mod v53;
+mod v54;
 mod v6;
 mod v7;
 mod v8;
@@ -122,7 +123,10 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// modifier (`v43::KindV43::WeldByDistance`) and the one-off Weld by
 /// distance now, one more kind of recorded edit
 /// (`v37::OperationV37::WeldByDistance`).
-pub const FORMAT_VERSION: u32 = 53;
+///
+/// Version 54 (decision 0153) is version 53 with the Array modifier
+/// (`v43::KindV43::Array`).
+pub const FORMAT_VERSION: u32 = 54;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -965,3 +969,5 @@ mod v51_tests;
 mod v52_tests;
 #[cfg(test)]
 mod v53_tests;
+#[cfg(test)]
+mod v54_tests;

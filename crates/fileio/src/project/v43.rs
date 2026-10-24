@@ -205,6 +205,8 @@ pub(crate) enum KindV43 {
     Quadify(super::v51::QuadifyV51),
     /// Weld by distance (version 53).
     WeldByDistance(super::v53::WeldV53),
+    /// Array (version 54).
+    Array(super::v54::ArrayV54),
 }
 
 /// Weighted normals' weighting as stored.
@@ -299,6 +301,7 @@ impl KindV43 {
             ModifierKind::LiveBevel(o) => Self::LiveBevel(super::v50::LiveBevelV50::of(o)),
             ModifierKind::Quadify(o) => Self::Quadify(super::v51::QuadifyV51::of(o)),
             ModifierKind::WeldByDistance(o) => Self::WeldByDistance(super::v53::WeldV53::of(o)),
+            ModifierKind::Array(a) => Self::Array(super::v54::ArrayV54::of(a)),
         }
     }
 
@@ -429,6 +432,7 @@ impl KindV43 {
             Self::LiveBevel(o) => ModifierKind::LiveBevel(o.options()),
             Self::Quadify(o) => ModifierKind::Quadify(o.options()),
             Self::WeldByDistance(o) => ModifierKind::WeldByDistance(o.options()),
+            Self::Array(a) => ModifierKind::Array(a.settings()),
         }
     }
 }

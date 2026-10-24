@@ -6,6 +6,7 @@
 //! hands back commands. Dragging a value changes it every frame, so those
 //! commands are merged into one undo step per drag (or per value typed).
 
+mod array_rows;
 mod collision_rows;
 mod crease_rows;
 mod curve_points;

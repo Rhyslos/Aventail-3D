@@ -9,6 +9,7 @@
 //! edits, so [`Document::undo`] and [`Document::redo`] can take it back
 //! and do it again exactly, with the same object ids.
 
+pub mod array;
 pub mod boolean;
 pub mod collision;
 pub mod command;
@@ -29,6 +30,7 @@ pub mod units;
 pub mod weighted;
 pub mod wrap;
 
+pub use array::ArraySettings;
 pub use boolean::{
     Boolean, BooleanKind, BooleanProblem, BooleanRefusal, CUT_IN_BACKGROUND_FROM, CutDone, CutJob,
     CutState, MAX_CUTTERS,
@@ -41,6 +43,7 @@ pub use curve::{CurveObject, CurveShape, CurveSolid, Sweep, SweepProfile};
 pub use document::Document;
 pub use history::HistoryLimit;
 pub use lattice::LatticeOptions;
+pub use mesh::array::{ArrayAxis, ArrayLayout, ArrayOptions};
 pub use mesh::convex_parts::ConvexPartsOptions;
 pub use mesh::curve::bend::{BendAxis, BendOptions};
 pub use mesh::curve::{
@@ -92,6 +95,8 @@ pub use wrap::{CurveBendSettings, ShrinkwrapSettings};
 
 #[cfg(test)]
 mod apply_tests;
+#[cfg(test)]
+mod array_tests;
 #[cfg(test)]
 mod boolean_tests;
 #[cfg(test)]

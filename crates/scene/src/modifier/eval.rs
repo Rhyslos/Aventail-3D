@@ -540,6 +540,8 @@ impl Scene {
                 // a curve bent along as its line (decision 0147); anything
                 // else as its final shape.
                 let data = match &self.object(source)?.kind {
+                    // An array's centre: only where it stands (decision 0153).
+                    _ if matches!(kind, ModifierKind::Array(_)) => SourceData::Place,
                     crate::ObjectKind::Lattice(cage) => {
                         SourceData::Cage(std::sync::Arc::new(cage.clone()))
                     }
