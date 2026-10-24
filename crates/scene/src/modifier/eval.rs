@@ -23,6 +23,8 @@ struct Step {
     index: usize,
     kind: ModifierKind,
     sources: Vec<SourceShape>,
+    /// How the object was smoothed (see [`ModifierContext::hardness`]).
+    hardness: mesh::Hardness,
     /// Its result, or why it couldn't be made (its input is then passed
     /// on unchanged).
     result: Result<Arc<Mesh>, String>,
@@ -41,11 +43,12 @@ struct Planned {
     index: usize,
     kind: ModifierKind,
     sources: Vec<SourceShape>,
+    hardness: mesh::Hardness,
 }
 
 impl Planned {
     fn is_done_by(&self, step: &Step) -> bool {
-        self.kind == step.kind && self.sources == step.sources
+        self.kind == step.kind && self.sources == step.sources && self.hardness == step.hardness
     }
 }
 
@@ -203,7 +206,10 @@ impl StackJob {
     /// [`MODIFIERS_IN_BACKGROUND_FROM`], do it on another thread.
     pub fn work(&self) -> usize {
         let input = last_shape(&self.input, &self.done);
-        self.plan.iter().map(|p| p.kind.work(&input)).sum()
+        self.plan
+            .iter()
+            .map(|p| p.kind.work(&input, self.purpose))
+            .fold(0, usize::saturating_add)
     }
 
     /// Works the modifiers out. Slow for heavy ones: run it away from the
@@ -214,6 +220,7 @@ impl StackJob {
             let input = last_shape(&self.input, &steps);
             let context = ModifierContext {
                 purpose: self.purpose,
+                hardness: planned.hardness,
                 sources: planned.sources.clone(),
             };
             let result = planned.kind.apply(&input, &context).and_then(|mesh| {
@@ -230,6 +237,7 @@ impl StackJob {
                 index: planned.index,
                 kind: planned.kind,
                 sources: planned.sources,
+                hardness: planned.hardness,
                 result,
             });
         }
@@ -310,6 +318,9 @@ impl Scene {
         input: Arc<Mesh>,
     ) -> Option<StackState> {
         let owner = self.modifier_owner(id);
+        let hardness = self
+            .object(owner)
+            .map_or(mesh::Hardness::Marked, |o| o.hardness);
         let plan: Vec<Planned> = self
             .modifiers(owner)
             .iter()
@@ -319,6 +330,7 @@ impl Scene {
                 index,
                 kind: m.kind.clone(),
                 sources: self.source_shapes(id, &m.kind, purpose),
+                hardness,
             })
             .collect();
         if plan.is_empty() {
@@ -414,9 +426,13 @@ impl Scene {
         let Some(input) = self.input_if_light(id) else {
             return Vec::new();
         };
-        // The viewport's, and an export's for those it doesn't show.
+        // The viewport's, and an export's for those it doesn't show or
+        // that do something else for an export (Subdivide's levels).
         let mut purposes = vec![Purpose::Viewport];
-        if modifiers.iter().any(|m| m.on && !m.in_viewport) {
+        if modifiers
+            .iter()
+            .any(|m| m.on && (!m.in_viewport || m.kind.differs_by_purpose()))
+        {
             purposes.push(Purpose::Export);
         }
         let mut problems: Vec<(usize, String)> = Vec::new();

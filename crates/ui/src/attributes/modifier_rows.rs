@@ -12,7 +12,7 @@ use crate::text::tr;
 use crate::theme;
 use crate::units::Units;
 use egui::{RichText, Ui, vec2};
-use scene::{Command, Document, Modifier, ModifierKind, ObjectId, RemeshOptions};
+use scene::{Command, Document, Modifier, ModifierKind, ObjectId, RemeshOptions, SubdivideOptions};
 
 /// The accessible name of a modifier's on/off switch.
 pub(crate) const ON_LABEL: &str = crate::text!("Modifier on");
@@ -168,7 +168,58 @@ impl AttributesPanel {
 fn kind_rows(ui: &mut Ui, kind: &mut ModifierKind, units: Units, rows: &mut Rows) {
     match kind {
         ModifierKind::Remesh(options) => remesh_rows(ui, options, units, rows),
+        ModifierKind::Subdivide(options) => subdivide_rows(ui, options, rows),
     }
+}
+
+/// Subdivide's settings: Levels, Levels for export, Hard edges stay sharp
+/// (decision 0143).
+fn subdivide_rows(ui: &mut Ui, options: &mut SubdivideOptions, rows: &mut Rows) {
+    label(
+        ui,
+        tr("Levels"),
+        tr(
+            "How many times the viewport splits and smooths the shape: each level has four \
+             times the polygons. 0 shows the shape as it is.",
+        ),
+    );
+    rows.take(stepper::count(
+        ui,
+        &mut options.levels,
+        (0, SubdivideOptions::MAX_LEVELS),
+        tr("Levels"),
+    ));
+    ui.end_row();
+    label(
+        ui,
+        tr("Levels for export"),
+        tr(
+            "How many times exports and Bake into shape split and smooth it: often one more \
+             than the viewport, for a smoother result where it counts",
+        ),
+    );
+    rows.take(stepper::count(
+        ui,
+        &mut options.export_levels,
+        (0, SubdivideOptions::MAX_LEVELS),
+        tr("Levels for export"),
+    ));
+    ui.end_row();
+    label(
+        ui,
+        tr("Hard edges stay sharp"),
+        tr(
+            "Keep the edges marked hard sharp, as if fully creased. Only on objects shaded by \
+             their marked edges: smoothed by angle, every sharp corner looks hard, so nothing \
+             would round.",
+        ),
+    );
+    rows.toggle(
+        ui,
+        &mut options.hard_edges_sharp,
+        tr("Hard edges stay sharp"),
+    );
+    ui.end_row();
 }
 
 /// Remesh's settings: Voxel size and Smooth.

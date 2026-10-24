@@ -12,11 +12,16 @@
 //! version 41's model), so an older app says it needs updating rather
 //! than failing to read the kind. Still CBOR, so settings can be added
 //! to a kind with a standard value (`#[serde(default)]`) until the alpha.
+//!
+//! Version 44 ([decision 0143](../../../../docs/decisions/0143-subdivide-and-creases.md))
+//! adds the Subdivide modifier here, and one more kind of recorded edit,
+//! creases (`v37::OperationV37::SetCreases`): files before version 44
+//! never hold either.
 
 use super::v1::Problem;
 use super::v41::ProjectV41;
 use crate::limits::Bounded;
-use scene::{Document, Modifier, ModifierKind, ObjectId, RemeshOptions};
+use scene::{Document, Modifier, ModifierKind, ObjectId, RemeshOptions, SubdivideOptions};
 use serde::{Deserialize, Serialize};
 use words::{tr, trf};
 
@@ -66,6 +71,15 @@ pub(crate) enum KindV43 {
         /// Relax passes.
         smooth: u32,
     },
+    /// Subdivision smoothing (version 44).
+    Subdivide {
+        /// Levels in the viewport.
+        levels: u32,
+        /// Levels for exports and baking.
+        export_levels: u32,
+        /// Whether hard edges stay sharp.
+        hard_edges_sharp: bool,
+    },
 }
 
 impl KindV43 {
@@ -74,6 +88,11 @@ impl KindV43 {
             ModifierKind::Remesh(o) => Self::Remesh {
                 voxel_size: o.voxel_size,
                 smooth: o.smooth,
+            },
+            ModifierKind::Subdivide(o) => Self::Subdivide {
+                levels: o.levels,
+                export_levels: o.export_levels,
+                hard_edges_sharp: o.hard_edges_sharp,
             },
         }
     }
@@ -84,6 +103,15 @@ impl KindV43 {
             Self::Remesh { voxel_size, smooth } => ModifierKind::Remesh(RemeshOptions {
                 voxel_size: *voxel_size,
                 smooth: *smooth,
+            }),
+            Self::Subdivide {
+                levels,
+                export_levels,
+                hard_edges_sharp,
+            } => ModifierKind::Subdivide(SubdivideOptions {
+                levels: *levels,
+                export_levels: *export_levels,
+                hard_edges_sharp: *hard_edges_sharp,
             }),
         }
     }

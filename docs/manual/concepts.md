@@ -63,6 +63,10 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Closed solid (watertight)** — A shape whose surface closes all the way round, with no holes, so it has a clear inside and outside, like a sealed box. It is [manifold](#mesh-basics) and has no [borders](#mesh-basics). Booleans, 3D printing and some bakes need closed solids. A plane, or a cylinder without caps, isn't one.
 
+**Subdivision (subdivision smoothing, subD)** — Smoothing a shape by splitting each polygon into smaller ones and moving every point towards the average of its neighbours, level after level, so a simple low-polygon **cage** stands for a smooth surface. The usual method, which this app uses, is **Catmull-Clark**: each level turns every polygon into quads, four times as many each time. It changes the shape itself, unlike [smoothing the shading](#shading-and-normals), which only changes how light falls on it. (3ds Max calls it TurboSmooth, Blender a Subdivision Surface.) See [Subdivide](subdivide.md).
+
+**Crease** — A value on an edge, 0 to 1, for subdivision: how sharply the edge is kept. 0 is smoothed like any other edge, 1 stays fully sharp, and in between the edge stays sharp for part of the levels, coming out as a tighter curve. Creases don't change the shading or the shape without a subdivision modifier. See [Subdivide](subdivide.md#keeping-edges-sharp-creases).
+
 **Boolean** — Combining shapes as if they were solid blocks: **Union** joins them into one, **Subtract** cuts one out of another, **Intersect** keeps only where they overlap. The name comes from the logic words *or*, *and not* and *and*. See [Booleans](booleans.md).
 
 **Cutter** — In a boolean, a shape that cuts (or is added to, or intersected with) the shape you keep. In this app cutters stay objects of their own, drawn as outlines, and the cut follows when you move or edit them. See [Booleans](booleans.md).
@@ -109,7 +113,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Edit list** — The list of an object's edits in the Edit layers panel. Any edit in it can be opened and changed, and the edits after it are made again. *Bake into shape up to here* bakes the old edits up to one into the shape, so they no longer have to be made again: the shape stays the same, but those edits can't be changed any more. See [The edit list](edit-list.md).
 
-**Modifiers palette** — The thin column of buttons on the right of the viewport, beside the panels, for things that change a shape without destroying it. Its first button adds an edit layer; then come the [booleans](booleans.md) (Union, Subtract, Intersect), then one button per kind of [modifier](#objects-and-scenes) (Remesh so far). More join it in later versions.
+**Modifiers palette** — The thin column of buttons on the right of the viewport, beside the panels, for things that change a shape without destroying it. Its first button adds an edit layer; then come the [booleans](booleans.md) (Union, Subtract, Intersect), then one button per kind of [modifier](#objects-and-scenes), grouped by family (Subdivide, then Remesh, so far). More join it in later versions.
 
 **Modifier** — A change worked out live on top of a shape, after its edits, booleans and mirror, rather than made to its points: you can change its settings, switch it off, reorder it or remove it at any time, and the shape underneath stays as you modelled it. An object's modifiers are its **modifier stack**, worked out first to last, each on the result of the one before. **Bake into shape** makes them permanent. (Blender and 3ds Max call them modifiers too; Cinema 4D has generators and deformers.) See [Modifiers](modifiers.md).
 

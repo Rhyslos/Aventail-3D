@@ -165,6 +165,9 @@ pub enum OverlayStyle {
     SeamPrefer,
     /// An edge where no seam may go (decision 0111), shown with seams.
     SeamNever,
+    /// A creased edge (decision 0143), shown whenever points, edges or
+    /// polygons are being edited.
+    Crease,
     /// A polygon's normal: a short line from its middle the way it faces
     /// (Display → Normals).
     Normal,

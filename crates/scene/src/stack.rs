@@ -444,6 +444,16 @@ pub enum Operation {
         /// Where they were, to find them again (decision 0032).
         anchors: Option<Anchors>,
     },
+    /// Gives edges a crease, 0 to 1 (0 takes it away): how sharply the
+    /// Subdivide modifier keeps them (decision 0143).
+    SetCreases {
+        /// The edges.
+        edges: Vec<EdgeKey>,
+        /// The crease, 0 to 1.
+        crease: f32,
+        /// Where they were, to find them again (decision 0032).
+        anchors: Option<Anchors>,
+    },
     /// Slides points along their edges towards a neighbour each
     /// (decision 0055).
     SlidePoints {
@@ -781,6 +791,14 @@ impl Operation {
                 counted(verb, edges.len(), text!("edge"))
             }
             Self::HardEdgesByAngle { .. } => tr("Hard edges by angle").to_string(),
+            Self::SetCreases { edges, crease, .. } => {
+                let verb = if *crease > 0.0 {
+                    text!("Crease")
+                } else {
+                    text!("Uncrease")
+                };
+                counted(verb, edges.len(), text!("edge"))
+            }
             Self::SlidePoints { slides, .. } => {
                 counted(text!("Slide"), slides.len(), text!("point"))
             }
@@ -910,6 +928,7 @@ impl Operation {
             | Self::PackUvs { .. }
             | Self::RestoreUvs { .. }
             | Self::SetHardEdges { .. }
+            | Self::SetCreases { .. }
             | Self::SetSeams { .. }
             | Self::SetSeamPreference { .. }
             | Self::SlidePoints { .. }
@@ -1083,6 +1102,7 @@ impl Operation {
             | Self::PackUvs { .. }
             | Self::RestoreUvs { .. }
             | Self::SetHardEdges { .. }
+            | Self::SetCreases { .. }
             | Self::SetSeams { .. }
             | Self::SetSeamPreference { .. }
             | Self::SlidePoints { .. }
@@ -1226,6 +1246,7 @@ impl Operation {
             Self::RelaxUvs { steps, .. } => *steps <= uv::unwrap::MAX_RELAX_STEPS,
             Self::SetTexelDensity { density, .. } => density.is_finite() && *density > 0.0,
             Self::SetSeamPreference { .. } => true,
+            Self::SetCreases { crease, .. } => crease.is_finite() && (0.0..=1.0).contains(crease),
             Self::SetStretchBudget { budget, .. } => {
                 budget.is_none_or(|b| mesh::uvs::BUDGET_RANGE.contains(&b))
             }
@@ -1297,6 +1318,7 @@ impl Operation {
             | Self::SetPieceSettings { anchors, .. }
             | Self::PlaceOnTrim { anchors, .. }
             | Self::SetHardEdges { anchors, .. }
+            | Self::SetCreases { anchors, .. }
             | Self::SetSeams { anchors, .. }
             | Self::SetSeamPreference { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_ref(),
@@ -1340,6 +1362,7 @@ impl Operation {
             | Self::SetPieceSettings { anchors, .. }
             | Self::PlaceOnTrim { anchors, .. }
             | Self::SetHardEdges { anchors, .. }
+            | Self::SetCreases { anchors, .. }
             | Self::SetSeams { anchors, .. }
             | Self::SetSeamPreference { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_mut(),
@@ -1433,6 +1456,7 @@ impl Operation {
             | Self::SetSeams { .. }
             | Self::SetSeamPreference { .. }
             | Self::SetHardEdges { .. }
+            | Self::SetCreases { .. }
             | Self::HardEdgesByAngle { .. } => false,
             // Each side mends as it is applied.
             Self::Mirrored { .. } => false,
@@ -1881,6 +1905,12 @@ impl Operation {
                 edit::set_hard_edges(mesh, &edges, *hard)
             }
             Self::HardEdgesByAngle { angle } => edit::hard_edges_by_angle(mesh, *angle),
+            Self::SetCreases { edges, crease, .. } => {
+                let edges = refound
+                    .as_ref()
+                    .map_or_else(|| edges.clone(), |r| edges_within(mesh, &r.0));
+                mesh::crease::set_creases(mesh, &edges, *crease)
+            }
             Self::SlidePoints { slides, anchors } => match (&refound, anchors) {
                 (Some((found, _)), Some(anchors)) => {
                     // Each point and neighbour is the one found nearest

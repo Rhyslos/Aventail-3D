@@ -165,6 +165,14 @@ impl Workbench {
                 ui.close();
             }
             ui.separator();
+            // Creases, for the Subdivide modifier (decision 0143).
+            if let Some(command) =
+                commands_entries(ui, &[CommandId::CreaseEdges, CommandId::Uncrease])
+            {
+                self.run_command(command, ui.ctx(), requests);
+                ui.close();
+            }
+            ui.separator();
             if let Some(command) = commands_entries(ui, &[CommandId::FlipNormals]) {
                 self.run_command(command, ui.ctx(), requests);
                 ui.close();
@@ -184,7 +192,7 @@ impl Workbench {
         })
         .response
         .on_hover_text(tr(
-            "How the shape is shaded: smoothing, hard and soft edges, normals",
+            "How the shape is shaded: smoothing, hard and soft edges, creases, normals",
         ));
         crate::dialog::menu(ui, tr(MESH_OBJECT_MENU), |ui| {
             objects::make_editable_entry(ui, &self.document, requests);

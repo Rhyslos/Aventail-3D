@@ -57,6 +57,9 @@ pub enum CommandId {
     // ------------------------------- modifiers (the modifiers palette)
     /// Add a remesh modifier to the selected shapes (decision 0142).
     Remesh,
+    /// Add a subdivision smoothing modifier to the selected shapes
+    /// (decision 0143).
+    Subdivide,
     // ------------------------------------------- pivots (the Object mode)
     /// Move the selected objects' pivots to the middle of their shapes.
     PivotToCentre,
@@ -86,6 +89,13 @@ pub enum CommandId {
     HardEdges,
     /// Mark edges as smooth.
     SoftEdges,
+    /// The group holding Crease edges and Uncrease (decision 0143), in
+    /// the Edges mode's ring: choosing it shows them.
+    Creases,
+    /// Crease the selected edges fully, for the Subdivide modifier.
+    CreaseEdges,
+    /// Take the selected edges' creases away.
+    Uncrease,
     /// Delete the selected points, edges or polygons, leaving a hole.
     DeleteElements,
     /// Remove edges or points, keeping the surface closed.
@@ -328,6 +338,10 @@ impl CommandId {
                 let kind = scene::ModifierKind::Remesh(Default::default());
                 (kind.name(), Icon::Remesh, None, kind.description(), None)
             }
+            Self::Subdivide => {
+                let kind = scene::ModifierKind::Subdivide(Default::default());
+                (kind.name(), Icon::Subdivide, None, kind.description(), None)
+            }
             Self::PivotToCentre => (
                 tr("Pivot to centre"),
                 Icon::PivotToCentre,
@@ -454,6 +468,33 @@ impl CommandId {
                     "Shade the selected edges (or the selected polygons' edges) smoothly: the light \
                  flows across, so a curve looks round",
                 ),
+                None,
+            ),
+            Self::Creases => (
+                tr("Creases"),
+                Icon::Creases,
+                None,
+                tr(
+                    "Crease the selected edges, so the Subdivide modifier keeps them sharp, or \
+                 take their creases away. Choose this to see both.",
+                ),
+                None,
+            ),
+            Self::CreaseEdges => (
+                tr("Crease edges"),
+                Icon::CreaseEdges,
+                None,
+                tr(
+                    "Crease the selected edges fully, so the Subdivide modifier keeps them sharp. \
+                 Set a softer crease in the Attributes panel's Crease field.",
+                ),
+                None,
+            ),
+            Self::Uncrease => (
+                tr("Uncrease"),
+                Icon::Uncrease,
+                None,
+                tr("Take the selected edges' creases away, so the Subdivide modifier smooths them"),
                 None,
             ),
             Self::DeleteElements => (
@@ -665,6 +706,7 @@ impl CommandId {
                 Self::CurveBroken,
                 Self::CurveAuto,
             ],
+            Self::Creases => &[Self::CreaseEdges, Self::Uncrease],
             Self::UvTurnFlip => &[
                 Self::UvTurnLeft,
                 Self::UvTurnRight,
@@ -712,7 +754,7 @@ impl CommandId {
             // in the modifiers palette and the Mesh menu, not the tool
             // menu (decision 0135).
             // So do modifiers (decision 0142).
-            Self::Union | Self::Subtract | Self::Intersect | Self::Remesh => {
+            Self::Union | Self::Subtract | Self::Intersect | Self::Remesh | Self::Subdivide => {
                 &[Model, Object, Points, Edges, Polygons]
             }
             Self::Extrude => &[Points, Edges, Polygons],
@@ -722,6 +764,8 @@ impl CommandId {
             Self::Groove => &[Edges],
             Self::FillHole => &[Edges, Polygons],
             Self::HardEdges | Self::SoftEdges => &[Edges, Polygons],
+            // Creases are set on edges (decision 0143).
+            Self::Creases | Self::CreaseEdges | Self::Uncrease => &[Edges],
             Self::Weld => &[Points, Polygons],
             Self::DeleteElements | Self::Dissolve | Self::Slit | Self::LoopCut => {
                 &[Points, Edges, Polygons]
@@ -828,6 +872,12 @@ pub const MODELLING_RING: [CommandId; RING_PLACES] = [
     CommandId::Groove,
 ];
 
+/// Places of the modelling ring that hold another command in the Edges
+/// mode, where the command [`MODELLING_RING`] has there works on polygons
+/// only: Flip normals' place, beside Hard and Soft edges, holds the
+/// creases (decision 0143).
+pub const EDGES_ONLY: [(usize, CommandId); 1] = [(5, CommandId::Creases)];
+
 /// The tool menu's places for UVs: in the UV mode, and with the mouse
 /// over the UV Editor in the Points, Edges and Polygons modes (the menu
 /// follows where you work, decision 0097). The gizmos and framing keep
@@ -912,7 +962,8 @@ pub fn menu_for(mode: Mode) -> Vec<Slot> {
         Mode::Points | Mode::Edges | Mode::Polygons => MODELLING_RING.map(Some),
         Mode::Uv => UV_RING,
     };
-    ring.iter()
+    let mut slots: Vec<Slot> = ring
+        .iter()
         .enumerate()
         .filter_map(|(place, command)| Some((place, (*command)?)))
         .filter(|(_, c)| c.modes().contains(&mode))
@@ -921,7 +972,20 @@ pub fn menu_for(mode: Mode) -> Vec<Slot> {
             place,
             places: RING_PLACES,
         })
-        .collect()
+        .collect();
+    if mode == Mode::Edges {
+        for (place, command) in EDGES_ONLY {
+            if !slots.iter().any(|s| s.place == place) {
+                slots.push(Slot {
+                    command,
+                    place,
+                    places: RING_PLACES,
+                });
+            }
+        }
+        slots.sort_by_key(|s| s.place);
+    }
+    slots
 }
 
 /// The tool menu's entries for `group`, opened in place of the ring that
@@ -948,15 +1012,16 @@ pub fn group_menu(group: CommandId, ring: &[Slot]) -> Vec<Slot> {
 /// The commands with no place on the tool menu: the booleans (decision
 /// 0135) and the modifiers (decision 0142), found in the modifiers
 /// palette, the Mesh menu and command search.
-pub const OFF_THE_RING: [CommandId; 4] = [
+pub const OFF_THE_RING: [CommandId; 5] = [
     CommandId::Union,
     CommandId::Subtract,
     CommandId::Intersect,
     CommandId::Remesh,
+    CommandId::Subdivide,
 ];
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 61] = [
+pub const ALL: [CommandId; 65] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -976,6 +1041,7 @@ pub const ALL: [CommandId; 61] = [
     CommandId::Subtract,
     CommandId::Intersect,
     CommandId::Remesh,
+    CommandId::Subdivide,
     CommandId::PivotToCentre,
     CommandId::PivotToOrigin,
     CommandId::PivotToObject,
@@ -989,6 +1055,9 @@ pub const ALL: [CommandId; 61] = [
     CommandId::FlipNormals,
     CommandId::HardEdges,
     CommandId::SoftEdges,
+    CommandId::Creases,
+    CommandId::CreaseEdges,
+    CommandId::Uncrease,
     CommandId::DeleteElements,
     CommandId::Dissolve,
     CommandId::Weld,
@@ -1129,6 +1198,7 @@ mod tests {
                 .iter()
                 .chain(CURVE_RING.iter())
                 .flatten()
+                .chain(EDGES_ONLY.iter().map(|(_, c)| c))
                 .any(|g| g.members().contains(&command));
             let placed = OBJECT_RING.contains(&Some(command))
                 || CURVE_RING.contains(&Some(command))
@@ -1136,6 +1206,7 @@ mod tests {
                 || MODELLING_RING.contains(&command)
                 || UV_RING.contains(&Some(command))
                 || OFF_THE_RING.contains(&command)
+                || EDGES_ONLY.iter().any(|(_, c)| *c == command)
                 || in_group;
             assert!(placed, "{command:?} has no place in the tool menu");
             assert!(!command.modes().is_empty(), "{command:?}");
@@ -1318,9 +1389,26 @@ mod tests {
     fn a_tool_keeps_its_place_in_every_mode() {
         for mode in [Mode::Points, Mode::Edges, Mode::Polygons] {
             for slot in menu_for(mode) {
-                assert_eq!(MODELLING_RING[slot.place], slot.command);
+                let extra = mode == Mode::Edges && EDGES_ONLY.contains(&(slot.place, slot.command));
+                assert!(
+                    MODELLING_RING[slot.place] == slot.command || extra,
+                    "{slot:?}"
+                );
                 assert_eq!(slot.places, MODELLING_RING.len());
             }
+        }
+        // The creases take a place left empty in the Edges mode only.
+        for (place, command) in EDGES_ONLY {
+            assert!(!MODELLING_RING[place].modes().contains(&Mode::Edges));
+            assert!(command.is_group());
+            let edges = menu_for(Mode::Edges);
+            assert!(
+                edges
+                    .iter()
+                    .any(|s| s.place == place && s.command == command)
+            );
+            let inside = group_menu(command, &edges);
+            assert_eq!(inside.len(), command.members().len());
         }
         let edges = menu_for(Mode::Edges);
         let polygons = menu_for(Mode::Polygons);
@@ -1347,10 +1435,14 @@ mod tests {
         let uv: Vec<_> = UV_RING.iter().flatten().copied().collect();
         let curve: Vec<_> = CURVE_RING.iter().flatten().copied().collect();
         let kinds = CommandId::CurveHandles.members();
+        let edges: Vec<_> = menu_for(Mode::Edges).iter().map(|s| s.command).collect();
+        let creases = CommandId::Creases.members();
         for ring in [
             &objects[..],
             &pivots[..],
             &MODELLING_RING[..],
+            &edges[..],
+            creases,
             &uv[..],
             turns,
             &curve[..],

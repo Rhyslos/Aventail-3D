@@ -141,6 +141,7 @@ pub(crate) fn operation_size(op: &Operation) -> usize {
                 + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
         }
         Operation::SetHardEdges { edges, anchors, .. }
+        | Operation::SetCreases { edges, anchors, .. }
         | Operation::SetSeams { edges, anchors, .. }
         | Operation::SetSeamPreference { edges, anchors, .. } => {
             std::mem::size_of_val(edges.as_slice())

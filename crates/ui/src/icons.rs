@@ -186,6 +186,15 @@ pub enum Icon {
     Intersect,
     /// Remesh (decision 0142): a round shape covered by an even grid.
     Remesh,
+    /// Subdivide (decision 0143): a dashed square cage and the rounded
+    /// shape it makes.
+    Subdivide,
+    /// Creases (decision 0143): a shape sharp along one edge.
+    Creases,
+    /// Crease edges: the sharp edge drawn bold.
+    CreaseEdges,
+    /// Uncrease: rounded all round, the old sharp edge dashed.
+    Uncrease,
     /// Turn UVs left 90°: a tile with an arrow going anticlockwise.
     UvTurnLeft,
     /// Turn UVs right 90°: a tile with an arrow going clockwise.
@@ -251,7 +260,7 @@ pub enum Icon {
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 113] = [
+pub const ALL: [Icon; 117] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -334,6 +343,10 @@ pub const ALL: [Icon; 113] = [
     Icon::Subtract,
     Icon::Intersect,
     Icon::Remesh,
+    Icon::Subdivide,
+    Icon::Creases,
+    Icon::CreaseEdges,
+    Icon::Uncrease,
     Icon::UvTurnLeft,
     Icon::UvTurnRight,
     Icon::UvFlipU,
@@ -455,7 +468,9 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         | Icon::ApplyTransforms
         | Icon::EditLayer => modelling::draw(&mut pen, icon),
         Icon::Union | Icon::Subtract | Icon::Intersect => booleans::draw(&mut pen, icon),
-        Icon::Remesh => modifiers::draw(&mut pen, icon),
+        Icon::Remesh | Icon::Subdivide | Icon::Creases | Icon::CreaseEdges | Icon::Uncrease => {
+            modifiers::draw(&mut pen, icon)
+        }
         Icon::DrawCurve
         | Icon::CurveLine
         | Icon::CurveCircle

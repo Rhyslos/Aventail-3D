@@ -264,6 +264,8 @@ pub struct Workbench {
     uv_model_drag: Option<uv_on_model::UvModelDrag>,
     /// A loop cut being placed (decision 0047).
     loop_cut_session: Option<loop_cut::LoopCutSession>,
+    /// A drag of the Attributes panel's Crease field (decision 0143).
+    crease_drag: Option<creases::CreaseDrag>,
     /// A slit's line being drawn (decision 0049).
     slit_session: Option<slit::SlitSession>,
     /// A curve being drawn with Draw curve (decision 0138).
@@ -365,6 +367,7 @@ impl Workbench {
             modelling_session: None,
             uv_model_drag: None,
             loop_cut_session: None,
+            crease_drag: None,
             slit_session: None,
             curve_session: None,
             curve_mode_noted: Mode::Model,
@@ -669,6 +672,7 @@ impl Workbench {
         self.attributes.tool = self.tool;
         self.attributes.track_last_edit(&self.document);
         self.attributes.polygons_selected = self.polygons_selected_for_attributes();
+        self.attributes.creases = self.creases_for_attributes();
         self.attributes.curve.points_mode = self.mode == Mode::Points;
         self.note_right_press(ui.ctx());
         // Over the UV Editor, H and Z frame there (keys stay the same,
@@ -755,6 +759,9 @@ impl Workbench {
         }
         if let Some(slot) = self.attributes.assign.take() {
             self.assign_material(slot);
+        }
+        if let Some((crease, gesture)) = self.attributes.crease_asked.take() {
+            self.set_creases_from_field(crease, gesture);
         }
         if let Some(command) = self.attributes.curve.asked.take() {
             self.run_command(command, ui.ctx(), &mut requests);
@@ -890,6 +897,9 @@ mod cleaning;
 mod cleaning_tests;
 mod command;
 mod copying;
+mod creases;
+#[cfg(test)]
+mod creases_tests;
 mod exporting;
 #[cfg(test)]
 mod exporting_tests;

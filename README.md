@@ -258,9 +258,9 @@ After a review of the whole app (2026-10-21, [decision 0121](docs/decisions/0121
 
 **Gate:** 2–3 people new to the app finish a fixed task list without help, see what is selected on any screen, and no text skips the English package. Then Phase 10, advanced modelling.
 
-### Phase 10 · Advanced hard-surface (after Phase 9, before the rest of Phase 8) — 4 of 23
+### Phase 10 · Advanced hard-surface (after Phase 9, before the rest of Phase 8) — 5 of 23
 
-`██░░░░░░░░░░░` 17%
+`███░░░░░░░░░░` 22%
 
 Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/decisions/0125-modelling-before-the-rest-of-the-uvs.md)); Phase 8 continues once it's done. Friends join as testers around here, once there are enough tools to build something. On 24 October the project lead widened it with fourteen more modifiers ([decision 0136](docs/decisions/0136-more-modifiers.md)); each still asks about its controls before it's built. They're built biggest and hardest first, except where one builds on another ([decision 0137](docs/decisions/0137-biggest-first.md)).
 
@@ -271,7 +271,7 @@ Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/d
 - [x] Curves and splines: sweep and lathe, for pipes, cables and railings ([decision 0138](docs/decisions/0138-curves-sweep-lathe.md)); spline editing: adding, joining, splitting, carrying on, handle types, round corners and even spacing ([decision 0139](docs/decisions/0139-spline-editing.md))
 - [x] Improved bevel: rounded corners where bevels meet, and bevels that never overlap ([decision 0141](docs/decisions/0141-improved-bevel.md))
 - [x] Remesh: messy geometry rebuilt into even polygons, on the new modifier stack every later modifier plugs into ([decision 0142](docs/decisions/0142-modifier-stack-and-remesh.md))
-- [ ] Smoothing modifier (subdivision), with creases
+- [x] Smoothing modifier (subdivision), with creases: **Subdivide**, Catmull-Clark with viewport and export levels, creases set in the Edges mode ([decision 0143](docs/decisions/0143-subdivide-and-creases.md))
 - [ ] Lattice cage: a box of points that reshapes what's inside smoothly
 - [ ] Decimate: fewer polygons, the same shape
 - [ ] Scatter onto surface: copies of a shape on another's points or faces, for bolts, rivets and vents
@@ -313,6 +313,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-24 | Phase 10: Subdivide, subdivision smoothing (Catmull-Clark) with its own viewport and export levels, and creases on edges to keep them sharp |
 | 2026-10-24 | Phase 10: the modifier stack (live changes after the edits, booleans and mirror, switchable, reorderable, baked by Bake into shape) and Remesh, rebuilding a closed shape as even quads |
 | 2026-10-24 | Phase 10: improved bevel: rounded corners of quads where bevelled edges meet, and Stop at neighbours narrowing a bevel only where it would overlap |
 | 2026-10-24 | Phase 10: spline editing: add points on the line, join ends (M, A, Join objects), carry a curve on, split, reverse, handle types, round corners, even spacing |

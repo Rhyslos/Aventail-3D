@@ -28,11 +28,13 @@ Whenever you want to change *what* an object is rather than where it is: make a 
 
 **Collision.** Under Visible, shapes have a **Collision** row: what a game engine makes the player bump into (None, The shape itself, Wrapped, A box). Exports made for Godot carry it. See [Kit export and collision](kit-export.md).
 
+**Selected edges.** In the Edges mode, with edges selected, a **Selected edges** section shows how many, and their **Crease** (0 to 1): how sharply the [Subdivide](subdivide.md#keeping-edges-sharp-creases) modifier keeps them. Drag or type a value to give them all that crease; one drag is one undo step.
+
 **Smoothing.** Under Collision, shapes have a **Smoothing** row: how the object's shading breaks into crisp edges. With **By angle** ticked (the standard), wherever its polygons meet more sharply than the angle beside it (**30°** as standard; drag or type it), worked out again after every change. Unticked, only the edges marked hard. Each object has its own. Instances follow their original, so they don't show the row. See [Hard and soft edges](hard-and-soft-edges.md#smoothed-by-angle).
 
 **Booleans.** A shape cut by [booleans](booleans.md) has a **Booleans** section: each boolean's kind (Union, Subtract or Intersect, changeable from the list), its cutters by name (click one to select it; **Take out** stops it cutting) and **Remove**. If the cut can't be made (a shape isn't a closed solid), it says why in amber, and the shape is shown uncut. A cutter's own panel says which shapes it **Cuts**.
 
-**Modifiers.** A shape with [modifiers](modifiers.md) has a **Modifiers** section: each modifier, first to last, with its switch (untick to switch it off), **Up**, **Down** and **Remove**, its own settings (for [Remesh](remesh.md), Voxel size and Smooth), and **Show in viewport**. If a modifier can't do its work (Remesh on an open shape), it says why in amber, and the shape goes on without it.
+**Modifiers.** A shape with [modifiers](modifiers.md) has a **Modifiers** section: each modifier, first to last, with its switch (untick to switch it off), **Up**, **Down** and **Remove**, its own settings (for [Remesh](remesh.md), Voxel size and Smooth; for [Subdivide](subdivide.md), Levels, Levels for export and Hard edges stay sharp), and **Show in viewport**. If a modifier can't do its work (Remesh on an open shape), it says why in amber, and the shape goes on without it.
 
 **Materials.** Every shape has a **Materials** section: its materials, each with a colour, a name, how many polygons use it and an **Assign** button that gives the selected polygons that material (in the Polygons mode). **Add material** and **Remove last** change the list. See [Materials](materials.md).
 
