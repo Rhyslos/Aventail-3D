@@ -137,7 +137,7 @@ fn bad_curves_are_refused() {
         position: Vec3::ZERO,
         handle_in: Vec3::ZERO,
         handle_out: Vec3::ZERO,
-        smooth: false,
+        kind: PointKind::Sharp,
     };
     assert_eq!(
         Curve::from_parts(vec![point(1), point(1)], false, 5),
@@ -263,9 +263,13 @@ fn moving_one_handle_of_a_smooth_point_turns_its_partner() {
     );
     // A sharp point's handles move alone.
     let sharp = curve
-        .edited(&CurveEdit::SetSmooth {
+        .edited(&CurveEdit::SetKind {
             points: vec![CurvePointId::from_raw(1)],
-            smooth: false,
+            kind: if false {
+                PointKind::Smooth
+            } else {
+                PointKind::Sharp
+            },
         })
         .unwrap();
     assert!(!sharp.points()[1].has_handles());
@@ -323,7 +327,7 @@ fn deleting_points_and_handles() {
         })
         .unwrap();
     assert_eq!(cut.points()[0].handle_in, Vec3::ZERO);
-    assert!(!cut.points()[0].smooth);
+    assert_eq!(cut.points()[0].kind, PointKind::Broken);
     assert_eq!(cut.points().len(), 3);
     // Unknown ids change nothing.
     let same = curve
@@ -347,13 +351,17 @@ fn making_a_corner_smooth_gives_it_handles_along_its_neighbours() {
     .unwrap();
     let middle = CurvePointId::from_raw(1);
     let round = curve
-        .edited(&CurveEdit::SetSmooth {
+        .edited(&CurveEdit::SetKind {
             points: vec![middle],
-            smooth: true,
+            kind: if true {
+                PointKind::Smooth
+            } else {
+                PointKind::Sharp
+            },
         })
         .unwrap();
     let p = round.point(middle).unwrap();
-    assert!(p.smooth);
+    assert_eq!(p.kind, PointKind::Smooth);
     // Along the way from the first neighbour to the second (+X), a third
     // of the way to each.
     assert!(p.handle_out.normalize().distance(Vec3::X) < 1e-5);
@@ -361,17 +369,25 @@ fn making_a_corner_smooth_gives_it_handles_along_its_neighbours() {
     assert!(p.handle_in.distance(-p.handle_out) < 1e-4);
     // An end point gets handles too, along its one stretch.
     let end = round
-        .edited(&CurveEdit::SetSmooth {
+        .edited(&CurveEdit::SetKind {
             points: vec![CurvePointId::from_raw(0)],
-            smooth: true,
+            kind: if true {
+                PointKind::Smooth
+            } else {
+                PointKind::Sharp
+            },
         })
         .unwrap();
     assert!(end.points()[0].has_handles());
     // And back: sharp again, no handles.
     let back = end
-        .edited(&CurveEdit::SetSmooth {
+        .edited(&CurveEdit::SetKind {
             points: vec![middle],
-            smooth: false,
+            kind: if false {
+                PointKind::Smooth
+            } else {
+                PointKind::Sharp
+            },
         })
         .unwrap();
     assert!(!back.point(middle).unwrap().has_handles());
@@ -1112,9 +1128,13 @@ fn random_curves_never_panic() {
                     .take((dice.next() % 3) as usize)
                     .collect(),
             },
-            CurveEdit::SetSmooth {
+            CurveEdit::SetKind {
                 points: curve.points().iter().map(|p| p.id).collect(),
-                smooth: dice.next().is_multiple_of(2),
+                kind: if dice.next().is_multiple_of(2) {
+                    PointKind::Smooth
+                } else {
+                    PointKind::Sharp
+                },
             },
             CurveEdit::SetClosed(dice.next().is_multiple_of(2)),
         ] {

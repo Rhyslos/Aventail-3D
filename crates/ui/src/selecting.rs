@@ -392,12 +392,18 @@ impl Selector<'_> {
             .curve()?
             .shape
             .curve();
-        let smooth = !curve.point(part.point)?.smooth;
+        // Sharp becomes smooth; any other kind becomes sharp (decision
+        // 0139).
+        let smooth = curve.point(part.point)?.kind == scene::PointKind::Sharp;
         let result = self.document.execute(scene::Command::EditCurve {
             id: item.id,
-            edit: scene::CurveEdit::SetSmooth {
+            edit: scene::CurveEdit::SetKind {
                 points: vec![part.point],
-                smooth,
+                kind: if smooth {
+                    scene::PointKind::Smooth
+                } else {
+                    scene::PointKind::Sharp
+                },
             },
         });
         Some(match result {

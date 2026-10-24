@@ -16,7 +16,7 @@ use crate::limits::Bounded;
 use glam::Vec3;
 use scene::{
     Curve, CurveObject, CurvePoint, CurvePointId, CurveShape, CurveSolid, Detail, Document,
-    LatheAxis, LatheShape, ObjectId, ObjectKind, ReadyCurve, Sweep, SweepProfile,
+    LatheAxis, LatheShape, ObjectId, ObjectKind, PointKind, ReadyCurve, Sweep, SweepProfile,
 };
 use serde::{Deserialize, Serialize};
 use words::{tr, trf};
@@ -74,7 +74,42 @@ pub(crate) struct PointV41 {
     pub(crate) position: [f32; 3],
     pub(crate) handle_in: [f32; 3],
     pub(crate) handle_out: [f32; 3],
+    /// Smooth or auto: kept so the first files of version 41, which had
+    /// only this switch, and these read alike.
     pub(crate) smooth: bool,
+    /// Its handle kind (decision 0139), added to version 41 before it was
+    /// released; a file without it takes the kind from `smooth`.
+    #[serde(default)]
+    pub(crate) kind: Option<KindV41>,
+}
+
+/// A curve point's handle kind.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) enum KindV41 {
+    Sharp,
+    Smooth,
+    Broken,
+    Auto,
+}
+
+impl KindV41 {
+    fn of(kind: PointKind) -> Self {
+        match kind {
+            PointKind::Sharp => Self::Sharp,
+            PointKind::Smooth => Self::Smooth,
+            PointKind::Broken => Self::Broken,
+            PointKind::Auto => Self::Auto,
+        }
+    }
+
+    fn kind(self) -> PointKind {
+        match self {
+            Self::Sharp => PointKind::Sharp,
+            Self::Smooth => PointKind::Smooth,
+            Self::Broken => PointKind::Broken,
+            Self::Auto => PointKind::Auto,
+        }
+    }
 }
 
 /// What a curve makes.
@@ -251,7 +286,8 @@ impl CurveV41 {
                         position: array(p.position),
                         handle_in: array(p.handle_in),
                         handle_out: array(p.handle_out),
-                        smooth: p.smooth,
+                        smooth: p.is_smooth(),
+                        kind: Some(KindV41::of(p.kind)),
                     })
                     .collect(),
                 closed: c.closed(),
@@ -294,12 +330,23 @@ impl CurveV41 {
                 let points = points
                     .0
                     .into_iter()
-                    .map(|p| CurvePoint {
-                        id: CurvePointId::from_raw(p.id),
-                        position: Vec3::from_array(p.position),
-                        handle_in: Vec3::from_array(p.handle_in),
-                        handle_out: Vec3::from_array(p.handle_out),
-                        smooth: p.smooth,
+                    .map(|p| {
+                        let (handle_in, handle_out) = (
+                            Vec3::from_array(p.handle_in),
+                            Vec3::from_array(p.handle_out),
+                        );
+                        let has_handles = handle_in.length_squared() > 1e-12
+                            || handle_out.length_squared() > 1e-12;
+                        CurvePoint {
+                            id: CurvePointId::from_raw(p.id),
+                            position: Vec3::from_array(p.position),
+                            handle_in,
+                            handle_out,
+                            kind: p.kind.map_or_else(
+                                || PointKind::from_smooth(p.smooth, has_handles),
+                                KindV41::kind,
+                            ),
+                        }
                     })
                     .collect();
                 Curve::from_parts(points, closed, next_id)

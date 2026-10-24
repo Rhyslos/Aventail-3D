@@ -133,7 +133,12 @@ fn clicks_place_sharp_points_and_enter_finishes_in_one_step() {
         assert!(p.distance(spot) < 1.0, "{p} {spot}");
     }
     let curve = curve_of(&harness, made[0]).shape.curve();
-    assert!(curve.points().iter().all(|p| !p.smooth && !p.has_handles()));
+    assert!(
+        curve
+            .points()
+            .iter()
+            .all(|p| p.kind == scene::PointKind::Sharp && !p.has_handles())
+    );
     assert!(!curve.closed());
     // The pivot sits in the middle of the points.
     let pivot = doc.scene().world_matrix(made[0]).w_axis.truncate();
@@ -163,7 +168,7 @@ fn pressing_and_dragging_pulls_out_handles_for_a_smooth_bend() {
     let id = curves(&harness)[0];
     let curve = curve_of(&harness, id).shape.curve();
     let middle = curve.points()[1];
-    assert!(middle.smooth);
+    assert_eq!(middle.kind, scene::PointKind::Smooth);
     // Its out handle points where the mouse went, its in handle opposite.
     assert!(middle.handle_out.x > 40.0, "{}", middle.handle_out);
     assert!(middle.handle_in.distance(-middle.handle_out) < 1e-3);
@@ -464,7 +469,7 @@ fn a_double_click_switches_a_point_between_sharp_and_smooth() {
     }
     harness.run();
     let point = curve_of(&harness, id).shape.curve().points()[1];
-    assert!(point.smooth && point.has_handles(), "{point:?}");
+    assert!(point.is_smooth() && point.has_handles(), "{point:?}");
     assert!(
         note(&harness).starts_with("Point made smooth"),
         "{}",

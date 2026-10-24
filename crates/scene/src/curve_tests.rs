@@ -191,9 +191,13 @@ fn smooth_and_sharp_points() {
     let smooth = |doc: &mut Document, smooth| {
         doc.execute(Command::EditCurve {
             id,
-            edit: CurveEdit::SetSmooth {
+            edit: CurveEdit::SetKind {
                 points: vec![middle],
-                smooth,
+                kind: if smooth {
+                    PointKind::Smooth
+                } else {
+                    PointKind::Sharp
+                },
             },
         })
         .unwrap();
@@ -201,7 +205,7 @@ fn smooth_and_sharp_points() {
     smooth(&mut doc, true);
     assert_eq!(doc.undo_label(), Some("Make points smooth"));
     let curve = curve_of(&doc, id).shape.curve();
-    assert!(curve.point(middle).unwrap().smooth);
+    assert_eq!(curve.point(middle).unwrap().kind, PointKind::Smooth);
     assert!(curve.point(middle).unwrap().has_handles());
     smooth(&mut doc, false);
     assert!(
@@ -219,7 +223,7 @@ fn smooth_and_sharp_points() {
             .curve()
             .point(middle)
             .unwrap()
-            .smooth
+            .is_smooth()
     );
     // The same change again records nothing.
     let steps = doc.undo_steps();
@@ -607,9 +611,9 @@ fn random_curve_commands_undo_and_redo_exactly() {
                 },
                 1 => Command::EditCurve {
                     id,
-                    edit: CurveEdit::SetSmooth {
+                    edit: CurveEdit::SetKind {
                         points: vec![pick],
-                        smooth: dice.next().is_multiple_of(2),
+                        kind: PointKind::ALL[(dice.next() % 4) as usize],
                     },
                 },
                 2 => Command::EditCurve {

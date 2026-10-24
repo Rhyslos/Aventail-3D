@@ -323,10 +323,35 @@ pub enum Command {
         /// Their new settings.
         ready: mesh::curve::ReadyCurve,
     },
+    /// Joins two curve points that are ends of open curves (decision
+    /// 0139): `weld` melts them into one at their middle, else a straight
+    /// stretch joins them. On one curve, its two ends: it closes. On two,
+    /// the second joins onto the first, which stays (with its settings);
+    /// the second is deleted. Refused for points that aren't open ends.
+    JoinCurveEnds {
+        /// The first curve and its end point.
+        first: (ObjectId, mesh::curve::CurvePointId),
+        /// The second curve (or the same) and its end point.
+        second: (ObjectId, mesh::curve::CurvePointId),
+        /// Melt the ends into one, or join them with a stretch.
+        weld: bool,
+    },
+    /// Cuts a curve in pieces at its points `points` (decision 0139): the
+    /// curve keeps the first piece, and each other becomes a new curve
+    /// object beside it with the same settings, transform and materials.
+    /// They become the selection.
+    SplitCurve {
+        /// The curve.
+        id: ObjectId,
+        /// Where to cut.
+        points: Vec<mesh::curve::CurvePointId>,
+    },
     /// Joins shapes into the first of them, which becomes a plain mesh
     /// holding them all where they were; the others are deleted (anything
     /// inside them takes their place) (decision 0055). Groups listed are
-    /// left alone. It becomes the selection.
+    /// left alone. It becomes the selection. When every object listed is a
+    /// curve, they join into the first as one curve instead, end to end at
+    /// their nearest ends (decision 0139).
     Join(Vec<ObjectId>),
 }
 
@@ -441,18 +466,10 @@ impl Command {
             },
             Self::Join(ids) => trf!("Join {}", objects(count(ids))),
             Self::AddBoolean { kind, .. } => kind.name().to_string(),
-            Self::EditCurve { edit, .. } => match edit {
-                mesh::curve::CurveEdit::Transform { .. } => tr("Move curve points").to_string(),
-                mesh::curve::CurveEdit::Delete { .. } => tr("Delete curve points").to_string(),
-                mesh::curve::CurveEdit::SetSmooth { smooth: true, .. } => {
-                    tr("Make points smooth").to_string()
-                }
-                mesh::curve::CurveEdit::SetSmooth { smooth: false, .. } => {
-                    tr("Make points sharp").to_string()
-                }
-                mesh::curve::CurveEdit::SetClosed(true) => tr("Close curve").to_string(),
-                mesh::curve::CurveEdit::SetClosed(false) => tr("Open curve").to_string(),
-            },
+            Self::EditCurve { edit, .. } => curves::describe_edit(edit),
+            Self::JoinCurveEnds { weld: true, .. } => tr("Weld curve ends").to_string(),
+            Self::JoinCurveEnds { weld: false, .. } => tr("Connect curve ends").to_string(),
+            Self::SplitCurve { .. } => tr("Split curve").to_string(),
             Self::SetCurveSolid { solid, .. } => match solid {
                 crate::CurveSolid::Line => tr("Curve as a line only").to_string(),
                 crate::CurveSolid::Sweep(_) => tr("Sweep").to_string(),
@@ -1425,6 +1442,13 @@ impl Run<'_> {
                 self.set_ready_curve(ids, ready)?;
                 Ok(None)
             }
+            Command::JoinCurveEnds {
+                first,
+                second,
+                weld,
+            } => self.join_curve_ends(*first, *second, *weld),
+            Command::SplitCurve { id, points } => self.split_curve(*id, points),
+            Command::Join(ids) if self.all_curves(ids) => self.join_curves(ids),
             Command::Join(ids) => {
                 let shapes: Vec<ObjectId> = existing(self.scene, ids)?
                     .into_iter()

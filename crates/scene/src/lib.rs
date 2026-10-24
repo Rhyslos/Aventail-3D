@@ -32,8 +32,8 @@ pub use curve::{CurveObject, CurveShape, CurveSolid, Sweep, SweepProfile};
 pub use document::Document;
 pub use history::HistoryLimit;
 pub use mesh::curve::{
-    Curve, CurveEdit, CurvePart, CurvePoint, CurvePointId, Detail, LatheAxis, LatheShape, PartKind,
-    ReadyCurve, ReadyCurveKind,
+    Curve, CurveEdit, CurveEnd, CurvePart, CurvePoint, CurvePointId, Detail, LatheAxis, LatheShape,
+    PartKind, PointKind, ReadyCurve, ReadyCurveKind, Span,
 };
 pub use mesh::edit::{
     Bend, BevelOptions, BevelShape, ExtrudeDirection, ExtrudeShape, Eye, GrooveShape, GrooveSides,
@@ -64,6 +64,8 @@ pub use uv::{HideSeams, PieceSettings, UnfoldAxis, UnwrapMethod, UnwrapOptions};
 mod apply_tests;
 #[cfg(test)]
 mod boolean_tests;
+#[cfg(test)]
+mod curve_editing_tests;
 #[cfg(test)]
 mod curve_tests;
 #[cfg(test)]

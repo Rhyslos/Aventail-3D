@@ -128,6 +128,7 @@ Add a heavy test shape
 Add a material to the list, to assign to polygons
 Add a row
 Add an empty edit layer on top of each selected object. The edits you make from now on go into it, so you can switch them all off to compare, or delete them in one go. The Edit layers panel lists the layers.
+Add curve point
 Add edit layer
 Add every element touching the selection
 Add every polygon facing within 30° of a selected polygon: the top of a shape, say, or every wall facing one way
@@ -200,6 +201,7 @@ Assign: select some polygons first.
 Assign: switch to the Polygons mode and select polygons first.
 At the back
 Attributes
+Auto
 Automatic
 Autosave
 Axis
@@ -234,6 +236,7 @@ Bottom
 Bottom radius
 Box selection
 Box, lasso or brush select
+Break points' handles
 Bridge
 Bridge 2 borders
 Bridge 2 edges
@@ -249,6 +252,7 @@ Bring in a model from an OBJ file
 Bring shapes in from an OBJ file, each object as a plain mesh, added to the scene
 Bring the chosen copy back. It opens as unsaved work: save it to keep it.
 Bring this layer's edits back
+Broken
 Budget
 Build
 Build polygons between two open borders or two polygons; with nothing to bridge selected, drag from one open edge to another
@@ -270,6 +274,8 @@ Cap rings
 Cap segments
 Caps
 Capsule
+Carry on the curve by 1 point
+Carry on the curve by {} points
 Cavity
 Centimetres
 Centre point
@@ -354,6 +360,7 @@ Compare
 Comparing with “{}” (faint)
 Cone
 Connect
+Connect curve ends
 Connect works on points or edges: press 1 for the Points mode, or 2 for Edges
 Connect: select two or more {}s on the same polygon first.
 Continuous ring
@@ -666,6 +673,7 @@ General
 German (QWERTZ)
 Getting the workbench ready…
 Give
+Give points auto handles
 Give the selected objects {}'s rotation
 Give the selected pieces a stretch budget of their own
 Give the selected pieces their own unwrap settings
@@ -1264,6 +1272,7 @@ Restore the UVs of
 Restore the snapshot “{}”
 Restored your work from {}. Save it to keep it.
 Restored “{}”. Ctrl + Z takes it back.
+Reverse curve
 Ridge along
 Right
 Right drag: orbit · Middle drag: pan · Wheel: zoom
@@ -1284,6 +1293,7 @@ Rotating: {:.1}°
 Rotation
 Rotation and scale
 Rotation shows for one object in the Model and Object modes
+Round corners
 Row {}
 Rows of a shared texture, repeating left to right.
 Save
@@ -1410,6 +1420,7 @@ Shape and object
 Shape list, from the last shape
 Shape list: 
 Shapes and their materials always go out. Skeletons and animations will be listed here once the app has them, to leave out when you don't need them.
+Sharp
 Shift
 Shift + Alt + drag the Move gizmo
 Shift + click or drag adds; Ctrl + click or drag removes. Shift + click on something selected unselects it.
@@ -1468,6 +1479,7 @@ Slit: click points over the shape to cut along them. Drag a point to move it, Ct
 Slit: nothing was cut.
 Slit: select an object to cut first.
 Sloped
+Smooth
 Smooth by angle
 Smooth by angle ({:.0}°)
 Smooth by marked edges only
@@ -1498,9 +1510,11 @@ Some of its UVs are pinned: Unwrap lays it out around them.
 Some of the points these edits move have no place on the shape now (for example after giving it fewer segments). The edits still apply to what remains; nothing else is lost, and going back to the earlier settings brings the rest back.
 Some selected objects have more than {} polygons: their UVs aren't drawn.
 Space
+Space {} points evenly
 Sphere
 Spin angle
 Spiral
+Split curve
 Split off
 Split off 1 polygon
 Split off works on polygons: press 3 for the Polygons mode.
@@ -1783,6 +1797,7 @@ Viewport display
 Visible
 Warnings
 Weld
+Weld curve ends
 Weld distance
 Weld onto a point
 Weld overlapping points: new points that land on top of each other (where bevels meet) become one, so there are no doubled points or tiny slivers
@@ -1867,6 +1882,8 @@ a bend's stretch isn't a real number, or is out of range (above 0, at most 1000)
 a bevel is stored with its settings twice
 a bevel's skew or weld distance isn't a real number, or is out of range
 a boolean can't be used: {}
+a closed curve has no ends to join: open it or split it first
+a closed curve needs at least three points
 a collision is stored for object {}, which isn't there
 a curve can have at most 4096 points
 a curve can't be its own cross-section
@@ -2135,6 +2152,7 @@ switch both layers on before merging them
 that edit no longer exists
 that element isn't in the mesh
 that layer no longer exists
+that works on the two ends of open curves
 the attribute holds values for each {}, not each {}
 the attribute holds {} values, not {}
 the backup folder {} can't be used ({})
@@ -2185,6 +2203,7 @@ there is nothing to export: no shapes are shown or selected
 there is unexpected data after the scene
 they were
 thing
+this curve has had 65536 points made over time, the most it can: draw it again
 triangle
 triangles
 turn

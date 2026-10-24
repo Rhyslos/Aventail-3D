@@ -8,7 +8,9 @@
 //! first point, pulled towards its out handle, then towards the second
 //! point's in handle, to the second point. A point with both handles at
 //! nothing is a sharp corner; a *smooth* point keeps its two handles in
-//! one line, so the curve bends through it without a kink.
+//! one line, so the curve bends through it without a kink; a *broken*
+//! point's handles move on their own; an *auto* point's handles follow its
+//! neighbours ([`PointKind`], [decision 0139](../../../docs/decisions/0139-spline-editing.md)).
 //!
 //! Points have ids ([`CurvePointId`]) that count up and are never reused,
 //! as a mesh's do, so a selection of points holds while others are
@@ -24,17 +26,24 @@ use crate::Bounds;
 use glam::{Mat4, Vec3};
 use words::tr;
 
+mod edit;
 mod grid;
 pub mod lathe;
 mod path;
 pub mod ready;
+mod rounding;
+mod shaping;
 pub mod sweep;
 
 pub use lathe::{LatheAxis, LatheShape};
 pub use path::Detail;
 pub use ready::{ReadyCurve, ReadyCurveKind};
+pub use rounding::MAX_RADIUS;
+pub use shaping::{CurveEnd, SAME_SPOT, join, split};
 pub use sweep::{Profile, SweepShape};
 
+#[cfg(test)]
+mod editing_tests;
 #[cfg(test)]
 mod tests;
 
@@ -74,15 +83,62 @@ pub struct CurvePoint {
     pub handle_in: Vec3,
     /// Its out handle, from the point: pulls the stretch leaving here.
     pub handle_out: Vec3,
-    /// Whether its handles are kept in one line (a smooth bend); a sharp
-    /// point's handles move on their own, and are usually nothing.
-    pub smooth: bool,
+    /// How its handles behave ([decision 0139](../../../docs/decisions/0139-spline-editing.md)).
+    pub kind: PointKind,
+}
+
+/// How a curve point's handles behave
+/// ([decision 0139](../../../docs/decisions/0139-spline-editing.md)).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum PointKind {
+    /// No handles: a corner.
+    #[default]
+    Sharp,
+    /// Handles kept in one line, so the curve bends through without a
+    /// kink: dragging one turns the other to match, keeping its length.
+    Smooth,
+    /// Handles that move on their own, for a kink with curved sides.
+    Broken,
+    /// Handles worked out from the neighbours, a third of the way to each
+    /// along the line between them: they follow as the neighbours move.
+    Auto,
+}
+
+impl PointKind {
+    /// Every kind, in the order the Attributes panel lists them.
+    pub const ALL: [Self; 4] = [Self::Sharp, Self::Smooth, Self::Broken, Self::Auto];
+
+    /// Its name.
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Sharp => tr("Sharp"),
+            Self::Smooth => tr("Smooth"),
+            Self::Broken => tr("Broken"),
+            Self::Auto => tr("Auto"),
+        }
+    }
+
+    /// The kind an older smooth switch stood for: smooth, or a sharp point
+    /// whose handles (if any) moved on their own.
+    pub fn from_smooth(smooth: bool, has_handles: bool) -> Self {
+        match (smooth, has_handles) {
+            (true, _) => Self::Smooth,
+            (false, true) => Self::Broken,
+            (false, false) => Self::Sharp,
+        }
+    }
 }
 
 impl CurvePoint {
     /// Whether its handles pull at all.
     pub fn has_handles(&self) -> bool {
         self.handle_in.length_squared() > 1e-12 || self.handle_out.length_squared() > 1e-12
+    }
+
+    /// Whether it bends through without a kink of its own making (smooth
+    /// or auto).
+    pub fn is_smooth(&self) -> bool {
+        matches!(self.kind, PointKind::Smooth | PointKind::Auto)
     }
 
     fn is_finite(&self) -> bool {
@@ -167,17 +223,63 @@ pub enum CurveEdit {
         /// The parts.
         parts: Vec<CurvePart>,
     },
-    /// Makes points smooth (handles in one line; points without handles
-    /// get handles that follow their neighbours) or sharp (handles back to
-    /// nothing: a corner).
-    SetSmooth {
+    /// Gives points a handle kind: sharp takes the handles back to
+    /// nothing; smooth puts them in one line; broken keeps them as they
+    /// are; auto works them out from the neighbours. A point without
+    /// handles made smooth or broken gets handles that follow its
+    /// neighbours.
+    SetKind {
         /// The points.
         points: Vec<CurvePointId>,
-        /// Smooth, or sharp.
-        smooth: bool,
+        /// Their new kind.
+        kind: PointKind,
     },
-    /// Closes the curve into a loop, or opens it.
+    /// Closes the curve into a loop (it needs three points), or opens it.
     SetClosed(bool),
+    /// Adds a point on the stretch leaving point `after`, `t` of the way
+    /// along it (0 to 1, by the stretch's own measure), without changing
+    /// the curve's shape. The new point gets the next id.
+    Insert {
+        /// The point the stretch leaves.
+        after: CurvePointId,
+        /// How far along.
+        t: f32,
+    },
+    /// Adds points at one end of an open curve, in drawing order: from the
+    /// end outward. Each is its place, in and out handle (from the point,
+    /// as drawn: in points back towards the end), and kind.
+    Extend {
+        /// Whether they go before the first point (else after the last).
+        at_start: bool,
+        /// The new points, from the end outward.
+        points: Vec<(Vec3, Vec3, Vec3, PointKind)>,
+    },
+    /// Turns the curve's direction round: its last point becomes its
+    /// first (a closed curve keeps its first point).
+    Reverse,
+    /// Rounds sharp corners into arcs of `radius` (centimetres), each cut
+    /// back to what fits between its neighbours. Points that aren't sharp
+    /// corners (ends of an open curve, points with handles, points in a
+    /// straight line) are left alone.
+    RoundCorners {
+        /// The points.
+        points: Vec<CurvePointId>,
+        /// The arcs' radius.
+        radius: f32,
+    },
+    /// Puts `count` points evenly along the curve, with handles that keep
+    /// its shape as near as they can (all new ids).
+    Resample {
+        /// How many points.
+        count: usize,
+    },
+    /// Joins an open curve's two ends: `weld` melts them into one point at
+    /// their middle, else a straight stretch joins them. Either way the
+    /// curve becomes a loop.
+    CloseEnds {
+        /// Melt the ends into one, or join them with a stretch.
+        weld: bool,
+    },
 }
 
 /// Why a curve can't be made or changed, in plain words.
@@ -191,6 +293,13 @@ pub enum CurveError {
     TooFewPoints,
     /// Two points with the same id, or an id past the curve's next one.
     BadIds,
+    /// A loop of fewer than three points.
+    LoopTooSmall,
+    /// The curve has used up the point ids it may have.
+    OutOfIds,
+    /// An end-to-end change on a closed curve, or on points that aren't
+    /// its ends.
+    NotEnds,
 }
 
 impl std::fmt::Display for CurveError {
@@ -202,6 +311,11 @@ impl std::fmt::Display for CurveError {
                 tr("a curve needs at least two points: delete the whole object instead")
             }
             Self::BadIds => tr("a curve's points have repeated or impossible ids"),
+            Self::LoopTooSmall => tr("a closed curve needs at least three points"),
+            Self::OutOfIds => {
+                tr("this curve has had 65536 points made over time, the most it can: draw it again")
+            }
+            Self::NotEnds => tr("that works on the two ends of open curves"),
         })
     }
 }
@@ -316,7 +430,10 @@ impl Curve {
                     position,
                     handle_in,
                     handle_out,
-                    smooth,
+                    kind: PointKind::from_smooth(
+                        smooth,
+                        handle_in.length_squared() > 1e-12 || handle_out.length_squared() > 1e-12,
+                    ),
                 },
             )
             .collect();
@@ -357,11 +474,16 @@ impl Curve {
         if ids.windows(2).any(|w| w[0] == w[1]) || ids.last().is_some_and(|l| *l >= next_id) {
             return Err(CurveError::BadIds);
         }
-        Ok(Self {
+        let mut curve = Self {
             points,
             closed,
             next_id,
-        })
+        };
+        curve.settle();
+        if !curve.points.iter().all(CurvePoint::is_finite) {
+            return Err(CurveError::NotANumber);
+        }
+        Ok(curve)
     }
 
     /// Its points, in order.
@@ -490,159 +612,6 @@ impl Curve {
         self.edited(&CurveEdit::Transform { parts, matrix })
     }
 
-    /// The curve after `edit`.
-    pub fn edited(&self, edit: &CurveEdit) -> Result<Self, CurveError> {
-        let mut out = self.clone();
-        match edit {
-            CurveEdit::Transform { parts, matrix } => {
-                if !matrix.is_finite() {
-                    return Err(CurveError::NotANumber);
-                }
-                out.transform(parts, *matrix);
-            }
-            CurveEdit::Delete { parts } => out.delete(parts)?,
-            CurveEdit::SetSmooth { points, smooth } => {
-                for id in points {
-                    out.set_smooth(*id, *smooth);
-                }
-            }
-            CurveEdit::SetClosed(closed) => out.closed = *closed,
-        }
-        Self::from_parts(out.points, out.closed, out.next_id)
-    }
-
-    fn transform(&mut self, parts: &[CurvePart], matrix: Mat4) {
-        for point in &mut self.points {
-            let has = |kind| {
-                parts.contains(&CurvePart {
-                    point: point.id,
-                    kind,
-                })
-            };
-            let (all, inn, out) = (has(PartKind::Point), has(PartKind::In), has(PartKind::Out));
-            if !(all || inn || out) {
-                continue;
-            }
-            let p = point.position;
-            let (end_in, end_out) = (p + point.handle_in, p + point.handle_out);
-            if all {
-                let moved = matrix.transform_point3(p);
-                point.position = moved;
-                point.handle_in = matrix.transform_point3(end_in) - moved;
-                point.handle_out = matrix.transform_point3(end_out) - moved;
-                continue;
-            }
-            if inn {
-                point.handle_in = matrix.transform_point3(end_in) - p;
-            }
-            if out {
-                point.handle_out = matrix.transform_point3(end_out) - p;
-            }
-            // One handle of a smooth point moved: its partner turns to stay
-            // in line, keeping its length.
-            if point.smooth && inn != out {
-                let (moved, partner) = if inn {
-                    (point.handle_in, &mut point.handle_out)
-                } else {
-                    (point.handle_out, &mut point.handle_in)
-                };
-                let length = partner.length();
-                if let Some(way) = moved.try_normalize() {
-                    *partner = -way * length;
-                }
-            }
-        }
-    }
-
-    fn delete(&mut self, parts: &[CurvePart]) -> Result<(), CurveError> {
-        let gone: Vec<CurvePointId> = parts
-            .iter()
-            .filter(|p| p.kind == PartKind::Point)
-            .map(|p| p.point)
-            .collect();
-        let left = self.points.iter().filter(|p| !gone.contains(&p.id)).count();
-        if left < 2 && left < self.points.len() {
-            return Err(CurveError::TooFewPoints);
-        }
-        self.points.retain(|p| !gone.contains(&p.id));
-        for part in parts {
-            if let Some(point) = self.points.iter_mut().find(|p| p.id == part.point) {
-                match part.kind {
-                    PartKind::In => point.handle_in = Vec3::ZERO,
-                    PartKind::Out => point.handle_out = Vec3::ZERO,
-                    PartKind::Point => {}
-                }
-                if part.kind != PartKind::Point {
-                    point.smooth = false;
-                }
-            }
-        }
-        // Two points can't make a loop.
-        if self.points.len() < 3 {
-            self.closed = false;
-        }
-        Ok(())
-    }
-
-    fn set_smooth(&mut self, id: CurvePointId, smooth: bool) {
-        let n = self.points.len();
-        let Some(i) = self.points.iter().position(|p| p.id == id) else {
-            return;
-        };
-        if !smooth {
-            let point = &mut self.points[i];
-            point.smooth = false;
-            point.handle_in = Vec3::ZERO;
-            point.handle_out = Vec3::ZERO;
-            return;
-        }
-        let here = self.points[i].position;
-        let before = if i > 0 {
-            Some(self.points[i - 1].position)
-        } else if self.closed && n > 1 {
-            Some(self.points[n - 1].position)
-        } else {
-            None
-        };
-        let after = if i + 1 < n {
-            Some(self.points[i + 1].position)
-        } else if self.closed && n > 1 {
-            Some(self.points[0].position)
-        } else {
-            None
-        };
-        let point = &mut self.points[i];
-        point.smooth = true;
-        let existing = point.handle_out - point.handle_in;
-        let way = existing
-            .try_normalize()
-            .or_else(|| match (before, after) {
-                (Some(b), Some(a)) => (a - b).try_normalize(),
-                (None, Some(a)) => (a - here).try_normalize(),
-                (Some(b), None) => (here - b).try_normalize(),
-                (None, None) => None,
-            })
-            .unwrap_or(Vec3::X);
-        // A third of the way to each neighbour, as a smooth curve through
-        // them (Catmull-Rom) would pull; or as long as the handles were.
-        let reach = |other: Option<Vec3>, handle: Vec3| {
-            if handle.length_squared() > 1e-12 {
-                handle.length()
-            } else {
-                other.map_or(0.0, |o| o.distance(here) / 3.0)
-            }
-        };
-        let back = reach(before, point.handle_in);
-        let ahead = reach(after, point.handle_out);
-        let (back, ahead) = match (back > 0.0, ahead > 0.0) {
-            (false, true) => (ahead, ahead),
-            (true, false) => (back, back),
-            _ => (back, ahead),
-        };
-        point.handle_in = -way * back;
-        point.handle_out = way * ahead;
-    }
-
     /// The curve with one more point at the end (for drawing), refused past
     /// [`MAX_CURVE_POINTS`] or [`MAX_POINT_ID`].
     pub fn with_point(
@@ -658,7 +627,10 @@ impl Curve {
             position,
             handle_in,
             handle_out,
-            smooth,
+            kind: PointKind::from_smooth(
+                smooth,
+                handle_in.length_squared() > 1e-12 || handle_out.length_squared() > 1e-12,
+            ),
         });
         Self::from_parts(points, self.closed, self.next_id.saturating_add(1))
     }

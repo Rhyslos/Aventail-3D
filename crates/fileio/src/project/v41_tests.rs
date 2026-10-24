@@ -7,7 +7,8 @@ use super::*;
 use glam::{Mat4, Vec3};
 use scene::{
     Command, Curve, CurveEdit, CurveObject, CurvePart, CurvePointId, CurveShape, CurveSolid,
-    LatheAxis, LatheShape, ObjectId, ObjectKind, ReadyCurve, ReadyCurveKind, Sweep, SweepProfile,
+    LatheAxis, LatheShape, ObjectId, ObjectKind, PointKind, ReadyCurve, ReadyCurveKind, Sweep,
+    SweepProfile,
 };
 
 /// The id of the object called `name`.
@@ -32,11 +33,51 @@ fn add(doc: &mut Document, name: &str, curve: CurveObject) -> ObjectId {
     id
 }
 
+/// Everything version 40 stores, plus curves, with each kind of handle a
+/// curve point can have (decision 0139): the version 41 sample holds
+/// exactly this.
+pub(super) fn rich_document_v41() -> Document {
+    let mut doc = rich_document_v41_smooth_only();
+    let kinds = add(
+        &mut doc,
+        "Handle kinds",
+        CurveObject::line(CurveShape::Points(
+            Curve::corners(
+                &[
+                    Vec3::ZERO,
+                    Vec3::new(40.0, 30.0, 0.0),
+                    Vec3::new(80.0, 0.0, 0.0),
+                    Vec3::new(120.0, 30.0, 0.0),
+                    Vec3::new(160.0, 0.0, 0.0),
+                ],
+                false,
+            )
+            .unwrap(),
+        )),
+    );
+    for (point, kind) in [
+        (1, PointKind::Smooth),
+        (2, PointKind::Broken),
+        (3, PointKind::Auto),
+    ] {
+        doc.execute(Command::EditCurve {
+            id: kinds,
+            edit: CurveEdit::SetKind {
+                points: vec![CurvePointId::from_raw(point)],
+                kind,
+            },
+        })
+        .unwrap();
+    }
+    doc
+}
+
 /// Everything version 40 stores, plus curves: a rail swept along a drawn
 /// path with another curve as its cross-section, a twisted ring, a lathed
-/// vase, a spiral line and an edited arc (the version 41 sample holds
-/// exactly this).
-pub(super) fn rich_document_v41() -> Document {
+/// vase, a spiral line and an edited arc. The first version 41 sample,
+/// saved before curve points had handle kinds (only a smooth switch),
+/// holds exactly this.
+fn rich_document_v41_smooth_only() -> Document {
     let mut doc = rich_document_v40();
     let profile = add(
         &mut doc,
@@ -148,7 +189,22 @@ fn curves_are_saved_and_opened_with_their_solids() {
     let back = from_bytes(&to_bytes(&doc).unwrap()).unwrap();
     assert_same(&doc, &back);
     assert_eq!(curves_of(&doc), curves_of(&back));
-    assert_eq!(curves_of(&back).len(), 6);
+    assert_eq!(curves_of(&back).len(), 7);
+    let kinds: Vec<PointKind> = curves_of(&back)
+        .iter()
+        .find(|(name, _)| name == "Handle kinds")
+        .map(|(_, c)| c.shape.curve().points().iter().map(|p| p.kind).collect())
+        .unwrap();
+    assert_eq!(
+        kinds,
+        vec![
+            PointKind::Sharp,
+            PointKind::Smooth,
+            PointKind::Broken,
+            PointKind::Auto,
+            PointKind::Sharp
+        ]
+    );
     let rail = named(&back, "Rail");
     assert_eq!(
         back.scene().evaluated(rail).map(|e| e.mesh),
@@ -165,6 +221,61 @@ fn a_file_saved_by_format_version_41_opens_with_its_curves() {
     let expected = rich_document_v41();
     assert_same(&expected, &doc);
     assert_eq!(curves_of(&expected), curves_of(&doc));
+}
+
+const SAMPLE_V41_SMOOTH_ONLY: &[u8] =
+    include_bytes!("../../tests/data/sample-v41-smooth-only.avtl");
+
+#[test]
+fn a_version_41_file_from_before_handle_kinds_opens_with_kinds_from_its_switch() {
+    let doc = from_bytes(SAMPLE_V41_SMOOTH_ONLY).expect("the first version 41 sample opens");
+    let expected = rich_document_v41_smooth_only();
+    assert_same(&expected, &doc);
+    assert_eq!(curves_of(&expected), curves_of(&doc));
+    // The rail's middle point was smooth; its ends sharp, one with a
+    // handle (now broken: its handle still moves on its own).
+    let rail = curves_of(&doc)
+        .into_iter()
+        .find(|(name, _)| name == "Rail")
+        .map(|(_, c)| c.shape.curve())
+        .unwrap();
+    let kinds: Vec<PointKind> = rail.points().iter().map(|p| p.kind).collect();
+    assert_eq!(
+        kinds,
+        vec![PointKind::Broken, PointKind::Smooth, PointKind::Sharp]
+    );
+}
+
+#[test]
+fn every_handle_kind_survives_a_round_trip_and_a_missing_one_follows_the_switch() {
+    let doc = rich_document_v41();
+    let mut model = v41::ProjectV41::from_document(&doc);
+    let back = model.clone().into_document().unwrap();
+    assert_eq!(curves_of(&doc), curves_of(&back));
+    // Without kinds, as the first version 41 files: from the switch.
+    for curve in &mut model.curves.0 {
+        if let v41::ShapeV41::Points { points, .. } = &mut curve.shape {
+            for point in &mut points.0 {
+                point.kind = None;
+            }
+        }
+    }
+    let back = from_bytes(&file(&model)).unwrap();
+    let kinds: Vec<PointKind> = curves_of(&back)
+        .iter()
+        .find(|(name, _)| name == "Handle kinds")
+        .map(|(_, c)| c.shape.curve().points().iter().map(|p| p.kind).collect())
+        .unwrap();
+    assert_eq!(
+        kinds,
+        vec![
+            PointKind::Sharp,
+            PointKind::Smooth,
+            PointKind::Broken,
+            PointKind::Smooth,
+            PointKind::Sharp
+        ]
+    );
 }
 
 #[test]
