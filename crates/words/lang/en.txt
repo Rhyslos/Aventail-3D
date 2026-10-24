@@ -264,6 +264,7 @@ Blue
 Boolean kind
 Booleans
 Both ends sit on the same spot. Usually left over from moving points together.
+Both sides
 Bottom
 Bottom radius
 Box selection
@@ -382,6 +383,7 @@ Close an open curve's ends with flat faces
 Close curve
 Close open ends (and the sides of a part turn) with flat faces
 Close the app
+Close the gap between the two sides along open borders (a plane's edges, a cup's lip) with a strip of polygons, so the result is a closed solid
 Close the open holes touching the selection with a polygon each; with nothing selected, every hole
 Close the selected curves into loops, the last point joining the first with a straight stretch, or open closed ones again
 Close the shape list, tool menu, question or window
@@ -648,6 +650,7 @@ Esc: cancel
 Even out the selected polygons' UVs, so a texture stretches less over them
 Even rows:
 Even spacing
+Even thickness
 Even width
 Every
 Every 1 m
@@ -709,6 +712,7 @@ Fill hole
 Fill hole works in the Edges or Polygons mode: press 2 or 3
 Fill hole: no hole touches the selection. Select an edge on its border, or select nothing to fill every hole.
 Fill hole: the selected objects have no holes.
+Fill the rims
 Find a key or action
 Find any command by typing part of its name
 Find any command by typing part of its name (Space)
@@ -761,6 +765,7 @@ Generate
 German (QWERTZ)
 Getting the workbench ready…
 Give
+Give a surface thickness: a sheet of metal, a cup's wall, a cloth's hem. Open borders get a rim joining the two sides.
 Give each copy its own square of the texture, so the copies don't overlap there and can be painted or baked one by one. Off, every copy shares the shape's UVs
 Give points auto handles
 Give the selected objects {}'s rotation
@@ -951,6 +956,7 @@ How thick the arch is round the opening
 How thick the gear is
 How thick the ring is: half the tube's width
 How thick the slab is
+How thick the surface becomes: the distance between its two sides
 How wide the circle is, across
 How wide the groove (or ridge) is, across the line of edges
 How wide the opening is
@@ -985,6 +991,7 @@ Intersect
 Invert
 Invert orbit direction
 Invert the selection
+Inward
 Isolate
 Isolate the selection
 Isolate: hide every other object, or in the Points, Edges and Polygons modes every other polygon (Ctrl + H). Alt + H shows everything again.
@@ -1187,6 +1194,7 @@ Move down
 Move layer down
 Move layer up
 Move pivot
+Move points at corners further, by the angle there, so the walls stay the same thickness right into sharp corners. Off, corners come out thinner
 Move the UVs of
 Move the mirror to
 Move the selected objects so their pivots sit on another object's pivot: click this, then click that object
@@ -1333,6 +1341,7 @@ Outer radius
 Outline every object's collision shapes (Wrapped, Wrapped in parts, A box), as a game engine will make them. Off, only the selected objects' are outlined.
 Outline every object's collision shapes, not only the selected objects'
 Outlined
+Outward
 Pack
 Pack: every selected piece is locked, and stays where it is.
 Pack: every selected piece is on the trim sheet, and stays on its row.
@@ -1674,6 +1683,7 @@ Shapes
 Shapes and their materials always go out. Skeletons and animations will be listed here once the app has them, to leave out when you don't need them.
 Sharp
 Sharp points
+Shell
 Shift
 Shift + Alt + drag the Move gizmo
 Shift + click or drag adds; Ctrl + click or drag removes. Shift + click on something selected unselects it.
@@ -2173,6 +2183,7 @@ Which of the shape's own axes runs along the curve: its longest side, or X, Y or
 Which of the shape's own axes the ring turns round. Z, up, lays it on the ground
 Which way round it turns: 0° turns up (an upright pipe turns towards +X), and it goes round from there.
 Which way the polygons go. Straight out is the standard.
+Which way the thickness grows: inward keeps the surface as the outside (its size stays), outward keeps it as the inside, both sides puts it in the middle
 While dragging
 While moving, rotating and scaling. The snapping button on the top palette turns it on and off.
 While orbiting: snap to the view dice's sides
@@ -2574,6 +2585,7 @@ the project's trim sheet has changed
 the project's units have changed
 the result would have more than {} polygons
 the result would have too many polygons
+the result would have {} polygons, and the most is {}: a simpler shape
 the result would have {} polygons, and the most is {}: fewer copies, or a simpler shape
 the saved file didn't read back the same; the disk may be failing
 the scene can't be read ({})

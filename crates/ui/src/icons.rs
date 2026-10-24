@@ -219,6 +219,9 @@ pub enum Icon {
     WeldByDistance,
     /// Array (decision 0153): three boxes in a row.
     Array,
+    /// Shell (decision 0154): a thin curved sheet given thickness, its
+    /// rim showing.
+    Shell,
     /// Creases (decision 0143): a shape sharp along one edge.
     Creases,
     /// Crease edges: the sharp edge drawn bold.
@@ -290,7 +293,7 @@ pub enum Icon {
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 127] = [
+pub const ALL: [Icon; 128] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -384,6 +387,7 @@ pub const ALL: [Icon; 127] = [
     Icon::Quadify,
     Icon::WeldByDistance,
     Icon::Array,
+    Icon::Shell,
     Icon::Creases,
     Icon::CreaseEdges,
     Icon::Uncrease,
@@ -520,6 +524,7 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         | Icon::Quadify
         | Icon::WeldByDistance
         | Icon::Array
+        | Icon::Shell
         | Icon::Creases
         | Icon::CreaseEdges
         | Icon::Uncrease => modifiers::draw(&mut pen, icon),

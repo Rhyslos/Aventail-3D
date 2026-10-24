@@ -1001,6 +1001,8 @@ mod quadifying;
 mod scatter_tests;
 mod searching;
 mod selection;
+#[cfg(test)]
+mod shell_tests;
 mod shortcuts;
 pub(crate) mod showing;
 mod slit;

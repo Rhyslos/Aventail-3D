@@ -44,6 +44,7 @@ pub mod samples;
 pub mod scatter;
 pub mod selection;
 pub mod shading;
+pub mod shell;
 pub mod shrinkwrap;
 pub mod slide;
 pub mod slit;

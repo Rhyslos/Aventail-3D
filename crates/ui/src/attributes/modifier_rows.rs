@@ -256,6 +256,7 @@ fn kind_rows(ui: &mut Ui, kind: &mut ModifierKind, units: Units, rows: &mut Rows
         ModifierKind::Array(settings) => {
             super::array_rows::array_rows(ui, settings, units, rows, &chosen.centres);
         }
+        ModifierKind::Shell(options) => super::shell_rows::shell_rows(ui, options, units, rows),
     }
 }
 
