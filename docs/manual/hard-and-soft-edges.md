@@ -98,6 +98,7 @@ In the viewport's **Display** menu:
 
 - [Bevel](bevel.md): a small bevel on a hard edge catches the light.
 - [Weighted normals](weighted-normals.md): soft bevels with big faces that still shade flat, instead of hard edges.
+- [Live bevel](live-bevel.md): can bevel exactly the edges the shading shows hard (*Edges: Hard edges*).
 - [Clean-up](clean-up.md): flip polygons and fix facing.
 - [The Attributes panel](attributes.md): each object's Smoothing row.
 - [Concepts](concepts.md): [hard and soft edges, normals, smoothing by angle](concepts.md#shading-and-normals).

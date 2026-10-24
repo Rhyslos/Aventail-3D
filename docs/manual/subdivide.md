@@ -35,7 +35,7 @@ A **[crease](concepts.md#mesh-basics)** tells Subdivide how sharply to keep an e
    - **Uncrease**, from the same places, takes the creases away.
 3. Creased edges are drawn **magenta** in the Points, Edges and Polygons modes, so you can see where they are.
 
-Creases are recorded [edits](edit-list.md), like hard edges and seams: they're undone with **Ctrl + Z**, made on both sides with [symmetry](symmetry.md) on, and follow the edges through later edits. They do nothing without a Subdivide modifier, and they don't change the shading.
+Creases are recorded [edits](edit-list.md), like hard edges and seams: they're undone with **Ctrl + Z**, made on both sides with [symmetry](symmetry.md) on, and follow the edges through later edits. They do nothing without a Subdivide modifier, and they don't change the shading. (The **Bevel weight** field beside Crease is for the [Live bevel](live-bevel.md#marking-edges-with-a-bevel-weight) modifier; its edges are drawn lime green.)
 
 ### Hard edges stay sharp
 

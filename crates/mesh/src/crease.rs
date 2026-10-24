@@ -12,7 +12,7 @@
 //! new edges by tools like hard edges and seams are
 //! ([`crate::builder::Builder`]).
 
-use crate::attributes::{AttributeElement, AttributeValues, Domain, Value};
+use crate::edge_weights;
 use crate::edit::Outcome;
 use crate::{EdgeKey, Mesh};
 
@@ -21,35 +21,19 @@ pub const CREASE: &str = "crease";
 
 /// A crease brought within 0 to 1; one that isn't a real number is 0.
 pub fn usable(crease: f32) -> f32 {
-    if crease.is_finite() {
-        crease.clamp(0.0, 1.0)
-    } else {
-        0.0
-    }
+    edge_weights::usable(crease)
 }
 
 /// The crease of `edge`: 0 for none (or an edge not in the mesh).
 pub fn crease_of(mesh: &Mesh, edge: EdgeKey) -> f32 {
-    match mesh.attribute(CREASE, AttributeElement::Edge(edge)) {
-        Some(Value::Float(c)) => usable(c),
-        _ => 0.0,
-    }
+    edge_weights::weight_of(mesh, CREASE, edge)
 }
 
 /// Every edge with a crease, and how much, in edge order. Values left on
 /// edges the mesh no longer has are included; callers that care check the
 /// topology.
 pub fn creases(mesh: &Mesh) -> Vec<(EdgeKey, f32)> {
-    match mesh.attribute_values(CREASE) {
-        Some((Domain::Edge, _, AttributeValues::Edges(list))) => list
-            .into_iter()
-            .filter_map(|(e, v)| match v {
-                Value::Float(c) if usable(c) > 0.0 => Some((e, usable(c))),
-                _ => None,
-            })
-            .collect(),
-        _ => Vec::new(),
-    }
+    edge_weights::weights(mesh, CREASE)
 }
 
 /// Gives `edges` the crease `crease` (0 takes it away; brought within 0 to
@@ -58,52 +42,14 @@ pub fn creases(mesh: &Mesh) -> Vec<(EdgeKey, f32)> {
 /// not in the mesh (no polygon uses them) are missing; edges already so
 /// are skipped.
 pub fn set_creases(mesh: &mut Mesh, edges: &[EdgeKey], crease: f32) -> Outcome {
-    let crease = usable(crease);
-    let mut outcome = Outcome::default();
-    let has_layer = mesh.attribute_values(CREASE).is_some();
-    if !has_layer
-        && crease > 0.0
-        && mesh
-            .add_attribute(CREASE, Domain::Edge, Value::Float(0.0))
-            .is_err()
-    {
-        // The name is taken by a layer of another kind (an imported file).
-        outcome.skipped = edges.len();
-        return outcome;
-    }
-    let topology = mesh.topology().clone();
-    for edge in edges {
-        if !topology.has_edge(*edge) {
-            outcome.missing += 1;
-        } else if crease_of(mesh, *edge) == crease || !mesh_has_layer(mesh) {
-            outcome.skipped += 1;
-        } else if mesh
-            .set_attribute(CREASE, AttributeElement::Edge(*edge), Value::Float(crease))
-            .is_ok()
-        {
-            outcome.matched += 1;
-        } else {
-            outcome.skipped += 1;
-        }
-    }
-    if mesh_has_layer(mesh) && creases(mesh).is_empty() {
-        mesh.remove_attribute(CREASE);
-    }
-    outcome
-}
-
-/// Whether the mesh has a crease layer of the right kind.
-fn mesh_has_layer(mesh: &Mesh) -> bool {
-    matches!(
-        mesh.attribute_values(CREASE),
-        Some((Domain::Edge, Value::Float(_), _))
-    )
+    edge_weights::set_weights(mesh, CREASE, edges, crease)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::VertexId;
+    use crate::attributes::{Domain, Value};
 
     fn cube() -> Mesh {
         crate::Primitive::Cube(Default::default()).mesh()

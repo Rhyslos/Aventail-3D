@@ -143,6 +143,7 @@ pub(crate) fn operation_size(op: &Operation) -> usize {
         }
         Operation::SetHardEdges { edges, anchors, .. }
         | Operation::SetCreases { edges, anchors, .. }
+        | Operation::SetBevelWeights { edges, anchors, .. }
         | Operation::SetSeams { edges, anchors, .. }
         | Operation::SetSeamPreference { edges, anchors, .. } => {
             std::mem::size_of_val(edges.as_slice())

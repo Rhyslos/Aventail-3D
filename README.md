@@ -258,9 +258,9 @@ After a review of the whole app (2026-10-21, [decision 0121](docs/decisions/0121
 
 **Gate:** 2–3 people new to the app finish a fixed task list without help, see what is selected on any screen, and no text skips the English package. Then Phase 10, advanced modelling.
 
-### Phase 10 · Advanced hard-surface (after Phase 9, before the rest of Phase 8) — 10 of 23
+### Phase 10 · Advanced hard-surface (after Phase 9, before the rest of Phase 8) — 11 of 23
 
-`██████░░░░░░░` 43%
+`██████░░░░░░░` 48%
 
 Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/decisions/0125-modelling-before-the-rest-of-the-uvs.md)); Phase 8 continues once it's done. Friends join as testers around here, once there are enough tools to build something. On 24 October the project lead widened it with fourteen more modifiers ([decision 0136](docs/decisions/0136-more-modifiers.md)); each still asks about its controls before it's built. They're built biggest and hardest first, except where one builds on another ([decision 0137](docs/decisions/0137-biggest-first.md)).
 
@@ -277,7 +277,7 @@ Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/d
 - [x] Scatter onto surface: copies of shapes on another's points, polygon centres or spread at random, for bolts, rivets, rocks and vents ([decision 0146](docs/decisions/0146-scatter.md))
 - [x] Curve deform and shrinkwrap: **Bend along curve** lays a shape along a live curve (ropes, rails, belts, treads); **Shrinkwrap** presses its points onto another shape's surface (decals, straps, roads) ([decision 0147](docs/decisions/0147-curve-deform-and-shrinkwrap.md))
 - [x] Weighted normals: big flat faces shade flat and bevels round, with bigger polygons counting for more; custom normals carried to the viewport, glTF and OBJ exports and their tangents ([decision 0148](docs/decisions/0148-weighted-normals.md))
-- [ ] Live bevel modifier: every edge sharper than an angle rounded, updating as you model
+- [x] Live bevel modifier: every edge sharper than an angle (or the hard or marked ones) bevelled with rounded corners, updating as you model; bevel weights set in the Edges mode ([decision 0149](docs/decisions/0149-live-bevel.md))
 - [ ] Quadify: triangles joined back into quads (after booleans, decimating or imports)
 - [ ] Collision hull: simple convex shapes for physics, made automatically
 - [ ] Weld by distance: points sitting on top of each other merged
@@ -313,6 +313,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-24 | Phase 10: Live bevel, a shape's sharp, hard or marked edges bevelled with rounded corners and kept live as you model, before Weighted normals for flat big faces |
 | 2026-10-24 | Phase 10: Weighted normals, bevelled shapes shaded with their big faces flat and their bevels round, the normals carried into exports and their tangents |
 | 2026-10-24 | Phase 10: Bend along curve and Shrinkwrap, a shape bent along a live curve, or its points pressed onto another shape's surface, nearest or along its normals or an axis |
 | 2026-10-24 | Phase 10: Scatter onto surface, copies of other shapes spread over a surface's points, polygon centres or at random, with spacing, random turns and sizes, and kept to chosen polygons if wanted |

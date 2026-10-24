@@ -42,6 +42,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Modifiers: live changes on top of a shape, switched off, reordered or baked any time](modifiers.md)
 - [Remesh: rebuild a closed shape as an even surface of quads](remesh.md)
 - [Subdivide: smooth a shape by subdividing it, with creases to keep edges sharp](subdivide.md)
+- [Live bevel: bevel a shape's sharp edges and keep the bevel live while you model](live-bevel.md)
 - [Scatter: copies of other shapes spread over a surface, rocks on the ground, rivets on a plate](scatter.md)
 - [Bend along curve: a shape bent along a curve, a rope, a rail, a vine](bend-along-curve.md)
 - [Shrinkwrap: a shape's points moved onto another's surface, straps, decals, roads on terrain](shrinkwrap.md)

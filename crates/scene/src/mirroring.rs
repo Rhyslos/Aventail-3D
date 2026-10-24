@@ -56,6 +56,7 @@ pub fn mirrors(op: &Operation) -> bool {
         | Operation::SetMaterial { .. }
         | Operation::SetHardEdges { .. }
         | Operation::SetCreases { .. }
+        | Operation::SetBevelWeights { .. }
         | Operation::SetSeams { .. }
         | Operation::SetSeamPreference { .. }
         | Operation::Slit { .. } => true,
@@ -316,6 +317,15 @@ pub(crate) fn both_sides(op: &Operation, mesh: &Mesh, mirror: &Mirror) -> Both {
         } => together(Operation::SetCreases {
             edges: all_edges(edges),
             crease: *crease,
+            anchors: joined(anchors),
+        }),
+        Operation::SetBevelWeights {
+            edges,
+            weight,
+            anchors,
+        } => together(Operation::SetBevelWeights {
+            edges: all_edges(edges),
+            weight: *weight,
             anchors: joined(anchors),
         }),
         Operation::ExtrudeBent {

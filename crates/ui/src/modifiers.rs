@@ -15,9 +15,9 @@ use crate::palette::{ButtonState, icon_button};
 use crate::text::tr;
 use egui::Ui;
 use scene::{
-    Command, CurveBendSettings, DecimateOptions, Document, LatticeOptions, MAX_MODIFIERS,
-    ModifierFamily, ModifierKind, ModifierRefusal, ObjectId, ObjectKind, RemeshOptions,
-    ScatterSettings, ShrinkwrapSettings, SubdivideOptions, WeightedNormalsOptions,
+    Command, CurveBendSettings, DecimateOptions, Document, LatticeOptions, LiveBevelOptions,
+    MAX_MODIFIERS, ModifierFamily, ModifierKind, ModifierRefusal, ObjectId, ObjectKind,
+    RemeshOptions, ScatterSettings, ShrinkwrapSettings, SubdivideOptions, WeightedNormalsOptions,
 };
 
 mod pairs;
@@ -25,8 +25,9 @@ pub(crate) use pairs::pair_plan;
 
 /// One command per kind of modifier, in the order of
 /// [`ModifierKind::standard_kinds`].
-pub(crate) const COMMANDS: [CommandId; 8] = [
+pub(crate) const COMMANDS: [CommandId; 9] = [
     CommandId::Subdivide,
+    CommandId::LiveBevel,
     CommandId::Scatter,
     CommandId::Lattice,
     CommandId::BendAlongCurve,
@@ -41,6 +42,7 @@ pub(crate) fn kind_of(command: CommandId) -> Option<ModifierKind> {
     match command {
         CommandId::Remesh => Some(ModifierKind::Remesh(RemeshOptions::default())),
         CommandId::Subdivide => Some(ModifierKind::Subdivide(SubdivideOptions::default())),
+        CommandId::LiveBevel => Some(ModifierKind::LiveBevel(LiveBevelOptions::default())),
         CommandId::Lattice => Some(ModifierKind::Lattice(LatticeOptions::default())),
         CommandId::Decimate => Some(ModifierKind::Decimate(DecimateOptions::default())),
         CommandId::Scatter => Some(ModifierKind::Scatter(ScatterSettings::default())),

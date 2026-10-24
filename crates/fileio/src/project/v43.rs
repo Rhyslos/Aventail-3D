@@ -199,6 +199,8 @@ pub(crate) enum KindV43 {
         /// Whether the shading still breaks at hard edges.
         keep_hard_edges: bool,
     },
+    /// Live bevel (version 50).
+    LiveBevel(super::v50::LiveBevelV50),
 }
 
 /// Weighted normals' weighting as stored.
@@ -290,6 +292,7 @@ impl KindV43 {
                 influence: o.influence,
                 keep_hard_edges: o.keep_hard_edges,
             },
+            ModifierKind::LiveBevel(o) => Self::LiveBevel(super::v50::LiveBevelV50::of(o)),
         }
     }
 
@@ -417,6 +420,7 @@ impl KindV43 {
                 influence: *influence,
                 keep_hard_edges: *keep_hard_edges,
             }),
+            Self::LiveBevel(o) => ModifierKind::LiveBevel(o.options()),
         }
     }
 }

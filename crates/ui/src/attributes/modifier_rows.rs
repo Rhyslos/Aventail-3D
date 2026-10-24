@@ -237,6 +237,9 @@ fn kind_rows(ui: &mut Ui, kind: &mut ModifierKind, units: Units, rows: &mut Rows
         ModifierKind::WeightedNormals(options) => {
             super::weighted_rows::weighted_rows(ui, options, rows);
         }
+        ModifierKind::LiveBevel(options) => {
+            super::live_bevel_rows::live_bevel_rows(ui, options, units, rows);
+        }
     }
 }
 

@@ -9,6 +9,10 @@
 //! Version 44 ([decision 0143](../../../../docs/decisions/0143-subdivide-and-creases.md))
 //! adds one more kind of recorded edit here, edges given a crease (or
 //! theirs taken away): files before version 44 never hold one.
+//!
+//! Version 50 ([decision 0149](../../../../docs/decisions/0149-live-bevel.md))
+//! adds edges given a bevel weight (or theirs taken away): files before
+//! version 50 never hold one.
 
 use super::v1::{FileOperation, Problem};
 use super::v2::{AnchorsV2, anchors_from_file, anchors_to_file};
@@ -48,6 +52,37 @@ pub(crate) enum OperationV37 {
         crease: f32,
         anchors: Option<AnchorsV2>,
     },
+    /// Edges given a bevel weight, 0 to 1 (version 50, decision 0149).
+    SetBevelWeights {
+        edges: Bounded<[u32; 2]>,
+        weight: f32,
+        anchors: Option<AnchorsV2>,
+    },
+}
+
+/// Edges as stored: each as its two points.
+fn edges_to_file(edges: &[EdgeKey]) -> Bounded<[u32; 2]> {
+    edges
+        .iter()
+        .map(|e| {
+            let (a, b) = e.ends();
+            [a.get(), b.get()]
+        })
+        .collect()
+}
+
+/// Edges read back; one from a point to itself is refused with `why`.
+fn edges_from_file(edges: Bounded<[u32; 2]>, why: &str) -> Result<Vec<EdgeKey>, Problem> {
+    edges
+        .into_iter()
+        .map(|[a, b]| {
+            if a == b {
+                Err(why.to_string())
+            } else {
+                Ok(EdgeKey::new(VertexId::from_raw(a), VertexId::from_raw(b)))
+            }
+        })
+        .collect::<Result<Vec<_>, _>>()
 }
 
 impl FileOperation for OperationV37 {
@@ -78,14 +113,17 @@ impl FileOperation for OperationV37 {
                 crease,
                 anchors,
             } => Some(Self::SetCreases {
-                edges: edges
-                    .iter()
-                    .map(|e| {
-                        let (a, b) = e.ends();
-                        [a.get(), b.get()]
-                    })
-                    .collect(),
+                edges: edges_to_file(edges),
                 crease: *crease,
+                anchors: anchors.as_ref().map(anchors_to_file),
+            }),
+            Operation::SetBevelWeights {
+                edges,
+                weight,
+                anchors,
+            } => Some(Self::SetBevelWeights {
+                edges: edges_to_file(edges),
+                weight: *weight,
                 anchors: anchors.as_ref().map(anchors_to_file),
             }),
             _ => Some(Self::V36(OperationV36::to_file(op)?)),
@@ -124,16 +162,8 @@ impl FileOperation for OperationV37 {
                 crease,
                 anchors,
             } => {
-                let edges = edges
-                    .into_iter()
-                    .map(|[a, b]| {
-                        if a == b {
-                            Err(tr("one of its creases joins a point to itself").to_string())
-                        } else {
-                            Ok(EdgeKey::new(VertexId::from_raw(a), VertexId::from_raw(b)))
-                        }
-                    })
-                    .collect::<Result<Vec<_>, _>>()?;
+                let edges =
+                    edges_from_file(edges, tr("one of its creases joins a point to itself"))?;
                 let operation = Operation::SetCreases {
                     edges,
                     crease,
@@ -141,6 +171,25 @@ impl FileOperation for OperationV37 {
                 };
                 if !operation.numbers_are_real() {
                     return Err(tr("a crease isn't a number from 0 to 1").into());
+                }
+                return Ok(operation);
+            }
+            Self::SetBevelWeights {
+                edges,
+                weight,
+                anchors,
+            } => {
+                let edges = edges_from_file(
+                    edges,
+                    tr("one of its bevel weights joins a point to itself"),
+                )?;
+                let operation = Operation::SetBevelWeights {
+                    edges,
+                    weight,
+                    anchors: anchors.map(anchors_from_file).transpose()?,
+                };
+                if !operation.numbers_are_real() {
+                    return Err(tr("a bevel weight isn't a number from 0 to 1").into());
                 }
                 return Ok(operation);
             }

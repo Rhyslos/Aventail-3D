@@ -1,4 +1,4 @@
-//! The modifier icons (decisions 0142 to 0148), one per kind of
+//! The modifier icons (decisions 0142 to 0149), one per kind of
 //! modifier on the modifiers palette, and the crease commands'. Original
 //! drawings.
 
@@ -18,6 +18,7 @@ pub(super) fn draw(pen: &mut Pen, icon: Icon) {
         Icon::BendAlongCurve => bend_along_curve(pen),
         Icon::Shrinkwrap => shrinkwrap(pen),
         Icon::WeightedNormals => weighted_normals(pen),
+        Icon::LiveBevel => live_bevel(pen),
         _ => {}
     }
 }
@@ -288,4 +289,28 @@ fn weighted_normals(pen: &mut Pen) {
             );
         }
     }
+}
+
+/// Live bevel: a block whose top left edge is rounded off, and a circling
+/// arrow above its right: the bevel worked out again whenever the shape
+/// changes.
+fn live_bevel(pen: &mut Pen) {
+    let block = rounded((3.0, 8.0), (17.0, 21.0), [7.0, 0.0, 0.0, 0.0]);
+    pen.shape(&block, Paint::Tone);
+    pen.stroke(&block, true, Ink::Line);
+    // Three quarters of a circle round (18, 6), then an arrowhead.
+    let (cx, cy, r) = (18.0_f32, 6.0_f32, 3.5_f32);
+    let circle: Vec<(f32, f32)> = (0..=12)
+        .map(|i| {
+            let a = -0.25 * std::f32::consts::PI + i as f32 / 12.0 * 1.5 * std::f32::consts::PI;
+            (cx + r * a.cos(), cy + r * a.sin())
+        })
+        .collect();
+    pen.stroke(&circle, false, Ink::Line);
+    let (ex, ey) = circle[circle.len() - 1];
+    pen.stroke(
+        &[(ex - 2.2, ey - 0.6), (ex, ey), (ex + 0.4, ey - 2.2)],
+        false,
+        Ink::Line,
+    );
 }

@@ -264,7 +264,8 @@ pub struct Workbench {
     uv_model_drag: Option<uv_on_model::UvModelDrag>,
     /// A loop cut being placed (decision 0047).
     loop_cut_session: Option<loop_cut::LoopCutSession>,
-    /// A drag of the Attributes panel's Crease field (decision 0143).
+    /// A drag of the Attributes panel's Crease or Bevel weight field
+    /// (decisions 0143 and 0149).
     crease_drag: Option<creases::CreaseDrag>,
     /// A slit's line being drawn (decision 0049).
     slit_session: Option<slit::SlitSession>,
@@ -672,7 +673,7 @@ impl Workbench {
         self.attributes.tool = self.tool;
         self.attributes.track_last_edit(&self.document);
         self.attributes.polygons_selected = self.polygons_selected_for_attributes();
-        self.attributes.creases = self.creases_for_attributes();
+        self.attributes.selected_edges = self.edge_values_for_attributes();
         self.attributes.curve.points_mode = self.mode == Mode::Points;
         self.note_right_press(ui.ctx());
         // Over the UV Editor, H and Z frame there (keys stay the same,
@@ -760,8 +761,8 @@ impl Workbench {
         if let Some(slot) = self.attributes.assign.take() {
             self.assign_material(slot);
         }
-        if let Some((crease, gesture)) = self.attributes.crease_asked.take() {
-            self.set_creases_from_field(crease, gesture);
+        if let Some((what, value, gesture)) = self.attributes.edge_value_asked.take() {
+            self.set_edge_value_from_field(what, value, gesture);
         }
         if let Some(command) = self.attributes.curve.asked.take() {
             self.run_command(command, ui.ctx(), &mut requests);
@@ -974,6 +975,8 @@ mod decimate_tests;
 mod lattice_tests;
 #[cfg(test)]
 mod layer_tests;
+#[cfg(test)]
+mod live_bevel_tests;
 mod modelling;
 #[cfg(test)]
 mod modelling_tests;
