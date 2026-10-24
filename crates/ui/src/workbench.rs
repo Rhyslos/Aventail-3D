@@ -652,7 +652,7 @@ impl Workbench {
             .drawing
             .update(&self.document, editing, &self.hidden)
             .clone();
-        if self.drawing.busy() {
+        if self.drawing.busy() || self.components.busy() {
             // A heavy boolean or modifier is being worked out: look again
             // shortly.
             ui.ctx()
@@ -790,6 +790,7 @@ impl Workbench {
                 hard_edges: !options.hide_hard_edges,
                 normals: options.show_normals,
                 seams: options.show_seams || self.mode == Mode::Uv,
+                collision: options.show_collision,
             },
         );
         if overlay.version != shown {
@@ -964,6 +965,8 @@ mod aligning_tests;
 #[cfg(test)]
 mod bevel_upgrade_tests;
 mod cage_editing;
+#[cfg(test)]
+mod collision_tests;
 mod curve_commands;
 mod curve_drawing;
 mod curve_editing;

@@ -45,6 +45,8 @@ pub(crate) struct ObjectV39 {
     pub(crate) mirror_on_object: bool,
     /// The settings of a shape newer than version 38's model knows.
     pub(crate) shape: Option<ShapeV39>,
+    /// Its collision in parts, and how it is split (version 52).
+    pub(crate) collision_parts: Option<super::v52::CollisionPartsV52>,
 }
 
 /// A shape newer than version 38's model knows, with its settings
@@ -325,6 +327,7 @@ impl Default for ObjectV39 {
             smoothing: Some(scene::STANDARD_SMOOTHING_ANGLE),
             mirror_on_object: false,
             shape: None,
+            collision_parts: None,
         }
     }
 }
@@ -349,6 +352,7 @@ impl ProjectV39 {
                         ObjectKind::Primitive(p) => ShapeV39::of(p),
                         _ => None,
                     },
+                    collision_parts: super::v52::CollisionPartsV52::of(object),
                 })
             })
             .collect();
@@ -377,6 +381,15 @@ impl ProjectV39 {
             if let Some(shape) = object.shape {
                 document = document
                     .with_primitive(ObjectId::from_raw(object.id), shape.primitive())
+                    .map_err(Problem::from)?;
+            }
+            if let Some(parts) = object.collision_parts {
+                document = document
+                    .with_collision_parts(
+                        ObjectId::from_raw(object.id),
+                        parts.chosen,
+                        parts.options(),
+                    )
                     .map_err(Problem::from)?;
             }
         }

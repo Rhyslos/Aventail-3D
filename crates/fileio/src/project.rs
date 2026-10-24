@@ -61,6 +61,7 @@ mod v45;
 mod v5;
 mod v50;
 mod v51;
+mod v52;
 mod v6;
 mod v7;
 mod v8;
@@ -111,7 +112,11 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// Version 51 (decision 0150) is version 50 with the Quadify modifier
 /// (`v43::KindV43::Quadify`) and the one-off Quadify, one more kind of
 /// recorded edit (`v37::OperationV37::Quadify`).
-pub const FORMAT_VERSION: u32 = 51;
+///
+/// Version 52 (decision 0151) is version 51 with collision in parts
+/// (*Wrapped in parts*) and its settings (`v52::CollisionPartsV52`, in
+/// each object's development settings).
+pub const FORMAT_VERSION: u32 = 52;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -950,3 +955,5 @@ mod v49_tests;
 mod v50_tests;
 #[cfg(test)]
 mod v51_tests;
+#[cfg(test)]
+mod v52_tests;

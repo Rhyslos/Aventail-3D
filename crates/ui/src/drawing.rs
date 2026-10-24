@@ -210,6 +210,10 @@ pub enum OverlayStyle {
     /// A curve's handles, and its points and handle ends not selected, in
     /// the Points mode.
     Handle,
+    /// An edge of an object's collision shape (decision 0151): the
+    /// selected objects', or every object's with Display → Show
+    /// collision.
+    Collision,
 }
 
 /// What the Points, Edges and Polygons modes draw over the edited objects,

@@ -320,6 +320,7 @@ Change lattice divisions
 Change lattice interpolation
 Change materials
 Change modifiers
+Change the collision parts
 Change the folder or switch it off under 
 Change the game project folder
 Change the layout snapshots
@@ -391,6 +392,7 @@ Cmd
 Collapse all
 Collides exactly with the shape: accurate, for walls, floors and other parts that don't move
 Collides with a box around the shape: the cheapest
+Collides with a few wrapped parts that follow the shape's dents: nearly as cheap as Wrapped, and things fit under arches and into hollows
 Collides with the shape wrapped tightly, dents filled in: cheaper, and it can move
 Collision
 Collision shape
@@ -539,6 +541,7 @@ Delete {}
 Depth
 Deselect
 Deselect all
+Detail
 Developer
 Direction
 Disc
@@ -914,6 +917,7 @@ How much the biggest polygon at a point wins over the smaller ones. 0%: each cou
 How shapes are drawn: shaded, with wires, or wireframe
 How sharply the Subdivide modifier keeps these edges: 0 smooths them like any other, 1 keeps them fully sharp, 0.5 sharp for half the levels
 How sizes are shown and typed. Each project keeps its own, saved with it; only the display changes, never the shapes. Also switched in the Attributes panel's Units menu.
+How small a dent is still followed: higher finds smaller dents, takes longer and may use more parts
 How tall the rectangle is, up from the curve
 How tall the row is, in pixels
 How the automatic UV tools work: the same settings as UV → Settings.
@@ -1105,6 +1109,7 @@ Material {} name ({})
 Materials
 Materials are given to polygons: switch to the Polygons mode, select the polygons, then click a material's Assign button
 Max angle
+Max parts
 Max shape distortion
 Maximise this view
 Measure
@@ -1197,6 +1202,7 @@ Next in the shape list or tool menu
 Next in the tool menu
 Next select tool (Box, Lasso, Paint select)
 No automatic tool changes the pieces holding the selection: Unwrap, Relax, Straighten, Pack, texel density, trim rows, Suggest seams and mending all leave them as they are. You can still move, turn and scale them by hand. Drawn hatched in the UV Editor.
+No collision shape: {}.
 No collision: things pass through it
 No edit layers yet. The first edit you make goes into a layer called Edits. Add a layer to keep a set of edits apart: switch it off to compare, or delete it to take them all back.
 No edits
@@ -1217,6 +1223,7 @@ None
 None chosen
 Norwegian
 Not inside a Godot, Unity, Unreal Engine or Solis project: exported with {}'s settings (Made for picks which).
+Not split into parts: {}. It collides as one wrapped shape instead.
 Not used.
 Not worked out: {}.
 Nothing found that would spoil a bake.
@@ -1295,6 +1302,8 @@ Orbit, pan and zoom with a left, middle or right drag (standard navigation)
 Orbit, pan, zoom
 Orthographic
 Outer radius
+Outline every object's collision shapes (Wrapped, Wrapped in parts, A box), as a game engine will make them. Off, only the selected objects' are outlined.
+Outline every object's collision shapes, not only the selected objects'
 Outlined
 Pack
 Pack: every selected piece is locked, and stays where it is.
@@ -1642,6 +1651,7 @@ Show all
 Show all that's hidden
 Show and hide
 Show and type lengths in {}
+Show collision
 Show everything
 Show everything hidden
 Show four views
@@ -1870,6 +1880,7 @@ The lines shown: every 1 m, 50 cm or 10 cm, as the grid button is set.
 The lowest point of the box around it along each axis (its left, back or bottom)
 The middle of the box around it
 The most any polygon of the piece may be off once laid flat: stretched this many times more one way than the other, or this many times bigger or smaller than the rest. 1.5× is strict; 2× (red in the Stretch view) is loose.
+The most parts it is split into. More follow its dents more closely; fewer are cheaper for the game
 The name shown in the Objects panel
 The object was
 The object's own axes: X mirrors left and right, Y front and back, Z top and bottom, across the faint red planes in the viewport.
@@ -2141,6 +2152,7 @@ World or object axes
 Wrap every point again
 Wrap only the points selected now
 Wrapped (convex)
+Wrapped in parts (convex)
 Write on each piece its size in texture pixels, its texel density and, if it's uneven, how stretched it is
 Write the scene (or the selection) to a file for a game engine or Substance Painter: pick the kind of file and how
 X
@@ -2244,11 +2256,13 @@ an object can have at most {} materials
 an object can't go inside itself or one of its children
 an object is listed as an instance twice
 an object is not where it was
+an object with no shape has collision parts
 an object with that id already exists
 an object's booleans are listed twice
 an object's booleans have changed
 an object's collision has changed
 an object's collision is stored twice
+an object's collision parts have changed
 an object's id is impossibly large
 an object's materials are stored twice
 an object's materials have changed
@@ -2342,6 +2356,7 @@ its bent extrude holds a number that isn't real
 its bevel {} isn't a real number
 its booleans name an object that isn't there
 its cage isn't there
+its collision parts name an object that isn't there
 its curve isn't there
 its extrude holds a number that isn't real
 its format version is 0
@@ -2513,10 +2528,13 @@ the scene couldn't be encoded ({})
 the selection's UVs
 the shape
 the shape has no hard edges: mark some in the Edges mode, or bevel by angle instead
+the shape has no points
 the shape has no polygons
 the shape has no triangles to join
+the shape is flat, so a wrapping round it would have no inside
 the shape isn't a closed solid: it has holes in its surface, or edges shared by more than two polygons
 the shape isn't closed: it has holes in its surface, or edges shared by more than two polygons, so it has no inside
+the shape isn't closed: it has holes in its surface, or edges shared by more than two polygons, so it has no inside to split
 the surface has no area to spread copies over
 the surface has no polygons to scatter onto
 the target has no surface to wrap onto: give it polygons

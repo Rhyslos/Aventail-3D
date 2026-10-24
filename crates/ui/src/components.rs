@@ -17,6 +17,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tools::{Camera, Element, ElementKind, MeshPick, PickScene};
 
+mod collision;
+
 /// The mouse over a view: the view's camera, its size and where the mouse
 /// is in it (both in screen points, from the view's top-left corner).
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -43,7 +45,8 @@ pub(crate) type ObjectElement = (ObjectId, Element);
 
 /// What the overlay was last built for: the drawing's version, the kind
 /// of element, the hovered element, the selected elements' revision, the
-/// tool lines' revision and the guides shown.
+/// tool lines' revision, the guides shown and the collision outlines'
+/// revision.
 type BuiltFor = (
     u64,
     Option<ElementKind>,
@@ -51,6 +54,7 @@ type BuiltFor = (
     u64,
     u64,
     Guides,
+    u64,
 );
 
 /// Guides drawn over the selected objects from the Display menu
@@ -63,14 +67,17 @@ pub(crate) struct Guides {
     pub(crate) seams: bool,
     /// Each polygon's normal, in every mode.
     pub(crate) normals: bool,
+    /// Every object's collision shapes, not only the selected objects'
+    /// (decision 0151), in every mode.
+    pub(crate) collision: bool,
 }
 
 /// A line of the overlay, in the world, and how it is drawn.
 type OverlayLine = ([Vec3; 2], OverlayStyle);
 
 /// What guide lines were made for: the drawing's version, the kind of
-/// element and the guides shown.
-type GuidesFor = (u64, Option<ElementKind>, Guides);
+/// element, the guides shown and the collision outlines' revision.
+type GuidesFor = (u64, Option<ElementKind>, Guides, u64);
 
 /// Up to how many polygons an object may have to show guides: they are
 /// drawn line by line, which would slow heavy shapes down.
@@ -109,6 +116,8 @@ pub(crate) struct ComponentTracker {
     /// The curves' lines, handles and points (decision 0138), and the
     /// drawing version and kind they were made for.
     curves: (CurveMarks, Option<(u64, Option<ElementKind>)>),
+    /// The collision shapes' outlines (decision 0151).
+    collision: collision::CollisionOutlines,
 }
 
 /// What is drawn of the curves over the view: lines and dots.
@@ -126,6 +135,7 @@ impl ComponentTracker {
         guides: Guides,
     ) -> Arc<ComponentOverlay> {
         let kind = kind_for(mode);
+        self.collision.collect(document.scene());
         self.hovered = match (kind, pointer) {
             (Some(kind), Some(pointer)) if !self.frozen && !self.quiet => {
                 self.find(kind, drawing, pointer)
@@ -140,11 +150,18 @@ impl ComponentTracker {
             document.element_revision(),
             self.tool_lines.1,
             guides,
+            self.collision.revision,
         );
         if self.built_for != Some(wanted) {
-            let made_for = Some((drawing.version, kind, guides));
+            let made_for = Some((drawing.version, kind, guides, self.collision.revision));
             if self.guides.1 != made_for {
-                self.guides = (guide_lines(drawing, kind, guides), made_for);
+                // Collision outlines first, so every other guide draws
+                // over them.
+                let mut lines = self
+                    .collision
+                    .lines(drawing, document.scene(), guides.collision);
+                lines.extend(guide_lines(drawing, kind, guides));
+                self.guides = (lines, made_for);
             }
             let version = self.overlay.version + 1;
             let mut overlay = match kind {
@@ -186,6 +203,17 @@ impl ComponentTracker {
             self.built_for = Some(wanted);
         }
         Arc::clone(&self.overlay)
+    }
+
+    /// Whether collision shapes are being worked out on other threads
+    /// (the window keeps drawing until they are in).
+    pub(crate) fn busy(&self) -> bool {
+        self.collision.busy()
+    }
+
+    /// Forgets the collision outlines (another document is open).
+    pub(crate) fn forget_collision(&mut self) {
+        self.collision.forget();
     }
 
     /// Whether a tool that finds its own elements under the mouse is in
@@ -1057,7 +1085,7 @@ mod tests {
         let both = Guides {
             hard_edges: true,
             normals: true,
-            seams: false,
+            ..Guides::default()
         };
         let count = |overlay: &ComponentOverlay, style| {
             overlay.lines.iter().filter(|(_, s)| *s == style).count()

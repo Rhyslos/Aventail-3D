@@ -84,6 +84,10 @@ const SELECTED_CURVE_WIDTH: f32 = 3.0;
 /// thin lines and small dots.
 const HANDLE_LINE: [f32; 4] = [0.62, 0.64, 0.7, 0.9];
 const HANDLE_LINE_WIDTH: f32 = 1.25;
+/// Collision shapes (decision 0151): warm yellow, thin, so they read as
+/// a guide round the shape rather than part of it, linear space.
+const COLLISION_LINE: [f32; 4] = [0.95, 0.75, 0.1, 0.9];
+const COLLISION_LINE_WIDTH: f32 = 1.5;
 /// How far towards white the hovered colour is from the accent, so what
 /// is under the mouse stands out from what is selected.
 const HOVER_LIFT: f32 = 0.45;
@@ -93,7 +97,7 @@ const HOVER_LIFT: f32 = 0.45;
 /// (decision 0126).
 fn layer(style: OverlayStyle) -> u8 {
     match style {
-        OverlayStyle::Curve | OverlayStyle::Handle => 0,
+        OverlayStyle::Curve | OverlayStyle::Handle | OverlayStyle::Collision => 0,
         OverlayStyle::CurveSelected => 1,
         OverlayStyle::Normal => 0,
         OverlayStyle::SeamPrefer | OverlayStyle::SeamNever => 1,
@@ -139,6 +143,7 @@ fn overlay_geometry(overlay: &ComponentOverlay, accent: [f32; 3], contrast: bool
             OverlayStyle::Curve => (CURVE_LINE_WIDTH, CURVE_LINE),
             OverlayStyle::CurveSelected => (SELECTED_CURVE_WIDTH * grow, selected),
             OverlayStyle::Handle => (HANDLE_LINE_WIDTH, HANDLE_LINE),
+            OverlayStyle::Collision => (COLLISION_LINE_WIDTH, COLLISION_LINE),
         };
         if contrast && matches!(style, OverlayStyle::Selected | OverlayStyle::Hovered) {
             out.line(*a, *b2, width + CONTRAST_RIM * 2.0, CONTRAST_RIM_COLOR);
@@ -160,6 +165,7 @@ fn overlay_geometry(overlay: &ComponentOverlay, accent: [f32; 3], contrast: bool
             OverlayStyle::Normal => (POINT_SIZE, NORMAL_LINE),
             OverlayStyle::Curve | OverlayStyle::CurveSelected => (POINT_SIZE, CURVE_LINE),
             OverlayStyle::Handle => (POINT_SIZE, PLAIN_POINT),
+            OverlayStyle::Collision => (POINT_SIZE, COLLISION_LINE),
         };
         if contrast && matches!(style, OverlayStyle::Selected | OverlayStyle::Hovered) {
             out.point(*at, size + CONTRAST_RIM * 2.0, CONTRAST_RIM_COLOR);

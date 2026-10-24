@@ -97,6 +97,18 @@ impl Document {
         Ok(self)
     }
 
+    /// The same document with object `id`'s collision parts set (see
+    /// [`crate::Scene::with_collision_parts`]), for a project being opened.
+    pub fn with_collision_parts(
+        mut self,
+        id: ObjectId,
+        chosen: bool,
+        options: mesh::convex_parts::ConvexPartsOptions,
+    ) -> Result<Self, &'static str> {
+        self.scene = std::mem::take(&mut self.scene).with_collision_parts(id, chosen, options)?;
+        Ok(self)
+    }
+
     /// The same document with object `id`'s booleans set (see
     /// [`Scene::with_booleans`]), for a project being opened.
     pub fn with_booleans(

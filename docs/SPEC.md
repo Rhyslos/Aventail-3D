@@ -32,7 +32,7 @@ Keys are written as on Windows and Linux; on a Mac, Ctrl is Cmd. Menu paths use 
 - **Views:** F1 perspective, F2 top, F3 right, F4 front, F5 all four; middle click switches one or four; **P** perspective or orthographic.
 - **View dice:** click a face, edge or corner to look from there; Ctrl + click for the opposite side; Ctrl while orbiting snaps to its views.
 - **Shading:** Shaded, Shaded with wires, Wireframe (bottom-left button or **Display**) ([how shapes are drawn](manual/viewport-display.md)).
-- **Display menu:** Cavity (on as standard), Show hard edges, Show seams, Show normals, and **Surface**: Colours, Checker, Numbered checker (always blue to green), Stretch.
+- **Display menu:** Cavity (on as standard), Show hard edges, Show seams, Show normals, Show collision (every object's collision shapes outlined, not only the selected; [collision shapes](manual/collision-shapes.md)), and **Surface**: Colours, Checker, Numbered checker (always blue to green), Stretch.
 - **Grid:** lines every 1 m, 50 cm or 10 cm (left palette button).
 - **Hide and isolate:** Shift + H hide, Ctrl + H isolate, Alt + H show everything; also **View → Show and hide** ([hide and isolate](manual/hide-and-isolate.md)).
 
@@ -172,6 +172,7 @@ The UV tools are in the **UV** menu (main menu bar, and the **UV** button on the
 - **Export again** (File) repeats the last export.
 - **Export into a game project:** a folder in a Godot, Unity, Unreal Engine or Solis project, exported into on every save and from **File → Export to game project**.
 - **Export kit…** (File): each selected piece its own file, pivot at the origin; **Collision** (Attributes) for Godot ([kit export](manual/kit-export.md)).
+- **Collision** (Attributes): None, The shape itself (`-col`), Wrapped (`-convcol`), **Wrapped in parts** (a convex decomposition: **Max parts** 8, **Detail** 50%; each part `name-part1-convcolonly` beside the object, at most 64 corners; an open shape collides as one wrapped hull, with the reason) or A box; the selected objects' collision shapes outlined in yellow ([collision shapes](manual/collision-shapes.md)).
 - **What goes out:** shapes as they're shown, cut by their booleans, with cutters and lattice cages left out, with every modifier that is on; curves as their sweep or lathe (a bare line not at all); each object at its pivot (glTF), its own smoothing, the viewport's triangles, MikkTSpace tangents for shapes with UVs, materials by name.
 - **Check for baking…** (UV menu, command search, or the Substance Painter preset's button): problems in the model and its UVs, with Select and one-click fixes ([check for baking](manual/bake-check.md)).
 - **Import…** (File): OBJ files, as plain meshes.

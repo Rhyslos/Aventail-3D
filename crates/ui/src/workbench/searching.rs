@@ -183,6 +183,10 @@ impl Workbench {
                 let options = self.viewport.options_mut();
                 options.show_normals = !options.show_normals;
             }
+            MenuAction::ShowCollision => {
+                let options = self.viewport.options_mut();
+                options.show_collision = !options.show_collision;
+            }
             MenuAction::HighContrast => {
                 let options = self.viewport.options_mut();
                 options.high_contrast = !options.high_contrast;
