@@ -594,7 +594,6 @@ impl PickScene {
         visible_only: bool,
     ) -> Vec<Hovered> {
         let mut out = Vec::new();
-        let seen = |p: Vec3| !visible_only || self.can_see(camera, size, p);
         let brush = matches!(region, Region::Circle { .. });
         let area = region.screen_box();
         for (object, placed) in self.objects.iter().enumerate() {
@@ -603,7 +602,9 @@ impl PickScene {
             };
             let mesh = &pick.mesh;
             let keep = |b: &Aabb| placed.may_reach(b, camera, size, area);
-            let mut found = Vec::new();
+            // Each element inside, with the spot that must be seen for it
+            // to count; seen or not is worked out for all at once.
+            let mut found: Vec<(Element, Vec3)> = Vec::new();
             match kind {
                 ElementKind::Points => {
                     let (ids, bvh) = pick.points();
@@ -612,8 +613,8 @@ impl PickScene {
                         let Some(p) = mesh.position(id).map(|p| placed.world(p)) else {
                             return;
                         };
-                        if camera.project(p, size).is_some_and(|s| region.contains(s)) && seen(p) {
-                            found.push(Element::Point(id));
+                        if camera.project(p, size).is_some_and(|s| region.contains(s)) {
+                            found.push((Element::Point(id), p));
                         }
                     });
                 }
@@ -637,8 +638,8 @@ impl PickScene {
                         } else {
                             (region.contains(sa) && region.contains(sb), 0.5)
                         };
-                        if inside && seen(a.lerp(b, at)) {
-                            found.push(Element::Edge(edge));
+                        if inside {
+                            found.push((Element::Edge(edge), a.lerp(b, at)));
                         }
                     });
                 }
@@ -652,13 +653,23 @@ impl PickScene {
                         if camera
                             .project(middle, size)
                             .is_some_and(|s| region.contains(s))
-                            && seen(middle)
                         {
-                            found.push(Element::Polygon(face));
+                            found.push((Element::Polygon(face), middle));
                         }
                     });
                 }
             }
+            let mut found: Vec<Element> = if visible_only {
+                let spots: Vec<Vec3> = found.iter().map(|(_, p)| *p).collect();
+                let seen = self.seen_all(camera, size, area, &spots);
+                found
+                    .into_iter()
+                    .zip(seen)
+                    .filter_map(|((element, _), seen)| seen.then_some(element))
+                    .collect()
+            } else {
+                found.into_iter().map(|(element, _)| element).collect()
+            };
             // Keep each object's elements in id order, as a full scan
             // would list them.
             found.sort_unstable_by_key(element_order);
@@ -919,7 +930,7 @@ impl PickScene {
         };
         let ray = camera.ray_through(screen, size);
         let depth = (point - ray.origin).dot(ray.direction);
-        let tolerance = 1e-3 * depth.abs() + 0.05;
+        let tolerance = seen_tolerance(depth);
         self.first_hit(&ray)
             .is_none_or(|(distance, ..)| distance >= depth - tolerance)
     }
@@ -1150,5 +1161,15 @@ fn hit(ray: &Ray, [a, b, c]: &[Vec3; 3]) -> Option<f32> {
     (distance > 1e-6 && distance.is_finite()).then_some(distance)
 }
 
+/// How far behind the nearest surface a spot `depth` away along its line
+/// of sight may be and still count as on it (so a point of the surface
+/// itself is seen).
+fn seen_tolerance(depth: f32) -> f32 {
+    1e-3 * depth.abs() + 0.05
+}
+
 #[cfg(test)]
 mod tests;
+mod visibility;
+#[cfg(test)]
+mod visibility_tests;

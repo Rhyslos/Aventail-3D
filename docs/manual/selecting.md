@@ -72,7 +72,7 @@ In every pattern, a click with the "adds" key on something already selected unse
 
 ### Selecting through, or only what you can see
 
-As standard, **Select only visible** is on: a box, lasso or brush takes only what you can see, the side facing you, so nothing on the back gets caught by surprise.
+As standard, **Select only visible** is on: a box, lasso or brush takes only what you can see, the side facing you, so nothing on the back gets caught by surprise. To know what you can see, the app looks along the line of sight through each pixel of the area you drag over (and along each point's own line near outlines), so even on a [heavy shape](heavy-shapes.md) a box of hundreds of thousands of points is picked in a fraction of a second. Something thinner than a pixel in front of a point doesn't hide it, as the screen can't show it either.
 
 Sometimes you want to **select through the shape**, catching the points, edges and polygons on its far side too: say, the whole top half of a model in one go. Switch **Select only visible** off:
 - the button on the left palette, just above the grid button (a box with faint hidden edges, filled with the accent colour when on);
