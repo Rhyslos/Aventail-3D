@@ -134,7 +134,11 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 ///
 /// Version 56 (decision 0155) is version 55 with each object's levels of
 /// detail (`v56::LodsV56`, in each object's development settings).
-pub const FORMAT_VERSION: u32 = 56;
+///
+/// Version 57 (decision 0156) is version 56 with the Live bevel's *Soft
+/// bevels* switch (`v50::LiveBevelV50::soften`), which the game bevel
+/// turns on.
+pub const FORMAT_VERSION: u32 = 57;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -983,3 +987,5 @@ mod v54_tests;
 mod v55_tests;
 #[cfg(test)]
 mod v56_tests;
+#[cfg(test)]
+mod v57_tests;

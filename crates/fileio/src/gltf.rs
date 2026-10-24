@@ -196,8 +196,23 @@ impl bevy_mikktspace::Geometry for Mikk<'_> {
         face: usize,
         vert: usize,
     ) {
-        let t = tangent.unwrap_or_default().tangent_encoded();
-        self.tangents[face][vert] = Vec4::from_array(t);
+        let t = Vec4::from_array(tangent.unwrap_or_default().tangent_encoded());
+        self.tangents[face][vert] = if t.truncate().is_finite() && t.truncate().length() > 0.5 {
+            t
+        } else {
+            // A corner whose triangles have no UV area anywhere (a thin
+            // bevel's corner can have UVs all on one spot) gets no
+            // tangent from MikkTSpace. glTF needs a unit one: any
+            // direction square to its normal will do, as nothing is
+            // painted there (decision 0156).
+            let normal = Vec3::from_array(self.normal(face, vert));
+            let side = if normal.is_finite() && normal.length() > 0.5 {
+                normal.normalize().any_orthonormal_vector()
+            } else {
+                Vec3::X
+            };
+            side.extend(1.0)
+        };
     }
 }
 

@@ -51,6 +51,8 @@ fn odd() -> LiveBevelOptions {
         segments: 3,
         profile: 0.25,
         clamp: false,
+        // Version 50 had no Soft bevels (version 57).
+        soften: false,
     }
 }
 
@@ -214,6 +216,7 @@ fn settings_out_of_range_are_brought_within_limits() {
         segments: 100_000,
         profile: f32::INFINITY,
         clamp: true,
+        soften: false,
     });
     let id = ObjectId::from_raw(model.modifiers[at].id);
     let back = model.into_document().unwrap();

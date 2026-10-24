@@ -61,6 +61,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Bevel weight** — A value on an edge, 0 to 1, for the [Live bevel](live-bevel.md) modifier set to *Marked edges*: which edges it bevels, and how much of its width (1 full, 0.5 half, 0 not at all). Like a crease, it changes nothing on its own. Set in the Edges mode, in the Attributes panel's *Selected edges* section; drawn lime green while editing.
 
+**Mid-poly** — A way of making game models between low-poly (few polygons, detail baked into a normal map) and high-poly (every detail modelled): the shape gets small bevels on its edges and [weighted normals](#shading-and-normals) so it shades cleanly, and nothing is baked. Quick to change and good up close; common for props and buildings. The [Game bevel](game-bevel.md) sets it up in one step.
+
 **Panel line (groove, ridge)** — A thin line cut into a surface (a groove) or raised out of it (a ridge): the seams between panels on a gun or a vehicle, slots, score lines, trims. They break up big flat areas so a model reads as built from parts, and they bake well into normal maps. See [Groove](groove.md).
 
 **Manifold** — A mesh that could exist as a real, solid object: every edge is shared by exactly two polygons. Non-manifold geometry (edges shared by three faces, loose edges, holes) often breaks booleans, bakes and some tools.
@@ -117,7 +119,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Edit list** — The list of an object's edits in the Edit layers panel. Any edit in it can be opened and changed, and the edits after it are made again. *Bake into shape up to here* bakes the old edits up to one into the shape, so they no longer have to be made again: the shape stays the same, but those edits can't be changed any more. See [The edit list](edit-list.md).
 
-**Modifiers palette** — The thin column of buttons on the right of the viewport, beside the panels, for things that change a shape without destroying it. Its first button adds an edit layer; then come the [booleans](booleans.md) (Union, Subtract, Intersect), then one button per kind of [modifier](#objects-and-scenes), grouped by family (Subdivide, Live bevel and Scatter onto surface, then Add lattice, Bend along curve and Shrinkwrap onto, then Remesh and Decimate, then Weighted normals, so far). More join it in later versions.
+**Modifiers palette** — The thin column of buttons on the right of the viewport, beside the panels, for things that change a shape without destroying it. Its first button adds an edit layer; then come the [booleans](booleans.md) (Union, Subtract, Intersect), then one button per kind of [modifier](#objects-and-scenes), grouped by family (Subdivide, Live bevel and Scatter onto surface, then Add lattice, Bend along curve and Shrinkwrap onto, then Remesh and Decimate, then Weighted normals and the [Game bevel](game-bevel.md), so far). More join it in later versions.
 
 **Modifier** — A change worked out live on top of a shape, after its edits, booleans and mirror, rather than made to its points: you can change its settings, switch it off, reorder it or remove it at any time, and the shape underneath stays as you modelled it. An object's modifiers are its **modifier stack**, worked out first to last, each on the result of the one before. **Bake into shape** makes them permanent. (Blender and 3ds Max call them modifiers too; Cinema 4D has generators and deformers.) See [Modifiers](modifiers.md).
 

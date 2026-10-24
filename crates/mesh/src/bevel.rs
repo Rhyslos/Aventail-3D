@@ -350,13 +350,15 @@ struct Corner {
 /// polygons don't form a single fan, are skipped. A shape with a value
 /// that isn't a number changes nothing.
 pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Outcome {
-    bevel_with_weights(mesh, edges, &BTreeMap::new(), shape)
+    bevel_with_weights(mesh, edges, &BTreeMap::new(), shape, false)
 }
 
 /// Bevels each edge of `edges` with `shape`, its width times the edge's
 /// weight (0 to 1; brought within it): the Live bevel modifier's marked
 /// edges (decision 0149). An edge whose weight is 0 or not a number is
-/// skipped. Otherwise as [`bevel_edges`].
+/// skipped. Otherwise as [`bevel_edges`], and plain edges fanned between
+/// bevelled ones at a corner slide too (decision 0156; the Bevel tool's
+/// recorded bevels keep how they were made, so saved shapes don't change).
 pub fn bevel_edges_weighted(
     mesh: &mut Mesh,
     edges: &[(EdgeKey, f32)],
@@ -373,17 +375,19 @@ pub fn bevel_edges_weighted(
         }
     }
     let kept: Vec<EdgeKey> = weights.keys().copied().collect();
-    let mut outcome = bevel_with_weights(mesh, &kept, &weights, shape);
+    let mut outcome = bevel_with_weights(mesh, &kept, &weights, shape, true);
     outcome.skipped += skipped;
     outcome
 }
 
-/// [`bevel_edges`], each edge in `weights` that share of the width.
+/// [`bevel_edges`], each edge in `weights` that share of the width; with
+/// `slide_fans`, plain fans at corners slide too (`fans::slide_plain_fans`).
 fn bevel_with_weights(
     mesh: &mut Mesh,
     edges: &[EdgeKey],
     weights: &BTreeMap<EdgeKey, f32>,
     shape: BevelShape,
+    slide_fans: bool,
 ) -> Outcome {
     let original = mesh.clone();
     let topology = original.topology();
@@ -477,7 +481,7 @@ fn bevel_with_weights(
                 *fit = fit.min(length * share / along.abs());
             }
         };
-        for (v, (wedges, _)) in &fans {
+        for (v, (wedges, closed)) in &fans {
             let pv = original.position(*v).unwrap_or_default();
             let scale = scales.get(v).copied().unwrap_or(1.0);
             let mut asks = Slides::default();
@@ -521,6 +525,19 @@ fn bevel_with_weights(
                     }
                 };
                 per_wedge.push(spot);
+            }
+            // A point on an open border keeps its place (the border runs
+            // on through it).
+            if slide_fans && *closed {
+                fans::slide_plain_fans(
+                    &original,
+                    *v,
+                    wedges,
+                    &bevelled,
+                    |edge, face| edge_width(edge, face) * scale,
+                    &mut asks,
+                    &mut must_fit,
+                );
             }
             // A plain wedge keeps only the slides that happen, and the
             // point itself unless slides on both sides replace it.
@@ -1135,6 +1152,7 @@ pub fn bevel_points(mesh: &mut Mesh, points: &[VertexId], width: f32) -> Outcome
 }
 
 mod corner;
+mod fans;
 
 #[cfg(test)]
 mod corner_tests;

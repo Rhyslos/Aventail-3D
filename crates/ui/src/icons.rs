@@ -211,6 +211,10 @@ pub enum Icon {
     /// side, the arrows on its flat top all straight up, those on its
     /// rounded corners fanning round.
     WeightedNormals,
+    /// The game bevel (decision 0156): a block with its top corners
+    /// rounded, its normals straight up from the flat top, and a tick
+    /// beside it: ready for a game.
+    GameBevel,
     /// Quadify (decision 0150): a square whose diagonal, the edge between
     /// its two triangles, is going (dashed).
     Quadify,
@@ -293,7 +297,7 @@ pub enum Icon {
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 128] = [
+pub const ALL: [Icon; 129] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -384,6 +388,7 @@ pub const ALL: [Icon; 128] = [
     Icon::BendAlongCurve,
     Icon::Shrinkwrap,
     Icon::WeightedNormals,
+    Icon::GameBevel,
     Icon::Quadify,
     Icon::WeldByDistance,
     Icon::Array,
@@ -521,6 +526,7 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         | Icon::BendAlongCurve
         | Icon::Shrinkwrap
         | Icon::WeightedNormals
+        | Icon::GameBevel
         | Icon::Quadify
         | Icon::WeldByDistance
         | Icon::Array

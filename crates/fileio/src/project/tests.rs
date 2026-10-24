@@ -3506,7 +3506,7 @@ fn write_the_sample() {
         let name = format!("tests/data/sample-v{FORMAT_VERSION}.avtl");
         let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(name);
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-        let doc = super::v56_tests::rich_document_v56();
+        let doc = super::v57_tests::rich_document_v57();
         std::fs::write(path, to_bytes(&doc).unwrap()).unwrap();
     }
 }

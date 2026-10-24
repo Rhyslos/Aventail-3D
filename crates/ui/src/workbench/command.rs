@@ -173,6 +173,10 @@ impl Workbench {
                 Err(why) => Ready::NotNow(why.into()),
                 Ok(_) => Ready::Yes,
             },
+            CommandId::GameBevel => match crate::modifiers::targets(&self.document) {
+                Err(why) => Ready::NotNow(why.into()),
+                Ok(_) => Ready::Yes,
+            },
             CommandId::UvTurnLeft
             | CommandId::UvTurnRight
             | CommandId::UvFlipU
@@ -328,6 +332,7 @@ impl Workbench {
             | CommandId::WeightedNormals => {
                 self.run_modifier(command, requests);
             }
+            CommandId::GameBevel => self.run_game_bevel(),
         }
     }
 

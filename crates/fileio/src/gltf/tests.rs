@@ -783,4 +783,50 @@ fn files_for_outside_checkers() {
             .unwrap();
     }
     write("live-bevel.glb", &bevelled, &plain);
+
+    // The game bevel (decision 0156): a cube, a cylinder, an arch, a cube
+    // with a round hole and a cylinder with a square one, side by side.
+    let mut game = Document::new();
+    let mut add = |kind: PrimitiveKind, position: glam::Vec3, scale: glam::Vec3| {
+        game.execute(Command::Create(ObjectKind::Primitive(kind.standard())))
+            .unwrap();
+        let id = game.selection()[0];
+        let place = Transform {
+            position,
+            scale,
+            ..Transform::default()
+        };
+        game.execute(Command::SetTransforms(vec![(id, place)]))
+            .unwrap();
+        id
+    };
+    let one = glam::Vec3::ONE;
+    let narrow = glam::Vec3::new(0.5, 0.5, 1.5);
+    let at = |x: f32, z: f32| glam::Vec3::new(x, 0.0, z);
+    let mut shapes = vec![
+        add(PrimitiveKind::Cube, at(-400.0, 0.0), one),
+        add(PrimitiveKind::Cylinder, at(-200.0, 0.0), one),
+        add(PrimitiveKind::Arch, at(0.0, 0.0), one),
+    ];
+    let cut = [
+        (PrimitiveKind::Cube, PrimitiveKind::Cylinder, 200.0),
+        (PrimitiveKind::Cylinder, PrimitiveKind::Cube, 400.0),
+    ];
+    let mut pairs = Vec::new();
+    for (kept, cutter, x) in cut {
+        let kept = add(kept, at(x, 0.0), one);
+        let cutter = add(cutter, at(x, -25.0), narrow);
+        pairs.push((kept, cutter));
+        shapes.push(kept);
+    }
+    for (kept, cutter) in pairs {
+        game.execute(Command::AddBoolean {
+            kept,
+            cutters: vec![cutter],
+            kind: scene::BooleanKind::Subtract,
+        })
+        .unwrap();
+    }
+    game.game_bevel(&shapes, "Game bevel", 1).unwrap();
+    write("game-bevel.glb", &game, &plain);
 }

@@ -3,6 +3,10 @@
 //! its settings stored as [`LiveBevelV50`]) and bevel weights, one more
 //! kind of recorded edit (`v37::OperationV37::SetBevelWeights`). Files
 //! before version 50 hold neither.
+//!
+//! Version 57 ([decision 0156](../../../../docs/decisions/0156-game-bevel.md))
+//! adds *Soft bevels* ([`LiveBevelV50::soften`]); stored with a standard
+//! value (off), so files from version 50 to 56 read it as off.
 
 use scene::{BevelEdges, LiveBevelOptions};
 use serde::{Deserialize, Serialize};
@@ -23,6 +27,9 @@ pub(crate) struct LiveBevelV50 {
     pub(crate) profile: f32,
     /// Stop at neighbours.
     pub(crate) clamp: bool,
+    /// Soft bevels (version 57; off before).
+    #[serde(default)]
+    pub(crate) soften: bool,
 }
 
 impl LiveBevelV50 {
@@ -39,6 +46,7 @@ impl LiveBevelV50 {
             segments: options.segments,
             profile: options.profile,
             clamp: options.clamp,
+            soften: options.soften,
         }
     }
 
@@ -56,6 +64,7 @@ impl LiveBevelV50 {
             segments: self.segments,
             profile: self.profile,
             clamp: self.clamp,
+            soften: self.soften,
         }
     }
 }

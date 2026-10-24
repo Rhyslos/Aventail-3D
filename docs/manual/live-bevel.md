@@ -50,6 +50,7 @@ A bevel weight is a recorded edit, like marking an edge hard: undo takes it back
 | **Segments** | How many rows each bevel has: **1** is a flat cut (a [chamfer](concepts.md#mesh-basics)), **2** (standard) or **3** look round from a game's distance. Where three or more bevelled edges meet, the corner is rounded with a patch of square polygons. |
 | **Profile** | The bevel's curve: **100%** (standard) round, **0%** a straight slope, **-100%** hollow, scooped into the shape like a cove. |
 | **Stop at neighbours** | On (standard): where bevels would run into each other or past the end of an edge, only those points are narrowed so they meet cleanly; the rest stays at full width. Off: every bevel is full width, and a wide one can fold over itself. |
+| **Soft bevels** | Off (standard): a bevelled edge marked hard keeps a crisp line along each side of its bevel, for low-poly chamfers. On: the bevelled edges count as soft, so on a shape shaded by its marked edges each bevel shades round. The [Game bevel](game-bevel.md) turns it on. |
 | **Show in viewport** | Off: the viewport shows the shape unbevelled while you work; exports and Bake into shape still bevel it. |
 | **Bevel weight** (Edges mode, *Selected edges*) | The selected edges' bevel weight, 0 to 1. Shows the first edge's when they differ; a new value gives them all the same. |
 
@@ -57,7 +58,7 @@ When there's nothing to bevel (no edge is sharp enough, none is hard, or none is
 
 ### Live bevel and Weighted normals
 
-The two are made for each other. With all the edges soft, a bevelled box usually shades badly: each big face's corners average in the thin bevel strips, so the face shades in a gradient. [Weighted normals](weighted-normals.md) after the Live bevel lets the big faces win, so they shade perfectly flat while the bevels catch the light like rounded edges. For this, make the shape's edges soft (or set its Smoothing to a large angle) and keep **Weighted normals last** in the list. The game bevel, coming later in this phase, will set all of this up in one go.
+The two are made for each other. With all the edges soft, a bevelled box usually shades badly: each big face's corners average in the thin bevel strips, so the face shades in a gradient. [Weighted normals](weighted-normals.md) after the Live bevel lets the big faces win, so they shade perfectly flat while the bevels catch the light like rounded edges. For this, the bevels must shade round: shade the shape by its marked edges with **Soft bevels** on, and keep **Weighted normals last** in the list. The [Game bevel](game-bevel.md) sets all of this up in one click.
 
 ### Speed
 
@@ -78,7 +79,7 @@ Live bevel has no key of its own.
 - **Problem:** nothing is bevelled, and the panel says *no edge is sharper than the angle*. **Why:** the shape has no edges sharper than the Angle (a sphere, a flat sheet). **Fix:** lower the **Angle**, or switch **Edges** to *Marked edges* and give the edges you want a Bevel weight.
 - **Problem:** the cylinder's sides got bevelled into stripes. **Why:** the Angle is lower than the angle between its sides (360° ÷ sides). **Fix:** raise the Angle above it (30° suits 12 sides or more).
 - **Problem:** some bevels are narrower than the Width. **Why:** *Stop at neighbours* narrowed them where they'd otherwise run into each other or past a short edge. **Fix:** that's intended; make the Width smaller for an even bevel, or switch it off if you're sure they won't cross.
-- **Problem:** the bevels look faceted. **Why:** the shape's shading shows the bevel's own edges hard (its Smoothing angle is smaller than the step between rows, or its edges are marked hard). **Fix:** more Segments, a larger Smoothing angle, or soften the edges; add [Weighted normals](weighted-normals.md) last to keep the big faces flat.
+- **Problem:** the bevels look faceted. **Why:** the shape's shading shows the bevel's own edges hard (its Smoothing angle is smaller than the step between rows, or its edges are marked hard). **Fix:** shade the shape by its marked edges and switch **Soft bevels** on (or use the [Game bevel](game-bevel.md), which does both); add [Weighted normals](weighted-normals.md) last to keep the big faces flat.
 - **Problem:** an open edge (the rim of a cup) isn't bevelled. **Why:** an edge needs a polygon on each side to be bevelled. **Fix:** give the shape thickness first, or bevel the edges beside it.
 - **Tip:** a Live bevel shows in the polygon count of your export. Two segments on every edge of a box turns 6 polygons into 54; keep game props' bevels to the edges that catch the light.
 
@@ -87,6 +88,7 @@ Live bevel has no key of its own.
 - [Modifiers: switching off, reordering, Show in viewport, baking](modifiers.md)
 - [Bevel](bevel.md), the tool, for bevelling chosen edges once
 - [Weighted normals](weighted-normals.md), best last, after the Live bevel
+- [Game bevel](game-bevel.md), Live bevel and Weighted normals set up together
 - [Subdivide](subdivide.md), whose creases are set in the same *Selected edges* section
 - [Hard and soft edges](hard-and-soft-edges.md) and the object's Smoothing
 - [Concepts: bevel, bevel weight, modifier](concepts.md#mesh-basics)

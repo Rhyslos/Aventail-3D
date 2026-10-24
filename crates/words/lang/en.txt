@@ -429,6 +429,7 @@ Copy: select the objects to copy first.
 Corner angle
 Corner radius
 Corners rounded: radius {} (cut back where it doesn't fit). Change the radius under Round corners in the Attributes panel. Ctrl + Z takes it back.
+Couldn't add the game bevel: {}.
 Couldn't apply the mirror: {}.
 Couldn't change the game project folder: {}.
 Couldn't change the mirror: {}.
@@ -757,6 +758,9 @@ From the middle to the centre of the ring's tube
 From top
 Front
 Full shape
+Game bevel
+Game bevel {} objects
+Game bevel: {} bevelled 2 cm at every edge sharper than 30°, with round bevels and flat faces (Live bevel, then Weighted normals). Change either in the Attributes panel; Ctrl + Z takes it all back.
 Game project
 Game project folder
 Game project folder set. It isn't inside a Godot, Unity, Unreal Engine or Solis project, so exports go there with {}'s settings. Every save now exports there too.
@@ -1483,6 +1487,7 @@ Random over the surface
 Random turn
 Ratio
 Ready
+Ready the selected shapes for a game in one step, without baking: a Live bevel rounds every edge sharper than 30° (2 cm, 2 rows) and shades round, and Weighted normals keeps the big faces flat. Change any of it afterwards in the Attributes panel.
 Rebuild the shape as an even surface of square polygons, whatever its polygons were: for sculpted, joined or boolean-cut shapes. It needs a closed solid.
 Recover unsaved work?
 Rectangle
@@ -1683,6 +1688,7 @@ Settings
 Settings of the automatic tools
 Settings section: {}
 Settings…
+Shade the bevels round even where their edges are marked hard: on a shape smoothed by its marked edges, a hard edge's bevel otherwise keeps a crisp line along each side. The Game bevel turns this on
 Shade the selected edges (or the selected polygons' edges) as crisp edges: the light breaks there
 Shade the selected edges (or the selected polygons' edges) smoothly: the light flows across, so a curve looks round
 Shade the selected objects by angle: edges where polygons meet more sharply than {}° are crisp, the rest smooth, after every change. Untick it to shade them only by the hard edges you mark. Each object keeps its own (the Attributes panel shows its angle).
@@ -1774,6 +1780,7 @@ Smooth points
 Smooth the shape by subdividing it: every polygon is split into four and the corners rounded off, level by level. Creased edges stay sharp.
 Smoothing
 Smoothing angle
+Smoothing now follows the marked edges, with the shape's look kept as marks.
 Snap (or not, when snapping is on)
 Snap moves to points, edges, polygons and the grid, turns to 15° and scaling to 10% steps. Hold Ctrl while dragging to flip it for that drag.
 Snap moves to points, edges, polygons and the grid. Settings → Viewport has the details.
@@ -1789,6 +1796,7 @@ Snapping on.
 Snapshot
 Snapshot {}
 Snapshots
+Soft bevels
 Soften
 Solid surfaces with every edge drawn clearly on top, to see how the shape is built
 Solid tiles

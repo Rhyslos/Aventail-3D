@@ -16,7 +16,7 @@ mod edits;
 mod fields;
 mod last_edit;
 mod lattice_rows;
-mod live_bevel_rows;
+pub(crate) mod live_bevel_rows;
 mod lod_rows;
 mod materials;
 mod mesh_check;

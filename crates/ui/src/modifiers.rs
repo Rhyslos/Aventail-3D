@@ -197,6 +197,20 @@ pub(crate) fn scatter_plan(doc: &Document) -> Result<(ObjectId, Vec<ObjectId>), 
     }
 }
 
+/// A family's commands on the palette and in Mesh → Modifiers: its kinds
+/// of modifier, and for *Game ready* the game bevel after them (decision
+/// 0156), which adds a Live bevel and Weighted normals in one step.
+fn family_commands(family: ModifierFamily) -> Vec<CommandId> {
+    let mut members: Vec<CommandId> = COMMANDS
+        .into_iter()
+        .filter(|c| kind_of(*c).is_some_and(|k| k.family() == family))
+        .collect();
+    if family == ModifierFamily::Game {
+        members.push(CommandId::GameBevel);
+    }
+    members
+}
+
 /// The modifiers palette's modifier buttons, a family at a time with a
 /// little room between families; returns the command clicked.
 pub(crate) fn palette_buttons(ui: &mut Ui, doc: &Document) -> Option<CommandId> {
@@ -206,10 +220,7 @@ pub(crate) fn palette_buttons(ui: &mut Ui, doc: &Document) -> Option<CommandId> 
     let bend_ready = pair_plan(doc, CommandId::BendAlongCurve).map(|_| ());
     let wrap_ready = pair_plan(doc, CommandId::Shrinkwrap).map(|_| ());
     for family in ModifierFamily::ALL {
-        let members: Vec<CommandId> = COMMANDS
-            .into_iter()
-            .filter(|c| kind_of(*c).is_some_and(|k| k.family() == family))
-            .collect();
+        let members = family_commands(family);
         if members.is_empty() {
             continue;
         }
@@ -242,10 +253,7 @@ pub(crate) fn menu_groups() -> Vec<(&'static str, Vec<CommandId>)> {
     ModifierFamily::ALL
         .into_iter()
         .map(|family| {
-            let members = COMMANDS
-                .into_iter()
-                .filter(|c| kind_of(*c).is_some_and(|k| k.family() == family))
-                .collect::<Vec<_>>();
+            let members = family_commands(family);
             (family.name(), members)
         })
         .filter(|(_, members)| !members.is_empty())
@@ -278,7 +286,10 @@ mod tests {
         }
         assert_eq!(kind_of(CommandId::Move), None);
         let listed: usize = menu_groups().iter().map(|(_, m)| m.len()).sum();
-        assert_eq!(listed, COMMANDS.len());
+        // The game bevel too (decision 0156), with Game ready.
+        assert_eq!(listed, COMMANDS.len() + 1);
+        let game = menu_groups().pop().unwrap();
+        assert_eq!(game.1.last(), Some(&CommandId::GameBevel));
     }
 
     #[test]

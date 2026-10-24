@@ -1,8 +1,8 @@
 //! The Live bevel modifier's rows in the Attributes panel
 //! ([decision 0149](../../../../docs/decisions/0149-live-bevel.md)):
 //! which edges it bevels (by angle, the hard ones or the marked ones),
-//! the angle, and the bevel's width, segments, profile and Stop at
-//! neighbours.
+//! the angle, and the bevel's width, segments, profile, Stop at
+//! neighbours and Soft bevels (decision 0156).
 
 use super::curve_rows::Rows;
 use super::{FIELD_WIDTH, label, stepper};
@@ -104,7 +104,21 @@ pub(super) fn live_bevel_rows(
     let name = tr("Stop at neighbours");
     rows.toggle(ui, &mut options.clamp, name);
     ui.end_row();
+    label(
+        ui,
+        tr(SOFT_BEVELS),
+        tr(
+            "Shade the bevels round even where their edges are marked hard: on a shape smoothed \
+             by its marked edges, a hard edge's bevel otherwise keeps a crisp line along each \
+             side. The Game bevel turns this on",
+        ),
+    );
+    rows.toggle(ui, &mut options.soften, tr(SOFT_BEVELS));
+    ui.end_row();
 }
+
+/// The name of the Soft bevels switch (decision 0156).
+pub(crate) const SOFT_BEVELS: &str = crate::text!("Soft bevels");
 
 /// The choice of edges.
 fn edges_row(ui: &mut Ui, options: &mut LiveBevelOptions, rows: &mut Rows) {

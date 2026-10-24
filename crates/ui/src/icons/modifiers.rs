@@ -1,6 +1,6 @@
 //! The modifier icons (decisions 0142 to 0154), one per kind of
-//! modifier on the modifiers palette, and the crease commands'. Original
-//! drawings.
+//! modifier on the modifiers palette, the game bevel's (decision 0156)
+//! and the crease commands'. Original drawings.
 
 use super::Icon;
 use super::pen::{Ink, Paint, Pen};
@@ -18,6 +18,7 @@ pub(super) fn draw(pen: &mut Pen, icon: Icon) {
         Icon::BendAlongCurve => bend_along_curve(pen),
         Icon::Shrinkwrap => shrinkwrap(pen),
         Icon::WeightedNormals => weighted_normals(pen),
+        Icon::GameBevel => game_bevel(pen),
         Icon::LiveBevel => live_bevel(pen),
         Icon::Quadify => quadify(pen),
         Icon::WeldByDistance => weld_by_distance(pen),
@@ -293,6 +294,19 @@ fn weighted_normals(pen: &mut Pen) {
             );
         }
     }
+}
+
+/// The game bevel: a block with both top edges rounded off, its normals
+/// straight up from the flat top, and a tick above its right: bevelled,
+/// shaded and ready for a game.
+fn game_bevel(pen: &mut Pen) {
+    let block = rounded((3.0, 10.0), (17.0, 21.0), [4.0, 4.0, 0.0, 0.0]);
+    pen.shape(&block, Paint::Tone);
+    pen.stroke(&block, true, Ink::Line);
+    for x in [8.0, 12.0] {
+        pen.stroke(&[(x, 8.5), (x, 4.5)], false, Ink::Faint);
+    }
+    pen.stroke(&[(15.5, 6.0), (17.5, 8.0), (21.5, 3.0)], false, Ink::Line);
 }
 
 /// Live bevel: a block whose top left edge is rounded off, and a circling

@@ -15,6 +15,7 @@ pub mod collision;
 pub mod command;
 pub mod curve;
 pub mod document;
+pub mod game_bevel;
 mod history;
 pub mod lattice;
 pub mod lod;
@@ -42,6 +43,7 @@ pub use collision::{
 pub use command::Command;
 pub use curve::{CurveObject, CurveShape, CurveSolid, Sweep, SweepProfile};
 pub use document::Document;
+pub use game_bevel::{GameBevelDone, game_bevel_options};
 pub use history::HistoryLimit;
 pub use lattice::LatticeOptions;
 pub use lod::{LODS_IN_BACKGROUND_FROM, LodDone, LodJob, LodLevel, LodShapes, LodState, Lods};
@@ -112,6 +114,8 @@ mod curve_tests;
 mod decimate_tests;
 #[cfg(test)]
 mod edit_list_tests;
+#[cfg(test)]
+mod game_bevel_tests;
 #[cfg(test)]
 mod history_tests;
 #[cfg(test)]
