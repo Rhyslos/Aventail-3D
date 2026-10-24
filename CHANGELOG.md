@@ -30,6 +30,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **Collision "Wrapped in parts" is worked out quicker**, about a third less time on a ring and five times quicker on simple shapes, so the outline follows changes to Max parts and Detail sooner.
 - **Box and lasso selects of points on heavy shapes are much quicker** with Select only visible: the app now checks what can be seen once per pixel instead of once per point, looking closer only along outlines (a box over a 3-million-polygon shape: a fifth of a second instead of two).
 - **Saving and exporting no longer freeze the window.** Save, Save As, Export, Export again, Export to game project and Export kit now run in the background: the status bar says *Saving crate.avtl…* or *Exporting crate.glb…* with a small turning wheel, and you can keep working. Changes made during a save stay unsaved until the next one; another save or export waits until the first is done; closing the app waits for it.
 - **Exports are quicker.** Each object's shape was built twice, once for each way formats place objects; now only the one the file uses is built (a million-polygon glTF export: about a quarter less time).

@@ -258,6 +258,10 @@ impl<'a> Splitter<'a> {
     /// band, not along it, and not by slicing a sliver off its edge).
     pub(super) fn split(&self, part: &Part) -> Option<(Part, Part)> {
         let slices: Vec<Vec<usize>> = (0..3).map(|axis| self.slices(part, axis)).collect();
+        // Each slice's hull corners, worked out once: a half's hull is the
+        // hull of its slices' corners, far fewer points than its voxels'.
+        let corners: Vec<Vec<Vec<Vec3>>> =
+            (0..3).map(|axis| self.slice_corners(part, axis)).collect();
         let longest = (0..3)
             .map(|a| part.high[a] - part.low[a])
             .max()
@@ -270,16 +274,13 @@ impl<'a> Splitter<'a> {
             if at <= part.low[axis] || at >= part.high[axis] || !tried.insert((axis, at)) {
                 return;
             }
-            let (mut low_high, mut high_low) = (part.high, part.low);
-            low_high[axis] = at;
-            high_low[axis] = at;
+            let n = at - part.low[axis];
             let (Some(a), Some(b)) = (
-                self.voxel_waste(part.low, low_high),
-                self.voxel_waste(high_low, part.high),
+                self.slices_waste(&corners[axis][..n], &slices[axis][..n]),
+                self.slices_waste(&corners[axis][n..], &slices[axis][n..]),
             ) else {
                 return;
             };
-            let n = at - part.low[axis];
             let area = (slices[axis][n - 1] + slices[axis][n]) as f64 * 0.5;
             let below: usize = slices[axis][..n].iter().sum();
             let balance = below.abs_diff(part.voxels - below.min(part.voxels)) as f64;
@@ -342,39 +343,57 @@ impl<'a> Splitter<'a> {
         slices
     }
 
-    /// The waste of the voxels from `low` to `high` as they show it (their
-    /// hull's volume less theirs, both of whole voxels), or `None` with no
-    /// voxels inside. The hull is made from the voxels at the ends of each
-    /// row along X, which are all it needs.
-    fn voxel_waste(&self, low: [usize; 3], high: [usize; 3]) -> Option<f64> {
-        let g = self.grid;
-        let mut points = Vec::new();
-        let mut count = 0;
-        let corner = |i: f32, j: f32, k: f32| g.origin + Vec3::new(i, j, k) * g.step;
-        for k in low[2]..high[2] {
-            for j in low[1]..high[1] {
-                let mut ends: Option<(usize, usize)> = None;
-                for i in low[0]..high[0] {
-                    if self.inside[g.index(i, j, k)] {
-                        count += 1;
-                        ends = Some(ends.map_or((i, i), |(first, _)| (first, i)));
-                    }
-                }
-                let Some((first, last)) = ends else {
-                    continue;
-                };
-                let (j, k) = (j as f32, k as f32);
-                for (dj, dk) in [(-0.5, -0.5), (0.5, -0.5), (-0.5, 0.5), (0.5, 0.5)] {
-                    points.push(corner(first as f32 - 0.5, j + dj, k + dk));
-                    points.push(corner(last as f32 + 0.5, j + dj, k + dk));
-                }
-            }
-        }
+    /// The waste of a run of slices as their voxels show it (their hull's
+    /// volume less theirs, both of whole voxels), from each slice's hull
+    /// corners and inside voxel count; `None` with no voxels inside.
+    fn slices_waste(&self, corners: &[Vec<Vec3>], counts: &[usize]) -> Option<f64> {
+        let count: usize = counts.iter().sum();
         if count == 0 {
             return None;
         }
+        let points: Vec<Vec3> = corners.iter().flatten().copied().collect();
         let volume = convex_hull(&points).map_or(0.0, |h| h.volume());
         Some((volume - count as f64 * self.voxel_volume()).max(0.0))
+    }
+
+    /// For each slice of `part` along `axis`, the corners of the hull of
+    /// its inside voxels (the outer corners of the voxels at the ends of
+    /// each of its rows, which are all a hull of voxels needs, cut down to
+    /// the hull's own corners). Empty for a slice with none inside.
+    fn slice_corners(&self, part: &Part, axis: usize) -> Vec<Vec<Vec3>> {
+        let g = self.grid;
+        // Rows run along `along`, side by side along `across`.
+        let (across, along) = ((axis + 1) % 3, (axis + 2) % 3);
+        let corner = |at: [f32; 3]| g.origin + Vec3::from(at) * g.step;
+        (part.low[axis]..part.high[axis])
+            .map(|s| {
+                let mut points = Vec::new();
+                for r in part.low[across]..part.high[across] {
+                    let mut ends: Option<(usize, usize)> = None;
+                    for c in part.low[along]..part.high[along] {
+                        let mut at = [0; 3];
+                        (at[axis], at[across], at[along]) = (s, r, c);
+                        if self.inside[g.index(at[0], at[1], at[2])] {
+                            ends = Some(ends.map_or((c, c), |(first, _)| (first, c)));
+                        }
+                    }
+                    let Some((first, last)) = ends else {
+                        continue;
+                    };
+                    for (ds, dr) in [(-0.5, -0.5), (0.5, -0.5), (-0.5, 0.5), (0.5, 0.5)] {
+                        for end in [first as f32 - 0.5, last as f32 + 0.5] {
+                            let mut at = [0.0; 3];
+                            (at[axis], at[across], at[along]) = (s as f32 + ds, r as f32 + dr, end);
+                            points.push(corner(at));
+                        }
+                    }
+                }
+                match convex_hull(&points) {
+                    Ok(hull) => hull.points,
+                    Err(_) => points,
+                }
+            })
+            .collect()
     }
 }
 
