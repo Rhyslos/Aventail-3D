@@ -14,6 +14,7 @@ mod edits;
 mod fields;
 mod last_edit;
 mod lattice_rows;
+mod live_bevel_rows;
 mod materials;
 mod mesh_check;
 pub(crate) mod modifier_rows;
@@ -31,9 +32,7 @@ use crate::text::tr;
 use crate::theme;
 use crate::transforming::Tool;
 use crate::units::Units;
-#[cfg(test)]
-pub(crate) use crease_rows::CREASE_LABEL;
-pub(crate) use crease_rows::SelectedCreases;
+pub(crate) use crease_rows::{SelectedEdgeValue, SelectedEdges};
 pub(crate) use curve_points::CurveLook;
 use edits::edits_section;
 pub(crate) use edits::{DELETE_EDIT_LABEL, FREEZE_LABEL, OpenedEdit, edit_warning};
@@ -101,12 +100,13 @@ pub(crate) struct AttributesPanel {
     /// The material slot whose Assign button was clicked, for the
     /// workbench to give the selected polygons (decision 0074).
     pub(crate) assign: Option<u32>,
-    /// The selected edges' creases, in the Edges mode (set by the
-    /// workbench each frame); `None` in other modes (decision 0143).
-    pub(crate) creases: Option<SelectedCreases>,
-    /// A crease set in the Crease field, with the gesture it was set by,
-    /// for the workbench to record on the selected edges.
-    pub(crate) crease_asked: Option<(f32, u64)>,
+    /// The selected edges' creases and bevel weights, in the Edges mode
+    /// (set by the workbench each frame); `None` in other modes
+    /// (decisions 0143 and 0149).
+    pub(crate) selected_edges: Option<SelectedEdges>,
+    /// A crease or bevel weight set in its field, with the gesture it was
+    /// set by, for the workbench to record on the selected edges.
+    pub(crate) edge_value_asked: Option<(crate::edge_values::EdgeValue, f32, u64)>,
     /// The edit opened from the edit list (decision 0092), shown in place
     /// of the Last edit while its object is the one selected.
     pub(crate) opened: Option<OpenedEdit>,

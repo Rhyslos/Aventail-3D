@@ -655,4 +655,26 @@ fn files_for_outside_checkers() {
             .unwrap();
     }
     write("weighted-normals.glb", &weighted, &plain);
+
+    // Live bevel (decision 0149), then Weighted normals: the game bevel's
+    // order, a bevelled box with flat big faces.
+    let mut bevelled = scene_of(&[PrimitiveKind::Cube, PrimitiveKind::Cylinder]);
+    let ids: Vec<_> = bevelled
+        .scene()
+        .walk()
+        .into_iter()
+        .map(|(id, _)| id)
+        .collect();
+    for kind in [
+        scene::ModifierKind::WeightedNormals(Default::default()),
+        scene::ModifierKind::LiveBevel(Default::default()),
+    ] {
+        bevelled
+            .execute(Command::AddModifier {
+                ids: ids.clone(),
+                kind,
+            })
+            .unwrap();
+    }
+    write("live-bevel.glb", &bevelled, &plain);
 }

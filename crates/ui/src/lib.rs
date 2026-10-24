@@ -16,6 +16,7 @@ mod components;
 mod coordinates;
 mod dialog;
 mod drawing;
+mod edge_values;
 pub mod icons;
 mod keyboard;
 mod layers;

@@ -298,7 +298,8 @@ pub enum Command {
         booleans: Vec<crate::Boolean>,
     },
     /// Adds a modifier of `kind` at the end of each object's modifiers
-    /// (decision 0142), on and shown in the viewport, its settings brought
+    /// (decision 0142; a Live bevel before any smoothing or Weighted
+    /// normals, decision 0149), on and shown in the viewport, its settings brought
     /// within limits. Refused, changing nothing, if any object can't take
     /// it (a group, an instance, too many modifiers).
     AddModifier {

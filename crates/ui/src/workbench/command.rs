@@ -157,6 +157,7 @@ impl Workbench {
             }
             CommandId::Remesh
             | CommandId::Subdivide
+            | CommandId::LiveBevel
             | CommandId::Lattice
             | CommandId::Decimate
             | CommandId::Scatter
@@ -306,6 +307,7 @@ impl Workbench {
             }
             CommandId::Remesh
             | CommandId::Subdivide
+            | CommandId::LiveBevel
             | CommandId::Lattice
             | CommandId::Decimate
             | CommandId::Scatter

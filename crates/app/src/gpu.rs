@@ -69,6 +69,9 @@ const SEAM_PREFER_LINE: [f32; 4] = [1.0, 0.58, 0.1, 0.7];
 const SEAM_NEVER_LINE: [f32; 4] = [0.07, 0.38, 1.0, 0.85];
 /// Creased edges (decision 0143): magenta, as thick as hard edges.
 const CREASE_LINE: [f32; 4] = [0.9, 0.1, 0.75, 0.9];
+/// Edges with a bevel weight (decision 0149): lime green, as thick as
+/// hard edges.
+const BEVEL_WEIGHT_LINE: [f32; 4] = [0.45, 0.9, 0.08, 0.9];
 /// Normals (Display → Show normals): light violet, thin.
 const NORMAL_LINE: [f32; 4] = [0.6, 0.5, 1.0, 1.0];
 const NORMAL_LINE_WIDTH: f32 = 1.5;
@@ -94,7 +97,7 @@ fn layer(style: OverlayStyle) -> u8 {
         OverlayStyle::CurveSelected => 1,
         OverlayStyle::Normal => 0,
         OverlayStyle::SeamPrefer | OverlayStyle::SeamNever => 1,
-        OverlayStyle::Hard | OverlayStyle::Crease => 2,
+        OverlayStyle::Hard | OverlayStyle::Crease | OverlayStyle::BevelWeight => 2,
         OverlayStyle::Seam => 3,
         OverlayStyle::Hovered => 4,
         OverlayStyle::Selected => 5,
@@ -131,6 +134,7 @@ fn overlay_geometry(overlay: &ComponentOverlay, accent: [f32; 3], contrast: bool
             OverlayStyle::SeamPrefer => (NORMAL_LINE_WIDTH, SEAM_PREFER_LINE),
             OverlayStyle::SeamNever => (HARD_LINE_WIDTH, SEAM_NEVER_LINE),
             OverlayStyle::Crease => (HARD_LINE_WIDTH, CREASE_LINE),
+            OverlayStyle::BevelWeight => (HARD_LINE_WIDTH, BEVEL_WEIGHT_LINE),
             OverlayStyle::Normal => (NORMAL_LINE_WIDTH, NORMAL_LINE),
             OverlayStyle::Curve => (CURVE_LINE_WIDTH, CURVE_LINE),
             OverlayStyle::CurveSelected => (SELECTED_CURVE_WIDTH * grow, selected),
@@ -152,6 +156,7 @@ fn overlay_geometry(overlay: &ComponentOverlay, accent: [f32; 3], contrast: bool
             OverlayStyle::SeamPrefer => (POINT_SIZE, SEAM_PREFER_LINE),
             OverlayStyle::SeamNever => (POINT_SIZE, SEAM_NEVER_LINE),
             OverlayStyle::Crease => (POINT_SIZE, CREASE_LINE),
+            OverlayStyle::BevelWeight => (POINT_SIZE, BEVEL_WEIGHT_LINE),
             OverlayStyle::Normal => (POINT_SIZE, NORMAL_LINE),
             OverlayStyle::Curve | OverlayStyle::CurveSelected => (POINT_SIZE, CURVE_LINE),
             OverlayStyle::Handle => (POINT_SIZE, PLAIN_POINT),

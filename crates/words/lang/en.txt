@@ -253,6 +253,9 @@ Bend segments
 Bends: {}. Press 1 and move its points to bend them.
 Best
 Bevel
+Bevel the edges whose two polygons meet more sharply than this: 30° takes a box's edges but not the gentle steps round a cylinder
+Bevel the shape's sharp edges (or its hard or marked ones) and keep the bevel live: it follows the shape as you model. Best before Subdivide and Weighted normals.
+Bevel weight
 Bevel works on edges or points: press 2 for the Edges mode (or 1 for Points) and select some.
 Bevel works on edges or points: press 2 for the Edges mode, or 1 for Points
 Bevel: drag away from the selected edges (or points) to cut them away; back towards them to narrow it. Segments and Profile are in the Attributes panel. Shift for fine steps; Esc or a right click cancels.
@@ -345,6 +348,7 @@ Choose which mouse buttons and keys move the view
 Circle
 Clean up
 Clear
+Clear bevel weight
 Clear seam preference
 Clear seams
 Clear the game project folder
@@ -793,6 +797,7 @@ Half the width of the whole circle
 Half the width, at the tips of the teeth
 Handle type
 Handle type: {}
+Hard edges
 Hard edges by angle
 Hard edges by angle: select the objects first.
 Hard edges by angle: the selection has no shapes.
@@ -843,6 +848,7 @@ How far it was pushed (in the object's own size). Change it and the shape follow
 How far round it spins: 360° all the way
 How far round the arc goes
 How far the bevel reaches into each polygon (in the object's own size). Change it and the shape follows.
+How far the bevel reaches into the polygons on each side of an edge. Marked edges get their Bevel weight's share of it.
 How far the cross-section turns round the curve from start to end (whole turns on a closed curve)
 How far the extrude turns before going on straight: 0° is straight, 90° a corner. The pipe keeps its full width through the turn. With a bend radius it can go past 360° into a spiral (up to 3600°, ten turns): each loop climbs just clear of the one before.
 How far the groove goes in (below 0) or the ridge comes out (above 0), in the object's own size. Change it and the shape follows.
@@ -884,6 +890,7 @@ How many rings from the rim to the top
 How many rings it is cut into, from the rim inwards
 How many rings of hexagons round the middle one
 How many rows a smooth turn has (with a bend radius); for a spiral, how many each full turn has. Ctrl + wheel changes it.
+How many rows of polygons each bevel has: 1 is a flat cut, more is rounder
 How many rows the bevel has: 1 is a flat cut (a chamfer), more make it round
 How many rows the bridge has: more make a longer bridge bend smoothly later. Ctrl + wheel changes it.
 How many rows the new walls have: more give loops to bend or shape later. Ctrl + wheel changes it.
@@ -1043,6 +1050,7 @@ List
 List what in the shown shapes would spoil a bake in Substance Painter, in plain words, with one-click fixes
 List what would spoil a bake: overlapping pieces, missing UVs and more
 List what would spoil the bake, in plain words, with one-click fixes
+Live bevel
 Lock pieces
 Lock the UVs of
 Lock the {} axis
@@ -1084,6 +1092,7 @@ Mark seams, where the surface is cut open for its UVs, in orange while editing p
 Mark soft edges
 Mark the selected edges as seams: where the surface is cut open to lie flat. With polygons selected, the edges around them.
 Mark, clear, suggest and select seams, and say where they may go
+Marked edges
 Match texel density
 Material {}
 Material {} name ({})
@@ -1163,6 +1172,7 @@ Moves snap to:
 Moving: {}
 Name
 Named versions of the UV layout, kept with the project.
+Narrow the bevel only where it would run into another, so bevels never cross over each other; the rest stays at full width
 Navigation controls
 Nearest surface point
 Never seams here
@@ -1814,6 +1824,7 @@ The app closed without saving your work on {}. Backup copies were kept:
 The app's
 The app's own folder, so your project folders stay tidy. Copies are deleted when the app closes normally.
 The bake sees these from behind: the normal map comes out inverted or black there. Fix turns them the right way round (Mesh → Fix normals).
+The bevel's curve: 1 round, 0 a straight slope, -1 hollow (curving inward)
 The collision shape Godot makes for it when you export for Godot: what the player bumps into
 The corners the mesh is made of
 The cross-section of: {}
@@ -1821,7 +1832,7 @@ The curve this shape is bent along. It stays live: select it and reshape it (pre
 The cutter {} can't be used: {}
 The cutter {} is squashed flat
 The cutter {} isn't a closed solid: it has holes in its surface, or edges shared by more than two polygons
-The edges have different creases: a new value gives them all the same.
+The edges have different values ({}): a new value gives them all the same.
 The edits you make now go into this layer: the top layer that is switched on
 The faces, with any number of corners
 The first material can't be removed
@@ -2074,6 +2085,8 @@ Whether the ends are closed
 Whether the flat bottom is closed
 Whether the last point joins the first, making a loop
 Whether these pieces, when they're strips of square quads, come out as straight grids
+Which edges a Live bevel set to Marked edges bevels, and how wide: 0 not at all, 1 its full width, 0.5 half of it
+Which edges are bevelled: those sharper than an angle, those the shading shows hard, or those you give a Bevel weight (in the Edges mode, press 2)
 Which keyboard to draw. Letters follow what is printed on your keys; the number row is always 1 to 0.
 Which of the curve's own axes it spins round, through its pivot
 Which of the shape's own axes runs along the curve: its longest side, or X, Y or Z. The shape's start along it goes to the curve's start.
@@ -2125,6 +2138,7 @@ Z up
 a backup copy
 a bend's stretch isn't a real number, or is out of range (above 0, at most 1000)
 a bevel is stored with its settings twice
+a bevel weight isn't a number from 0 to 1
 a bevel's skew or weld distance isn't a real number, or is out of range
 a boolean can't be used: {}
 a cage point would go more than 10 km away
@@ -2357,6 +2371,8 @@ names are stored for edit {}, which isn't there
 names are stored for object {}, which isn't there
 new edits
 no UVs
+no edge has a bevel weight: select edges in the Edges mode (press 2) and set their Bevel weight in the Attributes panel
+no edge is sharper than the angle: lower the Angle to bevel more edges
 no graphics device
 no limit
 no partner called {}
@@ -2375,6 +2391,7 @@ off, selecting through
 on
 on, only what you can see
 one of a groove's edges joins a point to itself
+one of its bevel weights joins a point to itself
 one of its bevelled edges joins a point to itself
 one of its creases joins a point to itself
 one of its edges joins a point to itself
@@ -2474,6 +2491,7 @@ the scene couldn't be compressed ({})
 the scene couldn't be encoded ({})
 the selection's UVs
 the shape
+the shape has no hard edges: mark some in the Edges mode, or bevel by angle instead
 the shape has no polygons
 the shape isn't a closed solid: it has holes in its surface, or edges shared by more than two polygons
 the shape isn't closed: it has holes in its surface, or edges shared by more than two polygons, so it has no inside

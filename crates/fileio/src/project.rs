@@ -59,6 +59,7 @@ mod v41;
 mod v43;
 mod v45;
 mod v5;
+mod v50;
 mod v6;
 mod v7;
 mod v8;
@@ -101,7 +102,11 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 ///
 /// Version 49 (decision 0148) is version 48 with the Weighted normals
 /// modifier (`v43::KindV43::WeightedNormals`).
-pub const FORMAT_VERSION: u32 = 49;
+///
+/// Version 50 (decision 0149) is version 49 with the Live bevel modifier
+/// (`v43::KindV43::LiveBevel`) and bevel weights, one more kind of
+/// recorded edit (`v37::OperationV37::SetBevelWeights`).
+pub const FORMAT_VERSION: u32 = 50;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -936,3 +941,5 @@ mod v47_tests;
 mod v48_tests;
 #[cfg(test)]
 mod v49_tests;
+#[cfg(test)]
+mod v50_tests;

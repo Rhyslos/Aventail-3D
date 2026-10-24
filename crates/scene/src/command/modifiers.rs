@@ -71,8 +71,9 @@ impl Run<'_> {
     }
 
     /// Adds a modifier of `kind` (its settings brought within limits) at
-    /// the end of each object's list. Refused, changing nothing, if any
-    /// object can't take it.
+    /// the end of each object's list, or before the first it should come
+    /// before ([`ModifierKind::goes_before`]). Refused, changing nothing,
+    /// if any object can't take it.
     pub(super) fn add_modifier(
         &mut self,
         ids: &[ObjectId],
@@ -83,7 +84,11 @@ impl Run<'_> {
         }
         for id in super::existing(self.scene, ids)? {
             let mut after = self.scene.modifiers(id).to_vec();
-            after.push(Modifier::new(kind.clone()));
+            let at = after
+                .iter()
+                .position(|m| kind.goes_before(&m.kind))
+                .unwrap_or(after.len());
+            after.insert(at, Modifier::new(kind.clone()));
             self.set_modifiers(id, after)?;
         }
         Ok(())
