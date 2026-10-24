@@ -1961,7 +1961,7 @@ fn a_cut_short_or_padded_body_is_damaged() {
 #[test]
 fn an_uncompressed_body_can_be_read() {
     let doc = rich_document();
-    let body = v41::encode(&v41::ProjectV41::from_document(&doc)).unwrap();
+    let body = v43::encode(&v43::ProjectV43::from_document(&doc)).unwrap();
     let mut bytes = header(FORMAT_VERSION, 0, body.len() as u64);
     bytes.extend_from_slice(&body);
     assert_same(&doc, &from_bytes(&bytes).unwrap());
@@ -3506,7 +3506,7 @@ fn write_the_sample() {
         let name = format!("tests/data/sample-v{FORMAT_VERSION}.avtl");
         let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(name);
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-        let doc = super::v42_tests::rich_document_v42();
+        let doc = super::v43_tests::rich_document_v43();
         std::fs::write(path, to_bytes(&doc).unwrap()).unwrap();
     }
 }

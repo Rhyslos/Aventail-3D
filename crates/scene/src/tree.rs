@@ -32,6 +32,8 @@ pub enum SceneError {
     TooManyMaterials,
     /// Booleans that can't be set up (decision 0135).
     Boolean(crate::BooleanRefusal),
+    /// Modifiers that can't be set up (decision 0142).
+    Modifier(crate::ModifierRefusal),
     /// A curve change that can't be made (decision 0138), with the reason,
     /// marked with `text!` where it is made.
     Curve(&'static str),
@@ -62,6 +64,7 @@ impl std::fmt::Display for SceneError {
                 mesh::material::MAX_SLOTS
             )),
             Self::Boolean(why) => write!(f, "{why}"),
+            Self::Modifier(why) => write!(f, "{why}"),
             Self::Curve(why) => f.write_str(tr(why)),
         }
     }
@@ -161,6 +164,12 @@ pub(crate) enum Edit {
         before: Vec<crate::Boolean>,
         after: Vec<crate::Boolean>,
     },
+    /// Changes an object's modifiers (decision 0142).
+    SetModifiers {
+        id: ObjectId,
+        before: Vec<crate::Modifier>,
+        after: Vec<crate::Modifier>,
+    },
     /// Changes where an object's shading breaks (decision 0126).
     SetHardness {
         id: ObjectId,
@@ -244,6 +253,7 @@ impl Edit {
             Self::SetHardness { before, after, .. } => before == after,
             Self::SetMirror { before, after, .. } => before == after,
             Self::SetBooleans { before, after, .. } => before == after,
+            Self::SetModifiers { before, after, .. } => before == after,
             Self::SetTransform { before, after, .. } | Self::SetOffset { before, after, .. } => {
                 before == after
             }
@@ -315,6 +325,11 @@ impl Edit {
                 after: before,
             },
             Self::SetBooleans { id, before, after } => Self::SetBooleans {
+                id,
+                before: after,
+                after: before,
+            },
+            Self::SetModifiers { id, before, after } => Self::SetModifiers {
                 id,
                 before: after,
                 after: before,
@@ -402,6 +417,8 @@ pub struct Scene {
     cache: SharedCache,
     /// Each kept object's booleans' result (decision 0135), the same way.
     pub(crate) cuts: crate::boolean::CutCache,
+    /// Each object's modifiers' results (decision 0142), the same way.
+    pub(crate) stacks: crate::modifier::StackCache,
 }
 
 impl Scene {
@@ -479,12 +496,16 @@ impl Scene {
         // Every curve's cross-section is another curve (decision 0138).
         scene.check_profiles()?;
         // Every boolean's cutters are shapes in the scene, with no loops
-        // (decision 0135).
+        // (decision 0135), and so are modifiers' sources (decision 0142).
         for (id, _) in scene.walk() {
             let booleans = scene.booleans(id).to_vec();
             scene
                 .check_booleans(id, &booleans)
                 .map_err(SceneError::Boolean)?;
+            let modifiers = scene.modifiers(id).to_vec();
+            scene
+                .check_modifiers(id, &modifiers)
+                .map_err(SceneError::Modifier)?;
         }
         scene.next_id = scene.next_id.max(next_id.min(MAX_OBJECT_ID));
         Ok(scene)
@@ -596,6 +617,12 @@ impl Scene {
             node.object.booleans = booleans;
         }
         Ok(self)
+    }
+
+    /// The object `id`, to change while a scene is put together (never
+    /// for a change to undo: those go through [`Edit`]s).
+    pub(crate) fn object_mut(&mut self, id: ObjectId) -> Option<&mut Object> {
+        self.nodes.get_mut(&id).map(|node| &mut node.object)
     }
 
     /// The same scene with object `id`, stored as a plain mesh, given back
@@ -782,12 +809,14 @@ impl Scene {
 
     /// Whether [`crate::Command::MakeEditable`] would change `id`: a
     /// primitive (whose settings become a plain mesh), or a mesh with
-    /// edits recorded on it or booleans. Not a group, or a mesh with
-    /// nothing recorded.
+    /// edits recorded on it, booleans or modifiers that are on. Not a
+    /// group, or a mesh with nothing recorded.
     pub fn can_make_editable(&self, id: ObjectId) -> bool {
         self.object(id).is_some_and(|o| match &o.kind {
             ObjectKind::Primitive(_) | ObjectKind::Instance(_) => true,
-            ObjectKind::Mesh(_) => !o.stack.is_empty() || !o.booleans.is_empty(),
+            ObjectKind::Mesh(_) => {
+                !o.stack.is_empty() || !o.booleans.is_empty() || o.modifiers.iter().any(|m| m.on)
+            }
             ObjectKind::Group => false,
             // A curve with a solid bakes into it; a line has nothing to bake.
             ObjectKind::Curve(c) => c.solid != crate::CurveSolid::Line,
@@ -941,22 +970,21 @@ impl Scene {
         }
     }
 
-    /// The object's shape as it is shown and exported: its final shape
-    /// (as [`Scene::evaluated`]), cut by its booleans ([`Scene::cut_shape`],
-    /// decision 0135), with its live mirror's copies added and welded at
-    /// the seam (decision 0088). Without booleans or a mirror, the same
-    /// shape. Edits and selections work on [`Scene::evaluated`]'s shape,
-    /// whose points and polygons keep their ids here too unless booleans
-    /// cut it.
-    pub fn shown_shape(&self, id: ObjectId) -> Option<std::sync::Arc<mesh::Mesh>> {
+    /// The object's shape before its modifiers (decision 0142): its
+    /// final shape (as [`Scene::evaluated`]), cut by its booleans
+    /// ([`Scene::cut_shape`], decision 0135), with its live mirror's
+    /// copies added and welded at the seam (decision 0088). Without
+    /// booleans or a mirror, the same shape. Edits and selections work on
+    /// [`Scene::evaluated`]'s shape, whose points and polygons keep their
+    /// ids here too unless booleans cut it. What the shape is shown and
+    /// exported as is [`Scene::shown_shape`] and
+    /// [`Scene::exported_shape`], with its modifiers.
+    pub fn unmodified_shape(&self, id: ObjectId) -> Option<std::sync::Arc<mesh::Mesh>> {
         let shape = match self.cut_shape(id) {
             Some(Ok(cut)) => cut,
             _ => self.evaluated(id)?.mesh,
         };
-        Some(
-            self.with_mirror(id, &shape)
-                .map_or(shape, std::sync::Arc::new),
-        )
+        Some(self.mirrored_shape(id, shape))
     }
 
     /// `shape` (one of the object's own, such as with hidden polygons
@@ -1113,6 +1141,7 @@ impl Scene {
                 self.nodes.remove(id);
                 self.cache.get_mut().forget(*id);
                 self.cuts.forget(*id);
+                self.stacks.forget(*id);
                 Ok(())
             }
             Edit::Relocate { id, from, to } => {
@@ -1233,6 +1262,19 @@ impl Scene {
                     )));
                 }
                 node.object.booleans.clone_from(after);
+                Ok(())
+            }
+            Edit::SetModifiers { id, before, after } => {
+                let node = self
+                    .nodes
+                    .get_mut(id)
+                    .ok_or(SceneError::UnknownObject(*id))?;
+                if node.object.modifiers != *before {
+                    return Err(SceneError::History(text!(
+                        "an object's modifiers have changed"
+                    )));
+                }
+                node.object.modifiers.clone_from(after);
                 Ok(())
             }
             Edit::SetMaterials { id, before, after } => {

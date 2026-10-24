@@ -22,6 +22,8 @@ pub(crate) const MESH_OBJECT_MENU: &str = crate::text!("Shape and object");
 
 pub(crate) const MESH_BOOLEANS_MENU: &str = crate::text!("Booleans");
 
+pub(crate) const MESH_MODIFIERS_MENU: &str = crate::text!("Modifiers");
+
 pub(crate) const MESH_CURVE_MENU: &str = crate::text!("Curve");
 
 impl Workbench {
@@ -123,6 +125,24 @@ impl Workbench {
         .on_hover_text(tr(
             "Union, subtract or intersect: select the shape to keep, then Ctrl + click the \
              shapes that cut it",
+        ));
+        crate::dialog::menu(ui, tr(MESH_MODIFIERS_MENU), |ui| {
+            for (index, (family, commands)) in crate::modifiers::menu_groups().iter().enumerate() {
+                if index > 0 {
+                    ui.separator();
+                }
+                ui.label(
+                    egui::RichText::new(*family)
+                        .small()
+                        .color(crate::theme::TEXT_WEAK),
+                );
+                self.ready_entries(ui, commands, requests);
+            }
+        })
+        .response
+        .on_hover_text(tr(
+            "Add a modifier to the selected shapes: a change worked out live, which you can \
+             switch off, reorder or remove in the Attributes panel",
         ));
         crate::dialog::menu(ui, tr(MESH_SHADING_MENU), |ui| {
             self.smoothing_entry(ui);

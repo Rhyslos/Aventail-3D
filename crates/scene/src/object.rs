@@ -288,6 +288,9 @@ pub struct Object {
     /// Its booleans (decision 0135): other objects that cut it, in
     /// order. Empty for most objects.
     pub booleans: Vec<crate::Boolean>,
+    /// Its modifiers (decision 0142), first to last: worked out after its
+    /// edits, booleans and live mirror. Empty for most objects.
+    pub modifiers: Vec<crate::Modifier>,
 }
 
 /// The angle new objects are smoothed by: edges where polygons meet more
@@ -455,6 +458,7 @@ impl Object {
             mirror: None,
             hardness: mesh::Hardness::ByAngle(STANDARD_SMOOTHING_ANGLE),
             booleans: Vec::new(),
+            modifiers: Vec::new(),
         }
     }
 

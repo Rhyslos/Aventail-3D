@@ -533,7 +533,7 @@ pub fn summary(document: &Document, options: &ExportOptions) -> ExportSummary {
         {
             continue;
         }
-        let Some(shape) = scene.shown_shape(id) else {
+        let Some(shape) = scene.exported_shape(id) else {
             continue;
         };
         objects += 1;
@@ -599,8 +599,9 @@ fn exported(
     let to_file = options.to_file();
     let from_file = to_file.inverse();
     let object = scene.object(id)?;
-    // With its live mirror's copies (decision 0088): one mesh.
-    let shape = scene.shown_shape(id)?;
+    // With its live mirror's copies (decision 0088) and its modifiers
+    // (decision 0142): one mesh.
+    let shape = scene.exported_shape(id)?;
     let pivot = to_file * shift * scene.world_matrix(id) * from_file;
     let world = to_file * shift * scene.shape_matrix(id);
     let local = to_file * object.offset.matrix();

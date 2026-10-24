@@ -147,6 +147,10 @@ impl Workbench {
                     _ => Ready::Yes,
                 }
             }
+            CommandId::Remesh => match crate::modifiers::targets(&self.document) {
+                Err(why) => Ready::NotNow(why.into()),
+                Ok(_) => Ready::Yes,
+            },
             CommandId::UvTurnLeft
             | CommandId::UvTurnRight
             | CommandId::UvFlipU
@@ -282,6 +286,16 @@ impl Workbench {
                     self.run_boolean(kind, requests);
                 }
             }
+            CommandId::Remesh => self.run_modifier(command, requests),
+        }
+    }
+
+    /// Adds the modifier `command` stands for to the selected shapes
+    /// (decision 0142). Says why in the status bar when it can't.
+    pub(super) fn run_modifier(&mut self, command: CommandId, requests: &mut Vec<DocRequest>) {
+        match crate::modifiers::command(&self.document, command) {
+            Ok(command) => requests.push(DocRequest::Run(command)),
+            Err(why) => self.note = Some(format!("{why}.")),
         }
     }
 
