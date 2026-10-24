@@ -25,6 +25,7 @@ pub mod stack;
 pub mod tree;
 pub mod trim;
 pub mod units;
+pub mod wrap;
 
 pub use boolean::{
     Boolean, BooleanKind, BooleanProblem, BooleanRefusal, CUT_IN_BACKGROUND_FROM, CutDone, CutJob,
@@ -35,6 +36,7 @@ pub use curve::{CurveObject, CurveShape, CurveSolid, Sweep, SweepProfile};
 pub use document::Document;
 pub use history::HistoryLimit;
 pub use lattice::LatticeOptions;
+pub use mesh::curve::bend::{BendAxis, BendOptions};
 pub use mesh::curve::{
     Curve, CurveEdit, CurveEnd, CurvePart, CurvePoint, CurvePointId, Detail, LatheAxis, LatheShape,
     PartKind, PointKind, ReadyCurve, ReadyCurveKind, Span,
@@ -47,6 +49,7 @@ pub use mesh::edit::{
 pub use mesh::lattice::{Interpolation, Lattice, LatticeEdit};
 pub use mesh::remesh::RemeshOptions;
 pub use mesh::scatter::{PlaceOn, ScatterOptions};
+pub use mesh::shrinkwrap::{ShrinkwrapOptions, WrapMode};
 pub use mesh::subdivide::SubdivideOptions;
 pub use mesh::uvs::{BUDGET_RANGE, SeamPreference, UvLayout};
 pub use mesh::{
@@ -74,6 +77,7 @@ pub use units::{ExportTarget, MAX_DENSITY, TEXTURE_SIZES, TextureSettings, Units
 pub use uv::mend::MendOptions;
 pub use uv::unwrap::RELAX_STEPS;
 pub use uv::{HideSeams, PieceSettings, UnfoldAxis, UnwrapMethod, UnwrapOptions};
+pub use wrap::{CurveBendSettings, ShrinkwrapSettings};
 
 #[cfg(test)]
 mod apply_tests;
@@ -115,3 +119,5 @@ mod tests;
 mod uv_pin_tests;
 #[cfg(test)]
 mod uv_survive_tests;
+#[cfg(test)]
+mod wrap_tests;

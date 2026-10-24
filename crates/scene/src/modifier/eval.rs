@@ -25,6 +25,8 @@ struct Step {
     sources: Vec<SourceShape>,
     /// How the object was smoothed (see [`ModifierContext::hardness`]).
     hardness: mesh::Hardness,
+    /// The object's pivot (see [`ModifierContext::pivot`]).
+    pivot: glam::Vec3,
     /// Its result, or why it couldn't be made (its input is then passed
     /// on unchanged).
     result: Result<Arc<Mesh>, String>,
@@ -44,11 +46,15 @@ struct Planned {
     kind: ModifierKind,
     sources: Vec<SourceShape>,
     hardness: mesh::Hardness,
+    pivot: glam::Vec3,
 }
 
 impl Planned {
     fn is_done_by(&self, step: &Step) -> bool {
-        self.kind == step.kind && self.sources == step.sources && self.hardness == step.hardness
+        self.kind == step.kind
+            && self.sources == step.sources
+            && self.hardness == step.hardness
+            && self.pivot == step.pivot
     }
 }
 
@@ -222,6 +228,7 @@ impl StackJob {
                 purpose: self.purpose,
                 hardness: planned.hardness,
                 sources: planned.sources.clone(),
+                pivot: planned.pivot,
             };
             let result = planned.kind.apply(&input, &context).and_then(|mesh| {
                 if mesh.face_count() > crate::MAX_SHAPE_POLYGONS {
@@ -238,6 +245,7 @@ impl StackJob {
                 kind: planned.kind,
                 sources: planned.sources,
                 hardness: planned.hardness,
+                pivot: planned.pivot,
                 result,
             });
         }
@@ -321,6 +329,7 @@ impl Scene {
         let hardness = self
             .object(owner)
             .map_or(mesh::Hardness::Marked, |o| o.hardness);
+        let pivot = self.pivot_in_shape(id);
         let plan: Vec<Planned> = self
             .modifiers(owner)
             .iter()
@@ -331,6 +340,13 @@ impl Scene {
                 kind: m.kind.clone(),
                 sources: self.source_shapes(id, &m.kind, purpose),
                 hardness,
+                // Only the kinds that read it, so moving the pivot works
+                // out nothing else again.
+                pivot: if m.kind.reads_pivot() {
+                    pivot
+                } else {
+                    glam::Vec3::ZERO
+                },
             })
             .collect();
         if plan.is_empty() {
@@ -481,6 +497,23 @@ impl Scene {
         self.unmodified_shape(id)
     }
 
+    /// Where object `id`'s pivot is in its shape's own space (the origin
+    /// for a shape whose pivot hasn't been moved off it, decision 0068).
+    fn pivot_in_shape(&self, id: ObjectId) -> glam::Vec3 {
+        let offset = self
+            .object(id)
+            .map_or(glam::Mat4::IDENTITY, |o| o.offset.matrix());
+        if offset.determinant().abs() < 1e-12 {
+            return glam::Vec3::ZERO;
+        }
+        let pivot = offset.inverse().transform_point3(glam::Vec3::ZERO);
+        if pivot.is_finite() {
+            pivot
+        } else {
+            glam::Vec3::ZERO
+        }
+    }
+
     /// The shapes `kind` reads for object `id`, each placed into `id`'s
     /// space; a source without a shape is left out.
     fn source_shapes(
@@ -500,11 +533,17 @@ impl Scene {
             .into_iter()
             .filter(|source| *source != id)
             .filter_map(|source| {
-                // A lattice's cage is read as its points (decision 0144);
-                // anything else as its final shape.
+                // A lattice's cage is read as its points (decision 0144),
+                // a curve bent along as its line (decision 0147); anything
+                // else as its final shape.
                 let data = match &self.object(source)?.kind {
                     crate::ObjectKind::Lattice(cage) => {
                         SourceData::Cage(std::sync::Arc::new(cage.clone()))
+                    }
+                    crate::ObjectKind::Curve(curve)
+                        if matches!(kind, ModifierKind::BendAlongCurve(_)) =>
+                    {
+                        SourceData::Curve(std::sync::Arc::new(curve.shape.curve()))
                     }
                     _ => SourceData::Shape(self.final_shape(source, purpose)?),
                 };

@@ -1,4 +1,4 @@
-//! The modifier icons (decisions 0142 to 0146), one per kind of
+//! The modifier icons (decisions 0142 to 0147), one per kind of
 //! modifier on the modifiers palette, and the crease commands'. Original
 //! drawings.
 
@@ -15,6 +15,8 @@ pub(super) fn draw(pen: &mut Pen, icon: Icon) {
         Icon::Lattice => lattice(pen),
         Icon::Decimate => decimate(pen),
         Icon::Scatter => scatter(pen),
+        Icon::BendAlongCurve => bend_along_curve(pen),
+        Icon::Shrinkwrap => shrinkwrap(pen),
         _ => {}
     }
 }
@@ -189,5 +191,58 @@ fn scatter(pen: &mut Pen) {
         ];
         pen.shape(&cone, Paint::Solid);
         pen.stroke(&cone, true, Ink::Line);
+    }
+}
+
+/// Bend along curve: a striped bar lying along a curve that runs on past
+/// its ends.
+fn bend_along_curve(pen: &mut Pen) {
+    // A quarter circle round (4, 21), from the top to the right.
+    let (cx, cy) = (4.0f32, 21.0f32);
+    let at = |r: f32, t: f32| {
+        let a = -std::f32::consts::FRAC_PI_2 * (1.0 - t);
+        (cx + r * a.cos(), cy + r * a.sin())
+    };
+    let (inner, outer) = (11.0, 16.0);
+    let mut band: Vec<(f32, f32)> = (0..=8).map(|i| at(outer, 0.1 + 0.1 * i as f32)).collect();
+    band.extend((0..=8).rev().map(|i| at(inner, 0.1 + 0.1 * i as f32)));
+    pen.shape(&band, Paint::Tone);
+    pen.stroke(&band, true, Ink::Line);
+    for t in [0.3, 0.5, 0.7] {
+        pen.stroke(&[at(inner, t), at(outer, t)], false, Ink::Line);
+    }
+    // The curve it follows, through the bar's middle and past its ends.
+    let curve: Vec<(f32, f32)> = (0..=12).map(|i| at(13.5, i as f32 / 12.0)).collect();
+    pen.stroke(&curve, false, Ink::Dashed);
+}
+
+/// Shrinkwrap: a sheet pressed down onto a hump, hugging it, with arrows
+/// pressing it on.
+fn shrinkwrap(pen: &mut Pen) {
+    // The hump: half a circle round (12, 21).
+    let hump: Vec<(f32, f32)> = (0..=12)
+        .map(|i| {
+            let a = std::f32::consts::PI * (1.0 + i as f32 / 12.0);
+            (12.0 + 8.0 * a.cos(), 21.0 + 8.0 * a.sin())
+        })
+        .collect();
+    pen.shape(&hump, Paint::Tone);
+    pen.stroke(&hump, true, Ink::Faint);
+    // The sheet, a little above it and flat beyond it.
+    let mut sheet = vec![(2.0, 19.5)];
+    sheet.extend((0..=12).map(|i| {
+        let a = std::f32::consts::PI * (1.0 + i as f32 / 12.0);
+        (12.0 + 9.5 * a.cos(), 21.0 + 9.5 * a.sin())
+    }));
+    sheet.push((22.0, 19.5));
+    pen.stroke(&sheet, false, Ink::Line);
+    // Arrows pressing down.
+    for x in [5.0, 19.0] {
+        pen.stroke(&[(x, 3.0), (x, 9.0)], false, Ink::Line);
+        pen.stroke(
+            &[(x - 2.0, 7.0), (x, 9.0), (x + 2.0, 7.0)],
+            false,
+            Ink::Line,
+        );
     }
 }

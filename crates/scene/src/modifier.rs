@@ -33,6 +33,7 @@ pub use crate::lattice::LatticeOptions;
 use crate::object::{ObjectId, ObjectKind};
 pub use crate::scatter::ScatterSettings;
 use crate::tree::Scene;
+pub use crate::wrap::{CurveBendSettings, ShrinkwrapSettings};
 use glam::{Mat4, Vec3};
 use mesh::Mesh;
 use mesh::decimate::DecimateOptions;
@@ -104,6 +105,11 @@ pub enum ModifierKind {
     Decimate(DecimateOptions),
     /// Copies of other shapes spread over the surface (decision 0146).
     Scatter(ScatterSettings),
+    /// The shape bent along a curve object (decision 0147).
+    BendAlongCurve(CurveBendSettings),
+    /// The shape's points moved onto another shape's surface (decision
+    /// 0147).
+    Shrinkwrap(ShrinkwrapSettings),
 }
 
 impl ModifierKind {
@@ -114,6 +120,8 @@ impl ModifierKind {
             Self::Subdivide(SubdivideOptions::default()),
             Self::Scatter(ScatterSettings::default()),
             Self::Lattice(LatticeOptions::default()),
+            Self::BendAlongCurve(CurveBendSettings::default()),
+            Self::Shrinkwrap(ShrinkwrapSettings::default()),
             Self::Remesh(RemeshOptions::default()),
             Self::Decimate(DecimateOptions::default()),
         ]
@@ -127,6 +135,8 @@ impl ModifierKind {
             Self::Lattice(_) => tr("Lattice"),
             Self::Decimate(_) => tr("Decimate"),
             Self::Scatter(_) => tr("Scatter"),
+            Self::BendAlongCurve(_) => tr("Bend along curve"),
+            Self::Shrinkwrap(_) => tr("Shrinkwrap"),
         }
     }
 
@@ -156,6 +166,15 @@ impl ModifierKind {
                  plate. Select the surface first, then Ctrl + click the shapes to scatter. They \
                  stay shapes of their own: edit one and every copy follows.",
             ),
+            Self::BendAlongCurve(_) => tr(
+                "Bend a shape along a curve: a rope, a rail, a vine. Select the shape first, then \
+                 Ctrl + click the curve. The curve stays live: reshape it and the shape follows.",
+            ),
+            Self::Shrinkwrap(_) => tr(
+                "Move a shape's points onto another shape's surface: a strap round a body, a \
+                 decal sheet, a road on terrain. Select the shape first, then Ctrl + click the \
+                 target.",
+            ),
         }
     }
 
@@ -167,6 +186,7 @@ impl ModifierKind {
             Self::Lattice(_) => ModifierFamily::Deform,
             Self::Decimate(_) => ModifierFamily::CleanUp,
             Self::Scatter(_) => ModifierFamily::Generate,
+            Self::BendAlongCurve(_) | Self::Shrinkwrap(_) => ModifierFamily::Deform,
         }
     }
 
@@ -174,7 +194,12 @@ impl ModifierKind {
     /// Subdivide modifier's two levels).
     pub fn differs_by_purpose(&self) -> bool {
         match self {
-            Self::Remesh(_) | Self::Lattice(_) | Self::Decimate(_) | Self::Scatter(_) => false,
+            Self::Remesh(_)
+            | Self::Lattice(_)
+            | Self::Decimate(_)
+            | Self::Scatter(_)
+            | Self::BendAlongCurve(_)
+            | Self::Shrinkwrap(_) => false,
             Self::Subdivide(o) => {
                 let o = o.clamped();
                 o.levels != o.export_levels
@@ -196,6 +221,8 @@ impl ModifierKind {
             Self::Lattice(options) => Self::Lattice(*options),
             Self::Decimate(options) => Self::Decimate(options.clamped()),
             Self::Scatter(settings) => Self::Scatter(settings.clamped()),
+            Self::BendAlongCurve(settings) => Self::BendAlongCurve(settings.clamped()),
+            Self::Shrinkwrap(settings) => Self::Shrinkwrap(settings.clamped()),
         }
     }
 
@@ -208,13 +235,24 @@ impl ModifierKind {
             Self::Remesh(_) | Self::Subdivide(_) | Self::Decimate(_) => Vec::new(),
             Self::Lattice(options) => vec![options.cage],
             Self::Scatter(settings) => settings.shapes.clone(),
+            Self::BendAlongCurve(settings) => vec![settings.curve],
+            Self::Shrinkwrap(settings) => vec![settings.target],
         }
     }
 
     /// Whether it needs at least one source to make sense (a scatter with
     /// no shapes is refused, as a lattice with no cage is).
     pub fn needs_sources(&self) -> bool {
-        matches!(self, Self::Lattice(_) | Self::Scatter(_))
+        matches!(
+            self,
+            Self::Lattice(_) | Self::Scatter(_) | Self::BendAlongCurve(_) | Self::Shrinkwrap(_)
+        )
+    }
+
+    /// Whether it reads the object's own pivot ([`ModifierContext::pivot`]):
+    /// Bend along curve measures across the curve from it.
+    pub fn reads_pivot(&self) -> bool {
+        matches!(self, Self::BendAlongCurve(_))
     }
 
     /// The same modifier once the objects `going` are deleted, or `None`
@@ -232,13 +270,17 @@ impl ModifierKind {
     }
 
     /// Whether an object of `kind` can be one of its sources: a lattice
-    /// reads a cage, a scatter shapes.
+    /// reads a cage, Bend along curve a curve, a scatter and Shrinkwrap
+    /// shapes.
     pub fn takes_source(&self, kind: &ObjectKind) -> bool {
         match self {
             Self::Lattice(_) => matches!(kind, ObjectKind::Lattice(_)),
-            Self::Remesh(_) | Self::Subdivide(_) | Self::Decimate(_) | Self::Scatter(_) => {
-                kind.has_shape()
-            }
+            Self::BendAlongCurve(_) => matches!(kind, ObjectKind::Curve(_)),
+            Self::Remesh(_)
+            | Self::Subdivide(_)
+            | Self::Decimate(_)
+            | Self::Scatter(_)
+            | Self::Shrinkwrap(_) => kind.has_shape(),
         }
     }
 
@@ -252,6 +294,14 @@ impl ModifierKind {
             }),
             Self::Scatter(settings) => Self::Scatter(ScatterSettings {
                 shapes: settings.shapes.iter().map(|s| rename(*s)).collect(),
+                ..settings.clone()
+            }),
+            Self::BendAlongCurve(settings) => Self::BendAlongCurve(CurveBendSettings {
+                curve: rename(settings.curve),
+                ..*settings
+            }),
+            Self::Shrinkwrap(settings) => Self::Shrinkwrap(ShrinkwrapSettings {
+                target: rename(settings.target),
                 ..settings.clone()
             }),
         }
@@ -293,6 +343,9 @@ impl ModifierKind {
             }
             // Depends on its shapes' sizes: see `work_with`.
             Self::Scatter(settings) => crate::scatter::scatter_work(input, settings, &[]),
+            Self::BendAlongCurve(_) => crate::wrap::bend_work(input),
+            // Depends on its target's size: see `work_with`.
+            Self::Shrinkwrap(_) => crate::wrap::shrinkwrap_work(input, &[]),
         }
     }
 
@@ -301,6 +354,7 @@ impl ModifierKind {
     pub fn work_with(&self, input: &Mesh, purpose: Purpose, sources: &[SourceShape]) -> usize {
         match self {
             Self::Scatter(settings) => crate::scatter::scatter_work(input, settings, sources),
+            Self::Shrinkwrap(_) => crate::wrap::shrinkwrap_work(input, sources),
             _ => self.work(input, purpose),
         }
     }
@@ -333,6 +387,8 @@ impl ModifierKind {
             Self::Decimate(options) => mesh::decimate::decimate(input, options, context.hardness)
                 .map_err(|why| why.to_string()),
             Self::Scatter(settings) => crate::scatter::apply_scatter(input, settings, context),
+            Self::BendAlongCurve(settings) => crate::wrap::apply_bend(input, settings, context),
+            Self::Shrinkwrap(settings) => crate::wrap::apply_shrinkwrap(input, settings, context),
         }
     }
 }
@@ -359,6 +415,9 @@ pub struct ModifierContext {
     /// Its sources' final shapes, placed into the object's own space, in
     /// the order [`ModifierKind::sources`] lists them.
     pub sources: Vec<SourceShape>,
+    /// The object's own pivot, in its shape's space, for the kinds that
+    /// read it ([`ModifierKind::reads_pivot`]); the origin for the others.
+    pub pivot: Vec3,
 }
 
 /// Another object a modifier reads.
@@ -386,6 +445,9 @@ pub enum SourceData {
     Shape(Arc<Mesh>),
     /// A lattice's cage (decision 0144).
     Cage(Arc<mesh::lattice::Lattice>),
+    /// A curve's line, its points and handles (decision 0147), not its
+    /// solid.
+    Curve(Arc<mesh::curve::Curve>),
 }
 
 impl PartialEq for SourceData {
@@ -393,6 +455,7 @@ impl PartialEq for SourceData {
         match (self, other) {
             (Self::Shape(a), Self::Shape(b)) => Arc::ptr_eq(a, b) || **a == **b,
             (Self::Cage(a), Self::Cage(b)) => Arc::ptr_eq(a, b) || **a == **b,
+            (Self::Curve(a), Self::Curve(b)) => Arc::ptr_eq(a, b) || **a == **b,
             _ => false,
         }
     }

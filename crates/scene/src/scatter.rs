@@ -78,7 +78,7 @@ pub(crate) fn scatter_work(
         .iter()
         .filter_map(|s| match &s.data {
             SourceData::Shape(mesh) => Some(mesh.face_count()),
-            SourceData::Cage(_) => None,
+            _ => None,
         })
         .collect();
     mesh::scatter::polygons_added(input, &settings.options, &sizes) / 8
