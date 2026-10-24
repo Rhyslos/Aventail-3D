@@ -96,5 +96,6 @@ Quadify has no key of its own.
 - [Clean-up](clean-up.md): delete, dissolve, fill holes and fix normals
 - [Remesh](remesh.md), for a new even layout of quads from scratch
 - [Subdivide](subdivide.md), which smooths quads best
+- [Triangles](triangulate.md): the opposite, Show triangles and the Triangulate modifier
 - [Concepts: quad, triangle, quadify, modifier](concepts.md#mesh-basics)
 - Why it works this way: [decision 0150](../decisions/0150-quadify.md)

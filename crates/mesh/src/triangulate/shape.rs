@@ -3,7 +3,7 @@
 //!
 //! Both use the cut the export uses ([`super::face_triangles`]), so what
 //! the viewport shows and what the modifier bakes are exactly what a glTF
-//! file (or an OBJ with *Triangulate* ticked) gets. *Beauty* then evens
+//! file (or an OBJ with *Cut polygons into triangles* ticked) gets. *Beauty* then evens
 //! out flat polygons' triangles ([`super::beauty`]).
 //!
 //! The first triangle of each cut polygon keeps the polygon's id; the
