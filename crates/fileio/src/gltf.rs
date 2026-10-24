@@ -334,12 +334,18 @@ fn box_around(shape: &crate::export::ExportMesh) -> crate::export::ExportMesh {
     }
 }
 
+/// The glTF extension that hides a node (`KHR_node_visibility`), which
+/// Godot reads (decision 0155).
+const NODE_VISIBILITY_EXTENSION: &str = "KHR_node_visibility";
+
 /// The bytes of a binary glTF file holding `objects` (made with metres,
 /// Y up and triangles), naming `generator` as the program that made it.
 /// With `godot_names`, objects' names carry their collision for Godot,
 /// an object that collides as a box gets a box beside it called
 /// `name-convcolonly` (decision 0078), and one wrapped in parts gets its
 /// parts beside it, `name-part1-convcolonly` and on (decision 0151).
+/// Levels of detail go beside their object as `name_LOD1` and on, with
+/// their distances in `extras` (hidden for Godot; decision 0155).
 pub fn write_glb(objects: &[ExportedObject], generator: &str, godot_names: bool) -> Vec<u8> {
     let materials = crate::export::file_materials(objects);
     let boxes: Vec<ExportedObject> = if godot_names {
@@ -354,6 +360,7 @@ pub fn write_glb(objects: &[ExportedObject], generator: &str, godot_names: bool)
                     local: shape,
                     collision: scene::Collision::None,
                     collision_parts: Vec::new(),
+                    levels: Vec::new(),
                     ..o.clone()
                 }
             })
@@ -363,10 +370,19 @@ pub fn write_glb(objects: &[ExportedObject], generator: &str, godot_names: bool)
     };
     // Collision in parts: each part beside its object (decision 0151).
     let parts = crate::export::part_objects(objects);
+    // Levels of detail: each beside its object (decision 0155).
+    let levels = crate::export::level_objects(objects);
     let mut b = Builder::default();
     let mut nodes = Vec::new();
     let mut meshes = Vec::new();
-    for object in objects.iter().chain(&boxes).chain(&parts) {
+    let mut hidden_nodes = false;
+    let marked = objects
+        .iter()
+        .map(|o| (o, crate::export::level_marks(o).first().copied()))
+        .map(|(o, mark)| (o, mark.filter(|_| !o.levels.is_empty())));
+    let plain = boxes.iter().chain(&parts).map(|o| (o, None));
+    let levels = levels.iter().map(|(o, mark)| (o, Some(*mark)));
+    for (object, mark) in marked.chain(plain).chain(levels) {
         let vertices = vertices(&object.local);
         if vertices.positions.is_empty() {
             continue;
@@ -407,6 +423,24 @@ pub fn write_glb(objects: &[ExportedObject], generator: &str, godot_names: bool)
         if !object.pivot.abs_diff_eq(glam::Mat4::IDENTITY, 1e-6) {
             node["matrix"] = json!(matrix(object.pivot));
         }
+        if let Some(mark) = mark {
+            node["extras"] = json!({
+                "lod_level": mark.level,
+                "lod_begin": mark.begin,
+                "lod_end": mark.end,
+            });
+            // Godot shows every node it imports: the levels wait hidden
+            // until they are set up (Godot reads `KHR_node_visibility`).
+            if godot_names && mark.level > 0 {
+                let mut extensions = serde_json::Map::new();
+                extensions.insert(
+                    NODE_VISIBILITY_EXTENSION.to_string(),
+                    json!({ "visible": false }),
+                );
+                node["extensions"] = Json::Object(extensions);
+                hidden_nodes = true;
+            }
+        }
         nodes.push(node);
     }
     let mut document = json!({
@@ -418,6 +452,9 @@ pub fn write_glb(objects: &[ExportedObject], generator: &str, godot_names: bool)
         "materials": gltf_materials(&materials),
         "buffers": [{ "byteLength": b.bin.len() }],
     });
+    if hidden_nodes {
+        document["extensionsUsed"] = json!([NODE_VISIBILITY_EXTENSION]);
+    }
     if !b.views.is_empty() {
         document["bufferViews"] = json!(b.views);
         document["accessors"] = json!(b.accessors);

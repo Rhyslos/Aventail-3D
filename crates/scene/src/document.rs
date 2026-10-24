@@ -109,6 +109,13 @@ impl Document {
         Ok(self)
     }
 
+    /// The same document with object `id`'s levels of detail set (see
+    /// [`crate::Scene::with_lods`]), for a project being opened.
+    pub fn with_lods(mut self, id: ObjectId, lods: crate::Lods) -> Result<Self, &'static str> {
+        self.scene = std::mem::take(&mut self.scene).with_lods(id, lods)?;
+        Ok(self)
+    }
+
     /// The same document with object `id`'s booleans set (see
     /// [`Scene::with_booleans`]), for a project being opened.
     pub fn with_booleans(

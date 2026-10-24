@@ -263,6 +263,11 @@ fn general(
             "Shapes and their materials always go out. Skeletons and animations will be \
              listed here once the app has them, to leave out when you don't need them.",
         ));
+        dialog::chip(ui, &mut choice.lod_levels, tr("Levels of detail")).on_hover_text(tr(
+            "Each object's levels of detail (Attributes → Levels of detail) go out beside it \
+             as meshes of their own, named like Rock_LOD1, with the distances they show from. \
+             Godot makes its own levels when it imports a file, so it doesn't need these",
+        ));
     });
     match choice.preset {
         Some(preset) => {

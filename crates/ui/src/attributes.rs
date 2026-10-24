@@ -17,6 +17,7 @@ mod fields;
 mod last_edit;
 mod lattice_rows;
 mod live_bevel_rows;
+mod lod_rows;
 mod materials;
 mod mesh_check;
 pub(crate) mod modifier_rows;
@@ -377,6 +378,7 @@ impl AttributesPanel {
                 if solid {
                     crate::booleans::attributes_section(ui, doc, id, out);
                     self.modifiers_section(ui, doc, id, units, out);
+                    self.lods_section(ui, doc, id, units, out);
                     self.materials_section(ui, doc, id, out);
                 }
                 if let Some(shape) = doc.scene().evaluated(id) {

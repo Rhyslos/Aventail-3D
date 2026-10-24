@@ -195,10 +195,32 @@ impl Workbench {
             }
             MenuAction::EditPivot => self.toggle_edit_pivot(),
             MenuAction::ApplyMirror => self.apply_mirror(),
+            MenuAction::MakeLods => self.make_lods(requests),
             MenuAction::Group => requests.push(DocRequest::Run(scene::Command::Create(
                 scene::ObjectKind::Group,
             ))),
         }
+    }
+
+    /// Make levels of detail (decision 0155): switches levels of detail on
+    /// for the selected shapes, with the first one's settings.
+    pub(super) fn make_lods(&mut self, requests: &mut Vec<DocRequest>) {
+        let scene = self.document.scene();
+        let ids: Vec<scene::ObjectId> = self
+            .document
+            .selection()
+            .into_iter()
+            .filter(|id| scene.object(*id).is_some_and(|o| o.kind.has_shape()))
+            .collect();
+        let Some(first) = ids.first().and_then(|id| scene.object(*id)) else {
+            self.note = Some(tr("Make levels of detail: select a shape first.").into());
+            return;
+        };
+        let lods = scene::Lods {
+            on: true,
+            ..first.lods.clone()
+        };
+        requests.push(DocRequest::Run(scene::Command::SetLods { ids, lods }));
     }
 
     /// Help → User manual: opens the manual in the web browser.

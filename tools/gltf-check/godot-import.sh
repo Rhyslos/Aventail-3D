@@ -3,7 +3,8 @@
 # a game developer's Godot would, and fails if Godot reports an error or
 # leaves a file unimported. Then opens each imported scene and checks it
 # holds meshes, and that Godot turned the collision names into collision
-# shapes (decision 0078).
+# shapes (decision 0078), and the levels of detail into visibility ranges
+# (decision 0155).
 #
 # Usage:
 #   tools/gltf-check/godot-import.sh <godot program> <folder of .glb files>
@@ -39,6 +40,20 @@ GODOT
 mkdir "$project/models"
 cp "${files[@]}" "$project/models/"
 cp "$here/check-scenes.gd" "$project/"
+# Levels of detail (decision 0155) are imported with the post-import
+# script the manual gives, as a game developer would set it up.
+cp "$here/lod_ranges.gd" "$project/"
+if [ -f "$project/models/godot-lods.glb" ]; then
+    cat >"$project/models/godot-lods.glb.import" <<'IMPORT'
+[remap]
+
+importer="scene"
+
+[params]
+
+import_script/path="res://lod_ranges.gd"
+IMPORT
+fi
 
 # Import everything, then quit.
 log="$project/import.log"

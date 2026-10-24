@@ -311,6 +311,11 @@ pub(crate) struct DrawingCache {
     /// Each object's last shape after its modifiers, to show while newer
     /// work is done.
     last_stack: std::collections::HashMap<ObjectId, Arc<Mesh>>,
+    /// Heavy levels of detail being made on other threads (decision 0155).
+    lodding: std::collections::HashMap<ObjectId, std::thread::JoinHandle<scene::LodDone>>,
+    /// Each previewed object's last level drawn, to show while newer work
+    /// is done.
+    last_lod: std::collections::HashMap<ObjectId, Arc<Mesh>>,
 }
 
 impl DrawingCache {
@@ -326,6 +331,8 @@ impl DrawingCache {
         self.cutting.clear();
         self.last_stack.clear();
         self.stacking.clear();
+        self.last_lod.clear();
+        self.lodding.clear();
     }
 
     /// The summary of `document`, with the selected objects' `editing`
@@ -340,7 +347,8 @@ impl DrawingCache {
         // A heavy cut or modifier worked out since: kept by the scene, and
         // drawn.
         let cuts = self.collect_cuts(document.scene());
-        if self.collect_stacks(document.scene()) || cuts {
+        let lods = self.collect_lods(document.scene());
+        if self.collect_stacks(document.scene()) || cuts || lods {
             self.built_for = None;
         }
         let key = (
@@ -407,6 +415,8 @@ impl DrawingCache {
                     .with_mirror(id, &cut)
                     .map_or_else(|| Arc::clone(&cut), Arc::new)
             };
+            // A level of detail shown in its place (decision 0155).
+            let drawn = self.previewed(scene, id, drawn, document.is_selected(id));
             let selected = document.is_selected(id);
             if let Some(cage) = cage {
                 // Its points to edit in the Points mode, else nothing to
@@ -522,7 +532,7 @@ impl DrawingCache {
     /// Whether heavy cuts or modifiers are being worked out on other
     /// threads (the window keeps drawing until they are in).
     pub(crate) fn busy(&self) -> bool {
-        !self.cutting.is_empty() || !self.stacking.is_empty()
+        !self.cutting.is_empty() || !self.stacking.is_empty() || !self.lodding.is_empty()
     }
 
     /// Hands every finished cut to the scene; whether any was.
@@ -570,6 +580,7 @@ impl DrawingCache {
     }
 }
 
+mod lod;
 mod stack;
 
 #[cfg(test)]

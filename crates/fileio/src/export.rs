@@ -23,6 +23,8 @@
 
 pub(crate) use collision::part_objects;
 use glam::{Mat4, Vec2, Vec3};
+pub use lods::{ExportLevel, LevelMark};
+pub(crate) use lods::{level_objects, marks as level_marks};
 use mesh::{AttributeElement, FaceId, Hardness, Mesh, Value};
 use scene::{Document, Material, ObjectId};
 use serde::{Deserialize, Serialize};
@@ -88,6 +90,9 @@ pub struct ExportOptions {
     /// Whether objects' names carry Godot's collision hints (`-col`,
     /// `-convcol`, and a `-convcolonly` box; decision 0078). glTF only.
     pub godot_names: bool,
+    /// Whether objects with levels of detail get each level beside them
+    /// as an object of its own, `name_LOD1` and on (decision 0155).
+    pub lod_levels: bool,
 }
 
 impl Default for ExportOptions {
@@ -99,6 +104,7 @@ impl Default for ExportOptions {
             hardness: None,
             triangulate: false,
             godot_names: false,
+            lod_levels: false,
         }
     }
 }
@@ -364,6 +370,19 @@ pub fn write_files(
                 .filter(|s| !s.is_empty())
                 .unwrap_or("materials");
             let mtl = format!("{stem}.mtl");
+            // Levels of detail as objects of their own (decision 0155).
+            let levels = level_objects(objects);
+            let with_levels: Vec<ExportedObject>;
+            let objects = if levels.is_empty() {
+                objects
+            } else {
+                with_levels = objects
+                    .iter()
+                    .cloned()
+                    .chain(levels.into_iter().map(|(o, _)| o))
+                    .collect();
+                &with_levels
+            };
             ExportFiles {
                 main: crate::obj::write_obj(objects, options, generator, Some(&mtl)).into_bytes(),
                 beside: vec![(mtl, crate::obj::write_mtl(objects, generator).into_bytes())],
@@ -493,6 +512,9 @@ pub struct ExportedObject {
     /// pivot in the file's units and axes as `local`: only for an object
     /// wrapped in parts, in an export with Godot's names.
     pub collision_parts: Vec<ExportMesh>,
+    /// Its levels of detail (decision 0155), simplest last: only for an
+    /// object with them, in an export that asks for them.
+    pub levels: Vec<ExportLevel>,
 }
 
 /// The objects of `document` to export with `options`, in the Objects
@@ -631,10 +653,15 @@ fn exported(
     } else {
         Vec::new()
     };
+    let mut levels = lods::levels(scene, id, &shape, (world, local), &shading);
     let mut world = export_mesh(&shape, world, &shading);
     let mut local = export_mesh(&shape, local, &shading);
     // A slot with no material in the list uses the first.
-    for p in world.polygons.iter_mut().chain(local.polygons.iter_mut()) {
+    let meshes = levels
+        .iter_mut()
+        .flat_map(|l| [&mut l.world, &mut l.local])
+        .chain([&mut world, &mut local]);
+    for p in meshes.flat_map(|m| m.polygons.iter_mut()) {
         if p.material as usize >= materials.len() {
             p.material = 0;
         }
@@ -648,6 +675,7 @@ fn exported(
         materials,
         collision: object.collision,
         collision_parts,
+        levels,
     })
 }
 
@@ -740,6 +768,9 @@ pub fn export_mesh(mesh: &Mesh, matrix: Mat4, options: &ExportOptions) -> Export
 }
 
 mod collision;
+mod lods;
+#[cfg(test)]
+mod lods_tests;
 #[cfg(test)]
 mod normals_tests;
 #[cfg(test)]

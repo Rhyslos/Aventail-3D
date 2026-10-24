@@ -327,6 +327,7 @@ Change the collision parts
 Change the folder or switch it off under 
 Change the game project folder
 Change the layout snapshots
+Change the levels of detail
 Change the mirror
 Change the original and every instance follows. Bake into shape (Ctrl + E) gives this one its own shape.
 Change the texture settings
@@ -611,6 +612,7 @@ Each copy gets a random size between Smallest and Largest: 100% is the shape's o
 Each hexagon's size, from its middle to a corner
 Each material's pieces fill a square of their own, as separate texture sets
 Each metre square cut into four: lines every 50 cm
+Each object's levels of detail (Attributes → Levels of detail) go out beside it as meshes of their own, named like Rock_LOD1, with the distances they show from. Godot makes its own levels when it imports a file, so it doesn't need these
 Each object's pieces fill a square of their own
 Each piece is laid flat all three ways and keeps the one that lies most evenly. Always the same choice for the same piece; slowest of all.
 Each point goes along its own facing, so the end follows the surface's curve at an even thickness, like puffing it out.
@@ -754,6 +756,7 @@ From the front of the first step to the back of the last (along Y)
 From the middle to the centre of the ring's tube
 From top
 Front
+Full shape
 Game project
 Game project folder
 Game project folder set. It isn't inside a Godot, Unity, Unreal Engine or Solis project, so exports go there with {}'s settings. Every save now exports there too.
@@ -773,6 +776,7 @@ Give the selected pieces a stretch budget of their own
 Give the selected pieces their own unwrap settings
 Give the selected polygons the material {}
 Give the selected shapes of the same kind the copied settings
+Give the selected shapes simpler copies for a game to draw far away; their settings are in Attributes → Levels of detail
 Give the selection these settings
 Give the selection this budget
 Go back to showing the last edit
@@ -864,6 +868,7 @@ How far apart the grid the shape is rebuilt on is: about the size of the new pol
 How far each copy is from the one before, as a share of the shape's size: 1 touches, more leaves a gap. Up and along at once makes stairs
 How far each copy is from the one before. Up and along at once makes stairs
 How far each copy is moved out from the centre before it is turned. With 0, the copies turn where the shape is: move the shape off its pivot, or raise this
+How far from the camera a game starts showing this level instead of the one before. It goes into the exported file for the game to use
 How far from the middle
 How far it bends: 90° for a corner, 360° for a whole ring
 How far it was pushed (in the object's own size). Change it and the shape follows.
@@ -921,6 +926,7 @@ How many rows of polygons each bevel has: 1 is a flat cut, more is rounder
 How many rows the bevel has: 1 is a flat cut (a chamfer), more make it round
 How many rows the bridge has: more make a longer bridge bend smoothly later. Ctrl + wheel changes it.
 How many rows the new walls have: more give loops to bend or shape later. Ctrl + wheel changes it.
+How many simpler copies: each one is shown from farther away than the one before
 How many steps
 How many steps of evening out Relax takes (60 standard). More evens stretched UVs out further; a few just smooths them a little.
 How many straight pieces make up the circle
@@ -931,10 +937,12 @@ How many times exports and Bake into shape split and smooth it: often one more t
 How many times round it goes
 How many times the viewport splits and smooths the shape: each level has four times the polygons. 0 shows the shape as it is.
 How many triangles the shape in the viewport has, after all its modifiers
+How many triangles this level has, as a game counts them
 How many triangles to end with. Fewer can't always be reached: kept lines' corners never move.
 How modelling edits fix the UVs they break (saved with the project)
 How much Relax evens UVs out
 How much of a circle: 90° for a quarter
+How much of the full shape this level keeps, as a share of its triangles. A level with a larger share than the one before is made the same as that one
 How much the biggest polygon at a point wins over the smaller ones. 0%: each counts by its weight alone; 100%: only the biggest counts, so big faces shade perfectly flat
 How shapes are drawn: shaded, with wires, or wireframe
 How sharply the Subdivide modifier keeps these edges: 0 smooths them like any other, 1 keeps them fully sharp, 0.5 sharp for half the levels
@@ -1071,8 +1079,10 @@ Let the automatic tools change the selected pieces again
 Let the automatic tools choose freely again on the selected edges (or polygons)
 Let the selected points' handles shape themselves from their neighbours, a third of the way to each, following as the neighbours move
 Let the selected points' two handles move on their own, for a kink with curved sides
+Level {}
 Levels
 Levels for export
+Levels of detail
 Lift each copy off the surface along its outward direction, or sink it in below 0 (a copy stands on its pivot: put a shape's pivot at its foot)
 Like Keep shapes, but the angles are first evened out over the whole piece, so curved pieces (a head, a dome) drift less. A little slower.
 Line
@@ -1108,8 +1118,12 @@ M / A (Points mode, the two ends selected)
 Made for
 Make every bevelled edge's new polygon the same width, however sharp or flat the edge is (the width you set is what a right-angled edge gets)
 Make instances of the selected objects right where they are: they show the original's shape and follow its changes. Or Alt + C, then Alt + V.
+Make levels
+Make levels of detail
+Make levels of detail: select a shape first.
 Make points sharp
 Make points smooth
+Make simpler copies of the shape for a game to draw when it is far away, where the detail can't be seen anyway. The shape itself doesn't change
 Make the mirrored half of a symmetrical object part of its shape (symmetry off)
 Make the mirrored half part of the shape for real, as Blender's Apply: the mirror is gone, both halves stay, and each half can be changed on its own from then on
 Make the mirrored half part of the shape for real: symmetry goes off and both halves stay
@@ -1239,6 +1253,7 @@ No edit layers yet. The first edit you make goes into a layer called Edits. Add 
 No edits
 No folder for backup copies could be found on this computer.
 No keys match.
+No levels of detail: {}.
 No objects yet
 No perspective, from any direction: orbit it freely; parallel lines stay parallel
 No pieces exported.
@@ -1432,6 +1447,7 @@ Prefer seams here
 Prefer seams on
 Preparing a heavy shape for drawing…
 Press E for the tools of what you're working on. Every look holds the same tools in the same places.
+Preview
 Profile
 Projects you save or open are listed here
 Push the selected polygons or edges out, building new sides between the old place and the new. With points selected along an open edge, the edges between them grow new polygons
@@ -1717,6 +1733,7 @@ Show {} in the viewport
 Showing {} hidden object{} again.
 Showing {} hidden object{} and {} polygon{} again.
 Showing {} hidden polygon{} again.
+Shown from
 Shown uncut: {}. Booleans need closed solids.
 Shows the shape of: {}
 Shrink
@@ -1912,6 +1929,7 @@ The first material can't be removed
 The first selected has no shape of its own: select a shape first
 The first selected has no shape to scatter onto: select a shape first
 The first selected is an instance: select its original, or bake it into a shape first
+The full shape has {} triangles.
 The gap between pieces, in texture pixels (half of it to the square's edges). Keeps colours from bleeding between pieces when the texture is shrunk; 8 px suits a 2048 texture.
 The gizmo follows the object's own axes.
 The gizmo follows the world's axes.
@@ -2178,6 +2196,7 @@ Whether these pieces, when they're strips of square quads, come out as straight 
 Which edges a Live bevel set to Marked edges bevels, and how wide: 0 not at all, 1 its full width, 0.5 half of it
 Which edges are bevelled: those sharper than an angle, those the shading shows hard, or those you give a Bevel weight (in the Edges mode, press 2)
 Which keyboard to draw. Letters follow what is printed on your keys; the number row is always 1 to 0.
+Which level the viewport shows in the shape's place, to check how it looks from afar. Only the view changes: you still select and edit the full shape
 Which of the curve's own axes it spins round, through its pivot
 Which of the shape's own axes runs along the curve: its longest side, or X, Y or Z. The shape's start along it goes to the curve's start.
 Which of the shape's own axes the ring turns round. Z, up, lays it on the ground
@@ -2320,6 +2339,7 @@ an object can't go inside itself or one of its children
 an object is listed as an instance twice
 an object is not where it was
 an object with no shape has collision parts
+an object with no shape has levels of detail
 an object with that id already exists
 an object's booleans are listed twice
 an object's booleans have changed
@@ -2327,6 +2347,7 @@ an object's collision has changed
 an object's collision is stored twice
 an object's collision parts have changed
 an object's id is impossibly large
+an object's levels of detail have changed
 an object's materials are stored twice
 an object's materials have changed
 an object's mesh layers are listed twice
@@ -2427,6 +2448,7 @@ its format version is 0
 its game project folder is empty, too long or broken over lines
 its header is cut short ({})
 its layout snapshots are too many, unnamed or share a name
+its levels of detail name an object that isn't there
 its loop cut is across an edge joining a point to itself
 its loop cut's position isn't a real number
 its mending limits are out of range

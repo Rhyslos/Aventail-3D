@@ -277,6 +277,7 @@ fn tangents_go_into_the_file() {
         materials: vec![scene::Material::standard()],
         collision: scene::Collision::None,
         collision_parts: Vec::new(),
+        levels: Vec::new(),
     };
     let glb = write_glb(&[object], "Test App 1.0", false);
     let (json, _) = parts(&glb);
@@ -714,6 +715,30 @@ fn files_for_outside_checkers() {
         })
         .unwrap();
     write("godot-collision-parts.glb", &in_parts, &godot_options);
+
+    // Levels of detail (decision 0155): a sphere and a ring, each with
+    // three levels beside it, hidden for Godot, with their distances.
+    let mut levelled = scene_of(&[PrimitiveKind::Sphere, PrimitiveKind::Torus]);
+    let ids: Vec<_> = levelled
+        .scene()
+        .walk()
+        .into_iter()
+        .map(|(id, _)| id)
+        .collect();
+    levelled
+        .execute(Command::SetLods {
+            ids,
+            lods: scene::Lods {
+                on: true,
+                ..scene::Lods::default()
+            },
+        })
+        .unwrap();
+    let lod_options = ExportOptions {
+        lod_levels: true,
+        ..godot_options
+    };
+    write("godot-lods.glb", &levelled, &lod_options);
 
     // Weighted normals (decision 0148): custom normals in NORMAL, and the
     // tangents made from them.
