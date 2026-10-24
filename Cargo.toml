@@ -39,7 +39,7 @@ wgpu = "30.0"
 bytemuck = { version = "1.25", features = ["derive"] }
 # The window and frame loop (winit + wgpu underneath); see
 # docs/decisions/0008-window-and-panels.md.
-eframe = { version = "0.36", features = ["persistence"] }
+eframe = { version = "0.37", features = ["persistence"] }
 egui = "0.36"
 egui_dock = { version = "0.21", features = ["serde"] }
 # The .avtl project file: a compact binary encoding of the file model and
