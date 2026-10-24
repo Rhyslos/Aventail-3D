@@ -531,7 +531,8 @@ fn the_mesh_and_tools_menus_read_from_the_command_list() {
     press(&mut harness, Modifiers::NONE, Key::Escape);
     main_menu(&harness, "Tools").click();
     harness.run();
-    assert!(harness.query_by_label_contains("Transform").is_some());
+    // The Tools menu's Transform, beside the palette's Transform button.
+    assert_eq!(harness.query_all_by_label_contains("Transform").count(), 2);
     assert!(
         harness
             .query_by_label("Tip: press E for the tool menu")

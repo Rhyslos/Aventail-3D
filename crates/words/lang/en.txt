@@ -1402,7 +1402,6 @@ Smooth by angle ({:.0}°)
 Smooth by marked edges only
 Smoothing
 Smoothing angle
-Snap
 Snap (or not, when snapping is on)
 Snap moves to points, edges, polygons and the grid, turns to 15° and scaling to 10% steps. Hold Ctrl while dragging to flip it for that drag.
 Snap moves to points, edges, polygons and the grid. Settings → Viewport has the details.

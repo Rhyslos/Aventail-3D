@@ -14,6 +14,7 @@
 
 use super::tests::{State, TestRenderer, harness_built_sized, info, with_a_cube};
 use super::*;
+use egui_kittest::kittest::Queryable;
 use egui_kittest::{Harness, SnapshotOptions};
 
 /// The window's size for every picture.
@@ -62,6 +63,17 @@ fn reference_standard_window() {
     let Some(mut harness) = window() else { return };
     select_the_cube(&mut harness);
     compare(&mut harness, "standard_window");
+}
+
+#[test]
+fn reference_select_tool_list() {
+    // The select tool list looks like the app's other menus (decision 0140).
+    let Some(mut harness) = window() else { return };
+    harness
+        .get_by_label(crate::palette::SELECT_TOOL_MENU_LABEL)
+        .click();
+    harness.run();
+    compare(&mut harness, "select_tool_list");
 }
 
 #[test]
