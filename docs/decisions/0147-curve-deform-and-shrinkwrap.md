@@ -62,7 +62,7 @@ The search structure:
 
 ### Saving
 
-Development file format **version 48**: version 47's model with `KindV43::BendAlongCurve { curve, axis, stretch, offset, twist }` (axis as a number, anything unknown the longest) and `KindV43::Shrinkwrap { target, mode, offset, points }` (mode as a number, anything unknown nearest; `points` `#[serde(default)]`). Settings are clamped on reading; the curve or target is checked as any source when modifiers are put back: missing, itself, the wrong kind (a bend along a shape that isn't a curve) or a loop is refused as damaged. New sample `sample-v48.avtl`.
+Development file format **version 48**: version 47's model with `KindV43::BendAlongCurve { curve, axis, stretch, offset, twist }` (axis as a number, anything unknown the longest) and `KindV43::Shrinkwrap { target, mode, offset, points }` (mode as a number, anything unknown nearest; `points` `#[serde(default)]`). Settings are clamped on reading; the curve or target is checked as any source when modifiers are put back: missing, itself, the wrong kind (a bend along a shape that isn't a curve) or a loop is refused as damaged. (Since [0162](0162-kind-changes-and-wrong-sources.md), the wrong kind is taken off with a note instead, and baking a curve takes off the bends along it.) New sample `sample-v48.avtl`.
 
 ### Timings
 
