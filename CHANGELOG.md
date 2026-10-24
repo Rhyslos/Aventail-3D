@@ -30,6 +30,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **A damaged project with a closed curve of only one or two points is refused** with a plain reason ("a closed curve needs at least three points"), instead of opening with a doubled, empty-inside sweep.
 - **Collision and levels-of-detail notes stay true to the shape.** After an export, or while a changed shape was still being worked out, Attributes could show a collision warning or triangle counts for an older shape (or the export's). They now show only what the viewport worked out for the shape as it is now, and nothing while it is still being worked out.
 - **Steps made of several changes are never left half done.** If one part of Size to kit grid, carrying a curve on and closing it, deleting curve points on several curves, Split curve, restoring a layout snapshot, or a tool that edits several objects at once is refused, the parts already done are taken back too, so Ctrl + Z never has a half-finished step to undo.
 - **Baking a curve that another shape is bent along keeps the project saveable.** Bake into shape or Apply mirror on a curve read by Bend along curve left a bend with no curve to read, and the project then couldn't be saved. The bend is now taken off in the same step (Ctrl + Z brings both back), and a project saved that way still opens, with a note in the status bar saying which bend was taken off.

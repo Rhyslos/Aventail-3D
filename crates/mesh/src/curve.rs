@@ -455,7 +455,8 @@ impl Curve {
     /// Rebuilds a curve with its ids (from a file, or the scene), checking
     /// everything: positions real and within [`MAX_COORDINATE`], at most
     /// [`MAX_CURVE_POINTS`] points, ids unique and below `next_id`, which
-    /// is at most [`MAX_POINT_ID`].
+    /// is at most [`MAX_POINT_ID`], and a closed curve at least three
+    /// points.
     pub fn from_parts(
         points: Vec<CurvePoint>,
         closed: bool,
@@ -463,6 +464,11 @@ impl Curve {
     ) -> Result<Self, CurveError> {
         if points.len() > MAX_CURVE_POINTS {
             return Err(CurveError::TooManyPoints);
+        }
+        // A loop of one or two points has nothing inside: it would sweep
+        // into a doubled shape (a damaged file; editing never makes one).
+        if closed && points.len() < 3 {
+            return Err(CurveError::LoopTooSmall);
         }
         if next_id > MAX_POINT_ID {
             return Err(CurveError::BadIds);

@@ -346,6 +346,18 @@ fn bad_curves_are_refused_in_plain_words() {
         *next_id = u32::MAX;
     }
     assert!(refused(&file(&model)).to_string().contains("curve"));
+    // A closed loop of two points (a damaged file: it would sweep into a
+    // doubled shape with nothing inside).
+    let mut model = plain();
+    if let v41::ShapeV41::Points { points, closed, .. } = &mut model.curves[0].shape {
+        points.0.truncate(2);
+        *closed = true;
+    }
+    assert!(
+        refused(&file(&model))
+            .to_string()
+            .contains("at least three points")
+    );
 }
 
 #[test]
