@@ -40,6 +40,10 @@ impl Workbench {
         if tool != Tool::Slit {
             self.finish_slit();
         }
+        if tool != Tool::DrawCurve {
+            // Keeps the curve drawn so far (decision 0138).
+            self.finish_curve();
+        }
         if tool != self.tool {
             // Extrude's bend angle is for the extrude about to be made:
             // leaving the tool sets it straight again.
@@ -89,6 +93,12 @@ impl Workbench {
                 "Weld: drag a point (or, in the Polygons mode, a polygon) onto a point \
                  to melt it there (the whole selection, if you drag a selected one). M welds \
                  the selection at its middle.",
+            )
+            .into(),
+            Tool::DrawCurve => tr(
+                "Draw curve: click to place a sharp point, press and drag to pull out handles \
+                 for a smooth bend. Enter or a right click finishes, Esc cancels, Backspace \
+                 takes the last point back; clicking the first point closes the curve.",
             )
             .into(),
             Tool::Inset => tr(

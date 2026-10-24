@@ -176,9 +176,9 @@ pub(crate) fn shown_objects(doc: &Document) -> Vec<ObjectId> {
     doc.selection()
         .into_iter()
         .filter(|id| {
-            doc.scene()
-                .object(*id)
-                .is_some_and(|o| o.kind.has_shape() && !matches!(o.kind, ObjectKind::Group))
+            doc.scene().object(*id).is_some_and(|o| {
+                o.kind.has_shape() && !matches!(o.kind, ObjectKind::Group | ObjectKind::Curve(_))
+            })
         })
         .collect()
 }

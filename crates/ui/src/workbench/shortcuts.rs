@@ -327,6 +327,21 @@ pub(crate) fn bindings() -> Vec<Binding> {
             Editing,
         ),
         plain(Key::Enter, tr("Finish a slit"), Editing),
+        plain(
+            Key::Enter,
+            tr("Finish the curve being drawn (Draw curve)"),
+            Model,
+        ),
+        plain(
+            Key::Escape,
+            tr("Cancel the curve being drawn (Draw curve)"),
+            Model,
+        ),
+        plain(
+            Key::Backspace,
+            tr("Take back the last point of the curve being drawn"),
+            Model,
+        ),
         held(
             KeyId::Ctrl,
             tr(
@@ -509,6 +524,36 @@ pub(crate) fn mouse() -> Vec<MouseLine> {
             Anywhere,
         ),
         line(tr("Cancel a drag"), tr("Right-click (or Esc)"), Dragging),
+        line(
+            tr("Draw curve: a sharp point / a smooth bend"),
+            tr("Click / press and drag"),
+            Model,
+        ),
+        line(
+            tr("Draw curve: finish / close the curve"),
+            tr("Right-click (or Enter) / click its first point"),
+            Model,
+        ),
+        line(
+            tr("Switch a curve's point between sharp and smooth"),
+            tr("Double-click it (Points mode)"),
+            Editing,
+        ),
+        line(
+            tr("Add a point to a curve, keeping its shape"),
+            tr("Double-click its line (Points mode)"),
+            Editing,
+        ),
+        line(
+            tr("Draw curve: carry a selected curve on from an end"),
+            tr("Click the end first"),
+            Model,
+        ),
+        line(
+            tr("Join two curve end points: weld at the middle / a straight stretch"),
+            tr("M / A (Points mode, the two ends selected)"),
+            Editing,
+        ),
     ]
 }
 

@@ -138,6 +138,9 @@ impl Workbench {
         // Whether dissolving would merge polygons meeting at a sharp
         // corner into one bent polygon.
         let mut sharp = false;
+        // A curve's points go (or its handles back to nothing) either way
+        // (decision 0138).
+        let curves = self.delete_curve_parts();
         for (id, selected, mesh) in self.selected_parts() {
             let c = chosen(mode, &selected, &mesh);
             if c.len() == 0 {
@@ -170,6 +173,9 @@ impl Workbench {
                 }
             };
             ops.push((id, operation));
+        }
+        if ops.is_empty() && curves.is_some() {
+            return;
         }
         if ops.is_empty() {
             self.note = Some(if refused > 0 {

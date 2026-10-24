@@ -123,6 +123,27 @@ pub enum CommandId {
     UvUnpin,
     /// The group holding the turns and flips: choosing it shows them.
     UvTurnFlip,
+    // ------------------------------------- curves (decision 0139)
+    /// Cut a curve in two at the selected points.
+    CurveSplit,
+    /// Turn curves round: last point first.
+    CurveReverse,
+    /// Close curves into loops, or open them.
+    CurveOpenClose,
+    /// The group holding the four handle kinds: choosing it shows them.
+    CurveHandles,
+    /// Sharp points: no handles.
+    CurveSharp,
+    /// Smooth points: handles in one line.
+    CurveSmooth,
+    /// Broken handles: each moves on its own.
+    CurveBroken,
+    /// Auto handles: they follow the neighbours.
+    CurveAuto,
+    /// Round sharp corners into arcs.
+    CurveRound,
+    /// Spread points evenly along curves.
+    CurveEven,
 }
 
 /// Everything shown about a command.
@@ -599,6 +620,16 @@ impl CommandId {
                 ),
                 None,
             ),
+            Self::CurveSplit
+            | Self::CurveReverse
+            | Self::CurveOpenClose
+            | Self::CurveHandles
+            | Self::CurveSharp
+            | Self::CurveSmooth
+            | Self::CurveBroken
+            | Self::CurveAuto
+            | Self::CurveRound
+            | Self::CurveEven => curve_info(self),
         };
         CommandInfo {
             name,
@@ -619,6 +650,12 @@ impl CommandId {
     /// their place (decision 0109).
     pub const fn members(self) -> &'static [CommandId] {
         match self {
+            Self::CurveHandles => &[
+                Self::CurveSharp,
+                Self::CurveSmooth,
+                Self::CurveBroken,
+                Self::CurveAuto,
+            ],
             Self::UvTurnFlip => &[
                 Self::UvTurnLeft,
                 Self::UvTurnRight,
@@ -692,6 +729,19 @@ impl CommandId {
             | Self::UvPin
             | Self::UvUnpin
             | Self::UvTurnFlip => &[Uv],
+            // The curve ring, in the Points mode with curves selected
+            // (decision 0139). Reverse, open or close and even spacing
+            // work on whole curves in the Model mode too, from the menus.
+            Self::CurveSplit
+            | Self::CurveReverse
+            | Self::CurveOpenClose
+            | Self::CurveHandles
+            | Self::CurveSharp
+            | Self::CurveSmooth
+            | Self::CurveBroken
+            | Self::CurveAuto
+            | Self::CurveRound
+            | Self::CurveEven => &[Points],
         }
     }
 }
@@ -795,6 +845,43 @@ pub const UV_RING: [Option<CommandId>; RING_PLACES] = [
     None,
 ];
 
+/// The tool menu's places for a curve's points (decision 0139): in the
+/// Points mode when only curves are selected. Weld, Connect and Delete
+/// keep their places from the modelling ring; the handle kinds share one
+/// place, opened like the UV ring's turns.
+pub const CURVE_RING: [Option<CommandId>; RING_PLACES] = [
+    Some(CommandId::CurveHandles),
+    Some(CommandId::CurveRound),
+    Some(CommandId::CurveEven),
+    None,
+    None,
+    Some(CommandId::CurveReverse),
+    Some(CommandId::CurveOpenClose),
+    None,
+    Some(CommandId::DeleteElements),
+    None,
+    Some(CommandId::Weld),
+    Some(CommandId::Connect),
+    Some(CommandId::CurveSplit),
+    None,
+    None,
+];
+
+/// The curve ring's entries (decision 0139).
+pub fn curve_menu() -> Vec<Slot> {
+    CURVE_RING
+        .iter()
+        .enumerate()
+        .filter_map(|(place, command)| {
+            Some(Slot {
+                command: (*command)?,
+                place,
+                places: RING_PLACES,
+            })
+        })
+        .collect()
+}
+
 /// One entry of the tool menu: a command and its place on the ring.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Slot {
@@ -855,7 +942,7 @@ pub const OFF_THE_RING: [CommandId; 3] =
     [CommandId::Union, CommandId::Subtract, CommandId::Intersect];
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 50] = [
+pub const ALL: [CommandId; 60] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -906,7 +993,112 @@ pub const ALL: [CommandId; 50] = [
     CommandId::UvPin,
     CommandId::UvUnpin,
     CommandId::UvTurnFlip,
+    CommandId::CurveSplit,
+    CommandId::CurveReverse,
+    CommandId::CurveOpenClose,
+    CommandId::CurveHandles,
+    CommandId::CurveSharp,
+    CommandId::CurveSmooth,
+    CommandId::CurveBroken,
+    CommandId::CurveAuto,
+    CommandId::CurveRound,
+    CommandId::CurveEven,
 ];
+
+/// Name, icon, key, help and arrival of a curve command (decision 0139).
+type Info = (
+    &'static str,
+    Icon,
+    Option<KeyboardShortcut>,
+    &'static str,
+    Option<&'static str>,
+);
+
+/// What is shown about the curve commands (decision 0139). None has a key
+/// of its own: they are in the E menu, the Mesh menu's Curve list and
+/// command search.
+fn curve_info(command: CommandId) -> Info {
+    let (name, icon, help) = match command {
+        CommandId::CurveSplit => (
+            tr("Split curve"),
+            Icon::CurveSplit,
+            tr(
+                "Cut the curve in two at the selected points: each piece becomes a curve of its \
+                 own, with the same sweep or lathe. A closed curve opens there.",
+            ),
+        ),
+        CommandId::CurveReverse => (
+            tr("Reverse curve"),
+            Icon::CurveReverse,
+            tr(
+                "Turn the selected curves round, so they run from their last point to their \
+                 first: a sweep's twist and caps follow",
+            ),
+        ),
+        CommandId::CurveOpenClose => (
+            tr("Open or close curve"),
+            Icon::CurveOpenClose,
+            tr(
+                "Close the selected curves into loops, the last point joining the first with a \
+                 straight stretch, or open closed ones again",
+            ),
+        ),
+        CommandId::CurveHandles => (
+            tr("Handle type"),
+            Icon::CurveHandles,
+            tr(
+                "How the selected points' handles behave: sharp, smooth, broken or auto. \
+                 Choose this to see the four.",
+            ),
+        ),
+        CommandId::CurveSharp => (
+            tr("Sharp points"),
+            Icon::CurveSharp,
+            tr("Take the selected points' handles away: a corner"),
+        ),
+        CommandId::CurveSmooth => (
+            tr("Smooth points"),
+            Icon::CurveSmooth,
+            tr(
+                "Keep the selected points' handles in one line, so the curve bends through \
+                 without a kink: dragging one handle turns the other",
+            ),
+        ),
+        CommandId::CurveBroken => (
+            tr("Broken handles"),
+            Icon::CurveBroken,
+            tr(
+                "Let the selected points' two handles move on their own, for a kink with \
+                 curved sides",
+            ),
+        ),
+        CommandId::CurveAuto => (
+            tr("Auto handles"),
+            Icon::CurveAuto,
+            tr(
+                "Let the selected points' handles shape themselves from their neighbours, a \
+                 third of the way to each, following as the neighbours move",
+            ),
+        ),
+        CommandId::CurveRound => (
+            tr("Round corners"),
+            Icon::CurveRound,
+            tr(
+                "Turn the selected sharp points into rounded corners of the radius set in the \
+                 Attributes panel, each cut back to what fits between its neighbours",
+            ),
+        ),
+        _ => (
+            tr("Even spacing"),
+            Icon::CurveEven,
+            tr(
+                "Spread the selected curves' points evenly along them, keeping the shape as \
+                 near as can be: as many points as the Attributes panel's Even spacing says",
+            ),
+        ),
+    };
+    (name, icon, None, help, None)
+}
 
 #[cfg(test)]
 mod tests {
@@ -920,9 +1112,11 @@ mod tests {
         for command in ALL {
             let in_group = UV_RING
                 .iter()
+                .chain(CURVE_RING.iter())
                 .flatten()
                 .any(|g| g.members().contains(&command));
             let placed = OBJECT_RING.contains(&Some(command))
+                || CURVE_RING.contains(&Some(command))
                 || PIVOT_RING.contains(&Some(command))
                 || MODELLING_RING.contains(&command)
                 || UV_RING.contains(&Some(command))
@@ -1013,6 +1207,34 @@ mod tests {
             }
         }
         assert!(!CommandId::Unwrap.is_group());
+        // The curve ring's handle kinds open the same way.
+        let curve = curve_menu();
+        let place = curve
+            .iter()
+            .find(|s| s.command == CommandId::CurveHandles)
+            .unwrap()
+            .place;
+        let inside = group_menu(CommandId::CurveHandles, &curve);
+        assert_eq!(inside.len(), 4);
+        assert!(inside.iter().any(|s| s.place == place));
+    }
+
+    #[test]
+    fn the_curve_ring_keeps_the_modelling_rings_places_for_what_they_share() {
+        for slot in curve_menu() {
+            if let Some(at) = MODELLING_RING.iter().position(|c| *c == slot.command) {
+                assert_eq!(at, slot.place, "{:?}", slot.command);
+            }
+            assert_eq!(slot.places, RING_PLACES);
+        }
+        let commands: Vec<_> = curve_menu().iter().map(|s| s.command).collect();
+        for command in [
+            CommandId::Weld,
+            CommandId::Connect,
+            CommandId::DeleteElements,
+        ] {
+            assert!(commands.contains(&command), "{command:?}");
+        }
     }
 
     #[test]
@@ -1108,12 +1330,16 @@ mod tests {
         let pivots: Vec<_> = PIVOT_RING.iter().flatten().copied().collect();
         let turns = CommandId::UvTurnFlip.members();
         let uv: Vec<_> = UV_RING.iter().flatten().copied().collect();
+        let curve: Vec<_> = CURVE_RING.iter().flatten().copied().collect();
+        let kinds = CommandId::CurveHandles.members();
         for ring in [
             &objects[..],
             &pivots[..],
             &MODELLING_RING[..],
             &uv[..],
             turns,
+            &curve[..],
+            kinds,
         ] {
             let icons: HashSet<_> = ring.iter().map(|c| c.info().icon).collect();
             assert_eq!(icons.len(), ring.len());

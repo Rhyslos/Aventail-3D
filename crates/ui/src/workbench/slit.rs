@@ -322,8 +322,11 @@ impl Workbench {
             }
             _ => None,
         };
-        self.viewport
-            .set_tool_path(Some(ToolPath { points, cursor }));
+        self.viewport.set_tool_path(Some(ToolPath {
+            points,
+            cursor,
+            ..ToolPath::default()
+        }));
     }
 
     /// Carries out this frame's Slit presses, drags and clicks.

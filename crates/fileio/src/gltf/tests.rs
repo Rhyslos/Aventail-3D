@@ -554,6 +554,35 @@ fn files_for_outside_checkers() {
         write(&name, &scene_of(&[kind]), &plain);
     }
 
+    // Curves' solids (decision 0138): a pipe swept round a spiral, a
+    // lathed vase from a part turn, and a line, which goes out as nothing.
+    let mut curves = Document::new();
+    for curve in [
+        scene::CurveObject {
+            shape: scene::CurveShape::Ready(scene::ReadyCurveKind::Spiral.standard()),
+            solid: scene::CurveSolid::Sweep(scene::Sweep::default()),
+        },
+        scene::CurveObject {
+            shape: scene::CurveShape::Ready(scene::ReadyCurve::Arc {
+                radius: 40.0,
+                angle: 120.0,
+            }),
+            solid: scene::CurveSolid::Lathe(scene::LatheShape {
+                axis: scene::LatheAxis::X,
+                angle: 270.0,
+                ..scene::LatheShape::default()
+            }),
+        },
+        scene::CurveObject::line(scene::CurveShape::Ready(
+            scene::ReadyCurveKind::Circle.standard(),
+        )),
+    ] {
+        curves
+            .execute(Command::Create(scene::ObjectKind::Curve(curve)))
+            .unwrap();
+    }
+    write("curves.glb", &curves, &plain);
+
     // An edited shape with materials: the cube's top pushed out, two
     // polygons painted, and a plane sharing a material's name.
     let mut edited = scene_with_materials();

@@ -6,6 +6,8 @@
 //! hands back commands. Dragging a value changes it every frame, so those
 //! commands are merged into one undo step per drag (or per value typed).
 
+mod curve_points;
+mod curve_rows;
 mod edits;
 mod fields;
 mod last_edit;
@@ -22,6 +24,7 @@ use crate::text::tr;
 use crate::theme;
 use crate::transforming::Tool;
 use crate::units::Units;
+pub(crate) use curve_points::CurveLook;
 use edits::edits_section;
 pub(crate) use edits::{DELETE_EDIT_LABEL, FREEZE_LABEL, OpenedEdit, edit_warning};
 use egui::{RichText, Ui, vec2};
@@ -76,6 +79,9 @@ pub(crate) struct AttributesPanel {
     pub(crate) join: JoinLook,
     /// Hard edges by angle's angle, for its next use (decision 0053).
     pub(crate) hard_angle: HardAngle,
+    /// The curve commands' radius and count, and what the Curve points
+    /// section asked for (decision 0139).
+    pub(crate) curve: CurveLook,
     /// The Materials section's names being typed and its message.
     materials: materials::MaterialsState,
     /// How many polygons of the shown object are selected, in the
@@ -274,6 +280,10 @@ impl AttributesPanel {
                     // use; the edit before them can still be opened.
                     self.left_edit_line(ui, doc, id, &object.stack);
                 }
+                // A curve that is only a line has no surface (decision
+                // 0138): no collision, smoothing, booleans or materials.
+                let solid = object.kind.has_shape()
+                    && !matches!(&object.kind, ObjectKind::Curve(c) if c.solid == scene::CurveSolid::Line);
                 section(ui, tr("Basic"));
                 egui::Grid::new("attributes_basic")
                     .num_columns(2)
@@ -299,12 +309,10 @@ impl AttributesPanel {
                             }));
                         }
                         ui.end_row();
-                        if object.kind.has_shape() {
+                        if solid {
                             collision_row(ui, id, object.collision, out);
                         }
-                        if object.kind.has_shape()
-                            && !matches!(object.kind, ObjectKind::Instance(_))
-                        {
+                        if solid && !matches!(object.kind, ObjectKind::Instance(_)) {
                             smoothing_row(ui, id, object.hardness, out);
                         }
                     });
@@ -328,7 +336,10 @@ impl AttributesPanel {
                     section(ui, tr("Shape"));
                     self.shape_rows(ui, id, *primitive, units, out);
                 }
-                if object.kind.has_shape() {
+                if matches!(object.kind, ObjectKind::Curve(_)) {
+                    self.curve_section(ui, doc, id, units, out);
+                }
+                if solid {
                     crate::booleans::attributes_section(ui, doc, id, out);
                     self.materials_section(ui, doc, id, out);
                 }

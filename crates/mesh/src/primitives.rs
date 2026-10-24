@@ -19,7 +19,7 @@ mod prism;
 mod round;
 #[cfg(test)]
 mod tests;
-mod uvs;
+pub(crate) mod uvs;
 
 use crate::{Bounds, Mesh};
 use glam::Vec3;

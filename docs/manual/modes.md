@@ -53,6 +53,7 @@ The keys don't work while you're typing in a field, such as renaming an object; 
 - **Problem:** the red outline around the selected shape disappeared. **Why:** in these modes the shape's own edges are drawn instead, so the outline would only get in the way. It comes back in Model mode.
 - **Problem:** I can't see the points or edges of a very detailed shape. **Why:** seen from afar they would be only a pixel or two apart, so they fade out rather than cover the shape. **Fix:** zoom in closer; see [Heavy shapes](heavy-shapes.md). What's under the mouse still lights up.
 - **Tip:** in a busy scene, the four-view layout (`F5`) lets you reach points from the front, side and top without orbiting.
+- **Curves** have points (and handles) but no edges or polygons of their own: the Points mode edits them ([Curves](curves.md#editing-a-curves-points)), and the Edges and Polygons modes have nothing to select on a curve.
 
 ## Related
 

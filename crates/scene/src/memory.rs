@@ -24,6 +24,10 @@ fn kind(kind: &ObjectKind) -> usize {
     match kind {
         ObjectKind::Mesh(mesh) => mesh.memory_size(),
         ObjectKind::Group | ObjectKind::Primitive(_) | ObjectKind::Instance(_) => 0,
+        ObjectKind::Curve(c) => match &c.shape {
+            crate::CurveShape::Points(curve) => std::mem::size_of_val(curve.points()),
+            crate::CurveShape::Ready(_) => 0,
+        },
     }
 }
 

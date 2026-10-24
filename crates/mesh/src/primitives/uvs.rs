@@ -26,8 +26,8 @@ use std::f32::consts::PI;
 /// where they lie on it, in the shape's own units (centimetres), so
 /// pieces keep their real sizes against each other.
 #[derive(Debug, Default)]
-pub(super) struct Chart {
-    pub(super) corners: Vec<(usize, Vec2)>,
+pub(crate) struct Chart {
+    pub(crate) corners: Vec<(usize, Vec2)>,
 }
 
 impl Chart {
@@ -103,7 +103,7 @@ pub(super) fn add_uvs(mesh: &mut Mesh, kind: PrimitiveKind) {
 /// Gives `mesh` UVs from `charts` laid out in the texture square at one
 /// scale with room between them (as every primitive's are), and marks
 /// seams where pieces part. For builders that cut their own pieces.
-pub(super) fn set_charts(mesh: &mut Mesh, charts: &[Chart]) {
+pub(crate) fn set_charts(mesh: &mut Mesh, charts: &[Chart]) {
     let corner_count = mesh.face_layout().1.len();
     let mut uvs = vec![Vec2::ZERO; corner_count];
     for (index, uv) in layout(charts) {
@@ -125,7 +125,7 @@ pub(super) fn set_charts(mesh: &mut Mesh, charts: &[Chart]) {
 }
 
 /// The face's corners: their places in the corner list and positions.
-pub(super) fn corners_of(mesh: &Mesh, face: FaceId) -> Vec<(usize, Vec3)> {
+pub(crate) fn corners_of(mesh: &Mesh, face: FaceId) -> Vec<(usize, Vec3)> {
     let (starts, corners) = mesh.face_layout();
     let (a, b) = (
         starts[face.get() as usize] as usize,

@@ -8,6 +8,7 @@ use std::sync::Arc;
 use words::{text, tr, trf};
 
 mod booleans;
+mod curves;
 
 /// A change to the scene. Every change goes through one, so it can be
 /// undone and redone.
@@ -294,10 +295,63 @@ pub enum Command {
         /// Its booleans.
         booleans: Vec<crate::Boolean>,
     },
+    /// Changes a curve's points (decision 0138): moves, deletes, makes
+    /// smooth or sharp, closes or opens. A ready-made curve becomes points
+    /// first. Refused for an object that isn't a curve, or a change that
+    /// would leave fewer than two points.
+    EditCurve {
+        /// The curve.
+        id: ObjectId,
+        /// The change.
+        edit: mesh::curve::CurveEdit,
+    },
+    /// Gives curves a solid (decision 0138): none (a line), a sweep or a
+    /// lathe, with its settings (brought within limits). A sweep's
+    /// cross-section from another curve must be a curve object other than
+    /// the curve itself.
+    SetCurveSolid {
+        /// The curves.
+        ids: Vec<ObjectId>,
+        /// The solid.
+        solid: crate::CurveSolid,
+    },
+    /// Gives ready-made curves new settings (brought within limits), each
+    /// of the same kind as `ready`.
+    SetReadyCurve {
+        /// The curves.
+        ids: Vec<ObjectId>,
+        /// Their new settings.
+        ready: mesh::curve::ReadyCurve,
+    },
+    /// Joins two curve points that are ends of open curves (decision
+    /// 0139): `weld` melts them into one at their middle, else a straight
+    /// stretch joins them. On one curve, its two ends: it closes. On two,
+    /// the second joins onto the first, which stays (with its settings);
+    /// the second is deleted. Refused for points that aren't open ends.
+    JoinCurveEnds {
+        /// The first curve and its end point.
+        first: (ObjectId, mesh::curve::CurvePointId),
+        /// The second curve (or the same) and its end point.
+        second: (ObjectId, mesh::curve::CurvePointId),
+        /// Melt the ends into one, or join them with a stretch.
+        weld: bool,
+    },
+    /// Cuts a curve in pieces at its points `points` (decision 0139): the
+    /// curve keeps the first piece, and each other becomes a new curve
+    /// object beside it with the same settings, transform and materials.
+    /// They become the selection.
+    SplitCurve {
+        /// The curve.
+        id: ObjectId,
+        /// Where to cut.
+        points: Vec<mesh::curve::CurvePointId>,
+    },
     /// Joins shapes into the first of them, which becomes a plain mesh
     /// holding them all where they were; the others are deleted (anything
     /// inside them takes their place) (decision 0055). Groups listed are
-    /// left alone. It becomes the selection.
+    /// left alone. It becomes the selection. When every object listed is a
+    /// curve, they join into the first as one curve instead, end to end at
+    /// their nearest ends (decision 0139).
     Join(Vec<ObjectId>),
 }
 
@@ -412,6 +466,18 @@ impl Command {
             },
             Self::Join(ids) => trf!("Join {}", objects(count(ids))),
             Self::AddBoolean { kind, .. } => kind.name().to_string(),
+            Self::EditCurve { edit, .. } => curves::describe_edit(edit),
+            Self::JoinCurveEnds { weld: true, .. } => tr("Weld curve ends").to_string(),
+            Self::JoinCurveEnds { weld: false, .. } => tr("Connect curve ends").to_string(),
+            Self::SplitCurve { .. } => tr("Split curve").to_string(),
+            Self::SetCurveSolid { solid, .. } => match solid {
+                crate::CurveSolid::Line => tr("Curve as a line only").to_string(),
+                crate::CurveSolid::Sweep(_) => tr("Sweep").to_string(),
+                crate::CurveSolid::Lathe(_) => tr("Lathe").to_string(),
+            },
+            Self::SetReadyCurve { ready, .. } => {
+                trf!("Change {} settings", ready.name().to_lowercase())
+            }
             Self::SetBooleans { .. } => tr("Change booleans").to_string(),
             Self::ApplyMirror(ids) => {
                 let n = ids
@@ -686,7 +752,17 @@ impl Run<'_> {
         }
         // From the old placement's space into the new one's.
         let shift = new.inverse() * before.matrix();
-        if object.kind.has_shape() {
+        if matches!(object.kind, ObjectKind::Curve(_)) {
+            // A curve's points take the change (decision 0138).
+            self.transform_curve(id, shift * object.offset.matrix())?;
+            if object.offset != Transform::default() {
+                self.edit(Edit::SetOffset {
+                    id,
+                    before: object.offset,
+                    after: Transform::default(),
+                })?;
+            }
+        } else if object.kind.has_shape() {
             let matrix = shift * object.offset.matrix();
             if !matrix.abs_diff_eq(glam::Mat4::IDENTITY, 1e-6) {
                 self.command(&Command::Record {
@@ -894,8 +970,10 @@ impl Run<'_> {
                     })
                     .collect();
                 self.bake_instances(&orphans)?;
-                // Deleted cutters stop cutting (decision 0135).
+                // Deleted cutters stop cutting (decision 0135), and
+                // deleted cross-sections give way to round ones (0138).
                 self.forget_cutters(&going)?;
+                self.forget_profiles(&going)?;
                 for id in top {
                     // Empty the object first, last child first, so every
                     // removal is of an object with nothing inside.
@@ -964,6 +1042,9 @@ impl Run<'_> {
                 if matches!(object.kind, ObjectKind::Instance(_)) {
                     return Err(SceneError::Instance);
                 }
+                if matches!(object.kind, ObjectKind::Curve(_)) {
+                    return Err(SceneError::Curve(crate::curve::RECORD_ON_CURVE));
+                }
                 // The top switched-on layer, or a new one on top
                 // (decision 0091).
                 let layer = match object.stack.recording_layer() {
@@ -1027,7 +1108,9 @@ impl Run<'_> {
                         .scene
                         .object(*id)
                         .ok_or(SceneError::UnknownObject(*id))?;
-                    if !object.kind.has_shape() || matches!(object.kind, ObjectKind::Instance(_)) {
+                    if !object.kind.has_shape()
+                        || matches!(object.kind, ObjectKind::Instance(_) | ObjectKind::Curve(_))
+                    {
                         continue;
                     }
                     let index = object.stack.layers().len();
@@ -1297,6 +1380,7 @@ impl Run<'_> {
                     copies.push(copy);
                 }
                 self.follow_copied_cutters(&copied)?;
+                self.follow_copied_profiles(&copied)?;
                 Ok(Some(copies))
             }
             Command::SplitOff { id, faces, anchors } => {
@@ -1346,6 +1430,25 @@ impl Run<'_> {
                 self.set_booleans(*id, booleans.clone())?;
                 Ok(None)
             }
+            Command::EditCurve { id, edit } => {
+                self.edit_curve(*id, edit)?;
+                Ok(None)
+            }
+            Command::SetCurveSolid { ids, solid } => {
+                self.set_curve_solid(ids, solid)?;
+                Ok(None)
+            }
+            Command::SetReadyCurve { ids, ready } => {
+                self.set_ready_curve(ids, ready)?;
+                Ok(None)
+            }
+            Command::JoinCurveEnds {
+                first,
+                second,
+                weld,
+            } => self.join_curve_ends(*first, *second, *weld),
+            Command::SplitCurve { id, points } => self.split_curve(*id, points),
+            Command::Join(ids) if self.all_curves(ids) => self.join_curves(ids),
             Command::Join(ids) => {
                 let shapes: Vec<ObjectId> = existing(self.scene, ids)?
                     .into_iter()
@@ -1643,6 +1746,7 @@ impl Run<'_> {
         // here lose them, so the scene always saves and opens again
         // (decision 0135).
         self.keep_usable_cutters(id)?;
+        self.keep_usable_profile(id)?;
         Ok(id)
     }
 

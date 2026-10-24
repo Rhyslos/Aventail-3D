@@ -40,6 +40,7 @@
  {} stayed where {}.
  {}: {}.
  · press 1, 2, 3 or pick UV mode to select
+, closed
 , in {} layers
 , {} materials
 . Key: {}
@@ -53,6 +54,7 @@
 1 object
 1 of its parts can't be found on the shape any more; it applies to the rest.
 1 piece
+1 point
 1 polygon
 1 polygon using {} selected.
 1 unit in the file is 1 cm: Unreal Engine
@@ -78,7 +80,12 @@ A box
 A calm, tool-rich 3D modeller for game assets.
 A checker laid on by the UVs: where the squares stay square and even, a texture will too. The tint runs red across and green up the texture, so a piece turned or mirrored shows.
 A checker of labelled cells laid on by the UVs, A1 at the top left of the texture to H8 at the bottom right, in colours from the app's accent: see at once which part of the texture each part of the shape uses, and which way round it lies (the labels turn and mirror with it). The UV Editor shows it behind the UVs too.
+A closed curve has no ends to join: open it or split it first
+A closed curve needs at least three points
 A cone 1 m across and 1 m tall
+A curve climbing 1 m in three turns, like a spring
+A curve has no edges or polygons of its own: press 1 to edit its points, or Bake into shape (Ctrl + E) to edit its solid as a mesh.
+A curve's shape comes from its points and settings, so it has no edit layers: Bake into shape (Ctrl + E) to edit it as a mesh.
 A cutter is drawn as an outline and left out of exports: the shape it cuts carries the result. Hidden, it still cuts.
 A cylinder with round ends, 1 m tall
 A doorway arch: two legs and a round top
@@ -105,21 +112,27 @@ A polygon an edit changed counts as broken when it is stretched this many times 
 A polygon an edit changed counts as broken when its texture is this many times bigger or smaller than the polygons' around it (3× standard). Lower mends more.
 A polygon with no area has no direction, so it bakes as a black speck or a streak. Select them, then weld their points (M) or delete them.
 A project keeps at most {} snapshots: remove one first.
+A quarter of a circle 1 m across, lying on the ground
 A right-click in the viewport opens four short lists around the mouse: what to show and hide, the modes, undo and edit layers, and the tools of what you're working on. A right-click that ends a drag, or a right drag that turns the view, never opens it.
 A ring (doughnut) 1 m across, lying on the ground
 A ring instead of a loop, with a double-click
+A round curve 1 m across, lying on the ground
 A shape can have at most 64 cutters
 A shape can't cut itself
 A solid flight of 6 stairs, 1 m wide and 1 m high
+A straight curve 1 m long, lying on the ground
 A texture per material
 A texture per object
 A tool's count (segments, cuts)
 About {}
 Accent colour
+Adaptive
 Add a heavy test shape
 Add a material to the list, to assign to polygons
+Add a point to a curve, keeping its shape
 Add a row
 Add an empty edit layer on top of each selected object. The edits you make from now on go into it, so you can switch them all off to compare, or delete them in one go. The Edit layers panel lists the layers.
+Add curve point
 Add edit layer
 Add every element touching the selection
 Add every polygon facing within 30° of a selected polygon: the top of a shape, say, or every wall facing one way
@@ -168,6 +181,7 @@ An object can have at most {} materials
 An ordinary 3D view: far things look smaller
 An upright cylinder, 1 m across and 1 m tall
 Angle
+Another curve
 Any program: pick the kind of file and how it's set up below.
 Anywhere
 Anywhere (shortest cuts)
@@ -180,9 +194,11 @@ Apply this layer's edits before the layer below it
 Apply transforms
 Apply {}
 Apply {} mirrors
+Arc
 Arch
 Arrives with the tools in Phase 3
 As in this app; Blender and 3ds Max's own axes
+As many points as it has now, spread evenly
 Ask before dissolving across a sharp corner
 Assign
 Assign {}
@@ -190,8 +206,11 @@ Assign: select some polygons first.
 Assign: switch to the Polygons mode and select polygons first.
 At the back
 Attributes
+Auto
+Auto handles
 Automatic
 Autosave
+Axis
 B or Alt + B: next · Shift + B: back · Enter or Space: create
 B: next · Shift + B: back · Enter or Space: create · Alt + B: more shapes
 Back
@@ -223,6 +242,7 @@ Bottom
 Bottom radius
 Box selection
 Box, lasso or brush select
+Break points' handles
 Bridge
 Bridge 2 borders
 Bridge 2 edges
@@ -238,6 +258,8 @@ Bring in a model from an OBJ file
 Bring shapes in from an OBJ file, each object as a plain mesh, added to the scene
 Bring the chosen copy back. It opens as unsaved work: save it to keep it.
 Bring this layer's edits back
+Broken
+Broken handles
 Budget
 Build
 Build polygons between two open borders or two polygons; with nothing to bridge selected, drag from one open edge to another
@@ -249,6 +271,7 @@ Cancel
 Cancel Pivot to object
 Cancel a drag
 Cancel a slit (takes its cut back)
+Cancel the curve being drawn (Draw curve)
 Cancel the drag
 Cancel. Close the menu without choosing a tool
 Cancelled.
@@ -258,6 +281,9 @@ Cap rings
 Cap segments
 Caps
 Capsule
+Carry on curve
+Carry on the curve by 1 point
+Carry on the curve by {} points
 Cavity
 Centimetres
 Centre point
@@ -290,6 +316,7 @@ Choose (shape list, tool menu); Save ("Save changes?")
 Choose a game project folder in the Export window first; this then exports straight into it
 Choose folder…
 Choose which mouse buttons and keys move the view
+Circle
 Clear
 Clear seam preference
 Clear seams
@@ -303,17 +330,26 @@ Clear the selection's budget
 Clear the selection's settings
 Clear the stretch budget of
 Click
+Click / press and drag
 Click a face, edge or corner; Ctrl + click: the opposite side
 Click a layer to change it
 Click an edit to open it in the Attributes panel. Right-click a layer or an edit for more.
+Click for a sharp point, press and drag for a smooth bend. Enter or a right click finishes, Esc cancels, Backspace takes the last point back; click the first point to close the curve. Its sweep or lathe is set once it is made.
 Click or drag points over the shape. Esc or Enter finishes the line; click the first point to close it into a loop.
 Click or press Shift+{} to lock it, so moving, rotating and scaling leave {} alone.
+Click points, or drag a box round them; Ctrl adds, Shift takes away
+Click the end first
 Click to hide or show the keys for this situation
 Clicking the view dice in the bottom-left corner (or snapping to it with Ctrl while orbiting) also makes the view flat, with no perspective, so lines line up. Orbit away and it goes back to perspective.
+Climb
 Close
 Close (Esc)
+Close an open curve's ends with flat faces
+Close curve
+Close open ends (and the sides of a part turn) with flat faces
 Close the app
 Close the open holes touching the selection with a polygon each; with nothing selected, every hole
+Close the selected curves into loops, the last point joining the first with a straight stretch, or open closed ones again
 Close the shape list, tool menu, question or window
 Close window
 Closed
@@ -335,6 +371,7 @@ Compare
 Comparing with “{}” (faint)
 Cone
 Connect
+Connect curve ends
 Connect works on points or edges: press 1 for the Points mode, or 2 for Edges
 Connect: select two or more {}s on the same polygon first.
 Continuous ring
@@ -349,6 +386,8 @@ Copy the selected objects, with their edits, right where they are. Or Ctrl + C, 
 Copy the selected shape's settings
 Copy works on whole objects: go back to the Model mode (the top of the left palette) first.
 Copy: select the objects to copy first.
+Corner radius
+Corners rounded: radius {} (cut back where it doesn't fit). Change the radius under Round corners in the Attributes panel. Ctrl + Z takes it back.
 Couldn't apply the mirror: {}.
 Couldn't change the game project folder: {}.
 Couldn't change the mirror: {}.
@@ -388,7 +427,9 @@ Create plane
 Create sphere
 Create {}
 Created by Rhyslos, built with AI assistance (Claude by Anthropic).
+Cross-section
 Ctrl
+Ctrl + Z takes it back.
 Ctrl + click / Shift + click (the standard keys)
 Ctrl + click one or more shapes to cut with: the shape selected first is kept
 Ctrl + click or drag adds; Alt + click removes. Ctrl + click on something selected unselects it. Alt + drag moves the view while "Alt + mouse works in every scheme" is on.
@@ -400,6 +441,16 @@ Ctrl adds, Alt removes
 Ctrl adds, Shift removes
 Ctrl flips
 Cube
+Curve
+Curve as a line only
+Curve carried on by {} point{}{}. Ctrl + Z takes it back.
+Curve closed
+Curve made with {} points{}. Give it a sweep or a lathe in the Attributes panel; press 1 to edit its points.
+Curve points
+Curve split: {} curves now, each with the same settings. Ctrl + Z takes it back.
+Curve: {}
+Curves joined at their ends, welded at the middle.
+Curves joined by a straight stretch between their ends.
 Custom settings
 Cut a new loop of edges all the way around a shape: point at an edge, then click, or drag to slide it
 Cut a thin groove into the shape along the selected edges, like a panel line, or raise a ridge out of it: drag in or out
@@ -412,6 +463,7 @@ Cut new edges and join points: slit, loop cut, connect, weld
 Cut out the middle: zero for a pie slice, more for a slice of a ring
 Cut polygons into triangles
 Cut the corner off the selected edges or points, with a width, segments and roundness
+Cut the curve in two at the selected points: each piece becomes a curve of its own, with the same sweep or lathe. A closed curve opens there.
 Cut the other selected shapes out of the one selected first, like a hole                  or a notch. The cutters stay shapes of their own, drawn as outlines: move or                  edit one and the cut follows.
 Cut through
 Cuts
@@ -429,6 +481,7 @@ Default
 Default camera
 Del
 Delete
+Delete curve points
 Delete edit
 Delete layer
 Delete objects
@@ -466,6 +519,8 @@ Done
 Done. Ctrl + Z takes it back.
 Double-click / Alt + double-click
 Double-click an edge for its loop; Alt + double-click for its ring
+Double-click it (Points mode)
+Double-click its line (Points mode)
 Drag
 Drag a point (or a polygon, in the Polygons mode) onto a point; a selected one brings the whole selection.
 Drag anywhere in the viewport. Hold Shift for fine steps.
@@ -475,6 +530,20 @@ Drag into the surface for a groove, out of it for a ridge. Hold Shift for fine s
 Drag to orbit the view
 Drag to pan the view
 Drag to zoom the view
+Draw a curve point by point: click for a sharp corner, press and drag for a smooth bend; Enter or a right click finishes
+Draw curve
+Draw curve cancelled: nothing was made.
+Draw curve: a curve can have at most 4096 points.
+Draw curve: a curve needs two points; nothing was made.
+Draw curve: a sharp point / a smooth bend
+Draw curve: carry a selected curve on from an end
+Draw curve: carrying the curve on from this end. Click to add points; Enter or a right click finishes, Esc cancels.
+Draw curve: click to place a sharp point, press and drag to pull out handles for a smooth bend. Enter or a right click finishes, Esc cancels, Backspace takes the last point back; clicking the first point closes the curve.
+Draw curve: finish / close the curve
+Draw curve: no points were added.
+Draw curve: this view looks along the curve's plane; draw in another view.
+Draw curve: {} points.
+Draw curve: {} points. Drag for a smooth bend; Enter or a right click finishes, Esc cancels, Backspace takes the last point back.
 Draw the selection larger, with a dark rim
 Draw this layout faintly under the current one, to see what changed. Click again to stop.
 Duplicate
@@ -495,6 +564,7 @@ Edges where polygons meet more sharply than this are crisp
 Edges where the surface bends more sharply than this get a seam (66° standard): a piece bent far round one edge stretches when laid flat. 180° cuts no corners.
 Edges whose polygons meet more sharply than this become hard (a crisp edge); the rest become soft (smooth). 0° is flat.
 Edit
+Edit curves: split, reverse, open or close, handle types, round corners, even spacing. M and A on two end points join them.
 Edit layers
 Edit on
 Edit pivot
@@ -509,6 +579,8 @@ Edits are kept apart from the shape's settings, so the settings stay editable: c
 Empty space below the objects
 End
 End size
+Ends connected: the curve is a loop now.
+Ends welded: the curve is a loop now.
 Engine
 Enough for a long session on a computer with 8 GB or more
 Enough for most sessions on a computer with 4 GB or more
@@ -519,6 +591,7 @@ Esc
 Esc: cancel
 Even out the selected polygons' UVs, so a texture stretches less over them
 Even rows:
+Even spacing
 Even width
 Every
 Every 1 m
@@ -582,6 +655,7 @@ Find a key or action
 Find any command by typing part of its name
 Find any command by typing part of its name (Space)
 Finish a slit
+Finish the curve being drawn (Draw curve)
 Fit
 Fit everything in the scene in the view
 Fit the islands holding the selection (or whole objects) into the texture square as large as they go, with padding between them (UV → Packing)
@@ -627,6 +701,7 @@ General
 German (QWERTZ)
 Getting the workbench ready…
 Give
+Give points auto handles
 Give the selected objects {}'s rotation
 Give the selected pieces a stretch budget of their own
 Give the selected pieces their own unwrap settings
@@ -668,6 +743,8 @@ Half the width of the hole through the pipe: zero for a solid bend
 Half the width of the outside
 Half the width of the whole circle
 Half the width, at the tips of the teeth
+Handle type
+Handle type: {}
 Hard edges by angle
 Hard edges by angle: select the objects first.
 Hard edges by angle: the selection has no shapes.
@@ -708,16 +785,22 @@ How deep it is (along Y)
 How each piece is laid flat
 How evenly the UVs lie: green where even, yellow where 1.5 times off, red where twice off (stretched one way, or too big or small against the rest of the object), purple where a polygon has no room on the texture
 How far a quad's corners may be from square for its piece to count as a strip (25° standard). Raise it for strips round tight curves; lower it to straighten only truly square ones.
+How far from the middle
 How far it bends: 90° for a corner, 360° for a whole ring
 How far it was pushed (in the object's own size). Change it and the shape follows.
+How far round it spins: 360° all the way
+How far round the arc goes
 How far the bevel reaches into each polygon (in the object's own size). Change it and the shape follows.
+How far the cross-section turns round the curve from start to end (whole turns on a closed curve)
 How far the extrude turns before going on straight: 0° is straight, 90° a corner. The pipe keeps its full width through the turn. With a bend radius it can go past 360° into a spiral (up to 3600°, ten turns): each loop climbs just clear of the one before.
 How far the groove goes in (below 0) or the ridge comes out (above 0), in the object's own size. Change it and the shape follows.
 How far the pipe's middle is from the point it bends round
 How finely it is cut: each step gives about four times the hexagons
 How finely pieces are fitted together
+How high it climbs, bottom to top
 How high the straight sides go before the round top starts: zero for a half ring
 How high the top step is
+How long the line is
 How many flat sides make up each round side
 How many flat sides make up the round side
 How many new loops are cut, spread evenly across the polygons
@@ -734,10 +817,12 @@ How many pieces each side is cut into along Z
 How many pieces from top to bottom (like lines of latitude)
 How many pieces it is cut into along X
 How many pieces it is cut into along Y
+How many pieces round the axis
 How many pieces the round top is cut into
 How many pieces the side is cut into from bottom to top
 How many pieces the sides are cut into from bottom to top
 How many pieces the straight middle is cut into
+How many points it has: press 1 to move them
 How many rings each closed end is cut into, from the rim inwards
 How many rings each round end has, from its rim to its tip
 How many rings from the rim to the top
@@ -750,17 +835,21 @@ How many rows the new walls have: more give loops to bend or shape later. Ctrl +
 How many steps
 How many steps of evening out Relax takes (60 standard). More evens stretched UVs out further; a few just smooths them a little.
 How many straight pieces make up the circle
+How many straight sides make the circle
 How many teeth
 How many times each triangle is cut into four: 0 is a 20-sided ball, each step four times the triangles
+How many times round it goes
 How modelling edits fix the UVs they break (saved with the project)
 How much Relax evens UVs out
 How much of a circle: 90° for a quarter
 How shapes are drawn: shaded, with wires, or wireframe
 How sizes are shown and typed. Each project keeps its own, saved with it; only the display changes, never the shapes. Also switched in the Attributes panel's Units menu.
+How tall the rectangle is, up from the curve
 How tall the row is, in pixels
 How the automatic UV tools work: the same settings as UV → Settings.
 How the mouse moves the view. Also chosen from the button in the viewport's bottom-right corner.
 How the mouse moves the view. Try them, keep your favourite.
+How the selected points' handles behave: sharp, smooth, broken or auto. Choose this to see the four.
 How the shading breaks into crisp edges. By angle: wherever polygons meet more sharply than the angle, after every change. Unticked: only the edges you mark hard (Mesh → Mark hard edges). Marking edges switches it to that.
 How the shape is shaded: smoothing, hard and soft edges, normals
 How these pieces are laid flat, whatever UV → Unwrapping says
@@ -768,8 +857,11 @@ How thick the arch is round the opening
 How thick the gear is
 How thick the ring is: half the tube's width
 How thick the slab is
+How wide the circle is, across
 How wide the groove (or ridge) is, across the line of edges
 How wide the opening is
+How wide the rectangle is, across the curve
+How wide the square is
 How wide the turn is, from its middle to the middle of the pipe: 0 is a sharp corner (a mitre joint, up to 150°), more is a smooth elbow.
 I know what I'm doing, proceed
 Icosphere
@@ -817,6 +909,7 @@ Its size: {} px/m, {:.2}× the aim of {}: scaled up by hand, by Pack filling the
 Join objects
 Join the selected points or edges with a new edge across their polygon
 Join the selected shapes into the first of them, as one plain mesh, each part staying where it was
+Join two curve end points: weld at the middle / a straight stretch
 Join {}
 Join: select two or more shapes first.
 Keep every step until the app closes. A very long session with large meshes can then use a lot of memory
@@ -827,6 +920,7 @@ Keep sizes
 Keep the UVs and seams of the objects shown in the UV Editor under a name, to go back to or compare with later
 Keep the bevel from crossing over itself: it gets only as wide as fits, so corners meet instead of passing each other
 Keep the newest
+Keep the selected points' handles in one line, so the curve bends through without a kink: dragging one handle turns the other
 Keep together
 Key {}
 Keyboard
@@ -836,6 +930,8 @@ Laid
 Laid flat, the piece stretched more than its budget of {:.2}×, so it was slit here, from where it was squeezed most.
 Lasso selection
 Last edit: {}
+Lathe
+Lathe axis
 Lay out
 Lay strips on them: UV → Put on trim row.
 Lay the new end flat, square to the way it went: a curved patch ends in a flat face.
@@ -846,11 +942,16 @@ Layer name
 Layout snapshots
 Left
 Leg height
+Length
 Let go of the drag (or press Esc) first, then Tab.
 Let go on another one of the same object to join them.
 Let the automatic tools change the selected pieces again
 Let the automatic tools choose freely again on the selected edges (or polygons)
+Let the selected points' handles shape themselves from their neighbours, a third of the way to each, following as the neighbours move
+Let the selected points' two handles move on their own, for a kink with curved sides
 Like Keep shapes, but the angles are first evened out over the whole piece, so curved pieces (a head, a dome) drift less. A little slower.
+Line
+Line only
 Line the pieces made of quads up into a straight grid, for strips and panels
 Line the selected objects up with another object: click this, then click that object, and choose the sides or middles to line up in the window
 Line the selected objects up with {}. The change shows as you choose.
@@ -874,14 +975,18 @@ Loop cut works in the Points, Edges or Polygons mode: press 1, 2 or 3
 Loop cut: point at an edge of a selected object, across four-sided polygons.
 Loop cut: point at an edge to see the new loop, click to cut it, or press and drag along the edge to slide it into place. Cuts is in the Attributes panel. Esc or a right click cancels a drag.
 Lowest
+M / A (Points mode, the two ends selected)
 Made for
 Make every bevelled edge's new polygon the same width, however sharp or flat the edge is (the width you set is what a right-angled edge gets)
 Make instances of the selected objects right where they are: they show the original's shape and follow its changes. Or Alt + C, then Alt + V.
+Make points sharp
+Make points smooth
 Make the mirrored half of a symmetrical object part of its shape (symmetry off)
 Make the mirrored half part of the shape for real, as Blender's Apply: the mirror is gone, both halves stay, and each half can be changed on its own from then on
 Make the mirrored half part of the shape for real: symmetry goes off and both halves stay
 Make the trim sheet's rows first: the UV Editor's Trim menu, or UV → Trim sheet
 Make {} editable
+Makes
 Marine green
 Mark as seams
 Mark every hard edge of the selected objects as a seam (as shown: by angle while Automatic hard edges is on). A normal-map bake needs the UVs split wherever the shading breaks.
@@ -931,6 +1036,7 @@ Model mode
 Model one half: each selected object gets a mirror of its own, a copy of its shape on the other side of its centre (its pivot) that follows every edit, joined to it at the middle. The mirror moves and turns with the object. The arrow beside it chooses X, Y or Z and moves the mirror.
 Modes
 More copies let you go further back after a crash. A heavy scene takes tens of MB per copy.
+More pieces where the curve bends, one along a straight stretch
 More shapes
 More shapes (icosphere, torus, gear, stairs and the rest)
 Mouse
@@ -941,6 +1047,7 @@ Move 1 point
 Move UVs
 Move and turn the selected objects' pivots (the point they turn and scale around), not their shapes. Also on the top palette, by the axis switches.
 Move and turn the selected objects' pivots, not their shapes
+Move curve points
 Move down
 Move layer down
 Move layer up
@@ -1006,6 +1113,7 @@ Nothing to bake into the shape: groups and meshes have no settings to bake
 Nothing to export: nothing shown is a shape.
 Nothing to redo
 Nothing to redo.
+Nothing to show: {}.
 Nothing to undo
 Nothing to undo.
 Nothing to ungroup: only groups can be ungrouped
@@ -1048,7 +1156,9 @@ Open ({})
 Open a project
 Open a saved project
 Open as saved
+Open curve
 Open in Attributes
+Open or close curve
 Open project
 Open recent
 Open the Settings window, where every setting has its home
@@ -1103,6 +1213,7 @@ Pie sector
 Piece of {} {}
 Piece settings
 Pieces
+Pieces along the curve: with Adaptive, for each quarter turn it bends; otherwise for each stretch between two points
 Pieces are fitted on a coarse grid: quick, with a little more space lost
 Pieces are fitted on a grid as fine as half the padding
 Pieces are fitted on the finest grid: the tightest fit, and the slowest
@@ -1128,11 +1239,15 @@ Pivot to {}
 Plain, read by almost every 3D program
 Plane
 Plum
+Point added: the curve keeps its shape. Drag it to reshape the curve; Delete takes it away again.
 Point at a key to see what it does. Click a key to keep it shown.
 Point at a seam or a piece to see why it's there and how to change it
 Point at an edge to see the loop; click to cut, or drag along the edge to slide it.
 Point at one for why. Select shows where it is; Fix mends it as one step Ctrl + Z can take back.
+Point made sharp: a corner. Double-click again for a smooth bend.
+Point made smooth: drag its handles to shape the bend. Double-click again for a sharp corner.
 Points
+Points along
 Points at the middle this close to their mirror become one, so the halves join into one surface. 0 keeps them apart.
 Points on the same spot make polygons with no area and break the shading there. Fix welds each group into one point.
 Points that no face uses.
@@ -1167,6 +1282,7 @@ Radial menu
 Radius
 Ready
 Recover unsaved work?
+Rectangle
 Red
 Redo
 Redo: {}
@@ -1195,10 +1311,12 @@ Restore the UVs of
 Restore the snapshot “{}”
 Restored your work from {}. Save it to keep it.
 Restored “{}”. Ctrl + Z takes it back.
+Reverse curve
 Ridge along
 Right
 Right drag: orbit · Middle drag: pan · Wheel: zoom
 Right drag: orbit · Middle drag: zoom · Shift + middle: pan
+Right-click (or Enter) / click its first point
 Right-click (or Esc)
 Right-click in the viewport
 Right-click opens the quad menu
@@ -1214,6 +1332,8 @@ Rotating: {:.1}°
 Rotation
 Rotation and scale
 Rotation shows for one object in the Model and Object modes
+Round
+Round corners
 Row {}
 Rows of a shared texture, repeating left to right.
 Save
@@ -1248,10 +1368,13 @@ Segments
 Segments X
 Segments Y
 Segments Z
+Segments round
 Select
 Select 1 object
 Select 1 {}
+Select a curve first
 Select a loop / ring
+Select a point inside the curve to cut at: an open curve's ends cut nothing
 Select a shape (a group or a mesh has no settings to bake)
 Select all
 Select an object first: its materials are listed here
@@ -1291,7 +1414,9 @@ Select pieces
 Select ring
 Select same facing
 Select seams
+Select sharp corners inside the curve: not its ends, not points with handles (they are round already), not points in a straight line
 Select some objects first
+Select some of the curve's points first
 Select something to see and type its coordinates
 Select the islands to move first (click one on the model or in the UV Editor).
 Select the objects to apply first
@@ -1311,6 +1436,7 @@ Select {}
 Select {} objects
 Select {} {}
 Select: {} (press Q again for the next way of selecting).
+Selected
 Selected and hovered points, edges and polygons drawn larger with a dark rim, in the viewport and the UV Editor
 Selected only
 Selecting
@@ -1339,6 +1465,8 @@ Shape and object
 Shape list, from the last shape
 Shape list: 
 Shapes and their materials always go out. Skeletons and animations will be listed here once the app has them, to leave out when you don't need them.
+Sharp
+Sharp points
 Shift
 Shift + Alt + drag the Move gizmo
 Shift + click or drag adds; Ctrl + click or drag removes. Shift + click on something selected unselects it.
@@ -1397,9 +1525,11 @@ Slit: click points over the shape to cut along them. Drag a point to move it, Ct
 Slit: nothing was cut.
 Slit: select an object to cut first.
 Sloped
+Smooth
 Smooth by angle
 Smooth by angle ({:.0}°)
 Smooth by marked edges only
+Smooth points
 Smoothing
 Smoothing angle
 Snap
@@ -1427,7 +1557,12 @@ Some of its UVs are pinned: Unwrap lays it out around them.
 Some of the points these edits move have no place on the shape now (for example after giving it fewer segments). The edits still apply to what remains; nothing else is lost, and going back to the earlier settings brings the rest back.
 Some selected objects have more than {} polygons: their UVs aren't drawn.
 Space
+Space evenly
+Space {} points evenly
 Sphere
+Spin angle
+Spiral
+Split curve
 Split off
 Split off 1 polygon
 Split off works on polygons: press 3 for the Polygons mode.
@@ -1435,6 +1570,8 @@ Split off {} polygons
 Split off {} polygon{} into a new object. Ctrl + Z takes it back.
 Split off: select polygons on one object at a time.
 Split off: select some polygons first.
+Spread the selected curves' points evenly along them, keeping the shape as near as can be: as many points as the Attributes panel's Even spacing says
+Square
 Stack identical pieces
 Stairs
 Standard
@@ -1472,6 +1609,8 @@ Suggest seams, Unwrap and Seams from hard edges never put a seam on the selected
 Surface
 Swap which side of the edges the skew favours
 Swedish / Finnish
+Sweep
+Switch a curve's point between sharp and smooth
 Switch both layers on first
 Switch edit off
 Switch edit on
@@ -1493,12 +1632,14 @@ Tab
 Take a snapshot
 Take away the selection's outer rim
 Take back the last change
+Take back the last point of the curve being drawn
 Take back the last step
 Take out
 Take out of the selection, with a click or drag (the standard keys)
 Take points, edges or polygons away
 Take the seams off the selected edges (or the selected polygons' edges), so the surface stays joined there when unwrapped
 Take the selected groups' contents out, and remove the groups
+Take the selected points' handles away: a corner
 Take the selected points, edges or polygons away but keep the surface closed: the polygons around them merge into one
 Take the snapshot “{}”
 Take this boolean away: the shape is whole again, and its cutters are ordinary shapes
@@ -1517,6 +1658,7 @@ The app's own folder, so your project folders stay tidy. Copies are deleted when
 The bake sees these from behind: the normal map comes out inverted or black there. Fix turns them the right way round (Mesh → Fix normals).
 The collision shape Godot makes for it when you export for Godot: what the player bumps into
 The corners the mesh is made of
+The cross-section of: {}
 The cutter {} can't be used: {}
 The cutter {} is squashed flat
 The cutter {} isn't a closed solid: it has holes in its surface, or edges shared by more than two polygons
@@ -1554,6 +1696,7 @@ The selected objects have no UVs.
 The selected objects, with what's inside them
 The selection is always drawn larger and brighter than anything else. High contrast makes it larger still, with a dark rim, so it stands out on any colour.
 The shape across the bevel: 100% is round, 0% is flat, -100% curves inward (hollow, like a cove). Needs 2 or more segments to show.
+The shape carried along the curve: a circle for pipes and cables, a square or rectangle for bars, or another curve for rails and trims (laid flat on its plane, round its pivot)
 The shape itself
 The shape to keep already cuts one of the others (or is shown by it): each would wait for the other
 The shape's points were renumbered (more or fewer segments, say), so these edits looked for the points, edges and polygons they were made on by where they are. A polygon split into smaller ones moves as a whole. Nothing to fix.
@@ -1587,9 +1730,11 @@ This polygon {}
 This project
 This project is now in {}: lengths show and are typed in {}. Ctrl + Z takes it back.
 This shape is too big to work out Suggest seams' reasons while pointing.
+This works on a curve's points: press 1 for the Points mode and select some
+This works on whole curves: press 1 for the Points mode
 Three or more polygons on one edge can't be unfolded or baked cleanly. Select them and delete or split off the extra polygons.
 Tick "I know what I'm doing, proceed" first.
-Tip: B for the basic shapes, Alt + B for the rest
+Tip: B for the basic shapes, Alt + B for the rest and the curves
 Tip: press E for the tool menu
 To change it: select the edge (Edges mode, 2) and choose UV → Seams → Clear seams, or Never seams here so suggestions avoid it. Prefer seams here on other edges draws cuts there instead.
 To stand an object on another: Z only, this object's Lowest with the other's Highest.
@@ -1630,10 +1775,13 @@ Turn the objects back to 0°; the shapes keep the turn
 Turn the selected UVs a quarter turn to the left (anticlockwise), about their middle
 Turn the selected UVs a quarter turn to the right (clockwise), about their middle
 Turn the selected UVs a quarter turn, or mirror them: choose this to see the four
+Turn the selected curves round, so they run from their last point to their first: a sweep's twist and caps follow
 Turn the selected objects back to 0° and 100% while they look exactly the same: their shapes take the rotation and scale, so edits measure as they look. Mesh → Apply transforms has position too.
 Turn the selected polygons inside out, for when they face the wrong way
 Turn the selected shapes into plain meshes, ready for editing points, edges and polygons. Their settings and recorded edits are baked in. Undo brings the settings back.
+Turn the selected sharp points into rounded corners of the radius set in the Attributes panel, each cut back to what fits between its neighbours
 Turned {} the right way round. Ctrl + Z takes it back.
+Turns
 Turns a bridge between two closed loops round by whole steps, if the points pair up wrongly and the band twists.
 Turns snap every
 Twist
@@ -1703,6 +1851,7 @@ Viewport display
 Visible
 Warnings
 Weld
+Weld curve ends
 Weld distance
 Weld onto a point
 Weld overlapping points: new points that land on top of each other (where bevels meet) become one, so there are no doubled points or tiny slivers
@@ -1718,6 +1867,8 @@ Weld: select two or more points first, or press Ctrl + M and drag a point onto a
 What goes out
 What points, pieces, seams, pivots and the rest mean (glossary)
 What the app's words mean: points, pieces, seams, pivots, smoothing and the rest, each explained in plain words, in your web browser
+What the curve makes
+What the curve makes: nothing (a line, to guide or be another sweep's cross-section), a sweep (a shape carried along it: pipes, cables, rails) or a lathe (the curve spun round an axis: vases, bottles, wheels)
 What the cutters do to this shape
 What the row holds: bolts, a panel edge, a seal
 What the viewport draws over your shapes. Also in the viewport's Display menu.
@@ -1739,8 +1890,10 @@ Where they go
 Whether it is shown in the viewport
 Whether the ends are closed
 Whether the flat bottom is closed
+Whether the last point joins the first, making a loop
 Whether these pieces, when they're strips of square quads, come out as straight grids
 Which keyboard to draw. Letters follow what is printed on your keys; the number row is always 1 to 0.
+Which of the curve's own axes it spins round, through its pivot
 Which way round it turns: 0° turns up (an upright pipe turns towards +X), and it goes round from there.
 Which way the polygons go. Straight out is the standard.
 While dragging
@@ -1783,7 +1936,19 @@ a bend's stretch isn't a real number, or is out of range (above 0, at most 1000)
 a bevel is stored with its settings twice
 a bevel's skew or weld distance isn't a real number, or is out of range
 a boolean can't be used: {}
+a closed curve has no ends to join: open it or split it first
+a closed curve needs at least three points
 a collision is stored for object {}, which isn't there
+a curve can have at most 4096 points
+a curve can't be its own cross-section
+a curve can't be used: {}
+a curve is listed twice
+a curve names an object that isn't stored as one
+a curve names an object that isn't there
+a curve needs at least two points: delete the whole object instead
+a curve point isn't a number, or is more than 10 km away
+a curve's points have repeated or impossible ids
+a curve's shape comes from its points: use Bake into shape to edit it as a mesh
 a cutter is squashed flat (scaled to nothing)
 a cutter isn't a closed solid: it has holes in its surface, or edges shared by more than two polygons
 a face goes through point {} twice
@@ -1874,6 +2039,9 @@ closing
 connected
 couldn't find a free temporary file name
 couldn't {} {}: {}
+curve
+curve, lathed
+curve, swept
 cuts
 day
 drag a box around what to select
@@ -1916,6 +2084,7 @@ it holds no polygons
 it holds {} objects, and the app opens up to {}
 it holds {} recorded edits, and the app opens up to {}
 it is listed as an instance but stored as something else
+it isn't a curve
 it isn't a project file
 it should hold {} bytes of scene but holds {}; it may be cut short
 it was
@@ -1972,6 +2141,7 @@ no UVs
 no graphics device
 no limit
 no partner called {}
+none
 nothing
 object
 object "{}": {}
@@ -1994,6 +2164,7 @@ only an empty object can be taken out
 opening another project
 paint over what to select; Ctrl + wheel changes the brush size
 parts missing
+pick a curve for the cross-section
 piece
 pieces
 point
@@ -2036,11 +2207,15 @@ switch both layers on before merging them
 that edit no longer exists
 that element isn't in the mesh
 that layer no longer exists
+that works on the two ends of open curves
 the attribute holds values for each {}, not each {}
 the attribute holds {} values, not {}
 the backup folder {} can't be used ({})
 the backup stopped unexpectedly
 the boolean library stopped
+the cross-section curve's points are all on one spot
+the cross-section has to be another curve object
+the curve's points are all on one spot
 the cutter is already cut by this shape (or shows it), so each would wait for the other
 the emergency copy saved as the app crashed ({})
 the file couldn't be written ({})
@@ -2048,9 +2223,11 @@ the file is damaged: it claims to be impossibly large
 the file is damaged: {}
 the game engine
 the game project folder {} isn't there; choose it again in the Export window
+the in handle of point {} of {}
 the layer is already at the bottom
 the layer is already at the top
 the mesh is too large
+the out handle of point {} of {}
 the project's game project folder has changed
 the project's layout snapshots have changed
 the project's mending settings have changed
@@ -2069,6 +2246,7 @@ the shape isn't a closed solid: it has holes in its surface, or edges shared by 
 the texture square
 the value isn't a real number
 the viewport image could not be created
+the whole curve lies on the axis it spins round
 the window has no GPU device
 the windowing system stopped unexpectedly
 them
@@ -2080,6 +2258,7 @@ there is nothing to export: no shapes are shown or selected
 there is unexpected data after the scene
 they were
 thing
+this curve has had 65536 points made over time, the most it can: draw it again
 triangle
 triangles
 turn
@@ -2115,6 +2294,7 @@ write
 {} closer than {} px to other pieces
 {} colour
 {} could not open its window: {}\n
+{} curve point{} or handle{} deleted. Ctrl + Z takes it back.
 {} cut into sliver triangles
 {} edits
 {} edits found their points again on the changed shape
@@ -2143,6 +2323,8 @@ write
 {} objects selected
 {} objects were
 {} of its parts can't be found on the shape any more; it applies to the rest.
+{} on curves joins end points: both points must be ends of open curves.
+{} on curves joins two end points: select just the two ends (of one curve, or of two curves).
 {} on the trim sheet sharing a texture with other pieces
 {} on {}, but now: {}. Ctrl + Z takes it back.
 {} on {}. Ctrl + Z takes it back.
@@ -2151,6 +2333,7 @@ write
 {} onto the target. Ctrl + Z takes it back.
 {} outside the texture square
 {} pieces
+{} points
 {} polygons
 {} polygons using {} selected.
 {} polygon{} facing the wrong way selected: Flip normals turns {}, or Mesh → Fix normals turns every one.

@@ -40,6 +40,46 @@ pub struct DrawItem {
     /// another object (decision 0135). Its faces aren't drawn, and a click
     /// picks it only where no other object is under the mouse.
     pub outline: bool,
+    /// For a curve object (decision 0138): its line, points and handles.
+    /// In the Points mode, a selected curve's `mesh` and `shown` are its
+    /// points and handle ends as loose points (named by
+    /// `mesh::curve::CurvePart::code`), so they are found, selected and
+    /// moved as a mesh's points are; in the Edges and Polygons modes they
+    /// are empty (a curve has none of its own). `drawn` is its solid.
+    pub curve: Option<Arc<CurveDrawing>>,
+}
+
+/// What is drawn of a curve object, in its own space (decision 0138).
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct CurveDrawing {
+    /// The curve followed finely: drawn as its line.
+    pub line: Vec<Vec3>,
+    /// Its points and the ends of the handles that pull, by part.
+    pub parts: Vec<(mesh::curve::CurvePart, Vec3)>,
+    /// Each handle that pulls, from its point to its end.
+    pub handles: Vec<[Vec3; 2]>,
+}
+
+impl CurveDrawing {
+    /// How finely a curve's line follows it: pieces per stretch.
+    const LINE_DETAIL: u32 = 24;
+
+    /// The drawing of `curve`.
+    pub fn of(curve: &mesh::curve::Curve) -> Self {
+        let parts = curve.parts();
+        let handles = curve
+            .points()
+            .iter()
+            .flat_map(|p| [(p.position, p.handle_in), (p.position, p.handle_out)])
+            .filter(|(_, h)| h.length_squared() > 1e-12)
+            .map(|(at, h)| [at, at + h])
+            .collect();
+        Self {
+            line: curve.polyline(Self::LINE_DETAIL),
+            parts,
+            handles,
+        }
+    }
 }
 
 /// Everything the viewport draws of the scene. `version` changes whenever
@@ -126,6 +166,13 @@ pub enum OverlayStyle {
     /// A polygon's normal: a short line from its middle the way it faces
     /// (Display → Normals).
     Normal,
+    /// A curve's line (decision 0138).
+    Curve,
+    /// A selected curve's line.
+    CurveSelected,
+    /// A curve's handles, and its points and handle ends not selected, in
+    /// the Points mode.
+    Handle,
 }
 
 /// What the Points, Edges and Polygons modes draw over the edited objects,
@@ -261,8 +308,19 @@ impl DrawingCache {
             if !scene.is_shown(id) {
                 continue;
             }
-            let Some(shape) = scene.evaluated(id) else {
-                continue;
+            // A curve is drawn as its line, with its solid if it has one
+            // (decision 0138).
+            let curve = scene
+                .object(id)
+                .and_then(|o| o.kind.curve())
+                .map(|c| c.shape.curve());
+            let shape = match (scene.evaluated(id), &curve) {
+                (Some(shape), _) => shape,
+                (None, Some(_)) => scene::Evaluated {
+                    mesh: Arc::new(Mesh::default()),
+                    warnings: Vec::new(),
+                },
+                (None, None) => continue,
             };
             // An instance shows its original's materials.
             let own = match scene.object(id).map(|o| &o.kind) {
@@ -283,16 +341,35 @@ impl DrawingCache {
             let drawn = scene
                 .with_mirror(id, &cut)
                 .map_or_else(|| Arc::clone(&cut), Arc::new);
+            let selected = document.is_selected(id);
+            let (mesh, shown, curve) = match curve {
+                Some(curve) => {
+                    // Its points to edit in the Points mode; nothing in the
+                    // Edges and Polygons modes.
+                    let parts = match editing {
+                        Some(ElementKind::Points) if selected => Arc::new(curve.parts_mesh()),
+                        Some(_) if selected => Arc::new(Mesh::default()),
+                        _ => Arc::clone(&shape.mesh),
+                    };
+                    (
+                        Arc::clone(&parts),
+                        parts,
+                        Some(Arc::new(CurveDrawing::of(&curve))),
+                    )
+                }
+                None => (shape.mesh, shown, None),
+            };
             items.push(DrawItem {
                 id,
                 drawn,
                 shown,
-                mesh: shape.mesh,
+                mesh,
                 transform: scene.shape_matrix(id),
-                selected: document.is_selected(id),
+                selected,
                 colors,
                 hardness,
                 outline: cutters.contains(&id),
+                curve,
             });
         }
         // Each live mirror's planes, once, around the objects that use

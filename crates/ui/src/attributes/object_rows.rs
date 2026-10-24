@@ -156,6 +156,11 @@ fn kind_label(kind: &ObjectKind) -> String {
         ObjectKind::Primitive(p) => format!("({})", p.name().to_lowercase()),
         ObjectKind::Mesh(_) => "(mesh)".to_string(),
         ObjectKind::Instance(_) => "(instance)".to_string(),
+        ObjectKind::Curve(c) => match &c.solid {
+            scene::CurveSolid::Line => format!("({})", tr("curve")),
+            scene::CurveSolid::Sweep(_) => format!("({})", tr("curve, swept")),
+            scene::CurveSolid::Lathe(_) => format!("({})", tr("curve, lathed")),
+        },
         _ => "(group)".to_string(),
     }
 }

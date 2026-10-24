@@ -120,6 +120,23 @@ impl Document {
         Ok(self)
     }
 
+    /// The same document with object `id` given back its curve (see
+    /// [`Scene::with_curve`]), for a project being opened.
+    pub fn with_curve(
+        mut self,
+        id: ObjectId,
+        curve: crate::CurveObject,
+    ) -> Result<Self, &'static str> {
+        self.scene = std::mem::take(&mut self.scene).with_curve(id, curve)?;
+        Ok(self)
+    }
+
+    /// Checks every curve's cross-section names a curve object (see
+    /// [`Scene::check_profiles`]), once a project's curves are in.
+    pub fn check_profiles(&self) -> Result<(), crate::tree::SceneError> {
+        self.scene.check_profiles()
+    }
+
     /// The same document with trim sheet `trim`, for a project being
     /// opened (not a step to undo: use [`Command::SetTrim`]).
     #[must_use]

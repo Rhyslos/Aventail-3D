@@ -113,7 +113,7 @@ impl AttributesPanel {
                         ui.end_row();
                     } else if self.tool == Tool::Bridge {
                         bridge_rows(ui, &mut self.join.bridge);
-                    } else if self.tool == Tool::Weld {
+                    } else if self.tool == Tool::Weld || self.tool == Tool::DrawCurve {
                         // Nothing to set: the hint says how.
                     } else if self.tool == Tool::LoopCut {
                         cuts_row(ui, &mut self.loop_cut.cuts);
@@ -164,6 +164,12 @@ impl AttributesPanel {
         } else if self.tool == Tool::LoopCut {
             tr(
                 "Point at an edge to see the loop; click to cut, or drag along the edge to slide it.",
+            )
+        } else if self.tool == Tool::DrawCurve {
+            tr(
+                "Click for a sharp point, press and drag for a smooth bend. Enter or a right click \
+                 finishes, Esc cancels, Backspace takes the last point back; click the first point \
+                 to close the curve. Its sweep or lathe is set once it is made.",
             )
         } else if self.tool == Tool::Bevel {
             tr("Drag away from the selected edges or points to widen. Hold Shift for fine steps.")

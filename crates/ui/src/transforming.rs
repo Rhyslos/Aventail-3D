@@ -68,6 +68,9 @@ pub enum Tool {
     /// Weld onto a target: drag a point onto another to melt it there
     /// (decision 0051).
     Weld,
+    /// Draw curve: click to place a curve's points, press and drag for
+    /// smooth bends (decision 0138). Works in the Model mode.
+    DrawCurve,
 }
 
 /// The tool keys (Halberd's, decision 0019): move, rotate, scale, all.
@@ -105,6 +108,7 @@ impl Tool {
             Self::Slit => tr("Slit"),
             Self::Bridge => tr("Bridge"),
             Self::Weld => tr("Weld"),
+            Self::DrawCurve => tr("Draw curve"),
         }
     }
 
@@ -140,7 +144,10 @@ impl Tool {
 
     /// Whether it has settings in the Attributes panel for its next use.
     pub fn has_settings(self) -> bool {
-        self.drags_anywhere() || self.clicks_on_shapes() || self.drags_between_elements()
+        self.drags_anywhere()
+            || self.clicks_on_shapes()
+            || self.drags_between_elements()
+            || self == Self::DrawCurve
     }
 
     /// Its gizmo, if it has one.
@@ -154,7 +161,8 @@ impl Tool {
             | Self::LoopCut
             | Self::Slit
             | Self::Bridge
-            | Self::Weld => None,
+            | Self::Weld
+            | Self::DrawCurve => None,
             Self::Move => Some(GizmoTool::Move),
             Self::Rotate => Some(GizmoTool::Rotate),
             Self::Scale => Some(GizmoTool::Scale),
@@ -207,7 +215,7 @@ impl SnapSettings {
         self.on != (ctrl && self.ctrl_flips)
     }
 
-    fn targets(&self) -> SnapTargets {
+    pub(crate) fn targets(&self) -> SnapTargets {
         SnapTargets {
             points: self.points,
             edges: self.edges,
@@ -258,6 +266,10 @@ pub(crate) struct PointsStart {
     /// place in the layer, and the edit; the drag changes it rather than
     /// adding another, so drags in a row stay one entry in the edit list.
     pub(crate) follows: Option<(usize, usize, Operation)>,
+    /// Whether the object is a curve (decision 0138): `points` are its
+    /// parts' codes (`mesh::curve::CurvePart::code`), and the change
+    /// moves them through a curve edit.
+    pub(crate) curve: bool,
 }
 
 /// A drag of points' undo label, from its verb and count ("Move 1
@@ -500,6 +512,7 @@ impl Target {
                         anchors,
                         slide: None,
                         follows,
+                        curve: item.curve.is_some(),
                     });
                 }
                 let first = starts.first()?;
@@ -595,6 +608,21 @@ impl Target {
                 .iter()
                 .flat_map(|s| {
                     let inverse = s.world.inverse();
+                    if s.curve {
+                        // A curve's points and handles (decision 0138).
+                        let parts = s
+                            .points
+                            .iter()
+                            .map(|v| scene::CurvePart::from_code(v.get()))
+                            .collect();
+                        return vec![Command::EditCurve {
+                            id: s.id,
+                            edit: scene::CurveEdit::Transform {
+                                parts,
+                                matrix: inverse * m * s.world,
+                            },
+                        }];
+                    }
                     if let (Some(shape), Change::Translate(d)) = (&s.slide, change) {
                         let slides = mesh::slide::slides_for(
                             shape,

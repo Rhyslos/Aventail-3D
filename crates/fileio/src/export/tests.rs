@@ -166,6 +166,31 @@ fn cutters_stay_out_and_the_shape_they_cut_goes_cut() {
 }
 
 #[test]
+fn a_curve_goes_out_as_its_solid_and_a_plain_line_not_at_all() {
+    // Decision 0138: a curve with nothing on it has no shape to export.
+    let mut doc = Document::new();
+    let line = scene::CurveObject::line(scene::CurveShape::Ready(
+        scene::ReadyCurveKind::Circle.standard(),
+    ));
+    doc.execute(Command::Create(ObjectKind::Curve(line.clone())))
+        .unwrap();
+    assert!(prepare(&doc, &ExportOptions::default()).is_empty());
+    assert_eq!(summary(&doc, &ExportOptions::default()).objects, 0);
+    let pipe = scene::CurveObject {
+        solid: scene::CurveSolid::Sweep(scene::Sweep::default()),
+        ..line
+    };
+    doc.execute(Command::Create(ObjectKind::Curve(pipe)))
+        .unwrap();
+    let out = one(&doc, &ExportOptions::default());
+    assert_eq!(out.name, "Circle 2");
+    // A ring of quads with UVs, every polygon facing the way it winds.
+    assert!(out.world.polygons.iter().all(|p| p.corners.len() == 4));
+    assert!(!out.world.uvs.is_empty());
+    assert_eq!(summary(&doc, &ExportOptions::default()).objects, 1);
+}
+
+#[test]
 fn a_moved_pivot_keeps_the_shape_and_places_the_local_one_around_it() {
     let (mut doc, cube) = with(PrimitiveKind::Cube);
     doc.execute(Command::MovePivots(vec![(

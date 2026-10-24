@@ -58,6 +58,24 @@ impl Workbench {
             self.cancel_target_pick();
             return;
         }
+        // Draw curve (decision 0138): Enter finishes the curve, Esc cancels
+        // it, Backspace takes its last point back.
+        if self.tool == Tool::DrawCurve {
+            if ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Enter)) {
+                self.finish_curve_and_put_away();
+                return;
+            }
+            if ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
+                self.cancel_curve();
+                return;
+            }
+            if self.curve_session.is_some()
+                && ui.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Backspace))
+            {
+                self.take_back_curve_point();
+                return;
+            }
+        }
         // While a slit's line is drawn, Enter finishes it and Esc cancels
         // it, taking its cut back, as Esc cancels everywhere (decision
         // 0126). Tab (back to the Model mode) finishes it too.
