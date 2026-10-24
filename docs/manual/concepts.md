@@ -113,7 +113,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Edit list** — The list of an object's edits in the Edit layers panel. Any edit in it can be opened and changed, and the edits after it are made again. *Bake into shape up to here* bakes the old edits up to one into the shape, so they no longer have to be made again: the shape stays the same, but those edits can't be changed any more. See [The edit list](edit-list.md).
 
-**Modifiers palette** — The thin column of buttons on the right of the viewport, beside the panels, for things that change a shape without destroying it. Its first button adds an edit layer; then come the [booleans](booleans.md) (Union, Subtract, Intersect), then one button per kind of [modifier](#objects-and-scenes), grouped by family (Subdivide and Scatter onto surface, then Add lattice, Bend along curve and Shrinkwrap onto, then Remesh and Decimate, so far). More join it in later versions.
+**Modifiers palette** — The thin column of buttons on the right of the viewport, beside the panels, for things that change a shape without destroying it. Its first button adds an edit layer; then come the [booleans](booleans.md) (Union, Subtract, Intersect), then one button per kind of [modifier](#objects-and-scenes), grouped by family (Subdivide and Scatter onto surface, then Add lattice, Bend along curve and Shrinkwrap onto, then Remesh and Decimate, then Weighted normals, so far). More join it in later versions.
 
 **Modifier** — A change worked out live on top of a shape, after its edits, booleans and mirror, rather than made to its points: you can change its settings, switch it off, reorder it or remove it at any time, and the shape underneath stays as you modelled it. An object's modifiers are its **modifier stack**, worked out first to last, each on the result of the one before. **Bake into shape** makes them permanent. (Blender and 3ds Max call them modifiers too; Cinema 4D has generators and deformers.) See [Modifiers](modifiers.md).
 
@@ -185,7 +185,9 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Smoothing by angle (auto-smooth)** — Shading an edge hard wherever its polygons meet more sharply than an angle, and soft everywhere else, instead of choosing edge by edge. In this app each object has its own smoothing: *smoothed by angle* (the standard, at 30°), worked out again after every change, or shaded only by the edges you mark hard. Change it on the object's Smoothing row in the Attributes panel, or with **Mesh → Shading → Smooth by angle**. See [Hard and soft edges](hard-and-soft-edges.md#smoothed-by-angle).
 
-**Weighted normals** — A trick that makes large flat faces shade perfectly flat on low-poly bevelled models, without baking a normal map.
+**Weighted normals** — A trick that makes large flat faces shade perfectly flat on low-poly bevelled models, without baking a normal map: at each corner, bigger polygons count for more when the [normal](#shading-and-normals) is worked out, so a big face's corners point straight out of it and the bevels beside it bend the light round. In this app it's a [modifier](#objects-and-scenes), best last in the list. See [Weighted normals](weighted-normals.md).
+
+**Custom normals** — Normals set on a shape's polygon corners (by [Weighted normals](weighted-normals.md), so far) instead of worked out from its hard edges and Smoothing. They're drawn, exported (and the tangents for normal maps made from them) as they are. They fit only the shape they were made for: an edit that moves points, changes polygons or hard edges drops them, and the shading is worked out the usual way again. (Other programs call them *explicit*, *split* or *locked* normals.)
 
 ## UVs and texturing
 

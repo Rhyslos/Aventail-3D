@@ -366,8 +366,9 @@ impl ModifierKind {
             Self::BendAlongCurve(_) => crate::wrap::bend_work(input),
             // Depends on its target's size: see `work_with`.
             Self::Shrinkwrap(_) => crate::wrap::shrinkwrap_work(input, &[]),
-            // About 40 corners cost as much as one polygon in a boolean.
-            Self::WeightedNormals(_) => input.face_layout().1.len() / 40,
+            // About 15 corners cost as much as one polygon in a boolean
+            // (200 000 quads take about 0.2 s in a release build).
+            Self::WeightedNormals(_) => input.face_layout().1.len() / 15,
         }
     }
 
