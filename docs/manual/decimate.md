@@ -36,7 +36,7 @@ On a big shape (from about 5 000 triangles) the result is worked out in the back
 | **Keep hard edges** | On (standard): the edges the shading shows hard stay as lines: those marked hard on an object shaded by its marks, or those sharper than its [Smoothing](hard-and-soft-edges.md) angle (30° as standard) otherwise. A box stays a crisp box. |
 | **Keep material borders** | On (standard): where one [material](materials.md) meets another stays exactly where it is. |
 | **Keep open borders** | On (standard): the edges of holes and open sheets stay where they are. Off: an open edge can be worn away like any other. |
-| **Quads where flat** | Off (standard): the result is all triangles, which is what a game engine draws anyway. On: pairs of triangles lying flat together (within 1.5°) are joined into four-sided polygons again, which is tidier to look at and to keep editing. The count is still in triangles. |
+| **Quads where flat** | Off (standard): the result is all triangles, which is what a game engine draws anyway. On: pairs of triangles lying flat together (within 1.5°) are joined into four-sided polygons again, which is tidier to look at and to keep editing. The count is still in triangles. To join pairs round curves too, add [Quadify](quadify.md) after Decimate instead. |
 | **Show in viewport** | Off: the viewport shows the shape without the decimation; exports and Bake into shape still use it. |
 
 **Triangles shown** (not a setting) is how many triangles the viewport's shape has after all its modifiers.
@@ -85,6 +85,7 @@ Decimate has no key of its own.
 
 - [Modifiers: switching off, reordering, Show in viewport, baking](modifiers.md)
 - [Subdivide](subdivide.md) and [Remesh](remesh.md), which make the heavy shapes Decimate lightens
+- [Quadify](quadify.md), to join Decimate's triangles back into quads
 - [Hard and soft edges](hard-and-soft-edges.md), [Seams](seams.md) and [Materials](materials.md): what it keeps
 - [Concepts: triangle count, LOD, decimation](concepts.md#objects-and-scenes)
 - Why it works this way: [decision 0145](../decisions/0145-decimate.md)
