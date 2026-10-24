@@ -30,6 +30,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **"Wrapped in parts" leaves no gaps between detailed parts.** A part with more detail than its 64-corner limit kept different corners of the cut from its neighbour, so the two could leave a thin gap where things might slip through. Both now keep the same corners of the cut and meet there.
 - **Collision wrappings keep shallow edges on shapes far from their pivot.** How close a point must be to a side to count as on it was measured from the shape's distance to its pivot, so a shape far from its pivot lost the corners of gentle bends in its "Wrapped" and "Wrapped in parts" collision. It is now measured from the shape's own size.
 - **A damaged project with a closed curve of only one or two points is refused** with a plain reason ("a closed curve needs at least three points"), instead of opening with a doubled, empty-inside sweep.
 - **Collision and levels-of-detail notes stay true to the shape.** After an export, or while a changed shape was still being worked out, Attributes could show a collision warning or triangle counts for an older shape (or the export's). They now show only what the viewport worked out for the shape as it is now, and nothing while it is still being worked out.
