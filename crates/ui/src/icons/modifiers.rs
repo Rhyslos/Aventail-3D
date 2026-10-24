@@ -1,4 +1,4 @@
-//! The modifier icons (decisions 0142 to 0158), one per kind of
+//! The modifier icons (decisions 0142 to 0159), one per kind of
 //! modifier on the modifiers palette, the game bevel's (decision 0156)
 //! and the crease commands'. Original drawings.
 
@@ -26,6 +26,7 @@ pub(super) fn draw(pen: &mut Pen, icon: Icon) {
         Icon::WeldByDistance => weld_by_distance(pen),
         Icon::Array => array(pen),
         Icon::Shell => shell(pen),
+        Icon::Struts => struts(pen),
         _ => {}
     }
 }
@@ -416,6 +417,45 @@ fn shell(pen: &mut Pen) {
         ];
         pen.shape(&rim, Paint::Shade);
         pen.stroke(&rim, true, Ink::Line);
+    }
+}
+
+/// Struts: a box made of bars, a small block at each corner where they
+/// meet.
+fn struts(pen: &mut Pen) {
+    let front = [(3.0_f32, 10.0_f32), (15.0, 10.0), (15.0, 22.0), (3.0, 22.0)];
+    let back = front.map(|(x, y)| (x + 6.0, y - 7.0));
+    // A bar along a line, 2 wide.
+    let bar = |pen: &mut Pen, a: (f32, f32), b: (f32, f32)| {
+        let (dx, dy) = (b.0 - a.0, b.1 - a.1);
+        let length = (dx * dx + dy * dy).sqrt().max(1e-3);
+        let (nx, ny) = (-dy / length, dx / length);
+        let quad = [
+            (a.0 + nx, a.1 + ny),
+            (b.0 + nx, b.1 + ny),
+            (b.0 - nx, b.1 - ny),
+            (a.0 - nx, a.1 - ny),
+        ];
+        pen.shape(&quad, Paint::Tone);
+        pen.stroke(&quad, true, Ink::Line);
+    };
+    bar(pen, back[0], back[1]);
+    bar(pen, back[1], back[2]);
+    for k in 0..3 {
+        bar(pen, front[k], back[k]);
+    }
+    for k in 0..4 {
+        bar(pen, front[k], front[(k + 1) % 4]);
+    }
+    for (x, y) in front.iter().chain(&back[..3]) {
+        let joint = [
+            (x - 1.6, y - 1.6),
+            (x + 1.6, y - 1.6),
+            (x + 1.6, y + 1.6),
+            (x - 1.6, y + 1.6),
+        ];
+        pen.shape(&joint, Paint::Shade);
+        pen.stroke(&joint, true, Ink::Line);
     }
 }
 

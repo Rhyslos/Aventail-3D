@@ -213,6 +213,8 @@ pub(crate) enum KindV43 {
     Displace(super::v58::DisplaceV58),
     /// Bend, twist or taper (version 59).
     BendTwistTaper(super::v59::AxisDeformV59),
+    /// Struts (version 60).
+    Struts(super::v60::StrutsV60),
 }
 
 /// Weighted normals' weighting as stored.
@@ -313,6 +315,7 @@ impl KindV43 {
             ModifierKind::BendTwistTaper(o) => {
                 Self::BendTwistTaper(super::v59::AxisDeformV59::of(o))
             }
+            ModifierKind::Struts(o) => Self::Struts(super::v60::StrutsV60::of(o)),
         }
     }
 
@@ -447,6 +450,7 @@ impl KindV43 {
             Self::Shell(o) => ModifierKind::Shell(o.options()),
             Self::Displace(d) => ModifierKind::Displace(d.settings()),
             Self::BendTwistTaper(o) => ModifierKind::BendTwistTaper(o.options()),
+            Self::Struts(o) => ModifierKind::Struts(o.options()),
         }
     }
 }

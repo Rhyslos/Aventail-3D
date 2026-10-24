@@ -72,6 +72,7 @@ pub use mesh::remesh::RemeshOptions;
 pub use mesh::scatter::{PlaceOn, ScatterOptions};
 pub use mesh::shell::{ShellDirection, ShellOptions};
 pub use mesh::shrinkwrap::{ShrinkwrapOptions, WrapMode};
+pub use mesh::struts::StrutsOptions;
 pub use mesh::subdivide::SubdivideOptions;
 pub use mesh::uvs::{BUDGET_RANGE, SeamPreference, UvLayout};
 pub use mesh::weighted_normals::{WeightBy, WeightedNormalsOptions};
@@ -153,6 +154,8 @@ mod selection_tests;
 mod shell_tests;
 #[cfg(test)]
 mod stack_tests;
+#[cfg(test)]
+mod struts_tests;
 #[cfg(test)]
 mod subdivide_tests;
 #[cfg(test)]

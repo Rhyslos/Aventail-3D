@@ -44,6 +44,7 @@ use mesh::live_bevel::LiveBevelOptions;
 use mesh::quadify::QuadifyOptions;
 use mesh::remesh::RemeshOptions;
 use mesh::shell::ShellOptions;
+use mesh::struts::StrutsOptions;
 use mesh::subdivide::SubdivideOptions;
 use mesh::weighted_normals::WeightedNormalsOptions;
 use mesh::weld_distance::WeldOptions;
@@ -145,6 +146,10 @@ pub enum ModifierKind {
     /// 0158): one kind with a choice, round a centre from the pivot,
     /// between limits along the axis.
     BendTwistTaper(AxisDeformOptions),
+    /// Every edge turned into a bar of its own, with a joint at each
+    /// point (decision 0159): a frame, a cage, a grille. Not the
+    /// viewport's Wireframe look: real polygons.
+    Struts(StrutsOptions),
 }
 
 impl ModifierKind {
@@ -155,6 +160,7 @@ impl ModifierKind {
             Self::Subdivide(SubdivideOptions::default()),
             Self::Array(ArraySettings::default()),
             Self::Shell(ShellOptions::default()),
+            Self::Struts(StrutsOptions::default()),
             Self::LiveBevel(LiveBevelOptions::default()),
             Self::Scatter(ScatterSettings::default()),
             Self::Lattice(LatticeOptions::default()),
@@ -186,6 +192,7 @@ impl ModifierKind {
             Self::WeldByDistance(_) => tr("Weld by distance"),
             Self::Array(_) => tr("Array"),
             Self::Shell(_) => tr("Shell"),
+            Self::Struts(_) => tr("Struts"),
             Self::Displace(_) => tr("Displace"),
             // Named by what it does now, so the list reads "Bend", "Twist".
             Self::BendTwistTaper(o) => o.kind.name(),
@@ -255,6 +262,11 @@ impl ModifierKind {
                 "Give a surface thickness: a sheet of metal, a cup's wall, a cloth's hem. Open \
                  borders get a rim joining the two sides.",
             ),
+            Self::Struts(_) => tr(
+                "Turn every edge into a bar of its own, with a joint at each point: a frame, a \
+                 cage, a grille, scaffolding. Unlike the Wireframe look, which only draws the \
+                 edges, these are real polygons that export.",
+            ),
             Self::Displace(_) => tr(
                 "Push the shape's points in and out by a noise: rough rock, lumpy ground, dented \
                  metal, cobbles. Smooth, ridged or cell-shaped bumps, everywhere or round chosen \
@@ -281,7 +293,9 @@ impl ModifierKind {
             | Self::Displace(_)
             | Self::BendTwistTaper(_) => ModifierFamily::Deform,
             Self::WeightedNormals(_) => ModifierFamily::Game,
-            Self::LiveBevel(_) | Self::Array(_) | Self::Shell(_) => ModifierFamily::Generate,
+            Self::LiveBevel(_) | Self::Array(_) | Self::Shell(_) | Self::Struts(_) => {
+                ModifierFamily::Generate
+            }
             Self::Quadify(_) | Self::WeldByDistance(_) => ModifierFamily::CleanUp,
         }
     }
@@ -302,6 +316,7 @@ impl ModifierKind {
             | Self::WeldByDistance(_)
             | Self::Array(_)
             | Self::Shell(_)
+            | Self::Struts(_)
             | Self::Displace(_)
             | Self::BendTwistTaper(_) => false,
             Self::Subdivide(o) => {
@@ -333,6 +348,7 @@ impl ModifierKind {
             Self::WeldByDistance(options) => Self::WeldByDistance(options.clamped()),
             Self::Array(settings) => Self::Array(settings.clamped()),
             Self::Shell(options) => Self::Shell(options.clamped()),
+            Self::Struts(options) => Self::Struts(options.clamped()),
             Self::Displace(settings) => Self::Displace(settings.clamped()),
             Self::BendTwistTaper(options) => Self::BendTwistTaper(options.clamped()),
         }
@@ -352,6 +368,7 @@ impl ModifierKind {
             | Self::Quadify(_)
             | Self::WeldByDistance(_)
             | Self::Shell(_)
+            | Self::Struts(_)
             | Self::Displace(_)
             | Self::BendTwistTaper(_) => Vec::new(),
             Self::Lattice(options) => vec![options.cage],
@@ -420,6 +437,7 @@ impl ModifierKind {
             | Self::Quadify(_)
             | Self::WeldByDistance(_)
             | Self::Shell(_)
+            | Self::Struts(_)
             | Self::Displace(_)
             | Self::BendTwistTaper(_) => kind.has_shape(),
         }
@@ -437,6 +455,7 @@ impl ModifierKind {
             | Self::Quadify(_)
             | Self::WeldByDistance(_)
             | Self::Shell(_)
+            | Self::Struts(_)
             | Self::Displace(_)
             | Self::BendTwistTaper(_) => self.clone(),
             Self::Lattice(options) => Self::Lattice(LatticeOptions {
@@ -520,6 +539,10 @@ impl ModifierKind {
             // About four polygons made cost as much as one in a boolean
             // (10 000 polygons thickened in about 20 ms in a release build).
             Self::Shell(options) => mesh::shell::work(input, options),
+            // About four polygons made cost as much as one in a boolean
+            // (a sphere's 4 000 edges into 36 000 polygons in about 60 ms
+            // in a release build).
+            Self::Struts(options) => mesh::struts::work(input, options),
             // See `mesh::displace::work` for the timings.
             Self::Displace(settings) => settings.work(input),
             // About 20 points cost as much as one polygon in a boolean.
@@ -587,6 +610,10 @@ impl ModifierKind {
             Self::Array(settings) => crate::array::apply_array(input, settings, context),
             Self::Shell(options) => mesh::shell::shell(input, options, crate::MAX_SHAPE_POLYGONS)
                 .map_err(|why| why.to_string()),
+            Self::Struts(options) => {
+                mesh::struts::struts(input, options, crate::MAX_SHAPE_POLYGONS)
+                    .map_err(|why| why.to_string())
+            }
             Self::Displace(settings) => crate::displace::apply_displace(input, settings, context),
             Self::BendTwistTaper(options) => {
                 mesh::axis_deform::axis_deform(input, options, context.pivot)
@@ -605,8 +632,12 @@ impl ModifierKind {
     /// crack spoils each of them (decision 0152); a Shell before Live
     /// bevel, Subdivide and Weighted normals, so its rims are bevelled
     /// and smoothed with the rest and the normals are weighted last
-    /// (decision 0154); Displace and Bend, twist or taper before Weighted
-    /// normals, which shades best last (decisions 0157 and 0158). The person can move it afterwards.
+    /// (decision 0154); Struts likewise, so the struts are bevelled and
+    /// smoothed, and after a Weld by distance (a crack would give two
+    /// struts along one edge) and Quadify (a triangulated shape would
+    /// give a strut across each quad) (decision 0159); Displace and Bend, twist or
+    /// taper before Weighted normals, which shades best last (decisions
+    /// 0157 and 0158). The person can move it afterwards.
     pub fn goes_before(&self, other: &Self) -> bool {
         match self {
             Self::LiveBevel(_) => {
@@ -614,7 +645,10 @@ impl ModifierKind {
             }
             Self::Quadify(_) => matches!(
                 other,
-                Self::Subdivide(_) | Self::WeightedNormals(_) | Self::LiveBevel(_)
+                Self::Subdivide(_)
+                    | Self::WeightedNormals(_)
+                    | Self::LiveBevel(_)
+                    | Self::Struts(_)
             ),
             Self::WeldByDistance(_) => matches!(
                 other,
@@ -624,8 +658,9 @@ impl ModifierKind {
                     | Self::Subdivide(_)
                     | Self::WeightedNormals(_)
                     | Self::Shell(_)
+                    | Self::Struts(_)
             ),
-            Self::Shell(_) => matches!(
+            Self::Shell(_) | Self::Struts(_) => matches!(
                 other,
                 Self::LiveBevel(_) | Self::Subdivide(_) | Self::WeightedNormals(_)
             ),

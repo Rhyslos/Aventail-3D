@@ -28,6 +28,7 @@ mod quadify_rows;
 mod scatter_rows;
 mod shell_rows;
 pub(crate) mod stepper;
+mod struts_rows;
 mod tool_rows;
 mod tool_section;
 mod weighted_rows;

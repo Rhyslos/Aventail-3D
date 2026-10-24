@@ -1023,6 +1023,8 @@ mod slit_tests;
 #[cfg(test)]
 mod spline_tests;
 #[cfg(test)]
+mod struts_tests;
+#[cfg(test)]
 mod symmetry_tests;
 mod transform;
 #[cfg(test)]

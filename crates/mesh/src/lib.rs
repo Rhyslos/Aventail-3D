@@ -51,6 +51,7 @@ pub mod shrinkwrap;
 pub mod slide;
 pub mod slit;
 pub mod stretch;
+pub mod struts;
 pub mod subdivide;
 pub mod symmetry;
 pub mod topology;
