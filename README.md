@@ -258,9 +258,9 @@ After a review of the whole app (2026-10-21, [decision 0121](docs/decisions/0121
 
 **Gate:** 2–3 people new to the app finish a fixed task list without help, see what is selected on any screen, and no text skips the English package. Then Phase 10, advanced modelling.
 
-### Phase 10 · Advanced hard-surface (after Phase 9, before the rest of Phase 8) — 7 of 23
+### Phase 10 · Advanced hard-surface (after Phase 9, before the rest of Phase 8) — 8 of 23
 
-`████░░░░░░░░░` 30%
+`█████░░░░░░░░` 35%
 
 Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/decisions/0125-modelling-before-the-rest-of-the-uvs.md)); Phase 8 continues once it's done. Friends join as testers around here, once there are enough tools to build something. On 24 October the project lead widened it with fourteen more modifiers ([decision 0136](docs/decisions/0136-more-modifiers.md)); each still asks about its controls before it's built. They're built biggest and hardest first, except where one builds on another ([decision 0137](docs/decisions/0137-biggest-first.md)).
 
@@ -274,7 +274,7 @@ Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/d
 - [x] Smoothing modifier (subdivision), with creases: **Subdivide**, Catmull-Clark with viewport and export levels, creases set in the Edges mode ([decision 0143](docs/decisions/0143-subdivide-and-creases.md))
 - [x] Lattice cage: a box of points that reshapes what's inside smoothly, on the deformer groundwork bend, twist and taper reuse ([decision 0144](docs/decisions/0144-lattice-cage.md))
 - [x] Decimate: fewer polygons, the same shape, with seams, hard edges, material borders and open borders kept ([decision 0145](docs/decisions/0145-decimate.md))
-- [ ] Scatter onto surface: copies of a shape on another's points or faces, for bolts, rivets and vents
+- [x] Scatter onto surface: copies of shapes on another's points, polygon centres or spread at random, for bolts, rivets, rocks and vents ([decision 0146](docs/decisions/0146-scatter.md))
 - [ ] Curve deform and shrinkwrap: bend a shape along a curve (belts, treads); press a shape onto a surface (decals, straps)
 - [ ] Weighted normals
 - [ ] Live bevel modifier: every edge sharper than an angle rounded, updating as you model
@@ -313,6 +313,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-24 | Phase 10: Scatter onto surface, copies of other shapes spread over a surface's points, polygon centres or at random, with spacing, random turns and sizes, and kept to chosen polygons if wanted |
 | 2026-10-24 | Phase 10: Decimate, fewer triangles with the shape kept, its seams, hard edges, material and open borders staying as lines |
 | 2026-10-24 | Phase 10: lattice cages: Add lattice fits a cage of points round shapes; move its points in the Points mode and the shapes bend smoothly with them |
 | 2026-10-24 | Phase 10: Subdivide, subdivision smoothing (Catmull-Clark) with its own viewport and export levels, and creases on edges to keep them sharp |
