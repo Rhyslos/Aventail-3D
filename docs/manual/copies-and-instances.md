@@ -30,6 +30,7 @@ Pasting copies the objects as they are when you paste, not when you copied. If t
 - **Bake into shape** (Ctrl + E) turns an instance into a plain mesh of its own, no longer linked.
 - Deleting an original turns its instances into plain meshes, so they don't disappear.
 - An instance of an instance shows the same original.
+- An instance of a shape with modifiers that read another object (Lattice, Bend along curve, an Array round a centre, Scatter, Shrinkwrap) shows exactly its original's final shape, wherever you move it: the cage, curve, centre or target works on the original where it stands, and the instance shows the result.
 
 ## Settings
 

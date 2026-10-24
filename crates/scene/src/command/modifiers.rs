@@ -177,6 +177,53 @@ impl Run<'_> {
         Ok(())
     }
 
+    /// Takes out of every other object's modifiers each one that reads
+    /// `changed` (which has just become another kind) and can't read its
+    /// new kind, as [`Self::forget_modifier_sources`] does for a deleted
+    /// object (Bend along curve reads only a curve); and, if `changed` no
+    /// longer has a shape, takes it out of every boolean as a cutter.
+    pub(super) fn forget_unreadable_sources(
+        &mut self,
+        changed: ObjectId,
+    ) -> Result<(), SceneError> {
+        let Some(kind) = self.scene.object(changed).map(|o| o.kind.clone()) else {
+            return Ok(());
+        };
+        let users: Vec<ObjectId> = self
+            .scene
+            .walk()
+            .into_iter()
+            .map(|(id, _)| id)
+            .filter(|id| *id != changed)
+            .filter(|id| {
+                self.scene
+                    .modifiers(*id)
+                    .iter()
+                    .any(|m| m.kind.sources().contains(&changed) && !m.kind.takes_source(&kind))
+            })
+            .collect();
+        for id in users {
+            let before = self.scene.modifiers(id).to_vec();
+            let after: Vec<Modifier> = before
+                .iter()
+                .filter_map(|m| {
+                    if !m.kind.sources().contains(&changed) || m.kind.takes_source(&kind) {
+                        return Some(m.clone());
+                    }
+                    Some(Modifier {
+                        kind: m.kind.without_sources(&[changed])?,
+                        ..m.clone()
+                    })
+                })
+                .collect();
+            self.edit(Edit::SetModifiers { id, before, after })?;
+        }
+        if !kind.has_shape() {
+            self.forget_cutters(&[changed])?;
+        }
+        Ok(())
+    }
+
     /// Takes away `id`'s modifiers if they don't make sense here (a group
     /// or an instance, a source that isn't there or would make a loop):
     /// for an object put in from elsewhere.

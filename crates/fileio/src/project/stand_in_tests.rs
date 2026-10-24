@@ -210,3 +210,39 @@ fn a_group_still_cant_have_levels_or_collision_parts() {
         ));
     }
 }
+
+#[test]
+fn a_modifier_reading_an_object_of_the_wrong_kind_is_taken_off_with_a_note() {
+    // A project saved before Bake into shape took Bend along curve off: its
+    // curve is now a mesh. Here the curve is left out of the file's curves,
+    // so it opens as an empty group, which the bend can't read either.
+    let (mut doc, ring) = with_ring();
+    let bent = cube(&mut doc);
+    doc.execute(Command::Rename {
+        id: bent,
+        name: "Bent box".into(),
+    })
+    .unwrap();
+    doc.execute(Command::AddModifier {
+        ids: vec![bent],
+        kind: ModifierKind::BendAlongCurve(scene::CurveBendSettings::of(ring)),
+    })
+    .unwrap();
+    doc.execute(Command::AddModifier {
+        ids: vec![bent],
+        kind: ModifierKind::Triangulate(Default::default()),
+    })
+    .unwrap();
+    let mut model = v43::ProjectV43::from_document(&doc);
+    model.project.curves.0.clear();
+    let bytes = super::tests::current_file(&model);
+    let (opened, notes) = from_bytes_noting(&bytes).expect("it still opens");
+    let left: Vec<_> = opened.scene().modifiers(bent).to_vec();
+    assert_eq!(left.len(), 1, "only the bend is taken off");
+    assert!(matches!(left[0].kind, ModifierKind::Triangulate(_)));
+    assert_eq!(notes.len(), 1);
+    assert!(notes[0].contains("Bent box"), "{}", notes[0]);
+    assert!(from_bytes(&bytes).is_ok());
+    // A save never hands out a file that would lose something on opening.
+    assert!(to_bytes(&opened).is_ok());
+}

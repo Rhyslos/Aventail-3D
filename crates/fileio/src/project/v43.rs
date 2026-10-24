@@ -496,7 +496,15 @@ impl ProjectV43 {
     }
 
     /// The document this file model describes, after checking every value.
+    #[cfg(test)]
     pub(crate) fn into_document(self) -> Result<Document, Problem> {
+        self.into_document_noting(&mut Vec::new())
+    }
+
+    /// [`Self::into_document`], adding to `notes` what was left out so the
+    /// rest could open: a modifier reading an object of a kind it can't
+    /// read (a curve baked into a mesh by an older app) is taken off.
+    pub(crate) fn into_document_noting(self, notes: &mut Vec<String>) -> Result<Document, Problem> {
         let document = self.project.into_document()?;
         let document = super::v61::with_kit_grid(document, self.kit_grid)?;
         // The cages first: modifiers name them.
@@ -518,6 +526,27 @@ impl ProjectV43 {
                     kind: m.kind.kind(),
                     on: m.on,
                     in_viewport: m.in_viewport,
+                })
+                .filter(|m| {
+                    let scene = document.scene();
+                    // (Itself, or a source that isn't there, is refused
+                    // below as damaged.)
+                    let wrong = m.kind.sources().into_iter().any(|source| {
+                        source != id
+                            && scene
+                                .object(source)
+                                .is_some_and(|o| !m.kind.takes_source(&o.kind))
+                    });
+                    if wrong {
+                        let name = scene.object(id).map_or("", |o| o.name.as_str());
+                        notes.push(trf!(
+                            "{}'s {} modifier was taken off: the object it read is no longer \
+                             of a kind it can read",
+                            name,
+                            m.kind.name()
+                        ));
+                    }
+                    !wrong
                 })
                 .collect();
             document = document

@@ -159,14 +159,33 @@ fn damaged_cages_are_refused() {
         let last = m.modifiers.len() - 1;
         m.modifiers[last].list[0].kind = v43::KindV43::Lattice { cage: 999_999 };
     }));
-    assert!(refused(&|m| {
+    // A Lattice modifier naming a shape, or a cage without its points
+    // (which opens as an empty group), is taken off with a note, so the
+    // rest of the project still opens: nothing is silently half-read.
+    let taken_off = |change: &dyn Fn(&mut v43::ProjectV43)| {
+        let mut model = good.clone();
+        change(&mut model);
+        let mut notes = Vec::new();
+        let doc = model.into_document_noting(&mut notes).unwrap();
+        let lattices = doc
+            .scene()
+            .walk()
+            .iter()
+            .flat_map(|(id, _)| doc.scene().modifiers(*id).to_vec())
+            .filter(|m| matches!(m.kind, scene::ModifierKind::Lattice(_)))
+            .count();
+        (lattices, notes.len())
+    };
+    let all = taken_off(&|_| {}).0;
+    assert!(all > 0);
+    let (left, notes) = taken_off(&|m| {
         let last = m.modifiers.len() - 1;
         let shape = m.modifiers[0].id;
         m.modifiers[last].list[0].kind = v43::KindV43::Lattice { cage: shape };
-    }));
-    // A cage without its points opens as an empty group, its modifiers
-    // refused: nothing is silently half-read.
-    assert!(refused(&|m| m.lattices.clear()));
+    });
+    assert!(left <= all);
+    assert_eq!(notes, 1);
+    assert_eq!(taken_off(&|m| m.lattices.clear()), (0, all));
 }
 
 #[test]

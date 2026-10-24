@@ -30,6 +30,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **Baking a curve that another shape is bent along keeps the project saveable.** Bake into shape or Apply mirror on a curve read by Bend along curve left a bend with no curve to read, and the project then couldn't be saved. The bend is now taken off in the same step (Ctrl + Z brings both back), and a project saved that way still opens, with a note in the status bar saying which bend was taken off.
 - **Instances follow their original's Lattice, Bend along curve, Array round a centre, Scatter and Shrinkwrap wherever they stand.** A moved instance of a shape whose modifiers read another object worked them out as if the cage, curve, centre or target had moved with it, so it showed (and exported and baked) a different shape from its original. It now shows exactly its original's shape.
 - **Projects with a swept curve in more places save.** A project could refuse to save (and autosave) when a curve with a solid was an instance's original, a boolean's cutter or the shape it cuts, or had levels of detail or collision "Wrapped in parts". It now saves and opens as it was.
 - **Live bevels cut box corners cleanly after a boolean.** Where a boolean left a corner's faces split into a fan of thin triangles, the Live bevel kept the corner's point, and the corner folded round it into a small dark notch. The fan's edges now slide back with the bevel and the corner is cut away. (The Bevel tool's bevels in saved projects are unchanged.)

@@ -636,8 +636,22 @@ struct Run<'a> {
 
 impl Run<'_> {
     fn edit(&mut self, edit: Edit) -> Result<(), SceneError> {
+        // An object that becomes another kind (a curve baked into a mesh)
+        // may no longer be something other objects' modifiers or booleans
+        // can read: those are taken off in the same step.
+        let changed_kind = match &edit {
+            Edit::SetKind { id, before, after }
+                if std::mem::discriminant(before) != std::mem::discriminant(after) =>
+            {
+                Some(*id)
+            }
+            _ => None,
+        };
         self.scene.apply(&edit)?;
         self.edits.push(edit);
+        if let Some(id) = changed_kind {
+            self.forget_unreadable_sources(id)?;
+        }
         Ok(())
     }
 

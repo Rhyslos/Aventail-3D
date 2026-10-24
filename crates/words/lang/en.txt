@@ -2867,6 +2867,7 @@ write
 {} {}{} ago
 {} × {} px
 {} › {}\n{}\nNot now: {}
+{}'s {} modifier was taken off: the object it read is no longer of a kind it can read
 {}, mirrored
 {}, {} and {}
 {}, {} px apart. Ctrl + Z takes it back.{}
