@@ -123,7 +123,9 @@ A ring instead of a loop, with a double-click
 A round curve 1 m across, lying on the ground
 A shape can have at most 32 modifiers
 A shape can have at most 64 cutters
+A shape can't be bent along itself, or along a curve made from it
 A shape can't be scattered onto itself or onto a shape made from it, and groups and lattice cages have no shape to scatter
+A shape can't be wrapped onto itself, or onto a shape made from it
 A shape can't cut itself
 A solid flight of 6 stairs, 1 m wide and 1 m high
 A straight curve 1 m long, lying on the ground
@@ -165,6 +167,7 @@ Align: click the object to line up with. Esc cancels.
 Align: pick an object other than the ones selected.
 Aligned to {}. Ctrl + Z takes it back.
 All four views
+All points
 All settings…
 All three: the objects' placement back to none, the shapes where they were
 Allow no seams on
@@ -173,6 +176,7 @@ Along X
 Along Y
 Along Z
 Along normals
+Along the shape's normals
 Along {}
 Already in the Model mode: Tab steps back here from editing points, edges or polygons, or from a modelling tool.
 Also stepped through with the grid button on the left palette.
@@ -241,6 +245,8 @@ Bake the shape's settings and the {} up to and including this one into the shape
 Basic
 Before baking
 Bend
+Bend a shape along a curve: a rope, a rail, a vine. Select the shape first, then Ctrl + click the curve. The curve stays live: reshape it and the shape follows.
+Bend along curve
 Bend radius
 Bend segments
 Bends: {}. Press 1 and move its points to bend them.
@@ -458,6 +464,8 @@ Cross-section
 Ctrl
 Ctrl + Z takes it back.
 Ctrl + click / Shift + click (the standard keys)
+Ctrl + click a curve to bend along: the shape selected first is bent
+Ctrl + click a shape to wrap onto: the shape selected first is wrapped
 Ctrl + click one or more shapes to cut with: the shape selected first is kept
 Ctrl + click one or more shapes to scatter: the shape selected first is the surface
 Ctrl + click or drag adds; Alt + click removes. Ctrl + click on something selected unselects it. Alt + drag moves the view while "Alt + mouse works in every scheme" is on.
@@ -639,6 +647,7 @@ Every layer is off: the next edit makes a new layer on top.
 Every object you can see in the viewport
 Every part keeps its real size, so the texture's pixels are the same size all over the piece, at the cost of a little bending of angles. The slowest.
 Every point goes the same way: straight out along the polygons' average facing. The end keeps the polygons' shape.
+Every point is wrapped, or only those you choose: select them in the Points mode (press 1) and click Use selected. The others stay where they are.
 Every preference in one place: look, units, navigation, undo
 Every seam of the shapes
 Every setting of the automatic UV tools
@@ -821,6 +830,7 @@ How close points must be to weld: those nearer than this become one
 How deep each tooth is, from its tip to the gap between teeth
 How deep it is (along Y)
 How each piece is laid flat
+How each point finds the target's surface: straight to the nearest place on it, along the way the shape faces there, or straight along one of the shape's axes. Along a line, a point that meets nothing stays where it is.
 How evenly the UVs lie: green where even, yellow where 1.5 times off, red where twice off (stretched one way, or too big or small against the rest of the object), purple where a polygon has no room on the texture
 How far a quad's corners may be from square for its piece to count as a strip (25° standard). Raise it for strips round tight curves; lower it to straighten only truly square ones.
 How far apart the grid the shape is rebuilt on is: about the size of the new polygons. Smaller keeps more detail and makes more polygons.
@@ -980,6 +990,7 @@ Keep the edges of holes and open sheets where they are, so modular pieces still 
 Keep the edges the shading shows hard (marked, or sharper than the Smoothing angle)
 Keep the lines where one material meets another exactly where they are
 Keep the newest
+Keep the points this far off the target's surface, along the way it faces: a little above it stops the two flickering through each other. Below 0, inside it.
 Keep the selected points' handles in one line, so the curve bends through without a kink: dragging one handle turns the other
 Keep together
 Key {}
@@ -1031,6 +1042,7 @@ Lock the UVs of
 Lock the {} axis
 Lock {}
 Locked: no automatic tool changes it. UV → Pieces → Unlock pieces frees it.
+Longest side
 Look
 Look from a side of the view dice (bottom-left corner)
 Look from the {} (Ctrl + click: from the {})
@@ -1116,6 +1128,7 @@ Move
 Move 1 cage point
 Move 1 point
 Move UVs
+Move a shape's points onto another shape's surface: a strap round a body, a decal sheet, a road on terrain. Select the shape first, then Ctrl + click the target.
 Move and turn the selected objects' pivots (the point they turn and scale around), not their shapes. Also on the top palette, by the axis switches.
 Move and turn the selected objects' pivots, not their shapes
 Move curve points
@@ -1145,6 +1158,7 @@ Moving: {}
 Name
 Named versions of the UV layout, kept with the project.
 Navigation controls
+Nearest surface point
 Never seams here
 New
 New group
@@ -1492,6 +1506,7 @@ Select connected works on points, edges or polygons: press 1, 2 or 3 (or use the
 Select connected: select a {} of the part first.
 Select connected: select a {} of the piece first.
 Select connected: the whole part the selection is on (over the UV Editor or in the UV mode, the whole pieces)
+Select curve
 Select every hard edge: where the shading breaks into a crisp edge. Shows the Edges mode.
 Select every object, or in the Points, Edges and Polygons modes every element of the selected objects
 Select every seam of the edited objects. Shows the Edges mode.
@@ -1509,8 +1524,11 @@ Select one or more objects first
 Select one or more objects first.
 Select one or more shapes first
 Select one shape to copy its settings
+Select only two: the shape to bend first, then the curve
+Select only two: the shape to wrap first, then the target
 Select only visible
 Select pieces
+Select points of this shape in the Points mode (press 1) first
 Select polygons of this shape in the Polygons mode (press 3) first
 Select ring
 Select same facing
@@ -1520,15 +1538,20 @@ Select sharp corners inside the curve: not its ends, not points with handles (th
 Select some objects first
 Select some of the curve's points first
 Select something to see and type its coordinates
+Select target
 Select the cage, to change it or move its points
+Select the curve, to reshape or move it
 Select the islands to move first (click one on the model or in the UV Editor).
 Select the objects to apply first
 Select the objects to set how they're smoothed
 Select the polygons facing the wrong way round: inside out compared with their neighbours, or facing into a closed shape
 Select the polygons of the selected objects that use a material. Shows the Polygons mode.
+Select the shape first, then Ctrl + click the curve to bend it along
+Select the shape first, then Ctrl + click the shape to wrap it onto
 Select the shape to keep first, then Ctrl + click the shapes that cut it
 Select the shapes scattered, to change or move them
 Select the surface first, then Ctrl + click the shapes to scatter over it
+Select the target, to change or move it
 Select the whole part the selection is on: everything joined to it, across seams. Select a little of a part first. Over the UV Editor, or in the UV mode, the key selects whole pieces instead.
 Select the whole pieces the selection is in: a little of a piece (a point, an edge or a polygon) brings the whole piece, parted at seams. Use it to pick one of two overlapping pieces and move it away.
 Select them, to see where they are
@@ -1611,6 +1634,8 @@ Shows the shape of: {}
 Shrink
 Shrink selection
 Shrink the selected polygons inward, leaving a ring of new polygons around each
+Shrinkwrap
+Shrinkwrap onto
 Sides
 Size
 Size along X
@@ -1622,6 +1647,7 @@ Skew
 Skipped: it would make the shape too large.
 Slide
 Slide points along their edges
+Slide the shape along the curve: how far from the curve's start it begins. Past an open curve's ends it carries on straight; round a closed one it goes round again.
 Sliding along the edges (the drag: {})
 Sliding: the points move along their edges, staying on the surface.
 Slit
@@ -1707,6 +1733,8 @@ Strength
 Stretch
 Stretch budget
 Stretch budget for every piece
+Stretch or squash the shape along the curve so it runs exactly from the curve's start to its end. Off, it keeps its own length.
+Stretch to fit
 Stretch: 1 polygon is 1.5 times off or more. Point at it to see why.
 Stretch: every polygon lies evenly.
 Stretch: {} polygons are 1.5 times off or more. Point at one to see why.
@@ -1765,6 +1793,7 @@ Take this edit out. The edits after it are made again without it (Ctrl + Z bring
 Take this edit out; the edits after it are made again without it
 Take this modifier away
 Tap E to open
+Target
 Target triangles
 Teeth
 Ten times finer
@@ -1780,6 +1809,7 @@ The bake sees these from behind: the normal map comes out inverted or black ther
 The collision shape Godot makes for it when you export for Godot: what the player bumps into
 The corners the mesh is made of
 The cross-section of: {}
+The curve this shape is bent along. It stays live: select it and reshape it (press 1 for its points), or move it, and the shape follows.
 The cutter {} can't be used: {}
 The cutter {} is squashed flat
 The cutter {} isn't a closed solid: it has holes in its surface, or edges shared by more than two polygons
@@ -1787,6 +1817,7 @@ The edges have different creases: a new value gives them all the same.
 The edits you make now go into this layer: the top layer that is switched on
 The faces, with any number of corners
 The first material can't be removed
+The first selected has no shape of its own: select a shape first
 The first selected has no shape to scatter onto: select a shape first
 The first selected is an instance: select its original, or bake it into a shape first
 The gap between pieces, in texture pixels (half of it to the square's edges). Keeps colours from bleeding between pieces when the texture is shrunk; 8 px suits a 2048 texture.
@@ -1817,6 +1848,8 @@ The polygons meet at {:.0}°, sharper than the {:.0}° set in UV → Settings �
 The project open now
 The quad menu (switched on in Settings → Interface)
 The saved panel layout was incomplete, so the standard layout is used.
+The second selected has no surface: groups and lattice cages can't be wrapped onto
+The second selected isn't a curve: Ctrl + click a curve to bend along
 The select tool in use
 The selected objects have no UVs.
 The selected objects, with what's inside them
@@ -1824,6 +1857,7 @@ The selection is always drawn larger and brighter than anything else. High contr
 The shape across the bevel: 100% is round, 0% is flat, -100% curves inward (hollow, like a cove). Needs 2 or more segments to show.
 The shape carried along the curve: a circle for pipes and cables, a square or rectangle for bars, or another curve for rails and trims (laid flat on its plane, round its pivot)
 The shape itself
+The shape this one is wrapped onto. It stays live: edit or move it and the wrapped shape follows. Hidden, it still counts.
 The shape to keep already cuts one of the others (or is shown by it): each would wait for the other
 The shape's points were renumbered (more or fewer segments, say), so these edits looked for the points, edges and polygons they were made on by where they are. A polygon split into smaller ones moves as a whole. Nothing to fix.
 The shapes cut each other in a loop
@@ -1911,6 +1945,7 @@ Turn the selected objects back to 0° and 100% while they look exactly the same:
 Turn the selected polygons inside out, for when they face the wrong way
 Turn the selected shapes into plain meshes, ready for editing points, edges and polygons. Their settings and recorded edits are baked in. Undo brings the settings back.
 Turn the selected sharp points into rounded corners of the radius set in the Attributes panel, each cut back to what fits between its neighbours
+Turn the shape round the curve, evenly from its start to its end, on top of the way the curve turns it: 360° is one whole turn
 Turned {} the right way round. Ctrl + Z takes it back.
 Turns
 Turns a bridge between two closed loops round by whole steps, if the points pair up wrongly and the band twists.
@@ -2030,6 +2065,7 @@ Whether the last point joins the first, making a loop
 Whether these pieces, when they're strips of square quads, come out as straight grids
 Which keyboard to draw. Letters follow what is printed on your keys; the number row is always 1 to 0.
 Which of the curve's own axes it spins round, through its pivot
+Which of the shape's own axes runs along the curve: its longest side, or X, Y or Z. The shape's start along it goes to the curve's start.
 Which way round it turns: 0° turns up (an upright pipe turns towards +X), and it goes round from there.
 Which way the polygons go. Straight out is the standard.
 While dragging
@@ -2059,15 +2095,20 @@ Works on objects in the Model mode: select some first
 World
 World axes
 World or object axes
+Wrap every point again
+Wrap only the points selected now
 Wrapped (convex)
 Write on each piece its size in texture pixels, its texel density and, if it's uneven, how stretched it is
 Write the scene (or the selection) to a file for a game engine or Substance Painter: pick the kind of file and how
+X
+Y
 Y up
 You can switch the warning back on in Settings → Interface.
 You've selected something else since, so the settings above are for your next use of the tool. Open this edit to change it.
 Your changes will be lost if you don't save them before {}.
 Your navigation controls (Options menu); as standard right drag, middle drag and the wheel, and Alt + left, middle or right drag
 Your unsaved work was saved as an emergency copy ({}). The next start offers it back.
+Z
 Z up
 [3D objects copied: paste them in the viewport]
 a backup copy
@@ -2256,6 +2297,7 @@ its bent extrude holds a number that isn't real
 its bevel {} isn't a real number
 its booleans name an object that isn't there
 its cage isn't there
+its curve isn't there
 its extrude holds a number that isn't real
 its format version is 0
 its game project folder is empty, too long or broken over lines
@@ -2276,6 +2318,7 @@ its shapes to scatter aren't there
 its slit has {} points (2 to {} can be stored)
 its slit's view isn't real numbers
 its space is flattened (scaled to nothing along an axis), so points can't be placed in it
+its target has no shape: give it polygons, or pick another
 its texture size or texel density is out of range
 its trim sheet has rows that are unnamed, overlap or lie outside the texture
 its {} distance isn't a real number
@@ -2307,6 +2350,7 @@ no graphics device
 no limit
 no partner called {}
 none
+none of its chosen points are left: choose them again, or use all points
 none of the polygons it was limited to are on the shape any more: choose them again, or use the whole surface
 nothing
 nothing is left: the shape is thinner than a voxel. Make Voxel size smaller
@@ -2387,6 +2431,8 @@ the cage is flattened (scaled to nothing along an axis)
 the cage's points don't match its divisions or size
 the cross-section curve's points are all on one spot
 the cross-section has to be another curve object
+the curve can't be placed: it is flattened, or too far away
+the curve has no length: its points are all in one spot
 the curve's points are all on one spot
 the cutter is already cut by this shape (or shows it), so each would wait for the other
 the emergency copy saved as the app crashed ({})
@@ -2422,6 +2468,7 @@ the shape isn't a closed solid: it has holes in its surface, or edges shared by 
 the shape isn't closed: it has holes in its surface, or edges shared by more than two polygons, so it has no inside
 the surface has no area to spread copies over
 the surface has no polygons to scatter onto
+the target has no surface to wrap onto: give it polygons
 the texture square
 the value isn't a real number
 the viewport image could not be created

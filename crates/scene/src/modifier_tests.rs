@@ -412,6 +412,12 @@ fn modifier_kinds_describe_themselves() {
             ModifierKind::Lattice(_) => {
                 assert_eq!(kind.sources(), vec![LatticeOptions::NO_CAGE]);
             }
+            // Nor a curve or a target (decision 0147): no shape takes
+            // them until the commands name theirs.
+            ModifierKind::BendAlongCurve(_) | ModifierKind::Shrinkwrap(_) => {
+                assert_eq!(kind.sources().len(), 1);
+                assert!(kind.needs_sources());
+            }
             _ => assert!(kind.sources().is_empty()),
         }
     }

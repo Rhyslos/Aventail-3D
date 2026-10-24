@@ -159,7 +159,9 @@ impl Workbench {
             | CommandId::Subdivide
             | CommandId::Lattice
             | CommandId::Decimate
-            | CommandId::Scatter => match crate::modifiers::command(&self.document, command) {
+            | CommandId::Scatter
+            | CommandId::BendAlongCurve
+            | CommandId::Shrinkwrap => match crate::modifiers::command(&self.document, command) {
                 Err(why) => Ready::NotNow(why.into()),
                 Ok(_) => Ready::Yes,
             },
@@ -305,7 +307,9 @@ impl Workbench {
             | CommandId::Subdivide
             | CommandId::Lattice
             | CommandId::Decimate
-            | CommandId::Scatter => {
+            | CommandId::Scatter
+            | CommandId::BendAlongCurve
+            | CommandId::Shrinkwrap => {
                 self.run_modifier(command, requests);
             }
         }

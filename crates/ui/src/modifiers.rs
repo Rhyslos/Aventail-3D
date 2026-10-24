@@ -2,8 +2,10 @@
 //! one command per kind of modifier, which the modifiers palette, the
 //! Mesh menu's Modifiers submenu and command search offer; what a click
 //! adds a modifier to (the selected shapes; for Scatter, the shape
-//! selected first, scattering the others over it, decision 0146); and
-//! the palette's buttons, grouped by family.
+//! selected first, scattering the others over it, decision 0146; for
+//! Bend along curve and Shrinkwrap onto, the shape selected first, read
+//! the curve or target selected after it, decision 0147); and the
+//! palette's buttons, grouped by family.
 //!
 //! The Attributes panel's Modifiers section is in
 //! `attributes::modifier_rows`. No keys or mouse actions of their own.
@@ -13,17 +15,22 @@ use crate::palette::{ButtonState, icon_button};
 use crate::text::tr;
 use egui::Ui;
 use scene::{
-    Command, DecimateOptions, Document, LatticeOptions, MAX_MODIFIERS, ModifierFamily,
-    ModifierKind, ModifierRefusal, ObjectId, ObjectKind, RemeshOptions, ScatterSettings,
-    SubdivideOptions,
+    Command, CurveBendSettings, DecimateOptions, Document, LatticeOptions, MAX_MODIFIERS,
+    ModifierFamily, ModifierKind, ModifierRefusal, ObjectId, ObjectKind, RemeshOptions,
+    ScatterSettings, ShrinkwrapSettings, SubdivideOptions,
 };
+
+mod pairs;
+pub(crate) use pairs::pair_plan;
 
 /// One command per kind of modifier, in the order of
 /// [`ModifierKind::standard_kinds`].
-pub(crate) const COMMANDS: [CommandId; 5] = [
+pub(crate) const COMMANDS: [CommandId; 7] = [
     CommandId::Subdivide,
     CommandId::Scatter,
     CommandId::Lattice,
+    CommandId::BendAlongCurve,
+    CommandId::Shrinkwrap,
     CommandId::Remesh,
     CommandId::Decimate,
 ];
@@ -36,6 +43,10 @@ pub(crate) fn kind_of(command: CommandId) -> Option<ModifierKind> {
         CommandId::Lattice => Some(ModifierKind::Lattice(LatticeOptions::default())),
         CommandId::Decimate => Some(ModifierKind::Decimate(DecimateOptions::default())),
         CommandId::Scatter => Some(ModifierKind::Scatter(ScatterSettings::default())),
+        CommandId::BendAlongCurve => {
+            Some(ModifierKind::BendAlongCurve(CurveBendSettings::default()))
+        }
+        CommandId::Shrinkwrap => Some(ModifierKind::Shrinkwrap(ShrinkwrapSettings::default())),
         _ => None,
     }
 }
@@ -86,6 +97,16 @@ pub(crate) fn command(doc: &Document, command: CommandId) -> Result<Command, &'s
         return Ok(Command::AddModifier {
             ids: vec![surface],
             kind: ModifierKind::Scatter(ScatterSettings::of(shapes)),
+        });
+    }
+    if matches!(
+        kind,
+        ModifierKind::BendAlongCurve(_) | ModifierKind::Shrinkwrap(_)
+    ) {
+        let (shape, kind) = pair_plan(doc, command)?;
+        return Ok(Command::AddModifier {
+            ids: vec![shape],
+            kind,
         });
     }
     if let ModifierKind::Lattice(_) = kind {
@@ -167,6 +188,8 @@ pub(crate) fn palette_buttons(ui: &mut Ui, doc: &Document) -> Option<CommandId> 
     let mut picked = None;
     let ready = targets(doc).map(|_| ());
     let scatter_ready = scatter_plan(doc).map(|_| ());
+    let bend_ready = pair_plan(doc, CommandId::BendAlongCurve).map(|_| ());
+    let wrap_ready = pair_plan(doc, CommandId::Shrinkwrap).map(|_| ());
     for family in ModifierFamily::ALL {
         let members: Vec<CommandId> = COMMANDS
             .into_iter()
@@ -178,10 +201,11 @@ pub(crate) fn palette_buttons(ui: &mut Ui, doc: &Document) -> Option<CommandId> 
         ui.add_space(6.0);
         for command in members {
             let info = command.info();
-            let ready = if command == CommandId::Scatter {
-                scatter_ready
-            } else {
-                ready
+            let ready = match command {
+                CommandId::Scatter => scatter_ready,
+                CommandId::BendAlongCurve => bend_ready,
+                CommandId::Shrinkwrap => wrap_ready,
+                _ => ready,
             };
             let (state, note) = match ready {
                 Ok(_) => (ButtonState::Normal, info.help),
@@ -229,6 +253,9 @@ mod tests {
             } else if command == CommandId::Scatter {
                 // Named for what it does with the selection (decision 0146).
                 assert_eq!(command.name(), tr("Scatter onto surface"));
+            } else if command == CommandId::Shrinkwrap {
+                // Says what it wraps onto (decision 0147).
+                assert_eq!(command.name(), tr("Shrinkwrap onto"));
             } else {
                 assert_eq!(command.name(), kind.name());
             }

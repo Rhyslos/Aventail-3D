@@ -68,6 +68,12 @@ pub enum CommandId {
     /// Scatter the other selected shapes over the one selected first
     /// (decision 0146).
     Scatter,
+    /// Bend the shape selected first along the curve selected after it
+    /// (decision 0147).
+    BendAlongCurve,
+    /// Wrap the shape selected first onto the shape selected after it
+    /// (decision 0147).
+    Shrinkwrap,
     // ------------------------------------------- pivots (the Object mode)
     /// Move the selected objects' pivots to the middle of their shapes.
     PivotToCentre,
@@ -360,6 +366,28 @@ impl CommandId {
                 (
                     tr("Scatter onto surface"),
                     Icon::Scatter,
+                    None,
+                    kind.description(),
+                    None,
+                )
+            }
+            // Bend along curve is named as its modifier is; Shrinkwrap says
+            // where to (decision 0147).
+            Self::BendAlongCurve => {
+                let kind = scene::ModifierKind::BendAlongCurve(Default::default());
+                (
+                    kind.name(),
+                    Icon::BendAlongCurve,
+                    None,
+                    kind.description(),
+                    None,
+                )
+            }
+            Self::Shrinkwrap => {
+                let kind = scene::ModifierKind::Shrinkwrap(Default::default());
+                (
+                    tr("Shrinkwrap onto"),
+                    Icon::Shrinkwrap,
                     None,
                     kind.description(),
                     None,
@@ -795,7 +823,9 @@ impl CommandId {
             | Self::Subdivide
             | Self::Lattice
             | Self::Decimate
-            | Self::Scatter => &[Model, Object, Points, Edges, Polygons],
+            | Self::Scatter
+            | Self::BendAlongCurve
+            | Self::Shrinkwrap => &[Model, Object, Points, Edges, Polygons],
             Self::Extrude => &[Points, Edges, Polygons],
             Self::Bridge => &[Edges, Polygons],
             Self::Inset | Self::FlipNormals => &[Polygons],
@@ -1051,7 +1081,7 @@ pub fn group_menu(group: CommandId, ring: &[Slot]) -> Vec<Slot> {
 /// The commands with no place on the tool menu: the booleans (decision
 /// 0135) and the modifiers (decision 0142), found in the modifiers
 /// palette, the Mesh menu and command search.
-pub const OFF_THE_RING: [CommandId; 8] = [
+pub const OFF_THE_RING: [CommandId; 10] = [
     CommandId::Union,
     CommandId::Subtract,
     CommandId::Intersect,
@@ -1060,10 +1090,12 @@ pub const OFF_THE_RING: [CommandId; 8] = [
     CommandId::Lattice,
     CommandId::Decimate,
     CommandId::Scatter,
+    CommandId::BendAlongCurve,
+    CommandId::Shrinkwrap,
 ];
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 68] = [
+pub const ALL: [CommandId; 70] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -1087,6 +1119,8 @@ pub const ALL: [CommandId; 68] = [
     CommandId::Lattice,
     CommandId::Decimate,
     CommandId::Scatter,
+    CommandId::BendAlongCurve,
+    CommandId::Shrinkwrap,
     CommandId::PivotToCentre,
     CommandId::PivotToOrigin,
     CommandId::PivotToObject,

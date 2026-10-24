@@ -193,7 +193,7 @@ pub(crate) struct Frame {
 
 /// The first frame's up: the world's up (Z) made square to the way the
 /// curve starts, or X where it starts straight up or down.
-fn first_up(tangent: Vec3) -> Vec3 {
+pub(crate) fn first_up(tangent: Vec3) -> Vec3 {
     let up = Vec3::Z - tangent * tangent.dot(Vec3::Z);
     up.try_normalize()
         .unwrap_or_else(|| (Vec3::X - tangent * tangent.dot(Vec3::X)).normalize_or(Vec3::Y))
