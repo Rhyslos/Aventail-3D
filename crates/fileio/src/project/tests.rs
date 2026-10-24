@@ -584,6 +584,7 @@ fn rich_document_v23() -> Document {
                 clamp: true,
                 weld: false,
                 weld_distance: 0.4,
+                improved: false,
             },
         },
         stretch: Vec3::ONE,
@@ -3505,7 +3506,7 @@ fn write_the_sample() {
         let name = format!("tests/data/sample-v{FORMAT_VERSION}.avtl");
         let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(name);
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-        let doc = super::v41_tests::rich_document_v41();
+        let doc = super::v42_tests::rich_document_v42();
         std::fs::write(path, to_bytes(&doc).unwrap()).unwrap();
     }
 }

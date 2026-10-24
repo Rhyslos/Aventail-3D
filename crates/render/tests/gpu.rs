@@ -979,3 +979,47 @@ fn the_checker_and_stretch_views_colour_the_surface_by_its_uvs() {
     // A wrongly sized image is ignored.
     renderer.set_grid_image(&gpu.device, &gpu.queue, 64, &green[..100]);
 }
+
+/// The improved bevel's rounded corners (decision 0141), drawn: a cube
+/// with every edge rounded, seen from above one corner. The corner patch
+/// is lit like the strips beside it, with no holes or dark folds. With
+/// `DUMP_DIR` set, the picture is saved to look at.
+#[test]
+fn a_cube_with_rounded_corners_is_drawn_without_holes() {
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, target) = setup(&gpu, [480, 360]);
+    renderer.set_shape(&gpu.device, &render::Shape::default());
+    let mut cube = mesh::PrimitiveKind::Cube.standard().mesh();
+    let edges = cube.edges().to_vec();
+    mesh::bevel::bevel_edges(
+        &mut cube,
+        &edges,
+        mesh::bevel::BevelShape {
+            width: 20.0,
+            segments: 6,
+            ..Default::default()
+        },
+    );
+    renderer.set_mesh(&gpu.device, 7, &render::MeshGeometry::new(&cube));
+    renderer.set_draws(
+        &gpu.device,
+        &gpu.queue,
+        &[render::MeshDraw {
+            edges: false,
+            ..place(glam::Mat4::IDENTITY)
+        }],
+    );
+    let corner = Vec3::new(50.0, -50.0, 100.0);
+    let camera = Camera::looking_at(Vec3::new(260.0, -300.0, 330.0), Vec3::new(0.0, 0.0, 50.0));
+    let shot = render(&gpu, &renderer, &target, camera, NO_GRID);
+    // Across the rounded corner, from the top through the corner patch to
+    // the sides: every pixel is the shape's, never the backdrop behind.
+    let ball = Vec3::new(30.0, -30.0, 80.0);
+    for k in 0..=20 {
+        let t = k as f32 / 20.0;
+        let towards = (corner - ball).normalize() + Vec3::new(t - 0.5, t - 0.5, 0.0) * 0.6;
+        let on = ball + towards.normalize() * 19.0;
+        let p = shot.at(on);
+        assert!(brightness(p) > 3 * 0x50, "{on}: {p:?}");
+    }
+}

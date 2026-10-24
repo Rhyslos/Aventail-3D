@@ -42,6 +42,14 @@
 //!   bevelled point, or most of the way along any other edge.
 //! - **Weld overlapping points** welds the new points that end up within
 //!   [`BevelOptions::weld_distance`] of each other (where bevels meet).
+//!
+//! **The improved bevel** ([`BevelOptions::improved`], [decision 0141](../../../docs/decisions/0141-improved-bevel.md)):
+//! - where three or more bevelled edges meet, with 2 or more segments, the
+//!   corner is filled with a rounded patch of quads ([`corner`]) instead of
+//!   one flat polygon;
+//! - stopping at overlaps ("Stop at neighbours") narrows the bevel only
+//!   at the points where it must, each point as much as it needs, instead
+//!   of narrowing the whole bevel by the tightest point.
 
 use crate::builder::{Builder, CornerFrom, PointFrom};
 use crate::edit::Outcome;
@@ -135,11 +143,16 @@ pub struct BevelOptions {
     pub weld: bool,
     /// How close points must be to weld, in the mesh's units.
     pub weld_distance: f32,
+    /// The improved bevel (decision 0141): rounded corner patches, and
+    /// [`Self::clamp`] narrowing each point only as much as it needs.
+    /// Off, as for bevels saved before file format 42, the corners are one
+    /// polygon and clamping narrows the whole bevel.
+    pub improved: bool,
 }
 
 impl Default for BevelOptions {
     /// Even, stopping at overlaps and welding (the project lead's choice
-    /// for welding), with no skew.
+    /// for welding), with no skew, and improved (decision 0141).
     fn default() -> Self {
         Self {
             skew: 0.0,
@@ -148,6 +161,7 @@ impl Default for BevelOptions {
             clamp: true,
             weld: true,
             weld_distance: WELD_DISTANCE,
+            improved: true,
         }
     }
 }
@@ -161,6 +175,7 @@ impl BevelOptions {
         clamp: false,
         weld: false,
         weld_distance: WELD_DISTANCE,
+        improved: false,
     };
 
     /// The options in range: skew -1 to 1, weld distance 0 to
@@ -405,11 +420,13 @@ pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Out
         }
         width
     };
-    let plan = |scale: f32| {
+    // `scales` narrows the bevel at each point (none: full width).
+    let plan = |scales: &BTreeMap<VertexId, f32>| {
         let mut spots: BTreeMap<VertexId, Vec<Vec<Spot>>> = BTreeMap::new();
         let mut slides: BTreeMap<VertexId, Slides> = BTreeMap::new();
-        // How much narrower the bevel must be to fit (1: it fits).
-        let mut fits = 1.0_f32;
+        // How much narrower the bevel must be at each point to fit (1, or
+        // not listed: it fits).
+        let mut fits: BTreeMap<VertexId, f32> = BTreeMap::new();
         let mut must_fit = |along: f32, from: VertexId, far: VertexId| {
             let length = original
                 .position(from)
@@ -421,11 +438,13 @@ pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Out
                 MAX_SLIDE
             };
             if along.abs() > 1e-9 && along.is_finite() {
-                fits = fits.min(length * share / along.abs());
+                let fit = fits.entry(from).or_insert(1.0);
+                *fit = fit.min(length * share / along.abs());
             }
         };
         for (v, (wedges, _)) in &fans {
             let pv = original.position(*v).unwrap_or_default();
+            let scale = scales.get(v).copied().unwrap_or(1.0);
             let mut asks = Slides::default();
             let mut per_wedge = Vec::new();
             for w in wedges {
@@ -494,9 +513,24 @@ pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Out
         }
         (spots, slides, fits)
     };
-    let (mut spots, mut slides, fits) = plan(1.0);
-    if options.clamp && fits < 1.0 {
-        (spots, slides, _) = plan(fits.max(0.0));
+    let (mut spots, mut slides, fits) = plan(&BTreeMap::new());
+    if options.clamp && options.improved {
+        // Each point narrowed as much as it needs (decision 0141).
+        let scales = fits
+            .into_iter()
+            .filter(|(_, fit)| *fit < 1.0)
+            .map(|(v, fit)| (v, fit.max(0.0)))
+            .collect::<BTreeMap<_, _>>();
+        if !scales.is_empty() {
+            (spots, slides, _) = plan(&scales);
+        }
+    } else if options.clamp {
+        // The whole bevel narrowed by the tightest point (decision 0085).
+        let fits = fits.values().fold(1.0_f32, |a, b| a.min(*b));
+        if fits < 1.0 {
+            let all = fans.keys().map(|v| (*v, fits.max(0.0))).collect();
+            (spots, slides, _) = plan(&all);
+        }
     }
 
     // 2. New points: meeting corners, then slides, point by point.
@@ -628,8 +662,10 @@ pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Out
     }
 
     // 4. Holes where strips meet: one corner polygon, or, when only one
-    // polygon borders the hole, its corner takes the strip's end.
+    // polygon borders the hole, its corner takes the strip's end. The
+    // improved bevel rounds a hole whose every side is a strip's end.
     let mut patches = Vec::new();
+    let mut rounded = Vec::new();
     for (v, corner) in corners.iter_mut() {
         if !corner.closed {
             continue;
@@ -701,6 +737,20 @@ pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Out
             merged.extend(middle);
             merged.push(last);
             corner.lists[only] = without_repeats(merged, false);
+        } else if let Some(sides) = (options.improved && shape.segments > 1)
+            .then(|| corner::round_sides(*v, &corner.wedges, &corner.lists, &rows, bevelled))
+            .flatten()
+        {
+            rounded.push(corner::round_patch(
+                &mut build,
+                &original,
+                *v,
+                &corner.wedges,
+                &corner.lists,
+                &sides,
+                shape.segments,
+                shape.profile,
+            ));
         } else {
             let mut patch = points;
             patch.reverse();
@@ -779,10 +829,14 @@ pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Out
         let with: Vec<(VertexId, CornerFrom)> = patch.iter().map(|p| (*p, from(*p))).collect();
         build.face(&with, corner.wedges.first().map(|w| w.face));
     }
+    for (corners, like) in rounded.iter().flatten() {
+        build.face(corners, Some(*like));
+    }
 
     // 7. Hard edges: a hard bevelled edge's strip keeps hard borders (and
     // with one row, hard ends and corner polygons); plain edges that slid
     // keep their hardness.
+    let mut seams = Vec::new();
     for edge in &chosen {
         let (lo, hi) = edge.ends();
         let hard = original.is_hard(lo, hi);
@@ -794,7 +848,7 @@ pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Out
         // (decision 0104).
         if seam && let (Some(a), Some(b)) = (rows.get(&(*edge, lo)), rows.get(&(*edge, hi))) {
             let n = a.len() - 1;
-            crate::uvs::set_seams(build.mesh(), &[EdgeKey::new(a[n], b[n])], true);
+            seams.push(EdgeKey::new(a[n], b[n]));
         }
         if !hard {
             continue;
@@ -809,6 +863,10 @@ pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Out
                 out.set_hard(b[0], b[1], true);
             }
         }
+    }
+    // All at once: marking seams works out the shape's connections.
+    if !seams.is_empty() {
+        crate::uvs::set_seams(build.mesh(), &seams, true);
     }
     if shape.segments == 1 {
         for (v, patch) in &patches {
@@ -1041,5 +1099,9 @@ pub fn bevel_points(mesh: &mut Mesh, points: &[VertexId], width: f32) -> Outcome
     outcome
 }
 
+mod corner;
+
+#[cfg(test)]
+mod corner_tests;
 #[cfg(test)]
 mod tests;

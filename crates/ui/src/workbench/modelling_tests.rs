@@ -820,7 +820,7 @@ fn dragging_on_another_polygon_selects_it_first() {
 
 /// The fresh window's cube selected, in `mode_key`'s mode, with `element`
 /// selected and Bevel in use.
-fn bevel_ready(mode_key: Key, element: impl Fn(&scene::Mesh) -> Element) -> H {
+pub(super) fn bevel_ready(mode_key: Key, element: impl Fn(&scene::Mesh) -> Element) -> H {
     let mut harness = fresh();
     let id = cube(&harness);
     harness
@@ -842,7 +842,7 @@ fn bevel_ready(mode_key: Key, element: impl Fn(&scene::Mesh) -> Element) -> H {
 }
 
 /// The cube's top edge facing the camera's right side (+X, top).
-fn top_right_edge(mesh: &scene::Mesh) -> Element {
+pub(super) fn top_right_edge(mesh: &scene::Mesh) -> Element {
     let edge = *mesh
         .edges()
         .iter()
@@ -856,7 +856,7 @@ fn top_right_edge(mesh: &scene::Mesh) -> Element {
 }
 
 /// The middle of the cube's top +X edge on screen.
-fn edge_middle(harness: &H) -> Pos2 {
+pub(super) fn edge_middle(harness: &H) -> Pos2 {
     on_screen(harness, glam::Vec3::new(50.0, 0.0, 100.0))
 }
 
@@ -1222,7 +1222,7 @@ fn bevels_get_skew_even_width_overlaps_and_welding() {
         "Skew",
         "Flip side",
         "Even width",
-        "Stop at overlaps",
+        "Stop at neighbours",
         "Weld points",
         "Weld distance",
     ] {

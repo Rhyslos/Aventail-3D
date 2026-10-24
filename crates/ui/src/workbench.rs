@@ -946,6 +946,8 @@ pub use exporting::{
 mod aligning;
 #[cfg(test)]
 mod aligning_tests;
+#[cfg(test)]
+mod bevel_upgrade_tests;
 mod curve_commands;
 mod curve_drawing;
 mod curve_editing;

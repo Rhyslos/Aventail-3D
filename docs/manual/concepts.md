@@ -55,7 +55,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Inset** — Shrinking polygons inward, flat on the surface, with a ring of new polygons around them: a frame or border drawn onto the shape, often followed by an extrude. See [Extrude and inset](extrude-and-inset.md).
 
-**Bevel and chamfer** — Cutting a sharp edge away and putting a strip of polygons in its place. A *chamfer* is a single flat strip; a *bevel* with more segments is rounded. A *cove* is a bevel that curves inward instead, hollowing the edge out. Real objects rarely have perfectly sharp edges, so a small bevel catches the light and makes a model read as solid. See [Bevel](bevel.md).
+**Bevel and chamfer** — Cutting a sharp edge away and putting a strip of polygons in its place. A *chamfer* is a single flat strip; a *bevel* with more segments is rounded. A *cove* is a bevel that curves inward instead, hollowing the edge out. Where several bevelled edges meet at a corner, a rounded bevel fills the corner with a small curved *corner patch*, like a piece of a ball on a rounded box. Real objects rarely have perfectly sharp edges, so a small bevel catches the light and makes a model read as solid. See [Bevel](bevel.md).
 
 **Panel line (groove, ridge)** — A thin line cut into a surface (a groove) or raised out of it (a ridge): the seams between panels on a gun or a vehicle, slots, score lines, trims. They break up big flat areas so a model reads as built from parts, and they bake well into normal maps. See [Groove](groove.md).
 

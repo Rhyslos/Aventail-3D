@@ -433,7 +433,12 @@ impl AttributesPanel {
                         }
                         if touched.changed {
                             edited.bevel_options = Some(options);
-                            self.bevel.options = options;
+                            // The next bevel is always improved, even
+                            // when this one was made before (decision 0141).
+                            self.bevel.options = scene::BevelOptions {
+                                improved: true,
+                                ..options
+                            };
                             changed = true;
                         }
                     }
@@ -442,6 +447,10 @@ impl AttributesPanel {
         // Any change is worked out as the object is stretched now, so the
         // edit keeps its shape as seen (decisions 0081 and 0082).
         edited.stretch = Some(stretch);
+        // A bevel made before decision 0141 is improved once changed.
+        if changed {
+            edited = edited.improved();
+        }
         let after = operation.with(edited);
         if changed && after != *operation {
             out.push(DocRequest::RunMerging(
