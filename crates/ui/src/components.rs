@@ -583,10 +583,18 @@ fn tint(overlay: &mut ComponentOverlay, item: &DrawItem, face: scene::FaceId, ho
 
 /// The hovered element in words, for the status bar: "point 4 of Cube".
 pub(crate) fn describe(document: &Document, (id, element): ObjectElement) -> String {
-    let name = document
-        .scene()
-        .object(id)
-        .map_or_else(|| tr("an object").to_string(), |o| o.name.clone());
+    let object = document.scene().object(id);
+    let name = object.map_or_else(|| tr("an object").to_string(), |o| o.name.clone());
+    // A curve's points and handles (decision 0138), by their point.
+    if let (Some(_), Element::Point(v)) = (object.and_then(|o| o.kind.curve()), element) {
+        let part = scene::CurvePart::from_code(v.get());
+        let point = part.point.get();
+        return match part.kind {
+            scene::PartKind::Point => crate::trf!("point {} of {}", point, name),
+            scene::PartKind::In => crate::trf!("the in handle of point {} of {}", point, name),
+            scene::PartKind::Out => crate::trf!("the out handle of point {} of {}", point, name),
+        };
+    }
     match element {
         Element::Point(v) => crate::trf!("point {} of {}", v.get(), name),
         Element::Edge(e) => {

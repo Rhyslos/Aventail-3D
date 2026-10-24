@@ -188,9 +188,11 @@ impl Workbench {
             }
             ui.separator();
             ui.label(
-                egui::RichText::new(tr("Tip: B for the basic shapes, Alt + B for the rest"))
-                    .small()
-                    .color(theme::TEXT_WEAK),
+                egui::RichText::new(tr(
+                    "Tip: B for the basic shapes, Alt + B for the rest and the curves",
+                ))
+                .small()
+                .color(theme::TEXT_WEAK),
             );
         });
         crate::dialog::menu(ui, tr("Modes"), |ui| {

@@ -275,6 +275,10 @@ impl AttributesPanel {
                     // use; the edit before them can still be opened.
                     self.left_edit_line(ui, doc, id, &object.stack);
                 }
+                // A curve that is only a line has no surface (decision
+                // 0138): no collision, smoothing, booleans or materials.
+                let solid = object.kind.has_shape()
+                    && !matches!(&object.kind, ObjectKind::Curve(c) if c.solid == scene::CurveSolid::Line);
                 section(ui, tr("Basic"));
                 egui::Grid::new("attributes_basic")
                     .num_columns(2)
@@ -300,12 +304,10 @@ impl AttributesPanel {
                             }));
                         }
                         ui.end_row();
-                        if object.kind.has_shape() {
+                        if solid {
                             collision_row(ui, id, object.collision, out);
                         }
-                        if object.kind.has_shape()
-                            && !matches!(object.kind, ObjectKind::Instance(_))
-                        {
+                        if solid && !matches!(object.kind, ObjectKind::Instance(_)) {
                             smoothing_row(ui, id, object.hardness, out);
                         }
                     });
@@ -332,7 +334,7 @@ impl AttributesPanel {
                 if matches!(object.kind, ObjectKind::Curve(_)) {
                     self.curve_section(ui, doc, id, units, out);
                 }
-                if object.kind.has_shape() {
+                if solid {
                     crate::booleans::attributes_section(ui, doc, id, out);
                     self.materials_section(ui, doc, id, out);
                 }

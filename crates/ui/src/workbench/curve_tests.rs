@@ -541,7 +541,7 @@ fn the_attributes_panel_shows_the_curve_and_its_solid() {
         })
         .unwrap();
     harness.run();
-    for name in ["Lathe axis", "Angle", "Segments round", "Adaptive"] {
+    for name in ["Lathe axis", "Spin angle", "Segments round", "Adaptive"] {
         assert!(harness.query_all_by_label(name).next().is_some(), "{name}");
     }
 }

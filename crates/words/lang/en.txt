@@ -325,6 +325,7 @@ Click or drag points over the shape. Esc or Enter finishes the line; click the f
 Click or press Shift+{} to lock it, so moving, rotating and scaling leave {} alone.
 Click to hide or show the keys for this situation
 Clicking the view dice in the bottom-left corner (or snapping to it with Ctrl while orbiting) also makes the view flat, with no perspective, so lines line up. Orbit away and it goes back to perspective.
+Climb
 Close
 Close (Esc)
 Close an open curve's ends with flat faces
@@ -758,7 +759,7 @@ How far the groove goes in (below 0) or the ridge comes out (above 0), in the ob
 How far the pipe's middle is from the point it bends round
 How finely it is cut: each step gives about four times the hexagons
 How finely pieces are fitted together
-How high it climbs
+How high it climbs, bottom to top
 How high the straight sides go before the round top starts: zero for a half ring
 How high the top step is
 How long the line is
@@ -1498,6 +1499,7 @@ Some of the points these edits move have no place on the shape now (for example 
 Some selected objects have more than {} polygons: their UVs aren't drawn.
 Space
 Sphere
+Spin angle
 Spiral
 Split off
 Split off 1 polygon
@@ -1666,7 +1668,7 @@ This project is now in {}: lengths show and are typed in {}. Ctrl + Z takes it b
 This shape is too big to work out Suggest seams' reasons while pointing.
 Three or more polygons on one edge can't be unfolded or baked cleanly. Select them and delete or split off the extra polygons.
 Tick "I know what I'm doing, proceed" first.
-Tip: B for the basic shapes, Alt + B for the rest
+Tip: B for the basic shapes, Alt + B for the rest and the curves
 Tip: press E for the tool menu
 To change it: select the edge (Edges mode, 2) and choose UV → Seams → Clear seams, or Never seams here so suggestions avoid it. Prefer seams here on other edges draws cuts there instead.
 To stand an object on another: Z only, this object's Lowest with the other's Highest.
@@ -2148,9 +2150,11 @@ the file is damaged: it claims to be impossibly large
 the file is damaged: {}
 the game engine
 the game project folder {} isn't there; choose it again in the Export window
+the in handle of point {} of {}
 the layer is already at the bottom
 the layer is already at the top
 the mesh is too large
+the out handle of point {} of {}
 the project's game project folder has changed
 the project's layout snapshots have changed
 the project's mending settings have changed

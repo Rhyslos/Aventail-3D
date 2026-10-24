@@ -258,9 +258,9 @@ After a review of the whole app (2026-10-21, [decision 0121](docs/decisions/0121
 
 **Gate:** 2–3 people new to the app finish a fixed task list without help, see what is selected on any screen, and no text skips the English package. Then Phase 10, advanced modelling.
 
-### Phase 10 · Advanced hard-surface (after Phase 9, before the rest of Phase 8) — 1 of 23
+### Phase 10 · Advanced hard-surface (after Phase 9, before the rest of Phase 8) — 2 of 23
 
-`█░░░░░░░░░░░░` 4%
+`█░░░░░░░░░░░░` 9%
 
 Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/decisions/0125-modelling-before-the-rest-of-the-uvs.md)); Phase 8 continues once it's done. Friends join as testers around here, once there are enough tools to build something. On 24 October the project lead widened it with fourteen more modifiers ([decision 0136](docs/decisions/0136-more-modifiers.md)); each still asks about its controls before it's built. They're built biggest and hardest first, except where one builds on another ([decision 0137](docs/decisions/0137-biggest-first.md)).
 
@@ -268,7 +268,7 @@ Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/d
 <summary>Milestones</summary>
 
 - [x] Booleans: union, subtract, intersect, with live cutters that stay editable ([decision 0135](docs/decisions/0135-live-booleans.md))
-- [ ] Curves and splines: sweep and lathe, for pipes, cables and railings
+- [x] Curves and splines: sweep and lathe, for pipes, cables and railings ([decision 0138](docs/decisions/0138-curves-sweep-lathe.md))
 - [ ] Improved bevel: rounded corners where bevels meet, and bevels that never overlap
 - [ ] Remesh: messy geometry rebuilt into even polygons
 - [ ] Smoothing modifier (subdivision), with creases
@@ -313,6 +313,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-24 | Phase 10: curves, drawn or ready-made (line, circle, arc, spiral), with a live sweep or lathe, for pipes, cables, rails and vases |
 | 2026-10-24 | Planned: Phase 10 is built biggest and hardest first (curves, improved bevel, remesh, smoothing...), unless one milestone builds on another |
 | 2026-10-24 | Planned: Phase 10 grows to 23 milestones with fourteen more modifiers (live bevel, wireframe, scatter, radial array, bend, twist and taper, lattice, curve deform and shrinkwrap, displace, LODs, collision hulls, triangulate preview, weld, quadify, remesh, decimate) |
 | 2026-10-24 | Booleans: Union, Subtract and Intersect with live cutters drawn as outlines; move or edit a cutter and the cut follows; Bake into shape makes it permanent |

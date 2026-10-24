@@ -67,6 +67,18 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Cutter** — In a boolean, a shape that cuts (or is added to, or intersected with) the shape you keep. In this app cutters stay objects of their own, drawn as outlines, and the cut follows when you move or edit them. See [Booleans](booleans.md).
 
+## Curves
+
+**Curve (spline)** — A line through space defined by a few points, bending smoothly or turning sharply at each one. Curves aren't surfaces: a game engine can't draw one on its own. They're guides that become solids through a sweep or a lathe. In this app a curve is an object of its own. See [Curves](curves.md).
+
+**Bézier handle** — The two short arms on a curve's point that pull the curve towards them, like magnets: the longer the arm, the further the curve swings out before it turns. A point with no handles is a sharp corner; a *smooth* point keeps its two handles in one line, so the curve passes through without a kink. Named after Pierre Bézier, who used these curves to design car bodies; drawing programs' pen tools use the same idea.
+
+**Sweep** — A solid made by carrying a cross-section (the profile) along a curve, like squeezing icing from a piping bag along a path: a circle makes a pipe or a cable, a rectangle a bar, a moulding's outline a trim. (Other programs call it *extrude along path*, *loft* or a *sweep NURBS*.) See [Curves](curves.md).
+
+**Lathe** — A solid made by spinning a curve round an axis, like turning wood or throwing a pot: draw half a vase's outline and it becomes the vase. (Also called a *revolve* or *spin*.) See [Curves](curves.md).
+
+**Profile (cross-section)** — The shape a sweep carries along its curve: what you'd see if you sawed through the pipe or rail. A built-in circle, square or rectangle, or another curve you draw. See [Curves](curves.md).
+
 ## Objects and scenes
 
 **Object** — Anything listed in the Objects panel: a mesh, a primitive, a group. See [The Objects panel](objects.md).
@@ -77,7 +89,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Tool menu** — The menu that opens at the mouse when you press **E**, holding the tools for what you're working on: object tools in Model mode, modelling tools while editing points, edges or polygons. Shown as a ring (a *radial* or *pie* menu) of icons, whose places never move, or as a list. See [The tool menu](tool-menu.md).
 
-**Primitive** — A ready-made shape (cube, cylinder, sphere…) built from a few settings, like size and segments, which stay editable. In this app every primitive stands on the ground with its pivot at the middle of its base. See [Primitives](primitives.md).
+**Primitive** — A ready-made shape (cube, cylinder, sphere…) built from a few settings, like size and segments, which stay editable. In this app every primitive stands on the ground with its pivot at the middle of its base. See [Primitives](primitives.md). Ready-made [curves](#curves) (line, circle, arc, spiral) work the same way.
 
 **Project file (.avtl)** — The file your scene is saved in: every object, its settings and edits, and what was selected. It's this app's own working format; models go to other programs by *exporting* them instead. See [Saving and opening projects](saving-and-opening.md).
 

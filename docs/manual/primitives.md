@@ -13,6 +13,8 @@ Almost every hard-surface model starts as a simple shape: a crate starts as a cu
 1. Press **B** to open the shape list next to the mouse. Press **B** again to move down the list (**Shift + B**, or the arrow keys, to move back up), then **Enter** or **Space** to create the highlighted shape. You can also click a shape in the list. **Esc**, or a click elsewhere, closes it without creating anything.
 
    Or open the **Create** menu and pick a shape, or click one of the blue shape buttons on the command palette (cube, cylinder, plane, sphere).
+
+   The **Alt + B** list ends with the curves: **Draw curve** and the ready-made **Line, Circle, Arc** and **Spiral**, which are in the Create menu too, after a line. They're lines rather than solids, until you give them a sweep or a lathe: see [Curves](curves.md).
 2. The new shape appears at the centre of the scene, selected (its edges in the viewport and its name in the Objects panel take on the accent colour). It's added at the top of the Objects list, named after its kind: *Cube*, then *Cube 2* for the next one, and so on.
 3. Rename, group, hide or delete it in the Objects panel like any other object (see [The Objects panel](objects.md)). **Ctrl + Z** takes the new shape away again.
 
@@ -107,7 +109,7 @@ Change them in the [Attributes panel](attributes.md): select the shape, then dra
 |---|---|
 | Open the basic shape list (the first seven), or move down it | `B` |
 | Move up the list (or open it at the bottom) | `Shift + B`, or the arrow keys |
-| Open the list of the other shapes (icosphere to arch), or move down it | `Alt + B`; once it's open, plain `B` moves down it too |
+| Open the list of the other shapes (icosphere to arch, then the [curves](curves.md)), or move down it | `Alt + B`; once it's open, plain `B` moves down it too |
 | Move up that list (or open it at the bottom) | `Shift + Alt + B` (or `Shift + B` once it's open), or the arrow keys |
 | Create the highlighted shape | `Enter` or `Space` |
 | Close the list without creating | `Esc`, or click elsewhere |
@@ -125,4 +127,5 @@ The shape keys don't work while you're typing a name or a value, so a "b" you ty
 ## Related
 
 - [The Objects panel](objects.md): select, rename, group, hide and delete shapes.
+- [Curves](curves.md): lines, circles, arcs and spirals to sweep into pipes or lathe into vases.
 - [Concepts](concepts.md): [primitives and pivots](concepts.md#objects-and-scenes), [n-gons](concepts.md#mesh-basics), and [hard and soft edges](concepts.md#shading-and-normals).

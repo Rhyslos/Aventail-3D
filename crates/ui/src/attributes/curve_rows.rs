@@ -169,13 +169,13 @@ impl AttributesPanel {
                             tr("Radius"),
                             tr("How far from the middle"),
                         );
-                        label(ui, tr("Height"), tr("How high it climbs"));
+                        label(ui, tr("Climb"), tr("How high it climbs, bottom to top"));
                         rows.take(stepper::length(
                             ui,
                             height,
                             (0.0, MAX_LENGTH),
                             units,
-                            tr("Height"),
+                            tr("Climb"),
                         ));
                         ui.end_row();
                         label(ui, tr("Turns"), tr("How many times round it goes"));
@@ -500,14 +500,14 @@ impl AttributesPanel {
                 ui.end_row();
                 label(
                     ui,
-                    tr("Angle"),
+                    tr("Spin angle"),
                     tr("How far round it spins: 360° all the way"),
                 );
                 rows.take(stepper::degrees(
                     ui,
                     &mut edited.angle,
                     (1.0, 360.0),
-                    tr("Angle"),
+                    tr("Spin angle"),
                 ));
                 ui.end_row();
                 label(
