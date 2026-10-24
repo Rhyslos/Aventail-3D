@@ -169,15 +169,19 @@ fn cross(a: Vec2, b: Vec2, c: Vec2) -> f32 {
 }
 
 /// Which grid points are inside the shape: along each row of points in
-/// the X direction, the line through it crosses the surface an odd
-/// number of times before each inside point. The line is moved a tiny,
-/// odd fraction of a step off the row, so it never runs exactly through
-/// a triangle's edge or corner.
+/// the X direction, the line through it goes into the surface (through a
+/// triangle facing back along X) more often than out of it before each
+/// inside point (the *winding number* isn't zero). So shapes that overlap
+/// count as one solid, their overlap inside too. The line is moved a
+/// tiny, odd fraction of a step off the row, so it never runs exactly
+/// through a triangle's edge or corner.
 fn parity(grid: &Grid, soup: &Soup) -> Vec<bool> {
     let [nx, ny, nz] = grid.size;
     let nudge = Vec2::new(0.001_234_5, 0.000_765_4) * grid.step;
     // Where a row's line crosses the surface: (row, x).
-    let mut hits: Vec<(u32, f32)> = Vec::new();
+    // Where a row's line crosses the surface, and whether it goes in (+1)
+    // or out (-1) there: (row, x, way).
+    let mut hits: Vec<(u32, f32, i32)> = Vec::new();
     for [a, b, c] in &soup.triangles {
         let (pa, pb, pc) = (
             Vec2::new(a.y, a.z),
@@ -215,7 +219,10 @@ fn parity(grid: &Grid, soup: &Soup) -> Vec<bool> {
                 };
                 if all_in {
                     let x = (wa * a.x + wb * b.x + wc * c.x) / area;
-                    hits.push(((j + ny * k) as u32, x));
+                    // The triangle's normal along X has the sign of its
+                    // area seen along X: facing back, the line goes in.
+                    let way = if area < 0.0 { 1 } else { -1 };
+                    hits.push(((j + ny * k) as u32, x, way));
                 }
             }
         }
@@ -229,18 +236,32 @@ fn parity(grid: &Grid, soup: &Soup) -> Vec<bool> {
         while end < hits.len() && hits[end].0 == row {
             end += 1;
         }
-        // A row crossing an odd number of times (only by rounding) would
-        // be inside out to the grid's edge: its last crossing is dropped.
-        let count = end - start;
-        let xs = &hits[start..start + count - count % 2];
+        let row_hits = &hits[start..end];
+        // A row that doesn't come out as often as it goes in (only by
+        // rounding, on a closed shape) would be inside out to the grid's
+        // edge: it is counted by crossings instead, its last one dropped
+        // if odd.
+        let balanced = row_hits.iter().map(|h| h.2).sum::<i32>() == 0;
+        let count = if balanced {
+            row_hits.len()
+        } else {
+            row_hits.len() - row_hits.len() % 2
+        };
+        let xs = &row_hits[..count];
         let (j, k) = (row as usize % ny, row as usize / ny);
         let mut crossed = 0;
+        let mut winding = 0;
         for i in 0..nx {
             let x = grid.origin.x + i as f32 * grid.step;
             while crossed < xs.len() && xs[crossed].1 < x {
+                winding += xs[crossed].2;
                 crossed += 1;
             }
-            inside[grid.index(i, j, k)] = crossed % 2 == 1;
+            inside[grid.index(i, j, k)] = if balanced {
+                winding != 0
+            } else {
+                crossed % 2 == 1
+            };
         }
         start = end;
     }

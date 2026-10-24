@@ -4,8 +4,9 @@
 //!
 //! The shape is sampled on a grid of points [`RemeshOptions::voxel_size`]
 //! apart: each point is inside or outside the shape (found by counting
-//! where a line along X crosses the surface), and knows how far it is
-//! from the surface near it. A new surface is then made between the
+//! how often a line along X goes into and out of the surface, so shapes
+//! that overlap count as one solid), and knows how far it is from the
+//! surface near it. A new surface is then made between the
 //! inside and outside points with *surface nets*: one point in each grid
 //! cell the surface passes through (the middle of where it crosses the
 //! cell's edges), and one quad across each grid edge it crosses. Before

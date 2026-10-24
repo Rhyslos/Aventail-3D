@@ -1023,3 +1023,45 @@ fn a_cube_with_rounded_corners_is_drawn_without_holes() {
         assert!(brightness(p) > 3 * 0x50, "{on}: {p:?}");
     }
 }
+
+/// A remeshed shape (decision 0142), drawn: a torus rebuilt as even quads,
+/// seen from above at an angle. Its surface faces out (lit, never the
+/// dark inside), with no holes where the backdrop shows through. With
+/// `DUMP_DIR` set, the picture is saved to look at.
+#[test]
+fn a_remeshed_shape_is_drawn_closed_and_facing_out() {
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, target) = setup(&gpu, [480, 360]);
+    renderer.set_shape(&gpu.device, &render::Shape::default());
+    let torus = mesh::PrimitiveKind::Torus.standard().mesh();
+    let remeshed = mesh::remesh::remesh(
+        &torus,
+        &mesh::remesh::RemeshOptions {
+            voxel_size: 4.0,
+            smooth: 2,
+        },
+    )
+    .unwrap();
+    renderer.set_mesh(&gpu.device, 7, &render::MeshGeometry::new(&remeshed));
+    renderer.set_draws(&gpu.device, &gpu.queue, &[place(glam::Mat4::IDENTITY)]);
+    let bounds = remeshed.bounds().unwrap();
+    let centre = bounds.centre();
+    let camera = Camera::looking_at(centre + Vec3::new(120.0, -160.0, 180.0), centre);
+    let shot = render(&gpu, &renderer, &target, camera, NO_GRID);
+    // Round the ring's top, half way between its inner and outer edges:
+    // every pixel is the shape's, lit.
+    let size = bounds.size();
+    let (outer, top) = (size.x / 2.0, bounds.max.z);
+    let tube = size.z / 2.0;
+    let middle = outer - tube;
+    for k in 0..16 {
+        let a = k as f32 / 16.0 * std::f32::consts::TAU;
+        let on = Vec3::new(
+            centre.x + middle * a.cos(),
+            centre.y + middle * a.sin(),
+            top,
+        );
+        let p = shot.at(on);
+        assert!(brightness(p) > 3 * 0x50, "{on}: {p:?}");
+    }
+}

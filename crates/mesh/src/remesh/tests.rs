@@ -328,3 +328,20 @@ fn timings() {
         );
     }
 }
+
+#[test]
+fn overlapping_shapes_become_one_solid() {
+    // Two boxes overlapping by half: their overlap is inside too (not
+    // hollowed out, as counting crossings alone would make it).
+    let two = crate::parts::combine(&[
+        (&cube(), Mat4::IDENTITY),
+        (&cube(), Mat4::from_translation(Vec3::new(50.0, 0.0, 0.0))),
+    ]);
+    let out = remesh(&two, &options(10.0, 0)).unwrap();
+    assert_clean_solid(&out);
+    let v = volume(&out);
+    // One block 150 × 100 × 100 cm, corners rounded a little.
+    assert!(v > 1.3e6 && v < 1.55e6, "{v}");
+    // One piece, with no surface left inside.
+    assert_eq!(MeshReport::new(&out).pieces, 1);
+}
