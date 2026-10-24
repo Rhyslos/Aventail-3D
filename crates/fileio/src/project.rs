@@ -57,6 +57,7 @@ mod v4;
 mod v40;
 mod v41;
 mod v43;
+mod v45;
 mod v5;
 mod v6;
 mod v7;
@@ -85,7 +86,10 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// Version 44 (decision 0143) is version 43 with the Subdivide modifier
 /// (`v43::KindV43::Subdivide`) and creases, one more kind of recorded
 /// edit (`v37::OperationV37::SetCreases`).
-pub const FORMAT_VERSION: u32 = 44;
+///
+/// Version 45 (decision 0144) is version 44 with lattice cages
+/// (`v45::LatticeV45`) and the Lattice modifier (`v43::KindV43::Lattice`).
+pub const FORMAT_VERSION: u32 = 45;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -910,3 +914,5 @@ mod v42_tests;
 mod v43_tests;
 #[cfg(test)]
 mod v44_tests;
+#[cfg(test)]
+mod v45_tests;

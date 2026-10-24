@@ -191,6 +191,43 @@ fn a_curve_goes_out_as_its_solid_and_a_plain_line_not_at_all() {
 }
 
 #[test]
+fn a_lattice_cage_exports_nothing_and_its_shape_goes_out_bent() {
+    // Decision 0144: the cage is a helper; the shape exports as shown.
+    let (mut doc, cube) = with(PrimitiveKind::Cube);
+    doc.execute(Command::AddLattice {
+        ids: vec![cube],
+        divisions: [2, 2, 2],
+    })
+    .unwrap();
+    let cage = doc.selection()[0];
+    let raw = |doc: &Document| {
+        let o = ExportOptions {
+            up: UpAxis::Z,
+            units: FileUnits::Centimetres,
+            ..ExportOptions::default()
+        };
+        let out = one(doc, &o);
+        let (low, high) = out
+            .world
+            .points
+            .iter()
+            .fold((f32::MAX, f32::MIN), |(l, h), p| (l.min(p.z), h.max(p.z)));
+        high - low
+    };
+    assert!((raw(&doc) - 100.0).abs() < 1e-2);
+    doc.execute(Command::EditLattice {
+        id: cage,
+        edit: scene::LatticeEdit::Transform {
+            points: (4..8).collect(),
+            matrix: glam::Mat4::from_translation(Vec3::Z * 50.0),
+        },
+    })
+    .unwrap();
+    assert_eq!(summary(&doc, &ExportOptions::default()).objects, 1);
+    assert!((raw(&doc) - 150.0).abs() < 1e-2, "the cube goes out bent");
+}
+
+#[test]
 fn a_moved_pivot_keeps_the_shape_and_places_the_local_one_around_it() {
     let (mut doc, cube) = with(PrimitiveKind::Cube);
     doc.execute(Command::MovePivots(vec![(

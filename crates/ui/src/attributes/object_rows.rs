@@ -161,6 +161,7 @@ fn kind_label(kind: &ObjectKind) -> String {
             scene::CurveSolid::Sweep(_) => format!("({})", tr("curve, swept")),
             scene::CurveSolid::Lathe(_) => format!("({})", tr("curve, lathed")),
         },
+        ObjectKind::Lattice(_) => format!("({})", tr("lattice cage")),
         _ => "(group)".to_string(),
     }
 }

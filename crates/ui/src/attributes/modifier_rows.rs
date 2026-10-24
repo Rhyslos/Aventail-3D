@@ -38,7 +38,7 @@ impl AttributesPanel {
         for (index, modifier) in modifiers.iter().enumerate() {
             ui.push_id(("modifier", id, index), |ui| {
                 self.modifier_header(ui, id, index, count, modifier, out);
-                self.modifier_rows(ui, id, index, modifier, units, out);
+                self.modifier_rows(ui, doc, (id, index), modifier, units, out);
                 if let Some((_, why)) = problems.iter().find(|(i, _)| *i == index) {
                     ui.label(
                         RichText::new(crate::trf!("Not worked out: {}.", why))
@@ -123,8 +123,8 @@ impl AttributesPanel {
     fn modifier_rows(
         &mut self,
         ui: &mut Ui,
-        id: ObjectId,
-        index: usize,
+        doc: &Document,
+        (id, index): (ObjectId, usize),
         modifier: &Modifier,
         units: Units,
         out: &mut Vec<DocRequest>,
@@ -136,6 +136,9 @@ impl AttributesPanel {
             .min_col_width(LABEL_WIDTH)
             .spacing(vec2(12.0, 6.0))
             .show(ui, |ui| {
+                if let ModifierKind::Lattice(options) = &modifier.kind {
+                    cage_row(ui, doc, options.cage, out);
+                }
                 kind_rows(ui, &mut edited.kind, units, &mut rows);
                 label(
                     ui,
@@ -169,7 +172,37 @@ fn kind_rows(ui: &mut Ui, kind: &mut ModifierKind, units: Units, rows: &mut Rows
     match kind {
         ModifierKind::Remesh(options) => remesh_rows(ui, options, units, rows),
         ModifierKind::Subdivide(options) => subdivide_rows(ui, options, rows),
+        // The cage's own settings are on the cage (`cage_row` names it).
+        ModifierKind::Lattice(_) => {}
     }
+}
+
+/// The Lattice modifier's cage (decision 0144): its name, and a button
+/// selecting it, where its divisions and points are changed.
+fn cage_row(ui: &mut Ui, doc: &Document, cage: ObjectId, out: &mut Vec<DocRequest>) {
+    label(
+        ui,
+        tr("Cage"),
+        tr(
+            "The lattice cage bending this shape. Select it to change its divisions, and press 1 \
+             to move its points.",
+        ),
+    );
+    ui.horizontal(|ui| {
+        let name = doc
+            .scene()
+            .object(cage)
+            .map_or_else(|| tr("(none)").to_string(), |o| o.name.clone());
+        ui.label(name);
+        if ui
+            .small_button(tr("Select cage"))
+            .on_hover_text(tr("Select the cage, to change it or move its points"))
+            .clicked()
+        {
+            out.push(DocRequest::Select(vec![cage]));
+        }
+    });
+    ui.end_row();
 }
 
 /// Subdivide's settings: Levels, Levels for export, Hard edges stay sharp

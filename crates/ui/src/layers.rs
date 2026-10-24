@@ -145,6 +145,11 @@ fn shown_object(doc: &Document) -> Result<ObjectId, String> {
         .ok_or_else(|| tr("Select an object to see its edit layers.").to_string())?;
     match object.kind {
         ObjectKind::Group => Err(tr("A group has no shape of its own, so no edit layers.").into()),
+        ObjectKind::Lattice(_) => Err(tr(
+            "A lattice cage has no shape of its own, so no edit layers: press 1 to move its \
+             points.",
+        )
+        .into()),
         ObjectKind::Instance(_) => Err(tr(
             "An instance shows its original's shape and edits: select the original to see its \
              layers.",

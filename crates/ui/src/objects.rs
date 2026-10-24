@@ -798,6 +798,8 @@ pub(crate) fn kind_icon(kind: &ObjectKind) -> (Icon, egui::Color32) {
             },
             tint::SHAPE,
         ),
+        // A cage (decision 0144): white, as it has no shape of its own.
+        ObjectKind::Lattice(_) => (Icon::Lattice, tint::ICON),
         _ => (Icon::Null, tint::ICON),
     }
 }

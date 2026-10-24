@@ -4,7 +4,7 @@
 
 A [modifier](concepts.md#objects-and-scenes) is a change the app works out from your shape every time it's shown or exported, instead of a change made to its points once and for all. Rebuild a shape as even quads with [Remesh](remesh.md), and keep modelling the original: the remeshed version follows each edit. Don't like it? Switch it off, or remove it: nothing is lost. Happy? **Bake into shape** makes it permanent.
 
-Each object has its own list of modifiers, its **modifier stack**, worked out first to last: each modifier gets the result of the one before. So far there are two kinds, **[Subdivide](subdivide.md)** and **[Remesh](remesh.md)**; more arrive through this phase (decimate, bend and twist, array, shell, weighted normals and others), and they all work the way this page describes.
+Each object has its own list of modifiers, its **modifier stack**, worked out first to last: each modifier gets the result of the one before. So far there are three kinds, **[Subdivide](subdivide.md)**, **[Lattice](lattice.md)** and **[Remesh](remesh.md)**; more arrive through this phase (decimate, bend and twist, array, shell, weighted normals and others), and they all work the way this page describes.
 
 ## When to use it
 
@@ -19,7 +19,7 @@ For a change you want to make once, at one spot, an ordinary tool (extrude, beve
 1. **Select one or more shapes** (in the viewport or the Objects panel). Groups are left out; an [instance](copies-and-instances.md) shows its original's modifiers, so give them to the original.
 2. **Add a modifier**, from any of these:
    - its button on the **modifiers palette**, the thin column of buttons on the right of the viewport, below the [booleans](booleans.md);
-   - **Mesh → Modifiers**, where they're grouped by what they do (Generate: Subdivide; Clean up: Remesh);
+   - **Mesh → Modifiers**, where they're grouped by what they do (Generate: Subdivide; Deform: Add lattice; Clean up: Remesh);
    - **Space** ([command search](command-search.md)), then type its name (*remesh*) and press **Enter**.
 3. The modifier goes at the end of each selected shape's list, on, and the viewport shows the result. The [Attributes panel](attributes.md) lists it under **Modifiers**, with its settings.
 
@@ -66,7 +66,7 @@ Modifiers are saved with the project, live, and come back as they were. [Export]
 | **Up**, **Down** | Where it is in the list. Modifiers are worked out first to last, each on the one before's result. |
 | **Remove** | Takes it away. |
 | **Show in viewport** | Off: the viewport skips it (the shape draws faster while you model), but exports and Bake into shape still use it. On as standard. |
-| Its own settings | See its page: [Subdivide](subdivide.md), [Remesh](remesh.md). |
+| Its own settings | See its page: [Subdivide](subdivide.md), [Lattice](lattice.md), [Remesh](remesh.md). |
 
 ## Shortcuts
 
@@ -88,7 +88,7 @@ Modifiers have no keys of their own.
 
 ## Related
 
-- [Subdivide](subdivide.md) and [Remesh](remesh.md)
+- [Subdivide](subdivide.md), [Lattice](lattice.md) and [Remesh](remesh.md)
 - [Concepts: modifiers](concepts.md#objects-and-scenes)
 - [The Attributes panel](attributes.md), [Bake into shape](objects.md#bake-into-shape)
 - [Booleans](booleans.md) and [Symmetry](symmetry.md), which come before the modifiers

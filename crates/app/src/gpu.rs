@@ -758,6 +758,7 @@ mod tests {
             hardness: mesh::Hardness::Marked,
             outline: false,
             curve: None,
+            cage: None,
         }
     }
 
@@ -854,6 +855,7 @@ mod tests {
                 hardness: mesh::Hardness::Marked,
                 outline: false,
                 curve: None,
+                cage: None,
             }],
             editing: true,
             points: true,

@@ -177,6 +177,10 @@ impl Workbench {
         if ops.is_empty() && curves.is_some() {
             return;
         }
+        if ops.is_empty() && self.cage_points_selected() {
+            self.note_cage_points_stay();
+            return;
+        }
         if ops.is_empty() {
             self.note = Some(if refused > 0 {
                 tr(
