@@ -621,15 +621,19 @@ pub fn weld(mesh: &mut Mesh, points: &[VertexId], target: Option<VertexId>) -> O
 }
 
 /// Points to weld into one: all of them become `keep`, at `place`.
-struct Group {
-    points: Vec<VertexId>,
-    keep: VertexId,
-    place: Vec3,
+/// Weld by distance builds them too ([`crate::weld_distance`]).
+pub(crate) struct Group {
+    /// The points, `keep` among them.
+    pub(crate) points: Vec<VertexId>,
+    /// The point that stays.
+    pub(crate) keep: VertexId,
+    /// Where it ends up.
+    pub(crate) place: Vec3,
 }
 
 /// Welds every group at once (they must not share points). Returns
 /// whether it could; the mesh is unchanged when not.
-fn weld_groups(mesh: &mut Mesh, groups: &[Group]) -> bool {
+pub(crate) fn weld_groups(mesh: &mut Mesh, groups: &[Group]) -> bool {
     let mut into: BTreeMap<VertexId, VertexId> = BTreeMap::new();
     for g in groups {
         for v in &g.points {

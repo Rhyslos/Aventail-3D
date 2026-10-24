@@ -214,6 +214,9 @@ pub enum Icon {
     /// Quadify (decision 0150): a square whose diagonal, the edge between
     /// its two triangles, is going (dashed).
     Quadify,
+    /// Weld by distance (decision 0152): two pieces' edges side by side,
+    /// their points pulled together onto one.
+    WeldByDistance,
     /// Creases (decision 0143): a shape sharp along one edge.
     Creases,
     /// Crease edges: the sharp edge drawn bold.
@@ -285,7 +288,7 @@ pub enum Icon {
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 125] = [
+pub const ALL: [Icon; 126] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -377,6 +380,7 @@ pub const ALL: [Icon; 125] = [
     Icon::Shrinkwrap,
     Icon::WeightedNormals,
     Icon::Quadify,
+    Icon::WeldByDistance,
     Icon::Creases,
     Icon::CreaseEdges,
     Icon::Uncrease,
@@ -511,6 +515,7 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         | Icon::Shrinkwrap
         | Icon::WeightedNormals
         | Icon::Quadify
+        | Icon::WeldByDistance
         | Icon::Creases
         | Icon::CreaseEdges
         | Icon::Uncrease => modifiers::draw(&mut pen, icon),

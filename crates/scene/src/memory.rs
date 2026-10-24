@@ -75,6 +75,9 @@ pub(crate) fn operation_size(op: &Operation) -> usize {
         }
         Operation::Weld {
             points, anchors, ..
+        }
+        | Operation::WeldByDistance {
+            points, anchors, ..
         } => {
             std::mem::size_of_val(points.as_slice())
                 + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)

@@ -16,6 +16,10 @@
 //!
 //! Version 51 ([decision 0150](../../../../docs/decisions/0150-quadify.md))
 //! adds the one-off Quadify: files before version 51 never hold one.
+//!
+//! Version 53 ([decision 0152](../../../../docs/decisions/0152-weld-by-distance.md))
+//! adds the one-off Weld by distance: files before version 53 never hold
+//! one.
 
 use super::v1::{FileOperation, Problem};
 use super::v2::{AnchorsV2, anchors_from_file, anchors_to_file};
@@ -63,6 +67,8 @@ pub(crate) enum OperationV37 {
     },
     /// Triangles joined into quads (version 51, decision 0150).
     Quadify(super::v51::QuadifyEditV51),
+    /// Close points welded into one (version 53, decision 0152).
+    WeldByDistance(super::v53::WeldEditV53),
 }
 
 /// Edges as stored: each as its two points.
@@ -132,6 +138,9 @@ impl FileOperation for OperationV37 {
                 anchors: anchors.as_ref().map(anchors_to_file),
             }),
             Operation::Quadify { .. } => super::v51::QuadifyEditV51::of(op).map(Self::Quadify),
+            Operation::WeldByDistance { .. } => {
+                super::v53::WeldEditV53::of(op).map(Self::WeldByDistance)
+            }
             _ => Some(Self::V36(OperationV36::to_file(op)?)),
         }
     }
@@ -140,6 +149,7 @@ impl FileOperation for OperationV37 {
         let operation = match self {
             Self::V36(op) => return op.into_operation(),
             Self::Quadify(edit) => return edit.into_operation(),
+            Self::WeldByDistance(edit) => return edit.into_operation(),
             Self::SetUvLock {
                 faces,
                 lock,

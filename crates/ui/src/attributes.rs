@@ -26,6 +26,7 @@ pub(crate) mod stepper;
 mod tool_rows;
 mod tool_section;
 mod weighted_rows;
+mod weld_rows;
 mod wrap_rows;
 
 use crate::objects::DocRequest;
@@ -92,6 +93,8 @@ pub(crate) struct AttributesPanel {
     pub(crate) hard_angle: HardAngle,
     /// Quadify now's settings, for its next use (decision 0150).
     pub(crate) quadify: scene::QuadifyOptions,
+    /// Weld by distance now's settings, for its next use (decision 0152).
+    pub(crate) weld: scene::WeldOptions,
     /// The curve commands' radius and count, and what the Curve points
     /// section asked for (decision 0139).
     pub(crate) curve: CurveLook,

@@ -42,6 +42,7 @@ use mesh::quadify::QuadifyOptions;
 use mesh::remesh::RemeshOptions;
 use mesh::subdivide::SubdivideOptions;
 use mesh::weighted_normals::WeightedNormalsOptions;
+use mesh::weld_distance::WeldOptions;
 use std::sync::Arc;
 use words::{text, tr};
 
@@ -124,6 +125,9 @@ pub enum ModifierKind {
     /// Pairs of triangles joined into quads (decision 0150), the
     /// squarest first. Best before Live bevel and Subdivide.
     Quadify(QuadifyOptions),
+    /// Points closer together than a distance melted into one (decision
+    /// 0152): cracks closed, split shapes joined. Best first.
+    WeldByDistance(WeldOptions),
 }
 
 impl ModifierKind {
@@ -140,6 +144,7 @@ impl ModifierKind {
             Self::Remesh(RemeshOptions::default()),
             Self::Decimate(DecimateOptions::default()),
             Self::Quadify(QuadifyOptions::default()),
+            Self::WeldByDistance(WeldOptions::default()),
             Self::WeightedNormals(WeightedNormalsOptions::default()),
         ]
     }
@@ -157,6 +162,7 @@ impl ModifierKind {
             Self::WeightedNormals(_) => tr("Weighted normals"),
             Self::LiveBevel(_) => tr("Live bevel"),
             Self::Quadify(_) => tr("Quadify"),
+            Self::WeldByDistance(_) => tr("Weld by distance"),
         }
     }
 
@@ -210,6 +216,11 @@ impl ModifierKind {
                  triangulated shape is easy to loop cut and smooth again. UV seams, hard edges \
                  and material borders stay.",
             ),
+            Self::WeldByDistance(_) => tr(
+                "Melt points closer together than a distance into one: close the cracks in a \
+                 shape split along its seams, or join pieces placed edge to edge. The UVs stay \
+                 as they were.",
+            ),
         }
     }
 
@@ -224,7 +235,7 @@ impl ModifierKind {
             Self::BendAlongCurve(_) | Self::Shrinkwrap(_) => ModifierFamily::Deform,
             Self::WeightedNormals(_) => ModifierFamily::Game,
             Self::LiveBevel(_) => ModifierFamily::Generate,
-            Self::Quadify(_) => ModifierFamily::CleanUp,
+            Self::Quadify(_) | Self::WeldByDistance(_) => ModifierFamily::CleanUp,
         }
     }
 
@@ -240,7 +251,8 @@ impl ModifierKind {
             | Self::Shrinkwrap(_)
             | Self::WeightedNormals(_)
             | Self::LiveBevel(_)
-            | Self::Quadify(_) => false,
+            | Self::Quadify(_)
+            | Self::WeldByDistance(_) => false,
             Self::Subdivide(o) => {
                 let o = o.clamped();
                 o.levels != o.export_levels
@@ -267,6 +279,7 @@ impl ModifierKind {
             Self::WeightedNormals(options) => Self::WeightedNormals(options.clamped()),
             Self::LiveBevel(options) => Self::LiveBevel(options.clamped()),
             Self::Quadify(options) => Self::Quadify(options.clamped()),
+            Self::WeldByDistance(options) => Self::WeldByDistance(options.clamped()),
         }
     }
 
@@ -281,7 +294,8 @@ impl ModifierKind {
             | Self::Decimate(_)
             | Self::WeightedNormals(_)
             | Self::LiveBevel(_)
-            | Self::Quadify(_) => Vec::new(),
+            | Self::Quadify(_)
+            | Self::WeldByDistance(_) => Vec::new(),
             Self::Lattice(options) => vec![options.cage],
             Self::Scatter(settings) => settings.shapes.clone(),
             Self::BendAlongCurve(settings) => vec![settings.curve],
@@ -332,7 +346,8 @@ impl ModifierKind {
             | Self::Shrinkwrap(_)
             | Self::WeightedNormals(_)
             | Self::LiveBevel(_)
-            | Self::Quadify(_) => kind.has_shape(),
+            | Self::Quadify(_)
+            | Self::WeldByDistance(_) => kind.has_shape(),
         }
     }
 
@@ -345,7 +360,8 @@ impl ModifierKind {
             | Self::Decimate(_)
             | Self::WeightedNormals(_)
             | Self::LiveBevel(_)
-            | Self::Quadify(_) => self.clone(),
+            | Self::Quadify(_)
+            | Self::WeldByDistance(_) => self.clone(),
             Self::Lattice(options) => Self::Lattice(LatticeOptions {
                 cage: rename(options.cage),
             }),
@@ -416,6 +432,9 @@ impl ModifierKind {
             // About two triangles cost as much as one polygon in a boolean
             // (50 000 triangles take about 0.12 s in a release build).
             Self::Quadify(_) => mesh::quadify::triangle_count(input) / 2,
+            // About WELD_POINTS_PER_POLYGON points cost as much as one
+            // polygon in a boolean (see its note for the timing).
+            Self::WeldByDistance(_) => input.vertex_count() / WELD_POINTS_PER_POLYGON,
         }
     }
 
@@ -473,6 +492,9 @@ impl ModifierKind {
             // "Hard edges" are those the object's shading shows.
             Self::Quadify(options) => mesh::quadify::quadified(input, options, context.hardness)
                 .map_err(|why| why.to_string()),
+            Self::WeldByDistance(options) => {
+                mesh::weld_distance::welded(input, options).map_err(|why| why.to_string())
+            }
         }
     }
 
@@ -480,8 +502,11 @@ impl ModifierKind {
     /// in the list, rather than at the end: a Live bevel goes before
     /// smoothing (Subdivide) and Weighted normals, the recommended order
     /// (decision 0149); Quadify before those and Live bevel too, as
-    /// bevelling and smoothing work best on quads (decision 0150). The
-    /// person can move it afterwards.
+    /// bevelling and smoothing work best on quads (decision 0150); Weld by
+    /// distance before every kind that reads how polygons join (Decimate,
+    /// Quadify, Live bevel, Subdivide, Weighted normals), as a crack
+    /// spoils each of them (decision 0152). The person can move it
+    /// afterwards.
     pub fn goes_before(&self, other: &Self) -> bool {
         match self {
             Self::LiveBevel(_) => {
@@ -490,6 +515,14 @@ impl ModifierKind {
             Self::Quadify(_) => matches!(
                 other,
                 Self::Subdivide(_) | Self::WeightedNormals(_) | Self::LiveBevel(_)
+            ),
+            Self::WeldByDistance(_) => matches!(
+                other,
+                Self::Decimate(_)
+                    | Self::Quadify(_)
+                    | Self::LiveBevel(_)
+                    | Self::Subdivide(_)
+                    | Self::WeightedNormals(_)
             ),
             _ => false,
         }
@@ -505,6 +538,13 @@ impl ModifierKind {
         matches!(self, Self::WeightedNormals(_))
     }
 }
+
+/// How many points Weld by distance goes through in the time a boolean
+/// takes for one polygon, for [`ModifierKind::work`]: 90 000 points (most
+/// of them welded) take about 70 ms in a release build, 5 000 polygons of
+/// a boolean about 20 ms. So from about 25 000 points the viewport welds
+/// on another thread.
+const WELD_POINTS_PER_POLYGON: usize = 5;
 
 /// The levels a Subdivide modifier uses for `purpose`.
 pub fn subdivide_levels(options: &SubdivideOptions, purpose: Purpose) -> u32 {

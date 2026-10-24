@@ -53,6 +53,7 @@ pub mod topology;
 pub mod triangulate;
 pub mod uvs;
 pub mod weighted_normals;
+pub mod weld_distance;
 
 pub use anchors::{AnchorShape, Anchors};
 pub use attributes::{

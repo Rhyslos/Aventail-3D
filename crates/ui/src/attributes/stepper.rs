@@ -98,6 +98,46 @@ pub(super) fn degrees(
     touched
 }
 
+/// A small length field shown in millimetres whatever the units (stored
+/// in centimetres, kept between `min` and `max` centimetres), with step
+/// arrows of a tenth of a millimetre: for distances too small for the
+/// usual length fields, such as Weld by distance's (decision 0152).
+pub(super) fn millimetres(
+    ui: &mut Ui,
+    cm: &mut f32,
+    (min, max): (f32, f32),
+    label: &str,
+) -> Touched {
+    let mut shown = f64::from(*cm) * 10.0;
+    let (low, high) = (f64::from(min) * 10.0, f64::from(max) * 10.0);
+    let mut touched = Touched::default();
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing.x = 2.0;
+        let response = ui.add_sized(
+            vec2(NUMBER_WIDTH, HEIGHT),
+            DragValue::new(&mut shown)
+                .range(low..=high)
+                .speed(0.01)
+                .max_decimals(2)
+                .suffix(format!(" {}", tr("mm"))),
+        );
+        touched = touched_by(&response);
+        response.widget_info(|| WidgetInfo::labeled(WidgetType::DragValue, true, label));
+        let steps = arrows(ui, label);
+        if steps != 0 {
+            shown = (shown + 0.1 * f64::from(steps)).clamp(low, high);
+            touched = Touched {
+                changed: true,
+                began: true,
+            };
+        }
+    });
+    if touched.changed {
+        *cm = (shown / 10.0) as f32;
+    }
+    touched
+}
+
 /// A share shown as a percentage with step arrows (a percent a step),
 /// kept between `low` and `high` (as shares: 1 is 100%).
 pub(super) fn percent(

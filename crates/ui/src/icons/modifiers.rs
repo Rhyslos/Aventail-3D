@@ -1,4 +1,4 @@
-//! The modifier icons (decisions 0142 to 0150), one per kind of
+//! The modifier icons (decisions 0142 to 0152), one per kind of
 //! modifier on the modifiers palette, and the crease commands'. Original
 //! drawings.
 
@@ -20,6 +20,7 @@ pub(super) fn draw(pen: &mut Pen, icon: Icon) {
         Icon::WeightedNormals => weighted_normals(pen),
         Icon::LiveBevel => live_bevel(pen),
         Icon::Quadify => quadify(pen),
+        Icon::WeldByDistance => weld_by_distance(pen),
         _ => {}
     }
 }
@@ -325,5 +326,27 @@ fn quadify(pen: &mut Pen) {
     pen.stroke(&outline, true, Ink::Line);
     for (x, y) in outline {
         pen.dot(x, y, 1.8);
+    }
+}
+
+/// Weld by distance: two pieces side by side with a narrow crack between
+/// them, the points either side of it melted into one each, inside a
+/// dashed ring (the distance).
+fn weld_by_distance(pen: &mut Pen) {
+    let left = [(3.0, 6.0), (10.5, 6.0), (10.5, 18.0), (3.0, 18.0)];
+    let right = [(13.5, 6.0), (21.0, 6.0), (21.0, 18.0), (13.5, 18.0)];
+    for piece in [left, right] {
+        pen.shape(&piece, Paint::Tone);
+        pen.stroke(&piece, true, Ink::Line);
+    }
+    for y in [6.0, 18.0] {
+        let ring: Vec<(f32, f32)> = (0..16)
+            .map(|k| {
+                let a = k as f32 / 16.0 * std::f32::consts::TAU;
+                (12.0 + 3.6 * a.cos(), y + 3.6 * a.sin())
+            })
+            .collect();
+        pen.stroke(&ring, true, Ink::Dashed);
+        pen.dot(12.0, y, 2.0);
     }
 }
