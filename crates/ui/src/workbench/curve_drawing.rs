@@ -17,6 +17,11 @@
 //!
 //! Nothing is recorded until the curve is finished: then it is added as
 //! one new object, one undo step, its pivot in the middle of its points.
+//!
+//! Clicking an end of a selected open curve first carries on drawing from
+//! that end ([decision 0139](../../../../docs/decisions/0139-spline-editing.md)):
+//! the new points join that curve (in front of its first point, from the
+//! start end), as one undo step; clicking its other end closes it.
 
 use super::Workbench;
 use crate::components::ViewPointer;
@@ -28,7 +33,9 @@ use crate::text::tr;
 use crate::transforming::Tool;
 use crate::viewport::{ToolDragEvent, ToolPath};
 use glam::{Vec2, Vec3};
-use scene::{Command, Curve, CurveObject, CurveShape, Object, ObjectKind, Place, Transform};
+use scene::{
+    Command, Curve, CurveObject, CurveShape, Object, ObjectId, ObjectKind, Place, Transform,
+};
 
 /// How near (screen points) the mouse must be to the first point to close
 /// the curve on it.
@@ -47,10 +54,27 @@ struct Placed {
     handle: Vec3,
 }
 
+/// A curve being carried on from one of its ends.
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Continuing {
+    /// The curve.
+    id: ObjectId,
+    /// From its first point (new points go in front), else its last.
+    at_start: bool,
+    /// Its other end, in the world: clicking it closes the curve.
+    other_end: Vec3,
+    /// How many points it has.
+    count: usize,
+}
+
 /// A curve being drawn.
 #[derive(Debug, Clone, PartialEq)]
 pub(super) struct CurveSession {
+    /// The points placed, in the world; when carrying a curve on, the
+    /// first is the end it carries on from.
     points: Vec<Placed>,
+    /// The curve being carried on, if any.
+    continuing: Option<Continuing>,
     /// The plane the points go on: a point on it and its facing.
     plane: (Vec3, Vec3),
     /// Where the press placing the last point began, on screen, while the
@@ -59,8 +83,33 @@ pub(super) struct CurveSession {
 }
 
 impl CurveSession {
+    /// The point that closes the curve when clicked, if the curve would
+    /// have enough points for a loop: the first point drawn, or the other
+    /// end of the curve carried on.
+    fn closing_point(&self) -> Option<Vec3> {
+        match self.continuing {
+            Some(c) => {
+                (self.points.len() >= 2 && c.count + self.points.len() > 3).then_some(c.other_end)
+            }
+            None => (self.points.len() >= 3).then(|| self.points[0].at),
+        }
+    }
+
+    /// Whether `pointer` is over the point that closes the curve.
+    fn over_closing(&self, pointer: &ViewPointer) -> bool {
+        self.closing_point().is_some_and(|at| {
+            pointer
+                .camera
+                .project(at, pointer.size)
+                .is_some_and(|s| s.distance(pointer.at) <= POINT_REACH)
+        })
+    }
+
     /// The curve drawn so far (closed or not), in the world.
     fn curve(&self, closed: bool) -> Option<Curve> {
+        if self.points.is_empty() {
+            return None;
+        }
         Curve::new(
             self.points.iter().map(|p| {
                 let smooth = p.handle.length_squared() > 1e-8;
@@ -179,15 +228,32 @@ impl Workbench {
 
     /// A press: closes the curve on its first point, or places a new one.
     fn press_curve(&mut self, drawing: &SceneDrawing, pointer: ViewPointer, keys: egui::Modifiers) {
-        // On the first point, with enough points for a loop: close it.
+        // On the first point (or the carried-on curve's other end), with
+        // enough points for a loop: close it.
         if let Some(session) = &self.curve_session
-            && session.points.len() >= 3
-            && pointer
-                .camera
-                .project(session.points[0].at, pointer.size)
-                .is_some_and(|s| s.distance(pointer.at) <= POINT_REACH)
+            && session.over_closing(&pointer)
         {
             self.close_curve();
+            return;
+        }
+        // The first click on an end of a selected open curve carries it on.
+        if self.curve_session.is_none()
+            && let Some((continuing, end)) = self.curve_end_under(&pointer)
+        {
+            let plane = (end.at, Self::construction_plane(&pointer).1);
+            self.curve_session = Some(CurveSession {
+                points: vec![end],
+                continuing: Some(continuing),
+                plane,
+                pressing: None,
+            });
+            self.note = Some(
+                tr(
+                    "Draw curve: carrying the curve on from this end. Click to add points; \
+                     Enter or a right click finishes, Esc cancels.",
+                )
+                .into(),
+            );
             return;
         }
         let plane = self
@@ -203,6 +269,7 @@ impl Workbench {
         };
         let session = self.curve_session.get_or_insert(CurveSession {
             points: Vec::new(),
+            continuing: None,
             plane,
             pressing: None,
         });
@@ -248,7 +315,10 @@ impl Workbench {
     /// Backspace: takes the last point back.
     pub(super) fn take_back_curve_point(&mut self) {
         if let Some(session) = &mut self.curve_session {
-            session.points.pop();
+            // The end a curve is carried on from stays.
+            if session.continuing.is_none() || session.points.len() > 1 {
+                session.points.pop();
+            }
             session.pressing = None;
             let count = session.points.len();
             self.note = Some(crate::trf!("Draw curve: {} points.", count));
@@ -258,7 +328,10 @@ impl Workbench {
     /// Closes the curve into a loop and finishes it.
     fn close_curve(&mut self) {
         if let Some(session) = self.curve_session.take() {
-            self.add_curve(&session, true);
+            match session.continuing {
+                Some(continuing) => self.carry_on_curve(&session, continuing, true),
+                None => self.add_curve(&session, true),
+            }
         }
         self.put_curve_tool_away();
     }
@@ -283,7 +356,13 @@ impl Workbench {
     /// or mode), adding it if it has two points or more.
     pub(super) fn finish_curve(&mut self) {
         if let Some(session) = self.curve_session.take() {
-            if session.points.len() >= 2 {
+            if let Some(continuing) = session.continuing {
+                if session.points.len() >= 2 {
+                    self.carry_on_curve(&session, continuing, false);
+                } else {
+                    self.note = Some(tr("Draw curve: no points were added.").into());
+                }
+            } else if session.points.len() >= 2 {
                 self.add_curve(&session, false);
             } else {
                 self.note =
@@ -343,6 +422,134 @@ impl Workbench {
         }
     }
 
+    /// The ends of the selected open curves, in the world.
+    fn selected_curve_ends(&self) -> Vec<Vec3> {
+        let scene = self.document.scene();
+        self.selected_curves()
+            .into_iter()
+            .filter_map(|id| {
+                let curve = scene.object(id)?.kind.curve()?.shape.curve();
+                if curve.closed() {
+                    return None;
+                }
+                let matrix = scene.shape_matrix(id);
+                let first = curve.points().first()?.position;
+                let last = curve.points().last()?.position;
+                Some([
+                    matrix.transform_point3(first),
+                    matrix.transform_point3(last),
+                ])
+            })
+            .flatten()
+            .collect()
+    }
+
+    /// The end of a selected open curve under `pointer`, if any: what
+    /// carrying it on needs, and the end as a placed point (its handle
+    /// pointing outward).
+    fn curve_end_under(&self, pointer: &ViewPointer) -> Option<(Continuing, Placed)> {
+        let scene = self.document.scene();
+        let mut best: Option<(f32, Continuing, Placed)> = None;
+        for id in self.selected_curves() {
+            let Some(curve) = scene
+                .object(id)
+                .and_then(|o| o.kind.curve())
+                .map(|c| c.shape.curve())
+            else {
+                continue;
+            };
+            let points = curve.points();
+            let (Some(first), Some(last)) = (points.first(), points.last()) else {
+                continue;
+            };
+            if curve.closed() || points.len() < 2 {
+                continue;
+            }
+            let matrix = scene.shape_matrix(id);
+            for (at_start, end, other) in [(true, first, last), (false, last, first)] {
+                let at = matrix.transform_point3(end.position);
+                let Some(on_screen) = pointer.camera.project(at, pointer.size) else {
+                    continue;
+                };
+                let d = on_screen.distance(pointer.at);
+                if d > POINT_REACH || best.as_ref().is_some_and(|b| b.0 <= d) {
+                    continue;
+                }
+                let outward = if at_start {
+                    end.handle_in
+                } else {
+                    end.handle_out
+                };
+                best = Some((
+                    d,
+                    Continuing {
+                        id,
+                        at_start,
+                        other_end: matrix.transform_point3(other.position),
+                        count: points.len(),
+                    },
+                    Placed {
+                        at,
+                        handle: matrix.transform_vector3(outward),
+                    },
+                ));
+            }
+        }
+        best.map(|(_, c, p)| (c, p))
+    }
+
+    /// Adds the points drawn after the end of the curve being carried on,
+    /// as one undo step; `close` closes it on its other end too.
+    fn carry_on_curve(&mut self, session: &CurveSession, continuing: Continuing, close: bool) {
+        let scene = self.document.scene();
+        let into = scene.shape_matrix(continuing.id).inverse();
+        if !into.is_finite() {
+            return;
+        }
+        let points: Vec<_> = session
+            .points
+            .iter()
+            .skip(1)
+            .map(|p| {
+                let handle = into.transform_vector3(p.handle);
+                let kind = if handle.length_squared() > 1e-8 {
+                    scene::PointKind::Smooth
+                } else {
+                    scene::PointKind::Sharp
+                };
+                (into.transform_point3(p.at), -handle, handle, kind)
+            })
+            .collect();
+        let added = points.len();
+        let key = self.new_step_key();
+        let label = tr("Carry on curve");
+        let mut commands = vec![Command::EditCurve {
+            id: continuing.id,
+            edit: scene::CurveEdit::Extend {
+                at_start: continuing.at_start,
+                points,
+            },
+        }];
+        if close {
+            commands.push(Command::EditCurve {
+                id: continuing.id,
+                edit: scene::CurveEdit::SetClosed(true),
+            });
+        }
+        for command in commands {
+            if let Err(why) = self.document.execute_labelled(command, label, Some(key)) {
+                self.note = Some(crate::trf!("Couldn't do that: {}.", why));
+                return;
+            }
+        }
+        self.note = Some(crate::trf!(
+            "Curve carried on by {} point{}{}. Ctrl + Z takes it back.",
+            added,
+            if added == 1 { "" } else { "s" },
+            if close { tr(", closed") } else { "" }
+        ));
+    }
+
     /// Shows the curve being drawn, and the stretch the next click would
     /// add.
     pub(super) fn show_curve(&mut self, drawing: &SceneDrawing) {
@@ -351,13 +558,22 @@ impl Workbench {
         }
         let pointer = self.viewport.pointer();
         let Some(session) = self.curve_session.clone() else {
-            // Nothing yet: a ring where the first point would go.
-            let cursor = pointer.and_then(|p| {
-                let plane = Self::construction_plane(&p);
-                self.curve_spot(drawing, p, plane, false)
+            // Nothing yet: a ring where the first point would go, and the
+            // ends of selected open curves, which can be carried on.
+            let over_end = pointer
+                .as_ref()
+                .and_then(|p| self.curve_end_under(p))
+                .map(|(_, end)| end.at);
+            let cursor = over_end.or_else(|| {
+                pointer.and_then(|p| {
+                    let plane = Self::construction_plane(&p);
+                    self.curve_spot(drawing, p, plane, false)
+                })
             });
+            let ends = self.selected_curve_ends();
             self.viewport.set_tool_path(Some(ToolPath {
                 cursor,
+                dots: (!ends.is_empty()).then_some(ends),
                 ..ToolPath::default()
             }));
             return;
@@ -380,13 +596,14 @@ impl Workbench {
         if session.pressing.is_none()
             && let (Some(pointer), Some(last)) = (pointer, session.points.last().copied())
         {
-            let over_first = session.points.len() >= 3
-                && pointer
-                    .camera
-                    .project(session.points[0].at, pointer.size)
-                    .is_some_and(|s| s.distance(pointer.at) <= POINT_REACH);
-            let next = if over_first {
-                Some(session.points[0])
+            let closing = session
+                .closing_point()
+                .filter(|_| session.over_closing(&pointer));
+            let next = if let Some(at) = closing {
+                Some(Placed {
+                    at,
+                    handle: Vec3::ZERO,
+                })
             } else {
                 self.curve_spot(drawing, pointer, session.plane, false)
                     .map(|at| Placed {

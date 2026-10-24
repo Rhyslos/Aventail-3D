@@ -668,6 +668,7 @@ impl Workbench {
         self.attributes.tool = self.tool;
         self.attributes.track_last_edit(&self.document);
         self.attributes.polygons_selected = self.polygons_selected_for_attributes();
+        self.attributes.curve.points_mode = self.mode == Mode::Points;
         self.note_right_press(ui.ctx());
         // Over the UV Editor, H and Z frame there (keys stay the same,
         // decision 0095).
@@ -750,6 +751,9 @@ impl Workbench {
         }
         if let Some(slot) = self.attributes.assign.take() {
             self.assign_material(slot);
+        }
+        if let Some(command) = self.attributes.curve.asked.take() {
+            self.run_command(command, ui.ctx(), &mut requests);
         }
         // What is under the mouse now that the viewport knows where it is;
         // when that changes, draw again so the highlight follows at once.
@@ -942,6 +946,7 @@ pub use exporting::{
 mod aligning;
 #[cfg(test)]
 mod aligning_tests;
+mod curve_commands;
 mod curve_drawing;
 mod curve_editing;
 #[cfg(test)]
@@ -965,6 +970,8 @@ pub(crate) mod showing;
 mod slit;
 #[cfg(test)]
 mod slit_tests;
+#[cfg(test)]
+mod spline_tests;
 #[cfg(test)]
 mod symmetry_tests;
 mod transform;

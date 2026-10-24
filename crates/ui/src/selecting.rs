@@ -363,6 +363,7 @@ impl Selector<'_> {
             }
             (Some(kind), Gesture::DoubleClick { pointer, ring, how }) => self
                 .toggle_curve_point(kind, pointer)
+                .or_else(|| self.add_curve_point(kind, pointer))
                 .or_else(|| self.loop_or_ring(kind, pointer, ring, how)),
             (Some(kind), Gesture::Grow(steps)) => self.grow(kind, steps),
         }
@@ -415,6 +416,55 @@ impl Selector<'_> {
             Ok(()) => {
                 tr("Point made sharp: a corner. Double-click again for a smooth bend.").into()
             }
+            Err(why) => crate::trf!("Couldn't do that: {}.", why),
+        })
+    }
+
+    /// A double-click on a selected curve's line in the Points mode (not
+    /// on a point or handle end, which switch sharp and smooth) adds a
+    /// point there, keeping the curve's shape (decision 0139). `None`
+    /// when the double-click isn't near such a line.
+    fn add_curve_point(&mut self, kind: ElementKind, pointer: ViewPointer) -> Option<String> {
+        if kind != ElementKind::Points {
+            return None;
+        }
+        let selection = self.document.selection();
+        // The nearest place on a selected curve's line: its object, the
+        // point its stretch leaves, how far along, and how near on screen.
+        let mut best: Option<(f32, ObjectId, scene::CurvePointId, f32)> = None;
+        for item in &self.drawing.items {
+            if item.curve.is_none() || !selection.contains(&item.id) {
+                continue;
+            }
+            let Some(curve) = self
+                .document
+                .scene()
+                .object(item.id)
+                .and_then(|o| o.kind.curve())
+                .map(|c| c.shape.curve())
+            else {
+                continue;
+            };
+            for (span, point) in curve.spans().iter().zip(curve.points()) {
+                if let Some((d, t)) = nearest_on_span(span, item.transform, &pointer)
+                    && d <= CURVE_REACH
+                    && best.is_none_or(|b| d < b.0)
+                {
+                    best = Some((d, item.id, point.id, t));
+                }
+            }
+        }
+        let (_, id, after, t) = best?;
+        let result = self.document.execute(scene::Command::EditCurve {
+            id,
+            edit: scene::CurveEdit::Insert { after, t },
+        });
+        Some(match result {
+            Ok(()) => tr(
+                "Point added: the curve keeps its shape. Drag it to reshape the curve; Delete \
+                 takes it away again.",
+            )
+            .into(),
             Err(why) => crate::trf!("Couldn't do that: {}.", why),
         })
     }
@@ -991,6 +1041,47 @@ fn curve_line_under(drawing: &SceneDrawing, pointer: &ViewPointer) -> Option<Obj
         }
     }
     best.map(|(_, id)| id)
+}
+
+/// How finely a stretch is followed on screen when looking for the place
+/// a double-click adds a point.
+const SPAN_STEPS: usize = 48;
+
+/// How near (screen points) `pointer` is to `span` (in the object's own
+/// space, placed by `transform`), and the stretch's own `t` there.
+fn nearest_on_span(
+    span: &scene::Span,
+    transform: glam::Mat4,
+    pointer: &ViewPointer,
+) -> Option<(f32, f32)> {
+    let on_screen = |t: f32| {
+        pointer
+            .camera
+            .project(transform.transform_point3(span.at(t)), pointer.size)
+    };
+    let mut best: Option<(f32, f32)> = None;
+    let mut last = on_screen(0.0);
+    for k in 1..=SPAN_STEPS {
+        let (t0, t1) = (
+            (k - 1) as f32 / SPAN_STEPS as f32,
+            k as f32 / SPAN_STEPS as f32,
+        );
+        let here = on_screen(t1);
+        if let (Some(a), Some(b)) = (last, here) {
+            let along = b - a;
+            let f = if along.length_squared() > 1e-9 {
+                ((pointer.at - a).dot(along) / along.length_squared()).clamp(0.0, 1.0)
+            } else {
+                0.0
+            };
+            let d = pointer.at.distance(a + along * f);
+            if best.is_none_or(|b| d < b.0) {
+                best = Some((d, t0 + (t1 - t0) * f));
+            }
+        }
+        last = here;
+    }
+    best
 }
 
 /// The curves whose line passes through `region`.

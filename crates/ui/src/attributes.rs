@@ -6,6 +6,7 @@
 //! hands back commands. Dragging a value changes it every frame, so those
 //! commands are merged into one undo step per drag (or per value typed).
 
+mod curve_points;
 mod curve_rows;
 mod edits;
 mod fields;
@@ -23,6 +24,7 @@ use crate::text::tr;
 use crate::theme;
 use crate::transforming::Tool;
 use crate::units::Units;
+pub(crate) use curve_points::CurveLook;
 use edits::edits_section;
 pub(crate) use edits::{DELETE_EDIT_LABEL, FREEZE_LABEL, OpenedEdit, edit_warning};
 use egui::{RichText, Ui, vec2};
@@ -77,6 +79,9 @@ pub(crate) struct AttributesPanel {
     pub(crate) join: JoinLook,
     /// Hard edges by angle's angle, for its next use (decision 0053).
     pub(crate) hard_angle: HardAngle,
+    /// The curve commands' radius and count, and what the Curve points
+    /// section asked for (decision 0139).
+    pub(crate) curve: CurveLook,
     /// The Materials section's names being typed and its message.
     materials: materials::MaterialsState,
     /// How many polygons of the shown object are selected, in the

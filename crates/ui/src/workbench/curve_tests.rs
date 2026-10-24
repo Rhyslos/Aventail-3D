@@ -190,7 +190,13 @@ fn a_right_click_finishes_and_esc_cancels() {
         3
     );
     assert_eq!(harness.state().workbench.tool(), Tool::Select);
-    // Esc: nothing made, the tool put away.
+    // Esc: nothing made, the tool put away. (With the first curve still
+    // selected, clicking on its end would carry it on: decision 0139.)
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .clear_selection();
     harness.state_mut().workbench.start_drawing_curve();
     harness.run();
     three_clicks(&mut harness);

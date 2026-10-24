@@ -122,6 +122,11 @@ impl Workbench {
 
     /// A: connects the selected points or edges.
     pub(super) fn run_connect(&mut self) {
+        // Two curve end points: joined by a straight stretch (decision
+        // 0139).
+        if self.join_curve_ends(false) {
+            return;
+        }
         let mut ops = Vec::new();
         let mut count = 0;
         let edges_mode = self.mode == Mode::Edges;
@@ -258,6 +263,11 @@ impl Workbench {
     /// M: welds the selected points at their middle; in the Polygons
     /// mode, each touching group of selected polygons at its own middle.
     pub(super) fn run_weld(&mut self) {
+        // Two curve end points: melted into one at their middle (decision
+        // 0139).
+        if self.mode == crate::palette::Mode::Points && self.join_curve_ends(true) {
+            return;
+        }
         if self.mode == crate::palette::Mode::Polygons {
             self.run_weld_polygons();
             return;

@@ -539,6 +539,21 @@ pub(crate) fn mouse() -> Vec<MouseLine> {
             tr("Double-click it (Points mode)"),
             Editing,
         ),
+        line(
+            tr("Add a point to a curve, keeping its shape"),
+            tr("Double-click its line (Points mode)"),
+            Editing,
+        ),
+        line(
+            tr("Draw curve: carry a selected curve on from an end"),
+            tr("Click the end first"),
+            Model,
+        ),
+        line(
+            tr("Join two curve end points: weld at the middle / a straight stretch"),
+            tr("M / A (Points mode, the two ends selected)"),
+            Editing,
+        ),
     ]
 }
 

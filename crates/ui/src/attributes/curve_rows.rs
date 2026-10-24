@@ -106,6 +106,9 @@ impl AttributesPanel {
                     .color(theme::WARNING),
             );
         }
+        if self.curve.points_mode {
+            self.curve_points_section(ui, doc, id, units);
+        }
     }
 
     /// A ready-made curve's settings, or a drawn one's points and Closed.

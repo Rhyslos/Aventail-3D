@@ -225,10 +225,30 @@ pub enum Icon {
     CurveArc,
     /// A ready-made spiral: a spring climbing.
     CurveSpiral,
+    /// Split curve: a curve with a gap cut in it.
+    CurveSplit,
+    /// Reverse curve: a curve with an arrow turned back along it.
+    CurveReverse,
+    /// Open or close curve: a loop with a dashed gap.
+    CurveOpenClose,
+    /// The handle type group: a point with its handle across it.
+    CurveHandles,
+    /// Sharp points: a corner with no handles.
+    CurveSharp,
+    /// Smooth points: a bend with its handles in one line.
+    CurveSmooth,
+    /// Broken handles: a kink with two handles at an angle.
+    CurveBroken,
+    /// Auto handles: a bend through three points, handles dashed.
+    CurveAuto,
+    /// Round corners: a corner, dashed, cut by an arc.
+    CurveRound,
+    /// Even spacing: points evenly along a curve.
+    CurveEven,
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 102] = [
+pub const ALL: [Icon; 112] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -331,6 +351,16 @@ pub const ALL: [Icon; 102] = [
     Icon::CurveCircle,
     Icon::CurveArc,
     Icon::CurveSpiral,
+    Icon::CurveSplit,
+    Icon::CurveReverse,
+    Icon::CurveOpenClose,
+    Icon::CurveHandles,
+    Icon::CurveSharp,
+    Icon::CurveSmooth,
+    Icon::CurveBroken,
+    Icon::CurveAuto,
+    Icon::CurveRound,
+    Icon::CurveEven,
 ];
 
 /// Draws `icon` into `rect` in `color`.
@@ -426,6 +456,16 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         | Icon::CurveCircle
         | Icon::CurveArc
         | Icon::CurveSpiral => curves::draw(&mut pen, icon),
+        Icon::CurveSplit
+        | Icon::CurveReverse
+        | Icon::CurveOpenClose
+        | Icon::CurveHandles
+        | Icon::CurveSharp
+        | Icon::CurveSmooth
+        | Icon::CurveBroken
+        | Icon::CurveAuto
+        | Icon::CurveRound
+        | Icon::CurveEven => curves::draw_editing(&mut pen, icon),
         Icon::UvTurnLeft
         | Icon::UvTurnRight
         | Icon::UvFlipU
