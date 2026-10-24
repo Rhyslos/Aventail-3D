@@ -422,6 +422,11 @@ Couldn't take it: {}.
 Couldn't use that folder: {}.
 Couldn't {}: {}.
 Counted from the first change since the last copy.
+Crease
+Crease edges
+Crease the selected edges fully, so the Subdivide modifier keeps them sharp. Set a softer crease in the Attributes panel's Crease field.
+Crease the selected edges, so the Subdivide modifier keeps them sharp, or take their creases away. Choose this to see both.
+Creases
 Create
 Create a shape
 Create a shape (a cube, sphere and so on) or a group from the Create menu or the shape buttons at the top.
@@ -759,6 +764,7 @@ Handle type: {}
 Hard edges by angle
 Hard edges by angle: select the objects first.
 Hard edges by angle: the selection has no shapes.
+Hard edges stay sharp
 Harden
 Heavy test shape
 Height
@@ -851,11 +857,14 @@ How many straight pieces make up the circle
 How many straight sides make the circle
 How many teeth
 How many times each triangle is cut into four: 0 is a 20-sided ball, each step four times the triangles
+How many times exports and Bake into shape split and smooth it: often one more than the viewport, for a smoother result where it counts
 How many times round it goes
+How many times the viewport splits and smooths the shape: each level has four times the polygons. 0 shows the shape as it is.
 How modelling edits fix the UVs they break (saved with the project)
 How much Relax evens UVs out
 How much of a circle: 90° for a quarter
 How shapes are drawn: shaded, with wires, or wireframe
+How sharply the Subdivide modifier keeps these edges: 0 smooths them like any other, 1 keeps them fully sharp, 0.5 sharp for half the levels
 How sizes are shown and typed. Each project keeps its own, saved with it; only the display changes, never the shapes. Also switched in the Attributes panel's Units menu.
 How tall the rectangle is, up from the curve
 How tall the row is, in pixels
@@ -864,7 +873,7 @@ How the mouse moves the view. Also chosen from the button in the viewport's bott
 How the mouse moves the view. Try them, keep your favourite.
 How the selected points' handles behave: sharp, smooth, broken or auto. Choose this to see the four.
 How the shading breaks into crisp edges. By angle: wherever polygons meet more sharply than the angle, after every change. Unticked: only the edges you mark hard (Mesh → Mark hard edges). Marking edges switches it to that.
-How the shape is shaded: smoothing, hard and soft edges, normals
+How the shape is shaded: smoothing, hard and soft edges, creases, normals
 How these pieces are laid flat, whatever UV → Unwrapping says
 How thick the arch is round the opening
 How thick the gear is
@@ -932,6 +941,7 @@ Keep shapes, smoother
 Keep sizes
 Keep the UVs and seams of the objects shown in the UV Editor under a name, to go back to or compare with later
 Keep the bevel from crossing over itself: where it would run past the end of an edge or into the bevel coming the other way, it stops there, so corners meet instead of passing each other. Only the points that need it are narrowed
+Keep the edges marked hard sharp, as if fully creased. Only on objects shaded by their marked edges: smoothed by angle, every sharp corner looks hard, so nothing would round.
 Keep the newest
 Keep the selected points' handles in one line, so the curve bends through without a kink: dragging one handle turns the other
 Keep together
@@ -962,6 +972,8 @@ Let the automatic tools change the selected pieces again
 Let the automatic tools choose freely again on the selected edges (or polygons)
 Let the selected points' handles shape themselves from their neighbours, a third of the way to each, following as the neighbours move
 Let the selected points' two handles move on their own, for a kink with curved sides
+Levels
+Levels for export
 Like Keep shapes, but the angles are first evened out over the whole piece, so curved pieces (a head, a dome) drift less. A little slower.
 Line
 Line only
@@ -1463,6 +1475,7 @@ Select {} {}
 Select: {} (press Q again for the next way of selecting).
 Selected
 Selected and hovered points, edges and polygons drawn larger with a dark rim, in the viewport and the UV Editor
+Selected edges: {}
 Selected only
 Selecting
 Selection keys: which key adds to the selection and which takes away, for clicks, boxes, lassos, the brush and double-clicks alike. A plain click or drag always starts a new selection; Alt + double-click selects a ring.
@@ -1557,6 +1570,7 @@ Smooth by angle
 Smooth by angle ({:.0}°)
 Smooth by marked edges only
 Smooth points
+Smooth the shape by subdividing it: every polygon is split into four and the corners rounded off, level by level. Creased edges stay sharp.
 Smoothing
 Smoothing angle
 Snap (or not, when snapping is on)
@@ -1625,6 +1639,7 @@ Stretch: every polygon lies evenly.
 Stretch: {} polygons are 1.5 times off or more. Point at one to see why.
 Stretched up to {:.1}×: UV → Lay out → Relax evens it out; a stretch budget (UV → Pieces → Stretch budget) cuts it where it's worst.
 Strip corners within
+Subdivide
 Subdivisions
 Substance Painter
 Substance Painter matches a low-poly object with its high-poly one by name: crate_low with crate_high. Rename one, or make the missing partner.
@@ -1667,6 +1682,7 @@ Take out
 Take out of the selection, with a click or drag (the standard keys)
 Take points, edges or polygons away
 Take the seams off the selected edges (or the selected polygons' edges), so the surface stays joined there when unwrapped
+Take the selected edges' creases away, so the Subdivide modifier smooths them
 Take the selected groups' contents out, and remove the groups
 Take the selected points' handles away: a corner
 Take the selected points, edges or polygons away but keep the surface closed: the polygons around them merge into one
@@ -1693,6 +1709,7 @@ The cross-section of: {}
 The cutter {} can't be used: {}
 The cutter {} is squashed flat
 The cutter {} isn't a closed solid: it has holes in its surface, or edges shared by more than two polygons
+The edges have different creases: a new value gives them all the same.
 The edits you make now go into this layer: the top layer that is switched on
 The faces, with any number of corners
 The first material can't be removed
@@ -1828,6 +1845,7 @@ UV Editor shown beside the viewport. Window → UV Editor puts it away.
 UV Editor view
 UV settings
 UVs are moved by numbers that aren't real
+Uncrease
 Underneath
 Underneath and at the back
 Undo
@@ -1974,6 +1992,7 @@ a boolean can't be used: {}
 a closed curve has no ends to join: open it or split it first
 a closed curve needs at least three points
 a collision is stored for object {}, which isn't there
+a crease isn't a number from 0 to 1
 a curve can have at most 4096 points
 a curve can't be its own cross-section
 a curve can't be used: {}
@@ -2133,6 +2152,7 @@ it should hold {} bytes of scene but holds {}; it may be cut short
 it was
 it was saved by a newer version of the app (file format {}; this version reads up to {}). Update the app to open it
 it wasn't saved, because the saved copy wouldn't open again ({}). Your previous save is untouched; please report this so it can be fixed
+it would make {} million polygons, and the most is 4 million. Lower the levels
 it's an instance: edit its original, or make it editable to give it its own shape
 it's an instance: give its original the boolean, or bake it into a shape first
 it's an instance: give its original the modifier, or bake it into a shape first
@@ -2201,6 +2221,7 @@ on
 on, only what you can see
 one of a groove's edges joins a point to itself
 one of its bevelled edges joins a point to itself
+one of its creases joins a point to itself
 one of its edges joins a point to itself
 one of its extruded edges joins a point to itself
 one of its seam preferences joins a point to itself
@@ -2412,6 +2433,7 @@ write
 {} with uneven texel density
 {} works in the Points, Edges or Polygons mode: press 1, 2 or 3
 {} works on edges or polygons: press 2 for the Edges mode, or 3 for Polygons
+{} works on edges: press 2 for the Edges mode
 {} works on selected UVs: pick the UV mode, or press 1, 2 or 3 and select in the UV Editor
 {} works on selected edges or polygons: press 2 for the Edges mode, or 3 for Polygons
 {} {}
@@ -2447,13 +2469,18 @@ write
 {}: drag the gizmo's handles. Hold Shift for fine steps; Esc or a right click cancels.
 {}: every hard edge is a seam already.
 {}: nothing changed.
+{}: press 2 for the Edges mode and select some edges first.
 {}: select some UVs first.
 {}: select some edges first (or polygons).
 {}: select some edges first (or polygons, for the edges around them).
+{}: select some edges first.
 {}: select some {} first.
 {}: select some {}s first.
 {}: select the objects first.
+{}: the Subdivide modifier keeps them sharp. Set a softer crease in the Attributes panel. Ctrl + Z takes it back.
 {}: the seams are already where they'd be suggested.
+{}: the selected edges are already creased.
+{}: the selected edges have no crease.
 {}: the selected objects have no polygons.
 {}: the selection has no UVs to measure.
 {}: the selection has no UVs. Unwrap it first.

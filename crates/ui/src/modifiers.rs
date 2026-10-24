@@ -13,17 +13,18 @@ use crate::text::tr;
 use egui::Ui;
 use scene::{
     Command, Document, MAX_MODIFIERS, ModifierFamily, ModifierKind, ObjectId, ObjectKind,
-    RemeshOptions,
+    RemeshOptions, SubdivideOptions,
 };
 
 /// One command per kind of modifier, in the order of
 /// [`ModifierKind::standard_kinds`].
-pub(crate) const COMMANDS: [CommandId; 1] = [CommandId::Remesh];
+pub(crate) const COMMANDS: [CommandId; 2] = [CommandId::Subdivide, CommandId::Remesh];
 
 /// The modifier (with its standard settings) a command adds.
 pub(crate) fn kind_of(command: CommandId) -> Option<ModifierKind> {
     match command {
         CommandId::Remesh => Some(ModifierKind::Remesh(RemeshOptions::default())),
+        CommandId::Subdivide => Some(ModifierKind::Subdivide(SubdivideOptions::default())),
         _ => None,
     }
 }

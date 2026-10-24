@@ -41,6 +41,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Booleans: union, subtract and intersect, with cutters you can keep moving](booleans.md)
 - [Modifiers: live changes on top of a shape, switched off, reordered or baked any time](modifiers.md)
 - [Remesh: rebuild a closed shape as an even surface of quads](remesh.md)
+- [Subdivide: smooth a shape by subdividing it, with creases to keep edges sharp](subdivide.md)
 - [Curves: draw a line or start from a circle, arc or spiral, then sweep it into a pipe or rail, or lathe it into a vase](curves.md)
 - [Edit layers: keep sets of edits apart, switch them off, move, merge and delete them](edit-layers.md)
 - [The edit list: change, switch off, bake into the shape or delete any edit you've made](edit-list.md)

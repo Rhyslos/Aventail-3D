@@ -88,6 +88,7 @@ In the viewport's **Display** menu:
 - **Tip:** soft edges between polygons at a sharp angle look smeared and dark. If a corner looks muddy, mark that edge hard, or bevel it.
 - **Tip:** new polygons from [Bridge](connect-bridge-weld.md) and [Fill hole](clean-up.md) get hard edges by themselves where they meet the shape at more than 30°, so on an object shaded by its marks a band between two boxes or a cap on a tube looks crisp straight away.
 - **Problem:** I marked edges and the object's By angle tick went off. **Why:** marks only show on an object shaded by its marks, so the app switched it over, keeping the look the angle gave it. **Fix:** nothing to fix; **Ctrl + Z** undoes the whole step if you didn't want it.
+- **Tip:** Smoothing only shades the shape. To make the shape itself smoother, with more polygons, add a [Subdivide](subdivide.md) modifier; on an object shaded by its marked edges, its hard edges stay sharp there too.
 - **Problem:** Hard edges by angle changed nothing on screen. **Why:** the object is smoothed by angle, which ignores marks. **Fix:** untick **By angle** on its Smoothing row to see the marks.
 - **Problem:** Mark hard edges did nothing, and the status bar says they already are. **Why:** every selected edge is already hard. **Fix:** nothing to do, or pick Mark soft edges.
 - **Problem:** Smooth by angle is greyed out. **Why:** nothing with a shape is selected. **Fix:** select the objects first.

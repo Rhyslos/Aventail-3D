@@ -6,6 +6,7 @@
 //! hands back commands. Dragging a value changes it every frame, so those
 //! commands are merged into one undo step per drag (or per value typed).
 
+mod crease_rows;
 mod curve_points;
 mod curve_rows;
 mod edits;
@@ -25,6 +26,9 @@ use crate::text::tr;
 use crate::theme;
 use crate::transforming::Tool;
 use crate::units::Units;
+#[cfg(test)]
+pub(crate) use crease_rows::CREASE_LABEL;
+pub(crate) use crease_rows::SelectedCreases;
 pub(crate) use curve_points::CurveLook;
 use edits::edits_section;
 pub(crate) use edits::{DELETE_EDIT_LABEL, FREEZE_LABEL, OpenedEdit, edit_warning};
@@ -92,6 +96,12 @@ pub(crate) struct AttributesPanel {
     /// The material slot whose Assign button was clicked, for the
     /// workbench to give the selected polygons (decision 0074).
     pub(crate) assign: Option<u32>,
+    /// The selected edges' creases, in the Edges mode (set by the
+    /// workbench each frame); `None` in other modes (decision 0143).
+    pub(crate) creases: Option<SelectedCreases>,
+    /// A crease set in the Crease field, with the gesture it was set by,
+    /// for the workbench to record on the selected edges.
+    pub(crate) crease_asked: Option<(f32, u64)>,
     /// The edit opened from the edit list (decision 0092), shown in place
     /// of the Last edit while its object is the one selected.
     pub(crate) opened: Option<OpenedEdit>,
@@ -317,6 +327,9 @@ impl AttributesPanel {
                             smoothing_row(ui, id, object.hardness, out);
                         }
                     });
+                if solid && !matches!(object.kind, ObjectKind::Instance(_)) {
+                    self.crease_section(ui);
+                }
                 if let ObjectKind::Instance(source) = &object.kind {
                     section(ui, tr("Instance"));
                     let original = doc

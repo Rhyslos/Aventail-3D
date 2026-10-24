@@ -17,7 +17,7 @@ Whenever you want a tool and don't remember its key, or it doesn't have one. The
 
 Each tool's key is shown next to its button, so the menu teaches you the keys as you go. Once you know a key, pressing it directly is quicker. The menu is there for everything else.
 
-The ring holds every modelling tool: Extrude, Inset, Bevel, [Groove](groove.md), [Loop cut](loop-cut.md), [Slit](slit.md), [Connect, Bridge and Weld](connect-bridge-weld.md), the [clean-up](clean-up.md) commands (Delete, Dissolve, Fill hole, Flip normals), and [Hard and soft edges](hard-and-soft-edges.md). In the Model mode the ring also has [Duplicate and Duplicate as instance](copies-and-instances.md), [Join objects](split-and-join.md) and [Apply rotation and scale](apply-transforms.md).
+The ring holds every modelling tool: Extrude, Inset, Bevel, [Groove](groove.md), [Loop cut](loop-cut.md), [Slit](slit.md), [Connect, Bridge and Weld](connect-bridge-weld.md), the [clean-up](clean-up.md) commands (Delete, Dissolve, Fill hole, Flip normals), [Hard and soft edges](hard-and-soft-edges.md), and in the Edges mode the [creases](subdivide.md#keeping-edges-sharp-creases). In the Model mode the ring also has [Duplicate and Duplicate as instance](copies-and-instances.md), [Join objects](split-and-join.md) and [Apply rotation and scale](apply-transforms.md).
 
 ![The tool menu in Edges mode](../screenshots/2026-10-13-tool-menu-edges.png)
 
@@ -39,7 +39,7 @@ The ring holds every modelling tool: Extrude, Inset, Bevel, [Groove](groove.md),
 | Where | What |
 |---|---|
 | Top right | Building: Extrude, Inset, Bevel, Bridge, Fill hole |
-| Right | Shading: Flip normals, Mark hard edges and Mark soft edges |
+| Right | Shading: Flip normals, Mark hard edges and Mark soft edges. In the Edges mode, where Flip normals doesn't apply, its place holds **Creases**: choose it to see **Crease edges** and **Uncrease** ([Subdivide](subdivide.md#keeping-edges-sharp-creases)). |
 | Bottom | Removing: Delete, Dissolve, Weld |
 | Left | Cutting and joining: Connect, Slit, Loop cut |
 | Top left | Groove |

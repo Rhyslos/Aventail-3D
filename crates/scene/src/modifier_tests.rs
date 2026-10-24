@@ -362,8 +362,8 @@ fn heavy_work_can_be_done_on_another_thread() {
     }
     // A fine remesh of a big shape counts as heavy.
     let sphere = PrimitiveKind::Sphere.standard().mesh();
-    assert!(remesh(1.0).work(&sphere) >= MODIFIERS_IN_BACKGROUND_FROM);
-    assert!(remesh(10.0).work(&sphere) < MODIFIERS_IN_BACKGROUND_FROM);
+    assert!(remesh(1.0).work(&sphere, Purpose::Viewport) >= MODIFIERS_IN_BACKGROUND_FROM);
+    assert!(remesh(10.0).work(&sphere, Purpose::Viewport) < MODIFIERS_IN_BACKGROUND_FROM);
 }
 
 #[test]
