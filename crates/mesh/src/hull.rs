@@ -11,8 +11,9 @@
 //! triangle are inside and forgotten.
 //!
 //! Worked in double precision, with a small distance (relative to the
-//! points' size) under which a point counts as on a triangle, so flat
-//! sides stay flat. Always the same result for the same points, in the
+//! points' extent, or to their rounding when they are far from the
+//! origin) under which a point counts as on a triangle, so flat sides stay
+//! flat and shallow edges stay edges wherever the shape is. Always the same result for the same points, in the
 //! same order. A limited hull ([`convex_hull_limited`]) stops once it has
 //! a number of corners: as each step adds the farthest point, it is the
 //! best few-cornered hull of that kind, a little inside the full one.
@@ -104,14 +105,11 @@ impl Hull {
     /// Its corners where at least three sides of different directions
     /// meet: the points of a convex solid that are really corners, not
     /// on a flat side or a straight edge. Two triangles lie on the same
-    /// side when each one's corners are within a millionth of the hull's
-    /// size of the other's plane.
+    /// side when each one's corners are within [`same_side_tolerance`] of
+    /// the other's plane.
     fn true_corners(&self) -> Vec<Vec3> {
-        let size = self
-            .points
-            .iter()
-            .fold(0.0_f32, |m, p| m.max(p.abs().max_element()));
-        let tolerance = f64::from(size) * 1e-6;
+        let points: Vec<DVec3> = self.points.iter().map(|p| p.as_dvec3()).collect();
+        let tolerance = same_side_tolerance(&points);
         // Each triangle's corners and plane.
         let sides: Vec<([DVec3; 3], DVec3)> = self
             .triangles
@@ -146,6 +144,25 @@ impl Hull {
         let at = |i: u32| self.points.get(i as usize).map(|p| p.as_dvec3());
         Some([at(t[0])?, at(t[1])?, at(t[2])?])
     }
+}
+
+/// How close to a plane a point counts as on it, for `points`: a
+/// millionth of their extent (their size, wherever they are), or, if more,
+/// a few times the rounding of their places as single-precision numbers,
+/// which grows with their distance from the origin (a flat side 100 m
+/// away has its points off its plane by about a hundredth of a
+/// millimetre).
+fn same_side_tolerance(points: &[DVec3]) -> f64 {
+    let (low, high) = points.iter().fold(
+        (DVec3::splat(f64::MAX), DVec3::splat(f64::MIN)),
+        |(l, h), p| (l.min(*p), h.max(*p)),
+    );
+    if points.is_empty() {
+        return 0.0;
+    }
+    let extent = (high - low).max_element();
+    let farthest = high.abs().max(low.abs()).max_element();
+    (extent * 1e-6).max(farthest * 4.0 * f64::from(f32::EPSILON))
 }
 
 /// The convex hull of `points` (those at real places), or why there is
@@ -221,14 +238,11 @@ impl<'a> Builder<'a> {
     /// The first four-cornered solid, with every other point given to a
     /// face it is outside of.
     fn start(points: &'a [DVec3]) -> Result<Self, HullProblem> {
-        let (low, high) = points.iter().fold(
-            (DVec3::splat(f64::MAX), DVec3::splat(f64::MIN)),
-            |(l, h), p| (l.min(*p), h.max(*p)),
-        );
-        let scale = (high - low)
-            .max_element()
-            .max(high.abs().max(low.abs()).max_element());
-        let epsilon = (scale * 1e-9).max(f64::MIN_POSITIVE);
+        // Flat below the same tolerance the hull's sides are found with:
+        // its extent's, or its points' rounding far from the origin. A
+        // point counts as outside a triangle a thousand times closer.
+        let flat = same_side_tolerance(points).max(f64::MIN_POSITIVE);
+        let epsilon = (flat * 1e-3).max(f64::MIN_POSITIVE);
         // The two farthest apart of the points lowest and highest along
         // each axis.
         let mut extremes = Vec::with_capacity(6);
@@ -256,7 +270,6 @@ impl<'a> Builder<'a> {
                 }
             }
         }
-        let flat = 1e3 * epsilon;
         if far.sqrt() <= flat {
             return Err(HullProblem::Flat);
         }

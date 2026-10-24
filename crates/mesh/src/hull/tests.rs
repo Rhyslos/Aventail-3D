@@ -218,3 +218,35 @@ fn awkward_clouds_never_panic_and_stay_closed() {
         }
     }
 }
+
+/// A 10 cm box with a ridge `h` high along its top (a very shallow tent),
+/// moved to `at`.
+fn tent(h: f32, at: Vec3) -> Vec<Vec3> {
+    let mut points = Vec::new();
+    for x in [0.0, 10.0] {
+        for y in [0.0, 10.0] {
+            for z in [0.0, 10.0] {
+                points.push(Vec3::new(x, y, z));
+            }
+        }
+    }
+    points.push(Vec3::new(5.0, 0.0, 10.0 + h));
+    points.push(Vec3::new(5.0, 10.0, 10.0 + h));
+    points.into_iter().map(|p| p + at).collect()
+}
+
+#[test]
+fn a_shallow_ridge_keeps_its_corners_far_from_the_origin_too() {
+    // The same-side tolerance follows the hull's own size (and the
+    // rounding of its points' places), not how far it is from the origin:
+    // a ridge 0.035 cm high on a 10 cm box is a real edge wherever the box
+    // is. (Measured from the origin, 100 m away it was taken for flat.)
+    for at in [Vec3::ZERO, Vec3::new(100_000.0, 0.0, 0.0)] {
+        let hull = convex_hull(&tent(0.035, at)).unwrap();
+        assert_eq!(hull.points.len(), 10, "at {at}");
+        assert_closed_and_facing_out(&hull);
+    }
+    // Flat to within the points' rounding: no ridge.
+    let hull = convex_hull(&tent(0.0, Vec3::ZERO)).unwrap();
+    assert_eq!(hull.points.len(), 8);
+}

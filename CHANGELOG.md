@@ -30,6 +30,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **Collision wrappings keep shallow edges on shapes far from their pivot.** How close a point must be to a side to count as on it was measured from the shape's distance to its pivot, so a shape far from its pivot lost the corners of gentle bends in its "Wrapped" and "Wrapped in parts" collision. It is now measured from the shape's own size.
 - **A damaged project with a closed curve of only one or two points is refused** with a plain reason ("a closed curve needs at least three points"), instead of opening with a doubled, empty-inside sweep.
 - **Collision and levels-of-detail notes stay true to the shape.** After an export, or while a changed shape was still being worked out, Attributes could show a collision warning or triangle counts for an older shape (or the export's). They now show only what the viewport worked out for the shape as it is now, and nothing while it is still being worked out.
 - **Steps made of several changes are never left half done.** If one part of Size to kit grid, carrying a curve on and closing it, deleting curve points on several curves, Split curve, restoring a layout snapshot, or a tool that edits several objects at once is refused, the parts already done are taken back too, so Ctrl + Z never has a half-finished step to undo.
