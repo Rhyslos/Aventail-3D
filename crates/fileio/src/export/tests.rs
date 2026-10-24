@@ -443,3 +443,44 @@ fn presets_and_file_settings_survive_being_remembered() {
     // preset) is refused rather than guessed.
     assert!(serde_json::from_str::<ExportPreset>("\"Blender\"").is_err());
 }
+
+#[test]
+fn modifiers_go_out_as_part_of_their_object_even_hidden_in_the_viewport() {
+    // Decision 0142: an export has every modifier that is on.
+    let (mut doc, cube) = with(PrimitiveKind::Cube);
+    doc.execute(Command::AddModifier {
+        ids: vec![cube],
+        kind: scene::ModifierKind::Remesh(scene::RemeshOptions {
+            voxel_size: 10.0,
+            smooth: 0,
+        }),
+    })
+    .unwrap();
+    let remeshed = one(&doc, &ExportOptions::default()).world.polygons.len();
+    assert!(remeshed > 300, "{remeshed}");
+    let mut modifier = doc.scene().modifiers(cube)[0].clone();
+    modifier.in_viewport = false;
+    doc.execute(Command::ChangeModifier {
+        id: cube,
+        index: 0,
+        modifier: modifier.clone(),
+    })
+    .unwrap();
+    assert_eq!(
+        one(&doc, &ExportOptions::default()).world.polygons.len(),
+        remeshed
+    );
+    assert_eq!(
+        summary(&doc, &ExportOptions::default()).triangles,
+        remeshed * 2
+    );
+    // Switched off, it goes out as the plain cube.
+    modifier.on = false;
+    doc.execute(Command::ChangeModifier {
+        id: cube,
+        index: 0,
+        modifier,
+    })
+    .unwrap();
+    assert_eq!(one(&doc, &ExportOptions::default()).world.polygons.len(), 6);
+}

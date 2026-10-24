@@ -26,6 +26,7 @@ pub mod parallel;
 pub mod parts;
 pub mod polygon;
 pub mod primitives;
+pub mod remesh;
 pub mod samples;
 pub mod selection;
 pub mod shading;

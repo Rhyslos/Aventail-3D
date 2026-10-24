@@ -16,6 +16,7 @@ pub mod document;
 mod history;
 mod memory;
 pub mod mirroring;
+pub mod modifier;
 pub mod object;
 pub mod snapshot;
 pub mod stack;
@@ -39,10 +40,16 @@ pub use mesh::edit::{
     Bend, BevelOptions, BevelShape, ExtrudeDirection, ExtrudeShape, Eye, GrooveShape, GrooveSides,
     Grouping, Slide, SlitLine,
 };
+pub use mesh::remesh::RemeshOptions;
 pub use mesh::uvs::{BUDGET_RANGE, SeamPreference, UvLayout};
 pub use mesh::{
     Bounds, Combine, EdgeKey, Element, ElementKind, ElementSelection, FaceId, Hardness, Mesh,
     Primitive, PrimitiveKind, VertexId,
+};
+pub use modifier::{
+    MAX_MODIFIERS, MODIFIERS_IN_BACKGROUND_FROM, Modifier, ModifierContext, ModifierFamily,
+    ModifierKind, ModifierRefusal, Purpose, SourceShape, StackDone, StackJob, StackResult,
+    StackState,
 };
 pub use object::{
     ApplyParts, Collision, LiveMirror, Material, Object, ObjectId, ObjectKind,
@@ -78,6 +85,8 @@ mod layer_tests;
 mod live_mirror_tests;
 #[cfg(test)]
 mod mirroring_tests;
+#[cfg(test)]
+mod modifier_tests;
 #[cfg(test)]
 mod pivot_tests;
 #[cfg(test)]

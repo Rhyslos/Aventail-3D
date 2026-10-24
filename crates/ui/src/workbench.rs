@@ -648,8 +648,9 @@ impl Workbench {
             .drawing
             .update(&self.document, editing, &self.hidden)
             .clone();
-        if self.drawing.cutting() {
-            // A heavy boolean is being worked out: look again shortly.
+        if self.drawing.busy() {
+            // A heavy boolean or modifier is being worked out: look again
+            // shortly.
             ui.ctx()
                 .request_repaint_after(std::time::Duration::from_millis(50));
         }
@@ -746,6 +747,9 @@ impl Workbench {
             Some(crate::layers::ModifierPick::AddLayer) => self.add_edit_layer(&mut requests),
             Some(crate::layers::ModifierPick::Boolean(kind)) => {
                 self.run_boolean(kind, &mut requests);
+            }
+            Some(crate::layers::ModifierPick::Modifier(command)) => {
+                self.run_modifier(command, &mut requests);
             }
             None => {}
         }
@@ -958,6 +962,8 @@ mod layer_tests;
 mod modelling;
 #[cfg(test)]
 mod modelling_tests;
+#[cfg(test)]
+mod modifier_tests;
 mod parts;
 mod pivots;
 #[cfg(test)]

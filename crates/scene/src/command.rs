@@ -9,6 +9,7 @@ use words::{text, tr, trf};
 
 mod booleans;
 mod curves;
+mod modifiers;
 
 /// A change to the scene. Every change goes through one, so it can be
 /// undone and redone.
@@ -295,6 +296,44 @@ pub enum Command {
         /// Its booleans.
         booleans: Vec<crate::Boolean>,
     },
+    /// Adds a modifier of `kind` at the end of each object's modifiers
+    /// (decision 0142), on and shown in the viewport, its settings brought
+    /// within limits. Refused, changing nothing, if any object can't take
+    /// it (a group, an instance, too many modifiers).
+    AddModifier {
+        /// The objects.
+        ids: Vec<ObjectId>,
+        /// The modifier and its settings.
+        kind: crate::ModifierKind,
+    },
+    /// Changes the modifier at `index` of an object's list (decision
+    /// 0142): its settings, its on/off switch or whether the viewport
+    /// shows it. It must stay the same kind.
+    ChangeModifier {
+        /// The object.
+        id: ObjectId,
+        /// Its place in the list, from the first.
+        index: usize,
+        /// The modifier as it should be.
+        modifier: crate::Modifier,
+    },
+    /// Takes the modifier at `index` off an object (decision 0142).
+    RemoveModifier {
+        /// The object.
+        id: ObjectId,
+        /// Its place in the list, from the first.
+        index: usize,
+    },
+    /// Moves an object's modifier from place `from` to place `to` in its
+    /// list (decision 0142): the order they are worked out in.
+    MoveModifier {
+        /// The object.
+        id: ObjectId,
+        /// Where it is.
+        from: usize,
+        /// Where it goes.
+        to: usize,
+    },
     /// Changes a curve's points (decision 0138): moves, deletes, makes
     /// smooth or sharp, closes or opens. A ready-made curve becomes points
     /// first. Refused for an object that isn't a curve, or a change that
@@ -358,6 +397,9 @@ pub enum Command {
 impl Command {
     /// A short description for the Edit menu, such as "Delete 3 objects".
     pub fn describe(&self, scene: &Scene) -> String {
+        if let Some(label) = modifiers::label(scene, self) {
+            return label;
+        }
         let count = |ids: &[ObjectId]| top_level(scene, ids).len();
         let objects = |n: usize| {
             if n == 1 {
@@ -479,6 +521,10 @@ impl Command {
                 trf!("Change {} settings", ready.name().to_lowercase())
             }
             Self::SetBooleans { .. } => tr("Change booleans").to_string(),
+            Self::AddModifier { .. }
+            | Self::ChangeModifier { .. }
+            | Self::RemoveModifier { .. }
+            | Self::MoveModifier { .. } => tr("Change modifiers").to_string(),
             Self::ApplyMirror(ids) => {
                 let n = ids
                     .iter()
@@ -974,6 +1020,7 @@ impl Run<'_> {
                 // deleted cross-sections give way to round ones (0138).
                 self.forget_cutters(&going)?;
                 self.forget_profiles(&going)?;
+                self.forget_modifier_sources(&going)?;
                 for id in top {
                     // Empty the object first, last child first, so every
                     // removal is of an object with nothing inside.
@@ -1381,6 +1428,7 @@ impl Run<'_> {
                 }
                 self.follow_copied_cutters(&copied)?;
                 self.follow_copied_profiles(&copied)?;
+                self.follow_copied_sources(&copied)?;
                 Ok(Some(copies))
             }
             Command::SplitOff { id, faces, anchors } => {
@@ -1428,6 +1476,26 @@ impl Run<'_> {
             } => self.add_boolean(*kept, cutters, *kind),
             Command::SetBooleans { id, booleans } => {
                 self.set_booleans(*id, booleans.clone())?;
+                Ok(None)
+            }
+            Command::AddModifier { ids, kind } => {
+                self.add_modifier(ids, kind)?;
+                Ok(None)
+            }
+            Command::ChangeModifier {
+                id,
+                index,
+                modifier,
+            } => {
+                self.change_modifier(*id, *index, modifier)?;
+                Ok(None)
+            }
+            Command::RemoveModifier { id, index } => {
+                self.remove_modifier(*id, *index)?;
+                Ok(None)
+            }
+            Command::MoveModifier { id, from, to } => {
+                self.move_modifier(*id, *from, *to)?;
                 Ok(None)
             }
             Command::EditCurve { id, edit } => {
@@ -1566,10 +1634,11 @@ impl Run<'_> {
                     if !object.kind.has_shape() {
                         continue;
                     }
-                    // The shape as shown: its edits, cut by its booleans,
-                    // and the mirrored copies welded on.
+                    // The shape as shown before its modifiers (which stay
+                    // live, decision 0142): its edits, cut by its
+                    // booleans, and the mirrored copies welded on.
                     let cut = self.cut_result(id).is_some();
-                    let Some(shown) = self.scene.shown_shape(id) else {
+                    let Some(shown) = self.scene.unmodified_shape(id) else {
                         continue;
                     };
                     let object = self.scene.object(id).ok_or(SceneError::UnknownObject(id))?;
@@ -1597,6 +1666,10 @@ impl Run<'_> {
             Command::MakeEditable(ids) => {
                 for id in existing(self.scene, ids)? {
                     if !self.scene.can_make_editable(id) {
+                        continue;
+                    }
+                    if self.bakes_modifiers(id) {
+                        self.bake_with_modifiers(id)?;
                         continue;
                     }
                     let Some(shape) = self.scene.evaluated(id) else {
@@ -1675,8 +1748,10 @@ impl Run<'_> {
             };
             copy.kind = ObjectKind::Instance(source);
             copy.stack = crate::stack::Stack::default();
-            // An instance shows its original's cut shape (decision 0135).
+            // An instance shows its original's cut shape (decision 0135),
+            // with its modifiers (decision 0142).
             copy.booleans.clear();
+            copy.modifiers.clear();
         }
         let new = self.insert(copy, place)?;
         copied.push((id, new));
@@ -1695,6 +1770,41 @@ impl Run<'_> {
         Ok(new)
     }
 
+    /// Bakes `id`'s whole shape as an export gets it (decision 0142): its
+    /// edits, booleans, live mirror and the modifiers that are on, into a
+    /// plain mesh. The booleans that worked, the mirror and the modifiers
+    /// that worked end; modifiers switched off, or that couldn't do their
+    /// work, stay.
+    fn bake_with_modifiers(&mut self, id: ObjectId) -> Result<(), SceneError> {
+        let cut = self.cut_result(id).is_some();
+        let Some(result) = self.scene.final_result(id, crate::Purpose::Export) else {
+            return Ok(());
+        };
+        let object = self.scene.object(id).ok_or(SceneError::UnknownObject(id))?;
+        let before = object.kind.clone();
+        let mirror = object.mirror;
+        let layers = object.stack.layers().to_vec();
+        for (index, layer) in layers.into_iter().enumerate().rev() {
+            self.edit(Edit::RemoveLayer { id, index, layer })?;
+        }
+        self.edit(Edit::SetKind {
+            id,
+            before,
+            after: ObjectKind::Mesh(result.mesh),
+        })?;
+        if cut {
+            self.end_booleans(id)?;
+        }
+        if mirror.is_some() {
+            self.edit(Edit::SetMirror {
+                id,
+                before: mirror,
+                after: None,
+            })?;
+        }
+        self.end_modifiers(id, &result.problems)
+    }
+
     /// Gives each of `ids` (instances) its own copy of its original's
     /// final shape, as a plain mesh.
     fn bake_instances(&mut self, ids: &[ObjectId]) -> Result<(), SceneError> {
@@ -1702,16 +1812,27 @@ impl Run<'_> {
             let Some(shape) = self.scene.evaluated(*id) else {
                 continue;
             };
-            // An instance of a cut shape keeps the cut (decision 0135).
-            let shape = match self.scene.cut_shape(*id) {
-                Some(Ok(cut)) => cut,
-                _ => shape.mesh,
+            // An instance of a cut shape keeps the cut (decision 0135); of
+            // a shape with modifiers, its whole final shape, its own
+            // mirror included (decision 0142).
+            let with_modifiers = self.bakes_modifiers(*id);
+            let shape = if with_modifiers {
+                match self.scene.exported_shape(*id) {
+                    Some(mesh) => mesh,
+                    None => shape.mesh,
+                }
+            } else {
+                match self.scene.cut_shape(*id) {
+                    Some(Ok(cut)) => cut,
+                    _ => shape.mesh,
+                }
             };
             let object = self
                 .scene
                 .object(*id)
                 .ok_or(SceneError::UnknownObject(*id))?;
             let before = object.kind.clone();
+            let mirror = object.mirror;
             let own_materials = object.materials.clone();
             // An instance shows its original's materials; its own copy
             // keeps them (decision 0074).
@@ -1728,6 +1849,13 @@ impl Run<'_> {
                 before,
                 after: ObjectKind::Mesh(shape),
             })?;
+            if with_modifiers && mirror.is_some() {
+                self.edit(Edit::SetMirror {
+                    id: *id,
+                    before: mirror,
+                    after: None,
+                })?;
+            }
             if own_materials != source_materials {
                 self.edit(Edit::SetMaterials {
                     id: *id,
@@ -1747,6 +1875,7 @@ impl Run<'_> {
         // (decision 0135).
         self.keep_usable_cutters(id)?;
         self.keep_usable_profile(id)?;
+        self.keep_usable_modifiers(id)?;
         Ok(id)
     }
 

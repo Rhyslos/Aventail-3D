@@ -24,7 +24,9 @@ impl Workbench {
                 continue;
             }
             let info = command.info();
-            let place = if crate::booleans::kind_of(command).is_some() {
+            let place = if crate::booleans::kind_of(command).is_some()
+                || crate::modifiers::kind_of(command).is_some()
+            {
                 tr("Mesh")
             } else if command.modes().contains(&Mode::Uv) {
                 tr("UV")

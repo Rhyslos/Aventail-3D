@@ -77,7 +77,7 @@ fn named(doc: &Document, name: &str) -> ObjectId {
 fn improved_bevels_survive_a_round_trip() {
     let doc = rich_document_v42();
     let bytes = to_bytes(&doc).unwrap();
-    assert_eq!(bytes[4..8], 42u32.to_le_bytes());
+    assert_eq!(bytes[4..8], FORMAT_VERSION.to_le_bytes());
     let back = from_bytes(&bytes).unwrap();
     assert_same(&doc, &back);
     assert_eq!(bevel_options(&doc), bevel_options(&back));

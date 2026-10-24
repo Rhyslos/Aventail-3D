@@ -97,6 +97,7 @@ A flat view from the right: no perspective, true sizes
 A flat view looking straight down: no perspective, true sizes
 A gear with 12 teeth and a hole for the axle
 A group has no shape of its own, so no edit layers.
+A group has no shape of its own: select shapes
 A group has no shape: select shapes only
 A hard edge turns the shading sharply, and a normal map can only hold that turn where the UVs are split too: otherwise the bake shows a dark or light line along it. Fix marks them as seams and unwraps the pieces around them.
 A heavy shape is checked in the background, so you can keep working. The numbers below are from before the last change until it finishes.
@@ -117,6 +118,7 @@ A right-click in the viewport opens four short lists around the mouse: what to s
 A ring (doughnut) 1 m across, lying on the ground
 A ring instead of a loop, with a double-click
 A round curve 1 m across, lying on the ground
+A shape can have at most 32 modifiers
 A shape can have at most 64 cutters
 A shape can't cut itself
 A solid flight of 6 stairs, 1 m wide and 1 m high
@@ -129,6 +131,7 @@ Accent colour
 Adaptive
 Add a heavy test shape
 Add a material to the list, to assign to polygons
+Add a modifier to the selected shapes: a change worked out live, which you can switch off, reorder or remove in the Attributes panel
 Add a point to a curve, keeping its shape
 Add a row
 Add an empty edit layer on top of each selected object. The edits you make from now on go into it, so you can switch them all off to compare, or delete them in one go. The Edit layers panel lists the layers.
@@ -145,6 +148,7 @@ Add to the selection, with a click or drag (the standard keys)
 Add to the shape: extrude, inset, bevel, groove, bridge, fill a hole
 Add {}
 Add {} objects
+Add {} to {} objects
 Adds a bumpy ball of 3 million polygons, like a detailed model you might import, to see how your computer copes with heavy shapes. Undo takes it away again.
 Align
 Align cancelled: nothing moved.
@@ -175,6 +179,7 @@ Alt + mouse works in every scheme
 Alt Gr
 An empty object to hold and organise other objects
 An instance shows its original's shape and edits: select the original to see its layers.
+An instance shows its original's shape, modifiers and all: select the original, or bake the instance into a shape first
 An instance uses its original's materials
 An instance uses its original's materials: change them on the original.
 An object can have at most {} materials
@@ -291,6 +296,7 @@ Change booleans
 Change how edits keep UVs
 Change it
 Change materials
+Change modifiers
 Change the folder or switch it off under 
 Change the game project folder
 Change the layout snapshots
@@ -317,6 +323,7 @@ Choose a game project folder in the Export window first; this then exports strai
 Choose folder…
 Choose which mouse buttons and keys move the view
 Circle
+Clean up
 Clear
 Clear seam preference
 Clear seams
@@ -479,6 +486,7 @@ Dark tiles; the highlighted one gets an accent bar along the edge facing the mid
 Decrease
 Default
 Default camera
+Deform
 Del
 Delete
 Delete curve points
@@ -521,6 +529,7 @@ Double-click / Alt + double-click
 Double-click an edge for its loop; Alt + double-click for its ring
 Double-click it (Points mode)
 Double-click its line (Points mode)
+Down
 Drag
 Drag a point (or a polygon, in the Polygons mode) onto a point; a selected one brings the whole selection.
 Drag anywhere in the viewport. Hold Shift for fine steps.
@@ -696,8 +705,10 @@ Game project
 Game project folder
 Game project folder set. It isn't inside a Godot, Unity, Unreal Engine or Solis project, so exports go there with {}'s settings. Every save now exports there too.
 Game project folder set: {} project {}. Every save now exports there too.
+Game ready
 Gear
 General
+Generate
 German (QWERTZ)
 Getting the workbench ready…
 Give
@@ -767,6 +778,7 @@ Hide the selected objects (or the selected polygons while editing)
 Hide the selection
 Hide what is selected
 Hide {}
+Hide {} in the viewport
 Hide: select the objects to hide first.
 Hide: select the polygons (or their points or edges) to hide first.
 High contrast
@@ -785,6 +797,7 @@ How deep it is (along Y)
 How each piece is laid flat
 How evenly the UVs lie: green where even, yellow where 1.5 times off, red where twice off (stretched one way, or too big or small against the rest of the object), purple where a polygon has no room on the texture
 How far a quad's corners may be from square for its piece to count as a strip (25° standard). Raise it for strips round tight curves; lower it to straighten only truly square ones.
+How far apart the grid the shape is rebuilt on is: about the size of the new polygons. Smaller keeps more detail and makes more polygons.
 How far from the middle
 How far it bends: 90° for a corner, 360° for a whole ring
 How far it was pushed (in the object's own size). Change it and the shape follows.
@@ -1035,6 +1048,9 @@ Model (Edit pivot)
 Model mode
 Model one half: each selected object gets a mirror of its own, a copy of its shape on the other side of its centre (its pivot) that follows every edit, joined to it at the middle. The mirror moves and turns with the object. The arrow beside it chooses X, Y or Z and moves the mirror.
 Modes
+Modifier on
+Modifiers
+Modifiers are worked out first to last, after the edits, booleans and mirror. Bake into shape (Ctrl + E) makes those that are on part of the shape for good.
 More copies let you go further back after a crash. A heavy scene takes tens of MB per copy.
 More pieces where the curve bends, one along a straight stretch
 More shapes
@@ -1062,8 +1078,10 @@ Move the selected polygons into a new object of their own, in the same place (Po
 Move the selection: drag the gizmo's arrows, squares or centre
 Move up
 Move {}
+Move {} down
 Move {} pivots
 Move {} points
+Move {} up
 Move, rotate and scale at once: all three gizmos
 Move, turn, scale or edit a cutter and the cut follows. Bake into shape (Ctrl + E) makes it part of the shape for good.
 Moves snap to:
@@ -1103,6 +1121,7 @@ None chosen
 Norwegian
 Not inside a Godot, Unity, Unreal Engine or Solis project: exported with {}'s settings (Made for picks which).
 Not used.
+Not worked out: {}.
 Nothing found that would spoil a bake.
 Nothing found. Try another word.
 Nothing is hidden.
@@ -1133,6 +1152,7 @@ Object to world origin
 Objects
 Off
 Off as standard: right-clicks in the viewport then do nothing
+Off, the viewport skips this modifier (handy while it is slow); exports and Bake into shape still use it
 Off: only the button turns snapping on and off.
 Off: the shape is made as if this edit wasn't there
 Off: the shape is made as if this edit wasn't there. Nothing is lost.
@@ -1281,6 +1301,7 @@ Quit
 Radial menu
 Radius
 Ready
+Rebuild the shape as an even surface of square polygons, whatever its polygons were: for sculpted, joined or boolean-cut shapes. It needs a closed solid.
 Recover unsaved work?
 Rectangle
 Red
@@ -1288,8 +1309,10 @@ Redo
 Redo: {}
 Redone: {}.
 Relax
+Relax passes evening out the new surface without shrinking it: 0 for none
 Relax the UVs of
 Relaxing
+Remesh
 Remove
 Remove a snapshot
 Remove collision
@@ -1298,6 +1321,7 @@ Remove last
 Remove the last material in the list, if no polygon uses it
 Remove this row
 Remove this snapshot (the UVs don't change)
+Remove {}
 Rename
 Rename a snapshot
 Rename layer
@@ -1408,6 +1432,7 @@ Select objects with UVs to update it from.
 Select one object to see its settings.
 Select one or more objects first
 Select one or more objects first.
+Select one or more shapes first
 Select one shape to copy its settings
 Select only visible
 Select pieces
@@ -1480,6 +1505,7 @@ Show everything
 Show everything hidden
 Show four views
 Show hard edges
+Show in viewport
 Show keys around the ring
 Show normals
 Show only the active view (middle click)
@@ -1494,6 +1520,7 @@ Show this edit's settings in the Attributes panel, to change them
 Show which way each polygon faces, as short lines
 Show which way each polygon of the selected objects faces, as a short line from its middle. Lines pointing into a shape show flipped polygons.
 Show {}
+Show {} in the viewport
 Showing {} hidden object{} again.
 Showing {} hidden object{} and {} polygon{} again.
 Showing {} hidden polygon{} again.
@@ -1617,7 +1644,10 @@ Switch layer off
 Switch layer on
 Switch off
 Switch on
+Switch this modifier off to see the shape without it; it stays, with its settings
 Switch to orthographic when clicking the dice
+Switch {} off
+Switch {} on
 Symmetry
 Symmetry off: the mirrored side is gone (Ctrl + Z brings it back).
 Symmetry offset {}
@@ -1644,12 +1674,14 @@ Take the snapshot “{}”
 Take this boolean away: the shape is whole again, and its cutters are ordinary shapes
 Take this edit out. The edits after it are made again without it (Ctrl + Z brings it back).
 Take this edit out; the edits after it are made again without it
+Take this modifier away
 Tap E to open
 Teeth
 Ten times finer
 Texel density
 Texture
 Texture size
+That isn't a modifier
 The 3D view can't be shown: {}.
 The app closed without saving your work on {}. Backup copies were kept:
 The app's
@@ -1836,6 +1868,7 @@ Unwrap, but move the UVs only across (U): every point keeps its height in the te
 Unwrap, but move the UVs only up and down (V): every point keeps its place across the texture
 Unwrap, relax, straighten, pack, texel density and trim rows
 Unwrapping
+Up
 Up axis
 Update
 Update a snapshot
@@ -1848,6 +1881,7 @@ View dice
 Viewport
 Viewport display
 Visible
+Voxel size
 Warnings
 Weld
 Weld curve ends
@@ -1915,6 +1949,8 @@ Work on points (vertices)
 Work on polygons (faces)
 Work on whole objects
 Work on whole objects' pivots: the gizmo moves and turns the pivot, not the shape
+Work this modifier out after the one below it
+Work this modifier out before the one above it
 Works on objects in the Model mode: select some first
 World
 World axes
@@ -1956,6 +1992,7 @@ a groove's stretch isn't a real number, or is out of range
 a groove's width or depth isn't a real number
 a group has no shape to edit
 a group has no shape: pick shapes
+a group has no shape: select shapes
 a hard edge joins points {} and {}, which aren't both in the mesh
 a layer has changed
 a layer no longer exists
@@ -1968,11 +2005,16 @@ a mirror is stored for an object without a shape
 a mirror is stored for object {}, which isn't there
 a mirror's middle isn't a real number
 a mirrored edit mirrors across no axis
+a modifier can't be used: {}
+a modifier can't change into another kind
+a modifier reads a shape that isn't there, is the shape itself, or already uses it
 a name can't be empty
 a piece's texel density isn't a real number above 0
+a point of the shape isn't at a real position
 a point slides towards itself
 a point's position isn't a number
 a saved UV layout holds a UV that isn't a real number
+a shape can have at most 32 modifiers
 a shape can have at most 64 cutters
 a shape can't cut itself
 a shape's place is stored for object {}, which isn't there
@@ -2015,6 +2057,8 @@ an object's materials have changed
 an object's mesh layers are listed twice
 an object's mirror has changed
 an object's mirror is stored twice
+an object's modifiers are listed twice
+an object's modifiers have changed
 an object's name has changed
 an object's place has changed
 an object's place no longer exists
@@ -2091,6 +2135,7 @@ it was saved by a newer version of the app (file format {}; this version reads u
 it wasn't saved, because the saved copy wouldn't open again ({}). Your previous save is untouched; please report this so it can be fixed
 it's an instance: edit its original, or make it editable to give it its own shape
 it's an instance: give its original the boolean, or bake it into a shape first
+it's an instance: give its original the modifier, or bake it into a shape first
 its angle isn't a real number
 its bent extrude holds a number that isn't real
 its bevel {} isn't a real number
@@ -2105,6 +2150,7 @@ its loop cut's position isn't a real number
 its mending limits are out of range
 its mesh is damaged ({})
 its mesh layer "{}" is damaged ({})
+its modifiers name an object that isn't there
 its object settings name an object that isn't there
 its recorded box isn't a real box
 its scene can't be read ({})
@@ -2132,6 +2178,7 @@ materials are stored for object {}, which isn't there
 mesh layers are stored for object {}, which isn't there
 metres
 minute
+modifier
 names are stored for an edit without anchors
 names are stored for edit {}, which isn't there
 names are stored for object {}, which isn't there
@@ -2142,6 +2189,7 @@ no limit
 no partner called {}
 none
 nothing
+nothing is left: the shape is thinner than a voxel. Make Voxel size smaller
 object
 object "{}": {}
 object {} has more than {} materials
@@ -2206,6 +2254,7 @@ switch both layers on before merging them
 that edit no longer exists
 that element isn't in the mesh
 that layer no longer exists
+that modifier isn't there
 that works on the two ends of open curves
 the attribute holds values for each {}, not each {}
 the attribute holds {} values, not {}
@@ -2226,6 +2275,7 @@ the in handle of point {} of {}
 the layer is already at the bottom
 the layer is already at the top
 the mesh is too large
+the new surface would have too many polygons
 the out handle of point {} of {}
 the project's game project folder has changed
 the project's layout snapshots have changed
@@ -2233,6 +2283,7 @@ the project's mending settings have changed
 the project's texture settings have changed
 the project's trim sheet has changed
 the project's units have changed
+the result would have more than {} polygons
 the result would have too many polygons
 the saved file didn't read back the same; the disk may be failing
 the scene can't be read ({})
@@ -2241,10 +2292,13 @@ the scene couldn't be compressed ({})
 the scene couldn't be encoded ({})
 the selection's UVs
 the shape
+the shape has no polygons
 the shape isn't a closed solid: it has holes in its surface, or edges shared by more than two polygons
+the shape isn't closed: it has holes in its surface, or edges shared by more than two polygons, so it has no inside
 the texture square
 the value isn't a real number
 the viewport image could not be created
+the voxels are too small for this shape: it would take {} million of them, and the most is 2 million. Make Voxel size {:.2} cm or more
 the whole curve lies on the axis it spins round
 the window has no GPU device
 the windowing system stopped unexpectedly

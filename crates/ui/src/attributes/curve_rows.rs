@@ -21,20 +21,20 @@ const MAX_LENGTH: f32 = 100_000.0;
 
 /// What a row did this frame.
 #[derive(Default)]
-struct Rows {
+pub(super) struct Rows {
     /// Something changed.
-    changed: bool,
+    pub(super) changed: bool,
     /// A new drag, typing or click began: a new undo step.
-    began: bool,
+    pub(super) began: bool,
 }
 
 impl Rows {
-    fn take(&mut self, touched: stepper::Touched) {
+    pub(super) fn take(&mut self, touched: stepper::Touched) {
         self.changed |= touched.changed;
         self.began |= touched.began;
     }
 
-    fn toggle(&mut self, ui: &mut Ui, value: &mut bool, name: &str) {
+    pub(super) fn toggle(&mut self, ui: &mut Ui, value: &mut bool, name: &str) {
         let response = ui.checkbox(value, "");
         response.widget_info(|| {
             egui::WidgetInfo::selected(egui::WidgetType::Checkbox, true, *value, name)

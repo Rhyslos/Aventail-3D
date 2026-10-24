@@ -54,6 +54,9 @@ pub enum CommandId {
     Subtract,
     /// Keep only where the first selected shape and the others overlap.
     Intersect,
+    // ------------------------------- modifiers (the modifiers palette)
+    /// Add a remesh modifier to the selected shapes (decision 0142).
+    Remesh,
     // ------------------------------------------- pivots (the Object mode)
     /// Move the selected objects' pivots to the middle of their shapes.
     PivotToCentre,
@@ -319,6 +322,12 @@ impl CommandId {
                 ),
                 None,
             ),
+            // A modifier's name and description come from the scene's
+            // list of kinds (decision 0142).
+            Self::Remesh => {
+                let kind = scene::ModifierKind::Remesh(Default::default());
+                (kind.name(), Icon::Remesh, None, kind.description(), None)
+            }
             Self::PivotToCentre => (
                 tr("Pivot to centre"),
                 Icon::PivotToCentre,
@@ -702,7 +711,8 @@ impl CommandId {
             // Booleans work on whole objects whatever the mode; they live
             // in the modifiers palette and the Mesh menu, not the tool
             // menu (decision 0135).
-            Self::Union | Self::Subtract | Self::Intersect => {
+            // So do modifiers (decision 0142).
+            Self::Union | Self::Subtract | Self::Intersect | Self::Remesh => {
                 &[Model, Object, Points, Edges, Polygons]
             }
             Self::Extrude => &[Points, Edges, Polygons],
@@ -935,14 +945,18 @@ pub fn group_menu(group: CommandId, ring: &[Slot]) -> Vec<Slot> {
         .collect()
 }
 
-/// The commands with no place on the tool menu: the booleans, found in
-/// the modifiers palette, the Mesh menu and command search (decision
-/// 0135).
-pub const OFF_THE_RING: [CommandId; 3] =
-    [CommandId::Union, CommandId::Subtract, CommandId::Intersect];
+/// The commands with no place on the tool menu: the booleans (decision
+/// 0135) and the modifiers (decision 0142), found in the modifiers
+/// palette, the Mesh menu and command search.
+pub const OFF_THE_RING: [CommandId; 4] = [
+    CommandId::Union,
+    CommandId::Subtract,
+    CommandId::Intersect,
+    CommandId::Remesh,
+];
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 60] = [
+pub const ALL: [CommandId; 61] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -961,6 +975,7 @@ pub const ALL: [CommandId; 60] = [
     CommandId::Union,
     CommandId::Subtract,
     CommandId::Intersect,
+    CommandId::Remesh,
     CommandId::PivotToCentre,
     CommandId::PivotToOrigin,
     CommandId::PivotToObject,
