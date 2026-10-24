@@ -81,13 +81,15 @@ pub(super) fn live_bevel_rows(
     label(
         ui,
         tr("Profile"),
-        tr("The bevel's curve: 1 round, 0 a straight slope, -1 hollow (curving inward)"),
+        tr(
+            "The bevel's curve: 100% round, 0% a straight slope, -100% hollow (curving inward, \
+             a cove)",
+        ),
     );
-    rows.take(stepper::number(
+    rows.take(stepper::percent(
         ui,
         &mut options.profile,
         (-1.0, 1.0),
-        (0.1, 2),
         tr("Profile"),
     ));
     ui.end_row();

@@ -65,7 +65,7 @@ Weighted normals has no key of its own.
 
 - [Modifiers: switching off, reordering, Show in viewport, baking](modifiers.md)
 - [Hard and soft edges](hard-and-soft-edges.md) and the object's Smoothing
-- [Bevel](bevel.md), which makes the edges it shades
+- [Bevel](bevel.md), which makes the edges it shades, and [Live bevel](live-bevel.md), the bevel as a modifier: put it before Weighted normals
 - [Export and import](export-and-import.md) and [Check for baking](bake-check.md)
 - [Concepts: normals, weighted normals, custom normals](concepts.md#shading-and-normals)
 - Why it works this way: [decision 0148](../decisions/0148-weighted-normals.md)

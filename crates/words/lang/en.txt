@@ -1824,7 +1824,7 @@ The app closed without saving your work on {}. Backup copies were kept:
 The app's
 The app's own folder, so your project folders stay tidy. Copies are deleted when the app closes normally.
 The bake sees these from behind: the normal map comes out inverted or black there. Fix turns them the right way round (Mesh → Fix normals).
-The bevel's curve: 1 round, 0 a straight slope, -1 hollow (curving inward)
+The bevel's curve: 100% round, 0% a straight slope, -100% hollow (curving inward, a cove)
 The collision shape Godot makes for it when you export for Godot: what the player bumps into
 The corners the mesh is made of
 The cross-section of: {}

@@ -130,6 +130,7 @@ On an object stretched in the Model mode (scaled more along one axis than anothe
 
 ## Related
 
+- [Live bevel](live-bevel.md): the same bevel as a modifier, worked out again as the shape changes, on every edge sharper than an angle, the hard ones or those you mark.
 - [Extrude and inset](extrude-and-inset.md): the other tools for building shape.
 - [Selecting](selecting.md): loops and rings for picking edges quickly.
 - [Concepts](concepts.md): [bevel and chamfer](concepts.md#mesh-basics), [hard edges and normals](concepts.md#shading-and-normals).
