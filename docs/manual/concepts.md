@@ -137,6 +137,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Shell (thickness)** — Giving a single surface a real thickness: a copy of it behind (or in front), facing the other way, joined to it along its open [borders](#mesh-basics) by a strip of polygons, the **rim**. A plane becomes a plate, a bowl's surface its wall. (Blender calls it Solidify.) See [Shell](shell.md).
 
+**Struts** — Bars made from a shape's [edges](#mesh-basics): each edge becomes a closed bar of its own (a **strut**) with a set thickness and number of sides, and each point a small closed block (a **joint**) hiding the bars' ends. For frames, cages and grilles. Not the same as the viewport's **Wireframe** look, which only draws the edges as lines and exports nothing. See [Struts](struts.md).
+
 **Deformer** — A kind of [modifier](#objects-and-scenes) that only moves a shape's points: its polygons, UVs, seams and materials stay as they were, so it is textured just as before, only bent. Each deformer works in a space of its own (a box, or an axis through a centre) over a range, and what lies past the range carries on unbent. The [lattice](lattice.md) is the first; [Bend along curve](bend-along-curve.md), [Shrinkwrap](shrinkwrap.md), [Displace](displace.md) and [Bend, twist or taper](bend-twist-taper.md) follow.
 
 **Bend, twist and taper** — Three classic [deformers](#objects-and-scenes) that change a shape along one axis: a **bend** curls it into an arc, a **twist** turns each slice of it round the axis, a **taper** makes each slice narrower or wider. Each works away from a **centre** (usually the pivot), between **limits** along the axis; past the limits the shape carries on unchanged. See [Bend, twist and taper](bend-twist-taper.md).

@@ -43,7 +43,7 @@ With [symmetry](symmetry.md) on, the mirrors of the selected points weld too.
 3. The viewport shows the shape welded. Change the settings in the Attributes panel under **Modifiers → Weld by distance**.
 4. [Export](export-and-import.md) as usual, or **Bake into shape** (**Ctrl + E**) to make it permanent.
 
-**Where it goes in the list.** A new Weld by distance is put **before** any [Decimate](decimate.md), [Quadify](quadify.md), [Live bevel](live-bevel.md), [Subdivide](subdivide.md), [Weighted normals](weighted-normals.md) or [Shell](shell.md) the shape already has: each of those reads how polygons join, and a crack spoils them (a Shell would grow a rim along it). Anything else, it's added after. Move it with **Up** and **Down**.
+**Where it goes in the list.** A new Weld by distance is put **before** any [Decimate](decimate.md), [Quadify](quadify.md), [Live bevel](live-bevel.md), [Subdivide](subdivide.md), [Weighted normals](weighted-normals.md), [Shell](shell.md) or [Struts](struts.md) the shape already has: each of those reads how polygons join, and a crack spoils them (a Shell would grow a rim along it; Struts would make two bars along it). Anything else, it's added after. Move it with **Up** and **Down**.
 
 ## How it works
 
