@@ -201,6 +201,8 @@ pub(crate) enum KindV43 {
     },
     /// Live bevel (version 50).
     LiveBevel(super::v50::LiveBevelV50),
+    /// Quadify (version 51).
+    Quadify(super::v51::QuadifyV51),
 }
 
 /// Weighted normals' weighting as stored.
@@ -293,6 +295,7 @@ impl KindV43 {
                 keep_hard_edges: o.keep_hard_edges,
             },
             ModifierKind::LiveBevel(o) => Self::LiveBevel(super::v50::LiveBevelV50::of(o)),
+            ModifierKind::Quadify(o) => Self::Quadify(super::v51::QuadifyV51::of(o)),
         }
     }
 
@@ -421,6 +424,7 @@ impl KindV43 {
                 keep_hard_edges: *keep_hard_edges,
             }),
             Self::LiveBevel(o) => ModifierKind::LiveBevel(o.options()),
+            Self::Quadify(o) => ModifierKind::Quadify(o.options()),
         }
     }
 }

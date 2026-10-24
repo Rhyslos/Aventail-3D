@@ -125,6 +125,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Decimation (polygon reduction)** — Making a shape lighter by taking polygons away where they matter least, flat areas first, so it looks nearly the same with far fewer [triangles](#mesh-basics): to meet a game's budget, or to make [levels of detail](#the-game-asset-pipeline). The points that stay are the shape's own. See [Decimate](decimate.md).
 
+**Quadify** — Joining pairs of neighbouring [triangles](#mesh-basics) back into quads by taking away the edge between them, the squarest and flattest pairs first: a triangulated shape (an import, a decimated or boolean-cut shape) becomes easy to loop cut and smooth again. It doesn't change the triangle count a game sees: a quad is two triangles to the engine. See [Quadify](quadify.md).
+
 **Scatter** — Spreading copies of one or more shapes over a surface (on its points, on its polygons' centres, or at random), each standing on it by its [pivot](#objects-and-scenes), with random turns and sizes if you like: rocks on the ground, rivets on a plate. The shapes scattered stay objects of their own, and the copies follow them. See [Scatter](scatter.md).
 
 **Deformer** — A kind of [modifier](#objects-and-scenes) that only moves a shape's points: its polygons, UVs, seams and materials stay as they were, so it is textured just as before, only bent. Each deformer works in a space of its own (a box, or an axis through a centre) over a range, and what lies past the range carries on unbent. The [lattice](lattice.md) is the first; [Bend along curve](bend-along-curve.md) and [Shrinkwrap](shrinkwrap.md) follow, and bend, twist and taper come later.

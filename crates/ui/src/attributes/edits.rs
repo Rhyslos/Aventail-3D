@@ -274,6 +274,10 @@ impl AttributesPanel {
                         }
                         ui.end_row();
                     }
+                    let quadify =
+                        super::quadify_rows::last_edit_rows(ui, &mut edited, &mut self.quadify);
+                    self.gesture += u64::from(quadify.began);
+                    changed |= quadify.changed;
                     if let Some(mut bridge) = edited.bridge {
                         let touched = bridge_rows(ui, &mut bridge);
                         if touched.began {

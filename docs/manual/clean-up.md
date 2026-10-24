@@ -10,6 +10,7 @@ Modelling leaves bits to tidy: an edge you no longer need, a corner of points in
 - **Dissolve:** remove an extra edge or point without leaving a hole. The polygons around it merge into one. Use it to simplify a flat area, or to take back a cut you made too many times.
 - **Fill hole:** close an opening with one polygon, like a lid.
 - **Flip normals, Fix normals, Select flipped:** find and turn polygons that face the wrong way. A [flipped normal](concepts.md#shading-and-normals) shades wrongly and can vanish in a game engine.
+- **Triangles everywhere?** **Mesh → Clean up → Quadify now** joins pairs of triangles back into quads; see [Quadify](quadify.md).
 - **Select same facing:** pick every polygon facing roughly the same way, like the whole top of a shape or every wall facing one way.
 
 ## How to use them
@@ -89,5 +90,6 @@ None: each command applies at once and is one undo step (Ctrl + Z).
 ## Related
 
 - [Connect, Bridge and Weld](connect-bridge-weld.md): Bridge closes holes too, with a band of polygons.
+- [Quadify](quadify.md): triangles joined back into quads (Mesh → Clean up → Quadify now).
 - [Selecting](selecting.md): loops select a hole's whole rim.
 - [Concepts](concepts.md): [borders](concepts.md#mesh-basics), [dissolve](concepts.md#mesh-basics), [flipped normals](concepts.md#shading-and-normals).

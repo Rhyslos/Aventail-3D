@@ -465,6 +465,20 @@ pub enum Operation {
         /// Where they were, to find them again (decision 0032).
         anchors: Option<Anchors>,
     },
+    /// Joins pairs of triangles into quads, the squarest first (decision
+    /// 0150): among these polygons, or the whole shape when there are
+    /// none.
+    Quadify {
+        /// The polygons; none for the whole shape.
+        faces: Vec<FaceId>,
+        /// Its settings, which can still be changed.
+        options: mesh::quadify::QuadifyOptions,
+        /// How the object was shaded when it was made (its Smoothing):
+        /// the hard edges *Keep hard edges* keeps are those it showed.
+        hardness: mesh::Hardness,
+        /// Where the polygons were, to find them again (decision 0032).
+        anchors: Option<Anchors>,
+    },
     /// Slides points along their edges towards a neighbour each
     /// (decision 0055).
     SlidePoints {
@@ -592,6 +606,8 @@ pub struct EditSettings {
     /// A groove's width, depth and sides (decision 0086; its depth is
     /// also `distance`); none for other edits.
     pub groove: Option<edit::GrooveShape>,
+    /// Quadify's settings (decision 0150); none for other edits.
+    pub quadify: Option<mesh::quadify::QuadifyOptions>,
 }
 
 impl EditSettings {
@@ -821,6 +837,8 @@ impl Operation {
             Self::SlidePoints { slides, .. } => {
                 counted(text!("Slide"), slides.len(), text!("point"))
             }
+            Self::Quadify { faces, .. } if faces.is_empty() => tr("Quadify").to_string(),
+            Self::Quadify { faces, .. } => counted(text!("Quadify"), faces.len(), text!("polygon")),
             Self::Bridge { edges, .. } => counted(text!("Bridge"), edges.len(), text!("edge")),
             Self::Weld { points, target, .. } => {
                 let n = points.len() + usize::from(target.is_some_and(|t| !points.contains(&t)));
@@ -925,6 +943,10 @@ impl Operation {
             }),
             Self::HardEdgesByAngle { angle } => Some(EditSettings {
                 angle: Some(*angle),
+                ..EditSettings::default()
+            }),
+            Self::Quadify { options, .. } => Some(EditSettings {
+                quadify: Some(*options),
                 ..EditSettings::default()
             }),
             Self::Connect { .. }
@@ -1101,6 +1123,11 @@ impl Operation {
             Self::HardEdgesByAngle { angle } => {
                 if let Some(a) = settings.angle {
                     *angle = a.clamp(0.0, mesh::hardness::MAX_ANGLE);
+                }
+            }
+            Self::Quadify { options, .. } => {
+                if let Some(o) = settings.quadify {
+                    *options = o.clamped();
                 }
             }
             Self::Weld { .. }
@@ -1289,6 +1316,13 @@ impl Operation {
             Self::PlaceShape { matrix } => matrix.is_finite() && matrix.determinant().abs() > 1e-12,
             Self::SlidePoints { slides, .. } => slides.iter().all(|s| s.amount.is_finite()),
             Self::HardEdgesByAngle { angle } => angle.is_finite(),
+            Self::Quadify {
+                options, hardness, ..
+            } => {
+                options.max_angle.is_finite()
+                    && options.max_distortion.is_finite()
+                    && crate::object::hardness_is_valid(*hardness)
+            }
             Self::ExtrudeBent { distance, bend, .. } => {
                 distance.is_finite()
                     && [bend.angle, bend.direction, bend.radius, bend.rise]
@@ -1344,6 +1378,7 @@ impl Operation {
             | Self::SetHardEdges { anchors, .. }
             | Self::SetCreases { anchors, .. }
             | Self::SetBevelWeights { anchors, .. }
+            | Self::Quadify { anchors, .. }
             | Self::SetSeams { anchors, .. }
             | Self::SetSeamPreference { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_ref(),
@@ -1389,6 +1424,7 @@ impl Operation {
             | Self::SetHardEdges { anchors, .. }
             | Self::SetCreases { anchors, .. }
             | Self::SetBevelWeights { anchors, .. }
+            | Self::Quadify { anchors, .. }
             | Self::SetSeams { anchors, .. }
             | Self::SetSeamPreference { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_mut(),
@@ -1485,6 +1521,8 @@ impl Operation {
             | Self::SetCreases { .. }
             | Self::SetBevelWeights { .. }
             | Self::HardEdgesByAngle { .. } => false,
+            // Joining two polygons keeps every corner's UV.
+            Self::Quadify { .. } => false,
             // Each side mends as it is applied.
             Self::Mirrored { .. } => false,
         }
@@ -1943,6 +1981,20 @@ impl Operation {
                     .as_ref()
                     .map_or_else(|| edges.clone(), |r| edges_within(mesh, &r.0));
                 mesh::bevel_weight::set_bevel_weights(mesh, &edges, *weight)
+            }
+            Self::Quadify {
+                faces,
+                options,
+                hardness,
+                ..
+            } => {
+                // None chosen: the whole shape.
+                let whole = faces.is_empty();
+                let faces = refound
+                    .as_ref()
+                    .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
+                let chosen = (!whole).then_some(faces.as_slice());
+                mesh::quadify::quadify(mesh, chosen, options, *hardness)
             }
             Self::SlidePoints { slides, anchors } => match (&refound, anchors) {
                 (Some((found, _)), Some(anchors)) => {

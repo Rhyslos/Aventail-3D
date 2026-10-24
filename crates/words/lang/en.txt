@@ -841,6 +841,7 @@ How each piece is laid flat
 How each point finds the target's surface: straight to the nearest place on it, along the way the shape faces there, or straight along one of the shape's axes. Along a line, a point that meets nothing stays where it is.
 How evenly the UVs lie: green where even, yellow where 1.5 times off, red where twice off (stretched one way, or too big or small against the rest of the object), purple where a polygon has no room on the texture
 How far a quad's corners may be from square for its piece to count as a strip (25° standard). Raise it for strips round tight curves; lower it to straighten only truly square ones.
+How far any corner of a new quad may be from a right angle: low makes only near-square quads, high takes slanted ones too
 How far apart the grid the shape is rebuilt on is: about the size of the new polygons. Smaller keeps more detail and makes more polygons.
 How far from the middle
 How far it bends: 90° for a corner, 360° for a whole ring
@@ -854,6 +855,7 @@ How far the extrude turns before going on straight: 0° is straight, 90° a corn
 How far the groove goes in (below 0) or the ridge comes out (above 0), in the object's own size. Change it and the shape follows.
 How far the pipe's middle is from the point it bends round
 How far the shading turns from the usual towards the weighted: 100% all the way, 0% not at all
+How far two triangles may lean from each other and still be joined: low keeps the quads flat, high joins round a curve
 How finely it is cut: each step gives about four times the hexagons
 How finely pieces are fitted together
 How high it climbs, bottom to top
@@ -979,12 +981,16 @@ Its size: {} px/m, the texel density aimed for (Texture menu). Unwrap sizes piec
 Its size: {} px/m, {:.2}× the aim of {}. Pack shrinks every piece by the same amount so all fit in the square. For more texture: a bigger texture size (Texture menu), less padding, or a texture per material.
 Its size: {} px/m, {:.2}× the aim of {}: scaled up by hand, by Pack filling the square, or by a density of its own. UV → Lay out → Set texel density puts it back to the aim.
 Join objects
+Join pairs of triangles into four-sided polygons once, the squarest first: the selected polygons in the Polygons mode, whole shapes in the Model mode. Change its settings under Last edit.
+Join pairs of triangles into four-sided polygons, the squarest first, so a triangulated shape is easy to loop cut and smooth again. UV seams, hard edges and material borders stay.
 Join pairs of triangles lying flat together into four-sided polygons. Off, the result is all triangles.
 Join the selected points or edges with a new edge across their polygon
 Join the selected shapes into the first of them, as one plain mesh, each part staying where it was
 Join two curve end points: weld at the middle / a straight stretch
 Join {}
 Join: select two or more shapes first.
+Joined 1 pair of triangles into a quad. Ctrl + Z takes it back; change the settings under Last edit.
+Joined {} pairs of triangles into quads. Ctrl + Z takes it back; change the settings under Last edit.
 Keep UV seams
 Keep every step until the app closes. A very long session with large meshes can then use a lot of memory
 Keep hard edges
@@ -1098,6 +1104,8 @@ Material {}
 Material {} name ({})
 Materials
 Materials are given to polygons: switch to the Polygons mode, select the polygons, then click a material's Assign button
+Max angle
+Max shape distortion
 Maximise this view
 Measure
 Measuring: drag a line · Esc stops
@@ -1175,6 +1183,9 @@ Named versions of the UV layout, kept with the project.
 Narrow the bevel only where it would run into another, so bevels never cross over each other; the rest stays at full width
 Navigation controls
 Nearest surface point
+Never join across a UV seam (marked, or where the UVs split), so the texture stays as it was
+Never join across an edge the shading shows hard (marked, or sharper than the Smoothing angle)
+Never join two triangles with different materials
 Never seams here
 New
 New group
@@ -1390,6 +1401,13 @@ Put this layer's edits at the end of the layer below, making them one layer
 Put this layout back: the UVs and seams of {} {}, as one step to undo. Polygons made since keep theirs.
 Puts more of the bevel on one side of the edges than the other: 0% is even. Along a loop it stays on the same side all the way round. Flip side swaps the side.
 Quad menu
+Quadify
+Quadify now
+Quadify now joined nothing with these settings: raise Max angle or Max shape distortion under Last edit, or untick a Keep setting there.
+Quadify now works on whole shapes in the Model mode, or on the selected polygons in the Polygons mode (press 3)
+Quadify now: select one or more shapes first.
+Quadify now: select some polygons first, or press Tab for the Model mode to quadify whole shapes.
+Quadify now: there are no two neighbouring triangles to join.
 Quads where flat
 Quarter turns and mirrors of the selected UVs
 Questions asked before an edit that is easy to get wrong. Each can also be switched off from the question itself.
@@ -1916,6 +1934,7 @@ This works on whole curves: press 1 for the Points mode
 Those shapes can't be scattered onto the first selected
 Three or more polygons on one edge can't be unfolded or baked cleanly. Select them and delete or split off the extra polygons.
 Tick "I know what I'm doing, proceed" first.
+Tidy the polygons once, as an edit: join pairs of triangles into quads
 Tip: B for the basic shapes, Alt + B for the rest and the curves
 Tip: press E for the tool menu
 To change it: select the edge (Edges mode, 2) and choose UV → Seams → Clear seams, or Never seams here so suggestions avoid it. Prefer seams here on other edges draws cuts there instead.
@@ -2135,6 +2154,7 @@ Your unsaved work was saved as an emergency copy ({}). The next start offers it 
 Z
 Z up
 [3D objects copied: paste them in the viewport]
+a Quadify's settings aren't real angles
 a backup copy
 a bend's stretch isn't a real number, or is out of range (above 0, at most 1000)
 a bevel is stored with its settings twice
@@ -2376,6 +2396,7 @@ no edge is sharper than the angle: lower the Angle to bevel more edges
 no graphics device
 no limit
 no partner called {}
+no two neighbouring triangles can be joined: raise Max angle or Max shape distortion, or untick a Keep setting
 none
 none of its chosen points are left: choose them again, or use all points
 none of the polygons it was limited to are on the shape any more: choose them again, or use the whole surface
@@ -2493,6 +2514,7 @@ the selection's UVs
 the shape
 the shape has no hard edges: mark some in the Edges mode, or bevel by angle instead
 the shape has no polygons
+the shape has no triangles to join
 the shape isn't a closed solid: it has holes in its surface, or edges shared by more than two polygons
 the shape isn't closed: it has holes in its surface, or edges shared by more than two polygons, so it has no inside
 the surface has no area to spread copies over

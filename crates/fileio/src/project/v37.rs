@@ -13,6 +13,9 @@
 //! Version 50 ([decision 0149](../../../../docs/decisions/0149-live-bevel.md))
 //! adds edges given a bevel weight (or theirs taken away): files before
 //! version 50 never hold one.
+//!
+//! Version 51 ([decision 0150](../../../../docs/decisions/0150-quadify.md))
+//! adds the one-off Quadify: files before version 51 never hold one.
 
 use super::v1::{FileOperation, Problem};
 use super::v2::{AnchorsV2, anchors_from_file, anchors_to_file};
@@ -58,6 +61,8 @@ pub(crate) enum OperationV37 {
         weight: f32,
         anchors: Option<AnchorsV2>,
     },
+    /// Triangles joined into quads (version 51, decision 0150).
+    Quadify(super::v51::QuadifyEditV51),
 }
 
 /// Edges as stored: each as its two points.
@@ -126,6 +131,7 @@ impl FileOperation for OperationV37 {
                 weight: *weight,
                 anchors: anchors.as_ref().map(anchors_to_file),
             }),
+            Operation::Quadify { .. } => super::v51::QuadifyEditV51::of(op).map(Self::Quadify),
             _ => Some(Self::V36(OperationV36::to_file(op)?)),
         }
     }
@@ -133,6 +139,7 @@ impl FileOperation for OperationV37 {
     fn into_operation(self) -> Result<Operation, Problem> {
         let operation = match self {
             Self::V36(op) => return op.into_operation(),
+            Self::Quadify(edit) => return edit.into_operation(),
             Self::SetUvLock {
                 faces,
                 lock,

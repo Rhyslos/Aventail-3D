@@ -17,7 +17,8 @@ use egui::Ui;
 use scene::{
     Command, CurveBendSettings, DecimateOptions, Document, LatticeOptions, LiveBevelOptions,
     MAX_MODIFIERS, ModifierFamily, ModifierKind, ModifierRefusal, ObjectId, ObjectKind,
-    RemeshOptions, ScatterSettings, ShrinkwrapSettings, SubdivideOptions, WeightedNormalsOptions,
+    QuadifyOptions, RemeshOptions, ScatterSettings, ShrinkwrapSettings, SubdivideOptions,
+    WeightedNormalsOptions,
 };
 
 mod pairs;
@@ -25,7 +26,7 @@ pub(crate) use pairs::pair_plan;
 
 /// One command per kind of modifier, in the order of
 /// [`ModifierKind::standard_kinds`].
-pub(crate) const COMMANDS: [CommandId; 9] = [
+pub(crate) const COMMANDS: [CommandId; 10] = [
     CommandId::Subdivide,
     CommandId::LiveBevel,
     CommandId::Scatter,
@@ -34,6 +35,7 @@ pub(crate) const COMMANDS: [CommandId; 9] = [
     CommandId::Shrinkwrap,
     CommandId::Remesh,
     CommandId::Decimate,
+    CommandId::Quadify,
     CommandId::WeightedNormals,
 ];
 
@@ -45,6 +47,7 @@ pub(crate) fn kind_of(command: CommandId) -> Option<ModifierKind> {
         CommandId::LiveBevel => Some(ModifierKind::LiveBevel(LiveBevelOptions::default())),
         CommandId::Lattice => Some(ModifierKind::Lattice(LatticeOptions::default())),
         CommandId::Decimate => Some(ModifierKind::Decimate(DecimateOptions::default())),
+        CommandId::Quadify => Some(ModifierKind::Quadify(QuadifyOptions::default())),
         CommandId::Scatter => Some(ModifierKind::Scatter(ScatterSettings::default())),
         CommandId::BendAlongCurve => {
             Some(ModifierKind::BendAlongCurve(CurveBendSettings::default()))

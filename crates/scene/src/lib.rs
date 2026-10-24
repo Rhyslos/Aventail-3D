@@ -49,6 +49,7 @@ pub use mesh::edit::{
 };
 pub use mesh::lattice::{Interpolation, Lattice, LatticeEdit};
 pub use mesh::live_bevel::{BevelEdges, LiveBevelOptions};
+pub use mesh::quadify::QuadifyOptions;
 pub use mesh::remesh::RemeshOptions;
 pub use mesh::scatter::{PlaceOn, ScatterOptions};
 pub use mesh::shrinkwrap::{ShrinkwrapOptions, WrapMode};
@@ -110,6 +111,8 @@ mod mirroring_tests;
 mod modifier_tests;
 #[cfg(test)]
 mod pivot_tests;
+#[cfg(test)]
+mod quadify_tests;
 #[cfg(test)]
 mod scatter_tests;
 #[cfg(test)]
