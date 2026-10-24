@@ -648,6 +648,41 @@ mod tests {
     }
 
     #[test]
+    fn curves_are_drawn_as_overlay_lines_under_the_selection() {
+        // Decision 0138: a curve's line (the accent when selected), its
+        // handles and its points, beneath what is selected or hovered.
+        let overlay = ComponentOverlay {
+            version: 1,
+            points: vec![
+                (Vec3::Y, OverlayStyle::Selected),
+                (Vec3::X, OverlayStyle::Handle),
+            ],
+            lines: vec![
+                ([Vec3::ZERO, Vec3::X], OverlayStyle::Curve),
+                ([Vec3::X, Vec3::Y], OverlayStyle::CurveSelected),
+                ([Vec3::Y, Vec3::Z], OverlayStyle::Handle),
+            ],
+            tints: Vec::new(),
+        };
+        let geometry = overlay_geometry(&overlay, [1.0, 0.0, 0.0], false);
+        assert_eq!(geometry.sprites.len(), 5);
+        let colors: Vec<[f32; 4]> = geometry.sprites.iter().map(|s| s.color).collect();
+        assert!(colors.contains(&CURVE_LINE));
+        assert!(colors.contains(&HANDLE_LINE));
+        // The selected curve's line is the accent, thicker than an
+        // unselected one, and the selected point lies on top of all.
+        assert!(
+            geometry
+                .sprites
+                .iter()
+                .any(|s| s.color == [1.0, 0.0, 0.0, 1.0] && s.width == SELECTED_CURVE_WIDTH)
+        );
+        const { assert!(SELECTED_CURVE_WIDTH > CURVE_LINE_WIDTH) };
+        let last = geometry.sprites.last().unwrap();
+        assert_eq!(last.width, SELECTED_POINT_SIZE);
+    }
+
+    #[test]
     fn the_selection_outshines_hard_edges_and_seams_and_lies_on_top() {
         // The review's finding: a selected edge looked thinner and duller
         // than the hard edges and seams around it.

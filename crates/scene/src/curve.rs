@@ -205,6 +205,9 @@ impl CurveObject {
     /// curve of the object its sweep takes its cross-section from (if it
     /// does). `None` for a curve that is only a line.
     pub fn mesh(&self, profile: Option<&Curve>) -> Option<Mesh> {
+        if self.solid == CurveSolid::Line {
+            return None;
+        }
         let curve = self.shape.curve();
         match self.solid.clamped() {
             CurveSolid::Line => None,
