@@ -479,6 +479,16 @@ pub enum Operation {
         /// Where the polygons were, to find them again (decision 0032).
         anchors: Option<Anchors>,
     },
+    /// Welds points closer together than a distance into one (decision
+    /// 0152): among these points, or the whole shape when there are none.
+    WeldByDistance {
+        /// The points; none for the whole shape.
+        points: Vec<VertexId>,
+        /// Its settings, which can still be changed.
+        options: mesh::weld_distance::WeldOptions,
+        /// Where the points were, to find them again (decision 0032).
+        anchors: Option<Anchors>,
+    },
     /// Slides points along their edges towards a neighbour each
     /// (decision 0055).
     SlidePoints {
@@ -608,6 +618,8 @@ pub struct EditSettings {
     pub groove: Option<edit::GrooveShape>,
     /// Quadify's settings (decision 0150); none for other edits.
     pub quadify: Option<mesh::quadify::QuadifyOptions>,
+    /// Weld by distance's settings (decision 0152); none for other edits.
+    pub weld: Option<mesh::weld_distance::WeldOptions>,
 }
 
 impl EditSettings {
@@ -839,6 +851,15 @@ impl Operation {
             }
             Self::Quadify { faces, .. } if faces.is_empty() => tr("Quadify").to_string(),
             Self::Quadify { faces, .. } => counted(text!("Quadify"), faces.len(), text!("polygon")),
+            Self::WeldByDistance { points, .. } if points.is_empty() => {
+                tr("Weld by distance").to_string()
+            }
+            Self::WeldByDistance { points, .. } if points.len() == 1 => {
+                tr("Weld 1 point by distance").to_string()
+            }
+            Self::WeldByDistance { points, .. } => {
+                trf!("Weld {} points by distance", points.len())
+            }
             Self::Bridge { edges, .. } => counted(text!("Bridge"), edges.len(), text!("edge")),
             Self::Weld { points, target, .. } => {
                 let n = points.len() + usize::from(target.is_some_and(|t| !points.contains(&t)));
@@ -947,6 +968,10 @@ impl Operation {
             }),
             Self::Quadify { options, .. } => Some(EditSettings {
                 quadify: Some(*options),
+                ..EditSettings::default()
+            }),
+            Self::WeldByDistance { options, .. } => Some(EditSettings {
+                weld: Some(*options),
                 ..EditSettings::default()
             }),
             Self::Connect { .. }
@@ -1127,6 +1152,11 @@ impl Operation {
             }
             Self::Quadify { options, .. } => {
                 if let Some(o) = settings.quadify {
+                    *options = o.clamped();
+                }
+            }
+            Self::WeldByDistance { options, .. } => {
+                if let Some(o) = settings.weld {
                     *options = o.clamped();
                 }
             }
@@ -1323,6 +1353,7 @@ impl Operation {
                     && options.max_distortion.is_finite()
                     && crate::object::hardness_is_valid(*hardness)
             }
+            Self::WeldByDistance { options, .. } => options.distance.is_finite(),
             Self::ExtrudeBent { distance, bend, .. } => {
                 distance.is_finite()
                     && [bend.angle, bend.direction, bend.radius, bend.rise]
@@ -1379,6 +1410,7 @@ impl Operation {
             | Self::SetCreases { anchors, .. }
             | Self::SetBevelWeights { anchors, .. }
             | Self::Quadify { anchors, .. }
+            | Self::WeldByDistance { anchors, .. }
             | Self::SetSeams { anchors, .. }
             | Self::SetSeamPreference { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_ref(),
@@ -1425,6 +1457,7 @@ impl Operation {
             | Self::SetCreases { anchors, .. }
             | Self::SetBevelWeights { anchors, .. }
             | Self::Quadify { anchors, .. }
+            | Self::WeldByDistance { anchors, .. }
             | Self::SetSeams { anchors, .. }
             | Self::SetSeamPreference { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_mut(),
@@ -1467,7 +1500,8 @@ impl Operation {
             Self::MovePoints { points, .. }
             | Self::TransformPoints { points, .. }
             | Self::BevelPoints { points, .. }
-            | Self::Weld { points, .. } => (points, self.anchors()),
+            | Self::Weld { points, .. }
+            | Self::WeldByDistance { points, .. } => (points, self.anchors()),
             Self::Mirrored { op, .. } => op.points(),
             _ => (&[], self.anchors()),
         }
@@ -1523,6 +1557,9 @@ impl Operation {
             | Self::HardEdgesByAngle { .. } => false,
             // Joining two polygons keeps every corner's UV.
             Self::Quadify { .. } => false,
+            // Points move by no more than the distance; every corner keeps
+            // its UV.
+            Self::WeldByDistance { .. } => false,
             // Each side mends as it is applied.
             Self::Mirrored { .. } => false,
         }
@@ -1995,6 +2032,23 @@ impl Operation {
                     .map_or_else(|| faces.clone(), |r| faces_within(mesh, &r.0));
                 let chosen = (!whole).then_some(faces.as_slice());
                 mesh::quadify::quadify(mesh, chosen, options, *hardness)
+            }
+            Self::WeldByDistance {
+                points, options, ..
+            } => {
+                // None chosen: the whole shape.
+                let chosen = refound.as_ref().map_or(points.as_slice(), |r| &r.0);
+                let missing = chosen
+                    .iter()
+                    .filter(|v| mesh.position(**v).is_none())
+                    .count();
+                let within = (!points.is_empty()).then_some(chosen);
+                let went = mesh::weld_distance::weld_by_distance(mesh, within, options);
+                Outcome {
+                    matched: went,
+                    missing,
+                    skipped: usize::from(went == 0),
+                }
             }
             Self::SlidePoints { slides, anchors } => match (&refound, anchors) {
                 (Some((found, _)), Some(anchors)) => {
