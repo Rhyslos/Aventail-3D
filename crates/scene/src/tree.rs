@@ -525,6 +525,8 @@ impl Scene {
         // part of the file gives back, so an instance may show one for
         // now; `check_opened` checks again once everything is in.
         scene.check_instances(|kind| kind.has_shape() || *kind == ObjectKind::Group)?;
+        // Every curve's cross-section is another curve (decision 0138).
+        scene.check_profiles()?;
         // Every boolean's cutters are shapes in the scene, with no loops
         // (decision 0135), and so are modifiers' sources (decision 0142).
         for (id, _) in scene.walk() {
