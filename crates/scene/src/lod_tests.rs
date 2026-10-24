@@ -28,7 +28,7 @@ fn set(doc: &mut Document, id: ObjectId, lods: Lods) {
 /// The object's levels for its shape as the viewport shows it.
 fn levels(doc: &Document, id: ObjectId) -> Option<Arc<LodShapes>> {
     let scene = doc.scene();
-    scene.lod_shapes(id, scene.shown_shape(id)?)
+    scene.lod_shapes(id, Purpose::Viewport, scene.shown_shape(id)?)
 }
 
 fn check_round_trip(doc: &mut Document) {
@@ -120,14 +120,16 @@ fn work_done_on_another_thread_is_kept() {
     set(&mut doc, sphere, on());
     let scene = doc.scene();
     let shape = scene.shown_shape(sphere).unwrap();
-    let Some(LodState::Needed(job)) = scene.lod_state(sphere, Arc::clone(&shape)) else {
+    let Some(LodState::Needed(job)) =
+        scene.lod_state(sphere, Purpose::Viewport, Arc::clone(&shape))
+    else {
         panic!("nothing made yet");
     };
     assert_eq!(job.work(), triangle_count(&shape));
     let done = std::thread::spawn(move || job.run()).join().unwrap();
     let made = done.shapes();
     scene.store_lods(done);
-    let Some(LodState::Ready(kept)) = scene.lod_state(sphere, shape) else {
+    let Some(LodState::Ready(kept)) = scene.lod_state(sphere, Purpose::Viewport, shape) else {
         panic!("kept");
     };
     assert!(Arc::ptr_eq(&kept, &made));
@@ -243,7 +245,9 @@ fn an_empty_or_open_shape_gets_levels_and_deleting_forgets_them() {
     assert!(found.problem.is_none());
     assert_eq!(found.levels.len(), 3);
     let scene = doc.scene();
-    let empty = scene.lod_shapes(plane, Arc::new(Mesh::default())).unwrap();
+    let empty = scene
+        .lod_shapes(plane, Purpose::Viewport, Arc::new(Mesh::default()))
+        .unwrap();
     assert_eq!(empty.full, 0);
     assert!(empty.triangles().iter().all(|t| *t == 0));
     doc.execute(Command::Delete(vec![plane])).unwrap();
@@ -258,7 +262,10 @@ fn a_shape_at_no_real_place_says_why() {
     let mut broken = (*doc.scene().shown_shape(cube).unwrap()).clone();
     let first = broken.vertices().next().unwrap().0;
     broken.set_position(first, glam::Vec3::NAN);
-    let found = doc.scene().lod_shapes(cube, Arc::new(broken)).unwrap();
+    let found = doc
+        .scene()
+        .lod_shapes(cube, Purpose::Viewport, Arc::new(broken))
+        .unwrap();
     assert!(found.levels.is_empty());
     assert!(
         found
@@ -267,4 +274,35 @@ fn a_shape_at_no_real_place_says_why() {
             .unwrap()
             .starts_with("No levels of detail")
     );
+}
+
+#[test]
+fn the_counts_shown_are_the_viewports_for_the_shape_as_it_is_now() {
+    let mut doc = Document::new();
+    let sphere = create(&mut doc, PrimitiveKind::Sphere);
+    set(&mut doc, sphere, on());
+    let shown = levels(&doc, sphere).unwrap();
+    // An export makes its own (here from a cube's shape): the viewport's
+    // counts stay.
+    let cube = Arc::new(PrimitiveKind::Cube.standard().mesh());
+    let exported = doc
+        .scene()
+        .lod_shapes(sphere, Purpose::Export, cube)
+        .unwrap();
+    assert_ne!(exported.full, shown.full);
+    assert_eq!(doc.scene().lods_if_ready(sphere).unwrap().full, shown.full);
+    // The sphere gets a Subdivide: until its levels are made again, the
+    // old counts aren't shown.
+    doc.execute(Command::AddModifier {
+        ids: vec![sphere],
+        kind: ModifierKind::Subdivide(SubdivideOptions::default()),
+    })
+    .unwrap();
+    let scene = doc.scene();
+    let now = scene.shown_shape(sphere).unwrap();
+    assert!(matches!(
+        scene.lod_state(sphere, Purpose::Viewport, now),
+        Some(LodState::Needed(_))
+    ));
+    assert!(scene.lods_if_ready(sphere).is_none(), "stale");
 }

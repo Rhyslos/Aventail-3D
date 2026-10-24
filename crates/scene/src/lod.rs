@@ -17,6 +17,7 @@
 //! while the shape and settings stay the same; heavy shapes are worked on
 //! another thread by the interface ([`LodJob`]), as heavy modifiers are.
 
+use crate::Purpose;
 use crate::object::ObjectId;
 use crate::tree::Scene;
 use mesh::Mesh;
@@ -246,6 +247,7 @@ impl Setting {
 #[derive(Debug, Clone)]
 pub struct LodJob {
     id: ObjectId,
+    purpose: Purpose,
     input: Arc<Mesh>,
     setting: Setting,
 }
@@ -262,10 +264,12 @@ impl LodJob {
         let shapes = lod_shapes(&self.input, &self.setting.lods(), self.setting.hardness);
         LodDone {
             id: self.id,
+            purpose: self.purpose,
             kept: Kept {
                 input: self.input,
                 setting: self.setting,
                 shapes: Arc::new(shapes),
+                fresh: true,
             },
         }
     }
@@ -275,6 +279,7 @@ impl LodJob {
 #[derive(Debug, Clone)]
 pub struct LodDone {
     id: ObjectId,
+    purpose: Purpose,
     kept: Kept,
 }
 
@@ -300,12 +305,16 @@ struct Kept {
     input: Arc<Mesh>,
     setting: Setting,
     shapes: Arc<LodShapes>,
+    /// Whether it was made from the shape last asked about for its
+    /// purpose: once a newer shape is asked about, it is kept to show
+    /// meanwhile, but no longer said to be the object's.
+    fresh: bool,
 }
 
 /// Each object's levels last made (not part of what the scene is: copies
 /// start empty, and it never affects equality).
 #[derive(Default)]
-pub(crate) struct LodCache(Mutex<HashMap<ObjectId, Kept>>);
+pub(crate) struct LodCache(Mutex<HashMap<(ObjectId, Purpose), Kept>>);
 
 impl LodCache {
     /// Forgets `id`'s (deleted).
@@ -313,15 +322,43 @@ impl LodCache {
         self.0
             .get_mut()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .remove(&id);
+            .retain(|(object, _), _| *object != id);
     }
 
-    fn get(&self, id: ObjectId) -> Option<Kept> {
+    /// `id`'s for `purpose`, if it was made from the shape last asked
+    /// about.
+    fn fresh(&self, id: ObjectId, purpose: Purpose) -> Option<Kept> {
         self.0
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .get(&id)
+            .get(&(id, purpose))
+            .filter(|kept| kept.fresh)
             .cloned()
+    }
+
+    /// `id`'s for `purpose` if it was made with `setting` from `shape`;
+    /// otherwise, as a newer shape is now asked about, the one kept is no
+    /// longer fresh.
+    fn made_from(
+        &self,
+        id: ObjectId,
+        purpose: Purpose,
+        setting: &Setting,
+        shape: &Arc<Mesh>,
+    ) -> Option<Kept> {
+        let mut kept = self
+            .0
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let entry = kept.get_mut(&(id, purpose))?;
+        if entry.setting == *setting
+            && (Arc::ptr_eq(&entry.input, shape) || *entry.input == **shape)
+        {
+            entry.fresh = true;
+            return Some(entry.clone());
+        }
+        entry.fresh = false;
+        None
     }
 }
 
@@ -370,16 +407,14 @@ impl Scene {
     /// viewport shows it or an export makes it) are made, or the work to
     /// do. `None` when it has no levels of detail on or isn't in the
     /// scene.
-    pub fn lod_state(&self, id: ObjectId, shape: Arc<Mesh>) -> Option<LodState> {
+    pub fn lod_state(&self, id: ObjectId, purpose: Purpose, shape: Arc<Mesh>) -> Option<LodState> {
         let setting = self.lod_setting(id)?;
-        if let Some(kept) = self.lods.get(id)
-            && kept.setting == setting
-            && (Arc::ptr_eq(&kept.input, &shape) || *kept.input == *shape)
-        {
+        if let Some(kept) = self.lods.made_from(id, purpose, &setting, &shape) {
             return Some(LodState::Ready(kept.shapes));
         }
         Some(LodState::Needed(LodJob {
             id,
+            purpose,
             input: shape,
             setting,
         }))
@@ -393,14 +428,19 @@ impl Scene {
             .0
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .insert(done.id, done.kept);
+            .insert((done.id, done.purpose), done.kept);
     }
 
     /// The object's levels for `shape`, made here, on this thread, when
     /// not kept from before (an export's). `None` as for
     /// [`Scene::lod_state`].
-    pub fn lod_shapes(&self, id: ObjectId, shape: Arc<Mesh>) -> Option<Arc<LodShapes>> {
-        match self.lod_state(id, shape)? {
+    pub fn lod_shapes(
+        &self,
+        id: ObjectId,
+        purpose: Purpose,
+        shape: Arc<Mesh>,
+    ) -> Option<Arc<LodShapes>> {
+        match self.lod_state(id, purpose, shape)? {
             LodState::Ready(shapes) => Some(shapes),
             LodState::Needed(job) => {
                 let done = job.run();
@@ -416,7 +456,8 @@ impl Scene {
     /// anything itself).
     pub fn lods_if_ready(&self, id: ObjectId) -> Option<Arc<LodShapes>> {
         let setting = self.lod_setting(id)?;
-        let kept = self.lods.get(id)?;
+        // The viewport's, for the shape it last asked about.
+        let kept = self.lods.fresh(id, Purpose::Viewport)?;
         (kept.setting == setting).then_some(kept.shapes)
     }
 }
