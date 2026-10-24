@@ -422,8 +422,8 @@ pub(super) fn groove_rows(
 }
 
 /// A bevel's further settings (decision 0085), a row each: Skew with
-/// Flip side, Even width, Stop at overlaps, and Weld overlapping points
-/// with its distance.
+/// Flip side, Even width, Stop at neighbours (Stop at overlaps before
+/// decision 0141), and Weld overlapping points with its distance.
 pub(super) fn bevel_option_rows(
     ui: &mut Ui,
     options: &mut scene::BevelOptions,
@@ -495,10 +495,11 @@ pub(super) fn bevel_option_rows(
     if check(
         ui,
         &mut options.clamp,
-        tr("Stop at overlaps"),
+        tr("Stop at neighbours"),
         tr(
-            "Keep the bevel from crossing over itself: it gets only as wide as fits, so corners \
-         meet instead of passing each other",
+            "Keep the bevel from crossing over itself: where it would run past the end of an \
+         edge or into the bevel coming the other way, it stops there, so corners meet instead \
+         of passing each other. Only the points that need it are narrowed",
         ),
     ) {
         add(clicked);

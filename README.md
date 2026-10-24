@@ -258,9 +258,9 @@ After a review of the whole app (2026-10-21, [decision 0121](docs/decisions/0121
 
 **Gate:** 2–3 people new to the app finish a fixed task list without help, see what is selected on any screen, and no text skips the English package. Then Phase 10, advanced modelling.
 
-### Phase 10 · Advanced hard-surface (after Phase 9, before the rest of Phase 8) — 2 of 23
+### Phase 10 · Advanced hard-surface (after Phase 9, before the rest of Phase 8) — 3 of 23
 
-`█░░░░░░░░░░░░` 9%
+`██░░░░░░░░░░░` 13%
 
 Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/decisions/0125-modelling-before-the-rest-of-the-uvs.md)); Phase 8 continues once it's done. Friends join as testers around here, once there are enough tools to build something. On 24 October the project lead widened it with fourteen more modifiers ([decision 0136](docs/decisions/0136-more-modifiers.md)); each still asks about its controls before it's built. They're built biggest and hardest first, except where one builds on another ([decision 0137](docs/decisions/0137-biggest-first.md)).
 
@@ -269,7 +269,7 @@ Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/d
 
 - [x] Booleans: union, subtract, intersect, with live cutters that stay editable ([decision 0135](docs/decisions/0135-live-booleans.md))
 - [x] Curves and splines: sweep and lathe, for pipes, cables and railings ([decision 0138](docs/decisions/0138-curves-sweep-lathe.md)); spline editing: adding, joining, splitting, carrying on, handle types, round corners and even spacing ([decision 0139](docs/decisions/0139-spline-editing.md))
-- [ ] Improved bevel: rounded corners where bevels meet, and bevels that never overlap
+- [x] Improved bevel: rounded corners where bevels meet, and bevels that never overlap ([decision 0141](docs/decisions/0141-improved-bevel.md))
 - [ ] Remesh: messy geometry rebuilt into even polygons
 - [ ] Smoothing modifier (subdivision), with creases
 - [ ] Lattice cage: a box of points that reshapes what's inside smoothly
@@ -313,6 +313,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-24 | Phase 10: improved bevel: rounded corners of quads where bevelled edges meet, and Stop at neighbours narrowing a bevel only where it would overlap |
 | 2026-10-24 | Phase 10: spline editing: add points on the line, join ends (M, A, Join objects), carry a curve on, split, reverse, handle types, round corners, even spacing |
 | 2026-10-24 | Phase 10: curves, drawn or ready-made (line, circle, arc, spiral), with a live sweep or lathe, for pipes, cables, rails and vases |
 | 2026-10-24 | Planned: Phase 10 is built biggest and hardest first (curves, improved bevel, remesh, smoothing...), unless one milestone builds on another |

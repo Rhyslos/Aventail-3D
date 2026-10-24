@@ -71,7 +71,12 @@ use words::{text, tr, trf};
 /// The signature every project file starts with.
 pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// The format version this app writes.
-pub const FORMAT_VERSION: u32 = 41;
+///
+/// Version 42 (decision 0141) is version 41's model with one more kind of
+/// recorded edit, an improved bevel (`v23::OperationV23::Improved`): a
+/// version of its own, so an older app says it needs updating instead of
+/// failing to read the edit.
+pub const FORMAT_VERSION: u32 = 42;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -356,7 +361,8 @@ fn decode_booleans(encoded: &[u8]) -> Result<Document, ProjectError> {
 }
 
 /// The document a body of version 41 (the development format with
-/// curves, decision 0138) holds.
+/// curves, decision 0138) or 42 (with improved bevels, decision 0141)
+/// holds.
 fn decode_curves(encoded: &[u8]) -> Result<Document, ProjectError> {
     let model = crate::limits::within_budget(|| v41::decode(encoded))
         .map_err(|e| ProjectError::Damaged(trf!("its scene can't be read ({})", e)))?;
@@ -861,3 +867,5 @@ mod tests;
 mod v40_tests;
 #[cfg(test)]
 mod v41_tests;
+#[cfg(test)]
+mod v42_tests;

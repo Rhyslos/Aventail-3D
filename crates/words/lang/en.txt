@@ -918,7 +918,7 @@ Keep shapes
 Keep shapes, smoother
 Keep sizes
 Keep the UVs and seams of the objects shown in the UV Editor under a name, to go back to or compare with later
-Keep the bevel from crossing over itself: it gets only as wide as fits, so corners meet instead of passing each other
+Keep the bevel from crossing over itself: where it would run past the end of an edge or into the bevel coming the other way, it stops there, so corners meet instead of passing each other. Only the points that need it are narrowed
 Keep the newest
 Keep the selected points' handles in one line, so the curve bends through without a kink: dragging one handle turns the other
 Keep together
@@ -1578,7 +1578,7 @@ Start a new, empty project
 Starting the graphics…
 Step back to the Model mode (finishes a slit, puts a tool away)
 Steps
-Stop at overlaps
+Stop at neighbours
 Stop exporting into a game project
 Stop this shape cutting: it becomes an ordinary shape
 Straight

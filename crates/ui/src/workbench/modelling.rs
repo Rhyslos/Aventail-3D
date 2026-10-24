@@ -555,7 +555,8 @@ impl Workbench {
                     Tool::Bevel => scene::EditSettings {
                         segments: Some(count),
                         ..settings
-                    },
+                    }
+                    .improved(),
                     Tool::Extrude if bends => scene::EditSettings {
                         bend: settings.bend.map(|b| scene::Bend {
                             segments: count,
