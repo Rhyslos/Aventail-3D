@@ -21,12 +21,16 @@
 //! Version 45 ([decision 0144](../../../../docs/decisions/0144-lattice-cage.md))
 //! adds lattice cages ([`ProjectV43::lattices`], see `v45`) and the
 //! Lattice modifier naming one; files before version 45 hold neither.
+//!
+//! Version 46 ([decision 0145](../../../../docs/decisions/0145-decimate.md))
+//! adds the Decimate modifier; files before version 46 never hold it.
 
 use super::v1::Problem;
 use super::v41::ProjectV41;
 use crate::limits::Bounded;
 use scene::{
-    Document, LatticeOptions, Modifier, ModifierKind, ObjectId, RemeshOptions, SubdivideOptions,
+    DecimateKeep, DecimateOptions, Document, LatticeOptions, Modifier, ModifierKind, ObjectId,
+    ReduceBy, RemeshOptions, SubdivideOptions,
 };
 use serde::{Deserialize, Serialize};
 use words::{tr, trf};
@@ -95,6 +99,25 @@ pub(crate) enum KindV43 {
         /// The cage object.
         cage: u64,
     },
+    /// Decimation (version 46).
+    Decimate {
+        /// Whether the target is a number of triangles (else a ratio).
+        by_triangles: bool,
+        /// The share of triangles kept.
+        ratio: f32,
+        /// The triangles to end with.
+        triangles: u32,
+        /// Whether UV seams stay.
+        keep_seams: bool,
+        /// Whether hard edges stay.
+        keep_hard_edges: bool,
+        /// Whether material borders stay.
+        keep_materials: bool,
+        /// Whether open borders stay.
+        keep_borders: bool,
+        /// Whether flat pairs of triangles join into quads.
+        quads_where_flat: bool,
+    },
 }
 
 impl KindV43 {
@@ -110,6 +133,16 @@ impl KindV43 {
                 hard_edges_sharp: o.hard_edges_sharp,
             },
             ModifierKind::Lattice(o) => Self::Lattice { cage: o.cage.get() },
+            ModifierKind::Decimate(o) => Self::Decimate {
+                by_triangles: o.reduce_by == ReduceBy::Triangles,
+                ratio: o.ratio,
+                triangles: o.triangles,
+                keep_seams: o.keep.seams,
+                keep_hard_edges: o.keep.hard_edges,
+                keep_materials: o.keep.materials,
+                keep_borders: o.keep.borders,
+                quads_where_flat: o.quads_where_flat,
+            },
         }
     }
 
@@ -131,6 +164,31 @@ impl KindV43 {
             }),
             Self::Lattice { cage } => ModifierKind::Lattice(LatticeOptions {
                 cage: ObjectId::from_raw(*cage),
+            }),
+            Self::Decimate {
+                by_triangles,
+                ratio,
+                triangles,
+                keep_seams,
+                keep_hard_edges,
+                keep_materials,
+                keep_borders,
+                quads_where_flat,
+            } => ModifierKind::Decimate(DecimateOptions {
+                reduce_by: if *by_triangles {
+                    ReduceBy::Triangles
+                } else {
+                    ReduceBy::Ratio
+                },
+                ratio: *ratio,
+                triangles: *triangles,
+                keep: DecimateKeep {
+                    seams: *keep_seams,
+                    hard_edges: *keep_hard_edges,
+                    materials: *keep_materials,
+                    borders: *keep_borders,
+                },
+                quads_where_flat: *quads_where_flat,
             }),
         }
     }

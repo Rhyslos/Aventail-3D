@@ -198,6 +198,40 @@ pub(super) fn count(ui: &mut Ui, value: &mut u32, (low, high): (u32, u32), label
     touched
 }
 
+/// A large whole-number field (thousands or millions: a triangle count)
+/// with step arrows of `step`, kept between `low` and `high`. A drag
+/// moves it by about half a percent of its value a point, so it is quick
+/// at any size.
+pub(super) fn big_count(
+    ui: &mut Ui,
+    value: &mut u32,
+    (low, high): (u32, u32),
+    step: u32,
+    label: &str,
+) -> Touched {
+    let mut touched = Touched::default();
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing.x = 2.0;
+        let speed = (f64::from(*value) * 0.005).max(1.0);
+        let response = ui.add_sized(
+            vec2(NUMBER_WIDTH, HEIGHT),
+            DragValue::new(value).range(low..=high).speed(speed),
+        );
+        touched = touched_by(&response);
+        response.widget_info(|| WidgetInfo::labeled(WidgetType::DragValue, true, label));
+        let steps = arrows(ui, label);
+        if steps != 0 {
+            let moved = i64::from(*value) + i64::from(steps) * i64::from(step);
+            *value = u32::try_from(moved.clamp(i64::from(low), i64::from(high))).unwrap_or(low);
+            touched = Touched {
+                changed: true,
+                began: true,
+            };
+        }
+    });
+    touched
+}
+
 fn touched_by(response: &egui::Response) -> Touched {
     Touched {
         changed: response.changed(),

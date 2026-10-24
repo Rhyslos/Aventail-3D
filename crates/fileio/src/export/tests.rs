@@ -521,3 +521,24 @@ fn modifiers_go_out_as_part_of_their_object_even_hidden_in_the_viewport() {
     .unwrap();
     assert_eq!(one(&doc, &ExportOptions::default()).world.polygons.len(), 6);
 }
+
+#[test]
+fn a_decimated_shape_goes_out_with_its_fewer_triangles() {
+    // Decision 0145: the export has the decimated shape, as shown.
+    let (mut doc, sphere) = with(PrimitiveKind::Sphere);
+    let before = summary(&doc, &ExportOptions::default()).triangles;
+    doc.execute(Command::AddModifier {
+        ids: vec![sphere],
+        kind: scene::ModifierKind::Decimate(scene::DecimateOptions::default()),
+    })
+    .unwrap();
+    let after = summary(&doc, &ExportOptions::default()).triangles;
+    assert!(
+        after <= before / 2 && after + 2 >= before / 2,
+        "{before} → {after}"
+    );
+    assert_eq!(
+        one(&doc, &ExportOptions::default()).world.polygons.len(),
+        after
+    );
+}

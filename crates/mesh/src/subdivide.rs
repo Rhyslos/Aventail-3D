@@ -391,7 +391,7 @@ impl Cage {
 
 /// Gives each polygon of `mesh` the polygon values (every polygon layer)
 /// of polygon slot `from[i]` of `original`.
-fn carry_face_values(original: &Mesh, mesh: &mut Mesh, from: &[usize]) {
+pub(crate) fn carry_face_values(original: &Mesh, mesh: &mut Mesh, from: &[usize]) {
     let names: Vec<String> = original
         .attributes()
         .filter(|(_, domain, _)| *domain == Domain::Face)

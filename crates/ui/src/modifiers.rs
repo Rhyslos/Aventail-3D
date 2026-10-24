@@ -12,14 +12,18 @@ use crate::palette::{ButtonState, icon_button};
 use crate::text::tr;
 use egui::Ui;
 use scene::{
-    Command, Document, LatticeOptions, MAX_MODIFIERS, ModifierFamily, ModifierKind, ObjectId,
-    ObjectKind, RemeshOptions, SubdivideOptions,
+    Command, DecimateOptions, Document, LatticeOptions, MAX_MODIFIERS, ModifierFamily,
+    ModifierKind, ObjectId, ObjectKind, RemeshOptions, SubdivideOptions,
 };
 
 /// One command per kind of modifier, in the order of
 /// [`ModifierKind::standard_kinds`].
-pub(crate) const COMMANDS: [CommandId; 3] =
-    [CommandId::Subdivide, CommandId::Lattice, CommandId::Remesh];
+pub(crate) const COMMANDS: [CommandId; 4] = [
+    CommandId::Subdivide,
+    CommandId::Lattice,
+    CommandId::Remesh,
+    CommandId::Decimate,
+];
 
 /// The modifier (with its standard settings) a command adds.
 pub(crate) fn kind_of(command: CommandId) -> Option<ModifierKind> {
@@ -27,6 +31,7 @@ pub(crate) fn kind_of(command: CommandId) -> Option<ModifierKind> {
         CommandId::Remesh => Some(ModifierKind::Remesh(RemeshOptions::default())),
         CommandId::Subdivide => Some(ModifierKind::Subdivide(SubdivideOptions::default())),
         CommandId::Lattice => Some(ModifierKind::Lattice(LatticeOptions::default())),
+        CommandId::Decimate => Some(ModifierKind::Decimate(DecimateOptions::default())),
         _ => None,
     }
 }

@@ -900,7 +900,7 @@ mod copying;
 mod creases;
 #[cfg(test)]
 mod creases_tests;
-mod exporting;
+pub(crate) mod exporting;
 #[cfg(test)]
 mod exporting_tests;
 #[cfg(test)]
@@ -968,6 +968,8 @@ mod curve_drawing;
 mod curve_editing;
 #[cfg(test)]
 mod curve_tests;
+#[cfg(test)]
+mod decimate_tests;
 #[cfg(test)]
 mod lattice_tests;
 #[cfg(test)]

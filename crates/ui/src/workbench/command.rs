@@ -155,7 +155,10 @@ impl Workbench {
                     _ => Ready::Yes,
                 }
             }
-            CommandId::Remesh | CommandId::Subdivide | CommandId::Lattice => match crate::modifiers::targets(&self.document) {
+            CommandId::Remesh
+            | CommandId::Subdivide
+            | CommandId::Lattice
+            | CommandId::Decimate => match crate::modifiers::targets(&self.document) {
                 Err(why) => Ready::NotNow(why.into()),
                 Ok(_) => Ready::Yes,
             },
@@ -297,7 +300,7 @@ impl Workbench {
                     self.run_boolean(kind, requests);
                 }
             }
-            CommandId::Remesh | CommandId::Subdivide | CommandId::Lattice => {
+            CommandId::Remesh | CommandId::Subdivide | CommandId::Lattice | CommandId::Decimate => {
                 self.run_modifier(command, requests);
             }
         }
