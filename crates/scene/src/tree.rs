@@ -984,10 +984,7 @@ impl Scene {
             Some(Ok(cut)) => cut,
             _ => self.evaluated(id)?.mesh,
         };
-        Some(
-            self.with_mirror(id, &shape)
-                .map_or(shape, std::sync::Arc::new),
-        )
+        Some(self.mirrored_shape(id, shape))
     }
 
     /// `shape` (one of the object's own, such as with hidden polygons

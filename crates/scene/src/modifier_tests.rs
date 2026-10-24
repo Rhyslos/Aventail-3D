@@ -423,3 +423,29 @@ fn modifier_kinds_describe_themselves() {
     };
     assert!(!hidden.applies(Purpose::Viewport) && hidden.applies(Purpose::Export));
 }
+
+#[test]
+fn the_mirrored_shape_is_kept_while_nothing_changes() {
+    let (mut doc, id) = remeshed_cube();
+    doc.execute(Command::SetMirror {
+        ids: vec![id],
+        mirror: Some(LiveMirror::on_object_x()),
+    })
+    .unwrap();
+    let scene = doc.scene();
+    let a = scene.unmodified_shape(id).unwrap();
+    let b = scene.unmodified_shape(id).unwrap();
+    assert!(Arc::ptr_eq(&a, &b), "asked twice, the same shape");
+    assert!(a.face_count() > 6, "with the mirror's copy");
+    // Moving the object makes it again (the mirror's planes move with it).
+    doc.execute(Command::SetTransforms(vec![(
+        id,
+        Transform {
+            position: Vec3::new(10.0, 0.0, 0.0),
+            ..Transform::default()
+        },
+    )]))
+    .unwrap();
+    let c = doc.scene().unmodified_shape(id).unwrap();
+    assert!(!Arc::ptr_eq(&a, &c));
+}

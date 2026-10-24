@@ -354,7 +354,7 @@ impl DrawingCache {
                 // Modifiers work on the whole shape, hidden polygons and
                 // all, after the mirror (decision 0142).
                 let whole = cut.unwrap_or_else(|| Arc::clone(&shape.mesh));
-                let input = scene.with_mirror(id, &whole).map_or(whole, Arc::new);
+                let input = scene.mirrored_shape(id, whole);
                 self.modified(scene, id, input)
             } else {
                 let cut = cut.unwrap_or_else(|| Arc::clone(&shown));

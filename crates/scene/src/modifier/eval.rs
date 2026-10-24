@@ -49,22 +49,41 @@ impl Planned {
     }
 }
 
-/// The modifiers' results, by object and purpose (not part of what the
-/// scene is: copies start empty, and it never affects equality).
+/// An object's shape with its live mirror's copies, with what it was
+/// made from.
+#[derive(Debug, Clone)]
+struct Mirrored {
+    base: Arc<Mesh>,
+    mirror: crate::LiveMirror,
+    /// The object's shape matrix and world matrix.
+    places: (glam::Mat4, glam::Mat4),
+    result: Arc<Mesh>,
+}
+
+/// The modifiers' results, by object and purpose, and each object's
+/// mirrored shape they start from (not part of what the scene is: copies
+/// start empty, and it never affects equality).
 #[derive(Default)]
-pub(crate) struct StackCache(Mutex<HashMap<(ObjectId, Purpose), Run>>);
+pub(crate) struct StackCache {
+    runs: Mutex<HashMap<(ObjectId, Purpose), Run>>,
+    mirrored: Mutex<HashMap<ObjectId, Mirrored>>,
+}
 
 impl StackCache {
     /// Forgets the results for `id` (deleted).
     pub(crate) fn forget(&mut self, id: ObjectId) {
-        self.0
+        self.runs
             .get_mut()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .retain(|(object, _), _| *object != id);
+        self.mirrored
+            .get_mut()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .remove(&id);
     }
 
     fn get(&self, id: ObjectId, purpose: Purpose) -> Option<Run> {
-        self.0
+        self.runs
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .get(&(id, purpose))
@@ -72,7 +91,7 @@ impl StackCache {
     }
 
     fn put(&self, id: ObjectId, purpose: Purpose, run: Run) {
-        self.0
+        self.runs
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .insert((id, purpose), run);
@@ -243,6 +262,43 @@ fn same(a: &Arc<Mesh>, b: &Arc<Mesh>) -> bool {
 }
 
 impl Scene {
+    /// `shape` (the object's own, whole: as evaluated, or cut by its
+    /// booleans) with its live mirror's copies, or `shape` itself without
+    /// a mirror. Kept while the shape, mirror and place stay the same, so
+    /// asking again gives the same shared shape, quickly (decision 0142:
+    /// the modifiers start from it, and their cache knows it at once).
+    pub fn mirrored_shape(&self, id: ObjectId, shape: Arc<Mesh>) -> Arc<Mesh> {
+        let Some(mirror) = self.object(id).and_then(|o| o.mirror) else {
+            return shape;
+        };
+        let places = (self.shape_matrix(id), self.world_matrix(id));
+        let mut kept = self
+            .stacks
+            .mirrored
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if let Some(m) = kept.get(&id)
+            && Arc::ptr_eq(&m.base, &shape)
+            && m.mirror == mirror
+            && m.places == places
+        {
+            return Arc::clone(&m.result);
+        }
+        let result = self
+            .with_mirror(id, &shape)
+            .map_or_else(|| Arc::clone(&shape), Arc::new);
+        kept.insert(
+            id,
+            Mirrored {
+                base: shape,
+                mirror,
+                places,
+                result: Arc::clone(&result),
+            },
+        );
+        result
+    }
+
     /// Whether the object's modifiers (an instance's original's) are
     /// worked out for `purpose` on `input` (its shape before them,
     /// [`Scene::unmodified_shape`]), or the work still to do. `None` when
@@ -353,12 +409,9 @@ impl Scene {
         if !modifiers.iter().any(|m| m.on) {
             return Vec::new();
         }
-        if let Some(crate::CutState::Needed(job)) = self.cut_state(id)
-            && job.polygons() >= crate::CUT_IN_BACKGROUND_FROM
-        {
-            return Vec::new();
-        }
-        let Some(input) = self.unmodified_shape(id) else {
+        // Asked every frame: the shape before the modifiers is kept by
+        // the scene while nothing changes, so this is quick.
+        let Some(input) = self.input_if_light(id) else {
             return Vec::new();
         };
         // The viewport's, and an export's for those it doesn't show.
@@ -386,6 +439,18 @@ impl Scene {
         }
         problems.sort_by_key(|(index, _)| *index);
         problems
+    }
+
+    /// The object's shape before its modifiers, unless its booleans are
+    /// heavy and still to be worked out (the interface does that on
+    /// another thread).
+    fn input_if_light(&self, id: ObjectId) -> Option<Arc<Mesh>> {
+        if let Some(crate::CutState::Needed(job)) = self.cut_state(id)
+            && job.polygons() >= crate::CUT_IN_BACKGROUND_FROM
+        {
+            return None;
+        }
+        self.unmodified_shape(id)
     }
 
     /// The shapes `kind` reads for object `id`, each placed into `id`'s
