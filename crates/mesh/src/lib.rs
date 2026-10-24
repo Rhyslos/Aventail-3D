@@ -21,6 +21,7 @@ pub mod curve;
 pub mod custom_normals;
 pub mod decimate;
 pub mod deform;
+pub mod displace;
 mod edge_weights;
 pub mod edit;
 pub mod extrude;

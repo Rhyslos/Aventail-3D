@@ -1,4 +1,4 @@
-//! The modifier icons (decisions 0142 to 0154), one per kind of
+//! The modifier icons (decisions 0142 to 0157), one per kind of
 //! modifier on the modifiers palette, the game bevel's (decision 0156)
 //! and the crease commands'. Original drawings.
 
@@ -17,6 +17,7 @@ pub(super) fn draw(pen: &mut Pen, icon: Icon) {
         Icon::Scatter => scatter(pen),
         Icon::BendAlongCurve => bend_along_curve(pen),
         Icon::Shrinkwrap => shrinkwrap(pen),
+        Icon::Displace => displace(pen),
         Icon::WeightedNormals => weighted_normals(pen),
         Icon::GameBevel => game_bevel(pen),
         Icon::LiveBevel => live_bevel(pen),
@@ -415,4 +416,28 @@ fn shell(pen: &mut Pen) {
         pen.shape(&rim, Paint::Shade);
         pen.stroke(&rim, true, Ink::Line);
     }
+}
+
+/// Displace: a block seen from the side, its top pushed into bumps of
+/// different sizes, with an arrow up over a bump and one down over a
+/// dip.
+fn displace(pen: &mut Pen) {
+    // The bumpy top, left to right: two big waves with a small one on
+    // each.
+    let top: Vec<(f32, f32)> = (0..=24)
+        .map(|i| {
+            let x = 2.0 + 20.0 * i as f32 / 24.0;
+            let t = (x - 6.0) / 16.0 * std::f32::consts::TAU;
+            (x, 13.0 - 2.5 * t.cos() - 0.8 * (t * 3.0 + 0.6).sin())
+        })
+        .collect();
+    let mut block = top.clone();
+    block.extend([(22.0, 21.0), (2.0, 21.0)]);
+    pen.shape(&block, Paint::Tone);
+    pen.stroke(&block, true, Ink::Line);
+    // Up over the first bump, down over the dip after it.
+    pen.stroke(&[(6.0, 8.0), (6.0, 2.5)], false, Ink::Line);
+    pen.stroke(&[(4.0, 4.5), (6.0, 2.5), (8.0, 4.5)], false, Ink::Line);
+    pen.stroke(&[(14.0, 4.0), (14.0, 11.0)], false, Ink::Line);
+    pen.stroke(&[(12.0, 9.0), (14.0, 11.0), (16.0, 9.0)], false, Ink::Line);
 }

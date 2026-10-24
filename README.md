@@ -258,9 +258,9 @@ After a review of the whole app (2026-10-21, [decision 0121](docs/decisions/0121
 
 **Gate:** 2–3 people new to the app finish a fixed task list without help, see what is selected on any screen, and no text skips the English package. Then Phase 10, advanced modelling.
 
-### Phase 10 · Advanced hard-surface (after Phase 9, before the rest of Phase 8) — 18 of 23
+### Phase 10 · Advanced hard-surface (after Phase 9, before the rest of Phase 8) — 19 of 23
 
-`██████████░░░` 78%
+`███████████░░` 83%
 
 Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/decisions/0125-modelling-before-the-rest-of-the-uvs.md)); Phase 8 continues once it's done. Friends join as testers around here, once there are enough tools to build something. On 24 October the project lead widened it with fourteen more modifiers ([decision 0136](docs/decisions/0136-more-modifiers.md)); each still asks about its controls before it's built. They're built biggest and hardest first, except where one builds on another ([decision 0137](docs/decisions/0137-biggest-first.md)).
 
@@ -285,7 +285,7 @@ Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/d
 - [x] Shell: a surface given thickness, even into sharp corners, its open borders closed by rims with hard edges, seams and UVs of their own ([decision 0154](docs/decisions/0154-shell.md))
 - [x] LOD generator: **Levels of detail**, simpler copies made from the finished shape for distance, previewed in the viewport; Godot makes its own on import (it reads no hand-made levels), so they're exported on request as `name_LOD1` and on, with their distances ([decision 0155](docs/decisions/0155-levels-of-detail.md))
 - [x] Game bevel for mid-poly models: a Live bevel with round shading and Weighted normals last, set up in one step; seams stay as the bevel moves them ([decision 0156](docs/decisions/0156-game-bevel.md))
-- [ ] Displace and noise: ripple or roughen a surface, for rocks, terrain and damage
+- [x] Displace and noise: points pushed in and out by a hand-written noise (smooth, ridged or cells, in layers), along the normals or an axis, everywhere or round chosen points with a falloff along the surface ([decision 0157](docs/decisions/0157-displace.md))
 - [ ] Bend, twist and taper
 - [ ] Wireframe: every edge made a strut, for grates, fences and cages
 - [ ] Modular kit helpers: grid-sized pieces and pivot presets
@@ -313,6 +313,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-24 | Phase 10: Displace, a shape's points pushed in and out by a noise for rock, ground, cobbles and dents, the same bumps every time for the same seed, everywhere or fading out round chosen points |
 | 2026-10-24 | Phase 10: the game bevel, one click for mid-poly game models (a Live bevel on every edge sharper than 30°, its bevels shaded round with the new Soft bevels switch, and Weighted normals last), tested flat and round in glTF on a cube, a cylinder, an arch and booleaned shapes |
 | 2026-10-24 | Phase 10: levels of detail, simpler copies of a shape for a game to draw far away (50%, 25%, 12% from 10, 20 and 40 m as standard), previewed in the viewport and exported on request as name_LOD1 and on; Godot makes its own on import |
 | 2026-10-24 | Phase 10: Shell, a surface given thickness live (inward, outward or both sides, even into sharp corners), its open borders closed with rims that shade hard and get UVs and seams of their own |

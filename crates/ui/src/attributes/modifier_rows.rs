@@ -153,7 +153,7 @@ impl AttributesPanel {
                 }
                 // The polygons selected on this shape, in the Polygons
                 // mode (for a scatter's Use selected), and its points, in
-                // the Points mode (for a shrinkwrap's).
+                // the Points mode (for Shrinkwrap's and Displace's).
                 let chosen = Chosen {
                     polygons: self.polygons_selected.map(|_| {
                         doc.elements(id)
@@ -257,6 +257,10 @@ fn kind_rows(ui: &mut Ui, kind: &mut ModifierKind, units: Units, rows: &mut Rows
             super::array_rows::array_rows(ui, settings, units, rows, &chosen.centres);
         }
         ModifierKind::Shell(options) => super::shell_rows::shell_rows(ui, options, units, rows),
+        ModifierKind::Displace(settings) => {
+            let points = chosen.points.as_deref();
+            super::displace_rows::displace_rows(ui, settings, units, rows, points);
+        }
     }
 }
 

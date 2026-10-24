@@ -983,6 +983,8 @@ mod curve_tests;
 #[cfg(test)]
 mod decimate_tests;
 #[cfg(test)]
+mod displace_tests;
+#[cfg(test)]
 mod lattice_tests;
 #[cfg(test)]
 mod layer_tests;

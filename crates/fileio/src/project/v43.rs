@@ -209,6 +209,8 @@ pub(crate) enum KindV43 {
     Array(super::v54::ArrayV54),
     /// Shell (version 55).
     Shell(super::v55::ShellV55),
+    /// Displace (version 58).
+    Displace(super::v58::DisplaceV58),
 }
 
 /// Weighted normals' weighting as stored.
@@ -305,6 +307,7 @@ impl KindV43 {
             ModifierKind::WeldByDistance(o) => Self::WeldByDistance(super::v53::WeldV53::of(o)),
             ModifierKind::Array(a) => Self::Array(super::v54::ArrayV54::of(a)),
             ModifierKind::Shell(o) => Self::Shell(super::v55::ShellV55::of(o)),
+            ModifierKind::Displace(d) => Self::Displace(super::v58::DisplaceV58::of(d)),
         }
     }
 
@@ -437,6 +440,7 @@ impl KindV43 {
             Self::WeldByDistance(o) => ModifierKind::WeldByDistance(o.options()),
             Self::Array(a) => ModifierKind::Array(a.settings()),
             Self::Shell(o) => ModifierKind::Shell(o.options()),
+            Self::Displace(d) => ModifierKind::Displace(d.settings()),
         }
     }
 }

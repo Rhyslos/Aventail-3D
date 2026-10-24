@@ -207,34 +207,46 @@ pub(super) fn shrinkwrap_rows(
         tr("Offset"),
     ));
     ui.end_row();
-    points_row(ui, settings, rows, chosen);
-}
-
-/// Which points move: all, or those chosen, with buttons to choose the
-/// selected ones or go back to all.
-fn points_row(
-    ui: &mut Ui,
-    settings: &mut ShrinkwrapSettings,
-    rows: &mut Rows,
-    chosen: Option<&[VertexId]>,
-) {
-    label(
-        ui,
-        tr("Points"),
-        tr(
+    let texts = PointTexts {
+        help: tr(
             "Every point is wrapped, or only those you choose: select them in the Points mode \
              (press 1) and click Use selected. The others stay where they are.",
         ),
-    );
+        use_selected: tr("Wrap only the points selected now"),
+        all: tr("Wrap every point again"),
+    };
+    points_row(ui, &mut settings.points, rows, chosen, &texts);
+}
+
+/// What the Points row says for one kind of modifier.
+pub(super) struct PointTexts {
+    /// The row's help.
+    pub(super) help: &'static str,
+    /// *Use selected*'s hint.
+    pub(super) use_selected: &'static str,
+    /// *All points*' hint.
+    pub(super) all: &'static str,
+}
+
+/// Which points move: all, or those chosen, with buttons to choose the
+/// selected ones or go back to all (Shrinkwrap's and Displace's).
+pub(super) fn points_row(
+    ui: &mut Ui,
+    points: &mut Vec<VertexId>,
+    rows: &mut Rows,
+    chosen: Option<&[VertexId]>,
+    texts: &PointTexts,
+) {
+    label(ui, tr("Points"), texts.help);
     ui.horizontal_wrapped(|ui| {
-        if settings.points.is_empty() {
+        if points.is_empty() {
             ui.label(tr("All points"));
         } else {
-            ui.label(crate::trf!("{} chosen", settings.points.len()));
+            ui.label(crate::trf!("{} chosen", points.len()));
         }
         let selected = chosen.filter(|c| !c.is_empty());
         let note = if selected.is_some() {
-            tr("Wrap only the points selected now")
+            texts.use_selected
         } else {
             tr("Select points of this shape in the Points mode (press 1) first")
         };
@@ -248,19 +260,19 @@ fn points_row(
             .clicked()
             && let Some(selected) = selected
         {
-            settings.points = selected.to_vec();
+            *points = selected.to_vec();
             rows.changed = true;
             rows.began = true;
         }
         if ui
             .add_enabled(
-                !settings.points.is_empty(),
+                !points.is_empty(),
                 egui::Button::new(tr("All points")).small(),
             )
-            .on_hover_text(tr("Wrap every point again"))
+            .on_hover_text(texts.all)
             .clicked()
         {
-            settings.points.clear();
+            points.clear();
             rows.changed = true;
             rows.began = true;
         }

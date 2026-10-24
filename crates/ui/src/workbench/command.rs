@@ -169,6 +169,7 @@ impl Workbench {
             | CommandId::Scatter
             | CommandId::BendAlongCurve
             | CommandId::Shrinkwrap
+            | CommandId::Displace
             | CommandId::WeightedNormals => match crate::modifiers::command(&self.document, command) {
                 Err(why) => Ready::NotNow(why.into()),
                 Ok(_) => Ready::Yes,
@@ -329,6 +330,7 @@ impl Workbench {
             | CommandId::Scatter
             | CommandId::BendAlongCurve
             | CommandId::Shrinkwrap
+            | CommandId::Displace
             | CommandId::WeightedNormals => {
                 self.run_modifier(command, requests);
             }

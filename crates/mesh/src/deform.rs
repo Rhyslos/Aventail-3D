@@ -165,13 +165,25 @@ pub fn deform(mesh: &Mesh, into: Mat4, deformer: &impl Deformer) -> Result<Mesh,
     if !back.is_finite() {
         return Err(DeformProblem::FlatSpace);
     }
+    Ok(with_points_moved(mesh, |_, p| {
+        back.transform_point3(deformer.moved(into.transform_point3(p)))
+    }))
+}
+
+/// `mesh` with each point moved to `moved(id, place)`, in the mesh's own
+/// space, and everything else kept: the shared work of every deformer,
+/// for those that need to know which point they move (Displace reads a
+/// point's normal and whether it was chosen, decision 0157). A point sent
+/// to a place that isn't a real number stays where it was. Many points
+/// are worked out on several threads.
+pub fn with_points_moved(mesh: &Mesh, moved: impl Fn(VertexId, Vec3) -> Vec3 + Sync) -> Mesh {
     let points: Vec<(VertexId, Vec3)> = mesh.vertices().collect();
     let parts = crate::parallel::in_parallel(points.len(), |range| {
         points[range]
             .iter()
             .map(|&(id, p)| {
-                let moved = back.transform_point3(deformer.moved(into.transform_point3(p)));
-                (id, if moved.is_finite() { moved } else { p })
+                let to = moved(id, p);
+                (id, if to.is_finite() { to } else { p })
             })
             .collect::<Vec<_>>()
     });
@@ -179,7 +191,7 @@ pub fn deform(mesh: &Mesh, into: Mat4, deformer: &impl Deformer) -> Result<Mesh,
     for (id, p) in parts.into_iter().flatten() {
         out.set_position(id, p);
     }
-    Ok(out)
+    out
 }
 
 #[cfg(test)]

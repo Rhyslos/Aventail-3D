@@ -207,6 +207,9 @@ pub enum Icon {
     /// Shrinkwrap (decision 0147): a sheet pulled down onto a hump,
     /// arrows pressing it on.
     Shrinkwrap,
+    /// Displace (decision 0157): a block whose top is pushed into bumps
+    /// of different sizes, arrows up and down beside it.
+    Displace,
     /// Weighted normals (decision 0148): a bevelled box seen from the
     /// side, the arrows on its flat top all straight up, those on its
     /// rounded corners fanning round.
@@ -297,7 +300,7 @@ pub enum Icon {
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 129] = [
+pub const ALL: [Icon; 130] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -387,6 +390,7 @@ pub const ALL: [Icon; 129] = [
     Icon::Scatter,
     Icon::BendAlongCurve,
     Icon::Shrinkwrap,
+    Icon::Displace,
     Icon::WeightedNormals,
     Icon::GameBevel,
     Icon::Quadify,
@@ -525,6 +529,7 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         | Icon::Scatter
         | Icon::BendAlongCurve
         | Icon::Shrinkwrap
+        | Icon::Displace
         | Icon::WeightedNormals
         | Icon::GameBevel
         | Icon::Quadify

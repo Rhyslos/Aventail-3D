@@ -176,6 +176,7 @@ Along X
 Along Y
 Along Z
 Along normals
+Along the normals
 Along the shape's normals
 Along {}
 Already in the Model mode: Tab steps back here from editing points, edges or polygons, or from a modelling tool.
@@ -199,6 +200,7 @@ An upright cylinder, 1 m across and 1 m tall
 Angle
 Another curve
 Another number gives another spread, and other turns and sizes. The same number always gives the same result.
+Another number gives other bumps of the same kind. The same number always gives the same bumps.
 Any program: pick the kind of file and how it's set up below.
 Anywhere
 Anywhere (shortest cuts)
@@ -313,6 +315,7 @@ Carry on curve
 Carry on the curve by 1 point
 Carry on the curve by {} points
 Cavity
+Cells
 Centimetres
 Centre
 Centre point
@@ -556,6 +559,7 @@ Developer
 Direction
 Disc
 Discard
+Displace
 Display
 Dissolve
 Dissolve across a sharp corner?
@@ -668,6 +672,7 @@ Every layer is off: the next edit makes a new layer on top.
 Every object you can see in the viewport
 Every part keeps its real size, so the texture's pixels are the same size all over the piece, at the cost of a little bending of angles. The slowest.
 Every point goes the same way: straight out along the polygons' average facing. The end keeps the polygons' shape.
+Every point is pushed, or only those you choose, fading out round them over the Falloff: select them in the Points mode (press 1) and click Use selected.
 Every point is wrapped, or only those you choose: select them in the Points mode (press 1) and click Use selected. The others stay where they are.
 Every preference in one place: look, units, navigation, undo
 Every seam of the shapes
@@ -706,6 +711,7 @@ Extrude: drag anywhere in the viewport, the way the selected polygons (or open b
 Extrude: select the points all the way round a polygon (a cap's rim) to push it out, or two or more points next to each other along an open edge (the edge of a plane, or a hole) to grow new polygons from it.
 Face influence
 Faces squashed flat to a line or a point: invisible, but they still count and can break tools.
+Falloff
 Fast
 File
 File settings
@@ -857,6 +863,7 @@ Home
 How Pack fits pieces into the square
 How Suggest seams picks seams
 How Unwrap lays pieces flat
+How big the bumps are, about from one to the next. Make it a few times the distance between the shape's points: bumps smaller than that can't show.
 How big the new end is, compared with where it started: 100% the same, less tapers it in (0% to a point), more flares it out.
 How close points must be to weld: those nearer than this become one
 How deep each tooth is, from its tip to the gap between teeth
@@ -884,6 +891,7 @@ How far the bevel reaches into the polygons on each side of an edge. Marked edge
 How far the cross-section turns round the curve from start to end (whole turns on a closed curve)
 How far the extrude turns before going on straight: 0° is straight, 90° a corner. The pipe keeps its full width through the turn. With a bend radius it can go past 360° into a spiral (up to 3600°, ten turns): each loop climbs just clear of the one before.
 How far the groove goes in (below 0) or the ridge comes out (above 0), in the object's own size. Change it and the shape follows.
+How far the highest bumps push the points. Below 0, the bumps go the other way: ridges and cells become grooves and dents.
 How far the pipe's middle is from the point it bends round
 How far the shading turns from the usual towards the weighted: 100% all the way, 0% not at all
 How far two triangles may lean from each other and still be joined: low keeps the quads flat, high joins round a curve
@@ -899,6 +907,7 @@ How many copies to spread. Spacing can leave fewer, where they don't fit.
 How many copies, the shape itself included
 How many flat sides make up each round side
 How many flat sides make up the round side
+How many layers of ever smaller bumps sit on the big ones, each half the size and half the height of the last. 1 is the plainest.
 How many new loops are cut, spread evenly across the polygons
 How many pieces along the bend
 How many pieces along the curve
@@ -1269,6 +1278,7 @@ No rows yet
 No rows yet.
 No snapshots yet.
 No trim sheet. Pieces already on its rows stay where they are.
+Noise
 None
 None chosen
 Norwegian
@@ -1454,7 +1464,10 @@ Press E for the tools of what you're working on. Every look holds the same tools
 Preview
 Profile
 Projects you save or open are listed here
+Push every point again
+Push only the points selected now, and those round them
 Push the selected polygons or edges out, building new sides between the old place and the new. With points selected along an open edge, the edges between them grow new polygons
+Push the shape's points in and out by a noise: rough rock, lumpy ground, dented metal, cobbles. Smooth, ridged or cell-shaped bumps, everywhere or round chosen points. Best on a shape with plenty of points.
 Put a cage of points round the selected shapes: move the cage's points (press 1) and the shapes inside bend, squash and swell smoothly with them.
 Put copies only on the polygons selected now
 Put copies over the whole surface again
@@ -1528,6 +1541,7 @@ Restored your work from {}. Save it to keep it.
 Restored “{}”. Ctrl + Z takes it back.
 Reverse curve
 Ridge along
+Ridged
 Right
 Right drag: orbit · Middle drag: pan · Wheel: zoom
 Right drag: orbit · Middle drag: zoom · Shift + middle: pan
@@ -1923,6 +1937,7 @@ The app's
 The app's own folder, so your project folders stay tidy. Copies are deleted when the app closes normally.
 The bake sees these from behind: the normal map comes out inverted or black there. Fix turns them the right way round (Mesh → Fix normals).
 The bevel's curve: 100% round, 0% a straight slope, -100% hollow (curving inward, a cove)
+The bumps' look. Smooth: soft rolling lumps, in and out, for rock and ground. Ridged: sharp crests, for craggy stone and bark. Cells: rounded cells with grooves between them, for cobbles, scales and hammered metal.
 The collision shape Godot makes for it when you export for Godot: what the player bumps into
 The corners the mesh is made of
 The cross-section of: {}
@@ -2209,6 +2224,7 @@ Which of the curve's own axes it spins round, through its pivot
 Which of the shape's own axes runs along the curve: its longest side, or X, Y or Z. The shape's start along it goes to the curve's start.
 Which of the shape's own axes the ring turns round. Z, up, lays it on the ground
 Which way round it turns: 0° turns up (an upright pipe turns towards +X), and it goes round from there.
+Which way the points are pushed: out from the surface (along its normals), or straight along one of the shape's own axes, such as Z for ground and terrain.
 Which way the polygons go. Straight out is the standard.
 Which way the thickness grows: inward keeps the surface as the outside (its size stays), outward keeps it as the inside, both sides puts it in the middle
 While dragging
@@ -2221,6 +2237,7 @@ Width
 Window
 Wireframe
 With Shift: slide points along their edges, dragging the Move gizmo
+With chosen points, how far from them the push fades out, measured along the surface. 0 gives a sharp edge. Every point is pushed fully when none are chosen.
 With the wheel: a tool's count (segments, cuts) while using it; otherwise grow or shrink the selection
 With {}'s
 Without UVs there is nowhere on the texture for the bake to go. Fix places seams where they show least, unwraps the shape and packs it with whatever shares its texture (UV → Suggest seams, Unwrap, Pack).

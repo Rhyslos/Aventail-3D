@@ -85,6 +85,8 @@ pub enum CommandId {
     /// Wrap the shape selected first onto the shape selected after it
     /// (decision 0147).
     Shrinkwrap,
+    /// Add a displace modifier to the selected shapes (decision 0157).
+    Displace,
     /// Add a weighted normals modifier to the selected shapes (decision
     /// 0148).
     WeightedNormals,
@@ -411,6 +413,10 @@ impl CommandId {
             Self::Shell => {
                 let kind = scene::ModifierKind::Shell(Default::default());
                 (kind.name(), Icon::Shell, None, kind.description(), None)
+            }
+            Self::Displace => {
+                let kind = scene::ModifierKind::Displace(Default::default());
+                (kind.name(), Icon::Displace, None, kind.description(), None)
             }
             Self::WeldByDistanceNow => (
                 tr("Weld by distance now"),
@@ -927,6 +933,7 @@ impl CommandId {
             | Self::Scatter
             | Self::BendAlongCurve
             | Self::Shrinkwrap
+            | Self::Displace
             | Self::WeightedNormals
             | Self::GameBevel => &[Model, Object, Points, Edges, Polygons],
             // Whole shapes, or the selected polygons (decision 0150).
@@ -1191,7 +1198,7 @@ pub fn group_menu(group: CommandId, ring: &[Slot]) -> Vec<Slot> {
 /// 0150) and Weld by distance now (decision 0152), in the Mesh menu's
 /// Clean up group and command search; and the game bevel (decision 0156),
 /// beside the modifiers.
-pub const OFF_THE_RING: [CommandId; 19] = [
+pub const OFF_THE_RING: [CommandId; 20] = [
     CommandId::Union,
     CommandId::Subtract,
     CommandId::Intersect,
@@ -1207,6 +1214,7 @@ pub const OFF_THE_RING: [CommandId; 19] = [
     CommandId::Scatter,
     CommandId::BendAlongCurve,
     CommandId::Shrinkwrap,
+    CommandId::Displace,
     CommandId::WeightedNormals,
     CommandId::GameBevel,
     CommandId::QuadifyNow,
@@ -1214,7 +1222,7 @@ pub const OFF_THE_RING: [CommandId; 19] = [
 ];
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 79] = [
+pub const ALL: [CommandId; 80] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -1245,6 +1253,7 @@ pub const ALL: [CommandId; 79] = [
     CommandId::Scatter,
     CommandId::BendAlongCurve,
     CommandId::Shrinkwrap,
+    CommandId::Displace,
     CommandId::WeightedNormals,
     CommandId::GameBevel,
     CommandId::PivotToCentre,
