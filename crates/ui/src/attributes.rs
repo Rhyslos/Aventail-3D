@@ -18,6 +18,7 @@ mod materials;
 mod mesh_check;
 pub(crate) mod modifier_rows;
 mod object_rows;
+mod scatter_rows;
 pub(crate) mod stepper;
 mod tool_rows;
 mod tool_section;

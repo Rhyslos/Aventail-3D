@@ -139,7 +139,16 @@ impl AttributesPanel {
                 if let ModifierKind::Lattice(options) = &modifier.kind {
                     cage_row(ui, doc, options.cage, out);
                 }
-                kind_rows(ui, &mut edited.kind, units, &mut rows);
+                if let ModifierKind::Scatter(settings) = &modifier.kind {
+                    super::scatter_rows::shapes_row(ui, doc, &settings.shapes, out);
+                }
+                // The polygons selected on this shape, in the Polygons
+                // mode (for a scatter's Use selected).
+                let chosen: Option<Vec<scene::FaceId>> = self.polygons_selected.map(|_| {
+                    doc.elements(id)
+                        .map_or_else(Vec::new, |e| e.polygons().collect())
+                });
+                kind_rows(ui, &mut edited.kind, units, &mut rows, chosen.as_deref());
                 label(
                     ui,
                     tr("Show in viewport"),
@@ -176,13 +185,22 @@ impl AttributesPanel {
 }
 
 /// The rows for a kind's own settings.
-fn kind_rows(ui: &mut Ui, kind: &mut ModifierKind, units: Units, rows: &mut Rows) {
+fn kind_rows(
+    ui: &mut Ui,
+    kind: &mut ModifierKind,
+    units: Units,
+    rows: &mut Rows,
+    chosen: Option<&[scene::FaceId]>,
+) {
     match kind {
         ModifierKind::Remesh(options) => remesh_rows(ui, options, units, rows),
         ModifierKind::Subdivide(options) => subdivide_rows(ui, options, rows),
         // The cage's own settings are on the cage (`cage_row` names it).
         ModifierKind::Lattice(_) => {}
         ModifierKind::Decimate(options) => super::decimate_rows::decimate_rows(ui, options, rows),
+        ModifierKind::Scatter(settings) => {
+            super::scatter_rows::scatter_rows(ui, settings, units, rows, chosen);
+        }
     }
 }
 

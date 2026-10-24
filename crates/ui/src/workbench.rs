@@ -986,6 +986,8 @@ mod pivots_tests;
 mod quad;
 #[cfg(test)]
 mod quad_tests;
+#[cfg(test)]
+mod scatter_tests;
 mod searching;
 mod selection;
 mod shortcuts;

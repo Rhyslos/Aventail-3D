@@ -19,6 +19,7 @@ mod memory;
 pub mod mirroring;
 pub mod modifier;
 pub mod object;
+pub mod scatter;
 pub mod snapshot;
 pub mod stack;
 pub mod tree;
@@ -45,6 +46,7 @@ pub use mesh::edit::{
 };
 pub use mesh::lattice::{Interpolation, Lattice, LatticeEdit};
 pub use mesh::remesh::RemeshOptions;
+pub use mesh::scatter::{PlaceOn, ScatterOptions};
 pub use mesh::subdivide::SubdivideOptions;
 pub use mesh::uvs::{BUDGET_RANGE, SeamPreference, UvLayout};
 pub use mesh::{
@@ -60,6 +62,7 @@ pub use object::{
     ApplyParts, Collision, LiveMirror, Material, Object, ObjectId, ObjectKind,
     STANDARD_SMOOTHING_ANGLE, Transform, hardness_is_valid,
 };
+pub use scatter::{MAX_SCATTER_SHAPES, ScatterSettings};
 pub use snapshot::{MAX_SNAPSHOT_NAME, MAX_SNAPSHOTS, UvSnapshot};
 pub use stack::{
     EDITS_LAYER, EditId, EditSettings, Entry, EvalContext, Evaluated, Layer, LayerChange,
@@ -98,6 +101,8 @@ mod mirroring_tests;
 mod modifier_tests;
 #[cfg(test)]
 mod pivot_tests;
+#[cfg(test)]
+mod scatter_tests;
 #[cfg(test)]
 mod selection_tests;
 #[cfg(test)]

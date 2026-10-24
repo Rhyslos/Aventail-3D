@@ -93,7 +93,10 @@ pub fn append(out: &mut Mesh, part: &Mesh, matrix: Mat4) {
             let Some((_, default, _)) = part.attribute_values(name) else {
                 continue;
             };
-            if out.attribute_values(name).is_none()
+            // Checked by name: asking for the layer's values would copy
+            // them, which adds up when many parts are appended (a
+            // scatter's copies, decision 0146).
+            if !out.attributes().any(|(n, _, _)| n == name)
                 && out.add_attribute(name, domain, default).is_err()
             {
                 continue;

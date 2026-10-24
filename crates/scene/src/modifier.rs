@@ -31,8 +31,9 @@ mod eval;
 
 pub use crate::lattice::LatticeOptions;
 use crate::object::{ObjectId, ObjectKind};
+pub use crate::scatter::ScatterSettings;
 use crate::tree::Scene;
-use glam::Mat4;
+use glam::{Mat4, Vec3};
 use mesh::Mesh;
 use mesh::decimate::DecimateOptions;
 use mesh::remesh::RemeshOptions;
@@ -101,6 +102,8 @@ pub enum ModifierKind {
     /// Decimation (decision 0145): fewer triangles with the shape, its
     /// seams, hard edges, material borders and open borders kept.
     Decimate(DecimateOptions),
+    /// Copies of other shapes spread over the surface (decision 0146).
+    Scatter(ScatterSettings),
 }
 
 impl ModifierKind {
@@ -109,6 +112,7 @@ impl ModifierKind {
     pub fn standard_kinds() -> Vec<Self> {
         vec![
             Self::Subdivide(SubdivideOptions::default()),
+            Self::Scatter(ScatterSettings::default()),
             Self::Lattice(LatticeOptions::default()),
             Self::Remesh(RemeshOptions::default()),
             Self::Decimate(DecimateOptions::default()),
@@ -122,6 +126,7 @@ impl ModifierKind {
             Self::Subdivide(_) => tr("Subdivide"),
             Self::Lattice(_) => tr("Lattice"),
             Self::Decimate(_) => tr("Decimate"),
+            Self::Scatter(_) => tr("Scatter"),
         }
     }
 
@@ -146,6 +151,11 @@ impl ModifierKind {
                  most. UV seams, hard edges, material borders and open borders stay. For game \
                  models and levels of detail.",
             ),
+            Self::Scatter(_) => tr(
+                "Spread copies of other shapes over a surface: rocks on the ground, rivets on a \
+                 plate. Select the surface first, then Ctrl + click the shapes to scatter. They \
+                 stay shapes of their own: edit one and every copy follows.",
+            ),
         }
     }
 
@@ -156,6 +166,7 @@ impl ModifierKind {
             Self::Subdivide(_) => ModifierFamily::Generate,
             Self::Lattice(_) => ModifierFamily::Deform,
             Self::Decimate(_) => ModifierFamily::CleanUp,
+            Self::Scatter(_) => ModifierFamily::Generate,
         }
     }
 
@@ -163,7 +174,7 @@ impl ModifierKind {
     /// Subdivide modifier's two levels).
     pub fn differs_by_purpose(&self) -> bool {
         match self {
-            Self::Remesh(_) | Self::Lattice(_) | Self::Decimate(_) => false,
+            Self::Remesh(_) | Self::Lattice(_) | Self::Decimate(_) | Self::Scatter(_) => false,
             Self::Subdivide(o) => {
                 let o = o.clamped();
                 o.levels != o.export_levels
@@ -184,25 +195,50 @@ impl ModifierKind {
             Self::Subdivide(options) => Self::Subdivide(options.clamped()),
             Self::Lattice(options) => Self::Lattice(*options),
             Self::Decimate(options) => Self::Decimate(options.clamped()),
+            Self::Scatter(settings) => Self::Scatter(settings.clamped()),
         }
     }
 
-    /// The other objects it reads (a lattice's cage; later a curve to
-    /// bend along). A modifier whose source is deleted is removed with it,
-    /// in the same undo step.
+    /// The other objects it reads (a lattice's cage, the shapes a
+    /// scatter spreads; later a curve to bend along). A modifier is
+    /// changed or removed when one is deleted (see
+    /// [`ModifierKind::without_sources`]).
     pub fn sources(&self) -> Vec<ObjectId> {
         match self {
             Self::Remesh(_) | Self::Subdivide(_) | Self::Decimate(_) => Vec::new(),
             Self::Lattice(options) => vec![options.cage],
+            Self::Scatter(settings) => settings.shapes.clone(),
+        }
+    }
+
+    /// Whether it needs at least one source to make sense (a scatter with
+    /// no shapes is refused, as a lattice with no cage is).
+    pub fn needs_sources(&self) -> bool {
+        matches!(self, Self::Lattice(_) | Self::Scatter(_))
+    }
+
+    /// The same modifier once the objects `going` are deleted, or `None`
+    /// when it can't go on without them: a lattice loses its cage; a
+    /// scatter loses those of its shapes, and goes with the last.
+    pub fn without_sources(&self, going: &[ObjectId]) -> Option<Self> {
+        match self {
+            Self::Scatter(settings) => {
+                let mut kept = settings.clone();
+                kept.shapes.retain(|s| !going.contains(s));
+                (!kept.shapes.is_empty()).then_some(Self::Scatter(kept))
+            }
+            _ => (!self.sources().iter().any(|s| going.contains(s))).then(|| self.clone()),
         }
     }
 
     /// Whether an object of `kind` can be one of its sources: a lattice
-    /// reads a cage.
+    /// reads a cage, a scatter shapes.
     pub fn takes_source(&self, kind: &ObjectKind) -> bool {
         match self {
             Self::Lattice(_) => matches!(kind, ObjectKind::Lattice(_)),
-            Self::Remesh(_) | Self::Subdivide(_) | Self::Decimate(_) => kind.has_shape(),
+            Self::Remesh(_) | Self::Subdivide(_) | Self::Decimate(_) | Self::Scatter(_) => {
+                kind.has_shape()
+            }
         }
     }
 
@@ -213,6 +249,10 @@ impl ModifierKind {
             Self::Remesh(_) | Self::Subdivide(_) | Self::Decimate(_) => self.clone(),
             Self::Lattice(options) => Self::Lattice(LatticeOptions {
                 cage: rename(options.cage),
+            }),
+            Self::Scatter(settings) => Self::Scatter(ScatterSettings {
+                shapes: settings.shapes.iter().map(|s| rename(*s)).collect(),
+                ..settings.clone()
             }),
         }
     }
@@ -251,6 +291,17 @@ impl ModifierKind {
                     triangles
                 }
             }
+            // Depends on its shapes' sizes: see `work_with`.
+            Self::Scatter(settings) => crate::scatter::scatter_work(input, settings, &[]),
+        }
+    }
+
+    /// [`ModifierKind::work`], counting what its sources hold (a
+    /// scatter's work grows with its shapes' polygons).
+    pub fn work_with(&self, input: &Mesh, purpose: Purpose, sources: &[SourceShape]) -> usize {
+        match self {
+            Self::Scatter(settings) => crate::scatter::scatter_work(input, settings, sources),
+            _ => self.work(input, purpose),
         }
     }
 
@@ -281,6 +332,7 @@ impl ModifierKind {
             // (marked, or sharper than its angle).
             Self::Decimate(options) => mesh::decimate::decimate(input, options, context.hardness)
                 .map_err(|why| why.to_string()),
+            Self::Scatter(settings) => crate::scatter::apply_scatter(input, settings, context),
         }
     }
 }
@@ -318,6 +370,13 @@ pub struct SourceShape {
     pub data: SourceData,
     /// From its space into the space of the object with the modifier.
     pub matrix: Mat4,
+    /// Where its pivot is, in the space of the object with the modifier
+    /// (where a scatter's copies stand).
+    pub pivot: Vec3,
+    /// Its material slots as the object's: its slot `i` is the object's
+    /// slot `materials[i]`, matched by name (the first where the object
+    /// has none of that name), as a cutter's are.
+    pub materials: Vec<u32>,
 }
 
 /// What a modifier reads of another object.
@@ -380,6 +439,9 @@ pub enum ModifierRefusal {
     /// A source isn't a shape in the scene, is the object itself, or
     /// already depends on it.
     BadSource,
+    /// A modifier that reads other objects names none (a scatter with no
+    /// shapes).
+    NoSource,
     /// The place given isn't in the list.
     NoSuchModifier,
     /// A change gave a modifier another kind.
@@ -397,6 +459,7 @@ impl std::fmt::Display for ModifierRefusal {
             Self::BadSource => text!(
                 "a modifier reads a shape that isn't there, is the shape itself, or already uses it"
             ),
+            Self::NoSource => text!("a modifier that reads other shapes names none"),
             Self::NoSuchModifier => text!("that modifier isn't there"),
             Self::OtherKind => text!("a modifier can't change into another kind"),
         };
@@ -442,6 +505,12 @@ impl Scene {
         }
         if modifiers.len() > MAX_MODIFIERS {
             return Err(ModifierRefusal::TooMany);
+        }
+        if modifiers
+            .iter()
+            .any(|m| m.kind.needs_sources() && m.kind.sources().is_empty())
+        {
+            return Err(ModifierRefusal::NoSource);
         }
         for (kind, source) in modifiers
             .iter()
