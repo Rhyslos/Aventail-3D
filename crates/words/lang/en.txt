@@ -348,6 +348,7 @@ Change units to {}
 Change {}
 Change {} settings
 Changes apply as you make them
+Changes made while it was saving aren't in it yet.
 Changes since the last save. {} saves.
 Changing them is a step Ctrl + Z can take back
 Check for baking
@@ -715,7 +716,10 @@ Exported {} ({} triangles) into {}.
 Exported {} into {}.
 Exported {} of {} into {}.
 Exported {}{} ({} triangles{}) to {}. File → Export again repeats it.
+Exporting into the game project…
 Exporting on every save is off. File → Export to game project exports into it when you choose. It goes to:
+Exporting the kit…
+Exporting {}…
 Export…
 Extra room between a spiral's loops: how much further each full turn climbs along the spiral's middle. Past one turn the loops already clear each other, so 0 leaves them just apart; under one turn it tilts the bend into a ramp. Needs a bend radius.
 Extrude
@@ -1626,6 +1630,7 @@ Save the project under a new name or in another folder
 Saved with the project; every edit is worked out again.
 Saved {}
 Saved {}.
+Saving {}…
 Scale
 Scale UVs
 Scale the selected pieces (or whole objects) so each has the project's texel density (UV → Texture), each about its own middle
@@ -2518,6 +2523,7 @@ it is listed as an instance but stored as something else
 it isn't a curve
 it isn't a project file
 it should hold {} bytes of scene but holds {}; it may be cut short
+it stopped unexpectedly
 it was
 it was saved by a newer version of the app (file format {}; this version reads up to {}). Update the app to open it
 it wasn't saved, because the saved copy wouldn't open again ({}). Your previous save is untouched; please report this so it can be fixed
@@ -2767,6 +2773,8 @@ write
 {} 1 {}
 {} KB
 {} On Linux, install the missing library with your package manager (for example libxkbcommon-x11-0 and mesa-vulkan-drivers on Ubuntu).
+{} The app closes when it's done.
+{} Try again when it's done.
 {} across {}. Change Cuts and Position in the Attributes panel; Ctrl+Z takes it back.
 {} and {}
 {} at their middle. Ctrl + Z takes it back.

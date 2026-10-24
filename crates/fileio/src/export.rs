@@ -22,6 +22,7 @@
 //! materials of the same name are one material ([`file_materials`]).
 
 pub(crate) use collision::part_objects;
+pub use frames::Frames;
 use glam::{Mat4, Vec2, Vec3};
 pub use lods::{ExportLevel, LevelMark};
 pub(crate) use lods::{level_objects, marks as level_marks};
@@ -336,7 +337,7 @@ pub fn export_bytes(
     file_name: &str,
 ) -> Result<ExportFiles, ExportError> {
     let options = &format.options(options);
-    let objects = prepare(document, options);
+    let objects = prepare_for(document, options, format.frames());
     write_files(&objects, format, options, generator, file_name)
 }
 
@@ -354,7 +355,7 @@ pub fn write_files(
     }
     let summary = ExportSummary {
         objects: objects.len(),
-        triangles: objects.iter().map(|o| o.world.triangle_count()).sum(),
+        triangles: objects.iter().map(|o| o.built().triangle_count()).sum(),
         materials: file_materials(objects).len(),
     };
     let files = match format {
@@ -422,7 +423,7 @@ pub fn file_materials(objects: &[ExportedObject]) -> Vec<Material> {
     let mut out: Vec<Material> = Vec::new();
     for object in objects {
         let mut used = vec![false; object.materials.len()];
-        for polygon in &object.world.polygons {
+        for polygon in &object.built().polygons {
             if let Some(u) = used.get_mut(polygon.material as usize) {
                 *u = true;
             }
@@ -498,10 +499,12 @@ pub struct ExportedObject {
     pub name: String,
     /// Where its pivot is, in the file's space.
     pub pivot: Mat4,
-    /// Its shape, in the world of the file (pivot and all applied).
+    /// Its shape, in the world of the file (pivot and all applied); empty
+    /// when the export doesn't build it ([`Frames`]).
     pub world: ExportMesh,
     /// Its shape around its pivot, in the file's units and axes (for
-    /// formats that keep each object's place apart: glTF).
+    /// formats that keep each object's place apart: glTF); empty when the
+    /// export doesn't build it ([`Frames`]).
     pub local: ExportMesh,
     /// Its materials, which its polygons' slots point into (never
     /// empty: the standard material when it has none of its own).
@@ -521,6 +524,15 @@ pub struct ExportedObject {
 /// panel's order: each shown object with a shape (primitives, meshes and
 /// instances), with its shape as it is now (every edit applied).
 pub fn prepare(document: &Document, options: &ExportOptions) -> Vec<ExportedObject> {
+    prepare_for(document, options, Frames::Both)
+}
+
+/// [`prepare`], building only the placings `frames` names.
+pub fn prepare_for(
+    document: &Document,
+    options: &ExportOptions,
+    frames: Frames,
+) -> Vec<ExportedObject> {
     let scene = document.scene();
     let selection = document.selection();
     // Cutters go out as part of what they cut (decision 0135).
@@ -535,7 +547,7 @@ pub fn prepare(document: &Document, options: &ExportOptions) -> Vec<ExportedObje
                 .iter()
                 .any(|s| *s == *id || scene.is_inside(*id, *s)),
         })
-        .filter_map(|(id, _)| exported(scene, id, Mat4::IDENTITY, options))
+        .filter_map(|(id, _)| exported(scene, id, Mat4::IDENTITY, options, frames))
         .collect()
 }
 
@@ -601,6 +613,7 @@ pub fn prepare_piece(
     document: &Document,
     root: ObjectId,
     options: &ExportOptions,
+    frames: Frames,
 ) -> Vec<ExportedObject> {
     let scene = document.scene();
     let at = scene.world_matrix(root).w_axis.truncate();
@@ -611,17 +624,18 @@ pub fn prepare_piece(
         .into_iter()
         .filter(|(id, _)| *id == root || scene.is_inside(*id, root))
         .filter(|(id, _)| scene.is_shown(*id) && !cutters.contains(id))
-        .filter_map(|(id, _)| exported(scene, id, shift, options))
+        .filter_map(|(id, _)| exported(scene, id, shift, options, frames))
         .collect()
 }
 
 /// Object `id` ready to write, its place in the world moved by `shift`
-/// first; `None` without a shape.
+/// first, with the placings `frames` names; `None` without a shape.
 fn exported(
     scene: &scene::Scene,
     id: ObjectId,
     shift: Mat4,
     options: &ExportOptions,
+    frames: Frames,
 ) -> Option<ExportedObject> {
     let to_file = options.to_file();
     let from_file = to_file.inverse();
@@ -653,9 +667,16 @@ fn exported(
     } else {
         Vec::new()
     };
-    let mut levels = lods::levels(scene, id, &shape, (world, local), &shading);
-    let mut world = export_mesh(&shape, world, &shading);
-    let mut local = export_mesh(&shape, local, &shading);
+    let mut levels = lods::levels(scene, id, &shape, (world, local), &shading, frames);
+    let build = |on: bool, matrix: Mat4| {
+        if on {
+            export_mesh(&shape, matrix, &shading)
+        } else {
+            ExportMesh::default()
+        }
+    };
+    let mut world = build(frames.world(), world);
+    let mut local = build(frames.local(), local);
     // A slot with no material in the list uses the first.
     let meshes = levels
         .iter_mut()
@@ -772,6 +793,9 @@ mod axis_deform_tests;
 mod collision;
 #[cfg(test)]
 mod displace_tests;
+mod frames;
+#[cfg(test)]
+mod frames_tests;
 #[cfg(test)]
 mod game_bevel_tests;
 mod lods;

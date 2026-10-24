@@ -29,7 +29,7 @@ The interface thread draws 60+ frames a second and must never wait on slow work.
 5. **Sync:** the renderer updates GPU data only for meshes that changed, and for a mesh whose points only moved, only the vertices around them.
 6. **Draw:** viewports render with wgpu; panels (egui) draw on top.
 
-Slow work (large unwraps, booleans, exports) runs on background threads. **Background jobs never touch the scene.** They send results as messages, and the interface thread applies them at the start of the next frame.
+Slow work (large unwraps, booleans, modifiers, saves and exports) runs on background threads. **Background jobs never touch the scene.** They send results as messages, and the interface thread applies them at the start of the next frame. Saves and exports (`app::file_work`, [decision 0163](docs/decisions/0163-saving-and-exporting-in-the-background.md)) work on a copy of the document taken when they start (`Scene::copy_with_results`: shapes shared, everything worked out kept), one at a time, and report back to the workbench, which says so in the status bar; closing waits for them.
 
 ## Startup
 

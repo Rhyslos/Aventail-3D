@@ -106,6 +106,19 @@ impl CutCache {
     }
 }
 
+impl CutCache {
+    /// A copy holding the same results, for
+    /// [`crate::Scene::copy_with_results`].
+    pub(crate) fn copied(&self) -> Self {
+        Self(Mutex::new(
+            self.0
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .clone(),
+        ))
+    }
+}
+
 impl Clone for CutCache {
     fn clone(&self) -> Self {
         Self::default()

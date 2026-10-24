@@ -34,6 +34,7 @@ pub(crate) use selection::VISIBLE_ONLY_HELP;
 use std::path::PathBuf;
 mod autosaving;
 mod bars;
+pub(crate) mod file_work;
 mod files;
 mod heavy_shape;
 mod layouts;
@@ -43,6 +44,7 @@ mod requests;
 mod tabs;
 mod uv_menu;
 pub use bars::navigation_hint;
+pub use file_work::FileWork;
 pub use files::DISCARD_SHORTCUT;
 use files::file_name;
 pub(crate) use layouts::LayoutChoice;
@@ -864,6 +866,8 @@ impl Workbench {
         self.dissolve_question_window(ui.ctx());
         self.unsaved_question(ui.ctx(), &mut actions);
         self.autosave_and_recovery(ui.ctx(), &mut actions);
+        // One save or export at a time (decision 0163).
+        self.hold_file_actions(&mut actions);
 
         actions
     }
@@ -909,6 +913,8 @@ pub(crate) mod exporting;
 mod exporting_tests;
 #[cfg(test)]
 mod extrude_tests;
+#[cfg(test)]
+mod file_work_tests;
 mod game_bevel;
 #[cfg(test)]
 mod game_bevel_tests;

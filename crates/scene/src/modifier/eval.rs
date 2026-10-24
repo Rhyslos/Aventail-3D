@@ -139,6 +139,25 @@ impl StackCache {
     }
 }
 
+impl StackCache {
+    /// A copy holding the same results, for
+    /// [`crate::Scene::copy_with_results`].
+    pub(crate) fn copied(&self) -> Self {
+        fn copy<T: Clone>(m: &Mutex<T>) -> Mutex<T> {
+            Mutex::new(
+                m.lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner)
+                    .clone(),
+            )
+        }
+        Self {
+            runs: copy(&self.runs),
+            mirrored: copy(&self.mirrored),
+            estimates: copy(&self.estimates),
+        }
+    }
+}
+
 impl Clone for StackCache {
     fn clone(&self) -> Self {
         Self::default()

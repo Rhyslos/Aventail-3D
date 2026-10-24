@@ -2808,6 +2808,15 @@ impl SharedCache {
     }
 }
 
+impl SharedCache {
+    /// A copy holding the same results (shapes are shared, not copied),
+    /// for [`crate::Scene::copy_with_results`].
+    pub(crate) fn copied(&self) -> Self {
+        let entries = self.with(|cache| cache.entries.clone());
+        Self(Mutex::new(StackCache { entries }))
+    }
+}
+
 impl Clone for SharedCache {
     fn clone(&self) -> Self {
         Self::default()

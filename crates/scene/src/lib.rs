@@ -26,6 +26,7 @@ mod memory;
 pub mod mirroring;
 pub mod modifier;
 pub mod object;
+mod results_copy;
 pub mod scatter;
 pub mod snapshot;
 pub mod stack;

@@ -40,6 +40,8 @@ The **Game project** part of General says whether every save also exports into y
 
 ![The Export window with Custom settings: the file type, units, up axis and triangles as rows to choose from](../screenshots/2026-10-16-export-custom.png)
 
+**Exporting happens in the background.** A big scene takes a few seconds to export; meanwhile the status bar says *Exporting crate.glb…* with a small turning wheel, and you can keep working (what you change meanwhile goes out next time). One export (or save) at a time: another waits until this one is done, and closing the app waits too. The same goes for **Export to game project**, the export after every save, and **Export kit…**.
+
 **File → Export again** repeats the last export, to the same file, the same way: handy while you go back and forth between the app and the engine.
 
 **Shading goes out as you see it.** Each object goes out with its own [smoothing](hard-and-soft-edges.md#smoothed-by-angle): smoothed by angle (the standard), edges sharper than its angle (30° unless changed) go out crisp and the rest smooth; shaded by its marks, the edges you marked [hard](hard-and-soft-edges.md). Each corner gets the [normal](concepts.md#shading-and-normals) the viewport shows, so a model shades the same in the engine.

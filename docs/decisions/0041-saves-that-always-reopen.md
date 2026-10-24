@@ -1,6 +1,6 @@
 # 0041. Saves that always reopen
 
-- **Status:** Accepted
+- **Status:** Accepted; the save now runs on another thread ([0163](0163-saving-and-exporting-in-the-background.md)). The check itself stands.
 - **Date:** 2026-10-13
 - **Follows:** [0024](0024-saving-projects.md), [0036](0036-autosave.md); from the [whole-app review](../reviews/2026-10-13-whole-app-review.md)
 

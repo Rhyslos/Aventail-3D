@@ -64,13 +64,26 @@ impl Workbench {
     /// game project folder (decision 0076), with this outcome: the
     /// file written and what it held, or why not.
     pub fn saved_with_export(&mut self, path: PathBuf, export: Option<TargetOutcome>) {
+        self.saved_at(path, self.document.revision(), export);
+    }
+
+    /// The app saved the project as it was at `revision` to `path` (on
+    /// another thread, decision 0163), then exported it into its game
+    /// project folder with `export`'s outcome, if it does that on every
+    /// save. Changes made since are still unsaved.
+    pub fn saved_at(&mut self, path: PathBuf, revision: u64, export: Option<TargetOutcome>) {
+        self.file_work_done();
         let mut note = crate::trf!("Saved {}.", file_name(&path));
+        if revision != self.document.revision() {
+            note.push(' ');
+            note.push_str(tr("Changes made while it was saving aren't in it yet."));
+        }
         if let Some(outcome) = export {
             note.push(' ');
             note.push_str(&exporting::target_note(&outcome));
         }
         self.note = Some(note);
-        self.file.saved_revision = self.document.revision();
+        self.file.saved_revision = revision;
         self.file.remember(&path);
         self.file.path = Some(path);
         if let Some(next) = self.file.after_save.take() {
@@ -80,6 +93,7 @@ impl Workbench {
 
     /// Saving failed: says why, and stops whatever was waiting for it.
     pub fn save_failed(&mut self, reason: &str) {
+        self.file_work_done();
         self.note = Some(crate::trf!("Couldn't save: {}.", reason));
         self.file.after_save = None;
     }
@@ -153,6 +167,9 @@ impl Workbench {
     /// starts at once; opening and closing are queued for the app (handed
     /// over at once inside a frame, or on the next frame otherwise).
     fn go_ahead(&mut self, next: Pending) {
+        if self.waits_for_file_work(&next) {
+            return;
+        }
         match next {
             Pending::New => {
                 self.replace_document(self.new_document());

@@ -491,6 +491,7 @@ impl Workbench {
 
     /// The app made a kit export: says how it went.
     pub fn kit_exported(&mut self, outcome: KitOutcome) {
+        self.file_work_done();
         self.note = Some(match outcome {
             Err(why) => crate::trf!("Couldn't export the kit: {}.", why),
             Ok(pieces) => {
@@ -527,6 +528,7 @@ impl Workbench {
     /// The app exported into the game project folder (File → Export to
     /// game project): says how it went.
     pub fn target_exported(&mut self, outcome: TargetOutcome) {
+        self.file_work_done();
         self.note = Some(target_note(&outcome));
     }
 
@@ -632,6 +634,7 @@ impl Workbench {
 
     /// The app exported to `path`, as asked by an export of `request`.
     pub fn exported(&mut self, request: &ExportRequest, path: PathBuf, summary: ExportSummary) {
+        self.file_work_done();
         let choice = ExportChoice {
             preset: request.preset,
             format: request.format,
@@ -668,6 +671,7 @@ impl Workbench {
 
     /// Exporting failed: says why.
     pub fn export_failed(&mut self, reason: &str) {
+        self.file_work_done();
         self.note = Some(crate::trf!("Couldn't export: {}.", reason));
     }
 

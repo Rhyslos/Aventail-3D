@@ -30,6 +30,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **Saving and exporting no longer freeze the window.** Save, Save As, Export, Export again, Export to game project and Export kit now run in the background: the status bar says *Saving crate.avtl…* or *Exporting crate.glb…* with a small turning wheel, and you can keep working. Changes made during a save stay unsaved until the next one; another save or export waits until the first is done; closing the app waits for it.
+- **Exports are quicker.** Each object's shape was built twice, once for each way formats place objects; now only the one the file uses is built (a million-polygon glTF export: about a quarter less time).
 - **Creasing or bevel-weighting many edges at once is instant.** Setting a crease or bevel weight on 50,000 edges took about 10 seconds; it now takes a few hundredths of a second.
 - **Heavy modifiers no longer slow every frame.** While a heavy modifier was worked out in the background, the window spent up to half a second each frame guessing how heavy it was; that guess is now quick and kept. Remesh, Quadify, Scatter and Struts on big shapes guessed far too low and could freeze the window for seconds; they now go to the background as they should.
 - **A shape read by another's modifiers no longer freezes the window.** When a Shrinkwrap target, Scatter shape or other source had heavy modifiers of its own, the window waited for them; they are now worked out in the background with the modifier that reads them.

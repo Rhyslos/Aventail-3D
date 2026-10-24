@@ -58,6 +58,9 @@ pub(crate) struct ProjectFile {
     pub(crate) asking: Option<Pending>,
     /// Do this once the save the user asked for has finished.
     pub(crate) after_save: Option<Pending>,
+    /// The save or export the app is doing on another thread, if any
+    /// (decision 0163).
+    pub(crate) busy: Option<crate::workbench::FileWork>,
 }
 
 impl ProjectFile {

@@ -8,6 +8,7 @@ pub mod backups;
 pub mod branding;
 pub mod cli;
 pub mod emergency;
+pub mod file_work;
 pub mod gpu;
 pub mod platform;
 pub mod project;

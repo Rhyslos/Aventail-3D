@@ -190,7 +190,7 @@ fn an_obj_lists_each_level_as_an_object() {
 fn a_kit_piece_carries_its_levels_at_its_pivot() {
     let doc = scene();
     let sphere = named(&doc, "Sphere");
-    let piece = prepare_piece(&doc, sphere, &with_levels(true));
+    let piece = prepare_piece(&doc, sphere, &with_levels(true), Frames::Both);
     assert_eq!(piece.len(), 1);
     assert_eq!(piece[0].levels.len(), 3);
     let objects = level_objects(&piece);
