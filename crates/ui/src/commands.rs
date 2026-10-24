@@ -87,6 +87,9 @@ pub enum CommandId {
     Shrinkwrap,
     /// Add a displace modifier to the selected shapes (decision 0157).
     Displace,
+    /// Add a bend, twist or taper modifier to the selected shapes
+    /// (decision 0158): a bend, its kind changed in the Attributes panel.
+    BendTwistTaper,
     /// Add a weighted normals modifier to the selected shapes (decision
     /// 0148).
     WeightedNormals,
@@ -417,6 +420,18 @@ impl CommandId {
             Self::Displace => {
                 let kind = scene::ModifierKind::Displace(Default::default());
                 (kind.name(), Icon::Displace, None, kind.description(), None)
+            }
+            // Named for all three kinds: it adds a bend, whose kind is
+            // changed in the Attributes panel.
+            Self::BendTwistTaper => {
+                let kind = scene::ModifierKind::BendTwistTaper(Default::default());
+                (
+                    tr("Bend, twist or taper"),
+                    Icon::BendTwistTaper,
+                    None,
+                    kind.description(),
+                    None,
+                )
             }
             Self::WeldByDistanceNow => (
                 tr("Weld by distance now"),
@@ -934,6 +949,7 @@ impl CommandId {
             | Self::BendAlongCurve
             | Self::Shrinkwrap
             | Self::Displace
+            | Self::BendTwistTaper
             | Self::WeightedNormals
             | Self::GameBevel => &[Model, Object, Points, Edges, Polygons],
             // Whole shapes, or the selected polygons (decision 0150).
@@ -1198,7 +1214,7 @@ pub fn group_menu(group: CommandId, ring: &[Slot]) -> Vec<Slot> {
 /// 0150) and Weld by distance now (decision 0152), in the Mesh menu's
 /// Clean up group and command search; and the game bevel (decision 0156),
 /// beside the modifiers.
-pub const OFF_THE_RING: [CommandId; 20] = [
+pub const OFF_THE_RING: [CommandId; 21] = [
     CommandId::Union,
     CommandId::Subtract,
     CommandId::Intersect,
@@ -1215,6 +1231,7 @@ pub const OFF_THE_RING: [CommandId; 20] = [
     CommandId::BendAlongCurve,
     CommandId::Shrinkwrap,
     CommandId::Displace,
+    CommandId::BendTwistTaper,
     CommandId::WeightedNormals,
     CommandId::GameBevel,
     CommandId::QuadifyNow,
@@ -1222,7 +1239,7 @@ pub const OFF_THE_RING: [CommandId; 20] = [
 ];
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 80] = [
+pub const ALL: [CommandId; 81] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -1254,6 +1271,7 @@ pub const ALL: [CommandId; 80] = [
     CommandId::BendAlongCurve,
     CommandId::Shrinkwrap,
     CommandId::Displace,
+    CommandId::BendTwistTaper,
     CommandId::WeightedNormals,
     CommandId::GameBevel,
     CommandId::PivotToCentre,

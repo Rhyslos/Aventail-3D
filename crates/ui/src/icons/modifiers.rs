@@ -1,4 +1,4 @@
-//! The modifier icons (decisions 0142 to 0157), one per kind of
+//! The modifier icons (decisions 0142 to 0158), one per kind of
 //! modifier on the modifiers palette, the game bevel's (decision 0156)
 //! and the crease commands'. Original drawings.
 
@@ -18,6 +18,7 @@ pub(super) fn draw(pen: &mut Pen, icon: Icon) {
         Icon::BendAlongCurve => bend_along_curve(pen),
         Icon::Shrinkwrap => shrinkwrap(pen),
         Icon::Displace => displace(pen),
+        Icon::BendTwistTaper => bend_twist_taper(pen),
         Icon::WeightedNormals => weighted_normals(pen),
         Icon::GameBevel => game_bevel(pen),
         Icon::LiveBevel => live_bevel(pen),
@@ -440,4 +441,31 @@ fn displace(pen: &mut Pen) {
     pen.stroke(&[(4.0, 4.5), (6.0, 2.5), (8.0, 4.5)], false, Ink::Line);
     pen.stroke(&[(14.0, 4.0), (14.0, 11.0)], false, Ink::Line);
     pen.stroke(&[(12.0, 9.0), (14.0, 11.0), (16.0, 9.0)], false, Ink::Line);
+}
+
+/// Bend, twist or taper: an upright bar curling over to the right, the
+/// straight bar it was drawn faintly behind, slices across the bend.
+fn bend_twist_taper(pen: &mut Pen) {
+    // The straight bar before the bend.
+    let before = [(4.5, 3.0), (9.5, 3.0), (9.5, 21.0), (4.5, 21.0)];
+    pen.stroke(&before, true, Ink::Faint);
+    // The bent bar: a quarter turn round (19, 21), then straight on.
+    let (cx, cy) = (19.0, 21.0);
+    let arc = |radius: f32| -> Vec<(f32, f32)> {
+        (0..=12)
+            .map(|i| {
+                let a = std::f32::consts::PI * (1.0 - 0.5 * i as f32 / 12.0);
+                (cx + radius * a.cos(), cy - radius * a.sin())
+            })
+            .collect()
+    };
+    let (outer, inner) = (arc(14.5), arc(9.5));
+    let mut bar = outer.clone();
+    bar.extend([(22.0, 6.5), (22.0, 11.5)]);
+    bar.extend(inner.iter().rev());
+    pen.shape(&bar, Paint::Tone);
+    for i in [4, 8] {
+        pen.stroke(&[outer[i], inner[i]], false, Ink::Faint);
+    }
+    pen.stroke(&bar, true, Ink::Line);
 }

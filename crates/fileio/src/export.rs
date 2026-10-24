@@ -767,6 +767,8 @@ pub fn export_mesh(mesh: &Mesh, matrix: Mat4, options: &ExportOptions) -> Export
     out
 }
 
+#[cfg(test)]
+mod axis_deform_tests;
 mod collision;
 #[cfg(test)]
 mod displace_tests;

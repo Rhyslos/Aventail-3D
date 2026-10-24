@@ -7,6 +7,7 @@
 pub mod anchors;
 pub mod array;
 pub mod attributes;
+pub mod axis_deform;
 pub mod bake;
 pub mod bevel;
 pub mod bevel_weight;

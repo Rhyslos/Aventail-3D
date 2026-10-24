@@ -18,6 +18,7 @@ use std::sync::Arc;
 use tools::{Camera, Element, ElementKind, MeshPick, PickScene};
 
 mod collision;
+mod deform_helper;
 
 /// The mouse over a view: the view's camera, its size and where the mouse
 /// is in it (both in screen points, from the view's top-left corner).
@@ -160,6 +161,8 @@ impl ComponentTracker {
                 let mut lines = self
                     .collision
                     .lines(drawing, document.scene(), guides.collision);
+                // Bend, twist and taper helpers (decision 0158).
+                lines.extend(deform_helper::helper_lines(drawing, document.scene()));
                 lines.extend(guide_lines(drawing, kind, guides));
                 self.guides = (lines, made_for);
             }

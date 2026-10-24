@@ -488,6 +488,23 @@ impl Scene {
         }
     }
 
+    /// What the modifier at `index` in object `id`'s list last started
+    /// from in the viewport, as kept from the last time its modifiers were
+    /// worked out (the shape before them when it isn't kept, or isn't
+    /// shown in the viewport): for helpers drawn round it (decision 0158),
+    /// never worked out here.
+    pub fn modifier_input(&self, id: ObjectId, index: usize) -> Option<Arc<Mesh>> {
+        if let Some(run) = self.stacks.get(id, Purpose::Viewport)
+            && let Some(at) = run.steps.iter().position(|s| s.index == index)
+        {
+            return Some(match at.checked_sub(1) {
+                None => Arc::clone(&run.input),
+                Some(before) => last_shape(&run.input, &run.steps[..=before]),
+            });
+        }
+        self.input_if_light(id)
+    }
+
     /// The object's shape before its modifiers, unless its booleans are
     /// heavy and still to be worked out (the interface does that on
     /// another thread).
@@ -502,7 +519,7 @@ impl Scene {
 
     /// Where object `id`'s pivot is in its shape's own space (the origin
     /// for a shape whose pivot hasn't been moved off it, decision 0068).
-    fn pivot_in_shape(&self, id: ObjectId) -> glam::Vec3 {
+    pub(crate) fn pivot_in_shape(&self, id: ObjectId) -> glam::Vec3 {
         let offset = self
             .object(id)
             .map_or(glam::Mat4::IDENTITY, |o| o.offset.matrix());

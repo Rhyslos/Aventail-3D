@@ -88,6 +88,10 @@ const HANDLE_LINE_WIDTH: f32 = 1.25;
 /// a guide round the shape rather than part of it, linear space.
 const COLLISION_LINE: [f32; 4] = [0.95, 0.75, 0.1, 0.9];
 const COLLISION_LINE_WIDTH: f32 = 1.5;
+/// A deformer's helper (decision 0158): light cyan, thin, so it reads as
+/// a guide apart from collision shapes and the selection, linear space.
+const HELPER_LINE: [f32; 4] = [0.2, 0.75, 0.95, 0.95];
+const HELPER_LINE_WIDTH: f32 = 1.5;
 /// How far towards white the hovered colour is from the accent, so what
 /// is under the mouse stands out from what is selected.
 const HOVER_LIFT: f32 = 0.45;
@@ -97,7 +101,10 @@ const HOVER_LIFT: f32 = 0.45;
 /// (decision 0126).
 fn layer(style: OverlayStyle) -> u8 {
     match style {
-        OverlayStyle::Curve | OverlayStyle::Handle | OverlayStyle::Collision => 0,
+        OverlayStyle::Curve
+        | OverlayStyle::Handle
+        | OverlayStyle::Collision
+        | OverlayStyle::Helper => 0,
         OverlayStyle::CurveSelected => 1,
         OverlayStyle::Normal => 0,
         OverlayStyle::SeamPrefer | OverlayStyle::SeamNever => 1,
@@ -144,6 +151,7 @@ fn overlay_geometry(overlay: &ComponentOverlay, accent: [f32; 3], contrast: bool
             OverlayStyle::CurveSelected => (SELECTED_CURVE_WIDTH * grow, selected),
             OverlayStyle::Handle => (HANDLE_LINE_WIDTH, HANDLE_LINE),
             OverlayStyle::Collision => (COLLISION_LINE_WIDTH, COLLISION_LINE),
+            OverlayStyle::Helper => (HELPER_LINE_WIDTH, HELPER_LINE),
         };
         if contrast && matches!(style, OverlayStyle::Selected | OverlayStyle::Hovered) {
             out.line(*a, *b2, width + CONTRAST_RIM * 2.0, CONTRAST_RIM_COLOR);
@@ -166,6 +174,7 @@ fn overlay_geometry(overlay: &ComponentOverlay, accent: [f32; 3], contrast: bool
             OverlayStyle::Curve | OverlayStyle::CurveSelected => (POINT_SIZE, CURVE_LINE),
             OverlayStyle::Handle => (POINT_SIZE, PLAIN_POINT),
             OverlayStyle::Collision => (POINT_SIZE, COLLISION_LINE),
+            OverlayStyle::Helper => (POINT_SIZE, HELPER_LINE),
         };
         if contrast && matches!(style, OverlayStyle::Selected | OverlayStyle::Hovered) {
             out.point(*at, size + CONTRAST_RIM * 2.0, CONTRAST_RIM_COLOR);

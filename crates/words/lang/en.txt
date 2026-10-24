@@ -189,6 +189,7 @@ Alt + middle: orbit · Middle drag: pan · Wheel: zoom
 Alt + mouse
 Alt + mouse works in every scheme
 Alt Gr
+Amount
 An empty object to hold and organise other objects
 An instance shows its original's shape and edits: select the original to see its layers.
 An instance shows its original's shape, modifiers and all: select the original, or bake the instance into a shape first
@@ -253,6 +254,8 @@ Bend a shape along a curve: a rope, a rail, a vine. Select the shape first, then
 Bend along curve
 Bend radius
 Bend segments
+Bend, twist or taper
+Bend, twist or taper the shape along one of its axes, from its pivot: a curved horn, a twisted column, a tapered leg. Limits keep it to part of the shape. The shape needs points along the axis to bend smoothly.
 Bends: {}. Press 1 and move its points to bend them.
 Best
 Bevel
@@ -292,6 +295,7 @@ Broken handles
 Budget
 Build
 Build polygons between two open borders or two polygons; with nothing to bridge selected, drag from one open edge to another
+Bulges the middle of the limits out (above 0) or pinches it in (below 0), the ends as they were: a barrel or a waist.
 By angle
 Cage
 Cameras
@@ -318,6 +322,9 @@ Cavity
 Cells
 Centimetres
 Centre
+Centre X
+Centre Y
+Centre Z
 Centre point
 Change booleans
 Change how edits keep UVs
@@ -890,10 +897,12 @@ How far the bevel reaches into each polygon (in the object's own size). Change i
 How far the bevel reaches into the polygons on each side of an edge. Marked edges get their Bevel weight's share of it.
 How far the cross-section turns round the curve from start to end (whole turns on a closed curve)
 How far the extrude turns before going on straight: 0° is straight, 90° a corner. The pipe keeps its full width through the turn. With a bend radius it can go past 360° into a spiral (up to 3600°, ten turns): each loop climbs just clear of the one before.
+How far the far end turns round the axis compared with the centre, between the limits. Below 0, it twists the other way.
 How far the groove goes in (below 0) or the ridge comes out (above 0), in the object's own size. Change it and the shape follows.
 How far the highest bumps push the points. Below 0, the bumps go the other way: ridges and cells become grooves and dents.
 How far the pipe's middle is from the point it bends round
 How far the shading turns from the usual towards the weighted: 100% all the way, 0% not at all
+How far the shape bends over in all, between the limits: 90° lays its far end on its side, 360° curls it into a ring. Below 0, it bends the other way.
 How far two triangles may lean from each other and still be joined: low keeps the quads flat, high joins round a curve
 How finely it is cut: each step gives about four times the hexagons
 How finely pieces are fitted together
@@ -957,6 +966,7 @@ How much Relax evens UVs out
 How much of a circle: 90° for a quarter
 How much of the full shape this level keeps, as a share of its triangles. A level with a larger share than the one before is made the same as that one
 How much the biggest polygon at a point wins over the smaller ones. 0%: each counts by its weight alone; 100%: only the biggest counts, so big faces shade perfectly flat
+How much wider the shape gets towards the far end of the limits: -50% makes it half as wide there, -100% a point, 100% twice as wide. The centre keeps its size.
 How shapes are drawn: shaded, with wires, or wireframe
 How sharply the Subdivide modifier keeps these edges: 0 smooths them like any other, 1 keeps them fully sharp, 0.5 sharp for half the levels
 How sizes are shown and typed. Each project keeps its own, saved with it; only the display changes, never the shapes. Also switched in the Attributes panel's Units menu.
@@ -1066,6 +1076,7 @@ Key {}
 Keyboard
 Keyboard shortcuts
 Keys
+Kind
 Laid
 Laid flat, the piece stretched more than its budget of {:.2}×, so it was slit here, from where it was squeezed most.
 Largest size
@@ -1098,6 +1109,8 @@ Levels for export
 Levels of detail
 Lift each copy off the surface along its outward direction, or sink it in below 0 (a copy stands on its pivot: put a shape's pivot at its foot)
 Like Keep shapes, but the angles are first evened out over the whole piece, so curved pieces (a head, a dome) drift less. A little slower.
+Limit from
+Limit to
 Line
 Line only
 Line the pieces made of quads up into a straight grid, for strips and panels
@@ -1923,6 +1936,7 @@ Take this edit out. The edits after it are made again without it (Ctrl + Z bring
 Take this edit out; the edits after it are made again without it
 Take this modifier away
 Tap E to open
+Taper
 Target
 Target triangles
 Teeth
@@ -2185,6 +2199,7 @@ Weld: select two or more points first, or press Ctrl + M and drag a point onto a
 Welded 1 point away. Ctrl + Z takes it back; change the Distance under Last edit.
 Welded {} points away. Ctrl + Z takes it back; change the Distance under Last edit.
 What goes out
+What it does along the axis. Bend: curls the shape into an arc. Twist: turns each slice of it round the axis, like wringing a cloth. Taper: makes it narrower (or wider) along the axis.
 What makes a polygon count for more at its corners: its area (big faces win, the usual choice), the angle it fills there (as plain shading counts), or both
 What points, pieces, seams, pivots and the rest mean (glossary)
 What the app's words mean: points, pieces, seams, pivots, smoothing and the rest, each explained in plain words, in your web browser
@@ -2202,9 +2217,11 @@ When on, Suggest seams and Unwrap cut each piece further, a slit at a time from 
 When on, a piece made only of square-cornered quads (a cylinder's side, a bevel's strip) unwraps as a perfectly straight grid
 When on, marking or clearing seams lays the pieces around them flat again at once. Off: only the seam marks change, until you Unwrap.
 When on, the box, lasso and brush only select what you can see. When off (the standard), they select through the shape, catching its far side too.
+Where along the axis it works, from 0% (the shape's lowest point along it) to 100% (its highest). Past the limits the shape carries on unchanged, as the limit leaves it: keep a bend to the top half with 50% to 100%.
 Where closed pieces are cut open, and the stretch budget: Seam suggestions.
 Where cuts go that only make a piece lie flat (Suggest seams, and Unwrap on a closed piece)
 Where joined pieces' UVs don't meet, mark the join as a UV seam, so a later Unwrap keeps the pieces as they are laid out
+Where the centre is, from the shape's pivot. The shape bends, twists and tapers away from the centre, which stays where it is: move it (or the pivot) to bend from somewhere else.
 Where the copies go: one on each point, one on the middle of each polygon, or a number spread at random, evenly by area
 Where the cut sits across the polygons: 50% is the middle. With several cuts, it slides them all together.
 Where the file is going: this picks the right settings for it
@@ -2221,8 +2238,10 @@ Which edges are bevelled: those sharper than an angle, those the shading shows h
 Which keyboard to draw. Letters follow what is printed on your keys; the number row is always 1 to 0.
 Which level the viewport shows in the shape's place, to check how it looks from afar. Only the view changes: you still select and edit the full shape
 Which of the curve's own axes it spins round, through its pivot
+Which of the shape's own axes it works along. Z, up, bends a standing shape over, and twists and tapers it from bottom to top. The helper line in the viewport shows it.
 Which of the shape's own axes runs along the curve: its longest side, or X, Y or Z. The shape's start along it goes to the curve's start.
 Which of the shape's own axes the ring turns round. Z, up, lays it on the ground
+Which way it bends, turned round the axis: 0° bends towards the next axis round (Z towards X, X towards Y, Y towards Z), 90° a quarter turn on from there.
 Which way round it turns: 0° turns up (an upright pipe turns towards +X), and it goes round from there.
 Which way the points are pushed: out from the surface (along its normals), or straight along one of the shape's own axes, such as Z for ground and terrain.
 Which way the polygons go. Straight out is the standard.

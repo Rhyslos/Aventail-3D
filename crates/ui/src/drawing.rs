@@ -214,6 +214,9 @@ pub enum OverlayStyle {
     /// selected objects', or every object's with Display → Show
     /// collision.
     Collision,
+    /// A deformer's helper (decision 0158): a selected shape's bend,
+    /// twist or taper axis, its limits and its centre.
+    Helper,
 }
 
 /// What the Points, Edges and Polygons modes draw over the edited objects,

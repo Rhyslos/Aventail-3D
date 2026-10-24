@@ -38,6 +38,7 @@ use crate::tree::Scene;
 pub use crate::wrap::{CurveBendSettings, ShrinkwrapSettings};
 use glam::{Mat4, Vec3};
 use mesh::Mesh;
+use mesh::axis_deform::AxisDeformOptions;
 use mesh::decimate::DecimateOptions;
 use mesh::live_bevel::LiveBevelOptions;
 use mesh::quadify::QuadifyOptions;
@@ -140,6 +141,10 @@ pub enum ModifierKind {
     /// The shape's points pushed in and out by a noise (decision 0157),
     /// along their normals or an axis, everywhere or round chosen points.
     Displace(DisplaceSettings),
+    /// The shape bent, twisted or tapered along one of its axes (decision
+    /// 0158): one kind with a choice, round a centre from the pivot,
+    /// between limits along the axis.
+    BendTwistTaper(AxisDeformOptions),
 }
 
 impl ModifierKind {
@@ -156,6 +161,7 @@ impl ModifierKind {
             Self::BendAlongCurve(CurveBendSettings::default()),
             Self::Shrinkwrap(ShrinkwrapSettings::default()),
             Self::Displace(DisplaceSettings::default()),
+            Self::BendTwistTaper(AxisDeformOptions::default()),
             Self::Remesh(RemeshOptions::default()),
             Self::Decimate(DecimateOptions::default()),
             Self::Quadify(QuadifyOptions::default()),
@@ -181,6 +187,8 @@ impl ModifierKind {
             Self::Array(_) => tr("Array"),
             Self::Shell(_) => tr("Shell"),
             Self::Displace(_) => tr("Displace"),
+            // Named by what it does now, so the list reads "Bend", "Twist".
+            Self::BendTwistTaper(o) => o.kind.name(),
         }
     }
 
@@ -252,6 +260,11 @@ impl ModifierKind {
                  metal, cobbles. Smooth, ridged or cell-shaped bumps, everywhere or round chosen \
                  points. Best on a shape with plenty of points.",
             ),
+            Self::BendTwistTaper(_) => tr(
+                "Bend, twist or taper the shape along one of its axes, from its pivot: a curved \
+                 horn, a twisted column, a tapered leg. Limits keep it to part of the shape. The \
+                 shape needs points along the axis to bend smoothly.",
+            ),
         }
     }
 
@@ -263,9 +276,10 @@ impl ModifierKind {
             Self::Lattice(_) => ModifierFamily::Deform,
             Self::Decimate(_) => ModifierFamily::CleanUp,
             Self::Scatter(_) => ModifierFamily::Generate,
-            Self::BendAlongCurve(_) | Self::Shrinkwrap(_) | Self::Displace(_) => {
-                ModifierFamily::Deform
-            }
+            Self::BendAlongCurve(_)
+            | Self::Shrinkwrap(_)
+            | Self::Displace(_)
+            | Self::BendTwistTaper(_) => ModifierFamily::Deform,
             Self::WeightedNormals(_) => ModifierFamily::Game,
             Self::LiveBevel(_) | Self::Array(_) | Self::Shell(_) => ModifierFamily::Generate,
             Self::Quadify(_) | Self::WeldByDistance(_) => ModifierFamily::CleanUp,
@@ -288,7 +302,8 @@ impl ModifierKind {
             | Self::WeldByDistance(_)
             | Self::Array(_)
             | Self::Shell(_)
-            | Self::Displace(_) => false,
+            | Self::Displace(_)
+            | Self::BendTwistTaper(_) => false,
             Self::Subdivide(o) => {
                 let o = o.clamped();
                 o.levels != o.export_levels
@@ -319,6 +334,7 @@ impl ModifierKind {
             Self::Array(settings) => Self::Array(settings.clamped()),
             Self::Shell(options) => Self::Shell(options.clamped()),
             Self::Displace(settings) => Self::Displace(settings.clamped()),
+            Self::BendTwistTaper(options) => Self::BendTwistTaper(options.clamped()),
         }
     }
 
@@ -336,7 +352,8 @@ impl ModifierKind {
             | Self::Quadify(_)
             | Self::WeldByDistance(_)
             | Self::Shell(_)
-            | Self::Displace(_) => Vec::new(),
+            | Self::Displace(_)
+            | Self::BendTwistTaper(_) => Vec::new(),
             Self::Lattice(options) => vec![options.cage],
             Self::Scatter(settings) => settings.shapes.clone(),
             Self::BendAlongCurve(settings) => vec![settings.curve],
@@ -355,10 +372,11 @@ impl ModifierKind {
     }
 
     /// Whether it reads the object's own pivot ([`ModifierContext::pivot`]):
-    /// Bend along curve measures across the curve from it.
+    /// Bend along curve measures across the curve from it; Bend, twist or
+    /// taper works round it.
     pub fn reads_pivot(&self) -> bool {
         match self {
-            Self::BendAlongCurve(_) => true,
+            Self::BendAlongCurve(_) | Self::BendTwistTaper(_) => true,
             Self::Array(settings) => settings.reads_pivot(),
             _ => false,
         }
@@ -402,7 +420,8 @@ impl ModifierKind {
             | Self::Quadify(_)
             | Self::WeldByDistance(_)
             | Self::Shell(_)
-            | Self::Displace(_) => kind.has_shape(),
+            | Self::Displace(_)
+            | Self::BendTwistTaper(_) => kind.has_shape(),
         }
     }
 
@@ -418,7 +437,8 @@ impl ModifierKind {
             | Self::Quadify(_)
             | Self::WeldByDistance(_)
             | Self::Shell(_)
-            | Self::Displace(_) => self.clone(),
+            | Self::Displace(_)
+            | Self::BendTwistTaper(_) => self.clone(),
             Self::Lattice(options) => Self::Lattice(LatticeOptions {
                 cage: rename(options.cage),
             }),
@@ -502,6 +522,8 @@ impl ModifierKind {
             Self::Shell(options) => mesh::shell::work(input, options),
             // See `mesh::displace::work` for the timings.
             Self::Displace(settings) => settings.work(input),
+            // About 20 points cost as much as one polygon in a boolean.
+            Self::BendTwistTaper(_) => mesh::axis_deform::work(input),
         }
     }
 
@@ -566,6 +588,10 @@ impl ModifierKind {
             Self::Shell(options) => mesh::shell::shell(input, options, crate::MAX_SHAPE_POLYGONS)
                 .map_err(|why| why.to_string()),
             Self::Displace(settings) => crate::displace::apply_displace(input, settings, context),
+            Self::BendTwistTaper(options) => {
+                mesh::axis_deform::axis_deform(input, options, context.pivot)
+                    .map_err(|why| why.to_string())
+            }
         }
     }
 
@@ -579,8 +605,8 @@ impl ModifierKind {
     /// crack spoils each of them (decision 0152); a Shell before Live
     /// bevel, Subdivide and Weighted normals, so its rims are bevelled
     /// and smoothed with the rest and the normals are weighted last
-    /// (decision 0154); Displace before Weighted normals, which shades
-    /// best last (decision 0157). The person can move it afterwards.
+    /// (decision 0154); Displace and Bend, twist or taper before Weighted
+    /// normals, which shades best last (decisions 0157 and 0158). The person can move it afterwards.
     pub fn goes_before(&self, other: &Self) -> bool {
         match self {
             Self::LiveBevel(_) => {
@@ -603,7 +629,9 @@ impl ModifierKind {
                 other,
                 Self::LiveBevel(_) | Self::Subdivide(_) | Self::WeightedNormals(_)
             ),
-            Self::Displace(_) => matches!(other, Self::WeightedNormals(_)),
+            Self::Displace(_) | Self::BendTwistTaper(_) => {
+                matches!(other, Self::WeightedNormals(_))
+            }
             _ => false,
         }
     }
