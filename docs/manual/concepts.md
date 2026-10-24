@@ -33,6 +33,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Weld** — Melting points into one, at their middle or onto a chosen point. Polygons squeezed to fewer than three corners disappear. See [Connect, Bridge and Weld](connect-bridge-weld.md).
 
+**Crack** — Two points sitting on one spot without being joined, so the polygons either side don't share their edge: the surface looks whole but has an open [border](#mesh-basics) there. Imported models are often cracked along every UV seam and hard edge. **Weld by distance** — Melting every pair of points closer together than a tiny distance into one, closing the cracks all over a shape at once. See [Weld by distance](weld-by-distance.md).
+
 **Dissolve** — Removing an edge or point without leaving a hole: the polygons around it merge into one. *Deleting* removes the polygons too, and leaves a hole. See [Clean-up](clean-up.md).
 
 **Bent polygon** (non-planar polygon) — A polygon whose corners don't all lie flat on one plane, like two sides of a box merged into one round the corner. It can't be drawn as one flat shape, so it's cut into triangles along its fold; it shades less cleanly than flat polygons and game engines may cut it differently. Dissolve asks before making one across a sharp corner. See [Clean-up](clean-up.md#dissolving-across-a-sharp-corner).
