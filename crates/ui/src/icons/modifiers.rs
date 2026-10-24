@@ -1,4 +1,4 @@
-//! The modifier icons (decisions 0142 and 0143), one per kind of
+//! The modifier icons (decisions 0142 to 0144), one per kind of
 //! modifier on the modifiers palette, and the crease commands'. Original
 //! drawings.
 
@@ -12,6 +12,7 @@ pub(super) fn draw(pen: &mut Pen, icon: Icon) {
         Icon::Creases => creases(pen),
         Icon::CreaseEdges => crease_edges(pen),
         Icon::Uncrease => uncrease(pen),
+        Icon::Lattice => lattice(pen),
         _ => {}
     }
 }
@@ -109,4 +110,36 @@ fn remesh(pen: &mut Pen) {
         );
     }
     pen.ring((cx, cy), (r, r), Ink::Line);
+}
+
+/// Lattice: a cage of three by three points with its right side pulled
+/// out, and the shape inside swelling with it.
+fn lattice(pen: &mut Pen) {
+    // The cage's points, row by row: the right column bulges outward.
+    let cage: [[(f32, f32); 3]; 3] = [
+        [(3.0, 4.0), (11.0, 4.0), (19.0, 2.5)],
+        [(3.0, 12.0), (11.0, 12.0), (22.0, 12.0)],
+        [(3.0, 20.0), (11.0, 20.0), (19.0, 21.5)],
+    ];
+    let inside = [
+        (6.0, 7.0),
+        (11.0, 7.0),
+        (16.0, 6.5),
+        (19.0, 12.0),
+        (16.0, 17.5),
+        (11.0, 17.0),
+        (6.0, 17.0),
+    ];
+    pen.shape(&inside, Paint::Tone);
+    pen.stroke(&inside, true, Ink::Faint);
+    for row in &cage {
+        pen.stroke(row, false, Ink::Line);
+    }
+    for column in 0..3 {
+        let line: Vec<(f32, f32)> = cage.iter().map(|row| row[column]).collect();
+        pen.stroke(&line, false, Ink::Line);
+    }
+    for (x, y) in cage.iter().flatten() {
+        pen.dot(*x, *y, 1.6);
+    }
 }

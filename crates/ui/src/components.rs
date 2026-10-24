@@ -429,17 +429,15 @@ fn build(
     overlay
 }
 
-/// The curves' lines (decision 0138), in the world: each shown curve's,
-/// in the selection colour when selected; in the Points mode, a selected
-/// curve's handles and its points and handle ends too (the selected and
+/// The curves' lines (decision 0138) and the lattice cages' (decision
+/// 0144), in the world: each shown one's, in the selection colour when
+/// selected; in the Points mode, a selected curve's handles and its points
+/// and handle ends, and a selected cage's points, too (the selected and
 /// hovered ones are drawn over them).
 fn curve_marks(drawing: &SceneDrawing, kind: Option<ElementKind>) -> CurveMarks {
     let mut lines = Vec::new();
     let mut points = Vec::new();
     for item in &drawing.items {
-        let Some(curve) = &item.curve else {
-            continue;
-        };
         if !item.transform.is_finite() {
             continue;
         }
@@ -448,6 +446,19 @@ fn curve_marks(drawing: &SceneDrawing, kind: Option<ElementKind>) -> CurveMarks 
             OverlayStyle::CurveSelected
         } else {
             OverlayStyle::Curve
+        };
+        if let Some(cage) = &item.cage {
+            for [a, b] in &cage.lines {
+                lines.push(([world(*a), world(*b)], style));
+            }
+            if item.selected && kind == Some(ElementKind::Points) {
+                for at in &cage.points {
+                    points.push((world(*at), OverlayStyle::Handle));
+                }
+            }
+        }
+        let Some(curve) = &item.curve else {
+            continue;
         };
         for pair in curve.line.windows(2) {
             lines.push(([world(pair[0]), world(pair[1])], style));
@@ -610,6 +621,9 @@ pub(crate) fn describe(document: &Document, (id, element): ObjectElement) -> Str
             scene::PartKind::Out => crate::trf!("the out handle of point {} of {}", point, name),
         };
     }
+    if let (Some(_), Element::Point(v)) = (object.and_then(|o| o.kind.lattice()), element) {
+        return crate::trf!("cage point {} of {}", v.get(), name);
+    }
     match element {
         Element::Point(v) => crate::trf!("point {} of {}", v.get(), name),
         Element::Edge(e) => {
@@ -640,6 +654,7 @@ mod tests {
                 hardness: mesh::Hardness::Marked,
                 outline: false,
                 curve: None,
+                cage: None,
             }],
             editing: true,
             points: false,
@@ -828,6 +843,7 @@ mod tests {
                 hardness: mesh::Hardness::Marked,
                 outline: false,
                 curve: None,
+                cage: None,
             }],
             editing: true,
             points: false,

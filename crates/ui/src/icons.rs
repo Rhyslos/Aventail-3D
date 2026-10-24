@@ -189,6 +189,9 @@ pub enum Icon {
     /// Subdivide (decision 0143): a dashed square cage and the rounded
     /// shape it makes.
     Subdivide,
+    /// Lattice (decision 0144): a cage of points pulled out on one side,
+    /// the shape inside swelling with it.
+    Lattice,
     /// Creases (decision 0143): a shape sharp along one edge.
     Creases,
     /// Crease edges: the sharp edge drawn bold.
@@ -260,7 +263,7 @@ pub enum Icon {
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 117] = [
+pub const ALL: [Icon; 118] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -344,6 +347,7 @@ pub const ALL: [Icon; 117] = [
     Icon::Intersect,
     Icon::Remesh,
     Icon::Subdivide,
+    Icon::Lattice,
     Icon::Creases,
     Icon::CreaseEdges,
     Icon::Uncrease,
@@ -468,9 +472,12 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         | Icon::ApplyTransforms
         | Icon::EditLayer => modelling::draw(&mut pen, icon),
         Icon::Union | Icon::Subtract | Icon::Intersect => booleans::draw(&mut pen, icon),
-        Icon::Remesh | Icon::Subdivide | Icon::Creases | Icon::CreaseEdges | Icon::Uncrease => {
-            modifiers::draw(&mut pen, icon)
-        }
+        Icon::Remesh
+        | Icon::Subdivide
+        | Icon::Lattice
+        | Icon::Creases
+        | Icon::CreaseEdges
+        | Icon::Uncrease => modifiers::draw(&mut pen, icon),
         Icon::DrawCurve
         | Icon::CurveLine
         | Icon::CurveCircle

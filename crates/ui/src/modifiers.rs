@@ -12,19 +12,21 @@ use crate::palette::{ButtonState, icon_button};
 use crate::text::tr;
 use egui::Ui;
 use scene::{
-    Command, Document, MAX_MODIFIERS, ModifierFamily, ModifierKind, ObjectId, ObjectKind,
-    RemeshOptions, SubdivideOptions,
+    Command, Document, LatticeOptions, MAX_MODIFIERS, ModifierFamily, ModifierKind, ObjectId,
+    ObjectKind, RemeshOptions, SubdivideOptions,
 };
 
 /// One command per kind of modifier, in the order of
 /// [`ModifierKind::standard_kinds`].
-pub(crate) const COMMANDS: [CommandId; 2] = [CommandId::Subdivide, CommandId::Remesh];
+pub(crate) const COMMANDS: [CommandId; 3] =
+    [CommandId::Subdivide, CommandId::Lattice, CommandId::Remesh];
 
 /// The modifier (with its standard settings) a command adds.
 pub(crate) fn kind_of(command: CommandId) -> Option<ModifierKind> {
     match command {
         CommandId::Remesh => Some(ModifierKind::Remesh(RemeshOptions::default())),
         CommandId::Subdivide => Some(ModifierKind::Subdivide(SubdivideOptions::default())),
+        CommandId::Lattice => Some(ModifierKind::Lattice(LatticeOptions::default())),
         _ => None,
     }
 }
@@ -43,7 +45,8 @@ pub(crate) fn targets(doc: &Document) -> Result<Vec<ObjectId>, &'static str> {
             continue;
         };
         match object.kind {
-            ObjectKind::Group => continue,
+            // Groups have no shape, and a cage isn't bent by cages.
+            ObjectKind::Group | ObjectKind::Lattice(_) => continue,
             ObjectKind::Instance(_) => {
                 return Err(tr(
                     "An instance shows its original's shape, modifiers and all: select the \
@@ -58,7 +61,9 @@ pub(crate) fn targets(doc: &Document) -> Result<Vec<ObjectId>, &'static str> {
         out.push(id);
     }
     if out.is_empty() {
-        return Err(tr("A group has no shape of its own: select shapes"));
+        return Err(tr(
+            "Groups and lattice cages have no shape of their own: select shapes",
+        ));
     }
     Ok(out)
 }
@@ -67,6 +72,14 @@ pub(crate) fn targets(doc: &Document) -> Result<Vec<ObjectId>, &'static str> {
 /// shapes, or why it can't.
 pub(crate) fn command(doc: &Document, command: CommandId) -> Result<Command, &'static str> {
     let kind = kind_of(command).ok_or(tr("That isn't a modifier"))?;
+    if let ModifierKind::Lattice(_) = kind {
+        // A lattice needs its cage: one fitted round the shapes (decision
+        // 0144).
+        return Ok(Command::AddLattice {
+            ids: targets(doc)?,
+            divisions: scene::Lattice::STANDARD_DIVISIONS,
+        });
+    }
     Ok(Command::AddModifier {
         ids: targets(doc)?,
         kind,
@@ -129,7 +142,12 @@ mod tests {
         assert_eq!(kinds.len(), COMMANDS.len());
         for (kind, command) in kinds.iter().zip(COMMANDS) {
             assert_eq!(kind_of(command).as_ref(), Some(kind));
-            assert_eq!(command.name(), kind.name());
+            if command == CommandId::Lattice {
+                // It makes a cage too, so it says "Add" (decision 0144).
+                assert_eq!(command.name(), tr("Add lattice"));
+            } else {
+                assert_eq!(command.name(), kind.name());
+            }
             assert!(crate::commands::OFF_THE_RING.contains(&command));
         }
         assert_eq!(kind_of(CommandId::Move), None);
@@ -161,5 +179,34 @@ mod tests {
         let add = command(&doc, CommandId::Remesh).unwrap();
         doc.execute(add).unwrap();
         assert_eq!(doc.scene().modifiers(cube).len(), 1);
+    }
+
+    #[test]
+    fn add_lattice_makes_a_cage_round_the_selected_shapes() {
+        let mut doc = Document::new();
+        doc.execute(Command::Create(ObjectKind::Primitive(
+            scene::PrimitiveKind::Cube.standard(),
+        )))
+        .unwrap();
+        let cube = doc.selection()[0];
+        let add = command(&doc, CommandId::Lattice).unwrap();
+        assert!(matches!(
+            add,
+            Command::AddLattice {
+                divisions: [2, 2, 2],
+                ..
+            }
+        ));
+        doc.execute(add).unwrap();
+        let cage = doc.selection()[0];
+        assert!(matches!(
+            doc.scene().object(cage).unwrap().kind,
+            ObjectKind::Lattice(_)
+        ));
+        assert_eq!(doc.scene().modifiers(cube).len(), 1);
+        // The cage alone selected: nothing to bend.
+        assert!(targets(&doc).is_err());
+        doc.set_selection([cage, cube]);
+        assert_eq!(targets(&doc), Ok(vec![cube]));
     }
 }

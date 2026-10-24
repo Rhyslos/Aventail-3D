@@ -327,7 +327,7 @@ impl Scene {
         }
         let object = self.object(id).ok_or(BooleanRefusal::NotAShape)?;
         match object.kind {
-            ObjectKind::Group => return Err(BooleanRefusal::NotAShape),
+            _ if !object.kind.has_shape() => return Err(BooleanRefusal::NotAShape),
             ObjectKind::Instance(_) => return Err(BooleanRefusal::Instance),
             _ => {}
         }

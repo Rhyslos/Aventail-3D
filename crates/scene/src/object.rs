@@ -57,6 +57,12 @@ pub enum ObjectKind {
     /// no recorded edits: its points are edited directly, through
     /// commands; Bake into shape turns its solid into a plain mesh.
     Curve(crate::CurveObject),
+    /// A lattice cage (decision 0144): a box of points that bends the
+    /// shapes whose Lattice modifier names it. Drawn as lines; its points
+    /// are edited directly in the Points mode, through commands. It has
+    /// no shape of its own: it is never exported, and takes no edits,
+    /// booleans or modifiers.
+    Lattice(mesh::lattice::Lattice),
 }
 
 impl ObjectKind {
@@ -68,12 +74,13 @@ impl ObjectKind {
             Self::Mesh(_) => tr("Mesh"),
             Self::Instance(_) => tr("Instance"),
             Self::Curve(c) => c.shape.name(),
+            Self::Lattice(_) => tr("Lattice"),
         }
     }
 
     /// Whether this kind has a shape (and so can have edits recorded).
     pub fn has_shape(&self) -> bool {
-        !matches!(self, Self::Group)
+        !matches!(self, Self::Group | Self::Lattice(_))
     }
 
     /// The base's box, in the object's own space, before any recorded
@@ -82,6 +89,7 @@ impl ObjectKind {
     pub fn local_bounds(&self) -> Option<Bounds> {
         match self {
             Self::Group | Self::Instance(_) => None,
+            Self::Lattice(l) => Bounds::around(l.points().iter().copied()),
             Self::Primitive(p) => Some(p.bounds()),
             Self::Mesh(mesh) => mesh.bounds(),
             Self::Curve(c) => {
@@ -100,12 +108,20 @@ impl ObjectKind {
     /// the scene ([`crate::Scene::evaluated`]).
     pub fn mesh(&self) -> Option<Mesh> {
         match self {
-            Self::Group | Self::Instance(_) => None,
+            Self::Group | Self::Instance(_) | Self::Lattice(_) => None,
             Self::Primitive(p) => Some(p.mesh()),
             Self::Mesh(mesh) => Some((**mesh).clone()),
             // Without the scene, a sweep along another curve's cross-section
             // can't be made: ask the scene for the final shape.
             Self::Curve(c) => c.mesh(None),
+        }
+    }
+
+    /// The cage, for a lattice object (decision 0144).
+    pub fn lattice(&self) -> Option<&mesh::lattice::Lattice> {
+        match self {
+            Self::Lattice(l) => Some(l),
+            _ => None,
         }
     }
 

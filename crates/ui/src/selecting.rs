@@ -25,7 +25,7 @@ use crate::drawing::SceneDrawing;
 use crate::palette::Mode;
 use crate::text::tr;
 use egui::{Key, KeyboardShortcut, Modifiers};
-use glam::Vec2;
+use glam::{Vec2, Vec3};
 use mesh::{Topology, selection as ops};
 use scene::{Combine, Document, Element, ElementKind, ElementSelection, ObjectId};
 use serde::{Deserialize, Serialize};
@@ -274,11 +274,24 @@ impl Selector<'_> {
                 // other shape is under the mouse (decision 0135).
                 let items = &self.drawing.items;
                 let solid = |i: usize| items.get(i).is_some_and(|item| !item.outline);
-                let found = self
-                    .scene
-                    .object_under_preferring(&pointer.camera, pointer.size, pointer.at, &solid)
-                    .and_then(|i| self.drawing.items.get(i))
-                    .map(|item| item.id)
+                // A lattice cage's line in front of any surface (decision
+                // 0144): a cage hugs its shape, so its lines lie along the
+                // shape's own edges.
+                let surface =
+                    self.scene
+                        .surface_distance(&pointer.camera, pointer.size, pointer.at);
+                let found = cage_line_under(self.drawing, &pointer, surface)
+                    .or_else(|| {
+                        self.scene
+                            .object_under_preferring(
+                                &pointer.camera,
+                                pointer.size,
+                                pointer.at,
+                                &solid,
+                            )
+                            .and_then(|i| self.drawing.items.get(i))
+                            .map(|item| item.id)
+                    })
                     // A curve's line has no surface to hit (decision 0138).
                     .or_else(|| curve_line_under(self.drawing, &pointer));
                 self.combine_objects(found, how);
@@ -999,24 +1012,33 @@ mod tests;
 /// How near (screen points) the mouse must be to a curve's line to pick it.
 const CURVE_REACH: f32 = 6.0;
 
-/// Each shown curve's line on screen, in pieces (decision 0138).
+/// Each shown curve's line on screen, in pieces (decision 0138), and
+/// each line of each shown lattice cage (decision 0144): picked alike, as
+/// neither has a surface to click.
 fn curve_lines_on_screen<'a>(
     drawing: &'a SceneDrawing,
     camera: &'a Camera,
     size: Vec2,
 ) -> impl Iterator<Item = (ObjectId, Vec<Option<Vec2>>)> + 'a {
-    drawing.items.iter().filter_map(move |item| {
-        let curve = item.curve.as_ref()?;
-        if !item.transform.is_finite() {
-            return None;
-        }
-        let screen = curve
-            .line
-            .iter()
-            .map(|p| camera.project(item.transform.transform_point3(*p), size))
-            .collect();
-        Some((item.id, screen))
-    })
+    drawing
+        .items
+        .iter()
+        .filter(|item| item.transform.is_finite())
+        .flat_map(move |item| {
+            let on_screen = |p: &Vec3| camera.project(item.transform.transform_point3(*p), size);
+            let mut lines: Vec<(ObjectId, Vec<Option<Vec2>>)> = Vec::new();
+            if let Some(curve) = &item.curve {
+                lines.push((item.id, curve.line.iter().map(on_screen).collect()));
+            }
+            if let Some(cage) = &item.cage {
+                lines.extend(
+                    cage.lines
+                        .iter()
+                        .map(|line| (item.id, line.iter().map(on_screen).collect())),
+                );
+            }
+            lines
+        })
 }
 
 /// The curve whose line passes nearest `pointer`, within [`CURVE_REACH`]:
@@ -1037,6 +1059,48 @@ fn curve_line_under(drawing: &SceneDrawing, pointer: &ViewPointer) -> Option<Obj
             let d = pointer.at.distance(a + along * t);
             if d <= CURVE_REACH && best.is_none_or(|(b, _)| d < b) {
                 best = Some((d, id));
+            }
+        }
+    }
+    best.map(|(_, id)| id)
+}
+
+/// The lattice cage whose line passes nearest `pointer`, within
+/// [`CURVE_REACH`], and not behind the surface `surface` along the ray
+/// through the mouse (decision 0144).
+fn cage_line_under(
+    drawing: &SceneDrawing,
+    pointer: &ViewPointer,
+    surface: Option<f32>,
+) -> Option<ObjectId> {
+    let ray = pointer.camera.ray_through(pointer.at, pointer.size);
+    let mut best: Option<(f32, ObjectId)> = None;
+    for item in &drawing.items {
+        let Some(cage) = &item.cage else {
+            continue;
+        };
+        if !item.transform.is_finite() {
+            continue;
+        }
+        for line in &cage.lines {
+            let [a, b] = line.map(|p| item.transform.transform_point3(p));
+            let (Some(sa), Some(sb)) = (
+                pointer.camera.project(a, pointer.size),
+                pointer.camera.project(b, pointer.size),
+            ) else {
+                continue;
+            };
+            let along = sb - sa;
+            let t = if along.length_squared() > 1e-9 {
+                ((pointer.at - sa).dot(along) / along.length_squared()).clamp(0.0, 1.0)
+            } else {
+                0.0
+            };
+            let d = pointer.at.distance(sa + along * t);
+            let depth = (a + (b - a) * t - ray.origin).dot(ray.direction);
+            let in_front = surface.is_none_or(|s| depth <= s + (s * 0.01).max(1.0));
+            if d <= CURVE_REACH && in_front && best.is_none_or(|(b, _)| d < b) {
+                best = Some((d, item.id));
             }
         }
     }

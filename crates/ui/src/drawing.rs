@@ -49,6 +49,36 @@ pub struct DrawItem {
     /// moved as a mesh's points are; in the Edges and Polygons modes they
     /// are empty (a curve has none of its own). `drawn` is its solid.
     pub curve: Option<Arc<CurveDrawing>>,
+    /// For a lattice cage (decision 0144): its lines and points. In the
+    /// Points mode, a selected cage's `mesh` and `shown` are its points as
+    /// loose points (named by their place in the cage), so they are found,
+    /// selected and moved as a mesh's points are; otherwise they are empty.
+    /// `drawn` is always empty: a cage has no surface.
+    pub cage: Option<Arc<CageDrawing>>,
+}
+
+/// What is drawn of a lattice cage, in its own space (decision 0144).
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct CageDrawing {
+    /// Each line between neighbouring points.
+    pub lines: Vec<[Vec3; 2]>,
+    /// Its points.
+    pub points: Vec<Vec3>,
+}
+
+impl CageDrawing {
+    /// The drawing of `lattice`.
+    pub fn of(lattice: &scene::Lattice) -> Self {
+        let points = lattice.points().to_vec();
+        Self {
+            lines: lattice
+                .lines()
+                .into_iter()
+                .map(|(a, b)| [points[a], points[b]])
+                .collect(),
+            points,
+        }
+    }
 }
 
 /// What is drawn of a curve object, in its own space (decision 0138).
@@ -329,9 +359,15 @@ impl DrawingCache {
                 .object(id)
                 .and_then(|o| o.kind.curve())
                 .map(|c| c.shape.curve());
+            // A cage is drawn as its lines (decision 0144).
+            let cage = scene.object(id).and_then(|o| o.kind.lattice()).cloned();
             let shape = match (scene.evaluated(id), &curve) {
                 (Some(shape), _) => shape,
                 (None, Some(_)) => scene::Evaluated {
+                    mesh: Arc::new(Mesh::default()),
+                    warnings: Vec::new(),
+                },
+                (None, None) if cage.is_some() => scene::Evaluated {
                     mesh: Arc::new(Mesh::default()),
                     warnings: Vec::new(),
                 },
@@ -366,6 +402,28 @@ impl DrawingCache {
                     .map_or_else(|| Arc::clone(&cut), Arc::new)
             };
             let selected = document.is_selected(id);
+            if let Some(cage) = cage {
+                // Its points to edit in the Points mode, else nothing to
+                // pick but its lines.
+                let points = match editing {
+                    Some(ElementKind::Points) if selected => Arc::new(cage.points_mesh()),
+                    _ => Arc::new(Mesh::default()),
+                };
+                items.push(DrawItem {
+                    id,
+                    drawn: Arc::new(Mesh::default()),
+                    shown: Arc::clone(&points),
+                    mesh: points,
+                    transform: scene.shape_matrix(id),
+                    selected,
+                    colors: Vec::new(),
+                    hardness,
+                    outline: false,
+                    curve: None,
+                    cage: Some(Arc::new(CageDrawing::of(&cage))),
+                });
+                continue;
+            }
             let (mesh, shown, curve) = match curve {
                 Some(curve) => {
                     // Its points to edit in the Points mode; nothing in the
@@ -394,6 +452,7 @@ impl DrawingCache {
                 hardness,
                 outline: cutters.contains(&id),
                 curve,
+                cage: None,
             });
         }
         // Each live mirror's planes, once, around the objects that use

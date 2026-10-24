@@ -60,6 +60,9 @@ pub enum CommandId {
     /// Add a subdivision smoothing modifier to the selected shapes
     /// (decision 0143).
     Subdivide,
+    /// Add a lattice cage round the selected shapes, each with a Lattice
+    /// modifier following it (decision 0144).
+    Lattice,
     // ------------------------------------------- pivots (the Object mode)
     /// Move the selected objects' pivots to the middle of their shapes.
     PivotToCentre,
@@ -341,6 +344,17 @@ impl CommandId {
             Self::Subdivide => {
                 let kind = scene::ModifierKind::Subdivide(Default::default());
                 (kind.name(), Icon::Subdivide, None, kind.description(), None)
+            }
+            // Adding a lattice makes its cage too (decision 0144).
+            Self::Lattice => {
+                let kind = scene::ModifierKind::Lattice(Default::default());
+                (
+                    tr("Add lattice"),
+                    Icon::Lattice,
+                    None,
+                    kind.description(),
+                    None,
+                )
             }
             Self::PivotToCentre => (
                 tr("Pivot to centre"),
@@ -754,9 +768,12 @@ impl CommandId {
             // in the modifiers palette and the Mesh menu, not the tool
             // menu (decision 0135).
             // So do modifiers (decision 0142).
-            Self::Union | Self::Subtract | Self::Intersect | Self::Remesh | Self::Subdivide => {
-                &[Model, Object, Points, Edges, Polygons]
-            }
+            Self::Union
+            | Self::Subtract
+            | Self::Intersect
+            | Self::Remesh
+            | Self::Subdivide
+            | Self::Lattice => &[Model, Object, Points, Edges, Polygons],
             Self::Extrude => &[Points, Edges, Polygons],
             Self::Bridge => &[Edges, Polygons],
             Self::Inset | Self::FlipNormals => &[Polygons],
@@ -1012,16 +1029,17 @@ pub fn group_menu(group: CommandId, ring: &[Slot]) -> Vec<Slot> {
 /// The commands with no place on the tool menu: the booleans (decision
 /// 0135) and the modifiers (decision 0142), found in the modifiers
 /// palette, the Mesh menu and command search.
-pub const OFF_THE_RING: [CommandId; 5] = [
+pub const OFF_THE_RING: [CommandId; 6] = [
     CommandId::Union,
     CommandId::Subtract,
     CommandId::Intersect,
     CommandId::Remesh,
     CommandId::Subdivide,
+    CommandId::Lattice,
 ];
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 65] = [
+pub const ALL: [CommandId; 66] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -1042,6 +1060,7 @@ pub const ALL: [CommandId; 65] = [
     CommandId::Intersect,
     CommandId::Remesh,
     CommandId::Subdivide,
+    CommandId::Lattice,
     CommandId::PivotToCentre,
     CommandId::PivotToOrigin,
     CommandId::PivotToObject,

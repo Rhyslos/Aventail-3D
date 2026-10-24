@@ -3,7 +3,7 @@
 //! after it; heavy work handed out to run on another thread, as heavy
 //! booleans are (decision 0135).
 
-use super::{ModifierContext, ModifierKind, Purpose, SourceShape};
+use super::{ModifierContext, ModifierKind, Purpose, SourceData, SourceShape};
 use crate::object::ObjectId;
 use crate::tree::Scene;
 use mesh::Mesh;
@@ -487,9 +487,17 @@ impl Scene {
             .into_iter()
             .filter(|source| *source != id)
             .filter_map(|source| {
+                // A lattice's cage is read as its points (decision 0144);
+                // anything else as its final shape.
+                let data = match &self.object(source)?.kind {
+                    crate::ObjectKind::Lattice(cage) => {
+                        SourceData::Cage(std::sync::Arc::new(cage.clone()))
+                    }
+                    _ => SourceData::Shape(self.final_shape(source, purpose)?),
+                };
                 Some(SourceShape {
                     id: source,
-                    mesh: self.final_shape(source, purpose)?,
+                    data,
                     matrix: back * self.shape_matrix(source),
                 })
             })

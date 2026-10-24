@@ -270,6 +270,9 @@ pub(crate) struct PointsStart {
     /// parts' codes (`mesh::curve::CurvePart::code`), and the change
     /// moves them through a curve edit.
     pub(crate) curve: bool,
+    /// Whether the object is a lattice cage (decision 0144): `points` are
+    /// its points' places, and the change moves them through a cage edit.
+    pub(crate) cage: bool,
 }
 
 /// A drag of points' undo label, from its verb and count ("Move 1
@@ -513,6 +516,7 @@ impl Target {
                         slide: None,
                         follows,
                         curve: item.curve.is_some(),
+                        cage: item.cage.is_some(),
                     });
                 }
                 let first = starts.first()?;
@@ -619,6 +623,16 @@ impl Target {
                             id: s.id,
                             edit: scene::CurveEdit::Transform {
                                 parts,
+                                matrix: inverse * m * s.world,
+                            },
+                        }];
+                    }
+                    if s.cage {
+                        // A lattice cage's points (decision 0144).
+                        return vec![Command::EditLattice {
+                            id: s.id,
+                            edit: scene::LatticeEdit::Transform {
+                                points: s.points.iter().map(|v| v.get()).collect(),
                                 matrix: inverse * m * s.world,
                             },
                         }];
