@@ -247,8 +247,14 @@ impl MeshGeometry {
     /// Whether moving points from where they are in `before` to `after`
     /// can be brought up to date with [`Self::moved`]: always for shading
     /// by the marks; by angle, only while no edge around them turns
-    /// sharp or soft (otherwise build it afresh).
+    /// sharp or soft (otherwise build it afresh); never with custom
+    /// normals.
     pub fn can_follow(&self, before: &Mesh, after: &Mesh, moved: &[VertexId]) -> bool {
+        // Custom normals (decision 0148) are set, not worked out from the
+        // points round them: build afresh.
+        if mesh::custom_normals::has_custom_normals(after) {
+            return false;
+        }
         match self.hardness {
             mesh::Hardness::Marked => true,
             mesh::Hardness::ByAngle(angle) => {
@@ -580,6 +586,30 @@ mod tests {
         pulled.set_position(corner, p + Vec3::X * 200.0);
         assert!(!by_angle.can_follow(&cylinder, &pulled, &[corner]));
         assert!(marked.can_follow(&cylinder, &pulled, &[corner]));
+    }
+
+    #[test]
+    fn custom_normals_are_drawn_and_always_rebuilt() {
+        // A cube with weighted normals and every edge smoothed over: each
+        // vertex points out of its corner (decision 0148).
+        let cube = PrimitiveKind::Cube.standard().mesh();
+        let options = mesh::weighted_normals::WeightedNormalsOptions {
+            keep_hard_edges: false,
+            ..Default::default()
+        };
+        let smooth =
+            mesh::weighted_normals::weighted_normals(&cube, &options, mesh::Hardness::Marked);
+        let geometry = MeshGeometry::new(&smooth);
+        let middle = smooth.bounds().unwrap().centre();
+        for v in &geometry.vertices {
+            let out = (Vec3::from(v.position) - middle).normalize();
+            assert!(Vec3::from(v.normal).dot(out) > 0.999);
+        }
+        // Moving a point can't be followed: the normals are set.
+        let (v, p) = smooth.vertices().next().unwrap();
+        let mut moved = smooth.clone();
+        moved.set_position(v, p + Vec3::Z);
+        assert!(!geometry.can_follow(&smooth, &moved, &[v]));
     }
 
     #[test]

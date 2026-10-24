@@ -213,6 +213,7 @@ Apply {}
 Apply {} mirrors
 Arc
 Arch
+Area and angle
 Arrives with the tools in Phase 3
 As in this app; Blender and 3ds Max's own axes
 As many points as it has now, spread evenly
@@ -413,6 +414,7 @@ Copy the selected objects, with their edits, right where they are. Or Ctrl + C, 
 Copy the selected shape's settings
 Copy works on whole objects: go back to the Model mode (the top of the left palette) first.
 Copy: select the objects to copy first.
+Corner angle
 Corner radius
 Corners rounded: radius {} (cut back where it doesn't fit). Change the radius under Round corners in the Attributes panel. Ctrl + Z takes it back.
 Couldn't apply the mirror: {}.
@@ -683,6 +685,7 @@ Extrude works on polygons or edges: press 3 for the Polygons mode, or 2 for Edge
 Extrude works on polygons, edges or points: press 3 for the Polygons mode (2 for Edges, 1 for Points) and select some.
 Extrude: drag anywhere in the viewport, the way the selected polygons (or open border edges) should go. Shift for fine steps; Esc or a right click cancels.
 Extrude: select the points all the way round a polygon (a cap's rim) to push it out, or two or more points next to each other along an open edge (the edge of a plane, or a hole) to grow new polygons from it.
+Face influence
 Faces squashed flat to a line or a point: invisible, but they still count and can break tools.
 Fast
 File
@@ -844,6 +847,7 @@ How far the cross-section turns round the curve from start to end (whole turns o
 How far the extrude turns before going on straight: 0° is straight, 90° a corner. The pipe keeps its full width through the turn. With a bend radius it can go past 360° into a spiral (up to 3600°, ten turns): each loop climbs just clear of the one before.
 How far the groove goes in (below 0) or the ridge comes out (above 0), in the object's own size. Change it and the shape follows.
 How far the pipe's middle is from the point it bends round
+How far the shading turns from the usual towards the weighted: 100% all the way, 0% not at all
 How finely it is cut: each step gives about four times the hexagons
 How finely pieces are fitted together
 How high it climbs, bottom to top
@@ -897,6 +901,7 @@ How many triangles to end with. Fewer can't always be reached: kept lines' corne
 How modelling edits fix the UVs they break (saved with the project)
 How much Relax evens UVs out
 How much of a circle: 90° for a quarter
+How much the biggest polygon at a point wins over the smaller ones. 0%: each counts by its weight alone; 100%: only the biggest counts, so big faces shade perfectly flat
 How shapes are drawn: shaded, with wires, or wireframe
 How sharply the Subdivide modifier keeps these edges: 0 smooths them like any other, 1 keeps them fully sharp, 0.5 sharp for half the levels
 How sizes are shown and typed. Each project keeps its own, saved with it; only the display changes, never the shapes. Also switched in the Attributes panel's Units menu.
@@ -992,6 +997,7 @@ Keep the lines where one material meets another exactly where they are
 Keep the newest
 Keep the points this far off the target's surface, along the way it faces: a little above it stops the two flickering through each other. Below 0, inside it.
 Keep the selected points' handles in one line, so the curve bends through without a kink: dragging one handle turns the other
+Keep the shading crisp along the edges the object's shading shows hard (marked, or sharper than its Smoothing angle). Off, the whole shape shades smooth.
 Keep together
 Key {}
 Keyboard
@@ -1345,6 +1351,7 @@ Points at the middle this close to their mirror become one, so the halves join i
 Points on the same spot make polygons with no area and break the shading there. Fix welds each group into one point.
 Points that no face uses.
 Points, Edges, Polygons
+Polygon area
 Polygon centres
 Polygons
 Polygons folded over or squashed flat get no pixels of their own, so the bake smears or comes out back to front there. Fix unwraps their pieces.
@@ -1585,6 +1592,7 @@ Settings…
 Shade the selected edges (or the selected polygons' edges) as crisp edges: the light breaks there
 Shade the selected edges (or the selected polygons' edges) smoothly: the light flows across, so a curve looks round
 Shade the selected objects by angle: edges where polygons meet more sharply than {}° are crisp, the rest smooth, after every change. Untick it to shade them only by the hard edges you mark. Each object keeps its own (the Attributes panel shows its angle).
+Shade with bigger polygons counting for more, so a bevelled shape's big flat faces look flat and its bevels look round. Exported with the shape: best as the last modifier.
 Shaded
 Shaded with wires
 Shading
@@ -2020,6 +2028,8 @@ Viewport display
 Visible
 Voxel size
 Warnings
+Weight by
+Weighted normals
 Weld
 Weld curve ends
 Weld distance
@@ -2035,6 +2045,7 @@ Weld: press on a polygon of a selected object and drag it onto a point.
 Weld: select a polygon first (its points melt into one at its middle), or press Ctrl + M and drag a polygon onto a point.
 Weld: select two or more points first, or press Ctrl + M and drag a point onto another.
 What goes out
+What makes a polygon count for more at its corners: its area (big faces win, the usual choice), the angle it fills there (as plain shading counts), or both
 What points, pieces, seams, pivots and the rest mean (glossary)
 What the app's words mean: points, pieces, seams, pivots, smoothing and the rest, each explained in plain words, in your web browser
 What the curve makes
@@ -2522,6 +2533,7 @@ write
 {} chosen
 {} closer than {} px to other pieces
 {} colour
+{} comes after this and changes the shape, so these normals are dropped: move Weighted normals to the end with Down.
 {} could not open its window: {}\n
 {} curve point{} or handle{} deleted. Ctrl + Z takes it back.
 {} cut into sliver triangles

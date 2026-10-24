@@ -633,4 +633,26 @@ fn files_for_outside_checkers() {
         ..ExportOptions::default()
     };
     write("godot-collision.glb", &godot, &godot_options);
+
+    // Weighted normals (decision 0148): custom normals in NORMAL, and the
+    // tangents made from them.
+    let mut weighted = scene_of(&[PrimitiveKind::Cylinder, PrimitiveKind::Cube]);
+    let ids: Vec<_> = weighted
+        .scene()
+        .walk()
+        .into_iter()
+        .map(|(id, _)| id)
+        .collect();
+    for (id, keep_hard_edges) in ids.into_iter().zip([true, false]) {
+        weighted
+            .execute(Command::AddModifier {
+                ids: vec![id],
+                kind: scene::ModifierKind::WeightedNormals(scene::WeightedNormalsOptions {
+                    keep_hard_edges,
+                    ..Default::default()
+                }),
+            })
+            .unwrap();
+    }
+    write("weighted-normals.glb", &weighted, &plain);
 }

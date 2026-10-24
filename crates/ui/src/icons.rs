@@ -204,6 +204,10 @@ pub enum Icon {
     /// Shrinkwrap (decision 0147): a sheet pulled down onto a hump,
     /// arrows pressing it on.
     Shrinkwrap,
+    /// Weighted normals (decision 0148): a bevelled box seen from the
+    /// side, the arrows on its flat top all straight up, those on its
+    /// rounded corners fanning round.
+    WeightedNormals,
     /// Creases (decision 0143): a shape sharp along one edge.
     Creases,
     /// Crease edges: the sharp edge drawn bold.
@@ -275,7 +279,7 @@ pub enum Icon {
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 122] = [
+pub const ALL: [Icon; 123] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -364,6 +368,7 @@ pub const ALL: [Icon; 122] = [
     Icon::Scatter,
     Icon::BendAlongCurve,
     Icon::Shrinkwrap,
+    Icon::WeightedNormals,
     Icon::Creases,
     Icon::CreaseEdges,
     Icon::Uncrease,
@@ -495,6 +500,7 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         | Icon::Scatter
         | Icon::BendAlongCurve
         | Icon::Shrinkwrap
+        | Icon::WeightedNormals
         | Icon::Creases
         | Icon::CreaseEdges
         | Icon::Uncrease => modifiers::draw(&mut pen, icon),

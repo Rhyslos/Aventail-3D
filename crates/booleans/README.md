@@ -6,7 +6,7 @@ Booleans between closed shapes: union, subtract and intersect.
 
 ## Purpose
 
-Works out a shape cut by other shapes (its *cutters*), as an ordinary polygon mesh with its values carried over: polygons rebuilt from Manifold's triangles, materials and UVs from the polygon each part came from (the cutter's own for its faces), hard edges and seams kept along original edges, and the new edges along the cut made seams (where there are UVs) and hard where the surfaces meet sharply. See [decision 0135](../../docs/decisions/0135-live-booleans.md). The scene uses it to show live booleans; this crate knows nothing about objects.
+Works out a shape cut by other shapes (its *cutters*), as an ordinary polygon mesh with its values carried over: polygons rebuilt from Manifold's triangles, materials and UVs from the polygon each part came from (the cutter's own for its faces), hard edges and seams kept along original edges, and the new edges along the cut made seams (where there are UVs) and hard where the surfaces meet sharply. Custom normals aren't carried: a cut shape's shading is worked out again ([decision 0148](../../docs/decisions/0148-weighted-normals.md)). See [decision 0135](../../docs/decisions/0135-live-booleans.md). The scene uses it to show live booleans; this crate knows nothing about objects.
 
 ## Must never
 

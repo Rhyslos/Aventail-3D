@@ -25,6 +25,7 @@ pub mod stack;
 pub mod tree;
 pub mod trim;
 pub mod units;
+pub mod weighted;
 pub mod wrap;
 
 pub use boolean::{
@@ -52,6 +53,7 @@ pub use mesh::scatter::{PlaceOn, ScatterOptions};
 pub use mesh::shrinkwrap::{ShrinkwrapOptions, WrapMode};
 pub use mesh::subdivide::SubdivideOptions;
 pub use mesh::uvs::{BUDGET_RANGE, SeamPreference, UvLayout};
+pub use mesh::weighted_normals::{WeightBy, WeightedNormalsOptions};
 pub use mesh::{
     Bounds, Combine, EdgeKey, Element, ElementKind, ElementSelection, FaceId, Hardness, Mesh,
     Primitive, PrimitiveKind, VertexId,
@@ -119,5 +121,7 @@ mod tests;
 mod uv_pin_tests;
 #[cfg(test)]
 mod uv_survive_tests;
+#[cfg(test)]
+mod weighted_tests;
 #[cfg(test)]
 mod wrap_tests;

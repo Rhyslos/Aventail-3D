@@ -230,7 +230,10 @@ impl StackJob {
                 sources: planned.sources.clone(),
                 pivot: planned.pivot,
             };
-            let result = planned.kind.apply(&input, &context).and_then(|mesh| {
+            let result = planned.kind.apply(&input, &context).and_then(|mut mesh| {
+                if !planned.kind.carries_custom_normals() {
+                    mesh::custom_normals::forget_custom_normals(&mut mesh);
+                }
                 if mesh.face_count() > crate::MAX_SHAPE_POLYGONS {
                     Err(words::trf!(
                         "the result would have more than {} polygons",

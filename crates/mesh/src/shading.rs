@@ -6,8 +6,10 @@
 //! joined to this face across soft edges, each counted by the angle it
 //! fills at that point. Across a hard edge the shading
 //! breaks, giving a crisp edge; across soft edges it flows, giving a
-//! smooth curve. Normals are always worked out like this, never stored
-//! (DESIGN.md §4.1).
+//! smooth curve. Normals are worked out like this, not stored (DESIGN.md
+//! §4.1), except where a corner has a custom normal
+//! ([`crate::custom_normals`], decision 0148: the Weighted normals
+//! modifier's), which takes the worked-out one's place.
 //!
 //! The shading can also break by angle instead of by the marks
 //! ([`Hardness::ByAngle`], [decision 0064](../../../docs/decisions/0064-automatic-hard-edges.md)):
@@ -155,6 +157,39 @@ pub fn corner_shading_with(mesh: &Mesh, hardness: Hardness) -> (Vec<u32>, Vec<Ve
                 .unwrap_or(face_normals[f]);
         }
     }
+    match crate::custom_normals::custom_normal_list(mesh) {
+        Some(custom) => with_custom_normals(groups, normals, &custom),
+        None => (groups, normals),
+    }
+}
+
+/// `groups` and `normals` with the custom normals set on corners
+/// ([`crate::custom_normals`]) taking the place of the worked-out ones.
+/// Corners of one smooth group whose normals now differ are split into
+/// groups of their own (one per direction), so a group still shades with
+/// one normal.
+fn with_custom_normals(
+    groups: Vec<u32>,
+    mut normals: Vec<Vec3>,
+    custom: &[Option<Vec3>],
+) -> (Vec<u32>, Vec<Vec3>) {
+    for (k, normal) in normals.iter_mut().enumerate() {
+        if let Some(Some(set)) = custom.get(k) {
+            *normal = *set;
+        }
+    }
+    // Each (group, direction)'s first corner: corners come in order, so
+    // the first met is the smallest, as groups are named.
+    let mut first: std::collections::HashMap<(u32, [u32; 3]), u32> =
+        std::collections::HashMap::new();
+    let groups = groups
+        .iter()
+        .enumerate()
+        .map(|(k, group)| {
+            let bits = normals[k].to_array().map(f32::to_bits);
+            *first.entry((*group, bits)).or_insert(k as u32)
+        })
+        .collect();
     (groups, normals)
 }
 

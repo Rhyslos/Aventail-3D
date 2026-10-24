@@ -729,4 +729,6 @@ pub fn export_mesh(mesh: &Mesh, matrix: Mat4, options: &ExportOptions) -> Export
 }
 
 #[cfg(test)]
+mod normals_tests;
+#[cfg(test)]
 mod tests;

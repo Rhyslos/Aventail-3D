@@ -1004,6 +1004,8 @@ mod transform;
 mod uv_editor_tests;
 #[cfg(test)]
 mod uv_hand_tests;
+#[cfg(test)]
+mod weighted_tests;
 
 #[cfg(test)]
 mod autosave_tests;
