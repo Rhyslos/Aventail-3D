@@ -228,6 +228,56 @@ fn a_lattice_cage_exports_nothing_and_its_shape_goes_out_bent() {
 }
 
 #[test]
+fn a_moved_instance_of_a_lattice_bent_shape_goes_out_with_the_same_bend() {
+    // Decision 0142: an instance shows (and exports) its original's final
+    // shape, its modifiers' sources placed in the original's space.
+    let (mut doc, cube) = with(PrimitiveKind::Cube);
+    doc.execute(Command::AddLattice {
+        ids: vec![cube],
+        divisions: [2, 2, 2],
+    })
+    .unwrap();
+    let cage = doc.selection()[0];
+    let lattice = doc
+        .scene()
+        .object(cage)
+        .unwrap()
+        .kind
+        .lattice()
+        .unwrap()
+        .clone();
+    let corner: Vec<u32> = (0..lattice.point_count())
+        .filter(|i| lattice.rest(*i).z > 0.0 && lattice.rest(*i).x > 0.0)
+        .map(|i| i as u32)
+        .collect();
+    doc.execute(Command::EditLattice {
+        id: cage,
+        edit: scene::LatticeEdit::Transform {
+            points: corner,
+            matrix: glam::Mat4::from_translation(Vec3::Z * 50.0),
+        },
+    })
+    .unwrap();
+    doc.execute(Command::Duplicate {
+        ids: vec![cube],
+        instances: true,
+    })
+    .unwrap();
+    let instance = doc.selection()[0];
+    doc.execute(Command::SetTransforms(vec![(
+        instance,
+        scene::Transform {
+            position: Vec3::new(500.0, 0.0, 0.0),
+            ..scene::Transform::default()
+        },
+    )]))
+    .unwrap();
+    let out = prepare(&doc, &ExportOptions::default());
+    let local = |id| &out.iter().find(|o| o.id == id).unwrap().local.points;
+    assert_eq!(local(instance), local(cube));
+}
+
+#[test]
 fn a_moved_pivot_keeps_the_shape_and_places_the_local_one_around_it() {
     let (mut doc, cube) = with(PrimitiveKind::Cube);
     doc.execute(Command::MovePivots(vec![(
