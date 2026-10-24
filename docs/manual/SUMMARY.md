@@ -43,6 +43,8 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Remesh: rebuild a closed shape as an even surface of quads](remesh.md)
 - [Subdivide: smooth a shape by subdividing it, with creases to keep edges sharp](subdivide.md)
 - [Scatter: copies of other shapes spread over a surface, rocks on the ground, rivets on a plate](scatter.md)
+- [Bend along curve: a shape bent along a curve, a rope, a rail, a vine](bend-along-curve.md)
+- [Shrinkwrap: a shape's points moved onto another's surface, straps, decals, roads on terrain](shrinkwrap.md)
 - [Lattice: a cage of points round shapes; move its points to bend, squash and swell them](lattice.md)
 - [Decimate: fewer polygons, the same shape, for game budgets and levels of detail](decimate.md)
 - [Curves: draw a line or start from a circle, arc or spiral, then sweep it into a pipe or rail, or lathe it into a vase](curves.md)
