@@ -174,12 +174,14 @@ pub struct ViewportRenderer {
     pick_pipeline: wgpu::RenderPipeline,
     tint_pipeline: wgpu::RenderPipeline,
     sprite_pipeline: wgpu::RenderPipeline,
+    on_top_pipeline: wgpu::RenderPipeline,
     picker: Picker,
     axes: Option<GpuBuffer>,
     faces: Option<GpuBuffer>,
     edges: Option<GpuBuffer>,
     overlay_tints: Option<GpuBuffer>,
     overlay_sprites: Option<GpuBuffer>,
+    overlay_on_top: Option<GpuBuffer>,
     mesh_face_pipeline: wgpu::RenderPipeline,
     mesh_pick_pipeline: wgpu::RenderPipeline,
     mesh_line_pipeline: wgpu::RenderPipeline,
@@ -339,12 +341,14 @@ impl ViewportRenderer {
             pick_pipeline: pipeline(PipelineKind::PickDepth),
             tint_pipeline: pipeline(PipelineKind::Tints),
             sprite_pipeline: pipeline(PipelineKind::Sprites),
+            on_top_pipeline: pipeline(PipelineKind::SpritesOnTop),
             picker: Picker::new(device, &bind_group_layout),
             axes: GpuBuffer::new(device, "ground axes", &ground_axes(GRID_HALF_EXTENT)),
             faces: None,
             edges: None,
             overlay_tints: None,
             overlay_sprites: None,
+            overlay_on_top: None,
             mesh_face_pipeline: pipeline(PipelineKind::MeshFaces),
             mesh_pick_pipeline: pipeline(PipelineKind::MeshPickDepth),
             mesh_line_pipeline: pipeline(PipelineKind::MeshLines),
@@ -551,6 +555,7 @@ impl ViewportRenderer {
     pub fn set_overlay(&mut self, device: &wgpu::Device, overlay: &Overlay) {
         self.overlay_tints = GpuBuffer::new(device, "overlay tints", &overlay.tints);
         self.overlay_sprites = GpuBuffer::new(device, "overlay sprites", &overlay.sprites);
+        self.overlay_on_top = GpuBuffer::new(device, "overlay on top", &overlay.on_top);
     }
 
     /// Asks what is under a pixel, without waiting: the answer arrives
@@ -857,6 +862,12 @@ impl ViewportRenderer {
                 pass.set_pipeline(&self.sprite_pipeline);
                 pass.set_vertex_buffer(0, sprites.buffer.slice(..));
                 pass.draw(0..6, 0..sprites.count);
+            }
+            // Helpers that run through shapes, over everything.
+            if let Some(on_top) = &self.overlay_on_top {
+                pass.set_pipeline(&self.on_top_pipeline);
+                pass.set_vertex_buffer(0, on_top.buffer.slice(..));
+                pass.draw(0..6, 0..on_top.count);
             }
         }
         queue.submit([encoder.finish()]);

@@ -666,6 +666,32 @@ fn the_overlay_draws_points_thick_lines_and_tints_hidden_behind_surfaces() {
     assert!(!is_red(clean.at(near_corner)));
 }
 
+#[test]
+fn lines_on_top_show_through_surfaces() {
+    // Decision 0158: a deformer's axis runs through its shape, so it is
+    // drawn over everything, where an ordinary overlay line is hidden.
+    use render::Overlay;
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, target) = setup(&gpu, [640, 400]);
+    let camera = Camera::default();
+    let h = TEST_CUBE_SIZE / 2.0;
+    let red = [1.0, 0.0, 0.0, 1.0];
+    // Up through the middle of the cube, hidden inside it.
+    let (a, b) = (Vec3::ZERO, Vec3::Z * TEST_CUBE_SIZE);
+    let middle = Vec3::new(0.0, 0.0, h);
+    let mut overlay = Overlay::default();
+    overlay.line(a, b, 6.0, red);
+    renderer.set_overlay(&gpu.device, &overlay);
+    let shot = render(&gpu, &renderer, &target, camera, NO_GRID);
+    assert!(!is_red(shot.at(middle)), "an ordinary line is hidden");
+    let mut overlay = Overlay::default();
+    overlay.line_on_top(a, b, 6.0, red);
+    assert!(!overlay.is_empty());
+    renderer.set_overlay(&gpu.device, &overlay);
+    let shot = render(&gpu, &renderer, &target, camera, NO_GRID);
+    assert!(is_red(shot.at(middle)), "a line on top shows through");
+}
+
 // ---------------------------------------------------------- object meshes ---
 
 /// The cube as an object mesh, the renderer's own test cube removed.

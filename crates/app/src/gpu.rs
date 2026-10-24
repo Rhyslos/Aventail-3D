@@ -156,6 +156,12 @@ fn overlay_geometry(overlay: &ComponentOverlay, accent: [f32; 3], contrast: bool
         if contrast && matches!(style, OverlayStyle::Selected | OverlayStyle::Hovered) {
             out.line(*a, *b2, width + CONTRAST_RIM * 2.0, CONTRAST_RIM_COLOR);
         }
+        // A deformer's helper runs through its shape: drawn over it
+        // (decision 0158).
+        if *style == OverlayStyle::Helper {
+            out.line_on_top(*a, *b2, width, color);
+            continue;
+        }
         out.line(*a, *b2, width, color);
     }
     let mut points: Vec<&(glam::Vec3, OverlayStyle)> = overlay.points.iter().collect();
@@ -669,6 +675,25 @@ mod tests {
         assert_eq!(selected.width, SELECTED_POINT_SIZE);
         assert_eq!(selected.color, [1.0, 0.0, 0.0, 1.0]);
         assert!(overlay_geometry(&ComponentOverlay::default(), [1.0; 3], false).is_empty());
+    }
+
+    #[test]
+    fn helpers_are_drawn_on_top() {
+        // Decision 0158: a deformer's axis runs through its shape.
+        let overlay = ComponentOverlay {
+            version: 1,
+            points: Vec::new(),
+            lines: vec![
+                ([Vec3::ZERO, Vec3::Z], OverlayStyle::Helper),
+                ([Vec3::ZERO, Vec3::X], OverlayStyle::Selected),
+            ],
+            tints: Vec::new(),
+        };
+        let geometry = overlay_geometry(&overlay, [1.0, 0.0, 0.0], false);
+        assert_eq!(geometry.sprites.len(), 1);
+        assert_eq!(geometry.on_top.len(), 1);
+        assert_eq!(geometry.on_top[0].color, HELPER_LINE);
+        assert_eq!(geometry.on_top[0].width, HELPER_LINE_WIDTH);
     }
 
     #[test]

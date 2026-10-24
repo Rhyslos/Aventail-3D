@@ -79,11 +79,14 @@ impl Sprite {
 /// as small squares, lines a few pixels thick, and see-through tinted
 /// triangles. Kept apart from the [`Shape`] so moving the mouse only
 /// rebuilds this small layer. Everything stays hidden behind surfaces in
-/// front of it.
+/// front of it, except the lines in [`Overlay::on_top`].
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Overlay {
     /// Points and thick lines.
     pub sprites: Vec<Sprite>,
+    /// Thick lines drawn over everything, never hidden behind surfaces
+    /// (decision 0158: a deformer's axis runs through its shape).
+    pub on_top: Vec<Sprite>,
     /// See-through triangles laid on faces.
     pub tints: Vec<LineVertex>,
 }
@@ -110,6 +113,17 @@ impl Overlay {
         });
     }
 
+    /// Adds a line from `a` to `b`, `width` pixels thick, drawn over
+    /// everything: never hidden behind a surface.
+    pub fn line_on_top(&mut self, a: Vec3, b: Vec3, width: f32, color: [f32; 4]) {
+        self.on_top.push(Sprite {
+            a: a.to_array(),
+            b: b.to_array(),
+            width,
+            color,
+        });
+    }
+
     /// Adds a see-through triangle.
     pub fn triangle(&mut self, corners: [Vec3; 3], color: [f32; 4]) {
         for c in corners {
@@ -122,7 +136,7 @@ impl Overlay {
 
     /// Whether there is nothing to draw.
     pub fn is_empty(&self) -> bool {
-        self.sprites.is_empty() && self.tints.is_empty()
+        self.sprites.is_empty() && self.tints.is_empty() && self.on_top.is_empty()
     }
 }
 

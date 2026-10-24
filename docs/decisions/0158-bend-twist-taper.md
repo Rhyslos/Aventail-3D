@@ -57,7 +57,7 @@ Past the limits:
 
 - **Bend, twist or taper** (`CommandId::BendTwistTaper`) on the modifiers palette after Displace, in **Mesh → Modifiers** under *Deform*, and in command search, named for all three kinds (it adds a Bend; its Kind is changed in the Attributes panel). Its icon (drawn in code): an upright bar curling over to the right, the straight bar faintly behind it, slices across the bend.
 - **The Attributes panel** (`attributes/axis_deform_rows.rs`): **Kind**, **Axis**, then by kind **Angle** and **Direction** (bend), **Angle** (twist), **Amount** and **Curve** (taper, as percentages), then **Limit from**, **Limit to** (percentages) and **Centre X**, **Y**, **Z** (lengths in the project's units). One drag is one undo step.
-- **The helper** (`components/deform_helper.rs`): for each selected shape (not a cutter), its helpers' lines, in the world, added to the overlay's guide lines (rebuilt when the drawing changes, as collision outlines are, decision 0151), in every mode, as a new **`OverlayStyle::Helper`**: light cyan, 1.5 points wide, drawn under the selection. The centre is a small cross along the shape's axes, a quarter of a limit cross. Hidden when the modifier is off or not shown in the viewport.
+- **The helper** (`components/deform_helper.rs`): for each selected shape (not a cutter), its helpers' lines, in the world, added to the overlay's guide lines (rebuilt when the drawing changes, as collision outlines are, decision 0151), in every mode, as a new **`OverlayStyle::Helper`**: light cyan, 1.5 points wide, drawn **over everything**, as the axis runs through the middle of the shape where the depth test would hide it: the renderer's overlay gets lines on top (`Overlay::line_on_top`, a `SpritesOnTop` pipeline with no depth test, drawn last). The centre is a small cross along the shape's axes, a quarter of a limit cross. Hidden when the modifier is off or not shown in the viewport.
 - **No new keys or mouse actions.**
 
 ### Saving
@@ -80,13 +80,14 @@ Made for the project lead (decision 0028), each the common choice that clashes w
 - **Past the limits the shape carries on rigidly**, as the limit leaves it.
 - A bend's **Direction** is measured from the next axis round (Z bends towards X, X towards Y, Y towards Z).
 - A taper never goes **thinner than a point** (no turning inside out).
-- The **helper** is light cyan lines (the axis as it bends, a cross at each limit, a small cross at the centre), drawn over the selected shape in every mode, through the shape.
+- The **helper** is light cyan lines (the axis as it bends, a cross at each limit, a small cross at the centre), drawn over the selected shape in every mode, **showing through the shape** (as 3ds Max's gizmos do).
 - A new one goes **before Weighted normals**, otherwise at the end.
 
 ## Consequences
 
 - Projects with a Bend, twist or taper modifier need this version of the app or later.
 - `ModifierKind::name()` can now depend on a kind's settings (the Kind); undo labels follow it.
+- The renderer's overlay can draw lines over everything (`Overlay::line_on_top`); only helpers use it, so the selection and the edited elements still hide behind surfaces as before.
 - `Scene::modifier_input` gives any later modifier that draws a helper (a wireframe's preview, a mirror plane) the shape it starts from without working anything out.
 - The deformer groundwork (`mesh::deform`) is now used by the Lattice and Bend, twist or taper through `deform`, and by Displace through `with_points_moved`.
 - Not yet: a *Stretch* kind (Blender's), a taper on one side axis only, a centre following another object, and dragging the helper's limits in the viewport (they are set in the Attributes panel).

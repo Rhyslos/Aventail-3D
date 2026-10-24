@@ -22,6 +22,9 @@ pub(crate) enum PipelineKind {
     Tints,
     /// The overlay's points and thick lines, a fixed size on screen.
     Sprites,
+    /// The same, drawn over everything, never hidden: helpers that run
+    /// through a shape (a deformer's axis, decision 0158).
+    SpritesOnTop,
     /// An object's mesh, placed in the world: its faces.
     MeshFaces,
     /// The same, for depth only (picking).
@@ -106,7 +109,7 @@ pub(crate) fn create_pipeline(
             wgpu::PrimitiveTopology::TriangleList,
             line_buffers,
         ),
-        PipelineKind::Sprites => (
+        PipelineKind::Sprites | PipelineKind::SpritesOnTop => (
             "overlay sprite pipeline",
             "sprite_vs",
             "sprite_fs",
@@ -152,6 +155,7 @@ pub(crate) fn create_pipeline(
             | PipelineKind::Lines
             | PipelineKind::Tints
             | PipelineKind::Sprites
+            | PipelineKind::SpritesOnTop
             | PipelineKind::MeshLines
             | PipelineKind::MeshPoints
             | PipelineKind::Cavity
@@ -166,7 +170,7 @@ pub(crate) fn create_pipeline(
             | PipelineKind::MeshPickDepth
     );
     let depth_write = faces;
-    let depth_compare = if kind == PipelineKind::Sky {
+    let depth_compare = if matches!(kind, PipelineKind::Sky | PipelineKind::SpritesOnTop) {
         wgpu::CompareFunction::Always
     } else {
         wgpu::CompareFunction::LessEqual
