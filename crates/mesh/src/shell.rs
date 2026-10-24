@@ -275,11 +275,22 @@ fn back_layer(
 }
 
 /// How much work a shell is, in polygons of a boolean's worth (see the
-/// note on [`WORK_SHARE`]).
+/// note on [`WORK_SHARE`]). Quick, as it is asked for often: the rims are
+/// counted (which needs the shape's edges) only for shapes of fewer than
+/// [`COUNT_RIMS_BELOW`] polygons; a bigger shape is heavy whatever its
+/// borders, and counts its two sides.
 pub fn work(input: &Mesh, options: &ShellOptions) -> usize {
-    let polygons = usize::try_from(polygon_count(input, options)).unwrap_or(usize::MAX);
-    polygons / WORK_SHARE
+    let polygons = if input.face_count() < COUNT_RIMS_BELOW {
+        polygon_count(input, options)
+    } else {
+        (input.face_count() as u64).saturating_mul(2)
+    };
+    usize::try_from(polygons).unwrap_or(usize::MAX) / WORK_SHARE
 }
+
+/// Below this many polygons, [`work`] counts a shell's rims too (finding
+/// the borders of 20 000 polygons takes about 2 ms in a release build).
+const COUNT_RIMS_BELOW: usize = 20_000;
 
 /// How many polygons of a shell's result cost as much as one polygon in
 /// a boolean, for [`work`].

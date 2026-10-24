@@ -445,7 +445,7 @@ fn the_same_shape_always_gives_the_same_struts() {
     assert_eq!(a, b);
     assert_eq!(
         work(&input, &sides(5)),
-        polygon_count(&input, &sides(5)) as usize / 4
+        polygon_count(&input, &sides(5)) as usize / WORK_SHARE
     );
 }
 

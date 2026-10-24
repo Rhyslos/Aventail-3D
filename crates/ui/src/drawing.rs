@@ -318,6 +318,9 @@ pub(crate) struct DrawingCache {
     /// Each object's last shape after its modifiers, to show while newer
     /// work is done.
     last_stack: std::collections::HashMap<ObjectId, Arc<Mesh>>,
+    /// Selected objects' modifiers being worked out for an export on other
+    /// threads, only to show their problems in the Attributes panel.
+    exporting: std::collections::HashMap<ObjectId, std::thread::JoinHandle<scene::StackDone>>,
     /// Heavy levels of detail being made on other threads (decision 0155).
     lodding: std::collections::HashMap<ObjectId, std::thread::JoinHandle<scene::LodDone>>,
     /// Each previewed object's last level drawn, to show while newer work
@@ -338,6 +341,7 @@ impl DrawingCache {
         self.cutting.clear();
         self.last_stack.clear();
         self.stacking.clear();
+        self.exporting.clear();
         self.last_lod.clear();
         self.lodding.clear();
     }
@@ -358,6 +362,10 @@ impl DrawingCache {
         if self.collect_stacks(document.scene()) || cuts || lods {
             self.built_for = None;
         }
+        // Nothing to draw changes when an export's problems come in.
+        if self.collect_export_problems(document.scene()) {
+            self.find_export_problems(document);
+        }
         let key = (
             document.revision(),
             document.selection(),
@@ -367,6 +375,7 @@ impl DrawingCache {
         if self.built_for.as_ref() == Some(&key) {
             return &self.summary;
         }
+        self.find_export_problems(document);
         let scene = document.scene();
         let cutters = scene.cutters();
         let mut items = Vec::new();
@@ -539,7 +548,10 @@ impl DrawingCache {
     /// Whether heavy cuts or modifiers are being worked out on other
     /// threads (the window keeps drawing until they are in).
     pub(crate) fn busy(&self) -> bool {
-        !self.cutting.is_empty() || !self.stacking.is_empty() || !self.lodding.is_empty()
+        !self.cutting.is_empty()
+            || !self.stacking.is_empty()
+            || !self.lodding.is_empty()
+            || !self.exporting.is_empty()
     }
 
     /// Hands every finished cut to the scene; whether any was.

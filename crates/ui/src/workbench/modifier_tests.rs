@@ -124,7 +124,9 @@ fn the_mesh_menu_and_command_search_add_it_too() {
         .type_text("remesh");
     harness.run();
     harness.key_press(egui::Key::Enter);
-    harness.run();
+    // Remeshing the remeshed cube again is heavy: it is worked out on
+    // another thread while the window keeps drawing.
+    harness.run_steps(4);
     assert_eq!(modifiers(&harness, id).len(), 2);
 }
 
