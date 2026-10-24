@@ -98,7 +98,10 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 ///
 /// Version 48 (decision 0147) is version 47 with the Bend along curve and
 /// Shrinkwrap modifiers (`v43::KindV43::BendAlongCurve` and `Shrinkwrap`).
-pub const FORMAT_VERSION: u32 = 48;
+///
+/// Version 49 (decision 0148) is version 48 with the Weighted normals
+/// modifier (`v43::KindV43::WeightedNormals`).
+pub const FORMAT_VERSION: u32 = 49;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -931,3 +934,5 @@ mod v46_tests;
 mod v47_tests;
 #[cfg(test)]
 mod v48_tests;
+#[cfg(test)]
+mod v49_tests;

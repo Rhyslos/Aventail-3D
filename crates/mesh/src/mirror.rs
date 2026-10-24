@@ -34,6 +34,11 @@ pub fn with_copies(
             .collect();
         crate::join::weld_close(&mut out, &seam, distance);
     }
+    // Welding joins the halves' shading at the seam: custom normals
+    // made for the half no longer fit (decision 0148).
+    if !copies.is_empty() {
+        crate::custom_normals::forget_custom_normals(&mut out);
+    }
     out
 }
 

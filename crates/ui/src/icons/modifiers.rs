@@ -1,4 +1,4 @@
-//! The modifier icons (decisions 0142 to 0147), one per kind of
+//! The modifier icons (decisions 0142 to 0148), one per kind of
 //! modifier on the modifiers palette, and the crease commands'. Original
 //! drawings.
 
@@ -17,6 +17,7 @@ pub(super) fn draw(pen: &mut Pen, icon: Icon) {
         Icon::Scatter => scatter(pen),
         Icon::BendAlongCurve => bend_along_curve(pen),
         Icon::Shrinkwrap => shrinkwrap(pen),
+        Icon::WeightedNormals => weighted_normals(pen),
         _ => {}
     }
 }
@@ -244,5 +245,47 @@ fn shrinkwrap(pen: &mut Pen) {
             false,
             Ink::Line,
         );
+    }
+}
+
+/// Weighted normals: a bevelled box seen from the side. The arrows on its
+/// flat top all point straight up (the big face shades flat); those on
+/// its rounded corners fan round between the top and the sides.
+fn weighted_normals(pen: &mut Pen) {
+    // A corner arc of radius 4, centred at (cx, 12), from the side to the
+    // top; `left` for the left corner.
+    let arc = |cx: f32, left: bool| -> Vec<(f32, f32)> {
+        (0..=6)
+            .map(|i| {
+                let t = i as f32 / 6.0 * std::f32::consts::FRAC_PI_2;
+                let (dx, dy) = (t.cos() * 4.0, -t.sin() * 4.0);
+                (if left { cx - dx } else { cx + dx }, 12.0 + dy)
+            })
+            .collect()
+    };
+    let mut outline = vec![(4.0, 21.0)];
+    outline.extend(arc(8.0, true));
+    let mut right = arc(16.0, false);
+    right.reverse();
+    outline.extend(right);
+    outline.push((20.0, 21.0));
+    pen.shape(&outline, Paint::Tone);
+    pen.stroke(&outline, false, Ink::Line);
+    // Straight up from the flat top.
+    for x in [9.5, 12.0, 14.5] {
+        pen.stroke(&[(x, 7.0), (x, 3.0)], false, Ink::Line);
+    }
+    // Fanning round each corner: along the corner's own facing.
+    for (cx, side) in [(8.0f32, -1.0f32), (16.0, 1.0)] {
+        for t in [0.2f32, 0.5, 0.8] {
+            let a = t * std::f32::consts::FRAC_PI_2;
+            let (nx, ny) = (side * a.cos(), -a.sin());
+            let start = (cx + nx * 4.0, 12.0 + ny * 4.0);
+            pen.stroke(
+                &[start, (start.0 + nx * 3.0, start.1 + ny * 3.0)],
+                false,
+                Ink::Faint,
+            );
+        }
     }
 }

@@ -17,7 +17,7 @@ use egui::Ui;
 use scene::{
     Command, CurveBendSettings, DecimateOptions, Document, LatticeOptions, MAX_MODIFIERS,
     ModifierFamily, ModifierKind, ModifierRefusal, ObjectId, ObjectKind, RemeshOptions,
-    ScatterSettings, ShrinkwrapSettings, SubdivideOptions,
+    ScatterSettings, ShrinkwrapSettings, SubdivideOptions, WeightedNormalsOptions,
 };
 
 mod pairs;
@@ -25,7 +25,7 @@ pub(crate) use pairs::pair_plan;
 
 /// One command per kind of modifier, in the order of
 /// [`ModifierKind::standard_kinds`].
-pub(crate) const COMMANDS: [CommandId; 7] = [
+pub(crate) const COMMANDS: [CommandId; 8] = [
     CommandId::Subdivide,
     CommandId::Scatter,
     CommandId::Lattice,
@@ -33,6 +33,7 @@ pub(crate) const COMMANDS: [CommandId; 7] = [
     CommandId::Shrinkwrap,
     CommandId::Remesh,
     CommandId::Decimate,
+    CommandId::WeightedNormals,
 ];
 
 /// The modifier (with its standard settings) a command adds.
@@ -47,6 +48,9 @@ pub(crate) fn kind_of(command: CommandId) -> Option<ModifierKind> {
             Some(ModifierKind::BendAlongCurve(CurveBendSettings::default()))
         }
         CommandId::Shrinkwrap => Some(ModifierKind::Shrinkwrap(ShrinkwrapSettings::default())),
+        CommandId::WeightedNormals => Some(ModifierKind::WeightedNormals(
+            WeightedNormalsOptions::default(),
+        )),
         _ => None,
     }
 }

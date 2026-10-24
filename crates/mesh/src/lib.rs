@@ -15,6 +15,7 @@ pub mod check;
 pub mod cleanup;
 pub mod crease;
 pub mod curve;
+pub mod custom_normals;
 pub mod decimate;
 pub mod deform;
 pub mod edit;
@@ -45,6 +46,7 @@ pub mod symmetry;
 pub mod topology;
 pub mod triangulate;
 pub mod uvs;
+pub mod weighted_normals;
 
 pub use anchors::{AnchorShape, Anchors};
 pub use attributes::{

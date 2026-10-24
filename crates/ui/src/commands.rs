@@ -74,6 +74,9 @@ pub enum CommandId {
     /// Wrap the shape selected first onto the shape selected after it
     /// (decision 0147).
     Shrinkwrap,
+    /// Add a weighted normals modifier to the selected shapes (decision
+    /// 0148).
+    WeightedNormals,
     // ------------------------------------------- pivots (the Object mode)
     /// Move the selected objects' pivots to the middle of their shapes.
     PivotToCentre,
@@ -359,6 +362,16 @@ impl CommandId {
             Self::Decimate => {
                 let kind = scene::ModifierKind::Decimate(Default::default());
                 (kind.name(), Icon::Decimate, None, kind.description(), None)
+            }
+            Self::WeightedNormals => {
+                let kind = scene::ModifierKind::WeightedNormals(Default::default());
+                (
+                    kind.name(),
+                    Icon::WeightedNormals,
+                    None,
+                    kind.description(),
+                    None,
+                )
             }
             // Named for what it does with the selection (decision 0146).
             Self::Scatter => {
@@ -825,7 +838,8 @@ impl CommandId {
             | Self::Decimate
             | Self::Scatter
             | Self::BendAlongCurve
-            | Self::Shrinkwrap => &[Model, Object, Points, Edges, Polygons],
+            | Self::Shrinkwrap
+            | Self::WeightedNormals => &[Model, Object, Points, Edges, Polygons],
             Self::Extrude => &[Points, Edges, Polygons],
             Self::Bridge => &[Edges, Polygons],
             Self::Inset | Self::FlipNormals => &[Polygons],
@@ -1081,7 +1095,7 @@ pub fn group_menu(group: CommandId, ring: &[Slot]) -> Vec<Slot> {
 /// The commands with no place on the tool menu: the booleans (decision
 /// 0135) and the modifiers (decision 0142), found in the modifiers
 /// palette, the Mesh menu and command search.
-pub const OFF_THE_RING: [CommandId; 10] = [
+pub const OFF_THE_RING: [CommandId; 11] = [
     CommandId::Union,
     CommandId::Subtract,
     CommandId::Intersect,
@@ -1092,10 +1106,11 @@ pub const OFF_THE_RING: [CommandId; 10] = [
     CommandId::Scatter,
     CommandId::BendAlongCurve,
     CommandId::Shrinkwrap,
+    CommandId::WeightedNormals,
 ];
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 70] = [
+pub const ALL: [CommandId; 71] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -1121,6 +1136,7 @@ pub const ALL: [CommandId; 70] = [
     CommandId::Scatter,
     CommandId::BendAlongCurve,
     CommandId::Shrinkwrap,
+    CommandId::WeightedNormals,
     CommandId::PivotToCentre,
     CommandId::PivotToOrigin,
     CommandId::PivotToObject,

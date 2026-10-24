@@ -135,8 +135,13 @@ pub fn append(out: &mut Mesh, part: &Mesh, matrix: Mat4) {
                     })
                     .collect(),
             };
+            // Custom normals turn with the part (decision 0148).
+            let turned = name == crate::custom_normals::CUSTOM_NORMAL;
             for (from, to) in pairs {
-                if let Some(value) = part.attribute(name, from) {
+                if let Some(mut value) = part.attribute(name, from) {
+                    if let (true, crate::Value::Vec3(n)) = (turned, value) {
+                        value = crate::Value::Vec3(crate::custom_normals::placed(n, matrix));
+                    }
                     // A clashing layer refuses the value; the first stays.
                     let _ = out.set_attribute(name, to, value);
                 }
