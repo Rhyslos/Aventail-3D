@@ -68,10 +68,12 @@ pub(crate) enum MenuAction {
     ApplyMirror,
     MakeLods,
     Group,
+    KitSizedShapes,
+    SnapToKitGrid,
 }
 
 impl MenuAction {
-    pub(crate) const ALL: [MenuAction; 33] = [
+    pub(crate) const ALL: [MenuAction; 35] = [
         Self::New,
         Self::Open,
         Self::Save,
@@ -105,6 +107,8 @@ impl MenuAction {
         Self::ApplyMirror,
         Self::MakeLods,
         Self::Group,
+        Self::KitSizedShapes,
+        Self::SnapToKitGrid,
     ];
 
     /// Its name, where it lives, and what it does.
@@ -259,6 +263,16 @@ impl MenuAction {
                 tr("Group"),
                 tr("Create"),
                 tr("An empty object to hold and organise other objects"),
+            ),
+            Self::KitSizedShapes => (
+                tr(crate::kit::KIT_SIZED_LABEL),
+                tr(crate::kit::KIT_MENU),
+                tr(crate::kit::KIT_SIZED_HELP),
+            ),
+            Self::SnapToKitGrid => (
+                tr(crate::kit::KIT_SNAP_LABEL),
+                tr(crate::kit::KIT_MENU),
+                tr(crate::kit::KIT_SNAP_HELP),
             ),
         }
     }

@@ -52,6 +52,14 @@ impl Document {
         document
     }
 
+    /// The same document with kit grid `grid`, for a project being opened
+    /// (not a step to undo: use [`Command::SetKitGrid`]).
+    #[must_use]
+    pub fn with_kit_grid(mut self, grid: crate::KitGrid) -> Self {
+        self.scene = std::mem::take(&mut self.scene).with_kit_grid(grid);
+        self
+    }
+
     /// The same document measured in `units`, for a project being opened
     /// (not a step to undo: use [`Command::SetUnits`] for that).
     #[must_use]

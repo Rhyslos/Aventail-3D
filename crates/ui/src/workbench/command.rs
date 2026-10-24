@@ -75,10 +75,17 @@ impl Workbench {
             | CommandId::PivotToOrigin
             | CommandId::PivotToObject
             | CommandId::ObjectToOrigin
+            | CommandId::PivotToBottomCentre
+            | CommandId::PivotToBottomCorner
+            | CommandId::PivotToTopCentre
                 if selection.is_empty() =>
             {
                 nothing()
             }
+            CommandId::SizeToKitGrid => match self.kit_sizing_ready() {
+                Ok(()) => Ready::Yes,
+                Err(why) => Ready::NotNow(why),
+            },
             CommandId::Ungroup if selection.is_empty() => nothing(),
             CommandId::Ungroup if !objects::has_group(&self.document, &selection) => {
                 Ready::NotNow(tr("Nothing to ungroup: only groups can be ungrouped").into())
@@ -315,6 +322,17 @@ impl Workbench {
                 self.run_placement(super::pivots::Placement::ObjectToOrigin);
             }
             CommandId::PivotToObject => self.start_pivot_to_object(),
+            CommandId::PivotPresets => self.tool_menu.open_group(command),
+            CommandId::PivotToBottomCentre => {
+                self.run_placement(super::pivots::Placement::BottomCentre);
+            }
+            CommandId::PivotToBottomCorner => {
+                self.run_placement(super::pivots::Placement::BottomCorner);
+            }
+            CommandId::PivotToTopCentre => {
+                self.run_placement(super::pivots::Placement::TopCentre);
+            }
+            CommandId::SizeToKitGrid => self.size_to_kit_grid(),
             CommandId::Union | CommandId::Subtract | CommandId::Intersect => {
                 if let Some(kind) = crate::booleans::kind_of(command) {
                     self.run_boolean(kind, requests);

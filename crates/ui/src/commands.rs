@@ -47,6 +47,9 @@ pub enum CommandId {
     Join,
     /// Apply the selected objects' rotation and scale (decision 0089).
     ApplyTransforms,
+    /// Round the selected shapes' outside sizes to whole steps of the
+    /// project's kit grid (decision 0160).
+    SizeToKitGrid,
     // ------------------------------------- booleans (the modifiers palette)
     /// Add the other selected shapes to the first (decision 0135).
     Union,
@@ -109,6 +112,17 @@ pub enum CommandId {
     PivotToObject,
     /// Move the selected objects so their pivots sit at the world origin.
     ObjectToOrigin,
+    /// The group holding the pivot presets (decision 0160), in the Edit
+    /// pivot ring: choosing it shows them.
+    PivotPresets,
+    /// Move the selected objects' pivots to the bottom centre of their
+    /// shapes.
+    PivotToBottomCentre,
+    /// Move the selected objects' pivots to a bottom corner of their
+    /// shapes: the front left one, lowest along X and Y.
+    PivotToBottomCorner,
+    /// Move the selected objects' pivots to the top centre of their shapes.
+    PivotToTopCentre,
     // --------------------------------------------- points, edges, polygons
     /// Push polygons or edges out, building new sides.
     Extrude,
@@ -567,6 +581,11 @@ impl CommandId {
                 ),
                 None,
             ),
+            Self::PivotPresets
+            | Self::PivotToBottomCentre
+            | Self::PivotToBottomCorner
+            | Self::PivotToTopCentre
+            | Self::SizeToKitGrid => crate::kit::command_info(self),
             Self::Extrude => (
                 tr("Extrude"),
                 Icon::Extrude,
@@ -892,6 +911,12 @@ impl CommandId {
                 Self::CurveAuto,
             ],
             Self::Creases => &[Self::CreaseEdges, Self::Uncrease],
+            Self::PivotPresets => &[
+                Self::PivotToBottomCentre,
+                Self::PivotToBottomCorner,
+                Self::PivotToCentre,
+                Self::PivotToTopCentre,
+            ],
             Self::UvTurnFlip => &[
                 Self::UvTurnLeft,
                 Self::UvTurnRight,
@@ -934,7 +959,13 @@ impl CommandId {
             Self::PivotToCentre
             | Self::PivotToOrigin
             | Self::PivotToObject
-            | Self::ObjectToOrigin => &[Object],
+            | Self::ObjectToOrigin
+            | Self::PivotPresets
+            | Self::PivotToBottomCentre
+            | Self::PivotToBottomCorner
+            | Self::PivotToTopCentre => &[Object],
+            // Shapes are sized in the Model mode, from the Create menu.
+            Self::SizeToKitGrid => &[Model],
             // Booleans work on whole objects whatever the mode; they live
             // in the modifiers palette and the Mesh menu, not the tool
             // menu (decision 0135).
@@ -1051,7 +1082,7 @@ pub const PIVOT_RING: [Option<CommandId>; RING_PLACES] = [
     Some(CommandId::NewGroup),
     Some(CommandId::ShapeList),
     Some(CommandId::ObjectToOrigin),
-    None,
+    Some(CommandId::PivotPresets),
 ];
 
 /// The tool menu's places for points, edges and polygons, clockwise from
@@ -1220,8 +1251,9 @@ pub fn group_menu(group: CommandId, ring: &[Slot]) -> Vec<Slot> {
 /// palette, the Mesh menu and command search; and Quadify now (decision
 /// 0150) and Weld by distance now (decision 0152), in the Mesh menu's
 /// Clean up group and command search; and the game bevel (decision 0156),
-/// beside the modifiers.
-pub const OFF_THE_RING: [CommandId; 22] = [
+/// beside the modifiers; and Size to kit grid (decision 0160), in the
+/// Create menu's Modular kit list.
+pub const OFF_THE_RING: [CommandId; 23] = [
     CommandId::Union,
     CommandId::Subtract,
     CommandId::Intersect,
@@ -1244,10 +1276,11 @@ pub const OFF_THE_RING: [CommandId; 22] = [
     CommandId::GameBevel,
     CommandId::QuadifyNow,
     CommandId::WeldByDistanceNow,
+    CommandId::SizeToKitGrid,
 ];
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 82] = [
+pub const ALL: [CommandId; 87] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -1263,6 +1296,7 @@ pub const ALL: [CommandId; 82] = [
     CommandId::Instance,
     CommandId::Join,
     CommandId::ApplyTransforms,
+    CommandId::SizeToKitGrid,
     CommandId::Union,
     CommandId::Subtract,
     CommandId::Intersect,
@@ -1287,6 +1321,10 @@ pub const ALL: [CommandId; 82] = [
     CommandId::PivotToOrigin,
     CommandId::PivotToObject,
     CommandId::ObjectToOrigin,
+    CommandId::PivotPresets,
+    CommandId::PivotToBottomCentre,
+    CommandId::PivotToBottomCorner,
+    CommandId::PivotToTopCentre,
     CommandId::Extrude,
     CommandId::Inset,
     CommandId::Bevel,
@@ -1333,7 +1371,7 @@ pub const ALL: [CommandId; 82] = [
 ];
 
 /// Name, icon, key, help and arrival of a curve command (decision 0139).
-type Info = (
+pub(crate) type Info = (
     &'static str,
     Icon,
     Option<KeyboardShortcut>,
@@ -1440,6 +1478,7 @@ mod tests {
             let in_group = UV_RING
                 .iter()
                 .chain(CURVE_RING.iter())
+                .chain(PIVOT_RING.iter())
                 .flatten()
                 .chain(EDGES_ONLY.iter().map(|(_, c)| c))
                 .any(|g| g.members().contains(&command));
@@ -1680,7 +1719,9 @@ mod tests {
         let kinds = CommandId::CurveHandles.members();
         let edges: Vec<_> = menu_for(Mode::Edges).iter().map(|s| s.command).collect();
         let creases = CommandId::Creases.members();
+        let presets = CommandId::PivotPresets.members();
         for ring in [
+            presets,
             &objects[..],
             &pivots[..],
             &MODELLING_RING[..],

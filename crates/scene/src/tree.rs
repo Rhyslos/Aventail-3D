@@ -130,6 +130,11 @@ pub(crate) enum Edit {
     },
     /// Changes the project's units.
     SetUnits { before: Units, after: Units },
+    /// Changes the project's kit grid (decision 0160).
+    SetKitGrid {
+        before: crate::KitGrid,
+        after: crate::KitGrid,
+    },
     /// Changes the project's game project folder.
     SetExportTarget {
         before: Option<crate::ExportTarget>,
@@ -259,6 +264,7 @@ impl Edit {
             Self::SetVisible { before, after, .. } => before == after,
             Self::SetKind { before, after, .. } => before == after,
             Self::SetUnits { before, after } => before == after,
+            Self::SetKitGrid { before, after } => before == after,
             Self::SetExportTarget { before, after } => before == after,
             Self::SetTexture { before, after } => before == after,
             Self::SetMending { before, after } => before == after,
@@ -304,6 +310,10 @@ impl Edit {
                 after: before,
             },
             Self::SetUnits { before, after } => Self::SetUnits {
+                before: after,
+                after: before,
+            },
+            Self::SetKitGrid { before, after } => Self::SetKitGrid {
                 before: after,
                 after: before,
             },
@@ -430,6 +440,8 @@ pub struct Scene {
     next_id: u64,
     /// The project's units (decision 0068).
     units: Units,
+    /// The project's kit grid (decision 0160).
+    kit_grid: crate::KitGrid,
     /// The project's game project folder, if any (decision 0076).
     export_target: Option<crate::ExportTarget>,
     /// The project's texture settings (decision 0100).
@@ -554,6 +566,19 @@ impl Scene {
     #[must_use]
     pub fn with_units(mut self, units: Units) -> Self {
         self.units = units;
+        self
+    }
+
+    /// The project's kit grid (decision 0160).
+    pub fn kit_grid(&self) -> crate::KitGrid {
+        self.kit_grid
+    }
+
+    /// The same scene with kit grid `grid`, for a project being opened
+    /// (not a step to undo: use [`crate::Command::SetKitGrid`]).
+    #[must_use]
+    pub fn with_kit_grid(mut self, grid: crate::KitGrid) -> Self {
+        self.kit_grid = grid;
         self
     }
 
@@ -1436,6 +1461,15 @@ impl Scene {
                     )));
                 }
                 self.export_target.clone_from(after);
+                Ok(())
+            }
+            Edit::SetKitGrid { before, after } => {
+                if self.kit_grid != *before {
+                    return Err(SceneError::History(text!(
+                        "the project's kit grid has changed"
+                    )));
+                }
+                self.kit_grid = *after;
                 Ok(())
             }
             Edit::SetUnits { before, after } => {

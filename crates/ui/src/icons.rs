@@ -8,6 +8,7 @@
 mod booleans;
 mod curves;
 mod general;
+mod kit;
 mod modelling;
 mod modifiers;
 mod pen;
@@ -31,6 +32,16 @@ pub enum Icon {
     PivotToObject,
     /// Object to world origin.
     ObjectToOrigin,
+    /// The pivot presets (decision 0160): a box with its pivot's places.
+    PivotPresets,
+    /// Pivot to bottom centre.
+    PivotToBottomCentre,
+    /// Pivot to bottom corner.
+    PivotToBottomCorner,
+    /// Pivot to top centre.
+    PivotToTopCentre,
+    /// Size to kit grid: a box filling whole squares of a grid.
+    SizeToKitGrid,
     /// Edit → Redo.
     Redo,
     /// Paint select: paint to select.
@@ -306,7 +317,7 @@ pub enum Icon {
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 132] = [
+pub const ALL: [Icon; 137] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -383,6 +394,11 @@ pub const ALL: [Icon; 132] = [
     Icon::PivotToOrigin,
     Icon::PivotToObject,
     Icon::ObjectToOrigin,
+    Icon::PivotPresets,
+    Icon::PivotToBottomCentre,
+    Icon::PivotToBottomCorner,
+    Icon::PivotToTopCentre,
+    Icon::SizeToKitGrid,
     Icon::ApplyTransforms,
     Icon::EditLayer,
     Icon::Union,
@@ -508,6 +524,11 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         | Icon::PivotToOrigin
         | Icon::PivotToObject
         | Icon::ObjectToOrigin => tools::draw(&mut pen, icon),
+        Icon::PivotPresets
+        | Icon::PivotToBottomCentre
+        | Icon::PivotToBottomCorner
+        | Icon::PivotToTopCentre
+        | Icon::SizeToKitGrid => kit::draw(&mut pen, icon),
         Icon::Extrude
         | Icon::Inset
         | Icon::Bevel

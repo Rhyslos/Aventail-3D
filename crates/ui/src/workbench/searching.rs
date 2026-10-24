@@ -34,8 +34,13 @@ impl Workbench {
                 || command == crate::commands::CommandId::WeldByDistanceNow
             {
                 tr("Mesh")
+            } else if command == crate::commands::CommandId::SizeToKitGrid {
+                tr("Create")
             } else if command.modes().contains(&Mode::Uv) {
                 tr("UV")
+            } else if command.modes() == [Mode::Object] {
+                // The pivot commands are in the Tools menu.
+                tr("Tools")
             } else if command.modes().contains(&Mode::Model) {
                 tr("Object")
             } else {
@@ -200,6 +205,19 @@ impl Workbench {
             MenuAction::Group => requests.push(DocRequest::Run(scene::Command::Create(
                 scene::ObjectKind::Group,
             ))),
+            MenuAction::KitSizedShapes => {
+                let grid = self.document.scene().kit_grid();
+                requests.push(DocRequest::Run(scene::Command::SetKitGrid(
+                    scene::KitGrid {
+                        sized_shapes: !grid.sized_shapes,
+                        ..grid
+                    },
+                )));
+            }
+            MenuAction::SnapToKitGrid => {
+                let snap = &mut self.viewport.options_mut().snap;
+                snap.kit_grid = !snap.kit_grid;
+            }
         }
     }
 

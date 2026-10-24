@@ -19,6 +19,7 @@ mod drawing;
 mod edge_values;
 pub mod icons;
 mod keyboard;
+mod kit;
 mod layers;
 pub mod layout;
 mod modifiers;

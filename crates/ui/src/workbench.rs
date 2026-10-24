@@ -24,7 +24,7 @@ use crate::units::Units;
 use crate::viewport::{ViewOptions, ViewportPanel, ViewportRenderer};
 use egui::{Key, Ui};
 use egui_dock::{DockArea, DockState};
-use scene::{Command, Document, ObjectKind, PrimitiveKind};
+use scene::{Command, Document, ObjectKind};
 use selection::SelectRequest;
 
 /// How quickly two clicks must follow each other to be a double-click, in
@@ -300,6 +300,9 @@ pub struct Workbench {
     /// How many transform changes have been made (each gets its own undo
     /// merge key).
     sessions: u64,
+    /// The undo merge key of the kit grid being changed in the Create
+    /// menu's Modular kit list, so a drag is one step (decision 0160).
+    kit_key: u64,
     viewport: ViewportPanel,
     accent: Accent,
     about_open: bool,
@@ -384,6 +387,7 @@ impl Workbench {
             gizmo_shown: None,
             coordinates_session: None,
             sessions: 0,
+            kit_key: 0,
             viewport: ViewportPanel::default(),
             accent: Accent::default(),
             about_open: false,
@@ -612,9 +616,7 @@ impl Workbench {
                         PaletteCommand::CreateGroup => {
                             DocRequest::Run(Command::Create(ObjectKind::Group))
                         }
-                        PaletteCommand::CreateShape(kind) => {
-                            DocRequest::Run(Command::Create(ObjectKind::Primitive(kind.standard())))
-                        }
+                        PaletteCommand::CreateShape(kind) => self.new_primitive(kind),
                     });
                 }
             });
@@ -881,10 +883,6 @@ impl Workbench {
 }
 
 /// The request that creates a primitive of `kind` with standard settings.
-fn create(kind: PrimitiveKind) -> DocRequest {
-    DocRequest::Run(Command::Create(ObjectKind::Primitive(kind.standard())))
-}
-
 #[cfg(test)]
 mod attribute_tests;
 mod automation;
@@ -919,6 +917,9 @@ mod hardness_tests;
 mod joining;
 #[cfg(test)]
 mod joining_tests;
+mod kit;
+#[cfg(test)]
+mod kit_tests;
 #[cfg(test)]
 mod last_edit_tests;
 mod loop_cut;

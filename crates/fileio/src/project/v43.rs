@@ -37,6 +37,10 @@
 //! adds the Weighted normals modifier; files before version 49 never hold
 //! it. (Custom normals baked into a shape are a corner attribute layer,
 //! saved as every layer is since version 5.)
+//!
+//! Version 61 ([decision 0160](../../../../docs/decisions/0160-kit-helpers.md))
+//! adds the project's kit grid ([`ProjectV43::kit_grid`], see `v61`);
+//! files before version 61 never hold it.
 
 use super::v1::Problem;
 use super::v41::ProjectV41;
@@ -62,6 +66,9 @@ pub(crate) struct ProjectV43 {
     /// version 41's model).
     #[serde(default = "Bounded::new")]
     pub(crate) lattices: Bounded<super::v45::LatticeV45>,
+    /// The project's kit grid (version 61), when not the standard.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) kit_grid: Option<super::v61::KitGridV61>,
 }
 
 /// One object's modifiers, first to last.
@@ -480,12 +487,14 @@ impl ProjectV43 {
             project: ProjectV41::from_document(document),
             modifiers,
             lattices: super::v45::lattices_of(document),
+            kit_grid: super::v61::kit_grid_of(document),
         }
     }
 
     /// The document this file model describes, after checking every value.
     pub(crate) fn into_document(self) -> Result<Document, Problem> {
         let document = self.project.into_document()?;
+        let document = super::v61::with_kit_grid(document, self.kit_grid)?;
         // The cages first: modifiers name them.
         let mut document = super::v45::with_lattices(document, self.lattices)?;
         let mut seen = std::collections::BTreeSet::new();
