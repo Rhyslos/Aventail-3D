@@ -2,7 +2,7 @@
 //! mode palette's names sliding out on hover, words beside the top
 //! palette's icons where there's room, and the select tool list.
 
-use super::tests::{fresh, fresh_of_width};
+use super::tests::fresh;
 use crate::palette::{NAMES_AFTER, NAMES_PREFIX, SELECT_TOOL_MENU_LABEL};
 use crate::selecting::SelectTool;
 use egui::Event;
@@ -91,16 +91,33 @@ fn a_click_on_a_button_puts_the_names_away_too() {
 }
 
 #[test]
-fn words_beside_the_tools_when_there_is_room() {
+fn the_tools_are_icons_only_with_transform_beside_them() {
+    // The project lead's choice (decision 0140): no words beside the
+    // icons, at any width; Transform (T) has its own button.
     let wide = fresh();
-    let moving = wide.get_by_label("Move").rect();
-    assert!(moving.width() > 40.0, "Move has its word: {moving:?}");
+    for name in ["Move", "Scale", "Rotate", "Transform"] {
+        let rect = wide.get_by_label(name).rect();
+        assert!(rect.width() < 40.0, "{name} is an icon only: {rect:?}");
+    }
     let snap = wide.get_by_label_contains("Snapping").rect();
-    assert!(snap.width() > 40.0);
-    // Narrow: icons only.
-    let narrow = fresh_of_width(1000.0);
-    let moving = narrow.get_by_label("Move").rect();
-    assert!(moving.width() < 40.0, "{moving:?}");
+    assert!(snap.width() < 40.0);
+}
+
+#[test]
+fn transform_lights_only_its_own_button() {
+    let mut harness = fresh();
+    harness.get_by_label("Transform").click();
+    harness.run();
+    assert_eq!(
+        harness.state().workbench.tool(),
+        crate::transforming::Tool::All
+    );
+    harness.get_by_label("Move").click();
+    harness.run();
+    assert_eq!(
+        harness.state().workbench.tool(),
+        crate::transforming::Tool::Move
+    );
 }
 
 #[test]

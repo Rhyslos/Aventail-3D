@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **The top palette is icons only again,** without names beside Move, Scale, Rotate, Snap and Symmetry; hover over a button for its name. **Transform** (all three gizmos, T) has its own button after Rotate, and only the tool in use is lit. The select tool list looks like the app's other menus, with the tool in use highlighted.
 - **Slide is Shift + Alt + drag on the Move gizmo.** Alt + drag now always moves the view, even when it starts on the gizmo, so an orbit out of habit no longer slides points by mistake.
 - **Show everything has a second key, Ctrl + Shift + H,** beside Alt + H.
 - **On a Mac, the app's tips and notes say Cmd** wherever they said Ctrl, as the Keys window already did.
