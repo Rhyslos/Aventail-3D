@@ -98,6 +98,8 @@ pub enum CommandId {
     /// Add a weighted normals modifier to the selected shapes (decision
     /// 0148).
     WeightedNormals,
+    /// Add a triangulate modifier to the selected shapes (decision 0161).
+    Triangulate,
     /// The game bevel (decision 0156): a Live bevel with soft bevels and
     /// Weighted normals last, the shapes shaded by their marked edges, in
     /// one step.
@@ -480,6 +482,16 @@ impl CommandId {
                 (
                     kind.name(),
                     Icon::WeightedNormals,
+                    None,
+                    kind.description(),
+                    None,
+                )
+            }
+            Self::Triangulate => {
+                let kind = scene::ModifierKind::Triangulate(Default::default());
+                (
+                    kind.name(),
+                    Icon::Triangulate,
                     None,
                     kind.description(),
                     None,
@@ -989,6 +1001,7 @@ impl CommandId {
             | Self::Displace
             | Self::BendTwistTaper
             | Self::WeightedNormals
+            | Self::Triangulate
             | Self::GameBevel => &[Model, Object, Points, Edges, Polygons],
             // Whole shapes, or the selected polygons (decision 0150).
             Self::QuadifyNow => &[Model, Polygons],
@@ -1253,7 +1266,7 @@ pub fn group_menu(group: CommandId, ring: &[Slot]) -> Vec<Slot> {
 /// Clean up group and command search; and the game bevel (decision 0156),
 /// beside the modifiers; and Size to kit grid (decision 0160), in the
 /// Create menu's Modular kit list.
-pub const OFF_THE_RING: [CommandId; 23] = [
+pub const OFF_THE_RING: [CommandId; 24] = [
     CommandId::Union,
     CommandId::Subtract,
     CommandId::Intersect,
@@ -1273,6 +1286,7 @@ pub const OFF_THE_RING: [CommandId; 23] = [
     CommandId::Displace,
     CommandId::BendTwistTaper,
     CommandId::WeightedNormals,
+    CommandId::Triangulate,
     CommandId::GameBevel,
     CommandId::QuadifyNow,
     CommandId::WeldByDistanceNow,
@@ -1280,7 +1294,7 @@ pub const OFF_THE_RING: [CommandId; 23] = [
 ];
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 87] = [
+pub const ALL: [CommandId; 88] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -1316,6 +1330,7 @@ pub const ALL: [CommandId; 87] = [
     CommandId::Displace,
     CommandId::BendTwistTaper,
     CommandId::WeightedNormals,
+    CommandId::Triangulate,
     CommandId::GameBevel,
     CommandId::PivotToCentre,
     CommandId::PivotToOrigin,

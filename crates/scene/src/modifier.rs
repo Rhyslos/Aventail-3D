@@ -46,6 +46,7 @@ use mesh::remesh::RemeshOptions;
 use mesh::shell::ShellOptions;
 use mesh::struts::StrutsOptions;
 use mesh::subdivide::SubdivideOptions;
+use mesh::triangulate::TriangulateOptions;
 use mesh::weighted_normals::WeightedNormalsOptions;
 use mesh::weld_distance::WeldOptions;
 use std::sync::Arc;
@@ -150,6 +151,10 @@ pub enum ModifierKind {
     /// point (decision 0159): a frame, a cage, a grille. Not the
     /// viewport's Wireframe look: real polygons.
     Struts(StrutsOptions),
+    /// Every polygon (or every quad) cut into triangles (decision 0161),
+    /// as the export cuts them or evened out. Keeps custom normals: the
+    /// shading doesn't change.
+    Triangulate(TriangulateOptions),
 }
 
 impl ModifierKind {
@@ -173,6 +178,7 @@ impl ModifierKind {
             Self::Quadify(QuadifyOptions::default()),
             Self::WeldByDistance(WeldOptions::default()),
             Self::WeightedNormals(WeightedNormalsOptions::default()),
+            Self::Triangulate(TriangulateOptions::default()),
         ]
     }
 
@@ -193,6 +199,7 @@ impl ModifierKind {
             Self::Array(_) => tr("Array"),
             Self::Shell(_) => tr("Shell"),
             Self::Struts(_) => tr("Struts"),
+            Self::Triangulate(_) => tr("Triangulate"),
             Self::Displace(_) => tr("Displace"),
             // Named by what it does now, so the list reads "Bend", "Twist".
             Self::BendTwistTaper(o) => o.kind.name(),
@@ -277,6 +284,11 @@ impl ModifierKind {
                  horn, a twisted column, a tapered leg. Limits keep it to part of the shape. The \
                  shape needs points along the axis to bend smoothly.",
             ),
+            Self::Triangulate(_) => tr(
+                "Cut every polygon into triangles, as a game engine needs them, and keep that \
+                 cut: the same one the export makes, or evened out. The shading stays as it was. \
+                 Best as the last modifier.",
+            ),
         }
     }
 
@@ -292,7 +304,7 @@ impl ModifierKind {
             | Self::Shrinkwrap(_)
             | Self::Displace(_)
             | Self::BendTwistTaper(_) => ModifierFamily::Deform,
-            Self::WeightedNormals(_) => ModifierFamily::Game,
+            Self::WeightedNormals(_) | Self::Triangulate(_) => ModifierFamily::Game,
             Self::LiveBevel(_) | Self::Array(_) | Self::Shell(_) | Self::Struts(_) => {
                 ModifierFamily::Generate
             }
@@ -318,7 +330,8 @@ impl ModifierKind {
             | Self::Shell(_)
             | Self::Struts(_)
             | Self::Displace(_)
-            | Self::BendTwistTaper(_) => false,
+            | Self::BendTwistTaper(_)
+            | Self::Triangulate(_) => false,
             Self::Subdivide(o) => {
                 let o = o.clamped();
                 o.levels != o.export_levels
@@ -351,6 +364,7 @@ impl ModifierKind {
             Self::Struts(options) => Self::Struts(options.clamped()),
             Self::Displace(settings) => Self::Displace(settings.clamped()),
             Self::BendTwistTaper(options) => Self::BendTwistTaper(options.clamped()),
+            Self::Triangulate(options) => Self::Triangulate(options.clamped()),
         }
     }
 
@@ -370,7 +384,8 @@ impl ModifierKind {
             | Self::Shell(_)
             | Self::Struts(_)
             | Self::Displace(_)
-            | Self::BendTwistTaper(_) => Vec::new(),
+            | Self::BendTwistTaper(_)
+            | Self::Triangulate(_) => Vec::new(),
             Self::Lattice(options) => vec![options.cage],
             Self::Scatter(settings) => settings.shapes.clone(),
             Self::BendAlongCurve(settings) => vec![settings.curve],
@@ -439,7 +454,8 @@ impl ModifierKind {
             | Self::Shell(_)
             | Self::Struts(_)
             | Self::Displace(_)
-            | Self::BendTwistTaper(_) => kind.has_shape(),
+            | Self::BendTwistTaper(_)
+            | Self::Triangulate(_) => kind.has_shape(),
         }
     }
 
@@ -457,7 +473,8 @@ impl ModifierKind {
             | Self::Shell(_)
             | Self::Struts(_)
             | Self::Displace(_)
-            | Self::BendTwistTaper(_) => self.clone(),
+            | Self::BendTwistTaper(_)
+            | Self::Triangulate(_) => self.clone(),
             Self::Lattice(options) => Self::Lattice(LatticeOptions {
                 cage: rename(options.cage),
             }),
@@ -547,6 +564,9 @@ impl ModifierKind {
             Self::Displace(settings) => settings.work(input),
             // About 20 points cost as much as one polygon in a boolean.
             Self::BendTwistTaper(_) => mesh::axis_deform::work(input),
+            // About 20 corners cut cost as much as one polygon in a boolean
+            // (100 000 quads cut in about 80 ms in a release build).
+            Self::Triangulate(options) => mesh::triangulate::corners_to_cut(input, options) / 20,
         }
     }
 
@@ -619,6 +639,9 @@ impl ModifierKind {
                 mesh::axis_deform::axis_deform(input, options, context.pivot)
                     .map_err(|why| why.to_string())
             }
+            Self::Triangulate(options) => {
+                mesh::triangulate::triangulated(input, options).map_err(|why| why.to_string())
+            }
         }
     }
 
@@ -637,8 +660,13 @@ impl ModifierKind {
     /// struts along one edge) and Quadify (a triangulated shape would
     /// give a strut across each quad) (decision 0159); Displace and Bend, twist or
     /// taper before Weighted normals, which shades best last (decisions
-    /// 0157 and 0158). The person can move it afterwards.
+    /// 0157 and 0158). Every other kind goes before a Triangulate, the
+    /// finishing step that cuts the shape into the triangles a game gets
+    /// (decision 0161). The person can move it afterwards.
     pub fn goes_before(&self, other: &Self) -> bool {
+        if matches!(other, Self::Triangulate(_)) {
+            return !matches!(self, Self::Triangulate(_));
+        }
         match self {
             Self::LiveBevel(_) => {
                 matches!(other, Self::Subdivide(_) | Self::WeightedNormals(_))
@@ -675,10 +703,17 @@ impl ModifierKind {
     /// that result. Weighted normals makes them; every other kind changes
     /// the shape (or makes a new one), so the stack drops any custom
     /// normals from its result and the shading is worked out again
-    /// (decision 0148). A later kind that only cuts polygons up could
-    /// carry them over and say yes.
+    /// (decision 0148). Triangulate only cuts polygons up, keeping each
+    /// corner's values, so it carries them over (decision 0161).
     pub fn carries_custom_normals(&self) -> bool {
-        matches!(self, Self::WeightedNormals(_))
+        matches!(self, Self::WeightedNormals(_) | Self::Triangulate(_))
+    }
+
+    /// Whether it leaves the shading as it was, carrying custom normals
+    /// through rather than making them: Triangulate. Weighted normals
+    /// before it still reach the final shape (decision 0161).
+    pub fn keeps_shading(&self) -> bool {
+        matches!(self, Self::Triangulate(_))
     }
 }
 

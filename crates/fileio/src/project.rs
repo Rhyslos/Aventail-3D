@@ -71,6 +71,7 @@ mod v59;
 mod v6;
 mod v60;
 mod v61;
+mod v62;
 mod v7;
 mod v8;
 mod v9;
@@ -155,7 +156,10 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 ///
 /// Version 61 (decision 0160) is version 60 with the project's kit grid
 /// (`v43::ProjectV43::kit_grid`, see `v61`).
-pub const FORMAT_VERSION: u32 = 61;
+///
+/// Version 62 (decision 0161) is version 61 with the Triangulate modifier
+/// (`v43::KindV43::Triangulate`, its settings in `v62::TriangulateV62`).
+pub const FORMAT_VERSION: u32 = 62;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1014,3 +1018,5 @@ mod v59_tests;
 mod v60_tests;
 #[cfg(test)]
 mod v61_tests;
+#[cfg(test)]
+mod v62_tests;

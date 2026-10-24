@@ -141,6 +141,7 @@ impl Workbench {
                 show_seams: &mut options.show_seams,
                 show_normals: &mut options.show_normals,
                 show_collision: &mut options.show_collision,
+                show_triangles: &mut options.show_triangles,
                 flat_from_dice: &mut options.flat_from_dice,
             },
         };

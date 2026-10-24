@@ -248,6 +248,7 @@ Bake into shape, split off, join, apply transforms and edit layers
 Bake the shape's settings and every edit up to this one into the shape: the shape stays the same, big models stay quick, and those edits can't be changed any more
 Bake the shape's settings and the {} up to and including this one into the shape, so they no longer have to be made again: big models stay quick. The shape doesn't change, but those edits can't be changed any more.
 Basic
+Beauty
 Before baking
 Bend
 Bend a shape along a curve: a rope, a rail, a vine. Select the shape first, then Ctrl + click the curve. The curve stays live: reshape it and the shape follows.
@@ -523,8 +524,11 @@ Cut along hard edges
 Cut and join
 Cut corners sharper than
 Cut every polygon into triangles the same way the viewport does, so a bake in Substance Painter matches the game exactly
+Cut every polygon into triangles, as a game engine needs them, and keep that cut: the same one the export makes, or evened out. The shading stays as it was. Best as the last modifier.
+Cut exactly as the export does, the cut Display → Show triangles draws: nothing changes when you export.
 Cut new edges along a line: click or drag its points over the shape; Enter finishes, Esc cancels, or click the first point to close a loop
 Cut new edges and join points: slit, loop cut, connect, weld
+Cut only four-sided polygons, and leave bigger ones (n-gons) as they are. Off, every polygon with four or more corners is cut
 Cut out the middle: zero for a pie slice, more for a slice of a ring
 Cut polygons into triangles
 Cut the corner off the selected edges or points, with a width, segments and roundness
@@ -615,6 +619,8 @@ Draw curve: no points were added.
 Draw curve: this view looks along the curve's plane; draw in another view.
 Draw curve: {} points.
 Draw curve: {} points. Drag for a smooth bend; Enter or a right click finishes, Esc cancels, Backspace takes the last point back.
+Draw faint lines where every shown shape's polygons are cut into triangles, exactly as the export cuts them for a game engine: see a long thin triangle or a bent polygon's fold before the game does.
+Draw faint lines where the export cuts polygons into triangles
 Draw the selection larger, with a dark rim
 Draw this layout faintly under the current one, to see what changed. Click again to stop.
 Duplicate
@@ -663,6 +669,7 @@ Enter: save · {}: don't save · Esc: cancel
 Esc
 Esc: cancel
 Even out the selected polygons' UVs, so a texture stretches less over them
+Even out the triangles of flat polygons, so there are fewer long thin ones. Bent polygons keep the cut along their fold.
 Even rows:
 Even spacing
 Even thickness
@@ -744,6 +751,7 @@ Fix normals
 Fix normals: every polygon already faces the right way.
 Fix normals: select the objects to fix first.
 Fix {}
+Fixed
 Flat end
 Flip
 Flip left to right
@@ -878,6 +886,7 @@ How deep each tooth is, from its tip to the gap between teeth
 How deep it is (along Y)
 How each piece is laid flat
 How each point finds the target's surface: straight to the nearest place on it, along the way the shape faces there, or straight along one of the shape's axes. Along a line, a point that meets nothing stays where it is.
+How each polygon's triangles are chosen. Beauty evens them out, so there are fewer long thin ones; Fixed cuts exactly as the export does
 How evenly the UVs lie: green where even, yellow where 1.5 times off, red where twice off (stretched one way, or too big or small against the rest of the object), purple where a polygon has no room on the texture
 How far a quad's corners may be from square for its piece to count as a strip (25° standard). Raise it for strips round tight curves; lower it to straighten only truly square ones.
 How far any corner of a new quad may be from a right angle: low makes only near-square quads, high takes slanted ones too
@@ -1526,6 +1535,7 @@ Quadify now works on whole shapes in the Model mode, or on the selected polygons
 Quadify now: select one or more shapes first.
 Quadify now: select some polygons first, or press Tab for the Model mode to quadify whole shapes.
 Quadify now: there are no two neighbouring triangles to join.
+Quads only
 Quads where flat
 Quarter turns and mirrors of the selected UVs
 Questions asked before an edit that is easy to get wrong. Each can also be switched off from the question itself.
@@ -1785,6 +1795,7 @@ Show the perspective, top, front and right views at once (middle click)
 Show the perspective, top, front and right views at once; click again (or middle click a view) to show only the active one
 Show the turning point while orbiting
 Show this edit's settings in the Attributes panel, to change them
+Show triangles
 Show which way each polygon faces, as short lines
 Show which way each polygon of the selected objects faces, as a short line from its middle. Lines pointing into a shape show flipped polygons.
 Show {}
@@ -2101,6 +2112,7 @@ Transform {}
 Transform {} points
 Triangles
 Triangles shown
+Triangulate
 Trim
 Trim sheet
 Tube
@@ -2474,6 +2486,7 @@ edges between faces facing opposite ways
 edges shared by three or more faces
 edges with no length
 edit
+every polygon is a triangle already
 extrude
 face with no area
 faces with no area
@@ -2697,6 +2710,7 @@ the scene couldn't be compressed ({})
 the scene couldn't be encoded ({})
 the selection's UVs
 the shape
+the shape has no four-sided polygons to cut: switch Quads only off to cut its bigger polygons
 the shape has no hard edges: mark some in the Edges mode, or bevel by angle instead
 the shape has no open borders: untick Only at open borders to weld anywhere
 the shape has no points

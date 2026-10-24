@@ -15,8 +15,13 @@
 //!   polygon; bigger ones are cut ear by ear.
 //!
 //! The same polygon always gets the same cut, so drawing, picking and
-//! (later) export agree. If nothing works (a polygon folded flat onto
-//! itself), the fan is used.
+//! export agree. If nothing works (a polygon folded flat onto itself),
+//! the fan is used.
+//!
+//! The Triangulate modifier and Display → Show triangles
+//! ([decision 0161](../../../docs/decisions/0161-triangulate.md)) use this
+//! same cut for a whole shape ([`triangulated`], [`inner_lines`]); the
+//! modifier's *Beauty* method then evens out flat polygons' triangles.
 
 use crate::{Mesh, VertexId};
 use glam::{Vec2, Vec3};
@@ -296,5 +301,16 @@ fn in_triangle(p: Vec2, a: Vec2, b: Vec2, c: Vec2) -> bool {
     turn(a, b, p) >= 0.0 && turn(b, c, p) >= 0.0 && turn(c, a, p) >= 0.0
 }
 
+mod beauty;
+mod shape;
+
+pub use beauty::FLAT_DEGREES;
+pub use shape::{
+    TriangulateMethod, TriangulateOptions, TriangulateProblem, corners_to_cut, inner_lines,
+    polygon_triangles, triangulated,
+};
+
+#[cfg(test)]
+mod shape_tests;
 #[cfg(test)]
 mod tests;

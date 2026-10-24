@@ -217,6 +217,10 @@ pub enum OverlayStyle {
     /// A deformer's helper (decision 0158): a selected shape's bend,
     /// twist or taper axis, its limits and its centre.
     Helper,
+    /// A line inside a polygon where the export cuts it into triangles
+    /// (decision 0161): every shown shape's, with Display → Show
+    /// triangles. Faint.
+    Triangle,
 }
 
 /// What the Points, Edges and Polygons modes draw over the edited objects,

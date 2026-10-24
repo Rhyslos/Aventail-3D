@@ -228,6 +228,9 @@ pub enum Icon {
     /// side, the arrows on its flat top all straight up, those on its
     /// rounded corners fanning round.
     WeightedNormals,
+    /// Triangulate (decision 0161): a six-sided polygon cut into
+    /// triangles.
+    Triangulate,
     /// The game bevel (decision 0156): a block with its top corners
     /// rounded, its normals straight up from the flat top, and a tick
     /// beside it: ready for a game.
@@ -317,7 +320,7 @@ pub enum Icon {
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 137] = [
+pub const ALL: [Icon; 138] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -415,6 +418,7 @@ pub const ALL: [Icon; 137] = [
     Icon::Displace,
     Icon::BendTwistTaper,
     Icon::WeightedNormals,
+    Icon::Triangulate,
     Icon::GameBevel,
     Icon::Quadify,
     Icon::WeldByDistance,
@@ -561,6 +565,7 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         | Icon::Displace
         | Icon::BendTwistTaper
         | Icon::WeightedNormals
+        | Icon::Triangulate
         | Icon::GameBevel
         | Icon::Quadify
         | Icon::WeldByDistance

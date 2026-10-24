@@ -92,6 +92,11 @@ const COLLISION_LINE_WIDTH: f32 = 1.5;
 /// a guide apart from collision shapes and the selection, linear space.
 const HELPER_LINE: [f32; 4] = [0.2, 0.75, 0.95, 0.95];
 const HELPER_LINE_WIDTH: f32 = 1.5;
+/// The lines inside polygons where the export cuts them into triangles
+/// (decision 0161): faint and thin, a little fainter than the shape's own
+/// edges in the wire looks, so the polygons still read, linear space.
+const TRIANGLE_LINE: [f32; 4] = [0.85, 0.87, 0.95, 0.3];
+const TRIANGLE_LINE_WIDTH: f32 = 1.0;
 /// How far towards white the hovered colour is from the accent, so what
 /// is under the mouse stands out from what is selected.
 const HOVER_LIFT: f32 = 0.45;
@@ -104,7 +109,8 @@ fn layer(style: OverlayStyle) -> u8 {
         OverlayStyle::Curve
         | OverlayStyle::Handle
         | OverlayStyle::Collision
-        | OverlayStyle::Helper => 0,
+        | OverlayStyle::Helper
+        | OverlayStyle::Triangle => 0,
         OverlayStyle::CurveSelected => 1,
         OverlayStyle::Normal => 0,
         OverlayStyle::SeamPrefer | OverlayStyle::SeamNever => 1,
@@ -152,6 +158,7 @@ fn overlay_geometry(overlay: &ComponentOverlay, accent: [f32; 3], contrast: bool
             OverlayStyle::Handle => (HANDLE_LINE_WIDTH, HANDLE_LINE),
             OverlayStyle::Collision => (COLLISION_LINE_WIDTH, COLLISION_LINE),
             OverlayStyle::Helper => (HELPER_LINE_WIDTH, HELPER_LINE),
+            OverlayStyle::Triangle => (TRIANGLE_LINE_WIDTH, TRIANGLE_LINE),
         };
         if contrast && matches!(style, OverlayStyle::Selected | OverlayStyle::Hovered) {
             out.line(*a, *b2, width + CONTRAST_RIM * 2.0, CONTRAST_RIM_COLOR);
@@ -181,6 +188,7 @@ fn overlay_geometry(overlay: &ComponentOverlay, accent: [f32; 3], contrast: bool
             OverlayStyle::Handle => (POINT_SIZE, PLAIN_POINT),
             OverlayStyle::Collision => (POINT_SIZE, COLLISION_LINE),
             OverlayStyle::Helper => (POINT_SIZE, HELPER_LINE),
+            OverlayStyle::Triangle => (POINT_SIZE, TRIANGLE_LINE),
         };
         if contrast && matches!(style, OverlayStyle::Selected | OverlayStyle::Hovered) {
             out.point(*at, size + CONTRAST_RIM * 2.0, CONTRAST_RIM_COLOR);

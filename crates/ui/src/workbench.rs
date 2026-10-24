@@ -796,6 +796,7 @@ impl Workbench {
                 normals: options.show_normals,
                 seams: options.show_seams || self.mode == Mode::Uv,
                 collision: options.show_collision,
+                triangles: options.show_triangles,
             },
         );
         if overlay.version != shown {
@@ -1028,6 +1029,8 @@ mod struts_tests;
 #[cfg(test)]
 mod symmetry_tests;
 mod transform;
+#[cfg(test)]
+mod triangulate_tests;
 #[cfg(test)]
 mod uv_editor_tests;
 #[cfg(test)]
