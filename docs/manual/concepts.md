@@ -113,7 +113,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Edit list** — The list of an object's edits in the Edit layers panel. Any edit in it can be opened and changed, and the edits after it are made again. *Bake into shape up to here* bakes the old edits up to one into the shape, so they no longer have to be made again: the shape stays the same, but those edits can't be changed any more. See [The edit list](edit-list.md).
 
-**Modifiers palette** — The thin column of buttons on the right of the viewport, beside the panels, for things that change a shape without destroying it. Its first button adds an edit layer; then come the [booleans](booleans.md) (Union, Subtract, Intersect), then one button per kind of [modifier](#objects-and-scenes), grouped by family (Subdivide, then Add lattice, then Remesh and Decimate, so far). More join it in later versions.
+**Modifiers palette** — The thin column of buttons on the right of the viewport, beside the panels, for things that change a shape without destroying it. Its first button adds an edit layer; then come the [booleans](booleans.md) (Union, Subtract, Intersect), then one button per kind of [modifier](#objects-and-scenes), grouped by family (Subdivide and Scatter onto surface, then Add lattice, then Remesh and Decimate, so far). More join it in later versions.
 
 **Modifier** — A change worked out live on top of a shape, after its edits, booleans and mirror, rather than made to its points: you can change its settings, switch it off, reorder it or remove it at any time, and the shape underneath stays as you modelled it. An object's modifiers are its **modifier stack**, worked out first to last, each on the result of the one before. **Bake into shape** makes them permanent. (Blender and 3ds Max call them modifiers too; Cinema 4D has generators and deformers.) See [Modifiers](modifiers.md).
 
@@ -122,6 +122,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 **Voxel** — A small cube of a 3D grid, the 3D cousin of a pixel. A voxel remesh fills a grid of voxels with the shape (each inside or outside), then wraps a new surface round the inside ones; the **voxel size** is how big the cubes are, and so roughly how big the new polygons are.
 
 **Decimation (polygon reduction)** — Making a shape lighter by taking polygons away where they matter least, flat areas first, so it looks nearly the same with far fewer [triangles](#mesh-basics): to meet a game's budget, or to make [levels of detail](#the-game-asset-pipeline). The points that stay are the shape's own. See [Decimate](decimate.md).
+
+**Scatter** — Spreading copies of one or more shapes over a surface (on its points, on its polygons' centres, or at random), each standing on it by its [pivot](#objects-and-scenes), with random turns and sizes if you like: rocks on the ground, rivets on a plate. The shapes scattered stay objects of their own, and the copies follow them. See [Scatter](scatter.md).
 
 **Deformer** — A kind of [modifier](#objects-and-scenes) that only moves a shape's points: its polygons, UVs, seams and materials stay as they were, so it is textured just as before, only bent. Each deformer works in a space of its own (a box, or an axis through a centre) over a range, and what lies past the range carries on unbent. The [lattice](lattice.md) is the first; bend, twist and taper follow.
 

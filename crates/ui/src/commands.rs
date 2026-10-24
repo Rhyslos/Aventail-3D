@@ -65,6 +65,9 @@ pub enum CommandId {
     Lattice,
     /// Add a decimate modifier to the selected shapes (decision 0145).
     Decimate,
+    /// Scatter the other selected shapes over the one selected first
+    /// (decision 0146).
+    Scatter,
     // ------------------------------------------- pivots (the Object mode)
     /// Move the selected objects' pivots to the middle of their shapes.
     PivotToCentre,
@@ -350,6 +353,17 @@ impl CommandId {
             Self::Decimate => {
                 let kind = scene::ModifierKind::Decimate(Default::default());
                 (kind.name(), Icon::Decimate, None, kind.description(), None)
+            }
+            // Named for what it does with the selection (decision 0146).
+            Self::Scatter => {
+                let kind = scene::ModifierKind::Scatter(Default::default());
+                (
+                    tr("Scatter onto surface"),
+                    Icon::Scatter,
+                    None,
+                    kind.description(),
+                    None,
+                )
             }
             // Adding a lattice makes its cage too (decision 0144).
             Self::Lattice => {
@@ -780,7 +794,8 @@ impl CommandId {
             | Self::Remesh
             | Self::Subdivide
             | Self::Lattice
-            | Self::Decimate => &[Model, Object, Points, Edges, Polygons],
+            | Self::Decimate
+            | Self::Scatter => &[Model, Object, Points, Edges, Polygons],
             Self::Extrude => &[Points, Edges, Polygons],
             Self::Bridge => &[Edges, Polygons],
             Self::Inset | Self::FlipNormals => &[Polygons],
@@ -1036,7 +1051,7 @@ pub fn group_menu(group: CommandId, ring: &[Slot]) -> Vec<Slot> {
 /// The commands with no place on the tool menu: the booleans (decision
 /// 0135) and the modifiers (decision 0142), found in the modifiers
 /// palette, the Mesh menu and command search.
-pub const OFF_THE_RING: [CommandId; 7] = [
+pub const OFF_THE_RING: [CommandId; 8] = [
     CommandId::Union,
     CommandId::Subtract,
     CommandId::Intersect,
@@ -1044,10 +1059,11 @@ pub const OFF_THE_RING: [CommandId; 7] = [
     CommandId::Subdivide,
     CommandId::Lattice,
     CommandId::Decimate,
+    CommandId::Scatter,
 ];
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 67] = [
+pub const ALL: [CommandId; 68] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -1070,6 +1086,7 @@ pub const ALL: [CommandId; 67] = [
     CommandId::Subdivide,
     CommandId::Lattice,
     CommandId::Decimate,
+    CommandId::Scatter,
     CommandId::PivotToCentre,
     CommandId::PivotToOrigin,
     CommandId::PivotToObject,

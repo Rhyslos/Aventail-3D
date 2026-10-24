@@ -92,7 +92,10 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 ///
 /// Version 46 (decision 0145) is version 45 with the Decimate modifier
 /// (`v43::KindV43::Decimate`).
-pub const FORMAT_VERSION: u32 = 46;
+///
+/// Version 47 (decision 0146) is version 46 with the Scatter modifier
+/// (`v43::KindV43::Scatter`).
+pub const FORMAT_VERSION: u32 = 47;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -921,3 +924,5 @@ mod v44_tests;
 mod v45_tests;
 #[cfg(test)]
 mod v46_tests;
+#[cfg(test)]
+mod v47_tests;

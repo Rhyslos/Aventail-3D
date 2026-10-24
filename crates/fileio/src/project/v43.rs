@@ -24,13 +24,17 @@
 //!
 //! Version 46 ([decision 0145](../../../../docs/decisions/0145-decimate.md))
 //! adds the Decimate modifier; files before version 46 never hold it.
+//!
+//! Version 47 ([decision 0146](../../../../docs/decisions/0146-scatter.md))
+//! adds the Scatter modifier, naming the shapes it scatters; files before
+//! version 47 never hold it.
 
 use super::v1::Problem;
 use super::v41::ProjectV41;
 use crate::limits::Bounded;
 use scene::{
-    DecimateKeep, DecimateOptions, Document, LatticeOptions, Modifier, ModifierKind, ObjectId,
-    ReduceBy, RemeshOptions, SubdivideOptions,
+    DecimateKeep, DecimateOptions, Document, FaceId, LatticeOptions, Modifier, ModifierKind,
+    ObjectId, PlaceOn, ReduceBy, RemeshOptions, ScatterOptions, ScatterSettings, SubdivideOptions,
 };
 use serde::{Deserialize, Serialize};
 use words::{tr, trf};
@@ -118,6 +122,33 @@ pub(crate) enum KindV43 {
         /// Whether flat pairs of triangles join into quads.
         quads_where_flat: bool,
     },
+    /// Copies of other shapes spread over the surface (version 47).
+    Scatter {
+        /// Where the copies go: 0 points, 1 polygon centres, 2 random
+        /// (anything else is random).
+        place_on: u8,
+        /// How many copies a random spread makes.
+        count: u32,
+        /// The seed of the random choices.
+        seed: u32,
+        /// The least distance between copies, in centimetres.
+        spacing: f32,
+        /// Whether copies stand on the surface.
+        align: bool,
+        /// The most random turn, in degrees.
+        random_turn: f32,
+        /// The smallest random size.
+        scale_min: f32,
+        /// The largest random size.
+        scale_max: f32,
+        /// The offset along the surface's direction, in centimetres.
+        offset: f32,
+        /// The shapes scattered.
+        shapes: Bounded<u64>,
+        /// The polygons copies go on (none for the whole surface).
+        #[serde(default = "Bounded::new")]
+        polygons: Bounded<u32>,
+    },
 }
 
 impl KindV43 {
@@ -142,6 +173,23 @@ impl KindV43 {
                 keep_materials: o.keep.materials,
                 keep_borders: o.keep.borders,
                 quads_where_flat: o.quads_where_flat,
+            },
+            ModifierKind::Scatter(s) => Self::Scatter {
+                place_on: match s.options.place_on {
+                    PlaceOn::Points => 0,
+                    PlaceOn::Centres => 1,
+                    PlaceOn::Random => 2,
+                },
+                count: s.options.count,
+                seed: s.options.seed,
+                spacing: s.options.spacing,
+                align: s.options.align,
+                random_turn: s.options.random_turn,
+                scale_min: s.options.scale_min,
+                scale_max: s.options.scale_max,
+                offset: s.options.offset,
+                shapes: s.shapes.iter().map(|id| id.get()).collect(),
+                polygons: s.polygons.iter().map(|f| f.get()).collect(),
             },
         }
     }
@@ -189,6 +237,37 @@ impl KindV43 {
                     borders: *keep_borders,
                 },
                 quads_where_flat: *quads_where_flat,
+            }),
+            Self::Scatter {
+                place_on,
+                count,
+                seed,
+                spacing,
+                align,
+                random_turn,
+                scale_min,
+                scale_max,
+                offset,
+                shapes,
+                polygons,
+            } => ModifierKind::Scatter(ScatterSettings {
+                options: ScatterOptions {
+                    place_on: match place_on {
+                        0 => PlaceOn::Points,
+                        1 => PlaceOn::Centres,
+                        _ => PlaceOn::Random,
+                    },
+                    count: *count,
+                    seed: *seed,
+                    spacing: *spacing,
+                    align: *align,
+                    random_turn: *random_turn,
+                    scale_min: *scale_min,
+                    scale_max: *scale_max,
+                    offset: *offset,
+                },
+                shapes: shapes.iter().map(|id| ObjectId::from_raw(*id)).collect(),
+                polygons: polygons.iter().map(|f| FaceId::from_raw(*f)).collect(),
             }),
         }
     }
