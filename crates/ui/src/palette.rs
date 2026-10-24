@@ -141,6 +141,9 @@ pub fn icon_button(
     tinted_button(ui, icon, icon_tint(icon), label, note, state)
 }
 
+/// The size of the names in the mode palette's slide-out strip.
+const WORD_SIZE: f32 = 13.0;
+
 /// Like [`icon_button`], in a given colour instead of the icon's own.
 pub fn tinted_button(
     ui: &mut Ui,
@@ -150,38 +153,13 @@ pub fn tinted_button(
     note: &str,
     state: ButtonState,
 ) -> Response {
-    worded_button(ui, icon, tint, label, note, state, None)
-}
-
-/// The size of the words beside a palette icon (decision 0126).
-const WORD_SIZE: f32 = 13.0;
-
-/// An icon button with `word` written beside the icon, when given (the
-/// top palette's labels, where there's room; decision 0126).
-fn worded_button(
-    ui: &mut Ui,
-    icon: Icon,
-    tint: Color32,
-    label: &str,
-    note: &str,
-    state: ButtonState,
-    word: Option<&str>,
-) -> Response {
     let enabled = state != ButtonState::Unavailable;
     let sense = if enabled {
         Sense::click()
     } else {
         Sense::hover()
     };
-    let galley = word.map(|w| {
-        ui.painter().layout_no_wrap(
-            w.to_string(),
-            egui::FontId::proportional(WORD_SIZE),
-            Color32::PLACEHOLDER,
-        )
-    });
-    let width = BUTTON_SIZE + galley.as_ref().map_or(0.0, |g| g.size().x + 8.0);
-    let (rect, response) = ui.allocate_exact_size(vec2(width, BUTTON_SIZE), sense);
+    let (rect, response) = ui.allocate_exact_size(Vec2::splat(BUTTON_SIZE), sense);
     response.widget_info(|| WidgetInfo::labeled(WidgetType::Button, enabled, label));
     if ui.is_rect_visible(rect) {
         let visuals = ui.visuals();
@@ -201,19 +179,8 @@ fn worded_button(
             ButtonState::Normal => tint,
             ButtonState::Unavailable => dimmed(tint),
         };
-        let square = egui::Rect::from_min_size(rect.min, Vec2::splat(BUTTON_SIZE));
-        let icon_rect = egui::Rect::from_center_size(square.center(), Vec2::splat(ICON_SIZE));
+        let icon_rect = egui::Rect::from_center_size(rect.center(), Vec2::splat(ICON_SIZE));
         icons::paint(painter, icon_rect, icon, color);
-        if let Some(galley) = galley {
-            let text = match state {
-                ButtonState::Active => Color32::WHITE,
-                ButtonState::Unavailable => dimmed(theme::TEXT),
-                ButtonState::Normal if response.hovered() => theme::TEXT_STRONG,
-                ButtonState::Normal => theme::TEXT,
-            };
-            let at = egui::pos2(square.max.x - 2.0, rect.center().y - galley.size().y / 2.0);
-            painter.galley(at, galley, text);
-        }
     }
     let tip = if note.is_empty() {
         label.to_string()
@@ -396,23 +363,6 @@ pub(crate) const SYMMETRY_HELP: &str = crate::text!(
 /// The accessible name of the arrow that opens the Symmetry menu.
 pub(crate) const SYMMETRY_MENU_LABEL: &str = crate::text!("Symmetry settings");
 
-/// From this much room across, the top palette writes words beside its
-/// most used icons (decision 0126): the tools, Snap and Symmetry.
-pub(crate) const WORDS_FROM_WIDTH: f32 = 1150.0;
-
-/// The word beside a palette command's icon, when there's room.
-fn word_for(command: PaletteCommand, select_tool: SelectTool) -> Option<&'static str> {
-    Some(match command {
-        PaletteCommand::NextSelectTool => select_tool.name(),
-        PaletteCommand::Tool(Tool::Move) => tr("Move"),
-        PaletteCommand::Tool(Tool::Rotate) => tr("Rotate"),
-        PaletteCommand::Tool(Tool::Scale) => tr("Scale"),
-        PaletteCommand::ToggleSnapping => tr("Snap"),
-        PaletteCommand::ToggleSymmetry => tr("Symmetry"),
-        _ => return None,
-    })
-}
-
 /// The accessible name of the arrow that opens the select tool list.
 pub(crate) const SELECT_TOOL_MENU_LABEL: &str = crate::text!("Select tools");
 
@@ -440,23 +390,17 @@ fn select_tool_menu(ui: &mut Ui, current: SelectTool, in_use: bool) -> Option<Se
         "Pick how a drag selects: box, lasso or paint (Q steps through them)",
     ));
     let mut picked = None;
-    egui::Popup::from_toggle_button_response(&response)
-        .gap(4.0)
-        .width(190.0)
-        .show(|ui| {
-            for tool in SelectTool::ALL {
-                let ticked = in_use && tool == current;
-                let text = if ticked {
-                    format!("✓ {}", tool.name())
-                } else {
-                    format!("   {}", tool.name())
-                };
-                if ui.button(text).on_hover_text(tool.description()).clicked() {
-                    picked = Some(tool);
-                    ui.close();
-                }
+    // A menu like the app's others (the viewport's Shaded menu, say):
+    // the tool in use highlighted, not a typed-in tick.
+    egui::Popup::menu(&response).gap(4.0).show(|ui| {
+        for tool in SelectTool::ALL {
+            let button = egui::Button::selectable(in_use && tool == current, tool.name());
+            if ui.add(button).on_hover_text(tool.description()).clicked() {
+                picked = Some(tool);
+                ui.close();
             }
-        });
+        }
+    });
     picked
 }
 
@@ -487,6 +431,7 @@ fn command_groups() -> [Vec<Planned>; 4] {
             listed(CommandId::Move, PaletteCommand::Tool(Tool::Move)),
             listed(CommandId::Scale, PaletteCommand::Tool(Tool::Scale)),
             listed(CommandId::Rotate, PaletteCommand::Tool(Tool::Rotate)),
+            listed(CommandId::AllGizmos, PaletteCommand::Tool(Tool::All)),
         ],
         vec![
             shape(Icon::Cube, tr("Create cube"), PrimitiveKind::Cube),
@@ -542,7 +487,6 @@ pub fn command_palette(
     units: crate::units::Units,
 ) -> Option<PaletteCommand> {
     let mut clicked = None;
-    let words = ui.available_width() >= WORDS_FROM_WIDTH;
     ui.horizontal_centered(|ui| {
         ui.spacing_mut().item_spacing.x = 2.0;
         for (index, group) in command_groups().iter().enumerate() {
@@ -586,7 +530,7 @@ pub fn command_palette(
                         (true, command.arrives.to_string())
                     }
                     PaletteCommand::Tool(tool) => {
-                        active = state.tool == tool || state.tool == Tool::All;
+                        active = state.tool == tool;
                         let keys = command
                             .listed
                             .and_then(|id| id.info().shortcut)
@@ -616,10 +560,7 @@ pub fn command_palette(
                 } else {
                     ButtonState::Unavailable
                 };
-                let word = words.then(|| word_for(action, state.select_tool)).flatten();
-                if worded_button(ui, icon, icon_tint(icon), label, &note, button_state, word)
-                    .clicked()
-                {
+                if tinted_button(ui, icon, icon_tint(icon), label, &note, button_state).clicked() {
                     clicked = Some(action);
                 }
                 if matches!(action, PaletteCommand::NextSelectTool)

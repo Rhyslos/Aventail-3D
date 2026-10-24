@@ -87,18 +87,6 @@ fn harness_built(
     harness_built_sized(builder, workbench, renderer, [1440.0, 900.0])
 }
 
-/// A fresh window `width` points wide (900 tall), with a cube.
-pub(super) fn fresh_of_width(width: f32) -> Harness<'static, State> {
-    let mut harness = harness_built_sized(
-        Harness::builder(),
-        with_a_cube(Workbench::new(info(), None)),
-        TestRenderer::default(),
-        [width, 900.0],
-    );
-    harness.run();
-    harness
-}
-
 pub(super) fn harness_built_sized(
     builder: egui_kittest::HarnessBuilder<State>,
     workbench: Workbench,
