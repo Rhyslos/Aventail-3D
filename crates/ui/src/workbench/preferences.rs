@@ -140,6 +140,7 @@ impl Workbench {
                 hide_hard_edges: &mut options.hide_hard_edges,
                 show_seams: &mut options.show_seams,
                 show_normals: &mut options.show_normals,
+                show_collision: &mut options.show_collision,
                 flat_from_dice: &mut options.flat_from_dice,
             },
         };

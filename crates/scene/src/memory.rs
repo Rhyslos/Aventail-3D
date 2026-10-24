@@ -202,6 +202,7 @@ pub(crate) fn edit(edit: &Edit) -> usize {
             | Edit::SetTexture { .. }
             | Edit::SetMending { .. }
             | Edit::SetCollision { .. }
+            | Edit::SetCollisionParts { .. }
             | Edit::SetHardness { .. }
             | Edit::SetMirror { .. } => 0,
             Edit::SetBooleans { before, after, .. } => [before, after]

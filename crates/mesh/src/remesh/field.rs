@@ -134,7 +134,7 @@ fn cross(a: Vec2, b: Vec2, c: Vec2) -> f32 {
 /// count as one solid, their overlap inside too. The line is moved a
 /// tiny, odd fraction of a step off the row, so it never runs exactly
 /// through a triangle's edge or corner.
-fn parity(grid: &Grid, soup: &Soup) -> Vec<bool> {
+pub(crate) fn parity(grid: &Grid, soup: &Soup) -> Vec<bool> {
     let [nx, ny, nz] = grid.size;
     let nudge = Vec2::new(0.001_234_5, 0.000_765_4) * grid.step;
     // Where a row's line crosses the surface: (row, x).

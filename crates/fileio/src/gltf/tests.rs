@@ -276,6 +276,7 @@ fn tangents_go_into_the_file() {
         local: uv_grid(),
         materials: vec![scene::Material::standard()],
         collision: scene::Collision::None,
+        collision_parts: Vec::new(),
     };
     let glb = write_glb(&[object], "Test App 1.0", false);
     let (json, _) = parts(&glb);
@@ -476,6 +477,69 @@ fn collision_names_and_boxes_go_out_for_godot() {
 }
 
 #[test]
+fn collision_parts_go_out_beside_their_object_for_godot() {
+    let mut doc = scene_of(&[PrimitiveKind::Arch, PrimitiveKind::Cube]);
+    let ids: Vec<_> = doc.scene().walk().into_iter().map(|(id, _)| id).collect();
+    doc.execute(Command::SetCollision {
+        ids,
+        collision: scene::Collision::Parts,
+    })
+    .unwrap();
+    let export = |godot_names: bool| {
+        let options = ExportOptions {
+            godot_names,
+            ..ExportOptions::default()
+        };
+        let files = export_bytes(&doc, ExportFormat::Glb, &options, "T", "t.glb").unwrap();
+        let (json, _) = parts(&files.main);
+        json
+    };
+    let json = export(true);
+    let nodes = json["nodes"].as_array().unwrap();
+    let names: Vec<&str> = nodes.iter().map(|n| n["name"].as_str().unwrap()).collect();
+    // The shapes keep their own names; their parts sit beside them.
+    assert!(
+        names.contains(&"Arch") && names.contains(&"Cube"),
+        "{names:?}"
+    );
+    let arch_parts: Vec<&&str> = names
+        .iter()
+        .filter(|n| n.starts_with("Arch-part") && n.ends_with("-convcolonly"))
+        .collect();
+    assert!((3..=8).contains(&arch_parts.len()), "{names:?}");
+    assert!(names.contains(&"Arch-part1-convcolonly"));
+    // A cube is convex: one part.
+    assert!(names.contains(&"Cube-part1-convcolonly"));
+    assert!(!names.contains(&"Cube-part2-convcolonly"));
+    // Each part is a closed hull of at most 64 corners, at its object's
+    // pivot.
+    let arch = nodes.iter().find(|n| n["name"] == "Arch").unwrap();
+    for node in nodes
+        .iter()
+        .filter(|n| n["name"].as_str().unwrap().contains("-part"))
+    {
+        if node["name"].as_str().unwrap().starts_with("Arch") {
+            assert_eq!(node.get("matrix"), arch.get("matrix"));
+        }
+        let mesh = &json["meshes"][node["mesh"].as_u64().unwrap() as usize];
+        let position = mesh["primitives"][0]["attributes"]["POSITION"]
+            .as_u64()
+            .unwrap() as usize;
+        let count = json["accessors"][position]["count"].as_u64().unwrap();
+        assert!((12..=64 * 6).contains(&count), "{count}");
+    }
+    // Not for other engines.
+    let plain = export(false);
+    let names: Vec<&str> = plain["nodes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|n| n["name"].as_str().unwrap())
+        .collect();
+    assert_eq!(names.len(), 2, "{names:?}");
+}
+
+#[test]
 fn the_summary_before_exporting_matches_the_export() {
     use crate::export::{ExportFormat, ExportWhat, export_bytes, summary};
     let mut doc = scene_with_materials();
@@ -633,6 +697,23 @@ fn files_for_outside_checkers() {
         ..ExportOptions::default()
     };
     write("godot-collision.glb", &godot, &godot_options);
+
+    // Collision in parts (decision 0151): an arch and a ring, each part
+    // a `-convcolonly` node beside them.
+    let mut in_parts = scene_of(&[PrimitiveKind::Arch, PrimitiveKind::Torus]);
+    let ids: Vec<_> = in_parts
+        .scene()
+        .walk()
+        .into_iter()
+        .map(|(id, _)| id)
+        .collect();
+    in_parts
+        .execute(Command::SetCollision {
+            ids,
+            collision: scene::Collision::Parts,
+        })
+        .unwrap();
+    write("godot-collision-parts.glb", &in_parts, &godot_options);
 
     // Weighted normals (decision 0148): custom normals in NORMAL, and the
     // tangents made from them.

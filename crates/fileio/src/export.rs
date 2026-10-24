@@ -21,6 +21,7 @@
 //! its list of materials (an instance its original's). In a file,
 //! materials of the same name are one material ([`file_materials`]).
 
+pub(crate) use collision::part_objects;
 use glam::{Mat4, Vec2, Vec3};
 use mesh::{AttributeElement, FaceId, Hardness, Mesh, Value};
 use scene::{Document, Material, ObjectId};
@@ -488,6 +489,10 @@ pub struct ExportedObject {
     pub materials: Vec<Material>,
     /// The collision shape a game engine makes for it (decision 0078).
     pub collision: scene::Collision,
+    /// The hulls of its collision in parts (decision 0151), around its
+    /// pivot in the file's units and axes as `local`: only for an object
+    /// wrapped in parts, in an export with Godot's names.
+    pub collision_parts: Vec<ExportMesh>,
 }
 
 /// The objects of `document` to export with `options`, in the Objects
@@ -621,6 +626,11 @@ fn exported(
         hardness: Some(hardness),
         ..*options
     };
+    let collision_parts = if options.godot_names {
+        collision::part_hulls(scene, id, &shape, local)
+    } else {
+        Vec::new()
+    };
     let mut world = export_mesh(&shape, world, &shading);
     let mut local = export_mesh(&shape, local, &shading);
     // A slot with no material in the list uses the first.
@@ -637,6 +647,7 @@ fn exported(
         local,
         materials,
         collision: object.collision,
+        collision_parts,
     })
 }
 
@@ -728,6 +739,7 @@ pub fn export_mesh(mesh: &Mesh, matrix: Mat4, options: &ExportOptions) -> Export
     out
 }
 
+mod collision;
 #[cfg(test)]
 mod normals_tests;
 #[cfg(test)]

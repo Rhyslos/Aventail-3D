@@ -194,6 +194,8 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
                 "Show which way each polygon of the selected objects faces, as a short line \
                  from its middle. Lines pointing into a shape show flipped polygons.",
             ));
+        ui.checkbox(&mut panel.options.show_collision, tr(COLLISION_ENTRY))
+            .on_hover_text(tr(COLLISION_HELP));
         ui.separator();
         ui.checkbox(&mut panel.options.flat_from_dice, tr(FLAT_FROM_DICE_ENTRY))
             .on_hover_text(tr(FLAT_FROM_DICE_HELP));
@@ -302,6 +304,14 @@ pub(crate) fn cavity_entry(ui: &mut Ui, options: &mut ViewOptions) {
 
 /// The Display menu's switch for showing normals.
 pub(crate) const NORMALS_ENTRY: &str = crate::text!("Show normals");
+/// The Display menu's switch for outlining every object's collision
+/// shapes (decision 0151).
+pub(crate) const COLLISION_ENTRY: &str = crate::text!("Show collision");
+/// What it does.
+pub(crate) const COLLISION_HELP: &str = crate::text!(
+    "Outline every object's collision shapes (Wrapped, Wrapped in parts, A box), as a game \
+     engine will make them. Off, only the selected objects' are outlined."
+);
 /// The Display menu's entry for seams (decision 0096).
 pub(crate) const SEAMS_ENTRY: &str = crate::text!("Show seams");
 

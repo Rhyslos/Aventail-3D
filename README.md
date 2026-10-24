@@ -258,9 +258,9 @@ After a review of the whole app (2026-10-21, [decision 0121](docs/decisions/0121
 
 **Gate:** 2–3 people new to the app finish a fixed task list without help, see what is selected on any screen, and no text skips the English package. Then Phase 10, advanced modelling.
 
-### Phase 10 · Advanced hard-surface (after Phase 9, before the rest of Phase 8) — 12 of 23
+### Phase 10 · Advanced hard-surface (after Phase 9, before the rest of Phase 8) — 13 of 23
 
-`███████░░░░░░` 52%
+`███████░░░░░░` 57%
 
 Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/decisions/0125-modelling-before-the-rest-of-the-uvs.md)); Phase 8 continues once it's done. Friends join as testers around here, once there are enough tools to build something. On 24 October the project lead widened it with fourteen more modifiers ([decision 0136](docs/decisions/0136-more-modifiers.md)); each still asks about its controls before it's built. They're built biggest and hardest first, except where one builds on another ([decision 0137](docs/decisions/0137-biggest-first.md)).
 
@@ -279,7 +279,7 @@ Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/d
 - [x] Weighted normals: big flat faces shade flat and bevels round, with bigger polygons counting for more; custom normals carried to the viewport, glTF and OBJ exports and their tangents ([decision 0148](docs/decisions/0148-weighted-normals.md))
 - [x] Live bevel modifier: every edge sharper than an angle (or the hard or marked ones) bevelled with rounded corners, updating as you model; bevel weights set in the Edges mode ([decision 0149](docs/decisions/0149-live-bevel.md))
 - [x] Quadify: triangles joined back into quads, the squarest first, as a live modifier or once with Quadify now (after booleans, decimating or imports) ([decision 0150](docs/decisions/0150-quadify.md))
-- [ ] Collision hull: simple convex shapes for physics, made automatically
+- [x] Collision hull: Wrapped in parts, a shape split into a few convex parts round its dents for game physics, and every collision shape outlined in the viewport ([decision 0151](docs/decisions/0151-collision-hulls.md))
 - [ ] Weld by distance: points sitting on top of each other merged
 - [ ] Array and mirror generators: in a line, a grid, or round a centre (radial: wheels, gears, pillars); symmetry is already a per-object mirror (Phase 9)
 - [ ] Shell: give a surface thickness
@@ -313,6 +313,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-24 | Phase 10: collision hulls, Wrapped in parts splitting a shape into convex parts round its dents (an arch you can walk through) for Godot, and collision shapes outlined in yellow in the viewport |
 | 2026-10-24 | Phase 10: Quadify, pairs of triangles joined back into quads, the squarest first, keeping seams, hard edges and materials, as a live modifier or a one-off Quadify now |
 | 2026-10-24 | Phase 10: Live bevel, a shape's sharp, hard or marked edges bevelled with rounded corners and kept live as you model, before Weighted normals for flat big faces |
 | 2026-10-24 | Phase 10: Weighted normals, bevelled shapes shaded with their big faces flat and their bevels round, the normals carried into exports and their tangents |

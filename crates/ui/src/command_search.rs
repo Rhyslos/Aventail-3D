@@ -62,6 +62,7 @@ pub(crate) enum MenuAction {
     ShowHardEdges,
     ShowSeams,
     ShowNormals,
+    ShowCollision,
     HighContrast,
     EditPivot,
     ApplyMirror,
@@ -69,7 +70,7 @@ pub(crate) enum MenuAction {
 }
 
 impl MenuAction {
-    pub(crate) const ALL: [MenuAction; 31] = [
+    pub(crate) const ALL: [MenuAction; 32] = [
         Self::New,
         Self::Open,
         Self::Save,
@@ -97,6 +98,7 @@ impl MenuAction {
         Self::ShowHardEdges,
         Self::ShowSeams,
         Self::ShowNormals,
+        Self::ShowCollision,
         Self::HighContrast,
         Self::EditPivot,
         Self::ApplyMirror,
@@ -220,6 +222,11 @@ impl MenuAction {
                 tr("Show normals"),
                 tr("Display"),
                 tr("Show which way each polygon faces, as short lines"),
+            ),
+            Self::ShowCollision => (
+                tr("Show collision"),
+                tr("Display"),
+                tr("Outline every object's collision shapes, not only the selected objects'"),
             ),
             Self::HighContrast => (
                 tr("High contrast"),

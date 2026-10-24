@@ -48,7 +48,9 @@ impl<E: FileOperation> ProjectV20<E> {
                 let shape = match scene.object(id)?.collision {
                     Collision::None => return None,
                     Collision::Mesh => ShapeV20::Mesh,
-                    Collision::Convex => ShapeV20::Convex,
+                    // Wrapped in parts is marked as such in version 52's
+                    // object settings; here it is its closest older choice.
+                    Collision::Convex | Collision::Parts => ShapeV20::Convex,
                     Collision::Box => ShapeV20::Box,
                 };
                 Some(CollisionV20 {

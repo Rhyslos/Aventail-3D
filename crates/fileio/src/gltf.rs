@@ -337,8 +337,9 @@ fn box_around(shape: &crate::export::ExportMesh) -> crate::export::ExportMesh {
 /// The bytes of a binary glTF file holding `objects` (made with metres,
 /// Y up and triangles), naming `generator` as the program that made it.
 /// With `godot_names`, objects' names carry their collision for Godot,
-/// and an object that collides as a box gets a box beside it called
-/// `name-convcolonly` (decision 0078).
+/// an object that collides as a box gets a box beside it called
+/// `name-convcolonly` (decision 0078), and one wrapped in parts gets its
+/// parts beside it, `name-part1-convcolonly` and on (decision 0151).
 pub fn write_glb(objects: &[ExportedObject], generator: &str, godot_names: bool) -> Vec<u8> {
     let materials = crate::export::file_materials(objects);
     let boxes: Vec<ExportedObject> = if godot_names {
@@ -352,6 +353,7 @@ pub fn write_glb(objects: &[ExportedObject], generator: &str, godot_names: bool)
                     world: shape.clone(),
                     local: shape,
                     collision: scene::Collision::None,
+                    collision_parts: Vec::new(),
                     ..o.clone()
                 }
             })
@@ -359,10 +361,12 @@ pub fn write_glb(objects: &[ExportedObject], generator: &str, godot_names: bool)
     } else {
         Vec::new()
     };
+    // Collision in parts: each part beside its object (decision 0151).
+    let parts = crate::export::part_objects(objects);
     let mut b = Builder::default();
     let mut nodes = Vec::new();
     let mut meshes = Vec::new();
-    for object in objects.iter().chain(&boxes) {
+    for object in objects.iter().chain(&boxes).chain(&parts) {
         let vertices = vertices(&object.local);
         if vertices.positions.is_empty() {
             continue;

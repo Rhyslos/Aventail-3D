@@ -30,6 +30,7 @@ mod nets;
 mod tests;
 
 use crate::{Bounds, Mesh};
+pub(crate) use field::parity;
 use glam::Vec3;
 use std::collections::HashMap;
 use words::{tr, trf};
@@ -143,7 +144,7 @@ pub(crate) struct Soup {
 }
 
 impl Soup {
-    fn of(mesh: &Mesh) -> Result<Self, RemeshProblem> {
+    pub(crate) fn of(mesh: &Mesh) -> Result<Self, RemeshProblem> {
         let mut triangles = Vec::with_capacity(mesh.face_count() * 2);
         let mut slots = Vec::with_capacity(mesh.face_count() * 2);
         let mut has_materials = false;
@@ -173,7 +174,7 @@ impl Soup {
         })
     }
 
-    fn bounds(&self) -> Option<Bounds> {
+    pub(crate) fn bounds(&self) -> Option<Bounds> {
         Bounds::around(self.triangles.iter().flatten().copied())
     }
 }
