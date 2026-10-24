@@ -211,6 +211,9 @@ pub enum Icon {
     /// side, the arrows on its flat top all straight up, those on its
     /// rounded corners fanning round.
     WeightedNormals,
+    /// Quadify (decision 0150): a square whose diagonal, the edge between
+    /// its two triangles, is going (dashed).
+    Quadify,
     /// Creases (decision 0143): a shape sharp along one edge.
     Creases,
     /// Crease edges: the sharp edge drawn bold.
@@ -282,7 +285,7 @@ pub enum Icon {
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 124] = [
+pub const ALL: [Icon; 125] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -373,6 +376,7 @@ pub const ALL: [Icon; 124] = [
     Icon::BendAlongCurve,
     Icon::Shrinkwrap,
     Icon::WeightedNormals,
+    Icon::Quadify,
     Icon::Creases,
     Icon::CreaseEdges,
     Icon::Uncrease,
@@ -506,6 +510,7 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         | Icon::BendAlongCurve
         | Icon::Shrinkwrap
         | Icon::WeightedNormals
+        | Icon::Quadify
         | Icon::Creases
         | Icon::CreaseEdges
         | Icon::Uncrease => modifiers::draw(&mut pen, icon),

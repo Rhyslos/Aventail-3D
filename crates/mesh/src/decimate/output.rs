@@ -6,6 +6,7 @@ use super::{Decimator, key};
 use crate::attributes::{AttributeValues, Domain, SEAM, UV, Value};
 use crate::crease::CREASE;
 use crate::material::slot_of;
+use crate::quadify::pairing::{Candidate, best_pairs, quad_shape};
 use crate::{EdgeKey, FaceId, Mesh, VertexId};
 use glam::{DVec3, Vec2};
 use std::collections::HashMap;
@@ -137,7 +138,7 @@ impl Decimator {
     /// dent: the squarest quads first. The first of each pair (by number)
     /// holds the quad's corners.
     fn flat_pairs(&self) -> HashMap<u32, Pair> {
-        let flat = FLAT_DEGREES.to_radians().cos();
+        let flat = FLAT_DEGREES.to_radians();
         // Each edge's live triangles, by key, in triangle order.
         let mut on_edge: HashMap<u64, Vec<u32>> = HashMap::new();
         for (t, alive) in self.tri_alive.iter().enumerate() {
@@ -151,7 +152,7 @@ impl Decimator {
                 }
             }
         }
-        let mut candidates: Vec<(f64, u32, u32, [u32; 4])> = Vec::new();
+        let mut candidates: Vec<Candidate<[u32; 4]>> = Vec::new();
         for (t, alive) in self.tri_alive.iter().enumerate() {
             if !*alive {
                 continue;
@@ -175,18 +176,20 @@ impl Decimator {
                     continue;
                 }
                 if let Some((score, quad)) = self.quad(t1, t2, (a, b), flat) {
-                    candidates.push((score, t1, t2, quad));
+                    candidates.push(Candidate {
+                        score,
+                        first: t1,
+                        second: t2,
+                        item: quad,
+                    });
                 }
             }
         }
-        candidates.sort_by(|x, y| x.0.total_cmp(&y.0).then(x.1.cmp(&y.1)).then(x.2.cmp(&y.2)));
+        // The squarest first, as Quadify chooses (decision 0150).
         let mut pairs: HashMap<u32, Pair> = HashMap::new();
-        for (_, t1, t2, quad) in candidates {
-            if pairs.contains_key(&t1) || pairs.contains_key(&t2) {
-                continue;
-            }
-            pairs.insert(t1, Pair::First(quad));
-            pairs.insert(t2, Pair::Second);
+        for chosen in best_pairs(candidates) {
+            pairs.insert(chosen.first, Pair::First(chosen.item));
+            pairs.insert(chosen.second, Pair::Second);
         }
         pairs
     }
@@ -217,29 +220,13 @@ impl Decimator {
             return None;
         }
         let quad = [w1[k1], w2[(k2 + 2) % 3], w1[(k1 + 1) % 3], w1[(k1 + 2) % 3]];
-        let p: Vec<DVec3> = quad
-            .iter()
-            .map(|w| self.pos[self.wedge_point[*w as usize] as usize])
-            .collect();
-        let n1 = (p[2] - p[0]).cross(p[3] - p[0]);
-        let n2 = (p[1] - p[0]).cross(p[2] - p[0]);
-        let (l1, l2) = (n1.length(), n2.length());
-        if l1 <= 1e-14 || l2 <= 1e-14 || n1.dot(n2) < flat * l1 * l2 {
+        let p: [DVec3; 4] = quad.map(|w| self.pos[self.wedge_point[w as usize] as usize]);
+        // No dent, and flat together (shared with Quadify, decision 0150).
+        let shape = quad_shape(p)?;
+        if shape.fold > flat {
             return None;
         }
-        let normal = n1 + n2;
-        let mut score = 0.0;
-        for i in 0..4 {
-            let (prev, here, next) = (p[(i + 3) % 4], p[i], p[(i + 1) % 4]);
-            let (e1, e2) = (here - prev, next - here);
-            // A corner turning the wrong way is a dent.
-            if e1.cross(e2).dot(normal) <= 0.0 {
-                return None;
-            }
-            let angle = (-e1).angle_between(e2);
-            score += (angle - std::f64::consts::FRAC_PI_2).abs();
-        }
-        Some((score, quad))
+        Some((shape.squareness, quad))
     }
 }
 

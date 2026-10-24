@@ -109,7 +109,8 @@ pub(crate) fn operation_size(op: &Operation) -> usize {
         | Operation::SetStretchBudget { faces, anchors, .. }
         | Operation::SetUvLock { faces, anchors, .. }
         | Operation::SetPieceSettings { faces, anchors, .. }
-        | Operation::PlaceOnTrim { faces, anchors, .. } => {
+        | Operation::PlaceOnTrim { faces, anchors, .. }
+        | Operation::Quadify { faces, anchors, .. } => {
             std::mem::size_of_val(faces.as_slice())
                 + anchors.as_ref().map_or(0, mesh::Anchors::memory_size)
         }

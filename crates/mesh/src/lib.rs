@@ -35,6 +35,7 @@ pub mod parallel;
 pub mod parts;
 pub mod polygon;
 pub mod primitives;
+pub mod quadify;
 pub mod remesh;
 pub mod samples;
 pub mod scatter;

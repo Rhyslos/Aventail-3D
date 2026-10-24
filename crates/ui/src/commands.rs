@@ -67,6 +67,8 @@ pub enum CommandId {
     Lattice,
     /// Add a decimate modifier to the selected shapes (decision 0145).
     Decimate,
+    /// Add a quadify modifier to the selected shapes (decision 0150).
+    Quadify,
     /// Scatter the other selected shapes over the one selected first
     /// (decision 0146).
     Scatter,
@@ -121,6 +123,10 @@ pub enum CommandId {
     Dissolve,
     /// Melt points into one.
     Weld,
+    /// Join pairs of triangles into quads once, as a recorded edit: the
+    /// selected polygons in the Polygons mode, whole shapes in the Model
+    /// mode (decision 0150).
+    QuadifyNow,
     /// Join points or edges with a new edge across their polygon.
     Connect,
     /// Cut new edges along a line.
@@ -369,6 +375,21 @@ impl CommandId {
                 let kind = scene::ModifierKind::Decimate(Default::default());
                 (kind.name(), Icon::Decimate, None, kind.description(), None)
             }
+            Self::Quadify => {
+                let kind = scene::ModifierKind::Quadify(Default::default());
+                (kind.name(), Icon::Quadify, None, kind.description(), None)
+            }
+            Self::QuadifyNow => (
+                tr("Quadify now"),
+                Icon::Quadify,
+                None,
+                tr(
+                    "Join pairs of triangles into four-sided polygons once, the squarest first: \
+                 the selected polygons in the Polygons mode, whole shapes in the Model mode. \
+                 Change its settings under Last edit.",
+                ),
+                None,
+            ),
             Self::WeightedNormals => {
                 let kind = scene::ModifierKind::WeightedNormals(Default::default());
                 (
@@ -843,10 +864,13 @@ impl CommandId {
             | Self::LiveBevel
             | Self::Lattice
             | Self::Decimate
+            | Self::Quadify
             | Self::Scatter
             | Self::BendAlongCurve
             | Self::Shrinkwrap
             | Self::WeightedNormals => &[Model, Object, Points, Edges, Polygons],
+            // Whole shapes, or the selected polygons (decision 0150).
+            Self::QuadifyNow => &[Model, Polygons],
             Self::Extrude => &[Points, Edges, Polygons],
             Self::Bridge => &[Edges, Polygons],
             Self::Inset | Self::FlipNormals => &[Polygons],
@@ -1101,8 +1125,9 @@ pub fn group_menu(group: CommandId, ring: &[Slot]) -> Vec<Slot> {
 
 /// The commands with no place on the tool menu: the booleans (decision
 /// 0135) and the modifiers (decision 0142), found in the modifiers
-/// palette, the Mesh menu and command search.
-pub const OFF_THE_RING: [CommandId; 12] = [
+/// palette, the Mesh menu and command search; and Quadify now (decision
+/// 0150), in the Mesh menu's Clean up group and command search.
+pub const OFF_THE_RING: [CommandId; 14] = [
     CommandId::Union,
     CommandId::Subtract,
     CommandId::Intersect,
@@ -1111,14 +1136,16 @@ pub const OFF_THE_RING: [CommandId; 12] = [
     CommandId::LiveBevel,
     CommandId::Lattice,
     CommandId::Decimate,
+    CommandId::Quadify,
     CommandId::Scatter,
     CommandId::BendAlongCurve,
     CommandId::Shrinkwrap,
     CommandId::WeightedNormals,
+    CommandId::QuadifyNow,
 ];
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 72] = [
+pub const ALL: [CommandId; 74] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -1142,6 +1169,7 @@ pub const ALL: [CommandId; 72] = [
     CommandId::LiveBevel,
     CommandId::Lattice,
     CommandId::Decimate,
+    CommandId::Quadify,
     CommandId::Scatter,
     CommandId::BendAlongCurve,
     CommandId::Shrinkwrap,
@@ -1165,6 +1193,7 @@ pub const ALL: [CommandId; 72] = [
     CommandId::DeleteElements,
     CommandId::Dissolve,
     CommandId::Weld,
+    CommandId::QuadifyNow,
     CommandId::Connect,
     CommandId::Slit,
     CommandId::LoopCut,

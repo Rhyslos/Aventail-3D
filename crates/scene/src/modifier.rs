@@ -38,6 +38,7 @@ use glam::{Mat4, Vec3};
 use mesh::Mesh;
 use mesh::decimate::DecimateOptions;
 use mesh::live_bevel::LiveBevelOptions;
+use mesh::quadify::QuadifyOptions;
 use mesh::remesh::RemeshOptions;
 use mesh::subdivide::SubdivideOptions;
 use mesh::weighted_normals::WeightedNormalsOptions;
@@ -120,6 +121,9 @@ pub enum ModifierKind {
     /// sharper than an angle, the hard ones or the marked ones, bevelled
     /// with the improved bevel. Best before smoothing and Weighted normals.
     LiveBevel(LiveBevelOptions),
+    /// Pairs of triangles joined into quads (decision 0150), the
+    /// squarest first. Best before Live bevel and Subdivide.
+    Quadify(QuadifyOptions),
 }
 
 impl ModifierKind {
@@ -135,6 +139,7 @@ impl ModifierKind {
             Self::Shrinkwrap(ShrinkwrapSettings::default()),
             Self::Remesh(RemeshOptions::default()),
             Self::Decimate(DecimateOptions::default()),
+            Self::Quadify(QuadifyOptions::default()),
             Self::WeightedNormals(WeightedNormalsOptions::default()),
         ]
     }
@@ -151,6 +156,7 @@ impl ModifierKind {
             Self::Shrinkwrap(_) => tr("Shrinkwrap"),
             Self::WeightedNormals(_) => tr("Weighted normals"),
             Self::LiveBevel(_) => tr("Live bevel"),
+            Self::Quadify(_) => tr("Quadify"),
         }
     }
 
@@ -199,6 +205,11 @@ impl ModifierKind {
                  live: it follows the shape as you model. Best before Subdivide and Weighted \
                  normals.",
             ),
+            Self::Quadify(_) => tr(
+                "Join pairs of triangles into four-sided polygons, the squarest first, so a \
+                 triangulated shape is easy to loop cut and smooth again. UV seams, hard edges \
+                 and material borders stay.",
+            ),
         }
     }
 
@@ -213,6 +224,7 @@ impl ModifierKind {
             Self::BendAlongCurve(_) | Self::Shrinkwrap(_) => ModifierFamily::Deform,
             Self::WeightedNormals(_) => ModifierFamily::Game,
             Self::LiveBevel(_) => ModifierFamily::Generate,
+            Self::Quadify(_) => ModifierFamily::CleanUp,
         }
     }
 
@@ -227,7 +239,8 @@ impl ModifierKind {
             | Self::BendAlongCurve(_)
             | Self::Shrinkwrap(_)
             | Self::WeightedNormals(_)
-            | Self::LiveBevel(_) => false,
+            | Self::LiveBevel(_)
+            | Self::Quadify(_) => false,
             Self::Subdivide(o) => {
                 let o = o.clamped();
                 o.levels != o.export_levels
@@ -253,6 +266,7 @@ impl ModifierKind {
             Self::Shrinkwrap(settings) => Self::Shrinkwrap(settings.clamped()),
             Self::WeightedNormals(options) => Self::WeightedNormals(options.clamped()),
             Self::LiveBevel(options) => Self::LiveBevel(options.clamped()),
+            Self::Quadify(options) => Self::Quadify(options.clamped()),
         }
     }
 
@@ -266,7 +280,8 @@ impl ModifierKind {
             | Self::Subdivide(_)
             | Self::Decimate(_)
             | Self::WeightedNormals(_)
-            | Self::LiveBevel(_) => Vec::new(),
+            | Self::LiveBevel(_)
+            | Self::Quadify(_) => Vec::new(),
             Self::Lattice(options) => vec![options.cage],
             Self::Scatter(settings) => settings.shapes.clone(),
             Self::BendAlongCurve(settings) => vec![settings.curve],
@@ -316,7 +331,8 @@ impl ModifierKind {
             | Self::Scatter(_)
             | Self::Shrinkwrap(_)
             | Self::WeightedNormals(_)
-            | Self::LiveBevel(_) => kind.has_shape(),
+            | Self::LiveBevel(_)
+            | Self::Quadify(_) => kind.has_shape(),
         }
     }
 
@@ -328,7 +344,8 @@ impl ModifierKind {
             | Self::Subdivide(_)
             | Self::Decimate(_)
             | Self::WeightedNormals(_)
-            | Self::LiveBevel(_) => self.clone(),
+            | Self::LiveBevel(_)
+            | Self::Quadify(_) => self.clone(),
             Self::Lattice(options) => Self::Lattice(LatticeOptions {
                 cage: rename(options.cage),
             }),
@@ -396,6 +413,9 @@ impl ModifierKind {
                 mesh::live_bevel::edge_estimate(input, options).saturating_mul(4)
                     + input.face_count() / 20
             }
+            // About two triangles cost as much as one polygon in a boolean
+            // (50 000 triangles take about 0.12 s in a release build).
+            Self::Quadify(_) => mesh::quadify::triangle_count(input) / 2,
         }
     }
 
@@ -450,16 +470,29 @@ impl ModifierKind {
                 mesh::live_bevel::live_bevel(input, options, context.hardness)
                     .map_err(|why| why.to_string())
             }
+            // "Hard edges" are those the object's shading shows.
+            Self::Quadify(options) => mesh::quadify::quadified(input, options, context.hardness)
+                .map_err(|why| why.to_string()),
         }
     }
 
     /// Whether a new modifier of this kind goes before an `other` already
     /// in the list, rather than at the end: a Live bevel goes before
     /// smoothing (Subdivide) and Weighted normals, the recommended order
-    /// (decision 0149). The person can move it afterwards.
+    /// (decision 0149); Quadify before those and Live bevel too, as
+    /// bevelling and smoothing work best on quads (decision 0150). The
+    /// person can move it afterwards.
     pub fn goes_before(&self, other: &Self) -> bool {
-        matches!(self, Self::LiveBevel(_))
-            && matches!(other, Self::Subdivide(_) | Self::WeightedNormals(_))
+        match self {
+            Self::LiveBevel(_) => {
+                matches!(other, Self::Subdivide(_) | Self::WeightedNormals(_))
+            }
+            Self::Quadify(_) => matches!(
+                other,
+                Self::Subdivide(_) | Self::WeightedNormals(_) | Self::LiveBevel(_)
+            ),
+            _ => false,
+        }
     }
 
     /// Whether its result's custom normals ([`mesh::custom_normals`]) fit

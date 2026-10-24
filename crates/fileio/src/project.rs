@@ -60,6 +60,7 @@ mod v43;
 mod v45;
 mod v5;
 mod v50;
+mod v51;
 mod v6;
 mod v7;
 mod v8;
@@ -106,7 +107,11 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// Version 50 (decision 0149) is version 49 with the Live bevel modifier
 /// (`v43::KindV43::LiveBevel`) and bevel weights, one more kind of
 /// recorded edit (`v37::OperationV37::SetBevelWeights`).
-pub const FORMAT_VERSION: u32 = 50;
+///
+/// Version 51 (decision 0150) is version 50 with the Quadify modifier
+/// (`v43::KindV43::Quadify`) and the one-off Quadify, one more kind of
+/// recorded edit (`v37::OperationV37::Quadify`).
+pub const FORMAT_VERSION: u32 = 51;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -943,3 +948,5 @@ mod v48_tests;
 mod v49_tests;
 #[cfg(test)]
 mod v50_tests;
+#[cfg(test)]
+mod v51_tests;

@@ -145,8 +145,9 @@ fn groups(
 
 /// Merges each group of polygons into one with the group's outline, kept
 /// as the lowest id; groups whose outline isn't a single loop stay as they
-/// are. Returns how many groups merged.
-fn merge(mesh: &mut Mesh, groups: &[BTreeSet<FaceId>]) -> usize {
+/// are. Returns how many groups merged. Quadify joins its pairs of triangles
+/// with it too ([`crate::quadify`]).
+pub(crate) fn merge(mesh: &mut Mesh, groups: &[BTreeSet<FaceId>]) -> usize {
     let original = mesh.clone();
     let mut rewrites: BTreeMap<FaceId, Vec<(VertexId, CornerFrom)>> = BTreeMap::new();
     let mut gone: Vec<FaceId> = Vec::new();

@@ -1,4 +1,4 @@
-//! The modifier icons (decisions 0142 to 0149), one per kind of
+//! The modifier icons (decisions 0142 to 0150), one per kind of
 //! modifier on the modifiers palette, and the crease commands'. Original
 //! drawings.
 
@@ -19,6 +19,7 @@ pub(super) fn draw(pen: &mut Pen, icon: Icon) {
         Icon::Shrinkwrap => shrinkwrap(pen),
         Icon::WeightedNormals => weighted_normals(pen),
         Icon::LiveBevel => live_bevel(pen),
+        Icon::Quadify => quadify(pen),
         _ => {}
     }
 }
@@ -313,4 +314,16 @@ fn live_bevel(pen: &mut Pen) {
         false,
         Ink::Line,
     );
+}
+
+/// Quadify: a four-sided polygon with its four corner points, made of
+/// two triangles whose edge between them is going (dashed).
+fn quadify(pen: &mut Pen) {
+    let outline = [(4.0, 5.0), (20.0, 5.0), (20.0, 19.0), (4.0, 19.0)];
+    pen.shape(&outline, Paint::Tone);
+    pen.stroke(&[(4.0, 19.0), (20.0, 5.0)], false, Ink::Dashed);
+    pen.stroke(&outline, true, Ink::Line);
+    for (x, y) in outline {
+        pen.dot(x, y, 1.8);
+    }
 }

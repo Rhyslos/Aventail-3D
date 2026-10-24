@@ -990,6 +990,9 @@ mod quad;
 #[cfg(test)]
 mod quad_tests;
 #[cfg(test)]
+mod quadify_tests;
+mod quadifying;
+#[cfg(test)]
 mod scatter_tests;
 mod searching;
 mod selection;

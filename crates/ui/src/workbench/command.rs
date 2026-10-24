@@ -135,6 +135,7 @@ impl Workbench {
                 Ready::NotNow(crate::trf!("{} works on edges or polygons: press 2 for the Edges mode, or 3 for \
                      Polygons", command.name()))
             }
+            CommandId::QuadifyNow => self.quadify_readiness(),
             CommandId::FlipNormals if !command.modes().contains(&self.mode) => Ready::NotNow(
                 tr("Flip normals works on polygons: press 3 for the Polygons mode").into(),
             ),
@@ -160,6 +161,7 @@ impl Workbench {
             | CommandId::LiveBevel
             | CommandId::Lattice
             | CommandId::Decimate
+            | CommandId::Quadify
             | CommandId::Scatter
             | CommandId::BendAlongCurve
             | CommandId::Shrinkwrap
@@ -219,6 +221,7 @@ impl Workbench {
             CommandId::Dissolve => self.run_dissolve(),
             CommandId::FillHole => self.run_fill_hole(),
             CommandId::FlipNormals => self.run_flip(),
+            CommandId::QuadifyNow => self.run_quadify_now(),
             CommandId::HardEdges => self.run_hardness(true),
             CommandId::SoftEdges => self.run_hardness(false),
             CommandId::CreaseEdges => self.run_creases(1.0),
@@ -310,6 +313,7 @@ impl Workbench {
             | CommandId::LiveBevel
             | CommandId::Lattice
             | CommandId::Decimate
+            | CommandId::Quadify
             | CommandId::Scatter
             | CommandId::BendAlongCurve
             | CommandId::Shrinkwrap
