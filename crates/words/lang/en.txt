@@ -247,6 +247,7 @@ Bake into shape up to here
 Bake into shape, split off, join, apply transforms and edit layers
 Bake the shape's settings and every edit up to this one into the shape: the shape stays the same, big models stay quick, and those edits can't be changed any more
 Bake the shape's settings and the {} up to and including this one into the shape, so they no longer have to be made again: big models stay quick. The shape doesn't change, but those edits can't be changed any more.
+Bake {} into shape
 Basic
 Beauty
 Before baking
@@ -1175,7 +1176,6 @@ Make the mirrored half of a symmetrical object part of its shape (symmetry off)
 Make the mirrored half part of the shape for real, as Blender's Apply: the mirror is gone, both halves stay, and each half can be changed on its own from then on
 Make the mirrored half part of the shape for real: symmetry goes off and both halves stay
 Make the trim sheet's rows first: the UV Editor's Trim menu, or UV → Trim sheet
-Make {} editable
 Makes
 Marine green
 Mark as seams

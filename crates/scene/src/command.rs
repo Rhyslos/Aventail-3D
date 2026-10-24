@@ -590,7 +590,11 @@ impl Command {
                     .iter()
                     .filter(|id| scene.can_make_editable(**id))
                     .count();
-                trf!("Make {} editable", objects(n.max(1)))
+                // Named as the menu names it (decision 0126).
+                match n {
+                    0 | 1 => tr("Bake into shape").to_string(),
+                    n => trf!("Bake {} into shape", objects(n)),
+                }
             }
             Self::Ungroup(ids) => match groups_among(scene, ids).len() {
                 1 => tr("Ungroup").into(),
