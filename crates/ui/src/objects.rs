@@ -790,6 +790,14 @@ pub(crate) fn kind_icon(kind: &ObjectKind) -> (Icon, egui::Color32) {
         ObjectKind::Mesh(_) => (Icon::Polygons, tint::SHAPE),
         // White, not blue: its shape is another object's.
         ObjectKind::Instance(_) => (Icon::Instance, tint::ICON),
+        // A curve (decision 0138): its ready-made kind's, or the pen's.
+        ObjectKind::Curve(c) => (
+            match &c.shape {
+                scene::CurveShape::Ready(r) => crate::shape_picker::curve_icon(r.kind()),
+                scene::CurveShape::Points(_) => Icon::DrawCurve,
+            },
+            tint::SHAPE,
+        ),
         _ => (Icon::Null, tint::ICON),
     }
 }

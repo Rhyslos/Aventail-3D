@@ -409,6 +409,23 @@ impl Curve {
         out
     }
 
+    /// Its parts as a mesh of loose points (no polygons), each point's id
+    /// the part's [`CurvePart::code`]: so the Points mode can find, select
+    /// and move a curve's points and handles as it does a mesh's.
+    pub fn parts_mesh(&self) -> crate::Mesh {
+        let parts = self.parts();
+        let slots = parts
+            .iter()
+            .map(|(p, _)| p.code() as usize + 1)
+            .max()
+            .unwrap_or(0);
+        let mut points = vec![None; slots];
+        for (part, at) in parts {
+            points[part.code() as usize] = Some(at);
+        }
+        crate::Mesh::from_slots(points, Vec::new(), []).unwrap_or_default()
+    }
+
     /// Whether it has fewer than two points apart: there is no line.
     pub fn is_empty(&self) -> bool {
         self.spans().iter().all(|s| s.length_estimate() < 1e-4)

@@ -278,7 +278,9 @@ impl Selector<'_> {
                     .scene
                     .object_under_preferring(&pointer.camera, pointer.size, pointer.at, &solid)
                     .and_then(|i| self.drawing.items.get(i))
-                    .map(|item| item.id);
+                    .map(|item| item.id)
+                    // A curve's line has no surface to hit (decision 0138).
+                    .or_else(|| curve_line_under(self.drawing, &pointer));
                 self.combine_objects(found, how);
                 None
             }
@@ -302,6 +304,13 @@ impl Selector<'_> {
                             && !found.contains(&item.id)
                         {
                             found.push(item.id);
+                        }
+                    }
+                }
+                for region in &regions {
+                    for id in curves_in(self.drawing, &camera, size, region) {
+                        if !found.contains(&id) {
+                            found.push(id);
                         }
                     }
                 }
@@ -352,11 +361,56 @@ impl Selector<'_> {
                 });
                 self.elements(kind, found, how, stroke.map(|s| STROKE_KEYS | s))
             }
-            (Some(kind), Gesture::DoubleClick { pointer, ring, how }) => {
-                self.loop_or_ring(kind, pointer, ring, how)
-            }
+            (Some(kind), Gesture::DoubleClick { pointer, ring, how }) => self
+                .toggle_curve_point(kind, pointer)
+                .or_else(|| self.loop_or_ring(kind, pointer, ring, how)),
             (Some(kind), Gesture::Grow(steps)) => self.grow(kind, steps),
         }
+    }
+
+    /// A double-click on a curve's point (or one of its handles) in the
+    /// Points mode switches it between sharp and smooth (decision 0138).
+    /// `None` when the double-click isn't on a curve's part.
+    fn toggle_curve_point(&mut self, kind: ElementKind, pointer: ViewPointer) -> Option<String> {
+        if kind != ElementKind::Points {
+            return None;
+        }
+        let hit = self
+            .scene
+            .under(kind, &pointer.camera, pointer.size, pointer.at)?;
+        let item = self.drawing.items.get(hit.object)?;
+        item.curve.as_ref()?;
+        let Element::Point(v) = hit.element else {
+            return None;
+        };
+        let part = scene::CurvePart::from_code(v.get());
+        let curve = self
+            .document
+            .scene()
+            .object(item.id)?
+            .kind
+            .curve()?
+            .shape
+            .curve();
+        let smooth = !curve.point(part.point)?.smooth;
+        let result = self.document.execute(scene::Command::EditCurve {
+            id: item.id,
+            edit: scene::CurveEdit::SetSmooth {
+                points: vec![part.point],
+                smooth,
+            },
+        });
+        Some(match result {
+            Ok(()) if smooth => tr(
+                "Point made smooth: drag its handles to shape the bend. Double-click again \
+                    for a sharp corner.",
+            )
+            .into(),
+            Ok(()) => {
+                tr("Point made sharp: a corner. Double-click again for a smooth bend.").into()
+            }
+            Err(why) => crate::trf!("Couldn't do that: {}.", why),
+        })
     }
 
     /// Select all (Ctrl + A).
@@ -885,3 +939,68 @@ pub(crate) fn to_islands(
 
 #[cfg(test)]
 mod tests;
+
+/// How near (screen points) the mouse must be to a curve's line to pick it.
+const CURVE_REACH: f32 = 6.0;
+
+/// Each shown curve's line on screen, in pieces (decision 0138).
+fn curve_lines_on_screen<'a>(
+    drawing: &'a SceneDrawing,
+    camera: &'a Camera,
+    size: Vec2,
+) -> impl Iterator<Item = (ObjectId, Vec<Option<Vec2>>)> + 'a {
+    drawing.items.iter().filter_map(move |item| {
+        let curve = item.curve.as_ref()?;
+        if !item.transform.is_finite() {
+            return None;
+        }
+        let screen = curve
+            .line
+            .iter()
+            .map(|p| camera.project(item.transform.transform_point3(*p), size))
+            .collect();
+        Some((item.id, screen))
+    })
+}
+
+/// The curve whose line passes nearest `pointer`, within [`CURVE_REACH`]:
+/// a curve that is only a line has no surface to click.
+fn curve_line_under(drawing: &SceneDrawing, pointer: &ViewPointer) -> Option<ObjectId> {
+    let mut best: Option<(f32, ObjectId)> = None;
+    for (id, line) in curve_lines_on_screen(drawing, &pointer.camera, pointer.size) {
+        for pair in line.windows(2) {
+            let (Some(a), Some(b)) = (pair[0], pair[1]) else {
+                continue;
+            };
+            let along = b - a;
+            let t = if along.length_squared() > 1e-9 {
+                ((pointer.at - a).dot(along) / along.length_squared()).clamp(0.0, 1.0)
+            } else {
+                0.0
+            };
+            let d = pointer.at.distance(a + along * t);
+            if d <= CURVE_REACH && best.is_none_or(|(b, _)| d < b) {
+                best = Some((d, id));
+            }
+        }
+    }
+    best.map(|(_, id)| id)
+}
+
+/// The curves whose line passes through `region`.
+fn curves_in(
+    drawing: &SceneDrawing,
+    camera: &Camera,
+    size: Vec2,
+    region: &Region,
+) -> Vec<ObjectId> {
+    curve_lines_on_screen(drawing, camera, size)
+        .filter(|(_, line)| {
+            line.windows(2).any(|pair| match (pair[0], pair[1]) {
+                (Some(a), Some(b)) => region.touches_segment(a, b),
+                _ => false,
+            })
+        })
+        .map(|(id, _)| id)
+        .collect()
+}

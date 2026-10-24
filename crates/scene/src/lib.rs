@@ -32,8 +32,8 @@ pub use curve::{CurveObject, CurveShape, CurveSolid, Sweep, SweepProfile};
 pub use document::Document;
 pub use history::HistoryLimit;
 pub use mesh::curve::{
-    Curve, CurveEdit, CurvePart, CurvePointId, Detail, LatheAxis, LatheShape, PartKind, ReadyCurve,
-    ReadyCurveKind,
+    Curve, CurveEdit, CurvePart, CurvePoint, CurvePointId, Detail, LatheAxis, LatheShape, PartKind,
+    ReadyCurve, ReadyCurveKind,
 };
 pub use mesh::edit::{
     Bend, BevelOptions, BevelShape, ExtrudeDirection, ExtrudeShape, Eye, GrooveShape, GrooveSides,

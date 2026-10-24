@@ -3,7 +3,7 @@
 //! own) and the status bar along the bottom.
 
 use super::layouts::layout_tabs;
-use super::{MIDDLE_MENUS, Workbench, WorkbenchAction, create, showing};
+use super::{MIDDLE_MENUS, Workbench, WorkbenchAction, showing};
 use crate::commands::CommandId;
 use crate::components;
 use crate::objects::{self, DocRequest};
@@ -13,6 +13,7 @@ use crate::project::{
     NEW_SHORTCUT, OPEN_SHORTCUT, Pending, SAVE_AS_SHORTCUT, SAVE_SHORTCUT, recent_label,
 };
 use crate::settings::SETTINGS_SHORTCUT;
+use crate::shape_picker::Shape;
 use crate::text::tr;
 use crate::theme;
 use egui::{KeyboardShortcut, Ui};
@@ -158,17 +159,21 @@ impl Workbench {
         // Menu order as in DESIGN.md: File, Edit, Create, Modes, Select,
         // Tools, Mesh, UV, View, Window, Help.
         crate::dialog::menu(ui, tr("Create"), |ui| {
-            for kind in PrimitiveKind::ALL {
-                // The basic shapes (B), then the rest (Alt + B).
-                if kind == PrimitiveKind::Icosphere {
+            for shape in Shape::all() {
+                // The basic shapes (B), then the rest (Alt + B), the curves
+                // last (decision 0138).
+                if matches!(
+                    shape,
+                    Shape::Primitive(PrimitiveKind::Icosphere) | Shape::DrawCurve
+                ) {
                     ui.separator();
                 }
                 if ui
-                    .button(kind.name())
-                    .on_hover_text(kind.description())
+                    .button(shape.name())
+                    .on_hover_text(shape.description())
                     .clicked()
                 {
-                    requests.push(create(kind));
+                    self.create_shape(shape, requests);
                     ui.close();
                 }
             }

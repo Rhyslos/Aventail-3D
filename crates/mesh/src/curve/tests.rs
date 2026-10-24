@@ -187,6 +187,30 @@ fn only_handles_that_pull_are_parts() {
 }
 
 #[test]
+fn parts_become_loose_points_named_by_their_codes() {
+    let curve = Curve::new(
+        [
+            (Vec3::ZERO, Vec3::ZERO, Vec3::X, false),
+            smooth(Vec3::new(10.0, 0.0, 0.0), Vec3::Y),
+        ],
+        false,
+    )
+    .unwrap();
+    let mesh = curve.parts_mesh();
+    assert_eq!(mesh.vertex_count(), 5);
+    assert_eq!(mesh.face_count(), 0);
+    let out = CurvePart {
+        point: CurvePointId::from_raw(1),
+        kind: PartKind::Out,
+    };
+    assert_eq!(
+        mesh.position(crate::VertexId::from_raw(out.code())),
+        Some(Vec3::new(10.0, 1.0, 0.0))
+    );
+    assert_eq!(Curve::default().parts_mesh().vertex_count(), 0);
+}
+
+#[test]
 fn moving_a_point_brings_its_handles_and_turning_turns_them() {
     let curve = Curve::new(
         [smooth(Vec3::ZERO, Vec3::X), smooth(Vec3::Y * 10.0, Vec3::X)],

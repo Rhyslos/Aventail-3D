@@ -13,7 +13,6 @@ use crate::text::tr;
 use crate::tool_menu::Ready;
 use crate::workbench::WorkbenchAction;
 use egui::{Modifiers, Ui};
-use scene::PrimitiveKind;
 
 impl Workbench {
     /// Every entry the search can find, with whether it can be used now.
@@ -68,14 +67,14 @@ impl Workbench {
                 action: SearchAction::Menu(action),
             });
         }
-        for kind in PrimitiveKind::ALL {
+        for shape in crate::shape_picker::Shape::all() {
             out.push(SearchEntry {
-                name: kind.name().to_string(),
+                name: shape.name().to_string(),
                 place: tr("Create").into(),
-                help: kind.description().to_string(),
+                help: shape.description().to_string(),
                 keys: None,
                 not_now: None,
-                action: SearchAction::Create(kind),
+                action: SearchAction::Create(shape),
             });
         }
         out
@@ -119,7 +118,7 @@ impl Workbench {
         match action {
             SearchAction::Command(command) => self.run_command(command, ctx, requests),
             SearchAction::Mode(mode) => self.mode = mode,
-            SearchAction::Create(kind) => requests.push(super::create(kind)),
+            SearchAction::Create(shape) => self.create_shape(shape, requests),
             SearchAction::Menu(menu) => self.run_menu_action(menu, ctx, actions, requests),
         }
     }

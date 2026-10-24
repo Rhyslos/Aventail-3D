@@ -5,14 +5,14 @@
 use super::tests::{State, empty};
 use super::*;
 use crate::SHAPE_LIST_KEY;
-use crate::shape_picker::ShapeList;
+use crate::shape_picker::{Shape, ShapeList};
 use egui::{Event, PointerButton};
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
 use scene::{ObjectKind, PrimitiveKind};
 
 /// The basic shapes, the ones `B` lists.
-fn basic() -> Vec<PrimitiveKind> {
+fn basic() -> Vec<Shape> {
     ShapeList::Basic.kinds()
 }
 
@@ -21,18 +21,22 @@ fn press(harness: &mut Harness<'static, State>, modifiers: Modifiers, key: Key) 
     harness.run();
 }
 
-fn highlighted(harness: &Harness<'static, State>) -> Option<PrimitiveKind> {
+fn highlighted(harness: &Harness<'static, State>) -> Option<Shape> {
     harness.state().workbench.shape_picker().highlighted()
 }
 
 /// The kinds of the objects in the scene, top to bottom.
-fn kinds(harness: &Harness<'static, State>) -> Vec<PrimitiveKind> {
+fn kinds(harness: &Harness<'static, State>) -> Vec<Shape> {
     let scene = harness.state().workbench.document().scene();
     scene
         .children(None)
         .iter()
-        .filter_map(|id| match scene.object(*id).unwrap().kind {
-            ObjectKind::Primitive(p) => Some(p.kind()),
+        .filter_map(|id| match &scene.object(*id).unwrap().kind {
+            ObjectKind::Primitive(p) => Some(Shape::Primitive(p.kind())),
+            ObjectKind::Curve(c) => match &c.shape {
+                scene::CurveShape::Ready(r) => Some(Shape::Curve(r.kind())),
+                scene::CurveShape::Points(_) => None,
+            },
             _ => None,
         })
         .collect()
@@ -97,7 +101,7 @@ fn space_creates_too() {
     let mut harness = empty();
     press(&mut harness, Modifiers::NONE, SHAPE_LIST_KEY);
     press(&mut harness, Modifiers::NONE, Key::Space);
-    assert_eq!(kinds(&harness), [PrimitiveKind::ALL[0]]);
+    assert_eq!(kinds(&harness), [Shape::Primitive(PrimitiveKind::ALL[0])]);
 }
 
 #[test]
@@ -136,7 +140,7 @@ fn clicking_a_shape_in_the_list_creates_it() {
         harness.step();
     }
     harness.run();
-    assert_eq!(kinds(&harness), [target]);
+    assert_eq!(kinds(&harness), [Shape::Primitive(target)]);
     assert!(!harness.state().workbench.shape_picker().is_open());
 }
 
@@ -198,10 +202,13 @@ fn the_create_menu_mentions_the_key() {
 fn the_two_lists_hold_every_shape_once() {
     let (basic, more) = (ShapeList::Basic.kinds(), ShapeList::More.kinds());
     assert_eq!(basic.len(), 7);
-    assert_eq!(more.len(), 11);
-    assert!(more.contains(&PrimitiveKind::Icosphere));
+    // The eleven other shapes, then Draw curve and the four ready-made
+    // curves (decision 0138).
+    assert_eq!(more.len(), 11 + 5);
+    assert!(more.contains(&Shape::Primitive(PrimitiveKind::Icosphere)));
+    assert!(more.ends_with(&Shape::CURVES));
     assert!(basic.iter().all(|k| !more.contains(k)), "no shape in both");
-    assert_eq!(basic.len() + more.len(), PrimitiveKind::ALL.len());
+    assert_eq!(basic.len() + more.len(), Shape::all().len());
 }
 
 #[test]

@@ -701,7 +701,10 @@ fn create_more_shapes_and_change_a_gears_teeth() {
     harness.key_press(Key::Enter);
     harness.run();
     assert_eq!(object_count(&harness), 1);
-    assert_eq!(primitive_of_selected(&harness).kind(), more[1]);
+    assert_eq!(
+        crate::shape_picker::Shape::Primitive(primitive_of_selected(&harness).kind()),
+        more[1]
+    );
     assert_eq!(
         undo_label(&harness),
         format!("Create {}", more[1].name().to_lowercase())

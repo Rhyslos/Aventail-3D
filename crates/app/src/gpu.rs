@@ -70,6 +70,15 @@ const SEAM_NEVER_LINE: [f32; 4] = [0.07, 0.38, 1.0, 0.85];
 /// Normals (Display → Show normals): light violet, thin.
 const NORMAL_LINE: [f32; 4] = [0.6, 0.5, 1.0, 1.0];
 const NORMAL_LINE_WIDTH: f32 = 1.5;
+/// A curve's line (decision 0138): light, as thick as hard edges, linear
+/// space; a selected curve's is the accent, a little thicker.
+const CURVE_LINE: [f32; 4] = [0.88, 0.88, 0.92, 0.95];
+const CURVE_LINE_WIDTH: f32 = 2.0;
+const SELECTED_CURVE_WIDTH: f32 = 3.0;
+/// A curve's handles and unselected points in the Points mode: grey,
+/// thin lines and small dots.
+const HANDLE_LINE: [f32; 4] = [0.62, 0.64, 0.7, 0.9];
+const HANDLE_LINE_WIDTH: f32 = 1.25;
 /// How far towards white the hovered colour is from the accent, so what
 /// is under the mouse stands out from what is selected.
 const HOVER_LIFT: f32 = 0.45;
@@ -79,6 +88,8 @@ const HOVER_LIFT: f32 = 0.45;
 /// (decision 0126).
 fn layer(style: OverlayStyle) -> u8 {
     match style {
+        OverlayStyle::Curve | OverlayStyle::Handle => 0,
+        OverlayStyle::CurveSelected => 1,
         OverlayStyle::Normal => 0,
         OverlayStyle::SeamPrefer | OverlayStyle::SeamNever => 1,
         OverlayStyle::Hard => 2,
@@ -118,6 +129,9 @@ fn overlay_geometry(overlay: &ComponentOverlay, accent: [f32; 3], contrast: bool
             OverlayStyle::SeamPrefer => (NORMAL_LINE_WIDTH, SEAM_PREFER_LINE),
             OverlayStyle::SeamNever => (HARD_LINE_WIDTH, SEAM_NEVER_LINE),
             OverlayStyle::Normal => (NORMAL_LINE_WIDTH, NORMAL_LINE),
+            OverlayStyle::Curve => (CURVE_LINE_WIDTH, CURVE_LINE),
+            OverlayStyle::CurveSelected => (SELECTED_CURVE_WIDTH * grow, selected),
+            OverlayStyle::Handle => (HANDLE_LINE_WIDTH, HANDLE_LINE),
         };
         if contrast && matches!(style, OverlayStyle::Selected | OverlayStyle::Hovered) {
             out.line(*a, *b2, width + CONTRAST_RIM * 2.0, CONTRAST_RIM_COLOR);
@@ -135,6 +149,8 @@ fn overlay_geometry(overlay: &ComponentOverlay, accent: [f32; 3], contrast: bool
             OverlayStyle::SeamPrefer => (POINT_SIZE, SEAM_PREFER_LINE),
             OverlayStyle::SeamNever => (POINT_SIZE, SEAM_NEVER_LINE),
             OverlayStyle::Normal => (POINT_SIZE, NORMAL_LINE),
+            OverlayStyle::Curve | OverlayStyle::CurveSelected => (POINT_SIZE, CURVE_LINE),
+            OverlayStyle::Handle => (POINT_SIZE, PLAIN_POINT),
         };
         if contrast && matches!(style, OverlayStyle::Selected | OverlayStyle::Hovered) {
             out.point(*at, size + CONTRAST_RIM * 2.0, CONTRAST_RIM_COLOR);
@@ -177,7 +193,9 @@ fn mesh_draws_showing(
         .iter()
         .filter(|item| item.transform.is_finite())
         .map(|item| {
-            let edited = item.selected && scene.editing;
+            // A curve's points are drawn over it (decision 0138): its
+            // solid shows plainly selected.
+            let edited = item.selected && scene.editing && item.curve.is_none();
             MeshDraw {
                 key: item.id.get(),
                 model: item.transform,
@@ -700,6 +718,7 @@ mod tests {
             colors: Vec::new(),
             hardness: mesh::Hardness::Marked,
             outline: false,
+            curve: None,
         }
     }
 
@@ -795,6 +814,7 @@ mod tests {
                 colors: Vec::new(),
                 hardness: mesh::Hardness::Marked,
                 outline: false,
+                curve: None,
             }],
             editing: true,
             points: true,

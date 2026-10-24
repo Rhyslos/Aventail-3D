@@ -6,6 +6,7 @@
 //! hands back commands. Dragging a value changes it every frame, so those
 //! commands are merged into one undo step per drag (or per value typed).
 
+mod curve_rows;
 mod edits;
 mod fields;
 mod last_edit;
@@ -327,6 +328,9 @@ impl AttributesPanel {
                 if let ObjectKind::Primitive(primitive) = &object.kind {
                     section(ui, tr("Shape"));
                     self.shape_rows(ui, id, *primitive, units, out);
+                }
+                if matches!(object.kind, ObjectKind::Curve(_)) {
+                    self.curve_section(ui, doc, id, units, out);
                 }
                 if object.kind.has_shape() {
                     crate::booleans::attributes_section(ui, doc, id, out);

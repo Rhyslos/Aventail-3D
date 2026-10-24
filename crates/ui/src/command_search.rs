@@ -9,7 +9,6 @@ use crate::commands::CommandId;
 use crate::palette::Mode;
 use crate::text::tr;
 use egui::{Context, Key, KeyboardShortcut, Modifiers};
-use scene::PrimitiveKind;
 
 /// The key that opens the search (the project lead's choice).
 pub(crate) const SEARCH_KEY: Key = Key::Space;
@@ -27,8 +26,8 @@ pub(crate) enum SearchAction {
     Command(CommandId),
     /// Switch to a mode.
     Mode(Mode),
-    /// Make a ready-made shape.
-    Create(PrimitiveKind),
+    /// Make a ready-made shape or curve, or draw a curve.
+    Create(crate::shape_picker::Shape),
     /// One of the menus' other entries.
     Menu(MenuAction),
 }

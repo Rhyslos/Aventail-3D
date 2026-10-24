@@ -266,6 +266,11 @@ pub struct Workbench {
     loop_cut_session: Option<loop_cut::LoopCutSession>,
     /// A slit's line being drawn (decision 0049).
     slit_session: Option<slit::SlitSession>,
+    /// A curve being drawn with Draw curve (decision 0138).
+    curve_session: Option<curve_drawing::CurveSession>,
+    /// The mode last checked for selected curves, which have no edges or
+    /// polygons of their own (decision 0138).
+    curve_mode_noted: Mode,
     /// A Bridge or Weld drag in progress (decision 0051).
     pair_session: Option<joining::PairSession>,
     /// What the next click on an object is for, while one is awaited:
@@ -361,6 +366,8 @@ impl Workbench {
             uv_model_drag: None,
             loop_cut_session: None,
             slit_session: None,
+            curve_session: None,
+            curve_mode_noted: Mode::Model,
             pair_session: None,
             target_pick: None,
             align: None,
@@ -497,8 +504,8 @@ impl Workbench {
             let typing = ui.ctx().memory(|m| m.focused().is_some())
                 || self.objects.is_renaming()
                 || self.window_open();
-            if let Some(kind) = self.shape_picker.keys(ui, typing) {
-                requests.push(create(kind));
+            if let Some(shape) = self.shape_picker.keys(ui, typing) {
+                self.create_shape(shape, &mut requests);
             }
             // The tool menu next: while it is open, Esc closes it, and
             // Enter or Space use its tool. Over the UV Editor it holds the
@@ -635,6 +642,7 @@ impl Workbench {
                 }
             });
 
+        self.note_curve_modes();
         let editing = components::kind_for(self.mode);
         let mut summary: SceneSummary = self
             .drawing
@@ -751,6 +759,7 @@ impl Workbench {
         self.carry_out_tool_drag(&summary.drawing, keys);
         self.show_loop_cut_preview(&summary.drawing, keys.command);
         self.show_slit(&summary.drawing);
+        self.show_curve(&summary.drawing);
         self.carry_out_coordinates(coordinates_done, &summary.drawing);
         let shown = summary.overlay.version;
         let options = self.viewport.options();
@@ -785,8 +794,8 @@ impl Workbench {
         }
         self.keep_coordinates_fitted(ui.ctx());
 
-        if let Some(kind) = self.shape_picker.show(ui.ctx()) {
-            requests.push(create(kind));
+        if let Some(shape) = self.shape_picker.show(ui.ctx()) {
+            self.create_shape(shape, &mut requests);
         }
         let entries = self.tool_menu_entries();
         self.tool_menu_show(ui.ctx(), &entries, &mut requests);
@@ -933,6 +942,10 @@ pub use exporting::{
 mod aligning;
 #[cfg(test)]
 mod aligning_tests;
+mod curve_drawing;
+mod curve_editing;
+#[cfg(test)]
+mod curve_tests;
 #[cfg(test)]
 mod layer_tests;
 mod modelling;

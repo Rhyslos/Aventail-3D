@@ -6,6 +6,7 @@
 //! These are original drawings; no icons are copied from other software.
 
 mod booleans;
+mod curves;
 mod general;
 mod modelling;
 mod pen;
@@ -214,10 +215,20 @@ pub enum Icon {
     UvStitch,
     /// Cut UVs: one edge split in two.
     UvCut,
+    /// Draw curve: a curve pulled out by its handle, with a pen's nib.
+    DrawCurve,
+    /// A ready-made line: two points joined.
+    CurveLine,
+    /// A ready-made circle: a ring through four points.
+    CurveCircle,
+    /// A ready-made arc: a quarter circle round its corner.
+    CurveArc,
+    /// A ready-made spiral: a spring climbing.
+    CurveSpiral,
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 97] = [
+pub const ALL: [Icon; 102] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -315,6 +326,11 @@ pub const ALL: [Icon; 97] = [
     Icon::UvStitchCut,
     Icon::UvStitch,
     Icon::UvCut,
+    Icon::DrawCurve,
+    Icon::CurveLine,
+    Icon::CurveCircle,
+    Icon::CurveArc,
+    Icon::CurveSpiral,
 ];
 
 /// Draws `icon` into `rect` in `color`.
@@ -405,6 +421,11 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         | Icon::ApplyTransforms
         | Icon::EditLayer => modelling::draw(&mut pen, icon),
         Icon::Union | Icon::Subtract | Icon::Intersect => booleans::draw(&mut pen, icon),
+        Icon::DrawCurve
+        | Icon::CurveLine
+        | Icon::CurveCircle
+        | Icon::CurveArc
+        | Icon::CurveSpiral => curves::draw(&mut pen, icon),
         Icon::UvTurnLeft
         | Icon::UvTurnRight
         | Icon::UvFlipU

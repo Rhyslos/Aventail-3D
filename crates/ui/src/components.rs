@@ -106,7 +106,13 @@ pub(crate) struct ComponentTracker {
     /// The guide lines, and the drawing version, kind and guides they
     /// were made for (kept while only the hovered element changes).
     guides: (Vec<OverlayLine>, Option<GuidesFor>),
+    /// The curves' lines, handles and points (decision 0138), and the
+    /// drawing version and kind they were made for.
+    curves: (CurveMarks, Option<(u64, Option<ElementKind>)>),
 }
+
+/// What is drawn of the curves over the view: lines and dots.
+type CurveMarks = (Vec<OverlayLine>, Vec<(Vec3, OverlayStyle)>);
 
 impl ComponentTracker {
     /// Brings the hovered element and the overlay up to date. Returns the
@@ -153,6 +159,21 @@ impl ComponentTracker {
                 overlay
                     .lines
                     .extend(lines.map(|line| (*line, OverlayStyle::Hovered)));
+            }
+            // Curves' lines (and in the Points mode their handles and
+            // points) first, so the selection draws over them.
+            let curves_for = Some((drawing.version, kind));
+            if self.curves.1 != curves_for {
+                self.curves = (curve_marks(drawing, kind), curves_for);
+            }
+            let (lines, points) = &self.curves.0;
+            if !lines.is_empty() || !points.is_empty() {
+                let mut all = lines.clone();
+                all.append(&mut overlay.lines);
+                overlay.lines = all;
+                let mut dots = points.clone();
+                dots.append(&mut overlay.points);
+                overlay.points = dots;
             }
             // Guides first, so the selection and the hovered element draw
             // over them.
@@ -408,6 +429,41 @@ fn build(
     overlay
 }
 
+/// The curves' lines (decision 0138), in the world: each shown curve's,
+/// in the selection colour when selected; in the Points mode, a selected
+/// curve's handles and its points and handle ends too (the selected and
+/// hovered ones are drawn over them).
+fn curve_marks(drawing: &SceneDrawing, kind: Option<ElementKind>) -> CurveMarks {
+    let mut lines = Vec::new();
+    let mut points = Vec::new();
+    for item in &drawing.items {
+        let Some(curve) = &item.curve else {
+            continue;
+        };
+        if !item.transform.is_finite() {
+            continue;
+        }
+        let world = |p: Vec3| item.transform.transform_point3(p);
+        let style = if item.selected {
+            OverlayStyle::CurveSelected
+        } else {
+            OverlayStyle::Curve
+        };
+        for pair in curve.line.windows(2) {
+            lines.push(([world(pair[0]), world(pair[1])], style));
+        }
+        if item.selected && kind == Some(ElementKind::Points) {
+            for [a, b] in &curve.handles {
+                lines.push(([world(*a), world(*b)], OverlayStyle::Handle));
+            }
+            for (_, at) in &curve.parts {
+                points.push((world(*at), OverlayStyle::Handle));
+            }
+        }
+    }
+    (lines, points)
+}
+
 /// The guide lines for the selected objects (see [`Guides`]): hard edges
 /// while editing elements (`kind`), and normals.
 fn guide_lines(
@@ -560,6 +616,7 @@ mod tests {
                 colors: Vec::new(),
                 hardness: mesh::Hardness::Marked,
                 outline: false,
+                curve: None,
             }],
             editing: true,
             points: false,
@@ -747,6 +804,7 @@ mod tests {
                 colors: Vec::new(),
                 hardness: mesh::Hardness::Marked,
                 outline: false,
+                curve: None,
             }],
             editing: true,
             points: false,

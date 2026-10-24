@@ -71,6 +71,12 @@ impl Workbench {
             .selection()
             .into_iter()
             .filter_map(|id| {
+                // A curve's selected parts are its points and handles, not
+                // its solid's (decision 0138): the mesh tools leave it be.
+                let object = self.document.scene().object(id)?;
+                if object.kind.curve().is_some() {
+                    return None;
+                }
                 let mesh = self.document.scene().evaluated(id)?.mesh;
                 let selected = self.document.elements(id)?;
                 let valid = selected.valid_in(&mesh, mesh.topology());
@@ -451,6 +457,7 @@ impl Workbench {
                 return ToolPath {
                     points: vec![s.from.at, onto.at],
                     cursor: Some(onto.at),
+                    ..ToolPath::default()
                 };
             }
             let ray = s.pointer.camera.ray_through(s.pointer.at, s.pointer.size);
@@ -458,6 +465,7 @@ impl Workbench {
             ToolPath {
                 points: vec![s.from.at, ray.at(depth)],
                 cursor: None,
+                ..ToolPath::default()
             }
         });
         if matches!(self.tool, Tool::Bridge | Tool::Weld) || path.is_some() {

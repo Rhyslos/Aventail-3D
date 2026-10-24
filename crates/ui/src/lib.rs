@@ -47,7 +47,9 @@ pub(crate) use viewport::chrome as viewport_chrome;
 mod workbench;
 
 pub use autosave::{AutosaveSettings, COPIES, MINUTES, RecoveryCopy, RecoveryOffer, ago};
-pub use drawing::{ComponentOverlay, DrawItem, OverlayStyle, SceneDrawing, SceneSummary};
+pub use drawing::{
+    ComponentOverlay, CurveDrawing, DrawItem, OverlayStyle, SceneDrawing, SceneSummary,
+};
 pub use egui_dock::DockState;
 pub use keyboard::KeyboardLayout;
 pub use objects::{
