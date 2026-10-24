@@ -79,7 +79,7 @@ New rows follow the shape's settings, not your edits: lift a cube's top a long w
 
 Snapping makes a drag jump to exact places instead of going anywhere:
 
-- **Moves** jump to the nearest **point**, then **edge**, then **polygon** under the mouse, if there is one near. Otherwise they jump to the **grid lines** you see: every 1 m, 50 cm or 10 cm, as the grid button is set.
+- **Moves** jump to the nearest **point**, then **edge**, then **polygon** under the mouse, if there is one near. Otherwise they jump to the **grid lines** you see: every 1 m, 50 cm or 10 cm, as the grid button is set; or, with **Snap moves to the kit grid** on, to whole steps of the project's [kit grid](modular-kits.md#snap-pieces-onto-the-grid).
   - With an arrow, only that axis follows the snap. Drag the X arrow towards another shape's corner, and you line up with it along X only.
   - What you're moving never snaps to itself.
 - **Rotations** jump in steps of **15°**.
@@ -119,6 +119,7 @@ What the fields show:
 | **Snapping** (palette button, Tools menu, Settings) | On or off. |
 | **Holding Ctrl while dragging flips snapping** | On (standard): Ctrl snaps for one drag, or stops snapping if it's on. Off: only the button. Settings → Viewport → Snapping. |
 | **Moves snap to** | Points, Edges, Polygons, Grid lines (all on as standard). |
+| **Snap moves to the kit grid** | Off (standard): grid snapping uses the lines shown. On: whole steps of the project's kit grid. Settings → Viewport → Snapping, or Create → Modular kit. See [Modular kit helpers](modular-kits.md). |
 | **Turns snap every / scaling every** | 15° and 10% as standard. |
 | **Lock X / Y / Z** | An axis that can't change. Remembered between sessions. |
 | **World or object axes** | Which way the gizmo's arrows point. Remembered. |

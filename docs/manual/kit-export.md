@@ -65,4 +65,5 @@ None: use the File menu and the Attributes panel.
 - [Export and import](export-and-import.md): Made for, and game project folders.
 - [Collision shapes](collision-shapes.md): every choice, the outlines, and Wrapped in parts.
 - [Pivots and Edit pivot](pivots.md).
+- [Modular kit helpers](modular-kits.md): pieces sized to a kit grid, and pivot presets.
 - [The Attributes panel](attributes.md).

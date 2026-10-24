@@ -87,6 +87,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Export and import: glTF and OBJ files for game engines and Substance Painter](export-and-import.md)
 - [Check for baking: what would spoil a bake, with one-click fixes](bake-check.md)
 - [Kit export and collision: each piece its own file, and Godot collision shapes](kit-export.md)
+- [Modular kit helpers: a kit grid, pieces sized to it, and pivot presets](modular-kits.md)
 - [Collision shapes: from the exact shape to a box, wrapped in parts round dents, outlined in the viewport](collision-shapes.md)
 - [Levels of detail: simpler copies for a game to draw far away, previewed in the viewport](levels-of-detail.md)
 
