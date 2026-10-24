@@ -15,10 +15,10 @@ use crate::palette::{ButtonState, icon_button};
 use crate::text::tr;
 use egui::Ui;
 use scene::{
-    Command, CurveBendSettings, DecimateOptions, Document, LatticeOptions, LiveBevelOptions,
-    MAX_MODIFIERS, ModifierFamily, ModifierKind, ModifierRefusal, ObjectId, ObjectKind,
-    QuadifyOptions, RemeshOptions, ScatterSettings, ShrinkwrapSettings, SubdivideOptions,
-    WeightedNormalsOptions, WeldOptions,
+    ArraySettings, Command, CurveBendSettings, DecimateOptions, Document, LatticeOptions,
+    LiveBevelOptions, MAX_MODIFIERS, ModifierFamily, ModifierKind, ModifierRefusal, ObjectId,
+    ObjectKind, QuadifyOptions, RemeshOptions, ScatterSettings, ShrinkwrapSettings,
+    SubdivideOptions, WeightedNormalsOptions, WeldOptions,
 };
 
 mod pairs;
@@ -26,8 +26,9 @@ pub(crate) use pairs::pair_plan;
 
 /// One command per kind of modifier, in the order of
 /// [`ModifierKind::standard_kinds`].
-pub(crate) const COMMANDS: [CommandId; 11] = [
+pub(crate) const COMMANDS: [CommandId; 12] = [
     CommandId::Subdivide,
+    CommandId::Array,
     CommandId::LiveBevel,
     CommandId::Scatter,
     CommandId::Lattice,
@@ -50,6 +51,7 @@ pub(crate) fn kind_of(command: CommandId) -> Option<ModifierKind> {
         CommandId::Decimate => Some(ModifierKind::Decimate(DecimateOptions::default())),
         CommandId::Quadify => Some(ModifierKind::Quadify(QuadifyOptions::default())),
         CommandId::WeldByDistance => Some(ModifierKind::WeldByDistance(WeldOptions::default())),
+        CommandId::Array => Some(ModifierKind::Array(ArraySettings::default())),
         CommandId::Scatter => Some(ModifierKind::Scatter(ScatterSettings::default())),
         CommandId::BendAlongCurve => {
             Some(ModifierKind::BendAlongCurve(CurveBendSettings::default()))

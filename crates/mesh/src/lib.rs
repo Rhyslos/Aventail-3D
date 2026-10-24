@@ -5,6 +5,7 @@
 //! See this crate's README for its purpose and limits.
 
 pub mod anchors;
+pub mod array;
 pub mod attributes;
 pub mod bake;
 pub mod bevel;
