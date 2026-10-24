@@ -241,6 +241,26 @@ impl Document {
         self.run_labelled(command, Some(label.into()), merge_key)
     }
 
+    /// Carries out `commands` one after another as one undo step called
+    /// `label`, merged under `merge_key` (a key no other step has). If one
+    /// is refused, those before it are taken back too, so nothing is left
+    /// half done, and the refusal is returned.
+    pub fn execute_all_labelled(
+        &mut self,
+        commands: impl IntoIterator<Item = Command>,
+        label: &str,
+        merge_key: u64,
+    ) -> Result<(), SceneError> {
+        for command in commands {
+            if let Err(why) = self.execute_labelled(command, label, Some(merge_key)) {
+                // Only a step made here has this key: nothing earlier goes.
+                self.abandon(merge_key);
+                return Err(why);
+            }
+        }
+        Ok(())
+    }
+
     fn run(&mut self, command: Command, merge_key: Option<u64>) -> Result<(), SceneError> {
         self.run_labelled(command, None, merge_key)
     }

@@ -85,15 +85,10 @@ impl UvEditor {
         self.sessions += 1;
         let key = RESTORE_KEY | self.sessions;
         let label = crate::trf!("Restore the snapshot “{}”", snapshot.name);
-        for (id, operation) in ops {
-            if doc
-                .execute_labelled(Command::Record { id, operation }, label.clone(), Some(key))
-                .is_err()
-            {
-                return false;
-            }
-        }
-        true
+        let commands = ops
+            .into_iter()
+            .map(|(id, operation)| Command::Record { id, operation });
+        doc.execute_all_labelled(commands, &label, key).is_ok()
     }
 
     /// The snapshot compared with, if any (by name).

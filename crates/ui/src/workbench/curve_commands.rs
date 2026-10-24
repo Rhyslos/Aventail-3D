@@ -238,14 +238,12 @@ impl Workbench {
             return false;
         }
         let key = self.new_step_key();
-        for (id, edit) in edits {
-            if let Err(why) =
-                self.document
-                    .execute_labelled(Command::EditCurve { id, edit }, label, Some(key))
-            {
-                self.note = Some(crate::trf!("Couldn't do that: {}.", why));
-                return false;
-            }
+        let commands = edits
+            .into_iter()
+            .map(|(id, edit)| Command::EditCurve { id, edit });
+        if let Err(why) = self.document.execute_all_labelled(commands, label, key) {
+            self.note = Some(crate::trf!("Couldn't do that: {}.", why));
+            return false;
         }
         self.note = Some(crate::trf!("{}. Ctrl + Z takes it back.", label));
         true
@@ -263,6 +261,8 @@ impl Workbench {
             {
                 Ok(()) => pieces.extend(self.document.selection()),
                 Err(why) => {
+                    // Curves split already are put back: one step or none.
+                    self.document.abandon(key);
                     self.note = Some(crate::trf!("Couldn't do that: {}.", why));
                     return;
                 }
