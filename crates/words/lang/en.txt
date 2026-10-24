@@ -497,6 +497,7 @@ Cylinder
 Danish
 Dark tiles with a crisp edge; the highlighted one glows
 Dark tiles; the highlighted one gets an accent bar along the edge facing the middle
+Decimate
 Decrease
 Default
 Default camera
@@ -872,6 +873,8 @@ How many times each triangle is cut into four: 0 is a 20-sided ball, each step f
 How many times exports and Bake into shape split and smooth it: often one more than the viewport, for a smoother result where it counts
 How many times round it goes
 How many times the viewport splits and smooths the shape: each level has four times the polygons. 0 shows the shape as it is.
+How many triangles the shape in the viewport has, after all its modifiers
+How many triangles to end with. Fewer can't always be reached: kept lines' corners never move.
 How modelling edits fix the UVs they break (saved with the project)
 How much Relax evens UVs out
 How much of a circle: 90° for a quarter
@@ -884,6 +887,7 @@ How the automatic UV tools work: the same settings as UV → Settings.
 How the cage's points pull the shape: Smooth blends them with no creases (the shape follows a little less closely); Linear follows straight between points, creasing along the cage's lines
 How the mouse moves the view. Also chosen from the button in the viewport's bottom-right corner.
 How the mouse moves the view. Try them, keep your favourite.
+How the new polygon count is given: a share of the triangles the shape has, or a number of triangles (a game's budget)
 How the selected points' handles behave: sharp, smooth, broken or auto. Choose this to see the four.
 How the shading breaks into crisp edges. By angle: wherever polygons meet more sharply than the angle, after every change. Unticked: only the edges you mark hard (Mesh → Mark hard edges). Marking edges switches it to that.
 How the shape is shaded: smoothing, hard and soft edges, creases, normals
@@ -944,19 +948,28 @@ Its size: {} px/m, the texel density aimed for (Texture menu). Unwrap sizes piec
 Its size: {} px/m, {:.2}× the aim of {}. Pack shrinks every piece by the same amount so all fit in the square. For more texture: a bigger texture size (Texture menu), less padding, or a texture per material.
 Its size: {} px/m, {:.2}× the aim of {}: scaled up by hand, by Pack filling the square, or by a density of its own. UV → Lay out → Set texel density puts it back to the aim.
 Join objects
+Join pairs of triangles lying flat together into four-sided polygons. Off, the result is all triangles.
 Join the selected points or edges with a new edge across their polygon
 Join the selected shapes into the first of them, as one plain mesh, each part staying where it was
 Join two curve end points: weld at the middle / a straight stretch
 Join {}
 Join: select two or more shapes first.
+Keep UV seams
 Keep every step until the app closes. A very long session with large meshes can then use a lot of memory
+Keep hard edges
+Keep material borders
 Keep only where the shape selected first and the other selected shapes                  overlap. They stay shapes of their own, drawn as outlines: move or edit one                  and the result follows.
+Keep open borders
 Keep shapes
 Keep shapes, smoother
 Keep sizes
+Keep the UV seams (marked, or where the UVs split) as lines, so the texture stays where it was along them
 Keep the UVs and seams of the objects shown in the UV Editor under a name, to go back to or compare with later
 Keep the bevel from crossing over itself: where it would run past the end of an edge or into the bevel coming the other way, it stops there, so corners meet instead of passing each other. Only the points that need it are narrowed
 Keep the edges marked hard sharp, as if fully creased. Only on objects shaded by their marked edges: smoothed by angle, every sharp corner looks hard, so nothing would round.
+Keep the edges of holes and open sheets where they are, so modular pieces still line up
+Keep the edges the shading shows hard (marked, or sharper than the Smoothing angle)
+Keep the lines where one material meets another exactly where they are
 Keep the newest
 Keep the selected points' handles in one line, so the curve bends through without a kink: dragging one handle turns the other
 Keep together
@@ -1016,6 +1029,7 @@ Loop cut ({} cuts)
 Loop cut works in the Points, Edges or Polygons mode: press 1, 2 or 3
 Loop cut: point at an edge of a selected object, across four-sided polygons.
 Loop cut: point at an edge to see the new loop, click to cut it, or press and drag along the edge to slide it into place. Cuts is in the Attributes panel. Esc or a right click cancels a drag.
+Lower the shape's polygon count while keeping its shape: flat areas lose the most. UV seams, hard edges, material borders and open borders stay. For game models and levels of detail.
 Lowest
 M / A (Points mode, the two ends selected)
 Made for
@@ -1328,11 +1342,13 @@ Put this layer's edits at the end of the layer below, making them one layer
 Put this layout back: the UVs and seams of {} {}, as one step to undo. Polygons made since keep theirs.
 Puts more of the bevel on one side of the edges than the other: 0% is even. Along a loop it stays on the same side all the way round. Flip side swaps the side.
 Quad menu
+Quads where flat
 Quarter turns and mirrors of the selected UVs
 Questions asked before an edit that is easy to get wrong. Each can also be switched off from the question itself.
 Quit
 Radial menu
 Radius
+Ratio
 Ready
 Rebuild the shape as an even surface of square polygons, whatever its polygons were: for sculpted, joined or boolean-cut shapes. It needs a closed solid.
 Recover unsaved work?
@@ -1341,6 +1357,7 @@ Red
 Redo
 Redo: {}
 Redone: {}.
+Reduce by
 Relax
 Relax passes evening out the new surface without shrinking it: 0 for none
 Relax the UVs of
@@ -1717,6 +1734,7 @@ Take this edit out. The edits after it are made again without it (Ctrl + Z bring
 Take this edit out; the edits after it are made again without it
 Take this modifier away
 Tap E to open
+Target triangles
 Teeth
 Ten times finer
 Texel density
@@ -1775,6 +1793,7 @@ The shape itself
 The shape to keep already cuts one of the others (or is shown by it): each would wait for the other
 The shape's points were renumbered (more or fewer segments, say), so these edits looked for the points, edges and polygons they were made on by where they are. A polygon split into smaller ones moves as a whole. Nothing to fix.
 The shapes cut each other in a loop
+The share of the shape's triangles to keep: 50% halves them. Counted in triangles, as a game engine counts them (a square polygon is two).
 The size of the texture this project's UVs are made for
 The snapshot's name. Each must differ.
 The standard layout
@@ -1830,6 +1849,7 @@ Transform 1 point
 Transform {}
 Transform {} points
 Triangles
+Triangles shown
 Trim
 Trim sheet
 Tube

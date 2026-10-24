@@ -457,6 +457,18 @@ impl Scene {
         problems
     }
 
+    /// The object's shape as the viewport shows it, if it is worked out
+    /// already (nothing heavy is worked out here: for the Attributes
+    /// panel, asked every frame).
+    pub fn shown_shape_if_ready(&self, id: ObjectId) -> Option<Arc<Mesh>> {
+        let input = self.input_if_light(id)?;
+        match self.stack_state(id, Purpose::Viewport, Arc::clone(&input)) {
+            None => Some(input),
+            Some(StackState::Ready(result)) => Some(result.mesh),
+            Some(StackState::Needed(_)) => None,
+        }
+    }
+
     /// The object's shape before its modifiers, unless its booleans are
     /// heavy and still to be worked out (the interface does that on
     /// another thread).

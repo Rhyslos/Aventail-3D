@@ -38,6 +38,7 @@ pub use mesh::curve::{
     Curve, CurveEdit, CurveEnd, CurvePart, CurvePoint, CurvePointId, Detail, LatheAxis, LatheShape,
     PartKind, PointKind, ReadyCurve, ReadyCurveKind, Span,
 };
+pub use mesh::decimate::{DecimateOptions, Keep as DecimateKeep, ReduceBy};
 pub use mesh::edit::{
     Bend, BevelOptions, BevelShape, ExtrudeDirection, ExtrudeShape, Eye, GrooveShape, GrooveSides,
     Grouping, Slide, SlitLine,
@@ -79,6 +80,8 @@ mod boolean_tests;
 mod curve_editing_tests;
 #[cfg(test)]
 mod curve_tests;
+#[cfg(test)]
+mod decimate_tests;
 #[cfg(test)]
 mod edit_list_tests;
 #[cfg(test)]

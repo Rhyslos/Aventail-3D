@@ -34,6 +34,7 @@ use crate::object::{ObjectId, ObjectKind};
 use crate::tree::Scene;
 use glam::Mat4;
 use mesh::Mesh;
+use mesh::decimate::DecimateOptions;
 use mesh::remesh::RemeshOptions;
 use mesh::subdivide::SubdivideOptions;
 use std::sync::Arc;
@@ -97,6 +98,9 @@ pub enum ModifierKind {
     /// A lattice cage's bend (decision 0144): the shape's points moved
     /// through a cage object's box of points. The first deformer.
     Lattice(LatticeOptions),
+    /// Decimation (decision 0145): fewer triangles with the shape, its
+    /// seams, hard edges, material borders and open borders kept.
+    Decimate(DecimateOptions),
 }
 
 impl ModifierKind {
@@ -107,6 +111,7 @@ impl ModifierKind {
             Self::Subdivide(SubdivideOptions::default()),
             Self::Lattice(LatticeOptions::default()),
             Self::Remesh(RemeshOptions::default()),
+            Self::Decimate(DecimateOptions::default()),
         ]
     }
 
@@ -116,6 +121,7 @@ impl ModifierKind {
             Self::Remesh(_) => tr("Remesh"),
             Self::Subdivide(_) => tr("Subdivide"),
             Self::Lattice(_) => tr("Lattice"),
+            Self::Decimate(_) => tr("Decimate"),
         }
     }
 
@@ -135,6 +141,11 @@ impl ModifierKind {
                 "Put a cage of points round the selected shapes: move the cage's points (press 1) \
                  and the shapes inside bend, squash and swell smoothly with them.",
             ),
+            Self::Decimate(_) => tr(
+                "Lower the shape's polygon count while keeping its shape: flat areas lose the \
+                 most. UV seams, hard edges, material borders and open borders stay. For game \
+                 models and levels of detail.",
+            ),
         }
     }
 
@@ -144,6 +155,7 @@ impl ModifierKind {
             Self::Remesh(_) => ModifierFamily::CleanUp,
             Self::Subdivide(_) => ModifierFamily::Generate,
             Self::Lattice(_) => ModifierFamily::Deform,
+            Self::Decimate(_) => ModifierFamily::CleanUp,
         }
     }
 
@@ -151,7 +163,7 @@ impl ModifierKind {
     /// Subdivide modifier's two levels).
     pub fn differs_by_purpose(&self) -> bool {
         match self {
-            Self::Remesh(_) | Self::Lattice(_) => false,
+            Self::Remesh(_) | Self::Lattice(_) | Self::Decimate(_) => false,
             Self::Subdivide(o) => {
                 let o = o.clamped();
                 o.levels != o.export_levels
@@ -171,6 +183,7 @@ impl ModifierKind {
             Self::Remesh(options) => Self::Remesh(options.clamped()),
             Self::Subdivide(options) => Self::Subdivide(options.clamped()),
             Self::Lattice(options) => Self::Lattice(*options),
+            Self::Decimate(options) => Self::Decimate(options.clamped()),
         }
     }
 
@@ -179,7 +192,7 @@ impl ModifierKind {
     /// in the same undo step.
     pub fn sources(&self) -> Vec<ObjectId> {
         match self {
-            Self::Remesh(_) | Self::Subdivide(_) => Vec::new(),
+            Self::Remesh(_) | Self::Subdivide(_) | Self::Decimate(_) => Vec::new(),
             Self::Lattice(options) => vec![options.cage],
         }
     }
@@ -189,7 +202,7 @@ impl ModifierKind {
     pub fn takes_source(&self, kind: &ObjectKind) -> bool {
         match self {
             Self::Lattice(_) => matches!(kind, ObjectKind::Lattice(_)),
-            Self::Remesh(_) | Self::Subdivide(_) => kind.has_shape(),
+            Self::Remesh(_) | Self::Subdivide(_) | Self::Decimate(_) => kind.has_shape(),
         }
     }
 
@@ -197,7 +210,7 @@ impl ModifierKind {
     /// made together with their sources).
     pub fn with_sources_renamed(&self, rename: impl Fn(ObjectId) -> ObjectId) -> Self {
         match self {
-            Self::Remesh(_) | Self::Subdivide(_) => self.clone(),
+            Self::Remesh(_) | Self::Subdivide(_) | Self::Decimate(_) => self.clone(),
             Self::Lattice(options) => Self::Lattice(LatticeOptions {
                 cage: rename(options.cage),
             }),
@@ -227,6 +240,17 @@ impl ModifierKind {
                 }
             }
             Self::Lattice(_) => crate::lattice::lattice_work(input),
+            // About one triangle of the input costs as much as one polygon
+            // in a boolean (100 000 triangles take about half a second in
+            // a release build, 5 000 polygons of a boolean 20 ms).
+            Self::Decimate(options) => {
+                let triangles = mesh::decimate::triangle_count(input);
+                if options.target(triangles) >= triangles {
+                    0
+                } else {
+                    triangles
+                }
+            }
         }
     }
 
@@ -253,6 +277,10 @@ impl ModifierKind {
                 .map_err(|why| why.to_string())
             }
             Self::Lattice(options) => crate::lattice::apply_lattice(input, options, context),
+            // The hard edges kept are those the object's shading shows
+            // (marked, or sharper than its angle).
+            Self::Decimate(options) => mesh::decimate::decimate(input, options, context.hardness)
+                .map_err(|why| why.to_string()),
         }
     }
 }

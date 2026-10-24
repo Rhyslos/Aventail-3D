@@ -89,7 +89,10 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 ///
 /// Version 45 (decision 0144) is version 44 with lattice cages
 /// (`v45::LatticeV45`) and the Lattice modifier (`v43::KindV43::Lattice`).
-pub const FORMAT_VERSION: u32 = 45;
+///
+/// Version 46 (decision 0145) is version 45 with the Decimate modifier
+/// (`v43::KindV43::Decimate`).
+pub const FORMAT_VERSION: u32 = 46;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -916,3 +919,5 @@ mod v43_tests;
 mod v44_tests;
 #[cfg(test)]
 mod v45_tests;
+#[cfg(test)]
+mod v46_tests;

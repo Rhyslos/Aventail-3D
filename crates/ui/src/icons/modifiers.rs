@@ -1,4 +1,4 @@
-//! The modifier icons (decisions 0142 to 0144), one per kind of
+//! The modifier icons (decisions 0142 to 0145), one per kind of
 //! modifier on the modifiers palette, and the crease commands'. Original
 //! drawings.
 
@@ -13,6 +13,7 @@ pub(super) fn draw(pen: &mut Pen, icon: Icon) {
         Icon::CreaseEdges => crease_edges(pen),
         Icon::Uncrease => uncrease(pen),
         Icon::Lattice => lattice(pen),
+        Icon::Decimate => decimate(pen),
         _ => {}
     }
 }
@@ -142,4 +143,24 @@ fn lattice(pen: &mut Pen) {
     for (x, y) in cage.iter().flatten() {
         pen.dot(*x, *y, 1.6);
     }
+}
+
+/// Decimate: a square of many small triangles on the left becoming a few
+/// big ones on the right.
+fn decimate(pen: &mut Pen) {
+    let outline = [(4.0, 4.0), (20.0, 4.0), (20.0, 20.0), (4.0, 20.0)];
+    pen.shape(&outline, Paint::Tone);
+    // The dense half: a grid of small squares, each cut corner to corner.
+    for x in [8.0, 12.0] {
+        pen.stroke(&[(x, 4.0), (x, 20.0)], false, Ink::Faint);
+    }
+    for y in [8.0, 12.0, 16.0] {
+        pen.stroke(&[(4.0, y), (12.0, y)], false, Ink::Faint);
+    }
+    for (x, y) in [(4.0, 4.0), (8.0, 4.0)] {
+        pen.stroke(&[(x, y), (x + 4.0, y + 16.0)], false, Ink::Faint);
+    }
+    // The sparse half: two big triangles.
+    pen.stroke(&[(12.0, 20.0), (20.0, 4.0)], false, Ink::Line);
+    pen.stroke(&outline, true, Ink::Line);
 }
