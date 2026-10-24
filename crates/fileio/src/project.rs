@@ -64,6 +64,7 @@ mod v51;
 mod v52;
 mod v53;
 mod v54;
+mod v55;
 mod v6;
 mod v7;
 mod v8;
@@ -126,7 +127,10 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 ///
 /// Version 54 (decision 0153) is version 53 with the Array modifier
 /// (`v43::KindV43::Array`).
-pub const FORMAT_VERSION: u32 = 54;
+///
+/// Version 55 (decision 0154) is version 54 with the Shell modifier
+/// (`v43::KindV43::Shell`).
+pub const FORMAT_VERSION: u32 = 55;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -971,3 +975,5 @@ mod v52_tests;
 mod v53_tests;
 #[cfg(test)]
 mod v54_tests;
+#[cfg(test)]
+mod v55_tests;

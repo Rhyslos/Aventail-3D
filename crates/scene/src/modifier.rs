@@ -41,6 +41,7 @@ use mesh::decimate::DecimateOptions;
 use mesh::live_bevel::LiveBevelOptions;
 use mesh::quadify::QuadifyOptions;
 use mesh::remesh::RemeshOptions;
+use mesh::shell::ShellOptions;
 use mesh::subdivide::SubdivideOptions;
 use mesh::weighted_normals::WeightedNormalsOptions;
 use mesh::weld_distance::WeldOptions;
@@ -132,6 +133,9 @@ pub enum ModifierKind {
     /// Copies of the shape in a line, a grid or a ring (decision 0153),
     /// touching copies welded if asked.
     Array(ArraySettings),
+    /// The surface given thickness (decision 0154): a copy behind it,
+    /// facing the other way, and rims along its open borders.
+    Shell(ShellOptions),
 }
 
 impl ModifierKind {
@@ -141,6 +145,7 @@ impl ModifierKind {
         vec![
             Self::Subdivide(SubdivideOptions::default()),
             Self::Array(ArraySettings::default()),
+            Self::Shell(ShellOptions::default()),
             Self::LiveBevel(LiveBevelOptions::default()),
             Self::Scatter(ScatterSettings::default()),
             Self::Lattice(LatticeOptions::default()),
@@ -169,6 +174,7 @@ impl ModifierKind {
             Self::Quadify(_) => tr("Quadify"),
             Self::WeldByDistance(_) => tr("Weld by distance"),
             Self::Array(_) => tr("Array"),
+            Self::Shell(_) => tr("Shell"),
         }
     }
 
@@ -231,6 +237,10 @@ impl ModifierKind {
                 "Copy the shape in a line, a grid or a ring: fence posts, stairs, bolts round a \
                  wheel. The copies stay live: edit the shape and every copy follows.",
             ),
+            Self::Shell(_) => tr(
+                "Give a surface thickness: a sheet of metal, a cup's wall, a cloth's hem. Open \
+                 borders get a rim joining the two sides.",
+            ),
         }
     }
 
@@ -244,7 +254,7 @@ impl ModifierKind {
             Self::Scatter(_) => ModifierFamily::Generate,
             Self::BendAlongCurve(_) | Self::Shrinkwrap(_) => ModifierFamily::Deform,
             Self::WeightedNormals(_) => ModifierFamily::Game,
-            Self::LiveBevel(_) | Self::Array(_) => ModifierFamily::Generate,
+            Self::LiveBevel(_) | Self::Array(_) | Self::Shell(_) => ModifierFamily::Generate,
             Self::Quadify(_) | Self::WeldByDistance(_) => ModifierFamily::CleanUp,
         }
     }
@@ -263,7 +273,8 @@ impl ModifierKind {
             | Self::LiveBevel(_)
             | Self::Quadify(_)
             | Self::WeldByDistance(_)
-            | Self::Array(_) => false,
+            | Self::Array(_)
+            | Self::Shell(_) => false,
             Self::Subdivide(o) => {
                 let o = o.clamped();
                 o.levels != o.export_levels
@@ -292,6 +303,7 @@ impl ModifierKind {
             Self::Quadify(options) => Self::Quadify(options.clamped()),
             Self::WeldByDistance(options) => Self::WeldByDistance(options.clamped()),
             Self::Array(settings) => Self::Array(settings.clamped()),
+            Self::Shell(options) => Self::Shell(options.clamped()),
         }
     }
 
@@ -307,7 +319,8 @@ impl ModifierKind {
             | Self::WeightedNormals(_)
             | Self::LiveBevel(_)
             | Self::Quadify(_)
-            | Self::WeldByDistance(_) => Vec::new(),
+            | Self::WeldByDistance(_)
+            | Self::Shell(_) => Vec::new(),
             Self::Lattice(options) => vec![options.cage],
             Self::Scatter(settings) => settings.shapes.clone(),
             Self::BendAlongCurve(settings) => vec![settings.curve],
@@ -371,7 +384,8 @@ impl ModifierKind {
             | Self::WeightedNormals(_)
             | Self::LiveBevel(_)
             | Self::Quadify(_)
-            | Self::WeldByDistance(_) => kind.has_shape(),
+            | Self::WeldByDistance(_)
+            | Self::Shell(_) => kind.has_shape(),
         }
     }
 
@@ -385,7 +399,8 @@ impl ModifierKind {
             | Self::WeightedNormals(_)
             | Self::LiveBevel(_)
             | Self::Quadify(_)
-            | Self::WeldByDistance(_) => self.clone(),
+            | Self::WeldByDistance(_)
+            | Self::Shell(_) => self.clone(),
             Self::Lattice(options) => Self::Lattice(LatticeOptions {
                 cage: rename(options.cage),
             }),
@@ -464,6 +479,9 @@ impl ModifierKind {
             // polygon in a boolean (see its note for the timing).
             Self::WeldByDistance(_) => input.vertex_count() / WELD_POINTS_PER_POLYGON,
             Self::Array(settings) => crate::array::array_work(input, settings),
+            // About four polygons made cost as much as one in a boolean
+            // (10 000 polygons thickened in about 20 ms in a release build).
+            Self::Shell(options) => mesh::shell::work(input, options),
         }
     }
 
@@ -525,6 +543,8 @@ impl ModifierKind {
                 mesh::weld_distance::welded(input, options).map_err(|why| why.to_string())
             }
             Self::Array(settings) => crate::array::apply_array(input, settings, context),
+            Self::Shell(options) => mesh::shell::shell(input, options, crate::MAX_SHAPE_POLYGONS)
+                .map_err(|why| why.to_string()),
         }
     }
 
@@ -534,9 +554,11 @@ impl ModifierKind {
     /// (decision 0149); Quadify before those and Live bevel too, as
     /// bevelling and smoothing work best on quads (decision 0150); Weld by
     /// distance before every kind that reads how polygons join (Decimate,
-    /// Quadify, Live bevel, Subdivide, Weighted normals), as a crack
-    /// spoils each of them (decision 0152). The person can move it
-    /// afterwards.
+    /// Quadify, Live bevel, Subdivide, Weighted normals, Shell), as a
+    /// crack spoils each of them (decision 0152); a Shell before Live
+    /// bevel, Subdivide and Weighted normals, so its rims are bevelled
+    /// and smoothed with the rest and the normals are weighted last
+    /// (decision 0154). The person can move it afterwards.
     pub fn goes_before(&self, other: &Self) -> bool {
         match self {
             Self::LiveBevel(_) => {
@@ -553,6 +575,11 @@ impl ModifierKind {
                     | Self::LiveBevel(_)
                     | Self::Subdivide(_)
                     | Self::WeightedNormals(_)
+                    | Self::Shell(_)
+            ),
+            Self::Shell(_) => matches!(
+                other,
+                Self::LiveBevel(_) | Self::Subdivide(_) | Self::WeightedNormals(_)
             ),
             _ => false,
         }

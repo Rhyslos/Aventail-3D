@@ -207,6 +207,8 @@ pub(crate) enum KindV43 {
     WeldByDistance(super::v53::WeldV53),
     /// Array (version 54).
     Array(super::v54::ArrayV54),
+    /// Shell (version 55).
+    Shell(super::v55::ShellV55),
 }
 
 /// Weighted normals' weighting as stored.
@@ -302,6 +304,7 @@ impl KindV43 {
             ModifierKind::Quadify(o) => Self::Quadify(super::v51::QuadifyV51::of(o)),
             ModifierKind::WeldByDistance(o) => Self::WeldByDistance(super::v53::WeldV53::of(o)),
             ModifierKind::Array(a) => Self::Array(super::v54::ArrayV54::of(a)),
+            ModifierKind::Shell(o) => Self::Shell(super::v55::ShellV55::of(o)),
         }
     }
 
@@ -433,6 +436,7 @@ impl KindV43 {
             Self::Quadify(o) => ModifierKind::Quadify(o.options()),
             Self::WeldByDistance(o) => ModifierKind::WeldByDistance(o.options()),
             Self::Array(a) => ModifierKind::Array(a.settings()),
+            Self::Shell(o) => ModifierKind::Shell(o.options()),
         }
     }
 }

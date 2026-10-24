@@ -165,6 +165,7 @@ impl Workbench {
             | CommandId::Quadify
             | CommandId::WeldByDistance
             | CommandId::Array
+            | CommandId::Shell
             | CommandId::Scatter
             | CommandId::BendAlongCurve
             | CommandId::Shrinkwrap
@@ -320,6 +321,7 @@ impl Workbench {
             | CommandId::Quadify
             | CommandId::WeldByDistance
             | CommandId::Array
+            | CommandId::Shell
             | CommandId::Scatter
             | CommandId::BendAlongCurve
             | CommandId::Shrinkwrap

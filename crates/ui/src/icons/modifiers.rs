@@ -1,4 +1,4 @@
-//! The modifier icons (decisions 0142 to 0153), one per kind of
+//! The modifier icons (decisions 0142 to 0154), one per kind of
 //! modifier on the modifiers palette, and the crease commands'. Original
 //! drawings.
 
@@ -22,6 +22,7 @@ pub(super) fn draw(pen: &mut Pen, icon: Icon) {
         Icon::Quadify => quadify(pen),
         Icon::WeldByDistance => weld_by_distance(pen),
         Icon::Array => array(pen),
+        Icon::Shell => shell(pen),
         _ => {}
     }
 }
@@ -369,5 +370,35 @@ fn array(pen: &mut Pen) {
         for face in [front, top, side] {
             pen.stroke(&face, true, Ink::Line);
         }
+    }
+}
+
+/// Shell: a bowl-shaped sheet given thickness, cut through, its wall a
+/// band between two curves and its two rims showing on top.
+fn shell(pen: &mut Pen) {
+    let (centre, outer, inner) = ((12.0_f32, 7.0_f32), 9.0_f32, 5.5_f32);
+    let steps = 12;
+    let mut band: Vec<(f32, f32)> = (0..=steps)
+        .map(|k| {
+            let a = std::f32::consts::PI * k as f32 / steps as f32;
+            (centre.0 + outer * a.cos(), centre.1 + outer * a.sin())
+        })
+        .collect();
+    band.extend((0..=steps).rev().map(|k| {
+        let a = std::f32::consts::PI * k as f32 / steps as f32;
+        (centre.0 + inner * a.cos(), centre.1 + inner * a.sin())
+    }));
+    pen.shape(&band, Paint::Tone);
+    pen.stroke(&band, true, Ink::Line);
+    let (right, left) = (centre.0 + outer, centre.0 - outer);
+    for (a, b) in [(centre.0 + inner, right), (left, centre.0 - inner)] {
+        let rim = [
+            (a, centre.1),
+            (b, centre.1),
+            (b + 1.5, centre.1 - 2.5),
+            (a + 1.5, centre.1 - 2.5),
+        ];
+        pen.shape(&rim, Paint::Shade);
+        pen.stroke(&rim, true, Ink::Line);
     }
 }

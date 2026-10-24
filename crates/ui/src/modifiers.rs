@@ -17,7 +17,7 @@ use egui::Ui;
 use scene::{
     ArraySettings, Command, CurveBendSettings, DecimateOptions, Document, LatticeOptions,
     LiveBevelOptions, MAX_MODIFIERS, ModifierFamily, ModifierKind, ModifierRefusal, ObjectId,
-    ObjectKind, QuadifyOptions, RemeshOptions, ScatterSettings, ShrinkwrapSettings,
+    ObjectKind, QuadifyOptions, RemeshOptions, ScatterSettings, ShellOptions, ShrinkwrapSettings,
     SubdivideOptions, WeightedNormalsOptions, WeldOptions,
 };
 
@@ -26,9 +26,10 @@ pub(crate) use pairs::pair_plan;
 
 /// One command per kind of modifier, in the order of
 /// [`ModifierKind::standard_kinds`].
-pub(crate) const COMMANDS: [CommandId; 12] = [
+pub(crate) const COMMANDS: [CommandId; 13] = [
     CommandId::Subdivide,
     CommandId::Array,
+    CommandId::Shell,
     CommandId::LiveBevel,
     CommandId::Scatter,
     CommandId::Lattice,
@@ -52,6 +53,7 @@ pub(crate) fn kind_of(command: CommandId) -> Option<ModifierKind> {
         CommandId::Quadify => Some(ModifierKind::Quadify(QuadifyOptions::default())),
         CommandId::WeldByDistance => Some(ModifierKind::WeldByDistance(WeldOptions::default())),
         CommandId::Array => Some(ModifierKind::Array(ArraySettings::default())),
+        CommandId::Shell => Some(ModifierKind::Shell(ShellOptions::default())),
         CommandId::Scatter => Some(ModifierKind::Scatter(ScatterSettings::default())),
         CommandId::BendAlongCurve => {
             Some(ModifierKind::BendAlongCurve(CurveBendSettings::default()))
