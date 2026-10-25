@@ -94,6 +94,8 @@ fn a_modifier_after_it_is_pointed_out() {
             .count()
     };
     assert_eq!(shown(&harness), 0);
+    // A new Subdivide goes before it, as every kind changing the shape
+    // does.
     run(
         &mut harness,
         Command::AddModifier {
@@ -101,8 +103,11 @@ fn a_modifier_after_it_is_pointed_out() {
             kind: ModifierKind::Subdivide(SubdivideOptions::default()),
         },
     );
-    assert_eq!(shown(&harness), 1);
+    assert_eq!(shown(&harness), 0);
+    // Moved after it, it drops the normals: said in the warning colour.
     run(&mut harness, Command::MoveModifier { id, from: 0, to: 1 });
+    assert_eq!(shown(&harness), 1);
+    run(&mut harness, Command::MoveModifier { id, from: 1, to: 0 });
     assert_eq!(shown(&harness), 0);
 }
 

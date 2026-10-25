@@ -28,6 +28,9 @@
 //! To add a kind of modifier, see the recipe in decision 0142.
 
 mod eval;
+mod nothing_to_do;
+
+pub use nothing_to_do::has_nothing_to_do;
 
 pub use crate::array::ArraySettings;
 pub use crate::displace::DisplaceSettings;
@@ -678,10 +681,17 @@ impl ModifierKind {
     /// taper before Weighted normals, which shades best last (decisions
     /// 0157 and 0158). Every other kind goes before a Triangulate, the
     /// finishing step that cuts the shape into the triangles a game gets
-    /// (decision 0161). The person can move it afterwards.
+    /// (decision 0161), and every kind that changes the shape (all but
+    /// Weighted normals and Triangulate) before Weighted normals, which a
+    /// change of shape after it would drop: a Lattice or Scatter added
+    /// after a game bevel goes above its Weighted normals. The person can
+    /// move it afterwards.
     pub fn goes_before(&self, other: &Self) -> bool {
         if matches!(other, Self::Triangulate(_)) {
             return !matches!(self, Self::Triangulate(_));
+        }
+        if matches!(other, Self::WeightedNormals(_)) {
+            return !matches!(self, Self::WeightedNormals(_) | Self::Triangulate(_));
         }
         match self {
             Self::LiveBevel(_) => {

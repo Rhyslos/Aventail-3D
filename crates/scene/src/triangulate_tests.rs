@@ -108,9 +108,11 @@ fn weighted_normals_before_it_reach_the_export() {
     assert!(exported.faces().all(|(_, c)| c.len() == 3));
     assert!(scene.final_weighted_normals(id, Purpose::Export).is_some());
     assert_eq!(scene.normals_dropped_by(id, 0), None);
-    // A Subdivide after the Triangulate still drops them, and is named.
+    // A Subdivide after them, before the Triangulate, still drops them,
+    // and is named. (A new Subdivide goes before both: moved by hand.)
     add(&mut doc, id, ModifierKind::Subdivide(Default::default()));
-    // (A new Subdivide goes before the Triangulate.)
+    doc.execute(Command::MoveModifier { id, from: 0, to: 1 })
+        .unwrap();
     assert_eq!(
         names(&doc, id),
         ["Weighted normals", "Subdivide", "Triangulate"]

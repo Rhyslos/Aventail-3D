@@ -20,7 +20,7 @@ Not for: making the object itself lighter for good. Use [Decimate](decimate.md) 
 2. Three levels appear, as standard: **Level 1** keeps 50% of the triangles, **Level 2** 25%, **Level 3** 12%, shown from **10 m**, **20 m** and **40 m**. Under each, **Triangles** says how many it has, and a line below says how many the full shape has.
 3. To look at a level, choose it in **Preview**. The viewport draws that level in the shape's place. Only the view changes: you still select and edit the full shape, and it still exports whole. Set Preview back to **Full shape** when you're done.
 4. Change **Levels** for more or fewer (1 to 8), and each level's share and distance to taste.
-5. To put the levels in the exported file, tick **Levels of detail** next to *Includes* in the [Export window](export-and-import.md). [Export kit](kit-export.md) and exports into a [game project folder](export-and-import.md#export-into-a-game-project) use that choice too.
+5. To put the levels in the exported file, keep **Levels of detail** ticked next to *Includes* in the [Export window](export-and-import.md): it starts ticked when anything going out has levels made, until you set it yourself. [Export kit](kit-export.md) and exports into a [game project folder](export-and-import.md#export-into-a-game-project) use that choice too.
 
 ### What goes into the file
 
@@ -74,7 +74,7 @@ Use the app's levels in Godot when you want to choose each level's triangles and
 | **Shown from** | How far from the camera a game starts showing that level instead of the one before, up to 10 km. **10 m, 20 m, 40 m** as standard. It goes into the file; the app's own viewport doesn't switch by distance. |
 | **Triangles** | How many triangles the level has, once it's made (… until then). Kept seams, hard edges and borders can stop a level short of its share. |
 | **Preview** | Which level the viewport draws: **Full shape** (standard) or a level. Saved with the project. |
-| **Levels of detail** (Export window, *Includes*) | Off (standard): files hold the objects only. On: each object's levels go beside it, `name_LOD1` and on. Remembered with the other export settings. |
+| **Levels of detail** (Export window, *Includes*) | On when anything going out has levels made, off otherwise, until you tick or untick it yourself; your choice is then remembered with the other export settings. Off: files hold the objects only. On: each object's levels go beside it, `name_LOD1` and on. |
 
 The levels are made from the shape **as exported**: every [modifier](modifiers.md) that is on, the [live mirror](symmetry.md) and [booleans](booleans.md) included. The Triangles counts and the preview use the shape the viewport draws, which is the same unless a modifier has a different viewport setting (Subdivide's levels, say).
 

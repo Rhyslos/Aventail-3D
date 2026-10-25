@@ -1046,6 +1046,13 @@ fn slide_out_names(ui: &Ui, names: &[Named], acted: bool) -> Option<Act> {
     // over the palette or the strip.
     let (strip, since, dismissed): (Option<egui::Rect>, Option<f64>, bool) =
         ctx.data(|d| d.get_temp(id)).unwrap_or_default();
+    // A question waiting for an answer ("Save changes?") covers the window:
+    // the strip stays away, as it would draw over the question's dimming.
+    if ctx.memory(|m| m.top_modal_layer().is_some()) {
+        ctx.animate_bool_with_time(id.with("open"), false, 0.0);
+        ctx.data_mut(|d| d.insert_temp(id, (None::<egui::Rect>, None::<f64>, dismissed)));
+        return None;
+    }
     let over = pointer.is_some_and(|p| palette.contains(p) || strip.is_some_and(|s| s.contains(p)));
     let since = if over { since.or(Some(now)) } else { None };
     // A click puts the strip away until the mouse leaves.

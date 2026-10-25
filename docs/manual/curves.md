@@ -51,6 +51,8 @@ Select the curve. In the [Attributes panel](attributes.md), under **Curve**, set
 - **Sweep:** a cross-section carried along the curve. Its settings appear under **Sweep**.
 - **Lathe:** the curve spun round an axis. Its settings appear under **Lathe**.
 
+[Command search](command-search.md) (**Space**) does the same: type *sweep* or *lathe* and pick **Sweep the curve** or **Lathe the curve** to make every selected curve a sweep or a lathe (a curve already making one keeps its settings). They're greyed out until a curve is selected.
+
 **A sweep's cross-section** is a **Circle** (pipes: set Width, how wide across, and Sides), a **Square** or a **Rectangle** (Width across the curve and Height up from it), or **another curve** from the list (each curve object in the scene is there by name). For a curve as the cross-section:
 
 1. Draw the cross-section in a **flat view**: the front view (F4) is the usual choice. Draw it round the spot where the path should run through it, and close it for a solid trim (or leave it open for a thin strip, such as a gutter).

@@ -39,7 +39,7 @@ Not for organic shapes (characters, rocks, cloth): they have no sharp edges to b
 
 For each selected shape:
 
-- **Smoothing.** If the shape is smoothed by angle (every new shape is, at 30°), it switches to **shading by its marked edges**, keeping its look: the edges that were sharper than the angle are marked hard first (as when you mark an edge by hand on such a shape). *Why:* smoothed by angle, a 2-segment bevel of a right-angled edge has a 45° step in its middle, sharper than 30°, so each bevel would shade with a crease down it. Shaded by marks, the bevel decides.
+- **Smoothing.** If the shape is smoothed by angle (every new shape is, at 30°), it switches to **shading by its marked edges**, keeping its look: the edges that were sharper than the angle are marked hard first (as when you mark an edge by hand on such a shape). *Why:* smoothed by angle, a 2-segment bevel of a right-angled edge has a 45° step in its middle, sharper than 30°, so each bevel would shade with a crease down it. Shaded by marks, the bevel decides. The Attributes panel's **Last edit** then reads **Game bevel**, with a line saying Smoothing switched from By angle to the marked edges (the marks are part of the game bevel, so there's nothing to open there); the bevel's and the normals' settings are in **Modifiers** below.
 - **Live bevel.** If the shape has none, one is added with the standard settings and **Soft bevels** on. If it already has one, it's kept with its own settings, and Soft bevels is switched on (and the bevel switched on, if it was off).
 - **Weighted normals.** If the shape has none, one is added at the end of the list. If it already has one, it's moved to the end and switched on.
 

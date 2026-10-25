@@ -98,6 +98,11 @@ pub(crate) struct ObjectManager {
     anchor: Option<ObjectId>,
     /// The objects being dragged, if a drag is under way.
     dragging: Option<Vec<ObjectId>>,
+    /// The row last clicked: a double-click renames only when both clicks
+    /// were on the same row (egui counts any two quick clicks as one, so
+    /// two quick Ctrl + clicks on different rows would rename the second
+    /// and select it alone).
+    last_clicked: Option<ObjectId>,
     /// Shape settings copied with Copy settings (here or in the
     /// Attributes panel), ready to paste.
     pub(crate) clipboard: Option<scene::Primitive>,
@@ -362,19 +367,38 @@ impl ObjectManager {
 
         // Clicks on the row itself (the arrow and eye take their own).
         if !renaming_here {
-            if response.double_clicked() {
+            // A double-click renames: both clicks on this row, with no
+            // Ctrl or Shift (two quick Ctrl + clicks add two rows).
+            let keys = crate::selecting::click_modifiers(ui.ctx());
+            let rename = response.double_clicked()
+                && self.last_clicked == Some(id)
+                && !keys.command
+                && !keys.shift;
+            if rename {
                 doc.set_selection([id]);
                 self.start_rename(doc, id);
+                self.last_clicked = None;
             } else if response.clicked() {
                 self.click(ui, doc, id, rows);
+                self.last_clicked = Some(id);
             } else if response.secondary_clicked() && !selected {
                 doc.set_selection([id]);
                 self.anchor = Some(id);
             }
         }
         if response.drag_started_by(egui::PointerButton::Primary) {
+            // A quick Ctrl + click that moves a few points on the way is a
+            // drag to egui: with Ctrl (or Shift) held, the row joins the
+            // selection rather than replacing it, as the click would have.
+            let keys = crate::selecting::click_modifiers(ui.ctx());
             let ids = if doc.is_selected(id) {
                 doc.selection()
+            } else if keys.command || keys.shift {
+                let mut ids = doc.selection();
+                ids.push(id);
+                doc.set_selection(ids.iter().copied());
+                self.anchor = Some(id);
+                ids
             } else {
                 doc.set_selection([id]);
                 vec![id]
@@ -390,7 +414,9 @@ impl ObjectManager {
     /// A left click on a row: select it alone, add or remove it (Ctrl), or
     /// select the run from the last clicked row to it (Shift).
     fn click(&mut self, ui: &Ui, doc: &mut Document, id: ObjectId, rows: &[(ObjectId, usize)]) {
-        let modifiers = ui.input(|i| i.modifiers);
+        // The keys held for this click, not those held at the end of the
+        // frame (Ctrl may be let go in the same frame).
+        let modifiers = crate::selecting::click_modifiers(ui.ctx());
         if modifiers.shift
             && let Some(anchor) = self.anchor
         {

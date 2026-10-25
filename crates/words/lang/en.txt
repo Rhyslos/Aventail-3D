@@ -45,6 +45,7 @@
 , in {} layers
 , {} materials
 . Key: {}
+/home/you/Models/crate
 1 GB
 1 edit
 1 edit found its points again on the changed shape
@@ -229,6 +230,7 @@ Assign: switch to the Polygons mode and select polygons first.
 At most 64 shapes can be scattered at once
 At the back
 Attributes
+Attributes → Makes
 Auto
 Auto handles
 Automatic
@@ -361,6 +363,7 @@ Checking the mesh…
 Choose (shape list, tool menu)
 Choose (shape list, tool menu); Save ("Save changes?")
 Choose a game project folder in the Export window first; this then exports straight into it
+Choose folder
 Choose folder…
 Choose which mouse buttons and keys move the view
 Circle
@@ -413,8 +416,10 @@ Collides with a box around the shape: the cheapest
 Collides with a few wrapped parts that follow the shape's dents: nearly as cheap as Wrapped, and things fit under arches and into hollows
 Collides with the shape wrapped tightly, dents filled in: cheaper, and it can move
 Collision
+Collision goes out for {}: {}. Godot makes the shapes when it imports the file.
 Collision shape
 Collision: {}
+Collision: {} have some, but it goes out only with Made for Godot, whose names tell Godot to make the shapes.
 Colours
 Command search
 Command search box
@@ -633,7 +638,7 @@ Each copy gets a random size between Smallest and Largest: 100% is the shape's o
 Each hexagon's size, from its middle to a corner
 Each material's pieces fill a square of their own, as separate texture sets
 Each metre square cut into four: lines every 50 cm
-Each object's levels of detail (Attributes → Levels of detail) go out beside it as meshes of their own, named like Rock_LOD1, with the distances they show from. Godot makes its own levels when it imports a file, so it doesn't need these
+Each object's levels of detail (Attributes → Levels of detail) go out beside it as meshes of their own, named like Rock_LOD1, with the distances they show from. It starts on when an object has levels, until you set it yourself. Godot makes its own levels when it imports a file, so it doesn't need these
 Each object's pieces fill a square of their own
 Each piece is laid flat all three ways and keeps the one that lies most evenly. Always the same choice for the same piece; slowest of all.
 Each point goes along its own facing, so the end follows the surface's curve at an even thickness, like puffing it out.
@@ -710,6 +715,7 @@ Export kit…
 Export on every save
 Export once first; this then repeats it
 Export straight into a Godot, Unity, Unreal Engine or Solis project: pick the folder inside it that your models go in. Every save then exports the model there too, named after the project, so the engine picks up the change by itself.
+Export to
 Export to game project
 Export to {} again, the same way
 Exported {} ({} triangles) into {}.
@@ -748,6 +754,7 @@ Find any command by typing part of its name (Space)
 Finish a slit
 Finish the curve being drawn (Draw curve)
 Fit
+Fit cage
 Fit everything in the scene in the view
 Fit the islands holding the selection (or whole objects) into the texture square as large as they go, with padding between them (UV → Packing)
 Fit the selected objects in the view (everything, while nothing is selected)
@@ -953,6 +960,7 @@ How many pieces the sides are cut into from bottom to top
 How many pieces the straight middle is cut into
 How many points it has: press 1 to move them
 How many points the cage has along this side, 2 to 16: 2 is a point at each end; more bend the shape in more places
+How many polygons use it in the shape as shown, after its booleans and modifiers
 How many rings each closed end is cut into, from the rim inwards
 How many rings each round end has, from its rim to its tip
 How many rings from the rim to the top
@@ -1110,6 +1118,7 @@ Lasso selection
 Last edit: {}
 Lathe
 Lathe axis
+Lathe the curve
 Lattice
 Lay out
 Lay strips on them: UV → Put on trim row.
@@ -1179,6 +1188,8 @@ Make simpler copies of the shape for a game to draw when it is far away, where t
 Make the mirrored half of a symmetrical object part of its shape (symmetry off)
 Make the mirrored half part of the shape for real, as Blender's Apply: the mirror is gone, both halves stay, and each half can be changed on its own from then on
 Make the mirrored half part of the shape for real: symmetry goes off and both halves stay
+Make the selected curves lathes: each spun round an axis, for vases, bottles and wheels
+Make the selected curves sweeps: a cross-section carried along each, for pipes, cables and rails
 Make the trim sheet's rows first: the UV Editor's Trim menu, or UV → Trim sheet
 Makes
 Marine green
@@ -1304,6 +1315,7 @@ Next in the shape list or tool menu
 Next in the tool menu
 Next select tool (Box, Lasso, Paint select)
 No automatic tool changes the pieces holding the selection: Unwrap, Relax, Straighten, Pack, texel density, trim rows, Suggest seams and mending all leave them as they are. You can still move, turn and scale them by hand. Drawn hatched in the UV Editor.
+No collision goes out: give an object some in Attributes → Collision.
 No collision shape: {}.
 No collision: things pass through it
 No edit layers yet. The first edit you make goes into a layer called Edits. Add a layer to keep a set of edits apart: switch it off to compare, or delete it to take them all back.
@@ -1337,6 +1349,7 @@ Nothing is selected
 Nothing matches.
 Nothing selected
 Nothing to bake into the shape: groups and meshes have no settings to bake
+Nothing to do: {}.
 Nothing to export: nothing shown is a shape.
 Nothing to redo
 Nothing to redo.
@@ -1388,6 +1401,7 @@ Only one project can be opened at a time.
 Only sections with something to set are listed. Materials, Mesh, Rig and Animations arrive with their features.
 Only shapes with settings (a cube, a cylinder…) can be sized: baked meshes and groups have no sizes to round
 Only the edges, seen through the shape: front and back at once. Clicking still picks the shape.
+Open
 Open ({})
 Open a project
 Open a saved project
@@ -1439,6 +1453,7 @@ Paste: copy some objects first (Ctrl + C, or Alt + C).
 Paste: the copied objects have been deleted.
 Pasted copies, on top of their originals: move them away with W.
 Pasted instances: they follow their originals' shape.
+Path
 Perspective
 Perspective or orthographic
 Petrol blue
@@ -1624,6 +1639,7 @@ Save as
 Save backup copies in the background
 Save changes to {}?
 Save project
+Save project as
 Save the model for a game engine or a texturing program (glTF or OBJ)
 Save the project
 Save the project under a new name or in another folder
@@ -1852,6 +1868,7 @@ Smooth the shape by subdividing it: every polygon is split into four and the cor
 Smoothing
 Smoothing angle
 Smoothing now follows the marked edges, with the shape's look kept as marks.
+Smoothing switched from By angle to the marked edges, with every edge sharper than {}° marked hard, so the shape looks the same. The bevel and its normals are the Live bevel and Weighted normals in Modifiers below; Ctrl + Z takes it all back.
 Snap (or not, when snapping is on)
 Snap moves to points, edges, polygons and the grid, turns to 15° and scaling to 10% steps. Hold Ctrl while dragging to flip it for that drag.
 Snap moves to points, edges, polygons and the grid. Settings → Viewport has the details.
@@ -1941,6 +1958,7 @@ Surface
 Swap which side of the edges the skew favours
 Swedish / Finnish
 Sweep
+Sweep the curve
 Switch a curve's point between sharp and smooth
 Switch both layers on first
 Switch edit off
@@ -1991,6 +2009,7 @@ Texel density
 Texture
 Texture size
 That isn't a modifier
+That's a folder: add the file's name after it.
 The 3D view can't be shown: {}.
 The app closed without saving your work on {}. Backup copies were kept:
 The app's
@@ -2012,6 +2031,7 @@ The first material can't be removed
 The first selected has no shape of its own: select a shape first
 The first selected has no shape to scatter onto: select a shape first
 The first selected is an instance: select its original, or bake it into a shape first
+The folder {} doesn't exist.
 The full shape has {} triangles.
 The gap between pieces, in texture pixels (half of it to the square's edges). Keeps colours from bleeding between pieces when the texture is shrunk; 8 px suits a 2048 texture.
 The gizmo follows the object's own axes.
@@ -2045,6 +2065,7 @@ The saved panel layout was incomplete, so the standard layout is used.
 The second selected has no surface: groups and lattice cages can't be wrapped onto
 The second selected isn't a curve: Ctrl + click a curve to bend along
 The select tool in use
+The selected curves already make a {}.
 The selected objects have no UVs.
 The selected objects, with what's inside them
 The selected shapes already fit the kit grid
@@ -2062,6 +2083,8 @@ The size of the texture this project's UVs are made for
 The snapshot's name. Each must differ.
 The standard layout
 The step a modular kit's pieces are sized to, saved with the project
+The system's file window couldn't open, so type the full path here. ~ stands for your home folder.
+The system's file window didn't open (on Linux it needs the desktop's file portal or the zenity program). Type the path in the window instead.
 The texel density aimed for: texture pixels per metre of surface. 512 px/m is common for props seen up close in third-person games.
 The triangles a game engine cuts the faces into: the usual measure of how heavy a model is
 The units a new project starts with
@@ -2072,6 +2095,8 @@ The {} mode has no tools yet.
 Then click another object: the selected objects' pivots move to its pivot, and the shapes stay where they are. Esc cancels.
 Then drag in the editor: the line's length in texture pixels and on the surface, in centimetres. Esc stops.
 There is no layer below to merge into
+There's no file there.
+There's no folder there.
 There's no room under the lowest row: make it shorter first
 These edits would have made the shape larger than {} million polygons, more than the app can work with safely, so they were left out. Undo them, or use fewer rows or a smaller selection.
 These pieces get much more or much less texture than the rest of the object, so they look sharper or blurrier. Fix scales them to the object's usual texel density (UV → Match texel density does this for a selection).
@@ -2152,6 +2177,8 @@ Turns snap every
 Twist
 Type a command, such as extrude or export
 Type a new name for the layer
+Type a path first.
+Type the file's name too.
 UK (QWERTY)
 US (QWERTY)
 UV
@@ -2785,6 +2812,7 @@ write
 {} closer than {} px to other pieces
 {} colour
 {} comes after this and changes the shape, so these normals are dropped: move Weighted normals to the end with Down.
+{} comes after this and is off. Switched on, it changes the shape and these normals are dropped: move Weighted normals to the end with Down.
 {} could not open its window: {}\n
 {} curve point{} or handle{} deleted. Ctrl + Z takes it back.
 {} cut into sliver triangles
@@ -2802,6 +2830,7 @@ write
 {} is locked: moving, rotating and scaling leave it alone.\nClick or press Shift+{} to free it.
 {} is stored with a bevel's settings, which it can't have
 {} is stored with a stretch, which it can't have
+{} is there already: it will be replaced.
 {} is used by {} polygon{}: assign {} another material first (Select → Select by material finds {}).
 {} lying over other UVs
 {} matches
@@ -2873,6 +2902,7 @@ write
 {} {}: see the shape {} its edits
 {} {}s
 {} {}{} ago
+{} × {}
 {} × {} px
 {} › {}\n{}\nNot now: {}
 {}'s {} modifier was taken off: the object it read is no longer of a kind it can read
@@ -2891,6 +2921,7 @@ write
 {}: every hard edge is a seam already.
 {}: nothing changed.
 {}: press 2 for the Edges mode and select some edges first.
+{}: select a curve first.
 {}: select some UVs first.
 {}: select some edges first (or polygons).
 {}: select some edges first (or polygons, for the edges around them).

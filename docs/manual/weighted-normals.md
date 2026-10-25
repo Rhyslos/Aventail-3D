@@ -21,7 +21,7 @@ It isn't for organic, evenly divided shapes (a character, a rock): their polygon
 1. Select one or more shapes. Shapes with bevelled edges and soft shading show the difference best: set the object's **Smoothing** (in the [Attributes panel](attributes.md)) to a larger angle, or to shade by its marked edges, so the bevels are soft.
 2. Click **Weighted normals** on the **modifiers palette** (a box seen from the side with arrows on top, the last button on the right of the viewport), or choose **Mesh → Modifiers → Weighted normals** (under *Game ready*), or press **Space**, type *weighted*, and press **Enter**.
 3. The big faces now shade flat. Change its settings in the Attributes panel under **Modifiers → Weighted normals**.
-4. **Keep it last** in the list of modifiers (only a [Triangulate](triangulate.md) may come after it: it keeps the normals). If another modifier comes after it, the panel says so in amber: use **Down** to move Weighted normals to the end.
+4. **Keep it last** in the list of modifiers (only a [Triangulate](triangulate.md) may come after it: it keeps the normals). Modifiers you add later go above it by themselves. If you move one below it, the panel says so in amber: use **Down** to move Weighted normals to the end. Switch that modifier off and the note turns grey, saying what switching it on would do.
 5. [Export](export-and-import.md) as usual: the normals go into the file. Or **Bake into shape** (**Ctrl + E**) to keep them in a plain mesh.
 
 On a big shape (from about 19 000 square polygons) the normals are worked out in the background while you keep working; 200 000 polygons take about a fifth of a second.

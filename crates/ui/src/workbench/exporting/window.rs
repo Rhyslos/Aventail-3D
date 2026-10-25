@@ -31,6 +31,14 @@ impl Workbench {
             return;
         }
         let mut choice = self.exporting.choice;
+        // Until the person sets it, Levels of detail is on when anything
+        // going out has levels made.
+        choice.lod_levels = self.levels_go_out(choice, choice.what);
+        let collision = super::goes_out::collision_line(
+            &self.document,
+            choice.what,
+            choice.preset == Some(ExportPreset::Godot),
+        );
         let mut section = self.exporting.section;
         let selected = !self.document.selection().is_empty();
         let summary = self.export_summary();
@@ -81,7 +89,7 @@ impl Workbench {
                                 ui,
                                 &mut choice,
                                 selected,
-                                summary,
+                                (summary, &collision),
                                 GameProjectView {
                                     target: target.as_ref(),
                                     engine: engine.as_ref(),
@@ -221,7 +229,7 @@ fn general(
     ui: &mut Ui,
     choice: &mut ExportChoice,
     selected: bool,
-    summary: ExportSummary,
+    (summary, collision): (ExportSummary, &str),
     game: GameProjectView<'_>,
     bake: &mut bool,
 ) -> bool {
@@ -263,10 +271,16 @@ fn general(
             "Shapes and their materials always go out. Skeletons and animations will be \
              listed here once the app has them, to leave out when you don't need them.",
         ));
-        dialog::chip(ui, &mut choice.lod_levels, tr("Levels of detail")).on_hover_text(tr(
+        let levels = dialog::chip(ui, &mut choice.lod_levels, tr("Levels of detail"));
+        if levels.changed() {
+            // Set by hand: kept from now on, instead of following the scene.
+            choice.lod_chosen = true;
+        }
+        levels.on_hover_text(tr(
             "Each object's levels of detail (Attributes → Levels of detail) go out beside it \
              as meshes of their own, named like Rock_LOD1, with the distances they show from. \
-             Godot makes its own levels when it imports a file, so it doesn't need these",
+             It starts on when an object has levels, until you set it yourself. Godot makes \
+             its own levels when it imports a file, so it doesn't need these",
         ));
     });
     match choice.preset {
@@ -322,6 +336,8 @@ fn general(
             ),
         ],
     );
+    ui.add_space(4.0);
+    dialog::help(ui, collision);
     go_there
 }
 

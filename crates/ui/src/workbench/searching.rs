@@ -76,7 +76,7 @@ impl Workbench {
                 place: place.into(),
                 help: help.into(),
                 keys: action.shortcut().map(keys),
-                not_now: None,
+                not_now: self.menu_not_now(action),
                 action: SearchAction::Menu(action),
             });
         }
@@ -222,7 +222,56 @@ impl Workbench {
                 let snap = &mut self.viewport.options_mut().snap;
                 snap.kit_grid = !snap.kit_grid;
             }
+            MenuAction::MakesSweep => {
+                self.curves_make(scene::CurveSolid::Sweep(scene::Sweep::default()), requests)
+            }
+            MenuAction::MakesLathe => self.curves_make(
+                scene::CurveSolid::Lathe(scene::LatheShape::default()),
+                requests,
+            ),
         }
+    }
+
+    /// Why a menu entry found by the search can't be used now, if it
+    /// can't.
+    fn menu_not_now(&self, action: MenuAction) -> Option<String> {
+        match action {
+            MenuAction::MakesSweep | MenuAction::MakesLathe
+                if self.selected_curves().is_empty() =>
+            {
+                Some(tr("Select a curve first").to_string())
+            }
+            _ => None,
+        }
+    }
+
+    /// Sets what the selected curves make to `solid`'s kind (Attributes →
+    /// Makes): those already making that kind keep their settings.
+    fn curves_make(&mut self, solid: scene::CurveSolid, requests: &mut Vec<DocRequest>) {
+        let scene = self.document.scene();
+        let same = |id: &scene::ObjectId| {
+            scene
+                .object(*id)
+                .and_then(|o| o.kind.curve())
+                .is_some_and(|c| std::mem::discriminant(&c.solid) == std::mem::discriminant(&solid))
+        };
+        let curves = self.selected_curves();
+        if curves.is_empty() {
+            self.note = Some(crate::trf!("{}: select a curve first.", solid.name()));
+            return;
+        }
+        let ids: Vec<scene::ObjectId> = curves.into_iter().filter(|id| !same(id)).collect();
+        if ids.is_empty() {
+            self.note = Some(crate::trf!(
+                "The selected curves already make a {}.",
+                solid.name().to_lowercase()
+            ));
+            return;
+        }
+        requests.push(DocRequest::Run(scene::Command::SetCurveSolid {
+            ids,
+            solid,
+        }));
     }
 
     /// Make levels of detail (decision 0155): switches levels of detail on

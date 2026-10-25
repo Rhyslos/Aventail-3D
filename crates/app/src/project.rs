@@ -7,8 +7,60 @@
 
 use crate::branding::{APP_NAME, PROJECT_EXTENSION};
 use std::path::{Path, PathBuf};
-use ui::Workbench;
+use std::time::{Duration, Instant};
+use ui::{FilePurpose, Workbench};
 use words::{tr, trf};
+
+/// What a system file window gave back.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Asked<T> {
+    /// The person chose this.
+    Chosen(T),
+    /// The person closed the window without choosing.
+    Closed,
+    /// No window came: nothing came back at once (see [`NO_WINDOW_WITHIN`]).
+    NoWindow,
+}
+
+/// How soon a file window that gives nothing back counts as never shown.
+/// The windows only say "nothing chosen", whether the person closed the
+/// window or it couldn't open (on Linux it needs the desktop's file portal
+/// or the zenity program); but nobody sees a window and closes it within
+/// half a second, while one that can't open comes back at once.
+pub const NO_WINDOW_WITHIN: Duration = Duration::from_millis(500);
+
+/// What a file window that gave back `result` after `took` means.
+pub fn asked<T>(result: Option<T>, took: Duration) -> Asked<T> {
+    match result {
+        Some(chosen) => Asked::Chosen(chosen),
+        None if took < NO_WINDOW_WITHIN => Asked::NoWindow,
+        None => Asked::Closed,
+    }
+}
+
+/// Shows a file window with `show` and says what came of it.
+fn ask<T>(show: impl FnOnce() -> Option<T>) -> Asked<T> {
+    let start = Instant::now();
+    let result = show();
+    asked(result, start.elapsed())
+}
+
+/// The home folder, to start typing a path from when there's no project
+/// folder.
+fn home() -> Option<PathBuf> {
+    std::env::var_os("HOME")
+        .or_else(|| std::env::var_os("USERPROFILE"))
+        .map(PathBuf::from)
+}
+
+/// Where typing a path starts: `folder` (or the home folder) and `name`.
+fn typed_start(folder: Option<&Path>, name: Option<&str>) -> Option<PathBuf> {
+    let folder = folder.map(Path::to_path_buf).or_else(home)?;
+    Some(match name {
+        Some(name) => folder.join(name),
+        None => folder,
+    })
+}
 
 /// `path` ending in `.avtl`: added if the name typed in the Save dialog
 /// left it out (other dots in the name are kept).
@@ -31,41 +83,66 @@ fn filter_name() -> String {
     trf!("{} project", APP_NAME)
 }
 
-/// Asks where to save, starting in the project's folder with its name.
-fn ask_where_to_save(current: Option<&Path>) -> Option<PathBuf> {
-    let name = current.and_then(Path::file_name).map_or_else(
+/// The project file name to offer: the project's own, or Untitled.
+fn project_name(current: Option<&Path>) -> String {
+    current.and_then(Path::file_name).map_or_else(
         || trf!("Untitled.{}", PROJECT_EXTENSION),
         |n| n.to_string_lossy().into_owned(),
-    );
+    )
+}
+
+/// Asks where to save, starting in the project's folder with its name.
+fn ask_where_to_save(current: Option<&Path>) -> Asked<PathBuf> {
     let mut dialog = rfd::FileDialog::new()
         .set_title(tr("Save project"))
         .add_filter(filter_name(), &[PROJECT_EXTENSION])
-        .set_file_name(name);
+        .set_file_name(project_name(current));
     if let Some(folder) = current.and_then(Path::parent) {
         dialog = dialog.set_directory(folder);
     }
-    dialog.save_file().map(with_extension)
+    match ask(|| dialog.save_file()) {
+        Asked::Chosen(path) => Asked::Chosen(with_extension(path)),
+        other => other,
+    }
 }
 
 /// Asks which project to open.
-fn ask_which_to_open(current: Option<&Path>) -> Option<PathBuf> {
+fn ask_which_to_open(current: Option<&Path>) -> Asked<PathBuf> {
     let mut dialog = rfd::FileDialog::new()
         .set_title(tr("Open project"))
         .add_filter(filter_name(), &[PROJECT_EXTENSION]);
     if let Some(folder) = current.and_then(Path::parent) {
         dialog = dialog.set_directory(folder);
     }
-    dialog.pick_file()
+    ask(|| dialog.pick_file())
 }
 
 /// Where to save the workbench's document: `path`, or where the user
-/// chooses; `None` (and the workbench told) if they close the dialog.
+/// chooses; `None` if they close the dialog (and the workbench told), or
+/// if it couldn't open (the workbench then asks for the path itself).
 pub fn where_to_save(workbench: &mut Workbench, path: Option<PathBuf>) -> Option<PathBuf> {
-    let path = path.or_else(|| ask_where_to_save(workbench.project_path()));
-    if path.is_none() {
-        workbench.save_cancelled();
+    if path.is_some() {
+        return path;
     }
-    path
+    let current = workbench.project_path().map(Path::to_path_buf);
+    match ask_where_to_save(current.as_deref()) {
+        Asked::Chosen(path) => Some(path),
+        Asked::Closed => {
+            workbench.save_cancelled();
+            None
+        }
+        Asked::NoWindow => {
+            let name = project_name(current.as_deref());
+            let start = typed_start(current.as_deref().and_then(Path::parent), Some(&name));
+            workbench.file_window_missing(
+                FilePurpose::SaveProject {
+                    extension: PROJECT_EXTENSION.to_string(),
+                },
+                start,
+            );
+            None
+        }
+    }
 }
 
 /// How a save went: whether the project was saved, and how the export
@@ -137,15 +214,29 @@ pub fn export_into_work(
 
 /// The folder to export the kit pieces of `request` into: its own, or one
 /// the user chooses (decision 0078); `None` if they close the dialog.
-pub fn kit_folder(workbench: &Workbench, request: &ui::KitRequest) -> Option<PathBuf> {
+pub fn kit_folder(workbench: &mut Workbench, request: &ui::KitRequest) -> Option<PathBuf> {
     if let Some(folder) = &request.folder {
         return Some(folder.clone());
     }
     let mut dialog = rfd::FileDialog::new().set_title(tr("Export kit into"));
-    if let Some(folder) = workbench.project_path().and_then(Path::parent) {
+    let project_folder = workbench
+        .project_path()
+        .and_then(Path::parent)
+        .map(Path::to_path_buf);
+    if let Some(folder) = &project_folder {
         dialog = dialog.set_directory(folder);
     }
-    dialog.pick_folder()
+    match ask(|| dialog.pick_folder()) {
+        Asked::Chosen(folder) => Some(folder),
+        Asked::Closed => None,
+        Asked::NoWindow => {
+            workbench.file_window_missing(
+                FilePurpose::ExportKit(Box::new(request.clone())),
+                typed_start(project_folder.as_deref(), None),
+            );
+            None
+        }
+    }
 }
 
 /// Exports each piece of `request` into `folder`, from `document`.
@@ -176,11 +267,17 @@ pub fn kit_work(
 /// `start`, and tells the workbench.
 pub fn choose_export_folder(workbench: &mut Workbench, start: Option<PathBuf>) {
     let mut dialog = rfd::FileDialog::new().set_title(tr("Game project folder"));
-    if let Some(start) = start.filter(|s| s.is_dir()) {
+    let start = start.filter(|s| s.is_dir());
+    if let Some(start) = &start {
         dialog = dialog.set_directory(start);
     }
-    if let Some(folder) = dialog.pick_folder() {
-        workbench.export_folder_chosen(folder);
+    match ask(|| dialog.pick_folder()) {
+        Asked::Chosen(folder) => workbench.export_folder_chosen(folder),
+        Asked::Closed => {}
+        Asked::NoWindow => {
+            workbench
+                .file_window_missing(FilePurpose::GameFolder, typed_start(start.as_deref(), None));
+        }
     }
 }
 
@@ -188,10 +285,19 @@ pub fn choose_export_folder(workbench: &mut Workbench, start: Option<PathBuf>) {
 pub fn open(workbench: &mut Workbench, path: Option<PathBuf>) {
     let path = match path {
         Some(path) => path,
-        None => match ask_which_to_open(workbench.project_path()) {
-            Some(path) => path,
-            None => return,
-        },
+        None => {
+            let current = workbench.project_path().map(Path::to_path_buf);
+            match ask_which_to_open(current.as_deref()) {
+                Asked::Chosen(path) => path,
+                Asked::Closed => return,
+                Asked::NoWindow => {
+                    let folder = current.as_deref().and_then(Path::parent);
+                    workbench
+                        .file_window_missing(FilePurpose::OpenProject, typed_start(folder, None));
+                    return;
+                }
+            }
+        }
     };
     open_from(workbench, path);
 }
@@ -226,7 +332,7 @@ fn with_file_extension(path: PathBuf, extension: &str) -> PathBuf {
 
 /// Where to export as `request` says: its path, or where the user
 /// chooses; `None` if they close the dialog.
-pub fn export_path(workbench: &Workbench, request: &ui::ExportRequest) -> Option<PathBuf> {
+pub fn export_path(workbench: &mut Workbench, request: &ui::ExportRequest) -> Option<PathBuf> {
     if let Some(path) = &request.path {
         return Some(path.clone());
     }
@@ -235,12 +341,24 @@ pub fn export_path(workbench: &Workbench, request: &ui::ExportRequest) -> Option
         .set_title(tr("Export"))
         .add_filter(request.format.name(), &[extension])
         .set_file_name(&request.suggested_name);
-    if let Some(folder) = workbench.project_path().and_then(Path::parent) {
+    let folder = workbench
+        .project_path()
+        .and_then(Path::parent)
+        .map(Path::to_path_buf);
+    if let Some(folder) = &folder {
         dialog = dialog.set_directory(folder);
     }
-    dialog
-        .save_file()
-        .map(|path| with_file_extension(path, extension))
+    match ask(|| dialog.save_file()) {
+        Asked::Chosen(path) => Some(with_file_extension(path, extension)),
+        Asked::Closed => None,
+        Asked::NoWindow => {
+            workbench.file_window_missing(
+                FilePurpose::Export(Box::new(request.clone())),
+                typed_start(folder.as_deref(), Some(&request.suggested_name)),
+            );
+            None
+        }
+    }
 }
 
 /// Exports `document` to `path` as `request` says: the work of an export,
@@ -290,12 +408,23 @@ pub fn import(workbench: &mut Workbench, path: Option<PathBuf>) {
             let mut dialog = rfd::FileDialog::new()
                 .set_title(tr("Import"))
                 .add_filter("OBJ", &["obj"]);
-            if let Some(folder) = workbench.project_path().and_then(Path::parent) {
+            let folder = workbench
+                .project_path()
+                .and_then(Path::parent)
+                .map(Path::to_path_buf);
+            if let Some(folder) = &folder {
                 dialog = dialog.set_directory(folder);
             }
-            match dialog.pick_file() {
-                Some(path) => path,
-                None => return,
+            match ask(|| dialog.pick_file()) {
+                Asked::Chosen(path) => path,
+                Asked::Closed => return,
+                Asked::NoWindow => {
+                    workbench.file_window_missing(
+                        FilePurpose::Import,
+                        typed_start(folder.as_deref(), None),
+                    );
+                    return;
+                }
             }
         }
     };
@@ -347,6 +476,43 @@ mod tests {
         assert_eq!(
             with_extension(PathBuf::from("/w/crate.AVTL")),
             PathBuf::from("/w/crate.AVTL")
+        );
+    }
+
+    #[test]
+    fn a_file_window_that_gives_nothing_at_once_never_showed() {
+        // Nothing chosen at once: no window came (no portal, no zenity).
+        assert_eq!(
+            asked::<PathBuf>(None, Duration::from_millis(3)),
+            Asked::NoWindow
+        );
+        // Nothing chosen after a while: the person closed it.
+        assert_eq!(
+            asked::<PathBuf>(None, Duration::from_secs(2)),
+            Asked::Closed
+        );
+        // A choice is a choice, however quick.
+        let path = PathBuf::from("/w/crate.avtl");
+        assert_eq!(
+            asked(Some(path.clone()), Duration::ZERO),
+            Asked::Chosen(path)
+        );
+    }
+
+    #[test]
+    fn typing_starts_in_the_folder_given_with_the_name() {
+        assert_eq!(
+            typed_start(Some(Path::new("/w")), Some("crate.glb")),
+            Some(PathBuf::from("/w/crate.glb"))
+        );
+        assert_eq!(
+            typed_start(Some(Path::new("/w")), None),
+            Some(PathBuf::from("/w"))
+        );
+        assert_eq!(project_name(None), format!("Untitled.{PROJECT_EXTENSION}"));
+        assert_eq!(
+            project_name(Some(Path::new("/w/barrel.avtl"))),
+            "barrel.avtl"
         );
     }
 

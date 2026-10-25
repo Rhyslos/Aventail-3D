@@ -83,11 +83,36 @@ impl Workbench {
         let changes = self.kit_fitted();
         let key = self.new_step_key();
         let label = tr("Size to kit grid");
+        // A lattice cage nobody has changed, round a shape being sized, is
+        // fitted round it again afterwards (a moved or shared cage stays
+        // as it is): otherwise the shape would grow out of its cage.
+        let scene = self.document.scene();
+        let cages: Vec<(scene::ObjectId, scene::ObjectId)> = changes
+            .iter()
+            .flat_map(|(id, _)| {
+                scene
+                    .modifiers(*id)
+                    .iter()
+                    .filter_map(move |m| match &m.kind {
+                        scene::ModifierKind::Lattice(o) if scene.cage_fits(o.cage, *id) => {
+                            Some((o.cage, *id))
+                        }
+                        _ => None,
+                    })
+            })
+            .collect();
         // One step: if one shape is refused, none is sized.
-        let commands = changes.iter().map(|(id, primitive)| Command::SetPrimitive {
-            ids: vec![*id],
-            primitive: *primitive,
-        });
+        let commands = changes
+            .iter()
+            .map(|(id, primitive)| Command::SetPrimitive {
+                ids: vec![*id],
+                primitive: *primitive,
+            })
+            .chain(cages.iter().map(|(cage, shape)| Command::FitCage {
+                cage: *cage,
+                shape: *shape,
+            }))
+            .collect::<Vec<_>>();
         if let Err(why) = self.document.execute_all_labelled(commands, label, key) {
             self.note = Some(crate::trf!("Couldn't size to the kit grid: {}.", why));
             return;

@@ -32,6 +32,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use tools::{Camera, Hovered, PickScene, Region};
 
+mod click_keys;
+pub(crate) use click_keys::click_modifiers;
+
 /// The key that switches between the select tools.
 pub const SELECT_TOOL_KEY: Key = Key::Q;
 /// Select all: every object, or every element of the edited objects.

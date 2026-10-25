@@ -477,3 +477,83 @@ fn command_search_finds_the_kit_helpers() {
         .unwrap();
     assert_eq!(corner.place, "Tools");
 }
+
+#[test]
+fn size_to_kit_grid_fits_an_untouched_lattice_cage_again() {
+    // A tester sized a shape with a lattice and its cage stayed small.
+    let (mut harness, id) = sized_cube(Vec3::new(130.0, 130.0, 130.0), Vec3::ZERO, 0.0);
+    execute(
+        &mut harness,
+        scene::Command::AddLattice {
+            ids: vec![id],
+            divisions: [2, 2, 2],
+        },
+    );
+    let cage = harness.state().workbench.document().selection()[0];
+    let size_of = |harness: &H| match &harness
+        .state()
+        .workbench
+        .document()
+        .scene()
+        .object(cage)
+        .unwrap()
+        .kind
+    {
+        scene::ObjectKind::Lattice(l) => l.size(),
+        other => panic!("not a cage: {other:?}"),
+    };
+    assert!(size_of(&harness).abs_diff_eq(Vec3::splat(130.0), 0.01));
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .set_selection([id]);
+    harness.run();
+    let steps = harness.state().workbench.document().undo_steps();
+    run(&mut harness, CommandId::SizeToKitGrid);
+    assert!(
+        size_of(&harness).abs_diff_eq(Vec3::splat(100.0), 0.01),
+        "fitted again"
+    );
+    assert_eq!(
+        harness.state().workbench.document().undo_steps(),
+        steps + 1,
+        "in the same undo step"
+    );
+    // A cage whose points were moved stays as the person left it.
+    execute(
+        &mut harness,
+        scene::Command::EditLattice {
+            id: cage,
+            edit: mesh::lattice::LatticeEdit::Transform {
+                points: vec![0],
+                matrix: glam::Mat4::from_translation(Vec3::new(0.0, 0.0, -20.0)),
+            },
+        },
+    );
+    execute(
+        &mut harness,
+        scene::Command::SetPrimitive {
+            ids: vec![id],
+            primitive: Primitive::Cube(CubeParams {
+                size: Vec3::splat(260.0),
+                ..CubeParams::default()
+            }),
+        },
+    );
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .set_selection([id]);
+    harness.run();
+    run(&mut harness, CommandId::SizeToKitGrid);
+    let Primitive::Cube(c) = primitive_of(&harness, id) else {
+        panic!("a cube: {}", note(&harness))
+    };
+    assert_eq!(c.size, Vec3::splat(300.0), "{}", note(&harness));
+    assert!(
+        size_of(&harness).abs_diff_eq(Vec3::splat(100.0), 0.01),
+        "left alone"
+    );
+}

@@ -16,7 +16,7 @@ It's not for exact, local changes to a few points: there, moving the points them
 
 1. Select one or more shapes.
 2. Click **Add lattice** on the **modifiers palette** (the cage of nine dots, on the right of the viewport), or choose **Mesh → Modifiers → Add lattice**, or press **Space**, type *lattice*, and press **Enter**.
-3. A cage of 2 × 2 × 2 points appears fitted round the shapes, and becomes the selection. Round **one** shape it lines up with the shape, turned as it is; round **several** it lines up with the world. Each shape gets a **Lattice** modifier naming the cage.
+3. A cage of 2 × 2 × 2 points appears fitted round the shapes, and becomes the selection. Round **one** shape it lines up with the shape, turned as it is; round **several** it lines up with the world. Each shape gets a **Lattice** modifier naming the cage, above any Weighted normals or Triangulate (they finish the shape). If you later resize the shape with [Size to kit grid](modular-kits.md), a cage you haven't changed is fitted round it again.
 4. Press **1** for the **Points** mode. The cage's points show as dots. Select them as you would a mesh's (click, box, Ctrl adds, Shift removes) and move, rotate or scale them with the gizmo, or type their place in the [Coordinates panel](transforming.md#typing-exact-values). The shapes follow as you drag.
 5. For more places to bend, raise the cage's **Divisions** in the [Attributes panel](attributes.md) (below).
 6. When you're happy, select the shape and **Bake into shape** (**Ctrl + E**) to make the bend part of it. The cage stays, bending nothing after that; delete it when you no longer need it.

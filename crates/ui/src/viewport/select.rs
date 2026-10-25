@@ -71,7 +71,10 @@ impl View {
         rect: Rect,
         capture: Capture<'_>,
     ) {
-        let keys = ui.input(|i| i.modifiers);
+        // The keys held as the button went down or up, not those held at
+        // the end of the frame: a quick Ctrl + click whose Ctrl is let go
+        // in the same frame still adds.
+        let keys = crate::selecting::click_modifiers(ui.ctx());
         let size = Vec2::new(rect.width(), rect.height());
         let local = |p: Pos2| Vec2::new(p.x - rect.min.x, p.y - rect.min.y);
         let camera = *self.camera();

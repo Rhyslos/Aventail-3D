@@ -434,6 +434,16 @@ pub enum Command {
         /// The change.
         edit: mesh::lattice::LatticeEdit,
     },
+    /// Fits lattice cage `cage` round shape `shape` again (decision 0144):
+    /// its points at rest round the shape as the viewport shows it, its
+    /// divisions and interpolation kept. Size to kit grid does this for a
+    /// cage nobody has changed ([`crate::Scene::cage_fits`]).
+    FitCage {
+        /// The cage.
+        cage: ObjectId,
+        /// The shape it bends.
+        shape: ObjectId,
+    },
 }
 
 impl Command {
@@ -573,7 +583,9 @@ impl Command {
             | Self::ChangeModifier { .. }
             | Self::RemoveModifier { .. }
             | Self::MoveModifier { .. } => tr("Change modifiers").to_string(),
-            Self::AddLattice { .. } | Self::EditLattice { .. } => tr("Lattice").to_string(),
+            Self::AddLattice { .. } | Self::EditLattice { .. } | Self::FitCage { .. } => {
+                tr("Lattice").to_string()
+            }
             Self::ApplyMirror(ids) => {
                 let n = ids
                     .iter()
@@ -1642,6 +1654,10 @@ impl Run<'_> {
             Command::AddLattice { ids, divisions } => self.add_lattice(ids, *divisions),
             Command::EditLattice { id, edit } => {
                 self.edit_lattice(*id, edit)?;
+                Ok(None)
+            }
+            Command::FitCage { cage, shape } => {
+                self.fit_cage_again(*cage, *shape)?;
                 Ok(None)
             }
             Command::Join(ids) if self.all_curves(ids) => self.join_curves(ids),

@@ -64,7 +64,7 @@ A joined quad keeps the [UVs](concepts.md#uvs-and-texturing) of its corners and 
 | **Keep material borders** | On (standard): never join two triangles with different [materials](materials.md). |
 | **Show in viewport** (modifier only) | Off: the viewport shows the shape without it; exports and Bake into shape still use it. |
 
-When the modifier has nothing to join (the shape has no triangles, or none may be joined with these settings), the shape is shown as it is and the modifier says why in amber: *Not worked out: …*.
+When the modifier has nothing to join (the shape has no triangles, or none may be joined with these settings), the shape is shown as it is and the modifier says why in a grey note: *Nothing to do: …*. That isn't a problem: there is nothing to join on this shape with these settings.
 
 ### Speed
 

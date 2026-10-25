@@ -40,6 +40,7 @@ Each shape's outside sizes are rounded to the **nearest whole number of steps**,
 - A 3.9 m × 20 cm × 3.1 m wall becomes 4 m × 20 cm × 3 m on a 1 m grid. The 20 cm thickness stays: **a size shorter than half a step is left alone**, so walls and slabs stay thin.
 - **Round shapes** (cylinders, spheres, discs, cones…) are rounded by how far **across** they are: a cylinder 1.6 m across becomes 2 m across.
 - Parts **inside** the outline keep their proportion: a tube's hole, a gear's teeth and axle hole.
+- A [lattice cage](lattice.md) round a sized shape is **fitted round it again**, in the same undo step, as long as nobody has changed it (its points are where Add lattice put them, it hasn't been moved or put in a group, and only this shape uses it). A cage you've shaped stays as you left it: fit it yourself, or add a new one.
 - An **arch** gets its outside width and its height to the top rounded; its legs take up the difference.
 - Counts (segments, sides, steps) don't change, and edits recorded on the shape replay on the new size.
 

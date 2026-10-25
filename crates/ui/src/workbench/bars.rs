@@ -40,7 +40,7 @@ impl Workbench {
             };
             let elements = self.selected_elements_text();
             let hidden = self.hidden_text();
-            ui.label(crate::trf!(
+            let left = crate::trf!(
                 "{} mode: {}.{}{}{}{}",
                 self.mode.name(),
                 lower_first(self.mode.description()),
@@ -48,19 +48,12 @@ impl Workbench {
                 elements,
                 hidden,
                 under
-            ));
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                let note = match self.note.as_deref() {
-                    Some(note) => note.to_string(),
-                    None => navigation_hint(self.viewport.options().navigation.scheme),
-                };
-                ui.label(egui::RichText::new(note).weak());
-                // A turning wheel while a save or export is done on
-                // another thread (decision 0163).
-                if self.file_work().is_some() {
-                    ui.add(egui::Spinner::new().size(12.0));
-                }
-            });
+            );
+            let note = match self.note.as_deref() {
+                Some(note) => note.to_string(),
+                None => navigation_hint(self.viewport.options().navigation.scheme),
+            };
+            super::status_line::two_sides(ui, left, note, self.file_work().is_some());
         });
     }
 

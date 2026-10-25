@@ -148,9 +148,9 @@ fn it_goes_before_smoothing_and_weighted_normals_when_added() {
     doc.execute(Command::MoveModifier { id, from: 1, to: 3 })
         .unwrap();
     assert_eq!(doc.scene().modifiers(id)[3].kind.name(), "Live bevel");
-    // Other kinds still go at the end.
+    // Other kinds that change the shape go before Weighted normals.
     add(&mut doc, id, ModifierKind::Remesh(Default::default()));
-    assert_eq!(doc.scene().modifiers(id)[4].kind.name(), "Remesh");
+    assert_eq!(doc.scene().modifiers(id)[2].kind.name(), "Remesh");
 }
 
 #[test]

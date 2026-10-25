@@ -102,7 +102,13 @@ impl AttributesPanel {
     /// the tool in use: they apply to the next drag or cut.
     pub(super) fn tool_section(&mut self, ui: &mut Ui, units: Units) {
         section(ui, self.tool.name());
+        // Weld and Draw curve have nothing to set: no empty grid, only the
+        // hint.
+        let has_rows = !matches!(self.tool, Tool::Weld | Tool::DrawCurve);
         ui.push_id("tool", |ui| {
+            if !has_rows {
+                return;
+            }
             egui::Grid::new("attributes_tool")
                 .num_columns(2)
                 .min_col_width(LABEL_WIDTH)
@@ -181,6 +187,13 @@ impl AttributesPanel {
             tr("Drag anywhere in the viewport. Hold Shift for fine steps.")
         };
         ui.label(RichText::new(hint).small().color(theme::TEXT_WEAK));
+        // A line between the tool's settings and the selected object's
+        // below, with room enough that the object's rows, scrolled up
+        // under the hint, never show over it (a scrolled list draws a few
+        // points past its edge).
+        ui.add_space(4.0);
+        ui.separator();
+        ui.add_space(4.0);
     }
 }
 

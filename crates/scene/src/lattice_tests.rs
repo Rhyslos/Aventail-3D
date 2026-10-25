@@ -458,3 +458,61 @@ fn a_flattened_cage_says_why() {
         doc.scene().unmodified_shape(cube)
     );
 }
+
+#[test]
+fn an_untouched_cage_is_fitted_again_round_a_resized_shape() {
+    let (mut doc, id, cage) = caged_cube();
+    assert!(doc.scene().cage_fits(cage, id));
+    // The cube made twice as tall: the cage no longer fits, until fitted
+    // again, in one undo step.
+    let mut tall = PrimitiveKind::Cube.standard();
+    if let Primitive::Cube(c) = &mut tall {
+        c.size.z *= 2.0;
+    }
+    doc.execute(Command::SetPrimitive {
+        ids: vec![id],
+        primitive: tall,
+    })
+    .unwrap();
+    assert!(!doc.scene().cage_fits(cage, id));
+    let steps = doc.undo_steps();
+    doc.execute(Command::FitCage { cage, shape: id }).unwrap();
+    assert_eq!(doc.undo_steps(), steps + 1);
+    assert_eq!(doc.undo_label(), Some("Fit cage"));
+    assert!(doc.scene().cage_fits(cage, id));
+    assert!((lattice(&doc, cage).size().z - 200.0).abs() < 0.01);
+    // The shape is as it was: a cage at rest bends nothing.
+    let shape = doc.scene().shown_shape(id).unwrap();
+    assert!((height(&shape) - 200.0).abs() < 0.01);
+    doc.undo();
+    assert!((lattice(&doc, cage).size().z - 100.0).abs() < 0.01);
+}
+
+#[test]
+fn a_moved_or_shared_cage_doesnt_count_as_untouched() {
+    let (mut doc, id, cage) = caged_cube();
+    raise_top(&mut doc, cage, 30.0);
+    assert!(!doc.scene().cage_fits(cage, id), "its points moved");
+    let (mut doc, id, cage) = caged_cube();
+    let mut moved = doc.scene().object(cage).unwrap().transform;
+    moved.position.x += 40.0;
+    doc.execute(Command::SetTransforms(vec![(cage, moved)]))
+        .unwrap();
+    assert!(!doc.scene().cage_fits(cage, id), "the cage moved");
+    // Not a cage, or no such object: no, and fitting is refused.
+    assert!(!doc.scene().cage_fits(id, id));
+    assert!(
+        doc.execute(Command::FitCage {
+            cage: id,
+            shape: id
+        })
+        .is_err()
+    );
+    assert!(
+        doc.execute(Command::FitCage {
+            cage: ObjectId(9999),
+            shape: id
+        })
+        .is_err()
+    );
+}

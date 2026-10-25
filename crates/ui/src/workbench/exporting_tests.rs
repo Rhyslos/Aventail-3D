@@ -149,6 +149,7 @@ fn a_glb_follows_godot_whatever_its_greyed_out_settings_say() {
         up: UpAxis::Z,
         triangulate: false,
         lod_levels: false,
+        lod_chosen: false,
     };
     assert!(choice.follows(ExportPreset::Godot));
     assert!(!choice.follows(ExportPreset::SubstancePainter));
@@ -672,6 +673,7 @@ fn damaged_remembered_settings_fall_back_safely() {
         up: UpAxis::Z,
         triangulate: false,
         lod_levels: true,
+        lod_chosen: true,
     };
     let choice = mixed.choice();
     assert!(choice.lod_levels, "kept with a preset");

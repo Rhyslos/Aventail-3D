@@ -83,12 +83,40 @@ impl Units {
     /// A value already in this unit, as a number without trailing zeros
     /// ("1", "1.25"), for value fields.
     pub fn number(self, value: f64) -> String {
-        let text = format!("{value:.*}", self.decimals());
+        let text = format!(
+            "{:.*}",
+            self.decimals(),
+            no_negative_zero(value, self.decimals())
+        );
         if text.contains('.') {
             text.trim_end_matches('0').trim_end_matches('.').to_string()
         } else {
             text
         }
+    }
+}
+
+/// `value`, but 0 where it would show as "-0" at `decimals` places (a
+/// turn of -0.0001° is shown as 0, not "-0.0").
+fn no_negative_zero(value: f64, decimals: usize) -> f64 {
+    let scale = 10f64.powi(i32::try_from(decimals).unwrap_or(6));
+    if (value * scale).round() == 0.0 {
+        0.0
+    } else {
+        value
+    }
+}
+
+/// An angle in degrees as the value fields show it, without the sign:
+/// at least one decimal and at most two ("0.0", "12.5", "33.33"), and
+/// never "-0.0".
+pub(crate) fn degrees_text(value: f64) -> String {
+    let text = format!("{:.2}", no_negative_zero(value, 2));
+    let trimmed = text.trim_end_matches('0');
+    if trimmed.ends_with('.') {
+        format!("{trimmed}0")
+    } else {
+        trimmed.to_string()
     }
 }
 
@@ -154,6 +182,21 @@ mod tests {
         assert_eq!(Units::Metres.number(1.0), "1");
         assert_eq!(Units::Metres.number(1.25), "1.25");
         assert_eq!(Units::Metres.number(-0.5), "-0.5");
+    }
+
+    #[test]
+    fn nothing_reads_minus_zero() {
+        // A turn or a place a hair below zero, from rounding.
+        assert_eq!(Units::Metres.number(-0.000_01), "0");
+        assert_eq!(Units::Centimetres.number(-0.01), "0");
+        assert_eq!(degrees_text(-0.0), "0.0");
+        assert_eq!(degrees_text(-0.000_3), "0.0");
+        assert_eq!(degrees_text(-1e-12), "0.0");
+        assert_eq!(degrees_text(0.0), "0.0");
+        assert_eq!(degrees_text(30.0), "30.0");
+        assert_eq!(degrees_text(12.5), "12.5");
+        assert_eq!(degrees_text(-33.333), "-33.33");
+        assert_eq!(degrees_text(-0.01), "-0.01");
     }
 
     #[test]

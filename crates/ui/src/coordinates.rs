@@ -225,6 +225,8 @@ fn field_widget(
                 DragValue::new(&mut degrees)
                     .speed(0.5)
                     .max_decimals(2)
+                    // Never "-0.0°" for a turn a hair below zero.
+                    .custom_formatter(|v, _| crate::units::degrees_text(v))
                     .suffix("°"),
             );
             if response.changed() {

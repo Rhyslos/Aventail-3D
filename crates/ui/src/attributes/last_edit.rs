@@ -67,15 +67,25 @@ impl AttributesPanel {
         &mut self,
         ui: &mut Ui,
         id: ObjectId,
-        stack: &Stack,
+        object: &scene::Object,
         units: Units,
         stretch: glam::Vec3,
         out: &mut Vec<DocRequest>,
     ) {
+        let stack = &object.stack;
         let Some((layer, index, operation)) = last_edit(stack) else {
             return;
         };
         if operation.settings().is_none() {
+            return;
+        }
+        if let Some(angle) = game_bevel_marks(object, operation) {
+            section(ui, &crate::trf!("Last edit: {}", tr(GAME_BEVEL)));
+            ui.label(
+                RichText::new(game_bevel_text(angle))
+                    .small()
+                    .color(theme::TEXT_WEAK),
+            );
             return;
         }
         section(ui, &crate::trf!("Last edit: {}", operation.describe()));
@@ -91,12 +101,24 @@ impl AttributesPanel {
         ui: &mut Ui,
         doc: &Document,
         id: ObjectId,
-        stack: &Stack,
+        object: &scene::Object,
     ) {
+        let stack = &object.stack;
         let Some((layer, index, operation)) = last_edit(stack) else {
             return;
         };
         if operation.settings().is_none() {
+            return;
+        }
+        if let Some(angle) = game_bevel_marks(object, operation) {
+            // Its marks are part of the game bevel: nothing to open.
+            ui.add_space(6.0);
+            ui.label(
+                RichText::new(crate::trf!("Last edit: {}", tr(GAME_BEVEL)))
+                    .small()
+                    .color(theme::TEXT_WEAK),
+            )
+            .on_hover_text(game_bevel_text(angle));
             return;
         }
         let edit = stack.layers()[layer].entries[index].id;
@@ -119,6 +141,43 @@ impl AttributesPanel {
             }
         });
     }
+}
+
+/// The game bevel's name in the Last edit line (decision 0156).
+const GAME_BEVEL: &str = crate::text!("Game bevel");
+
+/// The angle of the hard edges the game bevel marked, if `operation` (the
+/// object's top edit) is those marks: hard edges by angle, on an object
+/// now shaded by its marked edges whose modifiers end with a soft Live
+/// bevel and Weighted normals, as Game bevel leaves it. Shown as the game
+/// bevel rather than as "Hard edges by angle", which the person never
+/// chose.
+pub(crate) fn game_bevel_marks(object: &scene::Object, operation: &Operation) -> Option<f32> {
+    let Operation::HardEdgesByAngle { angle } = operation.inner() else {
+        return None;
+    };
+    let kinds: Vec<&scene::ModifierKind> = object
+        .modifiers
+        .iter()
+        .map(|m| &m.kind)
+        .filter(|k| !k.keeps_shading())
+        .collect();
+    let ends_as_game_bevel = matches!(
+        kinds.as_slice(),
+        [.., scene::ModifierKind::LiveBevel(bevel), scene::ModifierKind::WeightedNormals(_)]
+            if bevel.soften
+    );
+    (ends_as_game_bevel && object.hardness == mesh::Hardness::Marked).then_some(*angle)
+}
+
+/// What the game bevel did to the shading, for its Last edit line.
+fn game_bevel_text(angle: f32) -> String {
+    crate::trf!(
+        "Smoothing switched from By angle to the marked edges, with every edge sharper than \
+         {}° marked hard, so the shape looks the same. The bevel and its normals are the Live \
+         bevel and Weighted normals in Modifiers below; Ctrl + Z takes it all back.",
+        crate::units::degrees_text(f64::from(angle))
+    )
 }
 
 /// The button that opens the last edit once something else is selected

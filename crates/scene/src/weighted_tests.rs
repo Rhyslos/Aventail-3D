@@ -89,6 +89,10 @@ fn a_modifier_after_it_drops_them_and_moving_it_last_brings_them_back() {
         id,
         ModifierKind::Subdivide(SubdivideOptions::default()),
     );
+    // A new Subdivide goes before it; moved after it by hand.
+    assert_eq!(doc.scene().modifiers(id)[0].kind.name(), "Subdivide");
+    doc.execute(Command::MoveModifier { id, from: 0, to: 1 })
+        .unwrap();
     let scene = doc.scene();
     assert!(!has_custom_normals(&scene.shown_shape(id).unwrap()));
     assert_eq!(scene.final_weighted_normals(id, Purpose::Export), None);
@@ -109,6 +113,12 @@ fn a_modifier_after_it_drops_them_and_moving_it_last_brings_them_back() {
             ..Default::default()
         }),
     );
+    doc2.execute(Command::MoveModifier {
+        id: id2,
+        from: 0,
+        to: 1,
+    })
+    .unwrap();
     assert!(!has_custom_normals(&doc2.scene().shown_shape(id2).unwrap()));
     // Switched off, it no longer drops them.
     let mut off = doc2.scene().modifiers(id2)[1].clone();
