@@ -26,7 +26,7 @@ The Alt + mouse moves work too, unless you switch them off (see [Settings](#sett
 
 **Without the mouse buttons:** the three buttons on the right of the viewport's menu line (four arrows, an up-and-down arrow, a circular arrow) pan, zoom and orbit when you drag them. Handy on a laptop touchpad.
 
-**Framing: fit things in the view.** Press **H** (*frame all*) to fit the whole scene in the view, or **Z** (*frame selected*) to fit what you've selected. The view keeps looking the same way and glides forwards or back until everything fits, with a little room around it, so you never lose your bearings. Both are also in the **View** menus. With nothing selected, Z frames everything too. (Frame selected used to be **F**; F is [Loop cut](loop-cut.md) now.) Hidden objects are left out; with nothing shown at all, both go back to the middle of the scene. The keys work anywhere in the app, except while you're typing in a field.
+**Framing: fit things in the view.** Press **H** (*frame all*) to fit the whole scene in the view, or **Z** (*frame selected*) to fit what you've selected. The view keeps looking the same way and glides forwards or back until everything fits, with a little room around it, so you never lose your bearings. Both are also in the **View** menus. With nothing selected, Z frames everything too. (Frame selected used to be **F**; F is [Loop cut](loop-cut.md) now.) Hidden objects are left out; with nothing shown at all, both go back to the middle of the scene. Framing takes in the shape as drawn, [modifiers](modifiers.md) and all: an Array's copies or a Shell's thickness fit in the view too. The keys work anywhere in the app, except while you're typing in a field.
 
 ## The view dice
 

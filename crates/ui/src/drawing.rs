@@ -528,6 +528,7 @@ impl DrawingCache {
             }
         }
         let version = self.summary.drawing.version + 1;
+        let (all, selected) = SceneSummary::framing(scene, &items, &key.1);
         self.summary = SceneSummary {
             drawing: Arc::new(SceneDrawing {
                 version,
@@ -537,8 +538,8 @@ impl DrawingCache {
                 mirrors,
                 texture_size: scene.texture().size,
             }),
-            all: scene.bounds(),
-            selected: scene.bounds_of(key.1.iter().copied()),
+            all,
+            selected,
             overlay: Arc::clone(&self.summary.overlay),
         };
         self.built_for = Some(key);
@@ -599,6 +600,7 @@ impl DrawingCache {
     }
 }
 
+mod bounds;
 mod lod;
 mod stack;
 

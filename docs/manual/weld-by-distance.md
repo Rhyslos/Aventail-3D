@@ -64,7 +64,7 @@ When points melt:
 | **Keep UV seams** | On (standard): where two pieces are joined and their UVs don't meet there, the join is marked as a [UV seam](seams.md), so a later [Unwrap](unwrapping.md) keeps the pieces as they are laid out. Off: the join is left unmarked, and a later Unwrap may join the pieces into one. (A shape with no seams marked at all gets none either way: Unwrap already cuts it where its UVs split.) |
 | **Show in viewport** (modifier only) | Off: the viewport shows the shape without it; exports and Bake into shape still use it. |
 
-When the modifier has nothing to weld (no two points within the Distance, or no open borders with *Only at open borders* on), the shape is shown as it is and the modifier says why in amber: *Not worked out: …*.
+When the modifier has nothing to weld (no two points within the Distance, or no open borders with *Only at open borders* on), the shape is shown as it is and the modifier says why in a grey note: *Nothing to do: …*. That isn't a problem: there is simply nothing to weld on this shape with these settings.
 
 ### Speed
 

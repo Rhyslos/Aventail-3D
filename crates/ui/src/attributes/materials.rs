@@ -107,11 +107,13 @@ impl AttributesPanel {
         if !drafts_fit {
             self.materials.drafts = Some((id, list.iter().map(|m| m.name.clone()).collect()));
         }
-        let counts = doc.scene().evaluated(id).and_then(|shape| {
-            (shape.mesh.face_count() <= COUNT_UP_TO).then(|| {
+        // Counted on the shape as shown, after its booleans and modifiers
+        // (a cut cube has more than its 6 polygons), once worked out.
+        let counts = doc.scene().shown_shape_if_ready(id).and_then(|shape| {
+            (shape.face_count() <= COUNT_UP_TO).then(|| {
                 let mut counts = vec![0usize; list.len()];
-                for (f, _) in shape.mesh.faces() {
-                    let slot = mesh::material::slot_of(&shape.mesh, f) as usize;
+                for (f, _) in shape.faces() {
+                    let slot = mesh::material::slot_of(&shape, f) as usize;
                     let slot = if slot < counts.len() { slot } else { 0 };
                     counts[slot] += 1;
                 }
@@ -184,14 +186,19 @@ impl AttributesPanel {
                     }
                     // How many polygons use it.
                     match counts.as_ref().and_then(|c| c.get(slot)) {
-                        Some(n) => ui.label(
-                            RichText::new(match n {
-                                1 => tr("1 polygon").to_string(),
-                                n => crate::trf!("{} polygons", n),
-                            })
-                            .small()
-                            .color(theme::TEXT_WEAK),
-                        ),
+                        Some(n) => ui
+                            .label(
+                                RichText::new(match n {
+                                    1 => tr("1 polygon").to_string(),
+                                    n => crate::trf!("{} polygons", n),
+                                })
+                                .small()
+                                .color(theme::TEXT_WEAK),
+                            )
+                            .on_hover_text(tr(
+                                "How many polygons use it in the shape as shown, after its \
+                                 booleans and modifiers",
+                            )),
                         None => ui.label(""),
                     };
                     // Assign it to the selected polygons.

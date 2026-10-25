@@ -272,6 +272,19 @@ fn a_modifier_after_weighted_normals_sends_the_usual_shading() {
         }),
     })
     .unwrap();
+    // A new Decimate goes before Weighted normals: put after it by hand.
+    let last = doc.scene().modifiers(id).len() - 1;
+    doc.execute(Command::MoveModifier {
+        id,
+        from: last - 1,
+        to: last,
+    })
+    .unwrap();
+    assert_eq!(
+        doc.scene().modifiers(id)[last].kind.name(),
+        "Decimate",
+        "after the normals"
+    );
     assert_eq!(glb(&doc), glb(&bevelled_cube_document(false)));
 }
 

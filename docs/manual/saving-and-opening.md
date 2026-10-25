@@ -37,6 +37,14 @@ The project's name is shown on the right of the menu bar. When there are changes
 
 **You can keep working while it saves.** A big project takes a few seconds to save, because the app reads every save back to check it opens. That happens in the background: the status bar says *Saving crate.avtl…* with a small turning wheel, the window keeps drawing, and you can go on modelling. When it's done it says *Saved crate.avtl.* (or why it couldn't). The save holds the project as it was when you pressed Ctrl + S: anything you change meanwhile isn't in it yet, so the title keeps its unsaved dot and the note says *Changes made while it was saving aren't in it yet.* Save again when you're ready. While a save runs, another save, Open, New, Import or an export waits: the status bar says *Try again when it's done.* Closing the app waits for the save too, then closes (if the save failed, the app stays open so you can see why).
 
+**When the file window doesn't open, you type the path.** Save, Save As, Open, Export…, Import… and Choose folder ask your computer for its own file window. On Linux that window comes from the desktop (its *file portal*, or a program called *zenity*); on a desktop with neither, nothing would come up. The app notices (the window gives nothing back at once, faster than anyone could close one) and says so in the status bar: *The system's file window didn't open…*. A small window opens instead with a box to type the path in, starting with the folder and name the file window would have offered:
+
+- Type the full path, such as `/home/you/Models/crate`. **`~`** stands for your home folder (`~/Models/crate`). A project gets `.avtl` added if you leave it out, an export its format's ending (`.glb`, `.obj`).
+- The line under the box says what's wrong while the path can't be used yet (*There's no folder there.*, *The folder … doesn't exist.*, *There's no file there.*), or warns *… is there already: it will be replaced.*
+- **Save** (or Open, Export, Choose folder) or **Enter** uses it; **Cancel** or **Esc** calls it off, and with it whatever was waiting for the save (closing the app, say).
+
+If you only closed the system's window quickly, the path window opens too: just cancel it.
+
 **Saving is safe.** The app writes the new file next to the old one, checks it arrived whole, and only then puts it in place. So a crash or a full disk while saving never leaves you with a damaged project. The previous save is kept as a backup beside it, named like `crate.avtl.bak`: if you ever need it, rename it to end in `.avtl` and open it.
 
 **Backup copies cover the time between saves.** While you work, the app also saves backup copies of your scene in the background (every 5 minutes as standard, only when something changed). They never replace your project file. If the app ever closes without saving, it offers them back the next time it starts. See [Backup copies and crash recovery](autosave.md).
@@ -65,6 +73,7 @@ On macOS, use `Cmd` instead of `Ctrl`.
 
 ## Tips and common problems
 
+- **Problem:** a small *Save project as* (or *Open project*, *Export to*) window asks you to type a path. **Why:** your computer's own file window couldn't open: on Linux the app needs the desktop's file portal (`xdg-desktop-portal` with a desktop's portal package) or `zenity`. **Fix:** type the path there; to get the usual file window back, install one of those (your system's package manager has them).
 - **Problem:** pressing Ctrl + S (or Open, or Export) does nothing but say *… Try again when it's done.* **Why:** a save or export is still running in the background, and the app does one at a time, so two can't get in each other's way. **Fix:** wait for the turning wheel in the status bar to stop, then try again.
 - **Problem:** "Couldn't save … it wasn't saved, because the saved copy wouldn't open again". **Why:** a bug made the project into something the app couldn't read back, and the save was stopped before it could replace your previous save. **Fix:** your previous save is untouched, and your work is still open. Try undoing the last step and saving again, or use Save As under a new name. A copy of the unreadable save is kept beside the project (`name.avtl.unreadable`); please report the problem with it.
 - **Tip:** save often, and use Save As with a number (crate-01.avtl, crate-02.avtl) before big changes, so you can always go back.

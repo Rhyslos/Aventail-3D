@@ -88,7 +88,7 @@ pub use mesh::{
 pub use modifier::{
     MAX_MODIFIERS, MODIFIERS_IN_BACKGROUND_FROM, Modifier, ModifierContext, ModifierFamily,
     ModifierKind, ModifierRefusal, Purpose, SourceData, SourceShape, StackDone, StackJob,
-    StackResult, StackState, subdivide_levels,
+    StackResult, StackState, has_nothing_to_do, subdivide_levels,
 };
 pub use object::{
     ApplyParts, Collision, LiveMirror, Material, Object, ObjectId, ObjectKind,

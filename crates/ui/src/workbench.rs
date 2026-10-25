@@ -48,6 +48,7 @@ pub use file_work::FileWork;
 pub use files::DISCARD_SHORTCUT;
 use files::file_name;
 pub(crate) use layouts::LayoutChoice;
+pub use path_entry::FilePurpose;
 use tabs::PanelViewer;
 // The tests reach these through `super::`, as when they were defined or
 // imported here.
@@ -308,6 +309,9 @@ pub struct Workbench {
     viewport: ViewportPanel,
     accent: Accent,
     about_open: bool,
+    /// The window to type a path in when the system's file window can't
+    /// open, while open.
+    path_entry: Option<path_entry::PathEntry>,
     /// The keyboard shortcut viewer (Keys on the menu bar; decision 0056).
     shortcuts: shortcuts::ShortcutViewer,
     /// The keyboard guessed from the system language, drawn in the Keys
@@ -393,6 +397,7 @@ impl Workbench {
             viewport: ViewportPanel::default(),
             accent: Accent::default(),
             about_open: false,
+            path_entry: None,
             shortcuts: shortcuts::ShortcutViewer::default(),
             system_keyboard: crate::KeyboardLayout::default(),
             note,
@@ -495,6 +500,8 @@ impl Workbench {
             });
         }
         actions.append(&mut self.queued);
+        // Remember the keys held for a press, for its click a frame later.
+        let _ = crate::selecting::click_modifiers(ui.ctx());
         self.units = self.units();
         let units_shown = self.units;
         if self.file.asking.is_none() {
@@ -865,6 +872,7 @@ impl Workbench {
         }
         self.dissolve_question_window(ui.ctx());
         self.unsaved_question(ui.ctx(), &mut actions);
+        self.path_window(ui.ctx(), &mut actions);
         self.autosave_and_recovery(ui.ctx(), &mut actions);
         // One save or export at a time (decision 0163).
         self.hold_file_actions(&mut actions);
@@ -884,6 +892,7 @@ impl Workbench {
             || self.align.is_some()
             || self.quad_menu.is_open()
             || self.search.open
+            || self.path_entry.is_some()
     }
 }
 
@@ -995,6 +1004,8 @@ mod decimate_tests;
 #[cfg(test)]
 mod displace_tests;
 #[cfg(test)]
+mod id_clash_tests;
+#[cfg(test)]
 mod lattice_tests;
 #[cfg(test)]
 mod layer_tests;
@@ -1008,6 +1019,7 @@ mod modelling_tests;
 #[cfg(test)]
 mod modifier_tests;
 mod parts;
+mod path_entry;
 mod pivots;
 #[cfg(test)]
 mod pivots_tests;
@@ -1017,6 +1029,8 @@ mod quad_tests;
 #[cfg(test)]
 mod quadify_tests;
 mod quadifying;
+#[cfg(test)]
+mod review_tests;
 #[cfg(test)]
 mod scatter_tests;
 mod searching;
@@ -1030,6 +1044,7 @@ mod slit;
 mod slit_tests;
 #[cfg(test)]
 mod spline_tests;
+mod status_line;
 #[cfg(test)]
 mod struts_tests;
 #[cfg(test)]

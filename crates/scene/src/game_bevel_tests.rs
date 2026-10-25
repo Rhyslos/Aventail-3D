@@ -353,7 +353,10 @@ fn a_live_bevel_and_weighted_normals_already_there_are_kept() {
         }),
     );
     add(&mut doc, id, ModifierKind::Subdivide(Default::default()));
-    // Weighted normals switched off, and not last.
+    // Weighted normals switched off, and not last (a new Subdivide goes
+    // before it: moved up past it by hand).
+    doc.execute(Command::MoveModifier { id, from: 2, to: 1 })
+        .unwrap();
     let mut off = doc.scene().modifiers(id)[1].clone();
     off.on = false;
     doc.execute(Command::ChangeModifier {
@@ -537,4 +540,44 @@ fn seams_stay_where_the_shape_had_them() {
     let shape = doc.scene().shown_shape(id).unwrap();
     assert!(mesh::uvs::has_uvs(&shape));
     assert!(pieces(&shape) >= pieces(&plain));
+}
+
+#[test]
+fn shape_changing_modifiers_added_after_it_go_above_its_weighted_normals() {
+    // A tester added a Lattice and a Scatter after Game bevel: they went
+    // below Weighted normals, which then dropped its normals.
+    for kind in ModifierKind::standard_kinds() {
+        let finishing = matches!(
+            kind,
+            ModifierKind::WeightedNormals(_) | ModifierKind::Triangulate(_)
+        );
+        assert_eq!(
+            kind.goes_before(&ModifierKind::WeightedNormals(Default::default())),
+            !finishing,
+            "{}",
+            kind.name()
+        );
+    }
+    let mut doc = Document::new();
+    let id = create(&mut doc, PrimitiveKind::Cube);
+    game_bevel(&mut doc, &[id]).unwrap();
+    doc.execute(Command::AddLattice {
+        ids: vec![id],
+        divisions: [2, 2, 2],
+    })
+    .unwrap();
+    add(&mut doc, id, ModifierKind::Array(Default::default()));
+    add(&mut doc, id, ModifierKind::Triangulate(Default::default()));
+    assert_eq!(
+        kinds(&doc, id),
+        [
+            "Live bevel",
+            "Lattice",
+            "Array",
+            "Weighted normals",
+            "Triangulate"
+        ]
+    );
+    // Nothing after the normals changes the shape: they reach the shape.
+    assert_eq!(doc.scene().normals_dropped_by(id, 3), None);
 }

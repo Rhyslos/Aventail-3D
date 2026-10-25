@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+mod goes_out;
 mod window;
 
 // The tests reach this through `super::exporting::`, as when it was
@@ -40,6 +41,10 @@ pub struct ExportChoice {
     /// Whether each object's levels of detail go out beside it (decision
     /// 0155). Not a preset's setting: kept when Made for changes.
     pub lod_levels: bool,
+    /// Whether the person has set Levels of detail themselves. Until they
+    /// have, the chip follows the scene: on when anything exported has
+    /// levels made, off otherwise.
+    pub lod_chosen: bool,
 }
 
 impl Default for ExportChoice {
@@ -59,6 +64,7 @@ impl ExportChoice {
             up: UpAxis::default(),
             triangulate: false,
             lod_levels: false,
+            lod_chosen: false,
         }
     }
 
@@ -73,6 +79,7 @@ impl ExportChoice {
             triangulate: settings.triangulate,
             what: self.what,
             lod_levels: self.lod_levels,
+            lod_chosen: self.lod_chosen,
         }
     }
 
@@ -119,6 +126,9 @@ pub struct ExportSettings {
     pub triangulate: bool,
     /// Whether levels of detail go out (decision 0155).
     pub lod_levels: bool,
+    /// Whether the person set Levels of detail themselves (otherwise it
+    /// follows the scene).
+    pub lod_chosen: bool,
 }
 
 impl Default for ExportSettings {
@@ -138,6 +148,7 @@ impl ExportSettings {
             up: choice.up,
             triangulate: choice.triangulate,
             lod_levels: choice.lod_levels,
+            lod_chosen: choice.lod_chosen,
         }
     }
 
@@ -153,6 +164,7 @@ impl ExportSettings {
             up: self.up,
             triangulate: self.triangulate,
             lod_levels: self.lod_levels,
+            lod_chosen: self.lod_chosen,
         };
         match self.preset {
             Some(preset) => custom.with_preset(preset),
@@ -439,7 +451,7 @@ impl Workbench {
             options: ExportOptions {
                 what: ExportWhat::Everything,
                 hardness: self.export_hardness(),
-                lod_levels: self.exporting.choice.lod_levels,
+                lod_levels: self.levels_go_out(self.exporting.choice, ExportWhat::Everything),
                 ..ExportOptions::default()
             },
         })
@@ -588,11 +600,22 @@ impl Workbench {
                 hardness,
                 triangulate: choice.triangulate,
                 godot_names: choice.preset == Some(ExportPreset::Godot),
-                lod_levels: choice.lod_levels,
+                lod_levels: self.levels_go_out(choice, choice.what),
             },
             path,
             suggested_name: format!("{stem}.{}", choice.format.extension()),
         }))
+    }
+
+    /// Whether an export of `what` with `choice` takes levels of detail:
+    /// as the person set Levels of detail, or, until they have, whether
+    /// anything it takes has levels made.
+    pub(super) fn levels_go_out(&self, choice: ExportChoice, what: ExportWhat) -> bool {
+        if choice.lod_chosen {
+            choice.lod_levels
+        } else {
+            goes_out::any_levels(&self.document, what)
+        }
     }
 
     /// What the export with the window's choices would hold (worked out
@@ -643,6 +666,7 @@ impl Workbench {
             up: request.options.up,
             triangulate: request.options.triangulate,
             lod_levels: request.options.lod_levels,
+            lod_chosen: self.exporting.choice.lod_chosen,
         };
         let objects = match summary.objects {
             1 => tr("1 object").to_string(),

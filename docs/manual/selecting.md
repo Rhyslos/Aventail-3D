@@ -22,7 +22,7 @@ Then move, rotate or scale it: see [Move, rotate and scale](transforming.md).
 ### Click
 
 - **Click** a shape (in Model mode) or a point, edge or polygon (in the other modes) to select just that.
-- **Ctrl + click** adds it to the selection. Ctrl + click on something already selected takes it out again.
+- **Ctrl + click** adds it to the selection. Ctrl + click on something already selected takes it out again. The keys count as they were when you clicked: a quick Ctrl + click still adds even if you let go of Ctrl at once, while the app is busy drawing.
 - **Shift + click** takes it out of the selection.
 - **Click on empty space** to unselect everything of that kind.
 

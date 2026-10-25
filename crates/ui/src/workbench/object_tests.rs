@@ -950,3 +950,140 @@ fn apply_transforms_from_the_menus_and_the_tool_menu() {
     assert_eq!(t.position, placed.position);
     assert_eq!(doc.undo_label(), Some("Apply rotation and scale"));
 }
+
+/// A left press at `from` and release at `to` with `modifiers` held, a
+/// frame apart each, as a quick click does.
+fn press_and_release(
+    harness: &mut Harness<'static, State>,
+    (from, to): (Pos2, Pos2),
+    modifiers: Modifiers,
+) {
+    harness.event(Event::ModifiersChanged(modifiers));
+    harness.event(Event::PointerMoved(from));
+    harness.step();
+    harness.event(Event::PointerButton {
+        pos: from,
+        button: PointerButton::Primary,
+        pressed: true,
+        modifiers,
+    });
+    harness.step();
+    harness.event(Event::PointerMoved(to));
+    harness.step();
+    harness.event(Event::PointerButton {
+        pos: to,
+        button: PointerButton::Primary,
+        pressed: false,
+        modifiers,
+    });
+    harness.step();
+}
+
+#[test]
+fn a_quick_ctrl_click_that_moves_a_little_still_adds() {
+    // A tester's quick Ctrl + clicks sometimes selected only the row
+    // clicked: moving a few points while the button is down makes it a
+    // drag, which used to select the dragged row alone.
+    let mut harness = with_a_group();
+    click_row(&mut harness, "Group", Modifiers::NONE);
+    let at = row(&harness, "Cube").center();
+    press_and_release(
+        &mut harness,
+        (at, at + egui::vec2(9.0, 3.0)),
+        Modifiers::COMMAND,
+    );
+    harness.event(Event::ModifiersChanged(Modifiers::NONE));
+    harness.run();
+    assert_eq!(selected_names(&harness), ["Group", "Cube"]);
+    assert_eq!(
+        top_level_names(&harness),
+        ["Group", "Cube"],
+        "nothing moved"
+    );
+}
+
+#[test]
+fn two_quick_ctrl_clicks_on_one_row_take_it_out_again() {
+    // Two quick Ctrl + clicks on a row are a double-click to egui: they
+    // used to rename it and select it alone.
+    let mut harness = quick_harness();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::Create(scene::ObjectKind::Group))
+        .unwrap();
+    harness.run();
+    click_row(&mut harness, "Group", Modifiers::NONE);
+    let at = row(&harness, "Cube").center();
+    for _ in 0..2 {
+        press_and_release(&mut harness, (at, at), Modifiers::COMMAND);
+    }
+    harness.event(Event::ModifiersChanged(Modifiers::NONE));
+    harness.run();
+    assert_eq!(selected_names(&harness), ["Group"], "in, then out again");
+    assert!(!harness.state().workbench.objects.is_renaming());
+}
+
+#[test]
+fn quick_ctrl_clicks_on_two_rows_add_both() {
+    // A tester's quick Ctrl + clicks sometimes selected only the second
+    // row: egui counts any two quick clicks as a double-click, which
+    // renamed the second row and selected it alone.
+    let mut harness = quick_harness();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::Create(scene::ObjectKind::Group))
+        .unwrap();
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .clear_selection();
+    harness.run();
+    for name in ["Group", "Cube"] {
+        let at = row(&harness, name).center();
+        harness.event(Event::ModifiersChanged(Modifiers::COMMAND));
+        harness.event(Event::PointerMoved(at));
+        harness.step();
+        for pressed in [true, false] {
+            harness.event(Event::PointerButton {
+                pos: at,
+                button: PointerButton::Primary,
+                pressed,
+                modifiers: Modifiers::COMMAND,
+            });
+            harness.step();
+        }
+    }
+    harness.event(Event::ModifiersChanged(Modifiers::NONE));
+    harness.run();
+    assert_eq!(selected_names(&harness), ["Group", "Cube"]);
+    assert!(!harness.state().workbench.objects.is_renaming());
+}
+
+#[test]
+fn a_ctrl_let_go_in_the_same_frame_as_the_click_still_adds() {
+    // On a slow frame the press, the release and Ctrl's release all come
+    // in one go: by the frame's end Ctrl isn't held, but it was for the
+    // click.
+    let mut harness = with_a_group();
+    click_row(&mut harness, "Group", Modifiers::NONE);
+    let at = row(&harness, "Cube").center();
+    harness.event(Event::PointerMoved(at));
+    harness.step();
+    harness.event(Event::ModifiersChanged(Modifiers::COMMAND));
+    for pressed in [true, false] {
+        harness.event(Event::PointerButton {
+            pos: at,
+            button: PointerButton::Primary,
+            pressed,
+            modifiers: Modifiers::COMMAND,
+        });
+    }
+    harness.event(Event::ModifiersChanged(Modifiers::NONE));
+    harness.run();
+    assert_eq!(selected_names(&harness), ["Group", "Cube"]);
+}

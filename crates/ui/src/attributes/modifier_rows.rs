@@ -40,10 +40,15 @@ impl AttributesPanel {
                 self.modifier_header(ui, id, index, count, modifier, out);
                 self.modifier_rows(ui, doc, (id, index), modifier, units, out);
                 if let Some((_, why)) = problems.iter().find(|(i, _)| *i == index) {
-                    ui.label(
-                        RichText::new(crate::trf!("Not worked out: {}.", why))
-                            .color(theme::WARNING),
-                    );
+                    // Nothing to do (no points close enough to weld) is a
+                    // calm grey note; a real problem is in the warning
+                    // colour.
+                    let (text, color) = if scene::has_nothing_to_do(why) {
+                        (crate::trf!("Nothing to do: {}.", why), theme::TEXT_WEAK)
+                    } else {
+                        (crate::trf!("Not worked out: {}.", why), theme::WARNING)
+                    };
+                    ui.add(egui::Label::new(RichText::new(text).color(color)).wrap());
                 }
             });
             ui.add_space(4.0);
@@ -191,13 +196,10 @@ impl AttributesPanel {
                         mesh::decimate::triangle_count(&shown),
                     );
                 }
-                if matches!(modifier.kind, ModifierKind::WeightedNormals(_))
-                    && modifier.on
-                    && let Some(by) = doc.scene().normals_dropped_by(id, index)
-                {
-                    super::weighted_rows::dropped_row(ui, by);
-                }
             });
+        if matches!(modifier.kind, ModifierKind::WeightedNormals(_)) && modifier.on {
+            super::weighted_rows::dropped_note(ui, doc.scene().modifiers(id), index);
+        }
         if rows.began {
             self.gesture += 1;
         }

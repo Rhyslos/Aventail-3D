@@ -71,10 +71,14 @@ pub(crate) enum MenuAction {
     Group,
     KitSizedShapes,
     SnapToKitGrid,
+    /// The selected curves make a sweep (Attributes → Makes).
+    MakesSweep,
+    /// The selected curves make a lathe (Attributes → Makes).
+    MakesLathe,
 }
 
 impl MenuAction {
-    pub(crate) const ALL: [MenuAction; 36] = [
+    pub(crate) const ALL: [MenuAction; 38] = [
         Self::New,
         Self::Open,
         Self::Save,
@@ -111,6 +115,8 @@ impl MenuAction {
         Self::Group,
         Self::KitSizedShapes,
         Self::SnapToKitGrid,
+        Self::MakesSweep,
+        Self::MakesLathe,
     ];
 
     /// Its name, where it lives, and what it does.
@@ -280,6 +286,22 @@ impl MenuAction {
                 tr(crate::kit::KIT_SNAP_LABEL),
                 tr(crate::kit::KIT_MENU),
                 tr(crate::kit::KIT_SNAP_HELP),
+            ),
+            Self::MakesSweep => (
+                tr("Sweep the curve"),
+                tr("Attributes → Makes"),
+                tr(
+                    "Make the selected curves sweeps: a cross-section carried along each, for \
+                     pipes, cables and rails",
+                ),
+            ),
+            Self::MakesLathe => (
+                tr("Lathe the curve"),
+                tr("Attributes → Makes"),
+                tr(
+                    "Make the selected curves lathes: each spun round an axis, for vases, \
+                     bottles and wheels",
+                ),
             ),
         }
     }

@@ -46,7 +46,7 @@ pub(crate) fn length(
         );
         touched = touched_by(&response);
         response.widget_info(|| WidgetInfo::labeled(WidgetType::DragValue, true, label));
-        let steps = arrows(ui, label);
+        let steps = arrows(ui, label, response.id);
         if steps != 0 {
             shown = (shown + units.step() * f64::from(steps)).clamp(*range.start(), *range.end());
             touched = Touched {
@@ -79,11 +79,12 @@ pub(super) fn degrees(
                 .range(f64::from(low)..=f64::from(high))
                 .speed(0.5)
                 .max_decimals(1)
+                .custom_formatter(|v, _| crate::units::degrees_text(v))
                 .suffix("°"),
         );
         touched = touched_by(&response);
         response.widget_info(|| WidgetInfo::labeled(WidgetType::DragValue, true, label));
-        let steps = arrows(ui, label);
+        let steps = arrows(ui, label, response.id);
         if steps != 0 {
             shown = (shown + f64::from(steps)).clamp(f64::from(low), f64::from(high));
             touched = Touched {
@@ -123,7 +124,7 @@ pub(super) fn millimetres(
         );
         touched = touched_by(&response);
         response.widget_info(|| WidgetInfo::labeled(WidgetType::DragValue, true, label));
-        let steps = arrows(ui, label);
+        let steps = arrows(ui, label, response.id);
         if steps != 0 {
             shown = (shown + 0.1 * f64::from(steps)).clamp(low, high);
             touched = Touched {
@@ -161,7 +162,7 @@ pub(super) fn percent(
         );
         touched = touched_by(&response);
         response.widget_info(|| WidgetInfo::labeled(WidgetType::DragValue, true, label));
-        let steps = arrows(ui, label);
+        let steps = arrows(ui, label, response.id);
         if steps != 0 {
             shown = (shown + f64::from(steps)).clamp(low, high);
             touched = Touched {
@@ -199,7 +200,7 @@ pub(super) fn number(
         );
         touched = touched_by(&response);
         response.widget_info(|| WidgetInfo::labeled(WidgetType::DragValue, true, label));
-        let steps = arrows(ui, label);
+        let steps = arrows(ui, label, response.id);
         if steps != 0 {
             shown = (shown + f64::from(step) * f64::from(steps)).clamp(low, high);
             touched = Touched {
@@ -225,7 +226,7 @@ pub(super) fn count(ui: &mut Ui, value: &mut u32, (low, high): (u32, u32), label
         );
         touched = touched_by(&response);
         response.widget_info(|| WidgetInfo::labeled(WidgetType::DragValue, true, label));
-        let steps = arrows(ui, label);
+        let steps = arrows(ui, label, response.id);
         if steps != 0 {
             let moved = i64::from(*value) + i64::from(steps);
             *value = u32::try_from(moved.clamp(i64::from(low), i64::from(high))).unwrap_or(low);
@@ -259,7 +260,7 @@ pub(super) fn big_count(
         );
         touched = touched_by(&response);
         response.widget_info(|| WidgetInfo::labeled(WidgetType::DragValue, true, label));
-        let steps = arrows(ui, label);
+        let steps = arrows(ui, label, response.id);
         if steps != 0 {
             let moved = i64::from(*value) + i64::from(steps) * i64::from(step);
             *value = u32::try_from(moved.clamp(i64::from(low), i64::from(high))).unwrap_or(low);
@@ -281,7 +282,10 @@ fn touched_by(response: &egui::Response) -> Touched {
 
 /// Two small arrows stacked beside a field: up adds a step, down takes
 /// one away (ten with Shift held). Returns the steps clicked this frame.
-fn arrows(ui: &mut Ui, label: &str) -> i32 {
+/// Their ids come from `field`, the id of the number beside them, so two
+/// fields with the same name in one place (each level's "Shown from")
+/// never share arrows.
+fn arrows(ui: &mut Ui, label: &str, field: egui::Id) -> i32 {
     let (rect, _) = ui.allocate_exact_size(vec2(14.0, HEIGHT), Sense::hover());
     let half = rect.height() / 2.0;
     let up = Rect::from_min_size(rect.min, vec2(rect.width(), half));
@@ -293,7 +297,7 @@ fn arrows(ui: &mut Ui, label: &str) -> i32 {
     let size = if shift { 10 } else { 1 };
     let mut steps = 0;
     for (area, sign, name) in [(up, 1, tr("Increase")), (down, -1, tr("Decrease"))] {
-        let response = ui.interact(area, ui.id().with((label, name)), Sense::click());
+        let response = ui.interact(area, field.with(("arrow", sign)), Sense::click());
         response.widget_info(|| {
             WidgetInfo::labeled(WidgetType::Button, true, crate::trf!("{} {}", name, label))
         });

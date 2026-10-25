@@ -357,7 +357,7 @@ impl App {
                 }
                 WorkbenchAction::DiscardBackups { folder } => self.backups.discard(&folder),
                 WorkbenchAction::Export(request) => {
-                    if let Some(path) = project::export_path(&self.workbench, &request) {
+                    if let Some(path) = project::export_path(&mut self.workbench, &request) {
                         self.files.export(&mut self.workbench, request, path);
                     }
                 }
@@ -366,7 +366,7 @@ impl App {
                     project::choose_export_folder(&mut self.workbench, start);
                 }
                 WorkbenchAction::ExportKit(request) => {
-                    if let Some(folder) = project::kit_folder(&self.workbench, &request) {
+                    if let Some(folder) = project::kit_folder(&mut self.workbench, &request) {
                         self.files.export_kit(&mut self.workbench, request, folder);
                     }
                 }

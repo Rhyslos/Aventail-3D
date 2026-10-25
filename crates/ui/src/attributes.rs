@@ -301,14 +301,14 @@ impl AttributesPanel {
                             out,
                         ),
                         None if self.last_edit_is_live(doc, id) => {
-                            self.last_edit_section(ui, id, &object.stack, units, stretch, out);
+                            self.last_edit_section(ui, id, &object, units, stretch, out);
                         }
-                        None => self.left_edit_line(ui, doc, id, &object.stack),
+                        None => self.left_edit_line(ui, doc, id, &object),
                     }
                 } else if opened.is_none() && !self.last_edit_is_live(doc, id) {
                     // The tool's settings are at the top, for its next
                     // use; the edit before them can still be opened.
-                    self.left_edit_line(ui, doc, id, &object.stack);
+                    self.left_edit_line(ui, doc, id, &object);
                 }
                 // A curve that is only a line has no surface (decision
                 // 0138): no collision, smoothing, booleans or materials.
@@ -421,4 +421,31 @@ pub(crate) fn section(ui: &mut Ui, title: &str) {
 fn label(ui: &mut Ui, text: &str, help: &str) {
     ui.label(RichText::new(text).color(theme::TEXT_WEAK))
         .on_hover_text(help);
+}
+
+/// A note wrapped to the panel's width, in `color`, taking the height of
+/// the taller of `shown` and `other` (what it says in another state), so
+/// it doesn't jump when it changes between them.
+fn steady_note(ui: &mut Ui, shown: &str, other: &str, color: egui::Color32) {
+    let width = ui.available_width();
+    let height = |text: &str| {
+        egui::WidgetText::from(text)
+            .into_galley(
+                ui,
+                Some(egui::TextWrapMode::Wrap),
+                width,
+                egui::TextStyle::Body,
+            )
+            .size()
+            .y
+    };
+    let tallest = height(shown).max(height(other));
+    ui.allocate_ui_with_layout(
+        vec2(width, tallest),
+        egui::Layout::top_down(egui::Align::Min),
+        |ui| {
+            ui.set_min_height(tallest);
+            ui.add(egui::Label::new(RichText::new(shown).color(color)).wrap());
+        },
+    );
 }

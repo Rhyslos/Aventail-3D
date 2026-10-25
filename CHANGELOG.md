@@ -30,6 +30,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **When the system's file window can't open, the app says so and asks for the path.** On a Linux desktop without the file portal or zenity, Save As, Open, Export…, Import…, Choose folder and the Save in "Save changes?" did nothing at all; now the status bar says the file window didn't open, and a small window lets you type the path (`~` for your home folder), saying what's wrong with it until it can be used.
+- **Each level of detail's step arrows change that level.** The small arrows beside two fields with the same name (each level's *Shown from*) shared one id, so a click could reach the wrong level, and a test build drew "First use of widget" warnings over them.
+- **A long status message no longer runs over the text beside it.** It is cut short with "…"; rest the mouse on it to read it all.
+- **Switching a modifier off doesn't make the panel jump.** Weighted normals' note about a modifier after it now stays, in grey, saying what switching it on would do, so the switch you clicked stays under the mouse. The note wraps to the panel's width instead of being cut off.
+- **After Game bevel, Last edit says Game bevel**, with a line saying Smoothing switched from By angle to the marked edges, instead of showing *Hard edges by angle*.
+- **Command search finds Sweep and Lathe.** Type *sweep* or *lathe* for **Sweep the curve** and **Lathe the curve**, which set the selected curves' Makes (greyed out with no curve selected).
+- **Quick Ctrl + clicks add to the selection.** In the viewport, a Ctrl + click whose Ctrl was let go in the same moment replaced the selection; in the Objects panel, so did a quick Ctrl + click where the mouse slipped a little while the button was down. Both add now.
+- **Modifiers that change the shape go above Weighted normals.** A Lattice, Scatter, Array or any other kind added after a Game bevel used to land below its Weighted normals, which then lost their shading.
+- **"Nothing to weld" is a calm note.** Weld by distance, Quadify and Triangulate with nothing to do on a shape say so in grey ("Nothing to do: …"); amber is kept for real problems.
+- **The Export window starts with Levels of detail ticked** when anything going out has levels made (until you set it yourself, then your choice is kept), and says under its numbers how many objects take collision out and of which kinds.
+- **H and Z frame an Array's copies,** and whatever else modifiers add, not just the shape before them.
+- **Rotation never reads "-0.0°".**
+- **The palette's names stay away under "Save changes?"**: the mode palette's slide-out names no longer show over a question waiting for an answer.
+- **Draw curve's help text stands apart** from the selected object's settings below it, with a line between them, so the object's rows no longer seem to run into it.
+- **Materials count the polygons as shown,** after booleans and modifiers: a cut, bevelled cube no longer says "6 polygons".
+- **Size to kit grid fits an untouched lattice cage again,** in the same undo step, so a resized shape doesn't grow out of its cage. A cage you've shaped is left as it is.
 - **Collision "Wrapped in parts" is worked out quicker**, about a third less time on a ring and five times quicker on simple shapes, so the outline follows changes to Max parts and Detail sooner.
 - **Box and lasso selects of points on heavy shapes are much quicker** with Select only visible: the app now checks what can be seen once per pixel instead of once per point, looking closer only along outlines (a box over a 3-million-polygon shape: a fifth of a second instead of two).
 - **Saving and exporting no longer freeze the window.** Save, Save As, Export, Export again, Export to game project and Export kit now run in the background: the status bar says *Saving crate.avtl…* or *Exporting crate.glb…* with a small turning wheel, and you can keep working. Changes made during a save stay unsaved until the next one; another save or export waits until the first is done; closing the app waits for it.

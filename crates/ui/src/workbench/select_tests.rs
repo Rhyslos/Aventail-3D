@@ -620,3 +620,49 @@ fn a_click_then_a_double_click_still_selects_the_loop() {
         assert_eq!(edges(&harness), 8, "{tool:?}: three quick clicks");
     }
 }
+
+#[test]
+fn quick_ctrl_clicks_in_the_viewport_add_both_shapes() {
+    let mut harness = cube_and_plane();
+    let ids = harness
+        .state()
+        .workbench
+        .document()
+        .scene()
+        .children(None)
+        .to_vec();
+    let at_cube = on_screen(&harness, MIDDLE_OF_FRONT);
+    let at_plane = on_screen(&harness, Vec3::new(-100.0, -100.0, 0.0));
+    click(&mut harness, at_cube, Modifiers::NONE);
+    // Ctrl held for the click and let go in the same (slow) frame.
+    harness.event(Event::PointerMoved(at_plane));
+    harness.run();
+    harness.event(Event::ModifiersChanged(Modifiers::COMMAND));
+    for pressed in [true, false] {
+        harness.event(Event::PointerButton {
+            pos: at_plane,
+            button: PointerButton::Primary,
+            pressed,
+            modifiers: Modifiers::COMMAND,
+        });
+    }
+    harness.event(Event::ModifiersChanged(Modifiers::NONE));
+    harness.run();
+    let mut selection = harness.state().workbench.document().selection();
+    selection.sort();
+    let mut both = ids.clone();
+    both.sort();
+    assert_eq!(selection, both, "the Ctrl + click added the plane");
+    // Pressed with Ctrl, Ctrl let go, then the button comes up a frame
+    // later: still a Ctrl + click (it takes the cube back out).
+    harness.event(Event::PointerMoved(at_cube));
+    harness.run();
+    button(&mut harness, at_cube, true, Modifiers::COMMAND);
+    hold(&mut harness, Modifiers::NONE);
+    button(&mut harness, at_cube, false, Modifiers::NONE);
+    assert_eq!(
+        harness.state().workbench.document().selection(),
+        vec![ids[0]],
+        "the plane stays, the cube is taken out"
+    );
+}

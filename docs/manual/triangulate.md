@@ -60,7 +60,7 @@ You keep editing the shape underneath as quads and n-gons in the Points, Edges a
 
 ## Tips and common problems
 
-- **Problem:** the Triangulate modifier says "Not worked out: every polygon is a triangle already". **Why:** there's nothing to cut: the shape (or a modifier before it, such as [Decimate](decimate.md)) is all triangles. **Fix:** nothing to do; remove the modifier if you like.
+- **Problem:** the Triangulate modifier says, in grey, "Nothing to do: every polygon is a triangle already". **Why:** there's nothing to cut: the shape (or a modifier before it, such as [Decimate](decimate.md)) is all triangles. **Fix:** nothing to do; remove the modifier if you like.
 - **Problem:** "the shape has no four-sided polygons to cut". **Why:** **Quads only** is on and the shape's polygons are triangles and n-gons. **Fix:** untick **Quads only**.
 - **Problem:** a big flat n-gon shows a fan of long thin triangles. **Why:** the export cuts flat polygons without dents from their first corner, quick and correct, but thin. **Fix:** add Triangulate with **Beauty**, or cut the n-gon yourself with [Connect](connect-bridge-weld.md) or a [loop cut](loop-cut.md).
 - **Problem:** a quad's line goes the "wrong" way and the shape folds badly. **Why:** the quad is bent; the export cuts quads from corner 1 to 3 (counted from 1) unless that runs outside a dented one. **Fix:** cut it yourself the way you want with [Connect](connect-bridge-weld.md) between the two other corners, or flatten the quad.

@@ -30,7 +30,7 @@ Every object starts with one material, **Default**, in the viewport's grey. Its 
 
 1. Switch to the **Polygons** mode (**3**), see [Modes](modes.md).
 2. [Select](selecting.md) the polygons that should use the material. Loops (double-click an edge) and **Grow selection** help pick whole parts.
-3. Click the material's **Assign** button. The polygons take its colour in the viewport, and the polygon counts in the list change.
+3. Click the material's **Assign** button. The polygons take its colour in the viewport, and the polygon counts in the list change. The counts are of the shape as it's drawn, after its [booleans](booleans.md) and [modifiers](modifiers.md): a cube with a hole cut through it and a Live bevel uses its material on more than its own 6 polygons.
 
 **Ctrl + Z** takes an assignment back like any other edit. On an object with a live mirror ([Symmetry](symmetry.md)), the mirrored half shows the same materials.
 
