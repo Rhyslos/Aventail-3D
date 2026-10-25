@@ -150,6 +150,14 @@ impl AttributesPanel {
                 );
                 rows.toggle(ui, &mut edited.in_viewport, tr("Show in viewport"));
                 ui.end_row();
+                if matches!(modifier.kind, ModifierKind::Decimate(_))
+                    && let Some(shown) = doc.scene().shown_shape_if_ready(id)
+                {
+                    super::decimate_rows::shown_triangles_row(
+                        ui,
+                        mesh::decimate::triangle_count(&shown),
+                    );
+                }
             });
         if rows.began {
             self.gesture += 1;
@@ -174,6 +182,7 @@ fn kind_rows(ui: &mut Ui, kind: &mut ModifierKind, units: Units, rows: &mut Rows
         ModifierKind::Subdivide(options) => subdivide_rows(ui, options, rows),
         // The cage's own settings are on the cage (`cage_row` names it).
         ModifierKind::Lattice(_) => {}
+        ModifierKind::Decimate(options) => super::decimate_rows::decimate_rows(ui, options, rows),
     }
 }
 

@@ -63,6 +63,8 @@ pub enum CommandId {
     /// Add a lattice cage round the selected shapes, each with a Lattice
     /// modifier following it (decision 0144).
     Lattice,
+    /// Add a decimate modifier to the selected shapes (decision 0145).
+    Decimate,
     // ------------------------------------------- pivots (the Object mode)
     /// Move the selected objects' pivots to the middle of their shapes.
     PivotToCentre,
@@ -344,6 +346,10 @@ impl CommandId {
             Self::Subdivide => {
                 let kind = scene::ModifierKind::Subdivide(Default::default());
                 (kind.name(), Icon::Subdivide, None, kind.description(), None)
+            }
+            Self::Decimate => {
+                let kind = scene::ModifierKind::Decimate(Default::default());
+                (kind.name(), Icon::Decimate, None, kind.description(), None)
             }
             // Adding a lattice makes its cage too (decision 0144).
             Self::Lattice => {
@@ -773,7 +779,8 @@ impl CommandId {
             | Self::Intersect
             | Self::Remesh
             | Self::Subdivide
-            | Self::Lattice => &[Model, Object, Points, Edges, Polygons],
+            | Self::Lattice
+            | Self::Decimate => &[Model, Object, Points, Edges, Polygons],
             Self::Extrude => &[Points, Edges, Polygons],
             Self::Bridge => &[Edges, Polygons],
             Self::Inset | Self::FlipNormals => &[Polygons],
@@ -1029,17 +1036,18 @@ pub fn group_menu(group: CommandId, ring: &[Slot]) -> Vec<Slot> {
 /// The commands with no place on the tool menu: the booleans (decision
 /// 0135) and the modifiers (decision 0142), found in the modifiers
 /// palette, the Mesh menu and command search.
-pub const OFF_THE_RING: [CommandId; 6] = [
+pub const OFF_THE_RING: [CommandId; 7] = [
     CommandId::Union,
     CommandId::Subtract,
     CommandId::Intersect,
     CommandId::Remesh,
     CommandId::Subdivide,
     CommandId::Lattice,
+    CommandId::Decimate,
 ];
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 66] = [
+pub const ALL: [CommandId; 67] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -1061,6 +1069,7 @@ pub const ALL: [CommandId; 66] = [
     CommandId::Remesh,
     CommandId::Subdivide,
     CommandId::Lattice,
+    CommandId::Decimate,
     CommandId::PivotToCentre,
     CommandId::PivotToOrigin,
     CommandId::PivotToObject,

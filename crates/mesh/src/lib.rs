@@ -14,6 +14,7 @@ pub mod check;
 pub mod cleanup;
 pub mod crease;
 pub mod curve;
+pub mod decimate;
 pub mod deform;
 pub mod edit;
 pub mod extrude;

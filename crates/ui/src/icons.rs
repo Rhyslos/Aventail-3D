@@ -192,6 +192,9 @@ pub enum Icon {
     /// Lattice (decision 0144): a cage of points pulled out on one side,
     /// the shape inside swelling with it.
     Lattice,
+    /// Decimate (decision 0145): many small triangles becoming a few big
+    /// ones.
+    Decimate,
     /// Creases (decision 0143): a shape sharp along one edge.
     Creases,
     /// Crease edges: the sharp edge drawn bold.
@@ -263,7 +266,7 @@ pub enum Icon {
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 118] = [
+pub const ALL: [Icon; 119] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -348,6 +351,7 @@ pub const ALL: [Icon; 118] = [
     Icon::Remesh,
     Icon::Subdivide,
     Icon::Lattice,
+    Icon::Decimate,
     Icon::Creases,
     Icon::CreaseEdges,
     Icon::Uncrease,
@@ -475,6 +479,7 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         Icon::Remesh
         | Icon::Subdivide
         | Icon::Lattice
+        | Icon::Decimate
         | Icon::Creases
         | Icon::CreaseEdges
         | Icon::Uncrease => modifiers::draw(&mut pen, icon),
