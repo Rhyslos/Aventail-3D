@@ -25,7 +25,7 @@ Modelling leaves bits to tidy: an edge you no longer need, a corner of points in
    - a dissolved **point** merges the polygons around it into one;
    - dissolved **polygons** merge into one where they touch.
 
-Both are also in the [tool menu](tool-menu.md) (**E**) and **Mesh → Remove**. Points left in the middle of a straight line by a dissolve go too, so no needless corners are left. A [hard edge](hard-and-soft-edges.md) that is dissolved away loses its hard mark too, and two hard edges joined into one stay hard.
+Both are also in the [tool menu](tool-menu.md) (**E**) and **Mesh → Remove**. Points a dissolve leaves between just two edges go too, so no needless corners are left: on flat areas and on rounded shapes like a sphere, where every line curves a little. Only a real corner of the shape stays, where the polygons meet more sharply than 60° (a cube's corner, a cylinder's rim), and a point on the edge of a hole stays unless it is on a straight run, so the hole keeps its outline. A [hard edge](hard-and-soft-edges.md) that is dissolved away loses its hard mark too, and two hard edges joined into one stay hard.
 
 #### Dissolving across a sharp corner
 
