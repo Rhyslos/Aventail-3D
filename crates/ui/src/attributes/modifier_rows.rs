@@ -183,6 +183,12 @@ impl AttributesPanel {
                         mesh::decimate::triangle_count(&shown),
                     );
                 }
+                if matches!(modifier.kind, ModifierKind::WeightedNormals(_))
+                    && modifier.on
+                    && let Some(by) = doc.scene().normals_dropped_by(id, index)
+                {
+                    super::weighted_rows::dropped_row(ui, by);
+                }
             });
         if rows.began {
             self.gesture += 1;
@@ -227,6 +233,9 @@ fn kind_rows(ui: &mut Ui, kind: &mut ModifierKind, units: Units, rows: &mut Rows
         ModifierKind::Shrinkwrap(settings) => {
             let points = chosen.points.as_deref();
             super::wrap_rows::shrinkwrap_rows(ui, settings, units, rows, points);
+        }
+        ModifierKind::WeightedNormals(options) => {
+            super::weighted_rows::weighted_rows(ui, options, rows);
         }
     }
 }

@@ -39,6 +39,7 @@ use mesh::Mesh;
 use mesh::decimate::DecimateOptions;
 use mesh::remesh::RemeshOptions;
 use mesh::subdivide::SubdivideOptions;
+use mesh::weighted_normals::WeightedNormalsOptions;
 use std::sync::Arc;
 use words::{text, tr};
 
@@ -110,6 +111,10 @@ pub enum ModifierKind {
     /// The shape's points moved onto another shape's surface (decision
     /// 0147).
     Shrinkwrap(ShrinkwrapSettings),
+    /// Shading normals where bigger polygons count for more (decision
+    /// 0148): custom normals on every corner. Best last: any modifier
+    /// after it drops them.
+    WeightedNormals(WeightedNormalsOptions),
 }
 
 impl ModifierKind {
@@ -124,6 +129,7 @@ impl ModifierKind {
             Self::Shrinkwrap(ShrinkwrapSettings::default()),
             Self::Remesh(RemeshOptions::default()),
             Self::Decimate(DecimateOptions::default()),
+            Self::WeightedNormals(WeightedNormalsOptions::default()),
         ]
     }
 
@@ -137,6 +143,7 @@ impl ModifierKind {
             Self::Scatter(_) => tr("Scatter"),
             Self::BendAlongCurve(_) => tr("Bend along curve"),
             Self::Shrinkwrap(_) => tr("Shrinkwrap"),
+            Self::WeightedNormals(_) => tr("Weighted normals"),
         }
     }
 
@@ -175,6 +182,11 @@ impl ModifierKind {
                  decal sheet, a road on terrain. Select the shape first, then Ctrl + click the \
                  target.",
             ),
+            Self::WeightedNormals(_) => tr(
+                "Shade with bigger polygons counting for more, so a bevelled shape's big flat \
+                 faces look flat and its bevels look round. Exported with the shape: best as the \
+                 last modifier.",
+            ),
         }
     }
 
@@ -187,6 +199,7 @@ impl ModifierKind {
             Self::Decimate(_) => ModifierFamily::CleanUp,
             Self::Scatter(_) => ModifierFamily::Generate,
             Self::BendAlongCurve(_) | Self::Shrinkwrap(_) => ModifierFamily::Deform,
+            Self::WeightedNormals(_) => ModifierFamily::Game,
         }
     }
 
@@ -199,7 +212,8 @@ impl ModifierKind {
             | Self::Decimate(_)
             | Self::Scatter(_)
             | Self::BendAlongCurve(_)
-            | Self::Shrinkwrap(_) => false,
+            | Self::Shrinkwrap(_)
+            | Self::WeightedNormals(_) => false,
             Self::Subdivide(o) => {
                 let o = o.clamped();
                 o.levels != o.export_levels
@@ -223,6 +237,7 @@ impl ModifierKind {
             Self::Scatter(settings) => Self::Scatter(settings.clamped()),
             Self::BendAlongCurve(settings) => Self::BendAlongCurve(settings.clamped()),
             Self::Shrinkwrap(settings) => Self::Shrinkwrap(settings.clamped()),
+            Self::WeightedNormals(options) => Self::WeightedNormals(options.clamped()),
         }
     }
 
@@ -232,7 +247,9 @@ impl ModifierKind {
     /// [`ModifierKind::without_sources`]).
     pub fn sources(&self) -> Vec<ObjectId> {
         match self {
-            Self::Remesh(_) | Self::Subdivide(_) | Self::Decimate(_) => Vec::new(),
+            Self::Remesh(_) | Self::Subdivide(_) | Self::Decimate(_) | Self::WeightedNormals(_) => {
+                Vec::new()
+            }
             Self::Lattice(options) => vec![options.cage],
             Self::Scatter(settings) => settings.shapes.clone(),
             Self::BendAlongCurve(settings) => vec![settings.curve],
@@ -280,7 +297,8 @@ impl ModifierKind {
             | Self::Subdivide(_)
             | Self::Decimate(_)
             | Self::Scatter(_)
-            | Self::Shrinkwrap(_) => kind.has_shape(),
+            | Self::Shrinkwrap(_)
+            | Self::WeightedNormals(_) => kind.has_shape(),
         }
     }
 
@@ -288,7 +306,9 @@ impl ModifierKind {
     /// made together with their sources).
     pub fn with_sources_renamed(&self, rename: impl Fn(ObjectId) -> ObjectId) -> Self {
         match self {
-            Self::Remesh(_) | Self::Subdivide(_) | Self::Decimate(_) => self.clone(),
+            Self::Remesh(_) | Self::Subdivide(_) | Self::Decimate(_) | Self::WeightedNormals(_) => {
+                self.clone()
+            }
             Self::Lattice(options) => Self::Lattice(LatticeOptions {
                 cage: rename(options.cage),
             }),
@@ -346,6 +366,9 @@ impl ModifierKind {
             Self::BendAlongCurve(_) => crate::wrap::bend_work(input),
             // Depends on its target's size: see `work_with`.
             Self::Shrinkwrap(_) => crate::wrap::shrinkwrap_work(input, &[]),
+            // About 15 corners cost as much as one polygon in a boolean
+            // (200 000 quads take about 0.2 s in a release build).
+            Self::WeightedNormals(_) => input.face_layout().1.len() / 15,
         }
     }
 
@@ -389,7 +412,23 @@ impl ModifierKind {
             Self::Scatter(settings) => crate::scatter::apply_scatter(input, settings, context),
             Self::BendAlongCurve(settings) => crate::wrap::apply_bend(input, settings, context),
             Self::Shrinkwrap(settings) => crate::wrap::apply_shrinkwrap(input, settings, context),
+            // Hard edges kept are those the object's shading shows.
+            Self::WeightedNormals(options) => Ok(mesh::weighted_normals::weighted_normals(
+                input,
+                options,
+                context.hardness,
+            )),
         }
+    }
+
+    /// Whether its result's custom normals ([`mesh::custom_normals`]) fit
+    /// that result. Weighted normals makes them; every other kind changes
+    /// the shape (or makes a new one), so the stack drops any custom
+    /// normals from its result and the shading is worked out again
+    /// (decision 0148). A later kind that only cuts polygons up could
+    /// carry them over and say yes.
+    pub fn carries_custom_normals(&self) -> bool {
+        matches!(self, Self::WeightedNormals(_))
     }
 }
 

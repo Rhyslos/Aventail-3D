@@ -22,6 +22,7 @@ mod scatter_rows;
 pub(crate) mod stepper;
 mod tool_rows;
 mod tool_section;
+mod weighted_rows;
 mod wrap_rows;
 
 use crate::objects::DocRequest;

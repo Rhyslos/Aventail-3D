@@ -32,6 +32,11 @@
 //! Version 48 ([decision 0147](../../../../docs/decisions/0147-curve-deform-and-shrinkwrap.md))
 //! adds the Bend along curve and Shrinkwrap modifiers, naming the curve or
 //! the target they read; files before version 48 never hold them.
+//!
+//! Version 49 ([decision 0148](../../../../docs/decisions/0148-weighted-normals.md))
+//! adds the Weighted normals modifier; files before version 49 never hold
+//! it. (Custom normals baked into a shape are a corner attribute layer,
+//! saved as every layer is since version 5.)
 
 use super::v1::Problem;
 use super::v41::ProjectV41;
@@ -40,7 +45,7 @@ use scene::{
     BendAxis, BendOptions, CurveBendSettings, DecimateKeep, DecimateOptions, Document, FaceId,
     LatticeOptions, Modifier, ModifierKind, ObjectId, PlaceOn, ReduceBy, RemeshOptions,
     ScatterOptions, ScatterSettings, ShrinkwrapOptions, ShrinkwrapSettings, SubdivideOptions,
-    VertexId, WrapMode,
+    VertexId, WeightBy, WeightedNormalsOptions, WrapMode,
 };
 use serde::{Deserialize, Serialize};
 use words::{tr, trf};
@@ -182,6 +187,27 @@ pub(crate) enum KindV43 {
         #[serde(default = "Bounded::new")]
         points: Bounded<u32>,
     },
+    /// Weighted normals (version 49).
+    WeightedNormals {
+        /// What makes a polygon count for more: 0 area, 1 angle, 2 both
+        /// (anything else is area).
+        weight_by: u8,
+        /// How far the normals turn towards the weighted ones, 0 to 1.
+        strength: f32,
+        /// How much the biggest polygon at a point wins, 0 to 1.
+        influence: f32,
+        /// Whether the shading still breaks at hard edges.
+        keep_hard_edges: bool,
+    },
+}
+
+/// Weighted normals' weighting as stored.
+fn weight_number(weight_by: WeightBy) -> u8 {
+    match weight_by {
+        WeightBy::Area => 0,
+        WeightBy::Angle => 1,
+        WeightBy::AreaAndAngle => 2,
+    }
 }
 
 /// Bend along curve's axis as stored.
@@ -257,6 +283,12 @@ impl KindV43 {
                 mode: mode_number(w.options.mode),
                 offset: w.options.offset,
                 points: w.points.iter().map(|v| v.get()).collect(),
+            },
+            ModifierKind::WeightedNormals(o) => Self::WeightedNormals {
+                weight_by: weight_number(o.weight_by),
+                strength: o.strength,
+                influence: o.influence,
+                keep_hard_edges: o.keep_hard_edges,
             },
         }
     }
@@ -369,6 +401,21 @@ impl KindV43 {
                 },
                 target: ObjectId::from_raw(*target),
                 points: points.iter().map(|v| VertexId::from_raw(*v)).collect(),
+            }),
+            Self::WeightedNormals {
+                weight_by,
+                strength,
+                influence,
+                keep_hard_edges,
+            } => ModifierKind::WeightedNormals(WeightedNormalsOptions {
+                weight_by: match weight_by {
+                    1 => WeightBy::Angle,
+                    2 => WeightBy::AreaAndAngle,
+                    _ => WeightBy::Area,
+                },
+                strength: *strength,
+                influence: *influence,
+                keep_hard_edges: *keep_hard_edges,
             }),
         }
     }

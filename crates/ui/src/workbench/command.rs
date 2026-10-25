@@ -161,7 +161,8 @@ impl Workbench {
             | CommandId::Decimate
             | CommandId::Scatter
             | CommandId::BendAlongCurve
-            | CommandId::Shrinkwrap => match crate::modifiers::command(&self.document, command) {
+            | CommandId::Shrinkwrap
+            | CommandId::WeightedNormals => match crate::modifiers::command(&self.document, command) {
                 Err(why) => Ready::NotNow(why.into()),
                 Ok(_) => Ready::Yes,
             },
@@ -309,7 +310,8 @@ impl Workbench {
             | CommandId::Decimate
             | CommandId::Scatter
             | CommandId::BendAlongCurve
-            | CommandId::Shrinkwrap => {
+            | CommandId::Shrinkwrap
+            | CommandId::WeightedNormals => {
                 self.run_modifier(command, requests);
             }
         }

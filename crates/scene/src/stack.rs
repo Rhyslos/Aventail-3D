@@ -2369,9 +2369,18 @@ fn apply_from(
             continue;
         }
         // The elements it makes are named after it (decision 0090).
+        // Custom normals (baked in from Weighted normals) fit only the
+        // shape they were made for: an edit that moves points, changes
+        // polygons or hard edges drops them (decision 0148).
+        let shaded_by_hand = mesh::custom_normals::has_custom_normals(&mesh).then(|| mesh.clone());
         mesh.begin_naming(entry.id.get());
         let applied = entry.operation.apply(&mut mesh, context);
         mesh.end_naming();
+        if let Some(before) = shaded_by_hand
+            && !mesh::custom_normals::shading_unchanged(&before, &mesh)
+        {
+            mesh::custom_normals::forget_custom_normals(&mut mesh);
+        }
         if applied.missing > 0 || applied.found_again || applied.too_big {
             warnings.push(StackWarning {
                 layer,

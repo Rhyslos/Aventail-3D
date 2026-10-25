@@ -278,7 +278,9 @@ fn build(
 ) -> Mesh {
     let mut out = Mesh::new();
     for (name, domain, _) in original.attributes() {
-        if name == HARD {
+        // Custom normals don't fit a cut shape: its shading is worked out
+        // again (decision 0148).
+        if name == HARD || name == mesh::custom_normals::CUSTOM_NORMAL {
             continue;
         }
         if let Some((_, default, _)) = original.attribute_values(name) {

@@ -91,8 +91,13 @@ pub fn set_hard_edges(mesh: &mut Mesh, edges: &[EdgeKey], hard: bool) -> Outcome
 
 /// The edges where `mesh`'s shading breaks under `hardness`: by angle,
 /// the sharp edges ([`sharp_edges`]); by the marks, the marked hard edges
-/// the shape still has (a mark left on a gone edge isn't listed).
+/// the shape still has (a mark left on a gone edge isn't listed). With
+/// custom normals (decision 0148), the edges where they break the
+/// shading ([`crate::custom_normals::split_edges`]), whatever `hardness`.
 pub fn shading_hard_edges(mesh: &Mesh, hardness: crate::Hardness) -> Vec<EdgeKey> {
+    if let Some(split) = crate::custom_normals::split_edges(mesh) {
+        return split;
+    }
     match hardness {
         crate::Hardness::ByAngle(angle) => sharp_edges(mesh, angle),
         crate::Hardness::Marked => {

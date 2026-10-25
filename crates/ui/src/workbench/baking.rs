@@ -497,7 +497,18 @@ impl Workbench {
             }
             if let Some(shape) = scene.evaluated(id) {
                 found.extend(problems_of(id, &object.name, BakeReport::new(&shape.mesh)));
-                let hard = self.shown_hard_edges(id, &shape.mesh);
+                // Weighted normals with hard edges smoothed over reaching
+                // the export (decision 0148): no shading breaks for a
+                // normal map to hold. Otherwise those the shading shows
+                // (custom normals baked in count where they part).
+                let smoothed_over = scene
+                    .final_weighted_normals(id, scene::Purpose::Export)
+                    .is_some_and(|o| !o.keep_hard_edges);
+                let hard = if smoothed_over {
+                    Vec::new()
+                } else {
+                    self.shown_hard_edges(id, &shape.mesh)
+                };
                 let report = uv::check::UvReport::new(&shape.mesh, &hard, &trim_rows(scene));
                 found.extend(uv_problems_of(id, &object.name, report));
                 shapes.push((id, object.name.clone(), shape.mesh));
