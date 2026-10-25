@@ -109,9 +109,15 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Edit list** — The list of an object's edits in the Edit layers panel. Any edit in it can be opened and changed, and the edits after it are made again. *Bake into shape up to here* bakes the old edits up to one into the shape, so they no longer have to be made again: the shape stays the same, but those edits can't be changed any more. See [The edit list](edit-list.md).
 
-**Modifiers palette** — The thin column of buttons on the right of the viewport, beside the panels, for things that change a shape without destroying it. Its first button adds an edit layer; then come the [booleans](booleans.md) (Union, Subtract, Intersect). More join it in later versions.
+**Modifiers palette** — The thin column of buttons on the right of the viewport, beside the panels, for things that change a shape without destroying it. Its first button adds an edit layer; then come the [booleans](booleans.md) (Union, Subtract, Intersect), then one button per kind of [modifier](#objects-and-scenes) (Remesh so far). More join it in later versions.
 
-**Bake into shape** — Turning a shape into a plain mesh with no settings: its base and edits are baked together, so what you see becomes the new starting point. Do it when you no longer need the settings, or before editing a mesh freely. Undo brings the settings back. (Other programs call it *make editable*, *convert to editable poly* or *collapse*.) See [Objects](objects.md#bake-into-shape).
+**Modifier** — A change worked out live on top of a shape, after its edits, booleans and mirror, rather than made to its points: you can change its settings, switch it off, reorder it or remove it at any time, and the shape underneath stays as you modelled it. An object's modifiers are its **modifier stack**, worked out first to last, each on the result of the one before. **Bake into shape** makes them permanent. (Blender and 3ds Max call them modifiers too; Cinema 4D has generators and deformers.) See [Modifiers](modifiers.md).
+
+**Remesh** — Rebuilding a shape's surface from scratch as even polygons, ignoring how it was made: useful after booleans, joins or rough modelling, at the price of sharp corners rounded slightly and UVs to redo. See [Remesh](remesh.md).
+
+**Voxel** — A small cube of a 3D grid, the 3D cousin of a pixel. A voxel remesh fills a grid of voxels with the shape (each inside or outside), then wraps a new surface round the inside ones; the **voxel size** is how big the cubes are, and so roughly how big the new polygons are.
+
+**Bake into shape** — Turning a shape into a plain mesh with no settings: its base and edits are baked together, so what you see becomes the new starting point. Do it when you no longer need the settings, or before editing a mesh freely. Undo brings the settings back. A shape's [modifiers](#objects-and-scenes) that are on are baked in too. (Other programs call it *make editable*, *convert to editable poly* or *collapse*.) See [Objects](objects.md#bake-into-shape).
 
 **Hierarchy** — Objects can be children of other objects (sit *inside* them, in the Objects panel's tree). Moving a parent moves its children with it, and hiding it hides them too.
 

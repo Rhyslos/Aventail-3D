@@ -9,6 +9,7 @@ mod booleans;
 mod curves;
 mod general;
 mod modelling;
+mod modifiers;
 mod pen;
 mod primitives;
 mod tools;
@@ -183,6 +184,8 @@ pub enum Icon {
     Subtract,
     /// Intersect: only where a square and a circle overlap is left.
     Intersect,
+    /// Remesh (decision 0142): a round shape covered by an even grid.
+    Remesh,
     /// Turn UVs left 90°: a tile with an arrow going anticlockwise.
     UvTurnLeft,
     /// Turn UVs right 90°: a tile with an arrow going clockwise.
@@ -248,7 +251,7 @@ pub enum Icon {
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 112] = [
+pub const ALL: [Icon; 113] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -330,6 +333,7 @@ pub const ALL: [Icon; 112] = [
     Icon::Union,
     Icon::Subtract,
     Icon::Intersect,
+    Icon::Remesh,
     Icon::UvTurnLeft,
     Icon::UvTurnRight,
     Icon::UvFlipU,
@@ -451,6 +455,7 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         | Icon::ApplyTransforms
         | Icon::EditLayer => modelling::draw(&mut pen, icon),
         Icon::Union | Icon::Subtract | Icon::Intersect => booleans::draw(&mut pen, icon),
+        Icon::Remesh => modifiers::draw(&mut pen, icon),
         Icon::DrawCurve
         | Icon::CurveLine
         | Icon::CurveCircle

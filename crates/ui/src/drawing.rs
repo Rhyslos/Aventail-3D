@@ -25,6 +25,8 @@ pub struct DrawItem {
     /// all, and its points and polygons are new), with the object's live
     /// mirror's copies added (decision 0088), or `shown` itself without
     /// either. The copies come after the shape's own points and polygons.
+    /// With modifiers shown in the viewport (decision 0142), their result
+    /// on the whole shape, cut and mirrored.
     pub drawn: Arc<Mesh>,
     /// Where it is in the world.
     pub transform: Mat4,
@@ -265,6 +267,11 @@ pub(crate) struct DrawingCache {
     /// Each kept object's last cut shown, to show while a newer one is
     /// worked out.
     last_cut: std::collections::HashMap<ObjectId, Arc<Mesh>>,
+    /// Heavy modifiers being worked out on other threads (decision 0142).
+    stacking: std::collections::HashMap<ObjectId, std::thread::JoinHandle<scene::StackDone>>,
+    /// Each object's last shape after its modifiers, to show while newer
+    /// work is done.
+    last_stack: std::collections::HashMap<ObjectId, Arc<Mesh>>,
 }
 
 impl DrawingCache {
@@ -274,9 +281,12 @@ impl DrawingCache {
     /// scene for one it already drew.
     pub(crate) fn forget(&mut self) {
         self.built_for = None;
-        // Cuts of the old document's objects aren't this one's.
+        // Cuts and modifiers of the old document's objects aren't this
+        // one's.
         self.last_cut.clear();
         self.cutting.clear();
+        self.last_stack.clear();
+        self.stacking.clear();
     }
 
     /// The summary of `document`, with the selected objects' `editing`
@@ -288,8 +298,10 @@ impl DrawingCache {
         editing: Option<ElementKind>,
         hidden: &Hidden,
     ) -> &SceneSummary {
-        // A heavy cut worked out since: kept by the scene, and drawn.
-        if self.collect_cuts(document.scene()) {
+        // A heavy cut or modifier worked out since: kept by the scene, and
+        // drawn.
+        let cuts = self.collect_cuts(document.scene());
+        if self.collect_stacks(document.scene()) || cuts {
             self.built_for = None;
         }
         let key = (
@@ -337,10 +349,19 @@ impl DrawingCache {
                 .map_or(mesh::Hardness::Marked, |o| o.hardness);
             let shown = hidden.shown(id, &shape.mesh);
             // Cut by its booleans, if they work (decision 0135).
-            let cut = self.cut_of(scene, id).unwrap_or_else(|| Arc::clone(&shown));
-            let drawn = scene
-                .with_mirror(id, &cut)
-                .map_or_else(|| Arc::clone(&cut), Arc::new);
+            let cut = self.cut_of(scene, id);
+            let drawn = if scene.has_modifiers_for(id, scene::Purpose::Viewport) {
+                // Modifiers work on the whole shape, hidden polygons and
+                // all, after the mirror (decision 0142).
+                let whole = cut.unwrap_or_else(|| Arc::clone(&shape.mesh));
+                let input = scene.mirrored_shape(id, whole);
+                self.modified(scene, id, input)
+            } else {
+                let cut = cut.unwrap_or_else(|| Arc::clone(&shown));
+                scene
+                    .with_mirror(id, &cut)
+                    .map_or_else(|| Arc::clone(&cut), Arc::new)
+            };
             let selected = document.is_selected(id);
             let (mesh, shown, curve) = match curve {
                 Some(curve) => {
@@ -430,10 +451,10 @@ impl DrawingCache {
         &self.summary
     }
 
-    /// Whether heavy cuts are being worked out on other threads (the
-    /// window keeps drawing until they are in).
-    pub(crate) fn cutting(&self) -> bool {
-        !self.cutting.is_empty()
+    /// Whether heavy cuts or modifiers are being worked out on other
+    /// threads (the window keeps drawing until they are in).
+    pub(crate) fn busy(&self) -> bool {
+        !self.cutting.is_empty() || !self.stacking.is_empty()
     }
 
     /// Hands every finished cut to the scene; whether any was.
@@ -480,6 +501,8 @@ impl DrawingCache {
         cut
     }
 }
+
+mod stack;
 
 #[cfg(test)]
 mod tests {

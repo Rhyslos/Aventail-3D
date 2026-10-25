@@ -32,7 +32,7 @@ Each object keeps its own mirror, saved with the project.
 
 Select the objects and choose **Apply mirror** in the Symmetry menu (the arrow beside the Symmetry button), or **Mesh → Shape and object → Apply mirror**, or press **Space** and type *apply mirror* ([command search](command-search.md)). It's greyed out until a selected object has symmetry on.
 
-Applying also bakes the object's edits into its shape, as [Bake into shape](objects.md#bake-into-shape) does: the result is a plain mesh, and its edit list starts empty. A shape cut by [booleans](booleans.md) is applied as you see it, cut, and its booleans are baked in the same way (the cutters are hidden). The cut is made before the mirror, so a hole cut in your half shows on both halves. It's one undo step: **Ctrl + Z** brings the mirror, the settings, the edits and the booleans back.
+Applying also bakes the object's edits into its shape, as [Bake into shape](objects.md#bake-into-shape) does: the result is a plain mesh, and its edit list starts empty. A shape cut by [booleans](booleans.md) is applied as you see it, cut, and its booleans are baked in the same way (the cutters are hidden). The cut is made before the mirror, so a hole cut in your half shows on both halves. It's one undo step: **Ctrl + Z** brings the mirror, the settings, the edits and the booleans back. [Modifiers](modifiers.md) come after the mirror, so they work on the whole, mirrored shape (a half that is open along the middle is closed once mirrored, so [Remesh](remesh.md) works on it); Apply mirror leaves them on, still live. **Bake into shape** on a shape with modifiers bakes the mirror in too.
 
 ### Where the halves meet
 

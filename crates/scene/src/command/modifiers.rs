@@ -1,0 +1,247 @@
+//! The commands that add, change, move, remove and bake modifiers
+//! ([decision 0142](../../../../docs/decisions/0142-modifier-stack-and-remesh.md)).
+//! Every one changes an object's list through one edit,
+//! [`Edit::SetModifiers`], so undo puts the whole list back.
+
+use super::Run;
+use crate::modifier::{Modifier, ModifierKind, ModifierRefusal, Purpose};
+use crate::object::ObjectId;
+use crate::tree::{Edit, SceneError};
+use words::{tr, trf};
+
+/// The undo label for a modifier command.
+pub(super) fn label(scene: &crate::Scene, command: &super::Command) -> Option<String> {
+    use super::Command;
+    let name_at = |id: &ObjectId, index: &usize| {
+        scene
+            .modifiers(*id)
+            .get(*index)
+            .map_or_else(|| tr("modifier"), |m| m.kind.name())
+    };
+    Some(match command {
+        Command::AddModifier { ids, kind } => match ids.len() {
+            0 | 1 => trf!("Add {}", kind.name()),
+            n => trf!("Add {} to {} objects", kind.name(), n),
+        },
+        Command::ChangeModifier {
+            id,
+            index,
+            modifier,
+        } => {
+            let before = scene.modifiers(*id).get(*index);
+            match before {
+                Some(b) if b.on != modifier.on && modifier.on => {
+                    trf!("Switch {} on", modifier.kind.name())
+                }
+                Some(b) if b.on != modifier.on => trf!("Switch {} off", modifier.kind.name()),
+                Some(b) if b.in_viewport != modifier.in_viewport && modifier.in_viewport => {
+                    trf!("Show {} in the viewport", modifier.kind.name())
+                }
+                Some(b) if b.in_viewport != modifier.in_viewport => {
+                    trf!("Hide {} in the viewport", modifier.kind.name())
+                }
+                _ => trf!("Change {}", modifier.kind.name()),
+            }
+        }
+        Command::RemoveModifier { id, index } => trf!("Remove {}", name_at(id, index)),
+        Command::MoveModifier { id, from, to } => {
+            if to < from {
+                trf!("Move {} up", name_at(id, from))
+            } else {
+                trf!("Move {} down", name_at(id, from))
+            }
+        }
+        _ => return None,
+    })
+}
+
+impl Run<'_> {
+    /// Gives `id` these modifiers, if they make sense
+    /// ([`crate::Scene::check_modifiers`]).
+    fn set_modifiers(&mut self, id: ObjectId, after: Vec<Modifier>) -> Result<(), SceneError> {
+        let object = self.scene.object(id).ok_or(SceneError::UnknownObject(id))?;
+        if object.modifiers == after {
+            return Ok(());
+        }
+        self.scene
+            .check_modifiers(id, &after)
+            .map_err(SceneError::Modifier)?;
+        let before = object.modifiers.clone();
+        self.edit(Edit::SetModifiers { id, before, after })
+    }
+
+    /// Adds a modifier of `kind` (its settings brought within limits) at
+    /// the end of each object's list. Refused, changing nothing, if any
+    /// object can't take it.
+    pub(super) fn add_modifier(
+        &mut self,
+        ids: &[ObjectId],
+        kind: &ModifierKind,
+    ) -> Result<(), SceneError> {
+        if ids.is_empty() {
+            return Err(SceneError::Modifier(ModifierRefusal::NotAShape));
+        }
+        for id in super::existing(self.scene, ids)? {
+            let mut after = self.scene.modifiers(id).to_vec();
+            after.push(Modifier::new(kind.clone()));
+            self.set_modifiers(id, after)?;
+        }
+        Ok(())
+    }
+
+    /// Puts `modifier` (settings brought within limits) in place of the
+    /// one at `index`, which must be of the same kind.
+    pub(super) fn change_modifier(
+        &mut self,
+        id: ObjectId,
+        index: usize,
+        modifier: &Modifier,
+    ) -> Result<(), SceneError> {
+        let mut after = self.scene.modifiers(id).to_vec();
+        let slot = after
+            .get_mut(index)
+            .ok_or(SceneError::Modifier(ModifierRefusal::NoSuchModifier))?;
+        if !slot.kind.same_kind(&modifier.kind) {
+            return Err(SceneError::Modifier(ModifierRefusal::OtherKind));
+        }
+        *slot = Modifier {
+            kind: modifier.kind.clamped(),
+            ..*modifier
+        };
+        self.set_modifiers(id, after)
+    }
+
+    /// Takes the modifier at `index` away.
+    pub(super) fn remove_modifier(&mut self, id: ObjectId, index: usize) -> Result<(), SceneError> {
+        let mut after = self.scene.modifiers(id).to_vec();
+        if index >= after.len() {
+            return Err(SceneError::Modifier(ModifierRefusal::NoSuchModifier));
+        }
+        after.remove(index);
+        self.set_modifiers(id, after)
+    }
+
+    /// Moves the modifier at `from` to `to` (both places in the list as
+    /// it is now).
+    pub(super) fn move_modifier(
+        &mut self,
+        id: ObjectId,
+        from: usize,
+        to: usize,
+    ) -> Result<(), SceneError> {
+        let mut after = self.scene.modifiers(id).to_vec();
+        if from >= after.len() || to >= after.len() {
+            return Err(SceneError::Modifier(ModifierRefusal::NoSuchModifier));
+        }
+        let modifier = after.remove(from);
+        after.insert(to, modifier);
+        self.set_modifiers(id, after)
+    }
+
+    /// Takes out of every other object's modifiers each modifier that
+    /// reads one of `going` (objects about to be deleted).
+    pub(super) fn forget_modifier_sources(&mut self, going: &[ObjectId]) -> Result<(), SceneError> {
+        let users: Vec<ObjectId> = self
+            .scene
+            .walk()
+            .into_iter()
+            .map(|(id, _)| id)
+            .filter(|id| !going.contains(id))
+            .filter(|id| {
+                self.scene
+                    .modifiers(*id)
+                    .iter()
+                    .any(|m| m.kind.sources().iter().any(|s| going.contains(s)))
+            })
+            .collect();
+        for id in users {
+            let before = self.scene.modifiers(id).to_vec();
+            let mut after = before.clone();
+            after.retain(|m| !m.kind.sources().iter().any(|s| going.contains(s)));
+            self.edit(Edit::SetModifiers { id, before, after })?;
+        }
+        Ok(())
+    }
+
+    /// Takes away `id`'s modifiers if they don't make sense here (a group
+    /// or an instance, a source that isn't there or would make a loop):
+    /// for an object put in from elsewhere.
+    pub(super) fn keep_usable_modifiers(&mut self, id: ObjectId) -> Result<(), SceneError> {
+        let before = self.scene.modifiers(id).to_vec();
+        if before.is_empty() || self.scene.check_modifiers(id, &before).is_ok() {
+            return Ok(());
+        }
+        let mut after: Vec<Modifier> = before
+            .iter()
+            .filter(|m| {
+                self.scene
+                    .check_modifiers(id, std::slice::from_ref(*m))
+                    .is_ok()
+            })
+            .cloned()
+            .collect();
+        if self.scene.check_modifiers(id, &after).is_err() {
+            after.clear();
+        }
+        self.edit(Edit::SetModifiers { id, before, after })
+    }
+
+    /// Points the copies' modifiers at the copies of their sources, where
+    /// those were copied too (`copied` pairs each original with its copy).
+    pub(super) fn follow_copied_sources(
+        &mut self,
+        copied: &[(ObjectId, ObjectId)],
+    ) -> Result<(), SceneError> {
+        let copy_of = |id: ObjectId| {
+            copied
+                .iter()
+                .find(|(original, _)| *original == id)
+                .map_or(id, |(_, copy)| *copy)
+        };
+        for (_, copy) in copied {
+            let before = self.scene.modifiers(*copy).to_vec();
+            let after: Vec<Modifier> = before
+                .iter()
+                .map(|m| Modifier {
+                    kind: m.kind.with_sources_renamed(copy_of),
+                    ..m.clone()
+                })
+                .collect();
+            if after != before {
+                self.edit(Edit::SetModifiers {
+                    id: *copy,
+                    before,
+                    after,
+                })?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Whether baking `id` takes in its modifiers: any of them (an
+    /// instance's original's) is on.
+    pub(super) fn bakes_modifiers(&self, id: ObjectId) -> bool {
+        self.scene.has_modifiers_for(id, Purpose::Export)
+    }
+
+    /// Ends `id`'s modifiers once their result is part of its shape: those
+    /// that were on and worked go; those switched off, or that couldn't do
+    /// their work (`problems`, by place), stay.
+    pub(super) fn end_modifiers(
+        &mut self,
+        id: ObjectId,
+        problems: &[(usize, String)],
+    ) -> Result<(), SceneError> {
+        let before = self.scene.modifiers(id).to_vec();
+        let after: Vec<Modifier> = before
+            .iter()
+            .enumerate()
+            .filter(|(i, m)| !m.on || problems.iter().any(|(p, _)| p == i))
+            .map(|(_, m)| m.clone())
+            .collect();
+        if after != before {
+            self.edit(Edit::SetModifiers { id, before, after })?;
+        }
+        Ok(())
+    }
+}

@@ -20,6 +20,7 @@ pub mod icons;
 mod keyboard;
 mod layers;
 pub mod layout;
+mod modifiers;
 mod objects;
 pub mod palette;
 mod panel;

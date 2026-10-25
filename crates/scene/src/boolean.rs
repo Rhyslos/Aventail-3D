@@ -281,7 +281,7 @@ impl Scene {
     }
 
     /// The objects whose shapes `id`'s shape is made from: its cutters,
-    /// or an instance's original.
+    /// an instance's original, and its modifiers' sources.
     fn shape_sources(&self, id: ObjectId) -> Vec<ObjectId> {
         let Some(object) = self.object(id) else {
             return Vec::new();
@@ -294,6 +294,8 @@ impl Scene {
         if let ObjectKind::Instance(source) = object.kind {
             out.push(source);
         }
+        // Shapes its modifiers read (decision 0142).
+        out.extend(object.modifiers.iter().flat_map(|m| m.kind.sources()));
         out
     }
 
