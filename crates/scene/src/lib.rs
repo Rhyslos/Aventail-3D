@@ -14,6 +14,7 @@ pub mod boolean;
 pub mod collision;
 pub mod command;
 pub mod curve;
+pub mod displace;
 pub mod document;
 pub mod game_bevel;
 mod history;
@@ -42,6 +43,7 @@ pub use collision::{
 };
 pub use command::Command;
 pub use curve::{CurveObject, CurveShape, CurveSolid, Sweep, SweepProfile};
+pub use displace::DisplaceSettings;
 pub use document::Document;
 pub use game_bevel::{GameBevelDone, game_bevel_options};
 pub use history::HistoryLimit;
@@ -55,6 +57,7 @@ pub use mesh::curve::{
     PartKind, PointKind, ReadyCurve, ReadyCurveKind, Span,
 };
 pub use mesh::decimate::{DecimateOptions, Keep as DecimateKeep, ReduceBy};
+pub use mesh::displace::{DisplaceDirection, DisplaceOptions, NoiseKind};
 pub use mesh::edit::{
     Bend, BevelOptions, BevelShape, ExtrudeDirection, ExtrudeShape, Eye, GrooveShape, GrooveSides,
     Grouping, Slide, SlitLine,
@@ -112,6 +115,8 @@ mod curve_editing_tests;
 mod curve_tests;
 #[cfg(test)]
 mod decimate_tests;
+#[cfg(test)]
+mod displace_tests;
 #[cfg(test)]
 mod edit_list_tests;
 #[cfg(test)]

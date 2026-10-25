@@ -30,6 +30,7 @@
 mod eval;
 
 pub use crate::array::ArraySettings;
+pub use crate::displace::DisplaceSettings;
 pub use crate::lattice::LatticeOptions;
 use crate::object::{ObjectId, ObjectKind};
 pub use crate::scatter::ScatterSettings;
@@ -136,6 +137,9 @@ pub enum ModifierKind {
     /// The surface given thickness (decision 0154): a copy behind it,
     /// facing the other way, and rims along its open borders.
     Shell(ShellOptions),
+    /// The shape's points pushed in and out by a noise (decision 0157),
+    /// along their normals or an axis, everywhere or round chosen points.
+    Displace(DisplaceSettings),
 }
 
 impl ModifierKind {
@@ -151,6 +155,7 @@ impl ModifierKind {
             Self::Lattice(LatticeOptions::default()),
             Self::BendAlongCurve(CurveBendSettings::default()),
             Self::Shrinkwrap(ShrinkwrapSettings::default()),
+            Self::Displace(DisplaceSettings::default()),
             Self::Remesh(RemeshOptions::default()),
             Self::Decimate(DecimateOptions::default()),
             Self::Quadify(QuadifyOptions::default()),
@@ -175,6 +180,7 @@ impl ModifierKind {
             Self::WeldByDistance(_) => tr("Weld by distance"),
             Self::Array(_) => tr("Array"),
             Self::Shell(_) => tr("Shell"),
+            Self::Displace(_) => tr("Displace"),
         }
     }
 
@@ -241,6 +247,11 @@ impl ModifierKind {
                 "Give a surface thickness: a sheet of metal, a cup's wall, a cloth's hem. Open \
                  borders get a rim joining the two sides.",
             ),
+            Self::Displace(_) => tr(
+                "Push the shape's points in and out by a noise: rough rock, lumpy ground, dented \
+                 metal, cobbles. Smooth, ridged or cell-shaped bumps, everywhere or round chosen \
+                 points. Best on a shape with plenty of points.",
+            ),
         }
     }
 
@@ -252,7 +263,9 @@ impl ModifierKind {
             Self::Lattice(_) => ModifierFamily::Deform,
             Self::Decimate(_) => ModifierFamily::CleanUp,
             Self::Scatter(_) => ModifierFamily::Generate,
-            Self::BendAlongCurve(_) | Self::Shrinkwrap(_) => ModifierFamily::Deform,
+            Self::BendAlongCurve(_) | Self::Shrinkwrap(_) | Self::Displace(_) => {
+                ModifierFamily::Deform
+            }
             Self::WeightedNormals(_) => ModifierFamily::Game,
             Self::LiveBevel(_) | Self::Array(_) | Self::Shell(_) => ModifierFamily::Generate,
             Self::Quadify(_) | Self::WeldByDistance(_) => ModifierFamily::CleanUp,
@@ -274,7 +287,8 @@ impl ModifierKind {
             | Self::Quadify(_)
             | Self::WeldByDistance(_)
             | Self::Array(_)
-            | Self::Shell(_) => false,
+            | Self::Shell(_)
+            | Self::Displace(_) => false,
             Self::Subdivide(o) => {
                 let o = o.clamped();
                 o.levels != o.export_levels
@@ -304,6 +318,7 @@ impl ModifierKind {
             Self::WeldByDistance(options) => Self::WeldByDistance(options.clamped()),
             Self::Array(settings) => Self::Array(settings.clamped()),
             Self::Shell(options) => Self::Shell(options.clamped()),
+            Self::Displace(settings) => Self::Displace(settings.clamped()),
         }
     }
 
@@ -320,7 +335,8 @@ impl ModifierKind {
             | Self::LiveBevel(_)
             | Self::Quadify(_)
             | Self::WeldByDistance(_)
-            | Self::Shell(_) => Vec::new(),
+            | Self::Shell(_)
+            | Self::Displace(_) => Vec::new(),
             Self::Lattice(options) => vec![options.cage],
             Self::Scatter(settings) => settings.shapes.clone(),
             Self::BendAlongCurve(settings) => vec![settings.curve],
@@ -385,7 +401,8 @@ impl ModifierKind {
             | Self::LiveBevel(_)
             | Self::Quadify(_)
             | Self::WeldByDistance(_)
-            | Self::Shell(_) => kind.has_shape(),
+            | Self::Shell(_)
+            | Self::Displace(_) => kind.has_shape(),
         }
     }
 
@@ -400,7 +417,8 @@ impl ModifierKind {
             | Self::LiveBevel(_)
             | Self::Quadify(_)
             | Self::WeldByDistance(_)
-            | Self::Shell(_) => self.clone(),
+            | Self::Shell(_)
+            | Self::Displace(_) => self.clone(),
             Self::Lattice(options) => Self::Lattice(LatticeOptions {
                 cage: rename(options.cage),
             }),
@@ -482,6 +500,8 @@ impl ModifierKind {
             // About four polygons made cost as much as one in a boolean
             // (10 000 polygons thickened in about 20 ms in a release build).
             Self::Shell(options) => mesh::shell::work(input, options),
+            // See `mesh::displace::work` for the timings.
+            Self::Displace(settings) => settings.work(input),
         }
     }
 
@@ -545,6 +565,7 @@ impl ModifierKind {
             Self::Array(settings) => crate::array::apply_array(input, settings, context),
             Self::Shell(options) => mesh::shell::shell(input, options, crate::MAX_SHAPE_POLYGONS)
                 .map_err(|why| why.to_string()),
+            Self::Displace(settings) => crate::displace::apply_displace(input, settings, context),
         }
     }
 
@@ -558,7 +579,8 @@ impl ModifierKind {
     /// crack spoils each of them (decision 0152); a Shell before Live
     /// bevel, Subdivide and Weighted normals, so its rims are bevelled
     /// and smoothed with the rest and the normals are weighted last
-    /// (decision 0154). The person can move it afterwards.
+    /// (decision 0154); Displace before Weighted normals, which shades
+    /// best last (decision 0157). The person can move it afterwards.
     pub fn goes_before(&self, other: &Self) -> bool {
         match self {
             Self::LiveBevel(_) => {
@@ -581,6 +603,7 @@ impl ModifierKind {
                 other,
                 Self::LiveBevel(_) | Self::Subdivide(_) | Self::WeightedNormals(_)
             ),
+            Self::Displace(_) => matches!(other, Self::WeightedNormals(_)),
             _ => false,
         }
     }

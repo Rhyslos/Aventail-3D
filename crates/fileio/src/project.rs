@@ -66,6 +66,7 @@ mod v53;
 mod v54;
 mod v55;
 mod v56;
+mod v58;
 mod v6;
 mod v7;
 mod v8;
@@ -138,7 +139,10 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// Version 57 (decision 0156) is version 56 with the Live bevel's *Soft
 /// bevels* switch (`v50::LiveBevelV50::soften`), which the game bevel
 /// turns on.
-pub const FORMAT_VERSION: u32 = 57;
+///
+/// Version 58 (decision 0157) is version 57 with the Displace modifier
+/// (`v43::KindV43::Displace`, its settings in `v58::DisplaceV58`).
+pub const FORMAT_VERSION: u32 = 58;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -989,3 +993,5 @@ mod v55_tests;
 mod v56_tests;
 #[cfg(test)]
 mod v57_tests;
+#[cfg(test)]
+mod v58_tests;

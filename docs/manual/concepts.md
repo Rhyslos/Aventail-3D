@@ -137,11 +137,13 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Shell (thickness)** — Giving a single surface a real thickness: a copy of it behind (or in front), facing the other way, joined to it along its open [borders](#mesh-basics) by a strip of polygons, the **rim**. A plane becomes a plate, a bowl's surface its wall. (Blender calls it Solidify.) See [Shell](shell.md).
 
-**Deformer** — A kind of [modifier](#objects-and-scenes) that only moves a shape's points: its polygons, UVs, seams and materials stay as they were, so it is textured just as before, only bent. Each deformer works in a space of its own (a box, or an axis through a centre) over a range, and what lies past the range carries on unbent. The [lattice](lattice.md) is the first; [Bend along curve](bend-along-curve.md) and [Shrinkwrap](shrinkwrap.md) follow, and bend, twist and taper come later.
+**Deformer** — A kind of [modifier](#objects-and-scenes) that only moves a shape's points: its polygons, UVs, seams and materials stay as they were, so it is textured just as before, only bent. Each deformer works in a space of its own (a box, or an axis through a centre) over a range, and what lies past the range carries on unbent. The [lattice](lattice.md) is the first; [Bend along curve](bend-along-curve.md), [Shrinkwrap](shrinkwrap.md) and [Displace](displace.md) follow, and bend, twist and taper come later.
 
 **Bend along curve (curve deform)** — Bending a shape so it runs along a [curve](#curves): its length follows the curve and its cross-section turns with it, as a sweep's does. The curve stays live, so reshaping it reshapes the shape. (Other programs call it a *curve modifier* or *path deform*.) See [Bend along curve](bend-along-curve.md).
 
 **Shrinkwrap** — Moving a shape's points onto another shape's surface, the *target*: to the nearest place on it, or along a direction until they meet it. For straps, decals and roads that must hug something. See [Shrinkwrap](shrinkwrap.md).
+
+**Noise (displacement)** — A pattern of random-looking bumps worked out from a place and a number, the *seed*, so it is the same every time: soft rolling lumps, sharp ridges or rounded cells, in layers of ever smaller bumps (*octaves*, the **Detail**). **Displacing** a shape pushes each point in or out by the noise's value where it is, for rock, ground and wear. See [Displace](displace.md).
 
 **Lattice (cage)** — A box of points round one or more shapes, an object of its own drawn as lines; moving its points bends, squashes and swells the shapes inside smoothly, through each shape's **Lattice** modifier. Its **divisions** are how many points it has along each side. (Other programs call it a *lattice deformer*, or *FFD*, free-form deformation.) See [Lattice](lattice.md).
 

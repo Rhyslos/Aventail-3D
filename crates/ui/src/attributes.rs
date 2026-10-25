@@ -12,6 +12,7 @@ mod crease_rows;
 mod curve_points;
 mod curve_rows;
 mod decimate_rows;
+mod displace_rows;
 mod edits;
 mod fields;
 mod last_edit;

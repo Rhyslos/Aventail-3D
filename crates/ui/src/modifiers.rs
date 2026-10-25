@@ -15,10 +15,10 @@ use crate::palette::{ButtonState, icon_button};
 use crate::text::tr;
 use egui::Ui;
 use scene::{
-    ArraySettings, Command, CurveBendSettings, DecimateOptions, Document, LatticeOptions,
-    LiveBevelOptions, MAX_MODIFIERS, ModifierFamily, ModifierKind, ModifierRefusal, ObjectId,
-    ObjectKind, QuadifyOptions, RemeshOptions, ScatterSettings, ShellOptions, ShrinkwrapSettings,
-    SubdivideOptions, WeightedNormalsOptions, WeldOptions,
+    ArraySettings, Command, CurveBendSettings, DecimateOptions, DisplaceSettings, Document,
+    LatticeOptions, LiveBevelOptions, MAX_MODIFIERS, ModifierFamily, ModifierKind, ModifierRefusal,
+    ObjectId, ObjectKind, QuadifyOptions, RemeshOptions, ScatterSettings, ShellOptions,
+    ShrinkwrapSettings, SubdivideOptions, WeightedNormalsOptions, WeldOptions,
 };
 
 mod pairs;
@@ -26,7 +26,7 @@ pub(crate) use pairs::pair_plan;
 
 /// One command per kind of modifier, in the order of
 /// [`ModifierKind::standard_kinds`].
-pub(crate) const COMMANDS: [CommandId; 13] = [
+pub(crate) const COMMANDS: [CommandId; 14] = [
     CommandId::Subdivide,
     CommandId::Array,
     CommandId::Shell,
@@ -35,6 +35,7 @@ pub(crate) const COMMANDS: [CommandId; 13] = [
     CommandId::Lattice,
     CommandId::BendAlongCurve,
     CommandId::Shrinkwrap,
+    CommandId::Displace,
     CommandId::Remesh,
     CommandId::Decimate,
     CommandId::Quadify,
@@ -59,6 +60,7 @@ pub(crate) fn kind_of(command: CommandId) -> Option<ModifierKind> {
             Some(ModifierKind::BendAlongCurve(CurveBendSettings::default()))
         }
         CommandId::Shrinkwrap => Some(ModifierKind::Shrinkwrap(ShrinkwrapSettings::default())),
+        CommandId::Displace => Some(ModifierKind::Displace(DisplaceSettings::default())),
         CommandId::WeightedNormals => Some(ModifierKind::WeightedNormals(
             WeightedNormalsOptions::default(),
         )),
