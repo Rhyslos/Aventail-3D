@@ -251,8 +251,10 @@ impl std::error::Error for ProjectError {
 /// again are never handed out, so a save can't silently lose a project.
 pub fn to_bytes(document: &Document) -> Result<Vec<u8>, ProjectError> {
     let bytes = encode(document)?;
-    match from_bytes(&bytes) {
-        Ok(_) => Ok(bytes),
+    match from_bytes_noting(&bytes) {
+        Ok((_, notes)) if notes.is_empty() => Ok(bytes),
+        // It would open, but without something it holds.
+        Ok((_, notes)) => Err(ProjectError::WouldNotReopen(notes.join(" "))),
         Err(why) => Err(ProjectError::WouldNotReopen(why.to_string())),
     }
 }
@@ -317,6 +319,15 @@ fn number<const N: usize>(bytes: &[u8], at: usize) -> Option<[u8; N]> {
 
 /// The document a project file's bytes hold.
 pub fn from_bytes(bytes: &[u8]) -> Result<Document, ProjectError> {
+    from_bytes_noting(bytes).map(|(document, _)| document)
+}
+
+/// The document a project file's bytes hold, and what was left out so
+/// the rest could open, in plain words for the person opening it (each a
+/// sentence without its full stop): a modifier that reads an object of a
+/// kind it can't read is taken off.
+pub fn from_bytes_noting(bytes: &[u8]) -> Result<(Document, Vec<String>), ProjectError> {
+    let mut notes = Vec::new();
     if bytes.len() < SIGNATURE.len() || bytes[..SIGNATURE.len()] != SIGNATURE {
         return Err(ProjectError::NotAProject);
     }
@@ -352,7 +363,7 @@ pub fn from_bytes(bytes: &[u8]) -> Result<Document, ProjectError> {
         body
     };
     // Older versions are read with their own model (decision 0031).
-    match version {
+    let document = match version {
         1 => decode::<v1::OperationV1>(encoded),
         2 => decode::<v2::OperationV2>(encoded),
         3 => decode::<v3::OperationV3>(encoded),
@@ -394,8 +405,15 @@ pub fn from_bytes(bytes: &[u8]) -> Result<Document, ProjectError> {
         39 => decode_development(encoded),
         40 => decode_booleans(encoded),
         41 | 42 => decode_curves(encoded),
-        _ => decode_modifiers(encoded),
-    }
+        _ => decode_modifiers(encoded, &mut notes),
+    }?;
+    // Older parts of the file hold curves and cages as empty groups, and
+    // let what names one through until a later part gives it back: now
+    // that everything is in, check it all.
+    document
+        .check_opened()
+        .map_err(|why| ProjectError::Damaged(why.to_string()))?;
+    Ok((document, notes))
 }
 
 /// The document a body of version 39 (the development format, decision
@@ -473,7 +491,7 @@ fn decode_curves(encoded: &[u8]) -> Result<Document, ProjectError> {
 
 /// The document a body of version 43 (the development format with the
 /// modifier stack, decision 0142) or later holds.
-fn decode_modifiers(encoded: &[u8]) -> Result<Document, ProjectError> {
+fn decode_modifiers(encoded: &[u8], notes: &mut Vec<String>) -> Result<Document, ProjectError> {
     let model = crate::limits::within_budget(|| v43::decode(encoded))
         .map_err(|e| ProjectError::Damaged(trf!("its scene can't be read ({})", e)))?;
     model
@@ -494,7 +512,9 @@ fn decode_modifiers(encoded: &[u8]) -> Result<Document, ProjectError> {
         .project
         .check_limits()
         .map_err(ProjectError::Damaged)?;
-    model.into_document().map_err(ProjectError::Damaged)
+    model
+        .into_document_noting(notes)
+        .map_err(ProjectError::Damaged)
 }
 
 /// The document a body of version 18 or later holds.
@@ -954,6 +974,12 @@ fn sync_folder(path: &Path) {
 
 /// Opens the project at `path`.
 pub fn open(path: &Path) -> Result<Document, ProjectError> {
+    open_noting(path).map(|(document, _)| document)
+}
+
+/// [`open`], with what was left out so the rest could open
+/// ([`from_bytes_noting`]).
+pub fn open_noting(path: &Path) -> Result<(Document, Vec<String>), ProjectError> {
     let size = std::fs::metadata(path)
         .map_err(|source| ProjectError::Io {
             action: text!("read"),
@@ -969,9 +995,11 @@ pub fn open(path: &Path) -> Result<Document, ProjectError> {
         path: path.to_path_buf(),
         source,
     })?;
-    from_bytes(&bytes)
+    from_bytes_noting(&bytes)
 }
 
+#[cfg(test)]
+mod stand_in_tests;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]

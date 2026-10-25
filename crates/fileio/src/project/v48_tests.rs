@@ -265,10 +265,24 @@ fn a_bend_or_wrap_naming_the_wrong_thing_or_a_loop_is_refused_as_damaged() {
         }
         model.into_document()
     };
-    // A missing curve, itself, a shape that isn't a curve.
+    // A missing curve, itself.
     assert!(with_curve(987_654).is_err());
     assert!(with_curve(bend_id).is_err());
-    assert!(with_curve(wrap_id).is_err());
+    // A shape that isn't a curve (a curve baked by an older app): the bend
+    // is taken off with a note, and the rest opens.
+    let mut baked = model.clone();
+    if let v43::KindV43::BendAlongCurve { curve: c, .. } = &mut baked.modifiers[bend].list[0].kind {
+        *c = wrap_id;
+    }
+    let mut notes = Vec::new();
+    let doc = baked.into_document_noting(&mut notes).unwrap();
+    assert_eq!(notes.len(), 1);
+    assert!(
+        !doc.scene()
+            .modifiers(scene::ObjectId::from_raw(bend_id))
+            .iter()
+            .any(|m| matches!(m.kind, scene::ModifierKind::BendAlongCurve(_)))
+    );
     // A missing target, itself.
     assert!(with_target(987_654).is_err());
     assert!(with_target(wrap_id).is_err());

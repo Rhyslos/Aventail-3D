@@ -328,11 +328,14 @@ impl Scene {
         purpose: Purpose,
         input: Arc<Mesh>,
     ) -> Option<StackState> {
+        // An instance shows its original's final shape (decision 0142):
+        // the sources are placed, and the pivot found, in the original's
+        // space, so the instance has the same shape wherever it stands.
         let owner = self.modifier_owner(id);
         let hardness = self
             .object(owner)
             .map_or(mesh::Hardness::Marked, |o| o.hardness);
-        let pivot = self.pivot_in_shape(id);
+        let pivot = self.pivot_in_shape(owner);
         let plan: Vec<Planned> = self
             .modifiers(owner)
             .iter()
@@ -341,7 +344,7 @@ impl Scene {
             .map(|(index, m)| Planned {
                 index,
                 kind: m.kind.clone(),
-                sources: self.source_shapes(id, &m.kind, purpose),
+                sources: self.source_shapes(owner, &m.kind, purpose),
                 hardness,
                 // Only the kinds that read it, so moving the pivot works
                 // out nothing else again.
@@ -355,12 +358,21 @@ impl Scene {
         if plan.is_empty() {
             return None;
         }
+        // The instance's own last result, or else its original's when they
+        // start from the same shape (no mirror of the instance's own), so
+        // an instance usually costs nothing more.
         let mut done: Vec<Step> = Vec::new();
-        if let Some(run) = self
+        let kept = self
             .stacks
             .get(id, purpose)
             .filter(|run| same(&run.input, &input))
-        {
+            .or_else(|| {
+                (owner != id)
+                    .then(|| self.stacks.get(owner, purpose))
+                    .flatten()
+                    .filter(|run| same(&run.input, &input))
+            });
+        if let Some(run) = kept {
             for (planned, step) in plan.iter().zip(run.steps) {
                 if !planned.is_done_by(&step) {
                     break;

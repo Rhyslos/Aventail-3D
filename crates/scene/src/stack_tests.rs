@@ -421,7 +421,7 @@ fn make_editable_bakes_settings_and_edits_into_a_mesh() {
     record(&mut doc, id, lift(&[0], 20.0));
     let shape = doc.scene().evaluated(id).unwrap();
     let command = Command::MakeEditable(vec![id]);
-    assert_eq!(command.describe(doc.scene()), "Make object editable");
+    assert_eq!(command.describe(doc.scene()), "Bake into shape");
     doc.execute(command).unwrap();
     let object = doc.scene().object(id).unwrap();
     assert!(
@@ -434,7 +434,7 @@ fn make_editable_bakes_settings_and_edits_into_a_mesh() {
         other => panic!("not a mesh: {other:?}"),
     }
     assert_eq!(doc.scene().evaluated(id).unwrap().mesh, shape.mesh);
-    assert_eq!(doc.undo_label(), Some("Make object editable"));
+    assert_eq!(doc.undo_label(), Some("Bake into shape"));
     // One undo brings the settings and the edits back.
     doc.undo().unwrap();
     let object = doc.scene().object(id).unwrap();
@@ -476,7 +476,7 @@ fn make_editable_skips_groups_and_handles_several_shapes() {
     doc.execute(Command::Group(vec![a])).unwrap();
     let group = doc.selection()[0];
     let command = Command::MakeEditable(vec![group, a, b]);
-    assert_eq!(command.describe(doc.scene()), "Make 2 objects editable");
+    assert_eq!(command.describe(doc.scene()), "Bake 2 objects into shape");
     doc.execute(command).unwrap();
     assert_eq!(doc.scene().object(group).unwrap().kind, ObjectKind::Group);
     for id in [a, b] {

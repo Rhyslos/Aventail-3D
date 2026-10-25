@@ -322,12 +322,25 @@ impl Scene {
     /// instance, its cutters shapes other than itself that don't depend
     /// on it, at most [`MAX_CUTTERS`] of them.
     pub fn check_booleans(&self, id: ObjectId, booleans: &[Boolean]) -> Result<(), BooleanRefusal> {
+        self.check_booleans_where(id, booleans, ObjectKind::has_shape)
+    }
+
+    /// [`Scene::check_booleans`], with `is_shape` saying which kinds count
+    /// as shapes: a project being opened also lets an empty group through,
+    /// as the stand-in older parts of the file keep for a curve, and checks
+    /// again once every curve is in ([`Scene::check_opened`]).
+    pub(crate) fn check_booleans_where(
+        &self,
+        id: ObjectId,
+        booleans: &[Boolean],
+        is_shape: impl Fn(&ObjectKind) -> bool,
+    ) -> Result<(), BooleanRefusal> {
         if booleans.is_empty() {
             return Ok(());
         }
         let object = self.object(id).ok_or(BooleanRefusal::NotAShape)?;
         match object.kind {
-            _ if !object.kind.has_shape() => return Err(BooleanRefusal::NotAShape),
+            _ if !is_shape(&object.kind) => return Err(BooleanRefusal::NotAShape),
             ObjectKind::Instance(_) => return Err(BooleanRefusal::Instance),
             _ => {}
         }
@@ -341,7 +354,7 @@ impl Scene {
                 if *cutter == id {
                     return Err(BooleanRefusal::CutsItself);
                 }
-                if !self.object(*cutter).is_some_and(|o| o.kind.has_shape()) {
+                if !self.object(*cutter).is_some_and(|o| is_shape(&o.kind)) {
                     return Err(BooleanRefusal::NotAShape);
                 }
                 if self.shape_uses(*cutter, id) {

@@ -16,6 +16,7 @@
 //! same. Parts take a while, so the interface works them out on another
 //! thread ([`CollisionJob`]), as heavy modifiers are.
 
+use crate::Purpose;
 use crate::object::{Collision, ObjectId};
 use crate::tree::Scene;
 use glam::{Mat4, Vec3};
@@ -135,6 +136,7 @@ fn work(mesh: &Mesh, collision: Collision) -> usize {
 #[derive(Debug, Clone)]
 pub struct CollisionJob {
     id: ObjectId,
+    purpose: Purpose,
     input: Arc<Mesh>,
     setting: Setting,
 }
@@ -155,10 +157,12 @@ impl CollisionJob {
         );
         CollisionDone {
             id: self.id,
+            purpose: self.purpose,
             kept: Kept {
                 input: self.input,
                 setting: self.setting,
                 shapes: Arc::new(shapes),
+                fresh: true,
             },
         }
     }
@@ -168,6 +172,7 @@ impl CollisionJob {
 #[derive(Debug, Clone)]
 pub struct CollisionDone {
     id: ObjectId,
+    purpose: Purpose,
     kept: Kept,
 }
 
@@ -193,12 +198,16 @@ struct Kept {
     input: Arc<Mesh>,
     setting: Setting,
     shapes: Arc<CollisionShapes>,
+    /// Whether it was made from the shape last asked about for its
+    /// purpose: once a newer shape is asked about, it is kept to show
+    /// meanwhile, but no longer said to be the object's.
+    fresh: bool,
 }
 
 /// Each object's collision shapes last worked out (not part of what the
 /// scene is: copies start empty, and it never affects equality).
 #[derive(Default)]
-pub(crate) struct CollisionCache(Mutex<HashMap<ObjectId, Kept>>);
+pub(crate) struct CollisionCache(Mutex<HashMap<(ObjectId, Purpose), Kept>>);
 
 impl CollisionCache {
     /// Forgets `id`'s (deleted).
@@ -206,15 +215,43 @@ impl CollisionCache {
         self.0
             .get_mut()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .remove(&id);
+            .retain(|(object, _), _| *object != id);
     }
 
-    fn get(&self, id: ObjectId) -> Option<Kept> {
+    /// `id`'s for `purpose`, if it was made from the shape last asked
+    /// about.
+    fn fresh(&self, id: ObjectId, purpose: Purpose) -> Option<Kept> {
         self.0
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .get(&id)
+            .get(&(id, purpose))
+            .filter(|kept| kept.fresh)
             .cloned()
+    }
+
+    /// `id`'s for `purpose` if it was made with `setting` from `shape`;
+    /// otherwise, as a newer shape is now asked about, the one kept is no
+    /// longer fresh.
+    fn made_from(
+        &self,
+        id: ObjectId,
+        purpose: Purpose,
+        setting: &Setting,
+        shape: &Arc<Mesh>,
+    ) -> Option<Kept> {
+        let mut kept = self
+            .0
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let entry = kept.get_mut(&(id, purpose))?;
+        if entry.setting == *setting
+            && (Arc::ptr_eq(&entry.input, shape) || *entry.input == **shape)
+        {
+            entry.fresh = true;
+            return Some(entry.clone());
+        }
+        entry.fresh = false;
+        None
     }
 }
 
@@ -251,19 +288,22 @@ impl Scene {
     /// as the viewport shows it or an export makes it) are worked out, or
     /// the work to do. `None` when its collision has no shapes of its own
     /// (*None*, *The shape itself*) or it isn't in the scene.
-    pub fn collision_state(&self, id: ObjectId, shape: Arc<Mesh>) -> Option<CollisionState> {
+    pub fn collision_state(
+        &self,
+        id: ObjectId,
+        purpose: Purpose,
+        shape: Arc<Mesh>,
+    ) -> Option<CollisionState> {
         let setting = self.collision_setting(id)?;
         if matches!(setting.collision, Collision::None | Collision::Mesh) {
             return None;
         }
-        if let Some(kept) = self.collisions.get(id)
-            && kept.setting == setting
-            && (Arc::ptr_eq(&kept.input, &shape) || *kept.input == *shape)
-        {
+        if let Some(kept) = self.collisions.made_from(id, purpose, &setting, &shape) {
             return Some(CollisionState::Ready(kept.shapes));
         }
         Some(CollisionState::Needed(CollisionJob {
             id,
+            purpose,
             input: shape,
             setting,
         }))
@@ -277,14 +317,19 @@ impl Scene {
             .0
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .insert(done.id, done.kept);
+            .insert((done.id, done.purpose), done.kept);
     }
 
     /// The object's collision shapes for `shape`, worked out here, on
     /// this thread, when not kept from before (an export's). `None` as for
     /// [`Scene::collision_state`].
-    pub fn collision_shapes(&self, id: ObjectId, shape: Arc<Mesh>) -> Option<Arc<CollisionShapes>> {
-        match self.collision_state(id, shape)? {
+    pub fn collision_shapes(
+        &self,
+        id: ObjectId,
+        purpose: Purpose,
+        shape: Arc<Mesh>,
+    ) -> Option<Arc<CollisionShapes>> {
+        match self.collision_state(id, purpose, shape)? {
             CollisionState::Ready(shapes) => Some(shapes),
             CollisionState::Needed(job) => {
                 let done = job.run();
@@ -300,7 +345,8 @@ impl Scene {
     /// while they are still to be worked out).
     pub fn collision_problem(&self, id: ObjectId) -> Option<String> {
         let setting = self.collision_setting(id)?;
-        let kept = self.collisions.get(id)?;
+        // The viewport's, for the shape it last asked about.
+        let kept = self.collisions.fresh(id, Purpose::Viewport)?;
         if kept.setting != setting {
             return None;
         }

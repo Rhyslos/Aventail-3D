@@ -1174,3 +1174,27 @@ fn timing_a_long_sweep() {
     );
     assert!(took.as_secs_f64() < 2.0);
 }
+
+#[test]
+fn a_closed_curve_of_fewer_than_three_points_is_refused_from_its_parts() {
+    let point = |id: u32, x: f32| CurvePoint {
+        id: CurvePointId(id),
+        position: Vec3::new(x, 0.0, 0.0),
+        handle_in: Vec3::ZERO,
+        handle_out: Vec3::ZERO,
+        kind: PointKind::Sharp,
+    };
+    for count in 0..3 {
+        let points: Vec<CurvePoint> = (0..count).map(|i| point(i, i as f32 * 10.0)).collect();
+        assert_eq!(
+            Curve::from_parts(points.clone(), true, 10).map(|_| ()),
+            Err(CurveError::LoopTooSmall),
+            "{count} points"
+        );
+    }
+    let three: Vec<CurvePoint> = (0..3).map(|i| point(i, i as f32 * 10.0)).collect();
+    assert!(Curve::from_parts(three, true, 10).unwrap().closed());
+    // Open, two points are a line.
+    let two: Vec<CurvePoint> = (0..2).map(|i| point(i, i as f32 * 10.0)).collect();
+    assert!(Curve::from_parts(two, false, 10).is_ok());
+}

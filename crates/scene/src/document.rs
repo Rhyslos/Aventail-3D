@@ -181,6 +181,12 @@ impl Document {
         Ok(self)
     }
 
+    /// Checks a project being opened once every part of the file is in
+    /// (see [`Scene::check_opened`]).
+    pub fn check_opened(&self) -> Result<(), crate::tree::SceneError> {
+        self.scene.check_opened()
+    }
+
     /// Checks every curve's cross-section names a curve object (see
     /// [`Scene::check_profiles`]), once a project's curves are in.
     pub fn check_profiles(&self) -> Result<(), crate::tree::SceneError> {
@@ -233,6 +239,26 @@ impl Document {
         merge_key: Option<u64>,
     ) -> Result<(), SceneError> {
         self.run_labelled(command, Some(label.into()), merge_key)
+    }
+
+    /// Carries out `commands` one after another as one undo step called
+    /// `label`, merged under `merge_key` (a key no other step has). If one
+    /// is refused, those before it are taken back too, so nothing is left
+    /// half done, and the refusal is returned.
+    pub fn execute_all_labelled(
+        &mut self,
+        commands: impl IntoIterator<Item = Command>,
+        label: &str,
+        merge_key: u64,
+    ) -> Result<(), SceneError> {
+        for command in commands {
+            if let Err(why) = self.execute_labelled(command, label, Some(merge_key)) {
+                // Only a step made here has this key: nothing earlier goes.
+                self.abandon(merge_key);
+                return Err(why);
+            }
+        }
+        Ok(())
     }
 
     fn run(&mut self, command: Command, merge_key: Option<u64>) -> Result<(), SceneError> {

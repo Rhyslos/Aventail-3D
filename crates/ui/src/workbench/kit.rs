@@ -83,15 +83,14 @@ impl Workbench {
         let changes = self.kit_fitted();
         let key = self.new_step_key();
         let label = tr("Size to kit grid");
-        for (id, primitive) in &changes {
-            let command = Command::SetPrimitive {
-                ids: vec![*id],
-                primitive: *primitive,
-            };
-            if let Err(why) = self.document.execute_labelled(command, label, Some(key)) {
-                self.note = Some(crate::trf!("Couldn't size to the kit grid: {}.", why));
-                return;
-            }
+        // One step: if one shape is refused, none is sized.
+        let commands = changes.iter().map(|(id, primitive)| Command::SetPrimitive {
+            ids: vec![*id],
+            primitive: *primitive,
+        });
+        if let Err(why) = self.document.execute_all_labelled(commands, label, key) {
+            self.note = Some(crate::trf!("Couldn't size to the kit grid: {}.", why));
+            return;
         }
         let grid = crate::units::Units::from(self.document.scene().units())
             .format(self.document.scene().kit_grid().step);

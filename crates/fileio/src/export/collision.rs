@@ -23,7 +23,7 @@ pub(super) fn part_hulls(
     if scene.object(id).map(|o| o.collision) != Some(Collision::Parts) {
         return Vec::new();
     }
-    let Some(shapes) = scene.collision_shapes(id, Arc::clone(shape)) else {
+    let Some(shapes) = scene.collision_shapes(id, scene::Purpose::Export, Arc::clone(shape)) else {
         return Vec::new();
     };
     shapes

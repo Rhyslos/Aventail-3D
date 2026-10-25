@@ -305,6 +305,21 @@ fn open_asks_the_app_once_changes_are_dealt_with() {
 }
 
 #[test]
+fn what_was_left_out_on_opening_is_said_in_the_status_bar() {
+    let mut harness = fresh();
+    let notes = vec!["Box's Bend along curve modifier was taken off".to_string()];
+    harness
+        .state_mut()
+        .workbench
+        .opened_noting(scene::Document::new(), path("bent.avtl"), &notes);
+    harness.run();
+    assert_eq!(
+        workbench(&harness).note(),
+        Some("Opened bent.avtl. Box's Bend along curve modifier was taken off.")
+    );
+}
+
+#[test]
 fn an_opened_project_replaces_the_scene_with_a_fresh_history() {
     let mut harness = fresh();
     harness.state_mut().workbench.open_settings();

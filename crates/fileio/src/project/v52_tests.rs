@@ -163,7 +163,12 @@ fn parts_for_an_object_with_no_shape_are_refused() {
         max_parts: 8,
         detail: 0.5,
     });
-    assert!(model.into_document().is_err());
+    // Refused once every part of the file is in (an empty group may stand
+    // in for a curve until then).
+    assert!(matches!(
+        from_bytes(&super::tests::current_file(&model)),
+        Err(ProjectError::Damaged(_))
+    ));
 }
 
 #[test]

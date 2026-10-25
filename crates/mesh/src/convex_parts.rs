@@ -24,13 +24,20 @@
 //!    scored by the two halves' waste as their voxels show it (quick), and
 //!    the best is taken.
 //! 4. **Hulls.** Each part's hull, with at most [`MAX_HULL_CORNERS`]
-//!    corners (as physics engines prefer, and V-HACD's standard). Parts
-//!    next to each other meet exactly on the plane between them, with no
-//!    gap.
+//!    corners (as physics engines prefer, and V-HACD's standard). A hull
+//!    under the limit is exact, and parts next to each other meet on the
+//!    plane between them with no gap. A hull that needs more corners keeps,
+//!    on each side where it was cut, the same few corners of the section
+//!    as its neighbour does (up to 12, spread evenly round it), so the two
+//!    still meet on the plane with no gap, a little inside the shape's own
+//!    section there; its other corners are the farthest of its other
+//!    points, so it sits a little inside the shape elsewhere too. (A part
+//!    cut on more than four sides is limited as a whole, and may leave a
+//!    small gap.)
 //!
 //! The shape must be closed: an open one has no inside to split.
 
-use crate::hull::{Hull, HullProblem, convex_hull_limited};
+use crate::hull::{Hull, HullProblem, convex_hull, convex_hull_limited};
 use crate::remesh::{Grid, RemeshProblem, Soup, parity};
 use crate::{Bounds, Mesh};
 use glam::Vec3;
@@ -199,12 +206,106 @@ pub fn convex_parts(mesh: &Mesh, options: &ConvexPartsOptions) -> Result<Vec<Hul
     merge_parts(&mut parts, tolerance, splitter.voxel_volume());
     let hulls: Vec<Hull> = parts
         .iter()
-        .filter_map(|p| convex_hull_limited(&p.points, MAX_HULL_CORNERS).ok())
+        .filter_map(|p| part_hull(&p.points, &p.sides))
         .collect();
     if hulls.is_empty() {
         return whole();
     }
     Ok(hulls)
+}
+
+/// The most corners a part's hull keeps on each side where it was cut:
+/// the same few on both sides of the cut, so neighbours meet there.
+const CORNERS_PER_CUT: usize = 12;
+
+/// The most corners a part's hull keeps on all its cuts together; with
+/// more cuts than fit, its hull is limited as a whole instead.
+const CORNERS_ON_CUTS: usize = 48;
+
+/// The hull of a part made from `points` inside `sides`, with at most
+/// [`MAX_HULL_CORNERS`] corners. A hull that fits under the limit is
+/// exact. Otherwise, on each side where the part was cut it keeps the
+/// same corners its neighbour keeps there (up to [`CORNERS_PER_CUT`] of
+/// the section's outline, picked evenly round it from the outline alone),
+/// so the two meet on the plane between them with no gap, and the rest of
+/// its corners are the farthest of its other points.
+fn part_hull(points: &[Vec3], sides: &split::Sides) -> Option<Hull> {
+    let limited = convex_hull_limited(points, MAX_HULL_CORNERS).ok()?;
+    let cuts: Vec<(usize, f32)> = sides
+        .iter()
+        .enumerate()
+        .flat_map(|(axis, ends)| ends.iter().flatten().map(move |at| (axis, *at)))
+        .collect();
+    if cuts.is_empty() {
+        return Some(limited);
+    }
+    // Holding every point, it is exact: the limit wasn't reached.
+    let size =
+        crate::Bounds::around(points.iter().copied()).map_or(0.0, |b| b.size().max_element());
+    if points.iter().all(|p| limited.contains(*p, size * 1e-5)) {
+        return Some(limited);
+    }
+    let on_a_cut = |p: &Vec3| cuts.iter().any(|(axis, at)| p[*axis] == *at);
+    let mut kept: Vec<Vec3> = Vec::new();
+    for (axis, at) in &cuts {
+        let section: Vec<Vec3> = points.iter().filter(|p| p[*axis] == *at).copied().collect();
+        kept.extend(evenly(&outline(&section, *axis), CORNERS_PER_CUT));
+    }
+    if kept.len() > CORNERS_ON_CUTS {
+        return Some(limited);
+    }
+    let others: Vec<Vec3> = points.iter().filter(|p| !on_a_cut(p)).copied().collect();
+    if let Ok(rest) = convex_hull_limited(&others, MAX_HULL_CORNERS - kept.len()) {
+        kept.extend(rest.points);
+    }
+    convex_hull(&kept).ok().or(Some(limited))
+}
+
+/// The corners of `section`'s outline (points on a plane square to
+/// `axis`), counter-clockwise from the lowest, each once; points on a
+/// straight stretch of it are left out.
+fn outline(section: &[Vec3], axis: usize) -> Vec<Vec3> {
+    let (u, v) = ((axis + 1) % 3, (axis + 2) % 3);
+    let mut points: Vec<Vec3> = section.to_vec();
+    points.sort_by(|a, b| a[u].total_cmp(&b[u]).then(a[v].total_cmp(&b[v])));
+    points.dedup();
+    if points.len() < 3 {
+        return points;
+    }
+    let turn = |o: Vec3, a: Vec3, b: Vec3| {
+        f64::from(a[u] - o[u]) * f64::from(b[v] - o[v])
+            - f64::from(a[v] - o[v]) * f64::from(b[u] - o[u])
+    };
+    // Andrew's monotone chain: the lower outline, then the upper.
+    let mut hull: Vec<Vec3> = Vec::with_capacity(points.len() + 1);
+    for pass in 0..2 {
+        let start = hull.len();
+        let order: Box<dyn Iterator<Item = &Vec3>> = if pass == 0 {
+            Box::new(points.iter())
+        } else {
+            Box::new(points.iter().rev())
+        };
+        for p in order {
+            while hull.len() >= start + 2
+                && turn(hull[hull.len() - 2], hull[hull.len() - 1], *p) <= 0.0
+            {
+                hull.pop();
+            }
+            hull.push(*p);
+        }
+        hull.pop();
+    }
+    hull
+}
+
+/// At most `count` of `corners`, spread evenly round them from the first.
+fn evenly(corners: &[Vec3], count: usize) -> Vec<Vec3> {
+    if corners.len() <= count {
+        return corners.to_vec();
+    }
+    (0..count)
+        .map(|i| corners[i * corners.len() / count])
+        .collect()
 }
 
 /// Joins parts whose joint hull wastes no more than `tolerance`, the

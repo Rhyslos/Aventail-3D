@@ -132,6 +132,10 @@ mod game_bevel_tests;
 #[cfg(test)]
 mod history_tests;
 #[cfg(test)]
+mod instance_source_tests;
+#[cfg(test)]
+mod kind_change_tests;
+#[cfg(test)]
 mod lattice_tests;
 #[cfg(test)]
 mod layer_tests;

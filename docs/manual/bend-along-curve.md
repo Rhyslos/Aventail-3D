@@ -68,6 +68,8 @@ Bend along curve has no key of its own.
 - **Problem:** "Not worked out: the curve has no length". **Why:** all the curve's points are on one spot. **Fix:** move them apart.
 - **Problem:** the button says a shape can't be bent along itself. **Why:** a curve with a sweep is a shape too; a shape can't be bent along itself, or along a curve whose shape is made from it.
 - **Problem:** deleting the curve straightened the shape. **Why:** the bend is worked out from the curve; with it gone, the modifier goes too. **Fix:** **Ctrl + Z** brings both back. To keep the bend without the curve, Bake into shape first.
+- **Problem:** baking the *curve* (Bake into shape on the curve, or Apply mirror on it) straightened the shape. **Why:** the bend reads a curve's line, and a baked curve is a plain mesh with no line to follow, so the shape's Bend along curve is taken off in the same step. **Fix:** **Ctrl + Z** brings back the curve and the bend in one step. Bake the bent *shape* first if you want to keep its bend, then bake the curve.
+- **Problem:** a project said on opening that a Bend along curve modifier "was taken off". **Why:** it was saved by an older version that let a curve be baked while a shape was still bent along it, so the bend had nothing to read. **Fix:** nothing else in the project is lost; add a new Bend along curve if you still want one.
 - **Tip:** UVs bend with the shape, so a texture laid out on the straight piece follows the bend: unwrap the shape straight, before bending.
 
 ## Related

@@ -319,3 +319,50 @@ fn convex_parts_timings() {
         }
     }
 }
+
+/// Rings of `around` points round the X axis, radius 50, at each of `xs`.
+fn rings(xs: &[f32], around: usize) -> Vec<Vec3> {
+    let mut points = Vec::new();
+    for x in xs {
+        for i in 0..around {
+            let a = i as f32 / around as f32 * std::f32::consts::TAU;
+            points.push(Vec3::new(*x, 50.0 * a.cos(), 50.0 * a.sin()));
+        }
+    }
+    points
+}
+
+#[test]
+fn limited_neighbours_still_meet_on_the_plane_between_them() {
+    // A rod cut at x = 100 into two parts, each with more points than a
+    // part's hull may keep: both hulls keep the same corners on the cut,
+    // so they meet there with no gap.
+    let lower = rings(&[0.0, 50.0, 100.0], 96);
+    let upper = rings(&[100.0, 150.0, 200.0], 96);
+    let mut below: split::Sides = [[None; 2]; 3];
+    below[0][1] = Some(100.0);
+    let mut above: split::Sides = [[None; 2]; 3];
+    above[0][0] = Some(100.0);
+    let a = part_hull(&lower, &below).unwrap();
+    let b = part_hull(&upper, &above).unwrap();
+    for hull in [&a, &b] {
+        assert!(hull.points.len() <= MAX_HULL_CORNERS);
+    }
+    let on_cut = |hull: &Hull| {
+        let mut corners: Vec<[u32; 3]> = hull
+            .points
+            .iter()
+            .filter(|p| p.x == 100.0)
+            .map(|p| p.to_array().map(f32::to_bits))
+            .collect();
+        corners.sort_unstable();
+        corners
+    };
+    assert!(on_cut(&a).len() >= 3, "a side on the cut");
+    assert_eq!(on_cut(&a), on_cut(&b));
+    // Each stays inside its part's whole hull.
+    let whole = crate::hull::convex_hull(&lower).unwrap();
+    for p in &a.points {
+        assert!(whole.contains(*p, 1e-3));
+    }
+}

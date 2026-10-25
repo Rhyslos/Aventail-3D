@@ -31,7 +31,7 @@ Making hulls and parts:
 2. parry3d's `convex_hull` and `VHACD` (Apache-2.0): proven, but nalgebra and a large tree to check and keep, conversions both ways, and its panics on some flat input to guard against.
 
 How the split works (approximate convex decomposition):
-1. **Split the worst part by a plane square to an axis, over and over (chosen),** as V-HACD does, measured on a voxel grid; each part's hull then made exactly from the shape's triangles cut to its box. Parts meet exactly on the plane between them.
+1. **Split the worst part by a plane square to an axis, over and over (chosen),** as V-HACD does, measured on a voxel grid; each part's hull then made exactly from the shape's triangles cut to its box. Parts meet exactly on the plane between them. (Correction, 2026-10-24: that holds for hulls under the 64-corner limit. A limited hull used to drop corners of the cut at random, leaving a small gap between neighbours; it now keeps the same corners of each cut as its neighbour, up to 12 spread evenly round the section, so they meet there; a part cut on more than four sides is limited as a whole and may still leave a small gap.)
 2. Voxel hulls only: quicker, but the hulls are a half voxel too big, and neighbours overlap or leave gaps.
 3. Hierarchical clustering of the surface (as in some engines): no inside, so it splits thin walls and hollows badly.
 

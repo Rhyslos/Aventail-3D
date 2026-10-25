@@ -212,3 +212,59 @@ fn random_work_keeps_the_running_total_exact() {
         }
     }
 }
+
+#[test]
+fn a_step_of_several_commands_is_taken_back_whole_when_one_is_refused() {
+    let mut doc = Document::new();
+    create_group(&mut doc);
+    let group = doc.selection()[0];
+    let steps = doc.undo_steps();
+    let before = doc.scene().clone();
+    let refused = doc.execute_all_labelled(
+        [
+            Command::Rename {
+                id: group,
+                name: "Renamed".into(),
+            },
+            Command::Rename {
+                id: group,
+                name: "   ".into(),
+            },
+        ],
+        "Rename twice",
+        1 << 60,
+    );
+    assert!(refused.is_err());
+    assert_eq!(doc.scene(), &before, "nothing is left half done");
+    assert_eq!(doc.undo_steps(), steps);
+    assert_eq!(doc.undo_label(), Some("Create group"));
+    // The first one refused: the step before isn't taken back.
+    let refused = doc.execute_all_labelled(
+        [Command::Rename {
+            id: group,
+            name: String::new(),
+        }],
+        "Rename",
+        (1 << 60) + 1,
+    );
+    assert!(refused.is_err());
+    assert_eq!(doc.undo_steps(), steps);
+    // All done: one step.
+    doc.execute_all_labelled(
+        [
+            Command::Rename {
+                id: group,
+                name: "A".into(),
+            },
+            Command::Rename {
+                id: group,
+                name: "B".into(),
+            },
+        ],
+        "Rename twice",
+        (1 << 60) + 2,
+    )
+    .unwrap();
+    assert_eq!(doc.undo_steps(), steps + 1);
+    assert_eq!(doc.undo_label(), Some("Rename twice"));
+}

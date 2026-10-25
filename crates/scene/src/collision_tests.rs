@@ -22,7 +22,7 @@ fn set(doc: &mut Document, id: ObjectId, collision: Collision) {
 /// The object's collision shapes for its shape as the viewport shows it.
 fn shapes(doc: &Document, id: ObjectId) -> Option<Arc<CollisionShapes>> {
     let scene = doc.scene();
-    scene.collision_shapes(id, scene.shown_shape(id)?)
+    scene.collision_shapes(id, Purpose::Viewport, scene.shown_shape(id)?)
 }
 
 fn check_round_trip(doc: &mut Document) {
@@ -140,7 +140,9 @@ fn max_parts_holds_and_changes_are_worked_out_again() {
     let scene = doc.scene();
     let shape = scene.shown_shape(torus).unwrap();
     // Not kept yet: work to do, heavy enough for another thread.
-    let Some(CollisionState::Needed(job)) = scene.collision_state(torus, Arc::clone(&shape)) else {
+    let Some(CollisionState::Needed(job)) =
+        scene.collision_state(torus, Purpose::Viewport, Arc::clone(&shape))
+    else {
         panic!("nothing to do");
     };
     assert!(job.work() >= COLLISION_IN_BACKGROUND_FROM);
@@ -148,7 +150,7 @@ fn max_parts_holds_and_changes_are_worked_out_again() {
     assert!(done.shapes().hulls.len() <= 8);
     scene.store_collision(done);
     assert!(matches!(
-        scene.collision_state(torus, Arc::clone(&shape)),
+        scene.collision_state(torus, Purpose::Viewport, Arc::clone(&shape)),
         Some(CollisionState::Ready(_))
     ));
     for max_parts in [1, 3, 5] {
@@ -162,7 +164,7 @@ fn max_parts_holds_and_changes_are_worked_out_again() {
         .unwrap();
         let scene = doc.scene();
         assert!(matches!(
-            scene.collision_state(torus, Arc::clone(&shape)),
+            scene.collision_state(torus, Purpose::Viewport, Arc::clone(&shape)),
             Some(CollisionState::Needed(_))
         ));
         let found = shapes(&doc, torus).unwrap();
@@ -242,4 +244,42 @@ fn deleting_an_object_forgets_its_shapes() {
     assert!(doc.scene().collision_problem(cube).is_none());
     doc.undo().unwrap();
     assert!(shapes(&doc, cube).is_some());
+}
+
+#[test]
+fn the_reason_shown_is_the_viewports_for_the_shape_as_it_is_now() {
+    let mut doc = Document::new();
+    doc.execute(Command::Create(ObjectKind::Primitive(Primitive::Dome(
+        DomeParams {
+            base: false,
+            ..DomeParams::default()
+        },
+    ))))
+    .unwrap();
+    let dome = doc.selection()[0];
+    set(&mut doc, dome, Collision::Parts);
+    let problem = shapes(&doc, dome).unwrap().problem.clone().unwrap();
+    // An export works out its own (here for a closed cube's shape): the
+    // viewport's reason stays.
+    let closed = Arc::new(PrimitiveKind::Cube.standard().mesh());
+    let exported = doc
+        .scene()
+        .collision_shapes(dome, Purpose::Export, closed)
+        .unwrap();
+    assert!(exported.problem.is_none());
+    assert_eq!(doc.scene().collision_problem(dome), Some(problem));
+    // The dome is closed: until its new shape is worked out, the old
+    // reason isn't shown.
+    doc.execute(Command::SetPrimitive {
+        ids: vec![dome],
+        primitive: Primitive::Dome(DomeParams::default()),
+    })
+    .unwrap();
+    let scene = doc.scene();
+    let now = scene.shown_shape(dome).unwrap();
+    assert!(matches!(
+        scene.collision_state(dome, Purpose::Viewport, now),
+        Some(CollisionState::Needed(_))
+    ));
+    assert!(scene.collision_problem(dome).is_none(), "stale");
 }

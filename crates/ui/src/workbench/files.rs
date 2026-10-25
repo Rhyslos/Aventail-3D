@@ -94,8 +94,21 @@ impl Workbench {
     /// (whose unsaved changes were already dealt with), with a fresh undo
     /// history, and the view frames it.
     pub fn opened(&mut self, document: Document, path: PathBuf) {
+        self.opened_noting(document, path, &[]);
+    }
+
+    /// [`Self::opened`], saying in the status bar what was left out so the
+    /// rest could open (`notes`, each a sentence without its full stop,
+    /// from `fileio::project::open_noting`).
+    pub fn opened_noting(&mut self, document: Document, path: PathBuf, notes: &[String]) {
         self.replace_document(document);
-        self.note = Some(crate::trf!("Opened {}.", file_name(&path)));
+        let mut note = crate::trf!("Opened {}.", file_name(&path));
+        for left_out in notes {
+            note.push(' ');
+            note.push_str(left_out);
+            note.push('.');
+        }
+        self.note = Some(note);
         self.file.remember(&path);
         self.file.path = Some(path);
         self.viewport.frame(crate::Frame::All);

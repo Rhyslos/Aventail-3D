@@ -162,8 +162,8 @@ pub fn open(workbench: &mut Workbench, path: Option<PathBuf>) {
 
 /// Opens the project at `path` into the workbench and reports back.
 pub fn open_from(workbench: &mut Workbench, path: PathBuf) {
-    match fileio::project::open(&path) {
-        Ok(document) => workbench.opened(document, path),
+    match fileio::project::open_noting(&path) {
+        Ok((document, notes)) => workbench.opened_noting(document, path, &notes),
         Err(error) => workbench.open_failed(&path, &error.to_string()),
     }
 }

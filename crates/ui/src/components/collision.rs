@@ -98,7 +98,7 @@ impl CollisionOutlines {
         id: ObjectId,
         shape: &Arc<scene::Mesh>,
     ) -> Option<Lines> {
-        let shapes = match scene.collision_state(id, Arc::clone(shape)) {
+        let shapes = match scene.collision_state(id, scene::Purpose::Viewport, Arc::clone(shape)) {
             None => {
                 self.kept.remove(&id);
                 return None;

@@ -537,11 +537,10 @@ impl Workbench {
                 edit: scene::CurveEdit::SetClosed(true),
             });
         }
-        for command in commands {
-            if let Err(why) = self.document.execute_labelled(command, label, Some(key)) {
-                self.note = Some(crate::trf!("Couldn't do that: {}.", why));
-                return;
-            }
+        // One step: if closing is refused, the points aren't added either.
+        if let Err(why) = self.document.execute_all_labelled(commands, label, key) {
+            self.note = Some(crate::trf!("Couldn't do that: {}.", why));
+            return;
         }
         self.note = Some(crate::trf!(
             "Curve carried on by {} point{}{}. Ctrl + Z takes it back.",

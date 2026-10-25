@@ -590,7 +590,11 @@ impl Command {
                     .iter()
                     .filter(|id| scene.can_make_editable(**id))
                     .count();
-                trf!("Make {} editable", objects(n.max(1)))
+                // Named as the menu names it (decision 0126).
+                match n {
+                    0 | 1 => tr("Bake into shape").to_string(),
+                    n => trf!("Bake {} into shape", objects(n)),
+                }
             }
             Self::Ungroup(ids) => match groups_among(scene, ids).len() {
                 1 => tr("Ungroup").into(),
@@ -636,8 +640,22 @@ struct Run<'a> {
 
 impl Run<'_> {
     fn edit(&mut self, edit: Edit) -> Result<(), SceneError> {
+        // An object that becomes another kind (a curve baked into a mesh)
+        // may no longer be something other objects' modifiers or booleans
+        // can read: those are taken off in the same step.
+        let changed_kind = match &edit {
+            Edit::SetKind { id, before, after }
+                if std::mem::discriminant(before) != std::mem::discriminant(after) =>
+            {
+                Some(*id)
+            }
+            _ => None,
+        };
         self.scene.apply(&edit)?;
         self.edits.push(edit);
+        if let Some(id) = changed_kind {
+            self.forget_unreadable_sources(id)?;
+        }
         Ok(())
     }
 

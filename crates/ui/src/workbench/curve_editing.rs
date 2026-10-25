@@ -47,20 +47,17 @@ impl Workbench {
             return None;
         }
         let key = self.new_step_key();
-        let mut count = 0;
-        for (id, parts) in chosen {
-            count += parts.len();
-            let command = Command::EditCurve {
-                id,
-                edit: CurveEdit::Delete { parts },
-            };
-            if let Err(why) =
-                self.document
-                    .execute_labelled(command, tr("Delete curve points"), Some(key))
-            {
-                self.note = Some(crate::trf!("Couldn't do that: {}.", why));
-                return Some(0);
-            }
+        let count = chosen.iter().map(|(_, parts)| parts.len()).sum::<usize>();
+        let commands = chosen.into_iter().map(|(id, parts)| Command::EditCurve {
+            id,
+            edit: CurveEdit::Delete { parts },
+        });
+        if let Err(why) =
+            self.document
+                .execute_all_labelled(commands, tr("Delete curve points"), key)
+        {
+            self.note = Some(crate::trf!("Couldn't do that: {}.", why));
+            return Some(0);
         }
         self.note = Some(crate::trf!(
             "{} curve point{} or handle{} deleted. Ctrl + Z takes it back.",

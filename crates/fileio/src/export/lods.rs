@@ -62,7 +62,7 @@ pub(super) fn levels(
         return Vec::new();
     };
     let settings = object.lods.clamped();
-    let Some(made) = scene.lod_shapes(id, Arc::clone(shape)) else {
+    let Some(made) = scene.lod_shapes(id, scene::Purpose::Export, Arc::clone(shape)) else {
         return Vec::new();
     };
     let per_cm = shading.units.per_centimetre();

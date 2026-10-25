@@ -521,22 +521,10 @@ impl Scene {
                 place: Place { parent, index },
             })?;
         }
-        // Every instance shows an object that is there, with a shape of
-        // its own (not another instance).
-        for (id, _) in scene.walk() {
-            if let Some(ObjectKind::Instance(source)) = scene.object(id).map(|o| &o.kind) {
-                match scene.object(*source).map(|o| &o.kind) {
-                    None => return Err(SceneError::UnknownObject(*source)),
-                    Some(ObjectKind::Instance(_)) => {
-                        return Err(SceneError::History(text!(
-                            "an instance shows another instance"
-                        )));
-                    }
-                    Some(kind) if !kind.has_shape() => return Err(SceneError::NoShape),
-                    Some(_) => {}
-                }
-            }
-        }
+        // An empty group may stand in for a curve or a cage that a later
+        // part of the file gives back, so an instance may show one for
+        // now; `check_opened` checks again once everything is in.
+        scene.check_instances(|kind| kind.has_shape() || *kind == ObjectKind::Group)?;
         // Every curve's cross-section is another curve (decision 0138).
         scene.check_profiles()?;
         // Every boolean's cutters are shapes in the scene, with no loops
@@ -553,6 +541,59 @@ impl Scene {
         }
         scene.next_id = scene.next_id.max(next_id.min(MAX_OBJECT_ID));
         Ok(scene)
+    }
+
+    /// Checks every instance shows an object that is there, of a kind
+    /// `is_shape` accepts, and not another instance.
+    fn check_instances(&self, is_shape: impl Fn(&ObjectKind) -> bool) -> Result<(), SceneError> {
+        for (id, _) in self.walk() {
+            if let Some(ObjectKind::Instance(source)) = self.object(id).map(|o| &o.kind) {
+                match self.object(*source).map(|o| &o.kind) {
+                    None => return Err(SceneError::UnknownObject(*source)),
+                    Some(ObjectKind::Instance(_)) => {
+                        return Err(SceneError::History(text!(
+                            "an instance shows another instance"
+                        )));
+                    }
+                    Some(kind) if !is_shape(kind) => return Err(SceneError::NoShape),
+                    Some(_) => {}
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Checks a project being opened once every part of the file is in
+    /// (older parts hold a curve or a lattice cage as an empty group, and
+    /// let what names one through until a later part gives it back): every
+    /// instance shows a shape, only shapes have collision parts or levels
+    /// of detail, and every curve's cross-section, boolean and modifier
+    /// makes sense.
+    pub fn check_opened(&self) -> Result<(), SceneError> {
+        self.check_instances(ObjectKind::has_shape)?;
+        self.check_profiles()?;
+        for (id, _) in self.walk() {
+            let Some(object) = self.object(id) else {
+                continue;
+            };
+            if !object.kind.has_shape() {
+                if object.collision == crate::Collision::Parts {
+                    return Err(SceneError::History(text!(
+                        "an object with no shape has collision parts"
+                    )));
+                }
+                if object.lods.on {
+                    return Err(SceneError::History(text!(
+                        "an object with no shape has levels of detail"
+                    )));
+                }
+            }
+            self.check_booleans(id, &object.booleans)
+                .map_err(SceneError::Boolean)?;
+            self.check_modifiers(id, &object.modifiers)
+                .map_err(SceneError::Modifier)?;
+        }
+        Ok(())
     }
 
     /// The project's units (decision 0068).
@@ -676,7 +717,9 @@ impl Scene {
             .get_mut(&id)
             .ok_or_else(|| tr("its collision parts name an object that isn't there"))?;
         if chosen {
-            if !node.object.kind.has_shape() {
+            // An empty group may stand in for a curve a later part of the
+            // file gives back; `check_opened` checks again then.
+            if !node.object.kind.has_shape() && node.object.kind != ObjectKind::Group {
                 return Err(tr("an object with no shape has collision parts"));
             }
             node.object.collision = crate::Collision::Parts;
@@ -694,7 +737,9 @@ impl Scene {
             .nodes
             .get_mut(&id)
             .ok_or_else(|| tr("its levels of detail name an object that isn't there"))?;
-        if lods.on && !node.object.kind.has_shape() {
+        // An empty group may stand in for a curve a later part of the file
+        // gives back; `check_opened` checks again then.
+        if lods.on && !node.object.kind.has_shape() && node.object.kind != ObjectKind::Group {
             return Err(tr("an object with no shape has levels of detail"));
         }
         node.object.lods = lods.clamped();
@@ -710,7 +755,11 @@ impl Scene {
         id: ObjectId,
         booleans: Vec<crate::Boolean>,
     ) -> Result<Self, crate::BooleanRefusal> {
-        self.check_booleans(id, &booleans)?;
+        // An empty group may stand in for a curve a later part of the file
+        // gives back; `check_opened` checks again then.
+        self.check_booleans_where(id, &booleans, |kind| {
+            kind.has_shape() || *kind == ObjectKind::Group
+        })?;
         if let Some(node) = self.nodes.get_mut(&id) {
             node.object.booleans = booleans;
         }

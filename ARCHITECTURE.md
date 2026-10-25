@@ -137,6 +137,8 @@ Rendering sits behind the `ViewportRenderer` trait, so the panel runs in tests w
 | `app.ron` (window size and panel layout; written by eframe) | Yes | Yes |
 | Backup copies (`autosave/session-*/copy-N.avtl`, ordinary projects, in the app's own data folder; `emergency.txt` names one saved as the app crashed) | Yes | Yes |
 
+A project is read layer by layer, oldest model first: older layers hold curves and lattice cages as empty groups, which later layers give back, so the whole scene is checked once at the end (`Document::check_opened`). Opening can leave out a modifier that reads an object of the wrong kind, with a note shown in the status bar (`fileio::project::open_noting`, [decision 0162](docs/decisions/0162-kind-changes-and-wrong-sources.md)); a save never writes bytes that would open with a note.
+
 ## Extension points
 
 | To add | Plug into |

@@ -108,14 +108,12 @@ impl Workbench {
         if ops.is_empty() {
             return false;
         }
-        for (id, operation) in ops {
-            if let Err(why) =
-                self.document
-                    .execute_labelled(Command::Record { id, operation }, label, Some(key))
-            {
-                self.note = Some(crate::trf!("Couldn't do that: {}.", why));
-                return false;
-            }
+        let commands = ops
+            .into_iter()
+            .map(|(id, operation)| Command::Record { id, operation });
+        if let Err(why) = self.document.execute_all_labelled(commands, label, key) {
+            self.note = Some(crate::trf!("Couldn't do that: {}.", why));
+            return false;
         }
         true
     }

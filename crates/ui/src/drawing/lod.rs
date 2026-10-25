@@ -33,7 +33,7 @@ impl DrawingCache {
             }
             return drawn;
         }
-        let shapes = match scene.lod_state(id, Arc::clone(&drawn)) {
+        let shapes = match scene.lod_state(id, scene::Purpose::Viewport, Arc::clone(&drawn)) {
             None => {
                 self.last_lod.remove(&id);
                 return drawn;
@@ -66,7 +66,9 @@ impl DrawingCache {
     /// Makes object `id`'s levels from `drawn` if they aren't made: at once
     /// when light, on another thread when heavy.
     fn make_lods(&mut self, scene: &scene::Scene, id: ObjectId, drawn: &Arc<Mesh>) {
-        if let Some(LodState::Needed(job)) = scene.lod_state(id, Arc::clone(drawn)) {
+        if let Some(LodState::Needed(job)) =
+            scene.lod_state(id, scene::Purpose::Viewport, Arc::clone(drawn))
+        {
             if job.work() < scene::LODS_IN_BACKGROUND_FROM {
                 scene.store_lods(job.run());
             } else {
