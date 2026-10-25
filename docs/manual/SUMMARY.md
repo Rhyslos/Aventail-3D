@@ -48,6 +48,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Shrinkwrap: a shape's points moved onto another's surface, straps, decals, roads on terrain](shrinkwrap.md)
 - [Lattice: a cage of points round shapes; move its points to bend, squash and swell them](lattice.md)
 - [Decimate: fewer polygons, the same shape, for game budgets and levels of detail](decimate.md)
+- [Quadify: pairs of triangles joined back into quads, live or once](quadify.md)
 - [Weighted normals: big flat faces shade flat and bevels shade round, for low-poly hard-surface models](weighted-normals.md)
 - [Curves: draw a line or start from a circle, arc or spiral, then sweep it into a pipe or rail, or lathe it into a vase](curves.md)
 - [Edit layers: keep sets of edits apart, switch them off, move, merge and delete them](edit-layers.md)

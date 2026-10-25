@@ -19,6 +19,7 @@ mod materials;
 mod mesh_check;
 pub(crate) mod modifier_rows;
 mod object_rows;
+mod quadify_rows;
 mod scatter_rows;
 pub(crate) mod stepper;
 mod tool_rows;
@@ -88,6 +89,8 @@ pub(crate) struct AttributesPanel {
     pub(crate) join: JoinLook,
     /// Hard edges by angle's angle, for its next use (decision 0053).
     pub(crate) hard_angle: HardAngle,
+    /// Quadify now's settings, for its next use (decision 0150).
+    pub(crate) quadify: scene::QuadifyOptions,
     /// The curve commands' radius and count, and what the Curve points
     /// section asked for (decision 0139).
     pub(crate) curve: CurveLook,

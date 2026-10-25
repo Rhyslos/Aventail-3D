@@ -61,6 +61,8 @@ pub fn mirrors(op: &Operation) -> bool {
         | Operation::SetSeamPreference { .. }
         | Operation::Slit { .. } => true,
         Operation::FillHoles { points, .. } => !points.is_empty(),
+        // On the whole shape, it is already on both sides.
+        Operation::Quadify { faces, .. } => !faces.is_empty(),
         Operation::MovePoints { .. }
         | Operation::TransformPoints { .. }
         // UVs aren't mirrored in the texture: each half has its own.
@@ -272,6 +274,17 @@ pub(crate) fn both_sides(op: &Operation, mesh: &Mesh, mirror: &Mirror) -> Both {
         }),
         Operation::FlipPolygons { faces, anchors } => together(Operation::FlipPolygons {
             faces: all_faces(faces),
+            anchors: joined(anchors),
+        }),
+        Operation::Quadify {
+            faces,
+            options,
+            hardness,
+            anchors,
+        } => together(Operation::Quadify {
+            faces: all_faces(faces),
+            options: *options,
+            hardness: *hardness,
             anchors: joined(anchors),
         }),
         Operation::SetMaterial {

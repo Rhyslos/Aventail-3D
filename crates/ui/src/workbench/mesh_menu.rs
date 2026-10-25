@@ -16,6 +16,8 @@ pub(crate) const MESH_CUT_MENU: &str = crate::text!("Cut and join");
 
 pub(crate) const MESH_REMOVE_MENU: &str = crate::text!("Remove");
 
+pub(crate) const MESH_CLEAN_UP_MENU: &str = crate::text!("Clean up");
+
 pub(crate) const MESH_SHADING_MENU: &str = crate::text!("Shading");
 
 pub(crate) const MESH_OBJECT_MENU: &str = crate::text!("Shape and object");
@@ -96,6 +98,14 @@ impl Workbench {
             .response
             .on_hover_text(help);
         }
+        // One-off clean-ups, recorded as edits (decision 0150).
+        crate::dialog::menu(ui, tr(MESH_CLEAN_UP_MENU), |ui| {
+            self.ready_entries(ui, &[CommandId::QuadifyNow], requests);
+        })
+        .response
+        .on_hover_text(tr(
+            "Tidy the polygons once, as an edit: join pairs of triangles into quads",
+        ));
         crate::dialog::menu(ui, tr(MESH_CURVE_MENU), |ui| {
             use CommandId as C;
             self.ready_entries(
