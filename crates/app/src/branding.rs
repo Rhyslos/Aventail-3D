@@ -27,6 +27,13 @@ pub const PROJECT_EXTENSION: &str = "avtl";
 pub const MANUAL_URL: &str =
     "https://github.com/Rhyslos/Aventail-3D/blob/main/docs/manual/SUMMARY.md";
 
+/// Where new versions are published: the project's Releases page.
+pub const RELEASES_URL: &str = "https://github.com/Rhyslos/Aventail-3D/releases";
+
+/// Where an installed copy asks for the newest release (decision 0169):
+/// GitHub's description of the Releases page's latest release.
+pub const RELEASES_API: &str = "https://api.github.com/repos/Rhyslos/Aventail-3D/releases/latest";
+
 #[cfg(test)]
 mod tests {
     use super::*;

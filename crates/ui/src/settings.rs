@@ -84,6 +84,10 @@ pub(crate) struct Values<'a> {
     pub(crate) dissolve_without_warning: &'a mut bool,
     /// Whether the selection is drawn with high contrast (decision 0126).
     pub(crate) high_contrast: &'a mut bool,
+    /// Whether the app looks for new versions (decision 0169).
+    pub(crate) check_for_updates: &'a mut bool,
+    /// What the last look found, if anything.
+    pub(crate) update_status: Option<&'a str>,
     /// What the viewport draws over the surfaces, and the view dice's
     /// orthographic switch (also in the viewport's Display menu).
     pub(crate) display: DisplayValues<'a>,
@@ -101,6 +105,11 @@ pub(crate) struct DisplayValues<'a> {
     pub(crate) show_triangles: &'a mut bool,
     pub(crate) flat_from_dice: &'a mut bool,
 }
+
+/// The Updates heading in Settings → Interface.
+pub(crate) const UPDATES: &str = crate::text!("Updates");
+/// The switch for looking for new versions.
+pub(crate) const CHECK_FOR_UPDATES: &str = crate::text!("Look for new versions");
 
 /// The High contrast setting's name.
 pub(crate) const HIGH_CONTRAST: &str = crate::text!("High contrast");
@@ -187,6 +196,7 @@ fn restore_standard(values: &mut Values<'_>) {
     *values.tool_menu = ToolMenuSettings::default();
     *values.dissolve_without_warning = false;
     *values.high_contrast = false;
+    *values.check_for_updates = true;
 }
 
 /// A heading for a group of settings.
@@ -286,6 +296,24 @@ fn interface(ui: &mut Ui, values: &mut Values<'_>) {
         .changed()
     {
         *values.dissolve_without_warning = !warn;
+    }
+    ui.add_space(8.0);
+    heading(ui, tr(UPDATES));
+    explain(
+        ui,
+        tr(
+            "An installed copy looks for a new version when it starts and every few hours, \
+         downloads it while you work, and asks before it restarts. Nothing is sent but the \
+         question to GitHub.",
+        ),
+    );
+    ui.checkbox(values.check_for_updates, tr(CHECK_FOR_UPDATES))
+        .on_hover_text(tr(
+            "Off, the app never looks for new versions; download them from the project's \
+             Releases page instead",
+        ));
+    if let Some(status) = values.update_status {
+        dialog::help(ui, status);
     }
     dialog::divider(ui);
     radial_menu(ui, values);

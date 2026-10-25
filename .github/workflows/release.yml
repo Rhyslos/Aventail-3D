@@ -1,0 +1,80 @@
+# Publishes a release after every green change to main (decision 0169):
+# a Windows release build carrying its build number (APP_BUILD, this
+# workflow's run number), its setup program, and a release tagged
+# build-<number> with the setup program attached. Installed copies of the
+# app look for the latest release and update themselves.
+#
+# It runs only once CI has passed on that change, so a broken build is
+# never offered. The newest 10 releases are kept. Can also be run by hand
+# (Actions → Release → Run workflow).
+name: Release
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# One release at a time, in order.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  windows:
+    name: Windows release
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
+    runs-on: windows-latest
+    env:
+      APP_BUILD: ${{ github.run_number }}
+      COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ env.COMMIT }}
+          persist-credentials: false
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+      - run: cargo build --release --locked -p app
+      - name: Build the setup program
+        id: setup
+        shell: pwsh
+        run: ./installer/windows/build-setup.ps1
+      - name: Publish the release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SETUP: ${{ steps.setup.outputs.setup }}
+          NAME: ${{ steps.setup.outputs.name }}
+          MESSAGE: ${{ github.event.workflow_run.head_commit.message }}
+        run: |
+          $tag = "build-$env:APP_BUILD"
+          $notes = @"
+          Built from $env:COMMIT.
+
+          $env:MESSAGE
+
+          **To install:** download the setup program below and run it once. The installed app looks for new versions by itself and asks before it restarts to update.
+          "@
+          gh release create $tag "$env:SETUP" --repo $env:GITHUB_REPOSITORY --target $env:COMMIT --title "$env:NAME build $env:APP_BUILD" --notes $notes --latest
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Keep the newest 10 releases
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $old = gh release list --repo $env:GITHUB_REPOSITORY --limit 200 --json tagName,createdAt --jq 'sort_by(.createdAt) | reverse | .[10:] | .[].tagName'
+          foreach ($tag in $old) {
+            if ($tag -like "build-*") {
+              gh release delete $tag --repo $env:GITHUB_REPOSITORY --yes --cleanup-tag
+            }
+          }

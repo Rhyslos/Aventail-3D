@@ -34,6 +34,8 @@ rfd.workspace = true
 sys-locale.workspace = true
 render.workspace = true
 eframe.workspace = true
+# Reads GitHub's answer about the latest release (decision 0169).
+serde_json.workspace = true
 
 [dev-dependencies]
 # Aims the camera in tests.

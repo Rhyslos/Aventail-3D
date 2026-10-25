@@ -286,6 +286,10 @@ pub struct ViewOptions {
     /// viewport and the UV Editor (Settings → Interface → High contrast;
     /// off as standard; decision 0126).
     pub high_contrast: bool,
+    /// Whether the app looks for new versions and downloads them, to
+    /// offer (Settings → Interface → Updates; on as standard; decision
+    /// 0169). Only an installed copy updates itself.
+    pub check_for_updates: bool,
 }
 
 impl Default for ViewOptions {
@@ -313,6 +317,7 @@ impl Default for ViewOptions {
             keyboard: None,
             flat_from_dice: false,
             high_contrast: false,
+            check_for_updates: true,
         }
     }
 }

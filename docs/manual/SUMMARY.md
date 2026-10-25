@@ -4,6 +4,7 @@ This manual describes what Aventail 3D can do **right now**. It grows with every
 New to something, or just rusty? Start with [Concepts](concepts.md).
 
 ## Basics
+- [Installing and updating: install once on Windows, and it keeps itself up to date](installing-and-updating.md)
 - [Concepts: the ideas behind 3D modelling for games](concepts.md)
 - [Interface tour: the window, the modes, and rearranging panels](interface-tour.md)
 - [Keyboard shortcuts: every key in one place (Keys on the menu bar)](keyboard-shortcuts.md)
