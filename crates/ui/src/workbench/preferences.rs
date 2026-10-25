@@ -135,6 +135,8 @@ impl Workbench {
             tool_menu: &mut self.tool_menu.settings,
             dissolve_without_warning: &mut options.dissolve_without_warning,
             high_contrast: &mut options.high_contrast,
+            check_for_updates: &mut options.check_for_updates,
+            update_status: self.updating.status.as_deref(),
             display: crate::settings::DisplayValues {
                 hide_cavity: &mut options.hide_cavity,
                 hide_hard_edges: &mut options.hide_hard_edges,

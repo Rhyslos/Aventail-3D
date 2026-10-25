@@ -109,6 +109,7 @@ A lattice cage's points can't be deleted: change its Divisions in the Attributes
 A list by the mouse, like the shape list (B)
 A locked axis doesn't change while moving, rotating or scaling
 A new row under the lowest one, as tall as it
+A new version is ready (build {}).
 A pie slice of a round slab, a quarter of a circle
 A piece of pipe bent through 90°, lying on the ground
 A pipe 1 m across and 1 m tall
@@ -193,6 +194,7 @@ Alt + mouse works in every scheme
 Alt Gr
 Amount
 An empty object to hold and organise other objects
+An installed copy looks for a new version when it starts and every few hours, downloads it while you work, and asks before it restarts. Nothing is sent but the question to GitHub.
 An instance shows its original's shape and edits: select the original to see its layers.
 An instance shows its original's shape, modifiers and all: select the original, or bake the instance into a shape first
 An instance uses its original's materials
@@ -304,6 +306,7 @@ Broken handles
 Budget
 Build
 Build polygons between two open borders or two polygons; with nothing to bridge selected, drag from one open edge to another
+Build {} is downloaded and ready to install.
 Bulges the middle of the limits out (above 0) or pinches it in (below 0), the ends as they were: a barrel or a waist.
 By angle
 Cage
@@ -406,6 +409,7 @@ Close an open curve's ends with flat faces
 Close curve
 Close open ends (and the sides of a part turn) with flat faces
 Close the app
+Close the app, install the new version and open it again. Unsaved changes are asked about first.
 Close the gap between the two sides along open borders (a plane's edges, a cup's lip) with a strip of polygons, so the result is a closed solid
 Close the open holes touching the selection with a polygon each; with nothing selected, every hole
 Close the selected curves into loops, the last point joining the first with a straight stretch, or open closed ones again
@@ -468,6 +472,7 @@ Couldn't export: {}.
 Couldn't hide that: {}.
 Couldn't import {}: {}.
 Couldn't import: {}.
+Couldn't look for a new version ({}). It tries again in a few hours.
 Couldn't move the pivot: {}.
 Couldn't open {}: {}.
 Couldn't paste: {}.
@@ -815,6 +820,8 @@ General
 Generate
 German (QWERTZ)
 Getting the workbench ready…
+GitHub asked to wait a while
+GitHub's answer couldn't be read
 Give
 Give a surface thickness: a sheet of metal, a cup's wall, a cloth's hem. Open borders get a rim joining the two sides.
 Give each copy its own square of the texture, so the copies don't overlap there and can be painted or baked one by one. Off, every copy shares the shape's UVs
@@ -1109,6 +1116,7 @@ Keep the selected points' handles in one line, so the curve bends through withou
 Keep the shading crisp along the edges the object's shading shows hard (marked, or sharper than its Smoothing angle). Off, the whole shape shades smooth.
 Keep the shape's own polygons as well, with the struts round their edges: a panel in a frame. Off, only the struts and joints are left
 Keep together
+Keep working: it installs when you close the app
 Key {}
 Keyboard
 Keyboard shortcuts
@@ -1126,6 +1134,7 @@ Laid flat, the piece stretched more than its budget of {:.2}×, so it was slit h
 Largest size
 Lasso selection
 Last edit: {}
+Later
 Lathe
 Lathe axis
 Lathe the curve
@@ -1175,8 +1184,11 @@ Lock {}
 Locked: no automatic tool changes it. UV → Pieces → Unlock pieces frees it.
 Longest side
 Look
+Look for new versions
 Look from a side of the view dice (bottom-left corner)
 Look from the {} (Ctrl + click: from the {})
+Looking for a new version…
+Looking for new versions is off.
 Loop and ring: double-click
 Loop cut
 Loop cut ({} cuts)
@@ -1390,6 +1402,7 @@ Object to world origin
 Objects
 Off
 Off as standard: right-clicks in the viewport then do nothing
+Off, the app never looks for new versions; download them from the project's Releases page instead
 Off, the viewport skips this modifier (handy while it is slow); exports and Bake into shape still use it
 Off: only the button turns snapping on and off.
 Off: the shape is made as if this edit wasn't there
@@ -1417,6 +1430,7 @@ Only at open borders
 Only one project can be opened at a time.
 Only sections with something to set are listed. Materials, Mesh, Rig and Animations arrive with their features.
 Only shapes with settings (a cube, a cylinder…) can be sized: baked meshes and groups have no sizes to round
+Only the Windows version updates itself so far: download new versions from the Releases page.
 Only the edges, seen through the shape: front and back at once. Clicking still picks the shape.
 Open
 Open ({})
@@ -1621,6 +1635,7 @@ Reset cage points
 Reset panel layout
 Reset points
 Reset view
+Restart now
 Restore
 Restore standard
 Restore the UVs of
@@ -2087,6 +2102,7 @@ The model has changed since this level was made.
 The most any polygon of the piece may be off once laid flat: stretched this many times more one way than the other, or this many times bigger or smaller than the rest. 1.5× is strict; 2× (red in the Stretch view) is loose.
 The most parts it is split into. More follow its dents more closely; fewer are cheaper for the game
 The name shown in the Objects panel
+The new version (build {}) installs when you close the app.
 The object was
 The object's own axes: X mirrors left and right, Y front and back, Z top and bottom, across the faint red planes in the viewport.
 The objects it was taken of are gone
@@ -2138,6 +2154,7 @@ Then drag in the editor: the line's length in texture pixels and on the surface,
 There is no layer below to merge into
 There's no file there.
 There's no folder there.
+There's no folder to download new versions into.
 There's no room under the lowest row: make it shorter first
 These edits would have made the shape larger than {} million polygons, more than the app can work with safely, so they were left out. Undo them, or use fewer rows or a smaller selection.
 These pieces get much more or much less texture than the rest of the object, so they look sharper or blurrier. Fix scales them to the object's usual texel density (UV → Match texel density does this for a selection).
@@ -2146,6 +2163,8 @@ These pieces lie exactly on identical ones and share their pixels, to save room 
 These polygons lie on the trim sheet, but share a material (and so a texture) with pieces that don't: the trim texture would land on those too. Select them and give them a material of their own (Materials, in the Attributes panel), so the trim sheet is a texture set of its own.
 Thickness
 Thin lines every 10 cm, for placing things precisely
+This copy isn't installed, so it doesn't update itself: run the setup program from the Releases page once, and the installed app keeps itself up to date.
+This copy was built by hand, without a build number, so it doesn't update itself.
 This kind of edit has no settings to change.
 This piece is closed or loops round, so it can't lie flat without a cut. This is the most hidden way to cut it, as UV → Settings → Seam suggestions → Hide cuts says.
 This point
@@ -2273,8 +2292,10 @@ Unwrap, but move the UVs only up and down (V): every point keeps its place acros
 Unwrap, relax, straighten, pack, texel density and trim rows
 Unwrapping
 Up axis
+Up to date: build {} is the newest.
 Update
 Update a snapshot
+Updates
 Usage: {} [option | project]\n\nOptions:\n  --version   Show the name and version, then exit\n  --help      Show this text, then exit\n\nWith no option, the app window opens. Give a project file to open it\n(put -- before a file name that starts with -).\n
 Use selected
 User manual
@@ -2326,6 +2347,7 @@ What the cutters do to this shape
 What the ring turns round: the shape's own pivot, or another object's (it stays live: move that object and the ring follows)
 What the row holds: bolts, a panel edge, a seal
 What the viewport draws over your shapes. Also in the viewport's Display menu.
+What's new
 Wheel down
 Wheel up
 When Suggest seams or Unwrap needs a cut, put it on the selected edges first (or around the selected polygons). Drawn dashed yellow.
@@ -2539,6 +2561,9 @@ aren't
 bend segments
 border edge
 bridged
+build {} has no download address
+build {} has no setup program yet
+build {}'s setup program is empty
 cage point {} of {}
 centimetres
 changed here
@@ -2546,6 +2571,7 @@ closing
 connected
 couldn't find a free temporary file name
 couldn't {} {}: {}
+curl couldn't be started: {}
 curve
 curve, lathed
 curve, swept
@@ -2668,10 +2694,12 @@ no UVs
 no edge has a bevel weight: select edges in the Edges mode (press 2) and set their Bevel weight in the Attributes panel
 no edge is sharper than the angle: lower the Angle to bevel more edges
 no graphics device
+no internet connection
 no limit
 no partner called {}
 no two neighbouring triangles can be joined: raise Max angle or Max shape distortion, or untick a Keep setting
 no two points are closer together than the Distance: raise it to weld points further apart
+no version has been published yet
 none
 none of its chosen points are left: choose them again, or use all points
 none of the polygons it was limited to are on the shape any more: choose them again, or use the whole surface
@@ -2760,6 +2788,9 @@ the curve can't be placed: it is flattened, or too far away
 the curve has no length: its points are all in one spot
 the curve's points are all on one spot
 the cutter is already cut by this shape (or shows it), so each would wait for the other
+the download couldn't be kept: {}
+the download folder couldn't be made: {}
+the download was cut off
 the emergency copy saved as the app crashed ({})
 the file couldn't be written ({})
 the file is damaged: it claims to be impossibly large
@@ -2767,6 +2798,7 @@ the file is damaged: {}
 the game engine
 the game project folder {} isn't there; choose it again in the Export window
 the in handle of point {} of {}
+the latest release ({}) has no build number
 the layer is already at the bottom
 the layer is already at the top
 the level couldn't be made, so there's nothing to copy

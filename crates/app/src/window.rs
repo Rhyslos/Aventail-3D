@@ -9,6 +9,7 @@ use crate::emergency::{Emergency, Snapshots};
 use crate::file_work::{AfterWork, FileJobs};
 use crate::gpu::GpuViewport;
 use crate::project;
+use crate::updates::{self, Found, PendingInstall, Updater};
 use eframe::egui;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
@@ -61,6 +62,77 @@ struct App {
     files: FileJobs,
     /// The snapshot the panic hook saves as an emergency copy.
     snapshots: Snapshots,
+    /// Updates (decision 0169): looking for a newer build, and the one
+    /// downloaded, if any.
+    updating: Updating,
+}
+
+/// The running app's part in updates.
+#[derive(Default)]
+struct Updating {
+    /// Looking in the background, while that is wanted and possible.
+    updater: Option<Updater>,
+    /// Whether looking was wanted when last seen, to notice the setting
+    /// change.
+    wanted: Option<bool>,
+    /// The setup program downloaded for a newer build.
+    ready: Option<PathBuf>,
+}
+
+impl Updating {
+    /// Starts or stops looking as the setting says, and hands what was
+    /// found to the workbench. Returns whether to look again soon.
+    fn update(&mut self, workbench: &mut Workbench) -> bool {
+        let wanted = workbench.checks_for_updates();
+        if self.wanted != Some(wanted) {
+            self.wanted = Some(wanted);
+            self.updater = None;
+            let exe = std::env::current_exe().unwrap_or_default();
+            let build = updates::build_number();
+            match (
+                updates::why_not(build, &exe, cfg!(windows), wanted),
+                build,
+                updates::folder(),
+            ) {
+                (Some(why), _, _) => workbench.set_update_status(why),
+                _ if self.ready.is_some() => {}
+                (None, Some(build), Some(folder)) => {
+                    self.updater = Some(Updater::start(Box::new(updates::Curl), build, folder));
+                    workbench.set_update_status(tr("Looking for a new version…").to_string());
+                }
+                (None, _, None) => workbench.set_update_status(
+                    tr("There's no folder to download new versions into.").to_string(),
+                ),
+                (None, None, _) => {}
+            }
+        }
+        let Some(updater) = &self.updater else {
+            return false;
+        };
+        for found in updater.poll() {
+            match found {
+                Found::UpToDate(newest) => {
+                    workbench.set_update_status(trf!("Up to date: build {} is the newest.", newest))
+                }
+                Found::Failed(why) => workbench.set_update_status(trf!(
+                    "Couldn't look for a new version ({}). It tries again in a few hours.",
+                    why
+                )),
+                Found::Ready { release, installer } => {
+                    workbench.set_update_status(trf!(
+                        "Build {} is downloaded and ready to install.",
+                        release.build
+                    ));
+                    workbench.offer_update(ui::UpdateOffer {
+                        build: release.build,
+                        notes_url: release.page,
+                    });
+                    self.ready = Some(installer);
+                }
+            }
+        }
+        self.ready.is_none()
+    }
 }
 
 /// The shortest time the splash screen shows, so a quick start doesn't
@@ -239,6 +311,7 @@ impl Starting {
             backups: self.backups.take()?,
             files: FileJobs::default(),
             snapshots: Snapshots::new(self.emergency.clone()),
+            updating: Updating::default(),
         })
     }
 }
@@ -373,7 +446,23 @@ impl App {
                 WorkbenchAction::ExportToTarget(request) => {
                     self.files.export_to_game(&mut self.workbench, request);
                 }
+                WorkbenchAction::InstallUpdate { now } => {
+                    if let Some(installer) = self.updating.ready.clone() {
+                        updates::set_pending(PendingInstall {
+                            installer,
+                            reopen: now,
+                        });
+                        if now {
+                            // Closing asks about unsaved changes as usual.
+                            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                        }
+                    }
+                }
             }
+        }
+        if self.updating.update(&mut self.workbench) {
+            // Hand on what the looking finds without waiting for input.
+            ctx.request_repaint_after(Duration::from_secs(5));
         }
         self.backups.update(&mut self.workbench);
         match self.files.update(&mut self.workbench) {
@@ -480,6 +569,13 @@ pub fn run(info: AppInfo, open: Option<PathBuf>) -> Result<(), String> {
             }),
         )
     }));
+    // An update agreed to (Restart now or Later) installs now that the
+    // window has closed (decision 0169). If it can't start, there is no
+    // window left to say so; the next start finds the downloaded build
+    // whole and offers it again.
+    if let Some(pending) = updates::take_pending() {
+        let _ = pending.run();
+    }
     match outcome {
         Ok(result) => result.map_err(|err| err.to_string()),
         Err(payload) => Err(explain_panic(payload.as_ref())),

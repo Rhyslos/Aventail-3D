@@ -82,6 +82,6 @@ pub use viewport::{
 pub use workbench::{
     AppInfo, DISCARD_SHORTCUT, DOUBLE_CLICK_SECONDS, ExportChoice, ExportRequest, ExportSettings,
     FilePurpose, FileWork, KitOutcome, KitRequest, MODE_KEYS, TargetOutcome, TargetRequest,
-    Workbench, WorkbenchAction, navigation_hint,
+    UpdateOffer, Workbench, WorkbenchAction, navigation_hint,
 };
 pub use workbench::{UnwrapWay, UvSettings};

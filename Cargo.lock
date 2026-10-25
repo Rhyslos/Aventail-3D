@@ -211,6 +211,7 @@ dependencies = [
  "render",
  "rfd",
  "scene",
+ "serde_json",
  "sys-locale",
  "tools",
  "ui",

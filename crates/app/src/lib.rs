@@ -12,18 +12,28 @@ pub mod file_work;
 pub mod gpu;
 pub mod platform;
 pub mod project;
+pub mod updates;
 pub mod window;
 
 /// The text shown by `--version`: the app's name and version.
 pub fn version_banner() -> String {
-    format!("{} {}", branding::APP_NAME, env!("CARGO_PKG_VERSION"))
+    format!("{} {}", branding::APP_NAME, version())
+}
+
+/// The version, with the build number when the release workflow made
+/// this build (decision 0169): "0.0.1 (build 412)".
+pub fn version() -> String {
+    match updates::build_number() {
+        Some(build) => format!("{} (build {build})", env!("CARGO_PKG_VERSION")),
+        None => env!("CARGO_PKG_VERSION").to_string(),
+    }
 }
 
 /// The app's name and version, for the interface.
 pub fn app_info() -> ui::AppInfo {
     ui::AppInfo {
         name: branding::APP_NAME.to_string(),
-        version: env!("CARGO_PKG_VERSION").to_string(),
+        version: version(),
         manual_url: branding::MANUAL_URL.to_string(),
     }
 }
@@ -48,7 +58,7 @@ mod tests {
     fn banner_contains_name_and_version() {
         let banner = version_banner();
         assert!(banner.starts_with(branding::APP_NAME));
-        assert!(banner.ends_with(env!("CARGO_PKG_VERSION")));
+        assert!(banner.contains(env!("CARGO_PKG_VERSION")));
     }
 
     #[test]

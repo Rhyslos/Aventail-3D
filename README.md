@@ -507,6 +507,10 @@ cargo test --workspace        # run every test
 
 The first build downloads dependencies and takes a few minutes. Ready-made builds for Windows, Linux and macOS are attached to every pull request and change on GitHub, under the Actions tab.
 
+## Installing
+
+On Windows, download **aventail-setup.exe** from the newest [release](https://github.com/Rhyslos/Aventail-3D/releases) and run it once. It installs just for you (no admin password), and the installed app keeps itself up to date: each new build downloads in the background and installs when you say so. See [Installing and updating](docs/manual/installing-and-updating.md).
+
 ## Documentation
 
 - [User manual](docs/manual/SUMMARY.md): how to use the app. New to 3D, or rusty? Start with [Concepts](docs/manual/concepts.md).

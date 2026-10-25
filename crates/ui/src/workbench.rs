@@ -43,6 +43,7 @@ mod mesh_menu;
 mod preferences;
 mod requests;
 mod tabs;
+mod updating;
 mod uv_menu;
 pub use bars::navigation_hint;
 pub use file_work::FileWork;
@@ -52,6 +53,7 @@ pub(crate) use layouts::LayoutChoice;
 pub(crate) use levels::STOP_EDITING_LEVEL;
 pub use path_entry::FilePurpose;
 use tabs::PanelViewer;
+pub use updating::UpdateOffer;
 // The tests reach these through `super::`, as when they were defined or
 // imported here.
 #[cfg(test)]
@@ -155,6 +157,14 @@ pub enum WorkbenchAction {
     DiscardBackups {
         /// The leftover backups.
         folder: PathBuf,
+    },
+    /// Install the update offered ([`Workbench::offer_update`], decision
+    /// 0169): `now`, by closing the app (unsaved changes asked about as
+    /// for any close), installing and opening it again; otherwise when the
+    /// app is next closed.
+    InstallUpdate {
+        /// Restart now, rather than at the next close.
+        now: bool,
     },
 }
 
@@ -322,6 +332,9 @@ pub struct Workbench {
     system_keyboard: crate::KeyboardLayout,
     /// A message for the status bar, such as "Panel layout reset".
     note: Option<String>,
+    /// A newer build offered, and what the last check found (decision
+    /// 0169).
+    updating: updating::Updating,
     /// When the next backup copy is due.
     autosaver: Autosaver,
     /// Where backup copies go, to show in Settings.
@@ -404,6 +417,7 @@ impl Workbench {
             shortcuts: shortcuts::ShortcutViewer::default(),
             system_keyboard: crate::KeyboardLayout::default(),
             note,
+            updating: updating::Updating::default(),
             autosaver: Autosaver::default(),
             autosave_folder: None,
             recovery: RecoveryQuestion::default(),
@@ -634,6 +648,12 @@ impl Workbench {
             });
         if symmetry != symmetry_before {
             self.change_symmetry(symmetry);
+        }
+        if self.update_bar_shown() {
+            egui::Panel::top("update_bar")
+                .frame(theme::palette_frame())
+                .exact_size(32.0)
+                .show(ui, |ui| self.update_bar(ui, &mut actions));
         }
         egui::Panel::bottom("status_bar")
             .frame(theme::status_bar_frame())
@@ -1067,6 +1087,8 @@ mod symmetry_tests;
 mod transform;
 #[cfg(test)]
 mod triangulate_tests;
+#[cfg(test)]
+mod updating_tests;
 #[cfg(test)]
 mod uv_editor_tests;
 #[cfg(test)]
