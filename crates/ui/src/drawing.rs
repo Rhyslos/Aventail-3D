@@ -10,6 +10,9 @@ use scene::{Bounds, Document, Mesh, ObjectId};
 use std::sync::Arc;
 use tools::ElementKind;
 
+pub(crate) use levels::edited_level;
+use levels::levels_being_edited;
+
 /// One object to draw.
 #[derive(Debug, Clone, PartialEq)]
 pub struct DrawItem {
@@ -378,9 +381,12 @@ impl DrawingCache {
         self.find_export_problems(document);
         let scene = document.scene();
         let cutters = scene.cutters();
+        // A level made by hand is drawn only while selected (being
+        // edited), in its object's place (decision 0165).
+        let editing_levels = levels_being_edited(document);
         let mut items = Vec::new();
         for (id, _) in scene.walk() {
-            if !scene.is_shown(id) {
+            if !scene.is_shown(id) || editing_levels.hides(scene, id, document.is_selected(id)) {
                 continue;
             }
             // A curve is drawn as its line, with its solid if it has one
@@ -601,6 +607,7 @@ impl DrawingCache {
 }
 
 mod bounds;
+mod levels;
 mod lod;
 mod stack;
 

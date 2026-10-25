@@ -17,9 +17,7 @@
 
 use super::{ExportMesh, ExportOptions, ExportedObject, Frames, export_mesh};
 use glam::Mat4;
-use mesh::Mesh;
 use scene::{ObjectId, Scene};
-use std::sync::Arc;
 
 /// One level of detail of an exported object.
 #[derive(Debug, Clone, PartialEq)]
@@ -45,14 +43,14 @@ pub struct LevelMark {
     pub end: f32,
 }
 
-/// The levels of object `id`, made from `shape` (its exported shape) and
-/// placed by `world` and `local` as its shape is (only those `frames`
-/// names), shaded by `shading`; none unless it has levels of detail and
-/// the export asks for them.
+/// The levels of object `id`, each its real shape (decision 0165: the
+/// model's with the level's changes to its modifiers, reduced or not, or
+/// made by hand), placed by `world` and `local` as its shape is (only
+/// those `frames` names), shaded by `shading`; none unless it has levels
+/// of detail and the export asks for them.
 pub(super) fn levels(
     scene: &Scene,
     id: ObjectId,
-    shape: &Arc<Mesh>,
     (world, local): (Mat4, Mat4),
     shading: &ExportOptions,
     frames: Frames,
@@ -64,7 +62,7 @@ pub(super) fn levels(
         return Vec::new();
     };
     let settings = object.lods.clamped();
-    let Some(made) = scene.lod_shapes(id, scene::Purpose::Export, Arc::clone(shape)) else {
+    let Some(made) = scene.lod_shapes(id) else {
         return Vec::new();
     };
     let per_cm = shading.units.per_centimetre();

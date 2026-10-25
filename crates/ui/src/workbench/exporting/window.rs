@@ -277,7 +277,7 @@ fn general(
             choice.lod_chosen = true;
         }
         levels.on_hover_text(tr(
-            "Each object's levels of detail (Attributes → Levels of detail) go out beside it \
+            "Each object's levels of detail (the Levels panel, Window → Levels) go out beside it \
              as meshes of their own, named like Rock_LOD1, with the distances they show from. \
              It starts on when an object has levels, until you set it yourself. Godot makes \
              its own levels when it imports a file, so it doesn't need these",

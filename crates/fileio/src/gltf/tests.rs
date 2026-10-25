@@ -717,7 +717,11 @@ fn files_for_outside_checkers() {
     write("godot-collision-parts.glb", &in_parts, &godot_options);
 
     // Levels of detail (decision 0155): a sphere and a ring, each with
-    // three levels beside it, hidden for Godot, with their distances.
+    // three levels beside it, hidden for Godot, with their distances. The
+    // sphere is smoothed by Subdivide, which its first level switches off
+    // and its second does once (decision 0165); the ring's second level is
+    // made by hand, a slice of it taken away, and never goes out as an
+    // object of its own.
     let mut levelled = scene_of(&[PrimitiveKind::Sphere, PrimitiveKind::Torus]);
     let ids: Vec<_> = levelled
         .scene()
@@ -726,11 +730,62 @@ fn files_for_outside_checkers() {
         .map(|(id, _)| id)
         .collect();
     levelled
+        .execute(Command::AddModifier {
+            ids: vec![ids[0]],
+            kind: scene::ModifierKind::Subdivide(Default::default()),
+        })
+        .unwrap();
+    levelled
         .execute(Command::SetLods {
-            ids,
+            ids: ids.clone(),
             lods: scene::Lods {
                 on: true,
                 ..scene::Lods::default()
+            },
+        })
+        .unwrap();
+    let modifiers = levelled.scene().modifiers(ids[0]).to_vec();
+    let mut changed = levelled.scene().object(ids[0]).unwrap().lods.clone();
+    changed.levels[0] = changed.levels[0].with_override(&modifiers, modifiers[0].id, false, None);
+    changed.levels[1] = changed.levels[1].with_override(
+        &modifiers,
+        modifiers[0].id,
+        true,
+        Some(scene::ModifierKind::Subdivide(scene::SubdivideOptions {
+            export_levels: 1,
+            ..Default::default()
+        })),
+    );
+    levelled
+        .execute(Command::SetLods {
+            ids: vec![ids[0]],
+            lods: changed,
+        })
+        .unwrap();
+    levelled
+        .execute(Command::MakeLevelByHand {
+            id: ids[1],
+            level: 1,
+        })
+        .unwrap();
+    let ring_level = levelled.selection()[0];
+    let slice: Vec<mesh::FaceId> = levelled
+        .scene()
+        .evaluated(ring_level)
+        .unwrap()
+        .mesh
+        .faces()
+        .map(|(f, _)| f)
+        .take(8)
+        .collect();
+    levelled
+        .execute(Command::Record {
+            id: ring_level,
+            operation: scene::Operation::DeleteElements {
+                points: Vec::new(),
+                edges: Vec::new(),
+                faces: slice,
+                anchors: None,
             },
         })
         .unwrap();

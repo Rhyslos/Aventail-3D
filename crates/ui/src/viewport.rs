@@ -150,6 +150,11 @@ pub struct ViewportPanel {
     tool_steps: i32,
     /// What the modelling tool's drag is doing, written by the mouse.
     tool_label: Option<String>,
+    /// A note across the top of the views while something unusual is
+    /// edited (decision 0165: a level made by hand), with a button.
+    banner: Option<String>,
+    /// Whether the banner's button was clicked this frame.
+    banner_clicked: bool,
     /// A line a tool shows over the views (Slit's).
     tool_path: Option<ToolPath>,
     /// Modelling tool drag events this frame, for the workbench.
@@ -189,6 +194,8 @@ impl Default for ViewportPanel {
             wheel_tool: false,
             tool_steps: 0,
             tool_label: None,
+            banner: None,
+            banner_clicked: false,
             tool_path: None,
             tool_events: Vec::new(),
             right_click: None,
@@ -400,13 +407,23 @@ impl ViewportPanel {
         self.tool_label = label;
     }
 
-    /// The modelling tool drag events since last asked.
-    /// Whether a viewport menu asked for the Settings window, since last
+    /// The note across the top of the views (decision 0165), or none.
+    pub(crate) fn set_banner(&mut self, banner: Option<String>) {
+        self.banner = banner;
+    }
+
+    /// Whether the banner's button was clicked since last asked.
+    pub(crate) fn take_banner_click(&mut self) -> bool {
+        std::mem::take(&mut self.banner_clicked)
+    }
+
+    /// Whether a viewport menu's "All settings…" was clicked since last
     /// asked.
     pub(crate) fn take_open_settings(&mut self) -> bool {
         std::mem::take(&mut self.open_settings)
     }
 
+    /// The modelling tool drag events since last asked.
     pub(crate) fn take_tool_events(&mut self) -> Vec<ToolDragEvent> {
         std::mem::take(&mut self.tool_events)
     }
@@ -628,6 +645,11 @@ impl ViewportPanel {
             if four && slot == self.active {
                 chrome::active_border(ui, rect);
             }
+        }
+        if let Some(banner) = self.banner.clone()
+            && chrome::banner(ui, body, &banner)
+        {
+            self.banner_clicked = true;
         }
         // Where the mouse is, for finding points, edges and polygons under
         // it: only while it rests over a view, not while navigating.

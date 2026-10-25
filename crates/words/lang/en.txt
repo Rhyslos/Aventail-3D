@@ -97,6 +97,7 @@ A flat honeycomb of hexagons, lying on the ground
 A flat view from the front: no perspective, true sizes
 A flat view from the right: no perspective, true sizes
 A flat view looking straight down: no perspective, true sizes
+A game shows each level from its distance on. Export with Levels of detail ticked (Export window, Includes) to write them beside the object.
 A gear with 12 teeth and a hole for the axle
 A group has no shape of its own, so no edit layers.
 A group has no shape: select shapes only
@@ -442,6 +443,7 @@ Copy the selected objects, to paste as copies (Ctrl + V) or instances (Alt + V)
 Copy the selected objects, with their edits, right where they are. Or Ctrl + C, then Ctrl + V to paste copies.
 Copy the selected shape's settings
 Copy the shape in a line, a grid or a ring: fence posts, stairs, bolts round a wheel. The copies stay live: edit the shape and every copy follows.
+Copy what this level shows into a shape of its own, to model by hand. It no longer follows the model; the viewport shows it while you edit it
 Copy works on whole objects: go back to the Model mode (the top of the left palette) first.
 Copy: select the objects to copy first.
 Corner angle
@@ -569,6 +571,7 @@ Delete the layer and every edit in it (Ctrl + Z brings them back)
 Delete the selected objects
 Delete the selected objects (Backspace does it too)
 Delete the selected points, edges or polygons, and the polygons using them, leaving a hole
+Delete this level's own shape: the level is made from the model again
 Delete {}
 Depth
 Deselect
@@ -638,7 +641,7 @@ Each copy gets a random size between Smallest and Largest: 100% is the shape's o
 Each hexagon's size, from its middle to a corner
 Each material's pieces fill a square of their own, as separate texture sets
 Each metre square cut into four: lines every 50 cm
-Each object's levels of detail (Attributes → Levels of detail) go out beside it as meshes of their own, named like Rock_LOD1, with the distances they show from. It starts on when an object has levels, until you set it yourself. Godot makes its own levels when it imports a file, so it doesn't need these
+Each object's levels of detail (the Levels panel, Window → Levels) go out beside it as meshes of their own, named like Rock_LOD1, with the distances they show from. It starts on when an object has levels, until you set it yourself. Godot makes its own levels when it imports a file, so it doesn't need these
 Each object's pieces fill a square of their own
 Each piece is laid flat all three ways and keeps the one that lies most evenly. Always the same choice for the same piece; slowest of all.
 Each point goes along its own facing, so the end follows the surface's curve at an even thickness, like puffing it out.
@@ -658,8 +661,10 @@ Edit pivot is on: the gizmo moves and turns the selected objects' pivots, not th
 Edit pivot off: the gizmo moves the objects again.
 Edit pivot on: the gizmo moves and turns the pivots, not the shapes. Click Edit pivot again (or press Tab) to stop.
 Edit pivot: move and turn the selected objects' pivots (the point they turn and scale around), not their shapes
+Edit this level
 Edit {} of {} in {}. Change it and the edits after it are made again on the new shape.
 Edit: {}
+Editing {} of {}: its own shape, made by hand. The object is hidden meanwhile.
 Edits
 Edits are kept apart from the shape's settings, so the settings stay editable: change them and the edits are made again on the new shape.
 Empty space below the objects
@@ -814,7 +819,7 @@ Give the selected pieces a stretch budget of their own
 Give the selected pieces their own unwrap settings
 Give the selected polygons the material {}
 Give the selected shapes of the same kind the copied settings
-Give the selected shapes simpler copies for a game to draw far away; their settings are in Attributes → Levels of detail
+Give the selected shapes simpler copies for a game to draw far away; their settings are in the Levels panel (Window → Levels)
 Give the selection these settings
 Give the selection this budget
 Go back to showing the last edit
@@ -982,13 +987,13 @@ How many times each triangle is cut into four: 0 is a 20-sided ball, each step f
 How many times exports and Bake into shape split and smooth it: often one more than the viewport, for a smoother result where it counts
 How many times round it goes
 How many times the viewport splits and smooths the shape: each level has four times the polygons. 0 shows the shape as it is.
+How many triangles the full shape has as it is exported, as a game counts them
 How many triangles the shape in the viewport has, after all its modifiers
-How many triangles this level has, as a game counts them
+How many triangles this level has as it is exported, as a game counts them, and the budget set for it
 How many triangles to end with. Fewer can't always be reached: kept lines' corners never move.
 How modelling edits fix the UVs they break (saved with the project)
 How much Relax evens UVs out
 How much of a circle: 90° for a quarter
-How much of the full shape this level keeps, as a share of its triangles. A level with a larger share than the one before is made the same as that one
 How much the biggest polygon at a point wins over the smaller ones. 0%: each counts by its weight alone; 100%: only the biggest counts, so big faces shade perfectly flat
 How much wider the shape gets towards the far end of the limits: -50% makes it half as wide there, -100% a point, 100% twice as wide. The centre keeps its size.
 How shapes are drawn: shaded, with wires, or wireframe
@@ -1176,9 +1181,12 @@ Loop cut: point at an edge to see the new loop, click to cut it, or press and dr
 Lower the shape's polygon count while keeping its shape: flat areas lose the most. UV seams, hard edges, material borders and open borders stay. For game models and levels of detail.
 Lowest
 M / A (Points mode, the two ends selected)
+Made by hand: its shape is {}, inside the object in the Objects panel. It doesn't follow changes to the model.
 Made for
 Make every bevelled edge's new polygon the same width, however sharp or flat the edge is (the width you set is what a right-angled edge gets)
+Make from the model
 Make instances of the selected objects right where they are: they show the original's shape and follow its changes. Or Alt + C, then Alt + V.
+Make level {} by hand
 Make levels
 Make levels of detail
 Make levels of detail: select a shape first.
@@ -1191,6 +1199,7 @@ Make the mirrored half part of the shape for real: symmetry goes off and both ha
 Make the selected curves lathes: each spun round an axis, for vases, bottles and wheels
 Make the selected curves sweeps: a cross-section carried along each, for pipes, cables and rails
 Make the trim sheet's rows first: the UV Editor's Trim menu, or UV → Trim sheet
+Make this level by hand
 Makes
 Marine green
 Mark as seams
@@ -1252,6 +1261,7 @@ Modes
 Modifier on
 Modifiers
 Modifiers are worked out first to last, after the edits, booleans and mirror. Bake into shape (Ctrl + E) makes those that are on part of the shape for good.
+Modifiers at this level
 Modular kit
 More copies let you go further back after a crash. A heavy scene takes tens of MB per copy.
 More pieces where the curve bends, one along a straight stretch
@@ -1337,6 +1347,7 @@ No trim sheet. Pieces already on its rows stay where they are.
 Noise
 None
 None chosen
+None yet: make them in the Levels panel.
 Norwegian
 Not inside a Godot, Unity, Unreal Engine or Solis project: exported with {}'s settings (Made for picks which).
 Not split into parts: {}. It collides as one wrapped shape instead.
@@ -1411,6 +1422,7 @@ Open in Attributes
 Open or close curve
 Open project
 Open recent
+Open the Levels panel
 Open the Settings window, where every setting has its home
 Open the project as you last saved it, and delete the backup copies.
 Open the shape list: a cube, sphere, cylinder and the rest
@@ -1527,6 +1539,7 @@ Prefer seams on
 Preparing a heavy shape for drawing…
 Press E for the tools of what you're working on. Every look holds the same tools in the same places.
 Preview
+Preview {}
 Profile
 Projects you save or open are listed here
 Push every point again
@@ -1575,6 +1588,7 @@ Red
 Redo
 Redo: {}
 Redone: {}.
+Reduce
 Reduce by
 Relative to size
 Relax
@@ -1596,6 +1610,7 @@ Rename a snapshot
 Rename layer
 Replace it with the current layout of the objects shown
 Replace the selected objects' seams with suggested ones: along hard edges and sharp corners, then where each piece needs cutting to lie flat, in hidden places (facing down, in corners)
+Replace this level's shape with what it would show from the model now. Its edits go (undo brings them back)
 Reset cage points
 Reset panel layout
 Reset points
@@ -1633,6 +1648,7 @@ Round corners
 Round the selected shapes' outside sizes to whole steps of the kit grid (Create → Modular kit), so pieces line up. A side under half a step, such as a wall's thickness, stays.
 Row {}
 Rows of a shared texture, repeating left to right.
+Same as the model
 Save
 Save As…
 Save as
@@ -1678,6 +1694,7 @@ Select a curve first
 Select a loop / ring
 Select a point inside the curve to cut at: an open curve's ends cut nothing
 Select a shape (a group or a mesh has no settings to bake)
+Select a shape to see its levels of detail: simpler copies a game draws when it is far away.
 Select all
 Select an object first: its materials are listed here
 Select an object first: its {} can then be selected.
@@ -1732,6 +1749,7 @@ Select target
 Select the cage, to change it or move its points
 Select the curve, to reshape or move it
 Select the islands to move first (click one on the model or in the UV Editor).
+Select the object again: the viewport shows the model, and its level goes on as you left it
 Select the objects to apply first
 Select the objects to set how they're smoothed
 Select the polygons facing the wrong way round: inside out compared with their neighbours, or facing into a closed shape
@@ -1769,6 +1787,7 @@ Set the piece settings of
 Set the stretch budget of
 Set the texel density of
 Settings
+Settings here
 Settings of the automatic tools
 Settings section: {}
 Settings…
@@ -1810,12 +1829,15 @@ Show normals
 Show only the active view (middle click)
 Show seams
 Show the Edit layers panel beside Objects, or put it away. It shows by itself once an object has more than one layer.
+Show the Levels panel beside Attributes, or put it away: the selected                      shape's levels of detail and how each is made. It shows by itself when a                      shape with levels is selected.
 Show the UV Editor beside the viewport, or put it away
 Show the UV Editor beside the viewport, or put it away. The UV Edit layout (top right) always has it.
 Show the perspective, top, front and right views at once (middle click)
 Show the perspective, top, front and right views at once; click again (or middle click a view) to show only the active one
 Show the turning point while orbiting
 Show this edit's settings in the Attributes panel, to change them
+Show this level in the viewport in the shape's place, to check how it looks from afar. Only the view changes
+Show this level's own shape in the viewport in the object's place, and edit it with every mode and tool. Click again (or select something else) to stop
 Show triangles
 Show which way each polygon faces, as short lines
 Show which way each polygon of the selected objects faces, as a short line from its middle. Lines pointing into a shape show flipped polygons.
@@ -1920,10 +1942,13 @@ Stairs
 Stand each copy on the surface: the shape's up turns to face out from the surface where it stands, as a rock on a slope. Off, every copy stays upright.
 Standard
 Start a new, empty project
+Start again from the model
+Start level {} again from the model
 Starting the graphics…
 Step back to the Model mode (finishes a slit, puts a tool away)
 Steps
 Stop at neighbours
+Stop editing the level
 Stop exporting into a game project
 Stop this shape cutting: it becomes an ordinary shape
 Straight
@@ -1965,6 +1990,7 @@ Switch edit off
 Switch edit on
 Switch layer off
 Switch layer on
+Switch modifiers off, or give them simpler settings, for this level only. The model and the other levels don't change, and the level still follows every edit of the model
 Switch off
 Switch on
 Switch this modifier off to see the shape without it; it stays, with its settings
@@ -1998,7 +2024,9 @@ Take the snapshot “{}”
 Take this boolean away: the shape is whole again, and its cutters are ordinary shapes
 Take this edit out. The edits after it are made again without it (Ctrl + Z brings it back).
 Take this edit out; the edits after it are made again without it
+Take this level's change away: the modifier is as the model has it
 Take this modifier away
+Take triangles away automatically as a last step, keeping this share of the level's own triangles (after its changes to the modifiers), with Decimate's work
 Tap E to open
 Taper
 Target
@@ -2011,6 +2039,7 @@ Texture size
 That isn't a modifier
 That's a folder: add the file's name after it.
 The 3D view can't be shown: {}.
+The Levels panel, beside Attributes (Window → Levels), shows each level of detail and how it is made
 The app closed without saving your work on {}. Backup copies were kept:
 The app's
 The app's own folder, so your project folders stay tidy. Copies are deleted when the app closes normally.
@@ -2032,7 +2061,6 @@ The first selected has no shape of its own: select a shape first
 The first selected has no shape to scatter onto: select a shape first
 The first selected is an instance: select its original, or bake it into a shape first
 The folder {} doesn't exist.
-The full shape has {} triangles.
 The gap between pieces, in texture pixels (half of it to the square's edges). Keeps colours from bleeding between pieces when the texture is shrunk; 8 px suits a 2048 texture.
 The gizmo follows the object's own axes.
 The gizmo follows the world's axes.
@@ -2045,6 +2073,7 @@ The lines between the points
 The lines shown: every 1 m, 50 cm or 10 cm, as the grid button is set.
 The lowest point of the box around it along each axis (its left, back or bottom)
 The middle of the box around it
+The model has changed since this level was made.
 The most any polygon of the piece may be off once laid flat: stretched this many times more one way than the other, or this many times bigger or smaller than the rest. 1.5× is strict; 2× (red in the Stretch view) is loose.
 The most parts it is split into. More follow its dents more closely; fewer are cheaper for the game
 The name shown in the Objects panel
@@ -2073,6 +2102,7 @@ The selection is always drawn larger and brighter than anything else. High contr
 The shape across the bevel: 100% is round, 0% is flat, -100% curves inward (hollow, like a cove). Needs 2 or more segments to show.
 The shape carried along the curve: a circle for pipes and cables, a square or rectangle for bars, or another curve for rails and trims (laid flat on its plane, round its pivot)
 The shape itself
+The shape of level {} of its object, made by hand. The viewport shows it only while it is selected (edited), in the object's place; exports write it as that level.
 The shape this one is wrapped onto. It stays live: edit or move it and the wrapped shape follows. Hidden, it still counts.
 The shape to keep already cuts one of the others (or is shown by it): each would wait for the other
 The shape's points were renumbered (more or fewer segments, say), so these edits looked for the points, edges and polygons they were made on by where they are. A polygon split into smaller ones moves as a whole. Nothing to fix.
@@ -2087,6 +2117,7 @@ The system's file window couldn't open, so type the full path here. ~ stands for
 The system's file window didn't open (on Linux it needs the desktop's file portal or the zenity program). Type the path in the window instead.
 The texel density aimed for: texture pixels per metre of surface. 512 px/m is common for props seen up close in third-person games.
 The triangles a game engine cuts the faces into: the usual measure of how heavy a model is
+The triangles you aim for at this level (0 for none). Its count turns amber when it has more; nothing is changed to fit
 The units a new project starts with
 The user manual opens in your web browser.
 The viewport and the UV Editor side by side, in the UV mode
@@ -2313,7 +2344,6 @@ Whether these pieces, when they're strips of square quads, come out as straight 
 Which edges a Live bevel set to Marked edges bevels, and how wide: 0 not at all, 1 its full width, 0.5 half of it
 Which edges are bevelled: those sharper than an angle, those the shading shows hard, or those you give a Bevel weight (in the Edges mode, press 2)
 Which keyboard to draw. Letters follow what is printed on your keys; the number row is always 1 to 0.
-Which level the viewport shows in the shape's place, to check how it looks from afar. Only the view changes: you still select and edit the full shape
 Which of the curve's own axes it spins round, through its pivot
 Which of the shape's own axes it works along. Z, up, bends a standing shape over, and twists and tapers it from bottom to top. The helper line in the viewport shows it.
 Which of the shape's own axes runs along the curve: its longest side, or X, Y or Z. The shape's start along it goes to the curve's start.
@@ -2361,6 +2391,7 @@ Write the scene (or the selection) to a file for a game engine or Substance Pain
 X
 Y
 Y up
+You are editing {}'s own shape: the viewport shows it in the object's place.
 You can switch the warning back on in Settings → Interface.
 You've selected something else since, so the settings above are for your next use of the tool. Open this edit to change it.
 Your changes will be lost if you don't save them before {}.
@@ -2411,6 +2442,7 @@ a layer has changed
 a layer no longer exists
 a layer with edits to freeze is switched off: switch it on or delete it first
 a layer's place no longer exists
+a level made by hand names an object that isn't there
 a list
 a material has no name or a colour outside 0 to 1
 a mirror has no axis, or a number that isn't real or is out of range
@@ -2469,6 +2501,7 @@ an object's collision has changed
 an object's collision is stored twice
 an object's collision parts have changed
 an object's id is impossibly large
+an object's levels of detail are listed twice
 an object's levels of detail have changed
 an object's materials are stored twice
 an object's materials have changed
@@ -2497,6 +2530,7 @@ border edge
 bridged
 cage point {} of {}
 centimetres
+changed here
 closing
 connected
 couldn't find a free temporary file name
@@ -2542,6 +2576,8 @@ isn't
 it
 it couldn't be worked out ({})
 it has mesh layers but no mesh
+it has no levels of detail on
+it has no such level
 it holds more than the app can open (a limit was reached; it may be damaged or made to cause trouble)
 it holds no polygons
 it holds {} objects, and the app opens up to {}
@@ -2696,6 +2732,7 @@ switch both layers on before merging them
 that edit no longer exists
 that element isn't in the mesh
 that layer no longer exists
+that level isn't made by hand
 that modifier isn't there
 that object isn't a lattice cage
 that works on the two ends of open curves
@@ -2721,6 +2758,7 @@ the game project folder {} isn't there; choose it again in the Export window
 the in handle of point {} of {}
 the layer is already at the bottom
 the layer is already at the top
+the level couldn't be made, so there's nothing to copy
 the mesh is too large
 the new surface would have too many polygons
 the out handle of point {} of {}
@@ -2799,12 +2837,14 @@ write
 {} ({})
 {} 1 {}
 {} KB
+{} LOD{}
 {} On Linux, install the missing library with your package manager (for example libxkbcommon-x11-0 and mesa-vulkan-drivers on Ubuntu).
 {} The app closes when it's done.
 {} Try again when it's done.
 {} across {}. Change Cuts and Position in the Attributes panel; Ctrl+Z takes it back.
 {} and {}
 {} at their middle. Ctrl + Z takes it back.
+{} at {}
 {} bent out of flat
 {} by one step (Shift: ten steps)
 {} cancelled.
@@ -2832,6 +2872,7 @@ write
 {} is stored with a stretch, which it can't have
 {} is there already: it will be replaced.
 {} is used by {} polygon{}: assign {} another material first (Select → Select by material finds {}).
+{} levels, set in the Levels panel.
 {} lying over other UVs
 {} matches
 {} mode
@@ -2844,6 +2885,7 @@ write
 {} objects selected
 {} objects were
 {} of its parts can't be found on the shape any more; it applies to the rest.
+{} of {} triangles
 {} on curves joins end points: both points must be ends of open curves.
 {} on curves joins two end points: select just the two ends (of one curve, or of two curves).
 {} on the trim sheet sharing a texture with other pieces
@@ -2863,6 +2905,7 @@ write
 {} px · not over a piece
 {} px · {:.1} cm on the surface
 {} px · {}{} px/m (aim {})
+{} reduced to
 {} rows of the same height, filling the texture
 {} settings can only be given to a {}
 {} shapes
@@ -2874,6 +2917,7 @@ write
 {} that would spoil a bake in Substance Painter.
 {} that {} UV seams
 {} this edit: see the shape {} it
+{} triangles
 {} view
 {} with a bend
 {} with a spiral

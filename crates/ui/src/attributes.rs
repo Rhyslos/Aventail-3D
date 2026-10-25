@@ -18,8 +18,10 @@ mod edits;
 mod fields;
 mod last_edit;
 mod lattice_rows;
+mod level_rows;
+pub(crate) mod levels_panel;
 pub(crate) mod live_bevel_rows;
-mod lod_rows;
+mod lods_pointer;
 mod materials;
 mod mesh_check;
 pub(crate) mod modifier_rows;
@@ -48,6 +50,10 @@ use edits::edits_section;
 pub(crate) use edits::{DELETE_EDIT_LABEL, FREEZE_LABEL, OpenedEdit, edit_warning};
 use egui::{RichText, Ui, vec2};
 pub(crate) use last_edit::{last_edit, made_by};
+#[cfg(test)]
+pub(crate) use level_rows::{EDIT_LEVEL, MAKE_BY_HAND};
+#[cfg(test)]
+pub(crate) use lods_pointer::OPEN_LEVELS;
 use mesh_check::{MeshChecker, mesh_section};
 use object_rows::{collision_row, heading, primitive_of, smoothing_row};
 use scene::{Command, Document, EditId, Grouping, ObjectId, ObjectKind, Primitive};
@@ -130,6 +136,9 @@ pub(crate) struct AttributesPanel {
     /// the Last edit is left alone and the panel shows the tool's settings
     /// for the next use.
     last_anchors: std::collections::HashMap<ObjectId, (EditId, u64)>,
+    /// Asked for by the Levels of detail line's button: the workbench
+    /// brings the Levels panel to the front (decision 0165).
+    pub(crate) show_levels: bool,
 }
 
 impl AttributesPanel {
@@ -382,7 +391,7 @@ impl AttributesPanel {
                 if solid {
                     crate::booleans::attributes_section(ui, doc, id, out);
                     self.modifiers_section(ui, doc, id, units, out);
-                    self.lods_section(ui, doc, id, units, out);
+                    self.lods_section(ui, doc, id);
                     self.materials_section(ui, doc, id, out);
                 }
                 if let Some(shape) = doc.scene().evaluated(id) {

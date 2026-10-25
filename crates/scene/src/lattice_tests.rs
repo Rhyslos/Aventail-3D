@@ -72,9 +72,10 @@ fn adding_a_lattice_fits_a_cage_and_names_it_in_one_step() {
     );
     assert_eq!(
         scene.modifiers(cube),
-        &[Modifier::new(ModifierKind::Lattice(LatticeOptions {
-            cage
-        }))]
+        &[Modifier {
+            id: ModifierId(1),
+            ..Modifier::new(ModifierKind::Lattice(LatticeOptions { cage }))
+        }]
     );
     // At rest it changes nothing.
     assert_eq!(scene.shown_shape(cube), scene.unmodified_shape(cube));

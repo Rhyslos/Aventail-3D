@@ -72,6 +72,7 @@ mod v6;
 mod v60;
 mod v61;
 mod v62;
+mod v63;
 mod v7;
 mod v8;
 mod v9;
@@ -159,7 +160,12 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 ///
 /// Version 62 (decision 0161) is version 61 with the Triangulate modifier
 /// (`v43::KindV43::Triangulate`, its settings in `v62::TriangulateV62`).
-pub const FORMAT_VERSION: u32 = 62;
+///
+/// Version 63 (decision 0165) is version 62 with each modifier's id
+/// (`v43::ModifierV43::id`) and the details of each object's levels of
+/// detail (`v63::LevelsV63`: reduced or not, budget, changes to the
+/// modifiers, a shape made by hand).
+pub const FORMAT_VERSION: u32 = 63;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1048,3 +1054,5 @@ mod v60_tests;
 mod v61_tests;
 #[cfg(test)]
 mod v62_tests;
+#[cfg(test)]
+mod v63_tests;

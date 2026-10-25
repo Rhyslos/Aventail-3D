@@ -61,8 +61,9 @@ pub use eval::{MODIFIERS_IN_BACKGROUND_FROM, StackDone, StackJob, StackResult, S
 /// The most modifiers one object can have.
 pub const MAX_MODIFIERS: usize = 32;
 
-/// What a shape is worked out for: drawing in the viewport, or an export
-/// (and Bake into shape, which keeps what an export would get).
+/// What a shape is worked out for: drawing in the viewport, an export
+/// (and Bake into shape, which keeps what an export would get), or one of
+/// the object's levels of detail (decision 0165).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Purpose {
     /// Drawn in the viewport: modifiers with *Show in viewport* off are
@@ -70,6 +71,53 @@ pub enum Purpose {
     Viewport,
     /// Exported or baked: every modifier that is on.
     Export,
+    /// A level of detail (its place in [`crate::Lods::levels`], from 0 for
+    /// Level 1): as for an export, with the level's own changes to the
+    /// modifiers ([`crate::LodLevel::overrides`]). What a game gets for
+    /// that level, so the viewport's preview and the Levels panel's
+    /// triangle counts are of it too.
+    Level(u8),
+}
+
+impl Purpose {
+    /// Whether it is worked out as an export is (every modifier that is
+    /// on, the export's levels of smoothing): an export or a level.
+    pub fn is_export(self) -> bool {
+        self != Self::Viewport
+    }
+
+    /// The purpose another object a modifier reads is worked out for: a
+    /// level's changes are its own object's, so its sources are worked out
+    /// as for an export.
+    pub fn for_sources(self) -> Self {
+        match self {
+            Self::Level(_) => Self::Export,
+            other => other,
+        }
+    }
+}
+
+/// A modifier's name within its object (decision 0165): given when it is
+/// added, kept while it stays, whatever its place in the list. What a level
+/// of detail's changes to it are kept by. 0 stands for "not given yet": the
+/// scene gives one when the modifier goes into a list.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
+pub struct ModifierId(pub u32);
+
+/// `list` with every modifier named ([`ModifierId`]): each keeps the id it
+/// has unless that is 0 or taken by one before it, which gets the next one
+/// after the highest in the list. The same list always gets the same ids.
+pub fn with_ids(mut list: Vec<Modifier>) -> Vec<Modifier> {
+    let mut next = list.iter().map(|m| m.id.0).max().unwrap_or(0);
+    let mut seen = std::collections::BTreeSet::new();
+    for modifier in &mut list {
+        if modifier.id.0 == 0 || !seen.insert(modifier.id) {
+            next = next.saturating_add(1);
+            modifier.id = ModifierId(next);
+            seen.insert(modifier.id);
+        }
+    }
+    list
 }
 
 /// The families modifiers are grouped in, on the modifiers palette and in
@@ -755,7 +803,7 @@ pub fn subdivide_levels(options: &SubdivideOptions, purpose: Purpose) -> u32 {
     let options = options.clamped();
     match purpose {
         Purpose::Viewport => options.levels,
-        Purpose::Export => options.export_levels,
+        Purpose::Export | Purpose::Level(_) => options.export_levels,
     }
 }
 
@@ -825,6 +873,8 @@ impl PartialEq for SourceData {
 /// One modifier on an object.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Modifier {
+    /// Its name within its object (decision 0165).
+    pub id: ModifierId,
     /// What it does, with its settings.
     pub kind: ModifierKind,
     /// Whether it does anything: off, the shape is as if it weren't there.
@@ -836,9 +886,10 @@ pub struct Modifier {
 
 impl Modifier {
     /// A new modifier of `kind` (settings brought within limits), on and
-    /// shown.
+    /// shown, with no id yet (the scene gives one, [`with_ids`]).
     pub fn new(kind: ModifierKind) -> Self {
         Self {
+            id: ModifierId::default(),
             kind: kind.clamped(),
             on: true,
             in_viewport: true,
@@ -847,7 +898,7 @@ impl Modifier {
 
     /// Whether it is worked out for `purpose`.
     pub fn applies(&self, purpose: Purpose) -> bool {
-        self.on && (purpose == Purpose::Export || self.in_viewport)
+        self.on && (purpose.is_export() || self.in_viewport)
     }
 }
 
@@ -961,13 +1012,15 @@ impl Scene {
         id: ObjectId,
         modifiers: Vec<Modifier>,
     ) -> Result<Self, ModifierRefusal> {
-        let modifiers: Vec<Modifier> = modifiers
-            .into_iter()
-            .map(|m| Modifier {
-                kind: m.kind.clamped(),
-                ..m
-            })
-            .collect();
+        let modifiers: Vec<Modifier> = with_ids(
+            modifiers
+                .into_iter()
+                .map(|m| Modifier {
+                    kind: m.kind.clamped(),
+                    ..m
+                })
+                .collect(),
+        );
         self.check_modifiers(id, &modifiers)?;
         if let Some(object) = self.object_mut(id) {
             object.modifiers = modifiers;

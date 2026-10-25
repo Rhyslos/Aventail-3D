@@ -31,7 +31,7 @@ In the shape's **Attributes**, under **Modifiers**, each modifier has:
 
 - **its switch**, the box before its name: untick it to see the shape without it. It stays, with its settings, until you tick it again.
 - **Up** and **Down**: the order it's worked out in. Order matters: a remesh followed by a coarser one gives a different shape from the other way round, and later modifiers (smoothing, weighted normals) will usually want to come last.
-- **Remove**: takes it away. **Ctrl + Z** brings it back.
+- **Remove**: takes it away. **Ctrl + Z** brings it back. Any [level of detail](levels-of-detail.md) that switched it off or gave it its own settings loses that change too (undo brings both back).
 - **its settings**: drag or type, and the shape follows. One drag is one undo step.
 - **Show in viewport**: untick it and the viewport skips the modifier, while exports and Bake into shape still use it. Handy for a slow modifier while you model; tick it again to check the result.
 
@@ -59,6 +59,8 @@ So a modifier sees the whole shape: cut by its booleans, with both halves of a m
 ### Saving and exporting
 
 Modifiers are saved with the project, live, and come back as they were. [Export](export-and-import.md) sends out each shape with its modifiers that are on, including those hidden in the viewport: what goes to the game engine or Substance Painter is the finished shape.
+
+Each [level of detail](levels-of-detail.md) can switch modifiers off or give them simpler settings for that level only, in the **Levels** panel: a far level with a 1-segment bevel, or without its smoothing. Moving a modifier up or down keeps those changes with it.
 
 ## Settings
 

@@ -258,7 +258,7 @@ After a review of the whole app (2026-10-21, [decision 0121](docs/decisions/0121
 
 **Gate:** 2–3 people new to the app finish a fixed task list without help, see what is selected on any screen, and no text skips the English package. Then Phase 10, advanced modelling.
 
-### Phase 10 · Advanced hard-surface (after Phase 9, before the rest of Phase 8) — 23 of 23
+### Phase 10 · Advanced hard-surface (after Phase 9, before the rest of Phase 8) — 24 of 24
 
 `█████████████` 100%
 
@@ -290,6 +290,7 @@ Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/d
 - [x] Wireframe: **Struts**, every edge made a closed bar with a joint at each point, square or round, with hard corners and UVs of their own, for grates, fences and cages (named apart from the viewport's Wireframe look) ([decision 0159](docs/decisions/0159-struts.md))
 - [x] Modular kit helpers: a kit grid saved with the project, shapes sized to it (Size to kit grid) or made at its size (Kit-sized shapes), moves snapped to it, and pivot presets on the shape's box (bottom centre, a bottom corner, centre, top centre) ([decision 0160](docs/decisions/0160-kit-helpers.md))
 - [x] Triangulate preview: **Show triangles** draws the export's own cut as faint lines before you export, and a **Triangulate** modifier fixes it in the shape, as the export cuts (Fixed) or evened out (Beauty), keeping Weighted normals ([decision 0161](docs/decisions/0161-triangulate.md))
+- [x] Levels panel (added on 25 October at the project lead's request): a **Levels** tab beside Attributes, each level made with its own modifier changes (a modifier off, or simpler settings), reduced automatically, or by hand as its own shape edited in the viewport, with budgets and a note when the model has changed since ([decision 0165](docs/decisions/0165-levels-panel.md))
 
 </details>
 
@@ -313,6 +314,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-25 | Phase 10: the Levels panel, each level of detail with its own modifier changes (a 1-segment bevel, smoothing off), an automatic reduction, or modelled by hand in the viewport, with triangle budgets; exports write each level's real shape |
 | 2026-10-24 | Phase 10: triangles, Display → Show triangles drawing where the export cuts polygons into triangles, and a Triangulate modifier fixing that cut in the shape (or an evened-out one), keeping UVs, materials and Weighted normals; the last of Phase 10's 23 milestones |
 | 2026-10-24 | Phase 10: modular kit helpers, a kit grid for the project (1, 2 or 4 m or any other), shapes sized to it in one click or made at its size, moves snapped to it, and the pivot put at a shape's bottom centre, bottom corner, centre or top centre |
 | 2026-10-24 | Phase 10: Struts, every edge of a shape made a bar with a joint at each point, live, for frames, cages and grilles |

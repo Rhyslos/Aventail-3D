@@ -322,6 +322,22 @@ impl Workbench {
                 }
                 ui.close();
             }
+            let levels_shown = self.dock.find_tab(&Panel::Levels).is_some();
+            if ui
+                .add(egui::Button::selectable(levels_shown, tr(LEVELS_ENTRY)))
+                .on_hover_text(tr(
+                    "Show the Levels panel beside Attributes, or put it away: the selected                      shape's levels of detail and how each is made. It shows by itself when a                      shape with levels is selected.",
+                ))
+                .clicked()
+            {
+                match self.dock.find_tab(&Panel::Levels) {
+                    Some(path) => {
+                        self.dock.remove_tab(path);
+                    }
+                    None => crate::layout::show_levels(&mut self.dock),
+                }
+                ui.close();
+            }
         });
         crate::dialog::menu(ui, tr("Help"), |ui| {
             if ui
@@ -420,6 +436,9 @@ pub(crate) const SHOW_HIDE_MENU: &str = crate::text!("Show and hide");
 
 /// The Window menu's entry for the Edit layers panel.
 pub(crate) const EDIT_LAYERS_ENTRY: &str = crate::text!("Edit layers");
+
+/// The Window menu's entry for the Levels panel (decision 0165).
+pub(crate) const LEVELS_ENTRY: &str = crate::text!("Levels");
 
 /// The Window menu's entry for the UV Editor.
 pub(crate) const UV_EDITOR_ENTRY: &str = crate::text!("UV Editor");

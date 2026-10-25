@@ -271,7 +271,9 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Material slot / texture set** — Groups of polygons that get their own material. Each one becomes a separate texture set in Substance Painter, and a separate surface (with its own material) in Godot. In this app each polygon holds the number of its material in its object's list. See [Materials](materials.md).
 
-**LOD (level of detail)** — Simpler versions of a model that the engine swaps in when it's far away, where the detail can't be seen, so far-off things cost little to draw. Each level has fewer [triangles](#mesh-basics) and is shown from a greater distance. Godot makes its own when it imports a model; the app can make them too. See [Levels of detail](levels-of-detail.md).
+**LOD (level of detail)** — Simpler versions of a model that the engine swaps in when it's far away, where the detail can't be seen, so far-off things cost little to draw. Each level has fewer [triangles](#mesh-basics) and is shown from a greater distance. Godot makes its own when it imports a model; the app can make them too, each level either the model with some [modifiers](modifiers.md) switched off or simplified, reduced automatically, or modelled **by hand** (a level's own shape, which no longer follows the model). See [Levels of detail](levels-of-detail.md).
+
+**Triangle budget** — How many [triangles](#mesh-basics) a model may have, set by the game's art plan: a hero prop a few thousand, a far-off rock a few hundred. Each [level of detail](levels-of-detail.md) can have its own; the Levels panel shows the count against it, in amber when over.
 
 **Collision mesh** — A simple, invisible shape the physics engine uses instead of the detailed visual model. In this app, each object's **Collision** setting tells Godot which to make, and the selected objects' are outlined in yellow. See [Collision shapes](collision-shapes.md) and [Kit export and collision](kit-export.md).
 

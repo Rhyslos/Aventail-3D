@@ -85,7 +85,7 @@ impl Run<'_> {
                 .check_modifiers(id, &after)
                 .map_err(SceneError::Modifier)?;
             let before = self.scene.modifiers(id).to_vec();
-            self.edit(Edit::SetModifiers { id, before, after })?;
+            self.replace_modifiers(id, before, after)?;
         }
         Ok(Some(vec![cage]))
     }

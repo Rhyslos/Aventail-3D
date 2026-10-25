@@ -1,45 +1,191 @@
-//! Levels of detail ([decision 0155](../../../docs/decisions/0155-levels-of-detail.md)):
-//! simpler copies of an object's shape for a game to draw when it is far
-//! away, each a share of its triangles ([`LodLevel::ratio`]) and shown
-//! from a distance ([`LodLevel::distance`]).
+//! Levels of detail ([decision 0155](../../../docs/decisions/0155-levels-of-detail.md),
+//! [decision 0165](../../../docs/decisions/0165-levels-panel.md)): simpler
+//! copies of an object's shape for a game to draw when it is far away,
+//! each shown from a distance ([`LodLevel::distance`]).
 //!
 //! A per-object setting ([`Lods`], on [`crate::Object::lods`]), not a
-//! modifier: the levels are extra shapes beside the object, made from its
-//! final shape (every modifier included), as its collision shapes are
-//! (decision 0151). The object itself never changes; the viewport can
-//! show one level in its place to check it ([`Lods::preview`]), and an
-//! export can write each level as its own mesh.
+//! modifier: the levels are extra shapes beside the object. The object
+//! itself never changes; the viewport can show one level in its place to
+//! check it ([`Lods::preview`]), and an export can write each level as its
+//! own mesh.
 //!
-//! The levels are made by Decimate's work ([`mesh::decimate::decimate_levels`],
-//! decision 0145) in one go, each going on from the one before, so they
-//! are nested (a coarser level's points are some of the finer one's) and
-//! cost about as much as the smallest alone. They are kept per object
-//! while the shape and settings stay the same; heavy shapes are worked on
-//! another thread by the interface ([`LodJob`]), as heavy modifiers are.
+//! A level is made in one of three ways (decision 0165):
+//!
+//! 1. **With its own changes to the modifiers** ([`LodLevel::overrides`]):
+//!    the object's shape worked out again for that level, with chosen
+//!    modifiers switched off or given simpler settings (one bevel segment,
+//!    Subdivide off). It stays live: editing the model changes every level.
+//! 2. **Reduced automatically** ([`LodLevel::reduce`]): Decimate's work
+//!    ([`mesh::decimate::decimate_levels`], decision 0145) as a last step,
+//!    keeping a share of the level's triangles ([`LodLevel::ratio`]).
+//!    Levels made from the same shape are reduced in one go, each going on
+//!    from the one before, so they are nested and cost about as much as
+//!    the smallest alone.
+//! 3. **By hand** ([`LodLevel::hand`]): a shape of its own, inside the
+//!    object in the Objects panel, edited like any other; it no longer
+//!    follows the model ([`crate::Scene::level_drifted`] says when the
+//!    model has changed since it was made).
+//!
+//! The levels are worked out in [`make`] and kept per object while what
+//! they are made from stays the same; heavy ones on another thread by the
+//! interface ([`LodJob`]), as heavy modifiers are.
 
-use crate::Purpose;
+mod hand;
+mod make;
+
+pub use hand::level_name;
+pub(crate) use make::LodCache;
+pub use make::{LODS_IN_BACKGROUND_FROM, LodDone, LodJob, LodShapes, LodState, lod_shapes};
+
+use crate::modifier::{MAX_MODIFIERS, Modifier, ModifierId, ModifierKind};
 use crate::object::ObjectId;
-use crate::tree::Scene;
-use mesh::Mesh;
-use mesh::decimate::{DecimateOptions, Keep, decimate_levels, triangle_count};
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-use words::trf;
+use mesh::decimate::DecimateOptions;
 
-/// From this many triangles, the interface makes an object's levels on
-/// another thread, as it does heavy modifiers
-/// ([`crate::MODIFIERS_IN_BACKGROUND_FROM`]).
-pub const LODS_IN_BACKGROUND_FROM: usize = 5_000;
-
-/// One level of detail: how much of the shape it keeps, and from how far
-/// away a game shows it.
-#[derive(Debug, Clone, Copy, PartialEq)]
+/// One level of detail: how it is made, and from how far away a game shows
+/// it.
+#[derive(Debug, Clone, PartialEq)]
 pub struct LodLevel {
-    /// The share of the full shape's triangles it keeps (1 is all).
+    /// With [`Self::reduce`], the share of the level's triangles (after its
+    /// changes to the modifiers) it keeps: 1 is all.
     pub ratio: f32,
     /// How far from the camera, in centimetres, a game starts showing it
     /// instead of the level before.
     pub distance: f32,
+    /// Whether the level is reduced automatically as a last step, to
+    /// [`Self::ratio`] of its triangles (decision 0165; on for every level
+    /// made before, which were made that way only).
+    pub reduce: bool,
+    /// The triangles aimed for (0: no aim). Only shown beside the level's
+    /// count, in amber when it has more; nothing is made to fit it.
+    pub budget: u32,
+    /// The level's own changes to the object's modifiers, by the
+    /// modifier's id: at most one each.
+    pub overrides: Vec<ModifierOverride>,
+    /// The level's own shape, when it is made by hand.
+    pub hand: Option<HandLevel>,
+}
+
+impl LodLevel {
+    /// A level reduced automatically to `ratio` of the triangles, shown
+    /// from `distance` centimetres, with no changes to the modifiers and
+    /// no budget.
+    pub const fn new(ratio: f32, distance: f32) -> Self {
+        Self {
+            ratio,
+            distance,
+            reduce: true,
+            budget: 0,
+            overrides: Vec::new(),
+            hand: None,
+        }
+    }
+
+    /// The level's change to modifier `id`, if it has one.
+    pub fn override_for(&self, id: ModifierId) -> Option<&ModifierOverride> {
+        self.overrides.iter().find(|o| o.modifier == id)
+    }
+
+    /// `modifiers` (the object's) as this level has them: each one its
+    /// change names switched on or off, with its settings if it gives
+    /// them.
+    pub fn applied(&self, modifiers: &[Modifier]) -> Vec<Modifier> {
+        modifiers
+            .iter()
+            .map(|m| match self.override_for(m.id) {
+                Some(o) => Modifier {
+                    on: o.on,
+                    kind: o
+                        .settings
+                        .as_ref()
+                        .filter(|k| k.same_kind(&m.kind))
+                        .map_or_else(|| m.kind.clone(), ModifierKind::clamped),
+                    ..m.clone()
+                },
+                None => m.clone(),
+            })
+            .collect()
+    }
+
+    /// The same level with modifier `modifier` (one of `modifiers`, the
+    /// object's) switched `on` or off and given `settings` (`None`: the
+    /// model's) at this level. A change that changes nothing is taken
+    /// away, so the level follows the model again.
+    pub fn with_override(
+        &self,
+        modifiers: &[Modifier],
+        modifier: ModifierId,
+        on: bool,
+        settings: Option<ModifierKind>,
+    ) -> Self {
+        let mut level = self.clone();
+        level.overrides.retain(|o| o.modifier != modifier);
+        level.overrides.push(ModifierOverride {
+            modifier,
+            on,
+            settings,
+        });
+        level.overrides = tidied_overrides(&level.overrides, modifiers);
+        level
+    }
+}
+
+/// A level's change to one of the object's modifiers (decision 0165).
+#[derive(Debug, Clone, PartialEq)]
+pub struct ModifierOverride {
+    /// Which modifier, by its id ([`crate::Modifier::id`]).
+    pub modifier: ModifierId,
+    /// Whether it is on at this level.
+    pub on: bool,
+    /// Its settings at this level, of its own kind; `None` for the
+    /// model's.
+    pub settings: Option<ModifierKind>,
+}
+
+/// A level made by hand (decision 0165): its own shape, an object inside
+/// the object with the levels.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct HandLevel {
+    /// The object holding the level's shape. It is the level's only while
+    /// it is inside the object with the levels and has a shape; otherwise
+    /// the level is made from the model again.
+    pub shape: ObjectId,
+    /// A fingerprint of the model it was made from
+    /// ([`crate::Scene::model_fingerprint`]), to tell when the model has
+    /// changed since.
+    pub made_from: u64,
+}
+
+/// `overrides` kept to those that mean something for `modifiers`: naming
+/// one of them, once, with settings of its kind (brought within limits),
+/// and changing something.
+pub(crate) fn tidied_overrides(
+    overrides: &[ModifierOverride],
+    modifiers: &[Modifier],
+) -> Vec<ModifierOverride> {
+    let mut out: Vec<ModifierOverride> = Vec::new();
+    for o in overrides {
+        let Some(m) = modifiers.iter().find(|m| m.id == o.modifier) else {
+            continue;
+        };
+        if out.iter().any(|kept| kept.modifier == o.modifier) {
+            continue;
+        }
+        let settings = o
+            .settings
+            .as_ref()
+            .filter(|k| k.same_kind(&m.kind))
+            .map(ModifierKind::clamped)
+            .filter(|k| *k != m.kind);
+        if o.on == m.on && settings.is_none() {
+            continue;
+        }
+        out.push(ModifierOverride {
+            modifier: o.modifier,
+            on: o.on,
+            settings,
+        });
+    }
+    out
 }
 
 /// An object's levels of detail (see the module notes).
@@ -51,8 +197,8 @@ pub struct Lods {
     /// The levels, from the most detailed to the simplest (the full shape,
     /// level 0, isn't listed). Between 1 and [`Lods::MAX_LEVELS`].
     pub levels: Vec<LodLevel>,
-    /// Which level the viewport shows in the shape's place: 0 for the
-    /// full shape, 1 for the first level and so on. Only the view changes.
+    /// Which level the viewport shows: 0 for the full shape, 1 for the
+    /// first level and so on. Only the view changes.
     pub preview: usize,
 }
 
@@ -64,36 +210,30 @@ impl Lods {
     /// The farthest distance a level can be shown from, in centimetres:
     /// 10 km.
     pub const MAX_DISTANCE: f32 = 1_000_000.0;
+    /// The largest triangle budget a level can have.
+    pub const MAX_BUDGET: u32 = 100_000_000;
     /// The standard levels: half, a quarter and an eighth of the triangles
     /// (12%), shown from 10 m, 20 m and 40 m.
     pub const STANDARD: [LodLevel; 3] = [
-        LodLevel {
-            ratio: 0.5,
-            distance: 1_000.0,
-        },
-        LodLevel {
-            ratio: 0.25,
-            distance: 2_000.0,
-        },
-        LodLevel {
-            ratio: 0.12,
-            distance: 4_000.0,
-        },
+        LodLevel::new(0.5, 1_000.0),
+        LodLevel::new(0.25, 2_000.0),
+        LodLevel::new(0.12, 4_000.0),
     ];
 
-    /// The level that would come after `before` (or the first): half its
-    /// triangles, shown from twice as far.
+    /// The level that would come after `before` (or the first): reduced to
+    /// half its triangles, shown from twice as far, with no changes to the
+    /// modifiers.
     pub fn next_level(before: Option<&LodLevel>) -> LodLevel {
         match before {
-            None => Self::STANDARD[0],
-            Some(b) => LodLevel {
-                ratio: (b.ratio * 0.5).max(DecimateOptions::MIN_RATIO),
-                distance: if b.distance > 0.0 {
+            None => Self::STANDARD[0].clone(),
+            Some(b) => LodLevel::new(
+                (b.ratio * 0.5).max(DecimateOptions::MIN_RATIO),
+                if b.distance > 0.0 {
                     (b.distance * 2.0).min(Self::MAX_DISTANCE)
                 } else {
                     Self::STANDARD[0].distance
                 },
-            },
+            ),
         }
     }
 
@@ -118,7 +258,8 @@ impl Lods {
     /// levels (none at all is the standard three), ratios within
     /// Decimate's (one that isn't a number halves the level before),
     /// distances within 0 and [`Lods::MAX_DISTANCE`] (not a number is 0),
-    /// and a preview of a level that is there.
+    /// budgets up to [`Lods::MAX_BUDGET`], at most one change per modifier
+    /// (at most [`MAX_MODIFIERS`]), and a preview of a level that is there.
     pub fn clamped(&self) -> Self {
         if self.levels.is_empty() {
             return Self {
@@ -139,7 +280,25 @@ impl Lods {
             } else {
                 0.0
             };
-            levels.push(LodLevel { ratio, distance });
+            let mut overrides: Vec<ModifierOverride> = Vec::new();
+            for o in level.overrides.iter() {
+                if overrides.len() < MAX_MODIFIERS
+                    && !overrides.iter().any(|kept| kept.modifier == o.modifier)
+                {
+                    overrides.push(ModifierOverride {
+                        settings: o.settings.as_ref().map(ModifierKind::clamped),
+                        ..o.clone()
+                    });
+                }
+            }
+            levels.push(LodLevel {
+                ratio,
+                distance,
+                reduce: level.reduce,
+                budget: level.budget.min(Self::MAX_BUDGET),
+                overrides,
+                hand: level.hand,
+            });
         }
         Self {
             preview: self.preview.min(levels.len()),
@@ -148,26 +307,52 @@ impl Lods {
         }
     }
 
-    /// Each level's target in triangles, for a shape of `triangles`: its
-    /// ratio of them (at least one), and never more than the level
-    /// before's, so the levels always get simpler.
-    pub fn targets(&self, triangles: usize) -> Vec<usize> {
-        let mut most = triangles;
-        self.clamped()
-            .levels
+    /// [`Self::clamped`], with each level's changes kept to those that mean
+    /// something for `modifiers` (the object's: see [`tidied_overrides`]).
+    pub fn tidied(&self, modifiers: &[Modifier]) -> Self {
+        let mut lods = self.clamped();
+        for level in &mut lods.levels {
+            level.overrides = tidied_overrides(&level.overrides, modifiers);
+        }
+        lods
+    }
+
+    /// The objects holding its levels made by hand, by level.
+    pub fn hand_shapes(&self) -> Vec<(usize, ObjectId)> {
+        self.levels
             .iter()
-            .map(|level| {
-                let target = DecimateOptions {
-                    ratio: level.ratio,
-                    ..DecimateOptions::default()
-                }
-                .target(triangles)
-                .min(most);
-                most = target;
-                target
-            })
+            .enumerate()
+            .filter_map(|(k, l)| l.hand.map(|h| (k, h.shape)))
             .collect()
     }
+
+    /// Each level's target in triangles when reduced, for a shape of
+    /// `triangles`: its ratio of them (at least one), and never more than
+    /// the level before's, so the levels always get simpler.
+    pub fn targets(&self, triangles: usize) -> Vec<usize> {
+        let ratios: Vec<f32> = self.clamped().levels.iter().map(|l| l.ratio).collect();
+        targets(&ratios, triangles)
+    }
+}
+
+/// The targets in triangles for levels reduced to `ratios` of a shape of
+/// `triangles`, in order: each its ratio of them (at least one), never
+/// more than the one before's.
+pub(crate) fn targets(ratios: &[f32], triangles: usize) -> Vec<usize> {
+    let mut most = triangles;
+    ratios
+        .iter()
+        .map(|ratio| {
+            let target = DecimateOptions {
+                ratio: *ratio,
+                ..DecimateOptions::default()
+            }
+            .target(triangles)
+            .min(most);
+            most = target;
+            target
+        })
+        .collect()
 }
 
 impl Default for Lods {
@@ -177,300 +362,5 @@ impl Default for Lods {
             levels: Self::STANDARD.to_vec(),
             preview: 0,
         }
-    }
-}
-
-/// An object's levels worked out, in its shape's own space.
-#[derive(Debug, Clone, PartialEq, Default)]
-pub struct LodShapes {
-    /// Each level's shape, in the order of [`Lods::levels`]; empty when
-    /// they couldn't be made.
-    pub levels: Vec<Arc<Mesh>>,
-    /// The full shape's triangles.
-    pub full: usize,
-    /// Why there are no levels, in plain words starting with a capital.
-    pub problem: Option<String>,
-}
-
-impl LodShapes {
-    /// Each level's triangles, as a game engine counts them.
-    pub fn triangles(&self) -> Vec<usize> {
-        self.levels.iter().map(|m| triangle_count(m)).collect()
-    }
-}
-
-/// The levels `lods` asks for, made from `mesh` shaded by `hardness` (its
-/// hard edges are kept, as Decimate keeps them).
-pub fn lod_shapes(mesh: &Mesh, lods: &Lods, hardness: mesh::Hardness) -> LodShapes {
-    let full = triangle_count(mesh);
-    let targets = lods.targets(full);
-    match decimate_levels(mesh, Keep::default(), hardness, &targets, false) {
-        Ok(levels) => LodShapes {
-            levels: levels.into_iter().map(Arc::new).collect(),
-            full,
-            problem: None,
-        },
-        Err(why) => LodShapes {
-            levels: Vec::new(),
-            full,
-            problem: Some(trf!("No levels of detail: {}.", why)),
-        },
-    }
-}
-
-/// What an object's levels are made from, beside its shape.
-#[derive(Debug, Clone, PartialEq)]
-struct Setting {
-    /// The levels' ratios, in order (their distances don't change them).
-    ratios: Vec<f32>,
-    hardness: mesh::Hardness,
-}
-
-impl Setting {
-    fn lods(&self) -> Lods {
-        Lods {
-            on: true,
-            levels: self
-                .ratios
-                .iter()
-                .map(|ratio| LodLevel {
-                    ratio: *ratio,
-                    distance: 0.0,
-                })
-                .collect(),
-            preview: 0,
-        }
-    }
-}
-
-/// An object's levels still to make.
-#[derive(Debug, Clone)]
-pub struct LodJob {
-    id: ObjectId,
-    purpose: Purpose,
-    input: Arc<Mesh>,
-    setting: Setting,
-}
-
-impl LodJob {
-    /// About how much work it is, in triangles (see
-    /// [`LODS_IN_BACKGROUND_FROM`]).
-    pub fn work(&self) -> usize {
-        triangle_count(&self.input)
-    }
-
-    /// Does the work, on any thread.
-    pub fn run(self) -> LodDone {
-        let shapes = lod_shapes(&self.input, &self.setting.lods(), self.setting.hardness);
-        LodDone {
-            id: self.id,
-            purpose: self.purpose,
-            kept: Kept {
-                input: self.input,
-                setting: self.setting,
-                shapes: Arc::new(shapes),
-                fresh: true,
-            },
-        }
-    }
-}
-
-/// Levels made, to hand to [`Scene::store_lods`].
-#[derive(Debug, Clone)]
-pub struct LodDone {
-    id: ObjectId,
-    purpose: Purpose,
-    kept: Kept,
-}
-
-impl LodDone {
-    /// The levels.
-    pub fn shapes(&self) -> Arc<LodShapes> {
-        Arc::clone(&self.kept.shapes)
-    }
-}
-
-/// Whether an object's levels are made.
-#[derive(Debug, Clone)]
-pub enum LodState {
-    /// They are.
-    Ready(Arc<LodShapes>),
-    /// They still need making.
-    Needed(LodJob),
-}
-
-/// Levels kept, with what they were made from.
-#[derive(Debug, Clone)]
-struct Kept {
-    input: Arc<Mesh>,
-    setting: Setting,
-    shapes: Arc<LodShapes>,
-    /// Whether it was made from the shape last asked about for its
-    /// purpose: once a newer shape is asked about, it is kept to show
-    /// meanwhile, but no longer said to be the object's.
-    fresh: bool,
-}
-
-/// Each object's levels last made (not part of what the scene is: copies
-/// start empty, and it never affects equality).
-#[derive(Default)]
-pub(crate) struct LodCache(Mutex<HashMap<(ObjectId, Purpose), Kept>>);
-
-impl LodCache {
-    /// Forgets `id`'s (deleted).
-    pub(crate) fn forget(&mut self, id: ObjectId) {
-        self.0
-            .get_mut()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .retain(|(object, _), _| *object != id);
-    }
-
-    /// `id`'s for `purpose`, if it was made from the shape last asked
-    /// about.
-    fn fresh(&self, id: ObjectId, purpose: Purpose) -> Option<Kept> {
-        self.0
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .get(&(id, purpose))
-            .filter(|kept| kept.fresh)
-            .cloned()
-    }
-
-    /// `id`'s for `purpose` if it was made with `setting` from `shape`;
-    /// otherwise, as a newer shape is now asked about, the one kept is no
-    /// longer fresh.
-    fn made_from(
-        &self,
-        id: ObjectId,
-        purpose: Purpose,
-        setting: &Setting,
-        shape: &Arc<Mesh>,
-    ) -> Option<Kept> {
-        let mut kept = self
-            .0
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        let entry = kept.get_mut(&(id, purpose))?;
-        if entry.setting == *setting
-            && (Arc::ptr_eq(&entry.input, shape) || *entry.input == **shape)
-        {
-            entry.fresh = true;
-            return Some(entry.clone());
-        }
-        entry.fresh = false;
-        None
-    }
-}
-
-impl LodCache {
-    /// A copy holding the same results, for
-    /// [`crate::Scene::copy_with_results`].
-    pub(crate) fn copied(&self) -> Self {
-        Self(Mutex::new(
-            self.0
-                .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner)
-                .clone(),
-        ))
-    }
-}
-
-impl Clone for LodCache {
-    fn clone(&self) -> Self {
-        Self::default()
-    }
-}
-
-impl PartialEq for LodCache {
-    fn eq(&self, _: &Self) -> bool {
-        true
-    }
-}
-
-impl std::fmt::Debug for LodCache {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("LodCache").finish_non_exhaustive()
-    }
-}
-
-impl Scene {
-    /// What the object's levels are made from, if it has them on.
-    fn lod_setting(&self, id: ObjectId) -> Option<Setting> {
-        let object = self.object(id)?;
-        if !object.lods.on || !object.kind.has_shape() {
-            return None;
-        }
-        // Shaded as it is drawn: an instance as its original.
-        let hardness = self
-            .object(self.modifier_owner(id))
-            .map_or(mesh::Hardness::Marked, |o| o.hardness);
-        Some(Setting {
-            ratios: object
-                .lods
-                .clamped()
-                .levels
-                .iter()
-                .map(|l| l.ratio)
-                .collect(),
-            hardness,
-        })
-    }
-
-    /// Whether the object's levels for `shape` (its final shape, as the
-    /// viewport shows it or an export makes it) are made, or the work to
-    /// do. `None` when it has no levels of detail on or isn't in the
-    /// scene.
-    pub fn lod_state(&self, id: ObjectId, purpose: Purpose, shape: Arc<Mesh>) -> Option<LodState> {
-        let setting = self.lod_setting(id)?;
-        if let Some(kept) = self.lods.made_from(id, purpose, &setting, &shape) {
-            return Some(LodState::Ready(kept.shapes));
-        }
-        Some(LodState::Needed(LodJob {
-            id,
-            purpose,
-            input: shape,
-            setting,
-        }))
-    }
-
-    /// Keeps levels made elsewhere ([`LodJob::run`]), for
-    /// [`Scene::lod_state`] to find while the shape and settings stay the
-    /// same.
-    pub fn store_lods(&self, done: LodDone) {
-        self.lods
-            .0
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .insert((done.id, done.purpose), done.kept);
-    }
-
-    /// The object's levels for `shape`, made here, on this thread, when
-    /// not kept from before (an export's). `None` as for
-    /// [`Scene::lod_state`].
-    pub fn lod_shapes(
-        &self,
-        id: ObjectId,
-        purpose: Purpose,
-        shape: Arc<Mesh>,
-    ) -> Option<Arc<LodShapes>> {
-        match self.lod_state(id, purpose, shape)? {
-            LodState::Ready(shapes) => Some(shapes),
-            LodState::Needed(job) => {
-                let done = job.run();
-                let shapes = done.shapes();
-                self.store_lods(done);
-                Some(shapes)
-            }
-        }
-    }
-
-    /// The object's levels last made, if they were made with its current
-    /// settings (for the Attributes panel's triangle counts; never makes
-    /// anything itself).
-    pub fn lods_if_ready(&self, id: ObjectId) -> Option<Arc<LodShapes>> {
-        let setting = self.lod_setting(id)?;
-        // The viewport's, for the shape it last asked about.
-        let kept = self.lods.fresh(id, Purpose::Viewport)?;
-        (kept.setting == setting).then_some(kept.shapes)
     }
 }

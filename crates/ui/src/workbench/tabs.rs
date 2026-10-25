@@ -218,7 +218,7 @@ impl TabViewer for PanelViewer<'_> {
                 self.uv_editor.show(ui, self.document, &cx);
                 return;
             }
-            Panel::Viewport | Panel::Coordinates | Panel::UvSettings => {}
+            Panel::Viewport | Panel::Coordinates | Panel::UvSettings | Panel::Levels => {}
         }
         egui::Frame::new()
             .inner_margin(theme::panel_margin())
@@ -238,6 +238,10 @@ impl TabViewer for PanelViewer<'_> {
                     );
                 }
                 Panel::UvEditor => {}
+                Panel::Levels => {
+                    self.attributes
+                        .levels_panel(ui, self.document, *self.units, self.requests);
+                }
                 Panel::UvSettings => {
                     let mut view = automation::UvSettingsView {
                         uv_settings: self.uv_settings,

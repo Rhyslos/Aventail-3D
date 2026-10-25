@@ -52,7 +52,10 @@ pub use game_bevel::{GameBevelDone, game_bevel_options};
 pub use history::HistoryLimit;
 pub use kit::{KIT_GRID_CHOICES, KitGrid};
 pub use lattice::LatticeOptions;
-pub use lod::{LODS_IN_BACKGROUND_FROM, LodDone, LodJob, LodLevel, LodShapes, LodState, Lods};
+pub use lod::{
+    HandLevel, LODS_IN_BACKGROUND_FROM, LodDone, LodJob, LodLevel, LodShapes, LodState, Lods,
+    ModifierOverride, level_name,
+};
 pub use mesh::array::{ArrayAxis, ArrayLayout, ArrayOptions};
 pub use mesh::axis_deform::{AxisDeformKind, AxisDeformOptions, DeformAxis, DeformHelper};
 pub use mesh::convex_parts::ConvexPartsOptions;
@@ -87,8 +90,8 @@ pub use mesh::{
 };
 pub use modifier::{
     MAX_MODIFIERS, MODIFIERS_IN_BACKGROUND_FROM, Modifier, ModifierContext, ModifierFamily,
-    ModifierKind, ModifierRefusal, Purpose, SourceData, SourceShape, StackDone, StackJob,
-    StackResult, StackState, has_nothing_to_do, subdivide_levels,
+    ModifierId, ModifierKind, ModifierRefusal, Purpose, SourceData, SourceShape, StackDone,
+    StackJob, StackResult, StackState, has_nothing_to_do, subdivide_levels,
 };
 pub use object::{
     ApplyParts, Collision, LiveMirror, Material, Object, ObjectId, ObjectKind,
@@ -140,6 +143,8 @@ mod kind_change_tests;
 mod lattice_tests;
 #[cfg(test)]
 mod layer_tests;
+#[cfg(test)]
+mod levels_tests;
 #[cfg(test)]
 mod live_bevel_tests;
 #[cfg(test)]

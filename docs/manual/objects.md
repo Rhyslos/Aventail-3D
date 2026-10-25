@@ -25,6 +25,8 @@ A new scene is empty. Add [primitives](primitives.md) (cubes, cylinders and the 
 
 If several objects are selected and you drag one of them, they all move, keeping their order. An object can't be dropped inside itself or inside something it contains; the mouse pointer shows a "no" sign there.
 
+**Levels made by hand.** A [level of detail](levels-of-detail.md) made by hand is a shape inside its object, named like *Rock LOD2*. Its name is quieter while you aren't editing it, because the viewport shows it only while it is selected, in its object's place (selecting it is how you edit the level). Delete it, or drag it out of its object, and the level is made from the model again; dragged out, it becomes an ordinary shape. Select all leaves these shapes out.
+
 **Fold.** Objects with something inside have a small arrow on the left. Click it to fold the contents away, and again to show them. **View → Collapse all** and **Expand all** fold or open everything.
 
 **Rename.** Double-click a name (or select one object and use **Edit → Rename**, or type in the **Name** field of the [Attributes panel](attributes.md)), type the new name and press **Enter**. Clicking elsewhere keeps the new name too; **Esc** keeps the old one. Names can't be empty.

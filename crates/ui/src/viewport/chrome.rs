@@ -528,6 +528,39 @@ fn pivot_marker(ui: &Ui, painter: &egui::Painter, rect: Rect, view: &View) {
     painter.circle_filled(centre, 2.5, accent.light);
 }
 
+/// A banner across the top of the views (decision 0165: while a level
+/// made by hand is edited), with a button to end what it is about.
+/// Returns whether the button was clicked.
+pub(super) fn banner(ui: &mut Ui, body: Rect, text: &str) -> bool {
+    let width = (body.width() - 40.0).clamp(120.0, 620.0);
+    let area = Rect::from_min_size(
+        egui::pos2(body.center().x - width / 2.0, body.top() + 30.0),
+        vec2(width, 60.0),
+    );
+    let accent = theme::accent(ui.ctx()).colors();
+    let mut clicked = false;
+    ui.scope_builder(egui::UiBuilder::new().max_rect(area), |ui| {
+        egui::Frame::new()
+            .fill(theme::PANEL.gamma_multiply(0.95))
+            .stroke(egui::Stroke::new(1.5, accent.light))
+            .corner_radius(4.0)
+            .inner_margin(egui::Margin::symmetric(10, 6))
+            .show(ui, |ui| {
+                ui.horizontal_wrapped(|ui| {
+                    ui.label(egui::RichText::new(text).color(theme::TEXT_STRONG));
+                    clicked = ui
+                        .button(tr(crate::workbench::STOP_EDITING_LEVEL))
+                        .on_hover_text(tr(
+                            "Select the object again: the viewport shows the model, and its \
+                             level goes on as you left it",
+                        ))
+                        .clicked();
+                });
+            });
+    });
+    clicked
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

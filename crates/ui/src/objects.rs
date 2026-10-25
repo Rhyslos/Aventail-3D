@@ -235,6 +235,19 @@ impl ObjectManager {
         response.widget_info(|| {
             WidgetInfo::selected(WidgetType::SelectableLabel, true, selected, &object.name)
         });
+        // A level made by hand is drawn only while it is edited (decision
+        // 0165): its name is quieter meanwhile, and says why.
+        let level = scene.level_owner(id);
+        let response = match level {
+            Some((_, k)) => response.on_hover_text(crate::trf!(
+                "The shape of level {} of its object, made by hand. The viewport shows it only \
+                 while it is selected (edited), in the object's place; exports write it as that \
+                 level.",
+                k + 1
+            )),
+            None => response,
+        };
+        let name_shown = shown && (level.is_none() || selected);
 
         let painter = ui.painter_at(rect);
         let accent = theme::accent(ui.ctx()).colors();
@@ -350,7 +363,7 @@ impl ObjectManager {
         } else {
             let color = if selected {
                 theme::TEXT_STRONG
-            } else if shown {
+            } else if name_shown {
                 theme::TEXT
             } else {
                 theme::TEXT_WEAK.gamma_multiply(0.7)

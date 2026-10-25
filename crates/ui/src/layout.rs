@@ -35,13 +35,16 @@ pub const MIN_PANEL_SIZE: f32 = 60.0;
 /// └─────────────────────────────┴──────────────┘
 /// ```
 ///
-/// Edit layers is a tab beside Objects once a layer is added (decisions
-/// 0091 and 0126).
+/// Levels is a tab beside Attributes (decision 0165); Edit layers is a
+/// tab beside Objects once a layer is added (decisions 0091 and 0126).
 pub fn default_layout() -> DockState<Panel> {
     let mut dock = DockState::new(vec![Panel::Viewport]);
     let tree = dock.main_surface_mut();
-    let [main_area, right_column] =
-        tree.split_right(NodeIndex::root(), MAIN_AREA_WIDTH, vec![Panel::Attributes]);
+    let [main_area, right_column] = tree.split_right(
+        NodeIndex::root(),
+        MAIN_AREA_WIDTH,
+        vec![Panel::Attributes, Panel::Levels],
+    );
     tree.split_below(right_column, ATTRIBUTES_HEIGHT, vec![Panel::Objects]);
     tree.split_below(main_area, VIEWPORT_HEIGHT, vec![Panel::Coordinates]);
     dock
@@ -167,6 +170,36 @@ pub fn add_beside_objects(dock: &mut DockState<Panel>, panel: Panel) -> bool {
             true
         }
         Err(_) => false,
+    }
+}
+
+/// Adds `panel` as a tab beside Attributes (or beside Objects, or the
+/// first panel found), leaving the tab that was showing in front. Returns
+/// whether it was added (decision 0165: the Levels panel).
+pub fn add_beside_attributes(dock: &mut DockState<Panel>, panel: Panel) -> bool {
+    if dock.find_tab(&panel).is_some() {
+        return false;
+    }
+    let Some(beside) = dock.find_tab(&Panel::Attributes) else {
+        return add_beside_objects(dock, panel);
+    };
+    match dock.leaf_mut(beside.node_path()) {
+        Ok(leaf) => {
+            let showing = leaf.active;
+            leaf.append_tab(panel);
+            leaf.active = showing;
+            true
+        }
+        Err(_) => false,
+    }
+}
+
+/// Brings the Levels panel to the front, adding it beside Attributes
+/// first if the layout doesn't have it (decision 0165).
+pub fn show_levels(dock: &mut DockState<Panel>) {
+    add_beside_attributes(dock, Panel::Levels);
+    if let Some(path) = dock.find_tab(&Panel::Levels) {
+        let _ = dock.set_active_tab(path);
     }
 }
 
@@ -302,7 +335,7 @@ mod tests {
         assert_eq!(
             groups,
             vec![
-                vec![Panel::Attributes],
+                vec![Panel::Attributes, Panel::Levels],
                 vec![Panel::Coordinates],
                 vec![Panel::Objects],
                 vec![Panel::Viewport],

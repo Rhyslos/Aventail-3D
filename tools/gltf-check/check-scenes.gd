@@ -3,7 +3,7 @@
 # names (godot-collision.glb) gets its collision shapes, as does the file
 # with collision in parts (godot-collision-parts.glb), and the levels of
 # detail (godot-lods.glb, imported with lod_ranges.gd) are shown between
-# their distances. Run by
+# their distances and have their real shapes (decision 0165). Run by
 # godot-import.sh after the import; prints "FAILED" lines for problems.
 extends SceneTree
 
@@ -39,7 +39,7 @@ func _init() -> void:
 		if name == "godot-collision-parts.glb" and (shapes < 5 or meshes != 2):
 			print("FAILED: %s should have 2 meshes and 5 or more collision shapes" % name)
 			failed = true
-		if name == "godot-lods.glb" and not lods_ranged(root):
+		if name == "godot-lods.glb" and not (lods_ranged(root) and lods_shaped(root)):
 			failed = true
 		root.free()
 	if not failed:
@@ -68,6 +68,40 @@ func lods_ranged(root: Node) -> bool:
 						node.visibility_range_begin, node.visibility_range_end, node.visible])
 				ok = false
 	return ok
+
+
+# Whether godot-lods.glb's levels are their real shapes (decision 0165):
+# the sphere's first level, without its Subdivide, has far fewer triangles
+# than the smoothed sphere, its second (smoothed once) fewer than it, and
+# the ring's hand-made second level came in as that level only, never as
+# a mesh of its own ("Torus LOD2"), with the slice taken out of it.
+func lods_shaped(root: Node) -> bool:
+	var ok := true
+	var sphere := triangles(root, "Sphere")
+	var first := triangles(root, "Sphere_LOD1")
+	var second := triangles(root, "Sphere_LOD2")
+	if not (first * 4 <= sphere and second < sphere):
+		print("FAILED: the sphere's levels have %d and %d triangles, the sphere %d" % [first,
+				second, sphere])
+		ok = false
+	if root.find_child("Torus LOD2", true, false) != null \
+			or root.find_child("Torus_LOD2", true, false) == null:
+		print("FAILED: the ring's hand-made level should come in as Torus_LOD2 only")
+		ok = false
+	if triangles(root, "Torus_LOD2") >= triangles(root, "Torus"):
+		print("FAILED: the ring's hand-made level should have a slice taken out")
+		ok = false
+	print("godot-lods.glb: Sphere %d, LOD1 %d, LOD2 %d triangles; Torus %d, LOD2 %d" % [sphere,
+			first, second, triangles(root, "Torus"), triangles(root, "Torus_LOD2")])
+	return ok
+
+
+# The triangles of the mesh of node `name` under `root` (0 without one).
+func triangles(root: Node, name: String) -> int:
+	var node := root.find_child(name, true, false) as MeshInstance3D
+	if node == null or node.mesh == null:
+		return 0
+	return node.mesh.get_faces().size() / 3
 
 
 # How many nodes of `kind` are in the tree under `node`, itself included.

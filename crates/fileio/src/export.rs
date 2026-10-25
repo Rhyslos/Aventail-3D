@@ -535,12 +535,14 @@ pub fn prepare_for(
 ) -> Vec<ExportedObject> {
     let scene = document.scene();
     let selection = document.selection();
-    // Cutters go out as part of what they cut (decision 0135).
+    // Cutters go out as part of what they cut (decision 0135), and
+    // hand-made levels as their object's levels (decision 0165).
     let cutters = scene.cutters();
     scene
         .walk()
         .into_iter()
         .filter(|(id, _)| scene.is_shown(*id) && !cutters.contains(id))
+        .filter(|(id, _)| !scene.is_level_shape(*id))
         .filter(|(id, _)| match options.what {
             ExportWhat::Everything => true,
             ExportWhat::Selected => selection
@@ -562,7 +564,7 @@ pub fn summary(document: &Document, options: &ExportOptions) -> ExportSummary {
     let mut materials: Vec<String> = Vec::new();
     let cutters = scene.cutters();
     for (id, _) in scene.walk() {
-        if !scene.is_shown(id) || cutters.contains(&id) {
+        if !scene.is_shown(id) || cutters.contains(&id) || scene.is_level_shape(id) {
             continue;
         }
         if options.what == ExportWhat::Selected
@@ -624,6 +626,7 @@ pub fn prepare_piece(
         .into_iter()
         .filter(|(id, _)| *id == root || scene.is_inside(*id, root))
         .filter(|(id, _)| scene.is_shown(*id) && !cutters.contains(id))
+        .filter(|(id, _)| !scene.is_level_shape(*id))
         .filter_map(|(id, _)| exported(scene, id, shift, options, frames))
         .collect()
 }
@@ -667,7 +670,7 @@ fn exported(
     } else {
         Vec::new()
     };
-    let mut levels = lods::levels(scene, id, &shape, (world, local), &shading, frames);
+    let mut levels = lods::levels(scene, id, (world, local), &shading, frames);
     let build = |on: bool, matrix: Mat4| {
         if on {
             export_mesh(&shape, matrix, &shading)
@@ -798,6 +801,8 @@ mod frames;
 mod frames_tests;
 #[cfg(test)]
 mod game_bevel_tests;
+#[cfg(test)]
+mod levels_tests;
 mod lods;
 #[cfg(test)]
 mod lods_tests;

@@ -29,16 +29,7 @@ fn create(doc: &mut Document, kind: PrimitiveKind) -> ObjectId {
 fn odd() -> Lods {
     Lods {
         on: true,
-        levels: vec![
-            LodLevel {
-                ratio: 0.4,
-                distance: 1_500.0,
-            },
-            LodLevel {
-                ratio: 0.1,
-                distance: 6_000.0,
-            },
-        ],
+        levels: vec![LodLevel::new(0.4, 1_500.0), LodLevel::new(0.1, 6_000.0)],
         preview: 2,
     }
 }

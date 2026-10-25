@@ -489,12 +489,14 @@ impl Selector<'_> {
     pub(crate) fn select_all(&mut self) -> Option<String> {
         match kind_for(self.mode) {
             None => {
-                let all: Vec<ObjectId> = self
-                    .document
-                    .scene()
+                // Levels made by hand are left out: they are selected to be
+                // edited, one at a time (decision 0165).
+                let scene = self.document.scene();
+                let all: Vec<ObjectId> = scene
                     .walk()
                     .into_iter()
                     .map(|(id, _)| id)
+                    .filter(|id| !scene.is_level_shape(*id))
                     .collect();
                 self.document.set_selection(all);
                 None
@@ -516,6 +518,7 @@ impl Selector<'_> {
                     .into_iter()
                     .map(|(id, _)| id)
                     .filter(|id| !document.is_selected(*id))
+                    .filter(|id| !document.scene().is_level_shape(*id))
                     .collect();
                 self.document.set_selection(rest);
                 None
