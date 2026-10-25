@@ -55,6 +55,7 @@ pub fn mirrors(op: &Operation) -> bool {
         | Operation::FlipPolygons { .. }
         | Operation::SetMaterial { .. }
         | Operation::SetHardEdges { .. }
+        | Operation::SetCreases { .. }
         | Operation::SetSeams { .. }
         | Operation::SetSeamPreference { .. }
         | Operation::Slit { .. } => true,
@@ -306,6 +307,15 @@ pub(crate) fn both_sides(op: &Operation, mesh: &Mesh, mirror: &Mirror) -> Both {
         } => together(Operation::SetHardEdges {
             edges: all_edges(edges),
             hard: *hard,
+            anchors: joined(anchors),
+        }),
+        Operation::SetCreases {
+            edges,
+            crease,
+            anchors,
+        } => together(Operation::SetCreases {
+            edges: all_edges(edges),
+            crease: *crease,
             anchors: joined(anchors),
         }),
         Operation::ExtrudeBent {

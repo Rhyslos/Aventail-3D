@@ -121,6 +121,14 @@ impl Workbench {
             CommandId::FillHole if !command.modes().contains(&self.mode) => {
                 Ready::NotNow(tr("Fill hole works in the Edges or Polygons mode: press 2 or 3").into())
             }
+            CommandId::Creases | CommandId::CreaseEdges | CommandId::Uncrease
+                if !command.modes().contains(&self.mode) =>
+            {
+                Ready::NotNow(crate::trf!(
+                    "{} works on edges: press 2 for the Edges mode",
+                    command.name()
+                ))
+            }
             CommandId::HardEdges | CommandId::SoftEdges
                 if !command.modes().contains(&self.mode) =>
             {
@@ -147,7 +155,7 @@ impl Workbench {
                     _ => Ready::Yes,
                 }
             }
-            CommandId::Remesh => match crate::modifiers::targets(&self.document) {
+            CommandId::Remesh | CommandId::Subdivide => match crate::modifiers::targets(&self.document) {
                 Err(why) => Ready::NotNow(why.into()),
                 Ok(_) => Ready::Yes,
             },
@@ -205,6 +213,9 @@ impl Workbench {
             CommandId::FlipNormals => self.run_flip(),
             CommandId::HardEdges => self.run_hardness(true),
             CommandId::SoftEdges => self.run_hardness(false),
+            CommandId::CreaseEdges => self.run_creases(1.0),
+            CommandId::Uncrease => self.run_creases(0.0),
+            CommandId::Creases => self.tool_menu.open_group(command),
             CommandId::MakeEditable => {
                 requests.push(DocRequest::Run(Command::MakeEditable(selection)));
             }
@@ -286,7 +297,7 @@ impl Workbench {
                     self.run_boolean(kind, requests);
                 }
             }
-            CommandId::Remesh => self.run_modifier(command, requests),
+            CommandId::Remesh | CommandId::Subdivide => self.run_modifier(command, requests),
         }
     }
 

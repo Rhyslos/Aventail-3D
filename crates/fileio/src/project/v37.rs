@@ -5,6 +5,10 @@
 //! polygons given their pieces' own unwrap settings (a way of laying flat,
 //! straightening, a texel density; each or none). Everything else is
 //! stored as in version 36.
+//!
+//! Version 44 ([decision 0143](../../../../docs/decisions/0143-subdivide-and-creases.md))
+//! adds one more kind of recorded edit here, edges given a crease (or
+//! theirs taken away): files before version 44 never hold one.
 
 use super::v1::{FileOperation, Problem};
 use super::v2::{AnchorsV2, anchors_from_file, anchors_to_file};
@@ -12,7 +16,7 @@ use super::v5::EntryWith;
 use super::v34::{MethodV34, method_from_file, method_to_file};
 use super::v36::OperationV36;
 use crate::limits::Bounded;
-use scene::{FaceId, Operation, PieceSettings};
+use scene::{EdgeKey, FaceId, Operation, PieceSettings, VertexId};
 use serde::{Deserialize, Serialize};
 use words::tr;
 
@@ -38,6 +42,12 @@ pub(crate) enum OperationV37 {
         density: Option<f32>,
         anchors: Option<AnchorsV2>,
     },
+    /// Edges given a crease, 0 to 1 (version 44, decision 0143).
+    SetCreases {
+        edges: Bounded<[u32; 2]>,
+        crease: f32,
+        anchors: Option<AnchorsV2>,
+    },
 }
 
 impl FileOperation for OperationV37 {
@@ -61,6 +71,21 @@ impl FileOperation for OperationV37 {
                 method: settings.method.map(method_to_file),
                 strips: settings.strips,
                 density: settings.density,
+                anchors: anchors.as_ref().map(anchors_to_file),
+            }),
+            Operation::SetCreases {
+                edges,
+                crease,
+                anchors,
+            } => Some(Self::SetCreases {
+                edges: edges
+                    .iter()
+                    .map(|e| {
+                        let (a, b) = e.ends();
+                        [a.get(), b.get()]
+                    })
+                    .collect(),
+                crease: *crease,
                 anchors: anchors.as_ref().map(anchors_to_file),
             }),
             _ => Some(Self::V36(OperationV36::to_file(op)?)),
@@ -94,6 +119,31 @@ impl FileOperation for OperationV37 {
                 },
                 anchors: anchors.map(anchors_from_file).transpose()?,
             },
+            Self::SetCreases {
+                edges,
+                crease,
+                anchors,
+            } => {
+                let edges = edges
+                    .into_iter()
+                    .map(|[a, b]| {
+                        if a == b {
+                            Err(tr("one of its creases joins a point to itself").to_string())
+                        } else {
+                            Ok(EdgeKey::new(VertexId::from_raw(a), VertexId::from_raw(b)))
+                        }
+                    })
+                    .collect::<Result<Vec<_>, _>>()?;
+                let operation = Operation::SetCreases {
+                    edges,
+                    crease,
+                    anchors: anchors.map(anchors_from_file).transpose()?,
+                };
+                if !operation.numbers_are_real() {
+                    return Err(tr("a crease isn't a number from 0 to 1").into());
+                }
+                return Ok(operation);
+            }
         };
         if !operation.numbers_are_real() {
             return Err(tr("a piece's texel density isn't a real number above 0").into());

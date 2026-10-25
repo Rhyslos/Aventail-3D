@@ -66,7 +66,7 @@ pub(super) fn rich_document_v43() -> Document {
 fn modifiers_survive_a_round_trip() {
     let doc = rich_document_v43();
     let bytes = to_bytes(&doc).unwrap();
-    assert_eq!(bytes[4..8], 43u32.to_le_bytes());
+    assert_eq!(bytes[4..8], FORMAT_VERSION.to_le_bytes());
     let back = from_bytes(&bytes).unwrap();
     assert_same(&doc, &back);
     assert_eq!(modifiers(&doc), modifiers(&back));

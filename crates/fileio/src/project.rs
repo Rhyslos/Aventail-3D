@@ -81,7 +81,11 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// Version 43 (decision 0142) is version 41's model with each object's
 /// modifier stack (`v43::ProjectV43`). A new kind of modifier moves it up
 /// by one again.
-pub const FORMAT_VERSION: u32 = 43;
+///
+/// Version 44 (decision 0143) is version 43 with the Subdivide modifier
+/// (`v43::KindV43::Subdivide`) and creases, one more kind of recorded
+/// edit (`v37::OperationV37::SetCreases`).
+pub const FORMAT_VERSION: u32 = 44;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -904,3 +908,5 @@ mod v41_tests;
 mod v42_tests;
 #[cfg(test)]
 mod v43_tests;
+#[cfg(test)]
+mod v44_tests;

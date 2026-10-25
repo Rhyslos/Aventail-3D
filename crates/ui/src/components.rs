@@ -474,7 +474,10 @@ fn guide_lines(
     let mut out = Vec::new();
     let hard = guides.hard_edges && kind.is_some();
     let seams = guides.seams && kind.is_some();
-    if !hard && !guides.normals && !seams {
+    // Creases (decision 0143) show whenever elements are edited: only the
+    // edges you crease have them, and nothing else shows where they are.
+    let creases = kind.is_some();
+    if !hard && !guides.normals && !seams && !creases {
         return out;
     }
     for item in drawing.items.iter().filter(|i| i.selected) {
@@ -519,6 +522,18 @@ fn guide_lines(
                 let (a, b) = edge.ends();
                 if let (Some(a), Some(b)) = (mesh.position(a), mesh.position(b)) {
                     out.push(([world(a), world(b)], style));
+                }
+            }
+        }
+        if creases {
+            let topology = mesh.topology();
+            for (edge, _) in mesh::crease::creases(mesh) {
+                if !topology.has_edge(edge) {
+                    continue;
+                }
+                let (a, b) = edge.ends();
+                if let (Some(a), Some(b)) = (mesh.position(a), mesh.position(b)) {
+                    out.push(([world(a), world(b)], OverlayStyle::Crease));
                 }
             }
         }
@@ -965,6 +980,29 @@ mod tests {
         }
         let overlay = tracker.update(Mode::Model, &drawing(true), &Document::new(), None, seams);
         assert_eq!(count(&overlay), 0);
+    }
+
+    #[test]
+    fn creased_edges_show_while_editing() {
+        let mut tracker = ComponentTracker::default();
+        let mut d = drawing(true);
+        let mut cube = PrimitiveKind::Cube.standard().mesh();
+        let edges: Vec<mesh::EdgeKey> = cube.topology().edges().take(3).collect();
+        mesh::crease::set_creases(&mut cube, &edges, 0.5);
+        d.items[0].shown = Arc::new(cube);
+        let count = |overlay: &ComponentOverlay| {
+            overlay
+                .lines
+                .iter()
+                .filter(|(_, s)| *s == OverlayStyle::Crease)
+                .count()
+        };
+        let none = Guides::default();
+        let overlay = tracker.update(Mode::Edges, &d, &Document::new(), None, none);
+        assert_eq!(count(&overlay), 3);
+        d.version = 2;
+        let overlay = tracker.update(Mode::Model, &d, &Document::new(), None, none);
+        assert_eq!(count(&overlay), 0, "not on whole objects");
     }
 
     #[test]

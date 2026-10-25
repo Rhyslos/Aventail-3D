@@ -34,6 +34,7 @@ use crate::tree::Scene;
 use glam::Mat4;
 use mesh::Mesh;
 use mesh::remesh::RemeshOptions;
+use mesh::subdivide::SubdivideOptions;
 use std::sync::Arc;
 use words::{text, tr};
 
@@ -90,19 +91,25 @@ pub enum ModifierKind {
     /// Voxel remesh (decision 0142): the shape rebuilt as an even surface
     /// of quads.
     Remesh(RemeshOptions),
+    /// Subdivision smoothing (decision 0143): Catmull-Clark, with creases.
+    Subdivide(SubdivideOptions),
 }
 
 impl ModifierKind {
     /// One of each kind with its standard settings, in the order the
     /// palette and the menu list them.
     pub fn standard_kinds() -> Vec<Self> {
-        vec![Self::Remesh(RemeshOptions::default())]
+        vec![
+            Self::Subdivide(SubdivideOptions::default()),
+            Self::Remesh(RemeshOptions::default()),
+        ]
     }
 
     /// Its name, as the interface shows it.
     pub fn name(&self) -> &'static str {
         match self {
             Self::Remesh(_) => tr("Remesh"),
+            Self::Subdivide(_) => tr("Subdivide"),
         }
     }
 
@@ -114,6 +121,10 @@ impl ModifierKind {
                 "Rebuild the shape as an even surface of square polygons, whatever its polygons \
                  were: for sculpted, joined or boolean-cut shapes. It needs a closed solid.",
             ),
+            Self::Subdivide(_) => tr(
+                "Smooth the shape by subdividing it: every polygon is split into four and the \
+                 corners rounded off, level by level. Creased edges stay sharp.",
+            ),
         }
     }
 
@@ -121,6 +132,19 @@ impl ModifierKind {
     pub fn family(&self) -> ModifierFamily {
         match self {
             Self::Remesh(_) => ModifierFamily::CleanUp,
+            Self::Subdivide(_) => ModifierFamily::Generate,
+        }
+    }
+
+    /// Whether it gives an export something else than the viewport (the
+    /// Subdivide modifier's two levels).
+    pub fn differs_by_purpose(&self) -> bool {
+        match self {
+            Self::Remesh(_) => false,
+            Self::Subdivide(o) => {
+                let o = o.clamped();
+                o.levels != o.export_levels
+            }
         }
     }
 
@@ -134,6 +158,7 @@ impl ModifierKind {
     pub fn clamped(&self) -> Self {
         match self {
             Self::Remesh(options) => Self::Remesh(options.clamped()),
+            Self::Subdivide(options) => Self::Subdivide(options.clamped()),
         }
     }
 
@@ -142,7 +167,7 @@ impl ModifierKind {
     /// removed with it, in the same undo step.
     pub fn sources(&self) -> Vec<ObjectId> {
         match self {
-            Self::Remesh(_) => Vec::new(),
+            Self::Remesh(_) | Self::Subdivide(_) => Vec::new(),
         }
     }
 
@@ -150,19 +175,31 @@ impl ModifierKind {
     /// made together with their sources).
     pub fn with_sources_renamed(&self, _rename: impl Fn(ObjectId) -> ObjectId) -> Self {
         match self {
-            Self::Remesh(_) => self.clone(),
+            Self::Remesh(_) | Self::Subdivide(_) => self.clone(),
         }
     }
 
-    /// Roughly how much work it is on `input`, in polygons of a boolean's
-    /// worth: from [`MODIFIERS_IN_BACKGROUND_FROM`], the viewport works it
-    /// out on another thread.
-    pub fn work(&self, input: &Mesh) -> usize {
+    /// Roughly how much work it is on `input` for `purpose`, in polygons
+    /// of a boolean's worth: from [`MODIFIERS_IN_BACKGROUND_FROM`], the
+    /// viewport works it out on another thread.
+    pub fn work(&self, input: &Mesh, purpose: Purpose) -> usize {
         match self {
             // About 40 grid points cost as much as one polygon in a boolean
             // (both about 20 ms for 5 000 in a release build).
             Self::Remesh(options) => {
                 mesh::remesh::voxel_count(input, options.voxel_size).unwrap_or(0) as usize / 40
+            }
+            // About 16 new polygons cost as much as one polygon in a
+            // boolean (10 000 polygons at level 2 make 160 000 in about
+            // 40 ms in a release build).
+            Self::Subdivide(options) => {
+                let levels = subdivide_levels(options, purpose);
+                if levels == 0 {
+                    0
+                } else {
+                    usize::try_from(mesh::subdivide::polygon_count(input, levels) / 16)
+                        .unwrap_or(usize::MAX)
+                }
             }
         }
     }
@@ -170,12 +207,35 @@ impl ModifierKind {
     /// Its result on `input`, or why it can't be made (in plain words,
     /// starting with a small letter). `input` is in the object's own
     /// space, as are the sources in `context`.
-    pub(crate) fn apply(&self, input: &Mesh, _context: &ModifierContext) -> Result<Mesh, String> {
+    pub(crate) fn apply(&self, input: &Mesh, context: &ModifierContext) -> Result<Mesh, String> {
         match self {
             Self::Remesh(options) => {
                 mesh::remesh::remesh(input, options).map_err(|why| why.to_string())
             }
+            Self::Subdivide(options) => {
+                // Hard edges count as fully creased only where they are what
+                // the shading shows: on an object smoothed by angle every
+                // corner sharper than the angle looks hard, which would keep
+                // a whole low-polygon cage from rounding at all.
+                let hard_sharp =
+                    options.hard_edges_sharp && matches!(context.hardness, mesh::Hardness::Marked);
+                mesh::subdivide::subdivide(
+                    input,
+                    subdivide_levels(options, context.purpose),
+                    hard_sharp,
+                )
+                .map_err(|why| why.to_string())
+            }
         }
+    }
+}
+
+/// The levels a Subdivide modifier uses for `purpose`.
+pub fn subdivide_levels(options: &SubdivideOptions, purpose: Purpose) -> u32 {
+    let options = options.clamped();
+    match purpose {
+        Purpose::Viewport => options.levels,
+        Purpose::Export => options.export_levels,
     }
 }
 
@@ -184,6 +244,11 @@ impl ModifierKind {
 pub struct ModifierContext {
     /// What the shape is for.
     pub purpose: Purpose,
+    /// How the object is smoothed (decision 0126): by angle, or by its
+    /// marked hard edges. Modifiers that treat hard edges specially (the
+    /// Subdivide modifier's *Hard edges stay sharp*) read the marks only
+    /// when the object shades by them.
+    pub hardness: mesh::Hardness,
     /// Its sources' final shapes, placed into the object's own space, in
     /// the order [`ModifierKind::sources`] lists them.
     pub sources: Vec<SourceShape>,

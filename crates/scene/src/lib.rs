@@ -41,6 +41,7 @@ pub use mesh::edit::{
     Grouping, Slide, SlitLine,
 };
 pub use mesh::remesh::RemeshOptions;
+pub use mesh::subdivide::SubdivideOptions;
 pub use mesh::uvs::{BUDGET_RANGE, SeamPreference, UvLayout};
 pub use mesh::{
     Bounds, Combine, EdgeKey, Element, ElementKind, ElementSelection, FaceId, Hardness, Mesh,
@@ -49,7 +50,7 @@ pub use mesh::{
 pub use modifier::{
     MAX_MODIFIERS, MODIFIERS_IN_BACKGROUND_FROM, Modifier, ModifierContext, ModifierFamily,
     ModifierKind, ModifierRefusal, Purpose, SourceShape, StackDone, StackJob, StackResult,
-    StackState,
+    StackState, subdivide_levels,
 };
 pub use object::{
     ApplyParts, Collision, LiveMirror, Material, Object, ObjectId, ObjectKind,
@@ -93,6 +94,8 @@ mod pivot_tests;
 mod selection_tests;
 #[cfg(test)]
 mod stack_tests;
+#[cfg(test)]
+mod subdivide_tests;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
