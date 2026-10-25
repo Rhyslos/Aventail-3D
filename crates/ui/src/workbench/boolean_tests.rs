@@ -253,19 +253,19 @@ fn a_heavy_cut_is_worked_out_in_the_background_and_then_shown() {
         (item.shown.face_count(), item.drawn.face_count())
     };
     // The window didn't wait: the uncut ball shows while the cut is made.
-    if harness.state().workbench.drawing.cutting() {
+    if harness.state().workbench.drawing.busy() {
         let (shown, now) = drawn(&harness);
         assert_eq!(shown, now, "uncut meanwhile");
     }
     for _ in 0..600 {
-        if !harness.state().workbench.drawing.cutting() {
+        if !harness.state().workbench.drawing.busy() {
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(20));
         harness.run_steps(1);
     }
     harness.run_steps(1);
-    assert!(!harness.state().workbench.drawing.cutting());
+    assert!(!harness.state().workbench.drawing.busy());
     let (shown, now) = drawn(&harness);
     assert_ne!(shown, now, "the cut shows once it is in");
 }

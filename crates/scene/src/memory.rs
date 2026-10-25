@@ -205,6 +205,9 @@ pub(crate) fn edit(edit: &Edit) -> usize {
                 .flat_map(|list| list.iter())
                 .map(|b| 16 + b.cutters.len() * std::mem::size_of::<ObjectId>())
                 .sum(),
+            Edit::SetModifiers { before, after, .. } => {
+                (before.len() + after.len()) * std::mem::size_of::<crate::Modifier>()
+            }
             Edit::SetExportTarget { before, after } => [before, after]
                 .iter()
                 .filter_map(|t| t.as_ref())

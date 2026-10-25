@@ -56,6 +56,7 @@ mod v39;
 mod v4;
 mod v40;
 mod v41;
+mod v43;
 mod v5;
 mod v6;
 mod v7;
@@ -71,7 +72,16 @@ use words::{text, tr, trf};
 /// The signature every project file starts with.
 pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// The format version this app writes.
-pub const FORMAT_VERSION: u32 = 41;
+///
+/// Version 42 (decision 0141) is version 41's model with one more kind of
+/// recorded edit, an improved bevel (`v23::OperationV23::Improved`): a
+/// version of its own, so an older app says it needs updating instead of
+/// failing to read the edit.
+///
+/// Version 43 (decision 0142) is version 41's model with each object's
+/// modifier stack (`v43::ProjectV43`). A new kind of modifier moves it up
+/// by one again.
+pub const FORMAT_VERSION: u32 = 43;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -182,8 +192,9 @@ fn edit_counts(document: &Document) -> usize {
 
 /// The project file's bytes for `document`, unchecked.
 fn encode(document: &Document) -> Result<Vec<u8>, ProjectError> {
-    let model = v41::ProjectV41::from_document(document);
+    let model = v43::ProjectV43::from_document(document);
     let stored: usize = model
+        .project
         .project
         .project
         .project
@@ -208,7 +219,7 @@ fn encode(document: &Document) -> Result<Vec<u8>, ProjectError> {
             tr("an edit of a kind this version can't store yet").into(),
         ));
     }
-    let encoded = v41::encode(&model)
+    let encoded = v43::encode(&model)
         .map_err(|e| ProjectError::Damaged(trf!("the scene couldn't be encoded ({})", e)))?;
     let body = zstd::bulk::compress(&encoded, ZSTD_LEVEL)
         .map_err(|e| ProjectError::Damaged(trf!("the scene couldn't be compressed ({})", e)))?;
@@ -304,7 +315,8 @@ pub fn from_bytes(bytes: &[u8]) -> Result<Document, ProjectError> {
         38 => decode_snapshots::<v38::EntryV38>(encoded),
         39 => decode_development(encoded),
         40 => decode_booleans(encoded),
-        _ => decode_curves(encoded),
+        41 | 42 => decode_curves(encoded),
+        _ => decode_modifiers(encoded),
     }
 }
 
@@ -356,11 +368,38 @@ fn decode_booleans(encoded: &[u8]) -> Result<Document, ProjectError> {
 }
 
 /// The document a body of version 41 (the development format with
-/// curves, decision 0138) holds.
+/// curves, decision 0138) or 42 (with improved bevels, decision 0141)
+/// holds.
 fn decode_curves(encoded: &[u8]) -> Result<Document, ProjectError> {
     let model = crate::limits::within_budget(|| v41::decode(encoded))
         .map_err(|e| ProjectError::Damaged(trf!("its scene can't be read ({})", e)))?;
     model
+        .project
+        .project
+        .project
+        .project
+        .project
+        .project
+        .project
+        .project
+        .project
+        .project
+        .project
+        .places
+        .project
+        .project
+        .check_limits()
+        .map_err(ProjectError::Damaged)?;
+    model.into_document().map_err(ProjectError::Damaged)
+}
+
+/// The document a body of version 43 (the development format with the
+/// modifier stack, decision 0142) or later holds.
+fn decode_modifiers(encoded: &[u8]) -> Result<Document, ProjectError> {
+    let model = crate::limits::within_budget(|| v43::decode(encoded))
+        .map_err(|e| ProjectError::Damaged(trf!("its scene can't be read ({})", e)))?;
+    model
+        .project
         .project
         .project
         .project
@@ -861,3 +900,7 @@ mod tests;
 mod v40_tests;
 #[cfg(test)]
 mod v41_tests;
+#[cfg(test)]
+mod v42_tests;
+#[cfg(test)]
+mod v43_tests;

@@ -108,6 +108,17 @@ impl Document {
         Ok(self)
     }
 
+    /// The same document with object `id`'s modifiers set (see
+    /// [`Scene::with_modifiers`]), for a project being opened.
+    pub fn with_modifiers(
+        mut self,
+        id: ObjectId,
+        modifiers: Vec<crate::Modifier>,
+    ) -> Result<Self, crate::ModifierRefusal> {
+        self.scene = std::mem::take(&mut self.scene).with_modifiers(id, modifiers)?;
+        Ok(self)
+    }
+
     /// The same document with object `id` given back the primitive it was
     /// built from (see [`Scene::with_primitive`]), for a project being
     /// opened.

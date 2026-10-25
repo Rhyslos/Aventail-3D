@@ -78,7 +78,7 @@ echo "Viewport background at (300, 130): $R $G $B (expected a neutral mid grey)"
 diff_rb=$(( R > B ? R - B : B - R ))
 [ "$diff_rb" -le 15 ] || fail "viewport background is tinted: ($R, $G, $B)"
 xdotool windowfocus --sync "$WINDOW_ID" 2>/dev/null || true
-CUBE_BUTTON_X="${CUBE_BUTTON_X:-633}"
+CUBE_BUTTON_X="${CUBE_BUTTON_X:-445}"
 xdotool mousemove "$CUBE_BUTTON_X" 50 click 1
 sleep 2
 # Move the mouse away so the button's tooltip doesn't cover the view.

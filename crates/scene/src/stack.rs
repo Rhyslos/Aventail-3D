@@ -573,6 +573,24 @@ pub struct EditSettings {
     pub groove: Option<edit::GrooveShape>,
 }
 
+impl EditSettings {
+    /// These settings with a bevel of edges made the improved way
+    /// (decision 0141). A bevel recorded before it keeps its old shape
+    /// until a person changes one of its settings: then it gets rounded
+    /// corners and stops at its neighbours point by point, as new bevels
+    /// do.
+    #[must_use]
+    pub fn improved(self) -> Self {
+        Self {
+            bevel_options: self.bevel_options.map(|o| edit::BevelOptions {
+                improved: true,
+                ..o
+            }),
+            ..self
+        }
+    }
+}
+
 /// What applying an operation did.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub(crate) struct Applied {

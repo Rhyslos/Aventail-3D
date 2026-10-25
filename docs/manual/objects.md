@@ -55,6 +55,8 @@ Select one or more shapes and press **Ctrl + E**, or use **Object → Bake into 
 
 A shape cut by [booleans](booleans.md) is baked with its cut: the cut becomes part of the mesh, the booleans go, and the cutters are hidden (not deleted), so they don't sit on top of the result as solid shapes. A plain mesh with booleans can be baked too.
 
+A shape with [modifiers](modifiers.md) that are on is baked as an export would get it: its edits, booleans, [mirror](symmetry.md) and modifiers all become one plain mesh. The modifiers that were on go (switched-off ones stay), and so does the mirror, as its other half is now part of the mesh. One **Ctrl + Z** brings it all back.
+
 ## Settings
 
 The Objects panel has no settings of its own yet. Its menus:

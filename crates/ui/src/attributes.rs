@@ -13,6 +13,7 @@ mod fields;
 mod last_edit;
 mod materials;
 mod mesh_check;
+pub(crate) mod modifier_rows;
 mod object_rows;
 pub(crate) mod stepper;
 mod tool_rows;
@@ -341,6 +342,7 @@ impl AttributesPanel {
                 }
                 if solid {
                     crate::booleans::attributes_section(ui, doc, id, out);
+                    self.modifiers_section(ui, doc, id, units, out);
                     self.materials_section(ui, doc, id, out);
                 }
                 if let Some(shape) = doc.scene().evaluated(id) {

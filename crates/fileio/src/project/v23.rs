@@ -6,6 +6,11 @@
 //! stores a bevel without them, and those settings beside it. Every other
 //! edit, and bevels with none of them, is stored as in version 22. Older
 //! files open with bevels as they always were (none of the settings).
+//!
+//! Version 42 ([decision 0141](../../../../docs/decisions/0141-improved-bevel.md))
+//! adds one more kind of operation here, an improved bevel, stored the
+//! same way: files before version 42 never hold one, and their bevels
+//! open as they were made.
 
 use super::v1::{FileOperation, Problem};
 use super::v5::EntryWith;
@@ -32,6 +37,13 @@ pub(crate) enum OperationV23 {
     /// as version 22 stores it without its further settings, and those
     /// settings.
     Bevel {
+        op: OperationV22,
+        options: BevelOptionsV23,
+    },
+    /// An improved bevel of edges (version 42, decision 0141: rounded
+    /// corners and stopping at each point's neighbours), stored as
+    /// [`Self::Bevel`] is.
+    Improved {
         op: OperationV22,
         options: BevelOptionsV23,
     },
@@ -70,16 +82,20 @@ impl FileOperation for OperationV23 {
         match options_of(op) {
             Some(options) if options != BevelOptions::EARLIER => {
                 let plain = with_options(op, BevelOptions::EARLIER);
-                Some(Self::Bevel {
-                    op: OperationV22::to_file(&plain)?,
-                    options: BevelOptionsV23 {
-                        skew: options.skew,
-                        flip_side: options.flip_side,
-                        even: options.even,
-                        clamp: options.clamp,
-                        weld: options.weld,
-                        weld_distance: options.weld_distance,
-                    },
+                let improved = options.improved;
+                let op = OperationV22::to_file(&plain)?;
+                let options = BevelOptionsV23 {
+                    skew: options.skew,
+                    flip_side: options.flip_side,
+                    even: options.even,
+                    clamp: options.clamp,
+                    weld: options.weld,
+                    weld_distance: options.weld_distance,
+                };
+                Some(if improved {
+                    Self::Improved { op, options }
+                } else {
+                    Self::Bevel { op, options }
                 })
             }
             _ => Some(Self::V22(OperationV22::to_file(op)?)),
@@ -87,9 +103,10 @@ impl FileOperation for OperationV23 {
     }
 
     fn into_operation(self) -> Result<Operation, Problem> {
+        let improved = matches!(self, Self::Improved { .. });
         match self {
             Self::V22(op) => op.into_operation(),
-            Self::Bevel { op, options } => {
+            Self::Bevel { op, options } | Self::Improved { op, options } => {
                 let options = BevelOptions {
                     skew: options.skew,
                     flip_side: options.flip_side,
@@ -97,6 +114,7 @@ impl FileOperation for OperationV23 {
                     clamp: options.clamp,
                     weld: options.weld,
                     weld_distance: options.weld_distance,
+                    improved,
                 };
                 // NaN never equals itself, so this refuses those too.
                 if options.clamped() != options {
@@ -150,10 +168,15 @@ mod tests {
             clamp: false,
             weld: true,
             weld_distance: 0.25,
+            improved: false,
         };
         for op in [
             bevel(options),
             bevel(BevelOptions::default()),
+            bevel(BevelOptions {
+                improved: true,
+                ..BevelOptions::EARLIER
+            }),
             Operation::Mirrored {
                 op: Box::new(bevel(options)),
                 mirror: Mirror {
@@ -164,7 +187,13 @@ mod tests {
             },
         ] {
             let file = OperationV23::to_file(&op).unwrap();
-            assert!(matches!(file, OperationV23::Bevel { .. }), "{op:?}");
+            let improved =
+                matches!(op.inner(), Operation::BevelEdges { shape, .. } if shape.options.improved);
+            if improved {
+                assert!(matches!(file, OperationV23::Improved { .. }), "{op:?}");
+            } else {
+                assert!(matches!(file, OperationV23::Bevel { .. }), "{op:?}");
+            }
             assert_eq!(file.into_operation().unwrap(), op);
         }
     }
@@ -179,8 +208,11 @@ mod tests {
 
     #[test]
     fn broken_settings_are_refused() {
-        let OperationV23::Bevel { op, options } =
-            OperationV23::to_file(&bevel(BevelOptions::default())).unwrap()
+        let earlier = BevelOptions {
+            improved: false,
+            ..BevelOptions::default()
+        };
+        let OperationV23::Bevel { op, options } = OperationV23::to_file(&bevel(earlier)).unwrap()
         else {
             panic!("stored with settings");
         };

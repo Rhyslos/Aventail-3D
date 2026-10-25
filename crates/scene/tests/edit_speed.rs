@@ -146,8 +146,9 @@ fn edit_speed_check() {
     // Bevelling every edge and every point of a 32,000-polygon sphere.
     let dense = sphere(256, 128);
     let edges: Vec<EdgeKey> = dense.topology().edges().collect();
-    // With the standard options (even width, stopping at overlaps,
-    // welding; decision 0085), as a new bevel gets them.
+    // With the standard options (even width, stopping at neighbours,
+    // welding, improved; decisions 0085 and 0141), as a new bevel gets
+    // them.
     let shape = BevelShape {
         width: 0.5,
         segments: 2,

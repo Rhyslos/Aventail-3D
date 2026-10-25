@@ -32,6 +32,8 @@ Whenever you want to change *what* an object is rather than where it is: make a 
 
 **Booleans.** A shape cut by [booleans](booleans.md) has a **Booleans** section: each boolean's kind (Union, Subtract or Intersect, changeable from the list), its cutters by name (click one to select it; **Take out** stops it cutting) and **Remove**. If the cut can't be made (a shape isn't a closed solid), it says why in amber, and the shape is shown uncut. A cutter's own panel says which shapes it **Cuts**.
 
+**Modifiers.** A shape with [modifiers](modifiers.md) has a **Modifiers** section: each modifier, first to last, with its switch (untick to switch it off), **Up**, **Down** and **Remove**, its own settings (for [Remesh](remesh.md), Voxel size and Smooth), and **Show in viewport**. If a modifier can't do its work (Remesh on an open shape), it says why in amber, and the shape goes on without it.
+
 **Materials.** Every shape has a **Materials** section: its materials, each with a colour, a name, how many polygons use it and an **Assign** button that gives the selected polygons that material (in the Polygons mode). **Add material** and **Remove last** change the list. See [Materials](materials.md).
 
 **Mesh.** Every shape has a **Mesh** section (scroll down to it below the settings). It says what the shape is made of right now, settings and edits included:

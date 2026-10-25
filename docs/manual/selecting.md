@@ -40,7 +40,7 @@ Hold the left mouse button and drag. What the drag draws depends on the **select
 - **Lasso selection**: draw a loop around what you want, freehand. Useful for odd shapes a box would cut through.
 - **Paint select** (the brush): paint over what you want with a circle that follows the mouse. Everything the circle touches is selected as you go.
 
-Press **Q** to step through the three (Box → Lasso → Paint select → Box). The button near the left end of the top palette shows the active tool (with its name beside it when the window is wide enough). You can click that button too, click the small **arrow** beside it to pick one of the three from a list, or pick a tool in the **Select** menu.
+Press **Q** to step through the three (Box → Lasso → Paint select → Box). The button near the left end of the top palette shows the active tool. You can click that button too, click the small **arrow** beside it to pick one of the three from a list, or pick a tool in the **Select** menu.
 
 While dragging, the keys you hold decide what happens to what was already selected. It's the same pattern as clicking:
 
