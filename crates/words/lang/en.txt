@@ -214,6 +214,7 @@ Apply {} mirrors
 Arc
 Arch
 Area and angle
+Array
 Arrives with the tools in Phase 3
 As in this app; Blender and 3ds Max's own axes
 As many points as it has now, spread evenly
@@ -312,6 +313,7 @@ Carry on the curve by 1 point
 Carry on the curve by {} points
 Cavity
 Centimetres
+Centre
 Centre point
 Change booleans
 Change how edits keep UVs
@@ -418,6 +420,7 @@ Copy settings
 Copy the selected objects, to paste as copies (Ctrl + V) or instances (Alt + V)
 Copy the selected objects, with their edits, right where they are. Or Ctrl + C, then Ctrl + V to paste copies.
 Copy the selected shape's settings
+Copy the shape in a line, a grid or a ring: fence posts, stairs, bolts round a wheel. The copies stay live: edit the shape and every copy follows.
 Copy works on whole objects: go back to the Model mode (the top of the left palette) first.
 Copy: select the objects to copy first.
 Corner angle
@@ -450,6 +453,9 @@ Couldn't take it: {}.
 Couldn't use that folder: {}.
 Couldn't {}: {}.
 Count
+Count X
+Count Y
+Count Z
 Counted from the first change since the last copy.
 Crease
 Crease edges
@@ -755,6 +761,7 @@ Generate
 German (QWERTZ)
 Getting the workbench ready…
 Give
+Give each copy its own square of the texture, so the copies don't overlap there and can be painted or baked one by one. Off, every copy shares the shape's UVs
 Give points auto handles
 Give the selected objects {}'s rotation
 Give the selected pieces a stretch budget of their own
@@ -769,6 +776,7 @@ Godot
 Godot, Unity, Unreal's OBJ import and Substance Painter
 Graphics: {} ({}, {}× smoothing)
 Grey tiles with a white border; the highlighted one fills with the accent colour
+Grid
 Grid lines
 Grid lines every metre: the calmest ground
 Grid spacing: {}
@@ -845,12 +853,18 @@ How each point finds the target's surface: straight to the nearest place on it, 
 How evenly the UVs lie: green where even, yellow where 1.5 times off, red where twice off (stretched one way, or too big or small against the rest of the object), purple where a polygon has no room on the texture
 How far a quad's corners may be from square for its piece to count as a strip (25° standard). Raise it for strips round tight curves; lower it to straighten only truly square ones.
 How far any corner of a new quad may be from a right angle: low makes only near-square quads, high takes slanted ones too
+How far apart the copies are along this axis
+How far apart the copies are along this axis, as a share of the shape's size: 1 touches, more leaves a gap
 How far apart the grid the shape is rebuilt on is: about the size of the new polygons. Smaller keeps more detail and makes more polygons.
+How far each copy is from the one before, as a share of the shape's size: 1 touches, more leaves a gap. Up and along at once makes stairs
+How far each copy is from the one before. Up and along at once makes stairs
+How far each copy is moved out from the centre before it is turned. With 0, the copies turn where the shape is: move the shape off its pivot, or raise this
 How far from the middle
 How far it bends: 90° for a corner, 360° for a whole ring
 How far it was pushed (in the object's own size). Change it and the shape follows.
 How far round it spins: 360° all the way
 How far round the arc goes
+How far round the ring goes: 360° is a whole turn, shared out evenly; less makes a fan with copies at both ends. Below 0 it turns the other way
 How far the bevel reaches into each polygon (in the object's own size). Change it and the shape follows.
 How far the bevel reaches into the polygons on each side of an edge. Marked edges get their Bevel weight's share of it.
 How far the cross-section turns round the curve from start to end (whole turns on a closed curve)
@@ -865,7 +879,10 @@ How high it climbs, bottom to top
 How high the straight sides go before the round top starts: zero for a half ring
 How high the top step is
 How long the line is
+How many copies along this axis, the shape included
+How many copies round the ring, the shape itself included
 How many copies to spread. Spacing can leave fewer, where they don't fit.
+How many copies, the shape itself included
 How many flat sides make up each round side
 How many flat sides make up the round side
 How many new loops are cut, spread evenly across the polygons
@@ -922,6 +939,7 @@ How tall the rectangle is, up from the curve
 How tall the row is, in pixels
 How the automatic UV tools work: the same settings as UV → Settings.
 How the cage's points pull the shape: Smooth blends them with no creases (the shape follows a little less closely); Linear follows straight between points, creasing along the cage's lines
+How the copies are laid out: one after another in a line, along X, Y and Z in a grid, or turned round a centre in a ring
 How the mouse moves the view. Also chosen from the button in the viewport's bottom-right corner.
 How the mouse moves the view. Try them, keep your favourite.
 How the new polygon count is given: a share of the triangles the shape has, or a number of triangles (a game's budget)
@@ -1035,6 +1053,7 @@ Lay the pieces holding the selection (or whole objects) flat along their seams, 
 Lay the selected pieces straight along this row, filling its height, from its left end
 Layer
 Layer name
+Layout
 Layout snapshots
 Left
 Leg height
@@ -1123,8 +1142,10 @@ Mend when stretched
 Mending
 Menu bar
 Menus and questions
+Merge distance
 Merge down
 Merge layer down
+Merge touching copies
 Mesh
 Method
 Metres
@@ -1263,11 +1284,15 @@ Off: only the button turns snapping on and off.
 Off: the shape is made as if this edit wasn't there
 Off: the shape is made as if this edit wasn't there. Nothing is lost.
 Offset
+Offset X
+Offset Y
+Offset Z
 Olive
 On
 On polygons
 On save
 On the trim row “{}”, laid along it by Put on trim row. Pack leaves it there.
+On, offsets are shares of the shape's size, so 1 places copies touching whatever its size; off, they are distances
 On: a tap opens the menu and keeps it open; tap E again to step through it, and Enter or Space to use a tool. Easier if holding a key is hard.\nOff: the menu shows only while you hold E; let go over a tool to use it.
 On: each tool's key sits just outside its button.\nOff: the key shows in the middle, with the name of the tool you point at.
 On: everything under the line is cut, the far side too. Off: only what you can see.
@@ -1382,6 +1407,7 @@ Points
 Points along
 Points at the middle this close to their mirror become one, so the halves join into one surface. 0 keeps them apart.
 Points closer together than this melt into one. Keep it tiny (0.1 mm) to close only cracks; raise it to join pieces placed roughly edge to edge
+Points of different copies closer together than this melt into one
 Points on the same spot make polygons with no area and break the shading there. Fix welds each group into one point.
 Points that no face uses.
 Points, Edges, Polygons
@@ -1425,6 +1451,7 @@ Quads where flat
 Quarter turns and mirrors of the selected UVs
 Questions asked before an edit that is easy to get wrong. Each can also be switched off from the question itself.
 Quit
+Radial
 Radial menu
 Radius
 Random over the surface
@@ -1439,6 +1466,7 @@ Redo
 Redo: {}
 Redone: {}.
 Reduce by
+Relative to size
 Relax
 Relax passes evening out the new surface without shrinking it: 0 for none
 Relax the UVs of
@@ -1746,6 +1774,9 @@ Space
 Space evenly
 Space {} points evenly
 Spacing
+Spacing X
+Spacing Y
+Spacing Z
 Sphere
 Spin angle
 Spiral
@@ -2016,6 +2047,7 @@ UV Editor shown beside the viewport. Window → UV Editor puts it away.
 UV Editor view
 UV settings
 UVs are moved by numbers that aren't real
+UVs side by side
 Uncrease
 Underneath
 Underneath and at the back
@@ -2090,6 +2122,7 @@ Weld onto a point
 Weld overlapping points: new points that land on top of each other (where bevels meet) become one, so there are no doubled points or tiny slivers
 Weld points
 Weld the middle
+Weld the points where copies touch into one, so open copies (a fence, a pipe) join into one surface. Closed copies stay closed shapes side by side
 Weld works on points or polygons: press 1 for the Points mode or 3 for Polygons.
 Weld works on points: press 1 for the Points mode
 Weld {} points by distance
@@ -2107,6 +2140,7 @@ What the app's words mean: points, pieces, seams, pivots, smoothing and the rest
 What the curve makes
 What the curve makes: nothing (a line, to guide or be another sweep's cross-section), a sweep (a shape carried along it: pipes, cables, rails) or a lathe (the curve spun round an axis: vases, bottles, wheels)
 What the cutters do to this shape
+What the ring turns round: the shape's own pivot, or another object's (it stays live: move that object and the ring follows)
 What the row holds: bolts, a panel edge, a seal
 What the viewport draws over your shapes. Also in the viewport's Display menu.
 Wheel down
@@ -2136,6 +2170,7 @@ Which edges are bevelled: those sharper than an angle, those the shading shows h
 Which keyboard to draw. Letters follow what is printed on your keys; the number row is always 1 to 0.
 Which of the curve's own axes it spins round, through its pivot
 Which of the shape's own axes runs along the curve: its longest side, or X, Y or Z. The shape's start along it goes to the curve's start.
+Which of the shape's own axes the ring turns round. Z, up, lays it on the ground
 Which way round it turns: 0° turns up (an upright pipe turns towards +X), and it goes round from there.
 Which way the polygons go. Straight out is the standard.
 While dragging
@@ -2363,6 +2398,7 @@ it should hold {} bytes of scene but holds {}; it may be cut short
 it was
 it was saved by a newer version of the app (file format {}; this version reads up to {}). Update the app to open it
 it wasn't saved, because the saved copy wouldn't open again ({}). Your previous save is untouched; please report this so it can be fixed
+it would make {} copies, and the most is 100 000: lower the counts
 it would make {} copies, and the most is 100 000: use Random, or a larger Spacing
 it would make {} million polygons, and the most is 4 million. Lower the levels
 it's an instance: edit its original, or make it editable to give it its own shape

@@ -80,6 +80,7 @@ The mirror stands along the object's own axes, through its pivot, so it moves an
 - **Problem:** the twin is far away from my half, or overlaps it. **Why:** the mirror stands at the object's pivot, and the shape isn't next to it. **Fix:** move the pivot to the shape's middle with [Edit pivot](pivots.md), or move the mirror in the Symmetry menu.
 - **Problem:** Apply mirror is greyed out. **Why:** no selected object has symmetry on. **Fix:** select the object with the mirror.
 - **Tip:** to keep a detail on one side only (a scratch, a logo), apply the mirror first, or make the detail a separate object without a mirror.
+- **Tip:** Symmetry is the app's mirror generator: there is no separate mirror modifier. For more than two copies (in a row, or round a wheel), use an [Array](array.md); the mirror comes before it, so the array repeats the whole mirrored shape. To mirror across another object's place, move the mirror there with **Move the mirror to**.
 - **Note:** projects made before the live mirror keep their mirrored edits, made on both sides, exactly as they were.
 
 ## Related
@@ -87,4 +88,5 @@ The mirror stands along the object's own axes, through its pivot, so it moves an
 - [Points, Edges and Polygons modes](modes.md)
 - [Move, rotate and scale](transforming.md)
 - [Export and import](export-and-import.md): the mirrored half goes out as part of the object
+- [Array](array.md): copies in a line, a grid or a ring
 - [Concepts: symmetry](concepts.md#objects-and-scenes)

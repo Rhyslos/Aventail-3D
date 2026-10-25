@@ -29,6 +29,7 @@
 
 mod eval;
 
+pub use crate::array::ArraySettings;
 pub use crate::lattice::LatticeOptions;
 use crate::object::{ObjectId, ObjectKind};
 pub use crate::scatter::ScatterSettings;
@@ -128,6 +129,9 @@ pub enum ModifierKind {
     /// Points closer together than a distance melted into one (decision
     /// 0152): cracks closed, split shapes joined. Best first.
     WeldByDistance(WeldOptions),
+    /// Copies of the shape in a line, a grid or a ring (decision 0153),
+    /// touching copies welded if asked.
+    Array(ArraySettings),
 }
 
 impl ModifierKind {
@@ -136,6 +140,7 @@ impl ModifierKind {
     pub fn standard_kinds() -> Vec<Self> {
         vec![
             Self::Subdivide(SubdivideOptions::default()),
+            Self::Array(ArraySettings::default()),
             Self::LiveBevel(LiveBevelOptions::default()),
             Self::Scatter(ScatterSettings::default()),
             Self::Lattice(LatticeOptions::default()),
@@ -163,6 +168,7 @@ impl ModifierKind {
             Self::LiveBevel(_) => tr("Live bevel"),
             Self::Quadify(_) => tr("Quadify"),
             Self::WeldByDistance(_) => tr("Weld by distance"),
+            Self::Array(_) => tr("Array"),
         }
     }
 
@@ -221,6 +227,10 @@ impl ModifierKind {
                  shape split along its seams, or join pieces placed edge to edge. The UVs stay \
                  as they were.",
             ),
+            Self::Array(_) => tr(
+                "Copy the shape in a line, a grid or a ring: fence posts, stairs, bolts round a \
+                 wheel. The copies stay live: edit the shape and every copy follows.",
+            ),
         }
     }
 
@@ -234,7 +244,7 @@ impl ModifierKind {
             Self::Scatter(_) => ModifierFamily::Generate,
             Self::BendAlongCurve(_) | Self::Shrinkwrap(_) => ModifierFamily::Deform,
             Self::WeightedNormals(_) => ModifierFamily::Game,
-            Self::LiveBevel(_) => ModifierFamily::Generate,
+            Self::LiveBevel(_) | Self::Array(_) => ModifierFamily::Generate,
             Self::Quadify(_) | Self::WeldByDistance(_) => ModifierFamily::CleanUp,
         }
     }
@@ -252,7 +262,8 @@ impl ModifierKind {
             | Self::WeightedNormals(_)
             | Self::LiveBevel(_)
             | Self::Quadify(_)
-            | Self::WeldByDistance(_) => false,
+            | Self::WeldByDistance(_)
+            | Self::Array(_) => false,
             Self::Subdivide(o) => {
                 let o = o.clamped();
                 o.levels != o.export_levels
@@ -280,6 +291,7 @@ impl ModifierKind {
             Self::LiveBevel(options) => Self::LiveBevel(options.clamped()),
             Self::Quadify(options) => Self::Quadify(options.clamped()),
             Self::WeldByDistance(options) => Self::WeldByDistance(options.clamped()),
+            Self::Array(settings) => Self::Array(settings.clamped()),
         }
     }
 
@@ -300,6 +312,7 @@ impl ModifierKind {
             Self::Scatter(settings) => settings.shapes.clone(),
             Self::BendAlongCurve(settings) => vec![settings.curve],
             Self::Shrinkwrap(settings) => vec![settings.target],
+            Self::Array(settings) => settings.centre.into_iter().collect(),
         }
     }
 
@@ -315,7 +328,11 @@ impl ModifierKind {
     /// Whether it reads the object's own pivot ([`ModifierContext::pivot`]):
     /// Bend along curve measures across the curve from it.
     pub fn reads_pivot(&self) -> bool {
-        matches!(self, Self::BendAlongCurve(_))
+        match self {
+            Self::BendAlongCurve(_) => true,
+            Self::Array(settings) => settings.reads_pivot(),
+            _ => false,
+        }
     }
 
     /// The same modifier once the objects `going` are deleted, or `None`
@@ -328,6 +345,11 @@ impl ModifierKind {
                 kept.shapes.retain(|s| !going.contains(s));
                 (!kept.shapes.is_empty()).then_some(Self::Scatter(kept))
             }
+            // A ring whose centre object goes turns round the pivot again.
+            Self::Array(settings) => Some(Self::Array(ArraySettings {
+                centre: settings.centre.filter(|c| !going.contains(c)),
+                ..*settings
+            })),
             _ => (!self.sources().iter().any(|s| going.contains(s))).then(|| self.clone()),
         }
     }
@@ -339,6 +361,8 @@ impl ModifierKind {
         match self {
             Self::Lattice(_) => matches!(kind, ObjectKind::Lattice(_)),
             Self::BendAlongCurve(_) => matches!(kind, ObjectKind::Curve(_)),
+            // A ring's centre is read for where it stands only: any object.
+            Self::Array(_) => true,
             Self::Remesh(_)
             | Self::Subdivide(_)
             | Self::Decimate(_)
@@ -376,6 +400,10 @@ impl ModifierKind {
             Self::Shrinkwrap(settings) => Self::Shrinkwrap(ShrinkwrapSettings {
                 target: rename(settings.target),
                 ..settings.clone()
+            }),
+            Self::Array(settings) => Self::Array(ArraySettings {
+                centre: settings.centre.map(rename),
+                ..*settings
             }),
         }
     }
@@ -435,6 +463,7 @@ impl ModifierKind {
             // About WELD_POINTS_PER_POLYGON points cost as much as one
             // polygon in a boolean (see its note for the timing).
             Self::WeldByDistance(_) => input.vertex_count() / WELD_POINTS_PER_POLYGON,
+            Self::Array(settings) => crate::array::array_work(input, settings),
         }
     }
 
@@ -495,6 +524,7 @@ impl ModifierKind {
             Self::WeldByDistance(options) => {
                 mesh::weld_distance::welded(input, options).map_err(|why| why.to_string())
             }
+            Self::Array(settings) => crate::array::apply_array(input, settings, context),
         }
     }
 
@@ -601,6 +631,9 @@ pub enum SourceData {
     /// A curve's line, its points and handles (decision 0147), not its
     /// solid.
     Curve(Arc<mesh::curve::Curve>),
+    /// Only where it stands ([`SourceShape::pivot`]): an array's centre
+    /// (decision 0153), which may be any object.
+    Place,
 }
 
 impl PartialEq for SourceData {
@@ -609,6 +642,7 @@ impl PartialEq for SourceData {
             (Self::Shape(a), Self::Shape(b)) => Arc::ptr_eq(a, b) || **a == **b,
             (Self::Cage(a), Self::Cage(b)) => Arc::ptr_eq(a, b) || **a == **b,
             (Self::Curve(a), Self::Curve(b)) => Arc::ptr_eq(a, b) || **a == **b,
+            (Self::Place, Self::Place) => true,
             _ => false,
         }
     }

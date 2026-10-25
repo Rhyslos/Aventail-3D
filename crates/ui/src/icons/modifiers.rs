@@ -1,4 +1,4 @@
-//! The modifier icons (decisions 0142 to 0152), one per kind of
+//! The modifier icons (decisions 0142 to 0153), one per kind of
 //! modifier on the modifiers palette, and the crease commands'. Original
 //! drawings.
 
@@ -21,6 +21,7 @@ pub(super) fn draw(pen: &mut Pen, icon: Icon) {
         Icon::LiveBevel => live_bevel(pen),
         Icon::Quadify => quadify(pen),
         Icon::WeldByDistance => weld_by_distance(pen),
+        Icon::Array => array(pen),
         _ => {}
     }
 }
@@ -348,5 +349,25 @@ fn weld_by_distance(pen: &mut Pen) {
             .collect();
         pen.stroke(&ring, true, Ink::Dashed);
         pen.dot(12.0, y, 2.0);
+    }
+}
+
+/// Array: three boxes in a row, one beside the next, each seen a little
+/// from above and the side.
+fn array(pen: &mut Pen) {
+    for x in [1.0_f32, 8.5, 16.0] {
+        let front = [(x, 10.0), (x + 5.0, 10.0), (x + 5.0, 17.0), (x, 17.0)];
+        let top = [(x, 10.0), (x + 2.0, 7.0), (x + 7.0, 7.0), (x + 5.0, 10.0)];
+        let side = [
+            (x + 5.0, 10.0),
+            (x + 7.0, 7.0),
+            (x + 7.0, 14.0),
+            (x + 5.0, 17.0),
+        ];
+        pen.shape(&front, Paint::Tone);
+        pen.shape(&side, Paint::Shade);
+        for face in [front, top, side] {
+            pen.stroke(&face, true, Ink::Line);
+        }
     }
 }

@@ -258,9 +258,9 @@ After a review of the whole app (2026-10-21, [decision 0121](docs/decisions/0121
 
 **Gate:** 2–3 people new to the app finish a fixed task list without help, see what is selected on any screen, and no text skips the English package. Then Phase 10, advanced modelling.
 
-### Phase 10 · Advanced hard-surface (after Phase 9, before the rest of Phase 8) — 14 of 23
+### Phase 10 · Advanced hard-surface (after Phase 9, before the rest of Phase 8) — 15 of 23
 
-`████████░░░░░` 61%
+`████████░░░░░` 65%
 
 Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/decisions/0125-modelling-before-the-rest-of-the-uvs.md)); Phase 8 continues once it's done. Friends join as testers around here, once there are enough tools to build something. On 24 October the project lead widened it with fourteen more modifiers ([decision 0136](docs/decisions/0136-more-modifiers.md)); each still asks about its controls before it's built. They're built biggest and hardest first, except where one builds on another ([decision 0137](docs/decisions/0137-biggest-first.md)).
 
@@ -281,7 +281,7 @@ Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/d
 - [x] Quadify: triangles joined back into quads, the squarest first, as a live modifier or once with Quadify now (after booleans, decimating or imports) ([decision 0150](docs/decisions/0150-quadify.md))
 - [x] Collision hull: Wrapped in parts, a shape split into a few convex parts round its dents for game physics, and every collision shape outlined in the viewport ([decision 0151](docs/decisions/0151-collision-hulls.md))
 - [x] Weld by distance: points sitting on top of each other melted into one, closing cracks (imports split along their seams, pieces placed edge to edge), as a live modifier or once with Weld by distance now ([decision 0152](docs/decisions/0152-weld-by-distance.md))
-- [ ] Array and mirror generators: in a line, a grid, or round a centre (radial: wheels, gears, pillars); symmetry is already a per-object mirror (Phase 9)
+- [x] Array and mirror generators: copies in a line, a grid, or round a centre (radial: wheels, gears, pillars), merged where they touch if asked; symmetry is the per-object mirror generator ([decision 0153](docs/decisions/0153-array.md))
 - [ ] Shell: give a surface thickness
 - [ ] LOD generator: lower-polygon versions for distance, exported with Godot's LOD names
 - [ ] Game bevel for mid-poly models: bevel, weighted normals, hard edges and seams in one step
@@ -313,6 +313,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-24 | Phase 10: Array, copies of a shape in a line, a grid or a ring round its pivot or another object, live, welded where they touch if asked, their UVs shared or side by side; symmetry stays the mirror generator |
 | 2026-10-24 | Phase 10: Weld by distance, points on top of each other melted into one to close an import's cracks or join pieces placed edge to edge, the UVs kept and joins marked as seams, as a live modifier or a one-off Weld by distance now |
 | 2026-10-24 | Phase 10: collision hulls, Wrapped in parts splitting a shape into convex parts round its dents (an arch you can walk through) for Godot, and collision shapes outlined in yellow in the viewport |
 | 2026-10-24 | Phase 10: Quadify, pairs of triangles joined back into quads, the squarest first, keeping seams, hard edges and materials, as a live modifier or a one-off Quadify now |

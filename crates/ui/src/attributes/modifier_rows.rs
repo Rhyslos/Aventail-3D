@@ -163,6 +163,14 @@ impl AttributesPanel {
                         doc.elements(id)
                             .map_or_else(Vec::new, |e| e.points().collect())
                     }),
+                    centres: match &modifier.kind {
+                        ModifierKind::Array(a)
+                            if a.options.layout == scene::ArrayLayout::Radial =>
+                        {
+                            ring_centres(doc, id)
+                        }
+                        _ => Vec::new(),
+                    },
                 };
                 kind_rows(ui, &mut edited.kind, units, &mut rows, &chosen);
                 label(
@@ -213,6 +221,9 @@ struct Chosen {
     polygons: Option<Vec<scene::FaceId>>,
     /// In the Points mode.
     points: Option<Vec<scene::VertexId>>,
+    /// The objects an array's ring could turn round (only listed for an
+    /// array's ring).
+    centres: Vec<(ObjectId, String)>,
 }
 
 /// The rows for a kind's own settings.
@@ -242,7 +253,23 @@ fn kind_rows(ui: &mut Ui, kind: &mut ModifierKind, units: Units, rows: &mut Rows
         }
         ModifierKind::Quadify(options) => super::quadify_rows::quadify_rows(ui, options, rows),
         ModifierKind::WeldByDistance(options) => super::weld_rows::weld_rows(ui, options, rows),
+        ModifierKind::Array(settings) => {
+            super::array_rows::array_rows(ui, settings, units, rows, &chosen.centres);
+        }
     }
+}
+
+/// The objects `id`'s array could turn its ring round, by name, in the
+/// Objects panel's order: any but itself and those made from it (which
+/// the scene refuses as a loop).
+fn ring_centres(doc: &Document, id: ObjectId) -> Vec<(ObjectId, String)> {
+    let scene = doc.scene();
+    scene
+        .walk()
+        .into_iter()
+        .filter(|(other, _)| *other != id && !scene.shape_uses(*other, id))
+        .filter_map(|(other, _)| Some((other, scene.object(other)?.name.clone())))
+        .collect()
 }
 
 /// The Lattice modifier's cage (decision 0144): its name, and a button
