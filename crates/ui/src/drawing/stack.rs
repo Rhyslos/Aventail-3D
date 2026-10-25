@@ -2,8 +2,8 @@
 //! modifiers are worked out for the viewport from its whole shape before
 //! them; light ones at once, heavy ones on another thread while the last
 //! result (or the shape without them) is shown, as heavy booleans are.
-//! The selected objects' modifiers are also worked out for an export on
-//! another thread when that differs, only so the Attributes panel can say
+//! The selected objects' modifiers are also worked out for an export
+//! when that differs and is light, only so the Attributes panel can say
 //! which can't do their work.
 
 use super::DrawingCache;
