@@ -91,7 +91,13 @@ Development file format **version 63**: version 62's, with each modifier's `id` 
 
 ### Timings
 
-Measured on a 100 000-polygon ball with Subdivide-free modifiers (Triangulate and a Live bevel) and three levels, one switching the bevel off (release build; see the pull request for the numbers): asking for the levels each frame costs nothing heavy (`lod_state` only plans), switching Preview between levels hands the work to another thread and the window keeps drawing at full speed while the last level stays shown.
+Measured (`ui` test `levels_stay_smooth_on_a_heavy_shape`, ignored, release build) on a 100 000-polygon ball with Triangulate and Weighted normals and the three standard levels, Level 1 without Triangulate, with the Levels panel open:
+
+- Making the levels the first time: **2.3 s of work, all on another thread**; the slowest frame meanwhile **5.1 ms** (381 frames).
+- Changing Level 1's share while it is previewed: made again in **0.94 s** in the background, the last level shown meanwhile; slowest frame **1.9 ms**.
+- Switching Preview between the full shape and the levels once they are made: **under 1.1 ms** a frame, nothing worked out again.
+
+Asking for the levels each frame only plans the work (`lod_state`), and the panel's drift note hashes the model once per change of its shape.
 
 ## Choices to check
 

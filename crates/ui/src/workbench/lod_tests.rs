@@ -469,9 +469,29 @@ fn levels_stay_smooth_on_a_heavy_shape() {
     })
     .unwrap();
     crate::layout::show_levels(&mut harness.state_mut().workbench.dock);
-    let started = Instant::now();
-    settle(&mut harness);
-    println!("levels made in the background: {:?}", started.elapsed());
+    let (slowest, frames, took) = frames_until_ready(&mut harness);
+    println!(
+        "levels made in the background: {took:?}, slowest frame meanwhile {slowest:?} over \
+         {frames} frames"
+    );
+    // A level's share changed while it is previewed: it is made again in
+    // the background, the last one shown meanwhile.
+    let mut changed = lods(&harness, id);
+    changed.preview = 1;
+    changed.levels[0].ratio = 0.3;
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .execute(scene::Command::SetLods {
+            ids: vec![id],
+            lods: changed,
+        })
+        .unwrap();
+    let (slowest, frames, took) = frames_until_ready(&mut harness);
+    println!(
+        "Level 1 made again: {took:?}, slowest frame meanwhile {slowest:?} over {frames} frames"
+    );
     for preview in [1, 2, 3, 0, 2] {
         let mut lods = lods(&harness, id);
         lods.preview = preview;
@@ -502,4 +522,24 @@ fn levels_stay_smooth_on_a_heavy_shape() {
             began.elapsed()
         );
     }
+}
+
+/// Runs frames until nothing is worked out elsewhere: the slowest frame,
+/// how many there were, and how long it took.
+fn frames_until_ready(harness: &mut H) -> (std::time::Duration, usize, std::time::Duration) {
+    use std::time::{Duration, Instant};
+    let began = Instant::now();
+    let mut slowest = Duration::ZERO;
+    let mut frames = 0;
+    loop {
+        let frame = Instant::now();
+        harness.run_steps(1);
+        slowest = slowest.max(frame.elapsed());
+        frames += 1;
+        if !harness.state().workbench.drawing.busy() || frames > 5_000 {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    (slowest, frames, began.elapsed())
 }
