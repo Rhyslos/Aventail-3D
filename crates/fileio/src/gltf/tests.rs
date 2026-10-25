@@ -723,12 +723,15 @@ fn files_for_outside_checkers() {
     // made by hand, a slice of it taken away, and never goes out as an
     // object of its own.
     let mut levelled = scene_of(&[PrimitiveKind::Sphere, PrimitiveKind::Torus]);
-    let ids: Vec<_> = levelled
-        .scene()
-        .walk()
-        .into_iter()
-        .map(|(id, _)| id)
-        .collect();
+    let named = |doc: &Document, name: &str| {
+        doc.scene()
+            .walk()
+            .into_iter()
+            .map(|(id, _)| id)
+            .find(|id| doc.scene().object(*id).unwrap().name == name)
+            .unwrap()
+    };
+    let ids = vec![named(&levelled, "Sphere"), named(&levelled, "Torus")];
     levelled
         .execute(Command::AddModifier {
             ids: vec![ids[0]],
