@@ -31,6 +31,7 @@ pub(crate) mod stepper;
 mod struts_rows;
 mod tool_rows;
 mod tool_section;
+mod triangulate_rows;
 mod weighted_rows;
 mod weld_rows;
 mod wrap_rows;

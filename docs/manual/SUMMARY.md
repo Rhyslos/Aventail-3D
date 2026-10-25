@@ -56,6 +56,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Quadify: pairs of triangles joined back into quads, live or once](quadify.md)
 - [Weld by distance: points on top of each other melted into one, live or once](weld-by-distance.md)
 - [Weighted normals: big flat faces shade flat and bevels shade round, for low-poly hard-surface models](weighted-normals.md)
+- [Triangles: Show triangles before export, and the Triangulate modifier to fix them in the shape](triangulate.md)
 - [Game bevel: round bevels and flat faces for a game model in one step, without baking](game-bevel.md)
 - [Curves: draw a line or start from a circle, arc or spiral, then sweep it into a pipe or rail, or lathe it into a vase](curves.md)
 - [Edit layers: keep sets of edits apart, switch them off, move, merge and delete them](edit-layers.md)

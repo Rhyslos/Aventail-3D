@@ -255,6 +255,10 @@ pub struct ViewOptions {
     /// Whether every object's collision shapes are outlined, not only the
     /// selected objects' (off as standard; decision 0151).
     pub show_collision: bool,
+    /// Whether every shown object's polygons are drawn cut into the
+    /// triangles the export makes, as faint lines (off as standard;
+    /// decision 0161).
+    pub show_triangles: bool,
     /// Whether seams are marked in the Points, Edges and Polygons modes
     /// (off as standard; always in the UV mode; decision 0096).
     pub show_seams: bool,
@@ -299,6 +303,7 @@ impl Default for ViewOptions {
             hide_hard_edges: false,
             show_normals: false,
             show_collision: false,
+            show_triangles: false,
             show_seams: false,
             symmetry: Symmetry::default(),
             dissolve_without_warning: false,

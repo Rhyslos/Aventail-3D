@@ -76,6 +76,7 @@ pub use mesh::shell::{ShellDirection, ShellOptions};
 pub use mesh::shrinkwrap::{ShrinkwrapOptions, WrapMode};
 pub use mesh::struts::StrutsOptions;
 pub use mesh::subdivide::SubdivideOptions;
+pub use mesh::triangulate::{TriangulateMethod, TriangulateOptions};
 pub use mesh::uvs::{BUDGET_RANGE, SeamPreference, UvLayout};
 pub use mesh::weighted_normals::{WeightBy, WeightedNormalsOptions};
 pub use mesh::weld_distance::WeldOptions;
@@ -162,6 +163,8 @@ mod struts_tests;
 mod subdivide_tests;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod triangulate_tests;
 #[cfg(test)]
 mod uv_pin_tests;
 #[cfg(test)]

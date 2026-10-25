@@ -27,6 +27,7 @@ pub(super) fn draw(pen: &mut Pen, icon: Icon) {
         Icon::Array => array(pen),
         Icon::Shell => shell(pen),
         Icon::Struts => struts(pen),
+        Icon::Triangulate => triangulate(pen),
         _ => {}
     }
 }
@@ -344,6 +345,23 @@ fn quadify(pen: &mut Pen) {
     pen.stroke(&[(4.0, 19.0), (20.0, 5.0)], false, Ink::Dashed);
     pen.stroke(&outline, true, Ink::Line);
     for (x, y) in outline {
+        pen.dot(x, y, 1.8);
+    }
+}
+
+/// Triangulate (decision 0161): a six-sided polygon cut into four
+/// triangles by solid lines, a triangle in its middle.
+fn triangulate(pen: &mut Pen) {
+    let corners: Vec<(f32, f32)> = (0..6)
+        .map(|k| {
+            let a = (k as f32 / 6.0 + 1.0 / 12.0) * std::f32::consts::TAU;
+            (12.0 + 9.5 * a.cos(), 12.0 + 9.5 * a.sin())
+        })
+        .collect();
+    pen.shape(&corners, Paint::Tone);
+    pen.stroke(&[corners[0], corners[2], corners[4]], true, Ink::Line);
+    pen.stroke(&corners, true, Ink::Line);
+    for (x, y) in corners {
         pen.dot(x, y, 1.8);
     }
 }

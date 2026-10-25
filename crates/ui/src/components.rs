@@ -19,6 +19,7 @@ use tools::{Camera, Element, ElementKind, MeshPick, PickScene};
 
 mod collision;
 mod deform_helper;
+mod triangles;
 
 /// The mouse over a view: the view's camera, its size and where the mouse
 /// is in it (both in screen points, from the view's top-left corner).
@@ -71,6 +72,9 @@ pub(crate) struct Guides {
     /// Every object's collision shapes, not only the selected objects'
     /// (decision 0151), in every mode.
     pub(crate) collision: bool,
+    /// Every shown shape's polygons cut into the export's triangles, as
+    /// faint lines (decision 0161), in every mode.
+    pub(crate) triangles: bool,
 }
 
 /// A line of the overlay, in the world, and how it is drawn.
@@ -119,6 +123,9 @@ pub(crate) struct ComponentTracker {
     curves: (CurveMarks, Option<(u64, Option<ElementKind>)>),
     /// The collision shapes' outlines (decision 0151).
     collision: collision::CollisionOutlines,
+    /// The lines inside polygons where the export cuts them into
+    /// triangles (decision 0161).
+    triangles: triangles::TriangleLines,
 }
 
 /// What is drawn of the curves over the view: lines and dots.
@@ -156,11 +163,13 @@ impl ComponentTracker {
         if self.built_for != Some(wanted) {
             let made_for = Some((drawing.version, kind, guides, self.collision.revision));
             if self.guides.1 != made_for {
-                // Collision outlines first, so every other guide draws
-                // over them.
-                let mut lines = self
-                    .collision
-                    .lines(drawing, document.scene(), guides.collision);
+                // The triangles' faint lines and collision outlines
+                // first, so every other guide draws over them.
+                let mut lines = self.triangles.lines(drawing, guides.triangles);
+                lines.extend(
+                    self.collision
+                        .lines(drawing, document.scene(), guides.collision),
+                );
                 // Bend, twist and taper helpers (decision 0158).
                 lines.extend(deform_helper::helper_lines(drawing, document.scene()));
                 lines.extend(guide_lines(drawing, kind, guides));

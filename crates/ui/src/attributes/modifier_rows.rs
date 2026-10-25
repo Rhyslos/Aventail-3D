@@ -265,6 +265,9 @@ fn kind_rows(ui: &mut Ui, kind: &mut ModifierKind, units: Units, rows: &mut Rows
         ModifierKind::BendTwistTaper(options) => {
             super::axis_deform_rows::axis_deform_rows(ui, options, units, rows);
         }
+        ModifierKind::Triangulate(options) => {
+            super::triangulate_rows::triangulate_rows(ui, options, rows);
+        }
     }
 }
 

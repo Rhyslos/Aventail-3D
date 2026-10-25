@@ -196,6 +196,8 @@ fn menus(ui: &mut Ui, panel: &mut ViewportPanel) {
             ));
         ui.checkbox(&mut panel.options.show_collision, tr(COLLISION_ENTRY))
             .on_hover_text(tr(COLLISION_HELP));
+        ui.checkbox(&mut panel.options.show_triangles, tr(TRIANGLES_ENTRY))
+            .on_hover_text(tr(TRIANGLES_HELP));
         ui.separator();
         ui.checkbox(&mut panel.options.flat_from_dice, tr(FLAT_FROM_DICE_ENTRY))
             .on_hover_text(tr(FLAT_FROM_DICE_HELP));
@@ -311,6 +313,15 @@ pub(crate) const COLLISION_ENTRY: &str = crate::text!("Show collision");
 pub(crate) const COLLISION_HELP: &str = crate::text!(
     "Outline every object's collision shapes (Wrapped, Wrapped in parts, A box), as a game \
      engine will make them. Off, only the selected objects' are outlined."
+);
+/// The Display menu's entry for the triangles the export makes
+/// (decision 0161).
+pub(crate) const TRIANGLES_ENTRY: &str = crate::text!("Show triangles");
+/// What it does.
+pub(crate) const TRIANGLES_HELP: &str = crate::text!(
+    "Draw faint lines where every shown shape's polygons are cut into triangles, exactly as \
+     the export cuts them for a game engine: see a long thin triangle or a bent polygon's \
+     fold before the game does."
 );
 /// The Display menu's entry for seams (decision 0096).
 pub(crate) const SEAMS_ENTRY: &str = crate::text!("Show seams");

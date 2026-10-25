@@ -3,8 +3,8 @@
 //! modifier drops them.
 //!
 //! Weighted normals sets custom normals on every corner of its result
-//! ([`mesh::custom_normals`]). Any modifier after it changes the shape,
-//! so the stack drops them there ([`crate::ModifierKind::carries_custom_normals`])
+//! ([`mesh::custom_normals`]). Any modifier after it but Triangulate
+//! (decision 0161) changes the shape, so the stack drops them there ([`crate::ModifierKind::carries_custom_normals`])
 //! and the shading is worked out again: it is best last, and the
 //! Attributes panel says so when it isn't.
 
@@ -27,7 +27,8 @@ impl Scene {
             .modifiers(self.modifier_owner(id))
             .iter()
             .rev()
-            .find(|m| m.applies(purpose))
+            // A Triangulate after it carries its normals through.
+            .find(|m| m.applies(purpose) && !m.kind.keeps_shading())
             .map(|m| &m.kind)
         {
             Some(ModifierKind::WeightedNormals(options)) => Some(options.clamped()),
@@ -38,12 +39,13 @@ impl Scene {
     /// The name of the first modifier after the one at `index` on object
     /// `id` that is on: the one that drops the custom normals the modifier
     /// at `index` (a Weighted normals) makes. `None` when it is the last
-    /// one on.
+    /// one on, or only a Triangulate, which carries them through, comes
+    /// after it.
     pub fn normals_dropped_by(&self, id: ObjectId, index: usize) -> Option<&'static str> {
         self.modifiers(id)
             .iter()
             .skip(index.saturating_add(1))
-            .find(|m| m.on)
+            .find(|m| m.on && !m.kind.keeps_shading())
             .map(|m| m.kind.name())
     }
 }

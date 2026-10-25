@@ -258,9 +258,9 @@ After a review of the whole app (2026-10-21, [decision 0121](docs/decisions/0121
 
 **Gate:** 2–3 people new to the app finish a fixed task list without help, see what is selected on any screen, and no text skips the English package. Then Phase 10, advanced modelling.
 
-### Phase 10 · Advanced hard-surface (after Phase 9, before the rest of Phase 8) — 22 of 23
+### Phase 10 · Advanced hard-surface (after Phase 9, before the rest of Phase 8) — 23 of 23
 
-`████████████░` 96%
+`█████████████` 100%
 
 Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/decisions/0125-modelling-before-the-rest-of-the-uvs.md)); Phase 8 continues once it's done. Friends join as testers around here, once there are enough tools to build something. On 24 October the project lead widened it with fourteen more modifiers ([decision 0136](docs/decisions/0136-more-modifiers.md)); each still asks about its controls before it's built. They're built biggest and hardest first, except where one builds on another ([decision 0137](docs/decisions/0137-biggest-first.md)).
 
@@ -289,7 +289,7 @@ Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/d
 - [x] Bend, twist and taper: one modifier with a Kind choice, bending a shape into an arc, twisting it or tapering it along one of its axes, from its pivot, between limits, with a helper drawn over the selected shape ([decision 0158](docs/decisions/0158-bend-twist-taper.md))
 - [x] Wireframe: **Struts**, every edge made a closed bar with a joint at each point, square or round, with hard corners and UVs of their own, for grates, fences and cages (named apart from the viewport's Wireframe look) ([decision 0159](docs/decisions/0159-struts.md))
 - [x] Modular kit helpers: a kit grid saved with the project, shapes sized to it (Size to kit grid) or made at its size (Kit-sized shapes), moves snapped to it, and pivot presets on the shape's box (bottom centre, a bottom corner, centre, top centre) ([decision 0160](docs/decisions/0160-kit-helpers.md))
-- [ ] Triangulate preview: the triangles the engine will get, shown before export
+- [x] Triangulate preview: **Show triangles** draws the export's own cut as faint lines before you export, and a **Triangulate** modifier fixes it in the shape, as the export cuts (Fixed) or evened out (Beauty), keeping Weighted normals ([decision 0161](docs/decisions/0161-triangulate.md))
 
 </details>
 
@@ -313,6 +313,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-24 | Phase 10: triangles, Display → Show triangles drawing where the export cuts polygons into triangles, and a Triangulate modifier fixing that cut in the shape (or an evened-out one), keeping UVs, materials and Weighted normals; the last of Phase 10's 23 milestones |
 | 2026-10-24 | Phase 10: modular kit helpers, a kit grid for the project (1, 2 or 4 m or any other), shapes sized to it in one click or made at its size, moves snapped to it, and the pivot put at a shape's bottom centre, bottom corner, centre or top centre |
 | 2026-10-24 | Phase 10: Struts, every edge of a shape made a bar with a joint at each point, live, for frames, cages and grilles |
 | 2026-10-24 | Phase 10: Bend, twist or taper, a shape bent into an arc, twisted round an axis or tapered towards one end, live, with a helper showing its axis, limits and centre |

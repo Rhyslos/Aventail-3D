@@ -783,3 +783,5 @@ mod normals_tests;
 mod struts_tests;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod triangulate_tests;

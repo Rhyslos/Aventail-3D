@@ -131,6 +131,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Quadify** — Joining pairs of neighbouring [triangles](#mesh-basics) back into quads by taking away the edge between them, the squarest and flattest pairs first: a triangulated shape (an import, a decimated or boolean-cut shape) becomes easy to loop cut and smooth again. It doesn't change the triangle count a game sees: a quad is two triangles to the engine. See [Quadify](quadify.md).
 
+**Triangulate** — A [modifier](#objects-and-scenes) that cuts every polygon (or every quad) into [triangles](#mesh-basics), fixing in the shape the cut the export would make (*Fixed*) or one with fewer long thin triangles (*Beauty*). The opposite of [Quadify](#objects-and-scenes). See [Triangles](triangulate.md).
+
 **Scatter** — Spreading copies of one or more shapes over a surface (on its points, on its polygons' centres, or at random), each standing on it by its [pivot](#objects-and-scenes), with random turns and sizes if you like: rocks on the ground, rivets on a plate. The shapes scattered stay objects of their own, and the copies follow them. See [Scatter](scatter.md).
 
 **Array** — Copies of a shape laid out live in a line, a grid or a ring (round its [pivot](#objects-and-scenes) or another object), all part of the same object: edit the shape and every copy follows. Copies that touch can be welded into one surface. See [Array](array.md).
@@ -253,7 +255,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Tangent space** — The coordinate system normal maps are stored in. The standard one is MikkTSpace, which Substance Painter and Godot both use; when the bake and the engine agree on it, normal maps look the same in both.
 
-**Triangulation** — Splitting polygons into triangles. It needs to happen the same way every time, so the model you bake in Substance Painter matches the one in Godot exactly. The app cuts each polygon along lines that stay inside it: flat round polygons from one corner like a fan, polygons with dents round the dent, and [bent polygons](#mesh-basics) along their fold. The same polygon always gets the same cut.
+**Triangulation** — Splitting polygons into triangles. It needs to happen the same way every time, so the model you bake in Substance Painter matches the one in Godot exactly. The app cuts each polygon along lines that stay inside it: flat round polygons from one corner like a fan, polygons with dents round the dent, and [bent polygons](#mesh-basics) along their fold. The same polygon always gets the same cut, and the viewport draws with it too: **Display → Show triangles** shows it as faint lines, and the **Triangulate** modifier can fix it in the shape. See [Triangles](triangulate.md).
 
 **glTF** — An open 3D file format ("the JPEG of 3D") that both Godot and Substance Painter read.
 

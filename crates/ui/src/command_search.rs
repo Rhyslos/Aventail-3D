@@ -63,6 +63,7 @@ pub(crate) enum MenuAction {
     ShowSeams,
     ShowNormals,
     ShowCollision,
+    ShowTriangles,
     HighContrast,
     EditPivot,
     ApplyMirror,
@@ -73,7 +74,7 @@ pub(crate) enum MenuAction {
 }
 
 impl MenuAction {
-    pub(crate) const ALL: [MenuAction; 35] = [
+    pub(crate) const ALL: [MenuAction; 36] = [
         Self::New,
         Self::Open,
         Self::Save,
@@ -102,6 +103,7 @@ impl MenuAction {
         Self::ShowSeams,
         Self::ShowNormals,
         Self::ShowCollision,
+        Self::ShowTriangles,
         Self::HighContrast,
         Self::EditPivot,
         Self::ApplyMirror,
@@ -233,6 +235,11 @@ impl MenuAction {
                 tr("Show collision"),
                 tr("Display"),
                 tr("Outline every object's collision shapes, not only the selected objects'"),
+            ),
+            Self::ShowTriangles => (
+                tr(crate::viewport::chrome::TRIANGLES_ENTRY),
+                tr("Display"),
+                tr("Draw faint lines where the export cuts polygons into triangles"),
             ),
             Self::HighContrast => (
                 tr("High contrast"),

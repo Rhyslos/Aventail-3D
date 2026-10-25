@@ -19,7 +19,7 @@ use scene::{
     DisplaceSettings, Document, LatticeOptions, LiveBevelOptions, MAX_MODIFIERS, ModifierFamily,
     ModifierKind, ModifierRefusal, ObjectId, ObjectKind, QuadifyOptions, RemeshOptions,
     ScatterSettings, ShellOptions, ShrinkwrapSettings, StrutsOptions, SubdivideOptions,
-    WeightedNormalsOptions, WeldOptions,
+    TriangulateOptions, WeightedNormalsOptions, WeldOptions,
 };
 
 mod pairs;
@@ -27,7 +27,7 @@ pub(crate) use pairs::pair_plan;
 
 /// One command per kind of modifier, in the order of
 /// [`ModifierKind::standard_kinds`].
-pub(crate) const COMMANDS: [CommandId; 16] = [
+pub(crate) const COMMANDS: [CommandId; 17] = [
     CommandId::Subdivide,
     CommandId::Array,
     CommandId::Shell,
@@ -44,6 +44,7 @@ pub(crate) const COMMANDS: [CommandId; 16] = [
     CommandId::Quadify,
     CommandId::WeldByDistance,
     CommandId::WeightedNormals,
+    CommandId::Triangulate,
 ];
 
 /// The modifier (with its standard settings) a command adds.
@@ -71,6 +72,7 @@ pub(crate) fn kind_of(command: CommandId) -> Option<ModifierKind> {
         CommandId::WeightedNormals => Some(ModifierKind::WeightedNormals(
             WeightedNormalsOptions::default(),
         )),
+        CommandId::Triangulate => Some(ModifierKind::Triangulate(TriangulateOptions::default())),
         _ => None,
     }
 }

@@ -195,6 +195,10 @@ impl Workbench {
                 let options = self.viewport.options_mut();
                 options.show_collision = !options.show_collision;
             }
+            MenuAction::ShowTriangles => {
+                let options = self.viewport.options_mut();
+                options.show_triangles = !options.show_triangles;
+            }
             MenuAction::HighContrast => {
                 let options = self.viewport.options_mut();
                 options.high_contrast = !options.high_contrast;

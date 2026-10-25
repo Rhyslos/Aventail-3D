@@ -179,7 +179,8 @@ impl Workbench {
             | CommandId::Shrinkwrap
             | CommandId::Displace
             | CommandId::BendTwistTaper
-            | CommandId::WeightedNormals => match crate::modifiers::command(&self.document, command) {
+            | CommandId::WeightedNormals
+            | CommandId::Triangulate => match crate::modifiers::command(&self.document, command) {
                 Err(why) => Ready::NotNow(why.into()),
                 Ok(_) => Ready::Yes,
             },
@@ -353,7 +354,8 @@ impl Workbench {
             | CommandId::Shrinkwrap
             | CommandId::Displace
             | CommandId::BendTwistTaper
-            | CommandId::WeightedNormals => {
+            | CommandId::WeightedNormals
+            | CommandId::Triangulate => {
                 self.run_modifier(command, requests);
             }
             CommandId::GameBevel => self.run_game_bevel(),
