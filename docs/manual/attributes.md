@@ -24,6 +24,8 @@ Whenever you want to change *what* an object is rather than where it is: make a 
 
 **Copy and paste settings.** To make several shapes match, select the one you like and use the panel's **Edit → Copy settings**, or right-click it in the Objects panel and choose **Copy settings**. Then select the others (any number, in the Objects panel) and use **Edit → Paste cube settings** (or cylinder, and so on), or right-click one of them and choose the same: every selected shape of the same kind gets the same settings, in one undo step. Shapes of another kind are left alone.
 
+**Curves.** A [curve](curves.md) has a **Curve** section: a ready-made curve's settings (Length, Radius, Angle, Climb, Turns) or a drawn curve's **Points** and **Closed**, and **Makes**: Line only, Sweep or Lathe, with a **Sweep** or **Lathe** section of its settings under it. A curve that is only a line has no Collision, Smoothing or Materials: it has no surface.
+
 **Collision.** Under Visible, shapes have a **Collision** row: what a game engine makes the player bump into (None, The shape itself, Wrapped, A box). Exports made for Godot carry it. See [Kit export and collision](kit-export.md).
 
 **Smoothing.** Under Collision, shapes have a **Smoothing** row: how the object's shading breaks into crisp edges. With **By angle** ticked (the standard), wherever its polygons meet more sharply than the angle beside it (**30°** as standard; drag or type it), worked out again after every change. Unticked, only the edges marked hard. Each object has its own. Instances follow their original, so they don't show the row. See [Hard and soft edges](hard-and-soft-edges.md#smoothed-by-angle).

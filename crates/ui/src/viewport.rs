@@ -158,6 +158,11 @@ pub struct ViewportPanel {
     /// without dragging) in a view, if it was since last asked: the
     /// quad menu (decision 0094).
     right_click: Option<egui::Pos2>,
+    /// Whether a right click finishes the tool in use (Draw curve,
+    /// decision 0138), set by the workbench each frame.
+    finish_clicks: bool,
+    /// Whether a right click finished it since last asked.
+    finish_click: bool,
 }
 
 impl Default for ViewportPanel {
@@ -187,6 +192,8 @@ impl Default for ViewportPanel {
             tool_path: None,
             tool_events: Vec::new(),
             right_click: None,
+            finish_clicks: false,
+            finish_click: false,
         }
     }
 }
@@ -351,6 +358,18 @@ impl ViewportPanel {
     /// takes drags too), from this frame on.
     pub(crate) fn set_click_tool(&mut self, active: bool) {
         self.click_tool = active;
+    }
+
+    /// Whether a right click (not a drag) finishes the tool in use rather
+    /// than opening the quad menu (Draw curve, decision 0138), from this
+    /// frame on.
+    pub(crate) fn set_finish_clicks(&mut self, active: bool) {
+        self.finish_clicks = active;
+    }
+
+    /// Whether a right click finished the tool since last asked.
+    pub(crate) fn take_finish_click(&mut self) -> bool {
+        std::mem::take(&mut self.finish_click)
     }
 
     /// Whether the tool in use has a count that Ctrl + wheel changes
@@ -522,6 +541,12 @@ impl ViewportPanel {
                 (self.drag_tool, self.click_tool),
                 &mut self.tool_events,
             );
+            if self.finish_clicks
+                && !self.views[slot].dragging_tool()
+                && response.clicked_by(egui::PointerButton::Secondary)
+            {
+                self.finish_click = true;
+            }
             let gizmo_busy = tool_busy
                 || self.views[slot].capture_gizmo(
                     ui,

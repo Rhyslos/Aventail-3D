@@ -89,6 +89,7 @@ Union, Subtract and Intersect have no keys of their own.
 - **Problem:** Union, Subtract and Intersect are greyed out with "the shape to keep already cuts one of the others". **Why:** that would be a loop: each shape waiting for the other to be worked out first. **Fix:** take the boolean away from one of them first.
 - **Problem:** the wrong shape was kept. **Why:** the shape selected **first** is kept. **Fix:** Ctrl + Z, then select the shape to keep on its own (a plain click), and Ctrl + click the cutters.
 - **Tip:** a cutter can cut several shapes at once: the same cylinder can drill through two plates. And a cutter can itself be cut by others.
+- **Tip:** a swept or lathed [curve](curves.md) is a closed solid when its caps are on (or its curve is closed), so it can cut or be cut: a ring swept along a circle cuts a groove round a cylinder. A curve that is only a line has no inside, so it can't.
 
 ## Related
 

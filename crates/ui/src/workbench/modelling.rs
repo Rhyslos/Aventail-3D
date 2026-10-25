@@ -338,7 +338,11 @@ impl Workbench {
         // Tools used on the shape work only while editing points, edges or
         // polygons; in the other modes, clicks select objects as usual.
         let editing = components::kind_for(self.mode).is_some();
-        let clicks = self.tool.clicks_on_shapes() && editing;
+        // Draw curve takes clicks in the Model mode (decision 0138), and a
+        // right click finishes its curve.
+        let drawing_curve = self.tool == Tool::DrawCurve;
+        let clicks = (self.tool.clicks_on_shapes() && editing) || drawing_curve;
+        self.viewport.set_finish_clicks(drawing_curve);
         // Bridge and Weld take a drag only when it starts on a highlighted
         // point or edge (or one is being dragged), so clicks and drags from
         // empty space still select.
@@ -364,6 +368,9 @@ impl Workbench {
         let steps = self.viewport.take_tool_steps();
         if steps != 0 {
             self.wheel_count(steps);
+        }
+        if self.tool == Tool::DrawCurve || self.curve_session.is_some() {
+            return self.carry_out_curve(drawing, keys);
         }
         if self.edits_uvs_on_model() || self.uv_model_drag.is_some() {
             return self.carry_out_uv_model_drag(drawing, keys.command);

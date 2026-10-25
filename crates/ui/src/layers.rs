@@ -64,9 +64,10 @@ pub(crate) fn layer_targets(doc: &Document) -> Vec<ObjectId> {
     doc.selection()
         .into_iter()
         .filter(|id| {
-            doc.scene()
-                .object(*id)
-                .is_some_and(|o| o.kind.has_shape() && !matches!(o.kind, ObjectKind::Instance(_)))
+            doc.scene().object(*id).is_some_and(|o| {
+                o.kind.has_shape()
+                    && !matches!(o.kind, ObjectKind::Instance(_) | ObjectKind::Curve(_))
+            })
         })
         .collect()
 }
@@ -140,6 +141,11 @@ fn shown_object(doc: &Document) -> Result<ObjectId, String> {
         ObjectKind::Instance(_) => Err(tr(
             "An instance shows its original's shape and edits: select the original to see its \
              layers.",
+        )
+        .into()),
+        ObjectKind::Curve(_) => Err(tr(
+            "A curve's shape comes from its points and settings, so it has no edit layers: Bake \
+             into shape (Ctrl + E) to edit it as a mesh.",
         )
         .into()),
         _ => Ok(*id),

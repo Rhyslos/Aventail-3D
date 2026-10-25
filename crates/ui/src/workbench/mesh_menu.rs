@@ -3,6 +3,7 @@
 
 use super::Workbench;
 use super::bars::commands_entries;
+use crate::commands::CommandId;
 use crate::objects::{self, DocRequest};
 use crate::text::tr;
 use egui::Ui;
@@ -21,12 +22,39 @@ pub(crate) const MESH_OBJECT_MENU: &str = crate::text!("Shape and object");
 
 pub(crate) const MESH_BOOLEANS_MENU: &str = crate::text!("Booleans");
 
+pub(crate) const MESH_CURVE_MENU: &str = crate::text!("Curve");
+
 impl Workbench {
+    /// Menu entries for `commands`, greyed out with the reason when they
+    /// can't be used now.
+    fn ready_entries(
+        &mut self,
+        ui: &mut Ui,
+        commands: &[CommandId],
+        requests: &mut Vec<DocRequest>,
+    ) {
+        for command in commands {
+            let info = command.info();
+            let why = match self.readiness(*command) {
+                crate::tool_menu::Ready::NotNow(why) => Some(why),
+                _ => None,
+            };
+            let response = ui.add_enabled(why.is_none(), egui::Button::new(info.name));
+            let response = match &why {
+                Some(why) => response.on_disabled_hover_text(format!("{}\n{why}.", info.help)),
+                None => response.on_hover_text(info.help),
+            };
+            if response.clicked() {
+                self.run_command(*command, ui.ctx(), requests);
+                ui.close();
+            }
+        }
+    }
+
     /// The Mesh menu (decision 0126): the modelling tools in groups, each
     /// a submenu one level down, so the menu is short and every command is
     /// found where people look for it.
     pub(super) fn mesh_menu(&mut self, ui: &mut Ui, requests: &mut Vec<DocRequest>) {
-        use crate::commands::CommandId;
         let groups: [(&str, &str, &[CommandId]); 3] = [
             (
                 tr(MESH_BUILD_MENU),
@@ -66,23 +94,30 @@ impl Workbench {
             .response
             .on_hover_text(help);
         }
+        crate::dialog::menu(ui, tr(MESH_CURVE_MENU), |ui| {
+            use CommandId as C;
+            self.ready_entries(
+                ui,
+                &[C::CurveSplit, C::CurveReverse, C::CurveOpenClose],
+                requests,
+            );
+            ui.separator();
+            ui.label(
+                egui::RichText::new(tr("Handle type"))
+                    .small()
+                    .color(crate::theme::TEXT_WEAK),
+            );
+            self.ready_entries(ui, C::CurveHandles.members(), requests);
+            ui.separator();
+            self.ready_entries(ui, &[C::CurveRound, C::CurveEven], requests);
+        })
+        .response
+        .on_hover_text(tr(
+            "Edit curves: split, reverse, open or close, handle types, round corners, even \
+             spacing. M and A on two end points join them.",
+        ));
         crate::dialog::menu(ui, tr(MESH_BOOLEANS_MENU), |ui| {
-            for command in crate::booleans::COMMANDS {
-                let info = command.info();
-                let why = match self.readiness(command) {
-                    crate::tool_menu::Ready::NotNow(why) => Some(why),
-                    _ => None,
-                };
-                let response = ui.add_enabled(why.is_none(), egui::Button::new(info.name));
-                let response = match &why {
-                    Some(why) => response.on_disabled_hover_text(format!("{}\n{why}.", info.help)),
-                    None => response.on_hover_text(info.help),
-                };
-                if response.clicked() {
-                    self.run_command(command, ui.ctx(), requests);
-                    ui.close();
-                }
-            }
+            self.ready_entries(ui, &crate::booleans::COMMANDS, requests);
         })
         .response
         .on_hover_text(tr(

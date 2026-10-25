@@ -28,7 +28,9 @@ Then move, rotate or scale it: see [Move, rotate and scale](transforming.md).
 
 A click always takes the thing you can see under the mouse, the one that lights up.
 
-The app remembers the order you select objects in, whatever their order in the Objects panel: for a [boolean](booleans.md), the object you selected first is the one kept. A [cutter](booleans.md#selecting-a-cutter), drawn as an outline, is picked by a click only where no other shape is under the mouse.
+The app remembers the order you select objects in, whatever their order in the Objects panel: for a [boolean](booleans.md), the object you selected first is the one kept. A [cutter](booleans.md#selecting-a-cutter), drawn as an outline, is picked by a click only where no other shape is under the mouse. A [curve](curves.md) that is only a line has no surface to click: click on (or next to) its line, or drag a box across it.
+
+In the Points mode, a selected curve's points and the ends of its handles are selected like a mesh's points; a **double-click** on one switches the point between sharp and smooth instead of selecting a loop ([Curves](curves.md#editing-a-curves-points)).
 
 ### Drag: box, lasso or brush
 

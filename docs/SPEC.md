@@ -1,6 +1,6 @@
 # What exists now
 
-A short list of what the app does today, area by area: one line per thing, with where to find it. It covers the `feature/more-shapes` branch as of 2026-10-23 (Phase 9, the rework). How each thing works is in the [user manual](manual/SUMMARY.md); why it is so is in the [decision records](decisions/README.md); what comes next is in the [progress tracker](../README.md#progress-tracker) and [DESIGN.md](../DESIGN.md) §10.
+A short list of what the app does today, area by area: one line per thing, with where to find it. It covers the `feature/curves` branch as of 2026-10-24 (Phase 10). How each thing works is in the [user manual](manual/SUMMARY.md); why it is so is in the [decision records](decisions/README.md); what comes next is in the [progress tracker](../README.md#progress-tracker) and [DESIGN.md](../DESIGN.md) §10.
 
 Keep this page current: a pull request that adds or changes something a user would notice updates its line here (see [CONTRIBUTING.md](../CONTRIBUTING.md#documentation-rule)). Nothing goes here until it is built.
 
@@ -68,8 +68,8 @@ Keys are written as on Windows and Linux; on a Mac, Ctrl is Cmd. Menu paths use 
 Every shape stands on the ground with its pivot at the middle of its base, keeps its settings in the Attributes panel, and comes with UVs, seams and hard edges where it should ([primitives](manual/primitives.md)).
 
 - **B list, the seven basic shapes:** Cube, Plane, Cylinder, Sphere, Disc, Tube, Cone. B opens it and moves down, Shift + B up, Enter or Space creates, Esc closes.
-- **Alt + B list, the eleven others:** Icosphere, Torus, Capsule, Dome, Pipe elbow, Pie sector, Gear, Hex grid, Hex sphere, Stairs, Arch. Once open, B moves down this list too; Shift + Alt + B opens it at the bottom.
-- **Create menu:** all 18, with a line between the two groups, and **Group**.
+- **Alt + B list, the eleven others:** Icosphere, Torus, Capsule, Dome, Pipe elbow, Pie sector, Gear, Hex grid, Hex sphere, Stairs, Arch, then the curves: **Draw curve**, **Line**, **Circle**, **Arc**, **Spiral**. Once open, B moves down this list too; Shift + Alt + B opens it at the bottom.
+- **Create menu:** all 18, with a line between the two groups, the curves after another line, and **Group**.
 - **Palette buttons:** cube, cylinder, plane, sphere.
 - **Bake into shape** (Ctrl + E): turns a shape into a plain mesh without settings.
 
@@ -91,6 +91,8 @@ In the Points, Edges and Polygons modes. Every tool is also in the tool menu (**
 - **Split off** (Mesh → Shape and object) and **Join objects** (E in Model mode, or Mesh) ([split and join](manual/split-and-join.md)).
 - **Copies and instances:** Ctrl + C, Ctrl + V paste copies, Alt + V paste instances; Duplicate and Duplicate as instance in E ([copies and instances](manual/copies-and-instances.md)).
 - **Booleans** (Mesh → Booleans, the modifiers palette, or command search; no keys): select the shape to keep, Ctrl + click the cutters, then **Union**, **Subtract** or **Intersect**. Cutters stay objects, drawn as outlines; move or edit one and the cut follows; hidden ones still cut; Attributes → **Booleans** changes the kind or takes a cutter out; **Bake into shape** makes it permanent and hides the cutters. Closed solids only: anything else is left uncut with the reason shown ([booleans](manual/booleans.md)).
+- **Curves** (Create, Alt + B, command search; no keys): **Draw curve** (click a sharp point, press and drag a smooth one; Enter or right click finishes, Esc cancels, Backspace takes back, the first point closes; on the ground or a flat view's plane, snapping when on) or ready-made Line, Circle, Arc, Spiral. Attributes → **Makes**: Line only, **Sweep** (circle, square, rectangle or another curve as the cross-section; width, height, sides, segments, adaptive, twist, caps) or **Lathe** (axis, spin angle, segments round, caps), live. Points mode: points and handles selected and moved like a mesh's; double-click switches sharp and smooth; Delete takes points away; Closed in Attributes. Bake into shape makes a mesh; a bare line exports as nothing ([curves](manual/curves.md)).
+- **Spline editing** (Points mode, curves selected): double-click the line adds a point keeping the shape; Delete keeps the shape near; **M** / **A** on two end points weld them at the middle / join them with a straight stretch (one curve: closes it); **Join objects** joins curves end to end; Draw curve carries a selected curve on from either end (click the end first). **E** shows the curve ring; **Mesh → Curve** and command search hold **Split curve**, **Reverse curve**, **Open or close curve**, handle types (**Sharp**, **Smooth**, **Broken**, **Auto**), **Round corners** (radius) and **Even spacing** (count); Attributes → **Curve points** has the handle type, radius and count ([curves](manual/curves.md)).
 - **Heavy shapes:** a 3-million-polygon object stays usable; **Help → Developer → Add a heavy test shape** to try it ([heavy shapes](manual/heavy-shapes.md)).
 
 ## The edit history and edit layers
@@ -144,7 +146,7 @@ The UV tools are in the **UV** menu (main menu bar, and the **UV** button on the
 - **Projects** (`.avtl`): File → New (Ctrl + N), Open… (Ctrl + O), Open recent, Save (Ctrl + S), Save As… (Ctrl + Shift + S), Quit (no key) ([saving and opening](manual/saving-and-opening.md)).
 - **Safe saving:** written beside the old file, checked to open again, then swapped in; the previous save kept as `.avtl.bak`.
 - **"Save changes?"** before work is lost: Enter saves, Alt + N doesn't save, Esc cancels.
-- **File format 40**, the development format with booleans, until the alpha; older projects still open ([decisions 0126](decisions/0126-rework-and-first-use.md) and [0135](decisions/0135-live-booleans.md)).
+- **File format 41**, the development format with booleans and curves (and each curve point's handle type), until the alpha; older projects still open ([decisions 0126](decisions/0126-rework-and-first-use.md), [0135](decisions/0135-live-booleans.md), [0138](decisions/0138-curves-sweep-lathe.md) and [0139](decisions/0139-spline-editing.md)).
 - **Damaged or hostile files** are refused with a message, never a crash.
 - **Backup copies:** every 5 minutes when something changed, newest 5 kept, offered back after a crash (Settings → Autosave) ([backup copies](manual/autosave.md)).
 - **Emergency copy:** if the app itself crashes, it saves the work as it was a moment before, offered first at the next start.
@@ -157,7 +159,7 @@ The UV tools are in the **UV** menu (main menu bar, and the **UV** button on the
 - **Export again** (File) repeats the last export.
 - **Export into a game project:** a folder in a Godot, Unity, Unreal Engine or Solis project, exported into on every save and from **File → Export to game project**.
 - **Export kit…** (File): each selected piece its own file, pivot at the origin; **Collision** (Attributes) for Godot ([kit export](manual/kit-export.md)).
-- **What goes out:** shapes as they're shown, cut by their booleans, with cutters left out; each object at its pivot (glTF), its own smoothing, the viewport's triangles, MikkTSpace tangents for shapes with UVs, materials by name.
+- **What goes out:** shapes as they're shown, cut by their booleans, with cutters left out; curves as their sweep or lathe (a bare line not at all); each object at its pivot (glTF), its own smoothing, the viewport's triangles, MikkTSpace tangents for shapes with UVs, materials by name.
 - **Check for baking…** (UV menu, command search, or the Substance Painter preset's button): problems in the model and its UVs, with Select and one-click fixes ([check for baking](manual/bake-check.md)).
 - **Import…** (File): OBJ files, as plain meshes.
 
@@ -185,7 +187,7 @@ The UV tools are in the **UV** menu (main menu bar, and the **UV** button on the
 The big things planned and not built. The order is the rework (Phase 9), then advanced modelling (Phase 10), then the rest of the UVs and baking (Phase 8), then texture painting ([decision 0125](decisions/0125-modelling-before-the-rest-of-the-uvs.md)).
 
 - **The rest of Phase 9:** the key audit's changes (written, waiting for the project lead's ticks); English as the one language package; the big interface files split; the gate checks of Phases 4 to 7; the newcomer test.
-- **Phase 10, advanced hard-surface:** weighted normals, a better bevel, array and mirror generators, shell, curves and splines (sweep, lathe), a smoothing (subdivision) modifier with creases, a game bevel, modular kit helpers.
+- **Phase 10, advanced hard-surface:** weighted normals, a better bevel, array and mirror generators, shell, a smoothing (subdivision) modifier with creases, a game bevel, modular kit helpers.
 - **The rest of Phase 8, UVs and baking:** straighten by edge flow, a seam slider and brush, projections, stitch and cut, UV snapping and exact placement, UV brushes, more selection tools, packing groups and UDIM tiles, several UV sets, lightmap UVs, real textures behind the UVs and UV layout export, explained auto-unwrap, unwrap recipes, player-view UVs, UV intents, paint-aware detail, and the in-app baker (normal, AO, curvature and more, high to low, cages).
 - **Later phases:** texture painting (11), a material node editor (12), alpha release (13), polish (14), scripting in LustScript and Lua (15), rigging (16), animation (17), effects (18).
 - **Wanted, not scheduled:** glTF import, custom hotkeys, other languages, interface size scaling, a first-start welcome with sample projects, FBX export, an installer and file association.

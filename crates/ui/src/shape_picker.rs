@@ -5,17 +5,95 @@
 //! (`Shift + Alt + B` to move up), so no shape is in both (decision 0130);
 //! once a list is open, `B` and `Shift + B` move through that list.
 //! `Esc` or a click elsewhere closes a list; clicking a shape creates it.
+//!
+//! The curves (decision 0138) close the More list: Draw curve and the
+//! ready-made Line, Circle, Arc and Spiral. They are there, not in the
+//! basic list, because `B` is for the everyday solids and stays short;
+//! curves are a different kind of thing (lines, which become solids
+//! through a sweep or a lathe), used less often.
 
 use crate::icons;
+use crate::icons::Icon;
 use crate::objects::shape_icon;
 use crate::text::tr;
 use crate::theme::{self, tint};
 use egui::{Context, Key, Modifiers, Pos2, Sense, Ui, WidgetInfo, WidgetType, vec2};
-use scene::PrimitiveKind;
+use scene::{PrimitiveKind, ReadyCurveKind};
 
 /// The key that opens the list and moves down it; with Alt, the list of
 /// more shapes.
 pub const SHAPE_LIST_KEY: Key = Key::B;
+
+/// Something the Create menu, the shape lists and command search make.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) enum Shape {
+    /// A ready-made solid.
+    Primitive(PrimitiveKind),
+    /// Draw curve: the tool that places a curve's points (decision 0138).
+    DrawCurve,
+    /// A ready-made curve.
+    Curve(ReadyCurveKind),
+}
+
+impl Shape {
+    /// The curves, in the order the menus list them.
+    pub(crate) const CURVES: [Self; 5] = [
+        Self::DrawCurve,
+        Self::Curve(ReadyCurveKind::Line),
+        Self::Curve(ReadyCurveKind::Circle),
+        Self::Curve(ReadyCurveKind::Arc),
+        Self::Curve(ReadyCurveKind::Spiral),
+    ];
+
+    /// Every shape, in the Create menu's order.
+    pub(crate) fn all() -> Vec<Self> {
+        PrimitiveKind::ALL
+            .into_iter()
+            .map(Self::Primitive)
+            .chain(Self::CURVES)
+            .collect()
+    }
+
+    /// Its name.
+    pub(crate) fn name(self) -> &'static str {
+        match self {
+            Self::Primitive(kind) => kind.name(),
+            Self::DrawCurve => tr("Draw curve"),
+            Self::Curve(kind) => kind.name(),
+        }
+    }
+
+    /// What it is, in a sentence.
+    pub(crate) fn description(self) -> &'static str {
+        match self {
+            Self::Primitive(kind) => kind.description(),
+            Self::DrawCurve => tr(
+                "Draw a curve point by point: click for a sharp corner, press and drag for a \
+                 smooth bend; Enter or a right click finishes",
+            ),
+            Self::Curve(kind) => kind.description(),
+        }
+    }
+
+    /// Its icon.
+    pub(crate) fn icon(self) -> Icon {
+        match self {
+            Self::Primitive(kind) => shape_icon(kind),
+            Self::DrawCurve => Icon::DrawCurve,
+            Self::Curve(kind) => curve_icon(kind),
+        }
+    }
+}
+
+/// A ready-made curve's icon.
+pub(crate) fn curve_icon(kind: ReadyCurveKind) -> Icon {
+    match kind {
+        ReadyCurveKind::Line => Icon::CurveLine,
+        ReadyCurveKind::Circle => Icon::CurveCircle,
+        ReadyCurveKind::Arc => Icon::CurveArc,
+        ReadyCurveKind::Spiral => Icon::CurveSpiral,
+    }
+}
 
 /// Which of the two shape lists.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -27,11 +105,15 @@ pub(crate) enum ShapeList {
 }
 
 impl ShapeList {
-    /// The shapes in this list, in the Create menu's order.
-    pub(crate) fn kinds(self) -> Vec<PrimitiveKind> {
-        PrimitiveKind::ALL
+    /// The shapes in this list, in the Create menu's order: the basic
+    /// solids, or the others with the curves after them.
+    pub(crate) fn kinds(self) -> Vec<Shape> {
+        Shape::all()
             .into_iter()
-            .filter(|k| k.in_first_files() == (self == Self::Basic))
+            .filter(|shape| match shape {
+                Shape::Primitive(k) => k.in_first_files() == (self == Self::Basic),
+                Shape::DrawCurve | Shape::Curve(_) => self == Self::More,
+            })
             .collect()
     }
 
@@ -97,7 +179,7 @@ impl ShapePicker {
 
     /// The highlighted shape, while the list is open.
     #[cfg(test)]
-    pub(crate) fn highlighted(&self) -> Option<PrimitiveKind> {
+    pub(crate) fn highlighted(&self) -> Option<Shape> {
         self.open.map(|o| o.list.kinds()[o.highlight])
     }
 
@@ -109,7 +191,7 @@ impl ShapePicker {
 
     /// Handles the list's keys (not while typing). Returns the shape to
     /// create, if `Enter` or `Space` chose one.
-    pub(crate) fn keys(&mut self, ui: &Ui, typing: bool) -> Option<PrimitiveKind> {
+    pub(crate) fn keys(&mut self, ui: &Ui, typing: bool) -> Option<Shape> {
         if typing {
             return None;
         }
@@ -171,7 +253,7 @@ impl ShapePicker {
     }
 
     /// Draws the list when open. Returns the shape clicked, if any.
-    pub(crate) fn show(&mut self, ctx: &Context) -> Option<PrimitiveKind> {
+    pub(crate) fn show(&mut self, ctx: &Context) -> Option<Shape> {
         let open = self.open?;
         let mut chosen = None;
         let mut hovered = None;
@@ -206,7 +288,7 @@ impl ShapePicker {
                             rect.left_center() + vec2(14.0, 0.0),
                             vec2(16.0, 16.0),
                         );
-                        icons::paint(ui.painter(), icon, shape_icon(kind), tint::SHAPE);
+                        icons::paint(ui.painter(), icon, kind.icon(), tint::SHAPE);
                         ui.painter().text(
                             rect.left_center() + vec2(30.0, 0.0),
                             egui::Align2::LEFT_CENTER,

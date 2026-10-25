@@ -27,6 +27,8 @@ To copy polygons out instead of moving them, duplicate the object first (**Ctrl 
 
 They become one plain mesh in the first object you selected, each part staying where it was. The others are deleted (anything inside them takes their place in the Objects panel). Hard edges come along.
 
+**Curves** join differently: with only open [curves](curves.md#joining-curves-and-closing-them) selected, they join end to end into one curve (the first you selected, keeping its sweep or lathe), each at its end nearest the curve so far.
+
 ## Settings
 
 None.

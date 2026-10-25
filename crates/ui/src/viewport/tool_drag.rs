@@ -37,13 +37,22 @@ pub(crate) enum ToolDragEvent {
     Cancel,
 }
 
-/// A line a tool shows over the views (Slit's), in the world.
+/// A line a tool shows over the views (Slit's, Draw curve's), in the
+/// world.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub(crate) struct ToolPath {
     /// The line's points, in order.
     pub(crate) points: Vec<glam::Vec3>,
     /// Where the next point would go, if the mouse is over a view.
     pub(crate) cursor: Option<glam::Vec3>,
+    /// Where to draw dots, when not at every point of the line (a curve's
+    /// points, its line followed finely between them).
+    pub(crate) dots: Option<Vec<glam::Vec3>>,
+    /// Handles to draw: thin lines from a point to a handle's end.
+    pub(crate) handles: Vec<[glam::Vec3; 2]>,
+    /// The stretch the next point would add, followed finely, drawn faint
+    /// in the place of a straight line to the cursor.
+    pub(crate) preview: Vec<glam::Vec3>,
 }
 
 /// A modelling tool's drag in progress in a view.
@@ -170,16 +179,33 @@ impl View {
                 painter.line_segment([*a, *b], line);
             }
         }
-        for p in shown.iter().flatten() {
+        let faint = egui::Stroke::new(1.0, accent.light.gamma_multiply(0.6));
+        for [a, b] in &path.handles {
+            if let (Some(a), Some(b)) = (screen(*a), screen(*b)) {
+                painter.line_segment([a, b], faint);
+                painter.circle_filled(b, 2.5, accent.light);
+            }
+        }
+        let dots: Vec<Pos2> = match &path.dots {
+            Some(dots) => dots.iter().filter_map(|p| screen(*p)).collect(),
+            None => shown.iter().flatten().copied().collect(),
+        };
+        for p in dots {
             painter.circle(
-                *p,
+                p,
                 4.0,
                 accent.fill,
                 egui::Stroke::new(1.5, theme::TEXT_STRONG),
             );
         }
+        let preview: Vec<Pos2> = path.preview.iter().filter_map(|p| screen(*p)).collect();
+        if preview.len() > 1 {
+            painter.add(egui::Shape::line(preview, faint));
+        }
         if let Some(at) = path.cursor.and_then(screen) {
-            if let Some(Some(last)) = shown.last() {
+            if path.preview.is_empty()
+                && let Some(Some(last)) = shown.last()
+            {
                 painter.line_segment(
                     [*last, at],
                     egui::Stroke::new(1.0, accent.light.gamma_multiply(0.6)),

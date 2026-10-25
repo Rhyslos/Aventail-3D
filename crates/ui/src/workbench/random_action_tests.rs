@@ -178,7 +178,7 @@ const PALETTE: [&str; 11] = [
 /// Whether it ended with Esc is the second value.
 fn act(harness: &mut H, rng: &mut Lcg) -> (String, bool) {
     let held = [Modifiers::NONE, Modifiers::COMMAND, Modifiers::SHIFT];
-    match rng.next(24) {
+    match rng.next(25) {
         0 => {
             let k = rng.pick(&[Key::Num1, Key::Num2, Key::Num3, Key::Tab]);
             key(harness, Modifiers::NONE, k);
@@ -320,6 +320,47 @@ fn act(harness: &mut H, rng: &mut Lcg) -> (String, bool) {
                 format!("key {k:?}, drag from a shape at {from:?} by {by:?}"),
                 false,
             )
+        }
+        23 => {
+            // Draw curve (decision 0138): a few clicks and drags, finished
+            // one of the ways it can be, then maybe a sweep or a lathe.
+            harness.state_mut().workbench.start_drawing_curve();
+            settle(harness);
+            let mut log = String::from("draw curve:");
+            for _ in 0..rng.next(5) {
+                let at = spot(harness, rng);
+                if rng.next(3) == 0 {
+                    let by = egui::vec2(rng.between(-60.0, 60.0), rng.between(-60.0, 60.0));
+                    drag(harness, at, by, Modifiers::NONE);
+                    log += &format!(" drag {at:?} by {by:?}");
+                } else {
+                    click(harness, at, Modifiers::NONE);
+                    log += &format!(" click {at:?}");
+                }
+            }
+            let end = rng.pick(&[Key::Enter, Key::Escape, Key::Backspace, Key::W]);
+            key(harness, Modifiers::NONE, end);
+            log += &format!(", {end:?}");
+            let made: Vec<scene::ObjectId> = harness.state().workbench.document().selection();
+            let solid = match rng.next(3) {
+                0 => scene::CurveSolid::Sweep(scene::Sweep {
+                    twist: rng.between(-400.0, 400.0),
+                    ..scene::Sweep::default()
+                }),
+                1 => scene::CurveSolid::Lathe(scene::LatheShape {
+                    angle: rng.between(0.0, 400.0),
+                    ..scene::LatheShape::default()
+                }),
+                _ => scene::CurveSolid::Line,
+            };
+            let _ = harness
+                .state_mut()
+                .workbench
+                .document_mut()
+                .execute(scene::Command::SetCurveSolid { ids: made, solid });
+            settle(harness);
+            key(harness, Modifiers::NONE, Key::Escape);
+            (format!("{log}, then {}", solid.name()), true)
         }
         _ => {
             key(harness, Modifiers::NONE, Key::Escape);

@@ -36,9 +36,28 @@ impl Workbench {
         if let Some(when) = command.info().arrives {
             return Ready::Later(when);
         }
+        if super::curve_commands::is_curve_command(command) {
+            return self.curve_readiness(command);
+        }
         let selection = self.document.selection();
         let nothing = || Ready::NotNow(tr("Nothing is selected").into());
         match command {
+            CommandId::Join if self.selected_curves().len() >= 2 && self.only_curves_selected() => {
+                let closed = self.selected_curves().iter().any(|id| {
+                    self.document
+                        .scene()
+                        .object(*id)
+                        .and_then(|o| o.kind.curve())
+                        .is_some_and(|c| c.shape.curve().closed())
+                });
+                if closed {
+                    Ready::NotNow(
+                        tr("A closed curve has no ends to join: open it or split it first").into(),
+                    )
+                } else {
+                    Ready::Yes
+                }
+            }
             CommandId::MakeEditable if selection.is_empty() => nothing(),
             CommandId::MakeEditable if !objects::can_make_editable(&self.document, &selection) => {
                 Ready::NotNow(
@@ -188,6 +207,21 @@ impl Workbench {
             CommandId::Group => requests.push(DocRequest::Run(Command::Group(selection))),
             CommandId::Ungroup => requests.push(DocRequest::Run(Command::Ungroup(selection))),
             CommandId::Delete => requests.push(DocRequest::Run(Command::Delete(selection))),
+            CommandId::CurveSplit
+            | CommandId::CurveReverse
+            | CommandId::CurveOpenClose
+            | CommandId::CurveHandles
+            | CommandId::CurveSharp
+            | CommandId::CurveSmooth
+            | CommandId::CurveBroken
+            | CommandId::CurveAuto
+            | CommandId::CurveRound
+            | CommandId::CurveEven => self.run_curve_command(command),
+            CommandId::Join if self.only_curves_selected() && self.selected_curves().len() >= 2 => {
+                // Curves join end to end into the one selected first
+                // (decision 0139).
+                requests.push(DocRequest::Run(Command::Join(self.selected_curves())));
+            }
             CommandId::Join => {
                 let shapes = selection
                     .iter()
@@ -345,7 +379,13 @@ impl Workbench {
 
     /// The tool menu's entries in the current mode.
     pub(crate) fn tool_menu_entries(&self) -> Vec<Entry> {
-        let ring = menu_for(self.menu_mode());
+        // Only curves selected in the Points mode: the curve ring
+        // (decision 0139).
+        let ring = if !self.uv_menu && self.mode == Mode::Points && self.only_curves_selected() {
+            crate::commands::curve_menu()
+        } else {
+            menu_for(self.menu_mode())
+        };
         let slots = match self.tool_menu.group() {
             Some(group) => group_menu(group, &ring),
             None => ring,

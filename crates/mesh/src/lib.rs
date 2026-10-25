@@ -12,6 +12,7 @@ pub mod bounds;
 pub mod builder;
 pub mod check;
 pub mod cleanup;
+pub mod curve;
 pub mod edit;
 pub mod extrude;
 pub mod groove;
