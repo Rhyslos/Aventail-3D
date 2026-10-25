@@ -10,6 +10,7 @@
 //! and do it again exactly, with the same object ids.
 
 pub mod boolean;
+pub mod collision;
 pub mod command;
 pub mod curve;
 pub mod document;
@@ -32,11 +33,15 @@ pub use boolean::{
     Boolean, BooleanKind, BooleanProblem, BooleanRefusal, CUT_IN_BACKGROUND_FROM, CutDone, CutJob,
     CutState, MAX_CUTTERS,
 };
+pub use collision::{
+    COLLISION_IN_BACKGROUND_FROM, CollisionDone, CollisionJob, CollisionShapes, CollisionState,
+};
 pub use command::Command;
 pub use curve::{CurveObject, CurveShape, CurveSolid, Sweep, SweepProfile};
 pub use document::Document;
 pub use history::HistoryLimit;
 pub use lattice::LatticeOptions;
+pub use mesh::convex_parts::ConvexPartsOptions;
 pub use mesh::curve::bend::{BendAxis, BendOptions};
 pub use mesh::curve::{
     Curve, CurveEdit, CurveEnd, CurvePart, CurvePoint, CurvePointId, Detail, LatheAxis, LatheShape,
@@ -47,6 +52,7 @@ pub use mesh::edit::{
     Bend, BevelOptions, BevelShape, ExtrudeDirection, ExtrudeShape, Eye, GrooveShape, GrooveSides,
     Grouping, Slide, SlitLine,
 };
+pub use mesh::hull::Hull;
 pub use mesh::lattice::{Interpolation, Lattice, LatticeEdit};
 pub use mesh::live_bevel::{BevelEdges, LiveBevelOptions};
 pub use mesh::quadify::QuadifyOptions;
@@ -87,6 +93,8 @@ pub use wrap::{CurveBendSettings, ShrinkwrapSettings};
 mod apply_tests;
 #[cfg(test)]
 mod boolean_tests;
+#[cfg(test)]
+mod collision_tests;
 #[cfg(test)]
 mod curve_editing_tests;
 #[cfg(test)]

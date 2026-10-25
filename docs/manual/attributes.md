@@ -26,7 +26,7 @@ Whenever you want to change *what* an object is rather than where it is: make a 
 
 **Curves.** A [curve](curves.md) has a **Curve** section: a ready-made curve's settings (Length, Radius, Angle, Climb, Turns) or a drawn curve's **Points** and **Closed**, and **Makes**: Line only, Sweep or Lathe, with a **Sweep** or **Lathe** section of its settings under it. A curve that is only a line has no Collision, Smoothing or Materials: it has no surface.
 
-**Collision.** Under Visible, shapes have a **Collision** row: what a game engine makes the player bump into (None, The shape itself, Wrapped, A box). Exports made for Godot carry it. See [Kit export and collision](kit-export.md).
+**Collision.** Under Visible, shapes have a **Collision** row: what a game engine makes the player bump into (None, The shape itself, Wrapped, Wrapped in parts, A box), with **Max parts** and **Detail** under it for Wrapped in parts. The selected objects' collision shapes are outlined in yellow in the viewport; a note in amber says why when they can't be what you chose. Exports made for Godot carry it. See [Collision shapes](collision-shapes.md) and [Kit export and collision](kit-export.md).
 
 **Selected edges.** In the Edges mode, with edges selected, a **Selected edges** section shows how many, their **Crease** (0 to 1): how sharply the [Subdivide](subdivide.md#keeping-edges-sharp-creases) modifier keeps them; and their **Bevel weight** (0 to 1): whether a [Live bevel](live-bevel.md#marking-edges-with-a-bevel-weight) set to *Marked edges* bevels them, and how much of its width. Drag or type a value to give them all that value; one drag is one undo step.
 

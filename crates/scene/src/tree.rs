@@ -185,6 +185,13 @@ pub(crate) enum Edit {
         before: crate::Collision,
         after: crate::Collision,
     },
+    /// Changes how an object is split for collision in parts (decision
+    /// 0151).
+    SetCollisionParts {
+        id: ObjectId,
+        before: mesh::convex_parts::ConvexPartsOptions,
+        after: mesh::convex_parts::ConvexPartsOptions,
+    },
     /// Changes an object's list of materials.
     SetMaterials {
         id: ObjectId,
@@ -253,6 +260,7 @@ impl Edit {
             Self::SetSnapshots { before, after } => before == after,
             Self::SetMaterials { before, after, .. } => before == after,
             Self::SetCollision { before, after, .. } => before == after,
+            Self::SetCollisionParts { before, after, .. } => before == after,
             Self::SetHardness { before, after, .. } => before == after,
             Self::SetMirror { before, after, .. } => before == after,
             Self::SetBooleans { before, after, .. } => before == after,
@@ -313,6 +321,11 @@ impl Edit {
                 after: before,
             },
             Self::SetCollision { id, before, after } => Self::SetCollision {
+                id,
+                before: after,
+                after: before,
+            },
+            Self::SetCollisionParts { id, before, after } => Self::SetCollisionParts {
                 id,
                 before: after,
                 after: before,
@@ -422,6 +435,8 @@ pub struct Scene {
     pub(crate) cuts: crate::boolean::CutCache,
     /// Each object's modifiers' results (decision 0142), the same way.
     pub(crate) stacks: crate::modifier::StackCache,
+    /// Each object's collision shapes (decision 0151), the same way.
+    pub(crate) collisions: crate::collision::CollisionCache,
 }
 
 impl Scene {
@@ -603,6 +618,31 @@ impl Scene {
         if let Some(mirror) = &mut node.object.mirror {
             mirror.on_object = mirror_on_object;
         }
+        Ok(self)
+    }
+
+    /// The same scene with object `id`'s collision split into parts or not
+    /// (decision 0151), and how, for a project being opened (not a step to
+    /// undo: use [`crate::Command::SetCollision`] and
+    /// [`crate::Command::SetCollisionParts`]). The settings are clamped; an
+    /// unknown object, or parts chosen for one with no shape, is refused.
+    pub fn with_collision_parts(
+        mut self,
+        id: ObjectId,
+        chosen: bool,
+        options: mesh::convex_parts::ConvexPartsOptions,
+    ) -> Result<Self, &'static str> {
+        let node = self
+            .nodes
+            .get_mut(&id)
+            .ok_or_else(|| tr("its collision parts name an object that isn't there"))?;
+        if chosen {
+            if !node.object.kind.has_shape() {
+                return Err(tr("an object with no shape has collision parts"));
+            }
+            node.object.collision = crate::Collision::Parts;
+        }
+        node.object.collision_parts = options.clamped();
         Ok(self)
     }
 
@@ -1147,6 +1187,7 @@ impl Scene {
                 self.cache.get_mut().forget(*id);
                 self.cuts.forget(*id);
                 self.stacks.forget(*id);
+                self.collisions.forget(*id);
                 Ok(())
             }
             Edit::Relocate { id, from, to } => {
@@ -1243,6 +1284,19 @@ impl Scene {
                     )));
                 }
                 node.object.collision = *after;
+                Ok(())
+            }
+            Edit::SetCollisionParts { id, before, after } => {
+                let node = self
+                    .nodes
+                    .get_mut(id)
+                    .ok_or(SceneError::UnknownObject(*id))?;
+                if node.object.collision_parts != *before {
+                    return Err(SceneError::History(text!(
+                        "an object's collision parts have changed"
+                    )));
+                }
+                node.object.collision_parts = *after;
                 Ok(())
             }
             Edit::SetMirror { id, before, after } => {

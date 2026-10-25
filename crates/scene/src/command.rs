@@ -208,6 +208,15 @@ pub enum Command {
         /// The collision shape.
         collision: crate::Collision,
     },
+    /// Changes how objects with a shape are split for *Wrapped in parts*
+    /// collision (decision 0151); the settings are clamped. Groups are
+    /// left alone.
+    SetCollisionParts {
+        /// The objects.
+        ids: Vec<ObjectId>,
+        /// How they are split.
+        options: mesh::convex_parts::ConvexPartsOptions,
+    },
     /// Changes the project's game project folder (decision 0076), or takes
     /// it away (`None`). A folder path that is empty, too long or has
     /// line breaks is refused.
@@ -508,6 +517,7 @@ impl Command {
                 crate::Collision::None => tr("Remove collision").to_string(),
                 c => trf!("Collision: {}", c.name().to_lowercase()),
             },
+            Self::SetCollisionParts { .. } => tr("Change the collision parts").to_string(),
             Self::SetExportTarget(Some(_)) => tr("Change the game project folder").to_string(),
             Self::SetExportTarget(None) => tr("Clear the game project folder").to_string(),
             Self::SetTexture(_) => tr("Change the texture settings").to_string(),
@@ -1355,6 +1365,25 @@ impl Run<'_> {
                         id: *id,
                         before,
                         after: *collision,
+                    })?;
+                }
+                Ok(None)
+            }
+            Command::SetCollisionParts { ids, options } => {
+                let options = options.clamped();
+                for id in ids {
+                    let object = self
+                        .scene
+                        .object(*id)
+                        .ok_or(SceneError::UnknownObject(*id))?;
+                    if !object.kind.has_shape() || object.collision_parts == options {
+                        continue;
+                    }
+                    let before = object.collision_parts;
+                    self.edit(Edit::SetCollisionParts {
+                        id: *id,
+                        before,
+                        after: options,
                     })?;
                 }
                 Ok(None)

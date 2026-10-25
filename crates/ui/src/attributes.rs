@@ -6,6 +6,7 @@
 //! hands back commands. Dragging a value changes it every frame, so those
 //! commands are merged into one undo step per drag (or per value typed).
 
+mod collision_rows;
 mod crease_rows;
 mod curve_points;
 mod curve_rows;
@@ -330,11 +331,15 @@ impl AttributesPanel {
                         ui.end_row();
                         if solid {
                             collision_row(ui, id, object.collision, out);
+                            self.collision_parts_rows(ui, id, &object, out);
                         }
                         if solid && !matches!(object.kind, ObjectKind::Instance(_)) {
                             smoothing_row(ui, id, object.hardness, out);
                         }
                     });
+                if solid {
+                    collision_rows::collision_note(ui, doc.scene(), id);
+                }
                 if solid && !matches!(object.kind, ObjectKind::Instance(_)) {
                     self.crease_section(ui);
                 }

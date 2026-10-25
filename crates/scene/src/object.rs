@@ -293,6 +293,9 @@ pub struct Object {
     pub materials: Vec<Material>,
     /// The collision shape a game engine makes for it (decision 0078).
     pub collision: Collision,
+    /// How *Wrapped in parts* splits it (decision 0151): kept when another
+    /// collision is chosen, so choosing it again brings them back.
+    pub collision_parts: mesh::convex_parts::ConvexPartsOptions,
     /// Its live mirror, if it has one (decision 0088): mirrored copies of
     /// its shape, drawn and exported as part of it.
     pub mirror: Option<LiveMirror>,
@@ -396,13 +399,17 @@ pub enum Collision {
     /// The shape wrapped tightly with no dents (its convex hull): cheap,
     /// and it can move.
     Convex,
+    /// The shape split into a few convex parts, each wrapped (decision
+    /// 0151), following its dents: nearly as cheap as one, and things fit
+    /// under arches and into hollows.
+    Parts,
     /// A box around the shape: the cheapest.
     Box,
 }
 
 impl Collision {
     /// Every kind, in the order the Attributes panel lists them.
-    pub const ALL: [Self; 4] = [Self::None, Self::Mesh, Self::Convex, Self::Box];
+    pub const ALL: [Self; 5] = [Self::None, Self::Mesh, Self::Convex, Self::Parts, Self::Box];
 
     /// Its name.
     pub fn name(self) -> &'static str {
@@ -410,6 +417,7 @@ impl Collision {
             Self::None => tr("None"),
             Self::Mesh => tr("The shape itself"),
             Self::Convex => tr("Wrapped (convex)"),
+            Self::Parts => tr("Wrapped in parts (convex)"),
             Self::Box => tr("A box"),
         }
     }
@@ -425,6 +433,10 @@ impl Collision {
             Self::Convex => tr(
                 "Collides with the shape wrapped tightly, dents filled in: cheaper, and it can \
                  move",
+            ),
+            Self::Parts => tr(
+                "Collides with a few wrapped parts that follow the shape's dents: nearly as cheap \
+                 as Wrapped, and things fit under arches and into hollows",
             ),
             Self::Box => tr("Collides with a box around the shape: the cheapest"),
         }
@@ -471,6 +483,7 @@ impl Object {
             stack: Stack::default(),
             materials: Vec::new(),
             collision: Collision::None,
+            collision_parts: mesh::convex_parts::ConvexPartsOptions::default(),
             mirror: None,
             hardness: mesh::Hardness::ByAngle(STANDARD_SMOOTHING_ANGLE),
             booleans: Vec::new(),

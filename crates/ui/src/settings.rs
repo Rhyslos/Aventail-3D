@@ -96,6 +96,7 @@ pub(crate) struct DisplayValues<'a> {
     pub(crate) hide_hard_edges: &'a mut bool,
     pub(crate) show_seams: &'a mut bool,
     pub(crate) show_normals: &'a mut bool,
+    pub(crate) show_collision: &'a mut bool,
     pub(crate) flat_from_dice: &'a mut bool,
 }
 
@@ -419,6 +420,11 @@ fn viewport(ui: &mut Ui, values: &mut Values<'_>) {
         display.show_normals,
         tr(crate::viewport::chrome::NORMALS_ENTRY),
     );
+    ui.checkbox(
+        display.show_collision,
+        tr(crate::viewport::chrome::COLLISION_ENTRY),
+    )
+    .on_hover_text(tr(crate::viewport::chrome::COLLISION_HELP));
     ui.checkbox(
         display.flat_from_dice,
         tr(crate::viewport::chrome::FLAT_FROM_DICE_ENTRY),

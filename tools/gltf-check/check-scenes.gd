@@ -1,6 +1,7 @@
 # Opens each scene Godot imported from the models folder and checks it:
 # every file holds at least one mesh, and the file with Godot's collision
-# names (godot-collision.glb) gets its collision shapes. Run by
+# names (godot-collision.glb) gets its collision shapes, as does the file
+# with collision in parts (godot-collision-parts.glb). Run by
 # godot-import.sh after the import; prints "FAILED" lines for problems.
 extends SceneTree
 
@@ -30,6 +31,11 @@ func _init() -> void:
 		# Cube-col, Sphere-convcol and the cylinder's box each become one.
 		if name == "godot-collision.glb" and shapes < 3:
 			print("FAILED: %s should have 3 collision shapes" % name)
+			failed = true
+		# The arch's and the ring's parts (decision 0151) each become one,
+		# and aren't drawn: only the two shapes are meshes.
+		if name == "godot-collision-parts.glb" and (shapes < 5 or meshes != 2):
+			print("FAILED: %s should have 2 meshes and 5 or more collision shapes" % name)
 			failed = true
 		root.free()
 	if not failed:

@@ -252,6 +252,9 @@ pub struct ViewOptions {
     /// Whether the selected objects show which way each polygon faces,
     /// as short lines (off as standard; decision 0053).
     pub show_normals: bool,
+    /// Whether every object's collision shapes are outlined, not only the
+    /// selected objects' (off as standard; decision 0151).
+    pub show_collision: bool,
     /// Whether seams are marked in the Points, Edges and Polygons modes
     /// (off as standard; always in the UV mode; decision 0096).
     pub show_seams: bool,
@@ -295,6 +298,7 @@ impl Default for ViewOptions {
             axes: Axes::default(),
             hide_hard_edges: false,
             show_normals: false,
+            show_collision: false,
             show_seams: false,
             symmetry: Symmetry::default(),
             dissolve_without_warning: false,

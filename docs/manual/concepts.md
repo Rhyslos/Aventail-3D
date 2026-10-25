@@ -257,6 +257,12 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **LOD (level of detail)** — Simpler versions of a model that the engine swaps in when it's far away.
 
-**Collision mesh** — A simple, invisible shape the physics engine uses instead of the detailed visual model. In this app, each object's **Collision** setting tells Godot which to make. See [Kit export and collision](kit-export.md).
+**Collision mesh** — A simple, invisible shape the physics engine uses instead of the detailed visual model. In this app, each object's **Collision** setting tells Godot which to make, and the selected objects' are outlined in yellow. See [Collision shapes](collision-shapes.md) and [Kit export and collision](kit-export.md).
+
+**Physics engine** — The part of a game engine that moves things and stops them passing through each other, using their collision shapes. Godot has one built in.
+
+**Convex** — Without dents: a straight line between any two points of the shape stays inside it. A box, a ball and a cylinder are convex; an arch, a chair and a ring aren't. Physics engines collide convex shapes much faster than others.
+
+**Convex hull** — The tightest convex shape round a set of points, as if they were wrapped in cling film: every dent filled in. *Wrapped (convex)* collision is the shape's convex hull; *Wrapped in parts* splits the shape into a few parts first (a *convex decomposition*) and wraps each. See [Collision shapes](collision-shapes.md).
 
 **Modular kit** — A set of pieces (walls, floors, doors) built to fit together and placed again and again to make a level. Each piece is exported as its own file with its pivot where it snaps. See [Kit export and collision](kit-export.md).

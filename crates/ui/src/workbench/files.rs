@@ -159,6 +159,7 @@ impl Workbench {
         self.document = document;
         self.autosaver.restart();
         self.drawing.forget();
+        self.components.forget_collision();
         self.hidden.faces.clear();
         self.hidden.revision += 1;
         self.copied.clear();
