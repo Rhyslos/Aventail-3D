@@ -195,6 +195,9 @@ pub enum Icon {
     /// Decimate (decision 0145): many small triangles becoming a few big
     /// ones.
     Decimate,
+    /// Scatter (decision 0146): little shapes standing on a curved
+    /// surface, each its own way.
+    Scatter,
     /// Creases (decision 0143): a shape sharp along one edge.
     Creases,
     /// Crease edges: the sharp edge drawn bold.
@@ -266,7 +269,7 @@ pub enum Icon {
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 119] = [
+pub const ALL: [Icon; 120] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -352,6 +355,7 @@ pub const ALL: [Icon; 119] = [
     Icon::Subdivide,
     Icon::Lattice,
     Icon::Decimate,
+    Icon::Scatter,
     Icon::Creases,
     Icon::CreaseEdges,
     Icon::Uncrease,
@@ -480,6 +484,7 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         | Icon::Subdivide
         | Icon::Lattice
         | Icon::Decimate
+        | Icon::Scatter
         | Icon::Creases
         | Icon::CreaseEdges
         | Icon::Uncrease => modifiers::draw(&mut pen, icon),

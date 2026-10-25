@@ -542,3 +542,30 @@ fn a_decimated_shape_goes_out_with_its_fewer_triangles() {
         after
     );
 }
+
+#[test]
+fn a_scattered_surface_goes_out_as_one_mesh_and_a_hidden_shape_stays_out() {
+    // Decision 0146: the surface and its copies are one mesh; the shape
+    // scattered, hidden, isn't exported itself but still scatters.
+    let (mut doc, plane) = with(PrimitiveKind::Plane);
+    doc.execute(Command::Create(ObjectKind::Primitive(
+        PrimitiveKind::Cube.standard(),
+    )))
+    .unwrap();
+    let cube = doc.selection()[0];
+    let mut settings = scene::ScatterSettings::of(vec![cube]);
+    settings.options.place_on = scene::PlaceOn::Centres;
+    doc.execute(Command::AddModifier {
+        ids: vec![plane],
+        kind: scene::ModifierKind::Scatter(settings),
+    })
+    .unwrap();
+    doc.execute(Command::SetVisible {
+        ids: vec![cube],
+        visible: false,
+    })
+    .unwrap();
+    let plane_polygons = doc.scene().unmodified_shape(plane).unwrap().face_count();
+    let out = one(&doc, &ExportOptions::default());
+    assert_eq!(out.world.polygons.len(), plane_polygons * (1 + 6));
+}

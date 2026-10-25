@@ -1,4 +1,4 @@
-//! The modifier icons (decisions 0142 to 0145), one per kind of
+//! The modifier icons (decisions 0142 to 0146), one per kind of
 //! modifier on the modifiers palette, and the crease commands'. Original
 //! drawings.
 
@@ -14,6 +14,7 @@ pub(super) fn draw(pen: &mut Pen, icon: Icon) {
         Icon::Uncrease => uncrease(pen),
         Icon::Lattice => lattice(pen),
         Icon::Decimate => decimate(pen),
+        Icon::Scatter => scatter(pen),
         _ => {}
     }
 }
@@ -163,4 +164,30 @@ fn decimate(pen: &mut Pen) {
     // The sparse half: two big triangles.
     pen.stroke(&[(12.0, 20.0), (20.0, 4.0)], false, Ink::Line);
     pen.stroke(&outline, true, Ink::Line);
+}
+
+/// Scatter: a curved hill with three little cones standing on it, each
+/// leaning the way the ground faces where it stands.
+fn scatter(pen: &mut Pen) {
+    // The hill: part of a circle round (12, 27).
+    let (cx, cy, r) = (12.0f32, 27.0f32, 13.0f32);
+    let on_hill = |x: f32| (x, cy - (r * r - (x - cx) * (x - cx)).sqrt());
+    let mut ground: Vec<(f32, f32)> = (0..=10).map(|i| on_hill(2.0 + 2.0 * i as f32)).collect();
+    let hill = ground.clone();
+    ground.extend([(22.0, 21.0), (2.0, 21.0)]);
+    pen.shape(&ground, Paint::Tone);
+    pen.stroke(&hill, false, Ink::Line);
+    for x in [5.5, 12.0, 18.5] {
+        let (px, py) = on_hill(x);
+        // Out from the hill, and along it.
+        let (nx, ny) = ((px - cx) / r, (py - cy) / r);
+        let (tx, ty) = (-ny, nx);
+        let cone = [
+            (px + tx * 2.0, py + ty * 2.0),
+            (px + nx * 5.0, py + ny * 5.0),
+            (px - tx * 2.0, py - ty * 2.0),
+        ];
+        pen.shape(&cone, Paint::Solid);
+        pen.stroke(&cone, true, Ink::Line);
+    }
 }

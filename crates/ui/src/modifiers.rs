@@ -1,8 +1,9 @@
 //! Modifiers in the interface ([decision 0142](../../../docs/decisions/0142-modifier-stack-and-remesh.md)):
 //! one command per kind of modifier, which the modifiers palette, the
 //! Mesh menu's Modifiers submenu and command search offer; what a click
-//! adds a modifier to (the selected shapes); and the palette's buttons,
-//! grouped by family.
+//! adds a modifier to (the selected shapes; for Scatter, the shape
+//! selected first, scattering the others over it, decision 0146); and
+//! the palette's buttons, grouped by family.
 //!
 //! The Attributes panel's Modifiers section is in
 //! `attributes::modifier_rows`. No keys or mouse actions of their own.
@@ -13,13 +14,15 @@ use crate::text::tr;
 use egui::Ui;
 use scene::{
     Command, DecimateOptions, Document, LatticeOptions, MAX_MODIFIERS, ModifierFamily,
-    ModifierKind, ObjectId, ObjectKind, RemeshOptions, SubdivideOptions,
+    ModifierKind, ModifierRefusal, ObjectId, ObjectKind, RemeshOptions, ScatterSettings,
+    SubdivideOptions,
 };
 
 /// One command per kind of modifier, in the order of
 /// [`ModifierKind::standard_kinds`].
-pub(crate) const COMMANDS: [CommandId; 4] = [
+pub(crate) const COMMANDS: [CommandId; 5] = [
     CommandId::Subdivide,
+    CommandId::Scatter,
     CommandId::Lattice,
     CommandId::Remesh,
     CommandId::Decimate,
@@ -32,6 +35,7 @@ pub(crate) fn kind_of(command: CommandId) -> Option<ModifierKind> {
         CommandId::Subdivide => Some(ModifierKind::Subdivide(SubdivideOptions::default())),
         CommandId::Lattice => Some(ModifierKind::Lattice(LatticeOptions::default())),
         CommandId::Decimate => Some(ModifierKind::Decimate(DecimateOptions::default())),
+        CommandId::Scatter => Some(ModifierKind::Scatter(ScatterSettings::default())),
         _ => None,
     }
 }
@@ -77,6 +81,13 @@ pub(crate) fn targets(doc: &Document) -> Result<Vec<ObjectId>, &'static str> {
 /// shapes, or why it can't.
 pub(crate) fn command(doc: &Document, command: CommandId) -> Result<Command, &'static str> {
     let kind = kind_of(command).ok_or(tr("That isn't a modifier"))?;
+    if let ModifierKind::Scatter(_) = kind {
+        let (surface, shapes) = scatter_plan(doc)?;
+        return Ok(Command::AddModifier {
+            ids: vec![surface],
+            kind: ModifierKind::Scatter(ScatterSettings::of(shapes)),
+        });
+    }
     if let ModifierKind::Lattice(_) = kind {
         // A lattice needs its cage: one fitted round the shapes (decision
         // 0144).
@@ -91,11 +102,71 @@ pub(crate) fn command(doc: &Document, command: CommandId) -> Result<Command, &'s
     })
 }
 
+/// The surface and the shapes a Scatter onto surface would use (decision
+/// 0146): the shape selected first is the surface, the others are
+/// scattered over it, in the order they were selected. Or why it can't be
+/// done.
+pub(crate) fn scatter_plan(doc: &Document) -> Result<(ObjectId, Vec<ObjectId>), &'static str> {
+    let order = doc.selection_order();
+    let Some((&surface, others)) = order.split_first() else {
+        return Err(tr(
+            "Select the surface first, then Ctrl + click the shapes to scatter over it",
+        ));
+    };
+    if others.is_empty() {
+        return Err(tr(
+            "Ctrl + click one or more shapes to scatter: the shape selected first is the surface",
+        ));
+    }
+    let scene = doc.scene();
+    let Some(object) = scene.object(surface) else {
+        return Err(tr(
+            "Select the surface first, then Ctrl + click the shapes to scatter over it",
+        ));
+    };
+    match object.kind {
+        ObjectKind::Instance(_) => {
+            return Err(tr(
+                "The first selected is an instance: select its original, or bake it into a shape \
+                 first",
+            ));
+        }
+        _ if !object.kind.has_shape() => {
+            return Err(tr(
+                "The first selected has no shape to scatter onto: select a shape first",
+            ));
+        }
+        _ => {}
+    }
+    if object.modifiers.len() >= MAX_MODIFIERS {
+        return Err(tr("A shape can have at most 32 modifiers"));
+    }
+    let shapes = others.to_vec();
+    if shapes.len() > scene::MAX_SCATTER_SHAPES {
+        return Err(tr("At most 64 shapes can be scattered at once"));
+    }
+    let mut after = object.modifiers.clone();
+    after.push(scene::Modifier::new(ModifierKind::Scatter(
+        ScatterSettings::of(shapes.clone()),
+    )));
+    match scene.check_modifiers(surface, &after) {
+        Ok(()) => Ok((surface, shapes)),
+        Err(ModifierRefusal::BadSource) => Err(tr(
+            "A shape can't be scattered onto itself or onto a shape made from it, and groups and \
+             lattice cages have no shape to scatter",
+        )),
+        Err(_) => Err(tr(
+            "Those shapes can't be scattered onto the first selected",
+        )),
+    }
+}
+
 /// The modifiers palette's modifier buttons, a family at a time with a
 /// little room between families; returns the command clicked.
 pub(crate) fn palette_buttons(ui: &mut Ui, doc: &Document) -> Option<CommandId> {
     let mut picked = None;
-    let ready = targets(doc);
+    let ready = targets(doc).map(|_| ());
+    let scatter_ready = scatter_plan(doc).map(|_| ());
     for family in ModifierFamily::ALL {
         let members: Vec<CommandId> = COMMANDS
             .into_iter()
@@ -107,6 +178,11 @@ pub(crate) fn palette_buttons(ui: &mut Ui, doc: &Document) -> Option<CommandId> 
         ui.add_space(6.0);
         for command in members {
             let info = command.info();
+            let ready = if command == CommandId::Scatter {
+                scatter_ready
+            } else {
+                ready
+            };
             let (state, note) = match ready {
                 Ok(_) => (ButtonState::Normal, info.help),
                 Err(why) => (ButtonState::Unavailable, why),
@@ -150,6 +226,9 @@ mod tests {
             if command == CommandId::Lattice {
                 // It makes a cage too, so it says "Add" (decision 0144).
                 assert_eq!(command.name(), tr("Add lattice"));
+            } else if command == CommandId::Scatter {
+                // Named for what it does with the selection (decision 0146).
+                assert_eq!(command.name(), tr("Scatter onto surface"));
             } else {
                 assert_eq!(command.name(), kind.name());
             }
@@ -213,5 +292,37 @@ mod tests {
         assert!(targets(&doc).is_err());
         doc.set_selection([cage, cube]);
         assert_eq!(targets(&doc), Ok(vec![cube]));
+    }
+
+    #[test]
+    fn scatter_puts_the_others_on_the_shape_selected_first() {
+        let mut doc = Document::new();
+        let create = |doc: &mut Document, kind: scene::PrimitiveKind| {
+            doc.execute(Command::Create(ObjectKind::Primitive(kind.standard())))
+                .unwrap();
+            doc.selection()[0]
+        };
+        let plane = create(&mut doc, scene::PrimitiveKind::Plane);
+        let cube = create(&mut doc, scene::PrimitiveKind::Cube);
+        let cone = create(&mut doc, scene::PrimitiveKind::Cone);
+        doc.set_selection([plane]);
+        assert!(scatter_plan(&doc).is_err(), "nothing to scatter");
+        doc.set_selection([plane, cone, cube]);
+        assert_eq!(scatter_plan(&doc), Ok((plane, vec![cone, cube])));
+        let add = command(&doc, CommandId::Scatter).unwrap();
+        doc.execute(add).unwrap();
+        assert_eq!(
+            doc.scene().modifiers(plane)[0].kind.sources(),
+            vec![cone, cube]
+        );
+        // The other way round would be a loop.
+        doc.set_selection([cube]);
+        doc.set_selection([cube, plane]);
+        assert!(scatter_plan(&doc).is_err());
+        // A group first has no shape.
+        doc.execute(Command::Create(ObjectKind::Group)).unwrap();
+        let group = doc.selection()[0];
+        doc.set_selection([group, cube]);
+        assert!(scatter_plan(&doc).is_err());
     }
 }

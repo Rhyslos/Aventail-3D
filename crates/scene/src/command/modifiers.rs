@@ -156,8 +156,17 @@ impl Run<'_> {
             .collect();
         for id in users {
             let before = self.scene.modifiers(id).to_vec();
-            let mut after = before.clone();
-            after.retain(|m| !m.kind.sources().iter().any(|s| going.contains(s)));
+            // A scatter loses the shapes going, and goes with the last; a
+            // lattice goes with its cage.
+            let after: Vec<Modifier> = before
+                .iter()
+                .filter_map(|m| {
+                    Some(Modifier {
+                        kind: m.kind.without_sources(going)?,
+                        ..m.clone()
+                    })
+                })
+                .collect();
             self.edit(Edit::SetModifiers { id, before, after })?;
         }
         Ok(())

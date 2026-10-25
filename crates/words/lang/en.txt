@@ -123,6 +123,7 @@ A ring instead of a loop, with a double-click
 A round curve 1 m across, lying on the ground
 A shape can have at most 32 modifiers
 A shape can have at most 64 cutters
+A shape can't be scattered onto itself or onto a shape made from it, and groups and lattice cages have no shape to scatter
 A shape can't cut itself
 A solid flight of 6 stairs, 1 m wide and 1 m high
 A straight curve 1 m long, lying on the ground
@@ -157,6 +158,7 @@ Add {} to {} objects
 Adds a bumpy ball of 3 million polygons, like a detailed model you might import, to see how your computer copes with heavy shapes. Undo takes it away again.
 Align
 Align cancelled: nothing moved.
+Align to surface
 Align to {}
 Align...
 Align: click the object to line up with. Esc cancels.
@@ -192,6 +194,7 @@ An ordinary 3D view: far things look smaller
 An upright cylinder, 1 m across and 1 m tall
 Angle
 Another curve
+Another number gives another spread, and other turns and sizes. The same number always gives the same result.
 Any program: pick the kind of file and how it's set up below.
 Anywhere
 Anywhere (shortest cuts)
@@ -214,6 +217,7 @@ Assign
 Assign {}
 Assign: select some polygons first.
 Assign: switch to the Polygons mode and select polygons first.
+At most 64 shapes can be scattered at once
 At the back
 Attributes
 Auto
@@ -393,6 +397,7 @@ Connect: select two or more {}s on the same polygon first.
 Continuous ring
 Coordinates
 Copied {} object{}: Ctrl + V pastes copies, Alt + V instances.
+Copies go on the whole surface, or only on polygons you choose: select them in the Polygons mode (press 3) and click Use selected
 Copy a shape's settings, then select shapes of the same kind
 Copy objects
 Copy objects (for instances)
@@ -430,6 +435,7 @@ Couldn't split that off: {}.
 Couldn't take it: {}.
 Couldn't use that folder: {}.
 Couldn't {}: {}.
+Count
 Counted from the first change since the last copy.
 Crease
 Crease edges
@@ -453,6 +459,7 @@ Ctrl
 Ctrl + Z takes it back.
 Ctrl + click / Shift + click (the standard keys)
 Ctrl + click one or more shapes to cut with: the shape selected first is kept
+Ctrl + click one or more shapes to scatter: the shape selected first is the surface
 Ctrl + click or drag adds; Alt + click removes. Ctrl + click on something selected unselects it. Alt + drag moves the view while "Alt + mouse works in every scheme" is on.
 Ctrl + click or drag adds; Shift + click or drag removes. Ctrl + click on something selected unselects it.
 Ctrl + click or drag flips: what was selected is unselected, and the rest selected.
@@ -575,6 +582,7 @@ Duplicate
 Duplicate as instance
 Duplicate {}
 E: next · Shift + E: back · Enter or Space: use · Esc: close
+Each copy gets a random size between Smallest and Largest: 100% is the shape's own size
 Each hexagon's size, from its middle to a corner
 Each material's pieces fill a square of their own, as separate texture sets
 Each metre square cut into four: lines every 50 cm
@@ -832,6 +840,7 @@ How high it climbs, bottom to top
 How high the straight sides go before the round top starts: zero for a half ring
 How high the top step is
 How long the line is
+How many copies to spread. Spacing can leave fewer, where they don't fit.
 How many flat sides make up each round side
 How many flat sides make up the round side
 How many new loops are cut, spread evenly across the polygons
@@ -979,6 +988,7 @@ Keyboard shortcuts
 Keys
 Laid
 Laid flat, the piece stretched more than its budget of {:.2}×, so it was slit here, from where it was squeezed most.
+Largest size
 Lasso selection
 Last edit: {}
 Lathe
@@ -1003,6 +1013,7 @@ Let the selected points' handles shape themselves from their neighbours, a third
 Let the selected points' two handles move on their own, for a kink with curved sides
 Levels
 Levels for export
+Lift each copy off the surface along its outward direction, or sink it in below 0 (a copy stands on its pivot: put a shape's pivot at its foot)
 Like Keep shapes, but the angles are first evened out over the whole piece, so curved pieces (a head, a dome) drift less. A little slower.
 Line
 Line only
@@ -1201,8 +1212,10 @@ Off, the viewport skips this modifier (handy while it is slow); exports and Bake
 Off: only the button turns snapping on and off.
 Off: the shape is made as if this edit wasn't there
 Off: the shape is made as if this edit wasn't there. Nothing is lost.
+Offset
 Olive
 On
+On polygons
 On save
 On the trim row “{}”, laid along it by Put on trim row. Pack leaves it there.
 On: a tap opens the menu and keeps it open; tap E again to step through it, and Enter or Space to use a tool. Easier if holding a key is hard.\nOff: the menu shows only while you hold E; let go over a tool to use it.
@@ -1301,6 +1314,7 @@ Pivot to object: the pivot is already at {}'s pivot.
 Pivot to object…
 Pivot to world origin
 Pivot to {}
+Place on
 Plain, read by almost every 3D program
 Plane
 Plum
@@ -1317,6 +1331,7 @@ Points at the middle this close to their mirror become one, so the halves join i
 Points on the same spot make polygons with no area and break the shading there. Fix welds each group into one point.
 Points that no face uses.
 Points, Edges, Polygons
+Polygon centres
 Polygons
 Polygons folded over or squashed flat get no pixels of their own, so the bake smears or comes out back to front there. Fix unwraps their pieces.
 Polygons mode (3): select polygons, then Assign.
@@ -1331,6 +1346,8 @@ Profile
 Projects you save or open are listed here
 Push the selected polygons or edges out, building new sides between the old place and the new. With points selected along an open edge, the edges between them grow new polygons
 Put a cage of points round the selected shapes: move the cage's points (press 1) and the shapes inside bend, squash and swell smoothly with them.
+Put copies only on the polygons selected now
+Put copies over the whole surface again
 Put every point back where it started, so the cage bends nothing
 Put every setting back as it was when the app was new (the panel layout is kept)
 Put on the trim sheet
@@ -1348,6 +1365,8 @@ Questions asked before an edit that is easy to get wrong. Each can also be switc
 Quit
 Radial menu
 Radius
+Random over the surface
+Random turn
 Ratio
 Ready
 Rebuild the shape as an even surface of square polygons, whatever its polygons were: for sculpted, joined or boolean-cut shapes. It needs a closed solid.
@@ -1431,6 +1450,8 @@ Scale the selected pieces (or whole objects) so they share one texel density: th
 Scale the selection: drag the gizmo's boxes, or its centre for all axes
 Scale {}
 Scaling: {}
+Scatter
+Scatter onto surface
 Seam\n{}{}\n{}
 Seam suggestions
 Seams
@@ -1439,6 +1460,7 @@ Search for a command
 Search for a command by name
 See every key on a drawn keyboard
 See the shape without this layer's edits. New edits go into the top layer that is on.
+Seed
 Seeing the selection
 Segments
 Segments X
@@ -1489,9 +1511,11 @@ Select one or more shapes first
 Select one shape to copy its settings
 Select only visible
 Select pieces
+Select polygons of this shape in the Polygons mode (press 3) first
 Select ring
 Select same facing
 Select seams
+Select shapes
 Select sharp corners inside the curve: not its ends, not points with handles (they are round already), not points in a straight line
 Select some objects first
 Select some of the curve's points first
@@ -1503,6 +1527,8 @@ Select the objects to set how they're smoothed
 Select the polygons facing the wrong way round: inside out compared with their neighbours, or facing into a closed shape
 Select the polygons of the selected objects that use a material. Shows the Polygons mode.
 Select the shape to keep first, then Ctrl + click the shapes that cut it
+Select the shapes scattered, to change or move them
+Select the surface first, then Ctrl + click the shapes to scatter over it
 Select the whole part the selection is on: everything joined to it, across seams. Select a little of a part first. Over the UV Editor, or in the UV mode, the key selects whole pieces instead.
 Select the whole pieces the selection is in: a little of a piece (a point, an edge or a polygon) brings the whole piece, parted at seams. Use it to pick one of two overlapping pieces and move it away.
 Select them, to see where they are
@@ -1544,6 +1570,7 @@ Shape
 Shape and object
 Shape list, from the last shape
 Shape list: 
+Shapes
 Shapes and their materials always go out. Skeletons and animations will be listed here once the app has them, to leave out when you don't need them.
 Sharp
 Sharp points
@@ -1607,6 +1634,7 @@ Slit: click points over the shape to cut along them. Drag a point to move it, Ct
 Slit: nothing was cut.
 Slit: select an object to cut first.
 Sloped
+Smallest size
 Smooth
 Smooth by angle
 Smooth by angle ({:.0}°)
@@ -1641,6 +1669,7 @@ Some selected objects have more than {} polygons: their UVs aren't drawn.
 Space
 Space evenly
 Space {} points evenly
+Spacing
 Sphere
 Spin angle
 Spiral
@@ -1652,10 +1681,12 @@ Split off {} polygons
 Split off {} polygon{} into a new object. Ctrl + Z takes it back.
 Split off: select polygons on one object at a time.
 Split off: select some polygons first.
+Spread copies of other shapes over a surface: rocks on the ground, rivets on a plate. Select the surface first, then Ctrl + click the shapes to scatter. They stay shapes of their own: edit one and every copy follows.
 Spread the selected curves' points evenly along them, keeping the shape as near as can be: as many points as the Attributes panel's Even spacing says
 Square
 Stack identical pieces
 Stairs
+Stand each copy on the surface: the shape's up turns to face out from the surface where it stands, as a rock on a slope. Off, every copy stays upright.
 Standard
 Start a new, empty project
 Starting the graphics…
@@ -1756,13 +1787,16 @@ The edges have different creases: a new value gives them all the same.
 The edits you make now go into this layer: the top layer that is switched on
 The faces, with any number of corners
 The first material can't be removed
+The first selected has no shape to scatter onto: select a shape first
 The first selected is an instance: select its original, or bake it into a shape first
 The gap between pieces, in texture pixels (half of it to the square's edges). Keeps colours from bleeding between pieces when the texture is shrunk; 8 px suits a 2048 texture.
 The gizmo follows the object's own axes.
 The gizmo follows the world's axes.
 The glossary opens in your web browser.
 The highest point of the box around it along each axis (its right, front or top)
+The largest random size a copy gets
 The lattice cage bending this shape. Select it to change its divisions, and press 1 to move its points.
+The least distance between two copies, from spot to spot: a copy that would stand closer is left out. 0 lets them overlap.
 The lines between the points
 The lines shown: every 1 m, 50 cm or 10 cm, as the grid button is set.
 The lowest point of the box around it along each axis (its left, back or bottom)
@@ -1793,6 +1827,7 @@ The shape itself
 The shape to keep already cuts one of the others (or is shown by it): each would wait for the other
 The shape's points were renumbered (more or fewer segments, say), so these edits looked for the points, edges and polygons they were made on by where they are. A polygon split into smaller ones moves as a whole. Nothing to fix.
 The shapes cut each other in a loop
+The shapes scattered: each copy is one of them, picked at random. They stay shapes of their own; edit one and every copy follows. Hide them to keep them out of exports: hidden, they still scatter.
 The share of the shape's triangles to keep: 50% halves them. Counted in triangles, as a game engine counts them (a square polygon is two).
 The size of the texture this project's UVs are made for
 The snapshot's name. Each must differ.
@@ -1825,6 +1860,7 @@ This project is now in {}: lengths show and are typed in {}. Ctrl + Z takes it b
 This shape is too big to work out Suggest seams' reasons while pointing.
 This works on a curve's points: press 1 for the Points mode and select some
 This works on whole curves: press 1 for the Points mode
+Those shapes can't be scattered onto the first selected
 Three or more polygons on one edge can't be unfolded or baked cleanly. Select them and delete or split off the extra polygons.
 Tick "I know what I'm doing, proceed" first.
 Tip: B for the basic shapes, Alt + B for the rest and the curves
@@ -1859,6 +1895,7 @@ Turn & flip
 Turn and flip
 Turn and zoom the view so the selection fills it
 Turn around, and zoom towards, whatever is under the mouse instead of the middle of the view
+Turn each copy round its up direction by a random angle up to this: 360° for any way at all, 0 for all the same way
 Turn every polygon of the selected objects that faces the wrong way round: inside out compared with its neighbours, or facing into a closed shape. Select → Select flipped shows them first.
 Turn left 90°
 Turn pieces to fit
@@ -1937,6 +1974,7 @@ Up axis
 Update
 Update a snapshot
 Usage: {} [option | project]\n\nOptions:\n  --version   Show the name and version, then exit\n  --help      Show this text, then exit\n\nWith no option, the app window opens. Give a project file to open it\n(put -- before a file name that starts with -).\n
+Use selected
 User manual
 Version {}
 Very thin triangles shade badly and leave streaks in a bake. Select them and cut them up with Connect (J) so the triangles are fuller.
@@ -1979,6 +2017,7 @@ When on, marking or clearing seams lays the pieces around them flat again at onc
 When on, the box, lasso and brush only select what you can see. When off (the standard), they select through the shape, catching its far side too.
 Where closed pieces are cut open, and the stretch budget: Seam suggestions.
 Where cuts go that only make a piece lie flat (Suggest seams, and Unwrap on a closed piece)
+Where the copies go: one on each point, one on the middle of each polygon, or a number spread at random, evenly by area
 Where the cut sits across the polygons: 50% is the middle. With several cuts, it slides them all together.
 Where the file is going: this picks the right settings for it
 Where the mirror stands, from the object's centre (its pivot): 0 unless moved.
@@ -1998,6 +2037,7 @@ While moving, rotating and scaling. The snapping button on the top palette turns
 While orbiting: snap to the view dice's sides
 While you orbit, a small ring marks the point the view turns around (and, when zooming with a drag, the point it moves towards)
 While you work, the app saves a backup copy of your scene in the background, only when something changed. If the app ever closes without saving, it offers the copies the next time it starts. They never replace your project file: saving does that.
+Whole surface
 Width
 Window
 Wireframe
@@ -2079,6 +2119,7 @@ a mirrored edit mirrors across no axis
 a modifier can't be used: {}
 a modifier can't change into another kind
 a modifier reads a shape that isn't there, is the shape itself, or already uses it
+a modifier that reads other shapes names none
 a name can't be empty
 a piece's texel density isn't a real number above 0
 a point of the shape isn't at a real position
@@ -2205,6 +2246,7 @@ it should hold {} bytes of scene but holds {}; it may be cut short
 it was
 it was saved by a newer version of the app (file format {}; this version reads up to {}). Update the app to open it
 it wasn't saved, because the saved copy wouldn't open again ({}). Your previous save is untouched; please report this so it can be fixed
+it would make {} copies, and the most is 100 000: use Random, or a larger Spacing
 it would make {} million polygons, and the most is 4 million. Lower the levels
 it's an instance: edit its original, or make it editable to give it its own shape
 it's an instance: give its original the boolean, or bake it into a shape first
@@ -2230,6 +2272,7 @@ its recorded box isn't a real box
 its scene can't be read ({})
 its shape is squashed flat against its pivot
 its shapes have about {} polygons, and the app opens up to {}
+its shapes to scatter aren't there
 its slit has {} points (2 to {} can be stored)
 its slit's view isn't real numbers
 its space is flattened (scaled to nothing along an axis), so points can't be placed in it
@@ -2264,6 +2307,7 @@ no graphics device
 no limit
 no partner called {}
 none
+none of the polygons it was limited to are on the shape any more: choose them again, or use the whole surface
 nothing
 nothing is left: the shape is thinner than a voxel. Make Voxel size smaller
 object
@@ -2365,6 +2409,7 @@ the project's trim sheet has changed
 the project's units have changed
 the result would have more than {} polygons
 the result would have too many polygons
+the result would have {} polygons, and the most is {}: fewer copies, or a simpler shape
 the saved file didn't read back the same; the disk may be failing
 the scene can't be read ({})
 the scene can't be unpacked ({})
@@ -2375,6 +2420,8 @@ the shape
 the shape has no polygons
 the shape isn't a closed solid: it has holes in its surface, or edges shared by more than two polygons
 the shape isn't closed: it has holes in its surface, or edges shared by more than two polygons, so it has no inside
+the surface has no area to spread copies over
+the surface has no polygons to scatter onto
 the texture square
 the value isn't a real number
 the viewport image could not be created
@@ -2383,6 +2430,7 @@ the whole curve lies on the axis it spins round
 the window has no GPU device
 the windowing system stopped unexpectedly
 them
+there are no shapes to scatter
 there is no attribute called "{}"
 there is no folder for backup copies
 there is no layer below to merge into
@@ -2424,6 +2472,7 @@ write
 {} bent out of flat
 {} by one step (Shift: ten steps)
 {} cancelled.
+{} chosen
 {} closer than {} px to other pieces
 {} colour
 {} could not open its window: {}\n

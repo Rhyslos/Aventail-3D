@@ -32,6 +32,7 @@ pub mod polygon;
 pub mod primitives;
 pub mod remesh;
 pub mod samples;
+pub mod scatter;
 pub mod selection;
 pub mod shading;
 pub mod slide;

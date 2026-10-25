@@ -208,7 +208,7 @@ impl StackJob {
         let input = last_shape(&self.input, &self.done);
         self.plan
             .iter()
-            .map(|p| p.kind.work(&input, self.purpose))
+            .map(|p| p.kind.work_with(&input, self.purpose, &p.sources))
             .fold(0, usize::saturating_add)
     }
 
@@ -495,6 +495,7 @@ impl Scene {
         } else {
             glam::Mat4::IDENTITY
         };
+        let names = self.material_list(id);
         kind.sources()
             .into_iter()
             .filter(|source| *source != id)
@@ -507,10 +508,19 @@ impl Scene {
                     }
                     _ => SourceData::Shape(self.final_shape(source, purpose)?),
                 };
+                let materials = self
+                    .material_list(source)
+                    .iter()
+                    .map(|m| names.iter().position(|n| n.name == m.name).unwrap_or(0) as u32)
+                    .collect();
                 Some(SourceShape {
                     id: source,
                     data,
                     matrix: back * self.shape_matrix(source),
+                    pivot: back.transform_point3(
+                        self.world_matrix(source).transform_point3(glam::Vec3::ZERO),
+                    ),
+                    materials,
                 })
             })
             .collect()
