@@ -569,3 +569,30 @@ fn a_scattered_surface_goes_out_as_one_mesh_and_a_hidden_shape_stays_out() {
     let out = one(&doc, &ExportOptions::default());
     assert_eq!(out.world.polygons.len(), plane_polygons * (1 + 6));
 }
+
+#[test]
+fn a_shape_bent_along_a_curve_goes_out_bent_and_the_curve_stays_out() {
+    // Decision 0147: exported as seen; a curve that is only a line
+    // exports as nothing.
+    let (mut doc, cube) = with(PrimitiveKind::Cube);
+    doc.execute(Command::Create(ObjectKind::Curve(
+        scene::CurveObject::line(scene::CurveShape::Ready(scene::ReadyCurve::Circle {
+            radius: 300.0,
+        })),
+    )))
+    .unwrap();
+    let curve = doc.selection()[0];
+    doc.execute(Command::AddModifier {
+        ids: vec![cube],
+        kind: scene::ModifierKind::BendAlongCurve(scene::CurveBendSettings::of(curve)),
+    })
+    .unwrap();
+    let out = one(&doc, &ExportOptions::default());
+    let bent = doc.scene().exported_shape(cube).unwrap();
+    assert_eq!(out.world.points.len(), bent.vertex_count());
+    assert_ne!(
+        bent.bounds(),
+        doc.scene().unmodified_shape(cube).unwrap().bounds(),
+        "bent"
+    );
+}

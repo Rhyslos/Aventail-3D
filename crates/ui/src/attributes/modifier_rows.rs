@@ -139,16 +139,32 @@ impl AttributesPanel {
                 if let ModifierKind::Lattice(options) = &modifier.kind {
                     cage_row(ui, doc, options.cage, out);
                 }
-                if let ModifierKind::Scatter(settings) = &modifier.kind {
-                    super::scatter_rows::shapes_row(ui, doc, &settings.shapes, out);
+                match &modifier.kind {
+                    ModifierKind::Scatter(settings) => {
+                        super::scatter_rows::shapes_row(ui, doc, &settings.shapes, out);
+                    }
+                    ModifierKind::BendAlongCurve(settings) => {
+                        super::wrap_rows::source_row(ui, doc, settings.curve, true, out);
+                    }
+                    ModifierKind::Shrinkwrap(settings) => {
+                        super::wrap_rows::source_row(ui, doc, settings.target, false, out);
+                    }
+                    _ => {}
                 }
                 // The polygons selected on this shape, in the Polygons
-                // mode (for a scatter's Use selected).
-                let chosen: Option<Vec<scene::FaceId>> = self.polygons_selected.map(|_| {
-                    doc.elements(id)
-                        .map_or_else(Vec::new, |e| e.polygons().collect())
-                });
-                kind_rows(ui, &mut edited.kind, units, &mut rows, chosen.as_deref());
+                // mode (for a scatter's Use selected), and its points, in
+                // the Points mode (for a shrinkwrap's).
+                let chosen = Chosen {
+                    polygons: self.polygons_selected.map(|_| {
+                        doc.elements(id)
+                            .map_or_else(Vec::new, |e| e.polygons().collect())
+                    }),
+                    points: (self.curve.points_mode && doc.selection() == [id]).then(|| {
+                        doc.elements(id)
+                            .map_or_else(Vec::new, |e| e.points().collect())
+                    }),
+                };
+                kind_rows(ui, &mut edited.kind, units, &mut rows, &chosen);
                 label(
                     ui,
                     tr("Show in viewport"),
@@ -184,14 +200,17 @@ impl AttributesPanel {
     }
 }
 
+/// The elements selected on the shape, for the modifiers that work on
+/// chosen ones (`None` outside their mode).
+struct Chosen {
+    /// In the Polygons mode.
+    polygons: Option<Vec<scene::FaceId>>,
+    /// In the Points mode.
+    points: Option<Vec<scene::VertexId>>,
+}
+
 /// The rows for a kind's own settings.
-fn kind_rows(
-    ui: &mut Ui,
-    kind: &mut ModifierKind,
-    units: Units,
-    rows: &mut Rows,
-    chosen: Option<&[scene::FaceId]>,
-) {
+fn kind_rows(ui: &mut Ui, kind: &mut ModifierKind, units: Units, rows: &mut Rows, chosen: &Chosen) {
     match kind {
         ModifierKind::Remesh(options) => remesh_rows(ui, options, units, rows),
         ModifierKind::Subdivide(options) => subdivide_rows(ui, options, rows),
@@ -199,7 +218,15 @@ fn kind_rows(
         ModifierKind::Lattice(_) => {}
         ModifierKind::Decimate(options) => super::decimate_rows::decimate_rows(ui, options, rows),
         ModifierKind::Scatter(settings) => {
-            super::scatter_rows::scatter_rows(ui, settings, units, rows, chosen);
+            let polygons = chosen.polygons.as_deref();
+            super::scatter_rows::scatter_rows(ui, settings, units, rows, polygons);
+        }
+        ModifierKind::BendAlongCurve(settings) => {
+            super::wrap_rows::bend_rows(ui, settings, units, rows);
+        }
+        ModifierKind::Shrinkwrap(settings) => {
+            let points = chosen.points.as_deref();
+            super::wrap_rows::shrinkwrap_rows(ui, settings, units, rows, points);
         }
     }
 }

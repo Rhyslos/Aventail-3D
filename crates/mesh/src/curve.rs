@@ -26,6 +26,7 @@ use crate::Bounds;
 use glam::{Mat4, Vec3};
 use words::tr;
 
+pub mod bend;
 mod edit;
 mod grid;
 pub mod lathe;

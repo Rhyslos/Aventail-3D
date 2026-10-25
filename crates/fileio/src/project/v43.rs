@@ -28,13 +28,19 @@
 //! Version 47 ([decision 0146](../../../../docs/decisions/0146-scatter.md))
 //! adds the Scatter modifier, naming the shapes it scatters; files before
 //! version 47 never hold it.
+//!
+//! Version 48 ([decision 0147](../../../../docs/decisions/0147-curve-deform-and-shrinkwrap.md))
+//! adds the Bend along curve and Shrinkwrap modifiers, naming the curve or
+//! the target they read; files before version 48 never hold them.
 
 use super::v1::Problem;
 use super::v41::ProjectV41;
 use crate::limits::Bounded;
 use scene::{
-    DecimateKeep, DecimateOptions, Document, FaceId, LatticeOptions, Modifier, ModifierKind,
-    ObjectId, PlaceOn, ReduceBy, RemeshOptions, ScatterOptions, ScatterSettings, SubdivideOptions,
+    BendAxis, BendOptions, CurveBendSettings, DecimateKeep, DecimateOptions, Document, FaceId,
+    LatticeOptions, Modifier, ModifierKind, ObjectId, PlaceOn, ReduceBy, RemeshOptions,
+    ScatterOptions, ScatterSettings, ShrinkwrapOptions, ShrinkwrapSettings, SubdivideOptions,
+    VertexId, WrapMode,
 };
 use serde::{Deserialize, Serialize};
 use words::{tr, trf};
@@ -149,6 +155,54 @@ pub(crate) enum KindV43 {
         #[serde(default = "Bounded::new")]
         polygons: Bounded<u32>,
     },
+    /// The shape bent along a curve object (version 48).
+    BendAlongCurve {
+        /// The curve object.
+        curve: u64,
+        /// Which axis runs along it: 0 the longest, 1 X, 2 Y, 3 Z
+        /// (anything else is the longest).
+        axis: u8,
+        /// Whether the shape is stretched to the curve's length.
+        stretch: bool,
+        /// How far along the curve it starts, in centimetres.
+        offset: f32,
+        /// The twist from start to end, in degrees.
+        twist: f32,
+    },
+    /// The shape's points moved onto a target's surface (version 48).
+    Shrinkwrap {
+        /// The target object.
+        target: u64,
+        /// How points find the surface: 0 nearest, 1 along normals, 2 to
+        /// 4 along X, Y or Z (anything else is nearest).
+        mode: u8,
+        /// How far off the surface, in centimetres.
+        offset: f32,
+        /// The points that move (none for all).
+        #[serde(default = "Bounded::new")]
+        points: Bounded<u32>,
+    },
+}
+
+/// Bend along curve's axis as stored.
+fn axis_number(axis: BendAxis) -> u8 {
+    match axis {
+        BendAxis::Longest => 0,
+        BendAxis::X => 1,
+        BendAxis::Y => 2,
+        BendAxis::Z => 3,
+    }
+}
+
+/// Shrinkwrap's mode as stored.
+fn mode_number(mode: WrapMode) -> u8 {
+    match mode {
+        WrapMode::Nearest => 0,
+        WrapMode::Normals => 1,
+        WrapMode::AxisX => 2,
+        WrapMode::AxisY => 3,
+        WrapMode::AxisZ => 4,
+    }
 }
 
 impl KindV43 {
@@ -190,6 +244,19 @@ impl KindV43 {
                 offset: s.options.offset,
                 shapes: s.shapes.iter().map(|id| id.get()).collect(),
                 polygons: s.polygons.iter().map(|f| f.get()).collect(),
+            },
+            ModifierKind::BendAlongCurve(b) => Self::BendAlongCurve {
+                curve: b.curve.get(),
+                axis: axis_number(b.options.axis),
+                stretch: b.options.stretch,
+                offset: b.options.offset,
+                twist: b.options.twist,
+            },
+            ModifierKind::Shrinkwrap(w) => Self::Shrinkwrap {
+                target: w.target.get(),
+                mode: mode_number(w.options.mode),
+                offset: w.options.offset,
+                points: w.points.iter().map(|v| v.get()).collect(),
             },
         }
     }
@@ -268,6 +335,40 @@ impl KindV43 {
                 },
                 shapes: shapes.iter().map(|id| ObjectId::from_raw(*id)).collect(),
                 polygons: polygons.iter().map(|f| FaceId::from_raw(*f)).collect(),
+            }),
+            Self::BendAlongCurve {
+                curve,
+                axis,
+                stretch,
+                offset,
+                twist,
+            } => ModifierKind::BendAlongCurve(CurveBendSettings {
+                options: BendOptions {
+                    axis: BendAxis::ALL
+                        .into_iter()
+                        .find(|a| axis_number(*a) == *axis)
+                        .unwrap_or_default(),
+                    stretch: *stretch,
+                    offset: *offset,
+                    twist: *twist,
+                },
+                curve: ObjectId::from_raw(*curve),
+            }),
+            Self::Shrinkwrap {
+                target,
+                mode,
+                offset,
+                points,
+            } => ModifierKind::Shrinkwrap(ShrinkwrapSettings {
+                options: ShrinkwrapOptions {
+                    mode: WrapMode::ALL
+                        .into_iter()
+                        .find(|m| mode_number(*m) == *mode)
+                        .unwrap_or_default(),
+                    offset: *offset,
+                },
+                target: ObjectId::from_raw(*target),
+                points: points.iter().map(|v| VertexId::from_raw(*v)).collect(),
             }),
         }
     }

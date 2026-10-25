@@ -113,7 +113,7 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Edit list** — The list of an object's edits in the Edit layers panel. Any edit in it can be opened and changed, and the edits after it are made again. *Bake into shape up to here* bakes the old edits up to one into the shape, so they no longer have to be made again: the shape stays the same, but those edits can't be changed any more. See [The edit list](edit-list.md).
 
-**Modifiers palette** — The thin column of buttons on the right of the viewport, beside the panels, for things that change a shape without destroying it. Its first button adds an edit layer; then come the [booleans](booleans.md) (Union, Subtract, Intersect), then one button per kind of [modifier](#objects-and-scenes), grouped by family (Subdivide and Scatter onto surface, then Add lattice, then Remesh and Decimate, so far). More join it in later versions.
+**Modifiers palette** — The thin column of buttons on the right of the viewport, beside the panels, for things that change a shape without destroying it. Its first button adds an edit layer; then come the [booleans](booleans.md) (Union, Subtract, Intersect), then one button per kind of [modifier](#objects-and-scenes), grouped by family (Subdivide and Scatter onto surface, then Add lattice, Bend along curve and Shrinkwrap onto, then Remesh and Decimate, so far). More join it in later versions.
 
 **Modifier** — A change worked out live on top of a shape, after its edits, booleans and mirror, rather than made to its points: you can change its settings, switch it off, reorder it or remove it at any time, and the shape underneath stays as you modelled it. An object's modifiers are its **modifier stack**, worked out first to last, each on the result of the one before. **Bake into shape** makes them permanent. (Blender and 3ds Max call them modifiers too; Cinema 4D has generators and deformers.) See [Modifiers](modifiers.md).
 
@@ -125,7 +125,11 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Scatter** — Spreading copies of one or more shapes over a surface (on its points, on its polygons' centres, or at random), each standing on it by its [pivot](#objects-and-scenes), with random turns and sizes if you like: rocks on the ground, rivets on a plate. The shapes scattered stay objects of their own, and the copies follow them. See [Scatter](scatter.md).
 
-**Deformer** — A kind of [modifier](#objects-and-scenes) that only moves a shape's points: its polygons, UVs, seams and materials stay as they were, so it is textured just as before, only bent. Each deformer works in a space of its own (a box, or an axis through a centre) over a range, and what lies past the range carries on unbent. The [lattice](lattice.md) is the first; bend, twist and taper follow.
+**Deformer** — A kind of [modifier](#objects-and-scenes) that only moves a shape's points: its polygons, UVs, seams and materials stay as they were, so it is textured just as before, only bent. Each deformer works in a space of its own (a box, or an axis through a centre) over a range, and what lies past the range carries on unbent. The [lattice](lattice.md) is the first; [Bend along curve](bend-along-curve.md) and [Shrinkwrap](shrinkwrap.md) follow, and bend, twist and taper come later.
+
+**Bend along curve (curve deform)** — Bending a shape so it runs along a [curve](#curves): its length follows the curve and its cross-section turns with it, as a sweep's does. The curve stays live, so reshaping it reshapes the shape. (Other programs call it a *curve modifier* or *path deform*.) See [Bend along curve](bend-along-curve.md).
+
+**Shrinkwrap** — Moving a shape's points onto another shape's surface, the *target*: to the nearest place on it, or along a direction until they meet it. For straps, decals and roads that must hug something. See [Shrinkwrap](shrinkwrap.md).
 
 **Lattice (cage)** — A box of points round one or more shapes, an object of its own drawn as lines; moving its points bends, squashes and swells the shapes inside smoothly, through each shape's **Lattice** modifier. Its **divisions** are how many points it has along each side. (Other programs call it a *lattice deformer*, or *FFD*, free-form deformation.) See [Lattice](lattice.md).
 

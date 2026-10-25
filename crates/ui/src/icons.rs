@@ -198,6 +198,12 @@ pub enum Icon {
     /// Scatter (decision 0146): little shapes standing on a curved
     /// surface, each its own way.
     Scatter,
+    /// Bend along curve (decision 0147): a striped bar following a
+    /// curve drawn under it.
+    BendAlongCurve,
+    /// Shrinkwrap (decision 0147): a sheet pulled down onto a hump,
+    /// arrows pressing it on.
+    Shrinkwrap,
     /// Creases (decision 0143): a shape sharp along one edge.
     Creases,
     /// Crease edges: the sharp edge drawn bold.
@@ -269,7 +275,7 @@ pub enum Icon {
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 120] = [
+pub const ALL: [Icon; 122] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -356,6 +362,8 @@ pub const ALL: [Icon; 120] = [
     Icon::Lattice,
     Icon::Decimate,
     Icon::Scatter,
+    Icon::BendAlongCurve,
+    Icon::Shrinkwrap,
     Icon::Creases,
     Icon::CreaseEdges,
     Icon::Uncrease,
@@ -485,6 +493,8 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         | Icon::Lattice
         | Icon::Decimate
         | Icon::Scatter
+        | Icon::BendAlongCurve
+        | Icon::Shrinkwrap
         | Icon::Creases
         | Icon::CreaseEdges
         | Icon::Uncrease => modifiers::draw(&mut pen, icon),
