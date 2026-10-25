@@ -1,5 +1,11 @@
 //! The program's entry point: reads the command line, then opens the app
 //! window (or prints the version or usage).
+//!
+//! On Windows it is a window program, so no console window opens behind
+//! the app; `--version`, `--help` and errors print to the terminal it was
+//! started from, if any (decision 0170).
+
+#![cfg_attr(windows, windows_subsystem = "windows")]
 
 use app::cli::{self, Command};
 use std::io::Write;
@@ -18,6 +24,13 @@ fn say(text: &str, to_error: bool) -> bool {
 
 fn main() -> ExitCode {
     let mut args = std::env::args_os();
+    let printing = !matches!(
+        cli::parse(std::env::args_os().skip(1)),
+        Ok(Command::Run { .. })
+    );
+    if printing {
+        app::platform::use_parent_terminal();
+    }
     let program = args
         .next()
         .and_then(|p| {
@@ -33,14 +46,23 @@ fn main() -> ExitCode {
         Ok(Command::Run { open }) => match app::window::run(app::app_info(), open) {
             Ok(()) => ExitCode::SUCCESS,
             Err(reason) => {
-                say(
-                    &trf!(
-                        "{} could not open its window: {}\n",
-                        app::branding::APP_NAME,
-                        reason
-                    ),
-                    true,
+                let text = trf!(
+                    "{} could not open its window: {}",
+                    app::branding::APP_NAME,
+                    reason
                 );
+                // Started from a terminal, it reads there; on Windows,
+                // started from the Start menu, there is no terminal, so a
+                // message box says it.
+                app::platform::use_parent_terminal();
+                say(&format!("{text}\n"), true);
+                if cfg!(windows) {
+                    rfd::MessageDialog::new()
+                        .set_level(rfd::MessageLevel::Error)
+                        .set_title(app::branding::APP_NAME)
+                        .set_description(&text)
+                        .show();
+                }
                 ExitCode::FAILURE
             }
         },

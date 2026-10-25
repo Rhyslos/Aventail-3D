@@ -22,6 +22,18 @@ pub fn keep_keyboard_focus(frame: &eframe::Frame) {
     let _ = frame;
 }
 
+/// Lets `--version`, `--help` and error messages reach the terminal the
+/// app was started from, if any ([decision 0170](../../../docs/decisions/0170-windows-install-folder-and-no-console.md)).
+///
+/// On Windows the app is a window program, not a console program, so it
+/// opens no console window of its own; started from a terminal, it
+/// borrows that terminal for what it prints. Elsewhere programs always
+/// print to the terminal they were started from, so it does nothing.
+pub fn use_parent_terminal() {
+    #[cfg(windows)]
+    windows::use_parent_terminal();
+}
+
 #[cfg(windows)]
 mod windows {
     // The one place the app talks to Windows directly. Allowed by
@@ -30,6 +42,16 @@ mod windows {
 
     use raw_window_handle::{HasWindowHandle, RawWindowHandle};
     use windows_sys::Win32::Foundation::HWND;
+    use windows_sys::Win32::System::Console::{ATTACH_PARENT_PROCESS, AttachConsole};
+
+    pub(super) fn use_parent_terminal() {
+        // SAFETY: attaches this process to its parent's console, if it has
+        // one; it reads and writes no memory of ours, and failing (no
+        // parent console, double-clicked from Explorer) changes nothing.
+        unsafe {
+            AttachConsole(ATTACH_PARENT_PROCESS);
+        }
+    }
     use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetActiveWindow, GetFocus, SetFocus};
 
     pub(super) fn keep_keyboard_focus(frame: &eframe::Frame) {

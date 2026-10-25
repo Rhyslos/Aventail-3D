@@ -5,7 +5,9 @@
 ;   ReleasesUrl.
 ;
 ; It installs for the person running it only (no admin password), into
-; their own Programs folder, with a Start menu entry, an optional desktop
+; a folder they choose on the first install (their own Programs folder
+; suggested; any folder they may write to, on any drive), with a Start
+; menu entry, an optional desktop
 ; icon, an entry in Windows' installed apps (to uninstall), and project
 ; files opening in the app. Run quietly by an update, it closes the app if
 ; it is still open, and opens it again afterwards unless given /NOLAUNCH.
@@ -25,8 +27,11 @@ DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
 PrivilegesRequired=lowest
 DisableProgramGroupPage=yes
-DisableDirPage=yes
-DisableReadyPage=yes
+; The folder is asked on the first install (decision 0170); updates and
+; reinstalls go back into the folder chosen then.
+DisableDirPage=auto
+UsePreviousAppDir=yes
+DisableReadyPage=no
 DisableWelcomePage=yes
 OutputDir={#OutputDir}
 OutputBaseFilename={#AppId}-setup

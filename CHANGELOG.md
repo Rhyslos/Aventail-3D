@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **Choose where to install, and no terminal window (Windows).** The setup program asks which folder to install into the first time (any drive, still no admin password); updates go back into that folder. The app now opens on its own, without a black terminal window behind it.
 - **Modifiers are listed under their shape.** In the Objects panel (and after the layers in Edit layers), each shape's modifiers are rows under it, first to last. Click one and the Attributes panel shows only its settings; click the shape to go back. Tick to switch one on or off, drag to reorder, press Delete to remove it, and right-click for Duplicate, Move up/down, **Bake into shape up to here** and Remove. The Attributes panel no longer lists every modifier's settings one after another.
 - **The mode palette no longer slides out its names.** The column of icons on the left is icons only, like the top palette: rest the mouse on a button for its name and what it does. The strip of names no longer covers the viewport.
 - **Levels of detail show what the game gets.** Their preview and triangle counts are now of each level as exported (Subdivide at its export levels), not of the viewport's lighter shape.
