@@ -488,32 +488,6 @@ fn the_export_window_starts_with_levels_on_and_lists_collision() {
     assert!(!harness.state().workbench.exporting.choice.lod_levels);
 }
 
-#[test]
-fn the_palettes_names_stay_away_under_a_question() {
-    let mut harness = fresh();
-    // Rest the mouse on the mode palette until its names slide out.
-    let at = harness.get_by_label("Points mode").rect().center();
-    harness.event(egui::Event::PointerMoved(at));
-    harness.run();
-    let wait = |harness: &mut H, seconds: f64| {
-        let start = harness.ctx.input(|i| i.time);
-        while harness.ctx.input(|i| i.time) - start < seconds {
-            harness.step();
-        }
-    };
-    let named = |harness: &H| {
-        harness
-            .query_by_label(&format!("{}Points", crate::palette::NAMES_PREFIX))
-            .is_some()
-    };
-    wait(&mut harness, crate::palette::NAMES_AFTER + 0.3);
-    assert!(named(&harness), "the names slide out");
-    assert!(!harness.state_mut().workbench.request_close());
-    wait(&mut harness, 0.5);
-    assert!(harness.state().workbench.is_asking_to_save());
-    assert!(!named(&harness), "put away while Save changes? is asked");
-}
-
 /// How many texts drawn in the last frame start with `start`.
 fn drawn_texts(harness: &H, start: &str) -> usize {
     harness

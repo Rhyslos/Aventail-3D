@@ -1451,7 +1451,6 @@ Pack: the selection has no UVs with any area to pack.
 Packing
 Padding
 Paint select
-Palette name: 
 Panel
 Panel layout reset to the standard arrangement.
 Paste copies

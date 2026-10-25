@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **The mode palette no longer slides out its names.** The column of icons on the left is icons only, like the top palette: rest the mouse on a button for its name and what it does. The strip of names no longer covers the viewport.
 - **Levels of detail show what the game gets.** Their preview and triangle counts are now of each level as exported (Subdivide at its export levels), not of the viewport's lighter shape.
 - **The modifiers palette scrolls.** When the window is too short to show every button, roll the mouse wheel over the column to reach the last ones (they used to be cut off).
 - **Bevels stop at their neighbours, point by point.** **Stop at overlaps** is now called **Stop at neighbours** (still on as standard): a bevel is narrowed only where it would run past the end of an edge or into the bevel coming the other way, and keeps its full width everywhere else, instead of the whole bevel shrinking for one thin part. Bevels in projects made before this keep their old shape until you change one of their settings.
