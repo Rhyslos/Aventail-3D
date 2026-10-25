@@ -26,6 +26,8 @@ Every change you make to a shape's points, edges and polygons (an extrude, a bev
 
 The panel lists the selected object's layers with the top one first, as they stack: the bottom layer's edits are made first, and each layer works on the shape the layers below it made. Under each layer are its edits, newest first: click one to change it (see [The edit list](edit-list.md)). Every change to a layer is one undo step (**Ctrl + Z**).
 
+**Modifiers.** After the layers, under **Modifiers**, come the object's [modifiers](modifiers.md), first to last: they're worked out on the shape the layers make. They work as they do under the object in the Objects panel: click one to see only its settings in the Attributes panel, tick to switch it on or off, drag to reorder, **Delete** to remove it, right-click for more. See [Changing modifiers later](modifiers.md#changing-modifiers-later).
+
 ## Settings
 
 | Action | What it does |

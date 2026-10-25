@@ -244,13 +244,8 @@ fn the_attributes_panel_changes_the_cage() {
     harness.get_by_label("Reset points").click();
     harness.run();
     assert!(lattice(&harness, cage).is_at_rest());
-    // The cube's Modifiers section names its cage and selects it.
-    harness
-        .state_mut()
-        .workbench
-        .document_mut()
-        .set_selection([id]);
-    harness.run();
+    // The cube's Lattice names its cage and selects it.
+    super::tests::open_modifier(&mut harness, id, 0);
     assert!(harness.query_all_by_label("Lattice").count() >= 1);
     harness.get_by_label("Select cage").click();
     harness.run();

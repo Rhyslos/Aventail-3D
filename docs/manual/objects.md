@@ -27,7 +27,9 @@ If several objects are selected and you drag one of them, they all move, keeping
 
 **Levels made by hand.** A [level of detail](levels-of-detail.md) made by hand is a shape inside its object, named like *Rock LOD2*. Its name is quieter while you aren't editing it, because the viewport shows it only while it is selected, in its object's place (selecting it is how you edit the level). Delete it, or drag it out of its object, and the level is made from the model again; dragged out, it becomes an ordinary shape. Select all leaves these shapes out.
 
-**Fold.** Objects with something inside have a small arrow on the left. Click it to fold the contents away, and again to show them. **View → Collapse all** and **Expand all** fold or open everything.
+**Modifiers.** A shape's [modifiers](modifiers.md) are listed under it, a step in, first to last, each with its icon and a tick to switch it on or off. Click one to see only its settings in the [Attributes panel](attributes.md) (click the shape's own row to go back to the shape's settings); drag it up or down to change the order; press **Delete** to remove it; right-click it for Duplicate, Move up, Move down, Bake into shape up to here and Remove. While a modifier is clicked, its shape's row is a softer shade of the accent colour, and the modifier's row has the full colour. See [Changing modifiers later](modifiers.md#changing-modifiers-later).
+
+**Fold.** Objects with something inside, or with modifiers, have a small arrow on the left. Click it to fold the contents away, and again to show them. **View → Collapse all** and **Expand all** fold or open everything.
 
 **Rename.** Double-click a name (or select one object and use **Edit → Rename**, or type in the **Name** field of the [Attributes panel](attributes.md)), type the new name and press **Enter**. Clicking elsewhere keeps the new name too; **Esc** keeps the old one. Names can't be empty.
 
@@ -37,7 +39,7 @@ If several objects are selected and you drag one of them, they all move, keeping
 
 **Join and split.** **E → Join objects** makes the selected shapes one; **Mesh → Shape and object → Split off** moves selected polygons into an object of their own. See [Split off and join](split-and-join.md). Join objects on curves alone joins them end to end into one curve ([Curves](curves.md#joining-curves-and-closing-them)).
 
-**Delete.** Press **Delete** or **Backspace** (or use **Edit → Delete objects**) to delete the selected objects, together with everything inside them. In the Points, Edges and Polygons modes, these keys delete or dissolve the selected elements instead: see [Clean-up](clean-up.md).
+**Delete.** Press **Delete** or **Backspace** (or use **Edit → Delete objects**) to delete the selected objects, together with everything inside them. (With a modifier clicked, these keys remove the modifier instead.) In the Points, Edges and Polygons modes, these keys delete or dissolve the selected elements instead: see [Clean-up](clean-up.md).
 
 **Right-click** a row for the same commands in one menu. (Right-clicking a row that isn't selected selects it first.) For shapes, the menu also has **Copy settings** and **Paste … settings**: copy one shape's settings (size, segments and so on), then right-click another shape of the same kind, or a selection of them, and paste to make them match. See [The Attributes panel](attributes.md).
 
@@ -78,6 +80,7 @@ The main menu bar's **Edit** menu has the same entries as the panel's Edit menu,
 | Undo | `Ctrl + Z` |
 | Redo | `Ctrl + Y` or `Ctrl + Shift + Z` |
 | Delete the selection | `Delete` or `Backspace` |
+| Remove the modifier clicked (Model mode) | `Delete` or `Backspace` |
 | Select nothing | `Esc` |
 | Put the selection in a new group | `Alt + G` |
 | Take the contents out of the selected groups | `Shift + G` |

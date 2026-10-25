@@ -386,10 +386,14 @@ pub(crate) fn bindings() -> Vec<Binding> {
         ),
         bind(
             objects::DELETE_SHORTCUT,
-            tr("Delete the selected objects"),
+            tr("Delete the selected objects, or the modifier clicked in a list"),
             Model,
         ),
-        plain(Key::Backspace, tr("Delete the selected objects"), Model),
+        plain(
+            Key::Backspace,
+            tr("Delete the selected objects, or the modifier clicked in a list"),
+            Model,
+        ),
         bind(copying::COPY_KEYS, tr("Copy objects"), Model),
         bind(copying::PASTE_KEYS, tr("Paste copies"), Model),
         bind(

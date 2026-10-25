@@ -106,6 +106,8 @@ pub(crate) struct ObjectManager {
     /// Shape settings copied with Copy settings (here or in the
     /// Attributes panel), ready to paste.
     pub(crate) clipboard: Option<scene::Primitive>,
+    /// The modifier rows under the objects (decision 0168).
+    modifier_rows: crate::modifier_list::ModifierRows,
 }
 
 impl ObjectManager {
@@ -137,7 +139,7 @@ impl ObjectManager {
             .walk()
             .into_iter()
             .map(|(id, _)| id)
-            .filter(|id| !scene.children(Some(*id)).is_empty())
+            .filter(|id| !scene.children(Some(*id)).is_empty() || !scene.modifiers(*id).is_empty())
             .collect();
     }
 
@@ -160,8 +162,16 @@ impl ObjectManager {
         rows
     }
 
-    /// Draws the tree into `ui` and handles clicks, renaming and dragging.
-    pub(crate) fn show(&mut self, ui: &mut Ui, doc: &mut Document, out: &mut Vec<DocRequest>) {
+    /// Draws the tree into `ui`, each object's modifiers under it (decision
+    /// 0168), and handles clicks, renaming and dragging. `picked` is the
+    /// modifier whose settings the Attributes panel shows.
+    pub(crate) fn show(
+        &mut self,
+        ui: &mut Ui,
+        doc: &mut Document,
+        picked: &mut crate::modifier_list::Picked,
+        out: &mut Vec<DocRequest>,
+    ) {
         let scene = doc.scene();
         self.folded.retain(|id| scene.contains(*id));
         if self
@@ -188,8 +198,14 @@ impl ObjectManager {
             .show(ui, |ui| {
                 ui.spacing_mut().item_spacing.y = 0.0;
                 for (id, depth) in &rows {
-                    let rect = self.row(ui, doc, *id, *depth, &rows, out);
+                    let rect = self.row(ui, doc, *id, *depth, &rows, picked, out);
                     row_rects.push((Some(*id), rect));
+                    if !self.folded.contains(id) {
+                        // Its modifiers, a step in, before what is inside
+                        // it: icons where a child's icon would be.
+                        let indent = 4.0 + (*depth + 1) as f32 * INDENT + 16.0;
+                        self.modifier_rows.show(ui, doc, *id, indent, picked, out);
+                    }
                 }
                 // The empty space below the rows: click to select nothing,
                 // or drop dragged rows there to move them to the top level.
@@ -212,6 +228,7 @@ impl ObjectManager {
     }
 
     /// One row: fold arrow, icon, name and eye. Returns where it was drawn.
+    #[allow(clippy::too_many_arguments)]
     fn row(
         &mut self,
         ui: &mut Ui,
@@ -219,6 +236,7 @@ impl ObjectManager {
         id: ObjectId,
         depth: usize,
         rows: &[(ObjectId, usize)],
+        picked: &mut crate::modifier_list::Picked,
         out: &mut Vec<DocRequest>,
     ) -> Rect {
         let scene = doc.scene();
@@ -227,7 +245,8 @@ impl ObjectManager {
         };
         let selected = doc.is_selected(id);
         let shown = scene.is_shown(id);
-        let has_children = !scene.children(Some(id)).is_empty();
+        // Something to fold away: objects inside it, or its modifiers.
+        let has_children = !scene.children(Some(id)).is_empty() || !object.modifiers.is_empty();
         let (rect, response) = ui.allocate_exact_size(
             vec2(ui.available_width(), ROW_HEIGHT),
             Sense::click_and_drag(),
@@ -251,7 +270,14 @@ impl ObjectManager {
 
         let painter = ui.painter_at(rect);
         let accent = theme::accent(ui.ctx()).colors();
-        if selected {
+        // While one of its modifiers is picked (decision 0168), the object
+        // is still selected but the modifier has the full colour: what the
+        // Attributes panel shows.
+        let modifier_picked =
+            crate::modifier_list::picked_place(doc, *picked).is_some_and(|(owner, _)| owner == id);
+        if selected && modifier_picked {
+            painter.rect_filled(rect, 3.0, accent.fill.gamma_multiply(0.35));
+        } else if selected {
             // The same fill as the active mode button: one red everywhere.
             painter.rect_filled(rect, 3.0, accent.fill);
         } else if response.hovered() && self.dragging.is_none() {
@@ -394,6 +420,8 @@ impl ObjectManager {
             } else if response.clicked() {
                 self.click(ui, doc, id, rows);
                 self.last_clicked = Some(id);
+                // The object's own settings, not a modifier's.
+                *picked = None;
             } else if response.secondary_clicked() && !selected {
                 doc.set_selection([id]);
                 self.anchor = Some(id);

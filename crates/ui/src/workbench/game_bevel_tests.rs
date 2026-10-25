@@ -64,14 +64,18 @@ fn the_palette_button_adds_a_soft_live_bevel_and_weighted_normals_in_one_step() 
         doc.scene().object(id).unwrap().hardness,
         scene::Hardness::Marked
     );
-    // Both show in the Attributes panel, with the switch it turned on.
-    for name in [
-        "Width",
-        "Segments",
-        SOFT_BEVELS,
-        "Weight by",
-        "Keep hard edges",
-    ] {
+    // Both are listed under the cube, and each shows its settings, with
+    // the switch it turned on.
+    for name in ["Live bevel", "Weighted normals"] {
+        let row = format!("{}{name}", crate::modifier_list::ROW_PREFIX);
+        assert!(harness.query_by_label(&row).is_some(), "{row}");
+    }
+    super::tests::open_modifier(&mut harness, id, 0);
+    for name in ["Width", "Segments", SOFT_BEVELS] {
+        assert!(harness.query_all_by_label(name).count() >= 1, "{name}");
+    }
+    super::tests::open_modifier(&mut harness, id, 1);
+    for name in ["Weight by", "Keep hard edges"] {
         assert!(harness.query_all_by_label(name).count() >= 1, "{name}");
     }
     let note = harness.state().workbench.note.clone().unwrap_or_default();

@@ -382,6 +382,24 @@ pub enum Command {
         /// Where it goes.
         to: usize,
     },
+    /// Puts a copy of the modifier at `index` just after it (decision
+    /// 0168), with the same settings, under a new id.
+    DuplicateModifier {
+        /// The object.
+        id: ObjectId,
+        /// The place of the modifier copied, from the first.
+        index: usize,
+    },
+    /// Bakes the modifiers up to and including the one at `index` into
+    /// the shape (decision 0168), as Bake into shape does with all of
+    /// them: those that are on and worked become part of the shape and
+    /// go; those after `index` stay, worked out on the baked shape.
+    BakeModifiersUpTo {
+        /// The object.
+        id: ObjectId,
+        /// The place of the last modifier baked, from the first.
+        index: usize,
+    },
     /// Changes a curve's points (decision 0138): moves, deletes, makes
     /// smooth or sharp, closes or opens. A ready-made curve becomes points
     /// first. Refused for an object that isn't a curve, or a change that
@@ -611,7 +629,9 @@ impl Command {
             Self::AddModifier { .. }
             | Self::ChangeModifier { .. }
             | Self::RemoveModifier { .. }
-            | Self::MoveModifier { .. } => tr("Change modifiers").to_string(),
+            | Self::MoveModifier { .. }
+            | Self::DuplicateModifier { .. }
+            | Self::BakeModifiersUpTo { .. } => tr("Change modifiers").to_string(),
             Self::AddLattice { .. } | Self::EditLattice { .. } | Self::FitCage { .. } => {
                 tr("Lattice").to_string()
             }
@@ -1659,6 +1679,14 @@ impl Run<'_> {
                 self.move_modifier(*id, *from, *to)?;
                 Ok(None)
             }
+            Command::DuplicateModifier { id, index } => {
+                self.duplicate_modifier(*id, *index)?;
+                Ok(None)
+            }
+            Command::BakeModifiersUpTo { id, index } => {
+                self.bake_modifiers_up_to(*id, *index)?;
+                Ok(None)
+            }
             Command::EditCurve { id, edit } => {
                 self.edit_curve(*id, edit)?;
                 Ok(None)
@@ -1946,9 +1974,23 @@ impl Run<'_> {
     /// that worked end; modifiers switched off, or that couldn't do their
     /// work, stay.
     fn bake_with_modifiers(&mut self, id: ObjectId) -> Result<(), SceneError> {
+        match self.bake_shape_with_modifiers(id)? {
+            Some(problems) => self.end_modifiers(id, &problems),
+            None => Ok(()),
+        }
+    }
+
+    /// The part of [`Self::bake_with_modifiers`] that bakes the shape,
+    /// leaving the list of modifiers as it is. Returns the modifiers that
+    /// couldn't do their work (by place), or `None` when there was no
+    /// shape to bake.
+    pub(super) fn bake_shape_with_modifiers(
+        &mut self,
+        id: ObjectId,
+    ) -> Result<Option<Vec<(usize, String)>>, SceneError> {
         let cut = self.cut_result(id).is_some();
         let Some(result) = self.scene.final_result(id, crate::Purpose::Export) else {
-            return Ok(());
+            return Ok(None);
         };
         let object = self.scene.object(id).ok_or(SceneError::UnknownObject(id))?;
         let before = object.kind.clone();
@@ -1972,7 +2014,7 @@ impl Run<'_> {
                 after: None,
             })?;
         }
-        self.end_modifiers(id, &result.problems)
+        Ok(Some(result.problems))
     }
 
     /// Gives each of `ids` (instances) its own copy of its original's

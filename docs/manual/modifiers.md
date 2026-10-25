@@ -21,19 +21,29 @@ For a change you want to make once, at one spot, an ordinary tool (extrude, beve
    - its button on the **modifiers palette**, the thin column of buttons on the right of the viewport, below the [booleans](booleans.md);
    - **Mesh → Modifiers**, where they're grouped by what they do (Generate: Subdivide, Array, Shell, Struts, Live bevel, Scatter onto surface; Deform: Add lattice, Bend along curve, Shrinkwrap onto, Displace, Bend, twist or taper; Clean up: Remesh, Decimate, Quadify, Weld by distance; Game ready: Weighted normals, Triangulate, and the [Game bevel](game-bevel.md), which adds a Live bevel and Weighted normals in one step);
    - **Space** ([command search](command-search.md)), then type its name (*remesh*) and press **Enter**.
-3. The modifier goes at the end of each selected shape's list, on, and the viewport shows the result. (A **Live bevel** goes before any Subdivide or Weighted normals already there, the order that works; see [Live bevel](live-bevel.md). A **Quadify** goes before any Live bevel, Subdivide, Weighted normals or Struts; see [Quadify](quadify.md). A **Weld by distance** goes before any Decimate, Quadify, Live bevel, Subdivide, Weighted normals, Shell or Struts; see [Weld by distance](weld-by-distance.md). A **Shell** or **Struts** goes before any Live bevel, Subdivide or Weighted normals; see [Shell](shell.md) and [Struts](struts.md). Every kind that changes the shape (all but Weighted normals and Triangulate) goes before any **Weighted normals**, which would otherwise lose its shading to the change; see [Weighted normals](weighted-normals.md). So a Lattice, Array or Scatter added after a [Game bevel](game-bevel.md) goes above its Weighted normals. Every kind goes before a **Triangulate**, the finishing step; see [Triangulate](triangulate.md). **Scatter onto surface** is an exception: it goes on the shape selected *first*, and scatters the others over it; see [Scatter](scatter.md). **Bend along curve** and **Shrinkwrap onto** too: select the shape first, then Ctrl + click the curve or the target; see [Bend along curve](bend-along-curve.md) and [Shrinkwrap](shrinkwrap.md).) The [Attributes panel](attributes.md) lists it under **Modifiers**, with its settings.
+3. The modifier goes at the end of each selected shape's list, on, and the viewport shows the result. (A **Live bevel** goes before any Subdivide or Weighted normals already there, the order that works; see [Live bevel](live-bevel.md). A **Quadify** goes before any Live bevel, Subdivide, Weighted normals or Struts; see [Quadify](quadify.md). A **Weld by distance** goes before any Decimate, Quadify, Live bevel, Subdivide, Weighted normals, Shell or Struts; see [Weld by distance](weld-by-distance.md). A **Shell** or **Struts** goes before any Live bevel, Subdivide or Weighted normals; see [Shell](shell.md) and [Struts](struts.md). Every kind that changes the shape (all but Weighted normals and Triangulate) goes before any **Weighted normals**, which would otherwise lose its shading to the change; see [Weighted normals](weighted-normals.md). So a Lattice, Array or Scatter added after a [Game bevel](game-bevel.md) goes above its Weighted normals. Every kind goes before a **Triangulate**, the finishing step; see [Triangulate](triangulate.md). **Scatter onto surface** is an exception: it goes on the shape selected *first*, and scatters the others over it; see [Scatter](scatter.md). **Bend along curve** and **Shrinkwrap onto** too: select the shape first, then Ctrl + click the curve or the target; see [Bend along curve](bend-along-curve.md) and [Shrinkwrap](shrinkwrap.md).) It's listed under its shape in the [Objects panel](objects.md), and the [Attributes panel](attributes.md) shows its settings at once.
 
 If the button or menu entry is greyed out, hover over it: it says what's missing (nothing selected, or an instance selected).
 
 ### Changing modifiers later
 
-In the shape's **Attributes**, under **Modifiers**, each modifier has:
+![A cube with an Array, a Shell and a Live bevel listed under it in the Objects panel. The Live bevel is clicked, so the Attributes panel shows only its settings, with a "← Cube" button above them.](../screenshots/2026-10-25-modifier-list.png)
 
-- **its switch**, the box before its name: untick it to see the shape without it. It stays, with its settings, until you tick it again.
-- **Up** and **Down**: the order it's worked out in. Order matters: a remesh followed by a coarser one gives a different shape from the other way round, and later modifiers (smoothing, weighted normals) will usually want to come last.
-- **Remove**: takes it away. **Ctrl + Z** brings it back. Any [level of detail](levels-of-detail.md) that switched it off or gave it its own settings loses that change too (undo brings both back).
+A shape's modifiers are listed **under it in the Objects panel**, first to last, each with its icon and a tick, a step in from the shape (click the shape's small arrow to fold them away). They're also listed **after the layers in the [Edit layers](edit-layers.md) panel**, under **Modifiers**. Both lists work the same way:
+
+- **Click a modifier** to see **only its settings** in the Attributes panel. Its shape is selected too. Click the shape's own row, the **← *shape name*** button at the top of the Attributes panel, or anywhere in the viewport to go back to the shape's own settings.
+- **The tick** at the end of its row switches it on or off. Off, the shape is as if it weren't there; it keeps its settings until you tick it again.
+- **Drag** a modifier up or down to change the order it's worked out in (a line shows where it will go). Order matters: a remesh followed by a coarser one gives a different shape from the other way round, and later modifiers (smoothing, weighted normals) will usually want to come last.
+- **Delete** (or **Backspace**) removes the modifier you clicked, not its shape. **Ctrl + Z** brings it back. Any [level of detail](levels-of-detail.md) that switched it off or gave it its own settings loses that change too (undo brings both back).
+- **Right-click** a modifier for **Switch off** (or on), **Duplicate** (a copy with the same settings, just after it), **Move up**, **Move down**, **Bake into shape up to here** (see below) and **Remove**.
+
+With a modifier clicked, the Attributes panel shows:
+
+- **its switch**, the box before its name, the same as the tick.
 - **its settings**: drag or type, and the shape follows. One drag is one undo step.
 - **Show in viewport**: untick it and the viewport skips the modifier, while exports and Bake into shape still use it. Handy for a slow modifier while you model; tick it again to check the result.
+
+With the shape itself selected, its Attributes have a short **Modifiers** section instead: the modifiers' names, first to last, each a link to its settings. A switched-off one is struck through; one that can't do its work is amber.
 
 If a modifier can't do its work, it says why in amber ("Not worked out: …"), and the shape goes on without it, as if it were switched off. Fix the cause and it works again. When a modifier simply has nothing to do on this shape (Weld by distance finds no points close enough, Quadify no triangles to join, Triangulate no polygon to cut), the note is grey instead, "Nothing to do: …": nothing is wrong.
 
@@ -54,6 +64,8 @@ So a modifier sees the whole shape: cut by its booleans, with both halves of a m
 
 **Bake into shape** (**Ctrl + E**, or **Mesh → Shape and object**) turns the shape as an export would get it (for [Subdivide](subdivide.md), at its export levels) into a plain mesh: edits, booleans, mirror and the modifiers that are on, all in one. Those modifiers go; any switched off, or that couldn't do their work, stay. A mirror goes too, as its other half is now part of the mesh. One **Ctrl + Z** undoes it all.
 
+**Bake into shape up to here**, in a modifier's right-click menu, bakes only that modifier and those above it (the ones that are on) into the shape; the ones below stay live, worked out on the new shape. Use it when you're done with the first steps (a Remesh, say) but still want to change the last ones (a Live bevel). Baking up to the last modifier is the same as Ctrl + E.
+
 **Apply mirror** on a shape with modifiers bakes only what comes before them (edits, booleans and mirror); the modifiers stay live on the result.
 
 ### Saving and exporting
@@ -66,9 +78,8 @@ Each [level of detail](levels-of-detail.md) can switch modifiers off or give the
 
 | Setting | What it does |
 |---|---|
-| **The switch** (before the name) | On: the modifier does its work. Off: the shape is as if it weren't there; it keeps its settings. |
-| **Up**, **Down** | Where it is in the list. Modifiers are worked out first to last, each on the one before's result. |
-| **Remove** | Takes it away. |
+| **The tick** (in the lists) or **the switch** (before its name in Attributes) | On: the modifier does its work. Off: the shape is as if it weren't there; it keeps its settings. |
+| **Its place in the list** | Drag it in the Objects or Edit layers panel, or right-click → Move up / Move down. Modifiers are worked out first to last, each on the one before's result. |
 | **Show in viewport** | Off: the viewport skips it (the shape draws faster while you model), but exports and Bake into shape still use it. On as standard. |
 | Its own settings | See its page: [Subdivide](subdivide.md), [Live bevel](live-bevel.md), [Scatter](scatter.md), [Lattice](lattice.md), [Bend along curve](bend-along-curve.md), [Shrinkwrap](shrinkwrap.md), [Remesh](remesh.md), [Decimate](decimate.md), [Weighted normals](weighted-normals.md). |
 
@@ -78,9 +89,10 @@ Each [level of detail](levels-of-detail.md) can switch modifiers off or give the
 |---|---|
 | Find a modifier by name | `Space`, then type the name |
 | Make the modifiers permanent (Bake into shape) | `Ctrl + E` |
+| Remove the modifier clicked in a list (Model mode) | `Delete` or `Backspace` |
 | Undo adding, changing, moving or removing one | `Ctrl + Z` |
 
-Modifiers have no keys of their own.
+In the lists: **click** to see its settings, **drag** to reorder, **right-click** for more.
 
 ## Tips and common problems
 

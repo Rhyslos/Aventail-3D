@@ -44,6 +44,10 @@ pub(super) fn label(scene: &crate::Scene, command: &super::Command) -> Option<St
             }
         }
         Command::RemoveModifier { id, index } => trf!("Remove {}", name_at(id, index)),
+        Command::DuplicateModifier { id, index } => trf!("Duplicate {}", name_at(id, index)),
+        Command::BakeModifiersUpTo { id, index } => {
+            trf!("Bake into shape up to {}", name_at(id, index))
+        }
         Command::MoveModifier { id, from, to } => {
             if to < from {
                 trf!("Move {} up", name_at(id, from))
@@ -158,6 +162,62 @@ impl Run<'_> {
         let modifier = after.remove(from);
         after.insert(to, modifier);
         self.set_modifiers(id, after)
+    }
+
+    /// Puts a copy of the modifier at `index` just after it, under a new
+    /// id (given by [`crate::modifier::with_ids`]).
+    pub(super) fn duplicate_modifier(
+        &mut self,
+        id: ObjectId,
+        index: usize,
+    ) -> Result<(), SceneError> {
+        let mut after = self.scene.modifiers(id).to_vec();
+        let copy = Modifier {
+            id: crate::ModifierId(0),
+            ..after
+                .get(index)
+                .ok_or(SceneError::Modifier(ModifierRefusal::NoSuchModifier))?
+                .clone()
+        };
+        after.insert(index + 1, copy);
+        self.set_modifiers(id, after)
+    }
+
+    /// Bakes the modifiers up to the one at `index` into the shape: the
+    /// list is cut short for the bake (without forgetting the levels of
+    /// detail's changes to those after it), the shape baked, and the list
+    /// given back without those that are now part of the shape.
+    pub(super) fn bake_modifiers_up_to(
+        &mut self,
+        id: ObjectId,
+        index: usize,
+    ) -> Result<(), SceneError> {
+        let all = self.scene.modifiers(id).to_vec();
+        if index >= all.len() {
+            return Err(SceneError::Modifier(ModifierRefusal::NoSuchModifier));
+        }
+        if !self.scene.can_make_editable(id) {
+            return Err(SceneError::Modifier(ModifierRefusal::NotAShape));
+        }
+        let (head, tail) = all.split_at(index + 1);
+        self.edit(Edit::SetModifiers {
+            id,
+            before: all.clone(),
+            after: head.to_vec(),
+        })?;
+        let problems = if self.bakes_modifiers(id) {
+            self.bake_shape_with_modifiers(id)?.unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+        let kept: Vec<Modifier> = head
+            .iter()
+            .enumerate()
+            .filter(|(i, m)| !m.on || problems.iter().any(|(p, _)| p == i))
+            .map(|(_, m)| m.clone())
+            .chain(tail.iter().cloned())
+            .collect();
+        self.replace_modifiers(id, head.to_vec(), kept)
     }
 
     /// Takes out of every other object's modifiers each modifier that

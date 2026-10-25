@@ -1030,6 +1030,8 @@ mod modelling;
 #[cfg(test)]
 mod modelling_tests;
 #[cfg(test)]
+mod modifier_list_tests;
+#[cfg(test)]
 mod modifier_tests;
 mod parts;
 mod path_entry;

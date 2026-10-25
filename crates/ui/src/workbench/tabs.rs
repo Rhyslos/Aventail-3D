@@ -94,6 +94,15 @@ impl TabViewer for PanelViewer<'_> {
             let mut view_ui = ui.new_child(egui::UiBuilder::new().max_rect(view));
             self.viewport
                 .show(&mut view_ui, self.renderer, self.summary);
+            // A click in the viewport goes back to the objects' own
+            // settings from a modifier's (decision 0168).
+            let clicked_in_view = ui.input(|i| {
+                i.pointer.primary_clicked()
+                    && i.pointer.interact_pos().is_some_and(|p| view.contains(p))
+            });
+            if clicked_in_view {
+                self.attributes.picked_modifier = None;
+            }
             ui.advance_cursor_after_rect(full);
             return;
         }
@@ -228,12 +237,18 @@ impl TabViewer for PanelViewer<'_> {
                     self.attributes
                         .show(ui, self.document, *self.units, self.requests);
                 }
-                Panel::Objects => self.objects.show(ui, self.document, self.requests),
+                Panel::Objects => self.objects.show(
+                    ui,
+                    self.document,
+                    &mut self.attributes.picked_modifier,
+                    self.requests,
+                ),
                 Panel::EditLayers => {
                     self.layers.show(
                         ui,
                         self.document,
                         &mut self.attributes.opened,
+                        &mut self.attributes.picked_modifier,
                         self.requests,
                     );
                 }

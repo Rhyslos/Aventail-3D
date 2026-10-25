@@ -131,48 +131,50 @@ fn the_mesh_menu_and_command_search_add_it_too() {
 }
 
 #[test]
-fn the_attributes_panel_lists_them_with_their_settings() {
+fn the_attributes_panel_shows_the_modifier_picked() {
     let (mut harness, id) = selected_cube();
     add_remesh(&mut harness, id, 10.0);
     add_remesh(&mut harness, id, 20.0);
-    assert_eq!(harness.get_all_by_label(ON_LABEL).count(), 2);
-    assert!(harness.get_all_by_label("Voxel size").count() >= 2);
-    assert!(harness.get_all_by_label("Smooth").count() >= 2);
-    // Switch the first off.
-    harness.get_all_by_label(ON_LABEL).next().unwrap().click();
-    harness.run();
-    assert!(!modifiers(&harness, id)[0].on);
-    // The first can't go up; move it down.
-    assert!(
+    // With the object picked, only links to them: no settings.
+    assert!(harness.query_by_label(ON_LABEL).is_none());
+    assert!(harness.query_by_label("Voxel size").is_none());
+    assert_eq!(
         harness
-            .get_all_by_label("Up")
-            .next()
-            .unwrap()
-            .accesskit_node()
-            .is_disabled()
+            .query_all_by_label("Remesh")
+            .filter(|n| n.accesskit_node().role() == egui::accesskit::Role::Label)
+            .count(),
+        2
     );
+    // One picked: its settings alone.
+    super::tests::open_modifier(&mut harness, id, 1);
+    assert_eq!(harness.get_all_by_label(ON_LABEL).count(), 1);
+    // One modifier's Voxel size: its name and its field.
+    assert_eq!(harness.get_all_by_label("Voxel size").count(), 2);
+    assert!(
+        harness.query_by_label("Up").is_none(),
+        "ordering is in the lists"
+    );
+    // Switch it off there.
+    harness.get_by_label(ON_LABEL).click();
+    harness.run();
+    assert!(!modifiers(&harness, id)[1].on);
+    assert!(modifiers(&harness, id)[0].on);
+    // Back to the cube's own settings.
     harness
-        .get_all_by_label("Down")
-        .find(|n| !n.accesskit_node().is_disabled())
+        .get_by_label_contains(crate::attributes::modifier_rows::BACK_PREFIX)
+        .click();
+    harness.run();
+    assert!(harness.query_by_label(ON_LABEL).is_none());
+    assert!(harness.query_by_label("Voxel size").is_none());
+    // A link opens one too.
+    harness
+        .get_all_by_label("Remesh")
+        .find(|n| n.accesskit_node().role() == egui::accesskit::Role::Label)
         .unwrap()
         .click();
     harness.run();
-    let list = modifiers(&harness, id);
-    assert_eq!(
-        list[0].kind,
-        ModifierKind::Remesh(RemeshOptions {
-            voxel_size: 20.0,
-            smooth: 1
-        })
-    );
-    assert!(!list[1].on, "the switched-off one moved down");
-    // Remove both.
-    harness.get_all_by_label("Remove").next().unwrap().click();
-    harness.run();
-    harness.get_all_by_label("Remove").next().unwrap().click();
-    harness.run();
-    assert!(modifiers(&harness, id).is_empty());
-    assert!(harness.query_by_label(ON_LABEL).is_none(), "section gone");
+    // One modifier's Voxel size: its name and its field.
+    assert_eq!(harness.get_all_by_label("Voxel size").count(), 2);
 }
 
 #[test]
@@ -186,6 +188,7 @@ fn an_open_shape_says_why_it_isnt_remeshed() {
     let plane = doc.selection()[0];
     harness.run();
     add_remesh(&mut harness, plane, 10.0);
+    super::tests::open_modifier(&mut harness, plane, 0);
     assert!(
         harness
             .query_by_label_contains("Not worked out: the shape isn't closed")

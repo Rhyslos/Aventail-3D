@@ -254,6 +254,7 @@ fn switching_a_later_modifier_off_keeps_the_rows_in_place() {
     // The array goes before the normals; move it after them, where it
     // drops them, as the tester had it.
     run(&mut harness, Command::MoveModifier { id, from: 0, to: 1 });
+    super::tests::open_modifier(&mut harness, id, 0);
     let switch_y = |harness: &H| {
         harness
             .get_all_by_label(ON_LABEL)
@@ -433,6 +434,7 @@ fn a_weld_with_nothing_to_do_is_a_calm_note() {
             kind: ModifierKind::WeldByDistance(Default::default()),
         },
     );
+    super::tests::open_modifier(&mut harness, id, 0);
     assert!(harness.query_by_label_contains("Nothing to do:").is_some());
     assert!(harness.query_by_label_contains("Not worked out").is_none());
 }

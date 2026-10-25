@@ -50,7 +50,7 @@ The **Lattice modifier's** row, on each bent shape (Attributes panel, **Modifier
 | Setting | What it does |
 |---|---|
 | **Cage** | The cage it follows, with **Select cage** to select it. |
-| **On / off**, **Show in viewport**, Up, Down, Remove | As for every [modifier](modifiers.md). The modifier's place in the list matters: after a [Subdivide](subdivide.md) it bends the smoothed shape; before it, it bends the cage of the smoothing, which is then smoothed. |
+| **On / off**, **Show in viewport**, its place in the list | As for every [modifier](modifiers.md). The modifier's place in the list matters: after a [Subdivide](subdivide.md) it bends the smoothed shape; before it, it bends the cage of the smoothing, which is then smoothed. |
 
 ### What the result keeps
 
