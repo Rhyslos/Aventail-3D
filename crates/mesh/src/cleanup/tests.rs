@@ -368,7 +368,11 @@ fn dissolving_a_run_on_a_sphere_leaves_no_points_between() {
     // A run of edges along a line of longitude, short of the poles (as in
     // the project lead's picture): the points between them are left with
     // two edges, round the curve, and go.
-    let way = before.position(one.ends().0).unwrap().truncate().normalize();
+    let way = before
+        .position(one.ends().0)
+        .unwrap()
+        .truncate()
+        .normalize();
     let meridian: Vec<EdgeKey> = before
         .edges()
         .iter()
@@ -392,7 +396,10 @@ fn dissolving_a_run_on_a_sphere_leaves_no_points_between() {
         .filter(|(v, _)| run.topology().vertex_edges(*v).len() == 2)
         .count();
     assert_eq!(two_edged, 0, "no point is left between just two edges");
-    assert_eq!(run.vertex_count(), before.vertex_count() - (meridian.len() - 1));
+    assert_eq!(
+        run.vertex_count(),
+        before.vertex_count() - (meridian.len() - 1)
+    );
 }
 
 fn one_edge(e: EdgeKey) -> [EdgeKey; 1] {
