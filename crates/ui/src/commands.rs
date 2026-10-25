@@ -74,6 +74,8 @@ pub enum CommandId {
     WeldByDistance,
     /// Add an array modifier to the selected shapes (decision 0153).
     Array,
+    /// Add a shell modifier to the selected shapes (decision 0154).
+    Shell,
     /// Scatter the other selected shapes over the one selected first
     /// (decision 0146).
     Scatter,
@@ -401,6 +403,10 @@ impl CommandId {
             Self::Array => {
                 let kind = scene::ModifierKind::Array(Default::default());
                 (kind.name(), Icon::Array, None, kind.description(), None)
+            }
+            Self::Shell => {
+                let kind = scene::ModifierKind::Shell(Default::default());
+                (kind.name(), Icon::Shell, None, kind.description(), None)
             }
             Self::WeldByDistanceNow => (
                 tr("Weld by distance now"),
@@ -901,6 +907,7 @@ impl CommandId {
             | Self::Quadify
             | Self::WeldByDistance
             | Self::Array
+            | Self::Shell
             | Self::Scatter
             | Self::BendAlongCurve
             | Self::Shrinkwrap
@@ -1166,7 +1173,7 @@ pub fn group_menu(group: CommandId, ring: &[Slot]) -> Vec<Slot> {
 /// palette, the Mesh menu and command search; and Quadify now (decision
 /// 0150) and Weld by distance now (decision 0152), in the Mesh menu's
 /// Clean up group and command search.
-pub const OFF_THE_RING: [CommandId; 17] = [
+pub const OFF_THE_RING: [CommandId; 18] = [
     CommandId::Union,
     CommandId::Subtract,
     CommandId::Intersect,
@@ -1178,6 +1185,7 @@ pub const OFF_THE_RING: [CommandId; 17] = [
     CommandId::Quadify,
     CommandId::WeldByDistance,
     CommandId::Array,
+    CommandId::Shell,
     CommandId::Scatter,
     CommandId::BendAlongCurve,
     CommandId::Shrinkwrap,
@@ -1187,7 +1195,7 @@ pub const OFF_THE_RING: [CommandId; 17] = [
 ];
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 77] = [
+pub const ALL: [CommandId; 78] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -1214,6 +1222,7 @@ pub const ALL: [CommandId; 77] = [
     CommandId::Quadify,
     CommandId::WeldByDistance,
     CommandId::Array,
+    CommandId::Shell,
     CommandId::Scatter,
     CommandId::BendAlongCurve,
     CommandId::Shrinkwrap,

@@ -23,6 +23,7 @@ pub(crate) mod modifier_rows;
 mod object_rows;
 mod quadify_rows;
 mod scatter_rows;
+mod shell_rows;
 pub(crate) mod stepper;
 mod tool_rows;
 mod tool_section;

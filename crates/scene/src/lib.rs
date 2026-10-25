@@ -61,6 +61,7 @@ pub use mesh::live_bevel::{BevelEdges, LiveBevelOptions};
 pub use mesh::quadify::QuadifyOptions;
 pub use mesh::remesh::RemeshOptions;
 pub use mesh::scatter::{PlaceOn, ScatterOptions};
+pub use mesh::shell::{ShellDirection, ShellOptions};
 pub use mesh::shrinkwrap::{ShrinkwrapOptions, WrapMode};
 pub use mesh::subdivide::SubdivideOptions;
 pub use mesh::uvs::{BUDGET_RANGE, SeamPreference, UvLayout};
@@ -131,6 +132,8 @@ mod quadify_tests;
 mod scatter_tests;
 #[cfg(test)]
 mod selection_tests;
+#[cfg(test)]
+mod shell_tests;
 #[cfg(test)]
 mod stack_tests;
 #[cfg(test)]

@@ -133,6 +133,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Array** — Copies of a shape laid out live in a line, a grid or a ring (round its [pivot](#objects-and-scenes) or another object), all part of the same object: edit the shape and every copy follows. Copies that touch can be welded into one surface. See [Array](array.md).
 
+**Shell (thickness)** — Giving a single surface a real thickness: a copy of it behind (or in front), facing the other way, joined to it along its open [borders](#mesh-basics) by a strip of polygons, the **rim**. A plane becomes a plate, a bowl's surface its wall. (Blender calls it Solidify.) See [Shell](shell.md).
+
 **Deformer** — A kind of [modifier](#objects-and-scenes) that only moves a shape's points: its polygons, UVs, seams and materials stay as they were, so it is textured just as before, only bent. Each deformer works in a space of its own (a box, or an axis through a centre) over a range, and what lies past the range carries on unbent. The [lattice](lattice.md) is the first; [Bend along curve](bend-along-curve.md) and [Shrinkwrap](shrinkwrap.md) follow, and bend, twist and taper come later.
 
 **Bend along curve (curve deform)** — Bending a shape so it runs along a [curve](#curves): its length follows the curve and its cross-section turns with it, as a sweep's does. The curve stays live, so reshaping it reshapes the shape. (Other programs call it a *curve modifier* or *path deform*.) See [Bend along curve](bend-along-curve.md).

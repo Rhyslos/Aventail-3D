@@ -44,6 +44,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Subdivide: smooth a shape by subdividing it, with creases to keep edges sharp](subdivide.md)
 - [Live bevel: bevel a shape's sharp edges and keep the bevel live while you model](live-bevel.md)
 - [Array: copies of a shape in a line, a grid or a ring, fence posts, stairs, bolts round a wheel](array.md)
+- [Shell: a surface given thickness, for plates, panels, cups and helmets](shell.md)
 - [Scatter: copies of other shapes spread over a surface, rocks on the ground, rivets on a plate](scatter.md)
 - [Bend along curve: a shape bent along a curve, a rope, a rail, a vine](bend-along-curve.md)
 - [Shrinkwrap: a shape's points moved onto another's surface, straps, decals, roads on terrain](shrinkwrap.md)
