@@ -47,6 +47,8 @@ pub(crate) struct ObjectV39 {
     pub(crate) shape: Option<ShapeV39>,
     /// Its collision in parts, and how it is split (version 52).
     pub(crate) collision_parts: Option<super::v52::CollisionPartsV52>,
+    /// Its levels of detail (version 56).
+    pub(crate) lods: Option<super::v56::LodsV56>,
 }
 
 /// A shape newer than version 38's model knows, with its settings
@@ -328,6 +330,7 @@ impl Default for ObjectV39 {
             mirror_on_object: false,
             shape: None,
             collision_parts: None,
+            lods: None,
         }
     }
 }
@@ -353,6 +356,7 @@ impl ProjectV39 {
                         _ => None,
                     },
                     collision_parts: super::v52::CollisionPartsV52::of(object),
+                    lods: super::v56::LodsV56::of(object),
                 })
             })
             .collect();
@@ -390,6 +394,11 @@ impl ProjectV39 {
                         parts.chosen,
                         parts.options(),
                     )
+                    .map_err(Problem::from)?;
+            }
+            if let Some(lods) = &object.lods {
+                document = document
+                    .with_lods(ObjectId::from_raw(object.id), lods.lods())
                     .map_err(Problem::from)?;
             }
         }

@@ -65,6 +65,7 @@ mod v52;
 mod v53;
 mod v54;
 mod v55;
+mod v56;
 mod v6;
 mod v7;
 mod v8;
@@ -130,7 +131,10 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 ///
 /// Version 55 (decision 0154) is version 54 with the Shell modifier
 /// (`v43::KindV43::Shell`).
-pub const FORMAT_VERSION: u32 = 55;
+///
+/// Version 56 (decision 0155) is version 55 with each object's levels of
+/// detail (`v56::LodsV56`, in each object's development settings).
+pub const FORMAT_VERSION: u32 = 56;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -977,3 +981,5 @@ mod v53_tests;
 mod v54_tests;
 #[cfg(test)]
 mod v55_tests;
+#[cfg(test)]
+mod v56_tests;

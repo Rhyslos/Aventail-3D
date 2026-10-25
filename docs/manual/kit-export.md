@@ -38,6 +38,7 @@ Each piece:
 
 - is named after its object (`Wall corner.glb`). Characters a file name can't hold become `_`, and two pieces of the same name get a number;
 - holds the piece and everything inside it, with the piece's **pivot at the file's origin**, turned and sized as in the scene;
+- with **Levels of detail** ticked under *Includes* in the Export window, holds each object's [levels of detail](levels-of-detail.md) beside it too, at the same pivot, named `Wall corner_LOD1` and on;
 - uses the Export window's settings (**Made for**, or with Custom settings the file type, units and so on).
 
 ## Settings

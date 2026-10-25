@@ -66,11 +66,12 @@ pub(crate) enum MenuAction {
     HighContrast,
     EditPivot,
     ApplyMirror,
+    MakeLods,
     Group,
 }
 
 impl MenuAction {
-    pub(crate) const ALL: [MenuAction; 32] = [
+    pub(crate) const ALL: [MenuAction; 33] = [
         Self::New,
         Self::Open,
         Self::Save,
@@ -102,6 +103,7 @@ impl MenuAction {
         Self::HighContrast,
         Self::EditPivot,
         Self::ApplyMirror,
+        Self::MakeLods,
         Self::Group,
     ];
 
@@ -243,6 +245,14 @@ impl MenuAction {
                 tr("Mesh"),
                 tr(
                     "Make the mirrored half of a symmetrical object part of its shape (symmetry off)",
+                ),
+            ),
+            Self::MakeLods => (
+                tr("Make levels of detail"),
+                tr("Attributes"),
+                tr(
+                    "Give the selected shapes simpler copies for a game to draw far away; their \
+                     settings are in Attributes → Levels of detail",
                 ),
             ),
             Self::Group => (

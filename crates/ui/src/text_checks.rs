@@ -466,7 +466,7 @@ fn is_interface_text(literal: &str, before: &str) -> bool {
     {
         return false;
     }
-    const NOT_TEXT: [&str; 41] = [
+    const NOT_TEXT: [&str; 42] = [
         // A function serde calls for a missing field's value.
         "#[serde(default =",
         "Id::new(",
@@ -525,6 +525,9 @@ fn is_interface_text(literal: &str, before: &str) -> bool {
         "APP_SHORT_NAME: &str =",
         // A system message looked for in what the window library said.
         "contains(",
+        // A file format's extension name (glTF's `KHR_node_visibility`):
+        // a code, the same in every language (fileio).
+        "_EXTENSION: &str =",
     ];
     let b = before.trim_end();
     !NOT_TEXT.iter().any(|n| b.ends_with(n))

@@ -192,6 +192,12 @@ pub(crate) enum Edit {
         before: mesh::convex_parts::ConvexPartsOptions,
         after: mesh::convex_parts::ConvexPartsOptions,
     },
+    /// Changes an object's levels of detail (decision 0155).
+    SetLods {
+        id: ObjectId,
+        before: Box<crate::lod::Lods>,
+        after: Box<crate::lod::Lods>,
+    },
     /// Changes an object's list of materials.
     SetMaterials {
         id: ObjectId,
@@ -261,6 +267,7 @@ impl Edit {
             Self::SetMaterials { before, after, .. } => before == after,
             Self::SetCollision { before, after, .. } => before == after,
             Self::SetCollisionParts { before, after, .. } => before == after,
+            Self::SetLods { before, after, .. } => before == after,
             Self::SetHardness { before, after, .. } => before == after,
             Self::SetMirror { before, after, .. } => before == after,
             Self::SetBooleans { before, after, .. } => before == after,
@@ -326,6 +333,11 @@ impl Edit {
                 after: before,
             },
             Self::SetCollisionParts { id, before, after } => Self::SetCollisionParts {
+                id,
+                before: after,
+                after: before,
+            },
+            Self::SetLods { id, before, after } => Self::SetLods {
                 id,
                 before: after,
                 after: before,
@@ -437,6 +449,8 @@ pub struct Scene {
     pub(crate) stacks: crate::modifier::StackCache,
     /// Each object's collision shapes (decision 0151), the same way.
     pub(crate) collisions: crate::collision::CollisionCache,
+    /// Each object's levels of detail (decision 0155), the same way.
+    pub(crate) lods: crate::lod::LodCache,
 }
 
 impl Scene {
@@ -643,6 +657,22 @@ impl Scene {
             node.object.collision = crate::Collision::Parts;
         }
         node.object.collision_parts = options.clamped();
+        Ok(self)
+    }
+
+    /// The same scene with object `id`'s levels of detail set (decision
+    /// 0155), for a project being opened (not a step to undo: use
+    /// [`crate::Command::SetLods`]). The settings are clamped; an unknown
+    /// object, or levels on for one with no shape, is refused.
+    pub fn with_lods(mut self, id: ObjectId, lods: crate::lod::Lods) -> Result<Self, &'static str> {
+        let node = self
+            .nodes
+            .get_mut(&id)
+            .ok_or_else(|| tr("its levels of detail name an object that isn't there"))?;
+        if lods.on && !node.object.kind.has_shape() {
+            return Err(tr("an object with no shape has levels of detail"));
+        }
+        node.object.lods = lods.clamped();
         Ok(self)
     }
 
@@ -1188,6 +1218,7 @@ impl Scene {
                 self.cuts.forget(*id);
                 self.stacks.forget(*id);
                 self.collisions.forget(*id);
+                self.lods.forget(*id);
                 Ok(())
             }
             Edit::Relocate { id, from, to } => {
@@ -1284,6 +1315,19 @@ impl Scene {
                     )));
                 }
                 node.object.collision = *after;
+                Ok(())
+            }
+            Edit::SetLods { id, before, after } => {
+                let node = self
+                    .nodes
+                    .get_mut(id)
+                    .ok_or(SceneError::UnknownObject(*id))?;
+                if node.object.lods != **before {
+                    return Err(SceneError::History(text!(
+                        "an object's levels of detail have changed"
+                    )));
+                }
+                node.object.lods = (**after).clone();
                 Ok(())
             }
             Edit::SetCollisionParts { id, before, after } => {

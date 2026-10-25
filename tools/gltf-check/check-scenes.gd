@@ -1,7 +1,9 @@
 # Opens each scene Godot imported from the models folder and checks it:
 # every file holds at least one mesh, and the file with Godot's collision
 # names (godot-collision.glb) gets its collision shapes, as does the file
-# with collision in parts (godot-collision-parts.glb). Run by
+# with collision in parts (godot-collision-parts.glb), and the levels of
+# detail (godot-lods.glb, imported with lod_ranges.gd) are shown between
+# their distances. Run by
 # godot-import.sh after the import; prints "FAILED" lines for problems.
 extends SceneTree
 
@@ -37,10 +39,35 @@ func _init() -> void:
 		if name == "godot-collision-parts.glb" and (shapes < 5 or meshes != 2):
 			print("FAILED: %s should have 2 meshes and 5 or more collision shapes" % name)
 			failed = true
+		if name == "godot-lods.glb" and not lods_ranged(root):
+			failed = true
 		root.free()
 	if not failed:
 		print("All scenes checked")
 	quit(1 if failed else 0)
+
+
+# Whether the sphere and the ring of godot-lods.glb came in with three
+# levels each, shown one after another from 10 m, 20 m and 40 m (the
+# standard distances), by the post-import script.
+func lods_ranged(root: Node) -> bool:
+	var ok := true
+	for shape in ["Sphere", "Torus"]:
+		var begins := [0.0, 10.0, 20.0, 40.0]
+		var ends := [10.0, 20.0, 40.0, 0.0]
+		for level in 4:
+			var node_name: String = shape if level == 0 else "%s_LOD%d" % [shape, level]
+			var node := root.find_child(node_name, true, false) as GeometryInstance3D
+			if node == null:
+				print("FAILED: godot-lods.glb has no %s" % node_name)
+				ok = false
+				continue
+			if not node.visible or not is_equal_approx(node.visibility_range_begin, begins[level]) \
+					or not is_equal_approx(node.visibility_range_end, ends[level]):
+				print("FAILED: %s is shown from %s to %s (visible %s)" % [node_name,
+						node.visibility_range_begin, node.visibility_range_end, node.visible])
+				ok = false
+	return ok
 
 
 # How many nodes of `kind` are in the tree under `node`, itself included.

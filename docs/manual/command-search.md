@@ -22,7 +22,7 @@ What it finds:
 - every tool and command of the [tool menu](tool-menu.md), in every mode;
 - the modes: *Model mode*, *Points mode* and the rest;
 - the ready-made shapes: *Cube*, *Cylinder* and the rest;
-- the other menu commands: New, Open, Save, Import, Export, Check for baking, Settings, Keys, the user manual and the glossary, Undo and Redo, the Select commands, Hide, Isolate and Show everything, the UV Editor, Show hard edges, Show seams, Show normals and Show collision, High contrast, [Edit pivot](pivots.md), [Apply mirror](symmetry.md) and Group.
+- the other menu commands: New, Open, Save, Import, Export, Check for baking, Settings, Keys, the user manual and the glossary, Undo and Redo, the Select commands, Hide, Isolate and Show everything, the UV Editor, Show hard edges, Show seams, Show normals and Show collision, High contrast, [Edit pivot](pivots.md), [Apply mirror](symmetry.md), [Make levels of detail](levels-of-detail.md) and Group.
 
 A command that can't be used right now (say Bevel with nothing selected) is listed in grey, below the ones that can; hold the mouse over it to see why.
 

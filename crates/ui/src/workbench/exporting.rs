@@ -37,6 +37,9 @@ pub struct ExportChoice {
     pub up: UpAxis,
     /// Whether polygons are cut into triangles.
     pub triangulate: bool,
+    /// Whether each object's levels of detail go out beside it (decision
+    /// 0155). Not a preset's setting: kept when Made for changes.
+    pub lod_levels: bool,
 }
 
 impl Default for ExportChoice {
@@ -55,6 +58,7 @@ impl ExportChoice {
             units: FileUnits::default(),
             up: UpAxis::default(),
             triangulate: false,
+            lod_levels: false,
         }
     }
 
@@ -68,6 +72,7 @@ impl ExportChoice {
             up: settings.up,
             triangulate: settings.triangulate,
             what: self.what,
+            lod_levels: self.lod_levels,
         }
     }
 
@@ -112,6 +117,8 @@ pub struct ExportSettings {
     pub up: UpAxis,
     /// Whether polygons are cut into triangles (used without a preset).
     pub triangulate: bool,
+    /// Whether levels of detail go out (decision 0155).
+    pub lod_levels: bool,
 }
 
 impl Default for ExportSettings {
@@ -130,6 +137,7 @@ impl ExportSettings {
             units: choice.units,
             up: choice.up,
             triangulate: choice.triangulate,
+            lod_levels: choice.lod_levels,
         }
     }
 
@@ -144,6 +152,7 @@ impl ExportSettings {
             units: self.units,
             up: self.up,
             triangulate: self.triangulate,
+            lod_levels: self.lod_levels,
         };
         match self.preset {
             Some(preset) => custom.with_preset(preset),
@@ -430,6 +439,7 @@ impl Workbench {
             options: ExportOptions {
                 what: ExportWhat::Everything,
                 hardness: self.export_hardness(),
+                lod_levels: self.exporting.choice.lod_levels,
                 ..ExportOptions::default()
             },
         })
@@ -576,6 +586,7 @@ impl Workbench {
                 hardness,
                 triangulate: choice.triangulate,
                 godot_names: choice.preset == Some(ExportPreset::Godot),
+                lod_levels: choice.lod_levels,
             },
             path,
             suggested_name: format!("{stem}.{}", choice.format.extension()),
@@ -628,6 +639,7 @@ impl Workbench {
             units: request.options.units,
             up: request.options.up,
             triangulate: request.options.triangulate,
+            lod_levels: request.options.lod_levels,
         };
         let objects = match summary.objects {
             1 => tr("1 object").to_string(),

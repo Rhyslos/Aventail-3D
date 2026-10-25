@@ -34,7 +34,7 @@ The Export window has a **side list** on the left. **General** holds everything 
 5. Check **What goes out** at the bottom: how many objects, triangles and materials the file will hold. If nothing would go out (everything hidden, say), the footer says so and **Export…** can't be pressed.
 6. Click **Export…** (or press **Enter**), choose where to save, and the status bar says how many objects and triangles went out (and for an OBJ, the `.mtl` file is written beside it). **Cancel**, the **×** or **Esc** closes the window without exporting.
 
-**Includes** shows what goes into the file: the mesh and its materials. They always go out; once the app has skeletons and animations, they will be listed here too, to leave out when you don't need them.
+**Includes** shows what goes into the file: the mesh and its materials. They always go out; once the app has skeletons and animations, they will be listed here too, to leave out when you don't need them. Tick **Levels of detail** there to put each object's [levels of detail](levels-of-detail.md) in the file too, beside it, as `name_LOD1`, `name_LOD2` and so on (off as standard: Godot makes its own). The numbers under *What goes out* count the objects themselves, not their levels.
 
 The **Game project** part of General says whether every save also exports into your game project, and where the file goes, for example *crate-run (Godot) › models › crate.glb*. Click **Game project** in that sentence (or in the side list) to set it up or change it: see [Export into a game project](#export-into-a-game-project).
 
@@ -106,7 +106,7 @@ The app reads an OBJ as metres with Y up, the usual way, and turns it to centime
 |---|---|
 | **Made for** (title bar) | **Godot** (standard on first use), **Unity**, **Unreal Engine**, **Solis** or **Substance Painter** choose the file settings for you and lock them; **Custom settings** lets you choose. The last export's choice is remembered between projects and launches. |
 | **Objects** | **Everything shown** (standard), or **Selected only**: the selected objects and what's inside them. Groups have no shape of their own; only shapes are exported. |
-| **Includes** | What goes into the file: the mesh and its materials, always. |
+| **Includes** | What goes into the file: the mesh and its materials, always, and with **Levels of detail** ticked, each object's [levels of detail](levels-of-detail.md) beside it (off as standard; remembered). |
 | **File type** (Custom settings) | **glTF (.glb)**, standard: each object at its pivot; always metres, Y up, triangles. **OBJ (.obj)**: plain shapes where they stand. |
 | **Units** (Custom settings) | The file's units. **Metres**: 1 unit = 1 m, for Godot, Unity and Substance Painter (standard). **Centimetres**: 1 unit = 1 cm, for Unreal Engine. |
 | **Up axis** (Custom settings) | **Y up** (standard) turns the model so its height runs along Y, as nearly every program expects. **Z up** keeps the app's own axes. |

@@ -982,6 +982,8 @@ mod lattice_tests;
 mod layer_tests;
 #[cfg(test)]
 mod live_bevel_tests;
+#[cfg(test)]
+mod lod_tests;
 mod modelling;
 #[cfg(test)]
 mod modelling_tests;

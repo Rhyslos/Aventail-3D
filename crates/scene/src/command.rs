@@ -217,6 +217,14 @@ pub enum Command {
         /// How they are split.
         options: mesh::convex_parts::ConvexPartsOptions,
     },
+    /// Changes the levels of detail of objects with a shape (decision
+    /// 0155); the settings are clamped. Groups are left alone.
+    SetLods {
+        /// The objects.
+        ids: Vec<ObjectId>,
+        /// Their levels of detail.
+        lods: crate::Lods,
+    },
     /// Changes the project's game project folder (decision 0076), or takes
     /// it away (`None`). A folder path that is empty, too long or has
     /// line breaks is refused.
@@ -518,6 +526,7 @@ impl Command {
                 c => trf!("Collision: {}", c.name().to_lowercase()),
             },
             Self::SetCollisionParts { .. } => tr("Change the collision parts").to_string(),
+            Self::SetLods { .. } => tr("Change the levels of detail").to_string(),
             Self::SetExportTarget(Some(_)) => tr("Change the game project folder").to_string(),
             Self::SetExportTarget(None) => tr("Clear the game project folder").to_string(),
             Self::SetTexture(_) => tr("Change the texture settings").to_string(),
@@ -1384,6 +1393,25 @@ impl Run<'_> {
                         id: *id,
                         before,
                         after: options,
+                    })?;
+                }
+                Ok(None)
+            }
+            Command::SetLods { ids, lods } => {
+                let lods = lods.clamped();
+                for id in ids {
+                    let object = self
+                        .scene
+                        .object(*id)
+                        .ok_or(SceneError::UnknownObject(*id))?;
+                    if !object.kind.has_shape() || object.lods == lods {
+                        continue;
+                    }
+                    let before = Box::new(object.lods.clone());
+                    self.edit(Edit::SetLods {
+                        id: *id,
+                        before,
+                        after: Box::new(lods.clone()),
                     })?;
                 }
                 Ok(None)

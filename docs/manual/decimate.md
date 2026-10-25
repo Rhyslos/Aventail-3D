@@ -61,7 +61,7 @@ Because corners never move, a target can't always be reached: a cube's 12 triang
 
 ### Levels of detail
 
-Decimate at a few ratios (say 50%, 25% and 12%) gives the lighter versions a game shows further away. A coarser level made by the app always has only points the finer ones have, so they swap without the outline jumping about. (A LOD generator that makes the levels for you comes later this phase.)
+Decimate at a few ratios (say 50%, 25% and 12%) gives the lighter versions a game shows further away. A coarser level made by the app always has only points the finer ones have, so they swap without the outline jumping about. To have the app make the levels for you, beside the object rather than in its place, use [Levels of detail](levels-of-detail.md).
 
 ## Shortcuts
 

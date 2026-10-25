@@ -148,6 +148,7 @@ fn a_glb_follows_godot_whatever_its_greyed_out_settings_say() {
         units: FileUnits::Centimetres,
         up: UpAxis::Z,
         triangulate: false,
+        lod_levels: false,
     };
     assert!(choice.follows(ExportPreset::Godot));
     assert!(!choice.follows(ExportPreset::SubstancePainter));
@@ -670,8 +671,10 @@ fn damaged_remembered_settings_fall_back_safely() {
         units: FileUnits::Centimetres,
         up: UpAxis::Z,
         triangulate: false,
+        lod_levels: true,
     };
     let choice = mixed.choice();
+    assert!(choice.lod_levels, "kept with a preset");
     assert_eq!(choice.format, ExportFormat::Obj);
     assert!(choice.follows(ExportPreset::SubstancePainter));
     // A preset the app doesn't know is refused, so the app starts with

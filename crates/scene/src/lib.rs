@@ -17,6 +17,7 @@ pub mod curve;
 pub mod document;
 mod history;
 pub mod lattice;
+pub mod lod;
 mod memory;
 pub mod mirroring;
 pub mod modifier;
@@ -43,6 +44,7 @@ pub use curve::{CurveObject, CurveShape, CurveSolid, Sweep, SweepProfile};
 pub use document::Document;
 pub use history::HistoryLimit;
 pub use lattice::LatticeOptions;
+pub use lod::{LODS_IN_BACKGROUND_FROM, LodDone, LodJob, LodLevel, LodShapes, LodState, Lods};
 pub use mesh::array::{ArrayAxis, ArrayLayout, ArrayOptions};
 pub use mesh::convex_parts::ConvexPartsOptions;
 pub use mesh::curve::bend::{BendAxis, BendOptions};
@@ -120,6 +122,8 @@ mod layer_tests;
 mod live_bevel_tests;
 #[cfg(test)]
 mod live_mirror_tests;
+#[cfg(test)]
+mod lod_tests;
 #[cfg(test)]
 mod mirroring_tests;
 #[cfg(test)]

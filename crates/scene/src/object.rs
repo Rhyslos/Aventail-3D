@@ -296,6 +296,10 @@ pub struct Object {
     /// How *Wrapped in parts* splits it (decision 0151): kept when another
     /// collision is chosen, so choosing it again brings them back.
     pub collision_parts: mesh::convex_parts::ConvexPartsOptions,
+    /// Its levels of detail (decision 0155): simpler copies of its shape
+    /// for a game to draw far away. Off for most objects; its settings are
+    /// kept while off.
+    pub lods: crate::lod::Lods,
     /// Its live mirror, if it has one (decision 0088): mirrored copies of
     /// its shape, drawn and exported as part of it.
     pub mirror: Option<LiveMirror>,
@@ -484,6 +488,7 @@ impl Object {
             materials: Vec::new(),
             collision: Collision::None,
             collision_parts: mesh::convex_parts::ConvexPartsOptions::default(),
+            lods: crate::lod::Lods::default(),
             mirror: None,
             hardness: mesh::Hardness::ByAngle(STANDARD_SMOOTHING_ANGLE),
             booleans: Vec::new(),

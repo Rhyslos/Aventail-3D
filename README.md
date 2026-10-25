@@ -258,9 +258,9 @@ After a review of the whole app (2026-10-21, [decision 0121](docs/decisions/0121
 
 **Gate:** 2–3 people new to the app finish a fixed task list without help, see what is selected on any screen, and no text skips the English package. Then Phase 10, advanced modelling.
 
-### Phase 10 · Advanced hard-surface (after Phase 9, before the rest of Phase 8) — 16 of 23
+### Phase 10 · Advanced hard-surface (after Phase 9, before the rest of Phase 8) — 17 of 23
 
-`█████████░░░░` 70%
+`██████████░░░` 74%
 
 Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/decisions/0125-modelling-before-the-rest-of-the-uvs.md)); Phase 8 continues once it's done. Friends join as testers around here, once there are enough tools to build something. On 24 October the project lead widened it with fourteen more modifiers ([decision 0136](docs/decisions/0136-more-modifiers.md)); each still asks about its controls before it's built. They're built biggest and hardest first, except where one builds on another ([decision 0137](docs/decisions/0137-biggest-first.md)).
 
@@ -283,7 +283,7 @@ Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/d
 - [x] Weld by distance: points sitting on top of each other melted into one, closing cracks (imports split along their seams, pieces placed edge to edge), as a live modifier or once with Weld by distance now ([decision 0152](docs/decisions/0152-weld-by-distance.md))
 - [x] Array and mirror generators: copies in a line, a grid, or round a centre (radial: wheels, gears, pillars), merged where they touch if asked; symmetry is the per-object mirror generator ([decision 0153](docs/decisions/0153-array.md))
 - [x] Shell: a surface given thickness, even into sharp corners, its open borders closed by rims with hard edges, seams and UVs of their own ([decision 0154](docs/decisions/0154-shell.md))
-- [ ] LOD generator: lower-polygon versions for distance, exported with Godot's LOD names
+- [x] LOD generator: **Levels of detail**, simpler copies made from the finished shape for distance, previewed in the viewport; Godot makes its own on import (it reads no hand-made levels), so they're exported on request as `name_LOD1` and on, with their distances ([decision 0155](docs/decisions/0155-levels-of-detail.md))
 - [ ] Game bevel for mid-poly models: bevel, weighted normals, hard edges and seams in one step
 - [ ] Displace and noise: ripple or roughen a surface, for rocks, terrain and damage
 - [ ] Bend, twist and taper
@@ -313,6 +313,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-24 | Phase 10: levels of detail, simpler copies of a shape for a game to draw far away (50%, 25%, 12% from 10, 20 and 40 m as standard), previewed in the viewport and exported on request as name_LOD1 and on; Godot makes its own on import |
 | 2026-10-24 | Phase 10: Shell, a surface given thickness live (inward, outward or both sides, even into sharp corners), its open borders closed with rims that shade hard and get UVs and seams of their own |
 | 2026-10-24 | Phase 10: Array, copies of a shape in a line, a grid or a ring round its pivot or another object, live, welded where they touch if asked, their UVs shared or side by side; symmetry stays the mirror generator |
 | 2026-10-24 | Phase 10: Weld by distance, points on top of each other melted into one to close an import's cracks or join pieces placed edge to edge, the UVs kept and joins marked as seams, as a live modifier or a one-off Weld by distance now |
