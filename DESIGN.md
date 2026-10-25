@@ -580,6 +580,7 @@ After a review of the whole app (2026-10-21, [0121](docs/decisions/0121-rework-b
    - Fewer words for edits (one "Bake into shape", no "Keep editable").
    - Drags in a row merge into one edit.
    - The Edit layers tab stays out of the way until a layer is added.
+   - The Levels tab sits beside Attributes, and comes back there when a shape with levels of detail is selected ([0165](docs/decisions/0165-levels-panel.md)).
 5. **Hard edges and symmetry per object:**
    - Smoothing by angle becomes a per-object setting that hand-marked hard edges add to ([issue #114](https://github.com/Rhyslos/Aventail-3D/issues/114)).
    - Symmetry becomes a modifier, one mirror per object, at the object's own centre by default (the project lead, 2026-10-21; it replaces the live mirror and the separate Mirror modifier planned for Phase 10).
@@ -731,7 +732,7 @@ Possible features noted along the way. Not scheduled; nothing here blocks other 
 |---|---|---|
 | Material slots / polygon selection sets | Each slot becomes a texture set in Substance Painter and a material in Godot | Face attributes (§4.1), export |
 | Reference images in viewports | Blueprints/concept art to model hard-surface parts against | Renderer, ortho views |
-| LODs | Lower-detail versions for distance; Godot can also generate them automatically | Done in Phase 10: Attributes → Levels of detail, made with Decimate ([0155](docs/decisions/0155-levels-of-detail.md)) |
+| LODs | Lower-detail versions for distance; Godot can also generate them automatically | Done in Phase 10: the Levels panel, each level with its own modifier changes, reduced with Decimate, or made by hand ([0155](docs/decisions/0155-levels-of-detail.md), [0165](docs/decisions/0165-levels-panel.md)) |
 | Measure tool | Checking real-world sizes (door frames, crates) while modelling | Snapping |
 
 ## 13. Decision log
