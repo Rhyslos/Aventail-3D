@@ -29,6 +29,7 @@
 
 mod eval;
 
+pub use crate::lattice::LatticeOptions;
 use crate::object::{ObjectId, ObjectKind};
 use crate::tree::Scene;
 use glam::Mat4;
@@ -93,6 +94,9 @@ pub enum ModifierKind {
     Remesh(RemeshOptions),
     /// Subdivision smoothing (decision 0143): Catmull-Clark, with creases.
     Subdivide(SubdivideOptions),
+    /// A lattice cage's bend (decision 0144): the shape's points moved
+    /// through a cage object's box of points. The first deformer.
+    Lattice(LatticeOptions),
 }
 
 impl ModifierKind {
@@ -101,6 +105,7 @@ impl ModifierKind {
     pub fn standard_kinds() -> Vec<Self> {
         vec![
             Self::Subdivide(SubdivideOptions::default()),
+            Self::Lattice(LatticeOptions::default()),
             Self::Remesh(RemeshOptions::default()),
         ]
     }
@@ -110,6 +115,7 @@ impl ModifierKind {
         match self {
             Self::Remesh(_) => tr("Remesh"),
             Self::Subdivide(_) => tr("Subdivide"),
+            Self::Lattice(_) => tr("Lattice"),
         }
     }
 
@@ -125,6 +131,10 @@ impl ModifierKind {
                 "Smooth the shape by subdividing it: every polygon is split into four and the \
                  corners rounded off, level by level. Creased edges stay sharp.",
             ),
+            Self::Lattice(_) => tr(
+                "Put a cage of points round the selected shapes: move the cage's points (press 1) \
+                 and the shapes inside bend, squash and swell smoothly with them.",
+            ),
         }
     }
 
@@ -133,6 +143,7 @@ impl ModifierKind {
         match self {
             Self::Remesh(_) => ModifierFamily::CleanUp,
             Self::Subdivide(_) => ModifierFamily::Generate,
+            Self::Lattice(_) => ModifierFamily::Deform,
         }
     }
 
@@ -140,7 +151,7 @@ impl ModifierKind {
     /// Subdivide modifier's two levels).
     pub fn differs_by_purpose(&self) -> bool {
         match self {
-            Self::Remesh(_) => false,
+            Self::Remesh(_) | Self::Lattice(_) => false,
             Self::Subdivide(o) => {
                 let o = o.clamped();
                 o.levels != o.export_levels
@@ -159,23 +170,37 @@ impl ModifierKind {
         match self {
             Self::Remesh(options) => Self::Remesh(options.clamped()),
             Self::Subdivide(options) => Self::Subdivide(options.clamped()),
+            Self::Lattice(options) => Self::Lattice(*options),
         }
     }
 
-    /// The other objects whose shapes it reads (a lattice's cage, a curve
-    /// to bend along). None so far. A modifier whose source is deleted is
-    /// removed with it, in the same undo step.
+    /// The other objects it reads (a lattice's cage; later a curve to
+    /// bend along). A modifier whose source is deleted is removed with it,
+    /// in the same undo step.
     pub fn sources(&self) -> Vec<ObjectId> {
         match self {
             Self::Remesh(_) | Self::Subdivide(_) => Vec::new(),
+            Self::Lattice(options) => vec![options.cage],
+        }
+    }
+
+    /// Whether an object of `kind` can be one of its sources: a lattice
+    /// reads a cage.
+    pub fn takes_source(&self, kind: &ObjectKind) -> bool {
+        match self {
+            Self::Lattice(_) => matches!(kind, ObjectKind::Lattice(_)),
+            Self::Remesh(_) | Self::Subdivide(_) => kind.has_shape(),
         }
     }
 
     /// The same modifier with each source renamed by `rename` (for copies
     /// made together with their sources).
-    pub fn with_sources_renamed(&self, _rename: impl Fn(ObjectId) -> ObjectId) -> Self {
+    pub fn with_sources_renamed(&self, rename: impl Fn(ObjectId) -> ObjectId) -> Self {
         match self {
             Self::Remesh(_) | Self::Subdivide(_) => self.clone(),
+            Self::Lattice(options) => Self::Lattice(LatticeOptions {
+                cage: rename(options.cage),
+            }),
         }
     }
 
@@ -201,6 +226,7 @@ impl ModifierKind {
                         .unwrap_or(usize::MAX)
                 }
             }
+            Self::Lattice(_) => crate::lattice::lattice_work(input),
         }
     }
 
@@ -226,6 +252,7 @@ impl ModifierKind {
                 )
                 .map_err(|why| why.to_string())
             }
+            Self::Lattice(options) => crate::lattice::apply_lattice(input, options, context),
         }
     }
 }
@@ -254,22 +281,33 @@ pub struct ModifierContext {
     pub sources: Vec<SourceShape>,
 }
 
-/// Another object's shape a modifier reads.
-#[derive(Debug, Clone)]
+/// Another object a modifier reads.
+#[derive(Debug, Clone, PartialEq)]
 pub struct SourceShape {
     /// The object.
     pub id: ObjectId,
-    /// Its final shape, in its own space.
-    pub mesh: Arc<Mesh>,
+    /// What the modifier reads of it, in its own space.
+    pub data: SourceData,
     /// From its space into the space of the object with the modifier.
     pub matrix: Mat4,
 }
 
-impl PartialEq for SourceShape {
+/// What a modifier reads of another object.
+#[derive(Debug, Clone)]
+pub enum SourceData {
+    /// A shape's final shape.
+    Shape(Arc<Mesh>),
+    /// A lattice's cage (decision 0144).
+    Cage(Arc<mesh::lattice::Lattice>),
+}
+
+impl PartialEq for SourceData {
     fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
-            && self.matrix == other.matrix
-            && (Arc::ptr_eq(&self.mesh, &other.mesh) || *self.mesh == *other.mesh)
+        match (self, other) {
+            (Self::Shape(a), Self::Shape(b)) => Arc::ptr_eq(a, b) || **a == **b,
+            (Self::Cage(a), Self::Cage(b)) => Arc::ptr_eq(a, b) || **a == **b,
+            _ => false,
+        }
     }
 }
 
@@ -369,16 +407,22 @@ impl Scene {
         }
         let object = self.object(id).ok_or(ModifierRefusal::NotAShape)?;
         match object.kind {
-            ObjectKind::Group => return Err(ModifierRefusal::NotAShape),
+            // A group, or a lattice's cage (decision 0144).
+            _ if !object.kind.has_shape() => return Err(ModifierRefusal::NotAShape),
             ObjectKind::Instance(_) => return Err(ModifierRefusal::Instance),
             _ => {}
         }
         if modifiers.len() > MAX_MODIFIERS {
             return Err(ModifierRefusal::TooMany);
         }
-        for source in modifiers.iter().flat_map(|m| m.kind.sources()) {
+        for (kind, source) in modifiers
+            .iter()
+            .flat_map(|m| m.kind.sources().into_iter().map(move |s| (&m.kind, s)))
+        {
             let usable = source != id
-                && self.object(source).is_some_and(|o| o.kind.has_shape())
+                && self
+                    .object(source)
+                    .is_some_and(|o| kind.takes_source(&o.kind))
                 && !self.shape_uses(source, id);
             if !usable {
                 return Err(ModifierRefusal::BadSource);

@@ -14,6 +14,7 @@ pub mod command;
 pub mod curve;
 pub mod document;
 mod history;
+pub mod lattice;
 mod memory;
 pub mod mirroring;
 pub mod modifier;
@@ -32,6 +33,7 @@ pub use command::Command;
 pub use curve::{CurveObject, CurveShape, CurveSolid, Sweep, SweepProfile};
 pub use document::Document;
 pub use history::HistoryLimit;
+pub use lattice::LatticeOptions;
 pub use mesh::curve::{
     Curve, CurveEdit, CurveEnd, CurvePart, CurvePoint, CurvePointId, Detail, LatheAxis, LatheShape,
     PartKind, PointKind, ReadyCurve, ReadyCurveKind, Span,
@@ -40,6 +42,7 @@ pub use mesh::edit::{
     Bend, BevelOptions, BevelShape, ExtrudeDirection, ExtrudeShape, Eye, GrooveShape, GrooveSides,
     Grouping, Slide, SlitLine,
 };
+pub use mesh::lattice::{Interpolation, Lattice, LatticeEdit};
 pub use mesh::remesh::RemeshOptions;
 pub use mesh::subdivide::SubdivideOptions;
 pub use mesh::uvs::{BUDGET_RANGE, SeamPreference, UvLayout};
@@ -49,8 +52,8 @@ pub use mesh::{
 };
 pub use modifier::{
     MAX_MODIFIERS, MODIFIERS_IN_BACKGROUND_FROM, Modifier, ModifierContext, ModifierFamily,
-    ModifierKind, ModifierRefusal, Purpose, SourceShape, StackDone, StackJob, StackResult,
-    StackState, subdivide_levels,
+    ModifierKind, ModifierRefusal, Purpose, SourceData, SourceShape, StackDone, StackJob,
+    StackResult, StackState, subdivide_levels,
 };
 pub use object::{
     ApplyParts, Collision, LiveMirror, Material, Object, ObjectId, ObjectKind,
@@ -80,6 +83,8 @@ mod curve_tests;
 mod edit_list_tests;
 #[cfg(test)]
 mod history_tests;
+#[cfg(test)]
+mod lattice_tests;
 #[cfg(test)]
 mod layer_tests;
 #[cfg(test)]

@@ -2320,7 +2320,7 @@ fn base_mesh(base: &ObjectKind, profile: Option<&mesh::curve::Curve>) -> Option<
     match base {
         // A curve takes no edits, so its shape needs no names.
         ObjectKind::Curve(c) => c.mesh(profile).map(Arc::new),
-        ObjectKind::Group | ObjectKind::Instance(_) => None,
+        ObjectKind::Group | ObjectKind::Instance(_) | ObjectKind::Lattice(_) => None,
         // Named for the edits on top (decision 0090).
         ObjectKind::Primitive(p) => {
             let mut mesh = p.mesh();

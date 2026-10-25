@@ -962,11 +962,14 @@ mod aligning;
 mod aligning_tests;
 #[cfg(test)]
 mod bevel_upgrade_tests;
+mod cage_editing;
 mod curve_commands;
 mod curve_drawing;
 mod curve_editing;
 #[cfg(test)]
 mod curve_tests;
+#[cfg(test)]
+mod lattice_tests;
 #[cfg(test)]
 mod layer_tests;
 mod modelling;

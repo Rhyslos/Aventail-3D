@@ -37,6 +37,9 @@ pub enum SceneError {
     /// A curve change that can't be made (decision 0138), with the reason,
     /// marked with `text!` where it is made.
     Curve(&'static str),
+    /// A lattice cage change that can't be made (decision 0144), with the
+    /// reason, marked with `text!` where it is made.
+    Lattice(&'static str),
 }
 
 impl std::fmt::Display for SceneError {
@@ -65,7 +68,7 @@ impl std::fmt::Display for SceneError {
             )),
             Self::Boolean(why) => write!(f, "{why}"),
             Self::Modifier(why) => write!(f, "{why}"),
-            Self::Curve(why) => f.write_str(tr(why)),
+            Self::Curve(why) | Self::Lattice(why) => f.write_str(tr(why)),
         }
     }
 }
@@ -794,6 +797,8 @@ impl Scene {
         match &object.kind {
             ObjectKind::Primitive(p) if object.stack.is_empty() => Some(p.bounds()),
             ObjectKind::Group => None,
+            // A cage's box is where its points are (decision 0144).
+            ObjectKind::Lattice(l) => Bounds::around(l.points().iter().copied()),
             // A curve's line counts too, with its solid if it has one.
             ObjectKind::Curve(c) => {
                 let line = c.shape.curve().bounds();
@@ -817,7 +822,7 @@ impl Scene {
             ObjectKind::Mesh(_) => {
                 !o.stack.is_empty() || !o.booleans.is_empty() || o.modifiers.iter().any(|m| m.on)
             }
-            ObjectKind::Group => false,
+            ObjectKind::Group | ObjectKind::Lattice(_) => false,
             // A curve with a solid bakes into it; a line has nothing to bake.
             ObjectKind::Curve(c) => c.solid != crate::CurveSolid::Line,
         })

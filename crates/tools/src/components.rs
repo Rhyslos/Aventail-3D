@@ -506,6 +506,14 @@ impl PickScene {
             .map(|(_, object, _)| object)
     }
 
+    /// How far along the ray through the mouse the nearest surface is, if
+    /// any is under it: for things drawn as lines (a lattice cage) that
+    /// are picked only where they are in front.
+    pub fn surface_distance(&self, camera: &Camera, size: Vec2, mouse: Vec2) -> Option<f32> {
+        self.first_hit(&camera.ray_through(mouse, size))
+            .map(|(distance, _, _)| distance)
+    }
+
     /// The object under the mouse among those `wanted` lets through, or
     /// failing that any object under it: an outline-only cutter is picked
     /// only where nothing else is (decision 0135).

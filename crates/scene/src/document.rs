@@ -142,6 +142,18 @@ impl Document {
         Ok(self)
     }
 
+    /// The same document with object `id` given back its lattice cage
+    /// (see [`Scene::with_lattice`], decision 0144), for a project being
+    /// opened.
+    pub fn with_lattice(
+        mut self,
+        id: ObjectId,
+        lattice: mesh::lattice::Lattice,
+    ) -> Result<Self, &'static str> {
+        self.scene = std::mem::take(&mut self.scene).with_lattice(id, lattice)?;
+        Ok(self)
+    }
+
     /// Checks every curve's cross-section names a curve object (see
     /// [`Scene::check_profiles`]), once a project's curves are in.
     pub fn check_profiles(&self) -> Result<(), crate::tree::SceneError> {

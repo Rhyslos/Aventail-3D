@@ -12,6 +12,7 @@ mod curve_rows;
 mod edits;
 mod fields;
 mod last_edit;
+mod lattice_rows;
 mod materials;
 mod mesh_check;
 pub(crate) mod modifier_rows;
@@ -352,6 +353,9 @@ impl AttributesPanel {
                 }
                 if matches!(object.kind, ObjectKind::Curve(_)) {
                     self.curve_section(ui, doc, id, units, out);
+                }
+                if matches!(object.kind, ObjectKind::Lattice(_)) {
+                    self.lattice_section(ui, doc, id, out);
                 }
                 if solid {
                     crate::booleans::attributes_section(ui, doc, id, out);

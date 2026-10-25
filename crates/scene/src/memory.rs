@@ -28,6 +28,7 @@ fn kind(kind: &ObjectKind) -> usize {
             crate::CurveShape::Points(curve) => std::mem::size_of_val(curve.points()),
             crate::CurveShape::Ready(_) => 0,
         },
+        ObjectKind::Lattice(l) => std::mem::size_of_val(l.points()),
     }
 }
 

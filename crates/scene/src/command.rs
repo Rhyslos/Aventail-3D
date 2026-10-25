@@ -9,6 +9,7 @@ use words::{text, tr, trf};
 
 mod booleans;
 mod curves;
+mod lattices;
 mod modifiers;
 
 /// A change to the scene. Every change goes through one, so it can be
@@ -392,12 +393,34 @@ pub enum Command {
     /// curve, they join into the first as one curve instead, end to end at
     /// their nearest ends (decision 0139).
     Join(Vec<ObjectId>),
+    /// Adds a lattice cage (decision 0144) with `divisions` points along
+    /// each side (brought within 2 to 16), fitted round the shapes `ids`,
+    /// and gives each of them a Lattice modifier naming it, as one step.
+    /// Refused, changing nothing, if any isn't a shape that can take
+    /// modifiers. The cage becomes the selection.
+    AddLattice {
+        /// The shapes.
+        ids: Vec<ObjectId>,
+        /// Points along each side (X, Y, Z).
+        divisions: [u32; 3],
+    },
+    /// Changes a lattice cage (decision 0144): moves its points, changes
+    /// its divisions or interpolation, or puts its points back at rest.
+    EditLattice {
+        /// The cage.
+        id: ObjectId,
+        /// The change.
+        edit: mesh::lattice::LatticeEdit,
+    },
 }
 
 impl Command {
     /// A short description for the Edit menu, such as "Delete 3 objects".
     pub fn describe(&self, scene: &Scene) -> String {
         if let Some(label) = modifiers::label(scene, self) {
+            return label;
+        }
+        if let Some(label) = lattices::label(self) {
             return label;
         }
         let count = |ids: &[ObjectId]| top_level(scene, ids).len();
@@ -525,6 +548,7 @@ impl Command {
             | Self::ChangeModifier { .. }
             | Self::RemoveModifier { .. }
             | Self::MoveModifier { .. } => tr("Change modifiers").to_string(),
+            Self::AddLattice { .. } | Self::EditLattice { .. } => tr("Lattice").to_string(),
             Self::ApplyMirror(ids) => {
                 let n = ids
                     .iter()
@@ -784,7 +808,12 @@ impl Run<'_> {
             .object(id)
             .ok_or(SceneError::UnknownObject(id))?
             .clone();
-        if matches!(object.kind, ObjectKind::Instance(_)) {
+        // An instance has no shape of its own; a lattice's box is its own
+        // space, so its placement stays (decision 0144).
+        if matches!(
+            object.kind,
+            ObjectKind::Instance(_) | ObjectKind::Lattice(_)
+        ) {
             return Ok(());
         }
         let before = object.transform;
@@ -1516,6 +1545,11 @@ impl Run<'_> {
                 weld,
             } => self.join_curve_ends(*first, *second, *weld),
             Command::SplitCurve { id, points } => self.split_curve(*id, points),
+            Command::AddLattice { ids, divisions } => self.add_lattice(ids, *divisions),
+            Command::EditLattice { id, edit } => {
+                self.edit_lattice(*id, edit)?;
+                Ok(None)
+            }
             Command::Join(ids) if self.all_curves(ids) => self.join_curves(ids),
             Command::Join(ids) => {
                 let shapes: Vec<ObjectId> = existing(self.scene, ids)?

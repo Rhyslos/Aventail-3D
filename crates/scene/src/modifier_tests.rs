@@ -407,7 +407,13 @@ fn modifier_kinds_describe_themselves() {
         assert!(ModifierFamily::ALL.contains(&kind.family()));
         assert_eq!(kind.clamped(), kind, "standard settings are within limits");
         assert!(kind.same_kind(&kind.clamped()));
-        assert!(kind.sources().is_empty());
+        match kind {
+            // Its standard settings name no cage yet (decision 0144).
+            ModifierKind::Lattice(_) => {
+                assert_eq!(kind.sources(), vec![LatticeOptions::NO_CAGE]);
+            }
+            _ => assert!(kind.sources().is_empty()),
+        }
     }
     for family in ModifierFamily::ALL {
         assert!(!family.name().is_empty());

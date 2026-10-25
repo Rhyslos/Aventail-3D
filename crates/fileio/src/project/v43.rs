@@ -17,11 +17,17 @@
 //! adds the Subdivide modifier here, and one more kind of recorded edit,
 //! creases (`v37::OperationV37::SetCreases`): files before version 44
 //! never hold either.
+//!
+//! Version 45 ([decision 0144](../../../../docs/decisions/0144-lattice-cage.md))
+//! adds lattice cages ([`ProjectV43::lattices`], see `v45`) and the
+//! Lattice modifier naming one; files before version 45 hold neither.
 
 use super::v1::Problem;
 use super::v41::ProjectV41;
 use crate::limits::Bounded;
-use scene::{Document, Modifier, ModifierKind, ObjectId, RemeshOptions, SubdivideOptions};
+use scene::{
+    Document, LatticeOptions, Modifier, ModifierKind, ObjectId, RemeshOptions, SubdivideOptions,
+};
 use serde::{Deserialize, Serialize};
 use words::{tr, trf};
 
@@ -33,6 +39,10 @@ pub(crate) struct ProjectV43 {
     /// Each object's modifiers (objects not listed have none).
     #[serde(default = "Bounded::new")]
     pub(crate) modifiers: Bounded<ModifiersV43>,
+    /// Each lattice cage (version 45; the objects are empty groups in
+    /// version 41's model).
+    #[serde(default = "Bounded::new")]
+    pub(crate) lattices: Bounded<super::v45::LatticeV45>,
 }
 
 /// One object's modifiers, first to last.
@@ -80,6 +90,11 @@ pub(crate) enum KindV43 {
         /// Whether hard edges stay sharp.
         hard_edges_sharp: bool,
     },
+    /// A lattice cage's bend (version 45).
+    Lattice {
+        /// The cage object.
+        cage: u64,
+    },
 }
 
 impl KindV43 {
@@ -94,6 +109,7 @@ impl KindV43 {
                 export_levels: o.export_levels,
                 hard_edges_sharp: o.hard_edges_sharp,
             },
+            ModifierKind::Lattice(o) => Self::Lattice { cage: o.cage.get() },
         }
     }
 
@@ -112,6 +128,9 @@ impl KindV43 {
                 levels: *levels,
                 export_levels: *export_levels,
                 hard_edges_sharp: *hard_edges_sharp,
+            }),
+            Self::Lattice { cage } => ModifierKind::Lattice(LatticeOptions {
+                cage: ObjectId::from_raw(*cage),
             }),
         }
     }
@@ -141,12 +160,15 @@ impl ProjectV43 {
         Self {
             project: ProjectV41::from_document(document),
             modifiers,
+            lattices: super::v45::lattices_of(document),
         }
     }
 
     /// The document this file model describes, after checking every value.
     pub(crate) fn into_document(self) -> Result<Document, Problem> {
-        let mut document = self.project.into_document()?;
+        let document = self.project.into_document()?;
+        // The cages first: modifiers name them.
+        let mut document = super::v45::with_lattices(document, self.lattices)?;
         let mut seen = std::collections::BTreeSet::new();
         for entry in self.modifiers {
             if !seen.insert(entry.id) {

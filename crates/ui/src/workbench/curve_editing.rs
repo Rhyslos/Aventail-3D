@@ -81,6 +81,8 @@ impl Workbench {
         if !matches!(self.mode, Mode::Edges | Mode::Polygons) {
             return;
         }
+        // Lattice cages have none either (decision 0144).
+        self.note_cage_modes();
         let scene = self.document.scene();
         let curves = self
             .document

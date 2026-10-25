@@ -40,6 +40,7 @@
  {} stayed where {}.
  {}: {}.
  · press 1, 2, 3 or pick UV mode to select
+(none)
 , closed
 , in {} layers
 , {} materials
@@ -97,10 +98,12 @@ A flat view from the right: no perspective, true sizes
 A flat view looking straight down: no perspective, true sizes
 A gear with 12 teeth and a hole for the axle
 A group has no shape of its own, so no edit layers.
-A group has no shape of its own: select shapes
 A group has no shape: select shapes only
 A hard edge turns the shading sharply, and a normal map can only hold that turn where the UVs are split too: otherwise the bake shows a dark or light line along it. Fix marks them as seams and unwraps the pieces around them.
 A heavy shape is checked in the background, so you can keep working. The numbers below are from before the last change until it finishes.
+A lattice cage has no edges or polygons: press 1 to move its points, and the shapes it bends follow.
+A lattice cage has no shape of its own, so no edit layers: press 1 to move its points.
+A lattice cage's points can't be deleted: change its Divisions in the Attributes panel for more or fewer, or Reset points to put them back.
 A list by the mouse, like the shape list (B)
 A locked axis doesn't change while moving, rotating or scaling
 A new row under the lowest one, as tall as it
@@ -140,6 +143,8 @@ Add edit layer
 Add every element touching the selection
 Add every polygon facing within 30° of a selected polygon: the top of a shape, say, or every wall facing one way
 Add heavy test shape
+Add lattice
+Add lattice round {} objects
 Add layer
 Add material
 Add the other selected shapes to the one selected first, as one solid.                  They stay shapes of their own, drawn as outlines: move or edit one and the                  result follows.
@@ -234,6 +239,7 @@ Before baking
 Bend
 Bend radius
 Bend segments
+Bends: {}. Press 1 and move its points to bend them.
 Best
 Bevel
 Bevel works on edges or points: press 2 for the Edges mode (or 1 for Points) and select some.
@@ -269,6 +275,7 @@ Budget
 Build
 Build polygons between two open borders or two polygons; with nothing to bridge selected, drag from one open edge to another
 By angle
+Cage
 Cameras
 Can't bake into the shape: {}
 Can't bake into the shape: {}.
@@ -295,6 +302,8 @@ Centre point
 Change booleans
 Change how edits keep UVs
 Change it
+Change lattice divisions
+Change lattice interpolation
 Change materials
 Change modifiers
 Change the folder or switch it off under 
@@ -521,6 +530,7 @@ Dissolve: this would merge polygons across a sharp corner. See the question.
 Dissolving here merges polygons that meet at a sharp corner into one bent polygon. A bent polygon isn't flat, so it shades badly and can look torn or creased.
 Dissolving where polygons meet at more than 30° makes one bent polygon, which shades badly. Delete is usually what's wanted there.
 Distance
+Divisions {}
 Do again what was taken back
 Do the last undone change again
 Dome
@@ -743,6 +753,7 @@ Groove: drag into the surface to cut a groove along the selected edges, or out o
 Group
 Group objects
 Group {}
+Groups and lattice cages have no shape of their own: select shapes
 Grow
 Grow / shrink the selection
 Grow and shrink work on points, edges and polygons: press 1, 2 or 3 first.
@@ -842,6 +853,7 @@ How many pieces the side is cut into from bottom to top
 How many pieces the sides are cut into from bottom to top
 How many pieces the straight middle is cut into
 How many points it has: press 1 to move them
+How many points the cage has along this side, 2 to 16: 2 is a point at each end; more bend the shape in more places
 How many rings each closed end is cut into, from the rim inwards
 How many rings each round end has, from its rim to its tip
 How many rings from the rim to the top
@@ -869,6 +881,7 @@ How sizes are shown and typed. Each project keeps its own, saved with it; only t
 How tall the rectangle is, up from the curve
 How tall the row is, in pixels
 How the automatic UV tools work: the same settings as UV → Settings.
+How the cage's points pull the shape: Smooth blends them with no creases (the shape follows a little less closely); Linear follows straight between points, creasing along the cage's lines
 How the mouse moves the view. Also chosen from the button in the viewport's bottom-right corner.
 How the mouse moves the view. Try them, keep your favourite.
 How the selected points' handles behave: sharp, smooth, broken or auto. Choose this to see the four.
@@ -908,6 +921,7 @@ Instance
 Instance 1 object
 Instance {} objects
 Interface
+Interpolation
 Intersect
 Invert
 Invert orbit direction
@@ -918,6 +932,7 @@ Isolate: hide every other object, or in the Points, Edges and Polygons modes eve
 Isolate: select the objects to keep first.
 Isolate: select the polygons (or their points or edges) to keep first.
 Isolated: hid
+It bends no shapes now: select shapes and use Add lattice for a new cage.
 It has unwrap settings of its own (UV → Pieces → Piece settings), used instead of the app's.
 It lies mirrored (purple): UV → Turn and flip → Flip left to right turns it back.
 It overlaps another piece (red): UV → Lay out → Pack moves pieces apart.
@@ -955,6 +970,7 @@ Lasso selection
 Last edit: {}
 Lathe
 Lathe axis
+Lattice
 Lay out
 Lay strips on them: UV → Put on trim row.
 Lay the new end flat, square to the way it went: a curved patch ends in a flat face.
@@ -981,6 +997,7 @@ Line the pieces made of quads up into a straight grid, for strips and panels
 Line the selected objects up with another object: click this, then click that object, and choose the sides or middles to line up in the window
 Line the selected objects up with {}. The change shows as you choose.
 Line up
+Linear
 List
 List what in the shown shapes would spoil a bake in Substance Painter, in plain words, with one-click fixes
 List what would spoil a bake: overlapping pieces, missing UVs and more
@@ -1071,6 +1088,7 @@ Mouse
 Mouse only
 Mouse only, middle zooms
 Move
+Move 1 cage point
 Move 1 point
 Move UVs
 Move and turn the selected objects' pivots (the point they turn and scale around), not their shapes. Also on the top palette, by the axis switches.
@@ -1090,6 +1108,7 @@ Move the selected polygons into a new object of their own, in the same place (Po
 Move the selection: drag the gizmo's arrows, squares or centre
 Move up
 Move {}
+Move {} cage points
 Move {} down
 Move {} pivots
 Move {} points
@@ -1297,6 +1316,8 @@ Press E for the tools of what you're working on. Every look holds the same tools
 Profile
 Projects you save or open are listed here
 Push the selected polygons or edges out, building new sides between the old place and the new. With points selected along an open edge, the edges between them grow new polygons
+Put a cage of points round the selected shapes: move the cage's points (press 1) and the shapes inside bend, squash and swell smoothly with them.
+Put every point back where it started, so the cage bends nothing
 Put every setting back as it was when the app was new (the panel layout is kept)
 Put on the trim sheet
 Put on trim row
@@ -1339,7 +1360,9 @@ Rename a snapshot
 Rename layer
 Replace it with the current layout of the objects shown
 Replace the selected objects' seams with suggested ones: along hard edges and sharp corners, then where each piece needs cutting to lie flat, in hidden places (facing down, in corners)
+Reset cage points
 Reset panel layout
+Reset points
 Reset view
 Restore
 Restore standard
@@ -1423,6 +1446,7 @@ Select an object with a shape first (not a group or an instance).
 Select an object with a shape first: groups and instances have no edit layers.
 Select an object with symmetry on
 Select by material
+Select cage
 Select connected
 Select connected works on points, edges or polygons: press 1, 2 or 3 (or use the UV mode) and select a little of a piece first.
 Select connected works on points, edges or polygons: press 1, 2 or 3 (or use the UV mode) and select a little of the part first.
@@ -1455,6 +1479,7 @@ Select sharp corners inside the curve: not its ends, not points with handles (th
 Select some objects first
 Select some of the curve's points first
 Select something to see and type its coordinates
+Select the cage, to change it or move its points
 Select the islands to move first (click one on the model or in the UV Editor).
 Select the objects to apply first
 Select the objects to set how they're smoothed
@@ -1719,6 +1744,7 @@ The gizmo follows the object's own axes.
 The gizmo follows the world's axes.
 The glossary opens in your web browser.
 The highest point of the box around it along each axis (its right, front or top)
+The lattice cage bending this shape. Select it to change its divisions, and press 1 to move its points.
 The lines between the points
 The lines shown: every 1 m, 50 cm or 10 cm, as the grid button is set.
 The lowest point of the box around it along each axis (its left, back or bottom)
@@ -1989,6 +2015,8 @@ a bend's stretch isn't a real number, or is out of range (above 0, at most 1000)
 a bevel is stored with its settings twice
 a bevel's skew or weld distance isn't a real number, or is out of range
 a boolean can't be used: {}
+a cage point would go more than 10 km away
+a cage point would go to a place that isn't a number
 a closed curve has no ends to join: open it or split it first
 a closed curve needs at least three points
 a collision is stored for object {}, which isn't there
@@ -2013,6 +2041,10 @@ a group has no shape to edit
 a group has no shape: pick shapes
 a group has no shape: select shapes
 a hard edge joins points {} and {}, which aren't both in the mesh
+a lattice can't be used: {}
+a lattice is listed twice
+a lattice names an object that isn't stored as one
+a lattice names an object that isn't there
 a layer has changed
 a layer no longer exists
 a layer with edits to freeze is switched off: switch it on or delete it first
@@ -2096,6 +2128,7 @@ aren't
 bend segments
 border edge
 bridged
+cage point {} of {}
 centimetres
 closing
 connected
@@ -2160,6 +2193,7 @@ its angle isn't a real number
 its bent extrude holds a number that isn't real
 its bevel {} isn't a real number
 its booleans name an object that isn't there
+its cage isn't there
 its extrude holds a number that isn't real
 its format version is 0
 its game project folder is empty, too long or broken over lines
@@ -2178,12 +2212,14 @@ its shape is squashed flat against its pivot
 its shapes have about {} polygons, and the app opens up to {}
 its slit has {} points (2 to {} can be stored)
 its slit's view isn't real numbers
+its space is flattened (scaled to nothing along an axis), so points can't be placed in it
 its texture size or texel density is out of range
 its trim sheet has rows that are unnamed, overlap or lie outside the texture
 its {} distance isn't a real number
 its {} isn't a real number
 just now
 keep a backup of
+lattice cage
 length
 lies mirrored on the texture, so a texture shows back to front on it. Fix: Unwrap its piece, or flip it back.
 line {} holds a number that isn't real
@@ -2276,12 +2312,15 @@ that edit no longer exists
 that element isn't in the mesh
 that layer no longer exists
 that modifier isn't there
+that object isn't a lattice cage
 that works on the two ends of open curves
 the attribute holds values for each {}, not each {}
 the attribute holds {} values, not {}
 the backup folder {} can't be used ({})
 the backup stopped unexpectedly
 the boolean library stopped
+the cage is flattened (scaled to nothing along an axis)
+the cage's points don't match its divisions or size
 the cross-section curve's points are all on one spot
 the cross-section has to be another curve object
 the curve's points are all on one spot
