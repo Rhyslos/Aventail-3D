@@ -18,6 +18,13 @@
 //! and *Stop at neighbours* narrowing only the points that need it; even
 //! width and welding are on, as for a new Bevel tool bevel. Only edges
 //! with a polygon on each side can be bevelled; others are skipped.
+//!
+//! **Soft bevels** ([`LiveBevelOptions::soften`], decision 0156, which the
+//! game bevel turns on): the edges it bevels count as soft first, even if
+//! marked hard, so each bevel's strip shades round from one side to the
+//! other instead of keeping hard borders (decision 0040). Done here, every
+//! time, rather than by un-marking edges once: it also softens edges made
+//! later, and the edges a boolean cuts (marked hard after the edits).
 
 use crate::bevel::{BevelOptions, BevelShape, MAX_SEGMENTS, WELD_DISTANCE, bevel_edges_weighted};
 use crate::{EdgeKey, Hardness, Mesh};
@@ -56,6 +63,10 @@ pub struct LiveBevelOptions {
     /// *Stop at neighbours*: each point narrowed only as much as it needs
     /// so bevels never cross over each other (on, the standard).
     pub clamp: bool,
+    /// *Soft bevels*: the bevelled edges count as soft, even if marked
+    /// hard, so the bevels shade round on a shape shaded by its marked
+    /// edges (off, the standard; the game bevel turns it on).
+    pub soften: bool,
 }
 
 impl Default for LiveBevelOptions {
@@ -67,6 +78,7 @@ impl Default for LiveBevelOptions {
             segments: 2,
             profile: 1.0,
             clamp: true,
+            soften: false,
         }
     }
 }
@@ -190,9 +202,31 @@ pub fn live_bevel(
     }
     let mut out = mesh.clone();
     if options.width > 0.0 {
+        if options.soften {
+            soften(&mut out, &edges);
+        }
         bevel_edges_weighted(&mut out, &edges, options.shape());
     }
     Ok(out)
+}
+
+/// Marks soft the `edges` the bevel can take (those with a polygon on
+/// each side; an edge it skips keeps its mark, so it stays crisp).
+fn soften(mesh: &mut Mesh, edges: &[(EdgeKey, f32)]) {
+    let topology = mesh.topology();
+    let soft: Vec<EdgeKey> = edges
+        .iter()
+        .map(|(e, _)| *e)
+        .filter(|e| topology.edge_uses(*e).len() == 2)
+        .filter(|e| {
+            let (a, b) = e.ends();
+            mesh.is_hard(a, b)
+        })
+        .collect();
+    for edge in soft {
+        let (a, b) = edge.ends();
+        mesh.set_hard(a, b, false);
+    }
 }
 
 /// Roughly how many edges `options` bevels on `mesh`, for estimating the

@@ -753,6 +753,9 @@ impl Workbench {
             Some(crate::layers::ModifierPick::Boolean(kind)) => {
                 self.run_boolean(kind, &mut requests);
             }
+            Some(crate::layers::ModifierPick::Modifier(crate::commands::CommandId::GameBevel)) => {
+                self.run_game_bevel();
+            }
             Some(crate::layers::ModifierPick::Modifier(command)) => {
                 self.run_modifier(command, &mut requests);
             }
@@ -907,6 +910,9 @@ pub(crate) mod exporting;
 mod exporting_tests;
 #[cfg(test)]
 mod extrude_tests;
+mod game_bevel;
+#[cfg(test)]
+mod game_bevel_tests;
 mod hardness;
 #[cfg(test)]
 mod hardness_tests;

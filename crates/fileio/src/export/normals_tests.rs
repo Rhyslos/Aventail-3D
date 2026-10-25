@@ -47,7 +47,7 @@ fn bevelled_cube_document(weighted: bool) -> Document {
 }
 
 /// The JSON and binary parts of a `.glb`.
-fn parts(glb: &[u8]) -> (serde_json::Value, Vec<u8>) {
+pub(super) fn parts(glb: &[u8]) -> (serde_json::Value, Vec<u8>) {
     let word = |at: usize| u32::from_le_bytes(glb[at..at + 4].try_into().unwrap()) as usize;
     let json_len = word(12);
     let json = serde_json::from_slice(&glb[20..20 + json_len]).unwrap();
@@ -65,7 +65,7 @@ fn bytes<'a>(json: &serde_json::Value, bin: &'a [u8], accessor: usize) -> &'a [u
     &bin[offset..offset + length]
 }
 
-fn vec3s(json: &serde_json::Value, bin: &[u8], accessor: usize) -> Vec<Vec3> {
+pub(super) fn vec3s(json: &serde_json::Value, bin: &[u8], accessor: usize) -> Vec<Vec3> {
     bytes(json, bin, accessor)
         .chunks(12)
         .map(|c| {
@@ -75,7 +75,17 @@ fn vec3s(json: &serde_json::Value, bin: &[u8], accessor: usize) -> Vec<Vec3> {
         .collect()
 }
 
-fn indices(json: &serde_json::Value, bin: &[u8], accessor: usize) -> Vec<usize> {
+pub(super) fn vec4s(json: &serde_json::Value, bin: &[u8], accessor: usize) -> Vec<glam::Vec4> {
+    bytes(json, bin, accessor)
+        .chunks(16)
+        .map(|c| {
+            let f = |i: usize| f32::from_le_bytes(c[i..i + 4].try_into().unwrap());
+            glam::Vec4::new(f(0), f(4), f(8), f(12))
+        })
+        .collect()
+}
+
+pub(super) fn indices(json: &serde_json::Value, bin: &[u8], accessor: usize) -> Vec<usize> {
     let raw = bytes(json, bin, accessor);
     match json["accessors"][accessor]["componentType"]
         .as_u64()
@@ -125,7 +135,7 @@ fn glb_lean(glb: &[u8]) -> (f32, usize) {
     (worst, big)
 }
 
-fn glb(doc: &Document) -> Vec<u8> {
+pub(super) fn glb(doc: &Document) -> Vec<u8> {
     export_bytes(
         doc,
         ExportFormat::Glb,

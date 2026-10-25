@@ -88,6 +88,10 @@ pub enum CommandId {
     /// Add a weighted normals modifier to the selected shapes (decision
     /// 0148).
     WeightedNormals,
+    /// The game bevel (decision 0156): a Live bevel with soft bevels and
+    /// Weighted normals last, the shapes shaded by their marked edges, in
+    /// one step.
+    GameBevel,
     // ------------------------------------------- pivots (the Object mode)
     /// Move the selected objects' pivots to the middle of their shapes.
     PivotToCentre,
@@ -440,6 +444,18 @@ impl CommandId {
                     None,
                 )
             }
+            Self::GameBevel => (
+                tr("Game bevel"),
+                Icon::GameBevel,
+                None,
+                tr(
+                    "Ready the selected shapes for a game in one step, without baking: a Live \
+                     bevel rounds every edge sharper than 30° (2 cm, 2 rows) and shades round, \
+                     and Weighted normals keeps the big faces flat. Change any of it afterwards \
+                     in the Attributes panel.",
+                ),
+                None,
+            ),
             // Named for what it does with the selection (decision 0146).
             Self::Scatter => {
                 let kind = scene::ModifierKind::Scatter(Default::default());
@@ -911,7 +927,8 @@ impl CommandId {
             | Self::Scatter
             | Self::BendAlongCurve
             | Self::Shrinkwrap
-            | Self::WeightedNormals => &[Model, Object, Points, Edges, Polygons],
+            | Self::WeightedNormals
+            | Self::GameBevel => &[Model, Object, Points, Edges, Polygons],
             // Whole shapes, or the selected polygons (decision 0150).
             Self::QuadifyNow => &[Model, Polygons],
             // Whole shapes, or the selected elements' points (decision 0152).
@@ -1172,8 +1189,9 @@ pub fn group_menu(group: CommandId, ring: &[Slot]) -> Vec<Slot> {
 /// 0135) and the modifiers (decision 0142), found in the modifiers
 /// palette, the Mesh menu and command search; and Quadify now (decision
 /// 0150) and Weld by distance now (decision 0152), in the Mesh menu's
-/// Clean up group and command search.
-pub const OFF_THE_RING: [CommandId; 18] = [
+/// Clean up group and command search; and the game bevel (decision 0156),
+/// beside the modifiers.
+pub const OFF_THE_RING: [CommandId; 19] = [
     CommandId::Union,
     CommandId::Subtract,
     CommandId::Intersect,
@@ -1190,12 +1208,13 @@ pub const OFF_THE_RING: [CommandId; 18] = [
     CommandId::BendAlongCurve,
     CommandId::Shrinkwrap,
     CommandId::WeightedNormals,
+    CommandId::GameBevel,
     CommandId::QuadifyNow,
     CommandId::WeldByDistanceNow,
 ];
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 78] = [
+pub const ALL: [CommandId; 79] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -1227,6 +1246,7 @@ pub const ALL: [CommandId; 78] = [
     CommandId::BendAlongCurve,
     CommandId::Shrinkwrap,
     CommandId::WeightedNormals,
+    CommandId::GameBevel,
     CommandId::PivotToCentre,
     CommandId::PivotToOrigin,
     CommandId::PivotToObject,

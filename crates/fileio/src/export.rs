@@ -768,6 +768,8 @@ pub fn export_mesh(mesh: &Mesh, matrix: Mat4, options: &ExportOptions) -> Export
 }
 
 mod collision;
+#[cfg(test)]
+mod game_bevel_tests;
 mod lods;
 #[cfg(test)]
 mod lods_tests;

@@ -26,9 +26,10 @@ impl Workbench {
             let info = command.info();
             // Quadify now and Weld by distance now are in the Mesh menu's
             // Clean up group (decisions 0150 and 0152), though they work in
-            // the Model mode too.
+            // the Model mode too; the game bevel in its Modifiers (0156).
             let place = if crate::booleans::kind_of(command).is_some()
                 || crate::modifiers::kind_of(command).is_some()
+                || command == crate::commands::CommandId::GameBevel
                 || command == crate::commands::CommandId::QuadifyNow
                 || command == crate::commands::CommandId::WeldByDistanceNow
             {

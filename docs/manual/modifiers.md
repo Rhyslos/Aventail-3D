@@ -19,7 +19,7 @@ For a change you want to make once, at one spot, an ordinary tool (extrude, beve
 1. **Select one or more shapes** (in the viewport or the Objects panel). Groups are left out; an [instance](copies-and-instances.md) shows its original's modifiers, so give them to the original.
 2. **Add a modifier**, from any of these:
    - its button on the **modifiers palette**, the thin column of buttons on the right of the viewport, below the [booleans](booleans.md);
-   - **Mesh → Modifiers**, where they're grouped by what they do (Generate: Subdivide, Array, Shell, Live bevel, Scatter onto surface; Deform: Add lattice, Bend along curve, Shrinkwrap onto; Clean up: Remesh, Decimate, Quadify, Weld by distance; Game ready: Weighted normals);
+   - **Mesh → Modifiers**, where they're grouped by what they do (Generate: Subdivide, Array, Shell, Live bevel, Scatter onto surface; Deform: Add lattice, Bend along curve, Shrinkwrap onto; Clean up: Remesh, Decimate, Quadify, Weld by distance; Game ready: Weighted normals, and the [Game bevel](game-bevel.md), which adds a Live bevel and Weighted normals in one step);
    - **Space** ([command search](command-search.md)), then type its name (*remesh*) and press **Enter**.
 3. The modifier goes at the end of each selected shape's list, on, and the viewport shows the result. (A **Live bevel** goes before any Subdivide or Weighted normals already there, the order that works; see [Live bevel](live-bevel.md). A **Quadify** goes before any Live bevel, Subdivide or Weighted normals; see [Quadify](quadify.md). A **Weld by distance** goes before any Decimate, Quadify, Live bevel, Subdivide or Weighted normals; see [Weld by distance](weld-by-distance.md). **Scatter onto surface** is an exception: it goes on the shape selected *first*, and scatters the others over it; see [Scatter](scatter.md). **Bend along curve** and **Shrinkwrap onto** too: select the shape first, then Ctrl + click the curve or the target; see [Bend along curve](bend-along-curve.md) and [Shrinkwrap](shrinkwrap.md).) The [Attributes panel](attributes.md) lists it under **Modifiers**, with its settings.
 
@@ -88,6 +88,7 @@ Modifiers have no keys of their own.
 
 ## Related
 
+- [Game bevel](game-bevel.md): a Live bevel and Weighted normals set up together, in one step
 - [Subdivide](subdivide.md), [Live bevel](live-bevel.md) (before Subdivide and Weighted normals), [Lattice](lattice.md), [Remesh](remesh.md), [Decimate](decimate.md) and [Weighted normals](weighted-normals.md) (best last in the list)
 - [Concepts: modifiers](concepts.md#objects-and-scenes)
 - [The Attributes panel](attributes.md), [Bake into shape](objects.md#bake-into-shape)

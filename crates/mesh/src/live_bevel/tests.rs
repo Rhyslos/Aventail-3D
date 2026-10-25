@@ -57,6 +57,10 @@ fn the_standard_settings() {
         (30.0, 2.0, 2, 1.0)
     );
     assert!(o.clamp);
+    assert!(
+        !o.soften,
+        "Soft bevels is off unless the game bevel turns it on"
+    );
     let shape = o.shape();
     assert!(shape.options.improved && shape.options.even && shape.options.weld);
     assert_eq!(shape.options.weld_distance, WELD_DISTANCE);
@@ -188,8 +192,10 @@ fn settings_out_of_range_are_brought_within_limits() {
         segments: 0,
         profile: -7.0,
         clamp: true,
+        soften: true,
     }
     .clamped();
+    assert!(wild.soften, "a switch is kept as it is");
     assert_eq!(wild.angle, 30.0);
     assert_eq!(wild.width, 2.0);
     assert_eq!(wild.segments, 1);
@@ -281,6 +287,102 @@ fn n_gons_open_borders_and_empty_shapes() {
     );
     let plane = Primitive::Plane(Default::default()).mesh();
     assert!(live_bevel(&plane, &standard(), BY_ANGLE).is_err());
+}
+
+fn soft() -> LiveBevelOptions {
+    LiveBevelOptions {
+        soften: true,
+        ..standard()
+    }
+}
+
+/// The edges shaded hard by `mesh`'s marks.
+fn marked_hard(mesh: &Mesh) -> usize {
+    crate::hardness::shading_hard_edges(mesh, Hardness::Marked).len()
+}
+
+#[test]
+fn soft_bevels_shade_round_on_a_shape_shaded_by_its_marks() {
+    // The cube's 12 edges are marked hard: without Soft bevels, each
+    // bevel keeps hard borders (decision 0040).
+    let cube = cube();
+    let plain = live_bevel(&cube, &standard(), Hardness::Marked).unwrap();
+    assert!(marked_hard(&plain) >= 24, "{}", marked_hard(&plain));
+    // With it, nothing is hard: every strip shades round.
+    let round = live_bevel(&cube, &soft(), Hardness::Marked).unwrap();
+    clean_solid(&round);
+    assert_eq!(marked_hard(&round), 0);
+    // The same polygons either way; only the marks differ.
+    assert_eq!(round.face_count(), plain.face_count());
+    // Softening is the bevel's own: the input keeps its marks.
+    assert_eq!(cube.hard_edges().count(), 12);
+}
+
+#[test]
+fn soft_bevels_leave_unbevelled_edges_as_they_are() {
+    // Only marked edges bevelled: one of the twelve. The other eleven
+    // stay hard, and so does the bevelled edge's neighbourhood's marks.
+    let mut cube = cube();
+    let one: Vec<EdgeKey> = cube.hard_edges().take(1).collect();
+    set_bevel_weights(&mut cube, &one, 1.0);
+    let marked = LiveBevelOptions {
+        edges: BevelEdges::Marked,
+        ..soft()
+    };
+    let out = live_bevel(&cube, &marked, Hardness::Marked).unwrap();
+    assert_eq!(marked_hard(&out), 11);
+    // A width of 0 bevels nothing, so nothing is softened.
+    let none = LiveBevelOptions {
+        width: 0.0,
+        ..soft()
+    };
+    assert_eq!(live_bevel(&cube, &none, Hardness::Marked).unwrap(), cube);
+}
+
+#[test]
+fn soft_bevels_keep_the_marks_of_edges_the_bevel_skips() {
+    // Three quads fanned round one edge, marked hard: the bevel can't
+    // take it, so it stays hard rather than smearing.
+    let mut fan = mesh_of(
+        &[
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 10.0],
+            [10.0, 0.0, 0.0],
+            [10.0, 0.0, 10.0],
+            [-10.0, 0.0, 0.0],
+            [-10.0, 0.0, 10.0],
+            [0.0, 10.0, 0.0],
+            [0.0, 10.0, 10.0],
+        ],
+        &[&[0, 2, 3, 1], &[1, 5, 4, 0], &[0, 1, 7, 6]],
+    );
+    let spine: Vec<EdgeKey> = fan
+        .topology()
+        .edges()
+        .filter(|e| fan.topology().edge_uses(*e).len() == 3)
+        .collect();
+    assert_eq!(spine.len(), 1);
+    crate::hardness::set_hard_edges(&mut fan, &spine, true);
+    let out = live_bevel(&fan, &soft(), BY_ANGLE).unwrap();
+    assert_eq!(out, fan);
+    // An open box (a cube missing its top): its rim is a border, never
+    // bevelled, and its other edges soften.
+    let mut open = cube();
+    let top = open
+        .faces()
+        .find(|(_, c)| c.iter().all(|v| open.position(*v).unwrap().z > 99.0))
+        .map(|(f, _)| f)
+        .unwrap();
+    assert_eq!(open.delete_faces(&[top]), 1);
+    let out = live_bevel(&open, &soft(), Hardness::Marked).unwrap();
+    assert!(out.vertices().all(|(_, p)| p.is_finite()));
+    let topology = out.topology();
+    assert!(
+        crate::hardness::shading_hard_edges(&out, Hardness::Marked)
+            .iter()
+            .all(|e| topology.edge_uses(*e).len() < 2),
+        "only the rim's marks are left"
+    );
 }
 
 #[test]
@@ -435,4 +537,64 @@ fn live_bevel_timing() {
         out.face_count(),
         start.elapsed().as_secs_f64() * 1e3
     );
+}
+
+#[test]
+fn a_corner_with_a_fan_of_polygons_is_cut_away() {
+    // A cube whose bottom is a fan of triangles from one corner (as a
+    // boolean leaves a box's corners), three of them touching no bevelled
+    // edge. Their edges slide too, so the corner point goes and the corner
+    // patch doesn't fold round it (decision 0156).
+    let fanned = mesh_of(
+        &[
+            [-50.0, -50.0, 0.0],
+            [50.0, -50.0, 0.0],
+            [50.0, 50.0, 0.0],
+            [-50.0, 50.0, 0.0],
+            [-50.0, -50.0, 100.0],
+            [50.0, -50.0, 100.0],
+            [50.0, 50.0, 100.0],
+            [-50.0, 50.0, 100.0],
+            [-23.0, -9.5, 0.0],
+            [-17.7, -17.7, 0.0],
+            [-9.5, -23.0, 0.0],
+            [0.0, -25.0, 0.0],
+        ],
+        &[
+            &[0, 3, 8],
+            &[0, 8, 9],
+            &[0, 9, 10],
+            &[0, 10, 11],
+            &[0, 11, 1],
+            &[3, 2, 1, 11, 10, 9, 8],
+            &[4, 5, 6, 7],
+            &[0, 1, 5, 4],
+            &[1, 2, 6, 5],
+            &[2, 3, 7, 6],
+            &[3, 0, 4, 7],
+        ],
+    );
+    clean_solid(&fanned);
+    for segments in [1, 2, 3] {
+        let o = LiveBevelOptions { segments, ..soft() };
+        let out = live_bevel(&fanned, &o, BY_ANGLE).unwrap();
+        clean_solid(&out);
+        let corner = Vec3::new(-50.0, -50.0, 0.0);
+        assert!(
+            out.vertices().all(|(_, p)| p.distance(corner) > 1.0),
+            "{segments}: the corner is cut away"
+        );
+        // The bottom's slid points stay on the bottom, outside the 2 cm
+        // strips and close to them.
+        let slid: Vec<Vec3> = out
+            .vertices()
+            .map(|(_, p)| p)
+            .filter(|p| p.z.abs() < 1e-3 && p.x < -40.0 && p.y < -40.0)
+            .collect();
+        assert!(!slid.is_empty());
+        for p in slid {
+            let inside = p.x.min(p.y) + 50.0;
+            assert!(inside > 1.99 && p.x.max(p.y) < -44.0, "{segments}: {p}");
+        }
+    }
 }
