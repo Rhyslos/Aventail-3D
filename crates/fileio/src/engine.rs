@@ -274,7 +274,7 @@ pub fn export_kit(
         }
         used.push(stem.clone());
         let file_name = format!("{stem}.{}", format.extension());
-        let objects = crate::export::prepare_piece(document, *root, &options);
+        let objects = crate::export::prepare_piece(document, *root, &options, format.frames());
         let result = crate::export::write_files(&objects, format, &options, generator, &file_name)
             .map_err(TargetError::Export)
             .and_then(|files| {

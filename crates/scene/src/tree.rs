@@ -454,7 +454,7 @@ pub struct Scene {
     snapshots: Vec<crate::UvSnapshot>,
     /// Each object's evaluated shape, layer by layer (not part of what the
     /// scene is: copies start empty, and it never affects equality).
-    cache: SharedCache,
+    pub(crate) cache: SharedCache,
     /// Each kept object's booleans' result (decision 0135), the same way.
     pub(crate) cuts: crate::boolean::CutCache,
     /// Each object's modifiers' results (decision 0142), the same way.

@@ -65,11 +65,18 @@ pub(crate) fn set_weights(mesh: &mut Mesh, layer: &str, edges: &[EdgeKey], value
         outcome.skipped = edges.len();
         return outcome;
     }
-    let topology = mesh.topology().clone();
-    for edge in edges {
-        if !topology.has_edge(*edge) {
+    // Both checks are made once, before the loop: asking for the layer
+    // copies it whole, so asking per edge made this quadratic (50,000
+    // edges took seconds).
+    let present: Vec<bool> = {
+        let topology = mesh.topology();
+        edges.iter().map(|e| topology.has_edge(*e)).collect()
+    };
+    let number_layer = has_number_layer(mesh, layer);
+    for (edge, present) in edges.iter().zip(present) {
+        if !present {
             outcome.missing += 1;
-        } else if weight_of(mesh, layer, *edge) == value || !has_number_layer(mesh, layer) {
+        } else if !number_layer || weight_of(mesh, layer, *edge) == value {
             outcome.skipped += 1;
         } else if mesh
             .set_attribute(layer, AttributeElement::Edge(*edge), Value::Float(value))
@@ -92,4 +99,79 @@ fn has_number_layer(mesh: &Mesh, layer: &str) -> bool {
         mesh.attribute_values(layer),
         Some((Domain::Edge, Value::Float(_), _))
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{Primitive, SphereParams, VertexId};
+
+    fn sphere(sides: u32, rings: u32) -> Mesh {
+        Primitive::Sphere(SphereParams {
+            radius: 100.0,
+            sides,
+            rings,
+        })
+        .mesh()
+    }
+
+    /// The way the values were set before the checks moved out of the
+    /// loop, one edge at a time: the result to match.
+    fn set_one_by_one(mesh: &mut Mesh, layer: &str, edges: &[EdgeKey], value: f32) -> Outcome {
+        let mut total = Outcome::default();
+        for edge in edges {
+            let outcome = set_weights(mesh, layer, std::slice::from_ref(edge), value);
+            total.matched += outcome.matched;
+            total.skipped += outcome.skipped;
+            total.missing += outcome.missing;
+        }
+        total
+    }
+
+    #[test]
+    fn setting_many_edges_at_once_matches_setting_them_one_by_one() {
+        let base = sphere(16, 8);
+        let mut edges: Vec<EdgeKey> = base.topology().edges().step_by(2).collect();
+        // One edge twice, and one the mesh doesn't have.
+        edges.push(edges[0]);
+        edges.push(EdgeKey::new(
+            VertexId::from_raw(0),
+            VertexId::from_raw(9_999),
+        ));
+        for value in [0.25, 1.0, 0.0, 7.0, f32::NAN] {
+            let (mut at_once, mut one_by_one) = (base.clone(), base.clone());
+            // Start from some values already set, so "already so" counts.
+            let first: Vec<EdgeKey> = edges.iter().copied().take(5).collect();
+            set_weights(&mut at_once, "w", &first, 0.25);
+            set_weights(&mut one_by_one, "w", &first, 0.25);
+            let a = set_weights(&mut at_once, "w", &edges, value);
+            let b = set_one_by_one(&mut one_by_one, "w", &edges, value);
+            assert_eq!(
+                weights(&at_once, "w"),
+                weights(&one_by_one, "w"),
+                "value {value}"
+            );
+            assert_eq!(
+                at_once.attribute_values("w").is_some(),
+                one_by_one.attribute_values("w").is_some()
+            );
+            assert_eq!(a.missing, b.missing);
+            assert_eq!(a.matched + a.skipped, b.matched + b.skipped);
+        }
+    }
+
+    #[test]
+    #[ignore = "a timing, for release builds"]
+    fn set_weights_timing() {
+        // About 50 000 edges: this took about 10 s while the layer was
+        // looked up once per edge, and takes a few milliseconds now.
+        let mut mesh = sphere(256, 100);
+        let edges: Vec<EdgeKey> = mesh.topology().edges().collect();
+        let start = std::time::Instant::now();
+        let outcome = set_weights(&mut mesh, "w", &edges, 0.5);
+        let took = start.elapsed();
+        println!("{} edges given a value in {took:?}", edges.len());
+        assert_eq!(outcome.matched, edges.len());
+        assert!(took.as_secs_f64() < 1.0, "took {took:?}");
+    }
 }

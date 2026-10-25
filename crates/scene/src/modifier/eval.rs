@@ -10,6 +10,13 @@ use mesh::Mesh;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
+mod estimate;
+mod problems;
+mod sources;
+
+use estimate::Estimate;
+use sources::PendingSource;
+
 /// From this much work ([`ModifierKind::work`], in polygons of a
 /// boolean's worth), the interface works an object's modifiers out on
 /// another thread, showing the last result meanwhile, as it does for
@@ -45,13 +52,19 @@ struct Planned {
     index: usize,
     kind: ModifierKind,
     sources: Vec<SourceShape>,
+    /// Sources whose own modifiers aren't worked out yet: done first, by
+    /// the job, so working out which shapes a modifier reads never waits
+    /// on the interface thread (each one's place in `sources` holds its
+    /// shape before its modifiers meanwhile).
+    pending: Vec<PendingSource>,
     hardness: mesh::Hardness,
     pivot: glam::Vec3,
 }
 
 impl Planned {
     fn is_done_by(&self, step: &Step) -> bool {
-        self.kind == step.kind
+        self.pending.is_empty()
+            && self.kind == step.kind
             && self.sources == step.sources
             && self.hardness == step.hardness
             && self.pivot == step.pivot
@@ -76,9 +89,19 @@ struct Mirrored {
 pub(crate) struct StackCache {
     runs: Mutex<HashMap<(ObjectId, Purpose), Run>>,
     mirrored: Mutex<HashMap<ObjectId, Mirrored>>,
+    estimates: Mutex<HashMap<(ObjectId, Purpose), Estimate>>,
 }
 
 impl StackCache {
+    /// How many work estimates are kept (for tests).
+    #[cfg(test)]
+    pub(crate) fn estimates_kept(&self) -> usize {
+        self.estimates
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .len()
+    }
+
     /// Forgets the results for `id` (deleted).
     pub(crate) fn forget(&mut self, id: ObjectId) {
         self.runs
@@ -89,6 +112,10 @@ impl StackCache {
             .get_mut()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .remove(&id);
+        self.estimates
+            .get_mut()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .retain(|(object, _), _| *object != id);
     }
 
     fn get(&self, id: ObjectId, purpose: Purpose) -> Option<Run> {
@@ -104,6 +131,30 @@ impl StackCache {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .insert((id, purpose), run);
+        // Worked out: the estimate is no longer needed.
+        self.estimates
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .remove(&(id, purpose));
+    }
+}
+
+impl StackCache {
+    /// A copy holding the same results, for
+    /// [`crate::Scene::copy_with_results`].
+    pub(crate) fn copied(&self) -> Self {
+        fn copy<T: Clone>(m: &Mutex<T>) -> Mutex<T> {
+            Mutex::new(
+                m.lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner)
+                    .clone(),
+            )
+        }
+        Self {
+            runs: copy(&self.runs),
+            mirrored: copy(&self.mirrored),
+            estimates: copy(&self.estimates),
+        }
     }
 }
 
@@ -158,6 +209,8 @@ pub struct StackJob {
     done: Vec<Step>,
     /// Those still to do, in order.
     plan: Vec<Planned>,
+    /// Roughly how much work `plan` is, its pending sources' included.
+    work: usize,
 }
 
 /// An object's modifiers worked out: hand them back with
@@ -167,6 +220,8 @@ pub struct StackDone {
     id: ObjectId,
     purpose: Purpose,
     run: Run,
+    /// The sources' modifiers worked out on the way, kept with it.
+    sources: Vec<StackDone>,
 }
 
 /// The shape after `steps` (the last one that worked, or `input`).
@@ -208,21 +263,39 @@ impl StackJob {
         self.done.len()
     }
 
-    /// Roughly how much work is left: from
-    /// [`MODIFIERS_IN_BACKGROUND_FROM`], do it on another thread.
+    /// Roughly how much work is left, counting the sources' modifiers
+    /// still to work out: from [`MODIFIERS_IN_BACKGROUND_FROM`], do it on
+    /// another thread. Quick: worked out (or kept from before) when the
+    /// job was made.
     pub fn work(&self) -> usize {
-        let input = last_shape(&self.input, &self.done);
-        self.plan
-            .iter()
-            .map(|p| p.kind.work_with(&input, self.purpose, &p.sources))
-            .fold(0, usize::saturating_add)
+        self.work
     }
 
-    /// Works the modifiers out. Slow for heavy ones: run it away from the
-    /// interface thread.
+    /// Works the modifiers out, the pending sources' first. Slow for
+    /// heavy ones: run it away from the interface thread.
     pub fn run(self) -> StackDone {
         let mut steps = self.done;
-        for planned in self.plan {
+        let mut sources_done: Vec<StackDone> = Vec::new();
+        for mut planned in self.plan {
+            for pending in std::mem::take(&mut planned.pending) {
+                let (id, purpose) = (pending.job.id, pending.job.purpose);
+                // Two modifiers reading the same source work it out once.
+                let shape = match sources_done
+                    .iter()
+                    .find(|d| d.id == id && d.purpose == purpose)
+                {
+                    Some(done) => done.result().mesh,
+                    None => {
+                        let done = pending.job.run();
+                        let shape = done.result().mesh;
+                        sources_done.push(done);
+                        shape
+                    }
+                };
+                if let Some(source) = planned.sources.get_mut(pending.at) {
+                    source.data = SourceData::Shape(shape);
+                }
+            }
             let input = last_shape(&self.input, &steps);
             let context = ModifierContext {
                 purpose: self.purpose,
@@ -259,6 +332,7 @@ impl StackJob {
                 input: self.input,
                 steps,
             },
+            sources: sources_done,
         }
     }
 }
@@ -341,18 +415,22 @@ impl Scene {
             .iter()
             .enumerate()
             .filter(|(_, m)| m.applies(purpose))
-            .map(|(index, m)| Planned {
-                index,
-                kind: m.kind.clone(),
-                sources: self.source_shapes(owner, &m.kind, purpose),
-                hardness,
-                // Only the kinds that read it, so moving the pivot works
-                // out nothing else again.
-                pivot: if m.kind.reads_pivot() {
-                    pivot
-                } else {
-                    glam::Vec3::ZERO
-                },
+            .map(|(index, m)| {
+                let (sources, pending) = self.source_shapes(owner, &m.kind, purpose);
+                Planned {
+                    index,
+                    kind: m.kind.clone(),
+                    sources,
+                    pending,
+                    hardness,
+                    // Only the kinds that read it, so moving the pivot works
+                    // out nothing else again.
+                    pivot: if m.kind.reads_pivot() {
+                        pivot
+                    } else {
+                        glam::Vec3::ZERO
+                    },
+                }
             })
             .collect();
         if plan.is_empty() {
@@ -387,20 +465,31 @@ impl Scene {
             let run = Run { input, steps: done };
             return Some(StackState::Ready(run.result()));
         }
-        let rest = plan.into_iter().skip(done.len()).collect();
+        let rest: Vec<Planned> = plan.into_iter().skip(done.len()).collect();
+        let own = self.stacks.plan_work((id, purpose), &input, &done, &rest);
+        let work = rest
+            .iter()
+            .flat_map(|p| &p.pending)
+            .map(|p| p.job.work)
+            .fold(own, usize::saturating_add);
         Some(StackState::Needed(StackJob {
             id,
             purpose,
             input,
             done,
             plan: rest,
+            work,
         }))
     }
 
-    /// Keeps modifiers worked out elsewhere ([`StackJob::run`]), for
+    /// Keeps modifiers worked out elsewhere ([`StackJob::run`]), the
+    /// sources' worked out on the way with them, for
     /// [`Scene::stack_state`] to find while the shape and settings stay as
     /// they were.
     pub fn store_stack(&self, done: StackDone) {
+        for source in done.sources {
+            self.store_stack(source);
+        }
         self.stacks.put(done.id, done.purpose, done.run);
     }
 
@@ -441,51 +530,6 @@ impl Scene {
     /// booleans, live mirror and every modifier that is on.
     pub fn exported_shape(&self, id: ObjectId) -> Option<Arc<Mesh>> {
         self.final_shape(id, Purpose::Export)
-    }
-
-    /// Why each of the object's modifiers that can't do its work can't,
-    /// by its place in the list, in plain words starting with a small
-    /// letter. Left out while heavy work (its booleans or its modifiers)
-    /// is still to be done: the interface does that on another thread.
-    pub fn modifier_problems(&self, id: ObjectId) -> Vec<(usize, String)> {
-        let modifiers = self.modifiers(id);
-        if !modifiers.iter().any(|m| m.on) {
-            return Vec::new();
-        }
-        // Asked every frame: the shape before the modifiers is kept by
-        // the scene while nothing changes, so this is quick.
-        let Some(input) = self.input_if_light(id) else {
-            return Vec::new();
-        };
-        // The viewport's, and an export's for those it doesn't show or
-        // that do something else for an export (Subdivide's levels).
-        let mut purposes = vec![Purpose::Viewport];
-        if modifiers
-            .iter()
-            .any(|m| m.on && (!m.in_viewport || m.kind.differs_by_purpose()))
-        {
-            purposes.push(Purpose::Export);
-        }
-        let mut problems: Vec<(usize, String)> = Vec::new();
-        for purpose in purposes {
-            let found = match self.stack_state(id, purpose, Arc::clone(&input)) {
-                Some(StackState::Ready(result)) => result.problems,
-                Some(StackState::Needed(job)) if job.work() < MODIFIERS_IN_BACKGROUND_FROM => {
-                    let done = job.run();
-                    let result = done.result();
-                    self.store_stack(done);
-                    result.problems
-                }
-                _ => Vec::new(),
-            };
-            for (index, why) in found {
-                if !problems.iter().any(|(i, _)| *i == index) {
-                    problems.push((index, why));
-                }
-            }
-        }
-        problems.sort_by_key(|(index, _)| *index);
-        problems
     }
 
     /// The object's shape as the viewport shows it, if it is worked out
@@ -544,58 +588,5 @@ impl Scene {
         } else {
             glam::Vec3::ZERO
         }
-    }
-
-    /// The shapes `kind` reads for object `id`, each placed into `id`'s
-    /// space; a source without a shape is left out.
-    fn source_shapes(
-        &self,
-        id: ObjectId,
-        kind: &ModifierKind,
-        purpose: Purpose,
-    ) -> Vec<SourceShape> {
-        let into = self.shape_matrix(id);
-        let back = if into.determinant().abs() >= 1e-12 {
-            into.inverse()
-        } else {
-            glam::Mat4::IDENTITY
-        };
-        let names = self.material_list(id);
-        kind.sources()
-            .into_iter()
-            .filter(|source| *source != id)
-            .filter_map(|source| {
-                // A lattice's cage is read as its points (decision 0144),
-                // a curve bent along as its line (decision 0147); anything
-                // else as its final shape.
-                let data = match &self.object(source)?.kind {
-                    // An array's centre: only where it stands (decision 0153).
-                    _ if matches!(kind, ModifierKind::Array(_)) => SourceData::Place,
-                    crate::ObjectKind::Lattice(cage) => {
-                        SourceData::Cage(std::sync::Arc::new(cage.clone()))
-                    }
-                    crate::ObjectKind::Curve(curve)
-                        if matches!(kind, ModifierKind::BendAlongCurve(_)) =>
-                    {
-                        SourceData::Curve(std::sync::Arc::new(curve.shape.curve()))
-                    }
-                    _ => SourceData::Shape(self.final_shape(source, purpose)?),
-                };
-                let materials = self
-                    .material_list(source)
-                    .iter()
-                    .map(|m| names.iter().position(|n| n.name == m.name).unwrap_or(0) as u32)
-                    .collect();
-                Some(SourceShape {
-                    id: source,
-                    data,
-                    matrix: back * self.shape_matrix(source),
-                    pivot: back.transform_point3(
-                        self.world_matrix(source).transform_point3(glam::Vec3::ZERO),
-                    ),
-                    materials,
-                })
-            })
-            .collect()
     }
 }

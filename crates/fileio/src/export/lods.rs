@@ -15,7 +15,7 @@
 //! no name ending): it makes its own when it imports one, from the full
 //! shape. See the decision for the sources.
 
-use super::{ExportMesh, ExportOptions, ExportedObject, export_mesh};
+use super::{ExportMesh, ExportOptions, ExportedObject, Frames, export_mesh};
 use glam::Mat4;
 use mesh::Mesh;
 use scene::{ObjectId, Scene};
@@ -46,14 +46,16 @@ pub struct LevelMark {
 }
 
 /// The levels of object `id`, made from `shape` (its exported shape) and
-/// placed by `world` and `local` as its shape is, shaded by `shading`;
-/// none unless it has levels of detail and the export asks for them.
+/// placed by `world` and `local` as its shape is (only those `frames`
+/// names), shaded by `shading`; none unless it has levels of detail and
+/// the export asks for them.
 pub(super) fn levels(
     scene: &Scene,
     id: ObjectId,
     shape: &Arc<Mesh>,
     (world, local): (Mat4, Mat4),
     shading: &ExportOptions,
+    frames: Frames,
 ) -> Vec<ExportLevel> {
     if !shading.lod_levels {
         return Vec::new();
@@ -70,8 +72,16 @@ pub(super) fn levels(
         .iter()
         .zip(&settings.levels)
         .map(|(mesh, level)| ExportLevel {
-            world: export_mesh(mesh, world, shading),
-            local: export_mesh(mesh, local, shading),
+            world: if frames.world() {
+                export_mesh(mesh, world, shading)
+            } else {
+                ExportMesh::default()
+            },
+            local: if frames.local() {
+                export_mesh(mesh, local, shading)
+            } else {
+                ExportMesh::default()
+            },
             distance: level.distance * per_cm,
         })
         .collect()

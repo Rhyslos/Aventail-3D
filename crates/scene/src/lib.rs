@@ -26,6 +26,7 @@ mod memory;
 pub mod mirroring;
 pub mod modifier;
 pub mod object;
+mod results_copy;
 pub mod scatter;
 pub mod snapshot;
 pub mod stack;
@@ -161,6 +162,8 @@ mod selection_tests;
 mod shell_tests;
 #[cfg(test)]
 mod stack_tests;
+#[cfg(test)]
+mod stack_work_tests;
 #[cfg(test)]
 mod struts_tests;
 #[cfg(test)]

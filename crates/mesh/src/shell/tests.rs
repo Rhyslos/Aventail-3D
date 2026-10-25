@@ -460,6 +460,21 @@ fn its_work_grows_with_the_polygons() {
 }
 
 #[test]
+fn a_big_shapes_work_is_counted_from_its_polygons_alone() {
+    // Its borders aren't looked for (that needs every edge), so asking is
+    // quick; the two sides alone make it heavy.
+    let big = crate::samples::heavy_ball(30_000, 100.0);
+    let faces = big.face_count();
+    assert!(faces >= COUNT_RIMS_BELOW);
+    assert_eq!(work(&big, &ShellOptions::default()), faces * 2 / WORK_SHARE);
+    // A small one counts its rims: a plane's four.
+    assert_eq!(
+        work(&plane(10.0), &ShellOptions::default()),
+        (2 + 4) / WORK_SHARE
+    );
+}
+
+#[test]
 fn creases_and_seams_come_along_to_the_layer_behind() {
     let input = cube();
     let seams = crate::uvs::seams(&input);

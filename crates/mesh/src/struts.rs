@@ -296,8 +296,9 @@ fn give_uvs(
     set_uvs(out, values);
 }
 
-/// How much work struts are, in polygons of a boolean's worth (four
-/// polygons made cost about as much as one in a boolean).
+/// How much work struts are, in polygons of a boolean's worth (two
+/// polygons made cost about as much as one in a boolean: a 5 000-polygon
+/// sphere's 89 000 strut polygons take about 135 ms in a release build).
 pub fn work(input: &Mesh, options: &StrutsOptions) -> usize {
     let polygons = usize::try_from(polygon_count(input, options)).unwrap_or(usize::MAX);
     polygons / WORK_SHARE
@@ -305,7 +306,7 @@ pub fn work(input: &Mesh, options: &StrutsOptions) -> usize {
 
 /// How many polygons of the result cost as much as one polygon in a
 /// boolean, for [`work`].
-const WORK_SHARE: usize = 4;
+const WORK_SHARE: usize = 2;
 
 #[cfg(test)]
 mod tests;

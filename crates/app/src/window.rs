@@ -6,6 +6,7 @@
 use crate::backups::{self, Backups};
 use crate::branding;
 use crate::emergency::{Emergency, Snapshots};
+use crate::file_work::{AfterWork, FileJobs};
 use crate::gpu::GpuViewport;
 use crate::project;
 use eframe::egui;
@@ -56,6 +57,8 @@ struct App {
     closing: bool,
     /// Backup copies in the background, and what a crash left behind.
     backups: Backups,
+    /// The save or export being done on another thread (decision 0163).
+    files: FileJobs,
     /// The snapshot the panic hook saves as an emergency copy.
     snapshots: Snapshots,
 }
@@ -234,6 +237,7 @@ impl Starting {
             workbench: self.workbench.take()?,
             renderer: self.renderer.take()?,
             backups: self.backups.take()?,
+            files: FileJobs::default(),
             snapshots: Snapshots::new(self.emergency.clone()),
         })
     }
@@ -309,12 +313,15 @@ impl App {
     fn frame(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
         crate::platform::keep_keyboard_focus(frame);
         let ctx = ui.ctx().clone();
-        // The window's close button: ask about unsaved changes first.
-        if ctx.input(|i| i.viewport().close_requested())
-            && !self.closing
-            && !self.workbench.request_close()
-        {
-            ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+        // The window's close button: wait for a save or export under way,
+        // and ask about unsaved changes first.
+        if ctx.input(|i| i.viewport().close_requested()) && !self.closing {
+            if self.files.busy() {
+                self.files.close_when_done(&mut self.workbench, false);
+                ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+            } else if !self.workbench.request_close() {
+                ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+            }
         }
         let actions = self.workbench.show(ui, self.renderer.as_mut());
         // What the app did (opened, restored, ...) shows on the next frame.
@@ -323,11 +330,18 @@ impl App {
         }
         for action in actions {
             match action {
+                WorkbenchAction::Quit if self.files.busy() => {
+                    self.files.close_when_done(&mut self.workbench, true);
+                }
                 WorkbenchAction::Quit => {
                     self.closing = true;
                     ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                 }
-                WorkbenchAction::Save { path } => project::save(&mut self.workbench, path),
+                WorkbenchAction::Save { path } => {
+                    if let Some(path) = project::where_to_save(&mut self.workbench, path) {
+                        self.files.save(&mut self.workbench, path);
+                    }
+                }
                 WorkbenchAction::Open { path } => project::open(&mut self.workbench, path),
                 WorkbenchAction::Autosave { document, keep } => {
                     self.backups.write(*document, keep, &mut self.workbench);
@@ -342,21 +356,40 @@ impl App {
                         .restore(&folder, &copy, project, keep, &mut self.workbench);
                 }
                 WorkbenchAction::DiscardBackups { folder } => self.backups.discard(&folder),
-                WorkbenchAction::Export(request) => project::export(&mut self.workbench, &request),
+                WorkbenchAction::Export(request) => {
+                    if let Some(path) = project::export_path(&self.workbench, &request) {
+                        self.files.export(&mut self.workbench, request, path);
+                    }
+                }
                 WorkbenchAction::Import { path } => project::import(&mut self.workbench, path),
                 WorkbenchAction::ChooseExportFolder { start } => {
                     project::choose_export_folder(&mut self.workbench, start);
                 }
                 WorkbenchAction::ExportKit(request) => {
-                    project::export_kit(&mut self.workbench, &request);
+                    if let Some(folder) = project::kit_folder(&self.workbench, &request) {
+                        self.files.export_kit(&mut self.workbench, request, folder);
+                    }
                 }
                 WorkbenchAction::ExportToTarget(request) => {
-                    let outcome = project::export_into(&self.workbench, &request);
-                    self.workbench.target_exported(outcome);
+                    self.files.export_to_game(&mut self.workbench, request);
                 }
             }
         }
         self.backups.update(&mut self.workbench);
+        match self.files.update(&mut self.workbench) {
+            AfterWork::Stay => {}
+            // The close button was pressed meanwhile: try again, so
+            // changes made during the save are asked about.
+            AfterWork::AskToClose => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
+            AfterWork::Close => {
+                self.closing = true;
+                ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+            }
+        }
+        if self.files.busy() {
+            // Look again shortly for the work to be done.
+            ctx.request_repaint_after(Duration::from_millis(50));
+        }
         // The emergency copy's snapshot, taken between frames, when the
         // document is whole.
         let document = self.workbench.document();
@@ -387,6 +420,8 @@ impl App {
 
     /// A normal close: this run's backup copies are no longer needed.
     fn on_exit(&mut self) {
+        // A save or export under way is finished first.
+        self.files.finish(&mut self.workbench);
         self.snapshots.emergency().forget();
         self.backups.end();
     }

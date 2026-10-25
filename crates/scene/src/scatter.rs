@@ -68,7 +68,9 @@ impl ScatterSettings {
 
 /// Where the Scatter modifier's work is: the polygons it would add (an
 /// upper bound) over about 8, as appending a polygon costs about an eighth
-/// of one in a boolean.
+/// of one in a boolean, plus about one in 20 of the surface's polygons
+/// (finding where copies go reads them all: 100 000 take about 20 ms in a
+/// release build).
 pub(crate) fn scatter_work(
     input: &Mesh,
     settings: &ScatterSettings,
@@ -81,7 +83,8 @@ pub(crate) fn scatter_work(
             _ => None,
         })
         .collect();
-    mesh::scatter::polygons_added(input, &settings.options, &sizes) / 8
+    (mesh::scatter::polygons_added(input, &settings.options, &sizes) / 8)
+        .saturating_add(input.face_count() / 20)
 }
 
 /// `input` (in the object's space) with the shapes in `context` scattered

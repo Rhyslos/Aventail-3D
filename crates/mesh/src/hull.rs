@@ -19,6 +19,7 @@
 //! best few-cornered hull of that kind, a little inside the full one.
 
 use glam::{DVec3, Vec3};
+use quick_hash::{QuickMap, QuickSet};
 use std::collections::HashMap;
 use words::tr;
 
@@ -228,7 +229,7 @@ struct Builder<'a> {
     epsilon: f64,
     faces: Vec<Face>,
     /// Each directed edge (from, to) and the face it runs round.
-    edges: HashMap<(usize, usize), usize>,
+    edges: QuickMap<(usize, usize), usize>,
     /// How many live faces use each point.
     uses: Vec<u32>,
     corners: usize,
@@ -295,7 +296,7 @@ impl<'a> Builder<'a> {
             points,
             epsilon,
             faces: Vec::new(),
-            edges: HashMap::new(),
+            edges: QuickMap::default(),
             uses: vec![0; points.len()],
             corners: 0,
         };
@@ -419,8 +420,8 @@ impl<'a> Builder<'a> {
     /// the faces it sees don't make one hole with a single rim.
     fn add_point(&mut self, face: usize, eye: usize) -> bool {
         let mut seen = vec![face];
-        let mut visible = std::collections::HashSet::from([face]);
-        let mut looked = std::collections::HashSet::from([face]);
+        let mut visible: QuickSet<usize> = QuickSet::from_iter([face]);
+        let mut looked: QuickSet<usize> = QuickSet::from_iter([face]);
         let mut i = 0;
         while i < seen.len() {
             let corners = self.faces[seen[i]].corners;
@@ -450,8 +451,8 @@ impl<'a> Builder<'a> {
         }
         // A single loop: every rim point starts one edge and ends one,
         // and the eye isn't on it.
-        let mut starts: HashMap<usize, u32> = HashMap::new();
-        let mut ends: HashMap<usize, u32> = HashMap::new();
+        let mut starts: QuickMap<usize, u32> = QuickMap::default();
+        let mut ends: QuickMap<usize, u32> = QuickMap::default();
         for &(p, q) in &rim {
             *starts.entry(p).or_default() += 1;
             *ends.entry(q).or_default() += 1;
@@ -481,7 +482,7 @@ impl<'a> Builder<'a> {
     /// The hull: its live faces, their corners numbered in the order they
     /// first appear.
     fn finish(self) -> Hull {
-        let mut number: HashMap<usize, u32> = HashMap::new();
+        let mut number: QuickMap<usize, u32> = QuickMap::default();
         let mut hull = Hull::default();
         for face in self.faces.iter().filter(|f| f.alive) {
             let mut t = [0u32; 3];
@@ -510,5 +511,6 @@ fn farthest(points: &[DVec3], measure: impl Fn(DVec3) -> f64) -> usize {
     best.0
 }
 
+mod quick_hash;
 #[cfg(test)]
 mod tests;

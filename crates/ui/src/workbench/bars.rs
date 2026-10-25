@@ -55,6 +55,11 @@ impl Workbench {
                     None => navigation_hint(self.viewport.options().navigation.scheme),
                 };
                 ui.label(egui::RichText::new(note).weak());
+                // A turning wheel while a save or export is done on
+                // another thread (decision 0163).
+                if self.file_work().is_some() {
+                    ui.add(egui::Spinner::new().size(12.0));
+                }
             });
         });
     }

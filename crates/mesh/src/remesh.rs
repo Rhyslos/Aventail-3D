@@ -303,15 +303,24 @@ fn smallest_step(bounds: Bounds, step: f32) -> f32 {
     rounded
 }
 
-/// How many grid points remeshing `mesh` at `voxel_size` would use, or
-/// `None` for a shape with no polygons (or not at real positions).
+/// About how many grid points remeshing `mesh` at `voxel_size` would use,
+/// or `None` for a shape with no polygons (or not at real positions).
+/// Quick, for work estimates asked for every frame: it uses the box the
+/// mesh keeps round all its points, so a point no polygon uses can make
+/// it a little more than remeshing uses.
 pub fn voxel_count(mesh: &Mesh, voxel_size: f32) -> Option<u64> {
     let options = RemeshOptions {
         voxel_size,
         smooth: 0,
     }
     .clamped();
-    let bounds = Soup::of(mesh).ok()?.bounds()?;
+    if mesh.face_count() == 0 {
+        return None;
+    }
+    let bounds = mesh.bounds()?;
+    if !(bounds.min.is_finite() && bounds.max.is_finite()) {
+        return None;
+    }
     Some(Grid::total(bounds, options.voxel_size) as u64)
 }
 

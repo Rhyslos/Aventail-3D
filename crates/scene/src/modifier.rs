@@ -503,9 +503,14 @@ impl ModifierKind {
     pub fn work(&self, input: &Mesh, purpose: Purpose) -> usize {
         match self {
             // About 40 grid points cost as much as one polygon in a boolean
-            // (both about 20 ms for 5 000 in a release build).
+            // (both about 20 ms for 5 000 in a release build), plus about
+            // four triangles of the input (measuring each grid point's
+            // distance to the surface: 2 million triangles take about 2 s).
             Self::Remesh(options) => {
-                mesh::remesh::voxel_count(input, options.voxel_size).unwrap_or(0) as usize / 40
+                let voxels = mesh::remesh::voxel_count(input, options.voxel_size).unwrap_or(0);
+                usize::try_from(voxels / 40)
+                    .unwrap_or(usize::MAX)
+                    .saturating_add(mesh::decimate::triangle_count(input) / 4)
             }
             // About 16 new polygons cost as much as one polygon in a
             // boolean (10 000 polygons at level 2 make 160 000 in about
@@ -541,14 +546,25 @@ impl ModifierKind {
             Self::WeightedNormals(_) => input.face_layout().1.len() / 15,
             // About one bevelled edge costs as much as four polygons in a
             // boolean (20 000 edges take about 0.3 s in a release build),
-            // plus copying the shape.
+            // plus finding them and copying the shape: about five polygons
+            // of the input cost one (a million take about 0.8 s). Finding
+            // the edges to count them takes as long as that, so a shape
+            // heavy for its size alone isn't counted.
             Self::LiveBevel(options) => {
-                mesh::live_bevel::edge_estimate(input, options).saturating_mul(4)
-                    + input.face_count() / 20
+                let copying = input.face_count() / 5;
+                if copying >= MODIFIERS_IN_BACKGROUND_FROM {
+                    copying
+                } else {
+                    mesh::live_bevel::edge_estimate(input, options)
+                        .saturating_mul(4)
+                        .saturating_add(copying)
+                }
             }
             // About two triangles cost as much as one polygon in a boolean
-            // (50 000 triangles take about 0.12 s in a release build).
-            Self::Quadify(_) => mesh::quadify::triangle_count(input) / 2,
+            // (50 000 triangles take about 0.12 s in a release build), plus
+            // about seven polygons of any kind (looking at each: a million
+            // quads take about 0.5 s with nothing to join).
+            Self::Quadify(_) => mesh::quadify::triangle_count(input) / 2 + input.face_count() / 7,
             // About WELD_POINTS_PER_POLYGON points cost as much as one
             // polygon in a boolean (see its note for the timing).
             Self::WeldByDistance(_) => input.vertex_count() / WELD_POINTS_PER_POLYGON,

@@ -1,6 +1,9 @@
 //! Saving and opening projects for the workbench: the native Open and
 //! Save dialogs, and the `fileio` calls. The workbench says what it wants
 //! ([`ui::WorkbenchAction`]); this carries it out and reports back.
+//! Saving and exporting are done in two halves: the work itself, on a copy
+//! of the document, which [`crate::file_work`] runs on another thread
+//! (decision 0163), and the report to the workbench afterwards.
 
 use crate::branding::{APP_NAME, PROJECT_EXTENSION};
 use std::path::{Path, PathBuf};
@@ -55,39 +58,75 @@ fn ask_which_to_open(current: Option<&Path>) -> Option<PathBuf> {
     dialog.pick_file()
 }
 
-/// Saves the workbench's document: to `path`, or where the user chooses.
-pub fn save(workbench: &mut Workbench, path: Option<PathBuf>) {
-    let path = match path {
-        Some(path) => path,
-        None => match ask_where_to_save(workbench.project_path()) {
-            Some(path) => path,
-            None => return workbench.save_cancelled(),
-        },
-    };
-    save_to(workbench, path);
+/// Where to save the workbench's document: `path`, or where the user
+/// chooses; `None` (and the workbench told) if they close the dialog.
+pub fn where_to_save(workbench: &mut Workbench, path: Option<PathBuf>) -> Option<PathBuf> {
+    let path = path.or_else(|| ask_where_to_save(workbench.project_path()));
+    if path.is_none() {
+        workbench.save_cancelled();
+    }
+    path
 }
 
-/// Saves the workbench's document to `path` and reports back. A project
-/// that exports into a game project on every save does that too, once
-/// the save has succeeded (decision 0076).
-pub fn save_to(workbench: &mut Workbench, path: PathBuf) {
-    let export = workbench.save_export_request(&path);
-    match fileio::project::save(&path, workbench.document()) {
-        Ok(()) => {
-            let outcome = export.map(|request| export_into(workbench, &request));
-            workbench.saved_with_export(path, outcome);
-        }
-        Err(error) => workbench.save_failed(&error.to_string()),
+/// How a save went: whether the project was saved, and how the export
+/// into its game project folder that follows every save went, if it has
+/// one (decision 0076).
+#[derive(Debug)]
+pub struct SaveOutcome {
+    /// Saved, or why not.
+    pub result: Result<(), String>,
+    /// The export after it, if any (only once saved).
+    pub export: Option<ui::TargetOutcome>,
+}
+
+/// Saves `document` to `path`, then exports it as `export` says if the
+/// save succeeded. The work of a save: slow for heavy projects (the file
+/// is opened again to check it), so run away from the window's thread.
+pub fn save_work(
+    document: &scene::Document,
+    path: &Path,
+    export: Option<&ui::TargetRequest>,
+) -> SaveOutcome {
+    match fileio::project::save(path, document) {
+        Ok(()) => SaveOutcome {
+            result: Ok(()),
+            export: export.map(|request| export_into_work(document, request)),
+        },
+        Err(error) => SaveOutcome {
+            result: Err(error.to_string()),
+            export: None,
+        },
     }
 }
 
-/// Exports the workbench's document into its game project folder as
-/// `request` says.
-pub fn export_into(workbench: &Workbench, request: &ui::TargetRequest) -> ui::TargetOutcome {
+/// Tells the workbench how the save of its document as it was at
+/// `revision` to `path` went.
+pub fn report_saved(workbench: &mut Workbench, path: PathBuf, revision: u64, outcome: SaveOutcome) {
+    match outcome.result {
+        Ok(()) => workbench.saved_at(path, revision, outcome.export),
+        Err(why) => workbench.save_failed(&why),
+    }
+}
+
+/// Saves the workbench's document to `path` here, on this thread, and
+/// reports back (the window saves on another thread, [`crate::file_work`]).
+#[cfg(test)]
+pub fn save_to(workbench: &mut Workbench, path: PathBuf) {
+    let export = workbench.save_export_request(&path);
+    let revision = workbench.document().revision();
+    let outcome = save_work(workbench.document(), &path, export.as_ref());
+    report_saved(workbench, path, revision, outcome);
+}
+
+/// Exports `document` into its game project folder as `request` says.
+pub fn export_into_work(
+    document: &scene::Document,
+    request: &ui::TargetRequest,
+) -> ui::TargetOutcome {
     fileio::engine::export_into(
         &request.folder,
         &request.name,
-        workbench.document(),
+        document,
         request.preset,
         &request.options,
         &generator(),
@@ -96,31 +135,28 @@ pub fn export_into(workbench: &Workbench, request: &ui::TargetRequest) -> ui::Ta
     .map_err(|e| e.to_string())
 }
 
-/// Exports each piece of `request` as its own file: into its folder, or
-/// one the user chooses (decision 0078). Reports back.
-pub fn export_kit(workbench: &mut Workbench, request: &ui::KitRequest) {
-    let folder = match &request.folder {
-        Some(folder) => folder.clone(),
-        None => {
-            let mut dialog = rfd::FileDialog::new().set_title(tr("Export kit into"));
-            if let Some(folder) = workbench.project_path().and_then(Path::parent) {
-                dialog = dialog.set_directory(folder);
-            }
-            match dialog.pick_folder() {
-                Some(folder) => folder,
-                None => return,
-            }
-        }
-    };
-    let outcome = kit_into(workbench, request, &folder);
-    workbench.kit_exported(outcome);
+/// The folder to export the kit pieces of `request` into: its own, or one
+/// the user chooses (decision 0078); `None` if they close the dialog.
+pub fn kit_folder(workbench: &Workbench, request: &ui::KitRequest) -> Option<PathBuf> {
+    if let Some(folder) = &request.folder {
+        return Some(folder.clone());
+    }
+    let mut dialog = rfd::FileDialog::new().set_title(tr("Export kit into"));
+    if let Some(folder) = workbench.project_path().and_then(Path::parent) {
+        dialog = dialog.set_directory(folder);
+    }
+    dialog.pick_folder()
 }
 
-/// Exports each piece of `request` into `folder`.
-fn kit_into(workbench: &Workbench, request: &ui::KitRequest, folder: &Path) -> ui::KitOutcome {
+/// Exports each piece of `request` into `folder`, from `document`.
+pub fn kit_work(
+    document: &scene::Document,
+    request: &ui::KitRequest,
+    folder: &Path,
+) -> ui::KitOutcome {
     fileio::engine::export_kit(
         folder,
-        workbench.document(),
+        document,
         &request.pieces,
         request.format,
         &request.options,
@@ -188,41 +224,61 @@ fn with_file_extension(path: PathBuf, extension: &str) -> PathBuf {
     path.with_file_name(name)
 }
 
-/// Exports the workbench's document as `request` says (asking where
-/// first when it has no path) and reports back.
-pub fn export(workbench: &mut Workbench, request: &ui::ExportRequest) {
+/// Where to export as `request` says: its path, or where the user
+/// chooses; `None` if they close the dialog.
+pub fn export_path(workbench: &Workbench, request: &ui::ExportRequest) -> Option<PathBuf> {
+    if let Some(path) = &request.path {
+        return Some(path.clone());
+    }
     let extension = request.format.extension();
-    let path = match &request.path {
-        Some(path) => path.clone(),
-        None => {
-            let mut dialog = rfd::FileDialog::new()
-                .set_title(tr("Export"))
-                .add_filter(request.format.name(), &[extension])
-                .set_file_name(&request.suggested_name);
-            if let Some(folder) = workbench.project_path().and_then(Path::parent) {
-                dialog = dialog.set_directory(folder);
-            }
-            match dialog.save_file() {
-                Some(path) => with_file_extension(path, extension),
-                None => return,
-            }
-        }
-    };
-    export_to(workbench, request, path);
+    let mut dialog = rfd::FileDialog::new()
+        .set_title(tr("Export"))
+        .add_filter(request.format.name(), &[extension])
+        .set_file_name(&request.suggested_name);
+    if let Some(folder) = workbench.project_path().and_then(Path::parent) {
+        dialog = dialog.set_directory(folder);
+    }
+    dialog
+        .save_file()
+        .map(|path| with_file_extension(path, extension))
 }
 
-/// Exports the workbench's document to `path` and reports back.
-pub fn export_to(workbench: &mut Workbench, request: &ui::ExportRequest, path: PathBuf) {
-    match fileio::export::export_to(
-        &path,
-        workbench.document(),
+/// Exports `document` to `path` as `request` says: the work of an export,
+/// slow for heavy scenes, so run away from the window's thread.
+pub fn export_work(
+    document: &scene::Document,
+    request: &ui::ExportRequest,
+    path: &Path,
+) -> Result<fileio::export::ExportSummary, String> {
+    fileio::export::export_to(
+        path,
+        document,
         request.format,
         &request.options,
         &generator(),
-    ) {
+    )
+    .map_err(|e| e.to_string())
+}
+
+/// Tells the workbench how the export of `request` to `path` went.
+pub fn report_exported(
+    workbench: &mut Workbench,
+    request: &ui::ExportRequest,
+    path: PathBuf,
+    result: Result<fileio::export::ExportSummary, String>,
+) {
+    match result {
         Ok(summary) => workbench.exported(request, path, summary),
-        Err(error) => workbench.export_failed(&error.to_string()),
+        Err(why) => workbench.export_failed(&why),
     }
+}
+
+/// Exports the workbench's document to `path` here, on this thread, and
+/// reports back (the window exports on another thread).
+#[cfg(test)]
+pub fn export_to(workbench: &mut Workbench, request: &ui::ExportRequest, path: PathBuf) {
+    let result = export_work(workbench.document(), request, &path);
+    report_exported(workbench, request, path, result);
 }
 
 /// Imports a file into the workbench's scene: `path`, or the one the user
@@ -382,7 +438,7 @@ mod tests {
         // A kit: each selected piece its own file, into the game folder.
         let kit = first.kit_request().expect("the cube is selected");
         assert_eq!(kit.folder.as_deref(), Some(game.join("models").as_path()));
-        let outcome = kit_into(&first, &kit, &game.join("models")).unwrap();
+        let outcome = kit_work(first.document(), &kit, &game.join("models")).unwrap();
         assert_eq!(outcome.len(), 1);
         assert!(game.join("models/Cube.glb").exists());
 
