@@ -194,11 +194,19 @@ pub(crate) fn merge(mesh: &mut Mesh, groups: &[BTreeSet<FaceId>]) -> usize {
     rewrites.len()
 }
 
-/// Points between just two edges (with `straight_only`, only those on a
-/// straight run, left over where a dissolved edge met the border) are
-/// taken out of their polygons, as long as every polygon keeps three
-/// corners.
-fn tidy(mesh: &mut Mesh, candidates: &BTreeSet<VertexId>, straight_only: bool) {
+/// How sharply, in degrees, the polygons around a point a dissolve left
+/// behind may meet for it still to go: sharper is a corner of the shape
+/// (a cube's corners and a cylinder's rims are at 90°), which stays.
+pub const CORNER_ANGLE: f32 = 60.0;
+
+/// Points between just two edges are taken out of their polygons, as long
+/// as every polygon keeps three corners. With `leftovers_only` (the
+/// points a dissolve left behind) only those that aren't a corner of the
+/// shape go: on a straight run, or inside the surface where the polygons
+/// around them meet no more sharply than [`CORNER_ANGLE`], as on a sphere,
+/// where every ring curves a little (even a blocky 8-sided one). A cube's
+/// corner, a cap's rim or a turn of an open border stays.
+fn tidy(mesh: &mut Mesh, candidates: &BTreeSet<VertexId>, leftovers_only: bool) {
     let mut lone: Vec<VertexId> = Vec::new();
     // The two edges each lone point joins, which become one.
     let mut joined_edges: Vec<(EdgeKey, EdgeKey)> = Vec::new();
@@ -215,8 +223,22 @@ fn tidy(mesh: &mut Mesh, candidates: &BTreeSet<VertexId>, straight_only: bool) {
                 };
                 edges.len() == 2 && way(&edges[0]).dot(way(&edges[1])) < -0.999
             };
+            let gentle = || {
+                let cos = CORNER_ANGLE.to_radians().cos();
+                let normals: Vec<Vec3> = topology
+                    .vertex_faces(*v)
+                    .iter()
+                    .map(|f| mesh.face_normal(*f))
+                    .collect();
+                !edges.iter().any(|e| topology.is_border(*e))
+                    && normals.iter().all(|n| n.length_squared() > 0.5)
+                    && normals
+                        .iter()
+                        .enumerate()
+                        .all(|(i, a)| normals[i + 1..].iter().all(|b| a.dot(*b) >= cos - 1e-6))
+            };
             if edges.len() == 2
-                && (!straight_only || straight())
+                && (!leftovers_only || straight() || gentle())
                 && topology
                     .vertex_faces(*v)
                     .iter()
@@ -277,8 +299,9 @@ fn tidy(mesh: &mut Mesh, candidates: &BTreeSet<VertexId>, straight_only: bool) {
 
 /// Dissolves `edges`: the polygons on both sides of each merge into one
 /// (keeping the lowest id), and points left between just two edges by it
-/// go too. Edges with a polygon on one side only, or whose polygons
-/// wouldn't make one simple polygon, stay.
+/// go too, unless they are a corner of the shape (a cube's corner, a
+/// cap's rim, a turn of an open border). Edges with a polygon on one
+/// side only, or whose polygons wouldn't make one simple polygon, stay.
 pub fn dissolve_edges(mesh: &mut Mesh, edges: &[EdgeKey]) -> Outcome {
     let topology = mesh.topology().clone();
     let joins: BTreeSet<EdgeKey> = edges
@@ -306,7 +329,8 @@ pub fn dissolve_edges(mesh: &mut Mesh, edges: &[EdgeKey]) -> Outcome {
 }
 
 /// Dissolves polygons: each group of neighbouring ones merges into one
-/// (keeping the lowest id). Groups that wouldn't make one simple polygon
+/// (keeping the lowest id), and points left between just two edges go as
+/// for [`dissolve_edges`]. Groups that wouldn't make one simple polygon
 /// stay.
 pub fn dissolve_faces(mesh: &mut Mesh, faces: &[FaceId]) -> Outcome {
     let chosen: BTreeSet<FaceId> = faces

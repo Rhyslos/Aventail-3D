@@ -31,6 +31,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **Dissolve no longer leaves points behind on rounded shapes.** Dissolving edges or polygons on a sphere, a cylinder's side or any curved surface used to leave the points between them, each with just two edges. They now go, as they already did on flat areas. Real corners of the shape, like a cube's corners or a cylinder's rim, still stay.
 - **When the system's file window can't open, the app says so and asks for the path.** On a Linux desktop without the file portal or zenity, Save As, Open, Export…, Import…, Choose folder and the Save in "Save changes?" did nothing at all; now the status bar says the file window didn't open, and a small window lets you type the path (`~` for your home folder), saying what's wrong with it until it can be used.
 - **Each level of detail's step arrows change that level.** The small arrows beside two fields with the same name (each level's *Shown from*) shared one id, so a click could reach the wrong level, and a test build drew "First use of widget" warnings over them.
 - **A long status message no longer runs over the text beside it.** It is cut short with "…"; rest the mouse on it to read it all.

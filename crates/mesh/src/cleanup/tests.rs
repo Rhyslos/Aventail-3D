@@ -304,3 +304,130 @@ fn forgetting_unused_edge_values_keeps_used_ones() {
     let topology = plain.topology();
     assert!(plain.hard_edges().all(|e| topology.has_edge(e)));
 }
+
+fn ball(sides: u32, rings: u32) -> Mesh {
+    Primitive::Sphere(crate::SphereParams {
+        radius: 1.0,
+        sides,
+        rings,
+    })
+    .mesh()
+}
+
+/// Whether `p` is on the equator of a [`ball`] (which sits on the ground,
+/// so its middle is at height 1).
+fn on_equator(p: Vec3) -> bool {
+    (p.z - 1.0).abs() < 1e-4
+}
+
+/// The edges of `mesh` round a [`ball`]'s equator.
+fn equator(mesh: &Mesh) -> Vec<EdgeKey> {
+    mesh.edges()
+        .iter()
+        .copied()
+        .filter(|e| {
+            let (a, b) = e.ends();
+            on_equator(mesh.position(a).unwrap()) && on_equator(mesh.position(b).unwrap())
+        })
+        .collect()
+}
+
+#[test]
+fn dissolving_a_ring_on_a_sphere_leaves_no_points_behind() {
+    // Regression: the points left on a curved surface stayed, as only
+    // those on a perfectly straight run went.
+    for sides in [8, 16, 64] {
+        let before = ball(sides, 8);
+        let ring = equator(&before);
+        assert_eq!(ring.len(), sides as usize);
+        let mut mesh = before.clone();
+        assert_eq!(dissolve_edges(&mut mesh, &ring).matched, sides as usize);
+        assert_eq!(
+            mesh.vertex_count(),
+            before.vertex_count() - sides as usize,
+            "the ring's points go with it ({sides} sides)"
+        );
+        assert!(
+            !mesh.vertices().any(|(_, p)| on_equator(p)),
+            "no point is left on the equator ({sides} sides)"
+        );
+        let r = report(&mesh);
+        assert!(r.is_closed() && !r.has_problems(), "{r:?}");
+    }
+}
+
+#[test]
+fn dissolving_a_run_on_a_sphere_leaves_no_points_between() {
+    // One edge of the equator: its two polygons merge, and its ends still
+    // have the edges up and down the sphere, so they stay.
+    let before = ball(16, 8);
+    let one = equator(&before)[0];
+    let mut mesh = before.clone();
+    assert_eq!(dissolve_edges(&mut mesh, &one_edge(one)).matched, 1);
+    assert_eq!(mesh.vertex_count(), before.vertex_count());
+    // A run of edges along a line of longitude, short of the poles (as in
+    // the project lead's picture): the points between them are left with
+    // two edges, round the curve, and go.
+    let way = before.position(one.ends().0).unwrap().truncate().normalize();
+    let meridian: Vec<EdgeKey> = before
+        .edges()
+        .iter()
+        .copied()
+        .filter(|e| {
+            let (x, y) = e.ends();
+            let near = |v: VertexId| {
+                let p = before.position(v).unwrap();
+                p.truncate().length() > 0.5 && p.truncate().normalize().dot(way) > 0.999
+            };
+            near(x) && near(y)
+        })
+        .collect();
+    assert!(meridian.len() >= 3, "{}", meridian.len());
+    let mut run = before.clone();
+    assert_eq!(dissolve_edges(&mut run, &meridian).matched, meridian.len());
+    let r = report(&run);
+    assert!(r.is_closed() && !r.has_problems(), "{r:?}");
+    let two_edged = run
+        .vertices()
+        .filter(|(v, _)| run.topology().vertex_edges(*v).len() == 2)
+        .count();
+    assert_eq!(two_edged, 0, "no point is left between just two edges");
+    assert_eq!(run.vertex_count(), before.vertex_count() - (meridian.len() - 1));
+}
+
+fn one_edge(e: EdgeKey) -> [EdgeKey; 1] {
+    [e]
+}
+
+#[test]
+fn a_corner_of_the_shape_stays_after_a_dissolve() {
+    // Dissolving a cube's edge merges two sides into one bent polygon;
+    // its ends are the cube's corners and keep their place.
+    let before = cube();
+    let edge = before.edges()[0];
+    let mut mesh = before.clone();
+    assert_eq!(dissolve_edges(&mut mesh, &[edge]).matched, 1);
+    assert_eq!(mesh.vertex_count(), 8, "a cube's corners stay");
+    // A cylinder's side edge: its ends are on the caps' rims, which
+    // turn sharply, so they stay too.
+    let tube = Primitive::Cylinder(CylinderParams::default()).mesh();
+    let side = *tube
+        .edges()
+        .iter()
+        .find(|e| {
+            let (a, b) = e.ends();
+            let (p, q) = (tube.position(a).unwrap(), tube.position(b).unwrap());
+            (p.truncate() - q.truncate()).length() < 1e-4
+        })
+        .unwrap();
+    let mut cut = tube.clone();
+    dissolve_edges(&mut cut, &[side]);
+    assert!(cut.vertex_count() >= tube.vertex_count() - 1);
+    let (a, b) = side.ends();
+    let caps_rim = |v: VertexId| tube.topology().vertex_edges(v).len() == 3;
+    for end in [a, b] {
+        if caps_rim(end) {
+            assert!(cut.position(end).is_some(), "a cap's rim point stays");
+        }
+    }
+}
