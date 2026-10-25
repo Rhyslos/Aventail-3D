@@ -49,6 +49,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Bend along curve: a shape bent along a curve, a rope, a rail, a vine](bend-along-curve.md)
 - [Shrinkwrap: a shape's points moved onto another's surface, straps, decals, roads on terrain](shrinkwrap.md)
 - [Displace: points pushed in and out by a noise, for rock, ground, cobbles and dents](displace.md)
+- [Bend, twist and taper: a shape curled, wrung or narrowed along an axis](bend-twist-taper.md)
 - [Lattice: a cage of points round shapes; move its points to bend, squash and swell them](lattice.md)
 - [Decimate: fewer polygons, the same shape, for game budgets and levels of detail](decimate.md)
 - [Quadify: pairs of triangles joined back into quads, live or once](quadify.md)

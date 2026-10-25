@@ -971,6 +971,8 @@ mod aligning_tests;
 #[cfg(test)]
 mod array_tests;
 #[cfg(test)]
+mod axis_deform_tests;
+#[cfg(test)]
 mod bevel_upgrade_tests;
 mod cage_editing;
 #[cfg(test)]

@@ -261,6 +261,9 @@ fn kind_rows(ui: &mut Ui, kind: &mut ModifierKind, units: Units, rows: &mut Rows
             let points = chosen.points.as_deref();
             super::displace_rows::displace_rows(ui, settings, units, rows, points);
         }
+        ModifierKind::BendTwistTaper(options) => {
+            super::axis_deform_rows::axis_deform_rows(ui, options, units, rows);
+        }
     }
 }
 

@@ -67,6 +67,7 @@ mod v54;
 mod v55;
 mod v56;
 mod v58;
+mod v59;
 mod v6;
 mod v7;
 mod v8;
@@ -142,7 +143,11 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 ///
 /// Version 58 (decision 0157) is version 57 with the Displace modifier
 /// (`v43::KindV43::Displace`, its settings in `v58::DisplaceV58`).
-pub const FORMAT_VERSION: u32 = 58;
+///
+/// Version 59 (decision 0158) is version 58 with the *Bend, twist or
+/// taper* modifier (`v43::KindV43::BendTwistTaper`, its settings in
+/// `v59::AxisDeformV59`).
+pub const FORMAT_VERSION: u32 = 59;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -995,3 +1000,5 @@ mod v56_tests;
 mod v57_tests;
 #[cfg(test)]
 mod v58_tests;
+#[cfg(test)]
+mod v59_tests;

@@ -10,6 +10,7 @@
 //! and do it again exactly, with the same object ids.
 
 pub mod array;
+mod axis_deform;
 pub mod boolean;
 pub mod collision;
 pub mod command;
@@ -50,6 +51,7 @@ pub use history::HistoryLimit;
 pub use lattice::LatticeOptions;
 pub use lod::{LODS_IN_BACKGROUND_FROM, LodDone, LodJob, LodLevel, LodShapes, LodState, Lods};
 pub use mesh::array::{ArrayAxis, ArrayLayout, ArrayOptions};
+pub use mesh::axis_deform::{AxisDeformKind, AxisDeformOptions, DeformAxis, DeformHelper};
 pub use mesh::convex_parts::ConvexPartsOptions;
 pub use mesh::curve::bend::{BendAxis, BendOptions};
 pub use mesh::curve::{
@@ -105,6 +107,8 @@ pub use wrap::{CurveBendSettings, ShrinkwrapSettings};
 mod apply_tests;
 #[cfg(test)]
 mod array_tests;
+#[cfg(test)]
+mod axis_deform_tests;
 #[cfg(test)]
 mod boolean_tests;
 #[cfg(test)]
