@@ -2145,7 +2145,6 @@ The texel density aimed for: texture pixels per metre of surface. 512 px/m is co
 The triangles a game engine cuts the faces into: the usual measure of how heavy a model is
 The triangles you aim for at this level (0 for none). Its count turns amber when it has more; nothing is changed to fit
 The units a new project starts with
-The update couldn't be started: {}
 The user manual opens in your web browser.
 The viewport and the UV Editor side by side, in the UV mode
 The whole part the selection is on
