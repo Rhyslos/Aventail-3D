@@ -198,6 +198,8 @@ pub enum OverlayStyle {
     /// A creased edge (decision 0143), shown whenever points, edges or
     /// polygons are being edited.
     Crease,
+    /// An edge with a bevel weight (decision 0149), shown as creases are.
+    BevelWeight,
     /// A polygon's normal: a short line from its middle the way it faces
     /// (Display → Normals).
     Normal,

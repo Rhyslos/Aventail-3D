@@ -454,6 +454,17 @@ pub enum Operation {
         /// Where they were, to find them again (decision 0032).
         anchors: Option<Anchors>,
     },
+    /// Gives edges a bevel weight, 0 to 1 (0 takes it away): which edges
+    /// the Live bevel modifier bevels with *Marked edges*, and how much of
+    /// its width (decision 0149).
+    SetBevelWeights {
+        /// The edges.
+        edges: Vec<EdgeKey>,
+        /// The weight, 0 to 1.
+        weight: f32,
+        /// Where they were, to find them again (decision 0032).
+        anchors: Option<Anchors>,
+    },
     /// Slides points along their edges towards a neighbour each
     /// (decision 0055).
     SlidePoints {
@@ -799,6 +810,14 @@ impl Operation {
                 };
                 counted(verb, edges.len(), text!("edge"))
             }
+            Self::SetBevelWeights { edges, weight, .. } => {
+                let verb = if *weight > 0.0 {
+                    text!("Bevel weight")
+                } else {
+                    text!("Clear bevel weight")
+                };
+                counted(verb, edges.len(), text!("edge"))
+            }
             Self::SlidePoints { slides, .. } => {
                 counted(text!("Slide"), slides.len(), text!("point"))
             }
@@ -929,6 +948,7 @@ impl Operation {
             | Self::RestoreUvs { .. }
             | Self::SetHardEdges { .. }
             | Self::SetCreases { .. }
+            | Self::SetBevelWeights { .. }
             | Self::SetSeams { .. }
             | Self::SetSeamPreference { .. }
             | Self::SlidePoints { .. }
@@ -1103,6 +1123,7 @@ impl Operation {
             | Self::RestoreUvs { .. }
             | Self::SetHardEdges { .. }
             | Self::SetCreases { .. }
+            | Self::SetBevelWeights { .. }
             | Self::SetSeams { .. }
             | Self::SetSeamPreference { .. }
             | Self::SlidePoints { .. }
@@ -1247,6 +1268,9 @@ impl Operation {
             Self::SetTexelDensity { density, .. } => density.is_finite() && *density > 0.0,
             Self::SetSeamPreference { .. } => true,
             Self::SetCreases { crease, .. } => crease.is_finite() && (0.0..=1.0).contains(crease),
+            Self::SetBevelWeights { weight, .. } => {
+                weight.is_finite() && (0.0..=1.0).contains(weight)
+            }
             Self::SetStretchBudget { budget, .. } => {
                 budget.is_none_or(|b| mesh::uvs::BUDGET_RANGE.contains(&b))
             }
@@ -1319,6 +1343,7 @@ impl Operation {
             | Self::PlaceOnTrim { anchors, .. }
             | Self::SetHardEdges { anchors, .. }
             | Self::SetCreases { anchors, .. }
+            | Self::SetBevelWeights { anchors, .. }
             | Self::SetSeams { anchors, .. }
             | Self::SetSeamPreference { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_ref(),
@@ -1363,6 +1388,7 @@ impl Operation {
             | Self::PlaceOnTrim { anchors, .. }
             | Self::SetHardEdges { anchors, .. }
             | Self::SetCreases { anchors, .. }
+            | Self::SetBevelWeights { anchors, .. }
             | Self::SetSeams { anchors, .. }
             | Self::SetSeamPreference { anchors, .. }
             | Self::SlidePoints { anchors, .. } => anchors.as_mut(),
@@ -1457,6 +1483,7 @@ impl Operation {
             | Self::SetSeamPreference { .. }
             | Self::SetHardEdges { .. }
             | Self::SetCreases { .. }
+            | Self::SetBevelWeights { .. }
             | Self::HardEdgesByAngle { .. } => false,
             // Each side mends as it is applied.
             Self::Mirrored { .. } => false,
@@ -1910,6 +1937,12 @@ impl Operation {
                     .as_ref()
                     .map_or_else(|| edges.clone(), |r| edges_within(mesh, &r.0));
                 mesh::crease::set_creases(mesh, &edges, *crease)
+            }
+            Self::SetBevelWeights { edges, weight, .. } => {
+                let edges = refound
+                    .as_ref()
+                    .map_or_else(|| edges.clone(), |r| edges_within(mesh, &r.0));
+                mesh::bevel_weight::set_bevel_weights(mesh, &edges, *weight)
             }
             Self::SlidePoints { slides, anchors } => match (&refound, anchors) {
                 (Some((found, _)), Some(anchors)) => {

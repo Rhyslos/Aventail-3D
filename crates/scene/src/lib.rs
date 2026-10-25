@@ -48,6 +48,7 @@ pub use mesh::edit::{
     Grouping, Slide, SlitLine,
 };
 pub use mesh::lattice::{Interpolation, Lattice, LatticeEdit};
+pub use mesh::live_bevel::{BevelEdges, LiveBevelOptions};
 pub use mesh::remesh::RemeshOptions;
 pub use mesh::scatter::{PlaceOn, ScatterOptions};
 pub use mesh::shrinkwrap::{ShrinkwrapOptions, WrapMode};
@@ -99,6 +100,8 @@ mod history_tests;
 mod lattice_tests;
 #[cfg(test)]
 mod layer_tests;
+#[cfg(test)]
+mod live_bevel_tests;
 #[cfg(test)]
 mod live_mirror_tests;
 #[cfg(test)]

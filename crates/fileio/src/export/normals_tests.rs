@@ -264,3 +264,63 @@ fn a_modifier_after_weighted_normals_sends_the_usual_shading() {
     .unwrap();
     assert_eq!(glb(&doc), glb(&bevelled_cube_document(false)));
 }
+
+/// A standard cube (shaded by its marks, every edge softened, as the game
+/// bevel will) with Weighted normals and then a standard Live bevel
+/// (decision 0149), which goes before it.
+fn live_bevelled_cube_document() -> Document {
+    let mut doc = Document::new();
+    doc.execute(Command::Create(ObjectKind::Primitive(
+        scene::PrimitiveKind::Cube.standard(),
+    )))
+    .unwrap();
+    let id = doc.selection()[0];
+    doc.execute(Command::SetHardness {
+        ids: vec![id],
+        hardness: Hardness::Marked,
+    })
+    .unwrap();
+    let shape = doc.scene().evaluated(id).unwrap().mesh;
+    doc.execute(Command::Record {
+        id,
+        operation: scene::Operation::SetHardEdges {
+            edges: shape.edges().to_vec(),
+            hard: false,
+            anchors: None,
+        },
+    })
+    .unwrap();
+    for kind in [
+        ModifierKind::WeightedNormals(WeightedNormalsOptions::default()),
+        ModifierKind::LiveBevel(Default::default()),
+    ] {
+        doc.execute(Command::AddModifier {
+            ids: vec![id],
+            kind,
+        })
+        .unwrap();
+    }
+    doc
+}
+
+#[test]
+fn a_live_bevel_then_weighted_normals_exports_flat_big_faces() {
+    let doc = live_bevelled_cube_document();
+    let id = doc.scene().walk()[0].0;
+    assert_eq!(doc.scene().modifiers(id)[0].kind.name(), "Live bevel");
+    let (lean, big) = glb_lean(&glb(&doc));
+    assert_eq!(big, 12);
+    assert!(lean < 0.05, "the big faces are flat: {lean}");
+    // Switch Weighted normals off: they lean again.
+    let mut off = doc.scene().modifiers(id)[1].clone();
+    off.on = false;
+    let mut doc = doc;
+    doc.execute(Command::ChangeModifier {
+        id,
+        index: 1,
+        modifier: off,
+    })
+    .unwrap();
+    let (lean, _) = glb_lean(&glb(&doc));
+    assert!(lean > 1.0, "the usual shading leans: {lean}");
+}

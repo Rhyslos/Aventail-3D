@@ -350,6 +350,41 @@ struct Corner {
 /// polygons don't form a single fan, are skipped. A shape with a value
 /// that isn't a number changes nothing.
 pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Outcome {
+    bevel_with_weights(mesh, edges, &BTreeMap::new(), shape)
+}
+
+/// Bevels each edge of `edges` with `shape`, its width times the edge's
+/// weight (0 to 1; brought within it): the Live bevel modifier's marked
+/// edges (decision 0149). An edge whose weight is 0 or not a number is
+/// skipped. Otherwise as [`bevel_edges`].
+pub fn bevel_edges_weighted(
+    mesh: &mut Mesh,
+    edges: &[(EdgeKey, f32)],
+    shape: BevelShape,
+) -> Outcome {
+    let mut weights = BTreeMap::new();
+    let mut skipped = 0;
+    for (edge, weight) in edges {
+        let weight = crate::edge_weights::usable(*weight);
+        if weight > 0.0 {
+            weights.insert(*edge, weight);
+        } else {
+            skipped += 1;
+        }
+    }
+    let kept: Vec<EdgeKey> = weights.keys().copied().collect();
+    let mut outcome = bevel_with_weights(mesh, &kept, &weights, shape);
+    outcome.skipped += skipped;
+    outcome
+}
+
+/// [`bevel_edges`], each edge in `weights` that share of the width.
+fn bevel_with_weights(
+    mesh: &mut Mesh,
+    edges: &[EdgeKey],
+    weights: &BTreeMap<EdgeKey, f32>,
+    shape: BevelShape,
+) -> Outcome {
     let original = mesh.clone();
     let topology = original.topology();
     let mut outcome = Outcome::default();
@@ -406,7 +441,7 @@ pub fn bevel_edges(mesh: &mut Mesh, edges: &[EdgeKey], shape: BevelShape) -> Out
     let options = shape.options;
     let sides = chain_sides(topology, &chosen, options.flip_side);
     let edge_width = |edge: EdgeKey, face: FaceId| -> f32 {
-        let mut width = shape.width;
+        let mut width = shape.width * weights.get(&edge).copied().unwrap_or(1.0);
         if options.even {
             width *= even_factor(&original, topology, edge);
         }

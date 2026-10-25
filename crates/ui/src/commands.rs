@@ -60,6 +60,8 @@ pub enum CommandId {
     /// Add a subdivision smoothing modifier to the selected shapes
     /// (decision 0143).
     Subdivide,
+    /// Add a live bevel modifier to the selected shapes (decision 0149).
+    LiveBevel,
     /// Add a lattice cage round the selected shapes, each with a Lattice
     /// modifier following it (decision 0144).
     Lattice,
@@ -358,6 +360,10 @@ impl CommandId {
             Self::Subdivide => {
                 let kind = scene::ModifierKind::Subdivide(Default::default());
                 (kind.name(), Icon::Subdivide, None, kind.description(), None)
+            }
+            Self::LiveBevel => {
+                let kind = scene::ModifierKind::LiveBevel(Default::default());
+                (kind.name(), Icon::LiveBevel, None, kind.description(), None)
             }
             Self::Decimate => {
                 let kind = scene::ModifierKind::Decimate(Default::default());
@@ -834,6 +840,7 @@ impl CommandId {
             | Self::Intersect
             | Self::Remesh
             | Self::Subdivide
+            | Self::LiveBevel
             | Self::Lattice
             | Self::Decimate
             | Self::Scatter
@@ -1095,12 +1102,13 @@ pub fn group_menu(group: CommandId, ring: &[Slot]) -> Vec<Slot> {
 /// The commands with no place on the tool menu: the booleans (decision
 /// 0135) and the modifiers (decision 0142), found in the modifiers
 /// palette, the Mesh menu and command search.
-pub const OFF_THE_RING: [CommandId; 11] = [
+pub const OFF_THE_RING: [CommandId; 12] = [
     CommandId::Union,
     CommandId::Subtract,
     CommandId::Intersect,
     CommandId::Remesh,
     CommandId::Subdivide,
+    CommandId::LiveBevel,
     CommandId::Lattice,
     CommandId::Decimate,
     CommandId::Scatter,
@@ -1110,7 +1118,7 @@ pub const OFF_THE_RING: [CommandId; 11] = [
 ];
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 71] = [
+pub const ALL: [CommandId; 72] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -1131,6 +1139,7 @@ pub const ALL: [CommandId; 71] = [
     CommandId::Intersect,
     CommandId::Remesh,
     CommandId::Subdivide,
+    CommandId::LiveBevel,
     CommandId::Lattice,
     CommandId::Decimate,
     CommandId::Scatter,

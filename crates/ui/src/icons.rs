@@ -189,6 +189,9 @@ pub enum Icon {
     /// Subdivide (decision 0143): a dashed square cage and the rounded
     /// shape it makes.
     Subdivide,
+    /// Live bevel (decision 0149): a box's corner with its edge rounded
+    /// off, and a small circular arrow: worked out again as it changes.
+    LiveBevel,
     /// Lattice (decision 0144): a cage of points pulled out on one side,
     /// the shape inside swelling with it.
     Lattice,
@@ -279,7 +282,7 @@ pub enum Icon {
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 123] = [
+pub const ALL: [Icon; 124] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -363,6 +366,7 @@ pub const ALL: [Icon; 123] = [
     Icon::Intersect,
     Icon::Remesh,
     Icon::Subdivide,
+    Icon::LiveBevel,
     Icon::Lattice,
     Icon::Decimate,
     Icon::Scatter,
@@ -495,6 +499,7 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         Icon::Union | Icon::Subtract | Icon::Intersect => booleans::draw(&mut pen, icon),
         Icon::Remesh
         | Icon::Subdivide
+        | Icon::LiveBevel
         | Icon::Lattice
         | Icon::Decimate
         | Icon::Scatter

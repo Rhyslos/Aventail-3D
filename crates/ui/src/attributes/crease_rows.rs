@@ -1,70 +1,114 @@
 //! The Attributes panel's Selected edges section
-//! ([decision 0143](../../../../docs/decisions/0143-subdivide-and-creases.md)):
-//! in the Edges mode, the selected edges' crease, 0 to 1, for the
-//! Subdivide modifier. Changing it asks the workbench to record the
-//! crease as an edit (one drag is one edit and one undo step).
+//! ([decision 0143](../../../../docs/decisions/0143-subdivide-and-creases.md),
+//! [decision 0149](../../../../docs/decisions/0149-live-bevel.md)): in
+//! the Edges mode, the selected edges' crease (for the Subdivide modifier)
+//! and bevel weight (for the Live bevel modifier), each 0 to 1. Changing
+//! one asks the workbench to record it as an edit (one drag is one edit
+//! and one undo step).
 
 use super::{AttributesPanel, LABEL_WIDTH, label, section, stepper};
+use crate::edge_values::EdgeValue;
 use crate::text::tr;
 use crate::theme;
 use egui::{RichText, Ui, vec2};
 
-/// The selected edges' creases, as the workbench sees them each frame.
+/// The selected edges' value of one kind, as the workbench sees it each
+/// frame.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub(crate) struct SelectedCreases {
+pub(crate) struct SelectedEdgeValue {
     /// How many edges are selected.
     pub(crate) edges: usize,
-    /// Their crease (the first edge's, when they differ).
-    pub(crate) crease: f32,
-    /// Whether the edges have different creases.
+    /// Their value (the first edge's, when they differ).
+    pub(crate) value: f32,
+    /// Whether the edges have different values.
     pub(crate) mixed: bool,
 }
 
-/// The Crease field's accessible name.
-pub(crate) const CREASE_LABEL: &str = crate::text!("Crease");
+/// The selected edges' crease and bevel weight.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct SelectedEdges {
+    /// Their creases.
+    pub(crate) crease: SelectedEdgeValue,
+    /// Their bevel weights.
+    pub(crate) bevel_weight: SelectedEdgeValue,
+}
+
+impl SelectedEdges {
+    /// The value of one kind.
+    fn get(&self, what: EdgeValue) -> SelectedEdgeValue {
+        match what {
+            EdgeValue::Crease => self.crease,
+            EdgeValue::BevelWeight => self.bevel_weight,
+        }
+    }
+}
+
+/// A field's tooltip.
+fn help(what: EdgeValue) -> &'static str {
+    match what {
+        EdgeValue::Crease => tr(
+            "How sharply the Subdivide modifier keeps these edges: 0 smooths them like any \
+             other, 1 keeps them fully sharp, 0.5 sharp for half the levels",
+        ),
+        EdgeValue::BevelWeight => tr(
+            "Which edges a Live bevel set to Marked edges bevels, and how wide: 0 not at all, 1 \
+             its full width, 0.5 half of it",
+        ),
+    }
+}
 
 impl AttributesPanel {
     /// The Selected edges section, in the Edges mode with edges selected.
     pub(super) fn crease_section(&mut self, ui: &mut Ui) {
-        let Some(selected) = self.creases else {
+        let Some(selected) = self.selected_edges else {
             return;
         };
-        if selected.edges == 0 {
+        if selected.crease.edges == 0 {
             return;
         }
-        section(ui, &crate::trf!("Selected edges: {}", selected.edges));
-        let mut crease = selected.crease;
-        let mut touched = stepper::Touched::default();
+        section(
+            ui,
+            &crate::trf!("Selected edges: {}", selected.crease.edges),
+        );
+        let mut asked = None;
         egui::Grid::new("attributes_creases")
             .num_columns(2)
             .min_col_width(LABEL_WIDTH)
             .spacing(vec2(12.0, 6.0))
             .show(ui, |ui| {
-                label(
-                    ui,
-                    tr(CREASE_LABEL),
-                    tr(
-                        "How sharply the Subdivide modifier keeps these edges: 0 smooths them \
-                         like any other, 1 keeps them fully sharp, 0.5 sharp for half the levels",
-                    ),
-                );
-                touched = stepper::number(ui, &mut crease, (0.0, 1.0), (0.05, 2), tr(CREASE_LABEL));
-                ui.end_row();
+                for what in EdgeValue::ALL {
+                    let mut value = selected.get(what).value;
+                    label(ui, what.name(), help(what));
+                    let touched =
+                        stepper::number(ui, &mut value, (0.0, 1.0), (0.05, 2), what.name());
+                    ui.end_row();
+                    if touched.began || touched.changed {
+                        asked = Some((what, value, touched));
+                    }
+                }
             });
-        if selected.mixed {
+        let mixed: Vec<&str> = EdgeValue::ALL
+            .into_iter()
+            .filter(|w| selected.get(*w).mixed)
+            .map(EdgeValue::name)
+            .collect();
+        if !mixed.is_empty() {
             ui.label(
-                RichText::new(tr(
-                    "The edges have different creases: a new value gives them all the same.",
+                RichText::new(crate::trf!(
+                    "The edges have different values ({}): a new value gives them all the same.",
+                    mixed.join(", ")
                 ))
                 .small()
                 .color(theme::TEXT_WEAK),
             );
         }
-        if touched.began {
-            self.gesture += 1;
-        }
-        if touched.changed {
-            self.crease_asked = Some((crease.clamp(0.0, 1.0), self.gesture));
+        if let Some((what, value, touched)) = asked {
+            if touched.began {
+                self.gesture += 1;
+            }
+            if touched.changed {
+                self.edge_value_asked = Some((what, value.clamp(0.0, 1.0), self.gesture));
+            }
         }
     }
 }

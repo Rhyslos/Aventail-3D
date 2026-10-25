@@ -37,6 +37,7 @@ pub use crate::wrap::{CurveBendSettings, ShrinkwrapSettings};
 use glam::{Mat4, Vec3};
 use mesh::Mesh;
 use mesh::decimate::DecimateOptions;
+use mesh::live_bevel::LiveBevelOptions;
 use mesh::remesh::RemeshOptions;
 use mesh::subdivide::SubdivideOptions;
 use mesh::weighted_normals::WeightedNormalsOptions;
@@ -115,6 +116,10 @@ pub enum ModifierKind {
     /// 0148): custom normals on every corner. Best last: any modifier
     /// after it drops them.
     WeightedNormals(WeightedNormalsOptions),
+    /// A bevel worked out as the shape changes (decision 0149): the edges
+    /// sharper than an angle, the hard ones or the marked ones, bevelled
+    /// with the improved bevel. Best before smoothing and Weighted normals.
+    LiveBevel(LiveBevelOptions),
 }
 
 impl ModifierKind {
@@ -123,6 +128,7 @@ impl ModifierKind {
     pub fn standard_kinds() -> Vec<Self> {
         vec![
             Self::Subdivide(SubdivideOptions::default()),
+            Self::LiveBevel(LiveBevelOptions::default()),
             Self::Scatter(ScatterSettings::default()),
             Self::Lattice(LatticeOptions::default()),
             Self::BendAlongCurve(CurveBendSettings::default()),
@@ -144,6 +150,7 @@ impl ModifierKind {
             Self::BendAlongCurve(_) => tr("Bend along curve"),
             Self::Shrinkwrap(_) => tr("Shrinkwrap"),
             Self::WeightedNormals(_) => tr("Weighted normals"),
+            Self::LiveBevel(_) => tr("Live bevel"),
         }
     }
 
@@ -187,6 +194,11 @@ impl ModifierKind {
                  faces look flat and its bevels look round. Exported with the shape: best as the \
                  last modifier.",
             ),
+            Self::LiveBevel(_) => tr(
+                "Bevel the shape's sharp edges (or its hard or marked ones) and keep the bevel \
+                 live: it follows the shape as you model. Best before Subdivide and Weighted \
+                 normals.",
+            ),
         }
     }
 
@@ -200,6 +212,7 @@ impl ModifierKind {
             Self::Scatter(_) => ModifierFamily::Generate,
             Self::BendAlongCurve(_) | Self::Shrinkwrap(_) => ModifierFamily::Deform,
             Self::WeightedNormals(_) => ModifierFamily::Game,
+            Self::LiveBevel(_) => ModifierFamily::Generate,
         }
     }
 
@@ -213,7 +226,8 @@ impl ModifierKind {
             | Self::Scatter(_)
             | Self::BendAlongCurve(_)
             | Self::Shrinkwrap(_)
-            | Self::WeightedNormals(_) => false,
+            | Self::WeightedNormals(_)
+            | Self::LiveBevel(_) => false,
             Self::Subdivide(o) => {
                 let o = o.clamped();
                 o.levels != o.export_levels
@@ -238,6 +252,7 @@ impl ModifierKind {
             Self::BendAlongCurve(settings) => Self::BendAlongCurve(settings.clamped()),
             Self::Shrinkwrap(settings) => Self::Shrinkwrap(settings.clamped()),
             Self::WeightedNormals(options) => Self::WeightedNormals(options.clamped()),
+            Self::LiveBevel(options) => Self::LiveBevel(options.clamped()),
         }
     }
 
@@ -247,9 +262,11 @@ impl ModifierKind {
     /// [`ModifierKind::without_sources`]).
     pub fn sources(&self) -> Vec<ObjectId> {
         match self {
-            Self::Remesh(_) | Self::Subdivide(_) | Self::Decimate(_) | Self::WeightedNormals(_) => {
-                Vec::new()
-            }
+            Self::Remesh(_)
+            | Self::Subdivide(_)
+            | Self::Decimate(_)
+            | Self::WeightedNormals(_)
+            | Self::LiveBevel(_) => Vec::new(),
             Self::Lattice(options) => vec![options.cage],
             Self::Scatter(settings) => settings.shapes.clone(),
             Self::BendAlongCurve(settings) => vec![settings.curve],
@@ -298,7 +315,8 @@ impl ModifierKind {
             | Self::Decimate(_)
             | Self::Scatter(_)
             | Self::Shrinkwrap(_)
-            | Self::WeightedNormals(_) => kind.has_shape(),
+            | Self::WeightedNormals(_)
+            | Self::LiveBevel(_) => kind.has_shape(),
         }
     }
 
@@ -306,9 +324,11 @@ impl ModifierKind {
     /// made together with their sources).
     pub fn with_sources_renamed(&self, rename: impl Fn(ObjectId) -> ObjectId) -> Self {
         match self {
-            Self::Remesh(_) | Self::Subdivide(_) | Self::Decimate(_) | Self::WeightedNormals(_) => {
-                self.clone()
-            }
+            Self::Remesh(_)
+            | Self::Subdivide(_)
+            | Self::Decimate(_)
+            | Self::WeightedNormals(_)
+            | Self::LiveBevel(_) => self.clone(),
             Self::Lattice(options) => Self::Lattice(LatticeOptions {
                 cage: rename(options.cage),
             }),
@@ -369,6 +389,13 @@ impl ModifierKind {
             // About 15 corners cost as much as one polygon in a boolean
             // (200 000 quads take about 0.2 s in a release build).
             Self::WeightedNormals(_) => input.face_layout().1.len() / 15,
+            // About one bevelled edge costs as much as four polygons in a
+            // boolean (20 000 edges take about 0.3 s in a release build),
+            // plus copying the shape.
+            Self::LiveBevel(options) => {
+                mesh::live_bevel::edge_estimate(input, options).saturating_mul(4)
+                    + input.face_count() / 20
+            }
         }
     }
 
@@ -418,7 +445,21 @@ impl ModifierKind {
                 options,
                 context.hardness,
             )),
+            // "Hard edges" are those the object's shading shows.
+            Self::LiveBevel(options) => {
+                mesh::live_bevel::live_bevel(input, options, context.hardness)
+                    .map_err(|why| why.to_string())
+            }
         }
+    }
+
+    /// Whether a new modifier of this kind goes before an `other` already
+    /// in the list, rather than at the end: a Live bevel goes before
+    /// smoothing (Subdivide) and Weighted normals, the recommended order
+    /// (decision 0149). The person can move it afterwards.
+    pub fn goes_before(&self, other: &Self) -> bool {
+        matches!(self, Self::LiveBevel(_))
+            && matches!(other, Self::Subdivide(_) | Self::WeightedNormals(_))
     }
 
     /// Whether its result's custom normals ([`mesh::custom_normals`]) fit

@@ -6,15 +6,15 @@
 use super::modelling_tests::{H, cube, note, press, shape};
 use super::tests::fresh;
 use super::*;
-use crate::attributes::CREASE_LABEL;
 use crate::commands::{CommandId, EDGES_ONLY, menu_for};
+use crate::edge_values::CREASE_LABEL;
 use egui::{Event, PointerButton};
 use egui_kittest::kittest::Queryable;
 use scene::{Element, ElementSelection, ModifierKind, SubdivideOptions};
 
 /// The fresh window's cube selected, in `mode_key`'s mode, with its
 /// first `n` edges selected.
-fn ready(mode_key: Key, n: usize) -> H {
+pub(super) fn ready(mode_key: Key, n: usize) -> H {
     let mut harness = fresh();
     let id = cube(&harness);
     harness
@@ -55,7 +55,7 @@ fn creases(harness: &H) -> Vec<f32> {
 }
 
 /// Drags a value field sideways by `dx` points.
-fn drag_field(harness: &mut H, label: &str, dx: f32) {
+pub(super) fn drag_field(harness: &mut H, label: &str, dx: f32) {
     // The field, right of its row's label.
     let from = harness
         .get_all_by_label(label)
