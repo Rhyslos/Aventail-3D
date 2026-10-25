@@ -13,6 +13,7 @@
 //! Building the same settings always gives the same mesh, ids included.
 
 mod boxy;
+mod kit;
 mod lathe;
 mod polyhedra;
 mod prism;
@@ -20,6 +21,8 @@ mod round;
 #[cfg(test)]
 mod tests;
 pub(crate) mod uvs;
+
+pub use kit::{MAX_GRID_STEP, MIN_GRID_STEP, is_grid_step};
 
 use crate::{Bounds, Mesh};
 use glam::Vec3;

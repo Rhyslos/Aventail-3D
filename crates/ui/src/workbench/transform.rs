@@ -369,23 +369,22 @@ impl Workbench {
             self.toggle_edit_pivot();
             ui.close();
         }
-        // Placing pivots (decision 0068).
+        // Placing pivots (decision 0068); the places on the shape's box
+        // in a list of their own (decision 0160).
+        let presets = CommandId::PivotPresets;
+        crate::dialog::menu(ui, presets.name(), |ui| {
+            for command in presets.members() {
+                self.pivot_entry(ui, *command);
+            }
+        })
+        .response
+        .on_hover_text(presets.info().help);
         for command in [
-            CommandId::PivotToCentre,
             CommandId::PivotToOrigin,
             CommandId::PivotToObject,
             CommandId::ObjectToOrigin,
         ] {
-            let ready = !self.document.selection().is_empty();
-            if ui
-                .add_enabled(ready, egui::Button::new(command.name()))
-                .on_hover_text(command.info().help)
-                .on_disabled_hover_text(tr("Select one or more objects first"))
-                .clicked()
-            {
-                self.run_command(command, ui.ctx(), &mut Vec::new());
-                ui.close();
-            }
+            self.pivot_entry(ui, command);
         }
         ui.separator();
         // Snap to and Align (decision 0093).

@@ -55,10 +55,10 @@ Keys are written as on Windows and Linux; on a Mac, Ctrl is Cmd. Menu paths use 
 - **Gizmos:** W move, R rotate, S scale, T all three; Q back to selecting ([transforming](manual/transforming.md)).
 - **While dragging:** Shift ten times finer, Ctrl snaps (or not), Esc or right click cancels.
 - **Axis locks** Shift + X / Y / Z; **L** world or object axes.
-- **Snapping:** to points, edges, polygons and grid lines, with turn and scale steps (palette button, Settings).
+- **Snapping:** to points, edges, polygons and grid lines (or the project's kit grid), with turn and scale steps (palette button, Settings).
 - **Slide:** Alt + drag the Move gizmo slides points along their edges.
 - **Typed values** in the Coordinates band.
-- **Pivot commands:** Pivot to centre, Pivot to world origin, Pivot to object…, Object to world origin (Tools menu, or E with Edit pivot on).
+- **Pivot commands:** Pivot to world origin, Pivot to object…, Object to world origin, and **Pivot presets** (bottom centre, bottom corner, centre, top centre; [modular kit helpers](manual/modular-kits.md)) (Tools menu, or E with Edit pivot on).
 - **Snap to and Align:** **Tools → Snap to…** and **Tools → Align…**, then click the target ([snap to and align](manual/snap-to-and-align.md)).
 - **Apply transforms:** **Mesh → Shape and object → Apply transforms**, or Apply rotation and scale in E (Model mode) ([apply transforms](manual/apply-transforms.md)).
 - **Units:** metres or centimetres per project (Attributes → Units, or Settings).
@@ -69,7 +69,7 @@ Every shape stands on the ground with its pivot at the middle of its base, keeps
 
 - **B list, the seven basic shapes:** Cube, Plane, Cylinder, Sphere, Disc, Tube, Cone. B opens it and moves down, Shift + B up, Enter or Space creates, Esc closes.
 - **Alt + B list, the eleven others:** Icosphere, Torus, Capsule, Dome, Pipe elbow, Pie sector, Gear, Hex grid, Hex sphere, Stairs, Arch, then the curves: **Draw curve**, **Line**, **Circle**, **Arc**, **Spiral**. Once open, B moves down this list too; Shift + Alt + B opens it at the bottom.
-- **Create menu:** all 18, with a line between the two groups, the curves after another line, and **Group**.
+- **Create menu:** all 18, with a line between the two groups, the curves after another line, **Group**, and **Modular kit**: the project's **Kit grid** (1 m, 2 m, 4 m or typed), **Kit-sized shapes**, **Size to kit grid** and **Snap moves to the kit grid** ([modular kit helpers](manual/modular-kits.md)).
 - **Palette buttons:** cube, cylinder, plane, sphere.
 - **Bake into shape** (Ctrl + E): turns a shape into a plain mesh without settings.
 

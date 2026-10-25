@@ -361,7 +361,7 @@ pub(super) fn draw(pen: &mut Pen, icon: Icon) {
 }
 
 /// A pivot: a dot with two short arms.
-fn pivot(pen: &mut Pen, at: (f32, f32)) {
+pub(super) fn pivot(pen: &mut Pen, at: (f32, f32)) {
     let (x, y) = at;
     pen.polyline(&[(x, y), (x, y - 4.5)]);
     pen.polyline(&[(x, y), (x + 4.5, y)]);

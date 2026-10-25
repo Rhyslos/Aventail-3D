@@ -461,6 +461,7 @@ Couldn't restore “{}”.
 Couldn't save a backup copy: {}.
 Couldn't save: {}.
 Couldn't show them: {}.
+Couldn't size to the kit grid: {}.
 Couldn't snap: {}.
 Couldn't split that off: {}.
 Couldn't take it: {}.
@@ -1081,6 +1082,13 @@ Keyboard
 Keyboard shortcuts
 Keys
 Kind
+Kit grid
+Kit grid {} cm
+Kit grid {} m
+Kit pieces in whole steps of {}
+Kit-sized shapes
+Kit-sized shapes off
+Kit-sized shapes on
 Laid
 Laid flat, the piece stretched more than its budget of {:.2}×, so it was slit here, from where it was squeezed most.
 Largest size
@@ -1220,6 +1228,7 @@ Modes
 Modifier on
 Modifiers
 Modifiers are worked out first to last, after the edits, booleans and mirror. Bake into shape (Ctrl + E) makes those that are on part of the shape for good.
+Modular kit
 More copies let you go further back after a crash. A heavy scene takes tens of MB per copy.
 More pieces where the curve bends, one along a straight stretch
 More shapes
@@ -1243,8 +1252,11 @@ Move points at corners further, by the angle there, so the walls stay the same t
 Move the UVs of
 Move the mirror to
 Move the selected objects so their pivots sit on another object's pivot: click this, then click that object
+Move the selected objects' pivots to the middle of their shapes' bottoms, where props stand; the shapes stay where they are
+Move the selected objects' pivots to the middle of their shapes' tops, for pieces that hang from a ceiling; the shapes stay where they are
 Move the selected objects' pivots to the middle of their shapes; the shapes stay where they are
 Move the selected objects' pivots to the world origin, where the red and blue lines cross; the shapes stay where they are
+Move the selected objects' pivots to their shapes' bottom front left corner (lowest along X and Y), where wall and floor pieces snap; the shapes stay
 Move the selected objects, shape and pivot together, so their pivots sit at the world origin
 Move the selected polygons into a new object of their own, in the same place (Polygons mode)
 Move the selection: drag the gizmo's arrows, squares or centre
@@ -1274,6 +1286,7 @@ New name
 New project
 New project.
 New projects
+New shapes are made at the kit grid's size instead of 1 m, their outside sizes whole steps of it. Saved with the project.
 Next in the shape list or tool menu
 Next in the tool menu
 Next select tool (Box, Lasso, Paint select)
@@ -1360,6 +1373,7 @@ One solid band split by thin lines, like a dial; the highlighted slice lights up
 Only at open borders
 Only one project can be opened at a time.
 Only sections with something to set are listed. Materials, Mesh, Rig and Animations arrive with their features.
+Only shapes with settings (a cube, a cylinder…) can be sized: baked meshes and groups have no sizes to round
 Only the edges, seen through the shape: front and back at once. Clicking still picks the shape.
 Open ({})
 Open a project
@@ -1384,6 +1398,7 @@ Orbit and zoom around the point under the mouse
 Orbit, pan and zoom with a left, middle or right drag (standard navigation)
 Orbit, pan, zoom
 Orthographic
+Other:
 Outer radius
 Outline every object's collision shapes (Wrapped, Wrapped in parts, A box), as a game engine will make them. Off, only the selected objects' are outlined.
 Outline every object's collision shapes, not only the selected objects'
@@ -1441,11 +1456,15 @@ Pin the selected UVs where they are: unwrapping lays the rest out around them, a
 Pipe elbow
 Pipe radius
 Pivot
+Pivot presets
+Pivot to bottom centre
+Pivot to bottom corner
 Pivot to centre
 Pivot to object
 Pivot to object: click the object whose pivot to use. Esc cancels.
 Pivot to object: the pivot is already at {}'s pivot.
 Pivot to object…
+Pivot to top centre
 Pivot to world origin
 Pivot to {}
 Place on
@@ -1519,6 +1538,7 @@ Random turn
 Ratio
 Ready
 Ready the selected shapes for a game in one step, without baking: a Live bevel rounds every edge sharper than 30° (2 cm, 2 rows) and shades round, and Weighted normals keeps the big faces flat. Change any of it afterwards in the Attributes panel.
+Ready-made places for the pivot on the shape's box: bottom centre, a bottom corner, centre or top centre. Choose this to see the four.
 Rebuild the shape as an even surface of square polygons, whatever its polygons were: for sculpted, joined or boolean-cut shapes. It needs a closed solid.
 Recover unsaved work?
 Rectangle
@@ -1581,6 +1601,7 @@ Rotation and scale
 Rotation shows for one object in the Model and Object modes
 Round
 Round corners
+Round the selected shapes' outside sizes to whole steps of the kit grid (Create → Modular kit), so pieces line up. A side under half a step, such as a wall's thickness, stays.
 Row {}
 Rows of a shared texture, repeating left to right.
 Save
@@ -1786,6 +1807,8 @@ Size along Y
 Size along Z (up)
 Size shows for a selection; a pivot (Object mode) has none
 Size the objects back to 100%; the shapes keep the size
+Size to kit grid
+Size to kit grid: {}.
 Skew
 Skipped: it would make the shape too large.
 Slide
@@ -1816,6 +1839,7 @@ Smoothing now follows the marked edges, with the shape's look kept as marks.
 Snap (or not, when snapping is on)
 Snap moves to points, edges, polygons and the grid, turns to 15° and scaling to 10% steps. Hold Ctrl while dragging to flip it for that drag.
 Snap moves to points, edges, polygons and the grid. Settings → Viewport has the details.
+Snap moves to the kit grid
 Snap to
 Snap to {}
 Snap to...
@@ -2007,6 +2031,7 @@ The second selected isn't a curve: Ctrl + click a curve to bend along
 The select tool in use
 The selected objects have no UVs.
 The selected objects, with what's inside them
+The selected shapes already fit the kit grid
 The selection is always drawn larger and brighter than anything else. High contrast makes it larger still, with a dark rim, so it stands out on any colour.
 The shape across the bevel: 100% is round, 0% is flat, -100% curves inward (hollow, like a cove). Needs 2 or more segments to show.
 The shape carried along the curve: a circle for pipes and cables, a square or rectangle for bars, or another curve for rails and trims (laid flat on its plane, round its pivot)
@@ -2020,6 +2045,7 @@ The share of the shape's triangles to keep: 50% halves them. Counted in triangle
 The size of the texture this project's UVs are made for
 The snapshot's name. Each must differ.
 The standard layout
+The step a modular kit's pieces are sized to, saved with the project
 The texel density aimed for: texture pixels per metre of surface. 512 px/m is common for props seen up close in third-person games.
 The triangles a game engine cuts the faces into: the usual measure of how heavy a model is
 The units a new project starts with
@@ -2256,6 +2282,7 @@ Which way the thickness grows: inward keeps the surface as the outside (its size
 While dragging
 While moving, rotating and scaling. The snapping button on the top palette turns it on and off.
 While orbiting: snap to the view dice's sides
+While snapping, moves land on the project's kit grid (Create → Modular kit) instead of the grid lines shown, so kit pieces line up edge to edge
 While you orbit, a small ring marks the point the view turns around (and, when zooming with a drag, the point it moves towards)
 While you work, the app saves a backup copy of your scene in the background, only when something changed. If the app ever closes without saving, it offers the copies the next time it starts. They never replace your project file: saving does that.
 Whole surface
@@ -2498,6 +2525,7 @@ its extrude holds a number that isn't real
 its format version is 0
 its game project folder is empty, too long or broken over lines
 its header is cut short ({})
+its kit grid isn't a size a kit can use
 its layout snapshots are too many, unnamed or share a name
 its levels of detail name an object that isn't there
 its loop cut is across an edge joining a point to itself
@@ -2651,6 +2679,7 @@ the mesh is too large
 the new surface would have too many polygons
 the out handle of point {} of {}
 the project's game project folder has changed
+the project's kit grid has changed
 the project's layout snapshots have changed
 the project's mending settings have changed
 the project's texture settings have changed
@@ -2786,7 +2815,9 @@ write
 {} rows of the same height, filling the texture
 {} settings can only be given to a {}
 {} shapes
+{} shapes sized to the {} kit grid. Ctrl + Z takes it back.
 {} shared by three or more polygons
+{} sized to the {} kit grid. Ctrl + Z takes it back.
 {} stacked on identical pieces
 {} suggested ({} changed). Ctrl + Z takes it back.{}
 {} that would spoil a bake in Substance Painter.

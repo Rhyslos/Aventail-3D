@@ -8,6 +8,7 @@
 
 use crate::autosave::{AutosaveSettings, COPIES, MINUTES};
 use crate::dialog::{self, Dialog};
+use crate::kit::{KIT_SNAP_HELP, KIT_SNAP_LABEL};
 use crate::selecting::SelectKeys;
 use crate::text::tr;
 use crate::theme::{self, Accent};
@@ -482,6 +483,8 @@ fn viewport(ui: &mut Ui, values: &mut Values<'_>) {
                 "The lines shown: every 1 m, 50 cm or 10 cm, as the grid button is set.",
             ));
     });
+    ui.checkbox(&mut snap.kit_grid, tr(KIT_SNAP_LABEL))
+        .on_hover_text(tr(KIT_SNAP_HELP));
     ui.horizontal(|ui| {
         ui.label(tr("Turns snap every"));
         ui.add(

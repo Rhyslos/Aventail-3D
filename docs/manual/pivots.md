@@ -33,7 +33,7 @@ Objects inside the selected one (its children) stay where they are too.
 
 ### Ready-made places
 
-With Edit pivot on, press **E** for the [tool menu](tool-menu.md); the four pivot commands sit where the Model mode has Duplicate, Bake into shape, Duplicate as instance and Join. They're also in the **Tools** menu, in every mode, and in [command search](command-search.md).
+With Edit pivot on, press **E** for the [tool menu](tool-menu.md); the four pivot commands sit where the Model mode has Duplicate, Bake into shape, Duplicate as instance and Join, and the **Pivot presets** take the last place, at the top left. They're also in the **Tools** menu, in every mode (Pivot to centre with the presets, under **Tools → Pivot presets**), and in [command search](command-search.md).
 
 ![The tool menu with Edit pivot on: Scale's place at the top right is empty, and the four pivot commands sit at the bottom right and the top left](../screenshots/2026-10-15-tool-menu-object-mode.png)
 
@@ -43,6 +43,7 @@ With Edit pivot on, press **E** for the [tool menu](tool-menu.md); the four pivo
 | **Pivot to world origin** | Puts the pivot at the centre of the world, where the red and blue lines cross. The shape stays. Good for a model built around the middle of the scene. |
 | **Pivot to object…** | Then **click another object**: the selected objects' pivots jump to that object's pivot. The shapes stay. The pointer becomes a cross while it waits; **Esc** cancels. Use it to line up pivots, for example so a lid and a box turn around the same hinge. |
 | **Object to world origin** | Moves each selected object, shape and pivot together, so its pivot sits at the centre of the world. Handy before export: a game engine expects an asset to sit at the origin. |
+| **Pivot presets** | Puts the pivot on the shape's box: **Pivot to bottom centre**, **Pivot to bottom corner**, **Pivot to centre** and **Pivot to top centre**. In the Tools menu they're a list of their own; in the tool menu, the last place (top left) opens the four. See [Modular kit helpers](modular-kits.md#put-the-pivot-where-the-engine-wants-it). |
 
 The ready-made places move the pivot but keep its turn. Each is one undo step.
 
@@ -85,6 +86,7 @@ Edit pivot has no key of its own.
 
 ## Related
 
+- [Modular kit helpers](modular-kits.md): pivot presets, and pieces sized to a kit grid
 - [Snap to and Align](snap-to-and-align.md): move whole objects onto another object's pivot, or line up their sides
 - [Move, rotate and scale](transforming.md)
 - [The tool menu](tool-menu.md)

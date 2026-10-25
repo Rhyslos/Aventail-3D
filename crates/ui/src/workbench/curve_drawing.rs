@@ -138,7 +138,7 @@ impl Workbench {
     /// search: a ready-made shape or curve, or Draw curve.
     pub(crate) fn create_shape(&mut self, shape: Shape, requests: &mut Vec<DocRequest>) {
         match shape {
-            Shape::Primitive(kind) => requests.push(super::create(kind)),
+            Shape::Primitive(kind) => requests.push(self.new_primitive(kind)),
             Shape::Curve(kind) => requests.push(DocRequest::Run(Command::Create(
                 ObjectKind::Curve(CurveObject::line(CurveShape::Ready(kind.standard()))),
             ))),
@@ -192,7 +192,8 @@ impl Workbench {
                 return found;
             }
             if snap.grid {
-                let step = crate::transforming::grid_step(grid);
+                let kit = self.document.scene().kit_grid();
+                let step = crate::transforming::move_step(&snap, grid, kit);
                 return on_plane(&pointer, plane).map(|p| (p / step).round() * step);
             }
         }

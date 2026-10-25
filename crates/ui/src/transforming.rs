@@ -182,6 +182,9 @@ pub struct SnapSettings {
     pub ctrl_flips: bool,
     /// Moves snap to the grid lines shown.
     pub grid: bool,
+    /// Grid snapping uses the project's kit grid instead of the lines
+    /// shown (decision 0160).
+    pub kit_grid: bool,
     /// Moves snap to points.
     pub points: bool,
     /// Moves snap to spots along edges.
@@ -200,6 +203,7 @@ impl Default for SnapSettings {
             on: false,
             ctrl_flips: true,
             grid: true,
+            kit_grid: false,
             points: true,
             edges: true,
             polygons: true,
@@ -784,6 +788,16 @@ pub(crate) fn grid_step(grid: GridDetail) -> f32 {
     grid.fine_spacing().unwrap_or(100.0)
 }
 
+/// The grid step moves snap to with `snap`'s settings: the project's kit
+/// grid when they ask for it (decision 0160), else the lines shown.
+pub(crate) fn move_step(snap: &SnapSettings, grid: GridDetail, kit: scene::KitGrid) -> f32 {
+    if snap.kit_grid && kit.is_valid() {
+        kit.step
+    } else {
+        grid_step(grid)
+    }
+}
+
 impl Target {
     /// `change`, snapped (decision 0030): moves to the point, edge or
     /// polygon under the mouse, else to the grid; turns to whole steps of
@@ -822,7 +836,7 @@ impl Target {
                 if !s.grid {
                     return change;
                 }
-                let step = grid_step(snapping.grid);
+                let step = move_step(&s, snapping.grid, snapping.document.scene().kit_grid());
                 let world = self.axes == [Vec3::X, Vec3::Y, Vec3::Z];
                 let mut moved = Vec3::ZERO;
                 for axis in &self.axes {

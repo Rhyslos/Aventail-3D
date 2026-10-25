@@ -202,6 +202,7 @@ pub(crate) fn edit(edit: &Edit) -> usize {
             | Edit::SetTransform { .. }
             | Edit::SetOffset { .. }
             | Edit::SetUnits { .. }
+            | Edit::SetKitGrid { .. }
             | Edit::SetTexture { .. }
             | Edit::SetMending { .. }
             | Edit::SetCollision { .. }

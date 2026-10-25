@@ -135,6 +135,10 @@ pub enum Command {
     /// Changes the project's units (decision 0068): how lengths are shown
     /// and typed. The shapes don't change.
     SetUnits(crate::Units),
+    /// Changes the project's kit grid (decision 0160). A step outside
+    /// `mesh::MIN_GRID_STEP` to `mesh::MAX_GRID_STEP`, or not a number, is
+    /// refused. No shape changes.
+    SetKitGrid(crate::KitGrid),
     /// Applies objects' placement (decision 0089): their position,
     /// rotation and/or scale go back to none (0, 0° and 100%) while they
     /// look exactly as before. Their shapes take the change (a recorded
@@ -491,6 +495,7 @@ impl Command {
                 trf!("Transform {}", objects(count(&ids)))
             }
             Self::SetUnits(units) => trf!("Change units to {}", units.name()),
+            Self::SetKitGrid(grid) => grid.describe(&scene.kit_grid()),
             Self::SetMaterials { .. } => tr("Change materials").to_string(),
             Self::ApplyTransforms { parts, .. } => trf!("Apply {}", parts.name()),
             Self::AddLayer(_) => tr("Add edit layer").to_string(),
@@ -1477,6 +1482,19 @@ impl Run<'_> {
                     self.edit(Edit::SetTrim {
                         before,
                         after: trim.clone(),
+                    })?;
+                }
+                Ok(None)
+            }
+            Command::SetKitGrid(grid) => {
+                if !grid.is_valid() {
+                    return Err(SceneError::NotANumber);
+                }
+                let before = self.scene.kit_grid();
+                if before != *grid {
+                    self.edit(Edit::SetKitGrid {
+                        before,
+                        after: *grid,
                     })?;
                 }
                 Ok(None)

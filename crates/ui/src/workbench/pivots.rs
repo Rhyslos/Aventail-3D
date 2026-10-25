@@ -17,6 +17,14 @@ use scene::{Command, ObjectId, Transform};
 pub(crate) enum Placement {
     /// Each selected object's pivot to the middle of its shape.
     PivotToCentre,
+    /// Each selected object's pivot to the middle of its shape's bottom
+    /// (decision 0160).
+    BottomCentre,
+    /// Each selected object's pivot to its shape's bottom corner lowest
+    /// along X and Y: the front left one.
+    BottomCorner,
+    /// Each selected object's pivot to the middle of its shape's top.
+    TopCentre,
     /// Each selected object's pivot to the world origin.
     PivotToOrigin,
     /// Each selected object, shape and pivot together, so its pivot sits
@@ -60,10 +68,19 @@ impl Workbench {
     /// The middle of `id`'s own shape in the world; for a group, of
     /// everything in it.
     fn shape_centre(&self, id: ObjectId) -> Option<Vec3> {
+        self.box_point(id, Vec3::splat(0.5))
+    }
+
+    /// A point of `id`'s shape's box in the world, `at` from its lowest
+    /// corner (0) to its highest (1) along each of the shape's own axes:
+    /// (0.5, 0.5, 0) is the middle of its bottom. For a group, of the
+    /// world box round everything in it.
+    fn box_point(&self, id: ObjectId, at: Vec3) -> Option<Vec3> {
         let scene = self.document.scene();
+        let point = |b: mesh::Bounds| b.min + (b.max - b.min) * at;
         match scene.local_bounds(id) {
-            Some(local) => Some(scene.shape_matrix(id).transform_point3(local.centre())),
-            None => scene.bounds_of([id]).map(|b| b.centre()),
+            Some(local) => Some(scene.shape_matrix(id).transform_point3(point(local))),
+            None => scene.bounds_of([id]).map(point),
         }
     }
 
@@ -79,6 +96,9 @@ impl Workbench {
             .filter_map(|id| {
                 let to = match placement {
                     Placement::PivotToCentre => self.shape_centre(*id)?,
+                    Placement::BottomCentre => self.box_point(*id, Vec3::new(0.5, 0.5, 0.0))?,
+                    Placement::BottomCorner => self.box_point(*id, Vec3::ZERO)?,
+                    Placement::TopCentre => self.box_point(*id, Vec3::new(0.5, 0.5, 1.0))?,
                     Placement::PivotToOrigin | Placement::ObjectToOrigin => Vec3::ZERO,
                 };
                 Some((*id, self.placed_at(*id, to)?))
@@ -86,6 +106,9 @@ impl Workbench {
             .collect();
         let name = match placement {
             Placement::PivotToCentre => tr("Pivot to centre"),
+            Placement::BottomCentre => tr("Pivot to bottom centre"),
+            Placement::BottomCorner => tr("Pivot to bottom corner"),
+            Placement::TopCentre => tr("Pivot to top centre"),
             Placement::PivotToOrigin => tr("Pivot to world origin"),
             Placement::ObjectToOrigin => tr("Object to world origin"),
         };
@@ -101,6 +124,21 @@ impl Workbench {
             Ok(()) => crate::trf!("{}. Ctrl + Z takes it back.", name),
             Err(why) => crate::trf!("Couldn't do {}: {}.", name.to_lowercase(), why),
         });
+    }
+
+    /// A pivot command's entry in the Tools menu: greyed out with nothing
+    /// selected.
+    pub(super) fn pivot_entry(&mut self, ui: &mut egui::Ui, command: crate::commands::CommandId) {
+        let ready = !self.document.selection().is_empty();
+        if ui
+            .add_enabled(ready, egui::Button::new(command.name()))
+            .on_hover_text(command.info().help)
+            .on_disabled_hover_text(tr("Select one or more objects first"))
+            .clicked()
+        {
+            self.run_command(command, ui.ctx(), &mut Vec::new());
+            ui.close();
+        }
     }
 
     /// Starts Pivot to object: the next click on an object moves the

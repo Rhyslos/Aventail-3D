@@ -186,6 +186,18 @@ impl Workbench {
                 requests.push(DocRequest::Run(Command::Create(ObjectKind::Group)));
                 ui.close();
             }
+            // The kit helpers in a list of their own, so the Create menu
+            // stays short (decision 0160). It stays open while its
+            // settings are changed.
+            egui::containers::menu::SubMenuButton::new(tr(crate::kit::KIT_MENU))
+                .config(
+                    crate::dialog::menu_config()
+                        .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside),
+                )
+                .ui(ui, |ui| {
+                    ui.set_min_width(crate::dialog::MENU_WIDTH);
+                    self.kit_menu(ui, requests);
+                });
             ui.separator();
             ui.label(
                 egui::RichText::new(tr(

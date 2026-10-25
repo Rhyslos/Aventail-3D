@@ -279,4 +279,6 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Convex hull** — The tightest convex shape round a set of points, as if they were wrapped in cling film: every dent filled in. *Wrapped (convex)* collision is the shape's convex hull; *Wrapped in parts* splits the shape into a few parts first (a *convex decomposition*) and wraps each. See [Collision shapes](collision-shapes.md).
 
-**Modular kit** — A set of pieces (walls, floors, doors) built to fit together and placed again and again to make a level. Each piece is exported as its own file with its pivot where it snaps. See [Kit export and collision](kit-export.md).
+**Modular kit** — A set of pieces (walls, floors, doors) built to fit together and placed again and again to make a level. Each piece is exported as its own file with its pivot where it snaps. See [Kit export and collision](kit-export.md) and [Modular kit helpers](modular-kits.md).
+
+**Kit grid** — The step a modular kit's pieces are sized to and placed on, such as 1 m, 2 m or 4 m: a wall 4 m long fits a 4 m grid, so the next piece starts exactly where it ends. Only the outside sizes the pieces line up along need to fit; a wall's thickness can be anything. In this app each project has one, set in **Create → Modular kit**. See [Modular kit helpers](modular-kits.md).

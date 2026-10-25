@@ -70,8 +70,9 @@ pub use check::MeshReport;
 pub use polygon::{EdgeKey, FaceId, Mesh, MeshError, VertexId};
 pub use primitives::{
     ArchParams, CapsuleParams, ConeParams, CubeParams, CylinderParams, DiscParams, DomeParams,
-    ElbowParams, GearParams, HexGridParams, HexSphereParams, IcosphereParams, PlaneParams,
-    Primitive, PrimitiveKind, SectorParams, SphereParams, StairsParams, TorusParams, TubeParams,
+    ElbowParams, GearParams, HexGridParams, HexSphereParams, IcosphereParams, MAX_GRID_STEP,
+    MIN_GRID_STEP, PlaneParams, Primitive, PrimitiveKind, SectorParams, SphereParams, StairsParams,
+    TorusParams, TubeParams, is_grid_step,
 };
 pub use selection::{Combine, Element, ElementKind, ElementSelection};
 pub use shading::{
