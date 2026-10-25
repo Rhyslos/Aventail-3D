@@ -22,7 +22,7 @@
 //! quads. Their edges along the layers are marked hard, so the rim shades
 //! as its own face, and as UV seams. If the shape has UVs, each rim strip
 //! gets its own: laid out in rows just above the texture square, its
-//! length along U, at the shape's texel density ([`rims`]), so they never
+//! length along U, at the shape's texel density (`rims`), so they never
 //! overlap the shape's own UVs. The layer behind copies the surface's UVs.
 //!
 //! **Ids:** the surface in front keeps its points' and polygons' ids
@@ -275,9 +275,9 @@ fn back_layer(
 }
 
 /// How much work a shell is, in polygons of a boolean's worth (see the
-/// note on [`WORK_SHARE`]). Quick, as it is asked for often: the rims are
+/// note on `WORK_SHARE`). Quick, as it is asked for often: the rims are
 /// counted (which needs the shape's edges) only for shapes of fewer than
-/// [`COUNT_RIMS_BELOW`] polygons; a bigger shape is heavy whatever its
+/// `COUNT_RIMS_BELOW` polygons; a bigger shape is heavy whatever its
 /// borders, and counts its two sides.
 pub fn work(input: &Mesh, options: &ShellOptions) -> usize {
     let polygons = if input.face_count() < COUNT_RIMS_BELOW {

@@ -23,6 +23,7 @@ fn cube() -> Document {
 
 #[test]
 fn a_crash_writes_the_snapshot_and_the_next_start_finds_it() {
+    let _one = crate::one_at_a_time();
     let root = root("write");
     let session = Session::start(&root).unwrap();
     session.write(b"older backup", 5).unwrap();
@@ -52,6 +53,7 @@ fn a_crash_writes_the_snapshot_and_the_next_start_finds_it() {
 
 #[test]
 fn nothing_unsaved_or_nowhere_to_put_it_writes_nothing() {
+    let _one = crate::one_at_a_time();
     let root = root("nothing");
     let session = Session::start(&root).unwrap();
     let emergency = Emergency::new();
@@ -76,6 +78,7 @@ fn nothing_unsaved_or_nowhere_to_put_it_writes_nothing() {
 
 #[test]
 fn a_held_lock_does_not_hold_the_hook_up() {
+    let _one = crate::one_at_a_time();
     let root = root("held");
     let session = Session::start(&root).unwrap();
     let emergency = Emergency::new();
@@ -94,6 +97,7 @@ fn a_held_lock_does_not_hold_the_hook_up() {
 
 #[test]
 fn a_broken_lock_still_gives_up_its_snapshot() {
+    let _one = crate::one_at_a_time();
     let root = root("poisoned");
     let session = Session::start(&root).unwrap();
     let emergency = Emergency::new();
@@ -117,6 +121,7 @@ fn a_broken_lock_still_gives_up_its_snapshot() {
 
 #[test]
 fn one_copy_at_a_time() {
+    let _one = crate::one_at_a_time();
     let root = root("once");
     let session = Session::start(&root).unwrap();
     let emergency = Emergency::new();
@@ -137,6 +142,7 @@ fn one_copy_at_a_time() {
 
 #[test]
 fn snapshots_follow_changes_at_most_twice_a_second_and_clear_on_save() {
+    let _one = crate::one_at_a_time();
     let emergency = Emergency::new();
     let mut snapshots = Snapshots::new(emergency.clone());
     let kept = || lock(&emergency.shared.slot).document.clone();
@@ -181,6 +187,7 @@ fn snapshots_follow_changes_at_most_twice_a_second_and_clear_on_save() {
 #[test]
 #[ignore = "run as a separate process by a_real_panic_saves_the_copy"]
 fn panicking_child() {
+    let _one = crate::one_at_a_time();
     let Some(folder) = std::env::var_os("EMERGENCY_CHILD_FOLDER") else {
         return;
     };
@@ -193,6 +200,7 @@ fn panicking_child() {
 
 #[test]
 fn a_real_panic_saves_the_copy() {
+    let _one = crate::one_at_a_time();
     // A panic hook is for the whole program, so the real one is tried in
     // a separate process: this test program again, running only the child.
     let root = root("real");

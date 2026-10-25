@@ -64,38 +64,18 @@ impl DrawingCache {
         !done.is_empty()
     }
 
-    /// Starts working out, on other threads, the selected objects'
-    /// modifiers for an export where that is light and still to do (one
-    /// at a time per object), so their problems show.
+    /// Works out, at once, the selected objects' modifiers for an export
+    /// where that is light and still to do, so their problems show. Only
+    /// light work is ever handed out here (below the background
+    /// threshold, as the viewport's own light work), so doing it on this
+    /// thread costs no more than the viewport does, and nothing waits on
+    /// another thread. A heavy export stack is worked out by an export.
     pub(super) fn find_export_problems(&mut self, document: &scene::Document) {
         let scene = document.scene();
         for id in document.selection() {
-            if self.exporting.contains_key(&id) {
-                continue;
-            }
             if let Some(job) = scene.export_problems_job(id) {
-                self.exporting
-                    .insert(id, std::thread::spawn(move || job.run()));
+                scene.store_stack(job.run());
             }
         }
-    }
-
-    /// Hands every finished export's worth of modifiers to the scene;
-    /// whether any was.
-    pub(super) fn collect_export_problems(&mut self, scene: &scene::Scene) -> bool {
-        let done: Vec<ObjectId> = self
-            .exporting
-            .iter()
-            .filter(|(_, job)| job.is_finished())
-            .map(|(id, _)| *id)
-            .collect();
-        for id in &done {
-            if let Some(job) = self.exporting.remove(id)
-                && let Ok(result) = job.join()
-            {
-                scene.store_stack(result);
-            }
-        }
-        !done.is_empty()
     }
 }

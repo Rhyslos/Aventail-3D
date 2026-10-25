@@ -228,6 +228,7 @@ mod tests {
 
     #[test]
     fn the_folder_is_the_apps_own() {
+        let _one = crate::one_at_a_time();
         if let Some(folder) = folder() {
             assert!(folder.ends_with("autosave"));
             assert!(folder.to_string_lossy().contains(branding::APP_ID));
@@ -236,6 +237,7 @@ mod tests {
 
     #[test]
     fn a_crash_leaves_copies_that_the_next_run_offers_and_restores() {
+        let _one = crate::one_at_a_time();
         let root = temporary("crash");
         // First run: work, a backup copy, then a crash (no `end`).
         let mut first_bench = workbench();
@@ -281,6 +283,7 @@ mod tests {
 
     #[test]
     fn an_emergency_copy_is_restored_and_named_as_one() {
+        let _one = crate::one_at_a_time();
         let root = temporary("emergency");
         // First run: a crash, with an emergency copy of the cube.
         let mut first_bench = workbench();
@@ -314,6 +317,7 @@ mod tests {
 
     #[test]
     fn restoring_says_how_old_the_copy_is() {
+        let _one = crate::one_at_a_time();
         let now = SystemTime::now();
         let mut copy = autosave::Copy {
             path: PathBuf::from("copy-1.avtl"),
@@ -330,6 +334,7 @@ mod tests {
 
     #[test]
     fn discarding_and_a_missing_folder_are_handled() {
+        let _one = crate::one_at_a_time();
         let root = temporary("discard");
         let mut bench = workbench();
         let mut first = Backups::start(Some(&root), &mut bench);

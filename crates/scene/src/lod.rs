@@ -26,7 +26,7 @@
 //!    follows the model ([`crate::Scene::level_drifted`] says when the
 //!    model has changed since it was made).
 //!
-//! The levels are worked out in [`make`] and kept per object while what
+//! The levels are worked out in `make` and kept per object while what
 //! they are made from stays the same; heavy ones on another thread by the
 //! interface ([`LodJob`]), as heavy modifiers are.
 
@@ -308,7 +308,7 @@ impl Lods {
     }
 
     /// [`Self::clamped`], with each level's changes kept to those that mean
-    /// something for `modifiers` (the object's: see [`tidied_overrides`]).
+    /// something for `modifiers` (the object's: see `tidied_overrides`).
     pub fn tidied(&self, modifiers: &[Modifier]) -> Self {
         let mut lods = self.clamped();
         for level in &mut lods.levels {

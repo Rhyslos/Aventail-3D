@@ -6,7 +6,7 @@
 //! Each point is pushed by **Strength** times the noise's value where it
 //! is, along the way the shape faces there (its polygons' facings round
 //! it, bigger ones counting more: [`crate::shrinkwrap::point_normals`]) or
-//! along one of the shape's own axes. The noise ([`noise`]) is written by
+//! along one of the shape's own axes. The noise (`noise`) is written by
 //! hand and depends only on the point's place, the **Seed** and the
 //! settings, so the same shape always gets the same bumps:
 //!
@@ -19,7 +19,7 @@
 //!   crests and *Cells* raises rounded cells with grooves between them
 //!   (both 0 to 1: outward only, inward with a negative strength).
 //!
-//! It can be limited to **chosen points** ([`falloff`]), fading out over
+//! It can be limited to **chosen points** (`falloff`), fading out over
 //! the **Falloff** distance from them along the surface.
 //!
 //! Only points move (through [`crate::deform::with_points_moved`]): polygons,
