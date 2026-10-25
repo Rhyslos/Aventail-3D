@@ -69,6 +69,9 @@ pub enum CommandId {
     Decimate,
     /// Add a quadify modifier to the selected shapes (decision 0150).
     Quadify,
+    /// Add a weld by distance modifier to the selected shapes (decision
+    /// 0152).
+    WeldByDistance,
     /// Scatter the other selected shapes over the one selected first
     /// (decision 0146).
     Scatter,
@@ -127,6 +130,10 @@ pub enum CommandId {
     /// selected polygons in the Polygons mode, whole shapes in the Model
     /// mode (decision 0150).
     QuadifyNow,
+    /// Weld points closer together than a distance once, as a recorded
+    /// edit: the selected elements' points in the Points, Edges and
+    /// Polygons modes, whole shapes in the Model mode (decision 0152).
+    WeldByDistanceNow,
     /// Join points or edges with a new edge across their polygon.
     Connect,
     /// Cut new edges along a line.
@@ -379,6 +386,27 @@ impl CommandId {
                 let kind = scene::ModifierKind::Quadify(Default::default());
                 (kind.name(), Icon::Quadify, None, kind.description(), None)
             }
+            Self::WeldByDistance => {
+                let kind = scene::ModifierKind::WeldByDistance(Default::default());
+                (
+                    kind.name(),
+                    Icon::WeldByDistance,
+                    None,
+                    kind.description(),
+                    None,
+                )
+            }
+            Self::WeldByDistanceNow => (
+                tr("Weld by distance now"),
+                Icon::WeldByDistance,
+                None,
+                tr(
+                    "Melt points closer together than a distance into one, once: the selected \
+                     points (or those of the selected edges or polygons), or whole shapes in the \
+                     Model mode. Change its settings under Last edit.",
+                ),
+                None,
+            ),
             Self::QuadifyNow => (
                 tr("Quadify now"),
                 Icon::Quadify,
@@ -865,12 +893,15 @@ impl CommandId {
             | Self::Lattice
             | Self::Decimate
             | Self::Quadify
+            | Self::WeldByDistance
             | Self::Scatter
             | Self::BendAlongCurve
             | Self::Shrinkwrap
             | Self::WeightedNormals => &[Model, Object, Points, Edges, Polygons],
             // Whole shapes, or the selected polygons (decision 0150).
             Self::QuadifyNow => &[Model, Polygons],
+            // Whole shapes, or the selected elements' points (decision 0152).
+            Self::WeldByDistanceNow => &[Model, Points, Edges, Polygons],
             Self::Extrude => &[Points, Edges, Polygons],
             Self::Bridge => &[Edges, Polygons],
             Self::Inset | Self::FlipNormals => &[Polygons],
@@ -1126,8 +1157,9 @@ pub fn group_menu(group: CommandId, ring: &[Slot]) -> Vec<Slot> {
 /// The commands with no place on the tool menu: the booleans (decision
 /// 0135) and the modifiers (decision 0142), found in the modifiers
 /// palette, the Mesh menu and command search; and Quadify now (decision
-/// 0150), in the Mesh menu's Clean up group and command search.
-pub const OFF_THE_RING: [CommandId; 14] = [
+/// 0150) and Weld by distance now (decision 0152), in the Mesh menu's
+/// Clean up group and command search.
+pub const OFF_THE_RING: [CommandId; 16] = [
     CommandId::Union,
     CommandId::Subtract,
     CommandId::Intersect,
@@ -1137,15 +1169,17 @@ pub const OFF_THE_RING: [CommandId; 14] = [
     CommandId::Lattice,
     CommandId::Decimate,
     CommandId::Quadify,
+    CommandId::WeldByDistance,
     CommandId::Scatter,
     CommandId::BendAlongCurve,
     CommandId::Shrinkwrap,
     CommandId::WeightedNormals,
     CommandId::QuadifyNow,
+    CommandId::WeldByDistanceNow,
 ];
 
 /// Every command, for tests and the menus.
-pub const ALL: [CommandId; 74] = [
+pub const ALL: [CommandId; 76] = [
     CommandId::Move,
     CommandId::Rotate,
     CommandId::Scale,
@@ -1170,6 +1204,7 @@ pub const ALL: [CommandId; 74] = [
     CommandId::Lattice,
     CommandId::Decimate,
     CommandId::Quadify,
+    CommandId::WeldByDistance,
     CommandId::Scatter,
     CommandId::BendAlongCurve,
     CommandId::Shrinkwrap,
@@ -1194,6 +1229,7 @@ pub const ALL: [CommandId; 74] = [
     CommandId::Dissolve,
     CommandId::Weld,
     CommandId::QuadifyNow,
+    CommandId::WeldByDistanceNow,
     CommandId::Connect,
     CommandId::Slit,
     CommandId::LoopCut,

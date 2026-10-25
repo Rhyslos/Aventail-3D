@@ -98,13 +98,18 @@ impl Workbench {
             .response
             .on_hover_text(help);
         }
-        // One-off clean-ups, recorded as edits (decision 0150).
+        // One-off clean-ups, recorded as edits (decisions 0150 and 0152).
         crate::dialog::menu(ui, tr(MESH_CLEAN_UP_MENU), |ui| {
-            self.ready_entries(ui, &[CommandId::QuadifyNow], requests);
+            self.ready_entries(
+                ui,
+                &[CommandId::WeldByDistanceNow, CommandId::QuadifyNow],
+                requests,
+            );
         })
         .response
         .on_hover_text(tr(
-            "Tidy the polygons once, as an edit: join pairs of triangles into quads",
+            "Tidy the shape once, as an edit: weld points on top of each other, or join pairs of \
+             triangles into quads",
         ));
         crate::dialog::menu(ui, tr(MESH_CURVE_MENU), |ui| {
             use CommandId as C;

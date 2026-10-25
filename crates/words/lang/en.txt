@@ -1114,6 +1114,8 @@ Max shape distortion
 Maximise this view
 Measure
 Measuring: drag a line · Esc stops
+Melt points closer together than a distance into one, once: the selected points (or those of the selected edges or polygons), or whole shapes in the Model mode. Change its settings under Last edit.
+Melt points closer together than a distance into one: close the cracks in a shape split along its seams, or join pieces placed edge to edge. The UVs stay as they were.
 Melt the selected points into one at their middle (selected polygons: each touching group at its middle, such as an inset cap into a fan of triangles); Ctrl + M to drag a point or polygon onto a point
 Mend UVs after each edit
 Mend when sized off
@@ -1275,6 +1277,7 @@ On: the gizmo follows the object's own axes. Off: the world's.
 One face on each of these edges points inwards (a flipped normal); it will shade and bake wrongly. Mesh → Fix normals turns them the right way.
 One newer copy is left out: restoring it closed the app last time.
 One solid band split by thin lines, like a dial; the highlighted slice lights up
+Only at open borders
 Only one project can be opened at a time.
 Only sections with something to set are listed. Materials, Mesh, Rig and Animations arrive with their features.
 Only the edges, seen through the shape: front and back at once. Clicking still picks the shape.
@@ -1378,6 +1381,7 @@ Point made smooth: drag its handles to shape the bend. Double-click again for a 
 Points
 Points along
 Points at the middle this close to their mirror become one, so the halves join into one surface. 0 keeps them apart.
+Points closer together than this melt into one. Keep it tiny (0.1 mm) to close only cracks; raise it to join pieces placed roughly edge to edge
 Points on the same spot make polygons with no area and break the shading there. Fix welds each group into one point.
 Points that no face uses.
 Points, Edges, Polygons
@@ -1945,7 +1949,7 @@ This works on whole curves: press 1 for the Points mode
 Those shapes can't be scattered onto the first selected
 Three or more polygons on one edge can't be unfolded or baked cleanly. Select them and delete or split off the extra polygons.
 Tick "I know what I'm doing, proceed" first.
-Tidy the polygons once, as an edit: join pairs of triangles into quads
+Tidy the shape once, as an edit: weld points on top of each other, or join pairs of triangles into quads
 Tip: B for the basic shapes, Alt + B for the rest and the curves
 Tip: press E for the tool menu
 To change it: select the edge (Edges mode, 2) and choose UV → Seams → Clear seams, or Never seams here so suggestions avoid it. Prefer seams here on other edges draws cuts there instead.
@@ -2072,19 +2076,30 @@ Warnings
 Weight by
 Weighted normals
 Weld
+Weld 1 point by distance
+Weld by distance
+Weld by distance now
+Weld by distance now found no points closer together than the Distance: raise it under Last edit.
+Weld by distance now works on whole shapes in the Model mode, or on the selected points, edges or polygons
+Weld by distance now: select one or more shapes first.
+Weld by distance now: select two or more points first (or edges or polygons), or press Tab for the Model mode to weld whole shapes.
 Weld curve ends
 Weld distance
+Weld only points on open borders (edges with a polygon on one side only), where cracks are, so small details elsewhere never melt
 Weld onto a point
 Weld overlapping points: new points that land on top of each other (where bevels meet) become one, so there are no doubled points or tiny slivers
 Weld points
 Weld the middle
 Weld works on points or polygons: press 1 for the Points mode or 3 for Polygons.
 Weld works on points: press 1 for the Points mode
+Weld {} points by distance
 Weld: drag a point (or, in the Polygons mode, a polygon) onto a point to melt it there (the whole selection, if you drag a selected one). M welds the selection at its middle.
 Weld: press on a point of a selected object and drag it onto another.
 Weld: press on a polygon of a selected object and drag it onto a point.
 Weld: select a polygon first (its points melt into one at its middle), or press Ctrl + M and drag a polygon onto a point.
 Weld: select two or more points first, or press Ctrl + M and drag a point onto another.
+Welded 1 point away. Ctrl + Z takes it back; change the Distance under Last edit.
+Welded {} points away. Ctrl + Z takes it back; change the Distance under Last edit.
 What goes out
 What makes a polygon count for more at its corners: its area (big faces win, the usual choice), the angle it fills there (as plain shading counts), or both
 What points, pieces, seams, pivots and the rest mean (glossary)
@@ -2104,6 +2119,7 @@ When on, marking or clearing seams lays the pieces around them flat again at onc
 When on, the box, lasso and brush only select what you can see. When off (the standard), they select through the shape, catching its far side too.
 Where closed pieces are cut open, and the stretch budget: Seam suggestions.
 Where cuts go that only make a piece lie flat (Suggest seams, and Unwrap on a closed piece)
+Where joined pieces' UVs don't meet, mark the join as a UV seam, so a later Unwrap keeps the pieces as they are laid out
 Where the copies go: one on each point, one on the middle of each polygon, or a number spread at random, evenly by area
 Where the cut sits across the polygons: 50% is the middle. With several cuts, it slides them all together.
 Where the file is going: this picks the right settings for it
@@ -2167,6 +2183,7 @@ Z
 Z up
 [3D objects copied: paste them in the viewport]
 a Quadify's settings aren't real angles
+a Weld by distance's Distance isn't a real number
 a backup copy
 a bend's stretch isn't a real number, or is out of range (above 0, at most 1000)
 a bevel is stored with its settings twice
@@ -2400,6 +2417,7 @@ materials are stored for object {}, which isn't there
 mesh layers are stored for object {}, which isn't there
 metres
 minute
+mm
 modifier
 names are stored for an edit without anchors
 names are stored for edit {}, which isn't there
@@ -2412,6 +2430,7 @@ no graphics device
 no limit
 no partner called {}
 no two neighbouring triangles can be joined: raise Max angle or Max shape distortion, or untick a Keep setting
+no two points are closer together than the Distance: raise it to weld points further apart
 none
 none of its chosen points are left: choose them again, or use all points
 none of the polygons it was limited to are on the shape any more: choose them again, or use the whole surface
@@ -2528,6 +2547,7 @@ the scene couldn't be encoded ({})
 the selection's UVs
 the shape
 the shape has no hard edges: mark some in the Edges mode, or bevel by angle instead
+the shape has no open borders: untick Only at open borders to weld anywhere
 the shape has no points
 the shape has no polygons
 the shape has no triangles to join

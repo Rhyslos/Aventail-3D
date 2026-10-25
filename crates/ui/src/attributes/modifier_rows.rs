@@ -241,6 +241,7 @@ fn kind_rows(ui: &mut Ui, kind: &mut ModifierKind, units: Units, rows: &mut Rows
             super::live_bevel_rows::live_bevel_rows(ui, options, units, rows);
         }
         ModifierKind::Quadify(options) => super::quadify_rows::quadify_rows(ui, options, rows),
+        ModifierKind::WeldByDistance(options) => super::weld_rows::weld_rows(ui, options, rows),
     }
 }
 

@@ -62,6 +62,7 @@ mod v5;
 mod v50;
 mod v51;
 mod v52;
+mod v53;
 mod v6;
 mod v7;
 mod v8;
@@ -116,7 +117,12 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 /// Version 52 (decision 0151) is version 51 with collision in parts
 /// (*Wrapped in parts*) and its settings (`v52::CollisionPartsV52`, in
 /// each object's development settings).
-pub const FORMAT_VERSION: u32 = 52;
+///
+/// Version 53 (decision 0152) is version 52 with the Weld by distance
+/// modifier (`v43::KindV43::WeldByDistance`) and the one-off Weld by
+/// distance now, one more kind of recorded edit
+/// (`v37::OperationV37::WeldByDistance`).
+pub const FORMAT_VERSION: u32 = 53;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -957,3 +963,5 @@ mod v50_tests;
 mod v51_tests;
 #[cfg(test)]
 mod v52_tests;
+#[cfg(test)]
+mod v53_tests;

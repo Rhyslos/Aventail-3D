@@ -81,5 +81,6 @@ Polygons squeezed to fewer than three corners disappear.
 ## Related
 
 - [Loop cut](loop-cut.md) and [Slit](slit.md): other ways to add edges.
+- [Weld by distance](weld-by-distance.md): every pair of points on top of each other melted into one at once, without choosing them (an imported model's cracks).
 - [Selecting](selecting.md): loops for selecting whole borders.
 - [Concepts](concepts.md): [borders, edges and polygons](concepts.md#mesh-basics).

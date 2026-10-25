@@ -136,6 +136,7 @@ impl Workbench {
                      Polygons", command.name()))
             }
             CommandId::QuadifyNow => self.quadify_readiness(),
+            CommandId::WeldByDistanceNow => self.weld_distance_readiness(),
             CommandId::FlipNormals if !command.modes().contains(&self.mode) => Ready::NotNow(
                 tr("Flip normals works on polygons: press 3 for the Polygons mode").into(),
             ),
@@ -162,6 +163,7 @@ impl Workbench {
             | CommandId::Lattice
             | CommandId::Decimate
             | CommandId::Quadify
+            | CommandId::WeldByDistance
             | CommandId::Scatter
             | CommandId::BendAlongCurve
             | CommandId::Shrinkwrap
@@ -222,6 +224,7 @@ impl Workbench {
             CommandId::FillHole => self.run_fill_hole(),
             CommandId::FlipNormals => self.run_flip(),
             CommandId::QuadifyNow => self.run_quadify_now(),
+            CommandId::WeldByDistanceNow => self.run_weld_distance_now(),
             CommandId::HardEdges => self.run_hardness(true),
             CommandId::SoftEdges => self.run_hardness(false),
             CommandId::CreaseEdges => self.run_creases(1.0),
@@ -314,6 +317,7 @@ impl Workbench {
             | CommandId::Lattice
             | CommandId::Decimate
             | CommandId::Quadify
+            | CommandId::WeldByDistance
             | CommandId::Scatter
             | CommandId::BendAlongCurve
             | CommandId::Shrinkwrap

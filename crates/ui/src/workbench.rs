@@ -1015,6 +1015,9 @@ mod uv_editor_tests;
 mod uv_hand_tests;
 #[cfg(test)]
 mod weighted_tests;
+mod welding_distance;
+#[cfg(test)]
+mod welding_distance_tests;
 
 #[cfg(test)]
 mod autosave_tests;
