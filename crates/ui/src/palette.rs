@@ -141,9 +141,6 @@ pub fn icon_button(
     tinted_button(ui, icon, icon_tint(icon), label, note, state)
 }
 
-/// The size of the names in the mode palette's slide-out strip.
-const WORD_SIZE: f32 = 13.0;
-
 /// Like [`icon_button`], in a given colour instead of the icon's own.
 pub fn tinted_button(
     ui: &mut Ui,
@@ -845,15 +842,6 @@ pub const ISOLATE_LABEL: &str = crate::text!("Isolate");
 /// anything; toggles change `options` directly.
 pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Option<ModePick> {
     let mut picked = None;
-    let mut names: Vec<Named> = Vec::new();
-    let mut named = |response: &Response, name: String, active: bool, act: Act| {
-        names.push(Named {
-            rect: response.rect,
-            name,
-            active,
-            act,
-        });
-    };
     ui.vertical_centered(|ui| {
         ui.spacing_mut().item_spacing.y = 2.0;
         for (index, mode) in Mode::SHOWN.into_iter().enumerate() {
@@ -878,12 +866,6 @@ pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Op
             if response.clicked() {
                 picked = Some(ModePick::Mode(mode));
             }
-            named(
-                &response,
-                mode.name().to_string(),
-                state == ButtonState::Active,
-                Act::Pick(ModePick::Mode(mode)),
-            );
             if mode == Mode::Model {
                 // Edit pivot sits under the Model mode it belongs to, where
                 // the Object mode was (the project lead's choice).
@@ -914,12 +896,6 @@ pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Op
                 if response.clicked() {
                     picked = Some(ModePick::EditPivot);
                 }
-                named(
-                    &response,
-                    tr(EDIT_PIVOT_LABEL).to_string(),
-                    pivot_state == ButtonState::Active,
-                    Act::Pick(ModePick::EditPivot),
-                );
             }
         }
         divider(ui, false);
@@ -936,12 +912,6 @@ pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Op
         if response.clicked() {
             picked = Some(ModePick::Isolate);
         }
-        named(
-            &response,
-            tr(ISOLATE_LABEL).to_string(),
-            false,
-            Act::Pick(ModePick::Isolate),
-        );
         let visible = if options.select_visible_only {
             ButtonState::Active
         } else {
@@ -966,12 +936,6 @@ pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Op
         if response.clicked() {
             options.select_visible_only = !options.select_visible_only;
         }
-        named(
-            &response,
-            tr(VISIBLE_ONLY_LABEL).to_string(),
-            options.select_visible_only,
-            Act::VisibleOnly,
-        );
         let detail = options.grid_detail;
         let state = if detail == crate::viewport::GridDetail::Metre {
             ButtonState::Normal
@@ -987,144 +951,8 @@ pub fn mode_palette(ui: &mut Ui, current: Mode, options: &mut ViewOptions) -> Op
         if response.clicked() {
             options.grid_detail = detail.next();
         }
-        named(
-            &response,
-            tr(GRID_DETAIL_LABEL).to_string(),
-            state == ButtonState::Active,
-            Act::GridDetail,
-        );
     });
-    // Any click on the palette (a mode, or a switch at the bottom).
-    let acted = ui.input(|i| i.pointer.any_click()) && ui.rect_contains_pointer(ui.max_rect());
-    match slide_out_names(ui, &names, acted) {
-        Some(Act::Pick(pick)) => picked = Some(pick),
-        Some(Act::VisibleOnly) => options.select_visible_only = !options.select_visible_only,
-        Some(Act::GridDetail) => options.grid_detail = options.grid_detail.next(),
-        None => {}
-    }
     picked
-}
-
-/// What a name in the slid-out strip does when clicked: the same as its
-/// button.
-#[derive(Debug, Clone, Copy, PartialEq)]
-enum Act {
-    Pick(ModePick),
-    VisibleOnly,
-    GridDetail,
-}
-
-/// A mode palette button, for the strip of names beside it.
-struct Named {
-    rect: egui::Rect,
-    name: String,
-    active: bool,
-    act: Act,
-}
-
-/// How long the mouse rests on the mode palette before its names slide
-/// out (decision 0126, the project lead's choice: on hover).
-pub(crate) const NAMES_AFTER: f64 = 0.4;
-/// How wide the strip of names is.
-const NAMES_WIDTH: f32 = 170.0;
-/// The accessible name of each name in the strip starts with this.
-pub(crate) const NAMES_PREFIX: &str = crate::text!("Palette name: ");
-
-/// The strip that slides out beside the mode palette when the mouse rests
-/// on it, with each button's name level with its icon. Clicking a name does
-/// what its button does; the strip slides back when the mouse leaves both.
-/// After a click (`acted`) it stays away until the mouse has left and
-/// rests on the palette again, so it never covers the viewport you're about
-/// to drag in. Returns what was clicked.
-fn slide_out_names(ui: &Ui, names: &[Named], acted: bool) -> Option<Act> {
-    let ctx = ui.ctx();
-    let palette = ui.max_rect();
-    let id = egui::Id::new("mode_palette_names");
-    let now = ctx.input(|i| i.time);
-    let pointer = ctx.input(|i| i.pointer.hover_pos());
-    // Where the strip was last drawn, and since when the mouse has been
-    // over the palette or the strip.
-    let (strip, since, dismissed): (Option<egui::Rect>, Option<f64>, bool) =
-        ctx.data(|d| d.get_temp(id)).unwrap_or_default();
-    // A question waiting for an answer ("Save changes?") covers the window:
-    // the strip stays away, as it would draw over the question's dimming.
-    if ctx.memory(|m| m.top_modal_layer().is_some()) {
-        ctx.animate_bool_with_time(id.with("open"), false, 0.0);
-        ctx.data_mut(|d| d.insert_temp(id, (None::<egui::Rect>, None::<f64>, dismissed)));
-        return None;
-    }
-    let over = pointer.is_some_and(|p| palette.contains(p) || strip.is_some_and(|s| s.contains(p)));
-    let since = if over { since.or(Some(now)) } else { None };
-    // A click puts the strip away until the mouse leaves.
-    let dismissed = over && (dismissed || acted);
-    let rested = !dismissed && since.is_some_and(|t| now - t >= NAMES_AFTER);
-    if over && !rested {
-        ctx.request_repaint_after(std::time::Duration::from_secs_f64(NAMES_AFTER));
-    }
-    let open = ctx.animate_bool_with_time(id.with("open"), rested, 0.12);
-    if open <= 0.0 {
-        ctx.data_mut(|d| d.insert_temp(id, (None::<egui::Rect>, since, dismissed)));
-        return None;
-    }
-    let width = NAMES_WIDTH * open;
-    let area = egui::Rect::from_min_size(
-        egui::pos2(palette.max.x, palette.min.y),
-        vec2(width, palette.height()),
-    );
-    let mut clicked = None;
-    egui::Area::new(id.with("strip"))
-        .order(egui::Order::Foreground)
-        .fixed_pos(area.min)
-        .show(ctx, |ui| {
-            let (strip_rect, _) = ui.allocate_exact_size(area.size(), Sense::hover());
-            let painter = ui.painter_at(strip_rect);
-            painter.rect_filled(strip_rect, 0.0, theme::PALETTE);
-            let accent = theme::accent(ctx).colors();
-            for (index, named) in names.iter().enumerate() {
-                let row = egui::Rect::from_min_max(
-                    egui::pos2(strip_rect.min.x, named.rect.min.y),
-                    egui::pos2(strip_rect.max.x, named.rect.max.y),
-                );
-                let response = ui.interact(row, id.with(("row", index)), Sense::click());
-                response.widget_info(|| {
-                    WidgetInfo::labeled(
-                        WidgetType::Button,
-                        true,
-                        format!("{}{}", tr(NAMES_PREFIX), named.name),
-                    )
-                });
-                let background = if named.active {
-                    Some(accent.fill)
-                } else if response.hovered() {
-                    Some(ui.visuals().widgets.hovered.weak_bg_fill)
-                } else {
-                    None
-                };
-                if let Some(fill) = background {
-                    painter.rect_filled(row.shrink2(vec2(2.0, 0.0)), 5.0, fill);
-                }
-                let colour = if named.active {
-                    Color32::WHITE
-                } else if response.hovered() {
-                    theme::TEXT_STRONG
-                } else {
-                    theme::TEXT
-                };
-                painter.text(
-                    row.left_center() + vec2(8.0, 0.0),
-                    egui::Align2::LEFT_CENTER,
-                    &named.name,
-                    egui::FontId::proportional(WORD_SIZE),
-                    colour,
-                );
-                if response.clicked() {
-                    clicked = Some(named.act);
-                }
-            }
-        });
-    let dismissed = dismissed || clicked.is_some();
-    ctx.data_mut(|d| d.insert_temp(id, (Some(area), since, dismissed)));
-    clicked
 }
 
 #[cfg(test)]

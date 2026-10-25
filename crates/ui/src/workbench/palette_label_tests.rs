@@ -1,9 +1,9 @@
 //! Tests for the labels on the palettes (decision 0126, milestone 7): the
-//! mode palette's names sliding out on hover, words beside the top
-//! palette's icons where there's room, and the select tool list.
+//! mode palette's tooltips (its slide-out names are gone, decision 0167),
+//! the top palette's icons and the select tool list.
 
 use super::tests::fresh;
-use crate::palette::{NAMES_AFTER, NAMES_PREFIX, SELECT_TOOL_MENU_LABEL};
+use crate::palette::SELECT_TOOL_MENU_LABEL;
 use crate::selecting::SelectTool;
 use egui::Event;
 use egui_kittest::kittest::Queryable;
@@ -19,74 +19,33 @@ fn wait(harness: &mut H, seconds: f64) {
     harness.run();
 }
 
-fn rest_on(harness: &mut H, label: &str) {
-    let at = harness.get_by_label(label).rect().center();
-    harness.event(Event::PointerMoved(at));
-    harness.run();
-}
-
-fn names_shown(harness: &H) -> bool {
-    harness
-        .query_by_label(&format!("{NAMES_PREFIX}Points"))
-        .is_some()
-}
-
 #[test]
-fn resting_on_the_mode_palette_slides_out_its_names() {
+fn resting_on_the_mode_palette_shows_only_tooltips() {
+    // The project lead's choice (decision 0167): no strip of names slides
+    // out any more; each button names itself in its tooltip.
     let mut harness = fresh();
-    let at = harness.get_by_label("Model mode").rect().center();
+    let at = harness.get_by_label("Points mode").rect().center();
     harness.event(Event::PointerMoved(at));
-    harness.step();
-    harness.step();
-    assert!(!names_shown(&harness), "not at once");
-    wait(&mut harness, NAMES_AFTER + 0.3);
-    assert!(names_shown(&harness), "after a moment");
-    // Each name sits level with its button, to the right of it.
-    let button = harness.get_by_label("Points mode").rect();
-    let name = harness
-        .get_by_label(&format!("{NAMES_PREFIX}Points"))
-        .rect();
-    assert!((name.center().y - button.center().y).abs() < 1.0);
-    assert!(name.min.x >= button.max.x);
-    assert!(
-        harness
-            .query_by_label(&format!("{NAMES_PREFIX}Edit pivot"))
-            .is_some()
+    wait(&mut harness, 1.5);
+    // No row of names beside the palette: the Points mode's name is
+    // there only once, in its tooltip.
+    let points_named = harness
+        .output()
+        .shapes
+        .iter()
+        .filter(|c| matches!(&c.shape, egui::epaint::Shape::Text(t) if t.galley.text() == "Points"))
+        .count();
+    assert_eq!(points_named, 0, "no strip with the bare name");
+    let tip_says_points = harness.output().shapes.iter().any(
+        |c| matches!(&c.shape, egui::epaint::Shape::Text(t) if t.galley.text().contains("Points")),
     );
-    // Leaving puts it away.
-    harness.event(Event::PointerMoved(egui::pos2(700.0, 450.0)));
-    wait(&mut harness, 0.5);
-    assert!(!names_shown(&harness));
-}
-
-#[test]
-fn clicking_a_name_does_what_its_button_does_and_puts_the_names_away() {
-    let mut harness = fresh();
-    rest_on(&mut harness, "Model mode");
-    wait(&mut harness, NAMES_AFTER + 0.3);
-    harness
-        .get_by_label(&format!("{NAMES_PREFIX}Polygons"))
-        .click();
+    assert!(tip_says_points, "the tooltip names the mode");
+    // A click still picks the mode.
+    harness.get_by_label("Polygons mode").click();
     harness.run();
     assert_eq!(
         harness.state().workbench.mode(),
         crate::palette::Mode::Polygons
-    );
-    wait(&mut harness, 0.5);
-    assert!(!names_shown(&harness), "away until the mouse leaves");
-}
-
-#[test]
-fn a_click_on_a_button_puts_the_names_away_too() {
-    let mut harness = fresh();
-    rest_on(&mut harness, "Model mode");
-    wait(&mut harness, NAMES_AFTER + 0.3);
-    harness.get_by_label("Edges mode").click();
-    wait(&mut harness, 0.5);
-    assert!(!names_shown(&harness));
-    assert_eq!(
-        harness.state().workbench.mode(),
-        crate::palette::Mode::Edges
     );
 }
 

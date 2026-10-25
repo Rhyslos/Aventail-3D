@@ -590,7 +590,7 @@ After a review of the whole app (2026-10-21, [0121](docs/decisions/0121-rework-b
    - Every setting with one home in Settings, menus linking to it.
    - The UV settings in a panel of their own beside Attributes, and the UV menu in the UV Editor too ([issue #115](https://github.com/Rhyslos/Aventail-3D/issues/115)).
 7. **Labels on everything:**
-   - A side palette that slides out to show names.
+   - A side palette that slides out to show names (taken out again after testing: tooltips name every button, [0167](docs/decisions/0167-no-slide-out-names.md)).
    - Words with icons where there's room.
    - A dropdown arrow on the selection mode button.
    - X/Y/Z for rotation.
@@ -982,3 +982,4 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-25 — **Interface fixes from the Phase 10 testers** ([0164](docs/decisions/0164-interface-fixes-from-the-phase-10-testers.md)), recommended choices (the project lead was asleep): a file window that gives nothing back within half a second never opened, so the status bar says so and a small window asks for the path; every modifier that changes the shape goes before Weighted normals when added; Weld, Quadify and Triangulate with nothing to do say so in grey; the Export window's Levels of detail starts on when anything going out has levels, until set by hand, and the window lists collision; Size to kit grid fits an untouched lattice cage again; no keys.
 - 2026-10-25 — **The Levels panel** ([0165](docs/decisions/0165-levels-panel.md)), the project lead's request, recommended choices (asleep): a Levels tab beside Attributes; each level made with its own modifier changes (switched off, or the whole of a modifier's settings of its own, keyed by a new stable modifier id), an optional automatic reduce of the level's own triangles, or by hand as a shape inside the object (`Rock LOD2`) edited by selecting it, with a viewport banner; budgets shown only; a drift note and Start again from the model; levels are the exported shape; file format 63; no keys.
 - 2026-10-25 — **Dissolve leaves no points behind on curved surfaces** ([0166](docs/decisions/0166-dissolve-leaves-no-points.md)), the project lead's bug report: a point a dissolve leaves between two edges goes unless it is a corner of the shape (polygons meeting more sharply than 60°, as at a cube's corner or a cylinder's rim) or on a turn of an open border; replaces the straight-line-only rule of 0052.
+- 2026-10-25 — **The mode palette's names no longer slide out** ([0167](docs/decisions/0167-no-slide-out-names.md)), the project lead's request: icons only, each named in its tooltip, like the top palette; replaces the slide-out strip of 0126.
