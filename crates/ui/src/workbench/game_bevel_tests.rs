@@ -44,6 +44,9 @@ fn names(harness: &H, id: ObjectId) -> Vec<&'static str> {
 fn the_palette_button_adds_a_soft_live_bevel_and_weighted_normals_in_one_step() {
     let (mut harness, id) = selected_cube();
     let steps = harness.state().workbench.document().undo_steps();
+    // The last button: the palette scrolls to it when the window is short.
+    harness.get_by_label("Game bevel").scroll_to_me();
+    harness.run_steps(4);
     harness.get_by_label("Game bevel").click();
     harness.run();
     assert_eq!(names(&harness, id), ["Live bevel", "Weighted normals"]);

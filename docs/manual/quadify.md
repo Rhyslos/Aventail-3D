@@ -14,6 +14,7 @@ It is two things:
 - **A triangulated model you want to keep editing**: an imported OBJ or a shape from a game. Quadify it once with **Quadify now**, and loop cuts and edge loops run through again.
 - **After Decimate**, to tidy its result into quads where it can (add Quadify after Decimate in the list). Decimate's own *Quads where flat* only joins pairs lying flat; Quadify also joins them round curves.
 - **Before Subdivide**: smoothing quads gives an even, round result; smoothing triangles makes lumps. A new Quadify modifier goes before any Subdivide already there.
+- **Before Struts**: every edge becomes a bar, so a triangulated shape gets a diagonal bar across each square. A new Quadify goes before any [Struts](struts.md) already there.
 - When you'll keep changing the shape underneath (the modifier), or when you just want it done and then go on editing by hand (Quadify now).
 
 It can't make quads where the triangles don't pair up well, such as a fan of triangles round a point, the end of a cylinder, or a mesh of long thin slivers: those stay triangles. For a whole new, even layout of quads whatever the polygons were, use [Remesh](remesh.md) instead (at the price of new UVs).

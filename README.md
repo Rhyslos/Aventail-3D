@@ -258,9 +258,9 @@ After a review of the whole app (2026-10-21, [decision 0121](docs/decisions/0121
 
 **Gate:** 2–3 people new to the app finish a fixed task list without help, see what is selected on any screen, and no text skips the English package. Then Phase 10, advanced modelling.
 
-### Phase 10 · Advanced hard-surface (after Phase 9, before the rest of Phase 8) — 20 of 23
+### Phase 10 · Advanced hard-surface (after Phase 9, before the rest of Phase 8) — 21 of 23
 
-`███████████░░` 87%
+`████████████░` 91%
 
 Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/decisions/0125-modelling-before-the-rest-of-the-uvs.md)); Phase 8 continues once it's done. Friends join as testers around here, once there are enough tools to build something. On 24 October the project lead widened it with fourteen more modifiers ([decision 0136](docs/decisions/0136-more-modifiers.md)); each still asks about its controls before it's built. They're built biggest and hardest first, except where one builds on another ([decision 0137](docs/decisions/0137-biggest-first.md)).
 
@@ -287,7 +287,7 @@ Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/d
 - [x] Game bevel for mid-poly models: a Live bevel with round shading and Weighted normals last, set up in one step; seams stay as the bevel moves them ([decision 0156](docs/decisions/0156-game-bevel.md))
 - [x] Displace and noise: points pushed in and out by a hand-written noise (smooth, ridged or cells, in layers), along the normals or an axis, everywhere or round chosen points with a falloff along the surface ([decision 0157](docs/decisions/0157-displace.md))
 - [x] Bend, twist and taper: one modifier with a Kind choice, bending a shape into an arc, twisting it or tapering it along one of its axes, from its pivot, between limits, with a helper drawn over the selected shape ([decision 0158](docs/decisions/0158-bend-twist-taper.md))
-- [ ] Wireframe: every edge made a strut, for grates, fences and cages
+- [x] Wireframe: **Struts**, every edge made a closed bar with a joint at each point, square or round, with hard corners and UVs of their own, for grates, fences and cages (named apart from the viewport's Wireframe look) ([decision 0159](docs/decisions/0159-struts.md))
 - [ ] Modular kit helpers: grid-sized pieces and pivot presets
 - [ ] Triangulate preview: the triangles the engine will get, shown before export
 
@@ -313,6 +313,7 @@ Newest first. One line per finished milestone or passed gate.
 
 | Date | Event |
 | --- | --- |
+| 2026-10-24 | Phase 10: Struts, every edge of a shape made a bar with a joint at each point, live, for frames, cages and grilles |
 | 2026-10-24 | Phase 10: Bend, twist or taper, a shape bent into an arc, twisted round an axis or tapered towards one end, live, with a helper showing its axis, limits and centre |
 | 2026-10-24 | Phase 10: Displace, a shape's points pushed in and out by a noise for rock, ground, cobbles and dents, the same bumps every time for the same seed, everywhere or fading out round chosen points |
 | 2026-10-24 | Phase 10: the game bevel, one click for mid-poly game models (a Live bevel on every edge sharper than 30°, its bevels shaded round with the new Soft bevels switch, and Weighted normals last), tested flat and round in glTF on a cube, a cylinder, an arch and booleaned shapes |

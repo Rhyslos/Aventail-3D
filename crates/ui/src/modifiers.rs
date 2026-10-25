@@ -18,8 +18,8 @@ use scene::{
     ArraySettings, AxisDeformOptions, Command, CurveBendSettings, DecimateOptions,
     DisplaceSettings, Document, LatticeOptions, LiveBevelOptions, MAX_MODIFIERS, ModifierFamily,
     ModifierKind, ModifierRefusal, ObjectId, ObjectKind, QuadifyOptions, RemeshOptions,
-    ScatterSettings, ShellOptions, ShrinkwrapSettings, SubdivideOptions, WeightedNormalsOptions,
-    WeldOptions,
+    ScatterSettings, ShellOptions, ShrinkwrapSettings, StrutsOptions, SubdivideOptions,
+    WeightedNormalsOptions, WeldOptions,
 };
 
 mod pairs;
@@ -27,10 +27,11 @@ pub(crate) use pairs::pair_plan;
 
 /// One command per kind of modifier, in the order of
 /// [`ModifierKind::standard_kinds`].
-pub(crate) const COMMANDS: [CommandId; 15] = [
+pub(crate) const COMMANDS: [CommandId; 16] = [
     CommandId::Subdivide,
     CommandId::Array,
     CommandId::Shell,
+    CommandId::Struts,
     CommandId::LiveBevel,
     CommandId::Scatter,
     CommandId::Lattice,
@@ -57,6 +58,7 @@ pub(crate) fn kind_of(command: CommandId) -> Option<ModifierKind> {
         CommandId::WeldByDistance => Some(ModifierKind::WeldByDistance(WeldOptions::default())),
         CommandId::Array => Some(ModifierKind::Array(ArraySettings::default())),
         CommandId::Shell => Some(ModifierKind::Shell(ShellOptions::default())),
+        CommandId::Struts => Some(ModifierKind::Struts(StrutsOptions::default())),
         CommandId::Scatter => Some(ModifierKind::Scatter(ScatterSettings::default())),
         CommandId::BendAlongCurve => {
             Some(ModifierKind::BendAlongCurve(CurveBendSettings::default()))

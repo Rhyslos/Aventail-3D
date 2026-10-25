@@ -65,6 +65,7 @@ There is no key for it yet, so no key is taken from future tools. Ask if you'd l
 - **Problem:** Cavity draws lines across a smooth curve. **Why:** the curve is made of few polygons, so it really does turn at each edge. **Fix:** give the shape more sides, or switch Cavity off for that look.
 
 - **Tip:** in a busy scene, Wireframe can get crowded. Hide what you aren't working on first ([Hide and isolate](hide-and-isolate.md)).
+- **Tip:** the Wireframe look only draws edges on screen; it doesn't change the shape or what exports. To make real bars from a shape's edges, for a frame or a cage, use the [Struts](struts.md) modifier.
 - **Problem:** the corner axes moved. **Why:** they now sit in the bottom-left corner, beside the look button, with the grid spacing just above. The top right is kept clear.
 - **Problem:** in Wireframe, a box drag selects things behind other things. **Why:** with selecting through on (the standard), the box catches everything inside its outline, front and back; that's the same in every look. See [Selecting](selecting.md).
 

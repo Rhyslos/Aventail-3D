@@ -166,6 +166,7 @@ impl Workbench {
             | CommandId::WeldByDistance
             | CommandId::Array
             | CommandId::Shell
+            | CommandId::Struts
             | CommandId::Scatter
             | CommandId::BendAlongCurve
             | CommandId::Shrinkwrap
@@ -328,6 +329,7 @@ impl Workbench {
             | CommandId::WeldByDistance
             | CommandId::Array
             | CommandId::Shell
+            | CommandId::Struts
             | CommandId::Scatter
             | CommandId::BendAlongCurve
             | CommandId::Shrinkwrap

@@ -78,9 +78,21 @@ pub(crate) fn layer_targets(doc: &Document) -> Vec<ObjectId> {
 /// The modifiers palette: a thin column of buttons for what changes a
 /// shape without destroying it. Edit layers is the first, then the
 /// booleans (decision 0135), then the modifiers family by family
-/// (decision 0142).
+/// (decision 0142). When the window is too short for every button, the
+/// column scrolls with the mouse wheel (no scroll bar: the column is too
+/// thin for one; decision 0159).
 pub(crate) fn modifiers_palette(ui: &mut Ui, doc: &Document) -> Option<ModifierPick> {
     let mut pick = None;
+    egui::ScrollArea::vertical()
+        .id_salt("modifiers palette scroll")
+        .auto_shrink([false, false])
+        .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysHidden)
+        .show(ui, |ui| palette_column(ui, doc, &mut pick));
+    pick
+}
+
+/// The modifiers palette's buttons, top to bottom.
+fn palette_column(ui: &mut Ui, doc: &Document, pick: &mut Option<ModifierPick>) {
     ui.vertical_centered(|ui| {
         ui.add_space(6.0);
         let any = !layer_targets(doc).is_empty();
@@ -93,17 +105,17 @@ pub(crate) fn modifiers_palette(ui: &mut Ui, doc: &Document) -> Option<ModifierP
             )
         };
         if icon_button(ui, Icon::EditLayer, tr(ADD_LAYER_LABEL), note, state).clicked() {
-            pick = Some(ModifierPick::AddLayer);
+            *pick = Some(ModifierPick::AddLayer);
         }
         ui.add_space(6.0);
         if let Some(kind) = crate::booleans::palette_buttons(ui, doc) {
-            pick = Some(ModifierPick::Boolean(kind));
+            *pick = Some(ModifierPick::Boolean(kind));
         }
         if let Some(command) = crate::modifiers::palette_buttons(ui, doc) {
-            pick = Some(ModifierPick::Modifier(command));
+            *pick = Some(ModifierPick::Modifier(command));
         }
+        ui.add_space(6.0);
     });
-    pick
 }
 
 /// A layer's name being typed.

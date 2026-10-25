@@ -948,6 +948,7 @@ How many rows of polygons each bevel has: 1 is a flat cut, more is rounder
 How many rows the bevel has: 1 is a flat cut (a chamfer), more make it round
 How many rows the bridge has: more make a longer bridge bend smoothly later. Ctrl + wheel changes it.
 How many rows the new walls have: more give loops to bend or shape later. Ctrl + wheel changes it.
+How many sides each strut has round it: 4 is a square bar, 3 a triangle, 8 or more a round rod. Struts with 6 sides or fewer have sharp corners
 How many simpler copies: each one is shown from farther away than the one before
 How many steps
 How many steps of evening out Relax takes (60 standard). More evens stretched UVs out further; a few just smooths them a little.
@@ -988,6 +989,7 @@ How thick the gear is
 How thick the ring is: half the tube's width
 How thick the slab is
 How thick the surface becomes: the distance between its two sides
+How wide each strut is. The joints are a little wider, to cover the struts' ends
 How wide the circle is, across
 How wide the groove (or ridge) is, across the line of edges
 How wide the opening is
@@ -1066,11 +1068,13 @@ Keep the bevel from crossing over itself: where it would run past the end of an 
 Keep the edges marked hard sharp, as if fully creased. Only on objects shaded by their marked edges: smoothed by angle, every sharp corner looks hard, so nothing would round.
 Keep the edges of holes and open sheets where they are, so modular pieces still line up
 Keep the edges the shading shows hard (marked, or sharper than the Smoothing angle)
+Keep the faces
 Keep the lines where one material meets another exactly where they are
 Keep the newest
 Keep the points this far off the target's surface, along the way it faces: a little above it stops the two flickering through each other. Below 0, inside it.
 Keep the selected points' handles in one line, so the curve bends through without a kink: dragging one handle turns the other
 Keep the shading crisp along the edges the object's shading shows hard (marked, or sharper than its Smoothing angle). Off, the whole shape shades smooth.
+Keep the shape's own polygons as well, with the struts round their edges: a panel in a frame. Off, only the struts and joints are left
 Keep together
 Key {}
 Keyboard
@@ -1179,6 +1183,7 @@ Max parts
 Max shape distortion
 Maximise this view
 Measure
+Measure the thickness across the struts' flat sides, so every strut is exactly that wide. Off, it is measured across their corners, so a strut fits inside a round rod that thick
 Measuring: drag a line · Esc stops
 Melt points closer together than a distance into one, once: the selected points (or those of the selected edges or polygons), or whole shapes in the Model mode. Change its settings under Last edit.
 Melt points closer together than a distance into one: close the cracks in a shape split along its seams, or join pieces placed edge to edge. The UVs stay as they were.
@@ -1883,6 +1888,7 @@ Stretch: every polygon lies evenly.
 Stretch: {} polygons are 1.5 times off or more. Point at one to see why.
 Stretched up to {:.1}×: UV → Lay out → Relax evens it out; a stretch budget (UV → Pieces → Stretch budget) cuts it where it's worst.
 Strip corners within
+Struts
 Subdivide
 Subdivisions
 Substance Painter
@@ -2079,6 +2085,7 @@ Turn and flip
 Turn and zoom the view so the selection fills it
 Turn around, and zoom towards, whatever is under the mouse instead of the middle of the view
 Turn each copy round its up direction by a random angle up to this: 360° for any way at all, 0 for all the same way
+Turn every edge into a bar of its own, with a joint at each point: a frame, a cage, a grille, scaffolding. Unlike the Wireframe look, which only draws the edges, these are real polygons that export.
 Turn every polygon of the selected objects that faces the wrong way round: inside out compared with its neighbours, or facing into a closed shape. Select → Select flipped shows them first.
 Turn left 90°
 Turn pieces to fit
@@ -2653,6 +2660,7 @@ the result would have more than {} polygons
 the result would have too many polygons
 the result would have {} polygons, and the most is {}: a simpler shape
 the result would have {} polygons, and the most is {}: fewer copies, or a simpler shape
+the result would have {} polygons, and the most is {}: fewer sides, or a simpler shape
 the saved file didn't read back the same; the disk may be failing
 the scene can't be read ({})
 the scene can't be unpacked ({})

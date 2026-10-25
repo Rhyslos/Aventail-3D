@@ -780,4 +780,6 @@ mod lods_tests;
 #[cfg(test)]
 mod normals_tests;
 #[cfg(test)]
+mod struts_tests;
+#[cfg(test)]
 mod tests;

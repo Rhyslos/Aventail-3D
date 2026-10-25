@@ -232,6 +232,9 @@ pub enum Icon {
     /// Shell (decision 0154): a thin curved sheet given thickness, its
     /// rim showing.
     Shell,
+    /// Struts (decision 0159): a box made of bars, a block at each
+    /// corner.
+    Struts,
     /// Creases (decision 0143): a shape sharp along one edge.
     Creases,
     /// Crease edges: the sharp edge drawn bold.
@@ -303,7 +306,7 @@ pub enum Icon {
 }
 
 /// Every icon, for tests and previews.
-pub const ALL: [Icon; 131] = [
+pub const ALL: [Icon; 132] = [
     Icon::Undo,
     Icon::Redo,
     Icon::PaintSelect,
@@ -401,6 +404,7 @@ pub const ALL: [Icon; 131] = [
     Icon::WeldByDistance,
     Icon::Array,
     Icon::Shell,
+    Icon::Struts,
     Icon::Creases,
     Icon::CreaseEdges,
     Icon::Uncrease,
@@ -541,6 +545,7 @@ pub fn shapes(rect: Rect, icon: Icon, color: Color32) -> Vec<Shape> {
         | Icon::WeldByDistance
         | Icon::Array
         | Icon::Shell
+        | Icon::Struts
         | Icon::Creases
         | Icon::CreaseEdges
         | Icon::Uncrease => modifiers::draw(&mut pen, icon),
