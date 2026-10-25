@@ -293,6 +293,8 @@ impl Workbench {
             ..first.lods.clone()
         };
         requests.push(DocRequest::Run(scene::Command::SetLods { ids, lods }));
+        // Each level is set and made in the Levels panel (decision 0165).
+        crate::layout::show_levels(&mut self.dock);
     }
 
     /// Help → User manual: opens the manual in the web browser.

@@ -580,6 +580,7 @@ After a review of the whole app (2026-10-21, [0121](docs/decisions/0121-rework-b
    - Fewer words for edits (one "Bake into shape", no "Keep editable").
    - Drags in a row merge into one edit.
    - The Edit layers tab stays out of the way until a layer is added.
+   - The Levels tab sits beside Attributes, and comes back there when a shape with levels of detail is selected ([0165](docs/decisions/0165-levels-panel.md)).
 5. **Hard edges and symmetry per object:**
    - Smoothing by angle becomes a per-object setting that hand-marked hard edges add to ([issue #114](https://github.com/Rhyslos/Aventail-3D/issues/114)).
    - Symmetry becomes a modifier, one mirror per object, at the object's own centre by default (the project lead, 2026-10-21; it replaces the live mirror and the separate Mirror modifier planned for Phase 10).
@@ -731,7 +732,7 @@ Possible features noted along the way. Not scheduled; nothing here blocks other 
 |---|---|---|
 | Material slots / polygon selection sets | Each slot becomes a texture set in Substance Painter and a material in Godot | Face attributes (§4.1), export |
 | Reference images in viewports | Blueprints/concept art to model hard-surface parts against | Renderer, ortho views |
-| LODs | Lower-detail versions for distance; Godot can also generate them automatically | Done in Phase 10: Attributes → Levels of detail, made with Decimate ([0155](docs/decisions/0155-levels-of-detail.md)) |
+| LODs | Lower-detail versions for distance; Godot can also generate them automatically | Done in Phase 10: the Levels panel, each level with its own modifier changes, reduced with Decimate, or made by hand ([0155](docs/decisions/0155-levels-of-detail.md), [0165](docs/decisions/0165-levels-panel.md)) |
 | Measure tool | Checking real-world sizes (door frames, crates) while modelling | Snapping |
 
 ## 13. Decision log
@@ -979,3 +980,4 @@ Decisions from the planning phase, one line each. **From 2026-10-10 on, major de
 - 2026-10-24 — **A modifier whose source changes kind is taken off** ([0162](docs/decisions/0162-kind-changes-and-wrong-sources.md)), from the Phase 10 review, recommended choices (the project lead was asleep): when a command changes an object's kind (Bake into shape or Apply mirror on a curve), every modifier elsewhere that can't read the new kind (Bend along curve reads only a curve, Lattice only a cage) is taken off in the same undo step, as deleting does; a project already holding one opens without it, with a note in the status bar, instead of being refused as damaged.
 - 2026-10-25 — **Saving and exporting in the background** ([0163](docs/decisions/0163-saving-and-exporting-in-the-background.md)), from the Phase 10 performance review, recommended choices (the project lead was asleep): saves, exports, exports into the game project and kit exports run on another thread on a copy of the document, with "Saving …" and a turning wheel in the status bar; one at a time (another is refused with a note); edits made meanwhile stay unsaved; closing waits for the work; exports build only the placing their format writes.
 - 2026-10-25 — **Interface fixes from the Phase 10 testers** ([0164](docs/decisions/0164-interface-fixes-from-the-phase-10-testers.md)), recommended choices (the project lead was asleep): a file window that gives nothing back within half a second never opened, so the status bar says so and a small window asks for the path; every modifier that changes the shape goes before Weighted normals when added; Weld, Quadify and Triangulate with nothing to do say so in grey; the Export window's Levels of detail starts on when anything going out has levels, until set by hand, and the window lists collision; Size to kit grid fits an untouched lattice cage again; no keys.
+- 2026-10-25 — **The Levels panel** ([0165](docs/decisions/0165-levels-panel.md)), the project lead's request, recommended choices (asleep): a Levels tab beside Attributes; each level made with its own modifier changes (switched off, or the whole of a modifier's settings of its own, keyed by a new stable modifier id), an optional automatic reduce of the level's own triangles, or by hand as a shape inside the object (`Rock LOD2`) edited by selecting it, with a viewport banner; budgets shown only; a drift note and Start again from the model; levels are the exported shape; file format 63; no keys.

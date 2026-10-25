@@ -8,6 +8,7 @@
 use super::modelling_tests::{H, cube};
 use super::tests::fresh;
 use egui::epaint::Shape;
+use egui_kittest::kittest::Queryable;
 use scene::{
     Command, Curve, CurveObject, CurveShape, CurveSolid, Lods, ModifierKind, ObjectId, ObjectKind,
     Sweep,
@@ -122,8 +123,64 @@ fn the_warning_is_found_when_two_widgets_share_an_id() {
 #[test]
 fn the_levels_of_detail_rows_have_their_own_ids() {
     let mut harness = fresh();
-    rich_cube(&mut harness);
+    let id = rich_cube(&mut harness);
     no_clashes(&mut harness, "a cube with levels of detail and modifiers");
+    // The Levels panel, every level's modifiers changed and their
+    // settings open, one level made by hand (decision 0165).
+    {
+        let doc = harness.state_mut().workbench.document_mut();
+        let modifiers = doc.scene().modifiers(id).to_vec();
+        let mut lods = doc.scene().object(id).unwrap().lods.clone();
+        // Every other modifier off at each level; the rest keep their
+        // settings rows.
+        for level in &mut lods.levels {
+            for m in modifiers.iter().step_by(2) {
+                *level = level.with_override(&modifiers, m.id, !m.on, None);
+            }
+        }
+        doc.execute(Command::SetLods {
+            ids: vec![id],
+            lods,
+        })
+        .unwrap();
+        doc.execute(Command::MakeLevelByHand { id, level: 1 })
+            .unwrap();
+        doc.set_selection([id]);
+    }
+    crate::layout::show_levels(&mut harness.state_mut().workbench.dock);
+    settle(&mut harness);
+    no_clashes(&mut harness, "the Levels panel");
+    let headers = harness.query_all_by_label("Settings here").count();
+    assert!(headers > 0);
+    // Some of them, scrolled into view first so each click lands on its
+    // header: settings of several kinds, on every level.
+    for at in (0..headers).step_by(6) {
+        if let Some(header) = harness.query_all_by_label("Settings here").nth(at) {
+            header.scroll_to_me();
+        }
+        harness.run_steps(30);
+        if let Some(header) = harness.query_all_by_label("Settings here").nth(at) {
+            header.click();
+        }
+        harness.run_steps(2);
+    }
+    assert_eq!(harness.query_all_by_label("Settings here").count(), headers);
+    no_clashes(&mut harness, "the Levels panel's settings opened");
+    // Editing the level: the banner and the panel's note.
+    let shape = harness
+        .state()
+        .workbench
+        .document()
+        .scene()
+        .level_shape(id, 1)
+        .unwrap()
+        .0;
+    harness
+        .state_mut()
+        .workbench
+        .document_mut()
+        .set_selection([shape]);
+    no_clashes(&mut harness, "editing a level made by hand");
 }
 
 #[test]

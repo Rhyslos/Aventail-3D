@@ -10,6 +10,7 @@ use words::{text, tr, trf};
 mod booleans;
 mod curves;
 mod lattices;
+mod levels;
 mod modifiers;
 
 /// A change to the scene. Every change goes through one, so it can be
@@ -222,12 +223,36 @@ pub enum Command {
         options: mesh::convex_parts::ConvexPartsOptions,
     },
     /// Changes the levels of detail of objects with a shape (decision
-    /// 0155); the settings are clamped. Groups are left alone.
+    /// 0155); the settings are clamped. Groups are left alone. Each object
+    /// keeps its own levels made by hand (decision 0165: they are set by
+    /// [`Command::MakeLevelByHand`]); a level made by hand that is taken
+    /// away takes its shape with it. With more than one object, each keeps
+    /// its own changes to the modifiers.
     SetLods {
         /// The objects.
         ids: Vec<ObjectId>,
         /// Their levels of detail.
         lods: crate::Lods,
+    },
+    /// Makes level `level` (0 for Level 1) of object `id`'s levels of
+    /// detail by hand (decision 0165): a copy of what it shows becomes a
+    /// shape of its own inside the object, edited like any other, which the
+    /// level then is. Selects it, so it is edited at once. Refused without
+    /// levels of detail on.
+    MakeLevelByHand {
+        /// The object with the levels.
+        id: ObjectId,
+        /// Which level, from 0 for Level 1.
+        level: usize,
+    },
+    /// Starts level `level` (0 for Level 1) of object `id`, made by hand,
+    /// again from the model as it is now (decision 0165): its shape becomes
+    /// what the level would show, its edits gone.
+    RestartLevel {
+        /// The object with the levels.
+        id: ObjectId,
+        /// Which level, from 0 for Level 1.
+        level: usize,
     },
     /// Changes the project's game project folder (decision 0076), or takes
     /// it away (`None`). A folder path that is empty, too long or has
@@ -542,6 +567,10 @@ impl Command {
             },
             Self::SetCollisionParts { .. } => tr("Change the collision parts").to_string(),
             Self::SetLods { .. } => tr("Change the levels of detail").to_string(),
+            Self::MakeLevelByHand { level, .. } => trf!("Make level {} by hand", level + 1),
+            Self::RestartLevel { level, .. } => {
+                trf!("Start level {} again from the model", level + 1)
+            }
             Self::SetExportTarget(Some(_)) => tr("Change the game project folder").to_string(),
             Self::SetExportTarget(None) => tr("Clear the game project folder").to_string(),
             Self::SetTexture(_) => tr("Change the texture settings").to_string(),
@@ -1105,6 +1134,9 @@ impl Run<'_> {
                 self.forget_cutters(&going)?;
                 self.forget_profiles(&going)?;
                 self.forget_modifier_sources(&going)?;
+                // Deleted hand-made levels are made from the model again
+                // (decision 0165).
+                self.forget_level_shapes(&going)?;
                 for id in top {
                     // Empty the object first, last child first, so every
                     // removal is of an object with nothing inside.
@@ -1433,22 +1465,15 @@ impl Run<'_> {
                 Ok(None)
             }
             Command::SetLods { ids, lods } => {
-                let lods = lods.clamped();
-                for id in ids {
-                    let object = self
-                        .scene
-                        .object(*id)
-                        .ok_or(SceneError::UnknownObject(*id))?;
-                    if !object.kind.has_shape() || object.lods == lods {
-                        continue;
-                    }
-                    let before = Box::new(object.lods.clone());
-                    self.edit(Edit::SetLods {
-                        id: *id,
-                        before,
-                        after: Box::new(lods.clone()),
-                    })?;
-                }
+                self.set_lods(ids, lods)?;
+                Ok(None)
+            }
+            Command::MakeLevelByHand { id, level } => {
+                let shape = self.make_level_by_hand(*id, *level)?;
+                Ok(Some(vec![shape]))
+            }
+            Command::RestartLevel { id, level } => {
+                self.restart_level(*id, *level)?;
                 Ok(None)
             }
             Command::SetExportTarget(target) => {
@@ -1564,6 +1589,7 @@ impl Run<'_> {
                 self.follow_copied_cutters(&copied)?;
                 self.follow_copied_profiles(&copied)?;
                 self.follow_copied_sources(&copied)?;
+                self.follow_copied_levels(&copied)?;
                 Ok(Some(copies))
             }
             Command::SplitOff { id, faces, anchors } => {
@@ -2020,6 +2046,7 @@ impl Run<'_> {
         self.keep_usable_cutters(id)?;
         self.keep_usable_profile(id)?;
         self.keep_usable_modifiers(id)?;
+        self.keep_usable_levels(id)?;
         Ok(id)
     }
 

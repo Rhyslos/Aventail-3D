@@ -40,7 +40,23 @@ fn run(harness: &mut H, command: Command) {
         .document_mut()
         .execute(command)
         .unwrap();
-    harness.run();
+    settle(harness);
+}
+
+/// Runs the window until nothing is being worked out in the background:
+/// a selected object's export-only checks run on another thread (decision
+/// 0163), and on a slow computer they can outlast `Harness::run`'s steps.
+fn settle(harness: &mut H) {
+    harness.run_steps(1);
+    for _ in 0..600 {
+        let bench = &harness.state().workbench;
+        if !bench.drawing.busy() && !bench.components.busy() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        harness.run_steps(1);
+    }
+    harness.run_steps(2);
 }
 
 #[test]
@@ -87,7 +103,7 @@ fn a_modifier_after_it_is_pointed_out() {
     let (mut harness, id) = selected_cube();
     let note = "move Weighted normals to the end";
     harness.get_by_label("Weighted normals").click();
-    harness.run();
+    settle(&mut harness);
     let shown = |harness: &H| {
         harness
             .query_all(egui_kittest::kittest::by().label_contains(note))

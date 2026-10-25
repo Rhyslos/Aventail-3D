@@ -65,8 +65,8 @@ impl Scene {
     }
 
     /// The light work still to do to find object `id`'s problems for an
-    /// export ([`Scene::modifier_problems`]), to do on another thread and
-    /// hand back with [`Scene::store_stack`]; `None` when there is none,
+    /// export ([`Scene::modifier_problems`]), to do and hand back with
+    /// [`Scene::store_stack`]; `None` when there is none,
     /// it is done, or it is heavy (an export works that out).
     pub fn export_problems_job(&self, id: ObjectId) -> Option<StackJob> {
         if !self.export_differs(id) || !self.modifiers(id).iter().any(|m| m.on) {

@@ -67,7 +67,23 @@ impl Run<'_> {
             .check_modifiers(id, &after)
             .map_err(SceneError::Modifier)?;
         let before = object.modifiers.clone();
-        self.edit(Edit::SetModifiers { id, before, after })
+        self.replace_modifiers(id, before, after)
+    }
+
+    /// Gives object `id` the modifiers `after` in place of `before`, every
+    /// one named ([`crate::modifier::with_ids`]), and takes out of its
+    /// levels of detail (and its instances') the changes to modifiers no
+    /// longer there (decision 0165), in the same step. Every change to a
+    /// list of modifiers goes through here.
+    pub(super) fn replace_modifiers(
+        &mut self,
+        id: ObjectId,
+        before: Vec<Modifier>,
+        after: Vec<Modifier>,
+    ) -> Result<(), SceneError> {
+        let after = crate::modifier::with_ids(after);
+        self.edit(Edit::SetModifiers { id, before, after })?;
+        self.forget_gone_overrides(id)
     }
 
     /// Adds a modifier of `kind` (its settings brought within limits) at
@@ -110,8 +126,9 @@ impl Run<'_> {
             return Err(SceneError::Modifier(ModifierRefusal::OtherKind));
         }
         *slot = Modifier {
+            id: slot.id,
             kind: modifier.kind.clamped(),
-            ..*modifier
+            ..modifier.clone()
         };
         self.set_modifiers(id, after)
     }
@@ -172,7 +189,7 @@ impl Run<'_> {
                     })
                 })
                 .collect();
-            self.edit(Edit::SetModifiers { id, before, after })?;
+            self.replace_modifiers(id, before, after)?;
         }
         Ok(())
     }
@@ -216,7 +233,7 @@ impl Run<'_> {
                     })
                 })
                 .collect();
-            self.edit(Edit::SetModifiers { id, before, after })?;
+            self.replace_modifiers(id, before, after)?;
         }
         if !kind.has_shape() {
             self.forget_cutters(&[changed])?;
@@ -244,7 +261,7 @@ impl Run<'_> {
         if self.scene.check_modifiers(id, &after).is_err() {
             after.clear();
         }
-        self.edit(Edit::SetModifiers { id, before, after })
+        self.replace_modifiers(id, before, after)
     }
 
     /// Points the copies' modifiers at the copies of their sources, where
@@ -269,11 +286,7 @@ impl Run<'_> {
                 })
                 .collect();
             if after != before {
-                self.edit(Edit::SetModifiers {
-                    id: *copy,
-                    before,
-                    after,
-                })?;
+                self.replace_modifiers(*copy, before, after)?;
             }
         }
         Ok(())
@@ -301,7 +314,7 @@ impl Run<'_> {
             .map(|(_, m)| m.clone())
             .collect();
         if after != before {
-            self.edit(Edit::SetModifiers { id, before, after })?;
+            self.replace_modifiers(id, before, after)?;
         }
         Ok(())
     }

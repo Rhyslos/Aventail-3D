@@ -25,10 +25,9 @@ fn set(doc: &mut Document, id: ObjectId, lods: Lods) {
     .unwrap();
 }
 
-/// The object's levels for its shape as the viewport shows it.
+/// The object's levels, made from its exported shape.
 fn levels(doc: &Document, id: ObjectId) -> Option<Arc<LodShapes>> {
-    let scene = doc.scene();
-    scene.lod_shapes(id, Purpose::Viewport, scene.shown_shape(id)?)
+    doc.scene().lod_shapes(id)
 }
 
 fn check_round_trip(doc: &mut Document) {
@@ -61,7 +60,7 @@ fn a_sphere_gets_three_nested_levels_of_half_a_quarter_and_an_eighth() {
     set(&mut doc, sphere, on());
     let found = levels(&doc, sphere).unwrap();
     assert!(found.problem.is_none());
-    let full = triangle_count(&doc.scene().shown_shape(sphere).unwrap());
+    let full = triangle_count(&doc.scene().exported_shape(sphere).unwrap());
     assert_eq!(found.full, full);
     let counts = found.triangles();
     assert_eq!(counts.len(), 3);
@@ -119,17 +118,15 @@ fn work_done_on_another_thread_is_kept() {
     let sphere = create(&mut doc, PrimitiveKind::Sphere);
     set(&mut doc, sphere, on());
     let scene = doc.scene();
-    let shape = scene.shown_shape(sphere).unwrap();
-    let Some(LodState::Needed(job)) =
-        scene.lod_state(sphere, Purpose::Viewport, Arc::clone(&shape))
-    else {
+    let shape = scene.exported_shape(sphere).unwrap();
+    let Some(LodState::Needed(job)) = scene.lod_state(sphere) else {
         panic!("nothing made yet");
     };
     assert_eq!(job.work(), triangle_count(&shape));
     let done = std::thread::spawn(move || job.run()).join().unwrap();
     let made = done.shapes();
     scene.store_lods(done);
-    let Some(LodState::Ready(kept)) = scene.lod_state(sphere, Purpose::Viewport, shape) else {
+    let Some(LodState::Ready(kept)) = scene.lod_state(sphere) else {
         panic!("kept");
     };
     assert!(Arc::ptr_eq(&kept, &made));
@@ -139,16 +136,7 @@ fn work_done_on_another_thread_is_kept() {
 fn ratios_that_grow_give_levels_no_finer_than_the_one_before() {
     let lods = Lods {
         on: true,
-        levels: vec![
-            LodLevel {
-                ratio: 0.25,
-                distance: 100.0,
-            },
-            LodLevel {
-                ratio: 0.75,
-                distance: 200.0,
-            },
-        ],
+        levels: vec![LodLevel::new(0.25, 100.0), LodLevel::new(0.75, 200.0)],
         preview: 0,
     };
     assert_eq!(lods.targets(1_000), [250, 250]);
@@ -162,8 +150,11 @@ fn settings_are_clamped_never_a_panic() {
         on: true,
         levels: (0..20)
             .map(|n| LodLevel {
-                ratio: [f32::NAN, -1.0, 5.0, f32::INFINITY][n % 4],
-                distance: [f32::NAN, -10.0, 1e12, 300.0][n % 4],
+                budget: [0, u32::MAX, 5, 7][n % 4],
+                ..LodLevel::new(
+                    [f32::NAN, -1.0, 5.0, f32::INFINITY][n % 4],
+                    [f32::NAN, -10.0, 1e12, 300.0][n % 4],
+                )
             })
             .collect(),
         preview: 99,
@@ -174,6 +165,7 @@ fn settings_are_clamped_never_a_panic() {
     for level in &clamped.levels {
         assert!((mesh::decimate::DecimateOptions::MIN_RATIO..=1.0).contains(&level.ratio));
         assert!((0.0..=Lods::MAX_DISTANCE).contains(&level.distance));
+        assert!(level.budget <= Lods::MAX_BUDGET);
     }
     let empty = Lods {
         levels: Vec::new(),
@@ -200,7 +192,7 @@ fn more_and_fewer_levels_go_on_halving_and_doubling() {
     assert_eq!(five.levels[4].distance, 16_000.0);
     let previewing = Lods { preview: 5, ..five };
     let one = previewing.with_count(1);
-    assert_eq!(one.levels, [Lods::STANDARD[0]]);
+    assert_eq!(one.levels, std::slice::from_ref(&Lods::STANDARD[0]));
     assert_eq!(one.preview, 1);
     assert_eq!(one.with_count(0).levels.len(), 1);
     assert_eq!(one.with_count(100).levels.len(), Lods::MAX_LEVELS);
@@ -244,10 +236,7 @@ fn an_empty_or_open_shape_gets_levels_and_deleting_forgets_them() {
     let found = levels(&doc, plane).unwrap();
     assert!(found.problem.is_none());
     assert_eq!(found.levels.len(), 3);
-    let scene = doc.scene();
-    let empty = scene
-        .lod_shapes(plane, Purpose::Viewport, Arc::new(Mesh::default()))
-        .unwrap();
+    let empty = lod::lod_shapes(&Mesh::default(), &on(), Hardness::Marked);
     assert_eq!(empty.full, 0);
     assert!(empty.triangles().iter().all(|t| *t == 0));
     doc.execute(Command::Delete(vec![plane])).unwrap();
@@ -262,10 +251,7 @@ fn a_shape_at_no_real_place_says_why() {
     let mut broken = (*doc.scene().shown_shape(cube).unwrap()).clone();
     let first = broken.vertices().next().unwrap().0;
     broken.set_position(first, glam::Vec3::NAN);
-    let found = doc
-        .scene()
-        .lod_shapes(cube, Purpose::Viewport, Arc::new(broken))
-        .unwrap();
+    let found = lod::lod_shapes(&broken, &on(), Hardness::Marked);
     assert!(found.levels.is_empty());
     assert!(
         found
@@ -277,20 +263,12 @@ fn a_shape_at_no_real_place_says_why() {
 }
 
 #[test]
-fn the_counts_shown_are_the_viewports_for_the_shape_as_it_is_now() {
+fn the_counts_shown_are_for_the_shape_as_it_is_now() {
     let mut doc = Document::new();
     let sphere = create(&mut doc, PrimitiveKind::Sphere);
     set(&mut doc, sphere, on());
-    let shown = levels(&doc, sphere).unwrap();
-    // An export makes its own (here from a cube's shape): the viewport's
-    // counts stay.
-    let cube = Arc::new(PrimitiveKind::Cube.standard().mesh());
-    let exported = doc
-        .scene()
-        .lod_shapes(sphere, Purpose::Export, cube)
-        .unwrap();
-    assert_ne!(exported.full, shown.full);
-    assert_eq!(doc.scene().lods_if_ready(sphere).unwrap().full, shown.full);
+    let made = levels(&doc, sphere).unwrap();
+    assert_eq!(doc.scene().lods_if_ready(sphere).unwrap().full, made.full);
     // The sphere gets a Subdivide: until its levels are made again, the
     // old counts aren't shown.
     doc.execute(Command::AddModifier {
@@ -299,10 +277,12 @@ fn the_counts_shown_are_the_viewports_for_the_shape_as_it_is_now() {
     })
     .unwrap();
     let scene = doc.scene();
-    let now = scene.shown_shape(sphere).unwrap();
-    assert!(matches!(
-        scene.lod_state(sphere, Purpose::Viewport, now),
-        Some(LodState::Needed(_))
-    ));
+    assert!(matches!(scene.lod_state(sphere), Some(LodState::Needed(_))));
     assert!(scene.lods_if_ready(sphere).is_none(), "stale");
+    // Made from the exported shape: Subdivide's export level.
+    let smoothed = levels(&doc, sphere).unwrap();
+    assert_eq!(
+        smoothed.full,
+        triangle_count(&doc.scene().exported_shape(sphere).unwrap())
+    );
 }

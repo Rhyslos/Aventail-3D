@@ -38,6 +38,7 @@ pub(crate) mod file_work;
 mod files;
 mod heavy_shape;
 mod layouts;
+mod levels;
 mod mesh_menu;
 mod preferences;
 mod requests;
@@ -48,6 +49,7 @@ pub use file_work::FileWork;
 pub use files::DISCARD_SHORTCUT;
 use files::file_name;
 pub(crate) use layouts::LayoutChoice;
+pub(crate) use levels::STOP_EDITING_LEVEL;
 pub use path_entry::FilePurpose;
 use tabs::PanelViewer;
 // The tests reach these through `super::`, as when they were defined or
@@ -56,7 +58,8 @@ use tabs::PanelViewer;
 use crate::autosave::AutosaveSettings;
 #[cfg(test)]
 pub(crate) use bars::{
-    DEVELOPER_MENU, EDIT_LAYERS_ENTRY, MANUAL_ENTRY, SEARCH_ENTRY, SHOW_HIDE_MENU, UV_EDITOR_ENTRY,
+    DEVELOPER_MENU, EDIT_LAYERS_ENTRY, LEVELS_ENTRY, MANUAL_ENTRY, SEARCH_ENTRY, SHOW_HIDE_MENU,
+    UV_EDITOR_ENTRY,
 };
 #[cfg(test)]
 use egui::Modifiers;
@@ -686,6 +689,7 @@ impl Workbench {
         self.attributes.polygons_selected = self.polygons_selected_for_attributes();
         self.attributes.selected_edges = self.edge_values_for_attributes();
         self.attributes.curve.points_mode = self.mode == Mode::Points;
+        self.note_level_banner();
         self.note_right_press(ui.ctx());
         // Over the UV Editor, H and Z frame there (keys stay the same,
         // decision 0095).
@@ -775,6 +779,12 @@ impl Workbench {
         if let Some(slot) = self.attributes.assign.take() {
             self.assign_material(slot);
         }
+        if std::mem::take(&mut self.attributes.show_levels) {
+            crate::layout::show_levels(&mut self.dock);
+        }
+        if self.viewport.take_banner_click() {
+            self.stop_editing_level(&mut requests);
+        }
         if let Some((what, value, gesture)) = self.attributes.edge_value_asked.take() {
             self.set_edge_value_from_field(what, value, gesture);
         }
@@ -811,6 +821,9 @@ impl Workbench {
         if overlay.version != shown {
             ui.ctx().request_repaint();
         }
+        // Levels comes back beside Attributes when a shape with levels is
+        // selected (decision 0165).
+        self.keep_levels_panel();
         // Edit layers stays out of the way until an object with layers is
         // selected (decision 0126).
         if self.dock.find_tab(&Panel::EditLayers).is_none() {

@@ -1,6 +1,7 @@
-//! The drawing cache's part in levels of detail (decision 0155): an
-//! object whose Preview shows a level is drawn as that level, made from
-//! the shape the viewport would draw; light shapes at once, heavy ones on
+//! The drawing cache's part in levels of detail (decisions 0155 and
+//! 0165): an object whose Preview shows a level is drawn as that level,
+//! its real shape (the model's with the level's changes to the modifiers,
+//! reduced or not, or made by hand); light ones at once, heavy ones on
 //! another thread while the last level made (or the full shape) is shown,
 //! as heavy modifiers are.
 
@@ -13,7 +14,7 @@ impl DrawingCache {
     /// What to draw for object `id` given `drawn` (its shape as the
     /// viewport draws it): the level its Preview shows, or `drawn` itself.
     /// A `selected` object's levels are made even while it shows its full
-    /// shape, so the Attributes panel can give their triangles.
+    /// shape, so the Levels panel can give their triangles.
     pub(super) fn previewed(
         &mut self,
         scene: &scene::Scene,
@@ -29,11 +30,11 @@ impl DrawingCache {
         if preview == 0 {
             self.last_lod.remove(&id);
             if selected {
-                self.make_lods(scene, id, &drawn);
+                self.make_lods(scene, id);
             }
             return drawn;
         }
-        let shapes = match scene.lod_state(id, scene::Purpose::Viewport, Arc::clone(&drawn)) {
+        let shapes = match scene.lod_state(id) {
             None => {
                 self.last_lod.remove(&id);
                 return drawn;
@@ -53,6 +54,9 @@ impl DrawingCache {
                     .or_insert_with(|| std::thread::spawn(move || job.run()));
                 return self.last_lod.get(&id).cloned().unwrap_or(drawn);
             }
+            Some(LodState::Waiting) => {
+                return self.last_lod.get(&id).cloned().unwrap_or(drawn);
+            }
         };
         let Some(level) = shapes.levels.get(preview - 1) else {
             // None made (a shape at no real place): the shape itself.
@@ -63,12 +67,10 @@ impl DrawingCache {
         Arc::clone(level)
     }
 
-    /// Makes object `id`'s levels from `drawn` if they aren't made: at once
-    /// when light, on another thread when heavy.
-    fn make_lods(&mut self, scene: &scene::Scene, id: ObjectId, drawn: &Arc<Mesh>) {
-        if let Some(LodState::Needed(job)) =
-            scene.lod_state(id, scene::Purpose::Viewport, Arc::clone(drawn))
-        {
+    /// Makes object `id`'s levels if they aren't made: at once when light,
+    /// on another thread when heavy.
+    fn make_lods(&mut self, scene: &scene::Scene, id: ObjectId) {
+        if let Some(LodState::Needed(job)) = scene.lod_state(id) {
             if job.work() < scene::LODS_IN_BACKGROUND_FROM {
                 scene.store_lods(job.run());
             } else {

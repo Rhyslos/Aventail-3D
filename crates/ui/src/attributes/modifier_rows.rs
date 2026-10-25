@@ -228,6 +228,17 @@ struct Chosen {
     centres: Vec<(ObjectId, String)>,
 }
 
+/// The rows for a kind's own settings as a level of detail has them
+/// (decision 0165): nothing chosen on the shape.
+pub(super) fn level_kind_rows(ui: &mut Ui, kind: &mut ModifierKind, units: Units, rows: &mut Rows) {
+    let chosen = Chosen {
+        polygons: None,
+        points: None,
+        centres: Vec::new(),
+    };
+    kind_rows(ui, kind, units, rows, &chosen);
+}
+
 /// The rows for a kind's own settings.
 fn kind_rows(ui: &mut Ui, kind: &mut ModifierKind, units: Units, rows: &mut Rows, chosen: &Chosen) {
     match kind {

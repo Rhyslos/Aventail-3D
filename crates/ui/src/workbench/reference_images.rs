@@ -158,3 +158,51 @@ fn reference_tool_ring() {
     harness.key_press(Key::E);
     compare(&mut harness, "tool_ring");
 }
+
+#[test]
+fn reference_levels_panel() {
+    // The Levels panel (decision 0165): a smoothed, bevelled cube with
+    // three levels, the first without Subdivide and previewed, the second
+    // with a budget.
+    let Some(mut harness) = window() else { return };
+    let doc = harness.state_mut().workbench.document_mut();
+    let id = doc.scene().children(None)[0];
+    for kind in [
+        scene::ModifierKind::Subdivide(Default::default()),
+        scene::ModifierKind::LiveBevel(Default::default()),
+    ] {
+        doc.execute(scene::Command::AddModifier {
+            ids: vec![id],
+            kind,
+        })
+        .unwrap();
+    }
+    let modifiers = doc.scene().modifiers(id).to_vec();
+    let subdivide = modifiers
+        .iter()
+        .find(|m| matches!(m.kind, scene::ModifierKind::Subdivide(_)))
+        .unwrap()
+        .id;
+    let mut lods = scene::Lods {
+        on: true,
+        preview: 1,
+        ..scene::Lods::default()
+    };
+    lods.levels[0] = lods.levels[0].with_override(&modifiers, subdivide, false, None);
+    lods.levels[1].budget = 200;
+    doc.execute(scene::Command::SetLods {
+        ids: vec![id],
+        lods,
+    })
+    .unwrap();
+    doc.set_selection([id]);
+    crate::layout::show_levels(&mut harness.state_mut().workbench.dock);
+    for _ in 0..200 {
+        harness.run_steps(1);
+        if !harness.state().workbench.drawing.busy() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+    compare(&mut harness, "levels_panel");
+}

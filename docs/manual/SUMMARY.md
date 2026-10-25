@@ -90,7 +90,7 @@ New to something, or just rusty? Start with [Concepts](concepts.md).
 - [Kit export and collision: each piece its own file, and Godot collision shapes](kit-export.md)
 - [Modular kit helpers: a kit grid, pieces sized to it, and pivot presets](modular-kits.md)
 - [Collision shapes: from the exact shape to a box, wrapped in parts round dents, outlined in the viewport](collision-shapes.md)
-- [Levels of detail: simpler copies for a game to draw far away, previewed in the viewport](levels-of-detail.md)
+- [Levels of detail: the Levels panel, simpler copies for a game to draw far away, made with their own modifier changes, reduced, or by hand](levels-of-detail.md)
 
 ## Reference
 - [What's new](../../CHANGELOG.md)

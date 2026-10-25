@@ -45,7 +45,7 @@
 //!
 //! **The improved bevel** ([`BevelOptions::improved`], [decision 0141](../../../docs/decisions/0141-improved-bevel.md)):
 //! - where three or more bevelled edges meet, with 2 or more segments, the
-//!   corner is filled with a rounded patch of quads ([`corner`]) instead of
+//!   corner is filled with a rounded patch of quads (`corner`) instead of
 //!   one flat polygon;
 //! - stopping at overlaps ("Stop at neighbours") narrows the bevel only
 //!   at the points where it must, each point as much as it needs, instead

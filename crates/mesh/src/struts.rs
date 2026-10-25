@@ -25,7 +25,7 @@
 //! **Hard edges** are the profile's corners when it has 6 sides or fewer
 //! (a square strut shades flat on each side, a round one smooth), and
 //! where each strut's ends meet its sides. **UVs:** each strut and each
-//! joint is laid flat as an island of its own (see [`layout`]), all at the
+//! joint is laid flat as an island of its own (see `layout`), all at the
 //! same texel density, packed into the texture square (with Keep the
 //! faces, into the square above it, so the shape's own UVs stay as they
 //! were), with seams round each island. **Materials:** a strut takes the

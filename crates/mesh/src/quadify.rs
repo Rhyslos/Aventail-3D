@@ -24,7 +24,7 @@
 //! 3. **Squarest first.** Each candidate is scored by how far its corners
 //!    are from right angles, plus how far it is bent; the best go first,
 //!    each triangle joining one pair at most, as Blender's *Tris to
-//!    Quads* does ([`pairing::best_pairs`], shared with Decimate's *Quads
+//!    Quads* does (`pairing::best_pairs`, shared with Decimate's *Quads
 //!    where flat*). Ties go by the triangles' ids, so the result is always
 //!    the same.
 //!

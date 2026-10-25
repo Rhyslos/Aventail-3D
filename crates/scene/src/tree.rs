@@ -40,6 +40,9 @@ pub enum SceneError {
     /// A lattice cage change that can't be made (decision 0144), with the
     /// reason, marked with `text!` where it is made.
     Lattice(&'static str),
+    /// A level of detail change that can't be made (decision 0165), with
+    /// the reason, marked with `text!` where it is made.
+    Level(&'static str),
 }
 
 impl std::fmt::Display for SceneError {
@@ -68,7 +71,7 @@ impl std::fmt::Display for SceneError {
             )),
             Self::Boolean(why) => write!(f, "{why}"),
             Self::Modifier(why) => write!(f, "{why}"),
-            Self::Curve(why) | Self::Lattice(why) => f.write_str(tr(why)),
+            Self::Curve(why) | Self::Lattice(why) | Self::Level(why) => f.write_str(tr(why)),
         }
     }
 }
@@ -733,6 +736,8 @@ impl Scene {
     /// [`crate::Command::SetLods`]). The settings are clamped; an unknown
     /// object, or levels on for one with no shape, is refused.
     pub fn with_lods(mut self, id: ObjectId, lods: crate::lod::Lods) -> Result<Self, &'static str> {
+        // Changes naming modifiers the object hasn't (yet) are left out.
+        let modifiers = self.modifiers(self.modifier_owner(id)).to_vec();
         let node = self
             .nodes
             .get_mut(&id)
@@ -742,7 +747,7 @@ impl Scene {
         if lods.on && !node.object.kind.has_shape() && node.object.kind != ObjectKind::Group {
             return Err(tr("an object with no shape has levels of detail"));
         }
-        node.object.lods = lods.clamped();
+        node.object.lods = lods.tidied(&modifiers);
         Ok(self)
     }
 

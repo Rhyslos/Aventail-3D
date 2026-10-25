@@ -21,7 +21,12 @@ fn welds(doc: &Document) -> Vec<(ObjectId, Vec<Modifier>)> {
                 .modifiers(*id)
                 .iter()
                 .filter(|m| matches!(m.kind, ModifierKind::WeldByDistance(_)))
-                .cloned()
+                // Ids left out: a file before version 63 gives them in
+                // order (decision 0165).
+                .map(|m| Modifier {
+                    id: scene::ModifierId::default(),
+                    ..m.clone()
+                })
                 .collect();
             (*id, list)
         })

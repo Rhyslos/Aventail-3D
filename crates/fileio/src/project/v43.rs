@@ -41,6 +41,11 @@
 //! Version 61 ([decision 0160](../../../../docs/decisions/0160-kit-helpers.md))
 //! adds the project's kit grid ([`ProjectV43::kit_grid`], see `v61`);
 //! files before version 61 never hold it.
+//!
+//! Version 63 ([decision 0165](../../../../docs/decisions/0165-levels-panel.md))
+//! adds each modifier's id ([`ModifierV43::id`]) and the details of each
+//! object's levels of detail ([`ProjectV43::levels`], see `v63`); files
+//! before version 63 hold neither (their modifiers get ids in order).
 
 use super::v1::Problem;
 use super::v41::ProjectV41;
@@ -69,6 +74,10 @@ pub(crate) struct ProjectV43 {
     /// The project's kit grid (version 61), when not the standard.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) kit_grid: Option<super::v61::KitGridV61>,
+    /// The details of each object's levels of detail (version 63) that
+    /// version 56 didn't store.
+    #[serde(default = "Bounded::new")]
+    pub(crate) levels: Bounded<super::v63::LevelsV63>,
 }
 
 /// One object's modifiers, first to last.
@@ -83,6 +92,10 @@ pub(crate) struct ModifiersV43 {
 /// One modifier.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) struct ModifierV43 {
+    /// Its id within its object (version 63; 0 before, when ids are given
+    /// in order).
+    #[serde(default)]
+    pub(crate) id: u32,
     /// What it does, with its settings.
     pub(crate) kind: KindV43,
     /// Whether it is on.
@@ -257,7 +270,7 @@ fn mode_number(mode: WrapMode) -> u8 {
 }
 
 impl KindV43 {
-    fn of(kind: &ModifierKind) -> Self {
+    pub(crate) fn of(kind: &ModifierKind) -> Self {
         match kind {
             ModifierKind::Remesh(o) => Self::Remesh {
                 voxel_size: o.voxel_size,
@@ -330,7 +343,7 @@ impl KindV43 {
     }
 
     /// The kind, its settings brought within limits by the scene.
-    fn kind(&self) -> ModifierKind {
+    pub(crate) fn kind(&self) -> ModifierKind {
         match self {
             Self::Remesh { voxel_size, smooth } => ModifierKind::Remesh(RemeshOptions {
                 voxel_size: *voxel_size,
@@ -480,6 +493,7 @@ impl ProjectV43 {
                     .modifiers(*id)
                     .iter()
                     .map(|m| ModifierV43 {
+                        id: m.id.0,
                         kind: KindV43::of(&m.kind),
                         on: m.on,
                         in_viewport: m.in_viewport,
@@ -492,6 +506,7 @@ impl ProjectV43 {
             modifiers,
             lattices: super::v45::lattices_of(document),
             kit_grid: super::v61::kit_grid_of(document),
+            levels: super::v63::levels_of(document),
         }
     }
 
@@ -523,6 +538,7 @@ impl ProjectV43 {
                 .0
                 .into_iter()
                 .map(|m| Modifier {
+                    id: scene::ModifierId(m.id),
                     kind: m.kind.kind(),
                     on: m.on,
                     in_viewport: m.in_viewport,
@@ -553,7 +569,8 @@ impl ProjectV43 {
                 .with_modifiers(id, list)
                 .map_err(|why| Problem::from(trf!("a modifier can't be used: {}", why)))?;
         }
-        Ok(document)
+        // The levels' details last: their changes name the modifiers.
+        super::v63::with_levels(document, self.levels)
     }
 }
 

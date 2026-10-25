@@ -2,7 +2,7 @@
 //! a pipe, a cable, a rail or a trim.
 //!
 //! The profile is turned to follow the curve without flipping
-//! (rotation-minimising frames, [`super::path::frames`]): it starts with
+//! (rotation-minimising frames, `super::path::frames`): it starts with
 //! its y pointing up the world (Z) as far as the curve's first direction
 //! allows, and its x across. At a sharp corner of the curve the profile
 //! is stretched across the corner (a mitre), so the solid keeps its width

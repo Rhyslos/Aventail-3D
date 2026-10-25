@@ -269,7 +269,7 @@ impl MenuAction {
                 tr("Attributes"),
                 tr(
                     "Give the selected shapes simpler copies for a game to draw far away; their \
-                     settings are in Attributes → Levels of detail",
+                     settings are in the Levels panel (Window → Levels)",
                 ),
             ),
             Self::Group => (

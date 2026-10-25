@@ -28,6 +28,18 @@ pub fn app_info() -> ui::AppInfo {
     }
 }
 
+/// For tests that lock backup folders, or start a child process: one at a
+/// time. Starting a child process briefly copies every open file of this
+/// test program, a backup folder's lock among them, so a test checking
+/// whether a folder is still locked could find it held by that copy and
+/// miss the folder (it failed now and then on busy CI machines).
+#[cfg(test)]
+pub(crate) fn one_at_a_time() -> std::sync::MutexGuard<'static, ()> {
+    static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    LOCK.lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

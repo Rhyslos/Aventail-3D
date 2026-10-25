@@ -40,10 +40,7 @@ impl LodsV56 {
                 .levels
                 .iter()
                 .take(Lods::MAX_LEVELS)
-                .map(|(ratio, distance)| LodLevel {
-                    ratio: *ratio,
-                    distance: *distance,
-                })
+                .map(|(ratio, distance)| LodLevel::new(*ratio, *distance))
                 .collect(),
             preview: usize::try_from(self.preview).unwrap_or(usize::MAX),
         }

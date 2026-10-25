@@ -61,16 +61,6 @@ struct Planned {
     pivot: glam::Vec3,
 }
 
-impl Planned {
-    fn is_done_by(&self, step: &Step) -> bool {
-        self.pending.is_empty()
-            && self.kind == step.kind
-            && self.sources == step.sources
-            && self.hardness == step.hardness
-            && self.pivot == step.pivot
-    }
-}
-
 /// An object's shape with its live mirror's copies, with what it was
 /// made from.
 #[derive(Debug, Clone)]
@@ -337,6 +327,69 @@ impl StackJob {
     }
 }
 
+/// The steps of `steps` (another run's, from the same input) that do the
+/// work `done` (steps already kept) and then `plan` ask for, in order, up
+/// to the first that doesn't: each with its place in this list.
+fn reuse(plan: &[Planned], done: &[Step], steps: &[Step]) -> Vec<Step> {
+    let mut out = Vec::new();
+    let wanted = done
+        .iter()
+        .map(|d| {
+            (
+                d.index,
+                d.kind.clone(),
+                &d.sources,
+                d.hardness,
+                d.pivot,
+                true,
+            )
+        })
+        .chain(plan.iter().map(|p| {
+            (
+                p.index,
+                p.kind.clone(),
+                &p.sources,
+                p.hardness,
+                p.pivot,
+                p.pending.is_empty(),
+            )
+        }));
+    for ((index, kind, sources, hardness, pivot, settled), step) in wanted.zip(steps) {
+        if !(settled
+            && kind == step.kind
+            && *sources == step.sources
+            && hardness == step.hardness
+            && pivot == step.pivot)
+        {
+            break;
+        }
+        out.push(Step {
+            index,
+            ..step.clone()
+        });
+    }
+    out
+}
+
+impl StackJob {
+    /// The same work, with whatever `other` (a run from the same input)
+    /// already did that it asks for taken from it (decision 0165: a level
+    /// of detail's changes reuse the export's steps before them).
+    pub(crate) fn reusing(mut self, other: &StackDone) -> Self {
+        if !same(&self.input, &other.run.input) {
+            return self;
+        }
+        let reused = reuse(&self.plan, &self.done, &other.run.steps);
+        if reused.len() <= self.done.len() {
+            return self;
+        }
+        let skip = reused.len() - self.done.len();
+        self.plan.drain(..skip.min(self.plan.len()));
+        self.done = reused;
+        self
+    }
+}
+
 impl StackDone {
     /// The object whose modifiers these are.
     pub fn object(&self) -> ObjectId {
@@ -411,12 +464,12 @@ impl Scene {
             .map_or(mesh::Hardness::Marked, |o| o.hardness);
         let pivot = self.pivot_in_shape(owner);
         let plan: Vec<Planned> = self
-            .modifiers(owner)
+            .modifiers_for(id, purpose)
             .iter()
             .enumerate()
             .filter(|(_, m)| m.applies(purpose))
             .map(|(index, m)| {
-                let (sources, pending) = self.source_shapes(owner, &m.kind, purpose);
+                let (sources, pending) = self.source_shapes(owner, &m.kind, purpose.for_sources());
                 Planned {
                     index,
                     kind: m.kind.clone(),
@@ -438,27 +491,28 @@ impl Scene {
         }
         // The instance's own last result, or else its original's when they
         // start from the same shape (no mirror of the instance's own), so
-        // an instance usually costs nothing more.
+        // an instance usually costs nothing more; for a level of detail,
+        // the export's too, whose steps before the level's first change
+        // are the level's (decision 0165). The one that keeps the most.
+        let mut candidates = vec![self.stacks.get(id, purpose)];
+        if owner != id {
+            candidates.push(self.stacks.get(owner, purpose));
+        }
+        if let Purpose::Level(_) = purpose {
+            candidates.push(self.stacks.get(id, Purpose::Export));
+            if owner != id {
+                candidates.push(self.stacks.get(owner, Purpose::Export));
+            }
+        }
         let mut done: Vec<Step> = Vec::new();
-        let kept = self
-            .stacks
-            .get(id, purpose)
+        for run in candidates
+            .into_iter()
+            .flatten()
             .filter(|run| same(&run.input, &input))
-            .or_else(|| {
-                (owner != id)
-                    .then(|| self.stacks.get(owner, purpose))
-                    .flatten()
-                    .filter(|run| same(&run.input, &input))
-            });
-        if let Some(run) = kept {
-            for (planned, step) in plan.iter().zip(run.steps) {
-                if !planned.is_done_by(&step) {
-                    break;
-                }
-                done.push(Step {
-                    index: planned.index,
-                    ..step
-                });
+        {
+            let reused = reuse(&plan, &[], &run.steps);
+            if reused.len() > done.len() {
+                done = reused;
             }
         }
         if done.len() == plan.len() {
@@ -564,7 +618,7 @@ impl Scene {
     /// The object's shape before its modifiers, unless its booleans are
     /// heavy and still to be worked out (the interface does that on
     /// another thread).
-    fn input_if_light(&self, id: ObjectId) -> Option<Arc<Mesh>> {
+    pub(crate) fn input_if_light(&self, id: ObjectId) -> Option<Arc<Mesh>> {
         if let Some(crate::CutState::Needed(job)) = self.cut_state(id)
             && job.polygons() >= crate::CUT_IN_BACKGROUND_FROM
         {
