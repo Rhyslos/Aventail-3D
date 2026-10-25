@@ -92,6 +92,11 @@ impl Workbench {
         let popup_open = egui::Popup::is_any_open(ui.ctx());
         let anything = !self.document.selection().is_empty();
         let mode = self.mode;
+        // A modifier clicked in a list: Delete and Backspace in the Model
+        // mode remove it, not its object (decision 0168).
+        let picked =
+            crate::modifier_list::picked_place(&self.document, self.attributes.picked_modifier)
+                .filter(|_| components::kind_for(mode).is_none());
         let mut commands = Vec::new();
         ui.input_mut(|i| {
             // Ctrl+Shift+Z first: Ctrl+Z would match it too.
@@ -124,11 +129,19 @@ impl Workbench {
                     commands.push(command);
                 }
             }
-            if i.consume_key(Modifiers::NONE, Key::Delete) && anything {
-                commands.push(delete);
-            }
-            if i.consume_key(Modifiers::NONE, Key::Backspace) && anything {
-                commands.push(dissolve);
+            if let Some((id, index)) = picked {
+                if i.consume_key(Modifiers::NONE, Key::Delete)
+                    | i.consume_key(Modifiers::NONE, Key::Backspace)
+                {
+                    out.push(DocRequest::Run(Command::RemoveModifier { id, index }));
+                }
+            } else {
+                if i.consume_key(Modifiers::NONE, Key::Delete) && anything {
+                    commands.push(delete);
+                }
+                if i.consume_key(Modifiers::NONE, Key::Backspace) && anything {
+                    commands.push(dissolve);
+                }
             }
         });
         for command in commands {
@@ -156,8 +169,28 @@ impl Workbench {
             self.note = match request {
                 DocRequest::Run(command) => {
                     let what = command.describe(self.document.scene());
+                    // A modifier added to one shape shows its settings at
+                    // once (decision 0168): the one whose id is new.
+                    let added_to = match &command {
+                        Command::AddModifier { ids, .. } if ids.len() == 1 => Some(ids[0]),
+                        _ => None,
+                    };
+                    let ids_before = |doc: &scene::Document, id| -> Vec<scene::ModifierId> {
+                        doc.scene().modifiers(id).iter().map(|m| m.id).collect()
+                    };
+                    let before = added_to.map(|id| ids_before(&self.document, id));
                     match self.document.execute(command) {
-                        Ok(()) => None,
+                        Ok(()) => {
+                            if let (Some(id), Some(before)) = (added_to, before) {
+                                let new = ids_before(&self.document, id)
+                                    .into_iter()
+                                    .find(|m| !before.contains(m));
+                                if let Some(new) = new {
+                                    self.attributes.picked_modifier = Some((id, new));
+                                }
+                            }
+                            None
+                        }
                         Err(why) => Some(crate::trf!("Couldn't {}: {}.", what.to_lowercase(), why)),
                     }
                 }

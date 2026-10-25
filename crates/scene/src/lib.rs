@@ -154,6 +154,8 @@ mod lod_tests;
 #[cfg(test)]
 mod mirroring_tests;
 #[cfg(test)]
+mod modifier_list_tests;
+#[cfg(test)]
 mod modifier_tests;
 #[cfg(test)]
 mod pivot_tests;

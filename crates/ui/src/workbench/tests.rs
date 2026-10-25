@@ -159,6 +159,21 @@ pub(super) fn with_a_cube(mut workbench: Workbench) -> Workbench {
     workbench
 }
 
+/// Shows the settings of `id`'s modifier at `index` in the Attributes
+/// panel, as clicking its row in the Objects panel does (decision 0168),
+/// selecting `id` alone.
+pub(super) fn open_modifier(
+    harness: &mut Harness<'static, State>,
+    id: scene::ObjectId,
+    index: usize,
+) {
+    let workbench = &mut harness.state_mut().workbench;
+    workbench.document_mut().set_selection([id]);
+    let modifier = workbench.document().scene().modifiers(id)[index].id;
+    workbench.attributes.picked_modifier = Some((id, modifier));
+    harness.run();
+}
+
 /// A new window with an empty scene.
 pub(super) fn empty() -> Harness<'static, State> {
     let mut harness = harness_for(Workbench::new(info(), None));

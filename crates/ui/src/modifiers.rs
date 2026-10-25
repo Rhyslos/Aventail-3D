@@ -77,6 +77,14 @@ pub(crate) fn kind_of(command: CommandId) -> Option<ModifierKind> {
     }
 }
 
+/// The icon of a kind of modifier, as on the modifiers palette.
+pub(crate) fn kind_icon(kind: &ModifierKind) -> crate::icons::Icon {
+    COMMANDS
+        .into_iter()
+        .find(|c| kind_of(*c).is_some_and(|k| k.same_kind(kind)))
+        .map_or(crate::icons::Icon::Subdivide, |c| c.info().icon)
+}
+
 /// The objects a modifier would be added to: the selected shapes. Or why
 /// there are none.
 pub(crate) fn targets(doc: &Document) -> Result<Vec<ObjectId>, &'static str> {

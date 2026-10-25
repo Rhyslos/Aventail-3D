@@ -1,9 +1,12 @@
-//! The Attributes panel's Modifiers section
-//! ([decision 0142](../../../../docs/decisions/0142-modifier-stack-and-remesh.md)):
-//! each of the object's modifiers, first to last, with its on/off switch,
-//! Up, Down and Remove, its settings, whether the viewport shows it, and
-//! why it can't do its work, if it can't. Every change is a command; one
-//! drag of a value is one undo step.
+//! The Attributes panel's part in modifiers
+//! ([decision 0142](../../../../docs/decisions/0142-modifier-stack-and-remesh.md),
+//! [decision 0168](../../../../docs/decisions/0168-modifiers-in-the-lists.md)):
+//! with an object selected, a short Modifiers section naming its modifiers,
+//! each a link; with a modifier clicked (there or in the Objects or Edit
+//! layers panel), only that modifier: its on/off switch, its settings,
+//! whether the viewport shows it, and why it can't do its work, if it
+//! can't. Every change is a command; one drag of a value is one undo step.
+//! Ordering, copying and removing are in the lists (`crate::modifier_list`).
 
 use super::curve_rows::Rows;
 use super::{AttributesPanel, LABEL_WIDTH, label, section, stepper};
@@ -16,112 +19,153 @@ use scene::{Command, Document, Modifier, ModifierKind, ObjectId, RemeshOptions, 
 
 /// The accessible name of a modifier's on/off switch.
 pub(crate) const ON_LABEL: &str = crate::text!("Modifier on");
+/// The accessible name of the button going back to the object's settings
+/// starts with this (then the object's name).
+pub(crate) const BACK_PREFIX: &str = crate::text!("Back to ");
 
 impl AttributesPanel {
-    /// The Modifiers section for object `id`, if it has any.
-    pub(super) fn modifiers_section(
-        &mut self,
-        ui: &mut Ui,
-        doc: &Document,
-        id: ObjectId,
-        units: Units,
-        out: &mut Vec<DocRequest>,
-    ) {
+    /// The Modifiers section for object `id`, if it has any: their names,
+    /// first to last, each a link showing its settings.
+    pub(super) fn modifiers_section(&mut self, ui: &mut Ui, doc: &Document, id: ObjectId) {
         let scene = doc.scene();
-        let modifiers = scene.modifiers(id).to_vec();
+        let modifiers = scene.modifiers(id);
         if modifiers.is_empty() {
             return;
         }
         section(ui, tr("Modifiers"));
         let problems = scene.modifier_problems(id);
-        let count = modifiers.len();
-        for (index, modifier) in modifiers.iter().enumerate() {
-            ui.push_id(("modifier", id, index), |ui| {
-                self.modifier_header(ui, id, index, count, modifier, out);
-                self.modifier_rows(ui, doc, (id, index), modifier, units, out);
-                if let Some((_, why)) = problems.iter().find(|(i, _)| *i == index) {
-                    // Nothing to do (no points close enough to weld) is a
-                    // calm grey note; a real problem is in the warning
-                    // colour.
-                    let (text, color) = if scene::has_nothing_to_do(why) {
-                        (crate::trf!("Nothing to do: {}.", why), theme::TEXT_WEAK)
-                    } else {
-                        (crate::trf!("Not worked out: {}.", why), theme::WARNING)
-                    };
-                    ui.add(egui::Label::new(RichText::new(text).color(color)).wrap());
+        ui.horizontal_wrapped(|ui| {
+            for (index, modifier) in modifiers.iter().enumerate() {
+                let mut text = RichText::new(modifier.kind.name());
+                if !modifier.on {
+                    text = text.color(theme::TEXT_WEAK).strikethrough();
+                } else if problems
+                    .iter()
+                    .any(|(i, why)| *i == index && !scene::has_nothing_to_do(why))
+                {
+                    text = text.color(theme::WARNING);
                 }
-            });
-            ui.add_space(4.0);
-        }
+                let link = ui
+                    .link(text)
+                    .on_hover_text(tr("Show this modifier's settings"));
+                if link.clicked() {
+                    self.picked_modifier = Some((id, modifier.id));
+                }
+            }
+        });
         ui.label(
             RichText::new(tr(
-                "Modifiers are worked out first to last, after the edits, booleans and mirror. \
-                 Bake into shape (Ctrl + E) makes those that are on part of the shape for good.",
+                "Worked out first to last, after the edits, booleans and mirror. Click one, here \
+                 or under the object in the Objects panel, to see its settings. Bake into shape \
+                 (Ctrl + E) makes those that are on part of the shape for good.",
             ))
             .small()
             .color(theme::TEXT_WEAK),
         );
     }
 
-    /// A modifier's first line: its switch and name, Up, Down and Remove.
+    /// The panel with a modifier picked: only that modifier (decision
+    /// 0168), with a way back to its object's settings.
+    pub(super) fn picked_modifier_view(
+        &mut self,
+        ui: &mut Ui,
+        doc: &Document,
+        id: ObjectId,
+        index: usize,
+        units: Units,
+        out: &mut Vec<DocRequest>,
+    ) {
+        let scene = doc.scene();
+        let (Some(object), Some(modifier)) = (
+            scene.object(id).cloned(),
+            scene.modifiers(id).get(index).cloned(),
+        ) else {
+            return;
+        };
+        egui::ScrollArea::vertical()
+            .auto_shrink([false, false])
+            .show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    let back = ui
+                        .small_button(crate::trf!("← {}", object.name))
+                        .on_hover_text(tr("Back to the object's own settings"));
+                    back.widget_info(|| {
+                        egui::WidgetInfo::labeled(
+                            egui::WidgetType::Button,
+                            true,
+                            format!("{}{}", tr(BACK_PREFIX), object.name),
+                        )
+                    });
+                    if back.clicked() {
+                        self.picked_modifier = None;
+                    }
+                });
+                ui.add_space(4.0);
+                ui.push_id(("modifier", id, modifier.id), |ui| {
+                    self.modifier_header(ui, id, index, &modifier, out);
+                    ui.add_space(4.0);
+                    self.modifier_rows(ui, doc, (id, index), &modifier, units, out);
+                    if let Some((_, why)) = scene
+                        .modifier_problems(id)
+                        .iter()
+                        .find(|(i, _)| *i == index)
+                    {
+                        // Nothing to do (no points close enough to weld) is
+                        // a calm grey note; a real problem is in the
+                        // warning colour.
+                        let (text, color) = if scene::has_nothing_to_do(why) {
+                            (crate::trf!("Nothing to do: {}.", why), theme::TEXT_WEAK)
+                        } else {
+                            (crate::trf!("Not worked out: {}.", why), theme::WARNING)
+                        };
+                        ui.add(egui::Label::new(RichText::new(text).color(color)).wrap());
+                    }
+                });
+                ui.add_space(6.0);
+                ui.label(
+                    RichText::new(tr(
+                        "Drag it in the Objects or Edit layers panel to change the order; \
+                         right-click it there to duplicate it, bake it into the shape or remove \
+                         it. Delete removes it.",
+                    ))
+                    .small()
+                    .color(theme::TEXT_WEAK),
+                );
+            });
+    }
+
+    /// A modifier's first line: its switch and name.
     fn modifier_header(
         &mut self,
         ui: &mut Ui,
         id: ObjectId,
         index: usize,
-        count: usize,
         modifier: &Modifier,
         out: &mut Vec<DocRequest>,
     ) {
-        ui.horizontal(|ui| {
-            let mut on = modifier.on;
-            let switch = ui
-                .checkbox(&mut on, RichText::new(modifier.kind.name()).strong())
-                .on_hover_text(tr(
-                    "Switch this modifier off to see the shape without it; it stays, with its \
-                     settings",
-                ));
-            switch.widget_info(|| {
-                egui::WidgetInfo::selected(egui::WidgetType::Checkbox, true, on, tr(ON_LABEL))
-            });
-            if switch.changed() {
-                out.push(change(
-                    id,
-                    index,
-                    Modifier {
-                        on,
-                        ..modifier.clone()
-                    },
-                ));
-            }
-            let up = ui
-                .add_enabled(index > 0, egui::Button::new(tr("Up")).small())
-                .on_hover_text(tr("Work this modifier out before the one above it"));
-            if up.clicked() {
-                out.push(DocRequest::Run(Command::MoveModifier {
-                    id,
-                    from: index,
-                    to: index - 1,
-                }));
-            }
-            let down = ui
-                .add_enabled(index + 1 < count, egui::Button::new(tr("Down")).small())
-                .on_hover_text(tr("Work this modifier out after the one below it"));
-            if down.clicked() {
-                out.push(DocRequest::Run(Command::MoveModifier {
-                    id,
-                    from: index,
-                    to: index + 1,
-                }));
-            }
-            if ui
-                .small_button(tr("Remove"))
-                .on_hover_text(tr("Take this modifier away"))
-                .clicked()
-            {
-                out.push(DocRequest::Run(Command::RemoveModifier { id, index }));
-            }
+        let mut on = modifier.on;
+        let switch = ui
+            .checkbox(
+                &mut on,
+                RichText::new(modifier.kind.name()).strong().size(15.0),
+            )
+            .on_hover_text(tr(
+                "Switch this modifier off to see the shape without it; it stays, with its \
+                 settings",
+            ));
+        switch.widget_info(|| {
+            egui::WidgetInfo::selected(egui::WidgetType::Checkbox, true, on, tr(ON_LABEL))
         });
+        if switch.changed() {
+            out.push(change(
+                id,
+                index,
+                Modifier {
+                    on,
+                    ..modifier.clone()
+                },
+            ));
+        }
     }
 
     /// A modifier's settings, and whether the viewport shows it.

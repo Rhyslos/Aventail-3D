@@ -130,6 +130,10 @@ pub(crate) struct AttributesPanel {
     /// The edit opened from the edit list (decision 0092), shown in place
     /// of the Last edit while its object is the one selected.
     pub(crate) opened: Option<OpenedEdit>,
+    /// The modifier clicked in the Objects or Edit layers panel (decision
+    /// 0168): while its object is the one selected, the panel shows only
+    /// that modifier's settings.
+    pub(crate) picked_modifier: crate::modifier_list::Picked,
     /// For each object shown, its last edit and the selection it was made
     /// with (decision 0120): the id its next edit would get, and the
     /// document's element revision then. Once something else is selected,
@@ -271,6 +275,12 @@ impl AttributesPanel {
         if own_tool_shown {
             self.tool_section(ui, units);
         }
+        // A modifier clicked in a list: only its settings (decision 0168),
+        // under the settings of a tool in use.
+        if let Some((id, index)) = crate::modifier_list::picked_place(doc, self.picked_modifier) {
+            self.picked_modifier_view(ui, doc, id, index, units, out);
+            return;
+        }
         let id = match selection.as_slice() {
             [] => {
                 return placeholder(
@@ -390,7 +400,7 @@ impl AttributesPanel {
                 }
                 if solid {
                     crate::booleans::attributes_section(ui, doc, id, out);
-                    self.modifiers_section(ui, doc, id, units, out);
+                    self.modifiers_section(ui, doc, id);
                     self.lods_section(ui, doc, id);
                     self.materials_section(ui, doc, id, out);
                 }

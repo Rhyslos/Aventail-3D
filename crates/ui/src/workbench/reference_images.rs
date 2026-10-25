@@ -206,3 +206,34 @@ fn reference_levels_panel() {
     }
     compare(&mut harness, "levels_panel");
 }
+
+#[test]
+fn reference_modifier_list() {
+    // A cube with three modifiers listed under it (decision 0168), the
+    // Live bevel clicked: the Attributes panel shows only its settings.
+    let Some(mut harness) = window() else { return };
+    let doc = harness.state_mut().workbench.document_mut();
+    let id = doc.scene().children(None)[0];
+    for kind in [
+        scene::ModifierKind::Array(scene::ArraySettings::default()),
+        scene::ModifierKind::Shell(scene::ShellOptions::default()),
+        scene::ModifierKind::LiveBevel(scene::LiveBevelOptions::default()),
+    ] {
+        doc.execute(scene::Command::AddModifier {
+            ids: vec![id],
+            kind,
+        })
+        .unwrap();
+    }
+    doc.set_selection([id]);
+    let bevel = doc.scene().modifiers(id)[2].id;
+    harness.state_mut().workbench.attributes.picked_modifier = Some((id, bevel));
+    for _ in 0..200 {
+        harness.run_steps(1);
+        if !harness.state().workbench.drawing.busy() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+    compare(&mut harness, "modifier_list");
+}

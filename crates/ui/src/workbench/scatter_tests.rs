@@ -147,6 +147,7 @@ fn use_selected_limits_the_copies_to_chosen_polygons() {
         .document_mut()
         .set_selection([surface]);
     harness.run();
+    super::tests::open_modifier(&mut harness, surface, 0);
     let use_selected = |h: &H| {
         h.get_all_by_label("Use selected")
             .next()
