@@ -2896,7 +2896,7 @@ write
 {} colour
 {} comes after this and changes the shape, so these normals are dropped: move Weighted normals to the end with Down.
 {} comes after this and is off. Switched on, it changes the shape and these normals are dropped: move Weighted normals to the end with Down.
-{} could not open its window: {}\n
+{} could not open its window: {}
 {} curve point{} or handle{} deleted. Ctrl + Z takes it back.
 {} cut into sliver triangles
 {} edits

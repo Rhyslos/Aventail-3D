@@ -16,9 +16,12 @@ The plain program files (a zip with the program in it) are still attached to eve
 
 1. Open the [Releases page](https://github.com/Rhyslos/Aventail-3D/releases) and, under the newest release, download **aventail-setup.exe**.
 2. Your browser or Windows may warn that the file isn't commonly downloaded: the app isn't [code-signed](concepts.md#code-signing) yet. In Edge, click **⋯ → Keep → Keep anyway**; in Chrome, **Keep**. When Windows says **Windows protected your PC**, click **More info → Run anyway**.
-3. The setup program installs straight away, just for you: no admin password, nothing to choose but whether you'd like a desktop icon. At the end, tick **Launch** to open the app.
+3. The setup program asks **where to install**. It suggests your own Programs folder on C:; click **Browse…** to pick another drive or folder, such as `D:\Apps\Aventail 3D`. Any folder you can save files in works, with no admin password.
+4. Choose whether you'd like a desktop icon, check the folder on the last page, and click **Install**. At the end, tick **Launch** to open the app.
 
-It goes into your own Programs folder (`%LOCALAPPDATA%\Programs`), with a Start menu entry. Projects (`.avtl` files) now open in the app when you double-click them.
+You get a Start menu entry, and projects (`.avtl` files) open in the app when you double-click them. The app opens as a normal window, with no terminal window behind it. Updates go into the same folder, without asking again.
+
+Only the program goes into the folder you chose. Your settings, panel layout, backup copies and downloaded updates stay in your own app-data folder (`%LOCALAPPDATA%`), where Windows keeps every program's.
 
 ### Updating
 
@@ -52,6 +55,8 @@ Updating has no keys of its own.
 - **Problem:** Settings says it couldn't look for a new version. **Why:** no internet connection, or GitHub asked it to wait. **Fix:** nothing: it tries again in a few hours, and every time the app starts.
 - **Problem:** Windows warns about the setup program. **Why:** it isn't code-signed yet, so Windows doesn't know who made it. **Fix:** see step 2 of *Installing*. The installed app downloads its updates itself, so the warning only comes the first time.
 - **Problem:** I clicked **Restart now**, then **Cancel** in "Save changes?". **Why:** the app stays open, so nothing installs yet. **Fix:** the update installs, and the app opens again, when you next close it.
+- **Problem:** I want the app in another folder. **Why:** updates go back into the folder chosen on the first install. **Fix:** uninstall it, then run the setup program again and pick the new folder: it asks again after an uninstall.
+- **Tip:** started from a terminal, `aventail --version` and `aventail --help` print there; the prompt comes back first, as with any window program on Windows.
 - **Tip:** the window's title shows the build you're running: *Aventail 3D 0.0.1 (build 413)*.
 - **Tip:** Linux and macOS don't have a setup program yet: download the zip for them from GitHub's Actions tab.
 
