@@ -8,6 +8,14 @@ updates:
       interval: weekly
     labels: [dependencies, internal]
     groups:
+      # The egui family moves together: eframe, egui_kittest, egui_dock and
+      # egui-wgpu are each built for one egui version, and wgpu must be the
+      # one eframe uses. Updated one at a time, each update breaks the
+      # build (as eframe 0.37 did, #137), so they come as one pull request.
+      # A new egui version waits until egui_dock has a release for it: until
+      # then that pull request's checks fail, and it isn't merged.
+      egui-family:
+        patterns: ["egui", "egui_*", "egui-*", "eframe", "wgpu"]
       minor-and-patch:
         update-types: [minor, patch]
 
