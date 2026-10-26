@@ -19,7 +19,7 @@ The plain program files (a zip with the program in it) are still attached to eve
 3. The setup program asks **where to install**. It suggests your own Programs folder on C:; click **Browse…** to pick another drive or folder, such as `D:\Apps\Aventail 3D`. Any folder you can save files in works, with no admin password.
 4. Choose whether you'd like a desktop icon, check the folder on the last page, and click **Install**. At the end, tick **Launch** to open the app.
 
-You get a Start menu entry, and projects (`.avtl` files) open in the app when you double-click them. The app opens as a normal window, with no terminal window behind it. Updates go into the same folder, without asking again.
+You get a Start menu entry with the app's logo (a red cube on a dark disc), and projects (`.avtl` files) open in the app when you double-click them. The app opens as a normal window, with no terminal window behind it. Updates go into the same folder, without asking again.
 
 Only the program goes into the folder you chose. Your settings, panel layout, backup copies and downloaded updates stay in your own app-data folder (`%LOCALAPPDATA%`), where Windows keeps every program's.
 

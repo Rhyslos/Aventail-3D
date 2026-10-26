@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1024" height="1024" role="img" aria-label="Aventail 3D">
+<title>Aventail 3D</title>
+<circle cx="12" cy="12" r="12" fill="#1B1B1B"/>
+<g transform="translate(12 12) scale(0.62) translate(-12 -12)" fill="none" stroke="#C2433D" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+<polygon points="12,2.5 20.5,7 20.5,17 12,21.5 3.5,17 3.5,7"/>
+<polyline points="3.5,7 12,11.5 20.5,7"/>
+<polyline points="12,11.5 12,21.5"/>
+</g>
+</svg>

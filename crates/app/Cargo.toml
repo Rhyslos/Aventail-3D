@@ -41,6 +41,10 @@ serde_json.workspace = true
 # Aims the camera in tests.
 tools.workspace = true
 
+# Puts the logo on the Windows program file (build.rs, decision 0171).
+[target.'cfg(windows)'.build-dependencies]
+winresource = { version = "0.1", default-features = false }
+
 [target.'cfg(windows)'.dependencies]
 windows-sys.workspace = true
 raw-window-handle.workspace = true

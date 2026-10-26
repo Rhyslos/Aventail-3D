@@ -2,7 +2,7 @@
 ; installer/windows/build-setup.ps1, which passes every name in from
 ; crates/app/src/branding.rs and crates/app/Cargo.toml (RENAMING.md):
 ;   AppName, AppId, AppVersion, ExeName, Extension, SourceDir, OutputDir,
-;   ReleasesUrl.
+;   ReleasesUrl, IconFile (the logo, assets/icon.ico, decision 0171).
 ;
 ; It installs for the person running it only (no admin password), into
 ; a folder they choose on the first install (their own Programs folder
@@ -41,6 +41,7 @@ WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 UninstallDisplayIcon={app}\{#ExeName}
+SetupIconFile={#IconFile}
 UninstallDisplayName={#AppName}
 CloseApplications=yes
 RestartApplications=no

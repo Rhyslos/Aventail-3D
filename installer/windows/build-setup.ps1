@@ -40,10 +40,11 @@ if (-not (Test-Path $iscc)) {
 if (-not (Test-Path $iscc)) { throw "Inno Setup could not be installed" }
 
 $dist = (Resolve-Path dist).Path
+$icon = (Resolve-Path assets/icon.ico).Path
 & $iscc /Qp `
     "/DAppName=$appName" "/DAppId=$appId" "/DAppVersion=$version" `
     "/DExeName=$exe" "/DExtension=$extension" "/DReleasesUrl=$releases" `
-    "/DSourceDir=$dist" "/DOutputDir=$dist" `
+    "/DSourceDir=$dist" "/DOutputDir=$dist" "/DIconFile=$icon" `
     installer/windows/setup.iss
 if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed ($LASTEXITCODE)" }
 
