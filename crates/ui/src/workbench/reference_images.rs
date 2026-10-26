@@ -251,3 +251,41 @@ fn reference_update_offer() {
         });
     compare(&mut harness, "update_offer");
 }
+
+#[test]
+fn reference_splash_update_question() {
+    // The question on the splash screen when a new version is found
+    // (decision 0173).
+    if std::env::var_os("REQUIRE_GPU").is_none() {
+        return;
+    }
+    let info = info();
+    let mut skip = false;
+    let mut harness = Harness::builder()
+        .wgpu()
+        .with_size(SIZE)
+        .build_ui(move |ui| {
+            crate::theme::apply(ui.ctx());
+            crate::splash::show(
+                ui,
+                &crate::splash::SplashView {
+                    info: &info,
+                    accent: crate::theme::Accent::default(),
+                    doing: "Build 7 is available.",
+                    progress: 1.0,
+                },
+            );
+            let ctx = ui.ctx().clone();
+            let _ = crate::splash::update_question(
+                &ctx,
+                7,
+                "https://github.com/Rhyslos/Aventail-3D/releases/tag/build-7",
+                &mut skip,
+            );
+        });
+    harness.run();
+    harness.snapshot_options(
+        "splash_update_question",
+        &SnapshotOptions::new().threshold(2.0).max_failed_pixels(400),
+    );
+}

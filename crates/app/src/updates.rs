@@ -248,6 +248,13 @@ impl Fetch for Curl {
 pub enum Found {
     /// Nothing newer than this build (the newest one's number).
     UpToDate(u32),
+    /// A newer build, not downloaded yet: the first look's answer, so the
+    /// splash screen can ask before anything downloads (decision 0173).
+    /// Send [`Updater::download`] to download it.
+    Newer(Release),
+    /// The newest build is one the person skipped (or declined for now),
+    /// so it isn't offered (its number).
+    Skipped(u32),
     /// A newer build is being downloaded to `part` (decision 0172: the
     /// splash screen shows how far it has got).
     Downloading {
@@ -282,16 +289,25 @@ pub fn look_telling(
     folder: &Path,
     downloading: &dyn Fn(Found),
 ) -> Found {
-    let release = match fetch
-        .text(branding::RELEASES_API)
-        .and_then(|t| parse_release(&t))
-    {
+    let release = match latest(fetch) {
         Ok(release) => release,
         Err(why) => return Found::Failed(why),
     };
     if release.build <= current {
         return Found::UpToDate(release.build);
     }
+    download(fetch, &release, folder, downloading)
+}
+
+/// Downloads `release`'s setup program into `folder` (or finds it there
+/// whole from an earlier download), telling `downloading` when it starts.
+pub fn download(
+    fetch: &dyn Fetch,
+    release: &Release,
+    folder: &Path,
+    downloading: &dyn Fn(Found),
+) -> Found {
+    let release = release.clone();
     let installer = installer_path(folder, release.build);
     let whole = |path: &Path| std::fs::metadata(path).is_ok_and(|m| m.len() == release.size);
     if !whole(&installer) {
@@ -338,12 +354,30 @@ fn forget_older(folder: &Path, build: u32) {
     }
 }
 
-/// Looks in the background: soon after starting, then every few hours,
-/// until a newer build is ready.
+/// Asks GitHub for the latest release.
+fn latest(fetch: &dyn Fetch) -> Result<Release, String> {
+    fetch
+        .text(branding::RELEASES_API)
+        .and_then(|t| parse_release(&t))
+}
+
+/// What the app tells the looking.
+enum Order {
+    /// Download this release (the person chose Update now).
+    Download(Release),
+}
+
+/// Looks in the background: at once, then every few hours, until a newer
+/// build is ready. The first look only reports a newer build
+/// ([`Found::Newer`]) and waits to be told to download it (decision 0173);
+/// later looks download one at once. Builds up to [`Updater::set_quiet`]'s
+/// number (skipped, or declined for now) are never offered.
 pub struct Updater {
     found: Receiver<Found>,
     /// Dropping it stops the looking.
-    _stop: Sender<()>,
+    orders: Sender<Order>,
+    /// The highest build not to offer (0: none).
+    quiet: std::sync::Arc<std::sync::atomic::AtomicU32>,
 }
 
 impl Updater {
@@ -361,27 +395,64 @@ impl Updater {
         every: Duration,
     ) -> Self {
         let (found_tx, found) = mpsc::channel();
-        let (stop, stop_rx) = mpsc::channel::<()>();
+        let (orders, orders_rx) = mpsc::channel::<Order>();
+        let quiet = std::sync::Arc::new(std::sync::atomic::AtomicU32::new(0));
+        let quiet_here = std::sync::Arc::clone(&quiet);
         std::thread::spawn(move || {
             let mut wait = first;
+            let mut asking = true;
             loop {
-                match stop_rx.recv_timeout(wait) {
-                    Err(RecvTimeoutError::Timeout) => {}
-                    // Stopped, or the app has gone.
-                    _ => return,
-                }
+                let release = match orders_rx.recv_timeout(wait) {
+                    // The person chose Update now.
+                    Ok(Order::Download(release)) => Some(release),
+                    Err(RecvTimeoutError::Timeout) => None,
+                    // The app has gone.
+                    Err(RecvTimeoutError::Disconnected) => return,
+                };
+                wait = every;
                 let tell = found_tx.clone();
-                let result = look_telling(fetch.as_ref(), current, &folder, &|f| {
+                let tell = |f| {
                     let _ = tell.send(f);
-                });
+                };
+                let result = match release {
+                    Some(release) => download(fetch.as_ref(), &release, &folder, &tell),
+                    None => match latest(fetch.as_ref()) {
+                        Err(why) => Found::Failed(why),
+                        Ok(r) if r.build <= current => Found::UpToDate(r.build),
+                        Ok(r)
+                            if r.build <= quiet_here.load(std::sync::atomic::Ordering::Relaxed) =>
+                        {
+                            Found::Skipped(r.build)
+                        }
+                        Ok(r) if asking => Found::Newer(r),
+                        Ok(r) => download(fetch.as_ref(), &r, &folder, &tell),
+                    },
+                };
+                asking = false;
                 let ready = matches!(result, Found::Ready { .. });
                 if found_tx.send(result).is_err() || ready {
                     return;
                 }
-                wait = every;
             }
         });
-        Self { found, _stop: stop }
+        Self {
+            found,
+            orders,
+            quiet,
+        }
+    }
+
+    /// Downloads `release` now (Update now, decision 0173); its progress and
+    /// end come back through [`Updater::poll`].
+    pub fn download(&self, release: Release) {
+        let _ = self.orders.send(Order::Download(release));
+    }
+
+    /// Builds up to `build` aren't offered: skipped, or declined until the
+    /// next start (0: offer every newer build).
+    pub fn set_quiet(&self, build: u32) {
+        self.quiet
+            .store(build, std::sync::atomic::Ordering::Relaxed);
     }
 
     /// What the looking has found since last asked, newest last.

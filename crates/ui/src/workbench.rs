@@ -54,6 +54,7 @@ pub(crate) use levels::STOP_EDITING_LEVEL;
 pub use path_entry::FilePurpose;
 use tabs::PanelViewer;
 pub use updating::UpdateOffer;
+pub(crate) use updating::{SKIP_HELP, SKIP_VERSION};
 // The tests reach these through `super::`, as when they were defined or
 // imported here.
 #[cfg(test)]
@@ -180,6 +181,9 @@ pub enum WorkbenchAction {
         /// Restart now, rather than at the next close.
         now: bool,
     },
+    /// Don't install the update offered, and don't offer that build again
+    /// (Skip this version, decision 0173; [`Workbench::skipped_update`]).
+    SkipUpdate,
 }
 
 /// The keys that switch to the Points, Edges and Polygons modes. Common in
@@ -446,6 +450,12 @@ impl Workbench {
     /// The current mode (Model, Object, Points and so on).
     pub fn mode(&self) -> Mode {
         self.mode
+    }
+
+    /// Puts a message in the status bar, for the app around the
+    /// workbench (an update that couldn't be downloaded, decision 0173).
+    pub fn set_note(&mut self, note: String) {
+        self.note = Some(note);
     }
 
     /// The status bar's message, if any.

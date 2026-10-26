@@ -79,6 +79,82 @@ pub fn show(ui: &mut Ui, view: &SplashView<'_>) {
     response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Label, true, &text));
 }
 
+/// What the person answered when the splash screen found a new version
+/// (decision 0173).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UpdateAnswer {
+    /// Download and install it now; the app opens again afterwards.
+    Update,
+    /// Open the app as it is (with the Skip this version box, not again
+    /// for this build).
+    Open,
+}
+
+/// The splash screen's update button names.
+pub const UPDATE_NOW: &str = crate::text!("Update now");
+/// Open the app without updating.
+pub const OPEN_WITHOUT: &str = crate::text!("Open without updating");
+
+/// Asks, over the splash screen, whether to install build `build` now
+/// (decision 0173). `skip` is the Skip this version box. Enter is Update
+/// now, Esc is Open without updating.
+pub fn update_question(
+    ctx: &egui::Context,
+    build: u32,
+    notes_url: &str,
+    skip: &mut bool,
+) -> Option<UpdateAnswer> {
+    let mut answer = None;
+    crate::dialog::Dialog::new(crate::text::tr("A new version is available"), 420.0)
+        .id("splash_update_question")
+        .modal()
+        .show(ctx, |d| {
+            d.header(false, |_| {});
+            d.body(|ui| {
+                ui.label(
+                    egui::RichText::new(crate::trf!("Build {} is available.", build))
+                        .color(theme::TEXT_STRONG),
+                );
+                ui.add_space(4.0);
+                ui.label(crate::text::tr(
+                    "Update now to download and install it: the app opens on the new version \
+                     in a moment. Or open the app as it is.",
+                ));
+                ui.add_space(4.0);
+                ui.hyperlink_to(crate::text::tr("What's new in this build"), notes_url);
+                ui.add_space(4.0);
+                ui.checkbox(skip, crate::text::tr(crate::workbench::SKIP_VERSION))
+                    .on_hover_text(crate::text::tr(crate::workbench::SKIP_HELP));
+                crate::dialog::help(
+                    ui,
+                    crate::text::tr("Enter: update now · Esc: open without updating"),
+                );
+            });
+            d.footer(None, |ui| {
+                let update = ui.add_enabled_ui(!*skip, |ui| {
+                    crate::dialog::main_button(ui, crate::text::tr(UPDATE_NOW))
+                });
+                if update
+                    .inner
+                    .on_disabled_hover_text(crate::text::tr("Untick Skip this version to update"))
+                    .clicked()
+                {
+                    answer = Some(UpdateAnswer::Update);
+                }
+                if crate::dialog::plain_button(ui, crate::text::tr(OPEN_WITHOUT)).clicked() {
+                    answer = Some(UpdateAnswer::Open);
+                }
+            });
+        });
+    let (enter, escape) = crate::dialog::enter_or_escape(ctx);
+    if enter && !*skip {
+        answer = Some(UpdateAnswer::Update);
+    } else if escape || (enter && *skip) {
+        answer = Some(UpdateAnswer::Open);
+    }
+    answer
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

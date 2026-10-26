@@ -109,6 +109,7 @@ A lattice cage's points can't be deleted: change its Divisions in the Attributes
 A list by the mouse, like the shape list (B)
 A locked axis doesn't change while moving, rotating or scaling
 A new row under the lowest one, as tall as it
+A new version is available
 A new version is ready
 A pie slice of a round slab, a quarter of a circle
 A piece of pipe bent through 90°, lying on the ground
@@ -225,6 +226,7 @@ Array
 Arrives with the tools in Phase 3
 As in this app; Blender and 3ds Max's own axes
 As many points as it has now, spread evenly
+Ask about it again
 Ask before dissolving across a sharp corner
 Assign
 Assign {}
@@ -306,7 +308,13 @@ Broken handles
 Budget
 Build
 Build polygons between two open borders or two polygons; with nothing to bridge selected, drag from one open edge to another
+Build {} couldn't be downloaded ({}); the app opened as it was. It asks again at the next start.
+Build {} is available.
 Build {} is downloaded and ready to install.
+Build {} is skipped.
+Build {} is the newest, and you skipped it; you'll be asked when a newer one comes out.
+Build {} is the newest; you chose to open without it, so it's offered again at the next start.
+Build {} skipped: you'll be asked again when a newer one comes out.
 Bulges the middle of the limits out (above 0) or pinches it in (below 0), the ends as they were: a barrel or a waist.
 By angle
 Cage
@@ -604,6 +612,7 @@ Divisions {}
 Do again what was taken back
 Do the last undone change again
 Dome
+Don't ask about this version again. You'll be asked when a newer one comes out; Settings → Interface → Updates can ask about it again.
 Don't save
 Don't save (in the "Save changes?" question)
 Don't straighten
@@ -689,6 +698,7 @@ Enough for most sessions on a computer with 4 GB or more
 Enter
 Enter: restore the chosen copy
 Enter: save · {}: don't save · Esc: cancel
+Enter: update now · Esc: open without updating
 Esc
 Esc: cancel
 Esc: later
@@ -1057,6 +1067,7 @@ Inset
 Inset works on polygons: press 3 for the Polygons mode
 Inset works on polygons: press 3 for the Polygons mode and select some.
 Inset: drag left or right anywhere in the viewport to shrink the selected polygons inward. Shift for fine steps; Esc or a right click cancels.
+Installing build {}…
 Instance
 Instance 1 object
 Instance {} objects
@@ -1408,6 +1419,7 @@ Off, the viewport skips this modifier (handy while it is slow); exports and Bake
 Off: only the button turns snapping on and off.
 Off: the shape is made as if this edit wasn't there
 Off: the shape is made as if this edit wasn't there. Nothing is lost.
+Offer this version again the next time the app starts
 Offset
 Offset X
 Offset Y
@@ -1448,6 +1460,7 @@ Open the Settings window, where every setting has its home
 Open the project as you last saved it, and delete the backup copies.
 Open the shape list: a cube, sphere, cylinder and the rest
 Open the user manual in your web browser
+Open without updating
 Opened {}.
 Opening width
 Opening {}…
@@ -1889,6 +1902,7 @@ Size the objects back to 100%; the shapes keep the size
 Size to kit grid
 Size to kit grid: {}.
 Skew
+Skip this version
 Skipped: it would make the shape too large.
 Slide
 Slide points along their edges
@@ -2284,6 +2298,7 @@ Unreal Engine
 Unsaved
 Unsaved changes
 Unselect the points, edges or polygons; in the Model mode, the objects
+Untick Skip this version to update
 Untitled
 Untitled.{}
 Unwrap
@@ -2297,6 +2312,8 @@ Up axis
 Up to date: build {} is the newest.
 Update
 Update a snapshot
+Update now
+Update now to download and install it: the app opens on the new version in a moment. Or open the app as it is.
 Updates
 Usage: {} [option | project]\n\nOptions:\n  --version   Show the name and version, then exit\n  --help      Show this text, then exit\n\nWith no option, the app window opens. Give a project file to open it\n(put -- before a file name that starts with -).\n
 Use selected

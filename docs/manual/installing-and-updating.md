@@ -25,17 +25,29 @@ Only the program goes into the folder you chose. Your settings, panel layout, ba
 
 ### Updating
 
-The installed app looks for a new version **while its splash screen shows**, as it starts. The splash screen says *Looking for a new version…*; the look takes a moment, and gives up after a few seconds without internet, so starting never hangs. When there is a new version, the splash screen downloads it (*Downloading build 413… 40%*). If the download takes more than a minute, the app opens anyway and finishes it in the background. While the app is open, it looks again every six hours.
+**When the app starts**, its splash screen looks for a new version: *Looking for a new version…*. The look takes a moment, and gives up after a few seconds without internet, so starting never hangs. Then one of two things happens:
 
-With a new version downloaded, a window asks:
+- **No new version** (or one you skipped): the app opens as usual.
+- **A new version**: the splash screen asks before the app opens.
 
-![The window offering a new version: "A new version is ready. Build 4 is downloaded and ready to install.", with What's new in this build, Later and Restart now.](../screenshots/2026-10-26-update-offer.png)
+![The question on the splash screen: "A new version is available. Build 7 is available.", with What's new in this build, Skip this version, Open without updating and Update now.](../screenshots/2026-10-26-splash-update-question.png)
 
-- **Restart now** closes the app (asking about unsaved changes first, as any close does), installs the new version, and opens it again. It takes a few seconds.
-- **Later** (or **Esc**) puts the window away. Keep working; the new version installs quietly the next time you close the app, and you'll have it the next time you open it.
+- **Update now** (or **Enter**) downloads it, with the bar filling (*Downloading build 7… 40%*), installs it and opens the app on the new version.
+- **Open without updating** (or **Esc**) opens the app as it is. Nothing is installed; you're asked again the next time the app starts.
+- **Skip this version**, ticked before **Open without updating**: you're not asked about this version again, only when a newer one comes out. **Settings → Interface → Updates** shows the skipped version, with **Ask about it again**.
 - **What's new in this build** opens the release's page, which says what changed.
 
+**While the app is open**, it looks again every six hours. A new version found then downloads in the background, and a window asks:
+
+![The window offering a new version while the app is open: "A new version is ready. Build 4 is downloaded and ready to install.", with What's new in this build, Later and Restart now.](../screenshots/2026-10-26-update-offer.png)
+
+- **Restart now** closes the app (asking about unsaved changes first, as any close does), installs the new version, and opens it again. It takes a few seconds.
+- **Later** (or **Esc**) puts the window away. Keep working; the new version installs quietly the next time you close the app.
+- **Skip this version**, ticked before **Later**: it isn't installed, and you're not asked about it again.
+
 The update keeps your settings, layouts, recent projects and backup copies: only the program changes.
+
+**To stop looking altogether**, untick **Settings → Interface → Updates → Look for new versions**. The app then never asks GitHub, and starts without the look.
 
 ### Uninstalling
 
@@ -45,7 +57,8 @@ The update keeps your settings, layouts, recent projects and backup copies: only
 
 | Setting | What it does |
 |---|---|
-| **Settings → Interface → Updates → Look for new versions** | On (standard): the installed app looks for, and downloads, new versions as described above. Off: it never looks; download new versions from the Releases page instead. Under the switch, a line says what the last look found: up to date, a build ready, or why it couldn't look. |
+| **Settings → Interface → Updates → Look for new versions** | On (standard): the installed app looks for new versions as described above. Off: it never looks, and starts without the look; download new versions from the Releases page instead. Under the switch, a line says what the last look found: up to date, a build ready, or why it couldn't look. |
+| **Skip this version** (in the update questions) | Not asked about that version again; a newer one is offered. Settings shows the skipped version, with **Ask about it again**. |
 
 ## Shortcuts
 
