@@ -31,7 +31,8 @@ use words::{tr, trf};
 /// How long after starting the first look happens: at once, while the
 /// splash screen waits for it (decision 0172).
 const FIRST_LOOK_AFTER: Duration = Duration::ZERO;
-/// How often a running app looks again.
+/// How often a running app looks again. (Six hours: a build a day is
+/// the usual pace, so this finds it the same day without asking often.)
 const LOOK_EVERY: Duration = Duration::from_secs(6 * 60 * 60);
 /// The longest an answer from GitHub may take: short, as the splash screen
 /// waits for the first one.
