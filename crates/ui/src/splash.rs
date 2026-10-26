@@ -49,7 +49,7 @@ pub fn show(ui: &mut Ui, view: &SplashView<'_>) {
     painter.text(
         middle + vec2(0.0, 12.0),
         Align2::CENTER_CENTER,
-        crate::trf!("Version {}", view.info.version),
+        crate::trf!("Version {}", view.info.full_version()),
         FontId::proportional(14.0),
         theme::TEXT_WEAK,
     );
@@ -70,7 +70,12 @@ pub fn show(ui: &mut Ui, view: &SplashView<'_>) {
     // One label for screen readers (and tests): the name, version and
     // what is happening.
     let response = ui.allocate_rect(rect, Sense::hover());
-    let text = format!("{} {}: {}", view.info.name, view.info.version, view.doing);
+    let text = format!(
+        "{} {}: {}",
+        view.info.name,
+        view.info.full_version(),
+        view.doing
+    );
     response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Label, true, &text));
 }
 
@@ -85,6 +90,7 @@ mod tests {
         let info = AppInfo {
             name: "Test App".into(),
             version: "1.2.3".into(),
+            build: None,
             manual_url: String::new(),
         };
         let harness = Harness::builder().with_size([800.0, 600.0]).build_ui(|ui| {

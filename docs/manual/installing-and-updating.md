@@ -6,7 +6,7 @@
 
 Use the setup program whenever you want the app on your computer like any other program: in the Start menu, in Windows' list of installed apps (to uninstall it), and opening your projects when you double-click them. Once it's installed, every new version reaches you by itself; there's nothing more to download by hand.
 
-Each time a change is finished and its automatic checks pass, a new **build** is published on the project's [Releases page](https://github.com/Rhyslos/Aventail-3D/releases), with its own **build number** (412, 413 and so on: higher is newer). The number is in the window's title and in **Help → About**.
+Each time a change is finished and its automatic checks pass, a new **build** is published on the project's [Releases page](https://github.com/Rhyslos/Aventail-3D/releases), with its own **build number** (412, 413 and so on: higher is newer). The number is in **Help → About**: *Version 0.0.1 (build 413)*.
 
 The plain program files (a zip with the program in it) are still attached to every change on GitHub, under the Actions tab, for trying a change that isn't finished yet. A copy run from a zip never changes itself.
 
@@ -25,13 +25,15 @@ Only the program goes into the folder you chose. Your settings, panel layout, ba
 
 ### Updating
 
-The installed app looks for a new version about ten seconds after it starts, and every six hours while it's open. When there is one, it downloads it in the background while you keep working (nothing changes yet), and a bar appears under the top palette:
+The installed app looks for a new version **while its splash screen shows**, as it starts. The splash screen says *Looking for a new version…*; the look takes a moment, and gives up after a few seconds without internet, so starting never hangs. When there is a new version, the splash screen downloads it (*Downloading build 413… 40%*). If the download takes more than a minute, the app opens anyway and finishes it in the background. While the app is open, it looks again every six hours.
 
-**A new version is ready (build 413).** **Restart now** · **Later** · **What's new**
+With a new version downloaded, a window asks:
+
+![The window offering a new version: "A new version is ready. Build 4 is downloaded and ready to install.", with What's new in this build, Later and Restart now.](../screenshots/2026-10-26-update-offer.png)
 
 - **Restart now** closes the app (asking about unsaved changes first, as any close does), installs the new version, and opens it again. It takes a few seconds.
-- **Later** puts the bar away. Keep working; the new version installs quietly the next time you close the app, and you'll have it the next time you open it.
-- **What's new** opens the release's page, which says what changed.
+- **Later** (or **Esc**) puts the window away. Keep working; the new version installs quietly the next time you close the app, and you'll have it the next time you open it.
+- **What's new in this build** opens the release's page, which says what changed.
 
 The update keeps your settings, layouts, recent projects and backup copies: only the program changes.
 
@@ -51,13 +53,13 @@ Updating has no keys of its own.
 
 ## Tips and common problems
 
-- **Problem:** no bar ever appears. **Why:** only a copy installed with the setup program updates itself, and only on Windows; a copy run from a zip, or built from the source code, doesn't. **Fix:** Settings → Interface → Updates says which. Install with the setup program once.
+- **Problem:** the update window never appears. **Why:** only a copy installed with the setup program updates itself, and only on Windows; a copy run from a zip, or built from the source code, doesn't. **Fix:** Settings → Interface → Updates says which. Install with the setup program once.
 - **Problem:** Settings says it couldn't look for a new version. **Why:** no internet connection, or GitHub asked it to wait. **Fix:** nothing: it tries again in a few hours, and every time the app starts.
 - **Problem:** Windows warns about the setup program. **Why:** it isn't code-signed yet, so Windows doesn't know who made it. **Fix:** see step 2 of *Installing*. The installed app downloads its updates itself, so the warning only comes the first time.
 - **Problem:** I clicked **Restart now**, then **Cancel** in "Save changes?". **Why:** the app stays open, so nothing installs yet. **Fix:** the update installs, and the app opens again, when you next close it.
 - **Problem:** I want the app in another folder. **Why:** updates go back into the folder chosen on the first install. **Fix:** uninstall it, then run the setup program again and pick the new folder: it asks again after an uninstall.
 - **Tip:** started from a terminal, `aventail --version` and `aventail --help` print there; the prompt comes back first, as with any window program on Windows.
-- **Tip:** the window's title shows the build you're running: *Aventail 3D 0.0.1 (build 413)*.
+- **Tip:** **Help → About** shows the build you're running: *Version 0.0.1 (build 413)*.
 - **Tip:** Linux and macOS don't have a setup program yet: download the zip for them from GitHub's Actions tab.
 
 ## Related

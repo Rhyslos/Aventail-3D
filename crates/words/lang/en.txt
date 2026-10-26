@@ -109,7 +109,7 @@ A lattice cage's points can't be deleted: change its Divisions in the Attributes
 A list by the mouse, like the shape list (B)
 A locked axis doesn't change while moving, rotating or scaling
 A new row under the lowest one, as tall as it
-A new version is ready (build {}).
+A new version is ready
 A pie slice of a round slab, a quarter of a circle
 A piece of pipe bent through 90°, lying on the ground
 A pipe 1 m across and 1 m tall
@@ -409,7 +409,6 @@ Close an open curve's ends with flat faces
 Close curve
 Close open ends (and the sides of a part turn) with flat faces
 Close the app
-Close the app, install the new version and open it again. Unsaved changes are asked about first.
 Close the gap between the two sides along open borders (a plane's edges, a cup's lip) with a strip of polygons, so the result is a closed solid
 Close the open holes touching the selection with a polygon each; with nothing selected, every hole
 Close the selected curves into loops, the last point joining the first with a straight stretch, or open closed ones again
@@ -615,6 +614,8 @@ Double-click / Alt + double-click
 Double-click an edge for its loop; Alt + double-click for its ring
 Double-click it (Points mode)
 Double-click its line (Points mode)
+Downloading build {}…
+Downloading build {}… {}%
 Drag
 Drag a point (or a polygon, in the Polygons mode) onto a point; a selected one brings the whole selection.
 Drag anywhere in the viewport. Hold Shift for fine steps.
@@ -690,6 +691,7 @@ Enter: restore the chosen copy
 Enter: save · {}: don't save · Esc: cancel
 Esc
 Esc: cancel
+Esc: later
 Even out the selected polygons' UVs, so a texture stretches less over them
 Even out the triangles of flat polygons, so there are fewer long thin ones. Bent polygons keep the cut along their fold.
 Even rows:
@@ -1116,7 +1118,6 @@ Keep the selected points' handles in one line, so the curve bends through withou
 Keep the shading crisp along the edges the object's shading shows hard (marked, or sharper than its Smoothing angle). Off, the whole shape shades smooth.
 Keep the shape's own polygons as well, with the struts round their edges: a panel in a frame. Off, only the struts and joints are left
 Keep together
-Keep working: it installs when you close the app
 Key {}
 Keyboard
 Keyboard shortcuts
@@ -1636,6 +1637,7 @@ Reset panel layout
 Reset points
 Reset view
 Restart now
+Restart now to install it: the app closes (asking about unsaved work first), updates and opens again in a few seconds. Or keep working: it installs when you close the app.
 Restore
 Restore standard
 Restore the UVs of
@@ -2347,7 +2349,7 @@ What the cutters do to this shape
 What the ring turns round: the shape's own pivot, or another object's (it stays live: move that object and the ring follows)
 What the row holds: bolts, a panel edge, a seal
 What the viewport draws over your shapes. Also in the viewport's Display menu.
-What's new
+What's new in this build
 Wheel down
 Wheel up
 When Suggest seams or Unwrap needs a cut, put it on the selected edges first (or around the selected polygons). Drawn dashed yellow.
@@ -2871,6 +2873,7 @@ write
 {}\nNow: {}.
 {}    {}
 {}  ({})
+{} (build {})
 {} (held)
 {} (in the UV Editor too)
 {} (in the UV Editor: {})

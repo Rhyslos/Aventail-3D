@@ -9,6 +9,7 @@ pub(super) fn info() -> AppInfo {
     AppInfo {
         name: "Test App".into(),
         version: "9.9.9".into(),
+        build: Some(42),
         manual_url: "https://example.com/manual".into(),
     }
 }
@@ -385,7 +386,9 @@ fn help_opens_the_about_box() {
     harness.get_by_label("About Test App").click();
     harness.run();
     assert!(harness.state().workbench.is_about_open());
-    assert!(harness.query_by_label("Version 9.9.9").is_some());
+    // About shows the build number; the title leaves it out (decision 0169).
+    assert!(harness.query_by_label("Version 9.9.9 (build 42)").is_some());
+    assert!(!harness.state().workbench.title().contains("build"));
 }
 
 #[test]
