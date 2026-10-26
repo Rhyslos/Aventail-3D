@@ -85,8 +85,22 @@ pub struct AppInfo {
     pub name: String,
     /// Version, such as "0.0.1".
     pub version: String,
+    /// The build number, when the release workflow made this build
+    /// (decision 0169). Shown in Help → About, not in the title.
+    pub build: Option<u32>,
     /// Where the user manual is read online (Help → User manual).
     pub manual_url: String,
+}
+
+impl AppInfo {
+    /// The version with the build number, when there is one: "0.0.1
+    /// (build 3)", for Help → About and the splash screen.
+    pub fn full_version(&self) -> String {
+        match self.build {
+            Some(build) => crate::trf!("{} (build {})", self.version, build),
+            None => self.version.clone(),
+        }
+    }
 }
 
 /// Something the user asked for that the program around the workbench
@@ -649,12 +663,6 @@ impl Workbench {
         if symmetry != symmetry_before {
             self.change_symmetry(symmetry);
         }
-        if self.update_bar_shown() {
-            egui::Panel::top("update_bar")
-                .frame(theme::palette_frame())
-                .exact_size(32.0)
-                .show(ui, |ui| self.update_bar(ui, &mut actions));
-        }
         egui::Panel::bottom("status_bar")
             .frame(theme::status_bar_frame())
             .exact_size(24.0)
@@ -904,6 +912,7 @@ impl Workbench {
             ui.ctx().set_cursor_icon(egui::CursorIcon::Crosshair);
         }
         self.dissolve_question_window(ui.ctx());
+        self.update_window(ui.ctx(), &mut actions);
         self.unsaved_question(ui.ctx(), &mut actions);
         self.path_window(ui.ctx(), &mut actions);
         self.autosave_and_recovery(ui.ctx(), &mut actions);
@@ -917,7 +926,8 @@ impl Workbench {
     /// Settings, the keys, About): Esc closes it rather than selecting
     /// nothing.
     fn window_open(&self) -> bool {
-        self.exporting.open
+        self.update_window_shown()
+            || self.exporting.open
             || self.baking.open
             || self.settings.open
             || self.shortcuts.open

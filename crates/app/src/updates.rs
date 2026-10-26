@@ -28,12 +28,14 @@ use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::time::Duration;
 use words::{tr, trf};
 
-/// How long after starting the first look happens: the window first.
-const FIRST_LOOK_AFTER: Duration = Duration::from_secs(10);
+/// How long after starting the first look happens: at once, while the
+/// splash screen waits for it (decision 0172).
+const FIRST_LOOK_AFTER: Duration = Duration::ZERO;
 /// How often a running app looks again.
 const LOOK_EVERY: Duration = Duration::from_secs(6 * 60 * 60);
-/// The longest an answer from GitHub may take.
-const ASK_TIMEOUT_SECONDS: u32 = 30;
+/// The longest an answer from GitHub may take: short, as the splash screen
+/// waits for the first one.
+pub const ASK_TIMEOUT_SECONDS: u32 = 8;
 /// The longest a download may take.
 const DOWNLOAD_TIMEOUT_SECONDS: u32 = 30 * 60;
 
@@ -245,6 +247,14 @@ impl Fetch for Curl {
 pub enum Found {
     /// Nothing newer than this build (the newest one's number).
     UpToDate(u32),
+    /// A newer build is being downloaded to `part` (decision 0172: the
+    /// splash screen shows how far it has got).
+    Downloading {
+        /// The release.
+        release: Release,
+        /// The file it is downloaded into, growing.
+        part: PathBuf,
+    },
     /// A newer build, downloaded to `installer`.
     Ready {
         /// The release.
@@ -260,6 +270,17 @@ pub enum Found {
 /// than `current`, downloads its setup program into `folder` (or finds it
 /// there whole from an earlier look).
 pub fn look(fetch: &dyn Fetch, current: u32, folder: &Path) -> Found {
+    look_telling(fetch, current, folder, &|_| {})
+}
+
+/// [`look`], telling `downloading` (with a [`Found::Downloading`]) when a
+/// download starts.
+pub fn look_telling(
+    fetch: &dyn Fetch,
+    current: u32,
+    folder: &Path,
+    downloading: &dyn Fn(Found),
+) -> Found {
     let release = match fetch
         .text(branding::RELEASES_API)
         .and_then(|t| parse_release(&t))
@@ -277,6 +298,10 @@ pub fn look(fetch: &dyn Fetch, current: u32, folder: &Path) -> Found {
             return Found::Failed(trf!("the download folder couldn't be made: {}", e));
         }
         let part = installer.with_extension("part");
+        downloading(Found::Downloading {
+            release: release.clone(),
+            part: part.clone(),
+        });
         if let Err(why) = fetch.file(&release.installer_url, &part) {
             let _ = std::fs::remove_file(&part);
             return Found::Failed(why);
@@ -344,7 +369,10 @@ impl Updater {
                     // Stopped, or the app has gone.
                     _ => return,
                 }
-                let result = look(fetch.as_ref(), current, &folder);
+                let tell = found_tx.clone();
+                let result = look_telling(fetch.as_ref(), current, &folder, &|f| {
+                    let _ = tell.send(f);
+                });
                 let ready = matches!(result, Found::Ready { .. });
                 if found_tx.send(result).is_err() || ready {
                     return;
@@ -359,6 +387,13 @@ impl Updater {
     pub fn poll(&self) -> Vec<Found> {
         self.found.try_iter().collect()
     }
+}
+
+/// How far a download has got, from 0 to 1: the `.part` file's size
+/// against the release's.
+pub fn progress(part: &Path, release: &Release) -> f32 {
+    let have = std::fs::metadata(part).map_or(0, |m| m.len());
+    (have as f64 / release.size.max(1) as f64).clamp(0.0, 1.0) as f32
 }
 
 /// A setup program to run when the app has closed.

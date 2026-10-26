@@ -1,8 +1,9 @@
-//! The interface's part in updates ([decision 0169](../../../../docs/decisions/0169-installer-and-updates.md)):
-//! when the app around the workbench has downloaded a newer build, a slim
-//! bar under the top palette says so, with **Restart now**, **Later** and
-//! **What's new**. Later puts the bar away; the app installs the update
-//! when it closes. The workbench never downloads or installs anything: it
+//! The interface's part in updates ([decision 0169](../../../../docs/decisions/0169-installer-and-updates.md),
+//! [0172](../../../../docs/decisions/0172-update-popup-and-splash-check.md)):
+//! when the app around the workbench has downloaded a newer build, a
+//! window in the middle says so, with **Restart now**, **Later** and
+//! **What's new**. Later (or Esc) puts it away; the app installs the
+//! update when it closes. The workbench never downloads or installs anything: it
 //! shows what it is told ([`Workbench::offer_update`],
 //! [`Workbench::set_update_status`]) and returns
 //! [`WorkbenchAction::InstallUpdate`].
@@ -10,7 +11,7 @@
 use super::{Workbench, WorkbenchAction};
 use crate::text::tr;
 use crate::theme;
-use egui::{RichText, Ui};
+use egui::RichText;
 
 /// A newer build, downloaded and ready to install.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -32,9 +33,11 @@ pub(super) struct Updating {
     pub(super) status: Option<String>,
 }
 
-/// The accessible name of the bar's Restart now button.
+/// The update window's title.
+pub(crate) const UPDATE_TITLE: &str = crate::text!("A new version is ready");
+/// The accessible name of the window's Restart now button.
 pub(crate) const RESTART_NOW: &str = crate::text!("Restart now");
-/// The accessible name of the bar's Later button.
+/// The accessible name of the window's Later button.
 pub(crate) const LATER: &str = crate::text!("Later");
 
 impl Workbench {
@@ -59,40 +62,62 @@ impl Workbench {
         self.viewport.options().check_for_updates
     }
 
-    /// Whether the update bar is shown.
-    pub(super) fn update_bar_shown(&self) -> bool {
+    /// Whether the update window is shown.
+    pub(super) fn update_window_shown(&self) -> bool {
         self.updating.offer.is_some() && !self.updating.later
     }
 
-    /// The bar offering the update, under the top palette.
-    pub(super) fn update_bar(&mut self, ui: &mut Ui, actions: &mut Vec<WorkbenchAction>) {
+    /// The window offering the update.
+    pub(super) fn update_window(
+        &mut self,
+        ctx: &egui::Context,
+        actions: &mut Vec<WorkbenchAction>,
+    ) {
+        if !self.update_window_shown() {
+            return;
+        }
         let Some(offer) = self.updating.offer.clone() else {
             return;
         };
-        ui.horizontal_centered(|ui| {
-            ui.add_space(8.0);
-            ui.label(
-                RichText::new(crate::trf!(
-                    "A new version is ready (build {}).",
-                    offer.build
-                ))
-                .color(theme::TEXT_STRONG),
-            );
-            ui.add_space(8.0);
-            if crate::dialog::main_button(ui, tr(RESTART_NOW))
-                .on_hover_text(tr(
-                    "Close the app, install the new version and open it again. Unsaved changes \
-                     are asked about first.",
-                ))
-                .clicked()
-            {
-                actions.push(WorkbenchAction::InstallUpdate { now: true });
-            }
-            if ui
-                .button(tr(LATER))
-                .on_hover_text(tr("Keep working: it installs when you close the app"))
-                .clicked()
-            {
+        let mut answer = None;
+        crate::dialog::Dialog::new(tr(UPDATE_TITLE), 420.0)
+            .id("update_offer")
+            .modal()
+            .show(ctx, |d| {
+                d.header(false, |_| {});
+                d.body(|ui| {
+                    ui.label(
+                        RichText::new(crate::trf!(
+                            "Build {} is downloaded and ready to install.",
+                            offer.build
+                        ))
+                        .color(theme::TEXT_STRONG),
+                    );
+                    ui.add_space(4.0);
+                    ui.label(tr(
+                        "Restart now to install it: the app closes (asking about unsaved work \
+                         first), updates and opens again in a few seconds. Or keep working: it \
+                         installs when you close the app.",
+                    ));
+                    ui.add_space(4.0);
+                    ui.hyperlink_to(tr("What's new in this build"), &offer.notes_url);
+                    crate::dialog::help(ui, tr("Esc: later"));
+                });
+                d.footer(None, |ui| {
+                    if crate::dialog::main_button(ui, tr(RESTART_NOW)).clicked() {
+                        answer = Some(true);
+                    }
+                    if crate::dialog::plain_button(ui, tr(LATER)).clicked() {
+                        answer = Some(false);
+                    }
+                });
+            });
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Escape)) {
+            answer = Some(false);
+        }
+        match answer {
+            Some(true) => actions.push(WorkbenchAction::InstallUpdate { now: true }),
+            Some(false) => {
                 self.updating.later = true;
                 self.note = Some(crate::trf!(
                     "The new version (build {}) installs when you close the app.",
@@ -100,8 +125,7 @@ impl Workbench {
                 ));
                 actions.push(WorkbenchAction::InstallUpdate { now: false });
             }
-            ui.add_space(4.0);
-            ui.hyperlink_to(tr("What's new"), &offer.notes_url);
-        });
+            None => {}
+        }
     }
 }

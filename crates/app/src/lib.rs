@@ -33,7 +33,8 @@ pub fn version() -> String {
 pub fn app_info() -> ui::AppInfo {
     ui::AppInfo {
         name: branding::APP_NAME.to_string(),
-        version: version(),
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        build: updates::build_number(),
         manual_url: branding::MANUAL_URL.to_string(),
     }
 }

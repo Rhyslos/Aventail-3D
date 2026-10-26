@@ -237,3 +237,17 @@ fn reference_modifier_list() {
     }
     compare(&mut harness, "modifier_list");
 }
+
+#[test]
+fn reference_update_offer() {
+    // The window offering a downloaded update (decision 0172).
+    let Some(mut harness) = window() else { return };
+    harness
+        .state_mut()
+        .workbench
+        .offer_update(super::UpdateOffer {
+            build: 4,
+            notes_url: "https://github.com/Rhyslos/Aventail-3D/releases/tag/build-4".into(),
+        });
+    compare(&mut harness, "update_offer");
+}

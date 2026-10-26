@@ -71,7 +71,7 @@ pub(crate) fn vertical_gradient(rect: Rect, top: Color32, bottom: Color32) -> Me
 pub(crate) fn about_contents(ui: &mut Ui, info: &AppInfo) {
     ui.vertical_centered(|ui| {
         ui.heading(&info.name);
-        ui.label(crate::trf!("Version {}", info.version));
+        ui.label(crate::trf!("Version {}", info.full_version()));
         ui.add_space(8.0);
         ui.label(tr("A calm, tool-rich 3D modeller for game assets."));
         ui.add_space(8.0);

@@ -243,13 +243,16 @@ fn the_updater_looks_until_a_build_is_ready() {
     let mut found = Vec::new();
     for _ in 0..400 {
         found.extend(updater.poll());
-        if !found.is_empty() {
+        if found.iter().any(|f| matches!(f, Found::Ready { .. })) {
             break;
         }
         std::thread::sleep(Duration::from_millis(10));
     }
     assert!(
-        matches!(found.as_slice(), [Found::Ready { .. }]),
+        matches!(
+            found.as_slice(),
+            [Found::Downloading { .. }, Found::Ready { .. }]
+        ),
         "{found:?}"
     );
     // It stops once ready: no more looks.
@@ -339,4 +342,28 @@ fn curl_really_asks_where_it_can() {
     if let Err(why) = result {
         assert!(!why.is_empty());
     }
+}
+
+#[test]
+fn a_download_says_when_it_starts_and_how_far_it_has_got() {
+    let folder = fresh_folder("progress");
+    let fake = Fake::new(&answer("build-12", 4), b"exe!");
+    let told = std::sync::Mutex::new(Vec::new());
+    let found = look_telling(&fake, 10, &folder, &|f| told.lock().unwrap().push(f));
+    assert!(matches!(found, Found::Ready { .. }));
+    let told = told.into_inner().unwrap();
+    let [Found::Downloading { release, part }] = told.as_slice() else {
+        panic!("{told:?}");
+    };
+    assert_eq!(release.build, 12);
+    // The part file has become the setup program: nothing left at the
+    // part's place, so 0; half a file reads as a half.
+    assert_eq!(progress(part, release), 0.0);
+    std::fs::write(part, b"ex").unwrap();
+    assert!((progress(part, release) - 0.5).abs() < 1e-6);
+    // Up to date: nothing downloads, nothing is told.
+    let quiet = std::sync::Mutex::new(0);
+    look_telling(&fake, 12, &folder, &|_| *quiet.lock().unwrap() += 1);
+    assert_eq!(*quiet.lock().unwrap(), 0);
+    let _ = std::fs::remove_dir_all(&folder);
 }
