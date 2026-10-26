@@ -1,3 +1,5 @@
+<img src="assets/logo.svg" alt="" width="96" align="right">
+
 # Aventail 3D
 
 **A calm, easy-to-learn 3D modeller for game assets.**

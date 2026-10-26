@@ -528,7 +528,8 @@ pub fn run(info: AppInfo, open: Option<PathBuf>) -> Result<(), String> {
             .with_title(title)
             .with_app_id(branding::APP_ID)
             .with_inner_size(FIRST_SIZE)
-            .with_min_inner_size(MIN_SIZE),
+            .with_min_inner_size(MIN_SIZE)
+            .with_icon(window_icon()),
         renderer: eframe::Renderer::Wgpu,
         ..Default::default()
     };
@@ -580,6 +581,15 @@ pub fn run(info: AppInfo, open: Option<PathBuf>) -> Result<(), String> {
         Ok(result) => result.map_err(|err| err.to_string()),
         Err(payload) => Err(explain_panic(payload.as_ref())),
     }
+}
+
+/// The app's logo for the window's title bar and taskbar button
+/// (decision 0171), from `assets/icon-256.png`; an empty icon (the
+/// system's own) if it couldn't be read, which a test makes sure never
+/// happens.
+fn window_icon() -> egui::IconData {
+    eframe::icon_data::from_png_bytes(include_bytes!("../../../assets/icon-256.png"))
+        .unwrap_or_default()
 }
 
 /// Turns a caught panic into a plain-language reason, adding an install
@@ -645,6 +655,18 @@ mod tests {
     fn unknown_panic_payloads_get_a_generic_reason() {
         let payload: Box<dyn std::any::Any + Send> = Box::new(42_u32);
         assert!(explain_panic(payload.as_ref()).contains("stopped unexpectedly"));
+    }
+
+    #[test]
+    fn the_window_icon_is_the_logo() {
+        let icon = window_icon();
+        assert_eq!((icon.width, icon.height), (256, 256));
+        assert_eq!(icon.rgba.len(), 256 * 256 * 4);
+        // The middle of the logo is its red cube's edge or the dark disc,
+        // never see-through; the corners are see-through.
+        let alpha = |x: usize, y: usize| icon.rgba[(y * 256 + x) * 4 + 3];
+        assert_eq!(alpha(128, 128), 255);
+        assert_eq!(alpha(0, 0), 0);
     }
 
     #[test]
