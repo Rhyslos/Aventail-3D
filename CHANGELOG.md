@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **The splash screen asks about a new version before the app opens:** **Update now** downloads, installs and reopens it; **Open without updating** opens the app as it is. **Skip this version** stops it asking about that version (Settings → Interface → Updates can ask again). The window that offers a version found while the app runs has **Skip this version** too.
 - **Updates are offered in a window, and checked while the app starts.** The splash screen looks for a new version and downloads it (showing how far it has got), then a window asks **Restart now** or **Later**. The build number is no longer in the title bar: it's in **Help → About**.
 - **Choose where to install, and no terminal window (Windows).** The setup program asks which folder to install into the first time (any drive, still no admin password); updates go back into that folder. The app now opens on its own, without a black terminal window behind it.
 - **Modifiers are listed under their shape.** In the Objects panel (and after the layers in Edit layers), each shape's modifiers are rows under it, first to last. Click one and the Attributes panel shows only its settings; click the shape to go back. Tick to switch one on or off, drag to reorder, press Delete to remove it, and right-click for Duplicate, Move up/down, **Bake into shape up to here** and Remove. The Attributes panel no longer lists every modifier's settings one after another.

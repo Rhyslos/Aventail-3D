@@ -88,6 +88,8 @@ pub(crate) struct Values<'a> {
     pub(crate) check_for_updates: &'a mut bool,
     /// What the last look found, if anything.
     pub(crate) update_status: Option<&'a str>,
+    /// The build skipped, if any (decision 0173).
+    pub(crate) skipped_update: &'a mut Option<u32>,
     /// What the viewport draws over the surfaces, and the view dice's
     /// orthographic switch (also in the viewport's Display menu).
     pub(crate) display: DisplayValues<'a>,
@@ -108,6 +110,8 @@ pub(crate) struct DisplayValues<'a> {
 
 /// The Updates heading in Settings → Interface.
 pub(crate) const UPDATES: &str = crate::text!("Updates");
+/// Forgets the skipped version.
+pub(crate) const ASK_AGAIN: &str = crate::text!("Ask about it again");
 /// The switch for looking for new versions.
 pub(crate) const CHECK_FOR_UPDATES: &str = crate::text!("Look for new versions");
 
@@ -197,6 +201,7 @@ fn restore_standard(values: &mut Values<'_>) {
     *values.dissolve_without_warning = false;
     *values.high_contrast = false;
     *values.check_for_updates = true;
+    *values.skipped_update = None;
 }
 
 /// A heading for a group of settings.
@@ -314,6 +319,18 @@ fn interface(ui: &mut Ui, values: &mut Values<'_>) {
         ));
     if let Some(status) = values.update_status {
         dialog::help(ui, status);
+    }
+    if let Some(build) = *values.skipped_update {
+        ui.horizontal(|ui| {
+            dialog::help(ui, crate::trf!("Build {} is skipped.", build));
+            if ui
+                .small_button(tr(ASK_AGAIN))
+                .on_hover_text(tr("Offer this version again the next time the app starts"))
+                .clicked()
+            {
+                *values.skipped_update = None;
+            }
+        });
     }
     dialog::divider(ui);
     radial_menu(ui, values);

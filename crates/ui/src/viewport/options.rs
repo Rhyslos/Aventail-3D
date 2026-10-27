@@ -290,6 +290,9 @@ pub struct ViewOptions {
     /// offer (Settings → Interface → Updates; on as standard; decision
     /// 0169). Only an installed copy updates itself.
     pub check_for_updates: bool,
+    /// The build the person chose to skip ("Skip this version"): it isn't
+    /// offered again; a newer one is (decision 0173).
+    pub skipped_update: Option<u32>,
 }
 
 impl Default for ViewOptions {
@@ -318,6 +321,7 @@ impl Default for ViewOptions {
             flat_from_dice: false,
             high_contrast: false,
             check_for_updates: true,
+            skipped_update: None,
         }
     }
 }

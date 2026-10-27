@@ -31,7 +31,17 @@ pub(super) struct Updating {
     later: bool,
     /// What the last check found, for Settings.
     pub(super) status: Option<String>,
+    /// The window's Skip this version box.
+    skip: bool,
 }
+
+/// The Skip this version box, here and on the splash screen.
+pub(crate) const SKIP_VERSION: &str = crate::text!("Skip this version");
+/// What skipping does.
+pub(crate) const SKIP_HELP: &str = crate::text!(
+    "Don't ask about this version again. You'll be asked when a newer one comes out; Settings → \
+     Interface → Updates can ask about it again."
+);
 
 /// The update window's title.
 pub(crate) const UPDATE_TITLE: &str = crate::text!("A new version is ready");
@@ -54,6 +64,18 @@ impl Workbench {
     /// Settings → Interface → Updates).
     pub fn set_update_status(&mut self, status: String) {
         self.updating.status = Some(status);
+    }
+
+    /// The build the person chose to skip, if any: not offered again
+    /// (decision 0173). Remembered with the view options.
+    pub fn skipped_update(&self) -> Option<u32> {
+        self.viewport.options().skipped_update
+    }
+
+    /// Skips `build` (Skip this version on the splash screen), or forgets
+    /// the skip (`None`).
+    pub fn skip_update(&mut self, build: Option<u32>) {
+        self.viewport.options_mut().skipped_update = build;
     }
 
     /// Whether the person wants the app to look for new versions
@@ -101,6 +123,9 @@ impl Workbench {
                     ));
                     ui.add_space(4.0);
                     ui.hyperlink_to(tr("What's new in this build"), &offer.notes_url);
+                    ui.add_space(4.0);
+                    ui.checkbox(&mut self.updating.skip, tr(SKIP_VERSION))
+                        .on_hover_text(tr(SKIP_HELP));
                     crate::dialog::help(ui, tr("Esc: later"));
                 });
                 d.footer(None, |ui| {
@@ -117,6 +142,15 @@ impl Workbench {
         }
         match answer {
             Some(true) => actions.push(WorkbenchAction::InstallUpdate { now: true }),
+            Some(false) if self.updating.skip => {
+                self.updating.later = true;
+                self.skip_update(Some(offer.build));
+                self.note = Some(crate::trf!(
+                    "Build {} skipped: you'll be asked again when a newer one comes out.",
+                    offer.build
+                ));
+                actions.push(WorkbenchAction::SkipUpdate);
+            }
             Some(false) => {
                 self.updating.later = true;
                 self.note = Some(crate::trf!(

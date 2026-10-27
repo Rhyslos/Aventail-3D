@@ -136,6 +136,8 @@ struct Fake {
     answer: Result<String, String>,
     file: Result<Vec<u8>, String>,
     downloads: Arc<Mutex<usize>>,
+    /// A newer answer to give from now on, if set.
+    newest: Arc<Mutex<Option<String>>>,
 }
 
 impl Fake {
@@ -144,6 +146,7 @@ impl Fake {
             answer: Ok(answer.to_string()),
             file: Ok(file.to_vec()),
             downloads: Arc::default(),
+            newest: Arc::default(),
         }
     }
 }
@@ -151,7 +154,10 @@ impl Fake {
 impl Fetch for Fake {
     fn text(&self, url: &str) -> Result<String, String> {
         assert_eq!(url, branding::RELEASES_API);
-        self.answer.clone()
+        match self.newest.lock().unwrap().clone() {
+            Some(newer) => Ok(newer),
+            None => self.answer.clone(),
+        }
     }
 
     fn file(&self, _url: &str, to: &Path) -> Result<(), String> {
@@ -229,25 +235,53 @@ fn a_cut_off_or_failed_download_is_never_kept() {
     let _ = std::fs::remove_dir_all(&folder);
 }
 
+/// Polls `updater` until `done` holds for what it has said, or gives up.
+fn wait_for(updater: &Updater, done: impl Fn(&[Found]) -> bool) -> Vec<Found> {
+    let mut found = Vec::new();
+    for _ in 0..400 {
+        found.extend(updater.poll());
+        if done(&found) {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    found
+}
+
+fn quick(fake: &Fake, current: u32, folder: &Path) -> Updater {
+    Updater::start_with(
+        Box::new(fake.clone()),
+        current,
+        folder.to_path_buf(),
+        Duration::from_millis(5),
+        Duration::from_millis(5),
+    )
+}
+
 #[test]
-fn the_updater_looks_until_a_build_is_ready() {
-    let folder = fresh_folder("loop");
+fn the_first_look_asks_before_downloading() {
+    // The splash screen asks first (decision 0173): the first look only
+    // says a newer build is there, and downloads nothing.
+    let folder = fresh_folder("ask");
     let fake = Fake::new(&answer("build-12", 4), b"exe!");
     let updater = Updater::start_with(
         Box::new(fake.clone()),
         10,
         folder.clone(),
         Duration::from_millis(5),
-        Duration::from_millis(5),
+        Duration::from_secs(3600),
     );
-    let mut found = Vec::new();
-    for _ in 0..400 {
-        found.extend(updater.poll());
-        if found.iter().any(|f| matches!(f, Found::Ready { .. })) {
-            break;
-        }
-        std::thread::sleep(Duration::from_millis(10));
-    }
+    let found = wait_for(&updater, |f| !f.is_empty());
+    let [Found::Newer(release)] = found.as_slice() else {
+        panic!("{found:?}");
+    };
+    assert_eq!(release.build, 12);
+    assert_eq!(*fake.downloads.lock().unwrap(), 0, "nothing downloaded yet");
+    // Update now: it downloads, says how far, then that it's ready.
+    updater.download(release.clone());
+    let found = wait_for(&updater, |f| {
+        f.iter().any(|x| matches!(x, Found::Ready { .. }))
+    });
     assert!(
         matches!(
             found.as_slice(),
@@ -258,6 +292,58 @@ fn the_updater_looks_until_a_build_is_ready() {
     // It stops once ready: no more looks.
     std::thread::sleep(Duration::from_millis(50));
     assert!(updater.poll().is_empty());
+    let _ = std::fs::remove_dir_all(&folder);
+}
+
+#[test]
+fn later_looks_download_at_once() {
+    // Declined on the splash screen (quiet up to 0 here, so not that):
+    // the first look asks; with no answer, the next look downloads.
+    let folder = fresh_folder("later");
+    let fake = Fake::new(&answer("build-12", 4), b"exe!");
+    let updater = quick(&fake, 10, &folder);
+    let found = wait_for(&updater, |f| {
+        f.iter().any(|x| matches!(x, Found::Ready { .. }))
+    });
+    assert!(
+        matches!(
+            found.as_slice(),
+            [
+                Found::Newer(_),
+                ..,
+                Found::Downloading { .. },
+                Found::Ready { .. }
+            ]
+        ),
+        "{found:?}"
+    );
+    let _ = std::fs::remove_dir_all(&folder);
+}
+
+#[test]
+fn a_skipped_build_is_never_offered_but_a_newer_one_is() {
+    let folder = fresh_folder("skip");
+    let fake = Fake::new(&answer("build-12", 4), b"exe!");
+    let updater = quick(&fake, 10, &folder);
+    updater.set_quiet(12);
+    let found = wait_for(&updater, |f| f.len() >= 3);
+    assert!(
+        found.iter().all(|f| matches!(f, Found::Skipped(12))),
+        "{found:?}"
+    );
+    assert_eq!(*fake.downloads.lock().unwrap(), 0);
+    // Build 13 comes out: offered, though 12 is skipped.
+    *fake.newest.lock().unwrap() = Some(answer("build-13", 4));
+    let found = wait_for(&updater, |f| {
+        f.iter()
+            .any(|x| matches!(x, Found::Ready { release, .. } if release.build == 13))
+    });
+    assert!(
+        found
+            .iter()
+            .any(|x| matches!(x, Found::Ready { release, .. } if release.build == 13)),
+        "{found:?}"
+    );
     let _ = std::fs::remove_dir_all(&folder);
 }
 

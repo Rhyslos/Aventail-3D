@@ -137,6 +137,7 @@ impl Workbench {
             high_contrast: &mut options.high_contrast,
             check_for_updates: &mut options.check_for_updates,
             update_status: self.updating.status.as_deref(),
+            skipped_update: &mut options.skipped_update,
             display: crate::settings::DisplayValues {
                 hide_cavity: &mut options.hide_cavity,
                 hide_hard_edges: &mut options.hide_hard_edges,

@@ -9,7 +9,7 @@ use crate::emergency::{Emergency, Snapshots};
 use crate::file_work::{AfterWork, FileJobs};
 use crate::gpu::GpuViewport;
 use crate::project;
-use crate::updates::{self, Found, PendingInstall, Updater};
+use crate::updates::{self, PendingInstall};
 use eframe::egui;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
@@ -18,6 +18,10 @@ use ui::{
     WorkbenchAction,
 };
 use words::{tr, trf};
+
+#[path = "window_updating.rs"]
+mod updating;
+use updating::{SplashUpdate, Updating};
 
 /// Key under which the panel layout is remembered between sessions.
 const LAYOUT_KEY: &str = "panel_layout";
@@ -65,119 +69,6 @@ struct App {
     /// Updates (decision 0169): looking for a newer build, and the one
     /// downloaded, if any.
     updating: Updating,
-}
-
-/// The running app's part in updates.
-#[derive(Default)]
-struct Updating {
-    /// Looking in the background, while that is wanted and possible.
-    updater: Option<Updater>,
-    /// Whether looking was wanted when last seen, to notice the setting
-    /// change.
-    wanted: Option<bool>,
-    /// The setup program downloaded for a newer build.
-    ready: Option<PathBuf>,
-    /// When the first look began, while the splash screen waits for it
-    /// (decision 0172); `None` once it is answered or given up on.
-    first_look: Option<Instant>,
-    /// A newer build being downloaded, the file it grows in and since when.
-    downloading: Option<(updates::Release, PathBuf, Instant)>,
-}
-
-/// The longest the splash screen waits for the first look's answer; the
-/// look itself gives up a little sooner (`updates::ASK_TIMEOUT_SECONDS`).
-const SPLASH_WAITS_FOR_LOOK: Duration =
-    Duration::from_secs(updates::ASK_TIMEOUT_SECONDS as u64 + 2);
-/// The longest the splash screen waits for a download: after that the app
-/// opens, and the update is offered when the download is done.
-const SPLASH_WAITS_FOR_DOWNLOAD: Duration = Duration::from_secs(60);
-
-impl Updating {
-    /// Starts or stops looking as the setting says, and hands what was
-    /// found to the workbench. Returns whether to look again soon.
-    fn update(&mut self, workbench: &mut Workbench) -> bool {
-        let wanted = workbench.checks_for_updates();
-        if self.wanted != Some(wanted) {
-            self.wanted = Some(wanted);
-            self.updater = None;
-            let exe = std::env::current_exe().unwrap_or_default();
-            let build = updates::build_number();
-            match (
-                updates::why_not(build, &exe, cfg!(windows), wanted),
-                build,
-                updates::folder(),
-            ) {
-                (Some(why), _, _) => workbench.set_update_status(why),
-                _ if self.ready.is_some() => {}
-                (None, Some(build), Some(folder)) => {
-                    self.updater = Some(Updater::start(Box::new(updates::Curl), build, folder));
-                    self.first_look = Some(Instant::now());
-                    workbench.set_update_status(tr("Looking for a new version…").to_string());
-                }
-                (None, _, None) => workbench.set_update_status(
-                    tr("There's no folder to download new versions into.").to_string(),
-                ),
-                (None, None, _) => {}
-            }
-        }
-        let Some(updater) = &self.updater else {
-            return false;
-        };
-        for found in updater.poll() {
-            if !matches!(found, Found::Downloading { .. }) {
-                self.first_look = None;
-                self.downloading = None;
-            }
-            match found {
-                Found::Downloading { release, part } => {
-                    workbench.set_update_status(trf!("Downloading build {}…", release.build));
-                    self.downloading = Some((release, part, Instant::now()));
-                }
-                Found::UpToDate(newest) => {
-                    workbench.set_update_status(trf!("Up to date: build {} is the newest.", newest))
-                }
-                Found::Failed(why) => workbench.set_update_status(trf!(
-                    "Couldn't look for a new version ({}). It tries again in a few hours.",
-                    why
-                )),
-                Found::Ready { release, installer } => {
-                    workbench.set_update_status(trf!(
-                        "Build {} is downloaded and ready to install.",
-                        release.build
-                    ));
-                    workbench.offer_update(ui::UpdateOffer {
-                        build: release.build,
-                        notes_url: release.page,
-                    });
-                    self.ready = Some(installer);
-                }
-            }
-        }
-        self.ready.is_none()
-    }
-
-    /// What the splash screen shows while it waits for the first look
-    /// (decision 0172), with how far a download has got; `None` when it
-    /// needn't wait: answered, given up on, or no looking at all.
-    fn splash_wait(&self) -> Option<(String, Option<f32>)> {
-        let began = self.first_look?;
-        if let Some((release, part, since)) = &self.downloading {
-            if since.elapsed() > SPLASH_WAITS_FOR_DOWNLOAD {
-                return None;
-            }
-            let share = updates::progress(part, release);
-            return Some((
-                trf!(
-                    "Downloading build {}… {}%",
-                    release.build,
-                    (share * 100.0).round() as u32
-                ),
-                Some(share),
-            ));
-        }
-        (began.elapsed() <= SPLASH_WAITS_FOR_LOOK)
-            .then(|| (tr("Looking for a new version…").to_string(), None))
-    }
 }
 
 /// The shortest time the splash screen shows, so a quick start doesn't
@@ -354,16 +245,16 @@ impl Starting {
         }
     }
 
-    /// What the splash screen shows while it waits for the update check,
-    /// once every step is done (decision 0172).
-    fn update_wait(&mut self) -> Option<(String, Option<f32>)> {
+    /// What the splash screen shows for updates, once every step is done
+    /// (decisions 0172 and 0173).
+    fn update_wait(&mut self) -> SplashUpdate {
         if self.next < self.steps.len() {
-            return None;
+            return SplashUpdate::Done;
         }
         if let Some(workbench) = self.workbench.as_mut() {
             self.updating.update(workbench);
         }
-        self.updating.splash_wait()
+        self.updating.splash()
     }
 
     /// The running app, once every step is done and the splash screen
@@ -371,7 +262,7 @@ impl Starting {
     fn finished(&mut self) -> Option<App> {
         if self.next < self.steps.len()
             || self.began.elapsed() < SPLASH_AT_LEAST
-            || self.update_wait().is_some()
+            || self.update_wait() != SplashUpdate::Done
         {
             return None;
         }
@@ -416,10 +307,17 @@ impl eframe::App for Shell {
             return;
         }
         let total = starting.steps.len().max(1);
-        let (doing, progress) = match starting.update_wait() {
+        let update = starting.update_wait();
+        if starting.updating.install_now() {
+            // Update now: downloaded, so the app closes and the setup
+            // program installs it and opens the app again.
+            ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
+        }
+        let (doing, progress) = match &update {
             // Waiting for the update check: a download fills the bar.
-            Some((text, share)) => (text, share.unwrap_or(1.0)),
-            None => (
+            SplashUpdate::Waiting(text, share) => (text.clone(), share.unwrap_or(1.0)),
+            SplashUpdate::Asking(release) => (trf!("Build {} is available.", release.build), 1.0),
+            SplashUpdate::Done => (
                 starting
                     .steps
                     .get(starting.next)
@@ -436,6 +334,17 @@ impl eframe::App for Shell {
                 progress,
             },
         );
+        if let SplashUpdate::Asking(release) = update
+            && let Some(answer) = ui::splash::update_question(
+                ui.ctx(),
+                release.build,
+                &release.page,
+                &mut starting.updating.skip_box,
+            )
+            && let Some(workbench) = starting.workbench.as_mut()
+        {
+            starting.updating.answer(answer, workbench);
+        }
         starting.shown = true;
         ui.ctx().request_repaint();
     }
@@ -525,6 +434,7 @@ impl App {
                 WorkbenchAction::ExportToTarget(request) => {
                     self.files.export_to_game(&mut self.workbench, request);
                 }
+                WorkbenchAction::SkipUpdate => self.updating.skipped(),
                 WorkbenchAction::InstallUpdate { now } => {
                     if let Some(installer) = self.updating.ready.clone() {
                         updates::set_pending(PendingInstall {
@@ -716,41 +626,6 @@ mod tests {
         assert_eq!(opening[3], Step::Backups);
         // The update check is last: the splash screen waits for it.
         assert_eq!(opening[4], Step::Updates);
-    }
-
-    #[test]
-    fn the_splash_waits_only_while_a_look_is_under_way() {
-        let mut updating = Updating::default();
-        assert_eq!(updating.splash_wait(), None, "no looking: no wait");
-        updating.first_look = Some(Instant::now());
-        let (text, share) = updating.splash_wait().unwrap();
-        assert_eq!(text, "Looking for a new version…");
-        assert_eq!(share, None);
-        // A look that has run past its time doesn't hold the app back.
-        updating.first_look = Instant::now().checked_sub(SPLASH_WAITS_FOR_LOOK * 2);
-        assert_eq!(updating.splash_wait(), None);
-        // A download shows how far it has got.
-        let dir = std::env::temp_dir().join(format!("splash-wait-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        let part = dir.join("setup.part");
-        std::fs::write(&part, [0u8; 25]).unwrap();
-        let release = updates::Release {
-            build: 7,
-            page: String::new(),
-            installer_url: String::new(),
-            size: 100,
-        };
-        updating.first_look = Some(Instant::now());
-        updating.downloading = Some((release.clone(), part.clone(), Instant::now()));
-        let (text, share) = updating.splash_wait().unwrap();
-        assert_eq!(text, "Downloading build 7… 25%");
-        assert_eq!(share, Some(0.25));
-        // A slow download stops holding the app back after a minute.
-        updating.downloading = Instant::now()
-            .checked_sub(SPLASH_WAITS_FOR_DOWNLOAD * 2)
-            .map(|since| (release, part, since));
-        assert_eq!(updating.splash_wait(), None);
-        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
