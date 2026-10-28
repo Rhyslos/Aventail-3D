@@ -75,6 +75,7 @@ mod v62;
 mod v63;
 mod v64;
 mod v65;
+mod v66;
 mod v7;
 mod v8;
 mod v9;
@@ -173,7 +174,10 @@ pub const SIGNATURE: [u8; 4] = *b"AVTL";
 ///
 /// Version 65 (decision 0179) is version 64 with the strokes painted on
 /// each paint layer (`v65::StrokeV65`: the brush and each dab).
-pub const FORMAT_VERSION: u32 = 65;
+///
+/// Version 66 (decision 0181) is version 65 with fill layers, groups,
+/// clipping and the blend modes beyond Normal (see `v66`).
+pub const FORMAT_VERSION: u32 = 66;
 /// Flag: the body is compressed with zstd.
 const FLAG_ZSTD: u32 = 1;
 /// The flags this version knows.
@@ -1068,3 +1072,5 @@ mod v63_tests;
 mod v64_tests;
 #[cfg(test)]
 mod v65_tests;
+#[cfg(test)]
+mod v66_tests;

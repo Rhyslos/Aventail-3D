@@ -3,43 +3,87 @@
 //! A [`Composite`] keeps the mixed image and what each of its tiles was
 //! made from, so after a change only the tiles whose layers changed are
 //! mixed again, and the views upload only those.
+//!
+//! Layers mix bottom first, each in its blend mode with its opacity
+//! ([`crate::blend`]). A layer clipped to the one below shows only where
+//! that layer (the nearest unclipped one under it) is painted. A group
+//! mixes its own layers first, then lays the result on as one layer.
 
+use crate::blend::{Blend, over};
 use crate::image::{Image, TILE_BYTES, Tile};
-use crate::set::{Blend, Content, Layer, TextureSet};
+use crate::set::{Content, Layer, TextureSet};
 use std::sync::Arc;
 
-/// What one layer gave one tile: the tile itself (kept, so the pointer
-/// stays a sound identity), and the settings it was mixed with.
+/// What one layer gave one tile: its pixels (kept, so the pointer stays a
+/// sound identity), and the settings it was mixed with.
 #[derive(Clone, PartialEq)]
 struct Input {
-    tile: Option<Tile>,
+    source: Source,
     visible: bool,
     opacity: u32,
     blend: Blend,
+    clipped: bool,
+}
+
+/// Where a layer's pixels in one tile come from.
+#[derive(Clone, PartialEq)]
+enum Source {
+    /// Painted pixels, or none.
+    Tile(Option<Tile>),
+    /// One colour everywhere.
+    Fill([u8; 4]),
+    /// A group's layers, bottom first.
+    Group(Vec<Input>),
 }
 
 impl Input {
     fn of(layer: &Layer, index: usize) -> Self {
         Self {
-            tile: match &layer.content {
-                Content::Paint(image) => image.tile(index).cloned(),
+            source: match &layer.content {
+                Content::Paint(image) => Source::Tile(image.tile(index).cloned()),
+                Content::Fill(color) => Source::Fill(*color),
+                Content::Group(layers) => {
+                    Source::Group(layers.iter().map(|l| Self::of(l, index)).collect())
+                }
             },
             visible: layer.visible,
             opacity: layer.opacity.to_bits(),
             blend: layer.blend,
+            clipped: layer.clipped,
         }
     }
 
     fn same(&self, other: &Self) -> bool {
-        let same_tile = match (&self.tile, &other.tile) {
-            (Some(a), Some(b)) => Arc::ptr_eq(a, b),
-            (None, None) => true,
+        let same_source = match (&self.source, &other.source) {
+            (Source::Tile(Some(a)), Source::Tile(Some(b))) => Arc::ptr_eq(a, b),
+            (Source::Tile(None), Source::Tile(None)) => true,
+            (Source::Fill(a), Source::Fill(b)) => a == b,
+            (Source::Group(a), Source::Group(b)) => {
+                a.len() == b.len() && a.iter().zip(b).all(|(a, b)| a.same(b))
+            }
             _ => false,
         };
-        same_tile
+        same_source
             && self.visible == other.visible
             && self.opacity == other.opacity
             && self.blend == other.blend
+            && self.clipped == other.clipped
+    }
+
+    fn opacity(&self) -> f32 {
+        f32::from_bits(self.opacity).clamp(0.0, 1.0)
+    }
+
+    /// Its pixels in the tile, mixed for a group; `None` if empty.
+    fn pixels(&self) -> Option<Tile> {
+        match &self.source {
+            Source::Tile(tile) => tile.clone(),
+            Source::Fill(color) if color[3] > 0 => Some(Arc::new(
+                color.iter().copied().cycle().take(TILE_BYTES).collect(),
+            )),
+            Source::Fill(_) => None,
+            Source::Group(inputs) => mix(inputs),
+        }
     }
 }
 
@@ -107,26 +151,59 @@ impl Composite {
     }
 }
 
+/// `layers` (bottom first) mixed into one image `size` pixels across, as
+/// the surface would show them: what Merge down keeps.
+pub fn flatten(layers: &[Layer], size: u32) -> Option<Image> {
+    let mut image = Image::new(size)?;
+    for index in 0..image.tile_count() {
+        let inputs: Vec<Input> = layers.iter().map(|l| Input::of(l, index)).collect();
+        image.set_tile(index, mix(&inputs));
+    }
+    Some(image)
+}
+
 /// Mixes one tile's layers, bottom first. `None` if nothing shows.
 fn mix(inputs: &[Input]) -> Option<Tile> {
-    let showing: Vec<&Input> = inputs
-        .iter()
-        .filter(|i| i.visible && i.tile.is_some() && f32::from_bits(i.opacity) > 0.0)
-        .collect();
-    match showing.as_slice() {
-        [] => return None,
-        // One fully opaque normal layer: its tile as it is.
-        [only] if f32::from_bits(only.opacity) >= 1.0 && only.blend == Blend::Normal => {
-            return only.tile.clone();
-        }
-        _ => {}
+    // One fully opaque normal paint layer: its tile as it is.
+    if let [only] = inputs
+        && only.visible
+        && !only.clipped
+        && only.blend == Blend::Normal
+        && only.opacity() >= 1.0
+        && let Source::Tile(tile) = &only.source
+    {
+        return tile.clone();
     }
     let mut out = vec![0u8; TILE_BYTES];
-    for input in showing {
-        let Some(tile) = &input.tile else { continue };
-        let opacity = f32::from_bits(input.opacity).clamp(0.0, 1.0);
-        for (dst, src) in out.chunks_exact_mut(4).zip(tile.chunks_exact(4)) {
-            over(dst, src, opacity, input.blend);
+    // The pixels clipped layers show through (the nearest unclipped
+    // layer below), and its opacity.
+    let mut base: Option<Tile> = None;
+    let mut base_opacity = 0.0;
+    for input in inputs {
+        let shows = input.visible && input.opacity() > 0.0;
+        if !input.clipped {
+            base = if shows { input.pixels() } else { None };
+            base_opacity = input.opacity();
+            if let Some(pixels) = &base {
+                for (dst, src) in out.chunks_exact_mut(4).zip(pixels.chunks_exact(4)) {
+                    over(dst, src, base_opacity, input.blend);
+                }
+            }
+            continue;
+        }
+        let Some(under) = base.as_ref().filter(|_| shows) else {
+            continue;
+        };
+        let Some(pixels) = input.pixels() else {
+            continue;
+        };
+        let opacity = input.opacity() * base_opacity;
+        for ((dst, src), below) in out
+            .chunks_exact_mut(4)
+            .zip(pixels.chunks_exact(4))
+            .zip(under.chunks_exact(4))
+        {
+            over(dst, src, opacity * below[3] as f32 / 255.0, input.blend);
         }
     }
     out.iter()
@@ -134,25 +211,6 @@ fn mix(inputs: &[Input]) -> Option<Tile> {
         .step_by(4)
         .any(|a| *a != 0)
         .then(|| Arc::new(out))
-}
-
-/// Mixes pixel `src` (straight alpha) onto `dst` with `opacity`.
-fn over(dst: &mut [u8], src: &[u8], opacity: f32, blend: Blend) {
-    let sa = src[3] as f32 / 255.0 * opacity;
-    if sa <= 0.0 {
-        return;
-    }
-    let da = dst[3] as f32 / 255.0;
-    let out_a = sa + da * (1.0 - sa);
-    for c in 0..3 {
-        let s = match blend {
-            Blend::Normal => src[c] as f32,
-        };
-        let d = dst[c] as f32;
-        let value = (s * sa + d * da * (1.0 - sa)) / out_a;
-        dst[c] = value.round().clamp(0.0, 255.0) as u8;
-    }
-    dst[3] = (out_a * 255.0).round().clamp(0.0, 255.0) as u8;
 }
 
 #[cfg(test)]
@@ -239,5 +297,66 @@ mod tests {
         let [r, g, b, a] = Composite::of(&set).unwrap().image().pixel(1, 1);
         assert_eq!([r, g, b], [200, 50, 10]);
         assert!(a > 128);
+    }
+
+    #[test]
+    fn a_clipped_layer_shows_only_where_the_layer_below_is_painted() {
+        let mut set = TextureSet::new(64).unwrap();
+        let mut base = Image::new(64).unwrap();
+        base.set_pixel(1, 1, [255, 255, 255, 255]);
+        set.layers.push(Layer::paint("Base", base));
+        let mut tint = Layer::fill("Tint", [255, 0, 0, 255]);
+        tint.clipped = true;
+        set.layers.push(tint);
+        let image = Composite::of(&set).unwrap().image().clone();
+        assert_eq!(image.pixel(1, 1), [255, 0, 0, 255]);
+        assert_eq!(image.pixel(5, 5)[3], 0, "nothing below there");
+        // Unclipped, the fill covers everything.
+        set.layers[1].clipped = false;
+        let image = Composite::of(&set).unwrap().image().clone();
+        assert_eq!(image.pixel(5, 5), [255, 0, 0, 255]);
+        // A hidden base hides what is clipped to it.
+        set.layers[1].clipped = true;
+        set.layers[0].visible = false;
+        assert!(Composite::of(&set).unwrap().image().is_empty());
+    }
+
+    #[test]
+    fn a_group_mixes_its_layers_then_lays_them_on_as_one() {
+        let mut set = TextureSet::new(64).unwrap();
+        set.layers
+            .push(Layer::paint("Base", filled(64, [0, 0, 0, 255])));
+        let mut group = Layer::group(
+            "Group",
+            vec![
+                Layer::fill("White", [255, 255, 255, 255]),
+                Layer::fill("Red", [255, 0, 0, 255]),
+            ],
+        );
+        group.opacity = 0.5;
+        set.layers.push(group);
+        let mut composite = Composite::of(&set).unwrap();
+        let [r, g, _, a] = composite.image().pixel(0, 0);
+        // Half of the group's red over black.
+        assert!((r as i32 - 128).abs() <= 1 && g == 0 && a == 255, "{r} {g}");
+        // Changing a layer inside the group mixes the tiles again.
+        if let Some(children) = set.layers[1].children_mut() {
+            children[1].visible = false;
+        }
+        assert_eq!(composite.update(&set).len(), 1);
+        let [r, g, ..] = composite.image().pixel(0, 0);
+        assert_eq!(r, g, "white shows through now");
+    }
+
+    #[test]
+    fn blend_modes_mix_with_what_is_under() {
+        let mut set = TextureSet::new(64).unwrap();
+        set.layers
+            .push(Layer::paint("Base", filled(64, [200, 200, 200, 255])));
+        let mut shade = Layer::fill("Shade", [128, 128, 128, 255]);
+        shade.blend = Blend::Multiply;
+        set.layers.push(shade);
+        let [r, ..] = Composite::of(&set).unwrap().image().pixel(0, 0);
+        assert!((r as i32 - 100).abs() <= 1, "{r}");
     }
 }

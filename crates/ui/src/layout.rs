@@ -9,6 +9,9 @@ use egui_dock::{DockState, Node, NodeIndex, SurfaceIndex};
 const MAIN_AREA_WIDTH: f32 = 0.75;
 /// Share of the right column given to Attributes (Objects gets the rest).
 const ATTRIBUTES_HEIGHT: f32 = 0.6;
+/// Share of the right column given to Attributes in the Paint layout
+/// (the Paint layers get the rest).
+const PAINT_ATTRIBUTES_HEIGHT: f32 = 0.5;
 /// Share of the viewport column given to the viewport (Coordinates gets the
 /// rest) until the window's real size is known; see [`fit_coordinates`].
 const VIEWPORT_HEIGHT: f32 = 0.85;
@@ -131,6 +134,54 @@ pub fn toggle_uv_editor(dock: &mut DockState<Panel>) -> bool {
     dock.main_surface_mut()
         .split_right(beside, 0.5, vec![Panel::UvEditor]);
     true
+}
+
+/// The Paint layout (decision 0181, mockup A of the texture painter's
+/// plan): the viewport and the UV Editor side by side, Coordinates under
+/// them (the brush bar's place, milestone 8), and on the right Attributes
+/// (the brush) over the Paint layers, with Objects beside them.
+///
+/// ```text
+/// ┌──────────────┬──────────────┬──────────────┐
+/// │              │              │  Attributes  │
+/// │   Viewport   │  UV Editor   ├──────────────┤
+/// │              │              │ Paint layers │
+/// ├──────────────┴──────────────┤  (Objects)   │
+/// │         Coordinates         │              │
+/// └─────────────────────────────┴──────────────┘
+/// ```
+pub fn paint_layout() -> DockState<Panel> {
+    let mut dock = DockState::new(vec![Panel::Viewport]);
+    let tree = dock.main_surface_mut();
+    let [main_area, right_column] =
+        tree.split_right(NodeIndex::root(), MAIN_AREA_WIDTH, vec![Panel::Attributes]);
+    tree.split_below(
+        right_column,
+        PAINT_ATTRIBUTES_HEIGHT,
+        vec![Panel::PaintLayers, Panel::Objects],
+    );
+    let [view, _] = tree.split_below(main_area, VIEWPORT_HEIGHT, vec![Panel::Coordinates]);
+    tree.split_right(view, 0.5, vec![Panel::UvEditor]);
+    dock
+}
+
+/// Uses a saved Paint layout if it is complete and has the UV Editor and
+/// the Paint layers, otherwise the Paint layout.
+pub fn restore_paint_layout(saved: Option<DockState<Panel>>) -> DockState<Panel> {
+    match saved {
+        Some(mut dock) if no_repeats(&dock) => {
+            add_later_panels(&mut dock);
+            if is_complete(&dock)
+                && dock.find_tab(&Panel::UvEditor).is_some()
+                && dock.find_tab(&Panel::PaintLayers).is_some()
+            {
+                dock
+            } else {
+                paint_layout()
+            }
+        }
+        _ => paint_layout(),
+    }
 }
 
 /// Uses a saved UV Edit layout if it is complete and has the UV Editor,

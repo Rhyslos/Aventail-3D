@@ -9,7 +9,7 @@
 
 use super::v1::Problem;
 use crate::limits::Bounded;
-use paint::{Blend, Image, Layer, PaintStore, TILE_BYTES, TextureSet};
+use paint::{Blend, Content, Image, Layer, PaintStore, TILE_BYTES, TextureSet};
 use scene::Document;
 use serde::de::{SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -51,6 +51,18 @@ pub(crate) struct LayerV64 {
     /// The strokes painted on it (version 65).
     #[serde(default = "Bounded::new")]
     pub(crate) strokes: Bounded<super::v65::StrokeV65>,
+    /// Whether it is clipped to the layer below (version 66).
+    #[serde(default)]
+    pub(crate) clipped: bool,
+    /// For a group, whether its layers are listed (version 66).
+    #[serde(default)]
+    pub(crate) expanded: bool,
+    /// A fill layer's colour (version 66): then `tiles` is empty.
+    #[serde(default)]
+    pub(crate) fill: Option<[u8; 4]>,
+    /// A group's layers, bottom first (version 66): then `tiles` is empty.
+    #[serde(default)]
+    pub(crate) children: Option<Bounded<LayerV64>>,
 }
 
 /// One painted tile.
@@ -155,11 +167,18 @@ fn layer_of(layer: &Layer) -> LayerV64 {
         name: layer.name.clone(),
         visible: layer.visible,
         opacity: layer.opacity,
-        blend: match layer.blend {
-            Blend::Normal => 0,
-        },
+        blend: layer.blend.index(),
         tiles,
         strokes: super::v65::strokes_of(&layer.strokes),
+        clipped: layer.clipped,
+        expanded: layer.expanded,
+        fill: match &layer.content {
+            Content::Fill(color) => Some(*color),
+            _ => None,
+        },
+        children: layer
+            .children()
+            .map(|children| children.iter().map(layer_of).collect()),
     }
 }
 
@@ -181,7 +200,48 @@ pub(crate) fn with_paint(
         }
         let mut out = TextureSet::new(set.size).ok_or_else(damaged)?;
         for layer in set.layers {
-            let mut image = Image::new(set.size).ok_or_else(damaged)?;
+            out.layers.push(layer_from(layer, set.size, 0)?);
+        }
+        if !out.is_valid() {
+            return Err(damaged());
+        }
+        paint.put(&set.material, Some(Arc::new(out)));
+    }
+    Ok(document.with_paint(paint))
+}
+
+/// A stored layer, checked: tiles out of place or twice, a fill or group
+/// with tiles, groups nested too deep, or an unknown blend mode, are
+/// refused.
+fn layer_from(layer: LayerV64, size: u32, depth: usize) -> Result<Layer, Problem> {
+    let damaged = || -> Problem { tr("its painted textures are damaged").into() };
+    let blend = Blend::from_index(layer.blend).ok_or_else(|| -> Problem {
+        tr(
+            "it uses a way of mixing paint layers this version doesn't know (made by a newer \
+             version?)",
+        )
+        .into()
+    })?;
+    let content = match (layer.fill, layer.children) {
+        (Some(_), Some(_)) => return Err(damaged()),
+        (Some(color), None) => {
+            if !layer.tiles.is_empty() {
+                return Err(damaged());
+            }
+            Content::Fill(color)
+        }
+        (None, Some(children)) => {
+            if !layer.tiles.is_empty() || depth + 1 >= paint::set::MAX_DEPTH {
+                return Err(damaged());
+            }
+            let mut out = Vec::new();
+            for child in children {
+                out.push(layer_from(child, size, depth + 1)?);
+            }
+            Content::Group(out)
+        }
+        (None, None) => {
+            let mut image = Image::new(size).ok_or_else(damaged)?;
             let mut seen = vec![false; image.tile_count()];
             for tile in layer.tiles {
                 let index = tile.index as usize;
@@ -191,29 +251,17 @@ pub(crate) fn with_paint(
                 seen[index] = true;
                 image.set_tile(index, Some(Arc::new(tile.pixels.0)));
             }
-            let blend = match layer.blend {
-                0 => Blend::Normal,
-                _ => {
-                    return Err(tr(
-                        "it uses a way of mixing paint layers this version doesn't know (made \
-                         by a newer version?)",
-                    )
-                    .into());
-                }
-            };
-            out.layers.push(Layer {
-                name: layer.name,
-                visible: layer.visible,
-                opacity: layer.opacity,
-                blend,
-                content: paint::Content::Paint(image),
-                strokes: super::v65::strokes_from(layer.strokes)?,
-            });
+            Content::Paint(image)
         }
-        if !out.is_valid() {
-            return Err(damaged());
-        }
-        paint.put(&set.material, Some(Arc::new(out)));
-    }
-    Ok(document.with_paint(paint))
+    };
+    Ok(Layer {
+        name: layer.name,
+        visible: layer.visible,
+        opacity: layer.opacity,
+        blend,
+        clipped: layer.clipped,
+        expanded: layer.expanded,
+        content,
+        strokes: super::v65::strokes_from(layer.strokes)?,
+    })
 }

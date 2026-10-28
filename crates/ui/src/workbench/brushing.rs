@@ -11,7 +11,7 @@
 //! texture: only inside the UV pieces of the texture set's material, on
 //! every shown object that uses it.
 
-use super::Workbench;
+use super::{LayoutChoice, Workbench};
 use crate::attributes::BrushSettings;
 use crate::drawing::SceneDrawing;
 use crate::palette::Mode;
@@ -21,7 +21,7 @@ use crate::viewport::{BrushEvent, Surface};
 use egui::{Key, Modifiers, Ui};
 use glam::{Mat4, Vec2, Vec3};
 use paint::{
-    BrushKind, Dab, DepthMap, Image, Layer, PaintSurface, StrokeCanvas, Target, TextureSet, View,
+    BrushKind, Dab, DepthMap, Layer, PaintSurface, StrokeCanvas, Target, TextureSet, View,
 };
 use scene::{Mesh, ObjectId};
 use std::collections::HashMap;
@@ -47,13 +47,16 @@ pub(super) struct Brushing {
     surface_before: Option<Surface>,
     /// Whether Paint mode was on last frame.
     on: bool,
+    /// The layout before Paint mode switched to the Paint one, put back
+    /// after (decision 0181).
+    layout_before: Option<super::LayoutChoice>,
 }
 
 /// A stroke under way.
 #[derive(Debug)]
 struct BrushSession {
     material: String,
-    layer: usize,
+    layer: paint::LayerPath,
     set: TextureSet,
     canvas: StrokeCanvas,
     /// Where it is painted: on the model in a 3D view, or flat in the UV
@@ -116,6 +119,11 @@ impl Workbench {
         if on && !self.brushing.on {
             self.brushing.surface_before = Some(self.viewport.options().surface);
             self.viewport.options_mut().surface = Surface::Painted;
+            // The Paint layout (decision 0181), and back after.
+            if self.layout_choice != LayoutChoice::Paint {
+                self.brushing.layout_before = Some(self.layout_choice);
+                self.swap_layout(LayoutChoice::Paint);
+            }
         }
         if !on && self.brushing.on {
             if let Some(before) = self.brushing.surface_before.take()
@@ -124,6 +132,14 @@ impl Workbench {
                 self.viewport.options_mut().surface = before;
             }
             self.brushing.session = None;
+            let before = self.brushing.layout_before.take();
+            if self.layout_choice == LayoutChoice::Paint {
+                let back = before.unwrap_or(match self.mode {
+                    Mode::Uv => LayoutChoice::UvEdit,
+                    _ => LayoutChoice::Standard,
+                });
+                self.swap_layout(back);
+            }
         }
         self.brushing.on = on;
         self.attributes.painting = on;
@@ -189,11 +205,15 @@ impl Workbench {
         let size = set
             .as_ref()
             .map_or(self.document.scene().texture().size, |s| s.size);
+        let layer = set
+            .as_ref()
+            .and_then(|s| {
+                let path = self.paint_target(&material, s)?;
+                s.layer(&path).filter(|l| l.image().is_some())
+            })
+            .map_or_else(|| tr("Paint").to_string(), |l| l.name.clone());
         crate::attributes::BrushTarget {
-            layer: set
-                .as_ref()
-                .and_then(|s| s.layers.last())
-                .map_or_else(|| tr("Paint").to_string(), |l| l.name.clone()),
+            layer,
             material,
             texel: texel_width(triangle, model, size),
             radius: Some(radius),
@@ -288,6 +308,16 @@ impl Workbench {
         }
         if self.brushing.session.is_none() && pressed(ui, Key::Escape) {
             self.mode = Mode::Model;
+        }
+    }
+
+    /// The layer the brush paints on in `set` (of `material`): the one
+    /// chosen in the Paint layers panel, or else the topmost paint layer.
+    /// `None` when neither is there (one is made on painting).
+    fn paint_target(&self, material: &str, set: &TextureSet) -> Option<paint::LayerPath> {
+        match self.paint_layers.active(material, set) {
+            Some(path) => Some(path),
+            None => set.top_paint_layer(),
         }
     }
 
@@ -487,18 +517,28 @@ impl Workbench {
                 None => return false,
             },
         };
-        if set.layers.last().and_then(Layer::image).is_none() {
-            let Some(image) = Image::new(set.size) else {
-                return false;
-            };
-            let name = set.free_name(tr("Paint"));
-            set.layers.push(Layer::paint(name, image));
-        }
-        let layer = set.layers.len() - 1;
-        let Some(image) = set.layers[layer].image().cloned() else {
+        // The chosen layer when it's a paint layer; else a new one, above
+        // the chosen layer or on top (decision 0181).
+        let target = self.paint_target(&material, &set);
+        let layer = match target.filter(|p| set.layer(p).is_some_and(|l| l.image().is_some())) {
+            Some(path) => path,
+            None => {
+                let above = self.paint_layers.active(&material, &set);
+                match set.add_paint_layer(tr("Paint"), above.as_deref()) {
+                    Some(path) => path,
+                    None => return false,
+                }
+            }
+        };
+        self.paint_layers.show_material(&material);
+        self.paint_layers.choose(&material, layer.clone());
+        let Some(image) = set.layer(&layer).and_then(Layer::image).cloned() else {
             return false;
         };
-        let strokes_before = set.layers[layer].strokes.clone();
+        let strokes_before = set
+            .layer(&layer)
+            .map(|l| l.strokes.clone())
+            .unwrap_or_default();
         let brush = self.attributes.brush.brush;
         let record = paint::StrokeRecord {
             kind: brush.kind,
@@ -557,7 +597,7 @@ impl Workbench {
         if !painted {
             return;
         }
-        if let Some(layer) = session.set.layers.get_mut(session.layer) {
+        if let Some(layer) = session.set.layer_mut(&session.layer) {
             if let Some(image) = layer.image_mut() {
                 *image = session.canvas.image().clone();
             }

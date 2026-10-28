@@ -224,14 +224,17 @@ const MIDDLE_MENUS: [&str; 4] = [
 pub struct Workbench {
     info: AppInfo,
     dock: DockState<Panel>,
-    /// The layout not in use, kept as it was left (decision 0096).
-    other_dock: DockState<Panel>,
+    /// The layouts not in use, each kept as it was left (decisions 0096
+    /// and 0181).
+    other_docks: layouts::KeptLayouts,
     /// Which layout `dock` is.
     layout_choice: LayoutChoice,
     /// The UV Editor panel (decision 0096).
     uv_editor: crate::uv_editor::UvEditor,
     /// The paint brush in Paint mode (decision 0179).
     brushing: brushing::Brushing,
+    /// The Paint layers panel (decision 0181).
+    paint_layers: crate::paint_layers::PaintLayersPanel,
     /// Whether the tool menu shows the UV ring: chosen when it opens, by
     /// whether the mouse is over the UV Editor (decision 0097).
     uv_menu: bool,
@@ -390,10 +393,11 @@ impl Workbench {
         Self {
             info,
             dock,
-            other_dock: crate::layout::uv_edit_layout(),
+            other_docks: layouts::KeptLayouts::default(),
             layout_choice: LayoutChoice::Standard,
             uv_editor: crate::uv_editor::UvEditor::default(),
             brushing: brushing::Brushing::default(),
+            paint_layers: Default::default(),
             uv_menu: false,
             uv_settings: unwrapping::UvSettings::default(),
             fit_pending,
@@ -789,6 +793,8 @@ impl Workbench {
                         layers: &mut self.layers,
                         modifier_pick: &mut modifier_pick,
                         uv_editor: &mut self.uv_editor,
+                        paint_layers: &mut self.paint_layers,
+                        note: &mut self.note,
                         mode: self.mode,
                         navigation: view_options.navigation,
                         select_keys: view_options.select_keys,
@@ -1034,6 +1040,8 @@ mod loop_cut_tests;
 #[cfg(test)]
 mod material_tests;
 mod materials;
+#[cfg(test)]
+mod paint_layers_tests;
 mod painting;
 #[cfg(test)]
 mod painting_tests;

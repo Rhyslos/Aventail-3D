@@ -15,19 +15,22 @@ pub const MAX_LAYERS: usize = 256;
 /// The most characters in a layer's name.
 pub const MAX_NAME: usize = 200;
 
-/// How a layer mixes onto the layers under it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum Blend {
-    /// Over what is under it, by its own coverage.
-    #[default]
-    Normal,
-}
+/// The deepest groups may nest.
+pub const MAX_DEPTH: usize = 8;
+
+pub use crate::blend::Blend;
 
 /// What a layer holds.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Content {
     /// Painted pixels.
     Paint(Image),
+    /// One colour over the whole texture (a fill layer), sRGB with alpha:
+    /// shaped by clipping it to the layer below (and by masks, later).
+    Fill([u8; 4]),
+    /// A group: its layers, bottom first, mixed together and then laid on
+    /// as one layer.
+    Group(Vec<Layer>),
 }
 
 /// One dab of a stroke as painted, kept to paint it again later (at
@@ -104,6 +107,11 @@ pub struct Layer {
     pub opacity: f32,
     /// How it mixes onto the layers under it.
     pub blend: Blend,
+    /// Whether it shows only where the layer below it (the nearest
+    /// unclipped one) is painted: clipped to the layer below.
+    pub clipped: bool,
+    /// For a group, whether the Paint layers panel shows its layers.
+    pub expanded: bool,
     /// What it holds.
     pub content: Content,
     /// The strokes painted on it, oldest first (decision 0179), kept to
@@ -114,12 +122,29 @@ pub struct Layer {
 impl Layer {
     /// A visible paint layer called `name` holding `image`, fully opaque.
     pub fn paint(name: impl Into<String>, image: Image) -> Self {
+        Self::holding(name, Content::Paint(image))
+    }
+
+    /// A visible fill layer called `name` of colour `color`.
+    pub fn fill(name: impl Into<String>, color: [u8; 4]) -> Self {
+        Self::holding(name, Content::Fill(color))
+    }
+
+    /// A visible, open group called `name` holding `layers` (bottom
+    /// first).
+    pub fn group(name: impl Into<String>, layers: Vec<Layer>) -> Self {
+        Self::holding(name, Content::Group(layers))
+    }
+
+    fn holding(name: impl Into<String>, content: Content) -> Self {
         Self {
             name: name.into(),
             visible: true,
             opacity: 1.0,
             blend: Blend::Normal,
-            content: Content::Paint(image),
+            clipped: false,
+            expanded: true,
+            content,
             strokes: Vec::new(),
         }
     }
@@ -128,6 +153,7 @@ impl Layer {
     pub fn image(&self) -> Option<&Image> {
         match &self.content {
             Content::Paint(image) => Some(image),
+            _ => None,
         }
     }
 
@@ -135,16 +161,50 @@ impl Layer {
     pub fn image_mut(&mut self) -> Option<&mut Image> {
         match &mut self.content {
             Content::Paint(image) => Some(image),
+            _ => None,
         }
     }
 
+    /// Its layers, for a group (bottom first).
+    pub fn children(&self) -> Option<&Vec<Layer>> {
+        match &self.content {
+            Content::Group(layers) => Some(layers),
+            _ => None,
+        }
+    }
+
+    /// Its layers to change, for a group.
+    pub fn children_mut(&mut self) -> Option<&mut Vec<Layer>> {
+        match &mut self.content {
+            Content::Group(layers) => Some(layers),
+            _ => None,
+        }
+    }
+
+    /// How many layers it is: one, and a group's layers too.
+    pub fn count(&self) -> usize {
+        1 + self
+            .children()
+            .map_or(0, |c| c.iter().map(Layer::count).sum())
+    }
+
+    /// How many levels of groups it holds (0 for a layer that isn't a
+    /// group).
+    pub fn depth(&self) -> usize {
+        self.children()
+            .map_or(0, |c| 1 + c.iter().map(Layer::depth).max().unwrap_or(0))
+    }
+
     /// Whether its numbers are real and in range and its name is
-    /// reasonable.
+    /// reasonable (its layers too, for a group).
     pub fn is_valid(&self) -> bool {
         self.opacity.is_finite()
             && (0.0..=1.0).contains(&self.opacity)
             && self.name.chars().count() <= MAX_NAME
             && self.strokes.iter().all(|s| s.is_valid())
+            && self
+                .children()
+                .is_none_or(|c| c.iter().all(Layer::is_valid))
     }
 
     /// Roughly how many bytes it takes.
@@ -158,6 +218,8 @@ impl Layer {
                 .sum::<usize>()
             + match &self.content {
                 Content::Paint(image) => image.memory_size(),
+                Content::Fill(_) => 0,
+                Content::Group(layers) => layers.iter().map(Layer::memory_size).sum(),
             }
     }
 }
@@ -181,13 +243,19 @@ impl TextureSet {
         })
     }
 
-    /// Whether it is sound: a size in range, not too many layers, each
-    /// valid and with images of the set's size.
+    /// Whether it is sound: a size in range, not too many layers or
+    /// groups too deep, each valid and with images of the set's size.
     pub fn is_valid(&self) -> bool {
+        fn sized(layer: &Layer, size: u32) -> bool {
+            layer.image().is_none_or(|i| i.size() == size)
+                && layer
+                    .children()
+                    .is_none_or(|c| c.iter().all(|l| sized(l, size)))
+        }
         crate::image::SIZES.contains(&self.size)
-            && self.layers.len() <= MAX_LAYERS
+            && self.layers.iter().map(Layer::count).sum::<usize>() <= MAX_LAYERS
             && self.layers.iter().all(|layer| {
-                layer.is_valid() && layer.image().is_none_or(|i| i.size() == self.size)
+                layer.is_valid() && layer.depth() < MAX_DEPTH && sized(layer, self.size)
             })
     }
 
@@ -198,7 +266,12 @@ impl TextureSet {
 
     /// A name for a new layer: `base`, or `base 2`, `base 3`... if taken.
     pub fn free_name(&self, base: &str) -> String {
-        let taken = |name: &str| self.layers.iter().any(|l| l.name == name);
+        let listed = self.listed(true);
+        let taken = |name: &str| {
+            listed
+                .iter()
+                .any(|(path, _)| self.layer(path).is_some_and(|l| l.name == name))
+        };
         if !taken(base) {
             return base.to_string();
         }

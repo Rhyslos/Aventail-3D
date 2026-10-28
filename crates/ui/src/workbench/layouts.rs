@@ -1,4 +1,5 @@
-//! The window's layouts: the standard one and the UV Edit one, the tabs
+//! The window's layouts: the standard one, the UV Edit one and the Paint
+//! one, the tabs
 //! that switch between them on the right of the menu bar (beside the
 //! project's name), and keeping the docked panels fitted as the window
 //! changes size.
@@ -15,13 +16,65 @@ use egui_dock::DockState;
 
 /// The layouts the tabs on the right of the menu bar switch between
 /// (decision 0096): each keeps its own arrangement.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub enum LayoutChoice {
     /// The standard arrangement.
     #[default]
     Standard,
     /// The viewport and the UV Editor side by side, in the UV mode.
     UvEdit,
+    /// The viewport and the UV Editor side by side with the Paint layers,
+    /// in Paint mode (decision 0181).
+    Paint,
+}
+
+/// Each layout's arrangement while another is in use. The slot of the
+/// layout in use holds nothing that matters: its arrangement is the
+/// workbench's `dock`.
+#[derive(Debug)]
+pub(super) struct KeptLayouts {
+    standard: DockState<Panel>,
+    uv_edit: DockState<Panel>,
+    paint: DockState<Panel>,
+}
+
+impl Default for KeptLayouts {
+    fn default() -> Self {
+        Self {
+            standard: LayoutChoice::Standard.fresh(),
+            uv_edit: LayoutChoice::UvEdit.fresh(),
+            paint: LayoutChoice::Paint.fresh(),
+        }
+    }
+}
+
+impl KeptLayouts {
+    fn get(&self, choice: LayoutChoice) -> &DockState<Panel> {
+        match choice {
+            LayoutChoice::Standard => &self.standard,
+            LayoutChoice::UvEdit => &self.uv_edit,
+            LayoutChoice::Paint => &self.paint,
+        }
+    }
+
+    fn get_mut(&mut self, choice: LayoutChoice) -> &mut DockState<Panel> {
+        match choice {
+            LayoutChoice::Standard => &mut self.standard,
+            LayoutChoice::UvEdit => &mut self.uv_edit,
+            LayoutChoice::Paint => &mut self.paint,
+        }
+    }
+}
+
+impl LayoutChoice {
+    /// The layout as first laid out.
+    fn fresh(self) -> DockState<Panel> {
+        match self {
+            Self::Standard => default_layout(),
+            Self::UvEdit => crate::layout::uv_edit_layout(),
+            Self::Paint => crate::layout::paint_layout(),
+        }
+    }
 }
 
 /// The layout tabs, left to right: a layout's name, the layout (or, for
@@ -30,7 +83,7 @@ fn layouts() -> [(
     &'static str,
     Result<LayoutChoice, &'static str>,
     &'static str,
-); 2] {
+); 3] {
     [
         (
             tr("Standard"),
@@ -42,33 +95,58 @@ fn layouts() -> [(
             Ok(LayoutChoice::UvEdit),
             tr("The viewport and the UV Editor side by side, in the UV mode"),
         ),
+        (
+            tr("Paint"),
+            Ok(LayoutChoice::Paint),
+            tr("The viewport and the UV Editor side by side with the Paint layers, in Paint mode"),
+        ),
     ]
 }
 
 impl Workbench {
+    /// Layout `choice`'s arrangement, in use or kept.
+    fn dock_of(&self, choice: LayoutChoice) -> &DockState<Panel> {
+        if choice == self.layout_choice {
+            return &self.dock;
+        }
+        self.other_docks.get(choice)
+    }
+
+    /// Gives layout `choice` the arrangement `dock`.
+    fn set_dock(&mut self, choice: LayoutChoice, dock: DockState<Panel>) {
+        if choice == self.layout_choice {
+            self.dock = dock;
+        } else {
+            *self.other_docks.get_mut(choice) = dock;
+        }
+    }
+
     /// The standard panel layout, for saving between sessions.
     pub fn layout(&self) -> &DockState<Panel> {
-        match self.layout_choice {
-            LayoutChoice::Standard => &self.dock,
-            LayoutChoice::UvEdit => &self.other_dock,
-        }
+        self.dock_of(LayoutChoice::Standard)
     }
 
     /// The UV Edit layout, for saving between sessions (decision 0096).
     pub fn uv_layout(&self) -> &DockState<Panel> {
-        match self.layout_choice {
-            LayoutChoice::Standard => &self.other_dock,
-            LayoutChoice::UvEdit => &self.dock,
-        }
+        self.dock_of(LayoutChoice::UvEdit)
+    }
+
+    /// The Paint layout, for saving between sessions (decision 0181).
+    pub fn paint_layout(&self) -> &DockState<Panel> {
+        self.dock_of(LayoutChoice::Paint)
     }
 
     /// Gives the workbench the UV Edit layout saved last session, if any.
     pub fn with_uv_layout(mut self, saved: Option<DockState<Panel>>) -> Self {
         let restored = crate::layout::restore_uv_layout(saved);
-        match self.layout_choice {
-            LayoutChoice::Standard => self.other_dock = restored,
-            LayoutChoice::UvEdit => self.dock = restored,
-        }
+        self.set_dock(LayoutChoice::UvEdit, restored);
+        self
+    }
+
+    /// Gives the workbench the Paint layout saved last session, if any.
+    pub fn with_paint_layout(mut self, saved: Option<DockState<Panel>>) -> Self {
+        let restored = crate::layout::restore_paint_layout(saved);
+        self.set_dock(LayoutChoice::Paint, restored);
         self
     }
 
@@ -79,24 +157,40 @@ impl Workbench {
 
     /// Switches to `choice`, each layout keeping its own arrangement. The
     /// UV Edit layout works in the UV mode (unless editing points, edges
-    /// or polygons); leaving it leaves the UV mode.
+    /// or polygons); leaving it leaves the UV mode. The Paint layout works
+    /// in Paint mode; leaving it leaves Paint mode.
     pub fn switch_layout(&mut self, choice: LayoutChoice) {
         if choice == self.layout_choice {
             return;
         }
-        std::mem::swap(&mut self.dock, &mut self.other_dock);
-        self.layout_choice = choice;
-        self.fit_pending = true;
+        self.swap_layout(choice);
         match choice {
-            LayoutChoice::UvEdit if matches!(self.mode, Mode::Model | Mode::Object) => {
+            LayoutChoice::UvEdit
+                if matches!(self.mode, Mode::Model | Mode::Object | Mode::Paint) =>
+            {
                 if self.tool.has_settings() {
                     self.set_tool(Tool::Select);
                 }
                 self.mode = Mode::Uv;
             }
-            LayoutChoice::Standard if self.mode == Mode::Uv => self.mode = Mode::Model,
+            LayoutChoice::Standard if matches!(self.mode, Mode::Uv | Mode::Paint) => {
+                self.mode = Mode::Model;
+            }
+            LayoutChoice::Paint => self.mode = Mode::Paint,
             _ => {}
         }
+    }
+
+    /// Lays out `choice`'s panels, kept as they were left, leaving the
+    /// mode as it is (Paint mode's own switches, decision 0181).
+    pub(super) fn swap_layout(&mut self, choice: LayoutChoice) {
+        if choice == self.layout_choice {
+            return;
+        }
+        std::mem::swap(&mut self.dock, self.other_docks.get_mut(self.layout_choice));
+        std::mem::swap(&mut self.dock, self.other_docks.get_mut(choice));
+        self.layout_choice = choice;
+        self.fit_pending = true;
     }
 
     /// Shows the UV Editor in this layout, or puts it away (Window menu).
@@ -111,10 +205,7 @@ impl Workbench {
 
     /// Puts every panel back in its standard place (View → Reset panel layout).
     pub fn reset_layout(&mut self) {
-        self.dock = match self.layout_choice {
-            LayoutChoice::Standard => default_layout(),
-            LayoutChoice::UvEdit => crate::layout::uv_edit_layout(),
-        };
+        self.dock = self.layout_choice.fresh();
         self.fit_pending = true;
         self.note = Some(tr("Panel layout reset to the standard arrangement.").into());
     }

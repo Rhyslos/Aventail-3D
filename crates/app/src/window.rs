@@ -27,6 +27,8 @@ use updating::{SplashUpdate, Updating};
 const LAYOUT_KEY: &str = "panel_layout";
 /// Key under which the UV Edit layout is remembered (decision 0096).
 const UV_LAYOUT_KEY: &str = "uv_edit_layout";
+/// Storage key for the Paint layout (decision 0181).
+const PAINT_LAYOUT_KEY: &str = "paint_layout";
 /// Key under which the viewport's display choices (such as grid detail)
 /// are remembered between sessions.
 const VIEW_KEY: &str = "view_options";
@@ -80,6 +82,7 @@ const SPLASH_AT_LEAST: Duration = Duration::from_millis(600);
 struct Remembered {
     layout: Option<DockState<Panel>>,
     uv_layout: Option<DockState<Panel>>,
+    paint_layout: Option<DockState<Panel>>,
     view: ViewOptions,
     accent: ui::theme::Accent,
     units: ui::Units,
@@ -97,6 +100,7 @@ impl Remembered {
         Self {
             layout: storage.and_then(|s| eframe::get_value(s, LAYOUT_KEY)),
             uv_layout: storage.and_then(|s| eframe::get_value(s, UV_LAYOUT_KEY)),
+            paint_layout: storage.and_then(|s| eframe::get_value(s, PAINT_LAYOUT_KEY)),
             view: storage
                 .and_then(|s| eframe::get_value(s, VIEW_KEY))
                 .unwrap_or_default(),
@@ -209,6 +213,7 @@ impl Starting {
                 let r = self.remembered.take().unwrap_or_default();
                 let mut workbench = Workbench::new(self.info.clone(), r.layout)
                     .with_uv_layout(r.uv_layout)
+                    .with_paint_layout(r.paint_layout)
                     .with_view_options(r.view)
                     .with_accent(r.accent)
                     .with_units(r.units)
@@ -488,6 +493,7 @@ impl App {
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         eframe::set_value(storage, LAYOUT_KEY, self.workbench.layout());
         eframe::set_value(storage, UV_LAYOUT_KEY, self.workbench.uv_layout());
+        eframe::set_value(storage, PAINT_LAYOUT_KEY, self.workbench.paint_layout());
         eframe::set_value(storage, VIEW_KEY, &self.workbench.view_options());
         eframe::set_value(storage, ACCENT_KEY, &self.workbench.accent());
         eframe::set_value(storage, UNITS_KEY, &self.workbench.new_project_units());
@@ -673,6 +679,8 @@ mod tests {
         assert_ne!(LAYOUT_KEY, VIEW_KEY);
         assert!(!UV_LAYOUT_KEY.contains(branding::APP_ID));
         assert_ne!(LAYOUT_KEY, UV_LAYOUT_KEY);
+        assert_ne!(PAINT_LAYOUT_KEY, UV_LAYOUT_KEY);
+        assert_ne!(PAINT_LAYOUT_KEY, LAYOUT_KEY);
         assert_ne!(VIEW_KEY, ACCENT_KEY);
         assert!(!RECENT_KEY.contains(branding::APP_ID));
         assert!(!AUTOSAVE_KEY.contains(branding::APP_ID));

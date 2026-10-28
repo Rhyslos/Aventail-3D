@@ -25,6 +25,7 @@ pub mod layout;
 mod modifier_list;
 mod modifiers;
 mod objects;
+mod paint_layers;
 mod paint_view;
 pub mod palette;
 mod panel;
