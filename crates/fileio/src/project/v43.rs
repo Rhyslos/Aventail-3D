@@ -46,6 +46,10 @@
 //! adds each modifier's id ([`ModifierV43::id`]) and the details of each
 //! object's levels of detail ([`ProjectV43::levels`], see `v63`); files
 //! before version 63 hold neither (their modifiers get ids in order).
+//!
+//! Version 64 ([decision 0177](../../../../docs/decisions/0177-texture-painter-plan.md))
+//! adds the project's texture sets ([`ProjectV43::paint`], see `v64`);
+//! files before version 64 hold none.
 
 use super::v1::Problem;
 use super::v41::ProjectV41;
@@ -78,6 +82,9 @@ pub(crate) struct ProjectV43 {
     /// version 56 didn't store.
     #[serde(default = "Bounded::new")]
     pub(crate) levels: Bounded<super::v63::LevelsV63>,
+    /// The project's texture sets (version 64), when it has any.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) paint: Option<super::v64::PaintV64>,
 }
 
 /// One object's modifiers, first to last.
@@ -507,6 +514,7 @@ impl ProjectV43 {
             lattices: super::v45::lattices_of(document),
             kit_grid: super::v61::kit_grid_of(document),
             levels: super::v63::levels_of(document),
+            paint: super::v64::paint_of(document),
         }
     }
 
@@ -522,6 +530,7 @@ impl ProjectV43 {
     pub(crate) fn into_document_noting(self, notes: &mut Vec<String>) -> Result<Document, Problem> {
         let document = self.project.into_document()?;
         let document = super::v61::with_kit_grid(document, self.kit_grid)?;
+        let document = super::v64::with_paint(document, self.paint)?;
         // The cages first: modifiers name them.
         let mut document = super::v45::with_lattices(document, self.lattices)?;
         let mut seen = std::collections::BTreeSet::new();

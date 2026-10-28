@@ -38,6 +38,9 @@ pub struct DrawItem {
     /// Its materials' colours by slot (sRGB, 0 to 1); empty while it has
     /// no materials of its own, for the standard surface colour.
     pub colors: Vec<[f32; 3]>,
+    /// The key of each material slot's texture set (decision 0177; see
+    /// [`crate::paint_view::texture_key`]), 0 where its material has none.
+    pub textures: Vec<u64>,
     /// Where its shading breaks: its own smoothing (decision 0126; an
     /// instance's is its original's).
     pub hardness: mesh::Hardness,
@@ -136,6 +139,9 @@ pub struct SceneDrawing {
     /// The project's texture size in pixels (decision 0100), for the
     /// checker's squares.
     pub texture_size: u32,
+    /// Each texture set's layers mixed (decision 0177), for the Painted
+    /// surface.
+    pub textures: Vec<crate::paint_view::PaintedTexture>,
 }
 
 /// A live mirror's plane, shown as a faint red sheet with a clearer line
@@ -326,6 +332,8 @@ pub(crate) struct DrawingCache {
     /// Each previewed object's last level drawn, to show while newer work
     /// is done.
     last_lod: std::collections::HashMap<ObjectId, Arc<Mesh>>,
+    /// Each texture set's layers mixed (decision 0177).
+    composites: crate::paint_view::Composites,
 }
 
 impl DrawingCache {
@@ -411,6 +419,20 @@ impl DrawingCache {
             } else {
                 Vec::new()
             };
+            let paint = scene.paint();
+            let textures = if paint.is_empty() {
+                Vec::new()
+            } else {
+                scene
+                    .material_list(id)
+                    .iter()
+                    .map(|m| {
+                        paint
+                            .set(&m.name)
+                            .map_or(0, |_| crate::paint_view::texture_key(&m.name))
+                    })
+                    .collect()
+            };
             let hardness = scene
                 .object(own)
                 .map_or(mesh::Hardness::Marked, |o| o.hardness);
@@ -447,6 +469,7 @@ impl DrawingCache {
                     transform: scene.shape_matrix(id),
                     selected,
                     colors: Vec::new(),
+                    textures: Vec::new(),
                     hardness,
                     outline: false,
                     curve: None,
@@ -479,6 +502,7 @@ impl DrawingCache {
                 transform: scene.shape_matrix(id),
                 selected,
                 colors,
+                textures,
                 hardness,
                 outline: cutters.contains(&id),
                 curve,
@@ -535,6 +559,7 @@ impl DrawingCache {
                 points: editing == Some(ElementKind::Points),
                 mirrors,
                 texture_size: scene.texture().size,
+                textures: self.composites.update(scene.paint()),
             }),
             all,
             selected,

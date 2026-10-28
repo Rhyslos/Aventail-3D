@@ -17,9 +17,11 @@ The single source of truth for an open project. Holds the object hierarchy (tran
 
 ## Depends on
 
-`mesh` (bounding boxes), `uv` (unwrapping, relaxing and straightening UVs, the same layer), `booleans` (union, subtract and intersect, the same layer), `mesh::curve` (curves, sweeps and lathes), `words` (the language layer: undo labels, messages and reasons go through it, [decision 0134](../../docs/decisions/0134-shared-language-crate.md)). Outside library: `glam` (maths).
+`mesh` (bounding boxes), `uv` (unwrapping, relaxing and straightening UVs, the same layer), `booleans` (union, subtract and intersect, the same layer), `paint` (texture sets, the same layer), `mesh::curve` (curves, sweeps and lathes), `words` (the language layer: undo labels, messages and reasons go through it, [decision 0134](../../docs/decisions/0134-shared-language-crate.md)). Outside library: `glam` (maths).
 
 ## Status
+
+- **Texture sets** ([decision 0178](../../docs/decisions/0178-textures-on-materials.md)): `Scene::paint` (a `paint::PaintStore`, by material name), `with_paint`, and `Command::SetTextureSet { material, set }` (one undo step, `Edit::SetTextureSet`; a set that isn't sound is refused with `SceneError::Paint`; undo memory counts only tiles one side has, `memory::paint_change`). Tests in `paint_tests.rs`.
 
 The object tree, commands and undo ([decision 0018](../../docs/decisions/0018-scene-document-and-undo.md)):
 

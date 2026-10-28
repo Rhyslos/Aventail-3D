@@ -207,6 +207,7 @@ dependencies = [
  "fileio",
  "glam",
  "mesh",
+ "paint",
  "raw-window-handle",
  "render",
  "rfd",
@@ -1297,7 +1298,9 @@ dependencies = [
  "bevy_mikktspace",
  "ciborium",
  "glam",
+ "image",
  "mesh",
+ "paint",
  "postcard",
  "scene",
  "serde",
@@ -1788,6 +1791,8 @@ dependencies = [
  "num-traits",
  "png",
  "tiff",
+ "zune-core",
+ "zune-jpeg",
 ]
 
 [[package]]
@@ -2597,6 +2602,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "paint"
+version = "0.0.1"
+dependencies = [
+ "glam",
+ "mesh",
+ "words",
+]
+
+[[package]]
 name = "parking"
 version = "2.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3120,6 +3134,7 @@ dependencies = [
  "booleans",
  "glam",
  "mesh",
+ "paint",
  "uv",
  "words",
 ]
@@ -3699,6 +3714,7 @@ dependencies = [
  "fileio",
  "glam",
  "mesh",
+ "paint",
  "ron",
  "scene",
  "serde",

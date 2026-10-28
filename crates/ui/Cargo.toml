@@ -19,6 +19,8 @@ layer = 3
 tools.workspace = true
 # The scene document: objects, commands and undo.
 scene.workspace = true
+# Texture sets, their layers and mixing them (decision 0177).
+paint.workspace = true
 # What exports and imports take and give (layer 2); the app does the
 # writing and reading.
 fileio.workspace = true

@@ -223,6 +223,10 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Stretch budget** — How much stretching a piece may have once laid flat (1.5× means nearly all of it within one and a half times of perfect). Pieces over budget get cut further. See [Seam preferences and stretch budgets](seam-preferences.md).
 
+**Texture set** — The textures one material is painted with, made of **paint layers** mixed bottom first, like layers in a paint program. It goes by the material's name: materials with the same name share one. See [Painting textures](painting-textures.md).
+
+**Paint layer** — One layer of a texture set: pixels painted (or a picture brought in), mixed over the layers under it where painted, letting them show through elsewhere. See [Painting textures](painting-textures.md).
+
 **Overlapping pieces** — UV pieces lying over each other in one texture, so they share pixels: paint and bakes on one show on the other. The UV Editor tints them red. See [Seeing and checking UVs](seeing-and-checking.md).
 
 **Layout snapshot** — A named copy of the UV layout (every polygon's UVs and the seams) kept in the project, to put back in one step or see faintly under the current one. See [Layout snapshots](layout-snapshots.md).

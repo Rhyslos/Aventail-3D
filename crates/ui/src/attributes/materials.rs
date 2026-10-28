@@ -35,6 +35,10 @@ const NEW_COLOURS: [[f32; 3]; 8] = [
     [0.55, 0.45, 0.35],
 ];
 
+/// The button importing an image as a paint layer on a material's
+/// texture set (decision 0177).
+pub(crate) const IMAGE_BUTTON: &str = crate::text!("Image…");
+
 /// The Materials section's own state.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct MaterialsState {
@@ -123,7 +127,7 @@ impl AttributesPanel {
         let selected = self.polygons_selected.unwrap_or(0);
         let mut changed: Option<(Vec<Material>, bool)> = None;
         egui::Grid::new("attributes_materials")
-            .num_columns(4)
+            .num_columns(5)
             .spacing(vec2(8.0, 6.0))
             .show(ui, |ui| {
                 for (slot, material) in list.iter().enumerate() {
@@ -230,6 +234,27 @@ impl AttributesPanel {
                     });
                     if assign.clicked() {
                         self.assign = Some(slot as u32);
+                    }
+                    // An image as a paint layer on its texture set
+                    // (decision 0177).
+                    let image = ui
+                        .add(egui::Button::new(tr(IMAGE_BUTTON)).small())
+                        .on_hover_text(crate::trf!(
+                            "Import a picture (PNG, JPEG, TGA or BMP) as a paint layer on \
+                             {}'s textures, stretched to the texture size. See it with \
+                             Display → Surface → Painted.",
+                            material.name
+                        ));
+                    let name = material.name.clone();
+                    image.widget_info(|| {
+                        egui::WidgetInfo::labeled(
+                            egui::WidgetType::Button,
+                            true,
+                            crate::trf!("Import an image onto {}", name),
+                        )
+                    });
+                    if image.clicked() {
+                        self.import_image = Some(material.name.clone());
                     }
                     ui.end_row();
                 }

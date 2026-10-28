@@ -58,6 +58,7 @@ An [instance](copies-and-instances.md) uses its original's materials; change the
 | **Name** | What Substance Painter and the engine call it. In an OBJ file, spaces become underscores (*Rusty metal* goes out as *Rusty_metal*). |
 | **Polygon count** | How many of the object's polygons use it. (Not counted on shapes of over 50,000 polygons.) |
 | **Assign** | Gives the selected polygons this material. Needs the Polygons mode and some selected polygons. |
+| **Image…** | Imports a picture as a paint layer on the material's texture set, shown with Display → Surface → Painted. See [Painting textures](painting-textures.md). |
 | **Add material** | Adds a material, up to 64 per object. |
 | **Remove last** | Removes the last material, if no polygon uses it. |
 

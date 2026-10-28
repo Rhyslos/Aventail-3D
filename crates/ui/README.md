@@ -16,9 +16,11 @@ Draws everything around and on top of the viewports with egui and egui_dock: men
 
 ## Depends on
 
-`tools` (the camera), `scene` (the document), `mesh` (primitive setting limits; `config` planned), `words` (the language layer, re-exported as `text`). Outside libraries: `glam` (maths), `egui` and `egui_dock` (interface and docking), `serde` (saving the layout).
+`tools` (the camera), `scene` (the document), `paint` (texture sets and mixing them), `mesh` (primitive setting limits; `config` planned), `words` (the language layer, re-exported as `text`). Outside libraries: `glam` (maths), `egui` and `egui_dock` (interface and docking), `serde` (saving the layout).
 
 ## Status
+
+- **Painting** ([decision 0178](../../docs/decisions/0178-textures-on-materials.md)): `paint_view` (`texture_key`: a steady key per material name; `Composites`: each texture set mixed, updated tile by tile; `PaintedTexture`), `DrawItem::textures` and `SceneDrawing::textures`; `Surface::Painted` in Display → Surface; the UV Editor shows the painted texture behind the UVs (`uv_editor/painted.rs`, egui texture updated with `set_partial`); Attributes → Materials → **Image…** (`Attributes::import_image`) → `WorkbenchAction::ImportPaintImage` → `Workbench::import_paint_image` (`workbench/painting.rs`). Tests in `workbench/painting_tests.rs`.
 
 The window's layout is in place:
 

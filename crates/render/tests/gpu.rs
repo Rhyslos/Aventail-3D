@@ -1006,6 +1006,60 @@ fn the_checker_and_stretch_views_colour_the_surface_by_its_uvs() {
     renderer.set_grid_image(&gpu.device, &gpu.queue, 64, &green[..100]);
 }
 
+#[test]
+fn painted_surfaces_show_each_slots_texture_over_its_colour() {
+    let Some(gpu) = gpu() else { return };
+    let (mut renderer, target) = setup(&gpu, [320, 200]);
+    with_object_cube(&gpu, &mut renderer);
+    let camera = Camera::default();
+    let a = Vec3::new(-25.0, -50.0, 40.0);
+    let painted = |key: u64| {
+        let mut textures = [0u64; render::PALETTE_SIZE];
+        textures[0] = key;
+        render::MeshDraw {
+            surface: render::SurfaceDraw::Painted { textures },
+            ..place(glam::Mat4::IDENTITY)
+        }
+    };
+    // No texture for its slot: its own grey, as Plain.
+    renderer.set_draws(&gpu.device, &gpu.queue, &[painted(0)]);
+    let bare = render(&gpu, &renderer, &target, camera, NO_GRID).at(a);
+    assert!(
+        (bare[0] as i32 - bare[2] as i32).abs() < 20,
+        "grey: {bare:?}"
+    );
+    // A red texture for slot 0.
+    let red: Vec<u8> = (0..64 * 64).flat_map(|_| [230u8, 30, 20, 255]).collect();
+    renderer.set_paint_texture(&gpu.device, &gpu.queue, 7, 64, &red);
+    renderer.set_draws(&gpu.device, &gpu.queue, &[painted(7)]);
+    let shown = render(&gpu, &renderer, &target, camera, NO_GRID).at(a);
+    assert!(shown[0] > shown[1] + 60, "red: {shown:?}");
+    // Painted over with green: only the area given is written, here all.
+    let green: Vec<u8> = (0..64 * 64).flat_map(|_| [30u8, 220, 40, 255]).collect();
+    renderer.update_paint_texture(&gpu.queue, 7, 0, 0, 64, 64, &green);
+    let shown = render(&gpu, &renderer, &target, camera, NO_GRID).at(a);
+    assert!(shown[1] > shown[0] + 60, "green: {shown:?}");
+    // See-through paint leaves the colour under it.
+    let clear = vec![0u8; 64 * 64 * 4];
+    renderer.update_paint_texture(&gpu.queue, 7, 0, 0, 64, 64, &clear);
+    let shown = render(&gpu, &renderer, &target, camera, NO_GRID).at(a);
+    assert!(
+        (shown[0] as i32 - bare[0] as i32).abs() < 10,
+        "{shown:?} {bare:?}"
+    );
+    // Areas that don't fit are ignored, and keys forgotten.
+    renderer.update_paint_texture(&gpu.queue, 7, 60, 60, 10, 10, &green[..400]);
+    assert_eq!(renderer.paint_texture_keys(), vec![7]);
+    renderer.remove_paint_texture(7);
+    assert!(renderer.paint_texture_keys().is_empty());
+    // A buffer grown for more draws keeps painted slots drawable.
+    renderer.set_paint_texture(&gpu.device, &gpu.queue, 7, 64, &red);
+    let many: Vec<_> = (0..40).map(|_| painted(7)).collect();
+    renderer.set_draws(&gpu.device, &gpu.queue, &many);
+    let shown = render(&gpu, &renderer, &target, camera, NO_GRID).at(a);
+    assert!(shown[0] > shown[1] + 60, "red again: {shown:?}");
+}
+
 /// The improved bevel's rounded corners (decision 0141), drawn: a cube
 /// with every edge rounded, seen from above one corner. The corner patch
 /// is lit like the strips beside it, with no holes or dark folds. With

@@ -168,6 +168,16 @@ pub enum WorkbenchAction {
         /// Which file, if already known.
         path: Option<PathBuf>,
     },
+    /// Import the image at `path` (or ask which first, when `None`) as a
+    /// paint layer on the texture set of the material `material`
+    /// (decision 0177). Report back with [`Workbench::import_paint_image`]
+    /// or [`Workbench::import_failed`].
+    ImportPaintImage {
+        /// The material whose texture set gets the layer.
+        material: String,
+        /// Which image file, if already known.
+        path: Option<PathBuf>,
+    },
     /// Delete the backups `folder` left by a crash.
     DiscardBackups {
         /// The leftover backups.
@@ -826,6 +836,12 @@ impl Workbench {
         if let Some(slot) = self.attributes.assign.take() {
             self.assign_material(slot);
         }
+        if let Some(material) = self.attributes.import_image.take() {
+            actions.push(WorkbenchAction::ImportPaintImage {
+                material,
+                path: None,
+            });
+        }
         if std::mem::take(&mut self.attributes.show_levels) {
             crate::layout::show_levels(&mut self.dock);
         }
@@ -1007,6 +1023,9 @@ mod loop_cut_tests;
 #[cfg(test)]
 mod material_tests;
 mod materials;
+mod painting;
+#[cfg(test)]
+mod painting_tests;
 #[cfg(test)]
 mod palette_label_tests;
 #[cfg(test)]

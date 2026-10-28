@@ -44,6 +44,7 @@ pub(crate) mod explain;
 pub(crate) mod gizmo;
 mod menus;
 mod navigation;
+mod painted;
 mod painting;
 mod picking;
 mod shape;
@@ -95,6 +96,8 @@ pub(crate) struct UvEditor {
     /// The numbered checker image shown behind the UVs, and the colours
     /// it was made in (decision 0107).
     grid: Option<([[u8; 3]; 2], GridTexture)>,
+    /// The painted texture shown behind the UVs (decision 0177).
+    painted: Option<painted::PaintedShown>,
     /// The layout snapshot drawn faintly under the UVs, by name
     /// (decision 0114).
     compare: Option<String>,
@@ -131,6 +134,7 @@ impl Default for UvEditor {
             sessions: 0,
             under_mouse: None,
             grid: None,
+            painted: None,
             compare: None,
             note: None,
             numbers: false,
@@ -161,6 +165,9 @@ pub(crate) struct UvContext<'a> {
     /// The numbered checker's colours while the viewport shows it
     /// (decision 0107): the editor shows it behind the UVs.
     pub(crate) grid: Option<[[u8; 3]; 2]>,
+    /// The painted textures while the viewport shows the Painted surface
+    /// (decision 0177): the editor shows its shape's behind the UVs.
+    pub(crate) painted: Option<&'a [crate::paint_view::PaintedTexture]>,
     /// How pieces are grouped onto textures, for the overlap warnings.
     pub(crate) texture_groups: checking::TextureGroups,
     /// What explaining choices needs (decision 0116).
@@ -286,8 +293,14 @@ impl UvEditor {
         };
         let painter = ui.painter_at(rect);
         painter.rect_filled(rect, 0.0, theme::UV_BACKGROUND);
-        let grid = cx.grid.map(|colors| self.grid_texture(ui.ctx(), colors));
-        self.paint_square(&painter, rect, doc.scene().texture().size, grid);
+        let (image, dim) = match cx.painted {
+            Some(textures) => (self.painted_texture(ui.ctx(), doc, textures), false),
+            None => (
+                cx.grid.map(|colors| self.grid_texture(ui.ctx(), colors)),
+                true,
+            ),
+        };
+        self.paint_square(&painter, rect, doc.scene().texture().size, image, dim);
         self.paint_trim(&painter, rect, doc.scene().trim());
         self.paint_compared(&painter, rect, doc);
         let accent = theme::accent(ui.ctx()).colors();

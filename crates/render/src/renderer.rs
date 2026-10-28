@@ -119,6 +119,8 @@ struct GpuMesh {
     vertex_count: u32,
     edge_length: f32,
     triangles: Option<GpuIndices>,
+    /// Each material slot's part of `triangles` (decision 0177).
+    slot_ranges: Vec<(u32, Range<u32>)>,
     edges: Option<GpuIndices>,
 }
 
@@ -198,6 +200,8 @@ pub struct ViewportRenderer {
     object_stride: u64,
     meshes: HashMap<u64, GpuMesh>,
     placements: Option<Placements>,
+    /// The painted textures (decision 0177).
+    paint: crate::paint_textures::PaintTextures,
     /// Whether objects' faces are drawn (off for a wireframe look, where
     /// only their edges show, so every edge can be seen through the shape).
     show_faces: bool,
@@ -359,6 +363,7 @@ impl ViewportRenderer {
             object_stride,
             meshes: HashMap::new(),
             placements: None,
+            paint: crate::paint_textures::PaintTextures::new(device, None),
             show_faces: true,
             show_cavity: false,
         };
@@ -392,6 +397,7 @@ impl ViewportRenderer {
                 vertex_count: u32::try_from(geometry.vertices.len()).unwrap_or(u32::MAX),
                 edge_length: geometry.edge_length,
                 triangles: GpuIndices::new(device, "object triangles", &geometry.triangles),
+                slot_ranges: geometry.slot_ranges.clone(),
                 edges: GpuIndices::new(device, "object edges", &geometry.edges),
             },
         );
@@ -443,28 +449,13 @@ impl ViewportRenderer {
         device: &wgpu::Device,
         buffer: &wgpu::Buffer,
     ) -> wgpu::BindGroup {
-        device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("object placements"),
-            layout: &self.object_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                        buffer,
-                        offset: 0,
-                        size: wgpu::BufferSize::new(std::mem::size_of::<ObjectUniforms>() as u64),
-                    }),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::TextureView(&self.grid_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: wgpu::BindingResource::Sampler(&self.grid_sampler),
-                },
-            ],
-        })
+        object_bind_group(
+            device,
+            &self.object_layout,
+            buffer,
+            &self.grid_view,
+            &self.grid_sampler,
+        )
     }
 
     /// The numbered checker image (decision 0107): `size` pixels square,
@@ -507,6 +498,7 @@ impl ViewportRenderer {
                 capacity,
                 draws: Vec::new(),
             });
+            self.bind_paint(device, true);
         }
         let Some(placements) = self.placements.as_mut() else {
             return;
@@ -546,7 +538,69 @@ impl ViewportRenderer {
 
     /// Draws every placed object mesh with `part`.
     fn draw_meshes(&self, pass: &mut wgpu::RenderPass<'_>, part: MeshPart) {
-        draw_meshes(&self.meshes, self.placements.as_ref(), pass, part);
+        draw_meshes(
+            &self.meshes,
+            self.placements.as_ref(),
+            Some(&self.paint),
+            pass,
+            part,
+        );
+    }
+
+    /// Sets painted texture `key` (decision 0177) to `rgba`: `size`
+    /// pixels square, four bytes a pixel (sRGB), its first row the top of
+    /// the texture square. Draws whose surface is
+    /// [`crate::SurfaceDraw::Painted`] name it by `key` (not 0).
+    pub fn set_paint_texture(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        key: u64,
+        size: u32,
+        rgba: &[u8],
+    ) {
+        self.paint.set(device, queue, key, size, rgba);
+        self.bind_paint(device, false);
+    }
+
+    /// Replaces an area of painted texture `key`: from column `x`, row
+    /// `y`, `width` × `height` pixels of `rgba`. Ignored if it doesn't
+    /// fit.
+    #[allow(clippy::too_many_arguments)]
+    pub fn update_paint_texture(
+        &mut self,
+        queue: &wgpu::Queue,
+        key: u64,
+        x: u32,
+        y: u32,
+        width: u32,
+        height: u32,
+        rgba: &[u8],
+    ) {
+        self.paint.update(queue, key, x, y, width, height, rgba);
+    }
+
+    /// Forgets painted texture `key`.
+    pub fn remove_paint_texture(&mut self, key: u64) {
+        self.paint.remove(key);
+    }
+
+    /// The painted textures uploaded, by key.
+    pub fn paint_texture_keys(&self) -> Vec<u64> {
+        self.paint.keys()
+    }
+
+    /// Makes the painted textures' bind groups with the placements
+    /// buffer (all of them again with `again`).
+    fn bind_paint(&mut self, device: &wgpu::Device, again: bool) {
+        let Some(placements) = &self.placements else {
+            return;
+        };
+        let (layout, sampler, buffer) =
+            (&self.object_layout, &self.grid_sampler, &placements.buffer);
+        self.paint.bind(again, |view| {
+            object_bind_group(device, layout, buffer, view, sampler)
+        });
     }
 
     /// Replaces the overlay drawn over the shape (the Points, Edges and
@@ -576,7 +630,7 @@ impl ViewportRenderer {
         );
         let meshes = |pass: &mut wgpu::RenderPass<'_>| {
             pass.set_pipeline(pipeline);
-            draw_meshes(all, placements, pass, MeshPart::Faces);
+            draw_meshes(all, placements, None, pass, MeshPart::Faces);
         };
         self.picker
             .request(device, queue, &self.pick_pipeline, faces, &meshes, request)
@@ -874,10 +928,44 @@ impl ViewportRenderer {
     }
 }
 
+/// A bind group of the objects' placements in `buffer` with the texture
+/// `view`, read through `sampler`.
+fn object_bind_group(
+    device: &wgpu::Device,
+    layout: &wgpu::BindGroupLayout,
+    buffer: &wgpu::Buffer,
+    view: &wgpu::TextureView,
+    sampler: &wgpu::Sampler,
+) -> wgpu::BindGroup {
+    device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("object placements"),
+        layout,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                    buffer,
+                    offset: 0,
+                    size: wgpu::BufferSize::new(std::mem::size_of::<ObjectUniforms>() as u64),
+                }),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: wgpu::BindingResource::TextureView(view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 2,
+                resource: wgpu::BindingResource::Sampler(sampler),
+            },
+        ],
+    })
+}
+
 /// Draws every placed object mesh with `part`.
 fn draw_meshes(
     meshes: &HashMap<u64, GpuMesh>,
     placements: Option<&Placements>,
+    paint: Option<&crate::paint_textures::PaintTextures>,
     pass: &mut wgpu::RenderPass<'_>,
     part: MeshPart,
 ) {
@@ -894,7 +982,22 @@ fn draw_meshes(
                 if let Some(triangles) = mesh.triangles.as_ref().filter(|_| draw.faces) {
                     pass.set_vertex_buffer(0, mesh.vertices.slice(..));
                     pass.set_index_buffer(triangles.buffer.slice(..), wgpu::IndexFormat::Uint32);
-                    pass.draw_indexed(0..triangles.count, 0, 0..1);
+                    match (draw.surface, paint) {
+                        // Each slot's part with its own texture (decision
+                        // 0177).
+                        (crate::SurfaceDraw::Painted { textures }, Some(paint))
+                            if !mesh.slot_ranges.is_empty() =>
+                        {
+                            for (slot, range) in &mesh.slot_ranges {
+                                let key = textures.get(*slot as usize).copied().unwrap_or(0);
+                                if let Some(group) = paint.group(key) {
+                                    pass.set_bind_group(1, group, &[*offset]);
+                                }
+                                pass.draw_indexed(range.clone(), 0, 0..1);
+                            }
+                        }
+                        _ => pass.draw_indexed(0..triangles.count, 0, 0..1),
+                    }
                 }
             }
             MeshPart::Edges => {

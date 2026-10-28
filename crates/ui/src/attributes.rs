@@ -120,6 +120,10 @@ pub(crate) struct AttributesPanel {
     /// The material slot whose Assign button was clicked, for the
     /// workbench to give the selected polygons (decision 0074).
     pub(crate) assign: Option<u32>,
+    /// The material whose Image… button was clicked, for the workbench
+    /// to import an image as a paint layer on its texture set (decision
+    /// 0177).
+    pub(crate) import_image: Option<String>,
     /// The selected edges' creases and bevel weights, in the Edges mode
     /// (set by the workbench each frame); `None` in other modes
     /// (decisions 0143 and 0149).
