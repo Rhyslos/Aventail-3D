@@ -748,6 +748,10 @@ impl Workbench {
         // What explaining choices in the UV Editor needs (decision 0116).
         let explain_suggest = self.suggest_options();
         let style = theme::dock_style(ui.style().as_ref(), self.accent);
+        // No modifiers palette in the UV mode: nothing on it works on UVs
+        // (decision 0176).
+        let palette_host =
+            (self.mode != Mode::Uv).then(|| crate::layout::modifiers_palette_host(&self.dock));
         theme::dock_frame().show(ui, |ui| {
             DockArea::new(&mut self.dock)
                 .style(style)
@@ -790,6 +794,7 @@ impl Workbench {
                         coordinates_done: &mut coordinates_done,
                         uv_menu_button: &mut uv_menu_button,
                         uv_settings: &mut self.uv_settings,
+                        palette_host,
                     },
                 );
         });
@@ -1004,6 +1009,8 @@ mod material_tests;
 mod materials;
 #[cfg(test)]
 mod palette_label_tests;
+#[cfg(test)]
+mod palette_place_tests;
 #[cfg(test)]
 mod reference_images;
 #[cfg(test)]

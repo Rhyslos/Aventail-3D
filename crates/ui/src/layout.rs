@@ -77,6 +77,46 @@ pub fn uv_edit_layout() -> DockState<Panel> {
     dock
 }
 
+/// The view panel that carries the modifiers palette ([decision
+/// 0176](../../../docs/decisions/0176-modifiers-palette-beside-attributes.md)):
+/// the one whose right edge is nearest the Attributes panel, so the
+/// palette always sits beside Attributes and never between two views.
+/// That is the viewport in the standard layout and the UV Editor in UV
+/// Edit, or wherever the person has dragged them. Before the panels have
+/// been laid out once, the UV Editor when it is showing.
+pub fn modifiers_palette_host(dock: &DockState<Panel>) -> Panel {
+    let surface = dock.main_surface();
+    // A panel's place, if it is the tab showing in its group (or, with
+    // `any_tab`, whichever tab of its group is showing).
+    let place = |panel: Panel, any_tab: bool| {
+        let (node, tab) = dock.find_main_surface_tab(&panel)?;
+        let leaf = surface.leaf(node).ok()?;
+        (any_tab || leaf.active == tab).then_some(leaf.rect)
+    };
+    let Some(uv_editor) = place(Panel::UvEditor, false) else {
+        return Panel::Viewport;
+    };
+    let viewport = place(Panel::Viewport, false);
+    // Levels or UV settings may be in front of Attributes: its group is
+    // where it is all the same.
+    let attributes = place(Panel::Attributes, true);
+    match (viewport, attributes) {
+        (Some(viewport), Some(attributes))
+            if [viewport, uv_editor, attributes]
+                .iter()
+                .all(|r| r.is_finite()) =>
+        {
+            let gap = |r: egui::Rect| (attributes.left() - r.right()).abs();
+            if gap(viewport) < gap(uv_editor) {
+                Panel::Viewport
+            } else {
+                Panel::UvEditor
+            }
+        }
+        _ => Panel::UvEditor,
+    }
+}
+
 /// Shows the UV Editor beside the viewport, or puts it away. Returns
 /// whether it is shown now.
 pub fn toggle_uv_editor(dock: &mut DockState<Panel>) -> bool {
@@ -372,6 +412,52 @@ mod tests {
             egui::vec2(1000.0, COORDINATES_HEIGHT + MIN_PANEL_SIZE - 1.0),
         );
         assert!(!fit_coordinates(&mut dock));
+    }
+
+    /// Gives the leaf holding `panel` the place `rect`, as a frame would.
+    fn place(dock: &mut DockState<Panel>, panel: Panel, rect: egui::Rect) {
+        let (node, _) = dock.find_main_surface_tab(&panel).unwrap();
+        if let Node::Leaf(leaf) = &mut dock.main_surface_mut()[node] {
+            leaf.rect = rect;
+        }
+    }
+
+    fn columns(left: f32, right: f32) -> egui::Rect {
+        egui::Rect::from_min_max(egui::pos2(left, 0.0), egui::pos2(right, 600.0))
+    }
+
+    #[test]
+    fn the_modifiers_palette_sits_beside_attributes() {
+        // Standard: no UV Editor, so the viewport carries it.
+        assert_eq!(modifiers_palette_host(&default_layout()), Panel::Viewport);
+        // UV Edit, before the first frame: the UV Editor, which is the view
+        // beside Attributes there.
+        let mut dock = uv_edit_layout();
+        assert_eq!(modifiers_palette_host(&dock), Panel::UvEditor);
+        // Laid out: viewport, UV Editor, then Attributes.
+        place(&mut dock, Panel::Viewport, columns(0.0, 400.0));
+        place(&mut dock, Panel::UvEditor, columns(400.0, 800.0));
+        place(&mut dock, Panel::Attributes, columns(800.0, 1000.0));
+        assert_eq!(modifiers_palette_host(&dock), Panel::UvEditor);
+        // The person dragged the UV Editor to the left of the viewport: the
+        // viewport is now beside Attributes and carries it.
+        place(&mut dock, Panel::UvEditor, columns(0.0, 400.0));
+        place(&mut dock, Panel::Viewport, columns(400.0, 800.0));
+        assert_eq!(modifiers_palette_host(&dock), Panel::Viewport);
+    }
+
+    #[test]
+    fn a_hidden_uv_editor_leaves_the_palette_on_the_viewport() {
+        // The UV Editor as a tab behind the viewport: not showing.
+        let mut dock = DockState::new(vec![Panel::Viewport, Panel::UvEditor]);
+        assert_eq!(modifiers_palette_host(&dock), Panel::Viewport);
+        // In front instead: the viewport is hidden, so the UV Editor
+        // carries the palette.
+        let (node, tab) = dock.find_main_surface_tab(&Panel::UvEditor).unwrap();
+        if let Node::Leaf(leaf) = &mut dock.main_surface_mut()[node] {
+            leaf.active = tab;
+        }
+        assert_eq!(modifiers_palette_host(&dock), Panel::UvEditor);
     }
 
     #[test]
