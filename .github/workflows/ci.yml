@@ -199,7 +199,21 @@ jobs:
         with:
           persist-credentials: false
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
-      - run: cargo build --release --locked -p app
+      # A failed build's errors are also shown as annotations on the pull
+      # request, so they can be read without opening the log.
+      - name: cargo build
+        shell: bash
+        run: |
+          set -o pipefail
+          if ! cargo build --release --locked -p app 2>&1 | tee build-output.txt; then
+            grep -E -A12 "^(error|warning)" build-output.txt | head -n 80 > errors.txt || true
+            msg="$(cat errors.txt)"
+            msg="${msg//'%'/'%25'}"
+            msg="${msg//$'\r'/'%0D'}"
+            msg="${msg//$'\n'/'%0A'}"
+            echo "::error title=Build failed on ${{ runner.os }}::${msg}"
+            exit 1
+          fi
       # Put the program and its license files side by side in one flat folder,
       # so the downloaded zip opens straight to the program.
       - name: Package
