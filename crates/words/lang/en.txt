@@ -89,6 +89,7 @@ A checker laid on by the UVs: where the squares stay square and even, a texture 
 A checker of labelled cells laid on by the UVs, A1 at the top left of the texture to H8 at the bottom right, in colours from the app's accent: see at once which part of the texture each part of the shape uses, and which way round it lies (the labels turn and mirror with it). The UV Editor shows it behind the UVs too.
 A closed curve has no ends to join: open it or split it first
 A closed curve needs at least three points
+A colour for each material slot
 A cone 1 m across and 1 m tall
 A copy of the chosen layer just above it
 A curve climbing 1 m in three turns, like a spring
@@ -282,9 +283,14 @@ Bake into shape
 Bake into shape up to here
 Bake into shape up to {}
 Bake into shape, split off, join, apply transforms and edit layers
+Bake maps
 Bake the shape's settings and every edit up to this one into the shape: the shape stays the same, big models stay quick, and those edits can't be changed any more
 Bake the shape's settings and the {} up to and including this one into the shape, so they no longer have to be made again: big models stay quick. The shape doesn't change, but those edits can't be changed any more.
 Bake {} into shape
+Baked at {} px.
+Baked the maps: they're in the Paint layers panel under Bakes.
+Bakes
+Baking {} of {} maps…
 Basic
 Beauty
 Before
@@ -533,6 +539,7 @@ Corner radius
 Corners rounded: radius {} (cut back where it doesn't fit). Change the radius under Round corners in the Attributes panel. Ctrl + Z takes it back.
 Couldn't add the game bevel: {}.
 Couldn't apply the mirror: {}.
+Couldn't bake the maps.
 Couldn't change the game project folder: {}.
 Couldn't change the layers: {}.
 Couldn't change the mirror: {}.
@@ -608,6 +615,7 @@ Ctrl adds, Alt removes
 Ctrl adds, Shift removes
 Ctrl flips
 Cube
+Curvature
 Curve
 Curve as a line only
 Curve carried on by {} point{}{}. Ctrl + Z takes it back.
@@ -707,6 +715,7 @@ Double-click its line (Points mode)
 Down
 Downloading build {}…
 Downloading build {}… {}%
+Draft
 Drag
 Drag a point (or a polygon, in the Polygons mode) onto a point; a selected one brings the whole selection.
 Drag anywhere in the viewport. Hold Shift for fine steps.
@@ -950,6 +959,7 @@ Go back to showing the last edit
 Go back to the opening camera view
 Godot
 Godot, Unity, Unreal's OBJ import and Substance Painter
+Good
 Graphics: {} ({}, {}× smoothing)
 Grey tiles with a white border; the highlighted one fills with the accent colour
 Grid
@@ -1028,6 +1038,7 @@ How Unwrap lays pieces flat
 How big the bumps are, about from one to the next. Make it a few times the distance between the shape's points: bumps smaller than that can't show.
 How big the new end is, compared with where it started: 100% the same, less tapers it in (0% to a point), more flares it out.
 How big the picture is over the views
+How carefully occlusion and thickness are worked out: Best is smoothest and slowest
 How close points must be to weld: those nearer than this become one
 How deep each tooth is, from its tip to the gap between teeth
 How deep it is (along Y)
@@ -1130,6 +1141,7 @@ How much of the brush paints at full strength: 100% has a crisp edge, 0% fades f
 How much paint one stroke lays on. Within a stroke paint doesn't pile up; stroke again to build it up. Ctrl + left drag (sideways) changes it
 How much the biggest polygon at a point wins over the smaller ones. 0%: each counts by its weight alone; 100%: only the biggest counts, so big faces shade perfectly flat
 How much wider the shape gets towards the far end of the limits: -50% makes it half as wide there, -100% a point, 100% twice as wide. The centre keeps its size.
+How open each part is to the light around it: dark in corners and creases
 How shapes are drawn: shaded, with wires, or wireframe
 How sharply the Subdivide modifier keeps these edges: 0 smooths them like any other, 1 keeps them fully sharp, 0.5 sharp for half the levels
 How sizes are shown and typed. Each project keeps its own, saved with it; only the display changes, never the shapes. Also switched in the Attributes panel's Units menu.
@@ -1163,6 +1175,7 @@ Hue
 Hue shift
 Hue shift stroke
 I know what I'm doing, proceed
+ID
 Icosphere
 Image
 Images
@@ -1310,7 +1323,9 @@ Levels
 Levels for export
 Levels of detail
 Lift each copy off the surface along its outward direction, or sink it in below 0 (a copy stands on its pivot: put a shape's pivot at its foot)
+Light along outer edges, dark along inner ones: where wear and dirt go
 Light touches already paint well
+Light where the shape is thin, dark where thick
 Lightens: good for highlights and glow (black does nothing)
 Lightness {:.0}%
 Like Keep shapes, but the angles are first evened out over the whole piece, so curved pieces (a head, a dome) drift less. A little slower.
@@ -1541,7 +1556,9 @@ None chosen
 None yet
 None yet: make them in the Levels panel.
 Normal
+Normals
 Norwegian
+Not baked yet: Bake maps works them out from the shape.
 Not inside a Godot, Unity, Unreal Engine or Solis project: exported with {}'s settings (Made for picks which).
 Not split into parts: {}. It collides as one wrapped shape instead.
 Not used.
@@ -1553,6 +1570,7 @@ Nothing is selected
 Nothing matches.
 Nothing selected
 Nothing selected: back in the Model mode. Click a shape to select it.
+Nothing shown uses this material: nothing to bake.
 Nothing to bake into the shape: groups and meshes have no settings to bake
 Nothing to do: {}.
 Nothing to export: nothing shown is a shape.
@@ -1576,6 +1594,7 @@ Object settings
 Object smoothed by angle
 Object to world origin
 Objects
+Occlusion
 Off
 Off (standard): with nothing selected in the Points, Edges or Polygons mode, click a shape to select it and carry on in the mode. On: selecting nothing there goes back to the Model mode, where a click selects a shape.
 Off as standard: right-clicks in the viewport then do nothing
@@ -1643,6 +1662,7 @@ Orbit, pan and zoom with a left, middle or right drag (standard navigation)
 Orbit, pan, zoom
 Orthographic
 Other:
+Out of date: the shape or texture size changed since. Bake again.
 Outer radius
 Outline every object's collision shapes (Wrapped, Wrapped in parts, A box), as a game engine will make them. Off, only the selected objects' are outlined.
 Outline every object's collision shapes, not only the selected objects'
@@ -2637,6 +2657,7 @@ When on, the box, lasso and brush only select what you can see. When off (the st
 Where along the axis it works, from 0% (the shape's lowest point along it) to 100% (its highest). Past the limits the shape carries on unchanged, as the limit leaves it: keep a bend to the top half with 50% to 100%.
 Where closed pieces are cut open, and the stretch budget: Seam suggestions.
 Where cuts go that only make a piece lie flat (Suggest seams, and Unwrap on a closed piece)
+Where each part is on the shape: red across, green front to back, blue up
 Where joined pieces' UVs don't meet, mark the join as a UV seam, so a later Unwrap keeps the pieces as they are laid out
 Where the centre is, from the shape's pivot. The shape bends, twists and tapers away from the centre, which stays where it is: move it (or the pivot) to bend from somewhere else.
 Where the copies go: one on each point, one on the middle of each polygon, or a number spread at random, evenly by area
@@ -2658,6 +2679,7 @@ Which of the curve's own axes it spins round, through its pivot
 Which of the shape's own axes it works along. Z, up, bends a standing shape over, and twists and tapers it from bottom to top. The helper line in the viewport shows it.
 Which of the shape's own axes runs along the curve: its longest side, or X, Y or Z. The shape's start along it goes to the curve's start.
 Which of the shape's own axes the ring turns round. Z, up, lays it on the ground
+Which way each part faces: blue up, red and green sideways
 Which way it bends, turned round the axis: 0° bends towards the next axis round (Z towards X, X towards Y, Y towards Z), 90° a quarter turn on from there.
 Which way round it turns: 0° turns up (an upright pipe turns towards +X), and it goes round from there.
 Which way the points are pushed: out from the surface (along its normals), or straight along one of the shape's own axes, such as Z for ground and terrain.
@@ -2688,6 +2710,7 @@ Work on points (vertices)
 Work on polygons (faces)
 Work on whole objects
 Work on whole objects' pivots: the gizmo moves and turns the pivot, not the shape
+Work out maps of the shape (occlusion, curvature and others) for the texture set: guides for painting light, shade and wear
 Worked out first to last, after the edits, booleans and mirror. Click one, here or under the object in the Objects panel, to see its settings. Bake into shape (Ctrl + E) makes those that are on part of the shape for good.
 Works on objects in the Model mode: select some first
 World

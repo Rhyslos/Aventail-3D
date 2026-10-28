@@ -237,6 +237,8 @@ Plain-language explanations of the ideas Aventail 3D is built around. Other page
 
 **Paint that follows the model** — Paint belongs to the polygons it was painted on: when modelling or UV work moves polygons on the texture, the paint moves with them. See [Painting textures](painting-textures.md#paint-follows-the-model).
 
+**Baked map (bake)** — A picture worked out from the shape, laid on it through its UVs like paint: where light can't reach (**occlusion**, or ambient occlusion), where edges stick out or go in (**curvature**), how thick the shape is, which way it faces. Painters use them as guides for light, shade, dirt and wear. See [Painting textures](painting-textures.md#bakes).
+
 **Mirror painting** — Painting one side of a symmetrical model and having the brush paint the other side at the same time, reflected across one of the object's axes. See [Painting textures](painting-textures.md#mirror-painting).
 
 **Pen pressure** — How hard a tablet pen presses, from a light touch to a firm press. The brush can grow or lay on more paint as you press harder, the way a real brush does. See [Painting textures](painting-textures.md#painting-with-a-pen).

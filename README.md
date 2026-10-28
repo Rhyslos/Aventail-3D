@@ -296,9 +296,9 @@ Next after the rework, ahead of the rest of the UV phase ([decision 0125](docs/d
 
 </details>
 
-### Phase 11 · Texture painting (now, before the rest of Phase 8) — 13 of 33
+### Phase 11 · Texture painting (now, before the rest of Phase 8) — 14 of 33
 
-`█████░░░░░░░░` 39%
+`█████░░░░░░░░` 42%
 
 Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177-texture-painter-plan.md); working plan in [docs/plans/phase-11.md](docs/plans/phase-11.md)): a texture painter like Substance Painter in most ways, hand-painted work first, with what only an app that owns the modelling and UVs can do (paint that survives modelling, re-packing and resizing). Paint mode shows the 3D view and the UV Editor side by side, the brushes along the bottom, and brush and colour settings in Attributes.
 
@@ -318,7 +318,7 @@ Planned with the project lead on 28 October ([decision 0177](docs/decisions/0177
 - [x] Paint survives modelling: paint moves with its polygons after modelling and UV work ([decision 0189](docs/decisions/0189-paint-follows-the-model.md))
 - [x] Re-pack or re-unwrap without losing paint ([decision 0190](docs/decisions/0190-repack-and-unwrap-keep-paint.md))
 - [x] Change texture size without blur: strokes painted again at the new size ([decision 0191](docs/decisions/0191-texture-size-without-blur.md))
-- [ ] The baker: position, normals, AO, curvature, ID and thickness from the shape itself
+- [x] The baker: position, normals, AO, curvature, ID and thickness from the shape itself ([decision 0192](docs/decisions/0192-the-baker.md))
 - [ ] Bakes as guides
 - [ ] Gradient fills
 - [ ] Smart masks: edges, cavities, facing up, height, noise

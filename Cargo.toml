@@ -22,6 +22,7 @@ mesh = { path = "crates/mesh" }
 uv = { path = "crates/uv" }
 booleans = { path = "crates/booleans" }
 paint = { path = "crates/paint" }
+bake = { path = "crates/bake" }
 scene = { path = "crates/scene" }
 config = { path = "crates/config" }
 fileio = { path = "crates/fileio" }

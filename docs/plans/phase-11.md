@@ -29,9 +29,10 @@ The project lead gave a standing OK (2026-10-28): **each pull request is merged 
 | 10 | Speed and big textures | #188 | [0188](../decisions/0188-speed-with-big-textures.md) | 71 |
 | 11 | Paint survives modelling | #189 | [0189](../decisions/0189-paint-follows-the-model.md) | 71 |
 | 12 | Re-pack or re-unwrap without losing paint | #190 | [0190](../decisions/0190-repack-and-unwrap-keep-paint.md) | 71 |
-| 13 | Change texture size without blur | see the PR list | [0191](../decisions/0191-texture-size-without-blur.md) | 71 |
+| 13 | Change texture size without blur | #191 | [0191](../decisions/0191-texture-size-without-blur.md) | 71 |
+| 14 | The baker | see the PR list | [0192](../decisions/0192-the-baker.md) | 71 |
 
-Next decision: 0192. Next file format: 72.
+Next decision: 0193. Next file format: 72.
 
 Milestone 8 is two pull requests: the brush bar and tips, then the effect brushes (smudge, blend, blur, hue shift), projection and clone.
 
