@@ -175,12 +175,12 @@ impl TabViewer for PanelViewer<'_> {
                             *self.note = Some(crate::trf!("Kept the brush {}.", preset.name));
                             self.saved_brushes.push(preset);
                         }
-                        Some(crate::brush_bar::SavedChange::Remove(i)) => {
-                            if i < self.saved_brushes.len() {
-                                self.saved_brushes.remove(i);
-                            }
+                        Some(crate::brush_bar::SavedChange::Remove(i))
+                            if i < self.saved_brushes.len() =>
+                        {
+                            self.saved_brushes.remove(i);
                         }
-                        None => {}
+                        Some(crate::brush_bar::SavedChange::Remove(_)) | None => {}
                     }
                 }
                 Panel::Levels => {

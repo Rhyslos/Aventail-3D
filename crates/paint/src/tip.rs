@@ -198,7 +198,7 @@ mod tests {
         for y in 0..40u32 {
             for x in 0..40u32 {
                 let offset = Vec2::new(x as f32 - 20.0, y as f32 - 20.0);
-                let round = (1.0 - offset.length() / 20.0).max(0.0).min(1.0);
+                let round = (1.0 - offset.length() / 20.0).clamp(0.0, 1.0);
                 if tip.weight(offset, 20.0, 0.0, 3, (x, y), round) > 0.05 {
                     touched += 1;
                 }
